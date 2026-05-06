@@ -279,6 +279,51 @@ def test_save_view_writes_into_views_dir(client, clean_workspace_root):
 
 
 # ---------------------------------------------------------------------------
+# Sandbox read route
+# ---------------------------------------------------------------------------
+
+
+def test_read_sandbox_file_returns_existing_content(client, clean_workspace_root):
+    notes_dir = get_agent_sandbox_path("ws_a", "notes")
+    notes_dir.mkdir(parents=True, exist_ok=True)
+    (notes_dir / "exposure.md").write_text("# Exposure review", encoding="utf-8")
+
+    r = client.get("/api/agent_sandbox/read/ws_a/notes/exposure.md")
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["workspace"] == "ws_a"
+    assert payload["subdir"] == "notes"
+    assert payload["filename"] == "exposure.md"
+    assert payload["content"] == "# Exposure review"
+    assert payload["bytes"] == len("# Exposure review".encode("utf-8"))
+
+
+def test_read_sandbox_file_404_when_missing(client, clean_workspace_root):
+    r = client.get("/api/agent_sandbox/read/ws_a/notes/missing.md")
+    assert r.status_code == 404
+    assert "does not exist" in r.json()["detail"]
+
+
+@pytest.mark.parametrize(
+    "bad_filename",
+    [
+        "../escape.txt",
+        "sub/dir.txt",
+        "sub\\dir.txt",
+        ".hidden",
+    ],
+)
+def test_read_sandbox_file_rejects_path_traversal(client, clean_workspace_root, bad_filename):
+    r = client.get(f"/api/agent_sandbox/read/ws_a/notes/{bad_filename}")
+    assert r.status_code in {400, 404}
+
+
+def test_read_sandbox_file_rejects_unknown_subdir(client, clean_workspace_root):
+    r = client.get("/api/agent_sandbox/read/ws_a/not_a_subdir/foo.md")
+    assert r.status_code == 422  # FastAPI rejects via Literal type
+
+
+# ---------------------------------------------------------------------------
 # Widget registry
 # ---------------------------------------------------------------------------
 

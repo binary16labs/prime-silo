@@ -75,6 +75,46 @@ async def list_sandbox(workspace: str, subdir: SubdirLiteral) -> dict:
     return {"workspace": workspace, "subdir": subdir, "entries": entries}
 
 
+@router.get("/read/{workspace}/{subdir}/{filename}")
+async def read_sandbox_file(
+    workspace: str, subdir: SubdirLiteral, filename: str
+) -> dict:
+    """Return the UTF-8 contents of a sandbox file.
+
+    Read-only counterpart of :func:`write_sandbox_file`. Path validation is
+    identical: the resolved target must stay inside the workspace's
+    ``agent_sandbox/`` subtree, the filename must be a single component
+    without path separators or leading ``.``, and the file must already
+    exist (no implicit creation).
+    """
+    _validate_filename(filename)
+
+    subdir_path = get_agent_sandbox_path(workspace, subdir)
+    target = (subdir_path / filename).resolve()
+
+    if not is_within_agent_sandbox(workspace, target):
+        raise HTTPException(
+            status_code=400,
+            detail="Resolved path escapes the agent sandbox subtree.",
+        )
+
+    if not target.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail=f"agent_sandbox/{subdir}/{filename} does not exist.",
+        )
+
+    content = target.read_text(encoding="utf-8")
+    return {
+        "workspace": workspace,
+        "subdir": subdir,
+        "filename": filename,
+        "relative_path": f"agent_sandbox/{subdir}/{filename}",
+        "content": content,
+        "bytes": len(content.encode("utf-8")),
+    }
+
+
 @router.post("/write", response_model=SandboxWriteResponse)
 async def write_sandbox_file(req: SandboxWriteRequest) -> SandboxWriteResponse:
     """Write a UTF-8 text file into ``agent_sandbox/<subdir>/``.
