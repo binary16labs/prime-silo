@@ -1,0 +1,682 @@
+{
+  "$defs": {
+    "InputSpec": {
+      "properties": {
+        "files": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Files",
+          "type": "array"
+        },
+        "context": {
+          "additionalProperties": true,
+          "title": "Context",
+          "type": "object"
+        }
+      },
+      "title": "InputSpec",
+      "type": "object"
+    },
+    "ManifestConfig": {
+      "description": "Execution-time configuration.",
+      "properties": {
+        "model": {
+          "default": "",
+          "title": "Model",
+          "type": "string"
+        },
+        "max_concurrency": {
+          "default": 1,
+          "title": "Max Concurrency",
+          "type": "integer"
+        },
+        "max_depth": {
+          "default": 3,
+          "title": "Max Depth",
+          "type": "integer"
+        },
+        "handover_summary_limit": {
+          "default": 500,
+          "title": "Handover Summary Limit",
+          "type": "integer"
+        },
+        "allow_swarm": {
+          "default": true,
+          "description": "If False, planner emits a linear sequence only (no fan-out).",
+          "title": "Allow Swarm",
+          "type": "boolean"
+        },
+        "skills_allowed": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Skills Allowed",
+          "type": "array"
+        },
+        "model_per_persona": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Model Per Persona",
+          "type": "object"
+        }
+      },
+      "title": "ManifestConfig",
+      "type": "object"
+    },
+    "ManifestEdge": {
+      "description": "Dependency edge between tasks (also used for canvas rendering).",
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "target": {
+          "title": "Target",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "animated": {
+          "default": true,
+          "title": "Animated",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "source",
+        "target"
+      ],
+      "title": "ManifestEdge",
+      "type": "object"
+    },
+    "ManifestPlan": {
+      "properties": {
+        "tasks": {
+          "items": {
+            "$ref": "#/$defs/ManifestTask"
+          },
+          "title": "Tasks",
+          "type": "array"
+        },
+        "edges": {
+          "items": {
+            "$ref": "#/$defs/ManifestEdge"
+          },
+          "title": "Edges",
+          "type": "array"
+        },
+        "waves": {
+          "description": "Computed: [[task_ids in wave 0], ...]",
+          "items": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": "Waves",
+          "type": "array"
+        },
+        "ascii_dag": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ascii Dag"
+        }
+      },
+      "title": "ManifestPlan",
+      "type": "object"
+    },
+    "ManifestTask": {
+      "description": "A single node in the workflow DAG.\n\nSubsumes `TaskItem` (runtime) and studio `NodeDefinition` (canvas).",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "skill_hint": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Skill Hint"
+        },
+        "assigned_skills": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Assigned Skills",
+          "type": "array"
+        },
+        "assigned_model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Assigned Model"
+        },
+        "dependencies": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Dependencies",
+          "type": "array"
+        },
+        "wave": {
+          "default": 0,
+          "title": "Wave",
+          "type": "integer"
+        },
+        "depth": {
+          "default": 0,
+          "title": "Depth",
+          "type": "integer"
+        },
+        "parent_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Id"
+        },
+        "is_pillar": {
+          "default": false,
+          "title": "Is Pillar",
+          "type": "boolean"
+        },
+        "is_expanded": {
+          "default": false,
+          "title": "Is Expanded",
+          "type": "boolean"
+        },
+        "deterministic": {
+          "default": false,
+          "title": "Deterministic",
+          "type": "boolean"
+        },
+        "skill_args": {
+          "additionalProperties": true,
+          "title": "Skill Args",
+          "type": "object"
+        },
+        "complexity": {
+          "default": "medium",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "title": "Complexity",
+          "type": "string"
+        },
+        "files_touched": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Files Touched",
+          "type": "array"
+        },
+        "estimated_tokens": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimated Tokens"
+        },
+        "status": {
+          "$ref": "#/$defs/TaskStatus",
+          "default": "pending"
+        },
+        "position": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "number"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Position"
+        },
+        "node_type": {
+          "default": "task",
+          "description": "Canvas hint: task | planner | orchestrator | aggregator | input | output",
+          "title": "Node Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "ManifestTask",
+      "type": "object"
+    },
+    "OutputFormat": {
+      "enum": [
+        "md",
+        "docx",
+        "pdf",
+        "html",
+        "code",
+        "json",
+        "txt"
+      ],
+      "title": "OutputFormat",
+      "type": "string"
+    },
+    "OutputSpec": {
+      "description": "What the workflow should produce.",
+      "properties": {
+        "files": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Files",
+          "type": "array"
+        },
+        "format": {
+          "$ref": "#/$defs/OutputFormat",
+          "default": "md"
+        },
+        "word_count_target": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Target word count for long-form outputs. Drives swarm fan-out.",
+          "title": "Word Count Target"
+        },
+        "sections": {
+          "description": "Optional section outline for structured outputs",
+          "items": {
+            "type": "string"
+          },
+          "title": "Sections",
+          "type": "array"
+        },
+        "spec": {
+          "default": "",
+          "description": "Free-form specification / acceptance criteria",
+          "title": "Spec",
+          "type": "string"
+        }
+      },
+      "title": "OutputSpec",
+      "type": "object"
+    },
+    "RunRecord": {
+      "description": "One execution of a manifest. Stored persistently for history/audit.",
+      "properties": {
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        },
+        "manifest_id": {
+          "title": "Manifest Id",
+          "type": "string"
+        },
+        "workspace": {
+          "default": "default",
+          "title": "Workspace",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/RunStatus",
+          "default": "pending"
+        },
+        "started_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Started At"
+        },
+        "completed_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Completed At"
+        },
+        "duration_ms": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration Ms"
+        },
+        "final_document": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Final Document"
+        },
+        "artifact_paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Artifact Paths",
+          "type": "array"
+        },
+        "node_states": {
+          "additionalProperties": {
+            "$ref": "#/$defs/TaskStatus"
+          },
+          "title": "Node States",
+          "type": "object"
+        },
+        "governance_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Governance Url"
+        },
+        "errors": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Errors",
+          "type": "array"
+        },
+        "trace_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Trace Id"
+        },
+        "manifest_snapshot": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Manifest Snapshot"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "run_id",
+        "manifest_id"
+      ],
+      "title": "RunRecord",
+      "type": "object"
+    },
+    "RunStatus": {
+      "enum": [
+        "pending",
+        "planning",
+        "running",
+        "completed",
+        "partial_success",
+        "failed",
+        "cancelled"
+      ],
+      "title": "RunStatus",
+      "type": "string"
+    },
+    "TaskStatus": {
+      "enum": [
+        "pending",
+        "running",
+        "completed",
+        "failed",
+        "skipped"
+      ],
+      "title": "TaskStatus",
+      "type": "string"
+    }
+  },
+  "description": "Benny declarative workflow manifest \u2014 schema version 1.1 (AOS-001 Phase 0 additive extension).",
+  "properties": {
+    "schema_version": {
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "description": {
+      "default": "",
+      "title": "Description",
+      "type": "string"
+    },
+    "requirement": {
+      "default": "",
+      "title": "Requirement",
+      "type": "string"
+    },
+    "workspace": {
+      "default": "default",
+      "title": "Workspace",
+      "type": "string"
+    },
+    "inputs": {
+      "$ref": "#/$defs/InputSpec"
+    },
+    "outputs": {
+      "$ref": "#/$defs/OutputSpec"
+    },
+    "plan": {
+      "$ref": "#/$defs/ManifestPlan"
+    },
+    "config": {
+      "$ref": "#/$defs/ManifestConfig"
+    },
+    "created_at": {
+      "title": "Created At",
+      "type": "string"
+    },
+    "updated_at": {
+      "title": "Updated At",
+      "type": "string"
+    },
+    "created_by": {
+      "default": "benny-planner",
+      "title": "Created By",
+      "type": "string"
+    },
+    "tags": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Tags",
+      "type": "array"
+    },
+    "metadata": {
+      "additionalProperties": true,
+      "title": "Metadata",
+      "type": "object"
+    },
+    "latest_run": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RunRecord"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "sdlc": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Sdlc"
+    },
+    "policy": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Policy"
+    },
+    "memory": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Memory"
+    },
+    "content_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Content Hash"
+    },
+    "signature": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Signature"
+    }
+  },
+  "required": [
+    "id",
+    "name"
+  ],
+  "title": "SwarmManifest v1.1 (AOS-001)",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

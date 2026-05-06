@@ -1,0 +1,57 @@
+{
+  "schema_version": "1.0",
+  "id": "wiki-swarm-002",
+  "name": "Documentation Wiki Generation",
+  "description": "Generates a comprehensive internal wiki for new developers.",
+  "requirement": "Create a 5,000-word developer onboarding wiki. Cover environment setup, core architecture, and swarm orchestration logic.",
+  "workspace": "default",
+  "inputs": {
+    "files": ["README.md", "docs/operations/", "pyproject.toml"]
+  },
+  "outputs": {
+    "files": ["WIKI.md"],
+    "format": "md",
+    "word_count_target": 5000,
+    "spec": "Format as a single long-form Markdown document with a Table of Contents."
+  },
+  "plan": {
+    "tasks": [
+      {
+        "id": "onboarding_1",
+        "description": "Extract setup steps from README and pyproject.toml",
+        "skill_hint": "research",
+        "wave": 0,
+        "complexity": "low"
+      },
+      {
+        "id": "arch_1",
+        "description": "Summarize core architecture from manifest_operating_manual.md",
+        "skill_hint": "summarization",
+        "wave": 0,
+        "complexity": "medium"
+      },
+      {
+        "id": "wiki_merge",
+        "description": "Merge all sections into a cohesive onboarding guide",
+        "skill_hint": "writer",
+        "dependencies": ["onboarding_1", "arch_1"],
+        "wave": 1,
+        "complexity": "high"
+      }
+    ],
+    "edges": [
+      { "source": "onboarding_1", "target": "wiki_merge" },
+      { "source": "arch_1", "target": "wiki_merge" }
+    ],
+    "waves": [
+      ["onboarding_1", "arch_1"],
+      ["wiki_merge"]
+    ]
+  },
+  "config": {
+    "model": "claude-3-opus",
+    "max_concurrency": 2,
+    "max_depth": 2,
+    "allow_swarm": true
+  }
+}

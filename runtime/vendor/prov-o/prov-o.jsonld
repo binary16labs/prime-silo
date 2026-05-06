@@ -1,0 +1,42 @@
+{
+  "@context": {
+    "prov":    "http://www.w3.org/ns/prov#",
+    "xsd":     "http://www.w3.org/2001/XMLSchema#",
+    "rdfs":    "http://www.w3.org/2000/01/rdf-schema#",
+    "benny":   "https://benny.io/ontology/",
+
+    "prov:Activity":             {"@id": "prov:Activity"},
+    "prov:Entity":               {"@id": "prov:Entity"},
+    "prov:Agent":                {"@id": "prov:Agent"},
+    "prov:SoftwareAgent":        {"@id": "prov:SoftwareAgent"},
+
+    "prov:used":                 {"@id": "prov:used",                 "@type": "@id"},
+    "prov:generated":            {"@id": "prov:generated",            "@type": "@id"},
+    "prov:wasGeneratedBy":       {"@id": "prov:wasGeneratedBy",       "@type": "@id"},
+    "prov:wasAttributedTo":      {"@id": "prov:wasAttributedTo",      "@type": "@id"},
+    "prov:wasAssociatedWith":    {"@id": "prov:wasAssociatedWith",    "@type": "@id"},
+    "prov:wasDerivedFrom":       {"@id": "prov:wasDerivedFrom",       "@type": "@id"},
+    "prov:hadMember":            {"@id": "prov:hadMember",            "@type": "@id"},
+
+    "prov:startedAtTime":        {"@id": "prov:startedAtTime",  "@type": "xsd:dateTime"},
+    "prov:endedAtTime":          {"@id": "prov:endedAtTime",    "@type": "xsd:dateTime"},
+    "prov:generatedAtTime":      {"@id": "prov:generatedAtTime","@type": "xsd:dateTime"},
+    "prov:invalidatedAtTime":    {"@id": "prov:invalidatedAtTime","@type": "xsd:dateTime"},
+
+    "prov:value":                {"@id": "prov:value"},
+    "prov:atLocation":           {"@id": "prov:atLocation"},
+    "prov:label":                {"@id": "rdfs:label"},
+
+    "benny:prompt_hash":         {"@id": "benny:prompt_hash"},
+    "benny:reasoning_hash":      {"@id": "benny:reasoning_hash"},
+    "benny:adr_refs":            {"@id": "benny:adr_refs",       "@container": "@list"},
+    "benny:policy_decision":     {"@id": "benny:policy_decision"},
+    "benny:cde_refs":            {"@id": "benny:cde_refs",       "@container": "@list"},
+    "benny:model":               {"@id": "benny:model"},
+    "benny:model_hash":          {"@id": "benny:model_hash"},
+    "benny:stage":               {"@id": "benny:stage"},
+    "benny:manifest_id":         {"@id": "benny:manifest_id"},
+    "benny:columns_used":        {"@id": "benny:columns_used",   "@container": "@list"},
+    "benny:columns_generated":   {"@id": "benny:columns_generated","@container": "@list"}
+  }
+}

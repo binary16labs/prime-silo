@@ -1,0 +1,93 @@
+{
+  "_comment": "Benny workspace bootstrap config. Every value is a tunable default for `benny workspace new` and `benny enrich`. Edit anything, save, re-run. All defaults below reflect the lessons from the c5_test runs through 289b33b44d92.",
+  "schema_version": "1.0",
+
+  "workspace": {
+    "name": "c6_test",
+    "description": "Fresh workspace bootstrapped with HNSW-correlation defaults",
+    "source_subdir": "src",
+    "staging_subdir": "staging",
+    "data_in_subdir": "data_in",
+    "data_out_subdir": "data_out",
+    "runs_subdir": "runs"
+  },
+
+  "model": {
+    "provider": "lemonade",
+    "id": "lemonade/qwen3-tk-4b-FLM",
+    "embedding_model": "nomic-embed-text-v1-GGUF",
+    "api_base": "http://localhost:8000/api/v1"
+  },
+
+  "correlation": {
+    "_doc_threshold":      "Cosine similarity cutoff. 0.70 produced ~36x noise tail on c5_test; 0.82 keeps only the right-tail signal. Raise to 0.85 if you still see noise; drop to 0.78 if you see orphans.",
+    "_doc_top_k":          "Max symbol matches kept per concept. Hard-caps edges at N_concepts * top_k (e.g. 500 concepts * 32 = 16k edges). Raise for recall, lower for precision.",
+    "_doc_use_ann":        "When hnswlib is installed, use HNSW approximate kNN (sub-linear). The numpy fallback still applies top_k, so this is a speedup, not a correctness switch.",
+    "_doc_strategy":       "'safe' = exact-name match only (zero false positives). 'aggressive' = embedding cosine + safe. Aggressive is the default because safe alone misses semantic matches.",
+    "threshold":           0.82,
+    "top_k_per_concept":   32,
+    "use_ann":             true,
+    "strategy":            "aggressive",
+    "hnsw": {
+      "ef_construction": 200,
+      "M":               16,
+      "ef_query_multiplier": 2
+    }
+  },
+
+  "ingest": {
+    "_doc":                "Chunk + embed → ChromaDB. deep_synthesis=false keeps ingest fast; Wave 2 runs synthesis separately.",
+    "deep_synthesis":      false,
+    "chunk_size":          500,
+    "force_reingest":      false
+  },
+
+  "pipeline": {
+    "_doc_waves":            "Fixed DAG: wave 0 = pdf_extract + code_scan, wave 1 = rag_ingest, wave 2 = deep_synthesis, wave 3 = semantic_correlate, wave 4 = validate, wave 5 = generate_report.",
+    "manifest_template":     "manifests/templates/knowledge_enrichment_pipeline.json",
+    "resume_skip_statuses":  ["done", "completed", "completed_after_timeout", "reused"],
+    "always_rerun_tasks":    ["generate_report"],
+
+    "timeouts_seconds": {
+      "pdf_extract":        90,
+      "code_scan_start":    90,
+      "code_scan_poll":     { "interval": 5, "max_attempts": 72 },
+      "rag_ingest":         1800,
+      "deep_synthesis":     1800,
+      "semantic_correlate": 1800,
+      "validate":           60,
+      "report":             30
+    },
+
+    "fallbacks": {
+      "_doc":                "If a synchronous endpoint's read timeout expires, poll the task manager by task type. If that doesn't surface a completion, probe the graph directly for the expected edges/nodes.",
+      "rag_ingest":         { "task_lookup": "/api/tasks/tasks/{run_id}" },
+      "deep_synthesis":     { "task_list_filter": ["synthesis"] },
+      "semantic_correlate": {
+        "task_list_filter": ["correlat", "spark", "link"],
+        "graph_probe":      { "path": "/api/graph/code/lod", "expect_edge_type": "CORRELATES_WITH" }
+      }
+    }
+  },
+
+  "governance": {
+    "lineage_enabled":   true,
+    "lineage_endpoint":  "http://localhost:3010",
+    "gdpr_record":       true,
+    "audit_events":      true,
+    "sha256_seal":       true
+  },
+
+  "server": {
+    "api_base":          "http://127.0.0.1:8005",
+    "api_key_header":    "X-Benny-API-Key",
+    "api_key":           "benny-mesh-2026-auth",
+    "preflight_path":    "/api/system/pulse",
+    "preflight_timeout_seconds": 5
+  },
+
+  "host": {
+    "_doc":              "Windows-specific: enrichment opens many sockets (Neo4j + Chroma + Marquez + httpx pool). The default SelectorEventLoop caps ~512 FDs and crashes; server.py forces WindowsProactorEventLoopPolicy on startup.",
+    "event_loop_policy": "WindowsProactorEventLoopPolicy"
+  }
+}

@@ -1,0 +1,218 @@
+{
+  "schema_version": "1.0",
+  "kind": "pypes_pipeline",
+  "id": "financial-risk-demo",
+  "name": "Market Risk — Counterparty Exposure (Demo)",
+  "description": "End-to-end bronze → silver → gold pipeline that aggregates trade notionals into counterparty exposure, flags any trade that breaches a $100M limit, and emits a drill-downable financial risk report with CLP provenance. Mirrors the investment-bank walkthrough from requirements/9/pypes/requirements and is intentionally runnable without a real data lake — just `benny pypes run manifests/templates/financial_risk_pipeline.json`.",
+  "workspace": "pypes_demo",
+
+  "__doc": {
+    "variables": "`${name}` tokens are substituted at run-time from CLI `--var key=value` overrides, the `variables` block below, and environment variables.",
+    "clp": "Conceptual → Logical → Physical is the BCBS-239 backbone. Every column on a Gold step is tied back to a Logical attribute via `steps[].clp_binding`; drill-down reports attach this mapping automatically.",
+    "reports.kind": "Accepted kinds: financial_risk | threshold_breaches | move_analysis | generic_summary.",
+    "rerun": "After one successful run, try `benny pypes rerun <run_id> --from silver_trades` to re-execute from a later step while reusing prior checkpoints."
+  },
+
+  "governance": {
+    "compliance_tags": ["BCBS-239", "SOX"],
+    "owner": "Risk_Quant_Team",
+    "criticality": "high",
+    "pii_policy": "block"
+  },
+
+  "clp": {
+    "conceptual": [
+      {
+        "name": "Trade",
+        "description": "A single market trade from the front-office OLTP.",
+        "owner": "Front Office",
+        "compliance_tags": ["BCBS-239"]
+      },
+      {
+        "name": "Counterparty",
+        "description": "Legal entity on the other side of the trade.",
+        "owner": "Client Reference",
+        "compliance_tags": ["BCBS-239"]
+      },
+      {
+        "name": "CounterpartyExposure",
+        "description": "Gold-layer aggregate: total USD exposure per counterparty per trade day.",
+        "owner": "Market Risk",
+        "compliance_tags": ["BCBS-239"]
+      }
+    ],
+    "logical": [
+      {
+        "entity": "Trade",
+        "fields": [
+          { "name": "trade_id",        "type": "string", "required": true,  "physical_column": "trade_id" },
+          { "name": "trade_date",      "type": "date",   "required": true,  "physical_column": "trade_date" },
+          { "name": "account_no",      "type": "string", "required": true,  "physical_column": "account_no" },
+          { "name": "counterparty_id", "type": "string", "required": true,  "physical_column": "counterparty_id" },
+          { "name": "notional",        "type": "float",  "required": true,  "physical_column": "notional",
+            "threshold": { "field": "notional", "max": 100000000 } },
+          { "name": "ccy",             "type": "string", "required": true,  "physical_column": "ccy" },
+          { "name": "fx_rate",         "type": "float",  "required": true,  "physical_column": "fx_rate" }
+        ]
+      },
+      {
+        "entity": "CounterpartyExposure",
+        "fields": [
+          { "name": "counterparty_id", "type": "string", "required": true },
+          { "name": "trade_date",      "type": "date",   "required": true },
+          { "name": "total_exposure",  "type": "float",  "required": true,
+            "threshold": { "field": "total_exposure", "max": 500000000 } },
+          { "name": "trade_count",     "type": "int",    "required": true }
+        ]
+      }
+    ],
+    "physical": [
+      {
+        "entity": "Trade",
+        "uri_template": "data_in/trades.csv",
+        "format": "csv",
+        "primary_key": ["trade_id"]
+      },
+      {
+        "entity": "CounterpartyExposure",
+        "uri_template": "data_out/counterparty_exposure.parquet",
+        "format": "parquet",
+        "primary_key": ["counterparty_id", "trade_date"]
+      }
+    ]
+  },
+
+  "variables": {
+    "trades_source": "${benny_home}/manifests/templates/data/trades_sample.csv"
+  },
+
+  "steps": [
+    {
+      "id": "bronze_trades",
+      "description": "Ingest raw front-office trades. This step is the immutable audit anchor — do not filter or mutate here.",
+      "engine": "pandas",
+      "stage": "bronze",
+      "inputs": [],
+      "outputs": ["raw_trades"],
+      "source": { "uri": "${trades_source}", "format": "csv" },
+      "operations": [
+        { "operation": "load", "params": { "source_id": "FRONT_OFFICE" } }
+      ],
+      "post_validations": {
+        "completeness": ["trade_id", "trade_date", "account_no", "notional"],
+        "uniqueness":   ["trade_id"],
+        "row_count":    { "min": 1 }
+      },
+      "clp_binding": {
+        "trade_id": "Trade.trade_id",
+        "notional": "Trade.notional",
+        "counterparty_id": "Trade.counterparty_id"
+      }
+    },
+    {
+      "id": "silver_trades",
+      "description": "Cleanse the bronze trades: uppercase the account_no (vendor data is inconsistent), drop cancelled trades, and enforce the per-trade $100M notional limit.",
+      "engine": "pandas",
+      "stage": "silver",
+      "inputs": ["raw_trades"],
+      "outputs": ["cleansed_trades"],
+      "operations": [
+        { "operation": "standardize", "params": { "columns": ["account_no", "counterparty_id"], "case": "upper" } },
+        { "operation": "filter",      "params": { "column": "status", "op": "==", "value": "completed" } },
+        { "operation": "dedupe",      "params": { "subset": ["trade_id"] } }
+      ],
+      "post_validations": {
+        "completeness": ["trade_id", "counterparty_id", "notional", "fx_rate"],
+        "uniqueness":   ["trade_id"],
+        "thresholds":   [{ "field": "notional", "max": 100000000 }]
+      }
+    },
+    {
+      "id": "silver_trades_usd",
+      "description": "Convert trade notionals to USD using per-row fx_rate so every counterparty exposure is comparable regardless of trade currency.",
+      "engine": "pandas",
+      "stage": "silver",
+      "inputs": ["cleansed_trades"],
+      "outputs": ["usd_trades"],
+      "operations": [
+        { "operation": "calc", "params": { "target": "notional_usd", "expr": "notional * fx_rate" } }
+      ],
+      "post_validations": {
+        "completeness": ["notional_usd"],
+        "thresholds":   [{ "field": "notional_usd", "min": 0 }]
+      },
+      "clp_binding": {
+        "notional_usd": "Trade.notional"
+      }
+    },
+    {
+      "id": "gold_exposure",
+      "description": "Aggregate USD notionals by counterparty + trade_date — the Gold counterparty exposure view consumed by the risk mart.",
+      "engine": "pandas",
+      "stage": "gold",
+      "inputs": ["usd_trades"],
+      "outputs": ["counterparty_exposure"],
+      "operations": [
+        {
+          "operation": "aggregate",
+          "params": {
+            "group_by": ["counterparty_id", "trade_date"],
+            "metrics": {
+              "total_exposure": "sum(notional_usd)",
+              "trade_count":    "count(trade_id)",
+              "avg_ticket":     "mean(notional_usd)"
+            }
+          }
+        },
+        { "operation": "sort", "params": { "by": ["total_exposure"], "descending": true } }
+      ],
+      "destination": { "uri": "data_out/counterparty_exposure.parquet", "format": "parquet" },
+      "post_validations": {
+        "completeness": ["counterparty_id", "total_exposure"],
+        "thresholds":   [{ "field": "total_exposure", "max": 500000000 }],
+        "move_analysis": { "field": "total_exposure", "threshold_percent": 30 }
+      },
+      "clp_binding": {
+        "counterparty_id": "CounterpartyExposure.counterparty_id",
+        "trade_date":      "CounterpartyExposure.trade_date",
+        "total_exposure":  "CounterpartyExposure.total_exposure",
+        "trade_count":     "CounterpartyExposure.trade_count"
+      }
+    }
+  ],
+
+  "reports": [
+    {
+      "id": "counterparty_risk",
+      "title": "Market Risk — Counterparty Exposure",
+      "kind": "financial_risk",
+      "source_step": "gold_exposure",
+      "drill_down_by": ["counterparty_id"],
+      "metrics": { "total_exposure": "sum(total_exposure)", "trades": "sum(trade_count)" },
+      "format": "markdown",
+      "top_n": 25
+    },
+    {
+      "id": "breaches",
+      "title": "Threshold Breach Register",
+      "kind": "threshold_breaches",
+      "source_step": "silver_trades",
+      "format": "markdown"
+    },
+    {
+      "id": "exposure_move",
+      "title": "Counterparty Exposure — Move Analysis vs Prior Run",
+      "kind": "move_analysis",
+      "source_step": "gold_exposure",
+      "format": "markdown",
+      "top_n": 20
+    }
+  ],
+
+  "config": {
+    "default_engine": "pandas",
+    "max_concurrency": 2
+  },
+
+  "tags": ["pypes", "financial-risk", "demo"]
+}

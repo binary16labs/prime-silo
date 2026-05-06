@@ -1,0 +1,3268 @@
+{
+  "hooks\\useWorkflowStore.ts": {
+    "path": "hooks\\useWorkflowStore.ts",
+    "lines": 357,
+    "imports": [
+      "zustand",
+      "@xyflow/react",
+      "@xyflow/react"
+    ],
+    "declarations": [
+      {
+        "type": "Variable",
+        "name": "useWorkflowStore"
+      },
+      {
+        "type": "Variable",
+        "name": "inputEdges"
+      },
+      {
+        "type": "Variable",
+        "name": "outputEdges"
+      },
+      {
+        "type": "Variable",
+        "name": "nodesUpdated"
+      },
+      {
+        "type": "Variable",
+        "name": "nextNodes"
+      },
+      {
+        "type": "Variable",
+        "name": "nextStatus"
+      },
+      {
+        "type": "Variable",
+        "name": "status"
+      },
+      {
+        "type": "Variable",
+        "name": "tokens"
+      },
+      {
+        "type": "Variable",
+        "name": "updatedEvents"
+      },
+      {
+        "type": "Variable",
+        "name": "finalEvents"
+      },
+      {
+        "type": "Variable",
+        "name": "timers"
+      }
+    ],
+    "hooks": []
+  },
+  "components\\Studio\\nodes\\TriggerNode.tsx": {
+    "path": "components\\Studio\\nodes\\TriggerNode.tsx",
+    "lines": 76,
+    "imports": [
+      "@xyflow/react",
+      "lucide-react",
+      "../../../hooks/useWorkflowStore"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "TriggerNode"
+      },
+      {
+        "type": "Variable",
+        "name": "status"
+      },
+      {
+        "type": "Variable",
+        "name": "deleteNode"
+      },
+      {
+        "type": "Variable",
+        "name": "handleDelete"
+      },
+      {
+        "type": "Variable",
+        "name": "triggerType"
+      },
+      {
+        "type": "Variable",
+        "name": "triggerLabels"
+      }
+    ],
+    "hooks": [
+      "useWorkflowStore"
+    ]
+  },
+  "components\\Studio\\ReasoningTracePopover.tsx": {
+    "path": "components\\Studio\\ReasoningTracePopover.tsx",
+    "lines": 93,
+    "imports": [
+      "lucide-react",
+      "../../hooks/useWorkflowStore"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "ReasoningTracePopover"
+      },
+      {
+        "type": "Variable",
+        "name": "trace"
+      },
+      {
+        "type": "Variable",
+        "name": "sections"
+      }
+    ],
+    "hooks": [
+      "useWorkflowStore"
+    ]
+  },
+  "components\\Studio\\nodes\\LLMNode.tsx": {
+    "path": "components\\Studio\\nodes\\LLMNode.tsx",
+    "lines": 199,
+    "imports": [
+      "react",
+      "@xyflow/react",
+      "lucide-react",
+      "../../../hooks/useWorkflowStore",
+      "zustand/react/shallow",
+      "../ReasoningTracePopover"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "LLMNode"
+      },
+      {
+        "type": "Variable",
+        "name": "deleteNode"
+      },
+      {
+        "type": "Variable",
+        "name": "handleDelete"
+      }
+    ],
+    "hooks": [
+      "useWorkflowStore",
+      "useShallow"
+    ]
+  },
+  "components\\Studio\\nodes\\ToolNode.tsx": {
+    "path": "components\\Studio\\nodes\\ToolNode.tsx",
+    "lines": 104,
+    "imports": [
+      "@xyflow/react",
+      "lucide-react",
+      "../../../hooks/useWorkflowStore",
+      "../ReasoningTracePopover"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "ToolNode"
+      },
+      {
+        "type": "Variable",
+        "name": "status"
+      },
+      {
+        "type": "Variable",
+        "name": "output"
+      },
+      {
+        "type": "Variable",
+        "name": "deleteNode"
+      },
+      {
+        "type": "Variable",
+        "name": "handleDelete"
+      }
+    ],
+    "hooks": [
+      "useWorkflowStore"
+    ]
+  },
+  "components\\Studio\\nodes\\LogicNode.tsx": {
+    "path": "components\\Studio\\nodes\\LogicNode.tsx",
+    "lines": 90,
+    "imports": [
+      "@xyflow/react",
+      "lucide-react",
+      "../../../hooks/useWorkflowStore"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "LogicNode"
+      },
+      {
+        "type": "Variable",
+        "name": "status"
+      },
+      {
+        "type": "Variable",
+        "name": "deleteNode"
+      },
+      {
+        "type": "Variable",
+        "name": "handleDelete"
+      }
+    ],
+    "hooks": [
+      "useWorkflowStore"
+    ]
+  },
+  "components\\Studio\\nodes\\DataNode.tsx": {
+    "path": "components\\Studio\\nodes\\DataNode.tsx",
+    "lines": 105,
+    "imports": [
+      "@xyflow/react",
+      "lucide-react",
+      "../../../hooks/useWorkflowStore"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "DataNode"
+      },
+      {
+        "type": "Variable",
+        "name": "status"
+      },
+      {
+        "type": "Variable",
+        "name": "output"
+      },
+      {
+        "type": "Variable",
+        "name": "deleteNode"
+      },
+      {
+        "type": "Variable",
+        "name": "handleDelete"
+      },
+      {
+        "type": "Variable",
+        "name": "operationLabels"
+      }
+    ],
+    "hooks": [
+      "useWorkflowStore"
+    ]
+  },
+  "components\\Studio\\nodes\\A2ANode.tsx": {
+    "path": "components\\Studio\\nodes\\A2ANode.tsx",
+    "lines": 60,
+    "imports": [
+      "react",
+      "@xyflow/react",
+      "@xyflow/react",
+      "lucide-react"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "A2ANode"
+      },
+      {
+        "type": "Variable",
+        "name": "status"
+      },
+      {
+        "type": "Variable",
+        "name": "config"
+      }
+    ],
+    "hooks": []
+  },
+  "components\\Studio\\nodes\\InterventionNode.tsx": {
+    "path": "components\\Studio\\nodes\\InterventionNode.tsx",
+    "lines": 103,
+    "imports": [
+      "@xyflow/react",
+      "lucide-react",
+      "../ReasoningTracePopover"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "InterventionNode"
+      },
+      {
+        "type": "Variable",
+        "name": "isRunning"
+      },
+      {
+        "type": "Variable",
+        "name": "isSuccess"
+      },
+      {
+        "type": "Variable",
+        "name": "isError"
+      }
+    ],
+    "hooks": []
+  },
+  "constants.ts": {
+    "path": "constants.ts",
+    "lines": 5,
+    "imports": [],
+    "declarations": [
+      {
+        "type": "Variable",
+        "name": "API_BASE_URL"
+      },
+      {
+        "type": "Variable",
+        "name": "GOVERNANCE_HEADERS"
+      }
+    ],
+    "hooks": []
+  },
+  "components\\Studio\\LiveExecutionOverlay.tsx": {
+    "path": "components\\Studio\\LiveExecutionOverlay.tsx",
+    "lines": 269,
+    "imports": [
+      "react",
+      "zustand/react/shallow",
+      "../../hooks/useWorkflowStore",
+      "../../constants"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "LiveExecutionOverlay"
+      },
+      {
+        "type": "Variable",
+        "name": "eventSourceRef"
+      },
+      {
+        "type": "Variable",
+        "name": "url"
+      },
+      {
+        "type": "Variable",
+        "name": "eventSource"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "trace"
+      }
+    ],
+    "hooks": [
+      "useWorkflowStore",
+      "useShallow",
+      "useRef",
+      "useEffect"
+    ]
+  },
+  "components\\Studio\\HITLFormPanel.tsx": {
+    "path": "components\\Studio\\HITLFormPanel.tsx",
+    "lines": 223,
+    "imports": [
+      "react",
+      "lucide-react",
+      "../../hooks/useWorkflowStore",
+      "../../constants"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "HITLFormPanel"
+      },
+      {
+        "type": "Variable",
+        "name": "hitlData"
+      },
+      {
+        "type": "Variable",
+        "name": "executionRunId"
+      },
+      {
+        "type": "Variable",
+        "name": "setHitlPendingData"
+      },
+      {
+        "type": "Variable",
+        "name": "setExecutionPhase"
+      },
+      {
+        "type": "Variable",
+        "name": "handleDecision"
+      },
+      {
+        "type": "Variable",
+        "name": "response"
+      }
+    ],
+    "hooks": [
+      "useWorkflowStore",
+      "useState"
+    ]
+  },
+  "components\\Studio\\A2APulse.tsx": {
+    "path": "components\\Studio\\A2APulse.tsx",
+    "lines": 77,
+    "imports": [
+      "react",
+      "lucide-react",
+      "../../constants"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "A2APulse"
+      },
+      {
+        "type": "Variable",
+        "name": "fetchA2A"
+      },
+      {
+        "type": "Variable",
+        "name": "response"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "interval"
+      }
+    ],
+    "hooks": [
+      "useState",
+      "useEffect"
+    ]
+  },
+  "components\\Shared\\ErrorBoundary.tsx": {
+    "path": "components\\Shared\\ErrorBoundary.tsx",
+    "lines": 93,
+    "imports": [
+      "react",
+      "lucide-react"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "withErrorBoundary"
+      }
+    ],
+    "hooks": []
+  },
+  "components\\Studio\\WorkflowCanvas.tsx": {
+    "path": "components\\Studio\\WorkflowCanvas.tsx",
+    "lines": 179,
+    "imports": [
+      "react",
+      "@xyflow/react",
+      "@xyflow/react",
+      "@xyflow/react/dist/style.css",
+      "../../hooks/useWorkflowStore",
+      "./nodes/TriggerNode",
+      "./nodes/LLMNode",
+      "./nodes/ToolNode",
+      "./nodes/LogicNode",
+      "./nodes/DataNode",
+      "./nodes/A2ANode",
+      "./nodes/InterventionNode",
+      "./LiveExecutionOverlay",
+      "./HITLFormPanel",
+      "./A2APulse",
+      "../Shared/ErrorBoundary"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "WorkflowCanvas"
+      },
+      {
+        "type": "Variable",
+        "name": "nodes"
+      },
+      {
+        "type": "Variable",
+        "name": "edges"
+      },
+      {
+        "type": "Variable",
+        "name": "onNodesChange"
+      },
+      {
+        "type": "Variable",
+        "name": "onEdgesChange"
+      },
+      {
+        "type": "Variable",
+        "name": "onConnect"
+      },
+      {
+        "type": "Variable",
+        "name": "addNode"
+      },
+      {
+        "type": "Variable",
+        "name": "setSelectedNode"
+      },
+      {
+        "type": "Variable",
+        "name": "setSelectedEdge"
+      },
+      {
+        "type": "Variable",
+        "name": "deleteSelected"
+      },
+      {
+        "type": "Variable",
+        "name": "selectedNode"
+      },
+      {
+        "type": "Variable",
+        "name": "selectedEdge"
+      },
+      {
+        "type": "Variable",
+        "name": "nodeTypes"
+      },
+      {
+        "type": "Variable",
+        "name": "handleKeyDown"
+      },
+      {
+        "type": "Variable",
+        "name": "target"
+      },
+      {
+        "type": "Variable",
+        "name": "onDragOver"
+      },
+      {
+        "type": "Variable",
+        "name": "onDrop"
+      },
+      {
+        "type": "Variable",
+        "name": "type"
+      },
+      {
+        "type": "Variable",
+        "name": "label"
+      },
+      {
+        "type": "Variable",
+        "name": "position"
+      },
+      {
+        "type": "Variable",
+        "name": "newNode"
+      },
+      {
+        "type": "Variable",
+        "name": "onNodeClick"
+      },
+      {
+        "type": "Variable",
+        "name": "onEdgeClick"
+      },
+      {
+        "type": "Variable",
+        "name": "onPaneClick"
+      }
+    ],
+    "hooks": [
+      "useReactFlow",
+      "useWorkflowStore",
+      "useMemo",
+      "useEffect",
+      "useCallback"
+    ]
+  },
+  "components\\Studio\\NodePalette.tsx": {
+    "path": "components\\Studio\\NodePalette.tsx",
+    "lines": 87,
+    "imports": [
+      "lucide-react"
+    ],
+    "declarations": [
+      {
+        "type": "Variable",
+        "name": "nodeCategories"
+      },
+      {
+        "type": "Function",
+        "name": "NodePalette"
+      },
+      {
+        "type": "Variable",
+        "name": "onDragStart"
+      }
+    ],
+    "hooks": []
+  },
+  "hooks\\useLLMStatus.ts": {
+    "path": "hooks\\useLLMStatus.ts",
+    "lines": 74,
+    "imports": [
+      "react",
+      "../constants"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "useLLMStatus"
+      },
+      {
+        "type": "Variable",
+        "name": "fetchStatus"
+      },
+      {
+        "type": "Variable",
+        "name": "resp"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "interval"
+      },
+      {
+        "type": "Variable",
+        "name": "startProvider"
+      },
+      {
+        "type": "Variable",
+        "name": "stopProvider"
+      }
+    ],
+    "hooks": [
+      "useState",
+      "useCallback",
+      "useEffect"
+    ]
+  },
+  "hooks\\useWorkspaceStore.ts": {
+    "path": "hooks\\useWorkspaceStore.ts",
+    "lines": 177,
+    "imports": [
+      "zustand",
+      "../constants"
+    ],
+    "declarations": [
+      {
+        "type": "Variable",
+        "name": "useWorkspaceStore"
+      },
+      {
+        "type": "Variable",
+        "name": "response"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "rawList"
+      },
+      {
+        "type": "Variable",
+        "name": "workspaceList"
+      },
+      {
+        "type": "Variable",
+        "name": "response"
+      },
+      {
+        "type": "Variable",
+        "name": "response"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "response"
+      },
+      {
+        "type": "Variable",
+        "name": "response"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      }
+    ],
+    "hooks": []
+  },
+  "components\\Studio\\ConfigPanel.tsx": {
+    "path": "components\\Studio\\ConfigPanel.tsx",
+    "lines": 533,
+    "imports": [
+      "react",
+      "lucide-react",
+      "../../hooks/useWorkflowStore",
+      "../../hooks/useLLMStatus",
+      "../../hooks/useWorkspaceStore",
+      "../../constants"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "ConfigPanel"
+      },
+      {
+        "type": "Variable",
+        "name": "nodes"
+      },
+      {
+        "type": "Variable",
+        "name": "updateNodeData"
+      },
+      {
+        "type": "Variable",
+        "name": "setSelectedNode"
+      },
+      {
+        "type": "Variable",
+        "name": "deleteNode"
+      },
+      {
+        "type": "Variable",
+        "name": "getConnectedNodes"
+      },
+      {
+        "type": "Variable",
+        "name": "nodeOutputs"
+      },
+      {
+        "type": "Variable",
+        "name": "node"
+      },
+      {
+        "type": "Variable",
+        "name": "fetchSkills"
+      },
+      {
+        "type": "Variable",
+        "name": "res"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "runningProviders"
+      },
+      {
+        "type": "Variable",
+        "name": "node"
+      },
+      {
+        "type": "Variable",
+        "name": "output"
+      },
+      {
+        "type": "Variable",
+        "name": "connections"
+      },
+      {
+        "type": "Variable",
+        "name": "handleClose"
+      },
+      {
+        "type": "Variable",
+        "name": "handleDelete"
+      },
+      {
+        "type": "Variable",
+        "name": "handleLabelChange"
+      },
+      {
+        "type": "Variable",
+        "name": "handleConfigChange"
+      },
+      {
+        "type": "Variable",
+        "name": "isActive"
+      },
+      {
+        "type": "Variable",
+        "name": "cat"
+      },
+      {
+        "type": "Variable",
+        "name": "attachedSkills"
+      },
+      {
+        "type": "Variable",
+        "name": "isAttached"
+      },
+      {
+        "type": "Variable",
+        "name": "checked"
+      },
+      {
+        "type": "Variable",
+        "name": "currentSkills"
+      },
+      {
+        "type": "Variable",
+        "name": "url"
+      },
+      {
+        "type": "Variable",
+        "name": "res"
+      },
+      {
+        "type": "Variable",
+        "name": "card"
+      }
+    ],
+    "hooks": [
+      "useState",
+      "useWorkflowStore",
+      "useLLMStatus",
+      "useWorkspaceStore",
+      "useEffect"
+    ]
+  },
+  "components\\Studio\\WorkflowExportImport.tsx": {
+    "path": "components\\Studio\\WorkflowExportImport.tsx",
+    "lines": 153,
+    "imports": [
+      "react",
+      "lucide-react",
+      "../../hooks/useWorkflowStore"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "WorkflowExportImport"
+      },
+      {
+        "type": "Variable",
+        "name": "nodes"
+      },
+      {
+        "type": "Variable",
+        "name": "edges"
+      },
+      {
+        "type": "Variable",
+        "name": "setNodes"
+      },
+      {
+        "type": "Variable",
+        "name": "setEdges"
+      },
+      {
+        "type": "Variable",
+        "name": "fileInputRef"
+      },
+      {
+        "type": "Variable",
+        "name": "handleExport"
+      },
+      {
+        "type": "Variable",
+        "name": "exportData"
+      },
+      {
+        "type": "Variable",
+        "name": "json"
+      },
+      {
+        "type": "Variable",
+        "name": "blob"
+      },
+      {
+        "type": "Variable",
+        "name": "url"
+      },
+      {
+        "type": "Variable",
+        "name": "a"
+      },
+      {
+        "type": "Variable",
+        "name": "handleImport"
+      },
+      {
+        "type": "Variable",
+        "name": "file"
+      },
+      {
+        "type": "Variable",
+        "name": "reader"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      }
+    ],
+    "hooks": [
+      "useWorkflowStore",
+      "useRef"
+    ]
+  },
+  "components\\Studio\\ActiveLLMBadge.tsx": {
+    "path": "components\\Studio\\ActiveLLMBadge.tsx",
+    "lines": 39,
+    "imports": [
+      "../../hooks/useWorkspaceStore",
+      "../../hooks/useLLMStatus",
+      "lucide-react"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "ActiveLLMBadge"
+      },
+      {
+        "type": "Variable",
+        "name": "provider"
+      },
+      {
+        "type": "Variable",
+        "name": "isRunning"
+      },
+      {
+        "type": "Variable",
+        "name": "providerName"
+      },
+      {
+        "type": "Variable",
+        "name": "activeModel"
+      },
+      {
+        "type": "Variable",
+        "name": "displayModel"
+      }
+    ],
+    "hooks": [
+      "useWorkspaceStore",
+      "useLLMStatus"
+    ]
+  },
+  "components\\Studio\\ExecutionBar.tsx": {
+    "path": "components\\Studio\\ExecutionBar.tsx",
+    "lines": 352,
+    "imports": [
+      "react",
+      "lucide-react",
+      "../../hooks/useWorkflowStore",
+      "../../hooks/useWorkspaceStore",
+      "./WorkflowExportImport",
+      "./ActiveLLMBadge",
+      "../../constants"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "useAuditVerification"
+      },
+      {
+        "type": "Variable",
+        "name": "verify"
+      },
+      {
+        "type": "Variable",
+        "name": "response"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "interval"
+      },
+      {
+        "type": "Variable",
+        "name": "TrustBar"
+      },
+      {
+        "type": "Function",
+        "name": "ExecutionBar"
+      },
+      {
+        "type": "Variable",
+        "name": "activeModel"
+      },
+      {
+        "type": "Variable",
+        "name": "handleExecute"
+      },
+      {
+        "type": "Variable",
+        "name": "hasTrigger"
+      },
+      {
+        "type": "Variable",
+        "name": "message"
+      },
+      {
+        "type": "Variable",
+        "name": "prompted"
+      },
+      {
+        "type": "Variable",
+        "name": "response"
+      },
+      {
+        "type": "Variable",
+        "name": "result"
+      },
+      {
+        "type": "Variable",
+        "name": "errText"
+      },
+      {
+        "type": "Variable",
+        "name": "handleSwarmExecute"
+      },
+      {
+        "type": "Variable",
+        "name": "defaultPrompt"
+      },
+      {
+        "type": "Variable",
+        "name": "request"
+      },
+      {
+        "type": "Variable",
+        "name": "response"
+      },
+      {
+        "type": "Variable",
+        "name": "result"
+      },
+      {
+        "type": "Variable",
+        "name": "swarmNodes"
+      },
+      {
+        "type": "Variable",
+        "name": "swarmEdges"
+      },
+      {
+        "type": "Variable",
+        "name": "handleSave"
+      },
+      {
+        "type": "Variable",
+        "name": "name"
+      },
+      {
+        "type": "Variable",
+        "name": "response"
+      }
+    ],
+    "hooks": [
+      "useState",
+      "useEffect",
+      "useAuditVerification",
+      "useWorkspaceStore",
+      "useWorkflowStore"
+    ]
+  },
+  "components\\LLMManager\\LLMManager.tsx": {
+    "path": "components\\LLMManager\\LLMManager.tsx",
+    "lines": 168,
+    "imports": [
+      "../../hooks/useLLMStatus",
+      "../../hooks/useWorkspaceStore",
+      "lucide-react"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "LLMManager"
+      },
+      {
+        "type": "Variable",
+        "name": "isSelected"
+      },
+      {
+        "type": "Variable",
+        "name": "isProviderActive"
+      }
+    ],
+    "hooks": [
+      "useLLMStatus",
+      "useWorkspaceStore"
+    ]
+  },
+  "components\\Studio\\WorkflowList.tsx": {
+    "path": "components\\Studio\\WorkflowList.tsx",
+    "lines": 264,
+    "imports": [
+      "react",
+      "lucide-react",
+      "../../hooks/useWorkflowStore",
+      "../../hooks/useWorkspaceStore",
+      "../../constants"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "WorkflowList"
+      },
+      {
+        "type": "Variable",
+        "name": "setNodes"
+      },
+      {
+        "type": "Variable",
+        "name": "setEdges"
+      },
+      {
+        "type": "Variable",
+        "name": "setCurrentWorkflow"
+      },
+      {
+        "type": "Variable",
+        "name": "fetchWorkflows"
+      },
+      {
+        "type": "Variable",
+        "name": "response"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "workflowList"
+      },
+      {
+        "type": "Variable",
+        "name": "fetchRuns"
+      },
+      {
+        "type": "Variable",
+        "name": "response"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "runList"
+      },
+      {
+        "type": "Variable",
+        "name": "filteredWorkflows"
+      },
+      {
+        "type": "Variable",
+        "name": "isStrategy"
+      },
+      {
+        "type": "Variable",
+        "name": "isAgent"
+      },
+      {
+        "type": "Variable",
+        "name": "loadWorkflow"
+      },
+      {
+        "type": "Variable",
+        "name": "deleteWorkflow"
+      },
+      {
+        "type": "Variable",
+        "name": "formatDate"
+      },
+      {
+        "type": "Variable",
+        "name": "date"
+      },
+      {
+        "type": "Variable",
+        "name": "getStatusIcon"
+      }
+    ],
+    "hooks": [
+      "useState",
+      "useWorkflowStore",
+      "useWorkspaceStore",
+      "useEffect"
+    ]
+  },
+  "components\\Studio\\SourcePanel.tsx": {
+    "path": "components\\Studio\\SourcePanel.tsx",
+    "lines": 814,
+    "imports": [
+      "react",
+      "lucide-react",
+      "../../hooks/useWorkspaceStore",
+      "../../constants"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "DataManagementPanel"
+      },
+      {
+        "type": "Variable",
+        "name": "fileInputRef"
+      },
+      {
+        "type": "Variable",
+        "name": "logsEndRef"
+      },
+      {
+        "type": "Variable",
+        "name": "interval"
+      },
+      {
+        "type": "Variable",
+        "name": "res"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "tasks"
+      },
+      {
+        "type": "Variable",
+        "name": "isAnyRunning"
+      },
+      {
+        "type": "Variable",
+        "name": "fetchIndexedStatus"
+      },
+      {
+        "type": "Variable",
+        "name": "response"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "fetchFiles"
+      },
+      {
+        "type": "Variable",
+        "name": "response"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "handleDrop"
+      },
+      {
+        "type": "Variable",
+        "name": "files"
+      },
+      {
+        "type": "Variable",
+        "name": "handleFileSelect"
+      },
+      {
+        "type": "Variable",
+        "name": "files"
+      },
+      {
+        "type": "Variable",
+        "name": "processAndUploadFiles"
+      },
+      {
+        "type": "Variable",
+        "name": "shouldIndex"
+      },
+      {
+        "type": "Variable",
+        "name": "uploadedCurrent"
+      },
+      {
+        "type": "Variable",
+        "name": "formData"
+      },
+      {
+        "type": "Variable",
+        "name": "res"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "deleteFile"
+      },
+      {
+        "type": "Variable",
+        "name": "newActive"
+      },
+      {
+        "type": "Variable",
+        "name": "importFromUrl"
+      },
+      {
+        "type": "Variable",
+        "name": "url"
+      },
+      {
+        "type": "Variable",
+        "name": "uploadedFile"
+      },
+      {
+        "type": "Variable",
+        "name": "res"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "shouldIndex"
+      },
+      {
+        "type": "Variable",
+        "name": "importFromGutenberg"
+      },
+      {
+        "type": "Variable",
+        "name": "url"
+      },
+      {
+        "type": "Variable",
+        "name": "uploadedFile"
+      },
+      {
+        "type": "Variable",
+        "name": "res"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "shouldIndex"
+      },
+      {
+        "type": "Variable",
+        "name": "downloadFile"
+      },
+      {
+        "type": "Variable",
+        "name": "response"
+      },
+      {
+        "type": "Variable",
+        "name": "blob"
+      },
+      {
+        "type": "Variable",
+        "name": "url"
+      },
+      {
+        "type": "Variable",
+        "name": "a"
+      },
+      {
+        "type": "Variable",
+        "name": "toggleActive"
+      },
+      {
+        "type": "Variable",
+        "name": "newActive"
+      },
+      {
+        "type": "Variable",
+        "name": "ingestFiles"
+      },
+      {
+        "type": "Variable",
+        "name": "getFileIcon"
+      },
+      {
+        "type": "Variable",
+        "name": "ext"
+      },
+      {
+        "type": "Variable",
+        "name": "IngestionDashboard"
+      },
+      {
+        "type": "Variable",
+        "name": "stages"
+      },
+      {
+        "type": "Variable",
+        "name": "currentStage"
+      },
+      {
+        "type": "Variable",
+        "name": "currentIndex"
+      },
+      {
+        "type": "Variable",
+        "name": "isDone"
+      },
+      {
+        "type": "Variable",
+        "name": "isCurrent"
+      },
+      {
+        "type": "Variable",
+        "name": "isIndexed"
+      },
+      {
+        "type": "Variable",
+        "name": "isSelected"
+      }
+    ],
+    "hooks": [
+      "useWorkspaceStore",
+      "useState",
+      "useRef",
+      "useEffect"
+    ]
+  },
+  "components\\Studio\\ResultPanel.tsx": {
+    "path": "components\\Studio\\ResultPanel.tsx",
+    "lines": 56,
+    "imports": [
+      "lucide-react"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "ResultPanel"
+      }
+    ],
+    "hooks": []
+  },
+  "components\\Notebook\\NotebookChat.tsx": {
+    "path": "components\\Notebook\\NotebookChat.tsx",
+    "lines": 191,
+    "imports": [
+      "react",
+      "lucide-react",
+      "../../hooks/useWorkspaceStore",
+      "../../constants"
+    ],
+    "declarations": [
+      {
+        "type": "Variable",
+        "name": "NotebookChat"
+      },
+      {
+        "type": "Variable",
+        "name": "messagesEndRef"
+      },
+      {
+        "type": "Variable",
+        "name": "scrollToBottom"
+      },
+      {
+        "type": "Variable",
+        "name": "handleSend"
+      },
+      {
+        "type": "Variable",
+        "name": "userMessage"
+      },
+      {
+        "type": "Variable",
+        "name": "response"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "updated"
+      },
+      {
+        "type": "Variable",
+        "name": "lastIndex"
+      },
+      {
+        "type": "Variable",
+        "name": "updated"
+      },
+      {
+        "type": "Variable",
+        "name": "lastIndex"
+      }
+    ],
+    "hooks": [
+      "useWorkspaceStore",
+      "useState",
+      "useRef",
+      "useEffect"
+    ]
+  },
+  "components\\Notebook\\AnalysisView.tsx": {
+    "path": "components\\Notebook\\AnalysisView.tsx",
+    "lines": 364,
+    "imports": [
+      "react",
+      "lucide-react"
+    ],
+    "declarations": [
+      {
+        "type": "Variable",
+        "name": "AnalysisView"
+      }
+    ],
+    "hooks": []
+  },
+  "components\\Notebook\\ArtifactLibrary.tsx": {
+    "path": "components\\Notebook\\ArtifactLibrary.tsx",
+    "lines": 177,
+    "imports": [
+      "react",
+      "../../hooks/useWorkspaceStore",
+      "lucide-react"
+    ],
+    "declarations": [
+      {
+        "type": "Variable",
+        "name": "ArtifactLibrary"
+      },
+      {
+        "type": "Variable",
+        "name": "handleDelete"
+      },
+      {
+        "type": "Variable",
+        "name": "formatDate"
+      },
+      {
+        "type": "Variable",
+        "name": "d"
+      }
+    ],
+    "hooks": [
+      "useWorkspaceStore",
+      "useEffect"
+    ]
+  },
+  "components\\Notebook\\WorkspaceActivityLog.tsx": {
+    "path": "components\\Notebook\\WorkspaceActivityLog.tsx",
+    "lines": 134,
+    "imports": [
+      "react",
+      "../../hooks/useWorkspaceStore",
+      "lucide-react",
+      "../../constants"
+    ],
+    "declarations": [
+      {
+        "type": "Variable",
+        "name": "WorkspaceActivityLog"
+      },
+      {
+        "type": "Variable",
+        "name": "fetchTasks"
+      },
+      {
+        "type": "Variable",
+        "name": "response"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "interval"
+      }
+    ],
+    "hooks": [
+      "useWorkspaceStore",
+      "useState",
+      "useEffect"
+    ]
+  },
+  "components\\Notebook\\NotebookView.tsx": {
+    "path": "components\\Notebook\\NotebookView.tsx",
+    "lines": 130,
+    "imports": [
+      "react",
+      "../../hooks/useWorkspaceStore",
+      "./NotebookChat",
+      "./AnalysisView",
+      "./ArtifactLibrary",
+      "./WorkspaceActivityLog",
+      "lucide-react"
+    ],
+    "declarations": [
+      {
+        "type": "Variable",
+        "name": "NotebookView"
+      }
+    ],
+    "hooks": [
+      "useState",
+      "useWorkspaceStore"
+    ]
+  },
+  "components\\Notebook\\DocumentViewer.tsx": {
+    "path": "components\\Notebook\\DocumentViewer.tsx",
+    "lines": 136,
+    "imports": [
+      "react",
+      "../../hooks/useWorkspaceStore",
+      "../../constants",
+      "lucide-react",
+      "react-markdown",
+      "remark-gfm"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "DocumentViewer"
+      },
+      {
+        "type": "Variable",
+        "name": "fetchDocument"
+      },
+      {
+        "type": "Variable",
+        "name": "res"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "response"
+      },
+      {
+        "type": "Variable",
+        "name": "text"
+      },
+      {
+        "type": "Variable",
+        "name": "isMarkdown"
+      },
+      {
+        "type": "Variable",
+        "name": "isJson"
+      }
+    ],
+    "hooks": [
+      "useWorkspaceStore",
+      "useState",
+      "useEffect"
+    ]
+  },
+  "components\\Studio\\WaveTimeline.tsx": {
+    "path": "components\\Studio\\WaveTimeline.tsx",
+    "lines": 201,
+    "imports": [
+      "react",
+      "lucide-react"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "WaveTimeline"
+      },
+      {
+        "type": "Variable",
+        "name": "getTaskById"
+      },
+      {
+        "type": "Variable",
+        "name": "getStatusIcon"
+      },
+      {
+        "type": "Variable",
+        "name": "getWaveStatus"
+      },
+      {
+        "type": "Variable",
+        "name": "task"
+      },
+      {
+        "type": "Variable",
+        "name": "taskStatus"
+      }
+    ],
+    "hooks": [
+      "useState"
+    ]
+  },
+  "components\\Studio\\SwarmStatePanel.tsx": {
+    "path": "components\\Studio\\SwarmStatePanel.tsx",
+    "lines": 362,
+    "imports": [
+      "react",
+      "lucide-react",
+      "../../constants",
+      "./WaveTimeline"
+    ],
+    "declarations": [
+      {
+        "type": "Variable",
+        "name": "API_BASE"
+      },
+      {
+        "type": "Function",
+        "name": "SwarmStatePanel"
+      },
+      {
+        "type": "Variable",
+        "name": "fetchState"
+      },
+      {
+        "type": "Variable",
+        "name": "response"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "interval"
+      },
+      {
+        "type": "Variable",
+        "name": "getStatusIcon"
+      },
+      {
+        "type": "Variable",
+        "name": "getStatusColor"
+      },
+      {
+        "type": "Variable",
+        "name": "completedCount"
+      },
+      {
+        "type": "Variable",
+        "name": "failedCount"
+      },
+      {
+        "type": "Variable",
+        "name": "totalTasks"
+      },
+      {
+        "type": "Variable",
+        "name": "res"
+      },
+      {
+        "type": "Variable",
+        "name": "result"
+      },
+      {
+        "type": "Variable",
+        "name": "taskStatus"
+      }
+    ],
+    "hooks": [
+      "useState",
+      "useEffect"
+    ]
+  },
+  "components\\Studio\\SwarmConfigPanel.tsx": {
+    "path": "components\\Studio\\SwarmConfigPanel.tsx",
+    "lines": 123,
+    "imports": [
+      "lucide-react",
+      "../../hooks/useLLMStatus",
+      "../../hooks/useWorkspaceStore"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "SwarmConfigPanel"
+      },
+      {
+        "type": "Variable",
+        "name": "handleChange"
+      },
+      {
+        "type": "Variable",
+        "name": "runningProviders"
+      },
+      {
+        "type": "Variable",
+        "name": "isActive"
+      }
+    ],
+    "hooks": [
+      "useLLMStatus",
+      "useWorkspaceStore"
+    ]
+  },
+  "components\\Notebook\\KnowledgeGraphCanvas.tsx": {
+    "path": "components\\Notebook\\KnowledgeGraphCanvas.tsx",
+    "lines": 733,
+    "imports": [
+      "react",
+      "3d-force-graph",
+      "lucide-react",
+      "../../constants"
+    ],
+    "declarations": [
+      {
+        "type": "Variable",
+        "name": "EDGE_COLORS"
+      },
+      {
+        "type": "Variable",
+        "name": "NODE_COLORS"
+      },
+      {
+        "type": "Variable",
+        "name": "PERFORMANCE_NODE_THRESHOLD"
+      },
+      {
+        "type": "Function",
+        "name": "KnowledgeGraphCanvas"
+      },
+      {
+        "type": "Variable",
+        "name": "containerRef"
+      },
+      {
+        "type": "Variable",
+        "name": "graphRef"
+      },
+      {
+        "type": "Variable",
+        "name": "PAGE_SIZE"
+      },
+      {
+        "type": "Variable",
+        "name": "searchTimerRef"
+      },
+      {
+        "type": "Variable",
+        "name": "focusRef"
+      },
+      {
+        "type": "Variable",
+        "name": "isLargeGraph"
+      },
+      {
+        "type": "Variable",
+        "name": "fetchGraph"
+      },
+      {
+        "type": "Variable",
+        "name": "timestamp"
+      },
+      {
+        "type": "Variable",
+        "name": "graphUrl"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "handleIngestionSSE"
+      },
+      {
+        "type": "Variable",
+        "name": "eventSource"
+      },
+      {
+        "type": "Variable",
+        "name": "connected"
+      },
+      {
+        "type": "Variable",
+        "name": "src"
+      },
+      {
+        "type": "Variable",
+        "name": "tgt"
+      },
+      {
+        "type": "Variable",
+        "name": "ForceGraph3D_Lib"
+      },
+      {
+        "type": "Variable",
+        "name": "graph"
+      },
+      {
+        "type": "Variable",
+        "name": "typeLabel"
+      },
+      {
+        "type": "Variable",
+        "name": "typeLabel"
+      },
+      {
+        "type": "Variable",
+        "name": "baseSize"
+      },
+      {
+        "type": "Variable",
+        "name": "centralityBonus"
+      },
+      {
+        "type": "Variable",
+        "name": "baseOpacity"
+      },
+      {
+        "type": "Variable",
+        "name": "citationStr"
+      },
+      {
+        "type": "Variable",
+        "name": "sectionStr"
+      },
+      {
+        "type": "Variable",
+        "name": "confStr"
+      },
+      {
+        "type": "Variable",
+        "name": "distance"
+      },
+      {
+        "type": "Variable",
+        "name": "distRatio"
+      },
+      {
+        "type": "Variable",
+        "name": "links"
+      },
+      {
+        "type": "Variable",
+        "name": "resizeObserver"
+      },
+      {
+        "type": "Variable",
+        "name": "handleCrossDomain"
+      },
+      {
+        "type": "Variable",
+        "name": "res"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "handleExportJSON"
+      },
+      {
+        "type": "Variable",
+        "name": "blob"
+      },
+      {
+        "type": "Variable",
+        "name": "url"
+      },
+      {
+        "type": "Variable",
+        "name": "a"
+      },
+      {
+        "type": "Variable",
+        "name": "handleExportPNG"
+      },
+      {
+        "type": "Variable",
+        "name": "canvas"
+      },
+      {
+        "type": "Variable",
+        "name": "url"
+      },
+      {
+        "type": "Variable",
+        "name": "a"
+      },
+      {
+        "type": "Variable",
+        "name": "handleNextPage"
+      },
+      {
+        "type": "Variable",
+        "name": "nextPage"
+      },
+      {
+        "type": "Variable",
+        "name": "handlePrevPage"
+      },
+      {
+        "type": "Variable",
+        "name": "prevPage"
+      },
+      {
+        "type": "Variable",
+        "name": "handleShowAll"
+      },
+      {
+        "type": "Variable",
+        "name": "handleShowPaginated"
+      },
+      {
+        "type": "Variable",
+        "name": "srcName"
+      },
+      {
+        "type": "Variable",
+        "name": "tgtName"
+      },
+      {
+        "type": "Variable",
+        "name": "otherName"
+      },
+      {
+        "type": "Variable",
+        "name": "direction"
+      }
+    ],
+    "hooks": [
+      "useRef",
+      "useState",
+      "useEffect",
+      "useMemo",
+      "useCallback"
+    ]
+  },
+  "components\\Notebook\\SynthesisPanel.tsx": {
+    "path": "components\\Notebook\\SynthesisPanel.tsx",
+    "lines": 860,
+    "imports": [
+      "react",
+      "lucide-react",
+      "../../hooks/useWorkspaceStore",
+      "../../hooks/useLLMStatus",
+      "../../constants"
+    ],
+    "declarations": [
+      {
+        "type": "Variable",
+        "name": "SynthesisPanel"
+      },
+      {
+        "type": "Variable",
+        "name": "eventSourceRef"
+      },
+      {
+        "type": "Variable",
+        "name": "fetchStatusAndMapped"
+      },
+      {
+        "type": "Variable",
+        "name": "timestamp"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "connectSSE"
+      },
+      {
+        "type": "Variable",
+        "name": "progress"
+      },
+      {
+        "type": "Variable",
+        "name": "es"
+      },
+      {
+        "type": "Variable",
+        "name": "handleEvent"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "updated"
+      },
+      {
+        "type": "Variable",
+        "name": "handleRemoveFromGraph"
+      },
+      {
+        "type": "Variable",
+        "name": "res"
+      },
+      {
+        "type": "Variable",
+        "name": "handleIngest"
+      },
+      {
+        "type": "Variable",
+        "name": "res"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "err"
+      },
+      {
+        "type": "Variable",
+        "name": "handleIngestFiles"
+      },
+      {
+        "type": "Variable",
+        "name": "res"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "err"
+      },
+      {
+        "type": "Variable",
+        "name": "handleSynthesize"
+      },
+      {
+        "type": "Variable",
+        "name": "res"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "err"
+      },
+      {
+        "type": "Variable",
+        "name": "progressPct"
+      },
+      {
+        "type": "Variable",
+        "name": "isMapped"
+      }
+    ],
+    "hooks": [
+      "useWorkspaceStore",
+      "useLLMStatus",
+      "useState",
+      "useRef",
+      "useEffect"
+    ]
+  },
+  "components\\Admin\\GlobalAdminDashboard.tsx": {
+    "path": "components\\Admin\\GlobalAdminDashboard.tsx",
+    "lines": 233,
+    "imports": [
+      "react",
+      "lucide-react",
+      "../../constants"
+    ],
+    "declarations": [
+      {
+        "type": "Variable",
+        "name": "GlobalAdminDashboard"
+      },
+      {
+        "type": "Variable",
+        "name": "fetchTasks"
+      },
+      {
+        "type": "Variable",
+        "name": "response"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "interval"
+      },
+      {
+        "type": "Variable",
+        "name": "getStatusIcon"
+      }
+    ],
+    "hooks": [
+      "useState",
+      "useEffect"
+    ]
+  },
+  "components\\Studio\\ExecutionAuditHub.tsx": {
+    "path": "components\\Studio\\ExecutionAuditHub.tsx",
+    "lines": 220,
+    "imports": [
+      "react",
+      "../../hooks/useWorkflowStore",
+      "../../hooks/useWorkflowStore"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "ExecutionAuditHub"
+      },
+      {
+        "type": "Variable",
+        "name": "executionEvents"
+      },
+      {
+        "type": "Variable",
+        "name": "scrollRef"
+      },
+      {
+        "type": "Variable",
+        "name": "filteredEvents"
+      },
+      {
+        "type": "Variable",
+        "name": "totalTokens"
+      },
+      {
+        "type": "Variable",
+        "name": "toolCount"
+      },
+      {
+        "type": "Function",
+        "name": "SafeJSON"
+      },
+      {
+        "type": "Variable",
+        "name": "jsonString"
+      },
+      {
+        "type": "Variable",
+        "name": "preview"
+      },
+      {
+        "type": "Function",
+        "name": "EventItem"
+      }
+    ],
+    "hooks": [
+      "useWorkflowStore",
+      "useRef",
+      "useState",
+      "useEffect",
+      "useMemo"
+    ]
+  },
+  "components\\Studio\\V2WorkspaceSelector.tsx": {
+    "path": "components\\Studio\\V2WorkspaceSelector.tsx",
+    "lines": 81,
+    "imports": [
+      "react",
+      "../../hooks/useWorkspaceStore",
+      "lucide-react",
+      "framer-motion"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "V2WorkspaceSelector"
+      },
+      {
+        "type": "Variable",
+        "name": "displayId"
+      },
+      {
+        "type": "Variable",
+        "name": "wsId"
+      },
+      {
+        "type": "Variable",
+        "name": "isActive"
+      }
+    ],
+    "hooks": [
+      "useWorkspaceStore",
+      "useState",
+      "useEffect"
+    ]
+  },
+  "components\\Studio\\DynamicOverlay.tsx": {
+    "path": "components\\Studio\\DynamicOverlay.tsx",
+    "lines": 108,
+    "imports": [
+      "react",
+      "framer-motion",
+      "lucide-react"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "DynamicOverlay"
+      },
+      {
+        "type": "Variable",
+        "name": "containerRef"
+      },
+      {
+        "type": "Variable",
+        "name": "handleResizeStart"
+      },
+      {
+        "type": "Variable",
+        "name": "startX"
+      },
+      {
+        "type": "Variable",
+        "name": "startY"
+      },
+      {
+        "type": "Variable",
+        "name": "startWidth"
+      },
+      {
+        "type": "Variable",
+        "name": "startHeight"
+      },
+      {
+        "type": "Variable",
+        "name": "onMouseMove"
+      },
+      {
+        "type": "Variable",
+        "name": "newWidth"
+      },
+      {
+        "type": "Variable",
+        "name": "newHeight"
+      },
+      {
+        "type": "Variable",
+        "name": "onMouseUp"
+      }
+    ],
+    "hooks": [
+      "useState",
+      "useRef"
+    ]
+  },
+  "components\\Studio\\GraphManager.tsx": {
+    "path": "components\\Studio\\GraphManager.tsx",
+    "lines": 271,
+    "imports": [
+      "react",
+      "framer-motion",
+      "lucide-react",
+      "../../hooks/useWorkflowStore",
+      "../../hooks/useWorkspaceStore",
+      "./DynamicOverlay",
+      "../../constants"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "StatCard"
+      },
+      {
+        "type": "Function",
+        "name": "OverviewTab"
+      },
+      {
+        "type": "Function",
+        "name": "SourcesTab"
+      },
+      {
+        "type": "Function",
+        "name": "HistoryTab"
+      },
+      {
+        "type": "Function",
+        "name": "GraphManager"
+      },
+      {
+        "type": "Variable",
+        "name": "refreshData"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "handleDeleteSource"
+      },
+      {
+        "type": "Variable",
+        "name": "resp"
+      },
+      {
+        "type": "Variable",
+        "name": "handleDeleteRun"
+      },
+      {
+        "type": "Variable",
+        "name": "resp"
+      },
+      {
+        "type": "Variable",
+        "name": "handleOptimize"
+      }
+    ],
+    "hooks": [
+      "useWorkspaceStore",
+      "useState",
+      "useEffect"
+    ]
+  },
+  "components\\Studio\\GodModeHUD.tsx": {
+    "path": "components\\Studio\\GodModeHUD.tsx",
+    "lines": 278,
+    "imports": [
+      "lucide-react",
+      "react",
+      "framer-motion",
+      "../../hooks/useWorkflowStore",
+      "../../hooks/useWorkspaceStore",
+      "./V2WorkspaceSelector",
+      "./DynamicOverlay",
+      "./GraphManager"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "SonicWave"
+      },
+      {
+        "type": "Function",
+        "name": "SynapticStream"
+      },
+      {
+        "type": "Variable",
+        "name": "executionEvents"
+      },
+      {
+        "type": "Variable",
+        "name": "currentWorkspace"
+      },
+      {
+        "type": "Variable",
+        "name": "stream"
+      },
+      {
+        "type": "Variable",
+        "name": "baseStream"
+      },
+      {
+        "type": "Variable",
+        "name": "timestamp"
+      },
+      {
+        "type": "Variable",
+        "name": "addr"
+      },
+      {
+        "type": "Variable",
+        "name": "text"
+      },
+      {
+        "type": "Function",
+        "name": "GodModeHUD"
+      },
+      {
+        "type": "Variable",
+        "name": "activeRuns"
+      }
+    ],
+    "hooks": [
+      "useWorkflowStore",
+      "useWorkspaceStore",
+      "useMemo",
+      "useState"
+    ]
+  },
+  "components\\Studio\\SwarmCanvas3D.tsx": {
+    "path": "components\\Studio\\SwarmCanvas3D.tsx",
+    "lines": 266,
+    "imports": [
+      "react",
+      "@react-three/fiber",
+      "@react-three/drei",
+      "three",
+      "../../hooks/useWorkflowStore",
+      "../../hooks/useWorkspaceStore"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "DataShard"
+      },
+      {
+        "type": "Variable",
+        "name": "meshRef"
+      },
+      {
+        "type": "Function",
+        "name": "SubAgent"
+      },
+      {
+        "type": "Variable",
+        "name": "ref"
+      },
+      {
+        "type": "Variable",
+        "name": "glowRef"
+      },
+      {
+        "type": "Variable",
+        "name": "textRef"
+      },
+      {
+        "type": "Variable",
+        "name": "isActive"
+      },
+      {
+        "type": "Variable",
+        "name": "showDetail"
+      },
+      {
+        "type": "Variable",
+        "name": "t"
+      },
+      {
+        "type": "Variable",
+        "name": "radius"
+      },
+      {
+        "type": "Function",
+        "name": "SwarmCluster"
+      },
+      {
+        "type": "Variable",
+        "name": "groupRef"
+      },
+      {
+        "type": "Variable",
+        "name": "nodeLayouts"
+      },
+      {
+        "type": "Function",
+        "name": "SwarmCanvas3D"
+      },
+      {
+        "type": "Variable",
+        "name": "displayStatus"
+      },
+      {
+        "type": "Variable",
+        "name": "status"
+      },
+      {
+        "type": "Variable",
+        "name": "clusters"
+      },
+      {
+        "type": "Variable",
+        "name": "intake"
+      },
+      {
+        "type": "Variable",
+        "name": "orchestrator"
+      },
+      {
+        "type": "Variable",
+        "name": "synthesis"
+      },
+      {
+        "type": "Variable",
+        "name": "verifier"
+      }
+    ],
+    "hooks": [
+      "useRef",
+      "useFrame",
+      "useMemo",
+      "useWorkflowStore",
+      "useWorkspaceStore",
+      "useState"
+    ]
+  },
+  "components\\Notebook\\SynopticWeb.tsx": {
+    "path": "components\\Notebook\\SynopticWeb.tsx",
+    "lines": 147,
+    "imports": [
+      "react",
+      "@react-three/fiber",
+      "@react-three/drei",
+      "three",
+      "../../hooks/useWorkspaceStore",
+      "../../constants"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "SynopticNode"
+      },
+      {
+        "type": "Variable",
+        "name": "ref"
+      },
+      {
+        "type": "Variable",
+        "name": "size"
+      },
+      {
+        "type": "Function",
+        "name": "SynopticWeb"
+      },
+      {
+        "type": "Variable",
+        "name": "fetchGraph"
+      },
+      {
+        "type": "Variable",
+        "name": "runParam"
+      },
+      {
+        "type": "Variable",
+        "name": "response"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "processedNodes"
+      },
+      {
+        "type": "Variable",
+        "name": "phi"
+      },
+      {
+        "type": "Variable",
+        "name": "theta"
+      },
+      {
+        "type": "Variable",
+        "name": "radius"
+      },
+      {
+        "type": "Variable",
+        "name": "processedEdges"
+      },
+      {
+        "type": "Variable",
+        "name": "startNode"
+      },
+      {
+        "type": "Variable",
+        "name": "endNode"
+      }
+    ],
+    "hooks": [
+      "useRef",
+      "useFrame",
+      "useWorkspaceStore",
+      "useState",
+      "useEffect",
+      "useMemo"
+    ]
+  },
+  "components\\MarketplaceV2.tsx": {
+    "path": "components\\MarketplaceV2.tsx",
+    "lines": 280,
+    "imports": [
+      "react",
+      "framer-motion",
+      "lucide-react"
+    ],
+    "declarations": [
+      {
+        "type": "Variable",
+        "name": "MOCK_AGENTS"
+      },
+      {
+        "type": "Function",
+        "name": "MarketplaceV2"
+      },
+      {
+        "type": "Variable",
+        "name": "filteredAgents"
+      }
+    ],
+    "hooks": [
+      "useState"
+    ]
+  },
+  "components\\Studio\\OmniDialog.tsx": {
+    "path": "components\\Studio\\OmniDialog.tsx",
+    "lines": 141,
+    "imports": [
+      "framer-motion",
+      "lucide-react",
+      "react",
+      "../../hooks/useWorkflowStore"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "OmniDialog"
+      },
+      {
+        "type": "Variable",
+        "name": "node"
+      },
+      {
+        "type": "Variable",
+        "name": "trace"
+      }
+    ],
+    "hooks": [
+      "useState",
+      "useWorkflowStore"
+    ]
+  },
+  "components\\Studio\\TemporalAudit.tsx": {
+    "path": "components\\Studio\\TemporalAudit.tsx",
+    "lines": 148,
+    "imports": [
+      "framer-motion",
+      "../../hooks/useWorkflowStore",
+      "lucide-react",
+      "react"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "TemporalAudit"
+      },
+      {
+        "type": "Variable",
+        "name": "events"
+      },
+      {
+        "type": "Variable",
+        "name": "currentIndex"
+      },
+      {
+        "type": "Variable",
+        "name": "progress"
+      },
+      {
+        "type": "Variable",
+        "name": "isSelected"
+      },
+      {
+        "type": "Variable",
+        "name": "isPast"
+      }
+    ],
+    "hooks": [
+      "useWorkflowStore",
+      "useMemo"
+    ]
+  },
+  "components\\Studio\\V2ChatOverlay.tsx": {
+    "path": "components\\Studio\\V2ChatOverlay.tsx",
+    "lines": 27,
+    "imports": [
+      "react",
+      "framer-motion",
+      "lucide-react",
+      "../Notebook/NotebookChat",
+      "./DynamicOverlay"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "V2ChatOverlay"
+      }
+    ],
+    "hooks": []
+  },
+  "components\\Studio\\V2LLMOverlay.tsx": {
+    "path": "components\\Studio\\V2LLMOverlay.tsx",
+    "lines": 39,
+    "imports": [
+      "react",
+      "lucide-react",
+      "../LLMManager/LLMManager",
+      "./DynamicOverlay"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "V2LLMOverlay"
+      }
+    ],
+    "hooks": []
+  },
+  "components\\Studio\\SymbolInspector.tsx": {
+    "path": "components\\Studio\\SymbolInspector.tsx",
+    "lines": 139,
+    "imports": [
+      "react",
+      "framer-motion",
+      "lucide-react"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "SymbolInspector"
+      }
+    ],
+    "hooks": []
+  },
+  "components\\Studio\\CodeGraphCanvas.tsx": {
+    "path": "components\\Studio\\CodeGraphCanvas.tsx",
+    "lines": 475,
+    "imports": [
+      "react",
+      "@react-three/fiber",
+      "@react-three/drei",
+      "three",
+      "framer-motion",
+      "../../hooks/useWorkflowStore",
+      "../../hooks/useWorkspaceStore",
+      "../../constants",
+      "lucide-react",
+      "./SymbolInspector"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "CodeSymbolNode"
+      },
+      {
+        "type": "Variable",
+        "name": "meshRef"
+      },
+      {
+        "type": "Variable",
+        "name": "getGeometry"
+      },
+      {
+        "type": "Variable",
+        "name": "getColor"
+      },
+      {
+        "type": "Function",
+        "name": "UMLArrowhead"
+      },
+      {
+        "type": "Variable",
+        "name": "dir"
+      },
+      {
+        "type": "Variable",
+        "name": "offsetEnd"
+      },
+      {
+        "type": "Variable",
+        "name": "isInherits"
+      },
+      {
+        "type": "Variable",
+        "name": "isCalls"
+      },
+      {
+        "type": "Function",
+        "name": "CodeGraphEdge"
+      },
+      {
+        "type": "Variable",
+        "name": "getColor"
+      },
+      {
+        "type": "Variable",
+        "name": "start"
+      },
+      {
+        "type": "Variable",
+        "name": "end"
+      },
+      {
+        "type": "Variable",
+        "name": "distance"
+      },
+      {
+        "type": "Variable",
+        "name": "midpoint"
+      },
+      {
+        "type": "Variable",
+        "name": "edgeOpacity"
+      },
+      {
+        "type": "Variable",
+        "name": "lineWidth"
+      },
+      {
+        "type": "Function",
+        "name": "CodeGraphCanvas"
+      },
+      {
+        "type": "Variable",
+        "name": "fetchDirs"
+      },
+      {
+        "type": "Variable",
+        "name": "resp"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "fetchGraph"
+      },
+      {
+        "type": "Variable",
+        "name": "snapshotParam"
+      },
+      {
+        "type": "Variable",
+        "name": "resp"
+      },
+      {
+        "type": "Variable",
+        "name": "data"
+      },
+      {
+        "type": "Variable",
+        "name": "handleGenerate"
+      },
+      {
+        "type": "Variable",
+        "name": "resp"
+      },
+      {
+        "type": "Variable",
+        "name": "processedGraph"
+      },
+      {
+        "type": "Variable",
+        "name": "nodes"
+      },
+      {
+        "type": "Variable",
+        "name": "parts"
+      },
+      {
+        "type": "Variable",
+        "name": "depth"
+      },
+      {
+        "type": "Variable",
+        "name": "angle"
+      },
+      {
+        "type": "Variable",
+        "name": "radius"
+      },
+      {
+        "type": "Variable",
+        "name": "edges"
+      },
+      {
+        "type": "Variable",
+        "name": "sourceNode"
+      },
+      {
+        "type": "Variable",
+        "name": "targetNode"
+      },
+      {
+        "type": "Variable",
+        "name": "selectedNode"
+      },
+      {
+        "type": "Variable",
+        "name": "selectedEdge"
+      }
+    ],
+    "hooks": [
+      "useRef",
+      "useState",
+      "useEffect",
+      "useFrame",
+      "useWorkspaceStore",
+      "useWorkflowStore",
+      "useMemo"
+    ]
+  },
+  "components\\Studio\\V2GraphSelector.tsx": {
+    "path": "components\\Studio\\V2GraphSelector.tsx",
+    "lines": 160,
+    "imports": [
+      "react",
+      "../../hooks/useWorkspaceStore",
+      "lucide-react",
+      "framer-motion"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "V2GraphSelector"
+      },
+      {
+        "type": "Variable",
+        "name": "activeGraph"
+      },
+      {
+        "type": "Variable",
+        "name": "codeSnapshots"
+      },
+      {
+        "type": "Variable",
+        "name": "knowledgeRuns"
+      },
+      {
+        "type": "Variable",
+        "name": "globalNexus"
+      },
+      {
+        "type": "Function",
+        "name": "CatalogItem"
+      },
+      {
+        "type": "Variable",
+        "name": "isCode"
+      },
+      {
+        "type": "Variable",
+        "name": "color"
+      }
+    ],
+    "hooks": [
+      "useWorkspaceStore",
+      "useState",
+      "useEffect"
+    ]
+  },
+  "AppV2Beta.tsx": {
+    "path": "AppV2Beta.tsx",
+    "lines": 75,
+    "imports": [
+      "react",
+      "framer-motion",
+      "./hooks/useWorkflowStore",
+      "./components/Studio/GodModeHUD",
+      "./components/Studio/SwarmCanvas3D",
+      "./components/Notebook/SynopticWeb",
+      "./components/MarketplaceV2",
+      "./components/Studio/OmniDialog",
+      "./components/Studio/TemporalAudit",
+      "./components/Studio/ExecutionAuditHub",
+      "./components/Shared/ErrorBoundary",
+      "./components/Studio/V2ChatOverlay",
+      "./components/Studio/V2LLMOverlay",
+      "./components/Studio/CodeGraphCanvas",
+      "./components/Studio/V2GraphSelector"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "AppV2Beta"
+      }
+    ],
+    "hooks": [
+      "useWorkflowStore",
+      "useState"
+    ]
+  },
+  "components\\Shared\\WorkspaceSelector.tsx": {
+    "path": "components\\Shared\\WorkspaceSelector.tsx",
+    "lines": 105,
+    "imports": [
+      "react",
+      "../../hooks/useWorkspaceStore",
+      "lucide-react"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "WorkspaceSelector"
+      },
+      {
+        "type": "Variable",
+        "name": "handleCreate"
+      },
+      {
+        "type": "Variable",
+        "name": "sanitized"
+      },
+      {
+        "type": "Variable",
+        "name": "success"
+      }
+    ],
+    "hooks": [
+      "useWorkspaceStore",
+      "useState",
+      "useEffect"
+    ]
+  },
+  "components\\Studio\\SidebarTabs.tsx": {
+    "path": "components\\Studio\\SidebarTabs.tsx",
+    "lines": 33,
+    "imports": [
+      "react",
+      "lucide-react"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "SidebarTabs"
+      },
+      {
+        "type": "Variable",
+        "name": "tabs"
+      }
+    ],
+    "hooks": []
+  },
+  "App.tsx": {
+    "path": "App.tsx",
+    "lines": 334,
+    "imports": [
+      "react",
+      "@xyflow/react",
+      "./components/Studio/WorkflowCanvas",
+      "./components/Studio/NodePalette",
+      "./components/Studio/ConfigPanel",
+      "./components/Studio/ExecutionBar",
+      "./components/LLMManager/LLMManager",
+      "./components/Studio/WorkflowList",
+      "./components/Studio/SourcePanel",
+      "./components/Studio/ResultPanel",
+      "./components/Notebook/NotebookView",
+      "./components/Notebook/DocumentViewer",
+      "./components/Studio/SwarmStatePanel",
+      "./components/Studio/SwarmConfigPanel",
+      "./components/Notebook/KnowledgeGraphCanvas",
+      "./components/Notebook/SynthesisPanel",
+      "./components/Admin/GlobalAdminDashboard",
+      "./components/Studio/ExecutionAuditHub",
+      "./components/Shared/ErrorBoundary",
+      "./hooks/useWorkflowStore",
+      "./hooks/useWorkspaceStore",
+      "./AppV2Beta",
+      "lucide-react",
+      "./components/Shared/WorkspaceSelector",
+      "./components/Studio/SidebarTabs"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "App"
+      },
+      {
+        "type": "Variable",
+        "name": "swarmExecutionId"
+      },
+      {
+        "type": "Variable",
+        "name": "selectedNode"
+      },
+      {
+        "type": "Variable",
+        "name": "handleMouseMove"
+      },
+      {
+        "type": "Variable",
+        "name": "newWidth"
+      },
+      {
+        "type": "Variable",
+        "name": "newWidth"
+      },
+      {
+        "type": "Variable",
+        "name": "handleMouseUp"
+      },
+      {
+        "type": "Variable",
+        "name": "uiVersion"
+      }
+    ],
+    "hooks": [
+      "useState",
+      "useWorkflowStore",
+      "useWorkspaceStore",
+      "useEffect"
+    ]
+  },
+  "AppV2.tsx": {
+    "path": "AppV2.tsx",
+    "lines": 37,
+    "imports": [
+      "react",
+      "./hooks/useWorkflowStore",
+      "./components/Studio/GodModeHUD",
+      "./components/Studio/SwarmCanvas3D",
+      "./components/Notebook/SynopticWeb",
+      "./components/MarketplaceV2",
+      "./components/Studio/OmniDialog",
+      "./components/Studio/ExecutionAuditHub",
+      "./components/Shared/ErrorBoundary"
+    ],
+    "declarations": [
+      {
+        "type": "Function",
+        "name": "AppV2"
+      }
+    ],
+    "hooks": [
+      "useState"
+    ]
+  },
+  "main.tsx": {
+    "path": "main.tsx",
+    "lines": 11,
+    "imports": [
+      "react",
+      "react-dom/client",
+      "./index.css",
+      "./App.tsx"
+    ],
+    "declarations": [],
+    "hooks": []
+  }
+}

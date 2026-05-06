@@ -1,0 +1,340 @@
+{
+  "schema_version": "2.0",
+  "id": "knowledge-enrichment-pipeline-v2",
+  "name": "Knowledge Enrichment Pipeline",
+  "description": "Fully declarative end-to-end pipeline: convert docs \u2192 ingest \u2192 synthesise triples \u2192 scan code \u2192 correlate concepts to code symbols. Produces CORRELATES_WITH edges in Neo4j so the Studio ENRICH toggle has data. Every endpoint, timeout, body shape and polling rule lives in this file \u2014 the CLI reads this manifest and dispatches accordingly.",
+  "requirement": "Build the knowledge enrichment overlay: extract knowledge triples from architecture documents and link them to source code symbols via semantic correlation.",
+
+  "__doc": {
+    "variables": "Values of the form ${name} are substituted at load time from (in order): CLI flags, environment variables, and then the `variables` map below (as defaults). Unresolved variables are left literal so a future runner can bind them.",
+    "execution.kind": "Dispatcher hint consumed by the CLI/executor: 'inspect_and_classify' | 'fire_and_poll' | 'blocking' | 'blocking_with_task_fallback' | 'blocking_with_task_list_fallback' | 'validate' | 'report'.",
+    "resume": "If execution.resume.from_run_id is set (or --resume <id> is passed), the CLI will read the prior run folder's task_<id>.json files and skip any task whose status is in skip_if_status. Cross-task state (e.g. pdf_extract.emits.pdf_files) is rehydrated from the prior task's recorded result."
+  },
+
+  "workspace": "${workspace}",
+
+  "variables": {
+    "workspace":             "c5_test",
+    "src_path":              "src/",
+    "staging_dir":           "staging",
+    "data_in_dir":           "data_in",
+    "data_out_dir":          "data_out",
+    "correlation_threshold": 0.82,
+    "correlation_strategy":  "aggressive",
+    "correlation_top_k":     32,
+    "correlation_use_ann":   true,
+    "model":                 "lemonade/qwen3-tk-4b-FLM",
+    "resume_from_run_id":    "",
+    "api_base":              "http://127.0.0.1:8005",
+    "api_key":               "benny-mesh-2026-auth",
+    "benny_home":            "${BENNY_HOME}"
+  },
+
+  "inputs": {
+    "files":   ["${staging_dir}/", "${src_path}/"],
+    "context": {
+      "src_path":              "${src_path}",
+      "staging_dir":           "${staging_dir}",
+      "correlation_threshold": "${correlation_threshold}",
+      "correlation_strategy":  "${correlation_strategy}"
+    }
+  },
+
+  "outputs": {
+    "base_dir": "${benny_home}/workspace/${workspace}/${data_out_dir}",
+    "files":    ["enrichment_report.md"],
+    "format":   "md",
+    "spec":     "Summary of concepts extracted, code entities mapped, CORRELATES_WITH edges created, and confidence distribution."
+  },
+
+  "config": {
+    "model":           "${model}",
+    "max_concurrency": 2,
+    "max_depth":       3,
+    "skills_allowed":  ["extract_pdf", "rag_ingest", "code_scan", "kg3d_ingest", "validate_enrichment"]
+  },
+
+  "execution": {
+    "run_folder_template":   "${benny_home}/workspace/${workspace}/runs/enrich-${run_id}",
+    "wave_isolation":        true,
+    "stop_on_first_failure": true,
+
+    "api": {
+      "base":         "${api_base}",
+      "auth_header":  "X-Benny-API-Key",
+      "auth_value":   "${api_key}",
+      "content_type": "application/json"
+    },
+
+    "preflight": {
+      "method":       "GET",
+      "path":         "/api/system/pulse",
+      "timeout_s":    5,
+      "on_fail_hint": "Start the server first: benny up --home $BENNY_HOME"
+    },
+
+    "resume": {
+      "enabled":          true,
+      "strategy":         "prior_run_folder",
+      "from_run_id":      "${resume_from_run_id}",
+      "scan_glob":        "task_*.json",
+      "skip_if_status":   ["done", "completed", "completed_after_timeout", "reused"],
+      "always_rerun":     ["generate_report"],
+      "rehydrate_emits":  true
+    },
+
+    "governance": {
+      "lineage_enabled":   true,
+      "lineage_endpoint":  "http://localhost:3010",
+      "gdpr_record":       true,
+      "audit_events":      true,
+      "sha256_seal":       true
+    }
+  },
+
+  "plan": {
+    "tasks": [
+      {
+        "id": "pdf_extract",
+        "description": "[DETERMINISTIC] Discover ingestible docs anywhere under the workspace. Hands nested PDF paths to rag_ingest via the shared pdf_files slot.",
+        "skill_hint": "extract_pdf",
+        "wave": 0,
+        "complexity": "medium",
+        "node_type": "task",
+        "files_touched": ["${staging_dir}/", "${data_in_dir}/"],
+        "execution": {
+          "kind": "inspect_and_classify",
+          "steps": [
+            {
+              "id": "recursive_scan",
+              "method": "GET",
+              "path": "/api/files/recursive-scan",
+              "params": { "workspace": "${workspace}" },
+              "timeout_s": 90,
+              "on_timeout": "diagnose_and_fail"
+            }
+          ],
+          "classify": {
+            "ingestible_exts": ["pdf", "docx", "pptx", "txt", "html"],
+            "markdown_exts":   ["md"],
+            "cases": [
+              { "when": "staging_top_nonempty",       "status": "converted",         "emits": { "staging_files": "$.staging_top" } },
+              { "when": "data_in_md_only",            "status": "already_converted" },
+              { "when": "data_in_ingestible_nonempty","status": "pdfs_found",        "emits": { "pdf_files": "$.data_in_ingestible" } },
+              { "when": "chromadb_has_chunks",        "status": "already_ingested",  "probe": { "method": "GET", "path": "/api/rag/status", "params": { "workspace": "${workspace}" }, "timeout_s": 10 } }
+            ],
+            "if_none": { "fail_message": "No ingestible docs anywhere under the workspace and ChromaDB is empty \u2014 upload architecture docs first (Studio \u2192 Notebook \u2192 Upload)." }
+          }
+        }
+      },
+
+      {
+        "id": "code_scan",
+        "description": "[DETERMINISTIC] Tree-Sitter recursive analysis of ${src_path} to populate the code graph (File, Class, Function, Interface + DEFINES/DEPENDS_ON/INHERITS) in Neo4j.",
+        "skill_hint": "code_scan",
+        "wave": 0,
+        "complexity": "high",
+        "node_type": "task",
+        "files_touched": ["${src_path}/"],
+        "execution": {
+          "kind": "fire_and_poll",
+          "start": {
+            "method": "POST",
+            "path": "/api/graph/code/generate",
+            "body": { "workspace": "${workspace}", "root_dir": "${src_path}" },
+            "timeout_s": 90,
+            "on_timeout": "diagnose_and_fail"
+          },
+          "poll": {
+            "method": "GET",
+            "path": "/api/graph/code",
+            "params": { "workspace": "${workspace}" },
+            "interval_s": 5,
+            "max_attempts": 72,
+            "timeout_s": 10,
+            "success_when":    "$.nodes | length > 0",
+            "emit_on_success": { "code_nodes": "$.nodes | length", "run_id": "$.start.run_id" }
+          }
+        }
+      },
+
+      {
+        "id": "rag_ingest",
+        "description": "[DETERMINISTIC] Chunk and embed ingestible docs into ChromaDB. Uses nomic-embed-text-v1-GGUF for dense embeddings.",
+        "skill_hint": "rag_ingest",
+        "dependencies": ["pdf_extract"],
+        "wave": 1,
+        "complexity": "medium",
+        "node_type": "task",
+        "inputs_from": {
+          "pdf_files": { "source_task": "pdf_extract", "emits_key": "pdf_files" }
+        },
+        "execution": {
+          "kind": "blocking_with_task_fallback",
+          "generate_run_id_as": "task_run_id",
+          "request": {
+            "method": "POST",
+            "path":   "/api/rag/ingest",
+            "body": {
+              "workspace":      "${workspace}",
+              "deep_synthesis": false,
+              "run_id":         "${task_run_id}",
+              "files":          "${inputs.pdf_files}"
+            },
+            "timeout": { "connect": 10, "read": 1800, "write": 120, "pool": 10 }
+          },
+          "fallback_on_timeout": {
+            "method":  "GET",
+            "path":    "/api/tasks/tasks/${task_run_id}",
+            "timeout_s": 10,
+            "success_when_status": ["completed", "complete", "done"],
+            "success_result": { "status": "completed_after_timeout", "rag_chunks": "$.total_steps", "task_id": "${task_run_id}" }
+          }
+        }
+      },
+
+      {
+        "id": "deep_synthesis",
+        "description": "[AGENTIC] Extract knowledge triples (Concept --[predicate]--> Concept) from the indexed corpus and persist them to Neo4j as REL edges with confidence scores and source citations.",
+        "skill_hint": "rag_ingest",
+        "assigned_model": "${model}",
+        "dependencies": ["rag_ingest"],
+        "wave": 2,
+        "complexity": "high",
+        "node_type": "task",
+        "execution": {
+          "kind": "blocking_with_task_list_fallback",
+          "request": {
+            "method": "POST",
+            "path":   "/api/graph/synthesize",
+            "body":   { "workspace": "${workspace}", "model": "${model}" },
+            "timeout": { "connect": 10, "read": 1800, "write": 60, "pool": 10 }
+          },
+          "fallback_on_timeout": {
+            "method":                "GET",
+            "path":                  "/api/tasks",
+            "params":                { "workspace": "${workspace}" },
+            "timeout_s":             10,
+            "filter_type":           "synthesis",
+            "sort_by":               "updated_at",
+            "order":                 "desc",
+            "success_when_status":   ["completed", "complete", "done"],
+            "success_result":        { "status": "completed_after_timeout", "task_id": "$.task_id", "message": "$.message" }
+          }
+        }
+      },
+
+      {
+        "id": "semantic_correlate",
+        "description": "[DETERMINISTIC] Semantic correlation suite (Neural Spark) \u2192 CORRELATES_WITH edges linking Concept nodes to matching CodeEntity nodes.",
+        "skill_hint": "kg3d_ingest",
+        "dependencies": ["code_scan", "deep_synthesis"],
+        "wave": 3,
+        "complexity": "medium",
+        "node_type": "task",
+        "execution": {
+          "kind": "blocking_with_task_fallback",
+          "request": {
+            "method": "POST",
+            "path":   "/api/rag/correlate",
+            "params": {
+              "workspace": "${workspace}",
+              "threshold": "${correlation_threshold}",
+              "strategy":  "${correlation_strategy}",
+              "top_k":     "${correlation_top_k}",
+              "use_ann":   "${correlation_use_ann}"
+            },
+            "timeout": { "connect": 10, "read": 1800, "write": 60, "pool": 10 }
+          },
+          "fallback": {
+            "task_list_filter": ["correlat", "spark", "link"],
+            "graph_probe": {
+              "method": "GET",
+              "path":   "/api/graph/code/lod",
+              "params": { "workspace": "${workspace}", "tier": 1 },
+              "accept_when": "$.edges[?(@.type == 'CORRELATES_WITH')] | length > 0"
+            }
+          }
+        }
+      },
+
+      {
+        "id": "validate_enrichment",
+        "description": "[DETERMINISTIC] Verify CORRELATES_WITH edges exist in Neo4j by querying the LOD endpoint. Fail if zero enrichment edges are found.",
+        "skill_hint": "validate_enrichment",
+        "dependencies": ["semantic_correlate"],
+        "wave": 4,
+        "complexity": "low",
+        "node_type": "task",
+        "execution": {
+          "kind": "validate",
+          "request": {
+            "method":    "GET",
+            "path":      "/api/graph/code/lod",
+            "params":    { "workspace": "${workspace}", "tier": 1 },
+            "timeout_s": 30
+          },
+          "assertion": {
+            "select":        "$.edges[?(@.type == 'CORRELATES_WITH')]",
+            "require_count": ">= 1",
+            "fail_message":  "Zero CORRELATES_WITH edges found in workspace '${workspace}'. Check deep_synthesis and semantic_correlate completed successfully."
+          },
+          "emit_on_success": { "correlates_with_count": "$ | length" }
+        }
+      },
+
+      {
+        "id": "generate_report",
+        "description": "[AGENTIC] Query Neo4j for enrichment statistics (concept/code entity/edge counts + confidence distribution) and write a structured report to ${outputs.base_dir}/enrichment_report.md.",
+        "skill_hint": "rag_ingest",
+        "assigned_model": "${model}",
+        "dependencies": ["validate_enrichment"],
+        "wave": 4,
+        "complexity": "medium",
+        "node_type": "output",
+        "files_touched": ["${data_out_dir}/enrichment_report.md"],
+        "execution": {
+          "kind": "report",
+          "stats_request": {
+            "method":    "GET",
+            "path":      "/api/graph/stats",
+            "params":    { "workspace": "${workspace}" },
+            "timeout_s": 30
+          },
+          "output": {
+            "path":        "${outputs.base_dir}/enrichment_report.md",
+            "format":      "md",
+            "template_id": "enrichment_report_default"
+          }
+        }
+      }
+    ],
+
+    "edges": [
+      { "id": "e_pdf_rag",    "source": "pdf_extract",        "target": "rag_ingest",          "label": "extracted / discovered docs", "animated": true },
+      { "id": "e_rag_synth",  "source": "rag_ingest",         "target": "deep_synthesis",      "label": "indexed corpus",              "animated": true },
+      { "id": "e_code_corr",  "source": "code_scan",          "target": "semantic_correlate",  "label": "code entities",               "animated": true },
+      { "id": "e_synth_corr", "source": "deep_synthesis",     "target": "semantic_correlate",  "label": "knowledge triples",           "animated": true },
+      { "id": "e_corr_val",   "source": "semantic_correlate", "target": "validate_enrichment", "label": "CORRELATES_WITH",             "animated": true },
+      { "id": "e_val_report", "source": "validate_enrichment","target": "generate_report",     "label": "validated",                   "animated": true }
+    ],
+
+    "waves": [
+      ["pdf_extract", "code_scan"],
+      ["rag_ingest"],
+      ["deep_synthesis"],
+      ["semantic_correlate"],
+      ["validate_enrichment", "generate_report"]
+    ],
+
+    "ascii_dag": "pdf_extract \u2500\u2510\n             \u251c\u2500\u2192 rag_ingest \u2192 deep_synthesis \u2500\u2510\n             \u2502                               \u251c\u2500\u2192 semantic_correlate \u2192 validate_enrichment \u2192 generate_report\ncode_scan \u2500\u2500\u2500\u2518\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518"
+  },
+
+  "tags": ["enrichment", "code-analysis", "knowledge-graph", "template"],
+
+  "metadata": {
+    "template":     true,
+    "generated_by": "benny enrich",
+    "notes": "Copy to workspace manifests/ and edit the `variables` block (workspace, src_path, model, correlation_threshold) before running. Invoke with: benny enrich --manifest <path>.json --run  (add --resume <run_id> to reuse already-completed stages from a prior run folder)."
+  }
+}

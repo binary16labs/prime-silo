@@ -1,0 +1,44 @@
+# PBR-001 Phase 0 — safety nets for portable Benny.
+# SR-1: refuse absolute host paths in persisted artifacts.
+# SR-3: refuse plaintext secrets under $BENNY_HOME / repo.
+#
+# Install once per clone:
+#   pip install pre-commit && pre-commit install
+#
+# The hooks call the scanners directly via `python -m`, so there is no
+# third-party dependency beyond pre-commit itself and the repo's own deps.
+
+repos:
+  - repo: local
+    hooks:
+      - id: sr1-no-absolute-host-paths
+        name: "SR-1 — no absolute host paths"
+        entry: python -m benny.governance.portability.absolute_path_scanner --ssd-root D:/optimus
+        language: system
+        types_or: [python, yaml, toml, json, markdown]
+        exclude: >
+          (?x)^(
+            tests/.* |
+            docs/requirements/[0-9]+/.* |
+            docs/requirements/7/.* |
+            COGNITIVE_MESH_RESUME_PLAN\.md |
+            requirement\.md |
+            .*__pycache__/.* |
+            \.venv/.* |
+            \.git/.* |
+            node_modules/.*
+          )$
+
+      - id: sr3-no-plaintext-secrets
+        name: "SR-3 — no plaintext secrets"
+        entry: python -m benny.governance.portability.secrets_scanner
+        language: system
+        types_or: [python, yaml, toml, json, markdown, text]
+        exclude: >
+          (?x)^(
+            tests/safety/test_secrets_scanner\.py |
+            .*__pycache__/.* |
+            \.venv/.* |
+            \.git/.* |
+            node_modules/.*
+          )$

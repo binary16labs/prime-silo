@@ -1,0 +1,76 @@
+
+
+Okay, so I need to figure out if there are any conflicts between the existing triples and the new ones. Let's start by understanding what a conflict is. From the problem statement, a conflict exists when two triples make opposing claims about the same subject-object pair or when a new triple directly contradicts an existing one.
+
+First, I'll look at each of the new triples and see if they overlap with any existing ones in terms of subject and object. The existing triples are quite diverse, covering topics like institutional economics, neoclassical vs. NIE, various authors like Williamson and Coase, concepts like institutions as wholes or complexes, etc.
+
+Looking at the new triples first:
+
+1. Daniil Frolov is a Professor of Institutional Economics: This seems fine; no conflict here unless there's another triple about him in the existing data.
+2. He was awarded the Leonid Abalkin Prize: No conflict unless another triple contradicts this award.
+3. Digital Capitalism presents institutions of unprecedented complexity: Existing triples mention "Institutions of digital capitalism" as characterized by instability and unpredictability, so that seems consistent. But wait, one existing triple says Institutions are characterized by instability and unpredictability, while the new one just states they're complex. That's not a direct contradiction.
+4. The Book fuses approaches from several disciplines: No conflict unless an existing triple claims otherwise.
+5. The Book bases its approach on Multilevel Selection Theory: Not conflicting with existing triples as far as I can see.
+6. Cognitive Institutions built upon extended cognition: Again, no overlap in the existing triples that would contradict this.
+7. Economic Rationality suffers from individualistic understanding: This could conflict if another triple praises or criticizes it differently, but looking at existing triples, they talk about institutions and their complexities but don't directly address economic rationality's mechanistic vs. extended views.
+8. The Book applies flat ontology to human-robot institutions: No prior mention of this in the existing data.
+9. Pioneers assemblage theory: Existing triples discuss institutional complexity but not specifically assemblage theory, so no conflict here either.
+10. Applies transaction value for Blockchain analysis: Again, new concept not covered before.
+
+Now, checking each triple against existing ones:
+
+- The first two new triples are about Daniil Frolov; existing triples don't mention him, so no conflict.
+- Digital Capitalism's institutions being complex vs. characterized by instability and unpredictability: No direct contradiction because complexity can lead to those characteristics.
+- The Book's interdisciplinary approach: Existing triples discuss institutional theories but not as a fusion of multiple disciplines, so no issue here.
+- Basing on Multilevel Selection Theory: Not conflicting with existing.
+- Cognitive Institutions built on extended cognition: Doesn't conflict with OIE or NIE, which focus more on institutions within economics.
+- Economic Rationality's mechanistic vs. individualistic understanding: Existing triples don't touch this, so no problem.
+- The Book applying flat ontology and assemblage theory: No prior mention of these theories in existing data, so no conflict.
+- Applying transaction value for Blockchain: New concept, no prior info.
+
+Wait a second—looking at the triple about Economic Rationality suffering from individualistic understanding. Is there an existing triple that might contradict this? Let me check the existing triples. The only one related is "Standard institutional paradigm relies on bounded rationality," which suggests a different view of economic reasoning. If the new triple says it's mechanistic and individualistic, and the existing says it's based on bounded rationality, these could be conflicting because they represent opposite views.
+
+Wait no—bounded rationality is about limits to how much people can process information, not necessarily about whether the understanding is individualistic or extended. So maybe that doesn't contradict. But another triple in existing data: "Modern Institutional Economists understand institutional systems as homogeneous and coherent wholes," which might suggest a different view than the new book's approach of extended cognition.
+
+Hmm, perhaps there's no direct contradiction here because one talks about how institutions are viewed, and the other is about economic rationality. Maybe not conflicting yet.
+
+Another point: The triple about "Economic Rationality in Digital Environments suffers from rejection of individualistic and mechanistic understanding." If any existing triples support or define a different view on this, there could be a conflict. Looking at existing triples, none directly address economic rationality's mechanistic vs. extended views, so maybe no conflict.
+
+Wait another thing: The triple about "Institutional complexity perspective prioritizes the influence of actors through joint construction." In existing data, "Institutional Complexity" requires new methodological optics and is part of a different approach than what's in the new triples. Not conflicting yet.
+
+Wait, perhaps looking at "Generalized Darwinism ignores internal trends"—does this conflict with any new triple? The new book uses extended evolutionary synthesis as a theory. Generalized Darwinism relies on VSR, which is about variation-selection-replication. If existing data says it ignores internal trends, but the new approach includes them through multilevel selection, that might be a contradiction.
+
+Wait no: Generalized Darwinism's triple says it ignores "internal trends" and relies on VSR. The new book uses MLS as its theory. So if the two approaches are different methodologies but not contradictory, maybe they don't conflict.
+
+Alternatively, perhaps there's no direct conflict because one is about what Generalized Darwinism does and another is about a different approach used in the book.
+
+Wait, perhaps I'm overcomplicating. Maybe there isn't a direct contradiction between existing triples and new ones. Let me go through each triple again:
+
+1. Daniil Frolov: No overlap.
+2. Award: No conflict.
+3. Digital Capitalism's institutions are complex: Existing says they're characterized by instability, which is part of complexity but not necessarily contradictory.
+4. The Book fuses disciplines: Not conflicting with existing triples that discuss different theories within institutional economics.
+5. Bases on MLS theory: No prior mention, so no conflict.
+6. Cognitive Institutions built on extended cognition: No overlap in existing triples about this concept, so okay.
+7. Economic Rationality's mechanistic understanding is rejected by the new triple: Since existing doesn't address this, no conflict yet.
+8. Book applies flat ontology and assemblage theory: Not conflicting with prior data.
+9. Blockchain analysis using transaction value: New concept, no conflict.
+
+Wait another angle: The new triples mention "Institutional complexity perspective" in two places—once in the subject and once as an object. Let me check existing triples:
+
+- Existing triple about Institutional Complexity says it requires new methodological optics.
+- Another triple mentions "Institutional complexity perspective prioritizes influence through joint construction." So if the new book also discusses this, perhaps they are consistent.
+
+Wait no—the existing triples don't mention the institutional complexity perspective as part of the book's content. The new triples do, but since it's about their approach in the book, maybe that doesn't conflict with existing statements.
+
+Alternatively, perhaps I'm missing something else. Let me think: Is there any triple in existing data that directly contradicts a new one?
+
+Looking at "The Book (Digital Capitalism and New Institutionalism)" triples:
+
+- It fuses approaches from several disciplines.
+- Bases on MLS theory.
+- Develops extended cognition for institutions.
+- Rejects individualistic understanding of economic rationality.
+- Applies flat ontology and assemblage theory, and transaction value for blockchain.
+
+None of these are directly contrad

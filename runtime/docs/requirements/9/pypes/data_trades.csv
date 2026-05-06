@@ -1,0 +1,4 @@
+trade_id,account_no,notional,instrument
+T1,ACC-001,1000000.0,AAPL
+T2,ACC-002,500000000.0,TSLA
+T3,ACC-123,2000000.0,GOOGL

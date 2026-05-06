@@ -1,0 +1,79 @@
+{
+  "schema_version": "2.0",
+  "id": "doc-swarm-synthesis-v2",
+  "name": "Knowledge Graph Synthesis & Swarm Review",
+  "description": "Deterministic Ingest -> Agentic Swarm Review using Qwen 3.5-9B.",
+  "workspace": "test1",
+  "variables": {
+    "workspace": "test1",
+    "model": "lemonade/qwen3.5-9b-FLM",
+    "target_doc": "FrolovRoutledge2024.pdf"
+  },
+  "config": {
+    "model": "lemonade/qwen3.5-9b-FLM",
+    "max_concurrency": 4,
+    "skills_allowed": ["rag_ingest", "search_kb", "query_graph", "write_file"]
+  },
+  "plan": {
+    "tasks": [
+      {
+        "id": "pdf_ingest",
+        "description": "Ingest PDF into ChromaDB and Neo4j.",
+        "skill_hint": "rag_ingest",
+        "deterministic": true,
+        "skill_args": {
+          "files": ["FrolovRoutledge2024.pdf"],
+          "deep_synthesis": false
+        },
+        "wave": 0,
+        "node_type": "task"
+      },
+      {
+        "id": "kg_synthesis",
+        "description": "Perform deep knowledge synthesis into the Neo4j graph.",
+        "skill_hint": "rag_ingest",
+        "dependencies": ["pdf_ingest"],
+        "deterministic": true,
+        "skill_args": {
+          "files": ["FrolovRoutledge2024.pdf"],
+          "deep_synthesis": true
+        },
+        "wave": 1,
+        "node_type": "task"
+      },
+      {
+        "id": "swarm_report",
+        "description": "Generate a comprehensive book report using the Knowledge Graph.",
+        "assigned_model": "lemonade/qwen3.5-9b-FLM",
+        "assigned_skills": ["search_kb", "query_graph"],
+        "dependencies": ["kg_synthesis"],
+        "wave": 2,
+        "complexity": "high",
+        "node_type": "task"
+      },
+      {
+        "id": "final_judge",
+        "description": "Final synthesis of the swarm findings into a polished markdown report.",
+        "assigned_model": "lemonade/qwen3.5-9b-FLM",
+        "assigned_skills": ["read_file", "write_file"],
+        "dependencies": ["swarm_report"],
+        "wave": 3,
+        "node_type": "output"
+      }
+    ],
+    "edges": [
+      ["pdf_ingest", "kg_synthesis"],
+      ["kg_synthesis", "swarm_report"],
+      ["swarm_report", "final_judge"]
+    ],
+    "waves": [
+      ["pdf_ingest"],
+      ["kg_synthesis"],
+      ["swarm_report"],
+      ["final_judge"]
+    ]
+  },
+  "metadata": {
+    "notes": "v2: Uses deterministic skill bypass for ingestion to avoid LLM planning overhead."
+  }
+}

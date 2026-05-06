@@ -1,0 +1,44 @@
+name: portable-safety
+
+# PBR-001 Phase 0 gates: SR-1 (no absolute host paths) and SR-3 (no secrets).
+# Also runs the Phase 0 test suite (portability + safety) on every PR.
+
+on:
+  pull_request:
+    branches: [master, main]
+  push:
+    branches: [master, main]
+
+jobs:
+  phase0-gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install test deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-asyncio
+
+      - name: SR-1 scanner — no absolute host paths on portable scope
+        run: |
+          python -m benny.governance.portability.absolute_path_scanner \
+            --ssd-root D:/optimus \
+            benny/governance/portability \
+            docs/requirements/PORTABLE_BENNY_REQUIREMENTS.md
+
+      - name: SR-3 scanner — no plaintext secrets
+        run: |
+          python -m benny.governance.portability.secrets_scanner \
+            benny \
+            docs/requirements/PORTABLE_BENNY_REQUIREMENTS.md \
+            --exclude 'governance/portability/secrets_scanner.py'
+
+      - name: Phase 0 tests (portability + safety)
+        run: |
+          python -m pytest tests/portability tests/safety -v

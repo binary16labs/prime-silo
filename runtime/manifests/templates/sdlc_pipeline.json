@@ -1,0 +1,130 @@
+{
+  "schema_version": "1.1",
+  "id": "sdlc-pipeline-template-001",
+  "name": "AOS SDLC Pipeline — End-to-End Template",
+  "requirement": "Demonstrate an AOS-enabled SDLC pipeline with TOGAF phase mapping, quality gates, ADR emission, and BDD acceptance criteria.",
+  "workspace": "${workspace}",
+  "config": {
+    "model": "local_lemonade",
+    "max_concurrency": 2,
+    "model_per_persona": {
+      "planner":      "local_lemonade",
+      "architect":    "local_lemonade",
+      "implementer":  "local_lemonade",
+      "reviewer":     "local_lemonade"
+    }
+  },
+  "plan": {
+    "tasks": [
+      {
+        "id": "task_0_vision",
+        "description": "Architecture Vision: decompose the requirement into a PRD and establish TOGAF Phase A boundaries.",
+        "persona": "planner",
+        "wave": 0
+      },
+      {
+        "id": "task_1_business",
+        "description": "Business Architecture: map stakeholder concerns to feature sets and generate BDD scenarios.",
+        "persona": "architect",
+        "wave": 1
+      },
+      {
+        "id": "task_2_info_systems",
+        "description": "Information Systems Architecture: define data contracts (Pydantic models) and API surface.",
+        "persona": "architect",
+        "wave": 2
+      },
+      {
+        "id": "task_3_technology",
+        "description": "Technology Architecture: select runtime stack (LiteLLM / LangGraph / Pypes) and infra constraints.",
+        "persona": "architect",
+        "wave": 3
+      },
+      {
+        "id": "task_4_implement",
+        "description": "Implementation wave: scaffold modules, write stubs, wire CLI entry points.",
+        "persona": "implementer",
+        "wave": 4
+      },
+      {
+        "id": "task_5_review",
+        "description": "Review wave: run quality gates, compile BDD stubs, verify schema conformance.",
+        "persona": "reviewer",
+        "wave": 5
+      }
+    ],
+    "edges": [
+      ["task_0_vision",    "task_1_business"],
+      ["task_1_business",  "task_2_info_systems"],
+      ["task_2_info_systems", "task_3_technology"],
+      ["task_3_technology", "task_4_implement"],
+      ["task_4_implement", "task_5_review"]
+    ],
+    "waves": [
+      ["task_0_vision"],
+      ["task_1_business"],
+      ["task_2_info_systems"],
+      ["task_3_technology"],
+      ["task_4_implement"],
+      ["task_5_review"]
+    ]
+  },
+  "sdlc": {
+    "togaf_phase_map": {
+      "wave_0": "A",
+      "wave_1": "B",
+      "wave_2": "C",
+      "wave_3": "D"
+    },
+    "quality_gates": [
+      {
+        "kind":       "schema",
+        "command":    "python -c \"import benny.sdlc.contracts; print('schema ok')\"",
+        "on_failure": "halt",
+        "timeout_s":  30
+      },
+      {
+        "kind":       "linter",
+        "command":    "python -m ruff check benny/sdlc/ --select E,F --quiet",
+        "on_failure": "escalate",
+        "timeout_s":  60
+      },
+      {
+        "kind":       "bdd",
+        "command":    "python -m pytest tests/sdlc/ -q --tb=no --no-header",
+        "on_failure": "halt",
+        "timeout_s":  120
+      }
+    ],
+    "bdd_scenarios": [
+      {
+        "id":    "BDD-SDLC-001",
+        "given": "a free-text architecture requirement",
+        "when":  "benny req is invoked",
+        "then":  "a PRD JSON and Gherkin feature file are emitted to data_out/prd/"
+      },
+      {
+        "id":    "BDD-SDLC-002",
+        "given": "a manifest with TOGAF phase map and quality gates",
+        "when":  "the SDLC pipeline runs",
+        "then":  "ADRs are emitted at each TOGAF phase boundary with monotonic sequence numbers"
+      },
+      {
+        "id":    "BDD-SDLC-003",
+        "given": "a quality gate of kind bdd",
+        "when":  "the gate command exits non-zero with on_failure=halt",
+        "then":  "the wave does not advance and QualityGateError is raised"
+      }
+    ],
+    "adrs": []
+  },
+  "policy": {
+    "mode":                "warn",
+    "auto_approve_writes": false
+  },
+  "memory": {
+    "pbr_threshold_tokens":     1024,
+    "disclosure_layer_default": 1,
+    "artifact_store":           "${BENNY_HOME}/workspaces/${workspace}/artifacts"
+  }
+}

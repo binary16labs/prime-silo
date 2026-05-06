@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "kind": "pypes_model_comparison",
+  "id": "compare-smoke",
+  "name": "Smoke test — single model, tiny requirement",
+  "task": "plan",
+  "workspace": "pypes_demo",
+  "requirement": "Build a tiny pipeline that loads trades.csv, filters status='completed', and aggregates total notional by counterparty in a Gold step.",
+  "models": [
+    {
+      "label": "qwen-tiny",
+      "id": "lemonade/Qwen2.5-0.5B-Instruct-CPU",
+      "max_tokens": 2000,
+      "temperature": 0.2
+    }
+  ],
+  "repeats": 1,
+  "rubric_required_ops": ["load", "filter", "aggregate"],
+  "rubric_min_steps": 3,
+  "rubric_min_gold_steps": 1,
+  "judge": { "enabled": false },
+  "output_dir": "${benny_home}/runs/model-compare"
+}

@@ -1,0 +1,81 @@
+[
+  {
+    "subject": "Modern Institutional Economics",
+    "subject_type": "Theory",
+    "predicate": "is based on",
+    "object": "reductionist approaches",
+    "object_type": "Methodology",
+    "citation": "...based on reductionist approaches.",
+    0.95,
+
+  { 
+      subject: \"Digital Capitalism\", 
+      subject_type: \"Economic System\", 
+      predicate\": \"produces\", 
+      object\": \"institutions of unprecedented complexity\" ,
+      object_type: \"Institutional Feature\" ,
+       citation": \". But digital capitalism is producing institutions of unprecedented complexity.\",
+    confidence\": 0.95,
+
+ {
+     subject: \"The Book\", 
+     subject_type\": \"Publication\", 
+     predicate\": \"argues for\", 
+      object\": \"adaptation of theoretical foundations\" ,
+       object_type": "Action Plan\" ,
+        citation\":\"...theoretical foundations for studying those institutions must now be adapted to digital capitalism.\",
+    confidence\": 0.95,
+
+ {
+   subject: \"The Book\", 
+     subject_type\": \"Publication\", 
+      predicate\": \"develops an interdisciplinary framework which brings together cutting-edge theoretical approaches from philosophy (first of all, object-oriented ontology), sociology (especially actor-network theory), evolutionary biology, and cognitive science.\",
+    confidence\": 0.95
+
+ {
+   subject: \"The Book\", 
+     subject_type\": \"Publication\", 
+      predicate\": \"outlines a new approach to the study of institutional evolution\" ,
+       object": "based on extended evolutionary synthesis – a new paradigm in evolutionary biology, which is now replacing neo-Darwinism.\",
+    confidence\": 0.95
+
+ {
+   subject: \"The Book\", 
+     subject_type\": \"Publication\", 
+      predicate\": \"develops an enactivist notion of extended cognition and cognitive institutions\" ,
+       object": "rejecting the individualistic and mechanistic understanding of economic rationality in digital environments.\",
+    confidence\": 0.95
+
+ {
+   subject: \"The Book\", 
+     subject_type\": \"Publication\", 
+      predicate\": \"experiments with new philosophical approaches to investigate institutional complexity\" ,
+       object": "for example, the ideas of the flat ontology and the assemblage theory.\",
+    confidence\": 0.95
+
+ {
+   subject: \"Flat Ontology Approach\", 
+     subject_type\": \"Methodology\", 
+      predicate\": \"is applied to\", 
+       object\": \"the study of human-robot institutions, as well as to thinking about post-anthropocentric institutional design.\",
+    confidence\": 0.95
+
+ {
+   subject: \"Assemblage Thinking\", 
+     subject_type": "Methodology\" ,
+      predicate\": \"allows for a new (much less idealistic) look at\" ,
+       object\": \"blockchain and smart cities.\",
+    confidence\": 0.95
+
+ {
+   subject: \"Blockchain\", 
+     subject_type\": \"Technology\", 
+      predicate": "is considered in the book not from the viewpoint of minimizing transaction costs (as is customary in the modern institutional economics), but by using\" ,
+       object\": \"the theory of transaction value which focuses on improving the quality of digital transactions.\",
+    confidence\": 0.95
+
+ {
+   subject: \"The Book\", 
+     subject_type": "Publication\" ,
+      predicate\": \"includes a wide range of examples ranging from metaverses, cryptocurrencies, and big data to robot rules, smart contracts, and machine learning algorithms.\",
+    confidence\": 0.95

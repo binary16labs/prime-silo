@@ -1,0 +1,67 @@
+{
+  "schema_version": "1.1",
+  "id": "sdlc-pipeline-v2",
+  "name": "AOS SDLC Pipeline v2 — Guardrailed Template",
+  "requirement": "Objective: Design and implement a robust, highly declarative data transformation engine. The initial focus is on processing financial and numerical data, but the core execution framework must be highly extensible to support different data types and processing engines in the future.\n\nCore Technology Stack:\n- Data Processing: Polars (for high-performance data manipulation).\n- Validation & Contracts: Pydantic (for type safety and schema validation).\n- Observability: OpenLineage (for tracking inputs, outputs, and process metadata).\n\nArchitectural Requirements:\n- Declarative Manifests & Contracts: All inputs, outputs, and processes must be strictly defined using configuration manifests and Pydantic-enforced contracts.\n- Stateless Execution & Clean Code: The processing functions themselves must be entirely stateless. The logic should adhere strictly to Clean Code principles, relying on the manifests to dictate the flow.\n- DAG Workflow Capabilities: The engine must handle complex states, activities, and processes. It needs to support workflows that branch out (parallel processing/forking) and merge back together (joins/unions).\n- Pluggable Framework: The execution framework must be flexible enough to swap or add different data-type processing engines without rewriting the core orchestration logic.\n\nRequired Data Operations (Initial Phase):\n- Basic arithmetic (add, subtract, etc.).\n- Complex financial calculations.\n- Data aggregation and filtering.\n- Adding/mutating columns dynamically.\n\nFuture Scope:\nThe system will eventually need to ingest and analyze unstructured data, including code repositories, text documents, audio files, images, and videos. The core engine should be agnostic enough to route these to specialized worker engines later on.\n\nOutput Request: Please provide a high-level system architecture design, an outline of the core Pydantic models for the Manifest/Contract system, and a basic Python proof-of-concept demonstrating a stateless Polars transformation guided by a declarative contract.\n\nCRITICAL CONSTRAINTS:\n1. Execute architecture and implementation in a single pass. \n2. DO NOT trigger micro-expansions or sub-tasks for research (e.g., GDPR/CCPA) unless it is impossible to generate the PoC without it.\n3. Focus on functional correctness over exhaustive regulatory compliance for this initial draft.",
+  "workspace": "${workspace}",
+  "config": {
+    "model": "local_lemonade",
+    "max_concurrency": 2,
+    "max_depth": 1,
+    "allow_swarm": true,
+    "handover_summary_limit": 1000,
+    "model_per_persona": {
+      "planner":      "local_lemonade",
+      "architect":    "local_lemonade",
+      "implementer":  "local_lemonade",
+      "reviewer":     "local_lemonade"
+    }
+  },
+  "plan": {
+    "tasks": [
+      {
+        "id": "task_0_vision",
+        "description": "Architecture Vision: decompose the requirement into a PRD and establish TOGAF Phase A boundaries.",
+        "persona": "planner",
+        "wave": 0
+      },
+      {
+        "id": "task_1_business",
+        "description": "Business Architecture: map stakeholder concerns to feature sets and generate BDD scenarios.",
+        "persona": "architect",
+        "wave": 1
+      },
+      {
+        "id": "task_2_info_systems",
+        "description": "Information Systems Architecture: define data contracts (Pydantic models) and API surface.",
+        "persona": "architect",
+        "wave": 2
+      },
+      {
+        "id": "task_3_technology",
+        "description": "Technology Architecture: select runtime stack (LiteLLM / LangGraph / Pypes) and infra constraints.",
+        "persona": "architect",
+        "wave": 3
+      },
+      {
+        "id": "task_4_implement",
+        "description": "Implementation wave: scaffold modules, write stubs, wire CLI entry points.",
+        "persona": "implementer",
+        "wave": 4
+      },
+      {
+        "id": "task_5_review",
+        "description": "Review wave: run quality gates, compile BDD stubs, verify schema conformance.",
+        "persona": "reviewer",
+        "wave": 5
+      }
+    ],
+    "edges": [
+      ["task_0_vision", "task_1_business"],
+      ["task_1_business", "task_2_info_systems"],
+      ["task_2_info_systems", "task_3_technology"],
+      ["task_3_technology", "task_4_implement"],
+      ["task_4_implement", "task_5_review"]
+    ]
+  }
+}
