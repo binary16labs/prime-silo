@@ -13,6 +13,8 @@ import { applyApiCorsHeaders, handleApiPreflight } from "./cors.js";
 import { handleModuleRequest } from "./mod_handler.js";
 import { handleAppFetchRequest } from "./app_fetch_handler.js";
 import { readParsedRequestBody } from "./request_body.js";
+// ADR-001 Phase D: forwards /api/runtime/<path> to the Benny FastAPI runtime.
+import { isRuntimeProxyPath, proxyToRuntime } from "../lib/runtime_proxy.js";
 import { resolveProjectVersion } from "../lib/utils/project_version.js";
 import {
   STATE_VERSION_HEADER,
@@ -333,6 +335,18 @@ function createRequestHandler(options) {
         }
 
         await proxyExternalRequest(req, res, requestUrl);
+        return;
+      }
+
+      // ADR-001 Phase D — proxy /api/runtime/<path> to the Benny FastAPI
+      // runtime. Authentication still enforced at the shell edge; the
+      // runtime's AgentScopeMiddleware enforces the sandbox boundary if
+      // X-Benny-Agent-Scope is set by the caller.
+      if (isRuntimeProxyPath(requestUrl.pathname)) {
+        if (!ensureAuthenticatedOrRespond(res, requestContext, auth)) {
+          return;
+        }
+        await proxyToRuntime(req, res, requestUrl);
         return;
       }
 
