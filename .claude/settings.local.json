@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(npx vite *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(python -m pytest tests/agentamp/ -v)",
+      "Bash(python -m pytest tests/ -q --ignore=tests/agentamp)",
+      "Bash(python -m pytest tests/core/ tests/pypes/ tests/sdlc/test_pbr_token_budget.py -q)",
+      "Bash(python -m pytest tests/core/test_manifest_hash.py tests/core/test_manifest.py tests/pypes/ tests/sdlc/test_pbr_token_budget.py tests/sdlc/test_policy_evaluate.py -q)",
+      "Bash(python -m pytest tests/core/test_manifest_hash.py tests/pypes/ tests/sdlc/test_pbr_token_budget.py tests/sdlc/test_policy_evaluate.py -q)",
+      "Bash(python -m pytest tests/core/test_manifest_hash.py tests/pypes/ tests/sdlc/test_pbr_token_budget.py -q)",
+      "Bash(git checkout *)",
+      "Bash(git merge *)",
+      "Bash(git push *)",
+      "Bash(python -m pytest tests/agentamp/test_agentvis_sdk.py -v)",
+      "Bash(python -m pytest tests/agentamp/ -v --tb=short)",
+      "Bash(python -m pytest tests/agentamp/test_dsp.py -v --tb=short)",
+      "Bash(python -m pytest tests/agentamp/ -q --tb=short)",
+      "Bash(python -c \"import textual; print\\(textual.__version__\\)\")",
+      "Bash(python -c \"import pydantic; print\\(pydantic.__version__\\)\")",
+      "Bash(pip install *)",
+      "Bash(python -m pytest tests/agentamp/test_tui.py -v --tb=short)",
+      "Bash(python -c \"from textual.app import App; import inspect; print\\(inspect.signature\\(App.__init__\\)\\)\")",
+      "Bash(python -c \"from textual.app import App; help\\(App.run_test\\)\")",
+      "Read(//c/Users/nsdha/OneDrive/code/benny/**)",
+      "Bash(python -m pytest tests/agentamp/test_playlist.py tests/agentamp/test_user_state.py tests/agentamp/test_layout.py -q)",
+      "Bash(python -m pytest tests/agentamp/test_layout.py -q)",
+      "Bash(python -m pytest tests/agentamp/ -q)",
+      "Bash(node_modules/.bin/tsc --noEmit)"
+    ]
+  }
+}

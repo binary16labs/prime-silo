@@ -1,0 +1,57 @@
+{
+  "schema_version": "1.0",
+  "id": "audit-swarm-001",
+  "name": "Full Codebase Audit",
+  "description": "Comprehensive security and architectural audit of the Benny project.",
+  "requirement": "Perform a deep-dive security and architectural audit of the Benny core. Look for concurrency leaks, API auth gaps, and dependency vulnerabilities.",
+  "workspace": "default",
+  "inputs": {
+    "files": ["benny/core/", "benny/api/", "requirements.txt"]
+  },
+  "outputs": {
+    "files": ["audit_report.md"],
+    "format": "md",
+    "word_count_target": 2500,
+    "spec": "Exclude test files. Focus on production handlers."
+  },
+  "plan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "description": "Analyze API authentication logic in api_routes.py",
+        "skill_hint": "code_analysis",
+        "wave": 0,
+        "complexity": "medium"
+      },
+      {
+        "id": "task_2",
+        "description": "Audit concurrency management in swarm_engine.py",
+        "skill_hint": "code_analysis",
+        "wave": 0,
+        "complexity": "high"
+      },
+      {
+        "id": "task_3",
+        "description": "Synthesize findings into final audit report",
+        "skill_hint": "aggregator",
+        "dependencies": ["task_1", "task_2"],
+        "wave": 1,
+        "complexity": "medium"
+      }
+    ],
+    "edges": [
+      { "source": "task_1", "target": "task_3" },
+      { "source": "task_2", "target": "task_3" }
+    ],
+    "waves": [
+      ["task_1", "task_2"],
+      ["task_3"]
+    ]
+  },
+  "config": {
+    "model": "lemonade/qwen3-tk-4b-FLM",
+    "max_concurrency": 1,
+    "max_depth": 3,
+    "allow_swarm": true
+  }
+}

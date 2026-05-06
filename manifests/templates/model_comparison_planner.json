@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0",
+  "kind": "pypes_model_comparison",
+  "id": "compare-planner-cmr",
+  "name": "Planner head-to-head: counterparty market risk pipeline",
+  "task": "plan",
+  "workspace": "pypes_demo",
+  "requirement": "Build a counterparty market-risk pipeline that loads daily trade snapshots from CSV across at least three trading days, normalises them into a single Bronze trade table, cleans status='completed' rows in Silver, converts notional to USD using fx_rate, and produces Gold views for: counterparty exposure, exposure by product type, exposure by segment, exposure by country, ISIN concentration, maturity profile, and top-10 risk drivers by DV01. Include a 200,000,000 USD threshold breach validation, BCBS-239 + FRTB compliance tags, and at least one financial_risk report.",
+  "models": [
+    {
+      "label": "qwen3-tk-4b",
+      "id": "lemonade/qwen3-tk-4b-FLM",
+      "max_tokens": 4096,
+      "temperature": 0.2
+    },
+    {
+      "label": "gemma-e4b",
+      "id": "lemonade/Gemma-4-E4B-it-GGUF",
+      "max_tokens": 4096,
+      "temperature": 0.2
+    },
+    {
+      "label": "deepseek-8b",
+      "id": "lemonade/DeepSeek-Qwen3-8B-GGUF",
+      "max_tokens": 4096,
+      "temperature": 0.2
+    },
+    {
+      "label": "qwen3.5-9b",
+      "id": "lemonade/qwen3.5-9b-FLM",
+      "max_tokens": 4096,
+      "temperature": 0.2
+    }
+  ],
+  "repeats": 1,
+  "rubric_required_ops": ["load", "filter", "dedupe", "calc", "aggregate", "concat"],
+  "rubric_min_steps": 6,
+  "rubric_min_gold_steps": 3,
+  "judge": {
+    "enabled": false,
+    "model": "lemonade/Gemma-4-26B-A4B-it-GGUF",
+    "max_tokens": 400
+  },
+  "output_dir": "${benny_home}/runs/model-compare"
+}

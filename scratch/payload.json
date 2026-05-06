@@ -1,0 +1,4 @@
+{
+  "model": "qwen3-tk-4b-FLM",
+  "messages": [{"role": "user", "content": "hi"}]
+}

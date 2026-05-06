@@ -1,0 +1,182 @@
+version: "3.8"
+
+# =============================================================================
+# Benny Full Stack - Docker Compose Configuration
+# Includes: API, Marquez (Lineage), Phoenix (Tracing), N8N (Workflows)
+# =============================================================================
+
+services:
+  # ============================================
+  # Marquez Data Lineage Stack (OpenLineage Backend)
+  # ============================================
+
+  # PostgreSQL database for Marquez
+  marquez-db:
+    image: postgres:14
+    container_name: benny-marquez-db
+    environment:
+      - POSTGRES_USER=marquez
+      - POSTGRES_PASSWORD=marquez
+      - POSTGRES_DB=marquez
+    volumes:
+      - marquez-db-data:/var/lib/postgresql/data
+    networks:
+      benny-network:
+        aliases:
+          - marquez-db
+          - benny-marquez-db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U marquez"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Marquez API - OpenLineage event collector
+  marquez-api:
+    image: marquezproject/marquez:0.47.0
+    container_name: benny-marquez-api
+    ports:
+      - "5000:5000" # API endpoint
+      - "5001:5001" # Admin endpoint
+    environment:
+      - MARQUEZ_CONFIG=/etc/marquez/marquez.yml
+      - POSTGRES_HOST=benny-marquez-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=marquez
+      - POSTGRES_USER=marquez
+      - POSTGRES_PASSWORD=marquez
+    volumes:
+      - ./docker/marquez.yml:/etc/marquez/marquez.yml:ro
+    depends_on:
+      marquez-db:
+        condition: service_healthy
+    networks:
+      benny-network:
+        aliases:
+          - marquez-api
+          - benny-marquez-api
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/v1/namespaces"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Marquez Web UI - Lineage visualization
+  marquez-web:
+    image: marquezproject/marquez-web:0.47.0
+    container_name: benny-marquez-web
+    ports:
+      - "3010:3000" # UI (shifted to avoid frontend conflict)
+    environment:
+      - MARQUEZ_HOST=benny-marquez-api
+      - MARQUEZ_PORT=5000
+    depends_on:
+      - marquez-api
+    networks:
+      benny-network:
+        aliases:
+          - marquez-web
+          - benny-marquez-web
+    restart: unless-stopped
+
+  # ============================================
+  # Phoenix Distributed Tracing
+  # ============================================
+  phoenix:
+    image: arizephoenix/phoenix:latest
+    container_name: benny-phoenix
+    ports:
+      - "6006:6006" # Phoenix UI
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+    environment:
+      - PHOENIX_PORT=6006
+      - PHOENIX_GRPC_PORT=4317
+    networks:
+      - benny-network
+    restart: unless-stopped
+
+  # ============================================
+  # N8N Workflow Orchestration (Optional)
+  # ============================================
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    container_name: benny-n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+      - GENERIC_TIMEZONE=UTC
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - benny-network
+    restart: unless-stopped
+
+  # ============================================
+  # Local LLM Providers (Choose one or more)
+  # ============================================
+
+  # Ollama - Popular local LLM server (GPU accelerated)
+  # Pull models with: docker exec benny-ollama ollama pull llama3
+  ollama:
+    image: ollama/ollama:latest
+    container_name: benny-ollama
+    ports:
+      - "11434:11434"   # Ollama API
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - benny-network
+    restart: unless-stopped
+    # Uncomment for GPU support (NVIDIA):
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  # Note: Lemonade and FastFlowLM run on the host machine
+  # They are not containerized as they require direct NPU access
+  # 
+  # Lemonade (AMD NPU): lemonade-server serve --port 8080
+  # FastFlowLM (Intel NPU): Manual start on port 52625
+
+  # ============================================
+  # Neo4j Knowledge Graph (Synthesis Engine)
+  # ============================================
+  neo4j:
+    image: neo4j:5
+    container_name: benny-neo4j
+    ports:
+      - "7474:7474" # HTTP interface
+      - "7687:7687" # Bolt protocol
+    environment:
+      - NEO4J_AUTH=neo4j/password
+    volumes:
+      - neo4j_data:/data
+    networks:
+      - benny-network
+    restart: unless-stopped
+
+networks:
+  benny-network:
+    driver: bridge
+    name: benny-network
+
+volumes:
+  marquez-db-data:
+    name: benny-marquez-db
+  n8n_data:
+    name: benny-n8n
+  ollama_data:
+    name: benny-ollama
+  neo4j_data:
+    name: benny-neo4j

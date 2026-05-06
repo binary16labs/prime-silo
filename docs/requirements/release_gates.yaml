@@ -1,0 +1,89 @@
+# 6σ Release Gate Thresholds
+# These are enforced by tests/release/test_release_gates.py
+
+gates:
+  G-COV:
+    name: "Core Code Coverage"
+    threshold: 0.85
+    scope: ["benny/core", "benny/api", "benny/persistence", "benny/ops"]
+
+  G-SR1:
+    name: "Absolute Path Safety (Ratchet)"
+    threshold: 408
+    baseline_path: "tests/portability/absolute_paths_baseline.json"
+
+  G-LAT:
+    name: "Planning Latency (Platform Overhead)"
+    threshold_ms: 300
+    samples: 50
+    warmup: 5
+
+  G-ERR:
+    name: "Concurrency & Flake Resistance"
+    loops: 10
+    required_success_rate: 1.0
+
+  G-SIG:
+    name: "Manifest Signature Integrity"
+    required: true
+
+  G-OFF:
+    name: "Offline Compliance"
+    required: true
+
+  # ─── AAMP-001 (AgentAmp Phase 11) gates ─────────────────────────────────
+
+  GATE-AAMP-POLICY-1:
+    name: "AgentAmp — remote-skin auto-load disabled at release"
+    flag: "aamp.policy.auto_load_remote_skins"
+    required_value: false
+    test: "test_aamp_release_gate_policy_remote_off"
+
+  GATE-AAMP-DEVMODE-1:
+    name: "AgentAmp — dev_mode disabled at release"
+    flag: "aamp.dev_mode"
+    required_value: false
+    test: "test_aamp_release_gate_devmode_off"
+
+  GATE-AAMP-CSP-1:
+    name: "AgentAmp — strict CSP enforced at release"
+    flag: "aamp.sandbox.csp_strict"
+    required_value: true
+    test: "test_aamp_release_gate_csp_on"
+
+  GATE-AAMP-AUTOSIGN-1:
+    name: "AgentAmp — auto_sign disabled; install unconditionally rejects unsigned packs"
+    flag: "aamp.designer.auto_sign"
+    required_value: false
+    test: "test_aamp_release_gate_autosign_off"
+
+  G-AAMP-COV:
+    name: "AgentAmp — coverage ≥ 85% on agentamp modules"
+    threshold: 0.85
+    scope: ["benny/agentamp", "frontend/src/agentamp"]
+    test: "tests/release/test_aamp_release_gate.py::coverage"
+
+  G-AAMP-OFF:
+    name: "AgentAmp — BENNY_OFFLINE=1 end-to-end smoke"
+    required: true
+    test: "tests/agentamp/test_offline_e2e.py"
+
+  G-AAMP-SR1:
+    name: "AgentAmp — SR-1 ratchet not raised by AAMP-001 surfaces"
+    required: true
+    test: "tests/portability/test_no_absolute_paths.py"
+
+  G-AAMP-SIG:
+    name: "AgentAmp — all shipped reference skins verify under HMAC at boot"
+    required: true
+    test: "test_aamp_release_gate_signatures"
+
+  G-AAMP-BUNDLE:
+    name: "AgentAmp — UI bundle delta ≤ 350 KB gzipped"
+    threshold_kb: 350
+    test: "tests/release/test_aamp_release_gate.py::bundle_delta"
+
+  G-AAMP-LEDGER:
+    name: "AgentAmp — every loaded skin/plugin in smoke session has a ledger entry"
+    required: true
+    test: "test_aamp_release_gate_ledger_completeness"

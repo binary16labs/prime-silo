@@ -1,0 +1,139 @@
+{
+  "schema_version": "1.0",
+  "kind": "pypes_pipeline",
+  "id": "kg-swarm-enrichment-001",
+  "name": "Knowledge Graph Synthesis & Swarm Report",
+  "description": "Extracts knowledge triples from PDFs, ingests into ChromaDB/Neo4j, and runs a model swarm for concurrent book reports.",
+  "workspace": "${workspace}",
+  "governance": {
+    "compliance_tags": ["AI-INSIGHTS", "KG-ENRICHMENT"],
+    "owner": "Knowledge_Science_Team",
+    "criticality": "medium",
+    "pii_policy": "mask"
+  },
+  "variables": {
+    "data_dir": "${benny_home}/workspace/${workspace}/staging",
+    "target_pdf": "FrolovRoutledge2024.pdf"
+  },
+  "clp": {
+    "conceptual": [
+      {
+        "name": "Document",
+        "description": "Raw source PDF in staging",
+        "owner": "Content_Ingest",
+        "compliance_tags": ["SOURCE-AUDIT"]
+      },
+      {
+        "name": "KnowledgeTriple",
+        "description": "Subject-Predicate-Object triple extracted from text and stored in Neo4j.",
+        "owner": "Knowledge_Science",
+        "compliance_tags": ["KG-V1"]
+      }
+    ],
+    "logical": [
+      {
+        "entity": "Document",
+        "fields": [
+          { "name": "file_name", "type": "string", "required": true },
+          { "name": "page_count", "type": "int", "required": false },
+          { "name": "ingestion_status", "type": "string", "required": true }
+        ]
+      },
+      {
+        "entity": "KnowledgeTriple",
+        "fields": [
+          { "name": "subject", "type": "string", "required": true },
+          { "name": "predicate", "type": "string", "required": true },
+          { "name": "object", "type": "string", "required": true },
+          { "name": "confidence", "type": "float", "required": true }
+        ]
+      }
+    ],
+    "physical": [
+      {
+        "entity": "Document",
+        "uri_template": "staging/${target_pdf}",
+        "format": "json"
+      },
+      {
+        "entity": "KnowledgeTriple",
+        "uri_template": "data_out/kg_triples.parquet",
+        "format": "parquet"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "id": "bronze_extract",
+      "description": "Extract raw content and metadata from the target PDF using the extract_pdf skill.",
+      "engine": "pandas",
+      "stage": "bronze",
+      "inputs": [],
+      "outputs": ["raw_content"],
+      "source": { "uri": "${data_dir}/${target_pdf}", "format": "json" },
+      "operations": [
+        { "operation": "load", "params": { "source_id": "STAGING_FS" } }
+      ],
+      "post_validations": {
+        "completeness": ["file_name"],
+        "row_count": { "min": 1 }
+      }
+    },
+    {
+      "id": "silver_ingest",
+      "description": "Chunk text and ingest into ChromaDB and Neo4j for downstream synthesis.",
+      "engine": "pandas",
+      "stage": "silver",
+      "inputs": ["raw_content"],
+      "outputs": ["ingested_nodes"],
+      "operations": [
+        { "operation": "standardize", "params": { "columns": ["content"], "case": "strip" } },
+        { "operation": "dedupe", "params": { "subset": ["content_hash"] } }
+      ]
+    },
+    {
+      "id": "gold_synthesis",
+      "description": "Perform deep synthesis to link concepts in the Neo4j graph and produce the final enrichment layer.",
+      "engine": "pandas",
+      "stage": "gold",
+      "inputs": ["ingested_nodes"],
+      "outputs": ["knowledge_graph"],
+      "operations": [
+        {
+          "operation": "aggregate",
+          "params": {
+            "group_by": ["subject", "predicate"],
+            "metrics": {
+              "triple_count": "count(object)",
+              "avg_confidence": "mean(confidence)"
+            }
+          }
+        },
+        { "operation": "sort", "params": { "by": ["avg_confidence"], "descending": true } }
+      ],
+      "clp_binding": {
+        "subject": "KnowledgeTriple.subject",
+        "predicate": "KnowledgeTriple.predicate",
+        "avg_confidence": "KnowledgeTriple.confidence"
+      }
+    }
+  ],
+  "reports": [
+    {
+      "id": "swarm_book_report",
+      "title": "Swarm Comparison: Knowledge Synthesis Report",
+      "kind": "generic_summary",
+      "source_step": "gold_synthesis",
+      "drill_down_by": ["subject"],
+      "metrics": { "total_triples": "sum(triple_count)", "mean_confidence": "mean(avg_confidence)" },
+      "format": "markdown",
+      "top_n": 20,
+      "sign_with_rationale": true
+    }
+  ],
+  "config": {
+    "default_engine": "pandas",
+    "max_concurrency": 2
+  },
+  "tags": ["pypes", "knowledge-graph", "swarm", "template"]
+}

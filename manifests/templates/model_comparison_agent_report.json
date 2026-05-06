@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0",
+  "kind": "pypes_model_comparison",
+  "id": "compare-agent-report-cmr",
+  "name": "Risk-narrative head-to-head against a finished pypes run",
+  "task": "agent_report",
+  "workspace": "pypes_demo",
+  "run_id": "REPLACE_WITH_REAL_RUN_ID",
+  "models": [
+    {
+      "label": "qwen3-tk-4b",
+      "id": "lemonade/qwen3-tk-4b-FLM",
+      "max_tokens": 2400,
+      "temperature": 0.3
+    },
+    {
+      "label": "gemma-e4b",
+      "id": "lemonade/Gemma-4-E4B-it-GGUF",
+      "max_tokens": 2400,
+      "temperature": 0.3
+    },
+    {
+      "label": "gemma-26b",
+      "id": "lemonade/Gemma-4-26B-A4B-it-GGUF",
+      "max_tokens": 2400,
+      "temperature": 0.3
+    }
+  ],
+  "repeats": 1,
+  "judge": {
+    "enabled": true,
+    "model": "lemonade/Gemma-4-26B-A4B-it-GGUF",
+    "max_tokens": 400
+  },
+  "output_dir": "${benny_home}/runs/model-compare"
+}
