@@ -1,147 +1,104 @@
-<p align="center">
-  <a href="https://space-agent.ai"><img src="./.github/readme-banner-thin.svg" alt="Space Agent banner" /></a>
-</p>
+# Prime-Silo
 
-<p align="center">
-<br>
-  <a href="https://space-agent.ai"><img alt="Try Live Now!" src="./.github/readme-try-live-now.svg" /></a>
-  <br />
-  <br />
-  <a href="https://github.com/agent0ai/space-agent/releases/latest"><img alt="Run local App" height="50" src="https://img.shields.io/badge/Run%20local%20App-59F0A8?style=for-the-badge&labelColor=07111F&color=59F0A8" /></a>
-  <a href="#host"><img alt="Host yourself" height="50" src="https://img.shields.io/badge/Host%20yourself-FFFFFF?style=for-the-badge&labelColor=07111F&color=FFFFFF" /></a>
-</p>
+> The first, foundational, canonical silo of institutional cognition — engineered by Binary 16.
 
-<h3 align="center">Created by <a href="https://agent-zero.ai">Agent Zero</a>.</h3>
+Prime-Silo is an open-source typed execution substrate for institutional reasoning, fused with an adaptive browser-resident shell. It is the convergence of two projects:
 
-<p align="center">
-  <a href="https://discord.gg/B8KZKNsPpj"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?style=flat&logo=discord&logoColor=white" /></a>
-  &nbsp;
-  <a href="https://x.com/Agent0ai"><img alt="X" src="https://img.shields.io/badge/X-000000?style=flat&logo=x&logoColor=white" /></a>
-  &nbsp;
-  <a href="https://www.youtube.com/@AgentZeroFW"><img alt="YouTube" src="https://img.shields.io/badge/YouTube-FF0000?style=flat&logo=youtube&logoColor=white" /></a>
-  &nbsp;
-  <a href="https://deepwiki.com/agent0ai/space-agent"><img alt="Ask DeepWiki" src="https://deepwiki.com/badge.svg" /></a>
-</p>
+- **[Benny](https://github.com/skybluecycology/benny)** — the deterministic substrate (Pypes Layer 0 transformation algebra, swarm-executed Layer 1 cognitive operations, triple-lineage governance, manifest signing). Vendored here under `runtime/`.
+- **[Space-Agent](https://github.com/agent0ai/space-agent)** — the adaptive shell (browser-resident agent runtime, puzzle-piece module modularity, Git-backed workspace versioning). Forked as the outer application.
 
-<p align="center">
-  <a href="https://www.youtube.com/watch?v=CNRHxEZ8yqs"><img src="./.github/thumbnail.webp" alt="Watch Space Agent on YouTube" width="560" /></a>
-</p>
+The goal: a single shell that gives operators one nav, one theme, one run timeline, and one audit story across documents, code, tabular data, and post-run review — without compromising the determinism, signing, and lineage guarantees that make the substrate auditable.
 
-## Why Space Agent Is Different
+## Determinism boundary (ADR-001)
 
-<table width="100%" border="0" cellpadding="0" cellspacing="0">
-  <tr>
-    <td valign="top" width="50%">
-      <strong>The agent reshapes the interface</strong><br />
-      Ask for a page, tool, widget, or workflow and the agent can build it straight into the running workspace while you work.
-    </td>
-    <td valign="top" width="50%">
-      <strong>Endless possibilities</strong><br />
-      The agent is not trapped inside a fixed product surface. It can develop the capabilities it needs from within the system itself and keep extending the Space toward whatever the user can imagine.
-    </td>
-  </tr>
-  <tr>
-    <td align="center" valign="top" width="50%">
-      <img src="packaging/resources/icons/source/space-agent-icon-256.webp" alt="Space Agent app icon" width="120" />
-    </td>
-    <td valign="top" width="50%">
-      <strong>The agent lives in the frontend runtime</strong><br />
-      Space Agent runs in the browser layer itself, whether you open it in a tab or through the desktop app, so the agent can work directly with the same framework, modules, spaces, and UI it is reshaping.
-    </td>
-  </tr>
-  <tr>
-    <td valign="top" width="50%">
-      <strong>Text-based agent</strong><br />
-      New capabilities can live in simple <code>SKILL.md</code> files that the agent can write and extend itself in plain text.
-    </td>
-    <td valign="top" width="50%">
-      <strong>Token-efficient execution</strong><br />
-      No bulky tool-call JSON. When action is needed, the agent can stay in plain text and plain JavaScript inside the same message.
-    </td>
-  </tr>
-  <tr>
-    <td valign="top" width="50%">
-      <strong>Puzzle-piece modularity</strong><br />
-      The core stays small. Most of Space Agent is made of modular pieces that can be added, removed, or swapped cleanly instead of being welded into one rigid app.
-    </td>
-    <td align="center" valign="top" width="50%">
-      <img src="app/L0/_all/mod/_core/visual/res/chat/admin/helmet_no_bg_256.webp" alt="Space Agent helmet" height="112" />
-    </td>
-  </tr>
-  <tr>
-    <td valign="top" width="50%">
-      <strong>Personal to hierarchical</strong><br />
-      Use Space Agent as a completely personal assistant, or organize it into a hierarchical system of users and groups as the scope grows.
-    </td>
-    <td valign="top" width="50%">
-      <strong>Per-user work, group sharing</strong><br />
-      Users can build in their own layer without affecting anyone else, then groups can share tools, workflows, and behavior across teams when they are ready.
-    </td>
-  </tr>
-  <tr>
-    <td align="center" valign="top" width="50%">
-      <img src="app/L0/_all/mod/_core/visual/res/engineer/astronaut_red_512h.webp" alt="Space Agent astronaut" height="148" />
-    </td>
-    <td valign="top" width="50%">
-      <strong>Persistent admin and time travel</strong><br />
-      When something breaks, admin mode gives you a stable control plane, and Git-backed history lets you roll back user or group changes without taking everyone down with you.
-    </td>
-  </tr>
-</table>
+Prime-Silo splits surfaces into two zones, with different agent authority in each:
 
-## Try it in 30 seconds
+| Zone               | Surfaces                                                                                                  | Agent authority                                                              | Where it lives           |
+| ------------------ | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------ |
+| **Deterministic**  | Manifest authoring, run execution, KG/code graph mutation, L3 writes, skill registry                      | Read-only. Drafts → HITL → `sign_manifest()` → run                           | Static React widgets     |
+| **Review (fluid)** | Post-run drill-down, frame inspection, reasoning trace, audit query, agent-composed analyst reports       | Read everything; write only to `agent_sandbox/{views,notes,drafts,skills}/` | Adaptive composed canvas |
 
-# [space-agent.ai](https://space-agent.ai)
+Pinned agent-composed layouts become `.aamp.view` bundles, HMAC-signed via the existing skin-pack signing path. Replaying a layout is deterministic and auditable.
 
-Try our demo server with guest account.
+See [`runtime/architecture/ADR-001-prime-silo-shell-fork.md`](runtime/architecture/ADR-001-prime-silo-shell-fork.md) for the full decision record.
 
-## Run it yourself
+## Repo layout
 
-### The desktop app
-
-Grab the latest build from [GitHub Releases](https://github.com/agent0ai/space-agent/releases/latest). It runs everything as one app. No terminal required.
-
-### A real server, for you or your team
-
-<a id="host"></a>
-
-```bash
-git clone https://github.com/agent0ai/space-agent.git
-cd space-agent
-npm install
-
-# create yourself an admin
-node space user create admin --password "change-me-now" --full-name "Admin" --groups _admin
-
-# start the server
-node space serve
+```
+prime-silo/
+├── app/                      # space-agent — browser frontend
+├── server/                   # space-agent — thin Node.js shell server
+├── space/                    # space-agent — agent runtime
+├── packaging/                # space-agent — desktop builds
+├── runtime/                  # vendored from skybluecycology/benny
+│   ├── benny/                #   FastAPI backend, Pypes, swarm, governance
+│   ├── manifests/            #   Pypes/swarm manifests
+│   ├── tests/                #   pytest suite (~200 tests)
+│   ├── docs/                 #   operator manuals, ADRs, requirements
+│   └── architecture/         #   ADR-001 lives here
+├── scripts/                  # prime-silo dev/launch scripts
+└── README.md                 # this file
 ```
 
-### For development
+## Status
 
-```bash
-npm run dev # server with auto-reload
+- [x] **Phase A** — agent sandbox boundary, scope guard middleware, widget registry contract, agent-authorship lineage emitter (in `runtime/benny/`)
+- [x] **Phase B** — fork bootstrap (this branch); Benny vendored under `runtime/`, space-agent shell merged
+- [ ] **Phase C** — port high-value canvases (KG3D, DAG, drill-down, frame inspector, lineage timeline) into the shell as widgets
+- [ ] **Phase D** — agent composes Review-zone layouts over completed Pypes runs
+- [ ] **Phase E** — deterministic-zone surfaces rendered as static (non-agent-mutable) shell pages
+- [ ] **Phase F** — `.aamp.view` signing path; saved layouts become signable bundles
+- [ ] **Phase G** — canvas consolidation; retire ManifestCanvas/PipelineCanvas/WorkflowCanvas duplication
+
+Tracked in [`runtime/architecture/ADR-001-prime-silo-shell-fork.md`](runtime/architecture/ADR-001-prime-silo-shell-fork.md) §8.
+
+## Quickstart (Phase B — backend boot only)
+
+Frontend integration ships in Phase D. Today you can boot the deterministic substrate and exercise the agent-sandbox API.
+
+```powershell
+# 1. Install Python deps
+cd runtime
+python -m pip install -e .
+
+# 2. Set required environment
+$env:BENNY_HOME = "$PWD\.benny_home"
+$env:BENNY_HMAC_KEY = "<hex key — same one your skin packs use>"
+
+# 3. Boot the FastAPI runtime
+python -m benny.api.server
+# → http://localhost:8005
+
+# 4. Verify the ADR-001 surfaces are live
+curl http://localhost:8005/api/agent_sandbox/health
+curl http://localhost:8005/api/widgets
+
+# 5. Sandbox writes succeed; non-sandbox writes return 403
+curl -X POST http://localhost:8005/api/agent_sandbox/write `
+  -H "X-Benny-Agent-Scope: sandbox" -H "Content-Type: application/json" `
+  -d '{\"workspace\":\"default\",\"subdir\":\"notes\",\"filename\":\"hello.md\",\"content\":\"# hi\"}'
 ```
 
-Open the checked-in VS Code launch entry `Dev Server (npm run dev)` when you want breakpoints in `server/` code. It launches the same watcher and auto-attaches to the spawned `node space serve` process across restarts.
+A turnkey dev script (Node shell + Python runtime) lives in [`scripts/dev.ps1`](scripts/dev.ps1) and [`scripts/dev.sh`](scripts/dev.sh).
 
-### For production
+## Updating the vendored Benny tree
 
 ```bash
-node space set CUSTOMWARE_PATH=/srv/space/customware
-node space supervise HOST=0.0.0.0 PORT=3000 # zero downtime auto-update
+git remote add benny https://github.com/skybluecycology/benny.git   # one-time
+git subtree pull --prefix=runtime benny master --squash
 ```
 
-Run `node space help` to see the full command surface and built-in help for each from [`commands/params.yaml`](./commands/params.yaml).
+Fixes that originate in `runtime/` go back upstream as PRs against `skybluecycology/benny`. Anything touching `runtime/benny/` lands upstream first; the fork only owns:
 
-## AI-driven development and documentation
+- Space-agent shell customisations
+- Migrated React widget components (Phase C onward)
+- `.aamp.view` view bundles
+- Fork-specific docs
 
-Space Agent is developed by AI agents, including its documentation.
+## License
 
-The framework keeps a hierarchical `AGENTS.md` instruction system, plus skills and focused docs, so agents can understand ownership, architecture, workflows, and local implementation rules while they build and maintain the system autonomously.
+Space-agent shell code under [`LICENSE`](LICENSE) (inherited from upstream). The vendored Benny tree retains its own license at [`runtime/LICENSE`](runtime/LICENSE) where applicable.
 
-DeepWiki covers the human-readable side of that same knowledge base. Together, this keeps the codebase and its documentation prepared for autonomous agent work, and helps the documentation keep up with the pace of AI-driven development instead of falling behind.
+---
 
-If you want the deep tour, start here:
-
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/agent0ai/space-agent)
+*Prime-Silo — engineered by Binary 16.*
