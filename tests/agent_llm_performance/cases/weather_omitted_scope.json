@@ -1,0 +1,30 @@
+{
+  "id": "weather_omitted_scope",
+  "description": "underspecified weather should use current context rather than bounce a location question to the human",
+  "history": "../histories/weather_omitted_scope.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript"
+    ],
+    "must_not_contain": [
+      "Which location?",
+      "tell me the location",
+      "Send the city",
+      "default",
+      "I can check the current weather if you want",
+      "I can check the weather if you tell me the location"
+    ],
+    "must_not_match": [
+      {
+        "pattern": "\\bneed\\s+(?:a\\s+|the\\s+)?location\\b",
+        "flags": "iu"
+      }
+    ]
+  }
+}

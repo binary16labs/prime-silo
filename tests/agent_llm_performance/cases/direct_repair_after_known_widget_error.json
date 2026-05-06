@@ -1,0 +1,35 @@
+{
+  "id": "direct_repair_after_known_widget_error",
+  "description": "after a widget patch error with a known current widget target, the agent should continue on that exact target instead of broad rediscovery",
+  "history": "../histories/direct_repair_after_known_widget_error.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript",
+      "snake-game"
+    ],
+    "must_match": [
+      {
+        "pattern": "space\\.current\\.(?:readWidget|patchWidget|writeWidget|updateWidget)",
+        "flags": "u"
+      }
+    ],
+    "must_not_match": [
+      {
+        "pattern": "space\\.api\\.fileList|space\\.chat\\.messages|space\\.chat\\.attachments|attachments\\.",
+        "flags": "u"
+      }
+    ],
+    "must_not_match": [
+      {
+        "pattern": "\\b(?:patched|updated|fixed)\\b.*\\b(?:successfully|done)\\b",
+        "flags": "iu"
+      }
+    ]
+  }
+}

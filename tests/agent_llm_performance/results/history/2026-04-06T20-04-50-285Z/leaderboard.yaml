@@ -1,0 +1,52 @@
+generated_at: 2026-04-06T20:04:50.285Z
+generation_id: 2026-04-06T20-04-50-285Z
+model: openai/gpt-5.4-mini
+prompts:
+  - rank: 1
+    id: 039A_followthrough_restore
+    passed_cases: 30
+    total_cases: 37
+    pass_rate: 0.8108
+    passed_attempts: 30
+    total_attempts: 37
+    attempt_pass_rate: 0.8108
+    failed_cases:
+      - page_title_requires_execution
+      - time_requires_execution
+      - weather_omitted_scope
+      - weather_self_scope_followup
+      - reverse_geocode_after_precise_followup
+      - create_note_after_user_detail_read
+      - terminal_after_result_retry_literal
+  - rank: 2
+    id: 039B_next_action_obligation
+    passed_cases: 30
+    total_cases: 37
+    pass_rate: 0.8108
+    passed_attempts: 30
+    total_attempts: 37
+    attempt_pass_rate: 0.8108
+    failed_cases:
+      - weather_self_scope_after_indirect_fail
+      - terminal_after_successful_widget_patch
+      - terminal_after_successful_retry_patch
+      - terminal_after_framework_no_result_info
+      - terminal_after_result_continue_literal
+      - terminal_after_result_commandlike_literal
+      - protocol_nudge_requires_real_thrust
+  - rank: 3
+    id: 039C_modes_and_debts
+    passed_cases: 30
+    total_cases: 37
+    pass_rate: 0.8108
+    passed_attempts: 30
+    total_attempts: 37
+    attempt_pass_rate: 0.8108
+    failed_cases:
+      - reverse_geocode_after_precise_followup
+      - unpack_collapsed_weather_payload
+      - terminal_after_framework_no_result_info
+      - terminal_after_result_commandlike_literal
+      - terminal_after_result_retry_literal
+      - repeat_do_it_requires_execution
+      - protocol_nudge_requires_real_thrust

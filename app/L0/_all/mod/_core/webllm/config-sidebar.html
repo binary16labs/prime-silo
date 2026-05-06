@@ -1,0 +1,182 @@
+<div x-data="{ mode: xAttrs($el).mode || 'testing' }">
+  <template x-if="mode === 'testing'">
+    <aside class="webllm-card webllm-config-card">
+      <div class="webllm-current-block">
+        <div class="webllm-current-header">
+          <p class="webllm-current-label">Current model</p>
+          <span
+            class="webllm-current-badge"
+            :class="$store.webllm.currentModelBadgeTone"
+            x-text="$store.webllm.currentModelBadgeText"
+          ></span>
+        </div>
+        <div class="webllm-current-main">
+          <p class="webllm-current-model" x-text="$store.webllm.currentModelLabel"></p>
+          <button
+            type="button"
+            class="secondary-button webllm-unload-button"
+            :class="{ 'webllm-stop-button': $store.webllm.isLoadingModel }"
+            x-show="$store.webllm.activeModelId || $store.webllm.isLoadingModel"
+            x-cloak
+            :disabled="!$store.webllm.canUnloadActiveModel"
+            @click="$store.webllm.requestUnloadModel()"
+            x-text="$store.webllm.currentModelActionLabel"
+          >
+          </button>
+        </div>
+
+        <template x-if="$store.webllm.isLoadingModel">
+          <div class="webllm-progress-block">
+            <div
+              class="webllm-progress-track"
+              role="progressbar"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              :aria-valuenow="$store.webllm.loadProgressPercent"
+            >
+              <div
+                class="webllm-progress-fill"
+                :style="`--webllm-progress-width: ${$store.webllm.loadProgressPercent}%`"
+              ></div>
+            </div>
+          </div>
+        </template>
+
+        <template x-if="$store.webllm.error">
+          <p class="webllm-error-copy" x-text="$store.webllm.error"></p>
+        </template>
+      </div>
+
+      <section class="webllm-browser-block webllm-browser-block--models">
+        <div class="webllm-card-header">
+          <h2>Models</h2>
+          <span class="webllm-section-meta" x-text="`${$store.webllm.visiblePrebuiltCount} shown`"></span>
+        </div>
+
+        <label class="webllm-field">
+          <input
+            type="text"
+            x-model="$store.webllm.prebuiltSearch"
+            :disabled="$store.webllm.isLoadingModel"
+            placeholder="gemma, qwen, llama, 4b..."
+          />
+        </label>
+
+        <label class="webllm-toggle-field">
+          <input
+            type="checkbox"
+            x-model="$store.webllm.showDownloadedOnly"
+            :disabled="!$store.webllm.cacheStatusReady"
+          />
+          <span>Downloaded</span>
+        </label>
+
+        <div class="webllm-catalog-list">
+          <template x-for="model in $store.webllm.filteredPrebuiltModels" :key="model.model_id">
+            <article
+              class="webllm-catalog-item"
+              :class="{
+                'is-cached': $store.webllm.isModelCached(model.model_id),
+                'is-loaded': $store.webllm.isActivePrebuiltModel(model.model_id)
+              }"
+            >
+              <div class="webllm-catalog-main">
+                <p class="webllm-catalog-title" x-text="model.model_id"></p>
+                <p class="webllm-catalog-meta">
+                  <span x-text="$store.webllm.inferModelFamily(model.model_id)"></span>
+                  <span x-show="model.vram_required_MB" x-text="`${Math.round(model.vram_required_MB)} MB VRAM`"></span>
+                </p>
+              </div>
+              <div class="webllm-catalog-actions">
+                <button
+                  type="button"
+                  class="secondary-button webllm-list-button"
+                  :class="{
+                    'is-cached': $store.webllm.isModelCached(model.model_id) && !$store.webllm.isActivePrebuiltModel(model.model_id),
+                    'is-download': !$store.webllm.isModelCached(model.model_id),
+                    'is-unload': $store.webllm.isActivePrebuiltModel(model.model_id)
+                  }"
+                  :disabled="$store.webllm.isLoadingModel || $store.webllm.isGenerating || $store.webllm.isUnloadingModel"
+                  @click="$store.webllm.handlePrebuiltModelAction(model)"
+                  x-text="$store.webllm.getModelListActionLabel(model)"
+                >
+                </button>
+                <button
+                  type="button"
+                  class="secondary-button webllm-discard-button"
+                  x-show="$store.webllm.isModelCached(model.model_id)"
+                  x-cloak
+                  :disabled="!$store.webllm.canDiscardCachedModel(model.model_id)"
+                  :title="$store.webllm.isDiscardingModel(model.model_id) ? 'Discarding cached model files' : 'Discard cached model files'"
+                  aria-label="Discard cached model files"
+                  @click="$store.webllm.requestDiscardCachedModel(model.model_id)"
+                >
+                  <x-icon x-text="$store.webllm.isDiscardingModel(model.model_id) ? 'hourglass_top' : 'delete'"></x-icon>
+                </button>
+              </div>
+            </article>
+          </template>
+        </div>
+      </section>
+
+      <section class="webllm-browser-block">
+        <div class="webllm-section-heading">
+          <h3>Advanced custom model</h3>
+          <button
+            type="button"
+            class="secondary-button"
+            @click="$store.webllm.showAdvanced = !$store.webllm.showAdvanced"
+            x-text="$store.webllm.showAdvanced ? 'Hide' : 'Show'"
+          ></button>
+        </div>
+
+        <div x-show="$store.webllm.showAdvanced" x-cloak>
+          <div class="webllm-advanced-block">
+            <p class="field-note">
+              For advanced use only. This requires an MLC/WebLLM-compiled model URL and a matching <code>model_lib</code> wasm, not an arbitrary Hugging Face repo.
+            </p>
+
+            <label class="webllm-field">
+              <span>Model URL</span>
+              <input
+                type="url"
+                x-model="$store.webllm.customModelUrl"
+                :disabled="$store.webllm.isLoadingModel"
+                placeholder="https://huggingface.co/username/model"
+              />
+            </label>
+
+            <label class="webllm-field">
+              <span>Model library URL</span>
+              <input
+                type="url"
+                x-model="$store.webllm.customModelLibUrl"
+                :disabled="$store.webllm.isLoadingModel"
+                placeholder="https://.../model-webgpu.wasm"
+              />
+            </label>
+
+            <label class="webllm-field">
+              <span>Model id</span>
+              <input
+                type="text"
+                x-model="$store.webllm.customModelId"
+                :disabled="$store.webllm.isLoadingModel"
+                placeholder="Optional. Derived from the model URL when blank."
+              />
+            </label>
+
+            <button
+              type="button"
+              class="primary-button webllm-advanced-load-button"
+              :disabled="$store.webllm.isLoadingModel || $store.webllm.isGenerating || !$store.webllm.isWorkerReady"
+              @click="$store.webllm.handleLoadCustomModel()"
+            >
+              Load custom
+            </button>
+          </div>
+        </div>
+      </section>
+    </aside>
+  </template>
+</div>

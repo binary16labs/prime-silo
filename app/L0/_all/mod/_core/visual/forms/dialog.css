@@ -1,0 +1,457 @@
+:root {
+  --space-dialog-width: min(720px, calc(100vw - 32px));
+  --space-dialog-width-wide: min(860px, calc(100vw - 32px));
+  --space-dialog-padding: 18px;
+  --space-dialog-radius: 16px;
+  --space-dialog-border: var(--color-border-soft);
+  --space-dialog-surface: #0c1626;
+  --space-dialog-shadow: none;
+  --space-dialog-backdrop: var(--color-overlay);
+  --space-field-bg: #101b2d;
+  --space-field-border: var(--color-border-soft);
+  --space-field-focus-border: rgba(148, 188, 255, 0.3);
+  --space-field-focus-ring: rgba(148, 188, 255, 0.12);
+  --space-inline-code-bg: rgba(148, 188, 255, 0.14);
+  --space-inline-code-border: rgba(148, 188, 255, 0.18);
+  --space-option-hover-bg: rgba(19, 32, 51, 0.94);
+  --space-option-radius: 0.9rem;
+}
+
+.chat-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0.5rem 0.7rem;
+  border: 0;
+  border-radius: var(--space-option-radius);
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.chat-option:hover,
+.chat-option:focus-visible {
+  background: var(--space-option-hover-bg);
+}
+
+.chat-option:focus-visible {
+  outline: 2px solid rgba(148, 188, 255, 0.18);
+  outline-offset: 2px;
+}
+
+.chat-option:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.chat-option-label,
+.chat-option-value,
+.composer-hint,
+.field-note,
+.dialog-note,
+.raw-output,
+.prompt-history-body {
+  color: var(--color-text-muted);
+}
+
+.chat-option-label {
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  font-weight: 400;
+}
+
+.page-eyebrow,
+.field span,
+.prompt-history-role,
+.execution-pane-label {
+  font-size: 0.74rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.chat-option-value {
+  min-width: 0;
+  max-width: 18ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-option-llm .chat-option-value {
+  max-width: 34ch;
+}
+
+.chat-option-prompt .chat-option-value {
+  max-width: 28ch;
+}
+
+.chat-option x-icon {
+  flex: 0 0 auto;
+  color: var(--color-primary);
+  font-size: 16px;
+}
+
+.chat-option:hover .chat-option-value,
+.chat-option:hover x-icon {
+  color: var(--color-primary);
+}
+
+.page-eyebrow {
+  margin: 0;
+}
+
+.space-dialog-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+
+.space-dialog-layer .chat-dialog {
+  pointer-events: auto;
+}
+
+.chat-dialog {
+  padding: 0;
+  border: 0;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  background: transparent;
+  color: var(--color-text);
+  overflow: hidden;
+}
+
+.chat-dialog::backdrop {
+  background: var(--space-dialog-backdrop);
+  backdrop-filter: blur(8px);
+}
+
+.chat-dialog {
+  --space-button-radius: 10px;
+  --space-button-gap: 6px;
+  --space-button-padding-y: 0.5rem;
+  --space-button-padding-x: 0.85rem;
+  --space-button-primary-shadow: none;
+  --space-button-confirm-shadow: none;
+  --space-button-secondary-border: transparent;
+  --space-button-secondary-border-hover: transparent;
+  --space-button-secondary-bg: transparent;
+  --space-button-secondary-bg-hover: rgba(19, 32, 51, 0.94);
+  --space-button-danger-border: transparent;
+  --space-button-danger-border-hover: transparent;
+  --space-button-danger-bg: transparent;
+  --space-button-danger-bg-hover: rgba(255, 141, 152, 0.12);
+}
+
+.dialog-card {
+  width: min(var(--space-dialog-width), calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  padding: var(--space-dialog-padding);
+  box-sizing: border-box;
+  border: 1px solid var(--space-dialog-border);
+  border-radius: var(--space-dialog-radius);
+  background: var(--space-dialog-surface);
+  color: var(--color-text);
+  box-shadow: var(--space-dialog-shadow);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.dialog-card-raw {
+  width: min(var(--space-dialog-width-wide), calc(100vw - 32px));
+}
+
+.dialog-card-shell {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dialog-card-shell .dialog-header,
+.dialog-card-shell .dialog-actions {
+  flex: 0 0 auto;
+}
+
+.dialog-scroll-body,
+.dialog-scroll-frame {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.dialog-card-shell .raw-output-frame {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+}
+
+.dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.dialog-header h2 {
+  margin: 0.2rem 0 0;
+  font-size: 1.28rem;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.dialog-header-actions,
+.dialog-segmented-control,
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.dialog-segmented-button {
+  min-width: 4.25rem;
+}
+
+.dialog-actions-split {
+  width: 100%;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: nowrap;
+}
+
+.dialog-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+
+.dialog-actions-group-end {
+  margin-left: auto;
+}
+
+.dialog-action-button-fixed {
+  box-sizing: border-box;
+  width: var(--dialog-action-button-width, auto);
+  min-width: var(--dialog-action-button-width, auto);
+  justify-content: center;
+  gap: 0.32rem;
+  padding-inline: var(--dialog-action-button-padding-inline, 0.55rem);
+  white-space: nowrap;
+}
+
+.dialog-icon-button {
+  min-width: 2.7rem;
+  padding-inline: 0.72rem;
+}
+
+.chat-dialog .secondary-button,
+.chat-dialog .primary-button,
+.chat-dialog .confirm-button {
+  min-height: 34px;
+  padding: 0.5rem 0.85rem;
+  border-width: 0;
+  border-radius: 10px;
+}
+
+.chat-dialog .secondary-button {
+  background: transparent;
+}
+
+.chat-dialog .secondary-button:hover:not(:disabled),
+.chat-dialog .secondary-button:focus-visible:not(:disabled) {
+  background: var(--space-option-hover-bg);
+}
+
+.chat-dialog .secondary-button.danger {
+  color: var(--color-danger);
+}
+
+.dialog-segmented-button x-icon,
+.dialog-icon-button x-icon {
+  color: var(--color-accent-primary);
+  font-size: 16px;
+}
+
+.secondary-button.dialog-segmented-button.is-active {
+  border-color: rgba(148, 188, 255, 0.22);
+  background: rgba(148, 188, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(148, 188, 255, 0.12);
+  color: var(--color-primary);
+}
+
+.field {
+  display: grid;
+  gap: 0.65rem;
+  min-width: 0;
+  margin-top: 1rem;
+}
+
+.field input,
+.field textarea {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0.85rem 0.95rem;
+  box-sizing: border-box;
+  border: 1px solid var(--space-field-border);
+  border-radius: 1rem;
+  background: var(--space-field-bg);
+  color: var(--color-text);
+  font: inherit;
+  outline: none;
+}
+
+.field textarea {
+  resize: vertical;
+}
+
+.field input:focus,
+.field textarea:focus {
+  border-color: var(--space-field-focus-border);
+  box-shadow: 0 0 0 3px var(--space-field-focus-ring);
+}
+
+.field-note {
+  margin: -0.1rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.field-note code,
+.dialog-note code {
+  padding: 0.14em 0.42em;
+  border: 1px solid var(--space-inline-code-border);
+  border-radius: 0.5rem;
+  background: var(--space-inline-code-bg);
+}
+
+.prompt-budget-field {
+  gap: 0.75rem;
+}
+
+.prompt-budget-preview {
+  display: flex;
+  width: 100%;
+  height: 0.72rem;
+  overflow: hidden;
+  border: 1px solid var(--space-field-border);
+  border-radius: 999px;
+  background: rgba(10, 16, 30, 0.72);
+}
+
+.prompt-budget-segment {
+  display: block;
+  height: 100%;
+  min-width: 0;
+}
+
+.prompt-budget-segment-system {
+  background: rgba(182, 190, 199, 0.82);
+}
+
+.prompt-budget-segment-history {
+  background: rgba(109, 170, 255, 0.82);
+}
+
+.prompt-budget-segment-transient {
+  background: rgba(108, 214, 162, 0.82);
+}
+
+.prompt-budget-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.8rem;
+}
+
+.prompt-budget-control {
+  display: grid;
+  gap: 0.42rem;
+  min-width: 0;
+}
+
+.prompt-budget-control input[type="range"] {
+  width: 100%;
+  margin: 0;
+}
+
+.prompt-budget-control-single {
+  grid-column: 1 / -1;
+}
+
+.dialog-note {
+  margin: 1rem 0 0;
+  font-size: 0.92rem;
+}
+
+.dialog-actions {
+  justify-content: flex-end;
+  margin-top: 1.15rem;
+}
+
+@media (max-width: 720px) {
+  .dialog-actions {
+    justify-content: flex-start;
+  }
+
+  .dialog-actions-split {
+    flex-wrap: wrap;
+  }
+
+  .dialog-actions-group {
+    flex-wrap: wrap;
+  }
+
+  .dialog-actions-group-end {
+    margin-left: 0;
+  }
+}
+
+.raw-output-frame {
+  margin-top: 1rem;
+  overflow: auto;
+  max-height: min(64vh, 42rem);
+  border: 1px solid var(--space-field-border);
+  border-radius: 1rem;
+  background: rgba(10, 16, 30, 0.72);
+}
+
+.raw-output,
+.prompt-history-section {
+  padding: 1rem 1.05rem;
+}
+
+.prompt-history-list {
+  display: grid;
+  min-width: 100%;
+  width: max-content;
+}
+
+.prompt-history-section:nth-child(even) {
+  background: rgba(18, 29, 51, 0.78);
+}
+
+.prompt-history-section {
+  min-width: 100%;
+  box-sizing: border-box;
+  background: rgba(11, 18, 34, 0.72);
+}
+
+.prompt-history-role {
+  margin: 0 0 0.7rem;
+  color: var(--color-text-muted);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}

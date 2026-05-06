@@ -1,0 +1,55 @@
+generated_at: 2026-04-06T21:01:41.464Z
+generation_id: 2026-04-06T21-01-41-464Z
+model: openai/gpt-5.4-mini
+prompts:
+  - rank: 1
+    id: 044A_example_router_guarded
+    passed_cases: 33
+    total_cases: 37
+    pass_rate: 0.8919
+    passed_attempts: 33
+    total_attempts: 37
+    attempt_pass_rate: 0.8919
+    failed_cases:
+      - reverse_geocode_after_precise_followup
+      - create_note_after_user_detail_read
+      - selective_text_edit_requires_read_first
+      - selective_yaml_edit_requires_read_first
+  - rank: 2
+    id: 044C_open_task_router
+    passed_cases: 28
+    total_cases: 37
+    pass_rate: 0.7568
+    passed_attempts: 28
+    total_attempts: 37
+    attempt_pass_rate: 0.7568
+    failed_cases:
+      - page_title_requires_execution
+      - weather_self_scope_followup
+      - weather_self_scope_after_indirect_fail
+      - unpack_collapsed_weather_payload
+      - selective_text_edit_requires_read_first
+      - selective_yaml_edit_requires_read_first
+      - selective_widget_fix_requires_read_first
+      - repeat_do_it_requires_execution
+      - protocol_nudge_requires_real_thrust
+  - rank: 3
+    id: 044B_router_plus_matrix
+    passed_cases: 26
+    total_cases: 37
+    pass_rate: 0.7027
+    passed_attempts: 26
+    total_attempts: 37
+    attempt_pass_rate: 0.7027
+    failed_cases:
+      - page_title_requires_execution
+      - time_requires_execution
+      - weather_omitted_scope
+      - weather_self_scope_followup
+      - reverse_geocode_after_precise_followup
+      - unpack_collapsed_weather_payload
+      - selective_text_edit_requires_read_first
+      - selective_yaml_edit_requires_read_first
+      - selective_widget_fix_requires_read_first
+      - terminal_after_successful_widget_patch
+      - terminal_after_result_commandlike_literal

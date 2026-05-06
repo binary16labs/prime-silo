@@ -1,0 +1,22 @@
+[
+  {
+    "role": "user",
+    "content": "_____user\nthat's what im talking about"
+  },
+  {
+    "role": "assistant",
+    "content": "Reading the quote widget source now...\n_____javascript\nreturn await space.current.readWidget(\"quote-board\")"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution success\nlog: [spaces] Read widget \"quote-board\".\nresult↓\nid: quote-board\nname: Quotes\ncols: 6\nrows: 5\nrenderer↓\n0 async (parent) => {\n1   const state = { symbols: [\"AAPL\", \"MSFT\", \"BTC-USD\"] }\n2   const data = await fetch(\"https://api.example.test/quotes\").then(r => r.json())\n3 }"
+  },
+  {
+    "role": "assistant",
+    "content": "I’m going to patch the quote widget now to use a different source."
+  },
+  {
+    "role": "user",
+    "content": "_____user\nthen do it"
+  }
+]

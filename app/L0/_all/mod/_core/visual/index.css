@@ -1,0 +1,24 @@
+@import "./canvas/space-canvas.css";
+@import "./chrome/popover.css";
+@import "./chrome/toast.css";
+@import "./chrome/topbar.css";
+@import "./actions/buttons.css";
+@import "./forms/dialog.css";
+@import "./conversation/agent-thread.css";
+@import "./surfaces/cards.css";
+
+/*
+ * Space Agent glass stays shadowless across authenticated app surfaces.
+ * Depth comes from blur, borders, and background contrast rather than painted shadows.
+ */
+body.app-page-router :where(*, *::before, *::after),
+body.app-page-admin :where(*, *::before, *::after) {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+body.app-page-router :focus-visible,
+body.app-page-admin :focus-visible {
+  outline: 2px solid rgba(148, 188, 255, 0.42) !important;
+  outline-offset: 2px;
+}

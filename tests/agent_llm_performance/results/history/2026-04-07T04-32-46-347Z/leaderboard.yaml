@@ -1,0 +1,52 @@
+generated_at: 2026-04-07T04:32:46.347Z
+generation_id: 2026-04-07T04-32-46-347Z
+model: openai/gpt-5.4-mini
+prompts:
+  - rank: 1
+    id: 059A_current_code_plus_unpack
+    passed_cases: 35
+    total_cases: 37
+    pass_rate: 0.9459
+    passed_attempts: 35
+    total_attempts: 37
+    attempt_pass_rate: 0.9459
+    failed_cases:
+      - recover_known_file_after_write_error
+      - repeat_do_it_requires_execution
+  - rank: 2
+    id: 059B_054A_with_unpack_trace
+    passed_cases: 34
+    total_cases: 37
+    pass_rate: 0.9189
+    passed_attempts: 34
+    total_attempts: 37
+    attempt_pass_rate: 0.9189
+    failed_cases:
+      - terminal_after_framework_no_result_continue
+      - terminal_after_result_retry_literal
+      - repeat_do_it_requires_execution
+  - rank: 3
+    id: 059C_rows_with_unpack_and_current
+    passed_cases: 21
+    total_cases: 37
+    pass_rate: 0.5676
+    passed_attempts: 21
+    total_attempts: 37
+    attempt_pass_rate: 0.5676
+    failed_cases:
+      - time_requires_execution
+      - weather_omitted_scope
+      - weather_self_scope_followup
+      - weather_self_scope_after_indirect_fail
+      - unpack_collapsed_weather_payload
+      - create_note_after_user_detail_read
+      - write_user_yaml_after_read
+      - selective_text_edit_requires_read_first
+      - selective_yaml_edit_requires_read_first
+      - selective_widget_fix_requires_read_first
+      - recover_after_combined_widget_read_write_error
+      - space_navigation_read_is_not_completion
+      - space_navigation_after_take_me_there_uses_open_helper
+      - space_navigation_after_user_push_uses_open_helper
+      - repeat_do_it_requires_execution
+      - protocol_nudge_requires_real_thrust

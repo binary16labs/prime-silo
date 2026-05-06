@@ -1,0 +1,86 @@
+# Text params accept exact values, glob patterns using * and ?, or /regex/ entries.
+# Number params accept exact numeric values and inclusive ranges such as 1024..65535.
+HOST:
+  description: Hostname or interface address the local server binds to.
+  type: text
+  allowed: [localhost, "/^[A-Za-z0-9-]+$/", "/^[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)+$/", "/^\\d{1,3}(?:\\.\\d{1,3}){3}$/", "/^[0-9A-Fa-f:]+$/"]
+  default: 0.0.0.0
+  frontend_exposed: false
+PORT:
+  description: TCP port the local server listens on. Set to 0 to let the OS assign a free port at startup.
+  type: number
+  allowed: [0..65535]
+  default: 3000
+  frontend_exposed: false
+WORKERS:
+  description: Number of HTTP worker processes to run for node space serve and node space supervise. Set to 1 for single-process mode.
+  type: number
+  allowed: [1..256]
+  default: 1
+  frontend_exposed: false
+CUSTOMWARE_PATH:
+  description: Optional absolute or project-relative directory that owns writable L1/ and L2/ roots as CUSTOMWARE_PATH/L1 and CUSTOMWARE_PATH/L2.
+  type: text
+  allowed: ["*"]
+  default: ""
+  frontend_exposed: false
+CUSTOMWARE_WATCHDOG:
+  description: Enable live customware fs.watch listeners, config watching, and the periodic reconcile backstop. Set to false to keep startup indexing and explicit mutation sync but disable background watch activity.
+  type: boolean
+  allowed: [true, false]
+  default: true
+  frontend_exposed: false
+SINGLE_USER_APP:
+  description: Run the app as a single always-authenticated user named user with implicit _admin access.
+  type: boolean
+  allowed: [true, false]
+  default: false
+  frontend_exposed: true
+LOGIN_ALLOWED:
+  description: Allow the public login page and password-login endpoints in multi-user mode.
+  type: boolean
+  allowed: [true, false]
+  default: true
+  frontend_exposed: true
+ALLOW_GUEST_USERS:
+  description: Allow guest-account creation from the login screen when password login is enabled.
+  type: boolean
+  allowed: [true, false]
+  default: false
+  frontend_exposed: true
+CLOUD_SHARE_ALLOWED:
+  description: Allow this server to receive hosted cloud-share uploads under the customware share store.
+  type: boolean
+  allowed: [true, false]
+  default: false
+  frontend_exposed: false
+CLOUD_SHARE_URL:
+  description: Public cloud-share host or URL used by the spaces share modal for hosted uploads and links.
+  type: text
+  allowed: ["*"]
+  default: share.space-agent.ai
+  frontend_exposed: true
+CUSTOMWARE_GIT_HISTORY:
+  description: Enable debounced local Git history repositories in writable L1 group and L2 user roots.
+  type: boolean
+  allowed: [true, false]
+  default: true
+  frontend_exposed: false
+GIT_BACKEND:
+  description: Git backend used by server-owned Git flows such as local history and module installs. Set to auto for normal fallback selection.
+  type: text
+  allowed: [auto, native, isomorphic]
+  default: auto
+  frontend_exposed: false
+GIT_URL:
+  description: Optional git repository URL used by update flows such as node space update and node space supervise when checking and cloning releases.
+  type: text
+  allowed: ["*"]
+  default: ""
+  frontend_exposed: false
+USER_FOLDER_SIZE_LIMIT_BYTES:
+  description: Maximum on-disk size in bytes for each L2 user folder. Set to 0 to disable the limit.
+  type: number
+  allowed: [0..9007199254740991]
+  default: 0
+  frontend_exposed: false

@@ -1,0 +1,28 @@
+{
+  "id": "fix_visible_widget_error_requires_readwidget",
+  "description": "after rendered widget output shows an error and the user says fix it, the next step should read that widget source before any selective patch",
+  "history": "../histories/fix_visible_widget_error_requires_readwidget.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript"
+    ],
+    "must_match": [
+      {
+        "pattern": "readWidget\\(\"status-board\"\\)",
+        "flags": "u"
+      }
+    ],
+    "must_not_match": [
+      {
+        "pattern": "patchWidget\\(\"status-board\"|seeWidget\\(\"status-board\"\\)",
+        "flags": "u"
+      }
+    ]
+  }
+}

@@ -1,0 +1,48 @@
+:root {
+  /*
+   * Shared dark-space palette.
+   * New frontend work should use these semantic tokens directly.
+   * The shared framework palette is dark-only.
+   */
+  color-scheme: dark;
+  --color-canvas: #050816;
+  --color-canvas-elevated: #09111f;
+  --color-canvas-deep: #02050d;
+  --color-surface-1: #0d1628;
+  --color-surface-2: #121d33;
+  --color-surface-3: #182540;
+  --color-surface-glass: rgba(11, 18, 34, 0.78);
+  --color-border-soft: rgba(148, 167, 201, 0.16);
+  --color-border-strong: rgba(168, 186, 219, 0.28);
+  --color-text-primary: #f3f7ff;
+  --color-text-secondary: #b8c4da;
+  --color-text-tertiary: #8e9bb2;
+  --color-accent-primary: #7ddcff;
+  --color-accent-primary-strong: #94bcff;
+  --color-accent-primary-soft: rgba(125, 220, 255, 0.14);
+  --color-accent-secondary: #79edd8;
+  --color-accent-ink: #04101d;
+  --color-status-success: #7ce4b0;
+  --color-status-warning: #ffc56f;
+  --color-status-danger: #ff8d98;
+  --color-layer-overlay: rgba(2, 7, 17, 0.68);
+  --color-backdrop-glow-primary: rgba(148, 188, 255, 0.18);
+  --color-backdrop-glow-secondary: rgba(121, 237, 216, 0.14);
+  --color-backdrop-glow-depth: rgba(59, 95, 172, 0.26);
+  --color-backdrop-star-strong: rgba(255, 255, 255, 0.76);
+  --color-backdrop-star-soft: rgba(255, 255, 255, 0.26);
+  --color-backdrop-star-accent: rgba(148, 188, 255, 0.48);
+  --color-backdrop-star-halo: rgba(255, 255, 255, 0.12);
+  --color-backdrop-star-halo-accent: rgba(148, 188, 255, 0.16);
+  --color-background: var(--color-canvas);
+  --color-surface: var(--color-surface-1);
+  --color-surface-subtle: var(--color-surface-2);
+  --color-border: var(--color-border-soft);
+  --color-text: var(--color-text-primary);
+  --color-text-muted: var(--color-text-secondary);
+  --color-primary: var(--color-accent-primary-strong);
+  --color-success: var(--color-status-success);
+  --color-warning: var(--color-status-warning);
+  --color-danger: var(--color-status-danger);
+  --color-overlay: var(--color-layer-overlay);
+}

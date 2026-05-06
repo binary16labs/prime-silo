@@ -1,0 +1,41 @@
+generated_at: 2026-04-06T18:19:16.212Z
+generation_id: 2026-04-06T18-19-16-212Z
+model: openai/gpt-5.4-mini
+prompts:
+  - rank: 1
+    id: 025B_edit_from_result_block
+    passed_cases: 22
+    total_cases: 24
+    pass_rate: 0.9167
+    passed_attempts: 22
+    total_attempts: 24
+    attempt_pass_rate: 0.9167
+    failed_cases:
+      - weather_omitted_scope
+      - repeat_do_it_requires_execution
+  - rank: 2
+    id: 025A_literal_result_text
+    passed_cases: 21
+    total_cases: 24
+    pass_rate: 0.875
+    passed_attempts: 21
+    total_attempts: 24
+    attempt_pass_rate: 0.875
+    failed_cases:
+      - write_user_yaml_after_read
+      - terminal_after_successful_widget_patch
+      - continue_after_widget_load_success
+  - rank: 3
+    id: 025C_state_patch_handoff
+    passed_cases: 19
+    total_cases: 24
+    pass_rate: 0.7917
+    passed_attempts: 19
+    total_attempts: 24
+    attempt_pass_rate: 0.7917
+    failed_cases:
+      - page_title_requires_execution
+      - weather_omitted_scope
+      - weather_self_scope_after_indirect_fail
+      - write_user_yaml_after_read
+      - protocol_nudge_requires_real_thrust

@@ -1,0 +1,36 @@
+generated_at: 2026-04-06T18:08:57.075Z
+generation_id: 2026-04-06T18-08-57-075Z
+model: openai/gpt-5.4-mini
+prompts:
+  - rank: 1
+    id: 024B_midline_followthrough
+    passed_cases: 23
+    total_cases: 24
+    pass_rate: 0.9583
+    passed_attempts: 23
+    total_attempts: 24
+    attempt_pass_rate: 0.9583
+    failed_cases:
+      - write_user_yaml_after_read
+  - rank: 2
+    id: 024A_conservative_guardrails
+    passed_cases: 22
+    total_cases: 24
+    pass_rate: 0.9167
+    passed_attempts: 22
+    total_attempts: 24
+    attempt_pass_rate: 0.9167
+    failed_cases:
+      - write_user_yaml_after_read
+      - terminal_after_successful_widget_patch
+  - rank: 3
+    id: 024C_wild_state_baton
+    passed_cases: 22
+    total_cases: 24
+    pass_rate: 0.9167
+    passed_attempts: 22
+    total_attempts: 24
+    attempt_pass_rate: 0.9167
+    failed_cases:
+      - time_requires_execution
+      - write_user_yaml_after_read

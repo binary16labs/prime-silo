@@ -1,0 +1,50 @@
+generated_at: 2026-04-07T04:25:16.870Z
+generation_id: 2026-04-07T04-25-16-870Z
+model: openai/gpt-5.4-mini
+prompts:
+  - rank: 1
+    id: 054A_trace_router_inspect_first
+    passed_cases: 36
+    total_cases: 37
+    pass_rate: 0.973
+    passed_attempts: 36
+    total_attempts: 37
+    attempt_pass_rate: 0.973
+    failed_cases:
+      - repeat_do_it_requires_execution
+  - rank: 2
+    id: 054B_trace_router_with_source_ownership
+    passed_cases: 33
+    total_cases: 37
+    pass_rate: 0.8919
+    passed_attempts: 33
+    total_attempts: 37
+    attempt_pass_rate: 0.8919
+    failed_cases:
+      - time_requires_execution
+      - selective_widget_fix_requires_read_first
+      - repeat_do_it_requires_execution
+      - protocol_nudge_requires_real_thrust
+  - rank: 3
+    id: 054C_trace_table_firmware
+    passed_cases: 23
+    total_cases: 37
+    pass_rate: 0.6216
+    passed_attempts: 23
+    total_attempts: 37
+    attempt_pass_rate: 0.6216
+    failed_cases:
+      - time_requires_execution
+      - weather_self_scope_followup
+      - unpack_collapsed_weather_payload
+      - create_note_after_user_detail_read
+      - write_user_yaml_after_read
+      - selective_text_edit_requires_read_first
+      - space_navigation_read_is_not_completion
+      - space_navigation_after_take_me_there_uses_open_helper
+      - space_navigation_after_user_push_uses_open_helper
+      - followup_edit_requires_well_formed_thrust
+      - repeat_do_it_requires_execution
+      - protocol_nudge_requires_real_thrust
+      - continue_after_widget_load_success
+      - continue_after_widget_read

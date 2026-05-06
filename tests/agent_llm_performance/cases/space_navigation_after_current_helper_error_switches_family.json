@@ -1,0 +1,28 @@
+{
+  "id": "space_navigation_after_current_helper_error_switches_family",
+  "description": "after a current-space helper fails, the agent should switch helper families instead of retrying the same bad path",
+  "history": "../histories/space_navigation_after_current_helper_error_switches_family.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript"
+    ],
+    "must_match": [
+      {
+        "pattern": "space\\.(?:api\\.fileList|spaces\\.listSpaces|spaces\\.openSpace)",
+        "flags": "u"
+      }
+    ],
+    "must_not_match": [
+      {
+        "pattern": "space\\.current\\.listSpaces\\(",
+        "flags": "u"
+      }
+    ]
+  }
+}

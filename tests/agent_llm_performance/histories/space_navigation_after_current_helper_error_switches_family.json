@@ -1,0 +1,14 @@
+[
+  {
+    "role": "user",
+    "content": "_____user\ntake me to my weather space"
+  },
+  {
+    "role": "assistant",
+    "content": "Loading your spaces to open the weather space...\n_____javascript\nreturn await space.current.listSpaces()"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution error\nerror: TypeError: Cannot read properties of null (reading 'listSpaces')"
+  }
+]

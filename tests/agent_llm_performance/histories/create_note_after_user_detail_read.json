@@ -1,0 +1,14 @@
+[
+  {
+    "role": "user",
+    "content": "_____user\ncreate ~/notes/whoami.txt with my username"
+  },
+  {
+    "role": "assistant",
+    "content": "Reading your user detail now...\n_____javascript\nreturn await space.api.userSelfInfo()"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution success\nresult↓\nfullName: pan\ngroups: []\nmanagedGroups: []\nusername: pan"
+  }
+]

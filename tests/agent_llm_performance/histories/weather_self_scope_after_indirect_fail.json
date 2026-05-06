@@ -1,0 +1,18 @@
+[
+  {
+    "role": "user",
+    "content": "_____user\nwhat's the weather?"
+  },
+  {
+    "role": "assistant",
+    "content": "Checking the current weather now...\n_____javascript\nconst loc = await space.chat.transient.list().catch(() => null);\nreturn loc?.currentLocation || \"Location unavailable\""
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution success\nresult↓\nLocation unavailable"
+  },
+  {
+    "role": "user",
+    "content": "_____user\nmine"
+  }
+]

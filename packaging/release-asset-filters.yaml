@@ -1,0 +1,8 @@
+# Matched files are uploaded as Space-Agent-<release version>-<platform>-<arch>.<extension>.
+release_upload_filters:
+  - description: macOS DMG installers
+    pattern: release-assets/macos-*/*.dmg
+  - description: Windows setup installers
+    pattern: release-assets/windows-*/*Setup*.exe
+  - description: Linux AppImage installers
+    pattern: release-assets/linux-*/*.AppImage

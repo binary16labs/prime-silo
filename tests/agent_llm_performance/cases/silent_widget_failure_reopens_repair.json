@@ -1,0 +1,28 @@
+{
+  "id": "silent_widget_failure_reopens_repair",
+  "description": "a rendered widget that shows only empty values is still broken; agreement on that visible failure should reopen source inspection, not completion",
+  "history": "../histories/silent_widget_failure_reopens_repair.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript"
+    ],
+    "must_match": [
+      {
+        "pattern": "readWidget\\(\"quote-board\"\\)",
+        "flags": "u"
+      }
+    ],
+    "must_not_match": [
+      {
+        "pattern": "^Done\\.$|^The widget|^Yes\\b",
+        "flags": "imu"
+      }
+    ]
+  }
+}

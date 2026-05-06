@@ -1,0 +1,32 @@
+{
+  "id": "on_screen_widget_complaint_stays_on_known_target",
+  "description": "when a newly rendered current widget is the obvious failing target, the next move must stay on that widget instead of drifting into generic page or space inspection",
+  "history": "../histories/on_screen_widget_complaint_stays_on_known_target.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript"
+    ],
+    "must_match_any": [
+      {
+        "pattern": "seeWidget\\(\"quote-board\"\\)",
+        "flags": "u"
+      },
+      {
+        "pattern": "readWidget\\(\"quote-board\"\\)",
+        "flags": "u"
+      }
+    ],
+    "must_not_match": [
+      {
+        "pattern": "document\\.title|document\\.body\\.innerText|location\\.hash|listSpaces\\(|listWidgets\\(",
+        "flags": "u"
+      }
+    ]
+  }
+}

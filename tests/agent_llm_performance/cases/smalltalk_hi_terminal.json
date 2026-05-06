@@ -1,0 +1,11 @@
+{
+  "id": "smalltalk_hi_terminal",
+  "description": "casual conversation should answer normally without execution",
+  "history": "../histories/smalltalk_hi_terminal.json",
+  "expect": {
+    "response_type": "terminal",
+    "must_not_contain": [
+      "_____javascript"
+    ]
+  }
+}

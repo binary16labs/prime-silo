@@ -1,0 +1,22 @@
+[
+  {
+    "role": "user",
+    "content": "_____user\ntake me to my weather space"
+  },
+  {
+    "role": "assistant",
+    "content": "Switching to the weather space by opening it through the space API...\n_____javascript\nreturn await space.api.fileRead(\"L2/pan/spaces/space-1/space.yaml\")"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution success\nresult↓\ncontent: |\n  id: space-1\n  title: \"Prostějov Weather\"\nencoding: utf8\npath: L2/pan/spaces/space-1/space.yaml"
+  },
+  {
+    "role": "assistant",
+    "content": "I can see the weather space, but I can’t switch the browser into it from this runtime using the available APIs."
+  },
+  {
+    "role": "user",
+    "content": "_____user\nyes you can, there's a function for it"
+  }
+]

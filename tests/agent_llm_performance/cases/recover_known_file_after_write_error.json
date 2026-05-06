@@ -1,0 +1,33 @@
+{
+  "id": "recover_known_file_after_write_error",
+  "description": "after a known file write error, recovery should stay on the exact file target instead of broad discovery or fake success",
+  "history": "../histories/recover_known_file_after_write_error.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript",
+      "user.yaml"
+    ],
+    "must_match": [
+      {
+        "pattern": "space\\.api\\.(?:fileRead|fileWrite)\\(",
+        "flags": "u"
+      }
+    ],
+    "must_not_match": [
+      {
+        "pattern": "space\\.api\\.fileList\\(",
+        "flags": "u"
+      },
+      {
+        "pattern": "\\b(?:updated|fixed|written)\\b.*\\b(?:successfully|done)\\b",
+        "flags": "iu"
+      }
+    ]
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "name": "space-agent",
+  "version": "0.36.0",
+  "private": true,
+  "description": "Browser-first AI agent with a thin Node.js server.",
+  "author": "Jan Tomasek",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agent0ai/space-agent.git"
+  },
+  "main": "packaging/desktop/main.js",
+  "scripts": {
+    "start": "node space serve",
+    "dev": "node server/dev_server.js",
+    "install:packaging": "npm install --prefix packaging",
+    "desktop:dev": "node packaging/scripts/desktop-dev-run.js",
+    "desktop:pack": "node packaging/scripts/host-package.js --dir",
+    "desktop:dist": "node packaging/scripts/host-package.js",
+    "desktop:dist:all": "node packaging/scripts/host-package.js --arch x64,arm64",
+    "desktop:dist:mac": "node packaging/scripts/macos-package.js",
+    "package:desktop:host": "node packaging/scripts/host-package.js",
+    "package:desktop:host:dir": "node packaging/scripts/host-package.js --dir",
+    "package:desktop:macos": "node packaging/scripts/macos-package.js",
+    "package:desktop:macos:dev": "node packaging/scripts/macos-dev-build.js",
+    "package:desktop:macos:all": "node packaging/scripts/macos-package.js --arch x64,arm64",
+    "package:desktop:linux": "node packaging/scripts/linux-package.js",
+    "package:desktop:linux:all": "node packaging/scripts/linux-package.js --arch x64,arm64",
+    "package:desktop:windows": "node packaging/scripts/windows-package.js",
+    "package:desktop:windows:all": "node packaging/scripts/windows-package.js --arch x64,arm64"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "build": {
+    "appId": "com.spaceagent.desktop",
+    "productName": "Space Agent",
+    "npmRebuild": false,
+    "publish": {
+      "provider": "github",
+      "owner": "agent0ai",
+      "repo": "space-agent",
+      "releaseType": "release"
+    },
+    "files": [
+      "space",
+      "space.js",
+      "app/**/*",
+      "!app/L1/**/*",
+      "!app/L2/**/*",
+      "commands/**/*",
+      "server/**/*",
+      "packaging/desktop/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "app": ".",
+      "buildResources": "packaging/resources"
+    },
+    "mac": {
+      "icon": "packaging/resources/icons/source/space-agent-icon.png",
+      "category": "public.app-category.developer-tools",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "hardenedRuntime": true,
+      "entitlements": "packaging/platforms/macos/entitlements.mac.plist",
+      "entitlementsInherit": "packaging/platforms/macos/entitlements.mac.plist"
+    },
+    "win": {
+      "icon": "packaging/platforms/windows/icon.ico",
+      "target": [
+        "nsis"
+      ]
+    },
+    "linux": {
+      "icon": "packaging/platforms/linux/icons",
+      "category": "Development",
+      "maintainer": "Jan Tomasek <info@space-agent.ai>",
+      "target": [
+        "AppImage"
+      ]
+    },
+    "nsis": {
+      "guid": "13ef3698-bac3-5a21-9715-28c760e1102e",
+      "include": "packaging/platforms/windows/installer.nsh",
+      "createDesktopShortcut": "always"
+    }
+  },
+  "nodejsformobile": {
+    "entry": "space",
+    "defaultCommand": "serve",
+    "purpose": "Thin mobile-compatible server bridge for fetch proxying and local infrastructure."
+  },
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "electron-updater": "^6.8.3",
+    "isomorphic-git": "^1.37.4"
+  }
+}

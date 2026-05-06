@@ -1,0 +1,5 @@
+name: Local LLM
+path: huggingface
+description: Load and test local LLMs with WebGPU and Hugging Face.
+icon: hub
+color: "#7de3c9"

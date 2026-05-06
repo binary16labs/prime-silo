@@ -1,0 +1,371 @@
+name: Release Desktop
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing Git v* tag to rebuild and publish
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-desktop-${{ github.event.inputs.release_tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.release_gate.outputs.should_release }}
+      release_tag: ${{ steps.release_version.outputs.release_tag }}
+      build_version: ${{ steps.release_version.outputs.build_version }}
+      release_version: ${{ steps.release_version.outputs.release_version }}
+      release_body: ${{ steps.release_notes.outputs.release_body }}
+      previous_tag: ${{ steps.release_context.outputs.previous_tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - id: release_version
+        shell: bash
+        env:
+          REQUESTED_RELEASE_TAG: ${{ github.event.inputs.release_tag || github.ref_name }}
+        run: |
+          release_json="$(node packaging/scripts/release-version.js "$REQUESTED_RELEASE_TAG" --json)"
+          echo "release_tag=$(node -e 'const value = JSON.parse(process.argv[1]); process.stdout.write(value.releaseTag);' "$release_json")" >> "$GITHUB_OUTPUT"
+          echo "build_version=$(node -e 'const value = JSON.parse(process.argv[1]); process.stdout.write(value.semver);' "$release_json")" >> "$GITHUB_OUTPUT"
+          echo "release_version=$(node -e 'const value = JSON.parse(process.argv[1]); process.stdout.write(value.releaseVersion);' "$release_json")" >> "$GITHUB_OUTPUT"
+
+      - id: release_gate
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ steps.release_version.outputs.release_tag }}
+        run: |
+          git fetch --force origin \
+            "+refs/heads/main:refs/remotes/origin/main" \
+            "+refs/tags/*:refs/tags/*"
+
+          tag_ref="refs/tags/$RELEASE_TAG"
+          if ! git rev-parse --verify --quiet "$tag_ref^{commit}" >/dev/null; then
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping desktop release because tag $RELEASE_TAG does not exist." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          tag_commit="$(git rev-parse "$tag_ref^{commit}")"
+          main_commit="$(git rev-parse refs/remotes/origin/main^{commit})"
+
+          if ! git merge-base --is-ancestor "$tag_commit" "$main_commit"; then
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping desktop release because tag $RELEASE_TAG is not on origin/main history." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          newer_tag=""
+          while IFS= read -r candidate_tag; do
+            [ -n "$candidate_tag" ] || continue
+            [ "$candidate_tag" = "$RELEASE_TAG" ] && continue
+
+            candidate_ref="refs/tags/$candidate_tag"
+            if ! git rev-parse --verify --quiet "$candidate_ref^{commit}" >/dev/null; then
+              continue
+            fi
+
+            candidate_commit="$(git rev-parse "$candidate_ref^{commit}")"
+            if [ "$candidate_commit" = "$tag_commit" ]; then
+              continue
+            fi
+
+            if ! git merge-base --is-ancestor "$candidate_commit" "$main_commit"; then
+              continue
+            fi
+
+            if git merge-base --is-ancestor "$tag_commit" "$candidate_commit"; then
+              newer_tag="$candidate_tag"
+              break
+            fi
+          done < <(git tag --list "v*" --sort=-version:refname)
+
+          if [ -n "$newer_tag" ]; then
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping desktop release because newer tag $newer_tag is already on origin/main after $RELEASE_TAG." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          echo "should_release=true" >> "$GITHUB_OUTPUT"
+
+      - name: Check out release tag
+        if: steps.release_gate.outputs.should_release == 'true'
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ steps.release_version.outputs.release_tag }}
+        run: git checkout --detach "refs/tags/$RELEASE_TAG"
+
+      - id: release_context
+        if: steps.release_gate.outputs.should_release == 'true'
+        uses: actions/github-script@v7
+        env:
+          RELEASE_TAG: ${{ steps.release_version.outputs.release_tag }}
+        with:
+          script: |
+            const currentTag = process.env.RELEASE_TAG;
+            const { spawnSync } = require("node:child_process");
+
+            function gitSucceeds(args) {
+              return spawnSync("git", args, { stdio: "ignore" }).status === 0;
+            }
+
+            function tagCommitExists(tagName) {
+              return gitSucceeds(["rev-parse", "--verify", "--quiet", `refs/tags/${tagName}^{commit}`]);
+            }
+
+            const releases = await github.paginate(github.rest.repos.listReleases, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+
+            const previousRelease = releases.find((release) => {
+              const previousTag = release.tag_name;
+
+              return (
+                !release.draft &&
+                !release.prerelease &&
+                previousTag !== currentTag &&
+                tagCommitExists(previousTag) &&
+                gitSucceeds([
+                  "merge-base",
+                  "--is-ancestor",
+                  `refs/tags/${previousTag}^{commit}`,
+                  `refs/tags/${currentTag}^{commit}`
+                ])
+              );
+            });
+
+            core.setOutput("previous_tag", previousRelease?.tag_name || "");
+            core.notice(`Building fresh desktop artifacts for ${currentTag}.`);
+
+      - id: release_notes
+        if: steps.release_gate.outputs.should_release == 'true'
+        shell: bash
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_MODEL_NAME: ${{ vars.OPENROUTER_MODEL_NAME }}
+          PREVIOUS_RELEASE_TAG: ${{ steps.release_context.outputs.previous_tag }}
+          RELEASE_TAG: ${{ steps.release_version.outputs.release_tag }}
+        run: node packaging/scripts/release-notes.js --current-tag "$RELEASE_TAG" --previous-tag "$PREVIOUS_RELEASE_TAG" --require-ai >/dev/null
+
+  build:
+    needs: prepare
+    if: needs.prepare.outputs.should_release == 'true'
+    runs-on: ${{ matrix.runner }}
+    env:
+      HAS_MACOS_SIGNING_CERT: ${{ (secrets.MACOS_CERT_P12 != '' && secrets.MACOS_CERT_PASSPHRASE != '') && '1' || '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - artifact_name: linux-x64
+            arch: x64
+            platform_dir: linux
+            runner: ubuntu-latest
+            script: linux-package.js
+          - artifact_name: linux-arm64
+            arch: arm64
+            platform_dir: linux
+            runner: ubuntu-24.04-arm
+            script: linux-package.js
+          - artifact_name: windows-x64
+            arch: x64
+            platform_dir: windows
+            runner: windows-latest
+            script: windows-package.js
+          - artifact_name: windows-arm64
+            arch: arm64
+            platform_dir: windows
+            runner: windows-11-arm
+            script: windows-package.js
+          - artifact_name: macos-x64
+            arch: x64
+            platform_dir: macos
+            runner: macos-15-intel
+            script: macos-package.js
+          - artifact_name: macos-arm64
+            arch: arm64
+            platform_dir: macos
+            runner: macos-latest
+            script: macos-package.js
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ needs.prepare.outputs.release_tag }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            packaging/package-lock.json
+
+      - name: Import macOS signing certificate
+        if: runner.os == 'macOS' && env.HAS_MACOS_SIGNING_CERT == '1'
+        shell: bash
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSPHRASE: ${{ secrets.MACOS_CERT_PASSPHRASE }}
+        run: |
+          echo "$MACOS_CERT_P12" | base64 --decode > cert.p12
+          security create-keychain -p "" build.keychain
+          security import cert.p12 -k build.keychain -P "$MACOS_CERT_PASSPHRASE" -T /usr/bin/codesign
+          security list-keychains -s build.keychain login.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+          security find-identity -p codesigning -v
+
+      - name: Install repo dependencies
+        run: npm ci --omit=optional
+
+      - name: Install packaging dependencies
+        run: npm ci --prefix packaging
+
+      - name: Build desktop artifacts
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          SPACE_APP_VERSION: ${{ needs.prepare.outputs.build_version }}
+          SPACE_RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
+          SKIP_SIGNING: ${{ runner.os == 'macOS' && env.HAS_MACOS_SIGNING_CERT != '1' && '1' || '' }}
+        run: node packaging/scripts/${{ matrix.script }} --arch ${{ matrix.arch }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: dist/desktop/${{ matrix.platform_dir }}/
+          if-no-files-found: error
+
+  publish:
+    needs: [prepare, build]
+    if: needs.prepare.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ needs.prepare.outputs.release_tag }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Merge updater metadata
+        run: node packaging/scripts/release-metadata-merge.js release-assets
+
+      - name: Create or update release
+        uses: actions/github-script@v7
+        env:
+          RELEASE_BODY: ${{ needs.prepare.outputs.release_body }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const tag = process.env.RELEASE_TAG;
+            const body = process.env.RELEASE_BODY;
+
+            try {
+              const existing = await github.rest.repos.getReleaseByTag({
+                owner,
+                repo,
+                tag,
+              });
+
+              await github.rest.repos.updateRelease({
+                owner,
+                repo,
+                release_id: existing.data.id,
+                tag_name: tag,
+                name: tag,
+                body,
+                draft: false,
+                prerelease: false,
+                make_latest: "true",
+              });
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+
+              await github.rest.repos.createRelease({
+                owner,
+                repo,
+                tag_name: tag,
+                name: tag,
+                body,
+                draft: false,
+                prerelease: false,
+                make_latest: "true",
+              });
+            }
+
+      - name: Upload release artifacts
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ needs.prepare.outputs.release_version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
+        run: |
+          upload_dir="release-upload"
+          node packaging/scripts/release-assets-stage.js release-assets "$upload_dir" "$RELEASE_VERSION"
+
+          manifest_path="$upload_dir/.manifest.json"
+          if [ ! -f "$manifest_path" ]; then
+            echo "Release upload manifest was not generated." >&2
+            exit 1
+          fi
+
+          mapfile -t stale_asset_names < <(
+            node -e '
+              const fs = require("node:fs");
+              const manifest = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+              for (const name of manifest.staleAssetNames || []) {
+                process.stdout.write(String(name) + "\n");
+              }
+            ' "$manifest_path"
+          )
+
+          mapfile -t upload_files < <(
+            node -e '
+              const fs = require("node:fs");
+              const manifest = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+              for (const filePath of manifest.uploadFiles || []) {
+                process.stdout.write(String(filePath) + "\n");
+              }
+            ' "$manifest_path"
+          )
+
+          if [ "${#upload_files[@]}" -eq 0 ]; then
+            echo "No release artifacts were staged for upload." >&2
+            exit 1
+          fi
+
+          for stale_asset_name in "${stale_asset_names[@]}"; do
+            [ -n "$stale_asset_name" ] || continue
+            gh release delete-asset "$RELEASE_TAG" "$stale_asset_name" --yes >/dev/null 2>&1 || true
+          done
+
+          gh release upload "$RELEASE_TAG" "${upload_files[@]}" --clobber

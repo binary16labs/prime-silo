@@ -1,0 +1,22 @@
+[
+  {
+    "role": "user",
+    "content": "_____user\nthe status widget shows Error: upstream unavailable"
+  },
+  {
+    "role": "assistant",
+    "content": "Reading the status widget source now...\n_____javascript\nreturn await space.current.readWidget(\"status-board\")"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution success\nlog: [spaces] Read widget \"status-board\".\nresult↓\nWidget \"status-board\" loaded to TRANSIENT."
+  },
+  {
+    "role": "assistant",
+    "content": "Patching the status widget now...\n_____javascript\nreturn await space.current.patchWidget(\"status-board\", { edits: [] })"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution success\nlog: [spaces] Widget \"status-board\" patched, rendered ok, loaded to TRANSIENT.\nresult↓\nWidget \"status-board\" patched, rendered ok, loaded to TRANSIENT."
+  }
+]

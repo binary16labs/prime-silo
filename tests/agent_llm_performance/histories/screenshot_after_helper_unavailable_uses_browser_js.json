@@ -1,0 +1,14 @@
+[
+  {
+    "role": "user",
+    "content": "_____user\ntake a screenshot of the page and download it"
+  },
+  {
+    "role": "assistant",
+    "content": "Taking a screenshot and downloading it now...\n_____javascript\nconst png = await space.current.screenshot?.()\nif (png) return png\nreturn \"Screenshot helper not available in this runtime\""
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution success\nresult↓\nScreenshot helper not available in this runtime"
+  }
+]

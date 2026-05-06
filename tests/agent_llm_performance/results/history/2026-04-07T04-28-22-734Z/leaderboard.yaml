@@ -1,0 +1,64 @@
+generated_at: 2026-04-07T04:28:22.734Z
+generation_id: 2026-04-07T04-28-22-734Z
+model: openai/gpt-5.4-mini
+prompts:
+  - rank: 1
+    id: 056A_054A_plus_staging_fix
+    passed_cases: 34
+    total_cases: 37
+    pass_rate: 0.9189
+    passed_attempts: 34
+    total_attempts: 37
+    attempt_pass_rate: 0.9189
+    failed_cases:
+      - unpack_collapsed_weather_payload
+      - selective_yaml_edit_requires_read_first
+      - repeat_do_it_requires_execution
+  - rank: 2
+    id: 056B_target_freshness_trace
+    passed_cases: 30
+    total_cases: 37
+    pass_rate: 0.8108
+    passed_attempts: 30
+    total_attempts: 37
+    attempt_pass_rate: 0.8108
+    failed_cases:
+      - page_title_requires_execution
+      - time_requires_execution
+      - weather_self_scope_followup
+      - write_user_yaml_after_read
+      - selective_yaml_edit_requires_read_first
+      - selective_widget_fix_requires_read_first
+      - repeat_do_it_requires_execution
+  - rank: 3
+    id: 056C_trace_rows_with_recovery
+    passed_cases: 14
+    total_cases: 37
+    pass_rate: 0.3784
+    passed_attempts: 14
+    total_attempts: 37
+    attempt_pass_rate: 0.3784
+    failed_cases:
+      - page_title_requires_execution
+      - time_requires_execution
+      - weather_omitted_scope
+      - weather_self_scope_followup
+      - weather_self_scope_after_indirect_fail
+      - finish_weather_after_geolocation
+      - reverse_geocode_after_precise_followup
+      - unpack_collapsed_weather_payload
+      - create_note_after_user_detail_read
+      - selective_text_edit_requires_read_first
+      - selective_yaml_edit_requires_read_first
+      - selective_widget_fix_requires_read_first
+      - recover_after_combined_widget_read_write_error
+      - space_navigation_after_current_helper_error_switches_family
+      - space_navigation_read_is_not_completion
+      - space_navigation_after_take_me_there_uses_open_helper
+      - space_navigation_after_user_push_uses_open_helper
+      - repeat_do_it_requires_execution
+      - post_success_followup_requires_execution_or_completion
+      - protocol_nudge_requires_real_thrust
+      - continue_after_widget_load_success
+      - no_false_success_after_error
+      - direct_repair_after_known_widget_error

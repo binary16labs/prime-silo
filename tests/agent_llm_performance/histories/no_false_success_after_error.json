@@ -1,0 +1,14 @@
+[
+  {
+    "role": "user",
+    "content": "_____user\nmake the snake background greener, like old nokia displays"
+  },
+  {
+    "role": "assistant",
+    "content": "Adjusting the Snake widget palette now...\n_____javascript\nreturn await space.current.patchWidget(\"snake-game\", { edits: [] })"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution error\nerror: Error: Cannot patch widget \"snake-game\": renderer syntax is invalid (Identifier 'd' has already been declared). No files were written."
+  }
+]

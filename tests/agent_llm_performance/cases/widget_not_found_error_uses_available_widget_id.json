@@ -1,0 +1,32 @@
+{
+  "id": "widget_not_found_error_uses_available_widget_id",
+  "description": "when a widget lookup fails and framework telemetry lists the available widget id, the agent should use that listed id directly instead of drifting or retrying the wrong one",
+  "history": "../histories/widget_not_found_error_uses_available_widget_id.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript"
+    ],
+    "must_match": [
+      {
+        "pattern": "readWidget\\(\"iphone-weather\"\\)",
+        "flags": "u"
+      }
+    ],
+    "must_not_match": [
+      {
+        "pattern": "readWidget\\(\"weather\"\\)",
+        "flags": "u"
+      },
+      {
+        "pattern": "document\\.title|document\\.body\\.innerText|location\\.hash|listSpaces\\(|listWidgets\\(",
+        "flags": "u"
+      }
+    ]
+  }
+}

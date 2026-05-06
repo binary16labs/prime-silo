@@ -1,0 +1,1542 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="application-name" content="Space Agent" />
+    <meta name="apple-mobile-web-app-title" content="Space Agent" />
+    <meta name="theme-color" content="#050816" />
+    <meta
+      name="description"
+      content="Browser-first AI agent runtime for building your own AI spaces, tools, and workflows directly in the browser."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Space Agent" />
+    <meta property="og:title" content="Space Agent | Browser-First AI Agent Runtime" />
+    <meta
+      property="og:description"
+      content="Browser-first AI agent runtime for building your own AI spaces, tools, and workflows directly in the browser."
+    />
+    <meta property="og:url" content="https://space-agent.ai/" />
+    <meta property="og:image" content="https://space-agent.ai/pages/res/readme-banner.webp" />
+    <meta property="og:image:type" content="image/webp" />
+    <meta property="og:image:width" content="1774" />
+    <meta property="og:image:height" content="887" />
+    <meta property="og:image:alt" content="Space Agent banner" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Space Agent | Browser-First AI Agent Runtime" />
+    <meta
+      name="twitter:description"
+      content="Browser-first AI agent runtime for building your own AI spaces, tools, and workflows directly in the browser."
+    />
+    <meta name="twitter:url" content="https://space-agent.ai/" />
+    <meta name="twitter:image" content="https://space-agent.ai/pages/res/readme-banner.webp" />
+    <meta name="twitter:image:alt" content="Space Agent banner" />
+    <title>Enter Space | Space Agent</title>
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="stylesheet" href="/pages/res/space-backdrop.css" />
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
+        --color-canvas: #050816;
+        --color-canvas-elevated: #09111f;
+        --color-canvas-deep: #02050d;
+        --color-surface-1: #0d1628;
+        --color-surface-2: #121d33;
+        --color-surface-3: #182540;
+        --color-surface-glass: rgba(11, 18, 34, 0.78);
+        --color-border-soft: rgba(148, 167, 201, 0.16);
+        --color-border-strong: rgba(168, 186, 219, 0.28);
+        --color-text-primary: #f3f7ff;
+        --color-text-secondary: #b8c4da;
+        --color-text-tertiary: #8e9bb2;
+        --color-status-warning: #ffd166;
+        --color-status-danger: #ff8d98;
+        --color-accent-primary: #7ddcff;
+        --color-accent-primary-strong: #94bcff;
+        --color-accent-primary-soft: rgba(125, 220, 255, 0.14);
+        --color-accent-secondary: #79edd8;
+        --color-accent-ink: #04101d;
+        --color-backdrop-glow-primary: rgba(148, 188, 255, 0.18);
+        --color-backdrop-glow-secondary: rgba(121, 237, 216, 0.14);
+        --color-backdrop-glow-depth: rgba(59, 95, 172, 0.26);
+        --color-backdrop-star-strong: rgba(255, 255, 255, 0.76);
+        --color-backdrop-star-soft: rgba(255, 255, 255, 0.26);
+        --color-backdrop-star-accent: rgba(148, 188, 255, 0.48);
+        --color-backdrop-star-halo: rgba(255, 255, 255, 0.12);
+        --color-backdrop-star-halo-accent: rgba(148, 188, 255, 0.16);
+        --radius-control: 16px;
+        --space-3: 0.875rem;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body.space-theme-canvas :where(*, *::before, *::after) {
+        box-shadow: none !important;
+        text-shadow: none !important;
+      }
+
+      body.space-theme-canvas :focus-visible {
+        outline: 2px solid rgba(125, 220, 255, 0.55) !important;
+        outline-offset: 2px;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      html {
+        min-height: 100%;
+        background: #000000;
+      }
+
+      body.space-theme-canvas {
+        display: grid;
+        align-items: center;
+        min-height: 100vh;
+        padding: clamp(0.875rem, 3vw, 2rem);
+        background: #000000;
+        overflow-x: hidden;
+        overflow-y: auto;
+      }
+
+      @keyframes login-fadein {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      @keyframes login-fadeup {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      .intro-art {
+        animation: login-fadein 1.35s ease-out both;
+        animation-delay: 0ms;
+      }
+
+      h1 {
+        animation: login-fadeup 1.35s ease-out both;
+        animation-delay: 330ms;
+      }
+
+      .intro-copy {
+        animation: login-fadeup 1.35s ease-out both;
+        animation-delay: 600ms;
+      }
+
+      .launcher-actions {
+        animation: login-fadeup 0.7s ease-out both;
+        animation-delay: 1150ms;
+      }
+
+      .shell-footer {
+        animation: login-fadeup 0.7s ease-out both;
+        animation-delay: 1320ms;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .intro-art,
+        h1,
+        .intro-copy,
+        .launcher-actions,
+        .shell-footer {
+          animation: none;
+        }
+
+        .shell,
+        .desktop-launcher-fade {
+          transition: none;
+        }
+      }
+
+      .shell {
+        position: relative;
+        z-index: 1;
+        width: min(56rem, 100%);
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(19.5rem, 24rem);
+        gap: clamp(1.5rem, 4vw, 3rem);
+        align-items: center;
+        transition:
+          opacity 220ms ease,
+          transform 260ms ease,
+          filter 260ms ease;
+      }
+
+      .desktop-launcher-fade {
+        position: fixed;
+        inset: 0;
+        z-index: 12;
+        background: #000000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 260ms ease;
+      }
+
+      body.launcher-exiting .shell {
+        opacity: 0;
+        transform: translateY(8px) scale(0.985);
+        filter: blur(6px);
+      }
+
+      body.launcher-exiting .desktop-launcher-fade {
+        opacity: 1;
+      }
+
+      .intro {
+        position: relative;
+        display: grid;
+        gap: 0.9rem;
+        padding-block: clamp(0.5rem, 2vw, 1.5rem);
+      }
+
+      .intro-floating-cluster {
+        position: relative;
+        display: grid;
+        grid-template-columns: minmax(0, 15.5rem) minmax(6.8rem, 9.8rem);
+        gap: clamp(0.3rem, 1.5vw, 0.95rem);
+        align-items: center;
+        width: fit-content;
+        max-width: 100%;
+      }
+
+      .intro-title {
+        --intro-title-float-x: 0px;
+        --intro-title-float-y: 0px;
+        --intro-title-rotate: 0deg;
+        position: relative;
+        z-index: 1;
+        min-width: 0;
+        transform:
+          translate3d(var(--intro-title-float-x), var(--intro-title-float-y), 0)
+          rotate(var(--intro-title-rotate));
+        transform-origin: 52% 52%;
+        will-change: transform;
+      }
+
+      .intro-art {
+        position: relative;
+        min-height: clamp(6.8rem, 15vw, 9.8rem);
+        display: grid;
+        place-items: center;
+      }
+
+      .intro-astronaut {
+        --astronaut-float-x: 0px;
+        --astronaut-float-y: 0px;
+        --astronaut-rotate: 0deg;
+        position: relative;
+        z-index: 0;
+        width: clamp(6.9rem, 15vw, 9.8rem);
+        opacity: 0.94;
+        pointer-events: none;
+        user-select: none;
+        transform:
+          translate3d(var(--astronaut-float-x), var(--astronaut-float-y), 0)
+          rotate(var(--astronaut-rotate));
+        transform-origin: 52% 56%;
+        will-change: transform;
+      }
+
+      h1 {
+        margin: 0;
+        max-width: 7ch;
+        font-size: clamp(2.7rem, 7vw, 4.6rem);
+        line-height: 0.96;
+        letter-spacing: -0.05em;
+      }
+
+      .intro-copy {
+        max-width: 17rem;
+        margin: 0;
+        color: var(--color-text-secondary);
+        font-size: 1rem;
+        line-height: 1.5;
+      }
+
+      .launcher-actions {
+        display: grid;
+        gap: 1.2rem;
+        align-self: center;
+      }
+
+      .browser-compat-panel {
+        align-self: center;
+        display: grid;
+        gap: 0.95rem;
+        padding: clamp(1.25rem, 3vw, 1.65rem);
+        border-radius: 26px;
+        background: linear-gradient(180deg, rgba(34, 14, 22, 0.9), rgba(11, 16, 29, 0.84));
+        border: 1px solid rgba(255, 141, 152, 0.28);
+        box-shadow:
+          0 24px 64px rgba(0, 0, 0, 0.38),
+          inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        backdrop-filter: blur(18px);
+      }
+
+      .browser-compat-eyebrow {
+        margin: 0;
+        color: var(--color-status-warning);
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .browser-compat-title {
+        margin: 0;
+        font-size: 1.65rem;
+        letter-spacing: -0.03em;
+      }
+
+      .browser-compat-copy,
+      .browser-compat-note {
+        margin: 0;
+        color: var(--color-text-secondary);
+        line-height: 1.55;
+      }
+
+      .browser-compat-list {
+        margin: 0;
+        padding-left: 1.25rem;
+        color: var(--color-text-secondary);
+        display: grid;
+        gap: 0.55rem;
+      }
+
+      .browser-compat-list strong {
+        color: var(--color-text-primary);
+      }
+
+      .browser-compat-note {
+        color: var(--color-text-tertiary);
+        font-size: 0.93rem;
+      }
+
+      .launcher-link {
+        display: grid;
+        place-items: center;
+        width: 100%;
+        min-height: calc(0.88rem * 2 + 1rem);
+        padding: 0.88rem 1rem;
+        border-radius: var(--radius-control);
+        font-size: 1rem;
+        font-weight: 700;
+        line-height: 1.4;
+        text-align: center;
+        text-decoration: none;
+        transition:
+          box-shadow 160ms ease,
+          background-color 160ms ease,
+          border-color 160ms ease,
+          color 160ms ease,
+          opacity 160ms ease;
+      }
+
+
+      .launcher-link:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(125, 220, 255, 0.12);
+      }
+
+      .launcher-link-primary {
+        color: var(--color-accent-ink);
+        background: linear-gradient(
+          135deg,
+          var(--color-accent-primary-strong) 0%,
+          var(--color-accent-secondary) 100%
+        );
+        box-shadow: 0 12px 26px rgba(59, 163, 186, 0.24);
+      }
+
+      .launcher-link-primary:hover,
+      .launcher-link-primary:focus-visible {
+        box-shadow: 0 16px 30px rgba(59, 163, 186, 0.28);
+      }
+
+      .launcher-link-secondary {
+        color: #ffffff;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(148, 167, 201, 0.12);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      }
+
+      .launcher-link-secondary:hover,
+      .launcher-link-secondary:focus-visible {
+        background: rgba(255, 255, 255, 0.04);
+        border-color: rgba(168, 186, 219, 0.24);
+      }
+
+      .launcher-link-button {
+        appearance: none;
+        cursor: pointer;
+        font-family: inherit;
+      }
+
+      .launcher-link-button[disabled] {
+        cursor: progress;
+        opacity: 0.78;
+        transform: none;
+      }
+
+      .desktop-update-note {
+        width: 100%;
+        margin: -0.4rem 0 0;
+        color: var(--color-text-tertiary);
+        font-size: 0.92rem;
+        line-height: 1.45;
+        text-align: left;
+      }
+
+      .desktop-update-note-text {
+        margin: 0;
+      }
+
+      .desktop-update-note-details {
+        margin: 0;
+        padding: 0.78rem 0.92rem;
+        border: 1px solid rgba(148, 167, 201, 0.16);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .desktop-update-note-details summary {
+        cursor: pointer;
+        color: var(--color-text-secondary);
+        font-weight: 650;
+      }
+
+      .desktop-update-note-details-text {
+        margin: 0.72rem 0 0;
+        color: var(--color-text-tertiary);
+        font-family: "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", monospace;
+        font-size: 0.83rem;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .run-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 14;
+        display: grid;
+        place-items: center;
+        padding: clamp(1rem, 4vw, 2rem);
+      }
+
+      .run-modal-backdrop {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at 28% 20%, rgba(125, 220, 255, 0.12), transparent 32rem),
+          rgba(2, 7, 17, 0.78);
+        backdrop-filter: blur(12px);
+      }
+
+      .run-modal-dialog {
+        position: relative;
+        z-index: 1;
+        width: min(36rem, 100%);
+        max-height: min(42rem, calc(100vh - 2rem));
+        overflow-y: auto;
+        padding: 1.35rem;
+        border: 1px solid var(--color-border-strong);
+        border-radius: 8px;
+        background: linear-gradient(180deg, rgba(10, 17, 31, 0.96), rgba(6, 12, 23, 0.94));
+        box-shadow:
+          0 28px 72px rgba(0, 0, 0, 0.48),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      }
+
+      .run-modal-title {
+        margin: 0.3rem 0 0;
+        font-size: 2rem;
+        letter-spacing: 0;
+        line-height: 1.05;
+      }
+
+      .run-modal-subtitle {
+        margin: 0.75rem 0 0;
+        color: var(--color-text-secondary);
+        line-height: 1.55;
+      }
+
+      .restart-modal-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.85rem;
+        margin-top: 1.35rem;
+      }
+
+      .restart-modal-button {
+        appearance: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 3.25rem;
+        padding: 0.9rem 1rem;
+        border: 1px solid var(--color-border-soft);
+        border-radius: 8px;
+        color: var(--color-text-primary);
+        font: inherit;
+        font-weight: 700;
+        line-height: 1.2;
+        text-align: center;
+        cursor: pointer;
+        background: rgba(255, 255, 255, 0.035);
+        transition:
+          background-color 160ms ease,
+          border-color 160ms ease,
+          box-shadow 160ms ease,
+          color 160ms ease,
+          opacity 160ms ease;
+      }
+
+      .restart-modal-button:hover {
+        border-color: rgba(125, 220, 255, 0.38);
+        background: rgba(125, 220, 255, 0.08);
+      }
+
+      .restart-modal-button:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(125, 220, 255, 0.12);
+      }
+
+      .restart-modal-button[disabled] {
+        cursor: progress;
+        opacity: 0.72;
+      }
+
+      .restart-modal-button-primary {
+        color: var(--color-accent-ink);
+        background: linear-gradient(135deg, var(--color-accent-primary-strong), var(--color-accent-secondary));
+        border-color: transparent;
+      }
+
+      .restart-modal-button-primary:hover {
+        border-color: transparent;
+        background: linear-gradient(135deg, #a4c7ff, #8ef2df);
+      }
+
+      .shell-footer {
+        grid-column: 1 / -1;
+        display: grid;
+        justify-items: center;
+        gap: 0.65rem;
+      }
+
+      .public-links {
+        pointer-events: auto;
+      }
+
+      .public-links-list {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .public-link {
+        display: grid;
+        place-items: center;
+        width: 2.2rem;
+        height: 2.2rem;
+        border-radius: 999px;
+        opacity: 0.72;
+        transition:
+          opacity 160ms ease,
+          background-color 160ms ease,
+          box-shadow 160ms ease;
+      }
+
+      .public-link:hover {
+        opacity: 0.96;
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .public-link:focus-visible {
+        outline: none;
+        opacity: 1;
+        background: rgba(255, 255, 255, 0.05);
+        box-shadow: 0 0 0 4px rgba(125, 220, 255, 0.12);
+      }
+
+      .public-link-icon {
+        display: block;
+        width: 1.2rem;
+        height: 1.2rem;
+      }
+
+      .public-link-icon-agent-zero {
+        width: 1.44rem;
+        height: 1.44rem;
+      }
+
+      .instance-version {
+        margin: 0;
+        color: #ffffff;
+        font-size: 0.84rem;
+        font-weight: 650;
+        line-height: 1.4;
+        text-align: center;
+        opacity: 0.74;
+        pointer-events: none;
+        text-shadow:
+          0 1px 18px rgba(255, 255, 255, 0.22),
+          0 9px 24px rgba(0, 0, 0, 0.38);
+        user-select: none;
+      }
+
+      @media (max-width: 760px) {
+        body.space-theme-canvas {
+          padding: 1rem 1.45rem 1.35rem;
+        }
+
+        .shell {
+          grid-template-columns: 1fr;
+          gap: 1rem;
+        }
+
+        .intro {
+          max-width: 100%;
+          padding-block: 0 0.2rem;
+          padding-inline: 0.8rem;
+        }
+
+        .intro-floating-cluster {
+          grid-template-columns: minmax(0, 12.6rem) clamp(8.1rem, 36vw, 10.2rem);
+          gap: 0;
+        }
+
+        .intro-art {
+          min-height: clamp(8.1rem, 36vw, 10.2rem);
+          justify-items: start;
+        }
+
+        .intro-astronaut {
+          width: clamp(8.1rem, 36vw, 10.2rem);
+        }
+
+        h1 {
+          max-width: 6.3ch;
+          font-size: clamp(2.25rem, 12vw, 3.3rem);
+        }
+
+        .intro-copy {
+          max-width: 11.6rem;
+          font-size: 0.9rem;
+          line-height: 1.42;
+        }
+
+        .launcher-actions {
+          margin-top: 1.9rem;
+          gap: 1.35rem;
+          padding-inline: 0.4rem;
+        }
+      }
+
+      @media (max-width: 520px) {
+        body.space-theme-canvas {
+          padding: 1.05rem 1.7rem 1.5rem;
+        }
+
+        .intro {
+          padding-inline: 1rem;
+        }
+
+        .intro-floating-cluster {
+          grid-template-columns: minmax(0, 10.8rem) clamp(7.35rem, 36vw, 8.85rem);
+          gap: 0;
+        }
+
+        .intro-art {
+          min-height: clamp(7.35rem, 36vw, 8.85rem);
+          justify-items: start;
+        }
+
+        .intro-astronaut {
+          width: clamp(7.35rem, 36vw, 8.85rem);
+          opacity: 0.9;
+        }
+
+        .intro-copy {
+          font-size: 0.95rem;
+          line-height: 1.5;
+        }
+
+        .launcher-actions {
+          margin-top: 2.15rem;
+          gap: 1.5rem;
+          padding-inline: 0.55rem;
+        }
+
+        .launcher-link {
+          padding-block: 0.88rem;
+        }
+
+        .run-modal {
+          align-items: end;
+          padding: 0.75rem;
+        }
+
+        .run-modal-dialog {
+          max-height: min(42rem, calc(100vh - 1.5rem));
+          padding: 1rem;
+        }
+
+        .run-modal-title {
+          font-size: 1.6rem;
+        }
+
+        .run-modal-subtitle {
+          font-size: 0.95rem;
+        }
+
+        .restart-modal-actions {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body class="space-theme-canvas">
+    <div class="space-backdrop" data-space-backdrop aria-hidden="true">
+      <div class="space-backdrop-layer space-backdrop-glow"></div>
+      <div class="space-backdrop-layer space-backdrop-stars space-backdrop-stars-deep"></div>
+      <div class="space-backdrop-layer space-backdrop-stars space-backdrop-stars-far"></div>
+      <div class="space-backdrop-layer space-backdrop-stars space-backdrop-stars-mid"></div>
+      <div class="space-backdrop-layer space-backdrop-stars space-backdrop-stars-near"></div>
+      <div class="space-backdrop-layer space-backdrop-stars space-backdrop-stars-close"></div>
+      <div class="space-backdrop-trails">
+        <div class="space-backdrop-trail" data-space-backdrop-trail></div>
+        <div class="space-backdrop-trail" data-space-backdrop-trail></div>
+      </div>
+    </div>
+    <div class="desktop-launcher-fade" aria-hidden="true"></div>
+    <main class="shell">
+      <section class="intro" aria-label="Space Agent overview">
+        <div id="intro-floating-cluster" class="intro-floating-cluster">
+          <div id="intro-title" class="intro-title">
+            <h1>Space Agent</h1>
+          </div>
+          <div class="intro-art" aria-hidden="true">
+            <img
+              id="intro-astronaut"
+              class="intro-astronaut"
+              src="/pages/res/astronaut_no_bg.webp"
+              alt=""
+              decoding="async"
+              draggable="false"
+            />
+          </div>
+        </div>
+        <p class="intro-copy">
+          Free and open-source AI agent<br />
+          that builds your space.<br />
+          Right in the browser.
+        </p>
+      </section>
+
+      <section class="launcher-actions" aria-label="Launcher actions" data-space-browser-compat-hide-on-fail>
+        <a id="enter-space-link" class="launcher-link launcher-link-primary" href="/">Enter Space</a>
+        <a id="enter-admin-link" class="launcher-link launcher-link-secondary" href="/admin">Admin Mode</a>
+        <button
+          id="desktop-update-button"
+          class="launcher-link launcher-link-secondary launcher-link-button"
+          type="button"
+          hidden
+        >
+          Update Now
+        </button>
+        <div id="desktop-update-note" class="desktop-update-note" aria-live="polite" hidden>
+          <p id="desktop-update-note-text" class="desktop-update-note-text" hidden></p>
+          <details id="desktop-update-note-details" class="desktop-update-note-details" hidden>
+            <summary id="desktop-update-note-summary">Could not check updates</summary>
+            <pre id="desktop-update-note-details-text" class="desktop-update-note-details-text"></pre>
+          </details>
+        </div>
+      </section>
+
+      <section
+        class="browser-compat-panel"
+        aria-label="Browser compatibility warning"
+        aria-live="assertive"
+        data-space-browser-compat-target
+        hidden
+      ></section>
+
+      <div class="shell-footer">
+        <nav class="public-links" aria-label="Space Agent links">
+          <ul class="public-links-list">
+            <li>
+              <a
+                class="public-link"
+                href="https://github.com/agent0ai/space-agent"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="GitHub repository"
+              >
+                <img
+                  class="public-link-icon"
+                  src="/pages/res/social-github.svg"
+                  alt=""
+                  decoding="async"
+                />
+              </a>
+            </li>
+            <li>
+              <a
+                class="public-link"
+                href="https://discord.gg/B8KZKNsPpj"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Discord community"
+              >
+                <img
+                  class="public-link-icon"
+                  src="/pages/res/social-discord.svg"
+                  alt=""
+                  decoding="async"
+                />
+              </a>
+            </li>
+            <li>
+              <a
+                class="public-link"
+                href="https://x.com/Agent0ai"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Agent Zero on X"
+              >
+                <img
+                  class="public-link-icon"
+                  src="/pages/res/social-x.svg"
+                  alt=""
+                  decoding="async"
+                />
+              </a>
+            </li>
+            <li>
+              <a
+                class="public-link"
+                href="https://agent-zero.ai"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Agent Zero website"
+              >
+                <img
+                  class="public-link-icon public-link-icon-agent-zero"
+                  src="/pages/res/social-agent-zero.svg"
+                  alt=""
+                  decoding="async"
+                />
+              </a>
+            </li>
+          </ul>
+        </nav>
+        <p class="instance-version" aria-label="Instance version">
+          <span><!-- SPACE_PROJECT_VERSION --></span>
+        </p>
+      </div>
+    </main>
+    <div
+      id="restart-update-modal"
+      class="run-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="restart-update-title"
+      hidden
+    >
+      <div class="run-modal-backdrop" data-restart-modal-close></div>
+      <section class="run-modal-dialog" tabindex="-1">
+        <h2 id="restart-update-title" class="run-modal-title">Restart and update</h2>
+        <p class="run-modal-subtitle">
+          The app is going to quit and update in the background. It can take a minute before
+          it starts again. Do not try to relaunch it immediately.
+        </p>
+        <div class="restart-modal-actions">
+          <button
+            id="restart-update-confirm"
+            class="restart-modal-button restart-modal-button-primary"
+            type="button"
+          >
+            Okay, restart
+          </button>
+          <button
+            id="restart-update-cancel"
+            class="restart-modal-button"
+            type="button"
+            data-restart-modal-close
+          >
+            Back
+          </button>
+        </div>
+      </section>
+    </div>
+    <script src="/pages/res/space-backdrop.js"></script>
+    <script src="/pages/res/browser-compat.js"></script>
+    <script>
+      (async function () {
+        const browserCompatibility = await window.SpaceBrowserCompatibility.check();
+
+        if (!browserCompatibility?.ok) {
+          return;
+        }
+
+      const ENTER_PAGE_PATH = "/enter";
+      const ENTER_TAB_ACCESS_KEY = "space.enter.tab-access";
+      const introEnterSpaceLink = document.getElementById("enter-space-link");
+      const introAdminLink = document.getElementById("enter-admin-link");
+      const desktopUpdateButton = document.getElementById("desktop-update-button");
+      const desktopUpdateNote = document.getElementById("desktop-update-note");
+      const desktopUpdateNoteText = document.getElementById("desktop-update-note-text");
+      const desktopUpdateNoteDetails = document.getElementById("desktop-update-note-details");
+      const desktopUpdateNoteSummary = document.getElementById("desktop-update-note-summary");
+      const desktopUpdateNoteDetailsText = document.getElementById("desktop-update-note-details-text");
+      const restartUpdateModal = document.getElementById("restart-update-modal");
+      const restartUpdateDialog = restartUpdateModal?.querySelector(".run-modal-dialog");
+      const restartUpdateConfirmButton = document.getElementById("restart-update-confirm");
+      const restartUpdateCancelButton = document.getElementById("restart-update-cancel");
+      const restartUpdateCloseTargets = document.querySelectorAll("[data-restart-modal-close]");
+      const LAUNCHER_EXIT_FADE_MS = 260;
+      const TAU = Math.PI * 2;
+      const TITLE_FLOAT_PARAMS = Object.freeze({
+        movementDistance: 1.5,
+        movementSpeed: 1.5,
+        rotationDistance: 1.5,
+        rotationSpeed: 1.5
+      });
+      const ASTRONAUT_FLOAT_VARIANT = 0.5;
+      const ASTRONAUT_FLOAT_PARAMS = Object.freeze({
+        movementDistance: 3,
+        movementSpeed: 0.9,
+        rotationDistance: 0.6,
+        rotationSpeed: 0.45
+      });
+      const astronautOrbitOffsetTurns = positiveModulo(ASTRONAUT_FLOAT_VARIANT, 1);
+      const astronautRotationOffsetTurns = positiveModulo(ASTRONAUT_FLOAT_VARIANT * 1.61803398875, 1);
+      const astronautOrbitDirection = positiveModulo(ASTRONAUT_FLOAT_VARIANT, 2) < 1 ? 1 : -1;
+      const astronautRotationDirection =
+        positiveModulo(ASTRONAUT_FLOAT_VARIANT * 0.73, 2) < 1 ? 1 : -1;
+      const astronautSpeedMultiplier = 0.82 + (positiveModulo(ASTRONAUT_FLOAT_VARIANT * 2.37, 1) * 0.56);
+      const TITLE_FLOAT_PROFILE = buildFloatProfile(
+        Object.freeze({
+          orbitPeriodMs: 11800,
+          rotationAmplitude: 4.5,
+          rotationPeriodMs: 16200,
+          xRadius: 6.6,
+          yRadius: 7.4
+        }),
+        TITLE_FLOAT_PARAMS
+      );
+      const ASTRONAUT_FLOAT_PROFILE = buildFloatProfile(
+        Object.freeze({
+          orbitPeriodMs: 12400,
+          rotationAmplitude: 100,
+          rotationLimitEnabled: false,
+          rotationMaxDeg: 30,
+          rotationPeriodMs: 17600,
+          xRadius: 7.2,
+          yRadius: 8.2
+        }),
+        Object.freeze({
+          ...ASTRONAUT_FLOAT_PARAMS,
+          movementSpeed: ASTRONAUT_FLOAT_PARAMS.movementSpeed * astronautSpeedMultiplier,
+          rotationSpeed: ASTRONAUT_FLOAT_PARAMS.rotationSpeed * astronautSpeedMultiplier
+        })
+      );
+      const introTitle = document.getElementById("intro-title");
+      const introAstronaut = document.getElementById("intro-astronaut");
+      const spaceBackdropRoot = document.querySelector("[data-space-backdrop]");
+      const spaceThemeCanvas = document.body;
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+      let introFloatFrame = 0;
+      let introFloatStartTime = 0;
+      let previousModalFocus = null;
+
+      window.SpaceBackdrop?.install?.(spaceBackdropRoot, {
+        canvas: spaceThemeCanvas,
+        motionQuery: prefersReducedMotion
+      });
+
+      function setDesktopUpdateButtonBusy(isBusy) {
+        if (!desktopUpdateButton) {
+          return;
+        }
+
+        desktopUpdateButton.disabled = Boolean(isBusy);
+        desktopUpdateButton.setAttribute("aria-busy", isBusy ? "true" : "false");
+      }
+
+      function resetLauncherExitFade() {
+        document.body.classList.remove("launcher-exiting");
+        setDesktopUpdateButtonBusy(false);
+      }
+
+      async function playLauncherExitFade() {
+        document.body.classList.add("launcher-exiting");
+        setDesktopUpdateButtonBusy(true);
+
+        if (prefersReducedMotion.matches) {
+          return;
+        }
+
+        await new Promise((resolve) => {
+          window.setTimeout(resolve, LAUNCHER_EXIT_FADE_MS);
+        });
+      }
+
+      function renderDesktopUpdateNote(message, { expandable = false, summaryText = "Could not check updates" } = {}) {
+        if (
+          !desktopUpdateNote ||
+          !desktopUpdateNoteText ||
+          !desktopUpdateNoteDetails ||
+          !desktopUpdateNoteSummary ||
+          !desktopUpdateNoteDetailsText
+        ) {
+          return;
+        }
+
+        const normalizedMessage = typeof message === "string" ? message.trim() : "";
+        const showExpandable = expandable && Boolean(normalizedMessage);
+        const shouldPreserveOpen =
+          showExpandable &&
+          !desktopUpdateNoteDetails.hidden &&
+          desktopUpdateNoteDetails.open &&
+          desktopUpdateNoteSummary.textContent === summaryText &&
+          desktopUpdateNoteDetailsText.textContent === normalizedMessage;
+
+        desktopUpdateNote.hidden = !normalizedMessage;
+
+        desktopUpdateNoteText.hidden = showExpandable || !normalizedMessage;
+        desktopUpdateNoteText.textContent = showExpandable ? "" : normalizedMessage;
+
+        desktopUpdateNoteDetails.hidden = !showExpandable;
+        desktopUpdateNoteDetails.open = showExpandable ? shouldPreserveOpen : false;
+        desktopUpdateNoteSummary.textContent = summaryText;
+        desktopUpdateNoteDetailsText.textContent = showExpandable ? normalizedMessage : "";
+      }
+
+      function openRestartUpdateModal() {
+        if (!restartUpdateModal || !restartUpdateConfirmButton) {
+          return;
+        }
+
+        previousModalFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        restartUpdateModal.hidden = false;
+        restartUpdateConfirmButton.disabled = false;
+        if (restartUpdateCancelButton) {
+          restartUpdateCancelButton.disabled = false;
+        }
+        document.body.style.overflow = "hidden";
+        window.requestAnimationFrame(() => {
+          restartUpdateDialog?.focus();
+        });
+      }
+
+      function closeRestartUpdateModal({ restoreFocus = true } = {}) {
+        if (!restartUpdateModal || restartUpdateModal.hidden) {
+          return;
+        }
+
+        restartUpdateModal.hidden = true;
+        document.body.style.overflow = "";
+
+        if (restoreFocus) {
+          previousModalFocus?.focus?.();
+        }
+
+        previousModalFocus = null;
+      }
+
+      function setRestartModalBusy(isBusy) {
+        if (restartUpdateConfirmButton) {
+          restartUpdateConfirmButton.disabled = Boolean(isBusy);
+        }
+
+        if (restartUpdateCancelButton) {
+          restartUpdateCancelButton.disabled = Boolean(isBusy);
+        }
+      }
+
+      function formatDesktopDisplayVersion(value) {
+        const normalized = typeof value === "string" ? value.trim().replace(/^v/u, "") : "";
+        const match = normalized.match(/^(\d+)\.(\d+)\.(\d+)$/u);
+        if (!match) {
+          return normalized;
+        }
+
+        return Number(match[3]) === 0 ? match[1] + "." + match[2] : normalized;
+      }
+
+      function formatDesktopUpdateButtonVersion(value) {
+        const version = formatDesktopDisplayVersion(value);
+        return version ? "v" + version.replace(/^v/u, "") : "";
+      }
+
+      function renderDesktopUpdateState(updateStatus) {
+        if (!desktopUpdateButton || !desktopUpdateNote) {
+          return;
+        }
+
+        const state = updateStatus && typeof updateStatus === "object" ? updateStatus : {};
+        const statusKey = typeof state.state === "string" ? state.state : "idle";
+        const version = formatDesktopUpdateButtonVersion(state.version);
+        const progressValue = Number(state.progress);
+        let message = typeof state.message === "string" ? state.message.trim() : "";
+        let buttonLabel = "";
+        let showButton = false;
+        let noteExpandable = false;
+        let showFailureNote = false;
+
+        if (statusKey === "update-available") {
+          buttonLabel = version ? "Update to " + version : "Update Now";
+          message = "";
+          showButton = true;
+        } else if (statusKey === "downloading") {
+          buttonLabel = Number.isFinite(progressValue)
+            ? "Downloading " + Math.round(progressValue * 100) + "%"
+            : "Downloading Update...";
+          message = "";
+          showButton = true;
+        } else if (statusKey === "downloaded") {
+          buttonLabel = "Restart and update";
+          message = "";
+          showButton = true;
+        } else if (statusKey === "up-to-date") {
+          message = "";
+        } else if (statusKey === "error") {
+          noteExpandable = Boolean(message);
+          showFailureNote = Boolean(message);
+        }
+
+        if (statusKey !== "downloaded") {
+          closeRestartUpdateModal({
+            restoreFocus: false
+          });
+        }
+
+        desktopUpdateButton.hidden = !showButton;
+        desktopUpdateButton.textContent = buttonLabel || "Update Now";
+        setDesktopUpdateButtonBusy(statusKey === "downloading");
+
+        renderDesktopUpdateNote(
+          showFailureNote ? message : "",
+          noteExpandable
+            ? { expandable: true, summaryText: "Could not check updates" }
+            : { expandable: false }
+        );
+      }
+
+      async function initializeDesktopUpdateButton() {
+        if (!desktopUpdateButton || !desktopUpdateNote) {
+          return;
+        }
+
+        const desktopApi = window.space;
+        if (
+          !desktopApi ||
+          typeof desktopApi.getRuntimeInfo !== "function" ||
+          typeof desktopApi.checkForUpdates !== "function" ||
+          typeof desktopApi.downloadUpdate !== "function" ||
+          typeof desktopApi.installUpdate !== "function"
+        ) {
+          return;
+        }
+
+        let currentUpdateState = {};
+
+        function applyUpdateState(nextState) {
+          currentUpdateState = nextState && typeof nextState === "object" ? { ...nextState } : {};
+          renderDesktopUpdateState(currentUpdateState);
+        }
+
+        let runtimeInfo;
+        try {
+          runtimeInfo = await desktopApi.getRuntimeInfo();
+        } catch (error) {
+          console.error("[space-enter] Failed to read desktop runtime info.", error);
+          return;
+        }
+
+        if (!runtimeInfo?.isBundledApp || !runtimeInfo?.canCheckForUpdates) {
+          return;
+        }
+
+        applyUpdateState(runtimeInfo.updateStatus);
+
+        window.addEventListener("space-desktop:update-status", (event) => {
+          applyUpdateState(event && event.detail);
+        });
+
+        desktopUpdateButton.addEventListener("click", async () => {
+          if (desktopUpdateButton.disabled) {
+            return;
+          }
+
+          try {
+            if (currentUpdateState.state === "downloaded") {
+              openRestartUpdateModal();
+              return;
+            }
+
+            if (currentUpdateState.state !== "update-available") {
+              return;
+            }
+
+            applyUpdateState({
+              ...currentUpdateState,
+              state: "downloading",
+              message: "Downloading update..."
+            });
+
+            const result = await desktopApi.downloadUpdate();
+            if (result && result.ok === false && result.message) {
+              applyUpdateState({
+                ...currentUpdateState,
+                state: result.reason || "error",
+                message: result.message
+              });
+            }
+          } catch (error) {
+            resetLauncherExitFade();
+            const message = error instanceof Error ? error.message : String(error || "Desktop update failed.");
+            console.error("[space-enter] Desktop update action failed.", error);
+            applyUpdateState({
+              ...currentUpdateState,
+              state: "error",
+              message
+            });
+          }
+        });
+
+        const shouldCheckForUpdates = !["checking", "downloading", "downloaded", "installing"].includes(
+          currentUpdateState.state
+        );
+
+        if (shouldCheckForUpdates) {
+          try {
+            await desktopApi.checkForUpdates();
+          } catch (error) {
+            console.error("[space-enter] Automatic desktop update check failed.", error);
+          }
+        }
+      }
+
+      initializeDesktopUpdateButton();
+
+      async function handleRestartUpdateConfirm() {
+        if (restartUpdateConfirmButton?.disabled) {
+          return;
+        }
+
+        const desktopApi = window.space;
+        if (!desktopApi || typeof desktopApi.installUpdate !== "function") {
+          return;
+        }
+
+        try {
+          setRestartModalBusy(true);
+          closeRestartUpdateModal({
+            restoreFocus: false
+          });
+          await playLauncherExitFade();
+          await desktopApi.installUpdate();
+        } catch (error) {
+          resetLauncherExitFade();
+          setRestartModalBusy(false);
+          const message = error instanceof Error ? error.message : String(error || "Desktop update failed.");
+          console.error("[space-enter] Desktop update install failed.", error);
+          renderDesktopUpdateState({
+            state: "error",
+            message
+          });
+        }
+      }
+
+      function handleRestartModalKeydown(event) {
+        if (event.key === "Escape" && restartUpdateModal && !restartUpdateModal.hidden) {
+          event.preventDefault();
+          if (restartUpdateCancelButton?.disabled) {
+            return;
+          }
+
+          closeRestartUpdateModal();
+        }
+      }
+
+      restartUpdateConfirmButton?.addEventListener("click", handleRestartUpdateConfirm);
+      restartUpdateCloseTargets.forEach((target) => {
+        target.addEventListener("click", () => {
+          if (restartUpdateCancelButton?.disabled) {
+            return;
+          }
+
+          closeRestartUpdateModal();
+        });
+      });
+      document.addEventListener("keydown", handleRestartModalKeydown);
+
+      function setIntroTitlePose(x, y, rotation) {
+        if (!introTitle) {
+          return;
+        }
+
+        introTitle.style.setProperty("--intro-title-float-x", `${x.toFixed(1)}px`);
+        introTitle.style.setProperty("--intro-title-float-y", `${y.toFixed(1)}px`);
+        introTitle.style.setProperty("--intro-title-rotate", `${rotation.toFixed(1)}deg`);
+      }
+
+      function setAstronautPose(x, y, rotation) {
+        if (!introAstronaut) {
+          return;
+        }
+
+        introAstronaut.style.setProperty("--astronaut-float-x", `${x.toFixed(1)}px`);
+        introAstronaut.style.setProperty("--astronaut-float-y", `${y.toFixed(1)}px`);
+        introAstronaut.style.setProperty("--astronaut-rotate", `${rotation.toFixed(1)}deg`);
+      }
+
+      function scaleDuration(durationMs, speedMultiplier) {
+        return durationMs / Math.max(speedMultiplier, 0.01);
+      }
+
+      function positiveModulo(value, divisor) {
+        return ((value % divisor) + divisor) % divisor;
+      }
+
+      function buildFloatProfile(baseProfile, params) {
+        const rotationMaxDeg =
+          baseProfile.rotationLimitEnabled === false
+            ? Infinity
+            : (baseProfile.rotationMaxDeg ?? Infinity);
+
+        return Object.freeze({
+          orbitPeriodMs: scaleDuration(baseProfile.orbitPeriodMs, params.movementSpeed),
+          rotationAmplitude: Math.min(
+            rotationMaxDeg,
+            baseProfile.rotationAmplitude * params.rotationDistance
+          ),
+          rotationPeriodMs: scaleDuration(baseProfile.rotationPeriodMs, params.rotationSpeed),
+          xRadius: baseProfile.xRadius * params.movementDistance,
+          yRadius: baseProfile.yRadius * params.movementDistance
+        });
+      }
+
+      const introFloatTargets = [
+        Object.freeze({
+          applyPose: setIntroTitlePose,
+          element: introTitle,
+          orbitPhase: 0.45,
+          profile: TITLE_FLOAT_PROFILE,
+          rotationPhase: 1.1
+        }),
+        Object.freeze({
+          applyPose: setAstronautPose,
+          element: introAstronaut,
+          orbitDirection: astronautOrbitDirection,
+          orbitPhase: 2.05 + (astronautOrbitOffsetTurns * TAU),
+          profile: ASTRONAUT_FLOAT_PROFILE,
+          rotationDirection: astronautRotationDirection,
+          rotationPhase: 0.35 + (astronautRotationOffsetTurns * TAU)
+        })
+      ];
+
+      function resetIntroFloat() {
+        introFloatTargets.forEach((target) => {
+          target.applyPose(0, 0, 0);
+        });
+      }
+
+      function applyIntroFloatTarget(target, elapsed) {
+        if (!target.element) {
+          return;
+        }
+
+        const orbitAngle =
+          ((elapsed / target.profile.orbitPeriodMs) * TAU * (target.orbitDirection ?? 1)) +
+          target.orbitPhase;
+        const rotationAngle =
+          ((elapsed / target.profile.rotationPeriodMs) * TAU * (target.rotationDirection ?? 1)) +
+          target.rotationPhase;
+
+        target.applyPose(
+          Math.cos(orbitAngle) * target.profile.xRadius,
+          Math.sin(orbitAngle) * target.profile.yRadius,
+          Math.sin(rotationAngle) * target.profile.rotationAmplitude
+        );
+      }
+
+      function stepIntroFloat(timestamp) {
+        if (introFloatTargets.every((target) => !target.element)) {
+          introFloatFrame = 0;
+          return;
+        }
+
+        if (prefersReducedMotion.matches) {
+          introFloatFrame = 0;
+          introFloatStartTime = 0;
+          resetIntroFloat();
+          return;
+        }
+
+        if (!introFloatStartTime) {
+          introFloatStartTime = timestamp;
+        }
+
+        const elapsed = timestamp - introFloatStartTime;
+
+        introFloatTargets.forEach((target) => applyIntroFloatTarget(target, elapsed));
+        introFloatFrame = window.requestAnimationFrame(stepIntroFloat);
+      }
+
+      function startIntroFloat() {
+        window.cancelAnimationFrame(introFloatFrame);
+        introFloatFrame = 0;
+        introFloatStartTime = 0;
+        resetIntroFloat();
+
+        if (introFloatTargets.every((target) => !target.element) || prefersReducedMotion.matches) {
+          return;
+        }
+
+        introFloatFrame = window.requestAnimationFrame(stepIntroFloat);
+      }
+
+      function handleMotionPreferenceChange() {
+        startIntroFloat();
+      }
+
+      function normalizeLocalTarget(candidate) {
+        const normalizedCandidate = typeof candidate === "string" ? candidate.trim() : "";
+
+        if (!normalizedCandidate || normalizedCandidate.startsWith("//")) {
+          return "";
+        }
+
+        let resolvedUrl;
+
+        try {
+          resolvedUrl = new URL(normalizedCandidate, window.location.origin);
+        } catch {
+          return "";
+        }
+
+        if (resolvedUrl.origin !== window.location.origin) {
+          return "";
+        }
+
+        const target = `${resolvedUrl.pathname}${resolvedUrl.search}${resolvedUrl.hash}`;
+
+        if (
+          !target.startsWith("/") ||
+          target === "/login" ||
+          target.startsWith("/login?") ||
+          target === ENTER_PAGE_PATH ||
+          target.startsWith(`${ENTER_PAGE_PATH}?`)
+        ) {
+          return "";
+        }
+
+        return target;
+      }
+
+      function isAdminTarget(target) {
+        return typeof target === "string" && /^\/admin(?:[?#]|$)/u.test(target);
+      }
+
+      function buildAdminTarget(nextTarget) {
+        if (isAdminTarget(nextTarget)) {
+          return nextTarget;
+        }
+
+        const adminUrl = new URL("/admin", window.location.origin);
+        adminUrl.searchParams.set("url", nextTarget || "/");
+        return `${adminUrl.pathname}${adminUrl.search}${adminUrl.hash}`;
+      }
+
+      function buildAppTarget(nextTarget) {
+        if (nextTarget && !isAdminTarget(nextTarget)) {
+          return nextTarget;
+        }
+
+        return "/";
+      }
+
+      function grantTabAccess() {
+        try {
+          window.sessionStorage.setItem(ENTER_TAB_ACCESS_KEY, "1");
+        } catch {
+          // Ignore sessionStorage failures and continue navigation.
+        }
+      }
+
+      function clearTabAccess() {
+        try {
+          window.sessionStorage.removeItem(ENTER_TAB_ACCESS_KEY);
+        } catch {
+          // Ignore sessionStorage failures on the launcher page.
+        }
+      }
+
+      function navigateToTarget(targetUrl) {
+        window.location.assign(targetUrl);
+      }
+
+      function bindLauncherLink(link, targetUrl) {
+        if (!link || !targetUrl) {
+          return;
+        }
+
+        link.href = targetUrl;
+        link.addEventListener("click", (event) => {
+          if (
+            event.defaultPrevented ||
+            event.button !== 0 ||
+            event.metaKey ||
+            event.ctrlKey ||
+            event.shiftKey ||
+            event.altKey
+          ) {
+            return;
+          }
+
+          event.preventDefault();
+          grantTabAccess();
+          navigateToTarget(targetUrl);
+        });
+      }
+
+      clearTabAccess();
+      if (typeof prefersReducedMotion.addEventListener === "function") {
+        prefersReducedMotion.addEventListener("change", handleMotionPreferenceChange);
+      } else if (typeof prefersReducedMotion.addListener === "function") {
+        prefersReducedMotion.addListener(handleMotionPreferenceChange);
+      }
+
+      const nextTarget = normalizeLocalTarget(new URLSearchParams(window.location.search).get("next"));
+      bindLauncherLink(introEnterSpaceLink, buildAppTarget(nextTarget));
+      bindLauncherLink(introAdminLink, buildAdminTarget(nextTarget));
+
+      if (introAstronaut && !introAstronaut.complete) {
+        introAstronaut.addEventListener("load", startIntroFloat, { once: true });
+      } else {
+        startIntroFloat();
+      }
+      })();
+    </script>
+  </body>
+</html>

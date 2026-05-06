@@ -1,0 +1,22 @@
+{
+  "id": "unpack_collapsed_weather_payload",
+  "description": "collapsed payloads should trigger another extraction attempt instead of a stop or offer",
+  "history": "../histories/unpack_collapsed_weather_payload.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript"
+    ],
+    "must_not_contain": [
+      "If you want, I can",
+      "I got the weather payload",
+      "I can re-read it",
+      "The weather payload came back"
+    ]
+  }
+}

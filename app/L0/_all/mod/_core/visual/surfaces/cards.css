@@ -1,0 +1,205 @@
+:root {
+  --space-card-border: var(--color-border-soft);
+  --space-card-border-strong: var(--color-border-strong);
+  --space-card-bg: rgba(16, 27, 45, 0.94);
+  --space-card-bg-strong: rgba(13, 23, 39, 0.96);
+  --space-card-focus-ring: rgba(148, 188, 255, 0.26);
+}
+
+.space-panel,
+.admin-panel {
+  display: grid;
+  box-sizing: border-box;
+  gap: 16px;
+  padding-bottom: 24px;
+}
+
+.space-card,
+.admin-card {
+  border: 1px solid var(--space-card-border);
+  border-radius: 18px;
+  background: var(--space-card-bg);
+}
+
+.space-info-card,
+.admin-info-card {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+}
+
+.space-info-card p,
+.admin-info-card p {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 0.96rem;
+  line-height: 1.7;
+}
+
+.space-info-card p.space-info-note,
+.admin-info-card p.admin-info-note {
+  color: var(--color-text-primary);
+}
+
+.space-card--warning,
+.admin-info-card--warning {
+  border-color: var(--color-warning, #c97d00);
+}
+
+.space-info-card p x-icon,
+.admin-info-card p x-icon {
+  font-size: 1.1em;
+  vertical-align: -3px;
+  margin-right: 6px;
+  opacity: 0.75;
+}
+
+.space-inline-link,
+.admin-inline-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-accent-primary);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+}
+
+.space-inline-link:hover,
+.space-inline-link:focus-visible,
+.admin-inline-link:hover,
+.admin-inline-link:focus-visible {
+  color: var(--color-text-primary);
+}
+
+.space-inline-link:focus-visible,
+.admin-inline-link:focus-visible {
+  outline: 2px solid var(--space-card-focus-ring);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.space-action-grid,
+.admin-launch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.space-action-card,
+.admin-launch-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 16px 18px;
+  border: 1px solid var(--space-card-border);
+  border-radius: 16px;
+  background: var(--space-card-bg-strong);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease;
+}
+
+.space-action-card:hover,
+.space-action-card:focus-visible,
+.admin-launch-card:hover,
+.admin-launch-card:focus-visible {
+  border-color: var(--space-card-border-strong);
+  background: #132033;
+}
+
+.space-action-card:focus-visible,
+.admin-launch-card:focus-visible {
+  outline: 2px solid var(--space-card-focus-ring);
+  outline-offset: 2px;
+}
+
+.space-action-card x-icon,
+.space-action-card-icon,
+.admin-launch-card x-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: #17263c;
+  color: var(--color-accent-primary);
+  font-size: 24px;
+}
+
+.space-action-card-copy {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.space-action-card-copy strong,
+.space-action-card span,
+.admin-launch-card span {
+  font-size: 0.96rem;
+  font-weight: 600;
+}
+
+.space-action-card-copy span {
+  color: var(--color-text-secondary);
+  font-size: 0.84rem;
+  font-weight: 500;
+}
+
+.admin-launch-avatar {
+  display: block;
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+}
+
+.space-placeholder,
+.admin-placeholder {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  min-height: clamp(320px, 62vh, 560px);
+  padding: 32px;
+  text-align: center;
+}
+
+.space-placeholder x-icon,
+.admin-placeholder x-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: #17263c;
+  color: var(--color-accent-primary);
+  font-size: 34px;
+}
+
+.space-placeholder p,
+.admin-placeholder p {
+  margin: 0;
+  max-width: 36ch;
+  color: var(--color-text-secondary);
+}
+
+.space-placeholder p:first-of-type,
+.admin-placeholder p:first-of-type {
+  color: var(--color-text-primary);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .space-action-grid,
+  .admin-launch-grid {
+    grid-template-columns: 1fr;
+  }
+}

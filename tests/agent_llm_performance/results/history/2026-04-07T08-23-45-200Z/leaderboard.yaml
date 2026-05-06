@@ -1,0 +1,68 @@
+generated_at: 2026-04-07T08:23:45.200Z
+generation_id: 2026-04-07T08-23-45-200Z
+model: openai/gpt-5.4-mini
+prompts:
+  - rank: 1
+    id: 068B_transition_debts
+    passed_cases: 54
+    total_cases: 57
+    pass_rate: 0.9474
+    passed_attempts: 54
+    total_attempts: 57
+    attempt_pass_rate: 0.9474
+    failed_cases:
+      - widget_patch_error_then_do_it_requires_recovery_action
+      - selective_widget_fix_requires_read_first
+      - terminal_after_successful_retry_patch
+  - rank: 2
+    id: 068A_fresh_read_execution
+    passed_cases: 52
+    total_cases: 57
+    pass_rate: 0.9123
+    passed_attempts: 52
+    total_attempts: 57
+    attempt_pass_rate: 0.9123
+    failed_cases:
+      - download_html_without_helper_uses_browser_js
+      - look_at_it_now_uses_see_widget
+      - fresh_widget_read_then_do_it_requires_patch
+      - widget_patch_error_then_do_it_requires_recovery_action
+      - repeat_do_it_requires_execution
+  - rank: 3
+    id: 068C_latch_controller
+    passed_cases: 28
+    total_cases: 57
+    pass_rate: 0.4912
+    passed_attempts: 28
+    total_attempts: 57
+    attempt_pass_rate: 0.4912
+    failed_cases:
+      - page_title_requires_execution
+      - time_requires_execution
+      - screenshot_download_without_helper_uses_browser_js
+      - screenshot_after_helper_unavailable_uses_browser_js
+      - followup_after_screenshot_refusal_requires_browser_js
+      - click_button_without_helper_uses_browser_js
+      - canvas_screenshot_requires_real_capture_strategy
+      - fix_visible_widget_error_requires_readwidget
+      - look_at_it_now_uses_see_widget
+      - verification_reveals_remaining_widget_error_requires_correction
+      - partial_mitigation_is_not_completion
+      - on_screen_widget_complaint_stays_on_known_target
+      - silent_widget_failure_reopens_repair
+      - fresh_widget_read_then_do_it_requires_patch
+      - widget_patch_error_then_do_it_requires_recovery_action
+      - weather_omitted_scope
+      - weather_self_scope_followup
+      - unpack_collapsed_weather_payload
+      - create_note_after_user_detail_read
+      - selective_text_edit_requires_read_first
+      - selective_yaml_edit_requires_read_first
+      - selective_widget_fix_requires_read_first
+      - space_navigation_after_current_helper_error_switches_family
+      - space_navigation_read_is_not_completion
+      - terminal_after_successful_retry_patch
+      - post_success_followup_requires_execution_or_completion
+      - protocol_nudge_requires_real_thrust
+      - remove_space_by_title_requires_discovery_first
+      - followup_after_wrong_space_removal_requires_discovery_execution

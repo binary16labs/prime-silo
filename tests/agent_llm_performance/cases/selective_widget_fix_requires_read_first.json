@@ -1,0 +1,29 @@
+{
+  "id": "selective_widget_fix_requires_read_first",
+  "description": "a selective widget repair request should read the widget first instead of patching blind",
+  "history": "../histories/selective_widget_fix_requires_read_first.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript",
+      "snake-game"
+    ],
+    "must_match": [
+      {
+        "pattern": "space\\.current\\.readWidget\\(",
+        "flags": "u"
+      }
+    ],
+    "must_not_match": [
+      {
+        "pattern": "space\\.current\\.patchWidget\\(",
+        "flags": "u"
+      }
+    ]
+  }
+}

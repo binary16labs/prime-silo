@@ -1,0 +1,25 @@
+{
+  "id": "post_success_followup_requires_execution_or_completion",
+  "description": "after a successful patch and a concrete user complaint, the agent must execute a fix instead of falling into staging-only repetition",
+  "history": "../histories/post_success_followup_requires_execution_or_completion.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript",
+      "snake-game"
+    ],
+    "must_not_contain": [
+      "Fetching the current snake source",
+      "I’ve got the live widget source",
+      "The next change is",
+      "Patching the belly bulge to originate where the food was eaten and travel backward through the body now.",
+      "Patching now.",
+      "Do it now."
+    ]
+  }
+}

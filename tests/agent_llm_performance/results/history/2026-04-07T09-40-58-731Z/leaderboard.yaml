@@ -1,0 +1,68 @@
+generated_at: 2026-04-07T09:40:58.731Z
+generation_id: 2026-04-07T09-40-58-731Z
+model: openai/gpt-5.4-mini
+prompts:
+  - rank: 1
+    id: 077A_surgical_followup_and_stop
+    passed_cases: 53
+    total_cases: 60
+    pass_rate: 0.8833
+    passed_attempts: 53
+    total_attempts: 60
+    attempt_pass_rate: 0.8833
+    failed_cases:
+      - page_title_requires_execution
+      - screenshot_after_helper_unavailable_uses_browser_js
+      - download_html_without_helper_uses_browser_js
+      - click_button_without_helper_uses_browser_js
+      - selective_text_edit_requires_read_first
+      - repeat_do_it_requires_execution
+      - remove_space_by_title_requires_discovery_first
+  - rank: 2
+    id: 077C_finish_or_fix_loop
+    passed_cases: 49
+    total_cases: 60
+    pass_rate: 0.8167
+    passed_attempts: 49
+    total_attempts: 60
+    attempt_pass_rate: 0.8167
+    failed_cases:
+      - fix_visible_widget_error_requires_readwidget
+      - verification_reveals_remaining_widget_error_requires_correction
+      - partial_mitigation_is_not_completion
+      - on_screen_widget_complaint_stays_on_known_target
+      - silent_widget_failure_reopens_repair
+      - weather_self_scope_after_indirect_fail
+      - terminal_after_weather_ready
+      - terminal_after_successful_widget_patch
+      - terminal_after_successful_retry_patch
+      - protocol_correction_after_successful_open_requires_terminal
+      - post_success_followup_requires_execution_or_completion
+  - rank: 3
+    id: 077B_exact_id_then_same_widget
+    passed_cases: 41
+    total_cases: 60
+    pass_rate: 0.6833
+    passed_attempts: 41
+    total_attempts: 60
+    attempt_pass_rate: 0.6833
+    failed_cases:
+      - page_title_requires_execution
+      - download_html_without_helper_uses_browser_js
+      - fix_visible_widget_error_requires_readwidget
+      - look_at_it_now_uses_see_widget
+      - verification_reveals_remaining_widget_error_requires_correction
+      - partial_mitigation_is_not_completion
+      - on_screen_widget_complaint_stays_on_known_target
+      - silent_widget_failure_reopens_repair
+      - finish_weather_after_geolocation
+      - create_note_after_user_detail_read
+      - selective_text_edit_requires_read_first
+      - selective_widget_fix_requires_read_first
+      - terminal_after_successful_widget_patch
+      - terminal_after_successful_retry_patch
+      - protocol_correction_after_successful_open_requires_terminal
+      - terminal_after_framework_no_result_continue
+      - terminal_after_result_continue_literal
+      - terminal_after_result_commandlike_literal
+      - terminal_after_result_retry_literal

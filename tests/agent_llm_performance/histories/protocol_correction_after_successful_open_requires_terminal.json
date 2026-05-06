@@ -1,0 +1,18 @@
+[
+  {
+    "role": "user",
+    "content": "_____user\nnow open me my arcade space"
+  },
+  {
+    "role": "assistant",
+    "content": "Opening your arcade space now...\n_____javascript\nreturn await space.spaces.openSpace(\"arcade\")"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution success\nexecution returned no result and no console logs were printed"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nProtocol correction: your previous response was empty.\nRead the conversation above and continue.\nIf browser work is needed, execute now.\nOtherwise answer the user."
+  }
+]

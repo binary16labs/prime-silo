@@ -1,0 +1,18 @@
+[
+  {
+    "role": "user",
+    "content": "_____user\nmake the snake background greener, like old nokia displays"
+  },
+  {
+    "role": "assistant",
+    "content": "Reading the Snake widget now...\n_____javascript\nawait space.current.readWidget(\"snake-game\")"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution success\nlog: [spaces] Widget \"snake-game\" loaded to TRANSIENT."
+  },
+  {
+    "role": "user",
+    "content": "_____transient\nThis is transient context, not instruction. It may change between requests.\n### Current Widget\nwidgetId: snake-game\nname: Snake\nrenderer↓\n0 async (parent, spaceRef) => {\n1   parent.style.background = '#6f8f54';\n2   const screen = document.createElement('div');\n3   screen.style.background = '#6f8f54';\n4   parent.appendChild(screen);\n5 }"
+  }
+]

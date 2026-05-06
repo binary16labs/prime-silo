@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="application-name" content="Space Agent" />
+    <meta name="apple-mobile-web-app-title" content="Space Agent" />
+    <meta name="theme-color" content="#050816" />
+    <title>Shared Space | Space Agent</title>
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="stylesheet" href="/pages/res/space-backdrop.css" />
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
+        --color-canvas: #050816;
+        --color-canvas-elevated: #09111f;
+        --color-canvas-deep: #02050d;
+        --color-text-primary: #f3f7ff;
+        --color-backdrop-glow-primary: rgba(148, 188, 255, 0.18);
+        --color-backdrop-glow-secondary: rgba(121, 237, 216, 0.14);
+        --color-backdrop-glow-depth: rgba(59, 95, 172, 0.26);
+        --color-backdrop-star-strong: rgba(255, 255, 255, 0.76);
+        --color-backdrop-star-soft: rgba(255, 255, 255, 0.26);
+        --color-backdrop-star-accent: rgba(148, 188, 255, 0.48);
+        --color-backdrop-star-halo: rgba(255, 255, 255, 0.12);
+        --color-backdrop-star-halo-accent: rgba(148, 188, 255, 0.16);
+        --share-bg: rgba(9, 17, 31, 0.84);
+        --share-border: rgba(148, 167, 201, 0.18);
+        --share-text: #f3f7ff;
+        --share-text-muted: #b8c4da;
+        --share-accent: #94bcff;
+        --share-danger: #ff8d98;
+        --share-success: #7ce4b0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      body.space-theme-canvas :where(*, *::before, *::after) {
+        box-shadow: none !important;
+        text-shadow: none !important;
+      }
+
+      body.space-theme-canvas :focus-visible {
+        outline: 2px solid rgba(148, 188, 255, 0.55) !important;
+        outline-offset: 2px;
+      }
+
+      html {
+        min-height: 100%;
+      }
+
+      body.space-theme-canvas {
+        min-height: 100vh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        padding: 1.25rem;
+        color: var(--color-text-primary);
+        overflow-x: hidden;
+        overflow-y: auto;
+      }
+
+      .share-shell {
+        position: relative;
+        z-index: 1;
+        width: min(42rem, 100%);
+        padding: 1.6rem;
+        border-radius: 1.25rem;
+        border: 1px solid var(--share-border);
+        background: linear-gradient(180deg, rgba(11, 18, 34, 0.92), rgba(7, 13, 24, 0.84));
+        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.38);
+        backdrop-filter: blur(18px);
+      }
+
+      h1 {
+        margin: 0 0 0.35rem;
+        font-size: clamp(1.8rem, 5vw, 2.4rem);
+        line-height: 1;
+      }
+
+      .share-copy {
+        margin: 0 0 1.25rem;
+        color: var(--share-text-muted);
+        line-height: 1.55;
+      }
+
+      .share-preview {
+        display: grid;
+        grid-template-columns: minmax(0, 12rem) minmax(0, 1fr);
+        gap: 1rem;
+        margin-bottom: 1rem;
+        padding: 1rem;
+        border-radius: 1rem;
+        border: 1px solid rgba(148, 167, 201, 0.16);
+        background: rgba(9, 17, 31, 0.46);
+      }
+
+      .share-preview-media {
+        position: relative;
+        min-height: 11rem;
+        border-radius: 0.9rem;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 28% 22%, rgba(148, 188, 255, 0.34), transparent 56%),
+          linear-gradient(160deg, rgba(18, 28, 48, 0.98), rgba(6, 12, 24, 0.94));
+        box-shadow: inset 0 0 0 1px rgba(148, 167, 201, 0.1);
+      }
+
+      .share-preview-image,
+      .share-preview-fallback {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      .share-preview-image {
+        object-fit: cover;
+      }
+
+      .share-preview-fallback {
+        display: grid;
+        place-items: center;
+        padding: 1rem;
+      }
+
+      .share-preview-icon {
+        display: grid;
+        place-items: center;
+        width: 4.5rem;
+        height: 4.5rem;
+        border-radius: 1.25rem;
+        background: linear-gradient(135deg, rgba(148, 188, 255, 0.28), rgba(125, 220, 255, 0.16));
+        box-shadow:
+          0 16px 36px rgba(0, 0, 0, 0.28),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+        font-size: 2rem;
+      }
+
+      .share-preview-body {
+        display: grid;
+        align-content: start;
+        gap: 0.85rem;
+      }
+
+      .share-preview-eyebrow {
+        margin: 0;
+        color: var(--share-accent);
+        font-size: 0.77rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .share-preview-title {
+        margin: 0;
+        font-size: clamp(1.45rem, 4vw, 2rem);
+        line-height: 1.05;
+      }
+
+      .share-pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .share-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 2rem;
+        padding: 0.35rem 0.7rem;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 167, 201, 0.18);
+        background: rgba(12, 20, 36, 0.76);
+        color: var(--share-text-secondary);
+        font-size: 0.9rem;
+        line-height: 1.1;
+      }
+
+      .share-password-prompt {
+        display: grid;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
+
+      .share-password-label {
+        display: grid;
+        gap: 0.4rem;
+        color: var(--share-text-muted);
+      }
+
+      .share-password-input {
+        width: 100%;
+        padding: 0.8rem 0.95rem;
+        border-radius: 0.9rem;
+        border: 1px solid rgba(148, 167, 201, 0.2);
+        background: rgba(9, 17, 31, 0.82);
+        color: var(--share-text);
+        font: inherit;
+      }
+
+      .share-password-submit {
+        width: 100%;
+        padding: 0.85rem 1rem;
+        border: 0;
+        border-radius: 0.9rem;
+        background: linear-gradient(135deg, rgba(148, 188, 255, 0.96), rgba(125, 220, 255, 0.92));
+        color: #04101d;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .share-password-submit:disabled {
+        opacity: 0.65;
+        cursor: wait;
+      }
+
+      .share-open-button {
+        margin-bottom: 1rem;
+      }
+
+      .share-status {
+        margin: 0;
+        color: var(--share-text-muted);
+        line-height: 1.5;
+      }
+
+      .share-status.error {
+        color: var(--share-danger);
+      }
+
+      .share-status.ok {
+        color: var(--share-success);
+      }
+
+      @media (max-width: 680px) {
+        .share-preview {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .share-preview-media {
+          min-height: 12rem;
+        }
+      }
+    </style>
+  </head>
+  <body class="space-theme-canvas">
+    <div class="space-backdrop" data-space-backdrop aria-hidden="true">
+      <div class="space-backdrop-layer space-backdrop-glow"></div>
+      <div class="space-backdrop-layer space-backdrop-stars space-backdrop-stars-deep"></div>
+      <div class="space-backdrop-layer space-backdrop-stars space-backdrop-stars-far"></div>
+      <div class="space-backdrop-layer space-backdrop-stars space-backdrop-stars-mid"></div>
+      <div class="space-backdrop-layer space-backdrop-stars space-backdrop-stars-near"></div>
+      <div class="space-backdrop-layer space-backdrop-stars space-backdrop-stars-close"></div>
+      <div class="space-backdrop-trails">
+        <div class="space-backdrop-trail" data-space-backdrop-trail></div>
+        <div class="space-backdrop-trail" data-space-backdrop-trail></div>
+      </div>
+    </div>
+
+    <main class="share-shell">
+      <h1>Shared Space</h1>
+      <p class="share-copy">Shared spaces open in sandboxed environment, not your account.</p>
+
+      <section id="share-preview" class="share-preview" hidden>
+        <div class="share-preview-media" aria-hidden="true">
+          <img id="share-preview-image" class="share-preview-image" alt="" hidden />
+          <div id="share-preview-fallback" class="share-preview-fallback">
+            <div id="share-preview-icon" class="share-preview-icon">🛰️</div>
+          </div>
+        </div>
+
+        <div class="share-preview-body">
+          <p class="share-preview-eyebrow">Shared Space Preview</p>
+          <h2 id="share-preview-title" class="share-preview-title">Untitled</h2>
+          <div id="share-preview-pills" class="share-pill-row" aria-label="Shared space widgets"></div>
+        </div>
+      </section>
+
+      <form id="share-password-form" class="share-password-prompt" hidden>
+        <label class="share-password-label">
+          <span>Password</span>
+          <input id="share-password-input" class="share-password-input" type="password" autocomplete="current-password" />
+        </label>
+        <button id="share-password-submit" class="share-password-submit" type="submit">Show Shared Space</button>
+      </form>
+
+      <button id="share-open-button" class="share-password-submit share-open-button" type="button" hidden>Open Shared Space</button>
+
+      <p id="share-status" class="share-status" role="status" aria-live="polite" hidden></p>
+    </main>
+
+    <script src="/pages/res/space-backdrop.js"></script>
+    <script type="module" src="/pages/res/share-space.js"></script>
+  </body>
+</html>

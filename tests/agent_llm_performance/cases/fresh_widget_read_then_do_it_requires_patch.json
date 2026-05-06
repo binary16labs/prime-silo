@@ -1,0 +1,32 @@
+{
+  "id": "fresh_widget_read_then_do_it_requires_patch",
+  "description": "after a fresh widget read already returned the source, a user do-it follow-up should patch that same widget now instead of rereading or narrating again",
+  "history": "../histories/fresh_widget_read_then_do_it_requires_patch.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript"
+    ],
+    "must_match": [
+      {
+        "pattern": "patchWidget\\(\"quote-board\"",
+        "flags": "u"
+      }
+    ],
+    "must_not_match": [
+      {
+        "pattern": "readWidget\\(\"quote-board\"\\)",
+        "flags": "u"
+      }
+    ],
+    "must_not_contain": [
+      "I’m going to patch the quote widget now to use a different source.",
+      "I'm going to patch the quote widget now to use a different source."
+    ]
+  }
+}

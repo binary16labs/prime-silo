@@ -1,0 +1,26 @@
+{
+  "id": "verification_reveals_remaining_widget_error_requires_correction",
+  "description": "if a verification step still shows a visible widget error, the agent should continue repair work on that target instead of stopping to explain",
+  "history": "../histories/verification_reveals_remaining_widget_error_requires_correction.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript"
+    ],
+    "must_match": [
+      {
+        "pattern": "readWidget\\(\"financials\"\\)",
+        "flags": "u"
+      }
+    ],
+    "must_not_contain": [
+      "The widget no longer crashes",
+      "upstream source"
+    ]
+  }
+}

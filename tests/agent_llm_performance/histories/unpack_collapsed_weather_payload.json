@@ -1,0 +1,14 @@
+[
+  {
+    "role": "user",
+    "content": "_____user\nwhat's the weather?"
+  },
+  {
+    "role": "assistant",
+    "content": "Fetching the weather now...\n_____javascript\nconst res = await fetch('https://wttr.in/?format=j1');\nreturn await res.json()"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution success\nresult↓\ncurrent_condition:\n  - \"[object Object]\"\nnearest_area:\n  - \"[object Object]\"\nrequest:\n  - \"[object Object]\"\nweather:\n  - \"[object Object]\"\n  - \"[object Object]\"\n  - \"[object Object]\""
+  }
+]

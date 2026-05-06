@@ -1,0 +1,60 @@
+generated_at: 2026-04-07T08:37:21.688Z
+generation_id: 2026-04-07T08-37-21-688Z
+model: openai/gpt-5.4-mini
+prompts:
+  - rank: 1
+    id: 072A_loaded_target_examples
+    passed_cases: 55
+    total_cases: 57
+    pass_rate: 0.9649
+    passed_attempts: 55
+    total_attempts: 57
+    attempt_pass_rate: 0.9649
+    failed_cases:
+      - click_button_without_helper_uses_browser_js
+      - selective_widget_fix_requires_read_first
+  - rank: 2
+    id: 072B_action_queue_router
+    passed_cases: 44
+    total_cases: 57
+    pass_rate: 0.7719
+    passed_attempts: 44
+    total_attempts: 57
+    attempt_pass_rate: 0.7719
+    failed_cases:
+      - smalltalk_hi_terminal
+      - time_requires_execution
+      - verification_reveals_remaining_widget_error_requires_correction
+      - partial_mitigation_is_not_completion
+      - on_screen_widget_complaint_stays_on_known_target
+      - silent_widget_failure_reopens_repair
+      - weather_self_scope_followup
+      - terminal_after_weather_ready
+      - selective_text_edit_requires_read_first
+      - selective_yaml_edit_requires_read_first
+      - terminal_after_successful_widget_patch
+      - terminal_after_successful_retry_patch
+      - followup_after_wrong_space_removal_requires_discovery_execution
+  - rank: 3
+    id: 072C_runtime_notebook_reset
+    passed_cases: 43
+    total_cases: 57
+    pass_rate: 0.7544
+    passed_attempts: 43
+    total_attempts: 57
+    attempt_pass_rate: 0.7544
+    failed_cases:
+      - fix_visible_widget_error_requires_readwidget
+      - verify_visible_widget_fix_after_patch
+      - verification_reveals_remaining_widget_error_requires_correction
+      - partial_mitigation_is_not_completion
+      - on_screen_widget_complaint_stays_on_known_target
+      - silent_widget_failure_reopens_repair
+      - widget_patch_error_then_do_it_requires_recovery_action
+      - weather_self_scope_after_indirect_fail
+      - terminal_after_weather_ready
+      - unpack_collapsed_weather_payload
+      - selective_text_edit_requires_read_first
+      - selective_yaml_edit_requires_read_first
+      - protocol_correction_after_successful_open_requires_terminal
+      - repeat_do_it_requires_execution

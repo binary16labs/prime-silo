@@ -1,0 +1,67 @@
+generated_at: 2026-04-07T08:08:02.532Z
+generation_id: 2026-04-07T08-08-02-532Z
+model: openai/gpt-5.4-mini
+prompts:
+  - rank: 1
+    id: 064A_target_anchor_surgical
+    passed_cases: 52
+    total_cases: 57
+    pass_rate: 0.9123
+    passed_attempts: 52
+    total_attempts: 57
+    attempt_pass_rate: 0.9123
+    failed_cases:
+      - fresh_widget_read_then_do_it_requires_patch
+      - space_navigation_read_is_not_completion
+      - terminal_after_successful_retry_patch
+      - remove_space_by_title_requires_discovery_first
+      - followup_after_wrong_space_removal_requires_discovery_execution
+  - rank: 2
+    id: 064B_incident_baton
+    passed_cases: 46
+    total_cases: 57
+    pass_rate: 0.807
+    passed_attempts: 46
+    total_attempts: 57
+    attempt_pass_rate: 0.807
+    failed_cases:
+      - screenshot_download_without_helper_uses_browser_js
+      - partial_mitigation_is_not_completion
+      - fresh_widget_read_then_do_it_requires_patch
+      - unpack_collapsed_weather_payload
+      - selective_yaml_edit_requires_read_first
+      - selective_widget_fix_requires_read_first
+      - recover_known_file_after_write_error
+      - terminal_after_successful_widget_patch
+      - terminal_after_successful_retry_patch
+      - protocol_correction_after_successful_open_requires_terminal
+      - protocol_nudge_requires_real_thrust
+  - rank: 3
+    id: 064C_object_until_green
+    passed_cases: 37
+    total_cases: 57
+    pass_rate: 0.6491
+    passed_attempts: 37
+    total_attempts: 57
+    attempt_pass_rate: 0.6491
+    failed_cases:
+      - page_title_requires_execution
+      - time_requires_execution
+      - download_html_without_helper_uses_browser_js
+      - look_at_it_now_uses_see_widget
+      - verification_reveals_remaining_widget_error_requires_correction
+      - partial_mitigation_is_not_completion
+      - silent_widget_failure_reopens_repair
+      - fresh_widget_read_then_do_it_requires_patch
+      - weather_omitted_scope
+      - weather_self_scope_after_indirect_fail
+      - selective_text_edit_requires_read_first
+      - selective_yaml_edit_requires_read_first
+      - selective_widget_fix_requires_read_first
+      - recover_after_combined_widget_read_write_error
+      - terminal_after_successful_retry_patch
+      - protocol_correction_after_successful_open_requires_terminal
+      - terminal_after_result_retry_literal
+      - continue_after_widget_load_success
+      - continue_after_widget_read
+      - direct_repair_after_known_widget_error

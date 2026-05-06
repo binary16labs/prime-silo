@@ -1,0 +1,17 @@
+{
+  "id": "terminal_after_framework_no_result_info",
+  "description": "informational no-result success telemetry should close the exact-run task instead of triggering another execution or empty reply",
+  "history": "../histories/terminal_after_framework_no_result_info.json",
+  "expect": {
+    "response_type": "terminal",
+    "must_match": [
+      {
+        "pattern": "\\S",
+        "flags": "u"
+      }
+    ],
+    "must_not_contain": [
+      "_____javascript"
+    ]
+  }
+}

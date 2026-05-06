@@ -1,0 +1,48 @@
+generated_at: 2026-04-06T19:09:48.056Z
+generation_id: 2026-04-06T19-09-48-056Z
+model: openai/gpt-5.4-mini
+prompts:
+  - rank: 1
+    id: 029A_transient_not_reopen
+    passed_cases: 25
+    total_cases: 28
+    pass_rate: 0.8929
+    passed_attempts: 25
+    total_attempts: 28
+    attempt_pass_rate: 0.8929
+    failed_cases:
+      - selective_text_edit_requires_read_first
+      - selective_yaml_edit_requires_read_first
+      - selective_widget_fix_requires_read_first
+  - rank: 2
+    id: 029B_success_seal_operator
+    passed_cases: 25
+    total_cases: 28
+    pass_rate: 0.8929
+    passed_attempts: 25
+    total_attempts: 28
+    attempt_pass_rate: 0.8929
+    failed_cases:
+      - selective_text_edit_requires_read_first
+      - selective_yaml_edit_requires_read_first
+      - selective_widget_fix_requires_read_first
+  - rank: 3
+    id: 029C_sealed_orders_rewrite
+    passed_cases: 17
+    total_cases: 28
+    pass_rate: 0.6071
+    passed_attempts: 17
+    total_attempts: 28
+    attempt_pass_rate: 0.6071
+    failed_cases:
+      - weather_self_scope_after_indirect_fail
+      - reverse_geocode_after_precise_followup
+      - unpack_collapsed_weather_payload
+      - create_note_after_user_detail_read
+      - write_user_yaml_after_read
+      - selective_text_edit_requires_read_first
+      - selective_yaml_edit_requires_read_first
+      - selective_widget_fix_requires_read_first
+      - recover_after_combined_widget_read_write_error
+      - post_success_followup_requires_execution_or_completion
+      - protocol_nudge_requires_real_thrust

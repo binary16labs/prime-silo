@@ -1,0 +1,37 @@
+{
+  "id": "write_user_yaml_after_read",
+  "description": "after reading a config file for an edit task, the agent should write the edit instead of summarizing the file",
+  "history": "../histories/write_user_yaml_after_read.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript",
+      "Pan Example"
+    ],
+    "must_match": [
+      {
+        "pattern": "space\\.api\\.fileWrite\\(",
+        "flags": "u"
+      },
+      {
+        "pattern": "user\\.yaml",
+        "flags": "u"
+      }
+    ],
+    "must_not_match": [
+      {
+        "pattern": "space\\.api\\.fileRead\\(",
+        "flags": "u"
+      }
+    ],
+    "must_not_contain_before_separator": [
+      "full_name: pan",
+      "I found your user.yaml"
+    ]
+  }
+}

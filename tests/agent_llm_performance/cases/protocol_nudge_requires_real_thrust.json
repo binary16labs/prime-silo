@@ -1,0 +1,34 @@
+{
+  "id": "protocol_nudge_requires_real_thrust",
+  "description": "after staging-only hesitation and a user reminder about the execution gate, the next reply must be one real thrust response",
+  "history": "../histories/protocol_nudge_requires_real_thrust.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript",
+      "snake-game"
+    ],
+    "must_match": [
+      {
+        "pattern": "space\\.current\\.patchWidget\\(",
+        "flags": "u"
+      }
+    ],
+    "must_not_match": [
+      {
+        "pattern": "^_+javascript\\s*$",
+        "flags": "u"
+      }
+    ],
+    "must_not_contain": [
+      "I’m patching it now.",
+      "I'm patching it now.",
+      "Patching now."
+    ]
+  }
+}

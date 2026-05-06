@@ -1,0 +1,107 @@
+html,
+body {
+  height: 100%;
+  min-height: 100%;
+}
+
+body.app-page-router {
+  --router-shell-start-clearance: calc(env(safe-area-inset-top, 0px) + clamp(34px, 4.2vw, 43px));
+  margin: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scroll-padding-top: var(--router-shell-start-clearance);
+  color: var(--color-text);
+  font: 15px/1.5 "SF Pro Text", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+
+body.app-page-router > div[x-data] {
+  height: 100%;
+}
+
+.router-shell {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  min-height: 100vh;
+  isolation: isolate;
+}
+
+.router-shell-content {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+}
+
+.router-stage {
+  width: 100%;
+  min-height: 0;
+  overflow: visible;
+  overscroll-behavior: auto;
+}
+
+.router-stage[data-route-path="spaces"] {
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
+}
+
+.router-stage-inner {
+  display: grid;
+  box-sizing: border-box;
+  width: min(100%, 84rem);
+  min-width: 0;
+  min-height: 100%;
+  margin: 0 auto;
+  padding: var(--router-shell-start-clearance) 0 0;
+}
+
+.router-stage-inner[data-route-path="spaces"] {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.router-stage-inner[data-route-path="spaces"] > .router-route-frame,
+.router-stage-inner[data-route-path="spaces"] > .router-route-frame > .router-route-outlet,
+.router-stage-inner[data-route-path="spaces"] > .router-route-frame > .router-route-outlet > .router-route-mount {
+  height: 100%;
+  min-height: 100%;
+}
+
+.router-route-frame {
+  display: grid;
+  width: 100%;
+  min-height: 100%;
+  min-width: 0;
+  justify-self: stretch;
+}
+
+.router-route-outlet,
+.router-route-mount {
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+  justify-self: stretch;
+}
+
+.router-route-state {
+  align-self: start;
+}
+
+.router-overlay-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.router-overlay-layer > * {
+  pointer-events: auto;
+}

@@ -1,0 +1,61 @@
+generated_at: 2026-04-07T08:25:52.968Z
+generation_id: 2026-04-07T08-25-52-968Z
+model: openai/gpt-5.4-mini
+prompts:
+  - rank: 1
+    id: 069A_handoff_no_copy
+    passed_cases: 57
+    total_cases: 57
+    pass_rate: 1
+    passed_attempts: 57
+    total_attempts: 57
+    attempt_pass_rate: 1
+    failed_cases: []
+  - rank: 2
+    id: 069B_handoff_trimmed
+    passed_cases: 50
+    total_cases: 57
+    pass_rate: 0.8772
+    passed_attempts: 50
+    total_attempts: 57
+    attempt_pass_rate: 0.8772
+    failed_cases:
+      - click_button_without_helper_uses_browser_js
+      - look_at_it_now_uses_see_widget
+      - widget_patch_error_then_do_it_requires_recovery_action
+      - weather_omitted_scope
+      - weather_self_scope_followup
+      - selective_text_edit_requires_read_first
+      - repeat_do_it_requires_execution
+  - rank: 3
+    id: 069C_handoff_table
+    passed_cases: 34
+    total_cases: 57
+    pass_rate: 0.5965
+    passed_attempts: 34
+    total_attempts: 57
+    attempt_pass_rate: 0.5965
+    failed_cases:
+      - page_title_requires_execution
+      - time_requires_execution
+      - screenshot_download_without_helper_uses_browser_js
+      - screenshot_after_helper_unavailable_uses_browser_js
+      - followup_after_screenshot_refusal_requires_browser_js
+      - download_html_without_helper_uses_browser_js
+      - verify_visible_widget_fix_after_patch
+      - verification_reveals_remaining_widget_error_requires_correction
+      - partial_mitigation_is_not_completion
+      - on_screen_widget_complaint_stays_on_known_target
+      - silent_widget_failure_reopens_repair
+      - widget_patch_error_then_do_it_requires_recovery_action
+      - weather_omitted_scope
+      - weather_self_scope_followup
+      - weather_self_scope_after_indirect_fail
+      - reverse_geocode_after_precise_followup
+      - unpack_collapsed_weather_payload
+      - selective_text_edit_requires_read_first
+      - selective_yaml_edit_requires_read_first
+      - selective_widget_fix_requires_read_first
+      - space_navigation_read_is_not_completion
+      - space_navigation_after_take_me_there_uses_open_helper
+      - protocol_correction_after_successful_open_requires_terminal

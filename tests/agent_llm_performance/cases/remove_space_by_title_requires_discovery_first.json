@@ -1,0 +1,32 @@
+{
+  "id": "remove_space_by_title_requires_discovery_first",
+  "description": "when the user names a space by title rather than exact id, the first step should discover the exact target instead of removing blindly",
+  "history": "../histories/remove_space_by_title_requires_discovery_first.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript"
+    ],
+    "must_match": [
+      {
+        "pattern": "space\\.spaces\\.listSpaces\\(",
+        "flags": "u"
+      }
+    ],
+    "must_not_match": [
+      {
+        "pattern": "removeSpace\\(",
+        "flags": "u"
+      },
+      {
+        "pattern": "openSpace\\(",
+        "flags": "u"
+      }
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "id": "see_known_widget_after_render_uses_same_target",
+  "description": "after a widget was just created successfully, a follow-up request to see it should inspect that same widget instead of hallucinating another target",
+  "history": "../histories/see_known_widget_after_render_uses_same_target.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript"
+    ],
+    "must_match": [
+      {
+        "pattern": "seeWidget\\(\"status-board\"\\)",
+        "flags": "u"
+      }
+    ],
+    "must_not_match": [
+      {
+        "pattern": "seeWidget\\(\"example\"\\)|readWidget\\(\"example\"\\)|seeWidget\\(\"snake-game\"\\)",
+        "flags": "u"
+      }
+    ]
+  }
+}

@@ -1,0 +1,60 @@
+generated_at: 2026-04-06T19:48:24.502Z
+generation_id: 2026-04-06T19-48-24-502Z
+model: openai/gpt-5.4-mini
+prompts:
+  - rank: 1
+    id: 034A_direct_source_patch
+    passed_cases: 30
+    total_cases: 37
+    pass_rate: 0.8108
+    passed_attempts: 30
+    total_attempts: 37
+    attempt_pass_rate: 0.8108
+    failed_cases:
+      - weather_self_scope_after_indirect_fail
+      - selective_yaml_edit_requires_read_first
+      - terminal_after_framework_no_result_info
+      - terminal_after_framework_no_result_continue
+      - terminal_after_result_continue_literal
+      - terminal_after_result_commandlike_literal
+      - terminal_after_result_retry_literal
+  - rank: 2
+    id: 034B_source_ownership
+    passed_cases: 28
+    total_cases: 37
+    pass_rate: 0.7568
+    passed_attempts: 28
+    total_attempts: 37
+    attempt_pass_rate: 0.7568
+    failed_cases:
+      - time_requires_execution
+      - write_user_yaml_after_read
+      - selective_text_edit_requires_read_first
+      - terminal_after_framework_no_result_info
+      - terminal_after_framework_no_result_continue
+      - terminal_after_result_continue_literal
+      - terminal_after_result_commandlike_literal
+      - terminal_after_result_retry_literal
+      - post_success_followup_requires_execution_or_completion
+  - rank: 3
+    id: 034C_target_source_close
+    passed_cases: 24
+    total_cases: 37
+    pass_rate: 0.6486
+    passed_attempts: 24
+    total_attempts: 37
+    attempt_pass_rate: 0.6486
+    failed_cases:
+      - page_title_requires_execution
+      - time_requires_execution
+      - weather_omitted_scope
+      - weather_self_scope_followup
+      - weather_self_scope_after_indirect_fail
+      - unpack_collapsed_weather_payload
+      - selective_yaml_edit_requires_read_first
+      - terminal_after_framework_no_result_continue
+      - terminal_after_result_commandlike_literal
+      - terminal_after_result_retry_literal
+      - repeat_do_it_requires_execution
+      - protocol_nudge_requires_real_thrust
+      - continue_after_widget_load_success

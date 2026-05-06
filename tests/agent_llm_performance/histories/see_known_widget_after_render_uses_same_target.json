@@ -1,0 +1,18 @@
+[
+  {
+    "role": "user",
+    "content": "_____user\ncreate a status widget"
+  },
+  {
+    "role": "assistant",
+    "content": "Creating the status widget now...\n_____javascript\nreturn await space.current.renderWidget({ id: \"status-board\", name: \"Status Board\", cols: 4, rows: 3, renderer: async (parent) => { parent.textContent = \"ready\" } })"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution success\nlog: [spaces] Widget \"status-board\" saved, rendered ok, loaded to TRANSIENT.\nresult↓\nWidget \"status-board\" saved, rendered ok, loaded to TRANSIENT."
+  },
+  {
+    "role": "user",
+    "content": "_____user\nsee the widget what it shows"
+  }
+]

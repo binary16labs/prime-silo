@@ -1,0 +1,41 @@
+generated_at: 2026-04-06T18:42:15.548Z
+generation_id: 2026-04-06T18-42-15-548Z
+model: openai/gpt-5.4-mini
+prompts:
+  - rank: 1
+    id: 029A_transient_not_reopen
+    passed_cases: 24
+    total_cases: 24
+    pass_rate: 1
+    passed_attempts: 24
+    total_attempts: 24
+    attempt_pass_rate: 1
+    failed_cases: []
+  - rank: 2
+    id: 029B_success_seal_operator
+    passed_cases: 23
+    total_cases: 24
+    pass_rate: 0.9583
+    passed_attempts: 23
+    total_attempts: 24
+    attempt_pass_rate: 0.9583
+    failed_cases:
+      - post_success_followup_requires_execution_or_completion
+  - rank: 3
+    id: 029C_sealed_orders_rewrite
+    passed_cases: 15
+    total_cases: 24
+    pass_rate: 0.625
+    passed_attempts: 15
+    total_attempts: 24
+    attempt_pass_rate: 0.625
+    failed_cases:
+      - time_requires_execution
+      - weather_omitted_scope
+      - weather_self_scope_followup
+      - weather_self_scope_after_indirect_fail
+      - reverse_geocode_after_precise_followup
+      - create_note_after_user_detail_read
+      - write_user_yaml_after_read
+      - post_success_followup_requires_execution_or_completion
+      - protocol_nudge_requires_real_thrust
