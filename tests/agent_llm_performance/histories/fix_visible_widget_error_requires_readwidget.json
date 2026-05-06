@@ -1,0 +1,18 @@
+[
+  {
+    "role": "user",
+    "content": "_____user\nsee the widget what it shows"
+  },
+  {
+    "role": "assistant",
+    "content": "Showing the status widget now...\n_____javascript\nreturn await space.current.seeWidget(\"status-board\")"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution success\nlog: [spaces] Captured stripped rendered HTML for widget \"status-board\".\nresult↓\n<div><div>Error: upstream unavailable</div></div>"
+  },
+  {
+    "role": "user",
+    "content": "_____user\nfix it then"
+  }
+]

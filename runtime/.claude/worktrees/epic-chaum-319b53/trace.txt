@@ -1,0 +1,71 @@
+Traceback (most recent call last):
+  File "C:\Users\nsdha\miniconda3\Lib\site-packages\docling_core\utils\file.py", line 65, in resolve_source_to_stream
+    http_url: AnyHttpUrl = TypeAdapter(AnyHttpUrl).validate_python(source)
+                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "C:\Users\nsdha\miniconda3\Lib\site-packages\pydantic\type_adapter.py", line 421, in validate_python
+    return self.validator.validate_python(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        object,
+        ^^^^^^^
+    ...<5 lines>...
+        by_name=by_name,
+        ^^^^^^^^^^^^^^^^
+    )
+    ^
+pydantic_core._pydantic_core.ValidationError: 1 validation error for function-wrap[wrap_val()]
+  Input should be a valid URL, relative URL without a base [type=url_parsing, input_value='workspace\\default\\data_in\\the_dog.pdf', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/url_parsing
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\nsdha\OneDrive\code\benny\benny\core\extraction.py", line 67, in extract_structured_text
+    result = converter.convert(str(file_path))
+  File "C:\Users\nsdha\miniconda3\Lib\site-packages\pydantic\_internal\_validate_call.py", line 39, in wrapper_function
+    return wrapper(*args, **kwargs)
+  File "C:\Users\nsdha\miniconda3\Lib\site-packages\pydantic\_internal\_validate_call.py", line 136, in __call__
+    res = self.__pydantic_validator__.validate_python(pydantic_core.ArgsKwargs(args, kwargs))
+  File "C:\Users\nsdha\miniconda3\Lib\site-packages\docling\document_converter.py", line 388, in convert
+    return next(all_res)
+  File "C:\Users\nsdha\miniconda3\Lib\site-packages\docling\document_converter.py", line 447, in convert_all
+    for conv_res in conv_res_iter:
+                    ^^^^^^^^^^^^^
+  File "C:\Users\nsdha\miniconda3\Lib\site-packages\docling\document_converter.py", line 542, in _convert
+    for input_batch in chunkify(
+                       ~~~~~~~~^
+        conv_input.docs(self.format_to_options),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        settings.perf.doc_batch_size,  # pass format_options
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ):
+    ^
+  File "C:\Users\nsdha\miniconda3\Lib\site-packages\docling\utils\utils.py", line 15, in chunkify
+    for first in iterator:  # Take the first element from the iterator
+                 ^^^^^^^^
+  File "C:\Users\nsdha\miniconda3\Lib\site-packages\docling\datamodel\document.py", line 452, in docs
+    resolve_source_to_stream(item, self.headers)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nsdha\miniconda3\Lib\site-packages\docling_core\utils\file.py", line 111, in resolve_source_to_stream
+    stream = BytesIO(local_path.read_bytes())
+                     ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\nsdha\miniconda3\Lib\pathlib\_abc.py", line 625, in read_bytes
+    with self.open(mode='rb') as f:
+         ~~~~~~~~~^^^^^^^^^^^
+  File "C:\Users\nsdha\miniconda3\Lib\pathlib\_local.py", line 537, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'workspace\\default\\data_in\\the_dog.pdf'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<string>", line 15, in <module>
+    extract_structured_text(Path('workspace/default/data_in/the_dog.pdf'))
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nsdha\OneDrive\code\benny\benny\core\extraction.py", line 85, in extract_structured_text
+    return _basic_extract(file_path)
+  File "C:\Users\nsdha\OneDrive\code\benny\benny\core\extraction.py", line 21, in _basic_extract
+    doc = fitz.open(file_path)
+  File "C:\Users\nsdha\miniconda3\Lib\site-packages\pymupdf\__init__.py", line 3006, in __init__
+    raise FileNotFoundError(f"no such file: '{filename}'")
+pymupdf.FileNotFoundError: no such file: 'workspace\default\data_in\the_dog.pdf'

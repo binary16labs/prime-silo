@@ -1,0 +1,26 @@
+[
+  {
+    "role": "user",
+    "content": "_____user\nwhat's the weather in my location?"
+  },
+  {
+    "role": "assistant",
+    "content": "Checking browser location now...\n_____javascript\nreturn await new Promise((resolve) => navigator.geolocation.getCurrentPosition(pos => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }), err => resolve({ error: err.message }), { timeout: 10000 }))"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution success\nresult↓\nlatitude: 49.71985822231634\nlongitude: 17.221723412878973"
+  },
+  {
+    "role": "assistant",
+    "content": "Checking the weather for your location now...\n_____javascript\nconst latitude = 49.71985822231634;\nconst longitude = 17.221723412878973;\nconst weather = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,wind_speed_10m,weather_code&timezone=auto`).then(r => r.json());\nreturn {\n  latitude,\n  longitude,\n  current: weather.current\n}"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution success\nresult↓\nlatitude: 49.71985822231634\nlongitude: 17.221723412878973\ncurrent:\n  temperature_2m: 13\n  wind_speed_10m: 27.8\n  weather_code: 3"
+  },
+  {
+    "role": "user",
+    "content": "_____user\nwhere is that precisely?"
+  }
+]

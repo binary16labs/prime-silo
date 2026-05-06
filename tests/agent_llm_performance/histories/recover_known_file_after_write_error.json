@@ -1,0 +1,14 @@
+[
+  {
+    "role": "user",
+    "content": "_____user\nchange my full name to Pan Example"
+  },
+  {
+    "role": "assistant",
+    "content": "Writing your user.yaml now...\n_____javascript\nreturn await space.api.fileWrite(\"~/user.yaml\", \"full_name: Pan Example\")"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution error\nerror: Error: Cannot write ~/user.yaml: yaml parse error near line 1"
+  }
+]

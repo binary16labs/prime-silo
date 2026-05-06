@@ -1,0 +1,65 @@
+{
+  "schema_version": "1.0",
+  "id": "market-swarm-003",
+  "name": "Market Research Deep-Dive",
+  "description": "High-concurrency competitor analysis using external whitepapers.",
+  "requirement": "Analyze the top 5 AI hardware contenders (Cerebras, Groq, SambaNova, NVIDIA, Tenstorrent). Focus on TOPs/Watt and memory bandwidth.",
+  "workspace": "default",
+  "inputs": {
+    "files": ["market_whitepaper_1.pdf", "market_whitepaper_2.pdf"]
+  },
+  "outputs": {
+    "files": ["competitor_matrix.json", "market_report.md"],
+    "format": "md",
+    "word_count_target": 10000,
+    "spec": "Provide a side-by-side comparison table in JSON format and a detailed text analysis in Markdown."
+  },
+  "plan": {
+    "tasks": [
+      {
+        "id": "scan_cerebras",
+        "description": "Extract specs for Cerebras WSE-3",
+        "skill_hint": "extraction",
+        "wave": 0,
+        "complexity": "medium"
+      },
+      {
+        "id": "scan_groq",
+        "description": "Extract specs for Groq LPU",
+        "skill_hint": "extraction",
+        "wave": 0,
+        "complexity": "medium"
+      },
+      {
+        "id": "scan_nvidia",
+        "description": "Extract specs for NVIDIA B200",
+        "skill_hint": "extraction",
+        "wave": 0,
+        "complexity": "medium"
+      },
+      {
+        "id": "compare_matrix",
+        "description": "Compile extraction results into a comparison matrix",
+        "skill_hint": "aggregator",
+        "dependencies": ["scan_cerebras", "scan_groq", "scan_nvidia"],
+        "wave": 1,
+        "complexity": "high"
+      }
+    ],
+    "edges": [
+      { "source": "scan_cerebras", "target": "compare_matrix" },
+      { "source": "scan_groq", "target": "compare_matrix" },
+      { "source": "scan_nvidia", "target": "compare_matrix" }
+    ],
+    "waves": [
+      ["scan_cerebras", "scan_groq", "scan_nvidia"],
+      ["compare_matrix"]
+    ]
+  },
+  "config": {
+    "model": "gpt-4o",
+    "max_concurrency": 10,
+    "max_depth": 3,
+    "allow_swarm": true
+  }
+}

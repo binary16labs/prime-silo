@@ -1,0 +1,404 @@
+<div x-data="{ mode: xAttrs($el).mode || 'testing' }">
+  <template x-if="mode === 'testing'">
+    <aside class="huggingface-card huggingface-config-card">
+      <div class="huggingface-current-block">
+        <div class="huggingface-current-header">
+          <p class="huggingface-current-label">Current model</p>
+          <span
+            class="huggingface-current-badge"
+            :class="$store.huggingface.currentModelBadgeTone"
+            x-text="$store.huggingface.currentModelBadgeText"
+          ></span>
+        </div>
+        <div class="huggingface-current-main">
+          <p class="huggingface-current-model" x-text="$store.huggingface.currentModelLabel"></p>
+          <button
+            type="button"
+            class="secondary-button huggingface-unload-button"
+            :class="{ 'huggingface-stop-button': $store.huggingface.isLoadingModel }"
+            x-show="$store.huggingface.activeModelId || $store.huggingface.isLoadingModel"
+            x-cloak
+            :disabled="!$store.huggingface.canUnloadActiveModel"
+            @click="$store.huggingface.requestUnloadModel()"
+            x-text="$store.huggingface.currentModelActionLabel"
+          ></button>
+        </div>
+
+        <template x-if="$store.huggingface.isLoadingModel">
+          <div class="huggingface-progress-block">
+            <div
+              class="huggingface-progress-track"
+              role="progressbar"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              :aria-valuenow="$store.huggingface.loadProgressPercent"
+            >
+              <div
+                class="huggingface-progress-fill"
+                :style="`--huggingface-progress-width: ${$store.huggingface.loadProgressPercent}%`"
+              ></div>
+            </div>
+            <p class="huggingface-progress-step" x-text="$store.huggingface.loadStepLabel || 'Loading model'"></p>
+          </div>
+        </template>
+
+        <template x-if="$store.huggingface.error">
+          <p class="huggingface-error-copy" x-text="$store.huggingface.error"></p>
+        </template>
+      </div>
+
+      <section class="huggingface-browser-block huggingface-browser-block--models">
+        <div class="huggingface-card-header">
+          <h2>Models</h2>
+          <span class="huggingface-section-meta" x-text="`${$store.huggingface.savedModels.length} saved`"></span>
+        </div>
+
+        <label class="huggingface-field">
+          <span>Hugging Face model</span>
+          <input
+            type="text"
+            :value="$store.huggingface.modelInput"
+            @input="$store.huggingface.setModelInput($event.target.value)"
+            :disabled="$store.huggingface.isGenerating"
+            placeholder="onnx-community/gemma-4-E4B-it-ONNX or https://huggingface.co/..."
+          />
+        </label>
+
+        <div class="huggingface-model-actions">
+          <button
+            type="button"
+            class="primary-button"
+            :disabled="$store.huggingface.isGenerating"
+            @click="$store.huggingface.handleLoadModel()"
+          >
+            Load
+          </button>
+
+          <a
+            class="secondary-button huggingface-link-button"
+            :href="$store.huggingface.compatibleModelsUrl"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Compatible models
+          </a>
+        </div>
+
+        <template x-if="$store.huggingface.savedModels.length">
+          <div class="huggingface-catalog-list">
+            <template x-for="model in $store.huggingface.savedModels" :key="`${model.modelId}:${model.dtype}`">
+              <article
+                class="huggingface-catalog-item"
+                :class="{ 'is-loaded': $store.huggingface.isActiveSavedModel(model) }"
+              >
+                <div class="huggingface-catalog-main">
+                  <p class="huggingface-catalog-title" x-text="model.modelId"></p>
+                  <p class="huggingface-catalog-meta">
+                    <span x-text="model.dtype"></span>
+                  </p>
+                </div>
+                <div class="huggingface-catalog-actions">
+                  <button
+                    type="button"
+                    class="secondary-button huggingface-list-button"
+                    :class="{ 'is-unload': $store.huggingface.isActiveSavedModel(model) }"
+                    :disabled="$store.huggingface.isLoadingModel || $store.huggingface.isGenerating || Boolean($store.huggingface.discardingSavedModelKey)"
+                    @click="$store.huggingface.handleSavedModelAction(model)"
+                    x-text="$store.huggingface.getSavedModelActionLabel(model)"
+                  ></button>
+                  <button
+                    type="button"
+                    class="secondary-button huggingface-discard-button"
+                    :disabled="!$store.huggingface.canDiscardSavedModel(model)"
+                    :title="$store.huggingface.isDiscardingSavedModel(model) ? 'Discarding cached model files' : 'Discard cached model files'"
+                    aria-label="Discard cached model files"
+                    @click="$store.huggingface.requestDiscardSavedModel(model)"
+                  >
+                    <x-icon x-text="$store.huggingface.isDiscardingSavedModel(model) ? 'hourglass_top' : 'delete'"></x-icon>
+                  </button>
+                </div>
+              </article>
+            </template>
+          </div>
+        </template>
+
+        <template x-if="!$store.huggingface.savedModels.length">
+          <p class="field-note">
+            No saved models yet. Load a compatible Hugging Face repo once and it will stay here for quick reuse.
+          </p>
+        </template>
+      </section>
+
+      <section class="huggingface-browser-block">
+        <div class="huggingface-section-heading">
+          <h3>Advanced</h3>
+          <button
+            type="button"
+            class="secondary-button"
+            @click="$store.huggingface.showAdvanced = !$store.huggingface.showAdvanced"
+            x-text="$store.huggingface.showAdvanced ? 'Hide' : 'Show'"
+          ></button>
+        </div>
+
+        <div x-show="$store.huggingface.showAdvanced" x-cloak>
+          <div class="huggingface-advanced-block">
+            <div class="huggingface-inline-fields">
+              <label class="huggingface-field">
+                <span>Dtype</span>
+                <select :value="$store.huggingface.selectedDtype" @change="$store.huggingface.setSelectedDtype($event.target.value)">
+                  <template x-for="option in $store.huggingface.dtypeOptions" :key="option.value">
+                    <option :value="option.value" x-text="option.label"></option>
+                  </template>
+                </select>
+              </label>
+
+              <label class="huggingface-field">
+                <span>Max new tokens</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="16384"
+                  step="1"
+                  :value="$store.huggingface.maxNewTokens"
+                  @input="$store.huggingface.setMaxNewTokens($event.target.value)"
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <p class="field-note">
+          Runs locally in this browser with WebGPU. Only Transformers.js-compatible repos with ONNX assets can load, and the browser caches the downloaded files after the first load.
+        </p>
+      </section>
+    </aside>
+  </template>
+
+  <template x-if="mode === 'admin'">
+    <section class="huggingface-card huggingface-config-card huggingface-config-card--admin">
+      <p class="field-note">
+        Hugging Face ONNX runs the model locally in this browser through Transformers.js on WebGPU. Enter any compatible repo id here or pick a saved model, then load it directly from this dialog. First load will download the browser assets and show progress below.
+      </p>
+
+      <div class="huggingface-current-block">
+        <div class="huggingface-current-header">
+          <p class="huggingface-current-label">Current model</p>
+          <span
+            class="huggingface-current-badge"
+            :class="$store.adminAgent.huggingfaceStatusTone"
+            x-text="$store.adminAgent.huggingfaceStatusBadgeText"
+          ></span>
+        </div>
+        <div class="huggingface-current-main">
+          <p class="huggingface-current-model" x-text="$store.adminAgent.huggingfaceCurrentModelLabel"></p>
+          <button
+            type="button"
+            class="secondary-button huggingface-unload-button"
+            :class="{ 'huggingface-stop-button': $store.adminAgent.huggingface.isLoadingModel }"
+            x-show="$store.adminAgent.huggingface.activeModelId || $store.adminAgent.huggingface.isLoadingModel"
+            x-cloak
+            :disabled="!$store.adminAgent.canAdminUnloadHuggingFaceModel"
+            @click="$store.adminAgent.requestAdminHuggingFaceModelUnload()"
+            x-text="$store.adminAgent.adminHuggingFaceCurrentModelActionLabel"
+          ></button>
+        </div>
+
+        <template x-if="$store.adminAgent.huggingface.isLoadingModel">
+          <div class="huggingface-progress-block">
+            <div
+              class="huggingface-progress-track"
+              role="progressbar"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              :aria-valuenow="$store.adminAgent.huggingfaceLoadProgressPercent"
+            >
+              <div
+                class="huggingface-progress-fill"
+                :style="`--huggingface-progress-width: ${$store.adminAgent.huggingfaceLoadProgressPercent}%`"
+              ></div>
+            </div>
+            <p class="huggingface-progress-step" x-text="$store.adminAgent.huggingfaceSelectedModelStatusText"></p>
+          </div>
+        </template>
+      </div>
+
+      <label class="huggingface-field">
+        <span>Hugging Face model</span>
+        <input
+          type="text"
+          :value="$store.adminAgent.settingsDraft.huggingfaceModel"
+          @input="$store.adminAgent.handleSettingsHuggingFaceModelInput($event.target.value)"
+          placeholder="onnx-community/gemma-4-E4B-it-ONNX"
+        />
+      </label>
+
+      <label class="huggingface-field">
+        <span>Dtype</span>
+        <select
+          :value="$store.adminAgent.settingsDraft.huggingfaceDtype"
+          @change="$store.adminAgent.handleSettingsHuggingFaceDtypeChange($event.target.value)"
+        >
+          <template x-for="option in $store.adminAgent.huggingfaceDtypeOptions" :key="option.value">
+            <option :value="option.value" x-text="option.label"></option>
+          </template>
+        </select>
+      </label>
+
+      <label class="huggingface-field">
+        <span>Saved model shortcut</span>
+        <select
+          :value="$store.adminAgent.getSettingsDraftHuggingFaceSelectionValue()"
+          @change="$store.adminAgent.handleSettingsHuggingFaceModelDraftChange($event.target.value)"
+        >
+          <option value="">Choose from saved models</option>
+          <template x-for="model in $store.adminAgent.huggingfaceSavedModels" :key="`${model.modelId}:${model.dtype}`">
+            <option
+              :value="$store.adminAgent.getHuggingFaceSavedModelSelectionValue(model)"
+              x-text="`${model.modelId} · ${model.dtype}`"
+            ></option>
+          </template>
+        </select>
+      </label>
+
+      <p class="field-note">
+        Selected:
+        <span x-text="$store.adminAgent.adminSelectedHuggingFaceModelLabel"></span>
+      </p>
+
+      <template x-if="!$store.adminAgent.hasSavedHuggingFaceModels">
+        <p class="field-note">No downloaded Hugging Face models were found in this browser yet.</p>
+      </template>
+
+      <template x-if="!$store.adminAgent.huggingface.isLoadingModel">
+        <p class="field-note" x-text="$store.adminAgent.huggingfaceSelectedModelStatusText"></p>
+      </template>
+
+      <div class="dialog-actions dialog-actions-start admin-agent-local-actions">
+        <button
+          type="button"
+          class="primary-button"
+          :disabled="!$store.adminAgent.canAdminActOnSelectedHuggingFaceModel"
+          @click="$store.adminAgent.requestAdminSelectedHuggingFaceModelAction()"
+          x-text="$store.adminAgent.adminHuggingFaceSelectedModelActionLabel"
+        ></button>
+        <button type="button" class="secondary-button" @click="$store.adminAgent.openHuggingFaceConfiguration()">
+          Open Testing Chat
+        </button>
+      </div>
+    </section>
+  </template>
+
+  <template x-if="mode === 'onscreen'">
+    <section class="huggingface-card huggingface-config-card huggingface-config-card--onscreen">
+      <p class="field-note">
+        Hugging Face ONNX runs the model locally in this browser through Transformers.js on WebGPU. Enter any compatible repo id here or pick a saved model, then load it directly from this dialog. First load will download the browser assets and show progress below.
+      </p>
+
+      <div class="huggingface-current-block">
+        <div class="huggingface-current-header">
+          <p class="huggingface-current-label">Current model</p>
+          <span
+            class="huggingface-current-badge"
+            :class="$store.onscreenAgent.huggingfaceStatusTone"
+            x-text="$store.onscreenAgent.huggingfaceStatusBadgeText"
+          ></span>
+        </div>
+        <div class="huggingface-current-main">
+          <p class="huggingface-current-model" x-text="$store.onscreenAgent.huggingfaceCurrentModelLabel"></p>
+          <button
+            type="button"
+            class="secondary-button huggingface-unload-button"
+            :class="{ 'huggingface-stop-button': $store.onscreenAgent.huggingface.isLoadingModel }"
+            x-show="$store.onscreenAgent.huggingface.activeModelId || $store.onscreenAgent.huggingface.isLoadingModel"
+            x-cloak
+            :disabled="!$store.onscreenAgent.canOnscreenUnloadHuggingFaceModel"
+            @click="$store.onscreenAgent.requestOnscreenHuggingFaceModelUnload()"
+            x-text="$store.onscreenAgent.onscreenHuggingFaceCurrentModelActionLabel"
+          ></button>
+        </div>
+
+        <template x-if="$store.onscreenAgent.huggingface.isLoadingModel">
+          <div class="huggingface-progress-block">
+            <div
+              class="huggingface-progress-track"
+              role="progressbar"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              :aria-valuenow="$store.onscreenAgent.huggingfaceLoadProgressPercent"
+            >
+              <div
+                class="huggingface-progress-fill"
+                :style="`--huggingface-progress-width: ${$store.onscreenAgent.huggingfaceLoadProgressPercent}%`"
+              ></div>
+            </div>
+            <p class="huggingface-progress-step" x-text="$store.onscreenAgent.huggingfaceSelectedModelStatusText"></p>
+          </div>
+        </template>
+      </div>
+
+      <label class="huggingface-field">
+        <span>Hugging Face model</span>
+        <input
+          type="text"
+          :value="$store.onscreenAgent.settingsDraft.huggingfaceModel"
+          @input="$store.onscreenAgent.handleSettingsHuggingFaceModelInput($event.target.value)"
+          placeholder="onnx-community/gemma-4-E4B-it-ONNX"
+        />
+      </label>
+
+      <label class="huggingface-field">
+        <span>Dtype</span>
+        <select
+          :value="$store.onscreenAgent.settingsDraft.huggingfaceDtype"
+          @change="$store.onscreenAgent.handleSettingsHuggingFaceDtypeChange($event.target.value)"
+        >
+          <template x-for="option in $store.onscreenAgent.huggingfaceDtypeOptions" :key="option.value">
+            <option :value="option.value" x-text="option.label"></option>
+          </template>
+        </select>
+      </label>
+
+      <label class="huggingface-field">
+        <span>Saved model shortcut</span>
+        <select
+          :value="$store.onscreenAgent.getSettingsDraftHuggingFaceSelectionValue()"
+          @change="$store.onscreenAgent.handleSettingsHuggingFaceModelDraftChange($event.target.value)"
+        >
+          <option value="">Choose from saved models</option>
+          <template x-for="model in $store.onscreenAgent.huggingfaceSavedModels" :key="`${model.modelId}:${model.dtype}`">
+            <option
+              :value="$store.onscreenAgent.getHuggingFaceSavedModelSelectionValue(model)"
+              x-text="`${model.modelId} · ${model.dtype}`"
+            ></option>
+          </template>
+        </select>
+      </label>
+
+      <p class="field-note">
+        Selected:
+        <span x-text="$store.onscreenAgent.onscreenSelectedHuggingFaceModelLabel"></span>
+      </p>
+
+      <template x-if="!$store.onscreenAgent.hasSavedHuggingFaceModels">
+        <p class="field-note">No downloaded Hugging Face models were found in this browser yet.</p>
+      </template>
+
+      <template x-if="!$store.onscreenAgent.huggingface.isLoadingModel">
+        <p class="field-note" x-text="$store.onscreenAgent.huggingfaceSelectedModelStatusText"></p>
+      </template>
+
+      <div class="dialog-actions dialog-actions-start onscreen-agent-local-actions">
+        <button
+          type="button"
+          class="primary-button"
+          :disabled="!$store.onscreenAgent.canOnscreenActOnSelectedHuggingFaceModel"
+          @click="$store.onscreenAgent.requestOnscreenSelectedHuggingFaceModelAction()"
+          x-text="$store.onscreenAgent.onscreenHuggingFaceSelectedModelActionLabel"
+        ></button>
+        <button type="button" class="secondary-button" @click="$store.onscreenAgent.openHuggingFaceConfiguration()">
+          Open Testing Chat
+        </button>
+      </div>
+    </section>
+  </template>
+</div>

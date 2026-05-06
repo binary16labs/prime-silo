@@ -1,0 +1,24 @@
+{
+  "id": "terminal_after_weather_ready",
+  "description": "once the weather data is already present in telemetry, the agent should answer instead of executing again",
+  "history": "../histories/terminal_after_weather_ready.json",
+  "expect": {
+    "response_type": "terminal",
+    "must_contain": [
+      "Prague",
+      "12"
+    ],
+    "must_match": [
+      {
+        "pattern": "sunny",
+        "flags": "iu"
+      }
+    ],
+    "must_not_contain": [
+      "_____javascript",
+      "If you want, I can",
+      "I can fetch",
+      "I need to"
+    ]
+  }
+}

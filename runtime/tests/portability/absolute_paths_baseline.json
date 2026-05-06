@@ -1,0 +1,5 @@
+{
+  "count": 408,
+  "note": "SR-1 ratchet baseline captured during PBR-001 Phase 0. Lower this number as Phase 1 cleanup lands. A rise means a new absolute host path was introduced and must be fixed before merge.",
+  "last_updated": "2026-04-18"
+}

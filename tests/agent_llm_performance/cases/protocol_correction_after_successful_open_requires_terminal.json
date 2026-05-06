@@ -1,0 +1,23 @@
+{
+  "id": "protocol_correction_after_successful_open_requires_terminal",
+  "description": "after a successful space open, a later protocol-correction message about the previous empty response should not trigger another open; the next reply should be terminal",
+  "history": "../histories/protocol_correction_after_successful_open_requires_terminal.json",
+  "expect": {
+    "response_type": "terminal",
+    "must_match": [
+      {
+        "pattern": "\\S",
+        "flags": "u"
+      }
+    ],
+    "must_not_contain": [
+      "_____javascript"
+    ],
+    "must_not_match": [
+      {
+        "pattern": "openSpace\\(",
+        "flags": "u"
+      }
+    ]
+  }
+}

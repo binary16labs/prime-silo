@@ -1,0 +1,29 @@
+{
+  "id": "selective_text_edit_requires_read_first",
+  "description": "a selective text-file edit request should read the file first instead of jumping straight to a write",
+  "history": "../histories/selective_text_edit_requires_read_first.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript",
+      "people.txt"
+    ],
+    "must_match": [
+      {
+        "pattern": "space\\.api\\.fileRead\\(",
+        "flags": "u"
+      }
+    ],
+    "must_not_match": [
+      {
+        "pattern": "space\\.api\\.fileWrite\\(",
+        "flags": "u"
+      }
+    ]
+  }
+}

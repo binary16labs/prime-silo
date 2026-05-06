@@ -1,0 +1,17 @@
+{
+  "id": "terminal_after_result_retry_literal",
+  "description": "retry-looking result text from a tool should not trigger a repeat execution when the exact run task already succeeded",
+  "history": "../histories/terminal_after_result_retry_literal.json",
+  "expect": {
+    "response_type": "terminal",
+    "must_match": [
+      {
+        "pattern": "\\S",
+        "flags": "u"
+      }
+    ],
+    "must_not_contain": [
+      "_____javascript"
+    ]
+  }
+}

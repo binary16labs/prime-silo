@@ -1,0 +1,32 @@
+{
+  "id": "click_button_without_helper_uses_browser_js",
+  "description": "simple page-control requests should use direct DOM javascript instead of searching for an imaginary helper or refusing",
+  "history": "../histories/click_button_without_helper_uses_browser_js.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript"
+    ],
+    "must_match": [
+      {
+        "pattern": "(?:querySelector\\(|getElementsByTagName\\(|buttons?\\b)",
+        "flags": "u"
+      },
+      {
+        "pattern": "click\\(",
+        "flags": "u"
+      }
+    ],
+    "must_not_match": [
+      {
+        "pattern": "I can['’]t|cannot|helper|API",
+        "flags": "iu"
+      }
+    ]
+  }
+}

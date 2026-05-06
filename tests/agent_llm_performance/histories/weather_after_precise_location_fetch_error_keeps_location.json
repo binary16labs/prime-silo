@@ -1,0 +1,38 @@
+[
+  {
+    "role": "user",
+    "content": "_____user\nwhats my location?"
+  },
+  {
+    "role": "assistant",
+    "content": "Checking your current location now...\n_____javascript\nconst pos = await new Promise((resolve, reject) =>\n  navigator.geolocation.getCurrentPosition(resolve, reject, {\n    enableHighAccuracy: true,\n    timeout: 10000\n  })\n)\nconst { latitude, longitude } = pos.coords\nreturn { latitude, longitude }"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution success\nresult↓\nlatitude: 49.39374837642957\nlongitude: 17.22399629876773"
+  },
+  {
+    "role": "assistant",
+    "content": "Looking up your approximate place now...\n_____javascript\nconst latitude = 49.39374837642957\nconst longitude = 17.22399629876773\nreturn await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`).then(r => r.json())"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution success\nresult↓\ndisplay_name: Obědkovice, okres Prostějov, Olomouc Region, Central Moravia, 798 23, Czechia\naddress:\n  village: Obědkovice\n  state_district: okres Prostějov\n  state: Olomouc Region\n  region: Central Moravia\n  country: Czechia"
+  },
+  {
+    "role": "assistant",
+    "content": "You’re in Obědkovice, okres Prostějov, Olomouc Region, Czechia."
+  },
+  {
+    "role": "user",
+    "content": "_____user\nand weather?"
+  },
+  {
+    "role": "assistant",
+    "content": "Checking the weather for your location now...\n_____javascript\nconst latitude = 49.39374837642957\nconst longitude = 17.22399629876773\nreturn await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code,wind_speed_10m`).then(r => r.json())"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution error\nerror: SyntaxError: Unexpected token '<', \"<html>\\n<h\"... is not valid JSON"
+  }
+]

@@ -1,0 +1,22 @@
+<button
+  type="button"
+  class="space-topbar-menu-action"
+  data-order="400"
+  role="menuitem"
+  @click="
+    (() => {
+      const currentUrl = window.location.pathname + window.location.search + window.location.hash || '/index.html';
+      const adminUrl = new URL('/admin', window.location.href);
+      adminUrl.searchParams.set('url', currentUrl);
+      isOpen = false;
+      try {
+        window.top.location.assign(adminUrl.href);
+      } catch {
+        window.location.assign(adminUrl.href);
+      }
+    })()
+  "
+>
+  <x-icon>admin_panel_settings</x-icon>
+  <span class="space-topbar-menu-action-label">Admin</span>
+</button>

@@ -1,0 +1,56 @@
+generated_at: 2026-04-06T20:59:52.335Z
+generation_id: 2026-04-06T20-59-52-335Z
+model: openai/gpt-5.4-mini
+prompts:
+  - rank: 1
+    id: 043C_example_router
+    passed_cases: 31
+    total_cases: 37
+    pass_rate: 0.8378
+    passed_attempts: 31
+    total_attempts: 37
+    attempt_pass_rate: 0.8378
+    failed_cases:
+      - weather_self_scope_followup
+      - terminal_after_weather_ready
+      - unpack_collapsed_weather_payload
+      - selective_text_edit_requires_read_first
+      - selective_yaml_edit_requires_read_first
+      - selective_widget_fix_requires_read_first
+  - rank: 2
+    id: 043B_compact_matrix
+    passed_cases: 28
+    total_cases: 37
+    pass_rate: 0.7568
+    passed_attempts: 28
+    total_attempts: 37
+    attempt_pass_rate: 0.7568
+    failed_cases:
+      - weather_omitted_scope
+      - weather_self_scope_followup
+      - weather_self_scope_after_indirect_fail
+      - unpack_collapsed_weather_payload
+      - create_note_after_user_detail_read
+      - selective_text_edit_requires_read_first
+      - selective_yaml_edit_requires_read_first
+      - post_success_followup_requires_execution_or_completion
+      - protocol_nudge_requires_real_thrust
+  - rank: 3
+    id: 043A_scheduler_hardened
+    passed_cases: 27
+    total_cases: 37
+    pass_rate: 0.7297
+    passed_attempts: 27
+    total_attempts: 37
+    attempt_pass_rate: 0.7297
+    failed_cases:
+      - smalltalk_hi_terminal
+      - weather_self_scope_followup
+      - weather_self_scope_after_indirect_fail
+      - unpack_collapsed_weather_payload
+      - create_note_after_user_detail_read
+      - write_user_yaml_after_read
+      - terminal_after_result_commandlike_literal
+      - terminal_after_result_retry_literal
+      - protocol_nudge_requires_real_thrust
+      - continue_after_widget_load_success

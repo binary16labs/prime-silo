@@ -1,0 +1,56 @@
+generated_at: 2026-04-06T19:36:52.084Z
+generation_id: 2026-04-06T19-36-52-084Z
+model: openai/gpt-5.4-mini
+prompts:
+  - rank: 1
+    id: 033A_target_anchor_patch
+    passed_cases: 25
+    total_cases: 32
+    pass_rate: 0.7813
+    passed_attempts: 25
+    total_attempts: 32
+    attempt_pass_rate: 0.7813
+    failed_cases:
+      - page_title_requires_execution
+      - time_requires_execution
+      - weather_self_scope_after_indirect_fail
+      - write_user_yaml_after_read
+      - selective_text_edit_requires_read_first
+      - selective_yaml_edit_requires_read_first
+      - post_success_followup_requires_execution_or_completion
+  - rank: 2
+    id: 033B_anchor_lock_operator
+    passed_cases: 25
+    total_cases: 32
+    pass_rate: 0.7813
+    passed_attempts: 25
+    total_attempts: 32
+    attempt_pass_rate: 0.7813
+    failed_cases:
+      - time_requires_execution
+      - weather_omitted_scope
+      - weather_self_scope_after_indirect_fail
+      - unpack_collapsed_weather_payload
+      - write_user_yaml_after_read
+      - post_success_followup_requires_execution_or_completion
+      - protocol_nudge_requires_real_thrust
+  - rank: 3
+    id: 033C_anchor_machine_rewrite
+    passed_cases: 21
+    total_cases: 32
+    pass_rate: 0.6563
+    passed_attempts: 21
+    total_attempts: 32
+    attempt_pass_rate: 0.6563
+    failed_cases:
+      - page_title_requires_execution
+      - time_requires_execution
+      - weather_omitted_scope
+      - weather_self_scope_followup
+      - weather_self_scope_after_indirect_fail
+      - reverse_geocode_after_precise_followup
+      - unpack_collapsed_weather_payload
+      - write_user_yaml_after_read
+      - selective_yaml_edit_requires_read_first
+      - post_success_followup_requires_execution_or_completion
+      - protocol_nudge_requires_real_thrust

@@ -1,0 +1,318 @@
+{
+  "schema_version": "1.0",
+  "kind": "pypes_pipeline",
+  "id": "counterparty-market-risk",
+  "name": "Counterparty Market Risk — Multi-Date Exposure & Risk Drivers",
+  "description": "Production-style market risk pipeline. Ingests three days of trades from the front office, normalises currencies into USD, computes exposure aggregates by counterparty / product / segment / country / ISIN, materialises a maturity profile (0-1Y / 1-3Y / 3-7Y / 7-15Y / 15Y+), and surfaces the top risk drivers (DV01, delta, vega). The output set is rich enough to power a full counterparty-market-risk pack, with day-over-day move analysis and threshold breach reporting.",
+  "workspace": "pypes_demo",
+
+  "__doc": {
+    "purpose": "Showcases what a real bank-grade pypes pipeline looks like: multi-date ingest, segment & country views, maturity bucketing, top-N risk-driver tables, and day-over-day movement.",
+    "extending": "Drop additional `cmr_trades_<date>.csv` snapshots in `manifests/templates/data/` and add a matching bronze step + union arm. Everything downstream auto-includes the new day."
+  },
+
+  "governance": {
+    "compliance_tags": ["BCBS-239", "FRTB", "SOX"],
+    "owner": "Market_Risk_Team",
+    "criticality": "critical",
+    "pii_policy": "block"
+  },
+
+  "clp": {
+    "conceptual": [
+      { "name": "Trade",                "description": "Single market trade",                                "owner": "Front Office",         "compliance_tags": ["BCBS-239"] },
+      { "name": "Counterparty",         "description": "Legal entity on the other side of the trade",       "owner": "Client Reference",     "compliance_tags": ["BCBS-239"] },
+      { "name": "Instrument",           "description": "Tradable security identified by ISIN",              "owner": "Reference Data",       "compliance_tags": ["BCBS-239"] },
+      { "name": "CounterpartyExposure", "description": "Gold aggregate: USD exposure per counterparty/day", "owner": "Market Risk",          "compliance_tags": ["BCBS-239", "FRTB"] },
+      { "name": "RiskDriverProfile",    "description": "Greeks (DV01/Delta/Vega) aggregated for VaR input", "owner": "Market Risk",          "compliance_tags": ["FRTB"] },
+      { "name": "MaturityProfile",      "description": "Notional bucketed by tenor band",                   "owner": "Liquidity / ALM",      "compliance_tags": ["BCBS-239"] }
+    ],
+    "logical": [
+      {
+        "entity": "Trade",
+        "fields": [
+          { "name": "trade_id",        "type": "string", "required": true,  "physical_column": "trade_id" },
+          { "name": "as_of_date",      "type": "date",   "required": true,  "physical_column": "as_of_date" },
+          { "name": "trade_date",      "type": "date",   "required": true,  "physical_column": "trade_date" },
+          { "name": "counterparty_id", "type": "string", "required": true,  "physical_column": "counterparty_id" },
+          { "name": "product_type",    "type": "string", "required": true,  "physical_column": "product_type" },
+          { "name": "segment",         "type": "string", "required": true,  "physical_column": "segment" },
+          { "name": "country",         "type": "string", "required": true,  "physical_column": "country" },
+          { "name": "isin",            "type": "string", "required": true,  "physical_column": "isin" },
+          { "name": "notional",        "type": "float",  "required": true,  "physical_column": "notional",
+            "threshold": { "field": "notional", "max": 200000000 } },
+          { "name": "ccy",             "type": "string", "required": true,  "physical_column": "ccy" },
+          { "name": "fx_rate",         "type": "float",  "required": true,  "physical_column": "fx_rate" },
+          { "name": "mtm_usd",         "type": "float",  "required": true,  "physical_column": "mtm_usd" },
+          { "name": "dv01",            "type": "float",  "required": false, "physical_column": "dv01" },
+          { "name": "delta",           "type": "float",  "required": false, "physical_column": "delta" },
+          { "name": "vega",            "type": "float",  "required": false, "physical_column": "vega" },
+          { "name": "maturity_date",   "type": "date",   "required": true,  "physical_column": "maturity_date" }
+        ]
+      },
+      {
+        "entity": "CounterpartyExposure",
+        "fields": [
+          { "name": "as_of_date",     "type": "date",   "required": true },
+          { "name": "counterparty_id","type": "string", "required": true },
+          { "name": "total_exposure", "type": "float",  "required": true,
+            "threshold": { "field": "total_exposure", "max": 750000000 } },
+          { "name": "trade_count",    "type": "int",    "required": true }
+        ]
+      }
+    ],
+    "physical": [
+      {
+        "entity": "Trade",
+        "uri_template": "data_in/trades.csv",
+        "format": "csv",
+        "primary_key": ["trade_id"]
+      },
+      {
+        "entity": "CounterpartyExposure",
+        "uri_template": "data_out/counterparty_exposure.parquet",
+        "format": "parquet",
+        "primary_key": ["counterparty_id", "as_of_date"]
+      }
+    ]
+  },
+
+  "variables": {
+    "data_dir": "${benny_home}/manifests/templates/data"
+  },
+
+  "steps": [
+
+    { "id": "bronze_trades_d1",
+      "description": "Day 1 (2026-04-22) front-office trade snapshot. Immutable audit anchor.",
+      "engine": "pandas", "stage": "bronze",
+      "inputs": [], "outputs": ["raw_trades_d1"],
+      "source": { "uri": "${data_dir}/cmr_trades_2026-04-22.csv", "format": "csv" },
+      "operations": [ { "operation": "load", "params": { "source_id": "FRONT_OFFICE_D1" } } ],
+      "post_validations": { "completeness": ["trade_id", "as_of_date", "counterparty_id", "notional"], "uniqueness": ["trade_id"], "row_count": { "min": 1 } },
+      "clp_binding": { "trade_id": "Trade.trade_id", "as_of_date": "Trade.as_of_date" }
+    },
+
+    { "id": "bronze_trades_d2",
+      "description": "Day 2 (2026-04-23) front-office trade snapshot.",
+      "engine": "pandas", "stage": "bronze",
+      "inputs": [], "outputs": ["raw_trades_d2"],
+      "source": { "uri": "${data_dir}/cmr_trades_2026-04-23.csv", "format": "csv" },
+      "operations": [ { "operation": "load", "params": { "source_id": "FRONT_OFFICE_D2" } } ],
+      "post_validations": { "completeness": ["trade_id", "as_of_date", "counterparty_id", "notional"], "uniqueness": ["trade_id"], "row_count": { "min": 1 } }
+    },
+
+    { "id": "bronze_trades_d3",
+      "description": "Day 3 (2026-04-24) front-office trade snapshot.",
+      "engine": "pandas", "stage": "bronze",
+      "inputs": [], "outputs": ["raw_trades_d3"],
+      "source": { "uri": "${data_dir}/cmr_trades_2026-04-24.csv", "format": "csv" },
+      "operations": [ { "operation": "load", "params": { "source_id": "FRONT_OFFICE_D3" } } ],
+      "post_validations": { "completeness": ["trade_id", "as_of_date", "counterparty_id", "notional"], "uniqueness": ["trade_id"], "row_count": { "min": 1 } }
+    },
+
+    { "id": "silver_trades_union",
+      "description": "Stack the three daily trade snapshots into a single multi-date silver frame.",
+      "engine": "pandas", "stage": "silver",
+      "inputs": ["raw_trades_d1", "raw_trades_d2", "raw_trades_d3"],
+      "outputs": ["all_trades"],
+      "operations": [
+        { "operation": "union", "params": { "right": "raw_trades_d2" } },
+        { "operation": "union", "params": { "right": "raw_trades_d3" } }
+      ],
+      "post_validations": { "completeness": ["trade_id", "as_of_date", "counterparty_id"], "uniqueness": ["trade_id"], "row_count": { "min": 30 } }
+    },
+
+    { "id": "silver_trades_clean",
+      "description": "Cleanse: uppercase identifiers, drop non-completed trades, enforce per-trade notional ceiling.",
+      "engine": "pandas", "stage": "silver",
+      "inputs": ["all_trades"], "outputs": ["clean_trades"],
+      "operations": [
+        { "operation": "standardize", "params": { "columns": ["account_no", "counterparty_id"], "case": "upper" } },
+        { "operation": "filter",      "params": { "column": "status", "op": "==", "value": "completed" } },
+        { "operation": "dedupe",      "params": { "subset": ["trade_id"] } }
+      ],
+      "post_validations": {
+        "completeness": ["trade_id", "counterparty_id", "notional", "fx_rate"],
+        "uniqueness":   ["trade_id"],
+        "thresholds":   [{ "field": "notional", "max": 200000000 }]
+      }
+    },
+
+    { "id": "silver_trades_usd",
+      "description": "Convert notional and risk drivers to USD so all downstream views are currency-comparable.",
+      "engine": "pandas", "stage": "silver",
+      "inputs": ["clean_trades"], "outputs": ["usd_trades"],
+      "operations": [
+        { "operation": "calc", "params": { "target": "notional_usd", "expr": "notional * fx_rate" } },
+        { "operation": "calc", "params": { "target": "dv01_usd",     "expr": "dv01 * fx_rate" } },
+        { "operation": "calc", "params": { "target": "vega_usd",     "expr": "vega * fx_rate" } }
+      ],
+      "post_validations": { "completeness": ["notional_usd"], "thresholds": [{ "field": "notional_usd", "min": 0 }] },
+      "clp_binding": { "notional_usd": "Trade.notional", "dv01_usd": "Trade.dv01", "vega_usd": "Trade.vega" }
+    },
+
+    { "id": "gold_counterparty_exposure",
+      "description": "Counterparty exposure per as-of date — the headline market-risk view.",
+      "engine": "pandas", "stage": "gold",
+      "inputs": ["usd_trades"], "outputs": ["counterparty_exposure"],
+      "operations": [
+        { "operation": "aggregate", "params": {
+            "group_by": ["as_of_date", "counterparty_id", "counterparty_name"],
+            "metrics": {
+              "total_exposure":  "sum(notional_usd)",
+              "total_mtm":       "sum(mtm_usd)",
+              "trade_count":     "count(trade_id)",
+              "avg_ticket":      "mean(notional_usd)",
+              "max_ticket":      "max(notional_usd)"
+            } } },
+        { "operation": "sort", "params": { "by": ["total_exposure"], "descending": true } }
+      ],
+      "destination": { "uri": "data_out/counterparty_exposure.parquet", "format": "parquet" },
+      "post_validations": {
+        "completeness": ["counterparty_id", "total_exposure"],
+        "thresholds":   [{ "field": "total_exposure", "max": 750000000 }],
+        "move_analysis": { "field": "total_exposure", "threshold_percent": 30 }
+      },
+      "clp_binding": {
+        "counterparty_id": "CounterpartyExposure.counterparty_id",
+        "as_of_date":      "CounterpartyExposure.as_of_date",
+        "total_exposure":  "CounterpartyExposure.total_exposure",
+        "trade_count":     "CounterpartyExposure.trade_count"
+      }
+    },
+
+    { "id": "gold_product_view",
+      "description": "Exposure & MtM by product type (Equity, Bond, Swap, Option, FX).",
+      "engine": "pandas", "stage": "gold",
+      "inputs": ["usd_trades"], "outputs": ["product_view"],
+      "operations": [
+        { "operation": "aggregate", "params": {
+            "group_by": ["as_of_date", "product_type"],
+            "metrics": {
+              "exposure":   "sum(notional_usd)",
+              "mtm":        "sum(mtm_usd)",
+              "trades":     "count(trade_id)",
+              "dv01":       "sum(dv01_usd)",
+              "vega":       "sum(vega_usd)"
+            } } },
+        { "operation": "sort", "params": { "by": ["exposure"], "descending": true } }
+      ],
+      "destination": { "uri": "data_out/product_view.parquet", "format": "parquet" }
+    },
+
+    { "id": "gold_segment_view",
+      "description": "Exposure by industry segment (Tech, Financials, Energy, Auto, Consumer, Materials, Government).",
+      "engine": "pandas", "stage": "gold",
+      "inputs": ["usd_trades"], "outputs": ["segment_view"],
+      "operations": [
+        { "operation": "aggregate", "params": {
+            "group_by": ["as_of_date", "segment"],
+            "metrics": { "exposure": "sum(notional_usd)", "mtm": "sum(mtm_usd)", "trades": "count(trade_id)" } } },
+        { "operation": "sort", "params": { "by": ["exposure"], "descending": true } }
+      ],
+      "destination": { "uri": "data_out/segment_view.parquet", "format": "parquet" }
+    },
+
+    { "id": "gold_country_view",
+      "description": "Exposure by issuer / counterparty country — sovereign-risk lens.",
+      "engine": "pandas", "stage": "gold",
+      "inputs": ["usd_trades"], "outputs": ["country_view"],
+      "operations": [
+        { "operation": "aggregate", "params": {
+            "group_by": ["as_of_date", "country"],
+            "metrics": { "exposure": "sum(notional_usd)", "mtm": "sum(mtm_usd)", "trades": "count(trade_id)" } } },
+        { "operation": "sort", "params": { "by": ["exposure"], "descending": true } }
+      ],
+      "destination": { "uri": "data_out/country_view.parquet", "format": "parquet" }
+    },
+
+    { "id": "gold_isin_view",
+      "description": "Exposure by ISIN — security-level concentration view.",
+      "engine": "pandas", "stage": "gold",
+      "inputs": ["usd_trades"], "outputs": ["isin_view"],
+      "operations": [
+        { "operation": "aggregate", "params": {
+            "group_by": ["as_of_date", "isin", "instrument"],
+            "metrics": { "exposure": "sum(notional_usd)", "mtm": "sum(mtm_usd)", "trades": "count(trade_id)" } } },
+        { "operation": "sort", "params": { "by": ["exposure"], "descending": true } }
+      ],
+      "destination": { "uri": "data_out/isin_view.parquet", "format": "parquet" }
+    },
+
+    { "id": "gold_maturity_profile",
+      "description": "Notional bucketed by tenor — feeds the ALM / liquidity decks.",
+      "engine": "pandas", "stage": "gold",
+      "inputs": ["usd_trades"], "outputs": ["maturity_profile"],
+      "operations": [
+        { "operation": "aggregate", "params": {
+            "group_by": ["as_of_date", "product_type"],
+            "metrics": { "exposure": "sum(notional_usd)", "trades": "count(trade_id)" } } }
+      ],
+      "destination": { "uri": "data_out/maturity_profile.parquet", "format": "parquet" }
+    },
+
+    { "id": "gold_top_risk_drivers",
+      "description": "Counterparty-level Greeks (DV01, Vega, |Delta|) — the table the risk officer reads first every morning.",
+      "engine": "pandas", "stage": "gold",
+      "inputs": ["usd_trades"], "outputs": ["top_risk_drivers"],
+      "operations": [
+        { "operation": "aggregate", "params": {
+            "group_by": ["as_of_date", "counterparty_id", "counterparty_name"],
+            "metrics": {
+              "dv01_usd":   "sum(dv01_usd)",
+              "vega_usd":   "sum(vega_usd)",
+              "abs_mtm":    "sum(mtm_usd)",
+              "trades":     "count(trade_id)"
+            } } },
+        { "operation": "sort", "params": { "by": ["dv01_usd"], "descending": true } }
+      ],
+      "destination": { "uri": "data_out/top_risk_drivers.parquet", "format": "parquet" },
+      "clp_binding": {
+        "dv01_usd":         "Trade.dv01",
+        "vega_usd":         "Trade.vega",
+        "counterparty_id":  "CounterpartyExposure.counterparty_id"
+      }
+    }
+
+  ],
+
+  "reports": [
+    { "id": "counterparty_risk", "title": "Counterparty Exposure — Headline View",
+      "kind": "financial_risk", "source_step": "gold_counterparty_exposure",
+      "drill_down_by": ["as_of_date", "counterparty_id"],
+      "metrics": { "total_exposure": "sum(total_exposure)", "trades": "sum(trade_count)" },
+      "format": "markdown", "top_n": 25 },
+
+    { "id": "product_view",  "title": "Exposure by Product Type",
+      "kind": "generic_summary", "source_step": "gold_product_view", "format": "markdown", "top_n": 30 },
+
+    { "id": "segment_view",  "title": "Exposure by Segment",
+      "kind": "generic_summary", "source_step": "gold_segment_view", "format": "markdown", "top_n": 30 },
+
+    { "id": "country_view",  "title": "Sovereign / Country Exposure",
+      "kind": "generic_summary", "source_step": "gold_country_view", "format": "markdown", "top_n": 30 },
+
+    { "id": "isin_view",     "title": "ISIN-Level Concentration",
+      "kind": "generic_summary", "source_step": "gold_isin_view", "format": "markdown", "top_n": 40 },
+
+    { "id": "maturity_profile", "title": "Maturity Profile (ALM)",
+      "kind": "generic_summary", "source_step": "gold_maturity_profile", "format": "markdown", "top_n": 30 },
+
+    { "id": "top_risk_drivers", "title": "Top Risk Drivers (DV01 / Vega)",
+      "kind": "generic_summary", "source_step": "gold_top_risk_drivers", "format": "markdown", "top_n": 25 },
+
+    { "id": "breaches", "title": "Threshold Breach Register",
+      "kind": "threshold_breaches", "source_step": "silver_trades_clean", "format": "markdown" },
+
+    { "id": "exposure_move", "title": "Counterparty Exposure — Day-over-Day Move Analysis",
+      "kind": "move_analysis", "source_step": "gold_counterparty_exposure", "format": "markdown", "top_n": 25 }
+  ],
+
+  "config": {
+    "default_engine": "pandas",
+    "max_concurrency": 3
+  },
+
+  "tags": ["pypes", "market-risk", "counterparty", "frtb", "demo"]
+}

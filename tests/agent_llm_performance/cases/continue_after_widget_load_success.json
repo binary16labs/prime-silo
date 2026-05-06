@@ -1,0 +1,27 @@
+{
+  "id": "continue_after_widget_load_success",
+  "description": "after widget load success with the task still open, the agent must execute the next continuation step instead of sending staging-only prose",
+  "history": "../histories/continue_after_widget_load_success.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript",
+      "snake-game"
+    ],
+    "must_match": [
+      {
+        "pattern": "(?:space\\.current\\.patchWidget\\(\"snake-game\"|space\\.chat\\.transient\\.)",
+        "flags": "u"
+      }
+    ],
+    "must_not_contain": [
+      "Patching Snake to a greener Nokia-style display now...",
+      "Patching the Snake background now..."
+    ]
+  }
+}

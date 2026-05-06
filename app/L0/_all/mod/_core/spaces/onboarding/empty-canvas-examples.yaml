@@ -1,0 +1,107 @@
+examples:
+  - text: Create a weather report
+    prompt: Create a weather report. Use https://ipapi.co/json/ to get an approximate location. Do not use exact browser geolocation. Fetch weather from https://api.met.no/weatherapi/locationforecast/2.0/compact. Use the `pdf-report` skill to create and download a browser PDF report with structure and styling chosen for this report instead of a canned template, then reply with a brief weather summary.
+    kind: chat
+    icon: chat_bubble
+    color: "#7dc6ff"
+    code: |
+      await helpers.submitPrompt(example.prompt)
+  - text: Retro Arcade
+    kind: widget
+    icon: gamepad
+    color: "#00ffd5"
+    code: |
+      const currentSpace = helpers.getSpaceRuntime().current
+      const spacesRuntime = helpers.getSpacesRuntime()
+      const shouldRenameSpace = currentSpace && !String(currentSpace.title || "").trim()
+      if (shouldRenameSpace && currentSpace?.id) {
+        await spacesRuntime.saveSpaceMeta({ id: currentSpace.id, title: example.text, refresh: false })
+      }
+      await helpers.installOnboardingExampleWidgets([
+        "retro-arcade/tetris-game.yaml",
+        "retro-arcade/minesweeper-game.yaml",
+        "retro-arcade/snake-game.yaml",
+        "retro-arcade/retro-marquee.yaml"
+      ])
+  - text: Agent Zero Videos
+    kind: widget
+    icon: smart_display
+    color: "#ff5a4f"
+    code: |
+      const currentSpace = helpers.getSpaceRuntime().current
+      const spacesRuntime = helpers.getSpacesRuntime()
+      const shouldRenameSpace = currentSpace && !String(currentSpace.title || "").trim()
+      if (shouldRenameSpace && currentSpace?.id) {
+        await spacesRuntime.saveSpaceMeta({ id: currentSpace.id, title: example.text, refresh: false })
+      }
+      await helpers.installOnboardingExampleWidgets([
+        "agent-zero-videos/yt-video-list.yaml",
+        "agent-zero-videos/yt-video-player.yaml"
+      ])
+  - text: Rickroll me
+    kind: widget
+    icon: play_circle
+    color: "#ff7566"
+    code: |
+      await helpers.installOnboardingExampleWidget("rickroll-player.yaml")
+  - text: Flip the space
+    prompt: Rotate the whole page by another 180 degrees from whatever its current rotation is. Do not reset it to an absolute orientation or reuse the same fixed transform value; preserve the current rotation state and add 180 degrees with a two-second CSS transition.
+    kind: chat
+    icon: chat_bubble
+    color: "#ff9bc9"
+    code: |
+      await helpers.submitPrompt(example.prompt)
+  - text: Daily News
+    kind: widget
+    icon: newspaper
+    color: "#93c5ff"
+    code: |
+      const currentSpace = helpers.getSpaceRuntime().current
+      const spacesRuntime = helpers.getSpacesRuntime()
+      const shouldRenameSpace = currentSpace && !String(currentSpace.title || "").trim()
+      if (shouldRenameSpace && currentSpace?.id) {
+        await spacesRuntime.saveSpaceMeta({ id: currentSpace.id, title: example.text, refresh: false })
+      }
+      await helpers.installOnboardingExampleWidgets([
+        "daily-news/news-feed.yaml",
+        "daily-news/top-news.yaml",
+        "daily-news/weather.yaml"
+      ])
+  - text: WYSIWYG Editor
+    kind: widget
+    icon: wysiwyg
+    color: "#89baff"
+    code: |
+      const currentSpace = helpers.getSpaceRuntime().current
+      const spacesRuntime = helpers.getSpacesRuntime()
+      const shouldRenameSpace = currentSpace && !String(currentSpace.title || "").trim()
+      if (shouldRenameSpace && currentSpace?.id) {
+        await spacesRuntime.saveSpaceMeta({ id: currentSpace.id, title: example.text, refresh: false })
+      }
+      await helpers.installOnboardingExampleWidget("wysiwyg-editor.yaml")
+  - text: Crypto Dashboard
+    kind: widget
+    icon: currency_bitcoin
+    color: "#f6be63"
+    code: |
+      const currentSpace = helpers.getSpaceRuntime().current
+      const spacesRuntime = helpers.getSpacesRuntime()
+      const shouldRenameSpace = currentSpace && !String(currentSpace.title || "").trim()
+      if (shouldRenameSpace && currentSpace?.id) {
+        await spacesRuntime.saveSpaceMeta({ id: currentSpace.id, title: example.text, refresh: false })
+      }
+      await helpers.installOnboardingExampleWidgets([
+        "crypto-dashboard/crypto-prices.yaml",
+        "crypto-dashboard/btc-vs-sp500.yaml",
+        "crypto-dashboard/crypto-news-feed.yaml"
+      ])
+  - text: Check documentation
+    prompt: >
+      Do the following in order. 1. Load the documentation skill. 2. When it is
+      loaded, ask the user exactly: `What would you like to know from the
+      documentation?`
+    kind: chat
+    icon: chat_bubble
+    color: "#f3c46c"
+    code: |
+      await helpers.submitPrompt(example.prompt)

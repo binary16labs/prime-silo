@@ -1,0 +1,17 @@
+{
+  "id": "terminal_after_framework_no_result_continue",
+  "description": "success telemetry that incidentally contains the word continue should still be treated as information, not as a command to execute again",
+  "history": "../histories/terminal_after_framework_no_result_continue.json",
+  "expect": {
+    "response_type": "terminal",
+    "must_match": [
+      {
+        "pattern": "\\S",
+        "flags": "u"
+      }
+    ],
+    "must_not_contain": [
+      "_____javascript"
+    ]
+  }
+}

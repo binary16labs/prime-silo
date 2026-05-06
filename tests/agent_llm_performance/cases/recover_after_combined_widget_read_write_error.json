@@ -1,0 +1,33 @@
+{
+  "id": "recover_after_combined_widget_read_write_error",
+  "description": "after framework rejects a combined widget read-and-patch turn, recovery should be a pure read turn",
+  "history": "../histories/recover_after_combined_widget_read_write_error.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript",
+      "snake-game"
+    ],
+    "must_match": [
+      {
+        "pattern": "space\\.current\\.readWidget\\(",
+        "flags": "u"
+      }
+    ],
+    "must_not_match": [
+      {
+        "pattern": "space\\.current\\.patchWidget\\(",
+        "flags": "u"
+      }
+    ],
+    "must_not_contain": [
+      "patched successfully",
+      "done"
+    ]
+  }
+}

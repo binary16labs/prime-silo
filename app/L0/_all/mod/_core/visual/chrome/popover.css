@@ -1,0 +1,87 @@
+:root {
+  --space-popover-gap: 8px;
+  --space-popover-min-width: 184px;
+  --space-popover-max-width: min(260px, calc(100vw - 24px));
+}
+
+.space-popover-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  pointer-events: none;
+}
+
+.space-popover-panel {
+  position: fixed;
+  display: grid;
+  gap: 8px;
+  min-width: var(--space-popover-min-width);
+  max-width: var(--space-popover-max-width);
+  padding: 8px;
+  border: 1px solid var(--space-chrome-border-strong);
+  border-radius: 16px;
+  background: var(--space-chrome-surface-strong);
+  box-shadow: var(--space-chrome-panel-shadow);
+  backdrop-filter: blur(18px) saturate(1.08);
+  -webkit-backdrop-filter: blur(18px) saturate(1.08);
+  overflow: auto;
+  overscroll-behavior: contain;
+  pointer-events: auto;
+}
+
+.space-popover-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  line-height: 1.1;
+  text-align: left;
+  text-decoration: none;
+  transition:
+    color 140ms ease,
+    border-color 140ms ease,
+    background-color 140ms ease;
+}
+
+.space-popover-action x-icon {
+  flex: 0 0 auto;
+  font-size: 20px;
+  color: var(--color-accent-primary);
+}
+
+.space-popover-action:hover,
+.space-popover-action:focus-visible {
+  color: var(--color-text-primary);
+  border-color: var(--space-chrome-border);
+  background: var(--space-chrome-hover-bg);
+}
+
+.space-popover-action:focus-visible {
+  outline: 2px solid var(--space-chrome-focus-ring);
+  outline-offset: 2px;
+}
+
+.space-popover-action.is-danger {
+  color: #ffb1b1;
+}
+
+.space-popover-action.is-danger:hover,
+.space-popover-action.is-danger:focus-visible {
+  border-color: rgba(221, 127, 127, 0.28);
+  background: rgba(82, 28, 28, 0.34);
+}
+
+.space-popover-action-label {
+  min-width: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+}

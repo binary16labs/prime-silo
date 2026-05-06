@@ -1,0 +1,5 @@
+name: Files
+path: file_explorer
+description: Browse and edit app files.
+icon: folder_open
+color: "#8bd7ff"

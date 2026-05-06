@@ -1,0 +1,328 @@
+body.space-theme-canvas {
+  --space-backdrop-scale: 1;
+  --space-backdrop-scene-top: calc(-360px * var(--space-backdrop-scale));
+  --space-backdrop-scene-left: calc(-320px * var(--space-backdrop-scale));
+  --space-backdrop-scene-width: max(
+    calc(2400px * var(--space-backdrop-scale)),
+    calc(100vw + (1120px * var(--space-backdrop-scale)))
+  );
+  --space-backdrop-scene-height: max(
+    calc(2000px * var(--space-backdrop-scale)),
+    calc(100vh + (1040px * var(--space-backdrop-scale)))
+  );
+  min-height: 100vh;
+  margin: 0;
+  position: relative;
+  isolation: isolate;
+  background-color: var(--color-canvas-deep);
+  color: var(--color-text-primary);
+}
+
+body.space-theme-canvas::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -2;
+  background: linear-gradient(
+    180deg,
+    var(--color-canvas-elevated) 0%,
+    var(--color-canvas) 52%,
+    var(--color-canvas-deep) 100%
+  );
+}
+
+.space-backdrop {
+  --space-backdrop-speed-multiplier: 2;
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.space-backdrop-layer,
+.space-backdrop-trails {
+  position: absolute;
+  top: var(--space-backdrop-scene-top);
+  left: var(--space-backdrop-scene-left);
+  width: var(--space-backdrop-scene-width);
+  height: var(--space-backdrop-scene-height);
+  pointer-events: none;
+}
+
+.space-backdrop-layer {
+  --space-layer-drift-x: 0px;
+  --space-layer-drift-y: 0px;
+  --space-layer-duration: 1s;
+  --space-layer-repeat: 0px;
+  --space-layer-render-scale: 1;
+  --space-layer-rotate: 0deg;
+  --space-layer-scale: 1;
+  background-position: 0 0;
+  background-repeat: repeat;
+  transform:
+    translate3d(0, 0, 0)
+    rotate(var(--space-layer-rotate))
+    scale(calc(var(--space-layer-scale) * var(--space-layer-render-scale)));
+  transform-origin: center;
+}
+
+.space-backdrop-stars {
+  --space-layer-render-scale: var(--space-backdrop-scale);
+  background-size: var(--space-layer-repeat) var(--space-layer-repeat);
+  backface-visibility: hidden;
+  will-change: transform;
+  animation:
+    space-backdrop-drift
+    calc(var(--space-layer-duration) / var(--space-backdrop-speed-multiplier))
+    linear
+    infinite;
+}
+
+.space-backdrop-glow {
+  --space-layer-rotate: -6deg;
+  --space-layer-scale: 1.08;
+  opacity: 0.64;
+  background:
+    radial-gradient(
+      calc(520px * var(--space-backdrop-scale))
+      calc(280px * var(--space-backdrop-scale))
+      at
+      calc(1300px * var(--space-backdrop-scale))
+      calc(770px * var(--space-backdrop-scale)),
+      rgba(118, 241, 186, 0.13) 0%,
+      transparent 76%
+    ),
+    radial-gradient(
+      calc(760px * var(--space-backdrop-scale))
+      calc(560px * var(--space-backdrop-scale))
+      at
+      calc(500px * var(--space-backdrop-scale))
+      calc(540px * var(--space-backdrop-scale)),
+      rgba(148, 188, 255, 0.16) 0%,
+      transparent 74%
+    ),
+    radial-gradient(
+      calc(640px * var(--space-backdrop-scale))
+      calc(500px * var(--space-backdrop-scale))
+      at
+      calc(2100px * var(--space-backdrop-scale))
+      calc(500px * var(--space-backdrop-scale)),
+      rgba(121, 237, 216, 0.11) 0%,
+      transparent 74%
+    ),
+    radial-gradient(
+      calc(1280px * var(--space-backdrop-scale))
+      calc(780px * var(--space-backdrop-scale))
+      at
+      calc(1300px * var(--space-backdrop-scale))
+      calc(1320px * var(--space-backdrop-scale)),
+      rgba(59, 95, 172, 0.22) 0%,
+      transparent 76%
+    );
+  background-repeat: no-repeat;
+  animation: none;
+}
+
+.space-backdrop.is-static .space-backdrop-stars {
+  animation: none;
+  will-change: auto;
+  transform:
+    translate3d(0, 0, 0)
+    rotate(var(--space-layer-rotate))
+    scale(calc(var(--space-layer-scale) * var(--space-layer-render-scale)));
+}
+
+.space-backdrop.is-static .space-backdrop-trails {
+  display: none;
+}
+
+.space-backdrop-stars-deep {
+  --space-layer-drift-x: 216.3px;
+  --space-layer-drift-y: 216.3px;
+  --space-layer-duration: 260s;
+  --space-layer-repeat: 208px;
+  --space-layer-scale: 1.04;
+  opacity: 0.36;
+  background-image:
+    radial-gradient(circle at 24px 30px, var(--color-backdrop-star-soft) 0 0.55px, transparent 1.18px),
+    radial-gradient(circle at 96px 72px, var(--color-backdrop-star-soft) 0 0.46px, transparent 1.1px),
+    radial-gradient(circle at 158px 126px, var(--color-backdrop-star-soft) 0 0.52px, transparent 1.16px),
+    radial-gradient(circle at 52px 166px, var(--color-backdrop-star-soft) 0 0.5px, transparent 1.12px),
+    radial-gradient(circle at 187px 44px, var(--color-backdrop-star-soft) 0 0.48px, transparent 1.08px),
+    radial-gradient(circle at 128px 188px, var(--color-backdrop-star-soft) 0 0.44px, transparent 1.04px),
+    radial-gradient(circle at 204px 168px, var(--color-backdrop-star-soft) 0 0.5px, transparent 1.12px);
+}
+
+.space-backdrop-stars-far {
+  --space-layer-drift-x: 244.1px;
+  --space-layer-drift-y: 244.1px;
+  --space-layer-duration: 170s;
+  --space-layer-repeat: 226px;
+  --space-layer-scale: 1.08;
+  opacity: 0.56;
+  background-image:
+    radial-gradient(circle at 28px 22px, var(--color-backdrop-star-soft) 0 0.68px, transparent 1.3px),
+    radial-gradient(circle at 92px 84px, var(--color-backdrop-star-strong) 0 0.82px, transparent 1.5px),
+    radial-gradient(circle at 146px 44px, var(--color-backdrop-star-soft) 0 0.64px, transparent 1.24px),
+    radial-gradient(circle at 188px 134px, var(--color-backdrop-star-soft) 0 0.58px, transparent 1.18px),
+    radial-gradient(circle at 64px 168px, var(--color-backdrop-star-accent) 0 0.76px, transparent 1.4px),
+    radial-gradient(circle at 206px 198px, var(--color-backdrop-star-soft) 0 0.62px, transparent 1.22px),
+    radial-gradient(circle at 118px 206px, var(--color-backdrop-star-soft) 0 0.66px, transparent 1.28px),
+    radial-gradient(circle at 222px 84px, var(--color-backdrop-star-strong) 0 0.72px, transparent 1.36px);
+}
+
+.space-backdrop-stars-mid {
+  --space-layer-drift-x: 264.2px;
+  --space-layer-drift-y: 264.2px;
+  --space-layer-duration: 118s;
+  --space-layer-repeat: 238px;
+  --space-layer-scale: 1.11;
+  opacity: 0.62;
+  background-image:
+    radial-gradient(circle at 26px 24px, var(--color-backdrop-star-soft) 0 0.74px, transparent 1.34px),
+    radial-gradient(circle at 74px 102px, var(--color-backdrop-star-strong) 0 0.9px, transparent 1.58px),
+    radial-gradient(circle at 126px 48px, var(--color-backdrop-star-soft) 0 0.68px, transparent 1.28px),
+    radial-gradient(circle at 182px 138px, var(--color-backdrop-star-accent) 0 0.84px, transparent 1.48px),
+    radial-gradient(circle at 56px 184px, var(--color-backdrop-star-soft) 0 0.7px, transparent 1.3px),
+    radial-gradient(circle at 154px 198px, var(--color-backdrop-star-strong) 0 0.78px, transparent 1.42px),
+    radial-gradient(circle at 214px 76px, var(--color-backdrop-star-soft) 0 0.72px, transparent 1.34px),
+    radial-gradient(circle at 228px 210px, var(--color-backdrop-star-soft) 0 0.66px, transparent 1.26px);
+}
+
+.space-backdrop-stars-near {
+  --space-layer-drift-x: 298.7px;
+  --space-layer-drift-y: 298.7px;
+  --space-layer-duration: 82s;
+  --space-layer-repeat: 262px;
+  --space-layer-scale: 1.14;
+  opacity: 0.76;
+  background-image:
+    radial-gradient(circle at 36px 28px, var(--color-backdrop-star-halo) 0 2.2px, transparent 5.5px),
+    radial-gradient(circle at 36px 28px, var(--color-backdrop-star-strong) 0 0.96px, transparent 1.72px),
+    radial-gradient(circle at 136px 88px, var(--color-backdrop-star-halo-accent) 0 2.5px, transparent 6px),
+    radial-gradient(circle at 136px 88px, var(--color-backdrop-star-accent) 0 1.04px, transparent 1.82px),
+    radial-gradient(circle at 84px 182px, var(--color-backdrop-star-halo) 0 2.3px, transparent 5.6px),
+    radial-gradient(circle at 84px 182px, var(--color-backdrop-star-strong) 0 0.92px, transparent 1.68px),
+    radial-gradient(circle at 196px 148px, var(--color-backdrop-star-strong) 0 0.84px, transparent 1.5px);
+}
+
+.space-backdrop-stars-close {
+  --space-layer-drift-x: 358.7px;
+  --space-layer-drift-y: 358.7px;
+  --space-layer-duration: 62s;
+  --space-layer-repeat: 304px;
+  --space-layer-scale: 1.18;
+  opacity: 0.86;
+  background-image:
+    radial-gradient(circle at 52px 44px, var(--color-backdrop-star-halo) 0 3px, transparent 7.3px),
+    radial-gradient(circle at 52px 44px, var(--color-backdrop-star-strong) 0 1.08px, transparent 1.88px),
+    radial-gradient(circle at 186px 164px, var(--color-backdrop-star-halo-accent) 0 3.2px, transparent 7.8px),
+    radial-gradient(circle at 186px 164px, var(--color-backdrop-star-accent) 0 1.18px, transparent 2px),
+    radial-gradient(circle at 226px 78px, var(--color-backdrop-star-halo) 0 2.8px, transparent 7px),
+    radial-gradient(circle at 226px 78px, var(--color-backdrop-star-strong) 0 1.04px, transparent 1.82px),
+    radial-gradient(circle at 122px 228px, var(--color-backdrop-star-halo) 0 2.7px, transparent 6.8px),
+    radial-gradient(circle at 122px 228px, var(--color-backdrop-star-strong) 0 0.98px, transparent 1.74px);
+}
+
+.space-backdrop-trails {
+  overflow: hidden;
+}
+
+.space-backdrop-trail {
+  --space-trail-angle: 24deg;
+  --space-trail-distance-x: 36vmax;
+  --space-trail-distance-y: 14vmax;
+  --space-trail-duration: 1200ms;
+  --space-trail-length: 10rem;
+  position: absolute;
+  top: 20%;
+  left: 20%;
+  width: calc(var(--space-trail-length) * var(--space-backdrop-scale));
+  height: calc(2px * var(--space-backdrop-scale));
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.03) 28%,
+    rgba(148, 188, 255, 0.18) 56%,
+    rgba(255, 255, 255, 0.96) 100%
+  );
+  transform-origin: right center;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.space-backdrop-trail.is-active {
+  animation: space-backdrop-trail-flight var(--space-trail-duration) linear forwards;
+}
+
+@keyframes space-backdrop-drift {
+  from {
+    transform:
+      translate3d(0, 0, 0)
+      rotate(var(--space-layer-rotate))
+      scale(calc(var(--space-layer-scale) * var(--space-layer-render-scale)));
+  }
+
+  to {
+    transform:
+      translate3d(
+        calc(var(--space-layer-drift-x) * var(--space-layer-render-scale)),
+        calc(var(--space-layer-drift-y) * var(--space-layer-render-scale)),
+        0
+      )
+      rotate(var(--space-layer-rotate))
+      scale(calc(var(--space-layer-scale) * var(--space-layer-render-scale)));
+  }
+}
+
+@keyframes space-backdrop-trail-flight {
+  0%,
+  11% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) rotate(var(--space-trail-angle)) scaleX(0.16);
+  }
+
+  18% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) rotate(var(--space-trail-angle)) scaleX(0.24);
+  }
+
+  42% {
+    opacity: 0.95;
+    transform:
+      translate3d(
+        calc(var(--space-trail-distance-x) * 0.58),
+        calc(var(--space-trail-distance-y) * 0.58),
+        0
+      )
+      rotate(var(--space-trail-angle))
+      scaleX(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform:
+      translate3d(var(--space-trail-distance-x), var(--space-trail-distance-y), 0)
+      rotate(var(--space-trail-angle))
+      scaleX(0.38);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .space-backdrop-stars {
+    animation: none;
+    transform:
+      translate3d(0, 0, 0)
+      rotate(var(--space-layer-rotate))
+      scale(calc(var(--space-layer-scale) * var(--space-layer-render-scale)));
+  }
+
+  .space-backdrop-trail,
+  .space-backdrop-trail.is-active {
+    animation: none;
+    opacity: 0;
+  }
+}

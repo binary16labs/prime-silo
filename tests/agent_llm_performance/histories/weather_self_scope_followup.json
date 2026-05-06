@@ -1,0 +1,14 @@
+[
+  {
+    "role": "user",
+    "content": "_____user\nwhat's the weather?"
+  },
+  {
+    "role": "assistant",
+    "content": "Which location?"
+  },
+  {
+    "role": "user",
+    "content": "_____user\nmine"
+  }
+]

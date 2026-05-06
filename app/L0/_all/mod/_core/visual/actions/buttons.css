@@ -1,0 +1,154 @@
+:root {
+  --space-button-radius: 999px;
+  --space-button-gap: 0.5rem;
+  --space-button-padding-y: 0.72rem;
+  --space-button-padding-x: 1.15rem;
+  --space-button-focus-ring: rgba(148, 188, 255, 0.14);
+  --space-button-secondary-border: var(--color-border-soft);
+  --space-button-secondary-border-hover: var(--color-border-strong);
+  --space-button-secondary-bg: rgba(18, 29, 51, 0.68);
+  --space-button-secondary-bg-hover: rgba(24, 37, 64, 0.78);
+  --space-button-danger-border: rgba(255, 141, 152, 0.18);
+  --space-button-danger-border-hover: rgba(255, 141, 152, 0.28);
+  --space-button-danger-bg: rgba(255, 141, 152, 0.1);
+  --space-button-danger-bg-hover: rgba(255, 141, 152, 0.16);
+  --space-composer-attachment-border: var(--space-button-secondary-border);
+  --space-composer-attachment-bg: var(--space-button-secondary-bg);
+  --space-button-primary-color: var(--color-accent-ink);
+  --space-button-primary-bg: linear-gradient(
+    135deg,
+    var(--color-accent-primary),
+    var(--color-accent-primary-strong)
+  );
+  --space-button-primary-bg-hover: linear-gradient(135deg, #8fe6ff, #a8c9ff);
+  --space-button-primary-shadow: none;
+  --space-button-confirm-color: var(--color-accent-ink);
+  --space-button-confirm-bg: linear-gradient(
+    135deg,
+    var(--color-accent-primary),
+    var(--color-accent-primary-strong)
+  );
+  --space-button-confirm-bg-hover: linear-gradient(135deg, #8fe6ff, #a8c9ff);
+  --space-button-confirm-shadow: none;
+}
+
+.primary-button,
+.secondary-button,
+.confirm-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-button-gap);
+  min-height: 2.7rem;
+  padding: var(--space-button-padding-y) var(--space-button-padding-x);
+  border: 1px solid transparent;
+  border-radius: var(--space-button-radius);
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+  line-height: 1.1;
+  text-decoration: none;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.primary-button {
+  color: var(--space-button-primary-color);
+  background: var(--space-button-primary-bg);
+  box-shadow: var(--space-button-primary-shadow);
+}
+
+.primary-button:hover:not(:disabled) {
+  background: var(--space-button-primary-bg-hover);
+}
+
+.confirm-button {
+  color: var(--space-button-confirm-color);
+  background: var(--space-button-confirm-bg);
+  box-shadow: var(--space-button-confirm-shadow);
+}
+
+.confirm-button:hover:not(:disabled) {
+  background: var(--space-button-confirm-bg-hover);
+}
+
+.secondary-button {
+  color: var(--color-text);
+  border-color: var(--space-button-secondary-border);
+  background: var(--space-button-secondary-bg);
+}
+
+.secondary-button:hover:not(:disabled) {
+  border-color: var(--space-button-secondary-border-hover);
+  background: var(--space-button-secondary-bg-hover);
+}
+
+.secondary-button.danger {
+  color: var(--color-danger);
+  border-color: var(--space-button-danger-border);
+  background: var(--space-button-danger-bg);
+}
+
+.secondary-button.danger:hover:not(:disabled) {
+  border-color: var(--space-button-danger-border-hover);
+  background: var(--space-button-danger-bg-hover);
+}
+
+.primary-button:focus-visible,
+.secondary-button:focus-visible,
+.confirm-button:focus-visible,
+.assistant-message-action:focus-visible,
+.composer-attachment:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--space-button-focus-ring);
+}
+
+.primary-button:disabled,
+.secondary-button:disabled,
+.confirm-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.composer-attachment-input {
+  display: none;
+}
+
+.composer-attachments {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  max-height: 7.3rem;
+  overflow: auto;
+  padding-right: 0.12rem;
+}
+
+.composer-attachment {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  min-width: 0;
+  padding: 0.48rem 0.62rem;
+  border: 1px solid var(--space-composer-attachment-border);
+  border-radius: 0.95rem;
+  background: var(--space-composer-attachment-bg);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.composer-attachment-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer-attachment x-icon {
+  font-size: 15px;
+}

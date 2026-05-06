@@ -1,0 +1,22 @@
+[
+  {
+    "role": "user",
+    "content": "_____user\nwhat's the weather in my location?"
+  },
+  {
+    "role": "assistant",
+    "content": "Checking your browser location now...\n_____javascript\nreturn new Promise((resolve) => {\n  navigator.geolocation.getCurrentPosition(\n    pos => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, accuracy: pos.coords.accuracy }),\n    err => resolve({ error: err.message || String(err) }),\n    { timeout: 10000 }\n  )\n})"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution success\nresult↓\nlatitude: 49.71985822231634\nlongitude: 17.221723412878973\naccuracy: 35"
+  },
+  {
+    "role": "assistant",
+    "content": "Checking the exact place now...\n_____javascript\nconst lat = 49.71985822231634;\nconst lon = 17.221723412878973;\nconst r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`).then(r => r.json());\nreturn {\n  display_name: r.display_name,\n  address: r.address\n}"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution success\nresult↓\ndisplay_name: \"250, Hnojice, okres Olomouc, Olomouc Region, Central Moravia, 785 01, Czechia\"\naddress:\n  house_number: 250\n  village: Hnojice\n  state: \"Olomouc Region\"\n  country: Czechia"
+  }
+]

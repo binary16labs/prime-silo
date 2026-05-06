@@ -1,0 +1,14 @@
+[
+  {
+    "role": "user",
+    "content": "_____user\nwhat's the weather in my location?"
+  },
+  {
+    "role": "assistant",
+    "content": "Checking your browser location now...\n_____javascript\nreturn new Promise((resolve) => {\n  navigator.geolocation.getCurrentPosition(\n    pos => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, accuracy: pos.coords.accuracy }),\n    err => resolve({ error: err.message || String(err) }),\n    { timeout: 10000 }\n  )\n})"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution success\nresult↓\nlatitude: 49.393813868077764\nlongitude: 17.22388380435019\naccuracy: 35"
+  }
+]

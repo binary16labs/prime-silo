@@ -1,0 +1,21 @@
+{
+  "id": "followup_edit_requires_well_formed_thrust",
+  "description": "a follow-up edit request should produce one well-formed execution reply, not a staging sentence with a malformed separator",
+  "history": "../histories/followup_edit_requires_well_formed_thrust.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript",
+      "snake-game"
+    ],
+    "must_not_contain": [
+      "I need to",
+      "I can patch"
+    ]
+  }
+}

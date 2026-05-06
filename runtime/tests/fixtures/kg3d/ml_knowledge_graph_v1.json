@@ -1,0 +1,74 @@
+{
+  "nodes": [
+    {
+      "id": "766ef57a97471939",
+      "canonical_name": "Taylor Series",
+      "display_name": "Taylor Series",
+      "category": "approximations_expansions",
+      "aot_layer": 3,
+      "metrics": {
+        "pagerank": 0.01,
+        "degree": 0,
+        "betweenness": 0.0,
+        "descendant_ratio": 0.35,
+        "prerequisite_ratio": 0.2,
+        "reachability_ratio": 0.5
+      },
+      "position_hint": null,
+      "source_refs": [],
+      "created_at": "2026-04-19T18:00:00Z",
+      "updated_at": "2026-04-19T18:00:00Z"
+    },
+    {
+      "id": "b304f447d6e6fe4d",
+      "canonical_name": "Backpropagation",
+      "display_name": "Backpropagation",
+      "category": "ai_deep_learning",
+      "aot_layer": 2,
+      "metrics": {
+        "pagerank": 0.01,
+        "degree": 0,
+        "betweenness": 0.0,
+        "descendant_ratio": 0.6,
+        "prerequisite_ratio": 0.2,
+        "reachability_ratio": 0.5
+      },
+      "position_hint": null,
+      "source_refs": [],
+      "created_at": "2026-04-19T18:00:00Z",
+      "updated_at": "2026-04-19T18:00:00Z"
+    },
+    {
+      "id": "e304f447d6e6fe4e",
+      "canonical_name": "Adam Optimizer",
+      "display_name": "Adam Optimizer",
+      "category": "optimisation_reinforcement_learning",
+      "aot_layer": 2,
+      "metrics": {
+        "pagerank": 0.01,
+        "degree": 0,
+        "betweenness": 0.0,
+        "descendant_ratio": 0.6,
+        "prerequisite_ratio": 0.2,
+        "reachability_ratio": 0.5
+      },
+      "position_hint": null,
+      "source_refs": [],
+      "created_at": "2026-04-19T18:00:00Z",
+      "updated_at": "2026-04-19T18:00:00Z"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source_id": "e304f447d6e6fe4e",
+      "target_id": "b304f447d6e6fe4d",
+      "kind": "prerequisite",
+      "weight": 1.0,
+      "evidence": [
+        "Adam is a prerequisite for efficient backprop training"
+      ],
+      "created_at": "2026-04-19T18:00:00Z"
+    }
+  ]
+}

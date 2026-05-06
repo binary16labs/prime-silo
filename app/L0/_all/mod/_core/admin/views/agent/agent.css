@@ -1,0 +1,463 @@
+.admin-agent-root {
+  display: flex;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  --space-button-radius: 10px;
+  --space-button-gap: 6px;
+  --space-button-padding-y: 0.5rem;
+  --space-button-padding-x: 0.85rem;
+  --space-button-primary-bg: #17314d;
+  --space-button-primary-bg-hover: #1a3959;
+  --space-button-primary-shadow: none;
+  --space-button-secondary-border: transparent;
+  --space-button-secondary-border-hover: transparent;
+  --space-button-secondary-bg: transparent;
+  --space-button-secondary-bg-hover: rgba(19, 32, 51, 0.94);
+  --space-dialog-padding: 18px;
+  --space-dialog-radius: 16px;
+  --space-dialog-border: var(--admin-border);
+  --space-dialog-surface: #0c1626;
+  --space-dialog-shadow: none;
+  --space-field-bg: #101b2d;
+  --space-field-border: var(--admin-border);
+  --space-field-focus-border: var(--admin-border-strong);
+  --space-option-hover-bg: rgba(19, 32, 51, 0.94);
+  --space-composer-attachment-border: var(--admin-border);
+  --space-composer-attachment-bg: rgba(18, 29, 51, 0.62);
+  --agent-thread-gap: 18px;
+  --agent-thread-bubble-gap: 14px;
+  --agent-thread-user-bubble-max-width: min(calc(100% - 46px), 44rem);
+  --agent-thread-user-bubble-bg: #132033;
+  --agent-thread-avatar-user-bg: #132033;
+  --agent-thread-markdown-inline-bg: #111d31;
+  --agent-thread-markdown-block-bg: #0c1626;
+  --agent-thread-attachment-border: var(--admin-border);
+  --agent-thread-attachment-bg: rgba(18, 29, 51, 0.58);
+  --agent-thread-attachment-user-bg: rgba(148, 188, 255, 0.14);
+  --agent-thread-execution-bg: #0c1626;
+  --agent-thread-execution-pane-bg: #09131f;
+  --agent-thread-terminal-divider: var(--admin-border);
+  --agent-thread-prompt-history-divider: var(--admin-border);
+}
+
+.admin-agent-surface {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.admin-agent-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 0 12px;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.admin-agent-meta {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  min-width: 0;
+}
+
+.chat-option-label,
+.page-eyebrow,
+.field span,
+.prompt-history-role,
+.execution-pane-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.chat-option-value {
+  min-width: 0;
+  max-width: 14ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-option-llm .chat-option-value {
+  max-width: 18ch;
+}
+
+.chat-option-prompt .chat-option-value {
+  max-width: 16ch;
+}
+
+.admin-agent-provider-switch {
+  margin-top: 1.25rem;
+}
+
+.admin-agent-local-settings {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.admin-agent-local-provider-panel {
+  min-width: 0;
+}
+
+.admin-agent-local-provider-panel .huggingface-config-card {
+  width: 100%;
+  min-height: 0;
+}
+
+.admin-agent-local-provider-panel .huggingface-card {
+  box-shadow: none;
+}
+
+.chat-option x-icon {
+  font-size: 16px;
+  color: var(--color-accent-primary);
+}
+
+.admin-agent-root .secondary-button,
+.admin-agent-root .primary-button,
+.admin-agent-root .confirm-button,
+.admin-agent-root .execution-detail-button {
+  min-height: 34px;
+  padding: 0.5rem 0.85rem;
+  border-width: 0;
+  border-radius: 10px;
+}
+
+.admin-agent-root .secondary-button {
+  background: transparent;
+}
+
+.admin-agent-root .secondary-button:hover:not(:disabled),
+.admin-agent-root .secondary-button:focus-visible:not(:disabled) {
+  background: rgba(19, 32, 51, 0.94);
+}
+
+.admin-agent-root .secondary-button.danger,
+.admin-agent-root .chat-clear-button {
+  color: var(--color-danger);
+}
+
+.admin-agent-send-button {
+  color: var(--color-accent-primary);
+}
+
+.admin-agent-root .chat-option:disabled,
+.admin-agent-root .execution-detail-button:disabled,
+.admin-agent-root .assistant-message-action:disabled,
+.admin-agent-root .chat-composer textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-agent-thread-wrap {
+  min-height: 0;
+  overflow: auto;
+  padding: 18px 12px 12px 0;
+  scrollbar-gutter: stable both-edges;
+}
+
+.chat-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 100%;
+}
+
+.chat-thread.is-empty {
+  justify-content: stretch;
+}
+
+.chat-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chat-empty-bounce {
+  flex: 65 1 0;
+  position: relative;
+  overflow: hidden;
+  min-height: 120px;
+}
+
+/* Wrapper: bounces in X and Y via left/top — no transform conflict with spin.  */
+/* Phase delays are set randomly by JS so direction differs each load.           */
+/* Starts invisible; fades in after 0.6s once already in motion.                */
+.chat-empty-astronaut-wrap {
+  position: absolute;
+  width: 96px;
+  height: 96px;
+  opacity: 0;
+  animation:
+    admin-bounce-x 18s linear infinite alternate,
+    admin-bounce-y 13.4s linear infinite alternate,
+    admin-fadein 1s ease 0.6s forwards;
+}
+
+@keyframes admin-bounce-x {
+  from { left: 0; }
+  to   { left: calc(100% - 96px); }
+}
+
+@keyframes admin-bounce-y {
+  from { top: 0; }
+  to   { top: calc(100% - 96px); }
+}
+
+@keyframes admin-fadein {
+  to { opacity: 1; }
+}
+
+/* Image only handles rotation */
+.chat-empty-astronaut {
+  display: block;
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  animation: admin-bounce-spin 40s linear infinite;
+}
+
+@keyframes admin-bounce-spin {
+  to { transform: rotate(360deg); }
+}
+
+.chat-empty-hint {
+  flex: 35 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 2rem;
+  margin: 0;
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: 0.94rem;
+  line-height: 1.72;
+}
+
+.admin-agent-composer-wrap {
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--admin-border);
+}
+
+.admin-agent-history-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 0 12px;
+}
+
+.admin-agent-history-token-count {
+  color: var(--color-text-secondary);
+  font-size: 0.83rem;
+  line-height: 1.45;
+}
+
+.admin-agent-history-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  margin-left: auto;
+  gap: 4px;
+}
+
+.admin-agent-history-action {
+  min-height: 28px;
+  padding: 0.22rem 0.58rem;
+  font-size: 0.83rem;
+  line-height: 1.45;
+}
+
+.admin-agent-compact-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.admin-agent-compact-button:hover:not(:disabled),
+.admin-agent-compact-button:focus-visible:not(:disabled) {
+  background: rgba(19, 32, 51, 0.94);
+  color: var(--color-accent-primary);
+}
+
+.admin-agent-compact-button:focus-visible {
+  outline: 2px solid rgba(148, 188, 255, 0.18);
+  outline-offset: 2px;
+}
+
+.admin-agent-compact-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-agent-compact-button x-icon {
+  font-size: 16px;
+}
+
+.admin-agent-compact-button.is-active x-icon {
+  animation: agent-thread-spin 0.9s linear infinite;
+}
+
+.chat-composer {
+  position: relative;
+  padding: 12px 12px 10px;
+  border-radius: 12px;
+  background: #0c1626;
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.chat-composer.is-attachment-drag-active {
+  background: #101b2d;
+  box-shadow:
+    inset 0 0 0 1px rgba(148, 188, 255, 0.22),
+    0 0 0 1px rgba(148, 188, 255, 0.12);
+}
+
+.chat-composer.is-attachment-drag-active::after {
+  content: "Drop files to attach";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: inherit;
+  background: rgba(7, 13, 24, 0.64);
+  color: var(--color-accent-primary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.field select {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0.85rem 0.95rem;
+  box-sizing: border-box;
+  border: 1px solid var(--space-field-border);
+  border-radius: 1rem;
+  background: var(--space-field-bg);
+  color: var(--color-text);
+  font: inherit;
+  outline: none;
+}
+
+.field select:focus {
+  border-color: var(--space-field-focus-border);
+  box-shadow: 0 0 0 3px var(--space-field-focus-ring);
+}
+
+.dialog-actions-start {
+  justify-content: flex-start;
+}
+
+.admin-agent-local-actions {
+  margin-top: 0;
+}
+
+.chat-composer textarea {
+  display: block;
+  width: 100%;
+  min-height: 72px;
+  max-height: 220px;
+  resize: none;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  line-height: 1.6;
+}
+
+.chat-composer textarea:focus,
+.chat-composer textarea:focus-visible {
+  outline: none !important;
+  outline-offset: 0;
+}
+
+.composer-attachments {
+  margin-top: 10px;
+}
+
+.chat-composer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.admin-agent-composer-buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-agent-attach-button,
+.admin-agent-send-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.admin-agent-send-button.is-stop x-icon {
+  font-variation-settings: "FILL" 1;
+}
+
+.admin-agent-send-button.is-busy x-icon {
+  animation: agent-thread-spin 0.9s linear infinite;
+}
+
+.composer-hint {
+  font-size: 0.83rem;
+}
+
+@media (max-width: 720px) {
+  .admin-agent-toolbar,
+  .chat-composer-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .chat-option {
+    width: 100%;
+  }
+
+  .composer-attachments {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .message-row.user .message-bubble {
+    max-width: calc(100% - 46px);
+  }
+}

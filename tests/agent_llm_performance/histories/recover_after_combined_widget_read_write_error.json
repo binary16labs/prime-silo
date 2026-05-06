@@ -1,0 +1,14 @@
+[
+  {
+    "role": "user",
+    "content": "_____user\nthe snake game freezes whenever I press an arrow button"
+  },
+  {
+    "role": "assistant",
+    "content": "Patching the Snake controls now\n_____javascript\nconst widget = await space.current.readWidget(\"snake-game\");\nreturn await space.current.patchWidget(\"snake-game\", { edits: [] })"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution error\nerror: ExecutionPlanError: Widget discovery and dependent widget mutation must be separate turns. End after listWidgets(...) or readWidget(...), wait for the next turn, then patch or render."
+  }
+]

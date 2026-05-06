@@ -1,0 +1,33 @@
+{
+  "id": "space_navigation_read_is_not_completion",
+  "description": "reading a space metadata file is not the same as actually navigating there",
+  "history": "../histories/space_navigation_read_is_not_completion.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript",
+      "space-1"
+    ],
+    "must_match": [
+      {
+        "pattern": "openSpace\\(",
+        "flags": "u"
+      }
+    ],
+    "must_not_match": [
+      {
+        "pattern": "space\\.api\\.fileRead\\(",
+        "flags": "u"
+      }
+    ],
+    "must_not_contain": [
+      "Opened: Prostějov Weather",
+      "Opened: Prostejov Weather"
+    ]
+  }
+}

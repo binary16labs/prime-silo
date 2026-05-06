@@ -1,0 +1,15 @@
+# Each top-level key maps directly to server/lib/file_watch/handlers/<name>.js.
+# The canonical file index is owned directly by watchdog.js, not by a handler.
+# Directory entries end with a trailing slash.
+# Handlers receive only the change events whose paths match their own patterns.
+# These are logical `/app/...` project paths; `watchdog.js` maps writable `L1` and `L2`
+# to `CUSTOMWARE_PATH/L1` and `CUSTOMWARE_PATH/L2` when that runtime parameter is set.
+
+group_index:
+  - /app/L0/*/group.yaml
+  - /app/L1/*/group.yaml
+
+user_index:
+  - /app/L2/*/user.yaml
+  - /app/L2/*/meta/logins.json
+  - /app/L2/*/meta/password.json

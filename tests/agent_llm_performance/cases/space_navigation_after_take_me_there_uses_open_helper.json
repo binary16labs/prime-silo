@@ -1,0 +1,29 @@
+{
+  "id": "space_navigation_after_take_me_there_uses_open_helper",
+  "description": "after the user says take me there, the agent should call the open-space helper instead of rereading metadata",
+  "history": "../histories/space_navigation_after_take_me_there_uses_open_helper.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript",
+      "space-1"
+    ],
+    "must_match": [
+      {
+        "pattern": "openSpace\\(",
+        "flags": "u"
+      }
+    ],
+    "must_not_match": [
+      {
+        "pattern": "space\\.api\\.fileRead\\(",
+        "flags": "u"
+      }
+    ]
+  }
+}

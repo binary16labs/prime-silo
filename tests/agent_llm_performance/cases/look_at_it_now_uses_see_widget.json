@@ -1,0 +1,28 @@
+{
+  "id": "look_at_it_now_uses_see_widget",
+  "description": "when the user explicitly says to look and use the see function, the next reply should inspect the rendered widget, not claim to have looked already",
+  "history": "../histories/look_at_it_now_uses_see_widget.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript"
+    ],
+    "must_match": [
+      {
+        "pattern": "seeWidget\\(",
+        "flags": "u"
+      }
+    ],
+    "must_not_match": [
+      {
+        "pattern": "^I looked\\.|^Yes|^The widget",
+        "flags": "imu"
+      }
+    ]
+  }
+}

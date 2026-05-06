@@ -1,0 +1,94 @@
+# Space Agent
+
+> Browser-first AI agent runtime for building AI spaces, tools, widgets, and workflows directly in the browser, with a thin Node.js server for infrastructure, auth, and local hosting.
+
+## Summary
+
+Space Agent is a browser-first AI agent runtime from Agent Zero. The core idea is that the agent works inside the same frontend runtime that the user sees, instead of being bolted onto a fixed application surface. Users can ask the agent to build pages, tools, widgets, workflows, and other capabilities directly into the running workspace.
+
+The browser app is the primary runtime. The Node.js side exists as narrow infrastructure around it: outbound fetch proxying when browser requests would hit CORS limits, server-owned APIs and auth/session boundaries, local development support, and optional desktop hosting.
+
+The public site at `space-agent.ai` is the live demo entry point. The same project can also run as a desktop app or as a self-hosted server.
+
+## What Makes Space Agent Different
+
+- The agent reshapes the interface instead of staying trapped inside a fixed product surface.
+- The runtime is modular and layered, so capabilities can be added, removed, or swapped without welding everything into one rigid app.
+- New capabilities can live in simple `SKILL.md` files, which keeps extension work text-first and agent-friendly.
+- The system supports personal use as well as hierarchical group use, with per-user workspaces and shared group layers.
+- Admin mode and Git-backed time travel provide a stable recovery path when user or group changes need inspection or rollback.
+
+## Runtime Model
+
+- Browser app first: the browser runtime is the main application.
+- Thin server: the Node.js server handles infrastructure concerns rather than becoming the product runtime.
+- Layered customware: firmware lives in `app/L0`, group customware in `app/L1`, and user customware in `app/L2`.
+- Admin isolation: the `/admin` surface stays firmware-backed even when writable layers exist.
+- Documentation-first development: the repository uses a hierarchical `AGENTS.md` contract system so agents can understand ownership, architecture, and local implementation rules before changing code.
+
+## Ways To Use It
+
+### Live Demo
+
+Use `https://space-agent.ai` to try the hosted demo server with guest access when available.
+
+### Desktop App
+
+Download the latest desktop build from:
+
+- [Latest desktop release](https://github.com/agent0ai/space-agent/releases/latest)
+
+The desktop app runs the same browser-first runtime inside a packaged host, without requiring the user to manage a separate terminal session.
+
+### Self-Hosted Server
+
+Quick start from the README:
+
+```bash
+git clone https://github.com/agent0ai/space-agent.git
+cd space-agent
+npm install
+node space user create admin --password "change-me-now" --full-name "Admin" --groups _admin
+node space serve
+```
+
+For production-style hosting, the project also supports:
+
+```bash
+node space set CUSTOMWARE_PATH=/srv/space/customware
+node space supervise HOST=0.0.0.0 PORT=3000
+```
+
+## Key Commands
+
+- `node space serve`: run the server directly
+- `node space supervise`: run the zero-downtime supervisor for source checkouts
+- `npm run dev`: run the local development supervisor with auto-reload
+- `node space get` and `node space set`: inspect or store runtime parameters
+- `node space user create`: create a user such as an initial admin
+
+## Documentation And Agent Development
+
+Space Agent is developed with AI agents in mind. The repository keeps a documentation hierarchy rooted in `AGENTS.md`, with deeper `AGENTS.md` files for app, server, commands, packaging, tests, and important subsystems. These files are treated as binding runtime and architecture contracts for agents, not optional notes.
+
+The project also uses plain-text `SKILL.md` files for agent capabilities and focused workflows. This keeps much of the extension surface readable and writable by both humans and agents without inventing heavyweight custom formats.
+
+For a human-readable tour of the same codebase and concepts, use:
+
+- [DeepWiki](https://deepwiki.com/agent0ai/space-agent)
+
+For the primary public product overview and quick starts, use:
+
+- [README.md](https://raw.githubusercontent.com/agent0ai/space-agent/main/README.md)
+
+For the architecture and ownership contract map that governs changes in-repo, use:
+
+- [AGENTS.md](https://raw.githubusercontent.com/agent0ai/space-agent/main/AGENTS.md)
+
+## Important Links
+
+- [Live site](https://space-agent.ai/)
+- [Public login shell](https://space-agent.ai/login)
+- [GitHub repository](https://github.com/agent0ai/space-agent)
+- [Latest desktop release](https://github.com/agent0ai/space-agent/releases/latest)
+- [Agent Zero](https://agent-zero.ai)

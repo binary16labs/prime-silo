@@ -1,0 +1,18 @@
+[
+  {
+    "role": "user",
+    "content": "_____user\nsee the widget what it shows"
+  },
+  {
+    "role": "assistant",
+    "content": "Showing the quote widget now...\n_____javascript\nreturn await space.current.seeWidget(\"quote-board\")"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution success\nlog: [spaces] Captured stripped rendered HTML for widget \"quote-board\".\nresult↓\n<div><div><div>AAPL</div><div>—</div></div><div><div>MSFT</div><div>—</div></div><div><div>BTC-USD</div><div>—</div></div><div>Updated 09:56:52</div></div>"
+  },
+  {
+    "role": "user",
+    "content": "_____user\nthat's what im talking about"
+  }
+]

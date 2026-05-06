@@ -1,0 +1,33 @@
+{
+  "id": "space_navigation_after_user_push_uses_open_helper",
+  "description": "after wrongly claiming the space cannot be opened, the agent should switch to the real open-space helper when the user pushes back",
+  "history": "../histories/space_navigation_after_user_push_uses_open_helper.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript",
+      "space-1"
+    ],
+    "must_match": [
+      {
+        "pattern": "openSpace\\(",
+        "flags": "u"
+      }
+    ],
+    "must_not_match": [
+      {
+        "pattern": "space\\.api\\.fileRead\\(",
+        "flags": "u"
+      }
+    ],
+    "must_not_contain": [
+      "I can’t",
+      "I can't"
+    ]
+  }
+}

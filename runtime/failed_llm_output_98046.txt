@@ -1,0 +1,92 @@
+[
+  {
+    "subject": "Modern Institutional Economics",
+    "subject_type": "Theory",
+    "predicate": "is based on",
+    "object": "reductionist approaches",
+    "object_type": "Methodology",
+    "citation": "...based on reductionist approaches.",
+    0.95,
+
+  { 
+      subject: \"Digital Capitalism\", 
+      subject_type: \"Economic System\", 
+      predicate\": \"produces\", 
+      object\": \"institutions of unprecedented complexity\", 
+      object_type\"Concept",
+       citation": "But digital capitalism is producing institutions of unprecedented complexity.",
+       confidence": 0.95,
+
+ {
+    subject\": \"The Book (Digital Capitalism and New Institutionalism)\",
+    subject_type: \"Academic Work\", 
+    predicate\": \"argues for\", 
+      object\": \"adaptation of theoretical foundations to digital capitalism\" , 
+      object_type\": "Concept\",
+       citation": "...theoretical foundations for studying those institutions must now be adapted to digital capitalism.",
+        confidence": 0.95,
+
+ {
+     subject: \"The Book (Digital Capitalism and New Institutionalism)\", 
+     subject_type\": \"Academic Work\", 
+      predicate\": \"develops an interdisciplinary framework bringing together\", 
+       object\": \"object-oriented ontology, actor-network theory, evolutionary biology, cognitive science\" , 
+        object_type\": "Disciplines/Theories\"",
+         citation": "...bringing together cutting-edge theoretical approaches from philosophy (first of all, object-oriented ontology), sociology (especially actor–network theory), evolutionary biology, and cognitive science.",
+          confidence": 0.95
+
+}, {
+    subject: \"The Book\", 
+     subject_type\": \"Academic Work\", 
+      predicate\": \"outlines a new approach to institutional evolution based on\", 
+       object\": \"extended evolutionary synthesis\" , 
+        object_type\": "Paradigm\"",
+         citation": "...a new approach to the study of institutional evolution, based on extended evolutionary synthesis – a new paradigm in evolutionary biology...\"",
+          confidence": 0.95
+
+}, {
+    subject: \"The Book\", 
+     subject_type\": \"Academic Work\", 
+      predicate\": \"rejects\", 
+       object\": \"individualistic and mechanistic understanding of economic rationality\" , 
+        object_type\": "Concept\"",
+         citation": "...rejecting the individualistic and mechanistic understanding of economic rationality in digital environments.",
+          confidence": 0.95
+
+}, {
+    subject: \"The Book\", 
+     subject_type\": \"Academic Work\", 
+      predicate\": \"applies flat ontology approach to study\", 
+       object\": \"human–robot institutions, post-anthropocentric institutional design\" , 
+        object_type\": "Institutions/Design\"",
+         citation": "The flat ontology approach is applied to the study of human–robot institutions, as well as to thinking about post-­anthropocentric in-stitutional design.",
+          confidence": 0.95
+
+}, {
+    subject: \"Assemblage thinking\", 
+     subject_type\": \"Methodology\"",
+      predicate\": \"allows for a new look at\", 
+       object\": "blockchain and smart cities\" , 
+        object_type\": \"Technologies/Concepts\"",
+         citation": "Assemblage thinking allows for a new (much less idealistic) look at blockchain and smart cities.",
+          confidence": 0.95
+
+}, {
+    subject: \"Blockchain\", 
+     subject_type\": \"Technology\", 
+      predicate\": \"is considered by the book not from minimizing transaction costs but using\", 
+       object\": \"theory of transaction value\" , 
+        object_type\": "Economic Theory\"",
+         citation": "...not from the viewpoint of minimizing transaction costs (as is customary in the modern institutional economics), but by using the theory of transaction value which focuses on improving the quality of digital transactions.",
+          confidence": 0.95
+
+}, {
+    subject: \"The Book\", 
+     subject_type\": \"Academic Work\", 
+      predicate\": "includes examples ranging from", 
+       object\": "metaverses, cryptocurrencies, big data to robot rules, smart contracts, machine learning algorithms\" , 
+        object_type": \"Technologies/Concepts\"",
+         citation": "The book includes a wide range of examples ranging from metaverses, cryptocurrencies, and big data to robot rules, smart contracts, and machine learning algorithms.",
+          confidence": 0.95
+
+}

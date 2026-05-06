@@ -1,0 +1,29 @@
+<section class="admin-panel">
+  <div class="admin-card admin-info-card">
+    <p><x-icon>settings</x-icon> This is the administration area of Space Agent. It is part of the framework firmware and is intentionally unmodifiable. This area can be used to fix problems when customware breaks or to help with customware development. Standard maintenance and enhancements can be done with standard Space Agent itself.</p>
+  </div>
+  <template x-if="$store.adminPage.userSelfInfoLoaded && !$store.adminPage.isCurrentUserAdmin">
+    <div class="admin-card admin-info-card admin-info-card--warning">
+      <p><x-icon>group</x-icon> You are not a member of the <code>_admin</code> group, so you will only be able to modify your own directory and groups you are allowed to manage. <code>_admin</code> membership can be granted by other <code>_admin</code> members or through the CLI with <code>node space group add _admin user &lt;username&gt;</code>.</p>
+    </div>
+  </template>
+
+  <div class="admin-launch-grid" aria-label="Admin tools">
+    <template x-for="action in $store.adminPage.quickActions" :key="action.id">
+      <button class="admin-launch-card" type="button" @click="$store.adminPage.selectTab(action.targetTab)">
+        <template x-if="action.avatarPath">
+          <img class="admin-launch-avatar" :src="action.avatarPath" alt="" />
+        </template>
+        <template x-if="!action.avatarPath">
+          <x-icon x-text="action.icon"></x-icon>
+        </template>
+        <span x-text="action.label"></span>
+      </button>
+    </template>
+
+    <button class="admin-launch-card" type="button" @click="$store.adminShell.leaveAdminArea()">
+      <x-icon>exit_to_app</x-icon>
+      <span>Leave admin area</span>
+    </button>
+  </div>
+</section>

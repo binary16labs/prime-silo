@@ -1,0 +1,36 @@
+{
+  "id": "followup_after_wrong_space_removal_requires_discovery_execution",
+  "description": "after removing the wrong space and receiving a title-based correction, the next reply should execute discovery for the corrected target instead of staging-only narration or another blind removal",
+  "history": "../histories/followup_after_wrong_space_removal_requires_discovery_execution.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript"
+    ],
+    "must_match": [
+      {
+        "pattern": "space\\.spaces\\.listSpaces\\(",
+        "flags": "u"
+      }
+    ],
+    "must_not_match": [
+      {
+        "pattern": "removeSpace\\(",
+        "flags": "u"
+      },
+      {
+        "pattern": "openSpace\\(",
+        "flags": "u"
+      }
+    ],
+    "must_not_contain": [
+      "Removing the `game room` space now.",
+      "Removing the game room space now."
+    ]
+  }
+}

@@ -1,0 +1,69 @@
+@import "./google-icons.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+img {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(168, 186, 219, 0.28) transparent;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(168, 186, 219, 0.28) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(168, 186, 219, 0.28);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(168, 186, 219, 0.42);
+  background-clip: padding-box;
+}
+
+[x-cloak] {
+  display: none !important;
+}
+
+x-component,
+x-extension {
+  display: contents;
+}
+
+x-context {
+  display: none;
+}
+
+.loading,
+.error {
+  padding: 0.75rem;
+}
+
+.loading {
+  color: var(--color-text-muted);
+}
+
+.error {
+  color: var(--color-danger);
+}

@@ -1,0 +1,21 @@
+{
+  "id": "terminal_after_successful_retry_patch",
+  "description": "after a retry succeeds, the agent should stop and answer rather than narrate readiness for more work",
+  "history": "../histories/terminal_after_successful_retry_patch.json",
+  "expect": {
+    "response_type": "terminal",
+    "must_not_contain": [
+      "_____javascript",
+      "live snake source",
+      "source is ready",
+      "ready for a clean fix",
+      "ready for it"
+    ],
+    "must_not_match": [
+      {
+        "pattern": "^(?:Patching|Loading|Reading|Fetching|Updating)\\b",
+        "flags": "imu"
+      }
+    ]
+  }
+}

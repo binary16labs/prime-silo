@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PRD v1 (AOS-001)",
+  "description": "Product Requirements Document produced by `benny req` (AOS-F20, AOS-F22).",
+  "type": "object",
+  "required": ["id", "title", "features"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique PRD identifier, e.g. PRD-001."
+    },
+    "title": {
+      "type": "string"
+    },
+    "schema_version": {
+      "type": "string",
+      "const": "1.0",
+      "default": "1.0"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source_requirement": {
+      "type": "string",
+      "description": "Free-text requirement that was decomposed into this PRD."
+    },
+    "features": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "description"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "priority": {
+            "type": "string",
+            "enum": ["must", "should", "could", "wont"],
+            "default": "must"
+          },
+          "acceptance_criteria": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "bdd_scenarios": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "given", "when", "then"],
+              "additionalProperties": false,
+              "properties": {
+                "id": { "type": "string" },
+                "given": { "type": "string" },
+                "when": { "type": "string" },
+                "then": { "type": "string" },
+                "tags": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "stakeholder_mapping": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "List of feature IDs the stakeholder is interested in."
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}

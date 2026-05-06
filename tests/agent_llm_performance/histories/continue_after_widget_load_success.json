@@ -1,0 +1,14 @@
+[
+  {
+    "role": "user",
+    "content": "_____user\ngive the snake game a nice green background, old nokia like display"
+  },
+  {
+    "role": "assistant",
+    "content": "Loading the Snake widget source now...\n_____javascript\nreturn await space.current.readWidget(\"snake-game\")"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution success\nlog: [spaces] Widget \"snake-game\" loaded to TRANSIENT.\nresult↓\nWidget \"snake-game\" loaded to TRANSIENT."
+  }
+]

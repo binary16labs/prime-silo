@@ -1,0 +1,1985 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="application-name" content="Space Agent" />
+    <meta name="apple-mobile-web-app-title" content="Space Agent" />
+    <meta name="theme-color" content="#050816" />
+    <meta
+      name="description"
+      content="Browser-first AI agent runtime for building your own AI spaces, tools, and workflows directly in the browser."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Space Agent" />
+    <meta property="og:title" content="Space Agent | Browser-First AI Agent Runtime" />
+    <meta
+      property="og:description"
+      content="Browser-first AI agent runtime for building your own AI spaces, tools, and workflows directly in the browser."
+    />
+    <meta property="og:url" content="https://space-agent.ai/" />
+    <meta property="og:image" content="https://space-agent.ai/pages/res/readme-banner.webp" />
+    <meta property="og:image:type" content="image/webp" />
+    <meta property="og:image:width" content="1774" />
+    <meta property="og:image:height" content="887" />
+    <meta property="og:image:alt" content="Space Agent banner" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Space Agent | Browser-First AI Agent Runtime" />
+    <meta
+      name="twitter:description"
+      content="Browser-first AI agent runtime for building your own AI spaces, tools, and workflows directly in the browser."
+    />
+    <meta name="twitter:url" content="https://space-agent.ai/" />
+    <meta name="twitter:image" content="https://space-agent.ai/pages/res/readme-banner.webp" />
+    <meta name="twitter:image:alt" content="Space Agent banner" />
+    <title>Login | Space Agent</title>
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="stylesheet" href="/pages/res/space-backdrop.css" />
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
+        --color-canvas: #050816;
+        --color-canvas-elevated: #09111f;
+        --color-canvas-deep: #02050d;
+        --color-surface-1: #0d1628;
+        --color-surface-2: #121d33;
+        --color-surface-3: #182540;
+        --color-surface-glass: rgba(11, 18, 34, 0.78);
+        --color-border-soft: rgba(148, 167, 201, 0.16);
+        --color-border-strong: rgba(168, 186, 219, 0.28);
+        --color-text-primary: #f3f7ff;
+        --color-text-secondary: #b8c4da;
+        --color-text-tertiary: #8e9bb2;
+        --color-accent-primary: #7ddcff;
+        --color-accent-primary-strong: #94bcff;
+        --color-accent-primary-soft: rgba(125, 220, 255, 0.14);
+        --color-accent-secondary: #79edd8;
+        --color-accent-ink: #04101d;
+        --color-status-success: #7ce4b0;
+        --color-status-warning: #ffd166;
+        --color-status-danger: #ff8d98;
+        --color-layer-overlay: rgba(2, 7, 17, 0.68);
+        --color-backdrop-glow-primary: rgba(148, 188, 255, 0.18);
+        --color-backdrop-glow-secondary: rgba(121, 237, 216, 0.14);
+        --color-backdrop-glow-depth: rgba(59, 95, 172, 0.26);
+        --color-backdrop-star-strong: rgba(255, 255, 255, 0.76);
+        --color-backdrop-star-soft: rgba(255, 255, 255, 0.26);
+        --color-backdrop-star-accent: rgba(148, 188, 255, 0.48);
+        --color-backdrop-star-halo: rgba(255, 255, 255, 0.12);
+        --color-backdrop-star-halo-accent: rgba(148, 188, 255, 0.16);
+        --radius-panel: 26px;
+        --radius-control: 16px;
+        --space-2: 0.5rem;
+        --space-3: 0.875rem;
+        --space-4: 1.25rem;
+        --space-5: 1.75rem;
+        --space-6: 2.5rem;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body.space-theme-canvas :where(*, *::before, *::after) {
+        box-shadow: none !important;
+        text-shadow: none !important;
+      }
+
+      body.space-theme-canvas :focus-visible {
+        outline: 2px solid rgba(125, 220, 255, 0.55) !important;
+        outline-offset: 2px;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      html {
+        min-height: 100%;
+      }
+
+      body.space-theme-canvas {
+        display: grid;
+        align-items: center;
+        min-height: 100vh;
+        padding: clamp(0.875rem, 3vw, 2rem);
+        overflow-x: hidden;
+        overflow-y: auto;
+      }
+
+      @keyframes login-fadein {
+        from { opacity: 0; }
+        to   { opacity: 1; }
+      }
+
+      @keyframes login-fadeup {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+
+      .intro-art {
+        animation: login-fadein 1.35s ease-out both;
+        animation-delay: 0ms;
+      }
+
+      h1 {
+        animation: login-fadeup 1.35s ease-out both;
+        animation-delay: 330ms;
+      }
+
+      .intro-copy {
+        animation: login-fadeup 1.35s ease-out both;
+        animation-delay: 600ms;
+      }
+
+      .login-panel {
+        animation: login-fadeup 0.7s ease-out both;
+        animation-delay: 1150ms;
+      }
+
+      .shell-footer {
+        animation: login-fadeup 0.7s ease-out both;
+        animation-delay: 1320ms;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .intro-art,
+        h1,
+        .intro-copy,
+        .login-panel,
+        .shell-footer {
+          animation: none;
+        }
+      }
+
+      .shell {
+        position: relative;
+        z-index: 1;
+        width: min(56rem, 100%);
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(19.5rem, 24rem);
+        gap: clamp(1.5rem, 4vw, 3rem);
+        align-items: center;
+      }
+
+      .intro {
+        position: relative;
+        display: grid;
+        gap: 0.9rem;
+        padding-block: clamp(0.5rem, 2vw, 1.5rem);
+      }
+
+      .intro-floating-cluster {
+        position: relative;
+        display: grid;
+        grid-template-columns: minmax(0, 15.5rem) minmax(6.8rem, 9.8rem);
+        gap: clamp(0.3rem, 1.5vw, 0.95rem);
+        align-items: center;
+        width: fit-content;
+        max-width: 100%;
+      }
+
+      .intro-title {
+        --intro-title-float-x: 0px;
+        --intro-title-float-y: 0px;
+        --intro-title-rotate: 0deg;
+        position: relative;
+        z-index: 1;
+        min-width: 0;
+        transform:
+          translate3d(var(--intro-title-float-x), var(--intro-title-float-y), 0)
+          rotate(var(--intro-title-rotate));
+        transform-origin: 52% 52%;
+        will-change: transform;
+      }
+
+      .intro-art {
+        position: relative;
+        min-height: clamp(6.8rem, 15vw, 9.8rem);
+        display: grid;
+        place-items: center;
+      }
+
+      .intro-astronaut {
+        --astronaut-float-x: 0px;
+        --astronaut-float-y: 0px;
+        --astronaut-rotate: 0deg;
+        position: relative;
+        z-index: 0;
+        width: clamp(6.9rem, 15vw, 9.8rem);
+        opacity: 0.94;
+        pointer-events: none;
+        user-select: none;
+        transform:
+          translate3d(var(--astronaut-float-x), var(--astronaut-float-y), 0)
+          rotate(var(--astronaut-rotate));
+        transform-origin: 52% 56%;
+        will-change: transform;
+      }
+
+      h1 {
+        margin: 0;
+        max-width: 7ch;
+        font-size: clamp(2.7rem, 7vw, 4.6rem);
+        line-height: 0.96;
+        letter-spacing: -0.05em;
+      }
+
+      .intro-copy {
+        max-width: 17rem;
+        margin: 0;
+        color: var(--color-text-secondary);
+        font-size: 1rem;
+        line-height: 1.5;
+      }
+
+      .login-panel {
+        position: relative;
+        padding: clamp(var(--space-4), 3vw, 1.65rem);
+        border-radius: var(--radius-panel);
+        background: linear-gradient(180deg, rgba(10, 17, 31, 0.9), rgba(7, 13, 24, 0.82));
+        border: 1px solid var(--color-border-soft);
+        box-shadow:
+          var(--shadow-panel),
+          inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        backdrop-filter: blur(18px);
+      }
+
+      .browser-compat-panel {
+        position: relative;
+        padding: clamp(var(--space-4), 3vw, 1.65rem);
+        border-radius: var(--radius-panel);
+        background: linear-gradient(180deg, rgba(34, 14, 22, 0.9), rgba(11, 16, 29, 0.84));
+        border: 1px solid rgba(255, 141, 152, 0.28);
+        box-shadow:
+          var(--shadow-panel),
+          inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        backdrop-filter: blur(18px);
+        display: grid;
+        gap: var(--space-3);
+        align-self: stretch;
+      }
+
+      .browser-compat-eyebrow {
+        margin: 0;
+        color: var(--color-status-warning);
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .browser-compat-title {
+        margin: 0;
+        font-size: 1.65rem;
+        letter-spacing: -0.03em;
+      }
+
+      .browser-compat-copy,
+      .browser-compat-note {
+        margin: 0;
+        color: var(--color-text-secondary);
+        line-height: 1.55;
+      }
+
+      .browser-compat-list {
+        margin: 0;
+        padding-left: 1.25rem;
+        color: var(--color-text-secondary);
+        display: grid;
+        gap: 0.55rem;
+      }
+
+      .browser-compat-list strong {
+        color: var(--color-text-primary);
+      }
+
+      .browser-compat-note {
+        color: var(--color-text-tertiary);
+        font-size: 0.93rem;
+      }
+
+      h2,
+      h3 {
+        margin: 0;
+        letter-spacing: -0.03em;
+      }
+
+      h2 {
+        font-size: 1.65rem;
+      }
+
+      .panel-copy {
+        margin: 0.45rem 0 0;
+        color: var(--color-text-secondary);
+        line-height: 1.55;
+      }
+
+      label {
+        display: grid;
+        gap: 0.4rem;
+        font-size: 0.84rem;
+        font-weight: 600;
+        color: var(--color-text-primary);
+      }
+
+      form {
+        display: grid;
+        gap: var(--space-3);
+        margin-top: 0;
+      }
+
+      input {
+        width: 100%;
+        border: 1px solid var(--color-border-soft);
+        border-radius: var(--radius-control);
+        padding: 0.86rem 0.95rem;
+        font: inherit;
+        background: rgba(255, 255, 255, 0.035);
+        color: var(--color-text-primary);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+        transition:
+          border-color 160ms ease,
+          background-color 160ms ease,
+          box-shadow 160ms ease,
+          transform 160ms ease;
+      }
+
+      input::placeholder {
+        color: var(--color-text-tertiary);
+      }
+
+      input:hover {
+        border-color: rgba(168, 186, 219, 0.24);
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      input:focus-visible {
+        outline: none;
+        border-color: rgba(125, 220, 255, 0.5);
+        background: rgba(255, 255, 255, 0.06);
+        box-shadow:
+          0 0 0 4px rgba(125, 220, 255, 0.12),
+          0 0 24px rgba(148, 188, 255, 0.12);
+      }
+
+      input[readonly] {
+        color: var(--color-text-primary);
+        cursor: text;
+        background: rgba(255, 255, 255, 0.055);
+        border-color: rgba(168, 186, 219, 0.24);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.04),
+          0 0 0 1px rgba(125, 220, 255, 0.04);
+      }
+
+      button {
+        border: 0;
+        border-radius: var(--radius-control);
+        padding: 0.88rem 1rem;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+        transition:
+          box-shadow 160ms ease,
+          background-color 160ms ease,
+          border-color 160ms ease,
+          opacity 160ms ease;
+      }
+
+      button:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(125, 220, 255, 0.12);
+      }
+
+      .primary-button {
+        width: 100%;
+        color: var(--color-accent-ink);
+        background: linear-gradient(
+          135deg,
+          var(--color-accent-primary-strong) 0%,
+          var(--color-accent-secondary) 100%
+        );
+        box-shadow: 0 12px 26px rgba(59, 163, 186, 0.24);
+      }
+
+      .primary-button:hover:not(:disabled) {
+        box-shadow: 0 16px 30px rgba(59, 163, 186, 0.28);
+      }
+
+      button:disabled {
+        opacity: 0.68;
+        cursor: not-allowed;
+      }
+
+      .secondary-button {
+        width: 100%;
+        color: var(--color-text-primary);
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--color-border-soft);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      }
+
+      .secondary-button:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: var(--color-border-strong);
+      }
+
+      .secondary-link {
+        display: grid;
+        place-items: center;
+        width: 100%;
+        min-height: calc(0.88rem * 2 + 1rem);
+        padding: 0.88rem 1rem;
+        border-radius: var(--radius-control);
+        color: #ffffff;
+        font-size: 1rem;
+        font-weight: 600;
+        line-height: 1.4;
+        text-align: center;
+        text-decoration: none;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(148, 167, 201, 0.12);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+        transition:
+          box-shadow 160ms ease,
+          background-color 160ms ease,
+          border-color 160ms ease,
+          color 160ms ease,
+          opacity 160ms ease;
+      }
+
+      .secondary-link:hover {
+        background: rgba(255, 255, 255, 0.04);
+        border-color: rgba(168, 186, 219, 0.24);
+      }
+
+      .secondary-link:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(125, 220, 255, 0.12);
+      }
+
+      .run-options-trigger {
+        appearance: none;
+      }
+
+      .run-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        display: grid;
+        place-items: center;
+        padding: clamp(1rem, 4vw, 2rem);
+      }
+
+      .run-modal-backdrop {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at 28% 20%, rgba(125, 220, 255, 0.12), transparent 32rem),
+          rgba(2, 7, 17, 0.78);
+        backdrop-filter: blur(12px);
+      }
+
+      .run-modal-dialog {
+        position: relative;
+        z-index: 1;
+        width: min(44rem, 100%);
+        max-height: min(42rem, calc(100vh - 2rem));
+        overflow-y: auto;
+        padding: 1.35rem;
+        border: 1px solid var(--color-border-strong);
+        border-radius: 8px;
+        background: linear-gradient(180deg, rgba(10, 17, 31, 0.96), rgba(6, 12, 23, 0.94));
+        box-shadow:
+          0 28px 72px rgba(0, 0, 0, 0.48),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      }
+
+      .run-modal-close {
+        position: absolute;
+        top: 0.8rem;
+        right: 0.8rem;
+        display: grid;
+        place-items: center;
+        width: 2.3rem;
+        height: 2.3rem;
+        padding: 0;
+        border: 1px solid var(--color-border-soft);
+        border-radius: 8px;
+        color: var(--color-text-primary);
+        background: rgba(255, 255, 255, 0.035);
+      }
+
+      .run-modal-close:hover {
+        border-color: var(--color-border-strong);
+        background: rgba(255, 255, 255, 0.07);
+      }
+
+      .run-modal-close svg,
+      .run-icon {
+        width: 1.25rem;
+        height: 1.25rem;
+        flex: 0 0 auto;
+      }
+
+      .run-modal-title {
+        margin: 0.3rem 3rem 0 0;
+        font-size: 2rem;
+        letter-spacing: 0;
+        line-height: 1.05;
+      }
+
+      .run-modal-subtitle {
+        max-width: 38rem;
+        margin: 0.75rem 3rem 0 0;
+        color: var(--color-text-secondary);
+        line-height: 1.55;
+      }
+
+      .run-choices {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-top: 1.35rem;
+        border-top: 1px solid rgba(148, 167, 201, 0.16);
+      }
+
+      .run-choice {
+        display: flex;
+        min-width: 0;
+        min-height: 17rem;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.6rem 1.1rem 0.25rem;
+        text-align: center;
+      }
+
+      .run-choice + .run-choice {
+        border-left: 1px solid rgba(148, 167, 201, 0.16);
+      }
+
+      .run-choice-title {
+        margin: 0;
+        font-size: 1.35rem;
+        letter-spacing: 0;
+        line-height: 1.1;
+      }
+
+      .run-choice-copy {
+        min-height: 3.4rem;
+        margin: 0;
+        color: var(--color-text-secondary);
+        font-size: 0.95rem;
+        line-height: 1.45;
+      }
+
+      .run-choice-icon {
+        width: 6rem;
+        height: 6rem;
+        margin-block: 0.05rem 0.25rem;
+        color: var(--color-accent-primary);
+      }
+
+      .run-choice:nth-child(2) .run-choice-icon {
+        color: var(--color-accent-secondary);
+      }
+
+      .run-action-link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        width: 100%;
+        min-height: 3.5rem;
+        margin-top: auto;
+        padding: 0.95rem 1rem;
+        border: 1px solid var(--color-border-soft);
+        border-radius: 8px;
+        color: var(--color-text-primary);
+        font-weight: 700;
+        line-height: 1.2;
+        text-decoration: none;
+        background: rgba(255, 255, 255, 0.03);
+        transition:
+          background-color 160ms ease,
+          border-color 160ms ease,
+          box-shadow 160ms ease;
+      }
+
+      .run-action-link:hover {
+        border-color: rgba(125, 220, 255, 0.38);
+        background: rgba(125, 220, 255, 0.08);
+      }
+
+      .run-action-link:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(125, 220, 255, 0.12);
+      }
+
+      .run-action-primary {
+        color: var(--color-accent-ink);
+        background: linear-gradient(135deg, var(--color-accent-primary-strong), var(--color-accent-secondary));
+        border-color: transparent;
+      }
+
+      .run-action-primary:hover {
+        border-color: transparent;
+        background: linear-gradient(135deg, #a4c7ff, #8ef2df);
+      }
+
+      .run-action-label {
+        min-width: 0;
+      }
+
+      .run-icon-group {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        color: currentColor;
+        flex: 0 0 auto;
+      }
+
+      .login-separator {
+        margin: 1.75rem 0 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        color: var(--color-text-tertiary);
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+      }
+
+      .login-separator::before,
+      .login-separator::after {
+        content: "";
+        flex: 1 1 auto;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(148, 167, 201, 0.22), transparent);
+      }
+
+      .field-note {
+        margin: 0.45rem 0 0.95rem;
+        color: #ffffff;
+        font-size: 1rem;
+        font-weight: 500;
+        line-height: 1.5;
+      }
+
+      .field-note-secondary {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.4rem;
+        margin-top: 0.4rem;
+        color: var(--color-status-warning);
+      }
+
+      .field-note-warning-icon {
+        flex: 0 0 auto;
+        width: 1.15rem;
+        height: 1.15rem;
+        margin-top: 0.15rem;
+        color: var(--color-status-warning);
+      }
+
+      .status {
+        margin-top: 0;
+        font-size: 0.88rem;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+        color: var(--color-text-secondary);
+      }
+
+      .status:not(:empty) {
+        margin-top: 0.9rem;
+      }
+
+      .status.error {
+        color: var(--color-status-danger);
+      }
+
+      .status.ok {
+        color: var(--color-status-success);
+      }
+
+      .shell-footer {
+        grid-column: 1 / -1;
+        display: grid;
+        justify-items: center;
+        gap: 0.65rem;
+      }
+
+      .public-links {
+        pointer-events: auto;
+      }
+
+      .public-links-list {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .public-link {
+        display: grid;
+        place-items: center;
+        width: 2.2rem;
+        height: 2.2rem;
+        border-radius: 999px;
+        opacity: 0.72;
+        transition:
+          opacity 160ms ease,
+          background-color 160ms ease,
+          box-shadow 160ms ease;
+      }
+
+      .public-link:hover {
+        opacity: 0.96;
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .public-link:focus-visible {
+        outline: none;
+        opacity: 1;
+        background: rgba(255, 255, 255, 0.05);
+        box-shadow: 0 0 0 4px rgba(125, 220, 255, 0.12);
+      }
+
+      .public-link-icon {
+        display: block;
+        width: 1.2rem;
+        height: 1.2rem;
+      }
+
+      .public-link-icon-agent-zero {
+        width: 1.44rem;
+        height: 1.44rem;
+      }
+
+      .instance-version {
+        margin: 0;
+        color: #ffffff;
+        font-size: 0.84rem;
+        font-weight: 650;
+        line-height: 1.4;
+        text-align: center;
+        opacity: 0.74;
+        pointer-events: none;
+        text-shadow:
+          0 1px 18px rgba(255, 255, 255, 0.22),
+          0 9px 24px rgba(0, 0, 0, 0.38);
+        user-select: none;
+      }
+
+      @media (max-width: 760px) {
+        body.space-theme-canvas {
+          display: block;
+          padding: 1rem 0.85rem 1.35rem;
+        }
+
+        .shell {
+          grid-template-columns: 1fr;
+          gap: 1rem;
+        }
+
+        .intro {
+          max-width: 100%;
+          padding-block: 0 0.45rem;
+          padding-inline: 0.95rem;
+        }
+
+        .intro-floating-cluster {
+          grid-template-columns: minmax(0, 12.6rem) clamp(8.1rem, 36vw, 10.2rem);
+          gap: 0;
+        }
+
+        .intro-art {
+          min-height: clamp(8.1rem, 36vw, 10.2rem);
+          justify-items: start;
+        }
+
+        .intro-astronaut {
+          width: clamp(8.1rem, 36vw, 10.2rem);
+        }
+
+        h1 {
+          max-width: 6.3ch;
+          font-size: clamp(2.25rem, 12vw, 3.3rem);
+        }
+
+        .intro-copy {
+          max-width: 11.6rem;
+          font-size: 0.9rem;
+          line-height: 1.42;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .intro {
+          padding-inline: 1.2rem;
+        }
+
+        .intro-floating-cluster {
+          grid-template-columns: minmax(0, 10.8rem) clamp(7.35rem, 36vw, 8.85rem);
+          gap: 0;
+        }
+
+        .intro-art {
+          min-height: clamp(7.35rem, 36vw, 8.85rem);
+          justify-items: start;
+        }
+
+        .intro-astronaut {
+          width: clamp(7.35rem, 36vw, 8.85rem);
+          opacity: 0.9;
+        }
+
+        .login-panel {
+          padding: 1rem;
+          border-radius: 22px;
+        }
+
+        .intro-copy,
+        .panel-copy,
+        .field-note {
+          font-size: 0.95rem;
+          line-height: 1.5;
+        }
+
+        input,
+        button {
+          padding-block: 0.82rem;
+        }
+
+        .run-modal {
+          align-items: end;
+          padding: 0.75rem;
+        }
+
+        .run-modal-dialog {
+          max-height: min(42rem, calc(100vh - 1.5rem));
+          padding: 1rem;
+        }
+
+        .run-modal-title {
+          font-size: 1.6rem;
+        }
+
+        .run-modal-subtitle {
+          margin-right: 0;
+          font-size: 0.95rem;
+        }
+
+        .run-choices {
+          grid-template-columns: 1fr;
+          margin-top: 1.1rem;
+        }
+
+        .run-choice {
+          min-height: 14.5rem;
+          padding: 1.35rem 0 1.25rem;
+        }
+
+        .run-choice + .run-choice {
+          border-top: 1px solid rgba(148, 167, 201, 0.16);
+          border-left: 0;
+        }
+
+        .run-choice-icon {
+          width: 4.8rem;
+          height: 4.8rem;
+        }
+
+        .run-choice-copy {
+          min-height: 0;
+        }
+
+        .run-action-link {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body class="space-theme-canvas">
+    <div class="space-backdrop" data-space-backdrop aria-hidden="true">
+      <div class="space-backdrop-layer space-backdrop-glow"></div>
+      <div class="space-backdrop-layer space-backdrop-stars space-backdrop-stars-deep"></div>
+      <div class="space-backdrop-layer space-backdrop-stars space-backdrop-stars-far"></div>
+      <div class="space-backdrop-layer space-backdrop-stars space-backdrop-stars-mid"></div>
+      <div class="space-backdrop-layer space-backdrop-stars space-backdrop-stars-near"></div>
+      <div class="space-backdrop-layer space-backdrop-stars space-backdrop-stars-close"></div>
+      <div class="space-backdrop-trails">
+        <div class="space-backdrop-trail" data-space-backdrop-trail></div>
+        <div class="space-backdrop-trail" data-space-backdrop-trail></div>
+      </div>
+    </div>
+    <main class="shell">
+      <section class="intro" aria-label="Space Agent overview">
+        <div id="intro-floating-cluster" class="intro-floating-cluster">
+          <div id="intro-title" class="intro-title">
+            <h1>Space Agent</h1>
+          </div>
+          <div class="intro-art" aria-hidden="true">
+            <img
+              id="intro-astronaut"
+              class="intro-astronaut"
+              src="/pages/res/astronaut_no_bg.webp"
+              alt=""
+              decoding="async"
+              draggable="false"
+            />
+          </div>
+        </div>
+        <p class="intro-copy">
+          Free and open-source AI agent<br />
+          that builds your space.<br />
+          Right in the browser.
+        </p>
+      </section>
+
+      <section class="login-panel" aria-label="Login form" data-space-browser-compat-hide-on-fail>
+        <div id="login-actions">
+          <form id="login-form">
+            <label>
+              <span>Username</span>
+              <input id="username" name="username" type="text" autocomplete="username" required />
+            </label>
+            <label>
+              <span>Password</span>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autocomplete="current-password"
+                required
+              />
+            </label>
+            <p id="field-note" class="field-note" hidden>
+            Guest account ready, save your credentials.
+            <span class="field-note-secondary">
+              <svg
+                class="field-note-warning-icon"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path
+                  d="M1 21h22L12 2 1 21Zm12-3h-2v-2h2v2Zm0-4h-2v-4h2v4Z"
+                  fill="currentColor"
+                />
+              </svg>
+              Guest accounts are temporary and may be removed any time.
+            </span>
+            </p>
+            <button id="submit-button" class="secondary-button" type="submit">Enter your Space</button>
+          </form>
+          <div id="guest-option-group">
+            <div class="login-separator">or</div>
+            <button id="guest-create-button" class="primary-button" type="button">
+              Use Guest Account
+            </button>
+          </div>
+        </div>
+        <p id="login-disabled-copy" class="field-note" hidden>
+          Login is disabled in this system.
+        </p>
+        <div class="login-separator">or</div>
+        <button
+          id="run-options-button"
+          class="secondary-link run-options-trigger"
+          type="button"
+          aria-haspopup="dialog"
+          aria-controls="run-options-modal"
+        >
+          Run it yourself for privacy and control
+        </button>
+        <div id="status" class="status" role="status" aria-live="polite"></div>
+      </section>
+
+      <section
+        class="browser-compat-panel"
+        aria-label="Browser compatibility warning"
+        aria-live="assertive"
+        data-space-browser-compat-target
+        hidden
+      ></section>
+
+      <div class="shell-footer">
+        <nav class="public-links" aria-label="Space Agent links">
+          <ul class="public-links-list">
+            <li>
+              <a
+                class="public-link"
+                href="https://github.com/agent0ai/space-agent"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="GitHub repository"
+              >
+                <img
+                  class="public-link-icon"
+                  src="/pages/res/social-github.svg"
+                  alt=""
+                  decoding="async"
+                />
+              </a>
+            </li>
+            <li>
+              <a
+                class="public-link"
+                href="https://discord.gg/B8KZKNsPpj"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Discord community"
+              >
+                <img
+                  class="public-link-icon"
+                  src="/pages/res/social-discord.svg"
+                  alt=""
+                  decoding="async"
+                />
+              </a>
+            </li>
+            <li>
+              <a
+                class="public-link"
+                href="https://x.com/Agent0ai"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Agent Zero on X"
+              >
+                <img
+                  class="public-link-icon"
+                  src="/pages/res/social-x.svg"
+                  alt=""
+                  decoding="async"
+                />
+              </a>
+            </li>
+            <li>
+              <a
+                class="public-link"
+                href="https://agent-zero.ai"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Agent Zero website"
+              >
+                <img
+                  class="public-link-icon public-link-icon-agent-zero"
+                  src="/pages/res/social-agent-zero.svg"
+                  alt=""
+                  decoding="async"
+                />
+              </a>
+            </li>
+          </ul>
+        </nav>
+        <p class="instance-version" aria-label="Instance version">
+          <span><!-- SPACE_PROJECT_VERSION --></span>
+        </p>
+      </div>
+    </main>
+    <div
+      id="run-options-modal"
+      class="run-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="run-modal-title"
+      hidden
+    >
+      <div class="run-modal-backdrop" data-run-modal-close></div>
+      <section class="run-modal-dialog" tabindex="-1">
+        <button
+          id="run-modal-close-button"
+          class="run-modal-close"
+          type="button"
+          aria-label="Close run options"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M6.4 5.1 12 10.7l5.6-5.6 1.3 1.3-5.6 5.6 5.6 5.6-1.3 1.3-5.6-5.6-5.6 5.6-1.3-1.3 5.6-5.6-5.6-5.6 1.3-1.3Z"
+              fill="currentColor"
+            />
+          </svg>
+        </button>
+        <h2 id="run-modal-title" class="run-modal-title">Run it yourself</h2>
+        <p class="run-modal-subtitle">
+          For complete privacy and security, use the standalone application or host the
+          Space Agent server yourself. Both options include full extensibility and all features.
+        </p>
+        <div class="run-choices">
+          <section class="run-choice" aria-labelledby="run-native-title">
+            <h3 id="run-native-title" class="run-choice-title">Native App</h3>
+            <p class="run-choice-copy">
+              Includes both the browser runtime and backend layer in one package.
+            </p>
+            <svg class="run-choice-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 18q.825 0 1.413-.587Q22 16.825 22 16V6q0-.825-.587-1.413Q20.825 4 20 4H4q-.825 0-1.413.587Q2 5.175 2 6v10q0 .825.587 1.413Q3.175 18 4 18H0v2h24v-2h-4ZM4 6h16v10H4V6Z" fill="currentColor" />
+            </svg>
+            <a
+              class="run-action-link run-action-primary"
+              href="https://github.com/agent0ai/space-agent/releases/latest"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span class="run-action-label">Download native App</span>
+              <span class="run-icon-group" aria-hidden="true">
+                <svg class="run-icon" viewBox="-1.5 0 20 20">
+                  <g transform="translate(-102 -7439)" fill="currentColor">
+                    <g transform="translate(56 160)">
+                      <path d="M57.5708873,7282.19296 C58.2999598,7281.34797 58.7914012,7280.17098 58.6569121,7279 C57.6062792,7279.04 56.3352055,7279.67099 55.5818643,7280.51498 C54.905374,7281.26397 54.3148354,7282.46095 54.4735932,7283.60894 C55.6455696,7283.69593 56.8418148,7283.03894 57.5708873,7282.19296 M60.1989864,7289.62485 C60.2283111,7292.65181 62.9696641,7293.65879 63,7293.67179 C62.9777537,7293.74279 62.562152,7295.10677 61.5560117,7296.51675 C60.6853718,7297.73474 59.7823735,7298.94772 58.3596204,7298.97372 C56.9621472,7298.99872 56.5121648,7298.17973 54.9134635,7298.17973 C53.3157735,7298.17973 52.8162425,7298.94772 51.4935978,7298.99872 C50.1203933,7299.04772 49.0738052,7297.68074 48.197098,7296.46676 C46.4032359,7293.98379 45.0330649,7289.44985 46.8734421,7286.3899 C47.7875635,7284.87092 49.4206455,7283.90793 51.1942837,7283.88393 C52.5422083,7283.85893 53.8153044,7284.75292 54.6394294,7284.75292 C55.4635543,7284.75292 57.0106846,7283.67793 58.6366882,7283.83593 C59.3172232,7283.86293 61.2283842,7284.09893 62.4549652,7285.8199 C62.355868,7285.8789 60.1747177,7287.09489 60.1989864,7289.62485" />
+                    </g>
+                  </g>
+                </svg>
+                <svg class="run-icon" viewBox="0 0 20 20">
+                  <g transform="translate(-60 -7439)" fill="currentColor">
+                    <g transform="translate(56 160)">
+                      <path d="M13.1458647,7289.43426 C13.1508772,7291.43316 13.1568922,7294.82929 13.1619048,7297.46884 C16.7759398,7297.95757 20.3899749,7298.4613 23.997995,7299 C23.997995,7295.84873 24.002005,7292.71146 23.997995,7289.71311 C20.3809524,7289.71311 16.7649123,7289.43426 13.1458647,7289.43426 M4,7289.43526 L4,7296.22153 C6.72581454,7296.58933 9.45162907,7296.94113 12.1724311,7297.34291 C12.1774436,7294.71736 12.1704261,7292.0908 12.1704261,7289.46524 C9.44661654,7289.47024 6.72380952,7289.42627 4,7289.43526 M4,7281.84344 L4,7288.61071 C6.72581454,7288.61771 9.45162907,7288.57673 12.1774436,7288.57973 C12.1754386,7285.96017 12.1754386,7283.34361 12.1724311,7280.72405 C9.44461153,7281.06486 6.71679198,7281.42567 4,7281.84344 M24,7288.47179 C20.3879699,7288.48578 16.7759398,7288.54075 13.1619048,7288.55175 C13.1598997,7285.88921 13.1598997,7283.22967 13.1619048,7280.56914 C16.7689223,7280.01844 20.3839599,7279.50072 23.997995,7279 C24,7282.15826 23.997995,7285.31353 24,7288.47179" />
+                    </g>
+                  </g>
+                </svg>
+                <svg class="run-icon" viewBox="0 0 24 24">
+                  <path
+                    d="M14.62,8.35c-.42.28-1.75,1-1.95,1.19a.82.82,0,0,1-1.14,0c-.2-.16-1.53-.92-1.95-1.19s-.45-.7.08-.92a6.16,6.16,0,0,1,4.91,0c.49.21.51.6,0,.9m7.22,7.28A19.09,19.09,0,0,0,18,10a4.31,4.31,0,0,1-1.06-1.88c-.1-.33-.17-.67-.24-1A11.32,11.32,0,0,0,16,4.47,4.06,4.06,0,0,0,12.16,2,4.2,4.2,0,0,0,8.21,4.4a5.9,5.9,0,0,0-.46,1.34c-.17.76-.32,1.55-.5,2.32a3.38,3.38,0,0,1-1,1.71,19.53,19.53,0,0,0-3.88,5.35A6.09,6.09,0,0,0,2,16c-.19.66.29,1.12,1,1,.44-.09.88-.18,1.3-.31s.57,0,.67.35a6.73,6.73,0,0,0,4.24,4.5c4.12,1.56,8.93-.66,10-4.58.07-.27.17-.37.47-.27.46.14.93.24,1.4.35a.72.72,0,0,0,.92-.64,1.44,1.44,0,0,0-.16-.73"
+                    fill="currentColor"
+                  />
+                </svg>
+              </span>
+            </a>
+          </section>
+          <section class="run-choice" aria-labelledby="run-server-title">
+            <h3 id="run-server-title" class="run-choice-title">Own Server</h3>
+            <p class="run-choice-copy">
+              Designed for multi-user setups, including group management.
+            </p>
+            <svg class="run-choice-icon" viewBox="0 -960 960 960" aria-hidden="true">
+              <path d="M300-720q-25 0-42.5 17.5T240-660q0 25 17.5 42.5T300-600q25 0 42.5-17.5T360-660q0-25-17.5-42.5T300-720Zm0 400q-25 0-42.5 17.5T240-260q0 25 17.5 42.5T300-200q25 0 42.5-17.5T360-260q0-25-17.5-42.5T300-320ZM160-840h640q17 0 28.5 11.5T840-800v280q0 17-11.5 28.5T800-480H160q-17 0-28.5-11.5T120-520v-280q0-17 11.5-28.5T160-840Zm40 80v200h560v-200H200Zm-40 320h640q17 0 28.5 11.5T840-400v280q0 17-11.5 28.5T800-80H160q-17 0-28.5-11.5T120-120v-280q0-17 11.5-28.5T160-440Zm40 80v200h560v-200H200Zm0-400v200-200Zm0 400v200-200Z" fill="currentColor" />
+            </svg>
+            <a
+              class="run-action-link"
+              href="https://github.com/agent0ai/space-agent#host"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span class="run-action-label">See how to host Space Agent</span>
+            </a>
+          </section>
+        </div>
+      </section>
+    </div>
+    <script src="/pages/res/space-backdrop.js"></script>
+    <script src="/pages/res/browser-compat.js"></script>
+    <script>
+      (async function () {
+        function logLoginError(label, error, details) {
+          const normalizedLabel = String(label || "Login shell failure").trim();
+
+          if (details !== undefined) {
+            console.error(`[space-login] ${normalizedLabel}`, details, error);
+            return;
+          }
+
+          console.error(`[space-login] ${normalizedLabel}`, error);
+        }
+
+        function logLoginWarning(label, error, details) {
+          const normalizedLabel = String(label || "Login shell warning").trim();
+
+          if (details !== undefined) {
+            console.warn(`[space-login] ${normalizedLabel}`, details, error);
+            return;
+          }
+
+          console.warn(`[space-login] ${normalizedLabel}`, error);
+        }
+
+        window.addEventListener("error", (event) => {
+          logLoginError("Unhandled window error", event.error || event, {
+            colno: event.colno,
+            filename: event.filename,
+            lineno: event.lineno,
+            message: event.message
+          });
+        });
+
+        window.addEventListener("unhandledrejection", (event) => {
+          logLoginError("Unhandled promise rejection", event.reason || event);
+        });
+
+        try {
+          const browserCompatibility = await window.SpaceBrowserCompatibility.check();
+
+          if (!browserCompatibility?.ok) {
+            return;
+          }
+
+      const ENTER_TAB_ACCESS_KEY = "space.enter.tab-access";
+      const LOGIN_PREFIX = "space-login-v1";
+      const CLIENT_KEY_LABEL = "Client Key";
+      const SERVER_KEY_LABEL = "Server Key";
+      const TAU = Math.PI * 2;
+      // Tune the title and astronaut independently here when the login shell motion needs retuning.
+      const TITLE_FLOAT_PARAMS = Object.freeze({
+        movementDistance: 1.5,
+        movementSpeed: 1.5,
+        rotationDistance: 1.5,
+        rotationSpeed: 1.5
+      });
+      const FRONTEND_CONFIG_META_NAME = "space-config";
+      // Change this one float to shift the astronaut's starting pose, drift direction, and pace.
+      const ASTRONAUT_FLOAT_VARIANT = 0.5;
+      const ASTRONAUT_FLOAT_PARAMS = Object.freeze({
+        movementDistance: 3,
+        movementSpeed: 0.9,
+        rotationDistance: 0.6,
+        rotationSpeed: 0.45
+      });
+      const astronautOrbitOffsetTurns = positiveModulo(ASTRONAUT_FLOAT_VARIANT, 1);
+      const astronautRotationOffsetTurns = positiveModulo(ASTRONAUT_FLOAT_VARIANT * 1.61803398875, 1);
+      const astronautOrbitDirection = positiveModulo(ASTRONAUT_FLOAT_VARIANT, 2) < 1 ? 1 : -1;
+      const astronautRotationDirection =
+        positiveModulo(ASTRONAUT_FLOAT_VARIANT * 0.73, 2) < 1 ? 1 : -1;
+      const astronautSpeedMultiplier = 0.82 + (positiveModulo(ASTRONAUT_FLOAT_VARIANT * 2.37, 1) * 0.56);
+      const TITLE_FLOAT_PROFILE = buildFloatProfile(
+        Object.freeze({
+          orbitPeriodMs: 11800,
+          rotationAmplitude: 4.5,
+          rotationPeriodMs: 16200,
+          xRadius: 6.6,
+          yRadius: 7.4
+        }),
+        TITLE_FLOAT_PARAMS
+      );
+      const ASTRONAUT_FLOAT_PROFILE = buildFloatProfile(
+        Object.freeze({
+          orbitPeriodMs: 12400,
+          rotationAmplitude: 100,
+          rotationLimitEnabled: false,
+          rotationMaxDeg: 30,
+          rotationPeriodMs: 17600,
+          xRadius: 7.2,
+          yRadius: 8.2
+        }),
+        Object.freeze({
+          ...ASTRONAUT_FLOAT_PARAMS,
+          movementSpeed: ASTRONAUT_FLOAT_PARAMS.movementSpeed * astronautSpeedMultiplier,
+          rotationSpeed: ASTRONAUT_FLOAT_PARAMS.rotationSpeed * astronautSpeedMultiplier
+        })
+      );
+      const textEncoder = new TextEncoder();
+      const stateVersionModulePromise = import("/pages/res/state-version.js");
+      const userCryptoModulePromise = import("/pages/res/user-crypto.js");
+      const form = document.getElementById("login-form");
+      const loginActions = document.getElementById("login-actions");
+      const usernameInput = document.getElementById("username");
+      const passwordInput = document.getElementById("password");
+      const fieldNote = document.getElementById("field-note");
+      const guestOptionGroup = document.getElementById("guest-option-group");
+      const loginDisabledCopy = document.getElementById("login-disabled-copy");
+      const submitButton = document.getElementById("submit-button");
+      const guestCreateButton = document.getElementById("guest-create-button");
+      const runOptionsButton = document.getElementById("run-options-button");
+      const runOptionsModal = document.getElementById("run-options-modal");
+      const runModalDialog = runOptionsModal?.querySelector(".run-modal-dialog");
+      const runModalCloseButton = document.getElementById("run-modal-close-button");
+      const runModalCloseTargets = document.querySelectorAll("[data-run-modal-close]");
+      const introTitle = document.getElementById("intro-title");
+      const introAstronaut = document.getElementById("intro-astronaut");
+      const spaceBackdropRoot = document.querySelector("[data-space-backdrop]");
+      const spaceThemeCanvas = document.body;
+      const statusEl = document.getElementById("status");
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+      const allowGuestUsers = readFrontendConfigValue("ALLOW_GUEST_USERS", true);
+      const allowLogin = readFrontendConfigValue("LOGIN_ALLOWED", true);
+      const passwordLoginSupported =
+        typeof globalThis.crypto?.getRandomValues === "function" &&
+        typeof globalThis.crypto?.subtle?.digest === "function" &&
+        typeof globalThis.crypto?.subtle?.importKey === "function" &&
+        typeof globalThis.crypto?.subtle?.sign === "function" &&
+        typeof globalThis.crypto?.subtle?.deriveBits === "function";
+      let guestCredentials = null;
+      let introFloatFrame = 0;
+      let introFloatStartTime = 0;
+      let previousModalFocus = null;
+      
+      window.SpaceBackdrop?.install?.(spaceBackdropRoot, {
+        canvas: spaceThemeCanvas,
+        motionQuery: prefersReducedMotion
+      });
+
+      function setStatus(message, tone = "") {
+        statusEl.textContent = message;
+        statusEl.className = tone ? `status ${tone}` : "status";
+      }
+
+      function getUnsupportedPasswordLoginMessage() {
+        if (window.isSecureContext === false) {
+          return "Password login requires HTTPS or localhost in this browser. Plain HTTP disables the Web Crypto APIs used by sign-in.";
+        }
+
+        return "This browser does not expose the Web Crypto APIs required for password login.";
+      }
+
+      function readFrontendConfigValue(name, fallback) {
+        const metaTag = document.querySelector(
+          `meta[name="${FRONTEND_CONFIG_META_NAME}"][data-space-param="${String(name || "").trim().toUpperCase()}"]`
+        );
+
+        if (!metaTag) {
+          return fallback;
+        }
+
+        const type = String(metaTag.dataset.spaceType || "text").trim().toLowerCase();
+        const content = String(metaTag.content || "");
+
+        if (type === "boolean") {
+          return content === "true";
+        }
+
+        if (type === "number") {
+          const numericValue = Number(content);
+          return Number.isFinite(numericValue) ? numericValue : fallback;
+        }
+
+        return content;
+      }
+
+      function syncButtonState(isBusy = false) {
+        submitButton.disabled = isBusy || !allowLogin || !passwordLoginSupported;
+        guestCreateButton.disabled = isBusy || !allowLogin || !allowGuestUsers || !passwordLoginSupported;
+      }
+
+      function setIntroTitlePose(x, y, rotation) {
+        if (!introTitle) {
+          return;
+        }
+
+        introTitle.style.setProperty("--intro-title-float-x", `${x.toFixed(1)}px`);
+        introTitle.style.setProperty("--intro-title-float-y", `${y.toFixed(1)}px`);
+        introTitle.style.setProperty("--intro-title-rotate", `${rotation.toFixed(1)}deg`);
+      }
+
+      function setAstronautPose(x, y, rotation) {
+        if (!introAstronaut) {
+          return;
+        }
+
+        introAstronaut.style.setProperty("--astronaut-float-x", `${x.toFixed(1)}px`);
+        introAstronaut.style.setProperty("--astronaut-float-y", `${y.toFixed(1)}px`);
+        introAstronaut.style.setProperty("--astronaut-rotate", `${rotation.toFixed(1)}deg`);
+      }
+
+      function scaleDuration(durationMs, speedMultiplier) {
+        return durationMs / Math.max(speedMultiplier, 0.01);
+      }
+
+      function positiveModulo(value, divisor) {
+        return ((value % divisor) + divisor) % divisor;
+      }
+
+      function buildFloatProfile(baseProfile, params) {
+        const rotationMaxDeg =
+          baseProfile.rotationLimitEnabled === false
+            ? Infinity
+            : (baseProfile.rotationMaxDeg ?? Infinity);
+
+        return Object.freeze({
+          orbitPeriodMs: scaleDuration(baseProfile.orbitPeriodMs, params.movementSpeed),
+          rotationAmplitude: Math.min(
+            rotationMaxDeg,
+            baseProfile.rotationAmplitude * params.rotationDistance
+          ),
+          rotationPeriodMs: scaleDuration(baseProfile.rotationPeriodMs, params.rotationSpeed),
+          xRadius: baseProfile.xRadius * params.movementDistance,
+          yRadius: baseProfile.yRadius * params.movementDistance
+        });
+      }
+
+      const introFloatTargets = [
+        Object.freeze({
+          applyPose: setIntroTitlePose,
+          element: introTitle,
+          orbitPhase: 0.45,
+          profile: TITLE_FLOAT_PROFILE,
+          rotationPhase: 1.1
+        }),
+        Object.freeze({
+          applyPose: setAstronautPose,
+          element: introAstronaut,
+          orbitDirection: astronautOrbitDirection,
+          orbitPhase: 2.05 + (astronautOrbitOffsetTurns * TAU),
+          profile: ASTRONAUT_FLOAT_PROFILE,
+          rotationDirection: astronautRotationDirection,
+          rotationPhase: 0.35 + (astronautRotationOffsetTurns * TAU)
+        })
+      ];
+
+      function resetIntroFloat() {
+        introFloatTargets.forEach((target) => {
+          target.applyPose(0, 0, 0);
+        });
+      }
+
+      function applyIntroFloatTarget(target, elapsed) {
+        if (!target.element) {
+          return;
+        }
+
+        const orbitAngle =
+          ((elapsed / target.profile.orbitPeriodMs) * TAU * (target.orbitDirection ?? 1)) +
+          target.orbitPhase;
+        const rotationAngle =
+          ((elapsed / target.profile.rotationPeriodMs) * TAU * (target.rotationDirection ?? 1)) +
+          target.rotationPhase;
+
+        target.applyPose(
+          Math.cos(orbitAngle) * target.profile.xRadius,
+          Math.sin(orbitAngle) * target.profile.yRadius,
+          Math.sin(rotationAngle) * target.profile.rotationAmplitude
+        );
+      }
+
+      function stepIntroFloat(timestamp) {
+        if (introFloatTargets.every((target) => !target.element)) {
+          introFloatFrame = 0;
+          return;
+        }
+
+        if (prefersReducedMotion.matches) {
+          introFloatFrame = 0;
+          introFloatStartTime = 0;
+          resetIntroFloat();
+          return;
+        }
+
+        if (!introFloatStartTime) {
+          introFloatStartTime = timestamp;
+        }
+
+        const elapsed = timestamp - introFloatStartTime;
+
+        introFloatTargets.forEach((target) => applyIntroFloatTarget(target, elapsed));
+        introFloatFrame = window.requestAnimationFrame(stepIntroFloat);
+      }
+
+      function startIntroFloat() {
+        window.cancelAnimationFrame(introFloatFrame);
+        introFloatFrame = 0;
+        introFloatStartTime = 0;
+        resetIntroFloat();
+
+        if (introFloatTargets.every((target) => !target.element) || prefersReducedMotion.matches) {
+          return;
+        }
+
+        introFloatFrame = window.requestAnimationFrame(stepIntroFloat);
+      }
+
+      function handleMotionPreferenceChange() {
+        startIntroFloat();
+      }
+
+      function setGuestCredentials(credentials) {
+        guestCredentials =
+          credentials && credentials.username && credentials.password
+            ? {
+                password: credentials.password,
+                username: credentials.username
+              }
+            : null;
+
+        const isGuestReady = Boolean(guestCredentials);
+
+        if (isGuestReady) {
+          usernameInput.value = guestCredentials.username;
+          passwordInput.value = guestCredentials.password;
+        }
+
+        usernameInput.readOnly = isGuestReady;
+        passwordInput.readOnly = isGuestReady;
+        passwordInput.type = isGuestReady ? "text" : "password";
+        submitButton.textContent = isGuestReady ? "Continue" : "Enter your Space";
+        submitButton.classList.toggle("primary-button", isGuestReady);
+        submitButton.classList.toggle("secondary-button", !isGuestReady);
+        fieldNote.hidden = !isGuestReady;
+        guestOptionGroup.hidden = !allowLogin || isGuestReady || !allowGuestUsers;
+        syncButtonState(false);
+      }
+
+      function toBase64Url(bytes) {
+        let text = "";
+        bytes.forEach((value) => {
+          text += String.fromCharCode(value);
+        });
+        return btoa(text).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+      }
+
+      function fromBase64Url(value) {
+        const normalized = String(value || "").replace(/-/g, "+").replace(/_/g, "/");
+        const padding = normalized.length % 4 === 0 ? "" : "=".repeat(4 - (normalized.length % 4));
+        const decoded = atob(normalized + padding);
+        return Uint8Array.from(decoded, (char) => char.charCodeAt(0));
+      }
+
+      function xorBytes(left, right) {
+        if (left.length !== right.length) {
+          throw new Error("Mismatched proof length.");
+        }
+
+        const output = new Uint8Array(left.length);
+
+        for (let index = 0; index < left.length; index += 1) {
+          output[index] = left[index] ^ right[index];
+        }
+
+        return output;
+      }
+
+      async function sha256(value) {
+        const source = typeof value === "string" ? textEncoder.encode(value) : value;
+        return new Uint8Array(await crypto.subtle.digest("SHA-256", source));
+      }
+
+      async function hmacSha256(keyBytes, value) {
+        const key = await crypto.subtle.importKey(
+          "raw",
+          keyBytes,
+          {
+            name: "HMAC",
+            hash: "SHA-256"
+          },
+          false,
+          ["sign"]
+        );
+
+        return new Uint8Array(await crypto.subtle.sign("HMAC", key, textEncoder.encode(value)));
+      }
+
+      async function deriveSaltedPassword(password, salt, iterations) {
+        const passwordKey = await crypto.subtle.importKey(
+          "raw",
+          textEncoder.encode(password),
+          "PBKDF2",
+          false,
+          ["deriveBits"]
+        );
+
+        const bits = await crypto.subtle.deriveBits(
+          {
+            name: "PBKDF2",
+            hash: "SHA-256",
+            iterations,
+            salt: fromBase64Url(salt)
+          },
+          passwordKey,
+          256
+        );
+
+        return new Uint8Array(bits);
+      }
+
+      async function persistUnlockedUserCryptoSession({
+        password,
+        passwordIterations,
+        passwordSalt,
+        passwordSecret,
+        sessionId,
+        userCrypto,
+        username
+      }) {
+        const userCryptoModule = await userCryptoModulePromise;
+        const userCryptoState = String(userCrypto?.state || "").trim();
+
+        if (userCryptoState !== "ready") {
+          return {
+            cacheEntry: null,
+            state: userCryptoState
+          };
+        }
+
+        const record = userCryptoModule.normalizeUserCryptoRecord(userCrypto?.record);
+        const serverShare = userCryptoModule.decodeBase64Url(userCrypto?.serverShare || "");
+
+        if (!record || !serverShare.length || !sessionId || !username) {
+          throw new Error("Login completed without a usable user crypto payload.");
+        }
+
+        const masterKey = await userCryptoModule.unwrapUserCryptoMasterKey({
+          password,
+          passwordIterations,
+          passwordSalt,
+          passwordSecret,
+          record,
+          serverShare
+        });
+        const cacheEntry = userCryptoModule.createUserCryptoSessionCacheEntry({
+          keyId: record.keyId,
+          masterKey,
+          serverShare,
+          sessionId,
+          username
+        });
+        const cacheKey = userCryptoModule.buildUserCryptoSessionCacheKey(cacheEntry);
+
+        if (!cacheKey) {
+          throw new Error("Login completed without a valid user crypto session id.");
+        }
+
+        try {
+          window.sessionStorage.setItem(cacheKey, JSON.stringify(cacheEntry));
+        } catch (error) {
+          logLoginWarning("Failed to persist the unlocked userCrypto session in sessionStorage.", error);
+        }
+
+        return {
+          cacheEntry,
+          state: userCryptoState
+        };
+      }
+
+      async function persistLocalStorageUserCryptoSession(cacheEntry) {
+        const userCryptoModule = await userCryptoModulePromise;
+        const storageKey = String(userCryptoModule.USER_CRYPTO_LOCAL_STORAGE_KEY || "");
+
+        if (!storageKey || !cacheEntry) {
+          return;
+        }
+
+        try {
+          const sessionKeyResponse = await getJson("/api/user_crypto_session_key");
+          const sessionKey = String(sessionKeyResponse?.sessionKey || "").trim();
+
+          if (!sessionKey) {
+            return;
+          }
+
+          const storageEntry = await userCryptoModule.createUserCryptoLocalStorageEntry({
+            cacheEntry,
+            sessionKey
+          });
+          window.localStorage.setItem(storageKey, JSON.stringify(storageEntry));
+        } catch (error) {
+          logLoginWarning("Failed to persist the unlocked userCrypto session in localStorage.", error);
+        }
+      }
+
+      async function persistUserCryptoLoginBootstrap({
+        passwordIterations,
+        passwordSalt,
+        passwordSecret,
+        sessionId,
+        username
+      }) {
+        const userCryptoModule = await userCryptoModulePromise;
+        const bootstrapEntry = userCryptoModule.createUserCryptoLoginBootstrapEntry({
+          passwordIterations,
+          passwordSalt,
+          passwordSecret,
+          sessionId,
+          username
+        });
+        const bootstrapKey = userCryptoModule.buildUserCryptoLoginBootstrapKey(bootstrapEntry);
+
+        if (!bootstrapKey) {
+          return;
+        }
+
+        try {
+          window.sessionStorage.setItem(bootstrapKey, JSON.stringify(bootstrapEntry));
+        } catch (error) {
+          logLoginWarning("Failed to persist the userCrypto bootstrap handoff in sessionStorage.", error);
+        }
+      }
+
+      async function postJson(path, body) {
+        const stateVersionModule = await stateVersionModulePromise;
+        const headers = new Headers({
+          "Content-Type": "application/json"
+        });
+
+        stateVersionModule.applyStateVersionRequestHeader(headers);
+        const response = await fetch(path, {
+          cache: "no-store",
+          method: "POST",
+          credentials: "same-origin",
+          headers,
+          body: JSON.stringify(body)
+        });
+        stateVersionModule.observeStateVersionFromResponse(response);
+
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(payload.error || "Request failed.");
+        }
+
+        return payload;
+      }
+
+      async function getJson(path) {
+        const stateVersionModule = await stateVersionModulePromise;
+        const headers = new Headers();
+
+        stateVersionModule.applyStateVersionRequestHeader(headers);
+        const response = await fetch(path, {
+          cache: "no-store",
+          method: "GET",
+          credentials: "same-origin",
+          headers
+        });
+        stateVersionModule.observeStateVersionFromResponse(response);
+
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(payload.error || "Request failed.");
+        }
+
+        return payload;
+      }
+
+      function createNonce() {
+        const bytes = new Uint8Array(24);
+        crypto.getRandomValues(bytes);
+        return toBase64Url(bytes);
+      }
+
+      function grantEnterTabAccess() {
+        try {
+          window.sessionStorage.setItem(ENTER_TAB_ACCESS_KEY, "1");
+        } catch (error) {
+          logLoginWarning("Failed to grant same-tab /enter access in sessionStorage.", error);
+        }
+      }
+
+      async function handleLogin(event) {
+        event.preventDefault();
+
+        try {
+          if (!allowLogin) {
+            throw new Error("Login is disabled in this system.");
+          }
+
+          if (!passwordLoginSupported) {
+            throw new Error(getUnsupportedPasswordLoginMessage());
+          }
+
+          setStatus("Signing in...");
+          syncButtonState(true);
+
+          const username = usernameInput.value.trim();
+          const password = passwordInput.value;
+
+          if (!username || !password) {
+            throw new Error("Username and password are required.");
+          }
+
+          const clientNonce = createNonce();
+          const challenge = await postJson("/api/login_challenge", {
+            clientNonce,
+            username
+          });
+          const saltedPassword = await deriveSaltedPassword(
+            password,
+            challenge.salt,
+            Number(challenge.iterations)
+          );
+          const userCryptoModule = await userCryptoModulePromise;
+          const userCryptoChallenge =
+            challenge.userCrypto && typeof challenge.userCrypto === "object" ? challenge.userCrypto : {};
+          let userCryptoProvisioning = null;
+
+          if (String(userCryptoChallenge.state || "").trim() === "missing") {
+            if (!userCryptoChallenge.provisioningShare) {
+              throw new Error("Login challenge did not provide user crypto provisioning state.");
+            }
+
+            const provisionedUserCrypto = await userCryptoModule.createProvisionedUserCryptoRecord({
+              passwordIterations: Number(challenge.iterations),
+              passwordSalt: userCryptoModule.decodeBase64Url(challenge.salt),
+              passwordSecret: saltedPassword,
+              serverShare: userCryptoModule.decodeBase64Url(userCryptoChallenge.provisioningShare)
+            });
+            userCryptoProvisioning = {
+              record: provisionedUserCrypto.record
+            };
+          }
+          const clientKey = await hmacSha256(saltedPassword, CLIENT_KEY_LABEL);
+          const storedKey = await sha256(clientKey);
+          const authMessage = [
+            LOGIN_PREFIX,
+            username,
+            clientNonce,
+            challenge.serverNonce,
+            challenge.challengeToken
+          ].join(":");
+          const clientSignature = await hmacSha256(storedKey, authMessage);
+          const clientProof = xorBytes(clientKey, clientSignature);
+          const loginResult = await postJson("/api/login", {
+            challengeToken: challenge.challengeToken,
+            clientProof: toBase64Url(clientProof),
+            userCryptoProvisioning
+          });
+          const serverKey = await hmacSha256(saltedPassword, SERVER_KEY_LABEL);
+          const expectedServerSignature = await hmacSha256(serverKey, authMessage);
+
+          if (toBase64Url(expectedServerSignature) !== loginResult.serverSignature) {
+            throw new Error("Server signature check failed.");
+          }
+
+          if (String(userCryptoChallenge.state || "").trim() === "missing") {
+            await persistUserCryptoLoginBootstrap({
+              passwordIterations: Number(challenge.iterations),
+              passwordSalt: userCryptoModule.decodeBase64Url(challenge.salt),
+              passwordSecret: saltedPassword,
+              sessionId: String(loginResult.sessionId || "").trim(),
+              username
+            });
+          }
+
+          const unlockedUserCryptoSession = await persistUnlockedUserCryptoSession({
+            password,
+            passwordIterations: Number(challenge.iterations),
+            passwordSalt: userCryptoModule.decodeBase64Url(challenge.salt),
+            passwordSecret:
+              String(userCryptoChallenge.state || "").trim() === "missing" ? saltedPassword : null,
+            sessionId: String(loginResult.sessionId || "").trim(),
+            userCrypto: loginResult.userCrypto,
+            username
+          });
+
+          if (unlockedUserCryptoSession.cacheEntry) {
+            await persistLocalStorageUserCryptoSession(unlockedUserCryptoSession.cacheEntry);
+          }
+
+          if (unlockedUserCryptoSession.state === "missing") {
+            throw new Error("Login completed without a usable user crypto record. Try again.");
+          }
+
+          setStatus("Signed in. Redirecting...", "ok");
+          grantEnterTabAccess();
+          window.location.replace("/");
+        } catch (error) {
+          logLoginError("Sign-in failed", error, {
+            username: usernameInput.value.trim()
+          });
+          setStatus(error.message || "Sign-in failed.", "error");
+          syncButtonState(false);
+          passwordInput.select();
+        }
+      }
+
+      async function handleGuestCreate() {
+        try {
+          if (!allowLogin) {
+            throw new Error("Login is disabled in this system.");
+          }
+
+          if (!passwordLoginSupported) {
+            throw new Error(getUnsupportedPasswordLoginMessage());
+          }
+
+          setStatus("Creating guest account...");
+          syncButtonState(true);
+
+          const guestAccount = await postJson("/api/guest_create", {});
+          setGuestCredentials(guestAccount);
+          setStatus("");
+        } catch (error) {
+          logLoginError("Guest account creation failed", error);
+          syncButtonState(false);
+          setStatus(error.message || "Guest account creation failed.", "error");
+        }
+      }
+
+      function openRunOptionsModal() {
+        if (!runOptionsModal) {
+          return;
+        }
+
+        previousModalFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        runOptionsModal.hidden = false;
+        document.body.style.overflow = "hidden";
+        window.requestAnimationFrame(() => {
+          runModalDialog?.focus();
+        });
+      }
+
+      function closeRunOptionsModal() {
+        if (!runOptionsModal || runOptionsModal.hidden) {
+          return;
+        }
+
+        runOptionsModal.hidden = true;
+        document.body.style.overflow = "";
+        previousModalFocus?.focus?.();
+        previousModalFocus = null;
+      }
+
+      function handleRunModalKeydown(event) {
+        if (event.key === "Escape" && runOptionsModal && !runOptionsModal.hidden) {
+          event.preventDefault();
+          closeRunOptionsModal();
+        }
+      }
+
+      loginActions.hidden = !allowLogin;
+      loginDisabledCopy.hidden = allowLogin;
+      form.addEventListener("submit", handleLogin);
+      if (allowGuestUsers) {
+        guestCreateButton.addEventListener("click", handleGuestCreate);
+      }
+      runOptionsButton?.addEventListener("click", openRunOptionsModal);
+      runModalCloseButton?.addEventListener("click", closeRunOptionsModal);
+      runModalCloseTargets.forEach((target) => {
+        target.addEventListener("click", closeRunOptionsModal);
+      });
+      document.addEventListener("keydown", handleRunModalKeydown);
+      usernameInput.addEventListener("focus", () => {
+        if (usernameInput.readOnly) {
+          usernameInput.select();
+        }
+      });
+      passwordInput.addEventListener("focus", () => {
+        if (passwordInput.readOnly) {
+          passwordInput.select();
+        }
+      });
+      if (typeof prefersReducedMotion.addEventListener === "function") {
+        prefersReducedMotion.addEventListener("change", handleMotionPreferenceChange);
+      } else if (typeof prefersReducedMotion.addListener === "function") {
+        prefersReducedMotion.addListener(handleMotionPreferenceChange);
+      }
+      setGuestCredentials(null);
+      if (allowLogin && !passwordLoginSupported) {
+        setStatus(getUnsupportedPasswordLoginMessage(), "error");
+      }
+      if (introAstronaut && !introAstronaut.complete) {
+        introAstronaut.addEventListener("load", startIntroFloat, { once: true });
+      } else {
+        startIntroFloat();
+      }
+        } catch (error) {
+          logLoginError("Login shell startup failed", error);
+
+          const statusNode = document.getElementById("status");
+
+          if (statusNode) {
+            statusNode.textContent = error?.message || "Login shell failed to start.";
+            statusNode.className = "status error";
+          }
+        }
+      })();
+    </script>
+  </body>
+</html>

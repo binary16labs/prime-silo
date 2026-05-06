@@ -1,0 +1,14 @@
+[
+  {
+    "role": "user",
+    "content": "_____user\nwhat's the weather in prague?"
+  },
+  {
+    "role": "assistant",
+    "content": "Fetching live weather for Prague now...\n_____javascript\nconst res = await fetch('https://wttr.in/Prague?format=j1');\nconst data = await res.json();\nconst c = data.current_condition?.[0] || {};\nreturn {\n  city: 'Prague',\n  tempC: c.temp_C,\n  feelsLikeC: c.FeelsLikeC,\n  humidity: c.humidity,\n  desc: c.weatherDesc?.[0]?.value,\n  windKph: c.windspeedKmph\n}"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution success\nresult↓\ncity: Prague\ntempC: 12\nfeelsLikeC: 10\nhumidity: 30\ndesc: Sunny\nwindKph: 25"
+  }
+]

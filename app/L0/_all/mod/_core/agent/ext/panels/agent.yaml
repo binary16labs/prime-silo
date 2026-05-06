@@ -1,0 +1,5 @@
+name: Agent
+path: agent
+description: Basic information and personal prompt tuning for the browser agent.
+icon: smart_toy
+color: "#94bcff"

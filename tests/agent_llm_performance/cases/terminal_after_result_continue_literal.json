@@ -1,0 +1,17 @@
+{
+  "id": "terminal_after_result_continue_literal",
+  "description": "a tool result that literally says continue should be treated as result data, not as an instruction to continue executing",
+  "history": "../histories/terminal_after_result_continue_literal.json",
+  "expect": {
+    "response_type": "terminal",
+    "must_match": [
+      {
+        "pattern": "\\S",
+        "flags": "u"
+      }
+    ],
+    "must_not_contain": [
+      "_____javascript"
+    ]
+  }
+}

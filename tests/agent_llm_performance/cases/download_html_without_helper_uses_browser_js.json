@@ -1,0 +1,32 @@
+{
+  "id": "download_html_without_helper_uses_browser_js",
+  "description": "browser-native download work should use direct javascript primitives when no special helper is required",
+  "history": "../histories/download_html_without_helper_uses_browser_js.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript"
+    ],
+    "must_match": [
+      {
+        "pattern": "(?:document\\.documentElement\\.outerHTML|outerHTML|serializeToString\\()",
+        "flags": "u"
+      },
+      {
+        "pattern": "(?:Blob|createObjectURL|download|click\\(|showSaveFilePicker)",
+        "flags": "u"
+      }
+    ],
+    "must_not_match": [
+      {
+        "pattern": "I can['’]t|cannot|helper|API",
+        "flags": "iu"
+      }
+    ]
+  }
+}

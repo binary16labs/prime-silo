@@ -1,0 +1,28 @@
+{
+  "id": "partial_mitigation_is_not_completion",
+  "description": "after the agent admits a visible problem is still present, a user push should reopen execution immediately instead of more explanation",
+  "history": "../histories/partial_mitigation_is_not_completion.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript"
+    ],
+    "must_match": [
+      {
+        "pattern": "readWidget\\(\"financials\"\\)",
+        "flags": "u"
+      }
+    ],
+    "must_not_match": [
+      {
+        "pattern": "^You['’]re right|^I['’]m ready|^The widget",
+        "flags": "imu"
+      }
+    ]
+  }
+}

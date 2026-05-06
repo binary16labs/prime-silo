@@ -1,0 +1,41 @@
+{
+  "id": "basic_chat",
+  "name": "Basic Chat",
+  "description": "Simple chat workflow with LLM node",
+  "nodes": [
+    {
+      "id": "trigger-1",
+      "type": "trigger",
+      "position": { "x": 100, "y": 200 },
+      "data": {
+        "label": "Start",
+        "config": {
+          "trigger_type": "manual"
+        }
+      }
+    },
+    {
+      "id": "llm-1",
+      "type": "llm",
+      "position": { "x": 400, "y": 200 },
+      "data": {
+        "label": "Chat LLM",
+        "config": {
+          "model": "ollama/llama3.2",
+          "temperature": 0.7,
+          "system_prompt": "You are a helpful assistant."
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "trigger-1",
+      "target": "llm-1",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    }
+  ],
+  "created_at": "2026-02-01T18:00:00Z"
+}

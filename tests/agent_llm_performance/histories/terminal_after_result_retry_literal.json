@@ -1,0 +1,14 @@
+[
+  {
+    "role": "user",
+    "content": "_____user\nrun this js code exactly:\n\nreturn \"run it again\""
+  },
+  {
+    "role": "assistant",
+    "content": "Running the code exactly now...\n_____javascript\nreturn \"run it again\""
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution success\nresult↓\nrun it again"
+  }
+]

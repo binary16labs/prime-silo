@@ -1,0 +1,14 @@
+[
+  {
+    "role": "user",
+    "content": "_____user\nchange my full name to Pan Example"
+  },
+  {
+    "role": "assistant",
+    "content": "Reading your user.yaml now...\n_____javascript\nreturn await space.api.fileRead(\"~/user.yaml\")"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution success\nresult↓\nfull_name: pan\nbio: hello there"
+  }
+]

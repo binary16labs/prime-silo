@@ -1,0 +1,5 @@
+name: Time Travel
+path: time_travel
+description: Undo settings, spaces, and custom development changes.
+icon: history
+color: "#79edd8"

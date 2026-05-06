@@ -1,0 +1,44 @@
+generated_at: 2026-04-07T04:34:21.767Z
+generation_id: 2026-04-07T04-34-21-767Z
+model: openai/gpt-5.4-mini
+prompts:
+  - rank: 1
+    id: 060A_054A_stale_invalid
+    passed_cases: 34
+    total_cases: 37
+    pass_rate: 0.9189
+    passed_attempts: 34
+    total_attempts: 37
+    attempt_pass_rate: 0.9189
+    failed_cases:
+      - weather_omitted_scope
+      - unpack_collapsed_weather_payload
+      - selective_text_edit_requires_read_first
+  - rank: 2
+    id: 060B_054A_current_code
+    passed_cases: 32
+    total_cases: 37
+    pass_rate: 0.8649
+    passed_attempts: 32
+    total_attempts: 37
+    attempt_pass_rate: 0.8649
+    failed_cases:
+      - write_user_yaml_after_read
+      - selective_text_edit_requires_read_first
+      - selective_yaml_edit_requires_read_first
+      - selective_widget_fix_requires_read_first
+      - terminal_after_result_retry_literal
+  - rank: 3
+    id: 060C_trace_minimum
+    passed_cases: 32
+    total_cases: 37
+    pass_rate: 0.8649
+    passed_attempts: 32
+    total_attempts: 37
+    attempt_pass_rate: 0.8649
+    failed_cases:
+      - weather_omitted_scope
+      - weather_self_scope_after_indirect_fail
+      - unpack_collapsed_weather_payload
+      - space_navigation_read_is_not_completion
+      - protocol_nudge_requires_real_thrust

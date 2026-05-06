@@ -1,0 +1,80 @@
+generated_at: 2026-04-07T07:42:01.595Z
+generation_id: 2026-04-07T07-42-01-595Z
+model: openai/gpt-5.4-mini
+prompts:
+  - rank: 1
+    id: 061A_verify_visible_repairs
+    passed_cases: 42
+    total_cases: 53
+    pass_rate: 0.7925
+    passed_attempts: 42
+    total_attempts: 53
+    attempt_pass_rate: 0.7925
+    failed_cases:
+      - screenshot_download_without_helper_uses_browser_js
+      - screenshot_after_helper_unavailable_uses_browser_js
+      - followup_after_screenshot_refusal_requires_browser_js
+      - download_html_without_helper_uses_browser_js
+      - canvas_screenshot_requires_real_capture_strategy
+      - fix_visible_widget_error_requires_readwidget
+      - verification_reveals_remaining_widget_error_requires_correction
+      - write_user_yaml_after_read
+      - protocol_correction_after_successful_open_requires_terminal
+      - remove_space_by_title_requires_discovery_first
+      - followup_after_wrong_space_removal_requires_discovery_execution
+  - rank: 2
+    id: 061B_broken_until_verified
+    passed_cases: 34
+    total_cases: 53
+    pass_rate: 0.6415
+    passed_attempts: 34
+    total_attempts: 53
+    attempt_pass_rate: 0.6415
+    failed_cases:
+      - smalltalk_hi_terminal
+      - time_requires_execution
+      - screenshot_download_without_helper_uses_browser_js
+      - screenshot_after_helper_unavailable_uses_browser_js
+      - followup_after_screenshot_refusal_requires_browser_js
+      - download_html_without_helper_uses_browser_js
+      - canvas_screenshot_requires_real_capture_strategy
+      - weather_omitted_scope
+      - weather_self_scope_followup
+      - weather_self_scope_after_indirect_fail
+      - unpack_collapsed_weather_payload
+      - write_user_yaml_after_read
+      - selective_text_edit_requires_read_first
+      - selective_yaml_edit_requires_read_first
+      - terminal_after_successful_widget_patch
+      - terminal_after_successful_retry_patch
+      - protocol_correction_after_successful_open_requires_terminal
+      - protocol_nudge_requires_real_thrust
+      - remove_space_by_title_requires_discovery_first
+  - rank: 3
+    id: 061C_you_own_the_failure
+    passed_cases: 34
+    total_cases: 53
+    pass_rate: 0.6415
+    passed_attempts: 34
+    total_attempts: 53
+    attempt_pass_rate: 0.6415
+    failed_cases:
+      - time_requires_execution
+      - screenshot_download_without_helper_uses_browser_js
+      - screenshot_after_helper_unavailable_uses_browser_js
+      - followup_after_screenshot_refusal_requires_browser_js
+      - download_html_without_helper_uses_browser_js
+      - click_button_without_helper_uses_browser_js
+      - canvas_screenshot_requires_real_capture_strategy
+      - weather_omitted_scope
+      - weather_self_scope_followup
+      - weather_self_scope_after_indirect_fail
+      - finish_weather_after_geolocation
+      - terminal_after_weather_ready
+      - unpack_collapsed_weather_payload
+      - selective_text_edit_requires_read_first
+      - terminal_after_successful_widget_patch
+      - terminal_after_successful_retry_patch
+      - protocol_nudge_requires_real_thrust
+      - remove_space_by_title_requires_discovery_first
+      - followup_after_wrong_space_removal_requires_discovery_execution

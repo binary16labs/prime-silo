@@ -1,0 +1,85 @@
+generated_at: 2026-04-06T21:06:14.595Z
+generation_id: 2026-04-06T21-06-14-595Z
+model: openai/gpt-5.4-mini
+prompts:
+  - rank: 1
+    id: 046B_closed_then_open
+    passed_cases: 22
+    total_cases: 37
+    pass_rate: 0.5946
+    passed_attempts: 22
+    total_attempts: 37
+    attempt_pass_rate: 0.5946
+    failed_cases:
+      - page_title_requires_execution
+      - time_requires_execution
+      - weather_omitted_scope
+      - weather_self_scope_followup
+      - weather_self_scope_after_indirect_fail
+      - finish_weather_after_geolocation
+      - weather_after_place_prerequisite
+      - unpack_collapsed_weather_payload
+      - write_user_yaml_after_read
+      - selective_text_edit_requires_read_first
+      - space_navigation_after_user_push_uses_open_helper
+      - repeat_do_it_requires_execution
+      - post_success_followup_requires_execution_or_completion
+      - protocol_nudge_requires_real_thrust
+      - no_false_success_after_error
+  - rank: 2
+    id: 046C_after_success_stop
+    passed_cases: 18
+    total_cases: 37
+    pass_rate: 0.4865
+    passed_attempts: 18
+    total_attempts: 37
+    attempt_pass_rate: 0.4865
+    failed_cases:
+      - page_title_requires_execution
+      - time_requires_execution
+      - weather_omitted_scope
+      - weather_self_scope_followup
+      - weather_self_scope_after_indirect_fail
+      - finish_weather_after_geolocation
+      - weather_after_place_prerequisite
+      - unpack_collapsed_weather_payload
+      - selective_text_edit_requires_read_first
+      - selective_yaml_edit_requires_read_first
+      - selective_widget_fix_requires_read_first
+      - recover_after_combined_widget_read_write_error
+      - space_navigation_after_take_me_there_uses_open_helper
+      - space_navigation_after_user_push_uses_open_helper
+      - followup_edit_requires_well_formed_thrust
+      - repeat_do_it_requires_execution
+      - post_success_followup_requires_execution_or_completion
+      - protocol_nudge_requires_real_thrust
+      - no_false_success_after_error
+  - rank: 3
+    id: 046A_closed_task_router
+    passed_cases: 17
+    total_cases: 37
+    pass_rate: 0.4595
+    passed_attempts: 17
+    total_attempts: 37
+    attempt_pass_rate: 0.4595
+    failed_cases:
+      - page_title_requires_execution
+      - time_requires_execution
+      - weather_omitted_scope
+      - weather_self_scope_followup
+      - reverse_geocode_after_precise_followup
+      - unpack_collapsed_weather_payload
+      - create_note_after_user_detail_read
+      - selective_text_edit_requires_read_first
+      - selective_yaml_edit_requires_read_first
+      - selective_widget_fix_requires_read_first
+      - recover_after_combined_widget_read_write_error
+      - space_navigation_after_current_helper_error_switches_family
+      - space_navigation_read_is_not_completion
+      - space_navigation_after_take_me_there_uses_open_helper
+      - space_navigation_after_user_push_uses_open_helper
+      - repeat_do_it_requires_execution
+      - post_success_followup_requires_execution_or_completion
+      - protocol_nudge_requires_real_thrust
+      - continue_after_widget_read
+      - no_false_success_after_error

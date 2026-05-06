@@ -1,0 +1,33 @@
+{
+  "id": "weather_self_scope_after_indirect_fail",
+  "description": "after an indirect current-context attempt fails, the agent should switch to direct browser location and continue through the weather step",
+  "history": "../histories/weather_self_scope_after_indirect_fail.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript"
+    ],
+    "must_match": [
+      {
+        "pattern": "navigator\\.geolocation|getCurrentPosition",
+        "flags": "u"
+      },
+      {
+        "pattern": "(?:open-meteo|wttr\\.in)",
+        "flags": "u"
+      }
+    ],
+    "must_not_contain": [
+      "Which location?",
+      "I don’t have your location",
+      "I don't have your location",
+      "Send the city",
+      "allow the browser"
+    ]
+  }
+}

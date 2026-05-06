@@ -1,0 +1,305 @@
+{
+  "schema_version": "1.0",
+  "id": "enrich-c5_test-20260423213231",
+  "name": "Knowledge Enrichment — c5_test",
+  "description": "Knowledge enrichment pipeline: extract -> ingest -> synthesise -> correlate -> validate -> report.",
+  "requirement": "Build the knowledge enrichment overlay for the Studio ENRICH toggle: scan source code in src/dangpy/, extract knowledge triples from ingested documents, and create CORRELATES_WITH edges linking concepts to code symbols.",
+  "workspace": "c5_test",
+  "inputs": {
+    "files": [
+      "staging/",
+      "src/dangpy/"
+    ],
+    "context": {
+      "src_path": "src/dangpy",
+      "correlation_threshold": 0.7,
+      "correlation_strategy": "aggressive"
+    }
+  },
+  "outputs": {
+    "files": [
+      "data_out/enrichment_report.md"
+    ],
+    "format": "md",
+    "word_count_target": null,
+    "sections": [],
+    "spec": "Enrichment summary: concept count, code entity count, CORRELATES_WITH edges, confidence distribution."
+  },
+  "plan": {
+    "tasks": [
+      {
+        "id": "pdf_extract",
+        "description": "[DETERMINISTIC] Convert PDFs and documents in staging/ to Markdown using Docling.",
+        "skill_hint": "rag_ingest",
+        "assigned_skills": [],
+        "assigned_model": null,
+        "dependencies": [],
+        "wave": 0,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": true,
+        "complexity": "medium",
+        "files_touched": [
+          "staging/"
+        ],
+        "skill_args": {
+          "files": [
+            "staging/"
+          ],
+          "deep_synthesis": false
+        },
+        "estimated_tokens": null,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "code_scan",
+        "description": "[DETERMINISTIC] Tree-Sitter recursive analysis of src/dangpy/ -> Neo4j code graph.",
+        "skill_hint": "code_scan",
+        "assigned_skills": [],
+        "assigned_model": null,
+        "dependencies": [],
+        "wave": 0,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": true,
+        "complexity": "high",
+        "files_touched": [
+          "src/dangpy/"
+        ],
+        "skill_args": {
+          "root_dir": "src/dangpy"
+        },
+        "estimated_tokens": null,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "rag_ingest",
+        "description": "[DETERMINISTIC] Chunk and embed extracted Markdown into ChromaDB.",
+        "skill_hint": "rag_ingest",
+        "assigned_skills": [],
+        "assigned_model": null,
+        "dependencies": [
+          "pdf_extract"
+        ],
+        "wave": 1,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": true,
+        "complexity": "medium",
+        "files_touched": [],
+        "skill_args": {
+          "files": [
+            "data_in/"
+          ],
+          "deep_synthesis": false
+        },
+        "estimated_tokens": null,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "deep_synthesis",
+        "description": "[AGENTIC] Extract knowledge triples (Concept -> Concept) and persist as REL edges with citations.",
+        "skill_hint": null,
+        "assigned_skills": [],
+        "assigned_model": "lemonade/qwen3-tk-4b-FLM",
+        "dependencies": [
+          "rag_ingest"
+        ],
+        "wave": 2,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": false,
+        "complexity": "high",
+        "files_touched": [],
+        "skill_args": {},
+        "estimated_tokens": null,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "semantic_correlate",
+        "description": "[DETERMINISTIC] Semantic correlation suite (Neural Spark): create CORRELATES_WITH edges linking Concepts to CodeEntities. threshold=0.7 strategy=aggressive.",
+        "skill_hint": "kg3d_ingest",
+        "assigned_skills": [],
+        "assigned_model": null,
+        "dependencies": [
+          "code_scan",
+          "deep_synthesis"
+        ],
+        "wave": 3,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": true,
+        "complexity": "medium",
+        "files_touched": [],
+        "skill_args": {
+          "threshold": 0.7
+        },
+        "estimated_tokens": null,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "validate_enrichment",
+        "description": "[DETERMINISTIC] Verify CORRELATES_WITH edges exist in Neo4j. Fail if zero found.",
+        "skill_hint": "validate_enrichment",
+        "assigned_skills": [],
+        "assigned_model": null,
+        "dependencies": [
+          "semantic_correlate"
+        ],
+        "wave": 4,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": true,
+        "complexity": "low",
+        "files_touched": [],
+        "skill_args": {},
+        "estimated_tokens": null,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "generate_report",
+        "description": "[AGENTIC] Write enrichment statistics and concept-to-code mapping to data_out/enrichment_report.md.",
+        "skill_hint": null,
+        "assigned_skills": [],
+        "assigned_model": "lemonade/qwen3-tk-4b-FLM",
+        "dependencies": [
+          "validate_enrichment"
+        ],
+        "wave": 4,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": false,
+        "complexity": "medium",
+        "files_touched": [
+          "data_out/enrichment_report.md"
+        ],
+        "skill_args": {},
+        "estimated_tokens": null,
+        "status": "pending",
+        "position": null,
+        "node_type": "output"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e_pdf_rag",
+        "source": "pdf_extract",
+        "target": "rag_ingest",
+        "label": "extracted markdown",
+        "animated": true
+      },
+      {
+        "id": "e_rag_synth",
+        "source": "rag_ingest",
+        "target": "deep_synthesis",
+        "label": "indexed corpus",
+        "animated": true
+      },
+      {
+        "id": "e_code_corr",
+        "source": "code_scan",
+        "target": "semantic_correlate",
+        "label": "code entities",
+        "animated": true
+      },
+      {
+        "id": "e_synth_corr",
+        "source": "deep_synthesis",
+        "target": "semantic_correlate",
+        "label": "knowledge triples",
+        "animated": true
+      },
+      {
+        "id": "e_corr_val",
+        "source": "semantic_correlate",
+        "target": "validate_enrichment",
+        "label": "CORRELATES_WITH",
+        "animated": true
+      },
+      {
+        "id": "e_val_report",
+        "source": "validate_enrichment",
+        "target": "generate_report",
+        "label": "validated",
+        "animated": true
+      }
+    ],
+    "waves": [
+      [
+        "pdf_extract",
+        "code_scan"
+      ],
+      [
+        "rag_ingest"
+      ],
+      [
+        "deep_synthesis"
+      ],
+      [
+        "semantic_correlate"
+      ],
+      [
+        "validate_enrichment",
+        "generate_report"
+      ]
+    ],
+    "ascii_dag": null
+  },
+  "config": {
+    "model": "lemonade/qwen3-tk-4b-FLM",
+    "max_concurrency": 2,
+    "max_depth": 3,
+    "handover_summary_limit": 500,
+    "allow_swarm": true,
+    "skills_allowed": [
+      "extract_pdf",
+      "rag_ingest",
+      "code_scan",
+      "kg3d_ingest",
+      "semantic_correlate",
+      "validate_enrichment"
+    ]
+  },
+  "created_at": "2026-04-23T21:32:31.937918+00:00",
+  "updated_at": "2026-04-23T21:32:31.937937+00:00",
+  "created_by": "benny-planner",
+  "tags": [
+    "enrichment",
+    "code-analysis",
+    "knowledge-graph"
+  ],
+  "metadata": {
+    "src_path": "src/dangpy",
+    "correlation_threshold": 0.7,
+    "correlation_strategy": "aggressive"
+  },
+  "latest_run": null,
+  "content_hash": "bbf1f90307aa2325602e087b7295a692c4be7db86c46487fdf1ab75cc0712c0a",
+  "signature": "sha256:bbf1f90307aa2325602e087b7295a692c4be7db86c46487fdf1ab75cc0712c0a"
+}

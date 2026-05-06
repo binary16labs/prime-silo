@@ -1,0 +1,18 @@
+[
+  {
+    "role": "user",
+    "content": "_____user\ncreate a quotes widget"
+  },
+  {
+    "role": "assistant",
+    "content": "Creating the quotes widget now...\n_____javascript\nreturn await space.current.renderWidget({ id: \"quote-board\", name: \"Quotes\", cols: 6, rows: 5, renderer: async (parent) => { parent.textContent = \"—\" } })"
+  },
+  {
+    "role": "user",
+    "content": "_____framework\nexecution success\nlog: [spaces] Widget \"quote-board\" saved, rendered ok, loaded to TRANSIENT.\nresult↓\nWidget \"quote-board\" saved, rendered ok, loaded to TRANSIENT."
+  },
+  {
+    "role": "user",
+    "content": "_____user\nwe need a different API, this does not show anything"
+  }
+]

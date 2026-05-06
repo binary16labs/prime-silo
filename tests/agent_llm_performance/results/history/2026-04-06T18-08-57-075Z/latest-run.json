@@ -1,0 +1,2589 @@
+{
+  "generated_at": "2026-04-06T18:08:57.075Z",
+  "generation_id": "2026-04-06T18-08-57-075Z",
+  "model": "openai/gpt-5.4-mini",
+  "results": [
+    {
+      "prompt_id": "024B_midline_followthrough",
+      "passed_cases": 23,
+      "total_cases": 24,
+      "pass_rate": 0.9583,
+      "passed_attempts": 23,
+      "total_attempts": 24,
+      "attempt_pass_rate": 0.9583,
+      "failed_cases": [
+        "write_user_yaml_after_read"
+      ],
+      "cases": [
+        {
+          "case_id": "page_title_requires_execution",
+          "description": "current page questions should trigger a live browser read, not a conversational guess",
+          "prompt_id": "024B_midline_followthrough",
+          "prompt_path": "tests/agent_llm_performance/prompts/024B_midline_followthrough.md",
+          "case_path": "tests/agent_llm_performance/cases/page_title_requires_execution.json",
+          "history_path": "tests/agent_llm_performance/histories/page_title_requires_execution.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Checking the current page now...\n\n\n_____javascript\nreturn {\n  title: document.title,\n  url: location.href,\n  origin: location.origin,\n  path: location.pathname\n};",
+          "usage": {
+            "prompt_tokens": 3030,
+            "completion_tokens": 53,
+            "total_tokens": 3083,
+            "cost": 0.0006102,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0006102,
+              "upstream_inference_prompt_cost": 0.0003717,
+              "upstream_inference_completions_cost": 0.0002385
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "smalltalk_hi_terminal",
+          "description": "casual conversation should answer normally without execution",
+          "prompt_id": "024B_midline_followthrough",
+          "prompt_path": "tests/agent_llm_performance/prompts/024B_midline_followthrough.md",
+          "case_path": "tests/agent_llm_performance/cases/smalltalk_hi_terminal.json",
+          "history_path": "tests/agent_llm_performance/histories/smalltalk_hi_terminal.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "terminal",
+          "response": "Hi!",
+          "usage": {
+            "prompt_tokens": 3026,
+            "completion_tokens": 6,
+            "total_tokens": 3032,
+            "cost": 0.0003957,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0003957,
+              "upstream_inference_prompt_cost": 0.0003687,
+              "upstream_inference_completions_cost": 0.000027
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "time_requires_execution",
+          "description": "live time should trigger execution instead of a blocker or narration",
+          "prompt_id": "024B_midline_followthrough",
+          "prompt_path": "tests/agent_llm_performance/prompts/024B_midline_followthrough.md",
+          "case_path": "tests/agent_llm_performance/cases/time_requires_execution.json",
+          "history_path": "tests/agent_llm_performance/histories/time_requires_execution.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Checking the live time now...\n_____javascript\nreturn new Date().toString()",
+          "usage": {
+            "prompt_tokens": 3030,
+            "completion_tokens": 20,
+            "total_tokens": 3050,
+            "cost": 0.0004617,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0004617,
+              "upstream_inference_prompt_cost": 0.0003717,
+              "upstream_inference_completions_cost": 0.00009
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "weather_omitted_scope",
+          "description": "underspecified weather should use current context rather than bounce a location question to the human",
+          "prompt_id": "024B_midline_followthrough",
+          "prompt_path": "tests/agent_llm_performance/prompts/024B_midline_followthrough.md",
+          "case_path": "tests/agent_llm_performance/cases/weather_omitted_scope.json",
+          "history_path": "tests/agent_llm_performance/histories/weather_omitted_scope.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Fetching the live weather for your current location now...\n\n\n_____javascript\nconst pos = await new Promise((resolve, reject) => {\n  if (!navigator.geolocation) return reject(new Error(\"Geolocation unavailable\"));\n  navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 });\n});\n\nconst { latitude, longitude } = pos.coords;\nconst url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m&timezone=auto`;\n\nconst res = await fetch(url);\nconst data = await res.json();\n\nconst code = data.current?.weather_code;\nconst temp = data.current?.temperature_2m;\nconst feels = data.current?.apparent_temperature;\nconst wind = data.current?.wind_speed_10m;\nconst humidity = data.current?.relative_humidity_2m;\n\nconst map = {\n  0: \"clear sky\",\n  1: \"mainly clear\",\n  2: \"partly cloudy\",\n  3: \"overcast\",\n  45: \"fog\",\n  48: \"depositing rime fog\",\n  51: \"light drizzle\",\n  53: \"moderate drizzle\",\n  55: \"dense drizzle\",\n  61: \"light rain\",\n  63: \"moderate rain\",\n  65: \"heavy rain\",\n  71: \"light snow\",\n  73: \"moderate snow\",\n  75: \"heavy snow\",\n  80: \"rain showers\",\n  81: \"moderate showers\",\n  82: \"violent showers\",\n  95: \"thunderstorm\"\n};\n\nreturn {\n  location: `${latitude.toFixed(3)}, ${longitude.toFixed(3)}`,\n  condition: map[code] || `weather code ${code}`,\n  temperature_c: temp,\n  feels_like_c: feels,\n  wind_kmh: wind,\n  humidity_pct: humidity\n};",
+          "usage": {
+            "prompt_tokens": 3030,
+            "completion_tokens": 446,
+            "total_tokens": 3476,
+            "cost": 0.0023787,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0023787,
+              "upstream_inference_prompt_cost": 0.0003717,
+              "upstream_inference_completions_cost": 0.002007
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "weather_self_scope_followup",
+          "description": "self-referential follow-up should trigger execution, not another blocker or impossibility report",
+          "prompt_id": "024B_midline_followthrough",
+          "prompt_path": "tests/agent_llm_performance/prompts/024B_midline_followthrough.md",
+          "case_path": "tests/agent_llm_performance/cases/weather_self_scope_followup.json",
+          "history_path": "tests/agent_llm_performance/histories/weather_self_scope_followup.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Checking your current location now...\n\n\n_____javascript\nconst pos = await new Promise((resolve, reject) => {\n  if (!navigator.geolocation) return reject(new Error(\"geolocation unavailable\"));\n  navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 });\n});\nreturn { lat: pos.coords.latitude, lon: pos.coords.longitude, accuracy: pos.coords.accuracy };",
+          "usage": {
+            "prompt_tokens": 3047,
+            "completion_tokens": 102,
+            "total_tokens": 3149,
+            "cost": 0.00084345,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00084345,
+              "upstream_inference_prompt_cost": 0.00038445,
+              "upstream_inference_completions_cost": 0.000459
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "weather_self_scope_after_indirect_fail",
+          "description": "after an indirect current-context attempt fails, the agent should switch to direct browser location and continue through the weather step",
+          "prompt_id": "024B_midline_followthrough",
+          "prompt_path": "tests/agent_llm_performance/prompts/024B_midline_followthrough.md",
+          "case_path": "tests/agent_llm_performance/cases/weather_self_scope_after_indirect_fail.json",
+          "history_path": "tests/agent_llm_performance/histories/weather_self_scope_after_indirect_fail.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Checking your current weather now...\n_____javascript\nconst pos = await new Promise((resolve, reject) => {\n  if (!navigator.geolocation) return resolve({ error: \"geolocation unavailable\" });\n  navigator.geolocation.getCurrentPosition(\n    p => resolve({ lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy }),\n    e => resolve({ error: e.message })\n  );\n});\n\nif (pos.error) return pos;\n\nconst { lat, lon } = pos;\nconst url = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m&timezone=auto`;\nconst data = await fetch(url).then(r => r.json());\n\nreturn {\n  location: { lat, lon, acc: pos.acc },\n  current: data.current,\n  timezone: data.timezone\n};",
+          "usage": {
+            "prompt_tokens": 3093,
+            "completion_tokens": 214,
+            "total_tokens": 3307,
+            "cost": 0.00138195,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00138195,
+              "upstream_inference_prompt_cost": 0.00041895,
+              "upstream_inference_completions_cost": 0.000963
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "finish_weather_after_geolocation",
+          "description": "geolocation coordinates are prerequisite data, not the final answer when the user asked for weather",
+          "prompt_id": "024B_midline_followthrough",
+          "prompt_path": "tests/agent_llm_performance/prompts/024B_midline_followthrough.md",
+          "case_path": "tests/agent_llm_performance/cases/finish_weather_after_geolocation.json",
+          "history_path": "tests/agent_llm_performance/histories/finish_weather_after_geolocation.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Fetching local weather for your coordinates now...\n\n\n_____javascript\nconst { latitude, longitude } = { latitude: 49.393813868077764, longitude: 17.22388380435019 };\nconst url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,precipitation&timezone=auto`;\nconst res = await fetch(url);\nconst data = await res.json();\nreturn {\n  location: { latitude, longitude, timezone: data.timezone },\n  current: data.current\n}",
+          "usage": {
+            "prompt_tokens": 3153,
+            "completion_tokens": 148,
+            "total_tokens": 3301,
+            "cost": 0.00112995,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00112995,
+              "upstream_inference_prompt_cost": 0.00046395,
+              "upstream_inference_completions_cost": 0.000666
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "weather_after_place_prerequisite",
+          "description": "if a place lookup happens inside a weather task, the agent should continue to weather instead of stopping on place identity",
+          "prompt_id": "024B_midline_followthrough",
+          "prompt_path": "tests/agent_llm_performance/prompts/024B_midline_followthrough.md",
+          "case_path": "tests/agent_llm_performance/cases/weather_after_place_prerequisite.json",
+          "history_path": "tests/agent_llm_performance/histories/weather_after_place_prerequisite.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Fetching the local weather now...\n_____javascript\nconst lat = 49.71985822231634;\nconst lon = 17.221723412878973;\nconst url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,wind_speed_10m,apparent_temperature&timezone=auto`;\nconst data = await fetch(url).then(r => r.json());\n\nconst code = data.current?.weather_code;\nconst map = {\n  0: 'Clear sky',\n  1: 'Mainly clear',\n  2: 'Partly cloudy',\n  3: 'Overcast',\n  45: 'Fog',\n  48: 'Depositing rime fog',\n  51: 'Light drizzle',\n  53: 'Moderate drizzle',\n  55: 'Dense drizzle',\n  61: 'Slight rain',\n  63: 'Moderate rain',\n  65: 'Heavy rain',\n  71: 'Slight snow',\n  73: 'Moderate snow',\n  75: 'Heavy snow',\n  80: 'Rain showers',\n  81: 'Moderate rain showers',\n  82: 'Violent rain showers',\n  95: 'Thunderstorm',\n};\nreturn {\n  temperature_c: data.current?.temperature_2m,\n  feels_like_c: data.current?.apparent_temperature,\n  wind_speed_kph: data.current?.wind_speed_10m,\n  weather_code: code,\n  weather: map[code] || `Code ${code}`,\n  time: data.current?.time\n}",
+          "usage": {
+            "prompt_tokens": 3321,
+            "completion_tokens": 347,
+            "total_tokens": 3668,
+            "cost": 0.00215145,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00215145,
+              "upstream_inference_prompt_cost": 0.00058995,
+              "upstream_inference_completions_cost": 0.0015615
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "terminal_after_weather_ready",
+          "description": "once the weather data is already present in telemetry, the agent should answer instead of executing again",
+          "prompt_id": "024B_midline_followthrough",
+          "prompt_path": "tests/agent_llm_performance/prompts/024B_midline_followthrough.md",
+          "case_path": "tests/agent_llm_performance/cases/terminal_after_weather_ready.json",
+          "history_path": "tests/agent_llm_performance/histories/terminal_after_weather_ready.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "terminal",
+          "response": "Prague: 12°C, feels like 10°C, sunny, humidity 30%, wind 25 kph.",
+          "usage": {
+            "prompt_tokens": 3193,
+            "completion_tokens": 29,
+            "total_tokens": 3222,
+            "cost": 0.00062445,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00062445,
+              "upstream_inference_prompt_cost": 0.00049395,
+              "upstream_inference_completions_cost": 0.0001305
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "reverse_geocode_after_precise_followup",
+          "description": "after weather was fetched for known coordinates and the user asks where that is precisely, the agent should reverse geocode instead of answering vaguely",
+          "prompt_id": "024B_midline_followthrough",
+          "prompt_path": "tests/agent_llm_performance/prompts/024B_midline_followthrough.md",
+          "case_path": "tests/agent_llm_performance/cases/reverse_geocode_after_precise_followup.json",
+          "history_path": "tests/agent_llm_performance/histories/reverse_geocode_after_precise_followup.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Checking a reverse geocode for that location now...\n_____javascript\nconst latitude = 49.71985822231634;\nconst longitude = 17.221723412878973;\nconst url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`;\nconst data = await fetch(url, {\n  headers: { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0' }\n}).then(r => r.json());\nreturn {\n  display_name: data.display_name,\n  address: data.address\n}",
+          "usage": {
+            "prompt_tokens": 3312,
+            "completion_tokens": 134,
+            "total_tokens": 3446,
+            "cost": 0.0011862,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0011862,
+              "upstream_inference_prompt_cost": 0.0005832,
+              "upstream_inference_completions_cost": 0.000603
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "unpack_collapsed_weather_payload",
+          "description": "collapsed payloads should trigger another extraction attempt instead of a stop or offer",
+          "prompt_id": "024B_midline_followthrough",
+          "prompt_path": "tests/agent_llm_performance/prompts/024B_midline_followthrough.md",
+          "case_path": "tests/agent_llm_performance/cases/unpack_collapsed_weather_payload.json",
+          "history_path": "tests/agent_llm_performance/histories/unpack_collapsed_weather_payload.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Reading the weather details now...\n_____javascript\nconst data = await fetch('https://wttr.in/?format=j1').then(r => r.json());\nconst c = data.current_condition?.[0] || {};\nconst area = data.nearest_area?.[0] || {};\nconst w = data.weather?.[0] || {};\nreturn {\n  location: `${area.areaName?.[0]?.value || 'Unknown location'}, ${area.country?.[0]?.value || ''}`.replace(/, $/, ''),\n  tempC: c.temp_C,\n  feelsLikeC: c.FeelsLikeC,\n  condition: c.weatherDesc?.[0]?.value,\n  humidity: c.humidity,\n  windKph: c.windspeedKmph,\n  precipMm: w.totalSnow_cm ?? w.totalPrecip_mm,\n  date: w.date\n}",
+          "usage": {
+            "prompt_tokens": 3124,
+            "completion_tokens": 186,
+            "total_tokens": 3310,
+            "cost": 0.0012792,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0012792,
+              "upstream_inference_prompt_cost": 0.0004422,
+              "upstream_inference_completions_cost": 0.000837
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "create_note_after_user_detail_read",
+          "description": "user detail is prerequisite state for a write task and should lead into fileWrite, not a terminal identity answer",
+          "prompt_id": "024B_midline_followthrough",
+          "prompt_path": "tests/agent_llm_performance/prompts/024B_midline_followthrough.md",
+          "case_path": "tests/agent_llm_performance/cases/create_note_after_user_detail_read.json",
+          "history_path": "tests/agent_llm_performance/histories/create_note_after_user_detail_read.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Creating the notes file with your username now...\n_____javascript\nreturn await space.api.fileWrite(\"~/notes/whoami.txt\", \"pan\")\n",
+          "usage": {
+            "prompt_tokens": 3086,
+            "completion_tokens": 52,
+            "total_tokens": 3138,
+            "cost": 0.0006477,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0006477,
+              "upstream_inference_prompt_cost": 0.0004137,
+              "upstream_inference_completions_cost": 0.000234
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "write_user_yaml_after_read",
+          "description": "after reading a config file for an edit task, the agent should write the edit instead of summarizing the file",
+          "prompt_id": "024B_midline_followthrough",
+          "prompt_path": "tests/agent_llm_performance/prompts/024B_midline_followthrough.md",
+          "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
+          "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
+          "passed": false,
+          "failures": [
+            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
+          ],
+          "response_type": "thrust",
+          "response": "Patching your full name to Pan Example now...\n\n\n_____javascript\nconst text = await space.api.fileRead(\"~/user.yaml\");\nconst data = space.utils.yaml.parse(text);\ndata.full_name = \"Pan Example\";\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(data));",
+          "usage": {
+            "prompt_tokens": 3079,
+            "completion_tokens": 75,
+            "total_tokens": 3154,
+            "cost": 0.00074595,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00074595,
+              "upstream_inference_prompt_cost": 0.00040845,
+              "upstream_inference_completions_cost": 0.0003375
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "recover_known_file_after_write_error",
+          "description": "after a known file write error, recovery should stay on the exact file target instead of broad discovery or fake success",
+          "prompt_id": "024B_midline_followthrough",
+          "prompt_path": "tests/agent_llm_performance/prompts/024B_midline_followthrough.md",
+          "case_path": "tests/agent_llm_performance/cases/recover_known_file_after_write_error.json",
+          "history_path": "tests/agent_llm_performance/histories/recover_known_file_after_write_error.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Patching user.yaml with valid YAML now...\n_____javascript\nconst current = await space.api.fileRead(\"~/user.yaml\");\nconst text = current.includes(\"\\n\") ? current : `${current}\\n`;\nconst parsed = space.utils.yaml.parse(text);\nparsed.fullName = \"Pan Example\";\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(parsed));",
+          "usage": {
+            "prompt_tokens": 3091,
+            "completion_tokens": 83,
+            "total_tokens": 3174,
+            "cost": 0.00079095,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00079095,
+              "upstream_inference_prompt_cost": 0.00041745,
+              "upstream_inference_completions_cost": 0.0003735
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "followup_edit_requires_well_formed_thrust",
+          "description": "a follow-up edit request should produce one well-formed execution reply, not a staging sentence with a malformed separator",
+          "prompt_id": "024B_midline_followthrough",
+          "prompt_path": "tests/agent_llm_performance/prompts/024B_midline_followthrough.md",
+          "case_path": "tests/agent_llm_performance/cases/followup_edit_requires_well_formed_thrust.json",
+          "history_path": "tests/agent_llm_performance/histories/followup_edit_requires_well_formed_thrust.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Patching the snake tail to keep a 60% minimum size cap...\n_____javascript\nconst t = space.chat.transient.get(\"snake-game\");\nconst edits = [{\n  op: \"replace\",\n  path: \"snakeTailScale\",\n  value: { min: 0.6, mode: \"cap\" }\n}];\nreturn await space.current.patchWidget(\"snake-game\", { edits })",
+          "usage": {
+            "prompt_tokens": 3146,
+            "completion_tokens": 90,
+            "total_tokens": 3236,
+            "cost": 0.0008637,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0008637,
+              "upstream_inference_prompt_cost": 0.0004587,
+              "upstream_inference_completions_cost": 0.000405
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "terminal_after_successful_widget_patch",
+          "description": "after a successful patch that satisfies the request, the agent should stop executing and answer once",
+          "prompt_id": "024B_midline_followthrough",
+          "prompt_path": "tests/agent_llm_performance/prompts/024B_midline_followthrough.md",
+          "case_path": "tests/agent_llm_performance/cases/terminal_after_successful_widget_patch.json",
+          "history_path": "tests/agent_llm_performance/histories/terminal_after_successful_widget_patch.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "terminal",
+          "response": "",
+          "usage": {
+            "prompt_tokens": 3111,
+            "completion_tokens": 10,
+            "total_tokens": 3121,
+            "cost": 0.00047745,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00047745,
+              "upstream_inference_prompt_cost": 0.00043245,
+              "upstream_inference_completions_cost": 0.000045
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "terminal_after_successful_retry_patch",
+          "description": "after a retry succeeds, the agent should stop and answer rather than narrate readiness for more work",
+          "prompt_id": "024B_midline_followthrough",
+          "prompt_path": "tests/agent_llm_performance/prompts/024B_midline_followthrough.md",
+          "case_path": "tests/agent_llm_performance/cases/terminal_after_successful_retry_patch.json",
+          "history_path": "tests/agent_llm_performance/histories/terminal_after_successful_retry_patch.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "terminal",
+          "response": "",
+          "usage": {
+            "prompt_tokens": 3198,
+            "completion_tokens": 4,
+            "total_tokens": 3202,
+            "cost": 0.0005157,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0005157,
+              "upstream_inference_prompt_cost": 0.0004977,
+              "upstream_inference_completions_cost": 0.000018
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "repeat_do_it_requires_execution",
+          "description": "if the assistant previously sent staging-only prose and the user says do it, the next reply must execute instead of narrating again",
+          "prompt_id": "024B_midline_followthrough",
+          "prompt_path": "tests/agent_llm_performance/prompts/024B_midline_followthrough.md",
+          "case_path": "tests/agent_llm_performance/cases/repeat_do_it_requires_execution.json",
+          "history_path": "tests/agent_llm_performance/histories/repeat_do_it_requires_execution.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Patching the snake game movement animation now...\n_____javascript\nconst widget = space.chat.transient.get(\"snake-game\");\nif (!widget) throw new Error(\"snake-game widget not found in transient\");\nconst text = typeof widget === \"string\" ? widget : (widget.text ?? widget.content ?? JSON.stringify(widget));\nlet updated = text;\n\n// Heuristic animation enhancement: add smooth interpolation for snake movement if the widget uses canvas/game loop code.\n// Try common patterns for grid-based movement.\nupdated = updated\n  .replace(/(const\\s+STEP\\s*=\\s*)(\\d+)(\\s*;)/, '$1$2$3')\n  .replace(/(let\\s+moveProgress\\s*=\\s*)(0)(\\s*;)/, '$10$3')\n  .replace(/(function\\s+drawSnake\\s*\\([\\s\\S]*?\\{)/, '$1\\n')\n  .replace(/(requestAnimationFrame\\(\\s*gameLoop\\s*\\)\\s*;)/, 'requestAnimationFrame(gameLoop);');\n\nif (updated === text) {\n  // More targeted fallback: inject smooth interpolation helpers near movement/state definitions.\n  const insertAfter =\n    /((?:let|const)\\s+(?:snake|segments|gridSize|cellSize|direction|nextDirection|head)\\b[\\s\\S]*?;\\s*)/;\n  if (insertAfter.test(updated)) {\n    updated = updated.replace(insertAfter, `$1\\nconst movementLerp = 0.22;\\nlet movementProgress = 0;\\nlet lastFrameTime = performance.now();\\n`);\n  } else {\n    updated += `\\n\\n// Smooth movement enhancement\\nconst movementLerp = 0.22;\\nlet movementProgress = 0;\\nlet lastFrameTime = performance.now();\\n`;\n  }\n\n  // Try to soften rendering by interpolating positions during animation frames.\n  updated = updated.replace(\n    /(function\\s+render[\\s\\S]*?)(ctx\\.fillRect\\([\\s\\S]*?\\);\\s*)/m,\n    `$1const drawX = x + (dx || 0) * movementProgress;\\nconst drawY = y + (dy || 0) * movementProgress;\\nctx.save();\\nctx.translate(drawX, drawY);\\n$2ctx.restore();\\n`\n  );\n\n  // Fallback add a tick-based interpolation block if render rewrite didn't apply.\n  if (updated === text + `\\n\\n// Smooth movement enhancement\\nconst movementLerp = 0.22;\\nlet movementProgress = 0;\\nlet lastFrameTime = performance.now();\\n`) {\n    updated += `\\n\\nfunction updateMovementProgress() {\\n  movementProgress += (1 - movementProgress) * movementLerp;\\n  if (movementProgress > 0.999) movementProgress = 0;\\n}\\n`;\n  }\n}\n\nreturn await space.current.patchWidget(\"snake-game\", { edits: updated })",
+          "usage": {
+            "prompt_tokens": 3137,
+            "completion_tokens": 629,
+            "total_tokens": 3766,
+            "cost": 0.00328245,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00328245,
+              "upstream_inference_prompt_cost": 0.00045195,
+              "upstream_inference_completions_cost": 0.0028305
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "post_success_followup_requires_execution_or_completion",
+          "description": "after a successful patch and a concrete user complaint, the agent must execute a fix instead of falling into staging-only repetition",
+          "prompt_id": "024B_midline_followthrough",
+          "prompt_path": "tests/agent_llm_performance/prompts/024B_midline_followthrough.md",
+          "case_path": "tests/agent_llm_performance/cases/post_success_followup_requires_execution_or_completion.json",
+          "history_path": "tests/agent_llm_performance/histories/post_success_followup_requires_execution_or_completion.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Reading the snake widget state now.\n\n\n_____javascript\nreturn await space.current.readWidget(\"snake-game\")",
+          "usage": {
+            "prompt_tokens": 3224,
+            "completion_tokens": 37,
+            "total_tokens": 3261,
+            "cost": 0.0006837,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0006837,
+              "upstream_inference_prompt_cost": 0.0005172,
+              "upstream_inference_completions_cost": 0.0001665
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "protocol_nudge_requires_real_thrust",
+          "description": "after staging-only hesitation and a user reminder about the execution gate, the next reply must be one real thrust response",
+          "prompt_id": "024B_midline_followthrough",
+          "prompt_path": "tests/agent_llm_performance/prompts/024B_midline_followthrough.md",
+          "case_path": "tests/agent_llm_performance/cases/protocol_nudge_requires_real_thrust.json",
+          "history_path": "tests/agent_llm_performance/histories/protocol_nudge_requires_real_thrust.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Patching the snake widget now...\n_____javascript\nconst widget = space.chat.transient.get(\"snake-game\");\nconst source = widget?.source ?? widget?.code ?? widget?.text ?? widget?.content ?? widget;\nif (!source || typeof source !== \"string\") return \"No editable source found in transient for snake-game.\";\n\nconst updated = source\n  .replace(/(const CELL_SIZE\\s*=\\s*\\d+;[\\s\\S]*?)(function|const)\\s+render/i, (m) => m)\n  .replace(/(ctx\\.fillRect\\(\\s*x\\s*,\\s*y\\s*,\\s*CELL_SIZE\\s*,\\s*CELL_SIZE\\s*\\);)/g, '$1')\n  .replace(/(function\\s+render[\\s\\S]*?)(function\\s+gameLoop|const\\s+gameLoop)/, (m) => m);\n\nlet patched = source;\n\n// Add interpolation helpers if not present\nif (!/lerp\\(|smoothStep\\(|interp/i.test(patched)) {\n  patched = patched.replace(\n    /(const\\s+SNAKE_COLOR[\\s\\S]*?\\n)/,\n    `$1\nconst MOVE_ANIM_MS = 120;\nlet moveAnimStart = 0;\nlet prevSnake = null;\n\nfunction lerp(a, b, t) {\n  return a + (b - a) * t;\n}\n\nfunction smoothStep(t) {\n  return t * t * (3 - 2 * t);\n}\n\nfunction getInterpolatedSnake() {\n  if (!prevSnake || !snake || prevSnake.length !== snake.length) return snake;\n  const elapsed = performance.now() - moveAnimStart;\n  const t = Math.max(0, Math.min(1, elapsed / MOVE_ANIM_MS));\n  const s = smoothStep(t);\n  return prevSnake.map((p, i) => ({\n    x: lerp(p.x, snake[i].x, s),\n    y: lerp(p.y, snake[i].y, s),\n  }));\n}\n`\n  );\n}\n\n// Capture previous snake before each successful move and arm animation\npatched = patched.replace(\n  /(function\\s+moveSnake\\s*\\(\\)\\s*\\{[\\s\\S]*?)(if\\s*\\(\\s*collision\\s*\\)\\s*\\{)/,\n  `$1prevSnake = snake.map(segment => ({ x: segment.x, y: segment.y })); moveAnimStart = performance.now();\n$2`\n);\n\n// Ensure rendering uses interpolated positions\npatched = patched.replace(\n  /(function\\s+drawSnake\\s*\\(\\)\\s*\\{[\\s\\S]*?for\\s*\\(\\s*const\\s+segment\\s+of\\s+snake\\s*\\)\\s*\\{[\\s\\S]*?ctx\\.fillRect\\(\\s*segment\\.x\\s*\\*\\s*CELL_SIZE\\s*,\\s*segment\\.y\\s*\\*\\s*CELL_SIZE\\s*,\\s*CELL_SIZE\\s*,\\s*CELL_SIZE\\s*\\);\\s*\\}[\\s\\S]*?\\})/,\n  `function drawSnake() {\n  const segments = getInterpolatedSnake();\n  for (let i = 0; i < segments.length; i++) {\n    const segment = segments[i];\n    const px = segment.x * CELL_SIZE;\n    const py = segment.y * CELL_SIZE;\n    const pad = i === 0 ? CELL_SIZE * 0.08 : CELL_SIZE * 0.14;\n    const size = CELL_SIZE - pad * 2;\n    const radius = Math.max(3, size * 0.32);\n    roundRect(ctx, px + pad, py + pad, size, size, radius);\n    ctx.fillStyle = i === 0 ? '#7CFF6B' : '#4CD95E';\n    ctx.fill();\n    if (i === 0) {\n      ctx.shadowColor = 'rgba(124,255,107,0.35)';\n      ctx.shadowBlur = 10;\n    }\n  }\n}`\n);\n\n// Add roundRect helper if absent\nif (!/function\\s+roundRect\\s*\\(/.test(patched)) {\n  patched = patched.replace(\n    /(function\\s+drawFood[\\s\\S]*?\\n})/,\n    `$1\n\nfunction roundRect(ctx, x, y, width, height, radius) {\n  const r = Math.min(radius, width / 2, height / 2);\n  ctx.beginPath();\n  ctx.moveTo(x + r, y);\n  ctx.arcTo(x + width, y, x + width, y + height, r);\n  ctx.arcTo(x + width, y + height, x, y + height, r);\n  ctx.arcTo(x, y + height, x, y, r);\n  ctx.arcTo(x, y, x + width, y, r);\n  ctx.closePath();\n}`\n  );\n}\n\n// Reset animation state on game reset if possible\npatched = patched.replace(\n  /(function\\s+resetGame\\s*\\(\\)\\s*\\{[\\s\\S]*?)(\\n\\})/,\n  `$1\n  prevSnake = null;\n  moveAnimStart = 0;$2`\n);\n\n// Fallback: if drawSnake isn't structured as expected, leave source unchanged\nif (patched === source) return \"Could not safely patch snake animation from current source shape.\";\n\nreturn await space.current.patchWidget(\"snake-game\", { edits: [{ find: source, replace: patched }] });",
+          "usage": {
+            "prompt_tokens": 3141,
+            "completion_tokens": 1125,
+            "total_tokens": 4266,
+            "cost": 0.00551745,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00551745,
+              "upstream_inference_prompt_cost": 0.00045495,
+              "upstream_inference_completions_cost": 0.0050625
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "continue_after_widget_load_success",
+          "description": "after widget load success with the task still open, the agent must execute the next continuation step instead of sending staging-only prose",
+          "prompt_id": "024B_midline_followthrough",
+          "prompt_path": "tests/agent_llm_performance/prompts/024B_midline_followthrough.md",
+          "case_path": "tests/agent_llm_performance/cases/continue_after_widget_load_success.json",
+          "history_path": "tests/agent_llm_performance/histories/continue_after_widget_load_success.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Patching the Snake widget to a Nokia-style green display now...\n_____javascript\nconst widget = space.chat.transient.get(\"snake-game\");\nreturn await space.current.patchWidget(\"snake-game\", {\n  edits: [\n    {\n      find: /background(?:-color)?:\\s*[^;]+;/i,\n      replace: \"background-color: #9bbc0f;\"\n    },\n    {\n      find: /color:\\s*[^;]+;/i,\n      replace: \"color: #0f380f;\"\n    }\n  ]\n})",
+          "usage": {
+            "prompt_tokens": 3103,
+            "completion_tokens": 122,
+            "total_tokens": 3225,
+            "cost": 0.00097545,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00097545,
+              "upstream_inference_prompt_cost": 0.00042645,
+              "upstream_inference_completions_cost": 0.000549
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "continue_after_widget_read",
+          "description": "after a widget read that unlocks the next write, the agent should continue with execution",
+          "prompt_id": "024B_midline_followthrough",
+          "prompt_path": "tests/agent_llm_performance/prompts/024B_midline_followthrough.md",
+          "case_path": "tests/agent_llm_performance/cases/continue_after_widget_read.json",
+          "history_path": "tests/agent_llm_performance/histories/continue_after_widget_read.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Patching the Snake background greener now...\n_____javascript\nconst widget = space.chat.transient.get(\"snake-game\");\nreturn await space.current.patchWidget(\"snake-game\", {\n  edits: [\n    {\n      line: 1,\n      text: \"  parent.style.background = '#7aa35b';\"\n    },\n    {\n      line: 3,\n      text: \"  screen.style.background = '#7aa35b';\"\n    }\n  ]\n});",
+          "usage": {
+            "prompt_tokens": 3180,
+            "completion_tokens": 103,
+            "total_tokens": 3283,
+            "cost": 0.0009477,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0009477,
+              "upstream_inference_prompt_cost": 0.0004842,
+              "upstream_inference_completions_cost": 0.0004635
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "no_false_success_after_error",
+          "description": "after execution error the agent must recover, not claim success",
+          "prompt_id": "024B_midline_followthrough",
+          "prompt_path": "tests/agent_llm_performance/prompts/024B_midline_followthrough.md",
+          "case_path": "tests/agent_llm_performance/cases/no_false_success_after_error.json",
+          "history_path": "tests/agent_llm_performance/histories/no_false_success_after_error.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Updating the Snake widget to a greener Nokia-style background now...\n_____javascript\nconst widget = await space.current.readWidget(\"snake-game\");\nconst text = widget && typeof widget === \"object\" && \"code\" in widget ? widget.code : String(widget);\nconst updated = text\n  .replace(/background[^;\\n]*;/g, \"background: #cfe7a1;\")\n  .replace(/bgColor[^;\\n]*;/g, \"bgColor: '#cfe7a1';\")\n  .replace(/fillStyle[^;\\n]*;/g, \"fillStyle = '#cfe7a1';\");\nreturn await space.current.patchWidget(\"snake-game\", { edits: [{ op: \"replace\", path: \"/code\", value: updated }] })",
+          "usage": {
+            "prompt_tokens": 3108,
+            "completion_tokens": 169,
+            "total_tokens": 3277,
+            "cost": 0.0030915,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0030915,
+              "upstream_inference_prompt_cost": 0.002331,
+              "upstream_inference_completions_cost": 0.0007605
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "direct_repair_after_known_widget_error",
+          "description": "after a widget patch error with a known current widget target, the agent should continue on that exact target instead of broad rediscovery",
+          "prompt_id": "024B_midline_followthrough",
+          "prompt_path": "tests/agent_llm_performance/prompts/024B_midline_followthrough.md",
+          "case_path": "tests/agent_llm_performance/cases/direct_repair_after_known_widget_error.json",
+          "history_path": "tests/agent_llm_performance/histories/direct_repair_after_known_widget_error.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Patching the Snake widget with a greener Nokia-style background and fixing the renderer syntax now...\n_____javascript\nconst current = space.chat.transient.get(\"snake-game\");\nconst renderer = `async (parent, spaceRef) => {\n  const dir = { x: 1, y: 0 };\n  return () => {\n    const el = parent;\n    if (el && el.style) {\n      el.style.background = \"#9bbc0f\";\n      el.style.color = \"#0f380f\";\n    }\n  };\n}`;\nreturn await space.current.patchWidget(current.widgetId, {\n  edits: [\n    { path: \"renderer\", value: renderer }\n  ]\n});",
+          "usage": {
+            "prompt_tokens": 3202,
+            "completion_tokens": 161,
+            "total_tokens": 3363,
+            "cost": 0.0012252,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0012252,
+              "upstream_inference_prompt_cost": 0.0005007,
+              "upstream_inference_completions_cost": 0.0007245
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "prompt_id": "024A_conservative_guardrails",
+      "passed_cases": 22,
+      "total_cases": 24,
+      "pass_rate": 0.9167,
+      "passed_attempts": 22,
+      "total_attempts": 24,
+      "attempt_pass_rate": 0.9167,
+      "failed_cases": [
+        "write_user_yaml_after_read",
+        "terminal_after_successful_widget_patch"
+      ],
+      "cases": [
+        {
+          "case_id": "page_title_requires_execution",
+          "description": "current page questions should trigger a live browser read, not a conversational guess",
+          "prompt_id": "024A_conservative_guardrails",
+          "prompt_path": "tests/agent_llm_performance/prompts/024A_conservative_guardrails.md",
+          "case_path": "tests/agent_llm_performance/cases/page_title_requires_execution.json",
+          "history_path": "tests/agent_llm_performance/histories/page_title_requires_execution.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Checking the current page location now...\n_____javascript\nreturn {\n  href: location.href,\n  origin: location.origin,\n  title: document.title,\n  path: location.pathname,\n  host: location.host\n}\n",
+          "usage": {
+            "prompt_tokens": 2832,
+            "completion_tokens": 67,
+            "total_tokens": 2899,
+            "cost": 0.0008703,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2304,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0008703,
+              "upstream_inference_prompt_cost": 0.0005688,
+              "upstream_inference_completions_cost": 0.0003015
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "smalltalk_hi_terminal",
+          "description": "casual conversation should answer normally without execution",
+          "prompt_id": "024A_conservative_guardrails",
+          "prompt_path": "tests/agent_llm_performance/prompts/024A_conservative_guardrails.md",
+          "case_path": "tests/agent_llm_performance/cases/smalltalk_hi_terminal.json",
+          "history_path": "tests/agent_llm_performance/histories/smalltalk_hi_terminal.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "terminal",
+          "response": "Hi.",
+          "usage": {
+            "prompt_tokens": 2828,
+            "completion_tokens": 6,
+            "total_tokens": 2834,
+            "cost": 0.0005928,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2304,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0005928,
+              "upstream_inference_prompt_cost": 0.0005658,
+              "upstream_inference_completions_cost": 0.000027
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "time_requires_execution",
+          "description": "live time should trigger execution instead of a blocker or narration",
+          "prompt_id": "024A_conservative_guardrails",
+          "prompt_path": "tests/agent_llm_performance/prompts/024A_conservative_guardrails.md",
+          "case_path": "tests/agent_llm_performance/cases/time_requires_execution.json",
+          "history_path": "tests/agent_llm_performance/histories/time_requires_execution.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Checking the live time now...\n\n\n_____javascript\nreturn new Date().toString()",
+          "usage": {
+            "prompt_tokens": 2832,
+            "completion_tokens": 27,
+            "total_tokens": 2859,
+            "cost": 0.0006903,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2304,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0006903,
+              "upstream_inference_prompt_cost": 0.0005688,
+              "upstream_inference_completions_cost": 0.0001215
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "weather_omitted_scope",
+          "description": "underspecified weather should use current context rather than bounce a location question to the human",
+          "prompt_id": "024A_conservative_guardrails",
+          "prompt_path": "tests/agent_llm_performance/prompts/024A_conservative_guardrails.md",
+          "case_path": "tests/agent_llm_performance/cases/weather_omitted_scope.json",
+          "history_path": "tests/agent_llm_performance/histories/weather_omitted_scope.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Checking local weather now...\n\n\n_____javascript\nconst res = await fetch('https://wttr.in/?format=j1');\nconst data = await res.json();\nconst current = data.current_condition?.[0] || {};\nreturn {\n  area: data.nearest_area?.[0]?.areaName?.[0]?.value,\n  region: data.nearest_area?.[0]?.region?.[0]?.value,\n  country: data.nearest_area?.[0]?.country?.[0]?.value,\n  tempC: current.temp_C,\n  feelsLikeC: current.FeelsLikeC,\n  condition: current.weatherDesc?.[0]?.value,\n  humidity: current.humidity,\n  windKph: current.windspeedKmph\n};",
+          "usage": {
+            "prompt_tokens": 2832,
+            "completion_tokens": 168,
+            "total_tokens": 3000,
+            "cost": 0.0013248,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2304,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0013248,
+              "upstream_inference_prompt_cost": 0.0005688,
+              "upstream_inference_completions_cost": 0.000756
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "weather_self_scope_followup",
+          "description": "self-referential follow-up should trigger execution, not another blocker or impossibility report",
+          "prompt_id": "024A_conservative_guardrails",
+          "prompt_path": "tests/agent_llm_performance/prompts/024A_conservative_guardrails.md",
+          "case_path": "tests/agent_llm_performance/cases/weather_self_scope_followup.json",
+          "history_path": "tests/agent_llm_performance/histories/weather_self_scope_followup.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Checking your current location and weather now...\n_____javascript\nconst pos = await new Promise((resolve, reject) => {\n  if (!navigator.geolocation) return reject(new Error(\"geolocation unavailable\"));\n  navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });\n});\nconst { latitude, longitude } = pos.coords;\nconst geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}`, {\n  headers: { \"accept\": \"application/json\" }\n}).then(r => r.json()).catch(e => ({ error: String(e) }));\nconst place = geoRes.display_name || `${latitude},${longitude}`;\nconst weather = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(latitude)}&longitude=${encodeURIComponent(longitude)}&current=temperature_2m,wind_speed_10m,weather_code&timezone=auto`).then(r => r.json());\nreturn {\n  place,\n  latitude,\n  longitude,\n  current: weather.current,\n  current_units: weather.current_units,\n};",
+          "usage": {
+            "prompt_tokens": 2849,
+            "completion_tokens": 274,
+            "total_tokens": 3123,
+            "cost": 0.00181455,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2304,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00181455,
+              "upstream_inference_prompt_cost": 0.00058155,
+              "upstream_inference_completions_cost": 0.001233
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "weather_self_scope_after_indirect_fail",
+          "description": "after an indirect current-context attempt fails, the agent should switch to direct browser location and continue through the weather step",
+          "prompt_id": "024A_conservative_guardrails",
+          "prompt_path": "tests/agent_llm_performance/prompts/024A_conservative_guardrails.md",
+          "case_path": "tests/agent_llm_performance/cases/weather_self_scope_after_indirect_fail.json",
+          "history_path": "tests/agent_llm_performance/histories/weather_self_scope_after_indirect_fail.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Fetching your current location and weather now...\n\n\n_____javascript\nconst pos = await new Promise((resolve, reject) => {\n  if (!navigator.geolocation) return reject(new Error(\"Geolocation unavailable\"));\n  navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });\n}).catch(e => ({ error: String(e) }));\n\nif (pos && pos.error) return pos.error;\n\nconst { latitude, longitude } = pos.coords;\nconst r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m&timezone=auto`);\nconst data = await r.json();\n\nreturn {\n  location: { latitude, longitude },\n  current: data.current\n};",
+          "usage": {
+            "prompt_tokens": 2895,
+            "completion_tokens": 202,
+            "total_tokens": 3097,
+            "cost": 0.00152505,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2304,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00152505,
+              "upstream_inference_prompt_cost": 0.00061605,
+              "upstream_inference_completions_cost": 0.000909
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "finish_weather_after_geolocation",
+          "description": "geolocation coordinates are prerequisite data, not the final answer when the user asked for weather",
+          "prompt_id": "024A_conservative_guardrails",
+          "prompt_path": "tests/agent_llm_performance/prompts/024A_conservative_guardrails.md",
+          "case_path": "tests/agent_llm_performance/cases/finish_weather_after_geolocation.json",
+          "history_path": "tests/agent_llm_performance/histories/finish_weather_after_geolocation.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Fetching the local weather for your coordinates now...\n\n\n_____javascript\nconst { latitude, longitude } = { latitude: 49.393813868077764, longitude: 17.22388380435019 };\nconst url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m&timezone=auto`;\nconst data = await fetch(url).then(r => r.json());\nconst c = data.current || {};\nreturn {\n  location: { latitude, longitude, timezone: data.timezone },\n  temperature_c: c.temperature_2m,\n  feels_like_c: c.apparent_temperature,\n  wind_speed_10m: c.wind_speed_10m,\n  weather_code: c.weather_code,\n  time: c.time\n}",
+          "usage": {
+            "prompt_tokens": 2955,
+            "completion_tokens": 193,
+            "total_tokens": 3148,
+            "cost": 0.00118395,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00118395,
+              "upstream_inference_prompt_cost": 0.00031545,
+              "upstream_inference_completions_cost": 0.0008685
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "weather_after_place_prerequisite",
+          "description": "if a place lookup happens inside a weather task, the agent should continue to weather instead of stopping on place identity",
+          "prompt_id": "024A_conservative_guardrails",
+          "prompt_path": "tests/agent_llm_performance/prompts/024A_conservative_guardrails.md",
+          "case_path": "tests/agent_llm_performance/cases/weather_after_place_prerequisite.json",
+          "history_path": "tests/agent_llm_performance/histories/weather_after_place_prerequisite.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Fetching the local weather now...\n_____javascript\nconst { latitude, longitude } = { latitude: 49.71985822231634, longitude: 17.221723412878973 };\nconst url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,precipitation&timezone=auto`;\nconst data = await fetch(url).then(r => r.json());\nreturn {\n  location: \"Hnojice, Czechia\",\n  current: data.current,\n  timezone: data.timezone\n}",
+          "usage": {
+            "prompt_tokens": 3123,
+            "completion_tokens": 142,
+            "total_tokens": 3265,
+            "cost": 0.00108045,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00108045,
+              "upstream_inference_prompt_cost": 0.00044145,
+              "upstream_inference_completions_cost": 0.000639
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "terminal_after_weather_ready",
+          "description": "once the weather data is already present in telemetry, the agent should answer instead of executing again",
+          "prompt_id": "024A_conservative_guardrails",
+          "prompt_path": "tests/agent_llm_performance/prompts/024A_conservative_guardrails.md",
+          "case_path": "tests/agent_llm_performance/cases/terminal_after_weather_ready.json",
+          "history_path": "tests/agent_llm_performance/histories/terminal_after_weather_ready.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "terminal",
+          "response": "Prague: 12°C, feels like 10°C, sunny, humidity 30%, wind 25 km/h.",
+          "usage": {
+            "prompt_tokens": 2995,
+            "completion_tokens": 29,
+            "total_tokens": 3024,
+            "cost": 0.00047595,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00047595,
+              "upstream_inference_prompt_cost": 0.00034545,
+              "upstream_inference_completions_cost": 0.0001305
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "reverse_geocode_after_precise_followup",
+          "description": "after weather was fetched for known coordinates and the user asks where that is precisely, the agent should reverse geocode instead of answering vaguely",
+          "prompt_id": "024A_conservative_guardrails",
+          "prompt_path": "tests/agent_llm_performance/prompts/024A_conservative_guardrails.md",
+          "case_path": "tests/agent_llm_performance/cases/reverse_geocode_after_precise_followup.json",
+          "history_path": "tests/agent_llm_performance/histories/reverse_geocode_after_precise_followup.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Checking the precise place for those coordinates now...\n_____javascript\nconst latitude = 49.71985822231634;\nconst longitude = 17.221723412878973;\nconst resp = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);\nconst data = await resp.json();\nreturn {\n  display_name: data.display_name,\n  address: data.address\n}",
+          "usage": {
+            "prompt_tokens": 3114,
+            "completion_tokens": 95,
+            "total_tokens": 3209,
+            "cost": 0.0008622,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0008622,
+              "upstream_inference_prompt_cost": 0.0004347,
+              "upstream_inference_completions_cost": 0.0004275
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "unpack_collapsed_weather_payload",
+          "description": "collapsed payloads should trigger another extraction attempt instead of a stop or offer",
+          "prompt_id": "024A_conservative_guardrails",
+          "prompt_path": "tests/agent_llm_performance/prompts/024A_conservative_guardrails.md",
+          "case_path": "tests/agent_llm_performance/cases/unpack_collapsed_weather_payload.json",
+          "history_path": "tests/agent_llm_performance/histories/unpack_collapsed_weather_payload.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Reading the weather details now...\n_____javascript\nconst data = await (await fetch('https://wttr.in/?format=j1')).json();\nconst c = data.current_condition?.[0] || {};\nconst area = data.nearest_area?.[0] || {};\nreturn {\n  location: `${area.areaName?.[0]?.value || ''}${area.region?.[0]?.value ? ', ' + area.region?.[0]?.value : ''}${area.country?.[0]?.value ? ', ' + area.country?.[0]?.value : ''}`.replace(/^, |, $/g,''),\n  tempC: c.temp_C,\n  feelsLikeC: c.FeelsLikeC,\n  desc: c.weatherDesc?.[0]?.value,\n  humidity: c.humidity,\n  windKph: c.windspeedKmph,\n  precipMm: c.precipMM,\n  observationTime: c.observation_time\n};",
+          "usage": {
+            "prompt_tokens": 2926,
+            "completion_tokens": 203,
+            "total_tokens": 3129,
+            "cost": 0.0012072,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0012072,
+              "upstream_inference_prompt_cost": 0.0002937,
+              "upstream_inference_completions_cost": 0.0009135
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "create_note_after_user_detail_read",
+          "description": "user detail is prerequisite state for a write task and should lead into fileWrite, not a terminal identity answer",
+          "prompt_id": "024A_conservative_guardrails",
+          "prompt_path": "tests/agent_llm_performance/prompts/024A_conservative_guardrails.md",
+          "case_path": "tests/agent_llm_performance/cases/create_note_after_user_detail_read.json",
+          "history_path": "tests/agent_llm_performance/histories/create_note_after_user_detail_read.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Writing the note with your username now...\n_____javascript\nreturn await space.api.fileWrite(\"~/notes/whoami.txt\", \"pan\", \"utf8\")",
+          "usage": {
+            "prompt_tokens": 2888,
+            "completion_tokens": 41,
+            "total_tokens": 2929,
+            "cost": 0.0007953,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2304,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0007953,
+              "upstream_inference_prompt_cost": 0.0006108,
+              "upstream_inference_completions_cost": 0.0001845
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "write_user_yaml_after_read",
+          "description": "after reading a config file for an edit task, the agent should write the edit instead of summarizing the file",
+          "prompt_id": "024A_conservative_guardrails",
+          "prompt_path": "tests/agent_llm_performance/prompts/024A_conservative_guardrails.md",
+          "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
+          "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
+          "passed": false,
+          "failures": [
+            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
+          ],
+          "response_type": "thrust",
+          "response": "Patching your full name to Pan Example now...\n_____javascript\nconst text = await space.api.fileRead(\"~/user.yaml\");\nconst data = space.utils.yaml.parse(text);\ndata.full_name = \"Pan Example\";\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(data))",
+          "usage": {
+            "prompt_tokens": 2881,
+            "completion_tokens": 68,
+            "total_tokens": 2949,
+            "cost": 0.00091155,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2304,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00091155,
+              "upstream_inference_prompt_cost": 0.00060555,
+              "upstream_inference_completions_cost": 0.000306
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "recover_known_file_after_write_error",
+          "description": "after a known file write error, recovery should stay on the exact file target instead of broad discovery or fake success",
+          "prompt_id": "024A_conservative_guardrails",
+          "prompt_path": "tests/agent_llm_performance/prompts/024A_conservative_guardrails.md",
+          "case_path": "tests/agent_llm_performance/cases/recover_known_file_after_write_error.json",
+          "history_path": "tests/agent_llm_performance/histories/recover_known_file_after_write_error.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Patching the user profile YAML with the full name now...\n\n\n_____javascript\nconst info = await space.api.userSelfInfo();\nconst path = `L2/${info.username}/user.yaml`;\nlet text = await space.api.fileRead(path, \"utf8\");\nlet data = space.utils.yaml.parse(text);\ndata.full_name = \"Pan Example\";\nreturn await space.api.fileWrite(path, space.utils.yaml.stringify(data), \"utf8\")",
+          "usage": {
+            "prompt_tokens": 2893,
+            "completion_tokens": 104,
+            "total_tokens": 2997,
+            "cost": 0.00108255,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2304,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00108255,
+              "upstream_inference_prompt_cost": 0.00061455,
+              "upstream_inference_completions_cost": 0.000468
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "followup_edit_requires_well_formed_thrust",
+          "description": "a follow-up edit request should produce one well-formed execution reply, not a staging sentence with a malformed separator",
+          "prompt_id": "024A_conservative_guardrails",
+          "prompt_path": "tests/agent_llm_performance/prompts/024A_conservative_guardrails.md",
+          "case_path": "tests/agent_llm_performance/cases/followup_edit_requires_well_formed_thrust.json",
+          "history_path": "tests/agent_llm_performance/histories/followup_edit_requires_well_formed_thrust.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Patching the snake tail to keep a minimum size cap at 60%...\n_____javascript\nconst w = await space.current.readWidget(\"snake-game\");\nconst widgetId = \"snake-game\";\nconst source = space.chat.transient.get?.(\"snake-game\") ?? w;\nreturn await space.current.patchWidget(widgetId, {\n  edits: [\n    {\n      op: \"replace\",\n      path: \"/tailScaleMin\",\n      value: 0.6\n    }\n  ]\n});",
+          "usage": {
+            "prompt_tokens": 2948,
+            "completion_tokens": 108,
+            "total_tokens": 3056,
+            "cost": 0.0007962,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0007962,
+              "upstream_inference_prompt_cost": 0.0003102,
+              "upstream_inference_completions_cost": 0.000486
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "terminal_after_successful_widget_patch",
+          "description": "after a successful patch that satisfies the request, the agent should stop executing and answer once",
+          "prompt_id": "024A_conservative_guardrails",
+          "prompt_path": "tests/agent_llm_performance/prompts/024A_conservative_guardrails.md",
+          "case_path": "tests/agent_llm_performance/cases/terminal_after_successful_widget_patch.json",
+          "history_path": "tests/agent_llm_performance/histories/terminal_after_successful_widget_patch.json",
+          "passed": false,
+          "failures": [
+            "expected terminal but got thrust",
+            "contains forbidden text: _____javascript",
+            "matched forbidden pattern: /^(?:Patching|Loading|Reading|Fetching|Updating)\\b/imu"
+          ],
+          "response_type": "thrust",
+          "response": "Patching the Snake widget background to green...\n_____javascript\nreturn await (async () => {\n  const widget = await space.current.readWidget(\"snake-game\");\n  const text = typeof widget === \"string\" ? widget : JSON.stringify(widget, null, 2);\n  const updated = text.includes(\"green\") ? widget : text.replace(/background\\s*:\\s*[^;]+;/i, \"background: green;\");\n  return await space.current.patchWidget(\"snake-game\", {\n    edits: [{ path: \"\", value: updated }]\n  });\n})()",
+          "usage": {
+            "prompt_tokens": 2913,
+            "completion_tokens": 123,
+            "total_tokens": 3036,
+            "cost": 0.00083745,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00083745,
+              "upstream_inference_prompt_cost": 0.00028395,
+              "upstream_inference_completions_cost": 0.0005535
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "terminal_after_successful_retry_patch",
+          "description": "after a retry succeeds, the agent should stop and answer rather than narrate readiness for more work",
+          "prompt_id": "024A_conservative_guardrails",
+          "prompt_path": "tests/agent_llm_performance/prompts/024A_conservative_guardrails.md",
+          "case_path": "tests/agent_llm_performance/cases/terminal_after_successful_retry_patch.json",
+          "history_path": "tests/agent_llm_performance/histories/terminal_after_successful_retry_patch.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "terminal",
+          "response": "",
+          "usage": {
+            "prompt_tokens": 3000,
+            "completion_tokens": 4,
+            "total_tokens": 3004,
+            "cost": 0.0003672,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0003672,
+              "upstream_inference_prompt_cost": 0.0003492,
+              "upstream_inference_completions_cost": 0.000018
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "repeat_do_it_requires_execution",
+          "description": "if the assistant previously sent staging-only prose and the user says do it, the next reply must execute instead of narrating again",
+          "prompt_id": "024A_conservative_guardrails",
+          "prompt_path": "tests/agent_llm_performance/prompts/024A_conservative_guardrails.md",
+          "case_path": "tests/agent_llm_performance/cases/repeat_do_it_requires_execution.json",
+          "history_path": "tests/agent_llm_performance/histories/repeat_do_it_requires_execution.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Patching the snake widget now...\n_____javascript\nconst t = await space.chat.transient.get(\"snake-game\");\nif (!t) throw new Error(\"snake-game not in transient\");\nconst text = typeof t === \"string\" ? t : (t.text ?? t.content ?? JSON.stringify(t));\nconst updated = text\n  .replace(/(grid\\s*step\\s*[:=]\\s*)(\\d+)/i, \"$1$2\")\n  .replace(/(setInterval\\s*\\(|requestAnimationFrame\\s*\\()/g, \"$1\")\n  .replace(/(canvas|ctx|draw|render)/g, \"$1\");\nreturn await space.current.patchWidget(\"snake-game\", {\n  edits: [\n    {\n      op: \"replace\",\n      path: \"/\",\n      value: updated\n    }\n  ]\n});",
+          "usage": {
+            "prompt_tokens": 2939,
+            "completion_tokens": 178,
+            "total_tokens": 3117,
+            "cost": 0.00110445,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00110445,
+              "upstream_inference_prompt_cost": 0.00030345,
+              "upstream_inference_completions_cost": 0.000801
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "post_success_followup_requires_execution_or_completion",
+          "description": "after a successful patch and a concrete user complaint, the agent must execute a fix instead of falling into staging-only repetition",
+          "prompt_id": "024A_conservative_guardrails",
+          "prompt_path": "tests/agent_llm_performance/prompts/024A_conservative_guardrails.md",
+          "case_path": "tests/agent_llm_performance/cases/post_success_followup_requires_execution_or_completion.json",
+          "history_path": "tests/agent_llm_performance/histories/post_success_followup_requires_execution_or_completion.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Patching the belly-bulge timing and placement now.\n_____javascript\nconst widget = await space.chat.transient.get(\"snake-game\");\nreturn await space.current.patchWidget(\"snake-game\", {\n  edits: [\n    {\n      op: \"replace\",\n      path: \"/code\",\n      value: widget?.code ?? \"\"\n    }\n  ]\n})",
+          "usage": {
+            "prompt_tokens": 3026,
+            "completion_tokens": 80,
+            "total_tokens": 3106,
+            "cost": 0.0007287,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0007287,
+              "upstream_inference_prompt_cost": 0.0003687,
+              "upstream_inference_completions_cost": 0.00036
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "protocol_nudge_requires_real_thrust",
+          "description": "after staging-only hesitation and a user reminder about the execution gate, the next reply must be one real thrust response",
+          "prompt_id": "024A_conservative_guardrails",
+          "prompt_path": "tests/agent_llm_performance/prompts/024A_conservative_guardrails.md",
+          "case_path": "tests/agent_llm_performance/cases/protocol_nudge_requires_real_thrust.json",
+          "history_path": "tests/agent_llm_performance/histories/protocol_nudge_requires_real_thrust.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Patching the snake widget source now.\n_____javascript\nconst key = \"snake-game\";\nconst widget = await space.chat.transient.get(key);\nconst src = typeof widget === \"string\" ? widget : (widget?.source ?? widget?.code ?? widget?.content ?? widget?.text ?? JSON.stringify(widget));\n\nconst replacements = [\n  [\n    /const\\s+cellSize\\s*=\\s*([0-9]+)\\s*;/,\n    (m, n) => `const cellSize = ${n};\\nconst moveDuration = 120;`\n  ],\n  [\n    /setInterval\\(\\s*([^)]+?)\\s*,\\s*([0-9]+)\\s*\\)/,\n    (m, fn, ms) => `requestAnimationFrame(function loop(now){\\n  const t = (now - (window.__snakeLastTick || now));\\n  if (t >= ${ms}) { window.__snakeLastTick = now; (${fn.trim()})(); }\\n  window.__snakeRaf = requestAnimationFrame(loop);\\n});`\n  ]\n];\n\nlet next = src;\nlet changed = false;\nfor (const [pattern, repl] of replacements) {\n  if (pattern.test(next)) {\n    next = next.replace(pattern, repl);\n    changed = true;\n  }\n}\n\n// Fallback: inject smoother interpolation rendering if the code uses grid positions and draw function.\nif (!changed) {\n  next = next\n    .replace(\n      /function\\s+drawSnake\\(([\\s\\S]*?)\\{\\n/,\n      match => match + `  const interp = (a, b, p) => a + (b - a) * p;\\n`\n    )\n    .replace(\n      /(\\bctx\\.fillRect\\()([^;]+)(;)/g,\n      (m, pre, args, post) => `${pre}${args}${post}`\n    );\n}\n\nif (next === src) return \"No source changes applied.\";\nreturn await space.current.patchWidget(\"snake-game\", { edits: [{ find: src, replace: next }] });",
+          "usage": {
+            "prompt_tokens": 2943,
+            "completion_tokens": 443,
+            "total_tokens": 3386,
+            "cost": 0.00229995,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00229995,
+              "upstream_inference_prompt_cost": 0.00030645,
+              "upstream_inference_completions_cost": 0.0019935
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "continue_after_widget_load_success",
+          "description": "after widget load success with the task still open, the agent must execute the next continuation step instead of sending staging-only prose",
+          "prompt_id": "024A_conservative_guardrails",
+          "prompt_path": "tests/agent_llm_performance/prompts/024A_conservative_guardrails.md",
+          "case_path": "tests/agent_llm_performance/cases/continue_after_widget_load_success.json",
+          "history_path": "tests/agent_llm_performance/histories/continue_after_widget_load_success.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Patching the Snake widget background to a Nokia-style green display now...\n_____javascript\nconst w = await space.chat.transient.get(\"snake-game\")\nconst current = w?.source ?? w?.widget ?? w?.content ?? w\nconst text = typeof current === \"string\" ? current : JSON.stringify(current, null, 2)\nconst edits = [\n  { find: /background(?:-color)?:\\s*[^;]+;/g, replace: \"background-color: #9bbc0f;\" },\n  { find: /background(?:-color)?:\\s*#[0-9a-fA-F]{3,6};/g, replace: \"background-color: #9bbc0f;\" },\n  { find: /background(?:-color)?:\\s*rgb\\([^)]+\\);/g, replace: \"background-color: #9bbc0f;\" },\n  { find: /canvas\\s*\\{[^}]*\\}/g, replace: match => match.replace(/background(?:-color)?:\\s*[^;]+;/g, \"background-color: #9bbc0f;\") },\n]\nreturn await space.current.patchWidget(\"snake-game\", { edits })",
+          "usage": {
+            "prompt_tokens": 2905,
+            "completion_tokens": 258,
+            "total_tokens": 3163,
+            "cost": 0.00178455,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2304,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00178455,
+              "upstream_inference_prompt_cost": 0.00062355,
+              "upstream_inference_completions_cost": 0.001161
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "continue_after_widget_read",
+          "description": "after a widget read that unlocks the next write, the agent should continue with execution",
+          "prompt_id": "024A_conservative_guardrails",
+          "prompt_path": "tests/agent_llm_performance/prompts/024A_conservative_guardrails.md",
+          "case_path": "tests/agent_llm_performance/cases/continue_after_widget_read.json",
+          "history_path": "tests/agent_llm_performance/histories/continue_after_widget_read.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Patching the Snake background greener now...\n\n\n_____javascript\nawait space.current.patchWidget(\"snake-game\", {\n  edits: [\n    { line: 1, text: \"  parent.style.background = '#4f7a3a';\" },\n    { line: 3, text: \"  screen.style.background = '#4f7a3a';\" }\n  ]\n})",
+          "usage": {
+            "prompt_tokens": 2982,
+            "completion_tokens": 89,
+            "total_tokens": 3071,
+            "cost": 0.0007362,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0007362,
+              "upstream_inference_prompt_cost": 0.0003357,
+              "upstream_inference_completions_cost": 0.0004005
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "no_false_success_after_error",
+          "description": "after execution error the agent must recover, not claim success",
+          "prompt_id": "024A_conservative_guardrails",
+          "prompt_path": "tests/agent_llm_performance/prompts/024A_conservative_guardrails.md",
+          "case_path": "tests/agent_llm_performance/cases/no_false_success_after_error.json",
+          "history_path": "tests/agent_llm_performance/histories/no_false_success_after_error.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Reading the Snake widget source now...\n_____javascript\nconst widgets = await space.current.readWidget(\"snake-game\");\nreturn widgets",
+          "usage": {
+            "prompt_tokens": 2910,
+            "completion_tokens": 34,
+            "total_tokens": 2944,
+            "cost": 0.0007803,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2304,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0007803,
+              "upstream_inference_prompt_cost": 0.0006273,
+              "upstream_inference_completions_cost": 0.000153
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "direct_repair_after_known_widget_error",
+          "description": "after a widget patch error with a known current widget target, the agent should continue on that exact target instead of broad rediscovery",
+          "prompt_id": "024A_conservative_guardrails",
+          "prompt_path": "tests/agent_llm_performance/prompts/024A_conservative_guardrails.md",
+          "case_path": "tests/agent_llm_performance/cases/direct_repair_after_known_widget_error.json",
+          "history_path": "tests/agent_llm_performance/histories/direct_repair_after_known_widget_error.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Patching the Snake widget to fix the renderer and make the background greener...\n_____javascript\nconst patched = `async (parent, spaceRef) => {\n  const dir = { x: 1, y: 0 };\n  const display = dir;\n  return () => {\n    if (parent && parent.style) parent.style.background = '#9bbc0f';\n  };\n}`;\nreturn await space.current.patchWidget(\"snake-game\", { edits: [{ op: \"replace\", path: \"renderer\", value: patched }] })",
+          "usage": {
+            "prompt_tokens": 3004,
+            "completion_tokens": 117,
+            "total_tokens": 3121,
+            "cost": 0.0008787,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0008787,
+              "upstream_inference_prompt_cost": 0.0003522,
+              "upstream_inference_completions_cost": 0.0005265
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "prompt_id": "024C_wild_state_baton",
+      "passed_cases": 22,
+      "total_cases": 24,
+      "pass_rate": 0.9167,
+      "passed_attempts": 22,
+      "total_attempts": 24,
+      "attempt_pass_rate": 0.9167,
+      "failed_cases": [
+        "time_requires_execution",
+        "write_user_yaml_after_read"
+      ],
+      "cases": [
+        {
+          "case_id": "page_title_requires_execution",
+          "description": "current page questions should trigger a live browser read, not a conversational guess",
+          "prompt_id": "024C_wild_state_baton",
+          "prompt_path": "tests/agent_llm_performance/prompts/024C_wild_state_baton.md",
+          "case_path": "tests/agent_llm_performance/cases/page_title_requires_execution.json",
+          "history_path": "tests/agent_llm_performance/histories/page_title_requires_execution.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Reading the current page now...\n\n\n_____javascript\nreturn {\n  title: document.title,\n  url: location.href,\n  text: document.body ? document.body.innerText.slice(0, 500) : \"\"\n}",
+          "usage": {
+            "prompt_tokens": 3140,
+            "completion_tokens": 60,
+            "total_tokens": 3200,
+            "cost": 0.0007242,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0007242,
+              "upstream_inference_prompt_cost": 0.0004542,
+              "upstream_inference_completions_cost": 0.00027
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "smalltalk_hi_terminal",
+          "description": "casual conversation should answer normally without execution",
+          "prompt_id": "024C_wild_state_baton",
+          "prompt_path": "tests/agent_llm_performance/prompts/024C_wild_state_baton.md",
+          "case_path": "tests/agent_llm_performance/cases/smalltalk_hi_terminal.json",
+          "history_path": "tests/agent_llm_performance/histories/smalltalk_hi_terminal.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "terminal",
+          "response": "Hello.",
+          "usage": {
+            "prompt_tokens": 3136,
+            "completion_tokens": 6,
+            "total_tokens": 3142,
+            "cost": 0.0004782,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0004782,
+              "upstream_inference_prompt_cost": 0.0004512,
+              "upstream_inference_completions_cost": 0.000027
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "time_requires_execution",
+          "description": "live time should trigger execution instead of a blocker or narration",
+          "prompt_id": "024C_wild_state_baton",
+          "prompt_path": "tests/agent_llm_performance/prompts/024C_wild_state_baton.md",
+          "case_path": "tests/agent_llm_performance/cases/time_requires_execution.json",
+          "history_path": "tests/agent_llm_performance/histories/time_requires_execution.json",
+          "passed": false,
+          "failures": [
+            "expected thrust but got terminal",
+            "missing staging line before execution separator",
+            "execution separator must appear exactly once on its own line",
+            "execution separator must appear exactly once",
+            "missing code after execution separator",
+            "invalid javascript after execution separator: missing code",
+            "missing required text: _____javascript"
+          ],
+          "response_type": "terminal",
+          "response": "Checking the time now...\n\n\n_____\njavascript\nreturn new Date().toString()",
+          "usage": {
+            "prompt_tokens": 3140,
+            "completion_tokens": 33,
+            "total_tokens": 3173,
+            "cost": 0.0006027,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0006027,
+              "upstream_inference_prompt_cost": 0.0004542,
+              "upstream_inference_completions_cost": 0.0001485
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "weather_omitted_scope",
+          "description": "underspecified weather should use current context rather than bounce a location question to the human",
+          "prompt_id": "024C_wild_state_baton",
+          "prompt_path": "tests/agent_llm_performance/prompts/024C_wild_state_baton.md",
+          "case_path": "tests/agent_llm_performance/cases/weather_omitted_scope.json",
+          "history_path": "tests/agent_llm_performance/histories/weather_omitted_scope.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Checking the weather now...\n_____javascript\nconst loc = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(\n  p => resolve({ lat: p.coords.latitude, lon: p.coords.longitude }),\n  e => reject(e),\n  { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }\n));\n\nconst url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&current=temperature_2m,weather_code,wind_speed_10m&timezone=auto`;\nconst res = await fetch(url);\nconst data = await res.json();\n\nconst code = data.current?.weather_code;\nconst map = {\n  0: \"Clear sky\",\n  1: \"Mainly clear\",\n  2: \"Partly cloudy\",\n  3: \"Overcast\",\n  45: \"Fog\",\n  48: \"Depositing rime fog\",\n  51: \"Light drizzle\",\n  53: \"Moderate drizzle\",\n  55: \"Dense drizzle\",\n  61: \"Slight rain\",\n  63: \"Moderate rain\",\n  65: \"Heavy rain\",\n  71: \"Slight snow\",\n  73: \"Moderate snow\",\n  75: \"Heavy snow\",\n  80: \"Rain showers\",\n  81: \"Heavy rain showers\",\n  82: \"Violent rain showers\",\n  95: \"Thunderstorm\"\n};\n\nreturn {\n  location: data.timezone,\n  temperature_c: data.current?.temperature_2m,\n  wind_kph: data.current?.wind_speed_10m,\n  condition: map[code] || `Weather code ${code}`,\n  observed_at: data.current?.time\n};",
+          "usage": {
+            "prompt_tokens": 3140,
+            "completion_tokens": 380,
+            "total_tokens": 3520,
+            "cost": 0.0021642,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0021642,
+              "upstream_inference_prompt_cost": 0.0004542,
+              "upstream_inference_completions_cost": 0.00171
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "weather_self_scope_followup",
+          "description": "self-referential follow-up should trigger execution, not another blocker or impossibility report",
+          "prompt_id": "024C_wild_state_baton",
+          "prompt_path": "tests/agent_llm_performance/prompts/024C_wild_state_baton.md",
+          "case_path": "tests/agent_llm_performance/cases/weather_self_scope_followup.json",
+          "history_path": "tests/agent_llm_performance/histories/weather_self_scope_followup.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Checking your current location and weather now...\n\n\n_____javascript\nconst info = await space.api.userSelfInfo();\nconst loc = (await fetch('https://ipapi.co/json/').then(r => r.json()).catch(() => null)) || {};\nconst lat = loc.latitude, lon = loc.longitude;\nif (lat == null || lon == null) return { user: info, location: loc, weather: null };\nconst weather = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,precipitation,relative_humidity_2m&timezone=auto`).then(r => r.json());\nreturn { user: info, location: { city: loc.city, region: loc.region, country_name: loc.country_name, latitude: lat, longitude: lon }, weather };",
+          "usage": {
+            "prompt_tokens": 3157,
+            "completion_tokens": 212,
+            "total_tokens": 3369,
+            "cost": 0.00142095,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00142095,
+              "upstream_inference_prompt_cost": 0.00046695,
+              "upstream_inference_completions_cost": 0.000954
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "weather_self_scope_after_indirect_fail",
+          "description": "after an indirect current-context attempt fails, the agent should switch to direct browser location and continue through the weather step",
+          "prompt_id": "024C_wild_state_baton",
+          "prompt_path": "tests/agent_llm_performance/prompts/024C_wild_state_baton.md",
+          "case_path": "tests/agent_llm_performance/cases/weather_self_scope_after_indirect_fail.json",
+          "history_path": "tests/agent_llm_performance/histories/weather_self_scope_after_indirect_fail.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Fetching your current weather now...\n_____javascript\nconst pos = await new Promise((resolve, reject) => {\n  if (!navigator.geolocation) return reject(new Error(\"Geolocation not supported\"));\n  navigator.geolocation.getCurrentPosition(\n    resolve,\n    reject,\n    { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }\n  );\n});\n\nconst { latitude, longitude } = pos.coords;\nconst url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m&timezone=auto`;\nconst data = await fetch(url).then(r => r.json());\n\nreturn {\n  latitude,\n  longitude,\n  current: data.current,\n  timezone: data.timezone\n};",
+          "usage": {
+            "prompt_tokens": 3203,
+            "completion_tokens": 181,
+            "total_tokens": 3384,
+            "cost": 0.00131595,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00131595,
+              "upstream_inference_prompt_cost": 0.00050145,
+              "upstream_inference_completions_cost": 0.0008145
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "finish_weather_after_geolocation",
+          "description": "geolocation coordinates are prerequisite data, not the final answer when the user asked for weather",
+          "prompt_id": "024C_wild_state_baton",
+          "prompt_path": "tests/agent_llm_performance/prompts/024C_wild_state_baton.md",
+          "case_path": "tests/agent_llm_performance/cases/finish_weather_after_geolocation.json",
+          "history_path": "tests/agent_llm_performance/histories/finish_weather_after_geolocation.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Fetching local weather for your coordinates now...\n_____javascript\nconst { latitude, longitude } = { latitude: 49.393813868077764, longitude: 17.22388380435019 };\nconst url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m&timezone=auto`;\nconst res = await fetch(url);\nconst data = await res.json();\nreturn {\n  latitude,\n  longitude,\n  timezone: data.timezone,\n  current: data.current\n};",
+          "usage": {
+            "prompt_tokens": 3263,
+            "completion_tokens": 137,
+            "total_tokens": 3400,
+            "cost": 0.00116295,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00116295,
+              "upstream_inference_prompt_cost": 0.00054645,
+              "upstream_inference_completions_cost": 0.0006165
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "weather_after_place_prerequisite",
+          "description": "if a place lookup happens inside a weather task, the agent should continue to weather instead of stopping on place identity",
+          "prompt_id": "024C_wild_state_baton",
+          "prompt_path": "tests/agent_llm_performance/prompts/024C_wild_state_baton.md",
+          "case_path": "tests/agent_llm_performance/cases/weather_after_place_prerequisite.json",
+          "history_path": "tests/agent_llm_performance/histories/weather_after_place_prerequisite.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Fetching the local weather now...\n_____javascript\nconst lat = 49.71985822231634;\nconst lon = 17.221723412878973;\nconst weather = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m&timezone=auto`).then(r => r.json());\nreturn {\n  location: \"Hnojice, Czechia\",\n  temperature_c: weather.current?.temperature_2m,\n  feels_like_c: weather.current?.apparent_temperature,\n  humidity_pct: weather.current?.relative_humidity_2m,\n  wind_kph: weather.current?.wind_speed_10m,\n  weather_code: weather.current?.weather_code,\n  time: weather.current?.time\n}",
+          "usage": {
+            "prompt_tokens": 3431,
+            "completion_tokens": 185,
+            "total_tokens": 3616,
+            "cost": 0.00115935,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 3328,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00115935,
+              "upstream_inference_prompt_cost": 0.00032685,
+              "upstream_inference_completions_cost": 0.0008325
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "terminal_after_weather_ready",
+          "description": "once the weather data is already present in telemetry, the agent should answer instead of executing again",
+          "prompt_id": "024C_wild_state_baton",
+          "prompt_path": "tests/agent_llm_performance/prompts/024C_wild_state_baton.md",
+          "case_path": "tests/agent_llm_performance/cases/terminal_after_weather_ready.json",
+          "history_path": "tests/agent_llm_performance/histories/terminal_after_weather_ready.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "terminal",
+          "response": "Prague is currently sunny and 12°C, feels like 10°C. Humidity is 30% and wind is 25 kph.",
+          "usage": {
+            "prompt_tokens": 3303,
+            "completion_tokens": 34,
+            "total_tokens": 3337,
+            "cost": 0.00072945,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00072945,
+              "upstream_inference_prompt_cost": 0.00057645,
+              "upstream_inference_completions_cost": 0.000153
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "reverse_geocode_after_precise_followup",
+          "description": "after weather was fetched for known coordinates and the user asks where that is precisely, the agent should reverse geocode instead of answering vaguely",
+          "prompt_id": "024C_wild_state_baton",
+          "prompt_path": "tests/agent_llm_performance/prompts/024C_wild_state_baton.md",
+          "case_path": "tests/agent_llm_performance/cases/reverse_geocode_after_precise_followup.json",
+          "history_path": "tests/agent_llm_performance/histories/reverse_geocode_after_precise_followup.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Checking your coordinates on a map now...\n_____javascript\nconst latitude = 49.71985822231634;\nconst longitude = 17.221723412878973;\nconst places = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`).then(r => r.json());\nreturn {\n  display_name: places.display_name,\n  address: places.address\n}",
+          "usage": {
+            "prompt_tokens": 3422,
+            "completion_tokens": 93,
+            "total_tokens": 3515,
+            "cost": 0.0010842,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0010842,
+              "upstream_inference_prompt_cost": 0.0006657,
+              "upstream_inference_completions_cost": 0.0004185
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "unpack_collapsed_weather_payload",
+          "description": "collapsed payloads should trigger another extraction attempt instead of a stop or offer",
+          "prompt_id": "024C_wild_state_baton",
+          "prompt_path": "tests/agent_llm_performance/prompts/024C_wild_state_baton.md",
+          "case_path": "tests/agent_llm_performance/cases/unpack_collapsed_weather_payload.json",
+          "history_path": "tests/agent_llm_performance/histories/unpack_collapsed_weather_payload.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Reading the weather details now...\n_____javascript\nconst data = await (await fetch('https://wttr.in/?format=j1')).json();\nconst c = data.current_condition?.[0] || {};\nconst area = data.nearest_area?.[0] || {};\nreturn {\n  location: `${area.areaName?.[0]?.value || ''}${area.region?.[0]?.value ? ', ' + area.region[0].value : ''}${area.country?.[0]?.value ? ', ' + area.country[0].value : ''}`.replace(/^, |, $/g,''),\n  tempC: c.temp_C,\n  feelsLikeC: c.FeelsLikeC,\n  humidity: c.humidity,\n  windKph: c.windspeedKmph,\n  condition: c.weatherDesc?.[0]?.value,\n  precipMm: c.precipMM,\n  observationTime: c.observation_time\n}",
+          "usage": {
+            "prompt_tokens": 3234,
+            "completion_tokens": 201,
+            "total_tokens": 3435,
+            "cost": 0.0014292,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0014292,
+              "upstream_inference_prompt_cost": 0.0005247,
+              "upstream_inference_completions_cost": 0.0009045
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "create_note_after_user_detail_read",
+          "description": "user detail is prerequisite state for a write task and should lead into fileWrite, not a terminal identity answer",
+          "prompt_id": "024C_wild_state_baton",
+          "prompt_path": "tests/agent_llm_performance/prompts/024C_wild_state_baton.md",
+          "case_path": "tests/agent_llm_performance/cases/create_note_after_user_detail_read.json",
+          "history_path": "tests/agent_llm_performance/histories/create_note_after_user_detail_read.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Writing ~/notes/whoami.txt now...\n_____javascript\nconst info = { username: \"pan\" };\nawait space.api.fileWrite(\"~/notes/whoami.txt\", JSON.stringify(info, null, 2) + \"\\n\")",
+          "usage": {
+            "prompt_tokens": 3196,
+            "completion_tokens": 57,
+            "total_tokens": 3253,
+            "cost": 0.0007527,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0007527,
+              "upstream_inference_prompt_cost": 0.0004962,
+              "upstream_inference_completions_cost": 0.0002565
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "write_user_yaml_after_read",
+          "description": "after reading a config file for an edit task, the agent should write the edit instead of summarizing the file",
+          "prompt_id": "024C_wild_state_baton",
+          "prompt_path": "tests/agent_llm_performance/prompts/024C_wild_state_baton.md",
+          "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
+          "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
+          "passed": false,
+          "failures": [
+            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
+          ],
+          "response_type": "thrust",
+          "response": "Patching your full name to Pan Example now...\n_____javascript\nconst text = await space.api.fileRead(\"~/user.yaml\");\nconst data = space.utils.yaml.parse(text);\ndata.full_name = \"Pan Example\";\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(data));",
+          "usage": {
+            "prompt_tokens": 3189,
+            "completion_tokens": 68,
+            "total_tokens": 3257,
+            "cost": 0.00079695,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00079695,
+              "upstream_inference_prompt_cost": 0.00049095,
+              "upstream_inference_completions_cost": 0.000306
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "recover_known_file_after_write_error",
+          "description": "after a known file write error, recovery should stay on the exact file target instead of broad discovery or fake success",
+          "prompt_id": "024C_wild_state_baton",
+          "prompt_path": "tests/agent_llm_performance/prompts/024C_wild_state_baton.md",
+          "case_path": "tests/agent_llm_performance/cases/recover_known_file_after_write_error.json",
+          "history_path": "tests/agent_llm_performance/histories/recover_known_file_after_write_error.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Writing the name update with valid YAML now...\n_____javascript\nreturn await space.api.fileWrite(\"~/user.yaml\", \"fullName: Pan Example\\n\")",
+          "usage": {
+            "prompt_tokens": 3201,
+            "completion_tokens": 40,
+            "total_tokens": 3241,
+            "cost": 0.00067995,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00067995,
+              "upstream_inference_prompt_cost": 0.00049995,
+              "upstream_inference_completions_cost": 0.00018
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "followup_edit_requires_well_formed_thrust",
+          "description": "a follow-up edit request should produce one well-formed execution reply, not a staging sentence with a malformed separator",
+          "prompt_id": "024C_wild_state_baton",
+          "prompt_path": "tests/agent_llm_performance/prompts/024C_wild_state_baton.md",
+          "case_path": "tests/agent_llm_performance/cases/followup_edit_requires_well_formed_thrust.json",
+          "history_path": "tests/agent_llm_performance/histories/followup_edit_requires_well_formed_thrust.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Patching the snake tail scaling to cap at 60% of original...\n_____javascript\nconst widget = space.chat.transient.get(\"snake-game\");\nconst text = typeof widget === \"string\" ? widget : JSON.stringify(widget);\nconst patched = text.replace(/(tail|segment|segments|opacity|scale|size)[\\s\\S]{0,200}?/i, m => m);\nreturn await space.current.patchWidget(\"snake-game\", { edits: [] })",
+          "usage": {
+            "prompt_tokens": 3256,
+            "completion_tokens": 105,
+            "total_tokens": 3361,
+            "cost": 0.0010137,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0010137,
+              "upstream_inference_prompt_cost": 0.0005412,
+              "upstream_inference_completions_cost": 0.0004725
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "terminal_after_successful_widget_patch",
+          "description": "after a successful patch that satisfies the request, the agent should stop executing and answer once",
+          "prompt_id": "024C_wild_state_baton",
+          "prompt_path": "tests/agent_llm_performance/prompts/024C_wild_state_baton.md",
+          "case_path": "tests/agent_llm_performance/cases/terminal_after_successful_widget_patch.json",
+          "history_path": "tests/agent_llm_performance/histories/terminal_after_successful_widget_patch.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "terminal",
+          "response": "Done.",
+          "usage": {
+            "prompt_tokens": 3221,
+            "completion_tokens": 12,
+            "total_tokens": 3233,
+            "cost": 0.00056895,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00056895,
+              "upstream_inference_prompt_cost": 0.00051495,
+              "upstream_inference_completions_cost": 0.000054
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "terminal_after_successful_retry_patch",
+          "description": "after a retry succeeds, the agent should stop and answer rather than narrate readiness for more work",
+          "prompt_id": "024C_wild_state_baton",
+          "prompt_path": "tests/agent_llm_performance/prompts/024C_wild_state_baton.md",
+          "case_path": "tests/agent_llm_performance/cases/terminal_after_successful_retry_patch.json",
+          "history_path": "tests/agent_llm_performance/histories/terminal_after_successful_retry_patch.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "terminal",
+          "response": "",
+          "usage": {
+            "prompt_tokens": 3308,
+            "completion_tokens": 4,
+            "total_tokens": 3312,
+            "cost": 0.0005982,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0005982,
+              "upstream_inference_prompt_cost": 0.0005802,
+              "upstream_inference_completions_cost": 0.000018
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "repeat_do_it_requires_execution",
+          "description": "if the assistant previously sent staging-only prose and the user says do it, the next reply must execute instead of narrating again",
+          "prompt_id": "024C_wild_state_baton",
+          "prompt_path": "tests/agent_llm_performance/prompts/024C_wild_state_baton.md",
+          "case_path": "tests/agent_llm_performance/cases/repeat_do_it_requires_execution.json",
+          "history_path": "tests/agent_llm_performance/histories/repeat_do_it_requires_execution.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Patching the snake game widget now...\n_____javascript\nconst widget = space.chat.transient.get(\"snake-game\");\nconst source = typeof widget === \"string\" ? widget : (widget?.text ?? widget?.content ?? JSON.stringify(widget));\nconst patched = source\n  .replace(/(\\bmove\\b[\\s\\S]{0,300}?)(grid|cell|square)/i, '$1grid')\n  .replace(/(\\bdraw\\b[\\s\\S]{0,500}?)(snake|segments?)/i, '$1snake')\n  .replace(/setInterval\\(([^)]*?)\\)/g, 'requestAnimationFrame(($1))');\nreturn await space.current.patchWidget(\"snake-game\", {\n  edits: [\n    {\n      type: \"replace\",\n      from: source,\n      to: patched\n    }\n  ]\n});",
+          "usage": {
+            "prompt_tokens": 3247,
+            "completion_tokens": 182,
+            "total_tokens": 3429,
+            "cost": 0.00135345,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00135345,
+              "upstream_inference_prompt_cost": 0.00053445,
+              "upstream_inference_completions_cost": 0.000819
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "post_success_followup_requires_execution_or_completion",
+          "description": "after a successful patch and a concrete user complaint, the agent must execute a fix instead of falling into staging-only repetition",
+          "prompt_id": "024C_wild_state_baton",
+          "prompt_path": "tests/agent_llm_performance/prompts/024C_wild_state_baton.md",
+          "case_path": "tests/agent_llm_performance/cases/post_success_followup_requires_execution_or_completion.json",
+          "history_path": "tests/agent_llm_performance/histories/post_success_followup_requires_execution_or_completion.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Reading the snake widget state now.\n\n_____javascript\nconst widget = space.chat.transient.get(\"snake-game\");\nreturn widget\n",
+          "usage": {
+            "prompt_tokens": 3334,
+            "completion_tokens": 42,
+            "total_tokens": 3376,
+            "cost": 0.0007887,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0007887,
+              "upstream_inference_prompt_cost": 0.0005997,
+              "upstream_inference_completions_cost": 0.000189
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "protocol_nudge_requires_real_thrust",
+          "description": "after staging-only hesitation and a user reminder about the execution gate, the next reply must be one real thrust response",
+          "prompt_id": "024C_wild_state_baton",
+          "prompt_path": "tests/agent_llm_performance/prompts/024C_wild_state_baton.md",
+          "case_path": "tests/agent_llm_performance/cases/protocol_nudge_requires_real_thrust.json",
+          "history_path": "tests/agent_llm_performance/histories/protocol_nudge_requires_real_thrust.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Patching the snake game motion now.\n_____javascript\nconst widget = space.chat.transient.get(\"snake-game\");\nconst edits = [\n  {\n    find: /(\\bfunction\\b.*?\\bmove.*?\\{[\\s\\S]*?\\})(?![\\s\\S]*?\\bpatchWidget\\b)/m,\n    replace: `$1`\n  }\n];\nreturn await space.current.patchWidget(\"snake-game\", { edits });",
+          "usage": {
+            "prompt_tokens": 3251,
+            "completion_tokens": 95,
+            "total_tokens": 3346,
+            "cost": 0.00096495,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00096495,
+              "upstream_inference_prompt_cost": 0.00053745,
+              "upstream_inference_completions_cost": 0.0004275
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "continue_after_widget_load_success",
+          "description": "after widget load success with the task still open, the agent must execute the next continuation step instead of sending staging-only prose",
+          "prompt_id": "024C_wild_state_baton",
+          "prompt_path": "tests/agent_llm_performance/prompts/024C_wild_state_baton.md",
+          "case_path": "tests/agent_llm_performance/cases/continue_after_widget_load_success.json",
+          "history_path": "tests/agent_llm_performance/histories/continue_after_widget_load_success.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Patching the Snake widget to a green Nokia-style display now...\n_____javascript\nconst widget = space.chat.transient.get(\"snake-game\");\nreturn await space.current.patchWidget(\"snake-game\", {\n  edits: [\n    {\n      find: /(<canvas[^>]*style=[\"'][^\"']*background-color:\\s*)([^;\"']+)([^\"']*[\"'][^>]*>)/i,\n      replace: `$1#9bbc0f$3`\n    },\n    {\n      find: /(<canvas[^>]*style=[\"'][^\"']*)([\"'][^>]*>)/i,\n      replace: (m, p1, p2) => `${p1}background-color:#9bbc0f; box-shadow: inset 0 0 0 2px rgba(15,56,15,0.35);${p2}`\n    },\n    {\n      find: /(<style[^>]*>[\\s\\S]*?)(<\\/style>)/i,\n      replace: (m, p1, p2) => `${p1}\ncanvas {\n  background: #9bbc0f !important;\n  image-rendering: pixelated;\n  filter: contrast(1.05) saturate(0.9);\n}\nbody, .widget, .snake-game {\n  background: #9bbc0f;\n  color: #0f380f;\n  font-family: \"Press Start 2P\", \"Courier New\", monospace;\n}\n${p2}`\n    }\n  ]\n});",
+          "usage": {
+            "prompt_tokens": 3213,
+            "completion_tokens": 326,
+            "total_tokens": 3539,
+            "cost": 0.00387675,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00387675,
+              "upstream_inference_prompt_cost": 0.00240975,
+              "upstream_inference_completions_cost": 0.001467
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "continue_after_widget_read",
+          "description": "after a widget read that unlocks the next write, the agent should continue with execution",
+          "prompt_id": "024C_wild_state_baton",
+          "prompt_path": "tests/agent_llm_performance/prompts/024C_wild_state_baton.md",
+          "case_path": "tests/agent_llm_performance/cases/continue_after_widget_read.json",
+          "history_path": "tests/agent_llm_performance/histories/continue_after_widget_read.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Patching the Snake background greener...\n_____javascript\nreturn await space.current.patchWidget(\"snake-game\", {\n  edits: [\n    { line: 1, replace: \"  parent.style.background = '#4f6f3a';\" },\n    { line: 3, replace: \"  screen.style.background = '#4f6f3a';\" }\n  ]\n})",
+          "usage": {
+            "prompt_tokens": 3290,
+            "completion_tokens": 88,
+            "total_tokens": 3378,
+            "cost": 0.0009627,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0009627,
+              "upstream_inference_prompt_cost": 0.0005667,
+              "upstream_inference_completions_cost": 0.000396
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "no_false_success_after_error",
+          "description": "after execution error the agent must recover, not claim success",
+          "prompt_id": "024C_wild_state_baton",
+          "prompt_path": "tests/agent_llm_performance/prompts/024C_wild_state_baton.md",
+          "case_path": "tests/agent_llm_performance/cases/no_false_success_after_error.json",
+          "history_path": "tests/agent_llm_performance/histories/no_false_success_after_error.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Patching the Snake widget with a greener Nokia-style background now...\n_____javascript\nconst widget = await space.current.readWidget(\"snake-game\");\nconst text = widget?.content ?? widget?.text ?? widget;\nlet src = String(text);\n\n// Try common background color tokens and replace with old-Nokia green tones.\nconst replacements = [\n  [/backgroundColor\\s*:\\s*['\"`]#[0-9a-fA-F]{3,6}['\"`]/g, \"backgroundColor: '#9bbc0f'\"],\n  [/bg(?:Color)?\\s*:\\s*['\"`]#[0-9a-fA-F]{3,6}['\"`]/g, \"bgColor: '#9bbc0f'\"],\n  [/fillStyle\\s*=\\s*['\"`]#[0-9a-fA-F]{3,6}['\"`]/g, \"fillStyle = '#9bbc0f'\"],\n  [/background\\s*:\\s*['\"`]#[0-9a-fA-F]{3,6}['\"`]/g, \"background: '#9bbc0f'\"],\n  [/['\"`]#[0-9a-fA-F]{3,6}['\"`]/g, \"'#9bbc0f'\"]\n];\n\nlet edited = src;\nfor (const [re, rep] of replacements) edited = edited.replace(re, rep);\n\nif (edited === src) {\n  // If no obvious color literal exists, nudge the background styling in a conservative way.\n  edited = src.replace(\n    /(canvas|background|style|theme)[\\s\\S]{0,400}?(\\{[\\s\\S]*?\\})/,\n    (m) => m.replace(/(background(?:Color)?\\s*:\\s*)['\"`][^'\"`]+['\"`]/, \"$1'#9bbc0f'\")\n  );\n}\n\nreturn await space.current.patchWidget(\"snake-game\", { edits: [{ find: src, replace: edited }] });",
+          "usage": {
+            "prompt_tokens": 3218,
+            "completion_tokens": 419,
+            "total_tokens": 3637,
+            "cost": 0.0023982,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0023982,
+              "upstream_inference_prompt_cost": 0.0005127,
+              "upstream_inference_completions_cost": 0.0018855
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "case_id": "direct_repair_after_known_widget_error",
+          "description": "after a widget patch error with a known current widget target, the agent should continue on that exact target instead of broad rediscovery",
+          "prompt_id": "024C_wild_state_baton",
+          "prompt_path": "tests/agent_llm_performance/prompts/024C_wild_state_baton.md",
+          "case_path": "tests/agent_llm_performance/cases/direct_repair_after_known_widget_error.json",
+          "history_path": "tests/agent_llm_performance/histories/direct_repair_after_known_widget_error.json",
+          "passed": true,
+          "failures": [],
+          "response_type": "thrust",
+          "response": "Patching the Snake widget renderer to remove the duplicate declaration and make the background greener...\n_____javascript\nconst widget = space.chat.transient.get(\"snake-game\");\nconst oldRenderer = `async (parent, spaceRef) => {\n  const dir = { x: 1, y: 0 };\n  const d = dir;\n  const d = dir;\n  return () => {};\n}`;\nconst newRenderer = `async (parent, spaceRef) => {\n  const dir = { x: 1, y: 0 };\n  const d = dir;\n  const display = document.createElement(\"div\");\n  display.style.width = \"100%\";\n  display.style.height = \"100%\";\n  display.style.background = \"#9bbc0f\";\n  display.style.imageRendering = \"pixelated\";\n  display.style.position = \"relative\";\n  display.style.overflow = \"hidden\";\n  parent.appendChild(display);\n  return () => {};\n}`;\nreturn await space.current.patchWidget(\"snake-game\", {\n  edits: [{ old: oldRenderer, new: newRenderer }]\n});",
+          "usage": {
+            "prompt_tokens": 3312,
+            "completion_tokens": 228,
+            "total_tokens": 3540,
+            "cost": 0.0016092,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0016092,
+              "upstream_inference_prompt_cost": 0.0005832,
+              "upstream_inference_completions_cost": 0.001026
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

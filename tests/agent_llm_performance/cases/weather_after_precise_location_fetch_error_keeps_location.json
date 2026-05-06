@@ -1,0 +1,33 @@
+{
+  "id": "weather_after_precise_location_fetch_error_keeps_location",
+  "description": "after precise location is already known and one weather source fails, the next weather attempt should stay anchored to that same location instead of falling back to an unscoped weather query",
+  "history": "../histories/weather_after_precise_location_fetch_error_keeps_location.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript",
+      "49.39374837642957",
+      "17.22399629876773"
+    ],
+    "must_match": [
+      {
+        "pattern": "(?:open-meteo|wttr\\.in|weather)",
+        "flags": "iu"
+      }
+    ],
+    "must_not_match": [
+      {
+        "pattern": "wttr\\.in/\\?format=j1",
+        "flags": "u"
+      }
+    ],
+    "must_not_contain": [
+      "Which location?"
+    ]
+  }
+}

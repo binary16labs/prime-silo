@@ -1,0 +1,21 @@
+{
+  "id": "time_requires_execution",
+  "description": "live time should trigger execution instead of a blocker or narration",
+  "history": "../histories/time_requires_execution.json",
+  "expect": {
+    "response_type": "thrust",
+    "require_staging_line": true,
+    "require_separator_line": true,
+    "require_single_separator": true,
+    "require_code_after_separator": true,
+    "require_valid_javascript": true,
+    "must_contain": [
+      "_____javascript"
+    ],
+    "must_not_contain": [
+      "Which location?",
+      "I need to",
+      "I can check"
+    ]
+  }
+}
