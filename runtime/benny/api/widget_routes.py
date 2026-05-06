@@ -126,6 +126,36 @@ _PHASE_A_REGISTRY: List[WidgetManifest] = [
         category="inspector",
         authority="read_only",
         frame_bindings=[FrameBinding(field=".", required=True)],
+        # Phase C — props filled in during widget migration. The layout
+        # supplies the bound frame; the widget is a pure renderer.
+        props={
+            "type": "object",
+            "properties": {
+                "frame": {
+                    "type": "object",
+                    "description": "Cognitive Frame object — full structure per PRD §9.",
+                },
+                "initialCollapsed": {
+                    "type": "array",
+                    "items": {
+                        "enum": [
+                            "header",
+                            "assertions",
+                            "withdrawal",
+                            "provenance",
+                            "confidence",
+                            "raw",
+                        ],
+                    },
+                    "description": "Sections that start collapsed. Defaults to ['raw'].",
+                },
+                "showRawJson": {
+                    "type": "boolean",
+                    "description": "Include the raw JSON escape hatch section (default true).",
+                },
+            },
+            "required": ["frame"],
+        },
     ),
     WidgetManifest(
         id="run.lineage_timeline",
