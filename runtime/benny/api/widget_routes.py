@@ -164,6 +164,32 @@ _PHASE_A_REGISTRY: List[WidgetManifest] = [
         category="timeline",
         authority="read_only",
         frame_bindings=[FrameBinding(field="run_id", required=True)],
+        # Phase C — fetched-data widget. Pulls events from
+        # GET /api/runtime/governance/events filtered by run_id.
+        props={
+            "type": "object",
+            "properties": {
+                "run_id": {
+                    "type": "string",
+                    "description": "Run id to filter governance events by (required).",
+                },
+                "workspace": {
+                    "type": "string",
+                    "description": "Workspace id (default: 'default').",
+                },
+                "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000,
+                    "description": "Max events to load. Default 100.",
+                },
+                "eventType": {
+                    "type": "string",
+                    "description": "Optional event_type filter (e.g. 'AGENT_AUTHORSHIP').",
+                },
+            },
+            "required": ["run_id"],
+        },
     ),
     WidgetManifest(
         id="run.reasoning_trace",

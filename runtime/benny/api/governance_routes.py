@@ -7,7 +7,11 @@ from typing import List, Optional, Dict, Any
 from pathlib import Path
 import logging
 
-from ..governance.audit import verify_audit_integrity, emit_security_event
+from ..governance.audit import (
+    verify_audit_integrity,
+    emit_security_event,
+    read_audit_events,
+)
 from ..governance.execution_audit import (
     retrieve_execution_audit,
     get_failed_nodes,
@@ -71,6 +75,42 @@ async def update_manual(workspace: str, filename: str, content: Dict[str, str] =
         return {"status": "updated", "file": filename}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/events")
+async def list_governance_events(
+    workspace: str = Query("default"),
+    run_id: Optional[str] = Query(None),
+    event_type: Optional[str] = Query(None),
+    limit: int = Query(100, ge=1, le=1000),
+):
+    """Return audit events for *workspace*, newest first.
+
+    Used by the ``run.lineage_timeline`` widget (ADR-001 Phase C). Optional
+    ``run_id`` filters to events tied to a specific run; optional
+    ``event_type`` narrows to a single event class (e.g.
+    ``AGENT_AUTHORSHIP``). At most ``limit`` events returned (default 100,
+    max 1000).
+
+    Read-only — no agent scope required. Reads are subject to the existing
+    governance API key check at the shell edge.
+    """
+    try:
+        events = read_audit_events(
+            workspace,
+            run_id=run_id,
+            event_type=event_type,
+            limit=limit,
+        )
+        return {
+            "workspace": workspace,
+            "run_id": run_id,
+            "event_type": event_type,
+            "count": len(events),
+            "events": events,
+        }
+    except Exception as exc:  # noqa: BLE001 — surface upstream error detail
+        raise HTTPException(status_code=500, detail=str(exc))
+
 
 @router.get("/security-events")
 async def list_security_events(workspace: str = Query("global"), limit: int = 50):
