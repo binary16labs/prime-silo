@@ -202,6 +202,96 @@ def emit_security_event(
         workspace_id=workspace_id
     )
 
+def _resolve_audit_log_path(workspace_id: str) -> Path:
+    """Return the audit-log path for *workspace_id*, honouring BENNY_HOME.
+
+    Uses :mod:`benny.core.workspace` when available so production deployments
+    that set ``BENNY_HOME`` resolve to the right tree. Falls back to the
+    legacy ``workspace/`` layout used by the test harness in this module.
+    """
+    if workspace_id == "global":
+        return GLOBAL_AUDIT_LOG
+    try:
+        from ..core.workspace import get_workspace_path  # local import — avoid cycles at module load
+        return get_workspace_path(workspace_id, "runs") / "audit.log"
+    except Exception:
+        return _get_workspace_path(workspace_id, "runs/audit.log")
+
+
+def read_audit_events(
+    workspace_id: str,
+    *,
+    run_id: Optional[str] = None,
+    event_type: Optional[str] = None,
+    limit: int = 100,
+) -> list:
+    """Return audit events for *workspace_id*, newest first.
+
+    Reads the workspace-scoped ``runs/audit.log`` (or the global log when
+    ``workspace_id == "global"``), parses each JSON line, optionally filters
+    by ``run_id`` (matching ``data.run_id``, ``data.details.run_id``, or
+    ``data.parent_run_id``) and ``event_type``, then returns at most ``limit``
+    events sorted newest-first.
+
+    Lines that fail to parse are skipped silently — the audit log is allowed
+    to contain partial writes during shutdown.
+
+    Returns an empty list when the log does not exist (a valid state for a
+    workspace that has emitted no events yet).
+    """
+    if limit < 1:
+        return []
+
+    audit_path = _resolve_audit_log_path(workspace_id)
+    if not audit_path.exists():
+        return []
+
+    matches = []
+    try:
+        content = audit_path.read_text(encoding="utf-8")
+    except OSError:
+        return []
+
+    for line in content.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+
+        if event_type and event.get("event_type") != event_type:
+            continue
+
+        if run_id and not _event_matches_run(event, run_id):
+            continue
+
+        matches.append(event)
+
+    # Newest first. Audit log writes are append-only and timestamped; sort by
+    # timestamp when present to be robust against eventual reordering.
+    matches.sort(key=lambda e: e.get("timestamp") or "", reverse=True)
+    return matches[:limit]
+
+
+def _event_matches_run(event: Dict[str, Any], run_id: str) -> bool:
+    data = event.get("data") or {}
+    if not isinstance(data, dict):
+        return False
+    if data.get("run_id") == run_id:
+        return True
+    if data.get("parent_run_id") == run_id:
+        return True
+    details = data.get("details") or {}
+    if isinstance(details, dict):
+        if details.get("run_id") == run_id:
+            return True
+        if details.get("parent_run_id") == run_id:
+            return True
+    return False
+
+
 def verify_audit_integrity(workspace_id: str = "global") -> Dict[str, Any]:
     """
     Verify the integrity of the audit log by checking SHA-256 hashes.
