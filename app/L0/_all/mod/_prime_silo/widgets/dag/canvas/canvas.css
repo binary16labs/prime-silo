@@ -1,0 +1,101 @@
+/* ADR-001 Phase C — dag.canvas widget styles. */
+
+.prime-silo-dag {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 12px;
+  color: inherit;
+  display: block;
+  overflow: auto;
+  background: #0b0e13;
+  border-radius: 8px;
+  padding: 0.5rem;
+}
+
+.prime-silo-dag[data-widget-state="rejected"] .prime-silo-dag__rejected,
+.prime-silo-dag__rejected {
+  background: rgba(217, 119, 6, 0.14);
+  border-left: 3px solid rgb(217, 119, 6);
+  padding: 0.6rem 0.8rem;
+  border-radius: 4px;
+  color: rgb(180, 83, 9);
+  font-style: italic;
+}
+
+.prime-silo-dag__rejected code {
+  font-family: ui-monospace, "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+  background: rgba(127, 127, 127, 0.18);
+  padding: 0.05em 0.35em;
+  border-radius: 3px;
+}
+
+.prime-silo-dag[data-widget-state="error"] .prime-silo-dag__error,
+.prime-silo-dag__error {
+  background: rgba(220, 38, 38, 0.12);
+  border-left: 3px solid rgb(220, 38, 38);
+  padding: 0.5rem 0.7rem;
+  border-radius: 4px;
+  color: rgb(220, 38, 38);
+}
+
+.prime-silo-dag__empty {
+  padding: 0.6rem 0.8rem;
+  background: rgba(127, 127, 127, 0.08);
+  border-radius: 4px;
+  font-style: italic;
+  opacity: 0.85;
+  color: #94a3b8;
+}
+
+.prime-silo-dag__svg {
+  display: block;
+}
+
+.prime-silo-dag__edge {
+  fill: none;
+  stroke: rgba(148, 163, 184, 0.45);
+  stroke-width: 1.5;
+}
+
+.prime-silo-dag__node {
+  cursor: pointer;
+}
+
+.prime-silo-dag__node[data-selected="true"] .prime-silo-dag__node-bg {
+  filter: drop-shadow(0 0 6px rgba(99, 102, 241, 0.55));
+  stroke-width: 2.5;
+}
+
+.prime-silo-dag__node-bg {
+  fill: rgba(15, 23, 42, 0.92);
+  stroke-width: 2;
+}
+
+.prime-silo-dag__node-id {
+  fill: rgba(226, 232, 240, 0.65);
+  font-size: 10px;
+  font-family: ui-monospace, "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.prime-silo-dag__node-label {
+  fill: rgba(241, 245, 249, 0.96);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.prime-silo-dag__node-sub {
+  fill: rgba(148, 163, 184, 0.78);
+  font-size: 10px;
+}
+
+.prime-silo-dag__node-status {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.prime-silo-dag__node:hover .prime-silo-dag__node-bg {
+  filter: drop-shadow(0 0 4px rgba(99, 102, 241, 0.4));
+}

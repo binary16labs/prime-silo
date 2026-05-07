@@ -100,12 +100,42 @@ _PHASE_A_REGISTRY: List[WidgetManifest] = [
         ),
         category="dag",
         authority="deterministic_only",
+        # Phase C — `deterministic_only`: agent layouts MUST NOT include this
+        # widget. Reachable only from static deterministic-zone shell pages
+        # that humans drive directly. Defence-in-depth: the widget factory
+        # also refuses to mount under `options.agentContext`.
         props={
             "type": "object",
             "properties": {
-                "mode": {"enum": ["manifest", "pipeline", "workflow"]},
+                "mode": {
+                    "enum": ["manifest", "pipeline", "workflow"],
+                    "description": (
+                        "Rendering mode. 'manifest' lays nodes out by wave for "
+                        "swarm manifests; 'pipeline' colours by Pypes stage and "
+                        "shows step status; 'workflow' colours by studio node "
+                        "kind (trigger/llm/tool/logic/data)."
+                    ),
+                },
+                "data": {
+                    "type": "object",
+                    "description": (
+                        "DAG data: { nodes: [{id, label?, status?, stage?, "
+                        "kind?, wave?, group?}], edges: [{source, target} or "
+                        "[source, target]] }. Caller is responsible for "
+                        "supplying — the widget does not fetch."
+                    ),
+                    "properties": {
+                        "nodes": {"type": "array"},
+                        "edges": {"type": "array"},
+                    },
+                    "required": ["nodes"],
+                },
+                "selectedNodeId": {
+                    "type": "string",
+                    "description": "Optional id of the node to highlight.",
+                },
             },
-            "required": ["mode"],
+            "required": ["mode", "data"],
         },
     ),
     WidgetManifest(
