@@ -118,6 +118,32 @@ _PHASE_A_REGISTRY: List[WidgetManifest] = [
             FrameBinding(field="rows", required=True),
             FrameBinding(field="clp_annotations", required=False),
         ],
+        # Phase C — fetched-data widget. Pulls rows + CLP from
+        # GET /api/runtime/pypes/runs/{run_id}/steps/{step_id}.
+        props={
+            "type": "object",
+            "properties": {
+                "run_id": {
+                    "type": "string",
+                    "description": "Pypes run id (without the 'pypes-' prefix).",
+                },
+                "step_id": {
+                    "type": "string",
+                    "description": "Step id within the run to drill into.",
+                },
+                "workspace": {
+                    "type": "string",
+                    "description": "Workspace id (default: 'default').",
+                },
+                "rows": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 5000,
+                    "description": "Max rows to load. Default 50.",
+                },
+            },
+            "required": ["run_id", "step_id"],
+        },
     ),
     WidgetManifest(
         id="run.frame_inspector",
