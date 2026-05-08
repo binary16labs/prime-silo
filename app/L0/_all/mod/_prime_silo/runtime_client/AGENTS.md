@@ -10,7 +10,7 @@ This is the **single chokepoint** for agent-scope header injection. Anything els
 
 | File              | Owns                                                                                      |
 | ----------------- | ----------------------------------------------------------------------------------------- |
-| `runtime-client.js` | Transport: `runtimeFetch`, `fetchAsAgent`, `listWidgets`, `readRuntimeJson`. Phase D2 additions: `createAgentRuntimeClient(scope)`, `withAgentScope(scope, fn)`, `getActiveAgentScope()`. |
+| `runtime-client.js` | Transport: `runtimeFetch`, `fetchAsAgent`, `listWidgets`, `readRuntimeJson`. Phase D2 additions: `createAgentRuntimeClient(scope)`, `withAgentScope(scope, fn)`, `getActiveAgentScope()`. Phase D3 additions: `saveView`, `loadView`, `listViews` (standalone + bound). |
 
 ## Boundary
 
@@ -19,6 +19,9 @@ This is the **single chokepoint** for agent-scope header injection. Anything els
 - `createAgentRuntimeClient(scope)` — returns a runtime-client-shaped object whose every call auto-injects scope. Pass through `options.runtimeClient` to widgets / skills / tools so the agent's call surface is scope-tagged end-to-end. **Preferred** for long-running agent turns. Phase D2.
 - `withAgentScope(scope, fn)` — synchronous-flow helper. Sets the active scope for the duration of `fn` and restores on return. Browsers have no `AsyncLocalStorage`; use this for short, narrow code paths and `createAgentRuntimeClient` for everything else. Phase D2.
 - `getActiveAgentScope()` — returns the currently active scope, or `null`. Useful for assertions and structured logs.
+- `saveView(workspace, filename, content, {agentId})` — POST `/agent_sandbox/views/save`. Accepts a JSON string *or* a JSON-serialisable object (the helper stringifies). The runtime forces `subdir="views"` and validates the body parses as JSON, so a stray call cannot land outside `agent_sandbox/views/`. Phase D3.
+- `loadView(workspace, filename, {parseJson})` — GET `/agent_sandbox/read/<ws>/views/<filename>`. Returns the runtime envelope `{workspace, subdir, filename, relative_path, content, bytes}`. Default behaviour parses `content` as JSON and exposes the result on `view`; pass `{parseJson:false}` to skip. Phase D3.
+- `listViews(workspace, {raw})` — GET `/agent_sandbox/list/<ws>/views`. Returns the entries array directly, or pass `{raw:true}` for the full envelope. Phase D3.
 
 The named import the agent runtime should use lives one folder over in [`_prime_silo/agent_runtime/agent-runtime.js`](../agent_runtime/agent-runtime.js) — it re-exports the bound-client factory through `mountAgentTurn` so the boundary is auditable by name.
 
@@ -32,6 +35,6 @@ The named import the agent runtime should use lives one folder over in [`_prime_
 ## Phase status
 
 - **Phase D** — transport scaffolded. `listWidgets` proved the proxy chain end-to-end.
-- **Phase D2 (this commit)** — agent-context chokepoint shipped. `createAgentRuntimeClient` and `withAgentScope` give the browser-resident agent runtime exactly two ways to tag traffic, both flowing through `AgentScopeMiddleware`.
-- **Phase D3** — saved-layout helpers (`saveView`, `loadView`, `pinView`) once the runtime exposes `/api/runtime/agent_sandbox/views/save` from agent context.
-- **Phase F** — `.aamp.view` signing helpers will live here so signing happens before the request leaves the shell.
+- **Phase D2** — agent-context chokepoint shipped. `createAgentRuntimeClient` and `withAgentScope` give the browser-resident agent runtime exactly two ways to tag traffic, both flowing through `AgentScopeMiddleware`.
+- **Phase D3 (this commit)** — saved-layout helpers shipped. `saveView`, `loadView`, `listViews` ride the Phase D2 chokepoint and exercise the agent_sandbox write path end-to-end. `pinView` is deliberately deferred to Phase F because pinning a view = signing it, and the signing decision belongs at the manifest layer (where the HMAC key is held), not at the transport.
+- **Phase F** — `.aamp.view` signing helpers will live here so signing happens before the request leaves the shell. `pinView` will then become `signView + saveView + register`.

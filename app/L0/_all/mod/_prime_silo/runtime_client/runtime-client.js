@@ -18,6 +18,14 @@
 //   readRuntimeJson(response)       — parse the runtime's JSON body
 //   listWidgets()                   — convenience wrapper around GET /widgets
 //
+// Phase D3 additions
+//   saveView(workspace, filename, content, options?)  — POST a JSON layout
+//                                                       into agent_sandbox/views
+//   loadView(workspace, filename, options?)           — GET + parse a saved view
+//   listViews(workspace, options?)                    — GET the saved-view names
+//
+//   Bound clients gain the same three methods with the agent scope baked in.
+//
 // Phase D2 additions
 //   createAgentRuntimeClient(scope) — bound client whose every call auto-injects
 //                                     the agent scope. Hand this to skills /
@@ -165,6 +173,115 @@ export async function listWidgets() {
 }
 
 /**
+ * Phase D3 — save a JSON layout view into the workspace's
+ * `agent_sandbox/views/` subtree.
+ *
+ * The runtime endpoint validates that the body parses as JSON and forces
+ * `subdir="views"` so a stray call cannot silently land in `drafts/` or
+ * `notes/`. Callers may pass either a JSON string or any JSON-serialisable
+ * object — objects are stringified before send so the JSON validation on
+ * both sides agrees.
+ *
+ * Filename convention: `<id>.aamp.view`, but enforcement happens server-side
+ * (no path separators, no leading dot). This helper does not invent the
+ * extension — Phase F .aamp.view signing belongs at the manifest layer, not
+ * here.
+ *
+ * Returns the runtime's `SandboxWriteResponse`:
+ *   { status: "written", workspace, relative_path, bytes_written }
+ *
+ * Auto-injects the active agent scope when one is set; the bound-client
+ * variant forces it. Without scope this is a human-driven write — the runtime
+ * still validates JSON and path containment.
+ *
+ * @param {string} workspace
+ * @param {string} filename
+ * @param {string | object} content
+ * @param {{ agentId?: string }} [options]
+ * @returns {Promise<{status: "written", workspace: string, relative_path: string, bytes_written: number}>}
+ */
+export async function saveView(workspace, filename, content, options = {}) {
+  const body = serialiseViewContent(content);
+  const payload = {
+    workspace,
+    subdir: "views",
+    filename,
+    content: body,
+    agent_id: options.agentId || "anonymous_agent"
+  };
+  const response = await runtimeFetch("/agent_sandbox/views/save", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  return readRuntimeJson(response);
+}
+
+/**
+ * Phase D3 — load a saved view from `agent_sandbox/views/`.
+ *
+ * Returns the runtime's read envelope:
+ *   { workspace, subdir: "views", filename, relative_path, content, bytes }
+ *
+ * `content` is the raw UTF-8 string the file contains. By default the helper
+ * also parses it as JSON and exposes the result on the `view` property —
+ * pass `{ parseJson: false }` to skip parsing for non-JSON layouts (none
+ * exist today; the runtime guards JSON on save, but the read endpoint is
+ * format-agnostic).
+ *
+ * @param {string} workspace
+ * @param {string} filename
+ * @param {{ parseJson?: boolean }} [options]
+ */
+export async function loadView(workspace, filename, options = {}) {
+  const path = `/agent_sandbox/read/${encodeURIComponent(workspace)}/views/${encodeURIComponent(filename)}`;
+  const response = await runtimeFetch(path);
+  const envelope = await readRuntimeJson(response);
+  const parseJson = options.parseJson !== false;
+  if (parseJson && envelope && typeof envelope.content === "string") {
+    try {
+      envelope.view = JSON.parse(envelope.content);
+    } catch (err) {
+      const error = new Error(`loadView: stored content is not valid JSON: ${err.message}`);
+      error.name = "RuntimeError";
+      error.cause = err;
+      throw error;
+    }
+  }
+  return envelope;
+}
+
+/**
+ * Phase D3 — list saved view filenames for a workspace.
+ *
+ * Returns the entries array directly (the runtime envelope's `entries` field).
+ * Pass `{ raw: true }` to get the full envelope `{ workspace, subdir, entries }`
+ * instead.
+ *
+ * @param {string} workspace
+ * @param {{ raw?: boolean }} [options]
+ */
+export async function listViews(workspace, options = {}) {
+  const path = `/agent_sandbox/list/${encodeURIComponent(workspace)}/views`;
+  const response = await runtimeFetch(path);
+  const envelope = await readRuntimeJson(response);
+  if (options.raw) {
+    return envelope;
+  }
+  return (envelope && Array.isArray(envelope.entries)) ? envelope.entries : [];
+}
+
+function serialiseViewContent(content) {
+  if (typeof content === "string") {
+    return content;
+  }
+  if (content === null || content === undefined) {
+    throw new Error("saveView: content must be a JSON string or a JSON-serialisable object.");
+  }
+  return JSON.stringify(content);
+}
+
+/**
  * Phase D2 — synchronous agent-scope context.
  *
  * Sets the active agent scope for the duration of `fn()` and restores the
@@ -230,7 +347,10 @@ export function getActiveAgentScope() {
  *   runtimeFetch: (path: string, init?: object) => Promise<Response>,
  *   fetchAsAgent: (path: string, init?: object, options?: {scope?: string}) => Promise<Response>,
  *   readRuntimeJson: (response: Response) => Promise<unknown>,
- *   listWidgets: () => Promise<unknown>
+ *   listWidgets: () => Promise<unknown>,
+ *   saveView: (workspace: string, filename: string, content: string | object, options?: {agentId?: string}) => Promise<unknown>,
+ *   loadView: (workspace: string, filename: string, options?: {parseJson?: boolean}) => Promise<unknown>,
+ *   listViews: (workspace: string, options?: {raw?: boolean}) => Promise<unknown>
  * }}
  */
 export function createAgentRuntimeClient(scope) {
@@ -251,6 +371,15 @@ export function createAgentRuntimeClient(scope) {
     async listWidgets() {
       const response = await fetchAsAgent("/widgets", {}, { scope });
       return readRuntimeJson(response);
+    },
+    saveView(workspace, filename, content, options = {}) {
+      return withAgentScope(scope, () => saveView(workspace, filename, content, options));
+    },
+    loadView(workspace, filename, options = {}) {
+      return withAgentScope(scope, () => loadView(workspace, filename, options));
+    },
+    listViews(workspace, options = {}) {
+      return withAgentScope(scope, () => listViews(workspace, options));
     }
   };
 }
