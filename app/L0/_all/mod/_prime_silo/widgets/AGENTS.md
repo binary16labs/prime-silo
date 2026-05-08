@@ -10,7 +10,7 @@ Browser-side home for the **typed widget registry** that ADR-001 collapses Studi
 | --------------------- | ----------------------------------------------------------------------------- |
 | `widget-registry.js`  | Fetches the registry from the runtime, caches it, exposes `getWidget(id)` and `isAuthorityAgentSafe(authority)`. JSDoc mirrors [`runtime/frontend/src/widgets/contracts.ts`](../../../../runtime/frontend/src/widgets/contracts.ts). |
 
-## Layout (Phase C — incoming)
+## Layout (Phase C — shipped)
 
 ```
 widgets/
@@ -49,7 +49,8 @@ if (!widget || !isAuthorityAgentSafe(widget.authority)) {
 
 ## Phase status
 
-- **Phase A** ✅ — manifest schema + Phase A registry committed in the runtime.
-- **Phase D (this commit)** — registry client scaffolded; `loadRegistry()` proves the proxy chain end-to-end.
-- **Phase C (next)** — port the five highest-value canvases listed above.
-- **Phase G** — collapse `ManifestCanvas`/`PipelineCanvas`/`WorkflowCanvas` into the single `dag.canvas` widget.
+- **Phase A** ✅ — manifest schema + registry committed in the runtime.
+- **Phase D** ✅ — registry client scaffolded; `loadRegistry()` proves the proxy chain end-to-end.
+- **Phase C** ✅ — all eight canvases ported. Each widget owns its folder, sets renderer mode (2D SVG default + pluggable `options.renderer` hook on graph widgets), and accepts `options.runtimeClient` for scope-tagged data fetches.
+- **Phase D2 / D3 / F** ✅ — done in `runtime_client/` and `agent_runtime/`; no per-widget changes needed because every widget already accepts `options.runtimeClient`.
+- **Phase G** — collapse `ManifestCanvas`/`PipelineCanvas`/`WorkflowCanvas` into the single `dag.canvas` widget. The Phase C migration left `dag.canvas` shipping all three modes; Phase G removes the legacy components from the runtime frontend.

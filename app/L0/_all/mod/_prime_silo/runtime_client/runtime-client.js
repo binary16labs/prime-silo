@@ -26,6 +26,19 @@
 //
 //   Bound clients gain the same three methods with the agent scope baked in.
 //
+// Phase F additions
+//   signView(view, options?)                — POST /views/sign; returns
+//                                              {signature, canonical_payload}.
+//                                              Human-only: AgentScopeMiddleware
+//                                              rejects agent-scoped POSTs to
+//                                              /api/views/* with 403, so a bound
+//                                              agent client calling this
+//                                              surfaces the security boundary
+//                                              as a RuntimeError(status=403).
+//   verifyView(view, signature, options?)   — POST /views/verify; returns the
+//                                              boolean result of the runtime's
+//                                              constant-time HMAC compare.
+//
 // Phase D2 additions
 //   createAgentRuntimeClient(scope) — bound client whose every call auto-injects
 //                                     the agent scope. Hand this to skills /
@@ -271,6 +284,72 @@ export async function listViews(workspace, options = {}) {
   return (envelope && Array.isArray(envelope.entries)) ? envelope.entries : [];
 }
 
+/**
+ * Phase F — sign a `.aamp.view` layout via the runtime's HMAC chokepoint.
+ *
+ * Posts the view to `/api/views/sign` (intentionally outside the agent_sandbox
+ * prefix). `AgentScopeMiddleware` blocks any agent-scoped POST here with HTTP
+ * 403, so calling `signView` from a bound agent client surfaces the security
+ * boundary as a `RuntimeError(status=403)` — the runtime is the enforcer, not
+ * this module.
+ *
+ * Accepts a JSON-serialisable view object. The runtime computes HMAC-SHA256
+ * over a canonical payload (sorted keys, no whitespace, `signature` field
+ * stripped) and returns:
+ *
+ *   { signature: { algorithm, value, signed_at }, canonical_payload: "..." }
+ *
+ * The canonical payload is returned so callers can audit exactly what was
+ * signed before embedding the signature back into the view.
+ *
+ * @param {object} view
+ * @param {{ }} [options]
+ * @returns {Promise<{signature: {algorithm: string, value: string, signed_at: string}, canonical_payload: string}>}
+ */
+export async function signView(view, options = {}) {
+  if (!view || typeof view !== "object" || Array.isArray(view)) {
+    throw new Error("signView: view must be a JSON object.");
+  }
+  const response = await runtimeFetch("/views/sign", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ view })
+  });
+  return readRuntimeJson(response);
+}
+
+/**
+ * Phase F — verify an HMAC-SHA256 signature over a `.aamp.view` payload.
+ *
+ * Posts `{view, signature}` to `/api/views/verify` and returns the runtime's
+ * boolean result. The runtime uses `hmac.compare_digest` to avoid timing
+ * leaks; clients must treat any non-true result as a verification failure.
+ *
+ * Like `signView`, this endpoint sits outside `/api/agent_sandbox/`, so a
+ * bound agent client invoking it triggers the middleware's 403 — verification
+ * is a human / shell-server action.
+ *
+ * @param {object} view
+ * @param {{algorithm: string, value: string, signed_at: string}} signature
+ * @param {{ }} [options]
+ * @returns {Promise<boolean>}
+ */
+export async function verifyView(view, signature, options = {}) {
+  if (!view || typeof view !== "object" || Array.isArray(view)) {
+    throw new Error("verifyView: view must be a JSON object.");
+  }
+  if (!signature || typeof signature !== "object") {
+    throw new Error("verifyView: signature must be an envelope object.");
+  }
+  const response = await runtimeFetch("/views/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ view, signature })
+  });
+  const body = await readRuntimeJson(response);
+  return Boolean(body && body.valid);
+}
+
 function serialiseViewContent(content) {
   if (typeof content === "string") {
     return content;
@@ -350,7 +429,9 @@ export function getActiveAgentScope() {
  *   listWidgets: () => Promise<unknown>,
  *   saveView: (workspace: string, filename: string, content: string | object, options?: {agentId?: string}) => Promise<unknown>,
  *   loadView: (workspace: string, filename: string, options?: {parseJson?: boolean}) => Promise<unknown>,
- *   listViews: (workspace: string, options?: {raw?: boolean}) => Promise<unknown>
+ *   listViews: (workspace: string, options?: {raw?: boolean}) => Promise<unknown>,
+ *   signView: (view: object, options?: object) => Promise<unknown>,
+ *   verifyView: (view: object, signature: object, options?: object) => Promise<boolean>
  * }}
  */
 export function createAgentRuntimeClient(scope) {
@@ -380,6 +461,16 @@ export function createAgentRuntimeClient(scope) {
     },
     listViews(workspace, options = {}) {
       return withAgentScope(scope, () => listViews(workspace, options));
+    },
+    // Phase F — the bound client tags signView/verifyView with the agent
+    // scope, but the routes live outside /api/agent_sandbox/ so the runtime
+    // middleware will 403 every agent-scoped POST. The 403 is the boundary;
+    // do not silently downgrade by stripping the header here.
+    signView(view, options = {}) {
+      return withAgentScope(scope, () => signView(view, options));
+    },
+    verifyView(view, signature, options = {}) {
+      return withAgentScope(scope, () => verifyView(view, signature, options));
     }
   };
 }

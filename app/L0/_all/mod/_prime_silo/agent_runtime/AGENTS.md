@@ -135,3 +135,18 @@ Two facts about this flow:
    intentionally upstream of that — saving a draft does not promote
    it, and the sandbox lifecycle is the agent's problem, not the
    middleware's.
+
+## Phase F — what the agent CAN'T do
+
+The bound runtime client carries `signView` and `verifyView` for
+surface symmetry with the human client, but those routes
+(`/api/views/sign`, `/api/views/verify`) sit *outside*
+`/api/agent_sandbox/`. `AgentScopeMiddleware` blocks every
+agent-scoped POST that does not target the sandbox prefix, so an agent
+calling `turn.runtimeClient.signView(...)` receives
+`RuntimeError(status=403)`. That is the intended product of Phase F:
+**agents compose drafts; humans pin**. The shell — running as a
+regular unscoped user — is the actor that calls `signView` to promote
+a draft into a signed, replayable form. The browser never holds the
+HMAC key; the runtime does (`BENNY_HMAC_KEY` env var, with a clearly
+labelled dev fallback).

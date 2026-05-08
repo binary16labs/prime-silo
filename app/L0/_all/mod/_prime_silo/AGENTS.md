@@ -8,18 +8,22 @@ It is the shell-side counterpart to ADR-001 ([`runtime/architecture/ADR-001-prim
 
 | Module                  | Owns                                                                         |
 | ----------------------- | ---------------------------------------------------------------------------- |
-| `runtime_client/`       | Fetch helper for `/api/runtime/*` calls; injects `X-Benny-Agent-Scope` when invoked from agent context. |
-| `widgets/`              | Widget registry client + JSDoc mirror of [`runtime/frontend/src/widgets/contracts.ts`](../../../../runtime/frontend/src/widgets/contracts.ts). Phase C migrates the actual canvas components (KG3D, dag.canvas, drill-down, frame inspector, lineage timeline) into this folder. |
+| `runtime_client/`       | Fetch helper for `/api/runtime/*` calls; auto-injects `X-Benny-Agent-Scope` from active agent context. Also owns `saveView`/`loadView`/`listViews` (Phase D3) and `signView`/`verifyView` (Phase F). |
+| `agent_runtime/`        | The named import the browser-resident agent runtime reaches for: `mountAgentTurn(scope)`, `runWithAgentContext(scope, fn)`, `getCurrentAgentScope()`. Every agent call surface is constructed through this module so `grep agent-runtime.js` enumerates the boundary. Phase D2. |
+| `widgets/`              | Widget registry client + JSDoc mirror of [`runtime/frontend/src/widgets/contracts.ts`](../../../../runtime/frontend/src/widgets/contracts.ts). Phase C migrated the canvas widgets (text.markdown, run.reasoning_trace, run.lineage_timeline, run.drilldown_table, run.frame_inspector, kg3d.synoptic_web, codegraph.canvas, dag.canvas) into this folder. |
 
 ## Boundary
 
 - The shell never *originates* writes that mutate institutional state. Either:
   - The user clicks a deterministic-zone surface → the request flows without a scope header (regular human RBAC).
-  - The agent composes a Review-zone layout or pins a draft → the request flows with `X-Benny-Agent-Scope: sandbox` and the runtime's `AgentScopeMiddleware` confines it to `agent_sandbox/`.
-- Scope header injection lives in `runtime_client/`; nothing else in this tree should set it directly.
+  - The agent composes a Review-zone layout or saves a draft view → the request flows with `X-Benny-Agent-Scope: sandbox` and the runtime's `AgentScopeMiddleware` confines it to `agent_sandbox/`.
+  - The user pins (signs) an agent draft → the request flows *without* a scope header; `/api/views/sign` lives outside `/api/agent_sandbox/`, so any agent-scoped POST there is 403'd by the middleware. Agents draft, humans pin.
+- Scope header injection lives in `runtime_client/`; nothing else in this tree should set it directly. The `agent_runtime/` module is the single place where the agent runtime constructs a call surface.
 
 ## Phase status
 
-- **Phase D (this module)** — runtime_client + widget registry client are scaffolded; agent-runtime header injection wires through `runtime_client.fetchAsAgent()`.
-- **Phase C** — canvas migration. Each widget gets a folder under `widgets/` matching the manifest IDs registered by [`runtime/benny/api/widget_routes.py`](../../../../runtime/benny/api/widget_routes.py).
-- **Phase F** — saved-layout signing. `widgets/` will gain a `views/` sub-folder for `.aamp.view` bundle helpers using the existing skin-pack HMAC path.
+- **Phase C** — canvas migration shipped. Eight widgets live under `widgets/<scope>/<id>/index.js`, each pinned to the manifest IDs registered by [`runtime/benny/api/widget_routes.py`](../../../../runtime/benny/api/widget_routes.py).
+- **Phase D** — runtime transport scaffolded. `runtimeFetch`, `fetchAsAgent`, and `listWidgets` proved the shell→runtime proxy chain end-to-end.
+- **Phase D2** — agent-context chokepoint shipped. `createAgentRuntimeClient(scope)` (long-running) + `withAgentScope(scope, fn)` (short, synchronous) are the only two routes that tag traffic, both audited by `AgentScopeMiddleware`.
+- **Phase D3** — saved-layout helpers shipped. `saveView`/`loadView`/`listViews` ride the Phase D2 chokepoint and exercise the agent_sandbox write path through `/api/agent_sandbox/views/{save,read,list}`.
+- **Phase F** — `.aamp.view` HMAC chokepoint shipped. The runtime owns the key (`BENNY_HMAC_KEY` env var → dev fallback) and exposes `POST /api/views/sign` + `POST /api/views/verify`. Browser-side `signView`/`verifyView` helpers call it; bound agent clients propagate their scope header so the middleware can issue the intended 403. The persistence half (`pinView` = sign + write to canonical location + emit lineage) is intentionally a follow-up so the signing technique locks in before the storage shape does.
