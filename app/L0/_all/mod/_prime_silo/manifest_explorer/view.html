@@ -1,0 +1,71 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="/mod/_prime_silo/manifest_explorer/manifest-explorer.css" />
+    <script type="module" src="/mod/_prime_silo/manifest_explorer/manifest-explorer.js"></script>
+  </head>
+  <body>
+    <section
+      class="prime-silo-manifest-explorer"
+      x-data="manifestExplorer()"
+      x-init="init()"
+      x-destroy="destroy()"
+      x-cloak
+    >
+      <header class="prime-silo-manifest-explorer-header">
+        <p class="prime-silo-manifest-explorer-eyebrow">Deterministic zone</p>
+        <h1 class="prime-silo-manifest-explorer-title">Manifest explorer</h1>
+        <p class="prime-silo-manifest-explorer-subtitle">
+          Read-only view of registered swarm manifests, rendered as a DAG. Drives the runtime without
+          an agent scope — humans only.
+        </p>
+      </header>
+
+      <div class="prime-silo-manifest-explorer-controls">
+        <label for="prime-silo-manifest-select">Manifest</label>
+        <select
+          id="prime-silo-manifest-select"
+          x-model="activeId"
+          @change="selectManifest(activeId)"
+          :disabled="state === 'loading'"
+        >
+          <template x-for="m in manifests" :key="m.id">
+            <option :value="m.id" x-text="m.requirement ? `${m.id} — ${m.requirement}` : m.id"></option>
+          </template>
+        </select>
+      </div>
+
+      <template x-if="state === 'loading'">
+        <p class="prime-silo-manifest-explorer-status" data-tone="loading">Loading manifest…</p>
+      </template>
+
+      <template x-if="state === 'empty'">
+        <p class="prime-silo-manifest-explorer-status" data-tone="empty">
+          No manifests registered. Create one via <code>benny plan</code> and refresh.
+        </p>
+      </template>
+
+      <template x-if="state === 'error'">
+        <p class="prime-silo-manifest-explorer-status" data-tone="error" x-text="error"></p>
+      </template>
+
+      <template x-if="state === 'ready' && summary">
+        <div class="prime-silo-manifest-explorer-summary">
+          <span class="prime-silo-manifest-explorer-summary-item">
+            <strong x-text="summary.taskCount"></strong>
+            <span>tasks</span>
+          </span>
+          <span class="prime-silo-manifest-explorer-summary-item">
+            <strong x-text="summary.edgeCount"></strong>
+            <span>edges</span>
+          </span>
+          <span class="prime-silo-manifest-explorer-summary-item">
+            <strong x-text="summary.waveCount"></strong>
+            <span>waves</span>
+          </span>
+        </div>
+      </template>
+
+      <div class="prime-silo-manifest-explorer-canvas" x-ref="canvas"></div>
+    </section>
+  </body>
+</html>

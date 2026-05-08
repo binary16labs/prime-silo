@@ -47,7 +47,7 @@ prime-silo/
 - [x] **Phase C** — eight canvases migrated to the shell widget tree (text.markdown, run.reasoning_trace, run.lineage_timeline, run.drilldown_table, run.frame_inspector, kg3d.synoptic_web, codegraph.canvas, dag.canvas)
 - [x] **Phase D / D2 / D3** — runtime transport, agent-context chokepoint, agent saved-views helpers
 - [x] **Phase F / F2** — `.aamp.view` HMAC sign / verify / pin chokepoint; pinned views are self-describing signed JSON
-- [ ] **Phase E** — deterministic-zone surfaces rendered as static (non-agent-mutable) shell pages
+- [x] **Phase E** — first deterministic-zone shell page (`manifest_explorer`) lists registered swarm manifests and renders the selected one as `dag.canvas`. No agent context — `runtimeFetch` with no scope.
 - [ ] **Phase G** — canvas consolidation; retire ManifestCanvas/PipelineCanvas/WorkflowCanvas duplication in the runtime frontend
 
 Phase status is tracked rolling in [`architecture/ROADMAP.md`](architecture/ROADMAP.md). The original phase rationale lives in [`runtime/architecture/ADR-001-prime-silo-shell-fork.md`](runtime/architecture/ADR-001-prime-silo-shell-fork.md) §8.
