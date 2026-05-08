@@ -83,6 +83,44 @@ _PHASE_A_REGISTRY: List[WidgetManifest] = [
         category="graph",
         authority="read_only",
         frame_bindings=[FrameBinding(field="concepts", required=False)],
+        # Phase C — fetched-data widget. Pulls ontology from
+        # GET /api/runtime/kg3d/ontology. Default renderer is a 2D SVG
+        # synoptic-web layered by AoT depth; a Three.js renderer can be
+        # plugged in via options without changing the widget contract.
+        props={
+            "type": "object",
+            "properties": {
+                "workspace": {
+                    "type": "string",
+                    "description": "Workspace id whose ontology to load (default: 'default').",
+                },
+                "focusedLayer": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 5,
+                    "description": (
+                        "Optional AoT layer (1 = abstract … 5 = concrete) to "
+                        "spotlight. Other layers fade to give a depth lens."
+                    ),
+                },
+                "selectedNodeId": {
+                    "type": "string",
+                    "description": "Optional id of the concept node to highlight.",
+                },
+                "data": {
+                    "type": "object",
+                    "description": (
+                        "Optional inline ontology { nodes, edges }. When "
+                        "supplied, bypasses the /kg3d/ontology fetch — useful "
+                        "for tests and offline shell pages."
+                    ),
+                    "properties": {
+                        "nodes": {"type": "array"},
+                        "edges": {"type": "array"},
+                    },
+                },
+            },
+        },
     ),
     WidgetManifest(
         id="codegraph.canvas",
