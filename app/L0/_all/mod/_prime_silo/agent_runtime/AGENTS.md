@@ -104,3 +104,34 @@ This module is itself unauthenticated browser code — anyone who can
 load the shell can invoke `mountAgentTurn`. The middleware is the
 gate. Keep it that way: never centralise the scope decision here in a
 way that hides it from the runtime audit log.
+
+## Phase D3 — saved-views from inside an agent turn
+
+The bound runtime client returned by `mountAgentTurn` carries
+`saveView`, `loadView`, and `listViews` (the Phase D3 additions on
+the runtime client). Layout-authoring agents drive the sandbox write
+path through the same scope-tagged client they already use for widget
+metadata.
+
+```js
+const turn = mountAgentTurn("sandbox");
+try {
+  await turn.runtimeClient.saveView("c5_test", "compose.aamp.view", {
+    schema: "aamp.view/1",
+    panels: [{ widget: "kg3d.synoptic_web", x: 0, y: 0 }]
+  }, { agentId: "agentamp.composer" });
+} finally {
+  turn.dispose();
+}
+```
+
+Two facts about this flow:
+
+1. **Sandbox-confined.** The runtime forces `subdir="views"` and the
+   middleware confines agent writes to `/api/agent_sandbox/`. An agent
+   cannot save a view anywhere else.
+2. **No pinning yet.** Pinning a view to a canonical, replayable name
+   is HMAC-signed promotion (Phase F). The shape of `saveView` is
+   intentionally upstream of that — saving a draft does not promote
+   it, and the sandbox lifecycle is the agent's problem, not the
+   middleware's.
