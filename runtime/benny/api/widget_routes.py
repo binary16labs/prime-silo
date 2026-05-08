@@ -128,6 +128,56 @@ _PHASE_A_REGISTRY: List[WidgetManifest] = [
         description="Tree-Sitter-derived file/class/function graph.",
         category="graph",
         authority="read_only",
+        # Phase C — fetched-data widget. Pulls nodes/edges from
+        # GET /api/runtime/graph/code. Default renderer is a 2D SVG
+        # layered code graph; a Three.js renderer can be plugged in via
+        # options without changing the widget contract — same pattern as
+        # kg3d.synoptic_web.
+        props={
+            "type": "object",
+            "properties": {
+                "workspace": {
+                    "type": "string",
+                    "description": "Workspace id whose code graph to load (default: 'default').",
+                },
+                "snapshotId": {
+                    "type": "string",
+                    "description": (
+                        "Optional snapshot id to pin the canvas to a specific "
+                        "scan instead of the most recent one."
+                    ),
+                },
+                "pathFilter": {
+                    "type": "string",
+                    "description": "Optional path prefix filter passed through as ?path=…",
+                },
+                "selectedNodeId": {
+                    "type": "string",
+                    "description": "Optional id of the symbol node to highlight.",
+                },
+                "visibleTypes": {
+                    "type": "array",
+                    "items": {
+                        "enum": ["Folder", "File", "Module", "Class", "Function", "Concept"]
+                    },
+                    "description": (
+                        "Which node types to render. Defaults to all known types; "
+                        "supply a subset to e.g. show only Files + Classes."
+                    ),
+                },
+                "data": {
+                    "type": "object",
+                    "description": (
+                        "Optional inline graph { nodes, edges }. When supplied, "
+                        "bypasses the /graph/code fetch."
+                    ),
+                    "properties": {
+                        "nodes": {"type": "array"},
+                        "edges": {"type": "array"},
+                    },
+                },
+            },
+        },
     ),
     WidgetManifest(
         id="dag.canvas",
