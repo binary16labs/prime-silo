@@ -43,14 +43,14 @@ prime-silo/
 ## Status
 
 - [x] **Phase A** — agent sandbox boundary, scope guard middleware, widget registry contract, agent-authorship lineage emitter (in `runtime/benny/`)
-- [x] **Phase B** — fork bootstrap (this branch); Benny vendored under `runtime/`, space-agent shell merged
-- [ ] **Phase C** — port high-value canvases (KG3D, DAG, drill-down, frame inspector, lineage timeline) into the shell as widgets
-- [ ] **Phase D** — agent composes Review-zone layouts over completed Pypes runs
+- [x] **Phase B** — fork bootstrap; Benny vendored under `runtime/`, space-agent shell merged
+- [x] **Phase C** — eight canvases migrated to the shell widget tree (text.markdown, run.reasoning_trace, run.lineage_timeline, run.drilldown_table, run.frame_inspector, kg3d.synoptic_web, codegraph.canvas, dag.canvas)
+- [x] **Phase D / D2 / D3** — runtime transport, agent-context chokepoint, agent saved-views helpers
+- [x] **Phase F / F2** — `.aamp.view` HMAC sign / verify / pin chokepoint; pinned views are self-describing signed JSON
 - [ ] **Phase E** — deterministic-zone surfaces rendered as static (non-agent-mutable) shell pages
-- [ ] **Phase F** — `.aamp.view` signing path; saved layouts become signable bundles
-- [ ] **Phase G** — canvas consolidation; retire ManifestCanvas/PipelineCanvas/WorkflowCanvas duplication
+- [ ] **Phase G** — canvas consolidation; retire ManifestCanvas/PipelineCanvas/WorkflowCanvas duplication in the runtime frontend
 
-Tracked in [`runtime/architecture/ADR-001-prime-silo-shell-fork.md`](runtime/architecture/ADR-001-prime-silo-shell-fork.md) §8.
+Phase status is tracked rolling in [`architecture/ROADMAP.md`](architecture/ROADMAP.md). The original phase rationale lives in [`runtime/architecture/ADR-001-prime-silo-shell-fork.md`](runtime/architecture/ADR-001-prime-silo-shell-fork.md) §8.
 
 ## Quickstart (Phase B — backend boot only)
 

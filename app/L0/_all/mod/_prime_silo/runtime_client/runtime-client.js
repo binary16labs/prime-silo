@@ -39,6 +39,17 @@
 //                                              boolean result of the runtime's
 //                                              constant-time HMAC compare.
 //
+// Phase F2 additions
+//   pinView(workspace, sourceFilename, opts) — POST /views/pin; promotes an
+//                                              agent draft from
+//                                              agent_sandbox/views/<src> to
+//                                              the canonical workspace
+//                                              views/<dst>. The runtime
+//                                              re-reads, signs, embeds the
+//                                              signature inline, and emits
+//                                              VIEW_PINNED. Human-only by
+//                                              middleware.
+//
 // Phase D2 additions
 //   createAgentRuntimeClient(scope) — bound client whose every call auto-injects
 //                                     the agent scope. Hand this to skills /
@@ -350,6 +361,55 @@ export async function verifyView(view, signature, options = {}) {
   return Boolean(body && body.valid);
 }
 
+/**
+ * Phase F2 — promote an agent-drafted view to a signed, canonical workspace
+ * location.
+ *
+ * Posts `{workspace, source_filename, target_filename?, pinned_by?}` to
+ * `/api/views/pin`. The runtime re-reads the draft from
+ * `agent_sandbox/views/<source_filename>`, signs it, embeds the signature
+ * inline, writes to `<workspace>/views/<target_filename>` (defaulting to
+ * `source_filename`), and emits a `VIEW_PINNED` audit event.
+ *
+ * Same human-only boundary as `signView` — `/api/views/pin` lives outside
+ * `/api/agent_sandbox/`, so a bound agent client invoking this triggers
+ * `RuntimeError(status=403)`.
+ *
+ * Returns the runtime's `PinViewResponse`:
+ *   {
+ *     workspace, source_relative_path, pinned_relative_path,
+ *     bytes_written, signature: { algorithm, value, signed_at }
+ *   }
+ *
+ * @param {string} workspace
+ * @param {string} sourceFilename — must match `agent_sandbox/views/<filename>`
+ * @param {{ targetFilename?: string, pinnedBy?: string }} [options]
+ */
+export async function pinView(workspace, sourceFilename, options = {}) {
+  if (typeof workspace !== "string" || !workspace) {
+    throw new Error("pinView: workspace is required.");
+  }
+  if (typeof sourceFilename !== "string" || !sourceFilename) {
+    throw new Error("pinView: sourceFilename is required.");
+  }
+  const payload = {
+    workspace,
+    source_filename: sourceFilename
+  };
+  if (options.targetFilename) {
+    payload.target_filename = options.targetFilename;
+  }
+  if (options.pinnedBy) {
+    payload.pinned_by = options.pinnedBy;
+  }
+  const response = await runtimeFetch("/views/pin", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  return readRuntimeJson(response);
+}
+
 function serialiseViewContent(content) {
   if (typeof content === "string") {
     return content;
@@ -431,7 +491,8 @@ export function getActiveAgentScope() {
  *   loadView: (workspace: string, filename: string, options?: {parseJson?: boolean}) => Promise<unknown>,
  *   listViews: (workspace: string, options?: {raw?: boolean}) => Promise<unknown>,
  *   signView: (view: object, options?: object) => Promise<unknown>,
- *   verifyView: (view: object, signature: object, options?: object) => Promise<boolean>
+ *   verifyView: (view: object, signature: object, options?: object) => Promise<boolean>,
+ *   pinView: (workspace: string, sourceFilename: string, options?: {targetFilename?: string, pinnedBy?: string}) => Promise<unknown>
  * }}
  */
 export function createAgentRuntimeClient(scope) {
@@ -471,6 +532,12 @@ export function createAgentRuntimeClient(scope) {
     },
     verifyView(view, signature, options = {}) {
       return withAgentScope(scope, () => verifyView(view, signature, options));
+    },
+    // Phase F2 — same defence-in-depth: pinView from a bound agent client
+    // forwards the scope header and the runtime's middleware issues 403.
+    // Pinning is human-only by middleware policy.
+    pinView(workspace, sourceFilename, options = {}) {
+      return withAgentScope(scope, () => pinView(workspace, sourceFilename, options));
     }
   };
 }
