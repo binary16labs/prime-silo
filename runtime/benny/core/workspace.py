@@ -86,6 +86,22 @@ def get_agent_sandbox_path(workspace_id: str = "default", subdir: str = "") -> P
     return get_workspace_path(workspace_id, relative)
 
 
+PINNED_VIEWS_DIR = "views"
+
+
+def get_pinned_views_path(workspace_id: str = "default") -> Path:
+    """Return the absolute path to the workspace's *pinned* views directory.
+
+    ADR-001 Phase F2: pinned views live OUTSIDE the agent sandbox at
+    ``$BENNY_HOME/workspaces/<ws>/views/``. The agent cannot reach them —
+    `AgentScopeMiddleware` 403s every agent-scoped POST that does not target
+    `/api/agent_sandbox/*`. Pinning is a human-only promotion: the human
+    reviews an agent draft from `agent_sandbox/views/`, the runtime signs
+    it, embeds the signature, and writes it here for replayable use.
+    """
+    return get_workspace_path(workspace_id, PINNED_VIEWS_DIR)
+
+
 def is_within_agent_sandbox(workspace_id: str, candidate: Path | str) -> bool:
     """Return True iff *candidate* resolves to a path inside the workspace's
     agent sandbox. Used by :mod:`benny.api.agent_scope` to authorise writes

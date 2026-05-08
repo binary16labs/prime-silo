@@ -136,17 +136,39 @@ Two facts about this flow:
    it, and the sandbox lifecycle is the agent's problem, not the
    middleware's.
 
-## Phase F — what the agent CAN'T do
+## Phase F / F2 — what the agent CAN'T do
 
-The bound runtime client carries `signView` and `verifyView` for
-surface symmetry with the human client, but those routes
-(`/api/views/sign`, `/api/views/verify`) sit *outside*
-`/api/agent_sandbox/`. `AgentScopeMiddleware` blocks every
+The bound runtime client carries `signView`, `verifyView`, and
+`pinView` for surface symmetry with the human client, but those
+routes (`/api/views/sign`, `/api/views/verify`, `/api/views/pin`) sit
+*outside* `/api/agent_sandbox/`. `AgentScopeMiddleware` blocks every
 agent-scoped POST that does not target the sandbox prefix, so an agent
-calling `turn.runtimeClient.signView(...)` receives
-`RuntimeError(status=403)`. That is the intended product of Phase F:
-**agents compose drafts; humans pin**. The shell — running as a
-regular unscoped user — is the actor that calls `signView` to promote
-a draft into a signed, replayable form. The browser never holds the
-HMAC key; the runtime does (`BENNY_HMAC_KEY` env var, with a clearly
-labelled dev fallback).
+calling `turn.runtimeClient.pinView(...)` receives
+`RuntimeError(status=403)`.
+
+That is the intended product of Phases F and F2: **agents compose
+drafts; humans pin**. The shell — running as a regular unscoped user —
+is the actor that calls `pinView` to promote a draft from
+`agent_sandbox/views/` into the workspace's canonical `views/`
+directory with an inline-embedded signature. The browser never holds
+the HMAC key; the runtime does (`BENNY_HMAC_KEY` env var, with a
+clearly labelled dev fallback).
+
+The end-to-end flow:
+
+```
+agent (sandbox scope)            runtime                  human (no scope)
+─────────────────────            ───────                  ────────────────
+saveView(...)        ───POST───→ /api/agent_sandbox/views/save  ✅ 200
+                                                                pinView(...)
+                                 /api/views/pin            ←───POST────
+                                  ├─ read draft
+                                  ├─ sign_view()
+                                  ├─ embed signature
+                                  ├─ write views/<name>
+                                  └─ emit VIEW_PINNED
+                                  ────────────────────→ 200
+                                                                loadPinned(...)
+                                 /api/views/verify         ←───POST────
+                                  └─ valid: true        ────────→ replay
+```
