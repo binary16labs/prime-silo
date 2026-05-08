@@ -20,7 +20,7 @@ Prime-Silo splits surfaces into two zones, with different agent authority in eac
 
 Pinned agent-composed layouts become `.aamp.view` bundles, HMAC-signed via the existing skin-pack signing path. Replaying a layout is deterministic and auditable.
 
-See [`runtime/architecture/ADR-001-prime-silo-shell-fork.md`](runtime/architecture/ADR-001-prime-silo-shell-fork.md) for the full decision record.
+See [`runtime/architecture/ADR-001-prime-silo-shell-fork.md`](runtime/architecture/ADR-001-prime-silo-shell-fork.md) for the full decision record, [`architecture/ROADMAP.md`](architecture/ROADMAP.md) for the rolling phase status, and [`architecture/OPERATING_PLAN.md`](architecture/OPERATING_PLAN.md) for the test runbook + dev loop.
 
 ## Repo layout
 

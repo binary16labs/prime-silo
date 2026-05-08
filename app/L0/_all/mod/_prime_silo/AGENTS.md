@@ -4,6 +4,10 @@ This module tree owns the **Prime-Silo browser-side surfaces** that wrap the Ben
 
 It is the shell-side counterpart to ADR-001 ([`runtime/architecture/ADR-001-prime-silo-shell-fork.md`](../../../../runtime/architecture/ADR-001-prime-silo-shell-fork.md)).
 
+**Living context:**
+- [`architecture/ROADMAP.md`](../../../../architecture/ROADMAP.md) — phase status (updated on every merge), open work, captured decisions.
+- [`architecture/OPERATING_PLAN.md`](../../../../architecture/OPERATING_PLAN.md) — test runbook, dev loop, branch + commit conventions.
+
 ## Sub-modules
 
 | Module                  | Owns                                                                         |
