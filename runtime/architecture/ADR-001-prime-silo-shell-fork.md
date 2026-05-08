@@ -117,6 +117,13 @@ The agent composes by selecting widget IDs and binding props to Frame fields. It
 
 This ADR commits to Phase A. Phases B–G are tracked as follow-on work; B requires creating the new external repository, which is out of scope for this branch.
 
+**Implementation status (rolling):**
+- **A, B, C, D** ✅ shipped in `binary16labs/prime-silo`.
+- **D2** ✅ — agent-context chokepoint on the runtime client (`createAgentRuntimeClient`, `withAgentScope`).
+- **D3** ✅ — agent saved-views helpers (`saveView`/`loadView`/`listViews`) ride the chokepoint; the sandbox write path is exercised end-to-end through `/api/agent_sandbox/views/save`.
+- **F** ✅ — `.aamp.view` HMAC chokepoint (`POST /api/views/sign` + `POST /api/views/verify`) implemented in [`runtime/benny/api/views_signing.py`](../../runtime/benny/api/views_signing.py) and [`runtime/benny/api/views_routes.py`](../../runtime/benny/api/views_routes.py). Mounted *outside* `/api/agent_sandbox/`, so `AgentScopeMiddleware` 403s every agent-scoped POST — the policy "agents draft, humans pin" is enforced by middleware, not convention. The persistence half (`pinView` = sign + write to a canonical location + emit lineage) is intentionally a follow-up so the signing technique locks in before the storage shape does.
+- **E, G** — not started.
+
 ## 9. Consequences
 
 ### Positive

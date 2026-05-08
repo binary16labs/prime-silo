@@ -68,6 +68,7 @@ from .pypes_routes import router as pypes_router
 from .agentamp_routes import router as agentamp_router
 from .agent_sandbox_routes import router as agent_sandbox_router
 from .agent_scope import AgentScopeMiddleware
+from .views_routes import router as views_router
 from .widget_routes import router as widget_router
 
 # Temporary fix for missing rbac.py module
@@ -163,6 +164,10 @@ app.include_router(agentamp_router, prefix="/api", tags=["AgentAmp"])
 # rejects mutating requests from X-Benny-Agent-Scope=sandbox callers that do
 # not target this prefix.
 app.include_router(agent_sandbox_router, prefix="/api/agent_sandbox", tags=["AgentSandbox"])
+# ADR-001 Phase F: HMAC-SHA256 sign/verify for `.aamp.view` layouts. Mounted
+# OUTSIDE the agent_sandbox prefix so AgentScopeMiddleware blocks every
+# agent-scoped POST here with a 403 — pinning is a human action.
+app.include_router(views_router, prefix="/api/views", tags=["Views"])
 # ADR-001: Widget registry — typed contract describing which canvases the
 # agent (and the frontend) may compose into a Review-zone layout.
 app.include_router(widget_router, prefix="/api/widgets", tags=["Widgets"])

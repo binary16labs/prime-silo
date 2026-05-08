@@ -10,7 +10,7 @@ This is the **single chokepoint** for agent-scope header injection. Anything els
 
 | File              | Owns                                                                                      |
 | ----------------- | ----------------------------------------------------------------------------------------- |
-| `runtime-client.js` | Transport: `runtimeFetch`, `fetchAsAgent`, `listWidgets`, `readRuntimeJson`. Phase D2 additions: `createAgentRuntimeClient(scope)`, `withAgentScope(scope, fn)`, `getActiveAgentScope()`. Phase D3 additions: `saveView`, `loadView`, `listViews` (standalone + bound). |
+| `runtime-client.js` | Transport: `runtimeFetch`, `fetchAsAgent`, `listWidgets`, `readRuntimeJson`. Phase D2 additions: `createAgentRuntimeClient(scope)`, `withAgentScope(scope, fn)`, `getActiveAgentScope()`. Phase D3 additions: `saveView`, `loadView`, `listViews` (standalone + bound). Phase F additions: `signView`, `verifyView` (standalone + bound; bound calls 403 by middleware design). |
 
 ## Boundary
 
@@ -22,6 +22,8 @@ This is the **single chokepoint** for agent-scope header injection. Anything els
 - `saveView(workspace, filename, content, {agentId})` — POST `/agent_sandbox/views/save`. Accepts a JSON string *or* a JSON-serialisable object (the helper stringifies). The runtime forces `subdir="views"` and validates the body parses as JSON, so a stray call cannot land outside `agent_sandbox/views/`. Phase D3.
 - `loadView(workspace, filename, {parseJson})` — GET `/agent_sandbox/read/<ws>/views/<filename>`. Returns the runtime envelope `{workspace, subdir, filename, relative_path, content, bytes}`. Default behaviour parses `content` as JSON and exposes the result on `view`; pass `{parseJson:false}` to skip. Phase D3.
 - `listViews(workspace, {raw})` — GET `/agent_sandbox/list/<ws>/views`. Returns the entries array directly, or pass `{raw:true}` for the full envelope. Phase D3.
+- `signView(view)` — POST `/views/sign`. The runtime computes HMAC-SHA256 over a canonical payload (sorted keys, no whitespace, `signature` field stripped) and returns `{signature: {algorithm, value, signed_at}, canonical_payload: "..."}`. Mounted *outside* `/api/agent_sandbox/`, so a bound agent client calling this surfaces the security boundary as a `RuntimeError(status=403)` — pinning is a human action by middleware policy, not by convention. Phase F.
+- `verifyView(view, signature)` — POST `/views/verify`. The runtime uses `hmac.compare_digest` for constant-time comparison; the helper returns the boolean directly. Same human-only boundary as `signView`. Phase F.
 
 The named import the agent runtime should use lives one folder over in [`_prime_silo/agent_runtime/agent-runtime.js`](../agent_runtime/agent-runtime.js) — it re-exports the bound-client factory through `mountAgentTurn` so the boundary is auditable by name.
 
@@ -36,5 +38,5 @@ The named import the agent runtime should use lives one folder over in [`_prime_
 
 - **Phase D** — transport scaffolded. `listWidgets` proved the proxy chain end-to-end.
 - **Phase D2** — agent-context chokepoint shipped. `createAgentRuntimeClient` and `withAgentScope` give the browser-resident agent runtime exactly two ways to tag traffic, both flowing through `AgentScopeMiddleware`.
-- **Phase D3 (this commit)** — saved-layout helpers shipped. `saveView`, `loadView`, `listViews` ride the Phase D2 chokepoint and exercise the agent_sandbox write path end-to-end. `pinView` is deliberately deferred to Phase F because pinning a view = signing it, and the signing decision belongs at the manifest layer (where the HMAC key is held), not at the transport.
-- **Phase F** — `.aamp.view` signing helpers will live here so signing happens before the request leaves the shell. `pinView` will then become `signView + saveView + register`.
+- **Phase D3** — saved-layout helpers shipped. `saveView`, `loadView`, `listViews` ride the Phase D2 chokepoint and exercise the agent_sandbox write path end-to-end.
+- **Phase F (this commit)** — `.aamp.view` signing chokepoint shipped. The runtime owns the HMAC key (`BENNY_HMAC_KEY` env var → dev fallback) and exposes `POST /api/views/sign` + `POST /api/views/verify`. The browser never holds the key; it asks the runtime to sign or verify. Mounting these endpoints outside `/api/agent_sandbox/` makes the policy explicit: agents draft, humans pin. A future `pinView` helper composes `signView + saveView (canonical location) + lineage emit`; that promotion-and-persistence story is intentionally separate from this commit so the signing technique is locked in before the persistence shape is.
