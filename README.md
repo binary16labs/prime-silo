@@ -22,6 +22,8 @@ Pinned agent-composed layouts become `.aamp.view` bundles, HMAC-signed via the e
 
 See [`runtime/architecture/ADR-001-prime-silo-shell-fork.md`](runtime/architecture/ADR-001-prime-silo-shell-fork.md) for the full decision record, [`architecture/ROADMAP.md`](architecture/ROADMAP.md) for the rolling phase status, and [`architecture/OPERATING_PLAN.md`](architecture/OPERATING_PLAN.md) for the test runbook + dev loop.
 
+**Operator's entry point:** [`architecture/OPERATING_MANUAL.md`](architecture/OPERATING_MANUAL.md) — setup from scratch, boot procedure, walkthroughs for every shipped feature (manifest browsing, agent draft views, pinning + load-time integrity replay, the eight migrated widgets, the 3D renderer), and a diagnostic playbook.
+
 ## Repo layout
 
 ```
@@ -52,34 +54,31 @@ prime-silo/
 
 Phase status is tracked rolling in [`architecture/ROADMAP.md`](architecture/ROADMAP.md). The original phase rationale lives in [`runtime/architecture/ADR-001-prime-silo-shell-fork.md`](runtime/architecture/ADR-001-prime-silo-shell-fork.md) §8.
 
-## Quickstart (Phase B — backend boot only)
-
-Frontend integration ships in Phase D. Today you can boot the deterministic substrate and exercise the agent-sandbox API.
+## Quickstart
 
 ```powershell
-# 1. Install Python deps
+# 1. Install Python + Node deps
 cd runtime
 python -m pip install -e .
+cd ..\server
+npm install
+cd ..
 
-# 2. Set required environment
-$env:BENNY_HOME = "$PWD\.benny_home"
-$env:BENNY_HMAC_KEY = "<hex key — same one your skin packs use>"
+# 2. Set required environment (HMAC key — runtime owns it; browser never sees it)
+$env:BENNY_HMAC_KEY = "<64-hex-character key>"   # see OPERATING_MANUAL.md §2.5 for how to generate
 
-# 3. Boot the FastAPI runtime
-python -m benny.api.server
-# → http://localhost:8005
+# 3. Boot runtime + shell in parallel
+.\scripts\dev.ps1                                # bash users: ./scripts/dev.sh
 
 # 4. Verify the ADR-001 surfaces are live
 curl http://localhost:8005/api/agent_sandbox/health
 curl http://localhost:8005/api/widgets
 
-# 5. Sandbox writes succeed; non-sandbox writes return 403
-curl -X POST http://localhost:8005/api/agent_sandbox/write `
-  -H "X-Benny-Agent-Scope: sandbox" -H "Content-Type: application/json" `
-  -d '{\"workspace\":\"default\",\"subdir\":\"notes\",\"filename\":\"hello.md\",\"content\":\"# hi\"}'
+# 5. Browse manifests in the shell:
+#    open http://localhost:3000/#/_prime_silo/manifest_explorer
 ```
 
-A turnkey dev script (Node shell + Python runtime) lives in [`scripts/dev.ps1`](scripts/dev.ps1) and [`scripts/dev.sh`](scripts/dev.sh).
+A full setup-from-scratch walkthrough, including prerequisites, HMAC key generation, smoke tests, and a feature-by-feature usage guide, lives in [`architecture/OPERATING_MANUAL.md`](architecture/OPERATING_MANUAL.md).
 
 ## Updating the vendored Benny tree
 

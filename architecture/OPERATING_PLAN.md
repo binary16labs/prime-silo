@@ -5,6 +5,7 @@ How to run, test, and ship work in `binary16labs/prime-silo`.
 Cross-references:
 - [ROADMAP.md](ROADMAP.md) — *what* is being built and in what order.
 - [ADR-001](../runtime/architecture/ADR-001-prime-silo-shell-fork.md) — *why*.
+- [OPERATING_MANUAL.md](OPERATING_MANUAL.md) — *how to operate the shipped features* (setup from scratch, feature walkthroughs, diagnostic playbook). The audience is the operator; this file's audience is the next phase contributor.
 
 ## Repo layout (the parts that matter to a phase delivery)
 
