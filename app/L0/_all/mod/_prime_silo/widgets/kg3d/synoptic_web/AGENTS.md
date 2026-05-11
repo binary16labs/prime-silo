@@ -47,10 +47,14 @@ path:
    changing the widget contract. Tests inject a stub renderer through the
    same hook, which is how we keep the test suite Node-only.
 
-This is not yet a 3D synoptic web in the shell. The widget id keeps the
-historic name because the **ontology contract** (categories, AoT layers,
-edges, metrics) is identical — what the widget renders changes; what it
-*means* doesn't. Upgrading to 3D is a follow-up.
+This is not yet a 3D synoptic web in the shell by default — but the
+follow-up landed: [`../../three_renderer/`](../../three_renderer/AGENTS.md)
+exposes `createThreeRenderer()`, which slots into this widget's
+`options.renderer` hook unchanged. Pass it in and the SVG fallback is
+replaced by a `3d-force-graph` scene with `AoT layer` carried through to
+node metadata. The widget id keeps the historic name because the
+**ontology contract** (categories, AoT layers, edges, metrics) is
+identical — what the widget renders changes; what it *means* doesn't.
 
 ## How it talks to the runtime
 

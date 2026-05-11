@@ -23,8 +23,8 @@ Cross-references:
 | **E** | ✅ shipped | Deterministic-zone surfaces — first static shell page at `_prime_silo/manifest_explorer/` (routed `#/_prime_silo/manifest_explorer`). Lists registered swarm manifests via `runtimeFetch` with no scope, mounts `dag.canvas` in `manifest` mode against the SwarmManifest → dag-data mapping (`mapManifestToDagData`). First user of the D2 "no scope = no header" path. Tests cover the pure mapping (wave inversion, run-overlay, defensive shape handling) and the hash-query parser. |
 | **G** | open | Canvas consolidation — retire `ManifestCanvas` / `PipelineCanvas` / `WorkflowCanvas` from the runtime frontend; the migrated `dag.canvas` already ships all three modes. |
 
-Open items not in the original ADR phasing:
-- **Three.js renderer** — drop-in `three-renderer.js` for `kg3d.synoptic_web` and `codegraph.canvas` via the Phase C pluggable-renderer hook. Lazy-loaded via CDN ESM `3d-force-graph`. Independent of any phase.
+Phase C follow-ups (post-Phase-E, independent of any open phase):
+- **Three.js renderer** — ✅ shipped. `widgets/three_renderer/` exposes `createThreeRenderer()`; slots into the Phase C `options.renderer` hook on `kg3d.synoptic_web` and `codegraph.canvas`. The lib is dynamically imported from `https://esm.sh/3d-force-graph@1` on first mount (override via `options.cdnUrl`), so neither widget pays the bundle cost unless the caller opts in. Tests inject a stub loader so the node runner never touches the CDN.
 
 ## Working agreement
 

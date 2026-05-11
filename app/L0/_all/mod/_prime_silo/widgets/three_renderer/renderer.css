@@ -1,0 +1,24 @@
+/* ADR-001 Phase C follow-up — three-renderer error fallback.
+ *
+ * The renderer's happy path replaces the widget's SVG with a WebGL
+ * canvas mounted by `3d-force-graph`. When the CDN fetch fails (offline,
+ * blocked, version pinned to something that 404s), the renderer paints
+ * a small inline message INSIDE the widget host so the surrounding
+ * widget chrome stays intact. Themed to align with the dark-graph
+ * defaults the renderer uses.
+ */
+
+.prime-silo-three-renderer__error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  padding: 12px 16px;
+  background: rgba(15, 23, 42, 0.75);
+  color: #f87171;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  border-radius: 4px;
+}
