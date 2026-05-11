@@ -1,0 +1,112 @@
+.prime-silo-runs-explorer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  min-height: 100%;
+  box-sizing: border-box;
+  background: var(--space-surface, #0e0e16);
+  color: var(--space-text, #eaeaea);
+}
+
+.prime-silo-runs-explorer-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.prime-silo-runs-explorer-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.65;
+  margin: 0;
+}
+
+.prime-silo-runs-explorer-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.prime-silo-runs-explorer-subtitle {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+.prime-silo-runs-explorer-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.prime-silo-runs-explorer-controls label {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.prime-silo-runs-explorer-controls select {
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font: inherit;
+  min-width: 320px;
+}
+
+.prime-silo-runs-explorer-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.prime-silo-runs-explorer-summary-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.prime-silo-runs-explorer-summary-item strong {
+  font-weight: 600;
+}
+
+.prime-silo-runs-explorer-summary-item[data-tone="error"] strong {
+  color: #ff8a8a;
+}
+
+.prime-silo-runs-explorer-canvas {
+  flex: 1 1 auto;
+  min-height: 360px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.prime-silo-runs-explorer-status {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.prime-silo-runs-explorer-status[data-tone="loading"] {
+  background: rgba(73, 130, 255, 0.12);
+  color: rgba(165, 195, 255, 0.95);
+}
+
+.prime-silo-runs-explorer-status[data-tone="empty"] {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.prime-silo-runs-explorer-status[data-tone="error"] {
+  background: rgba(255, 90, 90, 0.12);
+  color: rgba(255, 170, 170, 0.95);
+}

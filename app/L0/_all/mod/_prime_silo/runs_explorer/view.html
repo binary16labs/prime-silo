@@ -1,0 +1,90 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="/mod/_prime_silo/runs_explorer/runs-explorer.css" />
+    <script type="module" src="/mod/_prime_silo/runs_explorer/runs-explorer.js"></script>
+  </head>
+  <body>
+    <section
+      class="prime-silo-runs-explorer"
+      x-data="runsExplorer()"
+      x-init="init()"
+      x-destroy="destroy()"
+      x-cloak
+    >
+      <header class="prime-silo-runs-explorer-header">
+        <p class="prime-silo-runs-explorer-eyebrow">Deterministic zone</p>
+        <h1 class="prime-silo-runs-explorer-title">Runs explorer</h1>
+        <p class="prime-silo-runs-explorer-subtitle">
+          Read-only view of executed swarm manifests. Run status overlays the manifest DAG
+          via <code>dag.canvas</code> in <code>manifest</code> mode. Humans only — no agent scope.
+        </p>
+      </header>
+
+      <div class="prime-silo-runs-explorer-controls">
+        <label for="prime-silo-run-select">Run</label>
+        <select
+          id="prime-silo-run-select"
+          x-model="activeRunId"
+          @change="selectRun(activeRunId)"
+          :disabled="state === 'loading'"
+        >
+          <template x-for="r in runs" :key="r.run_id">
+            <option
+              :value="r.run_id"
+              x-text="`${r.run_id} — ${r.manifest_id} · ${r.status}`"
+            ></option>
+          </template>
+        </select>
+      </div>
+
+      <template x-if="state === 'loading'">
+        <p class="prime-silo-runs-explorer-status" data-tone="loading">Loading run…</p>
+      </template>
+
+      <template x-if="state === 'empty'">
+        <p class="prime-silo-runs-explorer-status" data-tone="empty">
+          No runs recorded yet. Execute a manifest via <code>benny run</code> and refresh.
+        </p>
+      </template>
+
+      <template x-if="state === 'error'">
+        <p class="prime-silo-runs-explorer-status" data-tone="error" x-text="error"></p>
+      </template>
+
+      <template x-if="state === 'ready' && summary">
+        <div class="prime-silo-runs-explorer-summary">
+          <span class="prime-silo-runs-explorer-summary-item">
+            <strong x-text="summary.statusDisplay"></strong>
+            <span>status</span>
+          </span>
+          <span class="prime-silo-runs-explorer-summary-item">
+            <strong x-text="summary.manifestId"></strong>
+            <span>manifest</span>
+          </span>
+          <span class="prime-silo-runs-explorer-summary-item">
+            <strong x-text="summary.workspace"></strong>
+            <span>workspace</span>
+          </span>
+          <span class="prime-silo-runs-explorer-summary-item">
+            <strong x-text="durationDisplay"></strong>
+            <span>duration</span>
+          </span>
+          <span class="prime-silo-runs-explorer-summary-item">
+            <strong x-text="summary.nodeStateCount"></strong>
+            <span>tasks overlaid</span>
+          </span>
+          <span
+            class="prime-silo-runs-explorer-summary-item"
+            x-show="summary.errorCount > 0"
+            data-tone="error"
+          >
+            <strong x-text="summary.errorCount"></strong>
+            <span>errors</span>
+          </span>
+        </div>
+      </template>
+
+      <div class="prime-silo-runs-explorer-canvas" x-ref="canvas"></div>
+    </section>
+  </body>
+</html>
