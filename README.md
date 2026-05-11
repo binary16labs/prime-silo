@@ -22,7 +22,9 @@ Pinned agent-composed layouts become `.aamp.view` bundles, HMAC-signed via the e
 
 See [`runtime/architecture/ADR-001-prime-silo-shell-fork.md`](runtime/architecture/ADR-001-prime-silo-shell-fork.md) for the full decision record, [`architecture/ROADMAP.md`](architecture/ROADMAP.md) for the rolling phase status, and [`architecture/OPERATING_PLAN.md`](architecture/OPERATING_PLAN.md) for the test runbook + dev loop.
 
-**Operator's entry point:** [`architecture/OPERATING_MANUAL.md`](architecture/OPERATING_MANUAL.md) — setup from scratch, boot procedure, walkthroughs for every shipped feature (manifest browsing, agent draft views, pinning + load-time integrity replay, the eight migrated widgets, the 3D renderer), and a diagnostic playbook.
+**New here? Start with [`GUIDE.md`](GUIDE.md)** — plain-English walkthroughs for every UI screen and CLI command, including local model (Lemonade/Ollama) setup and the quick-reference cheat sheet.
+
+**Operator's entry point:** [`architecture/OPERATING_MANUAL.md`](architecture/OPERATING_MANUAL.md) — deep-dive setup from scratch, boot procedure, walkthroughs for every shipped feature (manifest browsing, agent draft views, pinning + load-time integrity replay, the eight migrated widgets, the 3D renderer), and a diagnostic playbook.
 
 ## Repo layout
 
