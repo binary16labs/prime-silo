@@ -14,7 +14,7 @@ It is the shell-side counterpart to ADR-001 ([`runtime/architecture/ADR-001-prim
 | ----------------------- | ---------------------------------------------------------------------------- |
 | `runtime_client/`       | Fetch helper for `/api/runtime/*` calls; auto-injects `X-Benny-Agent-Scope` from active agent context. Also owns `saveView`/`loadView`/`listViews` (Phase D3), `signView`/`verifyView` (Phase F), `pinView` (Phase F2), and `loadPinnedView` (Phase F2b). |
 | `agent_runtime/`        | The named import the browser-resident agent runtime reaches for: `mountAgentTurn(scope)`, `runWithAgentContext(scope, fn)`, `getCurrentAgentScope()`. Every agent call surface is constructed through this module so `grep agent-runtime.js` enumerates the boundary. Phase D2. |
-| `widgets/`              | Widget registry client + JSDoc mirror of [`runtime/frontend/src/widgets/contracts.ts`](../../../../runtime/frontend/src/widgets/contracts.ts). Phase C migrated the canvas widgets (text.markdown, run.reasoning_trace, run.lineage_timeline, run.drilldown_table, run.frame_inspector, kg3d.synoptic_web, codegraph.canvas, dag.canvas) into this folder. |
+| `widgets/`              | Widget registry client + JSDoc mirror of [`runtime/frontend/src/widgets/contracts.ts`](../../../../runtime/frontend/src/widgets/contracts.ts). Phase C migrated the canvas widgets (text.markdown, run.reasoning_trace, run.lineage_timeline, run.drilldown_table, run.frame_inspector, kg3d.synoptic_web, codegraph.canvas, dag.canvas) into this folder. `widgets/three_renderer/` ships the Phase C 3D drop-in renderer that slots into the graph widgets' `options.renderer` hook via a lazy CDN ESM import. |
 | `manifest_explorer/`    | First deterministic-zone shell page (Phase E). Routed at `#/_prime_silo/manifest_explorer`. Lists registered swarm manifests over `runtimeFetch` with no scope and mounts `dag.canvas` in `manifest` mode. Pattern for any future deterministic-zone page. |
 
 ## Boundary
@@ -27,7 +27,7 @@ It is the shell-side counterpart to ADR-001 ([`runtime/architecture/ADR-001-prim
 
 ## Phase status
 
-- **Phase C** — canvas migration shipped. Eight widgets live under `widgets/<scope>/<id>/index.js`, each pinned to the manifest IDs registered by [`runtime/benny/api/widget_routes.py`](../../../../runtime/benny/api/widget_routes.py).
+- **Phase C** — canvas migration shipped. Eight widgets live under `widgets/<scope>/<id>/index.js`, each pinned to the manifest IDs registered by [`runtime/benny/api/widget_routes.py`](../../../../runtime/benny/api/widget_routes.py). The Phase C `options.renderer` pluggable-renderer hook is now exercised by [`widgets/three_renderer/`](widgets/three_renderer/AGENTS.md) — a lazy-loaded `3d-force-graph` drop-in for `kg3d.synoptic_web` and `codegraph.canvas`. No widget changes; the renderer is contract-compatible with the hook the migration established.
 - **Phase D** — runtime transport scaffolded. `runtimeFetch`, `fetchAsAgent`, and `listWidgets` proved the shell→runtime proxy chain end-to-end.
 - **Phase D2** — agent-context chokepoint shipped. `createAgentRuntimeClient(scope)` (long-running) + `withAgentScope(scope, fn)` (short, synchronous) are the only two routes that tag traffic, both audited by `AgentScopeMiddleware`.
 - **Phase D3** — saved-layout helpers shipped. `saveView`/`loadView`/`listViews` ride the Phase D2 chokepoint and exercise the agent_sandbox write path through `/api/agent_sandbox/views/{save,read,list}`.

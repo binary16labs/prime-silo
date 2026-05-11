@@ -43,8 +43,10 @@ the dependency-free shell. This widget ships:
    CALLS = orange (dashed), DEPENDS_ON = cyan (dashed),
    CORRELATES_WITH = magenta (dashed), REL = neutral.
 2. **Pluggable renderer** via `options.renderer = { mount, update,
-   dispose }`. A future `three-renderer.js` slots in identically to the
-   one we'll add for kg3d; tests inject stubs the same way.
+   dispose }`. The 3D drop-in shipped as a separate module —
+   [`../../three_renderer/`](../../three_renderer/AGENTS.md) exposes
+   `createThreeRenderer()`, which honours both this widget's layout
+   shape and kg3d's. Tests inject stubs through the same hook.
 
 The widget id keeps the historic name because the **graph contract**
 (node types, edge types, metadata) is identical — what we render
