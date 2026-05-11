@@ -375,3 +375,179 @@ def test_pin_403s_for_read_only_agent(client, clean_workspace_root):
         headers={"X-Benny-Agent-Scope": "read_only"},
     )
     assert response.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# Phase F2b — GET /api/views/load/{workspace}/{filename}
+# ---------------------------------------------------------------------------
+
+
+def _pin_and_return_pinned_path(client, workspace, filename, view):
+    """Helper — drop a draft, pin it, return the pinned file's path."""
+    _seed_draft(workspace, filename, view)
+    response = client.post(
+        "/api/views/pin",
+        json={"workspace": workspace, "source_filename": filename},
+    )
+    assert response.status_code == 200, response.text
+    return get_pinned_views_path(workspace) / filename
+
+
+def test_load_returns_view_and_signature_with_valid_true(client, clean_workspace_root):
+    view = {"schema": "aamp.view/1", "panels": [{"widget": "text.markdown"}]}
+    _pin_and_return_pinned_path(client, "default", "compose.aamp.view", view)
+
+    response = client.get("/api/views/load/default/compose.aamp.view")
+    assert response.status_code == 200, response.text
+    body = response.json()
+
+    assert body["workspace"] == "default"
+    assert body["filename"] == "compose.aamp.view"
+    assert body["relative_path"] == "views/compose.aamp.view"
+    assert body["bytes"] > 0
+    # Original payload preserved verbatim apart from the embedded signature.
+    pinned_minus_sig = {k: v for k, v in body["view"].items() if k != "signature"}
+    assert pinned_minus_sig == view
+    # Signature surfaced separately for callers that don't want to dig into
+    # ``view.signature``.
+    assert body["signature"]["algorithm"] == "HMAC-SHA256"
+    assert len(body["signature"]["value"]) == 64
+    assert body["valid"] is True
+
+
+def test_load_404s_when_file_missing(client, clean_workspace_root):
+    response = client.get("/api/views/load/default/nope.aamp.view")
+    assert response.status_code == 404
+    assert "does not exist" in response.json()["detail"]
+
+
+def test_load_400s_when_file_is_not_json(client, clean_workspace_root):
+    pinned_dir = get_pinned_views_path("default")
+    pinned_dir.mkdir(parents=True, exist_ok=True)
+    (pinned_dir / "broken.aamp.view").write_text("not json {", encoding="utf-8")
+    response = client.get("/api/views/load/default/broken.aamp.view")
+    assert response.status_code == 400
+    assert "not valid JSON" in response.json()["detail"]
+
+
+def test_load_400s_when_top_level_is_not_object(client, clean_workspace_root):
+    pinned_dir = get_pinned_views_path("default")
+    pinned_dir.mkdir(parents=True, exist_ok=True)
+    (pinned_dir / "array.aamp.view").write_text("[1, 2, 3]", encoding="utf-8")
+    response = client.get("/api/views/load/default/array.aamp.view")
+    assert response.status_code == 400
+    assert "JSON object" in response.json()["detail"]
+
+
+def test_load_returns_valid_false_when_signature_missing(client, clean_workspace_root):
+    """A pinned file without an inline signature is a tamper signal (or a
+    pre-Phase-F2 artefact). The endpoint surfaces it as ``valid=False`` and
+    ``signature=None`` rather than HTTP-erroring — the caller decides."""
+    pinned_dir = get_pinned_views_path("default")
+    pinned_dir.mkdir(parents=True, exist_ok=True)
+    (pinned_dir / "unsigned.aamp.view").write_text(
+        json.dumps({"schema": "aamp.view/1", "panels": []}),
+        encoding="utf-8",
+    )
+    response = client.get("/api/views/load/default/unsigned.aamp.view")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["signature"] is None
+    assert body["valid"] is False
+
+
+def test_load_returns_valid_false_when_signature_envelope_malformed(client, clean_workspace_root):
+    """A non-dict ``signature`` field (e.g. a string) gets surfaced as
+    ``signature=None`` + ``valid=False``. The pinned shape requires a full
+    envelope; anything else is treated like no signature at all."""
+    pinned_dir = get_pinned_views_path("default")
+    pinned_dir.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "schema": "aamp.view/1",
+        "panels": [],
+        "signature": "deadbeef",  # wrong shape
+    }
+    (pinned_dir / "wrongshape.aamp.view").write_text(json.dumps(payload), encoding="utf-8")
+    response = client.get("/api/views/load/default/wrongshape.aamp.view")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["signature"] is None
+    assert body["valid"] is False
+
+
+def test_load_returns_valid_false_when_payload_tampered_after_pin(client, clean_workspace_root):
+    """Pin a file, then alter the body on disk while leaving the inline
+    signature in place. The load endpoint must re-verify and surface
+    valid=False — this is the threat scenario the load-time replay exists
+    to catch."""
+    view = {"schema": "aamp.view/1", "panels": []}
+    pinned_path = _pin_and_return_pinned_path(client, "default", "v.aamp.view", view)
+
+    pinned_dict = json.loads(pinned_path.read_text(encoding="utf-8"))
+    # Inject an unauthorised panel; leave the inline signature alone.
+    pinned_dict["panels"] = [{"widget": "evil"}]
+    pinned_path.write_text(json.dumps(pinned_dict), encoding="utf-8")
+
+    response = client.get("/api/views/load/default/v.aamp.view")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["signature"] is not None  # still present, just no longer valid
+    assert body["valid"] is False
+
+
+def test_load_rejects_path_separator_in_filename(client, clean_workspace_root):
+    # Starlette's path parser strips the slash before our handler sees it on
+    # most platforms, surfacing as 404. URL-encoded ``%2F`` reaches the
+    # handler whole and exercises the validator. Either rejection is fine —
+    # the contract is "no sandbox escape".
+    response = client.get("/api/views/load/default/subdir%2Fevil.aamp.view")
+    assert response.status_code in (400, 404)
+
+
+def test_load_rejects_dot_prefixed_filename(client, clean_workspace_root):
+    response = client.get("/api/views/load/default/.hidden.aamp.view")
+    assert response.status_code == 400
+    assert "must not" in response.json()["detail"].lower()
+
+
+def test_load_round_trip_inline_signed_matches_verify_endpoint(client, clean_workspace_root):
+    """The cross-check against /api/views/verify: load returns valid=True iff
+    /verify does for the same (view, signature) pair."""
+    view = {"schema": "aamp.view/1", "panels": [{"widget": "kg3d.synoptic_web"}]}
+    _pin_and_return_pinned_path(client, "default", "rt.aamp.view", view)
+
+    load = client.get("/api/views/load/default/rt.aamp.view").json()
+    assert load["valid"] is True
+
+    verify = client.post(
+        "/api/views/verify",
+        json={"view": load["view"], "signature": load["signature"]},
+    ).json()
+    assert verify == {"valid": True}
+
+
+def test_load_allows_sandbox_scoped_agent(client, clean_workspace_root):
+    """Reads are not gated by AgentScopeMiddleware. A pinned view is a
+    deterministic-zone artefact; agents must be able to *replay* one even
+    though they cannot create one."""
+    view = {"schema": "aamp.view/1", "panels": []}
+    _pin_and_return_pinned_path(client, "default", "shared.aamp.view", view)
+
+    response = client.get(
+        "/api/views/load/default/shared.aamp.view",
+        headers={"X-Benny-Agent-Scope": "sandbox"},
+    )
+    assert response.status_code == 200
+    assert response.json()["valid"] is True
+
+
+def test_load_allows_read_only_scoped_agent(client, clean_workspace_root):
+    view = {"schema": "aamp.view/1", "panels": []}
+    _pin_and_return_pinned_path(client, "default", "shared.aamp.view", view)
+
+    response = client.get(
+        "/api/views/load/default/shared.aamp.view",
+        headers={"X-Benny-Agent-Scope": "read_only"},
+    )
+    assert response.status_code == 200
+    assert response.json()["valid"] is True
