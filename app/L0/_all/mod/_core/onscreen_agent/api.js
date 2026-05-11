@@ -34,8 +34,19 @@ function extractStreamingDelta(payload) {
   if (choice) {
     const delta = choice.delta || choice.message || {};
     const content = extractTextContent(delta.content || choice.text || "");
-    console.debug("[onscreen_agent] extracted from choices:", content);
-    return content;
+    if (content) {
+      console.debug("[onscreen_agent] extracted from choices:", content);
+      return content;
+    }
+    // Qwen3 thinking mode: delta.content is empty but reasoning_content has text.
+    // With enable_thinking:false this shouldn't happen, but handle it as a fallback
+    // so we return something rather than triggering the protocol-correction loop.
+    const thinking = extractTextContent(delta.reasoning_content || "");
+    if (thinking) {
+      console.debug("[onscreen_agent] extracted reasoning_content (thinking fallback):", thinking.slice(0, 80));
+      return thinking;
+    }
+    return "";
   }
 
   // Support Benny / OpenAI-adjacent top-level fields
@@ -281,20 +292,58 @@ function createApiRequestHeaders(apiKey) {
   return headers;
 }
 
+// Minimal system prompt for local models (localhost/127.0.0.1).
+// The full 499-line prime-silo operator prompt uses formatting tokens
+// (_____javascript, _____user) and "invalid:" lists that cause local
+// Qwen3/Llama models to produce zero output.  A plain prompt avoids this.
+const LOCAL_MODEL_MINIMAL_SYSTEM_PROMPT =
+  "You are a helpful AI assistant. Answer questions directly and concisely.";
+
+function isLocalModelEndpoint(url) {
+  try {
+    const { hostname } = new URL(String(url || ""));
+    return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+  } catch {
+    return false;
+  }
+}
+
+function patchMessagesForLocalModel(messages) {
+  if (!Array.isArray(messages)) return messages;
+  return messages.map((msg) =>
+    msg && msg.role === "system"
+      ? { ...msg, content: LOCAL_MODEL_MINIMAL_SYSTEM_PROMPT }
+      : msg
+  );
+}
+
 function createApiRequestBody(settings, preparedRequest) {
+  const isLocal = isLocalModelEndpoint(settings?.apiEndpoint);
+
   if (preparedRequest?.requestBody && typeof preparedRequest.requestBody === "object") {
-    return {
-      ...preparedRequest.requestBody
-    };
+    const body = { ...preparedRequest.requestBody };
+    if (isLocal) {
+      // Disable Qwen3 extended-thinking mode — thinking-only output produces
+      // zero visible content chunks which triggers the protocol-correction loop.
+      body.enable_thinking = false;
+      // Replace the full operator system prompt with a minimal one that local
+      // models can process without producing empty responses.
+      if (Array.isArray(body.messages)) {
+        body.messages = patchMessagesForLocalModel(body.messages);
+      }
+    }
+    return body;
   }
 
   const requestMessages = Array.isArray(preparedRequest?.messages) ? preparedRequest.messages : [];
+  const finalMessages = isLocal ? patchMessagesForLocalModel(requestMessages) : requestMessages;
 
   return {
     ...llmParams.parseOnscreenAgentParamsText(settings?.paramsText || ""),
+    ...(isLocal ? { enable_thinking: false } : {}),
     model: settings?.model || config.DEFAULT_ONSCREEN_AGENT_SETTINGS.model,
     stream: true,
-    messages: requestMessages
+    messages: finalMessages
   };
 }
 
