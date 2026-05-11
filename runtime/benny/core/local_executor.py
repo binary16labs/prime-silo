@@ -210,8 +210,8 @@ class BaseOpenAICompatibleExecutor(BaseLocalExecutor):
 
 class LemonadeExecutor(BaseOpenAICompatibleExecutor):
     def __init__(self, model: str):
-        # Lemonade is at :13305 /v1
-        super().__init__(model, "lemonade", "http://127.0.0.1:13305/v1")
+        # Lemonade is at :13305 /api/v1
+        super().__init__(model, "lemonade", "http://127.0.0.1:13305/api/v1")
 
 class OllamaExecutor(BaseOpenAICompatibleExecutor):
     def __init__(self, model: str):

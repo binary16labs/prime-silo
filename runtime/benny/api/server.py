@@ -2,6 +2,20 @@
 Benny API Server - FastAPI application with CORS and routers
 """
 
+import os as _os
+
+# ─── Windows aiohttp SSL hang fix ─────────────────────────────────────────────
+# aiohttp's connector.py calls ssl.SSLContext.set_default_verify_paths() at
+# import time, which can hang indefinitely on Windows during Uvicorn's
+# reloader child-process spawn.  Point SSL_CERT_FILE at certifi's bundle
+# (if installed) so the slow OS-level CA discovery is skipped entirely.
+if not _os.environ.get("SSL_CERT_FILE"):
+    try:
+        import certifi as _certifi
+        _os.environ["SSL_CERT_FILE"] = _certifi.where()
+    except ImportError:
+        pass  # certifi not installed; fall through to OS defaults
+
 import builtins
 import sys as _sys
 import asyncio as _asyncio
@@ -185,6 +199,7 @@ async def root():
 # Static file serving for workspace data_out artifacts
 # Note: workspace_path is resolved at runtime based on BENNY_HOME
 workspace_path = get_workspace_path("default").parent
+workspace_path.mkdir(parents=True, exist_ok=True)
 app.mount("/api/static", StaticFiles(directory=str(workspace_path)), name="files")
 
 

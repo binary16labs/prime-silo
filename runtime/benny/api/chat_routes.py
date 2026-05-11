@@ -8,11 +8,11 @@ from typing import List, Optional
 from datetime import datetime
 from pathlib import Path
 import json
-from litellm import completion
+
 
 from ..core.workspace import get_workspace_path
 from ..tools.knowledge import get_chromadb_client
-from ..core.models import call_model, get_model_config
+from ..core.models import call_model, get_model_config, get_active_model
 from ..core.manifest import should_trigger_swarm
 from ..governance.lineage import track_workflow_start, track_workflow_complete, track_llm_call
 import uuid
@@ -245,22 +245,11 @@ async def query_chat(request: ChatRequest, workspace: str = "default"):
             # Resolve model via role-based orchestrator
             active_model = await get_active_model(workspace, role="chat")
             
-            response = completion(
+            assistant_message = await call_model(
                 model=active_model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=request.temperature,
-            )
-            
-            assistant_message = response.choices[0].message.content
-            
-            # Record LLM call to Governance Log
-            config = get_model_config(active_model)
-            track_llm_call(
-                parent_run_id=run_id,
-                model=config.get("model", active_model),
-                provider=config.get("provider", "openai"),
-                usage=response.get("usage"),
-                parent_job_name="notebook_chat"
+                run_id=run_id
             )
             
             track_workflow_complete(

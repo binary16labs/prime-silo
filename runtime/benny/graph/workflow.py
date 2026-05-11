@@ -12,6 +12,7 @@ from langgraph.graph.message import add_messages
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
 from litellm import completion
+from ..core.models import call_model, get_model_config
 import json
 
 logger = logging.getLogger(__name__)
@@ -51,7 +52,7 @@ def process_input(state: WorkflowState) -> dict:
     }
 
 
-def call_llm(state: WorkflowState) -> dict:
+async def call_llm(state: WorkflowState) -> dict:
     """Call LLM with current messages and context"""
     messages = state.get("messages", [])
     context = state.get("context", {})
@@ -73,22 +74,23 @@ def call_llm(state: WorkflowState) -> dict:
             litellm_messages.append({"role": "assistant", "content": msg.content})
     
     try:
-        response = completion(
+        content = await call_model(
             model=model,
             messages=litellm_messages,
             temperature=context.get("temperature", 0.7),
             max_tokens=context.get("max_tokens", 2000)
         )
         
-        ai_message = AIMessage(content=response.choices[0].message.content)
+        ai_message = AIMessage(content=content)
+        config = get_model_config(model)
         
         return {
             "messages": [ai_message],
             "current_node": "call_llm",
             "metadata": {
                 **state.get("metadata", {}),
-                "model_used": model,
-                "tokens_used": response.usage.total_tokens if response.usage else None
+                "model_used": config.get("model", model),
+                "provider": config.get("provider", "unknown")
             }
         }
     except Exception as e:

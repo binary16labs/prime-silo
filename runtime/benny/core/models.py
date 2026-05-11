@@ -234,6 +234,11 @@ def get_model_config(model_id: str) -> Dict[str, Any]:
 
 async def get_active_model(workspace_id: str = "default", role: str = "chat", run_id: Optional[str] = None) -> str:
     """Determine which model is currently 'active' for a role in a workspace."""
+    # Priority -1: Global environment override
+    env_default = os.environ.get("BENNY_DEFAULT_MODEL")
+    if env_default:
+        return env_default
+
     # Priority 0: Check for an active swarm manifest snapshot in the run_store
     if run_id:
         try:
@@ -455,13 +460,17 @@ async def call_model(
     try:
         config = get_model_config(model)
         provider = config.get("provider", "openai").lower()
-        litellm_model = actual_model # Use the resolved model name
+        
+        # Ensure we use the model ID without the provider prefix for the actual call
+        litellm_model = actual_model
+        if "/" in litellm_model and (provider in ["lemonade", "ollama", "fastflowlm", "lmstudio"] or "base_url" in config):
+            litellm_model = litellm_model.split("/")[-1]
         
         # Normalize local providers for LiteLLM if they somehow leaked here
         local_mapping = ["lemonade", "fastflowlm", "lmstudio", "ollama"]
         if provider in local_mapping or "base_url" in config:
             if not litellm_model.startswith("openai/"):
-                litellm_model = f"openai/{litellm_model.split('/')[-1] if '/' in litellm_model else litellm_model}"
+                litellm_model = f"openai/{litellm_model}"
         
         kwargs = {
             "model": litellm_model,
@@ -597,6 +606,9 @@ async def call_model(
              log_data["duration_ms"] = int((datetime.datetime.now() - start_ts).total_seconds() * 1000)
              log_llm_call(log_data)
         except Exception: pass
+
+        if not content:
+            logger.warning(f"Model {model} returned an empty response (run_id={run_id})")
 
         return content
 

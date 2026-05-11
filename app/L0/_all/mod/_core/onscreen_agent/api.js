@@ -28,25 +28,83 @@ function extractTextContent(value) {
 }
 
 function extractStreamingDelta(payload) {
+  console.debug("[onscreen_agent] extractStreamingDelta payload:", payload);
   const choice = payload.choices?.[0];
 
-  if (!choice) {
-    return "";
+  if (choice) {
+    const delta = choice.delta || choice.message || {};
+    const content = extractTextContent(delta.content || choice.text || "");
+    console.debug("[onscreen_agent] extracted from choices:", content);
+    return content;
   }
 
-  const delta = choice.delta || choice.message || {};
-  return extractTextContent(delta.content || choice.text || "");
+  // Support Benny / OpenAI-adjacent top-level fields
+  const topLevelContent = payload?.answer || payload?.message || payload?.content || "";
+  
+  if (typeof topLevelContent === "string" && topLevelContent.trim()) {
+    console.debug("[onscreen_agent] extracted from top-level string:", topLevelContent);
+    return topLevelContent;
+  }
+
+  if (topLevelContent && typeof topLevelContent === "object") {
+    const content = extractTextContent(topLevelContent.content || "");
+    if (content.trim()) {
+      console.debug("[onscreen_agent] extracted from top-level object:", content);
+      return content;
+    }
+  }
+
+  // Support FastAPI / Workflow fields
+  if (payload?.detail) {
+    return `[Backend Error: ${payload.detail}]`;
+  }
+
+  if (payload?.execution_id) {
+    return `[Workflow execution started: ${payload.execution_id} (Status: ${payload.status})]`;
+  }
+
+  console.warn("[onscreen_agent] could not extract content from payload:", payload);
+  return "";
 }
 
 function extractNonStreamingMessage(payload) {
+  console.log("[onscreen_agent] extractNonStreamingMessage payload:", payload);
   const choice = payload.choices?.[0];
 
-  if (!choice) {
-    return "";
+  if (choice) {
+    const message = choice.message || {};
+    const content = extractTextContent(message.content || choice.text || "");
+    console.log("[onscreen_agent] extracted from choices:", content);
+    return content;
   }
 
-  const message = choice.message || {};
-  return extractTextContent(message.content || choice.text || "");
+  // Support Benny / OpenAI-adjacent top-level fields
+  const topLevelContent = payload?.answer || payload?.message || payload?.content || "";
+
+  if (typeof topLevelContent === "string" && topLevelContent.trim()) {
+    console.log("[onscreen_agent] extracted from top-level string:", topLevelContent);
+    return topLevelContent;
+  }
+
+  if (topLevelContent && typeof topLevelContent === "object") {
+    const content = extractTextContent(topLevelContent.content || "");
+    if (content.trim()) {
+      console.log("[onscreen_agent] extracted from top-level object:", content);
+      return content;
+    }
+  }
+
+  // Support FastAPI / Workflow fields
+  if (payload?.detail) {
+    return `[Backend Error: ${payload.detail}]`;
+  }
+
+  if (payload?.execution_id) {
+    return `[Workflow execution started: ${payload.execution_id} (Status: ${payload.status})]`;
+  }
+
+  console.warn("[onscreen_agent] could not extract content from payload:", payload);
+  return "";
 }
 
 function createCompletionResponseMeta(mode) {
@@ -303,7 +361,11 @@ export class OnscreenAgentApiLlmClient extends OnscreenAgentLlmClient {
       throw new Error("Set an API endpoint before sending a message.");
     }
 
-    if (!settings.apiKey.trim()) {
+    const isLocal =
+      settings.apiEndpoint.includes("localhost") ||
+      settings.apiEndpoint.includes("127.0.0.1");
+
+    if (!isLocal && !settings.apiKey.trim()) {
       throw new Error("Set an API key before sending a message.");
     }
 
