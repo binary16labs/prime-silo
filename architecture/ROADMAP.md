@@ -6,6 +6,7 @@ Update on every merge.
 Cross-references:
 - [ADR-001 — Prime-Silo Shell Fork](../runtime/architecture/ADR-001-prime-silo-shell-fork.md) — the source of truth for *why* each phase exists.
 - [OPERATING_PLAN.md](OPERATING_PLAN.md) — *how* to run tests, dev loop, branch conventions.
+- [OPERATING_MANUAL.md](OPERATING_MANUAL.md) — *what each shipped feature does* and how to operate it end-to-end (setup from scratch, walkthroughs, diagnostic playbook).
 
 ## Phase status (rolling)
 
