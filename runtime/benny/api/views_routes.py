@@ -1,10 +1,13 @@
-"""ADR-001 Phase F / F2 — `.aamp.view` signing + pinning endpoints.
+"""ADR-001 Phase F / F2 / F2b — `.aamp.view` signing + pinning + load endpoints.
 
 Mounted at ``/api/views`` (intentionally NOT under ``/api/agent_sandbox/``).
 :class:`benny.api.agent_scope.AgentScopeMiddleware` blocks every mutating
 request from an agent-scoped caller that does not start with the sandbox
-prefix, so these endpoints are *human-only* by middleware policy. The 403
-on agent calls is the security boundary; this router does not re-check.
+prefix, so the *mutating* endpoints here are human-only by middleware policy.
+The 403 on agent calls is the security boundary; this router does not
+re-check. Reads (``GET /load``) are unrestricted by design — pinned views
+are deterministic-zone artefacts and replay must succeed under any caller,
+including bound agent clients that want to read a previously-pinned layout.
 
 Endpoints:
 
@@ -21,6 +24,16 @@ Endpoints:
                             writes the result outside the sandbox. Emits a
                             ``VIEW_PINNED`` audit event. Returns the relative
                             path and the signature envelope.
+  GET  /api/views/load/{workspace}/{filename}
+                          — Phase F2b. Read a pinned view from
+                            ``$BENNY_HOME/workspaces/<ws>/views/<filename>``,
+                            extract the embedded signature, verify it
+                            against the rest of the view's canonical payload,
+                            and return the parsed view + signature + a
+                            ``valid`` boolean in one round-trip. This is the
+                            load-time integrity replay — a shell that
+                            renders an unverified pinned view is doing the
+                            wrong thing.
 """
 
 from __future__ import annotations
@@ -44,6 +57,7 @@ from .views_signing import (
     sign_view,
     verify_view,
 )
+import os
 
 router = APIRouter()
 
@@ -229,3 +243,139 @@ def _validate_filename(filename: str) -> None:
     if Path(filename).name != filename:
         # Catches edge cases like 'foo/../bar' that survive the separator check on some OSes.
         raise HTTPException(status_code=400, detail="Filename must be a single path component.")
+
+
+# ---------------------------------------------------------------------------
+# Phase F2b — load (read + verify a pinned view in one round-trip)
+# ---------------------------------------------------------------------------
+
+
+class LoadPinnedViewResponse(BaseModel):
+    workspace: str
+    filename: str
+    relative_path: str = Field(
+        description="The workspace-relative path of the loaded file, e.g. ``views/foo.aamp.view``.",
+    )
+    bytes: int = Field(description="Length of the raw UTF-8 file body.")
+    view: dict[str, Any] = Field(
+        description=(
+            "The full pinned-view JSON object, signature included. The client "
+            "decides whether to strip the signature before rendering; "
+            ":func:`canonical_view_payload` round-trips with or without it."
+        )
+    )
+    signature: Optional[ViewSignature] = Field(
+        default=None,
+        description=(
+            "Signature envelope extracted from the embedded ``signature`` "
+            "field. ``None`` when the file lacks an inline signature — that "
+            "case forces ``valid=False`` and the caller should refuse to "
+            "render the layout."
+        ),
+    )
+    valid: bool = Field(
+        description=(
+            "True iff the inline signature validly signs the rest of the "
+            "view's canonical payload. This is the load-time replay check; "
+            "a False here means the file has been tampered with, the HMAC "
+            "key rotated, or the file was written by an older build."
+        )
+    )
+
+
+@router.get(
+    "/load/{workspace}/{filename}",
+    response_model=LoadPinnedViewResponse,
+)
+async def load_pinned_view_endpoint(
+    workspace: str, filename: str
+) -> LoadPinnedViewResponse:
+    """Read a pinned view and verify its embedded signature in one round-trip.
+
+    The shell calls this on every pinned-view replay so the runtime — the
+    only holder of ``BENNY_HMAC_KEY`` — gets to enforce integrity. The
+    browser never sees the key and never re-signs, only consumes the
+    ``valid`` flag.
+
+    Flow:
+
+      1. Validate filename (no separators, no dot-prefix).
+      2. Resolve the path under ``$BENNY_HOME/workspaces/<ws>/views/`` and
+         confirm the resolved path stays inside that subtree (defence
+         against ``..`` smuggled through URL-decoding edge cases).
+      3. 404 when the file does not exist; 400 when the body is not a JSON
+         object.
+      4. Strip the embedded ``signature`` field (if any), reconstruct it as
+         a :class:`ViewSignature`, and call :func:`verify_view` against the
+         full view dict. ``canonical_view_payload`` strips ``signature``
+         before hashing so the inline form round-trips cleanly.
+      5. Return ``{view, signature, valid, …}``. A missing or malformed
+         inline signature yields ``valid=False`` (not an HTTP error) — the
+         caller's branch on ``valid`` is the single decision point.
+
+    No audit event: pinned-view *reads* are not privileged. The
+    ``VIEW_PINNED`` event from the pin step records the artefact's birth;
+    reads are routine.
+    """
+    _validate_filename(filename)
+
+    pinned_dir = get_pinned_views_path(workspace)
+    pinned_target = (pinned_dir / filename).resolve()
+    pinned_dir_resolved = pinned_dir.resolve()
+    # Belt-and-suspenders containment check. get_workspace_path already
+    # rejects traversal, but a future refactor of the pinned-dir layout
+    # shouldn't be able to silently weaken this.
+    try:
+        common = os.path.commonpath([str(pinned_dir_resolved), str(pinned_target)])
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="Resolved path escapes the pinned-views directory.",
+        )
+    if common != str(pinned_dir_resolved):
+        raise HTTPException(
+            status_code=400,
+            detail="Resolved path escapes the pinned-views directory.",
+        )
+    if not pinned_target.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail=f"views/{filename} does not exist in workspace {workspace!r}.",
+        )
+
+    raw = pinned_target.read_text(encoding="utf-8")
+    try:
+        view_dict = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Pinned view is not valid JSON: {exc.msg}",
+        ) from exc
+    if not isinstance(view_dict, dict):
+        raise HTTPException(
+            status_code=400,
+            detail="Pinned view must be a JSON object at the top level.",
+        )
+
+    signature_obj: Optional[ViewSignature] = None
+    valid = False
+    raw_signature = view_dict.get("signature")
+    if isinstance(raw_signature, dict):
+        try:
+            signature_obj = ViewSignature(**raw_signature)
+        except Exception:
+            # A malformed envelope is a tamper signal — surface it as
+            # valid=False rather than a 500.
+            signature_obj = None
+        else:
+            valid = verify_view(view_dict, signature_obj)
+
+    return LoadPinnedViewResponse(
+        workspace=workspace,
+        filename=filename,
+        relative_path=f"views/{filename}",
+        bytes=len(raw.encode("utf-8")),
+        view=view_dict,
+        signature=signature_obj,
+        valid=valid,
+    )

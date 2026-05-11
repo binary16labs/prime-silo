@@ -50,6 +50,23 @@
 //                                              VIEW_PINNED. Human-only by
 //                                              middleware.
 //
+// Phase F2b additions
+//   loadPinnedView(workspace, filename, opts) — GET /views/load/<ws>/<fname>;
+//                                              reads a pinned view AND
+//                                              verifies its embedded
+//                                              signature in one round-trip.
+//                                              Returns
+//                                              {view, signature, valid, …}.
+//                                              Reads are open to agents too
+//                                              — pinned views are
+//                                              deterministic-zone artefacts
+//                                              and replay must succeed
+//                                              under any caller. The
+//                                              runtime is the sole holder
+//                                              of BENNY_HMAC_KEY; the
+//                                              browser only consumes
+//                                              `valid`.
+//
 // Phase D2 additions
 //   createAgentRuntimeClient(scope) — bound client whose every call auto-injects
 //                                     the agent scope. Hand this to skills /
@@ -410,6 +427,57 @@ export async function pinView(workspace, sourceFilename, options = {}) {
   return readRuntimeJson(response);
 }
 
+/**
+ * Phase F2b — read a pinned view AND verify its embedded signature in one
+ * round-trip.
+ *
+ * GETs ``/api/views/load/<workspace>/<filename>``. The runtime reads
+ * ``$BENNY_HOME/workspaces/<ws>/views/<filename>``, extracts the
+ * ``signature`` field embedded by ``pinView``, recomputes the HMAC against
+ * the rest of the canonical payload, and returns:
+ *
+ *   {
+ *     workspace, filename, relative_path, bytes,
+ *     view: { …, signature: {algorithm, value, signed_at} },
+ *     signature: { algorithm, value, signed_at } | null,
+ *     valid: boolean
+ *   }
+ *
+ * ``valid: false`` is NOT an HTTP error — the caller is expected to branch
+ * on it. A missing or malformed inline signature surfaces as ``valid: false``
+ * with ``signature: null``; structural problems (no such file, body is not
+ * JSON, body is not an object) surface as HTTP 404 / 400.
+ *
+ * Reads are unrestricted by ``AgentScopeMiddleware`` so this works from any
+ * caller — human, bound agent client, or anonymous shell. The runtime is
+ * the only holder of ``BENNY_HMAC_KEY``; the browser never re-signs and
+ * never trusts a client-side check.
+ *
+ * @param {string} workspace
+ * @param {string} filename
+ * @param {{ }} [options]
+ * @returns {Promise<{
+ *   workspace: string,
+ *   filename: string,
+ *   relative_path: string,
+ *   bytes: number,
+ *   view: object,
+ *   signature: {algorithm: string, value: string, signed_at: string} | null,
+ *   valid: boolean
+ * }>}
+ */
+export async function loadPinnedView(workspace, filename, options = {}) {
+  if (typeof workspace !== "string" || !workspace) {
+    throw new Error("loadPinnedView: workspace is required.");
+  }
+  if (typeof filename !== "string" || !filename) {
+    throw new Error("loadPinnedView: filename is required.");
+  }
+  const path = `/views/load/${encodeURIComponent(workspace)}/${encodeURIComponent(filename)}`;
+  const response = await runtimeFetch(path);
+  return readRuntimeJson(response);
+}
+
 function serialiseViewContent(content) {
   if (typeof content === "string") {
     return content;
@@ -492,7 +560,8 @@ export function getActiveAgentScope() {
  *   listViews: (workspace: string, options?: {raw?: boolean}) => Promise<unknown>,
  *   signView: (view: object, options?: object) => Promise<unknown>,
  *   verifyView: (view: object, signature: object, options?: object) => Promise<boolean>,
- *   pinView: (workspace: string, sourceFilename: string, options?: {targetFilename?: string, pinnedBy?: string}) => Promise<unknown>
+ *   pinView: (workspace: string, sourceFilename: string, options?: {targetFilename?: string, pinnedBy?: string}) => Promise<unknown>,
+ *   loadPinnedView: (workspace: string, filename: string, options?: object) => Promise<unknown>
  * }}
  */
 export function createAgentRuntimeClient(scope) {
@@ -538,6 +607,12 @@ export function createAgentRuntimeClient(scope) {
     // Pinning is human-only by middleware policy.
     pinView(workspace, sourceFilename, options = {}) {
       return withAgentScope(scope, () => pinView(workspace, sourceFilename, options));
+    },
+    // Phase F2b — reads are unrestricted by AgentScopeMiddleware, so this
+    // call succeeds for agents too. We still forward the scope header so
+    // the runtime audit log records which actor read the pinned artefact.
+    loadPinnedView(workspace, filename, options = {}) {
+      return withAgentScope(scope, () => loadPinnedView(workspace, filename, options));
     }
   };
 }

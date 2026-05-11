@@ -46,7 +46,7 @@ prime-silo/
 - [x] **Phase B** — fork bootstrap; Benny vendored under `runtime/`, space-agent shell merged
 - [x] **Phase C** — eight canvases migrated to the shell widget tree (text.markdown, run.reasoning_trace, run.lineage_timeline, run.drilldown_table, run.frame_inspector, kg3d.synoptic_web, codegraph.canvas, dag.canvas)
 - [x] **Phase D / D2 / D3** — runtime transport, agent-context chokepoint, agent saved-views helpers
-- [x] **Phase F / F2** — `.aamp.view` HMAC sign / verify / pin chokepoint; pinned views are self-describing signed JSON
+- [x] **Phase F / F2 / F2b** — `.aamp.view` HMAC sign / verify / pin / load chokepoint; pinned views are self-describing signed JSON, `GET /api/views/load/<ws>/<filename>` returns `{view, signature, valid}` in one round-trip
 - [x] **Phase E** — first deterministic-zone shell page (`manifest_explorer`) lists registered swarm manifests and renders the selected one as `dag.canvas`. No agent context — `runtimeFetch` with no scope.
 - [ ] **Phase G** — canvas consolidation; retire ManifestCanvas/PipelineCanvas/WorkflowCanvas duplication in the runtime frontend
 
