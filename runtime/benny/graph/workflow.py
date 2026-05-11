@@ -11,8 +11,7 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
-from litellm import completion
-from ..core.models import call_model, get_model_config
+from ..core.models import call_model, get_model_config, get_active_model
 import json
 
 logger = logging.getLogger(__name__)
@@ -56,9 +55,12 @@ async def call_llm(state: WorkflowState) -> dict:
     """Call LLM with current messages and context"""
     messages = state.get("messages", [])
     context = state.get("context", {})
-    
-    # Get model config (default to local Ollama)
-    model = context.get("model", "ollama/llama3.2")
+
+    # Resolve model — caller context takes priority; fall back to the
+    # role-based active model which honours BENNY_DEFAULT_MODEL env var.
+    model = context.get("model") or await get_active_model(
+        state.get("workspace", "default"), role="chat"
+    )
     
     # Build system message with context
     system_content = context.get("system_prompt", "You are a helpful AI assistant.")
