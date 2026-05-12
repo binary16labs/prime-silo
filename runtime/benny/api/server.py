@@ -84,6 +84,7 @@ from .agent_sandbox_routes import router as agent_sandbox_router
 from .agent_scope import AgentScopeMiddleware
 from .views_routes import router as views_router
 from .widget_routes import router as widget_router
+from .checkpoint_routes import sandbox_router as checkpoint_sandbox_router, pinned_router as checkpoint_pinned_router
 
 # Temporary fix for missing rbac.py module
 GOVERNANCE_WHITELIST = ["/api/health", "/api/status"]
@@ -182,6 +183,12 @@ app.include_router(agent_sandbox_router, prefix="/api/agent_sandbox", tags=["Age
 # OUTSIDE the agent_sandbox prefix so AgentScopeMiddleware blocks every
 # agent-scoped POST here with a 403 — pinning is a human action.
 app.include_router(views_router, prefix="/api/views", tags=["Views"])
+# ADR-001 Phase H: Session checkpoint draft operations. Mounted under the
+# agent_sandbox prefix so AgentScopeMiddleware allows scoped agent writes.
+app.include_router(checkpoint_sandbox_router, prefix="/api/agent_sandbox/checkpoints", tags=["Checkpoints"])
+# ADR-001 Phase H: Pinned checkpoint operations (pin / load / list).
+# Mounted OUTSIDE agent_sandbox so AgentScopeMiddleware blocks agent POSTs.
+app.include_router(checkpoint_pinned_router, prefix="/api/checkpoints", tags=["Checkpoints"])
 # ADR-001: Widget registry — typed contract describing which canvases the
 # agent (and the frontend) may compose into a Review-zone layout.
 app.include_router(widget_router, prefix="/api/widgets", tags=["Widgets"])

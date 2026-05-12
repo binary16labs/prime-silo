@@ -88,6 +88,41 @@ def get_agent_sandbox_path(workspace_id: str = "default", subdir: str = "") -> P
 
 PINNED_VIEWS_DIR = "views"
 
+# =============================================================================
+# Session Checkpoints (ADR-001 Phase H) — draft + pinned paths
+# =============================================================================
+#
+# Draft checkpoints live inside the agent sandbox:
+#     ``$BENNY_HOME/workspaces/<ws>/agent_sandbox/checkpoints/``
+# Pinned (HMAC-signed) checkpoints live outside the sandbox at:
+#     ``$BENNY_HOME/workspaces/<ws>/checkpoints/``
+#
+# The split mirrors draft views (``agent_sandbox/views/``) vs pinned views
+# (``views/``) introduced in Phase D3 / F2.
+
+CHECKPOINT_DRAFT_SUBDIR = "checkpoints"
+CHECKPOINT_PINNED_DIR = "checkpoints"
+
+
+def get_checkpoint_draft_dir(workspace_id: str = "default") -> Path:
+    """Return the absolute path to the workspace's *draft* checkpoints directory.
+
+    Draft checkpoints live inside ``agent_sandbox/checkpoints/``. The agent has
+    write access here (via ``AgentScopeMiddleware``). Pinning moves a checkpoint
+    to the canonical location outside the sandbox.
+    """
+    return get_agent_sandbox_path(workspace_id) / CHECKPOINT_DRAFT_SUBDIR
+
+
+def get_checkpoint_pinned_dir(workspace_id: str = "default") -> Path:
+    """Return the absolute path to the workspace's *pinned* checkpoints directory.
+
+    Pinned checkpoints live at ``$BENNY_HOME/workspaces/<ws>/checkpoints/``
+    (outside the agent sandbox). ``AgentScopeMiddleware`` 403s every
+    agent-scoped POST to ``/api/checkpoints/pin`` — pinning is human-only.
+    """
+    return get_workspace_path(workspace_id, CHECKPOINT_PINNED_DIR)
+
 
 def get_pinned_views_path(workspace_id: str = "default") -> Path:
     """Return the absolute path to the workspace's *pinned* views directory.
@@ -136,6 +171,8 @@ def ensure_workspace_structure(workspace_id: str = "default") -> dict:
         f"{AGENT_SANDBOX_DIR}/notes",
         f"{AGENT_SANDBOX_DIR}/drafts",
         f"{AGENT_SANDBOX_DIR}/skills",
+        # Phase H: session checkpoints (draft inside sandbox, pinned outside)
+        f"{AGENT_SANDBOX_DIR}/checkpoints",
     ]
     
     created = []
