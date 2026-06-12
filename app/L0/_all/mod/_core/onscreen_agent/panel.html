@@ -336,7 +336,7 @@
                         :class="{ 'is-active': $store.onscreenAgent.isSettingsDraftUsingApiProvider }"
                         @click="$store.onscreenAgent.setSettingsProvider('api')"
                       >
-                        <span>API</span>
+                        <span>API server</span>
                       </button>
                       <button
                         type="button"
@@ -344,13 +344,19 @@
                         :class="{ 'is-active': $store.onscreenAgent.isSettingsDraftUsingLocalProvider }"
                         @click="$store.onscreenAgent.setSettingsProvider('local')"
                       >
-                        <span>Local</span>
+                        <span>In-browser</span>
                       </button>
                     </div>
                     <div x-show="$store.onscreenAgent.isSettingsDraftUsingApiProvider" x-cloak>
                       <label class="field">
                         <span>Provider API Endpoint URL</span>
                         <input type="url" x-model="$store.onscreenAgent.settingsDraft.apiEndpoint" />
+                        <p class="field-note">
+                          Cloud <em>and</em> local model servers both go here — Lemonade:
+                          <code>http://localhost:13305/api/v1/chat/completions</code>.
+                          Local servers need no API key. ("In-browser" is only for
+                          HuggingFace models that download into the browser itself.)
+                        </p>
                       </label>
                       <label class="field">
                         <span>Model Name</span>
@@ -359,6 +365,7 @@
                       <label class="field">
                         <span>API Key</span>
                         <input type="password" x-model="$store.onscreenAgent.settingsDraft.apiKey" />
+                        <p class="field-note">Leave empty for local servers like Lemonade or Ollama.</p>
                       </label>
                     </div>
                     <div x-show="$store.onscreenAgent.isSettingsDraftUsingLocalProvider" x-cloak class="onscreen-agent-local-settings">

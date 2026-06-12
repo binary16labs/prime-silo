@@ -129,6 +129,51 @@ function isMissingFileError(error) {
   return /\bstatus 404\b/u.test(message) || /File not found\./u.test(message);
 }
 
+const WORKSPACE_DEFAULTS_TIMEOUT_MS = 2500;
+
+// First-run seed: the configuration wizard writes `prime-silo.config.json`
+// at the repo root and the shell surfaces its model block via
+// GET /api/config_defaults. When a user has no saved agent config yet, those
+// workspace defaults beat the hard-coded cloud fallback — the operator
+// configures once in the wizard and the agent just works. Any failure here
+// (endpoint missing, older server, network) silently falls back to the
+// built-in defaults; this must never block first paint.
+async function fetchWorkspaceModelDefaults() {
+  if (typeof fetch !== "function") {
+    return null;
+  }
+
+  try {
+    const response = await fetch("/api/config_defaults", {
+      credentials: "same-origin",
+      signal: typeof AbortSignal?.timeout === "function"
+        ? AbortSignal.timeout(WORKSPACE_DEFAULTS_TIMEOUT_MS)
+        : undefined
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const body = await response.json();
+
+    if (!body || body.found !== true || !body.model || typeof body.model !== "object") {
+      return null;
+    }
+
+    const apiEndpoint = String(body.model.endpoint || "").trim();
+    const model = String(body.model.model || "").trim();
+
+    if (!apiEndpoint || !model) {
+      return null;
+    }
+
+    return { apiEndpoint, model };
+  } catch {
+    return null;
+  }
+}
+
 function isSingleUserAppRuntime(runtime) {
   return Boolean(runtime?.config?.get?.("SINGLE_USER_APP", false));
 }
@@ -412,6 +457,15 @@ export async function loadOnscreenAgentConfig() {
         loadUiStateFromStorageArea("sessionStorage", { allowUnowned: false, owner: uiStateOwner }) ||
         loadUiStateFromStorageArea("localStorage", { allowUnowned: false, owner: uiStateOwner });
       const defaultConfig = createDefaultConfig();
+
+      // No saved config for this user — prefer workspace defaults from the
+      // wizard manifest over the baked-in cloud fallback.
+      const workspaceDefaults = await fetchWorkspaceModelDefaults();
+      if (workspaceDefaults) {
+        defaultConfig.settings.apiEndpoint = workspaceDefaults.apiEndpoint;
+        defaultConfig.settings.model = workspaceDefaults.model;
+        defaultConfig.settings.provider = config.ONSCREEN_AGENT_LLM_PROVIDER.API;
+      }
 
       if (storedUiState) {
         return {
