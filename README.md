@@ -26,6 +26,13 @@ See [`runtime/architecture/ADR-001-prime-silo-shell-fork.md`](runtime/architectu
 
 **Operator's entry point:** [`architecture/OPERATING_MANUAL.md`](architecture/OPERATING_MANUAL.md) — deep-dive setup from scratch, boot procedure, walkthroughs for every shipped feature (manifest browsing, agent draft views, pinning + load-time integrity replay, the eight migrated widgets, the 3D renderer), and a diagnostic playbook.
 
+**Interactive demo site:** [`site/`](site/) — self-contained website that tours every feature (with layer-by-layer deconstruction views), embeds the operating manual, and ships a **configuration wizard** (generates your `.env` + `prime-silo.config.json` + launch commands, each setting mapped to the process that consumes it) plus a **live operator dashboard** that health-checks your running stack. No build step:
+
+```powershell
+.\scripts\site.ps1            # or: python -m http.server 4173 --directory site
+# → open http://localhost:4173
+```
+
 ## Repo layout
 
 ```
@@ -52,6 +59,7 @@ prime-silo/
 - [x] **Phase D / D2 / D3** — runtime transport, agent-context chokepoint, agent saved-views helpers
 - [x] **Phase F / F2 / F2b** — `.aamp.view` HMAC sign / verify / pin / load chokepoint; pinned views are self-describing signed JSON, `GET /api/views/load/<ws>/<filename>` returns `{view, signature, valid}` in one round-trip
 - [x] **Phase E** — first deterministic-zone shell page (`manifest_explorer`) lists registered swarm manifests and renders the selected one as `dag.canvas`. No agent context — `runtimeFetch` with no scope.
+- [x] **Phase H1** — session checkpoints: save/restore/fork session state (history + skills + staged data + run refs); draft endpoints under the agent sandbox, human-only HMAC pinning
 - [ ] **Phase G** — canvas consolidation; retire ManifestCanvas/PipelineCanvas/WorkflowCanvas duplication in the runtime frontend
 
 Phase status is tracked rolling in [`architecture/ROADMAP.md`](architecture/ROADMAP.md). The original phase rationale lives in [`runtime/architecture/ADR-001-prime-silo-shell-fork.md`](runtime/architecture/ADR-001-prime-silo-shell-fork.md) §8.

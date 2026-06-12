@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Prime-Silo — Operator Console &amp; Operating Manual</title>
+<meta name="description" content="Prime-Silo: a typed execution substrate for institutional reasoning, fused with an adaptive browser shell. Feature tour, operating manual, configuration wizard, live dashboard." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ════════════════════ NAV ════════════════════ -->
+<nav class="nav" id="nav">
+  <a class="nav-logo" href="#hero">
+    <span class="nav-logo-mark"></span>
+    PRIME<span class="nav-logo-dim">-</span>SILO
+  </a>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#manual">Manual</a>
+    <a href="#wizard" class="nav-cta">Config Wizard</a>
+    <a href="#dashboard">Dashboard</a>
+  </div>
+  <div class="nav-status" id="navStatus" title="Live runtime status">
+    <span class="status-dot" id="navStatusDot"></span>
+    <span id="navStatusText">checking…</span>
+  </div>
+</nav>
+
+<!-- ════════════════════ HERO ════════════════════ -->
+<header class="hero" id="hero">
+  <canvas id="warpCanvas" class="warp-canvas" aria-hidden="true"></canvas>
+  <div class="hero-inner">
+    <p class="hero-eyebrow">Engineered by Binary 16</p>
+    <h1 class="hero-title">
+      <span class="hero-title-line">PRIME-SILO</span>
+    </h1>
+    <p class="hero-sub">
+      A <strong>typed execution substrate</strong> for institutional reasoning,
+      fused with an <strong>adaptive browser shell</strong>. Agents draft.
+      Humans pin. Every artefact is signed, every run is replayable.
+    </p>
+    <div class="hero-ctas">
+      <a class="btn btn-primary" href="#wizard">⚡ Launch Config Wizard</a>
+      <a class="btn btn-ghost" href="#manual">Read the Manual</a>
+      <a class="btn btn-ghost" href="#features">Tour Features</a>
+    </div>
+    <div class="hero-meta">
+      <span class="hero-meta-item"><b>2</b> processes</span>
+      <span class="hero-meta-sep"></span>
+      <span class="hero-meta-item"><b>8</b> widgets</span>
+      <span class="hero-meta-sep"></span>
+      <span class="hero-meta-item"><b>H1</b> checkpoints live</span>
+      <span class="hero-meta-sep"></span>
+      <span class="hero-meta-item"><b>HMAC</b> signed views</span>
+    </div>
+  </div>
+  <div class="hero-scroll-hint" aria-hidden="true"><span></span></div>
+</header>
+
+<!-- ════════════════════ FEATURES ════════════════════ -->
+<section class="section" id="features">
+  <div class="section-head">
+    <p class="section-eyebrow">Capability surfaces</p>
+    <h2 class="section-title">Everything in the silo</h2>
+    <p class="section-sub">Click any card to deconstruct it — browser layer, API layer, storage layer slide apart.</p>
+  </div>
+  <div class="feature-grid" id="featureGrid"><!-- cards injected by app.js --></div>
+</section>
+
+<!-- ════════════════════ ARCHITECTURE — DECONSTRUCTION ════════════════════ -->
+<section class="section section-dark" id="architecture">
+  <div class="section-head">
+    <p class="section-eyebrow">Determinism boundary · ADR-001</p>
+    <h2 class="section-title">Slide it apart</h2>
+    <p class="section-sub">Five layers, one audit story. Toggle to explode the stack and trace a request from keystroke to signed artefact.</p>
+  </div>
+
+  <div class="arch-controls">
+    <button class="btn btn-primary" id="explodeBtn">⟁ Deconstruct</button>
+    <button class="btn btn-ghost" id="traceBtn">▶ Trace a request</button>
+  </div>
+
+  <div class="arch-stage" id="archStage">
+    <div class="arch-stack" id="archStack">
+      <div class="arch-layer" data-depth="0">
+        <div class="arch-layer-tag">L4</div>
+        <div class="arch-layer-body">
+          <h3>Operator UI</h3>
+          <p>Browser shell · <code>:3000</code> · chat panel, Manifest Explorer, widget canvas</p>
+        </div>
+      </div>
+      <div class="arch-layer" data-depth="1">
+        <div class="arch-layer-tag">L3</div>
+        <div class="arch-layer-body">
+          <h3>Agent Runtime</h3>
+          <p>Scope chokepoint · <code>createAgentRuntimeClient("sandbox")</code> tags every hop</p>
+        </div>
+      </div>
+      <div class="arch-layer" data-depth="2">
+        <div class="arch-layer-tag">L2</div>
+        <div class="arch-layer-body">
+          <h3>Shell Proxy</h3>
+          <p><code>/api/runtime/*</code> → forwards headers untouched · never synthesises scope</p>
+        </div>
+      </div>
+      <div class="arch-layer" data-depth="3">
+        <div class="arch-layer-tag">L1</div>
+        <div class="arch-layer-body">
+          <h3>FastAPI Runtime</h3>
+          <p><code>:8005</code> · AgentScopeMiddleware is the <em>only</em> enforcer · 403 = boundary, not bug</p>
+        </div>
+      </div>
+      <div class="arch-layer" data-depth="4">
+        <div class="arch-layer-tag">L0</div>
+        <div class="arch-layer-body">
+          <h3>Substrate</h3>
+          <p><code>$BENNY_HOME</code> workspaces · Neo4j dual graph · signed manifests &amp; pinned views</p>
+        </div>
+      </div>
+      <div class="arch-pulse" id="archPulse" aria-hidden="true"></div>
+    </div>
+  </div>
+
+  <div class="arch-legend">
+    <div class="arch-legend-item"><span class="lg lg-det"></span> Deterministic zone — agents read-only</div>
+    <div class="arch-legend-item"><span class="lg lg-rev"></span> Review zone — agents draft, humans pin</div>
+  </div>
+</section>
+
+<!-- ════════════════════ MANUAL ════════════════════ -->
+<section class="section" id="manual">
+  <div class="section-head">
+    <p class="section-eyebrow">Operating manual</p>
+    <h2 class="section-title">Zero to operator</h2>
+    <p class="section-sub">The complete run-book. Each step expands. Configuration steps link straight into the wizard.</p>
+  </div>
+  <div class="manual" id="manualAccordion"><!-- injected by app.js --></div>
+</section>
+
+<!-- ════════════════════ WIZARD ════════════════════ -->
+<section class="section section-dark wizard-section" id="wizard">
+  <canvas id="wizardWarp" class="wizard-warp" aria-hidden="true"></canvas>
+  <div class="section-head">
+    <p class="section-eyebrow">aamp.config/1</p>
+    <h2 class="section-title">Configuration Wizard</h2>
+    <p class="section-sub">One pass. Every setting mapped to the process that consumes it. Outputs a signed-shape config manifest + ready-to-use <code>.env</code>.</p>
+  </div>
+
+  <div class="wizard-shell">
+    <!-- progress rail -->
+    <div class="wizard-rail" id="wizardRail">
+      <div class="wizard-rail-line"><div class="wizard-rail-fill" id="railFill"></div></div>
+      <button class="rail-step is-active" data-step="0"><span>01</span>Welcome</button>
+      <button class="rail-step" data-step="1"><span>02</span>Environment</button>
+      <button class="rail-step" data-step="2"><span>03</span>AI Model</button>
+      <button class="rail-step" data-step="3"><span>04</span>Services</button>
+      <button class="rail-step" data-step="4"><span>05</span>Generate</button>
+    </div>
+
+    <div class="wizard-main">
+      <!-- STEP 0 — Welcome -->
+      <div class="wizard-step is-active" data-step="0">
+        <h3 class="ws-title">Stop fighting the config.</h3>
+        <p class="ws-lead">Prime-Silo needs exactly <b>four things</b> to boot: a signing key, a home directory, a model endpoint, and two ports. This wizard collects them once, shows you which process eats each value, and emits everything as files you drop into the repo root.</p>
+        <div class="proc-map">
+          <div class="proc-node" data-proc="runtime"><b>runtime</b><span>python -m benny.api.server</span></div>
+          <div class="proc-link"></div>
+          <div class="proc-node" data-proc="shell"><b>shell</b><span>node server/dev_server.js</span></div>
+          <div class="proc-link"></div>
+          <div class="proc-node" data-proc="docker"><b>docker</b><span>neo4j · marquez · phoenix</span></div>
+        </div>
+        <p class="ws-note">Nothing leaves your browser. Keys are generated locally with <code>crypto.getRandomValues</code>.</p>
+      </div>
+
+      <!-- STEP 1 — Environment -->
+      <div class="wizard-step" data-step="1">
+        <h3 class="ws-title">Environment</h3>
+        <p class="ws-lead">Consumed by <span class="proc-chip" data-proc="runtime">runtime</span> at boot via <code>scripts/dev.ps1</code> → <code>.env</code> loader.</p>
+
+        <label class="field">
+          <span class="field-label">BENNY_HMAC_KEY <em>required · 64 hex chars</em></span>
+          <div class="field-row">
+            <input type="text" id="cfgHmacKey" spellcheck="false" placeholder="press generate →" />
+            <button class="btn btn-mini" id="genKeyBtn">⚛ Generate</button>
+          </div>
+          <span class="field-hint">Signs every manifest, pinned view, and pinned checkpoint. Same key on every machine that shares a <code>.benny_home</code>. Rotating it invalidates existing signatures.</span>
+        </label>
+
+        <label class="field">
+          <span class="field-label">BENNY_HOME <em>optional — defaults to ./.benny_home</em></span>
+          <input type="text" id="cfgBennyHome" spellcheck="false" placeholder=".benny_home" />
+          <span class="field-hint">Portable root: workspaces, agent sandbox, checkpoints, pinned views all live under here.</span>
+        </label>
+      </div>
+
+      <!-- STEP 2 — AI Model -->
+      <div class="wizard-step" data-step="2">
+        <h3 class="ws-title">AI Model</h3>
+        <p class="ws-lead">Consumed by the <span class="proc-chip" data-proc="shell">shell</span>'s onscreen agent. Localhost endpoints are auto-detected: heavy system prompt stripped, <code>enable_thinking:false</code> injected.</p>
+
+        <div class="seg" id="modelModeSeg">
+          <button class="seg-btn is-active" data-mode="local">🖥 Local (Lemonade / Ollama)</button>
+          <button class="seg-btn" data-mode="cloud">☁ Cloud (OpenRouter)</button>
+        </div>
+
+        <label class="field">
+          <span class="field-label">API endpoint</span>
+          <input type="text" id="cfgModelEndpoint" spellcheck="false" value="http://localhost:8000/api/v1/chat/completions" />
+          <span class="field-hint" id="endpointHint">Local endpoint detected → minimal system prompt + thinking disabled automatically.</span>
+        </label>
+
+        <label class="field">
+          <span class="field-label">Model name</span>
+          <input type="text" id="cfgModelName" spellcheck="false" value="qwen3.5-9b-FLM" />
+        </label>
+
+        <label class="field" id="apiKeyField" style="display:none">
+          <span class="field-label">API key env var <em>name only — never the key itself</em></span>
+          <input type="text" id="cfgModelKeyVar" spellcheck="false" value="OPENROUTER_API_KEY" />
+          <span class="field-hint">The wizard records which env var the shell should read. Set the actual secret in your OS environment, never in a file you might commit.</span>
+        </label>
+      </div>
+
+      <!-- STEP 3 — Services -->
+      <div class="wizard-step" data-step="3">
+        <h3 class="ws-title">Services &amp; Ports</h3>
+        <p class="ws-lead">Consumed by <span class="proc-chip" data-proc="runtime">runtime</span>, <span class="proc-chip" data-proc="shell">shell</span> and <span class="proc-chip" data-proc="docker">docker</span>.</p>
+
+        <div class="field-grid">
+          <label class="field">
+            <span class="field-label">Runtime port</span>
+            <input type="number" id="cfgRuntimePort" value="8005" />
+          </label>
+          <label class="field">
+            <span class="field-label">Shell port</span>
+            <input type="number" id="cfgShellPort" value="3000" />
+          </label>
+          <label class="field">
+            <span class="field-label">Default workspace</span>
+            <input type="text" id="cfgWorkspace" spellcheck="false" value="default" />
+          </label>
+        </div>
+
+        <span class="field-label" style="margin-top:1.2rem">Optional Docker services <em>docker-compose.yml</em></span>
+        <div class="toggle-row">
+          <label class="toggle"><input type="checkbox" id="svcNeo4j" checked /><span></span>Neo4j <i>dual graph</i></label>
+          <label class="toggle"><input type="checkbox" id="svcMarquez" /><span></span>Marquez <i>lineage</i></label>
+          <label class="toggle"><input type="checkbox" id="svcPhoenix" /><span></span>Phoenix <i>traces</i></label>
+          <label class="toggle"><input type="checkbox" id="svcN8n" /><span></span>N8N <i>automation</i></label>
+        </div>
+      </div>
+
+      <!-- STEP 4 — Generate -->
+      <div class="wizard-step" data-step="4">
+        <h3 class="ws-title">Your configuration manifest</h3>
+        <p class="ws-lead">Drop <code>.env</code> in the repo root, keep <code>prime-silo.config.json</code> beside it as the canonical record, then run the launch command.</p>
+
+        <div class="out-tabs">
+          <button class="out-tab is-active" data-out="env">.env</button>
+          <button class="out-tab" data-out="manifest">prime-silo.config.json</button>
+          <button class="out-tab" data-out="launch">launch commands</button>
+        </div>
+        <div class="out-pane">
+          <pre id="outPre"><code id="outCode"></code></pre>
+          <div class="out-actions">
+            <button class="btn btn-mini" id="copyOutBtn">⧉ Copy</button>
+            <button class="btn btn-mini" id="dlOutBtn">⬇ Download</button>
+            <button class="btn btn-mini" id="dlAllBtn">⬇ Download all</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="wizard-nav">
+        <button class="btn btn-ghost" id="wizPrev" disabled>← Back</button>
+        <button class="btn btn-primary" id="wizNext">Continue →</button>
+      </div>
+    </div>
+
+    <!-- live process panel -->
+    <aside class="wizard-side">
+      <p class="side-title">Process map</p>
+      <div class="side-procs" id="sideProcs">
+        <div class="side-proc" data-proc="runtime">
+          <span class="side-proc-dot"></span>
+          <div><b>runtime</b><span>FastAPI · :<i id="spRuntimePort">8005</i></span></div>
+        </div>
+        <div class="side-proc" data-proc="shell">
+          <span class="side-proc-dot"></span>
+          <div><b>shell</b><span>Node · :<i id="spShellPort">3000</i></span></div>
+        </div>
+        <div class="side-proc" data-proc="docker">
+          <span class="side-proc-dot"></span>
+          <div><b>docker</b><span id="spDocker">neo4j</span></div>
+        </div>
+      </div>
+      <p class="side-title" style="margin-top:1.6rem">Manifest preview</p>
+      <pre class="side-preview"><code id="sidePreview">{}</code></pre>
+    </aside>
+  </div>
+</section>
+
+<!-- ════════════════════ DASHBOARD ════════════════════ -->
+<section class="section" id="dashboard">
+  <div class="section-head">
+    <p class="section-eyebrow">Live telemetry</p>
+    <h2 class="section-title">Operator Dashboard</h2>
+    <p class="section-sub">Real health checks against your local stack. Boot it with <code>.\scripts\dev.ps1</code> and watch the lights turn green.</p>
+  </div>
+
+  <div class="dash-controls">
+    <button class="btn btn-primary" id="dashRefreshBtn">↻ Refresh now</button>
+    <label class="toggle dash-auto"><input type="checkbox" id="dashAutoChk" checked /><span></span>Auto-refresh 10s</label>
+    <span class="dash-updated" id="dashUpdated">never</span>
+  </div>
+
+  <div class="dash-grid" id="dashGrid"><!-- injected --></div>
+
+  <div class="dash-widgets" id="dashWidgetsWrap" hidden>
+    <p class="side-title">Registered widgets</p>
+    <div class="dash-widget-list" id="dashWidgetList"></div>
+  </div>
+</section>
+
+<!-- ════════════════════ FOOTER ════════════════════ -->
+<footer class="footer">
+  <div>
+    <b>PRIME-SILO</b> — the first, foundational, canonical silo of institutional cognition.
+  </div>
+  <div class="footer-links">
+    <a href="https://github.com/binary16labs/prime-silo" target="_blank" rel="noopener">GitHub</a>
+    <span>·</span>
+    <a href="#manual">Manual</a>
+    <span>·</span>
+    <a href="#wizard">Wizard</a>
+  </div>
+  <div class="footer-dim">Engineered by Binary 16 · ADR-001 · Phases A→H1 shipped</div>
+</footer>
+
+<!-- ════════════════════ DECONSTRUCTION OVERLAY ════════════════════ -->
+<div class="overlay" id="deconOverlay" hidden>
+  <div class="overlay-backdrop" id="deconBackdrop"></div>
+  <div class="overlay-card" id="deconCard">
+    <button class="overlay-close" id="deconClose">✕</button>
+    <div class="overlay-head">
+      <span class="overlay-icon" id="deconIcon"></span>
+      <div>
+        <h3 id="deconTitle"></h3>
+        <p id="deconTag"></p>
+      </div>
+    </div>
+    <div class="decon-stage">
+      <div class="decon-stack" id="deconStack"><!-- 3 layers injected --></div>
+    </div>
+    <div class="decon-detail">
+      <div class="decon-detail-col">
+        <p class="side-title">Try it</p>
+        <pre><code id="deconCmd"></code></pre>
+      </div>
+      <div class="decon-detail-col">
+        <p class="side-title">Endpoints / paths</p>
+        <ul id="deconPaths"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
