@@ -210,6 +210,19 @@ const FEATURES = [
     paths: [["CLI", "benny agentamp export-cockpit"], ["CLI", "benny agentamp enqueue <manifest>"]]
   },
   {
+    id: "memoray", icon: "🧠", zone: "rev", zoneLabel: "memory graph",
+    title: "Memo-Ray",
+    desc: "An X-ray for agent memory. Reads Claude + Antigravity session logs into an atomic entity graph — every prompt, thought, tool call, and touched file as an explorable organic lineage map. You are not the institutional memory; this is.",
+    foot: "binary16labs/memo-ray · :3001",
+    layers: [
+      ["Browser", "Organic D3 lineage graph — sessions sprout detail on click"],
+      ["API", "Express :3001 — delta-sync engine, localhost-only CORS"],
+      ["Storage", "Atomic entity files (Session/Thought/ToolCall/Artifact), gitignored"]
+    ],
+    cmd: "# boot the memory graph (sibling checkout)\n.\\scripts\\memoray.ps1\n# server → :3001 · client UI → :5173",
+    paths: [["GET", "/api/ecosystem/manifest"], ["GET", "/api/graph/<session_id>"], ["principle", "third graph: memory · knowledge · code"]]
+  },
+  {
     id: "governance", icon: "🛡", zone: "det", zoneLabel: "deterministic",
     title: "Governance & Lineage",
     desc: "AgentScopeMiddleware is the single enforcer: scoped agents write only inside the sandbox; pinning is human-only by policy. Every mutation emits an audit event.",
@@ -851,6 +864,16 @@ const DASH_CHECKS = [
       await fetch(modelOrigin(), { mode: "no-cors", signal: AbortSignal.timeout(3500) });
       return `<b>${wizState.modelName || "model"}</b> reachable`;
     }
+  },
+  {
+    id: "memoray", title: "Memo-Ray", sub: () => "GET http://localhost:3001/api/ecosystem/manifest",
+    offlineHint: "<b>offline</b> — boot with <code>scripts/memoray.ps1</code>",
+    async probe() {
+      const r = await fetch("http://localhost:3001/api/ecosystem/manifest", { signal: AbortSignal.timeout(3500) });
+      const j = await r.json();
+      const sessions = (j.claude?.sessions || 0) + (j.antigravity?.sessions || 0);
+      return `<b>${j.totalNodes || 0}</b> memory nodes · ${sessions} sessions`;
+    }
   }
 ];
 
@@ -904,7 +927,7 @@ async function runDash() {
     } catch {
       card.classList.add("is-off"); card.classList.remove("is-on");
       dot.classList.add("is-off"); dot.classList.remove("is-on");
-      val.innerHTML = "<b>offline</b> — boot with <code>scripts/dev.ps1</code>";
+      val.innerHTML = c.offlineHint || "<b>offline</b> — boot with <code>scripts/dev.ps1</code>";
       ms.textContent = "—";
     }
   }));

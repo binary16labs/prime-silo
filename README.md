@@ -33,6 +33,8 @@ See [`runtime/architecture/ADR-001-prime-silo-shell-fork.md`](runtime/architectu
 # → open http://localhost:4173
 ```
 
+**Companion — [Memo-Ray](https://github.com/binary16labs/memo-ray):** the *memory graph* of the cognitive mesh — the third first-class graph beside the knowledge graph (documents) and code graph (AST). It X-rays Claude + Antigravity session logs into an explorable organic lineage map so the operator never has to be the institutional memory. Clone it beside this repo and boot with `.\scripts\memoray.ps1`; the demo-site dashboard picks it up live on `:3001`.
+
 ## Repo layout
 
 ```
