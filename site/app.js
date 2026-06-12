@@ -126,9 +126,9 @@ const FEATURES = [
     layers: [
       ["Browser", "onscreen_agent panel — SSE streaming, retry ladder, skills"],
       ["Transport", "isLocalModelEndpoint() patches messages + enable_thinking:false"],
-      ["Model", "OpenRouter cloud or localhost:8000 lemonade/Ollama"]
+      ["Model", "OpenRouter cloud or localhost:13305 lemonade/Ollama"]
     ],
-    cmd: "# point settings at a local model\nendpoint: http://localhost:8000/api/v1/chat/completions\nmodel:    qwen3.5-9b-FLM",
+    cmd: "# point settings at a local model\nendpoint: http://localhost:13305/api/v1/chat/completions\nmodel:    qwen3.5-9b-FLM",
     paths: [["module", "_core/onscreen_agent/api.js"], ["fix", "minimal prompt for local endpoints"]]
   },
   {
@@ -368,7 +368,7 @@ curl http://localhost:8005/api/widgets
 <pre><code>endpoint: https://openrouter.ai/api/v1/chat/completions
 model:    anthropic/claude-sonnet-4.6</code></pre>
 <h4>Local (Lemonade / Ollama)</h4>
-<pre><code>endpoint: http://localhost:8000/api/v1/chat/completions
+<pre><code>endpoint: http://localhost:13305/api/v1/chat/completions
 model:    qwen3.5-9b-FLM</code></pre>
 <p>Localhost endpoints are auto-detected: the 499-line operator prompt is swapped for a minimal one and Qwen3 thinking mode is disabled — small local models answer instead of returning empty streams.</p>`
   },
@@ -473,12 +473,20 @@ MANUAL.forEach((m, i) => {
 const wizState = loadWizState() || {
   hmacKey: "", bennyHome: ".benny_home",
   modelMode: "local",
-  modelEndpoint: "http://localhost:8000/api/v1/chat/completions",
+  modelEndpoint: "http://localhost:13305/api/v1/chat/completions",
   modelName: "qwen3.5-9b-FLM",
   modelKeyVar: "OPENROUTER_API_KEY",
   runtimePort: 8005, shellPort: 3000, workspace: "default",
   docker: { neo4j: true, marquez: false, phoenix: false, n8n: false }
 };
+
+// Migration: earlier builds defaulted Lemonade to :8000; the real default
+// port is 13305. Upgrade stale persisted state, but leave deliberate
+// customisations (any other endpoint) untouched.
+if (wizState.modelEndpoint === "http://localhost:8000/api/v1/chat/completions") {
+  wizState.modelEndpoint = "http://localhost:13305/api/v1/chat/completions";
+  persistWizState();
+}
 
 function loadWizState() {
   try { return JSON.parse(localStorage.getItem("primeSiloWizard")); }
@@ -594,7 +602,7 @@ function applyModelMode(mode) {
     wizState.modelEndpoint = "https://openrouter.ai/api/v1/chat/completions";
     wizState.modelName = "anthropic/claude-sonnet-4.6";
   } else if (mode === "local" && !wizState.modelEndpoint.includes("localhost")) {
-    wizState.modelEndpoint = "http://localhost:8000/api/v1/chat/completions";
+    wizState.modelEndpoint = "http://localhost:13305/api/v1/chat/completions";
     wizState.modelName = "qwen3.5-9b-FLM";
   }
   el("cfgModelEndpoint").value = wizState.modelEndpoint;
@@ -801,8 +809,21 @@ const DASH_CHECKS = [
       await fetch(shellBase(), { mode: "no-cors", signal: AbortSignal.timeout(3500) });
       return `reachable on <b>:${wizState.shellPort || 3000}</b>`;
     }
+  },
+  {
+    id: "lemonade", title: "Local Model", sub: () => `${modelOrigin()} (opaque ping)`,
+    async probe() {
+      if (wizState.modelMode !== "local") return "cloud mode — <b>n/a</b>";
+      await fetch(modelOrigin(), { mode: "no-cors", signal: AbortSignal.timeout(3500) });
+      return `<b>${wizState.modelName || "model"}</b> reachable`;
+    }
   }
 ];
+
+function modelOrigin() {
+  try { return new URL(wizState.modelEndpoint).origin; }
+  catch { return "http://localhost:13305"; }
+}
 
 const dashGrid = document.getElementById("dashGrid");
 const dashCards = {};
