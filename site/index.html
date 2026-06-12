@@ -246,7 +246,12 @@
           </label>
         </div>
 
-        <span class="field-label" style="margin-top:1.2rem">Optional Docker services <em>docker-compose.yml</em></span>
+        <span class="field-label" style="margin-top:1.2rem">Shell login</span>
+        <div class="toggle-row" style="margin-bottom:1.2rem">
+          <label class="toggle"><input type="checkbox" id="cfgSingleUser" checked /><span></span>Single-user mode <i>no login page — recommended for solo installs</i></label>
+        </div>
+
+        <span class="field-label">Optional Docker services <em>docker-compose.yml</em></span>
         <div class="toggle-row">
           <label class="toggle"><input type="checkbox" id="svcNeo4j" checked /><span></span>Neo4j <i>dual graph</i></label>
           <label class="toggle"><input type="checkbox" id="svcMarquez" /><span></span>Marquez <i>lineage</i></label>

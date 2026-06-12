@@ -439,7 +439,9 @@ node tests/manifest_explorer_test.mjs</code></pre>
 <tr><td>403 on a write from the agent</td><td>Working as designed — scoped writes only land under <code>/api/agent_sandbox/</code>. Pinning is human-only.</td></tr>
 <tr><td>413 saving a checkpoint</td><td>History over the 2 MB cap. Compact the conversation, then retry.</td></tr>
 <tr><td>Port already in use</td><td>Change ports in the wizard, regenerate <code>.env</code>, restart <code>dev.ps1</code>.</td></tr>
-<tr><td>Runtime won't start — HMAC error</td><td><code>BENNY_HMAC_KEY</code> missing from <code>.env</code>. The launcher refuses to boot without it.</td></tr></table>`
+<tr><td>Runtime won't start — HMAC error</td><td><code>BENNY_HMAC_KEY</code> missing from <code>.env</code>. The launcher refuses to boot without it.</td></tr>
+<tr><td>Login page at <code>:3000/login</code> and no password works</td><td>Fresh installs have <b>no accounts</b> — there is no default password. For solo use, set <code>SINGLE_USER_APP=true</code> in <code>.env</code> (the wizard does this by default) and restart the shell; login disappears and you're auto-signed-in as <code>user</code>.</td></tr>
+<tr><td>Wizard download saved as <code>env.txt</code></td><td>Browsers rename leading-dot files. <code>Rename-Item env.txt .env</code> in the repo root.</td></tr></table>`
   }
 ];
 
@@ -477,8 +479,16 @@ const wizState = loadWizState() || {
   modelName: "qwen3.5-9b-FLM",
   modelKeyVar: "OPENROUTER_API_KEY",
   runtimePort: 8005, shellPort: 3000, workspace: "default",
+  singleUser: true,
   docker: { neo4j: true, marquez: false, phoenix: false, n8n: false }
 };
+
+// Migration: state saved before the single-user toggle existed defaults to
+// single-user mode (the right call for solo installs — no login page).
+if (typeof wizState.singleUser !== "boolean") {
+  wizState.singleUser = true;
+  persistWizState();
+}
 
 // Migration: earlier builds defaulted Lemonade to :8000; the real default
 // port is 13305. Upgrade stale persisted state, but leave deliberate
@@ -616,6 +626,17 @@ function applyModelMode(mode) {
 segBtns.forEach(b => b.addEventListener("click", () => applyModelMode(b.dataset.mode)));
 applyModelMode(wizState.modelMode);
 
+/* single-user toggle */
+{
+  const chk = el("cfgSingleUser");
+  chk.checked = wizState.singleUser;
+  chk.addEventListener("change", () => {
+    wizState.singleUser = chk.checked;
+    persistWizState();
+    updateSidePreview();
+  });
+}
+
 /* docker toggles */
 [["svcNeo4j", "neo4j"], ["svcMarquez", "marquez"], ["svcPhoenix", "phoenix"], ["svcN8n", "n8n"]]
   .forEach(([id, key]) => {
@@ -654,7 +675,7 @@ function buildManifest() {
     },
     services: {
       runtime: { port: wizState.runtimePort, command: "python -m benny.api.server", cwd: "runtime" },
-      shell: { port: wizState.shellPort, command: "node server/dev_server.js", cwd: "." },
+      shell: { port: wizState.shellPort, command: "node server/dev_server.js", cwd: ".", single_user: wizState.singleUser },
       docker: dockerOn
     },
     workspace: { default: wizState.workspace },
@@ -669,7 +690,7 @@ function buildManifest() {
         id: "shell",
         command: "node server/dev_server.js",
         cwd: ".",
-        consumes: ["services.shell.port", "model.endpoint", "model.model"]
+        consumes: ["services.shell.port", "model.endpoint", "model.model", "SINGLE_USER_APP"]
       },
       ...(dockerOn.length
         ? [{ id: "docker", command: `docker compose up -d ${dockerOn.join(" ")}`, cwd: ".", consumes: ["services.docker"] }]
@@ -689,6 +710,19 @@ function buildEnv() {
     `BENNY_HOME=${wizState.bennyHome || ".benny_home"}`,
     ""
   ];
+  if (wizState.singleUser) {
+    lines.push(
+      "# Solo local install — the shell auto-authenticates as \"user\"; no login page.",
+      "SINGLE_USER_APP=true",
+      ""
+    );
+  } else {
+    lines.push(
+      "# Multi-user mode: the shell shows /login. Fresh installs have no",
+      "# accounts — create the first user before expecting a password to work.",
+      ""
+    );
+  }
   if (wizState.modelMode === "local") {
     lines.push("# Local model — CLI commands default to it.", "BENNY_DEFAULT_MODEL=local_lemonade", "");
   } else {
