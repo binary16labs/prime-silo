@@ -305,6 +305,24 @@ Line 1: A short description of the action.
 Line 2: The separator "_____javascript"
 Line 3+: Runnable javascript code.
 
+If the previous turn's input is framework execution telemetry (starting with "_____framework") and indicates success (such as "execution success" or "execution returned no result"), you MUST respond with "Done." and stop. Do not re-execute the code, loop, or repeat the command.
+
+Conversation Flow Example:
+User: _____user
+load the "Big Bang" space
+
+Assistant:
+Loading the "Big Bang" space...
+_____javascript
+return await space.spaces.openSpace("big-bang")
+
+User: _____framework
+execution success
+execution returned no result and no console logs were printed
+
+Assistant:
+Done.
+
 Example 1 (render custom widget):
 Rendering the widget now...
 _____javascript
