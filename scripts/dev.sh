@@ -37,21 +37,32 @@ echo "  shell   PID = ${SHELL_PID}"
 
 PIDS="${RUNTIME_PID} ${SHELL_PID}"
 
-# Memo-Ray memory graph (Phase M1) — auto-boot the server when enabled and the
-# checkout exists, so the in-shell page at #/_prime_silo/memory works from one
-# command. MEMORAY_ENABLED=false skips it.
+# Memo-Ray memory graph (Phase M1) — auto-boot when enabled and the checkout
+# exists, so the in-shell page at #/_prime_silo/memory works from one command.
+# The shell proxies /api/memoray to the server (:3001); the Vite client (:5173)
+# backs the page's "Zen mode" link-out. MEMORAY_ENABLED=false skips both.
 if [[ "${MEMORAY_ENABLED:-true}" != "false" ]]; then
     MEMORAY_DIR_RESOLVED="${MEMORAY_DIR:-$(cd "${ROOT}/.." && pwd)/memo-ray}"
     MEMORAY_SERVER_DIR="${MEMORAY_DIR_RESOLVED}/agent-os-dashboard/server"
+    MEMORAY_CLIENT_DIR="${MEMORAY_DIR_RESOLVED}/agent-os-dashboard/client"
     if [[ -d "${MEMORAY_SERVER_DIR}" ]]; then
-        if [[ ! -d "${MEMORAY_SERVER_DIR}/node_modules" ]]; then
-            echo "▸ npm install (memo-ray server)"
-            ( cd "${MEMORAY_SERVER_DIR}" && npm install )
-        fi
+        for d in "${MEMORAY_SERVER_DIR}" "${MEMORAY_CLIENT_DIR}"; do
+            if [[ -d "$d" && ! -d "$d/node_modules" ]]; then
+                echo "▸ npm install ($d)"
+                ( cd "$d" && npm install )
+            fi
+        done
         ( cd "${MEMORAY_SERVER_DIR}" && node index.js ) &
         MEMORAY_PID=$!
         PIDS="${PIDS} ${MEMORAY_PID}"
-        echo "  memoray PID = ${MEMORAY_PID} (server :3001 — page at /#/_prime_silo/memory)"
+        echo "  memoray server PID = ${MEMORAY_PID} (:3001 — page at /#/_prime_silo/memory)"
+        # Client (:5173) — backs the "Zen mode" link.
+        if [[ -d "${MEMORAY_CLIENT_DIR}" ]]; then
+            ( cd "${MEMORAY_CLIENT_DIR}" && npm run dev ) &
+            MEMORAY_CLIENT_PID=$!
+            PIDS="${PIDS} ${MEMORAY_CLIENT_PID}"
+            echo "  memoray client PID = ${MEMORAY_CLIENT_PID} (:5173 — Zen mode)"
+        fi
     else
         echo "  memo-ray not found at '${MEMORAY_DIR_RESOLVED}' — memory page will show an offline screen."
         echo "  Clone https://github.com/binary16labs/memo-ray beside prime-silo (or set MEMORAY_DIR), then run scripts/memoray.sh."
