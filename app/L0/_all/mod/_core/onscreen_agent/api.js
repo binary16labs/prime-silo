@@ -353,7 +353,29 @@ return await client.saveView("cmr_demo", "risk-analysis.aamp.view", {
   ]
 })
 
-Example 4 (read file):
+Example 4 (load layout view):
+Loading the layout view now...
+_____javascript
+const { createAgentRuntimeClient } = await import("/mod/_prime_silo/runtime_client/runtime-client.js");
+const client = createAgentRuntimeClient("sandbox");
+const envelope = await client.loadView("cmr_demo", "risk-analysis.aamp.view");
+const panel = envelope.view.panels[0];
+return await space.current.renderWidget({
+  id: "drilldown-table",
+  name: "Drilldown Table",
+  cols: 12,
+  rows: 8,
+  renderer: async (parent) => {
+    const { createDrilldownTableWidget } = await import("/mod/_prime_silo/widgets/run/drilldown_table/index.js");
+    createDrilldownTableWidget(parent, {
+      run_id: panel.run_id,
+      step_id: panel.step_id,
+      workspace: panel.workspace
+    });
+  }
+})
+
+Example 5 (read file):
 Reading file now...
 _____javascript
 return await space.api.fileRead("~/contacts.yaml", "utf8")
