@@ -211,16 +211,16 @@ const FEATURES = [
   },
   {
     id: "memoray", icon: "🧠", zone: "rev", zoneLabel: "memory graph",
-    title: "Memo-Ray",
-    desc: "An X-ray for agent memory. Reads Claude + Antigravity session logs into an atomic entity graph — every prompt, thought, tool call, and touched file as an explorable organic lineage map. You are not the institutional memory; this is.",
-    foot: "binary16labs/memo-ray · :3001",
+    title: "Memo-Ray — in-shell",
+    desc: "An X-ray for agent memory, now built into the shell at #/_prime_silo/memory. Reads Claude + Antigravity session logs into an atomic entity graph — every prompt, thought, tool call, and touched file as an explorable lineage map. One capability on four surfaces (page · agent skill · CLI · self-audit) over a single configurable proxy. You are not the institutional memory; this is.",
+    foot: "#/_prime_silo/memory · proxy /api/memoray · :3001",
     layers: [
-      ["Browser", "Organic D3 lineage graph — sessions sprout detail on click"],
-      ["API", "Express :3001 — delta-sync engine, localhost-only CORS"],
-      ["Storage", "Atomic entity files (Session/Thought/ToolCall/Artifact), gitignored"]
+      ["Shell page", "memoray.overview_cards + memoray.lineage_graph widgets, conformance strip, offline/disabled screens"],
+      ["Proxy", "/api/memoray → MEMORAY_BASE_URL (or wizard manifest); GET + POST /files/open only"],
+      ["Manifest", "aamp.integration/1 — data model + process map + config surface, HMAC-signed, self-audited"]
     ],
-    cmd: "# boot the memory graph (sibling checkout)\n.\\scripts\\memoray.ps1\n# server → :3001 · client UI → :5173",
-    paths: [["GET", "/api/ecosystem/manifest"], ["GET", "/api/graph/<session_id>"], ["principle", "third graph: memory · knowledge · code"]]
+    cmd: "# dev.ps1 auto-boots Memo-Ray when enabled\n.\\scripts\\dev.ps1\n# then open the shell\nhttp://localhost:3000/#/_prime_silo/memory\n# or from the terminal\nnode space memory status",
+    paths: [["page", "#/_prime_silo/memory"], ["skill", "memory-recall (onscreen agent)"], ["CLI", "node space memory <status|sync|sessions|search|audit>"], ["audit", "GET /api/integration_audit"]]
   },
   {
     id: "governance", icon: "🛡", zone: "det", zoneLabel: "deterministic",
@@ -493,6 +493,8 @@ const wizState = loadWizState() || {
   modelKeyVar: "OPENROUTER_API_KEY",
   runtimePort: 8005, shellPort: 3000, workspace: "default",
   singleUser: true,
+  memorayEnabled: true,
+  memorayUrl: "http://127.0.0.1:3001",
   docker: { neo4j: true, marquez: false, phoenix: false, n8n: false }
 };
 
@@ -500,6 +502,14 @@ const wizState = loadWizState() || {
 // single-user mode (the right call for solo installs — no login page).
 if (typeof wizState.singleUser !== "boolean") {
   wizState.singleUser = true;
+  persistWizState();
+}
+
+// Migration: state saved before the Memo-Ray toggle existed defaults to
+// enabled (the memory graph is part of the cognitive-mesh story).
+if (typeof wizState.memorayEnabled !== "boolean") {
+  wizState.memorayEnabled = true;
+  wizState.memorayUrl = wizState.memorayUrl || "http://127.0.0.1:3001";
   persistWizState();
 }
 
@@ -650,6 +660,24 @@ applyModelMode(wizState.modelMode);
   });
 }
 
+/* memo-ray toggle + endpoint */
+{
+  const chk = el("cfgMemoray");
+  const url = el("cfgMemorayUrl");
+  chk.checked = wizState.memorayEnabled;
+  url.value = wizState.memorayUrl;
+  chk.addEventListener("change", () => {
+    wizState.memorayEnabled = chk.checked;
+    persistWizState();
+    updateSidePreview();
+  });
+  url.addEventListener("input", () => {
+    wizState.memorayUrl = url.value.trim();
+    persistWizState();
+    updateSidePreview();
+  });
+}
+
 /* docker toggles */
 [["svcNeo4j", "neo4j"], ["svcMarquez", "marquez"], ["svcPhoenix", "phoenix"], ["svcN8n", "n8n"]]
   .forEach(([id, key]) => {
@@ -691,6 +719,10 @@ function buildManifest() {
       shell: { port: wizState.shellPort, command: "node server/dev_server.js", cwd: ".", single_user: wizState.singleUser },
       docker: dockerOn
     },
+    memoray: {
+      enabled: wizState.memorayEnabled,
+      base_url: wizState.memorayUrl || "http://127.0.0.1:3001"
+    },
     workspace: { default: wizState.workspace },
     processes: [
       {
@@ -703,8 +735,11 @@ function buildManifest() {
         id: "shell",
         command: "node server/dev_server.js",
         cwd: ".",
-        consumes: ["services.shell.port", "model.endpoint", "model.model", "SINGLE_USER_APP"]
+        consumes: ["services.shell.port", "model.endpoint", "model.model", "SINGLE_USER_APP", "MEMORAY_ENABLED", "MEMORAY_BASE_URL"]
       },
+      ...(wizState.memorayEnabled
+        ? [{ id: "memoray", command: "scripts/memoray.ps1", cwd: ".", consumes: ["memoray.base_url", "MEMORAY_BASE_URL"] }]
+        : []),
       ...(dockerOn.length
         ? [{ id: "docker", command: `docker compose up -d ${dockerOn.join(" ")}`, cwd: ".", consumes: ["services.docker"] }]
         : [])
@@ -741,6 +776,15 @@ function buildEnv() {
   } else {
     lines.push(`# Cloud model key — set the real secret in your OS env:`, `# setx ${wizState.modelKeyVar} "sk-..."   (Windows)`, `# export ${wizState.modelKeyVar}="sk-..." (bash)`, "");
   }
+  if (wizState.memorayEnabled) {
+    lines.push(
+      "# Memo-Ray memory graph — the shell proxies /api/memoray here.",
+      `MEMORAY_BASE_URL=${wizState.memorayUrl || "http://127.0.0.1:3001"}`,
+      ""
+    );
+  } else {
+    lines.push("# Memo-Ray memory graph disabled.", "MEMORAY_ENABLED=false", "");
+  }
   return lines.join("\n");
 }
 
@@ -760,6 +804,14 @@ function buildLaunch() {
     `# ${dockerOn.length ? "4" : "3"}. Open the shell`,
     `http://localhost:${wizState.shellPort}/#/_prime_silo/manifest_explorer`
   );
+  if (wizState.memorayEnabled) {
+    lines.push(
+      "",
+      "# Memory graph (dev.ps1 auto-boots Memo-Ray when enabled; or run it yourself):",
+      "# .\\scripts\\memoray.ps1",
+      `http://localhost:${wizState.shellPort}/#/_prime_silo/memory`
+    );
+  }
   return lines.join("\n");
 }
 

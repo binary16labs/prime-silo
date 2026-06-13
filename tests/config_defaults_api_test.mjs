@@ -126,6 +126,51 @@ async function testCloudModelKeepsEnvVarNameOnly() {
   console.log("  ✓ cloud manifest → env var NAME forwarded, secret-shaped fields dropped");
 }
 
+async function testMemorayBlockSanitized() {
+  await withProjectRoot(
+    {
+      "prime-silo.config.json": JSON.stringify({
+        schema: "aamp.config/1",
+        model: { mode: "local", endpoint: "http://localhost:13305", model: "qwen3.5-9b-FLM" },
+        memoray: {
+          enabled: true,
+          base_url: "http://127.0.0.1:3001",
+          secret_token: "should-never-leak",
+          extra: "dropped"
+        }
+      })
+    },
+    async (projectRoot) => {
+      const res = await get({ projectRoot });
+      assert.equal(res.body.found, true);
+      // Whitelist: only enabled + base_url survive.
+      assert.deepEqual(res.body.memoray, { enabled: true, base_url: "http://127.0.0.1:3001" });
+      const serialized = JSON.stringify(res.body);
+      assert.ok(!serialized.includes("should-never-leak"), "memoray secret-shaped field leaked");
+      assert.ok(!serialized.includes("dropped"), "unknown memoray field leaked");
+    }
+  );
+  console.log("  ✓ memoray block → only {enabled, base_url} forwarded");
+}
+
+async function testMemorayBlockSurfacedWithoutModel() {
+  await withProjectRoot(
+    {
+      "prime-silo.config.json": JSON.stringify({
+        schema: "aamp.config/1",
+        memoray: { enabled: false }
+      })
+    },
+    async (projectRoot) => {
+      const res = await get({ projectRoot });
+      // No valid model → found:false, but the memoray block still surfaces.
+      assert.equal(res.body.found, false);
+      assert.deepEqual(res.body.memoray, { enabled: false });
+    }
+  );
+  console.log("  ✓ memoray block surfaced even when the model block is absent");
+}
+
 async function main() {
   await testAnonymousAllowed();
   await testMissingManifestReturnsNotFound();
@@ -134,6 +179,8 @@ async function main() {
   await testEmptyEndpointReturnsNotFound();
   await testLocalModelHappyPath();
   await testCloudModelKeepsEnvVarNameOnly();
+  await testMemorayBlockSanitized();
+  await testMemorayBlockSurfacedWithoutModel();
   console.log("config_defaults_api_test: ok");
 }
 

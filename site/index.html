@@ -251,6 +251,18 @@
           <label class="toggle"><input type="checkbox" id="cfgSingleUser" checked /><span></span>Single-user mode <i>no login page — recommended for solo installs</i></label>
         </div>
 
+        <span class="field-label" style="margin-top:1.2rem">Memory graph <em>Memo-Ray · the third graph of the cognitive mesh</em></span>
+        <div class="toggle-row" style="margin-bottom:0.8rem">
+          <label class="toggle"><input type="checkbox" id="cfgMemoray" checked /><span></span>Memo-Ray <i>session lineage in-shell at #/_prime_silo/memory</i></label>
+        </div>
+        <div class="field-grid">
+          <label class="field">
+            <span class="field-label">Memo-Ray endpoint</span>
+            <input type="text" id="cfgMemorayUrl" value="http://127.0.0.1:3001" />
+            <span class="field-hint">The shell proxies <code>/api/memoray</code> here. Consumed by <span class="proc-chip" data-proc="shell">shell</span>. Boot the server with <code>scripts/memoray.ps1</code>.</span>
+          </label>
+        </div>
+
         <span class="field-label">Optional Docker services <em>docker-compose.yml</em></span>
         <div class="toggle-row">
           <label class="toggle"><input type="checkbox" id="svcNeo4j" checked /><span></span>Neo4j <i>dual graph</i></label>

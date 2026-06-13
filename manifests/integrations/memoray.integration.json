@@ -1,0 +1,492 @@
+{
+  "schema": "aamp.integration/1",
+  "id": "memoray",
+  "title": "Memo-Ray memory graph",
+  "version": "1.0.0",
+  "description": "Declares the Memo-Ray integration: the memory graph of the cognitive mesh, third first-class graph beside the knowledge graph (documents) and the code graph (AST). Memo-Ray X-rays Claude + Antigravity session logs into an explorable lineage map; this manifest is the single source of truth the shell proxy, widgets, page, agent skill, CLI, and conformance audit are all held against.",
+  "maintenance": {
+    "loop": "read this manifest -> GET /api/integration_audit (or `node space memory audit`) -> for each drift finding draft a fix at the finding's owner path -> human review -> re-sign via scripts/audit-integrations.mjs --sign",
+    "agents_doc": "manifests/integrations/AGENTS.md"
+  },
+  "data_model": {
+    "ontology": "Atomic file-system database: every entity is one JSON file under memo-ray server/data/entities/, indexed by index.json with mtime delta-sync.",
+    "entity_types": [
+      "Session",
+      "User Input",
+      "Message",
+      "Thought",
+      "Tool Call",
+      "Tool Result",
+      "Artifact"
+    ],
+    "entity_fields": {
+      "id": "string",
+      "type": "string",
+      "agent": "string",
+      "timestamp": "number",
+      "content": "string",
+      "metadata": "object",
+      "parent_id": "string|null",
+      "children_ids": "array?"
+    },
+    "metadata_fields": {
+      "model": "string?",
+      "toolName": "string?",
+      "fileName": "string?",
+      "filePath": "string?",
+      "project": "string?",
+      "tokens": "number?",
+      "taskType": "string?",
+      "cwd": "string?",
+      "gitBranch": "string?",
+      "isVirtual": "boolean?"
+    },
+    "lineage_edges": [
+      "parent_id/children_ids chain: Session -> blocks in audit order",
+      "tool-call -> file reference links (real Artifact node or deterministic virtual file node, md5(rootId + '_virtual_' + lowercased path))"
+    ],
+    "mesh_position": {
+      "graph": "memory",
+      "siblings": [
+        "knowledge (Concept/Document, Neo4j)",
+        "code (File/Class/Function, Tree-Sitter)"
+      ],
+      "future_seam": "CORRELATES_WITH enrichment between memo-ray file-touch lineage and the prime-silo code graph (memo-ray PRD section 6)"
+    }
+  },
+  "endpoints": [
+    {
+      "id": "sync",
+      "method": "GET",
+      "path": "/sync",
+      "purpose": "Trigger delta-sync of Claude + Antigravity logs.",
+      "probe": false,
+      "contract": {
+        "status": "string",
+        "message": "string"
+      }
+    },
+    {
+      "id": "sessions",
+      "method": "GET",
+      "path": "/sessions",
+      "purpose": "All Session entities, newest first.",
+      "contract": {
+        "type": "array",
+        "items": {
+          "id": "string",
+          "type": "string",
+          "agent": "string",
+          "timestamp": "number",
+          "content": "string",
+          "metadata": "object"
+        }
+      }
+    },
+    {
+      "id": "ecosystem_manifest",
+      "method": "GET",
+      "path": "/ecosystem/manifest",
+      "purpose": "Ecosystem totals split per agent.",
+      "contract": {
+        "claude": {
+          "type": "object",
+          "fields": {
+            "sessions": "number",
+            "models": "array",
+            "nodeCount": "number",
+            "tokens": "number",
+            "projects": "object"
+          }
+        },
+        "antigravity": {
+          "type": "object",
+          "fields": {
+            "sessions": "number",
+            "models": "array",
+            "nodeCount": "number",
+            "tokens": "number",
+            "projects": "object"
+          }
+        },
+        "nodeTypes": "object",
+        "totalNodes": "number",
+        "lastSync": "number|null"
+      }
+    },
+    {
+      "id": "beta_overview",
+      "method": "GET",
+      "path": "/beta/overview",
+      "purpose": "Command Center project/agent/worktree/hot-file rollup.",
+      "contract": {
+        "projects": {
+          "type": "array",
+          "items": {
+            "name": "string",
+            "agents": "object",
+            "totalSessions": "number",
+            "totalNodes": "number",
+            "totalTokens": "number",
+            "lastActivity": "number",
+            "fileCount": "number"
+          }
+        },
+        "agents": "object",
+        "worktrees": "array",
+        "hotFiles": {
+          "type": "array",
+          "items": {
+            "agent": "string",
+            "count": "number",
+            "fileName": "string",
+            "filePath": "string",
+            "lastTimestamp": "number",
+            "lastTool": "string"
+          }
+        },
+        "totalSessions": "number",
+        "totalNodes": "number",
+        "totalFiles": "number",
+        "totalTokens": "number",
+        "lastSync": "number|null"
+      }
+    },
+    {
+      "id": "beta_search",
+      "method": "GET",
+      "path": "/beta/search?q=se",
+      "purpose": "Omnibar search across sessions, files, actions.",
+      "contract": {
+        "sessions": "array",
+        "files": "array",
+        "actions": "array"
+      }
+    },
+    {
+      "id": "graph",
+      "method": "GET",
+      "path": "/graph/{session_id}",
+      "purpose": "Recursive session lineage graph with virtual file nodes.",
+      "sample_path_param": {
+        "session_id": {
+          "endpoint": "sessions",
+          "pick": "first.id"
+        }
+      },
+      "contract": {
+        "nodes": {
+          "type": "array",
+          "items": {
+            "id": "string",
+            "type": "string",
+            "label": "string",
+            "val": "number",
+            "metadata": "object"
+          }
+        },
+        "links": "array"
+      }
+    },
+    {
+      "id": "entities",
+      "method": "GET",
+      "path": "/entities/{entity_id}",
+      "purpose": "Single entity full document (inspector).",
+      "sample_path_param": {
+        "entity_id": {
+          "endpoint": "sessions",
+          "pick": "first.id"
+        }
+      },
+      "contract": {
+        "id": "string",
+        "type": "string",
+        "agent": "string",
+        "timestamp": "number",
+        "metadata": "object"
+      }
+    },
+    {
+      "id": "files",
+      "method": "GET",
+      "path": "/files",
+      "purpose": "Files touched across all sessions with read/write timelines.",
+      "contract": "array"
+    },
+    {
+      "id": "files_open",
+      "method": "POST",
+      "path": "/files/open",
+      "purpose": "Open a lineage-indexed file with the OS default app. Only POST the proxy forwards; memo-ray 403s paths outside the memory graph.",
+      "probe": false,
+      "contract": {
+        "status": "string"
+      }
+    },
+    {
+      "id": "system_metrics",
+      "method": "GET",
+      "path": "/system/metrics",
+      "purpose": "CPU / RAM / network / top processes for the Command Center. Expensive on Windows -> consumers poll at >= 5s and pause when the tab is hidden.",
+      "contract": {
+        "cpu": "string",
+        "ram": {
+          "type": "object",
+          "fields": {
+            "used": "number",
+            "total": "number",
+            "percent": "string"
+          }
+        },
+        "network": {
+          "type": "object",
+          "fields": {
+            "rxSec": "number",
+            "txSec": "number"
+          }
+        },
+        "processes": "array"
+      }
+    },
+    {
+      "id": "system_capabilities",
+      "method": "GET",
+      "path": "/system/capabilities",
+      "purpose": "Claude MCP servers + Antigravity plugins/permissions registry.",
+      "contract": {
+        "claude": {
+          "type": "object",
+          "fields": {
+            "maxContextTokens": "number",
+            "mcpServers": "array"
+          }
+        },
+        "antigravity": {
+          "type": "object",
+          "fields": {
+            "maxContextTokens": "number",
+            "plugins": "array",
+            "permissions": "array"
+          }
+        }
+      }
+    }
+  ],
+  "process_map": [
+    {
+      "id": "claude_logs",
+      "kind": "source",
+      "produces": "Claude desktop/code/CLI session logs (audit.jsonl, *.jsonl)",
+      "consumes": [
+        "MEMORAY_CLAUDE_DIRS"
+      ],
+      "owner": {
+        "repo": "memo-ray",
+        "path": "agent-os-dashboard/server/parsers/claudeParser.js"
+      }
+    },
+    {
+      "id": "antigravity_brain",
+      "kind": "source",
+      "produces": "Antigravity brain artifacts",
+      "consumes": [
+        "MEMORAY_ANTIGRAVITY_DIR"
+      ],
+      "owner": {
+        "repo": "memo-ray",
+        "path": "agent-os-dashboard/server/parsers/antigravityParser.js"
+      }
+    },
+    {
+      "id": "entity_store",
+      "kind": "store",
+      "produces": "in-memory entity Map cached by index.json mtime",
+      "consumes": [],
+      "owner": {
+        "repo": "memo-ray",
+        "path": "agent-os-dashboard/server/lib/entity_store.js"
+      }
+    },
+    {
+      "id": "memoray_api",
+      "kind": "service",
+      "produces": "HTTP API on MEMORAY_BASE_URL (localhost-only CORS, no auth)",
+      "consumes": [
+        "PORT"
+      ],
+      "health": {
+        "endpoint": "ecosystem_manifest",
+        "expect": "totalNodes"
+      },
+      "owner": {
+        "repo": "memo-ray",
+        "path": "agent-os-dashboard/server/index.js"
+      }
+    },
+    {
+      "id": "shell_proxy",
+      "kind": "proxy",
+      "produces": "/api/memoray/<path> on the shell origin (GET any, POST /files/open only)",
+      "consumes": [
+        "MEMORAY_ENABLED",
+        "MEMORAY_BASE_URL",
+        "memoray.enabled",
+        "memoray.base_url"
+      ],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "server/lib/memoray_proxy.js"
+      }
+    },
+    {
+      "id": "memoray_client",
+      "kind": "client",
+      "produces": "memorayFetch/readMemorayJson browser helpers",
+      "consumes": [],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "app/L0/_all/mod/_prime_silo/memoray_client/memoray-client.js"
+      }
+    },
+    {
+      "id": "widget_overview_cards",
+      "kind": "widget",
+      "produces": "memoray.overview_cards Command Center widget",
+      "consumes": [
+        "beta_overview",
+        "system_metrics",
+        "system_capabilities",
+        "ecosystem_manifest"
+      ],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "app/L0/_all/mod/_prime_silo/widgets/memoray/overview_cards/index.js"
+      }
+    },
+    {
+      "id": "widget_lineage_graph",
+      "kind": "widget",
+      "produces": "memoray.lineage_graph session lineage widget (2D SVG default, pluggable renderer)",
+      "consumes": [
+        "graph",
+        "entities"
+      ],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "app/L0/_all/mod/_prime_silo/widgets/memoray/lineage_graph/index.js"
+      }
+    },
+    {
+      "id": "memory_page",
+      "kind": "page",
+      "produces": "#/_prime_silo/memory review-zone shell page",
+      "consumes": [
+        "sessions",
+        "beta_search",
+        "sync",
+        "files_open"
+      ],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "app/L0/_all/mod/_prime_silo/memory/view.html"
+      }
+    },
+    {
+      "id": "agent_skill",
+      "kind": "skill",
+      "produces": "memory-recall onscreen-agent skill (catalog-loaded on demand)",
+      "consumes": [
+        "beta_search",
+        "sessions",
+        "graph",
+        "beta_overview"
+      ],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "app/L0/_all/mod/_prime_silo/memoray_client/ext/skills/memory-recall/SKILL.md"
+      }
+    },
+    {
+      "id": "cli_memory",
+      "kind": "cli",
+      "produces": "node space memory <status|sync|sessions|search|audit>",
+      "consumes": [
+        "ecosystem_manifest",
+        "sync",
+        "sessions",
+        "beta_search"
+      ],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "commands/memory.js"
+      }
+    },
+    {
+      "id": "audit",
+      "kind": "audit",
+      "produces": "GET /api/integration_audit conformance report (aamp.audit_report/1)",
+      "consumes": [],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "server/api/integration_audit.js"
+      }
+    }
+  ],
+  "config_surface": {
+    "MEMORAY_ENABLED": {
+      "kind": "runtime_param",
+      "default": true,
+      "doc": "Master switch for proxy, page, skill, CLI. node space get/set MEMORAY_ENABLED."
+    },
+    "MEMORAY_BASE_URL": {
+      "kind": "runtime_param",
+      "default": "http://127.0.0.1:3001",
+      "doc": "Memo-Ray server the shell proxies to."
+    },
+    "memoray.enabled": {
+      "kind": "config_block",
+      "doc": "Wizard manifest record in prime-silo.config.json; applies when the runtime param is unset."
+    },
+    "memoray.base_url": {
+      "kind": "config_block",
+      "doc": "Wizard manifest record in prime-silo.config.json; applies when the runtime param is unset."
+    },
+    "MEMORAY_CLAUDE_DIRS": {
+      "kind": "upstream_env",
+      "doc": "Semicolon-separated Claude log roots (memo-ray server env)."
+    },
+    "MEMORAY_ANTIGRAVITY_DIR": {
+      "kind": "upstream_env",
+      "doc": "Antigravity brain root (memo-ray server env)."
+    },
+    "boot": {
+      "kind": "doc",
+      "doc": "scripts/memoray.ps1 boots the sibling ../memo-ray checkout (MEMORAY_DIR override); scripts/dev.ps1 auto-boots it when enabled."
+    }
+  },
+  "conformance": {
+    "checks": [
+      "signature",
+      "config_surface",
+      "health",
+      "payload_contracts",
+      "owners"
+    ],
+    "gating_tests": [
+      "tests/memoray_proxy_test.mjs",
+      "tests/integration_manifest_test.mjs",
+      "tests/integration_audit_test.mjs",
+      "tests/widgets_memoray_overview_cards_test.mjs",
+      "tests/widgets_memoray_lineage_graph_test.mjs",
+      "tests/memory_page_test.mjs",
+      "tests/memory_command_test.mjs",
+      "tests/memory_recall_skill_test.mjs"
+    ]
+  },
+  "signature": {
+    "algorithm": "HMAC-SHA256",
+    "value": "ed4ee747cc3a94e0a18eea783f24bec7cd5c20d98a33961f520c6149b9185458",
+    "signed_at": "2026-06-13T11:17:17.667Z"
+  }
+}

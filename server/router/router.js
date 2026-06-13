@@ -15,6 +15,8 @@ import { handleAppFetchRequest } from "./app_fetch_handler.js";
 import { readParsedRequestBody } from "./request_body.js";
 // ADR-001 Phase D: forwards /api/runtime/<path> to the Benny FastAPI runtime.
 import { isRuntimeProxyPath, proxyToRuntime } from "../lib/runtime_proxy.js";
+// Phase M1: forwards /api/memoray/<path> to the Memo-Ray memory-graph server.
+import { isMemorayProxyPath, proxyToMemoray } from "../lib/memoray_proxy.js";
 import { resolveProjectVersion } from "../lib/utils/project_version.js";
 import {
   STATE_VERSION_HEADER,
@@ -347,6 +349,17 @@ function createRequestHandler(options) {
           return;
         }
         await proxyToRuntime(req, res, requestUrl);
+        return;
+      }
+
+      // Phase M1 — proxy /api/memoray/<path> to the Memo-Ray memory-graph
+      // server. Read-only plus lineage-validated file-open; settings resolve
+      // through runtime params then the wizard manifest (see memoray_proxy.js).
+      if (isMemorayProxyPath(requestUrl.pathname)) {
+        if (!ensureAuthenticatedOrRespond(res, requestContext, auth)) {
+          return;
+        }
+        await proxyToMemoray(req, res, requestUrl, { runtimeParams, projectRoot });
         return;
       }
 

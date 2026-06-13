@@ -33,7 +33,14 @@ See [`runtime/architecture/ADR-001-prime-silo-shell-fork.md`](runtime/architectu
 # → open http://localhost:4173
 ```
 
-**Companion — [Memo-Ray](https://github.com/binary16labs/memo-ray):** the *memory graph* of the cognitive mesh — the third first-class graph beside the knowledge graph (documents) and code graph (AST). It X-rays Claude + Antigravity session logs into an explorable organic lineage map so the operator never has to be the institutional memory. Clone it beside this repo and boot with `.\scripts\memoray.ps1`; the demo-site dashboard picks it up live on `:3001`.
+**Companion — [Memo-Ray](https://github.com/binary16labs/memo-ray):** the *memory graph* of the cognitive mesh — the third first-class graph beside the knowledge graph (documents) and code graph (AST). It X-rays Claude + Antigravity session logs into an explorable organic lineage map so the operator never has to be the institutional memory. Clone it beside this repo (or set `MEMORAY_DIR`); `.\scripts\dev.ps1` auto-boots it when enabled.
+
+As of **Phase M1** the memory graph is **built into the shell** — one capability on four surfaces, all over a single configurable proxy (`/api/memoray`, endpoint via `MEMORAY_BASE_URL` or the wizard manifest):
+
+- **Page** — `#/_prime_silo/memory`: Command Center cards, session list, lineage graph, node inspector, a conformance strip, and first-class offline/disabled screens.
+- **Agent skill** — `memory-recall`: the onscreen agent answers "what was I working on / which sessions touched file X" by querying the graph itself.
+- **CLI** — `node space memory <status|sync|sessions|search|audit>`.
+- **Self-audit** — the integration is declared in [`manifests/integrations/memoray.integration.json`](manifests/integrations/memoray.integration.json) (data model + process map + config surface, HMAC-signed). `GET /api/integration_audit` / `node space memory audit` / `node scripts/audit-integrations.mjs` probe live reality against that declaration and emit a drift report whose findings carry the owner path to fix — so an agent (or a local LLM via Lemonade) can maintain it without spelunking. See [`manifests/integrations/AGENTS.md`](manifests/integrations/AGENTS.md).
 
 ## Repo layout
 
@@ -62,6 +69,8 @@ prime-silo/
 - [x] **Phase F / F2 / F2b** — `.aamp.view` HMAC sign / verify / pin / load chokepoint; pinned views are self-describing signed JSON, `GET /api/views/load/<ws>/<filename>` returns `{view, signature, valid}` in one round-trip
 - [x] **Phase E** — first deterministic-zone shell page (`manifest_explorer`) lists registered swarm manifests and renders the selected one as `dag.canvas`. No agent context — `runtimeFetch` with no scope.
 - [x] **Phase H1** — session checkpoints: save/restore/fork session state (history + skills + staged data + run refs); draft endpoints under the agent sandbox, human-only HMAC pinning
+- [x] **Phase M1** — memory graph in-shell: Memo-Ray integration declared as a signed `aamp.integration/1` manifest (data model + process map + config surface), surfaced on four surfaces (page `#/_prime_silo/memory`, `memory-recall` agent skill, `node space memory` CLI, `/api/integration_audit` self-audit) over one configurable proxy
+- [ ] **Phase M2** — LLM self-maintenance loop: a swarm manifest that runs the audit → `call_model()` (Lemonade local) → drafts fixes into `agent_sandbox/drafts/` for human pinning
 - [ ] **Phase G** — canvas consolidation; retire ManifestCanvas/PipelineCanvas/WorkflowCanvas duplication in the runtime frontend
 
 Phase status is tracked rolling in [`architecture/ROADMAP.md`](architecture/ROADMAP.md). The original phase rationale lives in [`runtime/architecture/ADR-001-prime-silo-shell-fork.md`](runtime/architecture/ADR-001-prime-silo-shell-fork.md) §8.

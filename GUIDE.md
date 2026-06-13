@@ -381,10 +381,30 @@ The Review-zone canvas lets the agent compose multi-widget layouts for post-run 
 | `kg3d.synoptic_web` | Knowledge graph (2D SVG or 3D force-graph) |
 | `codegraph.canvas` | Code graph: files, classes, functions, dependencies |
 | `dag.canvas` | Manifest / pipeline / workflow DAG *(deterministic zone only)* |
+| `memoray.overview_cards` | Memory-graph Command Center: ecosystem totals, system metrics, capabilities, worktrees, file heatmap, recent sessions |
+| `memoray.lineage_graph` | One agent session's lineage (2D SVG or pluggable 3D renderer) |
 
 **Using the 3D renderer:**
 
-The graph widgets (`kg3d.synoptic_web`, `codegraph.canvas`) have a pluggable renderer. By default they render a 2D SVG. To enable the 3D `3d-force-graph` view, the caller passes `options.renderer = createThreeRenderer(...)`. The 3D library loads on demand from CDN — no install needed.
+The graph widgets (`kg3d.synoptic_web`, `codegraph.canvas`, `memoray.lineage_graph`) have a pluggable renderer. By default they render a 2D SVG. To enable the 3D `3d-force-graph` view, the caller passes `options.renderer = createThreeRenderer(...)`. The 3D library loads on demand from CDN — no install needed.
+
+### 5e. Memory graph (`#/_prime_silo/memory`)
+
+The memory graph is the third graph of the cognitive mesh — your agent sessions (Claude + Antigravity), X-rayed into an explorable lineage map by [Memo-Ray](https://github.com/binary16labs/memo-ray). It answers "what was I working on" and "which sessions touched this file" so you never have to be the institutional memory.
+
+**How to reach it:** open `http://localhost:3000/#/_prime_silo/memory`. `scripts/dev.ps1` auto-boots the Memo-Ray server when it's enabled and the checkout exists beside prime-silo (or `MEMORAY_DIR` is set).
+
+**What you see:**
+- **Command Center cards** — totals, system metrics, capabilities, git worktrees, a file-touch heatmap, and recent sessions.
+- **Session list → lineage graph** — pick a session; its lineage renders left-to-right (Session → input → thought → tool call → artifact), files as rounded nodes. Click a node to inspect its content and open the file.
+- **Search / Sync now / Zen mode** — omnibar search, a manual delta-sync, and a link out to Memo-Ray's full client.
+- **Conformance strip** — green when the integration matches its declared manifest; "drift" with a pointer to `node space memory audit` when it doesn't.
+
+**Configuring it:** the wizard's *Services* step has a Memo-Ray toggle and endpoint field. Under the hood the shell proxies `/api/memoray` to `MEMORAY_BASE_URL` (or the wizard manifest's `memoray.base_url`). Turn it off with `node space set MEMORAY_ENABLED=false`.
+
+**If Memo-Ray isn't running:** the page shows a friendly screen with the exact boot command — never a raw error.
+
+**Ask the agent:** the onscreen agent has a `memory-recall` skill. Ask it "what was I working on yesterday?" or "which sessions touched memoray_proxy.js?" and it queries the graph itself, answering with session links you can click.
 
 ---
 
@@ -496,7 +516,34 @@ benny pypes bench pandas=<manifest1.json> polars=<manifest2.json> --workspace my
 benny pypes chat <run_id> --workspace myproject
 ```
 
-### 6f. AgentAmp skin packs
+### 6f. Memory graph (`node space memory`)
+
+The same memory capability as the page, from the terminal — and the headless entry point for CI or a local-LLM maintainer.
+
+```bash
+# Is Memo-Ray reachable? Show totals + the resolved endpoint:
+node space memory status
+
+# Trigger a delta-sync of agent logs:
+node space memory sync
+
+# Recent sessions (filter by agent, limit count):
+node space memory sessions --agent claude --limit 10
+
+# Search across sessions, files, and actions:
+node space memory search "lineage graph"
+
+# Run the integration conformance audit (exit 1 on drift):
+node space memory audit
+
+# Manage the endpoint with the standard config system:
+node space get MEMORAY_BASE_URL
+node space set MEMORAY_ENABLED=false
+```
+
+The integration is declared and signed in `manifests/integrations/memoray.integration.json`; `node space memory audit` (and `node scripts/audit-integrations.mjs`) probe live reality against it and report owner-tagged drift. See `manifests/integrations/AGENTS.md` for the agent maintenance loop.
+
+### 6g. AgentAmp skin packs
 
 AgentAmp is the skinnable operator cockpit. Skin packs (`.aamp` files) are signed zip bundles containing themes and layouts.
 

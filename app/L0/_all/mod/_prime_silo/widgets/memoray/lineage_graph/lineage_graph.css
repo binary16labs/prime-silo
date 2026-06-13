@@ -1,0 +1,54 @@
+/* Phase M1 — memoray.lineage_graph styles. */
+
+.mray-lg {
+  --mray-edge: rgba(170, 178, 184, 0.25);
+  --mray-text: #e8eaed;
+  --mray-text-3: #6b7378;
+  --mray-golden: #c4a882;
+  --mray-rust: #c47a6a;
+
+  display: block;
+  overflow: auto;
+  background: rgba(8, 12, 16, 0.4);
+  border-radius: 12px;
+  min-height: 260px;
+}
+
+.mray-lg__state {
+  padding: 2rem;
+  text-align: center;
+  color: var(--mray-text-3);
+}
+
+.mray-lg__error { color: var(--mray-rust); }
+
+.mray-lg__state code {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  background: rgba(196, 168, 130, 0.12);
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+  color: var(--mray-golden);
+}
+
+.mray-lg__svg { display: block; }
+
+.mray-lg__edge {
+  stroke: var(--mray-edge);
+  stroke-width: 1.2;
+}
+
+.mray-lg__node { cursor: pointer; outline: none; }
+.mray-lg__node:hover circle,
+.mray-lg__node:hover rect,
+.mray-lg__node:focus-visible circle,
+.mray-lg__node:focus-visible rect {
+  stroke: #ffffff;
+  stroke-width: 2;
+}
+
+.mray-lg__label {
+  fill: var(--mray-text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 10px;
+  pointer-events: none;
+}

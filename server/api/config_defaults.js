@@ -44,6 +44,27 @@ function sanitizeModelBlock(model) {
   return sanitized;
 }
 
+// Phase M1 — Memo-Ray block. Same whitelist contract as the model block:
+// only the two declared knobs are forwarded, never anything else that may
+// land in the manifest later. base_url is a localhost service address, not
+// secret material.
+function sanitizeMemorayBlock(memoray) {
+  if (!memoray || typeof memoray !== "object") {
+    return null;
+  }
+
+  const sanitized = {
+    enabled: memoray.enabled !== false
+  };
+
+  const baseUrl = String(memoray.base_url || "").trim();
+  if (baseUrl) {
+    sanitized.base_url = baseUrl;
+  }
+
+  return sanitized;
+}
+
 export async function get(context) {
   const manifestPath = path.join(context.projectRoot, CONFIG_MANIFEST_FILENAME);
 
@@ -70,12 +91,13 @@ export async function get(context) {
   }
 
   const model = sanitizeModelBlock(manifest?.model);
+  const memoray = sanitizeMemorayBlock(manifest?.memoray);
 
   if (!model) {
     return {
       headers: { "Cache-Control": "no-store" },
       status: 200,
-      body: { found: false }
+      body: memoray ? { found: false, memoray } : { found: false }
     };
   }
 
@@ -85,7 +107,8 @@ export async function get(context) {
     body: {
       found: true,
       schema: String(manifest.schema || ""),
-      model
+      model,
+      ...(memoray ? { memoray } : {})
     }
   };
 }

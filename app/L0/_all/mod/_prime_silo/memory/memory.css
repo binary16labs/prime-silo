@@ -1,0 +1,235 @@
+/* Phase M1 — memory page (#/_prime_silo/memory) styles. */
+
+.prime-silo-memory {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px;
+  min-height: 100%;
+  box-sizing: border-box;
+  background: var(--space-surface, #0e0e16);
+  color: var(--space-text, #eaeaea);
+}
+
+.prime-silo-memory__header { display: flex; flex-direction: column; gap: 4px; }
+.prime-silo-memory__eyebrow {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+.prime-silo-memory__title { margin: 0; font-size: 24px; font-weight: 600; }
+.prime-silo-memory__subtitle { margin: 0; font-size: 13px; opacity: 0.72; max-width: 70ch; }
+
+.prime-silo-memory__muted { opacity: 0.6; }
+
+/* conformance strip */
+.prime-silo-memory__conformance {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.prime-silo-memory__conformance-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: #6b7378;
+}
+.prime-silo-memory__conformance[data-status="pass"] .prime-silo-memory__conformance-dot { background: #9caf88; }
+.prime-silo-memory__conformance[data-status="drift"] .prime-silo-memory__conformance-dot { background: #c47a6a; }
+.prime-silo-memory__conformance code {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  background: rgba(196, 168, 130, 0.12);
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+}
+.prime-silo-memory__conformance-muted { opacity: 0.55; }
+
+/* notice screens (offline / disabled / error) */
+.prime-silo-memory__notice {
+  padding: 2rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  max-width: 560px;
+}
+.prime-silo-memory__notice--error { border-left: 3px solid #c47a6a; }
+.prime-silo-memory__notice h2 { margin: 0 0 0.6rem; font-size: 18px; }
+.prime-silo-memory__notice p { margin: 0 0 0.8rem; opacity: 0.8; line-height: 1.6; }
+.prime-silo-memory__notice pre {
+  background: rgba(0, 0, 0, 0.35);
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+.prime-silo-memory__notice code,
+.prime-silo-memory__notice pre code {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 0.85em;
+}
+
+/* toolbar */
+.prime-silo-memory__toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.prime-silo-memory__search { position: relative; flex: 1; min-width: 260px; }
+.prime-silo-memory__search input {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font: inherit;
+}
+.prime-silo-memory__search-results {
+  position: absolute;
+  top: 100%; left: 0; right: 0;
+  margin-top: 6px;
+  background: #151620;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  padding: 6px;
+  z-index: 20;
+  max-height: 320px;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+.prime-silo-memory__search-row {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.prime-silo-memory__search-row:hover { background: rgba(255, 255, 255, 0.06); }
+
+.prime-silo-memory__toolbar-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.prime-silo-memory__filter { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; opacity: 0.8; }
+.prime-silo-memory__filter select {
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font: inherit;
+}
+
+.prime-silo-memory__btn {
+  background: rgba(196, 168, 130, 0.16);
+  color: #e8d9bf;
+  border: 1px solid rgba(196, 168, 130, 0.4);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font: inherit;
+  cursor: pointer;
+}
+.prime-silo-memory__btn:hover { background: rgba(196, 168, 130, 0.26); }
+.prime-silo-memory__btn:disabled { opacity: 0.5; cursor: default; }
+
+.prime-silo-memory__link { color: #9caf88; text-decoration: none; font-size: 13px; }
+.prime-silo-memory__link:hover { text-decoration: underline; }
+
+.prime-silo-memory__body { display: flex; flex-direction: column; gap: 18px; }
+.prime-silo-memory__cards { display: block; }
+
+/* explorer: sessions | graph | inspector */
+.prime-silo-memory__explorer {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+.prime-silo-memory__explorer:has(.prime-silo-memory__inspector[style*="display: block"]),
+.prime-silo-memory__explorer:has(.prime-silo-memory__inspector:not([style*="display: none"])) {
+  grid-template-columns: 260px 1fr 320px;
+}
+
+.prime-silo-memory__sessions h3,
+.prime-silo-memory__inspector h3 {
+  margin: 0 0 10px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.6;
+}
+.prime-silo-memory__session-list { display: flex; flex-direction: column; gap: 6px; max-height: 540px; overflow-y: auto; }
+.prime-silo-memory__session-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.prime-silo-memory__session-item:hover { border-color: rgba(156, 175, 136, 0.5); }
+.prime-silo-memory__session-item.is-active { border-color: #9caf88; background: rgba(156, 175, 136, 0.1); }
+.prime-silo-memory__session-title {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.prime-silo-memory__session-sub { font-size: 11px; opacity: 0.55; }
+
+.prime-silo-memory__graph {
+  min-height: 360px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  overflow: auto;
+}
+
+.prime-silo-memory__inspector {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 16px;
+}
+.prime-silo-memory__inspector dl { margin: 0 0 12px; font-size: 12.5px; }
+.prime-silo-memory__inspector dt { opacity: 0.55; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; margin-top: 8px; }
+.prime-silo-memory__inspector dd { margin: 2px 0 0; }
+.prime-silo-memory__open {
+  margin-left: 8px;
+  background: rgba(156, 175, 136, 0.16);
+  border: 1px solid rgba(156, 175, 136, 0.4);
+  color: #cdd9c0;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.prime-silo-memory__content {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 11.5px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+@media (max-width: 980px) {
+  .prime-silo-memory__explorer { grid-template-columns: 1fr; }
+}

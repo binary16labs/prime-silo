@@ -105,6 +105,8 @@ Runtime resolution rules:
 - `CUSTOMWARE_GIT_HISTORY` enables optional adaptive-debounced per-owner local Git history repositories for writable `L1` and `L2` roots; it defaults to `true`
 - `GIT_BACKEND` defaults to `auto` and selects the backend used by server-owned Git flows such as local history and Git-backed module installs; `auto` keeps the default `native -> isomorphic` fallback order
 - `USER_FOLDER_SIZE_LIMIT_BYTES` sets an optional byte cap for each on-disk `L2/<user>/` folder; `0` disables the cap
+- `MEMORAY_ENABLED` is the master switch for the Memo-Ray memory-graph integration (shell proxy `/api/memoray`, the `#/_prime_silo/memory` page, the `memory-recall` skill, and `node space memory`); it defaults to `true` and is frontend-exposed
+- `MEMORAY_BASE_URL` is the Memo-Ray server the shell proxies to; it defaults to `http://127.0.0.1:3001`, and when it is left unset the wizard manifest `memoray.base_url` in `prime-silo.config.json` applies instead
 - short-lived `user` and `group` commands flush pending local-history commits before returning when `CUSTOMWARE_GIT_HISTORY` is enabled
 
 The `help` export should be complete enough that `node space help <command>` is useful without reading the code. Prefer accurate usage lines, concrete descriptions, explicit argument descriptions when position matters, and examples when the command shape is not obvious.
@@ -114,6 +116,7 @@ The `help` export should be complete enough that `node space help <command>` is 
 - `get`
 - `group`
 - `help`
+- `memory`
 - `serve`
 - `set`
 - `supervise`
@@ -125,7 +128,7 @@ The `help` export should be complete enough that `node space help <command>` is 
 
 There are two kinds of commands in this tree:
 
-- operational commands that control or inspect the local runtime: `serve`, `supervise`, `help`, `get`, `set`, `version`, `update`
+- operational commands that control or inspect the local runtime: `serve`, `supervise`, `help`, `get`, `set`, `version`, `update`, `memory`
 - state-management commands that edit layered runtime data under the logical app tree: `user` and `group`
 
 The preferred shape is a small number of readable top-level commands with explicit subcommands. Do not add one file per tiny action when a subcommand fits the existing command family cleanly.
@@ -295,6 +298,34 @@ Guidance:
 - delegate version resolution to `server/lib/utils/project_version.js` so CLI output and page-shell version display share one resolver
 - omit the `+0` suffix when HEAD is exactly on the latest tag; print the bare tag instead
 - avoid adding unrelated diagnostics here
+
+### `memory`
+
+Purpose:
+
+- inspect and maintain the Memo-Ray memory graph (the third graph of the cognitive mesh) from the terminal
+- expose the same capability as the shell page (`#/_prime_silo/memory`) and the onscreen-agent `memory-recall` skill, for terminal and headless/CI use
+
+Current subcommands:
+
+- `status` — resolve the endpoint and report reachability, node/session totals, and last sync
+- `sync` — trigger a delta-sync of agent logs
+- `sessions` — list recent sessions; `--agent claude|antigravity`, `--limit N`
+- `search <query>` — omnibar search across sessions, files, and actions
+- `audit` — run the integration conformance audit and exit non-zero on drift
+
+Current usage:
+
+- `node space memory status`
+- `node space memory sessions --agent claude --limit 10`
+- `node space memory search "lineage graph"`
+- `node space memory audit`
+
+Guidance:
+
+- delegate to the shared server libraries (`server/lib/memoray_proxy.js`, `server/lib/integration_audit.js`); do not re-implement settings resolution or audit logic in the command
+- resolve config through `commands/params.yaml` (`MEMORAY_ENABLED`, `MEMORAY_BASE_URL`) via the shared runtime-param resolver, then the wizard manifest — never hardcode the endpoint
+- `audit` is the headless/CI and local-LLM maintenance entry point; keep its exit code meaningful (0 pass, 1 drift)
 
 ### `update`
 

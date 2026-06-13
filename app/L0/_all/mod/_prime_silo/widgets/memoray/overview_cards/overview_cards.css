@@ -1,0 +1,231 @@
+/* Phase M1 — memoray.overview_cards (Command Center) styles.
+ *
+ * Memo-Ray's organic palette is declared as widget-scoped custom properties
+ * so the widget composes with the shell theme without leaking globals (the
+ * React original used a global index.css; here the palette lives on .mray-oc). */
+
+.mray-oc {
+  --mray-sage: #9caf88;
+  --mray-moss: #6b8068;
+  --mray-taupe: #c4a882;
+  --mray-slate: #8a9aa4;
+  --mray-golden: #c4a882;
+  --mray-rust: #c47a6a;
+  --mray-bg-deep: rgba(8, 12, 16, 0.6);
+  --mray-bg-card: rgba(255, 255, 255, 0.03);
+  --mray-border: rgba(255, 255, 255, 0.08);
+  --mray-text: #e8eaed;
+  --mray-text-2: #aab2b8;
+  --mray-text-3: #6b7378;
+
+  display: block;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--mray-text);
+}
+
+.mray-oc__state {
+  padding: 2rem;
+  text-align: center;
+}
+
+.mray-oc__loading { color: var(--mray-text-2); }
+
+.mray-oc__offline,
+.mray-oc__error {
+  display: inline-block;
+  padding: 1rem 1.4rem;
+  border-radius: 10px;
+  background: var(--mray-bg-card);
+  border: 1px solid var(--mray-border);
+  color: var(--mray-text-2);
+  line-height: 1.6;
+}
+
+.mray-oc__error {
+  border-left: 3px solid var(--mray-rust);
+}
+
+.mray-oc__offline code,
+.mray-oc__error code {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  background: rgba(196, 168, 130, 0.12);
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+  color: var(--mray-golden);
+}
+
+.mray-oc__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+.mray-oc__card {
+  background: var(--mray-bg-card);
+  border: 1px solid var(--mray-border);
+  border-radius: 14px;
+  padding: 1.5rem;
+}
+
+.mray-oc__card--full { grid-column: 1 / -1; }
+.mray-oc__card--span1 { grid-column: span 1; }
+.mray-oc__card--span2 { grid-column: span 2; }
+
+@media (max-width: 760px) {
+  .mray-oc__card--span2 { grid-column: 1 / -1; }
+}
+
+.mray-oc__card-title {
+  margin: 0 0 1.25rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--mray-text-3);
+}
+
+.mray-oc__card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.mray-oc__muted { color: var(--mray-text-3); }
+
+.mray-oc__mono { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
+
+.mray-oc__accent-sage { color: var(--mray-sage); }
+.mray-oc__accent-taupe { color: var(--mray-taupe); }
+.mray-oc__accent-golden { color: var(--mray-golden); }
+.mray-oc__accent-slate { color: var(--mray-slate); }
+.mray-oc__accent-rust { color: var(--mray-rust); }
+
+/* meters */
+.mray-oc__meter-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+  font-size: 0.95rem;
+}
+.mray-oc__bar {
+  background: var(--mray-bg-deep);
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.mray-oc__bar-fill { height: 100%; transition: width 0.4s ease; }
+.mray-oc__fill-sage { background: var(--mray-sage); }
+.mray-oc__fill-taupe { background: var(--mray-taupe); }
+.mray-oc__net {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid var(--mray-border);
+  padding-top: 1rem;
+  font-size: 0.9rem;
+  color: var(--mray-text-2);
+}
+
+/* processes */
+.mray-oc__proc {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--mray-bg-deep);
+  padding: 0.7rem 0.9rem;
+  border-radius: 8px;
+}
+.mray-oc__proc-stats { color: var(--mray-text-2); font-size: 0.85rem; }
+
+/* stats */
+.mray-oc__stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.mray-oc__stat span { color: var(--mray-text-2); }
+.mray-oc__stat strong { font-size: 1.8rem; font-weight: 300; }
+
+/* capabilities */
+.mray-oc__caps { display: flex; gap: 2.5rem; flex-wrap: wrap; }
+.mray-oc__caps-col { flex: 1; min-width: 200px; }
+.mray-oc__caps-col h4 {
+  margin: 0 0 0.8rem;
+  font-size: 0.9rem;
+}
+.mray-oc__chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.mray-oc__chip {
+  background: var(--mray-bg-deep);
+  border: 1px solid var(--mray-border);
+  padding: 0.4rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+.mray-oc__chip--stack { display: flex; flex-direction: column; gap: 0.15rem; }
+.mray-oc__chip-sub { font-size: 0.72rem; color: var(--mray-text-3); }
+.mray-oc__chip-tag {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--mray-moss);
+}
+
+/* worktrees */
+.mray-oc__scroll { display: flex; flex-direction: column; gap: 0.8rem; max-height: 300px; overflow-y: auto; }
+.mray-oc__wt {
+  background: var(--mray-bg-deep);
+  padding: 0.9rem;
+  border-radius: 10px;
+  border-left: 3px solid var(--mray-golden);
+}
+.mray-oc__wt-branch { font-weight: 500; margin-bottom: 0.2rem; }
+.mray-oc__wt-repo { color: var(--mray-text-2); font-size: 0.85rem; margin-bottom: 0.4rem; }
+.mray-oc__wt-meta { color: var(--mray-text-3); font-size: 0.75rem; }
+
+/* heatmap */
+.mray-oc__heat-row { display: flex; align-items: center; gap: 1rem; }
+.mray-oc__heat-rank { width: 22px; color: var(--mray-text-3); font-size: 0.8rem; text-align: right; }
+.mray-oc__heat-bar {
+  flex: 1;
+  position: relative;
+  background: var(--mray-bg-deep);
+  height: 28px;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+.mray-oc__heat-fill { position: absolute; left: 0; top: 0; bottom: 0; transition: width 1s ease-out; }
+.mray-oc__heat-fill--claude { background: rgba(196, 168, 130, 0.22); }
+.mray-oc__heat-fill--anti { background: rgba(138, 154, 164, 0.22); }
+.mray-oc__heat-label {
+  position: relative;
+  z-index: 1;
+  padding-left: 0.8rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mray-oc__heat-count { width: 44px; text-align: right; font-weight: 600; font-size: 0.85rem; }
+
+/* recent sessions */
+.mray-oc__session {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  background: var(--mray-bg-deep);
+  padding: 1.1rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  transition: border-color 0.2s;
+}
+.mray-oc__session:hover { border-color: var(--mray-sage); }
+.mray-oc__session-main { display: flex; flex-direction: column; gap: 0.3rem; }
+.mray-oc__session-title { font-size: 1.05rem; }
+.mray-oc__session-proj { color: var(--mray-text-3); font-size: 0.85rem; }
+.mray-oc__session-meta { display: flex; flex-direction: column; gap: 0.3rem; text-align: right; color: var(--mray-text-2); font-size: 0.85rem; }

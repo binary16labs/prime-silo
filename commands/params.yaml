@@ -78,6 +78,18 @@ GIT_URL:
   allowed: ["*"]
   default: ""
   frontend_exposed: false
+MEMORAY_ENABLED:
+  description: Enable the Memo-Ray memory-graph integration (shell proxy at /api/memoray, the memory page, the memory-recall agent skill, and node space memory).
+  type: boolean
+  allowed: [true, false]
+  default: true
+  frontend_exposed: true
+MEMORAY_BASE_URL:
+  description: Base URL of the Memo-Ray server the shell proxies to. The wizard manifest memoray.base_url applies when this parameter is not set.
+  type: text
+  allowed: ["/^https?:\\/\\/.+$/"]
+  default: http://127.0.0.1:3001
+  frontend_exposed: false
 USER_FOLDER_SIZE_LIMIT_BYTES:
   description: Maximum on-disk size in bytes for each L2 user folder. Set to 0 to disable the limit.
   type: number

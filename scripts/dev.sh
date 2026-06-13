@@ -35,5 +35,30 @@ SHELL_PID=$!
 echo "  runtime PID = ${RUNTIME_PID}"
 echo "  shell   PID = ${SHELL_PID}"
 
-trap 'kill ${RUNTIME_PID} ${SHELL_PID} 2>/dev/null || true' EXIT INT TERM
-wait -n ${RUNTIME_PID} ${SHELL_PID}
+PIDS="${RUNTIME_PID} ${SHELL_PID}"
+
+# Memo-Ray memory graph (Phase M1) — auto-boot the server when enabled and the
+# checkout exists, so the in-shell page at #/_prime_silo/memory works from one
+# command. MEMORAY_ENABLED=false skips it.
+if [[ "${MEMORAY_ENABLED:-true}" != "false" ]]; then
+    MEMORAY_DIR_RESOLVED="${MEMORAY_DIR:-$(cd "${ROOT}/.." && pwd)/memo-ray}"
+    MEMORAY_SERVER_DIR="${MEMORAY_DIR_RESOLVED}/agent-os-dashboard/server"
+    if [[ -d "${MEMORAY_SERVER_DIR}" ]]; then
+        if [[ ! -d "${MEMORAY_SERVER_DIR}/node_modules" ]]; then
+            echo "▸ npm install (memo-ray server)"
+            ( cd "${MEMORAY_SERVER_DIR}" && npm install )
+        fi
+        ( cd "${MEMORAY_SERVER_DIR}" && node index.js ) &
+        MEMORAY_PID=$!
+        PIDS="${PIDS} ${MEMORAY_PID}"
+        echo "  memoray PID = ${MEMORAY_PID} (server :3001 — page at /#/_prime_silo/memory)"
+    else
+        echo "  memo-ray not found at '${MEMORAY_DIR_RESOLVED}' — memory page will show an offline screen."
+        echo "  Clone https://github.com/binary16labs/memo-ray beside prime-silo (or set MEMORAY_DIR), then run scripts/memoray.sh."
+    fi
+fi
+
+# shellcheck disable=SC2086
+trap 'kill ${PIDS} 2>/dev/null || true' EXIT INT TERM
+# shellcheck disable=SC2086
+wait -n ${PIDS}
