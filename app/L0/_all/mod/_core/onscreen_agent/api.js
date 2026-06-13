@@ -336,7 +336,24 @@ return await space.current.renderWidget({
   }
 })
 
-Example 3 (read file):
+Example 3 (save layout view):
+Saving the layout view now...
+_____javascript
+const { createAgentRuntimeClient } = await import("/mod/_prime_silo/runtime_client/runtime-client.js");
+const client = createAgentRuntimeClient("sandbox");
+return await client.saveView("cmr_demo", "risk-analysis.aamp.view", {
+  schema: "aamp.view/1",
+  panels: [
+    {
+      widget: "run.drilldown_table",
+      run_id: "73d2a5dddb64",
+      step_id: "gold_counterparty_exposure",
+      workspace: "cmr_demo"
+    }
+  ]
+})
+
+Example 4 (read file):
 Reading file now...
 _____javascript
 return await space.api.fileRead("~/contacts.yaml", "utf8")
