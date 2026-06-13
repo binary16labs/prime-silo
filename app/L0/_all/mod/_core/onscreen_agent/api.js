@@ -397,6 +397,8 @@ Standard widgets to import and mount inside the renderWidget's renderer function
 - run.frame_inspector: import { createFrameInspectorWidget } from "/mod/_prime_silo/widgets/run/frame_inspector/index.js" (props: { run_id, step_id, workspace })
 - run.reasoning_trace: import { createReasoningTraceWidget } from "/mod/_prime_silo/widgets/run/reasoning_trace/index.js" (props: { run_id, step_id, workspace })
 
+If a JavaScript execution completes successfully (for example, space.spaces.openSpace, space.current.renderWidget, or space.api.fileWrite returns success or completed with no errors), you MUST respond with "Done." and stop. Do not re-execute the code, loop, or repeat the command.
+
 If no browser/space action is required, answer directly in prose. Always output the separator "_____javascript" on its own line when running code.`;
 
 function isLocalModelEndpoint(url) {
