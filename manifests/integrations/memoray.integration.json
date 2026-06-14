@@ -518,6 +518,6 @@
   "signature": {
     "algorithm": "HMAC-SHA256",
     "value": "8a1fcbb16f4d3e421d3b11999e0dcf11664a3fd42dd272c4d386731ddaf72fab",
-    "signed_at": "2026-06-13T16:36:10.354Z"
+    "signed_at": "2026-06-14T06:44:35.435Z"
   }
 }

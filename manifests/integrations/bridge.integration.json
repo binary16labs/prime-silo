@@ -326,6 +326,20 @@
       }
     },
     {
+      "id": "project_skill",
+      "kind": "skill",
+      "produces": "project-guide onscreen-agent skill (catalog-loaded) - answers anything about the Benny/prime-silo project, its workflows, and where things live",
+      "consumes": [
+        "graph_code",
+        "workspaces",
+        "manifests_runs"
+      ],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "app/L0/_all/mod/_prime_silo/bridge/ext/skills/project-guide/SKILL.md"
+      }
+    },
+    {
       "id": "cli_bridge",
       "kind": "cli",
       "produces": "node space bridge <status|plan|run|ingest|open>",
@@ -338,6 +352,19 @@
       "owner": {
         "repo": "prime-silo",
         "path": "commands/bridge.js"
+      }
+    },
+    {
+      "id": "demo_seed",
+      "kind": "script",
+      "produces": "scripts/seed-demo.ps1 / .sh - loads prime-silo's own code + docs into the prime_silo_self workspace so the agent can talk about the codebase",
+      "consumes": [
+        "workspaces",
+        "rag_ingest"
+      ],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "scripts/seed-demo.ps1"
       }
     },
     {
@@ -384,7 +411,7 @@
   },
   "signature": {
     "algorithm": "HMAC-SHA256",
-    "value": "2084738439c7a8827681101bd6c6e6d5d0ea6ff737d148096c62ca0d53d71b90",
-    "signed_at": "2026-06-13T16:36:10.352Z"
+    "value": "c45ba5e0b55c9f4986cc5a13bc3d69c6cb83a90ab1ca988aadb3ad82edc76593",
+    "signed_at": "2026-06-14T06:44:35.433Z"
   }
 }

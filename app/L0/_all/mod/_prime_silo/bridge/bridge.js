@@ -50,6 +50,7 @@ export const MODES = [
 // bridge-context appends the live mode/selection/workspace before dispatch.
 export const CHIPS = {
   pulse: [
+    { label: "Tour this project", instruction: "Give me a tour of this project: what Benny is, the workflows I have, and where to start. Load the project-guide skill." },
     { label: "What did I work on?", instruction: "Summarise what I worked on most recently across my agent sessions and git activity." },
     { label: "Is the mesh healthy?", instruction: "Check the integration conformance and tell me if anything has drifted, with the owner file to fix." }
   ],
