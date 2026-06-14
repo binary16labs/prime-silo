@@ -117,6 +117,8 @@
 .ps-bridge__stage {
   flex: 1;
   display: flex; flex-direction: column; gap: 12px; min-width: 0;
+  min-height: 0; /* let flex shrink past content height so graphs don't overflow */
+  overflow: hidden; /* clip any stray overflow before it reaches the viewport */
   padding: 14px 260px 14px 200px;
   background: transparent;
   border: none;
@@ -164,13 +166,17 @@
 .ps-bridge__list-title { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ps-bridge__list-sub { font-size: 11px; color: var(--ps-muted); }
 
-/* graph hosts */
+/* graph hosts — overflow:hidden because the SVG/WebGL canvas self-scales
+   via viewBox (2D) or 3d-force-graph's resize handler (3D); scrollbars are
+   never needed or wanted here. */
 .ps-bridge__graph {
-  min-height: 320px; flex: 1;
-  border: 1px solid var(--ps-border); border-radius: 10px; overflow: auto;
+  min-height: 200px; flex: 1;
+  border: 1px solid var(--ps-border); border-radius: 10px; overflow: hidden;
   background: rgba(0, 0, 0, 0.18);
 }
-.ps-bridge__graph--tall { min-height: 460px; }
+/* --tall no longer needed; flex:1 fills the available space. Kept as a no-op
+   so any external references don't error. */
+.ps-bridge__graph--tall { }
 .ps-bridge__graph-wrap { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; min-height: 0; }
 .ps-bridge__graph-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 12px; }
 .ps-bridge__graph-head-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }

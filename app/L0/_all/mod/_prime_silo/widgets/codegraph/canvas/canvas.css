@@ -8,7 +8,10 @@
   background: #020408;
   border-radius: 8px;
   padding: 0.5rem;
-  overflow: auto;
+  /* Fill the flex host so the SVG has a definite bounding box to scale into. */
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .prime-silo-cg[data-widget-state="loading"] .prime-silo-cg__loading,
@@ -47,7 +50,14 @@
 }
 
 .prime-silo-cg__svg {
+  /* Override the SVG presentation attributes (width="NNN" height="MMM") that
+     the widget emits for every layout. CSS stylesheet rules beat presentation
+     attributes. Combined with the viewBox, the browser applies the default
+     preserveAspectRatio="xMidYMid meet": the full graph is always visible,
+     centered, with no scrollbars regardless of how many nodes there are. */
   display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .prime-silo-cg__band-label {

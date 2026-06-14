@@ -8,7 +8,9 @@
   background: #020408;
   border-radius: 8px;
   padding: 0.5rem;
-  overflow: auto;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .prime-silo-kg[data-widget-state="loading"] .prime-silo-kg__loading,
@@ -48,6 +50,8 @@
 
 .prime-silo-kg__svg {
   display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .prime-silo-kg__layer-guide {
