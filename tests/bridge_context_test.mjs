@@ -21,6 +21,7 @@ async function main() {
   testDeepLink();
   testDescribeContext();
   testComposePromptGroundsAndPointsAtSkill();
+  testComposePromptIncludesLiveData();
   testCreatePublishesSnapshot();
   await testDispatchRoutesToAgent();
   await testDispatchAgentUnavailable();
@@ -52,9 +53,22 @@ function testComposePromptGroundsAndPointsAtSkill() {
   assert.match(prompt, /mode: code/);
   assert.match(prompt, /#\/_prime_silo\/bridge\?mode=code&id=n1/);
   assert.ok(prompt.includes(__testing.SKILL_IMPORT), "prompt includes the benny-pilot import path");
-  // Prompt must say the skill IS loaded — not ask Benny to load it.
+  // Skill must be declared loaded — not ask Benny to load it.
   assert.match(prompt, /is loaded/);
   assert.ok(!prompt.includes("space.skills.load"), "prompt must not ask Benny to call space.skills.load");
+  // Must instruct Benny to answer from real data, not hypothetically.
+  assert.match(prompt, /not hypothetically/);
+}
+
+function testComposePromptIncludesLiveData() {
+  const liveData = 'Code graph (workspace "ws"): 42 nodes (15 File, 12 Class, 15 Function), 89 edges. No node selected.';
+  const prompt = composePrompt("Explain this graph", { mode: "code", workspace: "ws" }, liveData);
+  assert.match(prompt, /Live data:/);
+  assert.match(prompt, /42 nodes/);
+  assert.match(prompt, /89 edges/);
+  // Without liveData the Live data line must be absent.
+  const promptNoData = composePrompt("Explain this graph", { mode: "code", workspace: "ws" });
+  assert.ok(!promptNoData.includes("Live data:"), "no Live data line when liveData is null");
 }
 
 function testCreatePublishesSnapshot() {
