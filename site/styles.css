@@ -4,27 +4,28 @@
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
-  --bg-0: #05060d;
-  --bg-1: #0a0c18;
-  --bg-2: #10132a;
-  --glass: rgba(18, 22, 48, 0.55);
-  --glass-brd: rgba(120, 140, 255, 0.14);
-  --ink: #e8ecff;
-  --ink-dim: #8a93c4;
-  --ink-faint: #555e8c;
-  --cyan: #38e8ff;
-  --violet: #8b5cf6;
-  --magenta: #f472b6;
-  --lime: #a3e635;
-  --amber: #fbbf24;
-  --red: #f87171;
+  /* Memo-Ray Earth Tones Mapped */
+  --bg-0: #151816;
+  --bg-1: #1a1d1b;
+  --bg-2: #222624;
+  --glass: rgba(26, 29, 27, 0.55);
+  --glass-brd: rgba(139, 156, 139, 0.14);
+  --ink: #e8ece9;
+  --ink-dim: #a4b3a8;
+  --ink-faint: #6b7c70;
+  --cyan: #8b9c8b;   /* sage */
+  --violet: #6a8a6a; /* moss */
+  --magenta: #c4a882;/* golden */
+  --lime: #8b9c8b;   /* sage for success */
+  --amber: #c4a882;  /* taupe for warn */
+  --red: #c47a6a;    /* rust for error */
   --grad-hot: linear-gradient(135deg, var(--cyan), var(--violet) 60%, var(--magenta));
-  --font-display: "Space Grotesk", system-ui, -apple-system, sans-serif;
+  --font-display: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
   --r-lg: 22px;
   --r-md: 14px;
   --r-sm: 9px;
-  --shadow-glow: 0 0 40px rgba(56, 232, 255, 0.12), 0 24px 60px rgba(0, 0, 0, 0.55);
+  --shadow-glow: 0 0 40px rgba(139, 156, 139, 0.12), 0 24px 60px rgba(0, 0, 0, 0.55);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -38,8 +39,8 @@ body {
   line-height: 1.6;
   overflow-x: hidden;
   background-image:
-    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(139, 92, 246, 0.13), transparent),
-    radial-gradient(ellipse 60% 40% at 90% 10%, rgba(56, 232, 255, 0.08), transparent);
+    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(139, 156, 139, 0.13), transparent), /* sage */
+    radial-gradient(ellipse 60% 40% at 90% 10%, rgba(184, 168, 152, 0.08), transparent); /* taupe */
 }
 
 code, pre { font-family: var(--font-mono); font-size: 0.86em; }
@@ -202,10 +203,10 @@ button { font-family: inherit; cursor: pointer; }
 .section-dark {
   max-width: none;
   background:
-    radial-gradient(ellipse 70% 60% at 50% 0%, rgba(139, 92, 246, 0.07), transparent),
+    radial-gradient(ellipse 70% 60% at 50% 0%, rgba(139, 156, 139, 0.07), transparent), /* sage */
     var(--bg-1);
-  border-top: 1px solid rgba(120, 140, 255, 0.08);
-  border-bottom: 1px solid rgba(120, 140, 255, 0.08);
+  border-top: 1px solid rgba(139, 156, 139, 0.08); /* sage */
+  border-bottom: 1px solid rgba(139, 156, 139, 0.08);
 }
 .section-dark > * { max-width: 1240px; margin-left: auto; margin-right: auto; }
 .section-head { text-align: center; margin-bottom: 3.6rem; }

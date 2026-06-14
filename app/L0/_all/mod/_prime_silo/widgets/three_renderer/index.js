@@ -83,7 +83,7 @@ function escapeHtml(text) {
  * Convert a widget layout (kg3d or codegraph shape) into the 3d-force-graph
  * `{ nodes, links }` payload. Exported for testing.
  */
-export function layoutToGraphData(layout) {
+export function layoutToGraphData(layout, physicsMode = "pinned") {
   const positions = layout && typeof layout === "object" && layout.positions
     ? layout.positions
     : {};
@@ -99,11 +99,17 @@ export function layoutToGraphData(layout) {
       // the same way under both renderers.
       val: typeof safe.radius === "number" ? safe.radius : 1
     };
-    // Seed the force layout with the SVG-layout coordinates. fx/fy pin the
-    // initial X/Y; the 3D solver then settles Z. This keeps the visual
-    // grouping (AoT layers / type bands) recognisable between renderers.
-    if (typeof safe.x === "number") node.fx = safe.x;
-    if (typeof safe.y === "number") node.fy = safe.y;
+    // Seed the force layout with the SVG-layout coordinates.
+    // If physicsMode is "pinned", we fix/pin the X and Y coordinates.
+    // Otherwise (if "fluid"), we only set node.x and node.y as initial seeding
+    // values and let the 3D solver move them.
+    if (physicsMode === "pinned") {
+      if (typeof safe.x === "number") node.fx = safe.x;
+      if (typeof safe.y === "number") node.fy = safe.y;
+    } else {
+      if (typeof safe.x === "number") node.x = safe.x;
+      if (typeof safe.y === "number") node.y = safe.y;
+    }
     if (safe.layer != null) node.layer = safe.layer;
     if (safe.type != null) node.type = safe.type;
     // Stash the original node payload so renderer-specific hover/click
@@ -166,6 +172,9 @@ export function createThreeRenderer(options = {}) {
   const onNodeClick = typeof options.onNodeClick === "function"
     ? options.onNodeClick
     : null;
+  const physicsMode = typeof options.physicsMode === "string"
+    ? options.physicsMode
+    : "pinned";
 
   function mount(host, layout, props) {
     if (!host || typeof host.querySelector !== "function") {
@@ -185,7 +194,14 @@ export function createThreeRenderer(options = {}) {
 
     function applyData() {
       if (state.disposed || !state.instance) return;
-      const data = layoutToGraphData(state.pending.layout);
+      const data = layoutToGraphData(state.pending.layout, physicsMode);
+      if (physicsMode === "fluid") {
+        for (const node of data.nodes) {
+          if (node.layer != null) {
+            node.fy = (5 - node.layer) * 50;
+          }
+        }
+      }
       state.instance.graphData(data);
     }
 

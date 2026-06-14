@@ -19,10 +19,8 @@ if ! curl -fsS -H "${HDR}" "${RUNTIME}/api/workspaces" >/dev/null 2>&1; then
 fi
 
 # 1. workspace (ignore 'already exists')
-curl -fsS -X POST -H "${HDR}" "${RUNTIME}/api/workspaces/${WS}" >/dev/null 2>&1 \
-    && echo "  created workspace" || echo "  workspace already exists (reusing)"
-
-WS_PATH="${BENNY_HOME}/workspaces/${WS}"
+WS_RESPONSE=$(curl -fsS -X POST -H "${HDR}" "${RUNTIME}/api/workspaces/${WS}")
+WS_PATH=$(echo "$WS_RESPONSE" | python3 -c "import sys, json; print(json.load(sys.stdin)['path'])" 2>/dev/null || echo "$WS_RESPONSE" | python -c "import sys, json; print(json.load(sys.stdin)['path'])")
 mkdir -p "${WS_PATH}/src" "${WS_PATH}/data_in"
 
 # 2. copy prime-silo source (no node_modules)

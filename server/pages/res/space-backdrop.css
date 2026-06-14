@@ -91,7 +91,7 @@ body.space-theme-canvas::before {
       at
       calc(1300px * var(--space-backdrop-scale))
       calc(770px * var(--space-backdrop-scale)),
-      rgba(118, 241, 186, 0.13) 0%,
+      rgba(156, 175, 136, 0.13) 0%, /* sage */
       transparent 76%
     ),
     radial-gradient(
@@ -100,7 +100,7 @@ body.space-theme-canvas::before {
       at
       calc(500px * var(--space-backdrop-scale))
       calc(540px * var(--space-backdrop-scale)),
-      rgba(148, 188, 255, 0.16) 0%,
+      rgba(196, 168, 130, 0.14) 0%, /* gold/taupe */
       transparent 74%
     ),
     radial-gradient(
@@ -109,7 +109,7 @@ body.space-theme-canvas::before {
       at
       calc(2100px * var(--space-backdrop-scale))
       calc(500px * var(--space-backdrop-scale)),
-      rgba(121, 237, 216, 0.11) 0%,
+      rgba(139, 156, 139, 0.12) 0%, /* sage soft */
       transparent 74%
     ),
     radial-gradient(
@@ -118,7 +118,7 @@ body.space-theme-canvas::before {
       at
       calc(1300px * var(--space-backdrop-scale))
       calc(1320px * var(--space-backdrop-scale)),
-      rgba(59, 95, 172, 0.22) 0%,
+      rgba(107, 124, 112, 0.16) 0%, /* moss/slate deep */
       transparent 76%
     );
   background-repeat: no-repeat;
@@ -233,7 +233,7 @@ body.space-theme-canvas::before {
     90deg,
     rgba(255, 255, 255, 0) 0%,
     rgba(255, 255, 255, 0.03) 28%,
-    rgba(148, 188, 255, 0.18) 56%,
+    rgba(196, 168, 130, 0.18) 56%, /* gold */
     rgba(255, 255, 255, 0.96) 100%
   );
   transform-origin: right center;

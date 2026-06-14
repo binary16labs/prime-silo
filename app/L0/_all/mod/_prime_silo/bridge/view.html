@@ -3,7 +3,7 @@
     <link rel="stylesheet" href="/mod/_prime_silo/widgets/memoray/overview_cards/overview_cards.css" />
     <link rel="stylesheet" href="/mod/_prime_silo/widgets/memoray/lineage_graph/lineage_graph.css" />
     <link rel="stylesheet" href="/mod/_prime_silo/widgets/three_renderer/renderer.css" />
-    <link rel="stylesheet" href="/mod/_prime_silo/bridge/bridge.css" />
+    <link rel="stylesheet" href="/mod/_prime_silo/bridge/bridge.css?v=2" />
     <script type="module" src="/mod/_prime_silo/bridge/bridge.js"></script>
   </head>
   <body>
@@ -143,7 +143,17 @@
               <div class="ps-bridge__graph-wrap">
                 <div class="ps-bridge__graph-head">
                   <span class="ps-bridge__muted">Knowledge graph — semantic triples</span>
-                  <button type="button" class="ps-bridge__toggle" @click="toggleDocs3d()" x-text="docs3d ? '2D' : '3D'"></button>
+                  <div style="display: flex; gap: 8px; align-items: center;">
+                    <button
+                      type="button"
+                      class="ps-bridge__toggle"
+                      :class="{ 'ps-bridge__toggle--active': docsPhysics === 'fluid' }"
+                      x-show="docs3d"
+                      @click="toggleDocsPhysics()"
+                      x-text="docsPhysics === 'fluid' ? 'Fluid (Classic Benny)' : 'Rigid'"
+                    ></button>
+                    <button type="button" class="ps-bridge__toggle" @click="toggleDocs3d()" x-text="docs3d ? '2D' : '3D'"></button>
+                  </div>
                 </div>
                 <div class="ps-bridge__graph" x-ref="docsGraph"></div>
               </div>
@@ -154,7 +164,17 @@
           <div class="ps-bridge__panel" x-show="mode === 'code'">
             <div class="ps-bridge__graph-head">
               <span class="ps-bridge__muted">Code graph — Tree-Sitter AST · workspace <span x-text="workspace"></span></span>
-              <button type="button" class="ps-bridge__toggle" @click="toggleCode3d()" x-text="code3d ? '2D' : '3D'"></button>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <button
+                  type="button"
+                  class="ps-bridge__toggle"
+                  :class="{ 'ps-bridge__toggle--active': codePhysics === 'fluid' }"
+                  x-show="code3d"
+                  @click="toggleCodePhysics()"
+                  x-text="codePhysics === 'fluid' ? 'Fluid (Classic Benny)' : 'Rigid'"
+                ></button>
+                <button type="button" class="ps-bridge__toggle" @click="toggleCode3d()" x-text="code3d ? '2D' : '3D'"></button>
+              </div>
             </div>
             <div class="ps-bridge__graph ps-bridge__graph--tall" x-ref="codeGraph"></div>
           </div>

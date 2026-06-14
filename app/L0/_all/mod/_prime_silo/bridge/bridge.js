@@ -160,9 +160,11 @@ export function createBridgePage(options = {}) {
     ingesting: false,
     ingestNote: "",
     docs3d: false,
+    docsPhysics: "pinned",
 
     // code
     code3d: false,
+    codePhysics: "pinned",
 
     // flows
     requirement: "",
@@ -356,10 +358,15 @@ export function createBridgePage(options = {}) {
       this.track(createSynopticWebWidget(host, {
         workspace: this.workspace,
         onSelect: (id) => this.onNodeSelect(id)
-      }, this.docs3d ? { renderer: this.makeThreeRenderer() } : {}));
+      }, this.docs3d ? { renderer: this.makeThreeRenderer(this.docsPhysics) } : {}));
     },
 
     toggleDocs3d() { this.docs3d = !this.docs3d; this.mountKnowledgeGraph(); },
+
+    toggleDocsPhysics() {
+      this.docsPhysics = this.docsPhysics === "pinned" ? "fluid" : "pinned";
+      this.mountKnowledgeGraph();
+    },
 
     async loadFiles() {
       try {
@@ -415,14 +422,21 @@ export function createBridgePage(options = {}) {
         workspace: this.workspace,
         selectedNodeId: this.selection ? this.selection.id : "",
         onSelect: (id) => this.onNodeSelect(id)
-      }, this.code3d ? { renderer: this.makeThreeRenderer() } : {}));
+      }, this.code3d ? { renderer: this.makeThreeRenderer(this.codePhysics) } : {}));
     },
 
     toggleCode3d() { this.code3d = !this.code3d; this.destroyWidgets(); this.mountCode(); },
 
-    makeThreeRenderer() {
+    toggleCodePhysics() {
+      this.codePhysics = this.codePhysics === "pinned" ? "fluid" : "pinned";
+      this.destroyWidgets();
+      this.mountCode();
+    },
+
+    makeThreeRenderer(physicsMode = "pinned") {
       return createThreeRenderer({
         backgroundColor: "#14150f",
+        physicsMode,
         onNodeClick: (id) => this.onNodeSelect(id)
       });
     },

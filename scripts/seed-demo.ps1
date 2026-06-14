@@ -26,15 +26,15 @@ try {
     Write-Error "Benny runtime not reachable at $runtime. Start the stack first: .\scripts\dev.ps1"
 }
 
-# 1. Create the workspace (ignore 'already exists').
+# 1. Create/Retrieve the workspace and get its absolute path.
 try {
-    Invoke-RestMethod -Method Post -Uri "$runtime/api/workspaces/$ws" -Headers $headers -ErrorAction Stop | Out-Null
-    Write-Host "  created workspace"
+    $wsInfo = Invoke-RestMethod -Method Post -Uri "$runtime/api/workspaces/$ws" -Headers $headers -ErrorAction Stop
+    $wsPath = $wsInfo.path
+    Write-Host "  workspace path: $wsPath"
 } catch {
-    Write-Host "  workspace already exists (reusing)"
+    Write-Error "Failed to create/retrieve workspace: $($_.Exception.Message)"
 }
 
-$wsPath = Join-Path $bennyHome "workspaces\$ws"
 $srcPath = Join-Path $wsPath "src"
 $dataIn  = Join-Path $wsPath "data_in"
 New-Item -ItemType Directory -Force -Path $srcPath | Out-Null

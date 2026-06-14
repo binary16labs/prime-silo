@@ -17,7 +17,14 @@ fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RUNTIME_DIR="${ROOT}/runtime"
-export BENNY_HOME="${ROOT}/.benny_home"
+
+if [[ -z "${BENNY_HOME:-}" ]]; then
+    export BENNY_HOME="${ROOT}/.benny_home"
+else
+    if [[ "$BENNY_HOME" != /* ]]; then
+        export BENNY_HOME="${ROOT}/${BENNY_HOME}"
+    fi
+fi
 mkdir -p "${BENNY_HOME}"
 
 echo "▸ Prime-Silo dev launcher"

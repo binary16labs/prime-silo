@@ -15,7 +15,7 @@
 function createWarpField(canvas, opts = {}) {
   const ctx = canvas.getContext("2d");
   const COUNT = opts.count || 220;
-  const BASE_SPEED = opts.speed || 0.6;
+  const BASE_SPEED = opts.speed || 0.15; // Muted speed for zen feel
   let speed = BASE_SPEED;
   let targetSpeed = BASE_SPEED;
   let w = 0, h = 0, cx = 0, cy = 0;
@@ -30,13 +30,24 @@ function createWarpField(canvas, opts = {}) {
     cx = w / 2; cy = h / 2;
   }
 
+  // Predefined organic Memo-Ray earth tone HSL settings
+  const PALETTE = [
+    { h: 120, s: "11%", l: "62%" }, // Sage
+    { h: 120, s: "14%", l: "48%" }, // Moss
+    { h: 35,  s: "22%", l: "64%" }, // Gold/Taupe
+    { h: 200, s: "10%", l: "60%" }  // Slate
+  ];
+
   function spawn(initial) {
+    const color = PALETTE[Math.floor(Math.random() * PALETTE.length)];
     return {
       x: (Math.random() - 0.5) * w,
       y: (Math.random() - 0.5) * h,
       z: initial ? Math.random() * w : w,
       pz: 0,
-      hue: Math.random() < 0.5 ? 188 : (Math.random() < 0.5 ? 262 : 320)
+      color: color,
+      driftPhase: Math.random() * Math.PI * 2,
+      driftSpeed: 0.02 + Math.random() * 0.03
     };
   }
 
@@ -48,13 +59,20 @@ function createWarpField(canvas, opts = {}) {
 
   function frame() {
     if (!visible) { raf = requestAnimationFrame(frame); return; }
-    speed += (targetSpeed - speed) * 0.06;
-    ctx.fillStyle = opts.trail ? "rgba(5,6,13,0.32)" : "rgba(5,6,13,0.6)";
+    speed += (targetSpeed - speed) * 0.05;
+    // Transparent earthy background overlay to let CSS gradients show through
+    ctx.fillStyle = opts.trail ? "rgba(21, 24, 22, 0.28)" : "rgba(21, 24, 22, 0.55)";
     ctx.fillRect(0, 0, w, h);
 
     for (const s of stars) {
       s.pz = s.z;
       s.z -= speed * devicePixelRatio * 4;
+
+      // Add soft organic drift to coordinates
+      s.driftPhase += s.driftSpeed;
+      s.x += Math.sin(s.driftPhase) * 0.2 * devicePixelRatio;
+      s.y += Math.cos(s.driftPhase) * 0.15 * devicePixelRatio;
+
       if (s.z < 1) {
         Object.assign(s, spawn(false));
         s.pz = s.z;
@@ -64,15 +82,25 @@ function createWarpField(canvas, opts = {}) {
       const sy = (s.y / s.z) * h * 0.5 + cy;
       const px = (s.x / s.pz) * w * 0.5 + cx;
       const py = (s.y / s.pz) * h * 0.5 + cy;
-      const size = Math.max(0.4, (1 - s.z / w) * 2.6 * devicePixelRatio);
-      const alpha = Math.min(1, (1 - s.z / w) * 1.4);
-      ctx.strokeStyle = `hsla(${s.hue}, 95%, 70%, ${alpha})`;
-      ctx.lineWidth = size;
-      ctx.lineCap = "round";
+      
+      const size = Math.max(0.6, (1 - s.z / w) * 4.2 * devicePixelRatio);
+      const alpha = Math.min(1, (1 - s.z / w) * 1.3);
+
       ctx.beginPath();
-      ctx.moveTo(px, py);
-      ctx.lineTo(sx, sy);
-      ctx.stroke();
+      if (speed > BASE_SPEED * 2) {
+        // Warp transition: draw soft motion streaks
+        ctx.strokeStyle = `hsla(${s.color.h}, ${s.color.s}, ${s.color.l}, ${alpha})`;
+        ctx.lineWidth = size * 0.8;
+        ctx.lineCap = "round";
+        ctx.moveTo(px, py);
+        ctx.lineTo(sx, sy);
+        ctx.stroke();
+      } else {
+        // Normal state: draw beautiful, organic round dust motes
+        ctx.fillStyle = `hsla(${s.color.h}, ${s.color.s}, ${s.color.l}, ${alpha})`;
+        ctx.arc(sx, sy, size * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
     raf = requestAnimationFrame(frame);
   }
@@ -89,7 +117,7 @@ function createWarpField(canvas, opts = {}) {
   frame();
 
   return {
-    warp(durationMs = 700, factor = 14) {
+    warp(durationMs = 700, factor = 8) {
       targetSpeed = BASE_SPEED * factor;
       setTimeout(() => { targetSpeed = BASE_SPEED; }, durationMs);
     },

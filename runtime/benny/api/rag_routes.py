@@ -289,6 +289,8 @@ async def ingest_files(request: IngestRequest):
             "total_documents": collection.count()
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         task_manager.update_task(run_id, status="failed", message=str(e))
         raise HTTPException(500, f"Ingestion failed: {str(e)}")

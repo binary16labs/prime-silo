@@ -20,3 +20,8 @@ server/data/*
 !server/data/.gitignore
 csr.csr
 key.pem
+.benny_home/
+home/
+archive/
+prime-silo-core/
+

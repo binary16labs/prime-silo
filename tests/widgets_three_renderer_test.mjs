@@ -22,6 +22,7 @@ async function main() {
   testLayoutToGraphDataCodegraphShape();
   testLayoutToGraphDataDropsEdgesWithMissingEnds();
   testLayoutToGraphDataPinsXYAsFxFy();
+  testLayoutToGraphDataFluidSeedsXY();
   testLayoutToGraphDataCoercesEdgeIdsToStrings();
   testLayoutToGraphDataCarriesOriginalNode();
 
@@ -206,6 +207,17 @@ function testLayoutToGraphDataPinsXYAsFxFy() {
   const neural = out.nodes.find((n) => n.id === "neural_nets");
   assert.equal(neural.fx, 100);
   assert.equal(neural.fy, 50);
+}
+
+function testLayoutToGraphDataFluidSeedsXY() {
+  // When physicsMode is "fluid", nodes should not be pinned (fx/fy are undefined),
+  // but instead have initial x/y coordinates seeded.
+  const out = layoutToGraphData(kg3dLayout(), "fluid");
+  const neural = out.nodes.find((n) => n.id === "neural_nets");
+  assert.equal(neural.fx, undefined);
+  assert.equal(neural.fy, undefined);
+  assert.equal(neural.x, 100);
+  assert.equal(neural.y, 50);
 }
 
 function testLayoutToGraphDataCoercesEdgeIdsToStrings() {

@@ -80,7 +80,15 @@ foreach ($svc in @(
 }
 
 $runtimeDir = Join-Path $root "runtime"
-$bennyHome  = Join-Path $root ".benny_home"
+$bennyHome = if ($env:BENNY_HOME) {
+    if ([System.IO.Path]::IsPathRooted($env:BENNY_HOME)) {
+        $env:BENNY_HOME
+    } else {
+        Join-Path $root $env:BENNY_HOME
+    }
+} else {
+    Join-Path $root ".benny_home"
+}
 
 if (-not (Test-Path $bennyHome)) {
     New-Item -ItemType Directory -Path $bennyHome | Out-Null
