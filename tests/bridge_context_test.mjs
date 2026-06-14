@@ -24,6 +24,8 @@ async function main() {
   testCreatePublishesSnapshot();
   await testDispatchRoutesToAgent();
   await testDispatchAgentUnavailable();
+  await testDispatchAutoLoadsSkill();
+  await testDispatchSwallowsSkillLoadError();
   console.log("bridge_context_test: ok");
 }
 
@@ -49,7 +51,10 @@ function testComposePromptGroundsAndPointsAtSkill() {
   assert.match(prompt, /Bridge context/);
   assert.match(prompt, /mode: code/);
   assert.match(prompt, /#\/_prime_silo\/bridge\?mode=code&id=n1/);
-  assert.ok(prompt.includes(__testing.SKILL_IMPORT), "prompt points the agent at the benny-pilot skill");
+  assert.ok(prompt.includes(__testing.SKILL_IMPORT), "prompt includes the benny-pilot import path");
+  // Prompt must say the skill IS loaded — not ask Benny to load it.
+  assert.match(prompt, /is loaded/);
+  assert.ok(!prompt.includes("space.skills.load"), "prompt must not ask Benny to call space.skills.load");
 }
 
 function testCreatePublishesSnapshot() {
@@ -82,6 +87,39 @@ async function testDispatchAgentUnavailable() {
   assert.equal(result.ok, false);
   assert.equal(result.reason, "agent_unavailable");
   assert.ok(result.prompt, "still returns the prompt it would have sent");
+}
+
+async function testDispatchAutoLoadsSkill() {
+  // dispatch() must call space.skills.load("benny-pilot") before submitPrompt
+  // so the skill is in context before the model sees the prompt.
+  const loaded = [];
+  const submitted = [];
+  const target = {
+    space: {
+      skills: { load: async (id) => { loaded.push(id); } },
+      onscreenAgent: { submitPrompt: async (p) => { submitted.push(p); } }
+    }
+  };
+  const ctx = createBridgeContext({ globalTarget: target });
+  await ctx.dispatch("What am I looking at?");
+  assert.deepEqual(loaded, ["benny-pilot"], "must load benny-pilot before submitting");
+  assert.equal(submitted.length, 1, "must submit the prompt");
+}
+
+async function testDispatchSwallowsSkillLoadError() {
+  // If skills.load throws (e.g. skill runtime not up), dispatch must still
+  // submit the prompt — the import path in the prompt text is the fallback.
+  const submitted = [];
+  const target = {
+    space: {
+      skills: { load: async () => { throw new Error("skill runtime unavailable"); } },
+      onscreenAgent: { submitPrompt: async (p) => { submitted.push(p); } }
+    }
+  };
+  const ctx = createBridgeContext({ globalTarget: target });
+  const result = await ctx.dispatch("Explain");
+  assert.equal(result.ok, true, "dispatch must succeed even when skill load throws");
+  assert.equal(submitted.length, 1);
 }
 
 main().catch((err) => {

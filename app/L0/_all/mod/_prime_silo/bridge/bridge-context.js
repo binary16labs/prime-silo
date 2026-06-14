@@ -53,8 +53,9 @@ export function describeContext(state = {}) {
 /**
  * Compose the grounded prompt for an instruction. The instruction is the
  * human-facing chip intent ("Explain what I'm looking at"); we append the live
- * context and a pointer to the benny-pilot skill so the agent can act without
- * re-deriving where it is.
+ * context and the import line for the benny-pilot helper. The skill is loaded
+ * programmatically before dispatch (see dispatch()), so by the time Benny reads
+ * this the helpers are available — no "please load" dance needed.
  */
 export function composePrompt(instruction, state = {}) {
   const ctx = describeContext(state);
@@ -63,7 +64,7 @@ export function composePrompt(instruction, state = {}) {
     String(instruction || "").trim(),
     "",
     `(Bridge context — ${ctx}. Deep link: ${link}.`,
-    `For memory, documents, code-graph, or run questions, load the benny-pilot skill: await space.skills.load("benny-pilot"). (This skill teaches you to import and use "${SKILL_IMPORT}")`
+    `The benny-pilot skill is loaded — use \`const pilot = await import("${SKILL_IMPORT}")\` to access mesh helpers: readContext, lifelog, codeGraph, recentSessions, runs, search.)`
   ].join("\n");
 }
 
@@ -108,7 +109,24 @@ export function createBridgeContext(options = {}) {
     return snapshot();
   }
 
+  // Load benny-pilot before every dispatch so the skill is already in Benny's
+  // context when the prompt arrives — rather than asking Benny in text to load
+  // it (which produces the "I haven't loaded the skill yet" refusal).
+  async function ensureBennyPilotLoaded() {
+    try {
+      const space = globalTarget.space ||
+        (typeof globalThis !== "undefined" ? globalThis.space : null);
+      if (space && space.skills && typeof space.skills.load === "function") {
+        await space.skills.load("benny-pilot");
+      }
+    } catch {
+      // Swallow — skill runtime may not be installed yet (e.g. in tests).
+      // The prompt still carries the import path as a fallback.
+    }
+  }
+
   async function dispatch(instruction) {
+    await ensureBennyPilotLoaded();
     const prompt = composePrompt(instruction, state);
     const agent = resolveAgent();
     if (!agent || typeof agent.submitPrompt !== "function") {
