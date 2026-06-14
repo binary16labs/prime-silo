@@ -74,7 +74,7 @@ Write-Host "  shell   PID = $($shell.Id)"
 
 # Memo-Ray memory graph (Phase M1) — auto-boot when enabled and the checkout
 # exists, so the in-shell page at #/_prime_silo/memory works from one command.
-# The shell proxies /api/memoray to the server (:3001); the Vite client (:5173)
+# The shell proxies /api/memoray to the server (:3001); the Vite client (:5175)
 # backs the page's "Zen mode" link-out. MEMORAY_ENABLED=false skips both.
 $procs = @($runtime, $shell)
 if ($env:MEMORAY_ENABLED -ne "false") {
@@ -90,26 +90,30 @@ if ($env:MEMORAY_ENABLED -ne "false") {
                 Pop-Location
             }
         }
+        $oldPort = $env:PORT
+        $env:PORT = "3001"
         $memorayServer = Start-Process `
             -FilePath "node" `
             -ArgumentList "index.js" `
             -WorkingDirectory $memorayServerDir `
             -PassThru `
             -NoNewWindow
+        $env:PORT = $oldPort
         $procs += $memorayServer
         Write-Host "  memoray server PID = $($memorayServer.Id) (:3001 — page at /#/_prime_silo/memory)"
 
-        # Client (:5173) — backs the "Zen mode" link. Optional: if the client
+        # Client (:5175) — backs the "Zen mode" link. Optional: if the client
         # dir is missing we still have the in-shell page, just no zen link.
         if (Test-Path $memorayClientDir) {
+            $npmExec = if ($IsWindows -or $env:OS -match "Windows") { "npm.cmd" } else { "npm" }
             $memorayClient = Start-Process `
-                -FilePath "npm" `
+                -FilePath $npmExec `
                 -ArgumentList "run","dev" `
                 -WorkingDirectory $memorayClientDir `
                 -PassThru `
                 -NoNewWindow
             $procs += $memorayClient
-            Write-Host "  memoray client PID = $($memorayClient.Id) (:5173 — Zen mode)"
+            Write-Host "  memoray client PID = $($memorayClient.Id) (:5175 — Zen mode)"
         }
     } else {
         Write-Host "  memo-ray not found at '$memorayDir' — memory page will show an offline screen."
