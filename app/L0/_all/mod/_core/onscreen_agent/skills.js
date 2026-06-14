@@ -125,12 +125,26 @@ export const buildOnscreenSkillPromptContext = globalThis.space.extend(
 export const loadOnscreenSkill = globalThis.space.extend(
   import.meta,
   async function loadOnscreenSkill(path) {
+    const skillData = await sharedSkills.loadSkill({
+      path
+    });
     const loadedSkill = {
       __spaceSkill: true,
-      ...(await sharedSkills.loadSkill({
-        path
-      }))
+      ...skillData
     };
+
+    // Dynamically import JS helper if it exists in the same folder
+    const skillName = skillData.path.split("/").pop();
+    const helperPath = `${skillData.modulePath}/ext/skills/${skillData.path}/${skillName}.js`;
+    try {
+      const helper = await import(/* @vite-ignore */ helperPath);
+      if (helper) {
+        Object.assign(loadedSkill, helper);
+      }
+    } catch (_err) {
+      // Ignore if the skill does not have a JS helper
+    }
+
     loadedSkill.loadResponseText = sharedSkills.getSkillLoadResponseText(loadedSkill);
     sharedSkills.registerLoadedSkill(loadedSkill);
 

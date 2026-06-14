@@ -5,15 +5,15 @@ import test from "node:test";
 const browserManagerSkill = fs.readFileSync(
   "app/L0/_all/mod/_core/skillset/ext/skills/browser-manager/SKILL.md",
   "utf8"
-);
+).replace(/\r\n/g, "\n");
 const browserControlSkill = fs.readFileSync(
   "app/L0/_all/mod/_core/skillset/ext/skills/browser-control/SKILL.md",
   "utf8"
-);
+).replace(/\r\n/g, "\n");
 const browserWindowHtml = fs.readFileSync(
   "app/L0/_all/mod/_core/web_browsing/window.html",
   "utf8"
-);
+).replace(/\r\n/g, "\n");
 
 test("browser-manager auto-loads on onscreen surfaces", () => {
   assert.match(browserManagerSkill, /name: Browser Manager/u);

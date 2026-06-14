@@ -18,10 +18,13 @@ helpers
 - `runs(limit?)` -> `[{ runId, status, requirement, link }]`
 - `codeGraph(workspace?)` -> `{ nodes, edges }` of the Tree-Sitter code graph
 - `bridgeLink(mode, id?)` -> deep link string back into a Bridge mode/selection
+- `workspaceFileList(workspace?)` -> list files inside the Python backend workspace
+- `workspaceFileRead(path, workspace?)` -> preview/read the contents of a file in the workspace
 
 guidance
 - ALWAYS read `readContext()` first and tailor the answer to the current `mode` and `selection`. In `code` mode "explain this" means the selected code node; in `memory` mode it means the selected session; in `runs` mode it means the selected run.
 - ALWAYS cite a Bridge deep link (`link`, or `bridgeLink(mode, id)`) as a markdown link so the user can jump back to the exact view.
+- If you need to list or read files in the active workspace (e.g. paths beginning with `src/` in `code` mode), do NOT use standard `space.api.fileList` or `space.api.fileRead` since those point at the host space directories and will fail. Use `workspaceFileList()` and `workspaceFileRead()` instead.
 - Lead with the answer, then offer the link. Summarize — never dump raw JSON.
 - This is read-only/observe-and-explain. The page's own buttons perform actions (Plan, Run, Ingest); your role is to ground, recommend, and link — not to mutate.
 
@@ -45,4 +48,15 @@ const pilot = await import("/mod/_prime_silo/memoray_client/ext/skills/benny-pil
 const ctx = pilot.readContext()
 const all = await pilot.runs(10)
 return all.find(r => r.runId === ctx?.lastRun) || all[0]
+```
+
+Explain the code graph or selection
+```javascript
+const pilot = await import("/mod/_prime_silo/memoray_client/ext/skills/benny-pilot/benny-pilot.js")
+const ctx = pilot.readContext()
+if (ctx?.mode === "code" && ctx?.selection?.id) {
+  // Read the selected workspace file/directory
+  return await pilot.workspaceFileRead(ctx.selection.id, ctx.workspace)
+}
+return await pilot.codeGraph(ctx?.workspace)
 ```

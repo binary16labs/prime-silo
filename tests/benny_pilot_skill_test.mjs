@@ -49,7 +49,7 @@ function testCatalogLoadedNotAutoLoaded() {
 }
 
 function testHelperExports() {
-  for (const fn of ["bridgeLink", "readContext", "lifelog", "recentSessions", "search", "runs", "codeGraph"]) {
+  for (const fn of ["bridgeLink", "readContext", "lifelog", "recentSessions", "search", "runs", "codeGraph", "workspaceFileList", "workspaceFileRead"]) {
     assert.equal(typeof pilot[fn], "function", `helper exports ${fn}()`);
   }
 }

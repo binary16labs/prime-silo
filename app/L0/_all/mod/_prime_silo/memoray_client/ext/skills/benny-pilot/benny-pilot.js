@@ -92,3 +92,27 @@ export async function runs(limit = 15) {
 export async function codeGraph(workspace = "default") {
   return getJson(RUNTIME, `/graph/code?workspace=${encodeURIComponent(workspace)}`);
 }
+
+/** Recursively scan the entire workspace directory including files. */
+export async function workspaceFileList(workspace = "prime_silo_self") {
+  const body = await getJson(RUNTIME, `/files/recursive-scan?workspace=${encodeURIComponent(workspace)}`);
+  return body?.files || [];
+}
+
+/** Get text content preview or metadata for a file in the workspace. */
+export async function workspaceFileRead(path, workspace = "prime_silo_self") {
+  return getJson(RUNTIME, `/files/preview?workspace=${encodeURIComponent(workspace)}&path=${encodeURIComponent(path)}`);
+}
+
+export default {
+  bridgeLink,
+  readContext,
+  lifelog,
+  recentSessions,
+  search,
+  runs,
+  codeGraph,
+  workspaceFileList,
+  workspaceFileRead
+};
+

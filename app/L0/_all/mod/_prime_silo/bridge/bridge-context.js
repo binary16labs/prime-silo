@@ -63,7 +63,7 @@ export function composePrompt(instruction, state = {}) {
     String(instruction || "").trim(),
     "",
     `(Bridge context — ${ctx}. Deep link: ${link}.`,
-    `For memory, documents, code-graph, or run questions, load the benny-pilot skill: await import("${SKILL_IMPORT}").)`
+    `For memory, documents, code-graph, or run questions, load the benny-pilot skill: await space.skills.load("benny-pilot"). (This skill teaches you to import and use "${SKILL_IMPORT}")`
   ].join("\n");
 }
 
