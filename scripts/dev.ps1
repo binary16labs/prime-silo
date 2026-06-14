@@ -39,6 +39,46 @@ if (-not $env:BENNY_HMAC_KEY) {
     Write-Error "BENNY_HMAC_KEY is required. Set it in .env or your shell environment before launching."
 }
 
+# --- Preflight: surface port clashes with a clear diagnosis instead of a
+# silent bind failure. The usual culprit is a leftover Docker container
+# publishing :3000 (e.g. the legacy dangpy-frontend) relayed by wslrelay.exe.
+# See architecture/TECH_DEBT.md (TD-1).
+function Get-PortOwner($port) {
+    $conn = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $conn) { return $null }
+    $proc = Get-CimInstance Win32_Process -Filter "ProcessId = $($conn.OwningProcess)" -ErrorAction SilentlyContinue
+    return [pscustomobject]@{ ProcId = $conn.OwningProcess; Name = $proc.Name }
+}
+
+$shellPort = if ($env:PORT) { $env:PORT } else { 3000 }
+$shellOwner = Get-PortOwner $shellPort
+if ($shellOwner) {
+    Write-Host ""
+    Write-Host "ERROR: port $shellPort (the space-agent shell) is already in use by PID $($shellOwner.ProcId) ($($shellOwner.Name))." -ForegroundColor Red
+    if ($shellOwner.Name -eq "wslrelay.exe") {
+        Write-Host "  That is a WSL/Docker port relay - a container is publishing :$shellPort." -ForegroundColor Yellow
+        Write-Host "  Find it:  docker ps --filter publish=$shellPort" -ForegroundColor Yellow
+        Write-Host "  Stop it:  docker stop <name>   (e.g. dangpy-frontend; reversible via docker start)" -ForegroundColor Yellow
+    } else {
+        Write-Host "  Stop whatever owns it, or run the shell on another port (set PORT)." -ForegroundColor Yellow
+    }
+    Write-Host "  Background: architecture/TECH_DEBT.md (TD-1) - legacy dangpy/Kortex containers clash on :3000." -ForegroundColor Yellow
+    Write-Host ""
+    exit 1
+}
+
+# Soft warnings for the other services this script is about to start.
+foreach ($svc in @(
+    @{ Port = 8005; Label = "Benny runtime" },
+    @{ Port = 3001; Label = "Memo-Ray server" },
+    @{ Port = 5175; Label = "Memo-Ray client" }
+)) {
+    $owner = Get-PortOwner $svc.Port
+    if ($owner) {
+        Write-Host "WARNING: port $($svc.Port) ($($svc.Label)) already in use by PID $($owner.ProcId) ($($owner.Name)) - the new instance may fail to bind." -ForegroundColor Yellow
+    }
+}
+
 $runtimeDir = Join-Path $root "runtime"
 $bennyHome  = Join-Path $root ".benny_home"
 
