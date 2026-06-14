@@ -2,7 +2,7 @@
   "schema": "aamp.integration/1",
   "id": "memoray",
   "title": "Memo-Ray memory graph",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Declares the Memo-Ray integration: the memory graph of the cognitive mesh, third first-class graph beside the knowledge graph (documents) and the code graph (AST). Memo-Ray X-rays Claude + Antigravity session logs into an explorable lineage map; this manifest is the single source of truth the shell proxy, widgets, page, agent skill, CLI, and conformance audit are all held against.",
   "maintenance": {
     "loop": "read this manifest -> GET /api/integration_audit (or `node space memory audit`) -> for each drift finding draft a fix at the finding's owner path -> human review -> re-sign via scripts/audit-integrations.mjs --sign",
@@ -215,6 +215,23 @@
       "contract": "array"
     },
     {
+      "id": "lifelog",
+      "method": "GET",
+      "path": "/lifelog",
+      "purpose": "Unified activity feed across the mesh: Session starts, Artifact creations, and git commits from every workspace, newest first (cap 200). Consumed by the Bridge Pulse landing.",
+      "contract": {
+        "type": "array",
+        "items": {
+          "id": "string",
+          "type": "string",
+          "timestamp": "number",
+          "content": "string",
+          "agent": "string?",
+          "project": "string?"
+        }
+      }
+    },
+    {
       "id": "files_open",
       "method": "POST",
       "path": "/files/open",
@@ -423,6 +440,20 @@
       }
     },
     {
+      "id": "bridge_pulse",
+      "kind": "page",
+      "produces": "Bridge cockpit Pulse landing — mesh activity feed (lifelog) + Command Center + conformance",
+      "consumes": [
+        "lifelog",
+        "beta_overview",
+        "system_metrics"
+      ],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "app/L0/_all/mod/_prime_silo/bridge/view.html"
+      }
+    },
+    {
       "id": "audit",
       "kind": "audit",
       "produces": "GET /api/integration_audit conformance report (aamp.audit_report/1)",
@@ -486,7 +517,7 @@
   },
   "signature": {
     "algorithm": "HMAC-SHA256",
-    "value": "ed4ee747cc3a94e0a18eea783f24bec7cd5c20d98a33961f520c6149b9185458",
-    "signed_at": "2026-06-13T11:17:17.667Z"
+    "value": "8a1fcbb16f4d3e421d3b11999e0dcf11664a3fd42dd272c4d386731ddaf72fab",
+    "signed_at": "2026-06-13T16:36:10.354Z"
   }
 }

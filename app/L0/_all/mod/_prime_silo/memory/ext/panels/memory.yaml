@@ -1,0 +1,5 @@
+name: Memory
+path: _prime_silo/memory
+description: The memory graph — your Claude + Antigravity agent sessions X-rayed into an explorable lineage map.
+icon: bubble_chart
+color: "#9caf88"

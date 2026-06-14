@@ -90,6 +90,12 @@ MEMORAY_BASE_URL:
   allowed: ["/^https?:\\/\\/.+$/"]
   default: http://127.0.0.1:3001
   frontend_exposed: false
+BRIDGE_DEFAULT_MODE:
+  description: The mode the Bridge cockpit (#/_prime_silo/bridge) opens on when no ?mode= is supplied — pulse | memory | documents | code | flows | runs.
+  type: text
+  allowed: [pulse, memory, documents, code, flows, runs]
+  default: pulse
+  frontend_exposed: true
 USER_FOLDER_SIZE_LIMIT_BYTES:
   description: Maximum on-disk size in bytes for each L2 user folder. Set to 0 to disable the limit.
   type: number

@@ -42,6 +42,14 @@ As of **Phase M1** the memory graph is **built into the shell** — one capabili
 - **CLI** — `node space memory <status|sync|sessions|search|audit>`.
 - **Self-audit** — the integration is declared in [`manifests/integrations/memoray.integration.json`](manifests/integrations/memoray.integration.json) (data model + process map + config surface, HMAC-signed). `GET /api/integration_audit` / `node space memory audit` / `node scripts/audit-integrations.mjs` probe live reality against that declaration and emit a drift report whose findings carry the owner path to fix — so an agent (or a local LLM via Lemonade) can maintain it without spelunking. See [`manifests/integrations/AGENTS.md`](manifests/integrations/AGENTS.md).
 
+### Bridge — one cockpit for the whole mesh
+
+**Phase B** ropes the scattered pages into a single calm surface at **`#/_prime_silo/bridge`** — designed for one mental model, not six tabs. A mode rail (Pulse · Memory · Documents · Code 3D · Flows · Runs), one stage, and **Benny** (the onscreen agent) in the dock, grounded in whatever's on screen so you can ask "explain this" / "what did I work on" and get a real answer with a deep link back.
+
+- **Golden paths, not copy-paste** — *Flows*: type a requirement → **Plan** renders the DAG → **Run** flips to live observability. *Documents*: pick a workspace → manage files → **Ingest** turns documents into semantic triples (rendered as the knowledge graph) → **Correlate** links them to the code graph.
+- **3D when you want it** — Code 3D and the knowledge graph default to an offline-safe 2D layout with a one-click 3D (WebGL) toggle.
+- **Same thesis** — declared as a signed manifest ([`manifests/integrations/bridge.integration.json`](manifests/integrations/bridge.integration.json)) covered by the self-audit, and ubiquitous: page + `benny-pilot` agent skill + `node space bridge <status|plan|run|ingest|open>`. Configurable landing via `BRIDGE_DEFAULT_MODE`. Pulse carries Memo-Ray's `/api/lifelog` activity feed (sessions + artifacts + git commits).
+
 ## Repo layout
 
 ```
@@ -70,6 +78,7 @@ prime-silo/
 - [x] **Phase E** — first deterministic-zone shell page (`manifest_explorer`) lists registered swarm manifests and renders the selected one as `dag.canvas`. No agent context — `runtimeFetch` with no scope.
 - [x] **Phase H1** — session checkpoints: save/restore/fork session state (history + skills + staged data + run refs); draft endpoints under the agent sandbox, human-only HMAC pinning
 - [x] **Phase M1** — memory graph in-shell: Memo-Ray integration declared as a signed `aamp.integration/1` manifest (data model + process map + config surface), surfaced on four surfaces (page `#/_prime_silo/memory`, `memory-recall` agent skill, `node space memory` CLI, `/api/integration_audit` self-audit) over one configurable proxy
+- [x] **Phase B (Bridge)** — one cockpit (`#/_prime_silo/bridge`) unifying memory, documents→triples, code, flows and runs with Benny grounded in the stage; signed `bridge.integration.json`; ubiquitous (page + `benny-pilot` skill + `node space bridge`); carries Memo-Ray's lifelog feed
 - [ ] **Phase M2** — LLM self-maintenance loop: a swarm manifest that runs the audit → `call_model()` (Lemonade local) → drafts fixes into `agent_sandbox/drafts/` for human pinning
 - [ ] **Phase G** — canvas consolidation; retire ManifestCanvas/PipelineCanvas/WorkflowCanvas duplication in the runtime frontend
 

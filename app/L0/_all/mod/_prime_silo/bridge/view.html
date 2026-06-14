@@ -1,0 +1,239 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="/mod/_prime_silo/widgets/memoray/overview_cards/overview_cards.css" />
+    <link rel="stylesheet" href="/mod/_prime_silo/widgets/memoray/lineage_graph/lineage_graph.css" />
+    <link rel="stylesheet" href="/mod/_prime_silo/widgets/three_renderer/renderer.css" />
+    <link rel="stylesheet" href="/mod/_prime_silo/bridge/bridge.css" />
+    <script type="module" src="/mod/_prime_silo/bridge/bridge.js"></script>
+  </head>
+  <body>
+    <section
+      class="ps-bridge"
+      :class="{ 'is-zen': zen }"
+      x-data="bridgePage()"
+      x-init="init()"
+      x-destroy="destroy()"
+      x-cloak
+    >
+      <!-- Header: identity · mesh status · zen toggle -->
+      <header class="ps-bridge__top">
+        <div class="ps-bridge__brand">
+          <span class="ps-bridge__mark" aria-hidden="true">◍</span>
+          <span class="ps-bridge__title">Bridge</span>
+          <span class="ps-bridge__tagline">cognitive mesh · mission control</span>
+        </div>
+        <div class="ps-bridge__top-right">
+          <span
+            class="ps-bridge__status"
+            :data-status="conformance.status"
+            :title="conformance.status === 'drift' ? `${conformance.driftCount} drift finding(s) — run node space memory audit` : 'integration conformance'"
+          >
+            <span class="ps-bridge__status-dot"></span>
+            <span x-show="conformance.status === 'pass'">mesh healthy</span>
+            <span x-show="conformance.status === 'drift'" x-text="`drift (${conformance.driftCount})`"></span>
+            <span x-show="conformance.status === 'unknown' || !conformance.status">conformance —</span>
+          </span>
+          <button type="button" class="ps-bridge__zen" @click="toggleZen()" :aria-pressed="zen">
+            <span x-text="zen ? 'exit zen' : 'zen'"></span>
+          </button>
+        </div>
+      </header>
+
+      <div class="ps-bridge__shell">
+        <!-- Mode rail -->
+        <nav class="ps-bridge__rail" aria-label="Bridge modes">
+          <template x-for="m in modes" :key="m.id">
+            <button
+              type="button"
+              class="ps-bridge__mode"
+              :class="{ 'is-active': m.id === mode }"
+              @click="setMode(m.id)"
+            >
+              <x-icon x-text="m.icon"></x-icon>
+              <span x-text="m.label"></span>
+            </button>
+          </template>
+          <button type="button" class="ps-bridge__mode ps-bridge__mode--cta" @click="setMode('flows')">
+            <x-icon>add</x-icon>
+            <span>New flow</span>
+          </button>
+        </nav>
+
+        <!-- Stage -->
+        <main class="ps-bridge__stage">
+          <!-- workspace selector (shared, shown where it scopes the surface) -->
+          <div class="ps-bridge__stage-bar" x-show="['documents','code','flows','runs'].includes(mode)">
+            <label class="ps-bridge__ws">
+              <span>Workspace</span>
+              <select x-model="workspace" @change="onWorkspaceChange()">
+                <template x-for="w in workspaces" :key="w">
+                  <option :value="w" x-text="w"></option>
+                </template>
+              </select>
+            </label>
+          </div>
+
+          <!-- PULSE -->
+          <div class="ps-bridge__panel" x-show="mode === 'pulse'">
+            <div class="ps-bridge__cards" x-ref="pulseCards"></div>
+            <section class="ps-bridge__feed" aria-label="Mesh activity feed">
+              <h3>Lifelog <span class="ps-bridge__muted">— sessions, artifacts &amp; commits across the mesh</span></h3>
+              <p class="ps-bridge__muted" x-show="lifelogState === 'offline'">Memo-Ray is offline — boot it with <code>scripts/memoray.ps1</code>, then <button type="button" class="ps-bridge__link-btn" @click="loadLifelog()">retry</button>.</p>
+              <p class="ps-bridge__muted" x-show="lifelogState === 'disabled'">Memo-Ray is disabled (<code>node space set MEMORAY_ENABLED=true</code>).</p>
+              <p class="ps-bridge__muted" x-show="lifelogState === 'ready' && lifelog.length === 0">No recent activity.</p>
+              <ul class="ps-bridge__feed-list" x-show="lifelogState === 'ready'">
+                <template x-for="item in lifelog" :key="item.id">
+                  <li class="ps-bridge__feed-item" :data-kind="item.type">
+                    <x-icon class="ps-bridge__feed-icon" x-text="lifelogIcon(item.type)"></x-icon>
+                    <span class="ps-bridge__feed-body">
+                      <span class="ps-bridge__feed-text" x-text="item.content"></span>
+                      <span class="ps-bridge__feed-meta">
+                        <span x-text="item.project || item.agent || ''"></span>
+                        <span x-show="item.timestamp" x-text="' · ' + ago(item.timestamp)"></span>
+                      </span>
+                    </span>
+                  </li>
+                </template>
+              </ul>
+            </section>
+          </div>
+
+          <!-- MEMORY -->
+          <div class="ps-bridge__panel" x-show="mode === 'memory'">
+            <div class="ps-bridge__split">
+              <aside class="ps-bridge__list">
+                <h3>Sessions</h3>
+                <div class="ps-bridge__list-scroll">
+                  <template x-for="s in sessions" :key="s.id">
+                    <button type="button" class="ps-bridge__list-item" :class="{ 'is-active': s.id === activeSessionId }" @click="selectSession(s.id)">
+                      <span class="ps-bridge__list-title" x-text="s.content || 'Untitled'"></span>
+                      <span class="ps-bridge__list-sub"><span x-text="s.agent"></span> · <span x-text="(s.metadata && s.metadata.project) ? s.metadata.project : '—'"></span></span>
+                    </button>
+                  </template>
+                  <p class="ps-bridge__muted" x-show="sessions.length === 0">No sessions — boot Memo-Ray or sync.</p>
+                </div>
+              </aside>
+              <div class="ps-bridge__graph" x-ref="memoryGraph"></div>
+            </div>
+          </div>
+
+          <!-- DOCUMENTS -->
+          <div class="ps-bridge__panel" x-show="mode === 'documents'">
+            <div class="ps-bridge__docbar">
+              <div class="ps-bridge__files">
+                <h3>Documents <span class="ps-bridge__muted" x-text="`(${files.length} in data_in)`"></span></h3>
+                <ul class="ps-bridge__files-list">
+                  <template x-for="f in files" :key="f.name || f">
+                    <li x-text="f.name || f"></li>
+                  </template>
+                  <li class="ps-bridge__muted" x-show="files.length === 0">No documents staged. Add files to the workspace data_in, or use the file explorer.</li>
+                </ul>
+                <div class="ps-bridge__doc-actions">
+                  <button type="button" class="ps-bridge__btn ps-bridge__btn--go" @click="ingest()" :disabled="ingesting">
+                    <x-icon x-text="ingesting ? 'hourglass_top' : 'auto_awesome'"></x-icon>
+                    <span x-text="ingesting ? 'Ingesting…' : 'Ingest → triples'"></span>
+                  </button>
+                  <button type="button" class="ps-bridge__btn" @click="correlate()">
+                    <x-icon>hub</x-icon><span>Correlate w/ code</span>
+                  </button>
+                  <a class="ps-bridge__link" href="/#/file_explorer" target="_blank" rel="noopener">File explorer ↗</a>
+                </div>
+                <p class="ps-bridge__note" x-show="ingestNote" x-text="ingestNote"></p>
+              </div>
+              <div class="ps-bridge__graph-wrap">
+                <div class="ps-bridge__graph-head">
+                  <span class="ps-bridge__muted">Knowledge graph — semantic triples</span>
+                  <button type="button" class="ps-bridge__toggle" @click="toggleDocs3d()" x-text="docs3d ? '2D' : '3D'"></button>
+                </div>
+                <div class="ps-bridge__graph" x-ref="docsGraph"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CODE 3D -->
+          <div class="ps-bridge__panel" x-show="mode === 'code'">
+            <div class="ps-bridge__graph-head">
+              <span class="ps-bridge__muted">Code graph — Tree-Sitter AST · workspace <span x-text="workspace"></span></span>
+              <button type="button" class="ps-bridge__toggle" @click="toggleCode3d()" x-text="code3d ? '2D' : '3D'"></button>
+            </div>
+            <div class="ps-bridge__graph ps-bridge__graph--tall" x-ref="codeGraph"></div>
+          </div>
+
+          <!-- FLOWS -->
+          <div class="ps-bridge__panel" x-show="mode === 'flows'">
+            <div class="ps-bridge__flow">
+              <textarea
+                class="ps-bridge__req"
+                x-model="requirement"
+                rows="2"
+                placeholder="Describe what the pipeline should do — e.g. score trades for credit risk and explain the top exposures."
+              ></textarea>
+              <div class="ps-bridge__flow-actions">
+                <label class="ps-bridge__ws">
+                  <span>Strategy</span>
+                  <select x-model="strategy">
+                    <option value="auto">auto</option>
+                    <option value="oneshot">oneshot</option>
+                    <option value="incremental">incremental</option>
+                    <option value="swarm">swarm</option>
+                  </select>
+                </label>
+                <button type="button" class="ps-bridge__btn ps-bridge__btn--go" @click="planFlow()" :disabled="planning">
+                  <x-icon x-text="planning ? 'hourglass_top' : 'auto_fix_high'"></x-icon>
+                  <span x-text="planning ? 'Planning…' : 'Plan'"></span>
+                </button>
+                <x-icon class="ps-bridge__arrow">arrow_forward</x-icon>
+                <button type="button" class="ps-bridge__btn" @click="runFlow()" :disabled="running || !flowManifestId">
+                  <x-icon x-text="running ? 'hourglass_top' : 'play_arrow'"></x-icon>
+                  <span x-text="running ? 'Running…' : 'Run'"></span>
+                </button>
+              </div>
+              <p class="ps-bridge__note" x-show="flowNote" x-text="flowNote"></p>
+            </div>
+            <div class="ps-bridge__graph" x-ref="flowsDag"></div>
+          </div>
+
+          <!-- RUNS -->
+          <div class="ps-bridge__panel" x-show="mode === 'runs'">
+            <div class="ps-bridge__split">
+              <aside class="ps-bridge__list">
+                <h3>Runs</h3>
+                <div class="ps-bridge__list-scroll">
+                  <template x-for="r in runs" :key="r.run_id || r.id">
+                    <button type="button" class="ps-bridge__list-item" :class="{ 'is-active': (r.run_id || r.id) === activeRunId }" @click="selectRun(r.run_id || r.id)">
+                      <span class="ps-bridge__list-title" x-text="(r.run_id || r.id || '').slice(0, 18)"></span>
+                      <span class="ps-bridge__list-sub" x-text="r.status || ''"></span>
+                    </button>
+                  </template>
+                  <p class="ps-bridge__muted" x-show="runs.length === 0">No runs yet — plan and run a flow.</p>
+                </div>
+              </aside>
+              <div class="ps-bridge__runstage">
+                <div class="ps-bridge__graph" x-ref="runsTimeline"></div>
+                <div class="ps-bridge__graph" x-ref="runsTrace"></div>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        <!-- Benny dock -->
+        <aside class="ps-bridge__benny" aria-label="Benny">
+          <div class="ps-bridge__benny-head">
+            <x-icon>auto_awesome</x-icon><span>Benny</span>
+          </div>
+          <div class="ps-bridge__benny-context">
+            <x-icon>visibility</x-icon>
+            <span x-text="bennyContextLine"></span>
+          </div>
+          <p class="ps-bridge__benny-label">try</p>
+          <template x-for="chip in chips" :key="chip.label">
+            <button type="button" class="ps-bridge__chip" @click="runChip(chip.instruction)">
+              <span x-text="chip.label"></span><span class="ps-bridge__chip-arrow">↗</span>
+            </button>
+          </template>
+          <p class="ps-bridge__benny-foot"><x-icon>memory</x-icon> grounded in this view · local-first</p>
+        </aside>
+      </div>
+    </section>
+  </body>
+</html>

@@ -1,0 +1,390 @@
+{
+  "schema": "aamp.integration/1",
+  "id": "bridge",
+  "title": "Bridge cockpit",
+  "version": "1.0.0",
+  "description": "Declares the Bridge cockpit: the single page (#/_prime_silo/bridge) that unifies the whole cognitive mesh — memory (sessions), documents (knowledge triples), code (AST), flows (plan->run), runs (observability) — with Benny (the onscreen agent) grounded in the current stage. This manifest is the source of truth the page, the benny-pilot skill, the CLI, and the conformance audit are held against. The Bridge consumes the Benny runtime (/api/runtime/*) and Memo-Ray (/api/memoray/*) through the existing proxies; it adds no new server proxy. Runtime payload contracts are documented here but probed by the runtime's own surfaces, not this audit (whose live fetcher targets Memo-Ray) — so the conformance checks are signature, config_surface, and owners.",
+  "maintenance": {
+    "loop": "read this manifest -> GET /api/integration_audit (or `node space memory audit`) -> for each drift finding draft a fix at the finding's owner path -> human review -> re-sign via scripts/audit-integrations.mjs --sign",
+    "agents_doc": "manifests/integrations/AGENTS.md"
+  },
+  "data_model": {
+    "concept": "The Bridge is a mode switcher over one stage. Each mode composes an existing widget against an existing endpoint; nothing is rendered bespoke.",
+    "modes": [
+      {
+        "id": "pulse",
+        "label": "Pulse",
+        "graph": "—",
+        "widget": "memoray.overview_cards + lifelog feed",
+        "purpose": "Landing: mesh vitals, conformance, and the unified activity feed."
+      },
+      {
+        "id": "memory",
+        "label": "Memory",
+        "graph": "memory",
+        "widget": "memoray.lineage_graph",
+        "purpose": "Session lineage (Claude + Antigravity)."
+      },
+      {
+        "id": "documents",
+        "label": "Documents",
+        "graph": "knowledge",
+        "widget": "kg3d.synoptic_web",
+        "purpose": "Workspace + files + ingest->semantic triples + correlate."
+      },
+      {
+        "id": "code",
+        "label": "Code 3D",
+        "graph": "code",
+        "widget": "codegraph.canvas (2D SVG / three_renderer 3D)",
+        "purpose": "Tree-Sitter code graph."
+      },
+      {
+        "id": "flows",
+        "label": "Flows",
+        "graph": "—",
+        "widget": "dag.canvas",
+        "purpose": "requirement -> Plan (DAG) -> Run."
+      },
+      {
+        "id": "runs",
+        "label": "Runs",
+        "graph": "—",
+        "widget": "run.lineage_timeline + run.reasoning_trace",
+        "purpose": "Execution observability."
+      }
+    ],
+    "benny": {
+      "dock": "onscreen agent (_core/onscreen_agent, Lemonade-capable) in the right rail",
+      "context": "bridge-context.js publishes {mode, selection, workspace, lastRun, conformance, route} on window.__bennyBridgeContext and composes grounded prompts for the mode-aware chips",
+      "skill": "benny-pilot (catalog-loaded) reads the context and answers grounded in the stage, citing Bridge deep links"
+    },
+    "mesh_position": {
+      "role": "operator cockpit over all three graphs (memory, knowledge, code) plus the act/observe surfaces",
+      "siblings": [
+        "memoray (memory graph integration)"
+      ]
+    }
+  },
+  "endpoints": [
+    {
+      "id": "manifests_plan",
+      "method": "POST",
+      "path": "/api/runtime/manifests/plan",
+      "purpose": "Flows: requirement -> SwarmManifest. Body {requirement, workspace, strategy?}.",
+      "probe": false,
+      "contract": {
+        "id": "string",
+        "requirement": "string"
+      }
+    },
+    {
+      "id": "manifests_run",
+      "method": "POST",
+      "path": "/api/runtime/manifests/{manifest_id}/run",
+      "purpose": "Flows: execute a planned manifest. Body {workspace}. Returns {run_id, status}.",
+      "probe": false,
+      "contract": {
+        "run_id": "string",
+        "status": "string"
+      }
+    },
+    {
+      "id": "manifests_runs",
+      "method": "GET",
+      "path": "/api/runtime/manifests/runs",
+      "purpose": "Runs + Pulse: run history.",
+      "probe": false,
+      "contract": "array"
+    },
+    {
+      "id": "graph_code",
+      "method": "GET",
+      "path": "/api/runtime/graph/code",
+      "purpose": "Code 3D: Tree-Sitter file/class/function graph for a workspace.",
+      "probe": false,
+      "contract": {
+        "nodes": "array",
+        "edges": "array"
+      }
+    },
+    {
+      "id": "kg3d_ontology",
+      "method": "GET",
+      "path": "/api/runtime/kg3d/ontology",
+      "purpose": "Documents: knowledge-graph (semantic triples) for a workspace.",
+      "probe": false,
+      "contract": {
+        "nodes": "array",
+        "edges": "array"
+      }
+    },
+    {
+      "id": "workspaces",
+      "method": "GET",
+      "path": "/api/runtime/workspaces",
+      "purpose": "Shared: list workspaces for the workspace selector.",
+      "probe": false,
+      "contract": "array"
+    },
+    {
+      "id": "files",
+      "method": "GET",
+      "path": "/api/runtime/files",
+      "purpose": "Documents: list workspace files (data_in / data_out / staging).",
+      "probe": false,
+      "contract": {
+        "workspace": "string",
+        "data_in": "array",
+        "total": "number"
+      }
+    },
+    {
+      "id": "rag_ingest",
+      "method": "POST",
+      "path": "/api/runtime/rag/ingest",
+      "purpose": "Documents golden path: ingest workspace documents into semantic triples. Body {workspace}.",
+      "probe": false,
+      "contract": {
+        "run_id": "string"
+      }
+    },
+    {
+      "id": "rag_correlate",
+      "method": "POST",
+      "path": "/api/runtime/rag/correlate",
+      "purpose": "Documents: build CORRELATES_WITH edges linking documents and the code graph.",
+      "probe": false,
+      "contract": "object"
+    },
+    {
+      "id": "governance_events",
+      "method": "GET",
+      "path": "/api/runtime/governance/events",
+      "purpose": "Runs: lineage timeline + reasoning trace events for a run_id.",
+      "probe": false,
+      "contract": "array"
+    },
+    {
+      "id": "lifelog",
+      "method": "GET",
+      "path": "/api/memoray/lifelog",
+      "purpose": "Pulse: unified activity feed (sessions, artifacts, commits). Declared + probed in memoray.integration.json.",
+      "probe": false,
+      "contract": "array"
+    },
+    {
+      "id": "integration_audit",
+      "method": "GET",
+      "path": "/api/integration_audit",
+      "purpose": "Header conformance strip — both memoray and bridge reports.",
+      "probe": false,
+      "contract": {
+        "status": "string",
+        "integrations": "array"
+      }
+    }
+  ],
+  "process_map": [
+    {
+      "id": "bridge_page",
+      "kind": "page",
+      "produces": "#/_prime_silo/bridge cockpit page (mode rail + stage + Benny dock + zen toggle)",
+      "consumes": [
+        "manifests_runs",
+        "integration_audit",
+        "workspaces",
+        "lifelog"
+      ],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "app/L0/_all/mod/_prime_silo/bridge/view.html"
+      }
+    },
+    {
+      "id": "bridge_logic",
+      "kind": "client",
+      "produces": "bridgePage Alpine factory — mode switching, widget mount/destroy, golden-path wiring",
+      "consumes": [
+        "manifests_plan",
+        "manifests_run",
+        "manifests_runs",
+        "graph_code",
+        "kg3d_ontology",
+        "workspaces",
+        "files",
+        "rag_ingest",
+        "rag_correlate",
+        "governance_events",
+        "lifelog"
+      ],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "app/L0/_all/mod/_prime_silo/bridge/bridge.js"
+      }
+    },
+    {
+      "id": "benny_context",
+      "kind": "client",
+      "produces": "bridge-context.js — publishes window.__bennyBridgeContext, composes grounded chip prompts, dispatches to the onscreen agent",
+      "consumes": [],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "app/L0/_all/mod/_prime_silo/bridge/bridge-context.js"
+      }
+    },
+    {
+      "id": "mode_pulse",
+      "kind": "mode",
+      "produces": "Pulse landing — overview cards + lifelog feed + conformance",
+      "consumes": [
+        "lifelog",
+        "manifests_runs",
+        "integration_audit"
+      ],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "app/L0/_all/mod/_prime_silo/widgets/memoray/overview_cards/index.js"
+      }
+    },
+    {
+      "id": "mode_memory",
+      "kind": "mode",
+      "produces": "Memory mode — session lineage graph",
+      "consumes": [],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "app/L0/_all/mod/_prime_silo/widgets/memoray/lineage_graph/index.js"
+      }
+    },
+    {
+      "id": "mode_documents",
+      "kind": "mode",
+      "produces": "Documents mode — workspace/files + ingest->triples + correlate, rendered as the knowledge graph",
+      "consumes": [
+        "workspaces",
+        "files",
+        "rag_ingest",
+        "rag_correlate",
+        "kg3d_ontology"
+      ],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "app/L0/_all/mod/_prime_silo/widgets/kg3d/synoptic_web/index.js"
+      }
+    },
+    {
+      "id": "mode_code",
+      "kind": "mode",
+      "produces": "Code 3D mode — Tree-Sitter code graph (2D SVG default, three_renderer 3D toggle)",
+      "consumes": [
+        "graph_code"
+      ],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "app/L0/_all/mod/_prime_silo/widgets/codegraph/canvas/index.js"
+      }
+    },
+    {
+      "id": "mode_flows",
+      "kind": "mode",
+      "produces": "Flows mode — Plan (DAG) then Run; the no-copy-paste golden path",
+      "consumes": [
+        "manifests_plan",
+        "manifests_run"
+      ],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "app/L0/_all/mod/_prime_silo/widgets/dag/canvas/index.js"
+      }
+    },
+    {
+      "id": "mode_runs",
+      "kind": "mode",
+      "produces": "Runs mode — lineage timeline + reasoning trace observability",
+      "consumes": [
+        "manifests_runs",
+        "governance_events"
+      ],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "app/L0/_all/mod/_prime_silo/widgets/run/lineage_timeline/index.js"
+      }
+    },
+    {
+      "id": "benny_skill",
+      "kind": "skill",
+      "produces": "benny-pilot onscreen-agent skill (catalog-loaded on demand)",
+      "consumes": [
+        "lifelog",
+        "manifests_runs",
+        "graph_code"
+      ],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "app/L0/_all/mod/_prime_silo/memoray_client/ext/skills/benny-pilot/SKILL.md"
+      }
+    },
+    {
+      "id": "cli_bridge",
+      "kind": "cli",
+      "produces": "node space bridge <status|plan|run|ingest|open>",
+      "consumes": [
+        "manifests_plan",
+        "manifests_run",
+        "manifests_runs",
+        "rag_ingest"
+      ],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "commands/bridge.js"
+      }
+    },
+    {
+      "id": "launcher_panel",
+      "kind": "panel",
+      "produces": "Bridge tile in the dashboard launcher",
+      "consumes": [],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "app/L0/_all/mod/_prime_silo/bridge/ext/panels/bridge.yaml"
+      }
+    }
+  ],
+  "config_surface": {
+    "BRIDGE_DEFAULT_MODE": {
+      "kind": "runtime_param",
+      "default": "pulse",
+      "doc": "Mode the Bridge opens on when no ?mode= is supplied. node space get/set BRIDGE_DEFAULT_MODE."
+    },
+    "bridge.default_mode": {
+      "kind": "config_block",
+      "doc": "Wizard manifest record in prime-silo.config.json; surfaced via /api/config_defaults and applied when no query mode is present."
+    },
+    "runtime_proxy": {
+      "kind": "doc",
+      "doc": "All /api/runtime/* hops resolve via RUNTIME_BASE_URL + BENNY_API_KEY in server/lib/runtime_proxy.js; memoray hops via MEMORAY_* (see memoray.integration.json)."
+    }
+  },
+  "conformance": {
+    "checks": [
+      "signature",
+      "config_surface",
+      "owners"
+    ],
+    "notes": "health + payload_contracts are intentionally omitted: this audit's live fetcher targets Memo-Ray, while the Bridge's probed contracts live on the Benny runtime. The runtime endpoints are documented above for the maintaining agent; their live conformance is covered by the runtime's own tests.",
+    "gating_tests": [
+      "tests/bridge_page_test.mjs",
+      "tests/bridge_context_test.mjs",
+      "tests/bridge_documents_test.mjs",
+      "tests/bridge_command_test.mjs",
+      "tests/bridge_integration_manifest_test.mjs",
+      "tests/benny_pilot_skill_test.mjs"
+    ]
+  },
+  "signature": {
+    "algorithm": "HMAC-SHA256",
+    "value": "2084738439c7a8827681101bd6c6e6d5d0ea6ff737d148096c62ca0d53d71b90",
+    "signed_at": "2026-06-13T16:36:10.352Z"
+  }
+}

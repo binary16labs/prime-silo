@@ -65,6 +65,20 @@ function sanitizeMemorayBlock(memoray) {
   return sanitized;
 }
 
+// Phase B-Bridge — Bridge cockpit block. Only the one declared knob
+// (default_mode) is forwarded, and only when it is a recognised mode id.
+function sanitizeBridgeBlock(bridge) {
+  if (!bridge || typeof bridge !== "object") {
+    return null;
+  }
+  const VALID = ["pulse", "memory", "documents", "code", "flows", "runs"];
+  const defaultMode = String(bridge.default_mode || "").trim();
+  if (!VALID.includes(defaultMode)) {
+    return null;
+  }
+  return { default_mode: defaultMode };
+}
+
 export async function get(context) {
   const manifestPath = path.join(context.projectRoot, CONFIG_MANIFEST_FILENAME);
 
@@ -92,12 +106,17 @@ export async function get(context) {
 
   const model = sanitizeModelBlock(manifest?.model);
   const memoray = sanitizeMemorayBlock(manifest?.memoray);
+  const bridge = sanitizeBridgeBlock(manifest?.bridge);
 
   if (!model) {
     return {
       headers: { "Cache-Control": "no-store" },
       status: 200,
-      body: memoray ? { found: false, memoray } : { found: false }
+      body: {
+        found: false,
+        ...(memoray ? { memoray } : {}),
+        ...(bridge ? { bridge } : {})
+      }
     };
   }
 
@@ -108,7 +127,8 @@ export async function get(context) {
       found: true,
       schema: String(manifest.schema || ""),
       model,
-      ...(memoray ? { memoray } : {})
+      ...(memoray ? { memoray } : {}),
+      ...(bridge ? { bridge } : {})
     }
   };
 }

@@ -388,6 +388,24 @@ The Review-zone canvas lets the agent compose multi-widget layouts for post-run 
 
 The graph widgets (`kg3d.synoptic_web`, `codegraph.canvas`, `memoray.lineage_graph`) have a pluggable renderer. By default they render a 2D SVG. To enable the 3D `3d-force-graph` view, the caller passes `options.renderer = createThreeRenderer(...)`. The 3D library loads on demand from CDN — no install needed.
 
+### 5d-bis. Bridge — the cockpit (`#/_prime_silo/bridge`)
+
+The Bridge is the recommended way in: one page that unifies the whole mesh so you don't hop between tabs. It's in the dashboard launcher as **Bridge**.
+
+**Layout:** a mode rail on the left, one stage in the middle, and **Benny** (the onscreen agent) in the dock on the right. A **zen** toggle (top-right) collapses both rails to leave just the stage.
+
+**The six modes:**
+- **Pulse** — the landing: Command Center cards, the integration conformance dot, and the **Lifelog** activity feed (your sessions, artifacts, and git commits across every workspace, newest first).
+- **Memory** — pick a session, see its lineage graph.
+- **Documents** — pick a workspace, see its files, then **Ingest → triples** turns the documents into the knowledge graph (rendered inline); **Correlate w/ code** links concepts to the code graph. Deep-links to the full file explorer for heavy lifting.
+- **Code 3D** — the Tree-Sitter code graph for the workspace; a **2D/3D** toggle swaps the SVG layout for a WebGL force-graph.
+- **Flows** — type what you want, hit **Plan** (the planned manifest renders as a DAG), then **Run** (the stage flips to live run observability). No copy-paste, no terminal.
+- **Runs** — pick a run; its lineage timeline and reasoning trace render together.
+
+**Benny knows where you are:** the dock shows what's on the stage, and the suggestion chips ("Explain this graph", "What did I work on?", "Ingest these docs", "Re-run the last manifest") are mode-aware — clicking one asks Benny a prompt already grounded in the current mode, selection and workspace, and Benny answers with a deep link back. Benny loads the `benny-pilot` skill on demand.
+
+**Same capability everywhere:** the CLI mirrors the golden paths — `node space bridge status | plan "<req>" | run <id> | ingest | open`. The page's opening mode is configurable with `node space set BRIDGE_DEFAULT_MODE=<mode>`. The whole integration is declared in [`manifests/integrations/bridge.integration.json`](manifests/integrations/bridge.integration.json) and covered by `node space memory audit`.
+
 ### 5e. Memory graph (`#/_prime_silo/memory`)
 
 The memory graph is the third graph of the cognitive mesh — your agent sessions (Claude + Antigravity), X-rayed into an explorable lineage map by [Memo-Ray](https://github.com/binary16labs/memo-ray). It answers "what was I working on" and "which sessions touched this file" so you never have to be the institutional memory.

@@ -1,0 +1,5 @@
+name: Manifests
+path: _prime_silo/manifest_explorer
+description: Deterministic-zone manifest registry — inspect signed swarm manifests as DAGs.
+icon: schema
+color: "#c4a882"

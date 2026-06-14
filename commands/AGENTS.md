@@ -107,12 +107,14 @@ Runtime resolution rules:
 - `USER_FOLDER_SIZE_LIMIT_BYTES` sets an optional byte cap for each on-disk `L2/<user>/` folder; `0` disables the cap
 - `MEMORAY_ENABLED` is the master switch for the Memo-Ray memory-graph integration (shell proxy `/api/memoray`, the `#/_prime_silo/memory` page, the `memory-recall` skill, and `node space memory`); it defaults to `true` and is frontend-exposed
 - `MEMORAY_BASE_URL` is the Memo-Ray server the shell proxies to; it defaults to `http://127.0.0.1:3001`, and when it is left unset the wizard manifest `memoray.base_url` in `prime-silo.config.json` applies instead
+- `BRIDGE_DEFAULT_MODE` sets which mode the Bridge cockpit (`#/_prime_silo/bridge`) opens on when no `?mode=` is given (`pulse|memory|documents|code|flows|runs`); it defaults to `pulse`, is frontend-exposed, and is surfaced to the page via `/api/config_defaults` (`bridge.default_mode`)
 - short-lived `user` and `group` commands flush pending local-history commits before returning when `CUSTOMWARE_GIT_HISTORY` is enabled
 
 The `help` export should be complete enough that `node space help <command>` is useful without reading the code. Prefer accurate usage lines, concrete descriptions, explicit argument descriptions when position matters, and examples when the command shape is not obvious.
 
 ## Current Commands
 
+- `bridge`
 - `get`
 - `group`
 - `help`
@@ -128,7 +130,7 @@ The `help` export should be complete enough that `node space help <command>` is 
 
 There are two kinds of commands in this tree:
 
-- operational commands that control or inspect the local runtime: `serve`, `supervise`, `help`, `get`, `set`, `version`, `update`, `memory`
+- operational commands that control or inspect the local runtime: `serve`, `supervise`, `help`, `get`, `set`, `version`, `update`, `memory`, `bridge`
 - state-management commands that edit layered runtime data under the logical app tree: `user` and `group`
 
 The preferred shape is a small number of readable top-level commands with explicit subcommands. Do not add one file per tiny action when a subcommand fits the existing command family cleanly.
@@ -326,6 +328,33 @@ Guidance:
 - delegate to the shared server libraries (`server/lib/memoray_proxy.js`, `server/lib/integration_audit.js`); do not re-implement settings resolution or audit logic in the command
 - resolve config through `commands/params.yaml` (`MEMORAY_ENABLED`, `MEMORAY_BASE_URL`) via the shared runtime-param resolver, then the wizard manifest — never hardcode the endpoint
 - `audit` is the headless/CI and local-LLM maintenance entry point; keep its exit code meaningful (0 pass, 1 drift)
+
+### `bridge`
+
+Purpose:
+
+- drive the Bridge cockpit golden paths from the terminal — the same plan→run and documents→triples paths the page (`#/_prime_silo/bridge`) wires to buttons, available headless for scripts, CI, or a local Lemonade-driven agent
+- one-shot mesh snapshot via `status` (memory online? runs, conformance) so "where am I" is answerable without a browser
+
+Current subcommands:
+
+- `status` — memory reachability + recent runs + integration conformance, plus the page URL
+- `plan "<requirement>"` — push `POST /manifests/plan`; print the manifest id + node summary; `--workspace W`, `--strategy auto|oneshot|incremental|swarm`
+- `run <manifest_id>` — push `POST /manifests/{id}/run`; print the run id + status + a `?mode=runs` deep link; `--workspace W`
+- `ingest` — push `POST /rag/ingest` (documents → semantic triples); `--workspace W`
+- `open` — print the `#/_prime_silo/bridge` URL
+
+Current usage:
+
+- `node space bridge status`
+- `node space bridge plan "score trades for credit risk" --workspace pypes_demo`
+- `node space bridge run mf_1a2b3c --workspace pypes_demo`
+- `node space bridge ingest --workspace c5_test`
+
+Guidance:
+
+- delegate to the shared server libraries (`server/lib/runtime_proxy.js#runtimeRequest`, `server/lib/memoray_proxy.js`, `server/lib/integration_audit.js`); the runtime hops resolve via `RUNTIME_BASE_URL` + `BENNY_API_KEY`, the memoray hops via `MEMORAY_*` — never hardcode an endpoint
+- `BRIDGE_DEFAULT_MODE` (`commands/params.yaml`) sets which mode the page opens on; the integration is declared in `manifests/integrations/bridge.integration.json` and covered by `node space memory audit`
 
 ### `update`
 

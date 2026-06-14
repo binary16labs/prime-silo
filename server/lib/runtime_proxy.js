@@ -168,6 +168,48 @@ export async function proxyToRuntime(req, res, requestUrl) {
   await pipeResponseBody(upstreamResponse, res);
 }
 
+/**
+ * Out-of-band Benny-runtime request helper for non-router callers (the
+ * `node space bridge` CLI). Mirrors memoray_proxy.js#memorayRequest: same
+ * base-URL + API-key resolution as the proxy, returns parsed JSON, never
+ * throws on transport failure (returns {ok:false}). Paths are relative to the
+ * runtime's /api root, e.g. "/manifests/runs".
+ */
+export async function runtimeRequest(apiPath, { method = "GET", body, timeoutMs = 15000 } = {}) {
+  const normalizedPath = apiPath.startsWith("/") ? apiPath : `/${apiPath}`;
+  const url = `${getRuntimeBaseUrl()}/api${normalizedPath}`;
+
+  let response;
+  try {
+    response = await fetch(url, {
+      method,
+      headers: {
+        "X-Benny-API-Key": getBennyApiKey(),
+        ...(body ? { "content-type": "application/json" } : {})
+      },
+      body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(timeoutMs)
+    });
+  } catch (err) {
+    return {
+      ok: false,
+      status: 0,
+      error: "runtime_unreachable",
+      detail: String(err?.message || err),
+      hint: "Benny runtime is not running. Boot it with scripts/dev.ps1 (or python -m benny.api.server), or set RUNTIME_BASE_URL.",
+      url
+    };
+  }
+
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch {
+    payload = null;
+  }
+  return { ok: response.ok, status: response.status, body: payload, url };
+}
+
 // Exposed for tests so the proxy's path semantics stay locked.
 export const __testing = {
   RUNTIME_PATH_PREFIX,

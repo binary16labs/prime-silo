@@ -163,10 +163,41 @@ node space memory audit          # PASS
 
 ---
 
+## 7. The Bridge — everything in one place (3 min)
+
+Phase B adds the **Bridge cockpit**: one page that ropes memory, documents, code, flows and runs together with Benny (the onscreen agent) in the dock.
+
+Open it (it's also in the dashboard launcher as **Bridge**):
+```
+http://localhost:3000/#/_prime_silo/bridge
+```
+
+Walk the rail, top to bottom:
+1. **Pulse** — the landing. Command Center cards, a green conformance dot, and the **Lifelog** feed (your sessions, artifacts, and git commits across every workspace).
+2. **Memory** — pick a session → its lineage graph.
+3. **Documents** — pick a workspace, see its files, click **Ingest → triples** (documents become the knowledge graph, rendered inline), then **Correlate w/ code**. Flip the **3D** toggle.
+4. **Code 3D** — the code graph; flip **2D/3D** for the WebGL view.
+5. **Flows** — type "score trades for credit risk", hit **Plan** (a DAG renders), then **Run** (the stage flips to live observability). No copy‑paste.
+6. **Runs** — pick a run → timeline + reasoning trace.
+
+**Benny is aware:** click a suggestion chip (e.g. "Explain this graph") — Benny answers grounded in the current mode/selection, with a deep link back. Toggle **zen** (top‑right) to strip to just the stage.
+
+Same paths headless:
+```powershell
+node space bridge status
+node space bridge plan "score trades for credit risk" --workspace pypes_demo
+node space bridge ingest --workspace c5_test
+```
+
+**Demo highlight:** the Bridge is itself a signed, self‑auditing manifest — `node space memory audit` now reports **two** integrations (`memoray` and `bridge`), both PASS.
+
+---
+
 ## One‑glance checklist
 
 | # | Surface | Command / action | Healthy result |
 |---|---------|------------------|----------------|
+| 0 | Bridge (cockpit) | open `#/_prime_silo/bridge` | rail + stage + Benny dock; conformance dot green |
 | 1 | Self‑audit (CLI) | `node scripts/audit-integrations.mjs` | `overall: PASS` |
 | 1 | Self‑audit (HTTP) | `GET /api/integration_audit` | `"status":"pass"` |
 | 2 | CLI | `node space memory status` | `status: online` |
