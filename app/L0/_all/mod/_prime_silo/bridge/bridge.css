@@ -22,8 +22,13 @@
   flex-direction: column;
   gap: 14px;
   padding: 18px 22px;
+  /* Fill the host so the stage (and the graphs inside it) can grow to the
+     full available height instead of collapsing to content. The min-heights
+     further down act as floors when the host can't give a definite height. */
+  height: 100%;
   min-height: 100%;
   box-sizing: border-box;
+  overflow: hidden;
   background: var(--ps-bg);
   color: var(--ps-text);
   font-size: 14px;
@@ -80,7 +85,8 @@
   flex: 1;
   min-height: 0;
 }
-.ps-bridge.is-zen .ps-bridge__stage { padding: 14px; }
+.ps-bridge.is-zen { padding: 8px; gap: 8px; }
+.ps-bridge.is-zen .ps-bridge__stage { padding: 8px; }
 .ps-bridge.is-zen .ps-bridge__rail,
 .ps-bridge.is-zen .ps-bridge__benny { display: none; }
 
@@ -122,7 +128,7 @@
   background: var(--ps-surface-2); color: var(--ps-text);
   border: 1px solid var(--ps-border-strong); border-radius: 7px; padding: 6px 10px; font: inherit;
 }
-.ps-bridge__panel { min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.ps-bridge__panel { min-width: 0; display: flex; flex-direction: column; gap: 14px; flex: 1; min-height: 0; }
 
 /* cards + feed (pulse) */
 .ps-bridge__cards { display: block; }
@@ -142,7 +148,7 @@
 .ps-bridge__link-btn { background: none; border: none; color: var(--ps-sage); cursor: pointer; font: inherit; text-decoration: underline; padding: 0; }
 
 /* split: list | graph (memory, runs) */
-.ps-bridge__split { display: grid; grid-template-columns: 230px 1fr; gap: 12px; min-height: 0; }
+.ps-bridge__split { display: grid; grid-template-columns: 230px 1fr; gap: 12px; flex: 1; min-height: 0; }
 .ps-bridge__list h3,
 .ps-bridge__files h3,
 .ps-bridge__feed h3 { margin: 0 0 8px; }
@@ -165,8 +171,35 @@
   background: rgba(0, 0, 0, 0.18);
 }
 .ps-bridge__graph--tall { min-height: 460px; }
-.ps-bridge__graph-wrap { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.ps-bridge__graph-head { display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+.ps-bridge__graph-wrap { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; min-height: 0; }
+.ps-bridge__graph-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+.ps-bridge__graph-head-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
+.ps-bridge__graph-head-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+/* graph filter bar — node-type / layer toggles that scope what renders.
+   Works for both the 2D SVG fallback and the 3D WebGL renderer. */
+.ps-bridge__filters { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ps-bridge__filter {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--ps-surface-2); color: var(--ps-muted);
+  border: 1px solid var(--ps-border); border-radius: 999px;
+  padding: 3px 10px; font: inherit; font-size: 11.5px; cursor: pointer;
+}
+.ps-bridge__filter:hover { color: var(--ps-text); border-color: var(--ps-border-strong); }
+.ps-bridge__filter--on { color: var(--ps-text); border-color: var(--ps-border-strong); background: var(--ps-sage-soft); }
+.ps-bridge__filter-swatch { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+.ps-bridge__filter--off { opacity: 0.45; }
+.ps-bridge__filter--off .ps-bridge__filter-swatch { filter: grayscale(1); }
+
+/* expand-to-fullscreen — pops the active graph to fill the whole view so
+   large graphs have the entire background to breathe in. */
+.ps-bridge__graph-wrap.is-expanded {
+  position: fixed; inset: 0; z-index: 60;
+  margin: 0; padding: 12px 14px;
+  background: var(--ps-bg);
+  gap: 8px;
+}
+.ps-bridge__graph-wrap.is-expanded .ps-bridge__graph { min-height: 0; }
 .ps-bridge__toggle {
   background: var(--ps-surface-2); color: var(--ps-text);
   border: 1px solid var(--ps-border-strong); border-radius: 7px;
@@ -181,11 +214,11 @@
 .ps-bridge__toggle--active:hover {
   background: rgba(156, 175, 136, 0.28) !important;
 }
-.ps-bridge__runstage { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.ps-bridge__runstage { display: flex; flex-direction: column; gap: 10px; min-width: 0; flex: 1; min-height: 0; }
 .ps-bridge__runstage .ps-bridge__graph { min-height: 200px; }
 
 /* documents */
-.ps-bridge__docbar { display: grid; grid-template-columns: 280px 1fr; gap: 14px; min-height: 0; }
+.ps-bridge__docbar { display: grid; grid-template-columns: 280px 1fr; gap: 14px; flex: 1; min-height: 0; }
 .ps-bridge__files-list { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow-y: auto; font-size: 12.5px; }
 .ps-bridge__files-list li { padding: 5px 8px; background: var(--ps-surface); border-radius: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ps-bridge__doc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }

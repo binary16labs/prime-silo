@@ -12,6 +12,7 @@ import assert from "node:assert/strict";
 import {
   createThreeRenderer,
   layoutToGraphData,
+  nodeMatchesProps,
   __testing
 } from "../app/L0/_all/mod/_prime_silo/widgets/three_renderer/index.js";
 
@@ -40,6 +41,10 @@ async function main() {
   await testOnNodeClickWiresThrough();
   await testMultipleMountsAreIndependent();
   testMountRejectsBadHost();
+
+  // Filters (focusedLayer) — node/link visibility predicates.
+  testNodeMatchesProps();
+  await testFocusedLayerAppliesVisibility();
 
   console.log("widgets_three_renderer_test: ok");
 }
@@ -419,6 +424,56 @@ function testMountRejectsBadHost() {
   const r = createThreeRenderer({ loader: () => Promise.resolve(stubForceGraph3D()) });
   assert.throws(() => r.mount(null, kg3dLayout(), {}), /host must be an HTMLElement/);
   assert.throws(() => r.mount({}, kg3dLayout(), {}), /host must be an HTMLElement/);
+}
+
+// ---------------------------------------------------------------------------
+// Filters — focusedLayer
+// ---------------------------------------------------------------------------
+
+function testNodeMatchesProps() {
+  // No filter → everything visible.
+  assert.equal(nodeMatchesProps({ layer: 1 }, {}), true);
+  assert.equal(nodeMatchesProps({ layer: 1 }, { focusedLayer: 0 }), true);
+  // Focused layer keeps matching nodes, hides others.
+  assert.equal(nodeMatchesProps({ layer: 1 }, { focusedLayer: 1 }), true);
+  assert.equal(nodeMatchesProps({ layer: 3 }, { focusedLayer: 1 }), false);
+  // Nodes without a layer (e.g. code graph) are never hidden by a layer focus.
+  assert.equal(nodeMatchesProps({}, { focusedLayer: 1 }), true);
+}
+
+function stubForceGraph3DWithVisibility() {
+  const base = stubForceGraph3D();
+  const instance = base._instance;
+  instance.nodeVisibility = function nodeVisibility(...args) {
+    this._calls.push(["nodeVisibility", args]);
+    this._nodeVisibility = args[0];
+    return this;
+  };
+  instance.linkVisibility = function linkVisibility(...args) {
+    this._calls.push(["linkVisibility", args]);
+    this._linkVisibility = args[0];
+    return this;
+  };
+  return base;
+}
+
+async function testFocusedLayerAppliesVisibility() {
+  const ForceGraph3D = stubForceGraph3DWithVisibility();
+  const r = createThreeRenderer({ loader: () => Promise.resolve(ForceGraph3D) });
+  const handle = r.mount(fakeHost(), kg3dLayout(), { focusedLayer: 1 });
+  await flushAsync();
+  const inst = ForceGraph3D._instance;
+  assert.equal(typeof inst._nodeVisibility, "function", "nodeVisibility accessor registered");
+  assert.equal(typeof inst._linkVisibility, "function", "linkVisibility accessor registered");
+  // kg3dLayout has neural_nets@layer1 and backprop@layer3 — focus on 1.
+  assert.equal(inst._nodeVisibility({ layer: 1 }), true);
+  assert.equal(inst._nodeVisibility({ layer: 3 }), false);
+  // A link is visible only when both processed endpoints survive.
+  assert.equal(inst._linkVisibility({ source: { layer: 1 }, target: { layer: 1 } }), true);
+  assert.equal(inst._linkVisibility({ source: { layer: 1 }, target: { layer: 3 } }), false);
+  // Clearing the focus (update with no focusedLayer) re-opens everything.
+  handle.update(kg3dLayout(), {});
+  assert.equal(inst._nodeVisibility({ layer: 3 }), true);
 }
 
 main().catch((err) => {

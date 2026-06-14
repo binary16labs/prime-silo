@@ -137,6 +137,31 @@ export function layoutToGraphData(layout, physicsMode = "pinned") {
   return { nodes, links };
 }
 
+/**
+ * Filter predicate shared by the 2D fallback's intent and the 3D scene.
+ * Currently the only renderer-level filter is `focusedLayer` (kg3d): when
+ * set, nodes outside that AoT layer are hidden. Code-graph type filtering
+ * happens upstream in the widget's layout (filtered types never reach the
+ * renderer), so it needs no handling here. Exported for testing.
+ */
+export function nodeMatchesProps(node, props) {
+  if (!node || !props) return true;
+  const focus = props.focusedLayer;
+  if (focus && node.layer != null && node.layer !== focus) return false;
+  return true;
+}
+
+function linkMatchesProps(link, props) {
+  if (!link || !props) return true;
+  const s = link.source;
+  const t = link.target;
+  // After 3d-force-graph processes graphData, endpoints are node objects;
+  // before that they're ids. Only filter once we can read the node's layer.
+  const sourceOk = s && typeof s === "object" ? nodeMatchesProps(s, props) : true;
+  const targetOk = t && typeof t === "object" ? nodeMatchesProps(t, props) : true;
+  return sourceOk && targetOk;
+}
+
 async function defaultLoader(cdnUrl) {
   // Dynamic import so the CDN fetch only happens when a renderer actually
   // mounts. Modern bundlers leave bare specifiers alone; this string is
@@ -203,6 +228,22 @@ export function createThreeRenderer(options = {}) {
         }
       }
       state.instance.graphData(data);
+      applyFilters();
+    }
+
+    // Re-apply the visibility accessors so filters (e.g. focusedLayer) take
+    // effect without a remount. The accessors read the live `state.pending`
+    // props, so re-registering them is enough to re-evaluate. Guarded so the
+    // contract still holds against a minimal lib stub lacking these setters.
+    function applyFilters() {
+      if (state.disposed || !state.instance) return;
+      const props = state.pending && state.pending.props ? state.pending.props : {};
+      if (typeof state.instance.nodeVisibility === "function") {
+        state.instance.nodeVisibility((n) => nodeMatchesProps(n, props));
+      }
+      if (typeof state.instance.linkVisibility === "function") {
+        state.instance.linkVisibility((l) => linkMatchesProps(l, props));
+      }
     }
 
     Promise.resolve()

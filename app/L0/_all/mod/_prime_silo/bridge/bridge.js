@@ -161,10 +161,25 @@ export function createBridgePage(options = {}) {
     ingestNote: "",
     docs3d: false,
     docsPhysics: "pinned",
+    docsFocusLayer: 0, // 0 = all AoT layers, 1..5 = focus a single layer
 
     // code
     code3d: false,
     codePhysics: "pinned",
+    // Node-type filter for the code graph. Folders→Concepts; toggling one off
+    // drops it from the layout in both the 2D SVG and the 3D WebGL renderer.
+    codeTypes: [
+      { id: "Folder", color: "#FFD700" },
+      { id: "File", color: "#00FFFF" },
+      { id: "Module", color: "#94a3b8" },
+      { id: "Class", color: "#007ACC" },
+      { id: "Function", color: "#FF5F1F" },
+      { id: "Concept", color: "#a78bfa" }
+    ],
+    codeVisibleTypes: ["Folder", "File", "Module", "Class", "Function", "Concept"],
+
+    // graph chrome
+    expanded: false, // pop the active graph to fill the whole view
 
     // flows
     requirement: "",
@@ -180,6 +195,8 @@ export function createBridgePage(options = {}) {
 
     _ctx: null,
     _widgets: [],
+    _codeWidget: null,
+    _docsWidget: null,
 
     async init() {
       this._ctx = injected.context || createBridgeContext({ agent: injected.agent });
@@ -240,6 +257,7 @@ export function createBridgePage(options = {}) {
     async setMode(mode) {
       if (!isValidMode(mode)) mode = "pulse";
       this.destroyWidgets();
+      this.expanded = false;
       this.mode = mode;
       this.selection = this.selection && readQuery().mode === mode ? this.selection : null;
       this.syncContext();
@@ -269,6 +287,21 @@ export function createBridgePage(options = {}) {
         try { w.destroy(); } catch { /* swallow */ }
       }
       this._widgets = [];
+      this._codeWidget = null;
+      this._docsWidget = null;
+    },
+
+    /* ── graph chrome (expand to fullscreen) ── */
+
+    toggleExpand() {
+      this.expanded = !this.expanded;
+      // The 3D renderer (3d-force-graph) refits to its container on window
+      // resize; expanding/collapsing only changes the container, so nudge it.
+      this.$nextTick(() => {
+        if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+          window.dispatchEvent(new Event("resize"));
+        }
+      });
     },
 
     onNodeSelect(id, label) {
@@ -355,8 +388,9 @@ export function createBridgePage(options = {}) {
       const host = this.$refs.docsGraph;
       if (!host) return;
       this.destroyWidgets();
-      this.track(createSynopticWebWidget(host, {
+      this._docsWidget = this.track(createSynopticWebWidget(host, {
         workspace: this.workspace,
+        focusedLayer: this.docsFocusLayer || undefined,
         onSelect: (id) => this.onNodeSelect(id)
       }, this.docs3d ? { renderer: this.makeThreeRenderer(this.docsPhysics) } : {}));
     },
@@ -366,6 +400,14 @@ export function createBridgePage(options = {}) {
     toggleDocsPhysics() {
       this.docsPhysics = this.docsPhysics === "pinned" ? "fluid" : "pinned";
       this.mountKnowledgeGraph();
+    },
+
+    // Focus a single AoT layer (1..5) or clear with 0. The synoptic widget
+    // re-paints in place — no refetch, no remount — so the 3D scene keeps its
+    // camera. Layer visibility is honoured by both renderers.
+    setDocsFocus(layer) {
+      this.docsFocusLayer = layer;
+      if (this._docsWidget) this._docsWidget.update({ focusedLayer: layer || undefined });
     },
 
     async loadFiles() {
@@ -418,9 +460,10 @@ export function createBridgePage(options = {}) {
     async mountCode() {
       const host = this.$refs.codeGraph;
       if (!host) return;
-      this.track(createCodeGraphCanvasWidget(host, {
+      this._codeWidget = this.track(createCodeGraphCanvasWidget(host, {
         workspace: this.workspace,
         selectedNodeId: this.selection ? this.selection.id : "",
+        visibleTypes: [...this.codeVisibleTypes],
         onSelect: (id) => this.onNodeSelect(id)
       }, this.code3d ? { renderer: this.makeThreeRenderer(this.codePhysics) } : {}));
     },
@@ -431,6 +474,16 @@ export function createBridgePage(options = {}) {
       this.codePhysics = this.codePhysics === "pinned" ? "fluid" : "pinned";
       this.destroyWidgets();
       this.mountCode();
+    },
+
+    // Show/hide a node type (Folder, File, Class, …). The widget re-computes
+    // its layered layout from the cached graph — filtered types drop out of
+    // the SVG and the 3D scene alike — so this is cheap and never refetches.
+    toggleCodeType(type) {
+      const idx = this.codeVisibleTypes.indexOf(type);
+      if (idx >= 0) this.codeVisibleTypes.splice(idx, 1);
+      else this.codeVisibleTypes.push(type);
+      if (this._codeWidget) this._codeWidget.update({ visibleTypes: [...this.codeVisibleTypes] });
     },
 
     makeThreeRenderer(physicsMode = "pinned") {

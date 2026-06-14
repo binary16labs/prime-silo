@@ -3,7 +3,7 @@
     <link rel="stylesheet" href="/mod/_prime_silo/widgets/memoray/overview_cards/overview_cards.css" />
     <link rel="stylesheet" href="/mod/_prime_silo/widgets/memoray/lineage_graph/lineage_graph.css" />
     <link rel="stylesheet" href="/mod/_prime_silo/widgets/three_renderer/renderer.css" />
-    <link rel="stylesheet" href="/mod/_prime_silo/bridge/bridge.css?v=2" />
+    <link rel="stylesheet" href="/mod/_prime_silo/bridge/bridge.css?v=3" />
     <script type="module" src="/mod/_prime_silo/bridge/bridge.js"></script>
   </head>
   <body>
@@ -140,10 +140,29 @@
                 </div>
                 <p class="ps-bridge__note" x-show="ingestNote" x-text="ingestNote"></p>
               </div>
-              <div class="ps-bridge__graph-wrap">
+              <div class="ps-bridge__graph-wrap" :class="{ 'is-expanded': expanded }">
                 <div class="ps-bridge__graph-head">
-                  <span class="ps-bridge__muted">Knowledge graph — semantic triples</span>
-                  <div style="display: flex; gap: 8px; align-items: center;">
+                  <div class="ps-bridge__graph-head-left">
+                    <span class="ps-bridge__muted">Knowledge graph — semantic triples</span>
+                    <div class="ps-bridge__filters" aria-label="Focus an abstraction layer">
+                      <button
+                        type="button"
+                        class="ps-bridge__filter"
+                        :class="{ 'ps-bridge__filter--on': !docsFocusLayer }"
+                        @click="setDocsFocus(0)"
+                      >All</button>
+                      <template x-for="l in [1, 2, 3, 4, 5]" :key="l">
+                        <button
+                          type="button"
+                          class="ps-bridge__filter"
+                          :class="{ 'ps-bridge__filter--on': docsFocusLayer === l }"
+                          @click="setDocsFocus(l)"
+                          x-text="'L' + l"
+                        ></button>
+                      </template>
+                    </div>
+                  </div>
+                  <div class="ps-bridge__graph-head-right">
                     <button
                       type="button"
                       class="ps-bridge__toggle"
@@ -153,6 +172,7 @@
                       x-text="docsPhysics === 'fluid' ? 'Fluid (Classic Benny)' : 'Rigid'"
                     ></button>
                     <button type="button" class="ps-bridge__toggle" @click="toggleDocs3d()" x-text="docs3d ? '2D' : '3D'"></button>
+                    <button type="button" class="ps-bridge__toggle" @click="toggleExpand()" x-text="expanded ? 'Collapse' : 'Expand'"></button>
                   </div>
                 </div>
                 <div class="ps-bridge__graph" x-ref="docsGraph"></div>
@@ -162,21 +182,39 @@
 
           <!-- CODE 3D -->
           <div class="ps-bridge__panel" x-show="mode === 'code'">
-            <div class="ps-bridge__graph-head">
-              <span class="ps-bridge__muted">Code graph — Tree-Sitter AST · workspace <span x-text="workspace"></span></span>
-              <div style="display: flex; gap: 8px; align-items: center;">
-                <button
-                  type="button"
-                  class="ps-bridge__toggle"
-                  :class="{ 'ps-bridge__toggle--active': codePhysics === 'fluid' }"
-                  x-show="code3d"
-                  @click="toggleCodePhysics()"
-                  x-text="codePhysics === 'fluid' ? 'Fluid (Classic Benny)' : 'Rigid'"
-                ></button>
-                <button type="button" class="ps-bridge__toggle" @click="toggleCode3d()" x-text="code3d ? '2D' : '3D'"></button>
+            <div class="ps-bridge__graph-wrap" :class="{ 'is-expanded': expanded }">
+              <div class="ps-bridge__graph-head">
+                <div class="ps-bridge__graph-head-left">
+                  <span class="ps-bridge__muted">Code graph — Tree-Sitter AST · workspace <span x-text="workspace"></span></span>
+                  <div class="ps-bridge__filters" aria-label="Filter node types">
+                    <template x-for="t in codeTypes" :key="t.id">
+                      <button
+                        type="button"
+                        class="ps-bridge__filter"
+                        :class="codeVisibleTypes.includes(t.id) ? 'ps-bridge__filter--on' : 'ps-bridge__filter--off'"
+                        @click="toggleCodeType(t.id)"
+                      >
+                        <span class="ps-bridge__filter-swatch" :style="`background:${t.color}`"></span>
+                        <span x-text="t.id"></span>
+                      </button>
+                    </template>
+                  </div>
+                </div>
+                <div class="ps-bridge__graph-head-right">
+                  <button
+                    type="button"
+                    class="ps-bridge__toggle"
+                    :class="{ 'ps-bridge__toggle--active': codePhysics === 'fluid' }"
+                    x-show="code3d"
+                    @click="toggleCodePhysics()"
+                    x-text="codePhysics === 'fluid' ? 'Fluid (Classic Benny)' : 'Rigid'"
+                  ></button>
+                  <button type="button" class="ps-bridge__toggle" @click="toggleCode3d()" x-text="code3d ? '2D' : '3D'"></button>
+                  <button type="button" class="ps-bridge__toggle" @click="toggleExpand()" x-text="expanded ? 'Collapse' : 'Expand'"></button>
+                </div>
               </div>
+              <div class="ps-bridge__graph ps-bridge__graph--tall" x-ref="codeGraph"></div>
             </div>
-            <div class="ps-bridge__graph ps-bridge__graph--tall" x-ref="codeGraph"></div>
           </div>
 
           <!-- FLOWS -->
