@@ -1,8 +1,8 @@
 # Memo-Ray launcher (PowerShell)
 #
 # Boots the Memo-Ray memory-graph companion (https://github.com/binary16labs/memo-ray):
-#   server — Express on :3001 (delta-syncs Claude + Antigravity session logs)
-#   client — Vite on :5175 (organic lineage graph UI)
+#   server - Express on :3001 (delta-syncs Claude + Antigravity session logs)
+#   client - Vite on :5175 (organic lineage graph UI)
 #
 # Memo-Ray is the third graph of the cognitive mesh: memory (sessions) beside
 # knowledge (documents) and code (AST). Prime-Silo's site dashboard carries a
@@ -25,16 +25,16 @@ $clientDir = Join-Path $memoray "agent-os-dashboard\client"
 
 foreach ($dir in @($serverDir, $clientDir)) {
     if (-not (Test-Path (Join-Path $dir "node_modules"))) {
-        Write-Host "▸ npm install in $dir"
+        Write-Host "> npm install in $dir"
         Push-Location $dir
         npm install
         Pop-Location
     }
 }
 
-Write-Host "▸ Memo-Ray launcher"
-Write-Host "  server → http://localhost:3001"
-Write-Host "  client → http://localhost:5175"
+Write-Host "> Memo-Ray launcher"
+Write-Host "  server -> http://localhost:3001"
+Write-Host "  client -> http://localhost:5175"
 
 $server = Start-Process -FilePath "node" -ArgumentList "index.js" -WorkingDirectory $serverDir -PassThru -NoNewWindow
 $npmExec = if ($IsWindows -or $env:OS -match "Windows") { "npm.cmd" } else { "npm" }

@@ -5,8 +5,12 @@
 # proxy /api/* to the runtime so a single user-facing port is exposed.
 #
 # Required environment:
-#   BENNY_HMAC_KEY   — hex-encoded HMAC key for manifest + view signing
+#   BENNY_HMAC_KEY   - hex-encoded HMAC key for manifest + view signing
 #                      (must match the key your skin packs were signed with)
+#
+# NOTE: keep this file ASCII-only. Windows PowerShell 5.1 reads BOM-less .ps1
+# files as ANSI, so non-ASCII characters (em-dashes, bullets) corrupt the
+# parser. Use '-' and '>' instead.
 
 $ErrorActionPreference = "Stop"
 
@@ -14,7 +18,7 @@ $root = Split-Path -Parent $PSScriptRoot
 
 # Load .env if it exists
 if (Test-Path "$root\.env") {
-    Write-Host "▸ Loading .env"
+    Write-Host "> Loading .env"
     Get-Content "$root\.env" | ForEach-Object {
         $line = $_.Trim()
         if ($line -and -not $line.StartsWith("#")) {
@@ -49,11 +53,11 @@ if (-not (Test-Path $workspacesDir)) {
 
 $env:BENNY_HOME = $bennyHome
 
-Write-Host "▸ Prime-Silo dev launcher"
+Write-Host "> Prime-Silo dev launcher"
 Write-Host "  BENNY_HOME = $env:BENNY_HOME"
 Write-Host "  runtime    = $runtimeDir"
 
-# Runtime — FastAPI on :8005
+# Runtime - FastAPI on :8005
 $runtime = Start-Process `
     -FilePath "python" `
     -ArgumentList "-m","benny.api.server" `
@@ -61,7 +65,7 @@ $runtime = Start-Process `
     -PassThru `
     -NoNewWindow
 
-# Shell — space-agent dev server
+# Shell - space-agent dev server
 $shell = Start-Process `
     -FilePath "node" `
     -ArgumentList "server/dev_server.js" `
@@ -72,7 +76,7 @@ $shell = Start-Process `
 Write-Host "  runtime PID = $($runtime.Id)"
 Write-Host "  shell   PID = $($shell.Id)"
 
-# Memo-Ray memory graph (Phase M1) — auto-boot when enabled and the checkout
+# Memo-Ray memory graph (Phase M1) - auto-boot when enabled and the checkout
 # exists, so the in-shell page at #/_prime_silo/memory works from one command.
 # The shell proxies /api/memoray to the server (:3001); the Vite client (:5175)
 # backs the page's "Zen mode" link-out. MEMORAY_ENABLED=false skips both.
@@ -84,7 +88,7 @@ if ($env:MEMORAY_ENABLED -ne "false") {
     if (Test-Path $memorayServerDir) {
         foreach ($dir in @($memorayServerDir, $memorayClientDir)) {
             if ((Test-Path $dir) -and -not (Test-Path (Join-Path $dir "node_modules"))) {
-                Write-Host "▸ npm install ($dir)"
+                Write-Host "> npm install ($dir)"
                 Push-Location $dir
                 npm install
                 Pop-Location
@@ -100,9 +104,9 @@ if ($env:MEMORAY_ENABLED -ne "false") {
             -NoNewWindow
         $env:PORT = $oldPort
         $procs += $memorayServer
-        Write-Host "  memoray server PID = $($memorayServer.Id) (:3001 — page at /#/_prime_silo/memory)"
+        Write-Host "  memoray server PID = $($memorayServer.Id) (:3001 - page at /#/_prime_silo/memory)"
 
-        # Client (:5175) — backs the "Zen mode" link. Optional: if the client
+        # Client (:5175) - backs the "Zen mode" link. Optional: if the client
         # dir is missing we still have the in-shell page, just no zen link.
         if (Test-Path $memorayClientDir) {
             $npmExec = if ($IsWindows -or $env:OS -match "Windows") { "npm.cmd" } else { "npm" }
@@ -113,10 +117,10 @@ if ($env:MEMORAY_ENABLED -ne "false") {
                 -PassThru `
                 -NoNewWindow
             $procs += $memorayClient
-            Write-Host "  memoray client PID = $($memorayClient.Id) (:5175 — Zen mode)"
+            Write-Host "  memoray client PID = $($memorayClient.Id) (:5175 - Zen mode)"
         }
     } else {
-        Write-Host "  memo-ray not found at '$memorayDir' — memory page will show an offline screen."
+        Write-Host "  memo-ray not found at '$memorayDir' - memory page will show an offline screen."
         Write-Host "  Clone https://github.com/binary16labs/memo-ray beside prime-silo (or set MEMORAY_DIR), then run scripts/memoray.ps1."
     }
 }
