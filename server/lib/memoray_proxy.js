@@ -1,7 +1,7 @@
 // Phase M1 — Memo-Ray memory-graph proxy.
 //
 // Forwards /api/memoray/<path> requests from the space-agent shell to the
-// Memo-Ray Express server (default http://127.0.0.1:3001). Memo-Ray is the
+// Memo-Ray Express server (default http://127.0.0.1:3030). Memo-Ray is the
 // memory graph of the cognitive mesh — the third first-class graph beside
 // the knowledge graph (documents) and code graph (AST). The shell page,
 // the onscreen-agent `memory-recall` skill, and the `node space memory`
@@ -32,15 +32,20 @@
 //      launch arg, stored .env value, or process env (commands/params.yaml
 //      owns the schema; `node space get/set MEMORAY_BASE_URL` manages it).
 //   2. The wizard manifest prime-silo.config.json `memoray` block.
-//   3. Defaults: enabled, http://127.0.0.1:3001.
+//   3. The app-registry lockfile (apps.lock.json) — the port the resolver
+//      assigned memo-ray on this machine, so a port change propagates without
+//      touching prime-silo config.
+//   4. Defaults: enabled, http://127.0.0.1:3030.
 
 import fs from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 
+import { lockServiceUrl } from "./registry_lock.js";
+
 const MEMORAY_PATH_PREFIX = "/api/memoray";
 
-const DEFAULT_MEMORAY_BASE_URL = "http://127.0.0.1:3001";
+const DEFAULT_MEMORAY_BASE_URL = "http://127.0.0.1:3030";
 const DEFAULT_MEMORAY_ENABLED = true;
 
 const CONFIG_MANIFEST_FILENAME = "prime-silo.config.json";
@@ -157,6 +162,13 @@ export async function resolveMemoraySettings({ runtimeParams, projectRoot } = {}
   if (baseUrl === undefined && configBlock && typeof configBlock.base_url === "string" && configBlock.base_url.trim()) {
     baseUrl = configBlock.base_url.trim();
     baseUrlSource = "config";
+  }
+  if (baseUrl === undefined) {
+    const lockedUrl = lockServiceUrl({ appId: "memo-ray", service: "memory-graph", startDir: projectRoot || process.cwd() });
+    if (lockedUrl) {
+      baseUrl = lockedUrl;
+      baseUrlSource = "lock";
+    }
   }
   if (baseUrl === undefined) {
     baseUrl = DEFAULT_MEMORAY_BASE_URL;

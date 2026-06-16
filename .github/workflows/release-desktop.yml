@@ -34,6 +34,9 @@ jobs:
           ref: main
           fetch-depth: 0
 
+      - name: Registry resolver test
+        run: node tests/registry_resolver_test.mjs
+
       - id: release_version
         shell: bash
         env:

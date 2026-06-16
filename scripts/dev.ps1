@@ -70,7 +70,7 @@ if ($shellOwner) {
 # Soft warnings for the other services this script is about to start.
 foreach ($svc in @(
     @{ Port = 8005; Label = "Benny runtime" },
-    @{ Port = 3001; Label = "Memo-Ray server" },
+    @{ Port = 3030; Label = "Memo-Ray server" },
     @{ Port = 5175; Label = "Memo-Ray client" }
 )) {
     $owner = Get-PortOwner $svc.Port
@@ -126,8 +126,9 @@ Write-Host "  shell   PID = $($shell.Id)"
 
 # Memo-Ray memory graph (Phase M1) - auto-boot when enabled and the checkout
 # exists, so the in-shell page at #/_prime_silo/memory works from one command.
-# The shell proxies /api/memoray to the server (:3001); the Vite client (:5175)
-# backs the page's "Zen mode" link-out. MEMORAY_ENABLED=false skips both.
+# The shell proxies /api/memoray to the server on the registry-resolved port
+# (default :3030); the Vite client (:5175) backs the page's "Zen mode" link-out.
+# MEMORAY_ENABLED=false skips both.
 $procs = @($runtime, $shell)
 if ($env:MEMORAY_ENABLED -ne "false") {
     $memorayDir = if ($env:MEMORAY_DIR) { $env:MEMORAY_DIR } else { Join-Path (Split-Path -Parent $root) "memo-ray" }
@@ -142,17 +143,19 @@ if ($env:MEMORAY_ENABLED -ne "false") {
                 Pop-Location
             }
         }
-        $oldPort = $env:PORT
-        $env:PORT = "3001"
+        # Resolve ports through the app registry (writes apps.lock.json); both the
+        # memo-ray server and the prime-silo proxy read the lock, so they agree.
+        Write-Host "> Resolving app-registry ports"
+        node (Join-Path $root "scripts\registry\resolve-ports.mjs")
+        # No explicit PORT: the server reads its resolved port from apps.lock.json.
         $memorayServer = Start-Process `
             -FilePath "node" `
             -ArgumentList "index.js" `
             -WorkingDirectory $memorayServerDir `
             -PassThru `
             -NoNewWindow
-        $env:PORT = $oldPort
         $procs += $memorayServer
-        Write-Host "  memoray server PID = $($memorayServer.Id) (:3001 - page at /#/_prime_silo/memory)"
+        Write-Host "  memoray server PID = $($memorayServer.Id) (registry-resolved port - page at /#/_prime_silo/memory)"
 
         # Client (:5175) - backs the "Zen mode" link. Optional: if the client
         # dir is missing we still have the in-shell page, just no zen link.

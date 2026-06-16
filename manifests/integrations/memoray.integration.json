@@ -472,8 +472,8 @@
     },
     "MEMORAY_BASE_URL": {
       "kind": "runtime_param",
-      "default": "http://127.0.0.1:3001",
-      "doc": "Memo-Ray server the shell proxies to."
+      "default": "http://127.0.0.1:3030",
+      "doc": "Memo-Ray server the shell proxies to. When unset, the app-registry lockfile (apps.lock.json) supplies the resolved port before this default."
     },
     "memoray.enabled": {
       "kind": "config_block",
@@ -517,7 +517,7 @@
   },
   "signature": {
     "algorithm": "HMAC-SHA256",
-    "value": "8a1fcbb16f4d3e421d3b11999e0dcf11664a3fd42dd272c4d386731ddaf72fab",
-    "signed_at": "2026-06-14T06:44:35.435Z"
+    "value": "733e95ca4874f706f9086442bb6f6169fbe2b98796cdf1fef94afa5c4b4066a9",
+    "signed_at": "2026-06-16T13:41:48.488Z"
   }
 }

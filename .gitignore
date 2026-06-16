@@ -25,3 +25,7 @@ home/
 archive/
 prime-silo-core/
 
+
+# App-registry generated port lockfile (machine-local; never committed).
+# The descriptors (app.manifest.json) and registry are source; the lock is not.
+apps.lock.json

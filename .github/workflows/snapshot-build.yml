@@ -14,7 +14,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      # Gate the build on the app-registry port resolver (self-contained test;
+      # builds a throwaway registry, needs no secrets or sibling repos).
+      - name: Registry resolver test
+        run: node tests/registry_resolver_test.mjs
+
   build:
+    needs: validate
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false

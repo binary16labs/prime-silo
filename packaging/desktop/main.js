@@ -6,6 +6,7 @@ const { Readable, Transform } = require("node:stream");
 const { pipeline } = require("node:stream/promises");
 const { pathToFileURL } = require("node:url");
 const { app, BrowserWindow, WebContentsView, ipcMain, net, webFrameMain } = require("electron");
+const { createDesktopTray, destroyDesktopTray } = require("./tray");
 const {
   resolveDesktopAuthDataDir,
   resolveDesktopServerTmpDir,
@@ -1002,6 +1003,7 @@ function setDesktopUpdateState(nextState = {}) {
 
 function prepareDesktopForQuit() {
   isQuitting = true;
+  destroyDesktopTray();
 }
 
 async function cleanupStaleDesktopUpdaterArtifacts() {
@@ -1948,8 +1950,11 @@ function createWindow() {
   refreshDesktopWindowTitle();
 
   mainWindow.on("close", (event) => {
-    // On macOS, Cmd+W should hide the app and preserve renderer state.
-    if (process.platform === "darwin" && !isQuitting) {
+    // Close hides to the tray (on every platform) and preserves renderer state;
+    // only a real quit (tray "Quit", before-quit, updater restart) closes for
+    // good. On macOS this is the standard Cmd+W behaviour; with the tray present
+    // it now applies on Windows/Linux too so the shell keeps running in the tray.
+    if (!isQuitting) {
       event.preventDefault();
       mainWindow.hide();
     }
@@ -2045,6 +2050,15 @@ async function startDesktop() {
   serverRuntime = await createAgentServer(createDesktopServerOptions(runtimeParamOverrides));
   await serverRuntime.listen();
   createWindow();
+  createDesktopTray({
+    showMainWindow,
+    createWindow,
+    getBrowserUrl: () => serverRuntime?.browserUrl || "",
+    requestQuit: () => {
+      isQuitting = true;
+      app.quit();
+    }
+  });
   configureDesktopAutoUpdate();
 
   app.on("activate", () => {
@@ -2060,7 +2074,10 @@ async function startDesktop() {
 }
 
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
+  // The shell lives in the tray: keep the process alive when the window closes
+  // for any reason other than a real quit. Quit is driven by the tray "Quit"
+  // item, before-quit, or the updater (all of which set isQuitting).
+  if (process.platform !== "darwin" && isQuitting) {
     app.quit();
   }
 });

@@ -1,0 +1,33 @@
+{
+  "schema": "aamp.app/1",
+  "id": "prime-silo",
+  "name": "Prime-Silo",
+  "description": "The cognitive-mesh shell: knowledge graph (documents) and code graph (AST) beside Memo-Ray's memory graph. Ships as an Electron desktop app with a system tray; requires the Memo-Ray service for the memory surface.",
+  "repo": "https://github.com/binary16labs/prime-silo",
+  "role": "shell",
+  "requires": [
+    "memo-ray"
+  ],
+  "provides": [
+    {
+      "service": "shell",
+      "preferredPort": 3020,
+      "portRange": [
+        3020,
+        3039
+      ],
+      "health": "/",
+      "baseUrlVar": "SPACE_BASE_URL"
+    }
+  ],
+  "artifacts": {
+    "win": "Space Agent Setup *.exe",
+    "macos": "Space Agent-*.dmg",
+    "linux": "Space Agent-*.AppImage"
+  },
+  "signature": {
+    "algorithm": "HMAC-SHA256",
+    "value": "6d2b470de095fde8309d4bbf7438788cb67d0c69e74a70cf0302b30a2e0447a4",
+    "signed_at": "2026-06-16T13:41:48.560Z"
+  }
+}

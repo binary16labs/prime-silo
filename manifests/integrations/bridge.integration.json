@@ -411,7 +411,7 @@
   },
   "signature": {
     "algorithm": "HMAC-SHA256",
-    "value": "c45ba5e0b55c9f4986cc5a13bc3d69c6cb83a90ab1ca988aadb3ad82edc76593",
-    "signed_at": "2026-06-14T06:44:35.433Z"
+    "value": "c58b4c9ca266b6353e3fa0383db8848c882f609a1a382d1b3407743b6377ad87",
+    "signed_at": "2026-06-16T13:41:48.484Z"
   }
 }
