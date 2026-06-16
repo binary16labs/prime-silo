@@ -65,7 +65,7 @@ jobs:
           SPACE_APP_VERSION: 0.0.0-snapshot-${{ github.run_number }}
           SPACE_RELEASE_TAG: snapshot-${{ github.run_number }}
           SKIP_SIGNING: '1'
-        run: node packaging/scripts/${{ matrix.script }} --arch ${{ matrix.arch }} --snapshot
+        run: node packaging/scripts/${{ matrix.script }} --arch ${{ matrix.arch }}
 
       - uses: actions/upload-artifact@v4
         with:
