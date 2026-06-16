@@ -1,12 +1,12 @@
 :root {
-  --space-chrome-surface: rgba(13, 23, 39, 0.9);
-  --space-chrome-surface-strong: rgba(10, 17, 29, 0.96);
-  --space-chrome-border: rgba(168, 186, 219, 0.14);
-  --space-chrome-border-strong: rgba(168, 186, 219, 0.24);
-  --space-chrome-hover-bg: #142238;
-  --space-chrome-active-bg: #132033;
+  --space-chrome-surface: rgba(20, 21, 15, 0.9);
+  --space-chrome-surface-strong: rgba(16, 17, 13, 0.96);
+  --space-chrome-border: rgba(232, 217, 191, 0.14);
+  --space-chrome-border-strong: rgba(232, 217, 191, 0.24);
+  --space-chrome-hover-bg: #20231d;
+  --space-chrome-active-bg: #20231d;
   --space-chrome-panel-shadow: none;
-  --space-chrome-focus-ring: rgba(148, 188, 255, 0.26);
+  --space-chrome-focus-ring: rgba(156, 175, 136, 0.26);
 }
 
 .space-topbar {

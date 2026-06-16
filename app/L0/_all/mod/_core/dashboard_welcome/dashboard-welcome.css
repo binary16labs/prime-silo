@@ -10,7 +10,7 @@
   position: relative;
   overflow: hidden;
   background: rgba(12, 18, 30, 0.56);
-  border: 1px solid rgba(168, 189, 219, 0.12);
+  border: 1px solid rgba(232, 217, 191, 0.12);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.05),
     0 12px 28px rgba(2, 7, 18, 0.12);
@@ -91,7 +91,7 @@
   line-height: 1;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgba(203, 220, 246, 0.68);
+  color: rgba(236, 230, 216, 0.68);
 }
 
 .dashboard-welcome-actions {
@@ -114,7 +114,7 @@
   min-height: 2.85rem;
   padding: 0.72rem 0.92rem;
   box-sizing: border-box;
-  border: 1px solid rgba(148, 167, 201, 0.14);
+  border: 1px solid rgba(232, 217, 191, 0.14);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.04);
   color: inherit;
@@ -160,7 +160,7 @@
 }
 
 .dashboard-welcome-example-icon {
-  --dashboard-welcome-example-icon-color: rgba(125, 220, 255, 0.8);
+  --dashboard-welcome-example-icon-color: rgba(205, 180, 145, 0.8);
   display: inline-flex;
   align-items: center;
   justify-content: center;

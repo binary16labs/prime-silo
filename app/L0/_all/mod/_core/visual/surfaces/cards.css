@@ -1,9 +1,9 @@
 :root {
   --space-card-border: var(--color-border-soft);
   --space-card-border-strong: var(--color-border-strong);
-  --space-card-bg: rgba(16, 27, 45, 0.94);
-  --space-card-bg-strong: rgba(13, 23, 39, 0.96);
-  --space-card-focus-ring: rgba(148, 188, 255, 0.26);
+  --space-card-bg: var(--color-surface-raised);
+  --space-card-bg-strong: var(--color-canvas);
+  --space-card-focus-ring: var(--color-focus-ring);
 }
 
 .space-panel,
@@ -112,7 +112,7 @@
 .admin-launch-card:hover,
 .admin-launch-card:focus-visible {
   border-color: var(--space-card-border-strong);
-  background: #132033;
+  background: var(--color-surface-hover-solid);
 }
 
 .space-action-card:focus-visible,
@@ -130,7 +130,7 @@
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  background: #17263c;
+  background: var(--color-accent-primary-soft);
   color: var(--color-accent-primary);
   font-size: 24px;
 }
@@ -178,7 +178,7 @@
   width: 64px;
   height: 64px;
   border-radius: 18px;
-  background: #17263c;
+  background: var(--color-accent-primary-soft);
   color: var(--color-accent-primary);
   font-size: 34px;
 }

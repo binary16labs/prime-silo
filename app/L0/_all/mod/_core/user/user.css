@@ -39,8 +39,8 @@
   top: calc(var(--router-shell-start-clearance, 0px) + 1rem);
   background:
     radial-gradient(circle at 18% 16%, rgba(255, 199, 111, 0.16), transparent 34%),
-    radial-gradient(circle at 84% 18%, rgba(125, 227, 201, 0.14), transparent 36%),
-    linear-gradient(180deg, rgba(18, 31, 49, 0.96), rgba(13, 23, 39, 0.98));
+    radial-gradient(circle at 84% 18%, rgba(156, 175, 136, 0.14), transparent 36%),
+    linear-gradient(180deg, rgba(32, 35, 29, 0.96), rgba(20, 21, 15, 0.98));
 }
 
 .user-page-summary-badge {
@@ -96,9 +96,9 @@
   align-items: center;
   min-height: 2rem;
   padding: 0.4rem 0.72rem;
-  border: 1px solid rgba(148, 188, 255, 0.16);
+  border: 1px solid rgba(156, 175, 136, 0.16);
   border-radius: 999px;
-  background: rgba(12, 21, 36, 0.36);
+  background: rgba(26, 29, 23, 0.36);
   color: var(--color-text-secondary);
   font-size: 0.88rem;
 }

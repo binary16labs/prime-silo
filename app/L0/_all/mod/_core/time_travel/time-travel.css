@@ -8,8 +8,8 @@
   --time-travel-added-bg: rgba(120, 227, 160, 0.1);
   --time-travel-added-border: rgba(120, 227, 160, 0.28);
   --time-travel-changed: #8ec7ff;
-  --time-travel-changed-bg: rgba(142, 199, 255, 0.1);
-  --time-travel-changed-border: rgba(142, 199, 255, 0.28);
+  --time-travel-changed-bg: rgba(196, 168, 130, 0.1);
+  --time-travel-changed-border: rgba(196, 168, 130, 0.28);
   --time-travel-deleted: #ff9aa8;
   --time-travel-deleted-bg: rgba(255, 154, 168, 0.1);
   --time-travel-deleted-border: rgba(255, 154, 168, 0.28);
@@ -18,8 +18,8 @@
 }
 
 .time-travel-shell {
-  --time-travel-edge: rgba(121, 237, 216, 0.24);
-  --time-travel-panel: rgba(8, 17, 31, 0.72);
+  --time-travel-edge: rgba(156, 175, 136, 0.24);
+  --time-travel-panel: rgba(16, 17, 13, 0.72);
   position: relative;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -224,7 +224,7 @@
 .time-travel-commit-button:focus-visible,
 .time-travel-commit-button.is-selected {
   border-color: var(--time-travel-edge);
-  background: rgba(121, 237, 216, 0.09);
+  background: rgba(156, 175, 136, 0.09);
 }
 
 .time-travel-commit-button:focus-visible {
@@ -247,22 +247,22 @@
   margin-top: 0.18rem;
   border-radius: 999px;
   background: var(--time-travel-changed);
-  box-shadow: 0 0 0 0.28rem rgba(142, 199, 255, 0.12);
+  box-shadow: 0 0 0 0.28rem rgba(196, 168, 130, 0.12);
 }
 
 .time-travel-commit-button.is-current .time-travel-node-dot {
   background: #79edd8;
-  box-shadow: 0 0 0 0.28rem rgba(121, 237, 216, 0.12);
+  box-shadow: 0 0 0 0.28rem rgba(156, 175, 136, 0.12);
 }
 
 .time-travel-node-line {
   width: 1px;
   min-height: 3.3rem;
-  background: linear-gradient(to bottom, rgba(142, 199, 255, 0.4), transparent);
+  background: linear-gradient(to bottom, rgba(196, 168, 130, 0.4), transparent);
 }
 
 .time-travel-commit-button.is-current .time-travel-node-line {
-  background: linear-gradient(to bottom, rgba(121, 237, 216, 0.4), transparent);
+  background: linear-gradient(to bottom, rgba(156, 175, 136, 0.4), transparent);
 }
 
 .time-travel-commit-copy {
@@ -368,7 +368,7 @@
 .time-travel-current-pill {
   width: fit-content;
   padding: 0.15rem 0.42rem;
-  border: 1px solid rgba(121, 237, 216, 0.28);
+  border: 1px solid rgba(156, 175, 136, 0.28);
   border-radius: 999px;
   color: #79edd8;
   font-size: 0.66rem;
@@ -604,7 +604,7 @@
 .time-travel-action-error-details pre {
   margin: 0.7rem 0 0;
   padding: 0.85rem 1rem;
-  border: 1px solid rgba(121, 237, 216, 0.16);
+  border: 1px solid rgba(156, 175, 136, 0.16);
   border-radius: 0.9rem;
   background: rgba(0, 0, 0, 0.24);
   color: var(--color-text-secondary);
@@ -660,7 +660,7 @@
   max-height: calc(100vh - 32px);
   border: 1px solid var(--space-chrome-border);
   border-radius: 1.2rem;
-  background: #0c1626;
+  background: #14150f;
   overflow: hidden;
 }
 
@@ -751,7 +751,7 @@
 .time-travel-repository-item:focus-visible,
 .time-travel-repository-item.is-current {
   border-color: var(--time-travel-edge);
-  background: rgba(121, 237, 216, 0.09);
+  background: rgba(156, 175, 136, 0.09);
   outline: none;
 }
 

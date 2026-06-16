@@ -71,13 +71,13 @@
 }
 
 .space-popover-action.is-danger {
-  color: #ffb1b1;
+  color: var(--color-status-danger);
 }
 
 .space-popover-action.is-danger:hover,
 .space-popover-action.is-danger:focus-visible {
-  border-color: rgba(221, 127, 127, 0.28);
-  background: rgba(82, 28, 28, 0.34);
+  border-color: rgba(196, 122, 106, 0.42);
+  background: rgba(196, 122, 106, 0.16);
 }
 
 .space-popover-action-label {

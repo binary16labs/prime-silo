@@ -1,7 +1,7 @@
 :root {
   --divider-size: 12px;
   --divider-hit-size: 24px;
-  --divider-color: rgba(168, 186, 219, 0.14);
+  --divider-color: rgba(232, 217, 191, 0.14);
   --split-size: 380px;
 }
 
@@ -22,10 +22,10 @@ body {
 body.app-page-admin {
   /* Compact login-inspired shell backdrop for quick testing and easy removal. */
   background:
-    radial-gradient(1180px 620px at 50% -220px, rgba(148, 188, 255, 0.15) 0%, transparent 74%),
-    radial-gradient(720px 520px at 10% 34%, rgba(121, 237, 216, 0.08) 0%, transparent 76%),
-    radial-gradient(760px 560px at 92% 42%, rgba(148, 188, 255, 0.07) 0%, transparent 76%),
-    radial-gradient(1280px 760px at 50% calc(100% + 300px), rgba(59, 95, 172, 0.22) 0%, transparent 76%),
+    radial-gradient(1180px 620px at 50% -220px, rgba(156, 175, 136, 0.15) 0%, transparent 74%),
+    radial-gradient(720px 520px at 10% 34%, rgba(156, 175, 136, 0.08) 0%, transparent 76%),
+    radial-gradient(760px 560px at 92% 42%, rgba(156, 175, 136, 0.07) 0%, transparent 76%),
+    radial-gradient(1280px 760px at 50% calc(100% + 300px), rgba(156, 175, 136, 0.22) 0%, transparent 76%),
     linear-gradient(180deg, var(--color-canvas-elevated) 0%, var(--color-canvas) 52%, var(--color-canvas-deep) 100%);
   color: var(--color-text);
   font: 14px/1.5 "SF Pro Text", "Segoe UI", sans-serif;
@@ -39,26 +39,26 @@ body.app-page-admin > div[x-data] {
 .app-page-admin {
   --admin-shell-width: 1040px;
   --admin-pane-bg:
-    radial-gradient(860px 500px at 50% -180px, rgba(148, 188, 255, 0.11) 0%, transparent 76%),
-    radial-gradient(520px 420px at 10% 40%, rgba(121, 237, 216, 0.06) 0%, transparent 76%),
-    radial-gradient(560px 440px at 96% 60%, rgba(148, 188, 255, 0.05) 0%, transparent 76%),
-    linear-gradient(180deg, #0a1422 0%, #08111d 100%);
-  --admin-pane-section-bg: #101b2d;
-  --admin-pane-section-bg-strong: #0d1727;
+    radial-gradient(860px 500px at 50% -180px, rgba(156, 175, 136, 0.11) 0%, transparent 76%),
+    radial-gradient(520px 420px at 10% 40%, rgba(156, 175, 136, 0.06) 0%, transparent 76%),
+    radial-gradient(560px 440px at 96% 60%, rgba(156, 175, 136, 0.05) 0%, transparent 76%),
+    linear-gradient(180deg, #10110d 0%, #08111d 100%);
+  --admin-pane-section-bg: #1a1d1b;
+  --admin-pane-section-bg-strong: #14150f;
   --admin-main-bg:
-    radial-gradient(960px 560px at 50% -210px, rgba(148, 188, 255, 0.07) 0%, transparent 76%),
-    radial-gradient(620px 460px at 18% 34%, rgba(121, 237, 216, 0.05) 0%, transparent 76%),
-    radial-gradient(620px 500px at 84% 68%, rgba(148, 188, 255, 0.04) 0%, transparent 76%),
-    linear-gradient(180deg, #0b1627 0%, #08111d 100%);
-  --admin-divider-bg: linear-gradient(180deg, rgba(10, 17, 29, 0.98) 0%, rgba(7, 13, 24, 0.98) 100%);
-  --admin-border: rgba(168, 186, 219, 0.14);
-  --admin-border-strong: rgba(168, 186, 219, 0.24);
+    radial-gradient(960px 560px at 50% -210px, rgba(156, 175, 136, 0.07) 0%, transparent 76%),
+    radial-gradient(620px 460px at 18% 34%, rgba(156, 175, 136, 0.05) 0%, transparent 76%),
+    radial-gradient(620px 500px at 84% 68%, rgba(156, 175, 136, 0.04) 0%, transparent 76%),
+    linear-gradient(180deg, #10110d 0%, #08111d 100%);
+  --admin-divider-bg: linear-gradient(180deg, rgba(16, 17, 13, 0.98) 0%, rgba(10, 11, 8, 0.98) 100%);
+  --admin-border: rgba(232, 217, 191, 0.14);
+  --admin-border-strong: rgba(232, 217, 191, 0.24);
   --space-chrome-surface: var(--admin-pane-section-bg-strong);
   --space-chrome-surface-strong: var(--admin-pane-section-bg-strong);
   --space-chrome-border: var(--admin-border);
   --space-chrome-border-strong: var(--admin-border-strong);
-  --space-chrome-hover-bg: #142238;
-  --space-chrome-active-bg: #132033;
+  --space-chrome-hover-bg: #20231d;
+  --space-chrome-active-bg: #20231d;
   --space-card-border: var(--admin-border);
   --space-card-border-strong: var(--admin-border-strong);
   --space-card-bg: var(--admin-pane-section-bg);
@@ -475,7 +475,7 @@ html[data-layout="vertical"] .divider-handle {
   padding: 0.78rem 0.9rem;
   border: 1px solid var(--admin-border);
   border-radius: 10px;
-  background: #101b2d;
+  background: #1a1d1b;
   color: var(--color-text-primary);
   font: inherit;
   outline: none;
@@ -488,7 +488,7 @@ html[data-layout="vertical"] .divider-handle {
 .admin-modules-control input:focus,
 .admin-modules-control select:focus {
   border-color: var(--admin-border-strong);
-  box-shadow: 0 0 0 3px rgba(148, 188, 255, 0.14);
+  box-shadow: 0 0 0 3px rgba(156, 175, 136, 0.14);
 }
 
 .admin-modules-search-field {
@@ -499,7 +499,7 @@ html[data-layout="vertical"] .divider-handle {
   padding: 0 0.85rem;
   border: 1px solid var(--admin-border);
   border-radius: 10px;
-  background: #101b2d;
+  background: #1a1d1b;
 }
 
 .admin-modules-search-field x-icon {
@@ -519,7 +519,7 @@ html[data-layout="vertical"] .divider-handle {
 
 .admin-modules-search-field:focus-within {
   border-color: var(--admin-border-strong);
-  box-shadow: 0 0 0 3px rgba(148, 188, 255, 0.14);
+  box-shadow: 0 0 0 3px rgba(156, 175, 136, 0.14);
 }
 
 .admin-modules-search-field input:focus {
@@ -549,11 +549,11 @@ html[data-layout="vertical"] .divider-handle {
 .admin-modules-refresh:focus-visible {
   color: var(--color-text-primary);
   border-color: var(--admin-border-strong);
-  background: #132033;
+  background: #20231d;
 }
 
 .admin-modules-refresh:focus-visible {
-  outline: 2px solid rgba(148, 188, 255, 0.26);
+  outline: 2px solid rgba(156, 175, 136, 0.26);
   outline-offset: 2px;
 }
 
@@ -694,11 +694,11 @@ html[data-layout="vertical"] .divider-handle {
 .admin-module-action:focus-visible:not(:disabled) {
   color: var(--color-accent-primary);
   border-color: var(--admin-border-strong);
-  background: rgba(19, 32, 51, 0.94);
+  background: rgba(32, 35, 29, 0.94);
 }
 
 .admin-module-action:focus-visible {
-  outline: 2px solid rgba(148, 188, 255, 0.18);
+  outline: 2px solid rgba(156, 175, 136, 0.18);
   outline-offset: 2px;
 }
 

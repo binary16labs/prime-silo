@@ -9,36 +9,36 @@
   --space-button-gap: 6px;
   --space-button-padding-y: 0.5rem;
   --space-button-padding-x: 0.85rem;
-  --space-button-primary-bg: #17314d;
-  --space-button-primary-bg-hover: #1a3959;
+  --space-button-primary-bg: #20231d;
+  --space-button-primary-bg-hover: #262a20;
   --space-button-primary-shadow: none;
   --space-button-secondary-border: transparent;
   --space-button-secondary-border-hover: transparent;
   --space-button-secondary-bg: transparent;
-  --space-button-secondary-bg-hover: rgba(19, 32, 51, 0.94);
+  --space-button-secondary-bg-hover: rgba(32, 35, 29, 0.94);
   --space-dialog-padding: 18px;
   --space-dialog-radius: 16px;
   --space-dialog-border: var(--admin-border);
-  --space-dialog-surface: #0c1626;
+  --space-dialog-surface: #14150f;
   --space-dialog-shadow: none;
-  --space-field-bg: #101b2d;
+  --space-field-bg: #1a1d1b;
   --space-field-border: var(--admin-border);
   --space-field-focus-border: var(--admin-border-strong);
-  --space-option-hover-bg: rgba(19, 32, 51, 0.94);
+  --space-option-hover-bg: rgba(32, 35, 29, 0.94);
   --space-composer-attachment-border: var(--admin-border);
-  --space-composer-attachment-bg: rgba(18, 29, 51, 0.62);
+  --space-composer-attachment-bg: rgba(32, 35, 29, 0.62);
   --agent-thread-gap: 18px;
   --agent-thread-bubble-gap: 14px;
   --agent-thread-user-bubble-max-width: min(calc(100% - 46px), 44rem);
-  --agent-thread-user-bubble-bg: #132033;
-  --agent-thread-avatar-user-bg: #132033;
-  --agent-thread-markdown-inline-bg: #111d31;
-  --agent-thread-markdown-block-bg: #0c1626;
+  --agent-thread-user-bubble-bg: #20231d;
+  --agent-thread-avatar-user-bg: #20231d;
+  --agent-thread-markdown-inline-bg: #1a1d1b;
+  --agent-thread-markdown-block-bg: #14150f;
   --agent-thread-attachment-border: var(--admin-border);
-  --agent-thread-attachment-bg: rgba(18, 29, 51, 0.58);
-  --agent-thread-attachment-user-bg: rgba(148, 188, 255, 0.14);
-  --agent-thread-execution-bg: #0c1626;
-  --agent-thread-execution-pane-bg: #09131f;
+  --agent-thread-attachment-bg: rgba(32, 35, 29, 0.58);
+  --agent-thread-attachment-user-bg: rgba(156, 175, 136, 0.14);
+  --agent-thread-execution-bg: #14150f;
+  --agent-thread-execution-pane-bg: #0c0d09;
   --agent-thread-terminal-divider: var(--admin-border);
   --agent-thread-prompt-history-divider: var(--admin-border);
 }
@@ -140,7 +140,7 @@
 
 .admin-agent-root .secondary-button:hover:not(:disabled),
 .admin-agent-root .secondary-button:focus-visible:not(:disabled) {
-  background: rgba(19, 32, 51, 0.94);
+  background: rgba(32, 35, 29, 0.94);
 }
 
 .admin-agent-root .secondary-button.danger,
@@ -302,12 +302,12 @@
 
 .admin-agent-compact-button:hover:not(:disabled),
 .admin-agent-compact-button:focus-visible:not(:disabled) {
-  background: rgba(19, 32, 51, 0.94);
+  background: rgba(32, 35, 29, 0.94);
   color: var(--color-accent-primary);
 }
 
 .admin-agent-compact-button:focus-visible {
-  outline: 2px solid rgba(148, 188, 255, 0.18);
+  outline: 2px solid rgba(156, 175, 136, 0.18);
   outline-offset: 2px;
 }
 
@@ -328,17 +328,17 @@
   position: relative;
   padding: 12px 12px 10px;
   border-radius: 12px;
-  background: #0c1626;
+  background: #14150f;
   transition:
     background-color 140ms ease,
     box-shadow 140ms ease;
 }
 
 .chat-composer.is-attachment-drag-active {
-  background: #101b2d;
+  background: #1a1d1b;
   box-shadow:
-    inset 0 0 0 1px rgba(148, 188, 255, 0.22),
-    0 0 0 1px rgba(148, 188, 255, 0.12);
+    inset 0 0 0 1px rgba(156, 175, 136, 0.22),
+    0 0 0 1px rgba(156, 175, 136, 0.12);
 }
 
 .chat-composer.is-attachment-drag-active::after {
@@ -348,7 +348,7 @@
   display: grid;
   place-items: center;
   border-radius: inherit;
-  background: rgba(7, 13, 24, 0.64);
+  background: rgba(10, 11, 8, 0.64);
   color: var(--color-accent-primary);
   font-size: 0.78rem;
   font-weight: 700;

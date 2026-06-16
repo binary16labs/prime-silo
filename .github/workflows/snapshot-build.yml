@@ -1,0 +1,97 @@
+name: Snapshot Build
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: snapshot-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - artifact_name: snapshot-linux-x64
+            arch: x64
+            platform_dir: linux
+            runner: ubuntu-latest
+            script: linux-package.js
+          - artifact_name: snapshot-windows-x64
+            arch: x64
+            platform_dir: windows
+            runner: windows-latest
+            script: windows-package.js
+          - artifact_name: snapshot-macos-x64
+            arch: x64
+            platform_dir: macos
+            runner: macos-15-intel
+            script: macos-package.js
+          - artifact_name: snapshot-macos-arm64
+            arch: arm64
+            platform_dir: macos
+            runner: macos-latest
+            script: macos-package.js
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            packaging/package-lock.json
+
+      - name: Install repo dependencies
+        run: npm ci --omit=optional
+
+      - name: Install packaging dependencies
+        run: npm ci --prefix packaging
+
+      - name: Build desktop snapshot
+        env:
+          SPACE_APP_VERSION: 0.0.0-snapshot-${{ github.run_number }}
+          SPACE_RELEASE_TAG: snapshot-${{ github.run_number }}
+          SKIP_SIGNING: '1'
+        run: node packaging/scripts/${{ matrix.script }} --arch ${{ matrix.arch }} --snapshot
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: dist/desktop/${{ matrix.platform_dir }}/
+          retention-days: 30
+          if-no-files-found: error
+
+  publish-snapshot:
+    needs: build
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: snapshot-artifacts
+
+      - name: Create snapshot summary
+        run: |
+          echo "## Snapshot Build #${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** main" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Artifacts:**" >> $GITHUB_STEP_SUMMARY
+          ls -la snapshot-artifacts/ | grep -E "^d" | awk '{print "- " $NF}' >> $GITHUB_STEP_SUMMARY

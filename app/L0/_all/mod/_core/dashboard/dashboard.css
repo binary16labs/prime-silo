@@ -62,22 +62,22 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(68, 130, 210, 0.04) 26%,
-    rgba(83, 158, 245, 0.16) 58%,
-    rgba(121, 194, 255, 0.42) 100%
+    rgba(156, 175, 136, 0.04) 26%,
+    rgba(156, 175, 136, 0.16) 58%,
+    rgba(156, 175, 136, 0.42) 100%
   );
-  box-shadow: 0 0 6px rgba(92, 170, 255, 0.1);
+  box-shadow: 0 0 6px rgba(156, 175, 136, 0.1);
 }
 
 .dashboard-section-title::after {
   background: linear-gradient(
     90deg,
-    rgba(121, 194, 255, 0.42) 0%,
-    rgba(83, 158, 245, 0.16) 42%,
-    rgba(68, 130, 210, 0.04) 74%,
+    rgba(156, 175, 136, 0.42) 0%,
+    rgba(156, 175, 136, 0.16) 42%,
+    rgba(156, 175, 136, 0.04) 74%,
     transparent 100%
   );
-  box-shadow: 0 0 6px rgba(92, 170, 255, 0.1);
+  box-shadow: 0 0 6px rgba(156, 175, 136, 0.1);
 }
 
 @media (max-width: 640px) {

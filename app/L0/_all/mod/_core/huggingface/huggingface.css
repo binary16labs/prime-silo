@@ -119,14 +119,14 @@
 }
 
 .huggingface-current-badge.is-ready {
-  border-color: rgba(121, 237, 216, 0.22);
-  background: rgba(121, 237, 216, 0.08);
+  border-color: rgba(156, 175, 136, 0.22);
+  background: rgba(156, 175, 136, 0.08);
   color: #9de4d4;
 }
 
 .huggingface-current-badge.is-loading {
-  border-color: rgba(148, 188, 255, 0.24);
-  background: rgba(148, 188, 255, 0.08);
+  border-color: rgba(156, 175, 136, 0.24);
+  background: rgba(156, 175, 136, 0.08);
   color: #b8d1ff;
 }
 
@@ -199,7 +199,7 @@
 .huggingface-composer textarea:focus-visible {
   outline: none;
   border-color: var(--color-accent-primary-strong);
-  box-shadow: 0 0 0 3px rgba(148, 188, 255, 0.14);
+  box-shadow: 0 0 0 3px rgba(156, 175, 136, 0.14);
 }
 
 .huggingface-browser-block {
@@ -281,8 +281,8 @@
   padding: 0.46rem 0.52rem;
   border-top-color: transparent;
   border-radius: 0.78rem;
-  background: rgba(121, 237, 216, 0.06);
-  box-shadow: inset 0 0 0 1px rgba(121, 237, 216, 0.42);
+  background: rgba(156, 175, 136, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(156, 175, 136, 0.42);
 }
 
 .huggingface-catalog-main {
@@ -330,14 +330,14 @@
 
 .huggingface-list-button.is-unload,
 .huggingface-unload-button {
-  border-color: rgba(121, 237, 216, 0.28);
-  background: rgba(121, 237, 216, 0.1);
+  border-color: rgba(156, 175, 136, 0.28);
+  background: rgba(156, 175, 136, 0.1);
   color: #a8eadc;
 }
 
 .huggingface-list-button.is-unload:hover:not(:disabled),
 .huggingface-unload-button:hover:not(:disabled) {
-  background: rgba(121, 237, 216, 0.15);
+  background: rgba(156, 175, 136, 0.15);
 }
 
 .huggingface-unload-button {
@@ -430,12 +430,12 @@
 }
 
 .huggingface-message--assistant {
-  border-color: rgba(125, 220, 255, 0.18);
+  border-color: rgba(205, 180, 145, 0.18);
   background: rgba(8, 13, 24, 0.82);
 }
 
 .huggingface-message--user {
-  border-color: rgba(121, 237, 216, 0.16);
+  border-color: rgba(156, 175, 136, 0.16);
   background: rgba(10, 18, 31, 0.82);
 }
 

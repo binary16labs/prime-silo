@@ -4,16 +4,16 @@
   --space-dialog-padding: 18px;
   --space-dialog-radius: 16px;
   --space-dialog-border: var(--color-border-soft);
-  --space-dialog-surface: #0c1626;
+  --space-dialog-surface: var(--color-surface-raised);
   --space-dialog-shadow: none;
   --space-dialog-backdrop: var(--color-overlay);
-  --space-field-bg: #101b2d;
+  --space-field-bg: var(--color-field-bg);
   --space-field-border: var(--color-border-soft);
-  --space-field-focus-border: rgba(148, 188, 255, 0.3);
-  --space-field-focus-ring: rgba(148, 188, 255, 0.12);
-  --space-inline-code-bg: rgba(148, 188, 255, 0.14);
-  --space-inline-code-border: rgba(148, 188, 255, 0.18);
-  --space-option-hover-bg: rgba(19, 32, 51, 0.94);
+  --space-field-focus-border: var(--color-focus-border);
+  --space-field-focus-ring: var(--color-focus-ring);
+  --space-inline-code-bg: var(--color-accent-primary-soft);
+  --space-inline-code-border: rgba(156, 175, 136, 0.22);
+  --space-option-hover-bg: var(--color-surface-hover-solid);
   --space-option-radius: 0.9rem;
 }
 
@@ -41,7 +41,7 @@
 }
 
 .chat-option:focus-visible {
-  outline: 2px solid rgba(148, 188, 255, 0.18);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -142,11 +142,11 @@
   --space-button-secondary-border: transparent;
   --space-button-secondary-border-hover: transparent;
   --space-button-secondary-bg: transparent;
-  --space-button-secondary-bg-hover: rgba(19, 32, 51, 0.94);
+  --space-button-secondary-bg-hover: var(--color-surface-hover-solid);
   --space-button-danger-border: transparent;
   --space-button-danger-border-hover: transparent;
   --space-button-danger-bg: transparent;
-  --space-button-danger-bg-hover: rgba(255, 141, 152, 0.12);
+  --space-button-danger-bg-hover: rgba(196, 122, 106, 0.12);
 }
 
 .dialog-card {
@@ -285,9 +285,9 @@
 }
 
 .secondary-button.dialog-segmented-button.is-active {
-  border-color: rgba(148, 188, 255, 0.22);
-  background: rgba(148, 188, 255, 0.12);
-  box-shadow: inset 0 0 0 1px rgba(148, 188, 255, 0.12);
+  border-color: rgba(156, 175, 136, 0.3);
+  background: var(--color-accent-primary-soft);
+  box-shadow: inset 0 0 0 1px rgba(156, 175, 136, 0.16);
   color: var(--color-primary);
 }
 
@@ -349,7 +349,7 @@
   overflow: hidden;
   border: 1px solid var(--space-field-border);
   border-radius: 999px;
-  background: rgba(10, 16, 30, 0.72);
+  background: var(--color-surface-sunken);
 }
 
 .prompt-budget-segment {
@@ -359,15 +359,15 @@
 }
 
 .prompt-budget-segment-system {
-  background: rgba(182, 190, 199, 0.82);
+  background: rgba(184, 168, 152, 0.82);
 }
 
 .prompt-budget-segment-history {
-  background: rgba(109, 170, 255, 0.82);
+  background: rgba(138, 154, 164, 0.82);
 }
 
 .prompt-budget-segment-transient {
-  background: rgba(108, 214, 162, 0.82);
+  background: rgba(106, 138, 106, 0.82);
 }
 
 .prompt-budget-grid {
@@ -425,7 +425,7 @@
   max-height: min(64vh, 42rem);
   border: 1px solid var(--space-field-border);
   border-radius: 1rem;
-  background: rgba(10, 16, 30, 0.72);
+  background: var(--color-surface-sunken);
 }
 
 .raw-output,
@@ -440,13 +440,13 @@
 }
 
 .prompt-history-section:nth-child(even) {
-  background: rgba(18, 29, 51, 0.78);
+  background: var(--color-surface-2);
 }
 
 .prompt-history-section {
   min-width: 100%;
   box-sizing: border-box;
-  background: rgba(11, 18, 34, 0.72);
+  background: var(--color-surface-sunken);
 }
 
 .prompt-history-role {

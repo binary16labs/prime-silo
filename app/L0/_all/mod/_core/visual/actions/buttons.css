@@ -3,15 +3,15 @@
   --space-button-gap: 0.5rem;
   --space-button-padding-y: 0.72rem;
   --space-button-padding-x: 1.15rem;
-  --space-button-focus-ring: rgba(148, 188, 255, 0.14);
+  --space-button-focus-ring: var(--color-accent-primary-soft);
   --space-button-secondary-border: var(--color-border-soft);
   --space-button-secondary-border-hover: var(--color-border-strong);
-  --space-button-secondary-bg: rgba(18, 29, 51, 0.68);
-  --space-button-secondary-bg-hover: rgba(24, 37, 64, 0.78);
-  --space-button-danger-border: rgba(255, 141, 152, 0.18);
-  --space-button-danger-border-hover: rgba(255, 141, 152, 0.28);
-  --space-button-danger-bg: rgba(255, 141, 152, 0.1);
-  --space-button-danger-bg-hover: rgba(255, 141, 152, 0.16);
+  --space-button-secondary-bg: var(--color-surface-2);
+  --space-button-secondary-bg-hover: var(--color-surface-3);
+  --space-button-danger-border: rgba(196, 122, 106, 0.28);
+  --space-button-danger-border-hover: rgba(196, 122, 106, 0.42);
+  --space-button-danger-bg: rgba(196, 122, 106, 0.12);
+  --space-button-danger-bg-hover: rgba(196, 122, 106, 0.18);
   --space-composer-attachment-border: var(--space-button-secondary-border);
   --space-composer-attachment-bg: var(--space-button-secondary-bg);
   --space-button-primary-color: var(--color-accent-ink);
@@ -20,15 +20,15 @@
     var(--color-accent-primary),
     var(--color-accent-primary-strong)
   );
-  --space-button-primary-bg-hover: linear-gradient(135deg, #8fe6ff, #a8c9ff);
+  --space-button-primary-bg-hover: linear-gradient(135deg, #aebf9c, #cdb491);
   --space-button-primary-shadow: none;
   --space-button-confirm-color: var(--color-accent-ink);
   --space-button-confirm-bg: linear-gradient(
     135deg,
     var(--color-accent-primary),
-    var(--color-accent-primary-strong)
+    var(--color-accent-secondary)
   );
-  --space-button-confirm-bg-hover: linear-gradient(135deg, #8fe6ff, #a8c9ff);
+  --space-button-confirm-bg-hover: linear-gradient(135deg, #aebf9c, #cdb491);
   --space-button-confirm-shadow: none;
 }
 

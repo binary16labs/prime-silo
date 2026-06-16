@@ -1,18 +1,18 @@
 .modal-inner.visual-icon-selector-modal-shell {
   width: min(100%, 56rem);
-  border: 1px solid rgba(168, 186, 219, 0.18);
+  border: 1px solid var(--color-border-strong);
   border-radius: 24px;
   background:
-    linear-gradient(180deg, rgba(15, 24, 40, 0.96), rgba(9, 15, 27, 0.96)),
-    rgba(11, 18, 34, 0.88);
-  box-shadow: 0 28px 80px rgba(1, 5, 14, 0.48);
+    linear-gradient(180deg, rgba(26, 29, 27, 0.96), rgba(16, 17, 13, 0.96)),
+    var(--color-surface-glass);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.48);
   backdrop-filter: blur(22px) saturate(1.08);
   -webkit-backdrop-filter: blur(22px) saturate(1.08);
 }
 
 .modal-inner.visual-icon-selector-modal-shell .modal-header {
   padding: 18px 22px 14px;
-  border-bottom-color: rgba(168, 186, 219, 0.12);
+  border-bottom-color: var(--color-border-soft);
 }
 
 .modal-inner.visual-icon-selector-modal-shell .modal-title {
@@ -27,7 +27,7 @@
   place-items: center;
   width: 2.4rem;
   height: 2.4rem;
-  border: 1px solid rgba(168, 186, 219, 0.12);
+  border: 1px solid var(--color-border-soft);
   border-radius: 999px;
   color: var(--color-text-secondary);
   font-size: 1.35rem;
@@ -40,7 +40,7 @@
 
 .modal-inner.visual-icon-selector-modal-shell .modal-close:hover,
 .modal-inner.visual-icon-selector-modal-shell .modal-close:focus-visible {
-  border-color: rgba(168, 186, 219, 0.24);
+  border-color: var(--color-border-strong);
   background: rgba(255, 255, 255, 0.06);
   color: var(--color-text-primary);
   outline: none;
@@ -73,7 +73,7 @@
   place-items: center;
   width: 4.4rem;
   height: 4.4rem;
-  border: 1px solid rgba(168, 186, 219, 0.16);
+  border: 1px solid var(--color-border-soft);
   border-radius: 1.35rem;
   background: rgba(255, 255, 255, 0.04);
   color: var(--visual-icon-selector-color);
@@ -135,7 +135,7 @@
 .visual-icon-selector-search-input,
 .visual-icon-selector-color-row {
   min-height: 3rem;
-  border: 1px solid rgba(168, 186, 219, 0.16);
+  border: 1px solid var(--color-border-soft);
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.04);
   color: var(--color-text-primary);
@@ -160,9 +160,9 @@
 
 .visual-icon-selector-search-input:hover,
 .visual-icon-selector-search-input:focus {
-  border-color: rgba(168, 186, 219, 0.26);
+  border-color: var(--color-border-strong);
   background: rgba(255, 255, 255, 0.06);
-  box-shadow: 0 0 0 3px rgba(148, 188, 255, 0.12);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 
 .visual-icon-selector-color-row {
@@ -228,7 +228,7 @@
   gap: 0.55rem;
   min-height: 2.3rem;
   padding: 0 0.8rem;
-  border: 1px solid rgba(168, 186, 219, 0.14);
+  border: 1px solid var(--color-border-soft);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.03);
   color: var(--color-text-secondary);
@@ -244,7 +244,7 @@
 .visual-icon-selector-none-button:hover,
 .visual-icon-selector-none-button:focus-visible,
 .visual-icon-selector-none-button.is-selected {
-  border-color: rgba(168, 186, 219, 0.24);
+  border-color: var(--color-border-strong);
   background: rgba(255, 255, 255, 0.08);
   color: var(--color-text-primary);
   outline: none;
@@ -277,7 +277,7 @@
   min-width: 0;
   min-height: 6.5rem;
   padding: 0.92rem 0.7rem 0.82rem;
-  border: 1px solid rgba(168, 186, 219, 0.08);
+  border: 1px solid var(--color-border-soft);
   border-radius: 1rem;
   background: rgba(255, 255, 255, 0.03);
   color: var(--color-text-secondary);
@@ -293,8 +293,8 @@
 .visual-icon-selector-option:hover,
 .visual-icon-selector-option:focus-visible,
 .visual-icon-selector-option.is-selected {
-  border-color: rgba(168, 186, 219, 0.24);
-  background: rgba(19, 32, 51, 0.78);
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-hover-solid);
   color: var(--color-text-primary);
   outline: none;
 }
@@ -339,7 +339,7 @@
   width: 2.25rem;
   height: 2.25rem;
   padding: 0;
-  border: 1px solid rgba(168, 186, 219, 0.14);
+  border: 1px solid var(--color-border-soft);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.03);
   color: var(--color-text-secondary);
@@ -352,7 +352,7 @@
 
 .visual-icon-selector-page-button:hover,
 .visual-icon-selector-page-button:focus-visible {
-  border-color: rgba(168, 186, 219, 0.24);
+  border-color: var(--color-border-strong);
   background: rgba(255, 255, 255, 0.08);
   color: var(--color-text-primary);
   outline: none;

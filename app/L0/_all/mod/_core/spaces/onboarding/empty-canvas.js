@@ -70,7 +70,7 @@ function createElement(tagName, className = "", textContent = "") {
   return element;
 }
 
-function convertHexColorToRgbTriplet(colorValue, fallback = "148, 188, 255") {
+function convertHexColorToRgbTriplet(colorValue, fallback = "156, 175, 136") {
   const match = String(colorValue ?? "").trim().match(/^#([0-9a-f]{6})$/iu);
 
   if (!match) {

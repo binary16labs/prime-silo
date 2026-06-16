@@ -45,4 +45,33 @@
   --color-warning: var(--color-status-warning);
   --color-danger: var(--color-status-danger);
   --color-overlay: var(--color-layer-overlay);
+
+  /* ── Extended organic accents (canonical) ──────────────────────
+   * Completes the earth-tone family so every surface — cockpit,
+   * browser, and the Memo-Ray memory graph — draws from one palette. */
+  --color-accent-moss: #6a8a6a;
+  --color-accent-taupe: #b8a898;
+  --color-accent-slate: #8a9aa4;
+
+  /* ── Raised app surfaces — warm glass (Space Agent cockpit) ─────
+   * Depth comes from warm near-black layering, not cold navy. */
+  --color-surface-raised: #1a1d1b;       /* dialogs, cards, bubbles */
+  --color-surface-sunken: #10110d;       /* code blocks, exec panes */
+  --color-surface-hover: rgba(156, 175, 136, 0.10);  /* sage-tinted hover wash */
+  --color-surface-hover-solid: #20231d;  /* opaque hover for action cards */
+  --color-field-bg: #1a1d1b;
+  --color-focus-border: rgba(156, 175, 136, 0.5);
+  --color-focus-ring: rgba(156, 175, 136, 0.3);
+
+  /* ── Evocative aliases — Memo-Ray parity ───────────────────────
+   * Same colors, organic names. Lets the memory-graph client share
+   * this exact palette via a mirrored token block. */
+  --sage: var(--color-accent-primary);
+  --sage-strong: var(--color-accent-primary-strong);
+  --sage-dim: var(--color-accent-primary-soft);
+  --moss: var(--color-accent-moss);
+  --taupe: var(--color-accent-taupe);
+  --slate: var(--color-accent-slate);
+  --golden: var(--color-accent-secondary);
+  --rust: var(--color-status-danger);
 }

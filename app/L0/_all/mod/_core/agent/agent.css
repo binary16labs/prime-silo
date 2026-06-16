@@ -38,8 +38,8 @@
 
 .agent-page-info-card {
   background:
-    radial-gradient(circle at 22% 18%, rgba(125, 220, 255, 0.12), transparent 34%),
-    radial-gradient(circle at 82% 14%, rgba(148, 188, 255, 0.12), transparent 36%),
+    radial-gradient(circle at 22% 18%, rgba(205, 180, 145, 0.12), transparent 34%),
+    radial-gradient(circle at 82% 14%, rgba(156, 175, 136, 0.12), transparent 36%),
     var(--space-card-bg);
 }
 
@@ -68,9 +68,9 @@
   display: grid;
   gap: 0.35rem;
   padding: 0.85rem 0.95rem;
-  border: 1px solid rgba(148, 188, 255, 0.12);
+  border: 1px solid rgba(156, 175, 136, 0.12);
   border-radius: 14px;
-  background: rgba(10, 20, 34, 0.36);
+  background: rgba(26, 29, 23, 0.36);
 }
 
 .agent-page-highlight h3 {
@@ -97,8 +97,8 @@
   inset: 16% 20%;
   border-radius: 999px;
   background:
-    radial-gradient(circle at 50% 50%, rgba(148, 188, 255, 0.2), transparent 62%),
-    radial-gradient(circle at 44% 38%, rgba(125, 220, 255, 0.14), transparent 44%);
+    radial-gradient(circle at 50% 50%, rgba(156, 175, 136, 0.2), transparent 62%),
+    radial-gradient(circle at 44% 38%, rgba(205, 180, 145, 0.14), transparent 44%);
   filter: blur(22px);
   pointer-events: none;
 }
@@ -148,7 +148,7 @@
   padding: 0.95rem 1rem;
   border: 1px solid var(--space-card-border);
   border-radius: 16px;
-  background: rgba(13, 23, 39, 0.72);
+  background: rgba(20, 21, 15, 0.72);
   color: var(--color-text-primary);
   font: inherit;
   line-height: 1.55;

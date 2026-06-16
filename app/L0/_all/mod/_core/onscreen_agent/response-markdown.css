@@ -8,11 +8,11 @@
   --onscreen-agent-response-h5-size: 0.9rem;
   --onscreen-agent-response-h6-size: 0.86rem;
   --onscreen-agent-response-heading-spacing: 0.8rem;
-  --onscreen-agent-response-rule-color: rgba(168, 186, 219, 0.18);
-  --onscreen-agent-response-table-border: rgba(168, 186, 219, 0.16);
-  --onscreen-agent-response-table-head-bg: rgba(148, 188, 255, 0.08);
+  --onscreen-agent-response-rule-color: rgba(232, 217, 191, 0.18);
+  --onscreen-agent-response-table-border: rgba(232, 217, 191, 0.16);
+  --onscreen-agent-response-table-head-bg: rgba(156, 175, 136, 0.08);
   --onscreen-agent-response-table-row-bg: rgba(10, 18, 31, 0.28);
-  --onscreen-agent-response-table-row-alt-bg: rgba(12, 22, 38, 0.6);
+  --onscreen-agent-response-table-row-alt-bg: rgba(26, 29, 23, 0.6);
 }
 
 .onscreen-agent-root .onscreen-agent-response-markdown {
