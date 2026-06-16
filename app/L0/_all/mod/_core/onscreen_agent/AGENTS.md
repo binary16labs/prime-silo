@@ -40,7 +40,7 @@ This module owns:
 
 - `ext/html/page/router/overlay/end/onscreen-agent.html`: thin adapter that mounts the overlay into the router overlay seam
 - `ext/js/_core/onscreen_agent/llm.js/buildOnscreenAgentExampleMessages/end/*.js`: prompt-example extensions that prepend live few-shot conversations ahead of thread history
-- `ext/js/_core/onscreen_agent/llm.js/buildOnscreenAgentTransientSections/end/*.js`: transient-context extensions that append model-facing runtime context such as compact-mode response guidance
+- `ext/js/_core/onscreen_agent/llm.js/buildOnscreenAgentTransientSections/end/*.js`: transient-context extensions that append model-facing runtime context such as compact-mode response guidance, the bounded current-user file tree, and a `current date and time` awareness section
 - `panel.html`: overlay UI and the module-owned `onscreen` context tag exported through `<x-context>`, while sourcing the draggable astronaut image from shared `_core/visual/res/chat/overlay/`
 - `prompt-context.js`: pure prompt-context helpers for overlay-owned transient sections such as the bounded current-user `~/` file tree formatter
 - `response-markdown.css`: overlay-local markdown presentation overrides for assistant responses

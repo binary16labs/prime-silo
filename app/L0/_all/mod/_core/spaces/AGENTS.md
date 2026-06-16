@@ -42,6 +42,7 @@ This module owns:
 - `ext/js/_core/onscreen_agent/execution.js/validateOnscreenAgentExecutionBlockPlan/end/widget-turn-staging.js`: spaces-owned execution-plan validator that enforces staged widget discovery and current-widget transient usage without hardcoding widget policy into `_core/onscreen_agent`
 - `ext/skills/spaces/SKILL.md`: concise always-loaded onscreen-agent guidance for space-level browsing, selection, CRUD, and `space.yaml` edits across spaces
 - `ext/skills/space-widgets/SKILL.md`: current-space widget-authoring guidance that is eligible and auto-loaded only while the page exports `space:open`
+- `ext/skills/onboarding-tour/SKILL.md`: guided product tour (UI, spaces, CLI, environment variables) that is catalog-loadable on the onscreen agent and auto-loaded while the page exports `space:id:big-bang` (the Big Bang onboarding space)
 
 ## Persistence And Widget Contract
 
