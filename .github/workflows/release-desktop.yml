@@ -161,7 +161,7 @@ jobs:
           OPENROUTER_MODEL_NAME: ${{ vars.OPENROUTER_MODEL_NAME }}
           PREVIOUS_RELEASE_TAG: ${{ steps.release_context.outputs.previous_tag }}
           RELEASE_TAG: ${{ steps.release_version.outputs.release_tag }}
-        run: node packaging/scripts/release-notes.js --current-tag "$RELEASE_TAG" --previous-tag "$PREVIOUS_RELEASE_TAG" --require-ai >/dev/null
+        run: node packaging/scripts/release-notes.js --current-tag "$RELEASE_TAG" --previous-tag "$PREVIOUS_RELEASE_TAG" >/dev/null
 
   build:
     needs: prepare
