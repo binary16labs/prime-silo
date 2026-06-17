@@ -254,6 +254,25 @@
 .ps-bridge__file-status.is-pending { color: var(--ps-golden); border-color: var(--ps-border-strong); background: var(--ps-golden-soft); }
 .ps-bridge__file-status.is-staged { color: var(--ps-muted); }
 
+/* flows — deep produce */
+.ps-bridge__deep { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--ps-border); }
+.ps-bridge__deep-head h3 { margin: 0; font-size: 13px; }
+.ps-bridge__deep-head .ps-bridge__muted { font-weight: 400; }
+.ps-bridge__deep-title { margin: 4px 0 0; font-size: 15px; color: var(--ps-text); }
+.ps-bridge__panels { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-top: 4px; }
+.ps-bridge__panel-card {
+  background: var(--ps-surface); border: 1px solid var(--ps-border); border-radius: 10px;
+  padding: 12px 14px; min-width: 0;
+}
+.ps-bridge__panel-card h5 { margin: 0 0 8px; font-size: 12.5px; color: var(--ps-golden); }
+.ps-bridge__panel-md {
+  margin: 0; white-space: pre-wrap; word-break: break-word; font: inherit;
+  font-size: 12.5px; line-height: 1.5; color: var(--ps-text);
+}
+.ps-bridge__deep-review { margin-top: 6px; font-size: 12px; color: var(--ps-muted); }
+.ps-bridge__deep-review summary { cursor: pointer; }
+.ps-bridge__deep-review pre { white-space: pre-wrap; word-break: break-word; font: inherit; font-size: 12px; margin: 6px 0 0; }
+
 /* flows */
 .ps-bridge__flow { display: flex; flex-direction: column; gap: 10px; }
 .ps-bridge__req {

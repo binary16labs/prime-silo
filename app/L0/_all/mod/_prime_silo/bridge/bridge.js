@@ -238,6 +238,15 @@ export function createBridgePage(options = {}) {
     flowManifestId: "",
     flowNote: "",
 
+    // flows — deep produce (orchestrated fan-out → multi-panel view)
+    dpGoal: "",
+    dpPanels: 4,
+    dpRunId: "",
+    dpStatus: "", // '' | running | completed | failed
+    dpView: null,
+    dpNote: "",
+    _dpPollTimer: null,
+
     // runs
     runs: [],
     activeRunId: "",
@@ -710,6 +719,69 @@ export function createBridgePage(options = {}) {
       }
     },
 
+    /* ── Flows — deep produce (decompose → fan-out → synthesize → review) ── */
+
+    async deepProduce() {
+      const goal = (this.dpGoal || "").trim();
+      if (!goal) { this.dpNote = "Type a goal to produce first."; return; }
+      this.stopDeepProducePoll();
+      this.dpView = null;
+      this.dpStatus = "running";
+      this.dpNote = "Planning panels and fanning out model calls…";
+      try {
+        const body = await readRuntimeJson(await runtimeFetch("/deep-produce", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ goal, workspace: this.workspace, panels: this.dpPanels })
+        }));
+        this.dpRunId = body && body.run_id ? body.run_id : "";
+        if (!this.dpRunId) { this.dpStatus = "failed"; this.dpNote = "No run id returned."; return; }
+        this.dpNote = `Run ${this.dpRunId} started — fanning out ${this.dpPanels} panels. Open the fan-out trace to watch each call.`;
+        this.pollDeepProduce();
+      } catch (err) {
+        this.dpStatus = "failed";
+        this.dpNote = `Deep produce failed to start: ${err && err.message ? err.message : String(err)}`;
+      }
+    },
+
+    async pollDeepProduce() {
+      if (!this.dpRunId) return;
+      try {
+        const res = await readRuntimeJson(await runtimeFetch(
+          `/deep-produce/${encodeURIComponent(this.dpRunId)}?workspace=${encodeURIComponent(this.workspace)}`
+        ));
+        const status = res && res.status ? res.status : "";
+        if (status === "completed" && res.view) {
+          this.dpView = res.view;
+          this.dpStatus = "completed";
+          this.dpNote = `Produced "${res.view.title}" — ${res.view.panels.length} panels. The fan-out trace is in Runs.`;
+          this.stopDeepProducePoll();
+          return;
+        }
+        if (status === "failed") {
+          this.dpStatus = "failed";
+          this.dpNote = `Deep produce failed: ${res && res.error ? res.error : "unknown error"}`;
+          this.stopDeepProducePoll();
+          return;
+        }
+        // pending / planning / running → keep polling.
+        this._dpPollTimer = setTimeout(() => this.pollDeepProduce(), 2500);
+      } catch {
+        // Transient (e.g. run record not flushed yet) — retry.
+        this._dpPollTimer = setTimeout(() => this.pollDeepProduce(), 3000);
+      }
+    },
+
+    stopDeepProducePoll() {
+      if (this._dpPollTimer) { clearTimeout(this._dpPollTimer); this._dpPollTimer = null; }
+    },
+
+    openDeepProduceTrace() {
+      if (!this.dpRunId) return;
+      this.activeRunId = this.dpRunId;
+      this.setMode("runs");
+    },
+
     /* ── Runs (observability) ── */
 
     async mountRuns() {
@@ -799,6 +871,7 @@ export function createBridgePage(options = {}) {
     retry() { this.init(); },
 
     destroy() {
+      this.stopDeepProducePoll();
       this.destroyWidgets();
     }
   };
