@@ -8,6 +8,7 @@ const {
   resolvePackagingDependency
 } = require("./tooling");
 const { resolveDesktopBuildVersion } = require("./release-version");
+const { buildSelfAwarenessBundle } = require("./build-self-awareness");
 const PACKAGE_JSON_PATH = path.join(PROJECT_ROOT, "package.json");
 const { build, Platform, Arch, DIR_TARGET } = loadPackagingDependency("electron-builder");
 const { serializeToYaml } = loadPackagingDependency("builder-util");
@@ -465,6 +466,20 @@ async function runDesktopPackaging(platformKey, argv = process.argv.slice(2)) {
   warnings.forEach((warning) => {
     console.warn(`Warning: ${warning}`);
   });
+
+  // Regenerate the Benny self-awareness bundle so the shipped code snapshot,
+  // static code-graph, manifests, and skills always track the code in this
+  // build. Best-effort: a bundling failure must not abort the desktop build.
+  try {
+    const { bundle } = buildSelfAwarenessBundle({ projectRoot: PROJECT_ROOT });
+    const c = bundle.counts;
+    console.log(
+      `Bundled Benny self-awareness: ${c.source_files} source files, ${c.manifests} manifests, ` +
+      `${c.skills} skills, ${c.graph_nodes} graph nodes.`
+    );
+  } catch (error) {
+    console.warn(`Warning: Failed to build self-awareness bundle: ${error.message || error}`);
+  }
 
   console.log(`Packaging Space Agent for ${platformSpec.label}...`);
 

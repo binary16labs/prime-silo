@@ -50,6 +50,7 @@
       "commands/**/*",
       "server/**/*",
       "packaging/desktop/**/*",
+      "packaging/self-awareness/**/*",
       "packaging/platforms/windows/icon.ico",
       "packaging/platforms/linux/icons/**/*",
       "package.json"

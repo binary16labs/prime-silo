@@ -8,6 +8,9 @@ coverage
 release
 /app/L1/
 /app/L2/
+
+# Benny self-awareness bundle — regenerated on every desktop build, never committed.
+/packaging/self-awareness/
 .env
 tmp/
 !server/lib/tmp/

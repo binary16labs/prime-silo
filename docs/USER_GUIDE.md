@@ -120,20 +120,14 @@ it.
 
 ---
 
-## 5. The 10-minute demo (seeded with Benny's own code)
+## 5. The framework is the demo (Benny's own code, seeded automatically)
 
-Want to show it off — or just explore — with real data? Seed the demo: it loads
-**prime-silo's own source code** into a workspace so you can talk to Benny about
-the very thing you're running.
-
-```powershell
-# stack must be up (.\scripts\dev.ps1). Then, in a second terminal:
-cd C:\Users\nsdha\OneDrive\project\2026\prime-silo
-.\scripts\seed-demo.ps1
-```
-
-This creates a `prime_silo_self` workspace, builds the **code graph** from the
-prime-silo source, and ingests the docs. Then:
+There's no separate demo to run — the app ships self-aware. On first launch the
+desktop shell seeds a **`prime_silo_self`** workspace from the bundled
+self-awareness pack: a snapshot of **prime-silo's own source code**, a static
+code graph, the application manifests, and the navigable skills. It then builds
+the code graph and ingests the docs in the background, so you can talk to Benny
+about the very thing you're running. Then:
 
 1. **Bridge → Code 3D**, pick the `prime_silo_self` workspace → explore the code graph.
 2. Select a node → Benny chip **"Explain this graph"**.
@@ -141,14 +135,17 @@ prime-silo source, and ingests the docs. Then:
 4. **Bridge → Documents** (`prime_silo_self`) → see the ingested guides as triples.
 5. **Flows** → type *"summarise the architecture decisions"* → **Plan** → **Run** → watch it in **Runs**.
 
-For the memory-graph-focused walkthrough, see
-[MEMORY_DEMO.md](MEMORY_DEMO.md).
+To explore your own data, open **Bridge → Documents**, drag files onto the drop
+zone (PDF · TXT · MD · JSON), watch each file's ingestion status, then
+**Ingest → triples**. **Rescan workspace** reconciles what's on disk with what's
+ingested. (If `prime_silo_self` looks empty right after a first launch, the
+runtime was still starting — it self-seeds on the next launch.)
 
 ---
 
 ## 6. Configuring it
 
-- **Wizard / demo site:** `\.scripts\site.ps1` serves the setup site (`site/`),
+- **Setup site:** `\.scripts\site.ps1` serves the setup site (`site/`),
   where the *Services* step toggles Memo-Ray and records endpoints. It also
   links out to these guides and the Bridge.
 - **Ports (defaults):** shell `3000`, Benny runtime `8005`, Memo-Ray server
@@ -178,7 +175,6 @@ For the memory-graph-focused walkthrough, see
 - [GUIDE.md](../GUIDE.md) — page-by-page walkthrough (more detail than this)
 - [architecture/ROADMAP.md](../architecture/ROADMAP.md) — what's shipped / next
 - [architecture/TECH_DEBT.md](../architecture/TECH_DEBT.md) — known sharp edges
-- [docs/MEMORY_DEMO.md](MEMORY_DEMO.md) — the memory-graph demo script
 - `CLAUDE.md` — the map for AI agents working in this repo
 
 Or just ask Benny — it can read these and answer in plain English.

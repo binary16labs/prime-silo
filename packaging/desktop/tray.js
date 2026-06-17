@@ -11,6 +11,7 @@
 
 const path = require("node:path");
 const fs = require("node:fs");
+const { spawn } = require("node:child_process");
 const { app, Tray, Menu, shell, nativeImage, dialog, ipcMain } = require("electron");
 
 const PROJECT_ROOT = path.resolve(__dirname, "../..");
@@ -47,6 +48,58 @@ function writeHomeDirectoryConfig(homeDir) {
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
   } catch (error) {
     console.error("[Tray] Failed to write home directory config:", error);
+  }
+}
+
+// Open a native terminal rooted at the configured home directory. Best-effort
+// and cross-platform: each branch detaches the child so quitting the tray app
+// never takes the terminal with it. Spawn errors fall through to a fallback so
+// a missing preferred emulator (e.g. Windows Terminal) degrades gracefully.
+function openTerminalAt(dir) {
+  if (!dir || !fs.existsSync(dir)) {
+    return;
+  }
+  try {
+    if (process.platform === "win32") {
+      // Prefer Windows Terminal; fall back to a cmd window via the shell.
+      const wt = spawn("wt.exe", ["-d", dir], { detached: true, stdio: "ignore" });
+      wt.on("error", () => {
+        const fallback = spawn("cmd.exe", ["/c", "start", "cmd.exe", "/K", `cd /d "${dir}"`], {
+          detached: true,
+          stdio: "ignore",
+          windowsVerbatimArguments: true
+        });
+        fallback.on("error", (error) => console.error("[Tray] Failed to open terminal:", error));
+        fallback.unref();
+      });
+      wt.unref();
+    } else if (process.platform === "darwin") {
+      const child = spawn("open", ["-a", "Terminal", dir], { detached: true, stdio: "ignore" });
+      child.on("error", (error) => console.error("[Tray] Failed to open terminal:", error));
+      child.unref();
+    } else {
+      // Linux: try common emulators in order; first that launches wins.
+      const candidates = [
+        ["x-terminal-emulator", []],
+        ["gnome-terminal", [`--working-directory=${dir}`]],
+        ["konsole", ["--workdir", dir]],
+        ["xfce4-terminal", [`--working-directory=${dir}`]],
+        ["xterm", []]
+      ];
+      const tryNext = (index) => {
+        if (index >= candidates.length) {
+          console.error("[Tray] No terminal emulator found to open.");
+          return;
+        }
+        const [command, args] = candidates[index];
+        const child = spawn(command, args, { cwd: dir, detached: true, stdio: "ignore" });
+        child.on("error", () => tryNext(index + 1));
+        child.unref();
+      };
+      tryNext(0);
+    }
+  } catch (error) {
+    console.error("[Tray] Failed to open terminal:", error);
   }
 }
 
@@ -125,6 +178,11 @@ function buildMenu({ showMainWindow, createWindow, getBrowserUrl, requestQuit })
           void shell.openPath(currentHomeDir);
         }
       }
+    },
+    {
+      label: "Open Terminal Here",
+      enabled: Boolean(currentHomeDir && fs.existsSync(currentHomeDir)),
+      click: () => openTerminalAt(currentHomeDir)
     },
     {
       label: "Configure Home Directory...",

@@ -21,7 +21,6 @@ export function docLinks() {
     { title: "Overview + phases", path: "README.md" },
     { title: "Roadmap", path: "architecture/ROADMAP.md" },
     { title: "Technical debt", path: "architecture/TECH_DEBT.md" },
-    { title: "Memory demo", path: "docs/MEMORY_DEMO.md" },
     { title: "Agent map", path: "CLAUDE.md" }
   ];
 }

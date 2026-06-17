@@ -121,17 +121,58 @@
           <div class="ps-bridge__panel" x-show="mode === 'documents'">
             <div class="ps-bridge__docbar">
               <div class="ps-bridge__files">
-                <h3>Documents <span class="ps-bridge__muted" x-text="`(${files.length} in data_in)`"></span></h3>
+                <h3>Documents
+                  <span class="ps-bridge__muted" x-text="`(${files.length} staged · ${pendingCount} awaiting ingestion)`"></span>
+                </h3>
+
+                <!-- Drag-and-drop drop zone: files go through Benny's /files/upload
+                     ingestion path, then land as 'Not ingested' until Ingest runs. -->
+                <div
+                  class="ps-bridge__dropzone"
+                  :class="{ 'is-dragover': dragOver, 'is-busy': uploading }"
+                  @dragover.prevent="onDragOver()"
+                  @dragenter.prevent="onDragOver()"
+                  @dragleave.prevent="onDragLeave()"
+                  @drop.prevent="onDrop($event)"
+                  @click="$refs.fileInput.click()"
+                  role="button"
+                  tabindex="0"
+                  @keydown.enter="$refs.fileInput.click()"
+                >
+                  <x-icon x-text="uploading ? 'hourglass_top' : 'upload_file'"></x-icon>
+                  <span x-text="uploading ? 'Uploading…' : 'Drop files here or click to upload'"></span>
+                  <span class="ps-bridge__muted">PDF · TXT · MD · JSON</span>
+                  <input
+                    type="file"
+                    x-ref="fileInput"
+                    class="ps-bridge__file-input"
+                    multiple
+                    accept=".pdf,.txt,.md,.json"
+                    @change="onFilePick($event)"
+                  />
+                </div>
+
                 <ul class="ps-bridge__files-list">
                   <template x-for="f in files" :key="f.name || f">
-                    <li x-text="f.name || f"></li>
+                    <li class="ps-bridge__file-row">
+                      <span class="ps-bridge__file-name" x-text="f.name || f"></span>
+                      <span
+                        class="ps-bridge__file-status"
+                        :class="statusClass(f.status)"
+                        x-text="f.chunks ? `${statusLabel(f.status)} · ${f.chunks} chunks` : statusLabel(f.status)"
+                      ></span>
+                    </li>
                   </template>
-                  <li class="ps-bridge__muted" x-show="files.length === 0">No documents staged. Add files to the workspace data_in, or use the file explorer.</li>
+                  <li class="ps-bridge__muted" x-show="files.length === 0">No documents staged. Drop files above, or use the file explorer.</li>
                 </ul>
                 <div class="ps-bridge__doc-actions">
                   <button type="button" class="ps-bridge__btn ps-bridge__btn--go" @click="ingest()" :disabled="ingesting">
                     <x-icon x-text="ingesting ? 'hourglass_top' : 'auto_awesome'"></x-icon>
                     <span x-text="ingesting ? 'Ingesting…' : 'Ingest → triples'"></span>
+                  </button>
+                  <button type="button" class="ps-bridge__btn" @click="rescanWorkspace()" :disabled="rescanning">
+                    <x-icon x-text="rescanning ? 'hourglass_top' : 'refresh'"></x-icon>
+                    <span x-text="rescanning ? 'Rescanning…' : 'Rescan workspace'"></span>
                   </button>
                   <button type="button" class="ps-bridge__btn" @click="correlate()">
                     <x-icon>hub</x-icon><span>Correlate w/ code</span>

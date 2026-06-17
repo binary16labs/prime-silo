@@ -77,7 +77,53 @@ export const CHIPS = {
   ]
 };
 
+// File types Benny's ingestion pipeline accepts for upload (mirrors the
+// runtime's /api/files/upload allow-list). Drag-drop and the picker filter to
+// these before sending so the operator gets an immediate, honest rejection.
+export const UPLOAD_EXTENSIONS = [".pdf", ".txt", ".md", ".json"];
+
 /* ── pure helpers (unit-tested) ──────────────────────────────────────── */
+
+// Map the runtime indexing-manifest status onto an operator-facing label.
+// ALIGNED  = the file's chunks are present in the knowledge graph (ingested).
+// MISSING  = on disk but not yet ingested.
+// STAGED   = present in data_in but outside the indexing manifest (e.g. an
+//            unsupported type, or freshly uploaded before the next rescan).
+export function fileStatusLabel(status) {
+  switch (status) {
+    case "ALIGNED": return "Ingested";
+    case "MISSING": return "Not ingested";
+    case "STAGED": return "Staged";
+    default: return status || "Unknown";
+  }
+}
+
+export function fileStatusClass(status) {
+  switch (status) {
+    case "ALIGNED": return "is-ingested";
+    case "MISSING": return "is-pending";
+    default: return "is-staged";
+  }
+}
+
+// Merge the data_in listing with the indexing manifest into one rows array the
+// Documents view renders. Pure so the merge logic is unit-testable without a
+// runtime. `dataIn` entries may be strings or {name} objects.
+export function mergeFileStatus(dataIn, manifest) {
+  const rows = Array.isArray(dataIn) ? dataIn : [];
+  const byName = new Map();
+  for (const entry of Array.isArray(manifest) ? manifest : []) {
+    if (entry && entry.name) byName.set(entry.name, entry);
+  }
+  return rows.map((f) => {
+    const name = typeof f === "string" ? f : (f && f.name) || "";
+    const m = byName.get(name);
+    if (m) {
+      return { name, status: m.status || "MISSING", chunks: m.chunks || 0, type: m.type || "" };
+    }
+    return { name, status: "STAGED", chunks: 0, type: "" };
+  });
+}
 
 export function readQuery(hash) {
   const out = { mode: "", id: "" };
@@ -159,6 +205,9 @@ export function createBridgePage(options = {}) {
     files: [],
     ingesting: false,
     ingestNote: "",
+    dragOver: false,
+    uploading: false,
+    rescanning: false,
     docs3d: false,
     docsPhysics: "pinned",
     docsFocusLayer: 0, // 0 = all AoT layers, 1..5 = focus a single layer
@@ -410,13 +459,118 @@ export function createBridgePage(options = {}) {
       if (this._docsWidget) this._docsWidget.update({ focusedLayer: layer || undefined });
     },
 
+    // List the workspace's staged files and reconcile them against the
+    // knowledge-graph indexing manifest so each row carries its ingestion
+    // status (Ingested / Not ingested / Staged) and chunk count.
     async loadFiles() {
       try {
-        const body = await readRuntimeJson(await runtimeFetch(`/files?workspace=${encodeURIComponent(this.workspace)}`));
-        const dataIn = body && Array.isArray(body.data_in) ? body.data_in : [];
-        this.files = dataIn.map((f) => (typeof f === "string" ? { name: f } : f));
+        const [filesBody, manifest] = await Promise.all([
+          readRuntimeJson(await runtimeFetch(`/files?workspace=${encodeURIComponent(this.workspace)}`)),
+          this.loadIndexingManifest()
+        ]);
+        const dataIn = filesBody && Array.isArray(filesBody.data_in) ? filesBody.data_in : [];
+        this.files = mergeFileStatus(dataIn, manifest);
       } catch {
         this.files = [];
+      }
+    },
+
+    async loadIndexingManifest() {
+      try {
+        const body = await readRuntimeJson(
+          await runtimeFetch(`/rag/indexing-manifest?workspace=${encodeURIComponent(this.workspace)}`)
+        );
+        return body && Array.isArray(body.manifest) ? body.manifest : [];
+      } catch {
+        return [];
+      }
+    },
+
+    statusLabel(status) { return fileStatusLabel(status); },
+    statusClass(status) { return fileStatusClass(status); },
+
+    get pendingCount() {
+      return this.files.filter((f) => f.status !== "ALIGNED").length;
+    },
+
+    /* ── drag-drop + upload (correct Benny ingestion path) ── */
+
+    onDragOver() { this.dragOver = true; },
+    onDragLeave() { this.dragOver = false; },
+
+    async onDrop(event) {
+      this.dragOver = false;
+      const list = event && event.dataTransfer ? event.dataTransfer.files : null;
+      await this.uploadFiles(list);
+    },
+
+    async onFilePick(event) {
+      const input = event && event.target;
+      await this.uploadFiles(input ? input.files : null);
+      if (input) input.value = "";
+    },
+
+    // Upload each accepted file through the runtime's /files/upload endpoint —
+    // the same path Benny's ingestion expects — then refresh statuses. Files
+    // land in data_in as MISSING (staged, not yet ingested) until the operator
+    // runs Ingest. Unsupported types are rejected client-side with a clear note.
+    async uploadFiles(fileList) {
+      const all = fileList ? Array.from(fileList) : [];
+      if (!all.length) return;
+      const accepted = all.filter((f) =>
+        UPLOAD_EXTENSIONS.some((ext) => String(f.name || "").toLowerCase().endsWith(ext))
+      );
+      const rejected = all.length - accepted.length;
+      if (!accepted.length) {
+        this.ingestNote = `No supported files. Allowed types: ${UPLOAD_EXTENSIONS.join(", ")}.`;
+        return;
+      }
+      this.uploading = true;
+      this.ingestNote = `Uploading ${accepted.length} file${accepted.length === 1 ? "" : "s"}…`;
+      let ok = 0;
+      const errors = [];
+      for (const file of accepted) {
+        try {
+          const form = new FormData();
+          form.append("file", file, file.name);
+          // No explicit Content-Type — the browser sets the multipart boundary.
+          await readRuntimeJson(await runtimeFetch(
+            `/files/upload?workspace=${encodeURIComponent(this.workspace)}`,
+            { method: "POST", body: form }
+          ));
+          ok += 1;
+        } catch (err) {
+          errors.push(`${file.name}: ${err && err.message ? err.message : String(err)}`);
+        }
+      }
+      this.uploading = false;
+      const parts = [];
+      if (ok) parts.push(`Uploaded ${ok} file${ok === 1 ? "" : "s"}.`);
+      if (rejected) parts.push(`Skipped ${rejected} unsupported file${rejected === 1 ? "" : "s"}.`);
+      if (errors.length) parts.push(`Errors — ${errors.join("; ")}`);
+      if (ok) parts.push('Run "Ingest → triples" to add them to the knowledge graph.');
+      this.ingestNote = parts.join(" ");
+      await this.loadFiles();
+    },
+
+    /* ── rescan the workspace on disk ── */
+
+    async rescanWorkspace() {
+      this.rescanning = true;
+      this.ingestNote = "Rescanning the workspace for files…";
+      try {
+        const body = await readRuntimeJson(
+          await runtimeFetch(`/files/recursive-scan?workspace=${encodeURIComponent(this.workspace)}`)
+        );
+        const total = body && Number.isFinite(body.total)
+          ? body.total
+          : (body && Array.isArray(body.files) ? body.files.length : 0);
+        await this.loadFiles();
+        this.ingestNote = `Workspace rescanned — ${total} file${total === 1 ? "" : "s"} on disk, ${this.pendingCount} awaiting ingestion.`;
+      } catch (err) {
+        this.ingestNote = `Rescan failed: ${err && err.message ? err.message : String(err)}`;
+      } finally {
+        this.rescanning = false;
       }
     },
 
@@ -431,8 +585,9 @@ export function createBridgePage(options = {}) {
         }));
         const runId = body && (body.run_id || body.task_id || body.id);
         this.ingestNote = runId ? `Ingest started (run ${runId}). Triples will populate the graph as files are processed.` : "Ingest started.";
-        // Refresh the triples view shortly after kick-off.
+        // Refresh the triples view and per-file statuses shortly after kick-off.
         setTimeout(() => this.mountKnowledgeGraph(), 1500);
+        setTimeout(() => this.loadFiles(), 2500);
       } catch (err) {
         this.ingestNote = `Ingest failed: ${err && err.message ? err.message : String(err)}`;
       } finally {
@@ -656,9 +811,13 @@ window.bridgePage = function bridgePage() {
 export const __testing = {
   MODES,
   CHIPS,
+  UPLOAD_EXTENSIONS,
   readQuery,
   isValidMode,
   lifelogIconFor,
   relativeTime,
-  summariseRuns
+  summariseRuns,
+  fileStatusLabel,
+  fileStatusClass,
+  mergeFileStatus
 };

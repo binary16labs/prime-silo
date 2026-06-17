@@ -355,16 +355,16 @@
       }
     },
     {
-      "id": "demo_seed",
+      "id": "self_awareness_seed",
       "kind": "script",
-      "produces": "scripts/seed-demo.ps1 / .sh - loads prime-silo's own code + docs into the prime_silo_self workspace so the agent can talk about the codebase",
+      "produces": "packaging/scripts/build-self-awareness.js bundles prime-silo's own code, a static code graph, the app manifests, and the skills into the desktop package; packaging/desktop/self_awareness.js seeds the prime_silo_self workspace on first launch so Benny boots self-aware",
       "consumes": [
         "workspaces",
         "rag_ingest"
       ],
       "owner": {
         "repo": "prime-silo",
-        "path": "scripts/seed-demo.ps1"
+        "path": "packaging/scripts/build-self-awareness.js"
       }
     },
     {
@@ -411,7 +411,7 @@
   },
   "signature": {
     "algorithm": "HMAC-SHA256",
-    "value": "c58b4c9ca266b6353e3fa0383db8848c882f609a1a382d1b3407743b6377ad87",
-    "signed_at": "2026-06-16T13:41:48.484Z"
+    "value": "fd51a75f740bf17f89719b5421cabb3d82289a677634e8067616188392d2e867",
+    "signed_at": "2026-06-17T19:37:22.309Z"
   }
 }

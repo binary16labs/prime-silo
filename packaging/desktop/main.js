@@ -7,6 +7,7 @@ const { pipeline } = require("node:stream/promises");
 const { pathToFileURL } = require("node:url");
 const { app, BrowserWindow, WebContentsView, ipcMain, net, webFrameMain } = require("electron");
 const { createDesktopTray, destroyDesktopTray } = require("./tray");
+const { seedSelfAwareness } = require("./self_awareness");
 const {
   resolveDesktopAuthDataDir,
   resolveDesktopServerTmpDir,
@@ -2060,6 +2061,23 @@ async function startDesktop() {
     }
   });
   configureDesktopAutoUpdate();
+
+  // First-run only: seed the prime_silo_self workspace from the shipped
+  // self-awareness bundle so Benny boots able to answer questions about the
+  // app it's running inside. Fully detached and best-effort — never blocks
+  // startup, and silently retries on a later launch if the runtime isn't up.
+  void seedSelfAwareness({
+    browserUrl: serverRuntime?.browserUrl || "",
+    userDataPath: app.getPath("userData")
+  })
+    .then((result) => {
+      if (result && result.ok) {
+        console.log(`[self-awareness] Seeded ${result.workspace}; Benny boots self-aware.`);
+      }
+    })
+    .catch(() => {
+      // seedSelfAwareness never rejects, but guard anyway.
+    });
 
   app.on("activate", () => {
     if (mainWindow && !mainWindow.isDestroyed()) {

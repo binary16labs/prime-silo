@@ -49,14 +49,12 @@ cases:
 - `loaded_browser_skill_followup_uses_browser_api`
 - `loaded_browser_skill_mistaken_load_nudge_uses_browser_api`
 
-### Onboarding And Proactive Guidance — `3`
+### Onboarding And Proactive Guidance — `1`
 
-goal: when new-user or vague demo intent is clear, execute one concrete helpful demo or starter creation instead of offering menus, re-discovering, or asking what kind
+goal: when new-user or vague intent is clear, execute one concrete helpful starter creation instead of offering menus, re-discovering, or asking what kind
 
 cases:
 
-- `new_user_show_me_something_executes_demo`
-- `new_user_impressive_followup_executes_demo`
 - `empty_space_create_one_uses_renderwidget`
 
 ### Direct Runtime Control Without Helper — `7`

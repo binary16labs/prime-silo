@@ -33,8 +33,6 @@ run:
     - page_title_requires_execution
     - smalltalk_hi_terminal
     - time_requires_execution
-    - new_user_show_me_something_executes_demo
-    - new_user_impressive_followup_executes_demo
     - empty_space_create_one_uses_renderwidget
     - whole_page_flip_after_scope_clarification_uses_dom_root
     - screenshot_download_without_helper_uses_browser_js

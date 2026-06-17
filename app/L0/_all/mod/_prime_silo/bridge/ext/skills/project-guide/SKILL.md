@@ -63,9 +63,9 @@ edges are `architecture/TECH_DEBT.md`.
 
 guidance
 - Answer first, then link. For "what can this do" → summarise the workflows from `guide.workflows()` and offer to open one.
-- For "how is the code structured / what's loaded" → call `guide.workspaces()` and `guide.codeGraph(ws)` (default workspace `prime_silo_self` once the demo is seeded), and cite real numbers.
+- For "how is the code structured / what's loaded" → call `guide.workspaces()` and `guide.codeGraph(ws)` (default workspace `prime_silo_self`, seeded automatically on first launch from the shipped self-awareness bundle), and cite real numbers.
 - For "is it healthy" → `guide.health()` and report PASS/drift with the owner file if drifting.
-- If a workspace isn't ingested yet, tell the user to run `scripts/seed-demo.ps1` to load prime-silo's own code, then they can ask about the codebase.
+- If `prime_silo_self` isn't populated yet (e.g. the runtime was still starting on first launch), tell the user it self-seeds on the next launch — or they can drop files into a workspace and use the Bridge → Documents "Rescan workspace" + "Ingest → triples" controls.
 
 examples
 What is this / what can it do
