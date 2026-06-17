@@ -56,6 +56,14 @@ def _get_hmac_key() -> bytes:
             return bytes.fromhex(raw)
         except ValueError:
             pass
+    # Per-install key persisted by `benny init` at $BENNY_HOME/state/hmac-key —
+    # used before the non-production dev fallback so signatures are tied to this
+    # install rather than a key every install shares.
+    from ..portable.home import install_hmac_key_bytes_from_env_home
+
+    install_key = install_hmac_key_bytes_from_env_home()
+    if install_key is not None:
+        return install_key
     return _DEFAULT_KEY
 
 

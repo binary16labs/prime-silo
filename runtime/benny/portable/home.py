@@ -9,6 +9,8 @@ See PBR-001 §4.1 for the declared shape.
 from __future__ import annotations
 
 import dataclasses
+import os
+import secrets
 import shutil
 import sys
 import uuid
@@ -289,6 +291,14 @@ def _seed_state(root: Path, profile: Profile) -> None:
     if not device_id_path.is_file():
         device_id_path.write_text(str(uuid.uuid4()), encoding="utf-8")
 
+    # Per-install HMAC signing key (PBR-001 §4.1 state). Generated once, like the
+    # device-id, and never overwritten — so view/pin/.aamp signatures are tied to
+    # THIS install instead of the shared dev fallback in views_signing /
+    # agentamp.signing. 32 bytes → 64 hex chars, the form BENNY_HMAC_KEY expects.
+    hmac_key_file = state / "hmac-key"
+    if not hmac_key_file.is_file():
+        hmac_key_file.write_text(secrets.token_hex(32), encoding="utf-8")
+
     (state / "schema-version").write_text(SCHEMA_VERSION, encoding="utf-8")
     (state / "profile-lock").write_text(profile, encoding="utf-8")
 
@@ -423,6 +433,53 @@ def init(root: Path, *, profile: Profile) -> BennyHome:
         _seed_app_compose(root)
 
     return BennyHome(root=root, profile=profile)
+
+
+def hmac_key_path(root: Path) -> Path:
+    """Location of the per-install HMAC signing key under ``$BENNY_HOME``."""
+    return Path(root) / "state" / "hmac-key"
+
+
+def read_install_hmac_key(root: Path) -> str | None:
+    """Return the per-install HMAC key (hex string) for ``root``, or ``None`` if
+    this home was never initialised / the file is missing or empty."""
+    try:
+        value = hmac_key_path(root).read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    return value or None
+
+
+def install_hmac_key_bytes_from_env_home() -> bytes | None:
+    """Resolve the per-install key bytes from the ``$BENNY_HOME`` in the
+    environment. The shared fallback for the signing resolvers (views_signing,
+    agentamp.signing): they consult this before the non-production dev key, so
+    every entry point — booted server, CLI, tests — signs with the install key
+    once ``benny init`` has generated it. Returns ``None`` when ``$BENNY_HOME``
+    is unset, uninitialised, or the stored value isn't valid hex."""
+    root = os.environ.get("BENNY_HOME")
+    if not root:
+        return None
+    value = read_install_hmac_key(Path(root))
+    if not value:
+        return None
+    try:
+        return bytes.fromhex(value)
+    except ValueError:
+        return None
+
+
+def ensure_hmac_key_in_env(root: Path) -> str | None:
+    """Export the per-install key to ``BENNY_HMAC_KEY`` if it isn't already set,
+    so subprocesses inherit it too. An explicit env value always wins. Returns
+    the effective key (hex), or ``None`` if none could be resolved."""
+    existing = os.environ.get("BENNY_HMAC_KEY")
+    if existing:
+        return existing
+    value = read_install_hmac_key(Path(root))
+    if value:
+        os.environ["BENNY_HMAC_KEY"] = value
+    return value
 
 
 def validate(root: Path) -> ValidationReport:
