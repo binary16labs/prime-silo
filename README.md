@@ -22,9 +22,32 @@ Pinned agent-composed layouts become `.aamp.view` bundles, HMAC-signed via the e
 
 See [`runtime/architecture/ADR-001-prime-silo-shell-fork.md`](runtime/architecture/ADR-001-prime-silo-shell-fork.md) for the full decision record, [`architecture/ROADMAP.md`](architecture/ROADMAP.md) for the rolling phase status, and [`architecture/OPERATING_PLAN.md`](architecture/OPERATING_PLAN.md) for the test runbook + dev loop.
 
-**New here? Start with [`GUIDE.md`](GUIDE.md)** — plain-English walkthroughs for every UI screen and CLI command, including local model (Lemonade/Ollama) setup and the quick-reference cheat sheet.
+## Documentation by Role
 
-**Operator's entry point:** [`architecture/OPERATING_MANUAL.md`](architecture/OPERATING_MANUAL.md) — deep-dive setup from scratch, boot procedure, walkthroughs for every shipped feature (manifest browsing, agent draft views, pinning + load-time integrity replay, the eight migrated widgets, the 3D renderer), and a diagnostic playbook.
+**👤 Desktop App Users** — Start here:
+- **[QUICKSTART-EXE.md](QUICKSTART-EXE.md)** — Download, install, and launch the desktop app
+- [HOME-DIRECTORY.md](HOME-DIRECTORY.md) — Configure where your data is stored
+- [GUIDE.md](GUIDE.md) — Feature walkthroughs and UI help
+
+**💻 Command-Line Users** — Start here:
+- **[CLI.md](CLI.md)** — Complete reference for `node space` and `benny` commands
+- [QUICKSTART-EXE.md](QUICKSTART-EXE.md) — Desktop setup (if needed)
+- [GUIDE.md](GUIDE.md) — Step-by-step usage examples
+
+**🤖 AI Agents** — Start here:
+- **[AGENT-AWARENESS.md](AGENT-AWARENESS.md)** — System state, API endpoints, sandbox permissions
+- [CLI.md](CLI.md) — Available CLI tools for agents
+- [HOME-DIRECTORY.md](HOME-DIRECTORY.md) — Workspace file structure
+
+**🔧 Developers** — Start here:
+- [AGENTS.md](AGENTS.md) — Architecture rules and contracts
+- [`runtime/architecture/ADR-001-prime-silo-shell-fork.md`](runtime/architecture/ADR-001-prime-silo-shell-fork.md) — Design decisions
+- [`architecture/OPERATING_MANUAL.md`](architecture/OPERATING_MANUAL.md) — Deep-dive dev setup
+
+**📚 Full Documentation Index:**
+- See [INDEX.md](INDEX.md) for the complete navigation map
+
+---
 
 **Interactive demo site:** [`site/`](site/) — self-contained website that tours every feature (with layer-by-layer deconstruction views), embeds the operating manual, and ships a **configuration wizard** (generates your `.env` + `prime-silo.config.json` + launch commands, each setting mapped to the process that consumes it) plus a **live operator dashboard** that health-checks your running stack. No build step:
 
