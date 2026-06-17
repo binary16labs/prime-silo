@@ -11,13 +11,44 @@
 
 const path = require("node:path");
 const fs = require("node:fs");
-const { app, Tray, Menu, shell, nativeImage } = require("electron");
+const { app, Tray, Menu, shell, nativeImage, dialog, ipcMain } = require("electron");
 
 const PROJECT_ROOT = path.resolve(__dirname, "../..");
 const LOCK_FILENAME = "apps.lock.json";
 const LOCK_SCHEMA = "aamp.lock/1";
+const CONFIG_FILENAME = "prime-silo-config.json";
 
 let tray = null;
+let currentHomeDir = null;
+
+function getConfigPath() {
+  return path.join(app.getPath("userData"), CONFIG_FILENAME);
+}
+
+function readHomeDirectoryConfig() {
+  try {
+    const configPath = getConfigPath();
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+      return config.homeDir || null;
+    }
+  } catch {
+    // ignore config read errors
+  }
+  return null;
+}
+
+function writeHomeDirectoryConfig(homeDir) {
+  try {
+    const configPath = getConfigPath();
+    const dir = path.dirname(configPath);
+    fs.mkdirSync(dir, { recursive: true });
+    const config = { homeDir: homeDir || null };
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+  } catch (error) {
+    console.error("[Tray] Failed to write home directory config:", error);
+  }
+}
 
 function resolveTrayIcon() {
   const candidates = process.platform === "win32"
@@ -85,6 +116,35 @@ function buildMenu({ showMainWindow, createWindow, getBrowserUrl, requestQuit })
       }
     },
     { type: "separator" },
+    {
+      label: currentHomeDir
+        ? `Home: ${path.basename(currentHomeDir)}`
+        : "Home: (not configured)",
+      click: () => {
+        if (currentHomeDir && fs.existsSync(currentHomeDir)) {
+          void shell.openPath(currentHomeDir);
+        }
+      }
+    },
+    {
+      label: "Configure Home Directory...",
+      click: async () => {
+        const result = await dialog.showOpenDialog({
+          title: "Select Prime-Silo Home Directory",
+          defaultPath: currentHomeDir || PROJECT_ROOT,
+          properties: ["openDirectory"]
+        });
+        if (!result.canceled && result.filePaths.length > 0) {
+          const selectedPath = result.filePaths[0];
+          currentHomeDir = selectedPath;
+          writeHomeDirectoryConfig(selectedPath);
+          if (tray) {
+            tray.setContextMenu(buildMenu({ showMainWindow, createWindow, getBrowserUrl, requestQuit }));
+          }
+        }
+      }
+    },
+    { type: "separator" },
     memorayUrl
       ? { label: `Memo-Ray: ${memorayUrl}`, click: () => void shell.openExternal(memorayUrl) }
       : { label: "Memo-Ray: not resolved", enabled: false },
@@ -116,6 +176,8 @@ function createDesktopTray(options = {}) {
     tray = null;
     return null;
   }
+
+  currentHomeDir = readHomeDirectoryConfig();
 
   tray.setToolTip("Prime-Silo");
   const refreshMenu = () => tray && tray.setContextMenu(buildMenu(options));

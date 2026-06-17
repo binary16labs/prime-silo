@@ -2083,6 +2083,18 @@ app.on("window-all-closed", () => {
 });
 
 ipcMain.handle("space-desktop:get-runtime-info", () => getDesktopRuntimeInfo());
+ipcMain.handle("space-desktop:get-home-directory", () => {
+  const configPath = path.join(app.getPath("userData"), "prime-silo-config.json");
+  try {
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+      return { homeDir: config.homeDir || null };
+    }
+  } catch {
+    // ignore config read errors
+  }
+  return { homeDir: null };
+});
 ipcMain.on(DESKTOP_BROWSER_CREATE_CHANNEL, (_event, payload = {}) => {
   createDesktopBrowserView(payload);
 });
