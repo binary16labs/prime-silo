@@ -15,6 +15,40 @@ Most users won't need the CLI if they're using the desktop app. The CLI is usefu
 - Advanced manifest operations
 - Development and debugging
 
+### Easiest way to get a Benny CLI (packaged app)
+
+You don't need a dev checkout or manual environment setup. In the desktop app,
+**right-click the tray icon → "Open Benny CLI"** — it opens a terminal with
+`$BENNY_HOME` set and `bin/` on `PATH`, so `benny …` works immediately:
+
+```bash
+benny runs ls --limit 10
+benny plan "score trades for credit risk" --workspace demo --save
+```
+
+The tray also drives the runtime itself: **Start/Stop Benny services** and
+**Set up environment (init + doctor)** — no `scripts/dev.ps1` or `node space
+serve` by hand. (First run: **Configure Benny Home…** to point at your
+`$BENNY_HOME`.)
+
+### Spreading model calls across machines
+
+Local providers can address more than one endpoint, so a fanned-out run (the
+swarm, or **Deep produce**) parallelizes across boxes instead of serializing on
+one model server:
+
+```bash
+# Comma-separated, per provider:
+BENNY_LEMONADE_ENDPOINTS=http://ryzen.local:13305/api/v1,http://t480.local:13305/api/v1
+
+# Or JSON, multiple providers at once:
+BENNY_MODEL_ENDPOINTS='{"lemonade":["http://ryzen.local:13305/api/v1","http://t480.local:13305/api/v1"]}'
+```
+
+With one endpoint, fan-out stays sequential (still a quality win). Pool members
+are LAN hosts of the same local provider, so the offline guard still treats them
+as local.
+
 ---
 
 ## Part 1: Node.js CLI Commands

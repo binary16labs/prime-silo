@@ -460,7 +460,15 @@ async def call_model(
     try:
         config = get_model_config(model)
         provider = config.get("provider", "openai").lower()
-        
+
+        # Multi-endpoint fan-out: if a worker pool is configured for this local
+        # provider (BENNY_MODEL_ENDPOINTS / BENNY_<PROVIDER>_ENDPOINTS), round-robin
+        # this call across the pool so concurrent fan-out lands on different
+        # machines instead of serializing on one model server. No pool → unchanged.
+        if config.get("base_url") and provider in LOCAL_PROVIDERS:
+            from .endpoints import resolve_endpoint
+            config["base_url"] = resolve_endpoint(provider, config["base_url"])
+
         # Ensure we use the model ID without the provider prefix for the actual call
         litellm_model = actual_model
         if "/" in litellm_model and (provider in ["lemonade", "ollama", "fastflowlm", "lmstudio"] or "base_url" in config):

@@ -165,6 +165,28 @@ def test_decompose_falls_back_on_bad_json(isolated_home, store, captured_events,
     assert len(result["view"]["panels"]) == 4
 
 
+def test_parallel_fanout_when_pool_configured(isolated_home, store, captured_events, monkeypatch):
+    # A two-machine pool for the lemonade provider → panels fan out concurrently.
+    monkeypatch.setenv("BENNY_LEMONADE_ENDPOINTS",
+                       "http://ryzen.local:13305/api/v1,http://t480.local:13305/api/v1")
+    from benny.core import endpoints
+    endpoints.reset()
+
+    titles = ["A", "B", "C"]
+    _stub_call_model(monkeypatch, titles)
+
+    # local_lemonade resolves to provider 'lemonade', which now has a 2-machine
+    # pool → concurrency 2 (clamped to panel count).
+    assert producer._fanout_concurrency("local_lemonade", 3) == 2
+
+    result = asyncio.run(producer.deep_produce(goal="Goal", workspace="default",
+                                               model="local_lemonade", panel_count=3))
+    assert result["status"] == "completed"
+    # Order is preserved even though production was concurrent.
+    assert [p["title"] for p in result["view"]["panels"]] == titles
+    endpoints.reset()
+
+
 def test_empty_goal_rejected(isolated_home, store, monkeypatch):
     async def fake_active_model(*a, **k):
         return "local_lemonade"

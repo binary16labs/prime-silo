@@ -13,6 +13,7 @@ const path = require("node:path");
 const fs = require("node:fs");
 const { spawn } = require("node:child_process");
 const { app, Tray, Menu, shell, nativeImage, dialog, ipcMain } = require("electron");
+const services = require("./services");
 
 const PROJECT_ROOT = path.resolve(__dirname, "../..");
 const LOCK_FILENAME = "apps.lock.json";
@@ -21,34 +22,53 @@ const CONFIG_FILENAME = "prime-silo-config.json";
 
 let tray = null;
 let currentHomeDir = null;
+let currentBennyHome = null;
+let bennyRuntimeUp = false;
+let bennyStatusTimer = null;
 
 function getConfigPath() {
   return path.join(app.getPath("userData"), CONFIG_FILENAME);
 }
 
-function readHomeDirectoryConfig() {
+function readConfig() {
   try {
     const configPath = getConfigPath();
     if (fs.existsSync(configPath)) {
-      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-      return config.homeDir || null;
+      return JSON.parse(fs.readFileSync(configPath, "utf8")) || {};
     }
   } catch {
     // ignore config read errors
   }
-  return null;
+  return {};
+}
+
+// Merge a patch into the on-disk config so independent settings (homeDir,
+// bennyHome) never clobber each other.
+function writeConfigPatch(patch) {
+  try {
+    const configPath = getConfigPath();
+    fs.mkdirSync(path.dirname(configPath), { recursive: true });
+    const next = { ...readConfig(), ...patch };
+    fs.writeFileSync(configPath, JSON.stringify(next, null, 2), "utf8");
+  } catch (error) {
+    console.error("[Tray] Failed to write config:", error);
+  }
+}
+
+function readHomeDirectoryConfig() {
+  return readConfig().homeDir || null;
 }
 
 function writeHomeDirectoryConfig(homeDir) {
-  try {
-    const configPath = getConfigPath();
-    const dir = path.dirname(configPath);
-    fs.mkdirSync(dir, { recursive: true });
-    const config = { homeDir: homeDir || null };
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
-  } catch (error) {
-    console.error("[Tray] Failed to write home directory config:", error);
-  }
+  writeConfigPatch({ homeDir: homeDir || null });
+}
+
+function readBennyHomeConfig() {
+  return readConfig().bennyHome || null;
+}
+
+function writeBennyHomeConfig(bennyHome) {
+  writeConfigPatch({ bennyHome: bennyHome || null });
 }
 
 // Open a native terminal rooted at the configured home directory. Best-effort
@@ -203,6 +223,49 @@ function buildMenu({ showMainWindow, createWindow, getBrowserUrl, requestQuit })
       }
     },
     { type: "separator" },
+    // ── Benny services ──────────────────────────────────────────────────
+    {
+      label: bennyRuntimeUp ? "Benny runtime: running" : "Benny runtime: stopped",
+      enabled: false
+    },
+    {
+      label: "Start Benny services",
+      sublabel: bennyRuntimeUp ? "already running" : undefined,
+      click: () => services.startBennyServices(currentBennyHome)
+    },
+    {
+      label: "Stop Benny services",
+      enabled: bennyRuntimeUp,
+      click: () => services.stopBennyServices(currentBennyHome)
+    },
+    {
+      label: "Set up environment (init + doctor)",
+      click: () => services.setupBennyEnvironment(currentBennyHome)
+    },
+    {
+      label: "Open Benny CLI",
+      click: () => services.openBennyCli(currentBennyHome)
+    },
+    {
+      label: currentBennyHome
+        ? `Benny Home: ${path.basename(currentBennyHome)}`
+        : "Configure Benny Home...",
+      click: async () => {
+        const result = await dialog.showOpenDialog({
+          title: "Select Benny Home ($BENNY_HOME)",
+          defaultPath: currentBennyHome || currentHomeDir || PROJECT_ROOT,
+          properties: ["openDirectory"]
+        });
+        if (!result.canceled && result.filePaths.length > 0) {
+          currentBennyHome = result.filePaths[0];
+          writeBennyHomeConfig(currentBennyHome);
+          if (tray) {
+            tray.setContextMenu(buildMenu({ showMainWindow, createWindow, getBrowserUrl, requestQuit }));
+          }
+        }
+      }
+    },
+    { type: "separator" },
     memorayUrl
       ? { label: `Memo-Ray: ${memorayUrl}`, click: () => void shell.openExternal(memorayUrl) }
       : { label: "Memo-Ray: not resolved", enabled: false },
@@ -213,6 +276,16 @@ function buildMenu({ showMainWindow, createWindow, getBrowserUrl, requestQuit })
     }
   ];
   return Menu.buildFromTemplate(template);
+}
+
+// Probe the Benny runtime and, if its up/down state changed, rebuild the menu so
+// the status line and Start/Stop enablement reflect reality.
+async function refreshBennyRuntimeStatus(options) {
+  const wasUp = bennyRuntimeUp;
+  bennyRuntimeUp = await services.probeBennyRuntime();
+  if (bennyRuntimeUp !== wasUp && tray) {
+    tray.setContextMenu(buildMenu(options));
+  }
 }
 
 /**
@@ -236,22 +309,34 @@ function createDesktopTray(options = {}) {
   }
 
   currentHomeDir = readHomeDirectoryConfig();
+  currentBennyHome = readBennyHomeConfig();
 
   tray.setToolTip("Prime-Silo");
   const refreshMenu = () => tray && tray.setContextMenu(buildMenu(options));
   refreshMenu();
 
-  // Rebuild on open so the Memo-Ray line reflects the latest resolved port.
+  // Rebuild on open so the Memo-Ray line and Benny status reflect reality.
   tray.on("click", () => {
     options.showMainWindow();
     options.createWindow();
   });
-  tray.on("right-click", refreshMenu);
+  tray.on("right-click", () => {
+    refreshMenu();
+    void refreshBennyRuntimeStatus(options);
+  });
+
+  // Poll the Benny runtime so the status line stays live without a click.
+  void refreshBennyRuntimeStatus(options);
+  bennyStatusTimer = setInterval(() => void refreshBennyRuntimeStatus(options), 15000);
 
   return tray;
 }
 
 function destroyDesktopTray() {
+  if (bennyStatusTimer) {
+    clearInterval(bennyStatusTimer);
+    bennyStatusTimer = null;
+  }
   if (tray) {
     try {
       tray.destroy();

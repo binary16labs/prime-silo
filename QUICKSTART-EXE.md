@@ -49,6 +49,25 @@ Before you can use the agent, configure which AI model to use:
 4. Select **"Local Model"** and choose **"Ollama"**
 5. Verify Ollama is running on `http://localhost:11434`
 
+### Step 4: Start the Benny runtime (for Documents, graphs & Deep produce)
+
+The desktop app starts the shell for you, but the **Benny runtime** — the engine
+behind **Documents/ingestion, the knowledge & code graphs, Flows, and Deep
+produce** — runs as a companion service. Drive it entirely from the tray:
+
+1. Right-click the tray icon. If you see **"Benny runtime: stopped"**, the engine
+   isn't up yet.
+2. First time only: point the tray at your Benny install with **"Configure Benny
+   Home..."** (the `$BENNY_HOME` folder), then click **"Set up environment (init +
+   doctor)"** to initialise and verify it.
+3. Click **"Start Benny services"** — a console opens running `benny up`; leave it
+   running. The status line flips to **"Benny runtime: running"** within a few
+   seconds.
+4. Need the CLI? **"Open Benny CLI"** opens a terminal with everything wired, so
+   `benny plan …`, `benny runs ls`, etc. work immediately — no manual env setup.
+
+Chat and basic features work without it; the document/graph/flow surfaces need it.
+
 ## Using the Desktop App
 
 ### System Tray Menu
@@ -58,9 +77,21 @@ Right-click the Prime-Silo icon in your taskbar for quick access:
 - **Open Prime-Silo** — Bring the main window to foreground
 - **Open in browser** — Open the app in your default browser
 - **Home: `<your directory>`** — Click to open your home directory in File Explorer
+- **Open Terminal Here** — Open a terminal already in your home directory
 - **Configure Home Directory...** — Change where your workspace data is stored
+- **Benny runtime: running / stopped** — Live status of the Benny services
+- **Start Benny services** — Start the Benny runtime (Documents, graphs, deep-produce)
+- **Stop Benny services** — Stop the Benny runtime
+- **Set up environment (init + doctor)** — One-click `benny init` then `benny doctor`
+- **Open Benny CLI** — Open a terminal with the environment wired so `benny …` just works
+- **Benny Home: `<dir>` / Configure Benny Home...** — Point the tray at your Benny install
 - **Memo-Ray: `<url>`** — Access the memory/session graph (if connected)
 - **Quit Prime-Silo** — Close the application completely
+
+> **No more manual server start.** The desktop app runs the shell server for
+> you, and the tray drives the **Benny runtime** (the engine behind Documents,
+> the knowledge/code graphs, Flows, and Deep produce). You never run
+> `scripts/dev.ps1` or `node space serve` by hand.
 
 ### Main Interface (Browser)
 
@@ -120,10 +151,27 @@ Your home directory hasn't been set up yet. Right-click the tray icon and select
 - Try restarting your computer
 - Check that your home directory still exists and is writable
 
+### Documents / graphs / Flows say "load failed"
+The Benny runtime isn't running. Right-click the tray → **"Start Benny services"**
+(first time: **"Configure Benny Home..."** then **"Set up environment"**). When the
+status line shows **"Benny runtime: running"**, reload the page.
+
 ### AI agent not responding
 - Check your internet connection (if using cloud model)
 - Verify your API key is correct in Settings
 - If using local model, check that Ollama is running
+
+### Faster Deep produce across two machines
+If you run a local model on more than one box, point Benny at all of them and the
+**Deep produce** fan-out spreads its panel calls across them in parallel. Set,
+before starting services:
+
+```
+BENNY_LEMONADE_ENDPOINTS=http://machine-a:13305/api/v1,http://machine-b:13305/api/v1
+```
+
+(or `BENNY_MODEL_ENDPOINTS` as a JSON map of provider → endpoints). With one
+endpoint, fan-out stays sequential — still a quality win, just not parallel.
 
 ### Low performance
 - Close other browser tabs or applications

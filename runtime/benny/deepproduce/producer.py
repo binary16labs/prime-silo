@@ -20,6 +20,7 @@ the single-context ceiling); cross-machine parallelism is a later phase.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import time
@@ -193,6 +194,20 @@ async def _review(view: Dict[str, Any], goal: str, model: str, run_id: str, work
     return critique
 
 
+def _fanout_concurrency(model: str, panel_count: int) -> int:
+    """How many panels to produce at once: the size of the active model
+    provider's endpoint pool (so multi-machine setups parallelize), clamped to
+    the panel count. Defaults to 1 (sequential) when no pool is configured."""
+    try:
+        from ..core.endpoints import get_endpoint_pools
+        from ..core.models import get_model_config
+        provider = (get_model_config(model).get("provider") or "").lower()
+        pool = get_endpoint_pools().get(provider) or []
+        return max(1, min(len(pool) or 1, panel_count))
+    except Exception:
+        return 1
+
+
 def _write_view(workspace: str, run_id: str, view: Dict[str, Any]) -> str:
     """Persist the composite view under the workspace's agent_sandbox/views and
     return the workspace-relative path."""
@@ -232,9 +247,25 @@ async def deep_produce(
 
     try:
         plan = await _decompose(goal, model, run_id, workspace, panel_count)
-        panels: List[Dict[str, Any]] = []
-        for index, spec in enumerate(plan["panels"]):
-            panels.append(await _produce_panel(spec, goal, model, run_id, workspace, index))
+
+        # Parallelism follows the configured endpoint pool: if the active model's
+        # provider has >1 machine endpoint (BENNY_MODEL_ENDPOINTS), fan the panel
+        # calls out concurrently across them; otherwise stay sequential (one local
+        # endpoint serializes anyway, and order stays deterministic).
+        concurrency = _fanout_concurrency(model, len(plan["panels"]))
+        if concurrency <= 1:
+            panels: List[Dict[str, Any]] = []
+            for index, spec in enumerate(plan["panels"]):
+                panels.append(await _produce_panel(spec, goal, model, run_id, workspace, index))
+        else:
+            sem = asyncio.Semaphore(concurrency)
+
+            async def _bounded(index: int, spec: Dict[str, Any]) -> Dict[str, Any]:
+                async with sem:
+                    return await _produce_panel(spec, goal, model, run_id, workspace, index)
+
+            panels = list(await asyncio.gather(
+                *(_bounded(i, s) for i, s in enumerate(plan["panels"]))))
 
         view: Dict[str, Any] = {
             "format": VIEW_FORMAT,

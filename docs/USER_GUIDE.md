@@ -145,6 +145,12 @@ runtime was still starting — it self-seeds on the next launch.)
 
 ## 6. Configuring it
 
+- **Packaged app (EXE):** you don't start anything by hand. The desktop app runs
+  the shell, and the **tray icon drives the Benny runtime** — *Start/Stop Benny
+  services*, *Set up environment (init + doctor)*, and *Open Benny CLI* (a
+  terminal with `$BENNY_HOME` + `bin/` already on PATH). See
+  [QUICKSTART-EXE.md](../QUICKSTART-EXE.md). Developers can still use
+  `\.scripts\dev.ps1` from a checkout.
 - **Setup site:** `\.scripts\site.ps1` serves the setup site (`site/`),
   where the *Services* step toggles Memo-Ray and records endpoints. It also
   links out to these guides and the Bridge.
@@ -152,6 +158,10 @@ runtime was still starting — it self-seeds on the next launch.)
   `3001`, Memo-Ray client `5175`, Lemonade `13305`.
 - **Agent model:** the on-screen agent uses Lemonade locally by default; change
   it in Benny's settings (gear icon) or the *Agent* page.
+- **Fan-out across machines:** running a local model on more than one box? Set
+  `BENNY_MODEL_ENDPOINTS` (JSON map of provider → endpoint list) or
+  `BENNY_<PROVIDER>_ENDPOINTS` (comma-separated) and **Deep produce** spreads its
+  panel calls across them in parallel. One endpoint ⇒ sequential (quality win).
 
 ---
 
@@ -161,8 +171,10 @@ runtime was still starting — it self-seeds on the next launch.)
   Docker container is on port 3000. `dev.ps1` now detects this and prints the
   fix. See [architecture/TECH_DEBT.md](../architecture/TECH_DEBT.md) (TD-1):
   `docker stop dangpy-frontend`.
-- **A graph mode says "load failed"** → the Benny runtime (`:8005`) or Memo-Ray
-  (`:3001`) isn't up. `dev.ps1` starts both; check its output for warnings.
+- **A graph mode (or Documents/Flows) says "load failed"** → the Benny runtime
+  (`:8005`) isn't up. In the **packaged app**, right-click the tray →
+  **Start Benny services** (first run: **Configure Benny Home…** then **Set up
+  environment**). From a dev checkout, `dev.ps1` starts everything.
 - **Conformance shows "drift"** → run `node space memory audit` for the exact
   finding and the owner file to fix. (Editing a manifest needs a re-sign:
   `node scripts/audit-integrations.mjs --sign` with your `BENNY_HMAC_KEY` set.)
