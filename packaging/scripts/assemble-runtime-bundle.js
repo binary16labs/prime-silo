@@ -149,6 +149,26 @@ function ensureDir(dir) {
   fs.mkdirSync(dir, { recursive: true });
 }
 
+function fileSha256(filePath) {
+  const hash = createHash("sha256");
+  hash.update(fs.readFileSync(filePath));
+  return hash.digest("hex");
+}
+
+// Download to cache if missing (verifying any pinned hash), else reuse; always
+// return the file's sha256 so a local build surfaces the hashes to pin.
+async function ensureArchive(url, destPath, expectedSha256 = "") {
+  if (fs.existsSync(destPath)) {
+    const digest = fileSha256(destPath);
+    if (expectedSha256 && digest.toLowerCase() !== expectedSha256.toLowerCase()) {
+      fs.rmSync(destPath, { force: true });
+    } else {
+      return digest;
+    }
+  }
+  return downloadFile(url, destPath, expectedSha256);
+}
+
 async function downloadFile(url, destPath, expectedSha256 = "") {
   const response = await fetch(url, { redirect: "follow" });
   if (!response.ok || !response.body) {
@@ -239,12 +259,14 @@ async function buildRuntimeBundle(opts = {}) {
     return { outDir, manifest, requirements, manifestOnly: true };
   }
 
-  // 1. Python.
-  const python = resolvePythonBuild(platform, arch);
   const cacheDir = path.join(os.tmpdir(), "ps-runtime-cache");
   ensureDir(cacheDir);
+  const sha256 = {};
+
+  // 1. Python.
+  const python = resolvePythonBuild(platform, arch);
   const pyArchive = path.join(cacheDir, path.basename(new URL(python.url).pathname) || "python.tar.gz");
-  if (!fs.existsSync(pyArchive)) await downloadFile(python.url, pyArchive, python.sha256);
+  sha256.python = await ensureArchive(python.url, pyArchive, python.sha256);
   extractAndFlatten(pyArchive, path.join(outDir, "python"), platform);
 
   // 2. Deps into site/, benny source.
@@ -255,16 +277,23 @@ async function buildRuntimeBundle(opts = {}) {
   // 3. Neo4j + JRE.
   const neo4j = resolveNeo4jBuild(platform);
   const neoArchive = path.join(cacheDir, path.basename(new URL(neo4j.url).pathname));
-  if (!fs.existsSync(neoArchive)) await downloadFile(neo4j.url, neoArchive, neo4j.sha256);
+  sha256.neo4j = await ensureArchive(neo4j.url, neoArchive, neo4j.sha256);
   extractAndFlatten(neoArchive, path.join(outDir, "neo4j"), platform);
 
   const jre = resolveJreBuild(platform, arch);
   const jreArchive = path.join(cacheDir, `temurin-${JRE_MAJOR}-${platform}-${arch}.${platform === "win32" ? "zip" : "tar.gz"}`);
-  if (!fs.existsSync(jreArchive)) await downloadFile(jre.url, jreArchive, jre.sha256);
+  sha256.jre = await ensureArchive(jre.url, jreArchive, jre.sha256);
   extractAndFlatten(jreArchive, path.join(outDir, "jre"), platform);
 
+  // Record the downloaded archive hashes — pin these into the *_BUILDS tables
+  // before production. A local build surfaces them here.
+  manifest.sha256 = sha256;
   fs.writeFileSync(path.join(outDir, "bundle.json"), JSON.stringify(manifest, null, 2));
-  return { outDir, manifest, requirements, manifestOnly: false };
+  console.log("Runtime bundle component sha256 (pin these before deploy):");
+  for (const [name, digest] of Object.entries(sha256)) {
+    console.log(`  ${name}: ${digest}`);
+  }
+  return { outDir, manifest, requirements, sha256, manifestOnly: false };
 }
 
 module.exports = {

@@ -26,7 +26,8 @@
     "package:desktop:linux": "node packaging/scripts/linux-package.js",
     "package:desktop:linux:all": "node packaging/scripts/linux-package.js --arch x64,arm64",
     "package:desktop:windows": "node packaging/scripts/windows-package.js",
-    "package:desktop:windows:all": "node packaging/scripts/windows-package.js --arch x64,arm64"
+    "package:desktop:windows:all": "node packaging/scripts/windows-package.js --arch x64,arm64",
+    "desktop:localtest": "node packaging/scripts/build-local-test.js"
   },
   "engines": {
     "node": ">=20"
