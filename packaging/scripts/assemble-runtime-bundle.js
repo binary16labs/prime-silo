@@ -1,0 +1,294 @@
+#!/usr/bin/env node
+
+// Assemble the self-contained Benny runtime bundle shipped inside the desktop
+// package so the EXE is zero-install. The bundle (see
+// packaging/desktop/runtime_supervisor.js, which spawns it) contains:
+//
+//   python/   embeddable standalone Python (python-build-standalone), arch-matched
+//   site/     baked site-packages: runtime deps (native wheels for THIS OS/arch)
+//   benny/    the runtime source (runtime/benny + benny_cli.py)
+//   neo4j/    Neo4j Community, unpacked
+//   jre/      Temurin JRE 17 (runs Neo4j), arch-matched
+//   bundle.json   manifest (versions, platform/arch, entry points)
+//
+// Native wheels (chromadb/hnswlib/tree-sitter/…) must be built on the target
+// runner, so this runs inside each platform's CI build step (and locally on a
+// matching host). Windows-x64 is wired first; other targets are Phase 2.
+//
+// Heavy network/extraction steps run only on a real build. `--manifest-only`
+// writes just the filtered requirements + bundle.json (for dry runs / tests /
+// non-target platforms) so the rest of the desktop build never breaks.
+
+const fs = require("node:fs");
+const path = require("node:path");
+const os = require("node:os");
+const { createHash } = require("node:crypto");
+const { Readable } = require("node:stream");
+const { pipeline } = require("node:stream/promises");
+const { execFileSync } = require("node:child_process");
+
+const DEFAULT_PROJECT_ROOT = path.resolve(__dirname, "../..");
+
+// Pinned component versions. NOTE: sha256 values must be pinned per asset before
+// production (left "" here = verify-if-present). The Windows-x64 download URLs
+// are real; other platform rows are filled in Phase 2.
+const PYTHON_RELEASE = "20240814";
+const PYTHON_VERSION = "3.11.9";
+const NEO4J_VERSION = "5.23.0";
+const JRE_MAJOR = "17";
+
+const PYTHON_BUILDS = {
+  "win32:x64": {
+    url: `https://github.com/astral-sh/python-build-standalone/releases/download/${PYTHON_RELEASE}/cpython-${PYTHON_VERSION}+${PYTHON_RELEASE}-x86_64-pc-windows-msvc-install_only.tar.gz`,
+    sha256: ""
+  }
+  // Phase 2: darwin:arm64, darwin:x64, linux:x64, linux:arm64, win32:arm64
+};
+
+const NEO4J_BUILDS = {
+  win32: { url: `https://dist.neo4j.org/neo4j-community-${NEO4J_VERSION}-windows.zip`, sha256: "" }
+  // Phase 2: darwin/linux → neo4j-community-<v>-unix.tar.gz
+};
+
+// Adoptium "latest GA" binary endpoints (redirect to the asset). Pin to a fixed
+// asset for full reproducibility in a later hardening pass.
+const JRE_BUILDS = {
+  "win32:x64": {
+    url: `https://api.adoptium.net/v3/binary/latest/${JRE_MAJOR}/ga/windows/x64/jre/hotspot/normal/eclipse`,
+    sha256: ""
+  }
+  // Phase 2: mac/linux x64+arm64
+};
+
+/* ── pure helpers (unit-tested) ──────────────────────────────────────── */
+
+function platformArchKey(platform, arch) {
+  return `${platform}:${arch}`;
+}
+
+function resolvePythonBuild(platform, arch) {
+  const build = PYTHON_BUILDS[platformArchKey(platform, arch)];
+  if (!build) {
+    throw new Error(`No pinned Python build for ${platform}/${arch} (Phase 2).`);
+  }
+  return build;
+}
+
+function resolveNeo4jBuild(platform) {
+  const build = NEO4J_BUILDS[platform] || (platform === "darwin" || platform === "linux"
+    ? { url: `https://dist.neo4j.org/neo4j-community-${NEO4J_VERSION}-unix.tar.gz`, sha256: "" }
+    : null);
+  if (!build) {
+    throw new Error(`No Neo4j build for ${platform} (Phase 2).`);
+  }
+  return build;
+}
+
+function resolveJreBuild(platform, arch) {
+  const build = JRE_BUILDS[platformArchKey(platform, arch)];
+  if (!build) {
+    throw new Error(`No pinned JRE build for ${platform}/${arch} (Phase 2).`);
+  }
+  return build;
+}
+
+// Strip comments and the dev/test block — the runtime bundle ships only what the
+// server needs, not pytest/ruff/coverage.
+function filterRuntimeRequirements(text) {
+  const out = [];
+  let inDevBlock = false;
+  for (const raw of String(text || "").split(/\r?\n/)) {
+    const line = raw.trim();
+    if (/^#\s*Dev\/Test/i.test(line)) {
+      inDevBlock = true;
+      continue;
+    }
+    if (inDevBlock) {
+      continue;
+    }
+    if (!line || line.startsWith("#")) {
+      continue;
+    }
+    out.push(line);
+  }
+  return out;
+}
+
+function buildBundleManifest({ platform, arch, projectRoot = DEFAULT_PROJECT_ROOT } = {}) {
+  let appVersion = "";
+  try {
+    appVersion = JSON.parse(fs.readFileSync(path.join(projectRoot, "package.json"), "utf8")).version || "";
+  } catch {
+    // ignore
+  }
+  const isWin = platform === "win32";
+  return {
+    schema: "prime-silo.runtime-bundle/1",
+    app_version: appVersion,
+    platform,
+    arch,
+    generated_at: new Date().toISOString(),
+    components: {
+      python: PYTHON_VERSION,
+      python_release: PYTHON_RELEASE,
+      neo4j: NEO4J_VERSION,
+      jre: `temurin-${JRE_MAJOR}`
+    },
+    entry: {
+      python: isWin ? "python/python.exe" : "python/bin/python3",
+      java: isWin ? "jre/bin/java.exe" : "jre/bin/java",
+      neo4j: isWin ? "neo4j/bin/neo4j.bat" : "neo4j/bin/neo4j",
+      api: "-m uvicorn benny.api.server:app --host 127.0.0.1 --port 8005"
+    }
+  };
+}
+
+/* ── heavy I/O (CI / local build only) ───────────────────────────────── */
+
+function ensureDir(dir) {
+  fs.mkdirSync(dir, { recursive: true });
+}
+
+async function downloadFile(url, destPath, expectedSha256 = "") {
+  const response = await fetch(url, { redirect: "follow" });
+  if (!response.ok || !response.body) {
+    throw new Error(`Download failed ${url} (${response.status})`);
+  }
+  ensureDir(path.dirname(destPath));
+  const hash = createHash("sha256");
+  const tmp = `${destPath}.part`;
+  await pipeline(
+    Readable.fromWeb(response.body),
+    async function* (source) {
+      for await (const chunk of source) {
+        hash.update(chunk);
+        yield chunk;
+      }
+    },
+    fs.createWriteStream(tmp)
+  );
+  const digest = hash.digest("hex");
+  if (expectedSha256 && digest.toLowerCase() !== expectedSha256.toLowerCase()) {
+    fs.rmSync(tmp, { force: true });
+    throw new Error(`Checksum mismatch for ${url}: got ${digest}`);
+  }
+  fs.renameSync(tmp, destPath);
+  return digest;
+}
+
+// Extract a .tar.gz or .zip into a temp dir, then move the single top-level
+// directory's contents to `targetDir` (flatten the version-named wrapper dir).
+function extractAndFlatten(archivePath, targetDir, platform = process.platform) {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ps-extract-"));
+  const isZip = /\.zip$/i.test(archivePath);
+  try {
+    if (isZip && platform !== "win32" && platform !== "darwin") {
+      execFileSync("unzip", ["-q", archivePath, "-d", tmp], { stdio: "ignore" });
+    } else {
+      // bsdtar (Windows 10+/macOS) handles both .tar.gz and .zip; GNU tar handles .tar.gz.
+      execFileSync("tar", ["-xf", archivePath, "-C", tmp], { stdio: "ignore" });
+    }
+    const entries = fs.readdirSync(tmp);
+    const roots = entries.filter((e) => fs.statSync(path.join(tmp, e)).isDirectory());
+    const sourceDir = roots.length === 1 ? path.join(tmp, roots[0]) : tmp;
+    ensureDir(path.dirname(targetDir));
+    fs.rmSync(targetDir, { recursive: true, force: true });
+    fs.cpSync(sourceDir, targetDir, { recursive: true });
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
+function pipInstall(pythonExe, requirements, siteDir) {
+  ensureDir(siteDir);
+  const reqFile = path.join(siteDir, "..", "requirements.runtime.txt");
+  fs.writeFileSync(reqFile, requirements.join("\n") + "\n", "utf8");
+  execFileSync(pythonExe, ["-m", "pip", "install", "--upgrade", "pip"], { stdio: "inherit" });
+  execFileSync(pythonExe, ["-m", "pip", "install", "--no-input", "--target", siteDir, "-r", reqFile], { stdio: "inherit" });
+}
+
+function copyBennySource(projectRoot, bennyDir) {
+  ensureDir(bennyDir);
+  fs.cpSync(path.join(projectRoot, "runtime", "benny"), path.join(bennyDir, "benny"), {
+    recursive: true,
+    filter: (src) => !/[\\/](__pycache__|\.pytest_cache|\.mypy_cache)$/.test(src)
+  });
+  fs.copyFileSync(path.join(projectRoot, "runtime", "benny_cli.py"), path.join(bennyDir, "benny_cli.py"));
+}
+
+/**
+ * Assemble the runtime bundle for one platform/arch.
+ * @param {{platformKey?:string, platform?:string, arch?:string, projectRoot?:string, outDir?:string, manifestOnly?:boolean}} opts
+ */
+async function buildRuntimeBundle(opts = {}) {
+  const platform = opts.platform || process.platform;
+  const arch = opts.arch || process.arch;
+  const projectRoot = opts.projectRoot || DEFAULT_PROJECT_ROOT;
+  const outDir = opts.outDir || path.join(projectRoot, "packaging", "runtime-bundle");
+  const manifestOnly = Boolean(opts.manifestOnly);
+
+  ensureDir(outDir);
+  const manifest = buildBundleManifest({ platform, arch, projectRoot });
+  const requirements = filterRuntimeRequirements(
+    fs.readFileSync(path.join(projectRoot, "runtime", "requirements.txt"), "utf8")
+  );
+
+  if (manifestOnly) {
+    fs.writeFileSync(path.join(outDir, "requirements.runtime.txt"), requirements.join("\n") + "\n", "utf8");
+    fs.writeFileSync(path.join(outDir, "bundle.json"), JSON.stringify(manifest, null, 2));
+    return { outDir, manifest, requirements, manifestOnly: true };
+  }
+
+  // 1. Python.
+  const python = resolvePythonBuild(platform, arch);
+  const cacheDir = path.join(os.tmpdir(), "ps-runtime-cache");
+  ensureDir(cacheDir);
+  const pyArchive = path.join(cacheDir, path.basename(new URL(python.url).pathname) || "python.tar.gz");
+  if (!fs.existsSync(pyArchive)) await downloadFile(python.url, pyArchive, python.sha256);
+  extractAndFlatten(pyArchive, path.join(outDir, "python"), platform);
+
+  // 2. Deps into site/, benny source.
+  const pythonExe = path.join(outDir, "python", platform === "win32" ? "python.exe" : path.join("bin", "python3"));
+  pipInstall(pythonExe, requirements, path.join(outDir, "site"));
+  copyBennySource(projectRoot, path.join(outDir, "benny"));
+
+  // 3. Neo4j + JRE.
+  const neo4j = resolveNeo4jBuild(platform);
+  const neoArchive = path.join(cacheDir, path.basename(new URL(neo4j.url).pathname));
+  if (!fs.existsSync(neoArchive)) await downloadFile(neo4j.url, neoArchive, neo4j.sha256);
+  extractAndFlatten(neoArchive, path.join(outDir, "neo4j"), platform);
+
+  const jre = resolveJreBuild(platform, arch);
+  const jreArchive = path.join(cacheDir, `temurin-${JRE_MAJOR}-${platform}-${arch}.${platform === "win32" ? "zip" : "tar.gz"}`);
+  if (!fs.existsSync(jreArchive)) await downloadFile(jre.url, jreArchive, jre.sha256);
+  extractAndFlatten(jreArchive, path.join(outDir, "jre"), platform);
+
+  fs.writeFileSync(path.join(outDir, "bundle.json"), JSON.stringify(manifest, null, 2));
+  return { outDir, manifest, requirements, manifestOnly: false };
+}
+
+module.exports = {
+  buildRuntimeBundle,
+  resolvePythonBuild,
+  resolveNeo4jBuild,
+  resolveJreBuild,
+  filterRuntimeRequirements,
+  buildBundleManifest,
+  PYTHON_VERSION,
+  NEO4J_VERSION
+};
+
+if (require.main === module) {
+  const args = process.argv.slice(2);
+  const manifestOnly = args.includes("--manifest-only");
+  buildRuntimeBundle({ manifestOnly })
+    .then((r) => {
+      const m = r.manifest;
+      console.log(`Runtime bundle (${m.platform}/${m.arch})${r.manifestOnly ? " [manifest-only]" : ""} at ${path.relative(DEFAULT_PROJECT_ROOT, r.outDir)}`);
+      console.log(`  python ${m.components.python} · neo4j ${m.components.neo4j} · ${m.components.jre} · ${r.requirements.length} deps`);
+    })
+    .catch((error) => {
+      console.error(error.message || error);
+      process.exitCode = 1;
+    });
+}

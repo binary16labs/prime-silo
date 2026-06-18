@@ -49,24 +49,23 @@ Before you can use the agent, configure which AI model to use:
 4. Select **"Local Model"** and choose **"Ollama"**
 5. Verify Ollama is running on `http://localhost:11434`
 
-### Step 4: Start the Benny runtime (for Documents, graphs & Deep produce)
+### Step 4: The Benny runtime starts itself (zero-install)
 
-The desktop app starts the shell for you, but the **Benny runtime** — the engine
-behind **Documents/ingestion, the knowledge & code graphs, Flows, and Deep
-produce** — runs as a companion service. Drive it entirely from the tray:
+The Windows installer ships a **self-contained Benny runtime** — its own Python,
+the Neo4j graph database, and a Java runtime, all bundled. On launch the app
+**starts and supervises it for you**, so **Documents/ingestion, the knowledge &
+code graphs, Flows, and Deep produce** just work on double-click. Nothing to
+install, no Docker, no manual `benny up`.
 
-1. Right-click the tray icon. If you see **"Benny runtime: stopped"**, the engine
-   isn't up yet.
-2. First time only: point the tray at your Benny install with **"Configure Benny
-   Home..."** (the `$BENNY_HOME` folder), then click **"Set up environment (init +
-   doctor)"** to initialise and verify it.
-3. Click **"Start Benny services"** — a console opens running `benny up`; leave it
-   running. The status line flips to **"Benny runtime: running"** within a few
-   seconds.
-4. Need the CLI? **"Open Benny CLI"** opens a terminal with everything wired, so
-   `benny plan …`, `benny runs ls`, etc. work immediately — no manual env setup.
+- Right-click the tray → the status line shows **"Benny runtime: running
+  (bundled)"** once it's up (Neo4j takes a few seconds to warm up on first
+  launch; the UI fills in as it comes online).
+- **Open Benny CLI** still opens a terminal wired to the runtime for `benny …`.
+- Power users: untick **"Use bundled runtime"** (or set `RUNTIME_BASE_URL`) to
+  point the app at your own Benny instead — e.g. one running on another machine.
+  See [CLI.md](CLI.md). The bundled runtime is the default.
 
-Chat and basic features work without it; the document/graph/flow surfaces need it.
+Chat works regardless; the document/graph/flow surfaces use the runtime above.
 
 ## Using the Desktop App
 
@@ -152,9 +151,11 @@ Your home directory hasn't been set up yet. Right-click the tray icon and select
 - Check that your home directory still exists and is writable
 
 ### Documents / graphs / Flows say "load failed"
-The Benny runtime isn't running. Right-click the tray → **"Start Benny services"**
-(first time: **"Configure Benny Home..."** then **"Set up environment"**). When the
-status line shows **"Benny runtime: running"**, reload the page.
+The bundled runtime is still warming up (Neo4j takes a few seconds on first
+launch) or hasn't started. Right-click the tray and check the status line; if it
+isn't **"Benny runtime: running"**, click **"Start Benny services"**, then reload
+the page. (If you've unticked "Use bundled runtime" or set `RUNTIME_BASE_URL`,
+make sure your external Benny is up.)
 
 ### AI agent not responding
 - Check your internet connection (if using cloud model)

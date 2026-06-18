@@ -55,6 +55,13 @@
       "packaging/platforms/linux/icons/**/*",
       "package.json"
     ],
+    "extraResources": [
+      {
+        "from": "packaging/runtime-bundle",
+        "to": "runtime-bundle",
+        "filter": ["**/*"]
+      }
+    ],
     "directories": {
       "app": ".",
       "buildResources": "packaging/resources"

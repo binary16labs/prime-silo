@@ -8,6 +8,7 @@ const { pathToFileURL } = require("node:url");
 const { app, BrowserWindow, WebContentsView, ipcMain, net, webFrameMain } = require("electron");
 const { createDesktopTray, destroyDesktopTray } = require("./tray");
 const { seedSelfAwareness } = require("./self_awareness");
+const { createRuntimeSupervisor } = require("./runtime_supervisor");
 const {
   resolveDesktopAuthDataDir,
   resolveDesktopServerTmpDir,
@@ -56,6 +57,7 @@ const DESKTOP_UPDATE_FAILURE_STATUS_LIMIT = 120;
 const AUTH_DATA_DIR_ENV_NAME = "SPACE_AUTH_DATA_DIR";
 
 let serverRuntime;
+let runtimeSupervisor = null;
 let mainWindow;
 let isQuitting = false;
 let updateStatusClearTimer = null;
@@ -2002,6 +2004,18 @@ function createWindow() {
 }
 
 async function stopServerRuntime() {
+  // Tear down the bundled Benny runtime (Neo4j + API) first so no child
+  // processes are orphaned when the shell exits.
+  if (runtimeSupervisor) {
+    const supervisor = runtimeSupervisor;
+    runtimeSupervisor = null;
+    try {
+      await supervisor.stop();
+    } catch (error) {
+      logDesktopUpdateEvent("Bundled runtime shutdown failed.", { level: "warn", error });
+    }
+  }
+
   if (!serverRuntime) {
     return;
   }
@@ -2042,6 +2056,18 @@ async function stopServerRuntime() {
   }
 }
 
+function readDesktopConfigFile() {
+  try {
+    const configPath = path.join(app.getPath("userData"), "prime-silo-config.json");
+    if (fs.existsSync(configPath)) {
+      return JSON.parse(fs.readFileSync(configPath, "utf8")) || {};
+    }
+  } catch {
+    // ignore — default config
+  }
+  return {};
+}
+
 async function startDesktop() {
   await app.whenReady();
   await cleanupStaleDesktopUpdaterArtifacts();
@@ -2050,6 +2076,25 @@ async function startDesktop() {
   const createAgentServer = await loadCreateAgentServer();
   serverRuntime = await createAgentServer(createDesktopServerOptions(runtimeParamOverrides));
   await serverRuntime.listen();
+
+  // Zero-install: when a complete runtime bundle ships in resources, start and
+  // supervise it (Neo4j + API) so Documents/graphs/Flows work on double-click.
+  // No-ops in dev/server mode (no bundle) or when pointed at a remote Benny
+  // (RUNTIME_BASE_URL) — see runtime_supervisor.js. Detached: never blocks the UI.
+  runtimeSupervisor = createRuntimeSupervisor({
+    resourcesPath: process.resourcesPath,
+    bennyHome: path.join(app.getPath("userData"), "benny-home"),
+    config: readDesktopConfigFile(),
+    env: process.env
+  });
+  void runtimeSupervisor.start()
+    .then((result) => {
+      if (result && result.managed) {
+        console.log(`[runtime] Bundled Benny ${result.reason} (neo4j=${result.neo4jReady}, api=${result.apiReady}).`);
+      }
+    })
+    .catch((error) => console.warn("[runtime] supervisor start failed:", error?.message || error));
+
   createWindow();
   createDesktopTray({
     showMainWindow,
@@ -2058,6 +2103,12 @@ async function startDesktop() {
     requestQuit: () => {
       isQuitting = true;
       app.quit();
+    },
+    runtime: {
+      isManaged: () => Boolean(runtimeSupervisor) && runtimeSupervisor.managed,
+      start: () => runtimeSupervisor && runtimeSupervisor.start(),
+      stop: () => runtimeSupervisor && runtimeSupervisor.stop(),
+      restart: () => runtimeSupervisor && runtimeSupervisor.restart()
     }
   });
   configureDesktopAutoUpdate();

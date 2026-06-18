@@ -11,6 +11,9 @@ release
 
 # Benny self-awareness bundle — regenerated on every desktop build, never committed.
 /packaging/self-awareness/
+
+# Bundled runtime (embeddable Python + Neo4j + JRE) — assembled at build time, never committed.
+/packaging/runtime-bundle/
 .env
 tmp/
 !server/lib/tmp/

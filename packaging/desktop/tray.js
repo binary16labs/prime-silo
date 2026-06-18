@@ -169,7 +169,11 @@ function readMemorayUrlFromLock() {
   }
 }
 
-function buildMenu({ showMainWindow, createWindow, getBrowserUrl, requestQuit }) {
+function buildMenu(options) {
+  const { showMainWindow, createWindow, getBrowserUrl, requestQuit, runtime } = options;
+  // When a bundled runtime is being supervised in-process, Start/Stop drive it;
+  // otherwise they drive an external Benny install (services.js).
+  const bundledManaged = Boolean(runtime && runtime.isManaged && runtime.isManaged());
   const memorayUrl = readMemorayUrlFromLock();
   const template = [
     {
@@ -217,7 +221,7 @@ function buildMenu({ showMainWindow, createWindow, getBrowserUrl, requestQuit })
           currentHomeDir = selectedPath;
           writeHomeDirectoryConfig(selectedPath);
           if (tray) {
-            tray.setContextMenu(buildMenu({ showMainWindow, createWindow, getBrowserUrl, requestQuit }));
+            tray.setContextMenu(buildMenu(options));
           }
         }
       }
@@ -225,18 +229,19 @@ function buildMenu({ showMainWindow, createWindow, getBrowserUrl, requestQuit })
     { type: "separator" },
     // ── Benny services ──────────────────────────────────────────────────
     {
-      label: bennyRuntimeUp ? "Benny runtime: running" : "Benny runtime: stopped",
+      label: bennyRuntimeUp
+        ? (bundledManaged ? "Benny runtime: running (bundled)" : "Benny runtime: running")
+        : "Benny runtime: stopped",
       enabled: false
     },
     {
       label: "Start Benny services",
-      sublabel: bennyRuntimeUp ? "already running" : undefined,
-      click: () => services.startBennyServices(currentBennyHome)
+      click: () => bundledManaged ? void runtime.start() : services.startBennyServices(currentBennyHome)
     },
     {
       label: "Stop Benny services",
       enabled: bennyRuntimeUp,
-      click: () => services.stopBennyServices(currentBennyHome)
+      click: () => bundledManaged ? void runtime.stop() : services.stopBennyServices(currentBennyHome)
     },
     {
       label: "Set up environment (init + doctor)",
@@ -245,6 +250,16 @@ function buildMenu({ showMainWindow, createWindow, getBrowserUrl, requestQuit })
     {
       label: "Open Benny CLI",
       click: () => services.openBennyCli(currentBennyHome)
+    },
+    {
+      label: "Use bundled runtime",
+      type: "checkbox",
+      checked: readConfig().useBundledRuntime !== false,
+      // Persisted; the supervisor reads it at startup, so this applies on the
+      // next launch. Lets power users force the external/remote Benny instead.
+      click: (item) => {
+        writeConfigPatch({ useBundledRuntime: item.checked });
+      }
     },
     {
       label: currentBennyHome
@@ -260,7 +275,7 @@ function buildMenu({ showMainWindow, createWindow, getBrowserUrl, requestQuit })
           currentBennyHome = result.filePaths[0];
           writeBennyHomeConfig(currentBennyHome);
           if (tray) {
-            tray.setContextMenu(buildMenu({ showMainWindow, createWindow, getBrowserUrl, requestQuit }));
+            tray.setContextMenu(buildMenu(options));
           }
         }
       }

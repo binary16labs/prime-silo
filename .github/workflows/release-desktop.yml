@@ -191,6 +191,7 @@ jobs:
             platform_dir: windows
             runner: windows-latest
             script: windows-package.js
+            bundle_runtime: "1"
           - artifact_name: windows-arm64
             arch: arm64
             platform_dir: windows
@@ -250,6 +251,9 @@ jobs:
           SPACE_APP_VERSION: ${{ needs.prepare.outputs.build_version }}
           SPACE_RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
           SKIP_SIGNING: ${{ runner.os == 'macOS' && env.HAS_MACOS_SIGNING_CERT != '1' && '1' || '' }}
+          # Phase 1: assemble the full zero-install runtime bundle on Windows x64
+          # only; other targets fall back to a manifest-only bundle (Phase 2).
+          PRIME_SILO_BUNDLE_RUNTIME: ${{ matrix.bundle_runtime || '' }}
         run: node packaging/scripts/${{ matrix.script }} --arch ${{ matrix.arch }}
 
       - uses: actions/upload-artifact@v4

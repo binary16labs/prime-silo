@@ -9,6 +9,7 @@ const {
 } = require("./tooling");
 const { resolveDesktopBuildVersion } = require("./release-version");
 const { buildSelfAwarenessBundle } = require("./build-self-awareness");
+const { buildRuntimeBundle } = require("./assemble-runtime-bundle");
 const PACKAGE_JSON_PATH = path.join(PROJECT_ROOT, "package.json");
 const { build, Platform, Arch, DIR_TARGET } = loadPackagingDependency("electron-builder");
 const { serializeToYaml } = loadPackagingDependency("builder-util");
@@ -479,6 +480,36 @@ async function runDesktopPackaging(platformKey, argv = process.argv.slice(2)) {
     );
   } catch (error) {
     console.warn(`Warning: Failed to build self-awareness bundle: ${error.message || error}`);
+  }
+
+  // Assemble the self-contained runtime bundle (embeddable Python + deps + Neo4j
+  // + JRE) so the EXE is zero-install. The full assembly downloads ~hundreds of
+  // MB and runs pip, so it only runs when PRIME_SILO_BUNDLE_RUNTIME is set (the
+  // release workflow sets it); otherwise — and on any failure — we still write a
+  // manifest-only bundle so electron-builder's extraResources `from` exists and
+  // the supervisor cleanly no-ops on an incomplete bundle.
+  const wantFullRuntimeBundle = ["1", "true", "yes"].includes(
+    String(process.env.PRIME_SILO_BUNDLE_RUNTIME || "").trim().toLowerCase()
+  );
+  const runtimeBundleArch = options.archs[0] === "universal" ? "x64" : options.archs[0];
+  try {
+    const result = await buildRuntimeBundle({
+      platform: process.platform,
+      arch: runtimeBundleArch,
+      projectRoot: PROJECT_ROOT,
+      manifestOnly: !wantFullRuntimeBundle
+    });
+    console.log(
+      `Runtime bundle (${result.manifest.platform}/${result.manifest.arch})` +
+      `${result.manifestOnly ? " [manifest-only]" : ` — python ${result.manifest.components.python}, neo4j ${result.manifest.components.neo4j}`}.`
+    );
+  } catch (error) {
+    console.warn(`Warning: runtime bundle assembly failed (${error.message || error}); writing manifest-only fallback.`);
+    try {
+      await buildRuntimeBundle({ platform: process.platform, arch: runtimeBundleArch, projectRoot: PROJECT_ROOT, manifestOnly: true });
+    } catch (fallbackError) {
+      console.warn(`Warning: manifest-only runtime bundle also failed: ${fallbackError.message || fallbackError}`);
+    }
   }
 
   console.log(`Packaging Space Agent for ${platformSpec.label}...`);
