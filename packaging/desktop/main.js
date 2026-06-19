@@ -2056,6 +2056,30 @@ async function stopServerRuntime() {
   }
 }
 
+// Poll until the Benny runtime is reachable, then seed the self-awareness
+// workspace exactly once. The bundled Neo4j + FastAPI cold-start takes several
+// seconds (well past a single 3s probe), so a one-shot attempt almost always
+// missed the window on first launch and left only the "default" workspace.
+// seedSelfAwareness() only writes its success marker once the seed completes,
+// so re-calling it is safe: it short-circuits on "already-seeded".
+async function seedSelfAwarenessWhenReady(opts, { attempts = 40, intervalMs = 3000 } = {}) {
+  // Reasons that won't change by retrying — stop immediately.
+  const TERMINAL = new Set(["already-seeded", "no-bundle", "no-server", "no-userdata"]);
+  for (let i = 0; i < attempts; i += 1) {
+    let result;
+    try {
+      result = await seedSelfAwareness(opts);
+    } catch {
+      result = { ok: false, reason: "error" };
+    }
+    if (result && (result.ok || TERMINAL.has(result.reason))) {
+      return result;
+    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+  return { ok: false, reason: "timeout" };
+}
+
 function readDesktopConfigFile() {
   try {
     const configPath = path.join(app.getPath("userData"), "prime-silo-config.json");
@@ -2108,7 +2132,11 @@ async function startDesktop() {
       isManaged: () => Boolean(runtimeSupervisor) && runtimeSupervisor.managed,
       start: () => runtimeSupervisor && runtimeSupervisor.start(),
       stop: () => runtimeSupervisor && runtimeSupervisor.stop(),
-      restart: () => runtimeSupervisor && runtimeSupervisor.restart()
+      restart: () => runtimeSupervisor && runtimeSupervisor.restart(),
+      // The BENNY_HOME the supervisor actually manages, and everything the tray
+      // needs to open a CLI console against the bundled Python.
+      homeDir: () => (runtimeSupervisor ? runtimeSupervisor.bennyHome : ""),
+      cliContext: () => (runtimeSupervisor ? runtimeSupervisor.cliContext() : {})
     }
   });
   configureDesktopAutoUpdate();
@@ -2116,8 +2144,9 @@ async function startDesktop() {
   // First-run only: seed the prime_silo_self workspace from the shipped
   // self-awareness bundle so Benny boots able to answer questions about the
   // app it's running inside. Fully detached and best-effort — never blocks
-  // startup, and silently retries on a later launch if the runtime isn't up.
-  void seedSelfAwareness({
+  // startup. The bundled Neo4j + API cold-start takes longer than a single
+  // probe, so we POLL until the runtime is reachable (bounded), then seed once.
+  void seedSelfAwarenessWhenReady({
     browserUrl: serverRuntime?.browserUrl || "",
     userDataPath: app.getPath("userData")
   })
@@ -2127,7 +2156,7 @@ async function startDesktop() {
       }
     })
     .catch(() => {
-      // seedSelfAwareness never rejects, but guard anyway.
+      // seedSelfAwarenessWhenReady never rejects, but guard anyway.
     });
 
   app.on("activate", () => {

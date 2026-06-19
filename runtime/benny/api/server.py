@@ -219,6 +219,21 @@ async def root():
     }
 
 
+# Lightweight, auth-free liveness probe. Already in GOVERNANCE_WHITELIST above,
+# so it bypasses the API-key middleware. The desktop shell's runtime supervisor,
+# tray status poll, and services.probeBennyRuntime all GET /api/health to decide
+# whether the bundled Benny is up — keep this cheap and dependency-free (must NOT
+# touch Neo4j/Chroma so it answers immediately during cold start).
+@app.get("/api/health")
+async def health():
+    return {"status": "ok"}
+
+
+@app.get("/api/status")
+async def status():
+    return {"status": "ok", "app": "benny"}
+
+
 # Static file serving for workspace data_out artifacts
 # Note: workspace_path is resolved at runtime based on BENNY_HOME
 workspace_path = get_workspace_path("default").parent

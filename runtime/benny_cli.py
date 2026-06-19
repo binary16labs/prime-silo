@@ -1425,8 +1425,12 @@ async def cmd_enrich(args: argparse.Namespace) -> int:  # noqa: C901 — intenti
 
     # ─── 11. Final summary panel ─────────────────────────────────────────────
     ok = final_status == "completed"
+    # Backslash escapes (\u2713) must stay OUT of f-string expression parts \u2014
+    # that is a SyntaxError on Python 3.11 (the bundled runtime), 3.12+ only.
+    status_color = "green" if ok else "red"
+    status_label = "Complete \u2713" if ok else "Failed \u2717"
     console.print()
-    console.print(Rule(f"[bold {'green' if ok else 'red'}]Enrichment {'Complete \u2713' if ok else 'Failed \u2717'}"))
+    console.print(Rule(f"[bold {status_color}]Enrichment {status_label}"))
 
     sum_tbl = Table(box=box.SIMPLE, show_header=False, expand=True)
     sum_tbl.add_column("Key",   style="dim",        width=22)

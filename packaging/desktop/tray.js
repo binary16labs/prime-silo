@@ -174,6 +174,8 @@ function buildMenu(options) {
   // When a bundled runtime is being supervised in-process, Start/Stop drive it;
   // otherwise they drive an external Benny install (services.js).
   const bundledManaged = Boolean(runtime && runtime.isManaged && runtime.isManaged());
+  // The BENNY_HOME the supervisor actually uses (configured override or default).
+  const managedBennyHome = bundledManaged && runtime.homeDir ? String(runtime.homeDir() || "") : "";
   const memorayUrl = readMemorayUrlFromLock();
   const template = [
     {
@@ -244,12 +246,28 @@ function buildMenu(options) {
       click: () => bundledManaged ? void runtime.stop() : services.stopBennyServices(currentBennyHome)
     },
     {
-      label: "Set up environment (init + doctor)",
-      click: () => services.setupBennyEnvironment(currentBennyHome)
+      // In bundled mode the runtime is already initialised by the supervisor;
+      // this re-runs `benny_cli init` against the bundled home using the bundled
+      // Python (no external Benny needed). Otherwise drive the external install.
+      label: bundledManaged ? "Re-initialise environment" : "Set up environment (init + doctor)",
+      click: () => {
+        if (!bundledManaged) {
+          services.setupBennyEnvironment(currentBennyHome);
+          return;
+        }
+        // `benny_cli init` requires --home and --profile; the bundle is native.
+        const ctx = runtime.cliContext();
+        services.openBundledBennyConsole({
+          ...ctx,
+          command: `init --home "${ctx.bennyHome}" --profile native`
+        });
+      }
     },
     {
       label: "Open Benny CLI",
-      click: () => services.openBennyCli(currentBennyHome)
+      click: () => bundledManaged
+        ? services.openBundledBennyConsole(runtime.cliContext())
+        : services.openBennyCli(currentBennyHome)
     },
     {
       label: "Use bundled runtime",
@@ -261,14 +279,21 @@ function buildMenu(options) {
         writeConfigPatch({ useBundledRuntime: item.checked });
       }
     },
+    // In bundled mode the supervisor owns BENNY_HOME (the configured value if set,
+    // else the per-user default). Show the live managed home, and let "Open" reveal
+    // it. The chooser below relocates it (persisted; applies on next launch).
+    ...(bundledManaged && managedBennyHome ? [{
+      label: `Benny Home: ${path.basename(managedBennyHome)} (bundled)`,
+      click: () => { if (fs.existsSync(managedBennyHome)) void shell.openPath(managedBennyHome); }
+    }] : []),
     {
-      label: currentBennyHome
-        ? `Benny Home: ${path.basename(currentBennyHome)}`
-        : "Configure Benny Home...",
+      label: bundledManaged
+        ? "Relocate Benny Home (applies next launch)..."
+        : (currentBennyHome ? `Benny Home: ${path.basename(currentBennyHome)}` : "Configure Benny Home..."),
       click: async () => {
         const result = await dialog.showOpenDialog({
           title: "Select Benny Home ($BENNY_HOME)",
-          defaultPath: currentBennyHome || currentHomeDir || PROJECT_ROOT,
+          defaultPath: currentBennyHome || managedBennyHome || currentHomeDir || PROJECT_ROOT,
           properties: ["openDirectory"]
         });
         if (!result.canceled && result.filePaths.length > 0) {

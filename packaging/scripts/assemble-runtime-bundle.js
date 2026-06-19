@@ -40,18 +40,24 @@ const JRE_MAJOR = "17";
 const PYTHON_BUILDS = {
   "win32:x64": {
     url: `https://github.com/astral-sh/python-build-standalone/releases/download/${PYTHON_RELEASE}/cpython-${PYTHON_VERSION}+${PYTHON_RELEASE}-x86_64-pc-windows-msvc-install_only.tar.gz`,
-    sha256: ""
+    // Pinned from the verified local zero-install build (version-stable URL).
+    sha256: "4c71d25731214b8a960d1d87510f24179d819249c5b434aaf7135818421b6215"
   }
   // Phase 2: darwin:arm64, darwin:x64, linux:x64, linux:arm64, win32:arm64
 };
 
 const NEO4J_BUILDS = {
-  win32: { url: `https://dist.neo4j.org/neo4j-community-${NEO4J_VERSION}-windows.zip`, sha256: "" }
+  // Pinned from the verified local zero-install build (version-stable URL).
+  win32: { url: `https://dist.neo4j.org/neo4j-community-${NEO4J_VERSION}-windows.zip`, sha256: "d43151ba7104aa38da57426151468b602c32a6119a5089576a02781cd6f8250d" }
   // Phase 2: darwin/linux → neo4j-community-<v>-unix.tar.gz
 };
 
-// Adoptium "latest GA" binary endpoints (redirect to the asset). Pin to a fixed
-// asset for full reproducibility in a later hardening pass.
+// Adoptium "latest GA" binary endpoints (redirect to the asset). NOTE: this URL
+// is a MOVING target — it resolves to whatever 17.x GA is current, so we cannot
+// pin a sha256 here (it would hard-fail the next time Adoptium bumps the patch).
+// Left verify-if-present; to pin, switch to a fixed-asset/version URL first.
+// (Reference: the 2026-06 local build resolved to
+//  sha256 79a598e1fbb4e16582d92c4ee22280a3c4d72fd52606e1e46b1223c0fe53b0da.)
 const JRE_BUILDS = {
   "win32:x64": {
     url: `https://api.adoptium.net/v3/binary/latest/${JRE_MAJOR}/ga/windows/x64/jre/hotspot/normal/eclipse`,

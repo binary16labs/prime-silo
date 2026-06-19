@@ -36,6 +36,21 @@ MARQUEZ_URL = os.getenv("MARQUEZ_URL", "http://localhost:5000")
 NAMESPACE = os.getenv("LINEAGE_NAMESPACE", "benny")
 PRODUCER = "https://github.com/skybluecycology/benny"
 
+# OpenLineage/Marquez HTTP emission is OPT-IN. Marquez is an optional dev service
+# (docker-compose) and is NOT part of the zero-install bundle. Without this gate
+# every lineage event blocks on urllib3 retries to a dead localhost:5000 — which
+# makes RAG ingest crawl (minutes per file) and floods the logs. Local
+# governance/AER events (written to disk, read by the Runs widgets) are emitted
+# separately and are unaffected. Set BENNY_LINEAGE_ENABLED=1 (with Marquez up)
+# to turn HTTP lineage back on.
+LINEAGE_HTTP_ENABLED = os.getenv("BENNY_LINEAGE_ENABLED", "").strip().lower() in ("1", "true", "yes", "on")
+
+
+class _NullLineageEmitter:
+    """No-op stand-in for the OpenLineage client when HTTP lineage is disabled."""
+    def emit(self, *_args, **_kwargs):
+        return None
+
 
 # =============================================================================
 # CUSTOM FACETS
@@ -127,7 +142,10 @@ class BennyLineageClient:
     
     @property
     def client(self) -> OpenLineageClient:
-        """Lazy-initialize OpenLineage client"""
+        """Lazy-initialize OpenLineage client (no-op emitter unless HTTP lineage
+        is explicitly enabled — see LINEAGE_HTTP_ENABLED)."""
+        if not LINEAGE_HTTP_ENABLED:
+            return _NullLineageEmitter()
         if self._client is None:
             self._client = OpenLineageClient(url=self.marquez_url)
         return self._client

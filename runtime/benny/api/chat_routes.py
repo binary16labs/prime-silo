@@ -186,10 +186,13 @@ def build_prompt(query: str, context: List[SourceCitation], history: List[ChatMe
             role = "User" if msg.role == "user" else "Assistant"
             history_text += f"{role}: {msg.content}\n\n"
     
-    # Construct final prompt
+    # Construct final prompt. NB: keep backslash escapes OUT of the f-string
+    # expression parts — that is a SyntaxError on Python 3.11 (the bundled
+    # zero-install runtime), only legal on 3.12+.
+    history_block = ("CONVERSATION HISTORY:\n" + history_text) if history_text else ""
     prompt = f"""You are a helpful AI assistant answering questions about documents in a notebook.
 
-{"CONVERSATION HISTORY:\n" + history_text if history_text else ""}
+{history_block}
 CONTEXT FROM DOCUMENTS:
 {context_text if context_text else "No relevant context found in documents."}
 

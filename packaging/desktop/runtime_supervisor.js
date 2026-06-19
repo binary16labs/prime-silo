@@ -48,6 +48,14 @@ function resolveBundleDir(resourcesPath, here = __dirname) {
   return "";
 }
 
+// Resolve the writable BENNY_HOME the bundled runtime should use. A user can
+// relocate it via the tray ("Configure Benny Home…", persisted as config.bennyHome);
+// otherwise we fall back to the per-user default the shell passes in.
+function resolveManagedBennyHome(defaultHome, config = {}) {
+  const configured = String(config.bennyHome || "").trim();
+  return configured || defaultHome || "";
+}
+
 // Decide whether the supervisor should manage a local runtime.
 function shouldUseBundledRuntime({ bundleDir, env = {}, config = {} } = {}) {
   if (!bundleDir) {
@@ -155,13 +163,42 @@ function delay(ms) {
 
 /* ── default real spawn / probe / init implementations ───────────────── */
 
+// Resolve how to actually invoke a spawn spec. On Windows, Node refuses to
+// spawn a .bat/.cmd directly (EINVAL — CVE-2024-27980), and neo4j ships as
+// neo4j.bat. Route batch files through cmd.exe with verbatim args; `cmd /s /c`
+// strips the outer quote pair, so a path with spaces ("Program Files\Space
+// Agent") survives. (Using shell:true with an args array is deprecated, DEP0190,
+// so we build the command line ourselves.) Pure + exported for unit testing.
+function resolveSpawnInvocation(spec, platform = process.platform) {
+  const isWinBatch = platform === "win32" && /\.(bat|cmd)$/i.test(spec.command || "");
+  if (isWinBatch) {
+    const line = [`"${spec.command}"`, ...(spec.args || [])].join(" ");
+    return {
+      command: "cmd.exe",
+      args: ["/d", "/s", "/c", line],
+      options: { env: spec.env, stdio: "ignore", detached: false, windowsHide: true, windowsVerbatimArguments: true }
+    };
+  }
+  return {
+    command: spec.command,
+    args: spec.args,
+    options: { env: spec.env, stdio: "ignore", detached: false, windowsHide: true }
+  };
+}
+
 function defaultSpawn(_name, spec) {
-  return spawn(spec.command, spec.args, {
-    env: spec.env,
-    stdio: "ignore",
-    detached: false,
-    windowsHide: true
-  });
+  const inv = resolveSpawnInvocation(spec);
+  // Capture child stdout/stderr to a log file so failures in the bundled runtime
+  // are diagnosable (the alternative, stdio:"ignore", hid real errors — e.g. a
+  // missing dep or a Neo4j bind failure — behind a silent dead process).
+  if (spec.logFile) {
+    try {
+      fs.mkdirSync(path.dirname(spec.logFile), { recursive: true });
+      const fd = fs.openSync(spec.logFile, "a");
+      inv.options.stdio = ["ignore", fd, fd];
+    } catch { /* fall back to whatever resolveSpawnInvocation set */ }
+  }
+  return spawn(inv.command, inv.args, inv.options);
 }
 
 async function defaultProbe(service) {
@@ -191,7 +228,7 @@ async function defaultProbe(service) {
 function createRuntimeSupervisor(options = {}) {
   const {
     resourcesPath = "",
-    bennyHome,
+    bennyHome: defaultBennyHome,
     config = {},
     env = process.env,
     platform = process.platform,
@@ -203,10 +240,12 @@ function createRuntimeSupervisor(options = {}) {
     probeIntervalMs = 1000,
     maxRestarts = 5,
     backoffMsFn = (attempt) => Math.min(15000, 1000 * 2 ** (attempt - 1)),
-    isBundleCompleteFn = isBundleComplete
+    isBundleCompleteFn = isBundleComplete,
+    killTreeFn = hardKillChild
   } = options;
 
   const bundleDir = options.bundleDir || resolveBundleDir(resourcesPath);
+  const bennyHome = resolveManagedBennyHome(defaultBennyHome, config);
   const children = new Map(); // service -> { child, spec, restarts }
   let stopping = false;
   let started = false;
@@ -278,8 +317,12 @@ function createRuntimeSupervisor(options = {}) {
       logger.warn?.(`[runtime] benny init skipped: ${error.message || error}`);
     }
 
+    const logDir = path.join(bennyHome, "logs");
+    try { fs.mkdirSync(logDir, { recursive: true }); } catch { /* best-effort */ }
+
     // Neo4j first (the API connects to it lazily, but graphs need it up).
     const neo4jSpec = buildNeo4jSpawn({ bundleDir, bennyHome, platform, env });
+    neo4jSpec.logFile = path.join(logDir, "neo4j.log");
     try {
       fs.mkdirSync(neo4jSpec.confDir, { recursive: true });
       fs.writeFileSync(path.join(neo4jSpec.confDir, "neo4j.conf"), renderNeo4jConf(bennyHome), "utf8");
@@ -296,6 +339,7 @@ function createRuntimeSupervisor(options = {}) {
     const apiSpec = buildApiSpawn({
       bundleDir, bennyHome, platform, env, hmacKey: readInstallHmacKey(bennyHome)
     });
+    apiSpec.logFile = path.join(logDir, "api.log");
     launch("api", apiSpec);
     const apiReady = await waitReady("api");
 
@@ -313,7 +357,7 @@ function createRuntimeSupervisor(options = {}) {
     const entries = [...children.values()];
     children.clear();
     started = false;
-    await Promise.all(entries.map(({ child }) => stopChild(child, graceMs, logger)));
+    await Promise.all(entries.map(({ child }) => stopChild(child, graceMs, logger, { platform, killTree: killTreeFn })));
   }
 
   async function restart() {
@@ -323,18 +367,46 @@ function createRuntimeSupervisor(options = {}) {
 
   return {
     bundleDir,
+    bennyHome,
     get managed() { return gate().use; },
     gate,
     start,
     stop,
     restart,
+    // Everything the tray needs to open a console wired to the BUNDLED Python +
+    // this install's BENNY_HOME (so "Open Benny CLI" works with zero external
+    // install). `complete` is false for a manifest-only dev build.
+    cliContext() {
+      const p = bundlePaths(bundleDir, platform);
+      return {
+        python: p.python,
+        site: p.site,
+        benny: p.benny,
+        bennyHome,
+        complete: Boolean(bundleDir) && isBundleCompleteFn(bundleDir, platform)
+      };
+    },
     status() {
       return { managed: gate().use, started, services: [...children.keys()] };
     }
   };
 }
 
-function stopChild(child, graceMs, logger = console) {
+// Hard-kill a child. On Windows, kill the whole process TREE: the bundled Neo4j
+// runs as cmd.exe → neo4j.bat → java, and killing only cmd.exe orphans java
+// (which keeps holding bolt 7687, breaking the next launch). taskkill /T does
+// the tree; /F forces it.
+function hardKillChild(child) {
+  try {
+    if (process.platform === "win32" && child && child.pid) {
+      spawn("taskkill", ["/PID", String(child.pid), "/T", "/F"], { stdio: "ignore", windowsHide: true });
+    } else if (child && typeof child.kill === "function") {
+      child.kill("SIGKILL");
+    }
+  } catch { /* ignore */ }
+}
+
+function stopChild(child, graceMs, logger = console, { platform = process.platform, killTree = hardKillChild } = {}) {
   return new Promise((resolve) => {
     if (!child || typeof child.kill !== "function") {
       resolve();
@@ -348,14 +420,19 @@ function stopChild(child, graceMs, logger = console) {
       resolve();
     };
     const timer = setTimeout(() => {
-      try { child.kill("SIGKILL"); } catch { /* ignore */ }
+      killTree(child);
       finish();
     }, graceMs);
     if (typeof child.once === "function") {
       child.once("exit", finish);
     }
     try {
-      child.kill("SIGTERM");
+      if (platform === "win32") {
+        // No graceful signal reaches a windowless cmd/java tree; tree-kill now.
+        killTree(child);
+      } else {
+        child.kill("SIGTERM");
+      }
     } catch (error) {
       logger.warn?.(`[runtime] error stopping child: ${error.message || error}`);
       finish();
@@ -368,11 +445,18 @@ function stopChild(child, graceMs, logger = console) {
 async function defaultInit({ bundleDir, bennyHome, platform = process.platform, env = process.env }) {
   const p = bundlePaths(bundleDir, platform);
   await new Promise((resolve, reject) => {
-    const child = spawn(p.python, ["-m", "benny_cli", "init"], {
-      env: { ...env, BENNY_HOME: bennyHome, PYTHONPATH: [p.site, p.benny].join(path.delimiter) },
-      stdio: "ignore",
-      windowsHide: true
-    });
+    // `benny_cli init` REQUIRES --home and --profile. We run Neo4j + the API
+    // natively (no Docker), so the "native" profile is the correct layout; it
+    // still seeds state/hmac-key (the per-install signing key the API uses).
+    const child = spawn(
+      p.python,
+      ["-m", "benny_cli", "init", "--home", bennyHome, "--profile", "native"],
+      {
+        env: { ...env, BENNY_HOME: bennyHome, PYTHONPATH: [p.site, p.benny].join(path.delimiter) },
+        stdio: "ignore",
+        windowsHide: true
+      }
+    );
     child.once("error", reject);
     child.once("exit", () => resolve());
   });
@@ -381,6 +465,7 @@ async function defaultInit({ bundleDir, bennyHome, platform = process.platform, 
 module.exports = {
   createRuntimeSupervisor,
   resolveBundleDir,
+  resolveManagedBennyHome,
   shouldUseBundledRuntime,
   isBundleComplete,
   bundlePaths,
@@ -388,5 +473,6 @@ module.exports = {
   buildNeo4jSpawn,
   buildApiSpawn,
   readInstallHmacKey,
-  __testing: { stopChild, DEFAULT_RUNTIME_BASE_URLS }
+  resolveSpawnInvocation,
+  __testing: { stopChild, hardKillChild, DEFAULT_RUNTIME_BASE_URLS }
 };

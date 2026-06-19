@@ -127,6 +127,72 @@ function openBennyCli(configuredHome) {
   return openBennyConsole({ home, binDir });
 }
 
+// Open a native console wired to the BUNDLED Python + this install's BENNY_HOME,
+// so "Open Benny CLI" / "Set up environment" work on a zero-install machine with
+// no external Benny on PATH. Unlike openBennyConsole (external launcher), this
+// puts the bundled python dir on PATH and sets PYTHONPATH=site;benny so
+// `python -m benny_cli …` resolves against the shipped runtime. `command` is the
+// benny_cli subcommand to run (e.g. "init"); empty opens an interactive prompt.
+function openBundledBennyConsole({ python, site, benny, bennyHome, command = "" } = {}) {
+  if (!python || !fs.existsSync(python)) {
+    console.error("[Services] Bundled Python not found; cannot open bundled Benny CLI.");
+    return false;
+  }
+  const pyDir = path.dirname(python);
+  const pythonPath = [site, benny].filter(Boolean).join(path.delimiter);
+  const cwd = bennyHome && fs.existsSync(bennyHome) ? bennyHome : pyDir;
+  try {
+    if (process.platform === "win32") {
+      const setEnv = [
+        bennyHome ? `set "BENNY_HOME=${bennyHome}"` : "",
+        pythonPath ? `set "PYTHONPATH=${pythonPath}"` : "",
+        `set "PATH=${pyDir};%PATH%"`
+      ].filter(Boolean);
+      const tail = command
+        ? `"${python}" -m benny_cli ${command}`
+        : `echo Bundled Benny CLI ready.  Try:  python -m benny_cli --help`;
+      const script = [...setEnv, `cd /d "${cwd}"`, tail].join(" & ");
+      const child = spawn("cmd.exe", ["/c", "start", "cmd.exe", "/k", script], {
+        detached: true, stdio: "ignore", windowsVerbatimArguments: true
+      });
+      child.on("error", (error) => console.error("[Services] Failed to open bundled Benny console:", error));
+      child.unref();
+      return true;
+    }
+    const env = { ...process.env };
+    if (bennyHome) env.BENNY_HOME = bennyHome;
+    if (pythonPath) env.PYTHONPATH = pythonPath;
+    env.PATH = `${pyDir}${path.delimiter}${env.PATH || ""}`;
+    if (process.platform === "darwin") {
+      const child = spawn("open", ["-a", "Terminal", cwd], { detached: true, stdio: "ignore", env });
+      child.on("error", (error) => console.error("[Services] Failed to open bundled Benny console:", error));
+      child.unref();
+      return true;
+    }
+    const candidates = [
+      ["x-terminal-emulator", []],
+      ["gnome-terminal", [`--working-directory=${cwd}`]],
+      ["konsole", ["--workdir", cwd]],
+      ["xterm", []]
+    ];
+    const tryNext = (i) => {
+      if (i >= candidates.length) {
+        console.error("[Services] No terminal emulator found.");
+        return;
+      }
+      const [cmd, args] = candidates[i];
+      const child = spawn(cmd, args, { cwd, detached: true, stdio: "ignore", env });
+      child.on("error", () => tryNext(i + 1));
+      child.unref();
+    };
+    tryNext(0);
+    return true;
+  } catch (error) {
+    console.error("[Services] Failed to open bundled Benny console:", error);
+    return false;
+  }
+}
+
 // Is the Benny runtime answering? Probes RUNTIME_BASE_URL/api/health with a
 // short timeout. Returns a boolean and never throws.
 async function probeBennyRuntime(timeoutMs = 1500) {
@@ -154,6 +220,7 @@ module.exports = {
   resolveBennyHome,
   resolveBennyLauncher,
   openBennyConsole,
+  openBundledBennyConsole,
   startBennyServices,
   stopBennyServices,
   setupBennyEnvironment,
