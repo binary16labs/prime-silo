@@ -251,15 +251,30 @@ jobs:
           SPACE_APP_VERSION: ${{ needs.prepare.outputs.build_version }}
           SPACE_RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
           SKIP_SIGNING: ${{ runner.os == 'macOS' && env.HAS_MACOS_SIGNING_CERT != '1' && '1' || '' }}
-          # Phase 1: assemble the full zero-install runtime bundle on Windows x64
-          # only; other targets fall back to a manifest-only bundle (Phase 2).
-          PRIME_SILO_BUNDLE_RUNTIME: ${{ matrix.bundle_runtime || '' }}
         run: node packaging/scripts/${{ matrix.script }} --arch ${{ matrix.arch }}
 
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
           path: dist/desktop/${{ matrix.platform_dir }}/
+          if-no-files-found: error
+
+      # Zero-install runtime: assemble the full runtime (Python + deps + Neo4j +
+      # JRE) and pack it as a standalone release asset (NOT inside the installer).
+      # The app downloads + extracts it on first launch (runtime_fetch.js). Phase
+      # 1 ships the bundle for Windows x64 only (matrix.bundle_runtime); other
+      # targets follow once their python-build-standalone/Neo4j/JRE rows are wired.
+      - name: Pack runtime bundle archive
+        if: matrix.bundle_runtime == '1'
+        env:
+          SPACE_APP_VERSION: ${{ needs.prepare.outputs.build_version }}
+        run: node packaging/scripts/pack-runtime-bundle.js --arch ${{ matrix.arch }}
+
+      - uses: actions/upload-artifact@v4
+        if: matrix.bundle_runtime == '1'
+        with:
+          name: runtime-asset-${{ matrix.artifact_name }}
+          path: dist/runtime-bundle/
           if-no-files-found: error
 
   publish:
@@ -376,3 +391,22 @@ jobs:
           done
 
           gh release upload "$RELEASE_TAG" "${upload_files[@]}" --clobber
+
+      # Zero-install runtime bundle assets (runtime-bundle-<platform>-<arch>.tar.gz
+      # + .sha256 + .json), uploaded as-is (no rename) so the app can fetch them
+      # by predictable name from this release on first launch.
+      - name: Upload runtime bundle assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
+        run: |
+          shopt -s nullglob
+          runtime_files=(release-assets/runtime-asset-*/*)
+          if [ "${#runtime_files[@]}" -eq 0 ]; then
+            echo "No runtime bundle assets to upload (none built for this run)."
+            exit 0
+          fi
+          echo "Uploading runtime bundle assets:"
+          printf '  %s\n' "${runtime_files[@]}"
+          gh release upload "$RELEASE_TAG" "${runtime_files[@]}" --clobber

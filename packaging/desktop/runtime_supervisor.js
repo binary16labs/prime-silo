@@ -1,24 +1,30 @@
 // Bundled Benny runtime supervisor for the packaged desktop shell.
 //
-// When the app ships a self-contained runtime bundle (embeddable Python + baked
-// deps + Neo4j + JRE under resources/runtime-bundle/, see
-// packaging/scripts/assemble-runtime-bundle.js), this module starts and
-// supervises it so the EXE is zero-install: ordered start of native Neo4j then
-// the FastAPI server, health-gated, with crash-restart and graceful shutdown.
+// The self-contained runtime (embeddable Python + baked deps + Neo4j + JRE) is
+// downloaded + extracted into a per-user dir on FIRST LAUNCH (see
+// packaging/desktop/runtime_fetch.js + packaging/scripts/pack-runtime-bundle.js)
+// rather than shipped inside the installer — packing ~600MB of executables via
+// electron-builder/NSIS is unreliable on Windows (Defender locks PE files
+// mid-copy; that broke v1.2.8). Once present, this module starts and supervises
+// it so the EXE is zero-install: ordered start of native Neo4j then the FastAPI
+// server, health-gated, with crash-restart and graceful shutdown.
 //
 // It is ADDITIVE and conditional — it only takes over when:
-//   (a) a runtime bundle is present in resources, AND
+//   (a) a managed bundle dir is configured (the per-user runtime dir), AND
 //   (b) RUNTIME_BASE_URL is unset / the default localhost:8005, AND
 //   (c) config.useBundledRuntime is not false.
-// Otherwise it no-ops, preserving server/dev mode (node space serve, standalone
-// `benny up`) and the "point at a remote Benny" mode (RUNTIME_BASE_URL set).
+// On first run it fetches the bundle; if that can't complete (e.g. offline) it
+// no-ops gracefully and retries next launch, preserving server/dev mode
+// (node space serve, standalone `benny up`) and the "point at a remote Benny"
+// mode (RUNTIME_BASE_URL set).
 //
-// The spawn and probe layers are injectable so the ordering / restart / stop
-// logic is unit-testable without real processes (see tests).
+// The spawn, probe and fetch layers are injectable so the ordering / restart /
+// stop / first-run-fetch logic is unit-testable without real processes (see tests).
 
 const path = require("node:path");
 const fs = require("node:fs");
 const { spawn } = require("node:child_process");
+const { ensureRuntimeBundle } = require("./runtime_fetch");
 
 const DEFAULT_API_PORT = 8005;
 const DEFAULT_NEO4J_HTTP_PORT = 7474;
@@ -241,7 +247,10 @@ function createRuntimeSupervisor(options = {}) {
     maxRestarts = 5,
     backoffMsFn = (attempt) => Math.min(15000, 1000 * 2 ** (attempt - 1)),
     isBundleCompleteFn = isBundleComplete,
-    killTreeFn = hardKillChild
+    killTreeFn = hardKillChild,
+    appVersion = "",
+    fetchFn = ensureRuntimeBundle,
+    onStatus = null
   } = options;
 
   const bundleDir = options.bundleDir || resolveBundleDir(resourcesPath);
@@ -250,12 +259,11 @@ function createRuntimeSupervisor(options = {}) {
   let stopping = false;
   let started = false;
 
+  // Whether we WANT to manage a bundled runtime. Completeness is checked
+  // separately (after the first-run fetch) because the bundle is downloaded
+  // lazily, not shipped — so "not present yet" must not disable management.
   function gate() {
-    const decision = shouldUseBundledRuntime({ bundleDir, env, config });
-    if (decision.use && !isBundleCompleteFn(bundleDir, platform)) {
-      return { use: false, reason: "incomplete-bundle" };
-    }
-    return decision;
+    return shouldUseBundledRuntime({ bundleDir, env, config });
   }
 
   async function waitReady(service) {
@@ -307,6 +315,32 @@ function createRuntimeSupervisor(options = {}) {
     started = true;
     stopping = false;
 
+    // First launch: download + extract the runtime bundle into the per-user dir
+    // if it isn't already there. Idempotent (a version marker short-circuits) and
+    // non-fatal — if it can't complete (offline), we no-op and retry next launch.
+    if (!isBundleCompleteFn(bundleDir, platform) && fetchFn && appVersion) {
+      logger.log?.("[runtime] runtime not installed yet; downloading on first launch…");
+      onStatus?.({ phase: "downloading" });
+      try {
+        const result = await fetchFn({ destDir: bundleDir, version: appVersion, platform, logger });
+        if (!result || !result.ok) {
+          logger.warn?.(`[runtime] runtime download did not complete (${result ? result.reason : "error"}).`);
+        }
+      } catch (error) {
+        logger.warn?.(`[runtime] runtime download error: ${error.message || error}`);
+      }
+    }
+
+    // If the bundle still isn't complete (e.g. offline first run), don't try to
+    // spawn anything — the shell runs in proxy mode; we retry on the next launch.
+    if (!isBundleCompleteFn(bundleDir, platform)) {
+      started = false;
+      logger.warn?.("[runtime] bundled runtime unavailable; will retry on next launch.");
+      onStatus?.({ phase: "unavailable" });
+      return { managed: false, reason: "bundle-unavailable" };
+    }
+    onStatus?.({ phase: "starting" });
+
     // First-run: initialise the writable BENNY_HOME (dirs, config, hmac-key).
     try {
       fs.mkdirSync(bennyHome, { recursive: true });
@@ -343,6 +377,7 @@ function createRuntimeSupervisor(options = {}) {
     launch("api", apiSpec);
     const apiReady = await waitReady("api");
 
+    onStatus?.({ phase: apiReady ? "running" : "degraded", neo4jReady, apiReady });
     return {
       managed: true,
       reason: "started",

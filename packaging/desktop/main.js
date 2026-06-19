@@ -2101,12 +2101,14 @@ async function startDesktop() {
   serverRuntime = await createAgentServer(createDesktopServerOptions(runtimeParamOverrides));
   await serverRuntime.listen();
 
-  // Zero-install: when a complete runtime bundle ships in resources, start and
-  // supervise it (Neo4j + API) so Documents/graphs/Flows work on double-click.
-  // No-ops in dev/server mode (no bundle) or when pointed at a remote Benny
-  // (RUNTIME_BASE_URL) — see runtime_supervisor.js. Detached: never blocks the UI.
+  // Zero-install: the runtime (Python + Neo4j + JRE + deps) is downloaded into a
+  // per-user dir on first launch (not shipped in the installer — see
+  // runtime_fetch.js / runtime_supervisor.js), then supervised (Neo4j + API) so
+  // Documents/graphs/Flows work on double-click. No-ops in dev/server mode or
+  // when pointed at a remote Benny (RUNTIME_BASE_URL). Detached: never blocks UI.
   runtimeSupervisor = createRuntimeSupervisor({
-    resourcesPath: process.resourcesPath,
+    bundleDir: path.join(app.getPath("userData"), "runtime-bundle"),
+    appVersion: app.getVersion(),
     bennyHome: path.join(app.getPath("userData"), "benny-home"),
     config: readDesktopConfigFile(),
     env: process.env

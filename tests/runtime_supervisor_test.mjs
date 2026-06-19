@@ -73,6 +73,8 @@ async function main() {
   await testRemoteOverrideNoOps();
   await testRestartOnExit();
   await testStopKillsAndPreventsRestart();
+  await testFetchOnFirstRun();
+  await testFetchUnavailableNoOps();
   console.log("runtime_supervisor_test: ok");
   process.exit(0);
 }
@@ -213,6 +215,46 @@ async function testStopKillsAndPreventsRestart() {
   apiChild.emit("exit", 1, null);
   await new Promise((r) => setTimeout(r, 40));
   assert.equal(h.spawned.length, countAfterStop, "no restart after stop");
+}
+
+// First launch: the bundle isn't present, so start() must fetch it (download +
+// extract into the per-user dir) and then proceed to spawn Neo4j + the API.
+async function testFetchOnFirstRun() {
+  const h = makeHarness();
+  let complete = false;
+  let fetchCalls = 0;
+  const s = sup.createRuntimeSupervisor({
+    ...h.opts,
+    appVersion: "1.2.9",
+    isBundleCompleteFn: () => complete,
+    fetchFn: async ({ version, destDir }) => {
+      fetchCalls += 1;
+      assert.equal(version, "1.2.9");
+      complete = true; // the download+extract makes the bundle complete
+      return { ok: true, reason: "downloaded", destDir };
+    }
+  });
+  const result = await s.start();
+  assert.equal(fetchCalls, 1, "fetch runs once on first launch when the bundle is missing");
+  assert.equal(result.managed, true);
+  assert.deepEqual(h.spawned.map((x) => x.name), ["neo4j", "api"], "spawns after the runtime is fetched");
+  await s.stop();
+}
+
+// Offline first run: the fetch can't complete, so the supervisor no-ops cleanly
+// (the shell still runs in proxy mode) and spawns nothing.
+async function testFetchUnavailableNoOps() {
+  const h = makeHarness();
+  const s = sup.createRuntimeSupervisor({
+    ...h.opts,
+    appVersion: "1.2.9",
+    isBundleCompleteFn: () => false, // never becomes complete
+    fetchFn: async () => ({ ok: false, reason: "download-failed" })
+  });
+  const result = await s.start();
+  assert.equal(result.managed, false);
+  assert.equal(result.reason, "bundle-unavailable");
+  assert.equal(h.spawned.length, 0, "nothing spawned when the runtime can't be fetched");
 }
 
 main().catch((err) => {
