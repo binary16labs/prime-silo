@@ -41,11 +41,11 @@ This module owns:
 - `ext/html/page/router/overlay/end/onscreen-agent.html`: thin adapter that mounts the overlay into the router overlay seam
 - `ext/js/_core/onscreen_agent/llm.js/buildOnscreenAgentExampleMessages/end/*.js`: prompt-example extensions that prepend live few-shot conversations ahead of thread history
 - `ext/js/_core/onscreen_agent/llm.js/buildOnscreenAgentTransientSections/end/*.js`: transient-context extensions that append model-facing runtime context such as compact-mode response guidance, the bounded current-user file tree, and a `current date and time` awareness section
-- `panel.html`: overlay UI and the module-owned `onscreen` context tag exported through `<x-context>`, while sourcing the draggable astronaut image from shared `_core/visual/res/chat/overlay/`
+- `panel.html`: overlay UI and the module-owned `onscreen` context tag exported through `<x-context>`, while sourcing the draggable Benny dog avatar (`dog_no_bg.svg`) from shared `_core/visual/res/chat/overlay/`
 - `prompt-context.js`: pure prompt-context helpers for overlay-owned transient sections such as the bounded current-user `~/` file tree formatter
 - `response-markdown.css`: overlay-local markdown presentation overrides for assistant responses
 - `store.js`: floating-shell state, send loop, persistence, avatar drag behavior, edge-hide peeking state, history resize behavior, display mode, overlay menus, lazy prompt bootstrapping, the derived example-prompt status getters exposed on the global Alpine `onscreenAgent` store for launchers such as spaces onboarding, and the assistant-message evaluation seam `_core/onscreen_agent/store.js/evaluateOnscreenAssistantMessage`
-- `view.js`: shared-thread-view wiring plus the overlay assistant avatar path sourced from shared `_core/visual/res/chat/overlay/`
+- `view.js`: shared-thread-view wiring plus the overlay assistant avatar path (`dog_head_256.svg`) sourced from shared `_core/visual/res/chat/overlay/`
 - `turn-boundary.js`: pure send-loop boundary helpers that keep queued follow-up submissions from preempting pending assistant execution output
 - `skills.js`: onscreen skill discovery wrappers around shared `/mod/_core/skillset/skills.js`, skill frontmatter metadata flags, `space.skills.load(...)`, and skill-related JS extension seams
 - `llm.js`, `api.js`, `execution.js`, `attachments.js`, and `llm-params.js`: local runtime helpers
@@ -231,6 +231,7 @@ Phase-specific context fields may include `draftSubmission`, `responseMeta`, `ex
 
 Current overlay behavior:
 
+- the floating avatar art is the Benny dog (`dog_no_bg.svg` in shared `_core/visual/res/chat/overlay/`); legacy "astronaut" wording in the behavior bullets below refers to that same draggable avatar element, not a separate asset
 - the module mounts only through the router overlay seam at `page/router/overlay/end`
 - the shell supports compact and full display modes
 - avatar drag positioning, edge-hide peeking, action menus, history-edge resizing, and visibility recovery are owned by `store.js`

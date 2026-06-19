@@ -85,6 +85,7 @@ from .agent_scope import AgentScopeMiddleware
 from .views_routes import router as views_router
 from .widget_routes import router as widget_router
 from .deep_produce_routes import router as deep_produce_router
+from .opencode_routes import router as opencode_router
 from .checkpoint_routes import sandbox_router as checkpoint_sandbox_router, pinned_router as checkpoint_pinned_router
 
 # Temporary fix for missing rbac.py module
@@ -185,6 +186,7 @@ app.include_router(governance_router, prefix="/api/governance", tags=["Governanc
 app.include_router(live_router, prefix="/api/live", tags=["Live"])
 app.include_router(manifest_router, prefix="/api/manifests", tags=["Manifests"])
 app.include_router(deep_produce_router, prefix="/api", tags=["DeepProduce"])
+app.include_router(opencode_router, prefix="/api/opencode", tags=["Opencode"])
 app.include_router(a2a_router, prefix="/a2a", tags=["A2A"])
 app.include_router(audio_router, prefix="/api/audio", tags=["Audio"])
 app.include_router(ops_router, prefix="/api/ops", tags=["Ops"])

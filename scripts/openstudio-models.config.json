@@ -1,0 +1,40 @@
+{
+  "_comment": "Open-Studio model wiring for open-notebook. Edit this file and re-run configure-open-notebook-models.mjs to change models/roles. open-notebook runs inside Docker, so host tools are reached via host.docker.internal (NOT localhost). If a credential test fails to connect, enable 'serve on local network' in LM Studio and bind Lemonade to 0.0.0.0.",
+  "openNotebookUrl": "http://localhost:5055",
+
+  "providers": {
+    "lmstudio": {
+      "credentialName": "LM Studio (host)",
+      "provider": "openai_compatible",
+      "baseUrl": "http://host.docker.internal:1234/v1",
+      "apiKey": "lm-studio",
+      "modalities": ["language", "embedding"]
+    },
+    "lemonade": {
+      "credentialName": "Lemonade (NPU host)",
+      "provider": "openai_compatible",
+      "baseUrl": "http://host.docker.internal:13305/api/v1",
+      "apiKey": "lemonade",
+      "modalities": ["language", "text_to_speech", "speech_to_text"]
+    }
+  },
+
+  "models": [
+    { "provider": "lmstudio", "name": "google/gemma-4-12b-qat", "type": "language" },
+    { "provider": "lmstudio", "name": "google/gemma-4-26b-a4b", "type": "language" },
+    { "provider": "lmstudio", "name": "text-embedding-nomic-embed-text-v1.5", "type": "embedding" },
+    { "provider": "lemonade", "name": "Qwen3-8B-Hybrid", "type": "language" },
+    { "provider": "lemonade", "name": "kokoro-v1", "type": "text_to_speech" },
+    { "provider": "lemonade", "name": "Whisper-Large-v3-Turbo", "type": "speech_to_text" }
+  ],
+
+  "roles": {
+    "default_chat_model":           { "provider": "lmstudio", "name": "google/gemma-4-12b-qat" },
+    "default_transformation_model": { "provider": "lmstudio", "name": "google/gemma-4-12b-qat" },
+    "large_context_model":          { "provider": "lmstudio", "name": "google/gemma-4-12b-qat" },
+    "default_embedding_model":      { "provider": "lmstudio", "name": "text-embedding-nomic-embed-text-v1.5" },
+    "default_tools_model":          { "provider": "lemonade", "name": "Qwen3-8B-Hybrid" },
+    "default_text_to_speech_model": { "provider": "lemonade", "name": "kokoro-v1" },
+    "default_speech_to_text_model": { "provider": "lemonade", "name": "Whisper-Large-v3-Turbo" }
+  }
+}

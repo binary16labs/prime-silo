@@ -1,0 +1,38 @@
+<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Benny">
+  <!-- Benny head (German Shepherd) — in-thread assistant avatar. -->
+  <defs>
+    <linearGradient id="bh-tan" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#D79A52"/><stop offset="1" stop-color="#B97A38"/>
+    </linearGradient>
+    <linearGradient id="bh-black" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3A322C"/><stop offset="1" stop-color="#241E1A"/>
+    </linearGradient>
+  </defs>
+
+  <g stroke="#241E1A" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+    <!-- large erect ears -->
+    <path d="M72 92 48 28c30 0 50 18 60 46z" fill="url(#bh-tan)"/>
+    <path d="M184 92l24-64c-30 0-50 18-60 46z" fill="url(#bh-tan)"/>
+    <path d="M76 82 58 40c18 1 30 11 38 28z" fill="url(#bh-black)" stroke="none"/>
+    <path d="M180 82l18-42c-18 1-30 11-38 28z" fill="url(#bh-black)" stroke="none"/>
+
+    <!-- head -->
+    <path d="M128 54c-44 0-70 30-70 66 0 36 30 62 70 62s70-26 70-62c0-36-26-66-70-66z" fill="url(#bh-tan)"/>
+
+    <!-- black mask: bridge + muzzle -->
+    <path d="M128 100c-18 0-27 12-29 32-2 22 12 46 29 46s31-24 29-46c-2-20-11-32-29-32z" fill="url(#bh-black)"/>
+  </g>
+
+  <!-- eyes -->
+  <g fill="#1C1714"><ellipse cx="100" cy="112" rx="9" ry="11"/><ellipse cx="156" cy="112" rx="9" ry="11"/></g>
+  <circle cx="96.5" cy="108" r="3" fill="#fff"/><circle cx="152.5" cy="108" r="3" fill="#fff"/>
+  <!-- tan brow dots -->
+  <ellipse cx="100" cy="96" rx="6" ry="4" fill="#E0A95E"/>
+  <ellipse cx="156" cy="96" rx="6" ry="4" fill="#E0A95E"/>
+
+  <!-- nose + mouth on the black muzzle -->
+  <ellipse cx="128" cy="138" rx="13" ry="9" fill="#120E0C"/>
+  <path d="M128 147v9m0 0c-7 0-13-4-15-10m15 10c7 0 13-4 15-10"
+        fill="none" stroke="#0E0A08" stroke-width="5" stroke-linecap="round"/>
+  <path d="M123 156h10c0 7-2 12-5 12s-5-5-5-12z" fill="#E58A86"/>
+</svg>

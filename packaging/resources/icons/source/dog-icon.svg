@@ -1,0 +1,24 @@
+<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Benny app icon">
+  <!-- Benny — flat German Shepherd head, app + tray icon source. Solid fills,
+       tight crop, bold shapes so it stays legible down to 16x16. -->
+  <g stroke="#241E1A" stroke-width="7" stroke-linejoin="round" stroke-linecap="round">
+    <!-- ears -->
+    <path d="M64 96 38 20c34 0 56 20 66 50z" fill="#C8862F"/>
+    <path d="M192 96l26-76c-34 0-56 20-66 50z" fill="#C8862F"/>
+    <path d="M70 84 50 30c20 2 33 13 42 30z" fill="#2A211C" stroke="none"/>
+    <path d="M186 84l20-54c-20 2-33 13-42 30z" fill="#2A211C" stroke="none"/>
+    <!-- head -->
+    <path d="M128 44c-50 0-78 33-78 74 0 41 34 70 78 70s78-29 78-70c0-41-28-74-78-74z" fill="#C8862F"/>
+    <!-- black mask: bridge + muzzle -->
+    <path d="M128 98c-20 0-30 13-32 35-2 25 13 51 32 51s34-26 32-51c-2-22-12-35-32-35z" fill="#2A211C"/>
+    <!-- cream lower muzzle -->
+    <path d="M128 150c-15 0-24 8-24 18 0 11 11 20 24 20s24-9 24-20c0-10-9-18-24-18z" fill="#EAD2A6" stroke="none"/>
+  </g>
+  <!-- eyes -->
+  <g fill="#15110E"><ellipse cx="96" cy="110" rx="10" ry="12"/><ellipse cx="160" cy="110" rx="10" ry="12"/></g>
+  <circle cx="92" cy="105" r="3.2" fill="#fff"/><circle cx="156" cy="105" r="3.2" fill="#fff"/>
+  <!-- tan brow dots -->
+  <ellipse cx="96" cy="92" rx="6" ry="4" fill="#E0A95E"/><ellipse cx="160" cy="92" rx="6" ry="4" fill="#E0A95E"/>
+  <!-- nose -->
+  <ellipse cx="128" cy="140" rx="14" ry="10" fill="#0E0A08"/>
+</svg>

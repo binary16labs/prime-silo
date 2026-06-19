@@ -7,6 +7,8 @@ const { pipeline } = require("node:stream/promises");
 const { pathToFileURL } = require("node:url");
 const { app, BrowserWindow, WebContentsView, ipcMain, net, webFrameMain } = require("electron");
 const { createDesktopTray, destroyDesktopTray, setRuntimePhase: setTrayRuntimePhase } = require("./tray");
+const { toggleDesktopPet, destroyDesktopPet, isDesktopPetVisible } = require("./pet");
+const { stopAllOpenStudioServices } = require("./openstudio_services");
 const { seedSelfAwareness } = require("./self_awareness");
 const { createRuntimeSupervisor } = require("./runtime_supervisor");
 const {
@@ -1007,6 +1009,10 @@ function setDesktopUpdateState(nextState = {}) {
 function prepareDesktopForQuit() {
   isQuitting = true;
   destroyDesktopTray();
+  destroyDesktopPet();
+  // Stop the opencode server we may have started; leave open-notebook's docker
+  // stack alone (it may be shared / long-lived).
+  try { stopAllOpenStudioServices(); } catch { /* best-effort */ }
 }
 
 async function cleanupStaleDesktopUpdaterArtifacts() {
@@ -2140,6 +2146,15 @@ async function startDesktop() {
       isQuitting = true;
       app.quit();
     },
+    // Desktop pet (Phase 4b): toggle Benny floating over the whole desktop. Its
+    // chat button raises the cockpit window via onOpenCockpit.
+    isPetVisible: () => isDesktopPetVisible(),
+    togglePet: () => toggleDesktopPet({
+      onOpenCockpit: () => {
+        showMainWindow();
+        createWindow();
+      }
+    }),
     runtime: {
       isManaged: () => Boolean(runtimeSupervisor) && runtimeSupervisor.managed,
       start: () => runtimeSupervisor && runtimeSupervisor.start(),

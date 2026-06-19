@@ -1,0 +1,65 @@
+<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Benny the floating German Shepherd">
+  <!--
+    Benny — floating overlay dog (German Shepherd).
+    Square viewBox, centered subject, transparent background, shadowless silhouette
+    so edge-hide poses match the in-screen shape (see _core/onscreen_agent CSS).
+  -->
+  <defs>
+    <linearGradient id="benny-tan" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#D79A52"/>
+      <stop offset="1" stop-color="#B97A38"/>
+    </linearGradient>
+    <linearGradient id="benny-black" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3A322C"/>
+      <stop offset="1" stop-color="#241E1A"/>
+    </linearGradient>
+    <linearGradient id="benny-chest" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#EBCD9C"/>
+      <stop offset="1" stop-color="#D8B074"/>
+    </linearGradient>
+  </defs>
+
+  <g stroke="#241E1A" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+    <!-- tail -->
+    <path d="M192 176c28 4 40-16 32-34-7-16-28-14-32 2-3 12 4 18 12 16" fill="url(#benny-black)"/>
+
+    <!-- sitting body (tan) -->
+    <path d="M82 150c-10 22-12 46-3 60 6 10 96 10 102 0 9-14 7-38-3-60z" fill="url(#benny-tan)"/>
+    <!-- black saddle over the back/shoulders -->
+    <path d="M82 150c-6 13-9 27-7 40 30 10 80 10 110 0 2-13-1-27-7-40-18 12-78 12-96 0z" fill="url(#benny-black)" stroke="none"/>
+    <!-- tan chest blaze -->
+    <path d="M110 150c-4 22-4 44 0 58 6 7 30 7 36 0 4-14 4-36 0-58z" fill="url(#benny-chest)" stroke="none"/>
+
+    <!-- front legs / paws (tan) -->
+    <path d="M92 196c-2 8-2 16 0 18 4 3 16 3 19 0 2-4 2-12 0-20z" fill="url(#benny-tan)"/>
+    <path d="M145 194c-3 8-3 16-1 20 3 3 15 3 19 0 2-2 2-10 0-18z" fill="url(#benny-tan)"/>
+    <ellipse cx="101" cy="214" rx="12" ry="7" fill="url(#benny-chest)"/>
+    <ellipse cx="155" cy="214" rx="12" ry="7" fill="url(#benny-chest)"/>
+
+    <!-- large erect ears -->
+    <path d="M78 64 58 12c24 0 40 14 48 38z" fill="url(#benny-tan)"/>
+    <path d="M178 64l20-52c-24 0-40 14-48 38z" fill="url(#benny-tan)"/>
+    <path d="M80 56 66 22c14 1 24 9 30 23z" fill="url(#benny-black)" stroke="none"/>
+    <path d="M176 56l14-34c-14 1-24 9-30 23z" fill="url(#benny-black)" stroke="none"/>
+
+    <!-- head (tan) -->
+    <path d="M128 48c-38 0-60 26-60 58 0 30 26 52 60 52s60-22 60-52c0-32-22-58-60-58z" fill="url(#benny-tan)"/>
+
+    <!-- black mask: bridge + muzzle -->
+    <path d="M128 86c-15 0-22 10-24 26-2 18 10 38 24 38s26-20 24-38c-2-16-9-26-24-26z" fill="url(#benny-black)"/>
+  </g>
+
+  <!-- eyes (sit on tan, just above the mask) -->
+  <g fill="#1C1714"><ellipse cx="104" cy="98" rx="7.5" ry="9"/><ellipse cx="152" cy="98" rx="7.5" ry="9"/></g>
+  <circle cx="101.5" cy="95" r="2.3" fill="#fff"/><circle cx="149.5" cy="95" r="2.3" fill="#fff"/>
+  <!-- tan brow dots above the eyes (classic GSD marking) -->
+  <ellipse cx="104" cy="84" rx="5" ry="3.5" fill="#E0A95E"/>
+  <ellipse cx="152" cy="84" rx="5" ry="3.5" fill="#E0A95E"/>
+
+  <!-- nose + mouth on the black muzzle -->
+  <ellipse cx="128" cy="120" rx="11" ry="8" fill="#120E0C"/>
+  <path d="M128 128v8m0 0c-6 0-11-3-13-8m13 8c6 0 11-3 13-8"
+        fill="none" stroke="#0E0A08" stroke-width="4" stroke-linecap="round"/>
+  <!-- little pink tongue -->
+  <path d="M124 136h8c0 6-2 10-4 10s-4-4-4-10z" fill="#E58A86"/>
+</svg>

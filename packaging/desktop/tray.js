@@ -14,6 +14,7 @@ const fs = require("node:fs");
 const { spawn } = require("node:child_process");
 const { app, Tray, Menu, shell, nativeImage, dialog, ipcMain } = require("electron");
 const services = require("./services");
+const openStudio = require("./openstudio_services");
 
 const PROJECT_ROOT = path.resolve(__dirname, "../..");
 const LOCK_FILENAME = "apps.lock.json";
@@ -196,7 +197,7 @@ function runtimeStatusLabel(bundledManaged) {
 }
 
 function buildMenu(options) {
-  const { showMainWindow, createWindow, getBrowserUrl, requestQuit, runtime } = options;
+  const { showMainWindow, createWindow, getBrowserUrl, requestQuit, runtime, togglePet, isPetVisible } = options;
   // When a bundled runtime is being supervised in-process, Start/Stop drive it;
   // otherwise they drive an external Benny install (services.js).
   const bundledManaged = Boolean(runtime && runtime.isManaged && runtime.isManaged());
@@ -329,6 +330,43 @@ function buildMenu(options) {
         }
       }
     },
+    { type: "separator" },
+    // Benny desktop pet — float the dog over the whole desktop (Phase 4b).
+    ...(typeof togglePet === "function" ? [{
+      label: (typeof isPetVisible === "function" && isPetVisible())
+        ? "Hide Benny (desktop pet)"
+        : "Show Benny on desktop",
+      click: () => {
+        togglePet();
+        if (tray) {
+          tray.setContextMenu(buildMenu(options));
+        }
+      }
+    }] : []),
+    { type: "separator" },
+    // ── Open-Studio companion services (Phase 5) ────────────────────────────
+    ...(openStudio.opencodeAvailable() ? [{
+      label: openStudio.isOpencodeServeRunning() ? "Stop opencode server" : "Start opencode server",
+      click: () => {
+        if (openStudio.isOpencodeServeRunning()) openStudio.stopOpencodeServe();
+        else openStudio.startOpencodeServe();
+        if (tray) tray.setContextMenu(buildMenu(options));
+      }
+    }] : []),
+    ...(openStudio.dockerAvailable() ? [
+      {
+        label: "Start open-notebook (docker)",
+        click: () => { void openStudio.startOpenNotebook({ readConfig, writeConfigPatch }); }
+      },
+      {
+        label: "Stop open-notebook",
+        click: () => { void openStudio.stopOpenNotebook({ readConfig }); }
+      },
+      {
+        label: "Open Notebook UI",
+        click: () => void shell.openExternal("http://localhost:8502")
+      }
+    ] : []),
     { type: "separator" },
     memorayUrl
       ? { label: `Memo-Ray: ${memorayUrl}`, click: () => void shell.openExternal(memorayUrl) }
