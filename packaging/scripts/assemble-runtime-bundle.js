@@ -297,6 +297,12 @@ function extractAndFlatten(archivePath, targetDir, platform = process.platform) 
 }
 
 function pipInstall(pythonExe, requirements, siteDir) {
+  // Start from a clean site/ — `pip install --target` does NOT replace existing
+  // packages (it warns "already exists, specify --upgrade" and skips them), so a
+  // re-run over a previous (e.g. un-slimmed) bundle would silently keep stale
+  // deps. Fresh CI checkouts are empty, but local rebuilds and any cached site/
+  // must be wiped so the bundle contains exactly `requirements`.
+  fs.rmSync(siteDir, { recursive: true, force: true });
   ensureDir(siteDir);
   const reqFile = path.join(siteDir, "..", "requirements.runtime.txt");
   fs.writeFileSync(reqFile, requirements.join("\n") + "\n", "utf8");

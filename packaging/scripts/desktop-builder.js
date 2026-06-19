@@ -553,6 +553,28 @@ async function runDesktopPackaging(platformKey, argv = process.argv.slice(2)) {
 
   console.log(`Packaging Space Agent for ${platformSpec.label}...`);
 
+  // Airtight backstop: electron-builder has been observed to ABANDON a large-app
+  // build — the process exits 0 after the file walk without ever running the
+  // installer target (NSIS), so neither the `await build()` below nor the
+  // post-build assertInstallerArtifacts() ever run. A normal path sets
+  // `packagingCompleted = true`; if the process exits while still false with a
+  // zero exit code, force a failure so CI can never treat a no-installer build as
+  // success (which is how v1.2.8 published a release with no Windows x64 installer).
+  let packagingCompleted = options.dir === true;
+  if (!options.dir) {
+    process.on("exit", () => {
+      if (!packagingCompleted && (process.exitCode === 0 || process.exitCode === undefined || process.exitCode === null)) {
+        // eslint-disable-next-line no-console
+        console.error(
+          `FATAL: ${platformSpec.label} packaging exited without producing an installer ` +
+            `(electron-builder did not complete the target build). Failing the job so a ` +
+            `broken/installer-less release is never published.`
+        );
+        process.exitCode = 1;
+      }
+    });
+  }
+
   const artifacts = await build({
     projectDir: PROJECT_ROOT,
     config: buildConfig,
@@ -578,6 +600,8 @@ async function runDesktopPackaging(platformKey, argv = process.argv.slice(2)) {
     assertInstallerArtifacts(platformSpec, options, artifacts);
   }
 
+  // Reached only when build() returned AND (for installers) the installer exists.
+  packagingCompleted = true;
   return artifacts;
 }
 

@@ -45,6 +45,11 @@ jobs:
             platform_dir: windows
             runner: windows-latest
             script: windows-package.js
+            # Exercise the full zero-install runtime bundle on the snapshot build
+            # too, so the bundled-NSIS packaging is validated on every push to
+            # main (clean CI env) without cutting a release. The post-build guard
+            # in desktop-builder.js fails the job if no installer is produced.
+            bundle_runtime: "1"
           - artifact_name: snapshot-macos-x64
             arch: x64
             platform_dir: macos
@@ -80,6 +85,7 @@ jobs:
           SPACE_APP_VERSION: 0.0.0-snapshot-${{ github.run_number }}
           SPACE_RELEASE_TAG: snapshot-${{ github.run_number }}
           SKIP_SIGNING: '1'
+          PRIME_SILO_BUNDLE_RUNTIME: ${{ matrix.bundle_runtime || '' }}
         run: node packaging/scripts/${{ matrix.script }} --arch ${{ matrix.arch }}
 
       - uses: actions/upload-artifact@v4
