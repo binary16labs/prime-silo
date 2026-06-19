@@ -98,8 +98,79 @@ function resolveJreBuild(platform, arch) {
   return build;
 }
 
-// Strip comments and the dev/test block — the runtime bundle ships only what the
-// server needs, not pytest/ruff/coverage.
+// The curated set the *bundled* runtime actually needs to boot and serve the
+// four surfaces (Documents/RAG, knowledge + code graphs, Flows, Deep-produce).
+//
+// This is intentionally decoupled from runtime/requirements.txt (which is the
+// full server/dev/test set). Shipping that full set produced a ~1.5 GB unpacked
+// tree that NSIS silently failed to package — the v1.2.8 Windows-x64 job
+// "succeeded" yet emitted no installer. The heavy *optional* subsystems below
+// are deliberately excluded; each is import-guarded in the runtime, so the API
+// boots fine without them:
+//   - arize-phoenix    observability/tracing. governance/tracing.py wraps
+//                      `import phoenix` in try/except (PHOENIX_AVAILABLE=False)
+//                      and lazy-imports opentelemetry only inside init_tracing().
+//                      It drags in scipy, scikit-learn, the pydantic-ai +
+//                      opentelemetry + boto3 + kubernetes + grpcio + google-genai
+//                      stack — by far the biggest contributor to bundle bloat.
+//   - polars, pyarrow  Pypes' optional columnar engine. polars is import-guarded
+//                      in pypes/engines/__init__.py and falls back to PandasEngine.
+// pandas is KEPT — PandasEngine is the always-on Pypes default and is imported at
+// startup via pypes_routes; it previously arrived transitively through phoenix.
+const BUNDLE_RUNTIME_REQUIREMENTS = [
+  // API surface
+  "fastapi>=0.115.0",
+  "uvicorn>=0.34.0",
+  "httpx>=0.28.0",
+  "pydantic>=2.10.0",
+  "python-multipart>=0.0.20",
+  // Model calls (router/offline guard goes through litellm)
+  "litellm>=1.60.0",
+  "tiktoken>=0.7.0",
+  // Swarm / Flows / Deep-produce
+  "langchain>=0.3.0",
+  "langgraph>=0.2.0",
+  // RAG vector store + ANN index
+  "chromadb>=0.5.0",
+  "hnswlib>=0.8.0",
+  // Graphs
+  "neo4j>=5.25.0",
+  "networkx>=3.4.0",
+  // Lineage facets are imported at module load in governance/lineage.py (HTTP
+  // emission itself stays gated off via BENNY_LINEAGE_ENABLED).
+  "openlineage-python>=1.27.0",
+  // Pypes always-on engine (kept now that phoenix no longer pulls it transitively)
+  "pandas>=2.0.0",
+  // Documents ingest (PDF + HTML cleanup). fitz == PyMuPDF.
+  "pypdf>=5.0.0",
+  "beautifulsoup4>=4.12.0",
+  "markdownify>=0.13.0",
+  "PyMuPDF>=1.24.0",
+  // Code graph (Tree-Sitter AST + grammars)
+  "tree-sitter>=0.21.0",
+  "tree-sitter-python>=0.21.0",
+  "tree-sitter-javascript>=0.21.0",
+  "tree-sitter-typescript>=0.23.0",
+  // Misc core
+  "jsonschema>=4.20.0",
+  "pathspec>=0.12.0",
+  "rich>=13.0.0",
+  "mcp>=1.0"
+];
+
+// The packages we deliberately exclude from the bundle even if a future
+// requirements.txt re-introduces them. Used to keep filterRuntimeRequirements
+// honest if it is ever wired back as the source.
+const BUNDLE_EXCLUDED_PACKAGES = new Set(["arize-phoenix", "polars", "pyarrow"]);
+
+// Return the curated bundle requirement set (the source of truth for what pip
+// installs into site/). Kept as a function so callers read intent, not an array.
+function bundleRuntimeRequirements() {
+  return [...BUNDLE_RUNTIME_REQUIREMENTS];
+}
+
+// Strip comments and the dev/test block — retained for the assembler test and as
+// a reference filter; the bundle itself installs bundleRuntimeRequirements().
 function filterRuntimeRequirements(text) {
   const out = [];
   let inDevBlock = false;
@@ -255,9 +326,9 @@ async function buildRuntimeBundle(opts = {}) {
 
   ensureDir(outDir);
   const manifest = buildBundleManifest({ platform, arch, projectRoot });
-  const requirements = filterRuntimeRequirements(
-    fs.readFileSync(path.join(projectRoot, "runtime", "requirements.txt"), "utf8")
-  );
+  // The bundle installs the curated minimal set (see BUNDLE_RUNTIME_REQUIREMENTS),
+  // NOT the full server requirements — the full set overflows NSIS's payload.
+  const requirements = bundleRuntimeRequirements();
 
   if (manifestOnly) {
     fs.writeFileSync(path.join(outDir, "requirements.runtime.txt"), requirements.join("\n") + "\n", "utf8");
@@ -308,7 +379,10 @@ module.exports = {
   resolveNeo4jBuild,
   resolveJreBuild,
   filterRuntimeRequirements,
+  bundleRuntimeRequirements,
   buildBundleManifest,
+  BUNDLE_RUNTIME_REQUIREMENTS,
+  BUNDLE_EXCLUDED_PACKAGES,
   PYTHON_VERSION,
   NEO4J_VERSION
 };

@@ -62,6 +62,15 @@ const PLATFORM_UPDATE_CHANNELS = {
   linux: "metadata-latest"
 };
 
+// The installer file extension each platform must emit. Used by the post-build
+// guard so a silently-missing installer hard-fails the job instead of letting CI
+// publish a release with no working installer (see assertInstallerArtifacts).
+const INSTALLER_EXTENSIONS = {
+  macos: [".dmg"],
+  windows: [".exe"],
+  linux: [".AppImage"]
+};
+
 function readPackageJson() {
   return JSON.parse(fs.readFileSync(PACKAGE_JSON_PATH, "utf8"));
 }
@@ -398,6 +407,36 @@ function writeMacDirBuildUpdateConfig(options, buildConfig, packageJson, platfor
   return writtenPaths;
 }
 
+// Fail loudly if an installer build produced no installer. This is the guard that
+// the v1.2.8 Windows-x64 release was missing: electron-builder packed + signed the
+// (oversized) app but NSIS never emitted the .exe, yet the job exited 0 and CI
+// published a release whose only Windows asset was the wrong-arch installer.
+function assertInstallerArtifacts(platformSpec, options, artifacts) {
+  const exts = INSTALLER_EXTENSIONS[platformSpec.key] || [];
+  if (!exts.length) {
+    return;
+  }
+  const installers = (Array.isArray(artifacts) ? artifacts : []).filter(
+    (artifactPath) =>
+      typeof artifactPath === "string" &&
+      exts.some((ext) => artifactPath.toLowerCase().endsWith(ext.toLowerCase())) &&
+      fs.existsSync(artifactPath)
+  );
+  // Each CI matrix job builds a single arch; a packaging run with N archs must
+  // emit at least N installers. Zero installers is the silent-failure we guard.
+  const expected = options.archs.length;
+  if (installers.length < expected) {
+    throw new Error(
+      `${platformSpec.label} packaging produced ${installers.length} installer(s) ` +
+        `(${exts.join(", ")}) but expected at least ${expected} ` +
+        `(archs: ${options.archs.join(", ")}). electron-builder returned ` +
+        `${Array.isArray(artifacts) ? artifacts.length : 0} artifact(s). This usually means the ` +
+        `installer step failed silently — e.g. NSIS could not package an oversized ` +
+        `payload. Refusing to continue so CI never publishes a release without a working installer.`
+    );
+  }
+}
+
 function printHelp(platformSpec) {
   console.log(`${platformSpec.label} packaging script`);
   console.log("");
@@ -535,6 +574,8 @@ async function runDesktopPackaging(platformKey, argv = process.argv.slice(2)) {
     artifacts.forEach((artifactPath) => {
       console.log(`- ${path.relative(PROJECT_ROOT, artifactPath)}`);
     });
+    // Hard-fail if the installer is missing so CI cannot publish a broken release.
+    assertInstallerArtifacts(platformSpec, options, artifacts);
   }
 
   return artifacts;

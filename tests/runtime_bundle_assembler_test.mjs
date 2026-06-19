@@ -22,6 +22,7 @@ const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "
 async function main() {
   testResolvers();
   testRequirementsFilter();
+  testBundleRequirements();
   testManifest();
   await testManifestOnlyBuild();
   console.log("runtime_bundle_assembler_test: ok");
@@ -53,6 +54,29 @@ ruff>=0.8.0`);
   assert.ok(reqs.includes("neo4j>=5.25.0"));
   assert.ok(!reqs.some((r) => /pytest|ruff/.test(r)), "dev/test deps stripped");
   assert.ok(!reqs.some((r) => r.startsWith("#")), "comments stripped");
+}
+
+function testBundleRequirements() {
+  // The bundle ships a curated minimal set, NOT the full server requirements.
+  // The heavy/optional subsystems that overflowed NSIS must be excluded, and
+  // their import-time companions must stay (pandas for the always-on Pypes
+  // engine; openlineage for governance/lineage.py module-level facets).
+  const reqs = a.bundleRuntimeRequirements();
+  const names = reqs.map((r) => r.split(/[>=<~ ]/)[0].toLowerCase());
+
+  for (const excluded of ["arize-phoenix", "polars", "pyarrow"]) {
+    assert.ok(!names.includes(excluded), `${excluded} must be excluded from the bundle`);
+    assert.ok(a.BUNDLE_EXCLUDED_PACKAGES.has(excluded), `${excluded} listed in BUNDLE_EXCLUDED_PACKAGES`);
+  }
+  for (const required of [
+    "fastapi", "uvicorn", "litellm", "chromadb", "neo4j", "pandas",
+    "openlineage-python", "pymupdf", "tree-sitter", "langgraph"
+  ]) {
+    assert.ok(names.includes(required), `${required} must be in the bundle`);
+  }
+  // Returned array is a copy — callers can't mutate the source of truth.
+  reqs.push("tampered>=0.0.0");
+  assert.ok(!a.bundleRuntimeRequirements().some((r) => r.startsWith("tampered")), "bundle list is copied");
 }
 
 function testManifest() {
