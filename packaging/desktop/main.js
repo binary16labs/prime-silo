@@ -6,7 +6,7 @@ const { Readable, Transform } = require("node:stream");
 const { pipeline } = require("node:stream/promises");
 const { pathToFileURL } = require("node:url");
 const { app, BrowserWindow, WebContentsView, ipcMain, net, webFrameMain } = require("electron");
-const { createDesktopTray, destroyDesktopTray } = require("./tray");
+const { createDesktopTray, destroyDesktopTray, setRuntimePhase: setTrayRuntimePhase } = require("./tray");
 const { seedSelfAwareness } = require("./self_awareness");
 const { createRuntimeSupervisor } = require("./runtime_supervisor");
 const {
@@ -2111,7 +2111,17 @@ async function startDesktop() {
     appVersion: app.getVersion(),
     bennyHome: path.join(app.getPath("userData"), "benny-home"),
     config: readDesktopConfigFile(),
-    env: process.env
+    env: process.env,
+    // Surface first-run download + start-up phases in the tray status line so the
+    // ~380MB first-run fetch is visible. Safe before the tray exists (it buffers
+    // the phase and reflects it when the menu is first built).
+    onStatus: (status) => {
+      try {
+        setTrayRuntimePhase(status && status.phase);
+      } catch (error) {
+        console.warn("[runtime] tray status update failed:", error?.message || error);
+      }
+    }
   });
   void runtimeSupervisor.start()
     .then((result) => {

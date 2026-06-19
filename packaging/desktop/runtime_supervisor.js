@@ -393,6 +393,7 @@ function createRuntimeSupervisor(options = {}) {
     children.clear();
     started = false;
     await Promise.all(entries.map(({ child }) => stopChild(child, graceMs, logger, { platform, killTree: killTreeFn })));
+    onStatus?.({ phase: "stopped" });
   }
 
   async function restart() {

@@ -25,6 +25,12 @@ let currentHomeDir = null;
 let currentBennyHome = null;
 let bennyRuntimeUp = false;
 let bennyStatusTimer = null;
+// Latest lifecycle phase pushed by the runtime supervisor (first-run download →
+// start). "" = unknown; others: downloading | starting | running | degraded |
+// unavailable | stopped. Drives the status line so the ~380MB first-run fetch is
+// visible instead of looking hung.
+let runtimePhase = "";
+let menuOptions = null;
 
 function getConfigPath() {
   return path.join(app.getPath("userData"), CONFIG_FILENAME);
@@ -169,6 +175,26 @@ function readMemorayUrlFromLock() {
   }
 }
 
+// The runtime status line, reflecting the supervisor's lifecycle phase. The
+// first-run download and start-up are surfaced so the tray never just says
+// "stopped" while the runtime is actually being fetched/started.
+function runtimeStatusLabel(bundledManaged) {
+  switch (runtimePhase) {
+    case "downloading":
+      return "Benny runtime: downloading runtime… (first run)";
+    case "starting":
+      return "Benny runtime: starting…";
+    case "unavailable":
+      return "Benny runtime: unavailable (retries next launch)";
+    default:
+      break;
+  }
+  if (bennyRuntimeUp) {
+    return bundledManaged ? "Benny runtime: running (bundled)" : "Benny runtime: running";
+  }
+  return runtimePhase === "degraded" ? "Benny runtime: degraded" : "Benny runtime: stopped";
+}
+
 function buildMenu(options) {
   const { showMainWindow, createWindow, getBrowserUrl, requestQuit, runtime } = options;
   // When a bundled runtime is being supervised in-process, Start/Stop drive it;
@@ -231,9 +257,7 @@ function buildMenu(options) {
     { type: "separator" },
     // ── Benny services ──────────────────────────────────────────────────
     {
-      label: bennyRuntimeUp
-        ? (bundledManaged ? "Benny runtime: running (bundled)" : "Benny runtime: running")
-        : "Benny runtime: stopped",
+      label: runtimeStatusLabel(bundledManaged),
       enabled: false
     },
     {
@@ -348,6 +372,7 @@ function createDesktopTray(options = {}) {
     return null;
   }
 
+  menuOptions = options;
   currentHomeDir = readHomeDirectoryConfig();
   currentBennyHome = readBennyHomeConfig();
 
@@ -372,6 +397,26 @@ function createDesktopTray(options = {}) {
   return tray;
 }
 
+// Push a runtime lifecycle phase from the supervisor (main.js wires this as the
+// supervisor's onStatus). Safe to call before the tray exists — the phase is
+// stored and reflected when the menu is next built. Rebuilds the menu live so
+// the status line updates without waiting for the next poll/right-click.
+function setRuntimePhase(phase) {
+  runtimePhase = String(phase || "");
+  if (runtimePhase === "running") {
+    bennyRuntimeUp = true;
+  } else if (runtimePhase === "unavailable" || runtimePhase === "stopped") {
+    bennyRuntimeUp = false;
+  }
+  if (tray && menuOptions) {
+    try {
+      tray.setContextMenu(buildMenu(menuOptions));
+    } catch {
+      // ignore transient menu rebuild errors
+    }
+  }
+}
+
 function destroyDesktopTray() {
   if (bennyStatusTimer) {
     clearInterval(bennyStatusTimer);
@@ -387,4 +432,4 @@ function destroyDesktopTray() {
   }
 }
 
-module.exports = { createDesktopTray, destroyDesktopTray };
+module.exports = { createDesktopTray, destroyDesktopTray, setRuntimePhase };

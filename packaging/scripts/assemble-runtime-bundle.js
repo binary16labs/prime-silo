@@ -98,25 +98,21 @@ function resolveJreBuild(platform, arch) {
   return build;
 }
 
-// The curated set the *bundled* runtime actually needs to boot and serve the
-// four surfaces (Documents/RAG, knowledge + code graphs, Flows, Deep-produce).
+// The runtime dependency set the *downloaded* runtime bundle installs.
 //
-// This is intentionally decoupled from runtime/requirements.txt (which is the
-// full server/dev/test set). Shipping that full set produced a ~1.5 GB unpacked
-// tree that NSIS silently failed to package — the v1.2.8 Windows-x64 job
-// "succeeded" yet emitted no installer. The heavy *optional* subsystems below
-// are deliberately excluded; each is import-guarded in the runtime, so the API
-// boots fine without them:
-//   - arize-phoenix    observability/tracing. governance/tracing.py wraps
-//                      `import phoenix` in try/except (PHOENIX_AVAILABLE=False)
-//                      and lazy-imports opentelemetry only inside init_tracing().
-//                      It drags in scipy, scikit-learn, the pydantic-ai +
-//                      opentelemetry + boto3 + kubernetes + grpcio + google-genai
-//                      stack — by far the biggest contributor to bundle bloat.
-//   - polars, pyarrow  Pypes' optional columnar engine. polars is import-guarded
-//                      in pypes/engines/__init__.py and falls back to PandasEngine.
-// pandas is KEPT — PandasEngine is the always-on Pypes default and is imported at
-// startup via pypes_routes; it previously arrived transitively through phoenix.
+// Since v1.2.9 the bundle is NOT packed into the installer — it ships as a
+// separate release asset the app fetches on first launch (see
+// packaging/scripts/pack-runtime-bundle.js + packaging/desktop/runtime_fetch.js).
+// That removed the NSIS payload ceiling that briefly forced a slim set, so we
+// ship the FULL runtime here (parity with runtime/requirements.txt minus
+// dev/test) — including the heavy observability + columnar stacks:
+//   - arize-phoenix    Phoenix tracing/observability (governance/tracing.py).
+//                      Pulls scipy, scikit-learn, the pydantic-ai + opentelemetry
+//                      + boto3 + kubernetes + grpcio + google-genai stack.
+//   - polars, pyarrow  Pypes' columnar engine (pypes/engines/polars_impl.py).
+// This list is the source of truth for what pip installs into site/; it is kept
+// explicit (rather than parsing runtime/requirements.txt) so the bundle contents
+// are reviewable and decoupled from server/dev/test churn.
 const BUNDLE_RUNTIME_REQUIREMENTS = [
   // API surface
   "fastapi>=0.115.0",
@@ -139,8 +135,14 @@ const BUNDLE_RUNTIME_REQUIREMENTS = [
   // Lineage facets are imported at module load in governance/lineage.py (HTTP
   // emission itself stays gated off via BENNY_LINEAGE_ENABLED).
   "openlineage-python>=1.27.0",
-  // Pypes always-on engine (kept now that phoenix no longer pulls it transitively)
+  // Observability / tracing (governance/tracing.py). Pulls scipy, scikit-learn,
+  // boto3, kubernetes, grpcio, the pydantic-ai + opentelemetry stack.
+  "arize-phoenix>=5.0.0",
+  // Tabular data — Pypes engines (pandas is the always-on default; polars/pyarrow
+  // are the columnar fast path).
   "pandas>=2.0.0",
+  "polars>=1.0.0",
+  "pyarrow>=15.0.0",
   // Documents ingest (PDF + HTML cleanup). fitz == PyMuPDF.
   "pypdf>=5.0.0",
   "beautifulsoup4>=4.12.0",
@@ -158,10 +160,10 @@ const BUNDLE_RUNTIME_REQUIREMENTS = [
   "mcp>=1.0"
 ];
 
-// The packages we deliberately exclude from the bundle even if a future
-// requirements.txt re-introduces them. Used to keep filterRuntimeRequirements
-// honest if it is ever wired back as the source.
-const BUNDLE_EXCLUDED_PACKAGES = new Set(["arize-phoenix", "polars", "pyarrow"]);
+// No packages are excluded any more (the bundle is a download, not an installer
+// payload). Kept as an explicit, empty allow-everything marker so the intent is
+// obvious and the assembler test can assert nothing is silently dropped.
+const BUNDLE_EXCLUDED_PACKAGES = new Set([]);
 
 // Return the curated bundle requirement set (the source of truth for what pip
 // installs into site/). Kept as a function so callers read intent, not an array.

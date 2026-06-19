@@ -57,20 +57,19 @@ ruff>=0.8.0`);
 }
 
 function testBundleRequirements() {
-  // The bundle ships a curated minimal set, NOT the full server requirements.
-  // The heavy/optional subsystems that overflowed NSIS must be excluded, and
-  // their import-time companions must stay (pandas for the always-on Pypes
-  // engine; openlineage for governance/lineage.py module-level facets).
+  // Since v1.2.9 the bundle is a downloaded asset (not an installer payload), so
+  // it ships the FULL runtime — including the heavy observability + columnar
+  // stacks — and excludes nothing.
   const reqs = a.bundleRuntimeRequirements();
   const names = reqs.map((r) => r.split(/[>=<~ ]/)[0].toLowerCase());
 
-  for (const excluded of ["arize-phoenix", "polars", "pyarrow"]) {
-    assert.ok(!names.includes(excluded), `${excluded} must be excluded from the bundle`);
-    assert.ok(a.BUNDLE_EXCLUDED_PACKAGES.has(excluded), `${excluded} listed in BUNDLE_EXCLUDED_PACKAGES`);
-  }
+  assert.equal(a.BUNDLE_EXCLUDED_PACKAGES.size, 0, "nothing is excluded from the downloaded bundle");
   for (const required of [
     "fastapi", "uvicorn", "litellm", "chromadb", "neo4j", "pandas",
-    "openlineage-python", "pymupdf", "tree-sitter", "langgraph"
+    "openlineage-python", "pymupdf", "tree-sitter", "langgraph",
+    // restored heavy/optional subsystems (phoenix pulls scipy/scikit-learn/boto3/
+    // kubernetes/grpcio transitively; polars/pyarrow are the Pypes columnar path)
+    "arize-phoenix", "polars", "pyarrow"
   ]) {
     assert.ok(names.includes(required), `${required} must be in the bundle`);
   }
