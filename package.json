@@ -82,6 +82,7 @@
     },
     "win": {
       "icon": "packaging/platforms/windows/icon.ico",
+      "signAndEditExecutable": false,
       "target": [
         "nsis"
       ]
