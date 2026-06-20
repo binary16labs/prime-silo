@@ -19,7 +19,7 @@ from ..core.models import call_model
 from ..core.graph_db import get_driver, multi_hop_traversal  # For multi-hop traversal
 from ..core.workspace import get_workspace_path
 from ..governance.lineage import track_workflow_start, track_workflow_complete
-from ..tools.knowledge import get_chromadb_client
+from ..tools.knowledge import get_chromadb_client, get_knowledge_collection
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +122,7 @@ async def retrieve_single_step(state: AdaptiveRAGState) -> dict:
     
     try:
         client = get_chromadb_client(workspace)
-        collection = client.get_or_create_collection("knowledge")
+        collection = get_knowledge_collection(client)
         
         results = collection.query(
             query_texts=[query],
@@ -161,7 +161,7 @@ async def retrieve_multi_hop(state: AdaptiveRAGState) -> dict:
     chroma_docs = []
     try:
         client = get_chromadb_client(workspace)
-        collection = client.get_or_create_collection("knowledge")
+        collection = get_knowledge_collection(client)
         results = collection.query(query_texts=[query], n_results=10)
         if results and results["documents"] and results["documents"][0]:
             for doc, meta in zip(results["documents"][0], results["metadatas"][0]):

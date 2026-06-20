@@ -13,7 +13,7 @@ import httpx
 
 from ..core.workspace import get_workspace_path
 from ..core.extraction import extract_structured_text
-from ..tools.knowledge import get_chromadb_client
+from ..tools.knowledge import get_chromadb_client, get_knowledge_collection, heal_collection_dimension
 from ..core.models import LOCAL_PROVIDERS, get_active_model
 from ..core.task_manager import task_manager
 from ..governance.lineage import track_workflow_start, track_workflow_complete, track_aer, track_workflow_fail, track_llm_call
@@ -111,11 +111,38 @@ async def ingest_files(request: IngestRequest):
         if not file_paths:
             task_manager.update_task(run_id, status="failed", message="No supported files found")
             raise HTTPException(404, "No supported files found")
-        
+
+        # Preflight: the knowledge collection embeds via the local HTTP provider
+        # (LocalEmbeddingFunction → LM Studio / Lemonade / Ollama). If that
+        # provider is down, every upsert silently stores zero-vectors (see
+        # core/embeddings.py) and search returns garbage. Probe once and fail
+        # fast with an actionable message instead of a hollow success.
+        from ..core.embeddings import get_embedding_sync
+        try:
+            probe_vec = get_embedding_sync("ping")
+        except Exception as probe_e:
+            probe_vec = []
+            logger.warning("Embedding preflight raised: %s", probe_e)
+        if not any(probe_vec):
+            msg = (
+                "Embedding provider unreachable — no documents were indexed. "
+                "Start a local embedding server (LM Studio / Lemonade / Ollama) "
+                "and retry."
+            )
+            task_manager.update_task(run_id, status="failed", message=msg)
+            try:
+                track_workflow_fail(run_id, "rag_ingest", request.workspace, msg)
+            except Exception:
+                pass
+            raise HTTPException(503, msg)
+
         # Get ChromaDB client
         client = get_chromadb_client(request.workspace)
         collection_name = f"notebook_{request.notebook_id}" if request.notebook_id else "knowledge"
-        collection = client.get_or_create_collection(collection_name)
+        collection = get_knowledge_collection(client, collection_name)
+        # Self-heal a stale collection left by the pre-fix 384-dim default embedder
+        # so the zero-install exe needs no manual chromadb cleanup.
+        collection = heal_collection_dimension(client, collection, collection_name, probe_vec)
 
         # Update task total steps
         task_manager.update_task(run_id, total_steps=len(file_paths), progress=10)
@@ -157,10 +184,11 @@ async def ingest_files(request: IngestRequest):
                     else:
                         chunks.append(rc)
                 
+                index_error = None
                 if chunks:
                     try:
                         task_manager.update_task(run_id, metadata={"stage": "INDEXING", "current_file": file_path.name, "chunks": len(chunks)})
-                        
+
                         # 1. DELETE old entries for this source to ensure fresh start
                         logger.info(f"Clearing old vectors for {file_path.name} to ensure fresh ingestion.")
                         collection.delete(where={"source": file_path.name})
@@ -171,13 +199,19 @@ async def ingest_files(request: IngestRequest):
                             batch_chunks = chunks[i:i + batch_size]
                             batch_ids = [f"{file_path.stem}_{run_id[-4:]}_{j}" for j in range(i, i + len(batch_chunks))]
                             batch_metadatas = [
-                                {"source": file_path.name, "chunk_index": j, "run_id": run_id} 
+                                {"source": file_path.name, "chunk_index": j, "run_id": run_id}
                                 for j in range(i, i + len(batch_chunks))
                             ]
                             collection.add(documents=batch_chunks, metadatas=batch_metadatas, ids=batch_ids)
                     except Exception as index_e:
+                        # An indexing failure means the file produced NO retrievable
+                        # vectors — surface it instead of reporting clean success.
+                        # Most common cause: the embedding provider (LM Studio /
+                        # Lemonade / Ollama) is down, so LocalEmbeddingFunction
+                        # returns zero-vectors or Chroma raises.
+                        index_error = str(index_e)
                         logger.error(f"Vector Indexing error for {file_path.name}: {index_e}")
-                        task_manager.add_aer_entry(run_id, "Error", f"Indexing Failed {file_path.name}: {str(index_e)}")
+                        task_manager.add_aer_entry(run_id, "Error", f"Indexing Failed {file_path.name}: {index_error}")
                         # Do not abort the loop, let it continue to deep synthesis
                 
                 # 3. DEEP SYNTHESIS (Optional)
@@ -234,7 +268,15 @@ async def ingest_files(request: IngestRequest):
                         logger.error(f"Deep Synthesis error: {synth_e}")
                         track_aer(run_id, "rag_ingest", request.workspace, f"Synthesis failed for {file_path.name}", str(synth_e))
 
-                ingested.append({"file": file_path.name, "chunks": len(chunks)})
+                file_result = {"file": file_path.name, "chunks": len(chunks)}
+                if index_error:
+                    # Chunks were produced but none were stored — report the failure
+                    # so the caller doesn't treat an empty index as a success.
+                    file_result["indexed"] = False
+                    file_result["error"] = index_error
+                else:
+                    file_result["indexed"] = bool(chunks)
+                ingested.append(file_result)
                 task_manager.update_task(run_id, progress=10 + int(80 * (idx+1) / len(file_paths)))
                 
             except Exception as e:
@@ -268,24 +310,50 @@ async def ingest_files(request: IngestRequest):
                 logger.error(f"Post-processing error: {post_e}")
  
 
-        task_manager.update_task(run_id, status="completed", progress=100, message="Ingestion finished successfully")
+        # Honest status: a file "indexed" only if its vectors were actually
+        # stored. If every file failed to index, this run did nothing useful —
+        # report it as failed so the UI surfaces it instead of a green tick.
+        succeeded = [f for f in ingested if f.get("indexed")]
+        failed = [f for f in ingested if f.get("error")]
+        if succeeded:
+            final_status = "completed" if not failed else "completed_with_errors"
+            final_msg = (
+                "Ingestion finished successfully" if not failed
+                else f"Ingested {len(succeeded)} file(s); {len(failed)} failed to index."
+            )
+        else:
+            final_status = "failed"
+            hint = failed[0]["error"] if failed else "no chunks were produced"
+            final_msg = (
+                f"No documents were indexed ({hint}). "
+                "If the error mentions embeddings/connection, start your local "
+                "embedding provider (LM Studio / Lemonade / Ollama) and retry."
+            )
+
+        task_manager.update_task(run_id, status=final_status, progress=100, message=final_msg)
         try:
-            track_workflow_complete(
-                run_id, 
-                "rag_ingest", 
-                request.workspace, 
-                ["extraction", "chunking", "upsert"], 
-                0, 
-                outputs=[f"chromadb:{collection_name}"]
-            ) 
+            if final_status == "failed":
+                track_workflow_fail(run_id, "rag_ingest", request.workspace, final_msg)
+            else:
+                track_workflow_complete(
+                    run_id,
+                    "rag_ingest",
+                    request.workspace,
+                    ["extraction", "chunking", "upsert"],
+                    0,
+                    outputs=[f"chromadb:{collection_name}"]
+                )
         except Exception:
             pass
-        
+
         return {
-            "status": "completed",
+            "status": final_status,
+            "message": final_msg,
             "run_id": run_id,
             "workspace": request.workspace,
             "ingested": ingested,
+            "indexed_files": len(succeeded),
+            "failed_files": len(failed),
             "total_documents": collection.count()
         }
         
@@ -318,7 +386,7 @@ async def get_rag_status(workspace: str = "default"):
     """Get RAG status and document count"""
     try:
         client = get_chromadb_client(workspace)
-        collection = client.get_or_create_collection("knowledge")
+        collection = get_knowledge_collection(client)
         
         # Get unique sources - optimized by only fetching metadatas
         all_data = collection.get(include=['metadatas'])
@@ -344,7 +412,7 @@ async def get_indexing_manifest(workspace: str = "default"):
     try:
         # 1. Get indexed sources
         client = get_chromadb_client(workspace)
-        collection = client.get_or_create_collection("knowledge")
+        collection = get_knowledge_collection(client)
         all_data = collection.get(include=['metadatas'])
         
         indexed_sources = {} # source_name -> {chunk_count, last_indexed}
@@ -416,7 +484,7 @@ async def query_rag(request: QueryRequest):
     """Test semantic search"""
     try:
         client = get_chromadb_client(request.workspace)
-        collection = client.get_or_create_collection("knowledge")
+        collection = get_knowledge_collection(client)
         
         if collection.count() == 0:
             return {
@@ -608,7 +676,7 @@ async def chat_rag(request: QueryRequest):
         
         # 1. Retrieve context
         client = get_chromadb_client(request.workspace)
-        collection = client.get_or_create_collection("knowledge")
+        collection = get_knowledge_collection(client)
         
         context_text = ""
         sources = []

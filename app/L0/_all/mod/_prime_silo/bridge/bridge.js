@@ -43,7 +43,8 @@ export const MODES = [
   { id: "documents", label: "Documents", icon: "description" },
   { id: "code", label: "Code 3D", icon: "account_tree" },
   { id: "flows", label: "Flows", icon: "alt_route" },
-  { id: "runs", label: "Runs", icon: "timeline" }
+  { id: "runs", label: "Runs", icon: "timeline" },
+  { id: "agents", label: "Agents", icon: "smart_toy" }
 ];
 
 // Mode-aware Benny suggestion chips. `instruction` is the human-facing intent;
@@ -74,6 +75,10 @@ export const CHIPS = {
   runs: [
     { label: "Explain this run", instruction: "Explain what happened in the selected run, step by step." },
     { label: "Why did it fail?", instruction: "If the selected run failed, diagnose the likely cause from its lineage." }
+  ],
+  agents: [
+    { label: "Which model runs synthesis?", instruction: "Tell me which model is currently resolved for graph_synthesis in this workspace and whether it's local." },
+    { label: "Recommend a local setup", instruction: "Recommend which local models to assign to chat and graph_synthesis given my running providers." }
   ]
 };
 
@@ -208,6 +213,11 @@ export function createBridgePage(options = {}) {
     dragOver: false,
     uploading: false,
     rescanning: false,
+    // documents — ask (RAG chat over the ingested docs)
+    docQuestion: "",
+    docAnswer: "",
+    docSources: [],
+    asking: false,
     docs3d: false,
     docsPhysics: "pinned",
     docsFocusLayer: 0, // 0 = all AoT layers, 1..5 = focus a single layer
@@ -250,6 +260,14 @@ export function createBridgePage(options = {}) {
     // runs
     runs: [],
     activeRunId: "",
+
+    // agents (model + provider routing — single config surface)
+    agentProviders: {},     // raw /llm/status
+    agentConfig: null,      // /llm/config (default_model, model_roles, resolved)
+    agentModelOptions: [],  // [{ value:"lmstudio/<id>", label, provider, running }]
+    agentRoles: [],
+    agentSaving: false,
+    agentNote: "",
 
     _ctx: null,
     _widgets: [],
@@ -331,6 +349,7 @@ export function createBridgePage(options = {}) {
         case "code": return this.mountCode();
         case "flows": return this.mountFlows();
         case "runs": return this.mountRuns();
+        case "agents": return this.mountAgents();
         default: return undefined;
       }
     },
@@ -587,13 +606,30 @@ export function createBridgePage(options = {}) {
       this.ingesting = true;
       this.ingestNote = "Ingesting documents into the knowledge graph…";
       try {
+        // deep_synthesis:true extracts semantic triples into Neo4j — without it
+        // the Documents knowledge graph (which reads Neo4j) stays empty even on
+        // a "successful" vector ingest. The chip promises triples, so build them.
         const body = await readRuntimeJson(await runtimeFetch("/rag/ingest", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ workspace: this.workspace })
+          body: JSON.stringify({ workspace: this.workspace, deep_synthesis: true })
         }));
-        const runId = body && (body.run_id || body.task_id || body.id);
-        this.ingestNote = runId ? `Ingest started (run ${runId}). Triples will populate the graph as files are processed.` : "Ingest started.";
+        const status = body && body.status;
+        if (status === "failed") {
+          // The runtime now reports honest failures (e.g. embedding provider
+          // down) instead of a hollow success — surface the message verbatim.
+          this.ingestNote = `Ingest failed: ${body.message || "no documents were indexed."}`;
+        } else {
+          const runId = body && (body.run_id || body.task_id || body.id);
+          const indexed = body && Number.isFinite(body.indexed_files) ? body.indexed_files : null;
+          const failed = body && Number.isFinite(body.failed_files) ? body.failed_files : 0;
+          const parts = [];
+          if (indexed !== null) parts.push(`Indexed ${indexed} file${indexed === 1 ? "" : "s"}`);
+          if (failed) parts.push(`${failed} failed`);
+          parts.push(runId ? `(run ${runId})` : "");
+          parts.push("Triples will populate the graph as files are processed.");
+          this.ingestNote = parts.filter(Boolean).join(" · ");
+        }
         // Refresh the triples view and per-file statuses shortly after kick-off.
         setTimeout(() => this.mountKnowledgeGraph(), 1500);
         setTimeout(() => this.loadFiles(), 2500);
@@ -616,6 +652,29 @@ export function createBridgePage(options = {}) {
         this.mountKnowledgeGraph();
       } catch (err) {
         this.ingestNote = `Correlate failed: ${err && err.message ? err.message : String(err)}`;
+      }
+    },
+
+    // Ask a question against the ingested documents (semantic RAG). The backend
+    // /rag/chat retrieves the most relevant chunks and answers with citations.
+    async askDocs() {
+      const q = (this.docQuestion || "").trim();
+      if (!q) return;
+      this.asking = true;
+      this.docAnswer = "";
+      this.docSources = [];
+      try {
+        const body = await readRuntimeJson(await runtimeFetch("/rag/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: q, workspace: this.workspace, mode: "semantic" })
+        }));
+        this.docAnswer = (body && body.answer) || "No answer returned.";
+        this.docSources = body && Array.isArray(body.sources) ? body.sources : [];
+      } catch (err) {
+        this.docAnswer = `Query failed: ${err && err.message ? err.message : String(err)}`;
+      } finally {
+        this.asking = false;
       }
     },
 
@@ -821,6 +880,106 @@ export function createBridgePage(options = {}) {
       }
     },
 
+    /* ── Agents (model + provider routing — one config surface) ── */
+
+    async mountAgents() {
+      await this.loadAgents();
+    },
+
+    async loadAgents() {
+      this.agentNote = "";
+      try {
+        const [status, config] = await Promise.all([
+          readRuntimeJson(await runtimeFetch("/llm/status")),
+          readRuntimeJson(await runtimeFetch(`/llm/config?workspace=${encodeURIComponent(this.workspace)}`))
+        ]);
+        this.agentProviders = status && typeof status === "object" ? status : {};
+        this.agentConfig = config || null;
+        this.agentRoles = config && Array.isArray(config.roles) ? config.roles : [];
+        this.agentModelOptions = this.buildModelOptions(this.agentProviders);
+      } catch (err) {
+        this.agentNote = `Couldn't load agent config: ${err && err.message ? err.message : String(err)}`;
+      }
+    },
+
+    // Flatten running providers into provider/model_id options that match what
+    // get_active_model() returns and call_model() expects.
+    buildModelOptions(providers) {
+      const opts = [];
+      for (const [key, p] of Object.entries(providers || {})) {
+        const models = p && p.models && Array.isArray(p.models.data) ? p.models.data : [];
+        for (const m of models) {
+          if (!m || !m.id) continue;
+          opts.push({ value: `${key}/${m.id}`, label: m.id, provider: (p && p.name) || key, running: !!(p && p.running) });
+        }
+      }
+      return opts;
+    },
+
+    agentProviderList() {
+      return Object.entries(this.agentProviders || {}).map(([key, p]) => ({
+        key,
+        name: (p && p.name) || key,
+        running: !!(p && p.running),
+        port: p && p.port,
+        models: p && p.models && Array.isArray(p.models.data) ? p.models.data.length : 0,
+        canStart: !!(p && p.can_start),
+        canStop: !!(p && p.can_stop),
+        error: (p && p.error) || ""
+      }));
+    },
+
+    roleValue(role) {
+      const roles = this.agentConfig && this.agentConfig.model_roles ? this.agentConfig.model_roles : {};
+      return roles[role] || "";
+    },
+
+    setRoleValue(role, value) {
+      if (!this.agentConfig) return;
+      if (!this.agentConfig.model_roles) this.agentConfig.model_roles = {};
+      this.agentConfig.model_roles[role] = value;
+    },
+
+    resolvedFor(role) {
+      const r = this.agentConfig && this.agentConfig.resolved ? this.agentConfig.resolved : {};
+      return r[role] || "";
+    },
+
+    async saveAgents() {
+      if (!this.agentConfig) return;
+      this.agentSaving = true;
+      this.agentNote = "Saving model routing…";
+      try {
+        const updated = await readRuntimeJson(await runtimeFetch("/llm/config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            workspace: this.workspace,
+            default_model: this.agentConfig.default_model || "",
+            model_roles: this.agentConfig.model_roles || {}
+          })
+        }));
+        this.agentConfig = updated || this.agentConfig;
+        this.agentNote = "Saved. New routing takes effect on the next run — no restart needed.";
+      } catch (err) {
+        this.agentNote = `Save failed: ${err && err.message ? err.message : String(err)}`;
+      } finally {
+        this.agentSaving = false;
+      }
+    },
+
+    async toggleProvider(key, running) {
+      const action = running ? "stop" : "start";
+      this.agentNote = `${running ? "Stopping" : "Starting"} ${key}…`;
+      try {
+        await readRuntimeJson(await runtimeFetch(`/llm/${encodeURIComponent(key)}/${action}`, { method: "POST" }));
+        this.agentNote = `${key}: ${action} requested.`;
+        setTimeout(() => this.loadAgents(), 1500);
+      } catch (err) {
+        this.agentNote = `${key} ${action} failed: ${err && err.message ? err.message : String(err)}`;
+      }
+    },
+
     /* ── workspace + conformance (shared) ── */
 
     async loadWorkspaces() {
@@ -839,6 +998,7 @@ export function createBridgePage(options = {}) {
       // Re-mount the workspace-scoped surfaces.
       if (this.mode === "documents") this.mountDocuments();
       else if (this.mode === "code") { this.destroyWidgets(); this.mountCode(); }
+      else if (this.mode === "agents") this.loadAgents();
     },
 
     async loadConformance() {

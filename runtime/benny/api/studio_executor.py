@@ -30,7 +30,7 @@ from ..governance.execution_audit import (
 )
 from ..core.task_manager import task_manager
 from ..core.workspace import get_workspace_path
-from ..tools.knowledge import get_chromadb_client
+from ..tools.knowledge import get_chromadb_client, get_knowledge_collection
 from ..core.event_bus import event_bus
 from ..core.reasoning import extract_reasoning, format_combined_output
 
@@ -199,7 +199,7 @@ async def execute_data_node(node: StudioNode, context: Dict, workspace: str) -> 
         query = context.get("message", "")
         try:
             client = get_chromadb_client(workspace)
-            collection = client.get_or_create_collection("knowledge")
+            collection = get_knowledge_collection(client)
 
             if collection.count() == 0:
                 return {"results": [], "message": "Knowledge base empty — please ingest documents first"}

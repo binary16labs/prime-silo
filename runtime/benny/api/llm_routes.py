@@ -256,3 +256,71 @@ async def delete_ollama_model(model: str):
             return {"status": "deleted", "model": model}
     except httpx.ConnectError:
         raise HTTPException(503, "Ollama not running")
+
+
+# =============================================================================
+# MODEL ROUTING CONFIG — single source of truth for "which model runs each role"
+# =============================================================================
+# Persisted in the workspace manifest (manifest.yaml: default_model + model_roles),
+# which get_active_model() reads at call time. This is what the Agents screen in
+# the shell drives, so all model/provider routing lives in one configurable place
+# instead of relying on auto-detection / the openai/gpt-4o fallback.
+
+# Roles the resolver honours (see synthesis/engine.py + rag_routes.py call sites).
+CONFIGURABLE_ROLES = ["chat", "graph_synthesis", "swarm", "plan", "executor", "tts", "stt"]
+
+
+class ModelConfigRequest(BaseModel):
+    workspace: str = "default"
+    default_model: Optional[str] = None
+    model_roles: Optional[Dict[str, str]] = None
+    embedding_provider: Optional[str] = None
+    llm_timeout: Optional[float] = None
+
+
+@router.get("/config")
+async def get_model_routing_config(workspace: str = "default"):
+    """Return the persisted model-routing config + the live model resolved per role."""
+    from ..core.workspace import load_manifest
+    from ..core.models import get_active_model
+    manifest = load_manifest(workspace)
+    resolved = {}
+    for role in CONFIGURABLE_ROLES:
+        try:
+            resolved[role] = await get_active_model(workspace, role=role)
+        except Exception as e:
+            resolved[role] = f"(unresolved: {e})"
+    return {
+        "workspace": workspace,
+        "default_model": getattr(manifest, "default_model", None),
+        "model_roles": dict(getattr(manifest, "model_roles", {}) or {}),
+        "embedding_provider": getattr(manifest, "embedding_provider", "local"),
+        "llm_timeout": getattr(manifest, "llm_timeout", 300.0),
+        "roles": CONFIGURABLE_ROLES,
+        "resolved": resolved,
+    }
+
+
+@router.post("/config")
+async def set_model_routing_config(request: ModelConfigRequest):
+    """Persist model-routing config to the workspace manifest. Single source of
+    truth for get_active_model(); takes effect on the next LLM call (no restart)."""
+    from ..core.workspace import load_manifest, save_manifest
+    manifest = load_manifest(request.workspace)
+    if request.default_model is not None:
+        manifest.default_model = request.default_model or None
+    if request.model_roles is not None:
+        # Merge: a key set to "" reverts that role to the default; others replace.
+        roles = dict(getattr(manifest, "model_roles", {}) or {})
+        for k, v in request.model_roles.items():
+            if v:
+                roles[k] = v
+            else:
+                roles.pop(k, None)
+        manifest.model_roles = roles
+    if request.embedding_provider is not None:
+        manifest.embedding_provider = request.embedding_provider
+    if request.llm_timeout is not None:
+        manifest.llm_timeout = request.llm_timeout
+    save_manifest(request.workspace, manifest)
+    return await get_model_routing_config(request.workspace)

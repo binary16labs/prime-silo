@@ -180,6 +180,31 @@
                   <a class="ps-bridge__link" href="/#/file_explorer" target="_blank" rel="noopener">File explorer ↗</a>
                 </div>
                 <p class="ps-bridge__note" x-show="ingestNote" x-text="ingestNote"></p>
+
+                <!-- Ask the docs (semantic RAG over ingested chunks) -->
+                <div class="ps-bridge__ask">
+                  <div class="ps-bridge__ask-row">
+                    <input
+                      type="text"
+                      class="ps-bridge__ask-input"
+                      placeholder="Ask a question about these documents…"
+                      x-model="docQuestion"
+                      @keydown.enter="askDocs()"
+                      :disabled="asking"
+                    />
+                    <button type="button" class="ps-bridge__btn ps-bridge__btn--go" @click="askDocs()" :disabled="asking || !docQuestion.trim()">
+                      <x-icon x-text="asking ? 'hourglass_top' : 'forum'"></x-icon>
+                      <span x-text="asking ? 'Asking…' : 'Ask'"></span>
+                    </button>
+                  </div>
+                  <div class="ps-bridge__ask-answer" x-show="docAnswer" x-text="docAnswer"></div>
+                  <div class="ps-bridge__ask-sources" x-show="docSources.length">
+                    <span class="ps-bridge__muted">Sources:</span>
+                    <template x-for="s in docSources" :key="s">
+                      <span class="ps-bridge__file-status is-ingested" x-text="s"></span>
+                    </template>
+                  </div>
+                </div>
               </div>
               <div class="ps-bridge__graph-wrap" :class="{ 'is-expanded': expanded }">
                 <div class="ps-bridge__graph-head">
@@ -355,6 +380,75 @@
               <div class="ps-bridge__runstage">
                 <div class="ps-bridge__graph" x-ref="runsTimeline"></div>
                 <div class="ps-bridge__graph" x-ref="runsTrace"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- AGENTS (model + provider routing — single config surface) -->
+          <div class="ps-bridge__panel" x-show="mode === 'agents'">
+            <div class="ps-bridge__agents">
+              <div class="ps-bridge__agents-col">
+                <h3>Providers</h3>
+                <p class="ps-bridge__muted">Local model servers Benny can route to. Start one, then assign its models below.</p>
+                <ul class="ps-bridge__provider-list">
+                  <template x-for="p in agentProviderList()" :key="p.key">
+                    <li class="ps-bridge__provider">
+                      <span class="ps-bridge__provider-dot" :class="p.running ? 'is-on' : 'is-off'"></span>
+                      <span class="ps-bridge__provider-name" x-text="p.name"></span>
+                      <span class="ps-bridge__provider-meta" x-text="(p.running ? (p.models + ' models') : 'stopped') + (p.port ? ' · :' + p.port : '')"></span>
+                      <span class="ps-bridge__provider-err" x-show="p.error" x-text="p.error"></span>
+                      <button
+                        type="button"
+                        class="ps-bridge__toggle"
+                        x-show="p.running ? p.canStop : p.canStart"
+                        @click="toggleProvider(p.key, p.running)"
+                        x-text="p.running ? 'Stop' : 'Start'"
+                      ></button>
+                    </li>
+                  </template>
+                </ul>
+                <button type="button" class="ps-bridge__btn" @click="loadAgents()">
+                  <x-icon>refresh</x-icon><span>Refresh</span>
+                </button>
+              </div>
+
+              <div class="ps-bridge__agents-col ps-bridge__agents-col--wide">
+                <h3>Model routing</h3>
+                <p class="ps-bridge__muted">One place to choose which model runs each role. Saved to the workspace manifest — <code>get_active_model()</code> reads it on the next call. Leave a role on <em>Default</em> to inherit the default model.</p>
+                <template x-if="agentConfig">
+                  <div class="ps-bridge__routing">
+                    <div class="ps-bridge__field">
+                      <label class="form-label">Default model (master)</label>
+                      <select class="ps-bridge__select" x-model="agentConfig.default_model">
+                        <option value="">Auto-detect (running local provider)</option>
+                        <template x-for="opt in agentModelOptions" :key="opt.value">
+                          <option :value="opt.value" x-text="opt.label + '  ·  ' + opt.provider + (opt.running ? '' : ' (stopped)')"></option>
+                        </template>
+                      </select>
+                    </div>
+
+                    <template x-for="role in agentRoles" :key="role">
+                      <div class="ps-bridge__field">
+                        <label class="form-label" x-text="role"></label>
+                        <select class="ps-bridge__select" :value="roleValue(role)" @change="setRoleValue(role, $event.target.value)">
+                          <option value="">Default (inherit)</option>
+                          <template x-for="opt in agentModelOptions" :key="role + ':' + opt.value">
+                            <option :value="opt.value" :selected="roleValue(role) === opt.value" x-text="opt.label + '  ·  ' + opt.provider + (opt.running ? '' : ' (stopped)')"></option>
+                          </template>
+                        </select>
+                        <span class="ps-bridge__resolved" x-show="resolvedFor(role)">resolves to <strong x-text="resolvedFor(role)"></strong></span>
+                      </div>
+                    </template>
+
+                    <div class="ps-bridge__doc-actions">
+                      <button type="button" class="ps-bridge__btn ps-bridge__btn--go" @click="saveAgents()" :disabled="agentSaving">
+                        <x-icon x-text="agentSaving ? 'hourglass_top' : 'save'"></x-icon>
+                        <span x-text="agentSaving ? 'Saving…' : 'Save routing'"></span>
+                      </button>
+                    </div>
+                  </div>
+                </template>
+                <p class="ps-bridge__note" x-show="agentNote" x-text="agentNote"></p>
               </div>
             </div>
           </div>

@@ -1206,9 +1206,9 @@ async def _process_content_to_graph(
         
         # Step 5b: Sync to ChromaDB for semantic search (Snapshotted)
         try:
-            from ..tools.knowledge import get_chromadb_client
+            from ..tools.knowledge import get_chromadb_client, get_knowledge_collection
             client = get_chromadb_client(workspace)
-            collection = client.get_or_create_collection("knowledge")
+            collection = get_knowledge_collection(client)
             
             # Use paragraphs as simple chunks
             chunks = [c.strip() for c in text.split('\n\n') if c.strip()]

@@ -286,6 +286,11 @@ async def call_llm(
                 model=full_model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3,
+                # Cap output so input+output fits small local context windows
+                # (FLM/NPU models are often 2048 tok). call_model defaults to
+                # 2048 output, which overflowed qwen3.5-9b-FLM → "no choices".
+                # 768 is ample for a JSON triple array.
+                max_tokens=768,
                 timeout=timeout,
                 run_id=run_id
             )

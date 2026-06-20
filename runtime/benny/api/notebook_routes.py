@@ -12,7 +12,7 @@ import uuid
 import shutil
 
 from ..core.workspace import get_workspace_path
-from ..tools.knowledge import get_chromadb_client
+from ..tools.knowledge import get_chromadb_client, get_knowledge_collection
 
 
 router = APIRouter()
@@ -171,7 +171,7 @@ async def create_notebook(request: NotebookCreate, workspace: str = "default"):
         # Create ChromaDB collection for this notebook
         client = get_chromadb_client(workspace)
         collection_name = f"notebook_{new_notebook.id}"
-        client.get_or_create_collection(collection_name)
+        get_knowledge_collection(client, collection_name)
         
         return {
             "status": "created",

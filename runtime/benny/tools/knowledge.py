@@ -21,6 +21,81 @@ def get_chromadb_client(workspace_id: str = "default") -> chromadb.PersistentCli
     )
 
 
+def get_knowledge_collection(client: "chromadb.PersistentClient", collection_name: str = "knowledge"):
+    """Get/create a RAG collection bound to the local HTTP embedder.
+
+    CRITICAL — every ingest / query / tool path MUST open the knowledge
+    collection through this helper. Opening it with a bare
+    ``client.get_or_create_collection(name)`` makes ChromaDB fall back to its
+    networked ONNX ``DefaultEmbeddingFunction`` (all-MiniLM-L6-v2, 384-dim),
+    which (a) needs ``onnxruntime`` + an internet download that is absent in
+    the bundled/offline runtime, so ``collection.add`` raises, and (b) does not
+    match the 768-dim ``LocalEmbeddingFunction`` used by the agent search tools,
+    causing a Chroma dimensionality error when both touch the same collection.
+    Routing everything through here keeps a single, offline-safe embedding
+    space across ingest, query, chat, adaptive-RAG and the graph agent.
+    """
+    ef = LocalEmbeddingFunction()
+    try:
+        return client.get_or_create_collection(collection_name, embedding_function=ef)
+    except Exception as e:
+        msg = str(e).lower()
+        # A collection created by the OLD code with Chroma's default embedder is
+        # rejected at open time by Chroma >=1.x ("embedding function conflict:
+        # ... persisted: default"). Those vectors are unsearchable with the local
+        # embedder anyway, so drop + recreate once. One-time migration; the zero-
+        # install exe self-heals with no manual chromadb cleanup.
+        if "embedding function" in msg or "conflict" in msg:
+            try:
+                client.delete_collection(collection_name)
+            except Exception:
+                pass
+            return client.get_or_create_collection(collection_name, embedding_function=ef)
+        raise
+
+
+def heal_collection_dimension(client, collection, collection_name: str, probe_vec: List[float]):
+    """Auto-reset a stale vector collection whose stored embedding dimension no
+    longer matches the active embedder, and return the collection to use.
+
+    Pre-fix installs built ``knowledge`` with ChromaDB's 384-dim default
+    embedder; adding 768-dim local vectors now raises a dimensionality error.
+    Those old vectors are unsearchable with the new embedder anyway, so on a
+    mismatch we drop and recreate the collection — the user never has to delete
+    ``chromadb`` dirs by hand (zero-install exe stays self-healing).
+
+    The check uses an explicit-embedding canary add (bypasses the embedding
+    function) so it is deterministic and offline-safe.
+    """
+    canary_id = "__benny_dim_canary__"
+    vec = [float(x) for x in (probe_vec or [])]
+    if not vec:
+        return collection  # nothing to check against; let real adds proceed
+    try:
+        collection.add(ids=[canary_id], embeddings=[vec], documents=["canary"])
+        # Clean up the canary so it never pollutes retrieval.
+        try:
+            collection.delete(ids=[canary_id])
+        except Exception:
+            pass
+        return collection
+    except Exception as e:
+        msg = str(e).lower()
+        if "dimension" in msg or "dimensionality" in msg:
+            try:
+                client.delete_collection(collection_name)
+            except Exception:
+                pass
+            return get_knowledge_collection(client, collection_name)
+        # Unknown failure — best-effort canary cleanup, then re-raise so the
+        # caller surfaces a real indexing problem rather than masking it.
+        try:
+            collection.delete(ids=[canary_id])
+        except Exception:
+            pass
+        raise
+
+
 @tool
 def search_knowledge_workspace(
     query: str,
@@ -41,8 +116,7 @@ def search_knowledge_workspace(
     """
     try:
         client = get_chromadb_client(workspace)
-        embedding_function = LocalEmbeddingFunction()
-        collection = client.get_or_create_collection("knowledge", embedding_function=embedding_function)
+        collection = get_knowledge_collection(client)
         
         if collection.count() == 0:
             return "📭 Knowledge base is empty. Ingest documents first."
@@ -91,8 +165,7 @@ def list_available_documents(workspace: str = "default") -> str:
     """
     try:
         client = get_chromadb_client(workspace)
-        embedding_function = LocalEmbeddingFunction()
-        collection = client.get_or_create_collection("knowledge", embedding_function=embedding_function)
+        collection = get_knowledge_collection(client)
         
         if collection.count() == 0:
             return "📭 No documents in knowledge base."
@@ -129,8 +202,7 @@ def read_full_document(document_name: str, workspace: str = "default") -> str:
     """
     try:
         client = get_chromadb_client(workspace)
-        embedding_function = LocalEmbeddingFunction()
-        collection = client.get_or_create_collection("knowledge", embedding_function=embedding_function)
+        collection = get_knowledge_collection(client)
         
         # Get all chunks for this document
         all_data = collection.get(

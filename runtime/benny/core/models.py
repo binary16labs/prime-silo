@@ -274,8 +274,14 @@ async def get_active_model(workspace_id: str = "default", role: str = "chat", ru
     # Increased timeout (5.0s) to handle busy local NPUs/CPUs (PBR-001 Phase 3)
     for provider_name, config in LOCAL_PROVIDERS.items():
         try:
+            # OpenAI-compatible model list lives at <base_url>/models (e.g.
+            # http://localhost:1234/v1/models). The old `.replace("/v1","/models")`
+            # STRIPPED the /v1 segment → hit a 404 path, so local chat models were
+            # never detected and routing leaked to openai/gpt-4o (which has no key
+            # in a local/bundled install → "Missing OPENAI_API_KEY").
+            models_url = config["base_url"].rstrip("/") + "/models"
             async with httpx.AsyncClient(timeout=5.0) as client:
-                resp = await client.get(config["base_url"].replace("/v1", "/models"))
+                resp = await client.get(models_url)
                 if resp.status_code == 200:
                     data = resp.json()
                     models = data.get("data", [])
@@ -285,11 +291,14 @@ async def get_active_model(workspace_id: str = "default", role: str = "chat", ru
         except Exception:
             pass
 
-    # 4. Global fallback
-    # If a workspace is specified, assume we want 'local' instead of leaking to cloud
+    # 4. Global fallback — stay local-first.
+    # Leaking to a cloud model here means an offline/bundled install silently
+    # fails with "Missing OPENAI_API_KEY" (the synthesis path carries no key).
+    # Only use the cloud default when we're online AND a key is actually present.
     if workspace_id != "default":
         return "lemonade/default"
-        
+    if _offline_enabled() or not os.environ.get("OPENAI_API_KEY"):
+        return "lemonade/default"
     return "openai/gpt-4o"
 
 # =============================================================================
@@ -479,7 +488,13 @@ async def call_model(
         if provider in local_mapping or "base_url" in config:
             if not litellm_model.startswith("openai/"):
                 litellm_model = f"openai/{litellm_model}"
-        
+
+        # NOTE: we deliberately do NOT auto-inject a "/no_think" directive.
+        # Some thinking models (Qwen3-8B-Hybrid) need it to avoid burning the
+        # token budget on hidden reasoning, but others (qwen3.5-9b-FLM — the
+        # recommended local synthesis model) return an EMPTY result WITH it and
+        # extract correctly without it. A name-substring heuristic can't tell
+        # them apart, so reasoning control is left to model choice / the prompt.
         kwargs = {
             "model": litellm_model,
             "messages": messages,

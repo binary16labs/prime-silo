@@ -68,13 +68,71 @@ def test_ingest_files_no_folder(mock_workspace_path, mock_task_manager):
     assert response.status_code in (404, 500)
 
 def test_ingest_files_success(mock_workspace_path, mock_task_manager, mock_chroma):
+    _, mock_collection = mock_chroma
+    mock_collection.count.return_value = 1  # serializable total_documents
     data_in = mock_workspace_path / "data_in"
     data_in.mkdir()
     (data_in / "test.txt").write_text("hello world")
-    
-    with patch("benny.api.rag_routes.extract_structured_text", return_value="hello world"):
+
+    # The ingest endpoint now preflights the embedding provider (a real HTTP
+    # call) and fails fast with 503 if it's down. Mock a live provider so the
+    # happy path exercises extraction + indexing.
+    with patch("benny.api.rag_routes.extract_structured_text", return_value="hello world"), \
+         patch("benny.core.embeddings.get_embedding_sync", return_value=[0.1] * 768):
         response = client.post("/api/rag/ingest", json={"workspace": "default", "files": ["test.txt"]})
         assert response.status_code == 200
+        body = response.json()
+        assert body["status"] in ("completed", "completed_with_errors")
+        assert body["indexed_files"] == 1
+
+
+def test_ingest_files_embedding_provider_down(mock_workspace_path, mock_task_manager, mock_chroma):
+    data_in = mock_workspace_path / "data_in"
+    data_in.mkdir()
+    (data_in / "test.txt").write_text("hello world")
+
+    # Provider unreachable → embeddings.get_embedding_sync returns a zero-vector.
+    # Ingest must fail fast (503) instead of reporting a hollow success.
+    with patch("benny.api.rag_routes.extract_structured_text", return_value="hello world"), \
+         patch("benny.core.embeddings.get_embedding_sync", return_value=[0.0] * 768):
+        response = client.post("/api/rag/ingest", json={"workspace": "default", "files": ["test.txt"]})
+        assert response.status_code == 503
+
+
+def test_heal_collection_dimension_resets_stale_collection():
+    # A pre-fix collection (384-dim default embedder) raises a dimensionality
+    # error when a 768-dim vector is added. heal_collection_dimension must drop
+    # and recreate it so the zero-install exe self-heals without manual cleanup.
+    from benny.tools import knowledge as kn
+
+    client = MagicMock()
+    stale = MagicMock()
+    stale.add.side_effect = Exception(
+        "Embedding dimension 768 does not match collection dimensionality 384"
+    )
+    fresh = MagicMock()
+
+    with patch.object(kn, "get_knowledge_collection", return_value=fresh) as recreate:
+        result = kn.heal_collection_dimension(client, stale, "knowledge", [0.1] * 768)
+
+    client.delete_collection.assert_called_once_with("knowledge")
+    recreate.assert_called_once_with(client, "knowledge")
+    assert result is fresh
+
+
+def test_heal_collection_dimension_keeps_healthy_collection():
+    # A healthy collection accepts the canary add → returned unchanged, and the
+    # canary is cleaned up so it never pollutes retrieval.
+    from benny.tools import knowledge as kn
+
+    client = MagicMock()
+    healthy = MagicMock()
+    result = kn.heal_collection_dimension(client, healthy, "knowledge", [0.1] * 768)
+
+    assert result is healthy
+    client.delete_collection.assert_not_called()
+    healthy.delete.assert_called_once()
+
 
 def test_chat_semantic_success(mock_chroma):
     _, mock_collection = mock_chroma
