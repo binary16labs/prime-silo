@@ -274,6 +274,7 @@ class ModelConfigRequest(BaseModel):
     workspace: str = "default"
     default_model: Optional[str] = None
     model_roles: Optional[Dict[str, str]] = None
+    model_thinking: Optional[Dict[str, str]] = None  # 'provider/model' -> 'on'|'off'
     embedding_provider: Optional[str] = None
     llm_timeout: Optional[float] = None
 
@@ -294,6 +295,7 @@ async def get_model_routing_config(workspace: str = "default"):
         "workspace": workspace,
         "default_model": getattr(manifest, "default_model", None),
         "model_roles": dict(getattr(manifest, "model_roles", {}) or {}),
+        "model_thinking": dict(getattr(manifest, "model_thinking", {}) or {}),
         "embedding_provider": getattr(manifest, "embedding_provider", "local"),
         "llm_timeout": getattr(manifest, "llm_timeout", 300.0),
         "roles": CONFIGURABLE_ROLES,
@@ -318,6 +320,15 @@ async def set_model_routing_config(request: ModelConfigRequest):
             else:
                 roles.pop(k, None)
         manifest.model_roles = roles
+    if request.model_thinking is not None:
+        # Only persist explicit 'off' overrides; 'on'/'' clears (model default).
+        thinking = dict(getattr(manifest, "model_thinking", {}) or {})
+        for k, v in request.model_thinking.items():
+            if v == "off":
+                thinking[k] = "off"
+            else:
+                thinking.pop(k, None)
+        manifest.model_thinking = thinking
     if request.embedding_provider is not None:
         manifest.embedding_provider = request.embedding_provider
     if request.llm_timeout is not None:

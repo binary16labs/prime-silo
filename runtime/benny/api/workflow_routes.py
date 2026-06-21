@@ -423,6 +423,7 @@ class EdgeDefinition(BaseModel):
 class WorkflowDefinition(BaseModel):
     id: str
     name: str
+    description: Optional[str] = ""
     nodes: List[NodeDefinition]
     edges: List[EdgeDefinition]
 

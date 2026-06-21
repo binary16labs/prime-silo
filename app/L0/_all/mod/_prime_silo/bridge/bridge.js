@@ -31,10 +31,16 @@ import { createLineageGraphWidget } from "../widgets/memoray/lineage_graph/index
 import { createCodeGraphCanvasWidget } from "../widgets/codegraph/canvas/index.js";
 import { createSynopticWebWidget } from "../widgets/kg3d/synoptic_web/index.js";
 import { createDagCanvasWidget } from "../widgets/dag/canvas/index.js";
+import { createWorkflowDesignerWidget } from "../widgets/workflow_designer/index.js";
 import { createLineageTimelineWidget } from "../widgets/run/lineage_timeline/index.js";
 import { createReasoningTraceWidget } from "../widgets/run/reasoning_trace/index.js";
 import { createThreeRenderer } from "../widgets/three_renderer/index.js";
 import { mapManifestToDagData } from "../manifest_explorer/manifest-mapping.js";
+
+// The visual workflow designer is an imperative widget instance (not Alpine
+// reactive state). Kept module-scoped — one Bridge mounts per page — so Alpine
+// never proxies it (proxying would rebind its methods and break pointer state).
+let _designerWidget = null;
 import { createBridgeContext, bridgeDeepLink } from "./bridge-context.js";
 
 export const MODES = [
@@ -130,6 +136,26 @@ export function mergeFileStatus(dataIn, manifest) {
   });
 }
 
+// Map a stored workflow ({nodes:[{id,type,data:{label}}], edges:[{source,target}]})
+// to the dag.canvas {nodes:[{id,label,kind}], edges:[{source,target}]} contract.
+// dag.canvas auto-lays-out from edges (layered topological), so node positions
+// in the stored definition are ignored for rendering.
+export function workflowToDag(wf) {
+  const w = wf || {};
+  return {
+    nodes: (Array.isArray(w.nodes) ? w.nodes : []).map((n) => ({
+      id: n.id,
+      label: (n.data && n.data.label) || n.label || n.id,
+      kind: n.type || "node",
+    })),
+    edges: (Array.isArray(w.edges) ? w.edges : []).map((e) => ({
+      source: e.source,
+      target: e.target,
+      label: e.label,
+    })),
+  };
+}
+
 export function readQuery(hash) {
   const out = { mode: "", id: "" };
   try {
@@ -208,6 +234,7 @@ export function createBridgePage(options = {}) {
 
     // documents
     files: [],
+    selectedFiles: [],   // names of files the operator picked to ingest
     ingesting: false,
     ingestNote: "",
     dragOver: false,
@@ -217,6 +244,9 @@ export function createBridgePage(options = {}) {
     docQuestion: "",
     docAnswer: "",
     docSources: [],
+    docRoute: "",
+    docTrace: [],
+    agentMode: true,
     asking: false,
     docs3d: false,
     docsPhysics: "pinned",
@@ -247,6 +277,18 @@ export function createBridgePage(options = {}) {
     running: false,
     flowManifestId: "",
     flowNote: "",
+
+    // flows — workflow library (manage/view/update templates + saved)
+    workflows: [],
+    workflowsLoading: false,
+    selectedWorkflowId: "",
+    selectedWorkflow: null,
+    workflowDraft: "",       // JSON of the selected workflow being edited
+    workflowEditing: false,  // toggles the raw JSON editor
+    designerOn: false,       // toggles the visual node designer
+    designerNode: null,      // { id, label, type } of the selected node (config form)
+    workflowSaving: false,
+    workflowNote: "",
 
     // flows — deep produce (orchestrated fan-out → multi-panel view)
     dpGoal: "",
@@ -498,10 +540,40 @@ export function createBridgePage(options = {}) {
         ]);
         const dataIn = filesBody && Array.isArray(filesBody.data_in) ? filesBody.data_in : [];
         this.files = mergeFileStatus(dataIn, manifest);
+        this.reconcileSelection();
       } catch {
         this.files = [];
+        this.selectedFiles = [];
       }
     },
+
+    // Keep the selection in sync with what's actually staged: drop names that
+    // disappeared, and default-select anything still awaiting ingestion so the
+    // common case (ingest the doc I just added) is one click. Already-ingested
+    // (ALIGNED) files stay unchecked — re-ingest is opt-in.
+    reconcileSelection() {
+      const names = new Set(this.files.map((f) => f.name));
+      const keep = this.selectedFiles.filter((n) => names.has(n));
+      const keepSet = new Set(keep);
+      for (const f of this.files) {
+        if (f.status !== "ALIGNED" && !keepSet.has(f.name)) {
+          keep.push(f.name);
+          keepSet.add(f.name);
+        }
+      }
+      this.selectedFiles = keep;
+    },
+
+    isSelected(name) { return this.selectedFiles.includes(name); },
+
+    toggleFile(name) {
+      const i = this.selectedFiles.indexOf(name);
+      if (i === -1) this.selectedFiles.push(name);
+      else this.selectedFiles.splice(i, 1);
+    },
+
+    selectAllFiles() { this.selectedFiles = this.files.map((f) => f.name); },
+    clearFileSelection() { this.selectedFiles = []; },
 
     async loadIndexingManifest() {
       try {
@@ -603,8 +675,18 @@ export function createBridgePage(options = {}) {
     },
 
     async ingest() {
+      // Only ingest the files the operator picked. Names map 1:1 to the
+      // backend's data_in filenames (IngestRequest.files); an empty list would
+      // make the backend glob EVERYTHING, so guard against it explicitly.
+      const targets = this.files
+        .filter((f) => this.selectedFiles.includes(f.name))
+        .map((f) => f.name);
+      if (!targets.length) {
+        this.ingestNote = "Select at least one document to ingest (tick its checkbox).";
+        return;
+      }
       this.ingesting = true;
-      this.ingestNote = "Ingesting documents into the knowledge graph…";
+      this.ingestNote = `Ingesting ${targets.length} document${targets.length === 1 ? "" : "s"} into the knowledge graph…`;
       try {
         // deep_synthesis:true extracts semantic triples into Neo4j — without it
         // the Documents knowledge graph (which reads Neo4j) stays empty even on
@@ -612,7 +694,7 @@ export function createBridgePage(options = {}) {
         const body = await readRuntimeJson(await runtimeFetch("/rag/ingest", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ workspace: this.workspace, deep_synthesis: true })
+          body: JSON.stringify({ workspace: this.workspace, deep_synthesis: true, files: targets })
         }));
         const status = body && body.status;
         if (status === "failed") {
@@ -655,22 +737,31 @@ export function createBridgePage(options = {}) {
       }
     },
 
-    // Ask a question against the ingested documents (semantic RAG). The backend
-    // /rag/chat retrieves the most relevant chunks and answers with citations.
+    // Ask a question against the ingested documents. With agentMode on, the
+    // backend routes through the adaptive pipeline: the agent decides whether
+    // to retrieve (no_retrieval / single_step / multi_hop), grades the chunks,
+    // and self-corrects with a query rewrite if it comes up empty — so it can
+    // actually see and validate the source docs. agentMode off = the lighter
+    // always-retrieve "semantic" path (fewer local LLM calls).
     async askDocs() {
       const q = (this.docQuestion || "").trim();
       if (!q) return;
       this.asking = true;
       this.docAnswer = "";
       this.docSources = [];
+      this.docRoute = "";
+      this.docTrace = [];
       try {
+        const mode = this.agentMode ? "adaptive" : "semantic";
         const body = await readRuntimeJson(await runtimeFetch("/rag/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: q, workspace: this.workspace, mode: "semantic" })
+          body: JSON.stringify({ query: q, workspace: this.workspace, mode })
         }));
         this.docAnswer = (body && body.answer) || "No answer returned.";
         this.docSources = body && Array.isArray(body.sources) ? body.sources : [];
+        this.docRoute = (body && body.route) || "";
+        this.docTrace = body && Array.isArray(body.execution_trace) ? body.execution_trace : [];
       } catch (err) {
         this.docAnswer = `Query failed: ${err && err.message ? err.message : String(err)}`;
       } finally {
@@ -720,7 +811,168 @@ export function createBridgePage(options = {}) {
     /* ── Flows (plan -> run) ── */
 
     async mountFlows() {
-      // Stage stays empty until a plan is produced; nothing to mount yet.
+      // Load the workflow library (templates + your saved); the planner stage
+      // stays empty until you plan a new manifest or open a saved workflow.
+      await this.loadWorkflows();
+    },
+
+    /* ── Flows — workflow library (list / view / clone / edit / save / delete) ── */
+
+    // GET /api/workflows/workflows → { workflows: [{id,name,description,type,
+    // readonly,nodes,edges}], metadata }. Merges examples (templates) + your saved.
+    async loadWorkflows() {
+      this.workflowsLoading = true;
+      try {
+        const body = await readRuntimeJson(await runtimeFetch("/workflows/workflows"));
+        this.workflows = body && Array.isArray(body.workflows) ? body.workflows : [];
+      } catch (err) {
+        this.workflows = [];
+        this.workflowNote = `Couldn't load workflows: ${err && err.message ? err.message : String(err)}`;
+      } finally {
+        this.workflowsLoading = false;
+      }
+    },
+
+    workflowEditable() {
+      const w = this.selectedWorkflow;
+      return !!w && !w.readonly && w.type !== "example";
+    },
+
+    teardownDesigner() {
+      if (_designerWidget) { _designerWidget.destroy(); _designerWidget = null; }
+      this.designerOn = false;
+      this.designerNode = null;
+    },
+
+    async openWorkflow(id) {
+      this.workflowNote = "";
+      this.workflowEditing = false;
+      this.teardownDesigner();
+      try {
+        const wf = await readRuntimeJson(await runtimeFetch(`/workflows/workflows/${encodeURIComponent(id)}`));
+        this.selectedWorkflowId = id;
+        this.selectedWorkflow = wf;
+        this.workflowDraft = JSON.stringify(wf, null, 2);
+        await this.$nextTick();
+        this.renderWorkflowDag(wf);
+      } catch (err) {
+        this.workflowNote = `Open failed: ${err && err.message ? err.message : String(err)}`;
+      }
+    },
+
+    renderWorkflowDag(wf) {
+      const host = this.$refs.flowsDag;
+      if (!host) return;
+      this.destroyWidgets();
+      this.track(createDagCanvasWidget(host, { mode: "workflow", data: workflowToDag(wf) }));
+    },
+
+    // Mount the interactive visual designer over the selected workflow. For
+    // templates it mounts read-only (view); for your own it's fully editable.
+    // onChange keeps workflowDraft in sync so Save / raw-JSON reflect the canvas.
+    designWorkflow() {
+      this.workflowEditing = false;
+      this.designerOn = true;
+      this.designerNode = null;
+      this.$nextTick(() => {
+        const hostEl = this.$refs.wfDesigner;
+        if (!hostEl) return;
+        if (_designerWidget) { _designerWidget.destroy(); _designerWidget = null; }
+        _designerWidget = createWorkflowDesignerWidget(hostEl, {
+          workflow: this.selectedWorkflow || { nodes: [], edges: [] },
+          readonly: !this.workflowEditable(),
+          onChange: (graph) => {
+            const m = this.selectedWorkflow || {};
+            this.workflowDraft = JSON.stringify(
+              { id: m.id, name: m.name, description: m.description || "", nodes: graph.nodes, edges: graph.edges },
+              null, 2
+            );
+          },
+          onSelect: (node) => {
+            this.designerNode = node ? { id: node.id, label: node.data.label, type: node.type } : null;
+          },
+        });
+      });
+    },
+
+    // Push the node config form's label/type back into the canvas live.
+    applyDesignerNode() {
+      if (_designerWidget && this.designerNode) {
+        _designerWidget.patchNode(this.designerNode.id, { label: this.designerNode.label, type: this.designerNode.type });
+      }
+    },
+
+    // Blank editable workflow (saved only when you hit Save).
+    newWorkflow() {
+      const id = "wf_" + Date.now().toString(36);
+      const def = { id, name: "New workflow", description: "", nodes: [], edges: [] };
+      this.selectedWorkflowId = id;
+      this.selectedWorkflow = def;
+      this.workflowDraft = JSON.stringify(def, null, 2);
+      this.workflowNote = "New workflow — add nodes, wire them up, then Save.";
+      this.destroyWidgets();
+      this.designWorkflow();
+    },
+
+    // Copy a template (or any workflow) into a new editable id under your saved set.
+    cloneWorkflow() {
+      const src = this.selectedWorkflow;
+      if (!src) return;
+      const base = String(src.id || "workflow").replace(/[^a-zA-Z0-9_-]/g, "_");
+      const id = `${base}_copy_${Date.now().toString(36)}`;
+      const def = { ...src, id, name: `Copy of ${src.name || src.id}` };
+      delete def.readonly; delete def.type; delete def.file_path;
+      this.selectedWorkflowId = id;
+      this.selectedWorkflow = def;
+      this.workflowDraft = JSON.stringify(def, null, 2);
+      this.workflowNote = "Cloned to an editable copy — design it, then Save.";
+      this.designWorkflow();
+    },
+
+    // POST /api/workflows/workflows. Validates the edited JSON before sending.
+    async saveWorkflow() {
+      let def;
+      if (this.designerOn && _designerWidget) {
+        // Build the definition from the live canvas + the editable meta fields.
+        const m = this.selectedWorkflow || {};
+        const g = _designerWidget.getGraph();
+        def = { id: m.id, name: m.name, description: m.description || "", nodes: g.nodes, edges: g.edges };
+      } else {
+        try { def = JSON.parse(this.workflowDraft); }
+        catch (e) { this.workflowNote = `Invalid JSON: ${e.message}`; return; }
+      }
+      if (!def.id) { this.workflowNote = 'Workflow needs an "id".'; return; }
+      if (!def.name) { this.workflowNote = 'Workflow needs a "name".'; return; }
+      this.workflowSaving = true;
+      try {
+        await readRuntimeJson(await runtimeFetch("/workflows/workflows", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(def)
+        }));
+        this.workflowNote = `Saved "${def.name}".`;
+        this.workflowEditing = false;
+        await this.loadWorkflows();
+        await this.openWorkflow(def.id);
+      } catch (err) {
+        this.workflowNote = `Save failed: ${err && err.message ? err.message : String(err)}`;
+      } finally {
+        this.workflowSaving = false;
+      }
+    },
+
+    async deleteWorkflow(id) {
+      try {
+        await readRuntimeJson(await runtimeFetch(`/workflows/workflows/${encodeURIComponent(id)}`, { method: "DELETE" }));
+        if (this.selectedWorkflowId === id) {
+          this.selectedWorkflow = null; this.selectedWorkflowId = ""; this.workflowDraft = "";
+          this.destroyWidgets();
+        }
+        this.workflowNote = "Deleted.";
+        await this.loadWorkflows();
+      } catch (err) {
+        this.workflowNote = `Delete failed: ${err && err.message ? err.message : String(err)}`;
+      }
     },
 
     async planFlow() {
@@ -945,6 +1197,23 @@ export function createBridgePage(options = {}) {
       return r[role] || "";
     },
 
+    // Per-model reasoning toggle. thinkingOff(value)=true → the model runs with
+    // hidden chain-of-thought suppressed (/no_think + enable_thinking:false).
+    thinkingOff(modelValue) {
+      const m = this.agentConfig && this.agentConfig.model_thinking ? this.agentConfig.model_thinking : {};
+      return m[modelValue] === "off";
+    },
+
+    toggleThinking(modelValue) {
+      if (!this.agentConfig) return;
+      if (!this.agentConfig.model_thinking) this.agentConfig.model_thinking = {};
+      if (this.agentConfig.model_thinking[modelValue] === "off") {
+        delete this.agentConfig.model_thinking[modelValue];   // back to model default (think on)
+      } else {
+        this.agentConfig.model_thinking[modelValue] = "off";  // suppress thinking
+      }
+    },
+
     async saveAgents() {
       if (!this.agentConfig) return;
       this.agentSaving = true;
@@ -956,7 +1225,8 @@ export function createBridgePage(options = {}) {
           body: JSON.stringify({
             workspace: this.workspace,
             default_model: this.agentConfig.default_model || "",
-            model_roles: this.agentConfig.model_roles || {}
+            model_roles: this.agentConfig.model_roles || {},
+            model_thinking: this.agentConfig.model_thinking || {}
           })
         }));
         this.agentConfig = updated || this.agentConfig;

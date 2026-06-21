@@ -89,22 +89,27 @@ Respond ONLY with a JSON object: {"route": "no_retrieval" | "single_step" | "mul
         {"role": "user", "content": state["query"]}
     ]
     
+    # Pre-initialise so the except block can't raise UnboundLocalError when
+    # call_model itself fails (e.g. the resolved provider is down / 500s). A
+    # dead LLM must degrade to single_step retrieval, not crash the pipeline.
+    response = ""
+    route = "single_step"
+    explanation = "Defaulted to single_step"
     try:
         response = await call_model(model=state["model"], messages=messages, temperature=0.0)
         # Handle cases where response might be wrapped in ```json ... ```
-        clean_response = response.strip()
+        clean_response = (response or "").strip()
         if clean_response.startswith("```json"):
             clean_response = clean_response[7:-3].strip()
         elif clean_response.startswith("```"):
             clean_response = clean_response[3:-3].strip()
-            
+
         parsed = json.loads(clean_response)
         route = parsed.get("route", "single_step")
         explanation = parsed.get("explanation", "")
     except Exception as e:
-        logger.warning(f"Router failed to parse LLM response: {e}. Response: {response}")
-        route = "single_step"
-        explanation = "Defaulted to single_step due to parsing error"
+        logger.warning(f"Router fell back to single_step ({e}). Raw: {response!r}")
+        explanation = f"Defaulted to single_step (router LLM unavailable: {e})"
 
     return {
         "route": route, 
@@ -198,31 +203,66 @@ async def retrieve_multi_hop(state: AdaptiveRAGState) -> dict:
     }
 
 
+# Cap how many candidate docs we grade in one shot. Each extra excerpt costs
+# prompt tokens, and local NPU context windows are small; 6 keeps the single
+# grading call well inside a ~2k-token budget while still covering the top hits.
+_MAX_GRADE_DOCS = 6
+
+
 async def grade_documents(state: AdaptiveRAGState) -> dict:
-    """Grade documents for relevance."""
+    """Grade retrieved docs for relevance in a SINGLE batched LLM call.
+
+    The original implementation issued one call per document (up to 10). On a
+    local NPU that degrades under sustained load that would stall or time out,
+    and because zero graded docs triggers a query rewrite it would then spiral
+    into re-retrieval + re-grading. We instead grade all candidates in one call
+    and, if the grader returns nothing usable, fall back to the top retrieved
+    docs so generation always has real context to answer/validate against.
+    """
     logger.info("--- NODE: grade_documents ---")
-    
+
     query = state.get("rewritten_query") or state["query"]
-    documents = state["documents"]
+    documents = state["documents"][:_MAX_GRADE_DOCS]
+
+    if not documents:
+        return {
+            "graded_documents": [],
+            "execution_trace": state.get("execution_trace", []) + ["grade_documents"],
+        }
+
+    listing = "\n\n".join(f"[{i}] {d['content'][:600]}" for i, d in enumerate(documents))
+    system_prompt = (
+        "You are a relevance grader. Given a question and a numbered list of "
+        "document excerpts, return the indices of the excerpts that help answer "
+        "the question. Respond ONLY with a JSON array of integers, e.g. [0,2]. "
+        "If none are relevant, return []."
+    )
+    user_prompt = f"QUESTION: {query}\n\nEXCERPTS:\n{listing}"
+
     graded_documents = []
-    
-    for doc in documents:
-        system_prompt = """You are a relevance grader. Given a document and a user question, evaluate if the document is relevant to answering the question.
-Respond with ONLY 'yes' or 'no'."""
-        
-        user_prompt = f"Question: {query}\n\nDocument: {doc['content']}"
-        
-        try:
-            response = await call_model(model=state["model"], messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ], temperature=0.0)
-            
-            if "yes" in response.lower():
-                doc["relevance_score"] = 1.0
-                graded_documents.append(doc)
-        except Exception as e:
-            logger.warning(f"Grading failed for doc: {e}")
+    try:
+        response = await call_model(model=state["model"], messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ], temperature=0.0)
+
+        import re as _re
+        match = _re.search(r"\[[\d,\s]*\]", response or "")
+        if match:
+            for i in json.loads(match.group(0)):
+                if isinstance(i, int) and 0 <= i < len(documents):
+                    documents[i]["relevance_score"] = 1.0
+                    graded_documents.append(documents[i])
+    except Exception as e:
+        logger.warning(f"Batched grading failed ({e}); falling back to top retrieved docs.")
+
+    # Anti-spiral fallback: never hand generation an empty context when we DID
+    # retrieve documents. Keep the top 3 so the model can answer/validate
+    # instead of looping back into a rewrite (which multiplies local LLM calls).
+    if not graded_documents and documents:
+        for doc in documents[:3]:
+            doc["relevance_score"] = 0.5
+            graded_documents.append(doc)
 
     return {
         "graded_documents": graded_documents,
@@ -401,21 +441,28 @@ def after_rewrite(state: AdaptiveRAGState) -> Literal["retrieve_single_step", "r
 # GRAPH CONSTRUCTION
 # =============================================================================
 
-def build_adaptive_rag_graph() -> StateGraph:
-    """Build the Adaptive RAG LangGraph."""
+def build_adaptive_rag_graph(self_check: bool = False) -> StateGraph:
+    """Build the Adaptive RAG LangGraph.
+
+    self_check=False (default) builds the LEAN pipeline:
+        router → retrieve → grade → generate → END   (3 LLM calls)
+    This is what works on a single local model in one synchronous request.
+    The full self-correcting variant (post-generation hallucination + answer-
+    quality grading with query-rewrite loops) adds 3+ more sequential calls and
+    can loop several times — fine for fast cloud models, but on a local 12B
+    reasoning model it runs for minutes and the caller's connection drops
+    ("fetch failed"). Enable it explicitly (self_check=True + max_retries>0)
+    only when the backing model is fast enough.
+    """
     graph = StateGraph(AdaptiveRAGState)
-    
-    # Add nodes
+
     graph.add_node("smart_router", smart_router)
     graph.add_node("retrieve_single_step", retrieve_single_step)
     graph.add_node("retrieve_multi_hop", retrieve_multi_hop)
     graph.add_node("grade_documents", grade_documents)
     graph.add_node("generate_answer", generate_answer)
-    graph.add_node("check_hallucination", check_hallucination)
-    graph.add_node("check_answer_quality", check_answer_quality)
     graph.add_node("rewrite_query", rewrite_query)
-    
-    # Edges
+
     graph.add_edge(START, "smart_router")
     graph.add_conditional_edges("smart_router", route_query, {
         "generate_answer": "generate_answer",
@@ -428,40 +475,53 @@ def build_adaptive_rag_graph() -> StateGraph:
         "generate_answer": "generate_answer",
         "rewrite_query": "rewrite_query",
     })
-    
-    # For generate_answer, skip hallucination check if no_retrieval
-    graph.add_conditional_edges("generate_answer", lambda s: "check_answer_quality" if s["route"] == "no_retrieval" else "check_hallucination", {
-        "check_hallucination": "check_hallucination",
-        "check_answer_quality": "check_answer_quality",
-    })
-    
-    graph.add_conditional_edges("check_hallucination", after_hallucination_check, {
-        "check_answer_quality": "check_answer_quality",
-        "rewrite_query": "rewrite_query",
-    })
-    
-    graph.add_conditional_edges("check_answer_quality", after_answer_quality, {
-        "__end__": END,
-        "rewrite_query": "rewrite_query",
-    })
-    
     graph.add_conditional_edges("rewrite_query", after_rewrite, {
         "retrieve_single_step": "retrieve_single_step",
         "retrieve_multi_hop": "retrieve_multi_hop",
     })
-    
+
+    if self_check:
+        graph.add_node("check_hallucination", check_hallucination)
+        graph.add_node("check_answer_quality", check_answer_quality)
+        graph.add_conditional_edges("generate_answer", lambda s: "check_answer_quality" if s["route"] == "no_retrieval" else "check_hallucination", {
+            "check_hallucination": "check_hallucination",
+            "check_answer_quality": "check_answer_quality",
+        })
+        graph.add_conditional_edges("check_hallucination", after_hallucination_check, {
+            "check_answer_quality": "check_answer_quality",
+            "rewrite_query": "rewrite_query",
+        })
+        graph.add_conditional_edges("check_answer_quality", after_answer_quality, {
+            "__end__": END,
+            "rewrite_query": "rewrite_query",
+        })
+    else:
+        # Lean: stop after a grounded answer — no extra LLM round-trips.
+        graph.add_edge("generate_answer", END)
+
     return graph.compile()
 
 
 async def run_adaptive_rag(
     query: str,
     workspace: str = "default",
-    model: str = "Qwen3-8B-Hybrid",
-    max_retries: int = 3
+    model: Optional[str] = None,
+    max_retries: int = 0,
+    self_check: bool = False,
 ) -> AdaptiveRAGState:
-    """Execute the Adaptive RAG pipeline."""
-    graph = build_adaptive_rag_graph()
-    
+    """Execute the Adaptive RAG pipeline (lean by default; see build graph)."""
+    # Honour local-first routing: when the caller doesn't pin a model, resolve
+    # the workspace's configured chat model (Agents screen / manifest) instead
+    # of a hardcoded default that may not be loaded on this machine.
+    if not model:
+        try:
+            from ..core.models import get_active_model
+            model = await get_active_model(workspace, role="chat")
+        except Exception:
+            model = "fastflowlm/default"
+
+    graph = build_adaptive_rag_graph(self_check=self_check)
+
     initial_state: AdaptiveRAGState = {
         "query": query,
         "workspace": workspace,

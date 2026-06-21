@@ -671,6 +671,43 @@ async def chat_rag(request: QueryRequest):
                 "lineage_audit": lineage_audit
             }
 
+        # --- ADAPTIVE / AGENTIC MODE ---
+        # The agent decides whether to retrieve (no_retrieval / single_step /
+        # multi_hop), grades the retrieved chunks, and self-corrects with a
+        # query rewrite if it comes up empty — instead of the legacy always-
+        # prepend. Reads the same `knowledge` collection the Documents panel
+        # ingests into, so ingested PDFs are visible and validatable here.
+        if request.mode in ("adaptive", "agent"):
+            from ..core.adaptive_rag import run_adaptive_rag
+            track_workflow_start(run_id, "chat_adaptive_rag", request.workspace, inputs=[request.query])
+            result = await run_adaptive_rag(
+                query=request.query,
+                workspace=request.workspace,
+                model=request.model,  # None → resolved to the workspace chat model
+            )
+            graded = result.get("graded_documents") or []
+            sources = list({d.get("source", "Unknown") for d in graded})
+            answer = result.get("generation") or "No answer generated."
+            track_workflow_complete(
+                run_id, "chat_adaptive_rag", request.workspace,
+                result.get("execution_trace", []),
+                int((datetime.now() - start_time).total_seconds() * 1000),
+            )
+            return {
+                "answer": answer,
+                "sources": sources,
+                "query": request.query,
+                "mode": "adaptive",
+                "route": result.get("route"),
+                "route_explanation": result.get("route_explanation", ""),
+                "documents_retrieved": len(result.get("documents", [])),
+                "documents_relevant": len(graded),
+                "retry_count": result.get("retry_count", 0),
+                "execution_trace": result.get("execution_trace", []),
+                "run_id": run_id,
+                "lineage_audit": lineage_audit,
+            }
+
         # --- LEGACY / SEMANTIC MODE ---
         track_workflow_start(run_id, "chat_semantic_rag", request.workspace, inputs=[request.query])
         

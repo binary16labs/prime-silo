@@ -117,7 +117,13 @@ class BaseOpenAICompatibleExecutor(BaseLocalExecutor):
                 payload["presence_penalty"] = kwargs["presence_penalty"]
             if "repetition_penalty" in kwargs:
                 payload["repetition_penalty"] = kwargs["repetition_penalty"]
-                
+            # extra_body merges provider-specific keys into the OpenAI payload —
+            # used to pass chat_template_kwargs.enable_thinking for the per-model
+            # thinking toggle. Unknown keys are ignored by most local servers.
+            extra = kwargs.get("extra_body")
+            if isinstance(extra, dict):
+                payload.update(extra)
+
             json_payload = payload
             resp = await client.post(
                 f"{self.base_url}/chat/completions",

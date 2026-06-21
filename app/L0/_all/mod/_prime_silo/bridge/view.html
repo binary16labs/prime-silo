@@ -122,7 +122,7 @@
             <div class="ps-bridge__docbar">
               <div class="ps-bridge__files">
                 <h3>Documents
-                  <span class="ps-bridge__muted" x-text="`(${files.length} staged · ${pendingCount} awaiting ingestion)`"></span>
+                  <span class="ps-bridge__muted" x-text="`(${files.length} staged · ${pendingCount} awaiting · ${selectedFiles.length} selected)`"></span>
                 </h3>
 
                 <!-- Drag-and-drop drop zone: files go through Benny's /files/upload
@@ -152,10 +152,18 @@
                   />
                 </div>
 
+                <div class="ps-bridge__files-tools" x-show="files.length">
+                  <button type="button" class="ps-bridge__link" @click="selectAllFiles()">Select all</button>
+                  <span class="ps-bridge__muted">·</span>
+                  <button type="button" class="ps-bridge__link" @click="clearFileSelection()">None</button>
+                </div>
                 <ul class="ps-bridge__files-list">
                   <template x-for="f in files" :key="f.name || f">
                     <li class="ps-bridge__file-row">
-                      <span class="ps-bridge__file-name" x-text="f.name || f"></span>
+                      <label class="ps-bridge__file-pick">
+                        <input type="checkbox" :checked="isSelected(f.name)" @change="toggleFile(f.name)" />
+                        <span class="ps-bridge__file-name" x-text="f.name || f"></span>
+                      </label>
                       <span
                         class="ps-bridge__file-status"
                         :class="statusClass(f.status)"
@@ -166,9 +174,9 @@
                   <li class="ps-bridge__muted" x-show="files.length === 0">No documents staged. Drop files above, or use the file explorer.</li>
                 </ul>
                 <div class="ps-bridge__doc-actions">
-                  <button type="button" class="ps-bridge__btn ps-bridge__btn--go" @click="ingest()" :disabled="ingesting">
+                  <button type="button" class="ps-bridge__btn ps-bridge__btn--go" @click="ingest()" :disabled="ingesting || !selectedFiles.length">
                     <x-icon x-text="ingesting ? 'hourglass_top' : 'auto_awesome'"></x-icon>
-                    <span x-text="ingesting ? 'Ingesting…' : 'Ingest → triples'"></span>
+                    <span x-text="ingesting ? 'Ingesting…' : `Ingest selected (${selectedFiles.length}) → triples`"></span>
                   </button>
                   <button type="button" class="ps-bridge__btn" @click="rescanWorkspace()" :disabled="rescanning">
                     <x-icon x-text="rescanning ? 'hourglass_top' : 'refresh'"></x-icon>
@@ -196,8 +204,17 @@
                       <x-icon x-text="asking ? 'hourglass_top' : 'forum'"></x-icon>
                       <span x-text="asking ? 'Asking…' : 'Ask'"></span>
                     </button>
+                    <label class="ps-bridge__ask-toggle" title="Agent decides whether/how to search, grades the chunks, and self-corrects. Off = quick single-shot retrieval.">
+                      <input type="checkbox" x-model="agentMode" />
+                      <span>Agent</span>
+                    </label>
                   </div>
                   <div class="ps-bridge__ask-answer" x-show="docAnswer" x-text="docAnswer"></div>
+                  <div class="ps-bridge__ask-route" x-show="docRoute">
+                    <span class="ps-bridge__muted">Agent route:</span>
+                    <span class="ps-bridge__file-status is-ingested" x-text="docRoute"></span>
+                    <span class="ps-bridge__muted" x-show="docTrace.length" x-text="docTrace.join(' → ')"></span>
+                  </div>
                   <div class="ps-bridge__ask-sources" x-show="docSources.length">
                     <span class="ps-bridge__muted">Sources:</span>
                     <template x-for="s in docSources" :key="s">
@@ -285,6 +302,85 @@
 
           <!-- FLOWS -->
           <div class="ps-bridge__panel" x-show="mode === 'flows'">
+            <!-- Workflow library: manage / view / update from template or your own -->
+            <div class="ps-bridge__wflib">
+              <div class="ps-bridge__wflib-head">
+                <h3>Workflows <span class="ps-bridge__muted" x-text="`(${workflows.length})`"></span></h3>
+                <div class="ps-bridge__wflib-tools">
+                  <button type="button" class="ps-bridge__btn" @click="newWorkflow()"><x-icon>add</x-icon><span>New</span></button>
+                  <button type="button" class="ps-bridge__btn" @click="loadWorkflows()" :disabled="workflowsLoading">
+                    <x-icon x-text="workflowsLoading ? 'hourglass_top' : 'refresh'"></x-icon><span>Refresh</span>
+                  </button>
+                </div>
+              </div>
+              <div class="ps-bridge__wflib-body">
+                <ul class="ps-bridge__wflist">
+                  <template x-for="w in workflows" :key="w.id">
+                    <li class="ps-bridge__wfrow" :class="{ 'is-active': selectedWorkflowId === w.id }">
+                      <button type="button" class="ps-bridge__wfopen" @click="openWorkflow(w.id)">
+                        <span class="ps-bridge__wfname" x-text="w.name || w.id"></span>
+                        <span class="ps-bridge__wfbadge" :class="(w.type === 'example' || w.readonly) ? 'is-template' : 'is-user'"
+                              x-text="(w.type === 'example' || w.readonly) ? 'Template' : 'Yours'"></span>
+                      </button>
+                      <button type="button" class="ps-bridge__wfdel" x-show="!(w.type === 'example' || w.readonly)"
+                              @click="deleteWorkflow(w.id)" title="Delete"><x-icon>delete</x-icon></button>
+                    </li>
+                  </template>
+                  <li class="ps-bridge__muted" x-show="!workflows.length && !workflowsLoading">No workflows yet — click New, clone a template, or Plan one below.</li>
+                </ul>
+
+                <div class="ps-bridge__wfdetail" x-show="selectedWorkflow">
+                  <div class="ps-bridge__wfdetail-head">
+                    <template x-if="selectedWorkflow && workflowEditable()">
+                      <div class="ps-bridge__wfmeta">
+                        <input type="text" x-model="selectedWorkflow.name" placeholder="Workflow name" />
+                        <input type="text" x-model="selectedWorkflow.description" placeholder="Description (optional)" />
+                      </div>
+                    </template>
+                    <template x-if="selectedWorkflow && !workflowEditable()">
+                      <strong x-text="selectedWorkflow ? (selectedWorkflow.name || selectedWorkflow.id) : ''"></strong>
+                    </template>
+                    <span class="ps-bridge__wfbadge is-template" x-show="selectedWorkflow && (selectedWorkflow.readonly || selectedWorkflow.type === 'example')">read-only template</span>
+                  </div>
+                  <div class="ps-bridge__wfactions">
+                    <button type="button" class="ps-bridge__btn" @click="designWorkflow()"><x-icon>account_tree</x-icon><span>Design</span></button>
+                    <button type="button" class="ps-bridge__btn" @click="designerOn = false; workflowEditing = !workflowEditing">
+                      <x-icon>data_object</x-icon><span x-text="workflowEditing ? 'Hide JSON' : 'Edit JSON'"></span>
+                    </button>
+                    <button type="button" class="ps-bridge__btn" @click="cloneWorkflow()"><x-icon>content_copy</x-icon><span>Clone</span></button>
+                    <button type="button" class="ps-bridge__btn ps-bridge__btn--go" x-show="workflowEditable()" @click="saveWorkflow()" :disabled="workflowSaving">
+                      <x-icon x-text="workflowSaving ? 'hourglass_top' : 'save'"></x-icon><span x-text="workflowSaving ? 'Saving…' : 'Save'"></span>
+                    </button>
+                  </div>
+
+                  <!-- visual node designer -->
+                  <div x-show="designerOn">
+                    <template x-if="designerNode">
+                      <div class="ps-bridge__wfnodeform">
+                        <span class="ps-bridge__muted">Selected node</span>
+                        <input type="text" x-model="designerNode.label" @input="applyDesignerNode()" placeholder="Label" />
+                        <select x-model="designerNode.type" @change="applyDesignerNode()">
+                          <option value="trigger">trigger</option>
+                          <option value="llm">llm</option>
+                          <option value="tool">tool</option>
+                          <option value="logic">logic</option>
+                          <option value="data">data</option>
+                          <option value="a2a">a2a</option>
+                        </select>
+                        <span class="ps-bridge__muted">drag a node's right dot onto another to connect · Delete key removes</span>
+                      </div>
+                    </template>
+                    <div x-ref="wfDesigner"></div>
+                  </div>
+
+                  <!-- raw JSON editor (fallback / power-user) -->
+                  <textarea class="ps-bridge__wfeditor" x-show="workflowEditing" x-model="workflowDraft" rows="12" spellcheck="false"
+                            placeholder='{ "id": "...", "name": "...", "nodes": [], "edges": [] }'></textarea>
+                </div>
+              </div>
+              <p class="ps-bridge__note" x-show="workflowNote" x-text="workflowNote"></p>
+            </div>
+
             <div class="ps-bridge__flow">
               <textarea
                 class="ps-bridge__req"
@@ -439,6 +535,19 @@
                         <span class="ps-bridge__resolved" x-show="resolvedFor(role)">resolves to <strong x-text="resolvedFor(role)"></strong></span>
                       </div>
                     </template>
+
+                    <div class="ps-bridge__thinking" x-show="agentModelOptions.length">
+                      <label class="form-label">Reasoning (thinking)</label>
+                      <p class="ps-bridge__muted">Turn a reasoning model's hidden chain-of-thought off when it burns the token budget or returns empty (e.g. gemma-4-12b-qat, Qwen3-8B-Hybrid). Leave on for models that need it (qwen3.5-9b-FLM). Applies <code>/no_think</code> + <code>enable_thinking:false</code>.</p>
+                      <template x-for="opt in agentModelOptions" :key="'think:' + opt.value">
+                        <label class="ps-bridge__think-row">
+                          <input type="checkbox" :checked="!thinkingOff(opt.value)" @change="toggleThinking(opt.value)" />
+                          <span class="ps-bridge__think-name" x-text="opt.label"></span>
+                          <span class="ps-bridge__muted" x-text="opt.provider + (opt.running ? '' : ' (stopped)')"></span>
+                          <span class="ps-bridge__think-state" x-text="thinkingOff(opt.value) ? 'thinking off' : 'thinking on'"></span>
+                        </label>
+                      </template>
+                    </div>
 
                     <div class="ps-bridge__doc-actions">
                       <button type="button" class="ps-bridge__btn ps-bridge__btn--go" @click="saveAgents()" :disabled="agentSaving">

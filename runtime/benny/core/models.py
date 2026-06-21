@@ -325,6 +325,23 @@ def _run_completion(**kwargs):
     """Sync wrapper for litellm.completion to allow easy patching."""
     return completion(**kwargs)
 
+def _thinking_disabled(model: str, actual_model: str, workspace_id: str) -> bool:
+    """True if the operator toggled this model to 'no thinking' in the Agents
+    screen (manifest model_thinking → 'off'). Keyed by the same 'provider/model'
+    strings the UI uses; we check a few candidate forms to be robust."""
+    try:
+        from .workspace import load_manifest
+        prefs = getattr(load_manifest(workspace_id), "model_thinking", {}) or {}
+    except Exception:
+        return False
+    if not prefs:
+        return False
+    for key in (model, actual_model):
+        if key and prefs.get(key) == "off":
+            return True
+    return False
+
+
 async def call_model(
     model: str,
     messages: List[Dict[str, str]],
@@ -387,6 +404,19 @@ async def call_model(
         if not system_found:
             messages.insert(0, {"role": "system", "content": augmentation})
 
+    # 2b. PER-MODEL THINKING TOGGLE (Agents screen → manifest model_thinking)
+    # When the operator has set this model to 'off', suppress hidden reasoning
+    # via BOTH standard switches: the Qwen-style "/no_think" soft directive in
+    # the prompt, and chat_template_kwargs.enable_thinking=false in the payload.
+    # Applied here once so both the local-executor and LiteLLM paths inherit it.
+    think_extra = None
+    if _thinking_disabled(model, actual_model, workspace_id):
+        for i in range(len(messages) - 1, -1, -1):
+            if messages[i].get("role") == "user":
+                messages[i]["content"] = "/no_think\n" + messages[i].get("content", "")
+                break
+        think_extra = {"chat_template_kwargs": {"enable_thinking": False}}
+
     # 3. RESOLVE TIMEOUT
     actual_timeout = timeout
     if actual_timeout is None:
@@ -442,12 +472,13 @@ async def call_model(
             
             try:
                 content = await executor.generate(
-                    prompt=user_msg, 
-                    system=system_msg, 
-                    temperature=temperature, 
+                    prompt=user_msg,
+                    system=system_msg,
+                    temperature=temperature,
                     max_tokens=max_tokens,
                     run_id=run_id,
-                    timeout=actual_timeout or 300.0
+                    timeout=actual_timeout or 300.0,
+                    extra_body=think_extra,
                 )
                 
                 log_data["ok"] = True
@@ -489,12 +520,10 @@ async def call_model(
             if not litellm_model.startswith("openai/"):
                 litellm_model = f"openai/{litellm_model}"
 
-        # NOTE: we deliberately do NOT auto-inject a "/no_think" directive.
-        # Some thinking models (Qwen3-8B-Hybrid) need it to avoid burning the
-        # token budget on hidden reasoning, but others (qwen3.5-9b-FLM — the
-        # recommended local synthesis model) return an EMPTY result WITH it and
-        # extract correctly without it. A name-substring heuristic can't tell
-        # them apart, so reasoning control is left to model choice / the prompt.
+        # NOTE: we do NOT auto-inject "/no_think" by name heuristic — some
+        # thinking models (Qwen3-8B-Hybrid) need it while others (qwen3.5-9b-FLM)
+        # return EMPTY with it. It is now driven explicitly per-model by the
+        # Agents thinking toggle (think_extra, applied in section 2b above).
         kwargs = {
             "model": litellm_model,
             "messages": messages,
@@ -502,7 +531,9 @@ async def call_model(
             "max_tokens": max_tokens,
             "fallbacks": fallbacks or []
         }
-        
+        if think_extra:
+            kwargs["extra_body"] = think_extra
+
         if "base_url" in config and config["base_url"]:
             kwargs["api_base"] = config["base_url"]
             kwargs["base_url"] = config["base_url"] # Double-bagging for OpenAI v1
