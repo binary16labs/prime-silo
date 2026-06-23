@@ -1,0 +1,39 @@
+{
+  "_comment": "Model capability profiles for thinking-aware routing. Layered: built-in defaults (benny/core/model_profiles.py) < this file < <workspace>/.benny/model_profiles.json (Agents screen). thinking: 'capable' = reasons but safe to /no_think (auto-suppressed for synthesis); 'fragile' = /no_think EMPTIES it, never suppress (FLM family); 'none' = not a reasoning model. Select the active profile per provider in 'providers'.",
+  "schema": "prime-silo.model-profiles/1",
+  "suppress_thinking_roles": ["graph_synthesis"],
+  "profiles": {
+    "default": {
+      "description": "Auto-suppress hidden reasoning for synthesis on thinking-capable models; never suppress fragile FLM models.",
+      "models": {
+        "Qwen3-8B-Hybrid": { "thinking": "capable" },
+        "DeepSeek-Qwen3-8B-GGUF": { "thinking": "capable" },
+        "deepseek-r1": { "thinking": "capable" },
+        "deepseek-r1:8b": { "thinking": "capable" },
+        "gemma-4-12b-qat": { "thinking": "capable" },
+        "qwen3.5-9b-FLM": { "thinking": "fragile" },
+        "qwen3-tk-4b-FLM": { "thinking": "fragile" },
+        "Qwen3-8B-Instruct-FLM": { "thinking": "fragile" },
+        "llama3.2-1b-FLM": { "thinking": "fragile" },
+        "deepseek-r1-8b-FLM": { "thinking": "fragile" },
+        "Gemma-4-E4B-it-GGUF": { "thinking": "none" },
+        "Gemma-4-26B-A4B-it-GGUF": { "thinking": "none" },
+        "Qwen2.5-Coder-7B-Instruct-NPU": { "thinking": "none" },
+        "Qwen2.5-0.5B-Instruct-CPU": { "thinking": "none" }
+      }
+    },
+    "always-think": {
+      "description": "Never auto-suppress (reasoning-quality / debug mode). Operator per-model overrides still apply.",
+      "suppress_thinking_roles": [],
+      "models": {}
+    }
+  },
+  "providers": {
+    "lemonade": "default",
+    "ollama": "default",
+    "fastflowlm": "default",
+    "lmstudio": "default",
+    "nvidia_nim": "default",
+    "litert": "default"
+  }
+}

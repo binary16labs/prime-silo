@@ -17,6 +17,7 @@ import {
   Network 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ModelProfilesPanel from './ModelProfilesPanel';
 
 const ROLE_ICONS: Record<string, any> = {
   chat: MessageSquare,
@@ -39,9 +40,10 @@ export default function V2LLMOverlay() {
   const { 
     activeLLMProvider, 
     setActiveLLMProvider, 
-    modelRoles, 
+    modelRoles,
     setActiveModelRole,
-    syncManifest
+    syncManifest,
+    currentWorkspace
   } = useWorkspaceStore();
   
   // Access unified workflow store for UI state
@@ -245,6 +247,9 @@ export default function V2LLMOverlay() {
               ))}
             </div>
           </div>
+
+          {/* Full-width: Model Profiles (thinking capability) */}
+          <ModelProfilesPanel workspace={currentWorkspace} />
 
         </div>
 

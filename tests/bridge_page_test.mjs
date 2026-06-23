@@ -24,9 +24,9 @@ async function main() {
 }
 
 function testModesAndChips() {
-  assert.equal(bridge.MODES.length, 6);
+  assert.equal(bridge.MODES.length, 8);
   const ids = bridge.MODES.map((m) => m.id);
-  assert.deepEqual(ids, ["pulse", "memory", "documents", "code", "flows", "runs"]);
+  assert.deepEqual(ids, ["pulse", "memory", "documents", "code", "flows", "studio", "runs", "agents"]);
   // Every mode has chips, and each chip carries an instruction to dispatch.
   for (const id of ids) {
     assert.ok(Array.isArray(bridge.CHIPS[id]) && bridge.CHIPS[id].length > 0, `${id} has chips`);

@@ -319,6 +319,16 @@ function copyBennySource(projectRoot, bennyDir) {
     filter: (src) => !/[\\/](__pycache__|\.pytest_cache|\.mypy_cache)$/.test(src)
   });
   fs.copyFileSync(path.join(projectRoot, "runtime", "benny_cli.py"), path.join(bennyDir, "benny_cli.py"));
+  // Ship runtime/configs alongside (model_profiles.json resolves to
+  // <bundle>/benny/configs/ via model_profiles.py parents[2]/configs). Optional
+  // overrides — built-in defaults still apply when a file is absent.
+  const configsSrc = path.join(projectRoot, "runtime", "configs");
+  if (fs.existsSync(configsSrc)) {
+    fs.cpSync(configsSrc, path.join(bennyDir, "configs"), {
+      recursive: true,
+      filter: (src) => !/[\\/](__pycache__)$/.test(src),
+    });
+  }
 }
 
 /**

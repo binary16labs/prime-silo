@@ -41,7 +41,7 @@ class AdaptiveRAGState(TypedDict):
     model: str                          # LLM model identifier (passed to call_model)
     
     # Routing
-    route: Literal["no_retrieval", "single_step", "multi_hop"]  # Smart Router decision
+    route: Literal["no_retrieval", "single_step", "multi_hop", "structured"]  # Smart Router decision
     
     # Retrieval
     documents: List[RetrievedDocument]   # Raw retrieved documents
@@ -81,8 +81,11 @@ Your goal is to classify a user query into one of three routes based on its comp
    Example: "What does the Frolov report say about AI?", "Who is the CEO of Company X?".
 3. `multi_hop`: Questions requiring cross-document reasoning, entity relationships, or causal chains.
    Example: "How would a recession in sector X affect portfolio Y based on the filings?".
+4. `structured`: Questions about a specific long, structured document (manual, report, guide) where
+   navigating its sections/table-of-contents is the right move.
+   Example: "What does the user guide say about configuring the home directory?".
 
-Respond ONLY with a JSON object: {"route": "no_retrieval" | "single_step" | "multi_hop", "explanation": "Brief reasoning"}"""
+Respond ONLY with a JSON object: {"route": "no_retrieval" | "single_step" | "multi_hop" | "structured", "explanation": "Brief reasoning"}"""
 
     messages = [
         {"role": "system", "content": system_prompt},
@@ -200,6 +203,88 @@ async def retrieve_multi_hop(state: AdaptiveRAGState) -> dict:
     return {
         "documents": deduped,
         "execution_trace": state.get("execution_trace", []) + ["retrieve_multi_hop"]
+    }
+
+
+async def retrieve_structured(state: AdaptiveRAGState) -> dict:
+    """Vectorless retrieval over the PageIndex spine (PIX-F14).
+
+    NPU-safe by design: ONE node-selection call over the compact abstract
+    outline (titles + summaries only), then load the selected leaves' full text.
+    No embedding server, no agentic N-hop traversal — two LLM round-trips total
+    across the whole pipeline (select + generate).
+    """
+    logger.info("--- NODE: retrieve_structured ---")
+
+    query = state.get("rewritten_query") or state["query"]
+    workspace = state["workspace"]
+
+    try:
+        from .pageindex import abstract_outline
+        from .pageindex_builder import list_trees, load_tree
+    except Exception as e:
+        logger.error(f"PageIndex unavailable, falling back to vector retrieval: {e}")
+        return await retrieve_single_step(state)
+
+    trees = {name: load_tree(workspace, name) for name in list_trees(workspace)}
+    trees = {k: v for k, v in trees.items() if v}
+    if not trees:
+        # No spine built yet → fall back to the vector path so we still answer.
+        logger.info("No PageIndex trees in workspace; falling back to single_step.")
+        return await retrieve_single_step(state)
+
+    # Build a compact catalogue: source → outline (titles + summaries, no body).
+    catalogue = "\n\n".join(f"## {name}\n{abstract_outline(tree)}" for name, tree in trees.items())
+
+    system_prompt = (
+        "You navigate a document's table of contents. Given a question and a "
+        "catalogue of documents with section ids in [brackets], return the "
+        "section ids whose content most likely answers the question. Respond "
+        "ONLY with a JSON array of strings like [\"USER_GUIDE:0.2\", \"GUIDE:0.5\"], "
+        "using the form SOURCE:node_id. Pick at most 6."
+    )
+    user_prompt = f"QUESTION: {query}\n\nCATALOGUE:\n{catalogue}"
+
+    selected: List[tuple] = []
+    try:
+        response = await call_model(model=state["model"], messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ], temperature=0.0)
+        import re as _re
+        match = _re.search(r"\[.*\]", response or "", _re.DOTALL)
+        if match:
+            for item in json.loads(match.group(0)):
+                if isinstance(item, str) and ":" in item:
+                    src, nid = item.split(":", 1)
+                    selected.append((src.strip(), nid.strip()))
+    except Exception as e:
+        logger.warning(f"Structured node-selection failed ({e}); using top sections.")
+
+    # Resolve selected (source, node_id) → leaf text. Fall back to first leaves.
+    from .pageindex import flatten_leaves
+    documents: List[RetrievedDocument] = []
+    leaf_index = {
+        (name, leaf.get("node_id")): leaf
+        for name, tree in trees.items()
+        for leaf in flatten_leaves(tree)
+    }
+    chosen = [leaf_index[key] for key in selected if key in leaf_index]
+    if not chosen:
+        for name, tree in trees.items():
+            chosen.extend(flatten_leaves(tree)[:3])
+        chosen = chosen[:6]
+
+    for leaf in chosen:
+        documents.append({
+            "content": leaf.get("text", ""),
+            "source": f"{leaf.get('title', 'Section')} [{leaf.get('node_id', '')}]",
+            "relevance_score": 1.0,
+        })
+
+    return {
+        "documents": documents,
+        "execution_trace": state.get("execution_trace", []) + ["retrieve_structured"],
     }
 
 
@@ -400,13 +485,15 @@ Return ONLY the rewritten question, nothing else."""
 # ROUTING FUNCTIONS
 # =============================================================================
 
-def route_query(state: AdaptiveRAGState) -> Literal["generate_answer", "retrieve_single_step", "retrieve_multi_hop"]:
+def route_query(state: AdaptiveRAGState) -> Literal["generate_answer", "retrieve_single_step", "retrieve_multi_hop", "retrieve_structured"]:
     """Route after smart_router based on the classified route."""
     route = state.get("route", "single_step")
     if route == "no_retrieval":
         return "generate_answer"
     elif route == "multi_hop":
         return "retrieve_multi_hop"
+    elif route == "structured":
+        return "retrieve_structured"
     else:
         return "retrieve_single_step"
 
@@ -429,11 +516,13 @@ def after_answer_quality(state: AdaptiveRAGState) -> Literal["__end__", "rewrite
         return "rewrite_query"
     return "__end__"
 
-def after_rewrite(state: AdaptiveRAGState) -> Literal["retrieve_single_step", "retrieve_multi_hop"]:
+def after_rewrite(state: AdaptiveRAGState) -> Literal["retrieve_single_step", "retrieve_multi_hop", "retrieve_structured"]:
     """After rewrite, go back to retrieval using the original route."""
     route = state.get("route", "single_step")
     if route == "multi_hop":
         return "retrieve_multi_hop"
+    if route == "structured":
+        return "retrieve_structured"
     return "retrieve_single_step"
 
 
@@ -459,6 +548,7 @@ def build_adaptive_rag_graph(self_check: bool = False) -> StateGraph:
     graph.add_node("smart_router", smart_router)
     graph.add_node("retrieve_single_step", retrieve_single_step)
     graph.add_node("retrieve_multi_hop", retrieve_multi_hop)
+    graph.add_node("retrieve_structured", retrieve_structured)
     graph.add_node("grade_documents", grade_documents)
     graph.add_node("generate_answer", generate_answer)
     graph.add_node("rewrite_query", rewrite_query)
@@ -468,9 +558,11 @@ def build_adaptive_rag_graph(self_check: bool = False) -> StateGraph:
         "generate_answer": "generate_answer",
         "retrieve_single_step": "retrieve_single_step",
         "retrieve_multi_hop": "retrieve_multi_hop",
+        "retrieve_structured": "retrieve_structured",
     })
     graph.add_edge("retrieve_single_step", "grade_documents")
     graph.add_edge("retrieve_multi_hop", "grade_documents")
+    graph.add_edge("retrieve_structured", "grade_documents")
     graph.add_conditional_edges("grade_documents", after_grading, {
         "generate_answer": "generate_answer",
         "rewrite_query": "rewrite_query",
@@ -478,6 +570,7 @@ def build_adaptive_rag_graph(self_check: bool = False) -> StateGraph:
     graph.add_conditional_edges("rewrite_query", after_rewrite, {
         "retrieve_single_step": "retrieve_single_step",
         "retrieve_multi_hop": "retrieve_multi_hop",
+        "retrieve_structured": "retrieve_structured",
     })
 
     if self_check:

@@ -34,6 +34,7 @@ import { createDagCanvasWidget } from "../widgets/dag/canvas/index.js";
 import { createWorkflowDesignerWidget } from "../widgets/workflow_designer/index.js";
 import { createLineageTimelineWidget } from "../widgets/run/lineage_timeline/index.js";
 import { createReasoningTraceWidget } from "../widgets/run/reasoning_trace/index.js";
+import { createDrilldownTableWidget } from "../widgets/run/drilldown_table/index.js";
 import { createThreeRenderer } from "../widgets/three_renderer/index.js";
 import { mapManifestToDagData } from "../manifest_explorer/manifest-mapping.js";
 
@@ -49,6 +50,7 @@ export const MODES = [
   { id: "documents", label: "Documents", icon: "description" },
   { id: "code", label: "Code 3D", icon: "account_tree" },
   { id: "flows", label: "Flows", icon: "alt_route" },
+  { id: "studio", label: "Studio", icon: "science" },
   { id: "runs", label: "Runs", icon: "timeline" },
   { id: "agents", label: "Agents", icon: "smart_toy" }
 ];
@@ -77,6 +79,10 @@ export const CHIPS = {
   flows: [
     { label: "Help me phrase a requirement", instruction: "Help me phrase a clear requirement for a pipeline I can then plan and run." },
     { label: "Re-run the last manifest", instruction: "Re-run the most recent manifest and report the outcome." }
+  ],
+  studio: [
+    { label: "Draft a research question", instruction: "Help me phrase a sharp question I can ask the documents in this workspace from a Studio chat cell." },
+    { label: "Outline a report", instruction: "Suggest a goal for a multi-step report I can run as a Studio report cell over this workspace." }
   ],
   runs: [
     { label: "Explain this run", instruction: "Explain what happened in the selected run, step by step." },
@@ -207,6 +213,23 @@ export function summariseRuns(runs) {
   };
 }
 
+// A run is "done" (stop live-polling) once it reaches any terminal status.
+export function isTerminalStatus(status) {
+  return ["completed", "complete", "succeeded", "success", "failed", "failure", "error", "errored", "cancelled", "canceled"]
+    .includes(String(status || "").toLowerCase());
+}
+
+// Human-readable duration from milliseconds.
+export function fmtDuration(ms) {
+  if (ms == null || Number.isNaN(ms)) return "—";
+  if (ms < 1000) return `${Math.round(ms)} ms`;
+  const s = ms / 1000;
+  if (s < 60) return `${s.toFixed(1)} s`;
+  const m = Math.floor(s / 60);
+  const rem = Math.round(s % 60);
+  return `${m}m ${rem}s`;
+}
+
 /* ── page factory ────────────────────────────────────────────────────── */
 
 export function createBridgePage(options = {}) {
@@ -299,9 +322,22 @@ export function createBridgePage(options = {}) {
     dpNote: "",
     _dpPollTimer: null,
 
-    // runs
+    // studio (notebook — cells unify "ask the docs" + "deep produce")
+    studioCells: [],
+    _studioSeq: 0,
+
+    // runs (observability)
     runs: [],
     activeRunId: "",
+    runDetail: null,        // /manifests/runs/{run_id} — node_states, errors, timings
+    activeStepId: "",       // step drilled into (drilldown_table)
+    livePoll: true,         // auto-refresh while a run is in-flight
+    _livePollTimer: null,
+    _runTimeline: null,     // widget handles kept for live refresh()
+    _runTrace: null,
+    _obsTimeline: null,
+    _obsTrace: null,
+    _drillWidget: null,
 
     // agents (model + provider routing — single config surface)
     agentProviders: {},     // raw /llm/status
@@ -311,8 +347,14 @@ export function createBridgePage(options = {}) {
     agentSaving: false,
     agentNote: "",
 
+    // multi-pane (split view) — a secondary Observe pane beside the stage
+    splitView: false,   // operator opt-in; only honoured when `wide`
+    wide: false,        // viewport ≥ 1600px
+
     _ctx: null,
     _widgets: [],
+    _widgets2: [],      // secondary-pane widgets — tracked + destroyed apart
+    _onResize: null,
     _codeWidget: null,
     _docsWidget: null,
 
@@ -324,6 +366,7 @@ export function createBridgePage(options = {}) {
       this.loadConformance();
       this.loadWorkspaces();
       await this.setMode(initialMode);
+      this._setupViewport();
     },
 
     async resolveDefaultMode() {
@@ -347,6 +390,40 @@ export function createBridgePage(options = {}) {
     get activeModeLabel() {
       const m = MODES.find((x) => x.id === this.mode);
       return m ? m.label : this.mode;
+    },
+
+    // The secondary pane is live only when the operator opted in AND the
+    // viewport is wide enough to carry two panes without crushing either.
+    get splitActive() {
+      return this.splitView && this.wide;
+    },
+
+    // Run metrics distilled from the RunRecord (real fields only — status,
+    // timing, per-step states, errors). No fabricated cost/token numbers.
+    get runMetrics() {
+      const r = this.runDetail || this.runs.find((x) => (x.run_id || x.id) === this.activeRunId) || {};
+      const states = r.node_states || {};
+      const stepIds = Object.keys(states);
+      const failed = stepIds.filter((id) => /fail|error/i.test(String(states[id]))).length;
+      let dur = r.duration_ms;
+      if (dur == null && r.started_at && r.completed_at) {
+        const a = Date.parse(r.started_at);
+        const b = Date.parse(r.completed_at);
+        if (!Number.isNaN(a) && !Number.isNaN(b)) dur = b - a;
+      }
+      return {
+        status: r.status || "—",
+        duration: dur != null ? fmtDuration(dur) : "—",
+        steps: stepIds.length,
+        failed,
+        errors: Array.isArray(r.errors) ? r.errors.length : 0,
+        inflight: !!this.activeRunId && !isTerminalStatus(r.status)
+      };
+    },
+
+    get runStepRows() {
+      const states = (this.runDetail && this.runDetail.node_states) || {};
+      return Object.keys(states).map((id) => ({ id, status: states[id] }));
     },
 
     get bennyContextLine() {
@@ -390,6 +467,7 @@ export function createBridgePage(options = {}) {
         case "documents": return this.mountDocuments();
         case "code": return this.mountCode();
         case "flows": return this.mountFlows();
+        case "studio": return this.mountStudio();
         case "runs": return this.mountRuns();
         case "agents": return this.mountAgents();
         default: return undefined;
@@ -408,6 +486,82 @@ export function createBridgePage(options = {}) {
       this._widgets = [];
       this._codeWidget = null;
       this._docsWidget = null;
+      this._runTimeline = null;
+      this._runTrace = null;
+      if (this._drillWidget) { try { this._drillWidget.destroy(); } catch { /* swallow */ } this._drillWidget = null; }
+    },
+
+    /* ── multi-pane (split view) ──────────────────────────────────────────
+       The primary pane is the active mode; the secondary "Observe" pane shows
+       a run's lineage timeline + reasoning trace beside it. Its widgets live in
+       a separate list (_widgets2) and mount into their own ref hosts so a mode
+       switch (which calls destroyWidgets) never tears the Observe pane down. */
+
+    _setupViewport() {
+      const apply = () => {
+        const wide = typeof window !== "undefined" && window.innerWidth >= 1600;
+        if (wide === this.wide) return;
+        this.wide = wide;
+        // Crossing the threshold mounts/tears down the secondary so its
+        // widgets exist only while the pane is actually on screen.
+        if (this.splitView) {
+          if (this.splitActive) this.mountSecondary();
+          else this.destroySecondary();
+        }
+      };
+      this._onResize = apply;
+      if (typeof window !== "undefined") window.addEventListener("resize", apply);
+      apply();
+    },
+
+    track2(widget) {
+      if (widget && typeof widget.destroy === "function") this._widgets2.push(widget);
+      return widget;
+    },
+
+    destroySecondary() {
+      for (const w of this._widgets2) {
+        try { w.destroy(); } catch { /* swallow */ }
+      }
+      this._widgets2 = [];
+      this._obsTimeline = null;
+      this._obsTrace = null;
+    },
+
+    async toggleSplit() {
+      this.splitView = !this.splitView;
+      this.syncContext();
+      await this.$nextTick();
+      if (this.splitActive) this.mountSecondary();
+      else this.destroySecondary();
+    },
+
+    async mountSecondary() {
+      if (!this.splitActive) return;
+      this.destroySecondary();
+      if (!this.runs.length) await this.loadRuns();
+      if (!this.activeRunId && this.runs.length) {
+        this.activeRunId = this.runs[0].run_id || this.runs[0].id || "";
+      }
+      await this.loadRunDetail(this.activeRunId);
+      await this.$nextTick();
+      const timeline = this.$refs.obsTimeline;
+      const trace = this.$refs.obsTrace;
+      if (timeline && this.activeRunId) {
+        this._obsTimeline = this.track2(createLineageTimelineWidget(timeline, { workspace: this.workspace, run_id: this.activeRunId }));
+      }
+      if (trace && this.activeRunId) {
+        this._obsTrace = this.track2(createReasoningTraceWidget(trace, { workspace: this.workspace, run_id: this.activeRunId }));
+      }
+      this.startRunPoll();
+    },
+
+    // Secondary-only run selection — never touches the primary pane's widgets.
+    async observeRun(runId) {
+      this.activeRunId = runId;
+      this.syncContext();
+      await this.loadRunDetail(runId);
+      if (this.splitActive) this.mountSecondary();
     },
 
     /* ── graph chrome (expand to fullscreen) ── */
@@ -1017,9 +1171,16 @@ export function createBridgePage(options = {}) {
         const runId = res && (res.run_id || res.id);
         if (runId) {
           this.activeRunId = runId;
-          this.flowNote = `Run ${runId} started — opening observability.`;
           this.syncContext();
-          await this.setMode("runs");
+          if (this.splitActive && this.mode !== "runs") {
+            // Keep the flow on screen; surface the new run in the Observe pane.
+            this.flowNote = `Run ${runId} started — tracking in Observe →`;
+            await this.loadRuns();
+            this.observeRun(runId);
+          } else {
+            this.flowNote = `Run ${runId} started — opening observability.`;
+            await this.setMode("runs");
+          }
         } else {
           this.flowNote = "Run started, but no run id returned.";
         }
@@ -1090,7 +1251,126 @@ export function createBridgePage(options = {}) {
     openDeepProduceTrace() {
       if (!this.dpRunId) return;
       this.activeRunId = this.dpRunId;
-      this.setMode("runs");
+      if (this.splitActive && this.mode !== "runs") this.observeRun(this.dpRunId);
+      else this.setMode("runs");
+    },
+
+    /* ── Studio (notebook) ────────────────────────────────────────────────
+       A cell-based surface that unifies the two capabilities that were
+       stranded in separate modes: a chat cell (single response, /rag/chat —
+       same path as Documents "Ask the docs") and a report cell (multi-step
+       fan-out, /deep-produce — same path as Flows "Deep produce"). Cells
+       stack like a notebook and keep their own output + trace link. */
+
+    mountStudio() {
+      if (!this.studioCells.length) this.addStudioCell("chat");
+    },
+
+    addStudioCell(kind) {
+      this._studioSeq += 1;
+      this.studioCells.push({
+        id: `cell-${this._studioSeq}`,
+        kind: kind === "report" ? "report" : "chat",
+        prompt: "",
+        panels: 4,
+        status: "idle",   // idle | running | done | error
+        note: "",
+        answer: "", sources: [], route: "", trace: [],
+        view: null, runId: "",
+        _timer: null
+      });
+    },
+
+    removeStudioCell(id) {
+      const c = this.studioCells.find((x) => x.id === id);
+      if (c && c._timer) { clearTimeout(c._timer); c._timer = null; }
+      this.studioCells = this.studioCells.filter((x) => x.id !== id);
+    },
+
+    stopStudioPolls() {
+      for (const c of this.studioCells) {
+        if (c._timer) { clearTimeout(c._timer); c._timer = null; }
+      }
+    },
+
+    async runStudioCell(id) {
+      const cell = this.studioCells.find((x) => x.id === id);
+      if (!cell) return;
+      const prompt = (cell.prompt || "").trim();
+      if (!prompt) { cell.note = "Type a prompt first."; return; }
+      cell.status = "running";
+      cell.note = "";
+      if (cell.kind === "chat") {
+        cell.answer = ""; cell.sources = []; cell.route = ""; cell.trace = [];
+        try {
+          const mode = this.agentMode ? "adaptive" : "semantic";
+          const body = await readRuntimeJson(await runtimeFetch("/rag/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: prompt, workspace: this.workspace, mode })
+          }));
+          cell.answer = (body && body.answer) || "No answer returned.";
+          cell.sources = body && Array.isArray(body.sources) ? body.sources : [];
+          cell.route = (body && body.route) || "";
+          cell.trace = body && Array.isArray(body.execution_trace) ? body.execution_trace : [];
+          cell.status = "done";
+        } catch (err) {
+          cell.status = "error";
+          cell.note = `Query failed: ${err && err.message ? err.message : String(err)}`;
+        }
+        return;
+      }
+      // report cell → deep produce
+      cell.view = null; cell.runId = "";
+      try {
+        const body = await readRuntimeJson(await runtimeFetch("/deep-produce", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ goal: prompt, workspace: this.workspace, panels: cell.panels || 4 })
+        }));
+        cell.runId = body && body.run_id ? body.run_id : "";
+        if (!cell.runId) { cell.status = "error"; cell.note = "No run id returned."; return; }
+        cell.note = `Run ${cell.runId} — producing ${cell.panels || 4} panels…`;
+        this.pollStudioCell(id);
+      } catch (err) {
+        cell.status = "error";
+        cell.note = `Produce failed: ${err && err.message ? err.message : String(err)}`;
+      }
+    },
+
+    async pollStudioCell(id) {
+      const cell = this.studioCells.find((x) => x.id === id);
+      if (!cell || !cell.runId) return;
+      try {
+        const res = await readRuntimeJson(await runtimeFetch(
+          `/deep-produce/${encodeURIComponent(cell.runId)}?workspace=${encodeURIComponent(this.workspace)}`
+        ));
+        const status = res && res.status ? res.status : "";
+        if (status === "completed" && res.view) {
+          cell.view = res.view;
+          cell.status = "done";
+          cell.note = `Produced "${res.view.title}" — ${res.view.panels.length} panels.`;
+          return;
+        }
+        if (status === "failed") {
+          cell.status = "error";
+          cell.note = `Produce failed: ${res && res.error ? res.error : "unknown error"}`;
+          return;
+        }
+        cell._timer = setTimeout(() => this.pollStudioCell(id), 2500);
+      } catch {
+        cell._timer = setTimeout(() => this.pollStudioCell(id), 3000);
+      }
+    },
+
+    // Jump a report cell's run into the observability surface (Observe pane in
+    // split view, else the Runs mode).
+    openStudioCellTrace(id) {
+      const cell = this.studioCells.find((x) => x.id === id);
+      if (!cell || !cell.runId) return;
+      this.activeRunId = cell.runId;
+      if (this.splitActive) this.observeRun(cell.runId);
+      else this.setMode("runs");
     },
 
     /* ── Runs (observability) ── */
@@ -1100,7 +1380,11 @@ export function createBridgePage(options = {}) {
       if (!this.activeRunId && this.runs.length) {
         this.activeRunId = this.runs[0].run_id || this.runs[0].id || "";
       }
-      if (this.activeRunId) this.mountRunWidgets(this.activeRunId);
+      if (this.activeRunId) {
+        await this.loadRunDetail(this.activeRunId);
+        this.mountRunWidgets(this.activeRunId);
+      }
+      this.startRunPoll();
     },
 
     async loadRuns() {
@@ -1114,10 +1398,23 @@ export function createBridgePage(options = {}) {
       }
     },
 
-    selectRun(runId) {
+    // Full RunRecord for the active run — node_states (steps), errors, timing.
+    async loadRunDetail(runId) {
+      if (!runId) { this.runDetail = null; return; }
+      try {
+        this.runDetail = await readRuntimeJson(await runtimeFetch(`/manifests/runs/${encodeURIComponent(runId)}`));
+      } catch {
+        this.runDetail = null;
+      }
+    },
+
+    async selectRun(runId) {
       this.activeRunId = runId;
+      this.activeStepId = "";
       this.onNodeSelect(runId, `run ${runId}`);
+      await this.loadRunDetail(runId);
       this.mountRunWidgets(runId);
+      this.startRunPoll();
     },
 
     mountRunWidgets(runId) {
@@ -1125,11 +1422,68 @@ export function createBridgePage(options = {}) {
       const timeline = this.$refs.runsTimeline;
       const trace = this.$refs.runsTrace;
       if (timeline) {
-        this.track(createLineageTimelineWidget(timeline, { workspace: this.workspace, run_id: runId }));
+        this._runTimeline = this.track(createLineageTimelineWidget(timeline, { workspace: this.workspace, run_id: runId }));
       }
       if (trace) {
-        this.track(createReasoningTraceWidget(trace, { workspace: this.workspace, run_id: runId }));
+        this._runTrace = this.track(createReasoningTraceWidget(trace, { workspace: this.workspace, run_id: runId }));
       }
+      this.mountDrilldown();
+    },
+
+    // Drill into a step: rows + CLP binding via /pypes/runs/{run}/steps/{step}.
+    // The widget renders an honest "no checkpoint" message for non-pypes steps.
+    async selectStep(stepId) {
+      this.activeStepId = (this.activeStepId === stepId) ? "" : stepId;
+      await this.$nextTick();
+      this.mountDrilldown();
+    },
+
+    mountDrilldown() {
+      if (this._drillWidget) { try { this._drillWidget.destroy(); } catch { /* swallow */ } this._drillWidget = null; }
+      const host = this.$refs.runsDrilldown;
+      if (host && this.activeStepId && this.activeRunId) {
+        this._drillWidget = createDrilldownTableWidget(host, {
+          run_id: this.activeRunId,
+          step_id: this.activeStepId,
+          workspace: this.workspace,
+          rows: 100
+        });
+      }
+    },
+
+    /* ── live monitoring — refresh while a run is in-flight ── */
+
+    toggleLive() {
+      this.livePoll = !this.livePoll;
+      if (this.livePoll) this.startRunPoll();
+      else this.stopRunPoll();
+    },
+
+    stopRunPoll() {
+      if (this._livePollTimer) { clearTimeout(this._livePollTimer); this._livePollTimer = null; }
+    },
+
+    startRunPoll() {
+      this.stopRunPoll();
+      if (!this.livePoll) return;
+      const tick = async () => {
+        if (!this.livePoll) { this._livePollTimer = null; return; }
+        // Only do work when an observability surface is actually on screen.
+        const visible = this.mode === "runs" || this.splitActive;
+        const rec = this.runDetail || this.runs.find((r) => (r.run_id || r.id) === this.activeRunId);
+        const inflight = this.activeRunId && rec && !isTerminalStatus(rec.status);
+        if (visible && inflight) {
+          await this.loadRuns();
+          await this.loadRunDetail(this.activeRunId);
+          if (this._runTimeline) this._runTimeline.refresh();
+          if (this._runTrace) this._runTrace.refresh();
+          if (this._obsTimeline) this._obsTimeline.refresh();
+          if (this._obsTrace) this._obsTrace.refresh();
+          if (this._drillWidget) this._drillWidget.refresh();
+        }
+        this._livePollTimer = setTimeout(tick, 3000);
+      };
+      this._livePollTimer = setTimeout(tick, 3000);
     },
 
     /* ── Agents (model + provider routing — one config surface) ── */
@@ -1252,14 +1606,29 @@ export function createBridgePage(options = {}) {
 
     /* ── workspace + conformance (shared) ── */
 
-    async loadWorkspaces() {
+    async loadWorkspaces(attempt = 0) {
       try {
+        // The proxy maps runtimeFetch("/workspaces") → runtime /api/workspaces,
+        // which returns the workspace names. Tolerate both string-array and
+        // object-array ({id,...}) shapes across runtime versions.
         const list = await readRuntimeJson(await runtimeFetch("/workspaces"));
-        const names = Array.isArray(list) ? list.filter((x) => typeof x === "string") : [];
-        if (names.length) this.workspaces = names;
-        if (!this.workspaces.includes(this.workspace)) this.workspace = this.workspaces[0];
+        const names = Array.isArray(list)
+          ? list
+              .map((x) => (typeof x === "string" ? x : x && x.id))
+              .filter((x) => typeof x === "string" && x)
+          : [];
+        if (names.length) {
+          this.workspaces = names;
+          if (!this.workspaces.includes(this.workspace)) this.workspace = this.workspaces[0];
+          return;
+        }
+        throw new Error("empty workspace list");
       } catch {
-        /* keep default */
+        // On a cold desktop launch the runtime may still be booting — retry a
+        // few times before giving up so the list isn't stuck on ["default"].
+        if (attempt < 5) {
+          setTimeout(() => this.loadWorkspaces(attempt + 1), 1500);
+        }
       }
     },
 
@@ -1302,6 +1671,12 @@ export function createBridgePage(options = {}) {
 
     destroy() {
       this.stopDeepProducePoll();
+      this.stopRunPoll();
+      this.stopStudioPolls();
+      if (this._onResize && typeof window !== "undefined") {
+        window.removeEventListener("resize", this._onResize);
+      }
+      this.destroySecondary();
       this.destroyWidgets();
     }
   };

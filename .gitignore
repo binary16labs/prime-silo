@@ -35,3 +35,10 @@ prime-silo-core/
 # App-registry generated port lockfile (machine-local; never committed).
 # The descriptors (app.manifest.json) and registry are source; the lock is not.
 apps.lock.json
+
+# Operational data / agent litter (never commit)
+/logs/
+/workspace/
+runtime/logs/
+runtime/workspace/
+runtime/failed_llm_output_*.txt

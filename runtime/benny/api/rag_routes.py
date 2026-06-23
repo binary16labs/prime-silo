@@ -364,6 +364,75 @@ async def ingest_files(request: IngestRequest):
         raise HTTPException(500, f"Ingestion failed: {str(e)}")
 
 
+class PageIndexIngestRequest(BaseModel):
+    workspace: str = "default"
+    files: Optional[List[str]] = None
+    use_llm_summaries: bool = False
+    write_graph: bool = True
+    extract_triples: bool = True
+    model: Optional[str] = None
+
+
+@router.post("/rag/pageindex/ingest")
+async def pageindex_ingest(request: PageIndexIngestRequest):
+    """Vectorless ingest (PIX-001): build the PageIndex tree, write the Section
+    graph, and fan triple extraction over the tree's leaves. No embedding server.
+    """
+    from ..core.pageindex_pipeline import run_pageindex_ingest
+
+    data_in = get_workspace_path(request.workspace, "data_in")
+    if not data_in.exists():
+        raise HTTPException(404, "No data_in folder for workspace")
+
+    supported = {'.txt', '.md', '.pdf', '.docx', '.pptx', '.html'}
+    if request.files:
+        files = [data_in / f for f in request.files]
+    else:
+        files = [f for f in data_in.glob("*.*") if f.suffix.lower() in supported]
+    files = [f for f in files if f.exists() and f.suffix.lower() in supported]
+    if not files:
+        raise HTTPException(404, "No supported files found")
+
+    run_id = str(uuid.uuid4())
+    reports = []
+    for fp in files:
+        text = extract_structured_text(fp)
+        report = await run_pageindex_ingest(
+            workspace=request.workspace,
+            source=fp.name,
+            text=text,
+            model=request.model,
+            use_llm_summaries=request.use_llm_summaries,
+            write_graph=request.write_graph,
+            extract_triples=request.extract_triples,
+            run_id=run_id,
+        )
+        report.pop("outline", None)  # keep the API payload compact
+        reports.append(report)
+
+    return {
+        "status": "completed",
+        "run_id": run_id,
+        "workspace": request.workspace,
+        "documents": len(reports),
+        "total_sections": sum(r["sections"] for r in reports),
+        "total_triples": sum(r["triples"] for r in reports),
+        "reports": reports,
+    }
+
+
+@router.get("/rag/pageindex/outline")
+async def pageindex_outline(source: str, workspace: str = "default"):
+    """Return the stored indexed-abstract outline for a source document."""
+    from ..core.pageindex import abstract_outline
+    from ..core.pageindex_builder import load_tree, list_trees
+
+    tree = load_tree(workspace, source)
+    if not tree:
+        return {"source": source, "available": list_trees(workspace), "outline": None}
+    return {"source": source, "outline": abstract_outline(tree)}
+
+
 @router.get("/rag/logs")
 async def get_rag_logs(workspace: str = "default"):
     """Get the latest ingestion tasks from TaskManager."""

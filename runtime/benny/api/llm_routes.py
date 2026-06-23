@@ -303,6 +303,59 @@ async def get_model_routing_config(workspace: str = "default"):
     }
 
 
+class ProfileConfigRequest(BaseModel):
+    workspace: str = "default"
+    provider_profiles: Optional[Dict[str, str]] = None       # provider -> profile name
+    model_overrides: Optional[Dict[str, str]] = None          # model id -> capable|fragile|none
+
+
+@router.get("/profiles")
+async def get_model_profiles(workspace: str = "default"):
+    """Model capability profiles that govern default-safe thinking suppression.
+
+    Drives the Agents screen: per provider, which named profile is active; per
+    model, its thinking class (capable = auto-/no_think on synthesis; fragile =
+    never suppress; none = not a reasoning model). Backed by built-in defaults +
+    configs/model_profiles.json + the per-workspace override file.
+    """
+    from ..core import model_profiles as mp
+    from ..core.models import LOCAL_PROVIDERS, CLOUD_PROVIDERS
+
+    providers = list(LOCAL_PROVIDERS.keys()) + list(CLOUD_PROVIDERS.keys()) + ["litert"]
+    return {
+        "workspace": workspace,
+        "available_profiles": mp.list_profile_names(workspace),
+        "active_by_provider": {p: mp.active_profile_name(p, workspace) for p in providers},
+        "capabilities": mp.resolved_capabilities(workspace),
+        "suppress_thinking_roles": mp.suppress_roles(workspace=workspace),
+    }
+
+
+@router.post("/profiles")
+async def set_model_profiles(request: ProfileConfigRequest):
+    """Persist on-screen profile changes: provider→profile selection (manifest)
+    and per-model capability overrides (per-workspace file)."""
+    from ..core import model_profiles as mp
+    from ..core.workspace import load_manifest, save_manifest
+
+    if request.provider_profiles:
+        manifest = load_manifest(request.workspace)
+        pp = dict(getattr(manifest, "provider_profiles", {}) or {})
+        for provider, name in request.provider_profiles.items():
+            if name:
+                pp[provider] = name
+            else:
+                pp.pop(provider, None)
+        manifest.provider_profiles = pp
+        save_manifest(request.workspace, manifest)
+
+    if request.model_overrides:
+        for model, thinking in request.model_overrides.items():
+            mp.set_workspace_model_capability(request.workspace, model, thinking)
+
+    return await get_model_profiles(request.workspace)
+
+
 @router.post("/config")
 async def set_model_routing_config(request: ModelConfigRequest):
     """Persist model-routing config to the workspace manifest. Single source of

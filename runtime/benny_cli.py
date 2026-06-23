@@ -1625,6 +1625,23 @@ def build_parser() -> argparse.ArgumentParser:
     p_tui.add_argument("--workspace", default="default", help="Active workspace")
 
     # migrate (PBR-001 Phase 8)
+    p_pix = sub.add_parser("pageindex", help="PageIndex vectorless spine (build trees, ingest, show outline)")
+    pix_sub = p_pix.add_subparsers(dest="pageindex_cmd", required=True)
+    p_pix_build = pix_sub.add_parser("build", help="Build + persist the tree for one file in data_in")
+    p_pix_build.add_argument("file", help="Filename inside the workspace data_in/ folder")
+    p_pix_build.add_argument("--workspace", default="default")
+    p_pix_build.add_argument("--llm", action="store_true", help="Enrich summaries via call_model (needs a provider)")
+    p_pix_build.add_argument("--model", default=None)
+    p_pix_ingest = pix_sub.add_parser("ingest", help="Full vectorless ingest over all data_in files")
+    p_pix_ingest.add_argument("--workspace", default="default")
+    p_pix_ingest.add_argument("--llm", action="store_true", help="Enrich summaries via call_model")
+    p_pix_ingest.add_argument("--model", default=None)
+    p_pix_ingest.add_argument("--no-graph", action="store_true", help="Skip the Neo4j Section graph write")
+    p_pix_ingest.add_argument("--no-triples", action="store_true", help="Skip triple fan-out")
+    p_pix_show = pix_sub.add_parser("show", help="Print the stored abstract outline for a source")
+    p_pix_show.add_argument("source", help="Source filename (as ingested)")
+    p_pix_show.add_argument("--workspace", default="default")
+
     p_mig = sub.add_parser("migrate", help="Import legacy installs or relocate workspaces")
     p_mig.add_argument("--from-path", "--from", required=True, help="Source directory to migrate")
     p_mig.add_argument("--to-home", "--to", default=None, help="Target $BENNY_HOME (defaults to current)")
@@ -1632,6 +1649,73 @@ def build_parser() -> argparse.ArgumentParser:
     p_mig.add_argument("--dry-run", dest="apply", action="store_false")
 
     return p
+
+
+async def cmd_pageindex(args: argparse.Namespace) -> int:
+    """PageIndex vectorless spine — build trees, run the full ingest, or show an outline."""
+    from benny.core.workspace import get_workspace_path
+    from benny.core.extraction import extract_structured_text
+    from benny.core.pageindex import abstract_outline
+    from benny.core.pageindex_builder import build_document_tree, enrich_summaries, persist_tree, load_tree
+    from benny.core.pageindex_pipeline import run_pageindex_ingest
+
+    ws = args.workspace
+    sub = args.pageindex_cmd
+
+    if sub == "show":
+        tree = load_tree(ws, args.source)
+        if not tree:
+            print(f"No PageIndex tree for {args.source!r} in workspace {ws!r}.", file=sys.stderr)
+            return 1
+        print(abstract_outline(tree))
+        return 0
+
+    # Resolve target files in data_in.
+    data_in = get_workspace_path(ws, "data_in")
+    supported = {".txt", ".md", ".pdf", ".docx", ".pptx", ".html"}
+    if sub == "build":
+        files = [data_in / args.file] if args.file else []
+    else:  # ingest
+        files = [f for f in data_in.glob("*.*") if f.suffix.lower() in supported] if data_in.exists() else []
+
+    if not files:
+        print(f"No files to process in {data_in}", file=sys.stderr)
+        return 1
+
+    use_llm = getattr(args, "llm", False)
+    model = getattr(args, "model", None)
+    rc = 0
+    for fp in files:
+        if not fp.exists():
+            print(f"  ! missing: {fp.name}", file=sys.stderr)
+            rc = 1
+            continue
+        text = extract_structured_text(fp)
+        if sub == "build":
+            tree = build_document_tree(text, fp.name)
+            if use_llm:
+                tree = await enrich_summaries(tree, model=model, workspace=ws)
+            path = persist_tree(ws, fp.name, tree)
+            print(f"\n=== {fp.name} → {path} ===")
+            print(abstract_outline(tree))
+        else:  # ingest
+            report = await run_pageindex_ingest(
+                workspace=ws,
+                source=fp.name,
+                text=text,
+                model=model,
+                use_llm_summaries=use_llm,
+                write_graph=not getattr(args, "no_graph", False),
+                extract_triples=not getattr(args, "no_triples", False),
+            )
+            g = report["graph"]
+            print(
+                f"[{fp.name}] sections={report['sections']} "
+                f"triples={report['triples']} "
+                f"graph={'written' if g.get('written') else 'skipped(' + str(g.get('reason', 'n/a'))[:40] + ')'} "
+                f"→ {report['tree_json']}"
+            )
+    return rc
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -1686,6 +1770,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.cmd == "agentamp":
         from benny.agentamp.cli import cmd_agentamp
         return cmd_agentamp(args)
+    if args.cmd == "pageindex":
+        return asyncio.run(cmd_pageindex(args))
 
     parser.print_help()
     return 1

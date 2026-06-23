@@ -1,9 +1,17 @@
 <html>
   <head>
+    <!-- Canonical earth-tone palette (single source of truth). The Bridge
+         mirrors these into its --ps-* tokens so it never drifts from the
+         framework (make-project-right rule 9). -->
+    <link rel="stylesheet" href="/mod/_core/framework/css/colors.css?v=1" />
     <link rel="stylesheet" href="/mod/_prime_silo/widgets/memoray/overview_cards/overview_cards.css" />
     <link rel="stylesheet" href="/mod/_prime_silo/widgets/memoray/lineage_graph/lineage_graph.css" />
     <link rel="stylesheet" href="/mod/_prime_silo/widgets/three_renderer/renderer.css" />
-    <link rel="stylesheet" href="/mod/_prime_silo/bridge/bridge.css?v=4" />
+    <!-- Run observability widgets — render unstyled without these. -->
+    <link rel="stylesheet" href="/mod/_prime_silo/widgets/run/lineage_timeline/lineage_timeline.css" />
+    <link rel="stylesheet" href="/mod/_prime_silo/widgets/run/reasoning_trace/reasoning_trace.css" />
+    <link rel="stylesheet" href="/mod/_prime_silo/widgets/run/drilldown_table/drilldown_table.css" />
+    <link rel="stylesheet" href="/mod/_prime_silo/bridge/bridge.css?v=6" />
     <script type="module" src="/mod/_prime_silo/bridge/bridge.js"></script>
   </head>
   <body>
@@ -33,6 +41,18 @@
             <span x-show="conformance.status === 'drift'" x-text="`drift (${conformance.driftCount})`"></span>
             <span x-show="conformance.status === 'unknown' || !conformance.status">conformance —</span>
           </span>
+          <button
+            type="button"
+            class="ps-bridge__zen ps-bridge__splitbtn"
+            x-show="wide"
+            :class="{ 'is-on': splitView }"
+            @click="toggleSplit()"
+            :aria-pressed="splitView"
+            title="Show the Observe pane (run lineage + reasoning trace) beside the stage"
+          >
+            <x-icon x-text="splitView ? 'splitscreen' : 'splitscreen_add'"></x-icon>
+            <span x-text="splitView ? 'single' : 'split'"></span>
+          </button>
           <button type="button" class="ps-bridge__zen" @click="toggleZen()" :aria-pressed="zen">
             <span x-text="zen ? 'exit zen' : 'zen'"></span>
           </button>
@@ -62,7 +82,7 @@
         <!-- Stage -->
         <main class="ps-bridge__stage">
           <!-- workspace selector (shared, shown where it scopes the surface) -->
-          <div class="ps-bridge__stage-bar" x-show="['documents','code','flows','runs'].includes(mode)">
+          <div class="ps-bridge__stage-bar" x-show="['documents','code','flows','studio','runs'].includes(mode)">
             <label class="ps-bridge__ws">
               <span>Workspace</span>
               <select x-model="workspace" @change="onWorkspaceChange()">
@@ -72,6 +92,10 @@
               </select>
             </label>
           </div>
+
+          <!-- primary stage | secondary Observe pane (shown in split view) -->
+          <div class="ps-bridge__panes" :class="{ 'is-split': splitActive }">
+            <div class="ps-bridge__pane ps-bridge__pane--primary">
 
           <!-- PULSE -->
           <div class="ps-bridge__panel" x-show="mode === 'pulse'">
@@ -458,6 +482,90 @@
             </div>
           </div>
 
+          <!-- STUDIO (notebook — cells unify ask + deep-produce) -->
+          <div class="ps-bridge__panel" x-show="mode === 'studio'">
+            <div class="ps-bridge__studio">
+              <div class="ps-bridge__studio-head">
+                <h3>Studio <span class="ps-bridge__muted">notebook — single chat responses &amp; multi-step reports in one place</span></h3>
+                <div class="ps-bridge__studio-tools">
+                  <button type="button" class="ps-bridge__btn" @click="addStudioCell('chat')"><x-icon>forum</x-icon><span>Chat cell</span></button>
+                  <button type="button" class="ps-bridge__btn" @click="addStudioCell('report')"><x-icon>dashboard_customize</x-icon><span>Report cell</span></button>
+                </div>
+              </div>
+
+              <div class="ps-bridge__cells">
+                <template x-for="cell in studioCells" :key="cell.id">
+                  <article class="ps-bridge__cell" :data-kind="cell.kind" :data-status="cell.status">
+                    <div class="ps-bridge__cell-bar">
+                      <span class="ps-bridge__cell-kind">
+                        <x-icon x-text="cell.kind === 'report' ? 'dashboard_customize' : 'forum'"></x-icon>
+                        <span x-text="cell.kind === 'report' ? 'Report' : 'Chat'"></span>
+                      </span>
+                      <span class="ps-bridge__cell-status" x-text="cell.status"></span>
+                      <span class="ps-bridge__metrics-spacer"></span>
+                      <label class="ps-bridge__ws" x-show="cell.kind === 'report'">
+                        <span>Panels</span>
+                        <select x-model.number="cell.panels"><option>3</option><option>4</option><option>5</option><option>6</option></select>
+                      </label>
+                      <button type="button" class="ps-bridge__wfdel" @click="removeStudioCell(cell.id)" title="Remove cell"><x-icon>close</x-icon></button>
+                    </div>
+
+                    <textarea
+                      class="ps-bridge__req"
+                      x-model="cell.prompt"
+                      rows="2"
+                      :placeholder="cell.kind === 'report' ? 'A goal to decompose into a multi-panel report — e.g. how the Bridge cockpit works.' : 'Ask a question grounded in this workspace…'"
+                      @keydown.enter.meta="runStudioCell(cell.id)"
+                    ></textarea>
+
+                    <div class="ps-bridge__flow-actions">
+                      <button type="button" class="ps-bridge__btn ps-bridge__btn--go" @click="runStudioCell(cell.id)" :disabled="cell.status === 'running'">
+                        <x-icon x-text="cell.status === 'running' ? 'hourglass_top' : 'play_arrow'"></x-icon>
+                        <span x-text="cell.status === 'running' ? 'Running…' : 'Run'"></span>
+                      </button>
+                      <button type="button" class="ps-bridge__btn" x-show="cell.kind === 'report' && cell.runId" @click="openStudioCellTrace(cell.id)">
+                        <x-icon>timeline</x-icon><span>Trace</span>
+                      </button>
+                      <span class="ps-bridge__muted" x-show="cell.note" x-text="cell.note"></span>
+                    </div>
+
+                    <!-- chat output -->
+                    <div class="ps-bridge__ask-answer" x-show="cell.kind === 'chat' && cell.answer" x-text="cell.answer"></div>
+                    <div class="ps-bridge__ask-route" x-show="cell.kind === 'chat' && cell.route">
+                      <span class="ps-bridge__muted">Route:</span>
+                      <span class="ps-bridge__file-status is-ingested" x-text="cell.route"></span>
+                      <span class="ps-bridge__muted" x-show="cell.trace.length" x-text="cell.trace.join(' → ')"></span>
+                    </div>
+                    <div class="ps-bridge__ask-sources" x-show="cell.kind === 'chat' && cell.sources.length">
+                      <span class="ps-bridge__muted">Sources:</span>
+                      <template x-for="s in cell.sources" :key="s">
+                        <span class="ps-bridge__file-status is-ingested" x-text="s"></span>
+                      </template>
+                    </div>
+
+                    <!-- report output -->
+                    <div class="ps-bridge__deep-view" x-show="cell.kind === 'report' && cell.view">
+                      <h4 class="ps-bridge__deep-title" x-text="cell.view && cell.view.title"></h4>
+                      <div class="ps-bridge__panels">
+                        <template x-for="p in (cell.view ? cell.view.panels : [])" :key="p.id">
+                          <article class="ps-bridge__panel-card">
+                            <h5 x-text="p.title"></h5>
+                            <pre class="ps-bridge__panel-md" x-text="p.markdown"></pre>
+                          </article>
+                        </template>
+                      </div>
+                      <details class="ps-bridge__deep-review" x-show="cell.view && cell.view.review">
+                        <summary>Reviewer critique</summary>
+                        <pre x-text="cell.view && cell.view.review"></pre>
+                      </details>
+                    </div>
+                  </article>
+                </template>
+                <p class="ps-bridge__muted" x-show="!studioCells.length">No cells yet — add a Chat or Report cell above.</p>
+              </div>
+            </div>
+          </div>
+
           <!-- RUNS -->
           <div class="ps-bridge__panel" x-show="mode === 'runs'">
             <div class="ps-bridge__split">
@@ -474,6 +582,33 @@
                 </div>
               </aside>
               <div class="ps-bridge__runstage">
+                <!-- run metrics strip — real fields only (status, timing, steps,
+                     failures, errors) + a live indicator and poll toggle. -->
+                <div class="ps-bridge__metrics" x-show="activeRunId">
+                  <span class="ps-bridge__metric ps-bridge__metric--status" :data-status="String(runMetrics.status).toLowerCase()">
+                    <x-icon>radio_button_checked</x-icon><span x-text="runMetrics.status"></span>
+                  </span>
+                  <span class="ps-bridge__metric"><x-icon>schedule</x-icon><span x-text="runMetrics.duration"></span></span>
+                  <span class="ps-bridge__metric"><x-icon>account_tree</x-icon><span x-text="runMetrics.steps + ' steps'"></span></span>
+                  <span class="ps-bridge__metric is-bad" x-show="runMetrics.failed"><x-icon>error</x-icon><span x-text="runMetrics.failed + ' failed'"></span></span>
+                  <span class="ps-bridge__metric is-bad" x-show="runMetrics.errors"><x-icon>report</x-icon><span x-text="runMetrics.errors + ' errors'"></span></span>
+                  <span class="ps-bridge__metric ps-bridge__metric--live" x-show="runMetrics.inflight"><span class="ps-bridge__live-dot"></span> live</span>
+                  <span class="ps-bridge__metrics-spacer"></span>
+                  <button type="button" class="ps-bridge__toggle" :class="{ 'ps-bridge__toggle--active': livePoll }" @click="toggleLive()" x-text="livePoll ? 'Live on' : 'Live off'"></button>
+                </div>
+
+                <!-- steps — click to drill into a step's rows + CLP binding. -->
+                <div class="ps-bridge__steps" x-show="runStepRows.length">
+                  <span class="ps-bridge__muted">Steps</span>
+                  <template x-for="s in runStepRows" :key="s.id">
+                    <button type="button" class="ps-bridge__step" :class="{ 'is-active': s.id === activeStepId }" :data-status="String(s.status).toLowerCase()" @click="selectStep(s.id)">
+                      <span x-text="s.id"></span>
+                    </button>
+                  </template>
+                </div>
+
+                <div class="ps-bridge__drill" x-ref="runsDrilldown" x-show="activeStepId"></div>
+
                 <div class="ps-bridge__graph" x-ref="runsTimeline"></div>
                 <div class="ps-bridge__graph" x-ref="runsTrace"></div>
               </div>
@@ -561,6 +696,37 @@
               </div>
             </div>
           </div>
+            </div><!-- /pane--primary -->
+
+            <!-- Secondary Observe pane: run lineage timeline + reasoning trace,
+                 mounted into its own refs so a primary mode switch never tears
+                 it down. Only rendered when splitActive (opt-in ∧ wide). -->
+            <aside class="ps-bridge__pane ps-bridge__pane--secondary" x-show="splitActive" aria-label="Observe — run lineage and reasoning trace">
+              <div class="ps-bridge__obs-head">
+                <div class="ps-bridge__obs-title">
+                  <x-icon>timeline</x-icon><span>Observe</span>
+                  <span class="ps-bridge__muted" x-text="activeRunId ? ('run ' + activeRunId.slice(0, 12)) : 'no run selected'"></span>
+                </div>
+                <select class="ps-bridge__obs-pick" x-model="activeRunId" @change="observeRun(activeRunId)">
+                  <option value="">latest…</option>
+                  <template x-for="r in runs" :key="(r.run_id || r.id)">
+                    <option :value="r.run_id || r.id" x-text="((r.run_id || r.id || '').slice(0, 16)) + ' · ' + (r.status || '')"></option>
+                  </template>
+                </select>
+              </div>
+              <div class="ps-bridge__metrics ps-bridge__metrics--mini" x-show="activeRunId">
+                <span class="ps-bridge__metric ps-bridge__metric--status" :data-status="String(runMetrics.status).toLowerCase()">
+                  <x-icon>radio_button_checked</x-icon><span x-text="runMetrics.status"></span>
+                </span>
+                <span class="ps-bridge__metric"><x-icon>schedule</x-icon><span x-text="runMetrics.duration"></span></span>
+                <span class="ps-bridge__metric"><x-icon>account_tree</x-icon><span x-text="runMetrics.steps"></span></span>
+                <span class="ps-bridge__metric ps-bridge__metric--live" x-show="runMetrics.inflight"><span class="ps-bridge__live-dot"></span> live</span>
+              </div>
+              <div class="ps-bridge__obs-graph" x-ref="obsTimeline"></div>
+              <div class="ps-bridge__obs-graph" x-ref="obsTrace"></div>
+              <p class="ps-bridge__muted" x-show="!runs.length">No runs yet — plan and run a flow.</p>
+            </aside>
+          </div><!-- /panes -->
         </main>
 
         <!-- Benny dock -->

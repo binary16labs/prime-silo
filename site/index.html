@@ -18,9 +18,10 @@
     <span class="nav-logo-mark"></span>
     PRIME<span class="nav-logo-dim">-</span>SILO
   </a>
-  <div class="nav-links">
     <a href="#features">Features</a>
     <a href="#architecture">Architecture</a>
+    <a href="#memoray">Memo-Ray</a>
+    <a href="memo-ray.html">MCP Server</a>
     <a href="#manual">Manual</a>
     <a href="https://github.com/binary16labs/prime-silo/blob/main/docs/USER_GUIDE.md" target="_blank" rel="noopener">User Guide</a>
     <a href="#wizard" class="nav-cta">Config Wizard</a>
@@ -130,6 +131,60 @@
   <div class="arch-legend">
     <div class="arch-legend-item"><span class="lg lg-det"></span> Deterministic zone — agents read-only</div>
     <div class="arch-legend-item"><span class="lg lg-rev"></span> Review zone — agents draft, humans pin</div>
+  </div>
+</section>
+
+<!-- ════════════════════ MEMO-RAY ════════════════════ -->
+<section class="section" id="memoray" style="padding: 5rem 2rem;">
+  <div class="section-head" style="margin-bottom: 2rem;">
+    <p class="section-eyebrow">The Third Graph of the Cognitive Mesh</p>
+    <h2 class="section-title">Memo-Ray: The Memory Graph</h2>
+    <p class="section-sub">You should never have to be the institutional memory for your AI agents. Memo-Ray reads session logs, distils them into a portable atomic entity database, and renders them as an organic, explorable lineage graph.</p>
+  </div>
+
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="fc-zone z-det">Storage</div>
+      <h3 class="fc-title">Portable Entity Object Architecture</h3>
+      <p class="fc-desc" style="font-size: 0.85rem; color: var(--ink-dim);">
+        Discarding heavy DBs for an ultra-portable file system architecture. Every session, thought, tool call, and artifact is a distinct JSON file under <code>server/data/entities/</code>. A central <code>data_model_abstract.md</code> defines the strict ontology for agents to natively understand the ecosystem.
+      </p>
+    </div>
+    <div class="feature-card">
+      <div class="fc-zone z-sub">Engine</div>
+      <h3 class="fc-title">Delta Sync Engine</h3>
+      <p class="fc-desc" style="font-size: 0.85rem; color: var(--ink-dim);">
+        Dynamically reads local Claude Code and Antigravity directory logs. Checks "Last Modified" timestamps and only parses new/updated files to ensure lightning-fast UI loads. Keep your data on your local machine (localhost-only CORS).
+      </p>
+    </div>
+    <div class="feature-card">
+      <div class="fc-zone z-rev">View</div>
+      <h3 class="fc-title">Comprehensive Governance</h3>
+      <p class="fc-desc" style="font-size: 0.85rem; color: var(--ink-dim);">
+        Maps Claude web chats, Claude Code sessions, Co-work caches, and Antigravity transcripts all in one unified interface. Project artifacts (PRDs, plans) are directly linked as distinct structural nodes within the conversation trees.
+      </p>
+    </div>
+    <div class="feature-card">
+      <div class="fc-zone z-det">UI/UX</div>
+      <h3 class="fc-title">Biological Graph Visualization</h3>
+      <p class="fc-desc" style="font-size: 0.85rem; color: var(--ink-dim);">
+        Built ADHD/dyslexia-first: spatial maps over walls of JSON. Steps are cells; D3 Convex Hulls group threads into translucent organs. Clicking a node progressively "sprouts" its lineage. Visual weighting shows rank/importance via cell size using earthy palettes.
+      </p>
+    </div>
+    <div class="feature-card">
+      <div class="fc-zone z-sub">Integration</div>
+      <h3 class="fc-title">Cognitive Mesh Enrichment</h3>
+      <p class="fc-desc" style="font-size: 0.85rem; color: var(--ink-dim);">
+        The file-interaction timeline records which sessions touched which files. A <code>CORRELATES_WITH</code> overlay links the memory graph to Prime-Silo's code graph, answering "show me every conversation that shaped this module."
+      </p>
+    </div>
+    <div class="feature-card">
+      <div class="fc-zone z-rev">Controls</div>
+      <h3 class="fc-title">Unified Interface & Filters</h3>
+      <p class="fc-desc" style="font-size: 0.85rem; color: var(--ink-dim);">
+        The left sidebar lists sessions and a Files explorer. The collapsible right sidebar houses powerful filters to dynamically toggle visibility of User Inputs, Tool Calls, Thoughts, Artifacts, and Co-work. Works seamlessly across Windows, macOS, and Linux.
+      </p>
+    </div>
   </div>
 </section>
 

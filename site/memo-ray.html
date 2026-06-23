@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Memo-Ray — MCP Server</title>
+<meta name="description" content="Memo-Ray MCP Server: The third graph of the cognitive mesh, available for your agents." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css?v=2" />
+<style>
+  /* Additional inline styles for standalone layout if needed, otherwise rely on styles.css */
+</style>
+</head>
+<body>
+
+<!-- ════════════════════ NAV ════════════════════ -->
+<nav class="nav" id="nav">
+  <a class="nav-logo" href="index.html">
+    <span class="nav-logo-mark"></span>
+    MEMO<span class="nav-logo-dim">-</span>RAY
+  </a>
+  <div class="nav-links">
+    <a href="index.html">Back to Prime-Silo</a>
+    <a href="#features">Features</a>
+    <a href="#compatibility">Compatibility</a>
+    <a href="#installation">Setup Guide</a>
+    <a href="https://github.com/binary16labs/prime-silo" target="_blank" rel="noopener">GitHub</a>
+  </div>
+</nav>
+
+<!-- ════════════════════ HERO ════════════════════ -->
+<header class="hero" id="hero">
+  <canvas id="warpCanvas" class="warp-canvas" aria-hidden="true"></canvas>
+  <div class="hero-inner">
+    <p class="hero-eyebrow">The Third Graph of the Cognitive Mesh</p>
+    <h1 class="hero-title">
+      <span class="hero-title-line">MEMO-RAY MCP</span>
+    </h1>
+    <p class="hero-sub">
+      An X-ray for agent memory. Distils session logs into an <strong>organic, explorable lineage graph</strong> via the Model Context Protocol. You should never have to be the institutional memory for your own AI agents.
+    </p>
+    <div class="hero-ctas">
+      <a class="btn btn-primary" href="#installation">⚡ Quickstart Guide</a>
+      <a class="btn btn-ghost" href="#compatibility">Check Compatibility ↗</a>
+    </div>
+    <div class="hero-meta">
+      <span class="hero-meta-item"><b>1</b> graph</span>
+      <span class="hero-meta-sep"></span>
+      <span class="hero-meta-item"><b>5</b> tools</span>
+      <span class="hero-meta-sep"></span>
+      <span class="hero-meta-item"><b>ADHD/dyslexia</b> first</span>
+    </div>
+  </div>
+</header>
+
+<!-- ════════════════════ FEATURES ════════════════════ -->
+<section class="section" id="features">
+  <div class="section-head">
+    <p class="section-eyebrow">MCP Capability surfaces</p>
+    <h2 class="section-title">Memory tools for agents</h2>
+    <p class="section-sub">Standardized tools allowing agents to traverse their own lineage and learn from past interactions.</p>
+  </div>
+  
+  <div class="feature-grid">
+    <div class="feature-card reveal">
+      <span class="fc-zone z-det">query</span>
+      <div class="fc-icon">🔍</div>
+      <div class="fc-title">get_recent_sessions</div>
+      <p class="fc-desc">Get a list of the most recent agent sessions tracked by Memo-Ray. Filter by agent name (e.g. 'claude', 'antigravity') to quickly discover recent activity and cross-agent context.</p>
+      <div class="fc-foot"><span>limit: 10</span></div>
+    </div>
+    
+    <div class="feature-card reveal">
+      <span class="fc-zone z-sub">filter</span>
+      <div class="fc-icon">📁</div>
+      <div class="fc-title">get_project_activity</div>
+      <p class="fc-desc">Retrieve recent agent activity focused purely on a specific project name or absolute path. Perfect for context-loading when an agent is dropped into an existing codebase.</p>
+      <div class="fc-foot"><span>projectPath required</span></div>
+    </div>
+    
+    <div class="feature-card reveal">
+      <span class="fc-zone z-rev">trace</span>
+      <div class="fc-icon">⏳</div>
+      <div class="fc-title">get_session_timeline</div>
+      <p class="fc-desc">Fetch the complete timeline of events for any session. Extracts every thought, tool call, and outcome directly from the atomic JSON files without manual file reading.</p>
+      <div class="fc-foot"><span>sessionId required</span></div>
+    </div>
+
+    <div class="feature-card reveal">
+      <span class="fc-zone z-rev">trace</span>
+      <div class="fc-icon">⏱</div>
+      <div class="fc-title">get_session_timeline_window</div>
+      <p class="fc-desc">Fetch a sliding window slice of the session timeline, useful for keeping context sizes small when only the most recent steps of a very long session are needed.</p>
+      <div class="fc-foot"><span>offset & limit support</span></div>
+    </div>
+    
+    <div class="feature-card reveal">
+      <span class="fc-zone z-det">summarise</span>
+      <div class="fc-icon">💡</div>
+      <div class="fc-title">get_project_summary_and_skills</div>
+      <p class="fc-desc">Extract a high-level summary of a project's sessions and discover learned skills from past agent interactions, enabling continuous knowledge transfer.</p>
+      <div class="fc-foot"><span>projectPath required</span></div>
+    </div>
+    
+    <div class="feature-card reveal">
+      <span class="fc-zone z-sub">visualise</span>
+      <div class="fc-icon">🕸</div>
+      <div class="fc-title">get_graph_data</div>
+      <p class="fc-desc">Retrieve graph-ready node and link data for a session. This feeds the biological D3 Convex Hull UI, turning walls of JSON into beautiful spatial maps.</p>
+      <div class="fc-foot"><span>UI / Layout</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ COMPATIBILITY ════════════════════ -->
+<section class="section section-dark" id="compatibility">
+  <div class="section-head">
+    <p class="section-eyebrow">Ecosystem Integration</p>
+    <h2 class="section-title">Seamless by design</h2>
+    <p class="section-sub">The Memo-Ray MCP operates as an agnostic layer over your agents' native logs.</p>
+  </div>
+  
+  <div class="feature-grid" style="grid-template-columns: 1fr 1fr; margin-top: 2rem;">
+    <div class="feature-card" style="padding: 2.5rem;">
+      <h3 class="fc-title" style="font-size: 1.4rem; margin-bottom: 1rem;">Currently Supported</h3>
+      <p style="color: var(--ink-dim); line-height: 1.6;">
+        The current solution works flawlessly out-of-the-box with:<br><br>
+        <strong>1. Claude Desktop & Claude Code:</strong> Dynamically reads local `.claude` directories.<br>
+        <strong>2. Antigravity Gemini:</strong> Hooks directly into the `~/.gemini/antigravity/brain` roots.
+      </p>
+    </div>
+    <div class="feature-card" style="padding: 2.5rem;">
+      <h3 class="fc-title" style="font-size: 1.4rem; margin-bottom: 1rem;">Future Onboarding</h3>
+      <p style="color: var(--ink-dim); line-height: 1.6;">
+        Because the delta-sync engine relies on an open Data Model Abstract, <strong>other AI agents and desktop solutions will be seamlessly onboarded.</strong> The architecture is explicitly designed to map any valid JSON log stream into the universal Memory Graph.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ INSTALLATION & SETUP ════════════════════ -->
+<section class="section" id="installation">
+  <div class="section-head">
+    <p class="section-eyebrow">Operating manual</p>
+    <h2 class="section-title">Install the MCP Server</h2>
+    <p class="section-sub">Zero to operator in three steps. Connect the graph to your agent.</p>
+  </div>
+  
+  <div class="manual" id="manualAccordion">
+    <div class="man-item reveal is-open">
+      <button class="man-head">
+        <span class="man-num">01</span>Download & Install
+        <span class="man-chev">▼</span>
+      </button>
+      <div class="man-body" style="max-height: 500px;">
+        <div class="man-body-inner">
+          <p>Clone the Prime-Silo / Memo-Ray repository and install the server dependencies. It runs purely on Node.js.</p>
+          <pre><code>git clone https://github.com/binary16labs/prime-silo.git
+cd prime-silo/memo-ray/mcp-server
+npm install</code></pre>
+        </div>
+      </div>
+    </div>
+    
+    <div class="man-item reveal">
+      <button class="man-head">
+        <span class="man-num">02</span>Connect to Claude Desktop
+        <span class="man-chev">▼</span>
+      </button>
+      <div class="man-body">
+        <div class="man-body-inner">
+          <p>Add the Memo-Ray server to your Claude Desktop MCP configuration file (<code>claude_desktop_config.json</code>). Make sure to replace the path with your absolute path.</p>
+          <pre><code>{
+  "mcpServers": {
+    "memoray": {
+      "command": "node",
+      "args": [
+        "C:/Users/YourName/prime-silo/memo-ray/mcp-server/index.js"
+      ]
+    }
+  }
+}</code></pre>
+          <p>Restart Claude Desktop to apply the changes. The tools will now be available in the attachment menu.</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="man-item reveal">
+      <button class="man-head">
+        <span class="man-num">03</span>Connect to Antigravity Gemini
+        <span class="man-chev">▼</span>
+      </button>
+      <div class="man-body">
+        <div class="man-body-inner">
+          <p>Antigravity automatically discovers MCP servers configured in its plugin directories, or you can register it globally via your <code>mcp.json</code> or Antigravity's settings portal.</p>
+          <pre><code>{
+  "mcpServers": {
+    "memoray-mcp": {
+      "command": "node",
+      "args": [
+        "C:/Users/YourName/prime-silo/memo-ray/mcp-server/index.js"
+      ]
+    }
+  }
+}</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ FOOTER ════════════════════ -->
+<footer class="footer">
+  <div>
+    <b>MEMO-RAY</b> — The third graph of the cognitive mesh.
+  </div>
+  <div class="footer-links">
+    <a href="https://github.com/binary16labs/prime-silo" target="_blank" rel="noopener">GitHub</a>
+    <span>·</span>
+    <a href="index.html">Prime-Silo Console</a>
+  </div>
+  <div class="footer-dim">Engineered by Binary 16 · ADR-001</div>
+</footer>
+
+<script>
+/* Manual Accordion Toggle Script */
+document.querySelectorAll('.man-head').forEach(head => {
+  head.addEventListener('click', () => {
+    const item = head.parentElement;
+    const body = item.querySelector('.man-body');
+    const isOpen = item.classList.contains('is-open');
+    
+    if (isOpen) {
+      item.classList.remove('is-open');
+      body.style.maxHeight = '0px';
+    } else {
+      item.classList.add('is-open');
+      body.style.maxHeight = body.scrollHeight + 'px';
+    }
+  });
+});
+
+/* Warp Field Animation Script (Adapted from app.js to be standalone) */
+function createWarpField(canvas, opts = {}) {
+  const ctx = canvas.getContext("2d");
+  const COUNT = opts.count || 220;
+  const BASE_SPEED = opts.speed || 0.15;
+  let speed = BASE_SPEED;
+  let targetSpeed = BASE_SPEED;
+  let w = 0, h = 0, cx = 0, cy = 0;
+  let stars = [];
+  let raf = null;
+  let visible = true;
+
+  function resize() {
+    const r = canvas.getBoundingClientRect();
+    w = canvas.width = Math.max(1, Math.floor(r.width * window.devicePixelRatio));
+    h = canvas.height = Math.max(1, Math.floor(r.height * window.devicePixelRatio));
+    cx = w / 2; cy = h / 2;
+  }
+
+  const PALETTE = [
+    { h: 120, s: "11%", l: "62%" }, // Sage
+    { h: 120, s: "14%", l: "48%" }, // Moss
+    { h: 35,  s: "22%", l: "64%" }, // Gold/Taupe
+    { h: 200, s: "10%", l: "60%" }  // Slate
+  ];
+
+  function spawn(initial) {
+    const color = PALETTE[Math.floor(Math.random() * PALETTE.length)];
+    return {
+      x: (Math.random() - 0.5) * w,
+      y: (Math.random() - 0.5) * h,
+      z: initial ? Math.random() * w : w,
+      pz: 0,
+      color: color,
+      driftPhase: Math.random() * Math.PI * 2,
+      driftSpeed: 0.02 + Math.random() * 0.03
+    };
+  }
+
+  function init() {
+    resize();
+    stars = Array.from({ length: COUNT }, () => spawn(true));
+    stars.forEach(s => { s.pz = s.z; });
+  }
+
+  function frame() {
+    if (!visible) { raf = requestAnimationFrame(frame); return; }
+    speed += (targetSpeed - speed) * 0.05;
+    ctx.fillStyle = opts.trail ? "rgba(21, 24, 22, 0.28)" : "rgba(21, 24, 22, 0.55)";
+    ctx.fillRect(0, 0, w, h);
+
+    for (const s of stars) {
+      s.pz = s.z;
+      s.z -= speed * window.devicePixelRatio * 4;
+
+      s.driftPhase += s.driftSpeed;
+      s.x += Math.sin(s.driftPhase) * 0.2 * window.devicePixelRatio;
+      s.y += Math.cos(s.driftPhase) * 0.15 * window.devicePixelRatio;
+
+      if (s.z < 1) {
+        Object.assign(s, spawn(false));
+        s.pz = s.z;
+        continue;
+      }
+      const sx = (s.x / s.z) * w * 0.5 + cx;
+      const sy = (s.y / s.z) * h * 0.5 + cy;
+      const px = (s.x / s.pz) * w * 0.5 + cx;
+      const py = (s.y / s.pz) * h * 0.5 + cy;
+      
+      const size = Math.max(0.6, (1 - s.z / w) * 4.2 * window.devicePixelRatio);
+      const alpha = Math.min(1, (1 - s.z / w) * 1.3);
+
+      ctx.beginPath();
+      if (speed > BASE_SPEED * 2) {
+        ctx.strokeStyle = \`hsla(\${s.color.h}, \${s.color.s}, \${s.color.l}, \${alpha})\`;
+        ctx.lineWidth = size * 0.8;
+        ctx.lineCap = "round";
+        ctx.moveTo(px, py);
+        ctx.lineTo(sx, sy);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = \`hsla(\${s.color.h}, \${s.color.s}, \${s.color.l}, \${alpha})\`;
+        ctx.arc(sx, sy, size * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    raf = requestAnimationFrame(frame);
+  }
+
+  const io = new IntersectionObserver(
+    (entries) => { visible = entries[0].isIntersecting; },
+    { threshold: 0 }
+  );
+  io.observe(canvas);
+
+  window.addEventListener("resize", resize);
+  init();
+  frame();
+
+  return {
+    warp(durationMs = 700, factor = 8) {
+      targetSpeed = BASE_SPEED * factor;
+      setTimeout(() => { targetSpeed = BASE_SPEED; }, durationMs);
+    },
+    destroy() { cancelAnimationFrame(raf); io.disconnect(); }
+  };
+}
+
+// Initialize hero field
+const warpCanvas = document.getElementById("warpCanvas");
+if(warpCanvas) {
+  createWarpField(warpCanvas, { count: 240, speed: 0.55, trail: true });
+}
+
+// Add simple mousemove effect for feature cards
+document.querySelectorAll('.feature-card').forEach(card => {
+  card.addEventListener("mousemove", (e) => {
+    const r = card.getBoundingClientRect();
+    card.style.setProperty("--mx", \`\${e.clientX - r.left}px\`);
+    card.style.setProperty("--my", \`\${e.clientY - r.top}px\`);
+  });
+});
+</script>
+</body>
+</html>

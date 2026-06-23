@@ -326,20 +326,32 @@ def _run_completion(**kwargs):
     return completion(**kwargs)
 
 def _thinking_disabled(model: str, actual_model: str, workspace_id: str) -> bool:
-    """True if the operator toggled this model to 'no thinking' in the Agents
-    screen (manifest model_thinking → 'off'). Keyed by the same 'provider/model'
-    strings the UI uses; we check a few candidate forms to be robust."""
+    """True if the operator explicitly toggled this model to 'off' in the Agents
+    screen (manifest model_thinking). Back-compat wrapper around the tri-state
+    override; the full profile-aware decision lives in model_profiles."""
+    return _operator_thinking_override(model, actual_model, workspace_id) is True
+
+
+def _operator_thinking_override(model: str, actual_model: str, workspace_id: str):
+    """Tri-state operator override from manifest.model_thinking: True ('off' →
+    suppress), False ('on' → keep), or None (no explicit override → defer to the
+    model profile). Compares on the BARE model id so a toggle set as
+    "Qwen3-8B-Hybrid" matches a prefixed call "lemonade/Qwen3-8B-Hybrid"."""
     try:
         from .workspace import load_manifest
         prefs = getattr(load_manifest(workspace_id), "model_thinking", {}) or {}
     except Exception:
-        return False
+        return None
     if not prefs:
-        return False
-    for key in (model, actual_model):
-        if key and prefs.get(key) == "off":
-            return True
-    return False
+        return None
+    model_bare = {key.split("/")[-1] for key in (model, actual_model) if key}
+    for pref_key, value in prefs.items():
+        if pref_key.split("/")[-1] in model_bare:
+            if value == "off":
+                return True
+            if value == "on":
+                return False
+    return None
 
 
 async def call_model(
@@ -350,7 +362,9 @@ async def call_model(
     fallbacks: Optional[List[str]] = None,
     timeout: Optional[float] = None,
     run_id: Optional[str] = None,
-    authorized_tools: Optional[List[str]] = None
+    authorized_tools: Optional[List[str]] = None,
+    workspace_id: Optional[str] = None,
+    role: Optional[str] = None,
 ) -> str:
     """
     Main entry point for LLM inference.
@@ -383,14 +397,18 @@ async def call_model(
         )
 
     # 2. SYSTEM PROMPT AUGMENTATION
-    workspace_id = "default"
-    for msg in messages:
-        if msg.get("role") == "system" and "workspace:" in msg.get("content", ""):
-            import re
-            match = re.search(r"workspace:\s*(\S+)", msg["content"])
-            if match:
-                workspace_id = match.group(1)
-                break
+    # Prefer an explicitly-passed workspace_id (e.g. from the synthesis engine,
+    # whose extraction prompts carry no "workspace:" system marker). Fall back to
+    # parsing it out of a system message for callers that embed it there.
+    if not workspace_id:
+        workspace_id = "default"
+        for msg in messages:
+            if msg.get("role") == "system" and "workspace:" in msg.get("content", ""):
+                import re
+                match = re.search(r"workspace:\s*(\S+)", msg["content"])
+                if match:
+                    workspace_id = match.group(1)
+                    break
     
     from ..governance.operating_manual import build_system_prompt_augmentation
     augmentation = build_system_prompt_augmentation(workspace_id, tools=authorized_tools)
@@ -404,13 +422,19 @@ async def call_model(
         if not system_found:
             messages.insert(0, {"role": "system", "content": augmentation})
 
-    # 2b. PER-MODEL THINKING TOGGLE (Agents screen → manifest model_thinking)
-    # When the operator has set this model to 'off', suppress hidden reasoning
-    # via BOTH standard switches: the Qwen-style "/no_think" soft directive in
-    # the prompt, and chat_template_kwargs.enable_thinking=false in the payload.
-    # Applied here once so both the local-executor and LiteLLM paths inherit it.
+    # 2b. THINKING SUPPRESSION (profile-aware, default-safe)
+    # The model profile classifies each model as capable / fragile / none; for a
+    # 'capable' model on a structured role (e.g. graph_synthesis) hidden reasoning
+    # is auto-suppressed so triple extraction gets parseable JSON — no operator
+    # toggle required. 'fragile' (FLM) models are never touched (/no_think empties
+    # them). An explicit Agents-screen toggle (model_thinking) still wins for
+    # capable/none models. Suppression uses BOTH the Qwen "/no_think" soft
+    # directive and chat_template_kwargs.enable_thinking=false so the local-executor
+    # and LiteLLM paths both inherit it.
     think_extra = None
-    if _thinking_disabled(model, actual_model, workspace_id):
+    from .model_profiles import should_suppress_thinking
+    _override = _operator_thinking_override(model, actual_model, workspace_id)
+    if should_suppress_thinking(model, actual_model, workspace_id, role, operator_override=_override):
         for i in range(len(messages) - 1, -1, -1):
             if messages[i].get("role") == "user":
                 messages[i]["content"] = "/no_think\n" + messages[i].get("content", "")

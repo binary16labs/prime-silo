@@ -75,6 +75,10 @@ body.app-page-router > div[x-data] {
   min-height: 100%;
 }
 
+/* The Bridge route makes itself full-bleed from its own stylesheet
+   (bridge.css) — the router never tags .router-stage-inner with
+   data-route-path, so a host-level override here wouldn't match. */
+
 .router-route-frame {
   display: grid;
   width: 100%;

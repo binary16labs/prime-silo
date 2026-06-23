@@ -4,19 +4,29 @@
    focal point, a zen toggle that strips to the stage. */
 
 .ps-bridge {
-  /* earth-tone tokens */
-  --ps-bg: #14150f;
-  --ps-surface: rgba(255, 255, 255, 0.035);
-  --ps-surface-2: rgba(255, 255, 255, 0.06);
-  --ps-border: rgba(232, 217, 191, 0.12);
-  --ps-border-strong: rgba(232, 217, 191, 0.28);
-  --ps-text: #ece6d8;
-  --ps-muted: rgba(236, 230, 216, 0.6);
-  --ps-sage: #9caf88;
-  --ps-sage-soft: rgba(156, 175, 136, 0.16);
-  --ps-golden: #c4a882;
+  /* earth-tone tokens — mirrored from the canonical framework palette
+     (_core/framework/css/colors.css). Literal fallbacks keep the cockpit
+     intact if the Bridge is ever loaded without the framework stylesheet. */
+  --ps-bg: var(--color-canvas, #14150f);
+  --ps-surface: var(--color-surface-1, rgba(255, 255, 255, 0.035));
+  --ps-surface-2: var(--color-surface-2, rgba(255, 255, 255, 0.06));
+  --ps-border: var(--color-border-soft, rgba(232, 217, 191, 0.12));
+  --ps-border-strong: var(--color-border-strong, rgba(232, 217, 191, 0.28));
+  --ps-text: var(--color-text-primary, #ece6d8);
+  --ps-muted: var(--color-text-secondary, rgba(236, 230, 216, 0.6));
+  --ps-sage: var(--color-accent-primary, #9caf88);
+  --ps-sage-soft: var(--color-accent-primary-soft, rgba(156, 175, 136, 0.16));
+  --ps-golden: var(--color-accent-secondary, #c4a882);
   --ps-golden-soft: rgba(196, 168, 130, 0.16);
-  --ps-coral: #c47a6a;
+  --ps-coral: var(--color-status-danger, #c47a6a);
+
+  /* layout tokens — the responsive layer scales these so the cockpit grows
+     into wide / 4K panels instead of stranding the stage in dead space. */
+  --ps-rail-w: 168px;
+  --ps-benny-w: 230px;
+  --ps-gap: 32px;
+  --ps-stage-pad: 14px;
+  --ps-measure: none;   /* max text column; capped on ultra-wide screens */
 
   display: flex;
   flex-direction: column;
@@ -93,7 +103,7 @@
 /* ── mode rail ── */
 .ps-bridge__rail {
   position: absolute; left: 0; top: 0; bottom: 0;
-  width: 168px;
+  width: var(--ps-rail-w);
   display: flex; flex-direction: column; gap: 4px;
   padding: 10px 8px;
   background: rgba(20, 21, 15, 0.65); /* soft ps-bg */
@@ -119,7 +129,10 @@
   display: flex; flex-direction: column; gap: 12px; min-width: 0;
   min-height: 0; /* let flex shrink past content height so graphs don't overflow */
   overflow: hidden; /* clip any stray overflow before it reaches the viewport */
-  padding: 14px 260px 14px 200px;
+  padding: var(--ps-stage-pad)
+           calc(var(--ps-benny-w) + var(--ps-gap))
+           var(--ps-stage-pad)
+           calc(var(--ps-rail-w) + var(--ps-gap));
   background: transparent;
   border: none;
 }
@@ -426,7 +439,7 @@
 /* ── Benny dock ── */
 .ps-bridge__benny {
   position: absolute; right: 0; top: 0; bottom: 0;
-  width: 230px;
+  width: var(--ps-benny-w);
   display: flex; flex-direction: column; gap: 8px;
   padding: 12px;
   background: rgba(20, 21, 15, 0.65);
@@ -463,4 +476,188 @@
   .ps-bridge__benny { position: relative; width: 100%; border-left: none; border-top: 1px solid var(--ps-border); }
   .ps-bridge__mode--cta { margin-top: 0; }
   .ps-bridge__docbar, .ps-bridge__split { grid-template-columns: 1fr; }
+}
+
+/* ── Scale-up layer ───────────────────────────────────────────────────
+   Above ~1600px the cockpit grows into the extra real estate instead of
+   stranding the stage in a thin column: the rail + Benny dock widen, the
+   base type steps up, fixed-width data panels get more room, and the
+   multi-card grids (deep produce, agents) take more columns. A reading
+   measure is capped so prose never sprawls edge-to-edge on a 4K panel. */
+@media (min-width: 1600px) {
+  .ps-bridge {
+    --ps-rail-w: 196px;
+    --ps-benny-w: 264px;
+    --ps-gap: 40px;
+    font-size: 15px;
+  }
+  .ps-bridge__split { grid-template-columns: 280px 1fr; }
+  .ps-bridge__docbar { grid-template-columns: 340px 1fr; }
+  .ps-bridge__panels { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+}
+
+@media (min-width: 2000px) {
+  .ps-bridge {
+    --ps-rail-w: 220px;
+    --ps-benny-w: 300px;
+    --ps-stage-pad: 20px;
+    --ps-measure: 96ch;
+    font-size: 15.5px;
+  }
+  .ps-bridge__split { grid-template-columns: 320px 1fr; }
+  .ps-bridge__docbar { grid-template-columns: 380px 1fr; }
+  .ps-bridge__list-scroll { max-height: none; }
+  /* prose surfaces stop sprawling — keep a comfortable reading measure */
+  .ps-bridge__feed,
+  .ps-bridge__ask-answer { max-width: var(--ps-measure); }
+}
+
+@media (min-width: 2560px) {
+  .ps-bridge {
+    --ps-rail-w: 248px;
+    --ps-benny-w: 340px;
+    --ps-gap: 48px;
+    --ps-stage-pad: 24px;
+    font-size: 16px;
+  }
+  .ps-bridge__mode { font-size: 14px; padding: 11px 13px; }
+  .ps-bridge__mode x-icon { font-size: 20px; }
+  .ps-bridge__split { grid-template-columns: 360px 1fr; }
+  .ps-bridge__docbar { grid-template-columns: 420px 1fr; }
+  .ps-bridge__panels { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+  .ps-bridge__agents { grid-template-columns: minmax(300px, 1fr) minmax(420px, 1.7fr); }
+}
+
+/* ── Multi-pane (split view) ──────────────────────────────────────────
+   The stage carries a primary pane (the active mode) and an optional
+   secondary Observe pane (run lineage + reasoning trace) so a flow and its
+   trace sit side by side. Only offered ≥1600px — the split toggle is
+   x-show="wide" and the secondary stays torn down below that. */
+.ps-bridge__panes { display: flex; flex: 1; min-width: 0; min-height: 0; }
+.ps-bridge__pane { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.ps-bridge__pane--primary { flex: 1; gap: 12px; }
+.ps-bridge__pane--secondary { display: none; }
+
+.ps-bridge__panes.is-split { gap: var(--ps-gap); }
+.ps-bridge__panes.is-split .ps-bridge__pane--secondary {
+  display: flex;
+  flex: 0 0 clamp(360px, 32%, 560px);
+  border-left: 1px solid var(--ps-border);
+  padding-left: var(--ps-gap);
+}
+
+.ps-bridge__splitbtn { display: inline-flex; align-items: center; gap: 6px; }
+.ps-bridge__splitbtn x-icon { font-size: 15px; }
+.ps-bridge__splitbtn.is-on {
+  background: var(--ps-sage-soft);
+  border-color: rgba(156, 175, 136, 0.4);
+  color: var(--ps-text);
+}
+
+.ps-bridge__obs-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+.ps-bridge__obs-title { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; }
+.ps-bridge__obs-title x-icon { color: var(--ps-golden); font-size: 17px; }
+.ps-bridge__obs-pick {
+  background: var(--ps-surface-2); color: var(--ps-text);
+  border: 1px solid var(--ps-border-strong); border-radius: 7px;
+  padding: 5px 9px; font: inherit; font-size: 12px; max-width: 14rem;
+}
+.ps-bridge__obs-graph {
+  flex: 1; min-height: 160px; margin-bottom: 8px;
+  border: 1px solid var(--ps-border); border-radius: 10px; overflow: hidden;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+/* ── Observability — metrics strip, steps, drilldown ──────────────────── */
+.ps-bridge__metrics {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 8px 10px; margin-bottom: 8px;
+  background: var(--ps-surface); border: 1px solid var(--ps-border); border-radius: 9px;
+  font-size: 12.5px;
+}
+.ps-bridge__metrics--mini { padding: 6px 9px; gap: 8px; font-size: 12px; }
+.ps-bridge__metric { display: inline-flex; align-items: center; gap: 5px; color: var(--ps-muted); }
+.ps-bridge__metric x-icon { font-size: 15px; }
+.ps-bridge__metric.is-bad { color: var(--ps-coral); }
+.ps-bridge__metric--status { color: var(--ps-text); font-weight: 600; text-transform: capitalize; }
+.ps-bridge__metric--status[data-status="completed"],
+.ps-bridge__metric--status[data-status="complete"],
+.ps-bridge__metric--status[data-status="succeeded"],
+.ps-bridge__metric--status[data-status="success"] { color: var(--ps-sage); }
+.ps-bridge__metric--status[data-status="failed"],
+.ps-bridge__metric--status[data-status="failure"],
+.ps-bridge__metric--status[data-status="error"],
+.ps-bridge__metric--status[data-status="errored"] { color: var(--ps-coral); }
+.ps-bridge__metric--status x-icon { font-size: 13px; }
+.ps-bridge__metrics-spacer { flex: 1; }
+.ps-bridge__metric--live { color: var(--ps-golden); font-weight: 600; }
+.ps-bridge__live-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--ps-golden);
+  box-shadow: 0 0 0 0 rgba(196, 168, 130, 0.6); animation: ps-pulse 1.6s ease-out infinite;
+}
+@keyframes ps-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(196, 168, 130, 0.55); }
+  70% { box-shadow: 0 0 0 7px rgba(196, 168, 130, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(196, 168, 130, 0); }
+}
+
+.ps-bridge__steps { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.ps-bridge__step {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--ps-surface-2); color: var(--ps-muted);
+  border: 1px solid var(--ps-border); border-radius: 999px;
+  padding: 3px 10px; font: inherit; font-size: 11.5px; cursor: pointer;
+}
+.ps-bridge__step::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ps-muted); flex: none; }
+.ps-bridge__step[data-status="completed"]::before,
+.ps-bridge__step[data-status="success"]::before,
+.ps-bridge__step[data-status="succeeded"]::before { background: var(--ps-sage); }
+.ps-bridge__step[data-status="failed"]::before,
+.ps-bridge__step[data-status="error"]::before { background: var(--ps-coral); }
+.ps-bridge__step[data-status="running"]::before,
+.ps-bridge__step[data-status="pending"]::before { background: var(--ps-golden); }
+.ps-bridge__step:hover { color: var(--ps-text); border-color: var(--ps-border-strong); }
+.ps-bridge__step.is-active { color: var(--ps-text); border-color: var(--ps-sage); background: var(--ps-sage-soft); }
+.ps-bridge__drill {
+  max-height: 320px; overflow: auto; margin-bottom: 8px;
+  border: 1px solid var(--ps-border); border-radius: 10px; background: var(--ps-surface);
+}
+
+/* ── Studio (notebook) ────────────────────────────────────────────────── */
+.ps-bridge__studio { display: flex; flex-direction: column; gap: 12px; flex: 1; min-height: 0; }
+.ps-bridge__studio-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.ps-bridge__studio-head h3 { margin: 0; font-size: 14px; }
+.ps-bridge__studio-tools { display: flex; gap: 6px; }
+.ps-bridge__cells { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; min-height: 0; padding-right: 2px; }
+.ps-bridge__cell {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 12px 14px; border-radius: 12px;
+  background: var(--ps-surface); border: 1px solid var(--ps-border);
+  border-left: 3px solid var(--ps-sage);
+}
+.ps-bridge__cell[data-kind="report"] { border-left-color: var(--ps-golden); }
+.ps-bridge__cell[data-status="running"] { border-color: var(--ps-border-strong); }
+.ps-bridge__cell[data-status="error"] { border-left-color: var(--ps-coral); }
+.ps-bridge__cell-bar { display: flex; align-items: center; gap: 10px; }
+.ps-bridge__cell-kind { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; }
+.ps-bridge__cell-kind x-icon { font-size: 16px; color: var(--ps-golden); }
+.ps-bridge__cell[data-kind="chat"] .ps-bridge__cell-kind x-icon { color: var(--ps-sage); }
+.ps-bridge__cell-status { font-size: 11px; color: var(--ps-muted); text-transform: capitalize; }
+
+/* ── Full-bleed breakout ──────────────────────────────────────────────
+   The Bridge is a routed panel, and the router caps every panel in a
+   centred 84rem reading column (.router-stage-inner). The router never
+   tags that element with a route id, so it can't be widened from the host
+   side — instead the cockpit escapes the column itself (the same 100vw
+   negative-margin technique .spaces-view-root uses) and claims full height.
+   Without this, the responsive/token rules above are invisible: the host
+   column stays 1344px no matter how the cockpit scales inside it. */
+.ps-bridge {
+  width: 100vw;
+  max-width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  /* parents only give min-height (indefinite), so height:100% collapses to
+     content; floor it to the viewport minus the shell's top clearance. */
+  min-height: calc(100vh - var(--router-shell-start-clearance, 43px));
 }

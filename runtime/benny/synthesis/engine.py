@@ -292,7 +292,15 @@ async def call_llm(
                 # 768 is ample for a JSON triple array.
                 max_tokens=768,
                 timeout=timeout,
-                run_id=run_id
+                run_id=run_id,
+                # Thread the workspace AND role through so the profile-aware
+                # thinking suppression fires for synthesis: a 'capable' reasoning
+                # model on the graph_synthesis role auto-runs with /no_think (no
+                # operator toggle needed), while 'fragile' FLM models are left
+                # alone. Without this, reasoning models burn the whole token
+                # budget on <think> → no parseable JSON → an empty graph.
+                workspace_id=workspace,
+                role=role,
             )
         except Exception as e:
             last_error = e
@@ -659,13 +667,17 @@ async def extract_directed_triples_from_section(
     resolved_model = await get_active_model(workspace)
     
     raw = await call_llm(
-        prompt, 
-        provider=provider, 
-        model=model or resolved_model, 
-        timeout=timeout, 
-        config=cfg, 
+        prompt,
+        provider=provider,
+        model=model or resolved_model,
+        timeout=timeout,
+        config=cfg,
         run_id=run_id,
-        role="graph_synthesis"
+        role="graph_synthesis",
+        # Thread the workspace so the per-model thinking toggle reaches call_model;
+        # without it, reasoning models (e.g. Qwen3-8B-Hybrid) keep thinking and
+        # emit no parseable JSON → empty knowledge graph.
+        workspace=workspace,
     )
     
     raw_triples, thinking = _parse_json_from_llm(raw)
