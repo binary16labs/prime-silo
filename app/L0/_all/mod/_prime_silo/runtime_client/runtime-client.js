@@ -91,7 +91,18 @@
 //
 // Errors are thrown with .status set when the runtime returns non-2xx.
 
+// Two server-authoritative proxy facades (ADR-001 confused-deputy fix):
+//   • RUNTIME_PROXY_PREFIX        — human path. The shell injects the trusted
+//     Benny key and STRIPS any X-Benny-Agent-Scope, so a human request runs
+//     under normal RBAC.
+//   • AGENT_RUNTIME_PROXY_PREFIX  — agent path. The shell injects a distinct,
+//     sandbox-bound key and forces scope server-side. Agent traffic MUST use
+//     this path; the scope is no longer something the browser can assert.
+// Routing is driven by the active agent context (_activeAgentScope): unscoped
+// calls go to the human path, scoped calls (withAgentScope / bound client /
+// fetchAsAgent) go to the agent path.
 const RUNTIME_PROXY_PREFIX = "/api/runtime";
+const AGENT_RUNTIME_PROXY_PREFIX = "/api/agent-runtime";
 
 const VALID_AGENT_SCOPES = new Set(["sandbox", "read_only"]);
 
@@ -107,6 +118,14 @@ function joinPath(prefix, path) {
     return prefix;
   }
   return path.startsWith("/") ? `${prefix}${path}` : `${prefix}/${path}`;
+}
+
+// Pick the proxy facade for the current call. Any active agent scope (set via
+// withAgentScope, fetchAsAgent, or a bound client) routes through the agent
+// path, where the shell pins the scope server-side; everything else is human
+// traffic on the trusted path.
+function activeRuntimePrefix() {
+  return _activeAgentScope ? AGENT_RUNTIME_PROXY_PREFIX : RUNTIME_PROXY_PREFIX;
 }
 
 async function readErrorDetail(response) {
@@ -138,7 +157,9 @@ function createRuntimeError(response, body) {
 
 function validateScope(scope) {
   if (!VALID_AGENT_SCOPES.has(scope)) {
-    throw new Error(`Invalid agent scope: ${scope}. Expected one of ${[...VALID_AGENT_SCOPES].join(", ")}.`);
+    throw new Error(
+      `Invalid agent scope: ${scope}. Expected one of ${[...VALID_AGENT_SCOPES].join(", ")}.`
+    );
   }
 }
 
@@ -156,9 +177,12 @@ function validateScope(scope) {
  * intent beats ambient context.
  */
 export async function runtimeFetch(path, init = {}) {
-  const url = joinPath(RUNTIME_PROXY_PREFIX, path);
+  const url = joinPath(activeRuntimePrefix(), path);
   const headers = new Headers(init.headers || {});
 
+  // The scope header is belt-and-suspenders: the agent-path proxy strips and
+  // re-asserts it server-side. We still send it so audit logs and a
+  // not-yet-upgraded proxy both see the intended scope.
   if (_activeAgentScope && !headers.has(AGENT_SCOPE_HEADER)) {
     headers.set(AGENT_SCOPE_HEADER, _activeAgentScope);
   }
@@ -192,7 +216,9 @@ export async function fetchAsAgent(path, init = {}, options = {}) {
   const headers = new Headers(init.headers || {});
   headers.set(AGENT_SCOPE_HEADER, scope);
 
-  return runtimeFetch(path, { ...init, headers });
+  // Run inside the agent scope context so runtimeFetch routes to the
+  // agent-runtime facade (and not the trusted human path) for this call.
+  return withAgentScope(scope, () => runtimeFetch(path, { ...init, headers }));
 }
 
 export async function readRuntimeJson(response) {
@@ -309,7 +335,7 @@ export async function listViews(workspace, options = {}) {
   if (options.raw) {
     return envelope;
   }
-  return (envelope && Array.isArray(envelope.entries)) ? envelope.entries : [];
+  return envelope && Array.isArray(envelope.entries) ? envelope.entries : [];
 }
 
 /**
@@ -619,7 +645,9 @@ export function createAgentRuntimeClient(scope) {
 
 export const __testing = {
   RUNTIME_PROXY_PREFIX,
+  AGENT_RUNTIME_PROXY_PREFIX,
   AGENT_SCOPE_HEADER,
+  activeRuntimePrefix,
   joinPath,
   resetAgentScope() {
     _activeAgentScope = null;

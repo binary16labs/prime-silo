@@ -164,6 +164,17 @@ Admin-only access is required for aggregated or cross-user user-layer listings.
 - rollback snapshots and restores the ignored L2 auth and wrapped-user-key files so old commits cannot log the user out, resurrect an old password verifier, or silently replace the current `userCrypto` record
 - `.git` metadata paths are reserved and must not be exposed through app-file APIs, direct app fetches, or path indexes
 
+## Storage Backing (future: StorageProvider)
+
+L1/L2 writes here currently call `node:fs` directly against `CUSTOMWARE_PATH`,
+which couples horizontal scaling of the shell to a shared local filesystem
+(split-brain across replicas otherwise). The `server/lib/storage/`
+**StorageProvider** seam (default `local`, pluggable `s3`/`db`) exists to break
+that coupling. `file_access.js` and `group_files.js` are the primary migration
+targets; see `server/lib/storage/AGENTS.md` for the staged plan (the main cost is
+converting the synchronous `fs.*Sync` write paths to the async provider API).
+Until that migration lands, behaviour is unchanged.
+
 ## Development Guidance
 
 - do not add ad hoc filesystem walks or permission checks to endpoints when this subtree already owns the rule

@@ -28,10 +28,15 @@ Current request order is fixed:
 
 1. API preflight handling
 2. `/api/proxy`
-3. `/api/<endpoint>`
-4. `/mod/...`
-5. `/~/...` and `/L0/...`, `/L1/...`, `/L2/...`
-6. page shells and page actions
+3. `/api/agent-runtime/...` → Benny runtime, AGENT facade (sandbox-bound key + forced scope)
+4. `/api/runtime/...` → Benny runtime, HUMAN facade (trusted key, client scope stripped)
+5. `/api/memoray/...` → Memo-Ray memory-graph proxy
+6. `/api/<endpoint>`
+7. `/mod/...`
+8. `/~/...` and `/L0/...`, `/L1/...`, `/L2/...`
+9. page shells and page actions
+
+The agent facade is matched **before** the human facade so its prefix can never be shadowed. Scope is bound to the credential the proxy injects (see `server/lib/runtime_proxy.js`), never to a client header — that is the ADR-001 confused-deputy fix.
 
 Rules:
 

@@ -31,6 +31,7 @@ dev = [
     "pytest-cov>=5.0.0",
     "pytest-repeat>=0.9.0",
     "ruff>=0.8.0",
+    "black>=24.0.0",
 ]
 mcp = [
     "mcp>=1.0",
@@ -51,3 +52,17 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["E", "F", "I"]
 ignore = ["E501"]
+
+# Black handles formatting; Ruff handles linting + import sorting. Both pinned
+# to line-length 100 so they never fight. CI runs `ruff check` + `black --check`;
+# the pre-commit hook runs the fixers (see ../.pre-commit-config.yaml).
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+extend-exclude = '''
+/(
+  | \.venv
+  | build
+  | dist
+)/
+'''

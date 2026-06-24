@@ -10,9 +10,9 @@ and is audited by Benny's `AgentScopeMiddleware`.
 
 ## Files
 
-| File                    | Owns                                                                          |
-| ----------------------- | ----------------------------------------------------------------------------- |
-| `agent-runtime.js`      | `mountAgentTurn(scope)`, `runWithAgentContext(scope, fn)`, `getCurrentAgentScope()`. |
+| File               | Owns                                                                                 |
+| ------------------ | ------------------------------------------------------------------------------------ |
+| `agent-runtime.js` | `mountAgentTurn(scope)`, `runWithAgentContext(scope, fn)`, `getCurrentAgentScope()`. |
 
 The actual transport — `createAgentRuntimeClient`, `withAgentScope`,
 `fetchAsAgent` — lives in [`../runtime_client/runtime-client.js`](../runtime_client/runtime-client.js).
@@ -49,7 +49,7 @@ The handle's `dispose()` is a no-op today; reserved for future telemetry
 
 ### `runWithAgentContext(scope, fn)` — the synchronous-flow pattern
 
-Narrow alternative for *short, synchronous* call sites where the agent
+Narrow alternative for _short, synchronous_ call sites where the agent
 just needs the next `runtimeFetch` to carry a scope. Implemented via the
 module-level active-scope variable in `runtime-client.js`. The unbound
 `runtimeFetch` consults this variable and auto-injects the header when
@@ -82,21 +82,28 @@ is policy-enforced (the runtime returns 403 for an agent write outside
 
 ## Defence-in-depth
 
-The shell does not synthesise scope headers. The browser-side agent is
-the source of truth for "is this call an agent action?". The proxy
-strips, forwards, and stays out of the policy decision. Two facts make
-this safe:
+> **Updated (ADR-001 confused-deputy fix).** Scope is now **credential-bound,
+> server-side** — it is no longer something the browser asserts. The earlier
+> design passed `X-Benny-Agent-Scope` through unchanged, which let any
+> authenticated caller omit it and reach the runtime with full trust.
 
-1. The proxy injects `X-Benny-API-Key` (the governance key) but
-   **passes through** `X-Benny-Agent-Scope` unchanged. The shell can't
-   weaken or escalate the scope.
-2. The runtime's middleware is the only enforcer. If a future shell
-   change accidentally drops the header, the worst case is a 403 from
-   the runtime — not silent privilege escalation.
+Today the boundary rests on three facts:
 
-That makes Phase D2's job tightly bounded: ensure the header is set
-correctly at the right call sites. The runtime client + this module
-make that one change in one place.
+1. The shell exposes **two proxy facades**. Agent traffic flows through
+   `/api/agent-runtime/*`, where the proxy injects a distinct, sandbox-bound
+   `BENNY_AGENT_API_KEY` and **forces** `X-Benny-Agent-Scope: sandbox`,
+   overwriting whatever the client sent. Human traffic flows through
+   `/api/runtime/*`, where the proxy injects the trusted key and **strips** any
+   client scope header.
+2. The runtime's `AgentScopeMiddleware` pins the agent key to sandbox scope
+   server-side, so the boundary holds even if the header is forged or the proxy
+   is misconfigured. A caller can only _narrow_ its scope (sandbox → read_only),
+   never widen it.
+3. **Residual gap:** both facades are same-origin, so in-page JS can still
+   _choose_ to call the human path. Making the boundary unbypassable requires
+   running this module isolated from human JS (sandboxed worker/iframe with no
+   reach to `/api/runtime`). Tracked in the ADR-001 follow-up; until then this
+   module's authority note below still applies.
 
 ## Authority
 
@@ -116,10 +123,15 @@ metadata.
 ```js
 const turn = mountAgentTurn("sandbox");
 try {
-  await turn.runtimeClient.saveView("c5_test", "compose.aamp.view", {
-    schema: "aamp.view/1",
-    panels: [{ widget: "kg3d.synoptic_web", x: 0, y: 0 }]
-  }, { agentId: "agentamp.composer" });
+  await turn.runtimeClient.saveView(
+    "c5_test",
+    "compose.aamp.view",
+    {
+      schema: "aamp.view/1",
+      panels: [{ widget: "kg3d.synoptic_web", x: 0, y: 0 }]
+    },
+    { agentId: "agentamp.composer" }
+  );
 } finally {
   turn.dispose();
 }
@@ -141,7 +153,7 @@ Two facts about this flow:
 The bound runtime client carries `signView`, `verifyView`, and
 `pinView` for surface symmetry with the human client, but those
 routes (`/api/views/sign`, `/api/views/verify`, `/api/views/pin`) sit
-*outside* `/api/agent_sandbox/`. `AgentScopeMiddleware` blocks every
+_outside_ `/api/agent_sandbox/`. `AgentScopeMiddleware` blocks every
 agent-scoped POST that does not target the sandbox prefix, so an agent
 calling `turn.runtimeClient.pinView(...)` receives
 `RuntimeError(status=403)`.

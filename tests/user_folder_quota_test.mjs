@@ -90,15 +90,12 @@ function createProjectRoot() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "space-user-folder-quota-"));
 }
 
-function assertQuotaError(callback) {
-  assert.throws(
-    callback,
-    (error) => {
-      assert.equal(error.statusCode, 413);
-      assert.match(error.message, /User folder size limit exceeded/u);
-      return true;
-    }
-  );
+async function assertQuotaError(callback) {
+  await assert.rejects(callback, (error) => {
+    assert.equal(error.statusCode, 413);
+    assert.match(error.message, /User folder size limit exceeded/u);
+    return true;
+  });
 }
 
 function readUserFile(projectRoot, username, filePath) {
@@ -125,7 +122,7 @@ function readUserFile(projectRoot, username, filePath) {
     USER_FOLDER_SIZE_LIMIT_BYTES: 10
   });
 
-  writeAppFile({
+  await writeAppFile({
     content: "1234567890",
     path: "~/notes.txt",
     projectRoot,
@@ -134,8 +131,8 @@ function readUserFile(projectRoot, username, filePath) {
   });
 
   assert.equal(readUserFile(projectRoot, "alice", "notes.txt"), "1234567890");
-  assertQuotaError(() => {
-    writeAppFile({
+  await assertQuotaError(async () => {
+    await writeAppFile({
       content: "12345678901",
       path: "~/notes.txt",
       projectRoot,
@@ -152,7 +149,7 @@ function readUserFile(projectRoot, username, filePath) {
     USER_FOLDER_SIZE_LIMIT_BYTES: 10
   });
 
-  writeAppFile({
+  await writeAppFile({
     content: "12345",
     path: "~/notes.txt",
     projectRoot,
@@ -160,8 +157,8 @@ function readUserFile(projectRoot, username, filePath) {
     username: "alice"
   });
 
-  assertQuotaError(() => {
-    writeAppFile({
+  await assertQuotaError(async () => {
+    await writeAppFile({
       content: "678901",
       operation: "append",
       path: "~/notes.txt",
@@ -183,7 +180,7 @@ function readUserFile(projectRoot, username, filePath) {
     USER_FOLDER_SIZE_LIMIT_BYTES: 10
   });
 
-  writeAppFile({
+  await writeAppFile({
     content: "123456789012",
     path: "~/notes.txt",
     projectRoot,
@@ -191,8 +188,8 @@ function readUserFile(projectRoot, username, filePath) {
     username: "alice"
   });
 
-  assertQuotaError(() => {
-    writeAppFile({
+  await assertQuotaError(async () => {
+    await writeAppFile({
       content: "abcdefghijkl",
       path: "~/notes.txt",
       projectRoot,
@@ -201,7 +198,7 @@ function readUserFile(projectRoot, username, filePath) {
     });
   });
 
-  writeAppFile({
+  await writeAppFile({
     content: "123456789",
     path: "~/notes.txt",
     projectRoot,
@@ -221,7 +218,7 @@ function readUserFile(projectRoot, username, filePath) {
     USER_FOLDER_SIZE_LIMIT_BYTES: 10
   });
 
-  writeAppFile({
+  await writeAppFile({
     content: "123456789012",
     path: "~/notes.txt",
     projectRoot,
@@ -229,7 +226,7 @@ function readUserFile(projectRoot, username, filePath) {
     username: "alice"
   });
 
-  const result = deleteAppPath({
+  const result = await deleteAppPath({
     path: "~/notes.txt",
     projectRoot,
     runtimeParams: quotaRuntimeParams,
@@ -249,8 +246,8 @@ function readUserFile(projectRoot, username, filePath) {
     USER_FOLDER_SIZE_LIMIT_BYTES: 10
   });
 
-  assertQuotaError(() => {
-    writeAppFiles({
+  await assertQuotaError(async () => {
+    await writeAppFiles({
       files: [
         {
           content: "123456",
@@ -277,15 +274,15 @@ function readUserFile(projectRoot, username, filePath) {
     USER_FOLDER_SIZE_LIMIT_BYTES: 10
   });
 
-  writeAppFile({
+  await writeAppFile({
     content: "123456",
     path: "~/a.txt",
     projectRoot,
     runtimeParams,
     username: "alice"
   });
-  assertQuotaError(() => {
-    writeAppFile({
+  await assertQuotaError(async () => {
+    await writeAppFile({
       content: "12345",
       path: "~/b.txt",
       projectRoot,
@@ -294,14 +291,14 @@ function readUserFile(projectRoot, username, filePath) {
     });
   });
 
-  writeAppFile({
+  await writeAppFile({
     content: "123",
     path: "~/a.txt",
     projectRoot,
     runtimeParams,
     username: "alice"
   });
-  writeAppFile({
+  await writeAppFile({
     content: "1234567",
     path: "~/b.txt",
     projectRoot,
@@ -319,7 +316,7 @@ function readUserFile(projectRoot, username, filePath) {
     USER_FOLDER_SIZE_LIMIT_BYTES: 10
   });
 
-  writeAppFile({
+  await writeAppFile({
     content: "123456",
     path: "~/source.txt",
     projectRoot,
@@ -327,8 +324,8 @@ function readUserFile(projectRoot, username, filePath) {
     username: "alice"
   });
 
-  assertQuotaError(() => {
-    copyAppPath({
+  await assertQuotaError(async () => {
+    await copyAppPath({
       fromPath: "~/source.txt",
       projectRoot,
       runtimeParams,
@@ -349,14 +346,14 @@ function readUserFile(projectRoot, username, filePath) {
     USER_FOLDER_SIZE_LIMIT_BYTES: 15
   });
 
-  writeAppFile({
+  await writeAppFile({
     content: "12345",
     path: "~/nested/a.txt",
     projectRoot,
     runtimeParams: unboundedRuntimeParams,
     username: "alice"
   });
-  writeAppFile({
+  await writeAppFile({
     content: "1234",
     path: "~/nested/b.txt",
     projectRoot,
@@ -376,8 +373,8 @@ function readUserFile(projectRoot, username, filePath) {
   };
 
   try {
-    assertQuotaError(() => {
-      copyAppPath({
+    await assertQuotaError(async () => {
+      await copyAppPath({
         fromPath: "~/nested/",
         projectRoot,
         runtimeParams: quotaRuntimeParams,

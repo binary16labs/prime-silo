@@ -1,0 +1,40 @@
+# Pre-commit hooks for Prime-Silo. Install once with:
+#
+#   pip install pre-commit && pre-commit install
+#
+# Runs the Python fixers (Ruff + Black) on runtime/ and Prettier on the Node /
+# browser shell. ESLint runs in CI (`npm run lint`) rather than here to keep
+# commits fast; run `npm run lint:fix` locally before pushing.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.0
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^runtime/benny/.*\.py$
+      - id: ruff-format
+        files: ^runtime/benny/.*\.py$
+
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+        args: [--config=runtime/pyproject.toml]
+        files: ^runtime/benny/.*\.py$
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
+    hooks:
+      - id: prettier
+        files: ^(server|commands|app|tests)/.*\.(js|mjs|json|md)$
+        exclude: ^(node_modules|dist|packaging/runtime-bundle)/
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^(packaging/runtime-bundle|dist|node_modules)/
+      - id: end-of-file-fixer
+        exclude: ^(packaging/runtime-bundle|dist|node_modules)/
+      - id: check-json
+        exclude: ^(packaging/runtime-bundle|dist|node_modules)/

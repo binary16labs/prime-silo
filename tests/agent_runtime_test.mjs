@@ -18,9 +18,7 @@ import {
   getCurrentAgentScope,
   __agent_runtime_meta__
 } from "../app/L0/_all/mod/_prime_silo/agent_runtime/agent-runtime.js";
-import {
-  __testing as runtimeClientTesting
-} from "../app/L0/_all/mod/_prime_silo/runtime_client/runtime-client.js";
+import { __testing as runtimeClientTesting } from "../app/L0/_all/mod/_prime_silo/runtime_client/runtime-client.js";
 
 async function main() {
   runtimeClientTesting.resetAgentScope();
@@ -113,7 +111,9 @@ function installFetchStub(handler) {
   };
   return {
     calls,
-    restore() { globalThis.fetch = original; }
+    restore() {
+      globalThis.fetch = original;
+    }
   };
 }
 
@@ -121,7 +121,9 @@ function extractHeaderMap(headers) {
   if (!headers) return {};
   if (headers instanceof Headers) {
     const out = {};
-    headers.forEach((value, name) => { out[name.toLowerCase()] = value; });
+    headers.forEach((value, name) => {
+      out[name.toLowerCase()] = value;
+    });
     return out;
   }
   const out = {};
@@ -143,7 +145,8 @@ async function testBoundClientPutsHeaderOnTheWire() {
     const widgets = await turn.runtimeClient.listWidgets();
     assert.deepEqual(widgets, [{ id: "kg3d.synoptic_web" }]);
     assert.equal(stub.calls[0].headers["x-benny-agent-scope"], "sandbox");
-    assert.match(stub.calls[0].url, /\/api\/runtime\/widgets$/);
+    // ADR-003: the bound agent client routes through the agent facade.
+    assert.match(stub.calls[0].url, /\/api\/agent-runtime\/widgets$/);
     turn.dispose();
   } finally {
     stub.restore();

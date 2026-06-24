@@ -27,6 +27,8 @@ making the agent's authoring history itself auditable.
 
 from __future__ import annotations
 
+import os
+
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -45,16 +47,59 @@ SCOPE_READ_ONLY = "read_only"
 
 _VALID_SCOPES = frozenset({SCOPE_SANDBOX, SCOPE_READ_ONLY})
 
+# Restrictiveness order (most restrictive first). The effective scope of a
+# request is the *most* restrictive of the credential-derived scope and the
+# header-declared scope, so a caller can never widen the confinement its
+# credential pins it to — only narrow it further.
+_RESTRICTIVENESS = {SCOPE_READ_ONLY: 2, SCOPE_SANDBOX: 1}
+
+# ADR-001 confused-deputy fix: the space-agent shell injects a distinct,
+# sandbox-bound API key on the /api/agent-runtime proxy path. Whenever a request
+# authenticates with THAT key, its scope is pinned to ``sandbox`` here —
+# server-side, independent of any X-Benny-Agent-Scope header — so the boundary
+# holds even if the header is forged or stripped. The trusted/human key carries
+# no key-derived scope and falls through to header behaviour (back-compat).
+#
+# Must match server/lib/runtime_proxy.js DEV_FALLBACK_AGENT_API_KEY in dev; set
+# BENNY_AGENT_API_KEY in both processes to the same secret in production.
+_DEV_FALLBACK_AGENT_API_KEY = "benny-agent-sandbox-2026-dev"
+
+
+def _agent_api_key() -> str:
+    return os.environ.get("BENNY_AGENT_API_KEY") or _DEV_FALLBACK_AGENT_API_KEY
+
+
+def _effective_scope(request: Request) -> str:
+    """Resolve the request's effective agent scope.
+
+    Combines the credential-derived scope (sandbox, when the sandbox-bound agent
+    key authenticated the call) with the header-declared scope, taking whichever
+    is *more* restrictive. Returns ``""`` for unscoped human traffic.
+    """
+    candidates: list[str] = []
+
+    if request.headers.get("X-Benny-API-Key", "") == _agent_api_key():
+        candidates.append(SCOPE_SANDBOX)
+
+    header_scope = request.headers.get("X-Benny-Agent-Scope", "").strip().lower()
+    if header_scope in _VALID_SCOPES:
+        candidates.append(header_scope)
+
+    if not candidates:
+        return ""
+
+    return max(candidates, key=lambda s: _RESTRICTIVENESS[s])
+
 
 class AgentScopeMiddleware(BaseHTTPMiddleware):
     """Enforce the ADR-001 read/write boundary for agent-scoped requests."""
 
     async def dispatch(self, request: Request, call_next):
-        scope = request.headers.get("X-Benny-Agent-Scope", "").strip().lower()
+        scope = _effective_scope(request)
 
         # Human / unscoped traffic — defer entirely to the existing
         # GovernanceMiddleware + per-route auth.
-        if scope == "" or scope not in _VALID_SCOPES:
+        if scope == "":
             return await call_next(request)
 
         # Reads are always allowed for both agent scopes.

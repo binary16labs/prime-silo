@@ -68,7 +68,9 @@ function extractHeaderMap(headers) {
   if (!headers) return {};
   if (headers instanceof Headers) {
     const out = {};
-    headers.forEach((value, name) => { out[name.toLowerCase()] = value; });
+    headers.forEach((value, name) => {
+      out[name.toLowerCase()] = value;
+    });
     return out;
   }
   const out = {};
@@ -211,6 +213,9 @@ async function testCreateAgentRuntimeClientTagsAllCalls() {
     await client.fetchAsAgent("/agent_sandbox/write", { method: "POST" });
     assert.equal(stub.calls[0].headers["x-benny-agent-scope"], "sandbox");
     assert.equal(stub.calls[1].headers["x-benny-agent-scope"], "sandbox");
+    // ADR-003: scoped agent calls route through the dedicated agent facade.
+    assert.match(stub.calls[0].url, /\/api\/agent-runtime\/agent_sandbox\/health$/);
+    assert.match(stub.calls[1].url, /\/api\/agent-runtime\/agent_sandbox\/write$/);
     // Bound client must NOT pollute the module-level active scope.
     assert.equal(getActiveAgentScope(), null);
   } finally {
@@ -248,7 +253,8 @@ async function testCreateAgentRuntimeClientListWidgetsParsesJson() {
     const client = createAgentRuntimeClient("sandbox");
     const widgets = await client.listWidgets();
     assert.deepEqual(widgets, [{ id: "text.markdown" }]);
-    assert.match(stub.calls[0].url, /\/api\/runtime\/widgets$/);
+    // ADR-003: agent traffic goes to the agent facade, not the human path.
+    assert.match(stub.calls[0].url, /\/api\/agent-runtime\/widgets$/);
     assert.equal(stub.calls[0].headers["x-benny-agent-scope"], "sandbox");
   } finally {
     stub.restore();
@@ -261,6 +267,8 @@ async function testFetchAsAgentInjectsHeader() {
   try {
     await fetchAsAgent("/widgets");
     assert.equal(stub.calls[0].headers["x-benny-agent-scope"], "sandbox");
+    // ADR-003: fetchAsAgent routes through the agent facade.
+    assert.match(stub.calls[0].url, /\/api\/agent-runtime\/widgets$/);
   } finally {
     stub.restore();
   }
@@ -279,11 +287,12 @@ async function testListWidgetsUnscopedStillWorks() {
 }
 
 async function testNon2xxRaisesRuntimeError() {
-  const stub = installFetchStub(async () =>
-    new Response(JSON.stringify({ detail: "agent write outside sandbox" }), {
-      status: 403,
-      headers: { "content-type": "application/json" }
-    })
+  const stub = installFetchStub(
+    async () =>
+      new Response(JSON.stringify({ detail: "agent write outside sandbox" }), {
+        status: 403,
+        headers: { "content-type": "application/json" }
+      })
   );
   try {
     let raised = null;

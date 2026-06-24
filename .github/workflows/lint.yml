@@ -1,0 +1,52 @@
+name: Lint & Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node:
+    name: Node (ESLint + Prettier + proxy tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      # Lint tooling is dev-only; the repo ships its runtime deps vendored.
+      - name: Install lint tooling
+        run: npm install --no-save @eslint/js@^9 eslint@^9 eslint-config-prettier@^9 globals@^15 prettier@^3
+      - name: ESLint
+        run: npx eslint .
+      - name: Prettier (check)
+        run: npx prettier --check .
+      - name: Proxy / scope unit tests
+        run: npm run test:proxy
+
+  python:
+    name: Python (Ruff + Black)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: runtime
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Ruff + Black
+        run: pip install "ruff>=0.8.0" "black>=24.0.0"
+      - name: Ruff (lint)
+        run: ruff check benny
+      - name: Black (check)
+        run: black --check benny

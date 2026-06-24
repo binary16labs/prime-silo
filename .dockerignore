@@ -1,0 +1,12 @@
+.git
+node_modules
+dist
+packaging/node_modules
+packaging/runtime-bundle
+runtime
+.benny_home
+home
+app/L1
+app/L2
+**/*.log
+**/.DS_Store

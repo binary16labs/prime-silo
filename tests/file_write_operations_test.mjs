@@ -34,7 +34,7 @@ test("writeAppFile supports append, prepend, and insert operations", async (test
     await rm(projectRoot, { recursive: true, force: true });
   });
 
-  writeAppFile({
+  await writeAppFile({
     ...createWriteOptions(projectRoot),
     content: "two\n",
     operation: "append",
@@ -42,7 +42,7 @@ test("writeAppFile supports append, prepend, and insert operations", async (test
   });
   assert.equal(await readUserFile(projectRoot, "notes.txt"), "two\n");
 
-  writeAppFile({
+  await writeAppFile({
     ...createWriteOptions(projectRoot),
     content: "three\n",
     operation: "append",
@@ -50,7 +50,7 @@ test("writeAppFile supports append, prepend, and insert operations", async (test
   });
   assert.equal(await readUserFile(projectRoot, "notes.txt"), "two\nthree\n");
 
-  writeAppFile({
+  await writeAppFile({
     ...createWriteOptions(projectRoot),
     content: "one\n",
     operation: "prepend",
@@ -58,7 +58,7 @@ test("writeAppFile supports append, prepend, and insert operations", async (test
   });
   assert.equal(await readUserFile(projectRoot, "notes.txt"), "one\ntwo\nthree\n");
 
-  writeAppFile({
+  await writeAppFile({
     ...createWriteOptions(projectRoot),
     content: "one-point-five\n",
     line: 2,
@@ -67,7 +67,7 @@ test("writeAppFile supports append, prepend, and insert operations", async (test
   });
   assert.equal(await readUserFile(projectRoot, "notes.txt"), "one\none-point-five\ntwo\nthree\n");
 
-  writeAppFile({
+  await writeAppFile({
     ...createWriteOptions(projectRoot),
     after: "two\n",
     content: "two-point-five\n",
@@ -79,7 +79,7 @@ test("writeAppFile supports append, prepend, and insert operations", async (test
     "one\none-point-five\ntwo\ntwo-point-five\nthree\n"
   );
 
-  writeAppFile({
+  await writeAppFile({
     ...createWriteOptions(projectRoot),
     before: "three\n",
     content: "before-three\n",
@@ -99,21 +99,19 @@ test("writeAppFile rejects invalid insert anchors and encodings", async (testCon
     await rm(projectRoot, { recursive: true, force: true });
   });
 
-  writeAppFile({
+  await writeAppFile({
     ...createWriteOptions(projectRoot),
     content: "alpha\nbeta\n",
     path: "~/notes.txt"
   });
 
-  assert.throws(
-    () => {
-      writeAppFile({
-        ...createWriteOptions(projectRoot),
-        content: "gamma\n",
-        operation: "insert",
-        path: "~/notes.txt"
-      });
-    },
+  await assert.rejects(
+    writeAppFile({
+      ...createWriteOptions(projectRoot),
+      content: "gamma\n",
+      operation: "insert",
+      path: "~/notes.txt"
+    }),
     (error) => {
       assert.equal(error.statusCode, 400);
       assert.match(error.message, /exactly one of line, before, or after/u);
@@ -121,16 +119,14 @@ test("writeAppFile rejects invalid insert anchors and encodings", async (testCon
     }
   );
 
-  assert.throws(
-    () => {
-      writeAppFile({
-        ...createWriteOptions(projectRoot),
-        before: "missing",
-        content: "gamma\n",
-        operation: "insert",
-        path: "~/notes.txt"
-      });
-    },
+  await assert.rejects(
+    writeAppFile({
+      ...createWriteOptions(projectRoot),
+      before: "missing",
+      content: "gamma\n",
+      operation: "insert",
+      path: "~/notes.txt"
+    }),
     (error) => {
       assert.equal(error.statusCode, 404);
       assert.match(error.message, /Insert pattern not found/u);
@@ -138,17 +134,15 @@ test("writeAppFile rejects invalid insert anchors and encodings", async (testCon
     }
   );
 
-  assert.throws(
-    () => {
-      writeAppFile({
-        ...createWriteOptions(projectRoot),
-        content: Buffer.from("gamma").toString("base64"),
-        encoding: "base64",
-        line: 1,
-        operation: "insert",
-        path: "~/notes.txt"
-      });
-    },
+  await assert.rejects(
+    writeAppFile({
+      ...createWriteOptions(projectRoot),
+      content: Buffer.from("gamma").toString("base64"),
+      encoding: "base64",
+      line: 1,
+      operation: "insert",
+      path: "~/notes.txt"
+    }),
     (error) => {
       assert.equal(error.statusCode, 400);
       assert.match(error.message, /Insert writes require utf8 encoding/u);

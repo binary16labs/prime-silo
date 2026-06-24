@@ -12,7 +12,9 @@ import http from "node:http";
 import { URL } from "node:url";
 
 import {
+  isAgentRuntimeProxyPath,
   isRuntimeProxyPath,
+  proxyToAgentRuntime,
   proxyToRuntime,
   __testing as runtimeProxyTesting
 } from "../server/lib/runtime_proxy.js";
@@ -21,7 +23,8 @@ async function main() {
   testIsRuntimeProxyPath();
   testBuildUpstreamUrl();
   await testEndToEndPathStripAndHeaders();
-  await testAgentScopeFlowsThrough();
+  await testHumanPathStripsClientScope();
+  await testAgentPathForcesSandboxAndAgentKey();
   await testUpstreamErrorPropagated();
   await testUnreachableRuntimeReturns502();
   console.log("runtime_proxy_test: ok");
@@ -34,6 +37,12 @@ function testIsRuntimeProxyPath() {
   assert.equal(isRuntimeProxyPath("/api/runtime_other"), false, "must require slash boundary");
   assert.equal(isRuntimeProxyPath("/api/proxy"), false);
   assert.equal(isRuntimeProxyPath("/api/files/upload"), false);
+
+  // The agent facade is a distinct prefix and must not collide with the human one.
+  assert.equal(isAgentRuntimeProxyPath("/api/agent-runtime"), true);
+  assert.equal(isAgentRuntimeProxyPath("/api/agent-runtime/widgets"), true);
+  assert.equal(isAgentRuntimeProxyPath("/api/runtime/widgets"), false);
+  assert.equal(isRuntimeProxyPath("/api/agent-runtime/widgets"), false);
 }
 
 function testBuildUpstreamUrl() {
@@ -45,9 +54,7 @@ function testBuildUpstreamUrl() {
     );
     assert.equal(url, "http://127.0.0.1:9999/api/agent_sandbox/health?ws=demo");
 
-    const root = runtimeProxyTesting.buildUpstreamUrl(
-      new URL("http://shell.local/api/runtime")
-    );
+    const root = runtimeProxyTesting.buildUpstreamUrl(new URL("http://shell.local/api/runtime"));
     assert.equal(root, "http://127.0.0.1:9999/api/");
   } finally {
     if (original === undefined) {
@@ -81,8 +88,7 @@ async function withFakeUpstream(handler) {
   return {
     captured,
     baseUrl: `http://127.0.0.1:${port}`,
-    close: () =>
-      new Promise((resolve) => server.close(() => resolve()))
+    close: () => new Promise((resolve) => server.close(() => resolve()))
   };
 }
 
@@ -90,25 +96,24 @@ async function callProxyAgainst(upstreamBaseUrl, requestInit) {
   const original = process.env.RUNTIME_BASE_URL;
   process.env.RUNTIME_BASE_URL = upstreamBaseUrl;
 
-  // Spin up a wrapper server that hands every incoming request to
-  // proxyToRuntime. The test uses real fetch against the wrapper, so the
-  // entire path strip → upstream call → response stream code runs.
+  // Spin up a wrapper server that hands every incoming request to the chosen
+  // proxy facade (human by default, agent when requestInit.agent is set). The
+  // test uses real fetch against the wrapper, so the entire path strip →
+  // upstream call → response stream code runs.
+  const proxyFn = requestInit.agent ? proxyToAgentRuntime : proxyToRuntime;
   const wrapper = http.createServer(async (req, res) => {
     const requestUrl = new URL(req.url, "http://shell.local");
-    await proxyToRuntime(req, res, requestUrl);
+    await proxyFn(req, res, requestUrl);
   });
 
   try {
     await new Promise((resolve) => wrapper.listen(0, "127.0.0.1", resolve));
     const { port } = wrapper.address();
-    const response = await fetch(
-      `http://127.0.0.1:${port}${requestInit.path}`,
-      {
-        method: requestInit.method || "GET",
-        headers: requestInit.headers || {},
-        body: requestInit.body
-      }
-    );
+    const response = await fetch(`http://127.0.0.1:${port}${requestInit.path}`, {
+      method: requestInit.method || "GET",
+      headers: requestInit.headers || {},
+      body: requestInit.body
+    });
     const text = await response.text();
     return { status: response.status, headers: response.headers, text };
   } finally {
@@ -139,16 +144,16 @@ async function testEndToEndPathStripAndHeaders() {
     assert.equal(upstream.captured.length, 1);
     const seen = upstream.captured[0];
     assert.equal(seen.url, "/api/widgets", "prefix must be stripped");
-    assert.ok(
-      seen.headers["x-benny-api-key"],
-      "shell must inject the Benny governance API key"
-    );
+    assert.ok(seen.headers["x-benny-api-key"], "shell must inject the Benny governance API key");
   } finally {
     await upstream.close();
   }
 }
 
-async function testAgentScopeFlowsThrough() {
+// ADR-001 confused-deputy fix: the human facade must NEVER forward a
+// client-supplied agent scope — the client value is dropped so a human request
+// can't self-assert (or be tricked into) an agent scope.
+async function testHumanPathStripsClientScope() {
   const upstream = await withFakeUpstream((req, res) => {
     res.statusCode = 200;
     res.end("");
@@ -162,12 +167,7 @@ async function testAgentScopeFlowsThrough() {
         "content-type": "application/json",
         "X-Benny-Agent-Scope": "sandbox"
       },
-      body: JSON.stringify({
-        workspace: "default",
-        subdir: "notes",
-        filename: "hello.md",
-        content: "# hi"
-      })
+      body: JSON.stringify({ workspace: "default", filename: "hello.md", content: "# hi" })
     });
 
     const seen = upstream.captured[0];
@@ -175,13 +175,57 @@ async function testAgentScopeFlowsThrough() {
     assert.equal(seen.method, "POST");
     assert.equal(
       seen.headers["x-benny-agent-scope"],
-      "sandbox",
-      "agent scope header must flow through unchanged"
+      undefined,
+      "human path must strip the client-supplied agent scope"
+    );
+    assert.equal(
+      seen.headers["x-benny-api-key"],
+      "benny-mesh-2026-auth",
+      "human path injects the trusted key (dev fallback)"
     );
     assert.equal(
       JSON.parse(seen.body).filename,
       "hello.md",
       "request body must reach the upstream"
+    );
+  } finally {
+    await upstream.close();
+  }
+}
+
+// The agent facade pins scope server-side: a forged/omitted scope is replaced
+// with sandbox, and the sandbox-bound agent key (not the trusted key) is sent.
+async function testAgentPathForcesSandboxAndAgentKey() {
+  const upstream = await withFakeUpstream((req, res) => {
+    res.statusCode = 200;
+    res.end("");
+  });
+
+  try {
+    await callProxyAgainst(upstream.baseUrl, {
+      agent: true,
+      path: "/api/agent-runtime/agent_sandbox/write",
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        // Attempt to widen scope — must be ignored and overwritten.
+        "X-Benny-Agent-Scope": "read_only",
+        "X-Benny-API-Key": "benny-mesh-2026-auth"
+      },
+      body: JSON.stringify({ workspace: "default", filename: "hello.md", content: "# hi" })
+    });
+
+    const seen = upstream.captured[0];
+    assert.equal(seen.url, "/api/agent_sandbox/write", "agent prefix must be stripped");
+    assert.equal(
+      seen.headers["x-benny-agent-scope"],
+      "sandbox",
+      "agent path forces sandbox scope, overwriting the client value"
+    );
+    assert.equal(
+      seen.headers["x-benny-api-key"],
+      "benny-agent-sandbox-2026-dev",
+      "agent path injects the sandbox-bound agent key, overwriting any client key"
     );
   } finally {
     await upstream.close();

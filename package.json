@@ -12,6 +12,11 @@
   "scripts": {
     "start": "node space serve",
     "dev": "node server/dev_server.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test:proxy": "node tests/runtime_proxy_test.mjs && node tests/memoray_proxy_test.mjs && node tests/runtime_client_agent_scope_test.mjs",
     "install:packaging": "npm install --prefix packaging",
     "desktop:dev": "node packaging/scripts/desktop-dev-run.js",
     "desktop:pack": "node packaging/scripts/host-package.js --dir",
@@ -31,6 +36,13 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^9.1.0",
+    "globals": "^15.0.0",
+    "prettier": "^3.3.0"
   },
   "build": {
     "appId": "com.spaceagent.desktop",

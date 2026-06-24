@@ -1,0 +1,16 @@
+node_modules/
+dist/
+packaging/node_modules/
+packaging/runtime-bundle/
+runtime/
+.benny_home/
+home/
+# Static marketing site — hand-authored/templated HTML Prettier's strict parser rejects.
+site/
+# YAML is parsed by the app's custom restrictive yaml-lite parser, which rejects
+# Prettier's flow-style/indentation output (e.g. commands/params.yaml). Leave all
+# YAML untouched.
+**/*.yaml
+**/*.yml
+**/*.min.js
+**/vendor/

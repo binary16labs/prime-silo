@@ -38,10 +38,11 @@
 //   4. Defaults: enabled, http://127.0.0.1:3030.
 
 import fs from "node:fs/promises";
+import fsSync from "node:fs";
 import path from "node:path";
-import { Readable } from "node:stream";
 
 import { lockServiceUrl } from "./registry_lock.js";
+import { buildUpstreamHeaders, forwardToUpstream } from "./service_proxy.js";
 
 const MEMORAY_PATH_PREFIX = "/api/memoray";
 
@@ -54,63 +55,64 @@ const CONFIG_MANIFEST_FILENAME = "prime-silo.config.json";
 // a file is lineage-validated upstream; nothing else may POST through.
 const POST_PATH_WHITELIST = new Set(["/files/open"]);
 
-// Mirrors server/lib/runtime_proxy.js so proxy behaviour stays consistent.
-const UPSTREAM_REQUEST_HEADERS_TO_STRIP = new Set([
-  "accept-encoding",
-  "connection",
-  "content-length",
-  "cookie",
-  "host",
-  "keep-alive",
-  "origin",
-  "proxy-authenticate",
-  "proxy-authorization",
-  "referer",
-  "te",
-  "trailer",
-  "transfer-encoding",
-  "upgrade"
-]);
-
-const RESPONSE_HEADERS_TO_STRIP = new Set([
-  "connection",
-  "content-encoding",
-  "content-length",
-  "set-cookie",
-  "set-cookie2",
-  "transfer-encoding"
-]);
-
-const METHODS_WITHOUT_BODY = new Set(["GET", "HEAD", "OPTIONS"]);
-
-const BOOT_HINT = "Memo-Ray is not running. Boot it with scripts/memoray.ps1 (or scripts/memoray.sh), or point MEMORAY_BASE_URL at a running instance.";
+const BOOT_HINT =
+  "Memo-Ray is not running. Boot it with scripts/memoray.ps1 (or scripts/memoray.sh), or point MEMORAY_BASE_URL at a running instance.";
 
 export function isMemorayProxyPath(pathname) {
   return pathname === MEMORAY_PATH_PREFIX || pathname.startsWith(MEMORAY_PATH_PREFIX + "/");
 }
 
-// prime-silo.config.json `memoray` block, cached by mtime so the proxy does
-// not re-read the manifest on every request but still notices wizard edits.
-let configCache = { path: "", mtimeMs: -1, block: null };
+// prime-silo.config.json `memoray` block, cached in memory and invalidated by
+// an fs.watch listener — NOT re-stat'd per request. Under concurrent proxy load
+// the hot path is a pure O(1) memory read; the manifest is only re-read when the
+// watcher fires (a wizard edit) or the TTL safety window lapses (covers
+// platforms / editors where fs.watch can drop a change event).
+const CONFIG_CACHE_TTL_MS = 30_000;
 
-async function readConfigMemorayBlock(projectRoot) {
-  if (!projectRoot) {
-    return null;
+let configCache = { path: "", block: null, loadedAtMs: 0, valid: false };
+let configWatcher = null;
+let watchedPath = "";
+
+function closeConfigWatcher() {
+  if (configWatcher) {
+    try {
+      configWatcher.close();
+    } catch {
+      /* watcher already gone */
+    }
   }
+  configWatcher = null;
+  watchedPath = "";
+}
 
-  const manifestPath = path.join(projectRoot, CONFIG_MANIFEST_FILENAME);
-
-  let mtimeMs;
+// (Re)install an fs.watch on the manifest. Marks the cache stale on any change
+// so the next request reloads. Watch failures (file missing, platform quirk)
+// degrade gracefully to TTL-based invalidation. Called only on the reload path,
+// so the cache-hit path issues no syscalls at all.
+function ensureConfigWatch(manifestPath) {
+  if (watchedPath === manifestPath && configWatcher) {
+    return;
+  }
+  closeConfigWatcher();
   try {
-    mtimeMs = (await fs.stat(manifestPath)).mtimeMs;
+    configWatcher = fsSync.watch(manifestPath, () => {
+      configCache.valid = false;
+    });
+    configWatcher.on("error", () => {
+      configCache.valid = false;
+      closeConfigWatcher();
+    });
+    // Never keep the process alive for this watcher alone.
+    if (typeof configWatcher.unref === "function") {
+      configWatcher.unref();
+    }
+    watchedPath = manifestPath;
   } catch {
-    return null;
+    closeConfigWatcher();
   }
+}
 
-  if (configCache.path === manifestPath && configCache.mtimeMs === mtimeMs) {
-    return configCache.block;
-  }
-
+async function loadConfigMemorayBlock(manifestPath) {
   let block = null;
   try {
     const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8"));
@@ -120,19 +122,44 @@ async function readConfigMemorayBlock(projectRoot) {
   } catch {
     block = null;
   }
-
-  configCache = { path: manifestPath, mtimeMs, block };
+  configCache = { path: manifestPath, block, loadedAtMs: Date.now(), valid: true };
   return block;
+}
+
+async function readConfigMemorayBlock(projectRoot) {
+  if (!projectRoot) {
+    return null;
+  }
+
+  const manifestPath = path.join(projectRoot, CONFIG_MANIFEST_FILENAME);
+
+  const fresh =
+    configCache.valid &&
+    configCache.path === manifestPath &&
+    Date.now() - configCache.loadedAtMs < CONFIG_CACHE_TTL_MS;
+
+  if (fresh) {
+    return configCache.block;
+  }
+
+  ensureConfigWatch(manifestPath);
+  return loadConfigMemorayBlock(manifestPath);
 }
 
 function runtimeParamValue(runtimeParams, name) {
   // Only honour values the operator actually set (launch arg, stored .env,
   // process env). A schema default must not shadow the wizard manifest —
   // the manifest is the more deliberate record.
-  const entry = runtimeParams && typeof runtimeParams.getEntry === "function"
-    ? runtimeParams.getEntry(name)
-    : null;
-  if (!entry || entry.value === undefined || entry.source === "default" || entry.source === "unset") {
+  const entry =
+    runtimeParams && typeof runtimeParams.getEntry === "function"
+      ? runtimeParams.getEntry(name)
+      : null;
+  if (
+    !entry ||
+    entry.value === undefined ||
+    entry.source === "default" ||
+    entry.source === "unset"
+  ) {
     return undefined;
   }
   return entry.value;
@@ -159,12 +186,21 @@ export async function resolveMemoraySettings({ runtimeParams, projectRoot } = {}
 
   let baseUrl = runtimeParamValue(runtimeParams, "MEMORAY_BASE_URL");
   let baseUrlSource = "param";
-  if (baseUrl === undefined && configBlock && typeof configBlock.base_url === "string" && configBlock.base_url.trim()) {
+  if (
+    baseUrl === undefined &&
+    configBlock &&
+    typeof configBlock.base_url === "string" &&
+    configBlock.base_url.trim()
+  ) {
     baseUrl = configBlock.base_url.trim();
     baseUrlSource = "config";
   }
   if (baseUrl === undefined) {
-    const lockedUrl = lockServiceUrl({ appId: "memo-ray", service: "memory-graph", startDir: projectRoot || process.cwd() });
+    const lockedUrl = lockServiceUrl({
+      appId: "memo-ray",
+      service: "memory-graph",
+      startDir: projectRoot || process.cwd()
+    });
     if (lockedUrl) {
       baseUrl = lockedUrl;
       baseUrlSource = "lock";
@@ -202,52 +238,6 @@ function isMethodAllowed(method, requestUrl) {
   return false;
 }
 
-function buildUpstreamHeaders(incomingHeaders) {
-  const headers = new Headers();
-
-  for (const [name, value] of Object.entries(incomingHeaders)) {
-    if (value === undefined || value === null) {
-      continue;
-    }
-    const lower = name.toLowerCase();
-    if (UPSTREAM_REQUEST_HEADERS_TO_STRIP.has(lower)) {
-      continue;
-    }
-    const flat = Array.isArray(value) ? value.join(", ") : String(value);
-    headers.set(name, flat);
-  }
-
-  return headers;
-}
-
-function streamRequestBody(req) {
-  if (METHODS_WITHOUT_BODY.has(String(req.method).toUpperCase())) {
-    return undefined;
-  }
-  return Readable.toWeb(req);
-}
-
-function copyResponseHeaders(upstreamResponse, res) {
-  upstreamResponse.headers.forEach((value, name) => {
-    if (RESPONSE_HEADERS_TO_STRIP.has(name.toLowerCase())) {
-      return;
-    }
-    res.setHeader(name, value);
-  });
-}
-
-async function pipeResponseBody(upstreamResponse, res) {
-  if (!upstreamResponse.body) {
-    res.end();
-    return;
-  }
-  const nodeStream = Readable.fromWeb(upstreamResponse.body);
-  nodeStream.on("error", (err) => {
-    res.destroy(err);
-  });
-  nodeStream.pipe(res);
-}
-
 function sendJson(res, statusCode, body) {
   res.statusCode = statusCode;
   res.setHeader("content-type", "application/json");
@@ -265,7 +255,8 @@ export async function proxyToMemoray(req, res, requestUrl, { runtimeParams, proj
   if (!settings.enabled) {
     sendJson(res, 404, {
       error: "memoray_disabled",
-      detail: "Memo-Ray integration is disabled. Enable it with `node space set MEMORAY_ENABLED=true` or in the configuration wizard."
+      detail:
+        "Memo-Ray integration is disabled. Enable it with `node space set MEMORAY_ENABLED=true` or in the configuration wizard."
     });
     return;
   }
@@ -279,31 +270,25 @@ export async function proxyToMemoray(req, res, requestUrl, { runtimeParams, proj
   }
 
   const upstreamUrl = buildUpstreamUrl(requestUrl, settings.baseUrl);
+  // Memo-Ray needs no credential — server-to-server fetch carries no Origin, so
+  // its localhost-only CORS never engages. Just strip hop-by-hop headers.
   const headers = buildUpstreamHeaders(req.headers);
-  const body = streamRequestBody(req);
 
-  let upstreamResponse;
-  try {
-    upstreamResponse = await fetch(upstreamUrl, {
-      method: req.method,
-      headers,
-      body,
-      duplex: body ? "half" : undefined,
-      redirect: "manual"
-    });
-  } catch (err) {
-    sendJson(res, 502, {
-      error: "memoray_unreachable",
-      detail: String(err?.message || err),
-      hint: BOOT_HINT,
-      upstream_url: upstreamUrl
-    });
-    return;
-  }
-
-  res.statusCode = upstreamResponse.status;
-  copyResponseHeaders(upstreamResponse, res);
-  await pipeResponseBody(upstreamResponse, res);
+  await forwardToUpstream({
+    req,
+    res,
+    upstreamUrl,
+    headers,
+    mapError: (err) => ({
+      status: 502,
+      body: {
+        error: "memoray_unreachable",
+        detail: String(err?.message || err),
+        hint: BOOT_HINT,
+        upstream_url: upstreamUrl
+      }
+    })
+  });
 }
 
 /**
@@ -311,7 +296,10 @@ export async function proxyToMemoray(req, res, requestUrl, { runtimeParams, proj
  * `node space memory` CLI and the integration audit). Same settings
  * resolution and method whitelist as the proxy; returns parsed JSON.
  */
-export async function memorayRequest(apiPath, { runtimeParams, projectRoot, method = "GET", body, timeoutMs = 5000 } = {}) {
+export async function memorayRequest(
+  apiPath,
+  { runtimeParams, projectRoot, method = "GET", body, timeoutMs = 5000 } = {}
+) {
   const settings = await resolveMemoraySettings({ runtimeParams, projectRoot });
 
   if (!settings.enabled) {
@@ -358,6 +346,7 @@ export const __testing = {
   buildUpstreamUrl,
   isMethodAllowed,
   resetConfigCache() {
-    configCache = { path: "", mtimeMs: -1, block: null };
+    closeConfigWatcher();
+    configCache = { path: "", block: null, loadedAtMs: 0, valid: false };
   }
 };

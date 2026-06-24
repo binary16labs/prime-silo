@@ -30,14 +30,16 @@ export async function post(context) {
       stateSystem: context.stateSystem,
       username: context.user?.username
     });
-    const result = await runTrackedMutation(context, async () =>
-      deleteAppPath({
-        path: targetPathInfo.projectPath,
-        projectRoot: context.projectRoot,
-        runtimeParams: context.runtimeParams,
-        username: context.user?.username,
-        watchdog: context.watchdog
-      })
+    const result = await runTrackedMutation(
+      context,
+      async () =>
+        await deleteAppPath({
+          path: targetPathInfo.projectPath,
+          projectRoot: context.projectRoot,
+          runtimeParams: context.runtimeParams,
+          username: context.user?.username,
+          watchdog: context.watchdog
+        })
     );
 
     return {
@@ -54,6 +56,9 @@ export async function post(context) {
       })
     };
   } catch (error) {
-    throw createHttpError(error.message || "Module remove failed.", Number(error.statusCode) || 500);
+    throw createHttpError(
+      error.message || "Module remove failed.",
+      Number(error.statusCode) || 500
+    );
   }
 }

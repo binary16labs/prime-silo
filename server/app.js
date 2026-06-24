@@ -18,6 +18,7 @@ import { createWatchdog } from "./lib/file_watch/watchdog.js";
 import { createTmpWatch, ensureServerTmpDir } from "./lib/tmp/tmp_watch.js";
 import { loadProjectEnvFiles } from "./lib/utils/env_files.js";
 import { createRuntimeParams } from "./lib/utils/runtime_params.js";
+import { assertRuntimeProxyConfig } from "./lib/runtime_proxy.js";
 import { JobRunner } from "./jobs/job_runner.js";
 import { createLocalMutationSync } from "./runtime/request_mutations.js";
 import { sendJson } from "./router/responses.js";
@@ -70,16 +71,21 @@ async function createServerBootstrap(overrides = {}) {
 
   loadProjectEnvFiles(projectRoot);
 
+  // ADR-001: fail fast if the Benny proxy credentials are missing in
+  // production, rather than silently proxying on a shipped development key.
+  // No-op in development (dev fallbacks apply).
+  assertRuntimeProxyConfig();
+
   const runtimeParams =
     overrides.runtimeParams ||
-    await createRuntimeParams(projectRoot, {
+    (await createRuntimeParams(projectRoot, {
       env: runtimeParamEnv,
       overrides: runtimeParamOverrides
-    });
+    }));
   const host = runtimeParams.get("HOST", "0.0.0.0");
   const browserHost = overrides.browserHost || resolveBrowserHost(host);
   const configuredPort = Number(runtimeParams.get("PORT", 3000));
-  let activePort = configuredPort;
+  const activePort = configuredPort;
 
   ensureCustomwareDirectories(projectRoot, runtimeParams);
   ensureServerTmpDir(tmpDir);

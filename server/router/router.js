@@ -13,15 +13,18 @@ import { applyApiCorsHeaders, handleApiPreflight } from "./cors.js";
 import { handleModuleRequest } from "./mod_handler.js";
 import { handleAppFetchRequest } from "./app_fetch_handler.js";
 import { readParsedRequestBody } from "./request_body.js";
-// ADR-001 Phase D: forwards /api/runtime/<path> to the Benny FastAPI runtime.
-import { isRuntimeProxyPath, proxyToRuntime } from "../lib/runtime_proxy.js";
+// ADR-001 Phase D: forwards /api/runtime/<path> (human) and
+// /api/agent-runtime/<path> (sandbox-scoped agent) to the Benny FastAPI runtime.
+import {
+  isAgentRuntimeProxyPath,
+  isRuntimeProxyPath,
+  proxyToAgentRuntime,
+  proxyToRuntime
+} from "../lib/runtime_proxy.js";
 // Phase M1: forwards /api/memoray/<path> to the Memo-Ray memory-graph server.
 import { isMemorayProxyPath, proxyToMemoray } from "../lib/memoray_proxy.js";
 import { resolveProjectVersion } from "../lib/utils/project_version.js";
-import {
-  STATE_VERSION_HEADER,
-  normalizeStateVersionHeaderValue
-} from "../runtime/state_system.js";
+import { STATE_VERSION_HEADER, normalizeStateVersionHeaderValue } from "../runtime/state_system.js";
 
 const STATE_WORKER_HEADER = "Space-Worker";
 const STATE_VERSION_COOKIE_NAME = "space_state_version";
@@ -76,7 +79,7 @@ async function handleApiModuleRequest(req, res, requestUrl, apiModule, contextOp
         error: `Method ${methodName} is not supported for ${apiModule.endpointName}`
       },
       {
-        Allow: getAllowedMethods(apiModule).join(", "),
+        Allow: getAllowedMethods(apiModule).join(", ")
       }
     );
     return;
@@ -157,7 +160,11 @@ function installStateResponseHeaders(res, stateSync, workerNumber) {
   const normalizedWorkerNumber = Math.floor(Number(workerNumber));
 
   if (!stateSync || typeof stateSync.getVersion !== "function") {
-    if (!res.headersSent && Number.isFinite(normalizedWorkerNumber) && normalizedWorkerNumber >= 0) {
+    if (
+      !res.headersSent &&
+      Number.isFinite(normalizedWorkerNumber) &&
+      normalizedWorkerNumber >= 0
+    ) {
       res.setHeader(STATE_WORKER_HEADER, String(normalizedWorkerNumber));
     }
 
@@ -340,10 +347,20 @@ function createRequestHandler(options) {
         return;
       }
 
-      // ADR-001 Phase D — proxy /api/runtime/<path> to the Benny FastAPI
-      // runtime. Authentication still enforced at the shell edge; the
-      // runtime's AgentScopeMiddleware enforces the sandbox boundary if
-      // X-Benny-Agent-Scope is set by the caller.
+      // ADR-001 Phase D — proxy the Benny FastAPI runtime over two facades.
+      // Auth is enforced at the shell edge for both. Scope is bound to the
+      // credential the proxy injects, NOT to any client header:
+      //   /api/agent-runtime/* → sandbox-bound agent key + forced sandbox scope.
+      //   /api/runtime/*       → trusted human key, client scope header stripped.
+      // The agent path is matched first so it can never be shadowed.
+      if (isAgentRuntimeProxyPath(requestUrl.pathname)) {
+        if (!ensureAuthenticatedOrRespond(res, requestContext, auth)) {
+          return;
+        }
+        await proxyToAgentRuntime(req, res, requestUrl);
+        return;
+      }
+
       if (isRuntimeProxyPath(requestUrl.pathname)) {
         if (!ensureAuthenticatedOrRespond(res, requestContext, auth)) {
           return;
@@ -399,7 +416,7 @@ function createRequestHandler(options) {
           requestUrl,
           runtimeParams,
           stateSystem,
-          username: requestContext.user.username,
+          username: requestContext.user.username
         });
         return;
       }

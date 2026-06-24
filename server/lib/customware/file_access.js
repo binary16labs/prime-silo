@@ -13,10 +13,7 @@ import {
   parseAppProjectPath,
   resolveProjectAbsolutePath
 } from "./layout.js";
-import {
-  getFileIndexShardValue,
-  listStateAreaIds
-} from "./module_state.js";
+import { getFileIndexShardValue, listStateAreaIds } from "./module_state.js";
 import {
   applyUserFolderQuotaPlan,
   createUserFolderQuotaPlan,
@@ -28,6 +25,7 @@ import { createEmptyGroupIndex } from "./overrides.js";
 import { globToRegExp, normalizePathSegment } from "../utils/app_files.js";
 import { isProjectPathWithinMaxLayer, normalizeMaxLayer } from "./layer_limit.js";
 import { FILE_INDEX_AREA } from "../../runtime/state_areas.js";
+import { getStorageProvider } from "../storage/index.js";
 
 function createHttpError(message, statusCode) {
   const error = new Error(message);
@@ -36,7 +34,9 @@ function createHttpError(message, statusCode) {
 }
 
 function isPlainObject(value) {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value) && !Buffer.isBuffer(value);
+  return (
+    Boolean(value) && typeof value === "object" && !Array.isArray(value) && !Buffer.isBuffer(value)
+  );
 }
 
 function stripTrailingSlash(value) {
@@ -107,7 +107,8 @@ function hasExistingProjectPathConflict(pathIndex, projectPath) {
   const baseProjectPath = stripTrailingSlash(projectPath);
 
   return Boolean(
-    baseProjectPath && (hasPath(pathIndex, baseProjectPath) || hasPath(pathIndex, `${baseProjectPath}/`))
+    baseProjectPath &&
+    (hasPath(pathIndex, baseProjectPath) || hasPath(pathIndex, `${baseProjectPath}/`))
   );
 }
 
@@ -154,7 +155,9 @@ function compileFilePathPatterns(patterns) {
 }
 
 function normalizeAccessMode(value = "read") {
-  const rawValue = String(value || "read").trim().toLowerCase();
+  const rawValue = String(value || "read")
+    .trim()
+    .toLowerCase();
 
   if (!rawValue || rawValue === "read" || rawValue === "readable") {
     return "read";
@@ -278,9 +281,9 @@ function isReservedIndexedProjectPath(projectPath) {
 function hasFileIndexStateSystem(stateSystem) {
   return Boolean(
     stateSystem &&
-      typeof stateSystem === "object" &&
-      !Array.isArray(stateSystem) &&
-      typeof stateSystem.getValue === "function"
+    typeof stateSystem === "object" &&
+    !Array.isArray(stateSystem) &&
+    typeof stateSystem.getValue === "function"
   );
 }
 
@@ -415,14 +418,7 @@ function getSortedShardProjectPaths(stateSystem, shardId, shardPathCache) {
 }
 
 function listAppPathsByPatternsFromFileIndex(options = {}) {
-  const {
-    accessMode,
-    compiledPatterns,
-    groupIndex,
-    maxLayer,
-    output,
-    stateSystem
-  } = options;
+  const { accessMode, compiledPatterns, groupIndex, maxLayer, output, stateSystem } = options;
   const ownerScopes =
     accessMode === "write"
       ? createWritableOwnerScopesFromState({
@@ -487,9 +483,9 @@ function createAppAccessController(options = {}) {
   );
   const isAdmin = Boolean(
     username &&
-      groupIndex &&
-      typeof groupIndex.isUserInGroup === "function" &&
-      groupIndex.isUserInGroup(username, "_admin")
+    groupIndex &&
+    typeof groupIndex.isUserInGroup === "function" &&
+    groupIndex.isUserInGroup(username, "_admin")
   );
 
   function canReadProjectPath(projectPath) {
@@ -505,8 +501,8 @@ function createAppAccessController(options = {}) {
 
     return Boolean(
       groupIndex &&
-        typeof groupIndex.isUserInGroup === "function" &&
-        groupIndex.isUserInGroup(username, pathInfo.ownerId)
+      typeof groupIndex.isUserInGroup === "function" &&
+      groupIndex.isUserInGroup(username, pathInfo.ownerId)
     );
   }
 
@@ -791,7 +787,9 @@ function normalizeReadRequests(options = {}) {
         resolvedPath.projectPath,
         options.runtimeParams
       ),
-      encoding: ensureValidReadEncoding(String(request.encoding || options.encoding || "utf8").toLowerCase()),
+      encoding: ensureValidReadEncoding(
+        String(request.encoding || options.encoding || "utf8").toLowerCase()
+      ),
       path: toAppRelativePath(resolvedPath.projectPath)
     };
   });
@@ -906,13 +904,19 @@ function getExplicitWriteField(request, options, key) {
 }
 
 function ensureValidWriteOperation(operation) {
-  const normalizedOperation = String(operation || "replace").trim().toLowerCase();
+  const normalizedOperation = String(operation || "replace")
+    .trim()
+    .toLowerCase();
 
   if (!normalizedOperation || normalizedOperation === "replace") {
     return "replace";
   }
 
-  if (normalizedOperation === "append" || normalizedOperation === "prepend" || normalizedOperation === "insert") {
+  if (
+    normalizedOperation === "append" ||
+    normalizedOperation === "prepend" ||
+    normalizedOperation === "insert"
+  ) {
     return normalizedOperation;
   }
 
@@ -923,12 +927,18 @@ function normalizeWriteInsertTarget(request, options, operation, requestedPath) 
   const rawLine = getExplicitWriteField(request, options, "line");
   const rawBefore = getExplicitWriteField(request, options, "before");
   const rawAfter = getExplicitWriteField(request, options, "after");
-  const targetCount = Number(rawLine !== undefined) + Number(rawBefore !== undefined) + Number(rawAfter !== undefined);
+  const targetCount =
+    Number(rawLine !== undefined) +
+    Number(rawBefore !== undefined) +
+    Number(rawAfter !== undefined);
 
   if (operation !== "insert") {
     if (targetCount > 0) {
       throw createHttpError(
-        "Write operation " + operation + " does not accept line, before, or after: " + requestedPath,
+        "Write operation " +
+          operation +
+          " does not accept line, before, or after: " +
+          requestedPath,
         400
       );
     }
@@ -999,7 +1009,10 @@ function resolveTextInsertOffset(existingText, insertTarget, requestedPath) {
     const offsets = createLineInsertOffsets(existingText);
 
     if (insertTarget.line > offsets.length) {
-      throw createHttpError("Insert line " + insertTarget.line + " is out of range: " + requestedPath, 400);
+      throw createHttpError(
+        "Insert line " + insertTarget.line + " is out of range: " + requestedPath,
+        400
+      );
     }
 
     return offsets[insertTarget.line - 1];
@@ -1033,7 +1046,8 @@ function buildWriteBuffer(options = {}) {
   const encoding = options.encoding || "utf8";
   const operation = options.operation || "replace";
   const nextContent = String(options.content ?? "");
-  const contentBuffer = encoding === "base64" ? Buffer.from(nextContent, "base64") : Buffer.from(nextContent, "utf8");
+  const contentBuffer =
+    encoding === "base64" ? Buffer.from(nextContent, "base64") : Buffer.from(nextContent, "utf8");
 
   if (operation === "replace") {
     return contentBuffer;
@@ -1054,7 +1068,11 @@ function buildWriteBuffer(options = {}) {
   }
 
   const existingText = existingBuffer.toString("utf8");
-  const insertOffset = resolveTextInsertOffset(existingText, options.insertTarget, options.requestedPath);
+  const insertOffset = resolveTextInsertOffset(
+    existingText,
+    options.insertTarget,
+    options.requestedPath
+  );
 
   return Buffer.from(
     existingText.slice(0, insertOffset) + nextContent + existingText.slice(insertOffset),
@@ -1116,7 +1134,10 @@ function normalizeWriteRequests(options = {}) {
     }
 
     if (seenProjectPaths.has(normalizedProjectPath)) {
-      throw createHttpError("Duplicate file write path: " + toAppRelativePath(normalizedProjectPath), 400);
+      throw createHttpError(
+        "Duplicate file write path: " + toAppRelativePath(normalizedProjectPath),
+        400
+      );
     }
 
     seenProjectPaths.add(normalizedProjectPath);
@@ -1134,7 +1155,10 @@ function normalizeWriteRequests(options = {}) {
       }
 
       if (operation !== "replace") {
-        throw createHttpError("Directory writes do not support " + operation + ": " + requestedPath, 400);
+        throw createHttpError(
+          "Directory writes do not support " + operation + ": " + requestedPath,
+          400
+        );
       }
 
       return {
@@ -1177,34 +1201,44 @@ function normalizeWriteRequests(options = {}) {
   });
 }
 
-function writeAppFiles(options = {}) {
+// First write path migrated onto the StorageProvider seam (server/lib/storage,
+// ADR-003). The durable commit — directory creation + content write — now goes
+// through the provider (default local-disk, behaviour-identical) so an
+// S3/DB-backed deployment can share L1/L2 state across shell replicas. Reads
+// used to compute append/insert buffers (buildWriteBuffer) are still synchronous
+// fs and are migrated in a later step; with the default local provider both hit
+// the same disk, so behaviour is unchanged. The function is async because the
+// provider contract is async (S3/DB cannot be synchronous).
+async function writeAppFiles(options = {}) {
   const requests = normalizeWriteRequests(options);
   const quotaDeltas = getWriteQuotaDeltas(options, requests);
   const quotaPlan = createQuotaPlan(options, quotaDeltas);
+  const storage = getStorageProvider();
   let totalBytesWritten = 0;
 
-  let files;
+  const files = [];
 
   try {
-    files = requests.map((request) => {
+    // Sequential (not Promise.all) so a partial-batch failure leaves a
+    // deterministic prefix written and quota accounting stays correct.
+    for (const request of requests) {
       if (request.isDirectory) {
-        fs.mkdirSync(request.absolutePath, { recursive: true });
-
-        return {
-          path: request.path
-        };
+        await storage.mkdir(request.absolutePath);
+        files.push({ path: request.path });
+        continue;
       }
 
-      fs.mkdirSync(path.dirname(request.absolutePath), { recursive: true });
-      fs.writeFileSync(request.absolutePath, request.buffer);
+      // storage.writeFile creates the parent directory, replacing the prior
+      // mkdirSync(dirname) + writeFileSync pair.
+      await storage.writeFile(request.absolutePath, request.buffer);
       totalBytesWritten += request.buffer.length;
 
-      return {
+      files.push({
         bytesWritten: request.buffer.length,
         encoding: request.encoding,
         path: request.path
-      };
-    });
+      });
+    }
   } catch (error) {
     invalidateQuotaDeltas(options, quotaDeltas);
     throw error;
@@ -1228,8 +1262,8 @@ function writeAppFiles(options = {}) {
   };
 }
 
-function writeAppFile(options = {}) {
-  return writeAppFiles(options).files[0];
+async function writeAppFile(options = {}) {
+  return (await writeAppFiles(options)).files[0];
 }
 
 function normalizeTransferEntries(options = {}, actionLabel) {
@@ -1268,7 +1302,9 @@ function normalizeTransferRequests(options = {}, actionType) {
     }
 
     const requestedFromPath = String(entry.fromPath || entry.path || entry.sourcePath || "").trim();
-    const requestedToPath = String(entry.toPath || entry.targetPath || entry.destinationPath || "").trim();
+    const requestedToPath = String(
+      entry.toPath || entry.targetPath || entry.destinationPath || ""
+    ).trim();
 
     if (!requestedFromPath) {
       throw createHttpError(`File ${actionLabel} source path must not be empty.`, 400);
@@ -1320,11 +1356,20 @@ function normalizeTransferRequests(options = {}, actionType) {
     ensureWritableProjectPath(destinationParentProjectPath, accessController);
 
     if (hasExistingProjectPathConflict(pathIndex, destinationProjectPath)) {
-      throw createHttpError(`Destination already exists: ${toAppRelativePath(destinationProjectPath)}`, 400);
+      throw createHttpError(
+        `Destination already exists: ${toAppRelativePath(destinationProjectPath)}`,
+        400
+      );
     }
 
-    if (resolvedSourcePath.isDirectory && isDescendantPath(resolvedSourcePath.projectPath, destinationProjectPath)) {
-      throw createHttpError(`Cannot ${actionLabel} a folder into itself: ${requestedFromPath}`, 400);
+    if (
+      resolvedSourcePath.isDirectory &&
+      isDescendantPath(resolvedSourcePath.projectPath, destinationProjectPath)
+    ) {
+      throw createHttpError(
+        `Cannot ${actionLabel} a folder into itself: ${requestedFromPath}`,
+        400
+      );
     }
 
     return {
@@ -1349,11 +1394,17 @@ function normalizeTransferRequests(options = {}, actionType) {
   requests.forEach((request, index) => {
     requests.slice(0, index).forEach((previousRequest) => {
       if (request.sourceProjectPath === previousRequest.sourceProjectPath) {
-        throw createHttpError(`Duplicate file ${actionLabel} source path: ${request.fromPath}`, 400);
+        throw createHttpError(
+          `Duplicate file ${actionLabel} source path: ${request.fromPath}`,
+          400
+        );
       }
 
       if (request.destinationProjectPath === previousRequest.destinationProjectPath) {
-        throw createHttpError(`Duplicate file ${actionLabel} destination path: ${request.toPath}`, 400);
+        throw createHttpError(
+          `Duplicate file ${actionLabel} destination path: ${request.toPath}`,
+          400
+        );
       }
 
       if (
@@ -1381,45 +1432,25 @@ function normalizeTransferRequests(options = {}, actionType) {
   return requests;
 }
 
-function copyAbsolutePath(sourceAbsolutePath, destinationAbsolutePath, isDirectory) {
-  fs.cpSync(sourceAbsolutePath, destinationAbsolutePath, {
-    errorOnExist: true,
-    force: false,
-    recursive: isDirectory
-  });
-}
-
-function moveAbsolutePath(sourceAbsolutePath, destinationAbsolutePath, isDirectory) {
-  try {
-    fs.renameSync(sourceAbsolutePath, destinationAbsolutePath);
-  } catch (error) {
-    if (error?.code !== "EXDEV") {
-      throw error;
-    }
-
-    copyAbsolutePath(sourceAbsolutePath, destinationAbsolutePath, isDirectory);
-    fs.rmSync(sourceAbsolutePath, {
-      force: false,
-      recursive: isDirectory
-    });
-  }
-}
-
-function copyAppPaths(options = {}) {
+// StorageProvider migration (ADR-003): copy/move durable commits go through the
+// provider. The provider preserves the prior fs semantics — copy refuses to
+// clobber (errorOnExist), move falls back to copy+remove across devices — so the
+// default local provider is behaviour-identical. Async because the contract is.
+async function copyAppPaths(options = {}) {
   const requests = normalizeTransferRequests(options, "copy");
   const quotaDeltas = getCopyQuotaDeltas(options, requests);
   const quotaPlan = createQuotaPlan(options, quotaDeltas);
-  let entries;
+  const storage = getStorageProvider();
+  const entries = [];
 
   try {
-    entries = requests.map((request) => {
-      copyAbsolutePath(request.sourceAbsolutePath, request.destinationAbsolutePath, request.isDirectory);
-
-      return {
-        fromPath: request.fromPath,
-        toPath: request.toPath
-      };
-    });
+    for (const request of requests) {
+      await storage.copy(request.sourceAbsolutePath, request.destinationAbsolutePath, {
+        recursive: request.isDirectory,
+        errorOnExist: true
+      });
+      entries.push({ fromPath: request.fromPath, toPath: request.toPath });
+    }
   } catch (error) {
     invalidateQuotaDeltas(options, quotaDeltas);
     throw error;
@@ -1442,25 +1473,24 @@ function copyAppPaths(options = {}) {
   };
 }
 
-function copyAppPath(options = {}) {
-  return copyAppPaths(options).entries[0];
+async function copyAppPath(options = {}) {
+  return (await copyAppPaths(options)).entries[0];
 }
 
-function moveAppPaths(options = {}) {
+async function moveAppPaths(options = {}) {
   const requests = normalizeTransferRequests(options, "move");
   const quotaDeltas = getMoveQuotaDeltas(options, requests);
   const quotaPlan = createQuotaPlan(options, quotaDeltas);
-  let entries;
+  const storage = getStorageProvider();
+  const entries = [];
 
   try {
-    entries = requests.map((request) => {
-      moveAbsolutePath(request.sourceAbsolutePath, request.destinationAbsolutePath, request.isDirectory);
-
-      return {
-        fromPath: request.fromPath,
-        toPath: request.toPath
-      };
-    });
+    for (const request of requests) {
+      await storage.move(request.sourceAbsolutePath, request.destinationAbsolutePath, {
+        recursive: request.isDirectory
+      });
+      entries.push({ fromPath: request.fromPath, toPath: request.toPath });
+    }
   } catch (error) {
     invalidateQuotaDeltas(options, quotaDeltas);
     throw error;
@@ -1483,8 +1513,8 @@ function moveAppPaths(options = {}) {
   };
 }
 
-function moveAppPath(options = {}) {
-  return moveAppPaths(options).entries[0];
+async function moveAppPath(options = {}) {
+  return (await moveAppPaths(options)).entries[0];
 }
 
 function normalizeDeleteEntries(options = {}) {
@@ -1564,20 +1594,22 @@ function normalizeDeleteRequests(options = {}) {
   return requests;
 }
 
-function deleteAppPaths(options = {}) {
+async function deleteAppPaths(options = {}) {
   const requests = normalizeDeleteRequests(options);
   const quotaDeltas = getDeleteQuotaDeltas(options, requests);
   const quotaPlan = createQuotaPlan(options, quotaDeltas);
-  let paths;
+  const storage = getStorageProvider();
+  const paths = [];
 
   try {
-    paths = requests.map((request) => {
-      fs.rmSync(request.absolutePath, {
-        force: false,
-        recursive: request.isDirectory
+    for (const request of requests) {
+      // force:false → a missing target is an error, matching the prior rmSync.
+      await storage.remove(request.absolutePath, {
+        recursive: request.isDirectory,
+        force: false
       });
-      return request.path;
-    });
+      paths.push(request.path);
+    }
   } catch (error) {
     invalidateQuotaDeltas(options, quotaDeltas);
     throw error;
@@ -1600,9 +1632,9 @@ function deleteAppPaths(options = {}) {
   };
 }
 
-function deleteAppPath(options = {}) {
+async function deleteAppPath(options = {}) {
   return {
-    path: deleteAppPaths(options).paths[0]
+    path: (await deleteAppPaths(options)).paths[0]
   };
 }
 
@@ -1612,9 +1644,9 @@ function isDescendantPath(ancestorDirectoryPath, candidatePath) {
 
   return Boolean(
     ancestorBase &&
-      candidateBase &&
-      candidateBase !== ancestorBase &&
-      candidateBase.startsWith(`${ancestorBase}/`)
+    candidateBase &&
+    candidateBase !== ancestorBase &&
+    candidateBase.startsWith(`${ancestorBase}/`)
   );
 }
 
@@ -1657,7 +1689,9 @@ function collectAncestorDirectories(targetDirectoryPath, descendantPath, pathInd
 
 function listAppPaths(options = {}) {
   const pathIndex = getPathIndex(options.watchdog);
-  const accessMode = normalizeAccessMode(options.access || (options.writableOnly ? "write" : "read"));
+  const accessMode = normalizeAccessMode(
+    options.access || (options.writableOnly ? "write" : "read")
+  );
   const accessController = createAppAccessController({
     groupIndex: getGroupIndex(options.watchdog, options.runtimeParams),
     runtimeParams: options.runtimeParams,
@@ -1754,8 +1788,15 @@ function listAppPaths(options = {}) {
     for (const projectPath of accessibleDescendants) {
       outputPaths.add(projectPath);
 
-      for (const ancestorPath of collectAncestorDirectories(resolvedPath.projectPath, projectPath, pathIndex)) {
-        if (accessMode === "read" || canAccessProjectPath(ancestorPath, accessController, accessMode)) {
+      for (const ancestorPath of collectAncestorDirectories(
+        resolvedPath.projectPath,
+        projectPath,
+        pathIndex
+      )) {
+        if (
+          accessMode === "read" ||
+          canAccessProjectPath(ancestorPath, accessController, accessMode)
+        ) {
           outputPaths.add(ancestorPath);
         }
       }
@@ -1766,7 +1807,8 @@ function listAppPaths(options = {}) {
 
       if (
         directChildPath &&
-        (accessMode === "read" || canAccessProjectPath(directChildPath, accessController, accessMode))
+        (accessMode === "read" ||
+          canAccessProjectPath(directChildPath, accessController, accessMode))
       ) {
         outputPaths.add(directChildPath);
       }
@@ -1785,7 +1827,9 @@ function listAppPaths(options = {}) {
 
 function listAppPathsByPatterns(options = {}) {
   const compiledPatterns = compileFilePathPatterns(options.patterns);
-  const accessMode = normalizeAccessMode(options.access || (options.writableOnly ? "write" : "read"));
+  const accessMode = normalizeAccessMode(
+    options.access || (options.writableOnly ? "write" : "read")
+  );
   const maxLayer = normalizeMaxLayer(options.maxLayer);
   const output = Object.create(null);
 
@@ -1828,7 +1872,9 @@ function listAppPathsByPatterns(options = {}) {
     }
 
     for (const sourcePattern of Object.keys(output)) {
-      output[sourcePattern] = [...new Set(output[sourcePattern])].sort((left, right) => left.localeCompare(right));
+      output[sourcePattern] = [...new Set(output[sourcePattern])].sort((left, right) =>
+        left.localeCompare(right)
+      );
     }
 
     return output;

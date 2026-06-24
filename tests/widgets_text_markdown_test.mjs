@@ -8,7 +8,10 @@
 
 import assert from "node:assert/strict";
 
-import { renderMarkdown, __testing as renderTesting } from "../app/L0/_all/mod/_prime_silo/widgets/text/markdown/render.js";
+import {
+  renderMarkdown,
+  __testing as renderTesting
+} from "../app/L0/_all/mod/_prime_silo/widgets/text/markdown/render.js";
 import { createMarkdownWidget } from "../app/L0/_all/mod/_prime_silo/widgets/text/markdown/index.js";
 
 async function main() {
@@ -50,7 +53,10 @@ function testRendererInlineEmphasisAndLinks() {
   assert.match(em, /<em>italic<\/em>/);
 
   const link = renderMarkdown("[home](https://example.com)");
-  assert.match(link, /<a href="https:\/\/example\.com" target="_blank" rel="noopener noreferrer">home<\/a>/);
+  assert.match(
+    link,
+    /<a href="https:\/\/example\.com" target="_blank" rel="noopener noreferrer">home<\/a>/
+  );
 }
 
 function testRendererCodeAndLists() {
@@ -131,56 +137,8 @@ function createFakeHost() {
   return host;
 }
 
-function makeRuntimeClientStub() {
-  const calls = [];
-
-  function jsonResponse(body, status = 200) {
-    return new Response(JSON.stringify(body), {
-      status,
-      headers: { "content-type": "application/json" }
-    });
-  }
-
-  return {
-    calls,
-    runtimeFetch: async (path, init = {}) => {
-      calls.push({ kind: "runtimeFetch", path, init });
-      const handler = client.runtimeHandler;
-      if (!handler) {
-        throw new Error("no runtimeFetch handler installed");
-      }
-      const result = handler(path, init);
-      if (result instanceof Error) {
-        throw result;
-      }
-      return result;
-    },
-    fetchAsAgent: async (path, init = {}, options = {}) => {
-      calls.push({ kind: "fetchAsAgent", path, init, options });
-      const handler = client.agentHandler;
-      if (!handler) {
-        return jsonResponse({ status: "written" });
-      }
-      const result = handler(path, init, options);
-      if (result instanceof Error) {
-        throw result;
-      }
-      return result;
-    },
-    readRuntimeJson: async (response) => {
-      const text = await response.text();
-      return text ? JSON.parse(text) : null;
-    },
-    runtimeHandler: null,
-    agentHandler: null,
-    jsonResponse
-  };
-
-  // The stub object defined inline above closes over `client`. Hoist:
-}
-
-// Re-implement the stub helper without the closure-over-self issue by
-// returning the object directly.
+// Stub the runtime client. The object is built first and returned directly so
+// its method closures reference the same `stub` (no closure-over-self issue).
 function createRuntimeClientStub() {
   const calls = [];
 

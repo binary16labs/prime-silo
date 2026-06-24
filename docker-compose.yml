@@ -1,0 +1,93 @@
+# Prime-Silo cognitive mesh — production-shaped composition.
+#
+# Tiers (see architecture/ADR-003 + the review's target topology):
+#   shell    — Space-Agent Node.js gateway (stateless, presentation + proxy)
+#   benny    — Benny FastAPI runtime (logic & execution)
+#   memoray  — Memo-Ray Express server (memory graph)
+#   neo4j    — knowledge/code graph store for Benny
+#
+# Secrets are injected from the environment / an .env file (see .env.example) and
+# never baked into images. The two Benny keys MUST be identical between `shell`
+# and `benny`: the shell injects BENNY_AGENT_API_KEY on the agent proxy path and
+# Benny's AgentScopeMiddleware pins that key to sandbox scope.
+#
+#   cp .env.example .env && edit .env && docker compose up --build
+
+services:
+  neo4j:
+    image: neo4j:5.25
+    environment:
+      NEO4J_AUTH: "neo4j/${NEO4J_PASSWORD:?set NEO4J_PASSWORD in .env}"
+    volumes:
+      - neo4j-data:/data
+    networks: [mesh]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+    restart: unless-stopped
+
+  benny:
+    build:
+      context: ./runtime
+    environment:
+      BENNY_HOME: /data/benny
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:?}
+      BENNY_AGENT_API_KEY: ${BENNY_AGENT_API_KEY:?set BENNY_AGENT_API_KEY in .env}
+      BENNY_HMAC_KEY: ${BENNY_HMAC_KEY:?set BENNY_HMAC_KEY in .env}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    volumes:
+      - benny-home:/data/benny
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    networks: [mesh]
+    restart: unless-stopped
+
+  memoray:
+    build:
+      context: ../memo-ray
+    environment:
+      NODE_ENV: production
+      PORT: "3030"
+    networks: [mesh]
+    restart: unless-stopped
+
+  shell:
+    build:
+      context: .
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "3000"
+      CUSTOMWARE_PATH: /data/customware
+      RUNTIME_BASE_URL: http://benny:8005
+      MEMORAY_BASE_URL: http://memoray:3030
+      MEMORAY_ENABLED: "true"
+      # Must match Benny: BENNY_AGENT_API_KEY is the sandbox-bound key, BENNY_API_KEY
+      # the trusted/human key. Both required in production (fail-fast at startup).
+      BENNY_API_KEY: ${BENNY_API_KEY:?set BENNY_API_KEY in .env}
+      BENNY_AGENT_API_KEY: ${BENNY_AGENT_API_KEY:?}
+    ports:
+      - "${SHELL_PORT:-3000}:3000"
+    volumes:
+      - customware:/data/customware
+    depends_on:
+      - benny
+      - memoray
+    networks: [mesh]
+    restart: unless-stopped
+
+networks:
+  mesh:
+    driver: bridge
+
+volumes:
+  neo4j-data:
+  benny-home:
+  # For horizontal scaling of `shell`, back this with a shared/HA volume driver
+  # (NFS/EFS) or migrate to a non-local StorageProvider (server/lib/storage).
+  customware:

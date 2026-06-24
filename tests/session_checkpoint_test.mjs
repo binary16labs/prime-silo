@@ -19,14 +19,14 @@ import {
   compactHistoryForCheckpoint,
   estimateHistoryBytes,
   isHistoryWithinCheckpointLimit,
-  __testing as compactTesting,
+  __testing as compactTesting
 } from "../app/L0/_all/mod/_prime_silo/session_checkpoint/checkpoint-compact.js";
 
 import {
   applyCheckpointRestore,
   buildForkName,
   buildPreRestoreName,
-  buildRestoreNotice,
+  buildRestoreNotice
 } from "../app/L0/_all/mod/_prime_silo/session_checkpoint/checkpoint-restore.js";
 
 import {
@@ -34,7 +34,7 @@ import {
   loadCheckpoint,
   listCheckpoints,
   deleteCheckpoint,
-  forkCheckpoint,
+  forkCheckpoint
 } from "../app/L0/_all/mod/_prime_silo/session_checkpoint/index.js";
 
 import { __testing as rtTesting } from "../app/L0/_all/mod/_prime_silo/runtime_client/runtime-client.js";
@@ -52,14 +52,16 @@ function installFetchStub(handler) {
       method: (init.method || "GET").toUpperCase(),
       init,
       headers: extractHeaderMap(init.headers),
-      body: init.body,
+      body: init.body
     };
     calls.push(callRecord);
     return handler(String(url), init, calls);
   };
   return {
     calls,
-    restore() { globalThis.fetch = original; },
+    restore() {
+      globalThis.fetch = original;
+    }
   };
 }
 
@@ -67,7 +69,9 @@ function extractHeaderMap(headers) {
   if (!headers) return {};
   if (headers instanceof Headers) {
     const out = {};
-    headers.forEach((value, name) => { out[name.toLowerCase()] = value; });
+    headers.forEach((value, name) => {
+      out[name.toLowerCase()] = value;
+    });
     return out;
   }
   const out = {};
@@ -78,14 +82,14 @@ function extractHeaderMap(headers) {
 function jsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json" }
   });
 }
 
 function makeHistory(messageCount) {
   return Array.from({ length: messageCount }, (_, i) => ({
     role: i % 2 === 0 ? "user" : "assistant",
-    content: `message ${i}`,
+    content: `message ${i}`
   }));
 }
 
@@ -140,7 +144,7 @@ function testIsHistoryWithinCheckpointLimit() {
 async function testApplyCheckpointRestoreReturnsSameHistory() {
   const history = [
     { role: "user", content: "hello" },
-    { role: "assistant", content: "world" },
+    { role: "assistant", content: "world" }
   ];
   const cp = {
     schema: "aamp.checkpoint/1",
@@ -152,7 +156,7 @@ async function testApplyCheckpointRestoreReturnsSameHistory() {
     transient_items: {},
     run_refs: [],
     manifest_refs: [],
-    metadata: { source: "operator" },
+    metadata: { source: "operator" }
   };
   const result = await applyCheckpointRestore(cp, { spaceApi: {} });
   assert.deepEqual(result.restoredHistory, history);
@@ -165,12 +169,14 @@ async function testApplyCheckpointRestoreCollectsSkillErrors() {
   const cp = {
     history: [],
     skills: ["bad-skill"],
-    transient_items: {},
+    transient_items: {}
   };
   const mockApi = {
     skills: {
-      load: async (id) => { throw new Error(`skill ${id} not found`); },
-    },
+      load: async (id) => {
+        throw new Error(`skill ${id} not found`);
+      }
+    }
   };
   const result = await applyCheckpointRestore(cp, { spaceApi: mockApi });
   assert.equal(result.failedSkills.length, 1);
@@ -184,12 +190,14 @@ async function testApplyCheckpointRestoreLoadsSkillsSuccessfully() {
   const cp = {
     history: [{ role: "user", content: "hi" }],
     skills: ["browser-control", "data-analyst"],
-    transient_items: {},
+    transient_items: {}
   };
   const mockApi = {
     skills: {
-      load: async (id) => { loaded.push(id); },
-    },
+      load: async (id) => {
+        loaded.push(id);
+      }
+    }
   };
   const result = await applyCheckpointRestore(cp, { spaceApi: mockApi });
   assert.deepEqual(result.loadedSkills, ["browser-control", "data-analyst"]);
@@ -203,13 +211,13 @@ async function testApplyCheckpointRestoreHandlesMissingFileRead() {
     history: [],
     skills: [],
     transient_items: {
-      "file:q3": { path: "~/data/q3.csv", encoding: "utf8" },
-    },
+      "file:q3": { path: "~/data/q3.csv", encoding: "utf8" }
+    }
   };
   // No fileRead API
   const result = await applyCheckpointRestore(cp, { spaceApi: {} });
   assert.ok(result.restoredTransient["file:q3"]);
-  assert.ok(result.warnings.some(w => w.includes("fileRead API not available")));
+  assert.ok(result.warnings.some((w) => w.includes("fileRead API not available")));
   console.log("  ✓ applyCheckpointRestore handles missing fileRead gracefully");
 }
 
@@ -224,10 +232,7 @@ function testBuildForkNameFirstFork() {
 }
 
 function testBuildForkNameIncrements() {
-  const existing = [
-    { name: "analysis-base_fork_1" },
-    { name: "analysis-base_fork_2" },
-  ];
+  const existing = [{ name: "analysis-base_fork_1" }, { name: "analysis-base_fork_2" }];
   assert.equal(buildForkName("analysis-base", existing), "analysis-base_fork_3");
   console.log("  ✓ buildForkName: increments past highest existing fork");
 }
@@ -235,17 +240,14 @@ function testBuildForkNameIncrements() {
 function testBuildForkNameSkipsGaps() {
   const existing = [
     { name: "x_fork_1" },
-    { name: "x_fork_3" }, // gap at 2
+    { name: "x_fork_3" } // gap at 2
   ];
   assert.equal(buildForkName("x", existing), "x_fork_4");
   console.log("  ✓ buildForkName: skips gaps and uses max+1");
 }
 
 function testBuildForkNameIgnoresUnrelatedCheckpoints() {
-  const existing = [
-    { name: "other-thing_fork_99" },
-    { name: "analysis-base" },
-  ];
+  const existing = [{ name: "other-thing_fork_99" }, { name: "analysis-base" }];
   assert.equal(buildForkName("analysis-base", existing), "analysis-base_fork_1");
   console.log("  ✓ buildForkName: ignores unrelated checkpoints");
 }
@@ -279,14 +281,15 @@ async function testSaveCheckpointPostsCorrectPayload() {
       transientItems: {},
       runRefs: ["run-abc"],
       manifestRefs: [],
-      metadata: { description: "test", source: "operator" },
+      metadata: { description: "test", source: "operator" }
     };
     const result = await saveCheckpoint("sandbox", "ws", "my-cp", sessionState);
     assert.equal(result.saved, true);
 
     const call = stub.calls[0];
     assert.equal(call.method, "POST");
-    assert.match(call.url, /\/api\/runtime\/agent_sandbox\/checkpoints\/save$/);
+    // ADR-003: a sandbox-scoped checkpoint save routes through the agent facade.
+    assert.match(call.url, /\/api\/agent-runtime\/agent_sandbox\/checkpoints\/save$/);
     assert.equal(call.headers["x-benny-agent-scope"], "sandbox");
     const body = JSON.parse(call.body);
     assert.equal(body.name, "my-cp");
@@ -419,7 +422,7 @@ async function testForkCheckpointCreatesCorrectForkName() {
     transient_items: {},
     run_refs: [],
     manifest_refs: [],
-    metadata: { source: "operator", fork_of: null, fork_index: null, description: "" },
+    metadata: { source: "operator", fork_of: null, fork_index: null, description: "" }
   };
   const existingList = [{ name: "base" }]; // no forks yet
 
@@ -429,7 +432,11 @@ async function testForkCheckpointCreatesCorrectForkName() {
     if (url.includes("/list/")) return jsonResponse(existingList);
     if (url.includes("/save")) {
       saveCall = JSON.parse(init.body || "{}");
-      return jsonResponse({ saved: true, path: "agent_sandbox/checkpoints/base_fork_1.json", bytes: 1 });
+      return jsonResponse({
+        saved: true,
+        path: "agent_sandbox/checkpoints/base_fork_1.json",
+        bytes: 1
+      });
     }
     return jsonResponse({});
   });
