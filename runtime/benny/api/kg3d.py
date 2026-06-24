@@ -22,21 +22,26 @@ delta_queue: asyncio.Queue = asyncio.Queue()
 @router.get("/ontology")
 async def get_ontology(workspace: str = "default"):
     """Returns the full graph as JSON with computed metrics."""
-    # Load from Neo4j if workspace provided, otherwise fallback to fixture
-    graph = await load_default_ontology(workspace=workspace)
-    
-    metrics = get_cached_metrics(graph)
-    
-    if not metrics:
-        metrics = compute_all(graph)
-        save_metrics_to_cache(graph, metrics)
-    
-    update_node_aot_layers(graph, metrics)
-    
-    return {
-        "nodes": [n.model_dump(mode="json") for n in graph.nodes],
-        "edges": [e.model_dump(mode="json") for e in graph.edges]
-    }
+    try:
+        # Load from Neo4j if workspace provided, otherwise fallback to fixture
+        graph = await load_default_ontology(workspace=workspace)
+
+        metrics = get_cached_metrics(graph)
+
+        if not metrics:
+            # Cold path: bounded compute (sampled betweenness on large graphs).
+            metrics = compute_all(graph)
+            save_metrics_to_cache(graph, metrics)
+
+        update_node_aot_layers(graph, metrics)
+
+        return {
+            "nodes": [n.model_dump(mode="json") for n in graph.nodes],
+            "edges": [e.model_dump(mode="json") for e in graph.edges]
+        }
+    except Exception as e:
+        logger.error("Ontology fetch failed for workspace %s: %s", workspace, e, exc_info=True)
+        raise HTTPException(500, f"Ontology fetch failed: {str(e)}")
 
 @router.get("/stream")
 async def stream_deltas():

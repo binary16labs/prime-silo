@@ -21,7 +21,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { createHash } = require("node:crypto");
 const { execFileSync } = require("node:child_process");
-const { buildRuntimeBundle } = require("./assemble-runtime-bundle");
+const { buildRuntimeBundle, tarBin } = require("./assemble-runtime-bundle");
 
 const PROJECT_ROOT = path.resolve(__dirname, "../..");
 
@@ -42,7 +42,9 @@ function createTarGz(bundleDir, archivePath) {
   fs.mkdirSync(path.dirname(archivePath), { recursive: true });
   fs.rmSync(archivePath, { force: true });
   // -C bundleDir . => archive every entry relative to the bundle root.
-  execFileSync("tar", ["-czf", archivePath, "-C", bundleDir, "."], { stdio: "inherit" });
+  // Use the resolved tar (bsdtar on Windows) so a drive-letter archive path is
+  // not misread as a remote host by Git's GNU tar (see tarBin()).
+  execFileSync(tarBin(), ["-czf", archivePath, "-C", bundleDir, "."], { stdio: "inherit" });
 }
 
 async function packRuntimeBundle(opts = {}) {

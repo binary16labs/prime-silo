@@ -1,12 +1,59 @@
+import logging
 import networkx as nx
 from typing import Dict
 from .schema import Node, Edge, NodeMetrics, aot_layer_for
 from .ontology import Graph
 
+logger = logging.getLogger(__name__)
+
+# Exact all-pairs betweenness is O(V*E) and on a multi-thousand-node graph takes
+# tens of seconds — long enough to blow the HTTP timeout and surface as a 500.
+# Above this node count we switch to a sampled approximation (Brandes over k
+# pivots), which is ~15-20x faster and visually indistinguishable for layout.
+BETWEENNESS_EXACT_MAX_NODES = 800
+BETWEENNESS_SAMPLE_K = 400
+
+
+def _safe_pagerank(G: nx.DiGraph) -> Dict[str, float]:
+    """PageRank that degrades to zeros instead of raising (e.g. non-convergence)."""
+    if len(G) == 0:
+        return {}
+    try:
+        return nx.pagerank(G, weight="weight")
+    except nx.PowerIterationFailedConvergence:
+        try:
+            return nx.pagerank(G, weight="weight", max_iter=500, tol=1e-4)
+        except Exception as e:  # noqa: BLE001 - last-resort guard
+            logger.warning("pagerank did not converge; defaulting to 0: %s", e)
+            return {}
+    except Exception as e:  # noqa: BLE001 - last-resort guard
+        logger.warning("pagerank failed; defaulting to 0: %s", e)
+        return {}
+
+
+def _safe_betweenness(G: nx.DiGraph) -> Dict[str, float]:
+    """Betweenness centrality, bounded so large graphs stay interactive."""
+    n = len(G)
+    if n == 0:
+        return {}
+    try:
+        if n <= BETWEENNESS_EXACT_MAX_NODES:
+            return nx.betweenness_centrality(G, weight="weight")
+        k = min(BETWEENNESS_SAMPLE_K, n)
+        logger.info("Graph has %d nodes; using sampled betweenness (k=%d)", n, k)
+        # Unweighted + sampled: the dominant cost is the all-pairs shortest-path
+        # sweep, so we cap it at k pivot nodes with a fixed seed for determinism.
+        return nx.betweenness_centrality(G, k=k, seed=42)
+    except Exception as e:  # noqa: BLE001 - last-resort guard
+        logger.warning("betweenness failed; defaulting to 0: %s", e)
+        return {}
+
+
 def compute_all(graph: Graph) -> Dict[str, NodeMetrics]:
     """
     Computes all GC-centric graph metrics for the KG3D-001 requirement.
-    Uses networkx for core algorithms.
+    Uses networkx for core algorithms. Every metric is guarded so a single
+    failure degrades to zeros rather than 500-ing the ontology endpoint.
     """
     G = nx.DiGraph()
     for node in graph.nodes:
@@ -15,14 +62,14 @@ def compute_all(graph: Graph) -> Dict[str, NodeMetrics]:
         G.add_edge(edge.source_id, edge.target_id, weight=edge.weight, kind=edge.kind)
 
     # 1. Pagerank
-    pagerank = nx.pagerank(G, weight="weight") if len(G) > 0 else {}
-    
+    pagerank = _safe_pagerank(G)
+
     # 2. Degree
     degree = dict(G.degree())
-    
-    # 3. Betweenness
-    betweenness = nx.betweenness_centrality(G, weight="weight") if len(G) > 0 else {}
-    
+
+    # 3. Betweenness (bounded for large graphs)
+    betweenness = _safe_betweenness(G)
+
     # 4. Descendant ratio (reachable nodes / total nodes)
     total_nodes = len(graph.nodes)
     descendant_ratio = {}
@@ -48,15 +95,20 @@ def compute_all(graph: Graph) -> Dict[str, NodeMetrics]:
     metrics_map = {}
     for node in graph.nodes:
         node_id = node.id
+        # Clamp to the schema's bounds (pagerank/betweenness >= 0; ratios in
+        # [0, 1]) so a pathological value can never trip a NodeMetrics validator
+        # and 500 the whole ontology response.
+        dr = min(1.0, max(0.0, descendant_ratio.get(node_id, 0.0)))
+        pr = min(1.0, max(0.0, prerequisite_ratio.get(node_id, 0.0)))
         metrics_map[node_id] = NodeMetrics(
-            pagerank=pagerank.get(node_id, 0.0),
+            pagerank=max(0.0, pagerank.get(node_id, 0.0)),
             degree=degree.get(node_id, 0),
-            betweenness=betweenness.get(node_id, 0.0),
-            descendant_ratio=descendant_ratio.get(node_id, 0.0),
-            prerequisite_ratio=prerequisite_ratio.get(node_id, 0.0),
-            reachability_ratio=descendant_ratio.get(node_id, 0.0) # Mapping both to dr for simplicity
+            betweenness=max(0.0, betweenness.get(node_id, 0.0)),
+            descendant_ratio=dr,
+            prerequisite_ratio=pr,
+            reachability_ratio=dr  # Mapping both to dr for simplicity
         )
-    
+
     return metrics_map
 
 def update_node_aot_layers(graph: Graph, metrics: Dict[str, NodeMetrics]):

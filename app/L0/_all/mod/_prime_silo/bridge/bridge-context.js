@@ -52,6 +52,24 @@ async function fetchModeData(currentState) {
       return `Code graph (workspace "${workspace}"): ${nodes.length} nodes (${typeSummary}), ${edges.length} edges.${selNote}`;
     }
 
+    if (mode === "documents") {
+      const stats = await pilot.knowledgeStats(workspace);
+      const nodeTypes = (stats && stats.node_types) || {};
+      const docCount = nodeTypes.Document || nodeTypes.Source || 0;
+      const conceptCount = nodeTypes.Concept || 0;
+      if (!docCount && !conceptCount) {
+        return `Documents: the knowledge graph for workspace "${workspace}" is empty — ingest documents from the Documents stage (or run benny enrich) to populate it.`;
+      }
+      let sources = [];
+      try { sources = await pilot.documentSources(workspace); } catch { /* counts are enough */ }
+      const sample = sources.slice(0, 5).join(", ");
+      const more = sources.length > 5 ? `, +${sources.length - 5} more` : "";
+      const sel = currentState.selection && currentState.selection.id
+        ? ` Selected concept: "${currentState.selection.label || currentState.selection.id}".`
+        : "";
+      return `Documents (workspace "${workspace}"): ${docCount} source document(s) → ${conceptCount} concept(s).${sources.length ? ` Sources include: ${sample}${more}.` : ""}${sel}`;
+    }
+
     if (mode === "memory") {
       const sessions = await pilot.recentSessions({ limit: 5 });
       const arr = Array.isArray(sessions) ? sessions : [];

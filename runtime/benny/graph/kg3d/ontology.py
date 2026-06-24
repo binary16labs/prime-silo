@@ -94,11 +94,39 @@ async def load_default_ontology(workspace: Optional[str] = None) -> Graph:
     
     return Graph(nodes=nodes, edges=edges)
 
+def _enum_value(v) -> str:
+    return v.value if hasattr(v, "value") else str(v)
+
+
 def content_hash(graph: Graph) -> str:
-    """Returns a stable SHA-256 hash of the graph content."""
-    # Canonicalize by sorting nodes and edges by ID
-    nodes_data = sorted([n.model_dump(mode="json") for n in graph.nodes], key=lambda x: x["id"])
-    edges_data = sorted([e.model_dump(mode="json") for e in graph.edges], key=lambda x: x["id"])
-    
+    """
+    Returns a SHA-256 hash of the *structural* graph content.
+
+    Only stable identity fields are hashed — node id/category and edge
+    endpoints/kind/weight. Volatile fields (the per-load random edge `id` and the
+    `created_at`/`updated_at` timestamps stamped at construction time) are
+    deliberately excluded; including them made the hash change on every load, so
+    the metrics cache never hit and `compute_all` re-ran on every request.
+    """
+    nodes_data = sorted(
+        (
+            {
+                "id": n.id,
+                "name": n.canonical_name,
+                "display": n.display_name,
+                "category": _enum_value(n.category),
+            }
+            for n in graph.nodes
+        ),
+        key=lambda x: x["id"],
+    )
+    edges_data = sorted(
+        (
+            {"s": e.source_id, "t": e.target_id, "k": _enum_value(e.kind), "w": e.weight}
+            for e in graph.edges
+        ),
+        key=lambda x: (x["s"], x["t"], x["k"]),
+    )
+
     combined = json.dumps({"nodes": nodes_data, "edges": edges_data}, sort_keys=True)
     return hashlib.sha256(combined.encode()).hexdigest()

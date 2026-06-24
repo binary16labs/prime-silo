@@ -277,6 +277,19 @@ async function downloadFile(url, destPath, expectedSha256 = "") {
 
 // Extract a .tar.gz or .zip into a temp dir, then move the single top-level
 // directory's contents to `targetDir` (flatten the version-named wrapper dir).
+// Resolve the tar binary. On Windows we MUST use the bundled bsdtar
+// (System32\tar.exe): if Git for Windows is installed, its GNU tar shadows
+// bsdtar on PATH, and GNU tar misreads a Windows archive path like
+// "C:\Users\..." as a remote host spec ("C:" → host) and fails with
+// "Cannot connect to C: resolve failed". bsdtar handles drive-letter paths
+// (and both .tar.gz and .zip) correctly.
+function tarBin(platform = process.platform) {
+  if (platform === "win32") {
+    return path.join(process.env.SystemRoot || "C:\\Windows", "System32", "tar.exe");
+  }
+  return "tar";
+}
+
 function extractAndFlatten(archivePath, targetDir, platform = process.platform) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ps-extract-"));
   const isZip = /\.zip$/i.test(archivePath);
@@ -285,7 +298,7 @@ function extractAndFlatten(archivePath, targetDir, platform = process.platform) 
       execFileSync("unzip", ["-q", archivePath, "-d", tmp], { stdio: "ignore" });
     } else {
       // bsdtar (Windows 10+/macOS) handles both .tar.gz and .zip; GNU tar handles .tar.gz.
-      execFileSync("tar", ["-xf", archivePath, "-C", tmp], { stdio: "ignore" });
+      execFileSync(tarBin(platform), ["-xf", archivePath, "-C", tmp], { stdio: "ignore" });
     }
     const entries = fs.readdirSync(tmp);
     const roots = entries.filter((e) => fs.statSync(path.join(tmp, e)).isDirectory());
@@ -393,6 +406,7 @@ async function buildRuntimeBundle(opts = {}) {
 
 module.exports = {
   buildRuntimeBundle,
+  tarBin,
   resolvePythonBuild,
   resolveNeo4jBuild,
   resolveJreBuild,

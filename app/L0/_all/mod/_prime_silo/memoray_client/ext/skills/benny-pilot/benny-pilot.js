@@ -93,6 +93,36 @@ export async function codeGraph(workspace = "default") {
   return getJson(RUNTIME, `/graph/code?workspace=${encodeURIComponent(workspace)}`);
 }
 
+/**
+ * Knowledge-graph composition for a workspace (the Documents mode's data):
+ * `{ node_types, relationship_types, ... }` with per-label counts
+ * (Document, Concept, Source, …). This is the fast, reliable way to see what
+ * documents exist — it does NOT go through /kg3d/ontology, which recomputes
+ * metrics over the whole graph on every call and can time out on large graphs.
+ */
+export async function knowledgeStats(workspace = "default") {
+  return getJson(RUNTIME, `/graph/stats?workspace=${encodeURIComponent(workspace)}`);
+}
+
+/** The source documents ingested into the knowledge graph, de-duplicated. */
+export async function documentSources(workspace = "default") {
+  const body = await getJson(RUNTIME, `/graph/sources?workspace=${encodeURIComponent(workspace)}`);
+  const sources = Array.isArray(body && body.sources) ? body.sources : [];
+  return [...new Set(sources)];
+}
+
+/**
+ * A page of the knowledge graph {nodes, edges} for a workspace — the concepts
+ * and relations extracted from ingested documents. Paged by default because the
+ * full graph can be multi-megabyte; pass { showAll: true } to fetch everything.
+ */
+export async function knowledgeGraph(workspace = "default", { page = 0, pageSize = 50, showAll = false } = {}) {
+  const params = new URLSearchParams({ workspace });
+  if (showAll) params.set("show_all", "true");
+  else { params.set("page", String(page)); params.set("page_size", String(pageSize)); }
+  return getJson(RUNTIME, `/graph/full?${params.toString()}`);
+}
+
 /** Recursively scan the entire workspace directory including files. */
 export async function workspaceFileList(workspace = "prime_silo_self") {
   const body = await getJson(RUNTIME, `/files/recursive-scan?workspace=${encodeURIComponent(workspace)}`);
@@ -112,6 +142,9 @@ export default {
   search,
   runs,
   codeGraph,
+  knowledgeStats,
+  documentSources,
+  knowledgeGraph,
   workspaceFileList,
   workspaceFileRead
 };
