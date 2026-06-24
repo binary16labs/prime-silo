@@ -1,6 +1,6 @@
 {
   "name": "space-agent",
-  "version": "1.2.14",
+  "version": "1.2.15",
   "private": true,
   "description": "Browser-first AI agent with a thin Node.js server.",
   "author": "Jan Tomasek",
