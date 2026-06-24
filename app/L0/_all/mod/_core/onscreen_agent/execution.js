@@ -15,7 +15,11 @@ const INTERNAL_SCOPE_KEYS = new Set(["__spaceScope", "__spaceWindow"]);
 const WINDOW_ALIAS_KEYS = new Set(["page", "window", "globalThis", "self"]);
 const MAX_FORMAT_DEPTH = 2;
 function isLoadedOnscreenSkill(value) {
-  return Boolean(value?.__spaceSkill) && typeof value?.content === "string" && typeof value?.path === "string";
+  return (
+    Boolean(value?.__spaceSkill) &&
+    typeof value?.content === "string" &&
+    typeof value?.path === "string"
+  );
 }
 
 function collectLoadedSkills(result) {
@@ -46,7 +50,8 @@ function collectLoadedSkills(result) {
 }
 
 function formatLoadedSkillResultText(skill) {
-  const responseText = typeof skill?.loadResponseText === "string" ? skill.loadResponseText.trim() : "";
+  const responseText =
+    typeof skill?.loadResponseText === "string" ? skill.loadResponseText.trim() : "";
   return responseText || String(skill?.content || "").trim();
 }
 
@@ -232,7 +237,10 @@ function collectExecutionPlanErrors(validationResult) {
     collected.push(validationResult.error);
   }
 
-  if (!collected.length && (validationResult instanceof Error || typeof validationResult === "string")) {
+  if (
+    !collected.length &&
+    (validationResult instanceof Error || typeof validationResult === "string")
+  ) {
     collected.push(validationResult);
   }
 
@@ -532,7 +540,12 @@ function patchConsole(targetWindow, logs) {
     const originalMethod = targetWindow.console[methodName].bind(targetWindow.console);
 
     try {
-      targetWindow.console[methodName] = createConsoleRecorder(methodName, originalMethod, logs, targetWindow);
+      targetWindow.console[methodName] = createConsoleRecorder(
+        methodName,
+        originalMethod,
+        logs,
+        targetWindow
+      );
       originalMethods.push([methodName, originalMethod]);
     } catch (error) {
       // Ignore read-only console implementations.
@@ -629,7 +642,12 @@ function createExecutionScope(targetWindow, sharedState) {
         return true;
       }
 
-      if (key === "space" || WINDOW_ALIAS_KEYS.has(key) || key === "console" || key === "document") {
+      if (
+        key === "space" ||
+        WINDOW_ALIAS_KEYS.has(key) ||
+        key === "console" ||
+        key === "document"
+      ) {
         return false;
       }
 
@@ -691,13 +709,15 @@ export function formatExecutionResultValue(value, options) {
 }
 
 function formatExecutionResultLines(result) {
-  const status = typeof result?.status === "string" && result.status.trim() ? result.status.trim() : "done";
+  const status =
+    typeof result?.status === "string" && result.status.trim() ? result.status.trim() : "done";
   const lines = [`execution ${status}`];
   const prints = Array.isArray(result?.logs) ? result.logs : [];
   const loadedSkills = collectLoadedSkills(result);
 
   prints.forEach((entry) => {
-    const level = typeof entry?.level === "string" && entry.level.trim() ? entry.level.trim() : "log";
+    const level =
+      typeof entry?.level === "string" && entry.level.trim() ? entry.level.trim() : "log";
     appendExecutionTextBlock(lines, level, entry?.text ?? "");
   });
 
@@ -719,7 +739,12 @@ function formatExecutionResultLines(result) {
     appendExecutionTextBlock(lines, "result", result.resultText);
   }
 
-  if (!result?.error?.text && result?.result === undefined && !prints.length && !loadedSkills.length) {
+  if (
+    !result?.error?.text &&
+    result?.result === undefined &&
+    !prints.length &&
+    !loadedSkills.length
+  ) {
     lines.push("execution returned no result and no console logs were printed");
   }
 
@@ -742,7 +767,8 @@ function createExecutionError(error) {
 function createExecutionOutputSnapshot(result) {
   return {
     outputLines: formatExecutionResultLines(result),
-    status: typeof result?.status === "string" && result.status.trim() ? result.status.trim() : "done"
+    status:
+      typeof result?.status === "string" && result.status.trim() ? result.status.trim() : "done"
   };
 }
 
@@ -849,37 +875,41 @@ export function createExecutionContext(options = {}) {
       const separatorCount = countExecutionSeparators(content);
 
       if (separatorCount > 1) {
-        return [{
-          block: null,
-          error: createExecutionError(
-            createExecutionPlanError(
-              "Execution messages may contain _____javascript at most once, and it must appear on its own line."
-            )
-          ),
-          loadedSkills: [],
-          logs: [],
-          result: undefined,
-          resultText: "",
-          runId: executionContext.runCount,
-          status: "error"
-        }];
+        return [
+          {
+            block: null,
+            error: createExecutionError(
+              createExecutionPlanError(
+                "Execution messages may contain _____javascript at most once, and it must appear on its own line."
+              )
+            ),
+            loadedSkills: [],
+            logs: [],
+            result: undefined,
+            resultText: "",
+            runId: executionContext.runCount,
+            status: "error"
+          }
+        ];
       }
 
       if (hasInlineExecutionSeparator(content)) {
-        return [{
-          block: null,
-          error: createExecutionError(
-            createExecutionPlanError(
-              "_____javascript must be on its own line. End the explanatory sentence, insert a newline, then place _____javascript alone on the next line."
-            )
-          ),
-          loadedSkills: [],
-          logs: [],
-          result: undefined,
-          resultText: "",
-          runId: executionContext.runCount,
-          status: "error"
-        }];
+        return [
+          {
+            block: null,
+            error: createExecutionError(
+              createExecutionPlanError(
+                "_____javascript must be on its own line. End the explanatory sentence, insert a newline, then place _____javascript alone on the next line."
+              )
+            ),
+            loadedSkills: [],
+            logs: [],
+            result: undefined,
+            resultText: "",
+            runId: executionContext.runCount,
+            status: "error"
+          }
+        ];
       }
 
       if (!blocks.length) {

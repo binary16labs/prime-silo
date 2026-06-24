@@ -17,12 +17,12 @@ exists primarily to validate the deterministic-zone pattern end-to-end:
 
 ## Files
 
-| File                    | Owns                                                                              |
-| ----------------------- | --------------------------------------------------------------------------------- |
-| `view.html`             | Routed page shell with Alpine `x-data="manifestExplorer()"`. Topbar / select / status / canvas host. |
+| File                    | Owns                                                                                                                                        |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `view.html`             | Routed page shell with Alpine `x-data="manifestExplorer()"`. Topbar / select / status / canvas host.                                        |
 | `manifest-explorer.js`  | Page entry. Loads list + selected manifest, mounts `dag.canvas`. Pulls `manifestExplorer()` onto `window` so the Alpine attribute resolves. |
-| `manifest-mapping.js`   | Pure functions `mapManifestToDagData(manifest, options?)` and `summariseManifest(manifest)`. No DOM, no fetch — fully unit-testable. |
-| `manifest-explorer.css` | Local layout + status-banner tones. |
+| `manifest-mapping.js`   | Pure functions `mapManifestToDagData(manifest, options?)` and `summariseManifest(manifest)`. No DOM, no fetch — fully unit-testable.        |
+| `manifest-explorer.css` | Local layout + status-banner tones.                                                                                                         |
 
 ## Route
 
@@ -38,7 +38,7 @@ when the param is absent or doesn't match a known id.
 
 ## Authority — why this is the deterministic zone
 
-Three facts make this a *deterministic-zone* surface, not a Review-zone
+Three facts make this a _deterministic-zone_ surface, not a Review-zone
 surface:
 
 1. **No agent context.** `manifest-explorer.js` calls `runtimeFetch`

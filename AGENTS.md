@@ -73,6 +73,7 @@ The five core documentation files remain the project's primary instruction set:
 This root file must keep an exhaustive index of every other repo `AGENTS.md` path so the full contract map is visible without extra filesystem discovery. Update this index whenever an `AGENTS.md` file is added, removed, moved, or renamed.
 
 App docs:
+
 - `/app/AGENTS.md`
 - `/app/L0/_admin/mod/_core/overlay_agent/AGENTS.md`
 - `/app/L0/_all/mod/_core/admin/AGENTS.md`
@@ -109,13 +110,16 @@ App docs:
 - `/app/L0/_all/mod/_core/webllm/AGENTS.md`
 
 Commands docs:
+
 - `/commands/AGENTS.md`
 - `/commands/lib/supervisor/AGENTS.md`
 
 Packaging docs:
+
 - `/packaging/AGENTS.md`
 
 Server docs:
+
 - `/server/AGENTS.md`
 - `/server/api/AGENTS.md`
 - `/server/jobs/AGENTS.md`
@@ -130,6 +134,7 @@ Server docs:
 - `/server/runtime/AGENTS.md`
 
 Test docs:
+
 - `/tests/AGENTS.md`
 - `/tests/agent_llm_performance/AGENTS.md`
 - `/tests/browser_component_harness/AGENTS.md`

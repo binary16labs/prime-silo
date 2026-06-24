@@ -484,9 +484,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_text_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_text_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Patching the people list now...\n_____javascript\nconst path = \"~/people.txt\";\nconst text = await space.api.fileRead(path);\nconst updated = text.replace(/\\bmr\\.\\s*Kowalski\\b/gi, \"John Ronald Kowalski\");\nreturn await space.api.fileWrite(path, updated);\n",
           "usage": {
@@ -521,9 +519,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Writing the contacts update now...\n_____javascript\nconst path = \"~/contacts.yaml\";\nconst text = await space.api.fileRead(path);\nconst data = space.utils.yaml.parse(text);\nif (data && typeof data === \"object\" && data.mr_kowalski) {\n  data.mr_kowalski = \"John Ronald Kowalski\";\n} else if (data && typeof data === \"object\") {\n  data.mr_kowalski = \"John Ronald Kowalski\";\n}\nreturn await space.api.fileWrite(path, space.utils.yaml.stringify(data));\n",
           "usage": {
@@ -558,9 +554,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_widget_fix_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_widget_fix_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "execution separator must appear exactly once on its own line"
-          ],
+          "failures": ["execution separator must appear exactly once on its own line"],
           "response_type": "thrust",
           "response": "Patching the snake game controls to stop the freeze._____javascript\nconst widget = await space.current.readWidget(\"snake-game\");\nconst text = typeof widget === \"string\" ? widget : JSON.stringify(widget, null, 2);\nreturn text.slice(0, 4000);\n",
           "usage": {
@@ -667,9 +661,7 @@
           "case_path": "tests/agent_llm_performance/cases/space_navigation_read_is_not_completion.json",
           "history_path": "tests/agent_llm_performance/histories/space_navigation_read_is_not_completion.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /openSpace\\(/u"
-          ],
+          "failures": ["missing required pattern: /openSpace\\(/u"],
           "response_type": "thrust",
           "response": "Opening the Prostějov Weather space now...\n_____javascript\nlocation.href = \"/app/L2/pan/spaces/space-1/\"",
           "usage": {
@@ -1300,9 +1292,7 @@
           "case_path": "tests/agent_llm_performance/cases/weather_omitted_scope.json",
           "history_path": "tests/agent_llm_performance/histories/weather_omitted_scope.json",
           "passed": false,
-          "failures": [
-            "contains forbidden text: default"
-          ],
+          "failures": ["contains forbidden text: default"],
           "response_type": "thrust",
           "response": "Checking the local weather now...\n\n\n_____javascript\nconst lat = location?.latitude ?? null;\nconst lon = location?.longitude ?? null;\nconst place = lat != null && lon != null ? `${lat},${lon}` : null;\nconst url = place\n  ? `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&current=temperature_2m,weather_code,wind_speed_10m`\n  : `https://api.open-meteo.com/v1/forecast?latitude=40.7128&longitude=-74.0060&current=temperature_2m,weather_code,wind_speed_10m`;\nconst res = await fetch(url);\nconst data = await res.json();\nreturn {\n  location: place || \"default location\",\n  current: data.current\n};",
           "usage": {
@@ -1652,9 +1642,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_text_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_text_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Reading the file now...\n\n\n_____javascript\nconst path = \"~/people.txt\";\nconst current = await space.api.fileRead(path, \"utf8\");\nconst updated = current.replace(/\\bmr\\.\\s*Kowalski\\b/gi, \"John Ronald Kowalski\");\nif (updated === current) return \"No matching text found to update.\";\nreturn await space.api.fileWrite(path, updated, \"utf8\");",
           "usage": {
@@ -1689,9 +1677,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Patching the contacts file now...\n\n\n_____javascript\nconst path = \"~/contacts.yaml\";\nconst text = await space.api.fileRead(path);\nconst data = space.utils.yaml.parse(text);\n\nfunction updateName(node) {\n  if (Array.isArray(node)) return node.map(updateName);\n  if (node && typeof node === \"object\") {\n    const out = {};\n    for (const [k, v] of Object.entries(node)) {\n      if (k === \"mr_kowalski\") out[\"John Ronald Kowalski\"] = updateName(v);\n      else out[k] = updateName(v);\n    }\n    return out;\n  }\n  return node;\n}\n\nconst updated = updateName(data);\nconst newText = space.utils.yaml.stringify(updated);\nreturn await space.api.fileWrite(path, newText);",
           "usage": {
@@ -1841,9 +1827,7 @@
           "case_path": "tests/agent_llm_performance/cases/space_navigation_read_is_not_completion.json",
           "history_path": "tests/agent_llm_performance/histories/space_navigation_read_is_not_completion.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /openSpace\\(/u"
-          ],
+          "failures": ["missing required pattern: /openSpace\\(/u"],
           "response_type": "thrust",
           "response": "Opening the Prostějov Weather space now...\n_____javascript\nwindow.location.href = \"/?space=L2/pan/spaces/space-1\"\nreturn location.href",
           "usage": {
@@ -1923,9 +1907,7 @@
           "case_path": "tests/agent_llm_performance/cases/space_navigation_after_user_push_uses_open_helper.json",
           "history_path": "tests/agent_llm_performance/histories/space_navigation_after_user_push_uses_open_helper.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /openSpace\\(/u"
-          ],
+          "failures": ["missing required pattern: /openSpace\\(/u"],
           "response_type": "thrust",
           "response": "Switching to the weather space now...\n_____javascript\nconst spaces = await space.api.fileList(\"L2/pan/spaces/\", false);\nconst match = Array.isArray(spaces) ? spaces.find(x => (x.path || x).includes(\"space-1\")) : null;\nreturn { spaces, match }",
           "usage": {
@@ -2836,9 +2818,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Updating your full name now...\n\n\n_____javascript\nconst raw = await space.api.fileRead(\"~/user.yaml\", \"utf8\");\nconst data = space.utils.yaml.parse(raw);\ndata.full_name = \"Pan Example\";\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(data), \"utf8\");",
           "usage": {
@@ -3338,9 +3318,7 @@
           "case_path": "tests/agent_llm_performance/cases/repeat_do_it_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/repeat_do_it_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nconst widget = await space.current.readWidget(\"snake-game\");\nconst src = widget?.source ?? widget?.code ?? widget?.content ?? widget;\nreturn src\n",
           "usage": {

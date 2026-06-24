@@ -79,10 +79,7 @@ test("watchdog leaves external L2 changes unloaded until the user shard is reque
   assert.equal(watchdog.hasPath("/app/L2/alice/notes/nested/"), true);
   assert.equal(watchdog.hasPath("/app/L2/alice/notes/nested/a.txt"), true);
 
-  assert.equal(
-    Boolean(watchdog.getIndex("path_index")["/app/L2/alice/notes/nested/a.txt"]),
-    true
-  );
+  assert.equal(Boolean(watchdog.getIndex("path_index")["/app/L2/alice/notes/nested/a.txt"]), true);
 });
 
 test("watchdog tracks CLI-style group writes immediately and L2 user writes on demand", async (testContext) => {
@@ -112,8 +109,7 @@ test("watchdog tracks CLI-style group writes immediately and L2 user writes on d
   });
 
   await waitFor(
-    () =>
-      watchdog.hasPath("/app/L1/team-red/group.yaml"),
+    () => watchdog.hasPath("/app/L1/team-red/group.yaml"),
     "the CLI-style group file to appear in the watchdog index"
   );
 
@@ -278,12 +274,11 @@ test("watchdog schedules reconciles from the previous completion instead of queu
     path.join(handlerDir, "slow_counter.js"),
     `import fs from "node:fs";\nimport path from "node:path";\n\nimport { WatchdogHandler } from ${JSON.stringify(watchdogModuleUrl)};\n\nlet refreshCount = 0;\n\nfunction wait(ms) {\n  return new Promise((resolve) => {\n    setTimeout(resolve, ms);\n  });\n}\n\nfunction touchSeed(projectRoot) {\n  fs.writeFileSync(path.join(projectRoot, "app", "L0", "seed.txt"), \`seed-\${Date.now()}-\${refreshCount}\\n\`);\n}\n\nexport function getRefreshCount() {\n  return refreshCount;\n}\n\nexport default class SlowCounterHandler extends WatchdogHandler {\n  createInitialState() {\n    return { count: refreshCount };\n  }\n\n  async onStart() {\n    refreshCount += 1;\n    touchSeed(this.projectRoot);\n    await wait(80);\n    this.state = { count: refreshCount };\n  }\n\n  async onChanges() {\n    refreshCount += 1;\n\n    if (refreshCount < 4) {\n      touchSeed(this.projectRoot);\n    }\n\n    await wait(80);\n    this.state = { count: refreshCount };\n  }\n}\n`
   );
-  fs.writeFileSync(
-    configPath,
-    `slow_counter:\n  - /app/**/*\n`
-  );
+  fs.writeFileSync(configPath, `slow_counter:\n  - /app/**/*\n`);
 
-  const slowCounterModule = await import(pathToFileURL(path.join(handlerDir, "slow_counter.js")).href);
+  const slowCounterModule = await import(
+    pathToFileURL(path.join(handlerDir, "slow_counter.js")).href
+  );
 
   const watchdog = createWatchdog({
     configPath,

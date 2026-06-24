@@ -412,9 +412,7 @@
           "case_path": "tests/agent_llm_performance/cases/create_note_after_user_detail_read.json",
           "history_path": "tests/agent_llm_performance/histories/create_note_after_user_detail_read.json",
           "passed": false,
-          "failures": [
-            "invalid javascript after execution separator: Unexpected identifier 'the'"
-          ],
+          "failures": ["invalid javascript after execution separator: Unexpected identifier 'the'"],
           "response_type": "thrust",
           "response": "Writing your note now...\n_____javascript\nreturn await space.api.fileWrite(\"~/notes/whoami.txt\", \"pan\\n\", \"utf8\")\n\nWrote the note.",
           "usage": {
@@ -449,9 +447,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Updating your full name now...\n_____javascript\nconst data = await space.api.fileRead(\"~/user.yaml\", \"utf8\")\nconst obj = space.utils.yaml.parse(data)\nobj.full_name = \"Pan Example\"\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(obj), \"utf8\")",
           "usage": {
@@ -521,9 +517,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating your contacts file now...\n\n\n_____javascript\nconst path = \"~/contacts.yaml\"\nconst text = await space.api.fileRead(path, \"utf8\")\nconst data = space.utils.yaml.parse(text)\n\nfunction updateMrKowalski(node) {\n  if (Array.isArray(node)) {\n    return node.map(updateMrKowalski)\n  }\n  if (node && typeof node === \"object\") {\n    const out = {}\n    for (const [k, v] of Object.entries(node)) {\n      if (k === \"mr_kowalski\") {\n        if (typeof v === \"string\") out[k] = \"John Ronald Kowalski\"\n        else if (v && typeof v === \"object\") {\n          out[k] = { ...v, full_name: \"John Ronald Kowalski\", name: \"John Ronald Kowalski\" }\n        } else out[k] = \"John Ronald Kowalski\"\n      } else {\n        out[k] = updateMrKowalski(v)\n      }\n    }\n    return out\n  }\n  return node\n}\n\nconst updated = updateMrKowalski(data)\nconst out = space.utils.yaml.stringify(updated)\nreturn await space.api.fileWrite(path, out, \"utf8\")",
           "usage": {
@@ -1869,9 +1863,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating your contacts now...\n_____javascript\nconst text = await space.api.fileRead(\"~/contacts.yaml\", \"utf8\")\nconst data = space.utils.yaml.parse(text)\n\nfunction updateName(node) {\n  if (Array.isArray(node)) return node.map(updateName)\n  if (node && typeof node === \"object\") {\n    for (const k of Object.keys(node)) {\n      if (k === \"mr_kowalski\" && typeof node[k] === \"string\") node[k] = \"John Ronald Kowalski\"\n      else node[k] = updateName(node[k])\n    }\n  }\n  return node\n}\n\nconst updated = updateName(data)\nconst out = space.utils.yaml.stringify(updated)\nreturn await space.api.fileWrite(\"~/contacts.yaml\", out, \"utf8\")",
           "usage": {
@@ -2445,9 +2437,7 @@
           "case_path": "tests/agent_llm_performance/cases/repeat_do_it_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/repeat_do_it_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.patchWidget(\"snake-game\", {\n  edits: [\n    {\n      // Smooth, caterpillar-like movement by animating the rendered head/body\n      // between cell positions instead of snapping instantly.\n      find: /const\\s+CELL_SIZE\\s*=\\s*\\d+[\\s\\S]*?(?=function|class|export|const\\s+gameLoop)/,\n      replace: (m) => m\n        .replace(\n          /const\\s+CELL_SIZE\\s*=\\s*\\d+/,\n          `const CELL_SIZE = 20`\n        )\n        + `\n\nconst MOVE_ANIMATION_MS = 120\n\nlet renderOffset = { x: 0, y: 0 }\nlet renderOffsetTarget = { x: 0, y: 0 }\nlet renderOffsetStart = { x: 0, y: 0 }\nlet renderOffsetStartAt = 0\nlet renderOffsetAnimating = false\n\nfunction animateOffsetTo(targetX, targetY) {\n  renderOffsetStart = { ...renderOffset }\n  renderOffsetTarget = { x: targetX, y: targetY }\n  renderOffsetStartAt = performance.now()\n  renderOffsetAnimating = true\n}\n\nfunction updateRenderOffset(now = performance.now()) {\n  if (!renderOffsetAnimating) return\n  const t = Math.min(1, (now - renderOffsetStartAt) / MOVE_ANIMATION_MS)\n  const eased = t < 1 ? 1 - Math.pow(1 - t, 3) : 1\n  renderOffset.x = renderOffsetStart.x + (renderOffsetTarget.x - renderOffsetStart.x) * eased\n  renderOffset.y = renderOffsetStart.y + (renderOffsetTarget.y - renderOffsetStart.y) * eased\n  if (t >= 1) renderOffsetAnimating = false\n}\n`\n    },\n    {\n      // Animate each step by keeping the previous snake position as the\n      // starting render position and easing to the new grid position.\n      find: /function\\s+moveSnake\\s*\\([\\s\\S]*?\\n\\}/,\n      replace: (m) => {\n        const injected = m\n          .replace(\n            /const\\s+newHead\\s*=\\s*\\{\\s*x:\\s*head\\.x\\s*\\+\\s*dx,\\s*y:\\s*head\\.y\\s*\\+\\s*dy\\s*\\}/,\n            `const oldHead = { ...head }\nconst newHead = { x: head.x + dx, y: head.y + dy }`\n          )\n          .replace(\n            /snake\\.unshift\\(newHead\\)/,\n            `snake.unshift(newHead)\nanimateOffsetTo((oldHead.x - newHead.x) * CELL_SIZE, (oldHead.y - newHead.y) * CELL_SIZE)`\n          )\n        return injected\n      }\n    },\n    {\n      // Ensure animation progress updates during draw/render.\n      find: /function\\s+draw\\s*\\([\\s\\S]*?\\n\\}/,\n      replace: (m) => {\n        if (m.includes('updateRenderOffset')) return m\n        return m.replace(\n          /(\\{[\\s\\S]*?\\})\\s*\\n\\}/,\n          `$1\n  updateRenderOffset()\n}`\n        )\n      }\n    },\n    {\n      // Apply the eased offset to snake segments when rendering.\n      find: /function\\s+drawSnake\\s*\\([\\s\\S]*?\\n\\}/,\n      replace: (m) => {\n        return m.replace(\n          /const\\s+x\\s*=\\s*segment\\.x\\s*\\*\\s*CELL_SIZE\\s*;/,\n          `const x = segment.x * CELL_SIZE + (segment === snake[0] ? renderOffset.x : 0);`\n        ).replace(\n          /const\\s+y\\s*=\\s*segment\\.y\\s*\\*\\s*CELL_SIZE\\s*;/,\n          `const y = segment.y * CELL_SIZE + (segment === snake[0] ? renderOffset.y : 0);`\n        )\n      }\n    }\n  ]\n})",
           "usage": {
@@ -2517,9 +2507,7 @@
           "case_path": "tests/agent_llm_performance/cases/protocol_nudge_requires_real_thrust.json",
           "history_path": "tests/agent_llm_performance/histories/protocol_nudge_requires_real_thrust.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.patchWidget(\"snake-game\", { edits: [] })",
           "usage": {
@@ -3984,9 +3972,7 @@
           "case_path": "tests/agent_llm_performance/cases/protocol_nudge_requires_real_thrust.json",
           "history_path": "tests/agent_llm_performance/histories/protocol_nudge_requires_real_thrust.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.current\\.patchWidget\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.current\\.patchWidget\\(/u"],
           "response_type": "thrust",
           "response": "Checking the widget for a patch now...\n_____javascript\nreturn await space.current.readWidget(\"snake-game\")",
           "usage": {

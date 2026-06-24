@@ -64,9 +64,7 @@ function normalizeExampleKind(value, code = "") {
     return "action";
   }
 
-  return /helpers\.(submitPrompt|sendPrompt)\s*\(/u.test(String(code))
-    ? "chat"
-    : "action";
+  return /helpers\.(submitPrompt|sendPrompt)\s*\(/u.test(String(code)) ? "chat" : "action";
 }
 
 function indentBlock(source, prefix = "  ") {
@@ -108,14 +106,18 @@ async function compileExampleCode(source, label) {
 
 async function normalizeExampleDefinition(rawExample, index) {
   const normalizedExample =
-    rawExample && typeof rawExample === "object" && !Array.isArray(rawExample)
-      ? rawExample
-      : {};
-  const text = collapseWhitespace(normalizedExample.text ?? normalizedExample.label ?? normalizedExample.prompt);
-  const prompt = collapseWhitespace(normalizedExample.prompt ?? normalizedExample.text ?? normalizedExample.label);
+    rawExample && typeof rawExample === "object" && !Array.isArray(rawExample) ? rawExample : {};
+  const text = collapseWhitespace(
+    normalizedExample.text ?? normalizedExample.label ?? normalizedExample.prompt
+  );
+  const prompt = collapseWhitespace(
+    normalizedExample.prompt ?? normalizedExample.text ?? normalizedExample.label
+  );
   const code = String(normalizedExample.code ?? normalizedExample.javascript ?? "").trim();
   const icon = normalizeExampleIcon(normalizedExample.icon);
-  const color = normalizeExampleColor(normalizedExample.color ?? normalizedExample.iconColor ?? normalizedExample.icon_color);
+  const color = normalizeExampleColor(
+    normalizedExample.color ?? normalizedExample.iconColor ?? normalizedExample.icon_color
+  );
   const kind = normalizeExampleKind(normalizedExample.kind, code);
 
   if (!text) {
@@ -146,9 +148,7 @@ async function normalizeExampleDefinition(rawExample, index) {
 
 async function normalizeExamplesConfig(rawConfig) {
   const config =
-    rawConfig && typeof rawConfig === "object" && !Array.isArray(rawConfig)
-      ? rawConfig
-      : {};
+    rawConfig && typeof rawConfig === "object" && !Array.isArray(rawConfig) ? rawConfig : {};
   const entries = Array.isArray(rawConfig)
     ? rawConfig
     : Array.isArray(config.examples)

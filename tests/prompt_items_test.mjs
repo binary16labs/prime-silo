@@ -10,16 +10,8 @@ import { countTextTokens } from "../app/L0/_all/mod/_core/framework/js/token-cou
 
 test("stringifyPromptItemValue joins array entries with blank lines", () => {
   assert.equal(
-    stringifyPromptItemValue([
-      "alpha",
-      "beta\nline",
-      "",
-      null
-    ]),
-    [
-      "alpha",
-      "beta\nline"
-    ].join("\n\n")
+    stringifyPromptItemValue(["alpha", "beta\nline", "", null]),
+    ["alpha", "beta\nline"].join("\n\n")
   );
 });
 

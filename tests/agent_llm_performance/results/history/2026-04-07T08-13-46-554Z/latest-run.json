@@ -1147,9 +1147,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_widget_fix_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_widget_fix_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.current\\.readWidget\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.current\\.readWidget\\(/u"],
           "response_type": "thrust",
           "response": "Checking the snake game widget now...\n_____javascript\nreturn await space.current.seeWidget(\"snake-game\")",
           "usage": {
@@ -2071,9 +2069,7 @@
           "case_path": "tests/agent_llm_performance/cases/page_title_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/page_title_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn {\n  title: document.title,\n  url: location.href\n}",
           "usage": {
@@ -2143,9 +2139,7 @@
           "case_path": "tests/agent_llm_performance/cases/time_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/time_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn new Date().toString()",
           "usage": {
@@ -2180,9 +2174,7 @@
           "case_path": "tests/agent_llm_performance/cases/screenshot_download_without_helper_uses_browser_js.json",
           "history_path": "tests/agent_llm_performance/histories/screenshot_download_without_helper_uses_browser_js.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await (async () => {\n  const canvas = await html2canvas(document.body);\n  const dataUrl = canvas.toDataURL(\"image/png\");\n  const a = document.createElement(\"a\");\n  a.href = dataUrl;\n  a.download = \"page-screenshot.png\";\n  a.click();\n  return { downloaded: true, filename: a.download };\n})()",
           "usage": {
@@ -2300,9 +2292,7 @@
           "case_path": "tests/agent_llm_performance/cases/download_html_without_helper_uses_browser_js.json",
           "history_path": "tests/agent_llm_performance/histories/download_html_without_helper_uses_browser_js.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nconst html = document.documentElement.outerHTML\nconst blob = new Blob([html], { type: 'text/html;charset=utf-8' })\nconst a = document.createElement('a')\na.href = URL.createObjectURL(blob)\na.download = 'page.html'\na.click()\nURL.revokeObjectURL(a.href)\nreturn 'download started'",
           "usage": {
@@ -2337,9 +2327,7 @@
           "case_path": "tests/agent_llm_performance/cases/click_button_without_helper_uses_browser_js.json",
           "history_path": "tests/agent_llm_performance/histories/click_button_without_helper_uses_browser_js.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nconst btn = document.querySelector('button')\nif (!btn) return null\nbtn.click()\nreturn true",
           "usage": {
@@ -2374,9 +2362,7 @@
           "case_path": "tests/agent_llm_performance/cases/canvas_screenshot_requires_real_capture_strategy.json",
           "history_path": "tests/agent_llm_performance/histories/canvas_screenshot_requires_real_capture_strategy.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nconst canvas = document.createElement('canvas')\nconst w = window.innerWidth\nconst h = window.innerHeight\ncanvas.width = w\ncanvas.height = h\nconst ctx = canvas.getContext('2d')\n\nctx.fillStyle = '#fff'\nctx.fillRect(0, 0, w, h)\n\nconst drawNode = async (node, x = 0, y = 0, scale = 1) => {\n  const rect = node.getBoundingClientRect()\n  ctx.save()\n  ctx.translate(-window.scrollX, -window.scrollY)\n  ctx.scale(scale, scale)\n  ctx.fillStyle = getComputedStyle(node).backgroundColor || '#fff'\n  ctx.fillRect(rect.left, rect.top, rect.width, rect.height)\n  ctx.restore()\n}\n\nawait drawNode(document.body)\n\nconst svg = new XMLSerializer().serializeToString(\n  new Blob([canvas.toDataURL('image/png')], { type: 'image/svg+xml' })\n)\n\nconst a = document.createElement('a')\na.download = 'screenshot.png'\na.href = canvas.toDataURL('image/png')\na.click()\n\nreturn 'download started'",
           "usage": {
@@ -3098,9 +3084,7 @@
           "case_path": "tests/agent_llm_performance/cases/create_note_after_user_detail_read.json",
           "history_path": "tests/agent_llm_performance/histories/create_note_after_user_detail_read.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Creating the file now...\n_____javascript\nawait (async () => {\n  const text = \"pan\\n\"\n  const b = new Blob([text], { type: \"text/plain\" })\n  const file = new File([b], \"whoami.txt\", { type: \"text/plain\" })\n  return await space.files.writeFile(\"~/notes/whoami.txt\", file)\n})()",
           "usage": {
@@ -3170,9 +3154,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_text_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_text_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Updating the file now...\n_____javascript\nconst path = '~/people.txt'\nconst text = await fs.readFile(path, 'utf8')\nconst updated = text.replace(/\\bmr\\.\\s*Kowalski\\b/gi, 'John Ronald Kowalski')\nawait fs.writeFile(path, updated)\nreturn updated",
           "usage": {
@@ -3207,9 +3189,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Updating the contacts file now...\n_____javascript\nreturn await space.files.patch(\"~/contacts.yaml\", {\n  edits: [\n    {\n      find: \"mr_kowalski:\",\n      replace: \"mr_kowalski:\"\n    },\n    {\n      find: \"name: mr_kowalski\",\n      replace: \"name: John Ronald Kowalski\"\n    }\n  ]\n})",
           "usage": {
@@ -3244,9 +3224,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_widget_fix_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_widget_fix_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.current\\.readWidget\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.current\\.readWidget\\(/u"],
           "response_type": "thrust",
           "response": "Looking at the snake game now...\n_____javascript\nreturn await space.current.seeWidget(\"snake-game\")",
           "usage": {
@@ -3708,9 +3686,7 @@
           "case_path": "tests/agent_llm_performance/cases/terminal_after_result_continue_literal.json",
           "history_path": "tests/agent_llm_performance/histories/terminal_after_result_continue_literal.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /\\S/u"
-          ],
+          "failures": ["missing required pattern: /\\S/u"],
           "response_type": "terminal",
           "response": "",
           "usage": {
@@ -3780,9 +3756,7 @@
           "case_path": "tests/agent_llm_performance/cases/terminal_after_result_retry_literal.json",
           "history_path": "tests/agent_llm_performance/histories/terminal_after_result_retry_literal.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /\\S/u"
-          ],
+          "failures": ["missing required pattern: /\\S/u"],
           "response_type": "terminal",
           "response": "",
           "usage": {
@@ -4065,9 +4039,7 @@
           "case_path": "tests/agent_llm_performance/cases/remove_space_by_title_requires_discovery_first.json",
           "history_path": "tests/agent_llm_performance/histories/remove_space_by_title_requires_discovery_first.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.spaces.listSpaces()",
           "usage": {
@@ -4555,9 +4527,7 @@
           "case_path": "tests/agent_llm_performance/cases/see_known_widget_after_render_uses_same_target.json",
           "history_path": "tests/agent_llm_performance/histories/see_known_widget_after_render_uses_same_target.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.seeWidget(\"status-board\")",
           "usage": {
@@ -4875,9 +4845,7 @@
           "case_path": "tests/agent_llm_performance/cases/fresh_widget_read_then_do_it_requires_patch.json",
           "history_path": "tests/agent_llm_performance/histories/fresh_widget_read_then_do_it_requires_patch.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.patchWidget(\"quote-board\", {\n  edits: [\n    {\n      op: \"replace\",\n      path: \"renderer\",\n      value: `async (parent) => {\n  const state = { symbols: [\"AAPL\", \"MSFT\", \"BTC-USD\"] }\n  const data = await fetch(\"https://api.example.test/quotes\").then(r => r.json())\n}`\n    }\n  ]\n})",
           "usage": {
@@ -4992,9 +4960,7 @@
           "case_path": "tests/agent_llm_performance/cases/weather_self_scope_followup.json",
           "history_path": "tests/agent_llm_performance/histories/weather_self_scope_followup.json",
           "passed": false,
-          "failures": [
-            "execution separator must appear exactly once on its own line"
-          ],
+          "failures": ["execution separator must appear exactly once on its own line"],
           "response_type": "thrust",
           "response": "________javascript\nconst pos = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 }))\nconst { latitude, longitude } = pos.coords\nreturn await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code,wind_speed_10m`).then(r => r.json())",
           "usage": {
@@ -5282,9 +5248,7 @@
           "case_path": "tests/agent_llm_performance/cases/create_note_after_user_detail_read.json",
           "history_path": "tests/agent_llm_performance/histories/create_note_after_user_detail_read.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Creating the file with your username now.\n_____javascript\nreturn await space.fs.writeFile(\"~/notes/whoami.txt\", \"pan\")",
           "usage": {
@@ -5319,9 +5283,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Patching your full name to Pan Example now.\n_____javascript\nreturn await space.api.filePatch(\"~/user.yaml\", \"full_name: Pan Example\\nbio: hello there\")",
           "usage": {
@@ -6125,9 +6087,7 @@
           "case_path": "tests/agent_llm_performance/cases/protocol_nudge_requires_real_thrust.json",
           "history_path": "tests/agent_llm_performance/histories/protocol_nudge_requires_real_thrust.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.patchWidget(\"snake-game\", { edits: [] })",
           "usage": {

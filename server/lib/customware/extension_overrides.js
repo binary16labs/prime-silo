@@ -17,9 +17,7 @@ function normalizeExtensionPattern(value) {
 
 function normalizeExtensionPatterns(patterns) {
   return Array.isArray(patterns)
-    ? patterns
-        .map((pattern) => normalizeExtensionPattern(pattern))
-        .filter(Boolean)
+    ? patterns.map((pattern) => normalizeExtensionPattern(pattern)).filter(Boolean)
     : [];
 }
 
@@ -110,13 +108,10 @@ function listResolvedExtensionRequestPaths(options = {}) {
     ],
     runtimeParams,
     stateSystem,
-    username,
+    username
   });
 
   return results[0]?.extensions || [];
 }
 
-export {
-  listResolvedExtensionRequests,
-  listResolvedExtensionRequestPaths
-};
+export { listResolvedExtensionRequests, listResolvedExtensionRequestPaths };

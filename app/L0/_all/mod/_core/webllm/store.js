@@ -226,10 +226,12 @@ const model = {
   },
 
   get canUnloadActiveModel() {
-    return (Boolean(this.activeModelId) || this.isLoadingModel)
-      && !this.isGenerating
-      && !this.isUnloadingModel
-      && !this.isDiscardingModelId;
+    return (
+      (Boolean(this.activeModelId) || this.isLoadingModel) &&
+      !this.isGenerating &&
+      !this.isUnloadingModel &&
+      !this.isDiscardingModelId
+    );
   },
 
   get currentModelActionLabel() {
@@ -346,7 +348,9 @@ const model = {
           text: String(payload.report?.text || ""),
           timeElapsed: Number(payload.report?.timeElapsed || 0)
         };
-        this.statusText = this.isRestoringPersistedModel ? "Restoring model..." : "Loading model...";
+        this.statusText = this.isRestoringPersistedModel
+          ? "Restoring model..."
+          : "Loading model...";
         break;
       }
 
@@ -364,7 +368,8 @@ const model = {
           timeElapsed: this.loadProgress.timeElapsed
         };
         this.activeGpuVendor = String(payload.gpuVendor || "");
-        this.activeMaxStorageBufferBindingSize = Number(payload.maxStorageBufferBindingSize || 0) || null;
+        this.activeMaxStorageBufferBindingSize =
+          Number(payload.maxStorageBufferBindingSize || 0) || null;
         this.activeModelId = String(payload.modelId || "");
         this.activeModelSource = String(payload.source || "prebuilt");
         if (this.customModelUrl && !this.customModelId && this.activeModelSource === "custom") {
@@ -432,16 +437,23 @@ const model = {
       }
 
       case WORKER_OUTBOUND.CHAT_DELTA: {
-        if (payload.requestId !== this.pendingGenerateRequestId || !this.pendingAssistantMessageId) {
+        if (
+          payload.requestId !== this.pendingGenerateRequestId ||
+          !this.pendingAssistantMessageId
+        ) {
           return;
         }
 
         const nextText = String(payload.text || "");
-        this.messages = updateMessageById(this.messages, this.pendingAssistantMessageId, (message) => ({
-          ...message,
-          content: nextText,
-          isStreaming: true
-        }));
+        this.messages = updateMessageById(
+          this.messages,
+          this.pendingAssistantMessageId,
+          (message) => ({
+            ...message,
+            content: nextText,
+            isStreaming: true
+          })
+        );
         this.scheduleThreadScrollToBottom();
         break;
       }
@@ -457,7 +469,10 @@ const model = {
       }
 
       case WORKER_OUTBOUND.CHAT_COMPLETE: {
-        if (payload.requestId !== this.pendingGenerateRequestId || !this.pendingAssistantMessageId) {
+        if (
+          payload.requestId !== this.pendingGenerateRequestId ||
+          !this.pendingAssistantMessageId
+        ) {
           return;
         }
 
@@ -465,13 +480,17 @@ const model = {
         const elapsedMs = Math.max(Date.now() - this.generationStartTimeMs, 0);
         const metrics = normalizeUsageMetrics(payload.usage, { elapsedMs });
 
-        this.messages = updateMessageById(this.messages, this.pendingAssistantMessageId, (message) => ({
-          ...message,
-          content: String(payload.text || message.content || ""),
-          finishReason,
-          isStreaming: false,
-          metrics
-        }));
+        this.messages = updateMessageById(
+          this.messages,
+          this.pendingAssistantMessageId,
+          (message) => ({
+            ...message,
+            content: String(payload.text || message.content || ""),
+            finishReason,
+            isStreaming: false,
+            metrics
+          })
+        );
         this.lastUsageMetrics = metrics;
         this.isGenerating = false;
         this.isStopRequested = false;
@@ -488,12 +507,16 @@ const model = {
         }
 
         if (this.pendingAssistantMessageId) {
-          this.messages = updateMessageById(this.messages, this.pendingAssistantMessageId, (message) => ({
-            ...message,
-            content: message.content || "Generation failed.",
-            finishReason: "error",
-            isStreaming: false
-          }));
+          this.messages = updateMessageById(
+            this.messages,
+            this.pendingAssistantMessageId,
+            (message) => ({
+              ...message,
+              content: message.content || "Generation failed.",
+              finishReason: "error",
+              isStreaming: false
+            })
+          );
         }
 
         this.error = payload.error?.message || "Generation failed.";
@@ -562,9 +585,11 @@ const model = {
   },
 
   handleLoadCustomModel() {
-    const hasCustomFields = Boolean(String(this.customModelUrl || "").trim()
-      || String(this.customModelLibUrl || "").trim()
-      || String(this.customModelId || "").trim());
+    const hasCustomFields = Boolean(
+      String(this.customModelUrl || "").trim() ||
+      String(this.customModelLibUrl || "").trim() ||
+      String(this.customModelId || "").trim()
+    );
 
     if (!hasCustomFields) {
       this.error = "Enter a compiled model URL and model library URL first.";
@@ -621,7 +646,8 @@ const model = {
     }
 
     if (this.isLoadingModel || this.isUnloadingModel) {
-      this.error = "Wait for the current model transition to finish before discarding cached model files.";
+      this.error =
+        "Wait for the current model transition to finish before discarding cached model files.";
       return;
     }
 
@@ -647,11 +673,13 @@ const model = {
   },
 
   canDiscardCachedModel(modelId) {
-    return this.isModelCached(modelId)
-      && !this.isGenerating
-      && !this.isLoadingModel
-      && !this.isUnloadingModel
-      && !this.isDiscardingModelId;
+    return (
+      this.isModelCached(modelId) &&
+      !this.isGenerating &&
+      !this.isLoadingModel &&
+      !this.isUnloadingModel &&
+      !this.isDiscardingModelId
+    );
   },
 
   isActivePrebuiltModel(modelId) {

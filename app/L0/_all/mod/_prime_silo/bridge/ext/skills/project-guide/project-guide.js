@@ -28,12 +28,36 @@ export function docLinks() {
 /** The Bridge modes and what each is for — the product surface in one place. */
 export function workflows() {
   return [
-    { name: "Flows", what: "requirement -> Plan (DAG) -> Run (observability)", where: "#/_prime_silo/bridge?mode=flows" },
-    { name: "Documents", what: "workspace files -> Ingest -> knowledge triples -> Correlate with code", where: "#/_prime_silo/bridge?mode=documents" },
-    { name: "Code 3D", what: "Tree-Sitter code graph (2D/3D)", where: "#/_prime_silo/bridge?mode=code" },
-    { name: "Memory", what: "agent-session lineage (Claude + Antigravity)", where: "#/_prime_silo/bridge?mode=memory" },
-    { name: "Runs", what: "execution timeline + reasoning trace", where: "#/_prime_silo/bridge?mode=runs" },
-    { name: "Pulse", what: "mesh vitals + lifelog activity feed", where: "#/_prime_silo/bridge?mode=pulse" }
+    {
+      name: "Flows",
+      what: "requirement -> Plan (DAG) -> Run (observability)",
+      where: "#/_prime_silo/bridge?mode=flows"
+    },
+    {
+      name: "Documents",
+      what: "workspace files -> Ingest -> knowledge triples -> Correlate with code",
+      where: "#/_prime_silo/bridge?mode=documents"
+    },
+    {
+      name: "Code 3D",
+      what: "Tree-Sitter code graph (2D/3D)",
+      where: "#/_prime_silo/bridge?mode=code"
+    },
+    {
+      name: "Memory",
+      what: "agent-session lineage (Claude + Antigravity)",
+      where: "#/_prime_silo/bridge?mode=memory"
+    },
+    {
+      name: "Runs",
+      what: "execution timeline + reasoning trace",
+      where: "#/_prime_silo/bridge?mode=runs"
+    },
+    {
+      name: "Pulse",
+      what: "mesh vitals + lifelog activity feed",
+      where: "#/_prime_silo/bridge?mode=pulse"
+    }
   ];
 }
 

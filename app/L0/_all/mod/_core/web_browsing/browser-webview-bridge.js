@@ -5,12 +5,8 @@ import {
   normalizeBrowserFrameType,
   serializeBrowserFrameError
 } from "./browser-frame-protocol.js";
-import {
-  logBrowser
-} from "./browser-logging.js";
-import {
-  isWebviewLike
-} from "./browser-webview.js";
+import { logBrowser } from "./browser-logging.js";
+import { isWebviewLike } from "./browser-webview.js";
 
 const bridgeCache = new WeakMap();
 
@@ -62,25 +58,30 @@ function normalizePhase(value) {
 
 function isBridgeEnvelope(value) {
   return Boolean(
-    value
-    && typeof value === "object"
-    && value.channel === BROWSER_FRAME_BRIDGE_CHANNEL
-    && typeof value.type === "string"
-    && "payload" in value
+    value &&
+    typeof value === "object" &&
+    value.channel === BROWSER_FRAME_BRIDGE_CHANNEL &&
+    typeof value.type === "string" &&
+    "payload" in value
   );
 }
 
 function createRemoteBridgeError(message) {
-  const payload = message?.payload && typeof message.payload === "object"
-    ? message.payload
-    : {
-        message: String(message?.payload || `Browser webview bridge request "${message?.type || ""}" failed.`),
-        name: "BrowserFrameBridgeError"
-      };
+  const payload =
+    message?.payload && typeof message.payload === "object"
+      ? message.payload
+      : {
+          message: String(
+            message?.payload || `Browser webview bridge request "${message?.type || ""}" failed.`
+          ),
+          name: "BrowserFrameBridgeError"
+        };
 
   return createNamedError(
     typeof payload.name === "string" && payload.name ? payload.name : "BrowserFrameBridgeError",
-    typeof payload.message === "string" && payload.message ? payload.message : `Browser webview bridge request "${message?.type || ""}" failed.`,
+    typeof payload.message === "string" && payload.message
+      ? payload.message
+      : `Browser webview bridge request "${message?.type || ""}" failed.`,
     {
       code: payload.code ?? null,
       details: payload.details && typeof payload.details === "object" ? payload.details : {},
@@ -287,7 +288,9 @@ export function createBrowserWebviewBridge(webview, options = {}) {
           clearTimeout(pendingRequest.timeoutId);
         }
 
-        pendingRequest.reject(createNamedError("AbortError", "Browser webview bridge is destroyed."));
+        pendingRequest.reject(
+          createNamedError("AbortError", "Browser webview bridge is destroyed.")
+        );
       });
       pendingRequests.clear();
       eventListeners.clear();
@@ -342,14 +345,16 @@ export function createBrowserWebviewBridge(webview, options = {}) {
       if (timeoutMs > 0) {
         timeoutId = globalThis.setTimeout(() => {
           pendingRequests.delete(requestId);
-          deferred.reject(createNamedError(
-            "TimeoutError",
-            `Browser webview bridge request "${normalizedType}" timed out after ${timeoutMs}ms.`,
-            {
-              requestId,
-              type: normalizedType
-            }
-          ));
+          deferred.reject(
+            createNamedError(
+              "TimeoutError",
+              `Browser webview bridge request "${normalizedType}" timed out after ${timeoutMs}ms.`,
+              {
+                requestId,
+                type: normalizedType
+              }
+            )
+          );
         }, timeoutMs);
       }
 
@@ -361,9 +366,11 @@ export function createBrowserWebviewBridge(webview, options = {}) {
       });
 
       try {
-        postEnvelope(createEnvelope(BROWSER_FRAME_BRIDGE_PHASE.REQUEST, normalizedType, payload, {
-          requestId
-        }));
+        postEnvelope(
+          createEnvelope(BROWSER_FRAME_BRIDGE_PHASE.REQUEST, normalizedType, payload, {
+            requestId
+          })
+        );
       } catch (error) {
         pendingRequests.delete(requestId);
         if (timeoutId != null) {

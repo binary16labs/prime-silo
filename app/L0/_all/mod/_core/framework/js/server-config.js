@@ -3,11 +3,15 @@ const FRONTEND_CONFIG_META_NAME = "space-config";
 let cachedServerConfigValues;
 
 function normalizeConfigName(name) {
-  return String(name || "").trim().toUpperCase();
+  return String(name || "")
+    .trim()
+    .toUpperCase();
 }
 
 function parseMetaValue(metaTag) {
-  const type = String(metaTag?.dataset?.spaceType || "text").trim().toLowerCase();
+  const type = String(metaTag?.dataset?.spaceType || "text")
+    .trim()
+    .toLowerCase();
   const content = String(metaTag?.content ?? "");
 
   if (type === "boolean") {
@@ -28,7 +32,9 @@ function getFrontendServerConfigValues() {
   }
 
   const values = {};
-  const metaTags = document.querySelectorAll(`meta[name="${FRONTEND_CONFIG_META_NAME}"][data-space-param]`);
+  const metaTags = document.querySelectorAll(
+    `meta[name="${FRONTEND_CONFIG_META_NAME}"][data-space-param]`
+  );
 
   metaTags.forEach((metaTag) => {
     const name = normalizeConfigName(metaTag.dataset.spaceParam);
@@ -54,7 +60,9 @@ function getFrontendServerConfigValue(name, fallback = undefined) {
   const normalizedName = normalizeConfigName(name);
   const values = getFrontendServerConfigValues();
 
-  return Object.prototype.hasOwnProperty.call(values, normalizedName) ? values[normalizedName] : fallback;
+  return Object.prototype.hasOwnProperty.call(values, normalizedName)
+    ? values[normalizedName]
+    : fallback;
 }
 
 function hasFrontendServerConfigValue(name) {

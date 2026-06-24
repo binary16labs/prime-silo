@@ -62,12 +62,7 @@ function parseUrlLike(value) {
 }
 
 function resolveRequestMaxLayer(options = {}) {
-  const {
-    body,
-    fallback = DEFAULT_MAX_LAYER,
-    headers,
-    requestUrl
-  } = options;
+  const { body, fallback = DEFAULT_MAX_LAYER, headers, requestUrl } = options;
 
   const explicitBodyMaxLayer =
     body && typeof body === "object" && !Buffer.isBuffer(body)
@@ -78,9 +73,7 @@ function resolveRequestMaxLayer(options = {}) {
     return explicitBodyMaxLayer;
   }
 
-  const explicitQueryMaxLayer = parseOptionalMaxLayer(
-    requestUrl?.searchParams?.get("maxLayer")
-  );
+  const explicitQueryMaxLayer = parseOptionalMaxLayer(requestUrl?.searchParams?.get("maxLayer"));
 
   if (explicitQueryMaxLayer !== null) {
     return explicitQueryMaxLayer;
@@ -102,9 +95,7 @@ function resolveRequestMaxLayer(options = {}) {
     return fallback;
   }
 
-  const refererQueryMaxLayer = parseOptionalMaxLayer(
-    refererUrl.searchParams.get("maxLayer")
-  );
+  const refererQueryMaxLayer = parseOptionalMaxLayer(refererUrl.searchParams.get("maxLayer"));
 
   if (refererQueryMaxLayer !== null) {
     return refererQueryMaxLayer;

@@ -56,7 +56,10 @@ function testIsMemorayProxyPath() {
 
 function testBuildUpstreamUrl() {
   assert.equal(
-    t.buildUpstreamUrl(new URL("http://shell.local/api/memoray/beta/overview?q=x"), "http://127.0.0.1:3001"),
+    t.buildUpstreamUrl(
+      new URL("http://shell.local/api/memoray/beta/overview?q=x"),
+      "http://127.0.0.1:3001"
+    ),
     "http://127.0.0.1:3001/api/beta/overview?q=x"
   );
   assert.equal(
@@ -97,12 +100,19 @@ async function testSettingsPrecedence() {
     runtimeParams: paramsStub({ MEMORAY_BASE_URL: { value: "http://default", source: "default" } }),
     projectRoot: tmp
   });
-  assert.equal(fromConfig.baseUrl, "http://config:5", "config applies when only a default param exists");
+  assert.equal(
+    fromConfig.baseUrl,
+    "http://config:5",
+    "config applies when only a default param exists"
+  );
   assert.equal(fromConfig.sources.baseUrl, "config");
 
   // 3. Default when nothing set.
   t.resetConfigCache();
-  const fallback = await resolveMemoraySettings({ runtimeParams: paramsStub({}), projectRoot: undefined });
+  const fallback = await resolveMemoraySettings({
+    runtimeParams: paramsStub({}),
+    projectRoot: undefined
+  });
   assert.equal(fallback.baseUrl, t.DEFAULT_MEMORAY_BASE_URL);
   assert.equal(fallback.enabled, true);
 
@@ -114,7 +124,9 @@ async function withUpstream(handler) {
   const captured = [];
   const server = http.createServer((req, res) => {
     let body = "";
-    req.on("data", (c) => { body += c; });
+    req.on("data", (c) => {
+      body += c;
+    });
     req.on("end", () => {
       captured.push({ method: req.method, url: req.url, headers: { ...req.headers }, body });
       handler(req, res, body);
@@ -122,7 +134,11 @@ async function withUpstream(handler) {
   });
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   const { port } = server.address();
-  return { captured, baseUrl: `http://127.0.0.1:${port}`, close: () => new Promise((r) => server.close(() => r())) };
+  return {
+    captured,
+    baseUrl: `http://127.0.0.1:${port}`,
+    close: () => new Promise((r) => server.close(() => r()))
+  };
 }
 
 async function callProxy(baseUrl, requestInit, { enabled = true } = {}) {
@@ -131,7 +147,10 @@ async function callProxy(baseUrl, requestInit, { enabled = true } = {}) {
     MEMORAY_ENABLED: { value: enabled, source: "stored" }
   });
   const wrapper = http.createServer(async (req, res) => {
-    await proxyToMemoray(req, res, new URL(req.url, "http://shell.local"), { runtimeParams, projectRoot: undefined });
+    await proxyToMemoray(req, res, new URL(req.url, "http://shell.local"), {
+      runtimeParams,
+      projectRoot: undefined
+    });
   });
   try {
     await new Promise((r) => wrapper.listen(0, "127.0.0.1", r));
@@ -158,7 +177,11 @@ async function testEndToEndPathStrip() {
     assert.equal(result.status, 200);
     assert.deepEqual(JSON.parse(result.text), { totalNodes: 42 });
     assert.equal(upstream.captured[0].url, "/api/ecosystem/manifest", "prefix must be stripped");
-    assert.equal(upstream.captured[0].headers.origin, undefined, "no Origin → memo-ray CORS never engages");
+    assert.equal(
+      upstream.captured[0].headers.origin,
+      undefined,
+      "no Origin → memo-ray CORS never engages"
+    );
   } finally {
     await upstream.close();
   }
@@ -185,7 +208,10 @@ async function testPostFilesOpenAllowed() {
 }
 
 async function testPostElsewhereRejected() {
-  const upstream = await withUpstream((req, res) => { res.statusCode = 200; res.end("{}"); });
+  const upstream = await withUpstream((req, res) => {
+    res.statusCode = 200;
+    res.end("{}");
+  });
   try {
     const result = await callProxy(upstream.baseUrl, { path: "/api/memoray/sync", method: "POST" });
     assert.equal(result.status, 405);
@@ -197,7 +223,11 @@ async function testPostElsewhereRejected() {
 }
 
 async function testDisabledReturns404() {
-  const result = await callProxy("http://127.0.0.1:1", { path: "/api/memoray/sessions" }, { enabled: false });
+  const result = await callProxy(
+    "http://127.0.0.1:1",
+    { path: "/api/memoray/sessions" },
+    { enabled: false }
+  );
   assert.equal(result.status, 404);
   assert.equal(JSON.parse(result.text).error, "memoray_disabled");
 }
@@ -216,7 +246,9 @@ async function testMemorayRequestHelper() {
     res.end(JSON.stringify({ ok: 1 }));
   });
   try {
-    const runtimeParams = paramsStub({ MEMORAY_BASE_URL: { value: upstream.baseUrl, source: "stored" } });
+    const runtimeParams = paramsStub({
+      MEMORAY_BASE_URL: { value: upstream.baseUrl, source: "stored" }
+    });
     const result = await memorayRequest("/ecosystem/manifest", { runtimeParams });
     assert.equal(result.ok, true);
     assert.deepEqual(result.body, { ok: 1 });

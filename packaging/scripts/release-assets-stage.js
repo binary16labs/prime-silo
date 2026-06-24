@@ -2,14 +2,29 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { listFiles, readUpdateMetadata, readYamlScalar, serializeUpdateMetadata } = require("./release-metadata");
+const {
+  listFiles,
+  readUpdateMetadata,
+  readYamlScalar,
+  serializeUpdateMetadata
+} = require("./release-metadata");
 
 const FILTERS_PATH = path.join(__dirname, "..", "release-asset-filters.yaml");
 const METADATA_SPECS = [
   { fileName: "metadata-latest-windows.yml", platform: "windows", legacyNames: ["latest.yml"] },
   { fileName: "metadata-latest-mac.yml", platform: "macos", legacyNames: ["latest-mac.yml"] },
-  { fileName: "metadata-latest-linux.yml", platform: "linux", arch: "x64", legacyNames: ["latest-linux.yml"] },
-  { fileName: "metadata-latest-linux-arm64.yml", platform: "linux", arch: "arm64", legacyNames: ["latest-linux-arm64.yml"] }
+  {
+    fileName: "metadata-latest-linux.yml",
+    platform: "linux",
+    arch: "x64",
+    legacyNames: ["latest-linux.yml"]
+  },
+  {
+    fileName: "metadata-latest-linux-arm64.yml",
+    platform: "linux",
+    arch: "arm64",
+    legacyNames: ["latest-linux-arm64.yml"]
+  }
 ];
 const PUBLIC_EXTENSION_MAP = {
   AppImage: "AppImage",
@@ -162,7 +177,13 @@ function stageFile(context, sourcePath, targetName) {
   if (existing) {
     if (existing.sourcePath !== sourcePath) {
       throw new Error(
-        "Duplicate staged asset name " + targetName + " from " + existing.sourcePath + " and " + sourcePath + "."
+        "Duplicate staged asset name " +
+          targetName +
+          " from " +
+          existing.sourcePath +
+          " and " +
+          sourcePath +
+          "."
       );
     }
     return existing.outputPath;
@@ -213,7 +234,13 @@ function buildCanonicalAssetName(releaseVersion, platform, arch, baseExtension) 
   const publicExtension = PUBLIC_EXTENSION_MAP[baseExtension];
   if (!publicExtension) {
     throw new Error(
-      "No canonical release asset mapping is configured for " + platform + "/" + arch + "/" + baseExtension + "."
+      "No canonical release asset mapping is configured for " +
+        platform +
+        "/" +
+        arch +
+        "/" +
+        baseExtension +
+        "."
     );
   }
 
@@ -221,7 +248,12 @@ function buildCanonicalAssetName(releaseVersion, platform, arch, baseExtension) 
 }
 
 function createCanonicalMetadataArtifact(record, releaseVersion, metadataEntry) {
-  const targetName = buildCanonicalAssetName(releaseVersion, record.platform, record.arch, record.baseExtension);
+  const targetName = buildCanonicalAssetName(
+    releaseVersion,
+    record.platform,
+    record.arch,
+    record.baseExtension
+  );
   return {
     ...metadataEntry,
     url: targetName,
@@ -241,7 +273,12 @@ function stagePublicReleaseAssets(releaseVersion, context, artifactIndex) {
       return;
     }
 
-    const targetName = buildCanonicalAssetName(releaseVersion, record.platform, record.arch, record.baseExtension);
+    const targetName = buildCanonicalAssetName(
+      releaseVersion,
+      record.platform,
+      record.arch,
+      record.baseExtension
+    );
     stageFile(context, record.path, targetName);
     addSourceStaleNames(context, record);
     console.log(filterPath + " -> " + targetName);
@@ -263,10 +300,14 @@ function matchMetadataAsset(platformFiles, metadataFileName, metadataEntry) {
   const requestedUrl = String(metadataEntry.url || "").trim();
   const targetExtensionInfo = detectFileKind(requestedUrl);
   if (!targetExtensionInfo) {
-    throw new Error("Could not infer file type for " + requestedUrl + " in " + metadataFileName + ".");
+    throw new Error(
+      "Could not infer file type for " + requestedUrl + " in " + metadataFileName + "."
+    );
   }
 
-  let candidates = platformFiles.filter((file) => file.baseExtension === targetExtensionInfo.baseExtension);
+  let candidates = platformFiles.filter(
+    (file) => file.baseExtension === targetExtensionInfo.baseExtension
+  );
 
   const exactNameMatches = candidates.filter((file) => file.basename === requestedUrl);
   if (exactNameMatches.length === 1) {
@@ -294,7 +335,11 @@ function matchMetadataAsset(platformFiles, metadataFileName, metadataEntry) {
 
   if (candidates.length !== 1) {
     throw new Error(
-      "Could not match updater asset " + requestedUrl + " from " + metadataFileName + " to one packaged file."
+      "Could not match updater asset " +
+        requestedUrl +
+        " from " +
+        metadataFileName +
+        " to one packaged file."
     );
   }
 
@@ -347,10 +392,16 @@ function stageUpdaterMetadataAssets(rootDir, context, artifactIndex, releaseVers
         return;
       }
 
-      const rewrittenEntry = createCanonicalMetadataArtifact(matched, releaseVersion, metadataEntry);
+      const rewrittenEntry = createCanonicalMetadataArtifact(
+        matched,
+        releaseVersion,
+        metadataEntry
+      );
       stageFile(context, matched.path, rewrittenEntry.url);
       rewrittenFiles.push(rewrittenEntry);
-      console.log(toPosixPath(path.relative(process.cwd(), matched.path)) + " -> " + rewrittenEntry.url);
+      console.log(
+        toPosixPath(path.relative(process.cwd(), matched.path)) + " -> " + rewrittenEntry.url
+      );
     });
 
     if (!rewrittenFiles.length) {
@@ -364,7 +415,12 @@ function stageUpdaterMetadataAssets(rootDir, context, artifactIndex, releaseVers
       sha512: rewrittenFiles[0].sha512 || ""
     };
 
-    stageGeneratedFile(context, spec.fileName, serializeUpdateMetadata(rewrittenMetadata), metadataPath);
+    stageGeneratedFile(
+      context,
+      spec.fileName,
+      serializeUpdateMetadata(rewrittenMetadata),
+      metadataPath
+    );
     spec.legacyNames.forEach((legacyName) => {
       context.staleAssetNames.add(legacyName);
     });

@@ -6,7 +6,7 @@ import {
 
 function parseGetArgs(args) {
   if (args.length > 1) {
-    throw new Error('Usage: node space get [param]');
+    throw new Error("Usage: node space get [param]");
   }
 
   return {

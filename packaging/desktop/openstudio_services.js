@@ -24,14 +24,22 @@ function which(cmd) {
   for (const dir of dirs) {
     for (const ext of exts) {
       const full = path.join(dir, cmd + ext);
-      try { if (fs.existsSync(full)) return full; } catch { /* ignore */ }
+      try {
+        if (fs.existsSync(full)) return full;
+      } catch {
+        /* ignore */
+      }
     }
   }
   return null;
 }
 
-function opencodeAvailable() { return Boolean(which("opencode")); }
-function dockerAvailable() { return Boolean(which("docker")); }
+function opencodeAvailable() {
+  return Boolean(which("opencode"));
+}
+function dockerAvailable() {
+  return Boolean(which("docker"));
+}
 
 // ── opencode serve ──────────────────────────────────────────────────────────
 let opencodeProc = null;
@@ -41,10 +49,16 @@ function startOpencodeServe() {
   if (opencodeProc && !opencodeProc.killed) return true;
   try {
     opencodeProc = spawn("opencode", ["serve", "--port", String(OPENCODE_SERVE_PORT)], {
-      detached: false, stdio: "ignore"
+      detached: false,
+      stdio: "ignore"
     });
-    opencodeProc.on("exit", () => { opencodeProc = null; });
-    opencodeProc.on("error", (e) => { console.error("[OpenStudio] opencode serve failed:", e.message); opencodeProc = null; });
+    opencodeProc.on("exit", () => {
+      opencodeProc = null;
+    });
+    opencodeProc.on("error", (e) => {
+      console.error("[OpenStudio] opencode serve failed:", e.message);
+      opencodeProc = null;
+    });
     return true;
   } catch (e) {
     console.error("[OpenStudio] opencode serve error:", e.message);
@@ -54,7 +68,11 @@ function startOpencodeServe() {
 
 function stopOpencodeServe() {
   if (opencodeProc && !opencodeProc.killed) {
-    try { opencodeProc.kill(); } catch { /* ignore */ }
+    try {
+      opencodeProc.kill();
+    } catch {
+      /* ignore */
+    }
   }
   opencodeProc = null;
 }
@@ -84,8 +102,15 @@ function composeArgs(composeFile, sub) {
 function runDocker(args, env) {
   return new Promise((resolve) => {
     try {
-      const child = spawn("docker", args, { stdio: "ignore", detached: true, env: { ...process.env, ...env } });
-      child.on("error", (e) => { console.error("[OpenStudio] docker error:", e.message); resolve(false); });
+      const child = spawn("docker", args, {
+        stdio: "ignore",
+        detached: true,
+        env: { ...process.env, ...env }
+      });
+      child.on("error", (e) => {
+        console.error("[OpenStudio] docker error:", e.message);
+        resolve(false);
+      });
       child.on("exit", (code) => resolve(code === 0));
       child.unref();
     } catch (e) {
@@ -103,15 +128,18 @@ function defaultComposeFile() {
 
 async function startOpenNotebook({ composeFile, readConfig, writeConfigPatch } = {}) {
   if (!dockerAvailable()) return false;
-  const file = composeFile || (readConfig && readConfig().openNotebookComposeFile) || defaultComposeFile();
-  const key = readConfig && writeConfigPatch ? ensureEncryptionKey(readConfig, writeConfigPatch) : undefined;
+  const file =
+    composeFile || (readConfig && readConfig().openNotebookComposeFile) || defaultComposeFile();
+  const key =
+    readConfig && writeConfigPatch ? ensureEncryptionKey(readConfig, writeConfigPatch) : undefined;
   const env = key ? { OPEN_NOTEBOOK_ENCRYPTION_KEY: key } : {};
   return runDocker(composeArgs(file, ["up", "-d"]), env);
 }
 
 async function stopOpenNotebook({ composeFile, readConfig } = {}) {
   if (!dockerAvailable()) return false;
-  const file = composeFile || (readConfig && readConfig().openNotebookComposeFile) || defaultComposeFile();
+  const file =
+    composeFile || (readConfig && readConfig().openNotebookComposeFile) || defaultComposeFile();
   return runDocker(composeArgs(file, ["down"]), {});
 }
 
@@ -121,7 +149,11 @@ async function isOpenNotebookRunning(timeoutMs = 1200) {
   try {
     const res = await fetch(`${OPEN_NOTEBOOK_API}/health`, { signal: ctrl.signal });
     return res.ok;
-  } catch { return false; } finally { clearTimeout(timer); }
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 // Tear everything down on app quit.
@@ -129,7 +161,9 @@ function stopAllOpenStudioServices(opts = {}) {
   stopOpencodeServe();
   // open-notebook is detached docker; only stop it if the caller asks (it may be
   // shared / long-lived), so default is to leave it running.
-  if (opts.stopOpenNotebook) { void stopOpenNotebook(opts); }
+  if (opts.stopOpenNotebook) {
+    void stopOpenNotebook(opts);
+  }
 }
 
 module.exports = {

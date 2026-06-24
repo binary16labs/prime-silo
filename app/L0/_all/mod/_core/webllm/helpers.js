@@ -108,12 +108,15 @@ export function inferModelFamily(modelId) {
 }
 
 export function compareModelRecords(left, right) {
-  const familyCompare = inferModelFamily(left?.model_id).localeCompare(inferModelFamily(right?.model_id));
+  const familyCompare = inferModelFamily(left?.model_id).localeCompare(
+    inferModelFamily(right?.model_id)
+  );
   if (familyCompare !== 0) {
     return familyCompare;
   }
 
-  const lowResourceBias = Number(Boolean(right?.low_resource_required)) - Number(Boolean(left?.low_resource_required));
+  const lowResourceBias =
+    Number(Boolean(right?.low_resource_required)) - Number(Boolean(left?.low_resource_required));
   if (lowResourceBias !== 0) {
     return lowResourceBias;
   }
@@ -146,7 +149,9 @@ export function filterPrebuiltModels(models = [], options = {}) {
         sanitizeText(model?.model),
         sanitizeText(model?.model_lib),
         family
-      ].join(" ").toLowerCase();
+      ]
+        .join(" ")
+        .toLowerCase();
 
       return haystack.includes(normalizedSearch);
     })
@@ -169,7 +174,11 @@ export function buildFamilySummary(models = []) {
 export function describeModelSelection(selection = {}) {
   const customModelUrl = sanitizeText(selection.customModelUrl);
   if (customModelUrl) {
-    return sanitizeText(selection.customModelId) || deriveModelIdFromUrl(customModelUrl) || "custom model";
+    return (
+      sanitizeText(selection.customModelId) ||
+      deriveModelIdFromUrl(customModelUrl) ||
+      "custom model"
+    );
   }
 
   return sanitizeText(selection.modelId) || "model";
@@ -247,11 +256,13 @@ export function normalizeUsageMetrics(usage, options = {}) {
   const elapsedMs = Number(options.elapsedMs);
   let tokensPerSecond = Number(extra.decode_tokens_per_s);
 
-  if ((!Number.isFinite(tokensPerSecond) || tokensPerSecond <= 0)
-    && Number.isFinite(completionTokens)
-    && completionTokens > 0
-    && Number.isFinite(elapsedMs)
-    && elapsedMs > 0) {
+  if (
+    (!Number.isFinite(tokensPerSecond) || tokensPerSecond <= 0) &&
+    Number.isFinite(completionTokens) &&
+    completionTokens > 0 &&
+    Number.isFinite(elapsedMs) &&
+    elapsedMs > 0
+  ) {
     tokensPerSecond = completionTokens / (elapsedMs / 1000);
   }
 

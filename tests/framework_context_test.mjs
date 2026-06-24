@@ -63,10 +63,11 @@ class FakeDocument {
       return null;
     }
 
-    return this._elements.find((element) => (
-      element.tagName === "x-context" &&
-      element.getAttribute("data-runtime")
-    )) || null;
+    return (
+      this._elements.find(
+        (element) => element.tagName === "x-context" && element.getAttribute("data-runtime")
+      ) || null
+    );
   }
 
   querySelectorAll(selector) {
@@ -86,9 +87,9 @@ class FakeDocument {
   }
 
   runtimeElementCount() {
-    return this.querySelectorAll("x-context").filter((element) => (
+    return this.querySelectorAll("x-context").filter((element) =>
       Boolean(element.getAttribute("data-runtime"))
-    )).length;
+    ).length;
   }
 }
 
@@ -109,8 +110,18 @@ test("framework context helpers collect contexts, attributes, contents, and tags
   assert.equal(getContexts(document).length, 2);
   assert.deepEqual(getAttributeValues("data-surface", document), ["chat", "route"]);
   assert.deepEqual(getContents(document), ["overlay", "route"]);
-  assert.deepEqual(getTags(document), ["onscreen", "route:spaces", "space:id:space-7", "space:open"]);
-  assert.deepEqual(normalizeSkillTags(getTags(document)), ["onscreen", "route:spaces", "space:id:space-7", "space:open"]);
+  assert.deepEqual(getTags(document), [
+    "onscreen",
+    "route:spaces",
+    "space:id:space-7",
+    "space:open"
+  ]);
+  assert.deepEqual(normalizeSkillTags(getTags(document)), [
+    "onscreen",
+    "route:spaces",
+    "space:id:space-7",
+    "space:open"
+  ]);
 });
 
 test("runtime context defaults to browser without a desktop bridge", async () => {

@@ -345,9 +345,13 @@ export function createLineageGraphWidget(host, initialProps = {}, options = {}) 
       if (isMemorayDisabled(err)) {
         renderState(`<p class="mray-lg__hint">Memo-Ray is disabled.</p>`);
       } else if (isMemorayOffline(err)) {
-        renderState(`<p class="mray-lg__hint">Memo-Ray is offline — boot it with <code>scripts/memoray.ps1</code>.</p>`);
+        renderState(
+          `<p class="mray-lg__hint">Memo-Ray is offline — boot it with <code>scripts/memoray.ps1</code>.</p>`
+        );
       } else {
-        renderState(`<p class="mray-lg__error">Lineage load failed: ${escapeHtml(err.message)}</p>`);
+        renderState(
+          `<p class="mray-lg__error">Lineage load failed: ${escapeHtml(err.message)}</p>`
+        );
       }
     }
   }

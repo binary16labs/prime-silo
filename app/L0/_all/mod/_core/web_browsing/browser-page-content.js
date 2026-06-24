@@ -41,15 +41,7 @@
     "TR",
     "UL"
   ]);
-  const SKIP_TAGS = new Set([
-    "HEAD",
-    "LINK",
-    "META",
-    "NOSCRIPT",
-    "SCRIPT",
-    "STYLE",
-    "TEMPLATE"
-  ]);
+  const SKIP_TAGS = new Set(["HEAD", "LINK", "META", "NOSCRIPT", "SCRIPT", "STYLE", "TEMPLATE"]);
   const INTERACTIVE_ROLES = new Set([
     "button",
     "checkbox",
@@ -101,8 +93,9 @@
     "touchend",
     "touchstart"
   ]);
-  const INTERACTIVE_EVENT_PROPERTIES = [...INTERACTIVE_EVENT_NAMES]
-    .map((eventName) => `on${eventName}`);
+  const INTERACTIVE_EVENT_PROPERTIES = [...INTERACTIVE_EVENT_NAMES].map(
+    (eventName) => `on${eventName}`
+  );
 
   if (globalThis[GLOBAL_KEY]?.version === VERSION) {
     return;
@@ -161,8 +154,12 @@
       return false;
     }
 
-    return /space-browser-(?:frame-document|shadow-root)/iu.test(normalizedValue)
-      || /data-space-browser-(?:frame|node|status|frame-url|frame-title|frame-src)/iu.test(normalizedValue);
+    return (
+      /space-browser-(?:frame-document|shadow-root)/iu.test(normalizedValue) ||
+      /data-space-browser-(?:frame|node|status|frame-url|frame-title|frame-src)/iu.test(
+        normalizedValue
+      )
+    );
   }
 
   function looksLikeMinifiedScriptText(value) {
@@ -199,9 +196,11 @@
       return true;
     }
 
-    return looksLikeBrowserHelperMarkupText(normalizedValue)
-      || looksLikeSerializedHtmlText(normalizedValue)
-      || looksLikeMinifiedScriptText(normalizedValue);
+    return (
+      looksLikeBrowserHelperMarkupText(normalizedValue) ||
+      looksLikeSerializedHtmlText(normalizedValue) ||
+      looksLikeMinifiedScriptText(normalizedValue)
+    );
   }
 
   function normalizeAttributeText(value) {
@@ -301,9 +300,9 @@
       if (max === r) {
         hue = 60 * (((g - b) / delta) % 6);
       } else if (max === g) {
-        hue = 60 * (((b - r) / delta) + 2);
+        hue = 60 * ((b - r) / delta + 2);
       } else {
-        hue = 60 * (((r - g) / delta) + 4);
+        hue = 60 * ((r - g) / delta + 4);
       }
     }
 
@@ -334,7 +333,10 @@
     const lines = String(value || "")
       .replace(/<style\\?>[\s\S]*?<\/style\\?>/giu, "")
       .replace(/<script\\?>[\s\S]*?<\/script\\?>/giu, "")
-      .replace(/<space\\-browser\\-(?:frame\\-document|shadow\\-root)\b[\s\S]*?<\/space\\-browser\\-(?:frame\\-document|shadow\\-root)>/giu, "")
+      .replace(
+        /<space\\-browser\\-(?:frame\\-document|shadow\\-root)\b[\s\S]*?<\/space\\-browser\\-(?:frame\\-document|shadow\\-root)>/giu,
+        ""
+      )
       .split("\n");
 
     const filteredLines = [];
@@ -367,10 +369,12 @@
   }
 
   function joinInlineParts(parts) {
-    return String(parts
-      .map((part) => String(part || "").trim())
-      .filter(Boolean)
-      .join(" "))
+    return String(
+      parts
+        .map((part) => String(part || "").trim())
+        .filter(Boolean)
+        .join(" ")
+    )
       .replace(/\s+([,.;!?])/gu, "$1")
       .replace(/([([{\u201c])\s+/gu, "$1")
       .replace(/\s+([\])}\u201d])/gu, "$1")
@@ -473,22 +477,20 @@
         ? value.split(">")
         : [];
 
-    return rawFrameChain
-      .map((entry) => String(entry || "").trim())
-      .filter(Boolean);
+    return rawFrameChain.map((entry) => String(entry || "").trim()).filter(Boolean);
   }
 
   function getDomHelper() {
     const helper = globalThis[DOM_HELPER_KEY];
     if (
-      helper
-      && typeof helper.captureDocument === "function"
-      && typeof helper.detailNode === "function"
-      && typeof helper.clickNode === "function"
-      && typeof helper.typeNode === "function"
-      && typeof helper.submitNode === "function"
-      && typeof helper.typeSubmitNode === "function"
-      && typeof helper.scrollNode === "function"
+      helper &&
+      typeof helper.captureDocument === "function" &&
+      typeof helper.detailNode === "function" &&
+      typeof helper.clickNode === "function" &&
+      typeof helper.typeNode === "function" &&
+      typeof helper.submitNode === "function" &&
+      typeof helper.typeSubmitNode === "function" &&
+      typeof helper.scrollNode === "function"
     ) {
       return helper;
     }
@@ -560,7 +562,9 @@
   }
 
   function isInteractiveEventAttributeName(attributeName) {
-    const normalizedName = String(attributeName || "").trim().toLowerCase();
+    const normalizedName = String(attributeName || "")
+      .trim()
+      .toLowerCase();
     if (!normalizedName) {
       return false;
     }
@@ -601,7 +605,9 @@
   }
 
   function hasInteractiveEventHandler(element) {
-    return hasInteractiveEventHandlerAttribute(element) || hasInteractiveEventHandlerProperty(element);
+    return (
+      hasInteractiveEventHandlerAttribute(element) || hasInteractiveEventHandlerProperty(element)
+    );
   }
 
   function isStyleDeclarationHidden(styleValue) {
@@ -613,11 +619,13 @@
       return false;
     }
 
-    return /(?:^|;)display:none(?:;|$)/u.test(normalizedStyleValue)
-      || /(?:^|;)visibility:hidden(?:;|$)/u.test(normalizedStyleValue)
-      || /(?:^|;)visibility:collapse(?:;|$)/u.test(normalizedStyleValue)
-      || /(?:^|;)content-visibility:hidden(?:;|$)/u.test(normalizedStyleValue)
-      || /(?:^|;)opacity:0(?:\.0+)?(?:;|$)/u.test(normalizedStyleValue);
+    return (
+      /(?:^|;)display:none(?:;|$)/u.test(normalizedStyleValue) ||
+      /(?:^|;)visibility:hidden(?:;|$)/u.test(normalizedStyleValue) ||
+      /(?:^|;)visibility:collapse(?:;|$)/u.test(normalizedStyleValue) ||
+      /(?:^|;)content-visibility:hidden(?:;|$)/u.test(normalizedStyleValue) ||
+      /(?:^|;)opacity:0(?:\.0+)?(?:;|$)/u.test(normalizedStyleValue)
+    );
   }
 
   function isComputedStyleHidden(computedStyle) {
@@ -630,11 +638,13 @@
     const contentVisibility = normalizeText(computedStyle.contentVisibility).toLowerCase();
     const opacity = Number(computedStyle.opacity || 1);
 
-    return display === "none"
-      || visibility === "hidden"
-      || visibility === "collapse"
-      || contentVisibility === "hidden"
-      || opacity <= 0;
+    return (
+      display === "none" ||
+      visibility === "hidden" ||
+      visibility === "collapse" ||
+      contentVisibility === "hidden" ||
+      opacity <= 0
+    );
   }
 
   function isEffectivelyHiddenByAncestor(element) {
@@ -673,7 +683,10 @@
       return true;
     }
 
-    if (tagName === "INPUT" && String(element.getAttribute?.("type") || "").toLowerCase() === "hidden") {
+    if (
+      tagName === "INPUT" &&
+      String(element.getAttribute?.("type") || "").toLowerCase() === "hidden"
+    ) {
       return true;
     }
 
@@ -703,7 +716,13 @@
       return true;
     }
 
-    if (tagName === "BUTTON" || tagName === "INPUT" || tagName === "SELECT" || tagName === "TEXTAREA" || tagName === "SUMMARY") {
+    if (
+      tagName === "BUTTON" ||
+      tagName === "INPUT" ||
+      tagName === "SELECT" ||
+      tagName === "TEXTAREA" ||
+      tagName === "SUMMARY"
+    ) {
       return true;
     }
 
@@ -711,7 +730,9 @@
       return true;
     }
 
-    const role = String(element.getAttribute?.("role") || "").trim().toLowerCase();
+    const role = String(element.getAttribute?.("role") || "")
+      .trim()
+      .toLowerCase();
     if (INTERACTIVE_ROLES.has(role)) {
       return true;
     }
@@ -724,8 +745,10 @@
       return true;
     }
 
-    return (hasHelperManagedNodeReference(element) || hasInteractiveEventHandlerProperty(element))
-      && Boolean(normalizeText(element.textContent || ""));
+    return (
+      (hasHelperManagedNodeReference(element) || hasInteractiveEventHandlerProperty(element)) &&
+      Boolean(normalizeText(element.textContent || ""))
+    );
   }
 
   function getComputedStyleSafe(element) {
@@ -771,8 +794,13 @@
     const backgroundColor = parseCssColor(computedStyle?.backgroundColor || "");
     const borderColor = parseCssColor(computedStyle?.borderTopColor || "");
     const foregroundColor = parseCssColor(computedStyle?.color || "");
-    const isButtonLike = ["BUTTON", "INPUT", "SUMMARY"].includes(getTagName(element))
-      || ["button", "tab", "menuitem"].includes(String(element?.getAttribute?.("role") || "").trim().toLowerCase());
+    const isButtonLike =
+      ["BUTTON", "INPUT", "SUMMARY"].includes(getTagName(element)) ||
+      ["button", "tab", "menuitem"].includes(
+        String(element?.getAttribute?.("role") || "")
+          .trim()
+          .toLowerCase()
+      );
 
     if (metadata.disabled || metadata.blocked || opacity <= 0.58) {
       return "muted";
@@ -790,11 +818,7 @@
       return "";
     }
 
-    const {
-      hue,
-      lightness,
-      saturation
-    } = preferredColor.hsl;
+    const { hue, lightness, saturation } = preferredColor.hsl;
     if (saturation < 0.2) {
       return "";
     }
@@ -833,58 +857,94 @@
     const computedStyle = getComputedStyleSafe(element);
     const rect = getElementRectSafe(element);
     const tagName = getTagName(element);
-    const ariaDisabled = String(element.getAttribute?.("aria-disabled") || "").trim().toLowerCase() === "true";
-    const ariaBusy = String(element.getAttribute?.("aria-busy") || "").trim().toLowerCase() === "true";
-    const ariaChecked = String(element.getAttribute?.("aria-checked") || "").trim().toLowerCase() === "true";
+    const ariaDisabled =
+      String(element.getAttribute?.("aria-disabled") || "")
+        .trim()
+        .toLowerCase() === "true";
+    const ariaBusy =
+      String(element.getAttribute?.("aria-busy") || "")
+        .trim()
+        .toLowerCase() === "true";
+    const ariaChecked =
+      String(element.getAttribute?.("aria-checked") || "")
+        .trim()
+        .toLowerCase() === "true";
     const ariaCurrent = normalizeText(element.getAttribute?.("aria-current"));
-    const ariaInvalid = String(element.getAttribute?.("aria-invalid") || "").trim().toLowerCase() === "true";
-    const ariaPressed = String(element.getAttribute?.("aria-pressed") || "").trim().toLowerCase() === "true";
-    const ariaReadonly = String(element.getAttribute?.("aria-readonly") || "").trim().toLowerCase() === "true";
-    const ariaRequired = String(element.getAttribute?.("aria-required") || "").trim().toLowerCase() === "true";
-    const ariaSelected = String(element.getAttribute?.("aria-selected") || "").trim().toLowerCase() === "true";
+    const ariaInvalid =
+      String(element.getAttribute?.("aria-invalid") || "")
+        .trim()
+        .toLowerCase() === "true";
+    const ariaPressed =
+      String(element.getAttribute?.("aria-pressed") || "")
+        .trim()
+        .toLowerCase() === "true";
+    const ariaReadonly =
+      String(element.getAttribute?.("aria-readonly") || "")
+        .trim()
+        .toLowerCase() === "true";
+    const ariaRequired =
+      String(element.getAttribute?.("aria-required") || "")
+        .trim()
+        .toLowerCase() === "true";
+    const ariaSelected =
+      String(element.getAttribute?.("aria-selected") || "")
+        .trim()
+        .toLowerCase() === "true";
     const helperStateTags = readSerializedTagList(element, "data-space-browser-state-tags");
     const helperSemanticTags = readSerializedTagList(element, "data-space-browser-semantic-tags");
     const closestInert = typeof element.closest === "function" ? element.closest("[inert]") : null;
-    const pointerEventsNone = normalizeText(computedStyle?.pointerEvents || "").toLowerCase() === "none";
-    const disabled = Boolean(element.disabled || ariaDisabled || closestInert || helperStateTags.includes("disabled"));
+    const pointerEventsNone =
+      normalizeText(computedStyle?.pointerEvents || "").toLowerCase() === "none";
+    const disabled = Boolean(
+      element.disabled || ariaDisabled || closestInert || helperStateTags.includes("disabled")
+    );
     const blocked = !disabled && (pointerEventsNone || helperStateTags.includes("blocked"));
     const checked = Boolean(element.checked || ariaChecked || helperStateTags.includes("checked"));
-    const selected = tagName === "OPTION"
-      ? Boolean(element.selected)
-      : Boolean(ariaSelected || helperStateTags.includes("selected"));
-    const invalid = Boolean(ariaInvalid || helperStateTags.includes("invalid") || element.matches?.(":invalid"));
+    const selected =
+      tagName === "OPTION"
+        ? Boolean(element.selected)
+        : Boolean(ariaSelected || helperStateTags.includes("selected"));
+    const invalid = Boolean(
+      ariaInvalid || helperStateTags.includes("invalid") || element.matches?.(":invalid")
+    );
     const readonly = Boolean(element.readOnly || ariaReadonly);
     const required = Boolean(element.required || ariaRequired);
-    const expanded = String(element.getAttribute?.("aria-expanded") || "").trim().toLowerCase() === "true" || helperStateTags.includes("expanded");
+    const expanded =
+      String(element.getAttribute?.("aria-expanded") || "")
+        .trim()
+        .toLowerCase() === "true" || helperStateTags.includes("expanded");
     const pressed = ariaPressed || helperStateTags.includes("pressed");
     const busy = ariaBusy || helperStateTags.includes("busy");
-    const current = Boolean((ariaCurrent && ariaCurrent !== "false") || helperStateTags.includes("current"));
+    const current = Boolean(
+      (ariaCurrent && ariaCurrent !== "false") || helperStateTags.includes("current")
+    );
     const zeroRect = Boolean(
-      rect
-      && element.ownerDocument === globalThis.document
-      && rect.width <= 1
-      && rect.height <= 1
+      rect && element.ownerDocument === globalThis.document && rect.width <= 1 && rect.height <= 1
     );
     const opacity = Number(computedStyle?.opacity || 1);
-    const semanticTone = helperSemanticTags[0] || detectSemanticTone(element, computedStyle, {
-      blocked,
-      disabled
-    });
+    const semanticTone =
+      helperSemanticTags[0] ||
+      detectSemanticTone(element, computedStyle, {
+        blocked,
+        disabled
+      });
     const stateTags = helperStateTags.length
       ? helperStateTags.slice()
       : [
-        disabled ? "disabled" : "",
-        !disabled && (blocked || zeroRect) ? "blocked" : "",
-        checked ? "checked" : "",
-        selected && tagName !== "SELECT" ? "selected" : "",
-        invalid ? "invalid" : "",
-        expanded ? "expanded" : "",
-        pressed ? "pressed" : ""
-      ].filter(Boolean);
+          disabled ? "disabled" : "",
+          !disabled && (blocked || zeroRect) ? "blocked" : "",
+          checked ? "checked" : "",
+          selected && tagName !== "SELECT" ? "selected" : "",
+          invalid ? "invalid" : "",
+          expanded ? "expanded" : "",
+          pressed ? "pressed" : ""
+        ].filter(Boolean);
 
     const semanticTags = helperSemanticTags.length
       ? helperSemanticTags.slice(0, 1)
-      : (semanticTone ? [semanticTone] : []);
+      : semanticTone
+        ? [semanticTone]
+        : [];
     const descriptorTags = [
       ...(options.includeStateTags !== false ? stateTags : []),
       ...(options.includeSemanticTags !== false ? semanticTags : [])
@@ -917,13 +977,20 @@
   function getReferenceValueMetadata(element) {
     const tagName = getTagName(element);
     const helperLiveValue = normalizeText(element?.getAttribute?.("data-space-browser-live-value"));
-    const helperSelectedValue = normalizeText(element?.getAttribute?.("data-space-browser-selected-text"));
+    const helperSelectedValue = normalizeText(
+      element?.getAttribute?.("data-space-browser-selected-text")
+    );
     if (tagName === "INPUT") {
-      const inputType = String(element.getAttribute?.("type") || element.type || "text").toLowerCase();
+      const inputType = String(
+        element.getAttribute?.("type") || element.type || "text"
+      ).toLowerCase();
       if (inputType === "password") {
         return "";
       }
-      return truncateText(helperLiveValue || element.value || element.getAttribute?.("value") || "", 96);
+      return truncateText(
+        helperLiveValue || element.value || element.getAttribute?.("value") || "",
+        96
+      );
     }
 
     if (tagName === "TEXTAREA") {
@@ -1016,15 +1083,14 @@
       // Ignore labels lookup failures from non-form elements.
     }
 
-    [
-      element?.getAttribute?.("aria-label"),
-      element?.getAttribute?.("title")
-    ].forEach((candidate) => {
-      const text = normalizeAttributeText(candidate);
-      if (text) {
-        collectedLabels.push(text);
+    [element?.getAttribute?.("aria-label"), element?.getAttribute?.("title")].forEach(
+      (candidate) => {
+        const text = normalizeAttributeText(candidate);
+        if (text) {
+          collectedLabels.push(text);
+        }
       }
-    });
+    );
 
     if (includeAlt) {
       const altText = normalizeAttributeText(element?.getAttribute?.("alt"));
@@ -1046,8 +1112,7 @@
           .slice(0, 3)
           .forEach((mediaElement) => {
             const text = normalizeAttributeText(
-              mediaElement.getAttribute?.("alt")
-              || mediaElement.getAttribute?.("title")
+              mediaElement.getAttribute?.("alt") || mediaElement.getAttribute?.("title")
             );
             if (text) {
               collectedLabels.push(text);
@@ -1098,8 +1163,12 @@
 
   function getReferenceKind(element) {
     const tagName = getTagName(element);
-    const role = String(element.getAttribute?.("role") || "").trim().toLowerCase();
-    const inputType = String(element.getAttribute?.("type") || element.type || "text").toLowerCase();
+    const role = String(element.getAttribute?.("role") || "")
+      .trim()
+      .toLowerCase();
+    const inputType = String(
+      element.getAttribute?.("type") || element.type || "text"
+    ).toLowerCase();
 
     if (tagName === "A" || role === "link") {
       return "link";
@@ -1162,7 +1231,9 @@
 
   function collectReferenceSummaryData(element, options = {}) {
     const tagName = getTagName(element);
-    const role = String(element.getAttribute?.("role") || "").trim().toLowerCase();
+    const role = String(element.getAttribute?.("role") || "")
+      .trim()
+      .toLowerCase();
     const id = normalizeAttributeText(element.getAttribute?.("id"));
     const name = normalizeAttributeText(element.getAttribute?.("name"));
     const kind = getReferenceKind(element);
@@ -1183,12 +1254,15 @@
 
     if (tagName === "A" || role === "link") {
       const hrefSummary = summarizeUrl(element.getAttribute?.("href") || element.href || "");
-      const label = truncateText(getLabelText(element, {
-        includeAlt: false,
-        includeDescendantImageAlt: true,
-        includePlaceholder: false,
-        includeText: true
-      }), 120);
+      const label = truncateText(
+        getLabelText(element, {
+          includeAlt: false,
+          includeDescendantImageAlt: true,
+          includePlaceholder: false,
+          includeText: true
+        }),
+        120
+      );
       const displayLabel = label || hrefSummary;
 
       if (displayLabel) {
@@ -1203,24 +1277,30 @@
         }
       }
     } else if (tagName === "BUTTON" || ["button", "menuitem", "tab"].includes(role)) {
-      const label = truncateText(getLabelText(element, {
-        includeAlt: false,
-        includeDescendantImageAlt: true,
-        includePlaceholder: false,
-        includeText: true
-      }), 120);
+      const label = truncateText(
+        getLabelText(element, {
+          includeAlt: false,
+          includeDescendantImageAlt: true,
+          includePlaceholder: false,
+          includeText: true
+        }),
+        120
+      );
       if (label) {
         parts.push(formatValue(label));
       } else {
         appendFallbackIdOrName();
       }
     } else if (tagName === "TEXTAREA" || role === "textbox" || role === "searchbox") {
-      const label = truncateText(getLabelText(element, {
-        includeAlt: false,
-        includeDescendantImageAlt: false,
-        includePlaceholder: false,
-        includeText: true
-      }), 120);
+      const label = truncateText(
+        getLabelText(element, {
+          includeAlt: false,
+          includeDescendantImageAlt: false,
+          includePlaceholder: false,
+          includeText: true
+        }),
+        120
+      );
       if (label) {
         parts.push(formatValue(label));
       }
@@ -1231,12 +1311,15 @@
         appendFallbackIdOrName();
       }
     } else if (tagName === "SELECT" || role === "combobox") {
-      const label = truncateText(getLabelText(element, {
-        includeAlt: false,
-        includeDescendantImageAlt: false,
-        includePlaceholder: false,
-        includeText: true
-      }), 120);
+      const label = truncateText(
+        getLabelText(element, {
+          includeAlt: false,
+          includeDescendantImageAlt: false,
+          includePlaceholder: false,
+          includeText: true
+        }),
+        120
+      );
       if (label) {
         parts.push(formatValue(label));
       } else {
@@ -1247,76 +1330,93 @@
       const selectedOptions = selectedValue
         ? [selectedValue]
         : [...(element.selectedOptions || [])]
-          .map((option) => truncateText(option.textContent || "", 48))
-          .filter(Boolean);
+            .map((option) => truncateText(option.textContent || "", 48))
+            .filter(Boolean);
       if (selectedOptions.length) {
         parts.push(`selected=${formatValue(selectedOptions.join(" | "))}`);
       }
     } else if (tagName === "SUMMARY") {
-      const label = truncateText(getLabelText(element, {
-        includeAlt: false,
-        includeDescendantImageAlt: true,
-        includePlaceholder: false,
-        includeText: true
-      }), 120);
+      const label = truncateText(
+        getLabelText(element, {
+          includeAlt: false,
+          includeDescendantImageAlt: true,
+          includePlaceholder: false,
+          includeText: true
+        }),
+        120
+      );
       if (label) {
         parts.push(formatValue(label));
       } else {
         appendFallbackIdOrName();
       }
     } else if (tagName === "INPUT") {
-      const inputType = String(element.getAttribute?.("type") || element.type || "text").toLowerCase();
+      const inputType = String(
+        element.getAttribute?.("type") || element.type || "text"
+      ).toLowerCase();
       if (["button", "submit", "reset"].includes(inputType)) {
-        const label = truncateText(getLabelText(element, {
-          includeAlt: false,
-          includeDescendantImageAlt: false,
-          includePlaceholder: false,
-          includeText: false
-        }) || element.value || "", 120);
+        const label = truncateText(
+          getLabelText(element, {
+            includeAlt: false,
+            includeDescendantImageAlt: false,
+            includePlaceholder: false,
+            includeText: false
+          }) ||
+            element.value ||
+            "",
+          120
+        );
         if (label) {
           parts.push(formatValue(label));
         } else {
           appendFallbackIdOrName();
         }
       } else if (["checkbox", "radio"].includes(inputType)) {
-        const label = truncateText(getLabelText(element, {
-          includeAlt: false,
-          includeDescendantImageAlt: false,
-          includePlaceholder: false,
-          includeText: false
-        }), 120);
+        const label = truncateText(
+          getLabelText(element, {
+            includeAlt: false,
+            includeDescendantImageAlt: false,
+            includePlaceholder: false,
+            includeText: false
+          }),
+          120
+        );
         if (label) {
           parts.push(formatValue(label));
         } else {
           appendFallbackIdOrName();
         }
       } else if (inputType === "file") {
-        const label = truncateText(getLabelText(element, {
-          includeAlt: false,
-          includeDescendantImageAlt: false,
-          includePlaceholder: false,
-          includeText: false
-        }), 120);
+        const label = truncateText(
+          getLabelText(element, {
+            includeAlt: false,
+            includeDescendantImageAlt: false,
+            includePlaceholder: false,
+            includeText: false
+          }),
+          120
+        );
         if (label) {
           parts.push(formatValue(label));
         } else {
           appendFallbackIdOrName();
         }
       } else {
-        const label = truncateText(getLabelText(element, {
-          includeAlt: false,
-          includeDescendantImageAlt: false,
-          includePlaceholder: false,
-          includeText: false
-        }), 120);
+        const label = truncateText(
+          getLabelText(element, {
+            includeAlt: false,
+            includeDescendantImageAlt: false,
+            includePlaceholder: false,
+            includeText: false
+          }),
+          120
+        );
         if (label) {
           parts.push(formatValue(label));
         }
 
         const placeholder = normalizeAttributeText(element.getAttribute?.("placeholder"));
-        const value = inputType === "password"
-          ? ""
-          : getReferenceValueMetadata(element);
+        const value = inputType === "password" ? "" : getReferenceValueMetadata(element);
 
         if (placeholder) {
           parts.push(`placeholder=${formatValue(placeholder)}`);
@@ -1329,25 +1429,33 @@
         }
       }
     } else if (String(element.getAttribute?.("contenteditable") || "").toLowerCase() === "true") {
-      const label = truncateText(getLabelText(element, {
-        includeAlt: false,
-        includeDescendantImageAlt: false,
-        includePlaceholder: false,
-        includeText: true
-      }), 120);
+      const label = truncateText(
+        getLabelText(element, {
+          includeAlt: false,
+          includeDescendantImageAlt: false,
+          includePlaceholder: false,
+          includeText: true
+        }),
+        120
+      );
       if (label) {
         parts.push(formatValue(label));
       } else {
         appendFallbackIdOrName();
       }
     } else if (tagName === "IMG") {
-      const srcSummary = summarizeUrl(element.currentSrc || element.getAttribute?.("src") || element.src || "");
-      const label = truncateText(getLabelText(element, {
-        includeAlt: true,
-        includeDescendantImageAlt: false,
-        includePlaceholder: false,
-        includeText: false
-      }), 120);
+      const srcSummary = summarizeUrl(
+        element.currentSrc || element.getAttribute?.("src") || element.src || ""
+      );
+      const label = truncateText(
+        getLabelText(element, {
+          includeAlt: true,
+          includeDescendantImageAlt: false,
+          includePlaceholder: false,
+          includeText: false
+        }),
+        120
+      );
       const displayLabel = label || srcSummary;
       if (displayLabel) {
         parts.push(formatValue(displayLabel));
@@ -1355,24 +1463,30 @@
         appendFallbackIdOrName();
       }
     } else if (role) {
-      const label = truncateText(getLabelText(element, {
-        includeAlt: false,
-        includeDescendantImageAlt: true,
-        includePlaceholder: false,
-        includeText: true
-      }), 120);
+      const label = truncateText(
+        getLabelText(element, {
+          includeAlt: false,
+          includeDescendantImageAlt: true,
+          includePlaceholder: false,
+          includeText: true
+        }),
+        120
+      );
       if (label) {
         parts.push(formatValue(label));
       } else {
         appendFallbackIdOrName();
       }
     } else {
-      const label = truncateText(getLabelText(element, {
-        includeAlt: false,
-        includeDescendantImageAlt: true,
-        includePlaceholder: false,
-        includeText: true
-      }), 120);
+      const label = truncateText(
+        getLabelText(element, {
+          includeAlt: false,
+          includeDescendantImageAlt: true,
+          includePlaceholder: false,
+          includeText: true
+        }),
+        120
+      );
       if (label) {
         parts.push(formatValue(label));
       } else {
@@ -1392,7 +1506,9 @@
   function createReferenceEntry(element, referenceId, options = {}) {
     const nodeId = normalizeAttributeText(element.getAttribute?.("data-space-browser-node-id"));
     const frameId = normalizeAttributeText(element.getAttribute?.("data-space-browser-frame-id"));
-    const frameChain = normalizeFrameChain(element.getAttribute?.("data-space-browser-frame-chain"));
+    const frameChain = normalizeFrameChain(
+      element.getAttribute?.("data-space-browser-frame-chain")
+    );
     const helperBacked = Boolean(nodeId && frameChain.length);
     const summaryData = collectReferenceSummaryData(element, options);
 
@@ -1464,7 +1580,10 @@
 
     const tagName = getTagName(node);
 
-    if (tagName === "LABEL" && (node.getAttribute?.("for") || node.querySelector?.("input, textarea, select, button"))) {
+    if (
+      tagName === "LABEL" &&
+      (node.getAttribute?.("for") || node.querySelector?.("input, textarea, select, button"))
+    ) {
       return "";
     }
 
@@ -1548,7 +1667,10 @@
     const nestedBlocks = [];
 
     element.childNodes.forEach((childNode) => {
-      if (isElementNode(childNode) && (getTagName(childNode) === "UL" || getTagName(childNode) === "OL")) {
+      if (
+        isElementNode(childNode) &&
+        (getTagName(childNode) === "UL" || getTagName(childNode) === "OL")
+      ) {
         const nestedList = renderList(childNode, context, depth + 1);
         if (nestedList) {
           nestedBlocks.push(nestedList);
@@ -1585,18 +1707,23 @@
   }
 
   function renderTable(element, context) {
-    const rows = [...element.querySelectorAll?.(":scope > thead > tr, :scope > tbody > tr, :scope > tr, :scope > tfoot > tr") || []]
-      .filter((row) => getTagName(row) === "TR");
+    const rows = [
+      ...(element.querySelectorAll?.(
+        ":scope > thead > tr, :scope > tbody > tr, :scope > tr, :scope > tfoot > tr"
+      ) || [])
+    ].filter((row) => getTagName(row) === "TR");
 
     if (!rows.length) {
       return "";
     }
 
-    const renderedRows = rows.map((row) => {
-      return [...row.children]
-        .filter((cell) => ["TD", "TH"].includes(getTagName(cell)) && !isHiddenElement(cell))
-        .map((cell) => renderTableCell(cell, context));
-    }).filter((cells) => cells.length);
+    const renderedRows = rows
+      .map((row) => {
+        return [...row.children]
+          .filter((cell) => ["TD", "TH"].includes(getTagName(cell)) && !isHiddenElement(cell))
+          .map((cell) => renderTableCell(cell, context));
+      })
+      .filter((cells) => cells.length);
 
     if (!renderedRows.length) {
       return "";
@@ -1613,10 +1740,7 @@
 
     const headerRow = normalizedRows[0];
     const separatorRow = headerRow.map(() => "---");
-    const tableLines = [
-      `| ${headerRow.join(" | ")} |`,
-      `| ${separatorRow.join(" | ")} |`
-    ];
+    const tableLines = [`| ${headerRow.join(" | ")} |`, `| ${separatorRow.join(" | ")} |`];
 
     normalizedRows.slice(1).forEach((row) => {
       tableLines.push(`| ${row.join(" | ")} |`);
@@ -1640,7 +1764,10 @@
 
     const tagName = getTagName(element);
 
-    if (tagName === "LABEL" && (element.getAttribute?.("for") || element.querySelector?.("input, textarea, select, button"))) {
+    if (
+      tagName === "LABEL" &&
+      (element.getAttribute?.("for") || element.querySelector?.("input, textarea, select, button"))
+    ) {
       return "";
     }
 
@@ -1883,9 +2010,17 @@
     const parser = new globalThis.DOMParser();
     const captureContext = createCaptureContext(payload);
     try {
-      if (selectors.length && documentSnapshot?.targets && typeof documentSnapshot.targets === "object") {
+      if (
+        selectors.length &&
+        documentSnapshot?.targets &&
+        typeof documentSnapshot.targets === "object"
+      ) {
         selectors.forEach((selector) => {
-          snapshot[selector] = renderSnapshotFragment(documentSnapshot.targets?.[selector] || "", captureContext, parser);
+          snapshot[selector] = renderSnapshotFragment(
+            documentSnapshot.targets?.[selector] || "",
+            captureContext,
+            parser
+          );
         });
 
         state.captureId += 1;
@@ -1896,7 +2031,10 @@
         return snapshot;
       }
 
-      const parsedDocument = parser.parseFromString(String(documentSnapshot?.html || ""), "text/html");
+      const parsedDocument = parser.parseFromString(
+        String(documentSnapshot?.html || ""),
+        "text/html"
+      );
       const resolvedTargets = resolveSelectorTargets(payload, parsedDocument);
 
       resolvedTargets.items.forEach((item) => {
@@ -1942,9 +2080,10 @@
   }
 
   function detailLive(entry) {
-    const liveState = entry.connected && entry.element
-      ? collectElementStateMetadata(entry.element, state.captureOptions)
-      : entry.state || collectElementStateMetadata(null);
+    const liveState =
+      entry.connected && entry.element
+        ? collectElementStateMetadata(entry.element, state.captureOptions)
+        : entry.state || collectElementStateMetadata(null);
     return {
       captureId: state.captureId,
       capturedAt: state.capturedAt,
@@ -1972,13 +2111,17 @@
         captureId: state.captureId,
         capturedAt: state.capturedAt,
         connected: resolvedDetail?.connected !== false,
-        descriptorTags: Array.isArray(resolvedDetail?.descriptorTags) ? resolvedDetail.descriptorTags : (entry.descriptorTags || []),
+        descriptorTags: Array.isArray(resolvedDetail?.descriptorTags)
+          ? resolvedDetail.descriptorTags
+          : entry.descriptorTags || [],
         dom: String(resolvedDetail?.dom || entry.dom || ""),
         frameChain: entry.frameChain.slice(),
         frameId: entry.frameId,
         nodeId: entry.nodeId,
         referenceId: entry.referenceId,
-        semanticTags: Array.isArray(resolvedDetail?.semanticTags) ? resolvedDetail.semanticTags : (entry.semanticTags || []),
+        semanticTags: Array.isArray(resolvedDetail?.semanticTags)
+          ? resolvedDetail.semanticTags
+          : entry.semanticTags || [],
         state: resolvedDetail?.state || entry.state || collectElementStateMetadata(null),
         summary: entry.summary,
         tagName: String(resolvedDetail?.tagName || entry.tagName || "")
@@ -2110,13 +2253,18 @@
     const tagName = getTagName(element).toLowerCase();
     const id = normalizeAttributeText(element.getAttribute?.("id"));
     const name = normalizeAttributeText(element.getAttribute?.("name"));
-    const label = truncateText(getLabelText(element, {
-      includeAlt: false,
-      includeDescendantImageAlt: true,
-      includePlaceholder: false,
-      includeText: false
-    }), 48);
-    return [tagName, id ? `#${id}` : "", name ? `name=${name}` : "", label].filter(Boolean).join(" ");
+    const label = truncateText(
+      getLabelText(element, {
+        includeAlt: false,
+        includeDescendantImageAlt: true,
+        includePlaceholder: false,
+        includeText: false
+      }),
+      48
+    );
+    return [tagName, id ? `#${id}` : "", name ? `name=${name}` : "", label]
+      .filter(Boolean)
+      .join(" ");
   }
 
   function getActionObservationRoot(element) {
@@ -2124,9 +2272,13 @@
       return globalThis.document?.body || globalThis.document?.documentElement || null;
     }
 
-    return element.closest?.("form, fieldset, dialog, [role='dialog'], [role='alert'], [role='status'], [aria-live], article, section, main, li, tr, td, th")
-      || element.parentElement
-      || element;
+    return (
+      element.closest?.(
+        "form, fieldset, dialog, [role='dialog'], [role='alert'], [role='status'], [aria-live], article, section, main, li, tr, td, th"
+      ) ||
+      element.parentElement ||
+      element
+    );
   }
 
   function getElementDirectText(element) {
@@ -2156,9 +2308,10 @@
 
       const role = normalizeText(element.getAttribute?.("role")).toLowerCase();
       const directText = getElementDirectText(element);
-      const fallbackText = ["alert", "status"].includes(role) || element.hasAttribute?.("aria-live")
-        ? getElementText(element)
-        : "";
+      const fallbackText =
+        ["alert", "status"].includes(role) || element.hasAttribute?.("aria-live")
+          ? getElementText(element)
+          : "";
       const text = truncateText(directText || fallbackText, 220);
       if (!text) {
         return;
@@ -2182,7 +2335,10 @@
     };
 
     acceptElement(root);
-    const walker = globalThis.document?.createTreeWalker?.(root, globalThis.NodeFilter?.SHOW_ELEMENT ?? 1);
+    const walker = globalThis.document?.createTreeWalker?.(
+      root,
+      globalThis.NodeFilter?.SHOW_ELEMENT ?? 1
+    );
     if (!walker) {
       return entries;
     }
@@ -2212,14 +2368,15 @@
     };
   }
 
-  async function waitForObservedActionWindow(observationRoot, {
-    quietMs = 40,
-    timeoutMs = 180
-  } = {}) {
-    const target = observationRoot?.ownerDocument?.body
-      || observationRoot?.ownerDocument?.documentElement
-      || globalThis.document?.body
-      || globalThis.document?.documentElement;
+  async function waitForObservedActionWindow(
+    observationRoot,
+    { quietMs = 40, timeoutMs = 180 } = {}
+  ) {
+    const target =
+      observationRoot?.ownerDocument?.body ||
+      observationRoot?.ownerDocument?.documentElement ||
+      globalThis.document?.body ||
+      globalThis.document?.documentElement;
     if (!target || typeof globalThis.MutationObserver !== "function") {
       await delayMs(timeoutMs);
       return {
@@ -2266,10 +2423,11 @@
   }
 
   async function withObservedActionWindow(observationRoot, action, options = {}) {
-    const target = observationRoot?.ownerDocument?.body
-      || observationRoot?.ownerDocument?.documentElement
-      || globalThis.document?.body
-      || globalThis.document?.documentElement;
+    const target =
+      observationRoot?.ownerDocument?.body ||
+      observationRoot?.ownerDocument?.documentElement ||
+      globalThis.document?.body ||
+      globalThis.document?.documentElement;
     if (!target || typeof globalThis.MutationObserver !== "function") {
       const result = await action();
       const observedMutations = await waitForObservedActionWindow(observationRoot, options);
@@ -2327,27 +2485,43 @@
     return beforeValue !== afterValue;
   }
 
-  function buildActionEffectResult(entry, beforeSnapshot, afterSnapshot, observedMutations, extra = {}) {
+  function buildActionEffectResult(
+    entry,
+    beforeSnapshot,
+    afterSnapshot,
+    observedMutations,
+    extra = {}
+  ) {
     const newTextEntries = afterSnapshot.textEntries.filter((entryData) => {
       return !beforeSnapshot.textEntries.some((beforeEntry) => beforeEntry.text === entryData.text);
     });
     const validationEntries = newTextEntries.filter((entryData) => {
-      return entryData.invalid
-        || ["alert", "status"].includes(entryData.role)
-        || ["error", "warning"].includes(entryData.semanticTone);
+      return (
+        entryData.invalid ||
+        ["alert", "status"].includes(entryData.role) ||
+        ["error", "warning"].includes(entryData.semanticTone)
+      );
     });
     const focusChanged = beforeSnapshot.activeElement !== afterSnapshot.activeElement;
     const nearbyTextChanged = beforeSnapshot.observationText !== afterSnapshot.observationText;
     const valueChanged = beforeSnapshot.value !== afterSnapshot.value;
     const checkedChanged = beforeSnapshot.targetState.checked !== afterSnapshot.targetState.checked;
-    const selectedChanged = beforeSnapshot.targetState.selected !== afterSnapshot.targetState.selected;
-    const expandedChanged = beforeSnapshot.targetState.expanded !== afterSnapshot.targetState.expanded;
+    const selectedChanged =
+      beforeSnapshot.targetState.selected !== afterSnapshot.targetState.selected;
+    const expandedChanged =
+      beforeSnapshot.targetState.expanded !== afterSnapshot.targetState.expanded;
     const pressedChanged = beforeSnapshot.targetState.pressed !== afterSnapshot.targetState.pressed;
-    const descriptorChanged = compareDescriptorTags(beforeSnapshot.targetState.descriptorTags, afterSnapshot.targetState.descriptorTags);
+    const descriptorChanged = compareDescriptorTags(
+      beforeSnapshot.targetState.descriptorTags,
+      afterSnapshot.targetState.descriptorTags
+    );
     const targetDomChanged = beforeSnapshot.targetDom !== afterSnapshot.targetDom;
-    const domChanged = Boolean(observedMutations.mutationCount) || targetDomChanged || nearbyTextChanged;
+    const domChanged =
+      Boolean(observedMutations.mutationCount) || targetDomChanged || nearbyTextChanged;
     const status = {
-      alertTextAdded: newTextEntries.some((entryData) => ["alert", "status"].includes(entryData.role)),
+      alertTextAdded: newTextEntries.some((entryData) =>
+        ["alert", "status"].includes(entryData.role)
+      ),
       checkedChanged,
       descriptorChanged,
       domChanged,
@@ -2357,12 +2531,21 @@
       pressedChanged,
       reacted: false,
       selectedChanged,
-      targetChanged: descriptorChanged || targetDomChanged || valueChanged || checkedChanged || selectedChanged || expandedChanged || pressedChanged,
+      targetChanged:
+        descriptorChanged ||
+        targetDomChanged ||
+        valueChanged ||
+        checkedChanged ||
+        selectedChanged ||
+        expandedChanged ||
+        pressedChanged,
       targetDomChanged,
       valueChanged,
       validationTextAdded: validationEntries.length > 0
     };
-    status.reacted = Object.entries(status).some(([key, value]) => key !== "reacted" && value === true);
+    status.reacted = Object.entries(status).some(
+      ([key, value]) => key !== "reacted" && value === true
+    );
     status.noObservedEffect = !status.reacted;
 
     return {
@@ -2372,7 +2555,9 @@
         mutationAttributes: observedMutations.attributeNames.slice(0, 8),
         mutationCount: observedMutations.mutationCount,
         newText: newTextEntries.map((entryData) => entryData.text).slice(0, 3),
-        semanticHints: [...new Set(newTextEntries.map((entryData) => entryData.semanticTone).filter(Boolean))].slice(0, 3),
+        semanticHints: [
+          ...new Set(newTextEntries.map((entryData) => entryData.semanticTone).filter(Boolean))
+        ].slice(0, 3),
         validationText: validationEntries.map((entryData) => entryData.text).slice(0, 3)
       },
       semanticTags: afterSnapshot.targetState.semanticTags.slice(),
@@ -2397,12 +2582,16 @@
   function buildHelperBackedActionResult(entry, helperResult, extra = {}) {
     return {
       captureId: state.captureId,
-      descriptorTags: Array.isArray(helperResult?.descriptorTags) ? helperResult.descriptorTags : (entry.descriptorTags || []),
+      descriptorTags: Array.isArray(helperResult?.descriptorTags)
+        ? helperResult.descriptorTags
+        : entry.descriptorTags || [],
       frameChain: entry.frameChain.slice(),
       frameId: entry.frameId,
       nodeId: entry.nodeId,
       referenceId: entry.referenceId,
-      semanticTags: Array.isArray(helperResult?.semanticTags) ? helperResult.semanticTags : (entry.semanticTags || []),
+      semanticTags: Array.isArray(helperResult?.semanticTags)
+        ? helperResult.semanticTags
+        : entry.semanticTags || [],
       state: helperResult?.state || entry.state || collectElementStateMetadata(null),
       summary: entry.summary,
       tagName: String(helperResult?.tagName || entry.tagName || ""),
@@ -2440,7 +2629,9 @@
       });
     });
 
-    mergedStatus.reacted = Object.entries(mergedStatus).some(([key, value]) => key !== "reacted" && key !== "noObservedEffect" && value === true);
+    mergedStatus.reacted = Object.entries(mergedStatus).some(
+      ([key, value]) => key !== "reacted" && key !== "noObservedEffect" && value === true
+    );
     mergedStatus.noObservedEffect = !mergedStatus.reacted;
     return {
       effect: mergedEffect,
@@ -2449,9 +2640,8 @@
   }
 
   function dispatchDomEvent(target, eventName, EventType = "Event", options = {}) {
-    const EventConstructor = typeof globalThis[EventType] === "function"
-      ? globalThis[EventType]
-      : globalThis.Event;
+    const EventConstructor =
+      typeof globalThis[EventType] === "function" ? globalThis[EventType] : globalThis.Event;
     const event = new EventConstructor(eventName, {
       bubbles: true,
       cancelable: true,
@@ -2463,9 +2653,8 @@
   }
 
   function dispatchKeyboardEvent(target, eventName, options = {}) {
-    const KeyboardEventConstructor = typeof globalThis.KeyboardEvent === "function"
-      ? globalThis.KeyboardEvent
-      : globalThis.Event;
+    const KeyboardEventConstructor =
+      typeof globalThis.KeyboardEvent === "function" ? globalThis.KeyboardEvent : globalThis.Event;
     const event = new KeyboardEventConstructor(eventName, {
       bubbles: true,
       cancelable: true,
@@ -2502,7 +2691,10 @@
     const normalizedValue = String(nextValue ?? "");
 
     if (tagName === "INPUT") {
-      const descriptor = Object.getOwnPropertyDescriptor(globalThis.HTMLInputElement?.prototype || {}, "value");
+      const descriptor = Object.getOwnPropertyDescriptor(
+        globalThis.HTMLInputElement?.prototype || {},
+        "value"
+      );
       if (typeof descriptor?.set === "function") {
         descriptor.set.call(element, normalizedValue);
       } else {
@@ -2512,7 +2704,10 @@
     }
 
     if (tagName === "TEXTAREA") {
-      const descriptor = Object.getOwnPropertyDescriptor(globalThis.HTMLTextAreaElement?.prototype || {}, "value");
+      const descriptor = Object.getOwnPropertyDescriptor(
+        globalThis.HTMLTextAreaElement?.prototype || {},
+        "value"
+      );
       if (typeof descriptor?.set === "function") {
         descriptor.set.call(element, normalizedValue);
       } else {
@@ -2523,13 +2718,18 @@
 
     if (tagName === "SELECT") {
       const matchedOption = [...(element.options || [])].find((option) => {
-        return option.value === normalizedValue
-          || normalizeText(option.textContent || "") === normalizeText(normalizedValue)
-          || normalizeText(option.label || "") === normalizeText(normalizedValue);
+        return (
+          option.value === normalizedValue ||
+          normalizeText(option.textContent || "") === normalizeText(normalizedValue) ||
+          normalizeText(option.label || "") === normalizeText(normalizedValue)
+        );
       });
 
       const resolvedValue = matchedOption ? matchedOption.value : normalizedValue;
-      const descriptor = Object.getOwnPropertyDescriptor(globalThis.HTMLSelectElement?.prototype || {}, "value");
+      const descriptor = Object.getOwnPropertyDescriptor(
+        globalThis.HTMLSelectElement?.prototype || {},
+        "value"
+      );
       if (typeof descriptor?.set === "function") {
         descriptor.set.call(element, resolvedValue);
       } else {
@@ -2570,37 +2770,42 @@
     const element = entry.element;
     const beforeSnapshot = captureActionEffectSnapshot(element);
 
-    const {
-      result: appliedValue,
-      observedMutations
-    } = await withObservedActionWindow(beforeSnapshot.observationRoot, async () => {
-      scrollElementIntoView(element);
-      focusElement(element);
-      const nextValue = setNativeValue(element, value);
+    const { result: appliedValue, observedMutations } = await withObservedActionWindow(
+      beforeSnapshot.observationRoot,
+      async () => {
+        scrollElementIntoView(element);
+        focusElement(element);
+        const nextValue = setNativeValue(element, value);
 
-      if (typeof element.setSelectionRange === "function") {
-        try {
-          element.setSelectionRange(String(nextValue).length, String(nextValue).length);
-        } catch {
-          // Ignore selection errors for unsupported input types.
+        if (typeof element.setSelectionRange === "function") {
+          try {
+            element.setSelectionRange(String(nextValue).length, String(nextValue).length);
+          } catch {
+            // Ignore selection errors for unsupported input types.
+          }
         }
-      }
 
-      dispatchDomEvent(element, "beforeinput", "InputEvent", {
-        data: String(value ?? ""),
-        inputType: "insertText"
-      });
-      dispatchDomEvent(element, "input", "InputEvent", {
-        data: String(value ?? ""),
-        inputType: "insertText"
-      });
-      dispatchDomEvent(element, "change");
-      return nextValue;
-    });
+        dispatchDomEvent(element, "beforeinput", "InputEvent", {
+          data: String(value ?? ""),
+          inputType: "insertText"
+        });
+        dispatchDomEvent(element, "input", "InputEvent", {
+          data: String(value ?? ""),
+          inputType: "insertText"
+        });
+        dispatchDomEvent(element, "change");
+        return nextValue;
+      }
+    );
 
     refreshReferenceEntry(entry);
     return buildActionResult(entry, {
-      ...buildActionEffectResult(entry, beforeSnapshot, captureActionEffectSnapshot(element), observedMutations),
+      ...buildActionEffectResult(
+        entry,
+        beforeSnapshot,
+        captureActionEffectSnapshot(element),
+        observedMutations
+      ),
       value: appliedValue
     });
   }
@@ -2635,25 +2840,29 @@
       );
     }
 
-    const {
-      observedMutations
-    } = await withObservedActionWindow(beforeSnapshot.observationRoot, async () => {
-      if (typeof element.click === "function") {
-        element.click();
-      } else {
-        dispatchDomEvent(element, "click", "MouseEvent", {
-          button: 0
-        });
+    const { observedMutations } = await withObservedActionWindow(
+      beforeSnapshot.observationRoot,
+      async () => {
+        if (typeof element.click === "function") {
+          element.click();
+        } else {
+          dispatchDomEvent(element, "click", "MouseEvent", {
+            button: 0
+          });
+        }
       }
-    });
+    );
 
     refreshReferenceEntry(entry);
-    return buildActionResult(entry, buildActionEffectResult(
+    return buildActionResult(
       entry,
-      beforeSnapshot,
-      captureActionEffectSnapshot(element),
-      observedMutations
-    ));
+      buildActionEffectResult(
+        entry,
+        beforeSnapshot,
+        captureActionEffectSnapshot(element),
+        observedMutations
+      )
+    );
   }
 
   async function submitElement(referenceId) {
@@ -2674,52 +2883,56 @@
     const tagName = getTagName(element);
     const beforeSnapshot = captureActionEffectSnapshot(element);
 
-    const {
-      observedMutations
-    } = await withObservedActionWindow(beforeSnapshot.observationRoot, async () => {
-      scrollElementIntoView(element);
-      focusElement(element);
+    const { observedMutations } = await withObservedActionWindow(
+      beforeSnapshot.observationRoot,
+      async () => {
+        scrollElementIntoView(element);
+        focusElement(element);
 
-      if (tagName === "FORM") {
-        if (typeof element.requestSubmit === "function") {
-          element.requestSubmit();
-        } else {
-          const submitEvent = dispatchDomEvent(element, "submit");
+        if (tagName === "FORM") {
+          if (typeof element.requestSubmit === "function") {
+            element.requestSubmit();
+          } else {
+            const submitEvent = dispatchDomEvent(element, "submit");
+            if (!submitEvent.defaultPrevented) {
+              element.submit?.();
+            }
+          }
+        } else if (typeof element.form?.requestSubmit === "function") {
+          if (tagName === "BUTTON" || tagName === "INPUT") {
+            element.form.requestSubmit(element);
+          } else {
+            element.form.requestSubmit();
+          }
+        } else if (element.form) {
+          const submitEvent = dispatchDomEvent(element.form, "submit");
           if (!submitEvent.defaultPrevented) {
-            element.submit?.();
+            element.form.submit?.();
           }
-        }
-      } else if (typeof element.form?.requestSubmit === "function") {
-        if (tagName === "BUTTON" || tagName === "INPUT") {
-          element.form.requestSubmit(element);
+        } else if (typeof element.click === "function") {
+          element.click();
         } else {
-          element.form.requestSubmit();
+          throw createNamedError(
+            "BrowserPageContentActionError",
+            `Browser page content cannot submit reference "${entry.referenceId}".`,
+            {
+              code: "browser_page_content_submit_unsupported"
+            }
+          );
         }
-      } else if (element.form) {
-        const submitEvent = dispatchDomEvent(element.form, "submit");
-        if (!submitEvent.defaultPrevented) {
-          element.form.submit?.();
-        }
-      } else if (typeof element.click === "function") {
-        element.click();
-      } else {
-        throw createNamedError(
-          "BrowserPageContentActionError",
-          `Browser page content cannot submit reference "${entry.referenceId}".`,
-          {
-            code: "browser_page_content_submit_unsupported"
-          }
-        );
       }
-    });
+    );
 
     refreshReferenceEntry(entry);
-    return buildActionResult(entry, buildActionEffectResult(
+    return buildActionResult(
       entry,
-      beforeSnapshot,
-      captureActionEffectSnapshot(element),
-      observedMutations
-    ));
+      buildActionEffectResult(
+        entry,
+        beforeSnapshot,
+        captureActionEffectSnapshot(element),
+        observedMutations
+      )
+    );
   }
 
   function shouldEnterSubmitForm(element) {
@@ -2728,7 +2941,9 @@
       return false;
     }
 
-    const inputType = String(element.getAttribute?.("type") || element.type || "text").toLowerCase();
+    const inputType = String(
+      element.getAttribute?.("type") || element.type || "text"
+    ).toLowerCase();
     return ![
       "button",
       "checkbox",
@@ -2760,52 +2975,56 @@
     const element = entry.element;
     const beforeSnapshot = captureActionEffectSnapshot(element);
 
-    const {
-      observedMutations
-    } = await withObservedActionWindow(beforeSnapshot.observationRoot, async () => {
-      scrollElementIntoView(element);
-      focusElement(element);
+    const { observedMutations } = await withObservedActionWindow(
+      beforeSnapshot.observationRoot,
+      async () => {
+        scrollElementIntoView(element);
+        focusElement(element);
 
-      const keydownEvent = dispatchKeyboardEvent(element, "keydown", {
-        charCode: 0,
-        keyCode: 13,
-        which: 13
-      });
-      const keypressEvent = dispatchKeyboardEvent(element, "keypress", {
-        charCode: 13,
-        keyCode: 13,
-        which: 13
-      });
-      const keyupEvent = dispatchKeyboardEvent(element, "keyup", {
-        charCode: 0,
-        keyCode: 13,
-        which: 13
-      });
+        const keydownEvent = dispatchKeyboardEvent(element, "keydown", {
+          charCode: 0,
+          keyCode: 13,
+          which: 13
+        });
+        const keypressEvent = dispatchKeyboardEvent(element, "keypress", {
+          charCode: 13,
+          keyCode: 13,
+          which: 13
+        });
+        const keyupEvent = dispatchKeyboardEvent(element, "keyup", {
+          charCode: 0,
+          keyCode: 13,
+          which: 13
+        });
 
-      if (
-        !keydownEvent.defaultPrevented
-        && !keypressEvent.defaultPrevented
-        && !keyupEvent.defaultPrevented
-        && shouldEnterSubmitForm(element)
-      ) {
-        if (typeof element.form?.requestSubmit === "function") {
-          element.form.requestSubmit();
-        } else if (element.form) {
-          const submitEvent = dispatchDomEvent(element.form, "submit");
-          if (!submitEvent.defaultPrevented) {
-            element.form.submit?.();
+        if (
+          !keydownEvent.defaultPrevented &&
+          !keypressEvent.defaultPrevented &&
+          !keyupEvent.defaultPrevented &&
+          shouldEnterSubmitForm(element)
+        ) {
+          if (typeof element.form?.requestSubmit === "function") {
+            element.form.requestSubmit();
+          } else if (element.form) {
+            const submitEvent = dispatchDomEvent(element.form, "submit");
+            if (!submitEvent.defaultPrevented) {
+              element.form.submit?.();
+            }
           }
         }
       }
-    });
+    );
 
     refreshReferenceEntry(entry);
-    return buildActionResult(entry, buildActionEffectResult(
+    return buildActionResult(
       entry,
-      beforeSnapshot,
-      captureActionEffectSnapshot(element),
-      observedMutations
-    ));
+      buildActionEffectResult(
+        entry,
+        beforeSnapshot,
+        captureActionEffectSnapshot(element),
+        observedMutations
+      )
+    );
   }
 
   async function typeAndSubmit(referenceId, value) {

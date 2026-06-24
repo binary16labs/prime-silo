@@ -57,7 +57,11 @@ function readBooleanOption(context, name) {
     return rawValue;
   }
 
-  return ["1", "true", "yes", "on"].includes(String(rawValue || "").trim().toLowerCase());
+  return ["1", "true", "yes", "on"].includes(
+    String(rawValue || "")
+      .trim()
+      .toLowerCase()
+  );
 }
 
 async function handleFilePaths(context) {
@@ -79,7 +83,10 @@ async function handleFilePaths(context) {
       watchdog: context.watchdog
     });
   } catch (error) {
-    throw createHttpError(error.message || "File path lookup failed.", Number(error.statusCode) || 500);
+    throw createHttpError(
+      error.message || "File path lookup failed.",
+      Number(error.statusCode) || 500
+    );
   }
 }
 

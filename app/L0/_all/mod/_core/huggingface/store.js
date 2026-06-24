@@ -187,11 +187,13 @@ const model = {
   },
 
   handleLoadModel(overrides = {}) {
-    void manager.loadModel({
-      dtype: overrides.dtype ?? this.selectedDtype,
-      maxNewTokens: overrides.maxNewTokens ?? this.maxNewTokens,
-      modelInput: overrides.modelInput ?? this.modelInput
-    }).catch(() => {});
+    void manager
+      .loadModel({
+        dtype: overrides.dtype ?? this.selectedDtype,
+        maxNewTokens: overrides.maxNewTokens ?? this.maxNewTokens,
+        modelInput: overrides.modelInput ?? this.modelInput
+      })
+      .catch(() => {});
   },
 
   handleSavedModelAction(entry = {}) {

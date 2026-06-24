@@ -110,7 +110,9 @@ window.memoryPage = function memoryPage() {
 
     async inspectNode(nodeId) {
       try {
-        this.inspector = await readMemorayJson(await memorayFetch(`/entities/${encodeURIComponent(nodeId)}`));
+        this.inspector = await readMemorayJson(
+          await memorayFetch(`/entities/${encodeURIComponent(nodeId)}`)
+        );
       } catch {
         this.inspector = null;
       }
@@ -123,7 +125,9 @@ window.memoryPage = function memoryPage() {
         return;
       }
       try {
-        this.searchResults = await readMemorayJson(await memorayFetch(`/beta/search?q=${encodeURIComponent(q)}`));
+        this.searchResults = await readMemorayJson(
+          await memorayFetch(`/beta/search?q=${encodeURIComponent(q)}`)
+        );
       } catch {
         this.searchResults = null;
       }
@@ -145,11 +149,13 @@ window.memoryPage = function memoryPage() {
     async openFile(filePath) {
       if (!filePath) return;
       try {
-        await readMemorayJson(await memorayFetch("/files/open", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ filePath })
-        }));
+        await readMemorayJson(
+          await memorayFetch("/files/open", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ filePath })
+          })
+        );
       } catch {
         // Open is best-effort; memo-ray 403s paths outside the lineage.
       }
@@ -182,8 +188,10 @@ window.memoryPage = function memoryPage() {
     },
 
     destroy() {
-      if (this._cardsWidget && typeof this._cardsWidget.destroy === "function") this._cardsWidget.destroy();
-      if (this._graphWidget && typeof this._graphWidget.destroy === "function") this._graphWidget.destroy();
+      if (this._cardsWidget && typeof this._cardsWidget.destroy === "function")
+        this._cardsWidget.destroy();
+      if (this._graphWidget && typeof this._graphWidget.destroy === "function")
+        this._graphWidget.destroy();
       this._cardsWidget = null;
       this._graphWidget = null;
     }

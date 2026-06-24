@@ -2207,9 +2207,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Updating your full name to Pan Example now...\n_____javascript\nconst text = await space.api.fileRead(\"~/user.yaml\");\nconst data = space.utils.yaml.parse(text);\ndata.full_name = \"Pan Example\";\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(data));",
           "usage": {
@@ -2384,9 +2382,7 @@
           "case_path": "tests/agent_llm_performance/cases/repeat_do_it_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/repeat_do_it_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nconst widget = await space.current.readWidget(\"snake-game\");\nconst text = widget?.content ?? widget?.text ?? widget;\nlet src = String(text);\n\nconst replacements = [\n  [\n    /const\\s+SPEED\\s*=\\s*([^\\n;]+);/g,\n    'const SPEED = 140;'\n  ],\n  [\n    /setInterval\\(\\s*gameLoop\\s*,\\s*([^)\\n]+)\\s*\\)/g,\n    'requestAnimationFrame(gameLoop)'\n  ],\n  [\n    /function\\s+gameLoop\\s*\\(\\s*\\)\\s*\\{[\\s\\S]*?\\n\\}/g,\n    `function gameLoop() {\n  const now = performance.now();\n  if (!window.__snakeLast) window.__snakeLast = now;\n  const dt = now - window.__snakeLast;\n  if (!window.__snakeAnim) window.__snakeAnim = { progress: 1, from: null, to: null };\n  if (dt < SPEED) return;\n  window.__snakeLast = now;\n  stepSnake();\n  window.__snakeAnim.progress = 0;\n  requestAnimationFrame(animateFrame);\n}`\n  ],\n  [\n    /render\\(\\s*\\)\\s*;/g,\n    'animateFrame();'\n  ]\n];\n\nfor (const [pattern, replacement] of replacements) src = src.replace(pattern, replacement);\n\nif (!/function\\s+animateFrame\\s*\\(/.test(src)) {\n  src += `\n\nfunction animateFrame() {\n  const anim = window.__snakeAnim || { progress: 1 };\n  anim.progress = Math.min(1, (anim.progress ?? 0) + 0.2);\n  window.__snakeAnim = anim;\n  render();\n  if (anim.progress < 1) requestAnimationFrame(animateFrame);\n}\n\nfunction lerp(a, b, t) {\n  return a + (b - a) * t;\n}\n\nfunction drawSmoothSnake(ctx, cellSize, snake) {\n  const anim = window.__snakeAnim || { progress: 1 };\n  const t = anim.progress ?? 1;\n  const parts = snake.map((seg, i) => {\n    const prev = anim.from?.[i] ?? seg;\n    const next = anim.to?.[i] ?? seg;\n    return {\n      x: lerp(prev.x, next.x, t),\n      y: lerp(prev.y, next.y, t)\n    };\n  });\n  for (const p of parts) {\n    ctx.beginPath();\n    ctx.arc((p.x + 0.5) * cellSize, (p.y + 0.5) * cellSize, cellSize * 0.42, 0, Math.PI * 2);\n    ctx.fill();\n  }\n}\n`;\n}\n\nsrc = src.replace(\n  /function\\s+stepSnake\\s*\\(\\s*\\)\\s*\\{[\\s\\S]*?\\n\\}/g,\n  `function stepSnake() {\n  const anim = window.__snakeAnim || { progress: 1, from: null, to: null };\n  anim.from = snake.map(s => ({ ...s }));\n  const next = computeNextSnakeState();\n  anim.to = next.snake.map(s => ({ ...s }));\n  window.__snakeAnim = anim;\n  snake = next.snake;\n  food = next.food;\n  score = next.score;\n}`\n);\n\nsrc = src.replace(\n  /function\\s+render\\s*\\(\\s*\\)\\s*\\{[\\s\\S]*?\\n\\}/g,\n  `function render() {\n  ctx.clearRect(0, 0, canvas.width, canvas.height);\n  drawBoard();\n  drawFood();\n  drawSmoothSnake(ctx, cellSize, snake);\n  drawHud();\n}`\n);\n\nreturn await space.current.patchWidget(\"snake-game\", { edits: [{ oldText: text, newText: src }] });",
           "usage": {

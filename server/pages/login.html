@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -115,13 +115,23 @@
       }
 
       @keyframes login-fadein {
-        from { opacity: 0; }
-        to   { opacity: 1; }
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
       }
 
       @keyframes login-fadeup {
-        from { opacity: 0; transform: translateY(10px); }
-        to   { opacity: 1; transform: translateY(0); }
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       .intro-art {
@@ -194,8 +204,7 @@
         position: relative;
         z-index: 1;
         min-width: 0;
-        transform:
-          translate3d(var(--intro-title-float-x), var(--intro-title-float-y), 0)
+        transform: translate3d(var(--intro-title-float-x), var(--intro-title-float-y), 0)
           rotate(var(--intro-title-rotate));
         transform-origin: 52% 52%;
         will-change: transform;
@@ -218,8 +227,7 @@
         opacity: 0.94;
         pointer-events: none;
         user-select: none;
-        transform:
-          translate3d(var(--astronaut-float-x), var(--astronaut-float-y), 0)
+        transform: translate3d(var(--astronaut-float-x), var(--astronaut-float-y), 0)
           rotate(var(--astronaut-rotate));
         transform-origin: 52% 56%;
         will-change: transform;
@@ -627,7 +635,11 @@
 
       .run-action-primary {
         color: var(--color-accent-ink);
-        background: linear-gradient(135deg, var(--color-accent-primary-strong), var(--color-accent-secondary));
+        background: linear-gradient(
+          135deg,
+          var(--color-accent-primary-strong),
+          var(--color-accent-secondary)
+        );
         border-color: transparent;
       }
 
@@ -966,23 +978,25 @@
               />
             </label>
             <p id="field-note" class="field-note" hidden>
-            Guest account ready, save your credentials.
-            <span class="field-note-secondary">
-              <svg
-                class="field-note-warning-icon"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-                focusable="false"
-              >
-                <path
-                  d="M1 21h22L12 2 1 21Zm12-3h-2v-2h2v2Zm0-4h-2v-4h2v4Z"
-                  fill="currentColor"
-                />
-              </svg>
-              Guest accounts are temporary and may be removed any time.
-            </span>
+              Guest account ready, save your credentials.
+              <span class="field-note-secondary">
+                <svg
+                  class="field-note-warning-icon"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <path
+                    d="M1 21h22L12 2 1 21Zm12-3h-2v-2h2v2Zm0-4h-2v-4h2v4Z"
+                    fill="currentColor"
+                  />
+                </svg>
+                Guest accounts are temporary and may be removed any time.
+              </span>
             </p>
-            <button id="submit-button" class="secondary-button" type="submit">Enter your Space</button>
+            <button id="submit-button" class="secondary-button" type="submit">
+              Enter your Space
+            </button>
           </form>
           <div id="guest-option-group">
             <div class="login-separator">or</div>
@@ -991,9 +1005,7 @@
             </button>
           </div>
         </div>
-        <p id="login-disabled-copy" class="field-note" hidden>
-          Login is disabled in this system.
-        </p>
+        <p id="login-disabled-copy" class="field-note" hidden>Login is disabled in this system.</p>
         <div class="login-separator">or</div>
         <button
           id="run-options-button"
@@ -1114,8 +1126,8 @@
         </button>
         <h2 id="run-modal-title" class="run-modal-title">Run it yourself</h2>
         <p class="run-modal-subtitle">
-          For complete privacy and security, use the standalone application or host the
-          Space Agent server yourself. Both options include full extensibility and all features.
+          For complete privacy and security, use the standalone application or host the Space Agent
+          server yourself. Both options include full extensibility and all features.
         </p>
         <div class="run-choices">
           <section class="run-choice" aria-labelledby="run-native-title">
@@ -1124,7 +1136,10 @@
               Includes both the browser runtime and backend layer in one package.
             </p>
             <svg class="run-choice-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M20 18q.825 0 1.413-.587Q22 16.825 22 16V6q0-.825-.587-1.413Q20.825 4 20 4H4q-.825 0-1.413.587Q2 5.175 2 6v10q0 .825.587 1.413Q3.175 18 4 18H0v2h24v-2h-4ZM4 6h16v10H4V6Z" fill="currentColor" />
+              <path
+                d="M20 18q.825 0 1.413-.587Q22 16.825 22 16V6q0-.825-.587-1.413Q20.825 4 20 4H4q-.825 0-1.413.587Q2 5.175 2 6v10q0 .825.587 1.413Q3.175 18 4 18H0v2h24v-2h-4ZM4 6h16v10H4V6Z"
+                fill="currentColor"
+              />
             </svg>
             <a
               class="run-action-link run-action-primary"
@@ -1137,14 +1152,18 @@
                 <svg class="run-icon" viewBox="-1.5 0 20 20">
                   <g transform="translate(-102 -7439)" fill="currentColor">
                     <g transform="translate(56 160)">
-                      <path d="M57.5708873,7282.19296 C58.2999598,7281.34797 58.7914012,7280.17098 58.6569121,7279 C57.6062792,7279.04 56.3352055,7279.67099 55.5818643,7280.51498 C54.905374,7281.26397 54.3148354,7282.46095 54.4735932,7283.60894 C55.6455696,7283.69593 56.8418148,7283.03894 57.5708873,7282.19296 M60.1989864,7289.62485 C60.2283111,7292.65181 62.9696641,7293.65879 63,7293.67179 C62.9777537,7293.74279 62.562152,7295.10677 61.5560117,7296.51675 C60.6853718,7297.73474 59.7823735,7298.94772 58.3596204,7298.97372 C56.9621472,7298.99872 56.5121648,7298.17973 54.9134635,7298.17973 C53.3157735,7298.17973 52.8162425,7298.94772 51.4935978,7298.99872 C50.1203933,7299.04772 49.0738052,7297.68074 48.197098,7296.46676 C46.4032359,7293.98379 45.0330649,7289.44985 46.8734421,7286.3899 C47.7875635,7284.87092 49.4206455,7283.90793 51.1942837,7283.88393 C52.5422083,7283.85893 53.8153044,7284.75292 54.6394294,7284.75292 C55.4635543,7284.75292 57.0106846,7283.67793 58.6366882,7283.83593 C59.3172232,7283.86293 61.2283842,7284.09893 62.4549652,7285.8199 C62.355868,7285.8789 60.1747177,7287.09489 60.1989864,7289.62485" />
+                      <path
+                        d="M57.5708873,7282.19296 C58.2999598,7281.34797 58.7914012,7280.17098 58.6569121,7279 C57.6062792,7279.04 56.3352055,7279.67099 55.5818643,7280.51498 C54.905374,7281.26397 54.3148354,7282.46095 54.4735932,7283.60894 C55.6455696,7283.69593 56.8418148,7283.03894 57.5708873,7282.19296 M60.1989864,7289.62485 C60.2283111,7292.65181 62.9696641,7293.65879 63,7293.67179 C62.9777537,7293.74279 62.562152,7295.10677 61.5560117,7296.51675 C60.6853718,7297.73474 59.7823735,7298.94772 58.3596204,7298.97372 C56.9621472,7298.99872 56.5121648,7298.17973 54.9134635,7298.17973 C53.3157735,7298.17973 52.8162425,7298.94772 51.4935978,7298.99872 C50.1203933,7299.04772 49.0738052,7297.68074 48.197098,7296.46676 C46.4032359,7293.98379 45.0330649,7289.44985 46.8734421,7286.3899 C47.7875635,7284.87092 49.4206455,7283.90793 51.1942837,7283.88393 C52.5422083,7283.85893 53.8153044,7284.75292 54.6394294,7284.75292 C55.4635543,7284.75292 57.0106846,7283.67793 58.6366882,7283.83593 C59.3172232,7283.86293 61.2283842,7284.09893 62.4549652,7285.8199 C62.355868,7285.8789 60.1747177,7287.09489 60.1989864,7289.62485"
+                      />
                     </g>
                   </g>
                 </svg>
                 <svg class="run-icon" viewBox="0 0 20 20">
                   <g transform="translate(-60 -7439)" fill="currentColor">
                     <g transform="translate(56 160)">
-                      <path d="M13.1458647,7289.43426 C13.1508772,7291.43316 13.1568922,7294.82929 13.1619048,7297.46884 C16.7759398,7297.95757 20.3899749,7298.4613 23.997995,7299 C23.997995,7295.84873 24.002005,7292.71146 23.997995,7289.71311 C20.3809524,7289.71311 16.7649123,7289.43426 13.1458647,7289.43426 M4,7289.43526 L4,7296.22153 C6.72581454,7296.58933 9.45162907,7296.94113 12.1724311,7297.34291 C12.1774436,7294.71736 12.1704261,7292.0908 12.1704261,7289.46524 C9.44661654,7289.47024 6.72380952,7289.42627 4,7289.43526 M4,7281.84344 L4,7288.61071 C6.72581454,7288.61771 9.45162907,7288.57673 12.1774436,7288.57973 C12.1754386,7285.96017 12.1754386,7283.34361 12.1724311,7280.72405 C9.44461153,7281.06486 6.71679198,7281.42567 4,7281.84344 M24,7288.47179 C20.3879699,7288.48578 16.7759398,7288.54075 13.1619048,7288.55175 C13.1598997,7285.88921 13.1598997,7283.22967 13.1619048,7280.56914 C16.7689223,7280.01844 20.3839599,7279.50072 23.997995,7279 C24,7282.15826 23.997995,7285.31353 24,7288.47179" />
+                      <path
+                        d="M13.1458647,7289.43426 C13.1508772,7291.43316 13.1568922,7294.82929 13.1619048,7297.46884 C16.7759398,7297.95757 20.3899749,7298.4613 23.997995,7299 C23.997995,7295.84873 24.002005,7292.71146 23.997995,7289.71311 C20.3809524,7289.71311 16.7649123,7289.43426 13.1458647,7289.43426 M4,7289.43526 L4,7296.22153 C6.72581454,7296.58933 9.45162907,7296.94113 12.1724311,7297.34291 C12.1774436,7294.71736 12.1704261,7292.0908 12.1704261,7289.46524 C9.44661654,7289.47024 6.72380952,7289.42627 4,7289.43526 M4,7281.84344 L4,7288.61071 C6.72581454,7288.61771 9.45162907,7288.57673 12.1774436,7288.57973 C12.1754386,7285.96017 12.1754386,7283.34361 12.1724311,7280.72405 C9.44461153,7281.06486 6.71679198,7281.42567 4,7281.84344 M24,7288.47179 C20.3879699,7288.48578 16.7759398,7288.54075 13.1619048,7288.55175 C13.1598997,7285.88921 13.1598997,7283.22967 13.1619048,7280.56914 C16.7689223,7280.01844 20.3839599,7279.50072 23.997995,7279 C24,7282.15826 23.997995,7285.31353 24,7288.47179"
+                      />
                     </g>
                   </g>
                 </svg>
@@ -1163,7 +1182,10 @@
               Designed for multi-user setups, including group management.
             </p>
             <svg class="run-choice-icon" viewBox="0 -960 960 960" aria-hidden="true">
-              <path d="M300-720q-25 0-42.5 17.5T240-660q0 25 17.5 42.5T300-600q25 0 42.5-17.5T360-660q0-25-17.5-42.5T300-720Zm0 400q-25 0-42.5 17.5T240-260q0 25 17.5 42.5T300-200q25 0 42.5-17.5T360-260q0-25-17.5-42.5T300-320ZM160-840h640q17 0 28.5 11.5T840-800v280q0 17-11.5 28.5T800-480H160q-17 0-28.5-11.5T120-520v-280q0-17 11.5-28.5T160-840Zm40 80v200h560v-200H200Zm-40 320h640q17 0 28.5 11.5T840-400v280q0 17-11.5 28.5T800-80H160q-17 0-28.5-11.5T120-120v-280q0-17 11.5-28.5T160-440Zm40 80v200h560v-200H200Zm0-400v200-200Zm0 400v200-200Z" fill="currentColor" />
+              <path
+                d="M300-720q-25 0-42.5 17.5T240-660q0 25 17.5 42.5T300-600q25 0 42.5-17.5T360-660q0-25-17.5-42.5T300-720Zm0 400q-25 0-42.5 17.5T240-260q0 25 17.5 42.5T300-200q25 0 42.5-17.5T360-260q0-25-17.5-42.5T300-320ZM160-840h640q17 0 28.5 11.5T840-800v280q0 17-11.5 28.5T800-480H160q-17 0-28.5-11.5T120-520v-280q0-17 11.5-28.5T160-840Zm40 80v200h560v-200H200Zm-40 320h640q17 0 28.5 11.5T840-400v280q0 17-11.5 28.5T800-80H160q-17 0-28.5-11.5T120-120v-280q0-17 11.5-28.5T160-440Zm40 80v200h560v-200H200Zm0-400v200-200Zm0 400v200-200Z"
+                fill="currentColor"
+              />
             </svg>
             <a
               class="run-action-link"
@@ -1223,752 +1245,786 @@
             return;
           }
 
-      const ENTER_TAB_ACCESS_KEY = "space.enter.tab-access";
-      const LOGIN_PREFIX = "space-login-v1";
-      const CLIENT_KEY_LABEL = "Client Key";
-      const SERVER_KEY_LABEL = "Server Key";
-      const TAU = Math.PI * 2;
-      // Tune the title and astronaut independently here when the login shell motion needs retuning.
-      const TITLE_FLOAT_PARAMS = Object.freeze({
-        movementDistance: 1.5,
-        movementSpeed: 1.5,
-        rotationDistance: 1.5,
-        rotationSpeed: 1.5
-      });
-      const FRONTEND_CONFIG_META_NAME = "space-config";
-      // Change this one float to shift the astronaut's starting pose, drift direction, and pace.
-      const ASTRONAUT_FLOAT_VARIANT = 0.5;
-      const ASTRONAUT_FLOAT_PARAMS = Object.freeze({
-        movementDistance: 3,
-        movementSpeed: 0.9,
-        rotationDistance: 0.6,
-        rotationSpeed: 0.45
-      });
-      const astronautOrbitOffsetTurns = positiveModulo(ASTRONAUT_FLOAT_VARIANT, 1);
-      const astronautRotationOffsetTurns = positiveModulo(ASTRONAUT_FLOAT_VARIANT * 1.61803398875, 1);
-      const astronautOrbitDirection = positiveModulo(ASTRONAUT_FLOAT_VARIANT, 2) < 1 ? 1 : -1;
-      const astronautRotationDirection =
-        positiveModulo(ASTRONAUT_FLOAT_VARIANT * 0.73, 2) < 1 ? 1 : -1;
-      const astronautSpeedMultiplier = 0.82 + (positiveModulo(ASTRONAUT_FLOAT_VARIANT * 2.37, 1) * 0.56);
-      const TITLE_FLOAT_PROFILE = buildFloatProfile(
-        Object.freeze({
-          orbitPeriodMs: 11800,
-          rotationAmplitude: 4.5,
-          rotationPeriodMs: 16200,
-          xRadius: 6.6,
-          yRadius: 7.4
-        }),
-        TITLE_FLOAT_PARAMS
-      );
-      const ASTRONAUT_FLOAT_PROFILE = buildFloatProfile(
-        Object.freeze({
-          orbitPeriodMs: 12400,
-          rotationAmplitude: 100,
-          rotationLimitEnabled: false,
-          rotationMaxDeg: 30,
-          rotationPeriodMs: 17600,
-          xRadius: 7.2,
-          yRadius: 8.2
-        }),
-        Object.freeze({
-          ...ASTRONAUT_FLOAT_PARAMS,
-          movementSpeed: ASTRONAUT_FLOAT_PARAMS.movementSpeed * astronautSpeedMultiplier,
-          rotationSpeed: ASTRONAUT_FLOAT_PARAMS.rotationSpeed * astronautSpeedMultiplier
-        })
-      );
-      const textEncoder = new TextEncoder();
-      const stateVersionModulePromise = import("/pages/res/state-version.js");
-      const userCryptoModulePromise = import("/pages/res/user-crypto.js");
-      const form = document.getElementById("login-form");
-      const loginActions = document.getElementById("login-actions");
-      const usernameInput = document.getElementById("username");
-      const passwordInput = document.getElementById("password");
-      const fieldNote = document.getElementById("field-note");
-      const guestOptionGroup = document.getElementById("guest-option-group");
-      const loginDisabledCopy = document.getElementById("login-disabled-copy");
-      const submitButton = document.getElementById("submit-button");
-      const guestCreateButton = document.getElementById("guest-create-button");
-      const runOptionsButton = document.getElementById("run-options-button");
-      const runOptionsModal = document.getElementById("run-options-modal");
-      const runModalDialog = runOptionsModal?.querySelector(".run-modal-dialog");
-      const runModalCloseButton = document.getElementById("run-modal-close-button");
-      const runModalCloseTargets = document.querySelectorAll("[data-run-modal-close]");
-      const introTitle = document.getElementById("intro-title");
-      const introAstronaut = document.getElementById("intro-astronaut");
-      const spaceBackdropRoot = document.querySelector("[data-space-backdrop]");
-      const spaceThemeCanvas = document.body;
-      const statusEl = document.getElementById("status");
-      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-      const allowGuestUsers = readFrontendConfigValue("ALLOW_GUEST_USERS", true);
-      const allowLogin = readFrontendConfigValue("LOGIN_ALLOWED", true);
-      const passwordLoginSupported =
-        typeof globalThis.crypto?.getRandomValues === "function" &&
-        typeof globalThis.crypto?.subtle?.digest === "function" &&
-        typeof globalThis.crypto?.subtle?.importKey === "function" &&
-        typeof globalThis.crypto?.subtle?.sign === "function" &&
-        typeof globalThis.crypto?.subtle?.deriveBits === "function";
-      let guestCredentials = null;
-      let introFloatFrame = 0;
-      let introFloatStartTime = 0;
-      let previousModalFocus = null;
-      
-      window.SpaceBackdrop?.install?.(spaceBackdropRoot, {
-        canvas: spaceThemeCanvas,
-        motionQuery: prefersReducedMotion
-      });
-
-      function setStatus(message, tone = "") {
-        statusEl.textContent = message;
-        statusEl.className = tone ? `status ${tone}` : "status";
-      }
-
-      function getUnsupportedPasswordLoginMessage() {
-        if (window.isSecureContext === false) {
-          return "Password login requires HTTPS or localhost in this browser. Plain HTTP disables the Web Crypto APIs used by sign-in.";
-        }
-
-        return "This browser does not expose the Web Crypto APIs required for password login.";
-      }
-
-      function readFrontendConfigValue(name, fallback) {
-        const metaTag = document.querySelector(
-          `meta[name="${FRONTEND_CONFIG_META_NAME}"][data-space-param="${String(name || "").trim().toUpperCase()}"]`
-        );
-
-        if (!metaTag) {
-          return fallback;
-        }
-
-        const type = String(metaTag.dataset.spaceType || "text").trim().toLowerCase();
-        const content = String(metaTag.content || "");
-
-        if (type === "boolean") {
-          return content === "true";
-        }
-
-        if (type === "number") {
-          const numericValue = Number(content);
-          return Number.isFinite(numericValue) ? numericValue : fallback;
-        }
-
-        return content;
-      }
-
-      function syncButtonState(isBusy = false) {
-        submitButton.disabled = isBusy || !allowLogin || !passwordLoginSupported;
-        guestCreateButton.disabled = isBusy || !allowLogin || !allowGuestUsers || !passwordLoginSupported;
-      }
-
-      function setIntroTitlePose(x, y, rotation) {
-        if (!introTitle) {
-          return;
-        }
-
-        introTitle.style.setProperty("--intro-title-float-x", `${x.toFixed(1)}px`);
-        introTitle.style.setProperty("--intro-title-float-y", `${y.toFixed(1)}px`);
-        introTitle.style.setProperty("--intro-title-rotate", `${rotation.toFixed(1)}deg`);
-      }
-
-      function setAstronautPose(x, y, rotation) {
-        if (!introAstronaut) {
-          return;
-        }
-
-        introAstronaut.style.setProperty("--astronaut-float-x", `${x.toFixed(1)}px`);
-        introAstronaut.style.setProperty("--astronaut-float-y", `${y.toFixed(1)}px`);
-        introAstronaut.style.setProperty("--astronaut-rotate", `${rotation.toFixed(1)}deg`);
-      }
-
-      function scaleDuration(durationMs, speedMultiplier) {
-        return durationMs / Math.max(speedMultiplier, 0.01);
-      }
-
-      function positiveModulo(value, divisor) {
-        return ((value % divisor) + divisor) % divisor;
-      }
-
-      function buildFloatProfile(baseProfile, params) {
-        const rotationMaxDeg =
-          baseProfile.rotationLimitEnabled === false
-            ? Infinity
-            : (baseProfile.rotationMaxDeg ?? Infinity);
-
-        return Object.freeze({
-          orbitPeriodMs: scaleDuration(baseProfile.orbitPeriodMs, params.movementSpeed),
-          rotationAmplitude: Math.min(
-            rotationMaxDeg,
-            baseProfile.rotationAmplitude * params.rotationDistance
-          ),
-          rotationPeriodMs: scaleDuration(baseProfile.rotationPeriodMs, params.rotationSpeed),
-          xRadius: baseProfile.xRadius * params.movementDistance,
-          yRadius: baseProfile.yRadius * params.movementDistance
-        });
-      }
-
-      const introFloatTargets = [
-        Object.freeze({
-          applyPose: setIntroTitlePose,
-          element: introTitle,
-          orbitPhase: 0.45,
-          profile: TITLE_FLOAT_PROFILE,
-          rotationPhase: 1.1
-        }),
-        Object.freeze({
-          applyPose: setAstronautPose,
-          element: introAstronaut,
-          orbitDirection: astronautOrbitDirection,
-          orbitPhase: 2.05 + (astronautOrbitOffsetTurns * TAU),
-          profile: ASTRONAUT_FLOAT_PROFILE,
-          rotationDirection: astronautRotationDirection,
-          rotationPhase: 0.35 + (astronautRotationOffsetTurns * TAU)
-        })
-      ];
-
-      function resetIntroFloat() {
-        introFloatTargets.forEach((target) => {
-          target.applyPose(0, 0, 0);
-        });
-      }
-
-      function applyIntroFloatTarget(target, elapsed) {
-        if (!target.element) {
-          return;
-        }
-
-        const orbitAngle =
-          ((elapsed / target.profile.orbitPeriodMs) * TAU * (target.orbitDirection ?? 1)) +
-          target.orbitPhase;
-        const rotationAngle =
-          ((elapsed / target.profile.rotationPeriodMs) * TAU * (target.rotationDirection ?? 1)) +
-          target.rotationPhase;
-
-        target.applyPose(
-          Math.cos(orbitAngle) * target.profile.xRadius,
-          Math.sin(orbitAngle) * target.profile.yRadius,
-          Math.sin(rotationAngle) * target.profile.rotationAmplitude
-        );
-      }
-
-      function stepIntroFloat(timestamp) {
-        if (introFloatTargets.every((target) => !target.element)) {
-          introFloatFrame = 0;
-          return;
-        }
-
-        if (prefersReducedMotion.matches) {
-          introFloatFrame = 0;
-          introFloatStartTime = 0;
-          resetIntroFloat();
-          return;
-        }
-
-        if (!introFloatStartTime) {
-          introFloatStartTime = timestamp;
-        }
-
-        const elapsed = timestamp - introFloatStartTime;
-
-        introFloatTargets.forEach((target) => applyIntroFloatTarget(target, elapsed));
-        introFloatFrame = window.requestAnimationFrame(stepIntroFloat);
-      }
-
-      function startIntroFloat() {
-        window.cancelAnimationFrame(introFloatFrame);
-        introFloatFrame = 0;
-        introFloatStartTime = 0;
-        resetIntroFloat();
-
-        if (introFloatTargets.every((target) => !target.element) || prefersReducedMotion.matches) {
-          return;
-        }
-
-        introFloatFrame = window.requestAnimationFrame(stepIntroFloat);
-      }
-
-      function handleMotionPreferenceChange() {
-        startIntroFloat();
-      }
-
-      function setGuestCredentials(credentials) {
-        guestCredentials =
-          credentials && credentials.username && credentials.password
-            ? {
-                password: credentials.password,
-                username: credentials.username
-              }
-            : null;
-
-        const isGuestReady = Boolean(guestCredentials);
-
-        if (isGuestReady) {
-          usernameInput.value = guestCredentials.username;
-          passwordInput.value = guestCredentials.password;
-        }
-
-        usernameInput.readOnly = isGuestReady;
-        passwordInput.readOnly = isGuestReady;
-        passwordInput.type = isGuestReady ? "text" : "password";
-        submitButton.textContent = isGuestReady ? "Continue" : "Enter your Space";
-        submitButton.classList.toggle("primary-button", isGuestReady);
-        submitButton.classList.toggle("secondary-button", !isGuestReady);
-        fieldNote.hidden = !isGuestReady;
-        guestOptionGroup.hidden = !allowLogin || isGuestReady || !allowGuestUsers;
-        syncButtonState(false);
-      }
-
-      function toBase64Url(bytes) {
-        let text = "";
-        bytes.forEach((value) => {
-          text += String.fromCharCode(value);
-        });
-        return btoa(text).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-      }
-
-      function fromBase64Url(value) {
-        const normalized = String(value || "").replace(/-/g, "+").replace(/_/g, "/");
-        const padding = normalized.length % 4 === 0 ? "" : "=".repeat(4 - (normalized.length % 4));
-        const decoded = atob(normalized + padding);
-        return Uint8Array.from(decoded, (char) => char.charCodeAt(0));
-      }
-
-      function xorBytes(left, right) {
-        if (left.length !== right.length) {
-          throw new Error("Mismatched proof length.");
-        }
-
-        const output = new Uint8Array(left.length);
-
-        for (let index = 0; index < left.length; index += 1) {
-          output[index] = left[index] ^ right[index];
-        }
-
-        return output;
-      }
-
-      async function sha256(value) {
-        const source = typeof value === "string" ? textEncoder.encode(value) : value;
-        return new Uint8Array(await crypto.subtle.digest("SHA-256", source));
-      }
-
-      async function hmacSha256(keyBytes, value) {
-        const key = await crypto.subtle.importKey(
-          "raw",
-          keyBytes,
-          {
-            name: "HMAC",
-            hash: "SHA-256"
-          },
-          false,
-          ["sign"]
-        );
-
-        return new Uint8Array(await crypto.subtle.sign("HMAC", key, textEncoder.encode(value)));
-      }
-
-      async function deriveSaltedPassword(password, salt, iterations) {
-        const passwordKey = await crypto.subtle.importKey(
-          "raw",
-          textEncoder.encode(password),
-          "PBKDF2",
-          false,
-          ["deriveBits"]
-        );
-
-        const bits = await crypto.subtle.deriveBits(
-          {
-            name: "PBKDF2",
-            hash: "SHA-256",
-            iterations,
-            salt: fromBase64Url(salt)
-          },
-          passwordKey,
-          256
-        );
-
-        return new Uint8Array(bits);
-      }
-
-      async function persistUnlockedUserCryptoSession({
-        password,
-        passwordIterations,
-        passwordSalt,
-        passwordSecret,
-        sessionId,
-        userCrypto,
-        username
-      }) {
-        const userCryptoModule = await userCryptoModulePromise;
-        const userCryptoState = String(userCrypto?.state || "").trim();
-
-        if (userCryptoState !== "ready") {
-          return {
-            cacheEntry: null,
-            state: userCryptoState
-          };
-        }
-
-        const record = userCryptoModule.normalizeUserCryptoRecord(userCrypto?.record);
-        const serverShare = userCryptoModule.decodeBase64Url(userCrypto?.serverShare || "");
-
-        if (!record || !serverShare.length || !sessionId || !username) {
-          throw new Error("Login completed without a usable user crypto payload.");
-        }
-
-        const masterKey = await userCryptoModule.unwrapUserCryptoMasterKey({
-          password,
-          passwordIterations,
-          passwordSalt,
-          passwordSecret,
-          record,
-          serverShare
-        });
-        const cacheEntry = userCryptoModule.createUserCryptoSessionCacheEntry({
-          keyId: record.keyId,
-          masterKey,
-          serverShare,
-          sessionId,
-          username
-        });
-        const cacheKey = userCryptoModule.buildUserCryptoSessionCacheKey(cacheEntry);
-
-        if (!cacheKey) {
-          throw new Error("Login completed without a valid user crypto session id.");
-        }
-
-        try {
-          window.sessionStorage.setItem(cacheKey, JSON.stringify(cacheEntry));
-        } catch (error) {
-          logLoginWarning("Failed to persist the unlocked userCrypto session in sessionStorage.", error);
-        }
-
-        return {
-          cacheEntry,
-          state: userCryptoState
-        };
-      }
-
-      async function persistLocalStorageUserCryptoSession(cacheEntry) {
-        const userCryptoModule = await userCryptoModulePromise;
-        const storageKey = String(userCryptoModule.USER_CRYPTO_LOCAL_STORAGE_KEY || "");
-
-        if (!storageKey || !cacheEntry) {
-          return;
-        }
-
-        try {
-          const sessionKeyResponse = await getJson("/api/user_crypto_session_key");
-          const sessionKey = String(sessionKeyResponse?.sessionKey || "").trim();
-
-          if (!sessionKey) {
-            return;
-          }
-
-          const storageEntry = await userCryptoModule.createUserCryptoLocalStorageEntry({
-            cacheEntry,
-            sessionKey
+          const ENTER_TAB_ACCESS_KEY = "space.enter.tab-access";
+          const LOGIN_PREFIX = "space-login-v1";
+          const CLIENT_KEY_LABEL = "Client Key";
+          const SERVER_KEY_LABEL = "Server Key";
+          const TAU = Math.PI * 2;
+          // Tune the title and astronaut independently here when the login shell motion needs retuning.
+          const TITLE_FLOAT_PARAMS = Object.freeze({
+            movementDistance: 1.5,
+            movementSpeed: 1.5,
+            rotationDistance: 1.5,
+            rotationSpeed: 1.5
           });
-          window.localStorage.setItem(storageKey, JSON.stringify(storageEntry));
-        } catch (error) {
-          logLoginWarning("Failed to persist the unlocked userCrypto session in localStorage.", error);
-        }
-      }
-
-      async function persistUserCryptoLoginBootstrap({
-        passwordIterations,
-        passwordSalt,
-        passwordSecret,
-        sessionId,
-        username
-      }) {
-        const userCryptoModule = await userCryptoModulePromise;
-        const bootstrapEntry = userCryptoModule.createUserCryptoLoginBootstrapEntry({
-          passwordIterations,
-          passwordSalt,
-          passwordSecret,
-          sessionId,
-          username
-        });
-        const bootstrapKey = userCryptoModule.buildUserCryptoLoginBootstrapKey(bootstrapEntry);
-
-        if (!bootstrapKey) {
-          return;
-        }
-
-        try {
-          window.sessionStorage.setItem(bootstrapKey, JSON.stringify(bootstrapEntry));
-        } catch (error) {
-          logLoginWarning("Failed to persist the userCrypto bootstrap handoff in sessionStorage.", error);
-        }
-      }
-
-      async function postJson(path, body) {
-        const stateVersionModule = await stateVersionModulePromise;
-        const headers = new Headers({
-          "Content-Type": "application/json"
-        });
-
-        stateVersionModule.applyStateVersionRequestHeader(headers);
-        const response = await fetch(path, {
-          cache: "no-store",
-          method: "POST",
-          credentials: "same-origin",
-          headers,
-          body: JSON.stringify(body)
-        });
-        stateVersionModule.observeStateVersionFromResponse(response);
-
-        const payload = await response.json().catch(() => ({}));
-
-        if (!response.ok) {
-          throw new Error(payload.error || "Request failed.");
-        }
-
-        return payload;
-      }
-
-      async function getJson(path) {
-        const stateVersionModule = await stateVersionModulePromise;
-        const headers = new Headers();
-
-        stateVersionModule.applyStateVersionRequestHeader(headers);
-        const response = await fetch(path, {
-          cache: "no-store",
-          method: "GET",
-          credentials: "same-origin",
-          headers
-        });
-        stateVersionModule.observeStateVersionFromResponse(response);
-
-        const payload = await response.json().catch(() => ({}));
-
-        if (!response.ok) {
-          throw new Error(payload.error || "Request failed.");
-        }
-
-        return payload;
-      }
-
-      function createNonce() {
-        const bytes = new Uint8Array(24);
-        crypto.getRandomValues(bytes);
-        return toBase64Url(bytes);
-      }
-
-      function grantEnterTabAccess() {
-        try {
-          window.sessionStorage.setItem(ENTER_TAB_ACCESS_KEY, "1");
-        } catch (error) {
-          logLoginWarning("Failed to grant same-tab /enter access in sessionStorage.", error);
-        }
-      }
-
-      async function handleLogin(event) {
-        event.preventDefault();
-
-        try {
-          if (!allowLogin) {
-            throw new Error("Login is disabled in this system.");
-          }
-
-          if (!passwordLoginSupported) {
-            throw new Error(getUnsupportedPasswordLoginMessage());
-          }
-
-          setStatus("Signing in...");
-          syncButtonState(true);
-
-          const username = usernameInput.value.trim();
-          const password = passwordInput.value;
-
-          if (!username || !password) {
-            throw new Error("Username and password are required.");
-          }
-
-          const clientNonce = createNonce();
-          const challenge = await postJson("/api/login_challenge", {
-            clientNonce,
-            username
+          const FRONTEND_CONFIG_META_NAME = "space-config";
+          // Change this one float to shift the astronaut's starting pose, drift direction, and pace.
+          const ASTRONAUT_FLOAT_VARIANT = 0.5;
+          const ASTRONAUT_FLOAT_PARAMS = Object.freeze({
+            movementDistance: 3,
+            movementSpeed: 0.9,
+            rotationDistance: 0.6,
+            rotationSpeed: 0.45
           });
-          const saltedPassword = await deriveSaltedPassword(
-            password,
-            challenge.salt,
-            Number(challenge.iterations)
+          const astronautOrbitOffsetTurns = positiveModulo(ASTRONAUT_FLOAT_VARIANT, 1);
+          const astronautRotationOffsetTurns = positiveModulo(
+            ASTRONAUT_FLOAT_VARIANT * 1.61803398875,
+            1
           );
-          const userCryptoModule = await userCryptoModulePromise;
-          const userCryptoChallenge =
-            challenge.userCrypto && typeof challenge.userCrypto === "object" ? challenge.userCrypto : {};
-          let userCryptoProvisioning = null;
+          const astronautOrbitDirection = positiveModulo(ASTRONAUT_FLOAT_VARIANT, 2) < 1 ? 1 : -1;
+          const astronautRotationDirection =
+            positiveModulo(ASTRONAUT_FLOAT_VARIANT * 0.73, 2) < 1 ? 1 : -1;
+          const astronautSpeedMultiplier =
+            0.82 + positiveModulo(ASTRONAUT_FLOAT_VARIANT * 2.37, 1) * 0.56;
+          const TITLE_FLOAT_PROFILE = buildFloatProfile(
+            Object.freeze({
+              orbitPeriodMs: 11800,
+              rotationAmplitude: 4.5,
+              rotationPeriodMs: 16200,
+              xRadius: 6.6,
+              yRadius: 7.4
+            }),
+            TITLE_FLOAT_PARAMS
+          );
+          const ASTRONAUT_FLOAT_PROFILE = buildFloatProfile(
+            Object.freeze({
+              orbitPeriodMs: 12400,
+              rotationAmplitude: 100,
+              rotationLimitEnabled: false,
+              rotationMaxDeg: 30,
+              rotationPeriodMs: 17600,
+              xRadius: 7.2,
+              yRadius: 8.2
+            }),
+            Object.freeze({
+              ...ASTRONAUT_FLOAT_PARAMS,
+              movementSpeed: ASTRONAUT_FLOAT_PARAMS.movementSpeed * astronautSpeedMultiplier,
+              rotationSpeed: ASTRONAUT_FLOAT_PARAMS.rotationSpeed * astronautSpeedMultiplier
+            })
+          );
+          const textEncoder = new TextEncoder();
+          const stateVersionModulePromise = import("/pages/res/state-version.js");
+          const userCryptoModulePromise = import("/pages/res/user-crypto.js");
+          const form = document.getElementById("login-form");
+          const loginActions = document.getElementById("login-actions");
+          const usernameInput = document.getElementById("username");
+          const passwordInput = document.getElementById("password");
+          const fieldNote = document.getElementById("field-note");
+          const guestOptionGroup = document.getElementById("guest-option-group");
+          const loginDisabledCopy = document.getElementById("login-disabled-copy");
+          const submitButton = document.getElementById("submit-button");
+          const guestCreateButton = document.getElementById("guest-create-button");
+          const runOptionsButton = document.getElementById("run-options-button");
+          const runOptionsModal = document.getElementById("run-options-modal");
+          const runModalDialog = runOptionsModal?.querySelector(".run-modal-dialog");
+          const runModalCloseButton = document.getElementById("run-modal-close-button");
+          const runModalCloseTargets = document.querySelectorAll("[data-run-modal-close]");
+          const introTitle = document.getElementById("intro-title");
+          const introAstronaut = document.getElementById("intro-astronaut");
+          const spaceBackdropRoot = document.querySelector("[data-space-backdrop]");
+          const spaceThemeCanvas = document.body;
+          const statusEl = document.getElementById("status");
+          const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+          const allowGuestUsers = readFrontendConfigValue("ALLOW_GUEST_USERS", true);
+          const allowLogin = readFrontendConfigValue("LOGIN_ALLOWED", true);
+          const passwordLoginSupported =
+            typeof globalThis.crypto?.getRandomValues === "function" &&
+            typeof globalThis.crypto?.subtle?.digest === "function" &&
+            typeof globalThis.crypto?.subtle?.importKey === "function" &&
+            typeof globalThis.crypto?.subtle?.sign === "function" &&
+            typeof globalThis.crypto?.subtle?.deriveBits === "function";
+          let guestCredentials = null;
+          let introFloatFrame = 0;
+          let introFloatStartTime = 0;
+          let previousModalFocus = null;
 
-          if (String(userCryptoChallenge.state || "").trim() === "missing") {
-            if (!userCryptoChallenge.provisioningShare) {
-              throw new Error("Login challenge did not provide user crypto provisioning state.");
+          window.SpaceBackdrop?.install?.(spaceBackdropRoot, {
+            canvas: spaceThemeCanvas,
+            motionQuery: prefersReducedMotion
+          });
+
+          function setStatus(message, tone = "") {
+            statusEl.textContent = message;
+            statusEl.className = tone ? `status ${tone}` : "status";
+          }
+
+          function getUnsupportedPasswordLoginMessage() {
+            if (window.isSecureContext === false) {
+              return "Password login requires HTTPS or localhost in this browser. Plain HTTP disables the Web Crypto APIs used by sign-in.";
             }
 
-            const provisionedUserCrypto = await userCryptoModule.createProvisionedUserCryptoRecord({
-              passwordIterations: Number(challenge.iterations),
-              passwordSalt: userCryptoModule.decodeBase64Url(challenge.salt),
-              passwordSecret: saltedPassword,
-              serverShare: userCryptoModule.decodeBase64Url(userCryptoChallenge.provisioningShare)
+            return "This browser does not expose the Web Crypto APIs required for password login.";
+          }
+
+          function readFrontendConfigValue(name, fallback) {
+            const metaTag = document.querySelector(
+              `meta[name="${FRONTEND_CONFIG_META_NAME}"][data-space-param="${String(name || "")
+                .trim()
+                .toUpperCase()}"]`
+            );
+
+            if (!metaTag) {
+              return fallback;
+            }
+
+            const type = String(metaTag.dataset.spaceType || "text")
+              .trim()
+              .toLowerCase();
+            const content = String(metaTag.content || "");
+
+            if (type === "boolean") {
+              return content === "true";
+            }
+
+            if (type === "number") {
+              const numericValue = Number(content);
+              return Number.isFinite(numericValue) ? numericValue : fallback;
+            }
+
+            return content;
+          }
+
+          function syncButtonState(isBusy = false) {
+            submitButton.disabled = isBusy || !allowLogin || !passwordLoginSupported;
+            guestCreateButton.disabled =
+              isBusy || !allowLogin || !allowGuestUsers || !passwordLoginSupported;
+          }
+
+          function setIntroTitlePose(x, y, rotation) {
+            if (!introTitle) {
+              return;
+            }
+
+            introTitle.style.setProperty("--intro-title-float-x", `${x.toFixed(1)}px`);
+            introTitle.style.setProperty("--intro-title-float-y", `${y.toFixed(1)}px`);
+            introTitle.style.setProperty("--intro-title-rotate", `${rotation.toFixed(1)}deg`);
+          }
+
+          function setAstronautPose(x, y, rotation) {
+            if (!introAstronaut) {
+              return;
+            }
+
+            introAstronaut.style.setProperty("--astronaut-float-x", `${x.toFixed(1)}px`);
+            introAstronaut.style.setProperty("--astronaut-float-y", `${y.toFixed(1)}px`);
+            introAstronaut.style.setProperty("--astronaut-rotate", `${rotation.toFixed(1)}deg`);
+          }
+
+          function scaleDuration(durationMs, speedMultiplier) {
+            return durationMs / Math.max(speedMultiplier, 0.01);
+          }
+
+          function positiveModulo(value, divisor) {
+            return ((value % divisor) + divisor) % divisor;
+          }
+
+          function buildFloatProfile(baseProfile, params) {
+            const rotationMaxDeg =
+              baseProfile.rotationLimitEnabled === false
+                ? Infinity
+                : (baseProfile.rotationMaxDeg ?? Infinity);
+
+            return Object.freeze({
+              orbitPeriodMs: scaleDuration(baseProfile.orbitPeriodMs, params.movementSpeed),
+              rotationAmplitude: Math.min(
+                rotationMaxDeg,
+                baseProfile.rotationAmplitude * params.rotationDistance
+              ),
+              rotationPeriodMs: scaleDuration(baseProfile.rotationPeriodMs, params.rotationSpeed),
+              xRadius: baseProfile.xRadius * params.movementDistance,
+              yRadius: baseProfile.yRadius * params.movementDistance
             });
-            userCryptoProvisioning = {
-              record: provisionedUserCrypto.record
-            };
-          }
-          const clientKey = await hmacSha256(saltedPassword, CLIENT_KEY_LABEL);
-          const storedKey = await sha256(clientKey);
-          const authMessage = [
-            LOGIN_PREFIX,
-            username,
-            clientNonce,
-            challenge.serverNonce,
-            challenge.challengeToken
-          ].join(":");
-          const clientSignature = await hmacSha256(storedKey, authMessage);
-          const clientProof = xorBytes(clientKey, clientSignature);
-          const loginResult = await postJson("/api/login", {
-            challengeToken: challenge.challengeToken,
-            clientProof: toBase64Url(clientProof),
-            userCryptoProvisioning
-          });
-          const serverKey = await hmacSha256(saltedPassword, SERVER_KEY_LABEL);
-          const expectedServerSignature = await hmacSha256(serverKey, authMessage);
-
-          if (toBase64Url(expectedServerSignature) !== loginResult.serverSignature) {
-            throw new Error("Server signature check failed.");
           }
 
-          if (String(userCryptoChallenge.state || "").trim() === "missing") {
-            await persistUserCryptoLoginBootstrap({
-              passwordIterations: Number(challenge.iterations),
-              passwordSalt: userCryptoModule.decodeBase64Url(challenge.salt),
-              passwordSecret: saltedPassword,
-              sessionId: String(loginResult.sessionId || "").trim(),
+          const introFloatTargets = [
+            Object.freeze({
+              applyPose: setIntroTitlePose,
+              element: introTitle,
+              orbitPhase: 0.45,
+              profile: TITLE_FLOAT_PROFILE,
+              rotationPhase: 1.1
+            }),
+            Object.freeze({
+              applyPose: setAstronautPose,
+              element: introAstronaut,
+              orbitDirection: astronautOrbitDirection,
+              orbitPhase: 2.05 + astronautOrbitOffsetTurns * TAU,
+              profile: ASTRONAUT_FLOAT_PROFILE,
+              rotationDirection: astronautRotationDirection,
+              rotationPhase: 0.35 + astronautRotationOffsetTurns * TAU
+            })
+          ];
+
+          function resetIntroFloat() {
+            introFloatTargets.forEach((target) => {
+              target.applyPose(0, 0, 0);
+            });
+          }
+
+          function applyIntroFloatTarget(target, elapsed) {
+            if (!target.element) {
+              return;
+            }
+
+            const orbitAngle =
+              (elapsed / target.profile.orbitPeriodMs) * TAU * (target.orbitDirection ?? 1) +
+              target.orbitPhase;
+            const rotationAngle =
+              (elapsed / target.profile.rotationPeriodMs) * TAU * (target.rotationDirection ?? 1) +
+              target.rotationPhase;
+
+            target.applyPose(
+              Math.cos(orbitAngle) * target.profile.xRadius,
+              Math.sin(orbitAngle) * target.profile.yRadius,
+              Math.sin(rotationAngle) * target.profile.rotationAmplitude
+            );
+          }
+
+          function stepIntroFloat(timestamp) {
+            if (introFloatTargets.every((target) => !target.element)) {
+              introFloatFrame = 0;
+              return;
+            }
+
+            if (prefersReducedMotion.matches) {
+              introFloatFrame = 0;
+              introFloatStartTime = 0;
+              resetIntroFloat();
+              return;
+            }
+
+            if (!introFloatStartTime) {
+              introFloatStartTime = timestamp;
+            }
+
+            const elapsed = timestamp - introFloatStartTime;
+
+            introFloatTargets.forEach((target) => applyIntroFloatTarget(target, elapsed));
+            introFloatFrame = window.requestAnimationFrame(stepIntroFloat);
+          }
+
+          function startIntroFloat() {
+            window.cancelAnimationFrame(introFloatFrame);
+            introFloatFrame = 0;
+            introFloatStartTime = 0;
+            resetIntroFloat();
+
+            if (
+              introFloatTargets.every((target) => !target.element) ||
+              prefersReducedMotion.matches
+            ) {
+              return;
+            }
+
+            introFloatFrame = window.requestAnimationFrame(stepIntroFloat);
+          }
+
+          function handleMotionPreferenceChange() {
+            startIntroFloat();
+          }
+
+          function setGuestCredentials(credentials) {
+            guestCredentials =
+              credentials && credentials.username && credentials.password
+                ? {
+                    password: credentials.password,
+                    username: credentials.username
+                  }
+                : null;
+
+            const isGuestReady = Boolean(guestCredentials);
+
+            if (isGuestReady) {
+              usernameInput.value = guestCredentials.username;
+              passwordInput.value = guestCredentials.password;
+            }
+
+            usernameInput.readOnly = isGuestReady;
+            passwordInput.readOnly = isGuestReady;
+            passwordInput.type = isGuestReady ? "text" : "password";
+            submitButton.textContent = isGuestReady ? "Continue" : "Enter your Space";
+            submitButton.classList.toggle("primary-button", isGuestReady);
+            submitButton.classList.toggle("secondary-button", !isGuestReady);
+            fieldNote.hidden = !isGuestReady;
+            guestOptionGroup.hidden = !allowLogin || isGuestReady || !allowGuestUsers;
+            syncButtonState(false);
+          }
+
+          function toBase64Url(bytes) {
+            let text = "";
+            bytes.forEach((value) => {
+              text += String.fromCharCode(value);
+            });
+            return btoa(text).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+          }
+
+          function fromBase64Url(value) {
+            const normalized = String(value || "")
+              .replace(/-/g, "+")
+              .replace(/_/g, "/");
+            const padding =
+              normalized.length % 4 === 0 ? "" : "=".repeat(4 - (normalized.length % 4));
+            const decoded = atob(normalized + padding);
+            return Uint8Array.from(decoded, (char) => char.charCodeAt(0));
+          }
+
+          function xorBytes(left, right) {
+            if (left.length !== right.length) {
+              throw new Error("Mismatched proof length.");
+            }
+
+            const output = new Uint8Array(left.length);
+
+            for (let index = 0; index < left.length; index += 1) {
+              output[index] = left[index] ^ right[index];
+            }
+
+            return output;
+          }
+
+          async function sha256(value) {
+            const source = typeof value === "string" ? textEncoder.encode(value) : value;
+            return new Uint8Array(await crypto.subtle.digest("SHA-256", source));
+          }
+
+          async function hmacSha256(keyBytes, value) {
+            const key = await crypto.subtle.importKey(
+              "raw",
+              keyBytes,
+              {
+                name: "HMAC",
+                hash: "SHA-256"
+              },
+              false,
+              ["sign"]
+            );
+
+            return new Uint8Array(await crypto.subtle.sign("HMAC", key, textEncoder.encode(value)));
+          }
+
+          async function deriveSaltedPassword(password, salt, iterations) {
+            const passwordKey = await crypto.subtle.importKey(
+              "raw",
+              textEncoder.encode(password),
+              "PBKDF2",
+              false,
+              ["deriveBits"]
+            );
+
+            const bits = await crypto.subtle.deriveBits(
+              {
+                name: "PBKDF2",
+                hash: "SHA-256",
+                iterations,
+                salt: fromBase64Url(salt)
+              },
+              passwordKey,
+              256
+            );
+
+            return new Uint8Array(bits);
+          }
+
+          async function persistUnlockedUserCryptoSession({
+            password,
+            passwordIterations,
+            passwordSalt,
+            passwordSecret,
+            sessionId,
+            userCrypto,
+            username
+          }) {
+            const userCryptoModule = await userCryptoModulePromise;
+            const userCryptoState = String(userCrypto?.state || "").trim();
+
+            if (userCryptoState !== "ready") {
+              return {
+                cacheEntry: null,
+                state: userCryptoState
+              };
+            }
+
+            const record = userCryptoModule.normalizeUserCryptoRecord(userCrypto?.record);
+            const serverShare = userCryptoModule.decodeBase64Url(userCrypto?.serverShare || "");
+
+            if (!record || !serverShare.length || !sessionId || !username) {
+              throw new Error("Login completed without a usable user crypto payload.");
+            }
+
+            const masterKey = await userCryptoModule.unwrapUserCryptoMasterKey({
+              password,
+              passwordIterations,
+              passwordSalt,
+              passwordSecret,
+              record,
+              serverShare
+            });
+            const cacheEntry = userCryptoModule.createUserCryptoSessionCacheEntry({
+              keyId: record.keyId,
+              masterKey,
+              serverShare,
+              sessionId,
               username
             });
+            const cacheKey = userCryptoModule.buildUserCryptoSessionCacheKey(cacheEntry);
+
+            if (!cacheKey) {
+              throw new Error("Login completed without a valid user crypto session id.");
+            }
+
+            try {
+              window.sessionStorage.setItem(cacheKey, JSON.stringify(cacheEntry));
+            } catch (error) {
+              logLoginWarning(
+                "Failed to persist the unlocked userCrypto session in sessionStorage.",
+                error
+              );
+            }
+
+            return {
+              cacheEntry,
+              state: userCryptoState
+            };
           }
 
-          const unlockedUserCryptoSession = await persistUnlockedUserCryptoSession({
-            password,
-            passwordIterations: Number(challenge.iterations),
-            passwordSalt: userCryptoModule.decodeBase64Url(challenge.salt),
-            passwordSecret:
-              String(userCryptoChallenge.state || "").trim() === "missing" ? saltedPassword : null,
-            sessionId: String(loginResult.sessionId || "").trim(),
-            userCrypto: loginResult.userCrypto,
+          async function persistLocalStorageUserCryptoSession(cacheEntry) {
+            const userCryptoModule = await userCryptoModulePromise;
+            const storageKey = String(userCryptoModule.USER_CRYPTO_LOCAL_STORAGE_KEY || "");
+
+            if (!storageKey || !cacheEntry) {
+              return;
+            }
+
+            try {
+              const sessionKeyResponse = await getJson("/api/user_crypto_session_key");
+              const sessionKey = String(sessionKeyResponse?.sessionKey || "").trim();
+
+              if (!sessionKey) {
+                return;
+              }
+
+              const storageEntry = await userCryptoModule.createUserCryptoLocalStorageEntry({
+                cacheEntry,
+                sessionKey
+              });
+              window.localStorage.setItem(storageKey, JSON.stringify(storageEntry));
+            } catch (error) {
+              logLoginWarning(
+                "Failed to persist the unlocked userCrypto session in localStorage.",
+                error
+              );
+            }
+          }
+
+          async function persistUserCryptoLoginBootstrap({
+            passwordIterations,
+            passwordSalt,
+            passwordSecret,
+            sessionId,
             username
+          }) {
+            const userCryptoModule = await userCryptoModulePromise;
+            const bootstrapEntry = userCryptoModule.createUserCryptoLoginBootstrapEntry({
+              passwordIterations,
+              passwordSalt,
+              passwordSecret,
+              sessionId,
+              username
+            });
+            const bootstrapKey = userCryptoModule.buildUserCryptoLoginBootstrapKey(bootstrapEntry);
+
+            if (!bootstrapKey) {
+              return;
+            }
+
+            try {
+              window.sessionStorage.setItem(bootstrapKey, JSON.stringify(bootstrapEntry));
+            } catch (error) {
+              logLoginWarning(
+                "Failed to persist the userCrypto bootstrap handoff in sessionStorage.",
+                error
+              );
+            }
+          }
+
+          async function postJson(path, body) {
+            const stateVersionModule = await stateVersionModulePromise;
+            const headers = new Headers({
+              "Content-Type": "application/json"
+            });
+
+            stateVersionModule.applyStateVersionRequestHeader(headers);
+            const response = await fetch(path, {
+              cache: "no-store",
+              method: "POST",
+              credentials: "same-origin",
+              headers,
+              body: JSON.stringify(body)
+            });
+            stateVersionModule.observeStateVersionFromResponse(response);
+
+            const payload = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+              throw new Error(payload.error || "Request failed.");
+            }
+
+            return payload;
+          }
+
+          async function getJson(path) {
+            const stateVersionModule = await stateVersionModulePromise;
+            const headers = new Headers();
+
+            stateVersionModule.applyStateVersionRequestHeader(headers);
+            const response = await fetch(path, {
+              cache: "no-store",
+              method: "GET",
+              credentials: "same-origin",
+              headers
+            });
+            stateVersionModule.observeStateVersionFromResponse(response);
+
+            const payload = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+              throw new Error(payload.error || "Request failed.");
+            }
+
+            return payload;
+          }
+
+          function createNonce() {
+            const bytes = new Uint8Array(24);
+            crypto.getRandomValues(bytes);
+            return toBase64Url(bytes);
+          }
+
+          function grantEnterTabAccess() {
+            try {
+              window.sessionStorage.setItem(ENTER_TAB_ACCESS_KEY, "1");
+            } catch (error) {
+              logLoginWarning("Failed to grant same-tab /enter access in sessionStorage.", error);
+            }
+          }
+
+          async function handleLogin(event) {
+            event.preventDefault();
+
+            try {
+              if (!allowLogin) {
+                throw new Error("Login is disabled in this system.");
+              }
+
+              if (!passwordLoginSupported) {
+                throw new Error(getUnsupportedPasswordLoginMessage());
+              }
+
+              setStatus("Signing in...");
+              syncButtonState(true);
+
+              const username = usernameInput.value.trim();
+              const password = passwordInput.value;
+
+              if (!username || !password) {
+                throw new Error("Username and password are required.");
+              }
+
+              const clientNonce = createNonce();
+              const challenge = await postJson("/api/login_challenge", {
+                clientNonce,
+                username
+              });
+              const saltedPassword = await deriveSaltedPassword(
+                password,
+                challenge.salt,
+                Number(challenge.iterations)
+              );
+              const userCryptoModule = await userCryptoModulePromise;
+              const userCryptoChallenge =
+                challenge.userCrypto && typeof challenge.userCrypto === "object"
+                  ? challenge.userCrypto
+                  : {};
+              let userCryptoProvisioning = null;
+
+              if (String(userCryptoChallenge.state || "").trim() === "missing") {
+                if (!userCryptoChallenge.provisioningShare) {
+                  throw new Error(
+                    "Login challenge did not provide user crypto provisioning state."
+                  );
+                }
+
+                const provisionedUserCrypto =
+                  await userCryptoModule.createProvisionedUserCryptoRecord({
+                    passwordIterations: Number(challenge.iterations),
+                    passwordSalt: userCryptoModule.decodeBase64Url(challenge.salt),
+                    passwordSecret: saltedPassword,
+                    serverShare: userCryptoModule.decodeBase64Url(
+                      userCryptoChallenge.provisioningShare
+                    )
+                  });
+                userCryptoProvisioning = {
+                  record: provisionedUserCrypto.record
+                };
+              }
+              const clientKey = await hmacSha256(saltedPassword, CLIENT_KEY_LABEL);
+              const storedKey = await sha256(clientKey);
+              const authMessage = [
+                LOGIN_PREFIX,
+                username,
+                clientNonce,
+                challenge.serverNonce,
+                challenge.challengeToken
+              ].join(":");
+              const clientSignature = await hmacSha256(storedKey, authMessage);
+              const clientProof = xorBytes(clientKey, clientSignature);
+              const loginResult = await postJson("/api/login", {
+                challengeToken: challenge.challengeToken,
+                clientProof: toBase64Url(clientProof),
+                userCryptoProvisioning
+              });
+              const serverKey = await hmacSha256(saltedPassword, SERVER_KEY_LABEL);
+              const expectedServerSignature = await hmacSha256(serverKey, authMessage);
+
+              if (toBase64Url(expectedServerSignature) !== loginResult.serverSignature) {
+                throw new Error("Server signature check failed.");
+              }
+
+              if (String(userCryptoChallenge.state || "").trim() === "missing") {
+                await persistUserCryptoLoginBootstrap({
+                  passwordIterations: Number(challenge.iterations),
+                  passwordSalt: userCryptoModule.decodeBase64Url(challenge.salt),
+                  passwordSecret: saltedPassword,
+                  sessionId: String(loginResult.sessionId || "").trim(),
+                  username
+                });
+              }
+
+              const unlockedUserCryptoSession = await persistUnlockedUserCryptoSession({
+                password,
+                passwordIterations: Number(challenge.iterations),
+                passwordSalt: userCryptoModule.decodeBase64Url(challenge.salt),
+                passwordSecret:
+                  String(userCryptoChallenge.state || "").trim() === "missing"
+                    ? saltedPassword
+                    : null,
+                sessionId: String(loginResult.sessionId || "").trim(),
+                userCrypto: loginResult.userCrypto,
+                username
+              });
+
+              if (unlockedUserCryptoSession.cacheEntry) {
+                await persistLocalStorageUserCryptoSession(unlockedUserCryptoSession.cacheEntry);
+              }
+
+              if (unlockedUserCryptoSession.state === "missing") {
+                throw new Error("Login completed without a usable user crypto record. Try again.");
+              }
+
+              setStatus("Signed in. Redirecting...", "ok");
+              grantEnterTabAccess();
+              window.location.replace("/");
+            } catch (error) {
+              logLoginError("Sign-in failed", error, {
+                username: usernameInput.value.trim()
+              });
+              setStatus(error.message || "Sign-in failed.", "error");
+              syncButtonState(false);
+              passwordInput.select();
+            }
+          }
+
+          async function handleGuestCreate() {
+            try {
+              if (!allowLogin) {
+                throw new Error("Login is disabled in this system.");
+              }
+
+              if (!passwordLoginSupported) {
+                throw new Error(getUnsupportedPasswordLoginMessage());
+              }
+
+              setStatus("Creating guest account...");
+              syncButtonState(true);
+
+              const guestAccount = await postJson("/api/guest_create", {});
+              setGuestCredentials(guestAccount);
+              setStatus("");
+            } catch (error) {
+              logLoginError("Guest account creation failed", error);
+              syncButtonState(false);
+              setStatus(error.message || "Guest account creation failed.", "error");
+            }
+          }
+
+          function openRunOptionsModal() {
+            if (!runOptionsModal) {
+              return;
+            }
+
+            previousModalFocus =
+              document.activeElement instanceof HTMLElement ? document.activeElement : null;
+            runOptionsModal.hidden = false;
+            document.body.style.overflow = "hidden";
+            window.requestAnimationFrame(() => {
+              runModalDialog?.focus();
+            });
+          }
+
+          function closeRunOptionsModal() {
+            if (!runOptionsModal || runOptionsModal.hidden) {
+              return;
+            }
+
+            runOptionsModal.hidden = true;
+            document.body.style.overflow = "";
+            previousModalFocus?.focus?.();
+            previousModalFocus = null;
+          }
+
+          function handleRunModalKeydown(event) {
+            if (event.key === "Escape" && runOptionsModal && !runOptionsModal.hidden) {
+              event.preventDefault();
+              closeRunOptionsModal();
+            }
+          }
+
+          loginActions.hidden = !allowLogin;
+          loginDisabledCopy.hidden = allowLogin;
+          form.addEventListener("submit", handleLogin);
+          if (allowGuestUsers) {
+            guestCreateButton.addEventListener("click", handleGuestCreate);
+          }
+          runOptionsButton?.addEventListener("click", openRunOptionsModal);
+          runModalCloseButton?.addEventListener("click", closeRunOptionsModal);
+          runModalCloseTargets.forEach((target) => {
+            target.addEventListener("click", closeRunOptionsModal);
           });
-
-          if (unlockedUserCryptoSession.cacheEntry) {
-            await persistLocalStorageUserCryptoSession(unlockedUserCryptoSession.cacheEntry);
-          }
-
-          if (unlockedUserCryptoSession.state === "missing") {
-            throw new Error("Login completed without a usable user crypto record. Try again.");
-          }
-
-          setStatus("Signed in. Redirecting...", "ok");
-          grantEnterTabAccess();
-          window.location.replace("/");
-        } catch (error) {
-          logLoginError("Sign-in failed", error, {
-            username: usernameInput.value.trim()
+          document.addEventListener("keydown", handleRunModalKeydown);
+          usernameInput.addEventListener("focus", () => {
+            if (usernameInput.readOnly) {
+              usernameInput.select();
+            }
           });
-          setStatus(error.message || "Sign-in failed.", "error");
-          syncButtonState(false);
-          passwordInput.select();
-        }
-      }
-
-      async function handleGuestCreate() {
-        try {
-          if (!allowLogin) {
-            throw new Error("Login is disabled in this system.");
+          passwordInput.addEventListener("focus", () => {
+            if (passwordInput.readOnly) {
+              passwordInput.select();
+            }
+          });
+          if (typeof prefersReducedMotion.addEventListener === "function") {
+            prefersReducedMotion.addEventListener("change", handleMotionPreferenceChange);
+          } else if (typeof prefersReducedMotion.addListener === "function") {
+            prefersReducedMotion.addListener(handleMotionPreferenceChange);
           }
-
-          if (!passwordLoginSupported) {
-            throw new Error(getUnsupportedPasswordLoginMessage());
+          setGuestCredentials(null);
+          if (allowLogin && !passwordLoginSupported) {
+            setStatus(getUnsupportedPasswordLoginMessage(), "error");
           }
-
-          setStatus("Creating guest account...");
-          syncButtonState(true);
-
-          const guestAccount = await postJson("/api/guest_create", {});
-          setGuestCredentials(guestAccount);
-          setStatus("");
-        } catch (error) {
-          logLoginError("Guest account creation failed", error);
-          syncButtonState(false);
-          setStatus(error.message || "Guest account creation failed.", "error");
-        }
-      }
-
-      function openRunOptionsModal() {
-        if (!runOptionsModal) {
-          return;
-        }
-
-        previousModalFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-        runOptionsModal.hidden = false;
-        document.body.style.overflow = "hidden";
-        window.requestAnimationFrame(() => {
-          runModalDialog?.focus();
-        });
-      }
-
-      function closeRunOptionsModal() {
-        if (!runOptionsModal || runOptionsModal.hidden) {
-          return;
-        }
-
-        runOptionsModal.hidden = true;
-        document.body.style.overflow = "";
-        previousModalFocus?.focus?.();
-        previousModalFocus = null;
-      }
-
-      function handleRunModalKeydown(event) {
-        if (event.key === "Escape" && runOptionsModal && !runOptionsModal.hidden) {
-          event.preventDefault();
-          closeRunOptionsModal();
-        }
-      }
-
-      loginActions.hidden = !allowLogin;
-      loginDisabledCopy.hidden = allowLogin;
-      form.addEventListener("submit", handleLogin);
-      if (allowGuestUsers) {
-        guestCreateButton.addEventListener("click", handleGuestCreate);
-      }
-      runOptionsButton?.addEventListener("click", openRunOptionsModal);
-      runModalCloseButton?.addEventListener("click", closeRunOptionsModal);
-      runModalCloseTargets.forEach((target) => {
-        target.addEventListener("click", closeRunOptionsModal);
-      });
-      document.addEventListener("keydown", handleRunModalKeydown);
-      usernameInput.addEventListener("focus", () => {
-        if (usernameInput.readOnly) {
-          usernameInput.select();
-        }
-      });
-      passwordInput.addEventListener("focus", () => {
-        if (passwordInput.readOnly) {
-          passwordInput.select();
-        }
-      });
-      if (typeof prefersReducedMotion.addEventListener === "function") {
-        prefersReducedMotion.addEventListener("change", handleMotionPreferenceChange);
-      } else if (typeof prefersReducedMotion.addListener === "function") {
-        prefersReducedMotion.addListener(handleMotionPreferenceChange);
-      }
-      setGuestCredentials(null);
-      if (allowLogin && !passwordLoginSupported) {
-        setStatus(getUnsupportedPasswordLoginMessage(), "error");
-      }
-      if (introAstronaut && !introAstronaut.complete) {
-        introAstronaut.addEventListener("load", startIntroFloat, { once: true });
-      } else {
-        startIntroFloat();
-      }
+          if (introAstronaut && !introAstronaut.complete) {
+            introAstronaut.addEventListener("load", startIntroFloat, { once: true });
+          } else {
+            startIntroFloat();
+          }
         } catch (error) {
           logLoginError("Login shell startup failed", error);
 

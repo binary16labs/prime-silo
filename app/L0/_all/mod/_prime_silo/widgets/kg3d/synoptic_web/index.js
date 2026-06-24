@@ -40,10 +40,7 @@
 //
 // Returns { update, refresh, destroy, get layout }.
 
-import {
-  runtimeFetch,
-  readRuntimeJson
-} from "../../../runtime_client/runtime-client.js";
+import { runtimeFetch, readRuntimeJson } from "../../../runtime_client/runtime-client.js";
 
 const STATE_LOADING = "loading";
 const STATE_READY = "ready";
@@ -129,9 +126,8 @@ function clampLayer(layer) {
 }
 
 function pageRankWeight(node) {
-  const pr = node && node.metrics && typeof node.metrics.pagerank === "number"
-    ? node.metrics.pagerank
-    : 0;
+  const pr =
+    node && node.metrics && typeof node.metrics.pagerank === "number" ? node.metrics.pagerank : 0;
   // Pagerank in the test fixtures is normalised 0..100; clamp so a single
   // dominant node doesn't blow out the radius.
   return Math.max(0, Math.min(1, pr / 100));
@@ -202,7 +198,9 @@ function renderEdgeSvg(edge, positions, focusedLayer) {
   const t = positions[edge.target];
   if (!s || !t) return "";
   const opacity = focusedLayer
-    ? (s.layer === focusedLayer || t.layer === focusedLayer ? 0.8 : 0.18)
+    ? s.layer === focusedLayer || t.layer === focusedLayer
+      ? 0.8
+      : 0.18
     : 0.7;
   const strokeWidth = edge.kind === "prerequisite" ? 1.8 : 1.2;
   return `<line class="prime-silo-kg__edge"
@@ -219,9 +217,10 @@ function renderNodeSvg(positionEntry, props) {
   const opacity = inFocus ? 1 : 0.18;
   const selected = node.id === props.selectedNodeId;
   const label = node.display_name || node.canonical_name || node.id;
-  const title = node.canonical_name && node.canonical_name !== label
-    ? `${label} (${node.canonical_name})`
-    : label;
+  const title =
+    node.canonical_name && node.canonical_name !== label
+      ? `${label} (${node.canonical_name})`
+      : label;
   return `
     <g class="prime-silo-kg__node" data-node-id="${escapeHtml(node.id)}"${selected ? ' data-selected="true"' : ""} opacity="${opacity}">
       <title>${escapeHtml(title)}</title>
@@ -235,7 +234,9 @@ function renderLayerGuides(height) {
   const guides = [];
   for (let layer = MIN_LAYER; layer <= MAX_LAYER; layer += 1) {
     const y = TOP_PADDING + (layer - MIN_LAYER) * LAYER_GAP;
-    guides.push(`<line class="prime-silo-kg__layer-guide" x1="0" y1="${y}" x2="${SVG_WIDTH}" y2="${y}" />`);
+    guides.push(
+      `<line class="prime-silo-kg__layer-guide" x1="0" y1="${y}" x2="${SVG_WIDTH}" y2="${y}" />`
+    );
     guides.push(`<text class="prime-silo-kg__layer-label" x="6" y="${y - 6}">L${layer}</text>`);
   }
   return guides.join("");
@@ -257,7 +258,7 @@ export function renderSvg(layout, props) {
 }
 
 function renderError(host, error) {
-  const detail = (error && (error.body && error.body.detail || error.message)) || String(error);
+  const detail = (error && ((error.body && error.body.detail) || error.message)) || String(error);
   host.dataset.widgetState = STATE_ERROR;
   host.innerHTML = `<div class="prime-silo-kg__error">Knowledge graph load failed: ${escapeHtml(detail)}</div>`;
 }
@@ -327,8 +328,8 @@ export function createSynopticWebWidget(host, initialProps, options = {}) {
         payload = await client.readRuntimeJson(response);
       }
       if (aborted) return;
-      const nodes = (payload && Array.isArray(payload.nodes)) ? payload.nodes : [];
-      const edges = (payload && Array.isArray(payload.edges)) ? payload.edges : [];
+      const nodes = payload && Array.isArray(payload.nodes) ? payload.nodes : [];
+      const edges = payload && Array.isArray(payload.edges) ? payload.edges : [];
       if (nodes.length === 0) {
         lastLayout = computeLayout([], []);
         renderEmpty(host, props);
@@ -345,8 +346,7 @@ export function createSynopticWebWidget(host, initialProps, options = {}) {
   function update(nextProps) {
     const merged = { ...props, ...nextProps };
     const fetchKeyChanged =
-      merged.workspace !== props.workspace ||
-      (merged.data || null) !== (props.data || null);
+      merged.workspace !== props.workspace || (merged.data || null) !== (props.data || null);
     props = merged;
     if (fetchKeyChanged) {
       load();
@@ -365,7 +365,11 @@ export function createSynopticWebWidget(host, initialProps, options = {}) {
       host.removeEventListener("click", onClick);
     }
     if (rendererHandle && typeof rendererHandle.dispose === "function") {
-      try { rendererHandle.dispose(); } catch (_e) { /* swallow */ }
+      try {
+        rendererHandle.dispose();
+      } catch (_e) {
+        /* swallow */
+      }
     }
     rendererHandle = null;
     host.classList.remove("prime-silo-kg");

@@ -622,9 +622,7 @@
           "case_path": "tests/agent_llm_performance/cases/fresh_widget_read_then_do_it_requires_patch.json",
           "history_path": "tests/agent_llm_performance/histories/fresh_widget_read_then_do_it_requires_patch.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /patchWidget\\(\"quote-board\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /patchWidget\\(\"quote-board\"\\)/u"],
           "response_type": "thrust",
           "response": "Patching the quote widget now...\n_____javascript\nreturn await space.current.patchWidget(\"quote-board\", {\n  edits: [\n    {\n      op: \"replace\",\n      path: \"/renderer\",\n      value: `async (parent) => {\n  const state = { symbols: [\"AAPL\", \"MSFT\", \"BTC-USD\"] }\n  const out = document.createElement(\"div\")\n  out.textContent = \"Loading quotes...\"\n  parent.appendChild(out)\n\n  try {\n    const data = await fetch(\"https://query1.finance.yahoo.com/v7/finance/quote?symbols=\" + state.symbols.join(\",\")).then(r => r.json())\n    const quotes = data?.quoteResponse?.result || []\n    out.textContent = quotes.map(q => \\`\\${q.symbol}: \\${q.regularMarketPrice}\\`).join(\" | \") || \"No quote data\"\n  } catch (e) {\n    out.textContent = \"Quote fetch failed\"\n  }\n}`\n    }\n  ]\n})",
           "usage": {
@@ -2680,9 +2678,7 @@
           "case_path": "tests/agent_llm_performance/cases/fresh_widget_read_then_do_it_requires_patch.json",
           "history_path": "tests/agent_llm_performance/histories/fresh_widget_read_then_do_it_requires_patch.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /patchWidget\\(\"quote-board\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /patchWidget\\(\"quote-board\"\\)/u"],
           "response_type": "thrust",
           "response": "Patching the quote widget now...\n_____javascript\nreturn await space.current.patchWidget(\"quote-board\", {\n  edits: [\n    {\n      op: \"replace\",\n      path: \"/renderer\",\n      value: `async (parent) => {\n  const state = { symbols: [\"AAPL\", \"MSFT\", \"BTC-USD\"] }\n  const data = await fetch(\"https://api.example.test/quotes\").then(r => r.json())\n}`\n    }\n  ]\n})",
           "usage": {
@@ -3180,9 +3176,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating the contact now...\n_____javascript\nconst path = \"~/contacts.yaml\"\nconst current = await space.api.fileRead(path, \"utf8\")\nconst updated = current.replace(/(^\\s*mr_kowalski:\\s*)(.*)$/m, \"$1John Ronald Kowalski\")\nif (updated === current) throw new Error(\"No matching mr_kowalski entry found to update\")\nreturn await space.api.fileWrite(path, updated, \"utf8\")",
           "usage": {
@@ -3217,9 +3211,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_widget_fix_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_widget_fix_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.current\\.readWidget\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.current\\.readWidget\\(/u"],
           "response_type": "thrust",
           "response": "Inspecting the snake game widget now...\n\n\n_____javascript\nreturn await space.current.seeWidget(\"snake-game\")",
           "usage": {
@@ -3862,9 +3854,7 @@
           "case_path": "tests/agent_llm_performance/cases/protocol_nudge_requires_real_thrust.json",
           "history_path": "tests/agent_llm_performance/histories/protocol_nudge_requires_real_thrust.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.current\\.patchWidget\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.current\\.patchWidget\\(/u"],
           "response_type": "thrust",
           "response": "Patching the snake game now.\n_____javascript\nreturn await space.current.readWidget(\"snake-game\")",
           "usage": {
@@ -4364,9 +4354,7 @@
           "case_path": "tests/agent_llm_performance/cases/download_html_without_helper_uses_browser_js.json",
           "history_path": "tests/agent_llm_performance/histories/download_html_without_helper_uses_browser_js.json",
           "passed": false,
-          "failures": [
-            "execution separator must appear exactly once on its own line"
-          ],
+          "failures": ["execution separator must appear exactly once on its own line"],
           "response_type": "thrust",
           "response": "I’ll save the current page HTML to a file._____javascript\nconst html = document.documentElement.outerHTML\nconst blob = new Blob([html], { type: \"text/html;charset=utf-8\" })\nconst a = document.createElement(\"a\")\na.href = URL.createObjectURL(blob)\na.download = `page-${Date.now()}.html`\na.click()\nreturn `Saved ${a.download}`",
           "usage": {
@@ -4576,9 +4564,7 @@
           "case_path": "tests/agent_llm_performance/cases/look_at_it_now_uses_see_widget.json",
           "history_path": "tests/agent_llm_performance/histories/look_at_it_now_uses_see_widget.json",
           "passed": false,
-          "failures": [
-            "execution separator must appear exactly once on its own line"
-          ],
+          "failures": ["execution separator must appear exactly once on its own line"],
           "response_type": "thrust",
           "response": "I’m checking the current object with see._____javascript\nreturn await space.current.seeWidget(\"quote-board\")",
           "usage": {
@@ -4853,9 +4839,7 @@
           "case_path": "tests/agent_llm_performance/cases/weather_omitted_scope.json",
           "history_path": "tests/agent_llm_performance/histories/weather_omitted_scope.json",
           "passed": false,
-          "failures": [
-            "execution separator must appear exactly once on its own line"
-          ],
+          "failures": ["execution separator must appear exactly once on its own line"],
           "response_type": "thrust",
           "response": "Checking local weather now._____javascript\nconst pos = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 }))\nconst { latitude, longitude } = pos.coords\nreturn await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code,wind_speed_10m`).then(r => r.json())",
           "usage": {
@@ -5250,9 +5234,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_text_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_text_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "I’ll update the file directly.\n\n_____javascript\nconst path = \"~/people.txt\"\nconst current = await space.api.fileRead(path, \"utf8\")\nconst updated = current.replace(/\\bmr\\.\\s*Kowalski\\b/gi, \"John Ronald Kowalski\")\nreturn await space.api.fileWrite(path, updated, \"utf8\")",
           "usage": {
@@ -5363,9 +5345,7 @@
           "case_path": "tests/agent_llm_performance/cases/recover_after_combined_widget_read_write_error.json",
           "history_path": "tests/agent_llm_performance/histories/recover_after_combined_widget_read_write_error.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.current\\.readWidget\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.current\\.readWidget\\(/u"],
           "response_type": "thrust",
           "response": "I need to inspect the Snake game first.\n_____javascript\nreturn await space.current.seeWidget(\"snake-game\")",
           "usage": {
@@ -5862,9 +5842,7 @@
           "case_path": "tests/agent_llm_performance/cases/terminal_after_result_retry_literal.json",
           "history_path": "tests/agent_llm_performance/histories/terminal_after_result_retry_literal.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /\\S/u"
-          ],
+          "failures": ["missing required pattern: /\\S/u"],
           "response_type": "terminal",
           "response": "",
           "usage": {
@@ -6041,9 +6019,7 @@
           "case_path": "tests/agent_llm_performance/cases/continue_after_widget_read.json",
           "history_path": "tests/agent_llm_performance/histories/continue_after_widget_read.json",
           "passed": false,
-          "failures": [
-            "execution separator must appear exactly once on its own line"
-          ],
+          "failures": ["execution separator must appear exactly once on its own line"],
           "response_type": "thrust",
           "response": "Patching the Snake background greener._____javascript\nreturn await space.current.patchWidget(\"snake-game\", { edits: [{ line: 1, text: \"  parent.style.background = '#7aa65a';\" }, { line: 3, text: \"  screen.style.background = '#7aa65a';\" }] })",
           "usage": {

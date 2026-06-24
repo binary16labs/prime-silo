@@ -207,16 +207,20 @@ test("password_change validates the current password, clears sessions, and accep
   assert.match(staleLoginCheckResponse.headers.get("set-cookie") || "", /Max-Age=0/i);
 
   const oldPasswordNonce = randomBytes(18).toString("base64url");
-  const oldPasswordChallengeResponse = await requestJson(runtime.browserUrl, "/api/login_challenge", {
-    body: JSON.stringify({
-      clientNonce: oldPasswordNonce,
-      username
-    }),
-    headers: {
-      "content-type": "application/json"
-    },
-    method: "POST"
-  });
+  const oldPasswordChallengeResponse = await requestJson(
+    runtime.browserUrl,
+    "/api/login_challenge",
+    {
+      body: JSON.stringify({
+        clientNonce: oldPasswordNonce,
+        username
+      }),
+      headers: {
+        "content-type": "application/json"
+      },
+      method: "POST"
+    }
+  );
 
   assert.equal(oldPasswordChallengeResponse.status, 200);
 
@@ -239,16 +243,20 @@ test("password_change validates the current password, clears sessions, and accep
   assert.equal(oldPasswordLoginResponse.status, 401);
 
   const replacementNonce = randomBytes(18).toString("base64url");
-  const replacementChallengeResponse = await requestJson(runtime.browserUrl, "/api/login_challenge", {
-    body: JSON.stringify({
-      clientNonce: replacementNonce,
-      username
-    }),
-    headers: {
-      "content-type": "application/json"
-    },
-    method: "POST"
-  });
+  const replacementChallengeResponse = await requestJson(
+    runtime.browserUrl,
+    "/api/login_challenge",
+    {
+      body: JSON.stringify({
+        clientNonce: replacementNonce,
+        username
+      }),
+      headers: {
+        "content-type": "application/json"
+      },
+      method: "POST"
+    }
+  );
 
   assert.equal(replacementChallengeResponse.status, 200);
 
@@ -296,5 +304,8 @@ test("password_change is disabled in single-user mode", async (testContext) => {
   });
 
   assert.equal(response.status, 403);
-  assert.match(String(response.body?.error || ""), /password login is disabled in single-user mode/i);
+  assert.match(
+    String(response.body?.error || ""),
+    /password login is disabled in single-user mode/i
+  );
 });

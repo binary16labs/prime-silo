@@ -5,6 +5,7 @@ runtime deps + Neo4j + Java, all bundled and auto-started — to confirm the
 "double-click → everything's already there" experience before we tag and deploy.
 
 ## Prerequisites
+
 - **Node 20+** on PATH
 - **Internet access** (the build downloads Python, Neo4j, and a JRE — a few hundred MB the first time)
 - **`tar`** (built into Windows 10/11; it's in `C:\Windows\System32`)
@@ -50,16 +51,19 @@ For a true zero-install test, make sure **no** Python/Neo4j/Docker is running, t
 5. **Relaunch** → it reuses `%APPDATA%\<app>\benny-home` (no re-init) and comes back up "running (bundled)".
 
 ## What "pass" looks like
+
 - Tray reaches **running (bundled)** without you starting anything.
 - Documents, Code 3D, and Deep produce all work on a clean machine.
 - Clean shutdown (no leftover `java`/`python`), clean relaunch.
 
 ## Modes still available (sanity checks, optional)
+
 - **Use your own Benny**: untick tray → **"Use bundled runtime"** (or set
   `RUNTIME_BASE_URL`) and the app uses an external/remote Benny instead.
 - **Server/dev mode** is unchanged: `node space serve` and `node space supervise`.
 
 ## Report back
+
 Tell me: the tray status reached, which of the three surfaces worked, the
 printed SHA-256s, and any errors from **View → Toggle Developer Tools** or the
 console. Then I'll pin the checksums and we tag + deploy.

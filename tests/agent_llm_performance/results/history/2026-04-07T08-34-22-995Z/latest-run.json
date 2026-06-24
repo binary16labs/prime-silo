@@ -2422,9 +2422,7 @@
           "case_path": "tests/agent_llm_performance/cases/fix_visible_widget_error_requires_readwidget.json",
           "history_path": "tests/agent_llm_performance/histories/fix_visible_widget_error_requires_readwidget.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"status-board\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"status-board\"\\)/u"],
           "response_type": "thrust",
           "response": "Repairing the status widget now.\n_____javascript\nreturn await space.current.patchWidget(\"status-board\", { edits: [{ op: \"replace\", path: \"/content\", value: \"Status: online\" }] })",
           "usage": {
@@ -2529,9 +2527,7 @@
           "case_path": "tests/agent_llm_performance/cases/verification_reveals_remaining_widget_error_requires_correction.json",
           "history_path": "tests/agent_llm_performance/histories/verification_reveals_remaining_widget_error_requires_correction.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"financials\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"financials\"\\)/u"],
           "response_type": "thrust",
           "response": "Retrying the broken financials widget view now...\n_____javascript\nreturn await space.current.seeWidget(\"financials\")",
           "usage": {
@@ -2566,9 +2562,7 @@
           "case_path": "tests/agent_llm_performance/cases/partial_mitigation_is_not_completion.json",
           "history_path": "tests/agent_llm_performance/histories/partial_mitigation_is_not_completion.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"financials\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"financials\"\\)/u"],
           "response_type": "thrust",
           "response": "Repairing the financials widget now.\n_____javascript\nreturn await space.current.patchWidget(\"financials\", { edits: [{ op: \"replace\", path: \"/content\", value: \"Error: AMZN: 429 Too Many Requests\" }] })",
           "usage": {
@@ -3171,9 +3165,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating ~/contacts.yaml to expand mr_kowalski now...\n\n_____javascript\nconst text = await space.api.fileRead(\"~/contacts.yaml\", \"utf8\")\nconst data = space.utils.yaml.parse(text)\n\nfunction transform(node) {\n  if (Array.isArray(node)) return node.map(transform)\n  if (node && typeof node === \"object\") {\n    for (const k of Object.keys(node)) {\n      if (k === \"mr_kowalski\") {\n        node[\"John Ronald Kowalski\"] = transform(node[k])\n        delete node[k]\n      } else {\n        node[k] = transform(node[k])\n      }\n    }\n  }\n  return node\n}\n\nconst updated = space.utils.yaml.stringify(transform(data))\nreturn await space.api.fileWrite(\"~/contacts.yaml\", updated, \"utf8\")",
           "usage": {
@@ -3208,9 +3200,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_widget_fix_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_widget_fix_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "execution separator must appear exactly once on its own line"
-          ],
+          "failures": ["execution separator must appear exactly once on its own line"],
           "response_type": "thrust",
           "response": "Reading the snake game source now..._____javascript\nreturn await space.current.readWidget(\"snake-game\")",
           "usage": {
@@ -4589,9 +4579,7 @@
           "case_path": "tests/agent_llm_performance/cases/verification_reveals_remaining_widget_error_requires_correction.json",
           "history_path": "tests/agent_llm_performance/histories/verification_reveals_remaining_widget_error_requires_correction.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"financials\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"financials\"\\)/u"],
           "response_type": "thrust",
           "response": "The financials widget is still returning an AMZN rate-limit error, so I’m re-checking the same widget now.\n_____javascript\nreturn await space.current.seeWidget(\"financials\")",
           "usage": {
@@ -4742,9 +4730,7 @@
           "case_path": "tests/agent_llm_performance/cases/fresh_widget_read_then_do_it_requires_patch.json",
           "history_path": "tests/agent_llm_performance/histories/fresh_widget_read_then_do_it_requires_patch.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.patchWidget(\"quote-board\", { edits: [{ op: \"replace\", path: \"/renderer/2\", value: '  const data = await fetch(\"https://api.example.test/quotes?live=1\").then(r => r.json())' }] })",
           "usage": {
@@ -5185,9 +5171,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Updating your full name to Pan Example now...\n_____javascript\nconst current = await space.api.fileRead(\"~/user.yaml\", \"utf8\")\nconst data = space.utils.yaml.parse(current)\ndata.full_name = \"Pan Example\"\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(data), \"utf8\")",
           "usage": {
@@ -5222,9 +5206,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_text_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_text_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "I’m updating the people file now.\n\n_____javascript\nconst path = \"~/people.txt\"\nconst text = await space.api.fileRead(path, \"utf8\")\nconst updated = text.replace(/\\bmr\\.\\s*Kowalski\\b/gi, \"John Ronald Kowalski\")\nif (updated === text) {\n  throw new Error(\"No matching 'mr. Kowalski' entry found to update.\")\n}\nreturn await space.api.fileWrite(path, updated, \"utf8\")",
           "usage": {
@@ -5259,9 +5241,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "The contacts file is the active target and I’m updating mr_kowalski to John Ronald Kowalski now.\n\n_____javascript\nconst path = \"~/contacts.yaml\"\nconst text = await space.api.fileRead(path, \"utf8\")\nconst data = space.utils.yaml.parse(text)\n\nfunction updateMrKowalski(node) {\n  if (!node || typeof node !== \"object\") return false\n\n  let changed = false\n\n  if (Array.isArray(node)) {\n    for (const item of node) changed = updateMrKowalski(item) || changed\n    return changed\n  }\n\n  for (const [key, value] of Object.entries(node)) {\n    if (key === \"mr_kowalski\") {\n      node[key] = \"John Ronald Kowalski\"\n      changed = true\n    } else if (value && typeof value === \"object\") {\n      changed = updateMrKowalski(value) || changed\n    }\n  }\n\n  return changed\n}\n\nconst changed = updateMrKowalski(data)\nif (!changed) throw new Error(\"mr_kowalski not found in contacts.yaml\")\n\nconst out = space.utils.yaml.stringify(data)\nawait space.api.fileWrite(path, out, \"utf8\")\nreturn \"Updated ~/contacts.yaml\"",
           "usage": {

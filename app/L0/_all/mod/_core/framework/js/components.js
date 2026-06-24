@@ -26,167 +26,161 @@ export async function importComponent(path, targetElement) {
         throw new Error("Target element is required");
       }
 
-    // Show loading indicator
-    targetElement.innerHTML = '<div class="loading"></div>';
+      // Show loading indicator
+      targetElement.innerHTML = '<div class="loading"></div>';
 
-    // full component url
-    const componentUrl = applyModuleResolution(
-      path.startsWith("/") ? path : (path.startsWith("components/") ? path : "components/" + path)
-    );
+      // full component url
+      const componentUrl = applyModuleResolution(
+        path.startsWith("/") ? path : path.startsWith("components/") ? path : "components/" + path
+      );
 
-    // get html from cache or fetch it
-    let html;
-    if (componentCache[componentUrl]) {
-      html = componentCache[componentUrl];
-    } else {
-      const response = await fetch(componentUrl);
-      if (!response.ok) {
-        throw new Error(
-          `Error loading component ${path}: ${response.statusText}`
-        );
+      // get html from cache or fetch it
+      let html;
+      if (componentCache[componentUrl]) {
+        html = componentCache[componentUrl];
+      } else {
+        const response = await fetch(componentUrl);
+        if (!response.ok) {
+          throw new Error(`Error loading component ${path}: ${response.statusText}`);
+        }
+        html = await response.text();
+        // store in cache
+        componentCache[componentUrl] = html;
       }
-      html = await response.text();
-      // store in cache
-      componentCache[componentUrl] = html;
-    }
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, "text/html");
-    applyModuleResolutionToElementAttributes(doc);
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, "text/html");
+      applyModuleResolutionToElementAttributes(doc);
 
-    const allNodes = [
-      ...doc.querySelectorAll("style"),
-      ...doc.querySelectorAll('link[rel="stylesheet"]'),
-      ...doc.querySelectorAll("script"),
-      ...doc.body.childNodes,
-    ];
+      const allNodes = [
+        ...doc.querySelectorAll("style"),
+        ...doc.querySelectorAll('link[rel="stylesheet"]'),
+        ...doc.querySelectorAll("script"),
+        ...doc.body.childNodes
+      ];
 
-    const loadPromises = [];
-    const deferredNodes = [];
-    let blobCounter = 0;
+      const loadPromises = [];
+      const deferredNodes = [];
+      let blobCounter = 0;
 
-    for (const node of allNodes) {
-      if (node.nodeName === "SCRIPT") {
-        const isModule =
-          node.type === "module" || node.getAttribute("type") === "module";
+      for (const node of allNodes) {
+        if (node.nodeName === "SCRIPT") {
+          const isModule = node.type === "module" || node.getAttribute("type") === "module";
 
-        if (isModule) {
-          if (node.src) {
-            // For <script type="module" src="..." use dynamic import
-            const resolvedUrl = new URL(
-              applyModuleResolution(node.src),
-              globalThis.location.origin
-            ).toString();
+          if (isModule) {
+            if (node.src) {
+              // For <script type="module" src="..." use dynamic import
+              const resolvedUrl = new URL(
+                applyModuleResolution(node.src),
+                globalThis.location.origin
+              ).toString();
 
-            let modulePromise = componentCache[resolvedUrl];
+              let modulePromise = componentCache[resolvedUrl];
 
-            if (!modulePromise) {
-              modulePromise = import(resolvedUrl).catch((err) => {
-                delete componentCache[resolvedUrl];
-                throw err;
-              });
-              componentCache[resolvedUrl] = modulePromise;
-            }
-
-            loadPromises.push(modulePromise);
-          } else {
-            const virtualUrl = `${componentUrl.replaceAll(
-              "/",
-              "_"
-            )}.${++blobCounter}.js`;
-
-            let modulePromise = componentCache[virtualUrl];
-
-            if (!modulePromise) {
-              // Transform relative import paths to absolute URLs
-              let content = node.textContent.replace(
-                /import\s+([^'"]+)\s+from\s+["']([^"']+)["']/g,
-                (match, bindings, importPath) => {
-                  // Convert relative OR root-based (e.g. /src/...) to absolute URLs
-                  if (!/^https?:\/\//.test(importPath)) {
-                    const absoluteUrl = applyModuleResolution(
-                      new URL(importPath, globalThis.location.origin).href
-                    );
-                    return `import ${bindings} from "${absoluteUrl}"`;
-                  }
-                  return match;
-                }
-              );
-
-              // Add sourceURL to the content
-              content += `\n//# sourceURL=${virtualUrl}`;
-
-              // Create a Blob from the rewritten content
-              const blob = new Blob([content], {
-                type: "text/javascript",
-              });
-              const blobUrl = URL.createObjectURL(blob);
-
-              modulePromise = import(blobUrl)
-                .catch((err) => {
-                  delete componentCache[virtualUrl];
-                  console.error(`Failed to load inline module ${virtualUrl}:`, err);
+              if (!modulePromise) {
+                modulePromise = import(resolvedUrl).catch((err) => {
+                  delete componentCache[resolvedUrl];
                   throw err;
-                })
-                .finally(() => URL.revokeObjectURL(blobUrl));
+                });
+                componentCache[resolvedUrl] = modulePromise;
+              }
 
-              componentCache[virtualUrl] = modulePromise;
+              loadPromises.push(modulePromise);
+            } else {
+              const virtualUrl = `${componentUrl.replaceAll("/", "_")}.${++blobCounter}.js`;
+
+              let modulePromise = componentCache[virtualUrl];
+
+              if (!modulePromise) {
+                // Transform relative import paths to absolute URLs
+                let content = node.textContent.replace(
+                  /import\s+([^'"]+)\s+from\s+["']([^"']+)["']/g,
+                  (match, bindings, importPath) => {
+                    // Convert relative OR root-based (e.g. /src/...) to absolute URLs
+                    if (!/^https?:\/\//.test(importPath)) {
+                      const absoluteUrl = applyModuleResolution(
+                        new URL(importPath, globalThis.location.origin).href
+                      );
+                      return `import ${bindings} from "${absoluteUrl}"`;
+                    }
+                    return match;
+                  }
+                );
+
+                // Add sourceURL to the content
+                content += `\n//# sourceURL=${virtualUrl}`;
+
+                // Create a Blob from the rewritten content
+                const blob = new Blob([content], {
+                  type: "text/javascript"
+                });
+                const blobUrl = URL.createObjectURL(blob);
+
+                modulePromise = import(blobUrl)
+                  .catch((err) => {
+                    delete componentCache[virtualUrl];
+                    console.error(`Failed to load inline module ${virtualUrl}:`, err);
+                    throw err;
+                  })
+                  .finally(() => URL.revokeObjectURL(blobUrl));
+
+                componentCache[virtualUrl] = modulePromise;
+              }
+
+              loadPromises.push(modulePromise);
+            }
+          } else {
+            // Non-module script
+            const script = document.createElement("script");
+            Array.from(node.attributes || []).forEach((attr) => {
+              script.setAttribute(attr.name, attr.value);
+            });
+            script.textContent = node.textContent;
+
+            if (script.src) {
+              const promise = new Promise((resolve, reject) => {
+                script.onload = resolve;
+                script.onerror = reject;
+              });
+              loadPromises.push(promise);
             }
 
-            loadPromises.push(modulePromise);
+            targetElement.appendChild(script);
           }
-        } else {
-          // Non-module script
-          const script = document.createElement("script");
-          Array.from(node.attributes || []).forEach((attr) => {
-            script.setAttribute(attr.name, attr.value);
-          });
-          script.textContent = node.textContent;
+        } else if (
+          node.nodeName === "STYLE" ||
+          (node.nodeName === "LINK" && node.rel === "stylesheet")
+        ) {
+          const clone = node.cloneNode(true);
 
-          if (script.src) {
+          if (clone.tagName === "LINK" && clone.rel === "stylesheet") {
             const promise = new Promise((resolve, reject) => {
-              script.onload = resolve;
-              script.onerror = reject;
+              clone.onload = resolve;
+              clone.onerror = reject;
             });
             loadPromises.push(promise);
           }
 
-          targetElement.appendChild(script);
+          targetElement.appendChild(clone);
+        } else {
+          deferredNodes.push(node.cloneNode(true));
         }
-      } else if (
-        node.nodeName === "STYLE" ||
-        (node.nodeName === "LINK" && node.rel === "stylesheet")
-      ) {
-        const clone = node.cloneNode(true);
-
-        if (clone.tagName === "LINK" && clone.rel === "stylesheet") {
-          const promise = new Promise((resolve, reject) => {
-            clone.onload = resolve;
-            clone.onerror = reject;
-          });
-          loadPromises.push(promise);
-        }
-
-        targetElement.appendChild(clone);
-      } else {
-        deferredNodes.push(node.cloneNode(true));
       }
-    }
 
-    // Wait for all tracked external scripts/styles to finish loading
-    await Promise.all(loadPromises);
+      // Wait for all tracked external scripts/styles to finish loading
+      await Promise.all(loadPromises);
 
-    for (const deferred of deferredNodes) {
-      targetElement.appendChild(deferred);
-    }
+      for (const deferred of deferredNodes) {
+        targetElement.appendChild(deferred);
+      }
 
-    // Remove loading indicator
-    const loadingEl = targetElement.querySelector(':scope > .loading');
-    if (loadingEl) {
-      targetElement.removeChild(loadingEl);
-    }
+      // Remove loading indicator
+      const loadingEl = targetElement.querySelector(":scope > .loading");
+      if (loadingEl) {
+        targetElement.removeChild(loadingEl);
+      }
 
-    // // Load any nested components
-    // await loadComponents([targetElement]);
+      // // Load any nested components
+      // await loadComponents([targetElement]);
 
       // Return parsed document
       return doc;
@@ -221,7 +215,7 @@ export async function loadComponents(roots = [document.documentElement]) {
     if (components.length === 0) return;
 
     await Promise.all(
-      components.map(async (component) => {   
+      components.map(async (component) => {
         const path = component.getAttribute("path");
         if (!path) {
           console.error("x-component missing path attribute:", component);
@@ -241,13 +235,13 @@ export function getParentAttributes(el) {
   let attrs = {};
 
   while (element) {
-    if (element.tagName.toLowerCase() === 'x-component') {
+    if (element.tagName.toLowerCase() === "x-component") {
       // Get all attributes
       for (let attr of element.attributes) {
         try {
           // Try to parse as JSON first
           attrs[attr.name] = JSON.parse(attr.value);
-        } catch(_e) {
+        } catch (_e) {
           // If not JSON, use raw value
           attrs[attr.name] = attr.value;
         }
@@ -261,8 +255,8 @@ export function getParentAttributes(el) {
 globalThis.xAttrs = getParentAttributes;
 
 // Initialize when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => loadComponents());
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => loadComponents());
 } else {
   loadComponents();
 }

@@ -1,9 +1,7 @@
 {
   "generated_at": "2026-04-13T09:15:40.233Z",
   "generation_id": "2026-04-13T09-15-40-233Z",
-  "models": [
-    "openai/gpt-5.4-mini"
-  ],
+  "models": ["openai/gpt-5.4-mini"],
   "results": [
     {
       "prompt_id": "080A_target_fate_contracts",
@@ -2313,9 +2311,7 @@
           "case_path": "tests/agent_llm_performance/cases/remove_space_by_title_requires_discovery_first.json",
           "history_path": "tests/agent_llm_performance/histories/remove_space_by_title_requires_discovery_first.json",
           "passed": false,
-          "failures": [
-            "execution separator must appear exactly once on its own line"
-          ],
+          "failures": ["execution separator must appear exactly once on its own line"],
           "response_type": "thrust",
           "response": "Listing spaces now..._____javascript\nreturn await space.spaces.listSpaces()",
           "usage": {
@@ -3230,9 +3226,7 @@
           "case_path": "tests/agent_llm_performance/cases/widget_not_found_error_uses_available_widget_id.json",
           "history_path": "tests/agent_llm_performance/histories/widget_not_found_error_uses_available_widget_id.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"iphone-weather\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"iphone-weather\"\\)/u"],
           "response_type": "thrust",
           "response": "Patching the iphone-weather widget now.\n\n_____javascript\nreturn await space.current.patchWidget(\"iphone-weather\", {\n  edits: [\n    {\n      path: \"renderer\",\n      replace: async (parent) => {\n        parent.innerHTML = `\n          <style>\n            :host {\n              display: block;\n              font-family: system-ui, sans-serif;\n              color: #fff;\n            }\n            .grid {\n              display: grid;\n              grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));\n              gap: 12px;\n            }\n            .box {\n              background: rgba(255, 255, 255, 0.14);\n              border: 1px solid rgba(255, 255, 255, 0.18);\n              border-radius: 16px;\n              padding: 14px;\n              backdrop-filter: blur(10px);\n              min-height: 88px;\n              display: flex;\n              flex-direction: column;\n              justify-content: center;\n            }\n            .label {\n              font-size: 12px;\n              opacity: 0.75;\n              margin-bottom: 6px;\n              text-transform: uppercase;\n              letter-spacing: 0.04em;\n            }\n            .value {\n              font-size: 28px;\n              font-weight: 700;\n              line-height: 1.1;\n            }\n            .sun {\n              font-size: 34px;\n            }\n          </style>\n          <div class=\"grid\">\n            <div class=\"box\">\n              <div class=\"label\">Weather</div>\n              <div class=\"value sun\">☀️</div>\n            </div>\n            <div class=\"box\">\n              <div class=\"label\">Temperature</div>\n              <div class=\"value\">72°</div>\n            </div>\n            <div class=\"box\">\n              <div class=\"label\">Humidity</div>\n              <div class=\"value\">48%</div>\n            </div>\n            <div class=\"box\">\n              <div class=\"label\">Wind</div>\n              <div class=\"value\">8 mph</div>\n            </div>\n            <div class=\"box\">\n              <div class=\"label\">Feels like</div>\n              <div class=\"value\">75°</div>\n            </div>\n            <div class=\"box\">\n              <div class=\"label\">Forecast</div>\n              <div class=\"value\">Sunny</div>\n            </div>\n          </div>\n        `\n      }\n    }\n  ]\n})",
           "usage": {
@@ -3672,9 +3666,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Updating your full name now...\n_____javascript\nconst text = await space.api.fileRead(\"~/user.yaml\", \"utf8\")\nconst data = space.utils.yaml.parse(text)\ndata.full_name = \"Pan Example\"\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(data), \"utf8\")",
           "usage": {
@@ -4843,9 +4835,7 @@
           "case_path": "tests/agent_llm_performance/cases/page_title_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/page_title_requires_execution.json",
           "passed": false,
-          "failures": [
-            "invalid javascript after execution separator: Unexpected token ':'"
-          ],
+          "failures": ["invalid javascript after execution separator: Unexpected token ':'"],
           "response_type": "thrust",
           "response": "Checking the current page now...\n_____javascript\nreturn { title: document.title, url: location.href }\n\ntitle: document.title, url: location.href",
           "usage": {
@@ -5316,9 +5306,7 @@
           "case_path": "tests/agent_llm_performance/cases/look_at_it_now_uses_see_widget.json",
           "history_path": "tests/agent_llm_performance/histories/look_at_it_now_uses_see_widget.json",
           "passed": false,
-          "failures": [
-            "execution separator must appear exactly once on its own line"
-          ],
+          "failures": ["execution separator must appear exactly once on its own line"],
           "response_type": "thrust",
           "response": "Seeing the current widget now._____javascript\nreturn await space.current.seeWidget(\"iphone-weather\")",
           "usage": {
@@ -5673,9 +5661,7 @@
           "case_path": "tests/agent_llm_performance/cases/weather_omitted_scope.json",
           "history_path": "tests/agent_llm_performance/histories/weather_omitted_scope.json",
           "passed": false,
-          "failures": [
-            "execution separator must appear exactly once on its own line"
-          ],
+          "failures": ["execution separator must appear exactly once on its own line"],
           "response_type": "thrust",
           "response": "Checking the current location and weather now..._____javascript\nconst pos = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 }))\nconst { latitude, longitude } = pos.coords\nreturn await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code,wind_speed_10m`).then(r => r.json())",
           "usage": {

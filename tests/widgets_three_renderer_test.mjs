@@ -57,7 +57,9 @@ function fakeHost() {
   const host = {
     innerHTML: "",
     classList: { add() {}, remove() {} },
-    querySelector() { return null; },
+    querySelector() {
+      return null;
+    },
     addEventListener() {},
     removeEventListener() {}
   };
@@ -70,13 +72,33 @@ function stubForceGraph3D() {
   const instance = {
     _calls: [],
     _destroyed: false,
-    backgroundColor(...args) { this._calls.push(["backgroundColor", args]); return this; },
-    nodeRelSize(...args)    { this._calls.push(["nodeRelSize", args]);    return this; },
-    nodeColor(...args)      { this._calls.push(["nodeColor", args]);      return this; },
-    linkColor(...args)      { this._calls.push(["linkColor", args]);      return this; },
-    onNodeClick(...args)    { this._calls.push(["onNodeClick", args]);    return this; },
-    graphData(...args)      { this._calls.push(["graphData", args]);      return this; },
-    _destructor()           { this._destroyed = true; }
+    backgroundColor(...args) {
+      this._calls.push(["backgroundColor", args]);
+      return this;
+    },
+    nodeRelSize(...args) {
+      this._calls.push(["nodeRelSize", args]);
+      return this;
+    },
+    nodeColor(...args) {
+      this._calls.push(["nodeColor", args]);
+      return this;
+    },
+    linkColor(...args) {
+      this._calls.push(["linkColor", args]);
+      return this;
+    },
+    onNodeClick(...args) {
+      this._calls.push(["onNodeClick", args]);
+      return this;
+    },
+    graphData(...args) {
+      this._calls.push(["graphData", args]);
+      return this;
+    },
+    _destructor() {
+      this._destroyed = true;
+    }
   };
   // The lib exports a factory of the form ForceGraph3D() returns a
   // function that takes the dom element and returns the instance.
@@ -100,22 +122,35 @@ function delayedLoader(ForceGraph3D) {
   // Resolves the loader on the next microtask so we can interleave
   // mount → update → dispose calls with the load lifecycle.
   let resolve;
-  const promise = new Promise((r) => { resolve = r; });
+  const promise = new Promise((r) => {
+    resolve = r;
+  });
   return {
     loader: () => promise,
-    flush() { resolve(ForceGraph3D); return promise; }
+    flush() {
+      resolve(ForceGraph3D);
+      return promise;
+    }
   };
 }
 
 function kg3dLayout() {
   return {
     positions: {
-      "neural_nets": {
-        x: 100, y: 50, radius: 12, layer: 1, color: "#a78bfa",
+      neural_nets: {
+        x: 100,
+        y: 50,
+        radius: 12,
+        layer: 1,
+        color: "#a78bfa",
         node: { id: "neural_nets", canonical_name: "Neural networks" }
       },
-      "backprop": {
-        x: 200, y: 140, radius: 8, layer: 3, color: "#22d3ee",
+      backprop: {
+        x: 200,
+        y: 140,
+        radius: 8,
+        layer: 3,
+        color: "#22d3ee",
         node: { id: "backprop" }
       }
     },
@@ -131,17 +166,23 @@ function codegraphLayout() {
   return {
     positions: {
       "/src/foo.py": {
-        x: 50, y: 30, radius: 6, type: "File", color: "#00FFFF",
+        x: 50,
+        y: 30,
+        radius: 6,
+        type: "File",
+        color: "#00FFFF",
         node: { id: "/src/foo.py", type: "File", path: "/src/foo.py" }
       },
       "Foo.bar": {
-        x: 200, y: 60, radius: 6, type: "Function", color: "#FF5F1F",
+        x: 200,
+        y: 60,
+        radius: 6,
+        type: "Function",
+        color: "#FF5F1F",
         node: { id: "Foo.bar", type: "Function" }
       }
     },
-    edges: [
-      { id: "e1", source: "/src/foo.py", target: "Foo.bar", type: "DEFINES" }
-    ]
+    edges: [{ id: "e1", source: "/src/foo.py", target: "Foo.bar", type: "DEFINES" }]
   };
 }
 
@@ -189,11 +230,11 @@ function testLayoutToGraphDataDropsEdgesWithMissingEnds() {
   const out = layoutToGraphData({
     positions: { a: { x: 0, y: 0, color: "#fff" } },
     edges: [
-      { source: "a", target: "b" },        // kept — normaliser doesn't reach into positions for validity
-      { source: "a" },                     // dropped — no target
-      { target: "b" },                     // dropped — no source
-      { source: null, target: "b" },       // dropped — null source
-      null                                 // dropped — null edge
+      { source: "a", target: "b" }, // kept — normaliser doesn't reach into positions for validity
+      { source: "a" }, // dropped — no target
+      { target: "b" }, // dropped — no source
+      { source: null, target: "b" }, // dropped — null source
+      null // dropped — null edge
     ]
   });
   // The renderer's job is to forward what it's given; positional validity
@@ -229,7 +270,7 @@ function testLayoutToGraphDataCoercesEdgeIdsToStrings() {
   // Codegraph IDs are sometimes numeric (Neo4j internal ids). Force them
   // to strings so they line up with the node ids the normaliser emits.
   const out = layoutToGraphData({
-    positions: { "42": { x: 0, y: 0 } },
+    positions: { 42: { x: 0, y: 0 } },
     edges: [{ source: 42, target: "42" }]
   });
   assert.equal(out.links[0].source, "42");
@@ -253,7 +294,12 @@ function testFactoryReturnsMountShape() {
 
 function testFactoryIsLazyAndDoesNotCallLoader() {
   let called = 0;
-  createThreeRenderer({ loader: () => { called += 1; return Promise.resolve(stubForceGraph3D()); } });
+  createThreeRenderer({
+    loader: () => {
+      called += 1;
+      return Promise.resolve(stubForceGraph3D());
+    }
+  });
   assert.equal(called, 0, "factory must not call loader at construction");
 }
 
@@ -278,7 +324,10 @@ async function testMountCallsLoaderAndAppliesData() {
   let calls = 0;
   const ForceGraph3D = stubForceGraph3D();
   const r = createThreeRenderer({
-    loader: () => { calls += 1; return Promise.resolve(ForceGraph3D); }
+    loader: () => {
+      calls += 1;
+      return Promise.resolve(ForceGraph3D);
+    }
   });
   const host = fakeHost();
   r.mount(host, kg3dLayout(), {});
@@ -337,8 +386,11 @@ async function testDisposeBeforeLoadCancelsActivation() {
   await flushAsync();
   // The factory function was never invoked because dispose flipped the
   // cancellation flag before the .then ran.
-  assert.equal(ForceGraph3D._instance._calls.length, 0,
-    "disposed mount must not interact with the lib instance");
+  assert.equal(
+    ForceGraph3D._instance._calls.length,
+    0,
+    "disposed mount must not interact with the lib instance"
+  );
 }
 
 async function testDisposeAfterLoadCallsDestructor() {
@@ -348,8 +400,11 @@ async function testDisposeAfterLoadCallsDestructor() {
   const handle = r.mount(host, kg3dLayout(), {});
   await flushAsync();
   handle.dispose();
-  assert.equal(ForceGraph3D._instance._destroyed, true,
-    "dispose after load must call _destructor on the 3d-force-graph instance");
+  assert.equal(
+    ForceGraph3D._instance._destroyed,
+    true,
+    "dispose after load must call _destructor on the 3d-force-graph instance"
+  );
   assert.equal(host.innerHTML, "");
 }
 
@@ -383,7 +438,9 @@ async function testOnNodeClickWiresThrough() {
   let receivedId = null;
   const r = createThreeRenderer({
     loader: () => Promise.resolve(ForceGraph3D),
-    onNodeClick: (id) => { receivedId = id; }
+    onNodeClick: (id) => {
+      receivedId = id;
+    }
   });
   r.mount(fakeHost(), kg3dLayout(), {});
   await flushAsync();

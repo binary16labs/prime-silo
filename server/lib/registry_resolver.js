@@ -84,7 +84,9 @@ export function loadRegistry(startDir = process.cwd(), env = process.env) {
   const registryDir = path.dirname(registryPath);
   const registry = readJson(registryPath);
   if (registry.schema !== REGISTRY_SCHEMA) {
-    throw new Error(`${registryPath}: expected schema "${REGISTRY_SCHEMA}", got "${registry.schema}".`);
+    throw new Error(
+      `${registryPath}: expected schema "${REGISTRY_SCHEMA}", got "${registry.schema}".`
+    );
   }
   if (!Array.isArray(registry.members)) {
     throw new Error(`${registryPath}: "members" must be an array.`);
@@ -145,7 +147,8 @@ export function topoSortApps(apps) {
       throw new Error(`Dependency cycle in registry involving "${id}".`);
     }
     visiting.add(id);
-    const requires = (app.manifest && Array.isArray(app.manifest.requires)) ? app.manifest.requires : [];
+    const requires =
+      app.manifest && Array.isArray(app.manifest.requires) ? app.manifest.requires : [];
     for (const depId of requires) {
       const dep = byId.get(depId);
       if (dep) {
@@ -184,9 +187,10 @@ export function isPortFree(port, host = DEFAULT_HOST) {
  */
 async function resolveServicePort(provide, host, claimed) {
   const preferred = Number(provide.preferredPort);
-  const [lo, hi] = Array.isArray(provide.portRange) && provide.portRange.length === 2
-    ? provide.portRange.map(Number)
-    : [preferred, preferred];
+  const [lo, hi] =
+    Array.isArray(provide.portRange) && provide.portRange.length === 2
+      ? provide.portRange.map(Number)
+      : [preferred, preferred];
 
   const candidates = [preferred];
   for (let p = lo; p <= hi; p += 1) {
@@ -199,7 +203,7 @@ async function resolveServicePort(provide, host, claimed) {
     if (claimed.has(port)) {
       continue;
     }
-    // eslint-disable-next-line no-await-in-loop
+
     if (await isPortFree(port, host)) {
       claimed.add(port);
       return port;
@@ -214,7 +218,12 @@ async function resolveServicePort(provide, host, claimed) {
  * Resolve ports for every member service and (optionally) write the lockfile.
  * Returns { lock, registryDir, lockPath, warnings }.
  */
-export async function resolvePorts({ startDir = process.cwd(), env = process.env, host = DEFAULT_HOST, write = true } = {}) {
+export async function resolvePorts({
+  startDir = process.cwd(),
+  env = process.env,
+  host = DEFAULT_HOST,
+  write = true
+} = {}) {
   const { registryDir, registry, apps } = loadRegistry(startDir, env);
   const ordered = topoSortApps(apps);
 
@@ -226,7 +235,8 @@ export async function resolvePorts({ startDir = process.cwd(), env = process.env
     for (const warning of app.warnings) {
       warnings.push(`${app.member.id}: ${warning}`);
     }
-    const provides = (app.manifest && Array.isArray(app.manifest.provides)) ? app.manifest.provides : [];
+    const provides =
+      app.manifest && Array.isArray(app.manifest.provides) ? app.manifest.provides : [];
     for (const provide of provides) {
       const port = await resolveServicePort(provide, host, claimed);
       const url = `http://${host}:${port}`;

@@ -5,7 +5,9 @@ const OPEN_BROWSERS_TRANSIENT_HEADING = "currently open web browsers";
 const OPEN_BROWSERS_TRANSIENT_KEY = "currently-open-web-browsers";
 
 export function normalizeBrowserTransientId(value) {
-  const match = String(value || "").trim().match(/^browser-(\d+)$/u);
+  const match = String(value || "")
+    .trim()
+    .match(/^browser-(\d+)$/u);
   if (match) {
     const parsed = Number.parseInt(match[1], 10);
     return Number.isInteger(parsed) && parsed > 0 ? String(parsed) : "";
@@ -33,20 +35,18 @@ function compareBrowsers(left, right) {
 }
 
 export function getOpenBrowserTransientRows(webBrowsingStore = getStore("webBrowsing")) {
-  const browsers = typeof webBrowsingStore?.getBrowserList === "function"
-    ? webBrowsingStore.getBrowserList()
-    : Array.isArray(webBrowsingStore?.windows)
-      ? webBrowsingStore.windows
-      : [];
+  const browsers =
+    typeof webBrowsingStore?.getBrowserList === "function"
+      ? webBrowsingStore.getBrowserList()
+      : Array.isArray(webBrowsingStore?.windows)
+        ? webBrowsingStore.windows
+        : [];
 
   return browsers
     .map((browserSurface) => {
       const id = normalizeBrowserTransientId(browserSurface?.id);
       const url = normalizeBrowserTransientCell(
-        browserSurface?.currentUrl
-        || browserSurface?.frameSrc
-        || browserSurface?.addressValue
-        || ""
+        browserSurface?.currentUrl || browserSurface?.frameSrc || browserSurface?.addressValue || ""
       );
       const title = normalizeBrowserTransientCell(browserSurface?.title || "");
 
@@ -75,10 +75,9 @@ export function buildOpenBrowsersTransientSection(webBrowsingStore = getStore("w
     heading: OPEN_BROWSERS_TRANSIENT_HEADING,
     key: OPEN_BROWSERS_TRANSIENT_KEY,
     order: 20,
-    value: [
-      "browser id|url|title",
-      ...rows.map((row) => `${row.id}|${row.url}|${row.title}`)
-    ].join("\n")
+    value: ["browser id|url|title", ...rows.map((row) => `${row.id}|${row.url}|${row.title}`)].join(
+      "\n"
+    )
   };
 }
 

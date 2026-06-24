@@ -28,7 +28,9 @@ function buildManifest() {
   return {
     schema: "aamp.integration/1",
     id: "test-integration",
-    conformance: { checks: ["signature", "config_surface", "health", "payload_contracts", "owners"] },
+    conformance: {
+      checks: ["signature", "config_surface", "health", "payload_contracts", "owners"]
+    },
     config_surface: {
       MEMORAY_ENABLED: { kind: "runtime_param" },
       MEMORAY_BASE_URL: { kind: "runtime_param" }
@@ -40,7 +42,10 @@ function buildManifest() {
         path: "/beta/overview",
         contract: {
           totalNodes: "number",
-          hotFiles: { type: "array", items: { fileName: "string", filePath: "string", count: "number" } }
+          hotFiles: {
+            type: "array",
+            items: { fileName: "string", filePath: "string", count: "number" }
+          }
         }
       }
     ],
@@ -53,7 +58,10 @@ function buildManifest() {
       {
         id: "widget",
         consumes: ["overview"],
-        owner: { repo: "prime-silo", path: "app/L0/_all/mod/_prime_silo/widgets/memoray/overview_cards/index.js" }
+        owner: {
+          repo: "prime-silo",
+          path: "app/L0/_all/mod/_prime_silo/widgets/memoray/overview_cards/index.js"
+        }
       }
     ]
   };
@@ -100,7 +108,10 @@ function testValidateContractHandlesTypeNamedField() {
   );
   // As array items, too (the /sessions contract shape).
   assert.deepEqual(
-    validateContract([{ id: "x", type: "Session", agent: "Claude" }], { type: "array", items: sessionItem }),
+    validateContract([{ id: "x", type: "Session", agent: "Claude" }], {
+      type: "array",
+      items: sessionItem
+    }),
     []
   );
   // A real composite (type + items/fields) is still treated as composite.
@@ -150,11 +161,15 @@ async function testAuditDriftOnContract() {
     fetchEndpoint: async () => ({ ok: true, status: 200, body: drifted })
   });
   assert.equal(report.status, "drift");
-  const finding = report.findings.find((f) => f.check === "payload_contracts" && f.status === "drift");
+  const finding = report.findings.find(
+    (f) => f.check === "payload_contracts" && f.status === "drift"
+  );
   assert.ok(finding, "must report a payload_contracts drift");
   assert.match(finding.detail, /fileName/);
   // Finding carries the owner path(s) of the consumers so an agent can fix it.
-  assert.ok(Array.isArray(finding.owners) && finding.owners.some((o) => o.path.includes("overview_cards")));
+  assert.ok(
+    Array.isArray(finding.owners) && finding.owners.some((o) => o.path.includes("overview_cards"))
+  );
 }
 
 async function testAuditUnsignedManifestDrifts() {

@@ -8,13 +8,13 @@ backend prep).
 
 ## What landed
 
-| Area              | Source                                                      | Lands at                         |
-| ----------------- | ----------------------------------------------------------- | -------------------------------- |
-| Browser shell     | space-agent main (`9c26f9f`)                                | `app/`, `server/`, `space/`      |
-| Desktop packaging | space-agent main                                            | `packaging/`                     |
-| Deterministic substrate | benny `claude/awesome-williamson-3593d1` (`e741043`) | `runtime/` (squashed subtree)    |
-| Dev launcher      | this commit                                                 | `scripts/dev.ps1`, `scripts/dev.sh` |
-| Top-level README  | this commit                                                 | `README.md`                      |
+| Area                    | Source                                               | Lands at                            |
+| ----------------------- | ---------------------------------------------------- | ----------------------------------- |
+| Browser shell           | space-agent main (`9c26f9f`)                         | `app/`, `server/`, `space/`         |
+| Desktop packaging       | space-agent main                                     | `packaging/`                        |
+| Deterministic substrate | benny `claude/awesome-williamson-3593d1` (`e741043`) | `runtime/` (squashed subtree)       |
+| Dev launcher            | this commit                                          | `scripts/dev.ps1`, `scripts/dev.sh` |
+| Top-level README        | this commit                                          | `README.md`                         |
 
 ## Verification
 

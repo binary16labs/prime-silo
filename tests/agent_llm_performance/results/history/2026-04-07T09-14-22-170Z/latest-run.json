@@ -1183,9 +1183,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_text_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_text_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating the people file now...\n\n_____javascript\nconst path = \"~/people.txt\"\nconst text = await space.api.fileRead(path, \"utf8\")\nconst updated = text.replace(/\\bmr\\.\\s*Kowalski\\b/i, \"John Ronald Kowalski\")\nif (updated === text) throw new Error(\"No matching name found to update\")\nreturn await space.api.fileWrite(path, updated, \"utf8\")",
           "usage": {
@@ -1858,9 +1856,7 @@
           "case_path": "tests/agent_llm_performance/cases/repeat_do_it_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/repeat_do_it_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.patchWidget(\"snake-game\", { edits: [] })",
           "usage": {
@@ -2140,9 +2136,7 @@
           "case_path": "tests/agent_llm_performance/cases/followup_after_wrong_space_removal_requires_discovery_execution.json",
           "history_path": "tests/agent_llm_performance/histories/followup_after_wrong_space_removal_requires_discovery_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nconst spaces = await space.spaces.listSpaces()\nreturn spaces",
           "usage": {
@@ -2555,9 +2549,7 @@
           "case_path": "tests/agent_llm_performance/cases/fix_visible_widget_error_requires_readwidget.json",
           "history_path": "tests/agent_llm_performance/histories/fix_visible_widget_error_requires_readwidget.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"status-board\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"status-board\"\\)/u"],
           "response_type": "thrust",
           "response": "Patching the status widget now...\n_____javascript\nreturn await space.current.patchWidget(\"status-board\", { edits: [] })",
           "usage": {
@@ -2662,9 +2654,7 @@
           "case_path": "tests/agent_llm_performance/cases/verification_reveals_remaining_widget_error_requires_correction.json",
           "history_path": "tests/agent_llm_performance/histories/verification_reveals_remaining_widget_error_requires_correction.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"financials\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"financials\"\\)/u"],
           "response_type": "thrust",
           "response": "Seeing the current widget again to verify the visible error...\n_____javascript\nreturn await space.current.seeWidget(\"financials\")",
           "usage": {
@@ -2929,9 +2919,7 @@
           "case_path": "tests/agent_llm_performance/cases/widget_not_found_error_uses_available_widget_id.json",
           "history_path": "tests/agent_llm_performance/histories/widget_not_found_error_uses_available_widget_id.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"iphone-weather\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"iphone-weather\"\\)/u"],
           "response_type": "thrust",
           "response": "Patching the iphone-weather widget to make the values align in a grid.\n_____javascript\nreturn await space.current.patchWidget(\"iphone-weather\", { edits: [] })",
           "usage": {
@@ -4755,9 +4743,7 @@
           "case_path": "tests/agent_llm_performance/cases/fix_visible_widget_error_requires_readwidget.json",
           "history_path": "tests/agent_llm_performance/histories/fix_visible_widget_error_requires_readwidget.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"status-board\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"status-board\"\\)/u"],
           "response_type": "thrust",
           "response": "Patching the same widget now...\n_____javascript\nreturn await space.current.patchWidget(\"status-board\", { edits: [{ op: \"replaceText\", selector: \"div\", value: \"Available\" }] })",
           "usage": {
@@ -4862,9 +4848,7 @@
           "case_path": "tests/agent_llm_performance/cases/verification_reveals_remaining_widget_error_requires_correction.json",
           "history_path": "tests/agent_llm_performance/histories/verification_reveals_remaining_widget_error_requires_correction.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"financials\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"financials\"\\)/u"],
           "response_type": "thrust",
           "response": "Seeing the current widget error now...\n_____javascript\nreturn await space.current.seeWidget(\"financials\")",
           "usage": {
@@ -5015,9 +4999,7 @@
           "case_path": "tests/agent_llm_performance/cases/silent_widget_failure_reopens_repair.json",
           "history_path": "tests/agent_llm_performance/histories/silent_widget_failure_reopens_repair.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"quote-board\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"quote-board\"\\)/u"],
           "response_type": "thrust",
           "response": "Checking the same widget again now...\n_____javascript\nreturn await space.current.seeWidget(\"quote-board\")",
           "usage": {

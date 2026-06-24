@@ -28,10 +28,18 @@ async function main() {
 }
 
 class FakeClassList {
-  constructor() { this._set = new Set(); }
-  add(...names) { names.forEach((n) => this._set.add(n)); }
-  remove(...names) { names.forEach((n) => this._set.delete(n)); }
-  has(name) { return this._set.has(name); }
+  constructor() {
+    this._set = new Set();
+  }
+  add(...names) {
+    names.forEach((n) => this._set.add(n));
+  }
+  remove(...names) {
+    names.forEach((n) => this._set.delete(n));
+  }
+  has(name) {
+    return this._set.has(name);
+  }
 }
 
 function createFakeHost() {
@@ -154,7 +162,10 @@ function testWidgetUpdateRepaintsOnFrameChange() {
   const widget = createFrameInspectorWidget(host, { frame: WELL_FORMED_FRAME });
   assert.match(host.innerHTML, /ACME/);
 
-  const otherFrame = { ...WELL_FORMED_FRAME, assertions: [{ entity: "ZETA_BANK", claim: "x", confidence: 0.5, basis: [] }] };
+  const otherFrame = {
+    ...WELL_FORMED_FRAME,
+    assertions: [{ entity: "ZETA_BANK", claim: "x", confidence: 0.5, basis: [] }]
+  };
   widget.update({ frame: otherFrame });
   assert.match(host.innerHTML, /ZETA_BANK/);
   assert.doesNotMatch(host.innerHTML, /ACME/);

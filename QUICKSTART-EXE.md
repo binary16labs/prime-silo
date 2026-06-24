@@ -36,6 +36,7 @@ When you launch Prime-Silo for the first time:
 Before you can use the agent, configure which AI model to use:
 
 **Option A: Cloud Model (Easiest)**
+
 1. Sign up for a free account at [OpenRouter.ai](https://openrouter.ai)
 2. Get your API key from your account dashboard
 3. In Prime-Silo, go to **Settings → AI Configuration**
@@ -43,6 +44,7 @@ Before you can use the agent, configure which AI model to use:
 5. Select your preferred model (Claude, GPT, etc.)
 
 **Option B: Local Model (No internet needed)**
+
 1. Install [Ollama](https://ollama.ai) on your machine
 2. Run a local model: `ollama run llama2` (or your preferred model)
 3. In Prime-Silo, go to **Settings → AI Configuration**
@@ -143,14 +145,17 @@ Restart the application to check for updates, or go to **Settings → Check for 
 ## Troubleshooting
 
 ### "Home: (not configured)"
+
 Your home directory hasn't been set up yet. Right-click the tray icon and select **"Configure Home Directory..."**.
 
 ### App won't start
+
 - Make sure port 3000 is not in use by another application
 - Try restarting your computer
 - Check that your home directory still exists and is writable
 
 ### Documents / graphs / Flows say "load failed"
+
 The bundled runtime is still warming up (Neo4j takes a few seconds on first
 launch) or hasn't started. Right-click the tray and check the status line; if it
 isn't **"Benny runtime: running"**, click **"Start Benny services"**, then reload
@@ -158,11 +163,13 @@ the page. (If you've unticked "Use bundled runtime" or set `RUNTIME_BASE_URL`,
 make sure your external Benny is up.)
 
 ### AI agent not responding
+
 - Check your internet connection (if using cloud model)
 - Verify your API key is correct in Settings
 - If using local model, check that Ollama is running
 
 ### Faster Deep produce across two machines
+
 If you run a local model on more than one box, point Benny at all of them and the
 **Deep produce** fan-out spreads its panel calls across them in parallel. Set,
 before starting services:
@@ -175,6 +182,7 @@ BENNY_LEMONADE_ENDPOINTS=http://machine-a:13305/api/v1,http://machine-b:13305/ap
 endpoint, fan-out stays sequential — still a quality win, just not parallel.
 
 ### Low performance
+
 - Close other browser tabs or applications
 - Check that your home directory is on a fast disk (not network drive)
 - Monitor your system resources (Ctrl+Shift+Esc)

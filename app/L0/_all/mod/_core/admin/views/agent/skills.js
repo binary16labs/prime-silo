@@ -29,11 +29,15 @@ export async function loadAdminSkill(name) {
 
 export function installAdminSkillRuntime() {
   const adminRuntime = {
-    ...(globalThis.space.admin && typeof globalThis.space.admin === "object" ? globalThis.space.admin : {}),
+    ...(globalThis.space.admin && typeof globalThis.space.admin === "object"
+      ? globalThis.space.admin
+      : {}),
     loadSkill: loadAdminSkill
   };
   const sharedRuntime = {
-    ...(globalThis.space.skills && typeof globalThis.space.skills === "object" ? globalThis.space.skills : {}),
+    ...(globalThis.space.skills && typeof globalThis.space.skills === "object"
+      ? globalThis.space.skills
+      : {}),
     load: loadAdminSkill
   };
 

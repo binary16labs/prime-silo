@@ -1,9 +1,6 @@
 import fs from "node:fs";
 
-import {
-  normalizeEntityId,
-  resolveProjectAbsolutePath
-} from "../customware/layout.js";
+import { normalizeEntityId, resolveProjectAbsolutePath } from "../customware/layout.js";
 import {
   parseSimpleYaml,
   serializeSimpleYaml
@@ -63,21 +60,35 @@ function readJsonObject(filePath, fallback = {}) {
 
   try {
     const parsed = JSON.parse(sourceText);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : { ...(fallback || {}) };
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed
+      : { ...(fallback || {}) };
   } catch {
     return { ...(fallback || {}) };
   }
 }
 
 function readUserConfig(projectRoot, username, runtimeParams = null) {
-  const filePath = buildUserAbsolutePath(projectRoot, username, USER_CONFIG_FILENAME, runtimeParams);
+  const filePath = buildUserAbsolutePath(
+    projectRoot,
+    username,
+    USER_CONFIG_FILENAME,
+    runtimeParams
+  );
   const sourceText = readTextFile(filePath, "");
   return sourceText ? parseSimpleYaml(sourceText) : {};
 }
 
 function writeUserConfig(projectRoot, username, config, runtimeParams = null) {
-  const filePath = buildUserAbsolutePath(projectRoot, username, USER_CONFIG_FILENAME, runtimeParams);
-  fs.mkdirSync(buildUserAbsolutePath(projectRoot, username, "", runtimeParams), { recursive: true });
+  const filePath = buildUserAbsolutePath(
+    projectRoot,
+    username,
+    USER_CONFIG_FILENAME,
+    runtimeParams
+  );
+  fs.mkdirSync(buildUserAbsolutePath(projectRoot, username, "", runtimeParams), {
+    recursive: true
+  });
   fs.writeFileSync(filePath, serializeSimpleYaml(config), "utf8");
   return filePath;
 }

@@ -1,7 +1,4 @@
-import {
-  destroySpaceBackdrop,
-  installSpaceBackdrop
-} from "./spaceBackdropAnimated.js";
+import { destroySpaceBackdrop, installSpaceBackdrop } from "./spaceBackdropAnimated.js";
 
 export { destroySpaceBackdrop, installSpaceBackdrop };
 

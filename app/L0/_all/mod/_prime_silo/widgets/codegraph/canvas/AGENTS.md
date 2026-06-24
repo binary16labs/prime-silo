@@ -9,10 +9,10 @@ renderer-pluggability pattern as `kg3d.synoptic_web`.
 
 ## Files
 
-| File           | Owns                                                         |
-| -------------- | ------------------------------------------------------------ |
-| `index.js`     | `createCodeGraphCanvasWidget(host, props, options)` factory. |
-| `canvas.css`   | Banded SVG styling, edge dash/colour rules.                  |
+| File         | Owns                                                         |
+| ------------ | ------------------------------------------------------------ |
+| `index.js`   | `createCodeGraphCanvasWidget(host, props, options)` factory. |
+| `canvas.css` | Banded SVG styling, edge dash/colour rules.                  |
 
 ## Manifest mapping
 
@@ -43,14 +43,14 @@ the dependency-free shell. This widget ships:
    CALLS = orange (dashed), DEPENDS_ON = cyan (dashed),
    CORRELATES_WITH = magenta (dashed), REL = neutral.
 2. **Pluggable renderer** via `options.renderer = { mount, update,
-   dispose }`. The 3D drop-in shipped as a separate module —
+dispose }`. The 3D drop-in shipped as a separate module —
    [`../../three_renderer/`](../../three_renderer/AGENTS.md) exposes
    `createThreeRenderer()`, which honours both this widget's layout
    shape and kg3d's. Tests inject stubs through the same hook.
 
 The widget id keeps the historic name because the **graph contract**
 (node types, edge types, metadata) is identical — what we render
-changes, what it *means* doesn't.
+changes, what it _means_ doesn't.
 
 ## How it talks to the runtime
 
@@ -73,7 +73,7 @@ import { createCodeGraphCanvasWidget } from "./index.js";
 
 const handle = createCodeGraphCanvasWidget(hostEl, {
   workspace: "c5_test",
-  visibleTypes: ["File", "Class", "Function"],
+  visibleTypes: ["File", "Class", "Function"]
 });
 
 // Pin to a snapshot when investigating a regression.

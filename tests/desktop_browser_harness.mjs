@@ -5,12 +5,14 @@ import { createRequire } from "node:module";
 import { setTimeout as delay } from "node:timers/promises";
 
 const require = createRequire(import.meta.url);
-const {
-  PROJECT_ROOT,
-  loadPackagingDependency
-} = require("../packaging/scripts/tooling.js");
+const { PROJECT_ROOT, loadPackagingDependency } = require("../packaging/scripts/tooling.js");
 
-const HARNESS_ENTRY_PATH = path.join(PROJECT_ROOT, "tests", "browser_component_harness", "main.cjs");
+const HARNESS_ENTRY_PATH = path.join(
+  PROJECT_ROOT,
+  "tests",
+  "browser_component_harness",
+  "main.cjs"
+);
 const RESULT_PREFIX = "[desktop-browser-harness-result] ";
 const DEFAULT_TIMEOUT_MS = 6 * 60 * 1000;
 
@@ -52,16 +54,13 @@ async function startVirtualDisplay() {
   for (let attempt = 0; attempt < 10; attempt += 1) {
     const displayNumber = 90 + Math.floor(Math.random() * 400);
     const display = `:${displayNumber}`;
-    const xvfb = spawn(displayBinary, [
-      display,
-      "-screen",
-      "0",
-      "1440x900x24",
-      "-nolisten",
-      "tcp"
-    ], {
-      stdio: "ignore"
-    });
+    const xvfb = spawn(
+      displayBinary,
+      [display, "-screen", "0", "1440x900x24", "-nolisten", "tcp"],
+      {
+        stdio: "ignore"
+      }
+    );
 
     await delay(1000);
 
@@ -114,11 +113,7 @@ export async function runDesktopBrowserHarnessTest({
   const stdoutChunks = [];
   const stderrChunks = [];
 
-  const child = spawn(electronBinary, [
-    "--no-sandbox",
-    "--disable-gpu",
-    HARNESS_ENTRY_PATH
-  ], {
+  const child = spawn(electronBinary, ["--no-sandbox", "--disable-gpu", HARNESS_ENTRY_PATH], {
     cwd: PROJECT_ROOT,
     env: {
       ...process.env,
@@ -173,21 +168,21 @@ export async function runDesktopBrowserHarnessTest({
     }
 
     if (!result || result.success !== true) {
-      throw createError("Standalone desktop browser harness Electron run did not produce a success result.", {
-        result,
-        stderr,
-        stdout
-      });
+      throw createError(
+        "Standalone desktop browser harness Electron run did not produce a success result.",
+        {
+          result,
+          stderr,
+          stdout
+        }
+      );
     }
 
     return result;
   } finally {
     if (!child.killed && child.exitCode == null) {
       child.kill("SIGTERM");
-      await Promise.race([
-        new Promise((resolve) => child.once("exit", resolve)),
-        delay(5000)
-      ]);
+      await Promise.race([new Promise((resolve) => child.once("exit", resolve)), delay(5000)]);
       if (child.exitCode == null && !child.killed) {
         child.kill("SIGKILL");
       }

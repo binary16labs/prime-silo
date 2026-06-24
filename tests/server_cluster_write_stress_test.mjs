@@ -130,9 +130,7 @@ async function readLinuxCpuTicks(pid) {
 }
 
 async function readProcSnapshots(pids = []) {
-  const entries = await Promise.all(
-    pids.map(async (pid) => [pid, await readLinuxCpuTicks(pid)])
-  );
+  const entries = await Promise.all(pids.map(async (pid) => [pid, await readLinuxCpuTicks(pid)]));
 
   return Object.fromEntries(entries);
 }
@@ -172,8 +170,9 @@ function createBenchmarkUsernames(userCount) {
 
   const width = Math.max(4, String(normalizedUserCount).length);
 
-  return Array.from({ length: normalizedUserCount }, (_, index) =>
-    `user-${String(index + 1).padStart(width, "0")}`
+  return Array.from(
+    { length: normalizedUserCount },
+    (_, index) => `user-${String(index + 1).padStart(width, "0")}`
   );
 }
 
@@ -266,9 +265,7 @@ async function runConcurrentWrites(baseUrl, requestTargets, concurrency) {
     }
   }
 
-  await Promise.all(
-    Array.from({ length: concurrency }, () => runner())
-  );
+  await Promise.all(Array.from({ length: concurrency }, () => runner()));
 
   latenciesMs.sort((left, right) => left - right);
 
@@ -277,10 +274,7 @@ async function runConcurrentWrites(baseUrl, requestTargets, concurrency) {
       return 0;
     }
 
-    const index = Math.min(
-      latenciesMs.length - 1,
-      Math.floor((latenciesMs.length - 1) * fraction)
-    );
+    const index = Math.min(latenciesMs.length - 1, Math.floor((latenciesMs.length - 1) * fraction));
     return latenciesMs[index];
   }
 
@@ -413,7 +407,9 @@ function buildScenarioAnalysis(result) {
     (current, metrics) => Math.max(current, Number(metrics?.corePct || 0)),
     0
   );
-  const primaryBound = Boolean(primaryMetrics && primaryMetrics.corePct >= 80 && maxWorkerCorePct <= 25);
+  const primaryBound = Boolean(
+    primaryMetrics && primaryMetrics.corePct >= 80 && maxWorkerCorePct <= 25
+  );
   const hotspots = summarizeHotspots(result.profileSummary, {
     primaryBound,
     seedFiles: result.seedFiles
@@ -455,9 +451,8 @@ function buildRunSummary(results = []) {
   const baseline = ordered[0];
   const stress = ordered[ordered.length - 1];
 
-  const throughputDrop = stress.throughputPerSec > 0
-    ? baseline.throughputPerSec / stress.throughputPerSec
-    : Infinity;
+  const throughputDrop =
+    stress.throughputPerSec > 0 ? baseline.throughputPerSec / stress.throughputPerSec : Infinity;
   const baselinePrimary = baseline.processCpu?.[String(baseline.primaryPid)] || null;
   const stressPrimary = stress.processCpu?.[String(stress.primaryPid)] || null;
   const maxStressRestartMs = Math.max(
@@ -526,7 +521,9 @@ async function runScenario({
     const expectedWorkerPids = workers > 1 ? workers : 0;
 
     if (workerPids.length !== expectedWorkerPids) {
-      throw new Error(`Expected ${expectedWorkerPids} worker processes, started ${workerPids.length}.`);
+      throw new Error(
+        `Expected ${expectedWorkerPids} worker processes, started ${workerPids.length}.`
+      );
     }
 
     const trackedPids = [process.pid, ...workerPids];
@@ -712,11 +709,7 @@ function printHumanSummary(settings, results) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const seedFileCounts = parseIntegerList(
-    args.seed_files,
-    "seed-files",
-    DEFAULT_SEED_FILE_COUNTS
-  );
+  const seedFileCounts = parseIntegerList(args.seed_files, "seed-files", DEFAULT_SEED_FILE_COUNTS);
   const workers = parseInteger(args.workers, "workers", DEFAULT_WORKERS);
   const requests = parseInteger(args.requests, "requests", DEFAULT_REQUESTS);
   const concurrency = parseInteger(args.concurrency, "concurrency", DEFAULT_CONCURRENCY);

@@ -70,6 +70,9 @@ export async function post(context) {
     };
   } catch (error) {
     await waitForMinimumDuration(startedAtMs, FAILED_PASSWORD_CHANGE_MIN_DURATION_MS);
-    throw createHttpError(error.message || "Password change failed.", Number(error.statusCode) || 500);
+    throw createHttpError(
+      error.message || "Password change failed.",
+      Number(error.statusCode) || 500
+    );
   }
 }

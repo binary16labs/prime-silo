@@ -9,21 +9,13 @@
     "require_single_separator": true,
     "require_code_after_separator": true,
     "require_valid_javascript": true,
-    "must_contain": [
-      "_____javascript",
-      "49.71985822231634",
-      "17.221723412878973"
-    ],
+    "must_contain": ["_____javascript", "49.71985822231634", "17.221723412878973"],
     "must_match": [
       {
         "pattern": "reverse|nominatim|display_name|address|geocode",
         "flags": "iu"
       }
     ],
-    "must_not_contain": [
-      "Likely in the",
-      "near the",
-      "approximately"
-    ]
+    "must_not_contain": ["Likely in the", "near the", "approximately"]
   }
 }

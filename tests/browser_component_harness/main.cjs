@@ -13,13 +13,17 @@ const DEFAULT_BROWSER_ID = 1;
 const DEFAULT_BROWSER_INTERNAL_ID = "browser-1";
 const STEP_TIMEOUT_MS = 120000;
 const CONSENT_TIMEOUT_MS = 180000;
-const WEBVIEW_PRELOAD_PATH = path.resolve(__dirname, "../../packaging/desktop/browser-webview-preload.js");
+const WEBVIEW_PRELOAD_PATH = path.resolve(
+  __dirname,
+  "../../packaging/desktop/browser-webview-preload.js"
+);
 
 let mainWindow = null;
 
 function isParentIpcEnabled() {
-  return String(process.env[PARENT_IPC_ENV] || "").trim() === "1"
-    && typeof process.send === "function";
+  return (
+    String(process.env[PARENT_IPC_ENV] || "").trim() === "1" && typeof process.send === "function"
+  );
 }
 
 function delay(ms) {
@@ -131,10 +135,12 @@ async function requestRenderer(type, payload = null, { timeoutMs = STEP_TIMEOUT_
       cleanup();
 
       if (response?.ok === false) {
-        reject(createError(
-          String(response?.error?.message || `Harness request "${type}" failed.`),
-          response?.error && typeof response.error === "object" ? response.error : null
-        ));
+        reject(
+          createError(
+            String(response?.error?.message || `Harness request "${type}" failed.`),
+            response?.error && typeof response.error === "object" ? response.error : null
+          )
+        );
         return;
       }
 
@@ -148,11 +154,13 @@ async function requestRenderer(type, payload = null, { timeoutMs = STEP_TIMEOUT_
 
     const timer = setTimeout(() => {
       cleanup();
-      reject(createError(`Timed out waiting for harness response "${type}".`, {
-        requestId,
-        timeoutMs,
-        type
-      }));
+      reject(
+        createError(`Timed out waiting for harness response "${type}".`, {
+          requestId,
+          timeoutMs,
+          type
+        })
+      );
     }, timeoutMs);
 
     ipcMain.on(RESPONSE_CHANNEL, handleResponse);
@@ -164,10 +172,7 @@ async function requestRenderer(type, payload = null, { timeoutMs = STEP_TIMEOUT_
   });
 }
 
-async function waitFor(fn, {
-  label = "condition",
-  timeoutMs = STEP_TIMEOUT_MS
-} = {}) {
+async function waitFor(fn, { label = "condition", timeoutMs = STEP_TIMEOUT_MS } = {}) {
   const startedAt = Date.now();
   let lastError = null;
 
@@ -194,12 +199,15 @@ async function probeHarness() {
 }
 
 async function waitForHarnessReady() {
-  return await waitFor(async () => {
-    const probe = await probeHarness();
-    return probe?.ready ? probe : null;
-  }, {
-    label: "standalone browser controller"
-  });
+  return await waitFor(
+    async () => {
+      const probe = await probeHarness();
+      return probe?.ready ? probe : null;
+    },
+    {
+      label: "standalone browser controller"
+    }
+  );
 }
 
 async function callBrowser(method, ...args) {
@@ -209,18 +217,21 @@ async function callBrowser(method, ...args) {
   });
 }
 
-async function waitForContentMatch(browserId, matcher, {
-  contentPayload = null,
-  label,
-  timeoutMs = STEP_TIMEOUT_MS
-} = {}) {
-  return await waitFor(async () => {
-    const content = await callBrowser("content", browserId, contentPayload);
-    return matcher(content) ? content : null;
-  }, {
-    label,
-    timeoutMs
-  });
+async function waitForContentMatch(
+  browserId,
+  matcher,
+  { contentPayload = null, label, timeoutMs = STEP_TIMEOUT_MS } = {}
+) {
+  return await waitFor(
+    async () => {
+      const content = await callBrowser("content", browserId, contentPayload);
+      return matcher(content) ? content : null;
+    },
+    {
+      label,
+      timeoutMs
+    }
+  );
 }
 
 async function runNovinkyConsentScenario() {
@@ -230,15 +241,21 @@ async function runNovinkyConsentScenario() {
   const opened = await callBrowser("open", "https://www.novinky.cz");
   const browserId = Number.isInteger(opened?.id) ? opened.id : DEFAULT_BROWSER_ID;
 
-  const listing = await waitForContentMatch(browserId, (content) => {
-    const document = String(content?.document || "");
-    return findFirstReference(document, /\[link (\d+)\](?: [^\n]+)? -> [^\n]*\/clanek\//u) != null;
-  }, {
-    contentPayload: {
-      includeLinkUrls: true
+  const listing = await waitForContentMatch(
+    browserId,
+    (content) => {
+      const document = String(content?.document || "");
+      return (
+        findFirstReference(document, /\[link (\d+)\](?: [^\n]+)? -> [^\n]*\/clanek\//u) != null
+      );
     },
-    label: "Novinky listing content"
-  });
+    {
+      contentPayload: {
+        includeLinkUrls: true
+      },
+      label: "Novinky listing content"
+    }
+  );
   const articleReferenceId = findFirstReference(
     listing?.document,
     /\[link (\d+)\](?: [^\n]+)? -> [^\n]*\/clanek\//u
@@ -256,18 +273,21 @@ async function runNovinkyConsentScenario() {
   });
   await callBrowser("click", browserId, articleReferenceId);
 
-  const consent = await waitForContentMatch(browserId, (content) => {
-    const document = String(content?.document || "");
-    return document.includes('title: "Nastavení souhlasu s personalizací"')
-      && findFirstReference(document, /\[button (\d+)\] Souhlasím/u) != null;
-  }, {
-    label: "Novinky consent page",
-    timeoutMs: CONSENT_TIMEOUT_MS
-  });
-  const consentReferenceId = findFirstReference(
-    consent?.document,
-    /\[button (\d+)\] Souhlasím/u
+  const consent = await waitForContentMatch(
+    browserId,
+    (content) => {
+      const document = String(content?.document || "");
+      return (
+        document.includes('title: "Nastavení souhlasu s personalizací"') &&
+        findFirstReference(document, /\[button (\d+)\] Souhlasím/u) != null
+      );
+    },
+    {
+      label: "Novinky consent page",
+      timeoutMs: CONSENT_TIMEOUT_MS
+    }
   );
+  const consentReferenceId = findFirstReference(consent?.document, /\[button (\d+)\] Souhlasím/u);
 
   if (!consentReferenceId) {
     throw createError('Could not find the "Souhlasím" reference on the Novinky consent page.', {
@@ -281,14 +301,20 @@ async function runNovinkyConsentScenario() {
   });
   await callBrowser("click", browserId, consentReferenceId);
 
-  const finalContent = await waitForContentMatch(browserId, (content) => {
-    const document = String(content?.document || "");
-    return /url: "https:\/\/www\.novinky\.cz\/clanek\//u.test(document)
-      && !document.includes('title: "Nastavení souhlasu s personalizací"');
-  }, {
-    label: "Novinky article after consent",
-    timeoutMs: CONSENT_TIMEOUT_MS
-  });
+  const finalContent = await waitForContentMatch(
+    browserId,
+    (content) => {
+      const document = String(content?.document || "");
+      return (
+        /url: "https:\/\/www\.novinky\.cz\/clanek\//u.test(document) &&
+        !document.includes('title: "Nastavení souhlasu s personalizací"')
+      );
+    },
+    {
+      label: "Novinky article after consent",
+      timeoutMs: CONSENT_TIMEOUT_MS
+    }
+  );
   const finalState = await callBrowser("state", browserId);
 
   return {
@@ -310,14 +336,18 @@ async function runNovinkyListingDebugScenario() {
   logProgress("Opening Novinky in the standalone browser harness for listing debug.");
   const opened = await callBrowser("open", "https://www.novinky.cz");
   const browserId = Number.isInteger(opened?.id) ? opened.id : DEFAULT_BROWSER_ID;
-  const content = await waitForContentMatch(browserId, (payload) => {
-    return normalizeText(payload?.document).length > 0;
-  }, {
-    contentPayload: {
-      includeLinkUrls: true
+  const content = await waitForContentMatch(
+    browserId,
+    (payload) => {
+      return normalizeText(payload?.document).length > 0;
     },
-    label: "Novinky listing debug content"
-  });
+    {
+      contentPayload: {
+        includeLinkUrls: true
+      },
+      label: "Novinky listing debug content"
+    }
+  );
 
   return {
     articleLinks: collectReferenceMatches(
@@ -337,17 +367,21 @@ async function runNovinkyClickDebugScenario() {
   logProgress("Opening Novinky in the standalone browser harness for click debug.");
   const opened = await callBrowser("open", "https://www.novinky.cz");
   const browserId = Number.isInteger(opened?.id) ? opened.id : DEFAULT_BROWSER_ID;
-  const content = await waitForContentMatch(browserId, (payload) => {
-    return findFirstReference(
-      payload?.document,
-      /\[link (\d+)\](?: [^\n]+)? -> [^\n]*\/clanek\//u
-    ) != null;
-  }, {
-    contentPayload: {
-      includeLinkUrls: true
+  const content = await waitForContentMatch(
+    browserId,
+    (payload) => {
+      return (
+        findFirstReference(payload?.document, /\[link (\d+)\](?: [^\n]+)? -> [^\n]*\/clanek\//u) !=
+        null
+      );
     },
-    label: "Novinky click debug listing"
-  });
+    {
+      contentPayload: {
+        includeLinkUrls: true
+      },
+      label: "Novinky click debug listing"
+    }
+  );
   const articleReferenceId = findFirstReference(
     content?.document,
     /\[link (\d+)\](?: [^\n]+)? -> [^\n]*\/clanek\//u
@@ -403,20 +437,22 @@ async function handleParentCommand(command = "", args = []) {
     return await callBrowser("open", ...args);
   }
 
-  if ([
-    "state",
-    "dom",
-    "content",
-    "detail",
-    "click",
-    "type",
-    "typeSubmit",
-    "submit",
-    "scroll",
-    "reload",
-    "back",
-    "forward"
-  ].includes(normalizedCommand)) {
+  if (
+    [
+      "state",
+      "dom",
+      "content",
+      "detail",
+      "click",
+      "type",
+      "typeSubmit",
+      "submit",
+      "scroll",
+      "reload",
+      "back",
+      "forward"
+    ].includes(normalizedCommand)
+  ) {
     return await callBrowser(normalizedCommand, ...args);
   }
 
@@ -448,7 +484,9 @@ function createWindow() {
     webPreferences.nodeIntegrationInSubFrames = true;
     webPreferences.sandbox = false;
     webPreferences.additionalArguments = [
-      ...(Array.isArray(webPreferences.additionalArguments) ? webPreferences.additionalArguments : []),
+      ...(Array.isArray(webPreferences.additionalArguments)
+        ? webPreferences.additionalArguments
+        : []),
       `--space-browser-id=${DEFAULT_BROWSER_INTERNAL_ID}`
     ];
   });
@@ -483,9 +521,7 @@ function createWindow() {
 
 ipcMain.on(PROGRESS_CHANNEL, (_event, payload = {}) => {
   const message = normalizeText(payload.message);
-  const details = payload.details && typeof payload.details === "object"
-    ? payload.details
-    : null;
+  const details = payload.details && typeof payload.details === "object" ? payload.details : null;
 
   if (!message) {
     return;
@@ -583,10 +619,12 @@ async function start() {
     console.log(`${RESULT_PREFIX}${JSON.stringify(result)}`);
     app.exit(0);
   } catch (error) {
-    console.error(`${RESULT_PREFIX}${JSON.stringify({
-      error: serializeError(error),
-      success: false
-    })}`);
+    console.error(
+      `${RESULT_PREFIX}${JSON.stringify({
+        error: serializeError(error),
+        success: false
+      })}`
+    );
     app.exit(1);
   }
 }
@@ -596,9 +634,11 @@ app.on("window-all-closed", () => {
 });
 
 start().catch((error) => {
-  console.error(`${RESULT_PREFIX}${JSON.stringify({
-    error: serializeError(error, "Standalone browser component harness startup failed."),
-    success: false
-  })}`);
+  console.error(
+    `${RESULT_PREFIX}${JSON.stringify({
+      error: serializeError(error, "Standalone browser component harness startup failed."),
+      success: false
+    })}`
+  );
   app.exit(1);
 });

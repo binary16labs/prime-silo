@@ -1,12 +1,6 @@
-import {
-  getBrowserFrameBridge,
-  send as sendBrowserFrameMessage
-} from "./browser-frame-bridge.js";
+import { getBrowserFrameBridge, send as sendBrowserFrameMessage } from "./browser-frame-bridge.js";
 import { defineBrowserElement } from "./browser-element.js";
-import {
-  AGENT_FUNCTION_REQUIREMENT,
-  guardAgentFunction
-} from "./agent-function-availability.js";
+import { AGENT_FUNCTION_REQUIREMENT, guardAgentFunction } from "./agent-function-availability.js";
 import {
   browserConsoleEventLevelToLogLevel,
   logBrowser,
@@ -153,10 +147,13 @@ function getAvailableWindowArea() {
   const viewport = getViewportSize();
 
   return {
-    height: Math.max(WINDOW_MINIMIZED_HEIGHT, viewport.height - WINDOW_DRAG_TOP_MARGIN - WINDOW_MARGIN),
+    height: Math.max(
+      WINDOW_MINIMIZED_HEIGHT,
+      viewport.height - WINDOW_DRAG_TOP_MARGIN - WINDOW_MARGIN
+    ),
     left: WINDOW_MARGIN,
     top: WINDOW_DRAG_TOP_MARGIN,
-    width: Math.max(WINDOW_EMERGENCY_MIN_WIDTH, viewport.width - (WINDOW_MARGIN * 2))
+    width: Math.max(WINDOW_EMERGENCY_MIN_WIDTH, viewport.width - WINDOW_MARGIN * 2)
   };
 }
 
@@ -168,7 +165,7 @@ function getSpawnWindowArea() {
     height: Math.max(WINDOW_MINIMIZED_HEIGHT, viewport.height - top - WINDOW_MARGIN),
     left: WINDOW_MARGIN,
     top,
-    width: Math.max(WINDOW_EMERGENCY_MIN_WIDTH, viewport.width - (WINDOW_MARGIN * 2))
+    width: Math.max(WINDOW_EMERGENCY_MIN_WIDTH, viewport.width - WINDOW_MARGIN * 2)
   };
 }
 
@@ -198,7 +195,10 @@ function getExpandedSizeBounds(area = getAvailableWindowArea()) {
   };
 }
 
-function getDefaultExpandedSize(spawnArea = getSpawnWindowArea(), clampArea = getAvailableWindowArea()) {
+function getDefaultExpandedSize(
+  spawnArea = getSpawnWindowArea(),
+  clampArea = getAvailableWindowArea()
+) {
   const bounds = getExpandedSizeBounds(clampArea);
   const routerStage = getApproximateRouterStageMetrics(clampArea);
   const viewport = getViewportSize();
@@ -213,7 +213,12 @@ function getDefaultExpandedSize(spawnArea = getSpawnWindowArea(), clampArea = ge
   };
 }
 
-function getDefaultPosition(size, spawnArea = getSpawnWindowArea(), clampArea = getAvailableWindowArea(), cascadeIndex = 0) {
+function getDefaultPosition(
+  size,
+  spawnArea = getSpawnWindowArea(),
+  clampArea = getAvailableWindowArea(),
+  cascadeIndex = 0
+) {
   const maxX = clampArea.left + Math.max(0, clampArea.width - size.width);
   const maxY = clampArea.top + Math.max(0, clampArea.height - size.height);
   const offsetX = Math.min(
@@ -244,11 +249,23 @@ function clampPosition(position, size, area = getAvailableWindowArea()) {
   };
 }
 
-function getRightAnchoredPosition(position, previousSize, nextSize, area = getAvailableWindowArea()) {
-  return clampPosition({
-    x: roundPx(position?.x, area.left) + Math.max(0, roundPx(previousSize?.width)) - Math.max(0, roundPx(nextSize?.width)),
-    y: roundPx(position?.y, area.top)
-  }, nextSize, area);
+function getRightAnchoredPosition(
+  position,
+  previousSize,
+  nextSize,
+  area = getAvailableWindowArea()
+) {
+  return clampPosition(
+    {
+      x:
+        roundPx(position?.x, area.left) +
+        Math.max(0, roundPx(previousSize?.width)) -
+        Math.max(0, roundPx(nextSize?.width)),
+      y: roundPx(position?.y, area.top)
+    },
+    nextSize,
+    area
+  );
 }
 
 function getNextZIndex() {
@@ -259,10 +276,10 @@ function getNextZIndex() {
 function getBrowserWindowStorage() {
   try {
     const storage = globalThis.localStorage;
-    return storage
-      && typeof storage.getItem === "function"
-      && typeof storage.setItem === "function"
-      && typeof storage.removeItem === "function"
+    return storage &&
+      typeof storage.getItem === "function" &&
+      typeof storage.setItem === "function" &&
+      typeof storage.removeItem === "function"
       ? storage
       : null;
   } catch {
@@ -289,10 +306,10 @@ function buildPersistedBrowserWindowSnapshot(browserWindow) {
   }
 
   const url = resolveBrowserLocation(
-    browserWindow.currentUrl
-      || browserWindow.frameSrc
-      || browserWindow.addressValue
-      || resolveDefaultFrameSrc()
+    browserWindow.currentUrl ||
+      browserWindow.frameSrc ||
+      browserWindow.addressValue ||
+      resolveDefaultFrameSrc()
   );
   if (!url) {
     return null;
@@ -338,7 +355,9 @@ function releasePointerCapture(interaction) {
 }
 
 function getBrowserBaseUrl() {
-  return String(globalThis.window?.location?.href || globalThis.location?.href || "http://localhost/");
+  return String(
+    globalThis.window?.location?.href || globalThis.location?.href || "http://localhost/"
+  );
 }
 
 function getBrowserOriginUrl() {
@@ -383,7 +402,9 @@ function looksLikeTypedBrowserHost(value) {
   }
 
   const host = normalizedValue.split(/[/?#]/u, 1)[0] || "";
-  return /^(?:localhost|\[[0-9a-f:.]+\]|(?:\d{1,3}\.){3}\d{1,3}|(?:[a-z\d](?:[a-z\d-]{0,61}[a-z\d])?\.)+[a-z\d-]{2,63})(?::\d+)?$/iu.test(host);
+  return /^(?:localhost|\[[0-9a-f:.]+\]|(?:\d{1,3}\.){3}\d{1,3}|(?:[a-z\d](?:[a-z\d-]{0,61}[a-z\d])?\.)+[a-z\d-]{2,63})(?::\d+)?$/iu.test(
+    host
+  );
 }
 
 function getRuntime() {
@@ -417,9 +438,7 @@ function normalizeAgentBrowserId(value) {
 
   if (/^\d+$/u.test(normalizedValue)) {
     const ordinal = Number.parseInt(normalizedValue, 10);
-    return Number.isInteger(ordinal) && ordinal > 0
-      ? `${BROWSER_WINDOW_ID_PREFIX}${ordinal}`
-      : "";
+    return Number.isInteger(ordinal) && ordinal > 0 ? `${BROWSER_WINDOW_ID_PREFIX}${ordinal}` : "";
   }
 
   const ordinal = extractBrowserWindowOrdinal(normalizedValue);
@@ -429,7 +448,10 @@ function normalizeAgentBrowserId(value) {
 function mergeBrowserSurfaceEntries(currentSurfaces = [], nextSurfaces = []) {
   const surfaceById = new Map();
 
-  [...(Array.isArray(currentSurfaces) ? currentSurfaces : []), ...(Array.isArray(nextSurfaces) ? nextSurfaces : [])]
+  [
+    ...(Array.isArray(currentSurfaces) ? currentSurfaces : []),
+    ...(Array.isArray(nextSurfaces) ? nextSurfaces : [])
+  ]
     .filter((browserSurface) => browserSurface?.id)
     .forEach((browserSurface) => {
       surfaceById.set(browserSurface.id, browserSurface);
@@ -451,12 +473,14 @@ function buildRuntimeBrowserWindowSnapshot(browserWindow) {
   return {
     ...browserWindow,
     id: toAgentBrowserId(browserWindow.id),
-    position: browserWindow.position && typeof browserWindow.position === "object"
-      ? { ...browserWindow.position }
-      : browserWindow.position,
-    size: browserWindow.size && typeof browserWindow.size === "object"
-      ? { ...browserWindow.size }
-      : browserWindow.size
+    position:
+      browserWindow.position && typeof browserWindow.position === "object"
+        ? { ...browserWindow.position }
+        : browserWindow.position,
+    size:
+      browserWindow.size && typeof browserWindow.size === "object"
+        ? { ...browserWindow.size }
+        : browserWindow.size
   };
 }
 
@@ -515,7 +539,7 @@ async function settleRuntimeBrowserWindowState(store, id, options = {}) {
   if (typeof store.syncNavigationState === "function") {
     await store.syncNavigationState(normalizedId, {
       allowUnready: options.allowUnready !== false,
-      attempts: Math.max(1, Number(options.attempts) || (FRAME_SYNC_ATTEMPTS + 2))
+      attempts: Math.max(1, Number(options.attempts) || FRAME_SYNC_ATTEMPTS + 2)
     });
   }
 
@@ -573,10 +597,12 @@ async function performRuntimeBrowserAction(store, id, actionType, perform, optio
   };
   status.urlChanged = beforeState.currentUrl !== state.currentUrl;
   status.titleChanged = beforeState.title !== state.title;
-  status.historyChanged = beforeState.canGoBack !== state.canGoBack
-    || beforeState.canGoForward !== state.canGoForward;
+  status.historyChanged =
+    beforeState.canGoBack !== state.canGoBack || beforeState.canGoForward !== state.canGoForward;
   status.navigated = status.urlChanged || beforeState.frameSrc !== state.frameSrc;
-  status.reacted = Object.entries(status).some(([key, value]) => key !== "reacted" && key !== "noObservedEffect" && value === true);
+  status.reacted = Object.entries(status).some(
+    ([key, value]) => key !== "reacted" && key !== "noObservedEffect" && value === true
+  );
   status.noObservedEffect = !status.reacted;
 
   return {
@@ -590,7 +616,8 @@ async function performRuntimeBrowserAction(store, id, actionType, perform, optio
 
 function ensureBrowserRuntimeNamespace(store) {
   const runtime = getRuntime();
-  const previousNamespace = runtime.browser && typeof runtime.browser === "object" ? runtime.browser : {};
+  const previousNamespace =
+    runtime.browser && typeof runtime.browser === "object" ? runtime.browser : {};
   const {
     current: _previousCurrent,
     get: _previousGet,
@@ -616,14 +643,20 @@ function ensureBrowserRuntimeNamespace(store) {
   const namespace = {
     ...preservedNamespace,
     back: guardAgentFunction(AGENT_FUNCTION_REQUIREMENT.NATIVE_APP_ONLY, (id) => {
-      return performRuntimeBrowserAction(store, id, "history_back", (normalizedId) => {
-        return store.goBack(normalizedId);
-      }, {
-        navigationQuietMs: FRAME_NAVIGATION_QUIET_MS,
-        navigationReadyTimeoutMs: FRAME_NAVIGATION_READY_TIMEOUT_MS,
-        navigationWaitMs: FRAME_NAVIGATION_WAIT_MS,
-        waitForNavigation: true
-      });
+      return performRuntimeBrowserAction(
+        store,
+        id,
+        "history_back",
+        (normalizedId) => {
+          return store.goBack(normalizedId);
+        },
+        {
+          navigationQuietMs: FRAME_NAVIGATION_QUIET_MS,
+          navigationReadyTimeoutMs: FRAME_NAVIGATION_READY_TIMEOUT_MS,
+          navigationWaitMs: FRAME_NAVIGATION_WAIT_MS,
+          waitForNavigation: true
+        }
+      );
     }),
     click: guardAgentFunction(AGENT_FUNCTION_REQUIREMENT.NATIVE_APP_ONLY, (id, referenceId) => {
       return performRuntimeBrowserAction(store, id, "click", async (normalizedId) => {
@@ -655,24 +688,35 @@ function ensureBrowserRuntimeNamespace(store) {
     count: guardAgentFunction(AGENT_FUNCTION_REQUIREMENT.NATIVE_APP_ONLY, () => {
       return store.getBrowserList().length;
     }),
-    content: guardAgentFunction(AGENT_FUNCTION_REQUIREMENT.NATIVE_APP_ONLY, (id, payload = null, options = {}) => {
-      return performRuntimeBrowserRead(store, id, "content", payload, options);
-    }),
+    content: guardAgentFunction(
+      AGENT_FUNCTION_REQUIREMENT.NATIVE_APP_ONLY,
+      (id, payload = null, options = {}) => {
+        return performRuntimeBrowserRead(store, id, "content", payload, options);
+      }
+    ),
     create: guardAgentFunction(AGENT_FUNCTION_REQUIREMENT.NATIVE_APP_ONLY, (options = {}) => {
       return openWindow(options);
     }),
-    detail: guardAgentFunction(AGENT_FUNCTION_REQUIREMENT.NATIVE_APP_ONLY, (id, referenceId, options = {}) => {
-      return performRuntimeBrowserRead(store, id, "detail", referenceId, options);
-    }),
-    dom: guardAgentFunction(AGENT_FUNCTION_REQUIREMENT.NATIVE_APP_ONLY, (id, payload = null, options = {}) => {
-      return performRuntimeBrowserRead(store, id, "dom", payload, options);
-    }),
-    evaluate: guardAgentFunction(AGENT_FUNCTION_REQUIREMENT.NATIVE_APP_ONLY, (id, scriptOrPayload = "", options = {}) => {
-      const payload = typeof scriptOrPayload === "string"
-        ? { script: scriptOrPayload }
-        : scriptOrPayload;
-      return performRuntimeBrowserRead(store, id, "evaluate", payload, options);
-    }),
+    detail: guardAgentFunction(
+      AGENT_FUNCTION_REQUIREMENT.NATIVE_APP_ONLY,
+      (id, referenceId, options = {}) => {
+        return performRuntimeBrowserRead(store, id, "detail", referenceId, options);
+      }
+    ),
+    dom: guardAgentFunction(
+      AGENT_FUNCTION_REQUIREMENT.NATIVE_APP_ONLY,
+      (id, payload = null, options = {}) => {
+        return performRuntimeBrowserRead(store, id, "dom", payload, options);
+      }
+    ),
+    evaluate: guardAgentFunction(
+      AGENT_FUNCTION_REQUIREMENT.NATIVE_APP_ONLY,
+      (id, scriptOrPayload = "", options = {}) => {
+        const payload =
+          typeof scriptOrPayload === "string" ? { script: scriptOrPayload } : scriptOrPayload;
+        return performRuntimeBrowserRead(store, id, "evaluate", payload, options);
+      }
+    ),
     focus: guardAgentFunction(AGENT_FUNCTION_REQUIREMENT.NATIVE_APP_ONLY, (id, options = {}) => {
       const normalizedId = requireWindowId(id);
       store.rememberBrowserInteraction(normalizedId, "focus");
@@ -683,14 +727,20 @@ function ensureBrowserRuntimeNamespace(store) {
       });
     }),
     forward: guardAgentFunction(AGENT_FUNCTION_REQUIREMENT.NATIVE_APP_ONLY, (id) => {
-      return performRuntimeBrowserAction(store, id, "history_forward", (normalizedId) => {
-        return store.goForward(normalizedId);
-      }, {
-        navigationQuietMs: FRAME_NAVIGATION_QUIET_MS,
-        navigationReadyTimeoutMs: FRAME_NAVIGATION_READY_TIMEOUT_MS,
-        navigationWaitMs: FRAME_NAVIGATION_WAIT_MS,
-        waitForNavigation: true
-      });
+      return performRuntimeBrowserAction(
+        store,
+        id,
+        "history_forward",
+        (normalizedId) => {
+          return store.goForward(normalizedId);
+        },
+        {
+          navigationQuietMs: FRAME_NAVIGATION_QUIET_MS,
+          navigationReadyTimeoutMs: FRAME_NAVIGATION_READY_TIMEOUT_MS,
+          navigationWaitMs: FRAME_NAVIGATION_WAIT_MS,
+          waitForNavigation: true
+        }
+      );
     }),
     has: guardAgentFunction(AGENT_FUNCTION_REQUIREMENT.NATIVE_APP_ONLY, (id) => {
       return Boolean(store.getBrowser(normalizeAgentBrowserId(id)));
@@ -699,18 +749,26 @@ function ensureBrowserRuntimeNamespace(store) {
       return store.getBrowserList().map((browserWindow) => toAgentBrowserId(browserWindow.id));
     }),
     list: guardAgentFunction(AGENT_FUNCTION_REQUIREMENT.NATIVE_APP_ONLY, () => {
-      return store.getBrowserList().map((browserWindow) => buildRuntimeBrowserWindowSnapshot(browserWindow));
+      return store
+        .getBrowserList()
+        .map((browserWindow) => buildRuntimeBrowserWindowSnapshot(browserWindow));
     }),
     navigate: guardAgentFunction(AGENT_FUNCTION_REQUIREMENT.NATIVE_APP_ONLY, (id, url) => {
-      return performRuntimeBrowserAction(store, id, "location_navigate", (normalizedId) => {
-        store.updateAddressValue(normalizedId, String(url ?? ""));
-        return store.navigateToAddress(normalizedId);
-      }, {
-        navigationQuietMs: FRAME_NAVIGATION_QUIET_MS,
-        navigationReadyTimeoutMs: FRAME_NAVIGATION_READY_TIMEOUT_MS,
-        navigationWaitMs: FRAME_NAVIGATION_WAIT_MS,
-        waitForNavigation: true
-      });
+      return performRuntimeBrowserAction(
+        store,
+        id,
+        "location_navigate",
+        (normalizedId) => {
+          store.updateAddressValue(normalizedId, String(url ?? ""));
+          return store.navigateToAddress(normalizedId);
+        },
+        {
+          navigationQuietMs: FRAME_NAVIGATION_QUIET_MS,
+          navigationReadyTimeoutMs: FRAME_NAVIGATION_READY_TIMEOUT_MS,
+          navigationWaitMs: FRAME_NAVIGATION_WAIT_MS,
+          waitForNavigation: true
+        }
+      );
     }),
     open: guardAgentFunction(AGENT_FUNCTION_REQUIREMENT.NATIVE_APP_ONLY, (options = {}) => {
       return openWindow(options);
@@ -719,14 +777,20 @@ function ensureBrowserRuntimeNamespace(store) {
       return setBrowserLogLevel(level);
     },
     reload: guardAgentFunction(AGENT_FUNCTION_REQUIREMENT.NATIVE_APP_ONLY, (id) => {
-      return performRuntimeBrowserAction(store, id, "location_reload", (normalizedId) => {
-        return store.reloadFrame(normalizedId);
-      }, {
-        navigationQuietMs: FRAME_NAVIGATION_QUIET_MS,
-        navigationReadyTimeoutMs: FRAME_NAVIGATION_READY_TIMEOUT_MS,
-        navigationWaitMs: FRAME_NAVIGATION_WAIT_MS,
-        waitForNavigation: true
-      });
+      return performRuntimeBrowserAction(
+        store,
+        id,
+        "location_reload",
+        (normalizedId) => {
+          return store.reloadFrame(normalizedId);
+        },
+        {
+          navigationQuietMs: FRAME_NAVIGATION_QUIET_MS,
+          navigationReadyTimeoutMs: FRAME_NAVIGATION_READY_TIMEOUT_MS,
+          navigationWaitMs: FRAME_NAVIGATION_WAIT_MS,
+          waitForNavigation: true
+        }
+      );
     }),
     scroll: guardAgentFunction(AGENT_FUNCTION_REQUIREMENT.NATIVE_APP_ONLY, (id, referenceId) => {
       return performRuntimeBrowserAction(store, id, "scroll", async (normalizedId) => {
@@ -737,13 +801,16 @@ function ensureBrowserRuntimeNamespace(store) {
         return await sendBrowserFrameMessage(normalizedId, "scroll", referenceId);
       });
     }),
-    send: guardAgentFunction(AGENT_FUNCTION_REQUIREMENT.NATIVE_APP_ONLY, (id, type, payload = null, options = {}) => {
-      const normalizedId = requireWindowId(id);
-      if (shouldRememberAgentBrowserInteraction(type)) {
-        store.rememberBrowserInteraction(normalizedId, type);
+    send: guardAgentFunction(
+      AGENT_FUNCTION_REQUIREMENT.NATIVE_APP_ONLY,
+      (id, type, payload = null, options = {}) => {
+        const normalizedId = requireWindowId(id);
+        if (shouldRememberAgentBrowserInteraction(type)) {
+          store.rememberBrowserInteraction(normalizedId, type);
+        }
+        return sendBrowserFrameMessage(normalizedId, type, payload, options);
       }
-      return sendBrowserFrameMessage(normalizedId, type, payload, options);
-    }),
+    ),
     state: guardAgentFunction(AGENT_FUNCTION_REQUIREMENT.NATIVE_APP_ONLY, (id) => {
       const normalizedId = requireWindowId(id);
       store.rememberBrowserInteraction(normalizedId, "state");
@@ -761,30 +828,36 @@ function ensureBrowserRuntimeNamespace(store) {
         return await sendBrowserFrameMessage(normalizedId, "submit", referenceId);
       });
     }),
-    type: guardAgentFunction(AGENT_FUNCTION_REQUIREMENT.NATIVE_APP_ONLY, (id, referenceId, value = "") => {
-      return performRuntimeBrowserAction(store, id, "type", async (normalizedId) => {
-        await settleRuntimeBrowserWindowState(store, normalizedId, {
-          attempts: 2,
-          allowUnready: true
+    type: guardAgentFunction(
+      AGENT_FUNCTION_REQUIREMENT.NATIVE_APP_ONLY,
+      (id, referenceId, value = "") => {
+        return performRuntimeBrowserAction(store, id, "type", async (normalizedId) => {
+          await settleRuntimeBrowserWindowState(store, normalizedId, {
+            attempts: 2,
+            allowUnready: true
+          });
+          return await sendBrowserFrameMessage(normalizedId, "type", {
+            referenceId,
+            value
+          });
         });
-        return await sendBrowserFrameMessage(normalizedId, "type", {
-          referenceId,
-          value
+      }
+    ),
+    typeSubmit: guardAgentFunction(
+      AGENT_FUNCTION_REQUIREMENT.NATIVE_APP_ONLY,
+      (id, referenceId, value = "") => {
+        return performRuntimeBrowserAction(store, id, "type_submit", async (normalizedId) => {
+          await settleRuntimeBrowserWindowState(store, normalizedId, {
+            attempts: 2,
+            allowUnready: true
+          });
+          return await sendBrowserFrameMessage(normalizedId, "type_submit", {
+            referenceId,
+            value
+          });
         });
-      });
-    }),
-    typeSubmit: guardAgentFunction(AGENT_FUNCTION_REQUIREMENT.NATIVE_APP_ONLY, (id, referenceId, value = "") => {
-      return performRuntimeBrowserAction(store, id, "type_submit", async (normalizedId) => {
-        await settleRuntimeBrowserWindowState(store, normalizedId, {
-          attempts: 2,
-          allowUnready: true
-        });
-        return await sendBrowserFrameMessage(normalizedId, "type_submit", {
-          referenceId,
-          value
-        });
-      });
-    })
+      }
+    )
   };
 
   runtime.browser = namespace;
@@ -797,7 +870,10 @@ function normalizeTypedBrowserLocation(value) {
     return "";
   }
 
-  if (/^[a-z][a-z\d+\-.]*:\/\//iu.test(normalizedValue) || /^(about|blob|data|file|mailto|tel):/iu.test(normalizedValue)) {
+  if (
+    /^[a-z][a-z\d+\-.]*:\/\//iu.test(normalizedValue) ||
+    /^(about|blob|data|file|mailto|tel):/iu.test(normalizedValue)
+  ) {
     return resolveBrowserLocation(normalizedValue);
   }
 
@@ -814,7 +890,9 @@ function normalizeTypedBrowserLocation(value) {
 }
 
 function extractBrowserWindowOrdinal(id) {
-  const match = String(id || "").trim().match(/^browser-(\d+)$/u);
+  const match = String(id || "")
+    .trim()
+    .match(/^browser-(\d+)$/u);
   const parsed = match ? Number.parseInt(match[1], 10) : Number.NaN;
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
@@ -844,7 +922,10 @@ function getNextBrowserWindowId(windows, root = globalThis.document) {
   );
 
   let nextOrdinal = 1;
-  while (usedOrdinals.has(nextOrdinal) || isBrowserWindowIdInUse(`${BROWSER_WINDOW_ID_PREFIX}${nextOrdinal}`, windows, root)) {
+  while (
+    usedOrdinals.has(nextOrdinal) ||
+    isBrowserWindowIdInUse(`${BROWSER_WINDOW_ID_PREFIX}${nextOrdinal}`, windows, root)
+  ) {
     nextOrdinal += 1;
   }
 
@@ -875,9 +956,10 @@ function collectIframeFallbackState(iframe) {
     const navigationCanGoBack = readNavigationCapability(navigation, "canGoBack");
     const navigationCanGoForward = readNavigationCapability(navigation, "canGoForward");
 
-    canGoBack = navigationCanGoBack == null
-      ? Number(iframe.contentWindow?.history?.length || 0) > 1
-      : navigationCanGoBack;
+    canGoBack =
+      navigationCanGoBack == null
+        ? Number(iframe.contentWindow?.history?.length || 0) > 1
+        : navigationCanGoBack;
     canGoForward = navigationCanGoForward == null ? false : navigationCanGoForward;
   } catch {
     // Cross-origin iframes fall back to their exposed src attribute only.
@@ -898,16 +980,12 @@ function collectIframeFallbackState(iframe) {
 }
 
 function readImmediateBrowserNavigationState(store, id) {
-  const webview = typeof store.getWebview === "function"
-    ? store.getWebview(id)
-    : null;
+  const webview = typeof store.getWebview === "function" ? store.getWebview(id) : null;
   if (webview) {
     return collectWebviewNavigationState(webview);
   }
 
-  const iframe = typeof store.getIframe === "function"
-    ? store.getIframe(id)
-    : null;
+  const iframe = typeof store.getIframe === "function" ? store.getIframe(id) : null;
   if (iframe) {
     return collectIframeFallbackState(iframe);
   }
@@ -1090,19 +1168,27 @@ const model = {
 
     persistedWindows.forEach((entry, index) => {
       const storedId = String(entry?.id || "").trim();
-      const browserId = storedId && !restoredIds.has(storedId)
-        ? storedId
-        : getNextBrowserWindowId([...this.getBrowserList(), ...restoredWindows], globalThis.document);
+      const browserId =
+        storedId && !restoredIds.has(storedId)
+          ? storedId
+          : getNextBrowserWindowId(
+              [...this.getBrowserList(), ...restoredWindows],
+              globalThis.document
+            );
       restoredIds.add(browserId);
 
-      const restoredUrl = normalizeTypedBrowserLocation(entry?.url)
-        || resolveBrowserLocation(resolveDefaultFrameSrc());
+      const restoredUrl =
+        normalizeTypedBrowserLocation(entry?.url) ||
+        resolveBrowserLocation(resolveDefaultFrameSrc());
       const browserWindow = createBrowserWindowState(browserId, index, {
         url: restoredUrl
       });
 
       browserWindow.isMinimized = entry?.isMinimized === true;
-      browserWindow.instanceKey = Math.max(1, roundPx(entry?.instanceKey, browserWindow.instanceKey));
+      browserWindow.instanceKey = Math.max(
+        1,
+        roundPx(entry?.instanceKey, browserWindow.instanceKey)
+      );
       browserWindow.position = {
         x: roundPx(entry?.position?.x, browserWindow.position.x),
         y: roundPx(entry?.position?.y, browserWindow.position.y)
@@ -1167,8 +1253,10 @@ const model = {
       return null;
     }
 
-    return this.getBrowserList().find((browserWindow) => browserWindow.id === normalizedId)
-      || this.getWindow(normalizedId);
+    return (
+      this.getBrowserList().find((browserWindow) => browserWindow.id === normalizedId) ||
+      this.getWindow(normalizedId)
+    );
   },
 
   getIframe(id) {
@@ -1229,7 +1317,10 @@ const model = {
       return false;
     }
 
-    return this.getObservedNavigationVersion(normalizedId) === Number(pendingNavigation.observedVersion || 0);
+    return (
+      this.getObservedNavigationVersion(normalizedId) ===
+      Number(pendingNavigation.observedVersion || 0)
+    );
   },
 
   collectImmediateNavigationState(id) {
@@ -1242,7 +1333,9 @@ const model = {
 
   allocateBrowserSurfaceId(preferredId = "") {
     const normalizedPreferredId = String(preferredId || "").trim();
-    const preferredElement = normalizedPreferredId ? browserSurfaceElements.get(normalizedPreferredId) : null;
+    const preferredElement = normalizedPreferredId
+      ? browserSurfaceElements.get(normalizedPreferredId)
+      : null;
 
     if (
       normalizedPreferredId &&
@@ -1262,10 +1355,13 @@ const model = {
     }
 
     const previousId = browserElementIds.get(element) || "";
-    const requestedId = String(element.dataset?.browserId || element.getAttribute?.("data-browser-id") || previousId || "").trim();
+    const requestedId = String(
+      element.dataset?.browserId || element.getAttribute?.("data-browser-id") || previousId || ""
+    ).trim();
     const existingElement = requestedId ? browserSurfaceElements.get(requestedId) : null;
-    const shouldReuseRequestedId = requestedId
-      && (!existingElement || existingElement === element || !existingElement.isConnected);
+    const shouldReuseRequestedId =
+      requestedId &&
+      (!existingElement || existingElement === element || !existingElement.isConnected);
     const id = shouldReuseRequestedId ? requestedId : this.allocateBrowserSurfaceId(requestedId);
     const sourceUrl = String(options.src ?? element.getAttribute?.("src") ?? "").trim();
     let browserSurface = this.getBrowser(id);
@@ -1288,7 +1384,11 @@ const model = {
       }
     }
 
-    if (sourceUrl && (!browserSurface.currentUrl || browserSurface.currentUrl === resolveBrowserLocation(resolveDefaultFrameSrc()))) {
+    if (
+      sourceUrl &&
+      (!browserSurface.currentUrl ||
+        browserSurface.currentUrl === resolveBrowserLocation(resolveDefaultFrameSrc()))
+    ) {
       const normalizedSourceUrl = normalizeTypedBrowserLocation(sourceUrl);
       if (normalizedSourceUrl) {
         browserSurface.addressValue = normalizedSourceUrl;
@@ -1310,7 +1410,9 @@ const model = {
       return false;
     }
 
-    const id = browserElementIds.get(element) || String(element.dataset?.browserId || element.getAttribute?.("data-browser-id") || "").trim();
+    const id =
+      browserElementIds.get(element) ||
+      String(element.dataset?.browserId || element.getAttribute?.("data-browser-id") || "").trim();
     if (!id) {
       return false;
     }
@@ -1333,7 +1435,11 @@ const model = {
   },
 
   updateBrowserElementSource(element, src) {
-    const id = browserElementIds.get(element) || String(element?.dataset?.browserId || element?.getAttribute?.("data-browser-id") || "").trim();
+    const id =
+      browserElementIds.get(element) ||
+      String(
+        element?.dataset?.browserId || element?.getAttribute?.("data-browser-id") || ""
+      ).trim();
     const browserSurface = id ? this.getBrowser(id) : this.registerBrowserElement(element, { src });
     const normalizedUrl = normalizeTypedBrowserLocation(src);
 
@@ -1401,7 +1507,11 @@ const model = {
 
     browserWindow.zIndex = getNextZIndex();
 
-    if (this.usesNativeDesktopSurface && !options.fromBrowserSurface && options.focusSurface !== false) {
+    if (
+      this.usesNativeDesktopSurface &&
+      !options.fromBrowserSurface &&
+      options.focusSurface !== false
+    ) {
       focusBrowserSurface(browserWindow.id);
     }
 
@@ -1435,8 +1545,9 @@ const model = {
 
   handleWindowPointerDown(id, event) {
     const target = event?.target;
-    const shouldKeepChromeFocus = target instanceof Element
-      && Boolean(target.closest(".web-browsing-window-toolbar, .space-browser-toolbar"));
+    const shouldKeepChromeFocus =
+      target instanceof Element &&
+      Boolean(target.closest(".web-browsing-window-toolbar, .space-browser-toolbar"));
 
     this.focusWindow(id, {
       focusSurface: !shouldKeepChromeFocus
@@ -1452,10 +1563,22 @@ const model = {
     const bounds = getExpandedSizeBounds(area);
 
     browserWindow.size = {
-      height: clamp(roundPx(browserWindow.size?.height, bounds.maxHeight), bounds.minHeight, bounds.maxHeight),
-      width: clamp(roundPx(browserWindow.size?.width, bounds.maxWidth), bounds.minWidth, bounds.maxWidth)
+      height: clamp(
+        roundPx(browserWindow.size?.height, bounds.maxHeight),
+        bounds.minHeight,
+        bounds.maxHeight
+      ),
+      width: clamp(
+        roundPx(browserWindow.size?.width, bounds.maxWidth),
+        bounds.minWidth,
+        bounds.maxWidth
+      )
     };
-    browserWindow.position = clampPosition(browserWindow.position, this.getPanelSize(browserWindow), area);
+    browserWindow.position = clampPosition(
+      browserWindow.position,
+      this.getPanelSize(browserWindow),
+      area
+    );
   },
 
   getPanelSize(browserWindow) {
@@ -1469,14 +1592,26 @@ const model = {
     const area = getAvailableWindowArea();
     const bounds = getExpandedSizeBounds(area);
     const expandedSize = {
-      height: clamp(roundPx(browserWindow.size?.height, bounds.maxHeight), bounds.minHeight, bounds.maxHeight),
-      width: clamp(roundPx(browserWindow.size?.width, bounds.maxWidth), bounds.minWidth, bounds.maxWidth)
+      height: clamp(
+        roundPx(browserWindow.size?.height, bounds.maxHeight),
+        bounds.minHeight,
+        bounds.maxHeight
+      ),
+      width: clamp(
+        roundPx(browserWindow.size?.width, bounds.maxWidth),
+        bounds.minWidth,
+        bounds.maxWidth
+      )
     };
 
     if (browserWindow.isMinimized) {
       return {
         height: Math.min(WINDOW_MINIMIZED_HEIGHT, area.height),
-        width: clamp(getMinimizedWidthPx(), Math.min(bounds.minWidth, bounds.maxWidth), bounds.maxWidth)
+        width: clamp(
+          getMinimizedWidthPx(),
+          Math.min(bounds.minWidth, bounds.maxWidth),
+          bounds.maxWidth
+        )
       };
     }
 
@@ -1554,7 +1689,12 @@ const model = {
     this.ensureWindowGeometry(browserWindow);
 
     const nextSize = this.getPanelSize(browserWindow);
-    browserWindow.position = getRightAnchoredPosition(browserWindow.position, previousSize, nextSize, area);
+    browserWindow.position = getRightAnchoredPosition(
+      browserWindow.position,
+      previousSize,
+      nextSize,
+      area
+    );
     if (this.usesNativeDesktopSurface) {
       syncDesktopBrowserSurface(browserWindow.id);
     }
@@ -1606,8 +1746,16 @@ const model = {
     const interaction = {
       captureTarget: event.currentTarget,
       originSize: {
-        height: clamp(roundPx(browserWindow.size?.height, bounds.maxHeight), bounds.minHeight, bounds.maxHeight),
-        width: clamp(roundPx(browserWindow.size?.width, bounds.maxWidth), bounds.minWidth, bounds.maxWidth)
+        height: clamp(
+          roundPx(browserWindow.size?.height, bounds.maxHeight),
+          bounds.minHeight,
+          bounds.maxHeight
+        ),
+        width: clamp(
+          roundPx(browserWindow.size?.width, bounds.maxWidth),
+          bounds.minWidth,
+          bounds.maxWidth
+        )
       },
       pointerId: event.pointerId,
       startX: event.clientX,
@@ -1636,10 +1784,13 @@ const model = {
     event.preventDefault();
 
     if (interaction.type === "drag") {
-      browserWindow.position = clampPosition({
-        x: interaction.originPosition.x + (event.clientX - interaction.startX),
-        y: interaction.originPosition.y + (event.clientY - interaction.startY)
-      }, interaction.panelSize);
+      browserWindow.position = clampPosition(
+        {
+          x: interaction.originPosition.x + (event.clientX - interaction.startX),
+          y: interaction.originPosition.y + (event.clientY - interaction.startY)
+        },
+        interaction.panelSize
+      );
       if (this.usesNativeDesktopSurface) {
         syncDesktopBrowserSurface(browserWindow.id);
       }
@@ -1649,10 +1800,25 @@ const model = {
 
     const bounds = getExpandedSizeBounds();
     browserWindow.size = {
-      height: Math.round(clamp(interaction.originSize.height + (event.clientY - interaction.startY), bounds.minHeight, bounds.maxHeight)),
-      width: Math.round(clamp(interaction.originSize.width + (event.clientX - interaction.startX), bounds.minWidth, bounds.maxWidth))
+      height: Math.round(
+        clamp(
+          interaction.originSize.height + (event.clientY - interaction.startY),
+          bounds.minHeight,
+          bounds.maxHeight
+        )
+      ),
+      width: Math.round(
+        clamp(
+          interaction.originSize.width + (event.clientX - interaction.startX),
+          bounds.minWidth,
+          bounds.maxWidth
+        )
+      )
     };
-    browserWindow.position = clampPosition(browserWindow.position, this.getPanelSize(browserWindow));
+    browserWindow.position = clampPosition(
+      browserWindow.position,
+      this.getPanelSize(browserWindow)
+    );
     if (this.usesNativeDesktopSurface) {
       syncDesktopBrowserSurface(browserWindow.id);
     }
@@ -1851,21 +2017,37 @@ const model = {
       });
       offPreloadReady = bridge.on("__preload_ready__", (message) => {
         browserSurface.bridgeTransportReady = true;
-        logBrowser("debug", `[space-browser] Guest preload ready for ${browserSurface.id}.`, message.payload);
+        logBrowser(
+          "debug",
+          `[space-browser] Guest preload ready for ${browserSurface.id}.`,
+          message.payload
+        );
       });
       offPreloadReceived = bridge.on("__preload_received__", (message) => {
         browserSurface.bridgeTransportReady = true;
-        logBrowser("debug", `[space-browser] Guest preload received host envelope for ${browserSurface.id}.`, message.payload);
+        logBrowser(
+          "debug",
+          `[space-browser] Guest preload received host envelope for ${browserSurface.id}.`,
+          message.payload
+        );
       });
       offBridgeReady = bridge.on("__bridge_ready__", (message) => {
         browserSurface.bridgeTransportReady = true;
         browserSurface.bridgeStateReady = false;
-        logBrowser("debug", `[space-browser] Guest bridge runtime ready for ${browserSurface.id}.`, message.payload);
+        logBrowser(
+          "debug",
+          `[space-browser] Guest bridge runtime ready for ${browserSurface.id}.`,
+          message.payload
+        );
       });
       offCoreHandlersReady = bridge.on("__core_handlers_ready__", (message) => {
         browserSurface.bridgeTransportReady = true;
         browserSurface.bridgeHandlersReady = true;
-        logBrowser("debug", `[space-browser] Guest core handlers ready for ${browserSurface.id}.`, message.payload);
+        logBrowser(
+          "debug",
+          `[space-browser] Guest core handlers ready for ${browserSurface.id}.`,
+          message.payload
+        );
         void this.syncNavigationState(id, {
           attempts: 2
         });
@@ -1878,7 +2060,9 @@ const model = {
       const state = runtimeState.attached
         ? collectWebviewNavigationState(webview)
         : {
-            url: resolveBrowserLocation(fallbackUrl || browserSurface.currentUrl || browserSurface.frameSrc || "")
+            url: resolveBrowserLocation(
+              fallbackUrl || browserSurface.currentUrl || browserSurface.frameSrc || ""
+            )
           };
       this.applyNavigationState(id, state);
     };
@@ -1886,7 +2070,10 @@ const model = {
       stabilizeEmbedder();
 
       const nextUrl = resolveBrowserLocation(
-        browserSurface.currentUrl || browserSurface.frameSrc || normalizedInitialUrl || DEFAULT_FRAME_SRC
+        browserSurface.currentUrl ||
+          browserSurface.frameSrc ||
+          normalizedInitialUrl ||
+          DEFAULT_FRAME_SRC
       );
       if (!nextUrl) {
         return;
@@ -1955,19 +2142,28 @@ const model = {
       void injectBrowserWebviewRuntime(webview, {
         browserId: browserSurface.id,
         injectPath: BROWSER_INJECT_PATH
-      }).then(() => {
-        syncState();
-        return true;
-      }).catch((error) => {
-        logBrowser("error", `[space-browser] Failed to inject browser runtime into ${browserSurface.id}.`, error);
-        runtimeState.injected = false;
-        syncState();
-      });
+      })
+        .then(() => {
+          syncState();
+          return true;
+        })
+        .catch((error) => {
+          logBrowser(
+            "error",
+            `[space-browser] Failed to inject browser runtime into ${browserSurface.id}.`,
+            error
+          );
+          runtimeState.injected = false;
+          syncState();
+        });
     };
 
     const handleConsoleMessage = (event) => {
       const messageText = String(event?.message || "");
-      if (!messageText.includes("[space-browser") && !messageText.includes("[space-desktop/browser-webview-preload]")) {
+      if (
+        !messageText.includes("[space-browser") &&
+        !messageText.includes("[space-desktop/browser-webview-preload]")
+      ) {
         return;
       }
 
@@ -2164,7 +2360,9 @@ const model = {
       return;
     }
 
-    const resolvedUrl = resolveBrowserLocation(state.url || browserSurface.currentUrl || browserSurface.frameSrc || "");
+    const resolvedUrl = resolveBrowserLocation(
+      state.url || browserSurface.currentUrl || browserSurface.frameSrc || ""
+    );
     if (resolvedUrl) {
       browserSurface.addressValue = resolvedUrl;
       browserSurface.currentUrl = resolvedUrl;
@@ -2250,7 +2448,7 @@ const model = {
       }
 
       const payload = await this.requestBridgePayload(normalizedId, "navigation_state_get", null, {
-        timeoutMs: FRAME_REQUEST_TIMEOUT_MS + (attempt * 150)
+        timeoutMs: FRAME_REQUEST_TIMEOUT_MS + attempt * 150
       });
 
       if (payload) {
@@ -2391,7 +2589,9 @@ const model = {
       return;
     }
 
-    const nextUrl = normalizeTypedBrowserLocation(browserSurface.addressValue || browserSurface.currentUrl || browserSurface.frameSrc);
+    const nextUrl = normalizeTypedBrowserLocation(
+      browserSurface.addressValue || browserSurface.currentUrl || browserSurface.frameSrc
+    );
     if (!nextUrl) {
       browserSurface.addressValue = browserSurface.currentUrl || browserSurface.frameSrc || "";
       this.notifyBrowserElementState(id);
@@ -2496,7 +2696,9 @@ const model = {
         // Fall back to resetting the current src when the child page is cross-origin.
       }
 
-      const src = resolveBrowserLocation(iframe.src || iframe.getAttribute?.("src") || this.getBrowser(id)?.frameSrc || "");
+      const src = resolveBrowserLocation(
+        iframe.src || iframe.getAttribute?.("src") || this.getBrowser(id)?.frameSrc || ""
+      );
       if (!src) {
         return false;
       }

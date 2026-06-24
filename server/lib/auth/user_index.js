@@ -121,7 +121,11 @@ function buildUserIndexSnapshot(context = {}) {
     userRecord.userConfigPath = projectPath;
 
     try {
-      const absolutePath = resolveProjectAbsolutePath(projectRoot, projectPath, context.runtimeParams);
+      const absolutePath = resolveProjectAbsolutePath(
+        projectRoot,
+        projectPath,
+        context.runtimeParams
+      );
       const parsedConfig = parseSimpleYaml(fs.readFileSync(absolutePath, "utf8"));
       userRecord.fullName = String(parsedConfig.full_name || "").trim() || userConfigInfo.username;
     } catch (error) {
@@ -143,7 +147,11 @@ function buildUserIndexSnapshot(context = {}) {
     userRecord.passwordPath = projectPath;
 
     try {
-      const absolutePath = resolveProjectAbsolutePath(projectRoot, projectPath, context.runtimeParams);
+      const absolutePath = resolveProjectAbsolutePath(
+        projectRoot,
+        projectPath,
+        context.runtimeParams
+      );
       const parsedConfig = JSON.parse(fs.readFileSync(absolutePath, "utf8"));
       const passwordRecord = inspectPasswordRecord(parsedConfig);
       userRecord.hasPassword = Boolean(passwordRecord);
@@ -175,7 +183,11 @@ function buildUserIndexSnapshot(context = {}) {
     let parsedLogins = {};
 
     try {
-      const absolutePath = resolveProjectAbsolutePath(projectRoot, projectPath, context.runtimeParams);
+      const absolutePath = resolveProjectAbsolutePath(
+        projectRoot,
+        projectPath,
+        context.runtimeParams
+      );
       parsedLogins = readJsonObject(absolutePath);
     } catch (error) {
       errors.push({

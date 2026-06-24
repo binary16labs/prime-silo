@@ -40,7 +40,9 @@ function normalizeCurrentSpaceRelativePath(specifier) {
   }
 
   if (segments.includes("..")) {
-    throw new Error(`Current-space module imports may not escape the current space root: ${specifier}`);
+    throw new Error(
+      `Current-space module imports may not escape the current space root: ${specifier}`
+    );
   }
 
   return segments.join("/");
@@ -104,10 +106,15 @@ export async function importCurrentSpaceModule(specifier, options = {}) {
   }
 
   if (pathInfo.isDirectory) {
-    throw new Error(`Current-space module import expected a file path, not a folder: ${logicalPath}`);
+    throw new Error(
+      `Current-space module import expected a file path, not a folder: ${logicalPath}`
+    );
   }
 
-  const moduleUrl = new URL(resolveAppUrl(logicalPath), locationOrigin || globalThis.location?.origin || "http://localhost");
+  const moduleUrl = new URL(
+    resolveAppUrl(logicalPath),
+    locationOrigin || globalThis.location?.origin || "http://localhost"
+  );
   moduleUrl.searchParams.set("v", buildCurrentSpaceModuleVersionToken(pathInfo));
 
   return importModule(moduleUrl.toString());

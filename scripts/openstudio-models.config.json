@@ -29,11 +29,14 @@
   ],
 
   "roles": {
-    "default_chat_model":           { "provider": "lmstudio", "name": "google/gemma-4-12b-qat" },
+    "default_chat_model": { "provider": "lmstudio", "name": "google/gemma-4-12b-qat" },
     "default_transformation_model": { "provider": "lmstudio", "name": "google/gemma-4-12b-qat" },
-    "large_context_model":          { "provider": "lmstudio", "name": "google/gemma-4-12b-qat" },
-    "default_embedding_model":      { "provider": "lmstudio", "name": "text-embedding-nomic-embed-text-v1.5" },
-    "default_tools_model":          { "provider": "lemonade", "name": "Qwen3-8B-Hybrid" },
+    "large_context_model": { "provider": "lmstudio", "name": "google/gemma-4-12b-qat" },
+    "default_embedding_model": {
+      "provider": "lmstudio",
+      "name": "text-embedding-nomic-embed-text-v1.5"
+    },
+    "default_tools_model": { "provider": "lemonade", "name": "Qwen3-8B-Hybrid" },
     "default_text_to_speech_model": { "provider": "lemonade", "name": "kokoro-v1" },
     "default_speech_to_text_model": { "provider": "lemonade", "name": "Whisper-Large-v3-Turbo" }
   }

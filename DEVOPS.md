@@ -15,6 +15,7 @@
 ## Release Process (Step-by-Step)
 
 ### Prerequisites
+
 - All changes committed to `main` branch
 - All documentation updated
 - No uncommitted changes in working directory
@@ -40,6 +41,7 @@ node scripts/manage-release.js patch   # or: minor, major
 ```
 
 **What this does:**
+
 1. ✓ Reads current version from `package.json`
 2. ✓ Bumps version (patch/minor/major)
 3. ✓ Updates `package.json`
@@ -47,6 +49,7 @@ node scripts/manage-release.js patch   # or: minor, major
 5. ✓ Creates annotated git tag `vX.Y.Z`
 
 **Output:**
+
 ```
 📦 Creating patch release: 1.2.4
 ✓ Updated package.json to version 1.2.4
@@ -72,11 +75,13 @@ git push origin vX.Y.Z
 ```
 
 **Why this order matters:**
+
 - The release workflow's `release_gate` job checks if the tag's commit is an ancestor of `origin/main`
 - If the tag is pushed before the commits, the release gate will find the tag exists but its commit isn't on origin/main yet
 - This causes the build jobs to be **skipped** ❌
 
 **If you forget to push main first:**
+
 - Manually trigger the workflow: `gh workflow run release-desktop.yml -f release_tag=vX.Y.Z`
 - Or push main and let the tag's automatic trigger re-run the workflow
 
@@ -121,6 +126,7 @@ gh release view vX.Y.Z
 ```
 
 Expected output:
+
 - Release page created
 - 12 assets uploaded:
   - 6 platform installers (.exe, .dmg, .AppImage)
@@ -185,10 +191,10 @@ The `prepare` job has a release gate that decides if the build should proceed:
 
 **Why might build jobs be skipped?**
 
-| Reason | Solution |
-|--------|----------|
-| Tag doesn't exist | Create tag with `manage-release.js` |
-| Tag not on origin/main | Push main branch: `git push origin main` |
+| Reason                  | Solution                                   |
+| ----------------------- | ------------------------------------------ |
+| Tag doesn't exist       | Create tag with `manage-release.js`        |
+| Tag not on origin/main  | Push main branch: `git push origin main`   |
 | Newer tag found on main | Push all commits and tags, then re-trigger |
 
 **If skipped, how to retry:**
@@ -209,15 +215,15 @@ git push origin v1.2.5                # push new tag
 
 ## Important Files
 
-| File | Purpose | Notes |
-|------|---------|-------|
-| `package.json` | Version source | Updated by `manage-release.js` |
-| `.github/workflows/release-desktop.yml` | Build pipeline | 6 platform matrix, ~30 min |
-| `.github/workflows/snapshot-build.yml` | Dev builds | Auto on every commit |
-| `scripts/manage-release.js` | Version bumping | Creates tag + commit |
-| `scripts/manage-release.ps1` | Windows wrapper | Calls manage-release.js |
-| `packaging/` | Desktop app code | Electron, tray, system integration |
-| `packaging/platforms/` | Platform-specific build configs | Windows, macOS, Linux |
+| File                                    | Purpose                         | Notes                              |
+| --------------------------------------- | ------------------------------- | ---------------------------------- |
+| `package.json`                          | Version source                  | Updated by `manage-release.js`     |
+| `.github/workflows/release-desktop.yml` | Build pipeline                  | 6 platform matrix, ~30 min         |
+| `.github/workflows/snapshot-build.yml`  | Dev builds                      | Auto on every commit               |
+| `scripts/manage-release.js`             | Version bumping                 | Creates tag + commit               |
+| `scripts/manage-release.ps1`            | Windows wrapper                 | Calls manage-release.js            |
+| `packaging/`                            | Desktop app code                | Electron, tray, system integration |
+| `packaging/platforms/`                  | Platform-specific build configs | Windows, macOS, Linux              |
 
 ---
 
@@ -225,10 +231,10 @@ git push origin v1.2.5                # push new tag
 
 **Required for release workflow:**
 
-| Secret | Purpose | Used by |
-|--------|---------|---------|
+| Secret               | Purpose                  | Used by                |
+| -------------------- | ------------------------ | ---------------------- |
 | `OPENROUTER_API_KEY` | Release notes generation | prepare job (optional) |
-| `GITHUB_TOKEN` | Create/update releases | publish job |
+| `GITHUB_TOKEN`       | Create/update releases   | publish job            |
 
 **Secrets should be set in GitHub repository settings.**
 
@@ -251,6 +257,7 @@ $env:OPENROUTER_API_KEY = "..."      # AI model for release notes
 **Cause:** Release gate set `should_release=false`
 
 **Solution:**
+
 ```bash
 # Check what the gate found
 gh run view <run-id> --log 2>&1 | grep -i "skipping\|should_release"
@@ -269,6 +276,7 @@ gh workflow run release-desktop.yml -f release_tag=vX.Y.Z
 **Cause:** Build jobs didn't complete or didn't upload artifacts
 
 **Solution:**
+
 ```bash
 # Check build job logs
 gh run view <run-id> --job <build-job-id> --log
@@ -284,6 +292,7 @@ gh run rerun <run-id> --failed
 **Cause:** Publish job skipped or failed silently
 
 **Solution:**
+
 ```bash
 # Check publish job
 gh run view <run-id> --job <publish-job-id> --log
@@ -299,6 +308,7 @@ gh release create vX.Y.Z --title "v1.2.4" --generate-notes
 **Cause:** Manual edit of package.json instead of using `manage-release.js`
 
 **Solution:**
+
 ```bash
 # Revert to last good version
 git checkout HEAD~1 package.json
@@ -313,14 +323,14 @@ node scripts/manage-release.js patch
 
 ### Build Environments
 
-| Platform | Runner | Arch | Time | Output |
-|----------|--------|------|------|--------|
-| Windows x64 | windows-latest | x64 | 1-2 min | `.exe` |
-| Windows ARM64 | windows-11-arm | arm64 | 3-5 min | `.exe` |
-| macOS x64 | macos-15-intel | x64 | 3-4 min | `.dmg` |
-| macOS ARM64 | macos-latest | arm64 | 2 min | `.dmg` |
-| Linux x64 | ubuntu-latest | x64 | 1 min | `.AppImage` |
-| Linux ARM64 | ubuntu-24.04-arm | arm64 | 1 min | `.AppImage` |
+| Platform      | Runner           | Arch  | Time    | Output      |
+| ------------- | ---------------- | ----- | ------- | ----------- |
+| Windows x64   | windows-latest   | x64   | 1-2 min | `.exe`      |
+| Windows ARM64 | windows-11-arm   | arm64 | 3-5 min | `.exe`      |
+| macOS x64     | macos-15-intel   | x64   | 3-4 min | `.dmg`      |
+| macOS ARM64   | macos-latest     | arm64 | 2 min   | `.dmg`      |
+| Linux x64     | ubuntu-latest    | x64   | 1 min   | `.AppImage` |
+| Linux ARM64   | ubuntu-24.04-arm | arm64 | 1 min   | `.AppImage` |
 
 ### Build Scripts
 
@@ -396,6 +406,7 @@ node packaging/scripts/release-notes.js \
 ```
 
 **Requirements:**
+
 - `OPENROUTER_API_KEY` environment variable set
 - Network access to OpenRouter API
 - If API unavailable, release still publishes with empty notes

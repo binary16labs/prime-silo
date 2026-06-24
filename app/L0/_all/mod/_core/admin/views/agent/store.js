@@ -10,14 +10,16 @@ import * as prompt from "/mod/_core/admin/views/agent/prompt.js";
 import * as skills from "/mod/_core/admin/views/agent/skills.js";
 import * as storage from "/mod/_core/admin/views/agent/storage.js";
 import * as agentView from "/mod/_core/admin/views/agent/view.js";
-import {
-  mapManagerStateToAdminState
-} from "/mod/_core/admin/views/agent/huggingface.js";
+import { mapManagerStateToAdminState } from "/mod/_core/admin/views/agent/huggingface.js";
 import {
   normalizeAssistantEvaluationLogEntry,
   prependAssistantEvaluationLogs
 } from "/mod/_core/agent-chat/assistant-message-evaluation.js";
-import { DEFAULT_MODEL_INPUT, DTYPE_OPTIONS, normalizeHuggingFaceModelInput } from "/mod/_core/huggingface/helpers.js";
+import {
+  DEFAULT_MODEL_INPUT,
+  DTYPE_OPTIONS,
+  normalizeHuggingFaceModelInput
+} from "/mod/_core/huggingface/helpers.js";
 import { getHuggingFaceManager } from "/mod/_core/huggingface/manager.js";
 import { closeDialog, openDialog } from "/mod/_core/visual/forms/dialog.js";
 import { countTextTokens } from "/mod/_core/framework/js/token-count.js";
@@ -157,7 +159,9 @@ function normalizeStoredMessage(message) {
 }
 
 function findConversationInputMessage(history, assistantMessageId) {
-  const assistantMessageIndex = history.findIndex((message) => message.id === assistantMessageId && message.role === "assistant");
+  const assistantMessageIndex = history.findIndex(
+    (message) => message.id === assistantMessageId && message.role === "assistant"
+  );
 
   if (assistantMessageIndex === -1) {
     return null;
@@ -211,7 +215,8 @@ const evaluateAdminAssistantMessage = globalThis.space.extend(
   import.meta,
   async function evaluateAdminAssistantMessage(context = {}) {
     return {
-      assistantContent: typeof context?.assistantContent === "string" ? context.assistantContent : "",
+      assistantContent:
+        typeof context?.assistantContent === "string" ? context.assistantContent : "",
       history: Array.isArray(context?.history) ? context.history : [],
       logs: Array.isArray(context?.logs)
         ? context.logs.map((entry) => normalizeAssistantEvaluationLogEntry(entry)).filter(Boolean)
@@ -224,7 +229,9 @@ const evaluateAdminAssistantMessage = globalThis.space.extend(
 
 function isContextLengthError(error) {
   const msg = (error?.message || "").toLowerCase();
-  return ["context", "token", "length", "maximum", "too long", "exceed"].some((pattern) => msg.includes(pattern));
+  return ["context", "token", "length", "maximum", "too long", "exceed"].some((pattern) =>
+    msg.includes(pattern)
+  );
 }
 
 // Trims the formatted history text by dropping the oldest message blocks so
@@ -302,7 +309,10 @@ function summarizeAdminAgentLlmSelection(settings, huggingfaceState) {
   const provider = config.normalizeAdminChatLlmProvider(settings?.provider);
 
   if (provider === config.ADMIN_CHAT_LLM_PROVIDER.LOCAL) {
-    const activeModelId = typeof huggingfaceState?.activeModelId === "string" ? huggingfaceState.activeModelId.trim() : "";
+    const activeModelId =
+      typeof huggingfaceState?.activeModelId === "string"
+        ? huggingfaceState.activeModelId.trim()
+        : "";
     const configuredModelId = normalizeHuggingFaceModelInput(settings?.huggingfaceModel || "");
     return configuredModelId || activeModelId || "No model";
   }
@@ -312,8 +322,9 @@ function summarizeAdminAgentLlmSelection(settings, huggingfaceState) {
 
 function isHuggingFaceSelectionMatch(left = {}, right = {}) {
   return (
-    normalizeHuggingFaceModelInput(left?.modelId || left?.modelInput || "") === normalizeHuggingFaceModelInput(right?.modelId || right?.modelInput || "")
-    && String(left?.dtype || "").trim() === String(right?.dtype || "").trim()
+    normalizeHuggingFaceModelInput(left?.modelId || left?.modelInput || "") ===
+      normalizeHuggingFaceModelInput(right?.modelId || right?.modelInput || "") &&
+    String(left?.dtype || "").trim() === String(right?.dtype || "").trim()
   );
 }
 
@@ -477,11 +488,17 @@ const model = {
   },
 
   get isSettingsDraftUsingApiProvider() {
-    return config.normalizeAdminChatLlmProvider(this.settingsDraft.provider) === config.ADMIN_CHAT_LLM_PROVIDER.API;
+    return (
+      config.normalizeAdminChatLlmProvider(this.settingsDraft.provider) ===
+      config.ADMIN_CHAT_LLM_PROVIDER.API
+    );
   },
 
   get isSettingsDraftUsingLocalProvider() {
-    return config.normalizeAdminChatLlmProvider(this.settingsDraft.provider) === config.ADMIN_CHAT_LLM_PROVIDER.LOCAL;
+    return (
+      config.normalizeAdminChatLlmProvider(this.settingsDraft.provider) ===
+      config.ADMIN_CHAT_LLM_PROVIDER.LOCAL
+    );
   },
 
   get huggingfaceSavedModels() {
@@ -493,7 +510,9 @@ const model = {
   },
 
   get adminSelectedHuggingFaceModelLabel() {
-    const selectedModelId = normalizeHuggingFaceModelInput(this.settingsDraft.huggingfaceModel || "");
+    const selectedModelId = normalizeHuggingFaceModelInput(
+      this.settingsDraft.huggingfaceModel || ""
+    );
     const selectedDtype = String(this.settingsDraft.huggingfaceDtype || "").trim();
 
     if (!selectedModelId) {
@@ -508,7 +527,10 @@ const model = {
   },
 
   get huggingfaceLoadProgressPercent() {
-    return Math.max(0, Math.min(100, Math.round(Number(this.huggingface.loadProgress?.progress || 0) * 100)));
+    return Math.max(
+      0,
+      Math.min(100, Math.round(Number(this.huggingface.loadProgress?.progress || 0) * 100))
+    );
   },
 
   get huggingfaceStatusBadgeText() {
@@ -556,7 +578,9 @@ const model = {
   },
 
   get huggingfaceSelectedModelStatusText() {
-    const selectedModelId = normalizeHuggingFaceModelInput(this.settingsDraft.huggingfaceModel || "");
+    const selectedModelId = normalizeHuggingFaceModelInput(
+      this.settingsDraft.huggingfaceModel || ""
+    );
     const selectedDtype = String(this.settingsDraft.huggingfaceDtype || "").trim();
 
     if (!this.huggingface.webgpuSupported) {
@@ -564,7 +588,11 @@ const model = {
     }
 
     if (this.huggingface.isLoadingModel) {
-      return this.huggingface.loadProgress.text || this.huggingface.statusText || "Loading selected model...";
+      return (
+        this.huggingface.loadProgress.text ||
+        this.huggingface.statusText ||
+        "Loading selected model..."
+      );
     }
 
     if (this.huggingface.isWorkerBooting) {
@@ -582,8 +610,8 @@ const model = {
     }
 
     if (
-      this.huggingface.activeModelId === selectedModelId
-      && this.huggingface.activeDtype === selectedDtype
+      this.huggingface.activeModelId === selectedModelId &&
+      this.huggingface.activeDtype === selectedDtype
     ) {
       return "Loaded locally and ready for admin chat.";
     }
@@ -608,7 +636,9 @@ const model = {
   },
 
   get adminHuggingFaceSelectedModelActionLabel() {
-    const selectedModelId = normalizeHuggingFaceModelInput(this.settingsDraft.huggingfaceModel || "");
+    const selectedModelId = normalizeHuggingFaceModelInput(
+      this.settingsDraft.huggingfaceModel || ""
+    );
     const selectedDtype = String(this.settingsDraft.huggingfaceDtype || "").trim();
 
     if (this.huggingface.isLoadingModel) {
@@ -620,10 +650,10 @@ const model = {
     }
 
     if (
-      selectedModelId
-      && selectedDtype
-      && this.huggingface.activeModelId === selectedModelId
-      && this.huggingface.activeDtype === selectedDtype
+      selectedModelId &&
+      selectedDtype &&
+      this.huggingface.activeModelId === selectedModelId &&
+      this.huggingface.activeDtype === selectedDtype
     ) {
       return "Unload";
     }
@@ -645,16 +675,16 @@ const model = {
     }
 
     return Boolean(
-      normalizeHuggingFaceModelInput(this.settingsDraft.huggingfaceModel || "")
-      && String(this.settingsDraft.huggingfaceDtype || "").trim()
+      normalizeHuggingFaceModelInput(this.settingsDraft.huggingfaceModel || "") &&
+      String(this.settingsDraft.huggingfaceDtype || "").trim()
     );
   },
 
   get canAdminUnloadHuggingFaceModel() {
     return Boolean(
-      !this.isSending
-      && (this.huggingface.isWorkerReady || this.huggingface.isLoadingModel)
-      && (this.huggingface.activeModelId || this.huggingface.isLoadingModel)
+      !this.isSending &&
+      (this.huggingface.isWorkerReady || this.huggingface.isLoadingModel) &&
+      (this.huggingface.activeModelId || this.huggingface.isLoadingModel)
     );
   },
 
@@ -735,7 +765,9 @@ const model = {
       }
 
       if (this.hasQueuedSubmission) {
-        return this.queuedSubmissionCount === 1 ? "Queued 1" : `Queued ${this.queuedSubmissionCount}`;
+        return this.queuedSubmissionCount === 1
+          ? "Queued 1"
+          : `Queued ${this.queuedSubmissionCount}`;
       }
 
       return "Stop";
@@ -819,7 +851,12 @@ const model = {
     const activeModelId = normalizeHuggingFaceModelInput(snapshot.activeModelId || "");
     const defaultModelInput = normalizeHuggingFaceModelInput(snapshot.modelInput || "");
 
-    if (hasSavedModels || activeModelId || snapshot.isLoadingModel || defaultModelInput !== DEFAULT_MODEL_INPUT) {
+    if (
+      hasSavedModels ||
+      activeModelId ||
+      snapshot.isLoadingModel ||
+      defaultModelInput !== DEFAULT_MODEL_INPUT
+    ) {
       return false;
     }
 
@@ -836,13 +873,16 @@ const model = {
   },
 
   hasConfiguredLocalModel(settings = this.settings) {
-    if (config.normalizeAdminChatLlmProvider(settings?.provider) !== config.ADMIN_CHAT_LLM_PROVIDER.LOCAL) {
+    if (
+      config.normalizeAdminChatLlmProvider(settings?.provider) !==
+      config.ADMIN_CHAT_LLM_PROVIDER.LOCAL
+    ) {
       return false;
     }
 
     return Boolean(
-      normalizeHuggingFaceModelInput(settings?.huggingfaceModel || "")
-      && String(settings?.huggingfaceDtype || "").trim()
+      normalizeHuggingFaceModelInput(settings?.huggingfaceModel || "") &&
+      String(settings?.huggingfaceDtype || "").trim()
     );
   },
 
@@ -884,12 +924,12 @@ const model = {
     const selectedDtype = String(settings?.huggingfaceDtype || "").trim();
 
     return Boolean(
-      selectedModelId
-      && selectedDtype
-      && this.huggingface.isWorkerReady
-      && !this.huggingface.isLoadingModel
-      && this.huggingface.activeModelId === selectedModelId
-      && this.huggingface.activeDtype === selectedDtype
+      selectedModelId &&
+      selectedDtype &&
+      this.huggingface.isWorkerReady &&
+      !this.huggingface.isLoadingModel &&
+      this.huggingface.activeModelId === selectedModelId &&
+      this.huggingface.activeDtype === selectedDtype
     );
   },
 
@@ -899,7 +939,9 @@ const model = {
       modelId: String(modelId || "").trim()
     };
 
-    return this.huggingfaceSavedModels.some((entry) => isHuggingFaceSelectionMatch(entry, normalizedSelection));
+    return this.huggingfaceSavedModels.some((entry) =>
+      isHuggingFaceSelectionMatch(entry, normalizedSelection)
+    );
   },
 
   async refreshHuggingFaceCatalog() {
@@ -962,7 +1004,10 @@ const model = {
         await this.ensureDefaultSystemPrompt({
           preserveStatus: true
         });
-        this.systemPrompt = prompt.extractCustomAdminSystemPrompt(this.systemPrompt, this.defaultSystemPrompt);
+        this.systemPrompt = prompt.extractCustomAdminSystemPrompt(
+          this.systemPrompt,
+          this.defaultSystemPrompt
+        );
         this.systemPromptDraft = this.systemPrompt;
         await this.rebuildPromptInput();
 
@@ -1080,12 +1125,15 @@ const model = {
   },
 
   applyPromptInput(promptInput) {
-    const normalizedPromptInput = promptInput && typeof promptInput === "object" ? promptInput : null;
+    const normalizedPromptInput =
+      promptInput && typeof promptInput === "object" ? promptInput : null;
 
     this.promptInput = normalizedPromptInput;
     this.runtimePromptContext = normalizedPromptInput;
     this.runtimeSystemPrompt =
-      typeof normalizedPromptInput?.systemPrompt === "string" ? normalizedPromptInput.systemPrompt : "";
+      typeof normalizedPromptInput?.systemPrompt === "string"
+        ? normalizedPromptInput.systemPrompt
+        : "";
     this.historyText = formatPromptHistoryText(normalizedPromptInput?.historyMessages);
     this.promptHistoryMessages = Array.isArray(normalizedPromptInput?.requestMessages)
       ? normalizedPromptInput.requestMessages.map((message) => ({ ...message }))
@@ -1159,7 +1207,9 @@ const model = {
       return;
     }
 
-    this.chatRuntime.messages = this.history.map((message) => createRuntimeMessageSnapshot(message));
+    this.chatRuntime.messages = this.history.map((message) =>
+      createRuntimeMessageSnapshot(message)
+    );
   },
 
   async replaceHistory(nextHistory, options = {}) {
@@ -1193,7 +1243,9 @@ const model = {
   },
 
   isHistoryOverConfiguredMaxTokens() {
-    return Boolean(this.historyText.trim()) && this.historyTokenCount > this.getConfiguredMaxTokens();
+    return (
+      Boolean(this.historyText.trim()) && this.historyTokenCount > this.getConfiguredMaxTokens()
+    );
   },
 
   serializeHistory() {
@@ -1531,7 +1583,9 @@ const model = {
   },
 
   removeDraftAttachment(attachmentId) {
-    const nextAttachments = this.draftAttachments.filter((attachment) => attachment.id !== attachmentId);
+    const nextAttachments = this.draftAttachments.filter(
+      (attachment) => attachment.id !== attachmentId
+    );
 
     if (nextAttachments.length === this.draftAttachments.length) {
       return;
@@ -1601,7 +1655,8 @@ const model = {
   },
 
   async saveSystemPromptFromDialog() {
-    const draftPrompt = typeof this.systemPromptDraft === "string" ? this.systemPromptDraft.trim() : "";
+    const draftPrompt =
+      typeof this.systemPromptDraft === "string" ? this.systemPromptDraft.trim() : "";
 
     if (!draftPrompt) {
       this.systemPrompt = "";
@@ -1641,13 +1696,13 @@ const model = {
     this.prefillSettingsDraftDefaultHuggingFaceModel();
 
     if (!String(this.settingsDraft.huggingfaceDtype || "").trim()) {
-      this.settingsDraft.huggingfaceDtype = DTYPE_OPTIONS[0]?.value || config.DEFAULT_ADMIN_CHAT_SETTINGS.huggingfaceDtype;
+      this.settingsDraft.huggingfaceDtype =
+        DTYPE_OPTIONS[0]?.value || config.DEFAULT_ADMIN_CHAT_SETTINGS.huggingfaceDtype;
     }
 
-    void this.warmSettingsDraftLocalProvider()
-      .catch((error) => {
-        this.reportError("warming the local-provider settings draft", error);
-      });
+    void this.warmSettingsDraftLocalProvider().catch((error) => {
+      this.reportError("warming the local-provider settings draft", error);
+    });
     openDialog(this.refs.settingsDialog);
   },
 
@@ -1723,7 +1778,10 @@ const model = {
   },
 
   getSettingsDraftHuggingFaceSelectionValue() {
-    return getHuggingFaceSelectionValue(this.settingsDraft.huggingfaceModel, this.settingsDraft.huggingfaceDtype);
+    return getHuggingFaceSelectionValue(
+      this.settingsDraft.huggingfaceModel,
+      this.settingsDraft.huggingfaceDtype
+    );
   },
 
   getHuggingFaceSavedModelSelectionValue(model) {
@@ -1736,10 +1794,12 @@ const model = {
     }
 
     void this.ensureHuggingFaceSubscription()
-      .then(() => huggingfaceManager.unloadModel({
-        clearPersistedSelection: false,
-        reboot: false
-      }))
+      .then(() =>
+        huggingfaceManager.unloadModel({
+          clearPersistedSelection: false,
+          reboot: false
+        })
+      )
       .then(() => this.syncHuggingFaceFromManager())
       .catch((error) => {
         this.reportError("unloading the selected local model", error);
@@ -1751,7 +1811,9 @@ const model = {
       return;
     }
 
-    const selectedModelId = normalizeHuggingFaceModelInput(this.settingsDraft.huggingfaceModel || "");
+    const selectedModelId = normalizeHuggingFaceModelInput(
+      this.settingsDraft.huggingfaceModel || ""
+    );
     const selectedDtype = String(this.settingsDraft.huggingfaceDtype || "").trim();
 
     void this.ensureHuggingFaceSubscription()
@@ -1769,8 +1831,8 @@ const model = {
         }
 
         if (
-          this.huggingface.activeModelId === selectedModelId
-          && this.huggingface.activeDtype === selectedDtype
+          this.huggingface.activeModelId === selectedModelId &&
+          this.huggingface.activeDtype === selectedDtype
         ) {
           this.status = `Unloading ${selectedModelId}...`;
           return huggingfaceManager.unloadModel({
@@ -1799,7 +1861,8 @@ const model = {
   },
 
   resetSettingsDraftToDefaults() {
-    const preservedApiKey = typeof this.settingsDraft.apiKey === "string" ? this.settingsDraft.apiKey : "";
+    const preservedApiKey =
+      typeof this.settingsDraft.apiKey === "string" ? this.settingsDraft.apiKey : "";
 
     this.settingsDraft = {
       ...config.DEFAULT_ADMIN_CHAT_SETTINGS,
@@ -1810,7 +1873,9 @@ const model = {
   },
 
   openRawDialogForMessage(messageId) {
-    const message = this.history.find((entry) => entry.id === messageId && entry.role === "assistant");
+    const message = this.history.find(
+      (entry) => entry.id === messageId && entry.role === "assistant"
+    );
 
     if (!message) {
       this.status = "That assistant message is no longer available.";
@@ -1854,7 +1919,8 @@ const model = {
   async saveSettingsFromDialog() {
     const provider = config.normalizeAdminChatLlmProvider(this.settingsDraft.provider);
     const localProvider = config.normalizeAdminChatLocalProvider(this.settingsDraft.localProvider);
-    const paramsText = typeof this.settingsDraft.paramsText === "string" ? this.settingsDraft.paramsText.trim() : "";
+    const paramsText =
+      typeof this.settingsDraft.paramsText === "string" ? this.settingsDraft.paramsText.trim() : "";
     let maxTokens = config.DEFAULT_ADMIN_CHAT_SETTINGS.maxTokens;
 
     try {
@@ -1862,7 +1928,9 @@ const model = {
       llmParams.parseAdminAgentParamsText(paramsText);
 
       if (provider === config.ADMIN_CHAT_LLM_PROVIDER.LOCAL) {
-        const huggingfaceModel = normalizeHuggingFaceModelInput(this.settingsDraft.huggingfaceModel || "");
+        const huggingfaceModel = normalizeHuggingFaceModelInput(
+          this.settingsDraft.huggingfaceModel || ""
+        );
         const huggingfaceDtype = String(this.settingsDraft.huggingfaceDtype || "").trim();
 
         if (!huggingfaceModel || !huggingfaceDtype) {
@@ -1891,9 +1959,10 @@ const model = {
 
     try {
       await this.persistConfig();
-      this.status = provider === config.ADMIN_CHAT_LLM_PROVIDER.LOCAL
-        ? `Local ${getConfiguredLocalProviderLabel(this.settings)} settings updated. Preparing the selected model in the background.`
-        : "API LLM settings updated.";
+      this.status =
+        provider === config.ADMIN_CHAT_LLM_PROVIDER.LOCAL
+          ? `Local ${getConfiguredLocalProviderLabel(this.settings)} settings updated. Preparing the selected model in the background.`
+          : "API LLM settings updated.";
       this.closeSettingsDialog();
 
       if (provider === config.ADMIN_CHAT_LLM_PROVIDER.LOCAL) {
@@ -1951,7 +2020,8 @@ const model = {
   async streamAssistantResponse(requestMessages, assistantMessage, preparedRequest = null) {
     let hasSeenDelta = false;
     const usingLocalProvider =
-      config.normalizeAdminChatLlmProvider(this.settings.provider) === config.ADMIN_CHAT_LLM_PROVIDER.LOCAL;
+      config.normalizeAdminChatLlmProvider(this.settings.provider) ===
+      config.ADMIN_CHAT_LLM_PROVIDER.LOCAL;
 
     if (usingLocalProvider) {
       const localModelReady = this.isConfiguredLocalModelReady(this.settings);
@@ -2103,7 +2173,10 @@ const model = {
       const compactPrompt = await prompt.fetchAdminHistoryCompactPrompt({
         mode
       });
-      if (config.normalizeAdminChatLlmProvider(this.settings.provider) === config.ADMIN_CHAT_LLM_PROVIDER.LOCAL) {
+      if (
+        config.normalizeAdminChatLlmProvider(this.settings.provider) ===
+        config.ADMIN_CHAT_LLM_PROVIDER.LOCAL
+      ) {
         await this.ensureActiveLocalRuntime(this.settings);
       }
 
@@ -2180,21 +2253,24 @@ const model = {
   },
 
   async executeAssistantBlocks(assistantInput, options = {}) {
-    const assistantMessage = assistantInput && typeof assistantInput === "object" ? assistantInput : null;
-    const assistantContent = typeof assistantInput === "string"
-      ? assistantInput
-      : typeof assistantMessage?.content === "string"
-        ? assistantMessage.content
-        : "";
-    const assistantEvaluation = options.evaluateAssistantMessage === false
-      ? null
-      : await evaluateAdminAssistantMessage({
-          assistantContent,
-          history: this.history,
-          logs: [],
-          messageId: typeof assistantMessage?.id === "string" ? assistantMessage.id : "",
-          store: this
-        });
+    const assistantMessage =
+      assistantInput && typeof assistantInput === "object" ? assistantInput : null;
+    const assistantContent =
+      typeof assistantInput === "string"
+        ? assistantInput
+        : typeof assistantMessage?.content === "string"
+          ? assistantMessage.content
+          : "";
+    const assistantEvaluation =
+      options.evaluateAssistantMessage === false
+        ? null
+        : await evaluateAdminAssistantMessage({
+            assistantContent,
+            history: this.history,
+            logs: [],
+            messageId: typeof assistantMessage?.id === "string" ? assistantMessage.id : "",
+            store: this
+          });
     const executionResults = await this.executionContext.executeFromContent(assistantContent, {
       onBeforeBlock: async ({ index, total }) => {
         if (!total) {
@@ -2202,7 +2278,9 @@ const model = {
         }
 
         this.status =
-          total === 1 ? "Executing browser code..." : `Executing browser code (${index + 1}/${total})...`;
+          total === 1
+            ? "Executing browser code..."
+            : `Executing browser code (${index + 1}/${total})...`;
       }
     });
 
@@ -2243,7 +2321,8 @@ const model = {
       );
 
       if (requestTokenCount > this.getConfiguredMaxTokens()) {
-        const pendingMessageIsLatestHistoryMessage = this.history[this.history.length - 1]?.id === nextUserMessage.id;
+        const pendingMessageIsLatestHistoryMessage =
+          this.history[this.history.length - 1]?.id === nextUserMessage.id;
         const compactedMessage = await this.compactHistory({
           mode: prompt.ADMIN_HISTORY_COMPACT_MODE.AUTOMATIC,
           preserveFocus: false,
@@ -2285,7 +2364,11 @@ const model = {
       this.render();
 
       try {
-        const streamResult = await this.streamAssistantResponse(requestMessages, assistantMessage, preparedRequest);
+        const streamResult = await this.streamAssistantResponse(
+          requestMessages,
+          assistantMessage,
+          preparedRequest
+        );
 
         if (streamResult.stopped) {
           if (!streamResult.hasContent) {
@@ -2306,7 +2389,10 @@ const model = {
         }
 
         if (!streamResult.hasContent) {
-          if (isExecutionFollowUpKind(nextUserMessage.kind) && emptyAssistantRetryCount < MAX_PROTOCOL_RETRY_COUNT) {
+          if (
+            isExecutionFollowUpKind(nextUserMessage.kind) &&
+            emptyAssistantRetryCount < MAX_PROTOCOL_RETRY_COUNT
+          ) {
             emptyAssistantRetryCount += 1;
             await this.replaceHistory(requestMessages);
             await this.persistHistory({
@@ -2360,9 +2446,13 @@ const model = {
         return "complete";
       }
 
-      const executionOutputMessage = createMessage("user", execution.formatExecutionResultsMessage(executionResults), {
-        kind: "execution-output"
-      });
+      const executionOutputMessage = createMessage(
+        "user",
+        execution.formatExecutionResultsMessage(executionResults),
+        {
+          kind: "execution-output"
+        }
+      );
       await this.replaceHistory([...this.history, executionOutputMessage]);
       await this.persistHistory({
         immediate: true
@@ -2494,8 +2584,14 @@ const model = {
       }
 
       if (action === "copy-message" && messageId) {
-        const copyPayload = agentView.getAssistantMessageCopyText(this.history, messageId, this.executionOutputOverrides);
-        const copied = copyPayload.text ? await agentView.copyTextToClipboard(copyPayload.text) : false;
+        const copyPayload = agentView.getAssistantMessageCopyText(
+          this.history,
+          messageId,
+          this.executionOutputOverrides
+        );
+        const copied = copyPayload.text
+          ? await agentView.copyTextToClipboard(copyPayload.text)
+          : false;
         this.status = copied
           ? copyPayload.kind === "result"
             ? "Result copied."
@@ -2519,7 +2615,11 @@ const model = {
       return;
     }
 
-    const section = agentView.findExecuteSection(this.history, messageId, this.executionOutputOverrides);
+    const section = agentView.findExecuteSection(
+      this.history,
+      messageId,
+      this.executionOutputOverrides
+    );
 
     if (!section) {
       this.status = "That execution step is no longer available.";
@@ -2527,7 +2627,9 @@ const model = {
     }
 
     if (action === "copy-input") {
-      const copied = await agentView.copyTextToClipboard(agentView.getTerminalInputText(section.executeDisplay));
+      const copied = await agentView.copyTextToClipboard(
+        agentView.getTerminalInputText(section.executeDisplay)
+      );
       this.status = copied ? "Input copied." : "Unable to copy input.";
       return;
     }
@@ -2562,7 +2664,8 @@ const model = {
         return;
       }
 
-      this.executionOutputOverrides[messageId] = execution.createExecutionOutputSnapshots(executionResults);
+      this.executionOutputOverrides[messageId] =
+        execution.createExecutionOutputSnapshots(executionResults);
       this.status = "Execution refreshed.";
     } catch (error) {
       this.reportError("rerunning an execution block", error);

@@ -25,10 +25,10 @@ rest you can pull up when you need it.
 Prime-Silo is two open-source projects glued together with a hard architectural
 boundary between them:
 
-| Half           | Source                                           | Role                                                                                                                                |
-| -------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
-| **Runtime**    | [`skybluecycology/benny`](https://github.com/skybluecycology/benny) (vendored under `runtime/`) | FastAPI service that owns manifests, runs, knowledge/code graphs, governance, lineage, HMAC keys. Stateless from the shell's POV. |
-| **Shell**     | [`agent0ai/space-agent`](https://github.com/agent0ai/space-agent) (forked)                       | Node.js + browser. Routing, theming, navigation, widget composition, agent runtime, view persistence.                              |
+| Half        | Source                                                                                          | Role                                                                                                                              |
+| ----------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **Runtime** | [`skybluecycology/benny`](https://github.com/skybluecycology/benny) (vendored under `runtime/`) | FastAPI service that owns manifests, runs, knowledge/code graphs, governance, lineage, HMAC keys. Stateless from the shell's POV. |
+| **Shell**   | [`agent0ai/space-agent`](https://github.com/agent0ai/space-agent) (forked)                      | Node.js + browser. Routing, theming, navigation, widget composition, agent runtime, view persistence.                             |
 
 The runtime is the **deterministic substrate** — every output is typed, signed,
 and lineage-tagged. The shell is the **adaptive surface** — composable widgets,
@@ -38,22 +38,22 @@ agent-authored Review-zone layouts, pinned `.aamp.view` bundles.
 
 Two zones live inside the same shell:
 
-| Zone               | Surfaces                                                              | Agent can write?                       | Determinism guarantee                                                                       |
-| ------------------ | --------------------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------- |
-| **Deterministic** | Manifest authoring, run execution, KG / code-graph mutation, skill registry | No. Drafts → HITL → `sign_manifest()` | Every accepted state change is a signed manifest run with full lineage.                     |
-| **Review (fluid)** | Drill-down, frame inspection, reasoning trace, audit query, analyst report | Yes, but only inside `agent_sandbox/`  | Pinned layouts are HMAC-signed `.aamp.view` files; replay verifies the signature.            |
+| Zone               | Surfaces                                                                    | Agent can write?                      | Determinism guarantee                                                             |
+| ------------------ | --------------------------------------------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------- |
+| **Deterministic**  | Manifest authoring, run execution, KG / code-graph mutation, skill registry | No. Drafts → HITL → `sign_manifest()` | Every accepted state change is a signed manifest run with full lineage.           |
+| **Review (fluid)** | Drill-down, frame inspection, reasoning trace, audit query, analyst report  | Yes, but only inside `agent_sandbox/` | Pinned layouts are HMAC-signed `.aamp.view` files; replay verifies the signature. |
 
 The boundary is **policy-enforced**, not convention-enforced. The runtime's
 [`AgentScopeMiddleware`](../runtime/benny/api/agent_scope.py) inspects
 `X-Benny-Agent-Scope` on every request:
 
 | Scope value   | Reads | Writes outside `agent_sandbox/` | Writes inside `agent_sandbox/` |
-| ------------- | :---: | :------------------------------: | :----------------------------: |
-| (none, human) |  ✅  | per regular RBAC                 | per regular RBAC               |
-| `read_only`   |  ✅  | **403**                          | **403**                        |
-| `sandbox`     |  ✅  | **403**                          | ✅                             |
+| ------------- | :---: | :-----------------------------: | :----------------------------: |
+| (none, human) |  ✅   |        per regular RBAC         |        per regular RBAC        |
+| `read_only`   |  ✅   |             **403**             |            **403**             |
+| `sandbox`     |  ✅   |             **403**             |               ✅               |
 
-The browser never *originates* the scope header for human flows. It rides only
+The browser never _originates_ the scope header for human flows. It rides only
 when the in-browser agent runtime explicitly mounts an agent turn.
 
 ### Repo at a glance
@@ -105,13 +105,13 @@ configured for Benny.
 
 ### 2.1 Prerequisites
 
-| Tool                   | Version             | Notes                                                                       |
-| ---------------------- | ------------------- | --------------------------------------------------------------------------- |
-| **Python**             | 3.11 or 3.12        | Runtime is FastAPI + Pydantic v2. 3.10 may work; 3.11+ is the supported floor. |
-| **Node**               | ≥ 18                | Required by `.mjs` tests (uses WHATWG `URL` global) and the shell server.   |
-| **Git**                | any modern release  | Subtree pulls require git ≥ 2.7.                                            |
-| **PowerShell** *or* **bash** | platform default | Both dev launchers ship.                                                    |
-| **Docker** (optional)  | latest              | Only needed if you want Neo4j / Marquez / Phoenix locally (knowledge graph features). |
+| Tool                         | Version            | Notes                                                                                 |
+| ---------------------------- | ------------------ | ------------------------------------------------------------------------------------- |
+| **Python**                   | 3.11 or 3.12       | Runtime is FastAPI + Pydantic v2. 3.10 may work; 3.11+ is the supported floor.        |
+| **Node**                     | ≥ 18               | Required by `.mjs` tests (uses WHATWG `URL` global) and the shell server.             |
+| **Git**                      | any modern release | Subtree pulls require git ≥ 2.7.                                                      |
+| **PowerShell** _or_ **bash** | platform default   | Both dev launchers ship.                                                              |
+| **Docker** (optional)        | latest             | Only needed if you want Neo4j / Marquez / Phoenix locally (knowledge graph features). |
 
 > **No Three.js install needed.** The pluggable 3D renderer lazy-imports
 > `3d-force-graph` from `https://esm.sh/3d-force-graph@1` on first mount. If
@@ -184,7 +184,7 @@ $bytes = New-Object byte[] 32
 python -c "import secrets; print(secrets.token_hex(32))"
 ```
 
-> **Production note.** The runtime falls back to a *dev* key when
+> **Production note.** The runtime falls back to a _dev_ key when
 > `BENNY_HMAC_KEY` is unset. That key is documented in
 > [`runtime/benny/api/views_signing.py`](../runtime/benny/api/views_signing.py)
 > and is **not** suitable for any real deployment. Every host that signs or
@@ -325,7 +325,7 @@ component whose JS entry is
 5. `dag.canvas` mounts in `manifest` mode against the result.
 
 The page composes only `deterministic_only` widgets (just `dag.canvas` today).
-The determinism boundary is enforced *twice* here:
+The determinism boundary is enforced _twice_ here:
 
 - No scope header → middleware applies regular RBAC.
 - `dag.canvas` itself rejects mount under `options.agentContext === true` —
@@ -382,7 +382,7 @@ import { pinView } from "/mod/_prime_silo/runtime_client/runtime-client.js";
 
 // Human call — no scope header.
 const result = await pinView("c5_test", "compose.aamp.view", {
-  pinnedBy: "operator@binary16",
+  pinnedBy: "operator@binary16"
   // targetFilename defaults to sourceFilename
 });
 // → {
@@ -460,13 +460,13 @@ curl http://localhost:8005/api/views/load/c5_test/compose.aamp.view
 
 **Decision matrix the caller must respect:**
 
-| Server response                  | Cause                                              | Caller action                                       |
-| -------------------------------- | -------------------------------------------------- | --------------------------------------------------- |
-| HTTP 200, `valid: true`          | File exists, JSON parses, signature matches.       | Render the layout.                                  |
-| HTTP 200, `valid: false`         | Signature missing / malformed envelope / tampered. | **Refuse to render.** Surface tamper notice.        |
-| HTTP 400, "not valid JSON"       | File is corrupt JSON.                              | Treat as missing; surface "corrupt artefact" error. |
-| HTTP 400, "must be a JSON object" | Top-level is an array or scalar.                    | Same as above.                                      |
-| HTTP 404, "does not exist"       | No such pinned file in the workspace.              | Tell the user; suggest re-pin from a draft.         |
+| Server response                   | Cause                                              | Caller action                                       |
+| --------------------------------- | -------------------------------------------------- | --------------------------------------------------- |
+| HTTP 200, `valid: true`           | File exists, JSON parses, signature matches.       | Render the layout.                                  |
+| HTTP 200, `valid: false`          | Signature missing / malformed envelope / tampered. | **Refuse to render.** Surface tamper notice.        |
+| HTTP 400, "not valid JSON"        | File is corrupt JSON.                              | Treat as missing; surface "corrupt artefact" error. |
+| HTTP 400, "must be a JSON object" | Top-level is an array or scalar.                   | Same as above.                                      |
+| HTTP 404, "does not exist"        | No such pinned file in the workspace.              | Tell the user; suggest re-pin from a draft.         |
 
 Reads are **not** blocked by `AgentScopeMiddleware`. Bound agent clients can
 replay pinned views even though they cannot create them — the runtime is still
@@ -479,20 +479,20 @@ Phase C migrated eight canvases into the shell tree. Each lives at
 shape:
 
 ```js
-createXxxWidget(host, props, options)
+createXxxWidget(host, props, options);
 // returns { update, refresh, destroy, get layout, ... }
 ```
 
-| Widget id                | Authority           | What it shows                                                                                               | Notes                                                                                              |
-| ------------------------ | ------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `text.markdown`          | `read_only`         | Markdown body with safe HTML rendering.                                                                     | The default analyst-report block.                                                                  |
-| `run.reasoning_trace`    | `read_only`         | Stepwise model reasoning extracted from a run record.                                                       | Drilldown into LLM router transcripts.                                                              |
-| `run.lineage_timeline`   | `read_only`         | Triple-lineage events (`process / skill / data`) on a horizontal timeline.                                  | Pairs naturally with `frame_inspector`.                                                            |
-| `run.drilldown_table`    | `read_only`         | Tabular CLP-annotated rows from a Pypes silver/gold stage.                                                  | Click a row → calls `props.onSelect(rowId)`.                                                       |
-| `run.frame_inspector`    | `read_only`         | Single Cognitive Frame view — typed body + withdrawal register + frame hash.                                | The audit-on-one-row widget.                                                                       |
-| `kg3d.synoptic_web`      | `read_only`         | AoT-layered knowledge graph ontology (default 2D SVG).                                                      | Drop in `createThreeRenderer()` for a 3D `3d-force-graph` scene. See §4.7.                          |
-| `codegraph.canvas`       | `read_only`         | Tree-Sitter-derived File/Class/Function/Concept graph banded left → right.                                  | Same renderer hook as `kg3d.synoptic_web`.                                                          |
-| `dag.canvas`             | `deterministic_only` | Three modes — `manifest`, `pipeline`, `workflow`. Longest-path layered layout with wave-floor pinning.   | Rejects mount under `options.agentContext === true`. The manifest explorer mounts it (§4.1).      |
+| Widget id              | Authority            | What it shows                                                                                          | Notes                                                                                        |
+| ---------------------- | -------------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| `text.markdown`        | `read_only`          | Markdown body with safe HTML rendering.                                                                | The default analyst-report block.                                                            |
+| `run.reasoning_trace`  | `read_only`          | Stepwise model reasoning extracted from a run record.                                                  | Drilldown into LLM router transcripts.                                                       |
+| `run.lineage_timeline` | `read_only`          | Triple-lineage events (`process / skill / data`) on a horizontal timeline.                             | Pairs naturally with `frame_inspector`.                                                      |
+| `run.drilldown_table`  | `read_only`          | Tabular CLP-annotated rows from a Pypes silver/gold stage.                                             | Click a row → calls `props.onSelect(rowId)`.                                                 |
+| `run.frame_inspector`  | `read_only`          | Single Cognitive Frame view — typed body + withdrawal register + frame hash.                           | The audit-on-one-row widget.                                                                 |
+| `kg3d.synoptic_web`    | `read_only`          | AoT-layered knowledge graph ontology (default 2D SVG).                                                 | Drop in `createThreeRenderer()` for a 3D `3d-force-graph` scene. See §4.7.                   |
+| `codegraph.canvas`     | `read_only`          | Tree-Sitter-derived File/Class/Function/Concept graph banded left → right.                             | Same renderer hook as `kg3d.synoptic_web`.                                                   |
+| `dag.canvas`           | `deterministic_only` | Three modes — `manifest`, `pipeline`, `workflow`. Longest-path layered layout with wave-floor pinning. | Rejects mount under `options.agentContext === true`. The manifest explorer mounts it (§4.1). |
 
 Authority semantics:
 
@@ -516,12 +516,20 @@ import { createDrilldownTableWidget } from "/mod/_prime_silo/widgets/run/drilldo
 
 const turn = mountAgentTurn("sandbox");
 
-createReasoningTraceWidget(host1, { runId: "r_q3_2026" }, {
-  runtimeClient: turn.runtimeClient
-});
-createDrilldownTableWidget(host2, { runId: "r_q3_2026" }, {
-  runtimeClient: turn.runtimeClient
-});
+createReasoningTraceWidget(
+  host1,
+  { runId: "r_q3_2026" },
+  {
+    runtimeClient: turn.runtimeClient
+  }
+);
+createDrilldownTableWidget(
+  host2,
+  { runId: "r_q3_2026" },
+  {
+    runtimeClient: turn.runtimeClient
+  }
+);
 
 // On turn end:
 turn.dispose();
@@ -544,15 +552,19 @@ default. The 3D drop-in lives at
 
 ```js
 import { createSynopticWebWidget } from "/mod/_prime_silo/widgets/kg3d/synoptic_web/index.js";
-import { createThreeRenderer }      from "/mod/_prime_silo/widgets/three_renderer/index.js";
+import { createThreeRenderer } from "/mod/_prime_silo/widgets/three_renderer/index.js";
 
-createSynopticWebWidget(host, { workspace: "c4_test" }, {
-  renderer: createThreeRenderer({
-    backgroundColor: "#0b1220",
-    onNodeClick: (id) => console.log("clicked", id)
-    // cdnUrl defaults to https://esm.sh/3d-force-graph@1
-  })
-});
+createSynopticWebWidget(
+  host,
+  { workspace: "c4_test" },
+  {
+    renderer: createThreeRenderer({
+      backgroundColor: "#0b1220",
+      onNodeClick: (id) => console.log("clicked", id)
+      // cdnUrl defaults to https://esm.sh/3d-force-graph@1
+    })
+  }
+);
 ```
 
 **Behaviour:**
@@ -661,17 +673,17 @@ await runWithAgentContext("read_only", async () => {
 });
 ```
 
-The runtime client never *originates* the scope header — only the agent
+The runtime client never _originates_ the scope header — only the agent
 runtime modules above do. A shell bug that accidentally drops the header
 surfaces as a 403, never as silent privilege escalation.
 
 ### 5.3 The two zone gates for widgets
 
-| Gate                                | Where                                                              | Checks                                                                                        |
-| ----------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| **Layout layer**                    | `isAuthorityAgentSafe(authority)` in `widget-registry.js`          | Rejects `deterministic_only` widgets before they're placed in an agent-authored layout.        |
-| **Renderer layer**                  | Widget itself checks `options.agentContext === true`               | `dag.canvas` refuses to mount; the host shows the deterministic-only refusal banner.          |
-| **Network layer** (defence in depth) | `AgentScopeMiddleware` on the runtime                              | Any write outside `/api/agent_sandbox/` from a scoped caller is 403.                          |
+| Gate                                 | Where                                                     | Checks                                                                                  |
+| ------------------------------------ | --------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| **Layout layer**                     | `isAuthorityAgentSafe(authority)` in `widget-registry.js` | Rejects `deterministic_only` widgets before they're placed in an agent-authored layout. |
+| **Renderer layer**                   | Widget itself checks `options.agentContext === true`      | `dag.canvas` refuses to mount; the host shows the deterministic-only refusal banner.    |
+| **Network layer** (defence in depth) | `AgentScopeMiddleware` on the runtime                     | Any write outside `/api/agent_sandbox/` from a scoped caller is 403.                    |
 
 A correctly-functioning system trips the layout-layer gate first; the other
 two are belt and suspenders.
@@ -726,14 +738,14 @@ when it eventually lands, so the subtree pull picks up the squashed version.
 
 ### 6.4 What the fork owns versus what's upstream
 
-| File / path                                          | Lives in                          | Edit in                |
-| ---------------------------------------------------- | --------------------------------- | ---------------------- |
-| `runtime/benny/api/views_routes.py`, etc.            | this repo (vendored)              | here, mirror upstream  |
-| Migrated React widgets (`app/L0/.../widgets/...`)    | this repo only                    | here                   |
-| `app/L0/.../runtime_client/`, `agent_runtime/`       | this repo only                    | here                   |
-| `architecture/ROADMAP.md`, `OPERATING_MANUAL.md`     | this repo only                    | here                   |
-| `runtime/architecture/ADR-001-...`                   | this repo (canonical for the ADR) | here                   |
-| `runtime/docs/operations/BENNY_OPERATING_MANUAL.md`  | upstream                          | benny, then subtree-pull |
+| File / path                                         | Lives in                          | Edit in                  |
+| --------------------------------------------------- | --------------------------------- | ------------------------ |
+| `runtime/benny/api/views_routes.py`, etc.           | this repo (vendored)              | here, mirror upstream    |
+| Migrated React widgets (`app/L0/.../widgets/...`)   | this repo only                    | here                     |
+| `app/L0/.../runtime_client/`, `agent_runtime/`      | this repo only                    | here                     |
+| `architecture/ROADMAP.md`, `OPERATING_MANUAL.md`    | this repo only                    | here                     |
+| `runtime/architecture/ADR-001-...`                  | this repo (canonical for the ADR) | here                     |
+| `runtime/docs/operations/BENNY_OPERATING_MANUAL.md` | upstream                          | benny, then subtree-pull |
 
 ---
 
@@ -757,6 +769,7 @@ python -m pytest tests/api/test_views_signing.py -q
 ```
 
 ### 7.3 `pytest` reports collection errors in `test_kg3d_api.py`,
+
 `test_rag_routes.py`, `test_workflows_endpoints.py`
 
 Pre-existing on main, unrelated to this fork's surfaces. Scope to the file
@@ -814,7 +827,7 @@ The dev-launcher default is `$BENNY_HOME = <repo>/.benny_home`.
 Three checks, in order:
 
 1. Are you actually sending the scope header? `curl -v` on the failing call.
-2. Is the runtime *seeing* the header on the upstream side? Check the
+2. Is the runtime _seeing_ the header on the upstream side? Check the
    shell's runtime-proxy log; it preserves `X-Benny-Agent-Scope`.
 3. Is `AgentScopeMiddleware` mounted? It's added in
    [`runtime/benny/api/server.py`](../runtime/benny/api/server.py) right
@@ -844,4 +857,4 @@ the code you're touching is usually right.
 
 ---
 
-*Prime-Silo — engineered by Binary 16.*
+_Prime-Silo — engineered by Binary 16._

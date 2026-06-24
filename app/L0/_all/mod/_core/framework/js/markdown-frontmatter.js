@@ -34,7 +34,12 @@ function isSafeMarkdownUrl(value) {
     return false;
   }
 
-  if (normalizedValue.startsWith("#") || normalizedValue.startsWith("/") || normalizedValue.startsWith("./") || normalizedValue.startsWith("../")) {
+  if (
+    normalizedValue.startsWith("#") ||
+    normalizedValue.startsWith("/") ||
+    normalizedValue.startsWith("./") ||
+    normalizedValue.startsWith("../")
+  ) {
     return true;
   }
 
@@ -81,7 +86,11 @@ function finalizeMarkdownTables(container) {
     const header = table.querySelector("thead");
     const headerCells = Array.from(header?.querySelectorAll("th") || []);
 
-    if (header && headerCells.length && headerCells.every((cell) => !hasVisibleMarkdownHeaderText(cell))) {
+    if (
+      header &&
+      headerCells.length &&
+      headerCells.every((cell) => !hasVisibleMarkdownHeaderText(cell))
+    ) {
       header.remove();
     }
 
@@ -119,7 +128,9 @@ function getRenderableTarget(targetElement) {
 
 export function renderMarkdown(text = "", targetElement = null, options = {}) {
   const rootTagName =
-    typeof options.tagName === "string" && options.tagName.trim() ? options.tagName.trim().toLowerCase() : "div";
+    typeof options.tagName === "string" && options.tagName.trim()
+      ? options.tagName.trim().toLowerCase()
+      : "div";
   const root = document.createElement(rootTagName);
   const sourceText = text === undefined || text === null ? "" : String(text);
   const customClassName = typeof options.className === "string" ? options.className : "";

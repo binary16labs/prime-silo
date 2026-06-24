@@ -22,7 +22,7 @@ import {
   createAgentRuntimeClient,
   runtimeFetch,
   readRuntimeJson,
-  withAgentScope,
+  withAgentScope
 } from "../runtime_client/runtime-client.js";
 
 // ---------------------------------------------------------------------------
@@ -44,7 +44,7 @@ export async function fetchSaveCheckpoint(scope, workspace, name, checkpoint) {
     runtimeFetch("/agent_sandbox/checkpoints/save", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ workspace, name, checkpoint }),
+      body: JSON.stringify({ workspace, name, checkpoint })
     })
   );
   return readRuntimeJson(response);
@@ -124,7 +124,7 @@ export async function fetchPinCheckpoint(workspace, sourceName, pinnedBy, target
   const payload = {
     workspace,
     source_name: sourceName,
-    pinned_by: pinnedBy || "anonymous_human",
+    pinned_by: pinnedBy || "anonymous_human"
   };
   if (targetName) {
     payload.target_name = targetName;
@@ -132,7 +132,7 @@ export async function fetchPinCheckpoint(workspace, sourceName, pinnedBy, target
   const response = await runtimeFetch("/checkpoints/pin", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(payload)
   });
   return readRuntimeJson(response);
 }
@@ -145,9 +145,7 @@ export async function fetchPinCheckpoint(workspace, sourceName, pinnedBy, target
  * @returns {Promise<Array<{name: string, saved_at: string, status: "pinned", valid: boolean, ...}>>}
  */
 export async function fetchListPinnedCheckpoints(workspace) {
-  const response = await runtimeFetch(
-    `/checkpoints/list/${encodeURIComponent(workspace)}`
-  );
+  const response = await runtimeFetch(`/checkpoints/list/${encodeURIComponent(workspace)}`);
   return readRuntimeJson(response);
 }
 

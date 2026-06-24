@@ -9,13 +9,7 @@
     "require_single_separator": true,
     "require_code_after_separator": true,
     "require_valid_javascript": true,
-    "must_contain": [
-      "_____javascript"
-    ],
-    "must_not_contain": [
-      "Which location?",
-      "I need to",
-      "I can check"
-    ]
+    "must_contain": ["_____javascript"],
+    "must_not_contain": ["Which location?", "I need to", "I can check"]
   }
 }

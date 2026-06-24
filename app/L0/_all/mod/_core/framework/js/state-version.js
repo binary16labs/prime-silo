@@ -103,7 +103,11 @@ export function applyStateVersionRequestHeader(headers, minimumStateVersion = 0)
     normalizeStateVersion(minimumStateVersion)
   );
 
-  if (!(headers instanceof Headers) || normalizedVersion <= 0 || headers.has(STATE_VERSION_HEADER)) {
+  if (
+    !(headers instanceof Headers) ||
+    normalizedVersion <= 0 ||
+    headers.has(STATE_VERSION_HEADER)
+  ) {
     return headers;
   }
 

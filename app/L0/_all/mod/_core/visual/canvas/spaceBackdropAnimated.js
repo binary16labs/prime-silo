@@ -18,12 +18,54 @@ const SPACE_BACKDROP_TRAIL_PROFILE = Object.freeze({
   travelMaxVmax: 72,
   travelMinVmax: 38,
   directionPools: Object.freeze([
-    Object.freeze({ angleMaxDeg: 34, angleMinDeg: 16, leftMax: 48, leftMin: 6, topMax: 44, topMin: 4 }),
-    Object.freeze({ angleMaxDeg: 58, angleMinDeg: 38, leftMax: 34, leftMin: 4, topMax: 26, topMin: 2 }),
-    Object.freeze({ angleMaxDeg: 166, angleMinDeg: 144, leftMax: 94, leftMin: 52, topMax: 50, topMin: 6 }),
-    Object.freeze({ angleMaxDeg: 122, angleMinDeg: 102, leftMax: 96, leftMin: 66, topMax: 28, topMin: 2 }),
-    Object.freeze({ angleMaxDeg: -14, angleMinDeg: -34, leftMax: 52, leftMin: 8, topMax: 92, topMin: 42 }),
-    Object.freeze({ angleMaxDeg: 214, angleMinDeg: 194, leftMax: 92, leftMin: 50, topMax: 90, topMin: 46 })
+    Object.freeze({
+      angleMaxDeg: 34,
+      angleMinDeg: 16,
+      leftMax: 48,
+      leftMin: 6,
+      topMax: 44,
+      topMin: 4
+    }),
+    Object.freeze({
+      angleMaxDeg: 58,
+      angleMinDeg: 38,
+      leftMax: 34,
+      leftMin: 4,
+      topMax: 26,
+      topMin: 2
+    }),
+    Object.freeze({
+      angleMaxDeg: 166,
+      angleMinDeg: 144,
+      leftMax: 94,
+      leftMin: 52,
+      topMax: 50,
+      topMin: 6
+    }),
+    Object.freeze({
+      angleMaxDeg: 122,
+      angleMinDeg: 102,
+      leftMax: 96,
+      leftMin: 66,
+      topMax: 28,
+      topMin: 2
+    }),
+    Object.freeze({
+      angleMaxDeg: -14,
+      angleMinDeg: -34,
+      leftMax: 52,
+      leftMin: 8,
+      topMax: 92,
+      topMin: 42
+    }),
+    Object.freeze({
+      angleMaxDeg: 214,
+      angleMinDeg: 194,
+      leftMax: 92,
+      leftMin: 50,
+      topMax: 90,
+      topMin: 46
+    })
   ])
 });
 
@@ -149,8 +191,8 @@ export function installSpaceBackdrop(
     trailEls.forEach((trailEl, index) => {
       scheduleTrail(
         trailEl,
-        SPACE_BACKDROP_TRAIL_PROFILE.initialDelayMinMs + (index * 420),
-        SPACE_BACKDROP_TRAIL_PROFILE.initialDelayMaxMs + (index * 980)
+        SPACE_BACKDROP_TRAIL_PROFILE.initialDelayMinMs + index * 420,
+        SPACE_BACKDROP_TRAIL_PROFILE.initialDelayMaxMs + index * 980
       );
     });
   };

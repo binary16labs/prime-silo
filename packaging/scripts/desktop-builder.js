@@ -2,11 +2,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const {
-  PROJECT_ROOT,
-  loadPackagingDependency,
-  resolvePackagingDependency
-} = require("./tooling");
+const { PROJECT_ROOT, loadPackagingDependency, resolvePackagingDependency } = require("./tooling");
 const { resolveDesktopBuildVersion } = require("./release-version");
 const { buildSelfAwarenessBundle } = require("./build-self-awareness");
 const PACKAGE_JSON_PATH = path.join(PROJECT_ROOT, "package.json");
@@ -75,7 +71,11 @@ function readPackageJson() {
 }
 
 function isTruthyEnv(value) {
-  return ["1", "true", "yes"].includes(String(value || "").trim().toLowerCase());
+  return ["1", "true", "yes"].includes(
+    String(value || "")
+      .trim()
+      .toLowerCase()
+  );
 }
 
 function applyAppleCredentialAliases(env = process.env) {
@@ -274,7 +274,8 @@ function applyPlatformPublishConfig(buildConfig, platformConfig, platformSpec) {
   }));
 
   platformConfig.publish =
-    Array.isArray(platformConfig.publish) || (!platformPublishEntries.length && Array.isArray(buildConfig.publish))
+    Array.isArray(platformConfig.publish) ||
+    (!platformPublishEntries.length && Array.isArray(buildConfig.publish))
       ? configuredEntries
       : configuredEntries[0];
 }
@@ -294,7 +295,12 @@ function createBuildConfig(platformSpec, options) {
   const warnings = [];
 
   maybeStripMissingPath(platformConfig, "icon", warnings, `${platformSpec.label} icon`);
-  maybeStripMissingPath(platformConfig, "entitlements", warnings, `${platformSpec.label} entitlements`);
+  maybeStripMissingPath(
+    platformConfig,
+    "entitlements",
+    warnings,
+    `${platformSpec.label} entitlements`
+  );
   maybeStripMissingPath(
     platformConfig,
     "entitlementsInherit",
@@ -494,7 +500,10 @@ async function runDesktopPackaging(platformKey, argv = process.argv.slice(2)) {
     return [];
   }
 
-  const { buildConfig, buildVersion, packageJson, warnings } = createBuildConfig(platformSpec, options);
+  const { buildConfig, buildVersion, packageJson, warnings } = createBuildConfig(
+    platformSpec,
+    options
+  );
   printHostNote(platformSpec);
 
   if (options.dryRun) {
@@ -514,7 +523,7 @@ async function runDesktopPackaging(platformKey, argv = process.argv.slice(2)) {
     const c = bundle.counts;
     console.log(
       `Bundled Benny self-awareness: ${c.source_files} source files, ${c.manifests} manifests, ` +
-      `${c.skills} skills, ${c.graph_nodes} graph nodes.`
+        `${c.skills} skills, ${c.graph_nodes} graph nodes.`
     );
   } catch (error) {
     console.warn(`Warning: Failed to build self-awareness bundle: ${error.message || error}`);
@@ -541,8 +550,10 @@ async function runDesktopPackaging(platformKey, argv = process.argv.slice(2)) {
   let packagingCompleted = options.dir === true;
   if (!options.dir) {
     process.on("exit", () => {
-      if (!packagingCompleted && (process.exitCode === 0 || process.exitCode === undefined || process.exitCode === null)) {
-        // eslint-disable-next-line no-console
+      if (
+        !packagingCompleted &&
+        (process.exitCode === 0 || process.exitCode === undefined || process.exitCode === null)
+      ) {
         console.error(
           `FATAL: ${platformSpec.label} packaging exited without producing an installer ` +
             `(electron-builder did not complete the target build). Failing the job so a ` +
@@ -561,10 +572,14 @@ async function runDesktopPackaging(platformKey, argv = process.argv.slice(2)) {
   });
 
   const localUpdateConfigPaths =
-    platformSpec.key === "macos" ? writeMacDirBuildUpdateConfig(options, buildConfig, packageJson, platformSpec) : [];
+    platformSpec.key === "macos"
+      ? writeMacDirBuildUpdateConfig(options, buildConfig, packageJson, platformSpec)
+      : [];
 
   localUpdateConfigPaths.forEach((appUpdateConfigPath) => {
-    console.log(`Wrote ${path.relative(PROJECT_ROOT, appUpdateConfigPath)} for local updater testing.`);
+    console.log(
+      `Wrote ${path.relative(PROJECT_ROOT, appUpdateConfigPath)} for local updater testing.`
+    );
   });
 
   if (options.dir) {

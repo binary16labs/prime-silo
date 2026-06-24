@@ -1,9 +1,7 @@
 {
   "generated_at": "2026-04-18T06:44:26.831Z",
   "generation_id": "2026-04-18T06-44-26-831Z",
-  "models": [
-    "openai/gpt-5.4-mini"
-  ],
+  "models": ["openai/gpt-5.4-mini"],
   "results": [
     {
       "prompt_id": "089A_086A_browser_skill_exact_id",
@@ -1362,9 +1360,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_text_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_text_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Reading the file first so I can update the unseen text correctly.\n\n\n_____javascript\nconst text = await space.api.fileRead(\"~/people.txt\", \"utf8\")\nconst updated = text.replace(/\\bmr\\.\\s*Kowalski\\b/gi, \"John Ronald Kowalski\")\nif (updated === text) throw new Error(\"Target name not found\")\nreturn await space.api.fileWrite(\"~/people.txt\", updated, \"utf8\")",
           "usage": {
@@ -1400,9 +1396,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Reading the contacts file first.\n\n_____javascript\nconst text = await space.api.fileRead(\"~/contacts.yaml\", \"utf8\")\nconst data = space.utils.yaml.parse(text)\nif (!data.mr_kowalski) throw new Error(\"mr_kowalski not found\")\ndata.mr_kowalski.full_name = \"John Ronald Kowalski\"\nreturn await space.api.fileWrite(\"~/contacts.yaml\", space.utils.yaml.stringify(data), \"utf8\")",
           "usage": {

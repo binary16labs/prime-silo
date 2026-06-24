@@ -12,9 +12,9 @@ function isPlainObject(value) {
 
   const prototype = Object.getPrototypeOf(value);
   return (
-    prototype === Object.prototype
-    || prototype === null
-    || prototype?.constructor?.name === "Object"
+    prototype === Object.prototype ||
+    prototype === null ||
+    prototype?.constructor?.name === "Object"
   );
 }
 
@@ -66,11 +66,11 @@ function isWindowLike(value) {
 
 function isBridgeEnvelope(value, channel) {
   return Boolean(
-    value
-    && typeof value === "object"
-    && value.channel === channel
-    && typeof value.type === "string"
-    && "payload" in value
+    value &&
+    typeof value === "object" &&
+    value.channel === channel &&
+    typeof value.type === "string" &&
+    "payload" in value
   );
 }
 
@@ -91,7 +91,12 @@ function normalizePhase(value) {
 }
 
 export function cloneBrowserFrameValue(value, seen = new WeakMap()) {
-  if (value == null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+  if (
+    value == null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
     return value;
   }
 
@@ -216,7 +221,10 @@ export function normalizeBrowserFrameType(type) {
   return normalizedType;
 }
 
-export function serializeBrowserFrameError(error, fallbackMessage = "Browser frame bridge request failed.") {
+export function serializeBrowserFrameError(
+  error,
+  fallbackMessage = "Browser frame bridge request failed."
+) {
   const fallback = String(fallbackMessage || "Browser frame bridge request failed.");
 
   if (error instanceof Error) {
@@ -252,13 +260,17 @@ function createRemoteBridgeError(message) {
   const payload = isPlainObject(message.payload)
     ? message.payload
     : {
-        message: String(message.payload || `Browser frame bridge request \"${message.type}\" failed.`),
+        message: String(
+          message.payload || `Browser frame bridge request \"${message.type}\" failed.`
+        ),
         name: "BrowserFrameBridgeError"
       };
 
   return createNamedError(
     typeof payload.name === "string" && payload.name ? payload.name : "BrowserFrameBridgeError",
-    typeof payload.message === "string" && payload.message ? payload.message : `Browser frame bridge request \"${message.type}\" failed.`,
+    typeof payload.message === "string" && payload.message
+      ? payload.message
+      : `Browser frame bridge request \"${message.type}\" failed.`,
     {
       code: payload.code ?? null,
       details: isPlainObject(payload.details) ? payload.details : {},
@@ -276,9 +288,10 @@ export function createWindowMessageBridge(options = {}) {
     typeof options.resolveTargetWindow === "function"
       ? options.resolveTargetWindow
       : () => options.targetWindow || null;
-  const targetOrigin = typeof options.targetOrigin === "string" && options.targetOrigin.trim()
-    ? options.targetOrigin.trim()
-    : "*";
+  const targetOrigin =
+    typeof options.targetOrigin === "string" && options.targetOrigin.trim()
+      ? options.targetOrigin.trim()
+      : "*";
   const allowedOrigins = options.allowedOrigins ?? options.allowedOrigin ?? null;
   const defaultTimeoutMs = Math.max(0, Number(options.requestTimeoutMs) || 0);
   const eventListeners = new Map();
@@ -286,7 +299,10 @@ export function createWindowMessageBridge(options = {}) {
   const pendingRequests = new Map();
   let isDestroyed = false;
 
-  if (typeof localWindow.addEventListener !== "function" || typeof localWindow.removeEventListener !== "function") {
+  if (
+    typeof localWindow.addEventListener !== "function" ||
+    typeof localWindow.removeEventListener !== "function"
+  ) {
     throw new Error("Browser frame bridge requires a window-like local event target.");
   }
 
@@ -531,7 +547,9 @@ export function createWindowMessageBridge(options = {}) {
       const requestId = createRequestId();
       const deferred = createDeferred();
       const timeoutMs = Math.max(0, Number(options.timeoutMs) || defaultTimeoutMs);
-      const envelope = createEnvelope(BROWSER_FRAME_BRIDGE_PHASE.REQUEST, type, payload, { requestId });
+      const envelope = createEnvelope(BROWSER_FRAME_BRIDGE_PHASE.REQUEST, type, payload, {
+        requestId
+      });
       let timeoutId = null;
 
       if (timeoutMs > 0) {

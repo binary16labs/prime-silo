@@ -36,7 +36,8 @@ function createTrimCandidate(id, label, repeatCount) {
 
 function countCandidateTokens(candidates = []) {
   return (Array.isArray(candidates) ? candidates : []).reduce(
-    (sum, candidate) => sum + (Number.isFinite(Number(candidate?.tokenCount)) ? Number(candidate.tokenCount) : 0),
+    (sum, candidate) =>
+      sum + (Number.isFinite(Number(candidate?.tokenCount)) ? Number(candidate.tokenCount) : 0),
     0
   );
 }
@@ -45,26 +46,26 @@ function applyRuntimeTrim(candidate, removeTokens) {
   const normalizedOverflowTokens = Math.max(1, Math.ceil(Number(removeTokens) || 0));
   const currentTokenCount = Math.max(0, candidate.tokenCount);
   const targetTokenCount = Math.max(0, currentTokenCount - normalizedOverflowTokens);
-  const estimatedRemovedChars = candidate.removedChars + estimatePromptCharsForTokenRemoval(
-    candidate.originalValueText,
-    normalizedOverflowTokens,
-    {
+  const estimatedRemovedChars =
+    candidate.removedChars +
+    estimatePromptCharsForTokenRemoval(candidate.originalValueText, normalizedOverflowTokens, {
       tokenCount: candidate.originalValueTokenCount
-    }
-  );
+    });
   const placeholderTokenCount = countTextTokens(
     buildPromptLongMessagePlaceholder({
       id: candidate.id,
       removedChars: estimatedRemovedChars
     })
   );
-  const nextRemovedChars = candidate.removedChars + estimatePromptCharsForTokenRemoval(
-    candidate.originalValueText,
-    normalizedOverflowTokens + placeholderTokenCount,
-    {
-      tokenCount: candidate.originalValueTokenCount
-    }
-  );
+  const nextRemovedChars =
+    candidate.removedChars +
+    estimatePromptCharsForTokenRemoval(
+      candidate.originalValueText,
+      normalizedOverflowTokens + placeholderTokenCount,
+      {
+        tokenCount: candidate.originalValueTokenCount
+      }
+    );
   let trimmedValue = trimPromptLongMessage(candidate.originalValueText, {
     id: candidate.id,
     minimumVisibleChars: 72,
@@ -74,13 +75,11 @@ function applyRuntimeTrim(candidate, removeTokens) {
 
   if (trimmedValueTokenCount > targetTokenCount) {
     const additionalOverflowTokens = trimmedValueTokenCount - targetTokenCount;
-    const recalibratedRemovedChars = trimmedValue.removedChars + estimatePromptCharsForTokenRemoval(
-      candidate.originalValueText,
-      additionalOverflowTokens,
-      {
+    const recalibratedRemovedChars =
+      trimmedValue.removedChars +
+      estimatePromptCharsForTokenRemoval(candidate.originalValueText, additionalOverflowTokens, {
         tokenCount: candidate.originalValueTokenCount
-      }
-    );
+      });
 
     trimmedValue = trimPromptLongMessage(candidate.originalValueText, {
       id: candidate.id,
@@ -113,10 +112,12 @@ test("buildPromptOverflowTrimPlan keeps contributor trims above the 250-token mi
     createTrimCandidate(3, "gamma", 100),
     createTrimCandidate(4, "delta", 40)
   ];
-  const beforeCounts = candidates.map((candidate) => candidate.tokenCount).sort((left, right) => right - left);
+  const beforeCounts = candidates
+    .map((candidate) => candidate.tokenCount)
+    .sort((left, right) => right - left);
   const firstGap = beforeCounts[0] - beforeCounts[1];
   const secondGap = Math.max(4, beforeCounts[1] - beforeCounts[2]);
-  const overflowTokens = firstGap + Math.min(16, (secondGap * 2) - 1);
+  const overflowTokens = firstGap + Math.min(16, secondGap * 2 - 1);
   const plan = buildPromptOverflowTrimPlan(candidates, overflowTokens, {
     minimumStepTokens: 250
   });
@@ -144,11 +145,15 @@ test("one-shot threshold plan trims only the qualifying outlier and leaves small
     createTrimCandidate(4, "delta", 40)
   ];
   const beforeTokens = countCandidateTokens(candidates);
-  const beforeCountsByKey = Object.fromEntries(candidates.map((candidate) => [candidate.key, candidate.tokenCount]));
-  const beforeCounts = candidates.map((candidate) => candidate.tokenCount).sort((left, right) => right - left);
+  const beforeCountsByKey = Object.fromEntries(
+    candidates.map((candidate) => [candidate.key, candidate.tokenCount])
+  );
+  const beforeCounts = candidates
+    .map((candidate) => candidate.tokenCount)
+    .sort((left, right) => right - left);
   const firstGap = beforeCounts[0] - beforeCounts[1];
   const secondGap = Math.max(4, beforeCounts[1] - beforeCounts[2]);
-  const overflowTokens = firstGap + Math.min(16, (secondGap * 2) - 1);
+  const overflowTokens = firstGap + Math.min(16, secondGap * 2 - 1);
   const budgetTokens = beforeTokens - overflowTokens;
   const plan = buildPromptOverflowTrimPlan(candidates, overflowTokens, {
     minimumStepTokens: 250
@@ -163,7 +168,10 @@ test("one-shot threshold plan trims only the qualifying outlier and leaves small
     delta: candidates[3].tokenCount
   };
   const afterTokens =
-    afterCountsByKey.alpha + afterCountsByKey.beta + afterCountsByKey.gamma + afterCountsByKey.delta;
+    afterCountsByKey.alpha +
+    afterCountsByKey.beta +
+    afterCountsByKey.gamma +
+    afterCountsByKey.delta;
 
   assert.equal(plan.steps.length, 1);
   assert.equal(afterCountsByKey.alpha < beforeCountsByKey.alpha, true);

@@ -19,10 +19,7 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
-import {
-  loadRegistry,
-  APP_SCHEMA
-} from "../server/lib/registry_resolver.js";
+import { loadRegistry, APP_SCHEMA } from "../server/lib/registry_resolver.js";
 import { readLock } from "../server/lib/registry_lock.js";
 import { signManifest, verifyManifest } from "../server/lib/manifest_signing.js";
 
@@ -72,18 +69,35 @@ for (const app of apps) {
     record("descriptor", id, "drift", `missing/unparseable at ${app.manifestPath}`);
     continue;
   }
-  record("schema", id, app.manifest.schema === APP_SCHEMA ? "pass" : "drift",
-    app.manifest.schema === APP_SCHEMA ? APP_SCHEMA : `got "${app.manifest.schema}"`);
-  record("id", id, app.manifest.id === id ? "pass" : "drift",
-    app.manifest.id === id ? id : `descriptor id "${app.manifest.id}"`);
-  record("signature", id,
-    app.manifest.signature && verifyManifest(app.manifest, app.manifest.signature) ? "pass" : "drift",
-    app.manifest.signature ? "HMAC-SHA256" : "unsigned");
+  record(
+    "schema",
+    id,
+    app.manifest.schema === APP_SCHEMA ? "pass" : "drift",
+    app.manifest.schema === APP_SCHEMA ? APP_SCHEMA : `got "${app.manifest.schema}"`
+  );
+  record(
+    "id",
+    id,
+    app.manifest.id === id ? "pass" : "drift",
+    app.manifest.id === id ? id : `descriptor id "${app.manifest.id}"`
+  );
+  record(
+    "signature",
+    id,
+    app.manifest.signature && verifyManifest(app.manifest, app.manifest.signature)
+      ? "pass"
+      : "drift",
+    app.manifest.signature ? "HMAC-SHA256" : "unsigned"
+  );
 
   const requires = Array.isArray(app.manifest.requires) ? app.manifest.requires : [];
   for (const depId of requires) {
-    record("requires", `${id}->${depId}`, memberIds.has(depId) ? "pass" : "drift",
-      memberIds.has(depId) ? "resolved" : "dangling dependency");
+    record(
+      "requires",
+      `${id}->${depId}`,
+      memberIds.has(depId) ? "pass" : "drift",
+      memberIds.has(depId) ? "resolved" : "dangling dependency"
+    );
   }
 }
 
@@ -99,8 +113,12 @@ if (lock) {
   }
   const seenPorts = new Map();
   for (const [key, svc] of Object.entries(lock.services)) {
-    record("lock_service", key, providedKeys.has(key) ? "pass" : "drift",
-      providedKeys.has(key) ? `:${svc.port}` : "service not declared by any app");
+    record(
+      "lock_service",
+      key,
+      providedKeys.has(key) ? "pass" : "drift",
+      providedKeys.has(key) ? `:${svc.port}` : "service not declared by any app"
+    );
     if (seenPorts.has(svc.port)) {
       record("lock_port", key, "drift", `port ${svc.port} also used by ${seenPorts.get(svc.port)}`);
     } else {

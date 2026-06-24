@@ -6,10 +6,10 @@ Read-only timeline of triple-lineage events for a single run. Third migrated wid
 
 ## Files
 
-| File                     | Owns                                                                          |
-| ------------------------ | ----------------------------------------------------------------------------- |
-| `index.js`               | `createLineageTimelineWidget(host, props, options)` factory.                  |
-| `lineage_timeline.css`   | Timeline rail, event-type colour coding, integrity chip styles.               |
+| File                   | Owns                                                            |
+| ---------------------- | --------------------------------------------------------------- |
+| `index.js`             | `createLineageTimelineWidget(host, props, options)` factory.    |
+| `lineage_timeline.css` | Timeline rail, event-type colour coding, integrity chip styles. |
 
 ## Manifest mapping
 
@@ -43,7 +43,7 @@ The widget **does not** use `fetchAsAgent` — this is human-driven inspection, 
 Each event becomes a row with:
 
 - **Timestamp** — left-aligned, monospace.
-- **Event type** — colour-coded chip. AGENT_AUTHORSHIP → purple. SECURITY_* → red. Others → blue.
+- **Event type** — colour-coded chip. AGENT*AUTHORSHIP → purple. SECURITY*\* → red. Others → blue.
 - **Integrity chip** — green "verified" if `_integrity_hash` present (matches Benny's audit-log integrity model from `verify_audit_integrity`); amber "unverified" otherwise.
 - **Triple breakdown** — `process / skill / data` (and `outcome` when present), pulled from either `data.<field>` or `data.details.<field>` for resilience to schema drift across event types.
 

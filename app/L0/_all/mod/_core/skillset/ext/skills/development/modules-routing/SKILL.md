@@ -85,7 +85,8 @@ color: "#94bcff"
 Reusable helper script:
 
 ```js
-const panelTools = await import("/mod/_core/skillset/ext/skills/development/modules-routing/panel-tools.js");
+const panelTools =
+  await import("/mod/_core/skillset/ext/skills/development/modules-routing/panel-tools.js");
 ```
 
 Available helpers:
@@ -102,7 +103,8 @@ Use those helpers when you need to inspect the registered panels before wiring n
 Example:
 
 ```js
-const panelTools = await import("/mod/_core/skillset/ext/skills/development/modules-routing/panel-tools.js");
+const panelTools =
+  await import("/mod/_core/skillset/ext/skills/development/modules-routing/panel-tools.js");
 const panels = await panelTools.listPanels();
 const userPanel = await panelTools.findPanel("/mod/_core/user/view.html");
 await panelTools.goToPanel(userPanel ?? "user");

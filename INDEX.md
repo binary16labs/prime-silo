@@ -4,12 +4,12 @@
 
 ## Quick Links by Role
 
-| Role | Start Here | Then Read | For Reference |
-|------|-----------|-----------|---------------|
-| **Desktop App User** | [QUICKSTART-EXE.md](QUICKSTART-EXE.md) | [GUIDE.md](GUIDE.md) | [HOME-DIRECTORY.md](HOME-DIRECTORY.md) |
-| **CLI / Developer** | [CLI.md](CLI.md) | [QUICKSTART-EXE.md](QUICKSTART-EXE.md) | [AGENTS.md](AGENTS.md) |
-| **AI Agent** | [AGENT-AWARENESS.md](AGENT-AWARENESS.md) | [CLI.md](CLI.md) | [HOME-DIRECTORY.md](HOME-DIRECTORY.md) |
-| **Project Contributor** | [AGENTS.md](AGENTS.md) | [runtime/README.md](runtime/README.md) | [architecture/ROADMAP.md](architecture/ROADMAP.md) |
+| Role                    | Start Here                               | Then Read                              | For Reference                                      |
+| ----------------------- | ---------------------------------------- | -------------------------------------- | -------------------------------------------------- |
+| **Desktop App User**    | [QUICKSTART-EXE.md](QUICKSTART-EXE.md)   | [GUIDE.md](GUIDE.md)                   | [HOME-DIRECTORY.md](HOME-DIRECTORY.md)             |
+| **CLI / Developer**     | [CLI.md](CLI.md)                         | [QUICKSTART-EXE.md](QUICKSTART-EXE.md) | [AGENTS.md](AGENTS.md)                             |
+| **AI Agent**            | [AGENT-AWARENESS.md](AGENT-AWARENESS.md) | [CLI.md](CLI.md)                       | [HOME-DIRECTORY.md](HOME-DIRECTORY.md)             |
+| **Project Contributor** | [AGENTS.md](AGENTS.md)                   | [runtime/README.md](runtime/README.md) | [architecture/ROADMAP.md](architecture/ROADMAP.md) |
 
 ---
 
@@ -34,7 +34,7 @@
   - Explains the documentation hierarchy
   - Lists all AGENTS.md files in the project
   - Defines stable contracts for contributors
-  
+
 ### Release & Deployment
 
 - **[RELEASE-QUICK-START.md](RELEASE-QUICK-START.md)** — Quick reference for cutting releases
@@ -87,45 +87,48 @@
 
 ### Node.js Commands (`node space`)
 
-| Command | Purpose | See |
-|---------|---------|-----|
-| `serve` | Start the server | [CLI.md#serve](CLI.md#serve--start-the-server) |
-| `supervise` | Run with auto-updates | [CLI.md#supervise](CLI.md#supervise--run-with-auto-updates) |
-| `help` | Show command help | [CLI.md#help](CLI.md#help--show-command-help) |
-| `version` | Show version | [CLI.md#version](CLI.md#version--show-version) |
-| `get` / `set` | Manage configuration | [CLI.md#get--set](CLI.md#get--set--manage-configuration) |
-| `user` | Manage users | [CLI.md#user](CLI.md#user--manage-users) |
-| `group` | Manage groups | [CLI.md#group](CLI.md#group--manage-groups) |
-| `update` | Update from Git | [CLI.md#update](CLI.md#update--update-from-git) |
-| `memory` | Memory graph operations | [CLI.md#memory](CLI.md#memory--memory-graph-operations) |
-| `bridge` | Bridge cockpit operations | [CLI.md#bridge](CLI.md#bridge--bridge-cockpit-operations) |
-| `registry` | Query module registry | [CLI.md#registry](CLI.md#registry--query-module-registry) |
+| Command       | Purpose                   | See                                                         |
+| ------------- | ------------------------- | ----------------------------------------------------------- |
+| `serve`       | Start the server          | [CLI.md#serve](CLI.md#serve--start-the-server)              |
+| `supervise`   | Run with auto-updates     | [CLI.md#supervise](CLI.md#supervise--run-with-auto-updates) |
+| `help`        | Show command help         | [CLI.md#help](CLI.md#help--show-command-help)               |
+| `version`     | Show version              | [CLI.md#version](CLI.md#version--show-version)              |
+| `get` / `set` | Manage configuration      | [CLI.md#get--set](CLI.md#get--set--manage-configuration)    |
+| `user`        | Manage users              | [CLI.md#user](CLI.md#user--manage-users)                    |
+| `group`       | Manage groups             | [CLI.md#group](CLI.md#group--manage-groups)                 |
+| `update`      | Update from Git           | [CLI.md#update](CLI.md#update--update-from-git)             |
+| `memory`      | Memory graph operations   | [CLI.md#memory](CLI.md#memory--memory-graph-operations)     |
+| `bridge`      | Bridge cockpit operations | [CLI.md#bridge](CLI.md#bridge--bridge-cockpit-operations)   |
+| `registry`    | Query module registry     | [CLI.md#registry](CLI.md#registry--query-module-registry)   |
 
 ### Benny Python Commands (`benny`)
 
 #### Manifest Operations
-| Command | Purpose | See |
-|---------|---------|-----|
-| `plan` | AI-generate manifest | [CLI.md#plan](CLI.md#plan--ai-generate-manifest) |
-| `run` | Execute manifest | [CLI.md#run](CLI.md#run--execute-manifest) |
-| `runs ls` | List run history | [CLI.md#runs](CLI.md#runs--manage-run-history) |
+
+| Command   | Purpose              | See                                              |
+| --------- | -------------------- | ------------------------------------------------ |
+| `plan`    | AI-generate manifest | [CLI.md#plan](CLI.md#plan--ai-generate-manifest) |
+| `run`     | Execute manifest     | [CLI.md#run](CLI.md#run--execute-manifest)       |
+| `runs ls` | List run history     | [CLI.md#runs](CLI.md#runs--manage-run-history)   |
 
 #### Pypes Transformations
-| Command | Purpose | See |
-|---------|---------|-----|
-| `pypes run` | Execute transformation | [CLI.md#pypes-run](CLI.md#pypes-run--transformation-pipeline) |
-| `pypes inspect` | Validate manifest | [CLI.md#pypes-inspect](CLI.md#pypes-inspect--validate-manifest) |
-| `pypes drilldown` | Analyze results | [CLI.md#pypes-drilldown](CLI.md#pypes-drilldown--analyze-results) |
-| `pypes rerun` | Resume from step | [CLI.md#pypes-rerun](CLI.md#pypes-rerun--resume-from-step) |
-| `pypes plan` | AI-generate pipeline | [CLI.md#pypes-plan](CLI.md#pypes-plan--ai-generate-pipeline) |
-| `pypes agent-report` | AI analysis | [CLI.md#pypes-agent-report](CLI.md#pypes-agent-report--ai-analysis) |
+
+| Command              | Purpose                | See                                                                 |
+| -------------------- | ---------------------- | ------------------------------------------------------------------- |
+| `pypes run`          | Execute transformation | [CLI.md#pypes-run](CLI.md#pypes-run--transformation-pipeline)       |
+| `pypes inspect`      | Validate manifest      | [CLI.md#pypes-inspect](CLI.md#pypes-inspect--validate-manifest)     |
+| `pypes drilldown`    | Analyze results        | [CLI.md#pypes-drilldown](CLI.md#pypes-drilldown--analyze-results)   |
+| `pypes rerun`        | Resume from step       | [CLI.md#pypes-rerun](CLI.md#pypes-rerun--resume-from-step)          |
+| `pypes plan`         | AI-generate pipeline   | [CLI.md#pypes-plan](CLI.md#pypes-plan--ai-generate-pipeline)        |
+| `pypes agent-report` | AI analysis            | [CLI.md#pypes-agent-report](CLI.md#pypes-agent-report--ai-analysis) |
 
 #### Other Commands
-| Command | Purpose | See |
-|---------|---------|-----|
-| `enrich` | Knowledge enrichment | [CLI.md#enrich](CLI.md#enrich--knowledge-enrichment) |
-| `agentamp` | Skin pack operations | [CLI.md#agentamp](CLI.md#agentamp-commands) |
-| `up` / `down` | Service lifecycle | [CLI.md#up--down](CLI.md#up--down--service-lifecycle) |
+
+| Command       | Purpose              | See                                                   |
+| ------------- | -------------------- | ----------------------------------------------------- |
+| `enrich`      | Knowledge enrichment | [CLI.md#enrich](CLI.md#enrich--knowledge-enrichment)  |
+| `agentamp`    | Skin pack operations | [CLI.md#agentamp](CLI.md#agentamp-commands)           |
+| `up` / `down` | Service lifecycle    | [CLI.md#up--down](CLI.md#up--down--service-lifecycle) |
 
 ---
 
@@ -239,33 +242,39 @@
 ### End Users (Desktop App)
 
 Start here:
+
 1. [QUICKSTART-EXE.md](QUICKSTART-EXE.md) — Install and launch
 2. [HOME-DIRECTORY.md](HOME-DIRECTORY.md) — Understand workspace
 3. [GUIDE.md](GUIDE.md) — Feature walkthroughs
 
 Then:
+
 - Reference [CLI.md](CLI.md) if using command line
 - Check [HOME-DIRECTORY.md](HOME-DIRECTORY.md) for troubleshooting
 
 ### Operators
 
 Start here:
+
 1. [architecture/OPERATING_MANUAL.md](architecture/OPERATING_MANUAL.md) — Complete setup guide
 2. [SETUP-SUMMARY.md](SETUP-SUMMARY.md) — Configuration overview
 3. [CLI.md](CLI.md) — All available commands
 
 Then:
+
 - [RELEASE.md](RELEASE.md) for deployment
 - [runtime/docs/operations/](runtime/docs/operations/) for advanced topics
 
 ### Developers
 
 Start here:
+
 1. [AGENTS.md](AGENTS.md) — Project contracts and architecture rules
 2. [README.md](README.md) — Quickstart and repo layout
 3. [runtime/architecture/ADR-001-prime-silo-shell-fork.md](runtime/architecture/ADR-001-prime-silo-shell-fork.md) — Design decisions
 
 Then:
+
 - [app/AGENTS.md](app/AGENTS.md), [server/AGENTS.md](server/AGENTS.md), [commands/AGENTS.md](commands/AGENTS.md)
 - [architecture/ROADMAP.md](architecture/ROADMAP.md) for current phase status
 - [architecture/OPERATING_PLAN.md](architecture/OPERATING_PLAN.md) for test runbook
@@ -273,13 +282,15 @@ Then:
 ### AI Agents
 
 Start here:
+
 1. [AGENT-AWARENESS.md](AGENT-AWARENESS.md) — System state and permissions
 2. [CLI.md](CLI.md) — Available commands
 3. [HOME-DIRECTORY.md](HOME-DIRECTORY.md) — File structure
 
 Then:
+
 - [runtime/CLAUDE.md](runtime/CLAUDE.md) for Benny-specific capabilities
-- [app/L0/_all/mod/_core/documentation/docs/](app/L0/_all/mod/_core/documentation/docs/) for detailed API docs
+- [app/L0/\_all/mod/\_core/documentation/docs/](app/L0/_all/mod/_core/documentation/docs/) for detailed API docs
 
 ---
 

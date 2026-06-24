@@ -6,7 +6,7 @@ need. If you only read one doc, read this one.
 > **What Benny is, in a sentence:** a local-first AI workbench that turns your
 > documents, your code, and your past agent sessions into three explorable
 > graphs — and gives you one cockpit (the **Bridge**) plus an on-screen agent
-> (**Benny**) that already knows what you're looking at, so *you* never have to
+> (**Benny**) that already knows what you're looking at, so _you_ never have to
 > be the glue holding it all together.
 
 - **Prime-Silo** is the app you open in the browser (the shell).
@@ -45,17 +45,17 @@ One page, a **mode rail** on the left, a **stage** in the middle, and **Benny**
 in the dock on the right. A **zen** toggle (top-right) hides the rails so you
 can focus on just the stage.
 
-| Mode | What it's for |
-|------|---------------|
-| **Pulse** | Your landing. System vitals, a green "mesh healthy" dot, and the **Lifelog** — a live feed of your sessions, files, and git commits across every project. |
-| **Memory** | Pick one of your past agent sessions and see its full lineage as a graph. |
-| **Documents** | Pick a workspace, see its files, click **Ingest → triples** to turn documents into the knowledge graph, then **Correlate** to link them to your code. |
-| **Code 3D** | Your codebase as a graph (files → classes → functions). Flip the **2D/3D** toggle for a WebGL view. |
-| **Flows** | Type what you want in plain English → **Plan** draws the pipeline → **Run** executes it and shows you what happened. No copy-paste, no terminal. |
-| **Runs** | Pick any past run and watch its timeline and the agent's reasoning trace. |
+| Mode          | What it's for                                                                                                                                             |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Pulse**     | Your landing. System vitals, a green "mesh healthy" dot, and the **Lifelog** — a live feed of your sessions, files, and git commits across every project. |
+| **Memory**    | Pick one of your past agent sessions and see its full lineage as a graph.                                                                                 |
+| **Documents** | Pick a workspace, see its files, click **Ingest → triples** to turn documents into the knowledge graph, then **Correlate** to link them to your code.     |
+| **Code 3D**   | Your codebase as a graph (files → classes → functions). Flip the **2D/3D** toggle for a WebGL view.                                                       |
+| **Flows**     | Type what you want in plain English → **Plan** draws the pipeline → **Run** executes it and shows you what happened. No copy-paste, no terminal.          |
+| **Runs**      | Pick any past run and watch its timeline and the agent's reasoning trace.                                                                                 |
 
 The three graphs (Memory, Documents→Knowledge, Code) are the **cognitive mesh**.
-Flows is how you *act*; Runs is how you *watch*; Pulse is your *glance*.
+Flows is how you _act_; Runs is how you _watch_; Pulse is your _glance_.
 
 ---
 
@@ -66,7 +66,7 @@ what you've selected, and which workspace you're in. So you can be lazy with
 your wording:
 
 - On **Code 3D** with a node selected → click **"Explain this graph"** and Benny
-  explains *that node*.
+  explains _that node_.
 - Anywhere → ask **"What did I work on recently?"** and Benny answers from your
   memory graph with clickable links.
 - Ask **"What is this project / how does X work?"** and Benny loads its
@@ -84,36 +84,48 @@ default — nothing leaves your machine.
 Everything below is reachable from the Bridge, the CLI, or both.
 
 ### Plan → Run (Flows)
+
 Turn a requirement into a running pipeline.
+
 - **UI:** Bridge → Flows → type requirement → **Plan** → **Run**.
 - **CLI:** `node space bridge plan "<requirement>"` then `node space bridge run <id>`.
 
 ### Documents → knowledge triples (RAG)
+
 Turn PDFs/markdown into a queryable knowledge graph.
+
 - **UI:** Bridge → Documents → pick workspace → **Ingest → triples** → **Correlate w/ code**.
 - **CLI:** `node space bridge ingest --workspace <ws>`.
 
 ### Code graph
+
 See and query your codebase structure (Tree-Sitter).
+
 - **UI:** Bridge → Code 3D (workspace selector + 2D/3D toggle).
 - Ask Benny "what depends on this?" with a node selected.
 
 ### Memory graph
+
 Your agent sessions (Claude + Antigravity), X-rayed.
+
 - **UI:** Bridge → Memory, or the standalone page `#/_prime_silo/memory`.
 - **CLI:** `node space memory <status|sync|sessions|search|audit>`.
 
 ### Enrichment (the overlay that links graphs)
+
 `CORRELATES_WITH` edges tie documents to the code that implements them — built
 by **Correlate** in Documents mode.
 
 ### Self-audit (is everything healthy?)
+
 Every integration is a signed manifest; the audit checks live reality against
 it.
+
 - **UI:** the conformance dot on the Bridge / Memory pages.
 - **CLI:** `node space memory audit` (reports `bridge` and `memoray`, both should be PASS).
 
 ### Config from the terminal
+
 - `node space get <NAME>` / `node space set <NAME>=<value>`.
 - Useful: `BRIDGE_DEFAULT_MODE` (which mode the Bridge opens on),
   `MEMORAY_ENABLED`, `MEMORAY_BASE_URL`.
@@ -131,9 +143,9 @@ about the very thing you're running. Then:
 
 1. **Bridge → Code 3D**, pick the `prime_silo_self` workspace → explore the code graph.
 2. Select a node → Benny chip **"Explain this graph"**.
-3. Ask Benny: *"How does the Bridge cockpit work?"* / *"What are all the workflows?"*
+3. Ask Benny: _"How does the Bridge cockpit work?"_ / _"What are all the workflows?"_
 4. **Bridge → Documents** (`prime_silo_self`) → see the ingested guides as triples.
-5. **Flows** → type *"summarise the architecture decisions"* → **Plan** → **Run** → watch it in **Runs**.
+5. **Flows** → type _"summarise the architecture decisions"_ → **Plan** → **Run** → watch it in **Runs**.
 
 To explore your own data, open **Bridge → Documents**, drag files onto the drop
 zone (PDF · TXT · MD · JSON), watch each file's ingestion status, then
@@ -146,18 +158,18 @@ runtime was still starting — it self-seeds on the next launch.)
 ## 6. Configuring it
 
 - **Packaged app (EXE):** you don't start anything by hand. The desktop app runs
-  the shell, and the **tray icon drives the Benny runtime** — *Start/Stop Benny
-  services*, *Set up environment (init + doctor)*, and *Open Benny CLI* (a
+  the shell, and the **tray icon drives the Benny runtime** — _Start/Stop Benny
+  services_, _Set up environment (init + doctor)_, and _Open Benny CLI_ (a
   terminal with `$BENNY_HOME` + `bin/` already on PATH). See
   [QUICKSTART-EXE.md](../QUICKSTART-EXE.md). Developers can still use
   `\.scripts\dev.ps1` from a checkout.
 - **Setup site:** `\.scripts\site.ps1` serves the setup site (`site/`),
-  where the *Services* step toggles Memo-Ray and records endpoints. It also
+  where the _Services_ step toggles Memo-Ray and records endpoints. It also
   links out to these guides and the Bridge.
 - **Ports (defaults):** shell `3000`, Benny runtime `8005`, Memo-Ray server
   `3001`, Memo-Ray client `5175`, Lemonade `13305`.
 - **Agent model:** the on-screen agent uses Lemonade locally by default; change
-  it in Benny's settings (gear icon) or the *Agent* page.
+  it in Benny's settings (gear icon) or the _Agent_ page.
 - **Fan-out across machines:** running a local model on more than one box? Set
   `BENNY_MODEL_ENDPOINTS` (JSON map of provider → endpoint list) or
   `BENNY_<PROVIDER>_ENDPOINTS` (comma-separated) and **Deep produce** spreads its

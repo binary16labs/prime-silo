@@ -1,4 +1,8 @@
-import { buildHuggingFaceFallbackPrompt, normalizeHuggingFaceModelInput, normalizeMaxNewTokens } from "/mod/_core/huggingface/helpers.js";
+import {
+  buildHuggingFaceFallbackPrompt,
+  normalizeHuggingFaceModelInput,
+  normalizeMaxNewTokens
+} from "/mod/_core/huggingface/helpers.js";
 import { WORKER_INBOUND, WORKER_OUTBOUND } from "/mod/_core/huggingface/protocol.js";
 
 let runtimeModulePromise = null;
@@ -65,14 +69,22 @@ function serializeError(error) {
 }
 
 function logWorkerConsoleError(label, error, details = {}) {
-  forwardWorkerConsoleError(`[huggingface-worker] ${label}`, {
-    ...details,
-    serialized: serializeError(error)
-  }, error);
-  console.error(`[huggingface-worker] ${label}`, {
-    ...details,
-    serialized: serializeError(error)
-  }, error);
+  forwardWorkerConsoleError(
+    `[huggingface-worker] ${label}`,
+    {
+      ...details,
+      serialized: serializeError(error)
+    },
+    error
+  );
+  console.error(
+    `[huggingface-worker] ${label}`,
+    {
+      ...details,
+      serialized: serializeError(error)
+    },
+    error
+  );
 }
 
 function serializeConsoleArg(value) {
@@ -83,7 +95,12 @@ function serializeConsoleArg(value) {
     };
   }
 
-  if (value == null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+  if (
+    value == null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
     return value;
   }
 
@@ -184,7 +201,9 @@ function normalizeProgressValue(report = {}) {
 }
 
 function normalizeProgressStatus(report = {}) {
-  const rawStatus = String(report.status || "").trim().toLowerCase();
+  const rawStatus = String(report.status || "")
+    .trim()
+    .toLowerCase();
 
   if (rawStatus === "progress") {
     return "download";
@@ -281,21 +300,20 @@ function updateLoadProgressTracker(tracker, report = {}, modelId = "") {
   const total = readFiniteNumber(report.total);
 
   const nextEntry = {
-    loaded: loaded != null && loaded >= 0
-      ? loaded
-      : previousEntry?.loaded ?? null,
+    loaded: loaded != null && loaded >= 0 ? loaded : (previousEntry?.loaded ?? null),
     progress: normalizeProgressValue(report),
     source,
     status,
-    total: total != null && total > 0
-      ? total
-      : previousEntry?.total ?? null,
+    total: total != null && total > 0 ? total : (previousEntry?.total ?? null),
     updatedAt: Date.now()
   };
 
   if (nextEntry.total != null && nextEntry.total > 0) {
     const previousLoaded = previousEntry?.loaded ?? 0;
-    const boundedLoaded = Math.min(nextEntry.total, Math.max(nextEntry.loaded ?? 0, previousLoaded));
+    const boundedLoaded = Math.min(
+      nextEntry.total,
+      Math.max(nextEntry.loaded ?? 0, previousLoaded)
+    );
     nextEntry.loaded = status === "done" ? nextEntry.total : boundedLoaded;
     nextEntry.progress = clampProgress(nextEntry.loaded / nextEntry.total);
   } else if (status === "done") {
@@ -311,16 +329,23 @@ function summarizeLoadProgress(tracker, report = {}, modelId = "") {
   const source = resolveProgressSource(report, modelId);
   const rawStatus = normalizeProgressStatus(report);
   const entries = tracker?.files ? Array.from(tracker.files.values()) : [];
-  const aggregateEntries = entries.filter((entry) => Number.isFinite(entry.total) && entry.total > 0);
+  const aggregateEntries = entries.filter(
+    (entry) => Number.isFinite(entry.total) && entry.total > 0
+  );
   const activeDownloadEntries = entries.filter((entry) => entry.status === "download");
-  const aggregateLoaded = aggregateEntries.reduce((sum, entry) => sum + Math.min(entry.loaded ?? 0, entry.total), 0);
+  const aggregateLoaded = aggregateEntries.reduce(
+    (sum, entry) => sum + Math.min(entry.loaded ?? 0, entry.total),
+    0
+  );
   const aggregateTotal = aggregateEntries.reduce((sum, entry) => sum + entry.total, 0);
-  const aggregateProgress = aggregateTotal > 0
-    ? clampProgress(aggregateLoaded / aggregateTotal)
-    : normalizeProgressValue(report);
-  const aggregateDetail = aggregateTotal > 0
-    ? `${formatProgressBytes(aggregateLoaded)} / ${formatProgressBytes(aggregateTotal)}`
-    : formatProgressDetail(report);
+  const aggregateProgress =
+    aggregateTotal > 0
+      ? clampProgress(aggregateLoaded / aggregateTotal)
+      : normalizeProgressValue(report);
+  const aggregateDetail =
+    aggregateTotal > 0
+      ? `${formatProgressBytes(aggregateLoaded)} / ${formatProgressBytes(aggregateTotal)}`
+      : formatProgressDetail(report);
 
   let status = rawStatus;
   let stepLabel = "";
@@ -332,9 +357,7 @@ function summarizeLoadProgress(tracker, report = {}, modelId = "") {
       : "Downloading model files";
   } else if (rawStatus === "done") {
     status = "loading";
-    stepLabel = aggregateDetail
-      ? `Finalizing model (${aggregateDetail})`
-      : "Finalizing model";
+    stepLabel = aggregateDetail ? `Finalizing model (${aggregateDetail})` : "Finalizing model";
   } else if (rawStatus === "ready") {
     status = "loading";
     stepLabel = "Preparing runtime";
@@ -344,7 +367,8 @@ function summarizeLoadProgress(tracker, report = {}, modelId = "") {
     stepLabel = "Starting model load";
   } else {
     const fallbackSource = source || modelId || "model";
-    stepLabel = `${rawStatus.charAt(0).toUpperCase()}${rawStatus.slice(1)} ${fallbackSource}`.trim();
+    stepLabel =
+      `${rawStatus.charAt(0).toUpperCase()}${rawStatus.slice(1)} ${fallbackSource}`.trim();
   }
 
   let visibleProgress = aggregateProgress;
@@ -360,9 +384,10 @@ function summarizeLoadProgress(tracker, report = {}, modelId = "") {
     loaded: aggregateLoaded,
     progress: visibleProgress,
     status,
-    stepId: aggregateTotal > 0
-      ? `${status}:${Math.round(aggregateLoaded)}:${Math.round(aggregateTotal)}`
-      : `${status}:${source}`,
+    stepId:
+      aggregateTotal > 0
+        ? `${status}:${Math.round(aggregateLoaded)}:${Math.round(aggregateTotal)}`
+        : `${status}:${source}`,
     stepLabel,
     total: aggregateTotal
   };
@@ -771,9 +796,13 @@ async function handleRunChat(payload = {}) {
   try {
     const runtimeModule = await ensureRuntimeModule();
     const { StoppingCriteria, TextStreamer } = runtimeModule;
-    const { addSpecialTokens, promptText, promptTokenCount } = await preparePrompt(payload.messages);
+    const { addSpecialTokens, promptText, promptTokenCount } = await preparePrompt(
+      payload.messages
+    );
     const requestOptions =
-      payload.requestOptions && typeof payload.requestOptions === "object" && !Array.isArray(payload.requestOptions)
+      payload.requestOptions &&
+      typeof payload.requestOptions === "object" &&
+      !Array.isArray(payload.requestOptions)
         ? { ...payload.requestOptions }
         : {};
     const maxNewTokens = normalizeMaxNewTokens(
@@ -785,7 +814,8 @@ async function handleRunChat(payload = {}) {
     delete requestOptions.return_full_text;
 
     if (!Object.hasOwn(requestOptions, "do_sample")) {
-      requestOptions.do_sample = Object.hasOwn(requestOptions, "temperature") || Object.hasOwn(requestOptions, "top_p");
+      requestOptions.do_sample =
+        Object.hasOwn(requestOptions, "temperature") || Object.hasOwn(requestOptions, "top_p");
     }
 
     const startedAt = performance.now();
@@ -916,15 +946,19 @@ async function handleRunChat(payload = {}) {
       ? String(generatedTextPayload.at(-1)?.content || "")
       : String(generatedTextPayload || streamedText || "");
     const endToEndLatencySeconds = Math.max(performance.now() - startedAt, 0) / 1000;
-    const decodeLatencySeconds = Math.max(endToEndLatencySeconds - ((timeToFirstTokenMs || 0) / 1000), 0);
+    const decodeLatencySeconds = Math.max(
+      endToEndLatencySeconds - (timeToFirstTokenMs || 0) / 1000,
+      0
+    );
     const completionTokenIds = await tokenizer(decodedText || streamedText || "", {
       return_dict: true,
       return_tensor: false
     });
     const completionTokens = extractFirstSequenceLength(completionTokenIds?.input_ids);
-    const tokensPerSecond = completionTokens > 0 && decodeLatencySeconds > 0
-      ? completionTokens / decodeLatencySeconds
-      : null;
+    const tokensPerSecond =
+      completionTokens > 0 && decodeLatencySeconds > 0
+        ? completionTokens / decodeLatencySeconds
+        : null;
 
     postMessageToHost(WORKER_OUTBOUND.CHAT_COMPLETE, {
       finishReason: stoppingCriteria.interrupted ? "abort" : "stop",
@@ -991,17 +1025,25 @@ export function handleWorkerMessage(message = {}) {
 }
 
 self.addEventListener("error", (event) => {
-  console.error("[huggingface-worker] Unhandled worker error", {
-    colno: event.colno,
-    error: event.error ? serializeError(event.error) : null,
-    filename: event.filename,
-    lineno: event.lineno,
-    message: event.message
-  }, event.error);
+  console.error(
+    "[huggingface-worker] Unhandled worker error",
+    {
+      colno: event.colno,
+      error: event.error ? serializeError(event.error) : null,
+      filename: event.filename,
+      lineno: event.lineno,
+      message: event.message
+    },
+    event.error
+  );
 });
 
 self.addEventListener("unhandledrejection", (event) => {
-  console.error("[huggingface-worker] Unhandled rejection", {
-    reason: serializeError(event.reason)
-  }, event.reason);
+  console.error(
+    "[huggingface-worker] Unhandled rejection",
+    {
+      reason: serializeError(event.reason)
+    },
+    event.reason
+  );
 });

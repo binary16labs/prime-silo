@@ -23,7 +23,9 @@ import fs from "node:fs";
 import path from "node:path";
 
 const argv = process.argv.slice(2);
-function flag(name) { return argv.includes(`--${name}`); }
+function flag(name) {
+  return argv.includes(`--${name}`);
+}
 function opt(name, fallback) {
   const i = argv.indexOf(`--${name}`);
   return i >= 0 && i + 1 < argv.length ? argv[i + 1] : fallback;
@@ -34,17 +36,24 @@ if (flag("help") || flag("h")) {
   process.exit(0);
 }
 
-const ON_BASE = (opt("notebook-url", process.env.OPEN_NOTEBOOK_URL) || "http://localhost:5055").replace(/\/+$/, "");
+const ON_BASE = (
+  opt("notebook-url", process.env.OPEN_NOTEBOOK_URL) || "http://localhost:5055"
+).replace(/\/+$/, "");
 const DATA_IN = opt("data-in", process.env.BENNY_DATA_IN) || "";
-const INGEST_URL = opt("ingest-url", process.env.BENNY_INGEST_URL) || "http://localhost:3000/api/runtime/rag/ingest";
+const INGEST_URL =
+  opt("ingest-url", process.env.BENNY_INGEST_URL) || "http://localhost:3000/api/runtime/rag/ingest";
 const API_KEY = opt("api-key", process.env.BENNY_API_KEY) || "benny-mesh-2026-auth";
 const WORKSPACE = opt("workspace", process.env.BENNY_WORKSPACE) || "default";
 const ONLY_NOTEBOOK = opt("notebook", "");
 const NO_INGEST = flag("no-ingest");
 
 if (!DATA_IN) {
-  console.error("ERROR: provide the Benny workspace data_in directory via --data-in or BENNY_DATA_IN.");
-  console.error('  e.g. --data-in "C:\\\\Users\\\\you\\\\.benny\\\\workspaces\\\\default\\\\data_in"');
+  console.error(
+    "ERROR: provide the Benny workspace data_in directory via --data-in or BENNY_DATA_IN."
+  );
+  console.error(
+    '  e.g. --data-in "C:\\\\Users\\\\you\\\\.benny\\\\workspaces\\\\default\\\\data_in"'
+  );
   process.exit(2);
 }
 
@@ -61,7 +70,11 @@ async function getText(url) {
 }
 
 function safeName(s, fallback) {
-  const base = String(s || "").trim().replace(/[^\w.\- ]+/g, "_").replace(/\s+/g, "_").slice(0, 80);
+  const base = String(s || "")
+    .trim()
+    .replace(/[^\w.\- ]+/g, "_")
+    .replace(/\s+/g, "_")
+    .slice(0, 80);
   return (base || fallback || "source").replace(/^_+|_+$/g, "") || "source";
 }
 
@@ -72,7 +85,9 @@ async function resolveSourceText(src) {
   try {
     const detail = await getJSON(`${ON_BASE}/api/sources/${encodeURIComponent(src.id)}`);
     if (typeof detail.full_text === "string" && detail.full_text.trim()) return detail.full_text;
-  } catch { /* try download */ }
+  } catch {
+    /* try download */
+  }
   const dl = await getText(`${ON_BASE}/api/sources/${encodeURIComponent(src.id)}/download`);
   return dl && dl.trim() ? dl : null;
 }
@@ -85,13 +100,16 @@ async function main() {
     notebooks = await getJSON(`${ON_BASE}/api/notebooks`);
   } catch (e) {
     console.error(`[bridge] cannot reach open-notebook at ${ON_BASE} (${e.message}).`);
-    console.error("[bridge] start it first:  docker compose -f C:\\Users\\nsdha\\docker-compose.yml up -d");
+    console.error(
+      "[bridge] start it first:  docker compose -f C:\\Users\\nsdha\\docker-compose.yml up -d"
+    );
     process.exit(3);
   }
   if (!Array.isArray(notebooks)) notebooks = [];
   if (ONLY_NOTEBOOK) notebooks = notebooks.filter((n) => n.id === ONLY_NOTEBOOK);
 
-  let written = 0, skipped = 0;
+  let written = 0,
+    skipped = 0;
   const usedNames = new Set();
 
   for (const nb of notebooks) {
@@ -104,7 +122,9 @@ async function main() {
       if (!src || !src.id) continue;
       const text = await resolveSourceText(src);
       if (!text) {
-        console.warn(`[bridge]   skip "${src.title || src.id}" (no retrievable text — may still be processing)`);
+        console.warn(
+          `[bridge]   skip "${src.title || src.id}" (no retrievable text — may still be processing)`
+        );
         skipped++;
         continue;
       }
@@ -112,10 +132,13 @@ async function main() {
       let name = `${safeName(nb.name, "notebook")}__${safeName(src.title, src.id)}`;
       let file = `${name}.md`;
       let n = 1;
-      while (usedNames.has(file.toLowerCase())) { file = `${name}_${n++}.md`; }
+      while (usedNames.has(file.toLowerCase())) {
+        file = `${name}_${n++}.md`;
+      }
       usedNames.add(file.toLowerCase());
 
-      const header = `# ${src.title || "Untitled source"}\n\n` +
+      const header =
+        `# ${src.title || "Untitled source"}\n\n` +
         `> notebook: ${nb.name || nb.id} | source: ${src.id}\n\n`;
       fs.writeFileSync(path.join(DATA_IN, file), header + text, "utf8");
       console.log(`[bridge]   wrote ${file} (${text.length} chars)`);
@@ -148,4 +171,7 @@ async function main() {
   console.log(`[bridge] ingest response: ${bodyText}`);
 }
 
-main().catch((e) => { console.error("[bridge] FAILED:", e.message); process.exit(1); });
+main().catch((e) => {
+  console.error("[bridge] FAILED:", e.message);
+  process.exit(1);
+});

@@ -24,11 +24,7 @@ test("buildAvailableSpacesTransientSection builds the compact space list", () =>
   });
 
   assert.deepEqual(section, {
-    content: [
-      "spaces (id|title)↓",
-      "space-2|Research",
-      "space-3|Untitled"
-    ].join("\n"),
+    content: ["spaces (id|title)↓", "space-2|Research", "space-3|Untitled"].join("\n"),
     heading: "available spaces",
     key: AVAILABLE_SPACES_TRANSIENT_KEY,
     order: 110
@@ -37,10 +33,7 @@ test("buildAvailableSpacesTransientSection builds the compact space list", () =>
 
 test("buildAvailableSpacesTransientSection shows [empty] when no spaces exist", () => {
   assert.deepEqual(buildAvailableSpacesTransientSection({ spaceList: [] }), {
-    content: [
-      "spaces (id|title)↓",
-      "[empty]"
-    ].join("\n"),
+    content: ["spaces (id|title)↓", "[empty]"].join("\n"),
     heading: "available spaces",
     key: AVAILABLE_SPACES_TRANSIENT_KEY,
     order: 110

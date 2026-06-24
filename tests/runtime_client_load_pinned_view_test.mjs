@@ -59,7 +59,9 @@ function installFetchStub(handler) {
   };
   return {
     calls,
-    restore() { globalThis.fetch = original; }
+    restore() {
+      globalThis.fetch = original;
+    }
   };
 }
 
@@ -67,7 +69,9 @@ function extractHeaderMap(headers) {
   if (!headers) return {};
   if (headers instanceof Headers) {
     const out = {};
-    headers.forEach((value, name) => { out[name.toLowerCase()] = value; });
+    headers.forEach((value, name) => {
+      out[name.toLowerCase()] = value;
+    });
     return out;
   }
   const out = {};
@@ -203,11 +207,12 @@ async function testLoadPinnedViewRequiresFilename() {
 // ---------------------------------------------------------------------------
 
 async function testLoadPinnedViewSurfaces404AsRuntimeError() {
-  const stub = installFetchStub(async () =>
-    new Response(
-      JSON.stringify({ detail: "views/nope.aamp.view does not exist in workspace 'c5_test'." }),
-      { status: 404, headers: { "content-type": "application/json" } }
-    )
+  const stub = installFetchStub(
+    async () =>
+      new Response(
+        JSON.stringify({ detail: "views/nope.aamp.view does not exist in workspace 'c5_test'." }),
+        { status: 404, headers: { "content-type": "application/json" } }
+      )
   );
   try {
     let raised = null;
@@ -229,11 +234,12 @@ async function testLoadPinnedViewSurfaces400AsRuntimeError() {
   // 400 fires for "not JSON" / "not an object" / "bad filename". The helper
   // surfaces them all uniformly as RuntimeError(status=400) — the message
   // is the runtime's, not synthesised.
-  const stub = installFetchStub(async () =>
-    new Response(
-      JSON.stringify({ detail: "Pinned view is not valid JSON: Expecting value" }),
-      { status: 400, headers: { "content-type": "application/json" } }
-    )
+  const stub = installFetchStub(
+    async () =>
+      new Response(JSON.stringify({ detail: "Pinned view is not valid JSON: Expecting value" }), {
+        status: 400,
+        headers: { "content-type": "application/json" }
+      })
   );
   try {
     let raised = null;

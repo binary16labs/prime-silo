@@ -11,7 +11,10 @@ import {
 import { resolveUpdateSource } from "../commands/lib/supervisor/git_releases.js";
 
 test("update remote prefers explicit then runtime assignment then env", () => {
-  assert.equal(findLastAssignmentValue(["GIT_URL=https://a", "HOST=0.0.0.0"], "GIT_URL"), "https://a");
+  assert.equal(
+    findLastAssignmentValue(["GIT_URL=https://a", "HOST=0.0.0.0"], "GIT_URL"),
+    "https://a"
+  );
   assert.equal(
     resolveConfiguredUpdateRemoteUrl({
       explicitRemoteUrl: "https://explicit.example/repo.git",

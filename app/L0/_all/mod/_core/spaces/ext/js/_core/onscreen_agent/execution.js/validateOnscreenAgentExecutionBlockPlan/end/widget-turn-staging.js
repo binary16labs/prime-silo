@@ -29,7 +29,10 @@ export default function validateSpacesWidgetTurnStaging(hookContext) {
     );
   }
 
-  if (/\bspace\.current\.(?:readWidget|seeWidget)\s*\(/u.test(code) && /\bspace\.chat\.transient\b/u.test(code)) {
+  if (
+    /\bspace\.current\.(?:readWidget|seeWidget)\s*\(/u.test(code) &&
+    /\bspace\.chat\.transient\b/u.test(code)
+  ) {
     validationResult.errors.push(
       createExecutionPlanError(
         "Do not mix readWidget(...) or seeWidget(...) with TRANSIENT in the same execution block. End after the inspection call, then use the visible framework result or post-write TRANSIENT on the next turn."

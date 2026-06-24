@@ -36,10 +36,7 @@ async function main() {
 }
 
 function testBuildOntologyPath() {
-  assert.equal(
-    kgTesting.buildOntologyPath({}),
-    "/kg3d/ontology?workspace=default"
-  );
+  assert.equal(kgTesting.buildOntologyPath({}), "/kg3d/ontology?workspace=default");
   assert.equal(
     kgTesting.buildOntologyPath({ workspace: "c4_test" }),
     "/kg3d/ontology?workspace=c4_test"
@@ -58,23 +55,11 @@ function testPickCategoryAndEdgeColors() {
     kgTesting.pickCategoryColor("ai_deep_learning"),
     kgTesting.CATEGORY_COLORS.ai_deep_learning
   );
-  assert.equal(
-    kgTesting.pickCategoryColor("not_a_category"),
-    kgTesting.CATEGORY_COLORS.default
-  );
-  assert.equal(
-    kgTesting.pickCategoryColor(undefined),
-    kgTesting.CATEGORY_COLORS.default
-  );
+  assert.equal(kgTesting.pickCategoryColor("not_a_category"), kgTesting.CATEGORY_COLORS.default);
+  assert.equal(kgTesting.pickCategoryColor(undefined), kgTesting.CATEGORY_COLORS.default);
 
-  assert.equal(
-    kgTesting.pickEdgeColor("prerequisite"),
-    kgTesting.EDGE_COLORS.prerequisite
-  );
-  assert.equal(
-    kgTesting.pickEdgeColor("references"),
-    kgTesting.EDGE_COLORS.references
-  );
+  assert.equal(kgTesting.pickEdgeColor("prerequisite"), kgTesting.EDGE_COLORS.prerequisite);
+  assert.equal(kgTesting.pickEdgeColor("references"), kgTesting.EDGE_COLORS.references);
   assert.equal(kgTesting.pickEdgeColor("weird"), kgTesting.EDGE_COLORS.default);
 }
 
@@ -118,7 +103,7 @@ function testComputeLayoutDropsDanglingEdges() {
     { source_id: "a", target_id: "b" },
     { source_id: "a", target_id: "ghost" }, // dropped
     { source_id: "ghost", target_id: "b" }, // dropped
-    { source_id: "a", target_id: "a" }      // self-loop dropped
+    { source_id: "a", target_id: "a" } // self-loop dropped
   ];
   const layout = kgTesting.computeLayout(nodes, edges);
   assert.equal(layout.edges.length, 1);
@@ -129,7 +114,13 @@ function testComputeLayoutDropsDanglingEdges() {
 function testRenderSvgIncludesLayerGuidesAndNodes() {
   const layout = kgTesting.computeLayout(
     [
-      { id: "a", display_name: "Alpha", aot_layer: 1, category: "ai_deep_learning", metrics: { pagerank: 80 } },
+      {
+        id: "a",
+        display_name: "Alpha",
+        aot_layer: 1,
+        category: "ai_deep_learning",
+        metrics: { pagerank: 80 }
+      },
       { id: "b", display_name: "Beta", aot_layer: 3, metrics: { pagerank: 40 } }
     ],
     [{ source_id: "a", target_id: "b", kind: "prerequisite" }]
@@ -166,10 +157,18 @@ function testRenderEdgeFocusFade() {
 }
 
 class FakeClassList {
-  constructor() { this._set = new Set(); }
-  add(...n) { n.forEach((x) => this._set.add(x)); }
-  remove(...n) { n.forEach((x) => this._set.delete(x)); }
-  has(name) { return this._set.has(name); }
+  constructor() {
+    this._set = new Set();
+  }
+  add(...n) {
+    n.forEach((x) => this._set.add(x));
+  }
+  remove(...n) {
+    n.forEach((x) => this._set.delete(x));
+  }
+  has(name) {
+    return this._set.has(name);
+  }
 }
 
 class FakeElement {
@@ -291,11 +290,7 @@ async function testWidgetLoadsViaFetch() {
     return jsonResponse(SAMPLE_ONTOLOGY);
   };
 
-  const handle = createSynopticWebWidget(
-    host,
-    { workspace: "c4_test" },
-    { runtimeClient: client }
-  );
+  const handle = createSynopticWebWidget(host, { workspace: "c4_test" }, { runtimeClient: client });
   await settle();
 
   assert.equal(host.dataset.widgetState, "ready");
@@ -367,11 +362,7 @@ async function testWidgetUpdateReloadsOnWorkspaceChange() {
     });
   };
 
-  const widget = createSynopticWebWidget(
-    host,
-    { workspace: "first" },
-    { runtimeClient: client }
-  );
+  const widget = createSynopticWebWidget(host, { workspace: "first" }, { runtimeClient: client });
   await settle();
   widget.update({ workspace: "second" });
   await settle();
@@ -450,11 +441,7 @@ async function testWidgetClickInvokesOnSelect() {
   client.runtimeHandler = () => jsonResponse(SAMPLE_ONTOLOGY);
 
   const clicks = [];
-  createSynopticWebWidget(
-    host,
-    { onSelect: (id) => clicks.push(id) },
-    { runtimeClient: client }
-  );
+  createSynopticWebWidget(host, { onSelect: (id) => clicks.push(id) }, { runtimeClient: client });
   await settle();
 
   // Simulate a click on the node group's child.

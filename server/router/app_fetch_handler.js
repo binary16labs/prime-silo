@@ -3,10 +3,7 @@ import path from "node:path";
 import { createAppAccessController } from "../lib/customware/file_access.js";
 import { isReservedAppProjectPath } from "../lib/customware/git_history.js";
 import { getRuntimeGroupIndex } from "../lib/customware/group_runtime.js";
-import {
-  normalizeAppProjectPath,
-  resolveProjectAbsolutePath
-} from "../lib/customware/layout.js";
+import { normalizeAppProjectPath, resolveProjectAbsolutePath } from "../lib/customware/layout.js";
 import { sendFile, sendJson, sendNotFound } from "./responses.js";
 
 function decodeAppFetchPathSegment(segment) {
@@ -34,9 +31,7 @@ function decodeAppFetchPathSegment(segment) {
 
 function decodeAppFetchRequestPath(requestPath) {
   const rawPath = String(requestPath || "/");
-  const decodedSegments = rawPath
-    .split("/")
-    .map((segment) => decodeAppFetchPathSegment(segment));
+  const decodedSegments = rawPath.split("/").map((segment) => decodeAppFetchPathSegment(segment));
 
   return decodedSegments.includes(null) ? null : decodedSegments.join("/") || "/";
 }

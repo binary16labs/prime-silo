@@ -247,9 +247,7 @@ async function createApiError(endpointName, response) {
 
     if (payload && typeof payload === "object" && "error" in payload) {
       detail =
-        typeof payload.error === "string"
-          ? payload.error
-          : JSON.stringify(payload.error, null, 2);
+        typeof payload.error === "string" ? payload.error : JSON.stringify(payload.error, null, 2);
     } else if (typeof payload === "string" && payload.trim()) {
       detail = payload;
     }
@@ -292,9 +290,7 @@ function normalizeFileReadBatchEntry(pathOrFile, encoding = "utf8") {
 
 function normalizeFileReadBatchEntries(pathOrFiles, encoding = "utf8") {
   if (Array.isArray(pathOrFiles)) {
-    return pathOrFiles
-      .map((entry) => normalizeFileReadBatchEntry(entry, encoding))
-      .filter(Boolean);
+    return pathOrFiles.map((entry) => normalizeFileReadBatchEntry(entry, encoding)).filter(Boolean);
   }
 
   if (isPlainObject(pathOrFiles) && Array.isArray(pathOrFiles.files)) {
@@ -641,7 +637,12 @@ function createGitHistoryDiffRequest(pathOrOptions, commitHash, filePath) {
   };
 }
 
-function createGitHistoryPreviewRequest(pathOrOptions, commitHash, operation = "travel", filePath = "") {
+function createGitHistoryPreviewRequest(
+  pathOrOptions,
+  commitHash,
+  operation = "travel",
+  filePath = ""
+) {
   if (isPlainObject(pathOrOptions)) {
     return {
       method: "POST",
@@ -689,13 +690,14 @@ export function createApiClient(options = {}) {
   }
 
   function createInFlightRequestKey(endpointName, method, callOptions = {}) {
-    const headers = callOptions.headers && typeof callOptions.headers === "object"
-      ? Object.fromEntries(
-          Object.entries(callOptions.headers)
-            .filter(([key]) => typeof key === "string" && key)
-            .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
-        )
-      : {};
+    const headers =
+      callOptions.headers && typeof callOptions.headers === "object"
+        ? Object.fromEntries(
+            Object.entries(callOptions.headers)
+              .filter(([key]) => typeof key === "string" && key)
+              .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+          )
+        : {};
 
     return serializeStableValue({
       body: callOptions.body,
@@ -851,7 +853,8 @@ export function createApiClient(options = {}) {
     } catch (error) {
       if (uniqueEntries.length > 1) {
         try {
-          const { errorsByEntryKey, filesByEntryKey } = await retryQueuedFileReadsIndividually(uniqueEntries);
+          const { errorsByEntryKey, filesByEntryKey } =
+            await retryQueuedFileReadsIndividually(uniqueEntries);
 
           queuedRequests.forEach((request) => {
             try {
@@ -1094,7 +1097,11 @@ export function createApiClient(options = {}) {
    * @returns {string}
    */
   function folderDownloadUrl(pathOrOptions) {
-    return buildApiUrl(basePath, "folder_download", createFolderDownloadQuery(pathOrOptions)).toString();
+    return buildApiUrl(
+      basePath,
+      "folder_download",
+      createFolderDownloadQuery(pathOrOptions)
+    ).toString();
   }
 
   /**
@@ -1133,7 +1140,10 @@ export function createApiClient(options = {}) {
    * @returns {Promise<GitHistoryDiffResult>}
    */
   async function gitHistoryDiff(pathOrOptions = "~", commitHash = "", filePath = "") {
-    return call("git_history_diff", createGitHistoryDiffRequest(pathOrOptions, commitHash, filePath));
+    return call(
+      "git_history_diff",
+      createGitHistoryDiffRequest(pathOrOptions, commitHash, filePath)
+    );
   }
 
   /**
@@ -1145,8 +1155,16 @@ export function createApiClient(options = {}) {
    * @param {string} [filePath]
    * @returns {Promise<GitHistoryPreviewResult>}
    */
-  async function gitHistoryPreview(pathOrOptions = "~", commitHash = "", operation = "travel", filePath = "") {
-    return call("git_history_preview", createGitHistoryPreviewRequest(pathOrOptions, commitHash, operation, filePath));
+  async function gitHistoryPreview(
+    pathOrOptions = "~",
+    commitHash = "",
+    operation = "travel",
+    filePath = ""
+  ) {
+    return call(
+      "git_history_preview",
+      createGitHistoryPreviewRequest(pathOrOptions, commitHash, operation, filePath)
+    );
   }
 
   /**

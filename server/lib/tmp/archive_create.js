@@ -173,8 +173,4 @@ function createAttachmentDisposition(filename) {
   return `attachment; filename="${asciiFilename}"; filename*=UTF-8''${encodeURIComponent(normalizedFilename)}`;
 }
 
-export {
-  createArchiveReadStream,
-  createAttachmentDisposition,
-  createDirectoryZipArchive
-};
+export { createArchiveReadStream, createAttachmentDisposition, createDirectoryZipArchive };

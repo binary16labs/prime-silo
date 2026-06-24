@@ -18,8 +18,18 @@ function clampInteger(value, min, max, fallback) {
 
 function coercePositionObject(position, fallbackPosition = DEFAULT_WIDGET_POSITION) {
   return {
-    col: clampInteger(position?.col ?? position?.x, GRID_COORD_MIN, GRID_COORD_MAX, fallbackPosition.col),
-    row: clampInteger(position?.row ?? position?.y, GRID_COORD_MIN, GRID_COORD_MAX, fallbackPosition.row)
+    col: clampInteger(
+      position?.col ?? position?.x,
+      GRID_COORD_MIN,
+      GRID_COORD_MAX,
+      fallbackPosition.col
+    ),
+    row: clampInteger(
+      position?.row ?? position?.y,
+      GRID_COORD_MIN,
+      GRID_COORD_MAX,
+      fallbackPosition.row
+    )
   };
 }
 
@@ -29,9 +39,7 @@ function resolveFallbackPosition(fallback) {
   }
 
   if (typeof fallback === "string") {
-    const match = fallback
-      .trim()
-      .match(/^(-?\d+)\s*,\s*(-?\d+)$/u);
+    const match = fallback.trim().match(/^(-?\d+)\s*,\s*(-?\d+)$/u);
 
     if (match) {
       return coercePositionObject(
@@ -64,9 +72,7 @@ export function normalizeWidgetPosition(position, fallback = DEFAULT_WIDGET_POSI
   const fallbackPosition = resolveFallbackPosition(fallback);
 
   if (typeof position === "string") {
-    const match = position
-      .trim()
-      .match(/^(-?\d+)\s*,\s*(-?\d+)$/u);
+    const match = position.trim().match(/^(-?\d+)\s*,\s*(-?\d+)$/u);
 
     if (match) {
       return coercePositionObject(
@@ -122,8 +128,14 @@ export function clampWidgetPosition(position, size) {
   const normalizedPosition = normalizeWidgetPosition(position, DEFAULT_WIDGET_POSITION);
 
   return {
-    col: Math.min(GRID_COORD_MAX - normalizedSize.cols + 1, Math.max(GRID_COORD_MIN, normalizedPosition.col)),
-    row: Math.min(GRID_COORD_MAX - normalizedSize.rows + 1, Math.max(GRID_COORD_MIN, normalizedPosition.row))
+    col: Math.min(
+      GRID_COORD_MAX - normalizedSize.cols + 1,
+      Math.max(GRID_COORD_MIN, normalizedPosition.col)
+    ),
+    row: Math.min(
+      GRID_COORD_MAX - normalizedSize.rows + 1,
+      Math.max(GRID_COORD_MIN, normalizedPosition.row)
+    )
   };
 }
 
@@ -164,7 +176,11 @@ function buildColumnSearchOrder(startCol, radius) {
   return columns.filter((value, index, values) => values.indexOf(value) === index);
 }
 
-function findFirstAvailablePosition(size, occupiedRects, preferredPosition = DEFAULT_WIDGET_POSITION) {
+function findFirstAvailablePosition(
+  size,
+  occupiedRects,
+  preferredPosition = DEFAULT_WIDGET_POSITION
+) {
   const normalizedSize = normalizeWidgetSize(size, DEFAULT_WIDGET_SIZE);
   const normalizedPosition = clampWidgetPosition(preferredPosition, normalizedSize);
   const minCol = GRID_COORD_MIN;
@@ -174,7 +190,11 @@ function findFirstAvailablePosition(size, occupiedRects, preferredPosition = DEF
     GRID_COORD_MAX - GRID_COORD_MIN
   );
 
-  for (let row = normalizedPosition.row; row <= GRID_COORD_MAX - normalizedSize.rows + 1; row += 1) {
+  for (
+    let row = normalizedPosition.row;
+    row <= GRID_COORD_MAX - normalizedSize.rows + 1;
+    row += 1
+  ) {
     for (const currentCol of columnSearchOrder) {
       if (currentCol < minCol || currentCol > maxCol) {
         continue;
@@ -211,7 +231,10 @@ export function resolveSpaceLayout({
   const entries = widgetIds.map((widgetId, index) => {
     const preferredPosition =
       widgetId === anchorWidgetId && anchorPosition !== undefined
-        ? normalizeWidgetPosition(anchorPosition, widgetPositions[widgetId] || DEFAULT_WIDGET_POSITION)
+        ? normalizeWidgetPosition(
+            anchorPosition,
+            widgetPositions[widgetId] || DEFAULT_WIDGET_POSITION
+          )
         : normalizeWidgetPosition(widgetPositions[widgetId], DEFAULT_WIDGET_POSITION);
     const minimized =
       widgetId === anchorWidgetId && anchorMinimized !== undefined
@@ -258,7 +281,11 @@ export function resolveSpaceLayout({
   const minimizedMap = {};
 
   entries.forEach((entry) => {
-    const resolvedPosition = findFirstAvailablePosition(entry.renderedSize, occupiedRects, entry.preferredPosition);
+    const resolvedPosition = findFirstAvailablePosition(
+      entry.renderedSize,
+      occupiedRects,
+      entry.preferredPosition
+    );
     positions[entry.widgetId] = resolvedPosition;
     renderedSizes[entry.widgetId] = entry.renderedSize;
     minimizedMap[entry.widgetId] = entry.minimized;
@@ -314,17 +341,24 @@ function resolvePackingWidthThresholdWithMode(entries, viewportCols = 0, capToTo
     return 1;
   }
 
-  const maxWidgetWidth = entries.reduce((maxWidth, entry) => Math.max(maxWidth, entry.size.cols), 1);
+  const maxWidgetWidth = entries.reduce(
+    (maxWidth, entry) => Math.max(maxWidth, entry.size.cols),
+    1
+  );
   const totalWidth = entries.reduce((sum, entry) => sum + entry.size.cols, 0);
-  const normalizedViewportCols = Number.isFinite(viewportCols) && viewportCols > 0
-    ? Math.max(1, Math.floor(viewportCols) - PACKING_VIEWPORT_HEADROOM_COLS)
-    : totalWidth;
+  const normalizedViewportCols =
+    Number.isFinite(viewportCols) && viewportCols > 0
+      ? Math.max(1, Math.floor(viewportCols) - PACKING_VIEWPORT_HEADROOM_COLS)
+      : totalWidth;
 
   if (!capToTotalWidth) {
     return Math.max(maxWidgetWidth, normalizedViewportCols);
   }
 
-  return Math.max(maxWidgetWidth, Math.min(totalWidth, Math.max(maxWidgetWidth, normalizedViewportCols)));
+  return Math.max(
+    maxWidgetWidth,
+    Math.min(totalWidth, Math.max(maxWidgetWidth, normalizedViewportCols))
+  );
 }
 
 function isScanCellOccupied(position, occupiedRects) {
@@ -333,7 +367,7 @@ function isScanCellOccupied(position, occupiedRects) {
 
 function findPhysicallyFittingEntry(entries, position, widthThreshold, occupiedRects) {
   for (const entry of entries) {
-    if ((position.col + entry.size.cols) > widthThreshold) {
+    if (position.col + entry.size.cols > widthThreshold) {
       continue;
     }
 
@@ -364,7 +398,12 @@ function buildFirstFitPackedPositions(entries, widthThreshold, options = {}) {
         continue;
       }
 
-      const matchingEntry = findPhysicallyFittingEntry(remainingEntries, candidatePosition, widthThreshold, occupiedRects);
+      const matchingEntry = findPhysicallyFittingEntry(
+        remainingEntries,
+        candidatePosition,
+        widthThreshold,
+        occupiedRects
+      );
 
       if (!matchingEntry) {
         continue;
@@ -500,8 +539,12 @@ export function findFirstFitWidgetPlacement({
   widgetSize = DEFAULT_WIDGET_SIZE
 } = {}) {
   const normalizedWidgetSize = normalizeWidgetSize(widgetSize, DEFAULT_WIDGET_SIZE);
-  const normalizedExistingPositions = existingWidgetPositions && typeof existingWidgetPositions === "object" ? existingWidgetPositions : {};
-  const normalizedExistingSizes = existingWidgetSizes && typeof existingWidgetSizes === "object" ? existingWidgetSizes : {};
+  const normalizedExistingPositions =
+    existingWidgetPositions && typeof existingWidgetPositions === "object"
+      ? existingWidgetPositions
+      : {};
+  const normalizedExistingSizes =
+    existingWidgetSizes && typeof existingWidgetSizes === "object" ? existingWidgetSizes : {};
   const existingBounds = computePackedBounds(normalizedExistingPositions, normalizedExistingSizes);
   const hasExistingWidgets = Object.keys(normalizedExistingPositions).length > 0;
   const originOffset = hasExistingWidgets
@@ -536,7 +579,11 @@ export function findFirstFitWidgetPlacement({
     ],
     widthThreshold,
     {
-      occupiedRects: buildOccupiedRects(normalizedExistingPositions, normalizedExistingSizes, originOffset)
+      occupiedRects: buildOccupiedRects(
+        normalizedExistingPositions,
+        normalizedExistingSizes,
+        originOffset
+      )
     }
   );
   const localPosition = localPositions.__candidate__ || DEFAULT_WIDGET_POSITION;

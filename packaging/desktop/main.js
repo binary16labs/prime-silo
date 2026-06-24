@@ -6,7 +6,11 @@ const { Readable, Transform } = require("node:stream");
 const { pipeline } = require("node:stream/promises");
 const { pathToFileURL } = require("node:url");
 const { app, BrowserWindow, WebContentsView, ipcMain, net, webFrameMain } = require("electron");
-const { createDesktopTray, destroyDesktopTray, setRuntimePhase: setTrayRuntimePhase } = require("./tray");
+const {
+  createDesktopTray,
+  destroyDesktopTray,
+  setRuntimePhase: setTrayRuntimePhase
+} = require("./tray");
 const { toggleDesktopPet, destroyDesktopPet, isDesktopPetVisible } = require("./pet");
 const { stopAllOpenStudioServices } = require("./openstudio_services");
 const { seedSelfAwareness } = require("./self_awareness");
@@ -20,9 +24,7 @@ const {
   cleanupDesktopUpdaterArtifacts,
   writeDesktopUpdaterInstallMarker
 } = require("./updater_artifacts");
-const {
-  resolveDesktopUpdaterLogPath
-} = require("./updater_install_options");
+const { resolveDesktopUpdaterLogPath } = require("./updater_install_options");
 const {
   resolveDesktopDebugReleaseAssetUrl,
   resolveDesktopDebugReleaseTag,
@@ -39,7 +41,8 @@ const BROWSER_FRAME_NAVIGATION_STATE_TYPE = "navigation_state";
 const DESKTOP_BROWSER_CREATE_CHANNEL = "space-desktop:browser-view-create";
 const DESKTOP_BROWSER_DESTROY_CHANNEL = "space-desktop:browser-view-destroy";
 const DESKTOP_BROWSER_ENVELOPE_FROM_MAIN_CHANNEL = "space-desktop:browser-envelope-to-renderer";
-const DESKTOP_BROWSER_ENVELOPE_FROM_RENDERER_CHANNEL = "space-desktop:browser-envelope-from-renderer";
+const DESKTOP_BROWSER_ENVELOPE_FROM_RENDERER_CHANNEL =
+  "space-desktop:browser-envelope-from-renderer";
 const DESKTOP_BROWSER_ENVELOPE_FROM_VIEW_CHANNEL = "space-desktop:browser-envelope-from-view";
 const DESKTOP_BROWSER_ENVELOPE_TO_VIEW_CHANNEL = "space-desktop:browser-envelope-to-view";
 const DESKTOP_BROWSER_FOCUS_CHANNEL = "space-desktop:browser-view-focus";
@@ -199,26 +202,32 @@ function resolveDesktopFrameInjectUrl(baseOrigin, injectPath) {
   }
 
   if (injectUrl.origin !== baseOrigin) {
-    throw new Error(`Desktop frame injection rejected cross-origin script path \"${normalizedPath}\".`);
+    throw new Error(
+      `Desktop frame injection rejected cross-origin script path \"${normalizedPath}\".`
+    );
   }
 
   const decodedPathname = decodeURIComponent(injectUrl.pathname);
   if (!decodedPathname.startsWith("/mod/")) {
-    throw new Error(`Desktop frame injection rejected non-module script path \"${normalizedPath}\".`);
+    throw new Error(
+      `Desktop frame injection rejected non-module script path \"${normalizedPath}\".`
+    );
   }
 
   if (
-    decodedPathname.includes("\\")
-    || decodedPathname.includes("/../")
-    || decodedPathname.endsWith("/..")
-    || decodedPathname.includes("/./")
-    || decodedPathname.endsWith("/.")
+    decodedPathname.includes("\\") ||
+    decodedPathname.includes("/../") ||
+    decodedPathname.endsWith("/..") ||
+    decodedPathname.includes("/./") ||
+    decodedPathname.endsWith("/.")
   ) {
     throw new Error(`Desktop frame injection rejected unsafe script path \"${normalizedPath}\".`);
   }
 
   if (injectUrl.username || injectUrl.password || injectUrl.search || injectUrl.hash) {
-    throw new Error(`Desktop frame injection rejected decorated script path \"${normalizedPath}\".`);
+    throw new Error(
+      `Desktop frame injection rejected decorated script path \"${normalizedPath}\".`
+    );
   }
 
   return injectUrl;
@@ -228,7 +237,9 @@ async function fetchDesktopFrameInjectScript(currentSession, baseOrigin, injectP
   const injectUrl = resolveDesktopFrameInjectUrl(baseOrigin, injectPath);
   const response = await currentSession.fetch(injectUrl.href);
   if (!response.ok) {
-    throw new Error(`Desktop frame injection could not load ${injectUrl.href} (${response.status}).`);
+    throw new Error(
+      `Desktop frame injection could not load ${injectUrl.href} (${response.status}).`
+    );
   }
 
   return {
@@ -245,7 +256,9 @@ function buildDesktopFrameInjectionSource(entry, script) {
     scriptPath: script.scriptPath,
     scriptUrl: script.scriptUrl
   });
-  const sourceUrl = String(script.scriptUrl || script.scriptPath || "space-desktop-injected-script").replace(/[\r\n]+/gu, " ");
+  const sourceUrl = String(
+    script.scriptUrl || script.scriptPath || "space-desktop-injected-script"
+  ).replace(/[\r\n]+/gu, " ");
 
   return `(() => {\n  const bootstrap = ${bootstrap};\n  globalThis.__spaceBrowserInjectBootstrap__ = bootstrap;\n  globalThis.__spaceBrowserFrameInjectBootstrap__ = bootstrap;\n  try {\n${script.scriptSource}\n  } finally {\n    delete globalThis.__spaceBrowserInjectBootstrap__;\n    delete globalThis.__spaceBrowserFrameInjectBootstrap__;\n  }\n})();\n//# sourceURL=${sourceUrl}`;
 }
@@ -276,7 +289,10 @@ function maybeInjectDesktopFrame(frame, webContents) {
   }
 
   void injectDesktopFrameScript(frame, entry, webContents).catch((error) => {
-    console.error(`[space-desktop/frame-inject] Failed to inject ${entry.injectPath} into frame \"${entry.frameName}\".`, error);
+    console.error(
+      `[space-desktop/frame-inject] Failed to inject ${entry.injectPath} into frame \"${entry.frameName}\".`,
+      error
+    );
   });
 }
 
@@ -376,12 +392,12 @@ function sendDesktopBrowserEnvelopeToRenderer(browserId, envelope) {
 
 function collectDesktopBrowserNavigationState(entry, overrides = {}) {
   const webContents = entry?.view?.webContents;
-  const rawUrl = typeof overrides.url === "string" && overrides.url.trim()
-    ? overrides.url
-    : webContents?.getURL?.() || entry?.pendingUrl || "";
-  const rawTitle = typeof overrides.title === "string"
-    ? overrides.title
-    : webContents?.getTitle?.() || "";
+  const rawUrl =
+    typeof overrides.url === "string" && overrides.url.trim()
+      ? overrides.url
+      : webContents?.getURL?.() || entry?.pendingUrl || "";
+  const rawTitle =
+    typeof overrides.title === "string" ? overrides.title : webContents?.getTitle?.() || "";
 
   return {
     canGoBack: Boolean(webContents?.canGoBack?.()),
@@ -482,7 +498,9 @@ async function injectDesktopBrowserViewScript(entry) {
     scriptPath: script.scriptPath,
     scriptUrl: script.scriptUrl
   };
-  const sourceUrl = String(script.scriptUrl || script.scriptPath || "space-desktop-browser-injected-script").replace(/[\r\n]+/gu, " ");
+  const sourceUrl = String(
+    script.scriptUrl || script.scriptPath || "space-desktop-browser-injected-script"
+  ).replace(/[\r\n]+/gu, " ");
   const source = `(() => {\n  const bootstrap = ${JSON.stringify(bootstrap)};\n  globalThis.__spaceBrowserInjectBootstrap__ = bootstrap;\n  globalThis.__spaceBrowserFrameInjectBootstrap__ = bootstrap;\n  try {\n${script.scriptSource}\n  } finally {\n    delete globalThis.__spaceBrowserInjectBootstrap__;\n    delete globalThis.__spaceBrowserFrameInjectBootstrap__;\n  }\n})();\n//# sourceURL=${sourceUrl}`;
 
   await entry.view.webContents.executeJavaScript(source, true);
@@ -498,14 +516,16 @@ function applyDesktopBrowserViewVisibility(entry) {
     entry.view.setVisible(isVisible);
   }
 
-  entry.view.setBounds(isVisible
-    ? entry.bounds
-    : {
-        x: 0,
-        y: 0,
-        width: 0,
-        height: 0
-      });
+  entry.view.setBounds(
+    isVisible
+      ? entry.bounds
+      : {
+          x: 0,
+          y: 0,
+          width: 0,
+          height: 0
+        }
+  );
 }
 
 function raiseDesktopBrowserView(browserId) {
@@ -584,7 +604,10 @@ function createDesktopBrowserView(payload = {}) {
     if (payload.url) {
       existingEntry.pendingUrl = String(payload.url || "").trim();
       void existingEntry.view.webContents.loadURL(existingEntry.pendingUrl).catch((error) => {
-        console.error(`[space-desktop/browser-view] Failed to load ${existingEntry.pendingUrl} for "${browserId}".`, error);
+        console.error(
+          `[space-desktop/browser-view] Failed to load ${existingEntry.pendingUrl} for "${browserId}".`,
+          error
+        );
       });
     }
 
@@ -682,13 +705,19 @@ function createDesktopBrowserView(payload = {}) {
     }
 
     void injectDesktopBrowserViewScript(entry).catch((error) => {
-      console.error(`[space-desktop/browser-view] Failed to inject ${entry.injectPath} into "${browserId}".`, error);
+      console.error(
+        `[space-desktop/browser-view] Failed to inject ${entry.injectPath} into "${browserId}".`,
+        error
+      );
     });
   });
 
   if (entry.pendingUrl) {
     void view.webContents.loadURL(entry.pendingUrl).catch((error) => {
-      console.error(`[space-desktop/browser-view] Failed to load ${entry.pendingUrl} for "${browserId}".`, error);
+      console.error(
+        `[space-desktop/browser-view] Failed to load ${entry.pendingUrl} for "${browserId}".`,
+        error
+      );
     });
   }
 
@@ -747,7 +776,10 @@ function navigateDesktopBrowserView(browserId, url) {
 
   entry.pendingUrl = nextUrl;
   void entry.view.webContents.loadURL(nextUrl).catch((error) => {
-    console.error(`[space-desktop/browser-view] Failed to navigate "${browserId}" to ${nextUrl}.`, error);
+    console.error(
+      `[space-desktop/browser-view] Failed to navigate "${browserId}" to ${nextUrl}.`,
+      error
+    );
   });
 }
 
@@ -875,9 +907,12 @@ function revertDesktopMainWindowToSafeUrl(blockedUrl = "") {
     return;
   }
 
-  const safeUrl = rememberDesktopSafeMainWindowUrl()
-    || normalizeDesktopNavigationUrl(lastSafeMainWindowUrl)
-    || normalizeDesktopNavigationUrl(`${serverRuntime?.browserUrl || ""}${resolveDesktopLaunchPath()}`);
+  const safeUrl =
+    rememberDesktopSafeMainWindowUrl() ||
+    normalizeDesktopNavigationUrl(lastSafeMainWindowUrl) ||
+    normalizeDesktopNavigationUrl(
+      `${serverRuntime?.browserUrl || ""}${resolveDesktopLaunchPath()}`
+    );
   if (!safeUrl) {
     return;
   }
@@ -912,7 +947,9 @@ function blockDesktopMainWindowNavigation(event, url, isMainFrame = true) {
   }
 
   event.preventDefault();
-  console.warn(`[space-desktop] Blocked main-window navigation away from app origin: ${String(url || "").trim() || "<unknown>"}`);
+  console.warn(
+    `[space-desktop] Blocked main-window navigation away from app origin: ${String(url || "").trim() || "<unknown>"}`
+  );
   revertDesktopMainWindowToSafeUrl(url);
   return true;
 }
@@ -947,7 +984,9 @@ function normalizeDesktopWindowTitle(value) {
 }
 
 function formatDesktopDisplayVersion(value) {
-  const normalized = String(value || "").trim().replace(/^v/u, "");
+  const normalized = String(value || "")
+    .trim()
+    .replace(/^v/u, "");
   if (!normalized) {
     return "";
   }
@@ -1012,7 +1051,11 @@ function prepareDesktopForQuit() {
   destroyDesktopPet();
   // Stop the opencode server we may have started; leave open-notebook's docker
   // stack alone (it may be shared / long-lived).
-  try { stopAllOpenStudioServices(); } catch { /* best-effort */ }
+  try {
+    stopAllOpenStudioServices();
+  } catch {
+    /* best-effort */
+  }
 }
 
 async function cleanupStaleDesktopUpdaterArtifacts() {
@@ -1045,8 +1088,8 @@ async function cleanupStaleDesktopUpdaterArtifacts() {
   const targetVersion = String(cleanupResult.marker?.targetVersion || "").trim();
   const summary = cleanupResult.clearedPaths.length
     ? cleanupResult.clearedPaths
-      .map((entry) => path.join(path.basename(path.dirname(entry)), path.basename(entry)))
-      .join(", ")
+        .map((entry) => path.join(path.basename(path.dirname(entry)), path.basename(entry)))
+        .join(", ")
     : "no pending payloads";
   logDesktopUpdateEvent(
     targetVersion
@@ -1055,7 +1098,6 @@ async function cleanupStaleDesktopUpdaterArtifacts() {
   );
   return cleanupResult;
 }
-
 
 function getDesktopRuntimeInfo() {
   const canCheckForUpdates = shouldEnableDesktopAutoUpdate() && Boolean(loadDesktopAutoUpdater());
@@ -1069,7 +1111,9 @@ function getDesktopRuntimeInfo() {
 }
 
 function truncateDesktopUpdateStatus(value, maxLength = DESKTOP_UPDATE_FAILURE_STATUS_LIMIT) {
-  const normalized = String(value || "").replace(/\s+/gu, " ").trim();
+  const normalized = String(value || "")
+    .replace(/\s+/gu, " ")
+    .trim();
   if (!normalized) {
     return "";
   }
@@ -1153,12 +1197,19 @@ function queueDesktopRendererLog(level, lines) {
 
   desktopUpdateRendererLogQueue.push(entry);
   if (desktopUpdateRendererLogQueue.length > DESKTOP_UPDATE_RENDERER_LOG_LIMIT) {
-    desktopUpdateRendererLogQueue = desktopUpdateRendererLogQueue.slice(-DESKTOP_UPDATE_RENDERER_LOG_LIMIT);
+    desktopUpdateRendererLogQueue = desktopUpdateRendererLogQueue.slice(
+      -DESKTOP_UPDATE_RENDERER_LOG_LIMIT
+    );
   }
 }
 
 function flushDesktopRendererLogs() {
-  if (!mainWindow || mainWindow.isDestroyed() || !desktopUpdateRendererLogQueue.length || isFlushingDesktopRendererLogs) {
+  if (
+    !mainWindow ||
+    mainWindow.isDestroyed() ||
+    !desktopUpdateRendererLogQueue.length ||
+    isFlushingDesktopRendererLogs
+  ) {
     return;
   }
 
@@ -1268,9 +1319,7 @@ async function appendDesktopUpdaterPersistentLog(logPath, message, details = nul
     return;
   }
 
-  const lines = [
-    `${new Date().toISOString()} [space-desktop/updater] ${normalizedMessage}`
-  ];
+  const lines = [`${new Date().toISOString()} [space-desktop/updater] ${normalizedMessage}`];
 
   if (details && typeof details === "object") {
     try {
@@ -1376,7 +1425,11 @@ async function downloadDesktopUpdateAssetToFile(assetUrl, destinationPath, { onP
   });
 
   try {
-    await pipeline(Readable.fromWeb(response.body), hashAndProgress, fs.createWriteStream(temporaryPath));
+    await pipeline(
+      Readable.fromWeb(response.body),
+      hashAndProgress,
+      fs.createWriteStream(temporaryPath)
+    );
     await fsPromises.rename(temporaryPath, destinationPath);
   } catch (error) {
     await fsPromises.rm(temporaryPath, {
@@ -1418,14 +1471,18 @@ async function downloadDesktopWindowsUpdateWithArchFallback(autoUpdater) {
   logDesktopUpdateEvent(
     `Windows release metadata is missing the ${fallback.expectedArch} installer; downloading ${fallback.expectedFileName} directly from the release assets.`
   );
-  await appendDesktopUpdaterPersistentLog(logPath, "Windows update metadata is missing the current arch installer; using the canonical release asset fallback.", {
-    actualFiles: fallback.actualFiles,
-    currentArch: process.arch,
-    expectedArch: fallback.expectedArch,
-    expectedFileName: fallback.expectedFileName,
-    installerUrl,
-    targetVersion: updateInfo?.version || ""
-  });
+  await appendDesktopUpdaterPersistentLog(
+    logPath,
+    "Windows update metadata is missing the current arch installer; using the canonical release asset fallback.",
+    {
+      actualFiles: fallback.actualFiles,
+      currentArch: process.arch,
+      expectedArch: fallback.expectedArch,
+      expectedFileName: fallback.expectedFileName,
+      installerUrl,
+      targetVersion: updateInfo?.version || ""
+    }
+  );
 
   await downloadedUpdateHelper.clear();
 
@@ -1483,15 +1540,19 @@ async function downloadDesktopWindowsUpdateWithArchFallback(autoUpdater) {
     provider: updateInfoAndProvider.provider
   };
 
-  await appendDesktopUpdaterPersistentLog(logPath, "Downloaded Windows update using the release-asset arch fallback.", {
-    currentArch: process.arch,
-    expectedArch: fallback.expectedArch,
-    expectedFileName: fallback.expectedFileName,
-    installerUrl,
-    sha512: downloadedFile.sha512,
-    size: downloadedFile.size,
-    targetVersion: normalizedUpdateInfo.version || ""
-  });
+  await appendDesktopUpdaterPersistentLog(
+    logPath,
+    "Downloaded Windows update using the release-asset arch fallback.",
+    {
+      currentArch: process.arch,
+      expectedArch: fallback.expectedArch,
+      expectedFileName: fallback.expectedFileName,
+      installerUrl,
+      sha512: downloadedFile.sha512,
+      size: downloadedFile.size,
+      targetVersion: normalizedUpdateInfo.version || ""
+    }
+  );
 
   const version = formatDesktopDisplayVersion(normalizedUpdateInfo.version);
   setDesktopUpdateStatus("Update ready to install");
@@ -1555,7 +1616,9 @@ async function stageDesktopDebugReinstall(payload = {}) {
       publishConfig,
       fetchText: fetchDesktopUpdateMetadataText
     });
-    const targetVersion = formatDesktopDisplayVersion(stagedRelease.info?.version || stagedRelease.requestedVersion);
+    const targetVersion = formatDesktopDisplayVersion(
+      stagedRelease.info?.version || stagedRelease.requestedVersion
+    );
     const action =
       stagedRelease.comparison < 0
         ? "downgrade"
@@ -1584,10 +1647,14 @@ async function stageDesktopDebugReinstall(payload = {}) {
       tag: stagedRelease.tag
     });
 
-    setDesktopUpdateStatus(targetVersion ? `Update ${targetVersion} available` : "Update available");
+    setDesktopUpdateStatus(
+      targetVersion ? `Update ${targetVersion} available` : "Update available"
+    );
     setDesktopUpdateState({
       state: "update-available",
-      message: targetVersion ? `Update ${targetVersion} is available.` : "A desktop update is available.",
+      message: targetVersion
+        ? `Update ${targetVersion} is available.`
+        : "A desktop update is available.",
       progress: null,
       version: targetVersion
     });
@@ -1694,12 +1761,17 @@ async function downloadDesktopUpdate() {
   }
 
   if (desktopUpdateState.state !== "update-available") {
-    return { ok: false, reason: "not-ready", message: "No downloaded desktop update is ready yet." };
+    return {
+      ok: false,
+      reason: "not-ready",
+      message: "No downloaded desktop update is ready yet."
+    };
   }
 
   desktopUpdateDownloadPromise = (async () => {
     try {
-      const windowsArchFallbackResult = await downloadDesktopWindowsUpdateWithArchFallback(autoUpdater);
+      const windowsArchFallbackResult =
+        await downloadDesktopWindowsUpdateWithArchFallback(autoUpdater);
       if (windowsArchFallbackResult) {
         return windowsArchFallbackResult;
       }
@@ -1736,7 +1808,11 @@ async function installDesktopUpdate() {
   }
 
   if (desktopUpdateState.state !== "downloaded") {
-    return { ok: false, reason: "not-ready", message: "No downloaded update is ready to install yet." };
+    return {
+      ok: false,
+      reason: "not-ready",
+      message: "No downloaded update is ready to install yet."
+    };
   }
 
   logDesktopUpdateEvent("Installing downloaded desktop update.");
@@ -1752,7 +1828,10 @@ async function installDesktopUpdate() {
   try {
     await stopServerRuntime();
   } catch (error) {
-    const formattedError = reportDesktopUpdateFailure("Desktop update install preparation failed.", error);
+    const formattedError = reportDesktopUpdateFailure(
+      "Desktop update install preparation failed.",
+      error
+    );
     return {
       ok: false,
       reason: "error",
@@ -1771,22 +1850,30 @@ async function installDesktopUpdate() {
       targetVersion: desktopUpdateState.version || ""
     });
   } catch (error) {
-    await appendDesktopUpdaterPersistentLog(logPath, "Could not persist the updater cleanup marker.", {
-      message: String(error?.message || error || "Unknown error")
-    });
+    await appendDesktopUpdaterPersistentLog(
+      logPath,
+      "Could not persist the updater cleanup marker.",
+      {
+        message: String(error?.message || error || "Unknown error")
+      }
+    );
     logDesktopUpdateEvent("Could not persist the desktop updater cleanup marker.", {
       level: "warn",
       error
     });
   }
 
-  await appendDesktopUpdaterPersistentLog(logPath, "Installing downloaded desktop update with the direct updater handoff.", {
-    installerPath: autoUpdater?.installerPath || "",
-    isForceRunAfter: useSilentWindowsInstall,
-    isSilent: useSilentWindowsInstall,
-    packagePath: autoUpdater?.downloadedUpdateHelper?.packageFile || "",
-    targetVersion: desktopUpdateState.version || ""
-  });
+  await appendDesktopUpdaterPersistentLog(
+    logPath,
+    "Installing downloaded desktop update with the direct updater handoff.",
+    {
+      installerPath: autoUpdater?.installerPath || "",
+      isForceRunAfter: useSilentWindowsInstall,
+      isSilent: useSilentWindowsInstall,
+      packagePath: autoUpdater?.downloadedUpdateHelper?.packageFile || "",
+      targetVersion: desktopUpdateState.version || ""
+    }
+  );
 
   logDesktopUpdateEvent("Installing downloaded desktop update with the direct updater handoff.");
 
@@ -1829,7 +1916,9 @@ function configureDesktopAutoUpdate() {
 
   autoUpdater.on("update-available", (info) => {
     const version = formatDesktopDisplayVersion(info?.version);
-    logDesktopUpdateEvent(version ? `Desktop update available: ${version}` : "Desktop update available.");
+    logDesktopUpdateEvent(
+      version ? `Desktop update available: ${version}` : "Desktop update available."
+    );
     setDesktopUpdateStatus(version ? `Update ${version} available` : "Update available");
     setDesktopUpdateState({
       state: "update-available",
@@ -1877,7 +1966,9 @@ function configureDesktopAutoUpdate() {
 
   autoUpdater.on("update-downloaded", (info) => {
     const version = formatDesktopDisplayVersion(info?.version);
-    logDesktopUpdateEvent(version ? `Desktop update downloaded: ${version}` : "Desktop update downloaded.");
+    logDesktopUpdateEvent(
+      version ? `Desktop update downloaded: ${version}` : "Desktop update downloaded."
+    );
     setDesktopUpdateStatus("Update ready to install");
     setDesktopUpdateState({
       state: "downloaded",
@@ -1920,18 +2011,21 @@ function createWindow() {
   mainWindow.webContents.once("destroyed", () => {
     clearDesktopFrameInjectionRegistry(mainWebContentsId);
   });
-  mainWindow.webContents.on("did-frame-finish-load", (_event, isMainFrame, frameProcessId, frameRoutingId) => {
-    if (isMainFrame) {
-      return;
-    }
+  mainWindow.webContents.on(
+    "did-frame-finish-load",
+    (_event, isMainFrame, frameProcessId, frameRoutingId) => {
+      if (isMainFrame) {
+        return;
+      }
 
-    const frame = webFrameMain.fromId(frameProcessId, frameRoutingId);
-    if (!frame) {
-      return;
-    }
+      const frame = webFrameMain.fromId(frameProcessId, frameRoutingId);
+      if (!frame) {
+        return;
+      }
 
-    maybeInjectDesktopFrame(frame, mainWindow?.webContents);
-  });
+      maybeInjectDesktopFrame(frame, mainWindow?.webContents);
+    }
+  );
   mainWindow.webContents.on("will-navigate", (event, url, _isInPlace, isMainFrame = true) => {
     blockDesktopMainWindowNavigation(event, url, isMainFrame);
   });
@@ -1950,7 +2044,9 @@ function createWindow() {
     webPreferences.nodeIntegrationInSubFrames = true;
     webPreferences.sandbox = false;
     webPreferences.additionalArguments = [
-      ...(Array.isArray(webPreferences.additionalArguments) ? webPreferences.additionalArguments : []),
+      ...(Array.isArray(webPreferences.additionalArguments)
+        ? webPreferences.additionalArguments
+        : []),
       `--space-browser-id=${browserId}`
     ];
   });
@@ -1993,7 +2089,9 @@ function createWindow() {
   });
   mainWindow.webContents.on("did-finish-load", () => {
     rememberDesktopSafeMainWindowUrl();
-    desktopPageTitle = normalizeDesktopWindowTitle(mainWindow?.webContents?.getTitle?.() || desktopPageTitle);
+    desktopPageTitle = normalizeDesktopWindowTitle(
+      mainWindow?.webContents?.getTitle?.() || desktopPageTitle
+    );
     refreshDesktopWindowTitle();
     flushDesktopRendererLogs();
     mainWindow.webContents.send("space-desktop:update-status", desktopUpdateState);
@@ -2004,7 +2102,9 @@ function createWindow() {
     }
   });
 
-  lastSafeMainWindowUrl = normalizeDesktopNavigationUrl(`${serverRuntime.browserUrl}${resolveDesktopLaunchPath()}`);
+  lastSafeMainWindowUrl = normalizeDesktopNavigationUrl(
+    `${serverRuntime.browserUrl}${resolveDesktopLaunchPath()}`
+  );
   mainWindow.loadURL(lastSafeMainWindowUrl);
   return mainWindow;
 }
@@ -2034,10 +2134,13 @@ async function stopServerRuntime() {
       await runtime.close();
       return;
     } catch (error) {
-      logDesktopUpdateEvent("Desktop server runtime close failed; falling back to best-effort shutdown.", {
-        level: "warn",
-        error
-      });
+      logDesktopUpdateEvent(
+        "Desktop server runtime close failed; falling back to best-effort shutdown.",
+        {
+          level: "warn",
+          error
+        }
+      );
     }
   }
 
@@ -2129,10 +2232,13 @@ async function startDesktop() {
       }
     }
   });
-  void runtimeSupervisor.start()
+  void runtimeSupervisor
+    .start()
     .then((result) => {
       if (result && result.managed) {
-        console.log(`[runtime] Bundled Benny ${result.reason} (neo4j=${result.neo4jReady}, api=${result.apiReady}).`);
+        console.log(
+          `[runtime] Bundled Benny ${result.reason} (neo4j=${result.neo4jReady}, api=${result.apiReady}).`
+        );
       }
     })
     .catch((error) => console.warn("[runtime] supervisor start failed:", error?.message || error));
@@ -2149,12 +2255,13 @@ async function startDesktop() {
     // Desktop pet (Phase 4b): toggle Benny floating over the whole desktop. Its
     // chat button raises the cockpit window via onOpenCockpit.
     isPetVisible: () => isDesktopPetVisible(),
-    togglePet: () => toggleDesktopPet({
-      onOpenCockpit: () => {
-        showMainWindow();
-        createWindow();
-      }
-    }),
+    togglePet: () =>
+      toggleDesktopPet({
+        onOpenCockpit: () => {
+          showMainWindow();
+          createWindow();
+        }
+      }),
     runtime: {
       isManaged: () => Boolean(runtimeSupervisor) && runtimeSupervisor.managed,
       start: () => runtimeSupervisor && runtimeSupervisor.start(),
@@ -2266,10 +2373,14 @@ ipcMain.on(DESKTOP_FRAME_INJECT_REGISTER_CHANNEL, (event, payload = {}) => {
   replaceDesktopFrameInjectionRegistry(event.sender.id, payload.frames);
   injectRegisteredDesktopFrames(event.sender);
 });
-ipcMain.handle("space-desktop:check-for-updates", () => checkForDesktopUpdates({ userInitiated: true }));
+ipcMain.handle("space-desktop:check-for-updates", () =>
+  checkForDesktopUpdates({ userInitiated: true })
+);
 ipcMain.handle("space-desktop:download-update", () => downloadDesktopUpdate());
 ipcMain.handle("space-desktop:install-update", () => installDesktopUpdate());
-ipcMain.handle("space-desktop:debug-reinstall", (_event, payload) => stageDesktopDebugReinstall(payload));
+ipcMain.handle("space-desktop:debug-reinstall", (_event, payload) =>
+  stageDesktopDebugReinstall(payload)
+);
 
 app.on("before-quit", () => {
   prepareDesktopForQuit();

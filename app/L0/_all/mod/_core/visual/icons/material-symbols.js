@@ -13,7 +13,9 @@ export function normalizeMaterialSymbolName(value) {
 }
 
 export function normalizeIconHexColor(value) {
-  const normalizedValue = String(value ?? "").trim().toLowerCase();
+  const normalizedValue = String(value ?? "")
+    .trim()
+    .toLowerCase();
 
   if (!normalizedValue) {
     return "";
@@ -45,12 +47,14 @@ export async function loadMaterialSymbolNames() {
     }
 
     const content = await response.text();
-    const names = [...new Set(
-      content
-        .split(/\r?\n/gu)
-        .map((value) => normalizeMaterialSymbolName(value))
-        .filter(Boolean)
-    )];
+    const names = [
+      ...new Set(
+        content
+          .split(/\r?\n/gu)
+          .map((value) => normalizeMaterialSymbolName(value))
+          .filter(Boolean)
+      )
+    ];
 
     if (!names.length) {
       throw new Error("The Material icons catalog is empty.");

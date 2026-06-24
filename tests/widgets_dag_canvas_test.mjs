@@ -38,15 +38,8 @@ function testIsValidProps() {
   assert.equal(dcTesting.isValidProps(null).ok, false);
   assert.equal(dcTesting.isValidProps({}).ok, false);
   assert.equal(dcTesting.isValidProps({ mode: "weird" }).ok, false);
-  assert.equal(
-    dcTesting.isValidProps({ mode: "manifest" }).ok,
-    false,
-    "data is required"
-  );
-  assert.equal(
-    dcTesting.isValidProps({ mode: "manifest", data: { nodes: [] } }).ok,
-    true
-  );
+  assert.equal(dcTesting.isValidProps({ mode: "manifest" }).ok, false, "data is required");
+  assert.equal(dcTesting.isValidProps({ mode: "manifest", data: { nodes: [] } }).ok, true);
 }
 
 function testNormaliseEdges() {
@@ -55,8 +48,8 @@ function testNormaliseEdges() {
     { source: "a", target: "b" },
     ["b", "c"],
     { source: "a", target: "ghost" }, // dropped — unknown target
-    { source: "ghost", target: "a" },  // dropped
-    "junk"                              // dropped
+    { source: "ghost", target: "a" }, // dropped
+    "junk" // dropped
   ];
   const out = dcTesting.normaliseEdges(edges, ids);
   assert.equal(out.length, 2);
@@ -65,12 +58,13 @@ function testNormaliseEdges() {
 }
 
 function testComputeLayoutLongestPath() {
-  const nodes = [
-    { id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }
-  ];
+  const nodes = [{ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }];
   // Diamond: a → b, a → c, b → d, c → d.
   const edges = [
-    ["a", "b"], ["a", "c"], ["b", "d"], ["c", "d"]
+    ["a", "b"],
+    ["a", "c"],
+    ["b", "d"],
+    ["c", "d"]
   ];
   const layout = dcTesting.computeLayout(nodes, edges);
   assert.equal(layout.colOf.a, 0);
@@ -83,10 +77,7 @@ function testComputeLayoutLongestPath() {
 
 function testComputeLayoutWaveFloor() {
   // Node x has no predecessors but declares wave: 3 — column should be 3.
-  const nodes = [
-    { id: "a" },
-    { id: "x", wave: 3 }
-  ];
+  const nodes = [{ id: "a" }, { id: "x", wave: 3 }];
   const layout = dcTesting.computeLayout(nodes, []);
   assert.equal(layout.colOf.a, 0);
   assert.equal(layout.colOf.x, 3);
@@ -97,7 +88,10 @@ function testComputeLayoutTolerantOfCycles() {
   // a → b → a creates a cycle. Layout shouldn't throw — should pin
   // cycle members to column 0.
   const nodes = [{ id: "a" }, { id: "b" }];
-  const edges = [["a", "b"], ["b", "a"]];
+  const edges = [
+    ["a", "b"],
+    ["b", "a"]
+  ];
   const layout = dcTesting.computeLayout(nodes, edges);
   assert.ok(typeof layout.colOf.a === "number");
   assert.ok(typeof layout.colOf.b === "number");
@@ -134,13 +128,19 @@ function testRenderEdgePathShape() {
 
 function testRenderSvgIncludesAllNodes() {
   const layout = dcTesting.computeLayout(
-    [{ id: "a", label: "Alpha" }, { id: "b", label: "Beta" }],
+    [
+      { id: "a", label: "Alpha" },
+      { id: "b", label: "Beta" }
+    ],
     [["a", "b"]]
   );
   const svg = dcTesting.renderSvg(layout, {
     mode: "manifest",
     data: {
-      nodes: [{ id: "a", label: "Alpha" }, { id: "b", label: "Beta" }],
+      nodes: [
+        { id: "a", label: "Alpha" },
+        { id: "b", label: "Beta" }
+      ],
       edges: [["a", "b"]]
     }
   });
@@ -155,10 +155,18 @@ function testRenderSvgIncludesAllNodes() {
 }
 
 class FakeClassList {
-  constructor() { this._set = new Set(); }
-  add(...n) { n.forEach((x) => this._set.add(x)); }
-  remove(...n) { n.forEach((x) => this._set.delete(x)); }
-  has(name) { return this._set.has(name); }
+  constructor() {
+    this._set = new Set();
+  }
+  add(...n) {
+    n.forEach((x) => this._set.add(x));
+  }
+  remove(...n) {
+    n.forEach((x) => this._set.delete(x));
+  }
+  has(name) {
+    return this._set.has(name);
+  }
 }
 
 class FakeElement {

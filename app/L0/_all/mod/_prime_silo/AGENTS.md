@@ -5,24 +5,25 @@ This module tree owns the **Prime-Silo browser-side surfaces** that wrap the Ben
 It is the shell-side counterpart to ADR-001 ([`runtime/architecture/ADR-001-prime-silo-shell-fork.md`](../../../../runtime/architecture/ADR-001-prime-silo-shell-fork.md)).
 
 **Living context:**
+
 - [`architecture/ROADMAP.md`](../../../../architecture/ROADMAP.md) — phase status (updated on every merge), open work, captured decisions.
 - [`architecture/OPERATING_PLAN.md`](../../../../architecture/OPERATING_PLAN.md) — test runbook, dev loop, branch + commit conventions.
 
 ## Sub-modules
 
-| Module                  | Owns                                                                         |
-| ----------------------- | ---------------------------------------------------------------------------- |
-| `runtime_client/`       | Fetch helper for `/api/runtime/*` calls; auto-injects `X-Benny-Agent-Scope` from active agent context. Also owns `saveView`/`loadView`/`listViews` (Phase D3), `signView`/`verifyView` (Phase F), `pinView` (Phase F2), and `loadPinnedView` (Phase F2b). |
-| `agent_runtime/`        | The named import the browser-resident agent runtime reaches for: `mountAgentTurn(scope)`, `runWithAgentContext(scope, fn)`, `getCurrentAgentScope()`. Every agent call surface is constructed through this module so `grep agent-runtime.js` enumerates the boundary. Phase D2. |
-| `widgets/`              | Widget registry client + JSDoc mirror of [`runtime/frontend/src/widgets/contracts.ts`](../../../../runtime/frontend/src/widgets/contracts.ts). Phase C migrated the canvas widgets (text.markdown, run.reasoning_trace, run.lineage_timeline, run.drilldown_table, run.frame_inspector, kg3d.synoptic_web, codegraph.canvas, dag.canvas) into this folder. `widgets/three_renderer/` ships the Phase C 3D drop-in renderer that slots into the graph widgets' `options.renderer` hook via a lazy CDN ESM import. |
-| `manifest_explorer/`    | First deterministic-zone shell page (Phase E). Routed at `#/_prime_silo/manifest_explorer`. Lists registered swarm manifests over `runtimeFetch` with no scope and mounts `dag.canvas` in `manifest` mode. Pattern for any future deterministic-zone page. |
+| Module               | Owns                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `runtime_client/`    | Fetch helper for `/api/runtime/*` calls; auto-injects `X-Benny-Agent-Scope` from active agent context. Also owns `saveView`/`loadView`/`listViews` (Phase D3), `signView`/`verifyView` (Phase F), `pinView` (Phase F2), and `loadPinnedView` (Phase F2b).                                                                                                                                                                                                                                                        |
+| `agent_runtime/`     | The named import the browser-resident agent runtime reaches for: `mountAgentTurn(scope)`, `runWithAgentContext(scope, fn)`, `getCurrentAgentScope()`. Every agent call surface is constructed through this module so `grep agent-runtime.js` enumerates the boundary. Phase D2.                                                                                                                                                                                                                                  |
+| `widgets/`           | Widget registry client + JSDoc mirror of [`runtime/frontend/src/widgets/contracts.ts`](../../../../runtime/frontend/src/widgets/contracts.ts). Phase C migrated the canvas widgets (text.markdown, run.reasoning_trace, run.lineage_timeline, run.drilldown_table, run.frame_inspector, kg3d.synoptic_web, codegraph.canvas, dag.canvas) into this folder. `widgets/three_renderer/` ships the Phase C 3D drop-in renderer that slots into the graph widgets' `options.renderer` hook via a lazy CDN ESM import. |
+| `manifest_explorer/` | First deterministic-zone shell page (Phase E). Routed at `#/_prime_silo/manifest_explorer`. Lists registered swarm manifests over `runtimeFetch` with no scope and mounts `dag.canvas` in `manifest` mode. Pattern for any future deterministic-zone page.                                                                                                                                                                                                                                                       |
 
 ## Boundary
 
-- The shell never *originates* writes that mutate institutional state. Either:
+- The shell never _originates_ writes that mutate institutional state. Either:
   - The user clicks a deterministic-zone surface → the request flows without a scope header (regular human RBAC).
   - The agent composes a Review-zone layout or saves a draft view → the request flows with `X-Benny-Agent-Scope: sandbox` and the runtime's `AgentScopeMiddleware` confines it to `agent_sandbox/`.
-  - The user pins (signs) an agent draft → the request flows *without* a scope header; `/api/views/sign` lives outside `/api/agent_sandbox/`, so any agent-scoped POST there is 403'd by the middleware. Agents draft, humans pin.
+  - The user pins (signs) an agent draft → the request flows _without_ a scope header; `/api/views/sign` lives outside `/api/agent_sandbox/`, so any agent-scoped POST there is 403'd by the middleware. Agents draft, humans pin.
 - Scope header injection lives in `runtime_client/`; nothing else in this tree should set it directly. The `agent_runtime/` module is the single place where the agent runtime constructs a call surface.
 
 ## Phase status

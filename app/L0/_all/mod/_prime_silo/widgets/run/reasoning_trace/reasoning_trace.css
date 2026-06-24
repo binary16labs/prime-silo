@@ -1,7 +1,12 @@
 /* ADR-001 Phase C — reasoning_trace widget styles. */
 
 .prime-silo-rt {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   font-size: 13px;
   line-height: 1.45;
   color: inherit;

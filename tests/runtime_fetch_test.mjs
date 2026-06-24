@@ -61,7 +61,10 @@ function testNamesAndUrls() {
 }
 
 function testShaParse() {
-  assert.equal(rf.parseSha256Sidecar("a".repeat(64) + "  runtime-bundle-win32-x64.tar.gz"), "a".repeat(64));
+  assert.equal(
+    rf.parseSha256Sidecar("a".repeat(64) + "  runtime-bundle-win32-x64.tar.gz"),
+    "a".repeat(64)
+  );
   assert.equal(rf.parseSha256Sidecar("  " + "B".repeat(64) + "\n"), "b".repeat(64));
   assert.equal(rf.parseSha256Sidecar("not-a-hash file"), "");
   assert.equal(rf.parseSha256Sidecar(""), "");
@@ -70,7 +73,11 @@ function testShaParse() {
 function testMarkerAndInstalled() {
   const dir = tmpDir();
   try {
-    assert.equal(rf.isBundleInstalled(dir, "1.2.9", fs.existsSync, "win32"), false, "no marker → not installed");
+    assert.equal(
+      rf.isBundleInstalled(dir, "1.2.9", fs.existsSync, "win32"),
+      false,
+      "no marker → not installed"
+    );
     fakeInstall(dir, "win32");
     rf.writeMarker(dir, { app_version: "1.2.9", sha256: "deadbeef" });
     assert.equal(rf.isBundleInstalled(dir, "1.2.9", fs.existsSync, "win32"), true);
@@ -91,9 +98,17 @@ async function testAlreadyPresentShortCircuits() {
     rf.writeMarker(dir, { app_version: "1.2.9", sha256: "x" });
     let downloads = 0;
     const result = await rf.ensureRuntimeBundle({
-      destDir: dir, version: "1.2.9", platform: "win32", arch: "x64",
-      downloadFn: async () => { downloads += 1; return "x"; },
-      fetchTextFn: async () => "", extractFn: () => {}, logger: silentLogger()
+      destDir: dir,
+      version: "1.2.9",
+      platform: "win32",
+      arch: "x64",
+      downloadFn: async () => {
+        downloads += 1;
+        return "x";
+      },
+      fetchTextFn: async () => "",
+      extractFn: () => {},
+      logger: silentLogger()
     });
     assert.equal(result.ok, true);
     assert.equal(result.reason, "already-present");
@@ -109,10 +124,20 @@ async function testDownloadsExtractsWritesMarker() {
     const sha = "c".repeat(64);
     let extracted = false;
     const result = await rf.ensureRuntimeBundle({
-      destDir: dir, version: "1.2.9", platform: "win32", arch: "x64",
+      destDir: dir,
+      version: "1.2.9",
+      platform: "win32",
+      arch: "x64",
       fetchTextFn: async () => `${sha}  runtime-bundle-win32-x64.tar.gz`,
-      downloadFn: async (_url, destPath) => { fs.mkdirSync(path.dirname(destPath), { recursive: true }); fs.writeFileSync(destPath, "archive"); return sha; },
-      extractFn: (_archive, destDir) => { fakeInstall(destDir, "win32"); extracted = true; },
+      downloadFn: async (_url, destPath) => {
+        fs.mkdirSync(path.dirname(destPath), { recursive: true });
+        fs.writeFileSync(destPath, "archive");
+        return sha;
+      },
+      extractFn: (_archive, destDir) => {
+        fakeInstall(destDir, "win32");
+        extracted = true;
+      },
       cacheDir: path.join(dir, "..", "ps-fetch-cache-" + Date.now()),
       logger: silentLogger()
     });
@@ -132,10 +157,19 @@ async function testChecksumMismatchFails() {
   try {
     let extracted = false;
     const result = await rf.ensureRuntimeBundle({
-      destDir: dir, version: "1.2.9", platform: "win32", arch: "x64",
+      destDir: dir,
+      version: "1.2.9",
+      platform: "win32",
+      arch: "x64",
       fetchTextFn: async () => `${"a".repeat(64)}  runtime-bundle-win32-x64.tar.gz`,
-      downloadFn: async (_url, destPath) => { fs.mkdirSync(path.dirname(destPath), { recursive: true }); fs.writeFileSync(destPath, "x"); return "b".repeat(64); },
-      extractFn: () => { extracted = true; },
+      downloadFn: async (_url, destPath) => {
+        fs.mkdirSync(path.dirname(destPath), { recursive: true });
+        fs.writeFileSync(destPath, "x");
+        return "b".repeat(64);
+      },
+      extractFn: () => {
+        extracted = true;
+      },
       cacheDir: path.join(dir, "..", "ps-fetch-cache2-" + Date.now()),
       logger: silentLogger()
     });
@@ -151,10 +185,18 @@ async function testDownloadFailureIsGraceful() {
   const dir = tmpDir();
   try {
     const result = await rf.ensureRuntimeBundle({
-      destDir: dir, version: "1.2.9", platform: "win32", arch: "x64",
-      fetchTextFn: async () => { throw new Error("offline"); },
-      downloadFn: async () => { throw new Error("offline"); },
-      extractFn: () => {}, cacheDir: path.join(dir, "..", "ps-fetch-cache3-" + Date.now()),
+      destDir: dir,
+      version: "1.2.9",
+      platform: "win32",
+      arch: "x64",
+      fetchTextFn: async () => {
+        throw new Error("offline");
+      },
+      downloadFn: async () => {
+        throw new Error("offline");
+      },
+      extractFn: () => {},
+      cacheDir: path.join(dir, "..", "ps-fetch-cache3-" + Date.now()),
       logger: silentLogger()
     });
     assert.equal(result.ok, false);

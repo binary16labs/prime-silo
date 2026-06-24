@@ -10,9 +10,7 @@
         "flags": "u"
       }
     ],
-    "must_not_contain": [
-      "_____javascript"
-    ],
+    "must_not_contain": ["_____javascript"],
     "must_not_match": [
       {
         "pattern": "openSpace\\(",

@@ -50,7 +50,7 @@ Examples:
 On-demand loading uses:
 
 ```js
-await space.skills.load("skill/path")
+await space.skills.load("skill/path");
 ```
 
 Loaded skills follow the effective placement: ordinary `history` placement is inserted into execution output and then becomes part of history, while `system` and `transient` placement register runtime prompt context and return short load-result text instead of dumping the full body into history. Auto-loaded skills are top-level only and may not resolve to `history`, so missing or invalid placement and explicit `history` all behave as `system` unless the skill explicitly sets `transient`. For task control, history-placed skill loads behave like read stages: the load call should use the exact skill id from the catalog or loaded-skill header, and if the task still needs action the next move should use the loaded skill rather than reload it.

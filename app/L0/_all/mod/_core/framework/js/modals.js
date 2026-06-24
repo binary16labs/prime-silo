@@ -15,7 +15,7 @@ function captureModalScrollSnapshot(modal) {
   if (!modalScroll) return null;
   return {
     scrollTop: modalScroll.scrollTop,
-    scrollLeft: modalScroll.scrollLeft,
+    scrollLeft: modalScroll.scrollLeft
   };
 }
 
@@ -87,7 +87,6 @@ function createModalElement(path) {
     mouseDownTarget = null;
   });
 
-
   // Create modal structure
   newModal.innerHTML = `
     <div class="modal-inner" x-data>
@@ -107,7 +106,6 @@ function createModalElement(path) {
   // Setup close button handler for this specific modal
   const close_button = newModal.querySelector(".modal-close");
   close_button.addEventListener("click", () => closeModal());
-
 
   // Add modal to DOM
   document.body.appendChild(newModal);
@@ -129,7 +127,7 @@ function createModalElement(path) {
     styles: [],
     scripts: [],
     beforeClose: null,
-    savedScrollSnapshot: null,
+    savedScrollSnapshot: null
   };
 }
 
@@ -153,8 +151,7 @@ export async function openModal(modalPath, beforeClose = null) {
       openCtx.modal = modal;
 
       new MutationObserver(
-        (_, o) =>
-          !document.contains(modal.element) && (o.disconnect(), resolve())
+        (_, o) => !document.contains(modal.element) && (o.disconnect(), resolve())
       ).observe(document.body, { childList: true, subtree: true });
 
       // Set a loading state
@@ -179,16 +176,16 @@ export async function openModal(modalPath, beforeClose = null) {
           if (doc.body && doc.body.classList) {
             modal.body.classList.add(...doc.body.classList);
           }
-          
+
           // Some modals have a footer. Check if it exists and move it to footer slot
           // Use requestAnimationFrame to let Alpine mount the component first
           requestAnimationFrame(() => {
-            const componentFooter = modal.body.querySelector('[data-modal-footer]');
+            const componentFooter = modal.body.querySelector("[data-modal-footer]");
             if (componentFooter && modal.footerSlot) {
               // Move footer outside modal-scroll scrollable area
               modal.footerSlot.appendChild(componentFooter);
-              modal.footerSlot.style.display = 'block';
-              modal.inner.classList.add('modal-with-footer');
+              modal.footerSlot.style.display = "block";
+              modal.inner.classList.add("modal-with-footer");
             }
           });
         })
@@ -268,32 +265,31 @@ export async function closeModal(modalPath = null) {
     // First remove the show class to trigger the transition
     modal.element.classList.remove("show");
 
-  // commented out to prevent race conditions
+    // commented out to prevent race conditions
 
-  // // Remove the modal element from DOM after animation
-  // modal.element.addEventListener(
-  //   "transitionend",
-  //   () => {
-  //     // Make sure the modal is completely removed from the DOM
-  //     if (modal.element.parentNode) {
-  //       modal.element.parentNode.removeChild(modal.element);
-  //     }
-  //   },
-  //   { once: true }
-  // );
+    // // Remove the modal element from DOM after animation
+    // modal.element.addEventListener(
+    //   "transitionend",
+    //   () => {
+    //     // Make sure the modal is completely removed from the DOM
+    //     if (modal.element.parentNode) {
+    //       modal.element.parentNode.removeChild(modal.element);
+    //     }
+    //   },
+    //   { once: true }
+    // );
 
-  // // Fallback in case the transition event doesn't fire
-  // setTimeout(() => {
-  //   if (modal.element.parentNode) {
-  //     modal.element.parentNode.removeChild(modal.element);
-  //   }
-  // }, 500); // 500ms should be enough for the transition to complete
+    // // Fallback in case the transition event doesn't fire
+    // setTimeout(() => {
+    //   if (modal.element.parentNode) {
+    //     modal.element.parentNode.removeChild(modal.element);
+    //   }
+    // }, 500); // 500ms should be enough for the transition to complete
 
     // remove immediately
     if (modal.element.parentNode) {
       modal.element.parentNode.removeChild(modal.element);
     }
-
 
     // Handle backdrop visibility and body overflow
     if (modalStack.length === 0) {
@@ -310,9 +306,9 @@ export async function closeModal(modalPath = null) {
       new CustomEvent("modal-closed", {
         detail: {
           modalPath: modal.path ?? null,
-          remainingModalCount: modalStack.length,
-        },
-      }),
+          remainingModalCount: modalStack.length
+        }
+      })
     );
 
     return true;
@@ -334,7 +330,7 @@ export function scrollModal(id) {
   if (modalContainer && targetElement) {
     modalContainer.scrollTo({
       top: targetElement.offsetTop - 20, // 20px padding from top
-      behavior: "smooth",
+      behavior: "smooth"
     });
   }
 }
@@ -347,10 +343,7 @@ document.addEventListener("click", async (e) => {
   const modalTrigger = e.target.closest("[data-modal-content]");
   if (modalTrigger) {
     e.preventDefault();
-    if (
-      modalTrigger.hasAttribute("disabled") ||
-      modalTrigger.classList.contains("disabled")
-    ) {
+    if (modalTrigger.hasAttribute("disabled") || modalTrigger.classList.contains("disabled")) {
       return;
     }
     const modalPath = modalTrigger.getAttribute("href");

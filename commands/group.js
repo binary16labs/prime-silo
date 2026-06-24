@@ -17,7 +17,9 @@ function takeFlagValue(args, index, flagName) {
 }
 
 function normalizeEntryType(value) {
-  const normalized = String(value || "").trim().toLowerCase();
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
 
   if (normalized === "user" || normalized === "users") {
     return "user";
@@ -105,9 +107,7 @@ function parseMembershipArgs(args, verb) {
   }
 
   if (!options.groupId || !options.entryType || !options.entryId) {
-    throw new Error(
-      `Usage: node space group ${verb} <group-id> <user|group> <id> [--manager]`
-    );
+    throw new Error(`Usage: node space group ${verb} <group-id> <user|group> <id> [--manager]`);
   }
 
   return options;
@@ -130,15 +130,18 @@ export const help = {
   arguments: [
     {
       name: "<group-id>",
-      description: "Target group id. The command writes the logical L1/<group-id>/group.yaml and L1/<group-id>/mod/ paths."
+      description:
+        "Target group id. The command writes the logical L1/<group-id>/group.yaml and L1/<group-id>/mod/ paths."
     },
     {
       name: "<user|group>",
-      description: "Entry kind for add/remove. Use user to target included_users or managing_users, or group to target included_groups or managing_groups."
+      description:
+        "Entry kind for add/remove. Use user to target included_users or managing_users, or group to target included_groups or managing_groups."
     },
     {
       name: "<id>",
-      description: "User id or group id to add or remove from the target group's membership or manager list."
+      description:
+        "User id or group id to add or remove from the target group's membership or manager list."
     }
   ],
   options: [
@@ -148,15 +151,18 @@ export const help = {
     },
     {
       flag: "add",
-      description: "Add a user or group entry to the target group's included_* list, or to the managing_* list with --manager. The target group is created if missing."
+      description:
+        "Add a user or group entry to the target group's included_* list, or to the managing_* list with --manager. The target group is created if missing."
     },
     {
       flag: "remove",
-      description: "Remove a user or group entry from the target group's included_* list, or from the managing_* list with --manager."
+      description:
+        "Remove a user or group entry from the target group's included_* list, or from the managing_* list with --manager."
     },
     {
       flag: "--manager",
-      description: "Target the managing_users or managing_groups list instead of included_users or included_groups."
+      description:
+        "Target the managing_users or managing_groups list instead of included_users or included_groups."
     },
     {
       flag: "--force",
@@ -173,7 +179,9 @@ export const help = {
 };
 
 export async function execute(context) {
-  const subcommand = String(context.args[0] || "").trim().toLowerCase();
+  const subcommand = String(context.args[0] || "")
+    .trim()
+    .toLowerCase();
   const subcommandArgs = context.args.slice(1);
   const runtimeParams = await createRuntimeParams(context.projectRoot, {
     env: context.originalEnv
@@ -192,16 +200,10 @@ export async function execute(context) {
 
   if (subcommand === "add") {
     const options = parseMembershipArgs(subcommandArgs, "add");
-    addGroupEntry(
-      context.projectRoot,
-      options.groupId,
-      options.entryType,
-      options.entryId,
-      {
-        manager: options.manager,
-        runtimeParams
-      }
-    );
+    addGroupEntry(context.projectRoot, options.groupId, options.entryType, options.entryId, {
+      manager: options.manager,
+      runtimeParams
+    });
     await flushGitHistoryCommits({ throwOnError: true });
     console.log(
       `Added ${options.entryType} ${options.entryId} as ${describeRole(options)} of L1/${options.groupId}`
@@ -211,16 +213,10 @@ export async function execute(context) {
 
   if (subcommand === "remove") {
     const options = parseMembershipArgs(subcommandArgs, "remove");
-    removeGroupEntry(
-      context.projectRoot,
-      options.groupId,
-      options.entryType,
-      options.entryId,
-      {
-        manager: options.manager,
-        runtimeParams
-      }
-    );
+    removeGroupEntry(context.projectRoot, options.groupId, options.entryType, options.entryId, {
+      manager: options.manager,
+      runtimeParams
+    });
     await flushGitHistoryCommits({ throwOnError: true });
     console.log(
       `Removed ${options.entryType} ${options.entryId} from ${describeRole(options)} list of L1/${options.groupId}`

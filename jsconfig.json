@@ -3,24 +3,15 @@
     "allowJs": true,
     "baseUrl": ".",
     "checkJs": false,
-    "lib": [
-      "ES2023",
-      "DOM"
-    ],
+    "lib": ["ES2023", "DOM"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "paths": {
-      "/mod/*": [
-        "app/L0/_all/mod/*"
-      ]
+      "/mod/*": ["app/L0/_all/mod/*"]
     },
     "target": "ES2022"
   },
-  "exclude": [
-    "node_modules",
-    "app/L1",
-    "app/L2"
-  ],
+  "exclude": ["node_modules", "app/L1", "app/L2"],
   "include": [
     "space.js",
     "commands/**/*.js",
@@ -30,8 +21,6 @@
     "app/**/*.d.ts"
   ],
   "typeAcquisition": {
-    "include": [
-      "node"
-    ]
+    "include": ["node"]
   }
 }

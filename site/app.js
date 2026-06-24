@@ -18,7 +18,10 @@ function createWarpField(canvas, opts = {}) {
   const BASE_SPEED = opts.speed || 0.15; // Muted speed for zen feel
   let speed = BASE_SPEED;
   let targetSpeed = BASE_SPEED;
-  let w = 0, h = 0, cx = 0, cy = 0;
+  let w = 0,
+    h = 0,
+    cx = 0,
+    cy = 0;
   let stars = [];
   let raf = null;
   let visible = true;
@@ -27,15 +30,16 @@ function createWarpField(canvas, opts = {}) {
     const r = canvas.getBoundingClientRect();
     w = canvas.width = Math.max(1, Math.floor(r.width * devicePixelRatio));
     h = canvas.height = Math.max(1, Math.floor(r.height * devicePixelRatio));
-    cx = w / 2; cy = h / 2;
+    cx = w / 2;
+    cy = h / 2;
   }
 
   // Predefined organic Memo-Ray earth tone HSL settings
   const PALETTE = [
     { h: 120, s: "11%", l: "62%" }, // Sage
     { h: 120, s: "14%", l: "48%" }, // Moss
-    { h: 35,  s: "22%", l: "64%" }, // Gold/Taupe
-    { h: 200, s: "10%", l: "60%" }  // Slate
+    { h: 35, s: "22%", l: "64%" }, // Gold/Taupe
+    { h: 200, s: "10%", l: "60%" } // Slate
   ];
 
   function spawn(initial) {
@@ -54,11 +58,16 @@ function createWarpField(canvas, opts = {}) {
   function init() {
     resize();
     stars = Array.from({ length: COUNT }, () => spawn(true));
-    stars.forEach(s => { s.pz = s.z; });
+    stars.forEach((s) => {
+      s.pz = s.z;
+    });
   }
 
   function frame() {
-    if (!visible) { raf = requestAnimationFrame(frame); return; }
+    if (!visible) {
+      raf = requestAnimationFrame(frame);
+      return;
+    }
     speed += (targetSpeed - speed) * 0.05;
     // Transparent earthy background overlay to let CSS gradients show through
     ctx.fillStyle = opts.trail ? "rgba(21, 24, 22, 0.28)" : "rgba(21, 24, 22, 0.55)";
@@ -82,7 +91,7 @@ function createWarpField(canvas, opts = {}) {
       const sy = (s.y / s.z) * h * 0.5 + cy;
       const px = (s.x / s.pz) * w * 0.5 + cx;
       const py = (s.y / s.pz) * h * 0.5 + cy;
-      
+
       const size = Math.max(0.6, (1 - s.z / w) * 4.2 * devicePixelRatio);
       const alpha = Math.min(1, (1 - s.z / w) * 1.3);
 
@@ -107,7 +116,9 @@ function createWarpField(canvas, opts = {}) {
 
   // Pause when off-screen — keeps the page light.
   const io = new IntersectionObserver(
-    (entries) => { visible = entries[0].isIntersecting; },
+    (entries) => {
+      visible = entries[0].isIntersecting;
+    },
     { threshold: 0 }
   );
   io.observe(canvas);
@@ -119,14 +130,27 @@ function createWarpField(canvas, opts = {}) {
   return {
     warp(durationMs = 700, factor = 8) {
       targetSpeed = BASE_SPEED * factor;
-      setTimeout(() => { targetSpeed = BASE_SPEED; }, durationMs);
+      setTimeout(() => {
+        targetSpeed = BASE_SPEED;
+      }, durationMs);
     },
-    destroy() { cancelAnimationFrame(raf); io.disconnect(); }
+    destroy() {
+      cancelAnimationFrame(raf);
+      io.disconnect();
+    }
   };
 }
 
-const heroField = createWarpField(document.getElementById("warpCanvas"), { count: 240, speed: 0.55, trail: true });
-const wizardField = createWarpField(document.getElementById("wizardWarp"), { count: 130, speed: 0.3, trail: true });
+const heroField = createWarpField(document.getElementById("warpCanvas"), {
+  count: 240,
+  speed: 0.55,
+  trail: true
+});
+const wizardField = createWarpField(document.getElementById("wizardWarp"), {
+  count: 130,
+  speed: 0.3,
+  trail: true
+});
 
 /* ────────────────────────────────────────────────────────────────
    2. FEATURE DATA + GRID + DECONSTRUCTION OVERLAY
@@ -134,7 +158,10 @@ const wizardField = createWarpField(document.getElementById("wizardWarp"), { cou
 
 const FEATURES = [
   {
-    id: "manifest-explorer", icon: "🗺", zone: "det", zoneLabel: "deterministic",
+    id: "manifest-explorer",
+    icon: "🗺",
+    zone: "det",
+    zoneLabel: "deterministic",
     title: "Manifest Explorer",
     desc: "Read-only DAG view of every registered swarm manifest. Pick one, watch it render as waves of tasks with edges. No agent scope — humans only.",
     foot: "#/_prime_silo/manifest_explorer",
@@ -144,10 +171,16 @@ const FEATURES = [
       ["Storage", "Signed SwarmManifest JSON under $BENNY_HOME"]
     ],
     cmd: "# open in the shell\nhttp://localhost:3000/#/_prime_silo/manifest_explorer",
-    paths: [["GET", "/api/manifests"], ["widget", "dag.canvas (manifest mode)"]]
+    paths: [
+      ["GET", "/api/manifests"],
+      ["widget", "dag.canvas (manifest mode)"]
+    ]
   },
   {
-    id: "agent-chat", icon: "🤖", zone: "rev", zoneLabel: "review",
+    id: "agent-chat",
+    icon: "🤖",
+    zone: "rev",
+    zoneLabel: "review",
     title: "Onscreen Agent",
     desc: "Browser-resident agent with cloud or local models. Localhost endpoints auto-detected: heavy operator prompt stripped, Qwen3 thinking disabled — no more empty-response loops.",
     foot: "cloud · lemonade · ollama",
@@ -157,10 +190,16 @@ const FEATURES = [
       ["Model", "OpenRouter cloud or localhost:13305 lemonade/Ollama"]
     ],
     cmd: "# point settings at a local model\nendpoint: http://localhost:13305/api/v1/chat/completions\nmodel:    qwen3.5-9b-FLM",
-    paths: [["module", "_core/onscreen_agent/api.js"], ["fix", "minimal prompt for local endpoints"]]
+    paths: [
+      ["module", "_core/onscreen_agent/api.js"],
+      ["fix", "minimal prompt for local endpoints"]
+    ]
   },
   {
-    id: "views", icon: "📌", zone: "rev", zoneLabel: "review",
+    id: "views",
+    icon: "📌",
+    zone: "rev",
+    zoneLabel: "review",
     title: "Draft Views & Pinning",
     desc: "Agents compose layouts into the sandbox. A human pins: the runtime HMAC-signs, embeds the signature inline, and the pinned view becomes a replayable, tamper-evident artefact.",
     foot: ".aamp.view · HMAC-SHA256",
@@ -169,11 +208,18 @@ const FEATURES = [
       ["API", "POST /api/views/pin → sign → embed → write outside sandbox"],
       ["Storage", "workspaces/<ws>/views/*.aamp.view — self-describing"]
     ],
-    cmd: "// pin a draft (human-only — agents get 403)\nawait pinView(\"default\", \"compose.aamp.view\",\n  { pinnedBy: \"operator@you\" });",
-    paths: [["POST", "/api/views/pin"], ["GET", "/api/views/load/<ws>/<file>"], ["event", "VIEW_PINNED"]]
+    cmd: '// pin a draft (human-only — agents get 403)\nawait pinView("default", "compose.aamp.view",\n  { pinnedBy: "operator@you" });',
+    paths: [
+      ["POST", "/api/views/pin"],
+      ["GET", "/api/views/load/<ws>/<file>"],
+      ["event", "VIEW_PINNED"]
+    ]
   },
   {
-    id: "checkpoints", icon: "⏪", zone: "rev", zoneLabel: "review · new",
+    id: "checkpoints",
+    icon: "⏪",
+    zone: "rev",
+    zoneLabel: "review · new",
     title: "Session Checkpoints",
     desc: "Stamp a named restore point — history, loaded skills, staged data, run refs. Branch off it freely for creative sandboxing, fork it, return to the safe point exactly as it was.",
     foot: "aamp.checkpoint/1 · Phase H1",
@@ -182,11 +228,18 @@ const FEATURES = [
       ["API", "agent_sandbox/checkpoints/* (drafts) + /checkpoints/pin (human)"],
       ["Storage", "agent_sandbox/checkpoints/ drafts · checkpoints/ pinned+signed"]
     ],
-    cmd: "// save a restore point mid-session\nawait saveCheckpoint(\"sandbox\", \"default\",\n  \"before-what-if\", sessionState);",
-    paths: [["POST", "/api/agent_sandbox/checkpoints/save"], ["POST", "/api/checkpoints/pin"], ["limit", "2 MB history cap → 413"]]
+    cmd: '// save a restore point mid-session\nawait saveCheckpoint("sandbox", "default",\n  "before-what-if", sessionState);',
+    paths: [
+      ["POST", "/api/agent_sandbox/checkpoints/save"],
+      ["POST", "/api/checkpoints/pin"],
+      ["limit", "2 MB history cap → 413"]
+    ]
   },
   {
-    id: "pypes", icon: "⚗", zone: "sub", zoneLabel: "substrate",
+    id: "pypes",
+    icon: "⚗",
+    zone: "sub",
+    zoneLabel: "substrate",
     title: "Pypes Engine",
     desc: "Declarative bronze→silver→gold transformation DAGs with cell-level CLP lineage, checkpointed reruns, drill-down to any row, and explainable financial-risk reports.",
     foot: "benny pypes run | drilldown | rerun",
@@ -196,10 +249,17 @@ const FEATURES = [
       ["Storage", "stage outputs + run audit under the workspace"]
     ],
     cmd: "benny pypes run manifests/templates/financial_risk_pipeline.json \\\n  --workspace pypes_demo\nbenny pypes drilldown <run_id> gold_exposure --workspace pypes_demo",
-    paths: [["CLI", "benny pypes plan — LLM-author drafts"], ["CLI", "benny pypes bench pandas=… polars=…"], ["CLI", "benny pypes chat <run_id>"]]
+    paths: [
+      ["CLI", "benny pypes plan — LLM-author drafts"],
+      ["CLI", "benny pypes bench pandas=… polars=…"],
+      ["CLI", "benny pypes chat <run_id>"]
+    ]
   },
   {
-    id: "dual-graph", icon: "🕸", zone: "sub", zoneLabel: "substrate",
+    id: "dual-graph",
+    icon: "🕸",
+    zone: "sub",
+    zoneLabel: "substrate",
     title: "Dual Graph",
     desc: "One Neo4j, two graphs. Knowledge graph from ingested documents; code graph from Tree-Sitter AST. The enrichment pipeline links them with CORRELATES_WITH edges.",
     foot: "kg3d.synoptic_web · codegraph.canvas",
@@ -209,23 +269,36 @@ const FEATURES = [
       ["Storage", "Neo4j — Concept/Document + File/Class/Function"]
     ],
     cmd: "benny enrich --manifest manifests/templates/knowledge_enrichment_pipeline.json \\\n  --workspace c5_test --src src/dangpy --run",
-    paths: [["nodes", "Concept · Document · File · Class · Function"], ["edges", "REL · DEFINES · DEPENDS_ON · CORRELATES_WITH"]]
+    paths: [
+      ["nodes", "Concept · Document · File · Class · Function"],
+      ["edges", "REL · DEFINES · DEPENDS_ON · CORRELATES_WITH"]
+    ]
   },
   {
-    id: "swarm", icon: "🐝", zone: "sub", zoneLabel: "substrate",
+    id: "swarm",
+    icon: "🐝",
+    zone: "sub",
+    zoneLabel: "substrate",
     title: "Swarm Executor",
     desc: "Requirement → LLM-planned manifest → signed → wave-by-wave LangGraph execution with run history, reasoning traces, and a frame inspector for every step.",
     foot: "benny plan → benny run",
     layers: [
-      ["CLI", "benny plan \"<requirement>\" --save → benny run <manifest>"],
+      ["CLI", 'benny plan "<requirement>" --save → benny run <manifest>'],
       ["Engine", "LangGraph swarm — waves, retries, HITL pause nodes"],
       ["Audit", "run.reasoning_trace + run.frame_inspector widgets"]
     ],
-    cmd: "benny plan \"summarise risk exposure by desk\" --workspace demo --save\nbenny run manifests/demo_plan.json --json\nbenny runs ls --limit 10",
-    paths: [["widget", "run.reasoning_trace"], ["widget", "run.lineage_timeline"], ["widget", "run.drilldown_table"]]
+    cmd: 'benny plan "summarise risk exposure by desk" --workspace demo --save\nbenny run manifests/demo_plan.json --json\nbenny runs ls --limit 10',
+    paths: [
+      ["widget", "run.reasoning_trace"],
+      ["widget", "run.lineage_timeline"],
+      ["widget", "run.drilldown_table"]
+    ]
   },
   {
-    id: "agentamp", icon: "🎛", zone: "rev", zoneLabel: "cockpit",
+    id: "agentamp",
+    icon: "🎛",
+    zone: "rev",
+    zoneLabel: "cockpit",
     title: "AgentAmp Cockpit",
     desc: "Winamp-style skinnable operator cockpit. Signed .aamp skin packs, WebGL plugin sandbox, deterministic spectrum/VU pipeline, playlist run-history, portable user state.",
     foot: ".aamp packs · Phases 1–6",
@@ -235,23 +308,46 @@ const FEATURES = [
       ["Storage", "HMAC-signed .aamp bundles under $BENNY_HOME"]
     ],
     cmd: "benny agentamp scaffold-skin neon-ops\nbenny agentamp pack drafts/neon-ops --out neon-ops.aamp\nbenny agentamp sign neon-ops.aamp\nbenny agentamp install neon-ops.aamp",
-    paths: [["CLI", "benny agentamp export-cockpit"], ["CLI", "benny agentamp enqueue <manifest>"]]
+    paths: [
+      ["CLI", "benny agentamp export-cockpit"],
+      ["CLI", "benny agentamp enqueue <manifest>"]
+    ]
   },
   {
-    id: "memoray", icon: "🧠", zone: "rev", zoneLabel: "memory graph",
+    id: "memoray",
+    icon: "🧠",
+    zone: "rev",
+    zoneLabel: "memory graph",
     title: "Memo-Ray — in-shell",
     desc: "An X-ray for agent memory, now built into the shell at #/_prime_silo/memory. Reads Claude + Antigravity session logs into an atomic entity graph — every prompt, thought, tool call, and touched file as an explorable lineage map. One capability on four surfaces (page · agent skill · CLI · self-audit) over a single configurable proxy. You are not the institutional memory; this is.",
     foot: "#/_prime_silo/memory · proxy /api/memoray · :3001",
     layers: [
-      ["Shell page", "memoray.overview_cards + memoray.lineage_graph widgets, conformance strip, offline/disabled screens"],
-      ["Proxy", "/api/memoray → MEMORAY_BASE_URL (or wizard manifest); GET + POST /files/open only"],
-      ["Manifest", "aamp.integration/1 — data model + process map + config surface, HMAC-signed, self-audited"]
+      [
+        "Shell page",
+        "memoray.overview_cards + memoray.lineage_graph widgets, conformance strip, offline/disabled screens"
+      ],
+      [
+        "Proxy",
+        "/api/memoray → MEMORAY_BASE_URL (or wizard manifest); GET + POST /files/open only"
+      ],
+      [
+        "Manifest",
+        "aamp.integration/1 — data model + process map + config surface, HMAC-signed, self-audited"
+      ]
     ],
     cmd: "# dev.ps1 auto-boots Memo-Ray when enabled\n.\\scripts\\dev.ps1\n# then open the shell\nhttp://localhost:3000/#/_prime_silo/memory\n# or from the terminal\nnode space memory status",
-    paths: [["page", "#/_prime_silo/memory"], ["skill", "memory-recall (onscreen agent)"], ["CLI", "node space memory <status|sync|sessions|search|audit>"], ["audit", "GET /api/integration_audit"]]
+    paths: [
+      ["page", "#/_prime_silo/memory"],
+      ["skill", "memory-recall (onscreen agent)"],
+      ["CLI", "node space memory <status|sync|sessions|search|audit>"],
+      ["audit", "GET /api/integration_audit"]
+    ]
   },
   {
-    id: "governance", icon: "🛡", zone: "det", zoneLabel: "deterministic",
+    id: "governance",
+    icon: "🛡",
+    zone: "det",
+    zoneLabel: "deterministic",
     title: "Governance & Lineage",
     desc: "AgentScopeMiddleware is the single enforcer: scoped agents write only inside the sandbox; pinning is human-only by policy. Every mutation emits an audit event.",
     foot: "X-Benny-Agent-Scope",
@@ -260,8 +356,11 @@ const FEATURES = [
       ["Middleware", "403s any scoped write outside /api/agent_sandbox/"],
       ["Audit", "VIEW_PINNED · CHECKPOINT_SAVED · CHECKPOINT_PINNED · agent_authorship"]
     ],
-    cmd: "# the boundary in one request\ncurl -X POST :8005/api/views/pin \\\n  -H \"X-Benny-Agent-Scope: sandbox\"  # → 403, by design",
-    paths: [["module", "runtime/benny/api/agent_scope.py"], ["principle", "agents draft, humans pin"]]
+    cmd: '# the boundary in one request\ncurl -X POST :8005/api/views/pin \\\n  -H "X-Benny-Agent-Scope: sandbox"  # → 403, by design',
+    paths: [
+      ["module", "runtime/benny/api/agent_scope.py"],
+      ["principle", "agents draft, humans pin"]
+    ]
   }
 ];
 
@@ -295,10 +394,13 @@ function openDecon(f) {
   document.getElementById("deconTag").textContent = f.desc;
   document.getElementById("deconCmd").textContent = f.cmd;
   document.getElementById("deconPaths").innerHTML = f.paths
-    .map(([k, v]) => `<li><b>${k}</b> ${v}</li>`).join("");
+    .map(([k, v]) => `<li><b>${k}</b> ${v}</li>`)
+    .join("");
   deconStack.innerHTML = f.layers
-    .map(([name, detail], i) =>
-      `<div class="decon-layer" style="--i:${i}"><b>${name}</b><span>${detail}</span></div>`)
+    .map(
+      ([name, detail], i) =>
+        `<div class="decon-layer" style="--i:${i}"><b>${name}</b><span>${detail}</span></div>`
+    )
     .join("");
   deconOverlay.hidden = false;
   document.body.style.overflow = "hidden";
@@ -309,7 +411,9 @@ function closeDecon() {
 }
 document.getElementById("deconClose").addEventListener("click", closeDecon);
 document.getElementById("deconBackdrop").addEventListener("click", closeDecon);
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDecon(); });
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeDecon();
+});
 
 /* ────────────────────────────────────────────────────────────────
    3. ARCHITECTURE — explode + trace
@@ -335,23 +439,29 @@ document.getElementById("traceBtn").addEventListener("click", () => {
   archPulse.classList.add("is-tracing");
   // light layers in sequence
   archLayers.forEach((layer, i) => {
-    setTimeout(() => {
-      layer.classList.add("is-lit");
-      setTimeout(() => layer.classList.remove("is-lit"), 700);
-    }, 250 + i * 480);
+    setTimeout(
+      () => {
+        layer.classList.add("is-lit");
+        setTimeout(() => layer.classList.remove("is-lit"), 700);
+      },
+      250 + i * 480
+    );
   });
 });
 
 // Auto-explode the first time it scrolls into view.
-new IntersectionObserver((entries, io) => {
-  if (entries[0].isIntersecting) {
-    setTimeout(() => {
-      archStack.classList.add("is-exploded");
-      explodeBtn.textContent = "⟁ Reassemble";
-    }, 450);
-    io.disconnect();
-  }
-}, { threshold: 0.35 }).observe(archStack);
+new IntersectionObserver(
+  (entries, io) => {
+    if (entries[0].isIntersecting) {
+      setTimeout(() => {
+        archStack.classList.add("is-exploded");
+        explodeBtn.textContent = "⟁ Reassemble";
+      }, 450);
+      io.disconnect();
+    }
+  },
+  { threshold: 0.35 }
+).observe(archStack);
 
 /* ────────────────────────────────────────────────────────────────
    4. OPERATING MANUAL — accordion
@@ -359,7 +469,8 @@ new IntersectionObserver((entries, io) => {
 
 const MANUAL = [
   {
-    n: "01", title: "Prerequisites & install",
+    n: "01",
+    title: "Prerequisites & install",
     body: `
 <table><tr><th>What</th><th>Minimum</th></tr>
 <tr><td>Python</td><td>3.11</td></tr><tr><td>Node.js</td><td>18</td></tr>
@@ -370,7 +481,8 @@ cd runtime  &amp;&amp; pip install -e .  &amp;&amp; cd ..
 cd server   &amp;&amp; npm install        &amp;&amp; cd ..</code></pre>`
   },
   {
-    n: "02", title: "Configure — one .env, four values",
+    n: "02",
+    title: "Configure — one .env, four values",
     body: `
 <p>The runtime signs every manifest, pinned view, and pinned checkpoint with <code>BENNY_HMAC_KEY</code>. Generate one and drop it in <code>.env</code> at the repo root:</p>
 <pre><code>python -c "import secrets; print(secrets.token_hex(32))"</code></pre>
@@ -378,7 +490,8 @@ cd server   &amp;&amp; npm install        &amp;&amp; cd ..</code></pre>`
 <a class="man-wizlink" href="#wizard">⚡ Use the Configuration Wizard — it generates .env + a config manifest →</a>`
   },
   {
-    n: "03", title: "Boot the stack",
+    n: "03",
+    title: "Boot the stack",
     body: `
 <p>One script starts both processes — the FastAPI runtime on <code>:8005</code> and the shell on <code>:3000</code>:</p>
 <pre><code># Windows
@@ -392,7 +505,8 @@ cd server   &amp;&amp; npm install        &amp;&amp; cd ..</code></pre>`
 <tr><td><code>node server/dev_server.js</code></td><td>3000</td><td>Shell — serves UI, proxies <code>/api/runtime/*</code></td></tr></table>`
   },
   {
-    n: "04", title: "Verify it's alive",
+    n: "04",
+    title: "Verify it's alive",
     body: `
 <pre><code>curl http://localhost:8005/api/agent_sandbox/health
 # → {"status":"ok","subdirs":["views","notes","drafts","skills"]}
@@ -402,7 +516,8 @@ curl http://localhost:8005/api/widgets
 <p>Then open <code>http://localhost:3000</code> in the browser. The <a href="#dashboard">live dashboard below</a> runs the same checks continuously.</p>`
   },
   {
-    n: "05", title: "Talk to the agent (cloud or local)",
+    n: "05",
+    title: "Talk to the agent (cloud or local)",
     body: `
 <p>Open the chat panel and set the model in agent settings.</p>
 <h4>Cloud (OpenRouter)</h4>
@@ -414,7 +529,8 @@ model:    qwen3.5-9b-FLM</code></pre>
 <p>Localhost endpoints are auto-detected: the 499-line operator prompt is swapped for a minimal one and Qwen3 thinking mode is disabled — small local models answer instead of returning empty streams.</p>`
   },
   {
-    n: "06", title: "Explore manifests & runs",
+    n: "06",
+    title: "Explore manifests & runs",
     body: `
 <p>Navigate to <code>#/_prime_silo/manifest_explorer</code> — the deterministic-zone page. Pick a manifest from the dropdown; it renders as a DAG with task/edge/wave counts. Create new manifests from the CLI:</p>
 <pre><code>benny plan "ingest Q3 trades and compute desk exposure" --workspace demo --save
@@ -422,7 +538,8 @@ benny run manifests/&lt;generated&gt;.json --json
 benny runs ls --limit 10</code></pre>`
   },
   {
-    n: "07", title: "Draft views — agents draft, humans pin",
+    n: "07",
+    title: "Draft views — agents draft, humans pin",
     body: `
 <p>The agent composes review-zone layouts and saves them into its sandbox. You promote the good ones:</p>
 <pre><code>// agent (scoped) — draft
@@ -436,7 +553,8 @@ const { view, valid } = await loadPinnedView("default", "exposure.aamp.view");</
 <p><code>valid:false</code> means the file was tampered with or the key rotated. The shell refuses to render an invalid layout.</p>`
   },
   {
-    n: "08", title: "Session checkpoints — sandbox safely",
+    n: "08",
+    title: "Session checkpoints — sandbox safely",
     body: `
 <p>Before a risky what-if, stamp a restore point. The checkpoint captures history, loaded skills, staged data references, and run anchors:</p>
 <pre><code>import { saveCheckpoint, loadCheckpoint, forkCheckpoint }
@@ -451,7 +569,8 @@ const fork = await forkCheckpoint("sandbox", "default", "before-what-if");
 <p>Drafts live in the agent sandbox. Pinning (human-only) HMAC-signs the file — same guarantee as a pinned view.</p>`
   },
   {
-    n: "09", title: "Pypes — tabular pipelines with lineage",
+    n: "09",
+    title: "Pypes — tabular pipelines with lineage",
     body: `
 <pre><code>benny pypes inspect manifests/templates/financial_risk_pipeline.json
 benny pypes run     manifests/templates/financial_risk_pipeline.json --workspace pypes_demo
@@ -460,7 +579,8 @@ benny pypes rerun   &lt;run_id&gt; --from silver_trades --workspace pypes_demo</
 <p>Sandbox layer (advisory, never mutates audit data): <code>pypes plan</code> LLM-authors draft manifests, <code>pypes agent-report</code> writes a risk-analyst narrative, <code>pypes bench</code> races pandas vs polars, <code>pypes chat</code> opens a grounded REPL on a run.</p>`
   },
   {
-    n: "10", title: "Run the test suites",
+    n: "10",
+    title: "Run the test suites",
     body: `
 <pre><code># runtime (pytest)
 cd runtime &amp;&amp; python -m pytest tests/api -q
@@ -472,7 +592,8 @@ node tests/manifest_explorer_test.mjs</code></pre>
 <p>Release gates: G-COV ≥85% · G-SR1 path auditor · G-LAT &lt;300ms plan · G-ERR 0 flakes · G-SIG manifest integrity · G-OFF offline compliance.</p>`
   },
   {
-    n: "11", title: "Troubleshooting",
+    n: "11",
+    title: "Troubleshooting",
     body: `
 <table><tr><th>Symptom</th><th>Cause → fix</th></tr>
 <tr><td>Agent loops "previous response was empty"</td><td>Local model choking on the full operator prompt. Fixed automatically for localhost endpoints; confirm your endpoint hostname is <code>localhost</code>/<code>127.0.0.1</code>.</td></tr>
@@ -504,7 +625,9 @@ MANUAL.forEach((m, i) => {
   });
   if (i === 0) {
     item.classList.add("is-open");
-    requestAnimationFrame(() => { body.style.maxHeight = body.scrollHeight + "px"; });
+    requestAnimationFrame(() => {
+      body.style.maxHeight = body.scrollHeight + "px";
+    });
   }
   manualEl.appendChild(item);
 });
@@ -514,12 +637,15 @@ MANUAL.forEach((m, i) => {
    ──────────────────────────────────────────────────────────────── */
 
 const wizState = loadWizState() || {
-  hmacKey: "", bennyHome: ".benny_home",
+  hmacKey: "",
+  bennyHome: ".benny_home",
   modelMode: "local",
   modelEndpoint: "http://localhost:13305/api/v1/chat/completions",
   modelName: "qwen3.5-9b-FLM",
   modelKeyVar: "OPENROUTER_API_KEY",
-  runtimePort: 8005, shellPort: 3000, workspace: "default",
+  runtimePort: 8005,
+  shellPort: 3000,
+  workspace: "default",
   singleUser: true,
   memorayEnabled: true,
   memorayUrl: "http://127.0.0.1:3001",
@@ -550,19 +676,24 @@ if (wizState.modelEndpoint === "http://localhost:8000/api/v1/chat/completions") 
 }
 
 function loadWizState() {
-  try { return JSON.parse(localStorage.getItem("primeSiloWizard")); }
-  catch { return null; }
+  try {
+    return JSON.parse(localStorage.getItem("primeSiloWizard"));
+  } catch {
+    return null;
+  }
 }
 function persistWizState() {
-  try { localStorage.setItem("primeSiloWizard", JSON.stringify(wizState)); } catch {}
+  try {
+    localStorage.setItem("primeSiloWizard", JSON.stringify(wizState));
+  } catch {}
 }
 
 const STEP_PROCS = [
-  ["runtime", "shell", "docker"],  // 0 welcome — all
-  ["runtime"],                       // 1 environment
-  ["shell"],                         // 2 model
-  ["runtime", "shell", "docker"],  // 3 services
-  []                                  // 4 generate
+  ["runtime", "shell", "docker"], // 0 welcome — all
+  ["runtime"], // 1 environment
+  ["shell"], // 2 model
+  ["runtime", "shell", "docker"], // 3 services
+  [] // 4 generate
 ];
 
 let wizStep = 0;
@@ -578,7 +709,7 @@ function gotoStep(n, skipWarp) {
   if (n === wizStep && !skipWarp) return;
   if (!skipWarp) wizardField.warp(650, 18);
   wizStep = n;
-  stepPanels.forEach(p => p.classList.toggle("is-active", +p.dataset.step === n));
+  stepPanels.forEach((p) => p.classList.toggle("is-active", +p.dataset.step === n));
   railSteps.forEach((r, i) => {
     r.classList.toggle("is-active", i === n);
     r.classList.toggle("is-done", i < n);
@@ -592,10 +723,10 @@ function gotoStep(n, skipWarp) {
 }
 
 function lightProcs(ids) {
-  document.querySelectorAll(".side-proc").forEach(el => {
+  document.querySelectorAll(".side-proc").forEach((el) => {
     el.classList.toggle("is-lit", ids.includes(el.dataset.proc));
   });
-  document.querySelectorAll(".proc-node").forEach(el => {
+  document.querySelectorAll(".proc-node").forEach((el) => {
     el.style.borderColor = ids.includes(el.dataset.proc) ? "rgba(56,232,255,0.5)" : "";
   });
 }
@@ -609,15 +740,21 @@ wizNext.addEventListener("click", () => {
   if (wizStep === 1 && !validHmac(el("cfgHmacKey").value)) {
     el("cfgHmacKey").focus();
     el("cfgHmacKey").style.borderColor = "var(--red)";
-    setTimeout(() => { el("cfgHmacKey").style.borderColor = ""; }, 1400);
+    setTimeout(() => {
+      el("cfgHmacKey").style.borderColor = "";
+    }, 1400);
     return;
   }
   gotoStep(wizStep + 1);
 });
-railSteps.forEach(r => r.addEventListener("click", () => gotoStep(+r.dataset.step)));
+railSteps.forEach((r) => r.addEventListener("click", () => gotoStep(+r.dataset.step)));
 
-function el(id) { return document.getElementById(id); }
-function validHmac(v) { return /^[0-9a-fA-F]{64}$/.test(v.trim()); }
+function el(id) {
+  return document.getElementById(id);
+}
+function validHmac(v) {
+  return /^[0-9a-fA-F]{64}$/.test(v.trim());
+}
 
 /* field bindings */
 function bindField(id, key, transform) {
@@ -634,18 +771,22 @@ bindField("cfgBennyHome", "bennyHome");
 bindField("cfgModelEndpoint", "modelEndpoint");
 bindField("cfgModelName", "modelName");
 bindField("cfgModelKeyVar", "modelKeyVar");
-bindField("cfgRuntimePort", "runtimePort", v => parseInt(v, 10) || 8005);
-bindField("cfgShellPort", "shellPort", v => parseInt(v, 10) || 3000);
+bindField("cfgRuntimePort", "runtimePort", (v) => parseInt(v, 10) || 8005);
+bindField("cfgShellPort", "shellPort", (v) => parseInt(v, 10) || 3000);
 bindField("cfgWorkspace", "workspace");
 
-el("cfgRuntimePort").addEventListener("input", () => { el("spRuntimePort").textContent = wizState.runtimePort; });
-el("cfgShellPort").addEventListener("input", () => { el("spShellPort").textContent = wizState.shellPort; });
+el("cfgRuntimePort").addEventListener("input", () => {
+  el("spRuntimePort").textContent = wizState.runtimePort;
+});
+el("cfgShellPort").addEventListener("input", () => {
+  el("spShellPort").textContent = wizState.shellPort;
+});
 
 /* HMAC generation — local only, crypto.getRandomValues */
 el("genKeyBtn").addEventListener("click", () => {
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
-  const hex = [...bytes].map(b => b.toString(16).padStart(2, "0")).join("");
+  const hex = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
   el("cfgHmacKey").value = hex;
   wizState.hmacKey = hex;
   persistWizState();
@@ -657,7 +798,7 @@ el("genKeyBtn").addEventListener("click", () => {
 const segBtns = [...document.querySelectorAll("#modelModeSeg .seg-btn")];
 function applyModelMode(mode) {
   wizState.modelMode = mode;
-  segBtns.forEach(b => b.classList.toggle("is-active", b.dataset.mode === mode));
+  segBtns.forEach((b) => b.classList.toggle("is-active", b.dataset.mode === mode));
   el("apiKeyField").style.display = mode === "cloud" ? "" : "none";
   if (mode === "cloud" && wizState.modelEndpoint.includes("localhost")) {
     wizState.modelEndpoint = "https://openrouter.ai/api/v1/chat/completions";
@@ -668,13 +809,14 @@ function applyModelMode(mode) {
   }
   el("cfgModelEndpoint").value = wizState.modelEndpoint;
   el("cfgModelName").value = wizState.modelName;
-  el("endpointHint").textContent = mode === "local"
-    ? "Local endpoint detected → minimal system prompt + thinking disabled automatically."
-    : "Cloud endpoint — full operator prompt, streaming SSE.";
+  el("endpointHint").textContent =
+    mode === "local"
+      ? "Local endpoint detected → minimal system prompt + thinking disabled automatically."
+      : "Cloud endpoint — full operator prompt, streaming SSE.";
   persistWizState();
   updateSidePreview();
 }
-segBtns.forEach(b => b.addEventListener("click", () => applyModelMode(b.dataset.mode)));
+segBtns.forEach((b) => b.addEventListener("click", () => applyModelMode(b.dataset.mode)));
 applyModelMode(wizState.modelMode);
 
 /* single-user toggle */
@@ -707,32 +849,46 @@ applyModelMode(wizState.modelMode);
 }
 
 /* docker toggles */
-[["svcNeo4j", "neo4j"], ["svcMarquez", "marquez"], ["svcPhoenix", "phoenix"], ["svcN8n", "n8n"]]
-  .forEach(([id, key]) => {
-    const chk = el(id);
-    chk.checked = wizState.docker[key];
-    chk.addEventListener("change", () => {
-      wizState.docker[key] = chk.checked;
-      el("spDocker").textContent =
-        Object.entries(wizState.docker).filter(([, v]) => v).map(([k]) => k).join(" · ") || "none";
-      persistWizState();
-      updateSidePreview();
-    });
+[
+  ["svcNeo4j", "neo4j"],
+  ["svcMarquez", "marquez"],
+  ["svcPhoenix", "phoenix"],
+  ["svcN8n", "n8n"]
+].forEach(([id, key]) => {
+  const chk = el(id);
+  chk.checked = wizState.docker[key];
+  chk.addEventListener("change", () => {
+    wizState.docker[key] = chk.checked;
+    el("spDocker").textContent =
+      Object.entries(wizState.docker)
+        .filter(([, v]) => v)
+        .map(([k]) => k)
+        .join(" · ") || "none";
+    persistWizState();
+    updateSidePreview();
   });
+});
 el("spDocker").textContent =
-  Object.entries(wizState.docker).filter(([, v]) => v).map(([k]) => k).join(" · ") || "none";
+  Object.entries(wizState.docker)
+    .filter(([, v]) => v)
+    .map(([k]) => k)
+    .join(" · ") || "none";
 
 /* ── manifest + outputs ─────────────────────────────────────── */
 
 function buildManifest() {
-  const dockerOn = Object.entries(wizState.docker).filter(([, v]) => v).map(([k]) => k);
+  const dockerOn = Object.entries(wizState.docker)
+    .filter(([, v]) => v)
+    .map(([k]) => k);
   return {
     schema: "aamp.config/1",
     generated_at: new Date().toISOString(),
     generated_by: "prime-silo configuration wizard",
     environment: {
       BENNY_HOME: wizState.bennyHome || ".benny_home",
-      BENNY_HMAC_KEY: wizState.hmacKey ? "<set in .env — not duplicated here>" : "<MISSING — generate in wizard step 02>"
+      BENNY_HMAC_KEY: wizState.hmacKey
+        ? "<set in .env — not duplicated here>"
+        : "<MISSING — generate in wizard step 02>"
     },
     model: {
       mode: wizState.modelMode,
@@ -743,8 +899,17 @@ function buildManifest() {
         : { local_optimizations: { minimal_system_prompt: true, enable_thinking: false } })
     },
     services: {
-      runtime: { port: wizState.runtimePort, command: "python -m benny.api.server", cwd: "runtime" },
-      shell: { port: wizState.shellPort, command: "node server/dev_server.js", cwd: ".", single_user: wizState.singleUser },
+      runtime: {
+        port: wizState.runtimePort,
+        command: "python -m benny.api.server",
+        cwd: "runtime"
+      },
+      shell: {
+        port: wizState.shellPort,
+        command: "node server/dev_server.js",
+        cwd: ".",
+        single_user: wizState.singleUser
+      },
       docker: dockerOn
     },
     memoray: {
@@ -763,13 +928,34 @@ function buildManifest() {
         id: "shell",
         command: "node server/dev_server.js",
         cwd: ".",
-        consumes: ["services.shell.port", "model.endpoint", "model.model", "SINGLE_USER_APP", "MEMORAY_ENABLED", "MEMORAY_BASE_URL"]
+        consumes: [
+          "services.shell.port",
+          "model.endpoint",
+          "model.model",
+          "SINGLE_USER_APP",
+          "MEMORAY_ENABLED",
+          "MEMORAY_BASE_URL"
+        ]
       },
       ...(wizState.memorayEnabled
-        ? [{ id: "memoray", command: "scripts/memoray.ps1", cwd: ".", consumes: ["memoray.base_url", "MEMORAY_BASE_URL"] }]
+        ? [
+            {
+              id: "memoray",
+              command: "scripts/memoray.ps1",
+              cwd: ".",
+              consumes: ["memoray.base_url", "MEMORAY_BASE_URL"]
+            }
+          ]
         : []),
       ...(dockerOn.length
-        ? [{ id: "docker", command: `docker compose up -d ${dockerOn.join(" ")}`, cwd: ".", consumes: ["services.docker"] }]
+        ? [
+            {
+              id: "docker",
+              command: `docker compose up -d ${dockerOn.join(" ")}`,
+              cwd: ".",
+              consumes: ["services.docker"]
+            }
+          ]
         : [])
     ]
   };
@@ -788,7 +974,7 @@ function buildEnv() {
   ];
   if (wizState.singleUser) {
     lines.push(
-      "# Solo local install — the shell auto-authenticates as \"user\"; no login page.",
+      '# Solo local install — the shell auto-authenticates as "user"; no login page.',
       "SINGLE_USER_APP=true",
       ""
     );
@@ -800,9 +986,18 @@ function buildEnv() {
     );
   }
   if (wizState.modelMode === "local") {
-    lines.push("# Local model — CLI commands default to it.", "BENNY_DEFAULT_MODEL=local_lemonade", "");
+    lines.push(
+      "# Local model — CLI commands default to it.",
+      "BENNY_DEFAULT_MODEL=local_lemonade",
+      ""
+    );
   } else {
-    lines.push(`# Cloud model key — set the real secret in your OS env:`, `# setx ${wizState.modelKeyVar} "sk-..."   (Windows)`, `# export ${wizState.modelKeyVar}="sk-..." (bash)`, "");
+    lines.push(
+      `# Cloud model key — set the real secret in your OS env:`,
+      `# setx ${wizState.modelKeyVar} "sk-..."   (Windows)`,
+      `# export ${wizState.modelKeyVar}="sk-..." (bash)`,
+      ""
+    );
   }
   if (wizState.memorayEnabled) {
     lines.push(
@@ -817,18 +1012,25 @@ function buildEnv() {
 }
 
 function buildLaunch() {
-  const dockerOn = Object.entries(wizState.docker).filter(([, v]) => v).map(([k]) => k);
+  const dockerOn = Object.entries(wizState.docker)
+    .filter(([, v]) => v)
+    .map(([k]) => k);
   const lines = ["# ── Prime-Silo launch sequence ──", ""];
   if (dockerOn.length) {
     lines.push("# 1. Optional services", `docker compose up -d ${dockerOn.join(" ")}`, "");
   }
   lines.push(
     `# ${dockerOn.length ? "2" : "1"}. Boot runtime (:${wizState.runtimePort}) + shell (:${wizState.shellPort})`,
-    "# Windows", ".\\scripts\\dev.ps1", "",
-    "# macOS / Linux", "./scripts/dev.sh", "",
+    "# Windows",
+    ".\\scripts\\dev.ps1",
+    "",
+    "# macOS / Linux",
+    "./scripts/dev.sh",
+    "",
     `# ${dockerOn.length ? "3" : "2"}. Verify`,
     `curl http://localhost:${wizState.runtimePort}/api/agent_sandbox/health`,
-    `curl http://localhost:${wizState.runtimePort}/api/widgets`, "",
+    `curl http://localhost:${wizState.runtimePort}/api/widgets`,
+    "",
     `# ${dockerOn.length ? "4" : "3"}. Open the shell`,
     `http://localhost:${wizState.shellPort}/#/_prime_silo/manifest_explorer`
   );
@@ -846,17 +1048,22 @@ function buildLaunch() {
 let activeOut = "env";
 const OUT_FILES = {
   env: { name: ".env", build: buildEnv },
-  manifest: { name: "prime-silo.config.json", build: () => JSON.stringify(buildManifest(), null, 2) },
+  manifest: {
+    name: "prime-silo.config.json",
+    build: () => JSON.stringify(buildManifest(), null, 2)
+  },
   launch: { name: "launch.txt", build: buildLaunch }
 };
 
 function renderOutput() {
   el("outCode").textContent = OUT_FILES[activeOut].build();
 }
-document.querySelectorAll(".out-tab").forEach(tab => {
+document.querySelectorAll(".out-tab").forEach((tab) => {
   tab.addEventListener("click", () => {
     activeOut = tab.dataset.out;
-    document.querySelectorAll(".out-tab").forEach(t => t.classList.toggle("is-active", t === tab));
+    document
+      .querySelectorAll(".out-tab")
+      .forEach((t) => t.classList.toggle("is-active", t === tab));
     renderOutput();
   });
 });
@@ -864,7 +1071,9 @@ document.querySelectorAll(".out-tab").forEach(tab => {
 el("copyOutBtn").addEventListener("click", async () => {
   await navigator.clipboard.writeText(OUT_FILES[activeOut].build());
   el("copyOutBtn").textContent = "✓ Copied";
-  setTimeout(() => { el("copyOutBtn").textContent = "⧉ Copy"; }, 1400);
+  setTimeout(() => {
+    el("copyOutBtn").textContent = "⧉ Copy";
+  }, 1400);
 });
 
 function download(name, content) {
@@ -878,7 +1087,9 @@ el("dlOutBtn").addEventListener("click", () => {
   download(OUT_FILES[activeOut].name, OUT_FILES[activeOut].build());
 });
 el("dlAllBtn").addEventListener("click", () => {
-  Object.values(OUT_FILES).forEach((f, i) => setTimeout(() => download(f.name, f.build()), i * 250));
+  Object.values(OUT_FILES).forEach((f, i) =>
+    setTimeout(() => download(f.name, f.build()), i * 250)
+  );
 });
 
 function updateSidePreview() {
@@ -891,12 +1102,18 @@ gotoStep(0, true);
    6. LIVE DASHBOARD
    ──────────────────────────────────────────────────────────────── */
 
-function runtimeBase() { return `http://localhost:${wizState.runtimePort || 8005}`; }
-function shellBase() { return `http://localhost:${wizState.shellPort || 3000}`; }
+function runtimeBase() {
+  return `http://localhost:${wizState.runtimePort || 8005}`;
+}
+function shellBase() {
+  return `http://localhost:${wizState.shellPort || 3000}`;
+}
 
 const DASH_CHECKS = [
   {
-    id: "runtime", title: "Runtime API", sub: () => `GET ${runtimeBase()}/`,
+    id: "runtime",
+    title: "Runtime API",
+    sub: () => `GET ${runtimeBase()}/`,
     async probe() {
       const r = await fetch(`${runtimeBase()}/`, { signal: AbortSignal.timeout(3500) });
       const j = await r.json();
@@ -904,41 +1121,56 @@ const DASH_CHECKS = [
     }
   },
   {
-    id: "sandbox", title: "Agent Sandbox", sub: () => `GET ${runtimeBase()}/api/agent_sandbox/health`,
+    id: "sandbox",
+    title: "Agent Sandbox",
+    sub: () => `GET ${runtimeBase()}/api/agent_sandbox/health`,
     async probe() {
-      const r = await fetch(`${runtimeBase()}/api/agent_sandbox/health`, { signal: AbortSignal.timeout(3500) });
+      const r = await fetch(`${runtimeBase()}/api/agent_sandbox/health`, {
+        signal: AbortSignal.timeout(3500)
+      });
       const j = await r.json();
       return `<b>${j.status}</b> · ${(j.subdirs || []).length} subdirs`;
     }
   },
   {
-    id: "widgets", title: "Widget Registry", sub: () => `GET ${runtimeBase()}/api/widgets`,
+    id: "widgets",
+    title: "Widget Registry",
+    sub: () => `GET ${runtimeBase()}/api/widgets`,
     async probe() {
       const r = await fetch(`${runtimeBase()}/api/widgets`, { signal: AbortSignal.timeout(3500) });
       const j = await r.json();
-      const list = Array.isArray(j) ? j : (j.widgets || []);
+      const list = Array.isArray(j) ? j : j.widgets || [];
       renderWidgetPills(list);
       return `<b>${list.length}</b> widgets registered`;
     }
   },
   {
-    id: "checkpoints", title: "Session Checkpoints", sub: () => `GET …/checkpoints/list/${wizState.workspace || "default"}`,
+    id: "checkpoints",
+    title: "Session Checkpoints",
+    sub: () => `GET …/checkpoints/list/${wizState.workspace || "default"}`,
     async probe() {
       const ws = wizState.workspace || "default";
-      const r = await fetch(`${runtimeBase()}/api/agent_sandbox/checkpoints/list/${encodeURIComponent(ws)}`, { signal: AbortSignal.timeout(3500) });
+      const r = await fetch(
+        `${runtimeBase()}/api/agent_sandbox/checkpoints/list/${encodeURIComponent(ws)}`,
+        { signal: AbortSignal.timeout(3500) }
+      );
       const j = await r.json();
       return `<b>${Array.isArray(j) ? j.length : 0}</b> draft checkpoint${j.length === 1 ? "" : "s"} in <i>${ws}</i>`;
     }
   },
   {
-    id: "shell", title: "Shell Server", sub: () => `${shellBase()} (opaque ping)`,
+    id: "shell",
+    title: "Shell Server",
+    sub: () => `${shellBase()} (opaque ping)`,
     async probe() {
       await fetch(shellBase(), { mode: "no-cors", signal: AbortSignal.timeout(3500) });
       return `reachable on <b>:${wizState.shellPort || 3000}</b>`;
     }
   },
   {
-    id: "lemonade", title: "Local Model", sub: () => `${modelOrigin()} (opaque ping)`,
+    id: "lemonade",
+    title: "Local Model",
+    sub: () => `${modelOrigin()} (opaque ping)`,
     async probe() {
       if (wizState.modelMode !== "local") return "cloud mode — <b>n/a</b>";
       await fetch(modelOrigin(), { mode: "no-cors", signal: AbortSignal.timeout(3500) });
@@ -946,10 +1178,14 @@ const DASH_CHECKS = [
     }
   },
   {
-    id: "memoray", title: "Memo-Ray", sub: () => "GET http://localhost:3001/api/ecosystem/manifest",
+    id: "memoray",
+    title: "Memo-Ray",
+    sub: () => "GET http://localhost:3001/api/ecosystem/manifest",
     offlineHint: "<b>offline</b> — boot with <code>scripts/memoray.ps1</code>",
     async probe() {
-      const r = await fetch("http://localhost:3001/api/ecosystem/manifest", { signal: AbortSignal.timeout(3500) });
+      const r = await fetch("http://localhost:3001/api/ecosystem/manifest", {
+        signal: AbortSignal.timeout(3500)
+      });
       const j = await r.json();
       const sessions = (j.claude?.sessions || 0) + (j.antigravity?.sessions || 0);
       return `<b>${j.totalNodes || 0}</b> memory nodes · ${sessions} sessions`;
@@ -958,13 +1194,16 @@ const DASH_CHECKS = [
 ];
 
 function modelOrigin() {
-  try { return new URL(wizState.modelEndpoint).origin; }
-  catch { return "http://localhost:13305"; }
+  try {
+    return new URL(wizState.modelEndpoint).origin;
+  } catch {
+    return "http://localhost:13305";
+  }
 }
 
 const dashGrid = document.getElementById("dashGrid");
 const dashCards = {};
-DASH_CHECKS.forEach(c => {
+DASH_CHECKS.forEach((c) => {
   const card = document.createElement("div");
   card.className = "dash-card reveal";
   card.innerHTML = `
@@ -979,40 +1218,48 @@ DASH_CHECKS.forEach(c => {
 function renderWidgetPills(list) {
   const wrap = document.getElementById("dashWidgetsWrap");
   const target = document.getElementById("dashWidgetList");
-  if (!list.length) { wrap.hidden = true; return; }
+  if (!list.length) {
+    wrap.hidden = true;
+    return;
+  }
   wrap.hidden = false;
   target.innerHTML = list
-    .map(wd => `<span class="dash-widget-pill">${wd.id || wd.widget_id || wd.name || wd}</span>`)
+    .map((wd) => `<span class="dash-widget-pill">${wd.id || wd.widget_id || wd.name || wd}</span>`)
     .join("");
 }
 
 async function runDash() {
   document.getElementById("dashUpdated").textContent = "checking…";
   let anyOn = false;
-  await Promise.all(DASH_CHECKS.map(async (c) => {
-    const card = dashCards[c.id];
-    const dot = card.querySelector(".status-dot");
-    const val = card.querySelector(".dash-card-value");
-    const ms = card.querySelector("[data-ms]");
-    card.querySelector(".dash-card-sub").textContent = c.sub();
-    const t0 = performance.now();
-    try {
-      const text = await c.probe();
-      const dt = Math.round(performance.now() - t0);
-      card.classList.add("is-on"); card.classList.remove("is-off");
-      dot.classList.add("is-on"); dot.classList.remove("is-off");
-      val.innerHTML = text;
-      ms.textContent = `${dt}ms`;
-      if (c.id === "runtime") anyOn = true;
-    } catch {
-      card.classList.add("is-off"); card.classList.remove("is-on");
-      dot.classList.add("is-off"); dot.classList.remove("is-on");
-      val.innerHTML = c.offlineHint || "<b>offline</b> — boot with <code>scripts/dev.ps1</code>";
-      ms.textContent = "—";
-    }
-  }));
-  document.getElementById("dashUpdated").textContent =
-    `updated ${new Date().toLocaleTimeString()}`;
+  await Promise.all(
+    DASH_CHECKS.map(async (c) => {
+      const card = dashCards[c.id];
+      const dot = card.querySelector(".status-dot");
+      const val = card.querySelector(".dash-card-value");
+      const ms = card.querySelector("[data-ms]");
+      card.querySelector(".dash-card-sub").textContent = c.sub();
+      const t0 = performance.now();
+      try {
+        const text = await c.probe();
+        const dt = Math.round(performance.now() - t0);
+        card.classList.add("is-on");
+        card.classList.remove("is-off");
+        dot.classList.add("is-on");
+        dot.classList.remove("is-off");
+        val.innerHTML = text;
+        ms.textContent = `${dt}ms`;
+        if (c.id === "runtime") anyOn = true;
+      } catch {
+        card.classList.add("is-off");
+        card.classList.remove("is-on");
+        dot.classList.add("is-off");
+        dot.classList.remove("is-on");
+        val.innerHTML = c.offlineHint || "<b>offline</b> — boot with <code>scripts/dev.ps1</code>";
+        ms.textContent = "—";
+      }
+    })
+  );
+  document.getElementById("dashUpdated").textContent = `updated ${new Date().toLocaleTimeString()}`;
   // nav status pill
   const navDot = document.getElementById("navStatusDot");
   const navText = document.getElementById("navStatusText");
@@ -1037,17 +1284,20 @@ runDash();
    7. REVEAL ON SCROLL
    ──────────────────────────────────────────────────────────────── */
 
-const revealIO = new IntersectionObserver((entries) => {
-  entries.forEach(e => {
-    if (e.isIntersecting) {
-      e.target.classList.add("is-in");
-      revealIO.unobserve(e.target);
-    }
-  });
-}, { threshold: 0.08 });
-document.querySelectorAll(".reveal").forEach(elm => revealIO.observe(elm));
+const revealIO = new IntersectionObserver(
+  (entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting) {
+        e.target.classList.add("is-in");
+        revealIO.unobserve(e.target);
+      }
+    });
+  },
+  { threshold: 0.08 }
+);
+document.querySelectorAll(".reveal").forEach((elm) => revealIO.observe(elm));
 
 /* hero CTA warp on click */
-document.querySelectorAll(".hero-ctas a").forEach(a => {
+document.querySelectorAll(".hero-ctas a").forEach((a) => {
   a.addEventListener("click", () => heroField.warp(800, 22));
 });

@@ -50,7 +50,11 @@ function ensureSpaceRuntime() {
 
 function isNotFoundError(error) {
   const message = String(error?.message || "").toLowerCase();
-  return message.includes("status 404") || message.includes("file not found") || message.includes("path not found");
+  return (
+    message.includes("status 404") ||
+    message.includes("file not found") ||
+    message.includes("path not found")
+  );
 }
 
 function slugifySegment(value, fallback = "item") {
@@ -59,9 +63,7 @@ function slugifySegment(value, fallback = "item") {
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/gu, "")
     .toLowerCase();
-  const slug = normalizedValue
-    .replace(/[^a-z0-9]+/gu, "-")
-    .replace(/^-+|-+$/gu, "");
+  const slug = normalizedValue.replace(/[^a-z0-9]+/gu, "-").replace(/^-+|-+$/gu, "");
 
   return slug || fallback;
 }
@@ -134,10 +136,12 @@ function ensureTrailingSlash(value) {
 }
 
 function getLastPathSegment(path) {
-  return String(path || "")
-    .split("/")
-    .filter(Boolean)
-    .pop() || "";
+  return (
+    String(path || "")
+      .split("/")
+      .filter(Boolean)
+      .pop() || ""
+  );
 }
 
 function uniqueList(values) {
@@ -155,7 +159,8 @@ function parseWidgetIdFromPath(path) {
 }
 
 function normalizeWidgetMap(source, parser = (value) => value) {
-  const entries = source && typeof source === "object" && !Array.isArray(source) ? Object.entries(source) : [];
+  const entries =
+    source && typeof source === "object" && !Array.isArray(source) ? Object.entries(source) : [];
   const output = {};
 
   entries.forEach(([key, value]) => {
@@ -187,12 +192,12 @@ function pickWidgetMap(source, widgetIds) {
 }
 
 function normalizeWidgetIdList(values) {
-  const rawValues = Array.isArray(values) ? values : typeof values === "string" && values ? [values] : [];
-  return uniqueList(
-    rawValues
-      .map((value) => normalizeOptionalWidgetId(value))
-      .filter(Boolean)
-  );
+  const rawValues = Array.isArray(values)
+    ? values
+    : typeof values === "string" && values
+      ? [values]
+      : [];
+  return uniqueList(rawValues.map((value) => normalizeOptionalWidgetId(value)).filter(Boolean));
 }
 
 function normalizeWidgetMetadataValue(value) {
@@ -249,11 +254,16 @@ function normalizeWidgetMetadata(value) {
 }
 
 function hasOwnWidgetMetadataOption(options = {}) {
-  return Object.prototype.hasOwnProperty.call(options || {}, "metadata") || Object.prototype.hasOwnProperty.call(options || {}, "meta");
+  return (
+    Object.prototype.hasOwnProperty.call(options || {}, "metadata") ||
+    Object.prototype.hasOwnProperty.call(options || {}, "meta")
+  );
 }
 
 function resolveWidgetMetadataOption(options = {}, fallback = undefined) {
-  const metadataSource = hasOwnWidgetMetadataOption(options) ? options.metadata ?? options.meta : fallback;
+  const metadataSource = hasOwnWidgetMetadataOption(options)
+    ? (options.metadata ?? options.meta)
+    : fallback;
   return normalizeWidgetMetadata(metadataSource);
 }
 
@@ -261,13 +271,18 @@ function cloneWidgetRecord(widgetRecord) {
   return {
     ...widgetRecord,
     metadata: normalizeWidgetMetadata(widgetRecord?.metadata),
-    defaultPosition: normalizeWidgetPosition(widgetRecord?.defaultPosition, DEFAULT_WIDGET_POSITION),
+    defaultPosition: normalizeWidgetPosition(
+      widgetRecord?.defaultPosition,
+      DEFAULT_WIDGET_POSITION
+    ),
     defaultSize: normalizeWidgetSize(widgetRecord?.defaultSize, DEFAULT_WIDGET_SIZE)
   };
 }
 
 function cloneSpaceRecord(spaceRecord) {
-  const agentInstructions = String(spaceRecord.agentInstructions ?? spaceRecord.specialInstructions ?? "");
+  const agentInstructions = String(
+    spaceRecord.agentInstructions ?? spaceRecord.specialInstructions ?? ""
+  );
 
   return {
     ...spaceRecord,
@@ -280,7 +295,10 @@ function cloneSpaceRecord(spaceRecord) {
     widgetPositions: { ...spaceRecord.widgetPositions },
     widgetSizes: { ...spaceRecord.widgetSizes },
     widgets: Object.fromEntries(
-      Object.entries(spaceRecord.widgets || {}).map(([widgetId, widgetRecord]) => [widgetId, cloneWidgetRecord(widgetRecord)])
+      Object.entries(spaceRecord.widgets || {}).map(([widgetId, widgetRecord]) => [
+        widgetId,
+        cloneWidgetRecord(widgetRecord)
+      ])
     )
   };
 }
@@ -343,7 +361,12 @@ function formatSpaceUpdatedAtLabel(value) {
   return [dateText, timeText].filter(Boolean).join(" ");
 }
 
-function formatSpaceListEntry(spaceRecord, widgetCount = spaceRecord.widgetIds.length, widgetNames = [], thumbnailPath = "") {
+function formatSpaceListEntry(
+  spaceRecord,
+  widgetCount = spaceRecord.widgetIds.length,
+  widgetNames = [],
+  thumbnailPath = ""
+) {
   const normalizedWidgetNames = uniqueList(
     (Array.isArray(widgetNames) ? widgetNames : [])
       .map((value) => String(value || "").trim())
@@ -369,7 +392,9 @@ function formatSpaceListEntry(spaceRecord, widgetCount = spaceRecord.widgetIds.l
 
 function normalizeManifest(rawManifest, fallbackId = "") {
   const now = new Date().toISOString();
-  const id = normalizeSpaceId(rawManifest?.id || fallbackId || rawManifest?.title || `space-${Date.now().toString(36)}`);
+  const id = normalizeSpaceId(
+    rawManifest?.id || fallbackId || rawManifest?.title || `space-${Date.now().toString(36)}`
+  );
   const agentInstructions = normalizeSpaceAgentInstructions(
     rawManifest?.agent_instructions ??
       rawManifest?.agentInstructions ??
@@ -377,7 +402,10 @@ function normalizeManifest(rawManifest, fallbackId = "") {
       rawManifest?.specialInstructions
   );
   const widgetIds = normalizeWidgetIdList(
-    rawManifest?.layout_order ?? rawManifest?.widget_order ?? rawManifest?.widgets ?? rawManifest?.widgetIds
+    rawManifest?.layout_order ??
+      rawManifest?.widget_order ??
+      rawManifest?.widgets ??
+      rawManifest?.widgetIds
   );
   const minimizedWidgetIds = normalizeWidgetIdList(
     rawManifest?.minimized ?? rawManifest?.collapsed ?? rawManifest?.minimizedWidgetIds
@@ -389,7 +417,9 @@ function normalizeManifest(rawManifest, fallbackId = "") {
     widgetIds
   );
   const widgetSizes = pickWidgetMap(
-    normalizeWidgetMap(rawManifest?.sizes ?? rawManifest?.widgetSizes, (value) => normalizeWidgetSize(value, DEFAULT_WIDGET_SIZE)),
+    normalizeWidgetMap(rawManifest?.sizes ?? rawManifest?.widgetSizes, (value) =>
+      normalizeWidgetSize(value, DEFAULT_WIDGET_SIZE)
+    ),
     widgetIds
   );
 
@@ -467,8 +497,8 @@ function serializeManifest(spaceRecord) {
     yamlSource.positions = Object.fromEntries(positionEntries);
   }
 
-  const minimizedWidgetIds = normalizeWidgetIdList(spaceRecord.minimizedWidgetIds).filter((widgetId) =>
-    spaceRecord.widgetIds.includes(widgetId)
+  const minimizedWidgetIds = normalizeWidgetIdList(spaceRecord.minimizedWidgetIds).filter(
+    (widgetId) => spaceRecord.widgetIds.includes(widgetId)
   );
 
   if (minimizedWidgetIds.length) {
@@ -480,7 +510,13 @@ function serializeManifest(spaceRecord) {
 
 function normalizeWidgetRecord(rawWidget, fallback = {}) {
   const widgetId = normalizeWidgetId(rawWidget?.id || fallback.id || rawWidget?.name || "widget");
-  const name = String(rawWidget?.name || rawWidget?.title || fallback.name || formatTitleFromId(widgetId) || "Untitled Widget").trim();
+  const name = String(
+    rawWidget?.name ||
+      rawWidget?.title ||
+      fallback.name ||
+      formatTitleFromId(widgetId) ||
+      "Untitled Widget"
+  ).trim();
   const sizeSource =
     rawWidget?.size ??
     rawWidget?.default_size ??
@@ -509,7 +545,9 @@ function normalizeWidgetRecord(rawWidget, fallback = {}) {
     metadata: normalizeWidgetMetadata(rawWidget?.metadata ?? rawWidget?.meta ?? fallback.metadata),
     name: name || formatTitleFromId(widgetId) || "Untitled Widget",
     path: String(fallback.path || ""),
-    rendererSource: normalizeRendererSource(rawWidget?.renderer ?? rawWidget?.render ?? fallback.rendererSource),
+    rendererSource: normalizeRendererSource(
+      rawWidget?.renderer ?? rawWidget?.render ?? fallback.rendererSource
+    ),
     schema: String(rawWidget?.schema || fallback.schema || SPACE_WIDGET_SCHEMA)
   };
 }
@@ -596,9 +634,7 @@ function buildWidgetMetadataLines(widgetRecord) {
 
 function getWidgetRendererReadLines(widgetRecord) {
   const normalizedWidget = normalizeWidgetRecord(widgetRecord, widgetRecord);
-  return dedentMultilineText(normalizedWidget.rendererSource)
-    .replace(/\r\n?/gu, "\n")
-    .split("\n");
+  return dedentMultilineText(normalizedWidget.rendererSource).replace(/\r\n?/gu, "\n").split("\n");
 }
 
 function formatWidgetRecordForRead(widgetRecord) {
@@ -650,7 +686,10 @@ function readWidgetPatchContentField(edit = {}) {
   return null;
 }
 
-function normalizeWidgetPatchStringContent(contentField, { allowMissing = false, defaultValue = "" } = {}) {
+function normalizeWidgetPatchStringContent(
+  contentField,
+  { allowMissing = false, defaultValue = "" } = {}
+) {
   if (!contentField) {
     return allowMissing ? defaultValue : null;
   }
@@ -703,17 +742,23 @@ function normalizeWidgetTextPatchEdit(edit, sourceText) {
       : undefined;
 
   if (typeof rawFind !== "string" || !rawFind) {
-    throw new Error("Exact widget snippet edits require a non-empty string `find` copied from the readable renderer.");
+    throw new Error(
+      "Exact widget snippet edits require a non-empty string `find` copied from the readable renderer."
+    );
   }
 
   const matchIndexes = findAllWidgetPatchOccurrences(sourceText, rawFind);
 
   if (!matchIndexes.length) {
-    throw new Error("Exact widget snippet edit `find` text was not found in the readable renderer.");
+    throw new Error(
+      "Exact widget snippet edit `find` text was not found in the readable renderer."
+    );
   }
 
   if (matchIndexes.length > 1) {
-    throw new Error("Exact widget snippet edit `find` text is ambiguous. Use a longer unique snippet or switch to line-based edits.");
+    throw new Error(
+      "Exact widget snippet edit `find` text is ambiguous. Use a longer unique snippet or switch to line-based edits."
+    );
   }
 
   return {
@@ -732,12 +777,17 @@ function normalizeWidgetTextPatchEdit(edit, sourceText) {
 function normalizeWidgetPatchEdit(edit, lineCount, sourceText) {
   const normalizedEdit = edit && typeof edit === "object" ? edit : {};
 
-  if (hasOwnWidgetPatchField(normalizedEdit, "find") || hasOwnWidgetPatchField(normalizedEdit, "search")) {
+  if (
+    hasOwnWidgetPatchField(normalizedEdit, "find") ||
+    hasOwnWidgetPatchField(normalizedEdit, "search")
+  ) {
     return normalizeWidgetTextPatchEdit(normalizedEdit, sourceText);
   }
 
   const rawRange =
-    Array.isArray(normalizedEdit.range) && normalizedEdit.range.length >= 1 ? normalizedEdit.range : null;
+    Array.isArray(normalizedEdit.range) && normalizedEdit.range.length >= 1
+      ? normalizedEdit.range
+      : null;
   const rawFrom = hasOwnWidgetPatchField(normalizedEdit, "from")
     ? normalizedEdit.from
     : hasOwnWidgetPatchField(normalizedEdit, "line")
@@ -761,7 +811,9 @@ function normalizeWidgetPatchEdit(edit, lineCount, sourceText) {
   const hasContent = Boolean(contentField);
 
   if (!Number.isInteger(from) || from < 0) {
-    throw new Error("Widget patch edits require an integer zero-based renderer `from` line number of 0 or greater.");
+    throw new Error(
+      "Widget patch edits require an integer zero-based renderer `from` line number of 0 or greater."
+    );
   }
 
   if (!hasTo && !hasContent) {
@@ -776,7 +828,9 @@ function normalizeWidgetPatchEdit(edit, lineCount, sourceText) {
     }
 
     return {
-      contentLines: normalizeWidgetPatchContentLines(normalizeWidgetPatchStringContent(contentField)),
+      contentLines: normalizeWidgetPatchContentLines(
+        normalizeWidgetPatchStringContent(contentField)
+      ),
       from,
       kind: "insert",
       mode: "line",
@@ -791,11 +845,15 @@ function normalizeWidgetPatchEdit(edit, lineCount, sourceText) {
   }
 
   if (to >= lineCount) {
-    throw new Error(`Patch edit range ${from}-${to} is outside the readable renderer range 0-${Math.max(0, lineCount - 1)}.`);
+    throw new Error(
+      `Patch edit range ${from}-${to} is outside the readable renderer range 0-${Math.max(0, lineCount - 1)}.`
+    );
   }
 
   return {
-    contentLines: hasContent ? normalizeWidgetPatchContentLines(normalizeWidgetPatchStringContent(contentField)) : [],
+    contentLines: hasContent
+      ? normalizeWidgetPatchContentLines(normalizeWidgetPatchStringContent(contentField))
+      : [],
     from,
     kind: "replace",
     mode: "line",
@@ -822,7 +880,9 @@ function validateLineWidgetPatchEdits(edits = [], lineCount = 0) {
 
   for (let index = 1; index < spans.length; index += 1) {
     if (spans[index].start <= spans[index - 1].end) {
-      throw new Error(`Widget patch edits must not overlap. Conflicting edits: ${spans[index - 1].label} and ${spans[index].label}.`);
+      throw new Error(
+        `Widget patch edits must not overlap. Conflicting edits: ${spans[index - 1].label} and ${spans[index].label}.`
+      );
     }
   }
 
@@ -832,7 +892,9 @@ function validateLineWidgetPatchEdits(edits = [], lineCount = 0) {
     );
 
     if (rewritesWholeRenderer) {
-      throw new Error("patchWidget(...) is for partial renderer edits only; use renderWidget(...) for a full renderer rewrite.");
+      throw new Error(
+        "patchWidget(...) is for partial renderer edits only; use renderWidget(...) for a full renderer rewrite."
+      );
     }
   }
 }
@@ -848,15 +910,21 @@ function validateTextWidgetPatchEdits(edits = [], sourceText = "") {
 
   for (let index = 1; index < spans.length; index += 1) {
     if (spans[index].start < spans[index - 1].end) {
-      throw new Error(`Widget patch edits must not overlap. Conflicting edits: ${spans[index - 1].label} and ${spans[index].label}.`);
+      throw new Error(
+        `Widget patch edits must not overlap. Conflicting edits: ${spans[index - 1].label} and ${spans[index].label}.`
+      );
     }
   }
 
   if (sourceText.length > 0) {
-    const rewritesWholeRenderer = edits.some((edit) => edit.start === 0 && edit.end === sourceText.length);
+    const rewritesWholeRenderer = edits.some(
+      (edit) => edit.start === 0 && edit.end === sourceText.length
+    );
 
     if (rewritesWholeRenderer) {
-      throw new Error("patchWidget(...) is for partial renderer edits only; use renderWidget(...) for a full renderer rewrite.");
+      throw new Error(
+        "patchWidget(...) is for partial renderer edits only; use renderWidget(...) for a full renderer rewrite."
+      );
     }
   }
 }
@@ -865,7 +933,9 @@ function validateWidgetPatchEdits(edits = [], lineCount = 0, sourceText = "") {
   const patchModes = uniqueList(edits.map((edit) => edit.mode).filter(Boolean));
 
   if (patchModes.length > 1) {
-    throw new Error("Widget patch edits must use either zero-based line ranges or exact `find` snippets in one call, not both.");
+    throw new Error(
+      "Widget patch edits must use either zero-based line ranges or exact `find` snippets in one call, not both."
+    );
   }
 
   if (patchModes[0] === "text") {
@@ -924,19 +994,17 @@ function applyWidgetPatchEdits(widgetRecord, edits = []) {
 
 function applyPatchedWidgetAttributes(widgetRecord, options = {}) {
   const nextSize = normalizeWidgetSize(
-    options.size ??
-      {
-        cols: options.cols,
-        rows: options.rows
-      },
+    options.size ?? {
+      cols: options.cols,
+      rows: options.rows
+    },
     widgetRecord?.defaultSize || DEFAULT_WIDGET_SIZE
   );
   const nextPosition = normalizeWidgetPosition(
-    options.position ??
-      {
-        col: options.col,
-        row: options.row
-      },
+    options.position ?? {
+      col: options.col,
+      row: options.row
+    },
     widgetRecord?.defaultPosition || DEFAULT_WIDGET_POSITION
   );
 
@@ -1051,10 +1119,7 @@ function normalizeLegacyFunctionSource(sourceText) {
 }
 
 export function normalizeRendererSource(value, fallback = "") {
-  const sourceText =
-    typeof value === "function"
-      ? value.toString()
-      : value ?? fallback ?? "";
+  const sourceText = typeof value === "function" ? value.toString() : (value ?? fallback ?? "");
   const normalizedValue = normalizeLegacyFunctionSource(sourceText);
 
   if (!normalizedValue) {
@@ -1071,7 +1136,9 @@ function tryCompileRendererMethodSource(rendererSource) {
     return methodObject.renderer;
   }
 
-  const functionValues = Object.values(methodObject || {}).filter((value) => typeof value === "function");
+  const functionValues = Object.values(methodObject || {}).filter(
+    (value) => typeof value === "function"
+  );
 
   if (functionValues.length === 1) {
     return functionValues[0];
@@ -1093,17 +1160,23 @@ function validateWidgetRendererSourceForWrite(widgetRecord, actionLabel = "save"
       compiledRenderer = tryCompileRendererMethodSource(rendererSource);
     } catch {
       const message = String(directCompileError?.message || "Invalid renderer syntax.");
-      throw new Error(`Cannot ${actionLabel} widget "${widgetId}": renderer syntax is invalid (${message}). No files were written.`);
+      throw new Error(
+        `Cannot ${actionLabel} widget "${widgetId}": renderer syntax is invalid (${message}). No files were written.`
+      );
     }
 
     if (!compiledRenderer) {
       const message = String(directCompileError?.message || "Invalid renderer syntax.");
-      throw new Error(`Cannot ${actionLabel} widget "${widgetId}": renderer syntax is invalid (${message}). No files were written.`);
+      throw new Error(
+        `Cannot ${actionLabel} widget "${widgetId}": renderer syntax is invalid (${message}). No files were written.`
+      );
     }
   }
 
   if (typeof compiledRenderer !== "function") {
-    throw new Error(`Cannot ${actionLabel} widget "${widgetId}": renderer must evaluate to a function. No files were written.`);
+    throw new Error(
+      `Cannot ${actionLabel} widget "${widgetId}": renderer must evaluate to a function. No files were written.`
+    );
   }
 
   return {
@@ -1115,9 +1188,9 @@ function validateWidgetRendererSourceForWrite(widgetRecord, actionLabel = "save"
 function createDefaultRendererSource() {
   return [
     "(parent) => {",
-    "  const copy = document.createElement(\"p\");",
-    "  copy.className = \"spaces-widget-placeholder-copy\";",
-    "  copy.textContent = \"Replace this widget renderer with your own DOM code.\";",
+    '  const copy = document.createElement("p");',
+    '  copy.className = "spaces-widget-placeholder-copy";',
+    '  copy.textContent = "Replace this widget renderer with your own DOM code.";',
     "  parent.appendChild(copy);",
     "}"
   ].join("\n");
@@ -1128,7 +1201,9 @@ function createWidgetRecordFromOptions(options = {}, fallback = {}) {
     options.renderer ??
     options.render ??
     options.source ??
-    (options.html !== undefined ? createHtmlRendererSource(options.html) : fallback.rendererSource ?? createDefaultRendererSource());
+    (options.html !== undefined
+      ? createHtmlRendererSource(options.html)
+      : (fallback.rendererSource ?? createDefaultRendererSource()));
   const sizeSource =
     options.size ??
     (options.cols !== undefined || options.rows !== undefined
@@ -1173,7 +1248,10 @@ function parseWidgetSource(sourceText, fallback = {}) {
     parsed &&
     typeof parsed === "object" &&
     !Array.isArray(parsed) &&
-    (parsed.renderer !== undefined || parsed.render !== undefined || parsed.id !== undefined || parsed.name !== undefined)
+    (parsed.renderer !== undefined ||
+      parsed.render !== undefined ||
+      parsed.id !== undefined ||
+      parsed.name !== undefined)
   ) {
     return normalizeWidgetRecord(parsed, fallback);
   }
@@ -1199,13 +1277,18 @@ async function writeManifestFile(spaceRecord) {
   const runtime = ensureSpaceRuntime();
   const normalizedRecord = normalizeManifest(spaceRecord, spaceRecord?.id);
   normalizedRecord.widgetIds = [...spaceRecord.widgetIds];
-  normalizedRecord.widgetPositions = pickWidgetMap(spaceRecord.widgetPositions, normalizedRecord.widgetIds);
-  normalizedRecord.widgetSizes = pickWidgetMap(spaceRecord.widgetSizes, normalizedRecord.widgetIds);
-  normalizedRecord.minimizedWidgetIds = normalizeWidgetIdList(spaceRecord.minimizedWidgetIds).filter((widgetId) =>
-    normalizedRecord.widgetIds.includes(widgetId)
+  normalizedRecord.widgetPositions = pickWidgetMap(
+    spaceRecord.widgetPositions,
+    normalizedRecord.widgetIds
   );
+  normalizedRecord.widgetSizes = pickWidgetMap(spaceRecord.widgetSizes, normalizedRecord.widgetIds);
+  normalizedRecord.minimizedWidgetIds = normalizeWidgetIdList(
+    spaceRecord.minimizedWidgetIds
+  ).filter((widgetId) => normalizedRecord.widgetIds.includes(widgetId));
   normalizedRecord.icon = normalizeSpaceIcon(spaceRecord?.icon ?? normalizedRecord.icon);
-  normalizedRecord.iconColor = normalizeSpaceIconColor(spaceRecord?.iconColor ?? normalizedRecord.iconColor);
+  normalizedRecord.iconColor = normalizeSpaceIconColor(
+    spaceRecord?.iconColor ?? normalizedRecord.iconColor
+  );
   const normalizedAgentInstructions = normalizeSpaceAgentInstructions(
     spaceRecord?.agentInstructions ??
       spaceRecord?.specialInstructions ??
@@ -1285,8 +1368,14 @@ async function listSpaceWidgetPaths(spaceId) {
 }
 
 async function loadLegacyWidgetDefinition(spaceId, widgetId) {
-  const moduleUrl = new URL(resolveAppUrl(buildLegacySpaceWidgetFilePath(spaceId, widgetId)), globalThis.location.origin);
-  moduleUrl.searchParams.set("v", `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`);
+  const moduleUrl = new URL(
+    resolveAppUrl(buildLegacySpaceWidgetFilePath(spaceId, widgetId)),
+    globalThis.location.origin
+  );
+  moduleUrl.searchParams.set(
+    "v",
+    `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+  );
 
   const module = await import(moduleUrl.toString());
   const candidate = module?.default ?? module?.widget ?? module;
@@ -1299,7 +1388,10 @@ async function loadLegacyWidgetDefinition(spaceId, widgetId) {
 }
 
 function createLegacyRendererSource(definition) {
-  const loadSource = typeof definition.load === "function" ? normalizeLegacyFunctionSource(definition.load.toString()) : "";
+  const loadSource =
+    typeof definition.load === "function"
+      ? normalizeLegacyFunctionSource(definition.load.toString())
+      : "";
   const renderSource = normalizeLegacyFunctionSource(definition.render.toString());
 
   return [
@@ -1314,7 +1406,9 @@ function createLegacyRendererSource(definition) {
 
 async function migrateLegacyWidgetModules(spaceId, widgetPaths = null) {
   const runtime = ensureSpaceRuntime();
-  const resolvedWidgetPaths = Array.isArray(widgetPaths) ? widgetPaths : await listSpaceWidgetPaths(spaceId);
+  const resolvedWidgetPaths = Array.isArray(widgetPaths)
+    ? widgetPaths
+    : await listSpaceWidgetPaths(spaceId);
   const legacyPaths = resolvedWidgetPaths.filter((path) => String(path || "").endsWith(".js"));
 
   if (!legacyPaths.length) {
@@ -1386,8 +1480,9 @@ function parseWidgetFiles(spaceId, files = []) {
 
 async function readWidgetFiles(spaceId, widgetPaths = null) {
   const runtime = ensureSpaceRuntime();
-  const yamlWidgetPaths = (Array.isArray(widgetPaths) ? widgetPaths : await listSpaceWidgetPaths(spaceId))
-    .filter((path) => String(path || "").endsWith(SPACE_WIDGET_FILE_EXTENSION));
+  const yamlWidgetPaths = (
+    Array.isArray(widgetPaths) ? widgetPaths : await listSpaceWidgetPaths(spaceId)
+  ).filter((path) => String(path || "").endsWith(SPACE_WIDGET_FILE_EXTENSION));
 
   if (!yamlWidgetPaths.length) {
     return {};
@@ -1414,7 +1509,9 @@ async function readWidgetFile(spaceId, widgetId, fallback = {}) {
 }
 
 function buildResolvedLayoutInputs(spaceRecord, overrides = {}) {
-  const widgetIds = normalizeWidgetIdList(overrides.widgetIds ?? spaceRecord.widgetIds).filter((widgetId) => spaceRecord.widgets[widgetId]);
+  const widgetIds = normalizeWidgetIdList(overrides.widgetIds ?? spaceRecord.widgetIds).filter(
+    (widgetId) => spaceRecord.widgets[widgetId]
+  );
   const widgetPositions = {};
   const widgetSizes = {};
 
@@ -1425,14 +1522,20 @@ function buildResolvedLayoutInputs(spaceRecord, overrides = {}) {
     const sourcePositions = overrides.widgetPositions ?? spaceRecord.widgetPositions;
     const sourceSizes = overrides.widgetSizes ?? spaceRecord.widgetSizes;
 
-    widgetPositions[widgetId] = normalizeWidgetPosition(sourcePositions?.[widgetId] ?? defaultPosition, defaultPosition);
-    widgetSizes[widgetId] = normalizeWidgetSize(sourceSizes?.[widgetId] ?? defaultSize, defaultSize);
+    widgetPositions[widgetId] = normalizeWidgetPosition(
+      sourcePositions?.[widgetId] ?? defaultPosition,
+      defaultPosition
+    );
+    widgetSizes[widgetId] = normalizeWidgetSize(
+      sourceSizes?.[widgetId] ?? defaultSize,
+      defaultSize
+    );
   });
 
   return {
-    minimizedWidgetIds: normalizeWidgetIdList(overrides.minimizedWidgetIds ?? spaceRecord.minimizedWidgetIds).filter((widgetId) =>
-      widgetIds.includes(widgetId)
-    ),
+    minimizedWidgetIds: normalizeWidgetIdList(
+      overrides.minimizedWidgetIds ?? spaceRecord.minimizedWidgetIds
+    ).filter((widgetId) => widgetIds.includes(widgetId)),
     widgetIds,
     widgetPositions,
     widgetSizes
@@ -1440,11 +1543,15 @@ function buildResolvedLayoutInputs(spaceRecord, overrides = {}) {
 }
 
 function syncManifestWithResolvedLayout(spaceRecord, resolvedLayout) {
-  const widgetIds = normalizeWidgetIdList(spaceRecord.widgetIds).filter((widgetId) => spaceRecord.widgets[widgetId]);
+  const widgetIds = normalizeWidgetIdList(spaceRecord.widgetIds).filter(
+    (widgetId) => spaceRecord.widgets[widgetId]
+  );
   spaceRecord.widgetIds = widgetIds;
   spaceRecord.widgetPositions = pickWidgetMap(resolvedLayout.positions, widgetIds);
   spaceRecord.widgetSizes = pickWidgetMap(spaceRecord.widgetSizes, widgetIds);
-  spaceRecord.minimizedWidgetIds = widgetIds.filter((widgetId) => resolvedLayout.minimizedMap[widgetId]);
+  spaceRecord.minimizedWidgetIds = widgetIds.filter(
+    (widgetId) => resolvedLayout.minimizedMap[widgetId]
+  );
 }
 
 export function normalizeSpaceId(value, fallback = "space") {
@@ -1551,7 +1658,9 @@ export function createWidgetSource(options = {}) {
         (options.html !== undefined ? createHtmlRendererSource(options.html) : undefined)
     },
     {
-      id: normalizeWidgetId(options.widgetId || options.id || options.name || options.title || "widget"),
+      id: normalizeWidgetId(
+        options.widgetId || options.id || options.name || options.title || "widget"
+      ),
       name: String(options.name || options.title || "Untitled Widget").trim() || "Untitled Widget",
       rendererSource: createDefaultRendererSource()
     }
@@ -1561,15 +1670,17 @@ export function createWidgetSource(options = {}) {
 }
 
 export function previewWidgetRecord(options = {}, fallback = {}) {
-  const widgetFallbackId = normalizeWidgetId(options.widgetId || options.id || options.name || options.title || fallback.id || "widget");
+  const widgetFallbackId = normalizeWidgetId(
+    options.widgetId || options.id || options.name || options.title || fallback.id || "widget"
+  );
 
   if (options.source !== undefined) {
     const parsedWidget = parseWidgetSource(options.source, {
-        ...fallback,
-        id: fallback.id || widgetFallbackId,
-        name: options.name || options.title || fallback.name || formatTitleFromId(widgetFallbackId),
-        rendererSource: fallback.rendererSource || createDefaultRendererSource()
-      });
+      ...fallback,
+      id: fallback.id || widgetFallbackId,
+      name: options.name || options.title || fallback.name || formatTitleFromId(widgetFallbackId),
+      rendererSource: fallback.rendererSource || createDefaultRendererSource()
+    });
 
     return applyPatchedWidgetAttributes(parsedWidget, {
       ...options,
@@ -1604,15 +1715,21 @@ export async function listSpaces() {
     throw error;
   }
 
-  const manifestPaths = matchedPaths.filter((path) => /\/spaces\/[^/]+\/space\.yaml$/u.test(String(path || "")));
-  const widgetPaths = matchedPaths.filter((path) => /\/spaces\/[^/]+\/widgets\/[^/]+\.(?:yaml|js)$/u.test(String(path || "")));
+  const manifestPaths = matchedPaths.filter((path) =>
+    /\/spaces\/[^/]+\/space\.yaml$/u.test(String(path || ""))
+  );
+  const widgetPaths = matchedPaths.filter((path) =>
+    /\/spaces\/[^/]+\/widgets\/[^/]+\.(?:yaml|js)$/u.test(String(path || ""))
+  );
 
   if (!manifestPaths.length) {
     clearRecentListedSpaceRecords();
     return [];
   }
 
-  const yamlWidgetPaths = widgetPaths.filter((path) => String(path || "").endsWith(SPACE_WIDGET_FILE_EXTENSION));
+  const yamlWidgetPaths = widgetPaths.filter((path) =>
+    String(path || "").endsWith(SPACE_WIDGET_FILE_EXTENSION)
+  );
   const widgetCounts = {};
   widgetPaths.forEach((path) => {
     const normalizedPath = String(path || "");
@@ -1634,9 +1751,7 @@ export async function listSpaces() {
     files: [...manifestPaths, ...yamlWidgetPaths]
   });
   const files = Array.isArray(readResult?.files) ? readResult.files : [];
-  const fileMap = new Map(
-    files.map((file) => [String(file?.path || ""), file])
-  );
+  const fileMap = new Map(files.map((file) => [String(file?.path || ""), file]));
   const widgetNamesBySpaceId = {};
   const widgetRecordsBySpaceId = {};
   const uncacheableSpaceIds = new Set(
@@ -1706,7 +1821,9 @@ export async function listSpaces() {
       if (!uncacheableSpaceIds.has(normalizedSpace.id)) {
         nextListedSpaceRecords.set(normalizedSpace.id, {
           ...normalizedSpace,
-          minimizedWidgetIds: normalizedSpace.minimizedWidgetIds.filter((widgetId) => availableWidgetIds.includes(widgetId)),
+          minimizedWidgetIds: normalizedSpace.minimizedWidgetIds.filter((widgetId) =>
+            availableWidgetIds.includes(widgetId)
+          ),
           widgetIds: availableWidgetIds,
           widgetPositions: pickWidgetMap(normalizedSpace.widgetPositions, availableWidgetIds),
           widgetSizes: pickWidgetMap(normalizedSpace.widgetSizes, availableWidgetIds),
@@ -1770,7 +1887,9 @@ export async function readSpace(spaceId) {
     widgetPaths = await listSpaceWidgetPaths(normalizedSpaceId);
   }
 
-  const yamlWidgetPaths = widgetPaths.filter((path) => String(path || "").endsWith(SPACE_WIDGET_FILE_EXTENSION));
+  const yamlWidgetPaths = widgetPaths.filter((path) =>
+    String(path || "").endsWith(SPACE_WIDGET_FILE_EXTENSION)
+  );
   const readResult = await runtime.api.fileRead({
     files: [buildSpaceManifestPath(normalizedSpaceId), ...yamlWidgetPaths]
   });
@@ -1788,11 +1907,16 @@ export async function readSpace(spaceId) {
     files.filter((file) => String(file?.path || "").endsWith(SPACE_WIDGET_FILE_EXTENSION))
   );
   const discoveredWidgetIds = Object.keys(widgets);
-  const widgetIds = uniqueList([...manifest.widgetIds.filter((widgetId) => widgets[widgetId]), ...discoveredWidgetIds]);
+  const widgetIds = uniqueList([
+    ...manifest.widgetIds.filter((widgetId) => widgets[widgetId]),
+    ...discoveredWidgetIds
+  ]);
 
   return {
     ...manifest,
-    minimizedWidgetIds: manifest.minimizedWidgetIds.filter((widgetId) => widgetIds.includes(widgetId)),
+    minimizedWidgetIds: manifest.minimizedWidgetIds.filter((widgetId) =>
+      widgetIds.includes(widgetId)
+    ),
     widgetIds,
     widgetPositions: pickWidgetMap(manifest.widgetPositions, widgetIds),
     widgetSizes: pickWidgetMap(manifest.widgetSizes, widgetIds),
@@ -1923,7 +2047,7 @@ export async function duplicateSpace(spaceIdOrOptions = {}) {
     typeof spaceIdOrOptions === "string"
       ? spaceIdOrOptions
       : spaceIdOrOptions && typeof spaceIdOrOptions === "object"
-        ? spaceIdOrOptions.spaceId ?? spaceIdOrOptions.id
+        ? (spaceIdOrOptions.spaceId ?? spaceIdOrOptions.id)
         : "";
   const sourceSpaceId = normalizeOptionalSpaceId(requestedSpaceId);
 
@@ -1962,7 +2086,7 @@ export async function removeSpace(spaceIdOrOptions = {}) {
     typeof spaceIdOrOptions === "string"
       ? spaceIdOrOptions
       : spaceIdOrOptions && typeof spaceIdOrOptions === "object"
-        ? spaceIdOrOptions.spaceId ?? spaceIdOrOptions.id
+        ? (spaceIdOrOptions.spaceId ?? spaceIdOrOptions.id)
         : "";
   const spaceId = normalizeOptionalSpaceId(requestedSpaceId);
 
@@ -2017,7 +2141,9 @@ export async function saveSpaceLayout(options = {}) {
   const nextSpace = cloneSpaceRecord(currentSpace);
 
   if (Array.isArray(options.widgetIds)) {
-    nextSpace.widgetIds = normalizeWidgetIdList(options.widgetIds).filter((widgetId) => nextSpace.widgets[widgetId]);
+    nextSpace.widgetIds = normalizeWidgetIdList(options.widgetIds).filter(
+      (widgetId) => nextSpace.widgets[widgetId]
+    );
   }
 
   if (options.widgetPositions && typeof options.widgetPositions === "object") {
@@ -2054,7 +2180,9 @@ export async function upsertWidget(options = {}) {
   }
 
   const currentSpace = cloneSpaceRecord(await readSpace(spaceId));
-  const widgetFallbackId = normalizeWidgetId(options.widgetId || options.id || options.name || options.title || "widget");
+  const widgetFallbackId = normalizeWidgetId(
+    options.widgetId || options.id || options.name || options.title || "widget"
+  );
   const existingWidget = currentSpace.widgets[widgetFallbackId] || null;
   const widgetRecord = validateWidgetRendererSourceForWrite(
     previewWidgetRecord(options, {
@@ -2062,7 +2190,11 @@ export async function upsertWidget(options = {}) {
       defaultPosition: existingWidget?.defaultPosition || DEFAULT_WIDGET_POSITION,
       defaultSize: existingWidget?.defaultSize || DEFAULT_WIDGET_SIZE,
       id: existingWidget?.id || widgetFallbackId,
-      name: options.name || options.title || existingWidget?.name || formatTitleFromId(widgetFallbackId),
+      name:
+        options.name ||
+        options.title ||
+        existingWidget?.name ||
+        formatTitleFromId(widgetFallbackId),
       path: buildSpaceWidgetFilePath(spaceId, widgetFallbackId),
       rendererSource: existingWidget?.rendererSource || createDefaultRendererSource()
     }),
@@ -2081,7 +2213,11 @@ export async function upsertWidget(options = {}) {
     nextSpace.widgetIds.push(widgetId);
   }
 
-  if (!hasExistingWidget && currentSpace.widgetIds.length === 0 && !normalizeSpaceTitle(currentSpace.title)) {
+  if (
+    !hasExistingWidget &&
+    currentSpace.widgetIds.length === 0 &&
+    !normalizeSpaceTitle(currentSpace.title)
+  ) {
     nextSpace.title = normalizeSpaceTitle(widgetRecord.name);
   }
 
@@ -2130,7 +2266,11 @@ export async function upsertWidgets(options = {}) {
         ? requestedWidget
         : {};
     const widgetFallbackId = normalizeWidgetId(
-      widgetOptions.widgetId || widgetOptions.id || widgetOptions.name || widgetOptions.title || "widget"
+      widgetOptions.widgetId ||
+        widgetOptions.id ||
+        widgetOptions.name ||
+        widgetOptions.title ||
+        "widget"
     );
     const existingWidget = nextSpace.widgets[widgetFallbackId] || null;
     const widgetRecord = validateWidgetRendererSourceForWrite(
@@ -2139,7 +2279,11 @@ export async function upsertWidgets(options = {}) {
         defaultPosition: existingWidget?.defaultPosition || DEFAULT_WIDGET_POSITION,
         defaultSize: existingWidget?.defaultSize || DEFAULT_WIDGET_SIZE,
         id: existingWidget?.id || widgetFallbackId,
-        name: widgetOptions.name || widgetOptions.title || existingWidget?.name || formatTitleFromId(widgetFallbackId),
+        name:
+          widgetOptions.name ||
+          widgetOptions.title ||
+          existingWidget?.name ||
+          formatTitleFromId(widgetFallbackId),
         path: buildSpaceWidgetFilePath(spaceId, widgetFallbackId),
         rendererSource: existingWidget?.rendererSource || createDefaultRendererSource()
       }),
@@ -2157,7 +2301,11 @@ export async function upsertWidgets(options = {}) {
       nextSpace.widgetIds.push(widgetId);
     }
 
-    if (!hasExistingWidget && currentSpace.widgetIds.length === 0 && !normalizeSpaceTitle(currentSpace.title)) {
+    if (
+      !hasExistingWidget &&
+      currentSpace.widgetIds.length === 0 &&
+      !normalizeSpaceTitle(currentSpace.title)
+    ) {
       nextSpace.title = normalizeSpaceTitle(widgetRecord.name);
     }
 
@@ -2209,7 +2357,9 @@ export async function patchWidget(options = {}) {
     options.source !== undefined ||
     options.html !== undefined
   ) {
-    throw new Error("patchWidget(...) accepts renderer line edits through `edits`; use renderWidget(...) for full renderer replacement.");
+    throw new Error(
+      "patchWidget(...) accepts renderer line edits through `edits`; use renderWidget(...) for full renderer replacement."
+    );
   }
 
   const currentSpace = cloneSpaceRecord(await readSpace(spaceId));
@@ -2219,7 +2369,10 @@ export async function patchWidget(options = {}) {
     throw new Error(`Cannot patch widget "${widgetId}": widget not found in space "${spaceId}".`);
   }
 
-  const patchedRendererSource = applyWidgetPatchEdits(currentWidget, options.edits ?? options.lineEdits);
+  const patchedRendererSource = applyWidgetPatchEdits(
+    currentWidget,
+    options.edits ?? options.lineEdits
+  );
   const nextWidget = validateWidgetRendererSourceForWrite(
     applyPatchedWidgetAttributes(
       {
@@ -2287,12 +2440,16 @@ export async function removeWidgets(options = {}) {
   }
 
   if (missingWidgetIds.length) {
-    throw new Error(`Widgets "${missingWidgetIds.join('", "')}" were not found in space "${spaceId}".`);
+    throw new Error(
+      `Widgets "${missingWidgetIds.join('", "')}" were not found in space "${spaceId}".`
+    );
   }
 
   const widgetIdSet = new Set(widgetIds);
   currentSpace.widgetIds = currentSpace.widgetIds.filter((entry) => !widgetIdSet.has(entry));
-  currentSpace.minimizedWidgetIds = currentSpace.minimizedWidgetIds.filter((entry) => !widgetIdSet.has(entry));
+  currentSpace.minimizedWidgetIds = currentSpace.minimizedWidgetIds.filter(
+    (entry) => !widgetIdSet.has(entry)
+  );
   widgetIds.forEach((widgetId) => {
     delete currentSpace.widgetPositions[widgetId];
     delete currentSpace.widgetSizes[widgetId];
@@ -2308,7 +2465,11 @@ export async function removeWidgets(options = {}) {
   await runtime.api.fileDelete({
     paths: widgetIds.map((widgetId) => buildSpaceWidgetFilePath(spaceId, widgetId))
   });
-  await Promise.all(widgetIds.map((widgetId) => deleteAppPathIfExists(buildLegacySpaceWidgetFilePath(spaceId, widgetId))));
+  await Promise.all(
+    widgetIds.map((widgetId) =>
+      deleteAppPathIfExists(buildLegacySpaceWidgetFilePath(spaceId, widgetId))
+    )
+  );
   clearRecentListedSpaceRecords();
 
   return {

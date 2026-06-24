@@ -20,7 +20,9 @@ function resolveRequestedMainFrameUrl(locationObject = globalThis.window?.locati
       return DEFAULT_MAIN_FRAME_URL;
     }
 
-    return `${resolvedUrl.pathname}${resolvedUrl.search}${resolvedUrl.hash}` || DEFAULT_MAIN_FRAME_URL;
+    return (
+      `${resolvedUrl.pathname}${resolvedUrl.search}${resolvedUrl.hash}` || DEFAULT_MAIN_FRAME_URL
+    );
   } catch {
     return DEFAULT_MAIN_FRAME_URL;
   }
@@ -102,7 +104,9 @@ const shellModel = {
   },
 
   leaveAdminArea() {
-    const targetUrl = this.getMainFrameUrl() || new URL(this.mainFrameUrl || DEFAULT_MAIN_FRAME_URL, globalThis.window.location.href).href;
+    const targetUrl =
+      this.getMainFrameUrl() ||
+      new URL(this.mainFrameUrl || DEFAULT_MAIN_FRAME_URL, globalThis.window.location.href).href;
     globalThis.window.location.assign(targetUrl);
   },
 
@@ -152,7 +156,8 @@ const shellModel = {
     this.layout = this.getLayout();
     document.documentElement.dataset.layout = this.layout;
 
-    const ratio = this.splitRatios[this.layout] || (this.layout === HORIZONTAL_LAYOUT ? 0.34 : 0.32);
+    const ratio =
+      this.splitRatios[this.layout] || (this.layout === HORIZONTAL_LAYOUT ? 0.34 : 0.32);
     this.applySplitSize(this.getAxisSize() * ratio);
   },
 

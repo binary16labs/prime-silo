@@ -96,7 +96,6 @@ export function getCurrentAgentScope() {
 
 export const __agent_runtime_meta__ = {
   schema_version: "1.0.0",
-  description:
-    "Phase D2 chokepoint for browser-resident agent runtime → Benny scope-tagged calls.",
+  description: "Phase D2 chokepoint for browser-resident agent runtime → Benny scope-tagged calls.",
   default_scope: DEFAULT_AGENT_SCOPE
 };

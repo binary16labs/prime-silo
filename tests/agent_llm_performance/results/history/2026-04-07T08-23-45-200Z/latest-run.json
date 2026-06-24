@@ -4224,9 +4224,7 @@
           "case_path": "tests/agent_llm_performance/cases/screenshot_download_without_helper_uses_browser_js.json",
           "history_path": "tests/agent_llm_performance/histories/screenshot_download_without_helper_uses_browser_js.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await (async () => {\n  const canvas = await html2canvas(document.body);\n  const link = document.createElement('a');\n  link.download = 'page-screenshot.png';\n  link.href = canvas.toDataURL('image/png');\n  link.click();\n  return 'screenshot downloaded';\n})()",
           "usage": {
@@ -4379,9 +4377,7 @@
           "case_path": "tests/agent_llm_performance/cases/click_button_without_helper_uses_browser_js.json",
           "history_path": "tests/agent_llm_performance/histories/click_button_without_helper_uses_browser_js.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nconst btn = document.querySelector('button')\nif (!btn) return 'No button found'\nbtn.click()\nreturn 'Clicked the first button'",
           "usage": {
@@ -4782,9 +4778,7 @@
           "case_path": "tests/agent_llm_performance/cases/fresh_widget_read_then_do_it_requires_patch.json",
           "history_path": "tests/agent_llm_performance/histories/fresh_widget_read_then_do_it_requires_patch.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.patchWidget(\"quote-board\", { edits: [{ op: \"replace\", path: \"/renderer/0\", value: \"async (parent) => {\\n  const state = { symbols: [\\\"AAPL\\\", \\\"MSFT\\\", \\\"BTC-USD\\\"] }\\n  const data = await fetch(\\\"https://api.example.test/quotes\\\").then(r => r.json())\\n}\" }] })",
           "usage": {
@@ -4899,9 +4893,7 @@
           "case_path": "tests/agent_llm_performance/cases/weather_self_scope_followup.json",
           "history_path": "tests/agent_llm_performance/histories/weather_self_scope_followup.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nconst pos = await new Promise((resolve, reject) =>\n  navigator.geolocation.getCurrentPosition(resolve, reject, {\n    enableHighAccuracy: true,\n    timeout: 10000\n  })\n)\nconst { latitude, longitude } = pos.coords\nreturn await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code,wind_speed_10m`).then(r => r.json())",
           "usage": {
@@ -5189,9 +5181,7 @@
           "case_path": "tests/agent_llm_performance/cases/create_note_after_user_detail_read.json",
           "history_path": "tests/agent_llm_performance/histories/create_note_after_user_detail_read.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Creating `~/notes/whoami.txt` with `pan` now.\n_____javascript\nreturn await space.files.writeFile(\"~/notes/whoami.txt\", \"pan\")",
           "usage": {
@@ -5423,9 +5413,7 @@
           "case_path": "tests/agent_llm_performance/cases/space_navigation_after_current_helper_error_switches_family.json",
           "history_path": "tests/agent_llm_performance/histories/space_navigation_after_current_helper_error_switches_family.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.spaces.listSpaces()",
           "usage": {

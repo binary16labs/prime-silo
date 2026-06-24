@@ -152,7 +152,9 @@ function buildUserIndexShardChanges(previousUserIndex, nextUserIndex, usernames 
         ? previousUserIndex.getUser(username)
         : null;
     const nextUserRecord =
-      nextUserIndex && typeof nextUserIndex.getUser === "function" ? nextUserIndex.getUser(username) : null;
+      nextUserIndex && typeof nextUserIndex.getUser === "function"
+        ? nextUserIndex.getUser(username)
+        : null;
     const previousSessions = getSessionMapForUser(previousUserRecord);
     const nextSessions = getSessionMapForUser(nextUserRecord);
     const sessionVerifiers = sortStrings([
@@ -346,7 +348,9 @@ function createRuntimeGroupIndexFromAreas(areaState = {}) {
     getManagedGroupsForUser(username) {
       const normalizedUsername = String(username || "").trim();
       const userRecord = normalizedUsername ? users[normalizedUsername] || null : null;
-      return userRecord && Array.isArray(userRecord.managedGroups) ? [...userRecord.managedGroups] : [];
+      return userRecord && Array.isArray(userRecord.managedGroups)
+        ? [...userRecord.managedGroups]
+        : [];
     },
     getOrderedGroupsForUser(username) {
       const normalizedUsername = String(username || "").trim();
@@ -381,7 +385,10 @@ function createRuntimeGroupIndexFromAreas(areaState = {}) {
         return false;
       }
 
-      return Array.isArray(groupRecord.memberUsers) && groupRecord.memberUsers.includes(normalizedUsername);
+      return (
+        Array.isArray(groupRecord.memberUsers) &&
+        groupRecord.memberUsers.includes(normalizedUsername)
+      );
     },
     users
   };

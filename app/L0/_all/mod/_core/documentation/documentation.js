@@ -11,7 +11,9 @@ function normalizeDocSegment(segment) {
 }
 
 function normalizeDocPath(docPath) {
-  const rawPath = String(docPath || "").trim().replace(/^\/+|\/+$/gu, "");
+  const rawPath = String(docPath || "")
+    .trim()
+    .replace(/^\/+|\/+$/gu, "");
 
   if (!rawPath) {
     throw new Error("Documentation path must not be empty.");

@@ -1,9 +1,14 @@
 type SpaceExtend = typeof import("./L0/_all/mod/_core/framework/js/extensions.js").extend;
-type SpaceCreateStore = typeof import("./L0/_all/mod/_core/framework/js/AlpineStore.js").createStore;
-type SpaceYamlParse = typeof import("./L0/_all/mod/_core/framework/js/yaml-lite.js").parseSimpleYaml;
-type SpaceYamlStringify = typeof import("./L0/_all/mod/_core/framework/js/yaml-lite.js").serializeSimpleYaml;
-type SpaceMarkdownParseDocument = typeof import("./L0/_all/mod/_core/framework/js/markdown-frontmatter.js").parseMarkdownDocument;
-type SpaceMarkdownRender = typeof import("./L0/_all/mod/_core/framework/js/markdown-frontmatter.js").renderMarkdown;
+type SpaceCreateStore =
+  typeof import("./L0/_all/mod/_core/framework/js/AlpineStore.js").createStore;
+type SpaceYamlParse =
+  typeof import("./L0/_all/mod/_core/framework/js/yaml-lite.js").parseSimpleYaml;
+type SpaceYamlStringify =
+  typeof import("./L0/_all/mod/_core/framework/js/yaml-lite.js").serializeSimpleYaml;
+type SpaceMarkdownParseDocument =
+  typeof import("./L0/_all/mod/_core/framework/js/markdown-frontmatter.js").parseMarkdownDocument;
+type SpaceMarkdownRender =
+  typeof import("./L0/_all/mod/_core/framework/js/markdown-frontmatter.js").renderMarkdown;
 
 type SpaceApiQueryValue =
   | string
@@ -206,7 +211,10 @@ type SpaceApi = {
   fileDelete(path: SpaceFileDeleteInput): Promise<SpaceFileApiResult>;
   fileDelete(paths: SpaceFileDeleteInput[]): Promise<SpacePathBatchApiResult>;
   fileDelete(options: SpaceFileDeleteBatchOptions): Promise<SpacePathBatchApiResult>;
-  fileList(pathOrOptions: string | SpaceFileListOptions, recursive?: boolean): Promise<SpaceFileApiResult>;
+  fileList(
+    pathOrOptions: string | SpaceFileListOptions,
+    recursive?: boolean
+  ): Promise<SpaceFileApiResult>;
   fileRead(path: string, encoding?: string): Promise<SpaceFileApiResult>;
   fileRead(file: SpaceFileReadInput): Promise<SpaceFileApiResult>;
   fileRead(files: SpaceFileReadInput[], encoding?: string): Promise<SpaceFileBatchApiResult>;
@@ -215,11 +223,29 @@ type SpaceApi = {
   fileWrite(file: SpaceFileWriteInput): Promise<SpaceFileApiResult>;
   fileWrite(files: SpaceFileWriteInput[], encoding?: string): Promise<SpaceFileBatchApiResult>;
   fileWrite(options: SpaceFileWriteBatchOptions): Promise<SpaceFileBatchApiResult>;
-  gitHistoryDiff(pathOrOptions: string | SpaceGitHistoryDiffOptions, commitHash?: string, filePath?: string): Promise<SpaceGitHistoryDiffResult>;
-  gitHistoryList(pathOrOptions?: string | SpaceGitHistoryListOptions, limit?: number): Promise<SpaceGitHistoryListResult>;
-  gitHistoryPreview(pathOrOptions?: string | SpaceGitHistoryPreviewOptions, commitHash?: string, operation?: string, filePath?: string): Promise<SpaceGitHistoryPreviewResult>;
-  gitHistoryRollback(pathOrOptions?: string | SpaceGitHistoryCommitOptions, commitHash?: string): Promise<SpaceGitHistoryMutationResult>;
-  gitHistoryRevert(pathOrOptions?: string | SpaceGitHistoryCommitOptions, commitHash?: string): Promise<SpaceGitHistoryMutationResult>;
+  gitHistoryDiff(
+    pathOrOptions: string | SpaceGitHistoryDiffOptions,
+    commitHash?: string,
+    filePath?: string
+  ): Promise<SpaceGitHistoryDiffResult>;
+  gitHistoryList(
+    pathOrOptions?: string | SpaceGitHistoryListOptions,
+    limit?: number
+  ): Promise<SpaceGitHistoryListResult>;
+  gitHistoryPreview(
+    pathOrOptions?: string | SpaceGitHistoryPreviewOptions,
+    commitHash?: string,
+    operation?: string,
+    filePath?: string
+  ): Promise<SpaceGitHistoryPreviewResult>;
+  gitHistoryRollback(
+    pathOrOptions?: string | SpaceGitHistoryCommitOptions,
+    commitHash?: string
+  ): Promise<SpaceGitHistoryMutationResult>;
+  gitHistoryRevert(
+    pathOrOptions?: string | SpaceGitHistoryCommitOptions,
+    commitHash?: string
+  ): Promise<SpaceGitHistoryMutationResult>;
   health(): Promise<SpaceHealthResult>;
   userSelfInfo(): Promise<SpaceUserSelfInfo>;
 };
@@ -502,13 +528,11 @@ type SpaceSpacesNamespace = {
     specialInstructions?: string;
     title?: string;
   }): Promise<SpaceSpaceRecord>;
-  createWidgetSource(options?: {
-    html?: string;
-    size?: SpaceWidgetSize;
-    title?: string;
-  }): string;
+  createWidgetSource(options?: { html?: string; size?: SpaceWidgetSize; title?: string }): string;
   defineWidget(definition: any): any;
-  duplicateSpace(spaceIdOrOptions?: string | { id?: string; newId?: string; spaceId?: string }): Promise<SpaceSpaceRecord>;
+  duplicateSpace(
+    spaceIdOrOptions?: string | { id?: string; newId?: string; spaceId?: string }
+  ): Promise<SpaceSpaceRecord>;
   getCurrentSpace(): SpaceSpaceRecord | null;
   installExampleSpace(options?: {
     agentInstructions?: string;
@@ -541,12 +565,24 @@ type SpaceSpacesNamespace = {
     widgetId: string;
   }): Promise<string>;
   readSpace(spaceId: string): Promise<SpaceSpaceRecord>;
-  rearrangeWidgets(options: { spaceId?: string; widgetLayouts?: SpaceWidgetLayoutInput[]; widgets: SpaceWidgetLayoutInput[] }): Promise<SpaceSpaceRecord>;
+  rearrangeWidgets(options: {
+    spaceId?: string;
+    widgetLayouts?: SpaceWidgetLayoutInput[];
+    widgets: SpaceWidgetLayoutInput[];
+  }): Promise<SpaceSpaceRecord>;
   reloadCurrentSpace(options?: SpaceSpaceReloadOptions): Promise<SpaceSpaceRecord>;
   reloadWidget(widgetIdOrOptions: string | { spaceId?: string; widgetId: string }): Promise<string>;
-  removeWidget(options: { spaceId?: string; widgetId: string }): Promise<{ space: SpaceSpaceRecord; widgetId: string }>;
-  removeWidgets(options: { spaceId?: string; widgetIds: string[] }): Promise<SpaceWidgetRemovalResult>;
-  removeAllWidgets(spaceIdOrOptions?: string | { id?: string; spaceId?: string }): Promise<SpaceWidgetRemovalResult>;
+  removeWidget(options: {
+    spaceId?: string;
+    widgetId: string;
+  }): Promise<{ space: SpaceSpaceRecord; widgetId: string }>;
+  removeWidgets(options: {
+    spaceId?: string;
+    widgetIds: string[];
+  }): Promise<SpaceWidgetRemovalResult>;
+  removeAllWidgets(
+    spaceIdOrOptions?: string | { id?: string; spaceId?: string }
+  ): Promise<SpaceWidgetRemovalResult>;
   resolveAppUrl(path: string): string;
   saveSpaceLayout(options: {
     id: string;
@@ -604,7 +640,11 @@ type SpaceSpacesNamespace = {
       title?: string | null;
       widgetId?: string;
     }>;
-  }): Promise<{ space: SpaceSpaceRecord; widgetIds: string[]; widgetResults: SpaceWidgetWriteResult[] }>;
+  }): Promise<{
+    space: SpaceSpaceRecord;
+    widgetIds: string[];
+    widgetResults: SpaceWidgetWriteResult[];
+  }>;
   current: SpaceCurrentNamespace | null;
   currentId: string;
   widgetApiVersion: number;
@@ -760,11 +800,23 @@ type SpaceBrowserNamespace = {
   click(id: number | string, ref: number | string): Promise<SpaceBrowserInteractionResult>;
   close(id: number | string): any;
   closeAll(): any;
-  content(id: number | string, payload?: SpaceBrowserContentOptions | null, options?: Record<string, any>): Promise<SpaceBrowserCaptureResult>;
+  content(
+    id: number | string,
+    payload?: SpaceBrowserContentOptions | null,
+    options?: Record<string, any>
+  ): Promise<SpaceBrowserCaptureResult>;
   count(): number;
   create(options?: string | { url?: string; [key: string]: any }): Promise<SpaceBrowserWindowState>;
-  detail(id: number | string, ref: number | string, options?: Record<string, any>): Promise<SpaceBrowserDetailResult>;
-  dom(id: number | string, payload?: SpaceBrowserContentOptions | null, options?: Record<string, any>): Promise<SpaceBrowserCaptureResult>;
+  detail(
+    id: number | string,
+    ref: number | string,
+    options?: Record<string, any>
+  ): Promise<SpaceBrowserDetailResult>;
+  dom(
+    id: number | string,
+    payload?: SpaceBrowserContentOptions | null,
+    options?: Record<string, any>
+  ): Promise<SpaceBrowserCaptureResult>;
   focus(id: number | string, options?: Record<string, any>): Promise<SpaceBrowserWindowState>;
   forward(id: number | string): Promise<SpaceBrowserWindowState>;
   has(id: number | string): boolean;
@@ -774,12 +826,25 @@ type SpaceBrowserNamespace = {
   open(options?: string | { url?: string; [key: string]: any }): Promise<SpaceBrowserWindowState>;
   reload(id: number | string): Promise<SpaceBrowserWindowState>;
   scroll(id: number | string, ref: number | string): Promise<SpaceBrowserInteractionResult>;
-  send(id: number | string, type: string, payload?: any, options?: Record<string, any>): Promise<any>;
+  send(
+    id: number | string,
+    type: string,
+    payload?: any,
+    options?: Record<string, any>
+  ): Promise<any>;
   setLogLevel(level: "debug" | "info" | "warn" | "error" | "silent" | string): string;
   state(id: number | string): Promise<SpaceBrowserWindowState>;
   submit(id: number | string, ref: number | string): Promise<SpaceBrowserInteractionResult>;
-  type(id: number | string, ref: number | string, value?: string): Promise<SpaceBrowserInteractionResult>;
-  typeSubmit(id: number | string, ref: number | string, value?: string): Promise<SpaceBrowserInteractionResult>;
+  type(
+    id: number | string,
+    ref: number | string,
+    value?: string
+  ): Promise<SpaceBrowserInteractionResult>;
+  typeSubmit(
+    id: number | string,
+    ref: number | string,
+    value?: string
+  ): Promise<SpaceBrowserInteractionResult>;
 };
 
 type SpaceRuntime = {

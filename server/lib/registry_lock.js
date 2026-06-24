@@ -56,7 +56,12 @@ export function readLock(startDir = process.cwd(), env = process.env) {
   }
   try {
     const parsed = JSON.parse(fs.readFileSync(lockPath, "utf8"));
-    if (parsed && parsed.schema === LOCK_SCHEMA && parsed.services && typeof parsed.services === "object") {
+    if (
+      parsed &&
+      parsed.schema === LOCK_SCHEMA &&
+      parsed.services &&
+      typeof parsed.services === "object"
+    ) {
       return parsed;
     }
   } catch {
@@ -70,7 +75,12 @@ export function readLock(startDir = process.cwd(), env = process.env) {
  * lockServiceUrl({ appId: "memo-ray", service: "memory-graph" }).
  * Returns the trimmed URL string or null.
  */
-export function lockServiceUrl({ appId, service, startDir = process.cwd(), env = process.env } = {}) {
+export function lockServiceUrl({
+  appId,
+  service,
+  startDir = process.cwd(),
+  env = process.env
+} = {}) {
   const lock = readLock(startDir, env);
   if (!lock) {
     return null;

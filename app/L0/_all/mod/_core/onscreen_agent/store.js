@@ -10,15 +10,17 @@ import * as llmParams from "/mod/_core/onscreen_agent/llm-params.js";
 import * as skills from "/mod/_core/onscreen_agent/skills.js";
 import * as storage from "/mod/_core/onscreen_agent/storage.js";
 import * as agentView from "/mod/_core/onscreen_agent/view.js";
-import {
-  resolveOnscreenAgentBoundaryAfterAssistantResponse
-} from "/mod/_core/onscreen_agent/turn-boundary.js";
+import { resolveOnscreenAgentBoundaryAfterAssistantResponse } from "/mod/_core/onscreen_agent/turn-boundary.js";
 import { renderMarkdown } from "/mod/_core/framework/js/markdown-frontmatter.js";
 import {
   normalizeAssistantEvaluationLogEntry,
   prependAssistantEvaluationLogs
 } from "/mod/_core/agent-chat/assistant-message-evaluation.js";
-import { DEFAULT_MODEL_INPUT, DTYPE_OPTIONS, normalizeHuggingFaceModelInput } from "/mod/_core/huggingface/helpers.js";
+import {
+  DEFAULT_MODEL_INPUT,
+  DTYPE_OPTIONS,
+  normalizeHuggingFaceModelInput
+} from "/mod/_core/huggingface/helpers.js";
 import { getHuggingFaceManager } from "/mod/_core/huggingface/manager.js";
 import { positionPopover } from "/mod/_core/visual/chrome/popover.js";
 import { showToast } from "/mod/_core/visual/chrome/toast.js";
@@ -474,7 +476,9 @@ function applyConversationMessage(targetMessage, nextMessage) {
   }
 
   Object.assign(targetMessage, nextMessage);
-  targetMessage.attachments = Array.isArray(nextMessage.attachments) ? [...nextMessage.attachments] : [];
+  targetMessage.attachments = Array.isArray(nextMessage.attachments)
+    ? [...nextMessage.attachments]
+    : [];
   return targetMessage;
 }
 
@@ -489,7 +493,8 @@ const evaluateOnscreenAssistantMessage = globalThis.space.extend(
   import.meta,
   async function evaluateOnscreenAssistantMessage(context = {}) {
     return {
-      assistantContent: typeof context?.assistantContent === "string" ? context.assistantContent : "",
+      assistantContent:
+        typeof context?.assistantContent === "string" ? context.assistantContent : "",
       history: Array.isArray(context?.history) ? context.history : [],
       logs: Array.isArray(context?.logs)
         ? context.logs.map((entry) => normalizeAssistantEvaluationLogEntry(entry)).filter(Boolean)
@@ -510,7 +515,9 @@ async function resolveProcessedOnscreenAgentMessage(context = {}) {
     message: fallbackMessage
   });
   const processedMessage =
-    processedContext && typeof processedContext === "object" ? processedContext.message : fallbackMessage;
+    processedContext && typeof processedContext === "object"
+      ? processedContext.message
+      : fallbackMessage;
 
   return cloneConversationMessage(processedMessage) || fallbackMessage;
 }
@@ -593,7 +600,9 @@ function getPromptHistoryPreparedBlock(message) {
   const content = getPromptHistoryMessageContent(message);
   const firstLine = content.split(/\r?\n/u, 1)[0]?.trim() || "";
 
-  return Object.values(agentLlm.ONSCREEN_AGENT_PREPARED_MESSAGE_BLOCK).includes(firstLine) ? firstLine : "";
+  return Object.values(agentLlm.ONSCREEN_AGENT_PREPARED_MESSAGE_BLOCK).includes(firstLine)
+    ? firstLine
+    : "";
 }
 
 function isPromptHistoryRealUserMessage(message) {
@@ -815,7 +824,10 @@ function summarizeOnscreenAgentLlmSelection(settings, huggingfaceState) {
   const provider = config.normalizeOnscreenAgentLlmProvider(settings?.provider);
 
   if (provider === config.ONSCREEN_AGENT_LLM_PROVIDER.LOCAL) {
-    const activeModelId = typeof huggingfaceState?.activeModelId === "string" ? huggingfaceState.activeModelId.trim() : "";
+    const activeModelId =
+      typeof huggingfaceState?.activeModelId === "string"
+        ? huggingfaceState.activeModelId.trim()
+        : "";
     const configuredModelId = normalizeHuggingFaceModelInput(settings?.huggingfaceModel || "");
     return configuredModelId || activeModelId || "No model";
   }
@@ -869,7 +881,8 @@ function resolveCssLength(value, contextElement, fallback = 0) {
   }
 
   const probe = document.createElement("div");
-  const host = contextElement instanceof Element ? contextElement : document.body || document.documentElement;
+  const host =
+    contextElement instanceof Element ? contextElement : document.body || document.documentElement;
   probe.style.position = "absolute";
   probe.style.visibility = "hidden";
   probe.style.pointerEvents = "none";
@@ -898,7 +911,11 @@ function resolveElementLineHeight(contextElement = document.documentElement) {
   return Number.isFinite(fallbackFontSize) && fallbackFontSize > 0 ? fallbackFontSize : 16;
 }
 
-function resolveWheelDeltaPixels(event, contextElement = document.documentElement, viewportElement = null) {
+function resolveWheelDeltaPixels(
+  event,
+  contextElement = document.documentElement,
+  viewportElement = null
+) {
   const viewportWidth = Math.max(1, viewportElement?.clientWidth || window.innerWidth || 1);
   const viewportHeight = Math.max(1, viewportElement?.clientHeight || window.innerHeight || 1);
 
@@ -942,7 +959,7 @@ function canElementScrollInDirection(element, axis, delta) {
       return false;
     }
 
-    return delta < 0 ? element.scrollLeft > 0 : element.scrollLeft < (maxScrollLeft - 1);
+    return delta < 0 ? element.scrollLeft > 0 : element.scrollLeft < maxScrollLeft - 1;
   }
 
   const maxScrollTop = element.scrollHeight - element.clientHeight;
@@ -951,7 +968,7 @@ function canElementScrollInDirection(element, axis, delta) {
     return false;
   }
 
-  return delta < 0 ? element.scrollTop > 0 : element.scrollTop < (maxScrollTop - 1);
+  return delta < 0 ? element.scrollTop > 0 : element.scrollTop < maxScrollTop - 1;
 }
 
 function findWheelScrollTarget(startElement, deltaX, deltaY) {
@@ -1110,10 +1127,12 @@ function getAutoUiBubbleHideDelay(text) {
 
   const charCount = Array.from(normalizedText).length;
   const wordCount = normalizedText.split(/\s+/u).filter(Boolean).length;
-  const estimatedDelay = UI_BUBBLE_AUTO_HIDE_BASE_MS + Math.max(
-    charCount * UI_BUBBLE_AUTO_HIDE_PER_CHAR_MS,
-    wordCount * UI_BUBBLE_AUTO_HIDE_PER_WORD_MS
-  );
+  const estimatedDelay =
+    UI_BUBBLE_AUTO_HIDE_BASE_MS +
+    Math.max(
+      charCount * UI_BUBBLE_AUTO_HIDE_PER_CHAR_MS,
+      wordCount * UI_BUBBLE_AUTO_HIDE_PER_WORD_MS
+    );
 
   return Math.min(UI_BUBBLE_AUTO_HIDE_MAX_MS, Math.max(UI_BUBBLE_AUTO_HIDE_MIN_MS, estimatedDelay));
 }
@@ -1135,7 +1154,9 @@ function normalizeDisplayMode(value) {
 }
 
 function getNextDisplayMode(value) {
-  return normalizeDisplayMode(value) === DISPLAY_MODE_FULL ? DISPLAY_MODE_COMPACT : DISPLAY_MODE_FULL;
+  return normalizeDisplayMode(value) === DISPLAY_MODE_FULL
+    ? DISPLAY_MODE_COMPACT
+    : DISPLAY_MODE_FULL;
 }
 
 function normalizeUiBubbleText(text) {
@@ -1143,11 +1164,7 @@ function normalizeUiBubbleText(text) {
     return "";
   }
 
-  return text
-    .replace(/\r\n/g, "\n")
-    .replace(/\r/g, "\n")
-    .replace(/^\n+/u, "")
-    .replace(/\n+$/u, "");
+  return text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").replace(/^\n+/u, "").replace(/\n+$/u, "");
 }
 
 function findContentLineStart(content, index) {
@@ -1165,7 +1182,8 @@ function stripTrailingExecutionSeparatorPrefix(content) {
     return "";
   }
 
-  const separator = typeof execution.EXECUTION_SEPARATOR === "string" ? execution.EXECUTION_SEPARATOR : "";
+  const separator =
+    typeof execution.EXECUTION_SEPARATOR === "string" ? execution.EXECUTION_SEPARATOR : "";
 
   if (!separator) {
     return content;
@@ -1199,7 +1217,8 @@ function extractAssistantBubbleText(content) {
   }
 
   let normalizedContent = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-  const separator = typeof execution.EXECUTION_SEPARATOR === "string" ? execution.EXECUTION_SEPARATOR : "";
+  const separator =
+    typeof execution.EXECUTION_SEPARATOR === "string" ? execution.EXECUTION_SEPARATOR : "";
   const separatorIndex = separator ? normalizedContent.indexOf(separator) : -1;
 
   if (separatorIndex !== -1) {
@@ -1244,10 +1263,12 @@ class UiBubble {
   }
 
   dismiss(options = {}) {
-    return this.store?.dismissUiBubble({
-      clearActive: options.clearActive === true,
-      bubble: this
-    }) === true;
+    return (
+      this.store?.dismissUiBubble({
+        clearActive: options.clearActive === true,
+        bubble: this
+      }) === true
+    );
   }
 }
 
@@ -1314,7 +1335,8 @@ function getStreamingAssistantStatus(content) {
 
 function getExecutionStatusText(code, index, total) {
   const lineCount = countDisplayLines(code);
-  const lineCountLabel = lineCount > 0 ? `Executing ${formatLineCount(lineCount)} of code` : "Executing code";
+  const lineCountLabel =
+    lineCount > 0 ? `Executing ${formatLineCount(lineCount)} of code` : "Executing code";
 
   return total > 1 ? `${lineCountLabel} (${index + 1}/${total})...` : `${lineCountLabel}...`;
 }
@@ -1617,11 +1639,17 @@ const model = {
   },
 
   get isSettingsDraftUsingApiProvider() {
-    return config.normalizeOnscreenAgentLlmProvider(this.settingsDraft.provider) === config.ONSCREEN_AGENT_LLM_PROVIDER.API;
+    return (
+      config.normalizeOnscreenAgentLlmProvider(this.settingsDraft.provider) ===
+      config.ONSCREEN_AGENT_LLM_PROVIDER.API
+    );
   },
 
   get isSettingsDraftUsingLocalProvider() {
-    return config.normalizeOnscreenAgentLlmProvider(this.settingsDraft.provider) === config.ONSCREEN_AGENT_LLM_PROVIDER.LOCAL;
+    return (
+      config.normalizeOnscreenAgentLlmProvider(this.settingsDraft.provider) ===
+      config.ONSCREEN_AGENT_LLM_PROVIDER.LOCAL
+    );
   },
 
   get huggingfaceSavedModels() {
@@ -1633,7 +1661,9 @@ const model = {
   },
 
   get onscreenSelectedHuggingFaceModelLabel() {
-    const selectedModelId = normalizeHuggingFaceModelInput(this.settingsDraft.huggingfaceModel || "");
+    const selectedModelId = normalizeHuggingFaceModelInput(
+      this.settingsDraft.huggingfaceModel || ""
+    );
     const selectedDtype = String(this.settingsDraft.huggingfaceDtype || "").trim();
 
     if (!selectedModelId) {
@@ -1648,7 +1678,10 @@ const model = {
   },
 
   get huggingfaceLoadProgressPercent() {
-    return Math.max(0, Math.min(100, Math.round(Number(this.huggingface.loadProgress?.progress || 0) * 100)));
+    return Math.max(
+      0,
+      Math.min(100, Math.round(Number(this.huggingface.loadProgress?.progress || 0) * 100))
+    );
   },
 
   get huggingfaceStatusBadgeText() {
@@ -1696,7 +1729,9 @@ const model = {
   },
 
   get huggingfaceSelectedModelStatusText() {
-    const selectedModelId = normalizeHuggingFaceModelInput(this.settingsDraft.huggingfaceModel || "");
+    const selectedModelId = normalizeHuggingFaceModelInput(
+      this.settingsDraft.huggingfaceModel || ""
+    );
     const selectedDtype = String(this.settingsDraft.huggingfaceDtype || "").trim();
 
     if (!this.huggingface.webgpuSupported) {
@@ -1704,7 +1739,11 @@ const model = {
     }
 
     if (this.huggingface.isLoadingModel) {
-      return this.huggingface.loadProgress.text || this.huggingface.statusText || "Loading selected model...";
+      return (
+        this.huggingface.loadProgress.text ||
+        this.huggingface.statusText ||
+        "Loading selected model..."
+      );
     }
 
     if (this.huggingface.isWorkerBooting) {
@@ -1748,7 +1787,9 @@ const model = {
   },
 
   get onscreenHuggingFaceSelectedModelActionLabel() {
-    const selectedModelId = normalizeHuggingFaceModelInput(this.settingsDraft.huggingfaceModel || "");
+    const selectedModelId = normalizeHuggingFaceModelInput(
+      this.settingsDraft.huggingfaceModel || ""
+    );
     const selectedDtype = String(this.settingsDraft.huggingfaceDtype || "").trim();
 
     if (this.huggingface.isLoadingModel) {
@@ -1812,7 +1853,8 @@ const model = {
 
   get historyStyle() {
     const clampedHeight = this.getClampedHistoryHeight();
-    const defaultAutoMaxHeight = this.getAvailableViewportHistoryHeight() ?? this.getDefaultHistoryAutoMaxHeight();
+    const defaultAutoMaxHeight =
+      this.getAvailableViewportHistoryHeight() ?? this.getDefaultHistoryAutoMaxHeight();
     const resizableMaxHeight = this.getMaxResizableHistoryHeight();
 
     if (clampedHeight === null) {
@@ -1965,7 +2007,9 @@ const model = {
 
     return this.promptHistoryMessages.map((message, index) => {
       const content = getPromptHistoryMessageContent(message);
-      const entry = Array.isArray(this.promptHistoryEntries) ? this.promptHistoryEntries[index] : null;
+      const entry = Array.isArray(this.promptHistoryEntries)
+        ? this.promptHistoryEntries[index]
+        : null;
       const tokenCount = Number.isFinite(Number(message?.tokenCount))
         ? Math.max(0, Math.floor(Number(message.tokenCount)))
         : countTextTokens(content);
@@ -1991,7 +2035,10 @@ const model = {
   },
 
   get isCompactModeNearTopEdge() {
-    return this.agentY < Math.max(POSITION_MARGIN, getRootFontSizePx() * COMPACT_MODE_TOP_EDGE_THRESHOLD_EM);
+    return (
+      this.agentY <
+      Math.max(POSITION_MARGIN, getRootFontSizePx() * COMPACT_MODE_TOP_EDGE_THRESHOLD_EM)
+    );
   },
 
   get isUiBubbleBelowHead() {
@@ -2089,7 +2136,9 @@ const model = {
     }
 
     const shellStyle = this.refs.shell ? globalThis.getComputedStyle?.(this.refs.shell) : null;
-    const computedAvatarSize = Number.parseFloat(shellStyle?.getPropertyValue("--onscreen-agent-avatar-size") || "");
+    const computedAvatarSize = Number.parseFloat(
+      shellStyle?.getPropertyValue("--onscreen-agent-avatar-size") || ""
+    );
 
     if (Number.isFinite(computedAvatarSize) && computedAvatarSize > 0) {
       return Math.round(computedAvatarSize);
@@ -2107,7 +2156,10 @@ const model = {
   },
 
   getHiddenEdgeRevealThreshold() {
-    return Math.max(HIDDEN_EDGE_REVEAL_THRESHOLD_MIN_PX, Math.round(this.getAvatarSize() * HIDDEN_EDGE_REVEAL_THRESHOLD_RATIO));
+    return Math.max(
+      HIDDEN_EDGE_REVEAL_THRESHOLD_MIN_PX,
+      Math.round(this.getAvatarSize() * HIDDEN_EDGE_REVEAL_THRESHOLD_RATIO)
+    );
   },
 
   getHiddenEdgeSnapDeadZone() {
@@ -2129,7 +2181,9 @@ const model = {
   getHiddenEdgeForPosition(x, y, options = {}) {
     const normalizedX = Math.round(Number(x) || 0);
     const normalizedY = Math.round(Number(y) || 0);
-    const currentHiddenEdge = config.normalizeOnscreenAgentHiddenEdge(options.currentHiddenEdge ?? this.hiddenEdge);
+    const currentHiddenEdge = config.normalizeOnscreenAgentHiddenEdge(
+      options.currentHiddenEdge ?? this.hiddenEdge
+    );
     const avatarSize = this.getAvatarSize();
     const revealThreshold = this.getHiddenEdgeRevealThreshold();
 
@@ -2146,7 +2200,9 @@ const model = {
       }
 
       const overflow = this.getHiddenEdgeOverflow(normalizedX, normalizedY);
-      const nextOverflowEntry = Object.entries(overflow).sort((left, right) => right[1] - left[1])[0];
+      const nextOverflowEntry = Object.entries(overflow).sort(
+        (left, right) => right[1] - left[1]
+      )[0];
 
       if (!nextOverflowEntry || nextOverflowEntry[1] <= 0) {
         return currentHiddenEdge;
@@ -2221,12 +2277,16 @@ const model = {
     const sevenEmAboveViewportBottom = viewportHeight - getRootFontSizePx() * 7;
     const ninetyPercentViewportBottom = viewportHeight * 0.9;
 
-    return Math.max(POSITION_MARGIN, Math.max(sevenEmAboveViewportBottom, ninetyPercentViewportBottom));
+    return Math.max(
+      POSITION_MARGIN,
+      Math.max(sevenEmAboveViewportBottom, ninetyPercentViewportBottom)
+    );
   },
 
   getInitialBottomAlignedCenteredPositionEstimate() {
     const avatarSize = this.getAvatarSize();
-    const overlayWidth = avatarSize + this.getApproximateCompactGap() + this.getApproximateCompactPanelWidth();
+    const overlayWidth =
+      avatarSize + this.getApproximateCompactGap() + this.getApproximateCompactPanelWidth();
     const targetBottom = this.getInitialOverlayBottomTarget();
 
     return this.clampPosition(
@@ -2251,7 +2311,12 @@ const model = {
       rects.push(this.refs.panel.getBoundingClientRect());
     }
 
-    if (!this.hiddenEdge && this.isFullMode && this.shouldShowHistory && this.refs.historyShell?.getBoundingClientRect) {
+    if (
+      !this.hiddenEdge &&
+      this.isFullMode &&
+      this.shouldShowHistory &&
+      this.refs.historyShell?.getBoundingClientRect
+    ) {
       rects.push(this.refs.historyShell.getBoundingClientRect());
     }
 
@@ -2272,7 +2337,9 @@ const model = {
     const targetBottom = this.getInitialOverlayBottomTarget();
 
     return {
-      x: this.agentX + (this.getViewportWidth() * 0.5 - (overlayRect.left + overlayRect.width * 0.5)),
+      x:
+        this.agentX +
+        (this.getViewportWidth() * 0.5 - (overlayRect.left + overlayRect.width * 0.5)),
       y: this.agentY + (targetBottom - overlayRect.bottom)
     };
   },
@@ -2309,13 +2376,20 @@ const model = {
     }
 
     const viewportTopClearance = this.getViewportTopClearance();
-    const panelRect = this.refs.panel?.getBoundingClientRect ? this.refs.panel.getBoundingClientRect() : null;
+    const panelRect = this.refs.panel?.getBoundingClientRect
+      ? this.refs.panel.getBoundingClientRect()
+      : null;
     const hasPanelMetrics =
-      Number.isFinite(panelRect?.top) && Number.isFinite(panelRect?.bottom) && Number.isFinite(panelRect?.height);
+      Number.isFinite(panelRect?.top) &&
+      Number.isFinite(panelRect?.bottom) &&
+      Number.isFinite(panelRect?.height);
     const anchorY = Number(this.agentY);
 
     if (this.isHistoryBelow && hasPanelMetrics && Number.isFinite(anchorY)) {
-      const availableHeight = this.getViewportHeight() - POSITION_MARGIN - (anchorY + panelRect.height + HISTORY_OFFSET_PX);
+      const availableHeight =
+        this.getViewportHeight() -
+        POSITION_MARGIN -
+        (anchorY + panelRect.height + HISTORY_OFFSET_PX);
 
       if (Number.isFinite(availableHeight) && availableHeight > 0) {
         return Math.max(1, Math.round(availableHeight));
@@ -2375,7 +2449,10 @@ const model = {
       return null;
     }
 
-    return Math.min(this.getMaxResizableHistoryHeight(), Math.max(HISTORY_MIN_HEIGHT_PX, normalizedValue));
+    return Math.min(
+      this.getMaxResizableHistoryHeight(),
+      Math.max(HISTORY_MIN_HEIGHT_PX, normalizedValue)
+    );
   },
 
   clampPosition(x, y, options = {}) {
@@ -2547,7 +2624,9 @@ const model = {
   },
 
   revealHiddenEdge(options = {}) {
-    const normalizedHiddenEdge = config.normalizeOnscreenAgentHiddenEdge(options.hiddenEdge ?? this.hiddenEdge);
+    const normalizedHiddenEdge = config.normalizeOnscreenAgentHiddenEdge(
+      options.hiddenEdge ?? this.hiddenEdge
+    );
 
     if (!normalizedHiddenEdge) {
       return false;
@@ -2741,7 +2820,11 @@ const model = {
       return null;
     }
 
-    if (messageId && this.compactAssistantBubbleMessageId === messageId && this.compactAssistantBubble) {
+    if (
+      messageId &&
+      this.compactAssistantBubbleMessageId === messageId &&
+      this.compactAssistantBubble
+    ) {
       const didUpdate = this.compactAssistantBubble.update(bubbleText);
 
       if (didUpdate) {
@@ -2767,9 +2850,11 @@ const model = {
       return false;
     }
 
-    return Boolean(this.showCompactAssistantReplyBubble(assistantMessage.content, {
-      messageId: assistantMessage.id
-    }));
+    return Boolean(
+      this.showCompactAssistantReplyBubble(assistantMessage.content, {
+        messageId: assistantMessage.id
+      })
+    );
   },
 
   setStreamingAssistantStatus(content) {
@@ -2820,7 +2905,8 @@ const model = {
 
     const isEntering = this.isUiBubbleMounted && this.uiBubblePhase === "entering";
     const shouldReopen = !this.isUiBubbleMounted || this.uiBubblePhase === "leaving";
-    const nextHideAfterMs = normalizeUiBubbleHideDelay(hideAfterMs) || getAutoUiBubbleHideDelay(normalizedText);
+    const nextHideAfterMs =
+      normalizeUiBubbleHideDelay(hideAfterMs) || getAutoUiBubbleHideDelay(normalizedText);
 
     this.clearUiBubbleExitTimer();
 
@@ -2853,9 +2939,10 @@ const model = {
     }
 
     if (nextHideAfterMs > 0) {
-      const autoHideDelay = this.uiBubblePhase === "entering"
-        ? UI_BUBBLE_ENTER_DURATION_MS + nextHideAfterMs
-        : nextHideAfterMs;
+      const autoHideDelay =
+        this.uiBubblePhase === "entering"
+          ? UI_BUBBLE_ENTER_DURATION_MS + nextHideAfterMs
+          : nextHideAfterMs;
 
       this.uiBubbleAutoHideTimer = window.setTimeout(() => {
         this.uiBubbleAutoHideTimer = 0;
@@ -2961,7 +3048,12 @@ const model = {
     const activeModelId = normalizeHuggingFaceModelInput(snapshot.activeModelId || "");
     const defaultModelInput = normalizeHuggingFaceModelInput(snapshot.modelInput || "");
 
-    if (hasSavedModels || activeModelId || snapshot.isLoadingModel || defaultModelInput !== DEFAULT_MODEL_INPUT) {
+    if (
+      hasSavedModels ||
+      activeModelId ||
+      snapshot.isLoadingModel ||
+      defaultModelInput !== DEFAULT_MODEL_INPUT
+    ) {
       return false;
     }
 
@@ -2978,7 +3070,10 @@ const model = {
   },
 
   hasConfiguredLocalModel(settings = this.settings) {
-    if (config.normalizeOnscreenAgentLlmProvider(settings?.provider) !== config.ONSCREEN_AGENT_LLM_PROVIDER.LOCAL) {
+    if (
+      config.normalizeOnscreenAgentLlmProvider(settings?.provider) !==
+      config.ONSCREEN_AGENT_LLM_PROVIDER.LOCAL
+    ) {
       return false;
     }
 
@@ -3041,7 +3136,9 @@ const model = {
       modelId: String(modelId || "").trim()
     };
 
-    return this.huggingfaceSavedModels.some((entry) => isHuggingFaceSelectionMatch(entry, normalizedSelection));
+    return this.huggingfaceSavedModels.some((entry) =>
+      isHuggingFaceSelectionMatch(entry, normalizedSelection)
+    );
   },
 
   async refreshHuggingFaceCatalog() {
@@ -3066,7 +3163,9 @@ const model = {
       return;
     }
 
-    this.chatRuntime.messages = this.history.map((message) => createRuntimeMessageSnapshot(message));
+    this.chatRuntime.messages = this.history.map((message) =>
+      createRuntimeMessageSnapshot(message)
+    );
   },
 
   getPromptBuildOptions() {
@@ -3089,10 +3188,12 @@ const model = {
       return this.skillRuntimePromise;
     }
 
-    this.skillRuntimePromise = Promise.resolve(skills.installOnscreenSkillRuntime()).catch((error) => {
-      this.skillRuntimePromise = null;
-      throw error;
-    });
+    this.skillRuntimePromise = Promise.resolve(skills.installOnscreenSkillRuntime()).catch(
+      (error) => {
+        this.skillRuntimePromise = null;
+        throw error;
+      }
+    );
 
     return this.skillRuntimePromise;
   },
@@ -3142,12 +3243,14 @@ const model = {
   },
 
   applyPromptInput(promptInput) {
-    const normalizedPromptInput = promptInput && typeof promptInput === "object" ? promptInput : null;
+    const normalizedPromptInput =
+      promptInput && typeof promptInput === "object" ? promptInput : null;
 
     this.promptInput = normalizedPromptInput;
-    this.runtimeSystemPrompt = typeof normalizedPromptInput?.systemPrompt === "string"
-      ? normalizedPromptInput.systemPrompt
-      : "";
+    this.runtimeSystemPrompt =
+      typeof normalizedPromptInput?.systemPrompt === "string"
+        ? normalizedPromptInput.systemPrompt
+        : "";
     this.historyText = formatPromptHistoryText(normalizedPromptInput?.historyMessages);
     this.promptHistoryEntries = Array.isArray(normalizedPromptInput?.requestEntries)
       ? normalizedPromptInput.requestEntries.map((entry) => ({ ...entry }))
@@ -3212,7 +3315,10 @@ const model = {
     this.history = Array.isArray(nextHistory) ? [...nextHistory] : [];
     this.syncCurrentChatRuntime();
 
-    if (options.refreshPrompt === false || (!this.defaultSystemPrompt && !this.isInitialized && !this.promptInput)) {
+    if (
+      options.refreshPrompt === false ||
+      (!this.defaultSystemPrompt && !this.isInitialized && !this.promptInput)
+    ) {
       return;
     }
 
@@ -3236,7 +3342,9 @@ const model = {
   },
 
   isHistoryOverConfiguredMaxTokens() {
-    return Boolean(this.historyText.trim()) && this.historyTokenCount > this.getConfiguredMaxTokens();
+    return (
+      Boolean(this.historyText.trim()) && this.historyTokenCount > this.getConfiguredMaxTokens()
+    );
   },
 
   serializeHistory() {
@@ -3337,9 +3445,12 @@ const model = {
           this.hiddenEdge = "";
         }
 
-        await this.replaceHistory(storedHistory.map((message) => normalizeStoredMessage(message)), {
-          refreshPrompt: false
-        });
+        await this.replaceHistory(
+          storedHistory.map((message) => normalizeStoredMessage(message)),
+          {
+            refreshPrompt: false
+          }
+        );
         this.ensurePosition({
           persist: true,
           reflow: false
@@ -3530,7 +3641,10 @@ const model = {
   },
 
   cleanupHistoryResize() {
-    if (this.historyResizeState?.target?.releasePointerCapture && this.historyResizeState.pointerId !== null) {
+    if (
+      this.historyResizeState?.target?.releasePointerCapture &&
+      this.historyResizeState.pointerId !== null
+    ) {
       try {
         this.historyResizeState.target.releasePointerCapture(this.historyResizeState.pointerId);
       } catch {
@@ -3649,14 +3763,19 @@ const model = {
       return;
     }
 
-    const avatar = event.currentTarget instanceof HTMLElement ? event.currentTarget : this.refs.avatar;
+    const avatar =
+      event.currentTarget instanceof HTMLElement ? event.currentTarget : this.refs.avatar;
     const delta = resolveWheelDeltaPixels(event, avatar, document.scrollingElement);
 
     if (Math.abs(delta.x) < 0.01 && Math.abs(delta.y) < 0.01) {
       return;
     }
 
-    const underlyingElement = resolveUnderlyingElementFromPoint(event.clientX, event.clientY, avatar);
+    const underlyingElement = resolveUnderlyingElementFromPoint(
+      event.clientX,
+      event.clientY,
+      avatar
+    );
 
     if (dispatchWheelToElement(event, underlyingElement)) {
       event.preventDefault();
@@ -3737,7 +3856,10 @@ const model = {
     this.historyResizeState = {
       historyBelow: this.isHistoryBelow,
       pointerId: event.pointerId,
-      startHeight: historyShell.offsetHeight || this.getClampedHistoryHeight() || this.getDefaultHistoryAutoMaxHeight(),
+      startHeight:
+        historyShell.offsetHeight ||
+        this.getClampedHistoryHeight() ||
+        this.getDefaultHistoryAutoMaxHeight(),
       startY: event.clientY,
       target
     };
@@ -3764,7 +3886,9 @@ const model = {
 
     const deltaY = event.clientY - this.historyResizeState.startY;
     const direction = this.historyResizeState.historyBelow ? 1 : -1;
-    this.historyHeight = this.getClampedHistoryHeight(this.historyResizeState.startHeight + deltaY * direction);
+    this.historyHeight = this.getClampedHistoryHeight(
+      this.historyResizeState.startHeight + deltaY * direction
+    );
   },
 
   handleHistoryResizePointerUp(event) {
@@ -3772,7 +3896,8 @@ const model = {
       return;
     }
 
-    const finalHeight = this.getClampedHistoryHeight(this.historyHeight) ?? this.historyResizeState.startHeight;
+    const finalHeight =
+      this.getClampedHistoryHeight(this.historyHeight) ?? this.historyResizeState.startHeight;
     const resized = Math.abs(finalHeight - this.historyResizeState.startHeight) >= 1;
     this.cleanupHistoryResize();
 
@@ -3800,7 +3925,8 @@ const model = {
     const shouldHideBubble = options.hideBubble === true || normalizedMode === DISPLAY_MODE_FULL;
     const shouldFocusInput = options.focusInput !== false;
     const modeChanged = normalizedMode !== this.displayMode;
-    const shouldScrollToLatestOnRender = normalizedMode === DISPLAY_MODE_FULL && previousMode !== DISPLAY_MODE_FULL;
+    const shouldScrollToLatestOnRender =
+      normalizedMode === DISPLAY_MODE_FULL && previousMode !== DISPLAY_MODE_FULL;
     const revealedHiddenEdge = this.revealHiddenEdge({
       persist: shouldPersist,
       reflow: false
@@ -3808,11 +3934,7 @@ const model = {
 
     this.displayMode = normalizedMode;
     this.startDisplayModeTransition(
-      modeChanged
-        ? normalizedMode === DISPLAY_MODE_FULL
-          ? "expanding"
-          : "collapsing"
-        : ""
+      modeChanged ? (normalizedMode === DISPLAY_MODE_FULL ? "expanding" : "collapsing") : ""
     );
     this.closeComposerActionMenu();
 
@@ -3953,9 +4075,13 @@ const model = {
         return;
       }
 
-      const didPatchStreamingRow = agentView.updateStreamingAssistantMessage(this.refs.thread, pendingMessage, {
-        scroller: this.refs.scroller
-      });
+      const didPatchStreamingRow = agentView.updateStreamingAssistantMessage(
+        this.refs.thread,
+        pendingMessage,
+        {
+          scroller: this.refs.scroller
+        }
+      );
 
       if (!didPatchStreamingRow) {
         this.render({
@@ -4136,15 +4262,17 @@ const model = {
   },
 
   getQueuedPreviewMessages() {
-    return this.queuedSubmissions.map((submission, index) =>
-      createMessage("user", submission.content, {
-        attachments: Array.isArray(submission.attachments) ? submission.attachments.slice() : [],
-        kind: "queued"
-      })
-    ).map((message, index) => ({
-      ...message,
-      id: `queued-preview-${index}`
-    }));
+    return this.queuedSubmissions
+      .map((submission, index) =>
+        createMessage("user", submission.content, {
+          attachments: Array.isArray(submission.attachments) ? submission.attachments.slice() : [],
+          kind: "queued"
+        })
+      )
+      .map((message, index) => ({
+        ...message,
+        id: `queued-preview-${index}`
+      }));
   },
 
   getBoundaryAction() {
@@ -4195,7 +4323,8 @@ const model = {
   },
 
   positionComposerActionMenu() {
-    const actionMenu = this.refs.actionMenu || document.getElementById("onscreen-agent-composer-menu");
+    const actionMenu =
+      this.refs.actionMenu || document.getElementById("onscreen-agent-composer-menu");
 
     if (!this.isComposerActionMenuOpen || !actionMenu || !this.composerActionMenuAnchor) {
       return;
@@ -4336,7 +4465,9 @@ const model = {
   },
 
   removeDraftAttachment(attachmentId) {
-    const nextAttachments = this.draftAttachments.filter((attachment) => attachment.id !== attachmentId);
+    const nextAttachments = this.draftAttachments.filter(
+      (attachment) => attachment.id !== attachmentId
+    );
 
     if (nextAttachments.length === this.draftAttachments.length) {
       return;
@@ -4489,7 +4620,10 @@ const model = {
   },
 
   getSettingsDraftHuggingFaceSelectionValue() {
-    return getHuggingFaceSelectionValue(this.settingsDraft.huggingfaceModel, this.settingsDraft.huggingfaceDtype);
+    return getHuggingFaceSelectionValue(
+      this.settingsDraft.huggingfaceModel,
+      this.settingsDraft.huggingfaceDtype
+    );
   },
 
   getHuggingFaceSavedModelSelectionValue(model) {
@@ -4502,10 +4636,12 @@ const model = {
     }
 
     void this.ensureHuggingFaceSubscription()
-      .then(() => huggingfaceManager.unloadModel({
-        clearPersistedSelection: false,
-        reboot: false
-      }))
+      .then(() =>
+        huggingfaceManager.unloadModel({
+          clearPersistedSelection: false,
+          reboot: false
+        })
+      )
       .then(() => this.syncHuggingFaceFromManager())
       .catch((error) => {
         this.reportError("unloading the selected local model", error);
@@ -4517,7 +4653,9 @@ const model = {
       return;
     }
 
-    const selectedModelId = normalizeHuggingFaceModelInput(this.settingsDraft.huggingfaceModel || "");
+    const selectedModelId = normalizeHuggingFaceModelInput(
+      this.settingsDraft.huggingfaceModel || ""
+    );
     const selectedDtype = String(this.settingsDraft.huggingfaceDtype || "").trim();
 
     void this.ensureHuggingFaceSubscription()
@@ -4577,9 +4715,13 @@ const model = {
 
   async saveSettingsFromDialog() {
     const provider = config.normalizeOnscreenAgentLlmProvider(this.settingsDraft.provider);
-    const localProvider = config.normalizeOnscreenAgentLocalProvider(this.settingsDraft.localProvider);
-    const paramsText = typeof this.settingsDraft.paramsText === "string" ? this.settingsDraft.paramsText.trim() : "";
-    const draftPrompt = typeof this.systemPromptDraft === "string" ? this.systemPromptDraft.trim() : "";
+    const localProvider = config.normalizeOnscreenAgentLocalProvider(
+      this.settingsDraft.localProvider
+    );
+    const paramsText =
+      typeof this.settingsDraft.paramsText === "string" ? this.settingsDraft.paramsText.trim() : "";
+    const draftPrompt =
+      typeof this.systemPromptDraft === "string" ? this.systemPromptDraft.trim() : "";
     let maxTokens = config.DEFAULT_ONSCREEN_AGENT_SETTINGS.maxTokens;
 
     try {
@@ -4587,7 +4729,9 @@ const model = {
       llmParams.parseOnscreenAgentParamsText(paramsText);
 
       if (provider === config.ONSCREEN_AGENT_LLM_PROVIDER.LOCAL) {
-        const huggingfaceModel = normalizeHuggingFaceModelInput(this.settingsDraft.huggingfaceModel || "");
+        const huggingfaceModel = normalizeHuggingFaceModelInput(
+          this.settingsDraft.huggingfaceModel || ""
+        );
         const huggingfaceDtype = String(this.settingsDraft.huggingfaceDtype || "").trim();
 
         if (!huggingfaceModel || !huggingfaceDtype) {
@@ -4625,9 +4769,10 @@ const model = {
         await this.refreshRuntimeSystemPrompt();
       }
       await this.persistConfig();
-      this.status = provider === config.ONSCREEN_AGENT_LLM_PROVIDER.LOCAL
-        ? `Local ${getConfiguredLocalProviderLabel(this.settings)} settings updated. Preparing the selected model in the background.`
-        : "API chat settings updated.";
+      this.status =
+        provider === config.ONSCREEN_AGENT_LLM_PROVIDER.LOCAL
+          ? `Local ${getConfiguredLocalProviderLabel(this.settings)} settings updated. Preparing the selected model in the background.`
+          : "API chat settings updated.";
       this.closeSettingsDialog();
 
       if (provider === config.ONSCREEN_AGENT_LLM_PROVIDER.LOCAL) {
@@ -4643,7 +4788,9 @@ const model = {
   },
 
   openRawDialogForMessage(messageId) {
-    const message = this.history.find((entry) => entry.id === messageId && entry.role === "assistant");
+    const message = this.history.find(
+      (entry) => entry.id === messageId && entry.role === "assistant"
+    );
 
     if (!message) {
       this.status = "That assistant message is no longer available.";
@@ -4688,7 +4835,11 @@ const model = {
   },
 
   getPromptHistorySliceMessages(slice = "all") {
-    return getPromptHistoryMessageSlice(this.promptHistoryMessages, slice, this.promptHistoryEntries);
+    return getPromptHistoryMessageSlice(
+      this.promptHistoryMessages,
+      slice,
+      this.promptHistoryEntries
+    );
   },
 
   serializePromptHistorySlice(slice = "all") {
@@ -4699,7 +4850,9 @@ const model = {
     }
 
     if (slice === "system" && this.promptHistoryMode === "json") {
-      return messages.length === 1 ? formatPromptHistoryMessageJson(messages[0]) : formatPromptHistoryJson(messages);
+      return messages.length === 1
+        ? formatPromptHistoryMessageJson(messages[0])
+        : formatPromptHistoryJson(messages);
     }
 
     return serializePromptHistoryMessages(messages, this.promptHistoryMode);
@@ -4845,7 +4998,9 @@ const model = {
     }
 
     const copied = await agentView.copyTextToClipboard(payload);
-    this.status = copied ? `${label[0].toUpperCase()}${label.slice(1)} copied.` : `Unable to copy ${label}.`;
+    this.status = copied
+      ? `${label[0].toUpperCase()}${label.slice(1)} copied.`
+      : `Unable to copy ${label}.`;
   },
 
   async copyPromptHistorySystemPrompt() {
@@ -4918,7 +5073,8 @@ const model = {
   async streamAssistantResponse(requestMessages, assistantMessage, preparedRequest) {
     let hasSeenDelta = false;
     const usingLocalProvider =
-      config.normalizeOnscreenAgentLlmProvider(this.settings.provider) === config.ONSCREEN_AGENT_LLM_PROVIDER.LOCAL;
+      config.normalizeOnscreenAgentLlmProvider(this.settings.provider) ===
+      config.ONSCREEN_AGENT_LLM_PROVIDER.LOCAL;
 
     if (usingLocalProvider) {
       const localModelReady = this.isConfiguredLocalModelReady(this.settings);
@@ -5076,7 +5232,10 @@ const model = {
       const compactPrompt = await agentLlm.fetchOnscreenAgentHistoryCompactPrompt({
         mode
       });
-      if (config.normalizeOnscreenAgentLlmProvider(this.settings.provider) === config.ONSCREEN_AGENT_LLM_PROVIDER.LOCAL) {
+      if (
+        config.normalizeOnscreenAgentLlmProvider(this.settings.provider) ===
+        config.ONSCREEN_AGENT_LLM_PROVIDER.LOCAL
+      ) {
         await this.ensureActiveLocalRuntime(this.settings);
       }
 
@@ -5163,21 +5322,24 @@ const model = {
   },
 
   async executeAssistantBlocks(assistantInput, options = {}) {
-    const assistantMessage = assistantInput && typeof assistantInput === "object" ? assistantInput : null;
-    const assistantContent = typeof assistantInput === "string"
-      ? assistantInput
-      : typeof assistantMessage?.content === "string"
-        ? assistantMessage.content
-        : "";
-    const assistantEvaluation = options.evaluateAssistantMessage === false
-      ? null
-      : await evaluateOnscreenAssistantMessage({
-          assistantContent,
-          history: this.history,
-          logs: [],
-          messageId: typeof assistantMessage?.id === "string" ? assistantMessage.id : "",
-          store: this
-        });
+    const assistantMessage =
+      assistantInput && typeof assistantInput === "object" ? assistantInput : null;
+    const assistantContent =
+      typeof assistantInput === "string"
+        ? assistantInput
+        : typeof assistantMessage?.content === "string"
+          ? assistantMessage.content
+          : "";
+    const assistantEvaluation =
+      options.evaluateAssistantMessage === false
+        ? null
+        : await evaluateOnscreenAssistantMessage({
+            assistantContent,
+            history: this.history,
+            logs: [],
+            messageId: typeof assistantMessage?.id === "string" ? assistantMessage.id : "",
+            store: this
+          });
     const executionResults = await this.executionContext.executeFromContent(assistantContent, {
       onBeforeBlock: async ({ code, index, total }) => {
         if (!total) {
@@ -5224,7 +5386,8 @@ const model = {
       );
 
       if (requestTokenCount > this.getConfiguredMaxTokens()) {
-        const pendingMessageIsLatestHistoryMessage = this.history[this.history.length - 1]?.id === nextUserMessage.id;
+        const pendingMessageIsLatestHistoryMessage =
+          this.history[this.history.length - 1]?.id === nextUserMessage.id;
         const compactedMessage = await this.compactHistory({
           mode: agentLlm.ONSCREEN_AGENT_HISTORY_COMPACT_MODE.AUTOMATIC,
           preserveFocus: false,
@@ -5265,7 +5428,11 @@ const model = {
       this.render();
 
       try {
-        const streamResult = await this.streamAssistantResponse(requestMessages, assistantMessage, preparedRequest);
+        const streamResult = await this.streamAssistantResponse(
+          requestMessages,
+          assistantMessage,
+          preparedRequest
+        );
 
         if (streamResult.stopped) {
           if (!streamResult.hasContent) {
@@ -5360,7 +5527,8 @@ const model = {
         return "complete";
       }
 
-      this.executionOutputOverrides[assistantMessage.id] = execution.createExecutionOutputSnapshots(executionResults);
+      this.executionOutputOverrides[assistantMessage.id] =
+        execution.createExecutionOutputSnapshots(executionResults);
 
       const executionOutputMessage = await createProcessedMessage(
         "user",
@@ -5507,7 +5675,9 @@ const model = {
           messageId,
           this.executionOutputOverrides
         );
-        const copied = copyPayload.text ? await agentView.copyTextToClipboard(copyPayload.text) : false;
+        const copied = copyPayload.text
+          ? await agentView.copyTextToClipboard(copyPayload.text)
+          : false;
         this.status = copied
           ? copyPayload.kind === "result"
             ? "Result copied."
@@ -5531,7 +5701,11 @@ const model = {
       return;
     }
 
-    const section = agentView.findExecuteSection(this.history, messageId, this.executionOutputOverrides);
+    const section = agentView.findExecuteSection(
+      this.history,
+      messageId,
+      this.executionOutputOverrides
+    );
 
     if (!section) {
       this.status = "That execution step is no longer available.";
@@ -5539,7 +5713,9 @@ const model = {
     }
 
     if (action === "copy-input") {
-      const copied = await agentView.copyTextToClipboard(agentView.getTerminalInputText(section.executeDisplay));
+      const copied = await agentView.copyTextToClipboard(
+        agentView.getTerminalInputText(section.executeDisplay)
+      );
       this.status = copied ? "Input copied." : "Unable to copy input.";
       return;
     }
@@ -5579,7 +5755,8 @@ const model = {
         return;
       }
 
-      this.executionOutputOverrides[messageId] = execution.createExecutionOutputSnapshots(executionResults);
+      this.executionOutputOverrides[messageId] =
+        execution.createExecutionOutputSnapshots(executionResults);
       this.status = "Execution refreshed.";
     } catch (error) {
       this.reportError("rerunning an execution block", error);

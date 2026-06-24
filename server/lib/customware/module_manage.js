@@ -71,7 +71,9 @@ function createModulePathError(value) {
 }
 
 function normalizeModuleListArea(value) {
-  const normalizedArea = String(value || "").trim().toLowerCase();
+  const normalizedArea = String(value || "")
+    .trim()
+    .toLowerCase();
 
   if (!normalizedArea) {
     return DEFAULT_MODULE_LIST_AREA;
@@ -90,7 +92,9 @@ function normalizeModuleOwnerId(value) {
 }
 
 function normalizeModuleSearch(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 async function mapWithConcurrencyLimit(items, limit, mapper) {
@@ -99,16 +103,13 @@ async function mapWithConcurrencyLimit(items, limit, mapper) {
   const results = new Array(inputItems.length);
   let nextIndex = 0;
 
-  const workers = Array.from(
-    { length: Math.min(normalizedLimit, inputItems.length) },
-    async () => {
-      while (nextIndex < inputItems.length) {
-        const currentIndex = nextIndex;
-        nextIndex += 1;
-        results[currentIndex] = await mapper(inputItems[currentIndex], currentIndex);
-      }
+  const workers = Array.from({ length: Math.min(normalizedLimit, inputItems.length) }, async () => {
+    while (nextIndex < inputItems.length) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+      results[currentIndex] = await mapper(inputItems[currentIndex], currentIndex);
     }
-  );
+  });
 
   await Promise.all(workers);
   return results;
@@ -145,7 +146,9 @@ function compareModuleListEntries(left, right) {
     return layerCompare;
   }
 
-  const ownerTypeCompare = String(left.ownerType || "").localeCompare(String(right.ownerType || ""));
+  const ownerTypeCompare = String(left.ownerType || "").localeCompare(
+    String(right.ownerType || "")
+  );
 
   if (ownerTypeCompare !== 0) {
     return ownerTypeCompare;
@@ -418,7 +421,11 @@ async function updateTrackedBranch(gitClient, defaultBranch) {
   }
 
   if (!(await gitClient.hasRemoteBranch(DEFAULT_REMOTE, branchName))) {
-    if (defaultBranch && branchName !== defaultBranch && (await gitClient.hasRemoteBranch(DEFAULT_REMOTE, defaultBranch))) {
+    if (
+      defaultBranch &&
+      branchName !== defaultBranch &&
+      (await gitClient.hasRemoteBranch(DEFAULT_REMOTE, defaultBranch))
+    ) {
       branchName = defaultBranch;
     } else {
       throw createHttpError(`Remote ${DEFAULT_REMOTE} does not have branch ${branchName}.`, 400);
@@ -487,7 +494,9 @@ async function moveDirectoryIntoPlace(sourceAbsolutePath, destinationAbsolutePat
 }
 
 async function installIntoNewPath(targetPathInfo, options = {}) {
-  const tempAbsolutePath = await fsPromises.mkdtemp(path.join(os.tmpdir(), "space-module-install-"));
+  const tempAbsolutePath = await fsPromises.mkdtemp(
+    path.join(os.tmpdir(), "space-module-install-")
+  );
   let movedIntoPlace = false;
 
   try {
@@ -615,10 +624,7 @@ async function resolveInstalledLocations(options = {}) {
   }
 
   const selectedEntries = collectAccessibleModuleEntries(
-    collectProjectPathsFromFileIndexShards(
-      options.stateSystem,
-      [...new Set(selectedShardIds)]
-    ),
+    collectProjectPathsFromFileIndexShards(options.stateSystem, [...new Set(selectedShardIds)]),
     {
       groupIndex,
       maxLayer: normalizeMaxLayer(options.maxLayer),
@@ -645,7 +651,11 @@ async function resolveInstalledLocations(options = {}) {
       canWrite: entry.canWrite,
       effective: selectedEntryMap.has(entry.projectPath),
       git: await readModuleGitInfo({
-        absolutePath: createAbsolutePath(options.projectRoot, entry.projectPath, options.runtimeParams),
+        absolutePath: createAbsolutePath(
+          options.projectRoot,
+          entry.projectPath,
+          options.runtimeParams
+        ),
         runtimeParams: options.runtimeParams
       }),
       layer: entry.layer,
@@ -663,7 +673,9 @@ async function resolveInstalledLocations(options = {}) {
 }
 
 async function readModuleInfo(options = {}) {
-  const moduleReference = normalizeModuleReference(options.path || options.modulePath || options.requestPath || "");
+  const moduleReference = normalizeModuleReference(
+    options.path || options.modulePath || options.requestPath || ""
+  );
   const requestedOwnerId =
     options.ownerId ||
     (moduleReference.layer === "L2" && moduleReference.ownerType === "user"
@@ -677,7 +689,7 @@ async function readModuleInfo(options = {}) {
     requestPath: moduleReference.requestPath,
     runtimeParams: options.runtimeParams,
     stateSystem: options.stateSystem,
-    username: options.username,
+    username: options.username
   });
   const selectedLocation = locations.find((location) => location.selected) || null;
 
@@ -698,13 +710,12 @@ async function installModule(options = {}) {
   const targetPathInfo = normalizeModuleTargetPath(options.path, options);
   const pathIndex = getFileIndexShardValue(
     options.stateSystem,
-    targetPathInfo.layer === "L1"
-      ? `L1/${targetPathInfo.ownerId}`
-      : `L2/${targetPathInfo.ownerId}`
+    targetPathInfo.layer === "L1" ? `L1/${targetPathInfo.ownerId}` : `L2/${targetPathInfo.ownerId}`
   );
   const conflictingFilePath = stripTrailingSlash(targetPathInfo.projectPath);
   const existsAsDirectory =
-    hasPath(pathIndex, targetPathInfo.projectPath) || hasDescendantPath(pathIndex, targetPathInfo.projectPath);
+    hasPath(pathIndex, targetPathInfo.projectPath) ||
+    hasDescendantPath(pathIndex, targetPathInfo.projectPath);
 
   if (hasPath(pathIndex, conflictingFilePath)) {
     throw createHttpError(`Module path already exists as a file: ${targetPathInfo.appPath}`, 400);
@@ -756,7 +767,7 @@ async function listInstalledModules(options = {}) {
     runtimeParams: options.runtimeParams,
     search: options.search,
     stateSystem: options.stateSystem,
-    username: options.username,
+    username: options.username
   });
 
   if (area === "l2_users") {
@@ -764,16 +775,15 @@ async function listInstalledModules(options = {}) {
 
     entries.forEach((entry) => {
       const groupKey = entry.requestPath;
-      const groupedEntry =
-        groupedEntries.get(groupKey) || {
-          authorId: entry.authorId,
-          canRead: false,
-          entries: [],
-          layer: entry.layer,
-          ownerIds: new Set(),
-          repositoryId: entry.repositoryId,
-          requestPath: entry.requestPath
-        };
+      const groupedEntry = groupedEntries.get(groupKey) || {
+        authorId: entry.authorId,
+        canRead: false,
+        entries: [],
+        layer: entry.layer,
+        ownerIds: new Set(),
+        repositoryId: entry.repositoryId,
+        requestPath: entry.requestPath
+      };
 
       groupedEntry.canRead ||= entry.canRead;
       groupedEntry.entries.push(entry);
@@ -783,12 +793,16 @@ async function listInstalledModules(options = {}) {
 
     return mapWithConcurrencyLimit(
       [...groupedEntries.values()].sort((left, right) =>
-        `${left.authorId}/${left.repositoryId}`.localeCompare(`${right.authorId}/${right.repositoryId}`)
+        `${left.authorId}/${left.repositoryId}`.localeCompare(
+          `${right.authorId}/${right.repositoryId}`
+        )
       ),
       GIT_INFO_CONCURRENCY,
       async (groupedEntry) => {
         const representativeEntry = groupedEntry.entries[0];
-        const ownerPreview = [...groupedEntry.ownerIds].sort((left, right) => left.localeCompare(right)).slice(0, 3);
+        const ownerPreview = [...groupedEntry.ownerIds]
+          .sort((left, right) => left.localeCompare(right))
+          .slice(0, 3);
 
         return {
           aggregated: true,
@@ -820,35 +834,30 @@ async function listInstalledModules(options = {}) {
     );
   }
 
-  return mapWithConcurrencyLimit(
-    entries,
-    GIT_INFO_CONCURRENCY,
-    async (entry) => ({
-      aggregated: false,
-      authorId: entry.authorId,
-      canRead: entry.canRead,
-      canWrite: entry.canWrite,
-      git: await readModuleGitInfo({
-        absolutePath: createAbsolutePath(options.projectRoot, entry.projectPath, options.runtimeParams),
-        runtimeParams: options.runtimeParams
-      }),
-      id: createModuleListItemId(entry, {
-        area
-      }),
-      layer: entry.layer,
-      ownerId: entry.ownerId,
-      ownerType: entry.ownerType,
-      ownerCount: 1,
-      path: toAppRelativePath(entry.projectPath),
-      requestPath: entry.requestPath,
-      repositoryId: entry.repositoryId
-    })
-  );
+  return mapWithConcurrencyLimit(entries, GIT_INFO_CONCURRENCY, async (entry) => ({
+    aggregated: false,
+    authorId: entry.authorId,
+    canRead: entry.canRead,
+    canWrite: entry.canWrite,
+    git: await readModuleGitInfo({
+      absolutePath: createAbsolutePath(
+        options.projectRoot,
+        entry.projectPath,
+        options.runtimeParams
+      ),
+      runtimeParams: options.runtimeParams
+    }),
+    id: createModuleListItemId(entry, {
+      area
+    }),
+    layer: entry.layer,
+    ownerId: entry.ownerId,
+    ownerType: entry.ownerType,
+    ownerCount: 1,
+    path: toAppRelativePath(entry.projectPath),
+    requestPath: entry.requestPath,
+    repositoryId: entry.repositoryId
+  }));
 }
 
-export {
-  installModule,
-  listInstalledModules,
-  normalizeModuleTargetPath,
-  readModuleInfo
-};
+export { installModule, listInstalledModules, normalizeModuleTargetPath, readModuleInfo };

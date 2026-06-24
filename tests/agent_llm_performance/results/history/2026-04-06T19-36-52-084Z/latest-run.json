@@ -221,9 +221,7 @@
           "case_path": "tests/agent_llm_performance/cases/weather_self_scope_after_indirect_fail.json",
           "history_path": "tests/agent_llm_performance/histories/weather_self_scope_after_indirect_fail.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /(?:open-meteo|wttr\\.in)/u"
-          ],
+          "failures": ["missing required pattern: /(?:open-meteo|wttr\\.in)/u"],
           "response_type": "thrust",
           "response": "Checking your current location now...\n_____javascript\ntry {\n  return await new Promise((resolve, reject) => {\n    navigator.geolocation.getCurrentPosition(\n      pos => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, accuracy: pos.coords.accuracy }),\n      err => reject(new Error(err.message)),\n      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }\n    );\n  });\n} catch (e) {\n  return { error: String(e.message || e) };\n}",
           "usage": {
@@ -468,9 +466,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Patching your full name now...\n_____javascript\nconst text = await space.api.fileRead(\"~/user.yaml\");\nconst data = space.utils.yaml.parse(text);\ndata.full_name = \"Pan Example\";\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(data))",
           "usage": {
@@ -505,9 +501,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_text_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_text_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Patching the people list now...\n_____javascript\nconst path = '~/people.txt';\nconst current = await space.api.fileRead(path, 'utf8');\nconst updated = String(current).replace(/\\bmr\\.\\s*Kowalski\\b/gi, 'John Ronald Kowalski');\nif (updated === current) throw new Error('No matching text found to update.');\nreturn await space.api.fileWrite(path, updated, 'utf8');",
           "usage": {
@@ -542,9 +536,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Reading the contacts file now...\n\n\n_____javascript\nconst path = '~/contacts.yaml';\nconst text = await space.api.fileRead(path, 'utf8');\nconst data = space.utils.yaml.parse(text);\nif (!data || typeof data !== 'object') throw new Error('contacts.yaml is not a YAML object');\nlet updated = false;\n\nfunction expandValue(v) {\n  if (typeof v === 'string' && v === 'mr_kowalski') {\n    updated = true;\n    return 'John Ronald Kowalski';\n  }\n  if (Array.isArray(v)) return v.map(expandValue);\n  if (v && typeof v === 'object') {\n    for (const k of Object.keys(v)) v[k] = expandValue(v[k]);\n  }\n  return v;\n}\n\nexpandValue(data);\n\nif (!updated) throw new Error('mr_kowalski not found in contacts.yaml');\nconst out = space.utils.yaml.stringify(data);\nreturn await space.api.fileWrite(path, out, 'utf8');",
           "usage": {
@@ -1658,9 +1650,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Updating your full name now...\n_____javascript\nconst text = await space.api.fileRead(\"~/user.yaml\");\nreturn await space.api.fileWrite(\"~/user.yaml\", text.replace(/^full_name:\\s*.*/m, \"full_name: Pan Example\"))",
           "usage": {
@@ -2194,9 +2184,7 @@
           "case_path": "tests/agent_llm_performance/cases/protocol_nudge_requires_real_thrust.json",
           "history_path": "tests/agent_llm_performance/histories/protocol_nudge_requires_real_thrust.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.current\\.patchWidget\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.current\\.patchWidget\\(/u"],
           "response_type": "thrust",
           "response": "Loading the snake widget source to patch it now...\n_____javascript\nreturn await space.current.readWidget(\"snake-game\")",
           "usage": {
@@ -2870,9 +2858,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Updating your full name now...\n_____javascript\nconst text = await space.api.fileRead(\"~/user.yaml\");\nconst obj = space.utils.yaml.parse(text);\nobj.full_name = \"Pan Example\";\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(obj))",
           "usage": {

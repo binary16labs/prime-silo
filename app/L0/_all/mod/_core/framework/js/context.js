@@ -116,9 +116,7 @@ export async function resolveRuntimeContext(options = {}) {
 
   try {
     const runtimeInfo = await desktopApi.getRuntimeInfo();
-    return isBundledAppRuntime(runtimeInfo)
-      ? RUNTIME_CONTEXT.APP
-      : RUNTIME_CONTEXT.BROWSER;
+    return isBundledAppRuntime(runtimeInfo) ? RUNTIME_CONTEXT.APP : RUNTIME_CONTEXT.BROWSER;
   } catch (error) {
     console.warn("[space-framework] Failed to resolve runtime context.", error);
     return packagedFallback ? RUNTIME_CONTEXT.APP : RUNTIME_CONTEXT.BROWSER;

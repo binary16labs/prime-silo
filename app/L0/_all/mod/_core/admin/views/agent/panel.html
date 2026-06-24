@@ -18,12 +18,20 @@
         >
           <header class="admin-agent-toolbar">
             <section class="admin-agent-meta" aria-label="Admin agent options">
-              <button type="button" class="chat-option chat-option-llm" @click="$store.adminAgent.openSettingsDialog()">
+              <button
+                type="button"
+                class="chat-option chat-option-llm"
+                @click="$store.adminAgent.openSettingsDialog()"
+              >
                 <span class="chat-option-label">LLM</span>
                 <span class="chat-option-value" x-text="$store.adminAgent.llmSummary"></span>
                 <x-icon>edit</x-icon>
               </button>
-              <button type="button" class="chat-option chat-option-prompt" @click="$store.adminAgent.openSystemDialog()">
+              <button
+                type="button"
+                class="chat-option chat-option-prompt"
+                @click="$store.adminAgent.openSystemDialog()"
+              >
                 <span class="chat-option-label">Instructions</span>
                 <span class="chat-option-value" x-text="$store.adminAgent.promptSummary"></span>
                 <x-icon>edit</x-icon>
@@ -32,12 +40,21 @@
           </header>
 
           <section class="admin-agent-thread-wrap" x-ref="scroller">
-            <div class="chat-thread" x-ref="thread" data-chat-thread @click="$store.adminAgent.handleThreadClick($event)"></div>
+            <div
+              class="chat-thread"
+              x-ref="thread"
+              data-chat-thread
+              @click="$store.adminAgent.handleThreadClick($event)"
+            ></div>
           </section>
 
           <footer class="admin-agent-composer-wrap">
             <div class="admin-agent-history-tools">
-              <span class="admin-agent-history-token-count" aria-live="polite" x-text="$store.adminAgent.historyTokenSummary"></span>
+              <span
+                class="admin-agent-history-token-count"
+                aria-live="polite"
+                x-text="$store.adminAgent.historyTokenSummary"
+              ></span>
               <button
                 type="button"
                 class="admin-agent-compact-button"
@@ -96,7 +113,10 @@
               ></textarea>
               <template x-if="$store.adminAgent.draftAttachments.length">
                 <div class="composer-attachments" aria-label="Selected attachments">
-                  <template x-for="attachment in $store.adminAgent.draftAttachments" :key="attachment.id">
+                  <template
+                    x-for="attachment in $store.adminAgent.draftAttachments"
+                    :key="attachment.id"
+                  >
                     <button
                       type="button"
                       class="composer-attachment"
@@ -142,8 +162,16 @@
 
           <template x-teleport="body">
             <div class="space-dialog-layer">
-              <dialog class="chat-dialog" x-ref="systemDialog" @cancel.prevent="$store.adminAgent.closeSystemDialog()">
-                <form method="dialog" class="dialog-card" @submit.prevent="$store.adminAgent.saveSystemPromptFromDialog()">
+              <dialog
+                class="chat-dialog"
+                x-ref="systemDialog"
+                @cancel.prevent="$store.adminAgent.closeSystemDialog()"
+              >
+                <form
+                  method="dialog"
+                  class="dialog-card"
+                  @submit.prevent="$store.adminAgent.saveSystemPromptFromDialog()"
+                >
                   <header class="dialog-header">
                     <div>
                       <p class="page-eyebrow">Custom Instructions</p>
@@ -154,7 +182,8 @@
                     <span>Instructions</span>
                     <textarea rows="12" x-model="$store.adminAgent.systemPromptDraft"></textarea>
                     <p class="field-note">
-                      These instructions are appended at the end of the standard shared system prompt.
+                      These instructions are appended at the end of the standard shared system
+                      prompt.
                     </p>
                   </label>
                   <div class="dialog-actions">
@@ -165,21 +194,39 @@
                     >
                       Clear
                     </button>
-                    <button type="button" class="secondary-button" @click="$store.adminAgent.closeSystemDialog()">Cancel</button>
+                    <button
+                      type="button"
+                      class="secondary-button"
+                      @click="$store.adminAgent.closeSystemDialog()"
+                    >
+                      Cancel
+                    </button>
                     <button type="submit" class="confirm-button">Save Instructions</button>
                   </div>
                 </form>
               </dialog>
 
-              <dialog class="chat-dialog" x-ref="settingsDialog" @cancel.prevent="$store.adminAgent.closeSettingsDialog()">
-                <form method="dialog" class="dialog-card" @submit.prevent="$store.adminAgent.saveSettingsFromDialog()">
+              <dialog
+                class="chat-dialog"
+                x-ref="settingsDialog"
+                @cancel.prevent="$store.adminAgent.closeSettingsDialog()"
+              >
+                <form
+                  method="dialog"
+                  class="dialog-card"
+                  @submit.prevent="$store.adminAgent.saveSettingsFromDialog()"
+                >
                   <header class="dialog-header">
                     <div>
                       <p class="page-eyebrow">LLM</p>
                       <h2>Provider and model configuration</h2>
                     </div>
                   </header>
-                  <div class="dialog-segmented-control admin-agent-provider-switch" role="tablist" aria-label="LLM provider">
+                  <div
+                    class="dialog-segmented-control admin-agent-provider-switch"
+                    role="tablist"
+                    aria-label="LLM provider"
+                  >
                     <button
                       type="button"
                       class="secondary-button dialog-segmented-button"
@@ -211,22 +258,39 @@
                       <input type="password" x-model="$store.adminAgent.settingsDraft.apiKey" />
                     </label>
                   </div>
-                  <div x-show="$store.adminAgent.isSettingsDraftUsingLocalProvider" x-cloak class="admin-agent-local-settings">
+                  <div
+                    x-show="$store.adminAgent.isSettingsDraftUsingLocalProvider"
+                    x-cloak
+                    class="admin-agent-local-settings"
+                  >
                     <div class="admin-agent-local-provider-panel">
-                      <x-component path="/mod/_core/huggingface/config-sidebar.html" mode="admin"></x-component>
+                      <x-component
+                        path="/mod/_core/huggingface/config-sidebar.html"
+                        mode="admin"
+                      ></x-component>
                     </div>
                   </div>
                   <label class="field">
                     <span>Max Tokens</span>
-                    <input type="number" min="1" step="1" inputmode="numeric" x-model="$store.adminAgent.settingsDraft.maxTokens" />
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      inputmode="numeric"
+                      x-model="$store.adminAgent.settingsDraft.maxTokens"
+                    />
                     <p class="field-note">
-                      Shared across both provider modes. Default <code>120000</code>. When prompt history exceeds this, compaction runs automatically before the next send.
+                      Shared across both provider modes. Default <code>120000</code>. When prompt
+                      history exceeds this, compaction runs automatically before the next send.
                     </p>
                   </label>
                   <div class="field prompt-budget-field">
                     <span>Prompt Budget</span>
                     <div class="prompt-budget-preview" aria-hidden="true">
-                      <template x-for="segment in $store.adminAgent.settingsDraftPromptBudgetSegments" :key="segment.key">
+                      <template
+                        x-for="segment in $store.adminAgent.settingsDraftPromptBudgetSegments"
+                        :key="segment.key"
+                      >
                         <span
                           class="prompt-budget-segment"
                           :class="segment.colorClass"
@@ -236,7 +300,12 @@
                     </div>
                     <div class="prompt-budget-grid">
                       <label class="prompt-budget-control">
-                        <span>System <strong x-text="`${$store.adminAgent.settingsDraftPromptBudgetRatios.system}%`"></strong></span>
+                        <span
+                          >System
+                          <strong
+                            x-text="`${$store.adminAgent.settingsDraftPromptBudgetRatios.system}%`"
+                          ></strong
+                        ></span>
                         <input
                           type="range"
                           min="0"
@@ -247,7 +316,12 @@
                         />
                       </label>
                       <label class="prompt-budget-control">
-                        <span>History <strong x-text="`${$store.adminAgent.settingsDraftPromptBudgetRatios.history}%`"></strong></span>
+                        <span
+                          >History
+                          <strong
+                            x-text="`${$store.adminAgent.settingsDraftPromptBudgetRatios.history}%`"
+                          ></strong
+                        ></span>
                         <input
                           type="range"
                           min="0"
@@ -258,7 +332,12 @@
                         />
                       </label>
                       <label class="prompt-budget-control">
-                        <span>Transient <strong x-text="`${$store.adminAgent.settingsDraftPromptBudgetRatios.transient}%`"></strong></span>
+                        <span
+                          >Transient
+                          <strong
+                            x-text="`${$store.adminAgent.settingsDraftPromptBudgetRatios.transient}%`"
+                          ></strong
+                        ></span>
                         <input
                           type="range"
                           min="0"
@@ -269,7 +348,12 @@
                         />
                       </label>
                       <label class="prompt-budget-control prompt-budget-control-single">
-                        <span>Single History Message <strong x-text="`${$store.adminAgent.settingsDraftPromptBudgetRatios.singleMessage}%`"></strong></span>
+                        <span
+                          >Single History Message
+                          <strong
+                            x-text="`${$store.adminAgent.settingsDraftPromptBudgetRatios.singleMessage}%`"
+                          ></strong
+                        ></span>
                         <input
                           type="range"
                           min="0"
@@ -281,7 +365,8 @@
                       </label>
                     </div>
                     <p class="field-note">
-                      System, history, and transient rebalance to 100% of <code>max tokens</code>. Single history message is a percentage of the history budget.
+                      System, history, and transient rebalance to 100% of <code>max tokens</code>.
+                      Single history message is a percentage of the history budget.
                     </p>
                   </div>
                   <label class="field">
@@ -293,23 +378,38 @@
                       x-model="$store.adminAgent.settingsDraft.paramsText"
                     ></textarea>
                     <p class="field-note">
-                      YAML format. Passed through to the active provider. Example: <code>temperature:0.2</code>
+                      YAML format. Passed through to the active provider. Example:
+                      <code>temperature:0.2</code>
                     </p>
                   </label>
                   <p class="dialog-note">
                     These settings are stored in <code>~/conf/admin-chat.yaml</code>.
                   </p>
                   <div class="dialog-actions">
-                    <button type="button" class="secondary-button" @click="$store.adminAgent.resetSettingsDraftToDefaults()">
+                    <button
+                      type="button"
+                      class="secondary-button"
+                      @click="$store.adminAgent.resetSettingsDraftToDefaults()"
+                    >
                       Defaults
                     </button>
-                    <button type="button" class="secondary-button" @click="$store.adminAgent.closeSettingsDialog()">Cancel</button>
+                    <button
+                      type="button"
+                      class="secondary-button"
+                      @click="$store.adminAgent.closeSettingsDialog()"
+                    >
+                      Cancel
+                    </button>
                     <button type="submit" class="confirm-button">Save Settings</button>
                   </div>
                 </form>
               </dialog>
 
-              <dialog class="chat-dialog" x-ref="rawDialog" @cancel.prevent="$store.adminAgent.closeRawDialog()">
+              <dialog
+                class="chat-dialog"
+                x-ref="rawDialog"
+                @cancel.prevent="$store.adminAgent.closeRawDialog()"
+              >
                 <div class="dialog-card dialog-card-raw">
                   <header class="dialog-header">
                     <div>
@@ -318,15 +418,28 @@
                     </div>
                   </header>
                   <div class="raw-output-frame">
-                    <pre class="raw-output" x-text="$store.adminAgent.rawOutputContent || '[No raw output available]'"></pre>
+                    <pre
+                      class="raw-output"
+                      x-text="$store.adminAgent.rawOutputContent || '[No raw output available]'"
+                    ></pre>
                   </div>
                   <div class="dialog-actions">
-                    <button type="button" class="secondary-button" @click="$store.adminAgent.closeRawDialog()">Close</button>
+                    <button
+                      type="button"
+                      class="secondary-button"
+                      @click="$store.adminAgent.closeRawDialog()"
+                    >
+                      Close
+                    </button>
                   </div>
                 </div>
               </dialog>
 
-              <dialog class="chat-dialog" x-ref="historyDialog" @cancel.prevent="$store.adminAgent.closePromptHistoryDialog()">
+              <dialog
+                class="chat-dialog"
+                x-ref="historyDialog"
+                @cancel.prevent="$store.adminAgent.closePromptHistoryDialog()"
+              >
                 <div class="dialog-card dialog-card-raw">
                   <header class="dialog-header">
                     <div>
@@ -334,7 +447,11 @@
                       <h2 x-text="$store.adminAgent.promptHistoryTitle"></h2>
                     </div>
                     <div class="dialog-header-actions">
-                      <div class="dialog-segmented-control" role="tablist" aria-label="Prompt history mode">
+                      <div
+                        class="dialog-segmented-control"
+                        role="tablist"
+                        aria-label="Prompt history mode"
+                      >
                         <button
                           type="button"
                           class="secondary-button dialog-segmented-button"
@@ -362,16 +479,25 @@
                         <template x-if="!$store.adminAgent.promptHistorySections.length">
                           <pre class="raw-output"></pre>
                         </template>
-                        <template x-for="(section, index) in $store.adminAgent.promptHistorySections" :key="`${section.role}-${index}`">
+                        <template
+                          x-for="(section, index) in $store.adminAgent.promptHistorySections"
+                          :key="`${section.role}-${index}`"
+                        >
                           <section class="prompt-history-section">
-                            <div class="prompt-history-role" x-text="`${section.role} (${section.tokenCountLabel}):`"></div>
+                            <div
+                              class="prompt-history-role"
+                              x-text="`${section.role} (${section.tokenCountLabel}):`"
+                            ></div>
                             <pre class="prompt-history-body" x-text="section.content"></pre>
                           </section>
                         </template>
                       </div>
                     </template>
                     <template x-if="$store.adminAgent.promptHistoryMode === 'json'">
-                      <pre class="raw-output" x-text="$store.adminAgent.promptHistoryContent || '[]'"></pre>
+                      <pre
+                        class="raw-output"
+                        x-text="$store.adminAgent.promptHistoryContent || '[]'"
+                      ></pre>
                     </template>
                   </div>
                   <div class="dialog-actions prompt-history-dialog-actions">
@@ -384,7 +510,13 @@
                     >
                       <x-icon>content_copy</x-icon>
                     </button>
-                    <button type="button" class="secondary-button" @click="$store.adminAgent.closePromptHistoryDialog()">Close</button>
+                    <button
+                      type="button"
+                      class="secondary-button"
+                      @click="$store.adminAgent.closePromptHistoryDialog()"
+                    >
+                      Close
+                    </button>
                   </div>
                 </div>
               </dialog>

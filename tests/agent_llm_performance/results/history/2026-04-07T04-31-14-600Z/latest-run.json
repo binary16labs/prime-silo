@@ -527,9 +527,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Reading the contacts file first now...\n\n\n_____javascript\nconst text = await space.api.fileRead(\"~/contacts.yaml\", \"utf8\")\nconst data = space.utils.yaml.parse(text)\nif (data && typeof data === \"object\") {\n  for (const key of Object.keys(data)) {\n    if (key === \"mr_kowalski\") data[key] = \"John Ronald Kowalski\"\n  }\n}\nreturn await space.api.fileWrite(\"~/contacts.yaml\", space.utils.yaml.stringify(data), \"utf8\")",
           "usage": {
@@ -3779,9 +3777,7 @@
           "case_path": "tests/agent_llm_performance/cases/repeat_do_it_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/repeat_do_it_requires_execution.json",
           "passed": false,
-          "failures": [
-            "invalid javascript after execution separator: Unexpected token '}'"
-          ],
+          "failures": ["invalid javascript after execution separator: Unexpected token '}'"],
           "response_type": "thrust",
           "response": "Patching the loaded snake widget now...\n_____javascript\nreturn await space.current.patchWidget(\"snake-game\", { edits: [] })\n\nDone.",
           "usage": {

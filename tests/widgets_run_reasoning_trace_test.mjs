@@ -126,8 +126,20 @@ function testRenderShellEmptyAndPopulated() {
 
   const populated = rtTesting.renderShell(
     [
-      { node_id: "llm-1", status: "completed", timestamp: "t1", duration_ms: 200, reasoning: "step A" },
-      { node_id: "llm-2", status: "failed", timestamp: "t2", duration_ms: null, reasoning: "step B" }
+      {
+        node_id: "llm-1",
+        status: "completed",
+        timestamp: "t1",
+        duration_ms: 200,
+        reasoning: "step A"
+      },
+      {
+        node_id: "llm-2",
+        status: "failed",
+        timestamp: "t2",
+        duration_ms: null,
+        reasoning: "step B"
+      }
     ],
     { run_id: "r1" }
   );
@@ -137,7 +149,15 @@ function testRenderShellEmptyAndPopulated() {
   assert.match(populated, /llm-2/);
   // Reasoning content should be HTML-escaped — no unescaped angle brackets.
   const xss = rtTesting.renderShell(
-    [{ node_id: "x", status: "completed", timestamp: "t", duration_ms: null, reasoning: "<script>alert(1)</script>" }],
+    [
+      {
+        node_id: "x",
+        status: "completed",
+        timestamp: "t",
+        duration_ms: null,
+        reasoning: "<script>alert(1)</script>"
+      }
+    ],
     { run_id: "r1" }
   );
   assert.match(xss, /&lt;script&gt;/);
@@ -145,10 +165,18 @@ function testRenderShellEmptyAndPopulated() {
 }
 
 class FakeClassList {
-  constructor() { this._set = new Set(); }
-  add(...names) { names.forEach((n) => this._set.add(n)); }
-  remove(...names) { names.forEach((n) => this._set.delete(n)); }
-  has(name) { return this._set.has(name); }
+  constructor() {
+    this._set = new Set();
+  }
+  add(...names) {
+    names.forEach((n) => this._set.add(n));
+  }
+  remove(...names) {
+    names.forEach((n) => this._set.delete(n));
+  }
+  has(name) {
+    return this._set.has(name);
+  }
 }
 
 function createFakeHost() {
@@ -210,7 +238,10 @@ async function testWidgetLoadsAndRenders() {
   const host = createFakeHost();
   const client = createClientStub();
   client.runtimeHandler = (path) => {
-    assert.match(path, /\/governance\/events\?workspace=ws_a&run_id=r1&event_type=NODE_EXECUTION_STATE/);
+    assert.match(
+      path,
+      /\/governance\/events\?workspace=ws_a&run_id=r1&event_type=NODE_EXECUTION_STATE/
+    );
     return jsonResponse({
       events: [
         {
@@ -236,11 +267,7 @@ async function testWidgetLoadsAndRenders() {
     });
   };
 
-  createReasoningTraceWidget(
-    host,
-    { run_id: "r1", workspace: "ws_a" },
-    { runtimeClient: client }
-  );
+  createReasoningTraceWidget(host, { run_id: "r1", workspace: "ws_a" }, { runtimeClient: client });
   await settle();
 
   assert.equal(host.dataset.widgetState, "ready");
@@ -257,9 +284,7 @@ async function testWidgetEmptyStateWhenNoReasoning() {
   const client = createClientStub();
   client.runtimeHandler = () =>
     jsonResponse({
-      events: [
-        { data: { node_id: "tool-1", status: "completed", outputs: { response: "ran" } } }
-      ]
+      events: [{ data: { node_id: "tool-1", status: "completed", outputs: { response: "ran" } } }]
     });
 
   createReasoningTraceWidget(host, { run_id: "r1" }, { runtimeClient: client });
@@ -298,16 +323,24 @@ async function testWidgetUpdateReloadsOnNodeIdChange() {
   client.runtimeHandler = () =>
     jsonResponse({
       events: [
-        { data: { node_id: "alpha", status: "completed", outputs: { reasoning_trace: "α reasoning" } } },
-        { data: { node_id: "beta", status: "completed", outputs: { reasoning_trace: "β reasoning" } } }
+        {
+          data: {
+            node_id: "alpha",
+            status: "completed",
+            outputs: { reasoning_trace: "α reasoning" }
+          }
+        },
+        {
+          data: {
+            node_id: "beta",
+            status: "completed",
+            outputs: { reasoning_trace: "β reasoning" }
+          }
+        }
       ]
     });
 
-  const widget = createReasoningTraceWidget(
-    host,
-    { run_id: "r1" },
-    { runtimeClient: client }
-  );
+  const widget = createReasoningTraceWidget(host, { run_id: "r1" }, { runtimeClient: client });
   await settle();
   // First load: both traces visible.
   assert.match(host.innerHTML, /α reasoning/);
@@ -326,11 +359,7 @@ async function testWidgetUpdateNoReloadWhenQueryUnchanged() {
   const client = createClientStub();
   client.runtimeHandler = () => jsonResponse({ events: [] });
 
-  const widget = createReasoningTraceWidget(
-    host,
-    { run_id: "stable" },
-    { runtimeClient: client }
-  );
+  const widget = createReasoningTraceWidget(host, { run_id: "stable" }, { runtimeClient: client });
   await settle();
   widget.update({ run_id: "stable" });
   await settle();
@@ -344,16 +373,14 @@ async function testWidgetExposesTracesAndRawEvents() {
   client.runtimeHandler = () =>
     jsonResponse({
       events: [
-        { data: { node_id: "llm-1", status: "completed", outputs: { reasoning_trace: "thought-1" } } },
+        {
+          data: { node_id: "llm-1", status: "completed", outputs: { reasoning_trace: "thought-1" } }
+        },
         { data: { node_id: "tool-1", status: "completed", outputs: { response: "ran" } } }
       ]
     });
 
-  const widget = createReasoningTraceWidget(
-    host,
-    { run_id: "r1" },
-    { runtimeClient: client }
-  );
+  const widget = createReasoningTraceWidget(host, { run_id: "r1" }, { runtimeClient: client });
   await settle();
 
   assert.equal(widget.traces.length, 1);

@@ -11,10 +11,7 @@
       "passed_attempts": 55,
       "total_attempts": 57,
       "attempt_pass_rate": 0.9649,
-      "failed_cases": [
-        "silent_widget_failure_reopens_repair",
-        "weather_self_scope_followup"
-      ],
+      "failed_cases": ["silent_widget_failure_reopens_repair", "weather_self_scope_followup"],
       "cases": [
         {
           "case_id": "page_title_requires_execution",
@@ -3119,9 +3116,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Updating your full name to Pan Example now...\n_____javascript\nconst current = await space.api.fileRead(\"~/user.yaml\")\nconst lines = String(current).split(/\\r?\\n/)\nlet done = false\nconst out = lines.map(line => {\n  if (/^\\s*full_name\\s*:/.test(line)) {\n    done = true\n    return line.replace(/^\\s*full_name\\s*:.*/, \"full_name: Pan Example\")\n  }\n  return line\n})\nif (!done) out.unshift(\"full_name: Pan Example\")\nawait space.api.fileWrite(\"~/user.yaml\", out.join(\"\\n\"))\nreturn \"updated\"",
           "usage": {
@@ -3194,9 +3189,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating the contacts file now...\n\n\n_____javascript\nconst path = \"~/contacts.yaml\"\nconst content = await space.api.fileRead(path, \"utf8\")\nconst updated = content.replace(/(^\\s*mr_kowalski:\\s*)(.*)$/m, \"$1John Ronald Kowalski\")\nif (updated === content) throw new Error(\"Target entry not found or already unchanged\")\nawait space.api.fileWrite(path, updated, \"utf8\")\nreturn \"Updated ~/contacts.yaml\"",
           "usage": {
@@ -3231,9 +3224,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_widget_fix_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_widget_fix_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.current\\.readWidget\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.current\\.readWidget\\(/u"],
           "response_type": "thrust",
           "response": "Checking the snake game widget now...\n_____javascript\nreturn await space.current.seeWidget(\"snake-game\")",
           "usage": {
@@ -3701,9 +3692,7 @@
           "case_path": "tests/agent_llm_performance/cases/terminal_after_result_continue_literal.json",
           "history_path": "tests/agent_llm_performance/histories/terminal_after_result_continue_literal.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /\\S/u"
-          ],
+          "failures": ["missing required pattern: /\\S/u"],
           "response_type": "terminal",
           "response": "",
           "usage": {
@@ -3808,9 +3797,7 @@
           "case_path": "tests/agent_llm_performance/cases/repeat_do_it_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/repeat_do_it_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.readWidget(\"snake-game\")",
           "usage": {
@@ -4280,9 +4267,7 @@
           "case_path": "tests/agent_llm_performance/cases/screenshot_download_without_helper_uses_browser_js.json",
           "history_path": "tests/agent_llm_performance/histories/screenshot_download_without_helper_uses_browser_js.json",
           "passed": false,
-          "failures": [
-            "execution separator must appear exactly once on its own line"
-          ],
+          "failures": ["execution separator must appear exactly once on its own line"],
           "response_type": "thrust",
           "response": "I’ll capture a screenshot and trigger the download now._____javascript\nconst src = \"https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js\"\nif (!window.html2canvas) {\n  await new Promise((resolve, reject) => {\n    const s = document.createElement(\"script\")\n    s.src = src\n    s.onload = resolve\n    s.onerror = reject\n    document.head.appendChild(s)\n  })\n}\nconst canvas = await window.html2canvas(document.body)\nconst blob = await new Promise(resolve => canvas.toBlob(resolve, \"image/png\"))\nconst a = document.createElement(\"a\")\na.href = URL.createObjectURL(blob)\na.download = `screenshot-${Date.now()}.png`\na.click()\nreturn \"Screenshot captured and download triggered\"",
           "usage": {
@@ -4527,9 +4512,7 @@
           "case_path": "tests/agent_llm_performance/cases/fix_visible_widget_error_requires_readwidget.json",
           "history_path": "tests/agent_llm_performance/histories/fix_visible_widget_error_requires_readwidget.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"status-board\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"status-board\"\\)/u"],
           "response_type": "thrust",
           "response": "I’ll fix the status widget.\n_____javascript\nreturn await space.current.patchWidget(\"status-board\", { edits: [{ op: \"replace\", path: \"/content\", value: \"Status: available\" }] })",
           "usage": {
@@ -4599,9 +4582,7 @@
           "case_path": "tests/agent_llm_performance/cases/look_at_it_now_uses_see_widget.json",
           "history_path": "tests/agent_llm_performance/histories/look_at_it_now_uses_see_widget.json",
           "passed": false,
-          "failures": [
-            "execution separator must appear exactly once on its own line"
-          ],
+          "failures": ["execution separator must appear exactly once on its own line"],
           "response_type": "thrust",
           "response": "I’ll look at the current object now._____javascript\nreturn await space.current.seeWidget(\"quote-board\")",
           "usage": {
@@ -4805,9 +4786,7 @@
           "case_path": "tests/agent_llm_performance/cases/fresh_widget_read_then_do_it_requires_patch.json",
           "history_path": "tests/agent_llm_performance/histories/fresh_widget_read_then_do_it_requires_patch.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.patchWidget(\"quote-board\", { edits: [{ type: \"replace\", path: \"renderer\", value: \"0 async (parent) => {\\n1   const state = { symbols: [\\\"AAPL\\\", \\\"MSFT\\\", \\\"BTC-USD\\\"] }\\n2   const data = await fetch(\\\"https://api.example.test/quotes\\\").then(r => r.json())\\n3 }\" }] })",
           "usage": {
@@ -4842,9 +4821,7 @@
           "case_path": "tests/agent_llm_performance/cases/widget_patch_error_then_do_it_requires_recovery_action.json",
           "history_path": "tests/agent_llm_performance/histories/widget_patch_error_then_do_it_requires_recovery_action.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /^I['’]m at the point|^I need|^Next I/imu"
-          ],
+          "failures": ["matched forbidden pattern: /^I['’]m at the point|^I need|^Next I/imu"],
           "response_type": "thrust",
           "response": "I need the exact visible widget text again to patch safely.\n_____javascript\nreturn await space.current.readWidget(\"quote-board\")",
           "usage": {
@@ -5215,9 +5192,7 @@
           "case_path": "tests/agent_llm_performance/cases/create_note_after_user_detail_read.json",
           "history_path": "tests/agent_llm_performance/histories/create_note_after_user_detail_read.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Creating the file with your username now.\n_____javascript\nreturn await space.fs.writeFile(\"~/notes/whoami.txt\", \"pan\")",
           "usage": {
@@ -5331,9 +5306,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "I’ll update the contacts file now.\n_____javascript\nreturn await (async () => {\n  const path = \"~/contacts.yaml\"\n  const text = await space.current.readFile(path)\n  const updated = text.replace(/(^\\s*mr_kowalski:\\s*)(.+)$/m, \"$1John Ronald Kowalski\")\n  if (updated === text) throw new Error(\"Target entry not found or already updated\")\n  return await space.current.writeFile(path, updated)\n})()",
           "usage": {
@@ -5473,9 +5446,7 @@
           "case_path": "tests/agent_llm_performance/cases/space_navigation_read_is_not_completion.json",
           "history_path": "tests/agent_llm_performance/histories/space_navigation_read_is_not_completion.json",
           "passed": false,
-          "failures": [
-            "execution separator must appear exactly once on its own line"
-          ],
+          "failures": ["execution separator must appear exactly once on its own line"],
           "response_type": "thrust",
           "response": "I found your weather space; opening it now._____javascript\nreturn await space.spaces.openSpace(\"space-1\")",
           "usage": {
@@ -5765,9 +5736,7 @@
           "case_path": "tests/agent_llm_performance/cases/terminal_after_framework_no_result_info.json",
           "history_path": "tests/agent_llm_performance/histories/terminal_after_framework_no_result_info.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /\\S/u"
-          ],
+          "failures": ["missing required pattern: /\\S/u"],
           "response_type": "terminal",
           "response": "",
           "usage": {
@@ -5872,9 +5841,7 @@
           "case_path": "tests/agent_llm_performance/cases/terminal_after_result_commandlike_literal.json",
           "history_path": "tests/agent_llm_performance/histories/terminal_after_result_commandlike_literal.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /\\S/u"
-          ],
+          "failures": ["missing required pattern: /\\S/u"],
           "response_type": "terminal",
           "response": "",
           "usage": {
@@ -5944,9 +5911,7 @@
           "case_path": "tests/agent_llm_performance/cases/repeat_do_it_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/repeat_do_it_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.patchWidget(\"snake-game\", { edits: [] })",
           "usage": {

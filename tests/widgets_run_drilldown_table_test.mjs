@@ -93,10 +93,18 @@ function testRenderTableEmptyAndPopulated() {
 }
 
 class FakeClassList {
-  constructor() { this._set = new Set(); }
-  add(...names) { names.forEach((n) => this._set.add(n)); }
-  remove(...names) { names.forEach((n) => this._set.delete(n)); }
-  has(name) { return this._set.has(name); }
+  constructor() {
+    this._set = new Set();
+  }
+  add(...names) {
+    names.forEach((n) => this._set.add(n));
+  }
+  remove(...names) {
+    names.forEach((n) => this._set.delete(n));
+  }
+  has(name) {
+    return this._set.has(name);
+  }
 }
 
 function createFakeHost() {
@@ -196,11 +204,7 @@ async function testWidgetSurfacesError() {
   const client = createClientStub();
   client.runtimeHandler = () => makeRuntimeError(404, "no checkpoint for step 'ghost'");
 
-  createDrilldownTableWidget(
-    host,
-    { run_id: "r1", step_id: "ghost" },
-    { runtimeClient: client }
-  );
+  createDrilldownTableWidget(host, { run_id: "r1", step_id: "ghost" }, { runtimeClient: client });
   await settle();
 
   assert.equal(host.dataset.widgetState, "error");
@@ -280,7 +284,10 @@ async function testWidgetExposesPayload() {
   client.runtimeHandler = () =>
     jsonResponse({
       columns: ["x", "y"],
-      rows: [{ x: 1, y: 2 }, { x: 3, y: 4 }],
+      rows: [
+        { x: 1, y: 2 },
+        { x: 3, y: 4 }
+      ],
       clp_binding: { process: "p", skill: "s" }
     });
 

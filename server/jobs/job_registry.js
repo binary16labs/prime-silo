@@ -37,9 +37,7 @@ export async function loadJobRegistry(jobDir) {
     });
 
     if (!(instance instanceof JobBase)) {
-      throw new Error(
-        `Job module "${entry.name}" must export a default class extending JobBase.`
-      );
+      throw new Error(`Job module "${entry.name}" must export a default class extending JobBase.`);
     }
 
     registry.set(jobId, instance);

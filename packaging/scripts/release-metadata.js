@@ -98,7 +98,11 @@ function serializeUpdateMetadata(metadata) {
     if (key === "version" || key === "files" || key === "path" || key === "sha512") {
       return;
     }
-    if (value === undefined || value === null || (typeof value === "object" && !Array.isArray(value))) {
+    if (
+      value === undefined ||
+      value === null ||
+      (typeof value === "object" && !Array.isArray(value))
+    ) {
       return;
     }
     if (Array.isArray(value)) {

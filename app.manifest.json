@@ -5,17 +5,12 @@
   "description": "The cognitive-mesh shell: knowledge graph (documents) and code graph (AST) beside Memo-Ray's memory graph. Ships as an Electron desktop app with a system tray; requires the Memo-Ray service for the memory surface.",
   "repo": "https://github.com/binary16labs/prime-silo",
   "role": "shell",
-  "requires": [
-    "memo-ray"
-  ],
+  "requires": ["memo-ray"],
   "provides": [
     {
       "service": "shell",
       "preferredPort": 3020,
-      "portRange": [
-        3020,
-        3039
-      ],
+      "portRange": [3020, 3039],
       "health": "/",
       "baseUrlVar": "SPACE_BASE_URL"
     }

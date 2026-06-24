@@ -55,13 +55,18 @@ function normalizeSelectorOptions(options = {}) {
     defaultPreviewColor,
     defaultPreviewIcon,
     icon: normalizeMaterialSymbolName(options.icon),
-    pageSize: Number.isFinite(requestedPageSize) ? clampNumber(requestedPageSize, 24, 120) : DEFAULT_PAGE_SIZE,
+    pageSize: Number.isFinite(requestedPageSize)
+      ? clampNumber(requestedPageSize, 24, 120)
+      : DEFAULT_PAGE_SIZE,
     resetLabel: String(options.resetLabel || "Reset to defaults").trim() || "Reset to defaults"
   };
 }
 
 function getVisualRuntime() {
-  const runtime = globalThis.space && typeof globalThis.space === "object" ? globalThis.space : (globalThis.space = {});
+  const runtime =
+    globalThis.space && typeof globalThis.space === "object"
+      ? globalThis.space
+      : (globalThis.space = {});
   runtime.visual = runtime.visual || {};
   return runtime.visual;
 }
@@ -107,7 +112,12 @@ const model = {
   },
 
   get colorValueLabel() {
-    return (this.selectedColor || this.defaultColor || this.defaultPreviewColor || FALLBACK_PREVIEW_COLOR).toUpperCase();
+    return (
+      this.selectedColor ||
+      this.defaultColor ||
+      this.defaultPreviewColor ||
+      FALLBACK_PREVIEW_COLOR
+    ).toUpperCase();
   },
 
   get currentPageNumber() {
@@ -143,7 +153,7 @@ const model = {
       return "No Material icons available.";
     }
 
-    const startIndex = ((this.currentPageNumber - 1) * this.pageSize) + 1;
+    const startIndex = (this.currentPageNumber - 1) * this.pageSize + 1;
     const endIndex = startIndex + this.visibleIcons.length - 1;
     return `Showing ${startIndex}-${endIndex} of ${totalMatches} icons`;
   },
@@ -375,12 +385,13 @@ const model = {
       return;
     }
 
-    activeRequest.result = result && typeof result === "object"
-      ? {
-          color: normalizeIconHexColor(result.color),
-          icon: normalizeMaterialSymbolName(result.icon)
-        }
-      : null;
+    activeRequest.result =
+      result && typeof result === "object"
+        ? {
+            color: normalizeIconHexColor(result.color),
+            icon: normalizeMaterialSymbolName(result.icon)
+          }
+        : null;
 
     this.isClosing = true;
 

@@ -1,8 +1,5 @@
 import { importComponent } from "/mod/_core/framework/js/components.js";
-import {
-  DEFAULT_ROUTE_PATH,
-  parseRouteTarget
-} from "/mod/_core/router/route-path.js";
+import { DEFAULT_ROUTE_PATH, parseRouteTarget } from "/mod/_core/router/route-path.js";
 
 const SCROLL_STORAGE_KEY = "space.router.scrollPositions";
 let routerMagicRegistered = false;
@@ -19,10 +16,7 @@ function loadScrollPositions() {
 
 function persistScrollPositions(scrollPositions) {
   try {
-    globalThis.sessionStorage?.setItem(
-      SCROLL_STORAGE_KEY,
-      JSON.stringify(scrollPositions || {})
-    );
+    globalThis.sessionStorage?.setItem(SCROLL_STORAGE_KEY, JSON.stringify(scrollPositions || {}));
   } catch {
     // Ignore storage failures and keep routing live.
   }
@@ -97,12 +91,7 @@ const restoreRouteScrollPosition = globalThis.space.extend(
     }
 
     const savedTop = Number(store.scrollPositions[routeKey]);
-    const top =
-      options.mode === "top"
-        ? 0
-        : Number.isFinite(savedTop)
-          ? savedTop
-          : 0;
+    const top = options.mode === "top" ? 0 : Number.isFinite(savedTop) ? savedTop : 0;
 
     viewport.scrollTo({
       behavior: options.behavior || "auto",
@@ -221,9 +210,7 @@ const scrollToElementRoute = globalThis.space.extend(
           ? `[data-route-id="${escapedTarget}"], #${escapedTarget}`
           : "";
     const element =
-      typeof target === "string"
-        ? store.refs.outlet?.querySelector(selector)
-        : target;
+      typeof target === "string" ? store.refs.outlet?.querySelector(selector) : target;
 
     element?.scrollIntoView({
       behavior: options.behavior || "smooth",
@@ -308,9 +295,7 @@ const model = {
 
   buildTarget(target, options = {}) {
     const targetObject =
-      target && typeof target === "object" && !Array.isArray(target)
-        ? target
-        : { path: target };
+      target && typeof target === "object" && !Array.isArray(target) ? target : { path: target };
 
     return parseRouteTarget(targetObject, {
       defaultPath: this.defaultPath,

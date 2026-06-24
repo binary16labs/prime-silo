@@ -1,10 +1,16 @@
 import { createHash } from "node:crypto";
 
-import { createAppAccessController, createHttpError, toAppRelativePath } from "../lib/customware/file_access.js";
+import {
+  createAppAccessController,
+  createHttpError,
+  toAppRelativePath
+} from "../lib/customware/file_access.js";
 import { normalizeAppProjectPath } from "../lib/customware/layout.js";
 
 function isPlainObject(value) {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value) && !Buffer.isBuffer(value);
+  return (
+    Boolean(value) && typeof value === "object" && !Array.isArray(value) && !Buffer.isBuffer(value)
+  );
 }
 
 function readPayload(context) {
@@ -42,7 +48,9 @@ function normalizeRequestedProjectPath(rawPath, username) {
 
   const normalizedProjectPath = normalizeAppProjectPath(normalizedInputPath, {
     allowAppRoot: true,
-    isDirectory: String(rawPath || "").trim().endsWith("/")
+    isDirectory: String(rawPath || "")
+      .trim()
+      .endsWith("/")
   });
 
   if (!normalizedProjectPath) {
@@ -96,7 +104,9 @@ function listRequestedPrefixes(payload, username) {
 
   for (const rawPrefix of rawPrefixes) {
     const normalizedPrefix = normalizeRequestedProjectPath(rawPrefix, username);
-    const directoryPrefix = normalizedPrefix.endsWith("/") ? normalizedPrefix : `${normalizedPrefix}/`;
+    const directoryPrefix = normalizedPrefix.endsWith("/")
+      ? normalizedPrefix
+      : `${normalizedPrefix}/`;
 
     if (seenPrefixes.has(directoryPrefix)) {
       continue;
@@ -111,7 +121,10 @@ function listRequestedPrefixes(payload, username) {
 
 function ensureReadableProjectPath(projectPath, accessController) {
   if (!accessController.canReadProjectPath(projectPath)) {
-    throw createHttpError(`Read access denied for ${toAppRelativePath(projectPath) || projectPath}`, 403);
+    throw createHttpError(
+      `Read access denied for ${toAppRelativePath(projectPath) || projectPath}`,
+      403
+    );
   }
 }
 
@@ -124,7 +137,9 @@ function buildEntries(pathIndex, requestedPaths, requestedPrefixes) {
     outputEntries.push([toAppRelativePath(projectPath), pathIndex[projectPath] || null]);
   }
 
-  const sortedProjectPaths = Object.keys(pathIndex).sort((left, right) => left.localeCompare(right));
+  const sortedProjectPaths = Object.keys(pathIndex).sort((left, right) =>
+    left.localeCompare(right)
+  );
 
   for (const prefix of requestedPrefixes) {
     for (const projectPath of sortedProjectPaths) {

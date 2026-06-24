@@ -737,9 +737,7 @@
           "case_path": "tests/agent_llm_performance/cases/space_navigation_after_user_push_uses_open_helper.json",
           "history_path": "tests/agent_llm_performance/histories/space_navigation_after_user_push_uses_open_helper.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.spaces.openSpace(\"space-1\")",
           "usage": {
@@ -2009,9 +2007,7 @@
           "case_path": "tests/agent_llm_performance/cases/space_navigation_read_is_not_completion.json",
           "history_path": "tests/agent_llm_performance/histories/space_navigation_read_is_not_completion.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.spaces.openSpace(\"space-1\")",
           "usage": {
@@ -2081,9 +2077,7 @@
           "case_path": "tests/agent_llm_performance/cases/space_navigation_after_user_push_uses_open_helper.json",
           "history_path": "tests/agent_llm_performance/histories/space_navigation_after_user_push_uses_open_helper.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.spaces.openSpace(\"space-1\")",
           "usage": {

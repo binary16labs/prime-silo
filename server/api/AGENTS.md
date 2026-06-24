@@ -105,6 +105,7 @@ Current rules:
 - both `cloud_share_clone` and `space_import` must reuse `server/lib/share/service.js` for archive validation, extracted-folder checks, destination naming, and install logic instead of adding endpoint-local ZIP handling
 
 Module endpoints:
+
 - `module_list`
 - `module_info`
 - `module_install`

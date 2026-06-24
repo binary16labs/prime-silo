@@ -123,22 +123,30 @@ async function seedSelfAwareness(options = {}) {
 
     // Build the code graph (background scan on the runtime). Best-effort.
     try {
-      await fetchJson(`${base}/api/runtime/graph/code/generate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ workspace: SELF_WORKSPACE, root_dir: "src", name: "prime-silo" })
-      }, 10000);
+      await fetchJson(
+        `${base}/api/runtime/graph/code/generate`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ workspace: SELF_WORKSPACE, root_dir: "src", name: "prime-silo" })
+        },
+        10000
+      );
     } catch (error) {
       logger.warn?.(`[self-awareness] code-graph scan skipped: ${error.message || error}`);
     }
 
     // Ingest the bundled docs/manifests into the knowledge graph. Best-effort.
     try {
-      await fetchJson(`${base}/api/runtime/rag/ingest`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ workspace: SELF_WORKSPACE })
-      }, 10000);
+      await fetchJson(
+        `${base}/api/runtime/rag/ingest`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ workspace: SELF_WORKSPACE })
+        },
+        10000
+      );
     } catch (error) {
       logger.warn?.(`[self-awareness] doc ingest skipped: ${error.message || error}`);
     }
@@ -146,7 +154,11 @@ async function seedSelfAwareness(options = {}) {
     fs.mkdirSync(userDataPath, { recursive: true });
     fs.writeFileSync(
       markerPath,
-      JSON.stringify({ seeded_at: new Date().toISOString(), workspace: SELF_WORKSPACE, bundle_dir: bundleDir }, null, 2)
+      JSON.stringify(
+        { seeded_at: new Date().toISOString(), workspace: SELF_WORKSPACE, bundle_dir: bundleDir },
+        null,
+        2
+      )
     );
 
     return { ok: true, workspace: SELF_WORKSPACE };

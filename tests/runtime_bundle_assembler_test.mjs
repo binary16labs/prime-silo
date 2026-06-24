@@ -63,19 +63,36 @@ function testBundleRequirements() {
   const reqs = a.bundleRuntimeRequirements();
   const names = reqs.map((r) => r.split(/[>=<~ ]/)[0].toLowerCase());
 
-  assert.equal(a.BUNDLE_EXCLUDED_PACKAGES.size, 0, "nothing is excluded from the downloaded bundle");
+  assert.equal(
+    a.BUNDLE_EXCLUDED_PACKAGES.size,
+    0,
+    "nothing is excluded from the downloaded bundle"
+  );
   for (const required of [
-    "fastapi", "uvicorn", "litellm", "chromadb", "neo4j", "pandas",
-    "openlineage-python", "pymupdf", "tree-sitter", "langgraph",
+    "fastapi",
+    "uvicorn",
+    "litellm",
+    "chromadb",
+    "neo4j",
+    "pandas",
+    "openlineage-python",
+    "pymupdf",
+    "tree-sitter",
+    "langgraph",
     // restored heavy/optional subsystems (phoenix pulls scipy/scikit-learn/boto3/
     // kubernetes/grpcio transitively; polars/pyarrow are the Pypes columnar path)
-    "arize-phoenix", "polars", "pyarrow"
+    "arize-phoenix",
+    "polars",
+    "pyarrow"
   ]) {
     assert.ok(names.includes(required), `${required} must be in the bundle`);
   }
   // Returned array is a copy — callers can't mutate the source of truth.
   reqs.push("tampered>=0.0.0");
-  assert.ok(!a.bundleRuntimeRequirements().some((r) => r.startsWith("tampered")), "bundle list is copied");
+  assert.ok(
+    !a.bundleRuntimeRequirements().some((r) => r.startsWith("tampered")),
+    "bundle list is copied"
+  );
 }
 
 function testManifest() {
@@ -96,7 +113,11 @@ async function testManifestOnlyBuild() {
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "ps-runtime-bundle-"));
   try {
     const result = await a.buildRuntimeBundle({
-      platform: "win32", arch: "x64", projectRoot, outDir, manifestOnly: true
+      platform: "win32",
+      arch: "x64",
+      projectRoot,
+      outDir,
+      manifestOnly: true
     });
     assert.equal(result.manifestOnly, true);
     assert.ok(fs.existsSync(path.join(outDir, "bundle.json")));

@@ -58,12 +58,12 @@ export function mapManifestToDagData(manifest, options = {}) {
   const tasks = Array.isArray(plan.tasks) ? plan.tasks : [];
   const edgesRaw = Array.isArray(plan.edges) ? plan.edges : [];
   const waveIndex = buildWaveIndex(plan.waves);
-  const runOverlay = options.runOverlay && typeof options.runOverlay === "object"
-    ? options.runOverlay
-    : null;
-  const overlayStates = runOverlay && runOverlay.node_states && typeof runOverlay.node_states === "object"
-    ? runOverlay.node_states
-    : null;
+  const runOverlay =
+    options.runOverlay && typeof options.runOverlay === "object" ? options.runOverlay : null;
+  const overlayStates =
+    runOverlay && runOverlay.node_states && typeof runOverlay.node_states === "object"
+      ? runOverlay.node_states
+      : null;
 
   const nodes = tasks
     .filter((task) => task && typeof task.id === "string" && task.id)

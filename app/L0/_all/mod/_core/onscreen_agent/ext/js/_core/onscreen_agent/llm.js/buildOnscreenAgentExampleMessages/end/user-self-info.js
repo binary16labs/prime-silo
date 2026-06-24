@@ -1,4 +1,7 @@
-import { formatExecutionResultValue, formatExecutionResultsMessage } from "/mod/_core/onscreen_agent/execution.js";
+import {
+  formatExecutionResultValue,
+  formatExecutionResultsMessage
+} from "/mod/_core/onscreen_agent/execution.js";
 
 const USER_SELF_INFO_EXAMPLE_PROMPT = "check user detail";
 const USER_SELF_INFO_EXAMPLE_RESPONSE = [
@@ -14,14 +17,16 @@ function formatUserSelfInfoResult(userSelfInfo) {
 }
 
 function buildUserSelfInfoExecutionResultMessage(userSelfInfo) {
-  return formatExecutionResultsMessage([{
-    error: null,
-    loadedSkills: [],
-    logs: [],
-    result: userSelfInfo,
-    resultText: formatUserSelfInfoResult(userSelfInfo),
-    status: "success"
-  }]);
+  return formatExecutionResultsMessage([
+    {
+      error: null,
+      loadedSkills: [],
+      logs: [],
+      result: userSelfInfo,
+      resultText: formatUserSelfInfoResult(userSelfInfo),
+      status: "success"
+    }
+  ]);
 }
 
 export default async function appendUserSelfInfoExample(hookContext) {

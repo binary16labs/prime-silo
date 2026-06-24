@@ -143,7 +143,9 @@ export function prependAssistantEvaluationLogs(results, logs) {
     return results;
   }
 
-  const normalizedLogs = logs.map((entry) => normalizeAssistantEvaluationLogEntry(entry)).filter(Boolean);
+  const normalizedLogs = logs
+    .map((entry) => normalizeAssistantEvaluationLogEntry(entry))
+    .filter(Boolean);
 
   if (!normalizedLogs.length) {
     return results;

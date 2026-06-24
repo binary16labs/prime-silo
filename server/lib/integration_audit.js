@@ -147,7 +147,9 @@ export function validateContract(value, contract, fieldPath = "$") {
       const optional = typeof subContract === "string" && subContract.endsWith("?");
       if (!(name in value)) {
         if (!optional) {
-          mismatches.push(`${fieldPath}.${name}: missing (expected ${typeof subContract === "string" ? subContract : subContract?.type || "object"})`);
+          mismatches.push(
+            `${fieldPath}.${name}: missing (expected ${typeof subContract === "string" ? subContract : subContract?.type || "object"})`
+          );
         }
         continue;
       }
@@ -224,23 +226,40 @@ export async function auditIntegration(manifest, options = {}) {
 
   const settings = await resolveMemoraySettings({ runtimeParams, projectRoot });
   const fetchEndpoint =
-    options.fetchEndpoint ||
-    ((apiPath) => memorayRequest(apiPath, { runtimeParams, projectRoot }));
+    options.fetchEndpoint || ((apiPath) => memorayRequest(apiPath, { runtimeParams, projectRoot }));
 
   const declaredChecks = new Set(manifest?.conformance?.checks || []);
 
   // 1. signature
   if (declaredChecks.has("signature")) {
     if (!manifest.signature) {
-      add("signature", "drift", manifest.id, "manifest is unsigned — sign it with scripts/audit-integrations.mjs --sign", {
-        owner: { repo: "prime-silo", path: `manifests/integrations/${manifest.id}.integration.json` }
-      });
+      add(
+        "signature",
+        "drift",
+        manifest.id,
+        "manifest is unsigned — sign it with scripts/audit-integrations.mjs --sign",
+        {
+          owner: {
+            repo: "prime-silo",
+            path: `manifests/integrations/${manifest.id}.integration.json`
+          }
+        }
+      );
     } else if (verifyManifest(manifest, manifest.signature, { env })) {
       add("signature", "pass", manifest.id, "embedded HMAC-SHA256 signature verifies");
     } else {
-      add("signature", "drift", manifest.id, "embedded signature does NOT verify — manifest was edited after signing; re-sign after review", {
-        owner: { repo: "prime-silo", path: `manifests/integrations/${manifest.id}.integration.json` }
-      });
+      add(
+        "signature",
+        "drift",
+        manifest.id,
+        "embedded signature does NOT verify — manifest was edited after signing; re-sign after review",
+        {
+          owner: {
+            repo: "prime-silo",
+            path: `manifests/integrations/${manifest.id}.integration.json`
+          }
+        }
+      );
     }
   }
 
@@ -250,7 +269,12 @@ export async function auditIntegration(manifest, options = {}) {
     try {
       paramNames = new Set((await loadParamSpecs(projectRoot)).map((spec) => spec.name));
     } catch (err) {
-      add("config_surface", "drift", "commands/params.yaml", `could not load param specs: ${String(err?.message || err)}`);
+      add(
+        "config_surface",
+        "drift",
+        "commands/params.yaml",
+        `could not load param specs: ${String(err?.message || err)}`
+      );
     }
     for (const [key, spec] of Object.entries(manifest.config_surface || {})) {
       if (spec?.kind !== "runtime_param") {
@@ -259,9 +283,15 @@ export async function auditIntegration(manifest, options = {}) {
       if (paramNames.has(key)) {
         add("config_surface", "pass", key, "declared runtime param exists in commands/params.yaml");
       } else {
-        add("config_surface", "drift", key, "declared runtime param is missing from commands/params.yaml", {
-          owner: { repo: "prime-silo", path: "commands/params.yaml" }
-        });
+        add(
+          "config_surface",
+          "drift",
+          key,
+          "declared runtime param is missing from commands/params.yaml",
+          {
+            owner: { repo: "prime-silo", path: "commands/params.yaml" }
+          }
+        );
       }
     }
   }
@@ -275,7 +305,13 @@ export async function auditIntegration(manifest, options = {}) {
       }
       const endpoint = endpointById(manifest, node.health.endpoint);
       if (!endpoint) {
-        add("health", "drift", node.id, `health endpoint "${node.health.endpoint}" is not declared in endpoints[]`, { owner: node.owner });
+        add(
+          "health",
+          "drift",
+          node.id,
+          `health endpoint "${node.health.endpoint}" is not declared in endpoints[]`,
+          { owner: node.owner }
+        );
         continue;
       }
       if (!settings.enabled) {
@@ -285,11 +321,23 @@ export async function auditIntegration(manifest, options = {}) {
       const result = await fetchEndpoint(endpoint.path);
       if (!result.ok) {
         upstreamReachable = false;
-        add("health", "drift", node.id, result.error === "memoray_unreachable"
-          ? `unreachable at ${settings.baseUrl} — ${result.hint || "boot memo-ray"}`
-          : `health probe ${endpoint.path} returned status ${result.status}`, { owner: node.owner });
+        add(
+          "health",
+          "drift",
+          node.id,
+          result.error === "memoray_unreachable"
+            ? `unreachable at ${settings.baseUrl} — ${result.hint || "boot memo-ray"}`
+            : `health probe ${endpoint.path} returned status ${result.status}`,
+          { owner: node.owner }
+        );
       } else if (node.health.expect && !(node.health.expect in (result.body || {}))) {
-        add("health", "drift", node.id, `health response is missing expected field "${node.health.expect}"`, { owner: node.owner });
+        add(
+          "health",
+          "drift",
+          node.id,
+          `health response is missing expected field "${node.health.expect}"`,
+          { owner: node.owner }
+        );
       } else {
         add("health", "pass", node.id, `health probe ${endpoint.path} ok`);
       }
@@ -303,9 +351,14 @@ export async function auditIntegration(manifest, options = {}) {
         continue;
       }
       if (!settings.enabled || !upstreamReachable) {
-        add("payload_contracts", "skipped", endpoint.id, settings.enabled
-          ? "upstream unreachable — contract not evaluated (see health finding)"
-          : "memoray is disabled — contract not evaluated");
+        add(
+          "payload_contracts",
+          "skipped",
+          endpoint.id,
+          settings.enabled
+            ? "upstream unreachable — contract not evaluated (see health finding)"
+            : "memoray is disabled — contract not evaluated"
+        );
         continue;
       }
       const resolved = await resolveSamplePathParams(endpoint, manifest, fetchEndpoint);
@@ -315,19 +368,36 @@ export async function auditIntegration(manifest, options = {}) {
       }
       const result = await fetchEndpoint(resolved.path);
       if (!result.ok) {
-        add("payload_contracts", "drift", endpoint.id, `GET ${resolved.path} returned status ${result.status}`, {
-          owners: ownersConsuming(manifest, endpoint.id)
-        });
+        add(
+          "payload_contracts",
+          "drift",
+          endpoint.id,
+          `GET ${resolved.path} returned status ${result.status}`,
+          {
+            owners: ownersConsuming(manifest, endpoint.id)
+          }
+        );
         continue;
       }
       const mismatches = validateContract(result.body, endpoint.contract);
       if (mismatches.length === 0) {
-        add("payload_contracts", "pass", endpoint.id, `live payload matches the declared contract (${resolved.path})`);
+        add(
+          "payload_contracts",
+          "pass",
+          endpoint.id,
+          `live payload matches the declared contract (${resolved.path})`
+        );
       } else {
-        add("payload_contracts", "drift", endpoint.id, `live payload drifted from the declared contract: ${mismatches.join("; ")}`, {
-          expected: endpoint.contract,
-          owners: ownersConsuming(manifest, endpoint.id)
-        });
+        add(
+          "payload_contracts",
+          "drift",
+          endpoint.id,
+          `live payload drifted from the declared contract: ${mismatches.join("; ")}`,
+          {
+            expected: endpoint.contract,
+            owners: ownersConsuming(manifest, endpoint.id)
+          }
+        );
       }
     }
   }
@@ -344,13 +414,24 @@ export async function auditIntegration(manifest, options = {}) {
         continue;
       }
       if (node.owner.repo === "memo-ray" && !(await pathExists(repoRoot, "."))) {
-        add("owners", "skipped", node.id, "memo-ray checkout not found locally (set MEMORAY_DIR or clone beside prime-silo)");
+        add(
+          "owners",
+          "skipped",
+          node.id,
+          "memo-ray checkout not found locally (set MEMORAY_DIR or clone beside prime-silo)"
+        );
         continue;
       }
       if (await pathExists(repoRoot, node.owner.path)) {
         add("owners", "pass", node.id, `${node.owner.repo}/${node.owner.path} exists`);
       } else {
-        add("owners", "drift", node.id, `declared owner path ${node.owner.repo}/${node.owner.path} does not exist`, { owner: node.owner });
+        add(
+          "owners",
+          "drift",
+          node.id,
+          `declared owner path ${node.owner.repo}/${node.owner.path} does not exist`,
+          { owner: node.owner }
+        );
       }
     }
   }
@@ -389,7 +470,12 @@ export async function runIntegrationAudit(options = {}) {
         checked_at: new Date().toISOString(),
         summary: { pass: 0, drift: 1, skipped: 0 },
         findings: [
-          { check: "manifest", status: "drift", subject: entry.filename, detail: `manifest does not parse: ${entry.parseError}` }
+          {
+            check: "manifest",
+            status: "drift",
+            subject: entry.filename,
+            detail: `manifest does not parse: ${entry.parseError}`
+          }
         ]
       });
       continue;

@@ -127,11 +127,7 @@ function renderWithdrawal(frame) {
         cannotRepresent,
         "(empty list — frame claims to represent everything in scope)"
       )}
-      ${renderListSection(
-        "contradictions",
-        contradictions,
-        "(no contradictions registered)"
-      )}
+      ${renderListSection("contradictions", contradictions, "(no contradictions registered)")}
       ${renderListSection(
         "failure_register_refs",
         failureRefs,
@@ -206,34 +202,40 @@ function renderRaw(frame) {
 
 function renderKvTable(rows) {
   return `<dl class="prime-silo-fi__kv">${rows
-    .map(
-      ([label, value]) =>
-        `<dt>${escapeHtml(label)}</dt><dd>${value}</dd>`
-    )
+    .map(([label, value]) => `<dt>${escapeHtml(label)}</dt><dd>${value}</dd>`)
     .join("")}</dl>`;
 }
 
 function sectionRenderer(id) {
   switch (id) {
-    case "header": return renderHeader;
-    case "assertions": return renderAssertions;
-    case "withdrawal": return renderWithdrawal;
-    case "provenance": return renderProvenance;
-    case "confidence": return renderConfidence;
-    case "raw": return renderRaw;
-    default: return null;
+    case "header":
+      return renderHeader;
+    case "assertions":
+      return renderAssertions;
+    case "withdrawal":
+      return renderWithdrawal;
+    case "provenance":
+      return renderProvenance;
+    case "confidence":
+      return renderConfidence;
+    case "raw":
+      return renderRaw;
+    default:
+      return null;
   }
 }
 
 function sectionTitle(id) {
-  return {
-    header: "Identity",
-    assertions: "Assertions",
-    withdrawal: "Withdrawal register",
-    provenance: "Provenance",
-    confidence: "Confidence",
-    raw: "Raw JSON"
-  }[id] || id;
+  return (
+    {
+      header: "Identity",
+      assertions: "Assertions",
+      withdrawal: "Withdrawal register",
+      provenance: "Provenance",
+      confidence: "Confidence",
+      raw: "Raw JSON"
+    }[id] || id
+  );
 }
 
 function renderShell(frame, collapsed, showRawJson) {

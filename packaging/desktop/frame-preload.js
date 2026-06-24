@@ -92,15 +92,19 @@ function installSubframeShadowRootOverride() {
   try {
     contextBridge.executeInMainWorld({
       func: (flagKey) => {
-        if (globalThis[flagKey] || typeof globalThis.Element?.prototype?.attachShadow !== "function") {
+        if (
+          globalThis[flagKey] ||
+          typeof globalThis.Element?.prototype?.attachShadow !== "function"
+        ) {
           return;
         }
 
         const originalAttachShadow = globalThis.Element.prototype.attachShadow;
         globalThis.Element.prototype.attachShadow = function attachShadow(options) {
-          const shadowOptions = options && typeof options === "object"
-            ? { ...options, mode: "open" }
-            : { mode: "open" };
+          const shadowOptions =
+            options && typeof options === "object"
+              ? { ...options, mode: "open" }
+              : { mode: "open" };
 
           return originalAttachShadow.call(this, shadowOptions);
         };
@@ -109,7 +113,10 @@ function installSubframeShadowRootOverride() {
       args: [SHADOW_OVERRIDE_FLAG]
     });
   } catch (error) {
-    console.error("[space-desktop/frame-preload] Failed to install subframe shadow-root override.", error);
+    console.error(
+      "[space-desktop/frame-preload] Failed to install subframe shadow-root override.",
+      error
+    );
   }
 }
 
@@ -122,17 +129,25 @@ function installFrameRegistrySync() {
   scheduleFrameRegistrySync();
 
   if (globalThis.document?.readyState === "loading") {
-    globalThis.addEventListener("DOMContentLoaded", () => {
-      installDocumentObserver();
-      scheduleFrameRegistrySync();
-    }, { once: true });
+    globalThis.addEventListener(
+      "DOMContentLoaded",
+      () => {
+        installDocumentObserver();
+        scheduleFrameRegistrySync();
+      },
+      { once: true }
+    );
   }
 
-  globalThis.addEventListener("beforeunload", () => {
-    ipcRenderer.send(FRAME_INJECT_REGISTER_CHANNEL, {
-      frames: []
-    });
-  }, { once: true });
+  globalThis.addEventListener(
+    "beforeunload",
+    () => {
+      ipcRenderer.send(FRAME_INJECT_REGISTER_CHANNEL, {
+        frames: []
+      });
+    },
+    { once: true }
+  );
 }
 
 installSubframeShadowRootOverride();

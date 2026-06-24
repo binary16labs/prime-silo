@@ -153,7 +153,8 @@ function createSupervisorProxy({ getActiveChild, host, port }) {
 
       const address = server.address();
       const activePort = address && typeof address === "object" ? address.port : port;
-      const browserHost = host === "0.0.0.0" || host === "::" || host === "[::]" ? "127.0.0.1" : host;
+      const browserHost =
+        host === "0.0.0.0" || host === "::" || host === "[::]" ? "127.0.0.1" : host;
 
       return {
         browserUrl: `http://${browserHost}:${activePort}`,

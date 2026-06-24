@@ -54,7 +54,9 @@ function installFetchStub(handler) {
   };
   return {
     calls,
-    restore() { globalThis.fetch = original; }
+    restore() {
+      globalThis.fetch = original;
+    }
   };
 }
 
@@ -62,7 +64,9 @@ function extractHeaderMap(headers) {
   if (!headers) return {};
   if (headers instanceof Headers) {
     const out = {};
-    headers.forEach((value, name) => { out[name.toLowerCase()] = value; });
+    headers.forEach((value, name) => {
+      out[name.toLowerCase()] = value;
+    });
     return out;
   }
   const out = {};
@@ -110,13 +114,14 @@ async function testSignViewRejectsNonObjectInput() {
 }
 
 async function testSignViewSurfaces403AsRuntimeError() {
-  const stub = installFetchStub(async () =>
-    new Response(
-      JSON.stringify({
-        detail: "Forbidden: Agent scope 'sandbox' may only write under /api/agent_sandbox/."
-      }),
-      { status: 403, headers: { "content-type": "application/json" } }
-    )
+  const stub = installFetchStub(
+    async () =>
+      new Response(
+        JSON.stringify({
+          detail: "Forbidden: Agent scope 'sandbox' may only write under /api/agent_sandbox/."
+        }),
+        { status: 403, headers: { "content-type": "application/json" } }
+      )
   );
   try {
     let raised = null;

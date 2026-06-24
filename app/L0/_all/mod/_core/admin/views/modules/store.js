@@ -44,7 +44,9 @@ function isAbortError(error) {
 }
 
 function stripGitSuffix(pathname) {
-  return String(pathname || "").replace(/\.git$/u, "").replace(/\/+$/u, "");
+  return String(pathname || "")
+    .replace(/\.git$/u, "")
+    .replace(/\/+$/u, "");
 }
 
 function formatPlural(value, singular, plural) {
@@ -324,7 +326,9 @@ const moduleListModel = {
       return;
     }
 
-    const confirmed = globalThis.confirm(`Remove module ${this.formatModuleName(mod)} from ${mod.path}?`);
+    const confirmed = globalThis.confirm(
+      `Remove module ${this.formatModuleName(mod)} from ${mod.path}?`
+    );
 
     if (!confirmed) {
       return;

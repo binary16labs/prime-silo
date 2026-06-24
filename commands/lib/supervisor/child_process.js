@@ -166,13 +166,7 @@ function buildServeCommand(rootDir, serveArgs) {
 }
 
 function startServeChild(options) {
-  const {
-    env,
-    label,
-    rootDir,
-    serveArgs,
-    startupTimeoutMs = 30_000
-  } = options;
+  const { env, label, rootDir, serveArgs, startupTimeoutMs = 30_000 } = options;
   const command = buildServeCommand(rootDir, serveArgs);
   let resolvedUrl = "";
   let settled = false;
@@ -208,7 +202,11 @@ function startServeChild(options) {
     }
 
     const startupTimer = setTimeout(() => {
-      rejectOnce(new Error(`Serve child ${label} did not print a listening URL within ${startupTimeoutMs}ms.`));
+      rejectOnce(
+        new Error(
+          `Serve child ${label} did not print a listening URL within ${startupTimeoutMs}ms.`
+        )
+      );
       childProcess.kill("SIGTERM");
     }, startupTimeoutMs);
 
@@ -222,7 +220,9 @@ function startServeChild(options) {
 
       if (!settled) {
         rejectOnce(
-          new Error(`Serve child ${label} exited before readiness with ${signal ? `signal ${signal}` : `code ${code}`}.`)
+          new Error(
+            `Serve child ${label} exited before readiness with ${signal ? `signal ${signal}` : `code ${code}`}.`
+          )
         );
       }
     });

@@ -28,7 +28,7 @@ import {
   fetchDeleteCheckpoint,
   fetchPinCheckpoint,
   fetchListPinnedCheckpoints,
-  fetchLoadPinnedCheckpoint,
+  fetchLoadPinnedCheckpoint
 } from "./checkpoint-client.js";
 
 import { compactHistoryForCheckpoint } from "./checkpoint-compact.js";
@@ -37,7 +37,7 @@ import {
   applyCheckpointRestore,
   buildForkName,
   buildPreRestoreName,
-  buildRestoreNotice,
+  buildRestoreNotice
 } from "./checkpoint-restore.js";
 
 const CHECKPOINT_SCHEMA = "aamp.checkpoint/1";
@@ -85,7 +85,7 @@ export async function saveCheckpoint(scope, workspace, name, sessionState, optio
     transientItems = {},
     runRefs = [],
     manifestRefs = [],
-    metadata = {},
+    metadata = {}
   } = sessionState;
 
   // Compact if needed. In H1 this throws for oversized history.
@@ -106,8 +106,8 @@ export async function saveCheckpoint(scope, workspace, name, sessionState, optio
       source: metadata.source ?? "operator",
       fork_of: metadata.forkOf ?? null,
       fork_index: metadata.forkIndex ?? null,
-      pre_restore_of: metadata.preRestoreOf ?? null,
-    },
+      pre_restore_of: metadata.preRestoreOf ?? null
+    }
   };
 
   return fetchSaveCheckpoint(scope, workspace, name, checkpoint);
@@ -186,7 +186,7 @@ export async function deleteCheckpoint(scope, workspace, name, options = {}) {
 export async function forkCheckpoint(scope, workspace, name) {
   const [original, all] = await Promise.all([
     fetchLoadCheckpoint(scope, workspace, name),
-    fetchListCheckpoints(scope, workspace),
+    fetchListCheckpoints(scope, workspace)
   ]);
 
   const forkName = buildForkName(name, all);
@@ -199,8 +199,8 @@ export async function forkCheckpoint(scope, workspace, name) {
       ...(original.metadata || {}),
       source: original.metadata?.source ?? "operator",
       fork_of: name,
-      fork_index: parseInt(forkName.split("_fork_").pop(), 10),
-    },
+      fork_index: parseInt(forkName.split("_fork_").pop(), 10)
+    }
   };
   // Forks are always draft — strip any inherited signature.
   delete fork.signature;
@@ -253,13 +253,6 @@ export async function loadPinnedCheckpoint(workspace, name) {
 // Re-export restore helpers (used by UI chrome in H2)
 // ---------------------------------------------------------------------------
 
-export {
-  applyCheckpointRestore,
-  buildForkName,
-  buildPreRestoreName,
-  buildRestoreNotice,
-};
+export { applyCheckpointRestore, buildForkName, buildPreRestoreName, buildRestoreNotice };
 
-export {
-  compactHistoryForCheckpoint,
-} from "./checkpoint-compact.js";
+export { compactHistoryForCheckpoint } from "./checkpoint-compact.js";

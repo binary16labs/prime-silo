@@ -86,8 +86,7 @@ async function withExtensionsTestEnvironment(run) {
     observe() {}
   };
   globalThis.fetch = async (url, options = {}) => {
-    const payload =
-      options.body === undefined ? null : JSON.parse(String(options.body));
+    const payload = options.body === undefined ? null : JSON.parse(String(options.body));
     requests.push({
       payload,
       url: String(url)
@@ -135,10 +134,7 @@ test("JS extension lookup sends top-level maxLayer and patterns only once", asyn
     assert.equal(requests[0].url, "/api/extensions_load");
     assert.deepEqual(requests[0].payload, {
       maxLayer: 1,
-      patterns: [
-        "js/_core/example/hook/*.js",
-        "js/_core/example/hook/*.mjs"
-      ]
+      patterns: ["js/_core/example/hook/*.js", "js/_core/example/hook/*.mjs"]
     });
   });
 });

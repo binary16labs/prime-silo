@@ -20,7 +20,9 @@ function createActionMenuPosition() {
 }
 
 function normalizeRequestPath(value) {
-  const rawValue = String(value ?? "").trim().replaceAll("\\", "/");
+  const rawValue = String(value ?? "")
+    .trim()
+    .replaceAll("\\", "/");
 
   if (!rawValue || rawValue === ROOT_DISPLAY_PATH) {
     return "";
@@ -83,8 +85,8 @@ function isSameOrDescendantPath(ancestorPath, candidatePath) {
 
   return Boolean(
     ancestorBase &&
-      candidateBase &&
-      (candidateBase === ancestorBase || candidateBase.startsWith(`${ancestorBase}/`))
+    candidateBase &&
+    (candidateBase === ancestorBase || candidateBase.startsWith(`${ancestorBase}/`))
   );
 }
 
@@ -130,7 +132,11 @@ function readErrorMessage(error) {
 
 function isPermissionError(error) {
   const message = readErrorMessage(error).toLowerCase();
-  return message.includes("status 403") || message.includes("read access denied") || message.includes("write access denied");
+  return (
+    message.includes("status 403") ||
+    message.includes("read access denied") ||
+    message.includes("write access denied")
+  );
 }
 
 function isNotFoundError(error) {
@@ -181,7 +187,9 @@ function formatNamePreview(entries, limit = LIST_PREVIEW_LIMIT) {
 
   const visibleNames = names.slice(0, limit);
   const remainingCount = names.length - visibleNames.length;
-  return remainingCount > 0 ? `${visibleNames.join(", ")} +${remainingCount} more` : visibleNames.join(", ");
+  return remainingCount > 0
+    ? `${visibleNames.join(", ")} +${remainingCount} more`
+    : visibleNames.join(", ");
 }
 
 function ensureZipFilename(value) {
@@ -317,9 +325,7 @@ const filesModel = {
 
   get canSelectAllEntries() {
     return Boolean(
-      this.entries.length &&
-      this.selectedEntries.length < this.entries.length &&
-      !this.isWorking
+      this.entries.length && this.selectedEntries.length < this.entries.length && !this.isWorking
     );
   },
 
@@ -600,7 +606,9 @@ const filesModel = {
     if (entry.isDirectory) {
       url = space.api.folderDownloadUrl(entry.path);
     } else {
-      url = new URL(globalThis.window?.location?.origin || globalThis.location?.origin || "http://localhost");
+      url = new URL(
+        globalThis.window?.location?.origin || globalThis.location?.origin || "http://localhost"
+      );
       url.pathname = `/${entry.path}`;
       url = url.toString();
     }
@@ -854,10 +862,13 @@ const filesModel = {
       scrollIntoView: false
     });
 
-    this.openActionMenu({
-      kind: "entry",
-      path
-    }, anchor);
+    this.openActionMenu(
+      {
+        kind: "entry",
+        path
+      },
+      anchor
+    );
   },
 
   toggleActionMenuForSelection(event) {
@@ -872,9 +883,12 @@ const filesModel = {
       return;
     }
 
-    this.openActionMenu({
-      kind: "selection"
-    }, anchor);
+    this.openActionMenu(
+      {
+        kind: "selection"
+      },
+      anchor
+    );
   },
 
   openDeleteDialog(entries) {
@@ -1131,7 +1145,9 @@ const filesModel = {
 
   restoreDirectoryState(path, options = {}) {
     const pathState = this.getOrCreatePathState(path);
-    const highlightedPath = this.resolveHighlightedPath(options.highlightPath || pathState.highlightedPath);
+    const highlightedPath = this.resolveHighlightedPath(
+      options.highlightPath || pathState.highlightedPath
+    );
     const shouldRestoreScrollTop = Number.isFinite(pathState.scrollTop) && !options.highlightPath;
 
     this.highlightedPath = highlightedPath;

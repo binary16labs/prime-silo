@@ -131,12 +131,13 @@ function openTerminalAt(dir) {
 }
 
 function resolveTrayIcon() {
-  const candidates = process.platform === "win32"
-    ? [path.join(__dirname, "../platforms/windows/icon.ico")]
-    : [
-        path.join(__dirname, "../platforms/linux/icons/32x32.png"),
-        path.join(__dirname, "../platforms/linux/icons/icon.png")
-      ];
+  const candidates =
+    process.platform === "win32"
+      ? [path.join(__dirname, "../platforms/windows/icon.ico")]
+      : [
+          path.join(__dirname, "../platforms/linux/icons/32x32.png"),
+          path.join(__dirname, "../platforms/linux/icons/icon.png")
+        ];
   for (const candidate of candidates) {
     try {
       const image = nativeImage.createFromPath(candidate);
@@ -197,7 +198,15 @@ function runtimeStatusLabel(bundledManaged) {
 }
 
 function buildMenu(options) {
-  const { showMainWindow, createWindow, getBrowserUrl, requestQuit, runtime, togglePet, isPetVisible } = options;
+  const {
+    showMainWindow,
+    createWindow,
+    getBrowserUrl,
+    requestQuit,
+    runtime,
+    togglePet,
+    isPetVisible
+  } = options;
   // When a bundled runtime is being supervised in-process, Start/Stop drive it;
   // otherwise they drive an external Benny install (services.js).
   const bundledManaged = Boolean(runtime && runtime.isManaged && runtime.isManaged());
@@ -223,9 +232,7 @@ function buildMenu(options) {
     },
     { type: "separator" },
     {
-      label: currentHomeDir
-        ? `Home: ${path.basename(currentHomeDir)}`
-        : "Home: (not configured)",
+      label: currentHomeDir ? `Home: ${path.basename(currentHomeDir)}` : "Home: (not configured)",
       click: () => {
         if (currentHomeDir && fs.existsSync(currentHomeDir)) {
           void shell.openPath(currentHomeDir);
@@ -263,12 +270,14 @@ function buildMenu(options) {
     },
     {
       label: "Start Benny services",
-      click: () => bundledManaged ? void runtime.start() : services.startBennyServices(currentBennyHome)
+      click: () =>
+        bundledManaged ? void runtime.start() : services.startBennyServices(currentBennyHome)
     },
     {
       label: "Stop Benny services",
       enabled: bennyRuntimeUp,
-      click: () => bundledManaged ? void runtime.stop() : services.stopBennyServices(currentBennyHome)
+      click: () =>
+        bundledManaged ? void runtime.stop() : services.stopBennyServices(currentBennyHome)
     },
     {
       // In bundled mode the runtime is already initialised by the supervisor;
@@ -290,9 +299,10 @@ function buildMenu(options) {
     },
     {
       label: "Open Benny CLI",
-      click: () => bundledManaged
-        ? services.openBundledBennyConsole(runtime.cliContext())
-        : services.openBennyCli(currentBennyHome)
+      click: () =>
+        bundledManaged
+          ? services.openBundledBennyConsole(runtime.cliContext())
+          : services.openBennyCli(currentBennyHome)
     },
     {
       label: "Use bundled runtime",
@@ -307,14 +317,22 @@ function buildMenu(options) {
     // In bundled mode the supervisor owns BENNY_HOME (the configured value if set,
     // else the per-user default). Show the live managed home, and let "Open" reveal
     // it. The chooser below relocates it (persisted; applies on next launch).
-    ...(bundledManaged && managedBennyHome ? [{
-      label: `Benny Home: ${path.basename(managedBennyHome)} (bundled)`,
-      click: () => { if (fs.existsSync(managedBennyHome)) void shell.openPath(managedBennyHome); }
-    }] : []),
+    ...(bundledManaged && managedBennyHome
+      ? [
+          {
+            label: `Benny Home: ${path.basename(managedBennyHome)} (bundled)`,
+            click: () => {
+              if (fs.existsSync(managedBennyHome)) void shell.openPath(managedBennyHome);
+            }
+          }
+        ]
+      : []),
     {
       label: bundledManaged
         ? "Relocate Benny Home (applies next launch)..."
-        : (currentBennyHome ? `Benny Home: ${path.basename(currentBennyHome)}` : "Configure Benny Home..."),
+        : currentBennyHome
+          ? `Benny Home: ${path.basename(currentBennyHome)}`
+          : "Configure Benny Home...",
       click: async () => {
         const result = await dialog.showOpenDialog({
           title: "Select Benny Home ($BENNY_HOME)",
@@ -332,41 +350,58 @@ function buildMenu(options) {
     },
     { type: "separator" },
     // Benny desktop pet — float the dog over the whole desktop (Phase 4b).
-    ...(typeof togglePet === "function" ? [{
-      label: (typeof isPetVisible === "function" && isPetVisible())
-        ? "Hide Benny (desktop pet)"
-        : "Show Benny on desktop",
-      click: () => {
-        togglePet();
-        if (tray) {
-          tray.setContextMenu(buildMenu(options));
-        }
-      }
-    }] : []),
+    ...(typeof togglePet === "function"
+      ? [
+          {
+            label:
+              typeof isPetVisible === "function" && isPetVisible()
+                ? "Hide Benny (desktop pet)"
+                : "Show Benny on desktop",
+            click: () => {
+              togglePet();
+              if (tray) {
+                tray.setContextMenu(buildMenu(options));
+              }
+            }
+          }
+        ]
+      : []),
     { type: "separator" },
     // ── Open-Studio companion services (Phase 5) ────────────────────────────
-    ...(openStudio.opencodeAvailable() ? [{
-      label: openStudio.isOpencodeServeRunning() ? "Stop opencode server" : "Start opencode server",
-      click: () => {
-        if (openStudio.isOpencodeServeRunning()) openStudio.stopOpencodeServe();
-        else openStudio.startOpencodeServe();
-        if (tray) tray.setContextMenu(buildMenu(options));
-      }
-    }] : []),
-    ...(openStudio.dockerAvailable() ? [
-      {
-        label: "Start open-notebook (docker)",
-        click: () => { void openStudio.startOpenNotebook({ readConfig, writeConfigPatch }); }
-      },
-      {
-        label: "Stop open-notebook",
-        click: () => { void openStudio.stopOpenNotebook({ readConfig }); }
-      },
-      {
-        label: "Open Notebook UI",
-        click: () => void shell.openExternal("http://localhost:8502")
-      }
-    ] : []),
+    ...(openStudio.opencodeAvailable()
+      ? [
+          {
+            label: openStudio.isOpencodeServeRunning()
+              ? "Stop opencode server"
+              : "Start opencode server",
+            click: () => {
+              if (openStudio.isOpencodeServeRunning()) openStudio.stopOpencodeServe();
+              else openStudio.startOpencodeServe();
+              if (tray) tray.setContextMenu(buildMenu(options));
+            }
+          }
+        ]
+      : []),
+    ...(openStudio.dockerAvailable()
+      ? [
+          {
+            label: "Start open-notebook (docker)",
+            click: () => {
+              void openStudio.startOpenNotebook({ readConfig, writeConfigPatch });
+            }
+          },
+          {
+            label: "Stop open-notebook",
+            click: () => {
+              void openStudio.stopOpenNotebook({ readConfig });
+            }
+          },
+          {
+            label: "Open Notebook UI",
+            click: () => void shell.openExternal("http://localhost:8502")
+          }
+        ]
+      : []),
     { type: "separator" },
     memorayUrl
       ? { label: `Memo-Ray: ${memorayUrl}`, click: () => void shell.openExternal(memorayUrl) }

@@ -1,8 +1,4 @@
-import {
-  getLayerOrder,
-  isProjectPathWithinMaxLayer,
-  normalizeMaxLayer
-} from "./layer_limit.js";
+import { getLayerOrder, isProjectPathWithinMaxLayer, normalizeMaxLayer } from "./layer_limit.js";
 import { normalizeEntityId, parseProjectModuleFilePath } from "./layout.js";
 
 function createEmptyGroupIndex() {
@@ -85,12 +81,7 @@ function buildInheritanceRanks(groupIndex, username, options = {}) {
 }
 
 function collectAccessibleModuleEntries(projectPaths, options = {}) {
-  const {
-    groupIndex,
-    maxLayer,
-    parseProjectPath = parseProjectModuleFilePath,
-    username
-  } = options;
+  const { groupIndex, maxLayer, parseProjectPath = parseProjectModuleFilePath, username } = options;
   const ranks = buildInheritanceRanks(groupIndex || createEmptyGroupIndex(), username, {
     maxLayer
   });

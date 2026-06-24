@@ -101,7 +101,9 @@ function findAttachmentMatch(attachmentsByMessageId, attachmentId) {
 
 function buildAttachmentListLines(attachments) {
   return attachments.map((attachment) => {
-    const status = attachment.available ? "available now in browser JavaScript" : "unavailable after page reload";
+    const status = attachment.available
+      ? "available now in browser JavaScript"
+      : "unavailable after page reload";
     return `- ${attachment.id} | name: ${JSON.stringify(attachment.name)} | type: ${attachment.type} | size: ${formatAttachmentSize(attachment.size)} | status: ${status}`;
   });
 }
@@ -129,10 +131,10 @@ export function formatAttachmentSize(bytes) {
 export function isAttachmentLive(attachment) {
   return Boolean(
     attachment &&
-      attachment.available !== false &&
-      attachment.file &&
-      typeof attachment.file.text === "function" &&
-      typeof attachment.file.arrayBuffer === "function"
+    attachment.available !== false &&
+    attachment.file &&
+    typeof attachment.file.text === "function" &&
+    typeof attachment.file.arrayBuffer === "function"
   );
 }
 
@@ -198,9 +200,9 @@ export function buildMessageContentForApi(message) {
     "The current thread is available in JavaScript as `space.chat`.",
     "Read current messages with `space.chat.messages`.",
     availabilityNote,
-    "Read live attachments with `space.chat.attachments.current()`, `space.chat.attachments.forMessage(\"" +
+    'Read live attachments with `space.chat.attachments.current()`, `space.chat.attachments.forMessage("' +
       messageId +
-      "\")`, or `space.chat.attachments.get(\"<attachment-id>\")`.",
+      '")`, or `space.chat.attachments.get("<attachment-id>")`.',
     "Each attachment object exposes `id`, `messageId`, `name`, `type`, `size`, `lastModified`, `file`, and async methods `text()`, `json()`, `arrayBuffer()`, `dataUrl()`.",
     "Attachments:",
     ...buildAttachmentListLines(attachments)
@@ -226,7 +228,9 @@ export function createAttachmentRuntime() {
         return [];
       }
 
-      return attachmentsByMessageId.get(messageId).map((attachment) => createAttachmentHandle(messageId, attachment));
+      return attachmentsByMessageId
+        .get(messageId)
+        .map((attachment) => createAttachmentHandle(messageId, attachment));
     },
     forgetMessage(messageId) {
       attachmentsByMessageId.delete(messageId);
@@ -283,7 +287,8 @@ export function createAttachmentRuntime() {
       return runtime.forMessage(messageId);
     },
     setActiveMessage(messageId) {
-      activeMessageId = typeof messageId === "string" && attachmentsByMessageId.has(messageId) ? messageId : "";
+      activeMessageId =
+        typeof messageId === "string" && attachmentsByMessageId.has(messageId) ? messageId : "";
       return runtime.current();
     },
     async text(attachmentId) {

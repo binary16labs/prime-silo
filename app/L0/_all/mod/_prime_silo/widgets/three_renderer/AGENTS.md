@@ -18,10 +18,10 @@ it loads from a CDN ESM endpoint on first mount.
 
 ## Files
 
-| File          | Owns                                                                                   |
-| ------------- | -------------------------------------------------------------------------------------- |
-| `index.js`    | `createThreeRenderer(options)` factory + `layoutToGraphData(layout)` normaliser. No top-level import of Three.js or `3d-force-graph` — the dependency is dynamically imported on first mount. |
-| `renderer.css`| Visual styling for the inline error fallback rendered when the CDN fetch fails. |
+| File           | Owns                                                                                                                                                                                          |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `index.js`     | `createThreeRenderer(options)` factory + `layoutToGraphData(layout)` normaliser. No top-level import of Three.js or `3d-force-graph` — the dependency is dynamically imported on first mount. |
+| `renderer.css` | Visual styling for the inline error fallback rendered when the CDN fetch fails.                                                                                                               |
 
 ## Boundary
 
@@ -67,12 +67,13 @@ it loads from a CDN ESM endpoint on first mount.
 The two graph widgets emit slightly different layout shapes; the
 renderer's `layoutToGraphData(layout)` handles both:
 
-| Widget                | Position entries carry                | Edge entries carry              |
-| --------------------- | ------------------------------------- | ------------------------------- |
-| `kg3d.synoptic_web`   | `{ x, y, radius, layer, color, node }`| `{ id, source, target, kind, weight }` |
-| `codegraph.canvas`    | `{ x, y, radius, type,  color, node }`| `{ id, source, target, type, metadata }` |
+| Widget              | Position entries carry                 | Edge entries carry                       |
+| ------------------- | -------------------------------------- | ---------------------------------------- |
+| `kg3d.synoptic_web` | `{ x, y, radius, layer, color, node }` | `{ id, source, target, kind, weight }`   |
+| `codegraph.canvas`  | `{ x, y, radius, type,  color, node }` | `{ id, source, target, type, metadata }` |
 
 The normaliser:
+
 - pins `fx` / `fy` from the SVG-layout x/y so the 3D solver settles
   Z while keeping the visual grouping recognisable;
 - carries `layer` / `type` through to the resulting graph nodes;

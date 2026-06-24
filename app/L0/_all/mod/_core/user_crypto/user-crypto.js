@@ -56,7 +56,9 @@ function getRuntime() {
 
 function getStorageArea(storageName) {
   const storageArea = globalThis[storageName];
-  return storageArea && typeof storageArea.getItem === "function" && typeof storageArea.setItem === "function"
+  return storageArea &&
+    typeof storageArea.getItem === "function" &&
+    typeof storageArea.setItem === "function"
     ? storageArea
     : null;
 }
@@ -416,7 +418,9 @@ async function initializeUserCryptoInternal(options = {}) {
   const bootstrapEntry =
     identity.username && identity.sessionId ? readLoginBootstrapState(identity) : null;
   const cacheEntry =
-    identity.username && identity.sessionId && identity.keyId ? readCachedSessionState(identity) : null;
+    identity.username && identity.sessionId && identity.keyId
+      ? readCachedSessionState(identity)
+      : null;
 
   if (cacheEntry) {
     clearLoginBootstrapState(identity);
@@ -441,7 +445,9 @@ async function initializeUserCryptoInternal(options = {}) {
         clearCachedSessionState(identity);
         clearLoginBootstrapState(identity);
         clearLocalStorageSessionState();
-        warnOnce("userCrypto local storage is stale for this session. Signing out so it can be rebuilt cleanly.");
+        warnOnce(
+          "userCrypto local storage is stale for this session. Signing out so it can be rebuilt cleanly."
+        );
 
         if (options.logOutOnMissing !== false) {
           redirectToLogoutOnStaleLocalStorage();
@@ -472,7 +478,9 @@ async function initializeUserCryptoInternal(options = {}) {
       }
     }
 
-    warnOnce("userCrypto is missing for this account. Signing out so login can provision it cleanly.");
+    warnOnce(
+      "userCrypto is missing for this account. Signing out so login can provision it cleanly."
+    );
 
     if (options.logOutOnMissing !== false) {
       redirectToLogoutOnMissing();
@@ -489,7 +497,9 @@ async function initializeUserCryptoInternal(options = {}) {
     return getUserCryptoStatus();
   }
 
-  warnOnce("userCrypto is locked for this browser session. Sign in again to unlock encrypted values.");
+  warnOnce(
+    "userCrypto is locked for this browser session. Sign in again to unlock encrypted values."
+  );
   return getUserCryptoStatus();
 }
 

@@ -38,10 +38,7 @@ async function main() {
 }
 
 function testBuildCodeGraphPath() {
-  assert.equal(
-    cgTesting.buildCodeGraphPath({}),
-    "/graph/code?workspace=default"
-  );
+  assert.equal(cgTesting.buildCodeGraphPath({}), "/graph/code?workspace=default");
   assert.equal(
     cgTesting.buildCodeGraphPath({
       workspace: "c5_test",
@@ -128,9 +125,9 @@ function testComputeLayoutDropsDanglingAndSelfEdges() {
   ];
   const edges = [
     { source: "a", target: "b", type: "DEFINES" },
-    { source: "a", target: "ghost", type: "DEFINES" },  // dropped
-    { source: "ghost", target: "b", type: "DEFINES" },  // dropped
-    { source: "a", target: "a", type: "DEFINES" }       // self — dropped
+    { source: "a", target: "ghost", type: "DEFINES" }, // dropped
+    { source: "ghost", target: "b", type: "DEFINES" }, // dropped
+    { source: "a", target: "a", type: "DEFINES" } // self — dropped
   ];
   const layout = cgTesting.computeLayout(nodes, edges);
   assert.equal(layout.edges.length, 1);
@@ -161,10 +158,18 @@ function testRenderSvgIncludesBandLabelsAndDashedEdges() {
 }
 
 class FakeClassList {
-  constructor() { this._set = new Set(); }
-  add(...n) { n.forEach((x) => this._set.add(x)); }
-  remove(...n) { n.forEach((x) => this._set.delete(x)); }
-  has(name) { return this._set.has(name); }
+  constructor() {
+    this._set = new Set();
+  }
+  add(...n) {
+    n.forEach((x) => this._set.add(x));
+  }
+  remove(...n) {
+    n.forEach((x) => this._set.delete(x));
+  }
+  has(name) {
+    return this._set.has(name);
+  }
 }
 
 class FakeElement {
@@ -317,11 +322,7 @@ async function testWidgetRendersFromInlineData() {
   const host = createFakeHost();
   const client = createClientStub();
   // No runtimeHandler — fetch would throw if called.
-  createCodeGraphCanvasWidget(
-    host,
-    { data: SAMPLE_GRAPH },
-    { runtimeClient: client }
-  );
+  createCodeGraphCanvasWidget(host, { data: SAMPLE_GRAPH }, { runtimeClient: client });
   await settle();
 
   assert.equal(host.dataset.widgetState, "ready");
@@ -412,12 +413,22 @@ async function testWidgetCustomRendererLifecycle() {
   let disposeCalled = 0;
   const customRenderer = {
     mount(_h, layout, props) {
-      renderCalls.push({ phase: "mount", nodeCount: Object.keys(layout.positions).length, props: { ...props } });
+      renderCalls.push({
+        phase: "mount",
+        nodeCount: Object.keys(layout.positions).length,
+        props: { ...props }
+      });
       return {
         update(nextLayout, nextProps) {
-          renderCalls.push({ phase: "update", nodeCount: Object.keys(nextLayout.positions).length, props: { ...nextProps } });
+          renderCalls.push({
+            phase: "update",
+            nodeCount: Object.keys(nextLayout.positions).length,
+            props: { ...nextProps }
+          });
         },
-        dispose() { disposeCalled += 1; }
+        dispose() {
+          disposeCalled += 1;
+        }
       };
     }
   };
@@ -469,11 +480,7 @@ async function testWidgetSelectedNodeIdHighlight() {
   const client = createClientStub();
   client.runtimeHandler = () => jsonResponse(SAMPLE_GRAPH);
 
-  createCodeGraphCanvasWidget(
-    host,
-    { selectedNodeId: "class-A" },
-    { runtimeClient: client }
-  );
+  createCodeGraphCanvasWidget(host, { selectedNodeId: "class-A" }, { runtimeClient: client });
   await settle();
 
   assert.match(host.innerHTML, /data-node-id="class-A"[^>]*data-selected="true"/);

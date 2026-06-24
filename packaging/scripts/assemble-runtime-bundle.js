@@ -48,7 +48,10 @@ const PYTHON_BUILDS = {
 
 const NEO4J_BUILDS = {
   // Pinned from the verified local zero-install build (version-stable URL).
-  win32: { url: `https://dist.neo4j.org/neo4j-community-${NEO4J_VERSION}-windows.zip`, sha256: "d43151ba7104aa38da57426151468b602c32a6119a5089576a02781cd6f8250d" }
+  win32: {
+    url: `https://dist.neo4j.org/neo4j-community-${NEO4J_VERSION}-windows.zip`,
+    sha256: "d43151ba7104aa38da57426151468b602c32a6119a5089576a02781cd6f8250d"
+  }
   // Phase 2: darwin/linux → neo4j-community-<v>-unix.tar.gz
 };
 
@@ -81,9 +84,11 @@ function resolvePythonBuild(platform, arch) {
 }
 
 function resolveNeo4jBuild(platform) {
-  const build = NEO4J_BUILDS[platform] || (platform === "darwin" || platform === "linux"
-    ? { url: `https://dist.neo4j.org/neo4j-community-${NEO4J_VERSION}-unix.tar.gz`, sha256: "" }
-    : null);
+  const build =
+    NEO4J_BUILDS[platform] ||
+    (platform === "darwin" || platform === "linux"
+      ? { url: `https://dist.neo4j.org/neo4j-community-${NEO4J_VERSION}-unix.tar.gz`, sha256: "" }
+      : null);
   if (!build) {
     throw new Error(`No Neo4j build for ${platform} (Phase 2).`);
   }
@@ -196,7 +201,8 @@ function filterRuntimeRequirements(text) {
 function buildBundleManifest({ platform, arch, projectRoot = DEFAULT_PROJECT_ROOT } = {}) {
   let appVersion = "";
   try {
-    appVersion = JSON.parse(fs.readFileSync(path.join(projectRoot, "package.json"), "utf8")).version || "";
+    appVersion =
+      JSON.parse(fs.readFileSync(path.join(projectRoot, "package.json"), "utf8")).version || "";
   } catch {
     // ignore
   }
@@ -322,7 +328,11 @@ function pipInstall(pythonExe, requirements, siteDir) {
   const reqFile = path.join(siteDir, "..", "requirements.runtime.txt");
   fs.writeFileSync(reqFile, requirements.join("\n") + "\n", "utf8");
   execFileSync(pythonExe, ["-m", "pip", "install", "--upgrade", "pip"], { stdio: "inherit" });
-  execFileSync(pythonExe, ["-m", "pip", "install", "--no-input", "--target", siteDir, "-r", reqFile], { stdio: "inherit" });
+  execFileSync(
+    pythonExe,
+    ["-m", "pip", "install", "--no-input", "--target", siteDir, "-r", reqFile],
+    { stdio: "inherit" }
+  );
 }
 
 function copyBennySource(projectRoot, bennyDir) {
@@ -331,7 +341,10 @@ function copyBennySource(projectRoot, bennyDir) {
     recursive: true,
     filter: (src) => !/[\\/](__pycache__|\.pytest_cache|\.mypy_cache)$/.test(src)
   });
-  fs.copyFileSync(path.join(projectRoot, "runtime", "benny_cli.py"), path.join(bennyDir, "benny_cli.py"));
+  fs.copyFileSync(
+    path.join(projectRoot, "runtime", "benny_cli.py"),
+    path.join(bennyDir, "benny_cli.py")
+  );
   // Ship runtime/configs alongside (model_profiles.json resolves to
   // <bundle>/benny/configs/ via model_profiles.py parents[2]/configs). Optional
   // overrides — built-in defaults still apply when a file is absent.
@@ -339,7 +352,7 @@ function copyBennySource(projectRoot, bennyDir) {
   if (fs.existsSync(configsSrc)) {
     fs.cpSync(configsSrc, path.join(bennyDir, "configs"), {
       recursive: true,
-      filter: (src) => !/[\\/](__pycache__)$/.test(src),
+      filter: (src) => !/[\\/](__pycache__)$/.test(src)
     });
   }
 }
@@ -362,7 +375,11 @@ async function buildRuntimeBundle(opts = {}) {
   const requirements = bundleRuntimeRequirements();
 
   if (manifestOnly) {
-    fs.writeFileSync(path.join(outDir, "requirements.runtime.txt"), requirements.join("\n") + "\n", "utf8");
+    fs.writeFileSync(
+      path.join(outDir, "requirements.runtime.txt"),
+      requirements.join("\n") + "\n",
+      "utf8"
+    );
     fs.writeFileSync(path.join(outDir, "bundle.json"), JSON.stringify(manifest, null, 2));
     return { outDir, manifest, requirements, manifestOnly: true };
   }
@@ -373,12 +390,19 @@ async function buildRuntimeBundle(opts = {}) {
 
   // 1. Python.
   const python = resolvePythonBuild(platform, arch);
-  const pyArchive = path.join(cacheDir, path.basename(new URL(python.url).pathname) || "python.tar.gz");
+  const pyArchive = path.join(
+    cacheDir,
+    path.basename(new URL(python.url).pathname) || "python.tar.gz"
+  );
   sha256.python = await ensureArchive(python.url, pyArchive, python.sha256);
   extractAndFlatten(pyArchive, path.join(outDir, "python"), platform);
 
   // 2. Deps into site/, benny source.
-  const pythonExe = path.join(outDir, "python", platform === "win32" ? "python.exe" : path.join("bin", "python3"));
+  const pythonExe = path.join(
+    outDir,
+    "python",
+    platform === "win32" ? "python.exe" : path.join("bin", "python3")
+  );
   pipInstall(pythonExe, requirements, path.join(outDir, "site"));
   copyBennySource(projectRoot, path.join(outDir, "benny"));
 
@@ -389,7 +413,10 @@ async function buildRuntimeBundle(opts = {}) {
   extractAndFlatten(neoArchive, path.join(outDir, "neo4j"), platform);
 
   const jre = resolveJreBuild(platform, arch);
-  const jreArchive = path.join(cacheDir, `temurin-${JRE_MAJOR}-${platform}-${arch}.${platform === "win32" ? "zip" : "tar.gz"}`);
+  const jreArchive = path.join(
+    cacheDir,
+    `temurin-${JRE_MAJOR}-${platform}-${arch}.${platform === "win32" ? "zip" : "tar.gz"}`
+  );
   sha256.jre = await ensureArchive(jre.url, jreArchive, jre.sha256);
   extractAndFlatten(jreArchive, path.join(outDir, "jre"), platform);
 
@@ -425,8 +452,12 @@ if (require.main === module) {
   buildRuntimeBundle({ manifestOnly })
     .then((r) => {
       const m = r.manifest;
-      console.log(`Runtime bundle (${m.platform}/${m.arch})${r.manifestOnly ? " [manifest-only]" : ""} at ${path.relative(DEFAULT_PROJECT_ROOT, r.outDir)}`);
-      console.log(`  python ${m.components.python} · neo4j ${m.components.neo4j} · ${m.components.jre} · ${r.requirements.length} deps`);
+      console.log(
+        `Runtime bundle (${m.platform}/${m.arch})${r.manifestOnly ? " [manifest-only]" : ""} at ${path.relative(DEFAULT_PROJECT_ROOT, r.outDir)}`
+      );
+      console.log(
+        `  python ${m.components.python} · neo4j ${m.components.neo4j} · ${m.components.jre} · ${r.requirements.length} deps`
+      );
     })
     .catch((error) => {
       console.error(error.message || error);

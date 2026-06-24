@@ -52,10 +52,13 @@ function normalizeCloudShareBaseUrl(value) {
 function normalizeOpenOptions(options = {}) {
   const runtime = globalThis.space;
   const runtimeCurrentSpace = runtime?.spaces?.current || runtime?.current || null;
-  const currentSpace = options.currentSpace && typeof options.currentSpace === "object"
-    ? options.currentSpace
-    : runtimeCurrentSpace;
-  const spaceId = String(options.spaceId || currentSpace?.id || runtime?.spaces?.currentId || "").trim();
+  const currentSpace =
+    options.currentSpace && typeof options.currentSpace === "object"
+      ? options.currentSpace
+      : runtimeCurrentSpace;
+  const spaceId = String(
+    options.spaceId || currentSpace?.id || runtime?.spaces?.currentId || ""
+  ).trim();
 
   if (!spaceId) {
     throw new Error("An open space is required.");
@@ -139,9 +142,11 @@ function hasMeaningfulSpaceMetadata(spaceRecord) {
 
   return Boolean(
     normalizeSpaceTitle(spaceRecord.title) ||
-      normalizeSpaceAgentInstructions(spaceRecord.agentInstructions ?? spaceRecord.specialInstructions) ||
-      normalizeSpaceIcon(spaceRecord.icon) ||
-      normalizeSpaceIconColor(spaceRecord.iconColor)
+    normalizeSpaceAgentInstructions(
+      spaceRecord.agentInstructions ?? spaceRecord.specialInstructions
+    ) ||
+    normalizeSpaceIcon(spaceRecord.icon) ||
+    normalizeSpaceIconColor(spaceRecord.iconColor)
   );
 }
 
@@ -244,12 +249,13 @@ async function fetchSpaceArchiveBytes(spaceId) {
 
 async function importSpaceArchive(spaceId, mode, payloadBytes) {
   const runtime = getRuntime();
-  const query = mode === "replace"
-    ? {
-        mode,
-        spaceId
-      }
-    : undefined;
+  const query =
+    mode === "replace"
+      ? {
+          mode,
+          spaceId
+        }
+      : undefined;
 
   return runtime.api.call("space_import", {
     method: "POST",
@@ -402,7 +408,9 @@ const model = {
     activeRequest = request;
     this.activeRequestId = request.id;
     this.busyAction = "";
-    this.cloudShareBaseUrl = normalizeCloudShareBaseUrl(runtime.config?.get("CLOUD_SHARE_URL", "share.space-agent.ai"));
+    this.cloudShareBaseUrl = normalizeCloudShareBaseUrl(
+      runtime.config?.get("CLOUD_SHARE_URL", "share.space-agent.ai")
+    );
     this.cloudSharePassword = "";
     this.currentSpace = normalizedOptions.currentSpace;
     this.clearArchiveFeedback();
@@ -462,7 +470,11 @@ const model = {
       );
       this.archiveStatusText = "ZIP download started.";
     } catch (error) {
-      this.archiveErrorText = createLoggedErrorMessage("downloadZip", error, "Unable to download the ZIP.");
+      this.archiveErrorText = createLoggedErrorMessage(
+        "downloadZip",
+        error,
+        "Unable to download the ZIP."
+      );
       this.archiveStatusText = "";
     } finally {
       this.busyAction = "";
@@ -497,17 +509,22 @@ const model = {
     try {
       const shouldPrompt = await shouldPromptForOverwrite(this.spaceId, this.currentSpace);
       const mode = shouldPrompt
-        ? (globalThis.confirm(
+        ? globalThis.confirm(
             `Overwrite "${this.spaceTitle}"? Click Cancel to keep it and import the ZIP as a new space instead.`
           )
-            ? "replace"
-            : "import")
+          ? "replace"
+          : "import"
         : "replace";
-      const result = await importSpaceArchive(this.spaceId, mode, new Uint8Array(await archiveFile.arrayBuffer()));
+      const result = await importSpaceArchive(
+        this.spaceId,
+        mode,
+        new Uint8Array(await archiveFile.arrayBuffer())
+      );
       const runtime = getRuntime();
       const currentSpaceTitle = this.spaceTitle;
       const importedSpaceId = String(result?.spaceId || "").trim();
-      const importedSpaceTitle = String(result?.title || importedSpaceId || "Imported").trim() || "Imported";
+      const importedSpaceTitle =
+        String(result?.title || importedSpaceId || "Imported").trim() || "Imported";
 
       if (!importedSpaceId) {
         throw new Error("The import did not return a destination space.");
@@ -529,7 +546,11 @@ const model = {
         tone: "success"
       });
     } catch (error) {
-      const message = createLoggedErrorMessage("handleImportFileChange", error, "Unable to import the ZIP.");
+      const message = createLoggedErrorMessage(
+        "handleImportFileChange",
+        error,
+        "Unable to import the ZIP."
+      );
 
       if (activeRequest?.id === this.activeRequestId) {
         this.archiveErrorText = message;
@@ -586,7 +607,11 @@ const model = {
         tone: "success"
       });
     } catch (error) {
-      this.cloudErrorText = createLoggedErrorMessage("shareToCloud", error, "Unable to create the cloud share.");
+      this.cloudErrorText = createLoggedErrorMessage(
+        "shareToCloud",
+        error,
+        "Unable to create the cloud share."
+      );
       this.cloudStatusText = "";
     } finally {
       this.busyAction = "";
@@ -608,7 +633,11 @@ const model = {
         return;
       }
     } catch (error) {
-      this.cloudErrorText = createLoggedErrorMessage("copyShareUrl", error, "Unable to copy the share link.");
+      this.cloudErrorText = createLoggedErrorMessage(
+        "copyShareUrl",
+        error,
+        "Unable to copy the share link."
+      );
       return;
     }
 

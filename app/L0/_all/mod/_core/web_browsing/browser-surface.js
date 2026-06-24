@@ -1,7 +1,4 @@
-import {
-  getDesktopBrowserHostApi,
-  hasDesktopBrowserBridge
-} from "./browser-native-bridge.js";
+import { getDesktopBrowserHostApi, hasDesktopBrowserBridge } from "./browser-native-bridge.js";
 
 export const BROWSER_INJECT_PATH = "/mod/_core/web_browsing/browser-frame-inject.js";
 
@@ -104,12 +101,8 @@ export function bindDesktopBrowserHostEvents(handlers = {}) {
     return () => {};
   }
 
-  const onFocus = typeof handlers.onFocus === "function"
-    ? handlers.onFocus
-    : null;
-  const onOpenWindow = typeof handlers.onOpenWindow === "function"
-    ? handlers.onOpenWindow
-    : null;
+  const onFocus = typeof handlers.onFocus === "function" ? handlers.onFocus : null;
+  const onOpenWindow = typeof handlers.onOpenWindow === "function" ? handlers.onOpenWindow : null;
 
   return browserApi.onHostEvent((event) => {
     if (!event || typeof event !== "object") {

@@ -24,10 +24,7 @@
 // values that are null/undefined render as a muted "—". Object/array
 // values are JSON-stringified to keep one row per record.
 
-import {
-  runtimeFetch,
-  readRuntimeJson
-} from "../../../runtime_client/runtime-client.js";
+import { runtimeFetch, readRuntimeJson } from "../../../runtime_client/runtime-client.js";
 
 const STATE_LOADING = "loading";
 const STATE_READY = "ready";
@@ -87,10 +84,12 @@ function renderClpCard(binding) {
       No CLP binding declared on this step — drill-back lineage is blind.
     </div>`;
   }
-  const entries = Object.entries(binding).map(([k, v]) => {
-    const display = typeof v === "object" ? JSON.stringify(v) : String(v);
-    return `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(display)}</dd>`;
-  }).join("");
+  const entries = Object.entries(binding)
+    .map(([k, v]) => {
+      const display = typeof v === "object" ? JSON.stringify(v) : String(v);
+      return `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(display)}</dd>`;
+    })
+    .join("");
   return `<dl class="prime-silo-dt__clp">${entries}</dl>`;
 }
 
@@ -100,14 +99,10 @@ function renderTable(payload) {
   if (columns.length === 0 && rows.length === 0) {
     return `<div class="prime-silo-dt__empty">Step produced no rows.</div>`;
   }
-  const head = columns
-    .map((c) => `<th scope="col">${escapeHtml(c)}</th>`)
-    .join("");
+  const head = columns.map((c) => `<th scope="col">${escapeHtml(c)}</th>`).join("");
   const body = rows
     .map((row) => {
-      const cells = columns
-        .map((c) => `<td>${formatCell(row ? row[c] : null)}</td>`)
-        .join("");
+      const cells = columns.map((c) => `<td>${formatCell(row ? row[c] : null)}</td>`).join("");
       return `<tr>${cells}</tr>`;
     })
     .join("");
@@ -123,7 +118,8 @@ function renderTable(payload) {
 
 function renderShell(payload, props) {
   const stage = payload.stage || "(unstaged)";
-  const rowCount = typeof payload.row_count === "number" ? payload.row_count : (payload.rows || []).length;
+  const rowCount =
+    typeof payload.row_count === "number" ? payload.row_count : (payload.rows || []).length;
   const colCount = (payload.columns || []).length;
   return `
     <header class="prime-silo-dt__head">
@@ -144,7 +140,7 @@ function renderShell(payload, props) {
 }
 
 function renderError(host, error) {
-  const detail = (error && (error.body && error.body.detail || error.message)) || String(error);
+  const detail = (error && ((error.body && error.body.detail) || error.message)) || String(error);
   host.dataset.widgetState = STATE_ERROR;
   host.innerHTML = `<div class="prime-silo-dt__error">Drill-down failed: ${escapeHtml(detail)}</div>`;
 }

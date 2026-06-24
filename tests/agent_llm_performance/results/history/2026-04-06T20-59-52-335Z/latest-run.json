@@ -503,9 +503,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_text_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_text_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating ~/people.txt now...\n_____javascript\nconst text = await space.api.fileRead(\"~/people.txt\", \"utf8\")\nreturn await space.api.fileWrite(\"~/people.txt\", text.replace(/mr\\.\\s*Kowalski/gi, \"John Ronald Kowalski\"), \"utf8\")",
           "usage": {
@@ -540,9 +538,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating your contacts now...\n_____javascript\nconst text = await space.api.fileRead(\"~/contacts.yaml\", \"utf8\")\nconst data = space.utils.yaml.parse(text)\nif (data.mr_kowalski && typeof data.mr_kowalski === \"object\") {\n  data.mr_kowalski.full_name = \"John Ronald Kowalski\"\n} else {\n  data.mr_kowalski = { full_name: \"John Ronald Kowalski\" }\n}\nreturn await space.api.fileWrite(\"~/contacts.yaml\", space.utils.yaml.stringify(data), \"utf8\")",
           "usage": {
@@ -1897,9 +1893,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating the contact entry now.\n_____javascript\nconst path = \"~/contacts.yaml\";\nconst text = await space.api.fileRead(path, \"utf8\");\nconst updated = text.replace(/(^\\s*mr_kowalski\\s*:\\s*)(.*)$/m, \"$1John Ronald Kowalski\");\nif (updated === text) return { ok: false, reason: \"No matching mr_kowalski entry found\" };\nawait space.api.fileWrite(path, updated, \"utf8\");\nreturn { ok: true };",
           "usage": {
@@ -2538,9 +2532,7 @@
           "case_path": "tests/agent_llm_performance/cases/protocol_nudge_requires_real_thrust.json",
           "history_path": "tests/agent_llm_performance/histories/protocol_nudge_requires_real_thrust.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.patchWidget(\"snake-game\", {\n  edits: [\n    {\n      op: \"replace\",\n      path: \"/source\",\n      value: `/* placeholder: snake widget source needed from loaded TRANSIENT widget to apply smooth movement animation */`\n    }\n  ]\n})",
           "usage": {
@@ -2924,9 +2916,7 @@
           "case_path": "tests/agent_llm_performance/cases/weather_self_scope_after_indirect_fail.json",
           "history_path": "tests/agent_llm_performance/histories/weather_self_scope_after_indirect_fail.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /(?:open-meteo|wttr\\.in)/u"
-          ],
+          "failures": ["missing required pattern: /(?:open-meteo|wttr\\.in)/u"],
           "response_type": "thrust",
           "response": "I need your location to check the weather.\n_____javascript\nreturn await navigator.geolocation.getCurrentPosition(\n  pos => ({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),\n  err => ({ error: err.message }),\n  { enableHighAccuracy: true, timeout: 10000 }\n)",
           "usage": {
@@ -3144,9 +3134,7 @@
           "case_path": "tests/agent_llm_performance/cases/create_note_after_user_detail_read.json",
           "history_path": "tests/agent_llm_performance/histories/create_note_after_user_detail_read.json",
           "passed": false,
-          "failures": [
-            "contains forbidden text: username: pan"
-          ],
+          "failures": ["contains forbidden text: username: pan"],
           "response_type": "thrust",
           "response": "Writing the note now...\n_____javascript\nreturn await space.api.fileWrite(\"~/notes/whoami.txt\", \"username: pan\\n\", \"utf8\")",
           "usage": {
@@ -3181,9 +3169,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Reading your current user profile now...\n_____javascript\nconst text = await space.api.fileRead(\"~/user.yaml\", \"utf8\");\nconst data = space.utils.yaml.parse(text);\ndata.full_name = \"Pan Example\";\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(data), \"utf8\");",
           "usage": {

@@ -6,10 +6,10 @@
 
 Prime-Silo is a deterministic execution platform with two core zones:
 
-| Zone | Purpose | Agent Authority |
-|------|---------|-----------------|
-| **Deterministic** | Manifest execution, KG/code mutation, run lineage | Read-only (draft → HITL → sign → execute) |
-| **Review/Sandbox** | Post-run analysis, composed layouts, agent drafts | Read + write to `agent_sandbox/` |
+| Zone               | Purpose                                           | Agent Authority                           |
+| ------------------ | ------------------------------------------------- | ----------------------------------------- |
+| **Deterministic**  | Manifest execution, KG/code mutation, run lineage | Read-only (draft → HITL → sign → execute) |
+| **Review/Sandbox** | Post-run analysis, composed layouts, agent drafts | Read + write to `agent_sandbox/`          |
 
 Your agent operates in both zones. Be aware of the boundary.
 
@@ -22,6 +22,7 @@ Your agent operates in both zones. Be aware of the boundary.
 Query where workspace data lives:
 
 **Electron (Desktop App):**
+
 ```javascript
 const { homeDir } = await ipcRenderer.invoke("space-desktop:get-home-directory");
 console.log("Workspace root:", homeDir);
@@ -29,6 +30,7 @@ console.log("Workspace root:", homeDir);
 ```
 
 **Returned value:**
+
 - If set: absolute path to the workspace root
 - If null: no home directory configured yet
 
@@ -68,19 +70,23 @@ Every workspace follows this layout:
 ### 2. Key File Paths
 
 **Configuration:**
+
 - `config/prime-silo.config.json` — Main config (read-only, humans edit this)
 - `config/.env` — Environment variables (read-only during execution)
 
 **Manifests:**
+
 - `L1/<group>/manifests/` — Shared workflow definitions (deterministic zone)
 - `L2/<user>/manifests/` — Personal manifests
 
 **Runs:**
+
 - `runs/<run_id>/` — Output from a specific manifest execution
 - `runs/<run_id>/manifest.json` — Manifest that was executed
 - `runs/<run_id>/lineage.json` — CLP lineage and audit trail
 
 **Views:**
+
 - `L2/<user>/pinned/*.aamp.view` — Signed, pinned views (human-approved)
 - `agent_sandbox/views/*.draft.view` — Your draft views (unsigned)
 
@@ -94,8 +100,7 @@ Read workspace configuration:
 
 ```javascript
 // In the browser or Node.js context
-const config = await fetch("/api/config")
-  .then(r => r.json());
+const config = await fetch("/api/config").then((r) => r.json());
 
 // Returns:
 // {
@@ -170,6 +175,7 @@ fetch("/api/integration_audit?service=bridge").then(r => r.json())
 ### 1. Read System Data
 
 ✅ **You can:**
+
 - Read manifests from `L1/<group>/manifests/` and `L2/<user>/manifests/`
 - Read previous runs from `runs/<run_id>/`
 - Query run history via `/api/runs`
@@ -182,12 +188,14 @@ fetch("/api/integration_audit?service=bridge").then(r => r.json())
 ### 2. Create Drafts (Non-Deterministic)
 
 ✅ **You can:**
+
 - Write draft views to `agent_sandbox/views/*.draft.view`
 - Write notes to `agent_sandbox/notes/`
 - Create draft manifests in `agent_sandbox/drafts/manifests/`
 - Write analysis and reports to `agent_sandbox/drafts/`
 
 **Format for views:**
+
 ```json
 {
   "format": "aamp.view/1",
@@ -204,6 +212,7 @@ fetch("/api/integration_audit?service=bridge").then(r => r.json())
 ### 3. Query Historical Context
 
 ✅ **You can:**
+
 - List all sessions: `node space memory sessions`
 - Search for sessions: `node space memory search <query>`
 - Get full session context via `/api/lifelog?session=<id>`
@@ -212,6 +221,7 @@ fetch("/api/integration_audit?service=bridge").then(r => r.json())
 ### 4. Plan New Manifests (Advisory)
 
 ✅ **You can:**
+
 - Generate manifests via AI: `benny pypes plan "<requirement>"`
 - Save drafts: `benny pypes plan "..." --save` (goes to drafts, not execution)
 - These are **advisory only**—no execution until human signs
@@ -219,6 +229,7 @@ fetch("/api/integration_audit?service=bridge").then(r => r.json())
 ### 5. Analyze Runs (Advisory)
 
 ✅ **You can:**
+
 - Generate reports: `benny pypes agent-report <run_id>` (Markdown, advisory)
 - Drill down into results: `benny pypes drilldown <run_id> <stage>`
 - Create post-run analyses in your sandbox
@@ -228,6 +239,7 @@ fetch("/api/integration_audit?service=bridge").then(r => r.json())
 ## Actions You Cannot Take
 
 ❌ **You cannot:**
+
 - Execute manifests directly (`benny run` / `benny pypes run`) — only humans can
 - Mutate files in `L1/` or `L2/` directly — requires human approval + signing
 - Modify `config/prime-silo.config.json` — only humans can
@@ -244,11 +256,13 @@ fetch("/api/integration_audit?service=bridge").then(r => r.json())
 ### Lineage and Audit
 
 Every mutation is logged:
+
 - Deterministic zone: manifest runs produce `runs/<run_id>/lineage.json` with full CLP lineage
 - Sandbox zone: your drafts record `created_at`, `created_by`, `created_from` (parent run/view)
 - Query via: `node space memory audit` or `/api/integration_audit`
 
 **Always include context when you create drafts:**
+
 ```json
 {
   "created_from_run": "abc123",
@@ -269,11 +283,13 @@ Every mutation is logged:
 ### Deterministic Zone Boundaries
 
 **You cannot write to:**
+
 - Any manifest in `L1/*/manifests/` (deterministic zone)
 - `runs/` directory (immutable audit trail)
 - `config/` files (human-controlled)
 
 **You can only:**
+
 - Read from deterministic zone
 - Write drafts to `agent_sandbox/`
 - Generate advisory outputs (reports, analyses)
@@ -353,6 +369,7 @@ if (homeDir) {
 ### benny-pilot Skill
 
 The `benny-pilot` skill is available to agents for:
+
 - Querying manifest registry
 - Inspecting run lineage
 - Accessing code graph
@@ -360,16 +377,20 @@ The `benny-pilot` skill is available to agents for:
 - Generating analyses
 
 Load it:
+
 ```javascript
-const bennyPilot = await import("/mod/_prime_silo/memoray_client/ext/skills/benny-pilot/benny-pilot.js");
+const bennyPilot =
+  await import("/mod/_prime_silo/memoray_client/ext/skills/benny-pilot/benny-pilot.js");
 // Use: await bennyPilot.queryManifests(), etc.
 ```
 
 ### Memory-Recall Skill
 
 Query session history:
+
 ```javascript
-const recall = await import("/mod/_prime_silo/memoray_client/ext/skills/memory-recall/memory-recall.js");
+const recall =
+  await import("/mod/_prime_silo/memoray_client/ext/skills/memory-recall/memory-recall.js");
 // Use: await recall.search(query)
 ```
 

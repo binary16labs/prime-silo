@@ -11,9 +11,7 @@
       "passed_attempts": 36,
       "total_attempts": 37,
       "attempt_pass_rate": 0.973,
-      "failed_cases": [
-        "unpack_collapsed_weather_payload"
-      ],
+      "failed_cases": ["unpack_collapsed_weather_payload"],
       "cases": [
         {
           "case_id": "page_title_requires_execution",
@@ -1790,9 +1788,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Updating your full name now...\n_____javascript\nconst text = await space.api.fileRead(\"~/user.yaml\", \"utf8\")\nconst data = space.utils.yaml.parse(text)\ndata.full_name = \"Pan Example\"\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(data), \"utf8\")",
           "usage": {
@@ -2715,9 +2711,7 @@
           "case_path": "tests/agent_llm_performance/cases/page_title_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/page_title_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn { title: document.title, url: location.href }",
           "usage": {
@@ -3193,9 +3187,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.api.fileWrite(\"~/user.yaml\", \"full_name: Pan Example\\nbio: hello there\\n\")",
           "usage": {
@@ -3466,9 +3458,7 @@
           "case_path": "tests/agent_llm_performance/cases/space_navigation_after_take_me_there_uses_open_helper.json",
           "history_path": "tests/agent_llm_performance/histories/space_navigation_after_take_me_there_uses_open_helper.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.spaces.openSpace(\"space-1\")",
           "usage": {
@@ -3853,9 +3843,7 @@
           "case_path": "tests/agent_llm_performance/cases/repeat_do_it_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/repeat_do_it_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.patchWidget(\"snake-game\", { edits: [] })",
           "usage": {
@@ -3925,9 +3913,7 @@
           "case_path": "tests/agent_llm_performance/cases/protocol_nudge_requires_real_thrust.json",
           "history_path": "tests/agent_llm_performance/histories/protocol_nudge_requires_real_thrust.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.patchWidget(\"snake-game\", { edits: [] })",
           "usage": {

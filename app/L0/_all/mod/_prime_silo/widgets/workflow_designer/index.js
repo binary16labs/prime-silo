@@ -28,7 +28,7 @@ const KIND_COLOR = {
   tool: "#60a5fa",
   logic: "#fb923c",
   data: "#2dd4bf",
-  a2a: "#0ea5e9",
+  a2a: "#0ea5e9"
 };
 
 // Palette mirrors Benny Studio's NodePalette categories.
@@ -38,7 +38,7 @@ const PALETTE = [
   { kind: "tool", label: "Tool" },
   { kind: "logic", label: "Logic" },
   { kind: "data", label: "Data" },
-  { kind: "a2a", label: "A2A" },
+  { kind: "a2a", label: "A2A" }
 ];
 
 const SVGNS = "http://www.w3.org/2000/svg";
@@ -48,8 +48,9 @@ function uid(prefix) {
 }
 
 function esc(s) {
-  return String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
+  return String(s == null ? "" : s).replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]
   );
 }
 
@@ -58,14 +59,18 @@ function normalise(workflow) {
   const wf = workflow || {};
   const rawNodes = Array.isArray(wf.nodes) ? wf.nodes : [];
   const nodes = rawNodes.map((n, i) => {
-    const pos = n.position && typeof n.position.x === "number"
-      ? { x: n.position.x, y: n.position.y }
-      : { x: PAD + (i % 4) * (NODE_W + 70), y: PAD + Math.floor(i / 4) * (NODE_H + 60) };
+    const pos =
+      n.position && typeof n.position.x === "number"
+        ? { x: n.position.x, y: n.position.y }
+        : { x: PAD + (i % 4) * (NODE_W + 70), y: PAD + Math.floor(i / 4) * (NODE_H + 60) };
     return {
       id: n.id || uid("n"),
       type: n.type || "tool",
       position: pos,
-      data: { label: (n.data && n.data.label) || n.label || n.id || "Node", config: (n.data && n.data.config) || {} },
+      data: {
+        label: (n.data && n.data.label) || n.label || n.id || "Node",
+        config: (n.data && n.data.config) || {}
+      }
     };
   });
   const edges = (Array.isArray(wf.edges) ? wf.edges : [])
@@ -84,8 +89,8 @@ export function createWorkflowDesignerWidget(host, props = {}) {
 
   let { nodes, edges } = normalise(props.workflow);
   let selectedId = null;
-  let drag = null;     // { id, dx, dy }
-  let connect = null;  // { from, x, y }
+  let drag = null; // { id, dx, dy }
+  let connect = null; // { from, x, y }
   let raf = 0;
 
   host.classList.add("ps-wfd");
@@ -96,7 +101,10 @@ export function createWorkflowDesignerWidget(host, props = {}) {
   bar.className = "ps-wfd__bar";
   if (!readonly) {
     bar.innerHTML =
-      PALETTE.map((p) => `<button type="button" class="ps-wfd__add" data-add="${p.kind}" style="--k:${KIND_COLOR[p.kind]}">+ ${esc(p.label)}</button>`).join("") +
+      PALETTE.map(
+        (p) =>
+          `<button type="button" class="ps-wfd__add" data-add="${p.kind}" style="--k:${KIND_COLOR[p.kind]}">+ ${esc(p.label)}</button>`
+      ).join("") +
       `<span class="ps-wfd__sep"></span><button type="button" class="ps-wfd__del" data-del>Delete selected</button>`;
   } else {
     bar.innerHTML = `<span class="ps-wfd__ro">Template — read-only. Clone it to edit.</span>`;
@@ -123,7 +131,7 @@ export function createWorkflowDesignerWidget(host, props = {}) {
   function portPos(node, side) {
     return {
       x: node.position.x + (side === "out" ? NODE_W : 0),
-      y: node.position.y + NODE_H / 2,
+      y: node.position.y + NODE_H / 2
     };
   }
 
@@ -139,23 +147,26 @@ export function createWorkflowDesignerWidget(host, props = {}) {
     svg.setAttribute("height", String(h));
     const byId = new Map(nodes.map((n) => [n.id, n]));
 
-    const edgeSvg = edges.map((e) => {
-      const sN = byId.get(e.source);
-      const tN = byId.get(e.target);
-      if (!sN || !tN) return "";
-      const d = edgePath(portPos(sN, "out"), portPos(tN, "in"));
-      const sel = selectedId === e.id ? " is-selected" : "";
-      return `<path class="ps-wfd__edge${sel}" data-edge-id="${esc(e.id)}" d="${d}" />`;
-    }).join("");
+    const edgeSvg = edges
+      .map((e) => {
+        const sN = byId.get(e.source);
+        const tN = byId.get(e.target);
+        if (!sN || !tN) return "";
+        const d = edgePath(portPos(sN, "out"), portPos(tN, "in"));
+        const sel = selectedId === e.id ? " is-selected" : "";
+        return `<path class="ps-wfd__edge${sel}" data-edge-id="${esc(e.id)}" d="${d}" />`;
+      })
+      .join("");
 
     const tempSvg = connect
       ? `<path class="ps-wfd__edge ps-wfd__edge--temp" d="${edgePath(portPos(byId.get(connect.from), "out"), { x: connect.x, y: connect.y })}" />`
       : "";
 
-    const nodeSvg = nodes.map((n) => {
-      const accent = KIND_COLOR[n.type] || "#64748b";
-      const sel = selectedId === n.id ? " is-selected" : "";
-      return `
+    const nodeSvg = nodes
+      .map((n) => {
+        const accent = KIND_COLOR[n.type] || "#64748b";
+        const sel = selectedId === n.id ? " is-selected" : "";
+        return `
         <g class="ps-wfd__node${sel}" data-node-id="${esc(n.id)}" transform="translate(${n.position.x},${n.position.y})">
           <rect class="ps-wfd__node-bg" width="${NODE_W}" height="${NODE_H}" rx="9" ry="9" stroke="${esc(accent)}"></rect>
           <rect class="ps-wfd__node-kindbar" width="6" height="${NODE_H}" rx="3" fill="${esc(accent)}"></rect>
@@ -164,16 +175,24 @@ export function createWorkflowDesignerWidget(host, props = {}) {
           <circle class="ps-wfd__port ps-wfd__port--in" data-port="in" data-node-id="${esc(n.id)}" cx="0" cy="${NODE_H / 2}" r="${PORT_R}"></circle>
           <circle class="ps-wfd__port ps-wfd__port--out" data-port="out" data-node-id="${esc(n.id)}" cx="${NODE_W}" cy="${NODE_H / 2}" r="${PORT_R}"></circle>
         </g>`;
-    }).join("");
+      })
+      .join("");
 
     svg.innerHTML = `<g class="ps-wfd__edges">${edgeSvg}${tempSvg}</g><g class="ps-wfd__nodes">${nodeSvg}</g>`;
   }
 
-  function emit() { onChange(getGraph()); }
+  function emit() {
+    onChange(getGraph());
+  }
   function getGraph() {
     return {
-      nodes: nodes.map((n) => ({ id: n.id, type: n.type, position: { ...n.position }, data: { label: n.data.label, config: n.data.config || {} } })),
-      edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target })),
+      nodes: nodes.map((n) => ({
+        id: n.id,
+        type: n.type,
+        position: { ...n.position },
+        data: { label: n.data.label, config: n.data.config || {} }
+      })),
+      edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target }))
     };
   }
   function setSelected(id) {
@@ -208,7 +227,10 @@ export function createWorkflowDesignerWidget(host, props = {}) {
       svg.setPointerCapture && svg.setPointerCapture(evt.pointerId);
       return;
     }
-    if (edgeEl) { setSelected(edgeEl.getAttribute("data-edge-id")); return; }
+    if (edgeEl) {
+      setSelected(edgeEl.getAttribute("data-edge-id"));
+      return;
+    }
     setSelected(null);
   }
 
@@ -217,20 +239,36 @@ export function createWorkflowDesignerWidget(host, props = {}) {
     const p = localPoint(evt);
     if (drag) {
       const node = nodes.find((n) => n.id === drag.id);
-      if (node) { node.position.x = Math.max(0, p.x - drag.dx); node.position.y = Math.max(0, p.y - drag.dy); }
+      if (node) {
+        node.position.x = Math.max(0, p.x - drag.dx);
+        node.position.y = Math.max(0, p.y - drag.dy);
+      }
     } else if (connect) {
-      connect.x = p.x; connect.y = p.y;
+      connect.x = p.x;
+      connect.y = p.y;
     }
-    if (!raf) raf = requestAnimationFrame(() => { raf = 0; draw(); });
+    if (!raf)
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        draw();
+      });
   }
 
   function onPointerUp(evt) {
-    if (drag) { drag = null; emit(); return; }
+    if (drag) {
+      drag = null;
+      emit();
+      return;
+    }
     if (connect) {
       const el = document.elementFromPoint(evt.clientX, evt.clientY);
       const targetEl = el && el.closest && el.closest("[data-node-id]");
       const to = targetEl && targetEl.getAttribute("data-node-id");
-      if (to && to !== connect.from && !edges.some((e) => e.source === connect.from && e.target === to)) {
+      if (
+        to &&
+        to !== connect.from &&
+        !edges.some((e) => e.source === connect.from && e.target === to)
+      ) {
         edges.push({ id: uid("e"), source: connect.from, target: to });
         emit();
       }
@@ -243,7 +281,12 @@ export function createWorkflowDesignerWidget(host, props = {}) {
     const add = evt.target.closest && evt.target.closest("[data-add]");
     if (add) {
       const kind = add.getAttribute("data-add");
-      const n = { id: uid(kind), type: kind, position: { x: PAD + (nodes.length % 5) * 40, y: PAD + (nodes.length % 5) * 30 }, data: { label: kind.charAt(0).toUpperCase() + kind.slice(1), config: {} } };
+      const n = {
+        id: uid(kind),
+        type: kind,
+        position: { x: PAD + (nodes.length % 5) * 40, y: PAD + (nodes.length % 5) * 30 },
+        data: { label: kind.charAt(0).toUpperCase() + kind.slice(1), config: {} }
+      };
       nodes.push(n);
       setSelected(n.id);
       emit();
@@ -254,15 +297,27 @@ export function createWorkflowDesignerWidget(host, props = {}) {
 
   function deleteSelected() {
     if (!selectedId) return;
-    const beforeN = nodes.length, beforeE = edges.length;
+    const beforeN = nodes.length,
+      beforeE = edges.length;
     nodes = nodes.filter((n) => n.id !== selectedId);
-    edges = edges.filter((e) => e.id !== selectedId && e.source !== selectedId && e.target !== selectedId);
-    if (nodes.length !== beforeN || edges.length !== beforeE) { selectedId = null; draw(); onSelect(null); emit(); }
+    edges = edges.filter(
+      (e) => e.id !== selectedId && e.source !== selectedId && e.target !== selectedId
+    );
+    if (nodes.length !== beforeN || edges.length !== beforeE) {
+      selectedId = null;
+      draw();
+      onSelect(null);
+      emit();
+    }
   }
 
   function onKey(evt) {
     if (readonly) return;
-    if ((evt.key === "Delete" || evt.key === "Backspace") && selectedId && document.activeElement === document.body) {
+    if (
+      (evt.key === "Delete" || evt.key === "Backspace") &&
+      selectedId &&
+      document.activeElement === document.body
+    ) {
       evt.preventDefault();
       deleteSelected();
     }
@@ -279,16 +334,25 @@ export function createWorkflowDesignerWidget(host, props = {}) {
   draw();
 
   return {
-    update(workflow) { const g = normalise(workflow); nodes = g.nodes; edges = g.edges; selectedId = null; draw(); },
+    update(workflow) {
+      const g = normalise(workflow);
+      nodes = g.nodes;
+      edges = g.edges;
+      selectedId = null;
+      draw();
+    },
     getGraph,
-    select(id) { setSelected(id); },
+    select(id) {
+      setSelected(id);
+    },
     // Update a single node's editable fields (label/type) from an external form.
     patchNode(id, patch) {
       const n = nodes.find((x) => x.id === id);
       if (!n) return;
       if (patch.label != null) n.data.label = patch.label;
       if (patch.type != null) n.type = patch.type;
-      draw(); emit();
+      draw();
+      emit();
     },
     destroy() {
       if (!readonly) {
@@ -301,6 +365,6 @@ export function createWorkflowDesignerWidget(host, props = {}) {
       if (raf) cancelAnimationFrame(raf);
       host.classList.remove("ps-wfd");
       host.innerHTML = "";
-    },
+    }
   };
 }

@@ -28,11 +28,7 @@ const { ensureRuntimeBundle } = require("./runtime_fetch");
 
 const DEFAULT_API_PORT = 8005;
 const DEFAULT_NEO4J_HTTP_PORT = 7474;
-const DEFAULT_RUNTIME_BASE_URLS = new Set([
-  "",
-  "http://127.0.0.1:8005",
-  "http://localhost:8005"
-]);
+const DEFAULT_RUNTIME_BASE_URLS = new Set(["", "http://127.0.0.1:8005", "http://localhost:8005"]);
 
 /* ── pure helpers (unit-tested) ──────────────────────────────────────── */
 
@@ -67,7 +63,9 @@ function shouldUseBundledRuntime({ bundleDir, env = {}, config = {} } = {}) {
   if (!bundleDir) {
     return { use: false, reason: "no-bundle" };
   }
-  const runtimeBaseUrl = String(env.RUNTIME_BASE_URL || "").trim().replace(/\/+$/, "");
+  const runtimeBaseUrl = String(env.RUNTIME_BASE_URL || "")
+    .trim()
+    .replace(/\/+$/, "");
   if (!DEFAULT_RUNTIME_BASE_URLS.has(runtimeBaseUrl)) {
     return { use: false, reason: "remote-runtime" };
   }
@@ -83,7 +81,11 @@ function isBundleComplete(bundleDir, platform = process.platform) {
   if (!bundleDir) return false;
   const p = bundlePaths(bundleDir, platform);
   return [p.python, p.neo4jBin, p.javaHome, p.benny].every((target) => {
-    try { return fs.existsSync(target); } catch { return false; }
+    try {
+      return fs.existsSync(target);
+    } catch {
+      return false;
+    }
   });
 }
 
@@ -134,7 +136,13 @@ function buildNeo4jSpawn({ bundleDir, bennyHome, platform = process.platform, en
 }
 
 // Build the spawn spec for the FastAPI server via the bundled Python.
-function buildApiSpawn({ bundleDir, bennyHome, platform = process.platform, env = {}, hmacKey = "" }) {
+function buildApiSpawn({
+  bundleDir,
+  bennyHome,
+  platform = process.platform,
+  env = {},
+  hmacKey = ""
+}) {
   const p = bundlePaths(bundleDir, platform);
   const pythonPath = [p.site, p.benny].join(path.delimiter);
   const childEnv = {
@@ -148,7 +156,15 @@ function buildApiSpawn({ bundleDir, bennyHome, platform = process.platform, env 
   }
   return {
     command: p.python,
-    args: ["-m", "uvicorn", "benny.api.server:app", "--host", "127.0.0.1", "--port", String(DEFAULT_API_PORT)],
+    args: [
+      "-m",
+      "uvicorn",
+      "benny.api.server:app",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      String(DEFAULT_API_PORT)
+    ],
     env: childEnv
   };
 }
@@ -182,7 +198,13 @@ function resolveSpawnInvocation(spec, platform = process.platform) {
     return {
       command: "cmd.exe",
       args: ["/d", "/s", "/c", line],
-      options: { env: spec.env, stdio: "ignore", detached: false, windowsHide: true, windowsVerbatimArguments: true }
+      options: {
+        env: spec.env,
+        stdio: "ignore",
+        detached: false,
+        windowsHide: true,
+        windowsVerbatimArguments: true
+      }
     };
   }
   return {
@@ -202,15 +224,18 @@ function defaultSpawn(_name, spec) {
       fs.mkdirSync(path.dirname(spec.logFile), { recursive: true });
       const fd = fs.openSync(spec.logFile, "a");
       inv.options.stdio = ["ignore", fd, fd];
-    } catch { /* fall back to whatever resolveSpawnInvocation set */ }
+    } catch {
+      /* fall back to whatever resolveSpawnInvocation set */
+    }
   }
   return spawn(inv.command, inv.args, inv.options);
 }
 
 async function defaultProbe(service) {
-  const url = service === "neo4j"
-    ? `http://127.0.0.1:${DEFAULT_NEO4J_HTTP_PORT}`
-    : `http://127.0.0.1:${DEFAULT_API_PORT}/api/health`;
+  const url =
+    service === "neo4j"
+      ? `http://127.0.0.1:${DEFAULT_NEO4J_HTTP_PORT}`
+      : `http://127.0.0.1:${DEFAULT_API_PORT}/api/health`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 1500);
   try {
@@ -283,11 +308,15 @@ function createRuntimeSupervisor(options = {}) {
       if (stopping) return;
       entry.restarts = (entry.restarts || 0) + 1;
       if (entry.restarts > maxRestarts) {
-        logger.error?.(`[runtime] ${service} exited (${signal || code}) and exceeded ${maxRestarts} restarts; giving up.`);
+        logger.error?.(
+          `[runtime] ${service} exited (${signal || code}) and exceeded ${maxRestarts} restarts; giving up.`
+        );
         return;
       }
       const backoff = backoffMsFn(entry.restarts);
-      logger.warn?.(`[runtime] ${service} exited (${signal || code}); restarting in ${backoff}ms (attempt ${entry.restarts}).`);
+      logger.warn?.(
+        `[runtime] ${service} exited (${signal || code}); restarting in ${backoff}ms (attempt ${entry.restarts}).`
+      );
       setTimeout(() => {
         if (stopping) return;
         void launch(service, spec);
@@ -324,7 +353,9 @@ function createRuntimeSupervisor(options = {}) {
       try {
         const result = await fetchFn({ destDir: bundleDir, version: appVersion, platform, logger });
         if (!result || !result.ok) {
-          logger.warn?.(`[runtime] runtime download did not complete (${result ? result.reason : "error"}).`);
+          logger.warn?.(
+            `[runtime] runtime download did not complete (${result ? result.reason : "error"}).`
+          );
         }
       } catch (error) {
         logger.warn?.(`[runtime] runtime download error: ${error.message || error}`);
@@ -352,26 +383,40 @@ function createRuntimeSupervisor(options = {}) {
     }
 
     const logDir = path.join(bennyHome, "logs");
-    try { fs.mkdirSync(logDir, { recursive: true }); } catch { /* best-effort */ }
+    try {
+      fs.mkdirSync(logDir, { recursive: true });
+    } catch {
+      /* best-effort */
+    }
 
     // Neo4j first (the API connects to it lazily, but graphs need it up).
     const neo4jSpec = buildNeo4jSpawn({ bundleDir, bennyHome, platform, env });
     neo4jSpec.logFile = path.join(logDir, "neo4j.log");
     try {
       fs.mkdirSync(neo4jSpec.confDir, { recursive: true });
-      fs.writeFileSync(path.join(neo4jSpec.confDir, "neo4j.conf"), renderNeo4jConf(bennyHome), "utf8");
+      fs.writeFileSync(
+        path.join(neo4jSpec.confDir, "neo4j.conf"),
+        renderNeo4jConf(bennyHome),
+        "utf8"
+      );
     } catch (error) {
       logger.warn?.(`[runtime] could not write neo4j.conf: ${error.message || error}`);
     }
     launch("neo4j", neo4jSpec);
     const neo4jReady = await waitReady("neo4j");
     if (!neo4jReady) {
-      logger.warn?.("[runtime] Neo4j did not report healthy in time; graphs may be unavailable until it does.");
+      logger.warn?.(
+        "[runtime] Neo4j did not report healthy in time; graphs may be unavailable until it does."
+      );
     }
 
     // Then the API.
     const apiSpec = buildApiSpawn({
-      bundleDir, bennyHome, platform, env, hmacKey: readInstallHmacKey(bennyHome)
+      bundleDir,
+      bennyHome,
+      platform,
+      env,
+      hmacKey: readInstallHmacKey(bennyHome)
     });
     apiSpec.logFile = path.join(logDir, "api.log");
     launch("api", apiSpec);
@@ -392,7 +437,11 @@ function createRuntimeSupervisor(options = {}) {
     const entries = [...children.values()];
     children.clear();
     started = false;
-    await Promise.all(entries.map(({ child }) => stopChild(child, graceMs, logger, { platform, killTree: killTreeFn })));
+    await Promise.all(
+      entries.map(({ child }) =>
+        stopChild(child, graceMs, logger, { platform, killTree: killTreeFn })
+      )
+    );
     onStatus?.({ phase: "stopped" });
   }
 
@@ -404,7 +453,9 @@ function createRuntimeSupervisor(options = {}) {
   return {
     bundleDir,
     bennyHome,
-    get managed() { return gate().use; },
+    get managed() {
+      return gate().use;
+    },
     gate,
     start,
     stop,
@@ -435,14 +486,24 @@ function createRuntimeSupervisor(options = {}) {
 function hardKillChild(child) {
   try {
     if (process.platform === "win32" && child && child.pid) {
-      spawn("taskkill", ["/PID", String(child.pid), "/T", "/F"], { stdio: "ignore", windowsHide: true });
+      spawn("taskkill", ["/PID", String(child.pid), "/T", "/F"], {
+        stdio: "ignore",
+        windowsHide: true
+      });
     } else if (child && typeof child.kill === "function") {
       child.kill("SIGKILL");
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
-function stopChild(child, graceMs, logger = console, { platform = process.platform, killTree = hardKillChild } = {}) {
+function stopChild(
+  child,
+  graceMs,
+  logger = console,
+  { platform = process.platform, killTree = hardKillChild } = {}
+) {
   return new Promise((resolve) => {
     if (!child || typeof child.kill !== "function") {
       resolve();
@@ -478,7 +539,12 @@ function stopChild(child, graceMs, logger = console, { platform = process.platfo
 
 // Default first-run init: run the bundled python's `benny_cli init` so the
 // writable BENNY_HOME gets dirs, config, and the per-install hmac-key.
-async function defaultInit({ bundleDir, bennyHome, platform = process.platform, env = process.env }) {
+async function defaultInit({
+  bundleDir,
+  bennyHome,
+  platform = process.platform,
+  env = process.env
+}) {
   const p = bundlePaths(bundleDir, platform);
   await new Promise((resolve, reject) => {
     // `benny_cli init` REQUIRES --home and --profile. We run Neo4j + the API

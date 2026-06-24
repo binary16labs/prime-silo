@@ -17,7 +17,11 @@ function getRuntime() {
     throw new Error("Space runtime is not available.");
   }
 
-  if (!runtime.api || typeof runtime.api.fileRead !== "function" || typeof runtime.api.fileWrite !== "function") {
+  if (
+    !runtime.api ||
+    typeof runtime.api.fileRead !== "function" ||
+    typeof runtime.api.fileWrite !== "function"
+  ) {
     throw new Error("space.api file helpers are not available.");
   }
 
@@ -47,26 +51,19 @@ function isSingleUserAppRuntime(runtime) {
 }
 
 function normalizeStoredPromptBudgetRatios(storedConfig = {}) {
-  const storedRatios =
-    storedConfig.prompt_budget_ratios ||
-    storedConfig.promptBudgetRatios ||
-    {};
+  const storedRatios = storedConfig.prompt_budget_ratios || storedConfig.promptBudgetRatios || {};
   const source = storedRatios && typeof storedRatios === "object" ? storedRatios : {};
 
   return config.normalizeAdminChatPromptBudgetRatios({
     history:
-      source.history ??
-      storedConfig.history_prompt_max_ratio ??
-      storedConfig.historyPromptMaxRatio,
+      source.history ?? storedConfig.history_prompt_max_ratio ?? storedConfig.historyPromptMaxRatio,
     singleMessage:
       source.single_message ??
       source.singleMessage ??
       storedConfig.single_message_max_ratio ??
       storedConfig.singleMessageMaxRatio,
     system:
-      source.system ??
-      storedConfig.system_prompt_max_ratio ??
-      storedConfig.systemPromptMaxRatio,
+      source.system ?? storedConfig.system_prompt_max_ratio ?? storedConfig.systemPromptMaxRatio,
     transient:
       source.transient ??
       storedConfig.transient_prompt_max_ratio ??
@@ -106,11 +103,7 @@ async function encodeStoredApiKey(runtime, settings = {}) {
   const nextValue = String(settings.apiKey || "").trim();
   const storedValue = String(settings.storedApiKeyValue || "").trim();
 
-  if (
-    settings.storedApiKeyLocked === true &&
-    !nextValue &&
-    storedValue.startsWith("userCrypto:")
-  ) {
+  if (settings.storedApiKeyLocked === true && !nextValue && storedValue.startsWith("userCrypto:")) {
     return storedValue;
   }
 
@@ -131,9 +124,13 @@ async function normalizeStoredConfig(runtime, parsedConfig) {
   const storedConfig = parsedConfig && typeof parsedConfig === "object" ? parsedConfig : {};
   const rawStoredProvider = storedConfig.llm_provider || storedConfig.provider;
   const storedMaxTokens =
-    storedConfig.max_tokens ?? storedConfig.maxTokens ?? config.DEFAULT_ADMIN_CHAT_SETTINGS.maxTokens;
+    storedConfig.max_tokens ??
+    storedConfig.maxTokens ??
+    config.DEFAULT_ADMIN_CHAT_SETTINGS.maxTokens;
   const provider = config.normalizeAdminChatLlmProvider(rawStoredProvider);
-  const localProvider = config.normalizeAdminChatLocalProvider(storedConfig.local_provider || storedConfig.localProvider);
+  const localProvider = config.normalizeAdminChatLocalProvider(
+    storedConfig.local_provider || storedConfig.localProvider
+  );
   const storedApiKey = await decodeStoredApiKey(
     runtime,
     storedConfig.api_key || storedConfig.apiKey || config.DEFAULT_ADMIN_CHAT_SETTINGS.apiKey || ""
@@ -141,18 +138,34 @@ async function normalizeStoredConfig(runtime, parsedConfig) {
 
   return {
     settings: {
-      apiEndpoint: String(storedConfig.api_endpoint || storedConfig.apiEndpoint || config.DEFAULT_ADMIN_CHAT_SETTINGS.apiEndpoint || "").trim(),
+      apiEndpoint: String(
+        storedConfig.api_endpoint ||
+          storedConfig.apiEndpoint ||
+          config.DEFAULT_ADMIN_CHAT_SETTINGS.apiEndpoint ||
+          ""
+      ).trim(),
       apiKey: storedApiKey.value,
       huggingfaceDtype: String(
-        storedConfig.huggingface_dtype || storedConfig.huggingfaceDtype || config.DEFAULT_ADMIN_CHAT_SETTINGS.huggingfaceDtype || ""
+        storedConfig.huggingface_dtype ||
+          storedConfig.huggingfaceDtype ||
+          config.DEFAULT_ADMIN_CHAT_SETTINGS.huggingfaceDtype ||
+          ""
       ).trim(),
       huggingfaceModel: String(
-        storedConfig.huggingface_model || storedConfig.huggingfaceModel || config.DEFAULT_ADMIN_CHAT_SETTINGS.huggingfaceModel || ""
+        storedConfig.huggingface_model ||
+          storedConfig.huggingfaceModel ||
+          config.DEFAULT_ADMIN_CHAT_SETTINGS.huggingfaceModel ||
+          ""
       ).trim(),
       localProvider,
       maxTokens: config.normalizeAdminChatMaxTokens(storedMaxTokens),
       model: String(storedConfig.model || config.DEFAULT_ADMIN_CHAT_SETTINGS.model || "").trim(),
-      paramsText: String(storedConfig.params || storedConfig.paramsText || config.DEFAULT_ADMIN_CHAT_SETTINGS.paramsText || "").trim(),
+      paramsText: String(
+        storedConfig.params ||
+          storedConfig.paramsText ||
+          config.DEFAULT_ADMIN_CHAT_SETTINGS.paramsText ||
+          ""
+      ).trim(),
       promptBudgetRatios: normalizeStoredPromptBudgetRatios(storedConfig),
       provider,
       storedApiKeyLocked: storedApiKey.locked,
@@ -171,18 +184,27 @@ async function normalizeStoredConfig(runtime, parsedConfig) {
 async function buildStoredConfigPayload(runtime, { settings, systemPrompt }) {
   const normalizedSystemPrompt = typeof systemPrompt === "string" ? systemPrompt.trim() : "";
   const payload = {
-    api_endpoint: String(settings?.apiEndpoint || config.DEFAULT_ADMIN_CHAT_SETTINGS.apiEndpoint || "").trim(),
+    api_endpoint: String(
+      settings?.apiEndpoint || config.DEFAULT_ADMIN_CHAT_SETTINGS.apiEndpoint || ""
+    ).trim(),
     api_key: await encodeStoredApiKey(runtime, settings),
-    huggingface_dtype: String(settings?.huggingfaceDtype || config.DEFAULT_ADMIN_CHAT_SETTINGS.huggingfaceDtype || "").trim(),
-    huggingface_model: String(settings?.huggingfaceModel || config.DEFAULT_ADMIN_CHAT_SETTINGS.huggingfaceModel || "").trim(),
+    huggingface_dtype: String(
+      settings?.huggingfaceDtype || config.DEFAULT_ADMIN_CHAT_SETTINGS.huggingfaceDtype || ""
+    ).trim(),
+    huggingface_model: String(
+      settings?.huggingfaceModel || config.DEFAULT_ADMIN_CHAT_SETTINGS.huggingfaceModel || ""
+    ).trim(),
     local_provider: config.normalizeAdminChatLocalProvider(settings?.localProvider),
     llm_provider: config.normalizeAdminChatLlmProvider(settings?.provider),
     max_tokens: config.normalizeAdminChatMaxTokens(settings?.maxTokens),
     model: String(settings?.model || config.DEFAULT_ADMIN_CHAT_SETTINGS.model || "").trim(),
-    params: String(settings?.paramsText || config.DEFAULT_ADMIN_CHAT_SETTINGS.paramsText || "").trim(),
+    params: String(
+      settings?.paramsText || config.DEFAULT_ADMIN_CHAT_SETTINGS.paramsText || ""
+    ).trim(),
     prompt_budget_ratios: {
       history: config.normalizeAdminChatPromptBudgetRatios(settings?.promptBudgetRatios).history,
-      single_message: config.normalizeAdminChatPromptBudgetRatios(settings?.promptBudgetRatios).singleMessage,
+      single_message: config.normalizeAdminChatPromptBudgetRatios(settings?.promptBudgetRatios)
+        .singleMessage,
       system: config.normalizeAdminChatPromptBudgetRatios(settings?.promptBudgetRatios).system,
       transient: config.normalizeAdminChatPromptBudgetRatios(settings?.promptBudgetRatios).transient
     }

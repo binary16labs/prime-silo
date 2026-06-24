@@ -5,15 +5,14 @@
   <body>
     <div x-data>
       <template x-if="$store.adminModules">
-        <section
-          class="admin-panel"
-          x-cloak
-          x-init="$store.adminModules.load()"
-        >
+        <section class="admin-panel" x-cloak x-init="$store.adminModules.load()">
           <div class="admin-modules-header">
             <div class="admin-modules-heading">
               <h2 class="admin-modules-title">Installed modules</h2>
-              <p class="admin-modules-subtitle" x-text="$store.adminModules.currentAreaOption.description"></p>
+              <p
+                class="admin-modules-subtitle"
+                x-text="$store.adminModules.currentAreaOption.description"
+              ></p>
             </div>
 
             <div class="admin-modules-controls">
@@ -130,7 +129,9 @@
                       :title="$store.adminModules.getRemoveTitle(mod)"
                       @click="$store.adminModules.removeModule(mod)"
                     >
-                      <x-icon x-text="$store.adminModules.isRemoving(mod) ? 'hourglass_top' : 'delete'"></x-icon>
+                      <x-icon
+                        x-text="$store.adminModules.isRemoving(mod) ? 'hourglass_top' : 'delete'"
+                      ></x-icon>
                     </button>
 
                     <button

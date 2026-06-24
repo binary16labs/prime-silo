@@ -30,7 +30,13 @@ const CHAIN = {
     { id: "sess", type: "Session", label: "Session", timestamp: 1 },
     { id: "u", type: "User Input", label: "ask", timestamp: 2 },
     { id: "t", type: "Tool Call", label: "Write", timestamp: 3 },
-    { id: "f", type: "Artifact", label: "out.js", timestamp: 4, metadata: { fileName: "out.js", filePath: "C:/out.js" } }
+    {
+      id: "f",
+      type: "Artifact",
+      label: "out.js",
+      timestamp: 4,
+      metadata: { fileName: "out.js", filePath: "C:/out.js" }
+    }
   ],
   links: [
     { source: "sess", target: "u" },
@@ -55,7 +61,10 @@ function testComputeLayoutHandlesOrphansAndCycles() {
   // Orphan node (no links) lands at depth 0; a 2-cycle does not hang.
   const layout = computeLayout(
     [{ id: "a" }, { id: "b" }, { id: "orphan" }],
-    [{ source: "a", target: "b" }, { source: "b", target: "a" }]
+    [
+      { source: "a", target: "b" },
+      { source: "b", target: "a" }
+    ]
   );
   assert.ok(layout.positions.a && layout.positions.b && layout.positions.orphan);
   assert.equal(layout.positions.orphan.depth, 0);
@@ -82,11 +91,18 @@ function stubRenderer() {
       calls.mount += 1;
       calls.lastLayout = layout;
       return {
-        update(nextLayout) { calls.update += 1; calls.lastLayout = nextLayout; },
-        dispose() { calls.dispose += 1; }
+        update(nextLayout) {
+          calls.update += 1;
+          calls.lastLayout = nextLayout;
+        },
+        dispose() {
+          calls.dispose += 1;
+        }
       };
     },
-    dispose() { calls.dispose += 1; }
+    dispose() {
+      calls.dispose += 1;
+    }
   };
 }
 
@@ -118,7 +134,11 @@ async function settle() {
 async function testFactoryRendersViaInjectedRenderer() {
   const renderer = stubRenderer();
   const client = clientStub({ "/graph/sess": () => CHAIN });
-  const widget = createLineageGraphWidget(fakeHost(), { sessionId: "sess" }, { renderer, memorayClient: client });
+  const widget = createLineageGraphWidget(
+    fakeHost(),
+    { sessionId: "sess" },
+    { renderer, memorayClient: client }
+  );
   await settle();
   assert.equal(renderer.calls.mount, 1, "mounts the injected renderer");
   assert.equal(renderer.calls.lastLayout.edges.length, 3);
@@ -133,7 +153,11 @@ async function testFactoryUpdateAndDispose() {
     "/graph/sess": () => CHAIN,
     "/graph/other": () => ({ nodes: [{ id: "o", type: "Session" }], links: [] })
   });
-  const widget = createLineageGraphWidget(fakeHost(), { sessionId: "sess" }, { renderer, memorayClient: client });
+  const widget = createLineageGraphWidget(
+    fakeHost(),
+    { sessionId: "sess" },
+    { renderer, memorayClient: client }
+  );
   await settle();
   const mountsAfterFirst = renderer.calls.mount;
   widget.update({ sessionId: "other" });
@@ -149,7 +173,11 @@ async function testFactoryOfflineState() {
   const offline = Object.assign(new Error("offline"), { state: "offline" });
   const client = clientStub({ "/graph/sess": () => offline });
   const host = fakeHost();
-  const widget = createLineageGraphWidget(host, { sessionId: "sess" }, { renderer, memorayClient: client });
+  const widget = createLineageGraphWidget(
+    host,
+    { sessionId: "sess" },
+    { renderer, memorayClient: client }
+  );
   await settle();
   assert.match(host.innerHTML, /offline/i);
   assert.equal(renderer.calls.mount, 0, "offline path never mounts the graph");

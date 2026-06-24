@@ -65,7 +65,13 @@ function main() {
 
     if (metadataFiles.length !== 1) {
       throw new Error(
-        "Expected exactly one " + spec.fileName + " file for " + spec.platform + ", found " + metadataFiles.length + "."
+        "Expected exactly one " +
+          spec.fileName +
+          " file for " +
+          spec.platform +
+          ", found " +
+          metadataFiles.length +
+          "."
       );
     }
 

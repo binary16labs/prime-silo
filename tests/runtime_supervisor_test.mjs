@@ -38,7 +38,9 @@ function makeHarness(overrides = {}) {
   };
   const probeFn = async (service) => ready[service];
   const initCalls = [];
-  const initFn = async (args) => { initCalls.push(args); };
+  const initFn = async (args) => {
+    initCalls.push(args);
+  };
   // On Windows the supervisor tree-kills via taskkill rather than child.kill;
   // inject a fake that records the target and emits exit so stop() resolves.
   const killedTree = [];
@@ -47,13 +49,19 @@ function makeHarness(overrides = {}) {
     if (typeof child.emit === "function") setImmediate(() => child.emit("exit", null, "tree-kill"));
   };
   return {
-    spawned, ready, initCalls, killedTree,
+    spawned,
+    ready,
+    initCalls,
+    killedTree,
     opts: {
       bundleDir: "/fake/bundle",
       bennyHome: "/fake/home",
       env: {},
       platform: "win32",
-      spawnFn, probeFn, initFn, killTreeFn,
+      spawnFn,
+      probeFn,
+      initFn,
+      killTreeFn,
       isBundleCompleteFn: () => true,
       readyTimeoutMs: 200,
       probeIntervalMs: 5,
@@ -82,7 +90,8 @@ async function main() {
 function testGate() {
   assert.equal(sup.shouldUseBundledRuntime({ bundleDir: "" }).reason, "no-bundle");
   assert.equal(
-    sup.shouldUseBundledRuntime({ bundleDir: "/b", env: { RUNTIME_BASE_URL: "http://t480:8005" } }).reason,
+    sup.shouldUseBundledRuntime({ bundleDir: "/b", env: { RUNTIME_BASE_URL: "http://t480:8005" } })
+      .reason,
     "remote-runtime"
   );
   assert.equal(
@@ -92,7 +101,10 @@ function testGate() {
   assert.equal(sup.shouldUseBundledRuntime({ bundleDir: "/b", env: {} }).use, true);
   // Default localhost RUNTIME_BASE_URL still counts as "use bundled".
   assert.equal(
-    sup.shouldUseBundledRuntime({ bundleDir: "/b", env: { RUNTIME_BASE_URL: "http://127.0.0.1:8005" } }).use,
+    sup.shouldUseBundledRuntime({
+      bundleDir: "/b",
+      env: { RUNTIME_BASE_URL: "http://127.0.0.1:8005" }
+    }).use,
     true
   );
 }
@@ -120,7 +132,11 @@ function testSpawnInvocation() {
   // Windows .bat MUST go through cmd.exe (Node EINVAL on direct .bat spawn),
   // with the command quoted so a space-containing install path survives.
   const win = sup.resolveSpawnInvocation(
-    { command: "C:\\Program Files\\Space Agent\\neo4j\\bin\\neo4j.bat", args: ["console"], env: {} },
+    {
+      command: "C:\\Program Files\\Space Agent\\neo4j\\bin\\neo4j.bat",
+      args: ["console"],
+      env: {}
+    },
     "win32"
   );
   assert.equal(win.command, "cmd.exe");
@@ -146,9 +162,23 @@ function testSpawnInvocation() {
 }
 
 function testSpawnBuilders() {
-  const api = sup.buildApiSpawn({ bundleDir: "/b", bennyHome: "/h", platform: "win32", env: {}, hmacKey: "deadbeef" });
+  const api = sup.buildApiSpawn({
+    bundleDir: "/b",
+    bennyHome: "/h",
+    platform: "win32",
+    env: {},
+    hmacKey: "deadbeef"
+  });
   assert.match(api.command, /python\.exe$/);
-  assert.deepEqual(api.args, ["-m", "uvicorn", "benny.api.server:app", "--host", "127.0.0.1", "--port", "8005"]);
+  assert.deepEqual(api.args, [
+    "-m",
+    "uvicorn",
+    "benny.api.server:app",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "8005"
+  ]);
   assert.equal(api.env.BENNY_HOME, "/h");
   assert.equal(api.env.BENNY_HMAC_KEY, "deadbeef");
   assert.match(api.env.PYTHONPATH, /site/);
@@ -172,7 +202,10 @@ async function testOrderedStart() {
   assert.equal(result.neo4jReady, true);
   assert.equal(result.apiReady, true);
   // Neo4j spawned before the API.
-  assert.deepEqual(h.spawned.map((x) => x.name), ["neo4j", "api"]);
+  assert.deepEqual(
+    h.spawned.map((x) => x.name),
+    ["neo4j", "api"]
+  );
   assert.equal(h.initCalls.length, 1, "first-run init runs once");
   await s.stop();
 }
@@ -237,7 +270,11 @@ async function testFetchOnFirstRun() {
   const result = await s.start();
   assert.equal(fetchCalls, 1, "fetch runs once on first launch when the bundle is missing");
   assert.equal(result.managed, true);
-  assert.deepEqual(h.spawned.map((x) => x.name), ["neo4j", "api"], "spawns after the runtime is fetched");
+  assert.deepEqual(
+    h.spawned.map((x) => x.name),
+    ["neo4j", "api"],
+    "spawns after the runtime is fetched"
+  );
   await s.stop();
 }
 

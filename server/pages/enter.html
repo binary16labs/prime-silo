@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -110,13 +110,23 @@
       }
 
       @keyframes login-fadein {
-        from { opacity: 0; }
-        to { opacity: 1; }
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
       }
 
       @keyframes login-fadeup {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       .intro-art {
@@ -218,8 +228,7 @@
         position: relative;
         z-index: 1;
         min-width: 0;
-        transform:
-          translate3d(var(--intro-title-float-x), var(--intro-title-float-y), 0)
+        transform: translate3d(var(--intro-title-float-x), var(--intro-title-float-y), 0)
           rotate(var(--intro-title-rotate));
         transform-origin: 52% 52%;
         will-change: transform;
@@ -242,8 +251,7 @@
         opacity: 0.94;
         pointer-events: none;
         user-select: none;
-        transform:
-          translate3d(var(--astronaut-float-x), var(--astronaut-float-y), 0)
+        transform: translate3d(var(--astronaut-float-x), var(--astronaut-float-y), 0)
           rotate(var(--astronaut-rotate));
         transform-origin: 52% 56%;
         will-change: transform;
@@ -343,7 +351,6 @@
           color 160ms ease,
           opacity 160ms ease;
       }
-
 
       .launcher-link:focus-visible {
         outline: none;
@@ -521,7 +528,11 @@
 
       .restart-modal-button-primary {
         color: var(--color-accent-ink);
-        background: linear-gradient(135deg, var(--color-accent-primary-strong), var(--color-accent-secondary));
+        background: linear-gradient(
+          135deg,
+          var(--color-accent-primary-strong),
+          var(--color-accent-secondary)
+        );
         border-color: transparent;
       }
 
@@ -750,9 +761,17 @@
         </p>
       </section>
 
-      <section class="launcher-actions" aria-label="Launcher actions" data-space-browser-compat-hide-on-fail>
-        <a id="enter-space-link" class="launcher-link launcher-link-primary" href="/">Enter Space</a>
-        <a id="enter-admin-link" class="launcher-link launcher-link-secondary" href="/admin">Admin Mode</a>
+      <section
+        class="launcher-actions"
+        aria-label="Launcher actions"
+        data-space-browser-compat-hide-on-fail
+      >
+        <a id="enter-space-link" class="launcher-link launcher-link-primary" href="/"
+          >Enter Space</a
+        >
+        <a id="enter-admin-link" class="launcher-link launcher-link-secondary" href="/admin"
+          >Admin Mode</a
+        >
         <button
           id="desktop-update-button"
           class="launcher-link launcher-link-secondary launcher-link-button"
@@ -765,7 +784,10 @@
           <p id="desktop-update-note-text" class="desktop-update-note-text" hidden></p>
           <details id="desktop-update-note-details" class="desktop-update-note-details" hidden>
             <summary id="desktop-update-note-summary">Could not check updates</summary>
-            <pre id="desktop-update-note-details-text" class="desktop-update-note-details-text"></pre>
+            <pre
+              id="desktop-update-note-details-text"
+              class="desktop-update-note-details-text"
+            ></pre>
           </details>
         </div>
       </section>
@@ -864,8 +886,8 @@
       <section class="run-modal-dialog" tabindex="-1">
         <h2 id="restart-update-title" class="run-modal-title">Restart and update</h2>
         <p class="run-modal-subtitle">
-          The app is going to quit and update in the background. It can take a minute before
-          it starts again. Do not try to relaunch it immediately.
+          The app is going to quit and update in the background. It can take a minute before it
+          starts again. Do not try to relaunch it immediately.
         </p>
         <div class="restart-modal-actions">
           <button
@@ -896,646 +918,666 @@
           return;
         }
 
-      const ENTER_PAGE_PATH = "/enter";
-      const ENTER_TAB_ACCESS_KEY = "space.enter.tab-access";
-      const introEnterSpaceLink = document.getElementById("enter-space-link");
-      const introAdminLink = document.getElementById("enter-admin-link");
-      const desktopUpdateButton = document.getElementById("desktop-update-button");
-      const desktopUpdateNote = document.getElementById("desktop-update-note");
-      const desktopUpdateNoteText = document.getElementById("desktop-update-note-text");
-      const desktopUpdateNoteDetails = document.getElementById("desktop-update-note-details");
-      const desktopUpdateNoteSummary = document.getElementById("desktop-update-note-summary");
-      const desktopUpdateNoteDetailsText = document.getElementById("desktop-update-note-details-text");
-      const restartUpdateModal = document.getElementById("restart-update-modal");
-      const restartUpdateDialog = restartUpdateModal?.querySelector(".run-modal-dialog");
-      const restartUpdateConfirmButton = document.getElementById("restart-update-confirm");
-      const restartUpdateCancelButton = document.getElementById("restart-update-cancel");
-      const restartUpdateCloseTargets = document.querySelectorAll("[data-restart-modal-close]");
-      const LAUNCHER_EXIT_FADE_MS = 260;
-      const TAU = Math.PI * 2;
-      const TITLE_FLOAT_PARAMS = Object.freeze({
-        movementDistance: 1.5,
-        movementSpeed: 1.5,
-        rotationDistance: 1.5,
-        rotationSpeed: 1.5
-      });
-      const ASTRONAUT_FLOAT_VARIANT = 0.5;
-      const ASTRONAUT_FLOAT_PARAMS = Object.freeze({
-        movementDistance: 3,
-        movementSpeed: 0.9,
-        rotationDistance: 0.6,
-        rotationSpeed: 0.45
-      });
-      const astronautOrbitOffsetTurns = positiveModulo(ASTRONAUT_FLOAT_VARIANT, 1);
-      const astronautRotationOffsetTurns = positiveModulo(ASTRONAUT_FLOAT_VARIANT * 1.61803398875, 1);
-      const astronautOrbitDirection = positiveModulo(ASTRONAUT_FLOAT_VARIANT, 2) < 1 ? 1 : -1;
-      const astronautRotationDirection =
-        positiveModulo(ASTRONAUT_FLOAT_VARIANT * 0.73, 2) < 1 ? 1 : -1;
-      const astronautSpeedMultiplier = 0.82 + (positiveModulo(ASTRONAUT_FLOAT_VARIANT * 2.37, 1) * 0.56);
-      const TITLE_FLOAT_PROFILE = buildFloatProfile(
-        Object.freeze({
-          orbitPeriodMs: 11800,
-          rotationAmplitude: 4.5,
-          rotationPeriodMs: 16200,
-          xRadius: 6.6,
-          yRadius: 7.4
-        }),
-        TITLE_FLOAT_PARAMS
-      );
-      const ASTRONAUT_FLOAT_PROFILE = buildFloatProfile(
-        Object.freeze({
-          orbitPeriodMs: 12400,
-          rotationAmplitude: 100,
-          rotationLimitEnabled: false,
-          rotationMaxDeg: 30,
-          rotationPeriodMs: 17600,
-          xRadius: 7.2,
-          yRadius: 8.2
-        }),
-        Object.freeze({
-          ...ASTRONAUT_FLOAT_PARAMS,
-          movementSpeed: ASTRONAUT_FLOAT_PARAMS.movementSpeed * astronautSpeedMultiplier,
-          rotationSpeed: ASTRONAUT_FLOAT_PARAMS.rotationSpeed * astronautSpeedMultiplier
-        })
-      );
-      const introTitle = document.getElementById("intro-title");
-      const introAstronaut = document.getElementById("intro-astronaut");
-      const spaceBackdropRoot = document.querySelector("[data-space-backdrop]");
-      const spaceThemeCanvas = document.body;
-      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-      let introFloatFrame = 0;
-      let introFloatStartTime = 0;
-      let previousModalFocus = null;
-
-      window.SpaceBackdrop?.install?.(spaceBackdropRoot, {
-        canvas: spaceThemeCanvas,
-        motionQuery: prefersReducedMotion
-      });
-
-      function setDesktopUpdateButtonBusy(isBusy) {
-        if (!desktopUpdateButton) {
-          return;
-        }
-
-        desktopUpdateButton.disabled = Boolean(isBusy);
-        desktopUpdateButton.setAttribute("aria-busy", isBusy ? "true" : "false");
-      }
-
-      function resetLauncherExitFade() {
-        document.body.classList.remove("launcher-exiting");
-        setDesktopUpdateButtonBusy(false);
-      }
-
-      async function playLauncherExitFade() {
-        document.body.classList.add("launcher-exiting");
-        setDesktopUpdateButtonBusy(true);
-
-        if (prefersReducedMotion.matches) {
-          return;
-        }
-
-        await new Promise((resolve) => {
-          window.setTimeout(resolve, LAUNCHER_EXIT_FADE_MS);
-        });
-      }
-
-      function renderDesktopUpdateNote(message, { expandable = false, summaryText = "Could not check updates" } = {}) {
-        if (
-          !desktopUpdateNote ||
-          !desktopUpdateNoteText ||
-          !desktopUpdateNoteDetails ||
-          !desktopUpdateNoteSummary ||
-          !desktopUpdateNoteDetailsText
-        ) {
-          return;
-        }
-
-        const normalizedMessage = typeof message === "string" ? message.trim() : "";
-        const showExpandable = expandable && Boolean(normalizedMessage);
-        const shouldPreserveOpen =
-          showExpandable &&
-          !desktopUpdateNoteDetails.hidden &&
-          desktopUpdateNoteDetails.open &&
-          desktopUpdateNoteSummary.textContent === summaryText &&
-          desktopUpdateNoteDetailsText.textContent === normalizedMessage;
-
-        desktopUpdateNote.hidden = !normalizedMessage;
-
-        desktopUpdateNoteText.hidden = showExpandable || !normalizedMessage;
-        desktopUpdateNoteText.textContent = showExpandable ? "" : normalizedMessage;
-
-        desktopUpdateNoteDetails.hidden = !showExpandable;
-        desktopUpdateNoteDetails.open = showExpandable ? shouldPreserveOpen : false;
-        desktopUpdateNoteSummary.textContent = summaryText;
-        desktopUpdateNoteDetailsText.textContent = showExpandable ? normalizedMessage : "";
-      }
-
-      function openRestartUpdateModal() {
-        if (!restartUpdateModal || !restartUpdateConfirmButton) {
-          return;
-        }
-
-        previousModalFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-        restartUpdateModal.hidden = false;
-        restartUpdateConfirmButton.disabled = false;
-        if (restartUpdateCancelButton) {
-          restartUpdateCancelButton.disabled = false;
-        }
-        document.body.style.overflow = "hidden";
-        window.requestAnimationFrame(() => {
-          restartUpdateDialog?.focus();
-        });
-      }
-
-      function closeRestartUpdateModal({ restoreFocus = true } = {}) {
-        if (!restartUpdateModal || restartUpdateModal.hidden) {
-          return;
-        }
-
-        restartUpdateModal.hidden = true;
-        document.body.style.overflow = "";
-
-        if (restoreFocus) {
-          previousModalFocus?.focus?.();
-        }
-
-        previousModalFocus = null;
-      }
-
-      function setRestartModalBusy(isBusy) {
-        if (restartUpdateConfirmButton) {
-          restartUpdateConfirmButton.disabled = Boolean(isBusy);
-        }
-
-        if (restartUpdateCancelButton) {
-          restartUpdateCancelButton.disabled = Boolean(isBusy);
-        }
-      }
-
-      function formatDesktopDisplayVersion(value) {
-        const normalized = typeof value === "string" ? value.trim().replace(/^v/u, "") : "";
-        const match = normalized.match(/^(\d+)\.(\d+)\.(\d+)$/u);
-        if (!match) {
-          return normalized;
-        }
-
-        return Number(match[3]) === 0 ? match[1] + "." + match[2] : normalized;
-      }
-
-      function formatDesktopUpdateButtonVersion(value) {
-        const version = formatDesktopDisplayVersion(value);
-        return version ? "v" + version.replace(/^v/u, "") : "";
-      }
-
-      function renderDesktopUpdateState(updateStatus) {
-        if (!desktopUpdateButton || !desktopUpdateNote) {
-          return;
-        }
-
-        const state = updateStatus && typeof updateStatus === "object" ? updateStatus : {};
-        const statusKey = typeof state.state === "string" ? state.state : "idle";
-        const version = formatDesktopUpdateButtonVersion(state.version);
-        const progressValue = Number(state.progress);
-        let message = typeof state.message === "string" ? state.message.trim() : "";
-        let buttonLabel = "";
-        let showButton = false;
-        let noteExpandable = false;
-        let showFailureNote = false;
-
-        if (statusKey === "update-available") {
-          buttonLabel = version ? "Update to " + version : "Update Now";
-          message = "";
-          showButton = true;
-        } else if (statusKey === "downloading") {
-          buttonLabel = Number.isFinite(progressValue)
-            ? "Downloading " + Math.round(progressValue * 100) + "%"
-            : "Downloading Update...";
-          message = "";
-          showButton = true;
-        } else if (statusKey === "downloaded") {
-          buttonLabel = "Restart and update";
-          message = "";
-          showButton = true;
-        } else if (statusKey === "up-to-date") {
-          message = "";
-        } else if (statusKey === "error") {
-          noteExpandable = Boolean(message);
-          showFailureNote = Boolean(message);
-        }
-
-        if (statusKey !== "downloaded") {
-          closeRestartUpdateModal({
-            restoreFocus: false
-          });
-        }
-
-        desktopUpdateButton.hidden = !showButton;
-        desktopUpdateButton.textContent = buttonLabel || "Update Now";
-        setDesktopUpdateButtonBusy(statusKey === "downloading");
-
-        renderDesktopUpdateNote(
-          showFailureNote ? message : "",
-          noteExpandable
-            ? { expandable: true, summaryText: "Could not check updates" }
-            : { expandable: false }
+        const ENTER_PAGE_PATH = "/enter";
+        const ENTER_TAB_ACCESS_KEY = "space.enter.tab-access";
+        const introEnterSpaceLink = document.getElementById("enter-space-link");
+        const introAdminLink = document.getElementById("enter-admin-link");
+        const desktopUpdateButton = document.getElementById("desktop-update-button");
+        const desktopUpdateNote = document.getElementById("desktop-update-note");
+        const desktopUpdateNoteText = document.getElementById("desktop-update-note-text");
+        const desktopUpdateNoteDetails = document.getElementById("desktop-update-note-details");
+        const desktopUpdateNoteSummary = document.getElementById("desktop-update-note-summary");
+        const desktopUpdateNoteDetailsText = document.getElementById(
+          "desktop-update-note-details-text"
         );
-      }
+        const restartUpdateModal = document.getElementById("restart-update-modal");
+        const restartUpdateDialog = restartUpdateModal?.querySelector(".run-modal-dialog");
+        const restartUpdateConfirmButton = document.getElementById("restart-update-confirm");
+        const restartUpdateCancelButton = document.getElementById("restart-update-cancel");
+        const restartUpdateCloseTargets = document.querySelectorAll("[data-restart-modal-close]");
+        const LAUNCHER_EXIT_FADE_MS = 260;
+        const TAU = Math.PI * 2;
+        const TITLE_FLOAT_PARAMS = Object.freeze({
+          movementDistance: 1.5,
+          movementSpeed: 1.5,
+          rotationDistance: 1.5,
+          rotationSpeed: 1.5
+        });
+        const ASTRONAUT_FLOAT_VARIANT = 0.5;
+        const ASTRONAUT_FLOAT_PARAMS = Object.freeze({
+          movementDistance: 3,
+          movementSpeed: 0.9,
+          rotationDistance: 0.6,
+          rotationSpeed: 0.45
+        });
+        const astronautOrbitOffsetTurns = positiveModulo(ASTRONAUT_FLOAT_VARIANT, 1);
+        const astronautRotationOffsetTurns = positiveModulo(
+          ASTRONAUT_FLOAT_VARIANT * 1.61803398875,
+          1
+        );
+        const astronautOrbitDirection = positiveModulo(ASTRONAUT_FLOAT_VARIANT, 2) < 1 ? 1 : -1;
+        const astronautRotationDirection =
+          positiveModulo(ASTRONAUT_FLOAT_VARIANT * 0.73, 2) < 1 ? 1 : -1;
+        const astronautSpeedMultiplier =
+          0.82 + positiveModulo(ASTRONAUT_FLOAT_VARIANT * 2.37, 1) * 0.56;
+        const TITLE_FLOAT_PROFILE = buildFloatProfile(
+          Object.freeze({
+            orbitPeriodMs: 11800,
+            rotationAmplitude: 4.5,
+            rotationPeriodMs: 16200,
+            xRadius: 6.6,
+            yRadius: 7.4
+          }),
+          TITLE_FLOAT_PARAMS
+        );
+        const ASTRONAUT_FLOAT_PROFILE = buildFloatProfile(
+          Object.freeze({
+            orbitPeriodMs: 12400,
+            rotationAmplitude: 100,
+            rotationLimitEnabled: false,
+            rotationMaxDeg: 30,
+            rotationPeriodMs: 17600,
+            xRadius: 7.2,
+            yRadius: 8.2
+          }),
+          Object.freeze({
+            ...ASTRONAUT_FLOAT_PARAMS,
+            movementSpeed: ASTRONAUT_FLOAT_PARAMS.movementSpeed * astronautSpeedMultiplier,
+            rotationSpeed: ASTRONAUT_FLOAT_PARAMS.rotationSpeed * astronautSpeedMultiplier
+          })
+        );
+        const introTitle = document.getElementById("intro-title");
+        const introAstronaut = document.getElementById("intro-astronaut");
+        const spaceBackdropRoot = document.querySelector("[data-space-backdrop]");
+        const spaceThemeCanvas = document.body;
+        const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+        let introFloatFrame = 0;
+        let introFloatStartTime = 0;
+        let previousModalFocus = null;
 
-      async function initializeDesktopUpdateButton() {
-        if (!desktopUpdateButton || !desktopUpdateNote) {
-          return;
-        }
-
-        const desktopApi = window.space;
-        if (
-          !desktopApi ||
-          typeof desktopApi.getRuntimeInfo !== "function" ||
-          typeof desktopApi.checkForUpdates !== "function" ||
-          typeof desktopApi.downloadUpdate !== "function" ||
-          typeof desktopApi.installUpdate !== "function"
-        ) {
-          return;
-        }
-
-        let currentUpdateState = {};
-
-        function applyUpdateState(nextState) {
-          currentUpdateState = nextState && typeof nextState === "object" ? { ...nextState } : {};
-          renderDesktopUpdateState(currentUpdateState);
-        }
-
-        let runtimeInfo;
-        try {
-          runtimeInfo = await desktopApi.getRuntimeInfo();
-        } catch (error) {
-          console.error("[space-enter] Failed to read desktop runtime info.", error);
-          return;
-        }
-
-        if (!runtimeInfo?.isBundledApp || !runtimeInfo?.canCheckForUpdates) {
-          return;
-        }
-
-        applyUpdateState(runtimeInfo.updateStatus);
-
-        window.addEventListener("space-desktop:update-status", (event) => {
-          applyUpdateState(event && event.detail);
+        window.SpaceBackdrop?.install?.(spaceBackdropRoot, {
+          canvas: spaceThemeCanvas,
+          motionQuery: prefersReducedMotion
         });
 
-        desktopUpdateButton.addEventListener("click", async () => {
-          if (desktopUpdateButton.disabled) {
+        function setDesktopUpdateButtonBusy(isBusy) {
+          if (!desktopUpdateButton) {
             return;
           }
 
-          try {
-            if (currentUpdateState.state === "downloaded") {
-              openRestartUpdateModal();
-              return;
-            }
-
-            if (currentUpdateState.state !== "update-available") {
-              return;
-            }
-
-            applyUpdateState({
-              ...currentUpdateState,
-              state: "downloading",
-              message: "Downloading update..."
-            });
-
-            const result = await desktopApi.downloadUpdate();
-            if (result && result.ok === false && result.message) {
-              applyUpdateState({
-                ...currentUpdateState,
-                state: result.reason || "error",
-                message: result.message
-              });
-            }
-          } catch (error) {
-            resetLauncherExitFade();
-            const message = error instanceof Error ? error.message : String(error || "Desktop update failed.");
-            console.error("[space-enter] Desktop update action failed.", error);
-            applyUpdateState({
-              ...currentUpdateState,
-              state: "error",
-              message
-            });
-          }
-        });
-
-        const shouldCheckForUpdates = !["checking", "downloading", "downloaded", "installing"].includes(
-          currentUpdateState.state
-        );
-
-        if (shouldCheckForUpdates) {
-          try {
-            await desktopApi.checkForUpdates();
-          } catch (error) {
-            console.error("[space-enter] Automatic desktop update check failed.", error);
-          }
-        }
-      }
-
-      initializeDesktopUpdateButton();
-
-      async function handleRestartUpdateConfirm() {
-        if (restartUpdateConfirmButton?.disabled) {
-          return;
+          desktopUpdateButton.disabled = Boolean(isBusy);
+          desktopUpdateButton.setAttribute("aria-busy", isBusy ? "true" : "false");
         }
 
-        const desktopApi = window.space;
-        if (!desktopApi || typeof desktopApi.installUpdate !== "function") {
-          return;
+        function resetLauncherExitFade() {
+          document.body.classList.remove("launcher-exiting");
+          setDesktopUpdateButtonBusy(false);
         }
 
-        try {
-          setRestartModalBusy(true);
-          closeRestartUpdateModal({
-            restoreFocus: false
-          });
-          await playLauncherExitFade();
-          await desktopApi.installUpdate();
-        } catch (error) {
-          resetLauncherExitFade();
-          setRestartModalBusy(false);
-          const message = error instanceof Error ? error.message : String(error || "Desktop update failed.");
-          console.error("[space-enter] Desktop update install failed.", error);
-          renderDesktopUpdateState({
-            state: "error",
-            message
-          });
-        }
-      }
+        async function playLauncherExitFade() {
+          document.body.classList.add("launcher-exiting");
+          setDesktopUpdateButtonBusy(true);
 
-      function handleRestartModalKeydown(event) {
-        if (event.key === "Escape" && restartUpdateModal && !restartUpdateModal.hidden) {
-          event.preventDefault();
-          if (restartUpdateCancelButton?.disabled) {
+          if (prefersReducedMotion.matches) {
             return;
           }
 
-          closeRestartUpdateModal();
-        }
-      }
-
-      restartUpdateConfirmButton?.addEventListener("click", handleRestartUpdateConfirm);
-      restartUpdateCloseTargets.forEach((target) => {
-        target.addEventListener("click", () => {
-          if (restartUpdateCancelButton?.disabled) {
-            return;
-          }
-
-          closeRestartUpdateModal();
-        });
-      });
-      document.addEventListener("keydown", handleRestartModalKeydown);
-
-      function setIntroTitlePose(x, y, rotation) {
-        if (!introTitle) {
-          return;
+          await new Promise((resolve) => {
+            window.setTimeout(resolve, LAUNCHER_EXIT_FADE_MS);
+          });
         }
 
-        introTitle.style.setProperty("--intro-title-float-x", `${x.toFixed(1)}px`);
-        introTitle.style.setProperty("--intro-title-float-y", `${y.toFixed(1)}px`);
-        introTitle.style.setProperty("--intro-title-rotate", `${rotation.toFixed(1)}deg`);
-      }
-
-      function setAstronautPose(x, y, rotation) {
-        if (!introAstronaut) {
-          return;
-        }
-
-        introAstronaut.style.setProperty("--astronaut-float-x", `${x.toFixed(1)}px`);
-        introAstronaut.style.setProperty("--astronaut-float-y", `${y.toFixed(1)}px`);
-        introAstronaut.style.setProperty("--astronaut-rotate", `${rotation.toFixed(1)}deg`);
-      }
-
-      function scaleDuration(durationMs, speedMultiplier) {
-        return durationMs / Math.max(speedMultiplier, 0.01);
-      }
-
-      function positiveModulo(value, divisor) {
-        return ((value % divisor) + divisor) % divisor;
-      }
-
-      function buildFloatProfile(baseProfile, params) {
-        const rotationMaxDeg =
-          baseProfile.rotationLimitEnabled === false
-            ? Infinity
-            : (baseProfile.rotationMaxDeg ?? Infinity);
-
-        return Object.freeze({
-          orbitPeriodMs: scaleDuration(baseProfile.orbitPeriodMs, params.movementSpeed),
-          rotationAmplitude: Math.min(
-            rotationMaxDeg,
-            baseProfile.rotationAmplitude * params.rotationDistance
-          ),
-          rotationPeriodMs: scaleDuration(baseProfile.rotationPeriodMs, params.rotationSpeed),
-          xRadius: baseProfile.xRadius * params.movementDistance,
-          yRadius: baseProfile.yRadius * params.movementDistance
-        });
-      }
-
-      const introFloatTargets = [
-        Object.freeze({
-          applyPose: setIntroTitlePose,
-          element: introTitle,
-          orbitPhase: 0.45,
-          profile: TITLE_FLOAT_PROFILE,
-          rotationPhase: 1.1
-        }),
-        Object.freeze({
-          applyPose: setAstronautPose,
-          element: introAstronaut,
-          orbitDirection: astronautOrbitDirection,
-          orbitPhase: 2.05 + (astronautOrbitOffsetTurns * TAU),
-          profile: ASTRONAUT_FLOAT_PROFILE,
-          rotationDirection: astronautRotationDirection,
-          rotationPhase: 0.35 + (astronautRotationOffsetTurns * TAU)
-        })
-      ];
-
-      function resetIntroFloat() {
-        introFloatTargets.forEach((target) => {
-          target.applyPose(0, 0, 0);
-        });
-      }
-
-      function applyIntroFloatTarget(target, elapsed) {
-        if (!target.element) {
-          return;
-        }
-
-        const orbitAngle =
-          ((elapsed / target.profile.orbitPeriodMs) * TAU * (target.orbitDirection ?? 1)) +
-          target.orbitPhase;
-        const rotationAngle =
-          ((elapsed / target.profile.rotationPeriodMs) * TAU * (target.rotationDirection ?? 1)) +
-          target.rotationPhase;
-
-        target.applyPose(
-          Math.cos(orbitAngle) * target.profile.xRadius,
-          Math.sin(orbitAngle) * target.profile.yRadius,
-          Math.sin(rotationAngle) * target.profile.rotationAmplitude
-        );
-      }
-
-      function stepIntroFloat(timestamp) {
-        if (introFloatTargets.every((target) => !target.element)) {
-          introFloatFrame = 0;
-          return;
-        }
-
-        if (prefersReducedMotion.matches) {
-          introFloatFrame = 0;
-          introFloatStartTime = 0;
-          resetIntroFloat();
-          return;
-        }
-
-        if (!introFloatStartTime) {
-          introFloatStartTime = timestamp;
-        }
-
-        const elapsed = timestamp - introFloatStartTime;
-
-        introFloatTargets.forEach((target) => applyIntroFloatTarget(target, elapsed));
-        introFloatFrame = window.requestAnimationFrame(stepIntroFloat);
-      }
-
-      function startIntroFloat() {
-        window.cancelAnimationFrame(introFloatFrame);
-        introFloatFrame = 0;
-        introFloatStartTime = 0;
-        resetIntroFloat();
-
-        if (introFloatTargets.every((target) => !target.element) || prefersReducedMotion.matches) {
-          return;
-        }
-
-        introFloatFrame = window.requestAnimationFrame(stepIntroFloat);
-      }
-
-      function handleMotionPreferenceChange() {
-        startIntroFloat();
-      }
-
-      function normalizeLocalTarget(candidate) {
-        const normalizedCandidate = typeof candidate === "string" ? candidate.trim() : "";
-
-        if (!normalizedCandidate || normalizedCandidate.startsWith("//")) {
-          return "";
-        }
-
-        let resolvedUrl;
-
-        try {
-          resolvedUrl = new URL(normalizedCandidate, window.location.origin);
-        } catch {
-          return "";
-        }
-
-        if (resolvedUrl.origin !== window.location.origin) {
-          return "";
-        }
-
-        const target = `${resolvedUrl.pathname}${resolvedUrl.search}${resolvedUrl.hash}`;
-
-        if (
-          !target.startsWith("/") ||
-          target === "/login" ||
-          target.startsWith("/login?") ||
-          target === ENTER_PAGE_PATH ||
-          target.startsWith(`${ENTER_PAGE_PATH}?`)
+        function renderDesktopUpdateNote(
+          message,
+          { expandable = false, summaryText = "Could not check updates" } = {}
         ) {
-          return "";
-        }
-
-        return target;
-      }
-
-      function isAdminTarget(target) {
-        return typeof target === "string" && /^\/admin(?:[?#]|$)/u.test(target);
-      }
-
-      function buildAdminTarget(nextTarget) {
-        if (isAdminTarget(nextTarget)) {
-          return nextTarget;
-        }
-
-        const adminUrl = new URL("/admin", window.location.origin);
-        adminUrl.searchParams.set("url", nextTarget || "/");
-        return `${adminUrl.pathname}${adminUrl.search}${adminUrl.hash}`;
-      }
-
-      function buildAppTarget(nextTarget) {
-        if (nextTarget && !isAdminTarget(nextTarget)) {
-          return nextTarget;
-        }
-
-        return "/";
-      }
-
-      function grantTabAccess() {
-        try {
-          window.sessionStorage.setItem(ENTER_TAB_ACCESS_KEY, "1");
-        } catch {
-          // Ignore sessionStorage failures and continue navigation.
-        }
-      }
-
-      function clearTabAccess() {
-        try {
-          window.sessionStorage.removeItem(ENTER_TAB_ACCESS_KEY);
-        } catch {
-          // Ignore sessionStorage failures on the launcher page.
-        }
-      }
-
-      function navigateToTarget(targetUrl) {
-        window.location.assign(targetUrl);
-      }
-
-      function bindLauncherLink(link, targetUrl) {
-        if (!link || !targetUrl) {
-          return;
-        }
-
-        link.href = targetUrl;
-        link.addEventListener("click", (event) => {
           if (
-            event.defaultPrevented ||
-            event.button !== 0 ||
-            event.metaKey ||
-            event.ctrlKey ||
-            event.shiftKey ||
-            event.altKey
+            !desktopUpdateNote ||
+            !desktopUpdateNoteText ||
+            !desktopUpdateNoteDetails ||
+            !desktopUpdateNoteSummary ||
+            !desktopUpdateNoteDetailsText
           ) {
             return;
           }
 
-          event.preventDefault();
-          grantTabAccess();
-          navigateToTarget(targetUrl);
+          const normalizedMessage = typeof message === "string" ? message.trim() : "";
+          const showExpandable = expandable && Boolean(normalizedMessage);
+          const shouldPreserveOpen =
+            showExpandable &&
+            !desktopUpdateNoteDetails.hidden &&
+            desktopUpdateNoteDetails.open &&
+            desktopUpdateNoteSummary.textContent === summaryText &&
+            desktopUpdateNoteDetailsText.textContent === normalizedMessage;
+
+          desktopUpdateNote.hidden = !normalizedMessage;
+
+          desktopUpdateNoteText.hidden = showExpandable || !normalizedMessage;
+          desktopUpdateNoteText.textContent = showExpandable ? "" : normalizedMessage;
+
+          desktopUpdateNoteDetails.hidden = !showExpandable;
+          desktopUpdateNoteDetails.open = showExpandable ? shouldPreserveOpen : false;
+          desktopUpdateNoteSummary.textContent = summaryText;
+          desktopUpdateNoteDetailsText.textContent = showExpandable ? normalizedMessage : "";
+        }
+
+        function openRestartUpdateModal() {
+          if (!restartUpdateModal || !restartUpdateConfirmButton) {
+            return;
+          }
+
+          previousModalFocus =
+            document.activeElement instanceof HTMLElement ? document.activeElement : null;
+          restartUpdateModal.hidden = false;
+          restartUpdateConfirmButton.disabled = false;
+          if (restartUpdateCancelButton) {
+            restartUpdateCancelButton.disabled = false;
+          }
+          document.body.style.overflow = "hidden";
+          window.requestAnimationFrame(() => {
+            restartUpdateDialog?.focus();
+          });
+        }
+
+        function closeRestartUpdateModal({ restoreFocus = true } = {}) {
+          if (!restartUpdateModal || restartUpdateModal.hidden) {
+            return;
+          }
+
+          restartUpdateModal.hidden = true;
+          document.body.style.overflow = "";
+
+          if (restoreFocus) {
+            previousModalFocus?.focus?.();
+          }
+
+          previousModalFocus = null;
+        }
+
+        function setRestartModalBusy(isBusy) {
+          if (restartUpdateConfirmButton) {
+            restartUpdateConfirmButton.disabled = Boolean(isBusy);
+          }
+
+          if (restartUpdateCancelButton) {
+            restartUpdateCancelButton.disabled = Boolean(isBusy);
+          }
+        }
+
+        function formatDesktopDisplayVersion(value) {
+          const normalized = typeof value === "string" ? value.trim().replace(/^v/u, "") : "";
+          const match = normalized.match(/^(\d+)\.(\d+)\.(\d+)$/u);
+          if (!match) {
+            return normalized;
+          }
+
+          return Number(match[3]) === 0 ? match[1] + "." + match[2] : normalized;
+        }
+
+        function formatDesktopUpdateButtonVersion(value) {
+          const version = formatDesktopDisplayVersion(value);
+          return version ? "v" + version.replace(/^v/u, "") : "";
+        }
+
+        function renderDesktopUpdateState(updateStatus) {
+          if (!desktopUpdateButton || !desktopUpdateNote) {
+            return;
+          }
+
+          const state = updateStatus && typeof updateStatus === "object" ? updateStatus : {};
+          const statusKey = typeof state.state === "string" ? state.state : "idle";
+          const version = formatDesktopUpdateButtonVersion(state.version);
+          const progressValue = Number(state.progress);
+          let message = typeof state.message === "string" ? state.message.trim() : "";
+          let buttonLabel = "";
+          let showButton = false;
+          let noteExpandable = false;
+          let showFailureNote = false;
+
+          if (statusKey === "update-available") {
+            buttonLabel = version ? "Update to " + version : "Update Now";
+            message = "";
+            showButton = true;
+          } else if (statusKey === "downloading") {
+            buttonLabel = Number.isFinite(progressValue)
+              ? "Downloading " + Math.round(progressValue * 100) + "%"
+              : "Downloading Update...";
+            message = "";
+            showButton = true;
+          } else if (statusKey === "downloaded") {
+            buttonLabel = "Restart and update";
+            message = "";
+            showButton = true;
+          } else if (statusKey === "up-to-date") {
+            message = "";
+          } else if (statusKey === "error") {
+            noteExpandable = Boolean(message);
+            showFailureNote = Boolean(message);
+          }
+
+          if (statusKey !== "downloaded") {
+            closeRestartUpdateModal({
+              restoreFocus: false
+            });
+          }
+
+          desktopUpdateButton.hidden = !showButton;
+          desktopUpdateButton.textContent = buttonLabel || "Update Now";
+          setDesktopUpdateButtonBusy(statusKey === "downloading");
+
+          renderDesktopUpdateNote(
+            showFailureNote ? message : "",
+            noteExpandable
+              ? { expandable: true, summaryText: "Could not check updates" }
+              : { expandable: false }
+          );
+        }
+
+        async function initializeDesktopUpdateButton() {
+          if (!desktopUpdateButton || !desktopUpdateNote) {
+            return;
+          }
+
+          const desktopApi = window.space;
+          if (
+            !desktopApi ||
+            typeof desktopApi.getRuntimeInfo !== "function" ||
+            typeof desktopApi.checkForUpdates !== "function" ||
+            typeof desktopApi.downloadUpdate !== "function" ||
+            typeof desktopApi.installUpdate !== "function"
+          ) {
+            return;
+          }
+
+          let currentUpdateState = {};
+
+          function applyUpdateState(nextState) {
+            currentUpdateState = nextState && typeof nextState === "object" ? { ...nextState } : {};
+            renderDesktopUpdateState(currentUpdateState);
+          }
+
+          let runtimeInfo;
+          try {
+            runtimeInfo = await desktopApi.getRuntimeInfo();
+          } catch (error) {
+            console.error("[space-enter] Failed to read desktop runtime info.", error);
+            return;
+          }
+
+          if (!runtimeInfo?.isBundledApp || !runtimeInfo?.canCheckForUpdates) {
+            return;
+          }
+
+          applyUpdateState(runtimeInfo.updateStatus);
+
+          window.addEventListener("space-desktop:update-status", (event) => {
+            applyUpdateState(event && event.detail);
+          });
+
+          desktopUpdateButton.addEventListener("click", async () => {
+            if (desktopUpdateButton.disabled) {
+              return;
+            }
+
+            try {
+              if (currentUpdateState.state === "downloaded") {
+                openRestartUpdateModal();
+                return;
+              }
+
+              if (currentUpdateState.state !== "update-available") {
+                return;
+              }
+
+              applyUpdateState({
+                ...currentUpdateState,
+                state: "downloading",
+                message: "Downloading update..."
+              });
+
+              const result = await desktopApi.downloadUpdate();
+              if (result && result.ok === false && result.message) {
+                applyUpdateState({
+                  ...currentUpdateState,
+                  state: result.reason || "error",
+                  message: result.message
+                });
+              }
+            } catch (error) {
+              resetLauncherExitFade();
+              const message =
+                error instanceof Error ? error.message : String(error || "Desktop update failed.");
+              console.error("[space-enter] Desktop update action failed.", error);
+              applyUpdateState({
+                ...currentUpdateState,
+                state: "error",
+                message
+              });
+            }
+          });
+
+          const shouldCheckForUpdates = ![
+            "checking",
+            "downloading",
+            "downloaded",
+            "installing"
+          ].includes(currentUpdateState.state);
+
+          if (shouldCheckForUpdates) {
+            try {
+              await desktopApi.checkForUpdates();
+            } catch (error) {
+              console.error("[space-enter] Automatic desktop update check failed.", error);
+            }
+          }
+        }
+
+        initializeDesktopUpdateButton();
+
+        async function handleRestartUpdateConfirm() {
+          if (restartUpdateConfirmButton?.disabled) {
+            return;
+          }
+
+          const desktopApi = window.space;
+          if (!desktopApi || typeof desktopApi.installUpdate !== "function") {
+            return;
+          }
+
+          try {
+            setRestartModalBusy(true);
+            closeRestartUpdateModal({
+              restoreFocus: false
+            });
+            await playLauncherExitFade();
+            await desktopApi.installUpdate();
+          } catch (error) {
+            resetLauncherExitFade();
+            setRestartModalBusy(false);
+            const message =
+              error instanceof Error ? error.message : String(error || "Desktop update failed.");
+            console.error("[space-enter] Desktop update install failed.", error);
+            renderDesktopUpdateState({
+              state: "error",
+              message
+            });
+          }
+        }
+
+        function handleRestartModalKeydown(event) {
+          if (event.key === "Escape" && restartUpdateModal && !restartUpdateModal.hidden) {
+            event.preventDefault();
+            if (restartUpdateCancelButton?.disabled) {
+              return;
+            }
+
+            closeRestartUpdateModal();
+          }
+        }
+
+        restartUpdateConfirmButton?.addEventListener("click", handleRestartUpdateConfirm);
+        restartUpdateCloseTargets.forEach((target) => {
+          target.addEventListener("click", () => {
+            if (restartUpdateCancelButton?.disabled) {
+              return;
+            }
+
+            closeRestartUpdateModal();
+          });
         });
-      }
+        document.addEventListener("keydown", handleRestartModalKeydown);
 
-      clearTabAccess();
-      if (typeof prefersReducedMotion.addEventListener === "function") {
-        prefersReducedMotion.addEventListener("change", handleMotionPreferenceChange);
-      } else if (typeof prefersReducedMotion.addListener === "function") {
-        prefersReducedMotion.addListener(handleMotionPreferenceChange);
-      }
+        function setIntroTitlePose(x, y, rotation) {
+          if (!introTitle) {
+            return;
+          }
 
-      const nextTarget = normalizeLocalTarget(new URLSearchParams(window.location.search).get("next"));
-      bindLauncherLink(introEnterSpaceLink, buildAppTarget(nextTarget));
-      bindLauncherLink(introAdminLink, buildAdminTarget(nextTarget));
+          introTitle.style.setProperty("--intro-title-float-x", `${x.toFixed(1)}px`);
+          introTitle.style.setProperty("--intro-title-float-y", `${y.toFixed(1)}px`);
+          introTitle.style.setProperty("--intro-title-rotate", `${rotation.toFixed(1)}deg`);
+        }
 
-      if (introAstronaut && !introAstronaut.complete) {
-        introAstronaut.addEventListener("load", startIntroFloat, { once: true });
-      } else {
-        startIntroFloat();
-      }
+        function setAstronautPose(x, y, rotation) {
+          if (!introAstronaut) {
+            return;
+          }
+
+          introAstronaut.style.setProperty("--astronaut-float-x", `${x.toFixed(1)}px`);
+          introAstronaut.style.setProperty("--astronaut-float-y", `${y.toFixed(1)}px`);
+          introAstronaut.style.setProperty("--astronaut-rotate", `${rotation.toFixed(1)}deg`);
+        }
+
+        function scaleDuration(durationMs, speedMultiplier) {
+          return durationMs / Math.max(speedMultiplier, 0.01);
+        }
+
+        function positiveModulo(value, divisor) {
+          return ((value % divisor) + divisor) % divisor;
+        }
+
+        function buildFloatProfile(baseProfile, params) {
+          const rotationMaxDeg =
+            baseProfile.rotationLimitEnabled === false
+              ? Infinity
+              : (baseProfile.rotationMaxDeg ?? Infinity);
+
+          return Object.freeze({
+            orbitPeriodMs: scaleDuration(baseProfile.orbitPeriodMs, params.movementSpeed),
+            rotationAmplitude: Math.min(
+              rotationMaxDeg,
+              baseProfile.rotationAmplitude * params.rotationDistance
+            ),
+            rotationPeriodMs: scaleDuration(baseProfile.rotationPeriodMs, params.rotationSpeed),
+            xRadius: baseProfile.xRadius * params.movementDistance,
+            yRadius: baseProfile.yRadius * params.movementDistance
+          });
+        }
+
+        const introFloatTargets = [
+          Object.freeze({
+            applyPose: setIntroTitlePose,
+            element: introTitle,
+            orbitPhase: 0.45,
+            profile: TITLE_FLOAT_PROFILE,
+            rotationPhase: 1.1
+          }),
+          Object.freeze({
+            applyPose: setAstronautPose,
+            element: introAstronaut,
+            orbitDirection: astronautOrbitDirection,
+            orbitPhase: 2.05 + astronautOrbitOffsetTurns * TAU,
+            profile: ASTRONAUT_FLOAT_PROFILE,
+            rotationDirection: astronautRotationDirection,
+            rotationPhase: 0.35 + astronautRotationOffsetTurns * TAU
+          })
+        ];
+
+        function resetIntroFloat() {
+          introFloatTargets.forEach((target) => {
+            target.applyPose(0, 0, 0);
+          });
+        }
+
+        function applyIntroFloatTarget(target, elapsed) {
+          if (!target.element) {
+            return;
+          }
+
+          const orbitAngle =
+            (elapsed / target.profile.orbitPeriodMs) * TAU * (target.orbitDirection ?? 1) +
+            target.orbitPhase;
+          const rotationAngle =
+            (elapsed / target.profile.rotationPeriodMs) * TAU * (target.rotationDirection ?? 1) +
+            target.rotationPhase;
+
+          target.applyPose(
+            Math.cos(orbitAngle) * target.profile.xRadius,
+            Math.sin(orbitAngle) * target.profile.yRadius,
+            Math.sin(rotationAngle) * target.profile.rotationAmplitude
+          );
+        }
+
+        function stepIntroFloat(timestamp) {
+          if (introFloatTargets.every((target) => !target.element)) {
+            introFloatFrame = 0;
+            return;
+          }
+
+          if (prefersReducedMotion.matches) {
+            introFloatFrame = 0;
+            introFloatStartTime = 0;
+            resetIntroFloat();
+            return;
+          }
+
+          if (!introFloatStartTime) {
+            introFloatStartTime = timestamp;
+          }
+
+          const elapsed = timestamp - introFloatStartTime;
+
+          introFloatTargets.forEach((target) => applyIntroFloatTarget(target, elapsed));
+          introFloatFrame = window.requestAnimationFrame(stepIntroFloat);
+        }
+
+        function startIntroFloat() {
+          window.cancelAnimationFrame(introFloatFrame);
+          introFloatFrame = 0;
+          introFloatStartTime = 0;
+          resetIntroFloat();
+
+          if (
+            introFloatTargets.every((target) => !target.element) ||
+            prefersReducedMotion.matches
+          ) {
+            return;
+          }
+
+          introFloatFrame = window.requestAnimationFrame(stepIntroFloat);
+        }
+
+        function handleMotionPreferenceChange() {
+          startIntroFloat();
+        }
+
+        function normalizeLocalTarget(candidate) {
+          const normalizedCandidate = typeof candidate === "string" ? candidate.trim() : "";
+
+          if (!normalizedCandidate || normalizedCandidate.startsWith("//")) {
+            return "";
+          }
+
+          let resolvedUrl;
+
+          try {
+            resolvedUrl = new URL(normalizedCandidate, window.location.origin);
+          } catch {
+            return "";
+          }
+
+          if (resolvedUrl.origin !== window.location.origin) {
+            return "";
+          }
+
+          const target = `${resolvedUrl.pathname}${resolvedUrl.search}${resolvedUrl.hash}`;
+
+          if (
+            !target.startsWith("/") ||
+            target === "/login" ||
+            target.startsWith("/login?") ||
+            target === ENTER_PAGE_PATH ||
+            target.startsWith(`${ENTER_PAGE_PATH}?`)
+          ) {
+            return "";
+          }
+
+          return target;
+        }
+
+        function isAdminTarget(target) {
+          return typeof target === "string" && /^\/admin(?:[?#]|$)/u.test(target);
+        }
+
+        function buildAdminTarget(nextTarget) {
+          if (isAdminTarget(nextTarget)) {
+            return nextTarget;
+          }
+
+          const adminUrl = new URL("/admin", window.location.origin);
+          adminUrl.searchParams.set("url", nextTarget || "/");
+          return `${adminUrl.pathname}${adminUrl.search}${adminUrl.hash}`;
+        }
+
+        function buildAppTarget(nextTarget) {
+          if (nextTarget && !isAdminTarget(nextTarget)) {
+            return nextTarget;
+          }
+
+          return "/";
+        }
+
+        function grantTabAccess() {
+          try {
+            window.sessionStorage.setItem(ENTER_TAB_ACCESS_KEY, "1");
+          } catch {
+            // Ignore sessionStorage failures and continue navigation.
+          }
+        }
+
+        function clearTabAccess() {
+          try {
+            window.sessionStorage.removeItem(ENTER_TAB_ACCESS_KEY);
+          } catch {
+            // Ignore sessionStorage failures on the launcher page.
+          }
+        }
+
+        function navigateToTarget(targetUrl) {
+          window.location.assign(targetUrl);
+        }
+
+        function bindLauncherLink(link, targetUrl) {
+          if (!link || !targetUrl) {
+            return;
+          }
+
+          link.href = targetUrl;
+          link.addEventListener("click", (event) => {
+            if (
+              event.defaultPrevented ||
+              event.button !== 0 ||
+              event.metaKey ||
+              event.ctrlKey ||
+              event.shiftKey ||
+              event.altKey
+            ) {
+              return;
+            }
+
+            event.preventDefault();
+            grantTabAccess();
+            navigateToTarget(targetUrl);
+          });
+        }
+
+        clearTabAccess();
+        if (typeof prefersReducedMotion.addEventListener === "function") {
+          prefersReducedMotion.addEventListener("change", handleMotionPreferenceChange);
+        } else if (typeof prefersReducedMotion.addListener === "function") {
+          prefersReducedMotion.addListener(handleMotionPreferenceChange);
+        }
+
+        const nextTarget = normalizeLocalTarget(
+          new URLSearchParams(window.location.search).get("next")
+        );
+        bindLauncherLink(introEnterSpaceLink, buildAppTarget(nextTarget));
+        bindLauncherLink(introAdminLink, buildAdminTarget(nextTarget));
+
+        if (introAstronaut && !introAstronaut.complete) {
+          introAstronaut.addEventListener("load", startIntroFloat, { once: true });
+        } else {
+          startIntroFloat();
+        }
       })();
     </script>
   </body>

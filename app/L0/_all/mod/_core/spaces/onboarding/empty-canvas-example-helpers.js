@@ -159,7 +159,9 @@ export async function installOnboardingExampleWidget(fileName, options = {}) {
     ...upsertOptions,
     ...(targetSpaceId ? { spaceId: targetSpaceId } : {}),
     refresh: refreshAfterInstall,
-    resetCamera: Boolean(repositionAfterInstall && currentSpaceId && targetSpaceId === currentSpaceId),
+    resetCamera: Boolean(
+      repositionAfterInstall && currentSpaceId && targetSpaceId === currentSpaceId
+    ),
     metadata: buildOnboardingExampleWidgetMetadata(upsertOptions),
     source
   });
@@ -185,7 +187,9 @@ export async function installOnboardingExampleWidgets(fileNames, options = {}) {
   const installResult = await spacesRuntime.upsertWidgets({
     ...upsertOptions,
     refresh: refreshAfterInstall,
-    resetCamera: Boolean(repositionAfterInstall && currentSpaceId && targetSpaceId === currentSpaceId),
+    resetCamera: Boolean(
+      repositionAfterInstall && currentSpaceId && targetSpaceId === currentSpaceId
+    ),
     spaceId: targetSpaceId,
     widgets: widgetEntries.map((entry) => ({
       ...upsertOptions,

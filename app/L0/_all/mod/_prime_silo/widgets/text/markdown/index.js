@@ -52,13 +52,17 @@ function renderLoading(host, source) {
 }
 
 function escape(text) {
-  return String(text).replace(/[&<>"']/g, (ch) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
-  }[ch]));
+  return String(text).replace(
+    /[&<>"']/g,
+    (ch) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      })[ch]
+  );
 }
 
 function ensureClient(options) {
@@ -166,8 +170,7 @@ export function createMarkdownWidget(host, initialProps, options = {}) {
 
   function update(nextProps) {
     const merged = { ...props, ...nextProps };
-    const sourceChanged =
-      merged.source !== props.source || merged.workspace !== props.workspace;
+    const sourceChanged = merged.source !== props.source || merged.workspace !== props.workspace;
     props = merged;
     if (sourceChanged) {
       load();
@@ -183,5 +186,12 @@ export function createMarkdownWidget(host, initialProps, options = {}) {
 
   load();
 
-  return { update, save, destroy, get content() { return currentContent; } };
+  return {
+    update,
+    save,
+    destroy,
+    get content() {
+      return currentContent;
+    }
+  };
 }

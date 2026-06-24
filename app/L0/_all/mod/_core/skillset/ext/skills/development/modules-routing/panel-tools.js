@@ -40,9 +40,7 @@ function withPanelHref(panel) {
 
 function toRoutePath(target) {
   if (target && typeof target === "object" && !Array.isArray(target)) {
-    return normalizePanelRoutePath(
-      target.routePath ?? target.path ?? target.href ?? target.hash
-    );
+    return normalizePanelRoutePath(target.routePath ?? target.path ?? target.href ?? target.hash);
   }
 
   return normalizePanelRoutePath(target);
@@ -67,7 +65,7 @@ export async function findPanel(target) {
 
   const normalizedTarget = normalizeLookupText(
     target && typeof target === "object" && !Array.isArray(target)
-      ? target.name ?? target.title ?? target.routePath ?? target.path
+      ? (target.name ?? target.title ?? target.routePath ?? target.path)
       : target
   );
 
@@ -75,19 +73,21 @@ export async function findPanel(target) {
     return null;
   }
 
-  return panels.find((panel) => {
-    const normalizedName = normalizeLookupText(panel.name);
-    const normalizedRoutePath = normalizeLookupText(panel.routePath);
-    const normalizedHref = normalizeLookupText(panel.href);
-    const normalizedModulePath = normalizeLookupText(panel.modulePath);
+  return (
+    panels.find((panel) => {
+      const normalizedName = normalizeLookupText(panel.name);
+      const normalizedRoutePath = normalizeLookupText(panel.routePath);
+      const normalizedHref = normalizeLookupText(panel.href);
+      const normalizedModulePath = normalizeLookupText(panel.modulePath);
 
-    return (
-      normalizedName === normalizedTarget ||
-      normalizedRoutePath === normalizedTarget ||
-      normalizedHref === normalizedTarget ||
-      normalizedModulePath === normalizedTarget
-    );
-  }) || null;
+      return (
+        normalizedName === normalizedTarget ||
+        normalizedRoutePath === normalizedTarget ||
+        normalizedHref === normalizedTarget ||
+        normalizedModulePath === normalizedTarget
+      );
+    }) || null
+  );
 }
 
 export async function resolvePanelRoutePath(target) {
@@ -113,7 +113,7 @@ export async function createPanelHref(target) {
 
 export async function goToPanel(target, options = {}) {
   const panel = await findPanel(target);
-  const routePath = panel?.routePath || await resolvePanelRoutePath(target);
+  const routePath = panel?.routePath || (await resolvePanelRoutePath(target));
 
   const router = getRouter();
 

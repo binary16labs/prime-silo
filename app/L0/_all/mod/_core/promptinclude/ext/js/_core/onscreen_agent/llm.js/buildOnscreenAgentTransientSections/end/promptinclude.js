@@ -20,5 +20,8 @@ export default async function injectPromptIncludeTransientSection(hookContext) {
   promptContext.promptIncludeTransientItems = {
     ...promptIncludeTransientItems
   };
-  promptContext.transientItems = mergePromptItemMaps(promptContext.transientItems, promptIncludeTransientItems);
+  promptContext.transientItems = mergePromptItemMaps(
+    promptContext.transientItems,
+    promptIncludeTransientItems
+  );
 }

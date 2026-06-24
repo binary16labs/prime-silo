@@ -83,7 +83,12 @@ function printCommandHelp(entry) {
 export const help = {
   name: "help",
   summary: "Show command help.",
-  usage: ["node space help", "node space --help", "node space help <command>", "node space --help <command>"],
+  usage: [
+    "node space help",
+    "node space --help",
+    "node space help <command>",
+    "node space --help <command>"
+  ],
   description: "Lists all available commands or shows detailed help for one command."
 };
 

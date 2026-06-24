@@ -1,9 +1,6 @@
 import { setPromptItem } from "/mod/_core/agent_prompt/prompt-items.js";
 import { getStore } from "/mod/_core/framework/js/AlpineStore.js";
-import {
-  normalizeBrowserTransientCell,
-  normalizeBrowserTransientId
-} from "./open-browsers.js";
+import { normalizeBrowserTransientCell, normalizeBrowserTransientId } from "./open-browsers.js";
 
 const LAST_INTERACTED_BROWSER_CONTENT_HEADING = "last interacted web browser";
 const LAST_INTERACTED_BROWSER_CONTENT_KEY = "last-interacted-web-browser-content";
@@ -20,10 +17,7 @@ function wait(ms) {
 function buildBrowserStatusRow(browserSurface) {
   const id = normalizeBrowserTransientId(browserSurface?.id);
   const url = normalizeBrowserTransientCell(
-    browserSurface?.currentUrl
-    || browserSurface?.frameSrc
-    || browserSurface?.addressValue
-    || ""
+    browserSurface?.currentUrl || browserSurface?.frameSrc || browserSurface?.addressValue || ""
   );
   const title = normalizeBrowserTransientCell(browserSurface?.title || "");
 
@@ -38,18 +32,21 @@ function buildBrowserStatusRow(browserSurface) {
   };
 }
 
-async function buildLastInteractedBrowserContentTransientSection(webBrowsingStore = getStore("webBrowsing")) {
+async function buildLastInteractedBrowserContentTransientSection(
+  webBrowsingStore = getStore("webBrowsing")
+) {
   const browserId = String(webBrowsingStore?.lastInteractedBrowserId || "").trim();
   const browserInstanceKey = webBrowsingStore?.lastInteractedBrowserInstanceKey ?? null;
   if (!browserId) {
     return null;
   }
 
-  const browserSurface = typeof webBrowsingStore?.getBrowser === "function"
-    ? webBrowsingStore.getBrowser(browserId)
-    : typeof webBrowsingStore?.getWindow === "function"
-      ? webBrowsingStore.getWindow(browserId)
-      : null;
+  const browserSurface =
+    typeof webBrowsingStore?.getBrowser === "function"
+      ? webBrowsingStore.getBrowser(browserId)
+      : typeof webBrowsingStore?.getWindow === "function"
+        ? webBrowsingStore.getWindow(browserId)
+        : null;
   if (!browserSurface) {
     return null;
   }
@@ -67,19 +64,19 @@ async function buildLastInteractedBrowserContentTransientSection(webBrowsingStor
       });
     }
 
-    const contentPayload = typeof webBrowsingStore?.requestBridgePayload === "function"
-      ? await webBrowsingStore.requestBridgePayload(browserId, "content", null, {
-          timeoutMs: LAST_INTERACTED_BROWSER_CONTENT_TIMEOUT_MS
-        })
-      : null;
-    documentContent = typeof contentPayload?.document === "string"
-      ? contentPayload.document.trim()
-      : "";
+    const contentPayload =
+      typeof webBrowsingStore?.requestBridgePayload === "function"
+        ? await webBrowsingStore.requestBridgePayload(browserId, "content", null, {
+            timeoutMs: LAST_INTERACTED_BROWSER_CONTENT_TIMEOUT_MS
+          })
+        : null;
+    documentContent =
+      typeof contentPayload?.document === "string" ? contentPayload.document.trim() : "";
     if (documentContent) {
       break;
     }
 
-    if (attempt < (LAST_INTERACTED_BROWSER_CONTENT_RETRY_COUNT - 1)) {
+    if (attempt < LAST_INTERACTED_BROWSER_CONTENT_RETRY_COUNT - 1) {
       await wait(LAST_INTERACTED_BROWSER_CONTENT_RETRY_DELAY_MS);
     }
   }
@@ -88,11 +85,12 @@ async function buildLastInteractedBrowserContentTransientSection(webBrowsingStor
     return null;
   }
 
-  const latestBrowserSurface = typeof webBrowsingStore?.getBrowser === "function"
-    ? webBrowsingStore.getBrowser(browserId)
-    : typeof webBrowsingStore?.getWindow === "function"
-      ? webBrowsingStore.getWindow(browserId)
-      : browserSurface;
+  const latestBrowserSurface =
+    typeof webBrowsingStore?.getBrowser === "function"
+      ? webBrowsingStore.getBrowser(browserId)
+      : typeof webBrowsingStore?.getWindow === "function"
+        ? webBrowsingStore.getWindow(browserId)
+        : browserSurface;
   const row = buildBrowserStatusRow(latestBrowserSurface);
   if (!row) {
     return null;

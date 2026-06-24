@@ -20,9 +20,9 @@ function createEmptyRecordMap() {
 function hasStateGetter(stateSystem, methodName) {
   return Boolean(
     stateSystem &&
-      typeof stateSystem === "object" &&
-      !Array.isArray(stateSystem) &&
-      typeof stateSystem[methodName] === "function"
+    typeof stateSystem === "object" &&
+    !Array.isArray(stateSystem) &&
+    typeof stateSystem[methodName] === "function"
   );
 }
 
@@ -40,7 +40,9 @@ function getStateAreaValues(stateSystem, area) {
   }
 
   const values = stateSystem.getAreaValues(area);
-  return values && typeof values === "object" && !Array.isArray(values) ? values : createEmptyRecordMap();
+  return values && typeof values === "object" && !Array.isArray(values)
+    ? values
+    : createEmptyRecordMap();
 }
 
 function listStateAreaIds(stateSystem, area) {
@@ -64,7 +66,9 @@ function getProjectPathLookupCandidates(projectPath) {
   }
 
   const basePath = stripTrailingSlash(normalizedPath);
-  return normalizedPath.endsWith("/") ? [normalizedPath, basePath] : [normalizedPath, `${basePath}/`];
+  return normalizedPath.endsWith("/")
+    ? [normalizedPath, basePath]
+    : [normalizedPath, `${basePath}/`];
 }
 
 function listReadableModuleGroupIds(groupIndex, username) {
@@ -135,7 +139,10 @@ function collectProjectPathsFromFileIndexShards(stateSystem, shardIds = []) {
 function collectReadableModuleShardIds(options = {}) {
   const maxLayer = normalizeMaxLayer(options.maxLayer);
   const shardIds = [];
-  const groupIds = listReadableModuleGroupIds(options.groupIndex || createEmptyGroupIndex(), options.username);
+  const groupIds = listReadableModuleGroupIds(
+    options.groupIndex || createEmptyGroupIndex(),
+    options.username
+  );
 
   if (maxLayer >= 0 && options.includeL0 !== false) {
     shardIds.push("L0");
@@ -166,7 +173,9 @@ function hasIndexedProjectPath(stateSystem, projectPath) {
   }
 
   const shardValue = getFileIndexShardValue(stateSystem, shardId);
-  return getProjectPathLookupCandidates(projectPath).some((candidate) => Boolean(shardValue[candidate]));
+  return getProjectPathLookupCandidates(projectPath).some((candidate) =>
+    Boolean(shardValue[candidate])
+  );
 }
 
 export {

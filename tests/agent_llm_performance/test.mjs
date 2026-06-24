@@ -20,8 +20,16 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   const configPath = args.config ? resolveFromCwd(args.config) : DEFAULT_CONFIG_PATH;
   const config = await loadConfig(configPath);
-  const activeModels = resolveModelIds(args.model, args.models, config.run?.active_models, config.provider.model);
-  const modelConcurrency = resolveCaseConcurrency(args.model_concurrency, config.run?.model_concurrency);
+  const activeModels = resolveModelIds(
+    args.model,
+    args.models,
+    config.run?.active_models,
+    config.provider.model
+  );
+  const modelConcurrency = resolveCaseConcurrency(
+    args.model_concurrency,
+    config.run?.model_concurrency
+  );
 
   await loadDotEnv(path.join(ROOT_DIR, ".env"));
 
@@ -35,7 +43,13 @@ async function main() {
     const repeatCount = resolveRepeatCount(args.repeat, config.run?.repeat_count);
     const modelAttempts = await mapLimit(activeModels, modelConcurrency, async (modelId) => ({
       model_id: modelId,
-      attempts: await runSingleAttempts(withModel(config, modelId), systemPrompt, history, caseDef, repeatCount)
+      attempts: await runSingleAttempts(
+        withModel(config, modelId),
+        systemPrompt,
+        history,
+        caseDef,
+        repeatCount
+      )
     }));
     printSingleResults(systemPath, historyPath, modelAttempts);
     return;
@@ -48,15 +62,27 @@ async function main() {
   const promptPaths = promptIds.map((promptId) => resolvePromptPath(config, promptId));
   const casePaths = caseIds.map((caseId) => resolveCasePath(config, caseId));
   const promptSummaries = [];
-  const caseConcurrency = resolveCaseConcurrency(args.case_concurrency, config.run?.case_concurrency);
-  const promptConcurrency = resolveCaseConcurrency(args.prompt_concurrency, config.run?.prompt_concurrency);
+  const caseConcurrency = resolveCaseConcurrency(
+    args.case_concurrency,
+    config.run?.case_concurrency
+  );
+  const promptConcurrency = resolveCaseConcurrency(
+    args.prompt_concurrency,
+    config.run?.prompt_concurrency
+  );
   const repeatCount = resolveRepeatCount(args.repeat, config.run?.repeat_count);
 
   const summariesByModel = await mapLimit(activeModels, modelConcurrency, async (modelId) => {
     const modelConfig = withModel(config, modelId);
 
     return mapLimit(promptPaths, promptConcurrency, async (promptPath) => {
-      const caseResults = await runPromptCases(modelConfig, promptPath, casePaths, caseConcurrency, repeatCount);
+      const caseResults = await runPromptCases(
+        modelConfig,
+        promptPath,
+        casePaths,
+        caseConcurrency,
+        repeatCount
+      );
       return buildPromptSummary(path.basename(promptPath, ".md"), modelId, caseResults);
     });
   });
@@ -131,9 +157,18 @@ async function loadConfig(configPath) {
       histories_dir: resolveRelative(configDir, parsed.paths?.histories_dir || "./histories"),
       results_dir: resolveRelative(configDir, parsed.paths?.results_dir || "./results"),
       history_dir: resolveRelative(configDir, parsed.paths?.history_dir || "./results/history"),
-      leaderboard_file: resolveRelative(configDir, parsed.paths?.leaderboard_file || "./results/leaderboard.yaml"),
-      latest_run_file: resolveRelative(configDir, parsed.paths?.latest_run_file || "./results/latest-run.json"),
-      progress_file: resolveRelative(configDir, parsed.paths?.progress_file || "./results/progress.md"),
+      leaderboard_file: resolveRelative(
+        configDir,
+        parsed.paths?.leaderboard_file || "./results/leaderboard.yaml"
+      ),
+      latest_run_file: resolveRelative(
+        configDir,
+        parsed.paths?.latest_run_file || "./results/latest-run.json"
+      ),
+      progress_file: resolveRelative(
+        configDir,
+        parsed.paths?.progress_file || "./results/progress.md"
+      ),
       summary_file: resolveRelative(configDir, parsed.paths?.summary_file || "./results/summary.md")
     },
     run: {
@@ -414,7 +449,15 @@ async function runPreparedCase(config, promptPath, casePath, systemPrompt, repea
 
   for (let index = 0; index < repeatCount; index += 1) {
     attempts.push(
-      await runPreparedCaseAttempt(config, promptPath, casePath, historyPath, caseDef, history, systemPrompt)
+      await runPreparedCaseAttempt(
+        config,
+        promptPath,
+        casePath,
+        historyPath,
+        caseDef,
+        history,
+        systemPrompt
+      )
     );
   }
 
@@ -425,7 +468,15 @@ async function runPreparedCase(config, promptPath, casePath, systemPrompt, repea
   return buildRepeatedCaseResult(promptPath, casePath, historyPath, caseDef, attempts);
 }
 
-async function runPreparedCaseAttempt(config, promptPath, casePath, historyPath, caseDef, history, systemPrompt) {
+async function runPreparedCaseAttempt(
+  config,
+  promptPath,
+  casePath,
+  historyPath,
+  caseDef,
+  history,
+  systemPrompt
+) {
   try {
     const response = await requestCompletion(config, systemPrompt, history);
     const evaluation = evaluateResponse(response.content, caseDef.expect);
@@ -445,7 +496,14 @@ async function runPreparedCaseAttempt(config, promptPath, casePath, historyPath,
       usage: response.usage
     };
   } catch (error) {
-    return buildCaseErrorResult(promptPath, casePath, historyPath, caseDef, error, config.provider.model);
+    return buildCaseErrorResult(
+      promptPath,
+      casePath,
+      historyPath,
+      caseDef,
+      error,
+      config.provider.model
+    );
   }
 }
 
@@ -465,7 +523,10 @@ function buildRepeatedCaseResult(promptPath, casePath, historyPath, caseDef, att
     passed: passCount === attempts.length,
     pass_count: passCount,
     repeat_count: attempts.length,
-    failures: passCount === attempts.length ? [] : [`passed ${passCount}/${attempts.length} attempts`, ...mergedFailures],
+    failures:
+      passCount === attempts.length
+        ? []
+        : [`passed ${passCount}/${attempts.length} attempts`, ...mergedFailures],
     response_type: passCount === attempts.length ? "stable" : "unstable",
     response: attempts[attempts.length - 1]?.response || "",
     usage: attempts.reduce((totals, attempt) => mergeUsage(totals, attempt.usage), {}),
@@ -526,17 +587,13 @@ function evaluateResponse(content, expect = {}) {
   const separatorLineMatches = normalized.match(/^_____javascript$/gmu) || [];
   const responseType = separatorMatches.length > 0 ? "thrust" : "terminal";
   const separatorIndex = normalized.indexOf(EXECUTION_SEPARATOR);
-  const beforeCode = separatorIndex === -1 ? normalized.trim() : normalized.slice(0, separatorIndex).trim();
+  const beforeCode =
+    separatorIndex === -1 ? normalized.trim() : normalized.slice(0, separatorIndex).trim();
   const beforeSeparator = separatorIndex === -1 ? "" : normalized.slice(0, separatorIndex).trim();
   const codeAfterSeparator =
     separatorIndex === -1
       ? ""
-      : normalized
-          .slice(separatorIndex)
-          .split(/\r?\n/u)
-          .slice(1)
-          .join("\n")
-          .trim();
+      : normalized.slice(separatorIndex).split(/\r?\n/u).slice(1).join("\n").trim();
   const failures = [];
 
   if (expect.response_type && responseType !== expect.response_type) {
@@ -701,7 +758,11 @@ function shouldRetryRequestError(error) {
   }
 
   const message = String(error?.message || error || "").toLowerCase();
-  return message.includes("fetch failed") || message.includes("timeout") || message.includes("econnreset");
+  return (
+    message.includes("fetch failed") ||
+    message.includes("timeout") ||
+    message.includes("econnreset")
+  );
 }
 
 function delay(ms) {
@@ -749,23 +810,28 @@ async function saveResults(config, promptSummaries, modelIds) {
     results: promptSummaries
   };
 
-  await fs.writeFile(config.paths.latest_run_file, `${JSON.stringify(latestRun, null, 2)}\n`, "utf8");
+  await fs.writeFile(
+    config.paths.latest_run_file,
+    `${JSON.stringify(latestRun, null, 2)}\n`,
+    "utf8"
+  );
 
-  const leaderboard = modelIds.length === 1
-    ? {
-        generated_at: generatedAt,
-        generation_id: generationId,
-        model: modelIds[0],
-        prompts: serializeLeaderboardPrompts(groupedSummaries[0]?.prompts || [])
-      }
-    : {
-        generated_at: generatedAt,
-        generation_id: generationId,
-        models: groupedSummaries.map((group) => ({
-          id: group.model_id,
-          prompts: serializeLeaderboardPrompts(group.prompts)
-        }))
-      };
+  const leaderboard =
+    modelIds.length === 1
+      ? {
+          generated_at: generatedAt,
+          generation_id: generationId,
+          model: modelIds[0],
+          prompts: serializeLeaderboardPrompts(groupedSummaries[0]?.prompts || [])
+        }
+      : {
+          generated_at: generatedAt,
+          generation_id: generationId,
+          models: groupedSummaries.map((group) => ({
+            id: group.model_id,
+            prompts: serializeLeaderboardPrompts(group.prompts)
+          }))
+        };
 
   await fs.writeFile(config.paths.leaderboard_file, serializeSimpleYaml(leaderboard), "utf8");
   await saveGenerationHistory(config, generationId, leaderboard, latestRun);
@@ -870,20 +936,35 @@ async function saveGenerationHistory(config, generationId, leaderboard, latestRu
     recursive: true
   });
 
-  await fs.writeFile(path.join(generationDir, "leaderboard.yaml"), serializeSimpleYaml(leaderboard), "utf8");
-  await fs.writeFile(path.join(generationDir, "latest-run.json"), `${JSON.stringify(latestRun, null, 2)}\n`, "utf8");
+  await fs.writeFile(
+    path.join(generationDir, "leaderboard.yaml"),
+    serializeSimpleYaml(leaderboard),
+    "utf8"
+  );
+  await fs.writeFile(
+    path.join(generationDir, "latest-run.json"),
+    `${JSON.stringify(latestRun, null, 2)}\n`,
+    "utf8"
+  );
 }
 
-function renderProgressMarkdown({ generatedAt, generationId, modelIds, promptSummaries, overallLeader }) {
+function renderProgressMarkdown({
+  generatedAt,
+  generationId,
+  modelIds,
+  promptSummaries,
+  overallLeader
+}) {
   const top = promptSummaries[0] || null;
   const promptIds = Array.from(new Set(promptSummaries.map((summary) => summary.prompt_id)));
   const cleanPrompts = promptSummaries.filter(
     (summary) => summary.passed_cases === summary.total_cases
   );
   const commonFailures = collectCommonFailures(promptSummaries);
-  const cVariant = [...promptSummaries]
-    .filter((summary) => /[A-Z]_/u.test(summary.prompt_id) && /C_/u.test(summary.prompt_id))
-    .sort(comparePromptSummaries)[0] || null;
+  const cVariant =
+    [...promptSummaries]
+      .filter((summary) => /[A-Z]_/u.test(summary.prompt_id) && /C_/u.test(summary.prompt_id))
+      .sort(comparePromptSummaries)[0] || null;
   const bestPerModel = findBestPerModel(promptSummaries, modelIds);
 
   const statusLine = top
@@ -905,14 +986,15 @@ function renderProgressMarkdown({ generatedAt, generationId, modelIds, promptSum
   const branchLine = cVariant
     ? `Wild branch: \`${renderPromptLabel(cVariant)}\` scored \`${renderPromptScore(cVariant)}\` and remains exploratory`
     : "";
-  const overallBestLine = overallLeader &&
+  const overallBestLine =
+    overallLeader &&
     (!top ||
       overallLeader.prompt_id !== top.prompt_id ||
       overallLeader.model_id !== top.model_id ||
       overallLeader.passed_cases !== top.passed_cases ||
       overallLeader.total_cases !== top.total_cases)
-    ? `Overall best still: \`${renderPromptLabel(overallLeader)}\` at \`${renderPromptScore(overallLeader)}\` strict`
-    : "";
+      ? `Overall best still: \`${renderPromptLabel(overallLeader)}\` at \`${renderPromptScore(overallLeader)}\` strict`
+      : "";
 
   const nextLine = top
     ? cleanPrompts.length > 1
@@ -922,23 +1004,28 @@ function renderProgressMarkdown({ generatedAt, generationId, modelIds, promptSum
         : `Next: stress the current leader with repeat sampling before promotion`
     : "Next: run a prompt generation";
 
-  return [
-    "# Progress",
-    "",
-    `Updated: \`${generatedAt}\``,
-    `Generation Id: \`${generationId}\``,
-    `Generation: \`${promptIds.join(" / ")}\``,
-    modelIds.length === 1 ? `Model: \`${modelIds[0]}\`` : `Models: \`${modelIds.join(" / ")}\``,
-    "",
-    `- ${statusLine}`,
-    `- ${summaryLine}`,
-    ...(overallBestLine ? [`- ${overallBestLine}`] : []),
-    ...bestPerModel
-      .filter(() => modelIds.length > 1)
-      .map((entry) => `- Best in \`${entry.model_id}\`: \`${entry.top.prompt_id}\` with \`${renderPromptScore(entry.top)}\` strict`),
-    ...(branchLine ? [`- ${branchLine}`] : []),
-    `- ${nextLine}`
-  ].join("\n") + "\n";
+  return (
+    [
+      "# Progress",
+      "",
+      `Updated: \`${generatedAt}\``,
+      `Generation Id: \`${generationId}\``,
+      `Generation: \`${promptIds.join(" / ")}\``,
+      modelIds.length === 1 ? `Model: \`${modelIds[0]}\`` : `Models: \`${modelIds.join(" / ")}\``,
+      "",
+      `- ${statusLine}`,
+      `- ${summaryLine}`,
+      ...(overallBestLine ? [`- ${overallBestLine}`] : []),
+      ...bestPerModel
+        .filter(() => modelIds.length > 1)
+        .map(
+          (entry) =>
+            `- Best in \`${entry.model_id}\`: \`${entry.top.prompt_id}\` with \`${renderPromptScore(entry.top)}\` strict`
+        ),
+      ...(branchLine ? [`- ${branchLine}`] : []),
+      `- ${nextLine}`
+    ].join("\n") + "\n"
+  );
 }
 
 function collectCommonFailures(promptSummaries) {
@@ -958,7 +1045,9 @@ function collectCommonFailures(promptSummaries) {
 
 async function renderSummaryMarkdown(config, { generatedAt, modelIds, currentPromptSummaries }) {
   const leaders = await loadOverallPromptLeaders(config);
-  const activeGeneration = Array.from(new Set(currentPromptSummaries.map((summary) => summary.prompt_id))).join(" / ");
+  const activeGeneration = Array.from(
+    new Set(currentPromptSummaries.map((summary) => summary.prompt_id))
+  ).join(" / ");
   const topFive = leaders.slice(0, 5);
 
   const lines = [
@@ -976,7 +1065,9 @@ async function renderSummaryMarkdown(config, { generatedAt, modelIds, currentPro
   }
 
   topFive.forEach((entry, index) => {
-    lines.push(`${index + 1}. \`${renderPromptLabel(entry)}\` — \`${renderPromptScore(entry)}\` strict`);
+    lines.push(
+      `${index + 1}. \`${renderPromptLabel(entry)}\` — \`${renderPromptScore(entry)}\` strict`
+    );
     lines.push(`   ${describePromptSpecialty(entry)}`);
   });
 
@@ -984,9 +1075,11 @@ async function renderSummaryMarkdown(config, { generatedAt, modelIds, currentPro
 }
 
 async function loadOverallPromptLeaders(config) {
-  const entries = await fs.readdir(config.paths.history_dir, {
-    withFileTypes: true
-  }).catch(() => []);
+  const entries = await fs
+    .readdir(config.paths.history_dir, {
+      withFileTypes: true
+    })
+    .catch(() => []);
   const candidateFiles = entries
     .filter((entry) => entry.isDirectory())
     .map((entry) => path.join(config.paths.history_dir, entry.name, "leaderboard.yaml"));
@@ -1005,10 +1098,12 @@ async function loadOverallPromptLeaders(config) {
           model_id: String(group.id || ""),
           prompts: Array.isArray(group.prompts) ? group.prompts : []
         }))
-      : [{
-          model_id: String(parsed.model || ""),
-          prompts: Array.isArray(parsed.prompts) ? parsed.prompts : []
-        }];
+      : [
+          {
+            model_id: String(parsed.model || ""),
+            prompts: Array.isArray(parsed.prompts) ? parsed.prompts : []
+          }
+        ];
 
     for (const group of modelPromptGroups) {
       for (const prompt of group.prompts || []) {
@@ -1115,9 +1210,11 @@ async function pruneGenerationHistory(historyDir, keepCount) {
     return;
   }
 
-  const entries = await fs.readdir(historyDir, {
-    withFileTypes: true
-  }).catch(() => []);
+  const entries = await fs
+    .readdir(historyDir, {
+      withFileTypes: true
+    })
+    .catch(() => []);
   const generations = entries
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
@@ -1175,7 +1272,9 @@ function printSingleResult(systemPath, historyPath, attempts, modelId = "") {
 
   console.log("");
   const passCount = attempts.filter((attempt) => attempt.evaluation?.passed).length;
-  console.log(`result: ${passCount === attempts.length ? "PASS" : "FAIL"} (${passCount}/${attempts.length})`);
+  console.log(
+    `result: ${passCount === attempts.length ? "PASS" : "FAIL"} (${passCount}/${attempts.length})`
+  );
 
   const mergedFailures = Array.from(
     new Set(attempts.flatMap((attempt) => attempt.evaluation?.failures || []).filter(Boolean))
@@ -1202,12 +1301,16 @@ function printMatrixSummary(promptSummaries, modelIds) {
         summary.total_attempts > summary.total_cases
           ? `, ${summary.passed_attempts}/${summary.total_attempts} attempts`
           : "";
-      console.log(`${summary.prompt_id}: ${strictSummary}${attemptSummary} (${Math.round(summary.pass_rate * 100)}%)`);
+      console.log(
+        `${summary.prompt_id}: ${strictSummary}${attemptSummary} (${Math.round(summary.pass_rate * 100)}%)`
+      );
 
       summary.cases.forEach((caseResult) => {
         const status = caseResult.passed ? "PASS" : "FAIL";
         const caseAttemptSummary =
-          caseResult.repeat_count > 1 ? ` (${caseResult.pass_count}/${caseResult.repeat_count})` : "";
+          caseResult.repeat_count > 1
+            ? ` (${caseResult.pass_count}/${caseResult.repeat_count})`
+            : "";
         console.log(`  ${status} ${caseResult.case_id}${caseAttemptSummary}`);
 
         if (!caseResult.passed) {

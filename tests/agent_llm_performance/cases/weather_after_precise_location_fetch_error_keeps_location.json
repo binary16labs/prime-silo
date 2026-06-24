@@ -9,11 +9,7 @@
     "require_single_separator": true,
     "require_code_after_separator": true,
     "require_valid_javascript": true,
-    "must_contain": [
-      "_____javascript",
-      "49.39374837642957",
-      "17.22399629876773"
-    ],
+    "must_contain": ["_____javascript", "49.39374837642957", "17.22399629876773"],
     "must_match": [
       {
         "pattern": "(?:open-meteo|wttr\\.in|weather)",
@@ -26,8 +22,6 @@
         "flags": "u"
       }
     ],
-    "must_not_contain": [
-      "Which location?"
-    ]
+    "must_not_contain": ["Which location?"]
   }
 }

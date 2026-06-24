@@ -17,9 +17,7 @@ export function isOpenRouterEndpoint(endpoint = "") {
 
 export function applyOpenRouterHeaders(apiRequest = {}, options = {}) {
   const headers =
-    apiRequest?.headers && typeof apiRequest.headers === "object"
-      ? { ...apiRequest.headers }
-      : {};
+    apiRequest?.headers && typeof apiRequest.headers === "object" ? { ...apiRequest.headers } : {};
 
   headers["HTTP-Referer"] = String(options?.referer || "https://space-agent.ai").trim();
   headers["X-OpenRouter-Title"] = String(options?.title || "Space Agent").trim();

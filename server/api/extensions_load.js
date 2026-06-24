@@ -46,9 +46,9 @@ function readRequestedPatterns(input, normalizePattern = createNormalizePattern(
     return [];
   }
 
-  return (filters.length > 0 ? filters : ["*"]).map((filter) =>
-    normalizePattern(extensionPoint + "/" + filter)
-  ).filter(Boolean);
+  return (filters.length > 0 ? filters : ["*"])
+    .map((filter) => normalizePattern(extensionPoint + "/" + filter))
+    .filter(Boolean);
 }
 
 function readRequestedGroups(context) {
@@ -101,7 +101,7 @@ export async function post(context) {
         requests,
         runtimeParams: context.runtimeParams,
         stateSystem,
-        username,
+        username
       })
     };
   }
@@ -112,7 +112,7 @@ export async function post(context) {
     patterns,
     runtimeParams: context.runtimeParams,
     stateSystem,
-    username,
+    username
   });
 
   return {

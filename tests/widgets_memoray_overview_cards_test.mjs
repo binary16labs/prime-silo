@@ -36,12 +36,26 @@ function testFormatBytesAndBasename() {
 function testDeriveRecentSessionsSortsAndCaps() {
   const overview = {
     projects: [
-      { name: "P1", agents: { claude: { sessions: [{ id: "a", timestamp: 100 }, { id: "b", timestamp: 300 }] } } },
+      {
+        name: "P1",
+        agents: {
+          claude: {
+            sessions: [
+              { id: "a", timestamp: 100 },
+              { id: "b", timestamp: 300 }
+            ]
+          }
+        }
+      },
       { name: "P2", agents: { antigravity: { sessions: [{ id: "c", timestamp: 200 }] } } }
     ]
   };
   const recent = oc.deriveRecentSessions(overview);
-  assert.deepEqual(recent.map((s) => s.id), ["b", "c", "a"], "newest first across projects");
+  assert.deepEqual(
+    recent.map((s) => s.id),
+    ["b", "c", "a"],
+    "newest first across projects"
+  );
   assert.equal(recent[0].projectName, "P1");
   assert.equal(oc.deriveRecentSessions(null).length, 0);
 }
@@ -50,7 +64,12 @@ function testHeatmapUsesFileNameFilePath() {
   // Regression guard: the widget must read fileName/filePath (NOT path).
   const html = oc.renderHeatmapCard({
     hotFiles: [
-      { fileName: "memoray_proxy.js", filePath: "C:/x/memoray_proxy.js", agent: "Claude", count: 9 },
+      {
+        fileName: "memoray_proxy.js",
+        filePath: "C:/x/memoray_proxy.js",
+        agent: "Claude",
+        count: 9
+      },
       { fileName: "index.js", filePath: "C:/y/index.js", agent: "Antigravity", count: 3 }
     ]
   });
@@ -58,7 +77,9 @@ function testHeatmapUsesFileNameFilePath() {
   assert.match(html, /9×/);
   assert.match(html, /index\.js/);
   // A row missing fileName must fall back to filePath, never "Unknown" if a path exists.
-  const fallback = oc.renderHeatmapCard({ hotFiles: [{ filePath: "C:/z/only_path.js", count: 1, agent: "Claude" }] });
+  const fallback = oc.renderHeatmapCard({
+    hotFiles: [{ filePath: "C:/z/only_path.js", count: 1, agent: "Claude" }]
+  });
   assert.match(fallback, /only_path\.js/);
 }
 
@@ -118,8 +139,13 @@ async function settle() {
 }
 
 const OVERVIEW = {
-  projects: [{ name: "P", agents: { claude: { sessions: [{ id: "s1", timestamp: 1, title: "T" }] } } }],
-  worktrees: [], totalSessions: 1, totalTokens: 5, hotFiles: []
+  projects: [
+    { name: "P", agents: { claude: { sessions: [{ id: "s1", timestamp: 1, title: "T" }] } } }
+  ],
+  worktrees: [],
+  totalSessions: 1,
+  totalTokens: 5,
+  hotFiles: []
 };
 
 async function testFactoryLoadsRendersAndSelects() {
@@ -129,9 +155,18 @@ async function testFactoryLoadsRendersAndSelects() {
   const client = clientStub({
     "/beta/overview": () => OVERVIEW,
     "/system/capabilities": () => ({ claude: { mcpServers: [] }, antigravity: { plugins: [] } }),
-    "/system/metrics": () => ({ cpu: "1.0", ram: { used: 1, total: 2, percent: "50" }, network: {}, processes: [] })
+    "/system/metrics": () => ({
+      cpu: "1.0",
+      ram: { used: 1, total: 2, percent: "50" },
+      network: {},
+      processes: []
+    })
   });
-  const widget = createOverviewCardsWidget(host, { onSelectSession: (id) => selected.push(id) }, { memorayClient: client });
+  const widget = createOverviewCardsWidget(
+    host,
+    { onSelectSession: (id) => selected.push(id) },
+    { memorayClient: client }
+  );
   await settle();
   assert.match(host.innerHTML, /mray-oc__grid/, "renders the card grid");
   // Session click wiring (querySelectorAll → addEventListener).
@@ -145,28 +180,44 @@ async function testDestroyClearsTimerAndListener() {
   const docListeners = new Map();
   const fakeDoc = {
     visibilityState: "visible",
-    addEventListener: (t, h) => { docListeners.set(t, (docListeners.get(t) || 0) + 1); },
-    removeEventListener: (t, h) => { docListeners.set(t, (docListeners.get(t) || 0) - 1); }
+    addEventListener: (t, h) => {
+      docListeners.set(t, (docListeners.get(t) || 0) + 1);
+    },
+    removeEventListener: (t, h) => {
+      docListeners.set(t, (docListeners.get(t) || 0) - 1);
+    }
   };
   const priorDoc = globalThis.document;
   globalThis.document = fakeDoc;
 
   const clearedIds = [];
   const realClear = globalThis.clearInterval;
-  globalThis.clearInterval = (id) => { clearedIds.push(id); return realClear(id); };
+  globalThis.clearInterval = (id) => {
+    clearedIds.push(id);
+    return realClear(id);
+  };
 
   try {
     const host = createFakeHost();
     const client = clientStub({
       "/beta/overview": () => OVERVIEW,
       "/system/capabilities": () => ({ claude: { mcpServers: [] }, antigravity: { plugins: [] } }),
-      "/system/metrics": () => ({ cpu: "1", ram: { used: 1, total: 2, percent: "50" }, network: {}, processes: [] })
+      "/system/metrics": () => ({
+        cpu: "1",
+        ram: { used: 1, total: 2, percent: "50" },
+        network: {},
+        processes: []
+      })
     });
     const widget = createOverviewCardsWidget(host, {}, { memorayClient: client });
     await settle();
     assert.equal(docListeners.get("visibilitychange"), 1, "registered a visibilitychange listener");
     widget.destroy();
-    assert.equal(docListeners.get("visibilitychange"), 0, "destroy removes the visibilitychange listener");
+    assert.equal(
+      docListeners.get("visibilitychange"),
+      0,
+      "destroy removes the visibilitychange listener"
+    );
     assert.ok(clearedIds.length >= 1, "destroy clears the metrics interval");
   } finally {
     globalThis.clearInterval = realClear;

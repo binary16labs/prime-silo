@@ -13,10 +13,14 @@ import assert from "node:assert/strict";
 
 globalThis.window = globalThis.window || { location: { hash: "" } };
 
-const { createBridgePage, __testing } = await import("../app/L0/_all/mod/_prime_silo/bridge/bridge.js");
+const { createBridgePage, __testing } =
+  await import("../app/L0/_all/mod/_prime_silo/bridge/bridge.js");
 
 function jsonResponse(body, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json" }
+  });
 }
 
 function makePage() {
@@ -67,7 +71,11 @@ async function testLoadFilesMapsDataIn() {
       return jsonResponse({ workspace: "c5_test", manifest: [], total_indexed: 0 });
     }
     assert.match(u, /\/api\/runtime\/files\?workspace=c5_test/);
-    return jsonResponse({ workspace: "c5_test", data_in: ["uml.pdf", { name: "notes.md" }], total: 2 });
+    return jsonResponse({
+      workspace: "c5_test",
+      data_in: ["uml.pdf", { name: "notes.md" }],
+      total: 2
+    });
   };
   await page.loadFiles();
   assert.equal(page.files.length, 2);
@@ -136,7 +144,11 @@ async function testRescanWorkspace() {
     const u = String(url);
     if (u.includes("/files/recursive-scan")) {
       scanned = true;
-      return jsonResponse({ workspace: "c5_test", files: [{ name: "a.md" }, { name: "b.pdf" }], total: 2 });
+      return jsonResponse({
+        workspace: "c5_test",
+        files: [{ name: "a.md" }, { name: "b.pdf" }],
+        total: 2
+      });
     }
     if (u.includes("/rag/indexing-manifest")) {
       return jsonResponse({ workspace: "c5_test", manifest: [], total_indexed: 0 });

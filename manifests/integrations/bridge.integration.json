@@ -61,9 +61,7 @@
     },
     "mesh_position": {
       "role": "operator cockpit over all three graphs (memory, knowledge, code) plus the act/observe surfaces",
-      "siblings": [
-        "memoray (memory graph integration)"
-      ]
+      "siblings": ["memoray (memory graph integration)"]
     }
   },
   "endpoints": [
@@ -190,12 +188,7 @@
       "id": "bridge_page",
       "kind": "page",
       "produces": "#/_prime_silo/bridge cockpit page (mode rail + stage + Benny dock + zen toggle)",
-      "consumes": [
-        "manifests_runs",
-        "integration_audit",
-        "workspaces",
-        "lifelog"
-      ],
+      "consumes": ["manifests_runs", "integration_audit", "workspaces", "lifelog"],
       "owner": {
         "repo": "prime-silo",
         "path": "app/L0/_all/mod/_prime_silo/bridge/view.html"
@@ -237,11 +230,7 @@
       "id": "mode_pulse",
       "kind": "mode",
       "produces": "Pulse landing — overview cards + lifelog feed + conformance",
-      "consumes": [
-        "lifelog",
-        "manifests_runs",
-        "integration_audit"
-      ],
+      "consumes": ["lifelog", "manifests_runs", "integration_audit"],
       "owner": {
         "repo": "prime-silo",
         "path": "app/L0/_all/mod/_prime_silo/widgets/memoray/overview_cards/index.js"
@@ -261,13 +250,7 @@
       "id": "mode_documents",
       "kind": "mode",
       "produces": "Documents mode — workspace/files + ingest->triples + correlate, rendered as the knowledge graph",
-      "consumes": [
-        "workspaces",
-        "files",
-        "rag_ingest",
-        "rag_correlate",
-        "kg3d_ontology"
-      ],
+      "consumes": ["workspaces", "files", "rag_ingest", "rag_correlate", "kg3d_ontology"],
       "owner": {
         "repo": "prime-silo",
         "path": "app/L0/_all/mod/_prime_silo/widgets/kg3d/synoptic_web/index.js"
@@ -277,9 +260,7 @@
       "id": "mode_code",
       "kind": "mode",
       "produces": "Code 3D mode — Tree-Sitter code graph (2D SVG default, three_renderer 3D toggle)",
-      "consumes": [
-        "graph_code"
-      ],
+      "consumes": ["graph_code"],
       "owner": {
         "repo": "prime-silo",
         "path": "app/L0/_all/mod/_prime_silo/widgets/codegraph/canvas/index.js"
@@ -289,10 +270,7 @@
       "id": "mode_flows",
       "kind": "mode",
       "produces": "Flows mode — Plan (DAG) then Run; the no-copy-paste golden path",
-      "consumes": [
-        "manifests_plan",
-        "manifests_run"
-      ],
+      "consumes": ["manifests_plan", "manifests_run"],
       "owner": {
         "repo": "prime-silo",
         "path": "app/L0/_all/mod/_prime_silo/widgets/dag/canvas/index.js"
@@ -302,10 +280,7 @@
       "id": "mode_runs",
       "kind": "mode",
       "produces": "Runs mode — lineage timeline + reasoning trace observability",
-      "consumes": [
-        "manifests_runs",
-        "governance_events"
-      ],
+      "consumes": ["manifests_runs", "governance_events"],
       "owner": {
         "repo": "prime-silo",
         "path": "app/L0/_all/mod/_prime_silo/widgets/run/lineage_timeline/index.js"
@@ -315,11 +290,7 @@
       "id": "benny_skill",
       "kind": "skill",
       "produces": "benny-pilot onscreen-agent skill (catalog-loaded on demand)",
-      "consumes": [
-        "lifelog",
-        "manifests_runs",
-        "graph_code"
-      ],
+      "consumes": ["lifelog", "manifests_runs", "graph_code"],
       "owner": {
         "repo": "prime-silo",
         "path": "app/L0/_all/mod/_prime_silo/memoray_client/ext/skills/benny-pilot/SKILL.md"
@@ -329,11 +300,7 @@
       "id": "project_skill",
       "kind": "skill",
       "produces": "project-guide onscreen-agent skill (catalog-loaded) - answers anything about the Benny/prime-silo project, its workflows, and where things live",
-      "consumes": [
-        "graph_code",
-        "workspaces",
-        "manifests_runs"
-      ],
+      "consumes": ["graph_code", "workspaces", "manifests_runs"],
       "owner": {
         "repo": "prime-silo",
         "path": "app/L0/_all/mod/_prime_silo/bridge/ext/skills/project-guide/SKILL.md"
@@ -343,12 +310,7 @@
       "id": "cli_bridge",
       "kind": "cli",
       "produces": "node space bridge <status|plan|run|ingest|open>",
-      "consumes": [
-        "manifests_plan",
-        "manifests_run",
-        "manifests_runs",
-        "rag_ingest"
-      ],
+      "consumes": ["manifests_plan", "manifests_run", "manifests_runs", "rag_ingest"],
       "owner": {
         "repo": "prime-silo",
         "path": "commands/bridge.js"
@@ -358,10 +320,7 @@
       "id": "self_awareness_seed",
       "kind": "script",
       "produces": "packaging/scripts/build-self-awareness.js bundles prime-silo's own code, a static code graph, the app manifests, and the skills into the desktop package; packaging/desktop/self_awareness.js seeds the prime_silo_self workspace on first launch so Benny boots self-aware",
-      "consumes": [
-        "workspaces",
-        "rag_ingest"
-      ],
+      "consumes": ["workspaces", "rag_ingest"],
       "owner": {
         "repo": "prime-silo",
         "path": "packaging/scripts/build-self-awareness.js"
@@ -394,11 +353,7 @@
     }
   },
   "conformance": {
-    "checks": [
-      "signature",
-      "config_surface",
-      "owners"
-    ],
+    "checks": ["signature", "config_surface", "owners"],
     "notes": "health + payload_contracts are intentionally omitted: this audit's live fetcher targets Memo-Ray, while the Bridge's probed contracts live on the Benny runtime. The runtime endpoints are documented above for the maintaining agent; their live conformance is covered by the runtime's own tests.",
     "gating_tests": [
       "tests/bridge_page_test.mjs",

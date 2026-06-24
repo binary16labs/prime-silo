@@ -17,7 +17,9 @@ function normalizeChatMessage(message) {
 }
 
 function joinMessageContent(left = "", right = "") {
-  return [left, right].filter((content) => typeof content === "string" && content.length).join("\n\n");
+  return [left, right]
+    .filter((content) => typeof content === "string" && content.length)
+    .join("\n\n");
 }
 
 export function mergeConsecutiveChatMessages(messages) {

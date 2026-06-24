@@ -3,7 +3,9 @@ import { normalizeMaxLayer } from "../lib/customware/layer_limit.js";
 import { readModuleInfo } from "../lib/customware/module_manage.js";
 
 function readOptionalBoolean(value) {
-  const normalizedValue = String(value || "").trim().toLowerCase();
+  const normalizedValue = String(value || "")
+    .trim()
+    .toLowerCase();
 
   if (!normalizedValue) {
     return false;
@@ -82,9 +84,12 @@ export async function get(context) {
       projectRoot: context.projectRoot,
       runtimeParams: context.runtimeParams,
       stateSystem: context.stateSystem,
-      username: context.user?.username,
+      username: context.user?.username
     });
   } catch (error) {
-    throw createHttpError(error.message || "Module info lookup failed.", Number(error.statusCode) || 500);
+    throw createHttpError(
+      error.message || "Module info lookup failed.",
+      Number(error.statusCode) || 500
+    );
   }
 }

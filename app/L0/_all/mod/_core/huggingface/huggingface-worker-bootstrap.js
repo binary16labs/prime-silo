@@ -43,10 +43,7 @@ self.addEventListener("message", async (event) => {
     runtimeModule.handleWorkerMessage(event.data || {});
   } catch (error) {
     postMessageToHost(WORKER_OUTBOUND.CONSOLE_ERROR, {
-      args: [
-        "[huggingface-worker-bootstrap] Runtime import failed",
-        serializeError(error)
-      ],
+      args: ["[huggingface-worker-bootstrap] Runtime import failed", serializeError(error)],
       timestamp: Date.now()
     });
     postMessageToHost(WORKER_OUTBOUND.TRACE, {

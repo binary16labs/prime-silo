@@ -139,14 +139,22 @@ async function resolveBranchTarget(gitClient, remoteName, target) {
     return null;
   }
 
-  if ((await gitClient.hasRemoteBranch(remoteName, target)) || (await gitClient.hasLocalBranch(target))) {
+  if (
+    (await gitClient.hasRemoteBranch(remoteName, target)) ||
+    (await gitClient.hasLocalBranch(target))
+  ) {
     return target;
   }
 
   return null;
 }
 
-async function updateBranch(gitClient, remoteName, fetchedDefaultBranch, requestedBranchName = null) {
+async function updateBranch(
+  gitClient,
+  remoteName,
+  fetchedDefaultBranch,
+  requestedBranchName = null
+) {
   let branchName = requestedBranchName || (await gitClient.readCurrentBranch());
   if (!branchName) {
     branchName = await resolveReconnectBranch(gitClient, remoteName, fetchedDefaultBranch);
@@ -203,10 +211,19 @@ async function applyRevisionToBranch(gitClient, remoteName, branchName, resolved
   console.log(`Updated ${branchName} to ${resolvedTarget.label} at ${shortCommit}.`);
 }
 
-async function checkoutTargetRevision(gitClient, remoteName, fetchedDefaultBranch, target, resolvedTarget = null) {
-  const targetRevision = resolvedTarget || (await resolveTargetRevision(gitClient, remoteName, target));
+async function checkoutTargetRevision(
+  gitClient,
+  remoteName,
+  fetchedDefaultBranch,
+  target,
+  resolvedTarget = null
+) {
+  const targetRevision =
+    resolvedTarget || (await resolveTargetRevision(gitClient, remoteName, target));
   if (!targetRevision) {
-    throw new Error(`Could not resolve "${target}" as an exact tag or a short/full commit hash from ${remoteName}.`);
+    throw new Error(
+      `Could not resolve "${target}" as an exact tag or a short/full commit hash from ${remoteName}.`
+    );
   }
 
   const targetBranch = await resolveTargetBranch(gitClient, remoteName, fetchedDefaultBranch);
@@ -235,7 +252,8 @@ export const help = {
   arguments: [
     {
       name: "<branch>",
-      description: "Branch name to fast-forward from origin when used as the single positional target."
+      description:
+        "Branch name to fast-forward from origin when used as the single positional target."
     },
     {
       name: "<version-tag>",
@@ -249,7 +267,8 @@ export const help = {
   options: [
     {
       flag: "--branch <branch>",
-      description: "Force update of the named branch instead of inferring the current or positional target branch."
+      description:
+        "Force update of the named branch instead of inferring the current or positional target branch."
     }
   ],
   examples: [
@@ -264,7 +283,9 @@ export const help = {
 export async function execute(context) {
   const { branchName, target } = parseUpdateArgs(context.args);
   const gitClient = await createGitClient({ projectRoot: context.projectRoot });
-  const requestedBackend = String(process.env.GIT_BACKEND || "").trim().toLowerCase();
+  const requestedBackend = String(process.env.GIT_BACKEND || "")
+    .trim()
+    .toLowerCase();
   const updateRemoteUrl = resolveConfiguredUpdateRemoteUrl({
     env: process.env,
     projectRoot: context.projectRoot

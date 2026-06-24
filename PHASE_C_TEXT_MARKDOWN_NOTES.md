@@ -9,15 +9,15 @@ widget code  →  fetchAsAgent  →  /api/runtime/agent_sandbox/...
 
 ## What landed
 
-| Layer    | File                                                                                      |
-| -------- | ----------------------------------------------------------------------------------------- |
-| Runtime  | `runtime/benny/api/agent_sandbox_routes.py` — added `GET /read/{workspace}/{subdir}/{filename}` |
-| Runtime  | `runtime/tests/api/test_agent_sandbox.py` — 7 new tests for the read endpoint                  |
-| Widget   | `app/L0/_all/mod/_prime_silo/widgets/text/markdown/render.js` — pure-function MD renderer  |
-| Widget   | `app/L0/_all/mod/_prime_silo/widgets/text/markdown/index.js` — `createMarkdownWidget` factory |
-| Widget   | `app/L0/_all/mod/_prime_silo/widgets/text/markdown/markdown.css`                            |
-| Widget   | `app/L0/_all/mod/_prime_silo/widgets/text/markdown/AGENTS.md`                               |
-| Tests    | `tests/widgets_text_markdown_test.mjs` — 9 cases (renderer + widget factory)                |
+| Layer   | File                                                                                            |
+| ------- | ----------------------------------------------------------------------------------------------- |
+| Runtime | `runtime/benny/api/agent_sandbox_routes.py` — added `GET /read/{workspace}/{subdir}/{filename}` |
+| Runtime | `runtime/tests/api/test_agent_sandbox.py` — 7 new tests for the read endpoint                   |
+| Widget  | `app/L0/_all/mod/_prime_silo/widgets/text/markdown/render.js` — pure-function MD renderer       |
+| Widget  | `app/L0/_all/mod/_prime_silo/widgets/text/markdown/index.js` — `createMarkdownWidget` factory   |
+| Widget  | `app/L0/_all/mod/_prime_silo/widgets/text/markdown/markdown.css`                                |
+| Widget  | `app/L0/_all/mod/_prime_silo/widgets/text/markdown/AGENTS.md`                                   |
+| Tests   | `tests/widgets_text_markdown_test.mjs` — 9 cases (renderer + widget factory)                    |
 
 ## Why `text.markdown` first
 

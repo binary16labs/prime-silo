@@ -174,7 +174,13 @@ function stripInlineYamlComment(value) {
 function normalizeYamlScalar(value) {
   const candidate = String(value || "").trim();
 
-  if (!candidate || candidate === "|" || candidate === ">" || candidate.startsWith("|") || candidate.startsWith(">")) {
+  if (
+    !candidate ||
+    candidate === "|" ||
+    candidate === ">" ||
+    candidate.startsWith("|") ||
+    candidate.startsWith(">")
+  ) {
     return "";
   }
 
@@ -278,7 +284,10 @@ function parseZipEntries(bytes) {
   let offset = centralDirectoryOffset;
 
   for (let index = 0; index < entryCount; index += 1) {
-    if (offset + 46 > bytes.length || view.getUint32(offset, true) !== ZIP_CENTRAL_HEADER_SIGNATURE) {
+    if (
+      offset + 46 > bytes.length ||
+      view.getUint32(offset, true) !== ZIP_CENTRAL_HEADER_SIGNATURE
+    ) {
       throw new Error("The shared archive entry list is invalid.");
     }
 
@@ -317,7 +326,9 @@ async function inflateRawBytes(compressedBytes) {
     throw new Error("This browser cannot preview compressed shared spaces.");
   }
 
-  const stream = new Blob([compressedBytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+  const stream = new Blob([compressedBytes])
+    .stream()
+    .pipeThrough(new DecompressionStream("deflate-raw"));
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
@@ -377,7 +388,9 @@ function resolveZipSpaceRoot(entries) {
     return "";
   }
 
-  const candidateManifests = nonAuxiliaryEntries.filter((name) => /^[^/]+\/space\.yaml$/u.test(name));
+  const candidateManifests = nonAuxiliaryEntries.filter((name) =>
+    /^[^/]+\/space\.yaml$/u.test(name)
+  );
 
   if (candidateManifests.length !== 1) {
     throw new Error("The shared archive does not contain exactly one previewable space.");
@@ -455,9 +468,7 @@ async function buildSharePreviewFromArchive(archiveBytes) {
 
     if (entry.name.endsWith(".yaml")) {
       const widgetSource = utf8Decoder.decode(await readZipEntryBytes(archiveBytes, entry));
-      widgetName =
-        extractSimpleYamlScalar(widgetSource, "name") ||
-        widgetName;
+      widgetName = extractSimpleYamlScalar(widgetSource, "name") || widgetName;
     }
 
     if (widgetName) {
@@ -466,8 +477,7 @@ async function buildSharePreviewFromArchive(archiveBytes) {
   }
 
   const thumbnailEntry =
-    entryMap.get(rootPrefix + "thumbnail.webp") ||
-    entryMap.get(rootPrefix + "thumbnail.jpg");
+    entryMap.get(rootPrefix + "thumbnail.webp") || entryMap.get(rootPrefix + "thumbnail.jpg");
   let thumbnailUrl = "";
 
   if (thumbnailEntry) {
@@ -592,7 +602,10 @@ async function prepareSharePreview({ token, encryption = null, password = "" }) 
 }
 
 async function openSharedSpace(token) {
-  if (!(previewState.archiveBytes instanceof Uint8Array) || previewState.archiveBytes.length === 0) {
+  if (
+    !(previewState.archiveBytes instanceof Uint8Array) ||
+    previewState.archiveBytes.length === 0
+  ) {
     throw new Error("The shared space is not ready yet.");
   }
 
@@ -676,7 +689,10 @@ async function init() {
     try {
       ensureWebCrypto();
     } catch (error) {
-      setStatus(error.message || "Password-protected cloud shares are not supported in this browser.", "error");
+      setStatus(
+        error.message || "Password-protected cloud shares are not supported in this browser.",
+        "error"
+      );
       return;
     }
 
@@ -733,6 +749,4 @@ if (typeof window !== "undefined") {
   void init();
 }
 
-export {
-  buildSharePreviewFromArchive
-};
+export { buildSharePreviewFromArchive };

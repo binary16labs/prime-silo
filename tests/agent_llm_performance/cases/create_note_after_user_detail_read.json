@@ -9,10 +9,7 @@
     "require_single_separator": true,
     "require_code_after_separator": true,
     "require_valid_javascript": true,
-    "must_contain": [
-      "_____javascript",
-      "whoami.txt"
-    ],
+    "must_contain": ["_____javascript", "whoami.txt"],
     "must_match": [
       {
         "pattern": "space\\.api\\.fileWrite\\(",
@@ -29,9 +26,6 @@
         "flags": "u"
       }
     ],
-    "must_not_contain": [
-      "Your username is",
-      "username: pan"
-    ]
+    "must_not_contain": ["Your username is", "username: pan"]
   }
 }

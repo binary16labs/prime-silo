@@ -13,10 +13,10 @@ The goal: a single shell that gives operators one nav, one theme, one run timeli
 
 Prime-Silo splits surfaces into two zones, with different agent authority in each:
 
-| Zone               | Surfaces                                                                                                  | Agent authority                                                              | Where it lives           |
-| ------------------ | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------ |
-| **Deterministic**  | Manifest authoring, run execution, KG/code graph mutation, L3 writes, skill registry                      | Read-only. Drafts → HITL → `sign_manifest()` → run                           | Static React widgets     |
-| **Review (fluid)** | Post-run drill-down, frame inspection, reasoning trace, audit query, agent-composed analyst reports       | Read everything; write only to `agent_sandbox/{views,notes,drafts,skills}/` | Adaptive composed canvas |
+| Zone               | Surfaces                                                                                            | Agent authority                                                             | Where it lives           |
+| ------------------ | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------ |
+| **Deterministic**  | Manifest authoring, run execution, KG/code graph mutation, L3 writes, skill registry                | Read-only. Drafts → HITL → `sign_manifest()` → run                          | Static React widgets     |
+| **Review (fluid)** | Post-run drill-down, frame inspection, reasoning trace, audit query, agent-composed analyst reports | Read everything; write only to `agent_sandbox/{views,notes,drafts,skills}/` | Adaptive composed canvas |
 
 Pinned agent-composed layouts become `.aamp.view` bundles, HMAC-signed via the existing skin-pack signing path. Replaying a layout is deterministic and auditable.
 
@@ -25,26 +25,31 @@ See [`runtime/architecture/ADR-001-prime-silo-shell-fork.md`](runtime/architectu
 ## Documentation by Role
 
 **👤 Desktop App Users** — Start here:
+
 - **[QUICKSTART-EXE.md](QUICKSTART-EXE.md)** — Download, install, and launch the desktop app
 - [HOME-DIRECTORY.md](HOME-DIRECTORY.md) — Configure where your data is stored
 - [GUIDE.md](GUIDE.md) — Feature walkthroughs and UI help
 
 **💻 Command-Line Users** — Start here:
+
 - **[CLI.md](CLI.md)** — Complete reference for `node space` and `benny` commands
 - [QUICKSTART-EXE.md](QUICKSTART-EXE.md) — Desktop setup (if needed)
 - [GUIDE.md](GUIDE.md) — Step-by-step usage examples
 
 **🤖 AI Agents** — Start here:
+
 - **[AGENT-AWARENESS.md](AGENT-AWARENESS.md)** — System state, API endpoints, sandbox permissions
 - [CLI.md](CLI.md) — Available CLI tools for agents
 - [HOME-DIRECTORY.md](HOME-DIRECTORY.md) — Workspace file structure
 
 **🔧 Developers** — Start here:
+
 - [AGENTS.md](AGENTS.md) — Architecture rules and contracts
 - [`runtime/architecture/ADR-001-prime-silo-shell-fork.md`](runtime/architecture/ADR-001-prime-silo-shell-fork.md) — Design decisions
 - [`architecture/OPERATING_MANUAL.md`](architecture/OPERATING_MANUAL.md) — Deep-dive dev setup
 
 **📚 Full Documentation Index:**
+
 - See [INDEX.md](INDEX.md) for the complete navigation map
 
 ---
@@ -56,7 +61,7 @@ See [`runtime/architecture/ADR-001-prime-silo-shell-fork.md`](runtime/architectu
 # → open http://localhost:4173
 ```
 
-**Companion — [Memo-Ray](https://github.com/binary16labs/memo-ray):** the *memory graph* of the cognitive mesh — the third first-class graph beside the knowledge graph (documents) and code graph (AST). It X-rays Claude + Antigravity session logs into an explorable organic lineage map so the operator never has to be the institutional memory. Clone it beside this repo (or set `MEMORAY_DIR`); `.\scripts\dev.ps1` auto-boots it when enabled.
+**Companion — [Memo-Ray](https://github.com/binary16labs/memo-ray):** the _memory graph_ of the cognitive mesh — the third first-class graph beside the knowledge graph (documents) and code graph (AST). It X-rays Claude + Antigravity session logs into an explorable organic lineage map so the operator never has to be the institutional memory. Clone it beside this repo (or set `MEMORAY_DIR`); `.\scripts\dev.ps1` auto-boots it when enabled.
 
 As of **Phase M1** the memory graph is **built into the shell** — one capability on four surfaces, all over a single configurable proxy (`/api/memoray`, endpoint via `MEMORAY_BASE_URL` or the wizard manifest):
 
@@ -69,7 +74,7 @@ As of **Phase M1** the memory graph is **built into the shell** — one capabili
 
 **Phase B** ropes the scattered pages into a single calm surface at **`#/_prime_silo/bridge`** — designed for one mental model, not six tabs. A mode rail (Pulse · Memory · Documents · Code 3D · Flows · Runs), one stage, and **Benny** (the onscreen agent) in the dock, grounded in whatever's on screen so you can ask "explain this" / "what did I work on" and get a real answer with a deep link back.
 
-- **Golden paths, not copy-paste** — *Flows*: type a requirement → **Plan** renders the DAG → **Run** flips to live observability. *Documents*: pick a workspace → manage files → **Ingest** turns documents into semantic triples (rendered as the knowledge graph) → **Correlate** links them to the code graph.
+- **Golden paths, not copy-paste** — _Flows_: type a requirement → **Plan** renders the DAG → **Run** flips to live observability. _Documents_: pick a workspace → manage files → **Ingest** turns documents into semantic triples (rendered as the knowledge graph) → **Correlate** links them to the code graph.
 - **3D when you want it** — Code 3D and the knowledge graph default to an offline-safe 2D layout with a one-click 3D (WebGL) toggle.
 - **Same thesis** — declared as a signed manifest ([`manifests/integrations/bridge.integration.json`](manifests/integrations/bridge.integration.json)) covered by the self-audit, and ubiquitous: page + `benny-pilot` agent skill + `node space bridge <status|plan|run|ingest|open>`. Configurable landing via `BRIDGE_DEFAULT_MODE`. Pulse carries Memo-Ray's `/api/lifelog` activity feed (sessions + artifacts + git commits).
 
@@ -153,4 +158,4 @@ Space-agent shell code under [`LICENSE`](LICENSE) (inherited from upstream). The
 
 ---
 
-*Prime-Silo — engineered by Binary 16.*
+_Prime-Silo — engineered by Binary 16._

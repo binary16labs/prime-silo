@@ -82,9 +82,14 @@ function createUserInternal(projectRoot, username, password, options = {}, authK
   }
 
   ensureUserStructure(projectRoot, normalizedUsername, runtimeParams);
-  writeUserConfig(projectRoot, normalizedUsername, {
-    full_name: normalizeFullName(options.fullName, normalizedUsername)
-  }, runtimeParams);
+  writeUserConfig(
+    projectRoot,
+    normalizedUsername,
+    {
+      full_name: normalizeFullName(options.fullName, normalizedUsername)
+    },
+    runtimeParams
+  );
   writeUserPasswordVerifier(
     projectRoot,
     normalizedUsername,
@@ -144,10 +149,15 @@ function setUserPassword(projectRoot, username, password, options = {}) {
 
   ensureUserStructure(projectRoot, normalizedUsername, runtimeParams);
 
-  writeUserConfig(projectRoot, normalizedUsername, {
-    ...removeLegacyPasswordFields(currentConfig),
-    full_name: normalizeFullName(currentConfig.full_name, normalizedUsername)
-  }, runtimeParams);
+  writeUserConfig(
+    projectRoot,
+    normalizedUsername,
+    {
+      ...removeLegacyPasswordFields(currentConfig),
+      full_name: normalizeFullName(currentConfig.full_name, normalizedUsername)
+    },
+    runtimeParams
+  );
   writeUserPasswordVerifier(
     projectRoot,
     normalizedUsername,
@@ -160,7 +170,10 @@ function setUserPassword(projectRoot, username, password, options = {}) {
       projectRoot,
       runtimeParams
     },
-    [`/app/L2/${normalizedUsername}/meta/password.json`, `/app/L2/${normalizedUsername}/meta/logins.json`]
+    [
+      `/app/L2/${normalizedUsername}/meta/password.json`,
+      `/app/L2/${normalizedUsername}/meta/logins.json`
+    ]
   );
 
   if (userCryptoRecord) {
@@ -181,7 +194,9 @@ function setUserPassword(projectRoot, username, password, options = {}) {
 
 function createGuestUser(projectRoot, options = {}) {
   const authKeys = loadAuthKeys(projectRoot);
-  const password = String(options.password || createRandomString(GENERATED_PASSWORD_LENGTH, GENERATED_PASSWORD_ALPHABET));
+  const password = String(
+    options.password || createRandomString(GENERATED_PASSWORD_LENGTH, GENERATED_PASSWORD_ALPHABET)
+  );
   const runtimeParams = options.runtimeParams || null;
 
   for (let attempt = 0; attempt < GUEST_CREATION_MAX_ATTEMPTS; attempt += 1) {
@@ -247,7 +262,9 @@ function deleteGuestUser(projectRoot, username, options = {}) {
   const normalizedUsername = normalizeUsername(username);
 
   if (!isGuestUsername(normalizedUsername)) {
-    throw new Error(`Refusing to delete non-guest user through deleteGuestUser(): ${normalizedUsername}`);
+    throw new Error(
+      `Refusing to delete non-guest user through deleteGuestUser(): ${normalizedUsername}`
+    );
   }
 
   return deleteUser(projectRoot, normalizedUsername, options);

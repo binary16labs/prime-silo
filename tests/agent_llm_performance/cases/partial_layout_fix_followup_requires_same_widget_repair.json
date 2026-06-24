@@ -9,10 +9,7 @@
     "require_single_separator": true,
     "require_code_after_separator": true,
     "require_valid_javascript": true,
-    "must_contain": [
-      "_____javascript",
-      "iphone-weather"
-    ],
+    "must_contain": ["_____javascript", "iphone-weather"],
     "must_match_any": [
       {
         "pattern": "readWidget\\(\"iphone-weather\"\\)",

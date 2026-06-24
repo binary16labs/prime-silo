@@ -1,9 +1,7 @@
 {
   "generated_at": "2026-04-13T11:05:44.842Z",
   "generation_id": "2026-04-13T11-05-44-842Z",
-  "models": [
-    "openai/gpt-5.4-mini"
-  ],
+  "models": ["openai/gpt-5.4-mini"],
   "results": [
     {
       "prompt_id": "086A_082A_no_half_thrust_onboarding",

@@ -2,7 +2,8 @@ import { DEFAULT_ROUTE_PATH, parseRouteTarget } from "../../router/route-path.js
 import { SPACES_ROUTE_PATH } from "../constants.js";
 import { installExampleSpace, listSpaces } from "../storage.js";
 
-export const FIRST_LOGIN_SPACE_SOURCE_PATH = "L0/_all/mod/_core/spaces/onboarding/onboarding_space/";
+export const FIRST_LOGIN_SPACE_SOURCE_PATH =
+  "L0/_all/mod/_core/spaces/onboarding/onboarding_space/";
 
 function normalizePathname(pathname) {
   const normalizedPathname = String(pathname || "").trim();
@@ -34,7 +35,10 @@ export function buildFirstLoginSpaceRoute(spaceId) {
   });
 }
 
-export function replaceFirstLoginRouteHash(nextHash, { historyLike = globalThis.history, locationLike = globalThis.location } = {}) {
+export function replaceFirstLoginRouteHash(
+  nextHash,
+  { historyLike = globalThis.history, locationLike = globalThis.location } = {}
+) {
   const normalizedHash = String(nextHash || "").trim();
 
   if (!normalizedHash || String(locationLike?.hash || "").trim() === normalizedHash) {

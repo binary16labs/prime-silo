@@ -2,7 +2,10 @@ import { createHttpError } from "../lib/customware/file_access.js";
 import { getLayerHistoryOperationPreview } from "../lib/customware/git_history.js";
 
 function rethrowGitHistoryHttpError(error, fallbackMessage) {
-  const httpError = createHttpError(error.message || fallbackMessage, Number(error.statusCode) || 500);
+  const httpError = createHttpError(
+    error.message || fallbackMessage,
+    Number(error.statusCode) || 500
+  );
   httpError.cause = error;
   throw httpError;
 }

@@ -15,13 +15,21 @@ function readPath(context) {
 function readRecursive(context) {
   const payload = readPayload(context);
   const rawValue =
-    payload.recursive !== undefined ? payload.recursive : context.params.recursive !== undefined ? context.params.recursive : false;
+    payload.recursive !== undefined
+      ? payload.recursive
+      : context.params.recursive !== undefined
+        ? context.params.recursive
+        : false;
 
   if (typeof rawValue === "boolean") {
     return rawValue;
   }
 
-  return ["1", "true", "yes", "on"].includes(String(rawValue || "").trim().toLowerCase());
+  return ["1", "true", "yes", "on"].includes(
+    String(rawValue || "")
+      .trim()
+      .toLowerCase()
+  );
 }
 
 function readAccess(context) {
@@ -37,7 +45,11 @@ function readBooleanOption(context, name) {
     return rawValue;
   }
 
-  return ["1", "true", "yes", "on"].includes(String(rawValue || "").trim().toLowerCase());
+  return ["1", "true", "yes", "on"].includes(
+    String(rawValue || "")
+      .trim()
+      .toLowerCase()
+  );
 }
 
 async function handleList(context) {

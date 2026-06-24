@@ -134,9 +134,7 @@ async function testGetRegistryThrowsBeforeLoad() {
 
 async function testNonArrayResponseRejected() {
   widgetRegistryTesting.resetCache();
-  const restore = installFetchStub(async () =>
-    jsonResponse({ unexpected: "shape" })
-  );
+  const restore = installFetchStub(async () => jsonResponse({ unexpected: "shape" }));
 
   try {
     await assert.rejects(loadRegistry(), /not an array/i);

@@ -52,21 +52,36 @@
               <div class="webllm-thread" x-ref="thread">
                 <template x-if="!$store.webllm.messages.length">
                   <div class="webllm-empty-state">
-                    <p>Load a model, set a system prompt, and send a message to start a simple browser-only chat.</p>
+                    <p>
+                      Load a model, set a system prompt, and send a message to start a simple
+                      browser-only chat.
+                    </p>
                   </div>
                 </template>
 
                 <template x-for="message in $store.webllm.messages" :key="message.id">
                   <article class="webllm-message" :class="`webllm-message--${message.role}`">
                     <header class="webllm-message-header">
-                      <span class="webllm-message-role" x-text="message.role === 'assistant' ? 'Assistant' : 'User'"></span>
-                      <span class="webllm-message-finish" x-text="message.finishReason || (message.isStreaming ? 'streaming' : '')"></span>
+                      <span
+                        class="webllm-message-role"
+                        x-text="message.role === 'assistant' ? 'Assistant' : 'User'"
+                      ></span>
+                      <span
+                        class="webllm-message-finish"
+                        x-text="message.finishReason || (message.isStreaming ? 'streaming' : '')"
+                      ></span>
                     </header>
-                    <pre class="webllm-message-body" x-text="message.content || (message.isStreaming ? 'Generating...' : '')"></pre>
+                    <pre
+                      class="webllm-message-body"
+                      x-text="message.content || (message.isStreaming ? 'Generating...' : '')"
+                    ></pre>
 
                     <template x-if="message.metrics">
                       <div class="webllm-message-meta">
-                        <span class="webllm-message-meta-item webllm-message-meta-item--model" x-show="message.modelId">
+                        <span
+                          class="webllm-message-meta-item webllm-message-meta-item--model"
+                          x-show="message.modelId"
+                        >
                           <strong x-text="message.modelId"></strong>
                         </span>
                         <span
@@ -75,7 +90,9 @@
                           title="Tokens per second"
                         >
                           t/s
-                          <strong x-text="$store.webllm.formatTokenRate(message.metrics.tokensPerSecond)"></strong>
+                          <strong
+                            x-text="$store.webllm.formatTokenRate(message.metrics.tokensPerSecond)"
+                          ></strong>
                         </span>
                         <span
                           class="webllm-message-meta-item"
@@ -83,7 +100,9 @@
                           title="Tokens per minute"
                         >
                           t/min
-                          <strong x-text="$store.webllm.formatTokenRate(message.metrics.tokensPerMinute)"></strong>
+                          <strong
+                            x-text="$store.webllm.formatTokenRate(message.metrics.tokensPerMinute)"
+                          ></strong>
                         </span>
                         <span
                           class="webllm-message-meta-item"
@@ -101,7 +120,9 @@
                           title="Time to first token"
                         >
                           ttft
-                          <strong x-text="$store.webllm.formatDuration(message.metrics.timeToFirstTokenSeconds)"></strong>
+                          <strong
+                            x-text="$store.webllm.formatDuration(message.metrics.timeToFirstTokenSeconds)"
+                          ></strong>
                         </span>
                         <span
                           class="webllm-message-meta-item"
@@ -109,7 +130,9 @@
                           title="End-to-end latency"
                         >
                           e2e
-                          <strong x-text="$store.webllm.formatDuration(message.metrics.endToEndLatencySeconds)"></strong>
+                          <strong
+                            x-text="$store.webllm.formatDuration(message.metrics.endToEndLatencySeconds)"
+                          ></strong>
                         </span>
                       </div>
                     </template>
@@ -117,7 +140,10 @@
                 </template>
               </div>
 
-              <form class="webllm-composer" @submit.prevent="$store.webllm.handleComposerPrimaryAction()">
+              <form
+                class="webllm-composer"
+                @submit.prevent="$store.webllm.handleComposerPrimaryAction()"
+              >
                 <textarea
                   x-ref="composer"
                   rows="2"

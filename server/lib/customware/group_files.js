@@ -1,10 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import {
-  normalizeEntityId,
-  resolveProjectAbsolutePath
-} from "./layout.js";
+import { normalizeEntityId, resolveProjectAbsolutePath } from "./layout.js";
 import { recordAppPathMutations } from "./git_history.js";
 import {
   parseSimpleYaml,
@@ -14,10 +11,13 @@ import {
 const GROUP_WRITE_LAYER = "L1";
 
 function normalizeStringList(values) {
-  return [...new Set((Array.isArray(values) ? values : values ? [values] : [])
-    .map((value) => normalizeEntityId(value))
-    .filter(Boolean))]
-    .sort((left, right) => left.localeCompare(right));
+  return [
+    ...new Set(
+      (Array.isArray(values) ? values : values ? [values] : [])
+        .map((value) => normalizeEntityId(value))
+        .filter(Boolean)
+    )
+  ].sort((left, right) => left.localeCompare(right));
 }
 
 function getNormalizedGroupConfig(config = {}) {
@@ -45,7 +45,11 @@ function buildGroupConfigAbsolutePath(projectRoot, groupId, runtimeParams = null
 
 function ensureGroupDirectory(projectRoot, groupId, runtimeParams = null) {
   const normalizedGroupId = normalizeEntityId(groupId);
-  const groupConfigPath = buildGroupConfigAbsolutePath(projectRoot, normalizedGroupId, runtimeParams);
+  const groupConfigPath = buildGroupConfigAbsolutePath(
+    projectRoot,
+    normalizedGroupId,
+    runtimeParams
+  );
   const groupDir = path.dirname(groupConfigPath);
   const existed = fs.existsSync(groupDir);
 
@@ -86,11 +90,7 @@ function writeGroupConfig(projectRoot, groupId, config, runtimeParams = null) {
   const normalizedGroupId = normalizeEntityId(groupId);
   const filePath = buildGroupConfigAbsolutePath(projectRoot, groupId, runtimeParams);
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(
-    filePath,
-    serializeSimpleYaml(getNormalizedGroupConfig(config)),
-    "utf8"
-  );
+  fs.writeFileSync(filePath, serializeSimpleYaml(getNormalizedGroupConfig(config)), "utf8");
   recordAppPathMutations(
     {
       projectRoot,
@@ -132,7 +132,9 @@ function createGroup(projectRoot, groupId, options = {}) {
 
 function addGroupEntry(projectRoot, groupId, entryType, entryId, options = {}) {
   const runtimeParams = options.runtimeParams || null;
-  const normalizedEntryType = String(entryType || "").trim().toLowerCase();
+  const normalizedEntryType = String(entryType || "")
+    .trim()
+    .toLowerCase();
   const key =
     normalizedEntryType === "group"
       ? options.manager
@@ -151,17 +153,24 @@ function addGroupEntry(projectRoot, groupId, entryType, entryId, options = {}) {
   ensureGroupDirectory(projectRoot, groupId, runtimeParams);
   const config = readGroupConfig(projectRoot, groupId, runtimeParams);
 
-  return writeGroupConfig(projectRoot, groupId, {
-    ...config,
-    [key]: normalizeStringList([...(config[key] || []), entryId])
-  }, runtimeParams);
+  return writeGroupConfig(
+    projectRoot,
+    groupId,
+    {
+      ...config,
+      [key]: normalizeStringList([...(config[key] || []), entryId])
+    },
+    runtimeParams
+  );
 }
 
 function removeGroupEntry(projectRoot, groupId, entryType, entryId, options = {}) {
   const normalizedEntryId = normalizeEntityId(entryId);
   const runtimeParams = options.runtimeParams || null;
   const config = readGroupConfig(projectRoot, groupId, runtimeParams);
-  const normalizedEntryType = String(entryType || "").trim().toLowerCase();
+  const normalizedEntryType = String(entryType || "")
+    .trim()
+    .toLowerCase();
   const key =
     normalizedEntryType === "group"
       ? options.manager
@@ -181,10 +190,15 @@ function removeGroupEntry(projectRoot, groupId, entryType, entryId, options = {}
     (existingEntryId) => existingEntryId !== normalizedEntryId
   );
 
-  return writeGroupConfig(projectRoot, groupId, {
-    ...config,
-    [key]: nextValues
-  }, runtimeParams);
+  return writeGroupConfig(
+    projectRoot,
+    groupId,
+    {
+      ...config,
+      [key]: nextValues
+    },
+    runtimeParams
+  );
 }
 
 export {

@@ -32,21 +32,33 @@ function occupyPort(port, host = "127.0.0.1") {
 async function writeRegistry(dir, members) {
   await fs.writeFile(
     path.join(dir, "apps.registry.json"),
-    JSON.stringify({ schema: "aamp.registry/1", name: "test", members: members.map((m) => ({ id: m.id, path: `./${m.id}` })) }, null, 2)
+    JSON.stringify(
+      {
+        schema: "aamp.registry/1",
+        name: "test",
+        members: members.map((m) => ({ id: m.id, path: `./${m.id}` }))
+      },
+      null,
+      2
+    )
   );
   for (const m of members) {
     const appDir = path.join(dir, m.id);
     await fs.mkdir(appDir, { recursive: true });
     await fs.writeFile(
       path.join(appDir, "app.manifest.json"),
-      JSON.stringify({
-        schema: "aamp.app/1",
-        id: m.id,
-        name: m.id,
-        role: m.role,
-        requires: m.requires || [],
-        provides: [{ service: m.service, preferredPort: m.preferredPort, portRange: m.portRange }]
-      }, null, 2)
+      JSON.stringify(
+        {
+          schema: "aamp.app/1",
+          id: m.id,
+          name: m.id,
+          role: m.role,
+          requires: m.requires || [],
+          provides: [{ service: m.service, preferredPort: m.preferredPort, portRange: m.portRange }]
+        },
+        null,
+        2
+      )
     );
   }
 }
@@ -63,19 +75,45 @@ async function main() {
   const env = { ...process.env, BINARY16_REGISTRY_DIR: tmp };
 
   await writeRegistry(tmp, [
-    { id: "shell-app", role: "shell", requires: ["svc-app"], service: "ui", preferredPort: 39881, portRange: [39881, 39890] },
-    { id: "svc-app", role: "service", requires: [], service: "api", preferredPort: 39871, portRange: [39871, 39880] }
+    {
+      id: "shell-app",
+      role: "shell",
+      requires: ["svc-app"],
+      service: "ui",
+      preferredPort: 39881,
+      portRange: [39881, 39890]
+    },
+    {
+      id: "svc-app",
+      role: "service",
+      requires: [],
+      service: "api",
+      preferredPort: 39871,
+      portRange: [39871, 39880]
+    }
   ]);
 
   const { apps } = loadRegistry(tmp, env);
   const ordered = topoSortApps(apps).map((a) => a.member.id);
-  assert.deepEqual(ordered, ["svc-app", "shell-app"], "service resolves before the shell that requires it");
+  assert.deepEqual(
+    ordered,
+    ["svc-app", "shell-app"],
+    "service resolves before the shell that requires it"
+  );
 
   // --- preferred ports when free ---
   const first = await resolvePorts({ startDir: tmp, env });
   assert.equal(first.lock.schema, LOCK_SCHEMA);
-  assert.equal(first.lock.services["svc-app/api"].port, 39871, "service takes its preferred port when free");
-  assert.equal(first.lock.services["shell-app/ui"].port, 39881, "shell takes its preferred port when free");
+  assert.equal(
+    first.lock.services["svc-app/api"].port,
+    39871,
+    "service takes its preferred port when free"
+  );
+  assert.equal(
+    first.lock.services["shell-app/ui"].port,
+    39881,
+    "shell takes its preferred port when free"
+  );
 
   // lockfile is written and the reader resolves it
   const urlFromLock = lockServiceUrl({ appId: "svc-app", service: "api", startDir: tmp, env });
@@ -85,7 +123,11 @@ async function main() {
   const blocker = await occupyPort(39871);
   try {
     const second = await resolvePorts({ startDir: tmp, env });
-    assert.equal(second.lock.services["svc-app/api"].port, 39872, "service auto-bumps to the next free port in range");
+    assert.equal(
+      second.lock.services["svc-app/api"].port,
+      39872,
+      "service auto-bumps to the next free port in range"
+    );
   } finally {
     await new Promise((r) => blocker.close(r));
   }
@@ -93,7 +135,6 @@ async function main() {
   // --- exhausted range → clear error ---
   const blockers = [];
   for (let p = 39871; p <= 39880; p += 1) {
-    // eslint-disable-next-line no-await-in-loop
     blockers.push(await occupyPort(p));
   }
   try {

@@ -6,12 +6,14 @@ import { setTimeout as delay } from "node:timers/promises";
 import { inspect } from "node:util";
 
 const require = createRequire(import.meta.url);
-const {
-  PROJECT_ROOT,
-  loadPackagingDependency
-} = require("../packaging/scripts/tooling.js");
+const { PROJECT_ROOT, loadPackagingDependency } = require("../packaging/scripts/tooling.js");
 
-const HARNESS_ENTRY_PATH = path.join(PROJECT_ROOT, "tests", "browser_component_harness", "main.cjs");
+const HARNESS_ENTRY_PATH = path.join(
+  PROJECT_ROOT,
+  "tests",
+  "browser_component_harness",
+  "main.cjs"
+);
 const PARENT_IPC_ENV = "SPACE_BROWSER_COMPONENT_HARNESS_PARENT_IPC";
 const OPEN_DEVTOOLS_ENV = "SPACE_BROWSER_COMPONENT_HARNESS_OPEN_DEVTOOLS";
 const IPC_TIMEOUT_MS = 10_000;
@@ -23,31 +25,33 @@ function createRequestId() {
 }
 
 function printHelp() {
-  process.stdout.write([
-    "Browser Component Harness CLI",
-    "",
-    "Commands:",
-    "  help",
-    "  log",
-    "  probe",
-    "  open <url>",
-    "  navigate <url>",
-    "  state",
-    "  dom [selectorsJson]",
-    "  content [selectorsJson]",
-    "  detail <ref>",
-    "  click <ref>",
-    "  type <ref> <text>",
-    "  type-submit <ref> <text>",
-    "  submit <ref>",
-    "  scroll <ref>",
-    "  back",
-    "  forward",
-    "  reload",
-    "  raw <command> [jsonArrayArgs]",
-    "  quit",
-    ""
-  ].join("\n"));
+  process.stdout.write(
+    [
+      "Browser Component Harness CLI",
+      "",
+      "Commands:",
+      "  help",
+      "  log",
+      "  probe",
+      "  open <url>",
+      "  navigate <url>",
+      "  state",
+      "  dom [selectorsJson]",
+      "  content [selectorsJson]",
+      "  detail <ref>",
+      "  click <ref>",
+      "  type <ref> <text>",
+      "  type-submit <ref> <text>",
+      "  submit <ref>",
+      "  scroll <ref>",
+      "  back",
+      "  forward",
+      "  reload",
+      "  raw <command> [jsonArrayArgs]",
+      "  quit",
+      ""
+    ].join("\n")
+  );
 }
 
 async function commandExists(command) {
@@ -80,16 +84,13 @@ async function startVirtualDisplay() {
   for (let attempt = 0; attempt < 10; attempt += 1) {
     const displayNumber = 90 + Math.floor(Math.random() * 400);
     const display = `:${displayNumber}`;
-    const xvfb = spawn(displayBinary, [
-      display,
-      "-screen",
-      "0",
-      "1440x900x24",
-      "-nolisten",
-      "tcp"
-    ], {
-      stdio: "ignore"
-    });
+    const xvfb = spawn(
+      displayBinary,
+      [display, "-screen", "0", "1440x900x24", "-nolisten", "tcp"],
+      {
+        stdio: "ignore"
+      }
+    );
 
     await delay(1000);
 
@@ -185,7 +186,12 @@ function parseCommand(line) {
     };
   }
 
-  if (normalizedCommand === "state" || normalizedCommand === "back" || normalizedCommand === "forward" || normalizedCommand === "reload") {
+  if (
+    normalizedCommand === "state" ||
+    normalizedCommand === "back" ||
+    normalizedCommand === "forward" ||
+    normalizedCommand === "reload"
+  ) {
     return {
       args: [],
       command: normalizedCommand,
@@ -201,7 +207,12 @@ function parseCommand(line) {
     };
   }
 
-  if (normalizedCommand === "detail" || normalizedCommand === "click" || normalizedCommand === "submit" || normalizedCommand === "scroll") {
+  if (
+    normalizedCommand === "detail" ||
+    normalizedCommand === "click" ||
+    normalizedCommand === "submit" ||
+    normalizedCommand === "scroll"
+  ) {
     return {
       args: [parseInteger(restTokens[0], normalizedCommand)],
       command: normalizedCommand,
@@ -251,11 +262,7 @@ function parseCommand(line) {
 
 function spawnHarness(display, { openDevTools = false } = {}) {
   const electronBinary = loadPackagingDependency("electron");
-  const child = spawn(electronBinary, [
-    "--no-sandbox",
-    "--disable-gpu",
-    HARNESS_ENTRY_PATH
-  ], {
+  const child = spawn(electronBinary, ["--no-sandbox", "--disable-gpu", HARNESS_ENTRY_PATH], {
     cwd: PROJECT_ROOT,
     env: {
       ...process.env,
@@ -321,7 +328,11 @@ function formatHarnessLogEntry(entry = {}) {
     return "";
   }
 
-  if (!entry.details || typeof entry.details !== "object" || Object.keys(entry.details).length === 0) {
+  if (
+    !entry.details ||
+    typeof entry.details !== "object" ||
+    Object.keys(entry.details).length === 0
+  ) {
     return message;
   }
 
@@ -335,7 +346,12 @@ function formatHarnessLogEntry(entry = {}) {
 
 function printBufferedLogs(logStore) {
   const progressOutput = logStore.progressEntries
-    .filter((entry) => !String(entry?.message || "").trim().startsWith("[renderer] "))
+    .filter(
+      (entry) =>
+        !String(entry?.message || "")
+          .trim()
+          .startsWith("[renderer] ")
+    )
     .map(formatHarnessLogEntry)
     .filter(Boolean)
     .join("\n\n");
@@ -359,11 +375,11 @@ function printBufferedLogs(logStore) {
 
 function printCommandResult(command, result) {
   if (
-    command === "content"
-    && result
-    && typeof result === "object"
-    && typeof result.document === "string"
-    && Object.keys(result).length === 1
+    command === "content" &&
+    result &&
+    typeof result === "object" &&
+    typeof result.document === "string" &&
+    Object.keys(result).length === 1
   ) {
     process.stdout.write(`${result.document}\n`);
     return;
@@ -372,9 +388,7 @@ function printCommandResult(command, result) {
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }
 
-async function stopHarness(child, {
-  forceAfterMs = 5000
-} = {}) {
+async function stopHarness(child, { forceAfterMs = 5000 } = {}) {
   if (!child || child.exitCode != null || child.killed) {
     return;
   }
@@ -394,39 +408,24 @@ async function stopHarness(child, {
     }
   } catch {
     child.kill("SIGTERM");
-    await Promise.race([
-      exitPromise,
-      delay(forceAfterMs)
-    ]);
+    await Promise.race([exitPromise, delay(forceAfterMs)]);
     if (child.exitCode == null && !child.killed) {
       child.kill("SIGKILL");
-      await Promise.race([
-        exitPromise,
-        delay(5000)
-      ]);
+      await Promise.race([exitPromise, delay(5000)]);
     }
     return;
   }
 
-  await Promise.race([
-    exitPromise,
-    delay(forceAfterMs)
-  ]);
+  await Promise.race([exitPromise, delay(forceAfterMs)]);
 
   if (child.exitCode == null && !child.killed) {
     child.kill("SIGTERM");
-    await Promise.race([
-      exitPromise,
-      delay(5000)
-    ]);
+    await Promise.race([exitPromise, delay(5000)]);
   }
 
   if (child.exitCode == null && !child.killed) {
     child.kill("SIGKILL");
-    await Promise.race([
-      exitPromise,
-      delay(5000)
-    ]);
+    await Promise.race([exitPromise, delay(5000)]);
   }
 }
 
@@ -483,14 +482,19 @@ async function sendCommand(child, command, args = []) {
     }, IPC_TIMEOUT_MS);
 
     const handleMessage = (payload = {}) => {
-      if (String(payload?.type || "") !== "command_result" || String(payload?.requestId || "") !== requestId) {
+      if (
+        String(payload?.type || "") !== "command_result" ||
+        String(payload?.requestId || "") !== requestId
+      ) {
         return;
       }
 
       settled = true;
       cleanup();
       if (payload?.ok === false) {
-        reject(new Error(String(payload?.error?.message || `Harness command "${command}" failed.`)));
+        reject(
+          new Error(String(payload?.error?.message || `Harness command "${command}" failed.`))
+        );
         return;
       }
 
@@ -506,7 +510,11 @@ async function sendCommand(child, command, args = []) {
     const handleError = (error) => {
       settled = true;
       cleanup();
-      reject(error instanceof Error ? error : new Error(String(error || `Harness command "${command}" failed.`)));
+      reject(
+        error instanceof Error
+          ? error
+          : new Error(String(error || `Harness command "${command}" failed.`))
+      );
     };
 
     const cleanup = () => {
@@ -526,20 +534,23 @@ async function sendCommand(child, command, args = []) {
       return;
     }
 
-    child.send({
-      args,
-      command,
-      requestId,
-      type: "command"
-    }, (error) => {
-      if (!error || settled) {
-        return;
-      }
+    child.send(
+      {
+        args,
+        command,
+        requestId,
+        type: "command"
+      },
+      (error) => {
+        if (!error || settled) {
+          return;
+        }
 
-      settled = true;
-      cleanup();
-      reject(error);
-    });
+        settled = true;
+        cleanup();
+        reject(error);
+      }
+    );
   });
 }
 
@@ -571,7 +582,9 @@ async function runCli() {
       return;
     }
 
-    process.stdout.write(`Harness ready at ${String(probe?.state?.currentUrl || "about:blank")}.\n`);
+    process.stdout.write(
+      `Harness ready at ${String(probe?.state?.currentUrl || "about:blank")}.\n`
+    );
     printHelp();
 
     const rl = readline.createInterface({

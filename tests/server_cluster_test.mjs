@@ -149,7 +149,10 @@ test("clustered server keeps writes and auth visible across workers", async (tes
       await response.arrayBuffer();
     }
 
-    assert.deepEqual([...seenWorkers].sort((left, right) => left - right), [1, 2]);
+    assert.deepEqual(
+      [...seenWorkers].sort((left, right) => left - right),
+      [1, 2]
+    );
   });
 
   await testContext.test("single-user file writes read back across workers", async (subtest) => {

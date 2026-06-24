@@ -1,7 +1,13 @@
 <html>
   <head>
-    <link rel="stylesheet" href="/mod/_prime_silo/widgets/memoray/overview_cards/overview_cards.css" />
-    <link rel="stylesheet" href="/mod/_prime_silo/widgets/memoray/lineage_graph/lineage_graph.css" />
+    <link
+      rel="stylesheet"
+      href="/mod/_prime_silo/widgets/memoray/overview_cards/overview_cards.css"
+    />
+    <link
+      rel="stylesheet"
+      href="/mod/_prime_silo/widgets/memoray/lineage_graph/lineage_graph.css"
+    />
     <link rel="stylesheet" href="/mod/_prime_silo/memory/memory.css" />
     <script type="module" src="/mod/_prime_silo/memory/memory.js"></script>
   </head>
@@ -17,26 +23,41 @@
         <p class="prime-silo-memory__eyebrow">Review zone · cognitive mesh memory graph</p>
         <h1 class="prime-silo-memory__title">Memory</h1>
         <p class="prime-silo-memory__subtitle">
-          Your agent sessions (Claude + Antigravity), X-rayed into an explorable lineage map. The third
-          graph beside the knowledge graph (documents) and the code graph (AST). Read-only.
+          Your agent sessions (Claude + Antigravity), X-rayed into an explorable lineage map. The
+          third graph beside the knowledge graph (documents) and the code graph (AST). Read-only.
         </p>
       </header>
 
       <!-- Conformance strip: the integration's self-audit, surfaced for humans. -->
-      <div class="prime-silo-memory__conformance" :data-status="conformance.status" x-show="conformance.status">
+      <div
+        class="prime-silo-memory__conformance"
+        :data-status="conformance.status"
+        x-show="conformance.status"
+      >
         <span class="prime-silo-memory__conformance-dot"></span>
-        <span x-show="conformance.status === 'pass'">Integration conformance: <strong>healthy</strong></span>
-        <span x-show="conformance.status === 'drift'">Integration conformance: <strong x-text="`drift (${conformance.driftCount})`"></strong> — run <code>node space memory audit</code></span>
-        <span x-show="conformance.status === 'unknown'" class="prime-silo-memory__conformance-muted">conformance unknown</span>
+        <span x-show="conformance.status === 'pass'"
+          >Integration conformance: <strong>healthy</strong></span
+        >
+        <span x-show="conformance.status === 'drift'"
+          >Integration conformance: <strong x-text="`drift (${conformance.driftCount})`"></strong> —
+          run <code>node space memory audit</code></span
+        >
+        <span x-show="conformance.status === 'unknown'" class="prime-silo-memory__conformance-muted"
+          >conformance unknown</span
+        >
       </div>
 
       <!-- Disabled / offline first-class screens -->
       <template x-if="state === 'disabled'">
         <div class="prime-silo-memory__notice">
           <h2>Memo-Ray is disabled</h2>
-          <p>Enable the memory graph in the configuration wizard, or run
-            <code>node space set MEMORAY_ENABLED=true</code> and restart the shell.</p>
-          <a class="prime-silo-memory__link" href="/#/_prime_silo/manifest_explorer">Back to manifests</a>
+          <p>
+            Enable the memory graph in the configuration wizard, or run
+            <code>node space set MEMORAY_ENABLED=true</code> and restart the shell.
+          </p>
+          <a class="prime-silo-memory__link" href="/#/_prime_silo/manifest_explorer"
+            >Back to manifests</a
+          >
         </div>
       </template>
 
@@ -74,9 +95,16 @@
                 @input.debounce.300ms="runSearch()"
                 aria-label="Search the memory graph"
               />
-              <div class="prime-silo-memory__search-results" x-show="searchResults && searchResults.sessions.length">
+              <div
+                class="prime-silo-memory__search-results"
+                x-show="searchResults && searchResults.sessions.length"
+              >
                 <template x-for="s in (searchResults ? searchResults.sessions : [])" :key="s.id">
-                  <button type="button" class="prime-silo-memory__search-row" @click="selectSession(s.id)">
+                  <button
+                    type="button"
+                    class="prime-silo-memory__search-row"
+                    @click="selectSession(s.id)"
+                  >
                     <span x-text="s.title || 'Untitled'"></span>
                     <span class="prime-silo-memory__muted" x-text="`${s.nodes || 0} nodes`"></span>
                   </button>
@@ -92,10 +120,17 @@
                   <option value="antigravity">Antigravity</option>
                 </select>
               </label>
-              <button type="button" class="prime-silo-memory__btn" @click="syncNow()" :disabled="syncing">
+              <button
+                type="button"
+                class="prime-silo-memory__btn"
+                @click="syncNow()"
+                :disabled="syncing"
+              >
                 <span x-text="syncing ? 'Syncing…' : 'Sync now'"></span>
               </button>
-              <a class="prime-silo-memory__link" :href="zenLink" target="_blank" rel="noopener">Zen mode ↗</a>
+              <a class="prime-silo-memory__link" :href="zenLink" target="_blank" rel="noopener"
+                >Zen mode ↗</a
+              >
             </div>
           </div>
 
@@ -114,14 +149,21 @@
                     :class="{ 'is-active': s.id === activeSessionId }"
                     @click="selectSession(s.id)"
                   >
-                    <span class="prime-silo-memory__session-title" x-text="s.content || 'Untitled'"></span>
+                    <span
+                      class="prime-silo-memory__session-title"
+                      x-text="s.content || 'Untitled'"
+                    ></span>
                     <span class="prime-silo-memory__session-sub">
                       <span x-text="s.agent"></span> ·
-                      <span x-text="s.metadata && s.metadata.project ? s.metadata.project : '—'"></span>
+                      <span
+                        x-text="s.metadata && s.metadata.project ? s.metadata.project : '—'"
+                      ></span>
                     </span>
                   </button>
                 </template>
-                <p class="prime-silo-memory__muted" x-show="filteredSessions.length === 0">No sessions for this filter.</p>
+                <p class="prime-silo-memory__muted" x-show="filteredSessions.length === 0">
+                  No sessions for this filter.
+                </p>
               </div>
             </aside>
 
@@ -130,21 +172,37 @@
             <aside class="prime-silo-memory__inspector" x-show="inspector">
               <h3 x-text="inspector ? inspector.type : ''"></h3>
               <dl x-show="inspector">
-                <dt>Agent</dt><dd x-text="inspector ? inspector.agent : ''"></dd>
+                <dt>Agent</dt>
+                <dd x-text="inspector ? inspector.agent : ''"></dd>
                 <template x-if="inspector && inspector.metadata && inspector.metadata.toolName">
-                  <div><dt>Tool</dt><dd x-text="inspector.metadata.toolName"></dd></div>
+                  <div>
+                    <dt>Tool</dt>
+                    <dd x-text="inspector.metadata.toolName"></dd>
+                  </div>
                 </template>
                 <template x-if="inspector && inspector.metadata && inspector.metadata.filePath">
                   <div>
                     <dt>File</dt>
                     <dd>
-                      <span x-text="inspector.metadata.fileName || inspector.metadata.filePath"></span>
-                      <button type="button" class="prime-silo-memory__open" @click="openFile(inspector.metadata.filePath)">Open</button>
+                      <span
+                        x-text="inspector.metadata.fileName || inspector.metadata.filePath"
+                      ></span>
+                      <button
+                        type="button"
+                        class="prime-silo-memory__open"
+                        @click="openFile(inspector.metadata.filePath)"
+                      >
+                        Open
+                      </button>
                     </dd>
                   </div>
                 </template>
               </dl>
-              <pre class="prime-silo-memory__content" x-show="inspector" x-text="inspector ? inspector.content : ''"></pre>
+              <pre
+                class="prime-silo-memory__content"
+                x-show="inspector"
+                x-text="inspector ? inspector.content : ''"
+              ></pre>
             </aside>
           </div>
         </div>

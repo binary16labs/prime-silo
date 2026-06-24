@@ -25,9 +25,10 @@ export default async function injectDisplayModeTransientSection(hookContext) {
   }
 
   const onscreenAgentStore = getStore("onscreenAgent");
-  const displayMode = typeof onscreenAgentStore?.displayMode === "string"
-    ? onscreenAgentStore.displayMode.trim()
-    : "";
+  const displayMode =
+    typeof onscreenAgentStore?.displayMode === "string"
+      ? onscreenAgentStore.displayMode.trim()
+      : "";
 
   if (displayMode !== COMPACT_DISPLAY_MODE) {
     return;

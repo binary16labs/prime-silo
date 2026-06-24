@@ -28,8 +28,7 @@
   min-height: 46px;
   padding: 0.55rem 0.75rem;
   border-bottom: 1px solid rgba(232, 217, 191, 0.14);
-  background:
-    linear-gradient(180deg, rgba(32, 35, 29, 0.96), rgba(11, 18, 31, 0.9));
+  background: linear-gradient(180deg, rgba(32, 35, 29, 0.96), rgba(11, 18, 31, 0.9));
   cursor: grab;
   touch-action: none;
   user-select: none;
@@ -156,8 +155,7 @@
   gap: 0.7rem;
   padding: 0.72rem 0.78rem 0.78rem;
   border-bottom: 1px solid rgba(232, 217, 191, 0.12);
-  background:
-    linear-gradient(180deg, rgba(9, 17, 30, 0.96), rgba(10, 11, 8, 0.92));
+  background: linear-gradient(180deg, rgba(9, 17, 30, 0.96), rgba(10, 11, 8, 0.92));
 }
 
 .space-browser-address-field {
@@ -168,7 +166,12 @@
   border-radius: 999px;
   background: rgba(3, 8, 16, 0.72);
   color: #eef4ff;
-  font: 500 0.84rem/1.25 "SF Pro Text", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font:
+    500 0.84rem/1.25 "SF Pro Text",
+    "Segoe UI",
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
   letter-spacing: 0;
 }
 
@@ -256,8 +259,20 @@
   height: 1rem;
   margin: 0 0.45rem 0.45rem 0;
   background:
-    linear-gradient(135deg, transparent 38%, rgba(236, 230, 216, 0.52) 40%, rgba(236, 230, 216, 0.52) 48%, transparent 50%),
-    linear-gradient(135deg, transparent 58%, rgba(236, 230, 216, 0.52) 60%, rgba(236, 230, 216, 0.52) 68%, transparent 70%);
+    linear-gradient(
+      135deg,
+      transparent 38%,
+      rgba(236, 230, 216, 0.52) 40%,
+      rgba(236, 230, 216, 0.52) 48%,
+      transparent 50%
+    ),
+    linear-gradient(
+      135deg,
+      transparent 58%,
+      rgba(236, 230, 216, 0.52) 60%,
+      rgba(236, 230, 216, 0.52) 68%,
+      transparent 70%
+    );
 }
 
 .web-browsing-resize-handle::after {
@@ -270,8 +285,7 @@
   border-top: 1px solid rgba(232, 217, 191, 0.16);
   border-left: 1px solid rgba(232, 217, 191, 0.16);
   border-top-left-radius: 12px;
-  background:
-    linear-gradient(180deg, rgba(12, 20, 34, 0.98), rgba(10, 11, 8, 0.96));
+  background: linear-gradient(180deg, rgba(12, 20, 34, 0.98), rgba(10, 11, 8, 0.96));
   box-shadow: -8px -8px 22px rgba(0, 0, 0, 0.22);
 }
 

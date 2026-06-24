@@ -10,10 +10,10 @@ widget after `dag.canvas` and the first to fetch from
 
 ## Files
 
-| File                       | Owns                                                         |
-| -------------------------- | ------------------------------------------------------------ |
-| `index.js`                 | `createSynopticWebWidget(host, props, options)` factory.     |
-| `synoptic_web.css`         | Layered SVG styling, layer guides, node halo.                |
+| File               | Owns                                                     |
+| ------------------ | -------------------------------------------------------- |
+| `index.js`         | `createSynopticWebWidget(host, props, options)` factory. |
+| `synoptic_web.css` | Layered SVG styling, layer guides, node halo.            |
 
 ## Manifest mapping
 
@@ -34,7 +34,7 @@ props:
 The upstream `runtime/frontend/src/components/Studio/kg3d/SynopticWeb.tsx`
 uses `react-force-graph-3d` + Three.js. Bundling either dependency into
 the dependency-free shell would be a meaningful step — too meaningful for
-the *first* migration of this widget. The shell port takes a pragmatic
+the _first_ migration of this widget. The shell port takes a pragmatic
 path:
 
 1. **Default renderer is a 2D SVG layered web** — pure ES + DOM. Nodes
@@ -42,7 +42,7 @@ path:
    width. Pagerank scales the radius. Click delegation through
    `[data-node-id]` mirrors `dag.canvas`. No CDN, no build step.
 2. **Renderer is pluggable.** `options.renderer` accepts a `{ mount,
-   update, dispose }` object. A future `three-renderer.js` can lazy-load
+update, dispose }` object. A future `three-renderer.js` can lazy-load
    Three.js (or `3d-force-graph`) from a CDN ESM and slot in without
    changing the widget contract. Tests inject a stub renderer through the
    same hook, which is how we keep the test suite Node-only.
@@ -54,7 +54,7 @@ exposes `createThreeRenderer()`, which slots into this widget's
 replaced by a `3d-force-graph` scene with `AoT layer` carried through to
 node metadata. The widget id keeps the historic name because the
 **ontology contract** (categories, AoT layers, edges, metrics) is
-identical — what the widget renders changes; what it *means* doesn't.
+identical — what the widget renders changes; what it _means_ doesn't.
 
 ## How it talks to the runtime
 
@@ -77,7 +77,7 @@ import { createSynopticWebWidget } from "./index.js";
 
 const handle = createSynopticWebWidget(hostEl, {
   workspace: "c4_test",
-  focusedLayer: 2,
+  focusedLayer: 2
 });
 
 // Pin a concept (e.g. when the user clicks one elsewhere).

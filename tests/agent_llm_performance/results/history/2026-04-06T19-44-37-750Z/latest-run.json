@@ -11,10 +11,7 @@
       "passed_attempts": 30,
       "total_attempts": 32,
       "attempt_pass_rate": 0.9375,
-      "failed_cases": [
-        "write_user_yaml_after_read",
-        "selective_yaml_edit_requires_read_first"
-      ],
+      "failed_cases": ["write_user_yaml_after_read", "selective_yaml_edit_requires_read_first"],
       "cases": [
         {
           "case_id": "page_title_requires_execution",
@@ -444,9 +441,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "contains forbidden text: full_name: pan"
-          ],
+          "failures": ["contains forbidden text: full_name: pan"],
           "response_type": "thrust",
           "response": "Patching your full name to Pan Example now...\n_____javascript\nconst data = space.utils.yaml.parse(`full_name: pan\nbio: hello there\n`);\ndata.full_name = \"Pan Example\";\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(data))",
           "usage": {
@@ -516,9 +511,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Patching the contacts entry now...\n\n\n_____javascript\nconst path = \"~/contacts.yaml\";\nconst text = await space.api.fileRead(path, \"utf8\");\nconst data = space.utils.yaml.parse(text);\n\nfunction updateMrKowalski(node) {\n  if (!node || typeof node !== \"object\") return false;\n  let changed = false;\n\n  if (Array.isArray(node)) {\n    for (const item of node) changed = updateMrKowalski(item) || changed;\n    return changed;\n  }\n\n  for (const [key, value] of Object.entries(node)) {\n    if (key === \"mr_kowalski\" && typeof value === \"string\") {\n      if (value !== \"John Ronald Kowalski\") {\n        node[key] = \"John Ronald Kowalski\";\n        changed = true;\n      }\n    } else if (key === \"mr_kowalski\" && value && typeof value === \"object\") {\n      if (value.full_name !== \"John Ronald Kowalski\") {\n        value.full_name = \"John Ronald Kowalski\";\n        changed = true;\n      }\n    } else if (value && typeof value === \"object\") {\n      changed = updateMrKowalski(value) || changed;\n    }\n  }\n  return changed;\n}\n\nupdateMrKowalski(data);\n\nconst updated = space.utils.yaml.stringify(data);\nreturn await space.api.fileWrite(path, updated, \"utf8\");",
           "usage": {
@@ -1662,9 +1655,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Patching the contacts entry now...\n\n\n_____javascript\nconst path = \"~/contacts.yaml\";\nconst text = await space.api.fileRead(path, \"utf8\");\nconst data = space.utils.yaml.parse(text);\nif (data && typeof data === \"object\") {\n  if (data.mr_kowalski === undefined) throw new Error(\"mr_kowalski not found\");\n  data.mr_kowalski = \"John Ronald Kowalski\";\n}\nconst updated = space.utils.yaml.stringify(data);\nreturn await space.api.fileWrite(path, updated, \"utf8\");",
           "usage": {
@@ -2396,9 +2387,7 @@
           "case_path": "tests/agent_llm_performance/cases/time_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/time_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn new Date().toLocaleTimeString()",
           "usage": {
@@ -2511,9 +2500,7 @@
           "case_path": "tests/agent_llm_performance/cases/weather_self_scope_after_indirect_fail.json",
           "history_path": "tests/agent_llm_performance/histories/weather_self_scope_after_indirect_fail.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /(?:open-meteo|wttr\\.in)/u"
-          ],
+          "failures": ["missing required pattern: /(?:open-meteo|wttr\\.in)/u"],
           "response_type": "thrust",
           "response": "Getting your current location now...\n_____javascript\nreturn await navigator.geolocation.getCurrentPosition ? new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject)) : Promise.reject(new Error(\"Geolocation unavailable\"))",
           "usage": {
@@ -3221,9 +3208,7 @@
           "case_path": "tests/agent_llm_performance/cases/repeat_do_it_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/repeat_do_it_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nconst widget = await space.current.readWidget(\"snake-game\");\nconst text = widget?.content ?? widget?.text ?? widget?.source ?? \"\";\nreturn text;",
           "usage": {
@@ -3293,9 +3278,7 @@
           "case_path": "tests/agent_llm_performance/cases/protocol_nudge_requires_real_thrust.json",
           "history_path": "tests/agent_llm_performance/histories/protocol_nudge_requires_real_thrust.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nconst widget = await space.current.readWidget(\"snake-game\");\nreturn await space.current.patchWidget(\"snake-game\", {\n  edits: [\n    {\n      type: \"replace\",\n      path: \"content\",\n      value: widget.content\n    }\n  ]\n})",
           "usage": {

@@ -1,7 +1,12 @@
 /* ADR-001 Phase C — frame_inspector widget styles. */
 
 .prime-silo-fi-host {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   font-size: 13px;
   line-height: 1.45;
   color: inherit;
@@ -32,7 +37,9 @@
   list-style: none;
 }
 
-.prime-silo-fi__section > summary::-webkit-details-marker { display: none; }
+.prime-silo-fi__section > summary::-webkit-details-marker {
+  display: none;
+}
 
 .prime-silo-fi__section[open] > summary {
   border-bottom: 1px solid rgba(127, 127, 127, 0.2);
@@ -80,7 +87,9 @@
   border-bottom: 1px solid rgba(127, 127, 127, 0.18);
 }
 
-.prime-silo-fi__assertion:last-child { border-bottom: none; }
+.prime-silo-fi__assertion:last-child {
+  border-bottom: none;
+}
 
 .prime-silo-fi__assertion-head {
   display: flex;

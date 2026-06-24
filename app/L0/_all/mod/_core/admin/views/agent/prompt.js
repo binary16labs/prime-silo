@@ -1,6 +1,4 @@
-import {
-  buildOnscreenAgentPromptInput
-} from "/mod/_core/onscreen_agent/llm.js";
+import { buildOnscreenAgentPromptInput } from "/mod/_core/onscreen_agent/llm.js";
 import {
   createAgentPromptInstance,
   hasPreparedPromptInput
@@ -12,7 +10,8 @@ export const ADMIN_HISTORY_COMPACT_MODE = Object.freeze({
   USER: "user"
 });
 export const ADMIN_HISTORY_COMPACT_PROMPT_PATH = "/mod/_core/admin/views/agent/compact-prompt.md";
-export const ADMIN_HISTORY_AUTO_COMPACT_PROMPT_PATH = "/mod/_core/admin/views/agent/compact-prompt-auto.md";
+export const ADMIN_HISTORY_AUTO_COMPACT_PROMPT_PATH =
+  "/mod/_core/admin/views/agent/compact-prompt-auto.md";
 
 let defaultSystemPromptPromise = null;
 const compactPromptPromises = {
@@ -129,9 +128,7 @@ export function extractCustomAdminSystemPrompt(storedPrompt = "", defaultSystemP
 
 function buildAdminPromptOptions(options = {}) {
   const normalizedOptions =
-    options && typeof options === "object" && !Array.isArray(options)
-      ? { ...options }
-      : {};
+    options && typeof options === "object" && !Array.isArray(options) ? { ...options } : {};
 
   return {
     ...normalizedOptions,
@@ -149,9 +146,7 @@ export function createAdminPromptInstance(options = {}) {
 
 export async function buildAdminPromptInput(options = {}) {
   const normalizedOptions =
-    options && typeof options === "object" && !Array.isArray(options)
-      ? options
-      : {};
+    options && typeof options === "object" && !Array.isArray(options) ? options : {};
   const historyMessages = Array.isArray(normalizedOptions.historyMessages)
     ? normalizedOptions.historyMessages
     : Array.isArray(normalizedOptions.messages)
@@ -166,7 +161,11 @@ export async function buildAdminPromptInput(options = {}) {
   };
   const promptInstance = normalizedOptions.promptInstance;
 
-  if (promptInstance && typeof promptInstance.updateHistory === "function" && hasPreparedPromptInput(promptInstance)) {
+  if (
+    promptInstance &&
+    typeof promptInstance.updateHistory === "function" &&
+    hasPreparedPromptInput(promptInstance)
+  ) {
     return promptInstance.updateHistory(historyMessages, {
       defaultSystemPrompt: normalizedOptions.defaultSystemPrompt,
       options: promptOptions,

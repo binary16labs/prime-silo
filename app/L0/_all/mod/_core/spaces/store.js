@@ -69,7 +69,7 @@ import {
   DEFAULT_WIDGET_SIZE,
   defineWidget,
   normalizeWidgetSize,
-  sizeToToken,
+  sizeToToken
 } from "/mod/_core/spaces/widget-sdk-core.js";
 import { renderWidgetOutput } from "/mod/_core/spaces/widget-render.js";
 
@@ -92,7 +92,9 @@ const EMPTY_CANVAS_SEEN_STORAGE_AREAS = Object.freeze(["sessionStorage", "localS
 
 function getStorageArea(storageName) {
   const storageArea = globalThis[storageName];
-  return storageArea && typeof storageArea.getItem === "function" && typeof storageArea.setItem === "function"
+  return storageArea &&
+    typeof storageArea.getItem === "function" &&
+    typeof storageArea.setItem === "function"
     ? storageArea
     : null;
 }
@@ -135,11 +137,13 @@ function readEmptyCanvasSeenSpaceIdsFromStorage(storageKey) {
 }
 
 function persistEmptyCanvasSeenSpaceIdsToStorage(storageKey, spaceIds) {
-  const normalizedSpaceIds = [...new Set(
-    Array.from(spaceIds || [])
-      .map((spaceId) => normalizeOptionalSpaceId(spaceId))
-      .filter(Boolean)
-  )];
+  const normalizedSpaceIds = [
+    ...new Set(
+      Array.from(spaceIds || [])
+        .map((spaceId) => normalizeOptionalSpaceId(spaceId))
+        .filter(Boolean)
+    )
+  ];
   const payload = JSON.stringify(normalizedSpaceIds);
 
   EMPTY_CANVAS_SEEN_STORAGE_AREAS.forEach((storageName) => {
@@ -170,9 +174,10 @@ function positiveModulo(value, divisor) {
 }
 
 function clampNumber(value, min, max, options = {}) {
-  const overflowBias = options?.overflowBias === "start" || options?.overflowBias === "end"
-    ? options.overflowBias
-    : "center";
+  const overflowBias =
+    options?.overflowBias === "start" || options?.overflowBias === "end"
+      ? options.overflowBias
+      : "center";
 
   if (min > max) {
     if (overflowBias === "start") {
@@ -203,8 +208,19 @@ function normalizeRenderWidgetRequest(optionsOrId, cols, rows, renderer) {
 }
 
 function normalizeRuntimeWidgetIdList(values) {
-  const rawValues = Array.isArray(values) ? values : typeof values === "string" && values ? [values] : [];
-  return [...new Set(rawValues.map((value) => String(value ?? "").trim()).filter(Boolean).map((value) => normalizeWidgetId(value)))];
+  const rawValues = Array.isArray(values)
+    ? values
+    : typeof values === "string" && values
+      ? [values]
+      : [];
+  return [
+    ...new Set(
+      rawValues
+        .map((value) => String(value ?? "").trim())
+        .filter(Boolean)
+        .map((value) => normalizeWidgetId(value))
+    )
+  ];
 }
 
 function normalizeWidgetMetadataForComparison(value) {
@@ -271,7 +287,8 @@ function widgetRecordNeedsRender(previousSpace, nextSpace, widgetId) {
 
   return (
     previousWidget.name !== nextWidget.name ||
-    serializeWidgetMetadataForComparison(previousWidget.metadata) !== serializeWidgetMetadataForComparison(nextWidget.metadata) ||
+    serializeWidgetMetadataForComparison(previousWidget.metadata) !==
+      serializeWidgetMetadataForComparison(nextWidget.metadata) ||
     previousWidget.rendererSource !== nextWidget.rendererSource ||
     previousWidget.schema !== nextWidget.schema ||
     !widgetSizesMatch(previousWidget.defaultSize, nextWidget.defaultSize) ||
@@ -280,11 +297,7 @@ function widgetRecordNeedsRender(previousSpace, nextSpace, widgetId) {
 }
 
 function hasExplicitWidgetPosition(options = {}) {
-  return (
-    options.position !== undefined ||
-    options.col !== undefined ||
-    options.row !== undefined
-  );
+  return options.position !== undefined || options.col !== undefined || options.row !== undefined;
 }
 
 function mergeWidgetOrder(prioritizedWidgetIds, existingWidgetIds) {
@@ -319,8 +332,14 @@ function normalizeWidgetLayoutEntries(entries) {
     }
 
     const widgetId = normalizeWidgetId(rawWidgetId);
-    const positionSource = entry.position && typeof entry.position === "object" && !Array.isArray(entry.position) ? entry.position : entry;
-    const sizeSource = entry.size && typeof entry.size === "object" && !Array.isArray(entry.size) ? entry.size : entry;
+    const positionSource =
+      entry.position && typeof entry.position === "object" && !Array.isArray(entry.position)
+        ? entry.position
+        : entry;
+    const sizeSource =
+      entry.size && typeof entry.size === "object" && !Array.isArray(entry.size)
+        ? entry.size
+        : entry;
     const normalizedEntry = {
       id: widgetId
     };
@@ -360,13 +379,17 @@ function normalizeWidgetLayoutEntries(entries) {
 }
 
 function assertSpaceOwnsWidgets(spaceRecord, widgetIds, actionLabel = "update widgets") {
-  const missingWidgetIds = widgetIds.filter((widgetId) => !spaceRecord?.widgetIds?.includes(widgetId));
+  const missingWidgetIds = widgetIds.filter(
+    (widgetId) => !spaceRecord?.widgetIds?.includes(widgetId)
+  );
 
   if (!missingWidgetIds.length) {
     return;
   }
 
-  throw new Error(`Cannot ${actionLabel}: widget ids not found in space "${spaceRecord?.id || ""}": ${missingWidgetIds.join(", ")}.`);
+  throw new Error(
+    `Cannot ${actionLabel}: widget ids not found in space "${spaceRecord?.id || ""}": ${missingWidgetIds.join(", ")}.`
+  );
 }
 
 async function rearrangePersistedSpaceWidgets(options = {}) {
@@ -445,11 +468,15 @@ function ensureSpacesRuntimeNamespace() {
     throw new Error("Space runtime is not available.");
   }
 
-  const previousNamespace = runtime.spaces && typeof runtime.spaces === "object" ? runtime.spaces : {};
+  const previousNamespace =
+    runtime.spaces && typeof runtime.spaces === "object" ? runtime.spaces : {};
   const namespace = {
     ...previousNamespace,
     all: Array.isArray(previousNamespace.all) ? [...previousNamespace.all] : [],
-    byId: previousNamespace.byId && typeof previousNamespace.byId === "object" ? { ...previousNamespace.byId } : {},
+    byId:
+      previousNamespace.byId && typeof previousNamespace.byId === "object"
+        ? { ...previousNamespace.byId }
+        : {},
     createSpace: async (options = {}) => {
       const createdSpace = await createSpace(options);
 
@@ -471,7 +498,7 @@ function ensureSpacesRuntimeNamespace() {
         typeof spaceIdOrOptions === "string"
           ? spaceIdOrOptions
           : spaceIdOrOptions && typeof spaceIdOrOptions === "object"
-            ? spaceIdOrOptions.spaceId ?? spaceIdOrOptions.id
+            ? (spaceIdOrOptions.spaceId ?? spaceIdOrOptions.id)
             : activeSpacesStore?.currentSpaceId;
       const targetSpaceId = normalizeOptionalSpaceId(requestedSpaceId);
 
@@ -525,7 +552,9 @@ function ensureSpacesRuntimeNamespace() {
       }
 
       return options.replace
-        ? globalThis.space.router.replaceTo(SPACES_ROUTE_PATH, { params: { id: normalizedSpaceId } })
+        ? globalThis.space.router.replaceTo(SPACES_ROUTE_PATH, {
+            params: { id: normalizedSpaceId }
+          })
         : globalThis.space.router.goTo(SPACES_ROUTE_PATH, { params: { id: normalizedSpaceId } });
     },
     readSpace,
@@ -536,7 +565,9 @@ function ensureSpacesRuntimeNamespace() {
 
       const targetSpaceId =
         typeof options === "object" && options && !Array.isArray(options)
-          ? normalizeOptionalSpaceId(options.spaceId ?? options.id ?? activeSpacesStore.currentSpaceId)
+          ? normalizeOptionalSpaceId(
+              options.spaceId ?? options.id ?? activeSpacesStore.currentSpaceId
+            )
           : activeSpacesStore.currentSpaceId;
 
       if (!targetSpaceId || targetSpaceId !== activeSpacesStore.currentSpaceId) {
@@ -599,7 +630,7 @@ function ensureSpacesRuntimeNamespace() {
         typeof spaceIdOrOptions === "string"
           ? spaceIdOrOptions
           : spaceIdOrOptions && typeof spaceIdOrOptions === "object"
-            ? spaceIdOrOptions.spaceId ?? spaceIdOrOptions.id ?? activeSpacesStore?.currentSpaceId
+            ? (spaceIdOrOptions.spaceId ?? spaceIdOrOptions.id ?? activeSpacesStore?.currentSpaceId)
             : activeSpacesStore?.currentSpaceId;
       const targetSpaceId = normalizeOptionalSpaceId(requestedSpaceId);
 
@@ -641,11 +672,15 @@ function ensureSpacesRuntimeNamespace() {
         typeof widgetIdOrOptions === "string"
           ? widgetIdOrOptions
           : widgetIdOrOptions && typeof widgetIdOrOptions === "object"
-            ? widgetIdOrOptions.widgetId ?? widgetIdOrOptions.id
+            ? (widgetIdOrOptions.widgetId ?? widgetIdOrOptions.id)
             : "";
-      const targetWidgetId = String(requestedWidgetId || "").trim() ? normalizeWidgetId(requestedWidgetId) : "";
+      const targetWidgetId = String(requestedWidgetId || "").trim()
+        ? normalizeWidgetId(requestedWidgetId)
+        : "";
       const targetSpaceId =
-        typeof widgetIdOrOptions === "object" && widgetIdOrOptions && !Array.isArray(widgetIdOrOptions)
+        typeof widgetIdOrOptions === "object" &&
+        widgetIdOrOptions &&
+        !Array.isArray(widgetIdOrOptions)
           ? normalizeOptionalSpaceId(widgetIdOrOptions.spaceId ?? activeSpacesStore.currentSpaceId)
           : activeSpacesStore.currentSpaceId;
 
@@ -664,7 +699,7 @@ function ensureSpacesRuntimeNamespace() {
         typeof spaceIdOrOptions === "string"
           ? spaceIdOrOptions
           : spaceIdOrOptions && typeof spaceIdOrOptions === "object"
-            ? spaceIdOrOptions.spaceId ?? spaceIdOrOptions.id ?? activeSpacesStore?.currentSpaceId
+            ? (spaceIdOrOptions.spaceId ?? spaceIdOrOptions.id ?? activeSpacesStore?.currentSpaceId)
             : activeSpacesStore?.currentSpaceId;
       const targetSpaceId = normalizeOptionalSpaceId(requestedSpaceId);
 
@@ -732,7 +767,7 @@ function ensureSpacesRuntimeNamespace() {
         typeof spaceIdOrOptions === "string"
           ? spaceIdOrOptions
           : spaceIdOrOptions && typeof spaceIdOrOptions === "object"
-            ? spaceIdOrOptions.spaceId ?? spaceIdOrOptions.id ?? activeSpacesStore?.currentSpaceId
+            ? (spaceIdOrOptions.spaceId ?? spaceIdOrOptions.id ?? activeSpacesStore?.currentSpaceId)
             : activeSpacesStore?.currentSpaceId;
       const targetSpaceId = normalizeOptionalSpaceId(requestedSpaceId);
 
@@ -927,7 +962,8 @@ function normalizeOptionalWidgetId(value) {
 
 function createWidgetRenderCheck(options = {}) {
   const widgetId = normalizeOptionalWidgetId(options.widgetId ?? options.id);
-  const status = options.status === "ok" || options.status === "error" ? options.status : "not_checked";
+  const status =
+    options.status === "ok" || options.status === "error" ? options.status : "not_checked";
   const defaultMessage =
     status === "ok"
       ? `Widget "${widgetId}" rendered successfully.`
@@ -988,7 +1024,10 @@ function getWidgetRenderCheckForSpace(spaceId, widgetId) {
   const normalizedWidgetId = normalizeOptionalWidgetId(widgetId);
 
   if (!normalizedWidgetId) {
-    return createUncheckedWidgetRenderCheck("", "No widget id was provided for the live render check.");
+    return createUncheckedWidgetRenderCheck(
+      "",
+      "No widget id was provided for the live render check."
+    );
   }
 
   if (activeSpacesStore?.currentSpaceId === normalizedSpaceId) {
@@ -1177,7 +1216,9 @@ function emitWidgetToolStatus(statusText, widgetRender = null) {
 
 function emitWidgetReadToolResult(widgetText = "", widgetId = "") {
   const normalizedWidgetId = normalizeOptionalWidgetId(widgetId);
-  const statusText = normalizedWidgetId ? `Read widget "${normalizedWidgetId}".` : "Read current widget.";
+  const statusText = normalizedWidgetId
+    ? `Read widget "${normalizedWidgetId}".`
+    : "Read current widget.";
 
   console.log(`[spaces] ${statusText}`);
   return typeof widgetText === "string" ? widgetText : "";
@@ -1193,7 +1234,12 @@ function emitWidgetSeeToolResult(widgetHtml = "", widgetId = "", full = false) {
   return typeof widgetHtml === "string" ? widgetHtml : "";
 }
 
-function readMountedWidgetHtmlEnvelope({ spaceId = "", widgetId = "", full = false, widgetRender = null } = {}) {
+function readMountedWidgetHtmlEnvelope({
+  spaceId = "",
+  widgetId = "",
+  full = false,
+  widgetRender = null
+} = {}) {
   const normalizedSpaceId = normalizeOptionalSpaceId(spaceId);
   const normalizedWidgetId = normalizeOptionalWidgetId(widgetId);
   const activeSpaceId = normalizeOptionalSpaceId(activeSpacesStore?.currentSpaceId);
@@ -1214,7 +1260,8 @@ function readMountedWidgetHtmlEnvelope({ spaceId = "", widgetId = "", full = fal
   return {
     available: false,
     html: "",
-    unavailableReason: String(check?.message || "").trim() || "The current widget instance is not mounted."
+    unavailableReason:
+      String(check?.message || "").trim() || "The current widget instance is not mounted."
   };
 }
 
@@ -1226,7 +1273,10 @@ async function buildWidgetToolResult(
   const normalizedSpaceId = normalizeOptionalSpaceId(spaceId || nextResult.space?.id);
   const normalizedWidgetId = normalizeOptionalWidgetId(widgetId || nextResult.widgetId);
   const widgetPath =
-    nextResult.widgetPath || (normalizedSpaceId && normalizedWidgetId ? buildSpaceWidgetFilePath(normalizedSpaceId, normalizedWidgetId) : "");
+    nextResult.widgetPath ||
+    (normalizedSpaceId && normalizedWidgetId
+      ? buildSpaceWidgetFilePath(normalizedSpaceId, normalizedWidgetId)
+      : "");
   const shouldUpdateTransient = updateTransient !== false;
 
   if (
@@ -1241,7 +1291,8 @@ async function buildWidgetToolResult(
         widgetName: normalizedWidgetId
       });
     } catch {
-      nextResult.widgetText = typeof nextResult.widgetText === "string" ? nextResult.widgetText : "";
+      nextResult.widgetText =
+        typeof nextResult.widgetText === "string" ? nextResult.widgetText : "";
     }
   }
 
@@ -1258,7 +1309,8 @@ async function buildWidgetToolResult(
         html: "",
         unavailableReason: ""
       };
-  const widgetText = shouldUpdateTransient && typeof nextResult.widgetText === "string" ? nextResult.widgetText : "";
+  const widgetText =
+    shouldUpdateTransient && typeof nextResult.widgetText === "string" ? nextResult.widgetText : "";
   const transientUpdated = shouldUpdateTransient
     ? updateCurrentWidgetTransientSection({
         spaceId: normalizedSpaceId,
@@ -1271,9 +1323,14 @@ async function buildWidgetToolResult(
         widgetText
       })
     : false;
-  const widgetStatusText = formatWidgetOperationStatusText(normalizedWidgetId, operationLabel, widgetRender, {
-    transientUpdated
-  });
+  const widgetStatusText = formatWidgetOperationStatusText(
+    normalizedWidgetId,
+    operationLabel,
+    widgetRender,
+    {
+      transientUpdated
+    }
+  );
 
   if (transientUpdated) {
     updateCurrentWidgetTransientSection({
@@ -1301,7 +1358,9 @@ function formatTitleFromId(id) {
 
 function listReadableRuntimeWidgetChoices(spaceRecord) {
   return normalizeRuntimeWidgetIdList(spaceRecord?.widgetIds).map((widgetId) => {
-    const widgetName = String(getWidgetRecord(spaceRecord, widgetId)?.name || formatTitleFromId(widgetId)).trim();
+    const widgetName = String(
+      getWidgetRecord(spaceRecord, widgetId)?.name || formatTitleFromId(widgetId)
+    ).trim();
     return widgetName && widgetName !== widgetId ? `${widgetId} (${widgetName})` : widgetId;
   });
 }
@@ -1320,10 +1379,14 @@ function resolveWidgetIdFromMountedSpace(spaceRecord, widgetName) {
   }
 
   const normalizedWidgetName = rawWidgetName.toLocaleLowerCase();
-  const matchingWidgetIds = normalizeRuntimeWidgetIdList(spaceRecord?.widgetIds).filter((widgetId) => {
-    const displayName = String(getWidgetRecord(spaceRecord, widgetId)?.name || formatTitleFromId(widgetId)).trim();
-    return displayName.toLocaleLowerCase() === normalizedWidgetName;
-  });
+  const matchingWidgetIds = normalizeRuntimeWidgetIdList(spaceRecord?.widgetIds).filter(
+    (widgetId) => {
+      const displayName = String(
+        getWidgetRecord(spaceRecord, widgetId)?.name || formatTitleFromId(widgetId)
+      ).trim();
+      return displayName.toLocaleLowerCase() === normalizedWidgetName;
+    }
+  );
 
   if (matchingWidgetIds.length === 1) {
     return matchingWidgetIds[0];
@@ -1333,7 +1396,9 @@ function resolveWidgetIdFromMountedSpace(spaceRecord, widgetName) {
     throw new Error(
       `Widget name "${rawWidgetName}" is ambiguous in space "${spaceRecord?.id || ""}". Matches: ${matchingWidgetIds
         .map((widgetId) => {
-          const widgetName = String(getWidgetRecord(spaceRecord, widgetId)?.name || formatTitleFromId(widgetId)).trim();
+          const widgetName = String(
+            getWidgetRecord(spaceRecord, widgetId)?.name || formatTitleFromId(widgetId)
+          ).trim();
           return widgetName && widgetName !== widgetId ? `${widgetId} (${widgetName})` : widgetId;
         })
         .join(", ")}.`
@@ -1349,7 +1414,9 @@ function resolveWidgetIdFromMountedSpace(spaceRecord, widgetName) {
 }
 
 function shouldStripWidgetHtmlAttribute(attributeName = "") {
-  const normalizedName = String(attributeName || "").trim().toLowerCase();
+  const normalizedName = String(attributeName || "")
+    .trim()
+    .toLowerCase();
 
   if (!normalizedName) {
     return false;
@@ -1399,7 +1466,11 @@ function buildWidgetInstanceHtmlResult(widgetHtml = "", full = false) {
 }
 
 function isTruthyRouteParam(value) {
-  return ["1", "true", "yes", "on"].includes(String(value || "").trim().toLowerCase());
+  return ["1", "true", "yes", "on"].includes(
+    String(value || "")
+      .trim()
+      .toLowerCase()
+  );
 }
 
 function getWidgetRecord(spaceRecord, widgetId) {
@@ -1407,15 +1478,24 @@ function getWidgetRecord(spaceRecord, widgetId) {
 }
 
 function getWidgetDefaultPosition(spaceRecord, widgetId) {
-  return normalizeWidgetPosition(getWidgetRecord(spaceRecord, widgetId)?.defaultPosition, DEFAULT_WIDGET_POSITION);
+  return normalizeWidgetPosition(
+    getWidgetRecord(spaceRecord, widgetId)?.defaultPosition,
+    DEFAULT_WIDGET_POSITION
+  );
 }
 
 function getWidgetDefaultSize(spaceRecord, widgetId) {
-  return normalizeWidgetSize(getWidgetRecord(spaceRecord, widgetId)?.defaultSize, DEFAULT_WIDGET_SIZE);
+  return normalizeWidgetSize(
+    getWidgetRecord(spaceRecord, widgetId)?.defaultSize,
+    DEFAULT_WIDGET_SIZE
+  );
 }
 
 function getEffectiveWidgetSize(spaceRecord, widgetId) {
-  return normalizeWidgetSize(spaceRecord?.widgetSizes?.[widgetId] || getWidgetDefaultSize(spaceRecord, widgetId), DEFAULT_WIDGET_SIZE);
+  return normalizeWidgetSize(
+    spaceRecord?.widgetSizes?.[widgetId] || getWidgetDefaultSize(spaceRecord, widgetId),
+    DEFAULT_WIDGET_SIZE
+  );
 }
 
 function buildWidgetCatalogDescription(widget) {
@@ -1482,19 +1562,23 @@ function buildWidgetCatalogText(widgets = []) {
 }
 
 function buildResolvedLayoutInputs(spaceRecord, overrides = {}) {
-  const widgetIds = (Array.isArray(overrides.widgetIds) ? overrides.widgetIds : spaceRecord?.widgetIds || []).filter((widgetId) =>
-    Boolean(getWidgetRecord(spaceRecord, widgetId))
-  );
+  const widgetIds = (
+    Array.isArray(overrides.widgetIds) ? overrides.widgetIds : spaceRecord?.widgetIds || []
+  ).filter((widgetId) => Boolean(getWidgetRecord(spaceRecord, widgetId)));
   const widgetPositions = {};
   const widgetSizes = {};
 
   widgetIds.forEach((widgetId) => {
     widgetPositions[widgetId] = normalizeWidgetPosition(
-      overrides.widgetPositions?.[widgetId] ?? spaceRecord?.widgetPositions?.[widgetId] ?? getWidgetDefaultPosition(spaceRecord, widgetId),
+      overrides.widgetPositions?.[widgetId] ??
+        spaceRecord?.widgetPositions?.[widgetId] ??
+        getWidgetDefaultPosition(spaceRecord, widgetId),
       getWidgetDefaultPosition(spaceRecord, widgetId)
     );
     widgetSizes[widgetId] = normalizeWidgetSize(
-      overrides.widgetSizes?.[widgetId] ?? spaceRecord?.widgetSizes?.[widgetId] ?? getWidgetDefaultSize(spaceRecord, widgetId),
+      overrides.widgetSizes?.[widgetId] ??
+        spaceRecord?.widgetSizes?.[widgetId] ??
+        getWidgetDefaultSize(spaceRecord, widgetId),
       getWidgetDefaultSize(spaceRecord, widgetId)
     );
   });
@@ -1525,7 +1609,9 @@ function buildRuntimeWidgetDescriptor(spaceRecord, resolvedLayout, widgetId) {
     resolvedLayout?.renderedSizes?.[widgetId] ?? effectiveSize,
     effectiveSize
   );
-  const minimized = Boolean(resolvedLayout?.minimizedMap?.[widgetId] ?? spaceRecord?.minimizedWidgetIds?.includes(widgetId));
+  const minimized = Boolean(
+    resolvedLayout?.minimizedMap?.[widgetId] ?? spaceRecord?.minimizedWidgetIds?.includes(widgetId)
+  );
   const renderCheck = getWidgetRenderCheckForSpace(spaceRecord?.id, widgetId);
 
   return {
@@ -1572,7 +1658,9 @@ async function applyAutoWidgetPlacementToRequest(request = {}, targetSpaceId = "
 
   if (activeSpacesStore?.currentSpaceId === targetSpaceId && activeSpacesStore.currentSpace) {
     targetSpace = activeSpacesStore.currentSpace;
-    resolvedLayout = activeSpacesStore.currentResolvedLayout || activeSpacesStore.resolveCurrentSpaceLayout(targetSpace);
+    resolvedLayout =
+      activeSpacesStore.currentResolvedLayout ||
+      activeSpacesStore.resolveCurrentSpaceLayout(targetSpace);
   } else {
     targetSpace = await readSpace(targetSpaceId);
     resolvedLayout = resolveSpaceLayout(buildResolvedLayoutInputs(targetSpace));
@@ -1618,7 +1706,9 @@ function createCurrentSpaceRuntime(namespace) {
       return activeSpacesStore?.currentSpaceIconColorDraft || "";
     },
     get path() {
-      return activeSpacesStore?.currentSpace ? buildSpaceRootPath(activeSpacesStore.currentSpace.id) : "";
+      return activeSpacesStore?.currentSpace
+        ? buildSpaceRootPath(activeSpacesStore.currentSpace.id)
+        : "";
     },
     get agentInstructions() {
       return activeSpacesStore?.currentSpaceInstructionsDraft || "";
@@ -1664,7 +1754,8 @@ function createCurrentSpaceRuntime(namespace) {
           spaceId,
           widgetName
         });
-        const widgetId = extractWidgetIdFromWidgetText(widgetText) || normalizeOptionalWidgetId(widgetName);
+        const widgetId =
+          extractWidgetIdFromWidgetText(widgetText) || normalizeOptionalWidgetId(widgetName);
         return emitWidgetReadToolResult(widgetText, widgetId);
       })();
     },
@@ -1683,7 +1774,10 @@ function createCurrentSpaceRuntime(namespace) {
           throw new Error(`Widget "${widgetId}" is not mounted in the current space.`);
         }
 
-        const widgetHtml = buildWidgetInstanceHtmlResult(widgetCard.renderTarget.innerHTML, Boolean(full));
+        const widgetHtml = buildWidgetInstanceHtmlResult(
+          widgetCard.renderTarget.innerHTML,
+          Boolean(full)
+        );
         return emitWidgetSeeToolResult(widgetHtml, widgetId, Boolean(full));
       })();
     },
@@ -1874,7 +1968,10 @@ function resolveCssLength(value, contextElement, fallback = 0) {
   }
 
   if (/^-?\d+(\.\d+)?rem$/u.test(normalizedValue)) {
-    const rootFontSize = parsePixelValue(window.getComputedStyle(document.documentElement).fontSize, 16);
+    const rootFontSize = parsePixelValue(
+      window.getComputedStyle(document.documentElement).fontSize,
+      16
+    );
     return Number.parseFloat(normalizedValue) * rootFontSize;
   }
 
@@ -1969,10 +2066,10 @@ function elementHasScrollableRange(element, axis) {
   }
 
   if (axis === "x") {
-    return (element.scrollWidth - element.clientWidth) > 1;
+    return element.scrollWidth - element.clientWidth > 1;
   }
 
-  return (element.scrollHeight - element.clientHeight) > 1;
+  return element.scrollHeight - element.clientHeight > 1;
 }
 
 function canElementScrollInDirection(element, axis, delta) {
@@ -1991,9 +2088,7 @@ function canElementScrollInDirection(element, axis, delta) {
       return false;
     }
 
-    return delta < 0
-      ? element.scrollLeft > 0
-      : element.scrollLeft < (maxScrollLeft - 1);
+    return delta < 0 ? element.scrollLeft > 0 : element.scrollLeft < maxScrollLeft - 1;
   }
 
   const maxScrollTop = element.scrollHeight - element.clientHeight;
@@ -2002,9 +2097,7 @@ function canElementScrollInDirection(element, axis, delta) {
     return false;
   }
 
-  return delta < 0
-    ? element.scrollTop > 0
-    : element.scrollTop < (maxScrollTop - 1);
+  return delta < 0 ? element.scrollTop > 0 : element.scrollTop < maxScrollTop - 1;
 }
 
 function canElementConsumeWheelOnAxis(element, axis, delta) {
@@ -2050,9 +2143,17 @@ function getWheelScrollHandling(target, boundaryElement, deltaX, deltaY) {
 
 function readGridMetrics(gridElement) {
   const computedStyle = window.getComputedStyle(gridElement);
-  const columnGap = resolveCssLength(computedStyle.getPropertyValue("--spaces-grid-gap"), gridElement, 16);
+  const columnGap = resolveCssLength(
+    computedStyle.getPropertyValue("--spaces-grid-gap"),
+    gridElement,
+    16
+  );
   const rowGap = columnGap;
-  const rowHeight = resolveCssLength(computedStyle.getPropertyValue("--spaces-grid-row-height"), gridElement, 74);
+  const rowHeight = resolveCssLength(
+    computedStyle.getPropertyValue("--spaces-grid-row-height"),
+    gridElement,
+    74
+  );
   const rect = gridElement.getBoundingClientRect();
   const canvasElement = activeSpacesStore?.refs?.canvas || gridElement.parentElement;
   const viewportWidth = Math.max(1, canvasElement?.clientWidth || rect.width);
@@ -2101,7 +2202,8 @@ function resolveCanvasBounds(resolvedLayout, metrics) {
 
   Object.entries(resolvedLayout?.positions || {}).forEach(([widgetId, position]) => {
     const renderedSize =
-      resolvedLayout?.renderedSizes?.[widgetId] || getRenderedWidgetSize(DEFAULT_WIDGET_SIZE, Boolean(resolvedLayout?.minimizedMap?.[widgetId]));
+      resolvedLayout?.renderedSizes?.[widgetId] ||
+      getRenderedWidgetSize(DEFAULT_WIDGET_SIZE, Boolean(resolvedLayout?.minimizedMap?.[widgetId]));
     const rect = createLogicalRect(position, renderedSize);
 
     bounds.minCol = Math.min(bounds.minCol, rect.left - GRID_CONTENT_BUFFER_COLS);
@@ -2111,7 +2213,10 @@ function resolveCanvasBounds(resolvedLayout, metrics) {
   });
 
   const viewportCols = Math.max(1, Math.ceil(metrics.viewportWidth / Math.max(metrics.colStep, 1)));
-  const viewportRows = Math.max(1, Math.ceil(metrics.viewportHeight / Math.max(metrics.rowStep, 1)));
+  const viewportRows = Math.max(
+    1,
+    Math.ceil(metrics.viewportHeight / Math.max(metrics.rowStep, 1))
+  );
   bounds.minCol = Math.min(bounds.minCol, -Math.ceil(viewportCols / 2) - GRID_CONTENT_BUFFER_COLS);
   bounds.maxCol = Math.max(bounds.maxCol, Math.ceil(viewportCols / 2) + GRID_CONTENT_BUFFER_COLS);
   bounds.minRow = Math.min(bounds.minRow, -Math.ceil(viewportRows / 2) - GRID_CONTENT_BUFFER_ROWS);
@@ -2121,7 +2226,7 @@ function resolveCanvasBounds(resolvedLayout, metrics) {
 }
 
 function getCanvasExtent(count, unitSize, gap, padding) {
-  return (padding * 2) + (count * unitSize) + (Math.max(0, count - 1) * gap);
+  return padding * 2 + count * unitSize + Math.max(0, count - 1) * gap;
 }
 
 function applyGridSurfaceLayout(gridElement, bounds, metrics) {
@@ -2140,7 +2245,8 @@ function resolveLogicalContentBounds(resolvedLayout) {
 
   Object.entries(resolvedLayout?.positions || {}).forEach(([widgetId, position]) => {
     const renderedSize =
-      resolvedLayout?.renderedSizes?.[widgetId] || getRenderedWidgetSize(DEFAULT_WIDGET_SIZE, Boolean(resolvedLayout?.minimizedMap?.[widgetId]));
+      resolvedLayout?.renderedSizes?.[widgetId] ||
+      getRenderedWidgetSize(DEFAULT_WIDGET_SIZE, Boolean(resolvedLayout?.minimizedMap?.[widgetId]));
     const rect = createLogicalRect(position, renderedSize);
 
     if (!hasContent) {
@@ -2172,12 +2278,12 @@ function resolveCameraCenterRange(contentBounds, metrics) {
   const visibleEdgeRows = Math.max(0, Math.min(GRID_CAMERA_MIN_VISIBLE_EDGE_ROWS, contentHeight));
   const visibleHalfCols = metrics.viewportWidth / (2 * Math.max(metrics.colStep, 1));
   const visibleHalfRows = metrics.viewportHeight / (2 * Math.max(metrics.rowStep, 1));
-  const minCenterRow = (contentBounds.minRow + visibleEdgeRows) - visibleHalfRows;
+  const minCenterRow = contentBounds.minRow + visibleEdgeRows - visibleHalfRows;
 
   return {
-    maxCenterCol: (contentBounds.maxCol - visibleEdgeCols) + visibleHalfCols,
-    maxCenterRow: (contentBounds.maxRow - visibleEdgeRows) + visibleHalfRows,
-    minCenterCol: (contentBounds.minCol + visibleEdgeCols) - visibleHalfCols,
+    maxCenterCol: contentBounds.maxCol - visibleEdgeCols + visibleHalfCols,
+    maxCenterRow: contentBounds.maxRow - visibleEdgeRows + visibleHalfRows,
+    minCenterCol: contentBounds.minCol + visibleEdgeCols - visibleHalfCols,
     minCenterRow,
     visibleHalfCols,
     visibleHalfRows
@@ -2190,11 +2296,12 @@ function resolveGridTopOverlayInsetPx(metrics, gridElement = activeSpacesStore?.
   const gridPaddingTop = gridTop + paddingTop;
   const liveShellBar = document.querySelector(".onscreen-menu-bar");
   const liveShellBottom = liveShellBar?.getBoundingClientRect?.().bottom;
-  const gapContextElement = liveShellBar || gridElement || document.body || document.documentElement;
+  const gapContextElement =
+    liveShellBar || gridElement || document.body || document.documentElement;
   const overlayGapPx = resolveCssLength(GRID_INITIAL_TOP_BAR_GAP, gapContextElement, 0);
 
   if (Number.isFinite(liveShellBottom) && liveShellBottom > 0) {
-    return Math.max(0, (liveShellBottom + overlayGapPx) - gridPaddingTop);
+    return Math.max(0, liveShellBottom + overlayGapPx - gridPaddingTop);
   }
 
   const body = document.body;
@@ -2206,7 +2313,7 @@ function resolveGridTopOverlayInsetPx(metrics, gridElement = activeSpacesStore?.
       0
     );
 
-    return Math.max(0, (clearancePx + overlayGapPx) - gridPaddingTop);
+    return Math.max(0, clearancePx + overlayGapPx - gridPaddingTop);
   }
 
   return 0;
@@ -2230,7 +2337,10 @@ function resolvePreferredInitialCameraOffset(resolvedLayout, metrics) {
   );
   const topOverlayInsetRows = resolveGridTopOverlayInsetPx(metrics) / Math.max(metrics.rowStep, 1);
   const preferredCenterRow = clampNumber(
-    (contentBounds.minRow - GRID_INITIAL_TOP_HEADROOM_ROWS) + cameraRange.visibleHalfRows - topOverlayInsetRows,
+    contentBounds.minRow -
+      GRID_INITIAL_TOP_HEADROOM_ROWS +
+      cameraRange.visibleHalfRows -
+      topOverlayInsetRows,
     cameraRange.minCenterRow,
     cameraRange.maxCenterRow
   );
@@ -2254,8 +2364,16 @@ function clampCameraOffsetToContent(cameraOffset, resolvedLayout, metrics) {
 
   const currentCenterCol = -cameraOffset.x / Math.max(metrics.colStep, 1);
   const currentCenterRow = -cameraOffset.y / Math.max(metrics.rowStep, 1);
-  const clampedCenterCol = clampNumber(currentCenterCol, cameraRange.minCenterCol, cameraRange.maxCenterCol);
-  const clampedCenterRow = clampNumber(currentCenterRow, cameraRange.minCenterRow, cameraRange.maxCenterRow);
+  const clampedCenterCol = clampNumber(
+    currentCenterCol,
+    cameraRange.minCenterCol,
+    cameraRange.maxCenterCol
+  );
+  const clampedCenterRow = clampNumber(
+    currentCenterRow,
+    cameraRange.minCenterRow,
+    cameraRange.maxCenterRow
+  );
 
   return {
     x: -clampedCenterCol * metrics.colStep,
@@ -2267,14 +2385,18 @@ function getWidgetCardFrame(position, size, bounds, metrics) {
   const normalizedPosition = normalizeWidgetPosition(position, DEFAULT_WIDGET_POSITION);
   const normalizedSize = normalizeWidgetSize(size, DEFAULT_WIDGET_SIZE);
   const cameraOffset = activeSpacesStore?.cameraOffsetPx || { x: 0, y: 0 };
-  const originX = (metrics.viewportWidth / 2) + cameraOffset.x;
-  const originY = (metrics.viewportHeight / 2) + cameraOffset.y;
+  const originX = metrics.viewportWidth / 2 + cameraOffset.x;
+  const originY = metrics.viewportHeight / 2 + cameraOffset.y;
 
   return {
-    height: (normalizedSize.rows * metrics.rowHeight) + (Math.max(0, normalizedSize.rows - 1) * metrics.rowGap),
-    left: originX + (normalizedPosition.col * metrics.colStep),
-    top: originY + (normalizedPosition.row * metrics.rowStep),
-    width: (normalizedSize.cols * metrics.colWidth) + (Math.max(0, normalizedSize.cols - 1) * metrics.columnGap)
+    height:
+      normalizedSize.rows * metrics.rowHeight +
+      Math.max(0, normalizedSize.rows - 1) * metrics.rowGap,
+    left: originX + normalizedPosition.col * metrics.colStep,
+    top: originY + normalizedPosition.row * metrics.rowStep,
+    width:
+      normalizedSize.cols * metrics.colWidth +
+      Math.max(0, normalizedSize.cols - 1) * metrics.columnGap
   };
 }
 
@@ -2333,7 +2455,8 @@ function animateWidgetCardsFromRects(widgetCards, previousRects, motionQuery = n
       cardElement.style.opacity = "0";
       cardElement.style.transform = "translateY(10px) scale(0.96)";
       void cardElement.offsetWidth;
-      cardElement.style.transition = "transform 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease";
+      cardElement.style.transition =
+        "transform 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease";
       cardElement.style.opacity = "1";
       cardElement.style.transform = "";
 
@@ -2412,8 +2535,8 @@ function toggleGridOverlay(gridElement, active, metrics = null, cameraOffset = {
     return;
   }
 
-  const offsetX = positiveModulo((metrics.viewportWidth / 2) + cameraOffset.x, metrics.colStep);
-  const offsetY = positiveModulo((metrics.viewportHeight / 2) + cameraOffset.y, metrics.rowStep);
+  const offsetX = positiveModulo(metrics.viewportWidth / 2 + cameraOffset.x, metrics.colStep);
+  const offsetY = positiveModulo(metrics.viewportHeight / 2 + cameraOffset.y, metrics.rowStep);
   gridElement.style.setProperty("--spaces-grid-overlay-col-step", `${metrics.colStep}px`);
   gridElement.style.setProperty("--spaces-grid-overlay-row-step", `${metrics.rowStep}px`);
   gridElement.style.setProperty("--spaces-grid-overlay-offset-x", `${offsetX}px`);
@@ -2440,7 +2563,10 @@ function getSpaceCardClone(spaceRecord) {
     widgetPositions: { ...spaceRecord.widgetPositions },
     widgetSizes: { ...spaceRecord.widgetSizes },
     widgets: Object.fromEntries(
-      Object.entries(spaceRecord.widgets || {}).map(([widgetId, widgetRecord]) => [widgetId, { ...widgetRecord }])
+      Object.entries(spaceRecord.widgets || {}).map(([widgetId, widgetRecord]) => [
+        widgetId,
+        { ...widgetRecord }
+      ])
     )
   };
 }
@@ -2508,9 +2634,17 @@ function createWidgetContext(spaceRecord, widgetId, size, layoutEntry) {
 function createWidgetCardSkeleton(spaceRecord, widgetId, layoutEntry) {
   const card = createElement("article", "space-card spaces-widget-card");
   const controls = createElement("div", "spaces-widget-card-controls");
-  const reloadButton = createWidgetActionButton("spaces-widget-control-button spaces-widget-reload-button", "", "Reload widget");
+  const reloadButton = createWidgetActionButton(
+    "spaces-widget-control-button spaces-widget-reload-button",
+    "",
+    "Reload widget"
+  );
   const handle = createWidgetActionButton("spaces-widget-drag-handle", "", "Move widget");
-  const titleLabel = createElement("span", "spaces-widget-card-title", buildWidgetHeaderTitle(spaceRecord, widgetId));
+  const titleLabel = createElement(
+    "span",
+    "spaces-widget-card-title",
+    buildWidgetHeaderTitle(spaceRecord, widgetId)
+  );
   const actions = createElement("div", "spaces-widget-card-actions");
   const minimizeButton = createWidgetActionButton(
     "spaces-widget-control-button",
@@ -2625,9 +2759,7 @@ function slugifyRendererSourceSegment(value, fallback = "item") {
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/gu, "")
     .toLowerCase();
-  const slug = normalizedValue
-    .replace(/[^a-z0-9]+/gu, "-")
-    .replace(/^-+|-+$/gu, "");
+  const slug = normalizedValue.replace(/[^a-z0-9]+/gu, "-").replace(/^-+|-+$/gu, "");
 
   return slug || fallback;
 }
@@ -2669,7 +2801,9 @@ function tryCompileRendererMethod(rendererSource, sourceUrl) {
     return methodObject.renderer;
   }
 
-  const functionValues = Object.values(methodObject || {}).filter((value) => typeof value === "function");
+  const functionValues = Object.values(methodObject || {}).filter(
+    (value) => typeof value === "function"
+  );
 
   if (functionValues.length === 1) {
     return functionValues[0];
@@ -2709,7 +2843,14 @@ function compileWidgetRenderer(spaceRecord, widgetRecord, widgetId) {
   return compiledRenderer;
 }
 
-async function renderWidgetCard(spaceRecord, widgetId, skeleton, loadToken, layoutEntry, renderPhase = "render") {
+async function renderWidgetCard(
+  spaceRecord,
+  widgetId,
+  skeleton,
+  loadToken,
+  layoutEntry,
+  renderPhase = "render"
+) {
   const widgetRecord = getWidgetRecord(spaceRecord, widgetId);
 
   if (!widgetRecord) {
@@ -2717,7 +2858,8 @@ async function renderWidgetCard(spaceRecord, widgetId, skeleton, loadToken, layo
   }
 
   const storedSize = getEffectiveWidgetSize(spaceRecord, widgetId);
-  const size = layoutEntry?.renderedSize || getRenderedWidgetSize(storedSize, Boolean(layoutEntry?.minimized));
+  const size =
+    layoutEntry?.renderedSize || getRenderedWidgetSize(storedSize, Boolean(layoutEntry?.minimized));
   const context = createWidgetContext(spaceRecord, widgetId, size, layoutEntry);
   const renderer = compileWidgetRenderer(spaceRecord, widgetRecord, widgetId);
 
@@ -2737,7 +2879,12 @@ async function renderWidgetCard(spaceRecord, widgetId, skeleton, loadToken, layo
       return;
     }
 
-    if (rendered && typeof rendered === "object" && !Array.isArray(rendered) && typeof rendered.cleanup === "function") {
+    if (
+      rendered &&
+      typeof rendered === "object" &&
+      !Array.isArray(rendered) &&
+      typeof rendered.cleanup === "function"
+    ) {
       rendered.cleanup();
     }
 
@@ -2750,7 +2897,12 @@ async function renderWidgetCard(spaceRecord, widgetId, skeleton, loadToken, layo
     return;
   }
 
-  if (rendered && typeof rendered === "object" && !Array.isArray(rendered) && typeof rendered.cleanup === "function") {
+  if (
+    rendered &&
+    typeof rendered === "object" &&
+    !Array.isArray(rendered) &&
+    typeof rendered.cleanup === "function"
+  ) {
     skeleton.cleanup = rendered.cleanup;
 
     if (rendered.output !== undefined) {
@@ -3029,7 +3181,9 @@ const spacesModel = {
   },
 
   get currentSpaceUpdatedLabel() {
-    return this.currentSpace?.updatedAt ? new Date(this.currentSpace.updatedAt).toLocaleString() : "";
+    return this.currentSpace?.updatedAt
+      ? new Date(this.currentSpace.updatedAt).toLocaleString()
+      : "";
   },
 
   get currentSpaceWidgetCountLabel() {
@@ -3057,7 +3211,10 @@ const spacesModel = {
     const currentSpace = this.currentSpace;
     const widgetIds = Array.isArray(currentSpace?.widgetIds) ? currentSpace.widgetIds : [];
 
-    return widgetIds.length > 0 && widgetIds.every((widgetId) => currentSpace?.widgets?.[widgetId]?.metadata?.example === true);
+    return (
+      widgetIds.length > 0 &&
+      widgetIds.every((widgetId) => currentSpace?.widgets?.[widgetId]?.metadata?.example === true)
+    );
   },
 
   get currentSpaceClearAllWidgetsLabel() {
@@ -3109,7 +3266,10 @@ const spacesModel = {
       return null;
     }
 
-    if (!this.currentSpaceHasOnlyExampleWidgets && !globalThis.confirm(this.currentSpaceClearAllWidgetsConfirmMessage)) {
+    if (
+      !this.currentSpaceHasOnlyExampleWidgets &&
+      !globalThis.confirm(this.currentSpaceClearAllWidgetsConfirmMessage)
+    ) {
       return null;
     }
 
@@ -3132,7 +3292,12 @@ const spacesModel = {
         spaceId: targetSpaceId
       });
       this.setNotice(
-        formatErrorMessage(error, this.currentSpaceHasOnlyExampleWidgets ? "Unable to close example." : "Unable to clear all widgets."),
+        formatErrorMessage(
+          error,
+          this.currentSpaceHasOnlyExampleWidgets
+            ? "Unable to close example."
+            : "Unable to clear all widgets."
+        ),
         "error"
       );
       return null;
@@ -3169,11 +3334,16 @@ const spacesModel = {
     }
 
     return (
-      normalizeSpaceIcon(this.currentSpaceIconDraft) !== normalizeSpaceIcon(this.currentSpace.icon) ||
-      normalizeSpaceIconColor(this.currentSpaceIconColorDraft) !== normalizeSpaceIconColor(this.currentSpace.iconColor) ||
-      normalizeSpaceTitle(this.currentSpaceTitleDraft) !== normalizeSpaceTitle(this.currentSpace.title) ||
+      normalizeSpaceIcon(this.currentSpaceIconDraft) !==
+        normalizeSpaceIcon(this.currentSpace.icon) ||
+      normalizeSpaceIconColor(this.currentSpaceIconColorDraft) !==
+        normalizeSpaceIconColor(this.currentSpace.iconColor) ||
+      normalizeSpaceTitle(this.currentSpaceTitleDraft) !==
+        normalizeSpaceTitle(this.currentSpace.title) ||
       normalizeSpaceAgentInstructions(this.currentSpaceInstructionsDraft) !==
-        normalizeSpaceAgentInstructions(this.currentSpace.agentInstructions ?? this.currentSpace.specialInstructions)
+        normalizeSpaceAgentInstructions(
+          this.currentSpace.agentInstructions ?? this.currentSpace.specialInstructions
+        )
     );
   },
 
@@ -3210,7 +3380,9 @@ const spacesModel = {
     }
 
     this.emptyCanvasSeenStorageKey = buildEmptyCanvasSeenStorageKey(this.currentUsername);
-    this.emptyCanvasSeenSpaceIds = readEmptyCanvasSeenSpaceIdsFromStorage(this.emptyCanvasSeenStorageKey);
+    this.emptyCanvasSeenSpaceIds = readEmptyCanvasSeenSpaceIdsFromStorage(
+      this.emptyCanvasSeenStorageKey
+    );
     this.emptyCanvasSeenStorageLoaded = true;
   },
 
@@ -3245,7 +3417,8 @@ const spacesModel = {
 
   async shouldPlayEmptyCanvasSequence(spaceRecord, options = {}) {
     await this.ensureEmptyCanvasSeenStorageLoaded();
-    const becameEmptyAgain = Array.isArray(options.previousSpace?.widgetIds) && options.previousSpace.widgetIds.length > 0;
+    const becameEmptyAgain =
+      Array.isArray(options.previousSpace?.widgetIds) && options.previousSpace.widgetIds.length > 0;
     const shouldPlaySequence =
       isPristineEmptySpace(spaceRecord) &&
       !becameEmptyAgain &&
@@ -3388,13 +3561,17 @@ const spacesModel = {
       return;
     }
 
-    const nextUpdatedAtLabel = spaceRecord.updatedAt ? new Date(spaceRecord.updatedAt).toLocaleString() : "Unknown update time";
+    const nextUpdatedAtLabel = spaceRecord.updatedAt
+      ? new Date(spaceRecord.updatedAt).toLocaleString()
+      : "Unknown update time";
 
     this.spaceList = this.spaceList.map((entry) =>
       entry?.id !== spaceRecord.id
         ? entry
         : (() => {
-            const widgetCount = Array.isArray(spaceRecord?.widgetIds) ? spaceRecord.widgetIds.length : 0;
+            const widgetCount = Array.isArray(spaceRecord?.widgetIds)
+              ? spaceRecord.widgetIds.length
+              : 0;
             const nextThumbnailPath =
               widgetCount > 0
                 ? String(spaceRecord.thumbnailPath || entry?.thumbnailPath || "").trim()
@@ -3405,12 +3582,17 @@ const spacesModel = {
               displayIcon: getSpaceDisplayIcon(spaceRecord),
               displayIconColor: getSpaceDisplayIconColor(spaceRecord),
               displayTitle: getSpaceDisplayTitle(spaceRecord),
-              agentInstructions: spaceRecord.agentInstructions || spaceRecord.specialInstructions || "",
+              agentInstructions:
+                spaceRecord.agentInstructions || spaceRecord.specialInstructions || "",
               icon: spaceRecord.icon,
               iconColor: spaceRecord.iconColor,
-              specialInstructions: spaceRecord.agentInstructions || spaceRecord.specialInstructions || "",
+              specialInstructions:
+                spaceRecord.agentInstructions || spaceRecord.specialInstructions || "",
               thumbnailPath: nextThumbnailPath,
-              thumbnailUrl: buildSpaceThumbnailUrlFromPath(nextThumbnailPath, spaceRecord.updatedAt),
+              thumbnailUrl: buildSpaceThumbnailUrlFromPath(
+                nextThumbnailPath,
+                spaceRecord.updatedAt
+              ),
               title: spaceRecord.title,
               updatedAt: spaceRecord.updatedAt,
               updatedAtLabel: nextUpdatedAtLabel
@@ -3461,7 +3643,12 @@ const spacesModel = {
   queueCurrentSpaceThumbnailCapture(options = {}) {
     const targetSpaceId = normalizeOptionalSpaceId(options.spaceId ?? this.currentSpaceId);
 
-    if (!targetSpaceId || targetSpaceId !== this.currentSpaceId || !this.refs.canvas || !this.refs.grid) {
+    if (
+      !targetSpaceId ||
+      targetSpaceId !== this.currentSpaceId ||
+      !this.refs.canvas ||
+      !this.refs.grid
+    ) {
       return;
     }
 
@@ -3473,7 +3660,9 @@ const spacesModel = {
       },
       spaceId: targetSpaceId,
       updatedAt: String((options.updatedAt ?? this.currentSpace?.updatedAt) || "").trim(),
-      widgetCount: Array.isArray(this.currentSpace?.widgetIds) ? this.currentSpace.widgetIds.length : 0
+      widgetCount: Array.isArray(this.currentSpace?.widgetIds)
+        ? this.currentSpace.widgetIds.length
+        : 0
     });
   },
 
@@ -3485,13 +3674,18 @@ const spacesModel = {
     const existingSpaceListEntry = this.spaceList.find((entry) => entry?.id === spaceRecord.id);
     this.currentSpace = {
       ...spaceRecord,
-      thumbnailPath: String(spaceRecord.thumbnailPath || existingSpaceListEntry?.thumbnailPath || "").trim(),
-      thumbnailUrl: String(spaceRecord.thumbnailUrl || existingSpaceListEntry?.thumbnailUrl || "").trim()
+      thumbnailPath: String(
+        spaceRecord.thumbnailPath || existingSpaceListEntry?.thumbnailPath || ""
+      ).trim(),
+      thumbnailUrl: String(
+        spaceRecord.thumbnailUrl || existingSpaceListEntry?.thumbnailUrl || ""
+      ).trim()
     };
     this.currentSpaceIconColorDraft = spaceRecord.iconColor || "";
     this.currentSpaceIconDraft = spaceRecord.icon || "";
     this.currentSpaceId = spaceRecord.id;
-    this.currentSpaceInstructionsDraft = spaceRecord.agentInstructions || spaceRecord.specialInstructions || "";
+    this.currentSpaceInstructionsDraft =
+      spaceRecord.agentInstructions || spaceRecord.specialInstructions || "";
     this.currentSpaceTitleDraft = spaceRecord.title;
 
     if (options.cameraOffset && typeof options.cameraOffset === "object") {
@@ -3517,7 +3711,9 @@ const spacesModel = {
     }
 
     const targetSpaceId = this.currentSpaceId;
-    const normalizedAgentInstructions = normalizeSpaceAgentInstructions(this.currentSpaceInstructionsDraft);
+    const normalizedAgentInstructions = normalizeSpaceAgentInstructions(
+      this.currentSpaceInstructionsDraft
+    );
     const normalizedIcon = normalizeSpaceIcon(this.currentSpaceIconDraft);
     const normalizedIconColor = normalizeSpaceIconColor(this.currentSpaceIconColorDraft);
     const normalizedTitle = normalizeSpaceTitle(this.currentSpaceTitleDraft);
@@ -3535,12 +3731,17 @@ const spacesModel = {
         const savedSpace = await saveSpaceMeta(payload);
 
         if (this.currentSpaceId === targetSpaceId && this.currentSpace) {
-          const nextAgentInstructions = savedSpace.agentInstructions || savedSpace.specialInstructions || "";
+          const nextAgentInstructions =
+            savedSpace.agentInstructions || savedSpace.specialInstructions || "";
           const shouldSyncAgentInstructionsDraft =
-            normalizeSpaceAgentInstructions(this.currentSpaceInstructionsDraft) === normalizedAgentInstructions;
-          const shouldSyncIconDraft = normalizeSpaceIcon(this.currentSpaceIconDraft) === normalizedIcon;
-          const shouldSyncIconColorDraft = normalizeSpaceIconColor(this.currentSpaceIconColorDraft) === normalizedIconColor;
-          const shouldSyncTitleDraft = normalizeSpaceTitle(this.currentSpaceTitleDraft) === normalizedTitle;
+            normalizeSpaceAgentInstructions(this.currentSpaceInstructionsDraft) ===
+            normalizedAgentInstructions;
+          const shouldSyncIconDraft =
+            normalizeSpaceIcon(this.currentSpaceIconDraft) === normalizedIcon;
+          const shouldSyncIconColorDraft =
+            normalizeSpaceIconColor(this.currentSpaceIconColorDraft) === normalizedIconColor;
+          const shouldSyncTitleDraft =
+            normalizeSpaceTitle(this.currentSpaceTitleDraft) === normalizedTitle;
 
           this.currentSpace = {
             ...this.currentSpace,
@@ -3582,12 +3783,16 @@ const spacesModel = {
         logSpacesError("persistCurrentSpaceMeta failed", error, {
           spaceId: targetSpaceId
         });
-        this.setNotice(formatErrorMessage(error, "Unable to save the current space settings."), "error");
+        this.setNotice(
+          formatErrorMessage(error, "Unable to save the current space settings."),
+          "error"
+        );
         throw error;
       } finally {
         this.savingSpaceMeta = false;
         this.spaceMetaPersistPromise = null;
-        const shouldPersistAgain = this.spaceMetaPersistQueued || this.hasPendingCurrentSpaceMetaChanges;
+        const shouldPersistAgain =
+          this.spaceMetaPersistQueued || this.hasPendingCurrentSpaceMetaChanges;
         this.spaceMetaPersistQueued = false;
 
         if (shouldPersistAgain && this.currentSpaceId) {
@@ -3675,7 +3880,9 @@ const spacesModel = {
     this.currentResolvedLayout = resolvedLayout;
     this.currentCanvasBounds = null;
     spaceRecord.widgetPositions = { ...resolvedLayout.positions };
-    spaceRecord.minimizedWidgetIds = spaceRecord.widgetIds.filter((widgetId) => resolvedLayout.minimizedMap[widgetId]);
+    spaceRecord.minimizedWidgetIds = spaceRecord.widgetIds.filter(
+      (widgetId) => resolvedLayout.minimizedMap[widgetId]
+    );
 
     spaceRecord.widgetIds.forEach((widgetId) => {
       const skeleton = this.widgetCards[widgetId];
@@ -3684,11 +3891,24 @@ const spacesModel = {
         return;
       }
 
-      const renderedSize = resolvedLayout.renderedSizes[widgetId] || getRenderedWidgetSize(getEffectiveWidgetSize(spaceRecord, widgetId));
-      applyWidgetCardLayout(skeleton.card, resolvedLayout.positions[widgetId], renderedSize, null, metrics);
-      skeleton.card.classList.toggle("is-minimized", Boolean(resolvedLayout.minimizedMap[widgetId]));
+      const renderedSize =
+        resolvedLayout.renderedSizes[widgetId] ||
+        getRenderedWidgetSize(getEffectiveWidgetSize(spaceRecord, widgetId));
+      applyWidgetCardLayout(
+        skeleton.card,
+        resolvedLayout.positions[widgetId],
+        renderedSize,
+        null,
+        metrics
+      );
+      skeleton.card.classList.toggle(
+        "is-minimized",
+        Boolean(resolvedLayout.minimizedMap[widgetId])
+      );
       skeleton.minimizeButton.textContent = resolvedLayout.minimizedMap[widgetId] ? "+" : "-";
-      skeleton.minimizeButton.title = resolvedLayout.minimizedMap[widgetId] ? "Restore widget" : "Minimize widget";
+      skeleton.minimizeButton.title = resolvedLayout.minimizedMap[widgetId]
+        ? "Restore widget"
+        : "Minimize widget";
       skeleton.minimizeButton.setAttribute("aria-label", skeleton.minimizeButton.title);
       skeleton.titleLabel.textContent = buildWidgetHeaderTitle(spaceRecord, widgetId);
       skeleton.card.style.removeProperty("transition");
@@ -3701,7 +3921,12 @@ const spacesModel = {
       });
     }
 
-    toggleGridOverlay(this.refs.grid, shouldShowGridOverlay(this.layoutInteraction), metrics, this.cameraOffsetPx);
+    toggleGridOverlay(
+      this.refs.grid,
+      shouldShowGridOverlay(this.layoutInteraction),
+      metrics,
+      this.cameraOffsetPx
+    );
     syncSpacesRuntimeState();
   },
 
@@ -3755,7 +3980,11 @@ const spacesModel = {
       return;
     }
 
-    if (event.target?.closest(".spaces-widget-card, .spaces-empty-canvas-example, .spaces-canvas-debug-button")) {
+    if (
+      event.target?.closest(
+        ".spaces-widget-card, .spaces-empty-canvas-example, .spaces-canvas-debug-button"
+      )
+    ) {
       return;
     }
 
@@ -3956,7 +4185,12 @@ const spacesModel = {
   },
 
   beginWidgetResize(event, widgetId) {
-    if (event.button !== 0 || !this.currentSpace || !this.refs.grid || this.currentSpace.minimizedWidgetIds.includes(widgetId)) {
+    if (
+      event.button !== 0 ||
+      !this.currentSpace ||
+      !this.refs.grid ||
+      this.currentSpace.minimizedWidgetIds.includes(widgetId)
+    ) {
       return;
     }
 
@@ -3983,7 +4217,12 @@ const spacesModel = {
     skeleton.card.style.removeProperty("transition");
     toggleGridOverlay(this.refs.grid, true, gridMetrics, this.cameraOffsetPx);
 
-    const originFrame = getWidgetCardFrame(layoutPosition, storedSize, this.currentCanvasBounds, gridMetrics);
+    const originFrame = getWidgetCardFrame(
+      layoutPosition,
+      storedSize,
+      this.currentCanvasBounds,
+      gridMetrics
+    );
 
     this.layoutInteraction = {
       gridMetrics,
@@ -4021,8 +4260,12 @@ const spacesModel = {
 
     if (interaction.type === "pan") {
       this.panCameraByPixels(
-        (interaction.startCameraOffset.x + (event.clientX - interaction.startX)) - this.cameraOffsetPx.x,
-        (interaction.startCameraOffset.y + (event.clientY - interaction.startY)) - this.cameraOffsetPx.y
+        interaction.startCameraOffset.x +
+          (event.clientX - interaction.startX) -
+          this.cameraOffsetPx.x,
+        interaction.startCameraOffset.y +
+          (event.clientY - interaction.startY) -
+          this.cameraOffsetPx.y
       );
       return;
     }
@@ -4036,14 +4279,18 @@ const spacesModel = {
 
     const cameraDeltaX = this.cameraOffsetPx.x - interaction.startCameraOffset.x;
     const cameraDeltaY = this.cameraOffsetPx.y - interaction.startCameraOffset.y;
-    const deltaX = (event.clientX - interaction.startX) - cameraDeltaX;
-    const deltaY = (event.clientY - interaction.startY) - cameraDeltaY;
+    const deltaX = event.clientX - interaction.startX - cameraDeltaX;
+    const deltaY = event.clientY - interaction.startY - cameraDeltaY;
 
     if (interaction.type === "move") {
       const previewPosition = clampWidgetPosition(
         {
-          col: interaction.originPosition.col + Math.round(deltaX / Math.max(interaction.gridMetrics.colStep, 1)),
-          row: interaction.originPosition.row + Math.round(deltaY / Math.max(interaction.gridMetrics.rowStep, 1))
+          col:
+            interaction.originPosition.col +
+            Math.round(deltaX / Math.max(interaction.gridMetrics.colStep, 1)),
+          row:
+            interaction.originPosition.row +
+            Math.round(deltaY / Math.max(interaction.gridMetrics.rowStep, 1))
         },
         interaction.renderedSize
       );
@@ -4055,14 +4302,42 @@ const spacesModel = {
 
     const minWidth = interaction.gridMetrics.colWidth;
     const minHeight = interaction.gridMetrics.rowHeight;
-    const maxWidth = (MAX_WIDGET_COLS * interaction.gridMetrics.colWidth) + (Math.max(0, MAX_WIDGET_COLS - 1) * interaction.gridMetrics.columnGap);
-    const maxHeight = (MAX_WIDGET_ROWS * interaction.gridMetrics.rowHeight) + (Math.max(0, MAX_WIDGET_ROWS - 1) * interaction.gridMetrics.rowGap);
-    const previewWidth = Math.min(maxWidth, Math.max(minWidth, interaction.originFrame.width + deltaX));
-    const previewHeight = Math.min(maxHeight, Math.max(minHeight, interaction.originFrame.height + deltaY));
+    const maxWidth =
+      MAX_WIDGET_COLS * interaction.gridMetrics.colWidth +
+      Math.max(0, MAX_WIDGET_COLS - 1) * interaction.gridMetrics.columnGap;
+    const maxHeight =
+      MAX_WIDGET_ROWS * interaction.gridMetrics.rowHeight +
+      Math.max(0, MAX_WIDGET_ROWS - 1) * interaction.gridMetrics.rowGap;
+    const previewWidth = Math.min(
+      maxWidth,
+      Math.max(minWidth, interaction.originFrame.width + deltaX)
+    );
+    const previewHeight = Math.min(
+      maxHeight,
+      Math.max(minHeight, interaction.originFrame.height + deltaY)
+    );
     const previewSize = normalizeWidgetSize(
       {
-        cols: Math.min(MAX_WIDGET_COLS, Math.max(1, Math.round((previewWidth + interaction.gridMetrics.columnGap) / Math.max(interaction.gridMetrics.colStep, 1)))),
-        rows: Math.min(MAX_WIDGET_ROWS, Math.max(1, Math.round((previewHeight + interaction.gridMetrics.rowGap) / Math.max(interaction.gridMetrics.rowStep, 1))))
+        cols: Math.min(
+          MAX_WIDGET_COLS,
+          Math.max(
+            1,
+            Math.round(
+              (previewWidth + interaction.gridMetrics.columnGap) /
+                Math.max(interaction.gridMetrics.colStep, 1)
+            )
+          )
+        ),
+        rows: Math.min(
+          MAX_WIDGET_ROWS,
+          Math.max(
+            1,
+            Math.round(
+              (previewHeight + interaction.gridMetrics.rowGap) /
+                Math.max(interaction.gridMetrics.rowStep, 1)
+            )
+          )
+        )
       },
       interaction.originSize
     );
@@ -4102,11 +4377,15 @@ const spacesModel = {
         clearPreview: false,
         restoreLayout: false
       });
-      await this.commitWidgetLayout(widgetId, {
-        position: interaction.previewPosition
-      }, {
-        previousRects
-      });
+      await this.commitWidgetLayout(
+        widgetId,
+        {
+          position: interaction.previewPosition
+        },
+        {
+          previousRects
+        }
+      );
       return;
     }
 
@@ -4116,11 +4395,15 @@ const spacesModel = {
         clearPreview: false,
         restoreLayout: false
       });
-      await this.commitWidgetLayout(widgetId, {
-        size: interaction.previewSize
-      }, {
-        previousRects
-      });
+      await this.commitWidgetLayout(
+        widgetId,
+        {
+          size: interaction.previewSize
+        },
+        {
+          previousRects
+        }
+      );
       return;
     }
 
@@ -4172,7 +4455,9 @@ const spacesModel = {
     });
 
     nextSpace.widgetPositions = { ...resolvedLayout.positions };
-    nextSpace.minimizedWidgetIds = nextSpace.widgetIds.filter((entry) => resolvedLayout.minimizedMap[entry]);
+    nextSpace.minimizedWidgetIds = nextSpace.widgetIds.filter(
+      (entry) => resolvedLayout.minimizedMap[entry]
+    );
     this.currentSpace = nextSpace;
     this.applyResolvedLayoutToCards(resolvedLayout, nextSpace, {
       previousRects
@@ -4262,7 +4547,8 @@ const spacesModel = {
       throw new Error(`Widget "${widgetId}" was not found in the current space.`);
     }
 
-    const resolvedLayout = this.currentResolvedLayout || this.resolveCurrentSpaceLayout(this.currentSpace);
+    const resolvedLayout =
+      this.currentResolvedLayout || this.resolveCurrentSpaceLayout(this.currentSpace);
     const layoutEntry = {
       minimized: Boolean(resolvedLayout?.minimizedMap?.[widgetId]),
       position: resolvedLayout?.positions?.[widgetId],
@@ -4274,7 +4560,14 @@ const spacesModel = {
     skeleton.renderTarget.replaceChildren(createWidgetPlaceholder("Reloading widget..."));
 
     try {
-      await renderWidgetCard(this.currentSpace, widgetId, skeleton, loadToken, layoutEntry, "reload");
+      await renderWidgetCard(
+        this.currentSpace,
+        widgetId,
+        skeleton,
+        loadToken,
+        layoutEntry,
+        "reload"
+      );
     } catch (error) {
       if (loadToken !== this.widgetLoadToken) {
         return;
@@ -4310,14 +4603,20 @@ const spacesModel = {
   },
 
   getWidgetRenderCheck(widgetId) {
-    return cloneWidgetRenderCheck(this.widgetRenderChecks?.[normalizeOptionalWidgetId(widgetId)], widgetId);
+    return cloneWidgetRenderCheck(
+      this.widgetRenderChecks?.[normalizeOptionalWidgetId(widgetId)],
+      widgetId
+    );
   },
 
   setWidgetRenderCheck(widgetId, check) {
     const normalizedWidgetId = normalizeOptionalWidgetId(widgetId);
 
     if (!normalizedWidgetId) {
-      return createUncheckedWidgetRenderCheck("", "No widget id was provided for the live render check.");
+      return createUncheckedWidgetRenderCheck(
+        "",
+        "No widget id was provided for the live render check."
+      );
     }
 
     const nextCheck = cloneWidgetRenderCheck(check, normalizedWidgetId);
@@ -4334,14 +4633,20 @@ const spacesModel = {
   },
 
   recordWidgetRenderError(widgetId, error, phase = "render") {
-    return this.setWidgetRenderCheck(widgetId, createFailedWidgetRenderCheck(widgetId, error, phase));
+    return this.setWidgetRenderCheck(
+      widgetId,
+      createFailedWidgetRenderCheck(widgetId, error, phase)
+    );
   },
 
   resetWidgetRenderChecks(widgetIds = []) {
     this.widgetRenderChecks = Object.fromEntries(
       normalizeRuntimeWidgetIdList(widgetIds).map((nextWidgetId) => [
         nextWidgetId,
-        createUncheckedWidgetRenderCheck(nextWidgetId, `Widget "${nextWidgetId}" has not been live-tested yet.`)
+        createUncheckedWidgetRenderCheck(
+          nextWidgetId,
+          `Widget "${nextWidgetId}" has not been live-tested yet.`
+        )
       ])
     );
   },
@@ -4354,7 +4659,10 @@ const spacesModel = {
       normalizedWidgetIds.map((nextWidgetId) => [
         nextWidgetId,
         rerenderSet.has(nextWidgetId)
-          ? createUncheckedWidgetRenderCheck(nextWidgetId, `Widget "${nextWidgetId}" has not been live-tested yet.`)
+          ? createUncheckedWidgetRenderCheck(
+              nextWidgetId,
+              `Widget "${nextWidgetId}" has not been live-tested yet.`
+            )
           : this.getWidgetRenderCheck(nextWidgetId)
       ])
     );
@@ -4395,7 +4703,9 @@ const spacesModel = {
     });
 
     nextSpace.widgetPositions = { ...resolvedLayout.positions };
-    nextSpace.minimizedWidgetIds = nextSpace.widgetIds.filter((widgetId) => resolvedLayout.minimizedMap[widgetId]);
+    nextSpace.minimizedWidgetIds = nextSpace.widgetIds.filter(
+      (widgetId) => resolvedLayout.minimizedMap[widgetId]
+    );
     this.currentSpace = nextSpace;
     this.applyResolvedLayoutToCards(resolvedLayout, nextSpace, {
       resetCamera: true,
@@ -4461,7 +4771,11 @@ const spacesModel = {
       this.isConfigPanelOpen = false;
       this.isConfigPanelVisible = false;
       syncSpacesRuntimeState();
-      this.renderGridState("Unable to load spaces.", formatErrorMessage(error, "Unknown spaces error."), "error");
+      this.renderGridState(
+        "Unable to load spaces.",
+        formatErrorMessage(error, "Unknown spaces error."),
+        "error"
+      );
       this.setNotice(formatErrorMessage(error, "Unable to load spaces."), "error");
     }
   },
@@ -4481,7 +4795,11 @@ const spacesModel = {
     } catch (error) {
       logSpacesError("createSpaceFromRoute failed", error);
       this.setNotice(formatErrorMessage(error, "Unable to create a new space."), "error");
-      this.renderGridState("Unable to create space.", formatErrorMessage(error, "Unknown create error."), "error");
+      this.renderGridState(
+        "Unable to create space.",
+        formatErrorMessage(error, "Unknown create error."),
+        "error"
+      );
     } finally {
       this.creatingSpace = false;
     }
@@ -4657,7 +4975,10 @@ const spacesModel = {
         return;
       }
 
-      const playEmptyCanvasSequence = await this.shouldPlayEmptyCanvasSequence(spaceRecord, options);
+      const playEmptyCanvasSequence = await this.shouldPlayEmptyCanvasSequence(
+        spaceRecord,
+        options
+      );
 
       if (loadToken !== this.widgetLoadToken) {
         return;
@@ -4710,7 +5031,9 @@ const spacesModel = {
         });
         this.widgetErrorCount += 1;
         skeleton.renderTarget.replaceChildren(
-          createWidgetPlaceholder(formatErrorMessage(error, `Unable to render widget "${widgetId}".`))
+          createWidgetPlaceholder(
+            formatErrorMessage(error, `Unable to render widget "${widgetId}".`)
+          )
         );
         skeleton.card.classList.add("is-error");
       }
@@ -4763,7 +5086,10 @@ const spacesModel = {
         return;
       }
 
-      if (widgetId === targetWidgetId || widgetRecordNeedsRender(previousSpace, spaceRecord, widgetId)) {
+      if (
+        widgetId === targetWidgetId ||
+        widgetRecordNeedsRender(previousSpace, spaceRecord, widgetId)
+      ) {
         rerenderWidgetIds.push(widgetId);
       }
     });
@@ -4804,7 +5130,9 @@ const spacesModel = {
         });
         this.widgetErrorCount += 1;
         skeleton.renderTarget.replaceChildren(
-          createWidgetPlaceholder(formatErrorMessage(error, `Unable to render widget "${widgetId}".`))
+          createWidgetPlaceholder(
+            formatErrorMessage(error, `Unable to render widget "${widgetId}".`)
+          )
         );
         skeleton.card.classList.add("is-error");
       }
@@ -4826,9 +5154,8 @@ const spacesModel = {
     this.widgetLoadToken += 1;
     const loadToken = this.widgetLoadToken;
     const previousRects = options.previousRects || captureWidgetCardRects(this.widgetCards);
-    const preservedCameraOffset = options.preserveCamera === false
-      ? { x: 0, y: 0 }
-      : { ...this.cameraOffsetPx };
+    const preservedCameraOffset =
+      options.preserveCamera === false ? { x: 0, y: 0 } : { ...this.cameraOffsetPx };
     const previousSpace = this.currentSpace;
 
     try {

@@ -60,7 +60,10 @@ async function handleDownload(context) {
       stream: createArchiveReadStream(archiveInfo.archivePath)
     };
   } catch (error) {
-    throw createHttpError(error.message || "Folder download failed.", Number(error.statusCode) || 500);
+    throw createHttpError(
+      error.message || "Folder download failed.",
+      Number(error.statusCode) || 500
+    );
   }
 }
 
@@ -74,7 +77,10 @@ export async function head(context) {
       }
     };
   } catch (error) {
-    throw createHttpError(error.message || "Folder download validation failed.", Number(error.statusCode) || 500);
+    throw createHttpError(
+      error.message || "Folder download validation failed.",
+      Number(error.statusCode) || 500
+    );
   }
 }
 

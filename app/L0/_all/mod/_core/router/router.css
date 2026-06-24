@@ -11,7 +11,12 @@ body.app-page-router {
   overflow-y: auto;
   scroll-padding-top: var(--router-shell-start-clearance);
   color: var(--color-text);
-  font: 15px/1.5 "SF Pro Text", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font:
+    15px/1.5 "SF Pro Text",
+    "Segoe UI",
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
 }
 
 body.app-page-router > div[x-data] {
@@ -70,7 +75,10 @@ body.app-page-router > div[x-data] {
 
 .router-stage-inner[data-route-path="spaces"] > .router-route-frame,
 .router-stage-inner[data-route-path="spaces"] > .router-route-frame > .router-route-outlet,
-.router-stage-inner[data-route-path="spaces"] > .router-route-frame > .router-route-outlet > .router-route-mount {
+.router-stage-inner[data-route-path="spaces"]
+  > .router-route-frame
+  > .router-route-outlet
+  > .router-route-mount {
   height: 100%;
   min-height: 100%;
 }

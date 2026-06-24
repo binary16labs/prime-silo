@@ -12,7 +12,7 @@ const DEFAULT_THEME = {
   accentColor: "#2b6ef2",
   backgroundColor: "#f4f7fb",
   borderColor: "#d8e1ee",
-  fontFamily: "\"Segoe UI\", system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+  fontFamily: '"Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
   mutedColor: "#5b6475",
   surfaceColor: "#ffffff",
   textColor: "#172033"
@@ -42,7 +42,9 @@ function normalizeFilename(filename, fallback = DEFAULT_FILENAME) {
 }
 
 function normalizeText(value) {
-  return String(value ?? "").replace(/\s+/gu, " ").trim();
+  return String(value ?? "")
+    .replace(/\s+/gu, " ")
+    .trim();
 }
 
 function normalizeParagraphText(value) {
@@ -166,7 +168,9 @@ function renderCard(card) {
 }
 
 function renderList(items) {
-  const normalizedItems = ensureArray(items).map((item) => normalizeText(item)).filter(Boolean);
+  const normalizedItems = ensureArray(items)
+    .map((item) => normalizeText(item))
+    .filter(Boolean);
 
   if (!normalizedItems.length) {
     return "";
@@ -187,7 +191,9 @@ function renderSectionContent(section) {
   const listMarkup = renderList(section?.items);
 
   return [
-    text ? `<p class="pdf-report-section-text">${escapeHtml(text).replace(/\n/gu, "<br>")}</p>` : "",
+    text
+      ? `<p class="pdf-report-section-text">${escapeHtml(text).replace(/\n/gu, "<br>")}</p>`
+      : "",
     listMarkup,
     metricsMarkup ? `<div class="pdf-report-metric-grid">${metricsMarkup}</div>` : "",
     cardsMarkup ? `<div class="pdf-report-card-grid">${cardsMarkup}</div>` : "",
@@ -490,13 +496,15 @@ function encodeString(value) {
 }
 
 function dataUrlToBytes(dataUrl) {
-  const [, metadata = "", base64 = ""] = String(dataUrl ?? "").match(/^data:([^;]+);base64,(.+)$/u) || [];
+  const [, metadata = "", base64 = ""] =
+    String(dataUrl ?? "").match(/^data:([^;]+);base64,(.+)$/u) || [];
 
   if (!metadata || !base64) {
     throw new Error("Expected a base64 data URL.");
   }
 
-  const binary = typeof atob === "function" ? atob(base64) : Buffer.from(base64, "base64").toString("binary");
+  const binary =
+    typeof atob === "function" ? atob(base64) : Buffer.from(base64, "base64").toString("binary");
   const bytes = new Uint8Array(binary.length);
 
   for (let index = 0; index < binary.length; index += 1) {
@@ -578,14 +586,16 @@ async function waitForStageAssets(stage) {
   );
 
   if (document.fonts?.ready) {
-    await Promise.race([
-      document.fonts.ready,
-      new Promise((resolve) => setTimeout(resolve, 1200))
-    ]);
+    await Promise.race([document.fonts.ready, new Promise((resolve) => setTimeout(resolve, 1200))]);
   }
 }
 
-function createOffscreenStage({ html, css = "", widthPx = DEFAULT_WIDTH_PX, backgroundColor = "#ffffff" }) {
+function createOffscreenStage({
+  html,
+  css = "",
+  widthPx = DEFAULT_WIDTH_PX,
+  backgroundColor = "#ffffff"
+}) {
   if (typeof document === "undefined") {
     throw new Error("PDF report helpers require a browser document.");
   }
@@ -628,7 +638,14 @@ function createOffscreenStage({ html, css = "", widthPx = DEFAULT_WIDTH_PX, back
   };
 }
 
-async function renderHtmlToCanvas({ html, css, widthPx, backgroundColor, scale, html2canvasOptions }) {
+async function renderHtmlToCanvas({
+  html,
+  css,
+  widthPx,
+  backgroundColor,
+  scale,
+  html2canvasOptions
+}) {
   const html2canvas = await ensureHtml2Canvas();
   const { host, stage } = createOffscreenStage({
     backgroundColor,
@@ -722,14 +739,17 @@ function buildPdfFromImages(images, pageOptions) {
       `q ${formatPdfNumber(image.displayWidthPt)} 0 0 ${formatPdfNumber(image.displayHeightPt)} ${formatPdfNumber(contentX)} ${formatPdfNumber(contentY)} cm ${imageName} Do Q`
     );
 
-    objects[pageId] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${formatPdfNumber(pageOptions.widthPt)} ${formatPdfNumber(pageOptions.heightPt)}] /Resources << /ProcSet [/PDF /ImageC] /XObject << ${imageName} ${imageId} 0 R >> >> /Contents ${contentId} 0 R >>`;
+    objects[pageId] =
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${formatPdfNumber(pageOptions.widthPt)} ${formatPdfNumber(pageOptions.heightPt)}] /Resources << /ProcSet [/PDF /ImageC] /XObject << ${imageName} ${imageId} 0 R >> >> /Contents ${contentId} 0 R >>`;
     objects[contentId] = [
       encodeString(`<< /Length ${contentStream.length} >>\nstream\n`),
       contentStream,
       encodeString("\nendstream")
     ];
     objects[imageId] = [
-      encodeString(`<< /Type /XObject /Subtype /Image /Width ${image.pixelWidth} /Height ${image.pixelHeight} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${image.bytes.length} >>\nstream\n`),
+      encodeString(
+        `<< /Type /XObject /Subtype /Image /Width ${image.pixelWidth} /Height ${image.pixelHeight} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${image.bytes.length} >>\nstream\n`
+      ),
       image.bytes,
       encodeString("\nendstream")
     ];
@@ -752,11 +772,7 @@ function buildPdfFromImages(images, pageOptions) {
   }
 
   const xrefOffset = currentOffset;
-  const xrefLines = [
-    "xref",
-    `0 ${objects.length}`,
-    "0000000000 65535 f "
-  ];
+  const xrefLines = ["xref", `0 ${objects.length}`, "0000000000 65535 f "];
 
   for (let objectId = 1; objectId < objects.length; objectId += 1) {
     xrefLines.push(`${String(offsets[objectId]).padStart(10, "0")} 00000 n `);
@@ -811,7 +827,11 @@ export async function createPdfFromReport(options = {}) {
 }
 
 export function downloadPdfBytes(bytes, filename = DEFAULT_FILENAME) {
-  if (typeof document === "undefined" || typeof URL === "undefined" || typeof Blob === "undefined") {
+  if (
+    typeof document === "undefined" ||
+    typeof URL === "undefined" ||
+    typeof Blob === "undefined"
+  ) {
     throw new Error("Browser download APIs are not available.");
   }
 

@@ -14,14 +14,14 @@ Session checkpoints extend the existing `agent_sandbox/` write pattern (Phase D3
 
 The implementation deliberately reuses every existing convention:
 
-| Existing pattern | Reused by |
-|---|---|
-| `agent_sandbox/views/` path helpers | `agent_sandbox/checkpoints/` path helpers |
+| Existing pattern                                      | Reused by                                               |
+| ----------------------------------------------------- | ------------------------------------------------------- |
+| `agent_sandbox/views/` path helpers                   | `agent_sandbox/checkpoints/` path helpers               |
 | `saveView` / `loadView` / `listViews` browser helpers | `saveCheckpoint` / `loadCheckpoint` / `listCheckpoints` |
-| `pinView` HMAC signing pipeline | `pinCheckpoint` (H3) |
-| `loadPinnedView` integrity check | `loadPinnedCheckpoint` (H3) |
-| `AgentScopeMiddleware` | unchanged — checkpoints ride the same middleware |
-| History compaction (`compact-prompt-auto.md`) | triggered when history exceeds the 2 MB cap |
+| `pinView` HMAC signing pipeline                       | `pinCheckpoint` (H3)                                    |
+| `loadPinnedView` integrity check                      | `loadPinnedCheckpoint` (H3)                             |
+| `AgentScopeMiddleware`                                | unchanged — checkpoints ride the same middleware        |
+| History compaction (`compact-prompt-auto.md`)         | triggered when history exceeds the 2 MB cap             |
 
 ---
 
@@ -41,8 +41,8 @@ Pinned file: `workspaces/<ws>/checkpoints/<name>.json`
   // Automatically compacted (compact-prompt-auto.md) when serialised
   // size exceeds 2 MB; the first message in that case is the compact summary.
   "history": [
-    { "role": "system",    "content": "..." },
-    { "role": "user",      "content": "load the Q3 sales data" },
+    { "role": "system", "content": "..." },
+    { "role": "user", "content": "load the Q3 sales data" },
     { "role": "assistant", "content": "Loading ~/data/q3_sales.csv now...\n_____javascript\n..." }
   ],
 
@@ -62,10 +62,10 @@ Pinned file: `workspaces/<ws>/checkpoints/<name>.json`
 
   "metadata": {
     "description": "Q3 data loaded, ready for analysis",
-    "source": "operator",          // "operator" | "agent" | "template"
-    "fork_of": null,               // parent checkpoint name if this is a fork
-    "fork_index": null,            // integer — 1-based fork number
-    "pre_restore_of": null         // set when auto-saved before a restore
+    "source": "operator", // "operator" | "agent" | "template"
+    "fork_of": null, // parent checkpoint name if this is a fork
+    "fork_index": null, // integer — 1-based fork number
+    "pre_restore_of": null // set when auto-saved before a restore
   },
 
   // Present only in PINNED checkpoints (Phase H3).
@@ -126,11 +126,14 @@ Request body:
 {
   "workspace": "c5_test",
   "name": "after-data-load",
-  "checkpoint": { /* full aamp.checkpoint/1 object */ }
+  "checkpoint": {
+    /* full aamp.checkpoint/1 object */
+  }
 }
 ```
 
 Validation:
+
 - `name` must be a single path component (no `/`, no `..`, no leading dot, `[a-zA-Z0-9_-]` only, max 80 chars).
 - `checkpoint.schema` must equal `"aamp.checkpoint/1"`.
 - `checkpoint.history` is validated as an array of `{role, content}` — roles limited to `system`, `user`, `assistant`.
@@ -181,16 +184,18 @@ These are mounted at the same level as `/api/views/pin` and `/api/views/load` (P
 **`POST /api/checkpoints/pin`**
 
 Request body:
+
 ```json
 {
   "workspace": "c5_test",
   "source_name": "analysis-base",
   "pinned_by": "operator@binary16",
-  "target_name": "analysis-base"    // optional — defaults to source_name
+  "target_name": "analysis-base" // optional — defaults to source_name
 }
 ```
 
 Server behaviour (mirrors Phase F2 `pinView` exactly):
+
 1. Validate names.
 2. Read `agent_sandbox/checkpoints/<source_name>.json`, parse as JSON.
 3. Strip `signature` field if present.
@@ -204,6 +209,7 @@ Response: `{ "pinned_path": "...", "bytes_written": N, "signature": {...} }`
 **`GET /api/checkpoints/load/<ws>/<name>`**
 
 Mirrors `GET /api/views/load/<ws>/<filename>` (Phase F2b):
+
 - Reads the pinned file.
 - Extracts `signature`, strips it, recomputes HMAC, returns `valid` bool.
 - Returns `{ checkpoint, signature, valid }`.
@@ -312,7 +318,12 @@ export async function fetchDeleteCheckpoint(scope, workspace, name) {
 export async function fetchPinCheckpoint(workspace, name, pinnedBy, targetName) {
   return runtimeFetch("/checkpoints/pin", {
     method: "POST",
-    body: JSON.stringify({ workspace, source_name: name, pinned_by: pinnedBy, target_name: targetName })
+    body: JSON.stringify({
+      workspace,
+      source_name: name,
+      pinned_by: pinnedBy,
+      target_name: targetName
+    })
   });
 }
 
@@ -338,7 +349,7 @@ export async function applyCheckpointRestore(checkpoint, options = {}) {
 
   // 2. Skills
   const loadedSkills = [];
-  for (const skillId of (checkpoint.skills ?? [])) {
+  for (const skillId of checkpoint.skills ?? []) {
     try {
       await space.skills.load(skillId);
       loadedSkills.push(skillId);
@@ -432,7 +443,7 @@ export async function forkCheckpoint(scope, workspace, name) {
   // Find next fork index
   const all = await fetchListCheckpoints(scope, workspace);
   const forkPrefix = `${name}_fork_`;
-  const existing = all.filter(c => c.name.startsWith(forkPrefix));
+  const existing = all.filter((c) => c.name.startsWith(forkPrefix));
   const maxIndex = existing.reduce((m, c) => {
     const n = parseInt(c.name.slice(forkPrefix.length), 10);
     return Number.isFinite(n) ? Math.max(m, n) : m;
@@ -471,11 +482,13 @@ Two new controls appear in the chat panel header (right side, beside the gear ic
 ```
 
 **Save checkpoint button:**
+
 - Click → inline name field appears, pre-filled with `checkpoint-<YYYY-MM-DD-HHmm>`.
 - Enter / confirm → calls `saveCheckpoint` with current session state.
 - Toast on success: `"Saved: checkpoint-2026-05-12-1430"`
 
 **Checkpoint picker dropdown:**
+
 - Lists all checkpoints for the active workspace (drafts + pinned, sorted newest first).
 - Pinned checkpoints show a lock icon.
 - Forked checkpoints are indented under their parent.
@@ -547,6 +560,7 @@ Description: "Q3 data loaded, baseline established"
 ```
 
 With `--verbose`, each message in `history` is printed as a collapsed one-liner:
+
 ```
   [system]    → "environment\nyou are a browser runtime operator..."  (truncated)
   [user]      → "load the Q3 sales data"
@@ -558,15 +572,15 @@ With `--verbose`, each message in `history` is printed as a collapsed one-liner:
 
 ## 8. Security model (boundary compliance)
 
-| Operation | Endpoint prefix | Scope required | Who can call |
-|---|---|---|---|
-| save (draft) | `/api/agent_sandbox/checkpoints/save` | `sandbox` | Agent or human (with scope header) |
-| list drafts | `/api/agent_sandbox/checkpoints/list/<ws>` | `sandbox` | Agent or human |
-| load draft | `/api/agent_sandbox/checkpoints/load/<ws>/<name>` | unblocked (read) | Any authenticated caller |
-| delete draft | `/api/agent_sandbox/checkpoints/delete/<ws>/<name>` | `sandbox` | Agent or human |
-| pin | `/api/checkpoints/pin` | none (human-only) | Human only — scoped callers get 403 |
-| list pinned | `/api/checkpoints/list/<ws>` | unblocked (read) | Any authenticated caller |
-| load pinned | `/api/checkpoints/load/<ws>/<name>` | unblocked (read) | Any authenticated caller |
+| Operation    | Endpoint prefix                                     | Scope required    | Who can call                        |
+| ------------ | --------------------------------------------------- | ----------------- | ----------------------------------- |
+| save (draft) | `/api/agent_sandbox/checkpoints/save`               | `sandbox`         | Agent or human (with scope header)  |
+| list drafts  | `/api/agent_sandbox/checkpoints/list/<ws>`          | `sandbox`         | Agent or human                      |
+| load draft   | `/api/agent_sandbox/checkpoints/load/<ws>/<name>`   | unblocked (read)  | Any authenticated caller            |
+| delete draft | `/api/agent_sandbox/checkpoints/delete/<ws>/<name>` | `sandbox`         | Agent or human                      |
+| pin          | `/api/checkpoints/pin`                              | none (human-only) | Human only — scoped callers get 403 |
+| list pinned  | `/api/checkpoints/list/<ws>`                        | unblocked (read)  | Any authenticated caller            |
+| load pinned  | `/api/checkpoints/load/<ws>/<name>`                 | unblocked (read)  | Any authenticated caller            |
 
 The middleware rules are identical to the Phase D3/F2 view pattern. No new middleware logic is needed — checkpoints inherit it automatically by virtue of their URL prefixes.
 
@@ -583,6 +597,7 @@ The middleware rules are identical to the Phase D3/F2 view pattern. No new middl
 **No UI chrome.** API-only. The agent can call `saveCheckpoint` in a turn. The operator can call from the browser console to verify.
 
 **Tests:**
+
 - `tests/session_checkpoint_test.mjs` — unit tests for compaction, schema validation, fork-name generation, restore logic.
 - `runtime/tests/api/test_checkpoint_routes.py` — save/list/load/delete endpoint tests including path traversal rejection, 413 response for oversized history, agent scope enforcement.
 
@@ -622,26 +637,26 @@ The middleware rules are identical to the Phase D3/F2 view pattern. No new middl
 
 ### Unit tests (browser-side, `.mjs`)
 
-| Test file | What it covers |
-|---|---|
+| Test file                     | What it covers                                                                                                                                                                                                                                                                                          |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `session_checkpoint_test.mjs` | `compactHistoryForCheckpoint` (size thresholds, compaction trigger, fail-safe), `forkCheckpoint` name generation (first fork, Nth fork, name collision), `applyCheckpointRestore` (skill error collection, missing transient path), schema validation (invalid schema version, missing required fields) |
 
 ### Integration tests (runtime, `pytest`)
 
-| Test file | What it covers |
-|---|---|
+| Test file                   | What it covers                                                                                                                                                                                                                                               |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `test_checkpoint_routes.py` | Save: valid payload, duplicate name overwrite, oversized history (413), path traversal rejection, sandbox-scope enforcement. List: empty workspace, populated workspace. Load: found, not-found (404). Delete: happy path, pinned-checkpoint conflict (409). |
-| `test_checkpoint_pin.py` | Pin: happy path (signature embedded, file written, audit event emitted), agent-scoped 403, missing source file (404). Load pinned: valid signature, tampered body (valid: false), missing signature field (valid: false). |
+| `test_checkpoint_pin.py`    | Pin: happy path (signature embedded, file written, audit event emitted), agent-scoped 403, missing source file (404). Load pinned: valid signature, tampered body (valid: false), missing signature field (valid: false).                                    |
 
 ### Browser component harness tests (H2)
 
-| Test | What it covers |
-|---|---|
-| Checkpoint save button | Name dialog pre-fill, confirm saves, toast appears, picker list updates. |
-| Checkpoint restore | Confirm dialog shown, session history replaced, skills re-loaded, badge appears. |
-| Auto-pre-restore save | Restoring X automatically saves `pre-restore-<ts>` first. |
-| Fork badge | Badge shows fork name; "back to base" triggers restore of parent. |
-| HITL banner (Runs Explorer) | Appears when run status is `paused_for_review`, dismissed and not re-shown. |
+| Test                        | What it covers                                                                   |
+| --------------------------- | -------------------------------------------------------------------------------- |
+| Checkpoint save button      | Name dialog pre-fill, confirm saves, toast appears, picker list updates.         |
+| Checkpoint restore          | Confirm dialog shown, session history replaced, skills re-loaded, badge appears. |
+| Auto-pre-restore save       | Restoring X automatically saves `pre-restore-<ts>` first.                        |
+| Fork badge                  | Badge shows fork name; "back to base" triggers restore of parent.                |
+| HITL banner (Runs Explorer) | Appears when run status is `paused_for_review`, dismissed and not re-shown.      |
 
 ---
 
@@ -655,4 +670,4 @@ The middleware rules are identical to the Phase D3/F2 view pattern. No new middl
 
 ---
 
-*Prime-Silo — engineered by Binary 16.*
+_Prime-Silo — engineered by Binary 16._

@@ -1171,9 +1171,7 @@
           "case_path": "tests/agent_llm_performance/cases/protocol_nudge_requires_real_thrust.json",
           "history_path": "tests/agent_llm_performance/histories/protocol_nudge_requires_real_thrust.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.current\\.patchWidget\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.current\\.patchWidget\\(/u"],
           "response_type": "thrust",
           "response": "Reading the snake widget source now.\n_____javascript\nreturn await space.current.readWidget(\"snake-game\")",
           "usage": {
@@ -1867,9 +1865,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Reading contacts now...\n\n_____javascript\nconst text = await space.api.fileRead(\"~/contacts.yaml\", \"utf8\")\nconst data = space.utils.yaml.parse(text)\nif (data && typeof data === \"object\") {\n  if (data.mr_kowalski && typeof data.mr_kowalski === \"object\") {\n    data.mr_kowalski.full_name = \"John Ronald Kowalski\"\n  } else {\n    data.mr_kowalski = { full_name: \"John Ronald Kowalski\" }\n  }\n}\nreturn await space.api.fileWrite(\"~/contacts.yaml\", space.utils.yaml.stringify(data), \"utf8\")",
           "usage": {
@@ -2515,9 +2511,7 @@
           "case_path": "tests/agent_llm_performance/cases/protocol_nudge_requires_real_thrust.json",
           "history_path": "tests/agent_llm_performance/histories/protocol_nudge_requires_real_thrust.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.current\\.patchWidget\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.current\\.patchWidget\\(/u"],
           "response_type": "thrust",
           "response": "Inspecting the loaded snake source now.\n_____javascript\nreturn await space.current.readWidget(\"snake-game\")",
           "usage": {

@@ -11,10 +11,7 @@
       "passed_attempts": 22,
       "total_attempts": 24,
       "attempt_pass_rate": 0.9167,
-      "failed_cases": [
-        "weather_omitted_scope",
-        "repeat_do_it_requires_execution"
-      ],
+      "failed_cases": ["weather_omitted_scope", "repeat_do_it_requires_execution"],
       "cases": [
         {
           "case_id": "page_title_requires_execution",
@@ -1317,9 +1314,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Patching your full name to Pan Example now...\n_____javascript\nconst current = await space.api.fileRead(\"~/user.yaml\");\nconst data = space.utils.yaml.parse(current);\ndata.full_name = \"Pan Example\";\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(data));",
           "usage": {
@@ -1876,9 +1871,7 @@
           "case_path": "tests/agent_llm_performance/cases/weather_omitted_scope.json",
           "history_path": "tests/agent_llm_performance/histories/weather_omitted_scope.json",
           "passed": false,
-          "failures": [
-            "execution separator must appear exactly once on its own line"
-          ],
+          "failures": ["execution separator must appear exactly once on its own line"],
           "response_type": "thrust",
           "response": "Checking the current weather from live browser sources._____javascript\nconst geo = await new Promise((resolve, reject) => {\n  if (!navigator.geolocation) return reject(new Error(\"geolocation unavailable\"));\n  navigator.geolocation.getCurrentPosition(\n    pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),\n    err => reject(err),\n    { enableHighAccuracy: true, timeout: 10000 }\n  );\n});\n\nconst res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${geo.lat}&longitude=${geo.lon}&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m&timezone=auto`);\nconst data = await res.json();\n\nreturn {\n  location: geo,\n  current: data.current,\n  timezone: data.timezone\n};",
           "usage": {
@@ -1948,9 +1941,7 @@
           "case_path": "tests/agent_llm_performance/cases/weather_self_scope_after_indirect_fail.json",
           "history_path": "tests/agent_llm_performance/histories/weather_self_scope_after_indirect_fail.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /(?:open-meteo|wttr\\.in)/u"
-          ],
+          "failures": ["missing required pattern: /(?:open-meteo|wttr\\.in)/u"],
           "response_type": "thrust",
           "response": "Checking your current location now...\n_____javascript\nconst info = await space.api.userSelfInfo();\nlet loc = null;\ntry { loc = await navigator.geolocation.getCurrentPosition?.() } catch (e) {}\nif (!navigator.geolocation) return { user: info.username, location: null, note: \"geolocation unavailable\" };\nconst position = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 }));\nreturn {\n  user: info.username,\n  location: {\n    latitude: position.coords.latitude,\n    longitude: position.coords.longitude,\n    accuracy: position.coords.accuracy\n  }\n}",
           "usage": {
@@ -2195,9 +2186,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "contains forbidden text: full_name: pan"
-          ],
+          "failures": ["contains forbidden text: full_name: pan"],
           "response_type": "thrust",
           "response": "Patching your full name to Pan Example now...\n\n\nPatching your full name to Pan Example now...\n_____javascript\nconst text = `full_name: pan\nbio: hello there\n`;\nconst doc = space.utils.yaml.parse(text);\ndoc.full_name = \"Pan Example\";\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(doc))",
           "usage": {

@@ -916,9 +916,7 @@
           "case_path": "tests/agent_llm_performance/cases/terminal_after_framework_no_result_info.json",
           "history_path": "tests/agent_llm_performance/histories/terminal_after_framework_no_result_info.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /\\S/u"
-          ],
+          "failures": ["missing required pattern: /\\S/u"],
           "response_type": "terminal",
           "response": "",
           "usage": {
@@ -953,9 +951,7 @@
           "case_path": "tests/agent_llm_performance/cases/terminal_after_framework_no_result_continue.json",
           "history_path": "tests/agent_llm_performance/histories/terminal_after_framework_no_result_continue.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /\\S/u"
-          ],
+          "failures": ["missing required pattern: /\\S/u"],
           "response_type": "terminal",
           "response": "",
           "usage": {
@@ -990,9 +986,7 @@
           "case_path": "tests/agent_llm_performance/cases/terminal_after_result_continue_literal.json",
           "history_path": "tests/agent_llm_performance/histories/terminal_after_result_continue_literal.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /\\S/u"
-          ],
+          "failures": ["missing required pattern: /\\S/u"],
           "response_type": "terminal",
           "response": "",
           "usage": {
@@ -1027,9 +1021,7 @@
           "case_path": "tests/agent_llm_performance/cases/terminal_after_result_commandlike_literal.json",
           "history_path": "tests/agent_llm_performance/histories/terminal_after_result_commandlike_literal.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /\\S/u"
-          ],
+          "failures": ["missing required pattern: /\\S/u"],
           "response_type": "terminal",
           "response": "",
           "usage": {
@@ -1064,9 +1056,7 @@
           "case_path": "tests/agent_llm_performance/cases/terminal_after_result_retry_literal.json",
           "history_path": "tests/agent_llm_performance/histories/terminal_after_result_retry_literal.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /\\S/u"
-          ],
+          "failures": ["missing required pattern: /\\S/u"],
           "response_type": "terminal",
           "response": "",
           "usage": {
@@ -1799,9 +1789,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Patching your full name now...\n_____javascript\nconst text = await space.api.fileRead(\"~/user.yaml\");\nconst data = space.utils.yaml.parse(text);\ndata.full_name = \"Pan Example\";\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(data));",
           "usage": {
@@ -1871,9 +1859,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Reading the contacts file now...\n\n\n_____javascript\nconst path = \"~/contacts.yaml\";\nconst text = await space.api.fileRead(path, \"utf8\");\nconst data = space.utils.yaml.parse(text);\nif (data && typeof data === \"object\") {\n  for (const key of Object.keys(data)) {\n    if (key === \"mr_kowalski\") {\n      data[key] = \"John Ronald Kowalski\";\n    }\n  }\n}\nconst updated = space.utils.yaml.stringify(data);\nreturn await space.api.fileWrite(path, updated, \"utf8\");",
           "usage": {
@@ -1908,9 +1894,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_widget_fix_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_widget_fix_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.current\\.patchWidget\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.current\\.patchWidget\\(/u"],
           "response_type": "thrust",
           "response": "Patching the snake game controls now...\n\n\n_____javascript\nconst widget = await space.current.readWidget(\"snake-game\");\nconst text = typeof widget === \"string\" ? widget : JSON.stringify(widget);\nconst patched = text\n  .replace(/document\\.addEventListener\\(['\"]keydown['\"][\\s\\S]*?function\\s*\\((?:event|e)\\)\\s*\\{[\\s\\S]*?\\}\\s*\\)/m, match => match)\n  .replace(/keydown/g, \"keydown\")\nreturn await space.current.patchWidget(\"snake-game\", {\n  edits: [\n    {\n      find: /document\\.addEventListener\\(['\"]keydown['\"][\\s\\S]*?\\);/m,\n      replace: `document.addEventListener('keydown', (e) => {\\n  const dir = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' }[e.key];\\n  if (!dir) return;\\n  e.preventDefault();\\n  if (window.snakeGame && typeof window.snakeGame.setDirection === 'function') {\\n    window.snakeGame.setDirection(dir);\\n  } else if (window.snakeGame && 'direction' in window.snakeGame) {\\n    const opposite = { up: 'down', down: 'up', left: 'right', right: 'left' };\\n    if (window.snakeGame.direction !== opposite[dir]) window.snakeGame.direction = dir;\\n  }\\n});`\n    }\n  ]\n});",
           "usage": {
@@ -2263,9 +2247,7 @@
           "case_path": "tests/agent_llm_performance/cases/terminal_after_framework_no_result_info.json",
           "history_path": "tests/agent_llm_performance/histories/terminal_after_framework_no_result_info.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /\\S/u"
-          ],
+          "failures": ["missing required pattern: /\\S/u"],
           "response_type": "terminal",
           "response": "",
           "usage": {
@@ -2300,9 +2282,7 @@
           "case_path": "tests/agent_llm_performance/cases/terminal_after_framework_no_result_continue.json",
           "history_path": "tests/agent_llm_performance/histories/terminal_after_framework_no_result_continue.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /\\S/u"
-          ],
+          "failures": ["missing required pattern: /\\S/u"],
           "response_type": "terminal",
           "response": "",
           "usage": {
@@ -2337,9 +2317,7 @@
           "case_path": "tests/agent_llm_performance/cases/terminal_after_result_continue_literal.json",
           "history_path": "tests/agent_llm_performance/histories/terminal_after_result_continue_literal.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /\\S/u"
-          ],
+          "failures": ["missing required pattern: /\\S/u"],
           "response_type": "terminal",
           "response": "",
           "usage": {
@@ -2374,9 +2352,7 @@
           "case_path": "tests/agent_llm_performance/cases/terminal_after_result_commandlike_literal.json",
           "history_path": "tests/agent_llm_performance/histories/terminal_after_result_commandlike_literal.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /\\S/u"
-          ],
+          "failures": ["missing required pattern: /\\S/u"],
           "response_type": "terminal",
           "response": "",
           "usage": {
@@ -2411,9 +2387,7 @@
           "case_path": "tests/agent_llm_performance/cases/terminal_after_result_retry_literal.json",
           "history_path": "tests/agent_llm_performance/histories/terminal_after_result_retry_literal.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /\\S/u"
-          ],
+          "failures": ["missing required pattern: /\\S/u"],
           "response_type": "terminal",
           "response": "",
           "usage": {
@@ -2828,9 +2802,7 @@
           "case_path": "tests/agent_llm_performance/cases/weather_omitted_scope.json",
           "history_path": "tests/agent_llm_performance/histories/weather_omitted_scope.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.readWidget(\"weather\")\n",
           "usage": {
@@ -3155,9 +3127,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "contains forbidden text: full_name: pan"
-          ],
+          "failures": ["contains forbidden text: full_name: pan"],
           "response_type": "thrust",
           "response": "Updating your full name now...\n_____javascript\nconst text = `full_name: pan\nbio: hello there`;\nconst data = space.utils.yaml.parse(text);\ndata.full_name = \"Pan Example\";\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(data), \"utf8\")",
           "usage": {
@@ -3622,9 +3592,7 @@
           "case_path": "tests/agent_llm_performance/cases/terminal_after_framework_no_result_info.json",
           "history_path": "tests/agent_llm_performance/histories/terminal_after_framework_no_result_info.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /\\S/u"
-          ],
+          "failures": ["missing required pattern: /\\S/u"],
           "response_type": "terminal",
           "response": "",
           "usage": {
@@ -3659,9 +3627,7 @@
           "case_path": "tests/agent_llm_performance/cases/terminal_after_framework_no_result_continue.json",
           "history_path": "tests/agent_llm_performance/histories/terminal_after_framework_no_result_continue.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /\\S/u"
-          ],
+          "failures": ["missing required pattern: /\\S/u"],
           "response_type": "terminal",
           "response": "",
           "usage": {
@@ -3696,9 +3662,7 @@
           "case_path": "tests/agent_llm_performance/cases/terminal_after_result_continue_literal.json",
           "history_path": "tests/agent_llm_performance/histories/terminal_after_result_continue_literal.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /\\S/u"
-          ],
+          "failures": ["missing required pattern: /\\S/u"],
           "response_type": "terminal",
           "response": "",
           "usage": {
@@ -3733,9 +3697,7 @@
           "case_path": "tests/agent_llm_performance/cases/terminal_after_result_commandlike_literal.json",
           "history_path": "tests/agent_llm_performance/histories/terminal_after_result_commandlike_literal.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /\\S/u"
-          ],
+          "failures": ["missing required pattern: /\\S/u"],
           "response_type": "terminal",
           "response": "",
           "usage": {
@@ -3770,9 +3732,7 @@
           "case_path": "tests/agent_llm_performance/cases/terminal_after_result_retry_literal.json",
           "history_path": "tests/agent_llm_performance/histories/terminal_after_result_retry_literal.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /\\S/u"
-          ],
+          "failures": ["missing required pattern: /\\S/u"],
           "response_type": "terminal",
           "response": "",
           "usage": {
@@ -3807,9 +3767,7 @@
           "case_path": "tests/agent_llm_performance/cases/repeat_do_it_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/repeat_do_it_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.patchWidget(\"snake-game\", {\n  edits: [\n    {\n      op: \"replace\",\n      path: \"/source\",\n      value: (await space.current.readWidget(\"snake-game\")).source\n    }\n  ]\n})",
           "usage": {

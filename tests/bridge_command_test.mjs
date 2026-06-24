@@ -20,11 +20,20 @@ function captureConsole() {
   const err = console.error;
   console.log = (...a) => lines.push(a.join(" "));
   console.error = (...a) => lines.push(a.join(" "));
-  return { lines, restore() { console.log = log; console.error = err; } };
+  return {
+    lines,
+    restore() {
+      console.log = log;
+      console.error = err;
+    }
+  };
 }
 
 function jsonResponse(body, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json" }
+  });
 }
 
 async function run(args) {
@@ -60,7 +69,14 @@ async function testPlanPushesRequirement() {
     captured = JSON.parse(init.body);
     return jsonResponse({ id: "mf_abc", requirement: "score trades", nodes: [1, 2, 3] });
   };
-  const { code, lines } = await run(["plan", "score trades", "--workspace", "pypes_demo", "--strategy", "auto"]);
+  const { code, lines } = await run([
+    "plan",
+    "score trades",
+    "--workspace",
+    "pypes_demo",
+    "--strategy",
+    "auto"
+  ]);
   assert.equal(code, 0);
   assert.equal(captured.requirement, "score trades");
   assert.equal(captured.workspace, "pypes_demo");

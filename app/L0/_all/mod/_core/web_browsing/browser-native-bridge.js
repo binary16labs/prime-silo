@@ -70,25 +70,30 @@ function normalizePhase(value) {
 
 function isBridgeEnvelope(value) {
   return Boolean(
-    value
-    && typeof value === "object"
-    && value.channel === BROWSER_FRAME_BRIDGE_CHANNEL
-    && typeof value.type === "string"
-    && "payload" in value
+    value &&
+    typeof value === "object" &&
+    value.channel === BROWSER_FRAME_BRIDGE_CHANNEL &&
+    typeof value.type === "string" &&
+    "payload" in value
   );
 }
 
 function createRemoteBridgeError(message) {
-  const payload = message?.payload && typeof message.payload === "object"
-    ? message.payload
-    : {
-        message: String(message?.payload || `Browser frame bridge request "${message?.type || ""}" failed.`),
-        name: "BrowserFrameBridgeError"
-      };
+  const payload =
+    message?.payload && typeof message.payload === "object"
+      ? message.payload
+      : {
+          message: String(
+            message?.payload || `Browser frame bridge request "${message?.type || ""}" failed.`
+          ),
+          name: "BrowserFrameBridgeError"
+        };
 
   return createNamedError(
     typeof payload.name === "string" && payload.name ? payload.name : "BrowserFrameBridgeError",
-    typeof payload.message === "string" && payload.message ? payload.message : `Browser frame bridge request "${message?.type || ""}" failed.`,
+    typeof payload.message === "string" && payload.message
+      ? payload.message
+      : `Browser frame bridge request "${message?.type || ""}" failed.`,
     {
       code: payload.code ?? null,
       details: payload.details && typeof payload.details === "object" ? payload.details : {},
@@ -288,7 +293,9 @@ export function createDesktopBrowserBridge(browserId, options = {}) {
           clearTimeout(pendingRequest.timeoutId);
         }
 
-        pendingRequest.reject(createNamedError("AbortError", "Desktop browser bridge is destroyed."));
+        pendingRequest.reject(
+          createNamedError("AbortError", "Desktop browser bridge is destroyed.")
+        );
       });
 
       pendingRequests.clear();
@@ -365,7 +372,9 @@ export function createDesktopBrowserBridge(browserId, options = {}) {
       });
 
       try {
-        postEnvelope(createEnvelope(BROWSER_FRAME_BRIDGE_PHASE.REQUEST, normalizedType, payload, { requestId }));
+        postEnvelope(
+          createEnvelope(BROWSER_FRAME_BRIDGE_PHASE.REQUEST, normalizedType, payload, { requestId })
+        );
       } catch (error) {
         pendingRequests.delete(requestId);
         if (timeoutId != null) {

@@ -44,9 +44,7 @@ function normalizeRuntimeContext(value) {
 
 function readRuntimeContextFromDocument(root = globalThis.document) {
   const contextElement = root?.querySelector?.(RUNTIME_CONTEXT_SELECTOR);
-  return normalizeRuntimeContext(
-    contextElement?.getAttribute?.(CONTEXT_RUNTIME_ATTRIBUTE)
-  );
+  return normalizeRuntimeContext(contextElement?.getAttribute?.(CONTEXT_RUNTIME_ATTRIBUTE));
 }
 
 function readRuntimeContextFromDesktopBridge() {
@@ -114,6 +112,4 @@ export function guardAgentFunction(requirementName, handler, details = {}) {
   };
 }
 
-export {
-  AGENT_FUNCTION_REQUIREMENT
-};
+export { AGENT_FUNCTION_REQUIREMENT };

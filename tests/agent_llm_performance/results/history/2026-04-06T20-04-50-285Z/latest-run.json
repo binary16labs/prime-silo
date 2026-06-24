@@ -1093,9 +1093,7 @@
           "case_path": "tests/agent_llm_performance/cases/terminal_after_result_retry_literal.json",
           "history_path": "tests/agent_llm_performance/histories/terminal_after_result_retry_literal.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /\\S/u"
-          ],
+          "failures": ["missing required pattern: /\\S/u"],
           "response_type": "terminal",
           "response": "",
           "usage": {
@@ -1570,9 +1568,7 @@
           "case_path": "tests/agent_llm_performance/cases/weather_self_scope_after_indirect_fail.json",
           "history_path": "tests/agent_llm_performance/histories/weather_self_scope_after_indirect_fail.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /(?:open-meteo|wttr\\.in)/u"
-          ],
+          "failures": ["missing required pattern: /(?:open-meteo|wttr\\.in)/u"],
           "response_type": "thrust",
           "response": "Getting your live location now...\n_____javascript\nconst pos = await new Promise((resolve, reject) => {\n  if (!navigator.geolocation) return reject(new Error(\"Geolocation unavailable\"))\n  navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 })\n})\nreturn { latitude: pos.coords.latitude, longitude: pos.coords.longitude }",
           "usage": {
@@ -2351,9 +2347,7 @@
           "case_path": "tests/agent_llm_performance/cases/terminal_after_result_continue_literal.json",
           "history_path": "tests/agent_llm_performance/histories/terminal_after_result_continue_literal.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /\\S/u"
-          ],
+          "failures": ["missing required pattern: /\\S/u"],
           "response_type": "terminal",
           "response": "",
           "usage": {
@@ -3628,9 +3622,7 @@
           "case_path": "tests/agent_llm_performance/cases/terminal_after_framework_no_result_info.json",
           "history_path": "tests/agent_llm_performance/histories/terminal_after_framework_no_result_info.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /\\S/u"
-          ],
+          "failures": ["missing required pattern: /\\S/u"],
           "response_type": "terminal",
           "response": "",
           "usage": {
@@ -3735,9 +3727,7 @@
           "case_path": "tests/agent_llm_performance/cases/terminal_after_result_commandlike_literal.json",
           "history_path": "tests/agent_llm_performance/histories/terminal_after_result_commandlike_literal.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /\\S/u"
-          ],
+          "failures": ["missing required pattern: /\\S/u"],
           "response_type": "terminal",
           "response": "",
           "usage": {
@@ -3772,9 +3762,7 @@
           "case_path": "tests/agent_llm_performance/cases/terminal_after_result_retry_literal.json",
           "history_path": "tests/agent_llm_performance/histories/terminal_after_result_retry_literal.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /\\S/u"
-          ],
+          "failures": ["missing required pattern: /\\S/u"],
           "response_type": "terminal",
           "response": "",
           "usage": {
@@ -3809,9 +3797,7 @@
           "case_path": "tests/agent_llm_performance/cases/repeat_do_it_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/repeat_do_it_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nconst widget = await space.current.readWidget(\"snake-game\")\nreturn await space.current.patchWidget(widget.id, {\n  edits: [\n    {\n      op: \"replace\",\n      path: \"/\",\n      value: {\n        ...widget,\n        // Smooth, caterpillar-like movement between squares\n        style: {\n          ...(widget.style || {}),\n          cellTransition: \"transform 120ms linear\",\n          snakeTransition: \"transform 120ms linear, left 120ms linear, top 120ms linear\",\n          animationTimingFunction: \"linear\"\n        }\n      }\n    }\n  ]\n})",
           "usage": {
@@ -3881,9 +3867,7 @@
           "case_path": "tests/agent_llm_performance/cases/protocol_nudge_requires_real_thrust.json",
           "history_path": "tests/agent_llm_performance/histories/protocol_nudge_requires_real_thrust.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nconst widget = await space.current.readWidget(\"snake-game\")\nreturn await space.current.patchWidget(widget.id ?? \"snake-game\", { edits: [] })",
           "usage": {

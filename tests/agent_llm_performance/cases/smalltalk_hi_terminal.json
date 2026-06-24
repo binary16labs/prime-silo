@@ -4,8 +4,6 @@
   "history": "../histories/smalltalk_hi_terminal.json",
   "expect": {
     "response_type": "terminal",
-    "must_not_contain": [
-      "_____javascript"
-    ]
+    "must_not_contain": ["_____javascript"]
   }
 }

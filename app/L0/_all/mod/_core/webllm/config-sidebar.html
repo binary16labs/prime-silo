@@ -21,8 +21,7 @@
             :disabled="!$store.webllm.canUnloadActiveModel"
             @click="$store.webllm.requestUnloadModel()"
             x-text="$store.webllm.currentModelActionLabel"
-          >
-          </button>
+          ></button>
         </div>
 
         <template x-if="$store.webllm.isLoadingModel">
@@ -50,7 +49,10 @@
       <section class="webllm-browser-block webllm-browser-block--models">
         <div class="webllm-card-header">
           <h2>Models</h2>
-          <span class="webllm-section-meta" x-text="`${$store.webllm.visiblePrebuiltCount} shown`"></span>
+          <span
+            class="webllm-section-meta"
+            x-text="`${$store.webllm.visiblePrebuiltCount} shown`"
+          ></span>
         </div>
 
         <label class="webllm-field">
@@ -84,7 +86,10 @@
                 <p class="webllm-catalog-title" x-text="model.model_id"></p>
                 <p class="webllm-catalog-meta">
                   <span x-text="$store.webllm.inferModelFamily(model.model_id)"></span>
-                  <span x-show="model.vram_required_MB" x-text="`${Math.round(model.vram_required_MB)} MB VRAM`"></span>
+                  <span
+                    x-show="model.vram_required_MB"
+                    x-text="`${Math.round(model.vram_required_MB)} MB VRAM`"
+                  ></span>
                 </p>
               </div>
               <div class="webllm-catalog-actions">
@@ -99,8 +104,7 @@
                   :disabled="$store.webllm.isLoadingModel || $store.webllm.isGenerating || $store.webllm.isUnloadingModel"
                   @click="$store.webllm.handlePrebuiltModelAction(model)"
                   x-text="$store.webllm.getModelListActionLabel(model)"
-                >
-                </button>
+                ></button>
                 <button
                   type="button"
                   class="secondary-button webllm-discard-button"
@@ -111,7 +115,9 @@
                   aria-label="Discard cached model files"
                   @click="$store.webllm.requestDiscardCachedModel(model.model_id)"
                 >
-                  <x-icon x-text="$store.webllm.isDiscardingModel(model.model_id) ? 'hourglass_top' : 'delete'"></x-icon>
+                  <x-icon
+                    x-text="$store.webllm.isDiscardingModel(model.model_id) ? 'hourglass_top' : 'delete'"
+                  ></x-icon>
                 </button>
               </div>
             </article>
@@ -133,7 +139,8 @@
         <div x-show="$store.webllm.showAdvanced" x-cloak>
           <div class="webllm-advanced-block">
             <p class="field-note">
-              For advanced use only. This requires an MLC/WebLLM-compiled model URL and a matching <code>model_lib</code> wasm, not an arbitrary Hugging Face repo.
+              For advanced use only. This requires an MLC/WebLLM-compiled model URL and a matching
+              <code>model_lib</code> wasm, not an arbitrary Hugging Face repo.
             </p>
 
             <label class="webllm-field">

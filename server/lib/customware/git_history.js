@@ -49,8 +49,8 @@ function stripTrailingSlash(value) {
 function isCustomwareGitHistoryEnabled(runtimeParams) {
   return Boolean(
     runtimeParams &&
-      typeof runtimeParams.get === "function" &&
-      runtimeParams.get(GIT_HISTORY_PARAM, false)
+    typeof runtimeParams.get === "function" &&
+    runtimeParams.get(GIT_HISTORY_PARAM, false)
   );
 }
 
@@ -105,9 +105,9 @@ function createHistoryAccessController(options = {}) {
   );
   const isAdmin = Boolean(
     username &&
-      groupIndex &&
-      typeof groupIndex.isUserInGroup === "function" &&
-      groupIndex.isUserInGroup(username, "_admin")
+    groupIndex &&
+    typeof groupIndex.isUserInGroup === "function" &&
+    groupIndex.isUserInGroup(username, "_admin")
   );
 
   function canReadProjectPath(projectPath) {
@@ -123,8 +123,8 @@ function createHistoryAccessController(options = {}) {
 
     return Boolean(
       groupIndex &&
-        typeof groupIndex.isUserInGroup === "function" &&
-        groupIndex.isUserInGroup(username, pathInfo.ownerId)
+      typeof groupIndex.isUserInGroup === "function" &&
+      groupIndex.isUserInGroup(username, pathInfo.ownerId)
     );
   }
 
@@ -163,10 +163,7 @@ function isReservedAppProjectPath(projectPath) {
     return false;
   }
 
-  return pathInfo.pathWithinOwner
-    .split("/")
-    .filter(Boolean)
-    .includes(".git");
+  return pathInfo.pathWithinOwner.split("/").filter(Boolean).includes(".git");
 }
 
 function resolveLayerHistoryTargetFromProjectPath(options = {}) {
@@ -186,7 +183,11 @@ function resolveLayerHistoryTargetFromProjectPath(options = {}) {
   }
 
   const ownerProjectPath = `/app/${pathInfo.layer}/${pathInfo.ownerId}/`;
-  const repoRoot = resolveProjectAbsolutePath(options.projectRoot, ownerProjectPath, options.runtimeParams);
+  const repoRoot = resolveProjectAbsolutePath(
+    options.projectRoot,
+    ownerProjectPath,
+    options.runtimeParams
+  );
 
   if (!repoRoot) {
     return null;
@@ -245,8 +246,9 @@ function getSortedWatchdogProjectPaths(watchdog) {
   }
 
   if (watchdog && typeof watchdog.getIndex === "function") {
-    return Object.keys(watchdog.getIndex("path_index") || Object.create(null))
-      .sort((left, right) => left.localeCompare(right));
+    return Object.keys(watchdog.getIndex("path_index") || Object.create(null)).sort((left, right) =>
+      left.localeCompare(right)
+    );
   }
 
   return [];
@@ -269,7 +271,12 @@ function canAccessLayerHistoryTarget(target, accessController, access = "read") 
 
 function listLayerHistoryRepositories(options = {}) {
   const username = normalizeEntityId(options.username);
-  const access = String(options.access || "read").trim().toLowerCase() === "write" ? "write" : "read";
+  const access =
+    String(options.access || "read")
+      .trim()
+      .toLowerCase() === "write"
+      ? "write"
+      : "read";
   const accessController = createHistoryAccessController({
     runtimeParams: options.runtimeParams,
     username,
@@ -308,7 +315,10 @@ function resolveLayerHistoryTargetForRequest(options = {}) {
   });
 
   if (!target) {
-    throw createHistoryError("Git history is available only for writable L1 group and L2 user roots.", 400);
+    throw createHistoryError(
+      "Git history is available only for writable L1 group and L2 user roots.",
+      400
+    );
   }
 
   const accessController = createHistoryAccessController({
@@ -322,7 +332,10 @@ function resolveLayerHistoryTargetForRequest(options = {}) {
     if (!accessController.canWriteProjectPath(accessProjectPath)) {
       throw createHistoryError("Write access denied.", 403);
     }
-  } else if (!accessController.canReadProjectPath(accessProjectPath) && !accessController.canWriteProjectPath(accessProjectPath)) {
+  } else if (
+    !accessController.canReadProjectPath(accessProjectPath) &&
+    !accessController.canWriteProjectPath(accessProjectPath)
+  ) {
     throw createHistoryError("Read access denied.", 403);
   }
 
@@ -338,7 +351,11 @@ function hasHistoryRepository(target) {
 }
 
 function normalizeHistoryListResult(result, options = {}) {
-  const commits = Array.isArray(result) ? result : Array.isArray(result?.commits) ? result.commits : [];
+  const commits = Array.isArray(result)
+    ? result
+    : Array.isArray(result?.commits)
+      ? result.commits
+      : [];
   const limit = normalizeHistoryLimit(options.limit);
   const offset = normalizeHistoryOffset(options.offset);
 
@@ -357,7 +374,10 @@ function normalizeHistoryListResult(result, options = {}) {
   };
 }
 
-function resolveGitHistoryDebounceMs(waitingMs = 0, defaultDebounceMs = DEFAULT_COMMIT_DEBOUNCE_MS) {
+function resolveGitHistoryDebounceMs(
+  waitingMs = 0,
+  defaultDebounceMs = DEFAULT_COMMIT_DEBOUNCE_MS
+) {
   const baseDebounceMs = Math.max(0, Number(defaultDebounceMs) || 0);
   const normalizedWaitingMs = Math.max(0, Number(waitingMs) || 0);
 
@@ -420,9 +440,7 @@ function ensureHistoryIgnoreFile(target) {
     return;
   }
 
-  const currentContent = fs.existsSync(ignorePath)
-    ? fs.readFileSync(ignorePath, "utf8")
-    : "";
+  const currentContent = fs.existsSync(ignorePath) ? fs.readFileSync(ignorePath, "utf8") : "";
   const nextContent = mergeGitignoreContent(currentContent, requiredEntries);
 
   if (nextContent !== currentContent || !fs.existsSync(ignorePath)) {
@@ -712,7 +730,10 @@ async function getLayerHistoryCommitDiff(options = {}) {
   });
 
   if (!hasHistoryRepository(target)) {
-    throw createHistoryError(`Git history repository not found for ${stripTrailingSlash(target.appPath)}.`, 404);
+    throw createHistoryError(
+      `Git history repository not found for ${stripTrailingSlash(target.appPath)}.`,
+      404
+    );
   }
 
   const commitHash = normalizeCommitHash(options.commitHash);
@@ -739,7 +760,10 @@ async function getLayerHistoryOperationPreview(options = {}) {
   });
 
   if (!hasHistoryRepository(target)) {
-    throw createHistoryError(`Git history repository not found for ${stripTrailingSlash(target.appPath)}.`, 404);
+    throw createHistoryError(
+      `Git history repository not found for ${stripTrailingSlash(target.appPath)}.`,
+      404
+    );
   }
 
   const commitHash = normalizeCommitHash(options.commitHash);
@@ -771,7 +795,10 @@ async function rollbackLayerHistory(options = {}) {
   });
 
   if (!hasHistoryRepository(target)) {
-    throw createHistoryError(`Git history repository not found for ${stripTrailingSlash(target.appPath)}.`, 404);
+    throw createHistoryError(
+      `Git history repository not found for ${stripTrailingSlash(target.appPath)}.`,
+      404
+    );
   }
 
   const commitHash = normalizeCommitHash(options.commitHash);
@@ -825,7 +852,10 @@ async function revertLayerHistoryCommit(options = {}) {
   });
 
   if (!hasHistoryRepository(target)) {
-    throw createHistoryError(`Git history repository not found for ${stripTrailingSlash(target.appPath)}.`, 404);
+    throw createHistoryError(
+      `Git history repository not found for ${stripTrailingSlash(target.appPath)}.`,
+      404
+    );
   }
 
   const commitHash = normalizeCommitHash(options.commitHash);

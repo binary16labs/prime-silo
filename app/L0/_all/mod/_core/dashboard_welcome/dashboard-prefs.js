@@ -31,7 +31,11 @@ function getRuntime() {
 
 function isMissingFileError(error) {
   const message = String(error?.message || "");
-  return /\bstatus 404\b/u.test(message) || /File not found\./u.test(message) || /Path not found\./u.test(message);
+  return (
+    /\bstatus 404\b/u.test(message) ||
+    /File not found\./u.test(message) ||
+    /Path not found\./u.test(message)
+  );
 }
 
 function parseStoredBoolean(value) {
@@ -39,7 +43,9 @@ function parseStoredBoolean(value) {
     return value;
   }
 
-  const normalizedValue = String(value ?? "").trim().toLowerCase();
+  const normalizedValue = String(value ?? "")
+    .trim()
+    .toLowerCase();
 
   if (["1", "true", "yes", "on"].includes(normalizedValue)) {
     return true;
@@ -112,7 +118,9 @@ async function saveDashboardPrefs(nextPrefs) {
   try {
     await runtime.api.fileWrite(DASHBOARD_CONFIG_PATH, `${content}\n`);
     const result = await runtime.api.fileRead(DASHBOARD_CONFIG_PATH);
-    const savedPrefs = normalizeDashboardPrefs(runtime.utils.yaml.parse(String(result?.content || "")));
+    const savedPrefs = normalizeDashboardPrefs(
+      runtime.utils.yaml.parse(String(result?.content || ""))
+    );
 
     if (savedPrefs.welcomeHidden !== (expectedPrefs.welcome_hidden === true)) {
       throw new Error("Saved dashboard settings did not match the requested value.");

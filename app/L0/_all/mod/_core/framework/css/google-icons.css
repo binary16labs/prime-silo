@@ -1,13 +1,13 @@
 @font-face {
-  font-family: 'Material Symbols Outlined';
+  font-family: "Material Symbols Outlined";
   font-style: normal;
   font-weight: 400;
-  src: url(./google-icons.ttf) format('truetype');
+  src: url(./google-icons.ttf) format("truetype");
 }
 
 .material-symbols-outlined,
 x-icon {
-  font-family: 'Material Symbols Outlined';
+  font-family: "Material Symbols Outlined";
   font-weight: normal;
   font-style: normal;
   font-size: 24px;
@@ -19,7 +19,7 @@ x-icon {
   word-wrap: normal;
   direction: ltr;
   vertical-align: middle;
-  font-feature-settings: 'liga';
+  font-feature-settings: "liga";
   -webkit-font-smoothing: antialiased;
   user-select: none;
 }

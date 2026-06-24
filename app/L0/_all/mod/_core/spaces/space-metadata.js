@@ -9,7 +9,9 @@ export const DEFAULT_SPACE_ICON = "space_dashboard";
 export const DEFAULT_SPACE_ICON_COLOR = "#94bcff";
 
 function normalizeLineEndings(value) {
-  return String(value ?? "").replace(/\r\n/gu, "\n").replace(/\r/gu, "\n");
+  return String(value ?? "")
+    .replace(/\r\n/gu, "\n")
+    .replace(/\r/gu, "\n");
 }
 
 function readMetadataValue(value, key, fallbackKey = "") {
@@ -57,7 +59,9 @@ export function getSpaceDisplayIcon(value) {
 }
 
 export function getSpaceDisplayIconColor(value) {
-  const normalizedColor = normalizeSpaceIconColor(readMetadataValue(value, "iconColor", "icon_color"));
+  const normalizedColor = normalizeSpaceIconColor(
+    readMetadataValue(value, "iconColor", "icon_color")
+  );
   return normalizedColor || DEFAULT_SPACE_ICON_COLOR;
 }
 

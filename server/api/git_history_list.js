@@ -2,7 +2,10 @@ import { createHttpError } from "../lib/customware/file_access.js";
 import { listLayerHistoryCommits } from "../lib/customware/git_history.js";
 
 function rethrowGitHistoryHttpError(error, fallbackMessage) {
-  const httpError = createHttpError(error.message || fallbackMessage, Number(error.statusCode) || 500);
+  const httpError = createHttpError(
+    error.message || fallbackMessage,
+    Number(error.statusCode) || 500
+  );
   httpError.cause = error;
   throw httpError;
 }
@@ -30,7 +33,9 @@ function readOffset(context) {
 
 function readFileFilter(context) {
   const payload = readPayload(context);
-  return String(payload.fileFilter || payload.filter || context.params.fileFilter || context.params.filter || "");
+  return String(
+    payload.fileFilter || payload.filter || context.params.fileFilter || context.params.filter || ""
+  );
 }
 
 async function handleList(context) {

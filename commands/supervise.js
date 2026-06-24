@@ -1,9 +1,16 @@
 import path from "node:path";
 
 import { loadSupervisorAuthEnv } from "./lib/supervisor/auth_keys.js";
-import { resolveUpdateSource, sanitizeRemoteUrl, shortRevision } from "./lib/supervisor/git_releases.js";
+import {
+  resolveUpdateSource,
+  sanitizeRemoteUrl,
+  shortRevision
+} from "./lib/supervisor/git_releases.js";
 import { SpaceSupervisor } from "./lib/supervisor/supervisor.js";
-import { applyProcessTitle, buildSupervisorProcessTitle } from "../server/lib/utils/process_title.js";
+import {
+  applyProcessTitle,
+  buildSupervisorProcessTitle
+} from "../server/lib/utils/process_title.js";
 
 const CHILD_HOST = "127.0.0.1";
 const CHILD_PORT = "0";
@@ -119,7 +126,10 @@ function parseSuperviseArgs(args) {
     }
 
     if (arg === "--auto-update-interval") {
-      options.autoUpdateIntervalMs = parseIntervalMilliseconds(readOptionValue(args, index, arg), arg);
+      options.autoUpdateIntervalMs = parseIntervalMilliseconds(
+        readOptionValue(args, index, arg),
+        arg
+      );
       index += 1;
       continue;
     }
@@ -139,7 +149,10 @@ function parseSuperviseArgs(args) {
     }
 
     if (String(arg).startsWith("--startup-timeout=")) {
-      options.startupTimeoutMs = parsePositiveMilliseconds(String(arg).slice("--startup-timeout=".length), "--startup-timeout");
+      options.startupTimeoutMs = parsePositiveMilliseconds(
+        String(arg).slice("--startup-timeout=".length),
+        "--startup-timeout"
+      );
       continue;
     }
 
@@ -150,7 +163,10 @@ function parseSuperviseArgs(args) {
     }
 
     if (String(arg).startsWith("--drain-idle=")) {
-      options.drainIdleMs = parsePositiveMilliseconds(String(arg).slice("--drain-idle=".length), "--drain-idle");
+      options.drainIdleMs = parsePositiveMilliseconds(
+        String(arg).slice("--drain-idle=".length),
+        "--drain-idle"
+      );
       continue;
     }
 
@@ -161,7 +177,10 @@ function parseSuperviseArgs(args) {
     }
 
     if (String(arg).startsWith("--drain-timeout=")) {
-      options.drainTimeoutMs = parsePositiveMilliseconds(String(arg).slice("--drain-timeout=".length), "--drain-timeout");
+      options.drainTimeoutMs = parsePositiveMilliseconds(
+        String(arg).slice("--drain-timeout=".length),
+        "--drain-timeout"
+      );
       continue;
     }
 
@@ -172,7 +191,10 @@ function parseSuperviseArgs(args) {
     }
 
     if (String(arg).startsWith("--restart-backoff=")) {
-      options.restartBackoffMs = parsePositiveMilliseconds(String(arg).slice("--restart-backoff=".length), "--restart-backoff");
+      options.restartBackoffMs = parsePositiveMilliseconds(
+        String(arg).slice("--restart-backoff=".length),
+        "--restart-backoff"
+      );
       continue;
     }
 
@@ -345,11 +367,13 @@ export const help = {
   options: [
     {
       flag: "--branch <branch>",
-      description: "Git branch to watch for source updates; defaults to the current or remembered checkout branch."
+      description:
+        "Git branch to watch for source updates; defaults to the current or remembered checkout branch."
     },
     {
       flag: "--remote-url <url>",
-      description: "Git remote URL to watch; overrides GIT_URL, which otherwise overrides the local origin remote URL."
+      description:
+        "Git remote URL to watch; overrides GIT_URL, which otherwise overrides the local origin remote URL."
     },
     {
       flag: "--state-dir <path>",
@@ -357,7 +381,8 @@ export const help = {
     },
     {
       flag: "--auto-update-interval <seconds>",
-      description: "Seconds between zero-downtime source update checks. Defaults to 300; values <= 0 disable update checks."
+      description:
+        "Seconds between zero-downtime source update checks. Defaults to 300; values <= 0 disable update checks."
     },
     {
       flag: "--startup-timeout <seconds>",
@@ -388,7 +413,11 @@ export async function execute(context) {
   applyProcessTitle(buildSupervisorProcessTitle());
 
   const { options, serveArgs: rawServeArgs } = parseSuperviseArgs(context.args);
-  const customwarePath = resolveRequiredCustomwarePath(context.projectRoot, rawServeArgs, process.env);
+  const customwarePath = resolveRequiredCustomwarePath(
+    context.projectRoot,
+    rawServeArgs,
+    process.env
+  );
   const stateDir = options.stateDir
     ? resolveProjectPath(context.projectRoot, options.stateDir)
     : resolveDefaultStateDir(context.projectRoot);

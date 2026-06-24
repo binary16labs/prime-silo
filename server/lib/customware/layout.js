@@ -38,8 +38,12 @@ function getAppPathRoots(projectRoot, runtimeParams) {
   const customwareRootDir = configuredCustomwarePath
     ? path.resolve(normalizedProjectRoot, configuredCustomwarePath)
     : "";
-  const l1Dir = customwareRootDir ? path.join(customwareRootDir, "L1") : path.join(appRootDir, "L1");
-  const l2Dir = customwareRootDir ? path.join(customwareRootDir, "L2") : path.join(appRootDir, "L2");
+  const l1Dir = customwareRootDir
+    ? path.join(customwareRootDir, "L1")
+    : path.join(appRootDir, "L1");
+  const l2Dir = customwareRootDir
+    ? path.join(customwareRootDir, "L2")
+    : path.join(appRootDir, "L2");
 
   return {
     appRootDir,
@@ -213,7 +217,9 @@ function listProjectScanRoots(projectRoot, projectPathPrefix, runtimeParams) {
 }
 
 function normalizeAppProjectPath(value, options = {}) {
-  const rawValue = String(value || "").trim().replaceAll("\\", "/");
+  const rawValue = String(value || "")
+    .trim()
+    .replaceAll("\\", "/");
   const isDirectory = Boolean(options.isDirectory) || rawValue.endsWith("/");
   let normalized = "";
 

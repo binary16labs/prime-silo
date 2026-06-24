@@ -186,7 +186,7 @@ It is the right tool for catalog discovery, not for raw filesystem walking.
 Frontend code that wants an attachment-style download should prefer:
 
 ```js
-space.api.folderDownloadUrl(path)
+space.api.folderDownloadUrl(path);
 ```
 
 instead of manually fetching the blob into browser memory.

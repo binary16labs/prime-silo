@@ -11,7 +11,9 @@ const RANGE_PATTERN = /^(-?\d+(?:\.\d+)?)\s*(?:\.\.|-)\s*(-?\d+(?:\.\d+)?)$/u;
 const SINGLE_USER_APP_USERNAME = "user";
 
 function normalizeParamName(rawValue) {
-  return String(rawValue || "").trim().toUpperCase();
+  return String(rawValue || "")
+    .trim()
+    .toUpperCase();
 }
 
 function escapeRegExp(sourceText) {
@@ -24,18 +26,12 @@ function matchesTextRule(value, rule) {
     return false;
   }
 
-  if (
-    normalizedRule.length > 2 &&
-    normalizedRule.startsWith("/") &&
-    normalizedRule.endsWith("/")
-  ) {
+  if (normalizedRule.length > 2 && normalizedRule.startsWith("/") && normalizedRule.endsWith("/")) {
     return new RegExp(normalizedRule.slice(1, -1), "u").test(value);
   }
 
   if (normalizedRule.includes("*") || normalizedRule.includes("?")) {
-    const regexText = escapeRegExp(normalizedRule)
-      .replace(/\\\*/gu, ".*")
-      .replace(/\\\?/gu, ".");
+    const regexText = escapeRegExp(normalizedRule).replace(/\\\*/gu, ".*").replace(/\\\?/gu, ".");
 
     return new RegExp(`^${regexText}$`, "u").test(value);
   }
@@ -60,7 +56,9 @@ function matchesNumberRule(value, rule, paramName) {
   }
 
   if (!NUMBER_PATTERN.test(normalizedRule)) {
-    throw new Error(`Invalid numeric rule "${normalizedRule}" for ${paramName} in commands/params.yaml.`);
+    throw new Error(
+      `Invalid numeric rule "${normalizedRule}" for ${paramName} in commands/params.yaml.`
+    );
   }
 
   return value === Number(normalizedRule);
@@ -71,7 +69,9 @@ function normalizeBooleanLiteral(rawValue, fieldLabel) {
     return rawValue;
   }
 
-  const normalizedValue = String(rawValue ?? "").trim().toLowerCase();
+  const normalizedValue = String(rawValue ?? "")
+    .trim()
+    .toLowerCase();
 
   if (normalizedValue === "true") {
     return true;
@@ -112,9 +112,7 @@ function validateConfigValue(spec, rawValue) {
     }
 
     const numericValue = Number(normalizedValue);
-    const isAllowed = spec.allowed.some((rule) =>
-      matchesNumberRule(numericValue, rule, spec.name)
-    );
+    const isAllowed = spec.allowed.some((rule) => matchesNumberRule(numericValue, rule, spec.name));
 
     if (!isAllowed) {
       throw new Error(`${spec.name} must match one of: ${formatAllowedValues(spec.allowed)}.`);
@@ -125,7 +123,9 @@ function validateConfigValue(spec, rawValue) {
 
   if (spec.type === "boolean") {
     const normalizedValue = normalizeBooleanLiteral(rawValue, spec.name) ? "true" : "false";
-    const isAllowed = spec.allowed.some((rule) => normalizedValue === String(rule).trim().toLowerCase());
+    const isAllowed = spec.allowed.some(
+      (rule) => normalizedValue === String(rule).trim().toLowerCase()
+    );
 
     if (!isAllowed) {
       throw new Error(`${spec.name} must match one of: ${formatAllowedValues(spec.allowed)}.`);
@@ -171,14 +171,20 @@ function normalizeParamSpec(paramName, rawSpec) {
     throw new Error(`commands/params.yaml entry ${paramName} must be an object.`);
   }
 
-  const type = String(rawSpec.type || "").trim().toLowerCase();
+  const type = String(rawSpec.type || "")
+    .trim()
+    .toLowerCase();
   if (!PARAM_TYPES.has(type)) {
-    throw new Error(`commands/params.yaml entry ${paramName} must use type "boolean", "text", or "number".`);
+    throw new Error(
+      `commands/params.yaml entry ${paramName} must use type "boolean", "text", or "number".`
+    );
   }
 
   const allowed = normalizeAllowed(rawSpec.allowed, type);
   if (!allowed.length) {
-    throw new Error(`commands/params.yaml entry ${paramName} must define at least one allowed value or range.`);
+    throw new Error(
+      `commands/params.yaml entry ${paramName} must define at least one allowed value or range.`
+    );
   }
 
   const spec = {
@@ -252,11 +258,15 @@ function normalizeRuntimeParamSources(options = {}) {
   return {
     env: options.env || process.env,
     overrides:
-      options.overrides && typeof options.overrides === "object" && !Array.isArray(options.overrides)
+      options.overrides &&
+      typeof options.overrides === "object" &&
+      !Array.isArray(options.overrides)
         ? options.overrides
         : {},
     storedValues:
-      options.storedValues && typeof options.storedValues === "object" && !Array.isArray(options.storedValues)
+      options.storedValues &&
+      typeof options.storedValues === "object" &&
+      !Array.isArray(options.storedValues)
         ? options.storedValues
         : null
   };
@@ -396,7 +406,9 @@ function serializeRuntimeParams(runtimeParams) {
 }
 
 function isSingleUserApp(runtimeParams) {
-  return Boolean(runtimeParams && typeof runtimeParams.get === "function" && runtimeParams.get("SINGLE_USER_APP"));
+  return Boolean(
+    runtimeParams && typeof runtimeParams.get === "function" && runtimeParams.get("SINGLE_USER_APP")
+  );
 }
 
 function isLoginAllowed(runtimeParams) {
@@ -406,8 +418,8 @@ function isLoginAllowed(runtimeParams) {
 
   return Boolean(
     runtimeParams &&
-      typeof runtimeParams.get === "function" &&
-      runtimeParams.get("LOGIN_ALLOWED", true)
+    typeof runtimeParams.get === "function" &&
+    runtimeParams.get("LOGIN_ALLOWED", true)
   );
 }
 
@@ -418,16 +430,16 @@ function areGuestUsersAllowed(runtimeParams) {
 
   return Boolean(
     runtimeParams &&
-      typeof runtimeParams.get === "function" &&
-      runtimeParams.get("ALLOW_GUEST_USERS", false)
+    typeof runtimeParams.get === "function" &&
+    runtimeParams.get("ALLOW_GUEST_USERS", false)
   );
 }
 
 function isCloudShareAllowed(runtimeParams) {
   return Boolean(
     runtimeParams &&
-      typeof runtimeParams.get === "function" &&
-      runtimeParams.get("CLOUD_SHARE_ALLOWED", false)
+    typeof runtimeParams.get === "function" &&
+    runtimeParams.get("CLOUD_SHARE_ALLOWED", false)
   );
 }
 

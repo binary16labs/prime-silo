@@ -41,7 +41,8 @@ function buildCurrentSpaceWidgetTransientRow(widget = {}) {
   const cols = Number.isFinite(widget?.cols) ? String(widget.cols) : "0";
   const rows = Number.isFinite(widget?.rows) ? String(widget.rows) : "0";
   const state = normalizeTransientCell(widget?.state) || "expanded";
-  const renderStatus = normalizeTransientCell(widget?.renderStatus || widget?.render?.status) || "unknown";
+  const renderStatus =
+    normalizeTransientCell(widget?.renderStatus || widget?.render?.status) || "unknown";
 
   return `${id}|${name}|${col}|${row}|${cols}|${rows}|${state}|${renderStatus}`;
 }
@@ -57,10 +58,7 @@ export function buildAvailableSpacesTransientSection(options = {}) {
     .filter(Boolean);
 
   return {
-    content: [
-      "spaces (id|title)↓",
-      ...(rows.length ? rows : ["[empty]"])
-    ].join("\n"),
+    content: ["spaces (id|title)↓", ...(rows.length ? rows : ["[empty]"])].join("\n"),
     heading: AVAILABLE_SPACES_TRANSIENT_HEADING,
     key: AVAILABLE_SPACES_TRANSIENT_KEY,
     order: 110

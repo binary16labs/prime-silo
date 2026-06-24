@@ -11,9 +11,7 @@
       "passed_attempts": 23,
       "total_attempts": 24,
       "attempt_pass_rate": 0.9583,
-      "failed_cases": [
-        "write_user_yaml_after_read"
-      ],
+      "failed_cases": ["write_user_yaml_after_read"],
       "cases": [
         {
           "case_id": "page_title_requires_execution",
@@ -443,9 +441,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Patching your full name to Pan Example now...\n\n\n_____javascript\nconst text = await space.api.fileRead(\"~/user.yaml\");\nconst data = space.utils.yaml.parse(text);\ndata.full_name = \"Pan Example\";\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(data));",
           "usage": {
@@ -867,10 +863,7 @@
       "passed_attempts": 22,
       "total_attempts": 24,
       "attempt_pass_rate": 0.9167,
-      "failed_cases": [
-        "write_user_yaml_after_read",
-        "terminal_after_successful_widget_patch"
-      ],
+      "failed_cases": ["write_user_yaml_after_read", "terminal_after_successful_widget_patch"],
       "cases": [
         {
           "case_id": "page_title_requires_execution",
@@ -1300,9 +1293,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Patching your full name to Pan Example now...\n_____javascript\nconst text = await space.api.fileRead(\"~/user.yaml\");\nconst data = space.utils.yaml.parse(text);\ndata.full_name = \"Pan Example\";\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(data))",
           "usage": {
@@ -1728,10 +1719,7 @@
       "passed_attempts": 22,
       "total_attempts": 24,
       "attempt_pass_rate": 0.9167,
-      "failed_cases": [
-        "time_requires_execution",
-        "write_user_yaml_after_read"
-      ],
+      "failed_cases": ["time_requires_execution", "write_user_yaml_after_read"],
       "cases": [
         {
           "case_id": "page_title_requires_execution",
@@ -2169,9 +2157,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Patching your full name to Pan Example now...\n_____javascript\nconst text = await space.api.fileRead(\"~/user.yaml\");\nconst data = space.utils.yaml.parse(text);\ndata.full_name = \"Pan Example\";\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(data));",
           "usage": {

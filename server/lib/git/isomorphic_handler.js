@@ -141,7 +141,9 @@ function createHistoryRepoOptions(repoRoot) {
 }
 
 function isInternalGitPath(filePath) {
-  return String(filePath || "").split(/[\\/]+/u).includes(".git");
+  return String(filePath || "")
+    .split(/[\\/]+/u)
+    .includes(".git");
 }
 
 function normalizeFetchedDefaultBranch(defaultBranch) {
@@ -171,7 +173,12 @@ async function ensureIsomorphicRepository(git, repoRoot, repoOptions) {
   }
 }
 
-async function stageIsomorphicHistoryChanges(git, repoOptions, ignoredPaths = [], changedPathsHint = []) {
+async function stageIsomorphicHistoryChanges(
+  git,
+  repoOptions,
+  ignoredPaths = [],
+  changedPathsHint = []
+) {
   const statusRows = await git.statusMatrix(repoOptions);
   const ignoredPathSet = normalizeHistoryIgnoredPaths(ignoredPaths);
   const changedFiles = new Set();
@@ -188,7 +195,11 @@ async function stageIsomorphicHistoryChanges(git, repoOptions, ignoredPaths = []
   }
 
   for (const [filepath, head, workdir, stage] of statusRows) {
-    if (!filepath || isInternalGitPath(filepath) || isHistoryIgnoredPath(filepath, ignoredPathSet)) {
+    if (
+      !filepath ||
+      isInternalGitPath(filepath) ||
+      isHistoryIgnoredPath(filepath, ignoredPathSet)
+    ) {
       continue;
     }
 
@@ -262,11 +273,13 @@ async function readIsomorphicWorkdirBlobOid(git, repoOptions, filepath) {
 }
 
 function normalizeIsomorphicChangedPathsHint(changedPathsHint = []) {
-  return [...new Set(
-    (Array.isArray(changedPathsHint) ? changedPathsHint : [changedPathsHint])
-      .map((filepath) => normalizeGitRelativePath(filepath))
-      .filter(Boolean)
-  )].sort((left, right) => left.localeCompare(right));
+  return [
+    ...new Set(
+      (Array.isArray(changedPathsHint) ? changedPathsHint : [changedPathsHint])
+        .map((filepath) => normalizeGitRelativePath(filepath))
+        .filter(Boolean)
+    )
+  ].sort((left, right) => left.localeCompare(right));
 }
 
 async function stageIsomorphicContentOnlyChanges(
@@ -283,7 +296,11 @@ async function stageIsomorphicContentOnlyChanges(
   }
 
   for (const filepath of normalizeIsomorphicChangedPathsHint(candidatePaths)) {
-    if (changedFiles.has(filepath) || isInternalGitPath(filepath) || isHistoryIgnoredPath(filepath, ignoredPathSet)) {
+    if (
+      changedFiles.has(filepath) ||
+      isInternalGitPath(filepath) ||
+      isHistoryIgnoredPath(filepath, ignoredPathSet)
+    ) {
       continue;
     }
 
@@ -315,7 +332,11 @@ function normalizeHistoryDiffPath(filePath) {
 }
 
 function normalizeHistoryPreviewOperation(operation = "") {
-  return String(operation || "").trim().toLowerCase() === "revert" ? "revert" : "travel";
+  return String(operation || "")
+    .trim()
+    .toLowerCase() === "revert"
+    ? "revert"
+    : "travel";
 }
 
 function createIsomorphicHistoryError(message, statusCode = 500) {
@@ -361,11 +382,8 @@ function mergeIsomorphicRevertText(diff3Merge, currentText = "", targetText = ""
 }
 
 function invertHistoryFileEntry(entry) {
-  const action = entry.action === "added"
-    ? "deleted"
-    : entry.action === "deleted"
-      ? "added"
-      : "modified";
+  const action =
+    entry.action === "added" ? "deleted" : entry.action === "deleted" ? "added" : "modified";
   const status = entry.status?.startsWith("A")
     ? "D"
     : entry.status?.startsWith("D")
@@ -381,7 +399,9 @@ function invertHistoryFileEntry(entry) {
 
 function findHistoryFileEntry(files = [], filePath = "") {
   const normalizedPath = normalizeGitRelativePath(filePath);
-  return files.find((entry) => entry.path === normalizedPath || entry.oldPath === normalizedPath) || null;
+  return (
+    files.find((entry) => entry.path === normalizedPath || entry.oldPath === normalizedPath) || null
+  );
 }
 
 function splitPatchLines(text = "") {
@@ -400,9 +420,10 @@ function buildUnifiedDiffOperations(oldLines = [], newLines = []) {
 
   for (let oldIndex = oldLines.length - 1; oldIndex >= 0; oldIndex -= 1) {
     for (let newIndex = newLines.length - 1; newIndex >= 0; newIndex -= 1) {
-      dp[oldIndex][newIndex] = oldLines[oldIndex] === newLines[newIndex]
-        ? dp[oldIndex + 1][newIndex + 1] + 1
-        : Math.max(dp[oldIndex + 1][newIndex], dp[oldIndex][newIndex + 1]);
+      dp[oldIndex][newIndex] =
+        oldLines[oldIndex] === newLines[newIndex]
+          ? dp[oldIndex + 1][newIndex + 1] + 1
+          : Math.max(dp[oldIndex + 1][newIndex], dp[oldIndex][newIndex + 1]);
     }
   }
 
@@ -543,7 +564,11 @@ function buildUnifiedDiffBody(oldText = "", newText = "") {
 
     hunks.push(
       [
-        "@@ -" + formatUnifiedRange(displayOldStart, oldCount) + " +" + formatUnifiedRange(displayNewStart, newCount) + " @@",
+        "@@ -" +
+          formatUnifiedRange(displayOldStart, oldCount) +
+          " +" +
+          formatUnifiedRange(displayNewStart, newCount) +
+          " @@",
         ...bodyLines
       ].join("\n")
     );
@@ -570,7 +595,10 @@ async function preserveIsomorphicHistoryHeadRef(git, repoOptions, reason = "snap
     return "";
   }
 
-  const safeReason = String(reason || "snapshot").replace(/[^a-z0-9_-]+/giu, "-").replace(/^-|-$/gu, "") || "snapshot";
+  const safeReason =
+    String(reason || "snapshot")
+      .replace(/[^a-z0-9_-]+/giu, "-")
+      .replace(/^-|-$/gu, "") || "snapshot";
   const refName = "refs/space-history/" + safeReason + "/" + Date.now() + "-" + shortenOid(hash);
 
   await git.writeRef({
@@ -607,7 +635,13 @@ async function resolveIsomorphicCommit(git, repoOptions, revision) {
   }
 }
 
-async function readIsomorphicTreeFilesFromTree(git, repoOptions, treeOid, prefix = "", output = new Map()) {
+async function readIsomorphicTreeFilesFromTree(
+  git,
+  repoOptions,
+  treeOid,
+  prefix = "",
+  output = new Map()
+) {
   const tree = await git.readTree({
     ...repoOptions,
     oid: treeOid
@@ -673,7 +707,9 @@ function createIsomorphicHistoryEntry(filepath, fromFile, toFile) {
 }
 
 function diffIsomorphicSnapshots(fromFiles, toFiles, ignoredPaths = []) {
-  const filepaths = [...new Set([...fromFiles.keys(), ...toFiles.keys()])].sort((left, right) => left.localeCompare(right));
+  const filepaths = [...new Set([...fromFiles.keys(), ...toFiles.keys()])].sort((left, right) =>
+    left.localeCompare(right)
+  );
   const changedFiles = [];
 
   for (const filepath of filepaths) {
@@ -711,7 +747,13 @@ async function readIsomorphicCommitInput(git, repoOptions, commitEntry) {
   };
 }
 
-async function readIsomorphicCommitFiles(git, repoOptions, repoRoot, commitEntry, ignoredPaths = []) {
+async function readIsomorphicCommitFiles(
+  git,
+  repoOptions,
+  repoRoot,
+  commitEntry,
+  ignoredPaths = []
+) {
   const { commit, hash } = await readIsomorphicCommitInput(git, repoOptions, commitEntry);
   const ignoredPathsKey = createIgnoredPathsCacheKey(ignoredPaths);
   const cacheKey = createIsomorphicRepoCacheKey(repoRoot, `files:${hash}:${ignoredPathsKey}`);
@@ -732,7 +774,13 @@ async function readIsomorphicCommitFiles(git, repoOptions, repoRoot, commitEntry
   );
 }
 
-async function createIsomorphicCommitListEntry(git, repoOptions, repoRoot, entry, ignoredPaths = []) {
+async function createIsomorphicCommitListEntry(
+  git,
+  repoOptions,
+  repoRoot,
+  entry,
+  ignoredPaths = []
+) {
   const files = await readIsomorphicCommitFiles(git, repoOptions, repoRoot, entry, ignoredPaths);
 
   return {
@@ -748,7 +796,9 @@ async function createIsomorphicCommitListEntry(git, repoOptions, repoRoot, entry
 }
 
 function matchesIsomorphicCommitFileFilter(commit, fileFilter = "") {
-  const normalizedFilter = String(fileFilter || "").trim().toLowerCase();
+  const normalizedFilter = String(fileFilter || "")
+    .trim()
+    .toLowerCase();
 
   if (!normalizedFilter) {
     return true;
@@ -813,7 +863,9 @@ async function readIsomorphicFileDiff(git, repoOptions, repoRoot, fromRef, toRef
   const toFile = toFiles.get(normalizedPath) || null;
 
   return {
-    file: filterHistoryFileEntries([createIsomorphicHistoryEntry(normalizedPath, fromFile, toFile)])[0] || {
+    file: filterHistoryFileEntries([
+      createIsomorphicHistoryEntry(normalizedPath, fromFile, toFile)
+    ])[0] || {
       action: "modified",
       oldPath: "",
       path: normalizedPath,
@@ -960,11 +1012,15 @@ export async function createIsomorphicGitClient({ gitContext }) {
       });
 
       if (statusRows.some(isUnstagedMatrixRow)) {
-        throw new Error("Update refused because tracked files have unstaged changes. Commit or stash them first.");
+        throw new Error(
+          "Update refused because tracked files have unstaged changes. Commit or stash them first."
+        );
       }
 
       if (statusRows.some(isStagedMatrixRow)) {
-        throw new Error("Update refused because tracked files have staged changes. Commit, unstage, or stash them first.");
+        throw new Error(
+          "Update refused because tracked files have staged changes. Commit, unstage, or stash them first."
+        );
       }
     },
 
@@ -985,10 +1041,12 @@ export async function createIsomorphicGitClient({ gitContext }) {
     },
 
     async readCurrentBranch() {
-      return (await git.currentBranch({
-        ...repoOptions,
-        test: true
-      })) || null;
+      return (
+        (await git.currentBranch({
+          ...repoOptions,
+          test: true
+        })) || null
+      );
     },
 
     async hasLocalBranch(branchName) {
@@ -1343,14 +1401,24 @@ export async function createIsomorphicGitHistoryClient({ repoRoot }) {
           };
         }
 
-        const fileFilter = String(options.fileFilter || "").trim().toLowerCase();
+        const fileFilter = String(options.fileFilter || "")
+          .trim()
+          .toLowerCase();
 
         if (!fileFilter) {
           const pageEntries = entries.slice(offset, offset + limit);
           const [currentHash, commits] = await Promise.all([
             readIsomorphicHistoryHead(git, repoOptions),
             Promise.all(
-              pageEntries.map((entry) => createIsomorphicCommitListEntry(git, repoOptions, resolvedRepoRoot, entry, options.ignoredPaths))
+              pageEntries.map((entry) =>
+                createIsomorphicCommitListEntry(
+                  git,
+                  repoOptions,
+                  resolvedRepoRoot,
+                  entry,
+                  options.ignoredPaths
+                )
+              )
             )
           ]);
 
@@ -1370,7 +1438,13 @@ export async function createIsomorphicGitHistoryClient({ repoRoot }) {
         let hasMore = false;
 
         for (const entry of entries) {
-          const commit = await createIsomorphicCommitListEntry(git, repoOptions, resolvedRepoRoot, entry, options.ignoredPaths);
+          const commit = await createIsomorphicCommitListEntry(
+            git,
+            repoOptions,
+            resolvedRepoRoot,
+            entry,
+            options.ignoredPaths
+          );
 
           if (!matchesIsomorphicCommitFileFilter(commit, fileFilter)) {
             continue;
@@ -1407,7 +1481,11 @@ export async function createIsomorphicGitHistoryClient({ repoRoot }) {
       return runTask(async () => {
         await ensureHistoryRepository();
 
-        const hash = await resolveIsomorphicCommit(git, repoOptions, String(options.commitHash || ""));
+        const hash = await resolveIsomorphicCommit(
+          git,
+          repoOptions,
+          String(options.commitHash || "")
+        );
         const commit = await git.readCommit({
           ...repoOptions,
           oid: hash
@@ -1437,7 +1515,11 @@ export async function createIsomorphicGitHistoryClient({ repoRoot }) {
         await ensureHistoryRepository();
 
         const operation = normalizeHistoryPreviewOperation(options.operation);
-        const hash = await resolveIsomorphicCommit(git, repoOptions, String(options.commitHash || ""));
+        const hash = await resolveIsomorphicCommit(
+          git,
+          repoOptions,
+          String(options.commitHash || "")
+        );
         const commit = await git.readCommit({
           ...repoOptions,
           oid: hash
@@ -1446,11 +1528,24 @@ export async function createIsomorphicGitHistoryClient({ repoRoot }) {
         const filePath = options.filePath ? normalizeHistoryDiffPath(options.filePath) : "";
 
         if (operation === "revert") {
-          const files = (await readIsomorphicCommitFiles(git, repoOptions, resolvedRepoRoot, commit, options.ignoredPaths)).map(
-            invertHistoryFileEntry
-          );
+          const files = (
+            await readIsomorphicCommitFiles(
+              git,
+              repoOptions,
+              resolvedRepoRoot,
+              commit,
+              options.ignoredPaths
+            )
+          ).map(invertHistoryFileEntry);
           const diff = filePath
-            ? await readIsomorphicFileDiff(git, repoOptions, resolvedRepoRoot, hash, commit.commit.parent?.[0] || "", filePath)
+            ? await readIsomorphicFileDiff(
+                git,
+                repoOptions,
+                resolvedRepoRoot,
+                hash,
+                commit.commit.parent?.[0] || "",
+                filePath
+              )
             : { patch: "" };
 
           return {
@@ -1475,9 +1570,17 @@ export async function createIsomorphicGitHistoryClient({ repoRoot }) {
               options.ignoredPaths
             )
           : [];
-        const diff = currentHash && filePath
-          ? await readIsomorphicFileDiff(git, repoOptions, resolvedRepoRoot, currentHash, hash, filePath)
-          : { patch: "" };
+        const diff =
+          currentHash && filePath
+            ? await readIsomorphicFileDiff(
+                git,
+                repoOptions,
+                resolvedRepoRoot,
+                currentHash,
+                hash,
+                filePath
+              )
+            : { patch: "" };
 
         return {
           backend: this.name,
@@ -1497,7 +1600,11 @@ export async function createIsomorphicGitHistoryClient({ repoRoot }) {
       return runTask(async () => {
         await ensureHistoryRepository();
 
-        const hash = await resolveIsomorphicCommit(git, repoOptions, String(options.commitHash || ""));
+        const hash = await resolveIsomorphicCommit(
+          git,
+          repoOptions,
+          String(options.commitHash || "")
+        );
         await git.readCommit({
           ...repoOptions,
           oid: hash
@@ -1553,7 +1660,11 @@ export async function createIsomorphicGitHistoryClient({ repoRoot }) {
       return runTask(async () => {
         await ensureHistoryRepository();
 
-        const hash = await resolveIsomorphicCommit(git, repoOptions, String(options.commitHash || ""));
+        const hash = await resolveIsomorphicCommit(
+          git,
+          repoOptions,
+          String(options.commitHash || "")
+        );
         const commit = await git.readCommit({
           ...repoOptions,
           oid: hash
@@ -1569,7 +1680,13 @@ export async function createIsomorphicGitHistoryClient({ repoRoot }) {
           readIsomorphicTreeFiles(git, repoOptions, resolvedRepoRoot, currentHash),
           readIsomorphicTreeFiles(git, repoOptions, resolvedRepoRoot, hash),
           readIsomorphicTreeFiles(git, repoOptions, resolvedRepoRoot, parentOid),
-          readIsomorphicCommitFiles(git, repoOptions, resolvedRepoRoot, commit, options.ignoredPaths)
+          readIsomorphicCommitFiles(
+            git,
+            repoOptions,
+            resolvedRepoRoot,
+            commit,
+            options.ignoredPaths
+          )
         ]);
         const operations = await Promise.all(
           files.map(async (file) => {
@@ -1581,16 +1698,28 @@ export async function createIsomorphicGitHistoryClient({ repoRoot }) {
               targetFile ? readIsomorphicBlobText(git, repoOptions, hash, file.path) : "",
               parentFile ? readIsomorphicBlobText(git, repoOptions, parentOid, file.path) : ""
             ]);
-            const mergedRevert = mergeIsomorphicRevertText(diff3Merge, currentText, targetText, parentText);
+            const mergedRevert = mergeIsomorphicRevertText(
+              diff3Merge,
+              currentText,
+              targetText,
+              parentText
+            );
 
             if (!mergedRevert.cleanMerge) {
               throw createIsomorphicHistoryError(
-                "Commit revert cannot apply cleanly for " + file.path +
-                  " with the isomorphic-git backend. HEAD " + shortenOid(currentHash) +
-                  " has blob " + describeIsomorphicBlobLabel(currentFile) +
-                  ", commit " + shortenOid(hash) +
-                  " has blob " + describeIsomorphicBlobLabel(targetFile) +
-                  ", and revert wants parent blob " + describeIsomorphicBlobLabel(parentFile) + ".",
+                "Commit revert cannot apply cleanly for " +
+                  file.path +
+                  " with the isomorphic-git backend. HEAD " +
+                  shortenOid(currentHash) +
+                  " has blob " +
+                  describeIsomorphicBlobLabel(currentFile) +
+                  ", commit " +
+                  shortenOid(hash) +
+                  " has blob " +
+                  describeIsomorphicBlobLabel(targetFile) +
+                  ", and revert wants parent blob " +
+                  describeIsomorphicBlobLabel(parentFile) +
+                  ".",
                 409
               );
             }
@@ -1613,12 +1742,18 @@ export async function createIsomorphicGitHistoryClient({ repoRoot }) {
         await preserveIsomorphicHistoryHeadRef(git, repoOptions, "revert");
         await applyIsomorphicFileWrites(resolvedRepoRoot, operations);
 
-        const stagedFiles = await stageIsomorphicHistoryChanges(git, repoOptions, options.ignoredPaths);
+        const stagedFiles = await stageIsomorphicHistoryChanges(
+          git,
+          repoOptions,
+          options.ignoredPaths
+        );
         if (stagedFiles.length === 0) {
           throw createIsomorphicHistoryError("Commit revert produced no changes.", 409);
         }
 
-        const summary = String(commit.commit.message || "").split("\n")[0].trim();
+        const summary = String(commit.commit.message || "")
+          .split("\n")[0]
+          .trim();
         const nextHash = await git.commit({
           ...repoOptions,
           author: {

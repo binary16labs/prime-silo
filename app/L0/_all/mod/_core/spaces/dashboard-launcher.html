@@ -30,8 +30,15 @@
 
         <template x-if="!loading && !loadErrorText && !hasEntries">
           <div class="dashboard-spaces-launcher-empty">
-            <p class="dashboard-spaces-launcher-empty-title" x-ref="emptyTitle">You do not have any spaces yet.</p>
-            <button type="button" class="primary-button dashboard-spaces-launcher-empty-button" :disabled="creating" @click="createSpace()">
+            <p class="dashboard-spaces-launcher-empty-title" x-ref="emptyTitle">
+              You do not have any spaces yet.
+            </p>
+            <button
+              type="button"
+              class="primary-button dashboard-spaces-launcher-empty-button"
+              :disabled="creating"
+              @click="createSpace()"
+            >
               <x-icon x-text="creating ? 'hourglass_top' : 'add'"></x-icon>
               <span x-text="creating ? 'Creating…' : 'Create Space'"></span>
             </button>
@@ -39,10 +46,19 @@
         </template>
 
         <template x-if="!loading && !loadErrorText && hasEntries">
-          <div class="dashboard-spaces-launcher-grid" :class="{ 'is-filled-stage': gridFilledStage }" x-ref="grid">
+          <div
+            class="dashboard-spaces-launcher-grid"
+            :class="{ 'is-filled-stage': gridFilledStage }"
+            x-ref="grid"
+          >
             <div class="dashboard-space-slot">
               <article class="dashboard-space-card dashboard-space-card--create">
-                <button type="button" class="dashboard-space-card-create" :disabled="creating" @click="createSpace()">
+                <button
+                  type="button"
+                  class="dashboard-space-card-create"
+                  :disabled="creating"
+                  @click="createSpace()"
+                >
                   <span class="dashboard-space-card-create-icon">
                     <x-icon x-text="creating ? 'hourglass_top' : 'add'"></x-icon>
                   </span>
@@ -55,7 +71,10 @@
 
             <template x-for="item in entries" :key="item.id">
               <div class="dashboard-space-slot">
-                <article class="dashboard-space-card" :class="{ 'dashboard-space-card--thumbnail': item.hasThumbnail }">
+                <article
+                  class="dashboard-space-card"
+                  :class="{ 'dashboard-space-card--thumbnail': item.hasThumbnail }"
+                >
                   <div
                     x-show="item.hasThumbnail"
                     class="dashboard-space-card-preview"
@@ -102,7 +121,9 @@
                         :disabled="deletingSpaceId === item.id || duplicatingSpaceId === item.id"
                         @click="duplicateSpace(item.id)"
                       >
-                        <x-icon x-text="duplicatingSpaceId === item.id ? 'hourglass_top' : 'content_copy'"></x-icon>
+                        <x-icon
+                          x-text="duplicatingSpaceId === item.id ? 'hourglass_top' : 'content_copy'"
+                        ></x-icon>
                       </button>
 
                       <button
@@ -112,7 +133,9 @@
                         :disabled="deletingSpaceId === item.id || duplicatingSpaceId === item.id"
                         @click="deleteSpace(item.id)"
                       >
-                        <x-icon x-text="deletingSpaceId === item.id ? 'hourglass_top' : 'delete'"></x-icon>
+                        <x-icon
+                          x-text="deletingSpaceId === item.id ? 'hourglass_top' : 'delete'"
+                        ></x-icon>
                       </button>
                     </div>
                   </div>

@@ -3,7 +3,9 @@ const INSTALL_KEY = Symbol.for("space.framework.newWindowAccessInstalled");
 const LOCATION_PATCH_INSTALL_KEY = Symbol.for("space.framework.locationNavigationPatchInstalled");
 const ORIGINAL_LOCATION_ASSIGN_KEY = Symbol.for("space.framework.originalLocationAssign");
 const ORIGINAL_LOCATION_REPLACE_KEY = Symbol.for("space.framework.originalLocationReplace");
-const ORIGINAL_LOCATION_HREF_DESCRIPTOR_KEY = Symbol.for("space.framework.originalLocationHrefDescriptor");
+const ORIGINAL_LOCATION_HREF_DESCRIPTOR_KEY = Symbol.for(
+  "space.framework.originalLocationHrefDescriptor"
+);
 const ORIGINAL_OPEN_KEY = Symbol.for("space.framework.originalWindowOpen");
 const CURRENT_TAB_TARGETS = new Set(["", "_self", "_top", "_parent"]);
 const GUARDED_PAGE_PATHS = new Set(["/", "/admin"]);
@@ -52,22 +54,24 @@ function resolveNavigationUrl(candidate) {
 
 function isGuardedLocalUrl(targetUrl) {
   return Boolean(
-    targetUrl
-      && targetUrl.origin === window.location.origin
-      && GUARDED_PAGE_PATHS.has(targetUrl.pathname)
+    targetUrl &&
+    targetUrl.origin === window.location.origin &&
+    GUARDED_PAGE_PATHS.has(targetUrl.pathname)
   );
 }
 
 function isCrossOriginHttpUrl(targetUrl) {
   return Boolean(
-    targetUrl
-      && HTTP_NAVIGATION_PROTOCOLS.has(targetUrl.protocol)
-      && targetUrl.origin !== window.location.origin
+    targetUrl &&
+    HTTP_NAVIGATION_PROTOCOLS.has(targetUrl.protocol) &&
+    targetUrl.origin !== window.location.origin
   );
 }
 
 function normalizeTarget(target, fallback = "") {
-  return String(target ?? fallback).trim().toLowerCase();
+  return String(target ?? fallback)
+    .trim()
+    .toLowerCase();
 }
 
 function isBlankTarget(target) {
@@ -134,7 +138,12 @@ function navigateChildWindow(childWindow, targetUrl) {
 }
 
 function openGuardedBlankWindow(originalOpen, targetUrl, target, features) {
-  const childWindow = originalOpen.call(window, "about:blank", target || "_blank", mergeNoopenerFeatures(features));
+  const childWindow = originalOpen.call(
+    window,
+    "about:blank",
+    target || "_blank",
+    mergeNoopenerFeatures(features)
+  );
 
   if (!childWindow) {
     return childWindow;
@@ -160,15 +169,15 @@ function openExternalNavigationTarget(originalOpen, targetUrl, features = undefi
 
 function shouldHandleNavigationClick(event, anchor, targetUrl) {
   return Boolean(
-    anchor
-      && targetUrl
-      && !anchor.hasAttribute("download")
-      && !event.defaultPrevented
-      && event.button === 0
-      && !event.metaKey
-      && !event.ctrlKey
-      && !event.shiftKey
-      && !event.altKey
+    anchor &&
+    targetUrl &&
+    !anchor.hasAttribute("download") &&
+    !event.defaultPrevented &&
+    event.button === 0 &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.shiftKey &&
+    !event.altKey
   );
 }
 
@@ -184,18 +193,18 @@ function findClickedAnchor(event) {
 
 function shouldHandleGuardedBlankAnchorClick(event, anchor, targetUrl) {
   return Boolean(
-    shouldHandleNavigationClick(event, anchor, targetUrl)
-      && hasCurrentTabAccess()
-      && isBlankTarget(anchor.target)
-      && isGuardedLocalUrl(targetUrl)
+    shouldHandleNavigationClick(event, anchor, targetUrl) &&
+    hasCurrentTabAccess() &&
+    isBlankTarget(anchor.target) &&
+    isGuardedLocalUrl(targetUrl)
   );
 }
 
 function shouldHandleExternalSameTabAnchorClick(event, anchor, targetUrl) {
   return Boolean(
-    shouldHandleNavigationClick(event, anchor, targetUrl)
-      && isCurrentTabTarget(anchor.target)
-      && isCrossOriginHttpUrl(targetUrl)
+    shouldHandleNavigationClick(event, anchor, targetUrl) &&
+    isCurrentTabTarget(anchor.target) &&
+    isCrossOriginHttpUrl(targetUrl)
   );
 }
 
@@ -225,8 +234,7 @@ function installAnchorNavigationHandler(originalOpen) {
 
 function shouldInterceptLocationNavigation(locationObject, candidate) {
   return Boolean(
-    locationObject === window.location
-      && isCrossOriginHttpUrl(resolveNavigationUrl(candidate))
+    locationObject === window.location && isCrossOriginHttpUrl(resolveNavigationUrl(candidate))
   );
 }
 
@@ -263,9 +271,8 @@ function installLocationMethodPatch(originalOpen, propertyName, originalKey) {
     return;
   }
 
-  const originalMethod = typeof window[originalKey] === "function"
-    ? window[originalKey]
-    : entry.descriptor.value;
+  const originalMethod =
+    typeof window[originalKey] === "function" ? window[originalKey] : entry.descriptor.value;
 
   window[originalKey] = originalMethod;
 
@@ -295,10 +302,10 @@ function installLocationHrefPatch(originalOpen) {
 
   const entry = findPropertyDescriptorOwner(locationPrototype, "href");
   if (
-    !entry
-    || typeof entry.descriptor.get !== "function"
-    || typeof entry.descriptor.set !== "function"
-    || entry.descriptor.configurable === false
+    !entry ||
+    typeof entry.descriptor.get !== "function" ||
+    typeof entry.descriptor.set !== "function" ||
+    entry.descriptor.configurable === false
   ) {
     return;
   }
@@ -360,7 +367,11 @@ function installNavigationApiGuard(originalOpen) {
 }
 
 function installWindowOpenPatch(originalOpen) {
-  window.open = function openWithFrameworkTabAccess(url = "", target = "_blank", features = undefined) {
+  window.open = function openWithFrameworkTabAccess(
+    url = "",
+    target = "_blank",
+    features = undefined
+  ) {
     const targetUrl = resolveNavigationUrl(url);
 
     if (hasCurrentTabAccess() && isBlankTarget(target) && isGuardedLocalUrl(targetUrl)) {
@@ -380,9 +391,8 @@ export function installFrameworkNewWindowAccess() {
     return;
   }
 
-  const originalOpen = typeof window[ORIGINAL_OPEN_KEY] === "function"
-    ? window[ORIGINAL_OPEN_KEY]
-    : window.open;
+  const originalOpen =
+    typeof window[ORIGINAL_OPEN_KEY] === "function" ? window[ORIGINAL_OPEN_KEY] : window.open;
 
   if (typeof originalOpen !== "function") {
     return;

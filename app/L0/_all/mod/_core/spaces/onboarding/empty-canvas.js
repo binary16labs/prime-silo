@@ -71,7 +71,9 @@ function createElement(tagName, className = "", textContent = "") {
 }
 
 function convertHexColorToRgbTriplet(colorValue, fallback = "156, 175, 136") {
-  const match = String(colorValue ?? "").trim().match(/^#([0-9a-f]{6})$/iu);
+  const match = String(colorValue ?? "")
+    .trim()
+    .match(/^#([0-9a-f]{6})$/iu);
 
   if (!match) {
     return fallback;
@@ -299,9 +301,9 @@ function startEmptyCanvasSequenceAnimation(elements, motionQuery = null, options
 function startEmptyCanvasTextFloatAnimation(elements, motionQuery = null) {
   const floaters = Array.isArray(elements)
     ? elements.filter(Boolean).map((element, index) => ({
-      element,
-      profile: EMPTY_SPACE_TEXT_FLOAT_PROFILES[index % EMPTY_SPACE_TEXT_FLOAT_PROFILES.length]
-    }))
+        element,
+        profile: EMPTY_SPACE_TEXT_FLOAT_PROFILES[index % EMPTY_SPACE_TEXT_FLOAT_PROFILES.length]
+      }))
     : [];
 
   if (!floaters.length) {
@@ -342,8 +344,8 @@ function startEmptyCanvasTextFloatAnimation(elements, motionQuery = null) {
         return;
       }
 
-      const orbitAngle = ((elapsed / profile.orbitPeriodMs) * TAU) + profile.phase;
-      const rotationAngle = ((elapsed / profile.rotationPeriodMs) * TAU) + (profile.phase * 0.75);
+      const orbitAngle = (elapsed / profile.orbitPeriodMs) * TAU + profile.phase;
+      const rotationAngle = (elapsed / profile.rotationPeriodMs) * TAU + profile.phase * 0.75;
 
       applyEmptyCanvasTextPose(
         element,
@@ -429,8 +431,8 @@ function startFloatingTitleAnimation(element, motionQuery = null) {
     }
 
     const elapsed = timestamp - startTime;
-    const orbitAngle = ((elapsed / EMPTY_SPACE_FLOAT_PROFILE.orbitPeriodMs) * TAU) + 0.45;
-    const rotationAngle = ((elapsed / EMPTY_SPACE_FLOAT_PROFILE.rotationPeriodMs) * TAU) + 1.1;
+    const orbitAngle = (elapsed / EMPTY_SPACE_FLOAT_PROFILE.orbitPeriodMs) * TAU + 0.45;
+    const rotationAngle = (elapsed / EMPTY_SPACE_FLOAT_PROFILE.rotationPeriodMs) * TAU + 1.1;
 
     applyFloatingTitlePose(
       element,
@@ -501,7 +503,10 @@ export function startLoadingCanvasAnimation(loadingCanvas, motionQuery = null) {
   return startFloatingTitleAnimation(loadingCanvas?.title || null, motionQuery);
 }
 
-export function createEmptyCanvasState(exampleDefinitions = [], { initialStage = "boot", onExampleError } = {}) {
+export function createEmptyCanvasState(
+  exampleDefinitions = [],
+  { initialStage = "boot", onExampleError } = {}
+) {
   const reportExampleError =
     typeof onExampleError === "function"
       ? onExampleError
@@ -511,14 +516,40 @@ export function createEmptyCanvasState(exampleDefinitions = [], { initialStage =
   const root = createElement("section", "spaces-empty-canvas");
   const content = createElement("div", "spaces-empty-canvas-content");
   const copy = createElement("div", "spaces-empty-canvas-copy");
-  const primarySlot = createElement("div", "spaces-empty-canvas-copy-slot spaces-empty-canvas-copy-slot-primary");
-  const secondarySlot = createElement("div", "spaces-empty-canvas-copy-slot spaces-empty-canvas-copy-slot-secondary");
-  const firstFloater = createElement("div", "spaces-empty-canvas-floater spaces-empty-canvas-floater-intro-primary");
-  const secondFloater = createElement("div", "spaces-empty-canvas-floater spaces-empty-canvas-floater-intro-secondary");
-  const thirdFloater = createElement("div", "spaces-empty-canvas-floater spaces-empty-canvas-floater-prompt");
-  const fourthFloater = createElement("div", "spaces-empty-canvas-floater spaces-empty-canvas-floater-examples-copy");
-  const firstText = createElement("p", "spaces-empty-canvas-text spaces-empty-canvas-text-intro-primary", "Just an empty space here");
-  const secondText = createElement("p", "spaces-empty-canvas-text spaces-empty-canvas-text-intro-secondary", "for now");
+  const primarySlot = createElement(
+    "div",
+    "spaces-empty-canvas-copy-slot spaces-empty-canvas-copy-slot-primary"
+  );
+  const secondarySlot = createElement(
+    "div",
+    "spaces-empty-canvas-copy-slot spaces-empty-canvas-copy-slot-secondary"
+  );
+  const firstFloater = createElement(
+    "div",
+    "spaces-empty-canvas-floater spaces-empty-canvas-floater-intro-primary"
+  );
+  const secondFloater = createElement(
+    "div",
+    "spaces-empty-canvas-floater spaces-empty-canvas-floater-intro-secondary"
+  );
+  const thirdFloater = createElement(
+    "div",
+    "spaces-empty-canvas-floater spaces-empty-canvas-floater-prompt"
+  );
+  const fourthFloater = createElement(
+    "div",
+    "spaces-empty-canvas-floater spaces-empty-canvas-floater-examples-copy"
+  );
+  const firstText = createElement(
+    "p",
+    "spaces-empty-canvas-text spaces-empty-canvas-text-intro-primary",
+    "Just an empty space here"
+  );
+  const secondText = createElement(
+    "p",
+    "spaces-empty-canvas-text spaces-empty-canvas-text-intro-secondary",
+    "for now"
+  );
   const thirdText = createElement(
     "p",
     "spaces-empty-canvas-text spaces-empty-canvas-text-prompt",
@@ -548,8 +579,16 @@ export function createEmptyCanvasState(exampleDefinitions = [], { initialStage =
     const accentColor = String(exampleDefinition.color || "").trim() || "#94bcff";
     const contentRow = createElement("span", "spaces-empty-canvas-example-content");
     const iconBadge = createElement("span", "spaces-empty-canvas-example-icon-badge");
-    const icon = createElement("x-icon", "spaces-empty-canvas-example-icon", exampleDefinition.icon || "chat_bubble");
-    const label = createElement("span", "spaces-empty-canvas-example-label", exampleDefinition.text);
+    const icon = createElement(
+      "x-icon",
+      "spaces-empty-canvas-example-icon",
+      exampleDefinition.icon || "chat_bubble"
+    );
+    const label = createElement(
+      "span",
+      "spaces-empty-canvas-example-label",
+      exampleDefinition.text
+    );
 
     button.type = "button";
     button.title = exampleDefinition.text;
@@ -558,18 +597,20 @@ export function createEmptyCanvasState(exampleDefinitions = [], { initialStage =
       chatExampleButtons.push(button);
     }
     button.style.setProperty("--spaces-empty-example-accent", accentColor);
-    button.style.setProperty("--spaces-empty-example-accent-rgb", convertHexColorToRgbTriplet(accentColor));
+    button.style.setProperty(
+      "--spaces-empty-example-accent-rgb",
+      convertHexColorToRgbTriplet(accentColor)
+    );
     iconBadge.appendChild(icon);
     contentRow.append(iconBadge, label);
     button.appendChild(contentRow);
-      button.addEventListener("click", async (event) => {
+    button.addEventListener("click", async (event) => {
       button.disabled = true;
 
       try {
         const onscreenAgentStore = getOnscreenAgentStore();
         const onscreenAgentRuntime =
-          globalThis.space?.onscreenAgent &&
-          typeof globalThis.space.onscreenAgent === "object"
+          globalThis.space?.onscreenAgent && typeof globalThis.space.onscreenAgent === "object"
             ? globalThis.space.onscreenAgent
             : null;
         const showInactiveBubble =

@@ -8,7 +8,9 @@ function createHttpError(message, statusCode) {
 }
 
 function normalizeImportMode(value) {
-  const candidate = String(value || "import").trim().toLowerCase();
+  const candidate = String(value || "import")
+    .trim()
+    .toLowerCase();
   return candidate === "replace" ? "replace" : "import";
 }
 

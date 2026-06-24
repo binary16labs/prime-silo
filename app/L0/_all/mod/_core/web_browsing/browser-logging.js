@@ -12,7 +12,9 @@ export const BROWSER_LOG_LEVELS = Object.freeze(Object.keys(BROWSER_LOG_LEVEL_OR
 let currentBrowserLogLevel = DEFAULT_BROWSER_LOG_LEVEL;
 
 export function normalizeBrowserLogLevel(value, fallback = DEFAULT_BROWSER_LOG_LEVEL) {
-  const normalizedValue = String(value || "").trim().toLowerCase();
+  const normalizedValue = String(value || "")
+    .trim()
+    .toLowerCase();
 
   if (!normalizedValue) {
     return fallback;
@@ -33,9 +35,7 @@ export function setBrowserLogLevel(value) {
   const normalizedValue = normalizeBrowserLogLevel(value, null);
 
   if (!normalizedValue) {
-    throw new Error(
-      `Browser log level must be one of: ${BROWSER_LOG_LEVELS.join(", ")}.`
-    );
+    throw new Error(`Browser log level must be one of: ${BROWSER_LOG_LEVELS.join(", ")}.`);
   }
 
   currentBrowserLogLevel = normalizedValue;
@@ -62,13 +62,14 @@ export function logBrowser(level, message, details = undefined) {
     return false;
   }
 
-  const consoleMethod = normalizedLevel === "error"
-    ? console.error
-    : normalizedLevel === "warn"
-      ? console.warn
-      : normalizedLevel === "debug"
-        ? console.debug
-        : console.info;
+  const consoleMethod =
+    normalizedLevel === "error"
+      ? console.error
+      : normalizedLevel === "warn"
+        ? console.warn
+        : normalizedLevel === "debug"
+          ? console.debug
+          : console.info;
 
   if (details === undefined) {
     consoleMethod(message);

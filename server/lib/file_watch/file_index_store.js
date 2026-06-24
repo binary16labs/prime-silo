@@ -358,7 +358,11 @@ function createFileIndexStore(options = {}) {
     return nextPathIndex;
   }
 
-  function collectShardChanges(shardId, nextShardValue = createEmptyRecordMap(), createChangeEvent) {
+  function collectShardChanges(
+    shardId,
+    nextShardValue = createEmptyRecordMap(),
+    createChangeEvent
+  ) {
     const previousShardValue = getShardValue(shardId);
     const projectPaths = [
       ...new Set([
@@ -455,8 +459,8 @@ function createFileIndexStore(options = {}) {
     const normalizedShardId = normalizeShardId(shardId);
     return Boolean(
       normalizedShardId &&
-        isShardFullyLoaded(normalizedShardId) &&
-        !staleShardIds.has(normalizedShardId)
+      isShardFullyLoaded(normalizedShardId) &&
+      !staleShardIds.has(normalizedShardId)
     );
   }
 
@@ -538,7 +542,9 @@ function createFileIndexStore(options = {}) {
   }
 
   function createInvalidations(shardIds = []) {
-    return [...new Set((Array.isArray(shardIds) ? shardIds : []).map(normalizeShardId).filter(Boolean))]
+    return [
+      ...new Set((Array.isArray(shardIds) ? shardIds : []).map(normalizeShardId).filter(Boolean))
+    ]
       .filter(isL2FileIndexShardId)
       .map((shardId) => ({
         id: shardId,

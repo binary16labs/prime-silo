@@ -1,5 +1,10 @@
 function cloneFallbackValue(value, seen = new WeakMap()) {
-  if (value == null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+  if (
+    value == null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
     return value;
   }
 
@@ -80,10 +85,13 @@ function normalizePromptContext(context = {}) {
     historyMessages: cloneStructuredData(historyMessages),
     messages: cloneStructuredData(historyMessages),
     options:
-      normalizedContext.options && typeof normalizedContext.options === "object" && !Array.isArray(normalizedContext.options)
+      normalizedContext.options &&
+      typeof normalizedContext.options === "object" &&
+      !Array.isArray(normalizedContext.options)
         ? cloneStructuredData(normalizedContext.options)
         : {},
-    systemPrompt: typeof normalizedContext.systemPrompt === "string" ? normalizedContext.systemPrompt : "",
+    systemPrompt:
+      typeof normalizedContext.systemPrompt === "string" ? normalizedContext.systemPrompt : "",
     transientSections: Array.isArray(normalizedContext.transientSections)
       ? cloneStructuredData(normalizedContext.transientSections)
       : []
@@ -96,7 +104,10 @@ export function hasPreparedPromptInput(promptInstance) {
   }
 
   const promptInput = promptInstance.getPromptInput();
-  return Boolean(promptInput?.systemPrompt || (Array.isArray(promptInput?.requestEntries) && promptInput.requestEntries.length));
+  return Boolean(
+    promptInput?.systemPrompt ||
+    (Array.isArray(promptInput?.requestEntries) && promptInput.requestEntries.length)
+  );
 }
 
 export class AgentPromptInstance {
@@ -114,7 +125,9 @@ export class AgentPromptInstance {
         : {}),
       defaultSystemPrompt: options.defaultSystemPrompt,
       exampleMessages: options.exampleMessages,
-      historyMessages: Array.isArray(options.historyMessages) ? options.historyMessages : options.messages,
+      historyMessages: Array.isArray(options.historyMessages)
+        ? options.historyMessages
+        : options.messages,
       options: options.options,
       systemPrompt: options.systemPrompt,
       transientSections: options.transientSections

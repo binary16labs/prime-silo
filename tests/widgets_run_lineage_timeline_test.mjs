@@ -86,10 +86,18 @@ function testRenderEventColourCodingClassesPresent() {
 }
 
 class FakeClassList {
-  constructor() { this._set = new Set(); }
-  add(...names) { names.forEach((n) => this._set.add(n)); }
-  remove(...names) { names.forEach((n) => this._set.delete(n)); }
-  has(name) { return this._set.has(name); }
+  constructor() {
+    this._set = new Set();
+  }
+  add(...names) {
+    names.forEach((n) => this._set.add(n));
+  }
+  remove(...names) {
+    names.forEach((n) => this._set.delete(n));
+  }
+  has(name) {
+    return this._set.has(name);
+  }
 }
 
 function createFakeHost() {
@@ -160,7 +168,11 @@ async function testWidgetLoadsAndRendersTimeline() {
         {
           timestamp: "2026-05-07T12:00:00Z",
           event_type: "AGENT_AUTHORSHIP",
-          data: { process: "agent_authorship", skill: "text.markdown", data: "agent_sandbox/notes/exposure.md" },
+          data: {
+            process: "agent_authorship",
+            skill: "text.markdown",
+            data: "agent_sandbox/notes/exposure.md"
+          },
           _integrity_hash: "abc"
         },
         {
@@ -172,11 +184,7 @@ async function testWidgetLoadsAndRendersTimeline() {
     });
   };
 
-  createLineageTimelineWidget(
-    host,
-    { run_id: "r1", workspace: "ws_a" },
-    { runtimeClient: client }
-  );
+  createLineageTimelineWidget(host, { run_id: "r1", workspace: "ws_a" }, { runtimeClient: client });
   await settle();
 
   assert.equal(host.dataset.widgetState, "ready");
@@ -192,11 +200,7 @@ async function testWidgetSurfacesError() {
   const client = createClientStub();
   client.runtimeHandler = () => makeRuntimeError(500, "audit log unreadable");
 
-  createLineageTimelineWidget(
-    host,
-    { run_id: "r1" },
-    { runtimeClient: client }
-  );
+  createLineageTimelineWidget(host, { run_id: "r1" }, { runtimeClient: client });
   await settle();
 
   assert.equal(host.dataset.widgetState, "error");
@@ -229,11 +233,7 @@ async function testWidgetUpdateReloadsOnRunIdChange() {
     return jsonResponse({ events: [{ timestamp: "t2", event_type: "OTHER", data: {} }] });
   };
 
-  const widget = createLineageTimelineWidget(
-    host,
-    { run_id: "first" },
-    { runtimeClient: client }
-  );
+  const widget = createLineageTimelineWidget(host, { run_id: "first" }, { runtimeClient: client });
   await settle();
   widget.update({ run_id: "second" });
   await settle();
@@ -248,11 +248,7 @@ async function testWidgetUpdateNoReloadWhenQueryUnchanged() {
   const client = createClientStub();
   client.runtimeHandler = () => jsonResponse({ events: [] });
 
-  const widget = createLineageTimelineWidget(
-    host,
-    { run_id: "stable" },
-    { runtimeClient: client }
-  );
+  const widget = createLineageTimelineWidget(host, { run_id: "stable" }, { runtimeClient: client });
   await settle();
   // Update with the same run_id and an unrelated prop change.
   widget.update({ run_id: "stable" });
@@ -271,11 +267,7 @@ async function testWidgetExposesLoadedEvents() {
       ]
     });
 
-  const widget = createLineageTimelineWidget(
-    host,
-    { run_id: "r1" },
-    { runtimeClient: client }
-  );
+  const widget = createLineageTimelineWidget(host, { run_id: "r1" }, { runtimeClient: client });
   await settle();
 
   assert.equal(widget.events.length, 2);

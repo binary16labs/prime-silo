@@ -21,7 +21,10 @@
         <div class="visual-icon-selector-lead-copy">
           <p class="visual-icon-selector-eyebrow">Selected Icon</p>
           <strong x-text="$store.visualIconColorSelector.selectionSummaryLabel"></strong>
-          <p class="visual-icon-selector-help" x-text="$store.visualIconColorSelector.selectionHelpLabel"></p>
+          <p
+            class="visual-icon-selector-help"
+            x-text="$store.visualIconColorSelector.selectionHelpLabel"
+          ></p>
         </div>
       </div>
 
@@ -47,7 +50,10 @@
               :value="$store.visualIconColorSelector.colorInputValue"
               @input="$store.visualIconColorSelector.updateColor($event.target.value)"
             />
-            <span class="visual-icon-selector-color-value" x-text="$store.visualIconColorSelector.colorValueLabel"></span>
+            <span
+              class="visual-icon-selector-color-value"
+              x-text="$store.visualIconColorSelector.colorValueLabel"
+            ></span>
           </div>
         </label>
       </div>
@@ -56,11 +62,18 @@
         <p class="visual-icon-selector-status">Loading Material icons…</p>
       </template>
 
-      <template x-if="!$store.visualIconColorSelector.loadingCatalog && $store.visualIconColorSelector.loadErrorText">
-        <p class="visual-icon-selector-status is-error" x-text="$store.visualIconColorSelector.loadErrorText"></p>
+      <template
+        x-if="!$store.visualIconColorSelector.loadingCatalog && $store.visualIconColorSelector.loadErrorText"
+      >
+        <p
+          class="visual-icon-selector-status is-error"
+          x-text="$store.visualIconColorSelector.loadErrorText"
+        ></p>
       </template>
 
-      <template x-if="!$store.visualIconColorSelector.loadingCatalog && !$store.visualIconColorSelector.loadErrorText">
+      <template
+        x-if="!$store.visualIconColorSelector.loadingCatalog && !$store.visualIconColorSelector.loadErrorText"
+      >
         <div class="visual-icon-selector-results">
           <div class="visual-icon-selector-results-toolbar">
             <button
@@ -75,11 +88,17 @@
               <span>None</span>
             </button>
 
-            <p class="visual-icon-selector-results-summary" x-text="$store.visualIconColorSelector.pageSummary"></p>
+            <p
+              class="visual-icon-selector-results-summary"
+              x-text="$store.visualIconColorSelector.pageSummary"
+            ></p>
           </div>
 
           <div class="visual-icon-selector-grid">
-            <template x-for="iconName in $store.visualIconColorSelector.visibleIcons" :key="iconName">
+            <template
+              x-for="iconName in $store.visualIconColorSelector.visibleIcons"
+              :key="iconName"
+            >
               <button
                 type="button"
                 class="visual-icon-selector-option"
@@ -90,7 +109,10 @@
                 <span class="visual-icon-selector-option-icon">
                   <x-icon x-text="iconName"></x-icon>
                 </span>
-                <span class="visual-icon-selector-option-label" x-text="$store.visualIconColorSelector.formatIconOptionLabel(iconName)"></span>
+                <span
+                  class="visual-icon-selector-option-label"
+                  x-text="$store.visualIconColorSelector.formatIconOptionLabel(iconName)"
+                ></span>
               </button>
             </template>
           </div>
@@ -106,7 +128,10 @@
               <x-icon>chevron_left</x-icon>
             </button>
 
-            <span class="visual-icon-selector-pagination-label" x-text="$store.visualIconColorSelector.paginationLabel"></span>
+            <span
+              class="visual-icon-selector-pagination-label"
+              x-text="$store.visualIconColorSelector.paginationLabel"
+            ></span>
 
             <button
               type="button"
@@ -130,10 +155,18 @@
         ></button>
 
         <div class="visual-icon-selector-footer-actions">
-          <button type="button" class="secondary-button" @click="void $store.visualIconColorSelector.cancelSelection()">
+          <button
+            type="button"
+            class="secondary-button"
+            @click="void $store.visualIconColorSelector.cancelSelection()"
+          >
             Cancel
           </button>
-          <button type="button" class="primary-button" @click="void $store.visualIconColorSelector.applySelection()">
+          <button
+            type="button"
+            class="primary-button"
+            @click="void $store.visualIconColorSelector.applySelection()"
+          >
             Apply
           </button>
         </div>

@@ -26,10 +26,7 @@ export default class GuestCleanupOversizedJob extends JobBase {
     for (const username of listGuestUsernames(context.watchdog)) {
       const stats = collectGuestFileStats(context.watchdog, username);
 
-      if (
-        stats.fileCount <= FILE_COUNT_LIMIT &&
-        stats.totalSizeBytes <= TOTAL_SIZE_LIMIT_BYTES
-      ) {
+      if (stats.fileCount <= FILE_COUNT_LIMIT && stats.totalSizeBytes <= TOTAL_SIZE_LIMIT_BYTES) {
         continue;
       }
 

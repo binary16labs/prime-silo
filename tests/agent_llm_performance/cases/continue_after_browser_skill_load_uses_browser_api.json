@@ -9,10 +9,7 @@
     "require_single_separator": true,
     "require_code_after_separator": true,
     "require_valid_javascript": true,
-    "must_contain": [
-      "_____javascript",
-      "google.com"
-    ],
+    "must_contain": ["_____javascript", "google.com"],
     "must_match_any": [
       {
         "pattern": "space\\.browser\\.(?:open|create)\\(\"https://(?:www\\.)?google\\.com/?\"\\)",
@@ -33,8 +30,6 @@
         "flags": "u"
       }
     ],
-    "must_not_contain": [
-      "Done."
-    ]
+    "must_not_contain": ["Done."]
   }
 }

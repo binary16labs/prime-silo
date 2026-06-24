@@ -1,7 +1,12 @@
 /* ADR-001 Phase C — text.markdown widget styles. */
 
 .prime-silo-md {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   font-size: 14px;
   line-height: 1.55;
   color: inherit;
@@ -39,10 +44,18 @@
   font-weight: 600;
 }
 
-.prime-silo-md__body h1 { font-size: 1.5em; }
-.prime-silo-md__body h2 { font-size: 1.3em; }
-.prime-silo-md__body h3 { font-size: 1.15em; }
-.prime-silo-md__body h4 { font-size: 1em; }
+.prime-silo-md__body h1 {
+  font-size: 1.5em;
+}
+.prime-silo-md__body h2 {
+  font-size: 1.3em;
+}
+.prime-silo-md__body h3 {
+  font-size: 1.15em;
+}
+.prime-silo-md__body h4 {
+  font-size: 1em;
+}
 
 .prime-silo-md__body p {
   margin: 0.5em 0;

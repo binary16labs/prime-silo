@@ -1,6 +1,3 @@
 {
-  "recommendations": [
-    "PKief.material-icon-theme",
-    "usernamehw.errorlens"
-  ]
+  "recommendations": ["PKief.material-icon-theme", "usernamehw.errorlens"]
 }

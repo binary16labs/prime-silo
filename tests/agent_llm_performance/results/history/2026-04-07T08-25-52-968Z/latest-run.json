@@ -2464,9 +2464,7 @@
           "case_path": "tests/agent_llm_performance/cases/look_at_it_now_uses_see_widget.json",
           "history_path": "tests/agent_llm_performance/histories/look_at_it_now_uses_see_widget.json",
           "passed": false,
-          "failures": [
-            "execution separator must appear exactly once on its own line"
-          ],
+          "failures": ["execution separator must appear exactly once on its own line"],
           "response_type": "thrust",
           "response": "Seeing the current widget now..._____javascript\nreturn await space.current.seeWidget(\"snake-game\")",
           "usage": {
@@ -3114,9 +3112,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_text_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_text_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Reading the people file now...\n\n\n_____javascript\nconst text = await space.api.fileRead(\"~/people.txt\", \"utf8\")\nconst updated = text.replace(/\\bmr\\.\\s*Kowalski\\b/gi, \"John Ronald Kowalski\")\nreturn await space.api.fileWrite(\"~/people.txt\", updated, \"utf8\")",
           "usage": {
@@ -5270,9 +5266,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_text_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_text_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating the file now...\n_____javascript\nreturn await space.api.fileWrite(\"~/people.txt\", (await space.api.fileRead(\"~/people.txt\", \"utf8\")).replace(/\\bmr\\.\\s*Kowalski\\b/g, \"John Ronald Kowalski\"), \"utf8\")",
           "usage": {
@@ -5307,9 +5301,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating the file now.\n_____javascript\nreturn await space.api.fileRead(\"~/contacts.yaml\", \"utf8\").then(async (text) => {\n  const updated = text.replace(/(\\bmr_kowalski:\\s*)(.*)/, \"$1John Ronald Kowalski\");\n  return await space.api.fileWrite(\"~/contacts.yaml\", updated, \"utf8\");\n})",
           "usage": {
@@ -5452,9 +5444,7 @@
           "case_path": "tests/agent_llm_performance/cases/space_navigation_read_is_not_completion.json",
           "history_path": "tests/agent_llm_performance/histories/space_navigation_read_is_not_completion.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /openSpace\\(/u"
-          ],
+          "failures": ["missing required pattern: /openSpace\\(/u"],
           "response_type": "thrust",
           "response": "Taking you to the Prostějov Weather space now...\n_____javascript\nreturn await space.spaceOpen(\"space-1\")",
           "usage": {
@@ -5489,9 +5479,7 @@
           "case_path": "tests/agent_llm_performance/cases/space_navigation_after_take_me_there_uses_open_helper.json",
           "history_path": "tests/agent_llm_performance/histories/space_navigation_after_take_me_there_uses_open_helper.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /openSpace\\(/u"
-          ],
+          "failures": ["missing required pattern: /openSpace\\(/u"],
           "response_type": "thrust",
           "response": "Opening the Prostějov Weather space now...\n_____javascript\nreturn await space.spaces.open(\"space-1\")",
           "usage": {

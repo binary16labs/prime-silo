@@ -51,6 +51,7 @@ Important behaviors:
 - authenticated `space_import` uses the same archive-validation path for local ZIP imports from the spaces modal, replacing the current space only when the caller explicitly chooses overwrite; otherwise the imported space is renamed to the next `imported-N` destination
 
 ## Module Endpoints
+
 Current module endpoints:
 
 - `module_list`

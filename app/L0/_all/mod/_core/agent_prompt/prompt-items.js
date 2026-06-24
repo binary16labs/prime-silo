@@ -193,7 +193,12 @@ export function normalizePromptItemDefinition(key, input, options = {}) {
     return null;
   }
 
-  if (input && typeof input === "object" && !Array.isArray(input) && Object.hasOwn(input, "value")) {
+  if (
+    input &&
+    typeof input === "object" &&
+    !Array.isArray(input) &&
+    Object.hasOwn(input, "value")
+  ) {
     const { order, value, valueTokenCount, ...metadata } = input;
     const normalizedValue = stringifyPromptItemValue(value);
 
@@ -227,16 +232,18 @@ export function normalizePromptItemDefinition(key, input, options = {}) {
 }
 
 export function normalizePromptItemMap(input, options = {}) {
-  const keyPrefix = typeof options.keyPrefix === "string" && options.keyPrefix.trim()
-    ? options.keyPrefix.trim()
-    : "item";
+  const keyPrefix =
+    typeof options.keyPrefix === "string" && options.keyPrefix.trim()
+      ? options.keyPrefix.trim()
+      : "item";
   const normalizedItems = Object.create(null);
 
   if (Array.isArray(input)) {
     input.forEach((entry, index) => {
-      const normalizedEntry = typeof options.fromArray === "function"
-        ? options.fromArray(entry, index)
-        : normalizePromptItemDefinition(`${keyPrefix}:${index + 1}`, entry);
+      const normalizedEntry =
+        typeof options.fromArray === "function"
+          ? options.fromArray(entry, index)
+          : normalizePromptItemDefinition(`${keyPrefix}:${index + 1}`, entry);
 
       if (!normalizedEntry) {
         return;
@@ -323,7 +330,9 @@ export function deletePromptItem(items, key) {
 }
 
 export function comparePromptTrimCandidates(left, right) {
-  const leftTokenCount = Number.isFinite(Number(left?.tokenCount)) ? Math.max(0, Math.floor(Number(left.tokenCount))) : 0;
+  const leftTokenCount = Number.isFinite(Number(left?.tokenCount))
+    ? Math.max(0, Math.floor(Number(left.tokenCount)))
+    : 0;
   const rightTokenCount = Number.isFinite(Number(right?.tokenCount))
     ? Math.max(0, Math.floor(Number(right.tokenCount)))
     : 0;
@@ -334,7 +343,9 @@ export function comparePromptTrimCandidates(left, right) {
   }
 
   const leftPriority = Number.isFinite(Number(left?.trimPriority)) ? Number(left.trimPriority) : 0;
-  const rightPriority = Number.isFinite(Number(right?.trimPriority)) ? Number(right.trimPriority) : 0;
+  const rightPriority = Number.isFinite(Number(right?.trimPriority))
+    ? Number(right.trimPriority)
+    : 0;
   const priorityCompare = rightPriority - leftPriority;
 
   if (priorityCompare !== 0) {
@@ -489,7 +500,9 @@ export function buildPromptOverflowTrimPlan(contributors = [], overflowTokens, o
       tokenCount: Number.isFinite(Number(contributor?.tokenCount))
         ? Math.max(0, Math.floor(Number(contributor.tokenCount)))
         : 0,
-      trimPriority: Number.isFinite(Number(contributor?.trimPriority)) ? Number(contributor.trimPriority) : 0
+      trimPriority: Number.isFinite(Number(contributor?.trimPriority))
+        ? Number(contributor.trimPriority)
+        : 0
     }))
     .filter((candidate) => candidate.tokenCount > 0)
     .sort(comparePromptTrimCandidates);
@@ -635,7 +648,9 @@ export function installPromptItemAccess(target = {}) {
           return null;
         }
 
-        const id = Number.isFinite(Number(entry.id)) ? Math.max(1, Math.round(Number(entry.id))) : 0;
+        const id = Number.isFinite(Number(entry.id))
+          ? Math.max(1, Math.round(Number(entry.id)))
+          : 0;
 
         if (!id) {
           return null;
@@ -663,10 +678,10 @@ export function installPromptItemAccess(target = {}) {
 
   function readLongMessage(input = {}) {
     const options =
-      input && typeof input === "object" && !Array.isArray(input)
-        ? input
-        : { id: input };
-    const id = Number.isFinite(Number(options.id)) ? Math.max(1, Math.round(Number(options.id))) : 0;
+      input && typeof input === "object" && !Array.isArray(input) ? input : { id: input };
+    const id = Number.isFinite(Number(options.id))
+      ? Math.max(1, Math.round(Number(options.id)))
+      : 0;
 
     if (!id) {
       throw new Error("readLongMessage requires a numeric prompt item id.");
@@ -679,7 +694,9 @@ export function installPromptItemAccess(target = {}) {
     }
 
     const fullText = typeof entry.fullText === "string" ? entry.fullText : "";
-    const from = Number.isFinite(Number(options.from)) ? Math.max(0, Math.floor(Number(options.from))) : 0;
+    const from = Number.isFinite(Number(options.from))
+      ? Math.max(0, Math.floor(Number(options.from)))
+      : 0;
     const to = Number.isFinite(Number(options.to))
       ? Math.max(from, Math.floor(Number(options.to)))
       : LONG_MESSAGE_DEFAULT_TO;

@@ -20,7 +20,9 @@
   color: var(--mray-text-3);
 }
 
-.mray-lg__error { color: var(--mray-rust); }
+.mray-lg__error {
+  color: var(--mray-rust);
+}
 
 .mray-lg__state code {
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
@@ -30,14 +32,19 @@
   color: var(--mray-golden);
 }
 
-.mray-lg__svg { display: block; }
+.mray-lg__svg {
+  display: block;
+}
 
 .mray-lg__edge {
   stroke: var(--mray-edge);
   stroke-width: 1.2;
 }
 
-.mray-lg__node { cursor: pointer; outline: none; }
+.mray-lg__node {
+  cursor: pointer;
+  outline: none;
+}
 .mray-lg__node:hover circle,
 .mray-lg__node:hover rect,
 .mray-lg__node:focus-visible circle,
@@ -48,7 +55,12 @@
 
 .mray-lg__label {
   fill: var(--mray-text);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   font-size: 10px;
   pointer-events: none;
 }

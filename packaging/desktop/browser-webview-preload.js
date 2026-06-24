@@ -21,7 +21,10 @@ function sendDebugEnvelopeToHost(type, payload = null) {
       payload
     });
   } catch (error) {
-    console.error("[space-desktop/browser-webview-preload] Failed to emit debug envelope to host.", error);
+    console.error(
+      "[space-desktop/browser-webview-preload] Failed to emit debug envelope to host.",
+      error
+    );
   }
 }
 
@@ -33,14 +36,19 @@ function dispatchEnvelopeToMainWorld(envelope) {
   try {
     contextBridge.executeInMainWorld({
       func: function dispatchDesktopEnvelope(eventName, detail) {
-        globalThis.dispatchEvent(new CustomEvent(eventName, {
-          detail
-        }));
+        globalThis.dispatchEvent(
+          new CustomEvent(eventName, {
+            detail
+          })
+        );
       },
       args: [DESKTOP_BROWSER_TRANSPORT_RECEIVE_EVENT, envelope]
     });
   } catch (error) {
-    console.error("[space-desktop/browser-webview-preload] Failed to dispatch browser envelope into the main world.", error);
+    console.error(
+      "[space-desktop/browser-webview-preload] Failed to dispatch browser envelope into the main world.",
+      error
+    );
   }
 }
 
@@ -81,7 +89,10 @@ globalThis.addEventListener(DESKTOP_BROWSER_TRANSPORT_SEND_EVENT, (event) => {
   try {
     ipcRenderer.sendToHost(DESKTOP_BROWSER_WEBVIEW_ENVELOPE_CHANNEL, envelope);
   } catch (error) {
-    console.error("[space-desktop/browser-webview-preload] Failed to forward browser envelope to host.", error);
+    console.error(
+      "[space-desktop/browser-webview-preload] Failed to forward browser envelope to host.",
+      error
+    );
   }
 });
 

@@ -49,13 +49,13 @@ const model = {
   get canChangePassword() {
     return Boolean(
       !this.loading &&
-        !this.passwordSaving &&
-        !this.reauthPending &&
-        !this.singleUserApp &&
-        this.passwordCurrent &&
-        this.passwordNew &&
-        this.passwordConfirm &&
-        !this.passwordMismatch
+      !this.passwordSaving &&
+      !this.reauthPending &&
+      !this.singleUserApp &&
+      this.passwordCurrent &&
+      this.passwordNew &&
+      this.passwordConfirm &&
+      !this.passwordMismatch
     );
   },
 
@@ -98,7 +98,10 @@ const model = {
       await this.loadSettings("Account settings refreshed.");
     } catch (error) {
       logUserPageError("reloadProfile failed", error);
-      this.setProfileStatus(String(error?.message || "Unable to reload account settings."), "error");
+      this.setProfileStatus(
+        String(error?.message || "Unable to reload account settings."),
+        "error"
+      );
     } finally {
       this.loading = false;
     }
@@ -146,7 +149,10 @@ const model = {
     }
 
     if (!this.canChangePassword) {
-      this.setPasswordStatus("Enter the current password, a new password, and a matching confirmation.", "error");
+      this.setPasswordStatus(
+        "Enter the current password, a new password, and a matching confirmation.",
+        "error"
+      );
       return;
     }
 

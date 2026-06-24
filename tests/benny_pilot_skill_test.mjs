@@ -38,18 +38,39 @@ function testFrontmatter() {
   const md = fs.readFileSync(SKILL_PATH, "utf8");
   assert.match(md, /^---/u, "has frontmatter");
   assert.match(md, /name: Benny pilot/u);
-  assert.match(md, /description: .*Bridge/iu, "description mentions the Bridge for catalog matching");
+  assert.match(
+    md,
+    /description: .*Bridge/iu,
+    "description mentions the Bridge for catalog matching"
+  );
   assert.match(md, /#\/_prime_silo\/bridge/u, "cites the Bridge deep-link route");
   assert.match(md, /benny-pilot\.js/u, "tells the agent how to load the helper");
 }
 
 function testCatalogLoadedNotAutoLoaded() {
   const md = fs.readFileSync(SKILL_PATH, "utf8");
-  assert.doesNotMatch(md, /metadata:\s*\n\s*loaded:/u, "benny-pilot must be catalog-loaded, not auto-loaded");
+  assert.doesNotMatch(
+    md,
+    /metadata:\s*\n\s*loaded:/u,
+    "benny-pilot must be catalog-loaded, not auto-loaded"
+  );
 }
 
 function testHelperExports() {
-  for (const fn of ["bridgeLink", "readContext", "lifelog", "recentSessions", "search", "runs", "codeGraph", "knowledgeStats", "documentSources", "knowledgeGraph", "workspaceFileList", "workspaceFileRead"]) {
+  for (const fn of [
+    "bridgeLink",
+    "readContext",
+    "lifelog",
+    "recentSessions",
+    "search",
+    "runs",
+    "codeGraph",
+    "knowledgeStats",
+    "documentSources",
+    "knowledgeGraph",
+    "workspaceFileList",
+    "workspaceFileRead"
+  ]) {
     assert.equal(typeof pilot[fn], "function", `helper exports ${fn}()`);
   }
 }

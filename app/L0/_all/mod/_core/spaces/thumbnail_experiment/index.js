@@ -13,19 +13,22 @@ const CAPTURE_WIDGET_MIN_SIZE = 18;
 const CAPTURE_PADDING_MIN = 14;
 const CAPTURE_PADDING_MAX = 40;
 const CAPTURE_SCALE_MAX = 2;
-const THUMBNAIL_FILE_NAMES = Object.freeze([
-  SPACE_THUMBNAIL_WEBP_FILE,
-  SPACE_THUMBNAIL_JPEG_FILE
-]);
+const THUMBNAIL_FILE_NAMES = Object.freeze([SPACE_THUMBNAIL_WEBP_FILE, SPACE_THUMBNAIL_JPEG_FILE]);
 const queuedCaptures = new Map();
 
 function normalizeSpaceThumbnailId(value) {
-  return String(value || "").trim().replace(/^\/+|\/+$/gu, "");
+  return String(value || "")
+    .trim()
+    .replace(/^\/+|\/+$/gu, "");
 }
 
 function isNotFoundError(error) {
   const message = String(error?.message || "").toLowerCase();
-  return message.includes("status 404") || message.includes("file not found") || message.includes("path not found");
+  return (
+    message.includes("status 404") ||
+    message.includes("file not found") ||
+    message.includes("path not found")
+  );
 }
 
 function ensureThumbnailRuntime() {
@@ -98,7 +101,10 @@ function measureVisibleWidgetRects(canvasElement, gridElement) {
   const widgetRects = Array.from(gridElement.querySelectorAll(CAPTURE_WIDGET_SELECTOR))
     .filter((element) => isUsableElement(element))
     .map((element) => intersectRects(element.getBoundingClientRect(), canvasRect))
-    .filter((rect) => rect && rect.width >= CAPTURE_WIDGET_MIN_SIZE && rect.height >= CAPTURE_WIDGET_MIN_SIZE)
+    .filter(
+      (rect) =>
+        rect && rect.width >= CAPTURE_WIDGET_MIN_SIZE && rect.height >= CAPTURE_WIDGET_MIN_SIZE
+    )
     .map((rect) => ({
       height: rect.height,
       left: rect.left - canvasRect.left,
@@ -158,10 +164,10 @@ function buildSquareCropRect(rect, containerWidth, containerHeight) {
   const containerSide = Math.max(1, Math.min(containerWidth, containerHeight));
   const preferredSide = Math.max(rect.width, rect.height);
   const side = clampNumber(preferredSide, CAPTURE_WIDGET_MIN_SIZE, containerSide);
-  const centerX = rect.left + (rect.width / 2);
-  const centerY = rect.top + (rect.height / 2);
-  const left = clampNumber(centerX - (side / 2), 0, Math.max(0, containerWidth - side));
-  const top = clampNumber(centerY - (side / 2), 0, Math.max(0, containerHeight - side));
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  const left = clampNumber(centerX - side / 2, 0, Math.max(0, containerWidth - side));
+  const top = clampNumber(centerY - side / 2, 0, Math.max(0, containerHeight - side));
 
   return {
     height: side,
@@ -228,14 +234,18 @@ function renderThumbnailCanvas(sourceCanvas, cropRect, canvasRect) {
 
 async function canvasToBlob(canvas, type, quality) {
   return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (!blob) {
-        reject(new Error(`Unable to encode the thumbnail as ${type}.`));
-        return;
-      }
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error(`Unable to encode the thumbnail as ${type}.`));
+          return;
+        }
 
-      resolve(blob);
-    }, type, quality);
+        resolve(blob);
+      },
+      type,
+      quality
+    );
   });
 }
 
@@ -324,7 +334,10 @@ export function resolveListedSpaceThumbnailPath(spaceId, listedPaths = []) {
   }
 
   for (const fileName of THUMBNAIL_FILE_NAMES) {
-    const pathPattern = new RegExp(`(?:^|/)spaces/${escapeRegExp(normalizedSpaceId)}/${escapeRegExp(fileName)}$`, "u");
+    const pathPattern = new RegExp(
+      `(?:^|/)spaces/${escapeRegExp(normalizedSpaceId)}/${escapeRegExp(fileName)}$`,
+      "u"
+    );
     const matchedPath = normalizedListedPaths.find((path) => pathPattern.test(path));
 
     if (matchedPath) {
@@ -363,7 +376,9 @@ export async function clearSpaceThumbnailFiles(spaceId) {
     };
   }
 
-  await Promise.all(listSpaceThumbnailPaths(normalizedSpaceId).map((path) => deleteThumbnailPathIfExists(path)));
+  await Promise.all(
+    listSpaceThumbnailPaths(normalizedSpaceId).map((path) => deleteThumbnailPathIfExists(path))
+  );
 
   return {
     deleted: true,
@@ -493,15 +508,21 @@ async function runQueuedSpaceThumbnailCapture(spaceId) {
     const result = await captureSpaceThumbnailNow(nextOptions);
     nextOptions.onComplete?.(result);
   } catch (error) {
-    console.error("[spaces-thumbnail-experiment] capture failed", {
-      spaceId
-    }, error);
+    console.error(
+      "[spaces-thumbnail-experiment] capture failed",
+      {
+        spaceId
+      },
+      error
+    );
     nextOptions.onError?.(error);
   } finally {
     state.inFlight = false;
 
     if (state.options) {
-      const delayMs = Number.isFinite(state.options.delayMs) ? Math.max(0, Number(state.options.delayMs)) : CAPTURE_DEBOUNCE_MS;
+      const delayMs = Number.isFinite(state.options.delayMs)
+        ? Math.max(0, Number(state.options.delayMs))
+        : CAPTURE_DEBOUNCE_MS;
       state.timer = window.setTimeout(() => {
         state.timer = 0;
         void runQueuedSpaceThumbnailCapture(spaceId);
@@ -527,7 +548,9 @@ export function queueSpaceThumbnailCapture(options = {}) {
     options: null,
     timer: 0
   };
-  const delayMs = Number.isFinite(options.delayMs) ? Math.max(0, Number(options.delayMs)) : CAPTURE_DEBOUNCE_MS;
+  const delayMs = Number.isFinite(options.delayMs)
+    ? Math.max(0, Number(options.delayMs))
+    : CAPTURE_DEBOUNCE_MS;
 
   existingState.options = {
     ...options,

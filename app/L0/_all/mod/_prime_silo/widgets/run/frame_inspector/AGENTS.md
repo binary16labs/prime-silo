@@ -8,9 +8,9 @@ The widget is a **pure renderer** — it never fetches anything itself. The layo
 
 ## Files
 
-| File                  | Owns                                                                  |
-| --------------------- | --------------------------------------------------------------------- |
-| `index.js`            | `createFrameInspectorWidget(host, props)` factory.                    |
+| File                  | Owns                                                                   |
+| --------------------- | ---------------------------------------------------------------------- |
+| `index.js`            | `createFrameInspectorWidget(host, props)` factory.                     |
 | `frame_inspector.css` | Section-styled details/summary chrome plus assertion/confidence pills. |
 
 ## Manifest mapping

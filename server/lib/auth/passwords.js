@@ -88,10 +88,14 @@ function normalizeStoredPasswordRecord(record, options = {}) {
     record.password && typeof record.password === "object" && !Array.isArray(record.password)
       ? record.password
       : record;
-  const scheme = String(source.password_scheme || source.scheme || PASSWORD_SCHEME).trim().toLowerCase();
+  const scheme = String(source.password_scheme || source.scheme || PASSWORD_SCHEME)
+    .trim()
+    .toLowerCase();
   const salt = String(source.password_salt || source.salt || "").trim();
   const iterations = normalizeIterations(source.password_iterations || source.iterations);
-  const storage = String(source.storage || "").trim().toLowerCase();
+  const storage = String(source.storage || "")
+    .trim()
+    .toLowerCase();
   const ciphertext = String(source.ciphertext || "").trim();
   const iv = String(source.iv || "").trim();
   const tag = String(source.tag || "").trim();
@@ -149,7 +153,13 @@ function getPasswordSealKey(authKeys) {
 }
 
 function deriveSaltedPassword(password, salt, iterations) {
-  return pbkdf2Sync(String(password || ""), decodeBase64Url(salt), iterations, PASSWORD_KEY_LENGTH, PASSWORD_HASH);
+  return pbkdf2Sync(
+    String(password || ""),
+    decodeBase64Url(salt),
+    iterations,
+    PASSWORD_KEY_LENGTH,
+    PASSWORD_HASH
+  );
 }
 
 function sealPasswordVerifierRecord(record, authKeys) {

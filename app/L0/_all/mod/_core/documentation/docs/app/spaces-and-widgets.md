@@ -194,7 +194,7 @@ Preferred renderer shape:
 ```js
 async (parent, currentSpace, context) => {
   // render into parent
-}
+};
 ```
 
 Rules:

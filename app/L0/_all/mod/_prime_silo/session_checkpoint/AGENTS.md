@@ -14,13 +14,13 @@ This module gives the in-browser agent and the operator a way to save named snap
 
 ## File structure
 
-| File | Role |
-|------|------|
-| `index.js` | Public API — re-exports all user-facing functions |
-| `checkpoint-client.js` | Fetch helpers — one function per runtime endpoint |
+| File                    | Role                                                                  |
+| ----------------------- | --------------------------------------------------------------------- |
+| `index.js`              | Public API — re-exports all user-facing functions                     |
+| `checkpoint-client.js`  | Fetch helpers — one function per runtime endpoint                     |
 | `checkpoint-restore.js` | Restore + fork helpers (`applyCheckpointRestore`, `buildForkName`, …) |
-| `checkpoint-compact.js` | Pre-save history size guard; H2 will add LLM compaction |
-| `AGENTS.md` | This file |
+| `checkpoint-compact.js` | Pre-save history size guard; H2 will add LLM compaction               |
+| `AGENTS.md`             | This file                                                             |
 
 ---
 
@@ -54,15 +54,15 @@ compactHistoryForCheckpoint(history, settings?)
 
 ## Scope model
 
-| Function | Scope required | Why |
-|----------|---------------|-----|
-| `saveCheckpoint` | `sandbox` | Writes to `agent_sandbox/checkpoints/` |
-| `loadCheckpoint` | none (read) | Reads are unrestricted |
-| `listCheckpoints` | none for drafts | `scope` passed but read-only |
-| `deleteCheckpoint` | `sandbox` | Deletes from `agent_sandbox/checkpoints/` |
-| `forkCheckpoint` | `sandbox` | Reads + saves a new draft |
-| `pinCheckpoint` | none (human-only) | Sends no scope header; runtime 403s agent callers |
-| `loadPinnedCheckpoint` | none (read) | Reads are unrestricted |
+| Function               | Scope required    | Why                                               |
+| ---------------------- | ----------------- | ------------------------------------------------- |
+| `saveCheckpoint`       | `sandbox`         | Writes to `agent_sandbox/checkpoints/`            |
+| `loadCheckpoint`       | none (read)       | Reads are unrestricted                            |
+| `listCheckpoints`      | none for drafts   | `scope` passed but read-only                      |
+| `deleteCheckpoint`     | `sandbox`         | Deletes from `agent_sandbox/checkpoints/`         |
+| `forkCheckpoint`       | `sandbox`         | Reads + saves a new draft                         |
+| `pinCheckpoint`        | none (human-only) | Sends no scope header; runtime 403s agent callers |
+| `loadPinnedCheckpoint` | none (read)       | Reads are unrestricted                            |
 
 ---
 
@@ -105,6 +105,7 @@ compactHistoryForCheckpoint(history, settings?)
 ## Phase breakdown
 
 ### H1 (shipped)
+
 - `checkpoint-client.js` — 7 fetch helpers
 - `checkpoint-restore.js` — `applyCheckpointRestore`, `buildForkName`, `buildPreRestoreName`, `buildRestoreNotice`
 - `checkpoint-compact.js` — size guard (LLM compaction in H2)
@@ -113,6 +114,7 @@ compactHistoryForCheckpoint(history, settings?)
 - Tests: `tests/session_checkpoint_test.mjs`, `runtime/tests/api/test_checkpoint_routes.py`
 
 ### H2 (next)
+
 - Chat panel save button + checkpoint picker dropdown
 - Fork badge (persistent "Working in: <fork>" label with "back to base" link)
 - Runs Explorer HITL banner (auto-offer checkpoint before human-review interaction)
@@ -120,10 +122,11 @@ compactHistoryForCheckpoint(history, settings?)
 - CLI: `benny checkpoint save|list|inspect|delete|fork|template`
 
 ### H3 (after H2)
+
 - `pinCheckpoint` / `loadPinnedCheckpoint` UI integration in the checkpoint picker
 - `CHECKPOINT_PINNED` audit event (already emitted by the runtime in H1)
 - CLI: `benny checkpoint pin` + `inspect` reporting `pinned (valid ✓)`
 
 ---
 
-*Prime-Silo — engineered by Binary 16.*
+_Prime-Silo — engineered by Binary 16._

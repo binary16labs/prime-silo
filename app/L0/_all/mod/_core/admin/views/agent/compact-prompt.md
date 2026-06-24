@@ -5,6 +5,7 @@ You will receive the existing conversation history as one user message. The syst
 Return exactly one plain-text block that starts with `Conversation summary:` and then continues with a tight, readable summary.
 
 Preserve the important parts:
+
 - the current objective
 - key constraints, decisions, and assumptions
 - important file paths, APIs, commands, errors, outputs, and state
@@ -15,6 +16,7 @@ Prefer recent context over older detail when you need to compress.
 Make the ending of the summary clear enough that a later turn can see what the agent was doing last and how to continue.
 
 Remove what does not help future turns:
+
 - repetition
 - minor back-and-forth
 - empty retries

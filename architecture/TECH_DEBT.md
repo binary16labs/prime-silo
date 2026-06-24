@@ -6,8 +6,8 @@ resolution so an agent or a human can pick it up without re-deriving context.
 
 Status: `open` · `mitigated` (worked around, root cause remains) · `resolved`.
 
-| ID | Status | Title |
-|----|--------|-------|
+| ID   | Status    | Title                                                            |
+| ---- | --------- | ---------------------------------------------------------------- |
 | TD-1 | mitigated | Legacy `dangpy`/Kortex Docker containers clash on host port 3000 |
 
 ---
@@ -41,6 +41,7 @@ it hard-fails with a clear diagnosis (owning PID/name, the
 bound. So the next clash is self-explaining instead of a silent bind failure.
 
 **Operator fix.** Free the port, then relaunch:
+
 ```powershell
 docker ps --filter publish=3000          # identify the squatter
 docker stop dangpy-frontend              # reversible: docker start dangpy-frontend
@@ -48,6 +49,7 @@ docker stop dangpy-frontend              # reversible: docker start dangpy-front
 ```
 
 **Proper resolution (deferred).**
+
 - Decommission the legacy `dangpy`/Kortex stack, or set its containers to
   `--restart=no` (`docker update --restart=no dangpy-frontend ...`) so they stop
   resurrecting on boot. Ideally `docker compose down` the legacy project and

@@ -48,7 +48,9 @@ if (args.has("--sign")) {
     entry.manifest.signature = signManifest(entry.manifest);
     const filePath = path.join(projectRoot, "manifests", "integrations", entry.filename);
     await fs.writeFile(filePath, JSON.stringify(entry.manifest, null, 2) + "\n", "utf8");
-    console.log(`signed ${entry.filename} (${entry.manifest.signature.value.slice(0, 12)}…, ${entry.manifest.signature.signed_at})`);
+    console.log(
+      `signed ${entry.filename} (${entry.manifest.signature.value.slice(0, 12)}…, ${entry.manifest.signature.signed_at})`
+    );
   }
   process.exit(0);
 }
@@ -60,7 +62,9 @@ if (args.has("--json")) {
   console.log(JSON.stringify(report, null, 2));
 } else {
   for (const integration of report.integrations) {
-    console.log(`${integration.id}: ${integration.status.toUpperCase()} (pass ${integration.summary.pass} / drift ${integration.summary.drift} / skipped ${integration.summary.skipped})`);
+    console.log(
+      `${integration.id}: ${integration.status.toUpperCase()} (pass ${integration.summary.pass} / drift ${integration.summary.drift} / skipped ${integration.summary.skipped})`
+    );
     for (const finding of integration.findings) {
       if (args.has("--verbose") || finding.status !== "pass") {
         printFinding(finding);

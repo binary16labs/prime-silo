@@ -99,14 +99,18 @@ function buildDefaultHtml2CanvasOptions(target) {
 
 async function canvasToBlob(canvas, type, quality) {
   return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (!blob) {
-        reject(new Error("Unable to serialize screenshot canvas."));
-        return;
-      }
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error("Unable to serialize screenshot canvas."));
+          return;
+        }
 
-      resolve(blob);
-    }, type, quality);
+        resolve(blob);
+      },
+      type,
+      quality
+    );
   });
 }
 
@@ -130,10 +134,8 @@ function downloadBlob(blob, filename) {
 
 export async function renderScreenshotCanvas(options = {}) {
   const html2canvas = await ensureHtml2Canvas();
-  const {
-    target: rawTarget,
-    html2canvasOptions = {}
-  } = options && typeof options === "object" ? options : {};
+  const { target: rawTarget, html2canvasOptions = {} } =
+    options && typeof options === "object" ? options : {};
   const target = resolveTarget(rawTarget);
 
   return html2canvas(target, {

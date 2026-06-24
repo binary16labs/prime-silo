@@ -19,9 +19,7 @@ const REQUIRED_HISTORY_METHODS = [
 ];
 
 function buildUnavailableBackendMessage(attempts) {
-  return attempts
-    .map((attempt) => `${attempt.name}: ${attempt.reason}`)
-    .join("; ");
+  return attempts.map((attempt) => `${attempt.name}: ${attempt.reason}`).join("; ");
 }
 
 function resolveHistoryBackendOrder(options = {}) {
@@ -48,7 +46,9 @@ function assertGitHistoryClient(client, backendName = "unknown") {
 
   for (const methodName of REQUIRED_HISTORY_METHODS) {
     if (typeof client[methodName] !== "function") {
-      throw new Error(`Git history backend "${backendName}" is missing required method "${methodName}".`);
+      throw new Error(
+        `Git history backend "${backendName}" is missing required method "${methodName}".`
+      );
     }
   }
 }
@@ -91,7 +91,9 @@ async function createLocalGitHistoryClient({ repoRoot, runtimeParams, backendNam
 
   const message = buildUnavailableBackendMessage(attempts);
   if (requestedBackend) {
-    throw new Error(`Requested git backend "${requestedBackend}" is not available for local history: ${message}`);
+    throw new Error(
+      `Requested git backend "${requestedBackend}" is not available for local history: ${message}`
+    );
   }
 
   throw new Error(`Local Git history could not initialize a Git backend: ${message}`);

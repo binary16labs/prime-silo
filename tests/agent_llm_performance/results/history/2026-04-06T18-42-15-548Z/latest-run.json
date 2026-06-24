@@ -863,9 +863,7 @@
       "passed_attempts": 23,
       "total_attempts": 24,
       "attempt_pass_rate": 0.9583,
-      "failed_cases": [
-        "post_success_followup_requires_execution_or_completion"
-      ],
+      "failed_cases": ["post_success_followup_requires_execution_or_completion"],
       "cases": [
         {
           "case_id": "page_title_requires_execution",
@@ -1816,9 +1814,7 @@
           "case_path": "tests/agent_llm_performance/cases/time_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/time_requires_execution.json",
           "passed": false,
-          "failures": [
-            "invalid javascript after execution separator: Unexpected identifier 'Apr'"
-          ],
+          "failures": ["invalid javascript after execution separator: Unexpected identifier 'Apr'"],
           "response_type": "thrust",
           "response": "Checking the current local time now.\n_____javascript\nreturn new Date().toString()\n\nMon Apr 06 2026 00:00:00 GMT+0000 (Coordinated Universal Time)",
           "usage": {
@@ -1853,9 +1849,7 @@
           "case_path": "tests/agent_llm_performance/cases/weather_omitted_scope.json",
           "history_path": "tests/agent_llm_performance/histories/weather_omitted_scope.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn fetch('https://wttr.in/?format=3').then(r => r.text())",
           "usage": {
@@ -2201,9 +2195,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Updating your full name to Pan Example now...\n_____javascript\nconst text = await space.api.fileRead(\"~/user.yaml\");\nconst data = space.utils.yaml.parse(text);\ndata.full_name = \"Pan Example\";\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(data))",
           "usage": {
@@ -2457,9 +2449,7 @@
           "case_path": "tests/agent_llm_performance/cases/protocol_nudge_requires_real_thrust.json",
           "history_path": "tests/agent_llm_performance/histories/protocol_nudge_requires_real_thrust.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.current\\.patchWidget\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.current\\.patchWidget\\(/u"],
           "response_type": "thrust",
           "response": "Animating the snake movement now.\n_____javascript\nconst widget = await space.current.readWidget(\"snake-game\");\nconst code = typeof widget === \"string\" ? widget : (widget?.content ?? widget?.text ?? JSON.stringify(widget));\nconst replacements = [\n  {\n    from: /(\\bsetInterval\\s*\\(\\s*moveSnake\\s*,\\s*)speed(\\s*\\))/,\n    to: `$1Math.max(35, Math.round(speed * 0.85))$2`\n  }\n];\nreturn code;",
           "usage": {

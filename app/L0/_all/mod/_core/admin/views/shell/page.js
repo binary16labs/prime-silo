@@ -12,7 +12,12 @@ const tabs = [
 const ACTIVE_TAB_STORAGE_KEY = "space.admin.activeTab";
 
 const quickActions = [
-  { id: "open-agent", avatarPath: ADMIN_AGENT_AVATAR_PATH, label: "Admin agent", targetTab: "agent" },
+  {
+    id: "open-agent",
+    avatarPath: ADMIN_AGENT_AVATAR_PATH,
+    label: "Admin agent",
+    targetTab: "agent"
+  },
   { id: "open-files", icon: "folder_open", label: "Files", targetTab: "files" },
   { id: "open-time-travel", icon: "history", label: "Time Travel", targetTab: "time_travel" },
   { id: "open-modules", icon: "package_2", label: "Modules", targetTab: "modules" }
@@ -63,8 +68,7 @@ const pageModel = {
 
   get isCurrentUserAdmin() {
     return (
-      Array.isArray(this.userSelfInfo?.groups) &&
-      this.userSelfInfo.groups.includes(ADMIN_GROUP_ID)
+      Array.isArray(this.userSelfInfo?.groups) && this.userSelfInfo.groups.includes(ADMIN_GROUP_ID)
     );
   },
 
@@ -94,11 +98,13 @@ const pageModel = {
     if (typeof ResizeObserver === "function") {
       this.tabLayoutObserver = new ResizeObserver(() => this.scheduleTabLayoutSync());
 
-      [this.refs.topbar, this.refs.topbarMeasure, this.refs.topbarCompactMeasure].forEach((element) => {
-        if (element) {
-          this.tabLayoutObserver.observe(element);
+      [this.refs.topbar, this.refs.topbarMeasure, this.refs.topbarCompactMeasure].forEach(
+        (element) => {
+          if (element) {
+            this.tabLayoutObserver.observe(element);
+          }
         }
-      });
+      );
     }
 
     const fontsReady = globalThis.document?.fonts?.ready;
@@ -194,10 +200,7 @@ const pageModel = {
     this.userSelfInfoPromise = (async () => {
       try {
         const snapshot = await space.api.userSelfInfo();
-        this.userSelfInfo =
-          snapshot && typeof snapshot === "object"
-            ? snapshot
-            : null;
+        this.userSelfInfo = snapshot && typeof snapshot === "object" ? snapshot : null;
         this.userSelfInfoLoaded = true;
         return this.userSelfInfo;
       } catch {

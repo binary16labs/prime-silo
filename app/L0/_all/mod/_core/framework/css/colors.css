@@ -26,7 +26,7 @@
   --color-status-warning: #c4a882;
   --color-status-danger: #c47a6a;
   --color-layer-overlay: rgba(20, 21, 15, 0.68);
-  --color-backdrop-glow-primary: rgba(156, 175, 136, 0.10);
+  --color-backdrop-glow-primary: rgba(156, 175, 136, 0.1);
   --color-backdrop-glow-secondary: rgba(196, 168, 130, 0.08);
   --color-backdrop-glow-depth: rgba(107, 124, 112, 0.12);
   --color-backdrop-star-strong: rgba(236, 230, 216, 0.76);
@@ -55,10 +55,10 @@
 
   /* ── Raised app surfaces — warm glass (Space Agent cockpit) ─────
    * Depth comes from warm near-black layering, not cold navy. */
-  --color-surface-raised: #1a1d1b;       /* dialogs, cards, bubbles */
-  --color-surface-sunken: #10110d;       /* code blocks, exec panes */
-  --color-surface-hover: rgba(156, 175, 136, 0.10);  /* sage-tinted hover wash */
-  --color-surface-hover-solid: #20231d;  /* opaque hover for action cards */
+  --color-surface-raised: #1a1d1b; /* dialogs, cards, bubbles */
+  --color-surface-sunken: #10110d; /* code blocks, exec panes */
+  --color-surface-hover: rgba(156, 175, 136, 0.1); /* sage-tinted hover wash */
+  --color-surface-hover-solid: #20231d; /* opaque hover for action cards */
   --color-field-bg: #1a1d1b;
   --color-focus-border: rgba(156, 175, 136, 0.5);
   --color-focus-ring: rgba(156, 175, 136, 0.3);

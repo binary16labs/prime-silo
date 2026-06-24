@@ -29,7 +29,12 @@ const MARKER_FILE = ".runtime-bundle.json";
 // The release-asset names produced by pack-runtime-bundle.js for this target.
 function runtimeBundleAssetNames(platform = process.platform, arch = process.arch) {
   const base = `runtime-bundle-${platform}-${arch}`;
-  return { base, archive: `${base}.tar.gz`, sha256: `${base}.tar.gz.sha256`, manifest: `${base}.json` };
+  return {
+    base,
+    archive: `${base}.tar.gz`,
+    sha256: `${base}.tar.gz.sha256`,
+    manifest: `${base}.json`
+  };
 }
 
 // https://github.com/<owner>/<repo>/releases/download/v<version>/<asset>
@@ -52,12 +57,20 @@ function readMarker(destDir) {
 
 function writeMarker(destDir, data) {
   fs.mkdirSync(destDir, { recursive: true });
-  fs.writeFileSync(markerPath(destDir), JSON.stringify({ ...data, installed_at: new Date().toISOString() }, null, 2));
+  fs.writeFileSync(
+    markerPath(destDir),
+    JSON.stringify({ ...data, installed_at: new Date().toISOString() }, null, 2)
+  );
 }
 
 // A correctly-installed bundle for `version` is present iff the marker matches
 // the wanted version AND the runtime entry points still exist on disk.
-function isBundleInstalled(destDir, version, existsFn = fs.existsSync, platform = process.platform) {
+function isBundleInstalled(
+  destDir,
+  version,
+  existsFn = fs.existsSync,
+  platform = process.platform
+) {
   const marker = readMarker(destDir);
   if (!marker || String(marker.app_version) !== String(version)) {
     return false;
@@ -106,7 +119,9 @@ function defaultExtract(archivePath, destDir) {
 
 // "<sha256>  <filename>" → "<sha256>"
 function parseSha256Sidecar(text) {
-  const token = String(text || "").trim().split(/\s+/)[0];
+  const token = String(text || "")
+    .trim()
+    .split(/\s+/)[0];
   return /^[0-9a-f]{64}$/i.test(token) ? token.toLowerCase() : "";
 }
 
@@ -157,7 +172,8 @@ async function ensureRuntimeBundle(opts = {}) {
         await fetchTextFn(resolveAssetUrl({ owner, repo, version, asset: names.sha256 }))
       );
     } catch (error) {
-      logger.warn && logger.warn(`[runtime-fetch] checksum sidecar unavailable: ${error.message || error}`);
+      logger.warn &&
+        logger.warn(`[runtime-fetch] checksum sidecar unavailable: ${error.message || error}`);
     }
   }
 
@@ -176,7 +192,8 @@ async function ensureRuntimeBundle(opts = {}) {
 
   if (expectedSha && gotSha && gotSha.toLowerCase() !== expectedSha) {
     fs.rmSync(archivePath, { force: true });
-    logger.error && logger.error(`[runtime-fetch] checksum mismatch (got ${gotSha}, want ${expectedSha})`);
+    logger.error &&
+      logger.error(`[runtime-fetch] checksum mismatch (got ${gotSha}, want ${expectedSha})`);
     return { ok: false, reason: "checksum-mismatch", destDir };
   }
 
@@ -192,7 +209,10 @@ async function ensureRuntimeBundle(opts = {}) {
     fs.rmSync(archivePath, { force: true });
   }
 
-  if (!isBundleInstalled(destDir, version, existsFn, platform) && !existsFn(path.join(destDir, platform === "win32" ? "python/python.exe" : "python/bin/python3"))) {
+  if (
+    !isBundleInstalled(destDir, version, existsFn, platform) &&
+    !existsFn(path.join(destDir, platform === "win32" ? "python/python.exe" : "python/bin/python3"))
+  ) {
     return { ok: false, reason: "incomplete-after-extract", destDir };
   }
 

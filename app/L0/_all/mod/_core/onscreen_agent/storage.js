@@ -45,26 +45,19 @@ async function getUiStateOwner(runtime) {
 }
 
 function normalizeStoredPromptBudgetRatios(storedConfig = {}) {
-  const storedRatios =
-    storedConfig.prompt_budget_ratios ||
-    storedConfig.promptBudgetRatios ||
-    {};
+  const storedRatios = storedConfig.prompt_budget_ratios || storedConfig.promptBudgetRatios || {};
   const source = storedRatios && typeof storedRatios === "object" ? storedRatios : {};
 
   return config.normalizeOnscreenAgentPromptBudgetRatios({
     history:
-      source.history ??
-      storedConfig.history_prompt_max_ratio ??
-      storedConfig.historyPromptMaxRatio,
+      source.history ?? storedConfig.history_prompt_max_ratio ?? storedConfig.historyPromptMaxRatio,
     singleMessage:
       source.single_message ??
       source.singleMessage ??
       storedConfig.single_message_max_ratio ??
       storedConfig.singleMessageMaxRatio,
     system:
-      source.system ??
-      storedConfig.system_prompt_max_ratio ??
-      storedConfig.systemPromptMaxRatio,
+      source.system ?? storedConfig.system_prompt_max_ratio ?? storedConfig.systemPromptMaxRatio,
     transient:
       source.transient ??
       storedConfig.transient_prompt_max_ratio ??
@@ -104,7 +97,11 @@ function getRuntime() {
     throw new Error("Space runtime is not available.");
   }
 
-  if (!runtime.api || typeof runtime.api.fileRead !== "function" || typeof runtime.api.fileWrite !== "function") {
+  if (
+    !runtime.api ||
+    typeof runtime.api.fileRead !== "function" ||
+    typeof runtime.api.fileWrite !== "function"
+  ) {
     throw new Error("space.api file helpers are not available.");
   }
 
@@ -146,9 +143,10 @@ async function fetchWorkspaceModelDefaults() {
   try {
     const response = await fetch("/api/config_defaults", {
       credentials: "same-origin",
-      signal: typeof AbortSignal?.timeout === "function"
-        ? AbortSignal.timeout(WORKSPACE_DEFAULTS_TIMEOUT_MS)
-        : undefined
+      signal:
+        typeof AbortSignal?.timeout === "function"
+          ? AbortSignal.timeout(WORKSPACE_DEFAULTS_TIMEOUT_MS)
+          : undefined
     });
 
     if (!response.ok) {
@@ -210,11 +208,7 @@ async function encodeStoredApiKey(runtime, settings = {}) {
   const nextValue = String(settings.apiKey || "").trim();
   const storedValue = String(settings.storedApiKeyValue || "").trim();
 
-  if (
-    settings.storedApiKeyLocked === true &&
-    !nextValue &&
-    storedValue.startsWith("userCrypto:")
-  ) {
+  if (settings.storedApiKeyLocked === true && !nextValue && storedValue.startsWith("userCrypto:")) {
     return storedValue;
   }
 
@@ -235,17 +229,26 @@ async function normalizeStoredConfig(runtime, parsedConfig) {
   const storedConfig = parsedConfig && typeof parsedConfig === "object" ? parsedConfig : {};
   const rawStoredProvider = storedConfig.llm_provider || storedConfig.provider;
   const storedMaxTokens =
-    storedConfig.max_tokens ?? storedConfig.maxTokens ?? config.DEFAULT_ONSCREEN_AGENT_SETTINGS.maxTokens;
+    storedConfig.max_tokens ??
+    storedConfig.maxTokens ??
+    config.DEFAULT_ONSCREEN_AGENT_SETTINGS.maxTokens;
   const rawX = storedConfig.agent_x ?? storedConfig.agentX;
   const rawY = storedConfig.agent_y ?? storedConfig.agentY;
   const rawHiddenEdge = storedConfig.hidden_edge ?? storedConfig.hiddenEdge;
   const rawHistoryHeight = storedConfig.history_height ?? storedConfig.historyHeight;
-  const storedDisplayMode = normalizeDisplayMode(storedConfig.display_mode ?? storedConfig.displayMode);
+  const storedDisplayMode = normalizeDisplayMode(
+    storedConfig.display_mode ?? storedConfig.displayMode
+  );
   const provider = config.normalizeOnscreenAgentLlmProvider(rawStoredProvider);
-  const localProvider = config.normalizeOnscreenAgentLocalProvider(storedConfig.local_provider || storedConfig.localProvider);
+  const localProvider = config.normalizeOnscreenAgentLocalProvider(
+    storedConfig.local_provider || storedConfig.localProvider
+  );
   const storedApiKey = await decodeStoredApiKey(
     runtime,
-    storedConfig.api_key || storedConfig.apiKey || config.DEFAULT_ONSCREEN_AGENT_SETTINGS.apiKey || ""
+    storedConfig.api_key ||
+      storedConfig.apiKey ||
+      config.DEFAULT_ONSCREEN_AGENT_SETTINGS.apiKey ||
+      ""
   );
   const legacyDisplayMode =
     storedConfig.collapsed === true
@@ -256,7 +259,12 @@ async function normalizeStoredConfig(runtime, parsedConfig) {
 
   return {
     settings: {
-      apiEndpoint: String(storedConfig.api_endpoint || storedConfig.apiEndpoint || config.DEFAULT_ONSCREEN_AGENT_SETTINGS.apiEndpoint || "").trim(),
+      apiEndpoint: String(
+        storedConfig.api_endpoint ||
+          storedConfig.apiEndpoint ||
+          config.DEFAULT_ONSCREEN_AGENT_SETTINGS.apiEndpoint ||
+          ""
+      ).trim(),
       apiKey: storedApiKey.value,
       huggingfaceDtype: String(
         storedConfig.huggingface_dtype ||
@@ -272,8 +280,15 @@ async function normalizeStoredConfig(runtime, parsedConfig) {
       ).trim(),
       localProvider,
       maxTokens: config.normalizeOnscreenAgentMaxTokens(storedMaxTokens),
-      model: String(storedConfig.model || config.DEFAULT_ONSCREEN_AGENT_SETTINGS.model || "").trim(),
-      paramsText: String(storedConfig.params || storedConfig.paramsText || config.DEFAULT_ONSCREEN_AGENT_SETTINGS.paramsText || "").trim(),
+      model: String(
+        storedConfig.model || config.DEFAULT_ONSCREEN_AGENT_SETTINGS.model || ""
+      ).trim(),
+      paramsText: String(
+        storedConfig.params ||
+          storedConfig.paramsText ||
+          config.DEFAULT_ONSCREEN_AGENT_SETTINGS.paramsText ||
+          ""
+      ).trim(),
       promptBudgetRatios: normalizeStoredPromptBudgetRatios(storedConfig),
       provider,
       storedApiKeyLocked: storedApiKey.locked,
@@ -300,7 +315,9 @@ function normalizeStoredUiState(parsedState) {
   const rawY = storedState.agent_y ?? storedState.agentY;
   const rawHiddenEdge = storedState.hidden_edge ?? storedState.hiddenEdge;
   const rawHistoryHeight = storedState.history_height ?? storedState.historyHeight;
-  const storedDisplayMode = normalizeDisplayMode(storedState.display_mode ?? storedState.displayMode);
+  const storedDisplayMode = normalizeDisplayMode(
+    storedState.display_mode ?? storedState.displayMode
+  );
   const legacyDisplayMode =
     storedState.collapsed === true
       ? DISPLAY_MODE_COMPACT
@@ -321,20 +338,31 @@ function normalizeStoredUiState(parsedState) {
 async function buildStoredConfigPayload(runtime, { settings, systemPrompt }) {
   const normalizedSystemPrompt = typeof systemPrompt === "string" ? systemPrompt.trim() : "";
   const payload = {
-    api_endpoint: String(settings?.apiEndpoint || config.DEFAULT_ONSCREEN_AGENT_SETTINGS.apiEndpoint || "").trim(),
+    api_endpoint: String(
+      settings?.apiEndpoint || config.DEFAULT_ONSCREEN_AGENT_SETTINGS.apiEndpoint || ""
+    ).trim(),
     api_key: await encodeStoredApiKey(runtime, settings),
-    huggingface_dtype: String(settings?.huggingfaceDtype || config.DEFAULT_ONSCREEN_AGENT_SETTINGS.huggingfaceDtype || "").trim(),
-    huggingface_model: String(settings?.huggingfaceModel || config.DEFAULT_ONSCREEN_AGENT_SETTINGS.huggingfaceModel || "").trim(),
+    huggingface_dtype: String(
+      settings?.huggingfaceDtype || config.DEFAULT_ONSCREEN_AGENT_SETTINGS.huggingfaceDtype || ""
+    ).trim(),
+    huggingface_model: String(
+      settings?.huggingfaceModel || config.DEFAULT_ONSCREEN_AGENT_SETTINGS.huggingfaceModel || ""
+    ).trim(),
     local_provider: config.normalizeOnscreenAgentLocalProvider(settings?.localProvider),
     llm_provider: config.normalizeOnscreenAgentLlmProvider(settings?.provider),
     max_tokens: config.normalizeOnscreenAgentMaxTokens(settings?.maxTokens),
     model: String(settings?.model || config.DEFAULT_ONSCREEN_AGENT_SETTINGS.model || "").trim(),
-    params: String(settings?.paramsText || config.DEFAULT_ONSCREEN_AGENT_SETTINGS.paramsText || "").trim(),
+    params: String(
+      settings?.paramsText || config.DEFAULT_ONSCREEN_AGENT_SETTINGS.paramsText || ""
+    ).trim(),
     prompt_budget_ratios: {
-      history: config.normalizeOnscreenAgentPromptBudgetRatios(settings?.promptBudgetRatios).history,
-      single_message: config.normalizeOnscreenAgentPromptBudgetRatios(settings?.promptBudgetRatios).singleMessage,
+      history: config.normalizeOnscreenAgentPromptBudgetRatios(settings?.promptBudgetRatios)
+        .history,
+      single_message: config.normalizeOnscreenAgentPromptBudgetRatios(settings?.promptBudgetRatios)
+        .singleMessage,
       system: config.normalizeOnscreenAgentPromptBudgetRatios(settings?.promptBudgetRatios).system,
-      transient: config.normalizeOnscreenAgentPromptBudgetRatios(settings?.promptBudgetRatios).transient
+      transient: config.normalizeOnscreenAgentPromptBudgetRatios(settings?.promptBudgetRatios)
+        .transient
     }
   };
 
@@ -345,7 +373,14 @@ async function buildStoredConfigPayload(runtime, { settings, systemPrompt }) {
   return payload;
 }
 
-function buildStoredUiStatePayload({ agentX, agentY, hiddenEdge, historyHeight, displayMode, owner }) {
+function buildStoredUiStatePayload({
+  agentX,
+  agentY,
+  hiddenEdge,
+  historyHeight,
+  displayMode,
+  owner
+}) {
   const normalizedDisplayMode = normalizeDisplayMode(displayMode) || DISPLAY_MODE_COMPACT;
   const normalizedHiddenEdge = config.normalizeOnscreenAgentHiddenEdge(hiddenEdge);
   const normalizedHistoryHeight = config.normalizeOnscreenAgentHistoryHeight(historyHeight);
@@ -380,7 +415,9 @@ function buildStoredUiStatePayload({ agentX, agentY, hiddenEdge, historyHeight, 
 
 function getStorageArea(storageName) {
   const storageArea = globalThis[storageName];
-  return storageArea && typeof storageArea.getItem === "function" && typeof storageArea.setItem === "function"
+  return storageArea &&
+    typeof storageArea.getItem === "function" &&
+    typeof storageArea.setItem === "function"
     ? storageArea
     : null;
 }
@@ -390,7 +427,8 @@ function loadUiStateFromStorageArea(storageName, options = {}) {
     const storageArea = getStorageArea(storageName);
     const rawValue = storageArea?.getItem(config.ONSCREEN_AGENT_UI_STATE_STORAGE_KEY);
     const parsedValue = rawValue ? JSON.parse(rawValue) : null;
-    const normalizedState = parsedValue && typeof parsedValue === "object" ? normalizeStoredUiState(parsedValue) : null;
+    const normalizedState =
+      parsedValue && typeof parsedValue === "object" ? normalizeStoredUiState(parsedValue) : null;
 
     if (!normalizedState) {
       return null;
@@ -454,7 +492,10 @@ export async function loadOnscreenAgentConfig() {
   } catch (error) {
     if (isMissingFileError(error)) {
       const storedUiState =
-        loadUiStateFromStorageArea("sessionStorage", { allowUnowned: false, owner: uiStateOwner }) ||
+        loadUiStateFromStorageArea("sessionStorage", {
+          allowUnowned: false,
+          owner: uiStateOwner
+        }) ||
         loadUiStateFromStorageArea("localStorage", { allowUnowned: false, owner: uiStateOwner });
       const defaultConfig = createDefaultConfig();
 

@@ -15,8 +15,8 @@
         <p class="prime-silo-manifest-explorer-eyebrow">Deterministic zone</p>
         <h1 class="prime-silo-manifest-explorer-title">Manifest explorer</h1>
         <p class="prime-silo-manifest-explorer-subtitle">
-          Read-only view of registered swarm manifests, rendered as a DAG. Drives the runtime without
-          an agent scope — humans only.
+          Read-only view of registered swarm manifests, rendered as a DAG. Drives the runtime
+          without an agent scope — humans only.
         </p>
       </header>
 
@@ -29,7 +29,10 @@
           :disabled="state === 'loading'"
         >
           <template x-for="m in manifests" :key="m.id">
-            <option :value="m.id" x-text="m.requirement ? `${m.id} — ${m.requirement}` : m.id"></option>
+            <option
+              :value="m.id"
+              x-text="m.requirement ? `${m.id} — ${m.requirement}` : m.id"
+            ></option>
           </template>
         </select>
       </div>

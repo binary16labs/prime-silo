@@ -1,7 +1,9 @@
 import path from "node:path";
 
 function normalizePathSegment(input) {
-  const rawValue = String(input || "").trim().replaceAll("\\", "/");
+  const rawValue = String(input || "")
+    .trim()
+    .replaceAll("\\", "/");
   const normalized = path.posix.normalize(`/${rawValue}`).slice(1);
 
   if (!normalized || normalized === ".") {

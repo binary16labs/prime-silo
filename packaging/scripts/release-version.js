@@ -5,7 +5,9 @@ const { execFileSync } = require("node:child_process");
 const RELEASE_TAG_PATTERN = /^v?(\d+)(?:\.(\d+))?(?:\.(\d+))?$/u;
 
 function stripTagRefPrefix(value) {
-  return String(value || "").trim().replace(/^refs\/tags\//u, "");
+  return String(value || "")
+    .trim()
+    .replace(/^refs\/tags\//u, "");
 }
 
 function parseReleaseVersion(value) {
@@ -37,7 +39,9 @@ function normalizeBuildVersion(value) {
     return parsedReleaseVersion.semver;
   }
 
-  const normalized = String(value || "").trim().replace(/^v/u, "");
+  const normalized = String(value || "")
+    .trim()
+    .replace(/^v/u, "");
   if (!normalized) {
     return "";
   }
@@ -122,7 +126,8 @@ function parseCliArgs(argv) {
 
 function runCli() {
   const options = parseCliArgs(process.argv.slice(2));
-  const inputValue = options.value || process.env.SPACE_RELEASE_TAG || process.env.GITHUB_REF_NAME || "";
+  const inputValue =
+    options.value || process.env.SPACE_RELEASE_TAG || process.env.GITHUB_REF_NAME || "";
   const parsedReleaseVersion = parseReleaseVersion(inputValue);
 
   if (!parsedReleaseVersion) {

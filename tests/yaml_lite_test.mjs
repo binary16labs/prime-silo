@@ -72,7 +72,7 @@ function verifySerializerCompatibility() {
       value: { renderer: "a\nb" }
     },
     {
-      expected: "yes: \"true\"\nnum: \"01\"\nempty: \"\"\nspaced: \" hi \"\ncolon: \"a: b\"\nhash: \"a # b\"\n",
+      expected: 'yes: "true"\nnum: "01"\nempty: ""\nspaced: " hi "\ncolon: "a: b"\nhash: "a # b"\n',
       name: "ambiguous strings are quoted",
       value: {
         yes: "true",
@@ -185,7 +185,7 @@ function verifyRoundTrips() {
         name: "Weather",
         cols: 4,
         rows: 3,
-        renderer: "async (parent) => {\n  parent.textContent = \"hello\";\n}\n"
+        renderer: 'async (parent) => {\n  parent.textContent = "hello";\n}\n'
       }
     }
   ];
@@ -198,14 +198,9 @@ function verifyRoundTrips() {
 }
 
 function verifyParamsParsing() {
-  const paramsText = [
-    "temperature:0.2",
-    "stop:",
-    "  - END",
-    "metadata:",
-    "  retries: 2",
-    ""
-  ].join("\n");
+  const paramsText = ["temperature:0.2", "stop:", "  - END", "metadata:", "  retries: 2", ""].join(
+    "\n"
+  );
 
   const expected = {
     temperature: 0.2,
@@ -217,7 +212,10 @@ function verifyParamsParsing() {
 
   assert.deepEqual(parseOnscreenAgentParamsText(paramsText), expected);
   assert.deepEqual(parseAdminAgentParamsText(paramsText), expected);
-  assert.throws(() => parseOnscreenAgentParamsText("- bad\n"), /LLM params must be YAML key: value pairs/u);
+  assert.throws(
+    () => parseOnscreenAgentParamsText("- bad\n"),
+    /LLM params must be YAML key: value pairs/u
+  );
 }
 
 async function verifyRepoYamlCorpus() {
@@ -230,9 +228,12 @@ async function verifyRepoYamlCorpus() {
   for (const filePath of yamlFiles) {
     const sourceText = await fs.readFile(filePath, "utf8");
 
-    assert.doesNotThrow(() => {
-      parseSimpleYaml(sourceText);
-    }, path.relative(ROOT_DIR, filePath));
+    assert.doesNotThrow(
+      () => {
+        parseSimpleYaml(sourceText);
+      },
+      path.relative(ROOT_DIR, filePath)
+    );
   }
 }
 

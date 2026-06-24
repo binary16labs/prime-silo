@@ -11,10 +11,10 @@ authority-rejection path with real widget code.
 
 ## Files
 
-| File           | Owns                                                          |
-| -------------- | ------------------------------------------------------------- |
-| `index.js`     | `createDagCanvasWidget(host, props, options)` factory.        |
-| `canvas.css`   | SVG node/edge styling + rejected/error/empty states.          |
+| File         | Owns                                                   |
+| ------------ | ------------------------------------------------------ |
+| `index.js`   | `createDagCanvasWidget(host, props, options)` factory. |
+| `canvas.css` | SVG node/edge styling + rejected/error/empty states.   |
 
 ## Manifest mapping
 

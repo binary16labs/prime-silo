@@ -9,11 +9,25 @@ const PROGRESS_CHANNEL = "space-browser-component-harness:progress";
 const SCENARIO_ENV = "SPACE_BROWSER_COMPONENT_HARNESS_SCENARIO";
 
 const PROJECT_ROOT = path.resolve(__dirname, "../..");
-const WEB_BROWSING_ROOT = path.join(PROJECT_ROOT, "app", "L0", "_all", "mod", "_core", "web_browsing");
+const WEB_BROWSING_ROOT = path.join(
+  PROJECT_ROOT,
+  "app",
+  "L0",
+  "_all",
+  "mod",
+  "_core",
+  "web_browsing"
+);
 const GUEST_RUNTIME_PATHS = Object.freeze({
   bootstrap: path.join(WEB_BROWSING_ROOT, "browser-frame-inject.js"),
   content: path.join(WEB_BROWSING_ROOT, "browser-page-content.js"),
-  handlers: path.join(WEB_BROWSING_ROOT, "ext", "browser_guest_runtime", "core", "handle-message.js")
+  handlers: path.join(
+    WEB_BROWSING_ROOT,
+    "ext",
+    "browser_guest_runtime",
+    "core",
+    "handle-message.js"
+  )
 });
 
 const harnessRequestListeners = new Set();

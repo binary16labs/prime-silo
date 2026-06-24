@@ -7,7 +7,9 @@ import { fileURLToPath } from "node:url";
 
 const CURRENT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(CURRENT_DIR, "..");
-const WATCH_TARGETS = ["space", "commands", "server"].map((entry) => path.join(PROJECT_ROOT, entry));
+const WATCH_TARGETS = ["space", "commands", "server"].map((entry) =>
+  path.join(PROJECT_ROOT, entry)
+);
 const SCAN_INTERVAL_MS = 750;
 const RESTART_DEBOUNCE_MS = 1_000;
 const SHUTDOWN_GRACE_MS = 2_000;

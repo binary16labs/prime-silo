@@ -84,9 +84,8 @@ function escapeHtml(text) {
  * `{ nodes, links }` payload. Exported for testing.
  */
 export function layoutToGraphData(layout, physicsMode = "pinned") {
-  const positions = layout && typeof layout === "object" && layout.positions
-    ? layout.positions
-    : {};
+  const positions =
+    layout && typeof layout === "object" && layout.positions ? layout.positions : {};
   const edgesRaw = layout && Array.isArray(layout.edges) ? layout.edges : [];
 
   const nodes = Object.entries(positions).map(([id, entry]) => {
@@ -179,27 +178,18 @@ async function defaultLoader(cdnUrl) {
  * its own independent handle backed by its own 3d-force-graph instance.
  */
 export function createThreeRenderer(options = {}) {
-  const cdnUrl = typeof options.cdnUrl === "string" && options.cdnUrl
-    ? options.cdnUrl
-    : DEFAULT_CDN_URL;
-  const loader = typeof options.loader === "function"
-    ? options.loader
-    : () => defaultLoader(cdnUrl);
-  const backgroundColor = typeof options.backgroundColor === "string"
-    ? options.backgroundColor
-    : DEFAULT_BACKGROUND;
-  const nodeRelSize = typeof options.nodeRelSize === "number"
-    ? options.nodeRelSize
-    : DEFAULT_NODE_REL_SIZE;
-  const fallbackLinkColor = typeof options.linkColor === "string"
-    ? options.linkColor
-    : DEFAULT_LINK_COLOR;
-  const onNodeClick = typeof options.onNodeClick === "function"
-    ? options.onNodeClick
-    : null;
-  const physicsMode = typeof options.physicsMode === "string"
-    ? options.physicsMode
-    : "pinned";
+  const cdnUrl =
+    typeof options.cdnUrl === "string" && options.cdnUrl ? options.cdnUrl : DEFAULT_CDN_URL;
+  const loader =
+    typeof options.loader === "function" ? options.loader : () => defaultLoader(cdnUrl);
+  const backgroundColor =
+    typeof options.backgroundColor === "string" ? options.backgroundColor : DEFAULT_BACKGROUND;
+  const nodeRelSize =
+    typeof options.nodeRelSize === "number" ? options.nodeRelSize : DEFAULT_NODE_REL_SIZE;
+  const fallbackLinkColor =
+    typeof options.linkColor === "string" ? options.linkColor : DEFAULT_LINK_COLOR;
+  const onNodeClick = typeof options.onNodeClick === "function" ? options.onNodeClick : null;
+  const physicsMode = typeof options.physicsMode === "string" ? options.physicsMode : "pinned";
 
   function mount(host, layout, props) {
     if (!host || typeof host.querySelector !== "function") {
@@ -251,9 +241,7 @@ export function createThreeRenderer(options = {}) {
       .then((ForceGraph3D) => {
         if (state.disposed) return;
         if (typeof ForceGraph3D !== "function") {
-          throw new Error(
-            "three-renderer: loader did not return a ForceGraph3D constructor."
-          );
+          throw new Error("three-renderer: loader did not return a ForceGraph3D constructor.");
         }
         // 3d-force-graph's curried API: ForceGraph3D()(domElement)
         const instance = ForceGraph3D()(state.host);
@@ -277,8 +265,7 @@ export function createThreeRenderer(options = {}) {
         // ambient "ready" state isn't visually empty. The default SVG
         // renderer was already replaced by the renderer hook; without
         // this, a failed CDN fetch would leave a blank canvas.
-        state.host.innerHTML =
-          `<div class="prime-silo-three-renderer__error">3D renderer failed: ${escapeHtml(err && err.message ? err.message : String(err))}</div>`;
+        state.host.innerHTML = `<div class="prime-silo-three-renderer__error">3D renderer failed: ${escapeHtml(err && err.message ? err.message : String(err))}</div>`;
       });
 
     return {
@@ -292,14 +279,22 @@ export function createThreeRenderer(options = {}) {
           // 3d-force-graph exposes _destructor() for teardown of the
           // Three.js scene + WebGL context. Wrap in try/catch — a partial
           // mount (host removed mid-load) is the most common failure path.
-          try { state.instance._destructor(); } catch (_e) { /* swallow */ }
+          try {
+            state.instance._destructor();
+          } catch (_e) {
+            /* swallow */
+          }
         }
         state.instance = null;
         if (state.host) {
           // The widget's destroy() clears innerHTML too, but if the
           // renderer is being torn down while the widget stays alive (the
           // caller swapped renderers), this keeps the host tidy.
-          try { state.host.innerHTML = ""; } catch (_e) { /* swallow */ }
+          try {
+            state.host.innerHTML = "";
+          } catch (_e) {
+            /* swallow */
+          }
         }
         state.host = null;
       }

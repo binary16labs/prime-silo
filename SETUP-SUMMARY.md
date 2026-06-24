@@ -7,13 +7,15 @@ Your Prime Silo project now has a complete, production-ready CI/CD pipeline with
 ## What Was Set Up
 
 ### 1. Snapshot Build Pipeline
+
 - **File:** `.github/workflows/snapshot-build.yml`
 - **Trigger:** Every push to `main` branch
 - **Output:** Windows, macOS (2 variants), Linux executables
 - **Retention:** 30 days in workflow artifacts
 - **Purpose:** Automatic builds for testing the latest main branch
 
-### 2. Release Desktop Pipeline  
+### 2. Release Desktop Pipeline
+
 - **File:** `.github/workflows/release-desktop.yml` (enhanced)
 - **Trigger:** Push any git tag matching `v*` (e.g., v1.0.0)
 - **Output:** Multi-platform installers on GitHub Releases
@@ -21,6 +23,7 @@ Your Prime Silo project now has a complete, production-ready CI/CD pipeline with
 - **Purpose:** Create official versioned releases
 
 ### 3. Release Management Script
+
 - **Main script:** `scripts/manage-release.js` (Node.js)
 - **Wrapper:** `scripts/manage-release.ps1` (PowerShell)
 - **Features:**
@@ -30,20 +33,23 @@ Your Prime Silo project now has a complete, production-ready CI/CD pipeline with
   - Clear user instructions
 
 ### 4. Documentation
+
 - **Quick start:** `RELEASE-QUICK-START.md` ← Start here
-- **Complete guide:** `RELEASE.md` 
+- **Complete guide:** `RELEASE.md`
 - **Script reference:** `scripts/README.md`
 - **This file:** `SETUP-SUMMARY.md`
 
 ## Ready-to-Use Commands
 
 ### View Current Status
+
 ```bash
 node scripts/manage-release.js current      # Show current version (1.0.0)
 node scripts/manage-release.js list         # List all releases
 ```
 
 ### Create Next Release
+
 ```bash
 # After development is complete and main is ready:
 node scripts/manage-release.js minor        # For new features (1.0.0 → 1.1.0)
@@ -55,6 +61,7 @@ git push origin v1.1.0
 ```
 
 ### On Windows with PowerShell
+
 ```powershell
 .\scripts\manage-release.ps1 minor
 git push origin $(git describe --tags --exact-match HEAD)
@@ -65,17 +72,20 @@ git push origin $(git describe --tags --exact-match HEAD)
 **Status:** Ready to push
 
 **Current state:**
+
 - Version bumped to 1.0.0 in package.json
 - Commit created: "Release: 1.0.0 - Initial public release"
 - Git tag created: v1.0.0
 - All files staged and committed
 
 **To trigger the first release build:**
+
 ```bash
 git push origin v1.0.0
 ```
 
 This will:
+
 1. Trigger the release-desktop.yml workflow
 2. Build executables for 6 platform combinations
 3. Create a GitHub Release page
@@ -128,17 +138,17 @@ This will:
 
 ## Quick Reference Card
 
-| Action | Command | Time |
-|--------|---------|------|
+| Action               | Command                     | Time    |
+| -------------------- | --------------------------- | ------- |
 | Show current version | `manage-release.js current` | instant |
-| List all releases | `manage-release.js list` | instant |
-| Create patch (1.0.1) | `manage-release.js patch` | instant |
-| Create minor (1.1.0) | `manage-release.js minor` | instant |
-| Create major (2.0.0) | `manage-release.js major` | instant |
-| Trigger build | `git push origin v1.0.0` | ~40 min |
-| Download release | Visit GitHub Releases | instant |
+| List all releases    | `manage-release.js list`    | instant |
+| Create patch (1.0.1) | `manage-release.js patch`   | instant |
+| Create minor (1.1.0) | `manage-release.js minor`   | instant |
+| Create major (2.0.0) | `manage-release.js major`   | instant |
+| Trigger build        | `git push origin v1.0.0`    | ~40 min |
+| Download release     | Visit GitHub Releases       | instant |
 
-*Note: Script commands are instant (git operations). Build times vary by platform.*
+_Note: Script commands are instant (git operations). Build times vary by platform._
 
 ## File Structure
 
@@ -160,11 +170,13 @@ prime-silo/
 ## Next Steps
 
 ### Immediate (Right Now)
+
 1. Review `RELEASE-QUICK-START.md` for the quick version
 2. Run `git log --oneline -3` to see your commits
 3. Run `git tag -l` to confirm v1.0.0 tag exists
 
 ### Soon (Push First Release)
+
 ```bash
 git push origin v1.0.0
 # Watch: GitHub → Actions → Release Desktop (40 min)
@@ -172,7 +184,9 @@ git push origin v1.0.0
 ```
 
 ### Later (Future Releases)
+
 Each time you want to release:
+
 1. `node scripts/manage-release.js [patch|minor|major]`
 2. `git push origin <tag-name>`
 3. Wait for build to complete

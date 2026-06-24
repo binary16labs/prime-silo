@@ -111,8 +111,7 @@
   border: 1px solid var(--space-chrome-border);
   border-radius: 1.45rem;
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.055), transparent 42%),
-    var(--time-travel-panel);
+    linear-gradient(145deg, rgba(255, 255, 255, 0.055), transparent 42%), var(--time-travel-panel);
   box-shadow:
     0 24px 60px rgba(0, 0, 0, 0.22),
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
@@ -307,11 +306,8 @@
   align-items: flex-start;
   gap: var(--time-travel-pill-gap);
   max-height: calc(
-    var(--time-travel-pill-height) +
-    var(--time-travel-pill-height) +
-    var(--time-travel-pill-height) +
-    var(--time-travel-pill-gap) +
-    var(--time-travel-pill-gap)
+    var(--time-travel-pill-height) + var(--time-travel-pill-height) +
+      var(--time-travel-pill-height) + var(--time-travel-pill-gap) + var(--time-travel-pill-gap)
   );
   overflow: hidden;
 }

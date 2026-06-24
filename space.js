@@ -12,7 +12,9 @@ const COMMAND_ALIASES = new Map([
 ]);
 
 function normalizeCommandName(rawValue) {
-  const normalizedValue = String(rawValue || "help").trim().toLowerCase();
+  const normalizedValue = String(rawValue || "help")
+    .trim()
+    .toLowerCase();
   return COMMAND_ALIASES.get(normalizedValue) || normalizedValue;
 }
 

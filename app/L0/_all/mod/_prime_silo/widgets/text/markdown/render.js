@@ -72,9 +72,7 @@ function flushList(items, lines) {
   if (items.length === 0) {
     return;
   }
-  const rendered = items
-    .map((item) => `<li>${renderInline(escapeHtml(item))}</li>`)
-    .join("");
+  const rendered = items.map((item) => `<li>${renderInline(escapeHtml(item))}</li>`).join("");
   lines.push(`<ul>${rendered}</ul>`);
   items.length = 0;
 }

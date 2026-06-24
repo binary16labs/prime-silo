@@ -83,7 +83,9 @@ export function encodeBase64Url(value) {
 }
 
 export function decodeBase64Url(value) {
-  const normalized = String(value || "").replace(/-/g, "+").replace(/_/g, "/");
+  const normalized = String(value || "")
+    .replace(/-/g, "+")
+    .replace(/_/g, "/");
   const padding = normalized.length % 4 === 0 ? "" : "=".repeat(4 - (normalized.length % 4));
 
   if (typeof globalThis.Buffer?.from === "function") {
@@ -184,7 +186,8 @@ export async function deriveUserCryptoPasswordSecret({
   passwordIterations = PASSWORD_SECRET_ITERATIONS,
   passwordSalt
 } = {}) {
-  const normalizedIterations = normalizePositiveInteger(passwordIterations) || PASSWORD_SECRET_ITERATIONS;
+  const normalizedIterations =
+    normalizePositiveInteger(passwordIterations) || PASSWORD_SECRET_ITERATIONS;
   const normalizedSalt = toUint8Array(passwordSalt);
   const passwordKey = await getCrypto().subtle.importKey(
     "raw",
@@ -521,7 +524,9 @@ export function normalizeUserCryptoRecord(record) {
     return null;
   }
 
-  const status = String(record.status || "").trim().toLowerCase();
+  const status = String(record.status || "")
+    .trim()
+    .toLowerCase();
   const keyId = normalizeKeyId(record.key_id || record.keyId);
   const createdAt = normalizeIsoDate(record.created_at || record.createdAt);
   const invalidatedAt = normalizeIsoDate(record.invalidated_at || record.invalidatedAt);
@@ -533,9 +538,7 @@ export function normalizeUserCryptoRecord(record) {
   const version = Number(record.version) || RECORD_VERSION;
   const wrapIv = normalizeBase64Url(record.wrap_iv || record.wrapIv);
   const wrapSalt = normalizeBase64Url(record.wrap_salt || record.wrapSalt);
-  const wrappedMasterKey = normalizeBase64Url(
-    record.wrapped_master_key || record.wrappedMasterKey
-  );
+  const wrappedMasterKey = normalizeBase64Url(record.wrapped_master_key || record.wrappedMasterKey);
 
   if (status === USER_CRYPTO_STATUS_INVALIDATED) {
     return {
@@ -747,9 +750,7 @@ export async function unwrapUserCryptoMasterKey({
     wrapSalt: decodeBase64Url(normalizedRecord.wrapSalt)
   });
   const masterKey = await aesGcmDecrypt({
-    additionalData: TEXT_ENCODER.encode(
-      `space-user-crypto-master-v1:${normalizedRecord.keyId}`
-    ),
+    additionalData: TEXT_ENCODER.encode(`space-user-crypto-master-v1:${normalizedRecord.keyId}`),
     ciphertext: decodeBase64Url(normalizedRecord.wrappedMasterKey),
     iv: decodeBase64Url(normalizedRecord.wrapIv),
     keyBytes: wrapKey
@@ -799,7 +800,9 @@ function normalizeEncryptedEnvelope(value) {
 }
 
 export function isUserCryptoEncryptedString(value) {
-  return String(value || "").trim().startsWith(USER_CRYPTO_STRING_PREFIX);
+  return String(value || "")
+    .trim()
+    .startsWith(USER_CRYPTO_STRING_PREFIX);
 }
 
 async function encryptEnvelope({ bytes, keyId, kind, masterKey }) {

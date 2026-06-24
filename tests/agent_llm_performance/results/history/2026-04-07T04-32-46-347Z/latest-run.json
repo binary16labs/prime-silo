@@ -11,10 +11,7 @@
       "passed_attempts": 35,
       "total_attempts": 37,
       "attempt_pass_rate": 0.9459,
-      "failed_cases": [
-        "recover_known_file_after_write_error",
-        "repeat_do_it_requires_execution"
-      ],
+      "failed_cases": ["recover_known_file_after_write_error", "repeat_do_it_requires_execution"],
       "cases": [
         {
           "case_id": "page_title_requires_execution",
@@ -2786,9 +2783,7 @@
           "case_path": "tests/agent_llm_performance/cases/weather_omitted_scope.json",
           "history_path": "tests/agent_llm_performance/histories/weather_omitted_scope.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nconst data = await fetch(\"https://wttr.in/?format=j1\").then(r => r.json())\nconst c = data.current_condition?.[0] || {}\nreturn { tempC: c.temp_C, feelsLikeC: c.FeelsLikeC, humidity: c.humidity, desc: c.weatherDesc?.[0]?.value, windKph: c.windspeedKmph }",
           "usage": {
@@ -2867,9 +2862,7 @@
           "case_path": "tests/agent_llm_performance/cases/weather_self_scope_after_indirect_fail.json",
           "history_path": "tests/agent_llm_performance/histories/weather_self_scope_after_indirect_fail.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /navigator\\.geolocation|getCurrentPosition/u"
-          ],
+          "failures": ["missing required pattern: /navigator\\.geolocation|getCurrentPosition/u"],
           "response_type": "thrust",
           "response": "Checking the weather for your location now...\n_____javascript\nconst loc = await space.chat.transient.list().catch(() => null)\nconst where = loc?.currentLocation || loc?.location || loc?.city || loc?.geo?.city\nif (!where) return \"Location unavailable\"\nconst data = await fetch(`https://wttr.in/${encodeURIComponent(where)}?format=j1`).then(r => r.json())\nconst c = data.current_condition?.[0] || {}\nreturn { location: where, tempC: c.temp_C, feelsLikeC: c.FeelsLikeC, humidity: c.humidity, desc: c.weatherDesc?.[0]?.value, windKph: c.windspeedKmph }",
           "usage": {
@@ -3133,9 +3126,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Updating your full name now...\n_____javascript\nconst text = await space.api.fileRead(\"~/user.yaml\", \"utf8\")\nconst updated = text.replace(/^full_name:\\s*.*$/m, \"full_name: Pan Example\")\nreturn await space.api.fileWrite(\"~/user.yaml\", updated)",
           "usage": {
@@ -3170,9 +3161,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_text_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_text_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nconst path = \"~/people.txt\"\nconst text = await space.api.fileRead(path, \"utf8\")\nreturn { path, text }",
           "usage": {
@@ -3245,9 +3234,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_widget_fix_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_widget_fix_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.readWidget(\"snake-game\")",
           "usage": {
@@ -3407,9 +3394,7 @@
           "case_path": "tests/agent_llm_performance/cases/space_navigation_after_take_me_there_uses_open_helper.json",
           "history_path": "tests/agent_llm_performance/histories/space_navigation_after_take_me_there_uses_open_helper.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.spaces.openSpace(\"space-1\")",
           "usage": {
@@ -3444,9 +3429,7 @@
           "case_path": "tests/agent_llm_performance/cases/space_navigation_after_user_push_uses_open_helper.json",
           "history_path": "tests/agent_llm_performance/histories/space_navigation_after_user_push_uses_open_helper.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.spaces.openSpace(\"space-1\")",
           "usage": {
@@ -3796,9 +3779,7 @@
           "case_path": "tests/agent_llm_performance/cases/repeat_do_it_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/repeat_do_it_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.patchWidget(\"snake-game\", { edits: [] })",
           "usage": {
@@ -3868,9 +3849,7 @@
           "case_path": "tests/agent_llm_performance/cases/protocol_nudge_requires_real_thrust.json",
           "history_path": "tests/agent_llm_performance/histories/protocol_nudge_requires_real_thrust.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.patchWidget(\"snake-game\", { edits: [] })",
           "usage": {

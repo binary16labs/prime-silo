@@ -11,7 +11,9 @@ const HOST_PLATFORM_MAP = {
 async function main() {
   const platformKey = HOST_PLATFORM_MAP[process.platform];
   if (!platformKey) {
-    throw new Error(`No desktop packaging host script is configured for platform ${process.platform}.`);
+    throw new Error(
+      `No desktop packaging host script is configured for platform ${process.platform}.`
+    );
   }
 
   await runDesktopPackaging(platformKey);

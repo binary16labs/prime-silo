@@ -95,7 +95,9 @@ function hydrateGroupIndexSnapshot(snapshot = {}) {
         }
       : Object.create(null);
   const errors = Array.isArray(snapshot.errors) ? [...snapshot.errors] : [];
-  const inclusionCycles = Array.isArray(snapshot.inclusionCycles) ? [...snapshot.inclusionCycles] : [];
+  const inclusionCycles = Array.isArray(snapshot.inclusionCycles)
+    ? [...snapshot.inclusionCycles]
+    : [];
 
   function isUserInGroup(username, groupId) {
     const normalizedUsername = normalizeEntityId(username);
@@ -123,7 +125,9 @@ function hydrateGroupIndexSnapshot(snapshot = {}) {
       return false;
     }
 
-    return Array.isArray(groupRecord.memberUsers) && groupRecord.memberUsers.includes(normalizedUsername);
+    return (
+      Array.isArray(groupRecord.memberUsers) && groupRecord.memberUsers.includes(normalizedUsername)
+    );
   }
 
   function getOrderedGroupsForUser(username) {
@@ -135,7 +139,9 @@ function hydrateGroupIndexSnapshot(snapshot = {}) {
   function getManagedGroupsForUser(username) {
     const normalizedUsername = normalizeEntityId(username);
     const userRecord = normalizedUsername ? users[normalizedUsername] || null : null;
-    return userRecord && Array.isArray(userRecord.managedGroups) ? [...userRecord.managedGroups] : [];
+    return userRecord && Array.isArray(userRecord.managedGroups)
+      ? [...userRecord.managedGroups]
+      : [];
   }
 
   return {
@@ -187,7 +193,11 @@ function buildGroupIndexSnapshot(context) {
     let parsedConfig = {};
 
     try {
-      const absolutePath = resolveProjectAbsolutePath(projectRoot, projectPath, context.runtimeParams);
+      const absolutePath = resolveProjectAbsolutePath(
+        projectRoot,
+        projectPath,
+        context.runtimeParams
+      );
       parsedConfig = parseSimpleYaml(fs.readFileSync(absolutePath, "utf8"));
     } catch (error) {
       errors.push({
@@ -197,12 +207,22 @@ function buildGroupIndexSnapshot(context) {
       continue;
     }
 
-    for (const username of readNormalizedList(parsedConfig, "included_users", projectPath, errors)) {
+    for (const username of readNormalizedList(
+      parsedConfig,
+      "included_users",
+      projectPath,
+      errors
+    )) {
       groupRecord.directIncludedUsers.add(username);
       ensureUser(userRecords, username);
     }
 
-    for (const childGroupId of readNormalizedList(parsedConfig, "included_groups", projectPath, errors)) {
+    for (const childGroupId of readNormalizedList(
+      parsedConfig,
+      "included_groups",
+      projectPath,
+      errors
+    )) {
       if (childGroupId === "_all") {
         groupRecord.includesAllUsers = true;
         continue;
@@ -212,12 +232,22 @@ function buildGroupIndexSnapshot(context) {
       groupRecord.directIncludedGroups.add(childGroupId);
     }
 
-    for (const username of readNormalizedList(parsedConfig, "managing_users", projectPath, errors)) {
+    for (const username of readNormalizedList(
+      parsedConfig,
+      "managing_users",
+      projectPath,
+      errors
+    )) {
       groupRecord.directManagingUsers.add(username);
       ensureUser(userRecords, username);
     }
 
-    for (const managerGroupId of readNormalizedList(parsedConfig, "managing_groups", projectPath, errors)) {
+    for (const managerGroupId of readNormalizedList(
+      parsedConfig,
+      "managing_groups",
+      projectPath,
+      errors
+    )) {
       if (managerGroupId === "_all") {
         groupRecord.managedByAllUsers = true;
         continue;
@@ -275,7 +305,9 @@ function buildGroupIndexSnapshot(context) {
     const groupRecord = ensureGroup(groupRecords, groupId);
     const managedByAllUsers =
       groupRecord.managedByAllUsers ||
-      [...groupRecord.directManagingGroups].some((managerGroupId) => groupIncludesAllUsers(managerGroupId));
+      [...groupRecord.directManagingGroups].some((managerGroupId) =>
+        groupIncludesAllUsers(managerGroupId)
+      );
 
     universalManagerCache.set(groupId, managedByAllUsers);
     return managedByAllUsers;
@@ -512,8 +544,4 @@ function buildGroupIndexSnapshot(context) {
   });
 }
 
-export {
-  buildGroupIndexSnapshot,
-  hydrateGroupIndexSnapshot,
-  serializeGroupIndexSnapshot
-};
+export { buildGroupIndexSnapshot, hydrateGroupIndexSnapshot, serializeGroupIndexSnapshot };

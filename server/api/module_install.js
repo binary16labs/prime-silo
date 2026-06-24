@@ -19,11 +19,7 @@ function readRepositoryUrl(context) {
   const payload = readPayload(context);
 
   return String(
-    payload.repoUrl ||
-      payload.repo_url ||
-      payload.repositoryUrl ||
-      payload.repository_url ||
-      ""
+    payload.repoUrl || payload.repo_url || payload.repositoryUrl || payload.repository_url || ""
   ).trim();
 }
 
@@ -68,6 +64,9 @@ export async function post(context) {
       })
     };
   } catch (error) {
-    throw createHttpError(error.message || "Module install failed.", Number(error.statusCode) || 500);
+    throw createHttpError(
+      error.message || "Module install failed.",
+      Number(error.statusCode) || 500
+    );
   }
 }

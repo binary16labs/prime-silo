@@ -1,6 +1,6 @@
 # Prime-Silo — User Guide
 
-> *Plain-English walkthroughs for every UI screen and CLI command.*
+> _Plain-English walkthroughs for every UI screen and CLI command._
 > No prior Benny knowledge required.
 
 ---
@@ -37,10 +37,10 @@ Prime-Silo is a browser-based AI operator platform. You open it in a browser, ch
 
 Two pieces run on your machine:
 
-| Piece | Port | What it does |
-|---|---|---|
-| **Benny runtime** | `:8005` | FastAPI backend — runs manifests, stores data, enforces security |
-| **Shell server** | `:3000` | Node.js server — serves the browser UI and proxies calls to the runtime |
+| Piece             | Port    | What it does                                                            |
+| ----------------- | ------- | ----------------------------------------------------------------------- |
+| **Benny runtime** | `:8005` | FastAPI backend — runs manifests, stores data, enforces security        |
+| **Shell server**  | `:3000` | Node.js server — serves the browser UI and proxies calls to the runtime |
 
 You point your browser at `http://localhost:3000` and work entirely in the browser.
 
@@ -57,11 +57,11 @@ The UI splits into two kinds of surfaces:
 
 ### Prerequisites
 
-| What | Minimum version |
-|---|---|
-| Python | 3.11 |
-| Node.js | 18 |
-| Git | any modern |
+| What               | Minimum version             |
+| ------------------ | --------------------------- |
+| Python             | 3.11                        |
+| Node.js            | 18                          |
+| Git                | any modern                  |
 | PowerShell or bash | included in Windows / macOS |
 
 ### Step 1 — clone
@@ -198,6 +198,7 @@ Send a message — you should get a reply immediately.
 ### 4b. Local model (Lemonade / Ollama)
 
 Local models (running on `localhost`) are automatically detected. The app:
+
 - Skips the API key requirement
 - Replaces the full operator system prompt with a minimal one compatible with local models
 - Adds `enable_thinking: false` to suppress Qwen3 thinking-mode tokens
@@ -289,6 +290,7 @@ Agent: [lists spaces, then opens it]
 ```
 
 **Tips:**
+
 - The agent remembers the full conversation history in the session.
 - If the agent says "Protocol correction: your previous response was empty" and loops, the model endpoint is likely misconfigured — re-check §4.
 - Asking "what can you do?" gives a live demo from the current page.
@@ -300,11 +302,13 @@ Agent: [lists spaces, then opens it]
 This page lists every swarm manifest registered with the runtime and draws it as a directed acyclic graph (DAG).
 
 **What you see:**
+
 - A dropdown of all registered manifests
 - A DAG showing tasks as nodes, dependencies as edges, wave layers as columns
 - A summary bar: task count, edge count, wave count
 
 **To use it:**
+
 1. Navigate to the route above (bookmark it)
 2. Pick a manifest from the dropdown
 3. The DAG renders. Nodes are coloured by wave (execution order left → right)
@@ -322,6 +326,7 @@ Paste this URL and the page loads directly to that manifest.
 You haven't created any manifests yet. See §6b to plan one with the CLI.
 
 **What this page is NOT for:**
+
 - Editing manifests (read-only)
 - Running manifests (use `benny run` or the Runs Explorer)
 - Anything agent-authored (the agent cannot write here — this is the deterministic zone)
@@ -333,6 +338,7 @@ You haven't created any manifests yet. See §6b to plan one with the CLI.
 Shows executed runs and overlays their execution status onto the manifest DAG.
 
 **What you see:**
+
 - A dropdown of runs (active runs float to the top)
 - The manifest DAG with colour-coded task status:
   - 🟢 **completed** — task finished successfully
@@ -342,6 +348,7 @@ Shows executed runs and overlays their execution status onto the manifest DAG.
 - Run metadata: status, duration, start/end times
 
 **To use it:**
+
 1. Navigate to the route
 2. Pick a run from the dropdown (most recent active runs first)
 3. The DAG renders with live status colours
@@ -358,12 +365,12 @@ Refresh the page (or change and re-select the run in the dropdown) to get the la
 
 **Reading the run summary:**
 
-| Field | What it means |
-|---|---|
-| Status | Overall run state |
+| Field    | What it means                        |
+| -------- | ------------------------------------ |
+| Status   | Overall run state                    |
 | Duration | Wall-clock time from start to finish |
-| Tasks | How many nodes have a recorded state |
-| Errors | How many task errors were recorded |
+| Tasks    | How many nodes have a recorded state |
+| Errors   | How many task errors were recorded   |
 
 ### 5d. Widget canvas
 
@@ -371,18 +378,18 @@ The Review-zone canvas lets the agent compose multi-widget layouts for post-run 
 
 **Available widgets:**
 
-| Widget | What it shows |
-|---|---|
-| `text.markdown` | Markdown analyst report block |
-| `run.reasoning_trace` | Step-by-step LLM reasoning from a run |
-| `run.lineage_timeline` | Process / skill / data lineage events on a timeline |
-| `run.drilldown_table` | CLP-annotated tabular rows from a Pypes stage |
-| `run.frame_inspector` | Single cognitive frame — typed body + audit hash |
-| `kg3d.synoptic_web` | Knowledge graph (2D SVG or 3D force-graph) |
-| `codegraph.canvas` | Code graph: files, classes, functions, dependencies |
-| `dag.canvas` | Manifest / pipeline / workflow DAG *(deterministic zone only)* |
+| Widget                   | What it shows                                                                                                         |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `text.markdown`          | Markdown analyst report block                                                                                         |
+| `run.reasoning_trace`    | Step-by-step LLM reasoning from a run                                                                                 |
+| `run.lineage_timeline`   | Process / skill / data lineage events on a timeline                                                                   |
+| `run.drilldown_table`    | CLP-annotated tabular rows from a Pypes stage                                                                         |
+| `run.frame_inspector`    | Single cognitive frame — typed body + audit hash                                                                      |
+| `kg3d.synoptic_web`      | Knowledge graph (2D SVG or 3D force-graph)                                                                            |
+| `codegraph.canvas`       | Code graph: files, classes, functions, dependencies                                                                   |
+| `dag.canvas`             | Manifest / pipeline / workflow DAG _(deterministic zone only)_                                                        |
 | `memoray.overview_cards` | Memory-graph Command Center: ecosystem totals, system metrics, capabilities, worktrees, file heatmap, recent sessions |
-| `memoray.lineage_graph` | One agent session's lineage (2D SVG or pluggable 3D renderer) |
+| `memoray.lineage_graph`  | One agent session's lineage (2D SVG or pluggable 3D renderer)                                                         |
 
 **Using the 3D renderer:**
 
@@ -395,6 +402,7 @@ The Bridge is the recommended way in: one page that unifies the whole mesh so yo
 **Layout:** a mode rail on the left, one stage in the middle, and **Benny** (the onscreen agent) in the dock on the right. A **zen** toggle (top-right) collapses both rails to leave just the stage.
 
 **The six modes:**
+
 - **Pulse** — the landing: Command Center cards, the integration conformance dot, and the **Lifelog** activity feed (your sessions, artifacts, and git commits across every workspace, newest first).
 - **Memory** — pick a session, see its lineage graph.
 - **Documents** — pick a workspace, see its files, then **Ingest → triples** turns the documents into the knowledge graph (rendered inline); **Correlate w/ code** links concepts to the code graph. Deep-links to the full file explorer for heavy lifting.
@@ -413,12 +421,13 @@ The memory graph is the third graph of the cognitive mesh — your agent session
 **How to reach it:** open `http://localhost:3000/#/_prime_silo/memory`. `scripts/dev.ps1` auto-boots the Memo-Ray server when it's enabled and the checkout exists beside prime-silo (or `MEMORAY_DIR` is set).
 
 **What you see:**
+
 - **Command Center cards** — totals, system metrics, capabilities, git worktrees, a file-touch heatmap, and recent sessions.
 - **Session list → lineage graph** — pick a session; its lineage renders left-to-right (Session → input → thought → tool call → artifact), files as rounded nodes. Click a node to inspect its content and open the file.
 - **Search / Sync now / Zen mode** — omnibar search, a manual delta-sync, and a link out to Memo-Ray's full client.
 - **Conformance strip** — green when the integration matches its declared manifest; "drift" with a pointer to `node space memory audit` when it doesn't.
 
-**Configuring it:** the wizard's *Services* step has a Memo-Ray toggle and endpoint field. Under the hood the shell proxies `/api/memoray` to `MEMORAY_BASE_URL` (or the wizard manifest's `memoray.base_url`). Turn it off with `node space set MEMORAY_ENABLED=false`.
+**Configuring it:** the wizard's _Services_ step has a Memo-Ray toggle and endpoint field. Under the hood the shell proxies `/api/memoray` to `MEMORAY_BASE_URL` (or the wizard manifest's `memoray.base_url`). Turn it off with `node space set MEMORAY_ENABLED=false`.
 
 **If Memo-Ray isn't running:** the page shows a friendly screen with the exact boot command — never a raw error.
 
@@ -672,7 +681,7 @@ if (!result.valid) {
   throw new Error("Integrity check failed.");
 }
 
-renderLayout(result.view);  // safe to render
+renderLayout(result.view); // safe to render
 ```
 
 Or via curl:
@@ -780,6 +789,7 @@ Calls through the shell proxy at `:3000` (e.g. `/api/runtime/...`) have the key 
 ### `loadPinnedView` returns `valid: false`
 
 One of:
+
 - The file was hand-edited after pinning
 - `BENNY_HMAC_KEY` changed between pin and load
 
@@ -860,4 +870,4 @@ for f in tests/*_test.mjs; do node "$f" || echo "FAIL: $f"; done
 
 ---
 
-*Prime-Silo — engineered by Binary 16.*
+_Prime-Silo — engineered by Binary 16._

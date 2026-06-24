@@ -17,9 +17,11 @@ globalThis.dashboardWelcomeTopbarToggle = function dashboardWelcomeTopbarToggle(
     savingPreference: false,
 
     async init() {
-      this.dashboardWelcomeHiddenChangeCleanup = subscribeDashboardWelcomeHiddenChange((nextHidden) => {
-        this.hidden = nextHidden;
-      });
+      this.dashboardWelcomeHiddenChangeCleanup = subscribeDashboardWelcomeHiddenChange(
+        (nextHidden) => {
+          this.hidden = nextHidden;
+        }
+      );
 
       try {
         const prefs = await loadDashboardPrefs();

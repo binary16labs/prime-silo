@@ -2,10 +2,7 @@ import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 import { recordAppPathMutations } from "../customware/git_history.js";
 import { normalizeEntityId } from "../customware/layout.js";
-import {
-  SINGLE_USER_APP_USERNAME,
-  isSingleUserApp
-} from "../utils/runtime_params.js";
+import { SINGLE_USER_APP_USERNAME, isSingleUserApp } from "../utils/runtime_params.js";
 import { createEmptyUserIndex } from "./user_index.js";
 import { loadAuthKeys } from "./keys_manage.js";
 import {
@@ -97,7 +94,8 @@ function serializeCookie(name, value, attributes = {}) {
 }
 
 function createSessionCookieHeader(sessionToken, username = "") {
-  const cookieValue = createSessionCookieValue(username, sessionToken) || String(sessionToken || "");
+  const cookieValue =
+    createSessionCookieValue(username, sessionToken) || String(sessionToken || "");
 
   return serializeCookie(SESSION_COOKIE_NAME, cookieValue, {
     HttpOnly: true,
@@ -226,7 +224,9 @@ function normalizeHeaderValue(value, maxLength) {
 }
 
 function getRemoteAddress(req) {
-  const forwardedFor = String(req?.headers?.["x-forwarded-for"] || "").split(",")[0].trim();
+  const forwardedFor = String(req?.headers?.["x-forwarded-for"] || "")
+    .split(",")[0]
+    .trim();
   const remoteAddress = forwardedFor || String(req?.socket?.remoteAddress || "");
   return normalizeHeaderValue(remoteAddress, REMOTE_ADDRESS_MAX_LENGTH);
 }
@@ -237,7 +237,9 @@ function getUserAgentFromHeaders(headers) {
 
 function resolveRequestInfo(options = {}) {
   const requestInfo =
-    options.requestInfo && typeof options.requestInfo === "object" && !Array.isArray(options.requestInfo)
+    options.requestInfo &&
+    typeof options.requestInfo === "object" &&
+    !Array.isArray(options.requestInfo)
       ? options.requestInfo
       : null;
 
@@ -392,7 +394,10 @@ function normalizeStoredSessionRecord(options = {}) {
   };
 }
 
-function createPersistedSessionRecord({ req, requestInfo, sessionId, sessionVerifier, username }, authKeys) {
+function createPersistedSessionRecord(
+  { req, requestInfo, sessionId, sessionVerifier, username },
+  authKeys
+) {
   const resolvedRequestInfo = resolveRequestInfo({
     req,
     requestInfo
@@ -487,7 +492,9 @@ export function createAuthService(options = {}) {
         };
   const enableInitialization = options.enableInitialization !== false;
   const ensureUserAuthState =
-    typeof options.ensureUserAuthState === "function" ? options.ensureUserAuthState : async () => {};
+    typeof options.ensureUserAuthState === "function"
+      ? options.ensureUserAuthState
+      : async () => {};
   const loadedAuthStateUsers = new Set();
   const normalizedAuthUsers = new Set();
   let initialized = false;
@@ -516,24 +523,29 @@ export function createAuthService(options = {}) {
     try {
       let changed = false;
       const changedProjectPaths = new Set();
-      const passwordRecord = readUserPasswordVerifier(projectRoot, normalizedUsername, runtimeParams);
+      const passwordRecord = readUserPasswordVerifier(
+        projectRoot,
+        normalizedUsername,
+        runtimeParams
+      );
       const currentLogins = readUserLogins(projectRoot, normalizedUsername, runtimeParams);
       const passwordRecordInfo = inspectPasswordRecord(passwordRecord);
       const migratedPasswordRecord =
         passwordRecordInfo?.format === "sealed"
           ? null
           : migratePasswordVerifierRecord(passwordRecord, authKeys);
-      const sanitizedLogins = sanitizeStoredLogins(
-        currentLogins,
-        normalizedUsername,
-        authKeys
-      );
+      const sanitizedLogins = sanitizeStoredLogins(currentLogins, normalizedUsername, authKeys);
 
       if (
         migratedPasswordRecord &&
         JSON.stringify(passwordRecord || {}) !== JSON.stringify(migratedPasswordRecord)
       ) {
-        writeUserPasswordVerifier(projectRoot, normalizedUsername, migratedPasswordRecord, runtimeParams);
+        writeUserPasswordVerifier(
+          projectRoot,
+          normalizedUsername,
+          migratedPasswordRecord,
+          runtimeParams
+        );
         recordAppPathMutations(
           {
             projectRoot,
@@ -800,7 +812,13 @@ export function createAuthService(options = {}) {
     };
   }
 
-  async function completeLogin({ challengeToken, clientProof, req, requestInfo, userCryptoProvisioning }) {
+  async function completeLogin({
+    challengeToken,
+    clientProof,
+    req,
+    requestInfo,
+    userCryptoProvisioning
+  }) {
     if (isSingleUserApp(runtimeParams)) {
       throw new Error("Password login is disabled in single-user mode.");
     }
@@ -946,14 +964,19 @@ export function createAuthService(options = {}) {
     const authenticatedUser = getAuthenticatedUser(requestUser);
     const normalizedUsername = normalizeEntityId(authenticatedUser.username);
     const verifier = normalizedUsername ? readCurrentPasswordVerifier(normalizedUsername) : null;
-    const userCryptoState = normalizedUsername ? readCurrentUserCryptoState(normalizedUsername) : null;
+    const userCryptoState = normalizedUsername
+      ? readCurrentUserCryptoState(normalizedUsername)
+      : null;
 
     if (!verifier || !verifyPassword(currentPassword, verifier)) {
       throw createStatusError("Current password is incorrect.", 401);
     }
 
     if (userCryptoState?.status === USER_CRYPTO_STATUS_READY && !userCryptoRecord) {
-      throw createStatusError("Current login must rewrap user crypto before changing the password.", 400);
+      throw createStatusError(
+        "Current login must rewrap user crypto before changing the password.",
+        400
+      );
     }
 
     setUserPassword(projectRoot, normalizedUsername, newPassword, {

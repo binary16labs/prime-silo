@@ -9,7 +9,9 @@ function ensureWebCrypto() {
     typeof globalThis.crypto?.subtle?.encrypt !== "function" ||
     typeof globalThis.crypto?.subtle?.decrypt !== "function"
   ) {
-    throw new Error("This browser does not expose the Web Crypto APIs required for protected cloud shares.");
+    throw new Error(
+      "This browser does not expose the Web Crypto APIs required for protected cloud shares."
+    );
   }
 }
 
@@ -38,7 +40,9 @@ function toBase64Url(bytes) {
 }
 
 function fromBase64Url(value) {
-  const normalized = String(value || "").replace(/-/gu, "+").replace(/_/gu, "/");
+  const normalized = String(value || "")
+    .replace(/-/gu, "+")
+    .replace(/_/gu, "/");
   const padding = normalized.length % 4 === 0 ? "" : "=".repeat(4 - (normalized.length % 4));
   const decoded = atob(normalized + padding);
   return Uint8Array.from(decoded, (char) => char.charCodeAt(0));

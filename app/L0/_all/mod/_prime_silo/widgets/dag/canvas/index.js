@@ -210,7 +210,10 @@ function svgSizeFor(layout) {
   }
   const width = MARGIN * 2 + cols * NODE_W + Math.max(0, cols - 1) * COL_GAP;
   const height = MARGIN * 2 + maxRows * NODE_H + Math.max(0, maxRows - 1) * ROW_GAP;
-  return { width: Math.max(width, NODE_W + MARGIN * 2), height: Math.max(height, NODE_H + MARGIN * 2) };
+  return {
+    width: Math.max(width, NODE_W + MARGIN * 2),
+    height: Math.max(height, NODE_H + MARGIN * 2)
+  };
 }
 
 export function renderEdgePath(srcPos, tgtPos) {
@@ -225,13 +228,14 @@ export function renderEdgePath(srcPos, tgtPos) {
 function renderNode(node, pos, mode, selected) {
   const accent = pickAccent(node, mode);
   const label = node.label || node.id;
-  const subline = mode === "manifest" && typeof node.wave === "number"
-    ? `Wave ${node.wave}`
-    : mode === "pipeline" && node.stage
-      ? `Stage: ${node.stage}`
-      : mode === "workflow" && node.kind
-        ? node.kind
-        : node.group || "";
+  const subline =
+    mode === "manifest" && typeof node.wave === "number"
+      ? `Wave ${node.wave}`
+      : mode === "pipeline" && node.stage
+        ? `Stage: ${node.stage}`
+        : mode === "workflow" && node.kind
+          ? node.kind
+          : node.group || "";
   const status = node.status ? String(node.status) : "";
   const selectedAttr = selected ? ` data-selected="true"` : "";
   return `
@@ -333,7 +337,9 @@ export function createDagCanvasWidget(host, initialProps, options = {}) {
         delete host.dataset.widgetState;
         delete host.dataset.authorityRejected;
       },
-      get layout() { return null; }
+      get layout() {
+        return null;
+      }
     };
   }
 

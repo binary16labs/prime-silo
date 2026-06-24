@@ -4,7 +4,13 @@
     <script type="module" src="/mod/_core/dashboard_welcome/dashboard-welcome.js"></script>
   </head>
   <body>
-    <section class="dashboard-welcome" x-data="dashboardWelcome()" x-init="init()" x-destroy="destroy()" x-cloak>
+    <section
+      class="dashboard-welcome"
+      x-data="dashboardWelcome()"
+      x-init="init()"
+      x-destroy="destroy()"
+      x-cloak
+    >
       <template x-if="ready && !hidden">
         <div class="space-card dashboard-welcome-panel">
           <button
@@ -67,7 +73,9 @@
                       <span class="dashboard-welcome-example-label" x-text="example.title"></span>
 
                       <span class="dashboard-welcome-example-arrow" aria-hidden="true">
-                        <x-icon x-text="installingExampleId === example.id ? 'hourglass_top' : 'arrow_forward'"></x-icon>
+                        <x-icon
+                          x-text="installingExampleId === example.id ? 'hourglass_top' : 'arrow_forward'"
+                        ></x-icon>
                       </span>
                     </button>
                   </template>

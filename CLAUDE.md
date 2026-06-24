@@ -23,6 +23,7 @@ Prime-Silo is a deterministic execution platform (Benny runtime backend + Space-
 ### 1. Agent Authority (Strict Boundaries)
 
 **You CAN:**
+
 - ✅ Read manifests from L1/ and L2/
 - ✅ Read past runs and lineage
 - ✅ Query system state (home directory, config, graphs)
@@ -33,6 +34,7 @@ Prime-Silo is a deterministic execution platform (Benny runtime backend + Space-
 - ✅ Plan manifests (advisory, not executed)
 
 **You CANNOT:**
+
 - ❌ Execute manifests directly (`benny run` / `benny pypes run`)
 - ❌ Mutate files in L1/ or L2/ (requires human signature)
 - ❌ Delete or modify run history
@@ -47,29 +49,34 @@ See **[AGENT-AWARENESS.md](AGENT-AWARENESS.md)** for complete details.
 ### 2. System State Queries
 
 **Home Directory (Electron desktop):**
+
 ```javascript
 const { homeDir } = await ipcRenderer.invoke("space-desktop:get-home-directory");
 // Returns: "/path/to/workspace" or null
 ```
 
 **Configuration:**
+
 ```bash
 fetch("/api/config").then(r => r.json())  // All runtime config
 ```
 
 **Registered Manifests:**
+
 ```bash
 node space registry           # List all manifests
 fetch("/api/manifests")       # Via API
 ```
 
 **Run History:**
+
 ```bash
 benny runs ls --limit 10      # Past 10 runs
 fetch("/api/runs?limit=10")   # Via API
 ```
 
 **Memory Graph:**
+
 ```bash
 node space memory status      # Check if Memo-Ray connected
 node space memory search "<query>"  # Search sessions
@@ -80,6 +87,7 @@ node space memory search "<query>"  # Search sessions
 See **[AGENT-AWARENESS.md](AGENT-AWARENESS.md)** for complete API reference.
 
 **Key endpoints:**
+
 - `/api/config` — Runtime configuration
 - `/api/manifests` — Registered manifests
 - `/api/runs` — Run history
@@ -90,18 +98,22 @@ See **[AGENT-AWARENESS.md](AGENT-AWARENESS.md)** for complete API reference.
 ### 4. Skills Available
 
 **benny-pilot** — Manifest and run introspection
+
 ```javascript
 const pilot = await import("/mod/_prime_silo/memoray_client/ext/skills/benny-pilot/benny-pilot.js");
 // Methods: queryManifests(), inspectRun(), etc.
 ```
 
 **memory-recall** — Session history
+
 ```javascript
-const recall = await import("/mod/_prime_silo/memoray_client/ext/skills/memory-recall/memory-recall.js");
+const recall =
+  await import("/mod/_prime_silo/memoray_client/ext/skills/memory-recall/memory-recall.js");
 // Methods: search(), getSessionContext(), etc.
 ```
 
 **project-guide** — Project-specific knowledge
+
 ```javascript
 // Available when working in the app
 // Provides project context and suggestions
@@ -113,25 +125,27 @@ const recall = await import("/mod/_prime_silo/memoray_client/ext/skills/memory-r
 
 ### Finding What You Need
 
-| Question | Go to |
-|----------|-------|
-| "How do I set up the desktop app?" | [QUICKSTART-EXE.md](QUICKSTART-EXE.md) |
-| "What CLI commands are available?" | [CLI.md](CLI.md) |
-| "What can I do as an agent?" | [AGENT-AWARENESS.md](AGENT-AWARENESS.md) |
-| "Where is everything documented?" | [INDEX.md](INDEX.md) |
-| "How does the release process work?" | [DEVOPS.md](DEVOPS.md) |
-| "What's the project architecture?" | [AGENTS.md](AGENTS.md) + [README.md](README.md) |
-| "How do I use the CLI?" | [GUIDE.md](GUIDE.md) |
+| Question                             | Go to                                           |
+| ------------------------------------ | ----------------------------------------------- |
+| "How do I set up the desktop app?"   | [QUICKSTART-EXE.md](QUICKSTART-EXE.md)          |
+| "What CLI commands are available?"   | [CLI.md](CLI.md)                                |
+| "What can I do as an agent?"         | [AGENT-AWARENESS.md](AGENT-AWARENESS.md)        |
+| "Where is everything documented?"    | [INDEX.md](INDEX.md)                            |
+| "How does the release process work?" | [DEVOPS.md](DEVOPS.md)                          |
+| "What's the project architecture?"   | [AGENTS.md](AGENTS.md) + [README.md](README.md) |
+| "How do I use the CLI?"              | [GUIDE.md](GUIDE.md)                            |
 
 ### Common Tasks
 
 **Check current version:**
+
 ```bash
 node space version
 cat package.json | jq .version
 ```
 
 **Explore workspace:**
+
 ```bash
 # Read config
 fetch("/api/config").then(r => r.json())
@@ -144,6 +158,7 @@ await ipcRenderer.invoke("space-desktop:get-home-directory")
 ```
 
 **Analyze a run:**
+
 ```bash
 # Get run details
 benny runs inspect <run_id>
@@ -156,6 +171,7 @@ benny pypes agent-report <run_id>
 ```
 
 **Create a draft:**
+
 ```javascript
 // Write to sandbox
 const draft = {
@@ -178,6 +194,7 @@ fetch("/api/files/agent_sandbox/views/analysis.draft.view", {
 **If you need to create a release, see [DEVOPS.md](DEVOPS.md).**
 
 Quick version:
+
 1. Make sure all changes are committed to main
 2. Run: `node scripts/manage-release.js [patch|minor|major]`
 3. Push commits: `git push origin main`
@@ -220,24 +237,25 @@ prime-silo/
 
 ## Key Files You'll Touch
 
-| File | Purpose | When |
-|------|---------|------|
-| `package.json` | Version source | Release time (auto-updated) |
-| `README.md` | Project intro | User-facing updates |
-| `CLAUDE.md` | Agent navigation | Meta/handoff updates |
-| `AGENTS.md` | Architecture rules | Major decisions |
-| `DEVOPS.md` | Release process | Release time reference |
-| `.github/workflows/release-desktop.yml` | Build pipeline | Understanding CI/CD |
-| `scripts/manage-release.js` | Release automation | Actually releasing |
+| File                                    | Purpose            | When                        |
+| --------------------------------------- | ------------------ | --------------------------- |
+| `package.json`                          | Version source     | Release time (auto-updated) |
+| `README.md`                             | Project intro      | User-facing updates         |
+| `CLAUDE.md`                             | Agent navigation   | Meta/handoff updates        |
+| `AGENTS.md`                             | Architecture rules | Major decisions             |
+| `DEVOPS.md`                             | Release process    | Release time reference      |
+| `.github/workflows/release-desktop.yml` | Build pipeline     | Understanding CI/CD         |
+| `scripts/manage-release.js`             | Release automation | Actually releasing          |
 
 ---
 
 ## Common Patterns
 
 ### Reading System State
+
 ```javascript
 // Get home directory
-const config = await fetch("/api/config").then(r => r.json());
+const config = await fetch("/api/config").then((r) => r.json());
 const homeDir = config.customware_path;
 
 // Or (in Electron):
@@ -245,6 +263,7 @@ const { homeDir } = await ipcRenderer.invoke("space-desktop:get-home-directory")
 ```
 
 ### Creating Analysis Drafts
+
 ```javascript
 // 1. Get a run
 const runs = await fetch("/api/runs?limit=1").then(r => r.json());
@@ -268,6 +287,7 @@ console.log("Draft saved. Waiting for human review...");
 ```
 
 ### Querying Lineage
+
 ```bash
 # Full lineage for a run
 benny runs inspect <run_id>
@@ -280,6 +300,7 @@ fetch("/api/runs/<run_id>/lineage").then(r => r.json())
 ```
 
 ### Planning (Advisory Only)
+
 ```bash
 # AI-generate a manifest (doesn't execute)
 benny pypes plan "transform data from JSON to Parquet" --save
@@ -293,21 +314,25 @@ benny pypes plan "transform data from JSON to Parquet" --save
 ## Troubleshooting
 
 ### "Home not configured"
+
 - User needs to right-click system tray icon
 - Select "Configure Home Directory..."
 - Choose a folder
 
 ### "Can't execute manifest"
+
 - Check if it's in deterministic zone (read-only for agents)
 - Only humans can execute manifests
 - You can plan them (advisory) but not run them
 
 ### "Memory graph not connected"
+
 - Check if Memo-Ray is running
 - Verify MEMORAY_BASE_URL is set
 - Query `/api/integration_audit?service=memoray`
 
 ### "API endpoint not found"
+
 - Check if service is running (`node space serve`)
 - Verify `/api/config` returns valid config
 - Check proxy configuration
@@ -334,6 +359,7 @@ fetch("/api/config")
 ```
 
 Then update this file (CLAUDE.md) with:
+
 - Current version
 - What was accomplished
 - What needs attention next
@@ -343,11 +369,13 @@ Then update this file (CLAUDE.md) with:
 ## Resources
 
 **Official Docs:**
+
 - [Prime-Silo GitHub](https://github.com/binary16labs/prime-silo)
 - [Benny (runtime)](https://github.com/skybluecycology/benny)
 - [Space-Agent (shell)](https://github.com/agent0ai/space-agent)
 
 **This Project:**
+
 - [README.md](README.md) — Project overview
 - [INDEX.md](INDEX.md) — All documentation
 - [AGENTS.md](AGENTS.md) — Architecture contracts

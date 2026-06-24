@@ -6,11 +6,13 @@ description: Read the supplemental project documentation module
 Use this skill when you need project orientation before editing or answering architecture questions.
 
 helper
+
 - Import `/mod/_core/documentation/documentation.js`
 - `read("path/to/file.md")` reads a nested markdown doc relative to `docs/`
 - `url("path/to/file.md")` builds the resolved `/mod/...` URL for a doc file
 
 workflow
+
 - Start with the built-in documentation index below unless you already know the exact doc path
 - Use one focused `read("path/to/file.md")` call instead of loading many large docs blindly
 - Treat `/README.md` as the public product source of truth for the project pitch, quick starts, release links, community links, and DeepWiki discovery
@@ -23,6 +25,7 @@ workflow
 - When you add, remove, rename, or substantially repurpose a doc file, update this skill's in-file index in the same session
 
 recommended starting points
+
 - overall system shape: `architecture/overview.md`
 - desktop host or packaging flow: `architecture/desktop-host-and-packaging.md`
 - documentation rules: `architecture/documentation-system.md`
@@ -68,6 +71,6 @@ cli/commands-and-runtime-params.md|Commands And Runtime Params|`space.js`, comma
 
 examples
 Reading the frontend runtime docs
-_____javascript
-const documentation = await import("/mod/_core/documentation/documentation.js")
+**\_**javascript
+const documentation = await import("/mod/\_core/documentation/documentation.js")
 return await documentation.read("app/runtime-and-layers.md")

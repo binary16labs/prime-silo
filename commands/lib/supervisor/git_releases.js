@@ -45,7 +45,12 @@ function buildGitAuthConfigArgs(remoteUrl, env = process.env) {
 }
 
 function runProcess(command, args, options = {}) {
-  const { cwd, env = process.env, logPrefix = "", timeoutMs = RELEASE_COMMAND_TIMEOUT_MS } = options;
+  const {
+    cwd,
+    env = process.env,
+    logPrefix = "",
+    timeoutMs = RELEASE_COMMAND_TIMEOUT_MS
+  } = options;
 
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
@@ -136,7 +141,9 @@ function runProcess(command, args, options = {}) {
 
       const label = signal ? `signal ${signal}` : `code ${code}`;
       const detail = (stderr || stdout || "").trim();
-      rejectOnce(new Error(`${command} ${args.join(" ")} exited with ${label}${detail ? `: ${detail}` : ""}`));
+      rejectOnce(
+        new Error(`${command} ${args.join(" ")} exited with ${label}${detail ? `: ${detail}` : ""}`)
+      );
     });
   });
 }
@@ -179,9 +186,13 @@ async function readLocalConfig(projectRoot, key) {
 }
 
 async function readOriginDefaultBranch(projectRoot) {
-  const refName = await tryReadProcess("git", ["symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"], {
-    cwd: projectRoot
-  });
+  const refName = await tryReadProcess(
+    "git",
+    ["symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"],
+    {
+      cwd: projectRoot
+    }
+  );
   const prefix = `${DEFAULT_REMOTE_NAME}/`;
 
   if (!refName.startsWith(prefix)) {
@@ -216,7 +227,12 @@ async function resolveSourceBranch(projectRoot, requestedBranchName) {
   );
 }
 
-async function resolveSourceRemoteUrl(projectRoot, requestedRemoteUrl, runtimeArgs = [], env = process.env) {
+async function resolveSourceRemoteUrl(
+  projectRoot,
+  requestedRemoteUrl,
+  runtimeArgs = [],
+  env = process.env
+) {
   return resolveConfiguredUpdateRemoteUrl({
     env,
     explicitRemoteUrl: requestedRemoteUrl,
@@ -240,7 +256,13 @@ async function resolveUpdateSource(options) {
 async function readRemoteBranchRevision({ branchName, projectRoot, remoteUrl }) {
   const output = await readProcess(
     "git",
-    [...buildGitAuthConfigArgs(remoteUrl), "ls-remote", "--heads", remoteUrl, `refs/heads/${branchName}`],
+    [
+      ...buildGitAuthConfigArgs(remoteUrl),
+      "ls-remote",
+      "--heads",
+      remoteUrl,
+      `refs/heads/${branchName}`
+    ],
     {
       cwd: projectRoot,
       timeoutMs: REMOTE_CHECK_TIMEOUT_MS
@@ -327,13 +349,7 @@ async function cloneRelease({ branchName, env, remoteUrl, revision, targetDir, t
 }
 
 async function ensureReleaseForRevision(options) {
-  const {
-    branchName,
-    env,
-    releasesDir,
-    remoteUrl,
-    revision
-  } = options;
+  const { branchName, env, releasesDir, remoteUrl, revision } = options;
   const shortName = shortRevision(revision);
   const targetDir = path.join(releasesDir, shortName);
   const metadata = await readReleaseMetadata(targetDir);
@@ -372,10 +388,12 @@ async function ensureReleaseForRevision(options) {
       tempDir
     });
   } catch (error) {
-    await fs.rm(tempDir, {
-      force: true,
-      recursive: true
-    }).catch(() => {});
+    await fs
+      .rm(tempDir, {
+        force: true,
+        recursive: true
+      })
+      .catch(() => {});
     throw error;
   }
 

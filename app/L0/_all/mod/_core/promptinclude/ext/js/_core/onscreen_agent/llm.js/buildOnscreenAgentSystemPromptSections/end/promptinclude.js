@@ -13,16 +13,18 @@ export default async function injectPromptIncludeSystemPromptSection(hookContext
     return;
   }
 
-  const promptIncludeSystemPromptItems = await buildPromptIncludeSystemPromptItems().catch((error) => {
-    console.error("Unable to build prompt include system prompt sections.", error);
-    return {
-      [PROMPT_INCLUDE_SYSTEM_ITEM_KEY]: {
-        order: PROMPT_INCLUDE_SYSTEM_ITEM_ORDER,
-        trimAllowed: false,
-        value: buildPromptIncludeSystemPromptSection()
-      }
-    };
-  });
+  const promptIncludeSystemPromptItems = await buildPromptIncludeSystemPromptItems().catch(
+    (error) => {
+      console.error("Unable to build prompt include system prompt sections.", error);
+      return {
+        [PROMPT_INCLUDE_SYSTEM_ITEM_KEY]: {
+          order: PROMPT_INCLUDE_SYSTEM_ITEM_ORDER,
+          trimAllowed: false,
+          value: buildPromptIncludeSystemPromptSection()
+        }
+      };
+    }
+  );
 
   if (!Object.keys(promptIncludeSystemPromptItems).length) {
     return;
@@ -31,5 +33,8 @@ export default async function injectPromptIncludeSystemPromptSection(hookContext
   promptContext.promptIncludeSystemPromptItems = {
     ...promptIncludeSystemPromptItems
   };
-  promptContext.systemItems = mergePromptItemMaps(promptContext.systemItems, promptIncludeSystemPromptItems);
+  promptContext.systemItems = mergePromptItemMaps(
+    promptContext.systemItems,
+    promptIncludeSystemPromptItems
+  );
 }

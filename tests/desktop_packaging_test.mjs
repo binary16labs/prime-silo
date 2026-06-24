@@ -7,10 +7,7 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
 import { createServerBootstrap } from "../server/app.js";
-import {
-  AUTH_DATA_DIR_ENV_NAME,
-  buildAuthDataDir
-} from "../server/lib/auth/keys_manage.js";
+import { AUTH_DATA_DIR_ENV_NAME, buildAuthDataDir } from "../server/lib/auth/keys_manage.js";
 
 const require = createRequire(import.meta.url);
 const {
@@ -129,10 +126,7 @@ test("packaged desktop updater keeps the stock Windows NSIS installer arguments"
     resolveWindowsUpdaterInstallerArgs({
       autoRunAppAfterInstall: true
     }),
-    [
-      "--updated",
-      "--force-run"
-    ]
+    ["--updated", "--force-run"]
   );
 });
 
@@ -142,7 +136,10 @@ test("packaged desktop updater keeps a stable persistent log path under packaged
       platform: "win32",
       userDataPath: String.raw`C:\Users\alice\AppData\Roaming\Space Agent`
     }),
-    path.win32.join(String.raw`C:\Users\alice\AppData\Roaming\Space Agent`, DESKTOP_UPDATER_LOG_RELATIVE_PATH)
+    path.win32.join(
+      String.raw`C:\Users\alice\AppData\Roaming\Space Agent`,
+      DESKTOP_UPDATER_LOG_RELATIVE_PATH
+    )
   );
 });
 
@@ -172,8 +169,14 @@ test("Windows NSIS installer hardens running-app shutdown and logs installer pro
   assert.match(installerInclude, /!macro customCheckAppRunning/);
   assert.match(installerInclude, /Installer checking for running app processes under \$INSTDIR\./);
   assert.match(installerInclude, /Installer is force-closing remaining app processes\./);
-  assert.match(installerInclude, /Installer confirmed that no app processes remain under \$INSTDIR\./);
-  assert.match(installerInclude, /Installer could not verify \$INSTDIR\\\$\{APP_EXECUTABLE_FILENAME\} after file copy\./);
+  assert.match(
+    installerInclude,
+    /Installer confirmed that no app processes remain under \$INSTDIR\./
+  );
+  assert.match(
+    installerInclude,
+    /Installer could not verify \$INSTDIR\\\$\{APP_EXECUTABLE_FILENAME\} after file copy\./
+  );
   assert.match(installerInclude, /\$APPDATA\\\$\{APP_PACKAGE_NAME\}\\logs/);
   assert.match(installerInclude, /\$APPDATA\\Agent One\\logs/);
 });
@@ -237,7 +240,10 @@ test("packaged desktop updater detects Windows metadata that is missing the curr
   };
 
   assert.equal(findDesktopWindowsReleaseFile(armOnlyInfo, "x64"), null);
-  assert.equal(findDesktopWindowsReleaseFile(armOnlyInfo, "arm64")?.url, "Space-Agent-0.52-windows-arm64.exe");
+  assert.equal(
+    findDesktopWindowsReleaseFile(armOnlyInfo, "arm64")?.url,
+    "Space-Agent-0.52-windows-arm64.exe"
+  );
   assert.deepEqual(resolveDesktopWindowsReleaseArchFallback(armOnlyInfo, "x64"), {
     actualFiles: ["Space-Agent-0.52-windows-arm64.exe"],
     expectedArch: "x64",
@@ -366,9 +372,17 @@ test("packaged desktop updater cleanup keeps cached blockmaps but removes stale 
   await fs.mkdir(legacyPendingPath, {
     recursive: true
   });
-  await fs.writeFile(path.join(currentPendingPath, "Space-Agent-0.48-windows-x64.exe"), "installer\n", "utf8");
+  await fs.writeFile(
+    path.join(currentPendingPath, "Space-Agent-0.48-windows-x64.exe"),
+    "installer\n",
+    "utf8"
+  );
   await fs.writeFile(path.join(currentCacheRoot, "current.blockmap"), "blockmap\n", "utf8");
-  await fs.writeFile(path.join(legacyPendingPath, "Agent-One-0.41-windows-x64.exe"), "installer\n", "utf8");
+  await fs.writeFile(
+    path.join(legacyPendingPath, "Agent-One-0.41-windows-x64.exe"),
+    "installer\n",
+    "utf8"
+  );
 
   const skippedResult = await cleanupDesktopUpdaterArtifacts({
     baseCachePath: localAppDataPath,
@@ -378,7 +392,13 @@ test("packaged desktop updater cleanup keeps cached blockmaps but removes stale 
 
   assert.equal(skippedResult.cleaned, false);
   assert.equal(skippedResult.reason, "not-marked");
-  assert.equal(await fs.stat(currentPendingPath).then(() => true, () => false), true);
+  assert.equal(
+    await fs.stat(currentPendingPath).then(
+      () => true,
+      () => false
+    ),
+    true
+  );
 
   await writeDesktopUpdaterInstallMarker({
     fromVersion: "0.47.0",
@@ -394,12 +414,45 @@ test("packaged desktop updater cleanup keeps cached blockmaps but removes stale 
 
   assert.equal(cleanupResult.cleaned, true);
   assert.equal(cleanupResult.marker?.targetVersion, "0.48");
-  assert.deepEqual(cleanupResult.clearedPaths.sort(), [currentPendingPath, legacyPendingPath].sort());
-  assert.equal(await fs.stat(path.join(currentCacheRoot, "current.blockmap")).then(() => true, () => false), true);
-  assert.equal(await fs.stat(currentPendingPath).then(() => true, () => false), false);
-  assert.equal(await fs.stat(legacyPendingPath).then(() => true, () => false), false);
-  assert.equal(await fs.stat(legacyCacheRoot).then(() => true, () => false), false);
-  assert.equal(await fs.stat(markerPath).then(() => true, () => false), false);
+  assert.deepEqual(
+    cleanupResult.clearedPaths.sort(),
+    [currentPendingPath, legacyPendingPath].sort()
+  );
+  assert.equal(
+    await fs.stat(path.join(currentCacheRoot, "current.blockmap")).then(
+      () => true,
+      () => false
+    ),
+    true
+  );
+  assert.equal(
+    await fs.stat(currentPendingPath).then(
+      () => true,
+      () => false
+    ),
+    false
+  );
+  assert.equal(
+    await fs.stat(legacyPendingPath).then(
+      () => true,
+      () => false
+    ),
+    false
+  );
+  assert.equal(
+    await fs.stat(legacyCacheRoot).then(
+      () => true,
+      () => false
+    ),
+    false
+  );
+  assert.equal(
+    await fs.stat(markerPath).then(
+      () => true,
+      () => false
+    ),
+    false
+  );
 });
 test("packaged desktop auth data moves to the user-data tree", () => {
   const userDataPath = "/home/alessandro/.config/Space Agent";

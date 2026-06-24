@@ -518,9 +518,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Patching contacts.yaml now...\n\n\n_____javascript\nconst path = \"~/contacts.yaml\";\nconst text = await space.api.fileRead(path);\nconst data = space.utils.yaml.parse(text);\n\nfunction expandMrKowalski(obj) {\n  if (!obj || typeof obj !== \"object\") return obj;\n  for (const [key, value] of Object.entries(obj)) {\n    if (key === \"mr_kowalski\") {\n      obj[key] = \"John Ronald Kowalski\";\n    } else if (value && typeof value === \"object\") {\n      expandMrKowalski(value);\n    }\n  }\n  return obj;\n}\n\nexpandMrKowalski(data);\nconst updated = space.utils.yaml.stringify(data);\nreturn await space.api.fileWrite(path, updated);",
           "usage": {
@@ -555,9 +553,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_widget_fix_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_widget_fix_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.current\\.patchWidget\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.current\\.patchWidget\\(/u"],
           "response_type": "thrust",
           "response": "Patching the snake game input handling now...\n_____javascript\nconst widget = await space.current.readWidget(\"snake-game\");\nconst current = widget?.content ?? widget?.state ?? widget;\nconst text = typeof current === \"string\" ? current : JSON.stringify(current, null, 2);\n\nlet next = text;\n\n// Try common freeze causes: prevent default on arrow keys, repeated listeners, missing key handling.\n// Make a minimal targeted patch if source is text-like.\nif (/addEventListener\\s*\\(\\s*['\"]keydown['\"]/.test(next) && !/preventDefault\\s*\\(\\)/.test(next)) {\n  next = next.replace(\n    /addEventListener\\s*\\(\\s*['\"]keydown['\"]\\s*,\\s*(\\(?\\s*[\\w$]+\\s*\\)?\\s*=>\\s*\\{)/,\n    match => match\n  );\n  // fallback generic insertion after first keydown handler opening brace\n  const idx = next.indexOf(\"addEventListener('keydown'\");\n  if (idx >= 0) {\n    const brace = next.indexOf(\"{\", idx);\n    if (brace >= 0) {\n      next = next.slice(0, brace + 1) + \"\\n  event.preventDefault();\\n\" + next.slice(brace + 1);\n    }\n  }\n}\n\nif (next === text) {\n  // If source is not easily patchable, add a defensive keydown guard around arrow keys by replacing\n  // a direct movement mapping with a safer handler if present.\n  next = next\n    .replace(/document\\.addEventListener\\(\\s*['\"]keydown['\"]\\s*,\\s*([^)]+)\\)/g, \"document.addEventListener('keydown', $1)\")\n    .replace(/(case\\s*['\"]Arrow(?:Up|Down|Left|Right)['\"]\\s*:)/g, \"$1\\n        event.preventDefault();\");\n}\n\nreturn await space.current.patchWidget(\"snake-game\", { edits: [{ from: text, to: next }] });",
           "usage": {
@@ -1483,9 +1479,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_text_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_text_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Patching the people file now...\n\n\n_____javascript\nconst path = \"~/people.txt\";\nconst text = await space.api.fileRead(path);\nconst updated = text.replace(/\\bmr\\.\\s*Kowalski\\b/gi, \"John Ronald Kowalski\");\nreturn await space.api.fileWrite(path, updated);",
           "usage": {
@@ -1520,9 +1514,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating your contacts entry now...\n_____javascript\nconst path = \"~/contacts.yaml\";\nconst current = await space.api.fileRead(path, \"utf8\");\nconst data = space.utils.yaml.parse(current);\nif (data && typeof data === \"object\") {\n  if (data.mr_kowalski && typeof data.mr_kowalski === \"object\") {\n    data.mr_kowalski.full_name = \"John Ronald Kowalski\";\n  } else {\n    data.mr_kowalski = \"John Ronald Kowalski\";\n  }\n}\nconst updated = space.utils.yaml.stringify(data);\nreturn await space.api.fileWrite(path, updated, \"utf8\");",
           "usage": {
@@ -1557,9 +1549,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_widget_fix_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_widget_fix_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.current\\.patchWidget\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.current\\.patchWidget\\(/u"],
           "response_type": "thrust",
           "response": "Patching the snake game controls now...\n\n\n_____javascript\nconst widget = await space.current.readWidget(\"snake-game\");\nconst text = typeof widget === \"string\" ? widget : JSON.stringify(widget, null, 2);\nconst patched = text\n  .replace(/(addEventListener\\(\\s*['\"]keydown['\"][\\s\\S]*?function\\s*\\w*\\s*\\(\\s*e\\s*\\)\\s*\\{[\\s\\S]*?)(if\\s*\\(\\s*!?\\s*gameOver\\s*\\)\\s*\\{)/, '$1if (e.key.startsWith(\"Arrow\")) e.preventDefault();\\n$2')\n  .replace(/(window\\.addEventListener\\(\\s*['\"]keydown['\"][\\s\\S]*?)(switch\\s*\\(\\s*e\\.key\\s*\\)\\s*\\{)/, '$1if (e.key.startsWith(\"Arrow\")) e.preventDefault();\\n$2');\n\nif (patched === text) {\n  return await space.current.patchWidget(\"snake-game\", {\n    edits: [\n      {\n        from: text.match(/window\\.addEventListener\\(\\s*['\"]keydown['\"][\\s\\S]*?switch\\s*\\(\\s*e\\.key\\s*\\)\\s*\\{/)?.[0] || \"\",\n        to: (text.match(/window\\.addEventListener\\(\\s*['\"]keydown[\\s\\S]*?\\{/ )?.[0] || \"\") + \"\\n  if (e.key.startsWith(\\\"Arrow\\\")) e.preventDefault();\"\n      }\n    ]\n  });\n}\nreturn await space.current.patchWidget(\"snake-game\", {\n  edits: [{ from: text, to: patched }]\n});",
           "usage": {
@@ -2489,9 +2479,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Updating your full name to Pan Example.\n_____javascript\nconst path = \"~/user.yaml\";\nconst text = await space.api.fileRead(path, \"utf8\");\nconst data = space.utils.yaml.parse(text);\ndata.full_name = \"Pan Example\";\nconst out = space.utils.yaml.stringify(data);\nreturn await space.api.fileWrite(path, out, \"utf8\")",
           "usage": {
@@ -2526,9 +2514,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_text_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_text_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Checking and updating the target file now.\n_____javascript\nconst path = 'L2/' + (await space.api.userSelfInfo()).username + '/people.txt';\nconst text = await space.api.fileRead(path, 'utf8');\nconst updated = text.replace(/\\bmr\\.\\s*Kowalski\\b/g, 'John Ronald Kowalski');\nawait space.api.fileWrite(path, updated, 'utf8');\nreturn 'updated';",
           "usage": {
@@ -2563,9 +2549,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "execute\n_____javascript\nconst path = '/app/L2/' + (await space.api.userSelfInfo()).username + '/contacts.yaml';\nconst text = await space.api.fileRead(path, 'utf8');\nconst data = space.utils.yaml.parse(text);\nif (data && Array.isArray(data.contacts)) {\n  for (const c of data.contacts) {\n    if (c && c.id === 'mr_kowalski') c.fullName = 'John Ronald Kowalski';\n    if (c && c.name === 'mr_kowalski') c.fullName = 'John Ronald Kowalski';\n  }\n} else if (data && data.mr_kowalski) {\n  data.mr_kowalski.fullName = 'John Ronald Kowalski';\n}\nconst out = space.utils.yaml.stringify(data);\nawait space.api.fileWrite(path, out, 'utf8');\nreturn 'updated';",
           "usage": {
@@ -2908,9 +2892,7 @@
           "case_path": "tests/agent_llm_performance/cases/protocol_nudge_requires_real_thrust.json",
           "history_path": "tests/agent_llm_performance/histories/protocol_nudge_requires_real_thrust.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.current\\.patchWidget\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.current\\.patchWidget\\(/u"],
           "response_type": "thrust",
           "response": "Applying the snake-game animation patch now.\n_____javascript\nconst widget = await space.current.readWidget(\"snake-game\");\nconst text = widget?.text ?? widget?.content ?? widget ?? \"\";\nreturn text;",
           "usage": {

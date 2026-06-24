@@ -5,12 +5,14 @@ import { createRequire } from "node:module";
 import { setTimeout as delay } from "node:timers/promises";
 
 const require = createRequire(import.meta.url);
-const {
-  PROJECT_ROOT,
-  loadPackagingDependency
-} = require("../packaging/scripts/tooling.js");
+const { PROJECT_ROOT, loadPackagingDependency } = require("../packaging/scripts/tooling.js");
 
-const HARNESS_ENTRY_PATH = path.join(PROJECT_ROOT, "tests", "browser_component_harness", "main.cjs");
+const HARNESS_ENTRY_PATH = path.join(
+  PROJECT_ROOT,
+  "tests",
+  "browser_component_harness",
+  "main.cjs"
+);
 const PARENT_IPC_ENV = "SPACE_BROWSER_COMPONENT_HARNESS_PARENT_IPC";
 const OPEN_DEVTOOLS_ENV = "SPACE_BROWSER_COMPONENT_HARNESS_OPEN_DEVTOOLS";
 const DEFAULT_HARNESS_TIMEOUT_MS = 10_000;
@@ -81,10 +83,7 @@ export async function runBrowserHarnessCli(commands, { timeoutMs = 30_000 } = {}
   } finally {
     if (!child.killed && child.exitCode == null) {
       child.kill("SIGTERM");
-      await Promise.race([
-        new Promise((resolve) => child.once("exit", resolve)),
-        delay(5_000)
-      ]);
+      await Promise.race([new Promise((resolve) => child.once("exit", resolve)), delay(5_000)]);
       if (child.exitCode == null && !child.killed) {
         child.kill("SIGKILL");
       }
@@ -128,16 +127,13 @@ async function startVirtualDisplay() {
   for (let attempt = 0; attempt < 10; attempt += 1) {
     const displayNumber = 90 + Math.floor(Math.random() * 400);
     const display = `:${displayNumber}`;
-    const xvfb = spawn(displayBinary, [
-      display,
-      "-screen",
-      "0",
-      "1440x900x24",
-      "-nolisten",
-      "tcp"
-    ], {
-      stdio: "ignore"
-    });
+    const xvfb = spawn(
+      displayBinary,
+      [display, "-screen", "0", "1440x900x24", "-nolisten", "tcp"],
+      {
+        stdio: "ignore"
+      }
+    );
 
     await delay(1000);
 
@@ -169,11 +165,7 @@ async function stopVirtualDisplay(display) {
 
 function spawnBrowserHarness(display, { openDevTools = false } = {}) {
   const electronBinary = loadPackagingDependency("electron");
-  return spawn(electronBinary, [
-    "--no-sandbox",
-    "--disable-gpu",
-    HARNESS_ENTRY_PATH
-  ], {
+  return spawn(electronBinary, ["--no-sandbox", "--disable-gpu", HARNESS_ENTRY_PATH], {
     cwd: PROJECT_ROOT,
     env: {
       ...process.env,
@@ -260,9 +252,12 @@ export async function startBrowserHarness({
   }
 }
 
-export async function sendBrowserHarnessCommand(harness, command, args = [], {
-  timeoutMs = DEFAULT_HARNESS_TIMEOUT_MS
-} = {}) {
+export async function sendBrowserHarnessCommand(
+  harness,
+  command,
+  args = [],
+  { timeoutMs = DEFAULT_HARNESS_TIMEOUT_MS } = {}
+) {
   const child = harness?.child;
   if (!child) {
     throw new Error("Browser harness is not running.");
@@ -283,14 +278,19 @@ export async function sendBrowserHarnessCommand(harness, command, args = [], {
     }, timeoutMs);
 
     const handleMessage = (payload = {}) => {
-      if (String(payload?.type || "") !== "command_result" || String(payload?.requestId || "") !== requestId) {
+      if (
+        String(payload?.type || "") !== "command_result" ||
+        String(payload?.requestId || "") !== requestId
+      ) {
         return;
       }
 
       settled = true;
       cleanup();
       if (payload?.ok === false) {
-        const error = new Error(String(payload?.error?.message || `Harness command "${command}" failed.`));
+        const error = new Error(
+          String(payload?.error?.message || `Harness command "${command}" failed.`)
+        );
         error.code = payload?.error?.code ?? null;
         error.details = payload?.error?.details ?? null;
         error.payload = payload?.error ?? null;
@@ -310,7 +310,11 @@ export async function sendBrowserHarnessCommand(harness, command, args = [], {
     const handleError = (error) => {
       settled = true;
       cleanup();
-      reject(error instanceof Error ? error : new Error(String(error || `Harness command "${command}" failed.`)));
+      reject(
+        error instanceof Error
+          ? error
+          : new Error(String(error || `Harness command "${command}" failed.`))
+      );
     };
 
     const cleanup = () => {
@@ -330,20 +334,23 @@ export async function sendBrowserHarnessCommand(harness, command, args = [], {
       return;
     }
 
-    child.send({
-      args,
-      command,
-      requestId,
-      type: "command"
-    }, (error) => {
-      if (!error || settled) {
-        return;
-      }
+    child.send(
+      {
+        args,
+        command,
+        requestId,
+        type: "command"
+      },
+      (error) => {
+        if (!error || settled) {
+          return;
+        }
 
-      settled = true;
-      cleanup();
-      reject(error);
-    });
+        settled = true;
+        cleanup();
+        reject(error);
+      }
+    );
   });
 }
 
@@ -354,9 +361,7 @@ export function readBrowserHarnessLogs(harness) {
   };
 }
 
-export async function stopBrowserHarness(harness, {
-  forceAfterMs = 5000
-} = {}) {
+export async function stopBrowserHarness(harness, { forceAfterMs = 5000 } = {}) {
   const child = harness?.child;
   const display = harness?.display;
 
@@ -381,17 +386,11 @@ export async function stopBrowserHarness(harness, {
         child.kill("SIGTERM");
       }
 
-      await Promise.race([
-        exitPromise,
-        delay(forceAfterMs)
-      ]);
+      await Promise.race([exitPromise, delay(forceAfterMs)]);
 
       if (child.exitCode == null && !child.killed) {
         child.kill("SIGTERM");
-        await Promise.race([
-          exitPromise,
-          delay(5000)
-        ]);
+        await Promise.race([exitPromise, delay(5000)]);
       }
 
       if (child.exitCode == null && !child.killed) {

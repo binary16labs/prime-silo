@@ -23,10 +23,7 @@
 // the event type, a timestamp, and the triple breakdown (process / skill /
 // data) when present. Missing fields render as `—` rather than throwing.
 
-import {
-  runtimeFetch,
-  readRuntimeJson
-} from "../../../runtime_client/runtime-client.js";
+import { runtimeFetch, readRuntimeJson } from "../../../runtime_client/runtime-client.js";
 
 const STATE_LOADING = "loading";
 const STATE_READY = "ready";
@@ -119,7 +116,7 @@ function renderShell(events, props) {
 }
 
 function renderError(host, error) {
-  const detail = (error && (error.body && error.body.detail || error.message)) || String(error);
+  const detail = (error && ((error.body && error.body.detail) || error.message)) || String(error);
   host.dataset.widgetState = STATE_ERROR;
   host.innerHTML = `<div class="prime-silo-lt__error">Lineage load failed: ${escapeHtml(detail)}</div>`;
 }
@@ -156,7 +153,7 @@ export function createLineageTimelineWidget(host, initialProps, options = {}) {
       if (aborted) {
         return;
       }
-      const events = (payload && Array.isArray(payload.events)) ? payload.events : [];
+      const events = payload && Array.isArray(payload.events) ? payload.events : [];
       lastEvents = events;
       host.dataset.widgetState = STATE_READY;
       host.innerHTML = renderShell(events, props);

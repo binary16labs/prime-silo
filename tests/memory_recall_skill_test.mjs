@@ -38,7 +38,11 @@ function testFrontmatter() {
   const md = fs.readFileSync(SKILL_PATH, "utf8");
   assert.match(md, /^---/u, "has frontmatter");
   assert.match(md, /name: Memory recall/u);
-  assert.match(md, /description: .*memory graph/iu, "description mentions the memory graph for catalog matching");
+  assert.match(
+    md,
+    /description: .*memory graph/iu,
+    "description mentions the memory graph for catalog matching"
+  );
   // Cites the deep-link convention and the proxy path.
   assert.match(md, /#\/_prime_silo\/memory/u);
   assert.match(md, /\/api\/memoray/u);
@@ -48,11 +52,22 @@ function testCatalogLoadedNotAutoLoaded() {
   const md = fs.readFileSync(SKILL_PATH, "utf8");
   // It must NOT declare metadata.loaded — that would auto-load it into every
   // prompt and tax small local models. Catalog-only = loaded on demand.
-  assert.doesNotMatch(md, /metadata:\s*\n\s*loaded:/u, "memory-recall must be catalog-loaded, not auto-loaded");
+  assert.doesNotMatch(
+    md,
+    /metadata:\s*\n\s*loaded:/u,
+    "memory-recall must be catalog-loaded, not auto-loaded"
+  );
 }
 
 function testHelperExports() {
-  for (const fn of ["recentSessions", "search", "overview", "sessionGraph", "filesTouched", "sessionLink"]) {
+  for (const fn of [
+    "recentSessions",
+    "search",
+    "overview",
+    "sessionGraph",
+    "filesTouched",
+    "sessionLink"
+  ]) {
     assert.equal(typeof memoryRecall[fn], "function", `helper exports ${fn}()`);
   }
 }

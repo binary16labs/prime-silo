@@ -107,6 +107,7 @@ Current public shell assets:
 - should surface clone failures in place instead of redirecting into half-initialized guest sessions
 
 `enter.html`:
+
 - must stay safe even when routed customware is broken
 - must not depend on authenticated `/mod/...` assets
 - is served for launcher-eligible sessions; in multi-user mode, unauthenticated requests are redirected to `/login` before this shell loads

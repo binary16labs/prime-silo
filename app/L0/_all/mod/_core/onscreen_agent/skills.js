@@ -86,9 +86,7 @@ export const buildOnscreenSkillPromptContext = globalThis.space.extend(
     const includeAutoLoaded = options.includeAutoLoaded !== false;
     const includeRuntimeLoaded = options.includeRuntimeLoaded !== false;
     const catalogIndex = includeCatalog ? await loadOnscreenSkillIndex() : null;
-    const autoLoadedIndex = includeAutoLoaded
-      ? await loadOnscreenSkillIndex()
-      : null;
+    const autoLoadedIndex = includeAutoLoaded ? await loadOnscreenSkillIndex() : null;
 
     return {
       catalogSection: includeCatalog
@@ -166,7 +164,9 @@ export const installOnscreenSkillRuntime = globalThis.space.extend(
   import.meta,
   async function installOnscreenSkillRuntime() {
     globalThis.space.skills = {
-      ...(globalThis.space.skills && typeof globalThis.space.skills === "object" ? globalThis.space.skills : {}),
+      ...(globalThis.space.skills && typeof globalThis.space.skills === "object"
+        ? globalThis.space.skills
+        : {}),
       load: loadOnscreenSkill
     };
 

@@ -1,11 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import {
-  createCipheriv,
-  createDecipheriv,
-  createHash,
-  randomBytes
-} from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
 import { recordAppPathMutations } from "../customware/git_history.js";
 import { ensureAuthDataDir, loadAuthKeys } from "./keys_manage.js";
@@ -118,10 +113,14 @@ function normalizeUserCryptoRecord(record) {
   }
 
   const source =
-    record.user_crypto && typeof record.user_crypto === "object" && !Array.isArray(record.user_crypto)
+    record.user_crypto &&
+    typeof record.user_crypto === "object" &&
+    !Array.isArray(record.user_crypto)
       ? record.user_crypto
       : record;
-  const status = String(source.status || "").trim().toLowerCase();
+  const status = String(source.status || "")
+    .trim()
+    .toLowerCase();
   const keyId = normalizeKeyId(source.key_id || source.keyId);
   const createdAt = normalizeIsoDate(source.created_at || source.createdAt);
   const updatedAt = normalizeIsoDate(source.updated_at || source.updatedAt);
@@ -134,9 +133,7 @@ function normalizeUserCryptoRecord(record) {
     source.server_share_ciphertext || source.serverShareCiphertext
   );
   const serverShareIv = normalizeBase64Url(source.server_share_iv || source.serverShareIv);
-  const serverShareStorage = String(
-    source.server_share_storage || source.serverShareStorage || ""
-  )
+  const serverShareStorage = String(source.server_share_storage || source.serverShareStorage || "")
     .trim()
     .toLowerCase();
   const serverShareTag = normalizeBase64Url(source.server_share_tag || source.serverShareTag);
@@ -158,9 +155,7 @@ function normalizeUserCryptoRecord(record) {
       version,
       wrapIv: normalizeBase64Url(source.wrap_iv || source.wrapIv),
       wrapSalt: normalizeBase64Url(source.wrap_salt || source.wrapSalt),
-      wrappedMasterKey: normalizeBase64Url(
-        source.wrapped_master_key || source.wrappedMasterKey
-      )
+      wrappedMasterKey: normalizeBase64Url(source.wrapped_master_key || source.wrappedMasterKey)
     };
   }
 
@@ -170,9 +165,7 @@ function normalizeUserCryptoRecord(record) {
 
   const wrapIv = normalizeBase64Url(source.wrap_iv || source.wrapIv);
   const wrapSalt = normalizeBase64Url(source.wrap_salt || source.wrapSalt);
-  const wrappedMasterKey = normalizeBase64Url(
-    source.wrapped_master_key || source.wrappedMasterKey
-  );
+  const wrappedMasterKey = normalizeBase64Url(source.wrapped_master_key || source.wrappedMasterKey);
 
   if (!keyId || !passwordIterations || !passwordSalt || !wrapIv || !wrapSalt || !wrappedMasterKey) {
     return null;
@@ -286,11 +279,7 @@ function sealUserCryptoServerShare(serverShare, record, authKeys) {
   }
 
   const iv = randomBytes(USER_CRYPTO_SERVER_SHARE_IV_LENGTH);
-  const cipher = createCipheriv(
-    "aes-256-gcm",
-    getUserCryptoServerShareSealKey(authKeys),
-    iv
-  );
+  const cipher = createCipheriv("aes-256-gcm", getUserCryptoServerShareSealKey(authKeys), iv);
   cipher.setAAD(buildUserCryptoServerShareAad(record));
   const ciphertext = Buffer.concat([
     cipher.update(decodeBase64Url(normalizedServerShare)),

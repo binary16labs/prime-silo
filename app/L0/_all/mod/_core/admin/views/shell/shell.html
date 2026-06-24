@@ -94,13 +94,22 @@
                           @click="$store.adminPage.selectTabFromMenu(tab.id)"
                         >
                           <template x-if="tab.avatarPath">
-                            <img class="admin-tab-avatar admin-tab-menu-avatar" :src="tab.avatarPath" alt="" />
+                            <img
+                              class="admin-tab-avatar admin-tab-menu-avatar"
+                              :src="tab.avatarPath"
+                              alt=""
+                            />
                           </template>
                           <template x-if="!tab.avatarPath">
                             <x-icon x-text="tab.icon"></x-icon>
                           </template>
                           <span class="space-topbar-menu-action-label" x-text="tab.label"></span>
-                          <x-icon class="admin-tab-menu-check" x-show="$store.adminPage.isTabActive(tab.id)" x-cloak>check</x-icon>
+                          <x-icon
+                            class="admin-tab-menu-check"
+                            x-show="$store.adminPage.isTabActive(tab.id)"
+                            x-cloak
+                            >check</x-icon
+                          >
                         </button>
                       </template>
                     </div>
@@ -118,7 +127,10 @@
                 </header>
 
                 <div class="admin-topbar-measure" aria-hidden="true">
-                  <div class="space-topbar admin-topbar admin-topbar--measure" x-ref="topbarMeasure">
+                  <div
+                    class="space-topbar admin-topbar admin-topbar--measure"
+                    x-ref="topbarMeasure"
+                  >
                     <div class="admin-tab-list" role="presentation">
                       <template x-for="tab in $store.adminPage.tabs" :key="`measure-${tab.id}`">
                         <button
@@ -145,9 +157,15 @@
                       <x-icon>exit_to_app</x-icon>
                     </button>
                   </div>
-                  <div class="space-topbar admin-topbar admin-topbar--measure is-compact" x-ref="topbarCompactMeasure">
+                  <div
+                    class="space-topbar admin-topbar admin-topbar--measure is-compact"
+                    x-ref="topbarCompactMeasure"
+                  >
                     <div class="admin-tab-list" role="presentation">
-                      <template x-for="tab in $store.adminPage.tabs" :key="`compact-measure-${tab.id}`">
+                      <template
+                        x-for="tab in $store.adminPage.tabs"
+                        :key="`compact-measure-${tab.id}`"
+                      >
                         <button
                           class="space-topbar-button admin-tab-button"
                           :class="{ 'is-active': $store.adminPage.isTabActive(tab.id) }"
@@ -174,7 +192,11 @@
                   </div>
                 </div>
 
-                <div id="_core/onscreen_menu/bar_start" class="admin-injected-controls" aria-label="Active admin panel controls"></div>
+                <div
+                  id="_core/onscreen_menu/bar_start"
+                  class="admin-injected-controls"
+                  aria-label="Active admin panel controls"
+                ></div>
 
                 <div class="admin-stage">
                   <section
@@ -218,7 +240,9 @@
                       role="tabpanel"
                       aria-labelledby="admin-tab-time_travel"
                     >
-                      <x-component path="/mod/_core/admin/views/time_travel/panel.html"></x-component>
+                      <x-component
+                        path="/mod/_core/admin/views/time_travel/panel.html"
+                      ></x-component>
                     </section>
                   </template>
 
@@ -252,7 +276,12 @@
           </div>
 
           <section class="pane main-pane" aria-label="Main application">
-            <iframe x-ref="mainFrame" class="main-frame" title="Space Agent main app" :src="$store.adminShell.mainFrameUrl"></iframe>
+            <iframe
+              x-ref="mainFrame"
+              class="main-frame"
+              title="Space Agent main app"
+              :src="$store.adminShell.mainFrameUrl"
+            ></iframe>
           </section>
         </div>
       </template>

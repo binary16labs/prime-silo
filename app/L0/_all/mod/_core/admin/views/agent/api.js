@@ -91,7 +91,8 @@ function noteCompletionPayload(meta, payload, textChunk = "") {
 }
 
 function finalizeCompletionResponseMeta(meta) {
-  const protocolObserved = meta.mode === "standard" ? meta.payloadCount > 0 : meta.payloadCount > 0 || meta.sawDoneMarker;
+  const protocolObserved =
+    meta.mode === "standard" ? meta.payloadCount > 0 : meta.payloadCount > 0 || meta.sawDoneMarker;
 
   return {
     ...meta,
@@ -182,7 +183,12 @@ function normalizeAdminPromptContext(promptContext, fallbackSystemPrompt = "") {
         .filter((message) => message && typeof message === "object")
         .map((message) => ({
           content: typeof message.content === "string" ? message.content : "",
-          role: message.role === "assistant" ? "assistant" : message.role === "system" ? "system" : "user"
+          role:
+            message.role === "assistant"
+              ? "assistant"
+              : message.role === "system"
+                ? "system"
+                : "user"
         }))
     : [];
 
@@ -213,7 +219,9 @@ export function formatAdminAgentHistoryText(messages) {
 
 export function buildAdminAgentPromptMessages(systemPromptOrContext, messages, options = {}) {
   const promptContext =
-    systemPromptOrContext && typeof systemPromptOrContext === "object" && !Array.isArray(systemPromptOrContext)
+    systemPromptOrContext &&
+    typeof systemPromptOrContext === "object" &&
+    !Array.isArray(systemPromptOrContext)
       ? normalizeAdminPromptContext(systemPromptOrContext)
       : normalizeAdminPromptContext(options.promptContext, systemPromptOrContext);
   if (promptContext.requestMessages.length) {
@@ -274,11 +282,10 @@ function buildFetchRequestInit(apiRequest, signal) {
       ? { ...apiRequest.requestInit }
       : {};
   const headers =
-    apiRequest?.headers && typeof apiRequest.headers === "object"
-      ? { ...apiRequest.headers }
-      : {};
+    apiRequest?.headers && typeof apiRequest.headers === "object" ? { ...apiRequest.headers } : {};
 
-  requestInit.method = typeof apiRequest?.method === "string" && apiRequest.method.trim() ? apiRequest.method : "POST";
+  requestInit.method =
+    typeof apiRequest?.method === "string" && apiRequest.method.trim() ? apiRequest.method : "POST";
   requestInit.headers = headers;
   requestInit.signal = signal;
 
@@ -320,7 +327,9 @@ async function throwResponseError(response) {
     detail = await response.text();
   }
 
-  throw new Error(`Chat request failed with status ${response.status}: ${detail || response.statusText}`);
+  throw new Error(
+    `Chat request failed with status ${response.status}: ${detail || response.statusText}`
+  );
 }
 
 async function readStandardResponse(response, onDelta) {
@@ -438,7 +447,10 @@ export const prepareAdminAgentApiRequest = globalThis.space.extend(
                 historyMessages: Array.isArray(messages) ? messages : [],
                 transientSections
               });
-    const normalizedPromptContext = normalizeAdminPromptContext(effectivePromptContext, systemPrompt);
+    const normalizedPromptContext = normalizeAdminPromptContext(
+      effectivePromptContext,
+      systemPrompt
+    );
 
     return {
       apiEndpoint,
@@ -446,9 +458,14 @@ export const prepareAdminAgentApiRequest = globalThis.space.extend(
       messages: Array.isArray(messages) ? messages : [],
       method: "POST",
       promptContext: normalizedPromptContext,
-      requestBody: createRequestBody(effectiveSettings, normalizedPromptContext.systemPrompt, messages, {
-        promptContext: normalizedPromptContext
-      }),
+      requestBody: createRequestBody(
+        effectiveSettings,
+        normalizedPromptContext.systemPrompt,
+        messages,
+        {
+          promptContext: normalizedPromptContext
+        }
+      ),
       requestUrl: resolveChatRequestUrl(apiEndpoint),
       settings: effectiveSettings,
       systemPrompt: normalizedPromptContext.systemPrompt
@@ -456,7 +473,14 @@ export const prepareAdminAgentApiRequest = globalThis.space.extend(
   }
 );
 
-async function streamAdminAgentApiCompletion({ promptContext, settings, systemPrompt, messages, onDelta, signal }) {
+async function streamAdminAgentApiCompletion({
+  promptContext,
+  settings,
+  systemPrompt,
+  messages,
+  onDelta,
+  signal
+}) {
   if (!settings.apiEndpoint.trim()) {
     throw new Error("Set an API endpoint before sending a message.");
   }
@@ -496,7 +520,14 @@ async function streamAdminAgentApiCompletion({ promptContext, settings, systemPr
   return readStreamingResponse(response, onDelta);
 }
 
-export async function streamAdminAgentCompletion({ promptContext, settings, systemPrompt, messages, onDelta, signal }) {
+export async function streamAdminAgentCompletion({
+  promptContext,
+  settings,
+  systemPrompt,
+  messages,
+  onDelta,
+  signal
+}) {
   const provider = config.normalizeAdminChatLlmProvider(settings?.provider);
   const normalizedPromptContext = normalizeAdminPromptContext(promptContext, systemPrompt);
 

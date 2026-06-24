@@ -29,9 +29,7 @@ export const help = {
   ],
   description:
     "CLI access to the Memo-Ray memory graph (the third graph of the cognitive mesh). Reads through the same settings the shell proxy uses (MEMORAY_ENABLED / MEMORAY_BASE_URL, then the wizard manifest). `audit` runs the integration conformance check and exits non-zero on drift — the headless/CI entry point.",
-  arguments: [
-    { name: "<subcommand>", description: "status | sync | sessions | search | audit" }
-  ],
+  arguments: [{ name: "<subcommand>", description: "status | sync | sessions | search | audit" }],
   options: [
     { name: "--agent", description: "Filter sessions by agent (claude|antigravity)." },
     { name: "--limit", description: "Limit the number of sessions printed (default 20)." }
@@ -39,7 +37,7 @@ export const help = {
   examples: [
     "node space memory status",
     "node space memory sessions --agent claude --limit 10",
-    "node space memory search \"lineage graph\"",
+    'node space memory search "lineage graph"',
     "node space memory audit"
   ]
 };
@@ -66,14 +64,18 @@ function parseFlags(args) {
 }
 
 function reportUnreachable(result) {
-  console.error(result.error === "memoray_disabled"
-    ? "Memo-Ray is disabled (MEMORAY_ENABLED=false). Enable it with `node space set MEMORAY_ENABLED=true`."
-    : `Memo-Ray is offline. ${result.hint || "Boot it with scripts/memoray.ps1."}`);
+  console.error(
+    result.error === "memoray_disabled"
+      ? "Memo-Ray is disabled (MEMORAY_ENABLED=false). Enable it with `node space set MEMORAY_ENABLED=true`."
+      : `Memo-Ray is offline. ${result.hint || "Boot it with scripts/memoray.ps1."}`
+  );
 }
 
 async function cmdStatus(ctx) {
   const settings = await resolveMemoraySettings(ctx);
-  console.log(`endpoint: ${settings.baseUrl} (enabled=${settings.enabled}, source: url=${settings.sources.baseUrl}/enabled=${settings.sources.enabled})`);
+  console.log(
+    `endpoint: ${settings.baseUrl} (enabled=${settings.enabled}, source: url=${settings.sources.baseUrl}/enabled=${settings.sources.enabled})`
+  );
   if (!settings.enabled) {
     console.log("status: disabled");
     return 0;
@@ -122,9 +124,13 @@ async function cmdSessions(ctx, flags) {
     return 0;
   }
   for (const s of sessions) {
-    const when = s.timestamp ? new Date(s.timestamp).toISOString().slice(0, 16).replace("T", " ") : "—";
+    const when = s.timestamp
+      ? new Date(s.timestamp).toISOString().slice(0, 16).replace("T", " ")
+      : "—";
     const project = s.metadata?.project || "—";
-    console.log(`${when}  ${(s.agent || "?").padEnd(11)}  ${(s.content || "Untitled").slice(0, 60)}  [${project}]`);
+    console.log(
+      `${when}  ${(s.agent || "?").padEnd(11)}  ${(s.content || "Untitled").slice(0, 60)}  [${project}]`
+    );
     console.log(`           id: ${s.id}`);
   }
   return 0;
@@ -149,20 +155,23 @@ async function cmdSearch(ctx, query) {
   console.log(`files (${files.length}):`);
   for (const f of files.slice(0, 10)) console.log(`  ${f.fileName || f.filePath}`);
   console.log(`actions (${actions.length}):`);
-  for (const a of actions.slice(0, 10)) console.log(`  [${a.toolName || a.type}] ${(a.contentSnippet || "").slice(0, 60)}`);
+  for (const a of actions.slice(0, 10))
+    console.log(`  [${a.toolName || a.type}] ${(a.contentSnippet || "").slice(0, 60)}`);
   return 0;
 }
 
 async function cmdAudit(ctx) {
   const report = await runIntegrationAudit(ctx);
   for (const integration of report.integrations) {
-    console.log(`${integration.id}: ${integration.status.toUpperCase()} (pass ${integration.summary.pass} / drift ${integration.summary.drift} / skipped ${integration.summary.skipped})`);
+    console.log(
+      `${integration.id}: ${integration.status.toUpperCase()} (pass ${integration.summary.pass} / drift ${integration.summary.drift} / skipped ${integration.summary.skipped})`
+    );
     for (const finding of integration.findings) {
       if (finding.status !== "pass") {
-        const owner = finding.owner?.path
-          ? `  -> ${finding.owner.repo}/${finding.owner.path}`
-          : "";
-        console.log(`  [${finding.status === "drift" ? "DRIFT" : "skip"}] ${finding.check} ${finding.subject}: ${finding.detail}${owner}`);
+        const owner = finding.owner?.path ? `  -> ${finding.owner.repo}/${finding.owner.path}` : "";
+        console.log(
+          `  [${finding.status === "drift" ? "DRIFT" : "skip"}] ${finding.check} ${finding.subject}: ${finding.detail}${owner}`
+        );
       }
     }
   }

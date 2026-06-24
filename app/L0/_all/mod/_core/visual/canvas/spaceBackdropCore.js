@@ -17,10 +17,7 @@ export function addMediaChangeListener(mediaQuery, handler) {
 
 export function createSpaceBackdropRuntime(
   root = document.querySelector(SPACE_BACKDROP_SELECTOR),
-  {
-    canvas = document.body,
-    variantClassName = ""
-  } = {}
+  { canvas = document.body, variantClassName = "" } = {}
 ) {
   if (!root) {
     return null;
@@ -81,7 +78,10 @@ export function createSpaceBackdropRuntime(
         zoomFrame = 0;
       }
 
-      cleanupFns.splice(0).reverse().forEach((cleanupFn) => cleanupFn());
+      cleanupFns
+        .splice(0)
+        .reverse()
+        .forEach((cleanupFn) => cleanupFn());
       delete root[SPACE_BACKDROP_RUNTIME_KEY];
     },
     root,

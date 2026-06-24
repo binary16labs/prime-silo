@@ -96,7 +96,9 @@ function parseBoolean(value, fallback = false) {
 }
 
 function normalizeMode(value) {
-  const mode = String(value || DEFAULT_MODE).trim().toLowerCase();
+  const mode = String(value || DEFAULT_MODE)
+    .trim()
+    .toLowerCase();
 
   if (["mod", "file-paths", "mixed"].includes(mode)) {
     return mode;
@@ -106,7 +108,9 @@ function normalizeMode(value) {
 }
 
 function normalizeConnectionMode(value) {
-  const mode = String(value || DEFAULT_CONNECTION_MODE).trim().toLowerCase();
+  const mode = String(value || DEFAULT_CONNECTION_MODE)
+    .trim()
+    .toLowerCase();
 
   if (["close", "keep-alive"].includes(mode)) {
     return mode;
@@ -155,9 +159,7 @@ async function readLinuxCpuTicks(pid) {
 }
 
 async function readProcSnapshots(pids = []) {
-  const entries = await Promise.all(
-    pids.map(async (pid) => [pid, await readLinuxCpuTicks(pid)])
-  );
+  const entries = await Promise.all(pids.map(async (pid) => [pid, await readLinuxCpuTicks(pid)]));
 
   return Object.fromEntries(entries);
 }
@@ -197,8 +199,9 @@ function createBenchmarkUsernames(userCount) {
 
   const remainingCount = normalizedUserCount - 1;
   const width = Math.max(4, String(remainingCount).length);
-  const otherUsers = Array.from({ length: remainingCount }, (_, index) =>
-    `user-${String(index + 1).padStart(width, "0")}`
+  const otherUsers = Array.from(
+    { length: remainingCount },
+    (_, index) => `user-${String(index + 1).padStart(width, "0")}`
   );
 
   return ["user", ...otherUsers];
@@ -221,9 +224,9 @@ async function seedBenchmarkFiles(
     const moduleRoot = path.join(userRoot, "mod", "readbench", username);
 
     writes.push(
-      fs.mkdir(userRoot, { recursive: true }).then(() =>
-        fs.writeFile(path.join(userRoot, "user.yaml"), `full_name: ${username}\n`)
-      )
+      fs
+        .mkdir(userRoot, { recursive: true })
+        .then(() => fs.writeFile(path.join(userRoot, "user.yaml"), `full_name: ${username}\n`))
     );
 
     for (let index = 0; index < seedCount; index += 1) {
@@ -239,42 +242,53 @@ async function seedBenchmarkFiles(
 
     if (moduleFilesPerUser > 0) {
       writes.push(
-        fs.mkdir(path.join(moduleRoot, "ext", "panels"), { recursive: true }).then(() =>
-          fs.writeFile(
-            path.join(moduleRoot, "ext", "panels", "panel.yaml"),
-            `id: readbench-${username}\n`
+        fs
+          .mkdir(path.join(moduleRoot, "ext", "panels"), { recursive: true })
+          .then(() =>
+            fs.writeFile(
+              path.join(moduleRoot, "ext", "panels", "panel.yaml"),
+              `id: readbench-${username}\n`
+            )
           )
-        )
       );
     }
 
     if (moduleFilesPerUser > 1) {
       writes.push(
-        fs.mkdir(moduleRoot, { recursive: true }).then(() =>
-          fs.writeFile(
-            path.join(moduleRoot, "main.js"),
-            `export const owner = ${JSON.stringify(username)};\n`
+        fs
+          .mkdir(moduleRoot, { recursive: true })
+          .then(() =>
+            fs.writeFile(
+              path.join(moduleRoot, "main.js"),
+              `export const owner = ${JSON.stringify(username)};\n`
+            )
           )
-        )
       );
     }
 
     if (moduleFilesPerUser > 2) {
       writes.push(
-        fs.mkdir(moduleRoot, { recursive: true }).then(() =>
-          fs.writeFile(path.join(moduleRoot, "style.css"), `.readbench-${username} { color: #123; }\n`)
-        )
+        fs
+          .mkdir(moduleRoot, { recursive: true })
+          .then(() =>
+            fs.writeFile(
+              path.join(moduleRoot, "style.css"),
+              `.readbench-${username} { color: #123; }\n`
+            )
+          )
       );
     }
 
     if (moduleFilesPerUser > 3) {
       writes.push(
-        fs.mkdir(path.join(moduleRoot, "ext", "skills", "bench"), { recursive: true }).then(() =>
-          fs.writeFile(
-            path.join(moduleRoot, "ext", "skills", "bench", "SKILL.md"),
-            `# Readbench ${username}\n`
+        fs
+          .mkdir(path.join(moduleRoot, "ext", "skills", "bench"), { recursive: true })
+          .then(() =>
+            fs.writeFile(
+              path.join(moduleRoot, "ext", "skills", "bench", "SKILL.md"),
+              `# Readbench ${username}\n`
+            )
           )
-        )
       );
     }
   }
@@ -316,10 +330,7 @@ async function startRuntimeWithMetrics(runtimeOverrides = {}) {
 }
 
 function createReadRequests(mode, requestCount, moduleFilesPerUser) {
-  const userModuleTargets =
-    moduleFilesPerUser > 1
-      ? ["/mod/readbench/user/main.js"]
-      : [];
+  const userModuleTargets = moduleFilesPerUser > 1 ? ["/mod/readbench/user/main.js"] : [];
   const modTargets = [...MOD_FETCH_TARGETS, ...userModuleTargets];
 
   return Array.from({ length: requestCount }, (_, index) => {
@@ -422,10 +433,7 @@ function percentile(latenciesMs, fraction) {
     return 0;
   }
 
-  const index = Math.min(
-    latenciesMs.length - 1,
-    Math.floor((latenciesMs.length - 1) * fraction)
-  );
+  const index = Math.min(latenciesMs.length - 1, Math.floor((latenciesMs.length - 1) * fraction));
   return latenciesMs[index];
 }
 
@@ -459,9 +467,7 @@ async function runConcurrentReads(baseUrl, requests, concurrency, connectionMode
     }
   }
 
-  await Promise.all(
-    Array.from({ length: Math.min(concurrency, requests.length) }, () => runner())
-  );
+  await Promise.all(Array.from({ length: Math.min(concurrency, requests.length) }, () => runner()));
 
   latenciesMs.sort((left, right) => left - right);
 
@@ -555,7 +561,9 @@ async function runScenario({
     const expectedWorkerPids = workers > 1 ? workers : 0;
 
     if (workerPids.length !== expectedWorkerPids) {
-      throw new Error(`Expected ${expectedWorkerPids} worker processes, started ${workerPids.length}.`);
+      throw new Error(
+        `Expected ${expectedWorkerPids} worker processes, started ${workerPids.length}.`
+      );
     }
 
     const trackedPids = [process.pid, ...workerPids];

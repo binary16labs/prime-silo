@@ -37,7 +37,9 @@ export async function downloadProxiedFile(targetUrl, options = {}) {
   const objectUrl = URL.createObjectURL(blob);
   const contentDisposition = response.headers.get("content-disposition");
   const filename =
-    options.filename || getFilenameFromContentDisposition(contentDisposition) || getFilenameFromUrl(targetUrl);
+    options.filename ||
+    getFilenameFromContentDisposition(contentDisposition) ||
+    getFilenameFromUrl(targetUrl);
 
   const link = document.createElement("a");
   link.href = objectUrl;

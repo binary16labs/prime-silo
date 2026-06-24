@@ -6,9 +6,9 @@ Browser-side home for the **typed widget registry** that ADR-001 collapses Studi
 
 ## Files
 
-| File                  | Owns                                                                          |
-| --------------------- | ----------------------------------------------------------------------------- |
-| `widget-registry.js`  | Fetches the registry from the runtime, caches it, exposes `getWidget(id)` and `isAuthorityAgentSafe(authority)`. JSDoc mirrors [`runtime/frontend/src/widgets/contracts.ts`](../../../../runtime/frontend/src/widgets/contracts.ts). |
+| File                 | Owns                                                                                                                                                                                                                                 |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `widget-registry.js` | Fetches the registry from the runtime, caches it, exposes `getWidget(id)` and `isAuthorityAgentSafe(authority)`. JSDoc mirrors [`runtime/frontend/src/widgets/contracts.ts`](../../../../runtime/frontend/src/widgets/contracts.ts). |
 
 ## Layout (Phase C — shipped)
 

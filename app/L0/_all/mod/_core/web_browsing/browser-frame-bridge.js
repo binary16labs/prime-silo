@@ -2,16 +2,9 @@ import {
   BROWSER_FRAME_BRIDGE_CHANNEL,
   createWindowMessageBridge
 } from "./browser-frame-protocol.js";
-import {
-  getBrowserWebviewBridge
-} from "./browser-webview-bridge.js";
-import {
-  isWebviewLike
-} from "./browser-webview.js";
-import {
-  getDesktopBrowserBridge,
-  hasDesktopBrowserBridge
-} from "./browser-native-bridge.js";
+import { getBrowserWebviewBridge } from "./browser-webview-bridge.js";
+import { isWebviewLike } from "./browser-webview.js";
+import { getDesktopBrowserBridge, hasDesktopBrowserBridge } from "./browser-native-bridge.js";
 
 const DEFAULT_SEND_TIMEOUT_MS = 5000;
 const bridgeCache = new WeakMap();
@@ -86,11 +79,15 @@ function resolveBrowserElementId(element) {
   }
 
   if (isBrowserElementLike(element)) {
-    return String(element.dataset?.browserId || element.getAttribute?.("data-browser-id") || "").trim();
+    return String(
+      element.dataset?.browserId || element.getAttribute?.("data-browser-id") || ""
+    ).trim();
   }
 
   const browserElement = element.closest?.("x-browser");
-  return String(browserElement?.dataset?.browserId || browserElement?.getAttribute?.("data-browser-id") || "").trim();
+  return String(
+    browserElement?.dataset?.browserId || browserElement?.getAttribute?.("data-browser-id") || ""
+  ).trim();
 }
 
 export function createBrowserFrameBridge(target, options = {}) {
@@ -128,7 +125,9 @@ export function getBrowserFrameBridge(iframeId, options = {}) {
       return getDesktopBrowserBridge(browserId, options);
     }
 
-    throw new Error("Browser frame helper could not resolve a browser target from the supplied element.");
+    throw new Error(
+      "Browser frame helper could not resolve a browser target from the supplied element."
+    );
   }
 
   const normalizedId = String(iframeId || "").trim();
@@ -136,7 +135,9 @@ export function getBrowserFrameBridge(iframeId, options = {}) {
     throw new Error("Browser frame helper requires a non-empty browser id.");
   }
 
-  const iframe = options.root?.getElementById?.(normalizedId) || globalThis.document?.getElementById?.(normalizedId);
+  const iframe =
+    options.root?.getElementById?.(normalizedId) ||
+    globalThis.document?.getElementById?.(normalizedId);
   if (isWebviewLike(iframe)) {
     return getBrowserWebviewBridge(iframe, options);
   }

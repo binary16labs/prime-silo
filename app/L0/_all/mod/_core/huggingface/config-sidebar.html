@@ -38,7 +38,10 @@
                 :style="`--huggingface-progress-width: ${$store.huggingface.loadProgressPercent}%`"
               ></div>
             </div>
-            <p class="huggingface-progress-step" x-text="$store.huggingface.loadStepLabel || 'Loading model'"></p>
+            <p
+              class="huggingface-progress-step"
+              x-text="$store.huggingface.loadStepLabel || 'Loading model'"
+            ></p>
           </div>
         </template>
 
@@ -50,7 +53,10 @@
       <section class="huggingface-browser-block huggingface-browser-block--models">
         <div class="huggingface-card-header">
           <h2>Models</h2>
-          <span class="huggingface-section-meta" x-text="`${$store.huggingface.savedModels.length} saved`"></span>
+          <span
+            class="huggingface-section-meta"
+            x-text="`${$store.huggingface.savedModels.length} saved`"
+          ></span>
         </div>
 
         <label class="huggingface-field">
@@ -86,7 +92,10 @@
 
         <template x-if="$store.huggingface.savedModels.length">
           <div class="huggingface-catalog-list">
-            <template x-for="model in $store.huggingface.savedModels" :key="`${model.modelId}:${model.dtype}`">
+            <template
+              x-for="model in $store.huggingface.savedModels"
+              :key="`${model.modelId}:${model.dtype}`"
+            >
               <article
                 class="huggingface-catalog-item"
                 :class="{ 'is-loaded': $store.huggingface.isActiveSavedModel(model) }"
@@ -114,7 +123,9 @@
                     aria-label="Discard cached model files"
                     @click="$store.huggingface.requestDiscardSavedModel(model)"
                   >
-                    <x-icon x-text="$store.huggingface.isDiscardingSavedModel(model) ? 'hourglass_top' : 'delete'"></x-icon>
+                    <x-icon
+                      x-text="$store.huggingface.isDiscardingSavedModel(model) ? 'hourglass_top' : 'delete'"
+                    ></x-icon>
                   </button>
                 </div>
               </article>
@@ -124,7 +135,8 @@
 
         <template x-if="!$store.huggingface.savedModels.length">
           <p class="field-note">
-            No saved models yet. Load a compatible Hugging Face repo once and it will stay here for quick reuse.
+            No saved models yet. Load a compatible Hugging Face repo once and it will stay here for
+            quick reuse.
           </p>
         </template>
       </section>
@@ -145,7 +157,10 @@
             <div class="huggingface-inline-fields">
               <label class="huggingface-field">
                 <span>Dtype</span>
-                <select :value="$store.huggingface.selectedDtype" @change="$store.huggingface.setSelectedDtype($event.target.value)">
+                <select
+                  :value="$store.huggingface.selectedDtype"
+                  @change="$store.huggingface.setSelectedDtype($event.target.value)"
+                >
                   <template x-for="option in $store.huggingface.dtypeOptions" :key="option.value">
                     <option :value="option.value" x-text="option.label"></option>
                   </template>
@@ -168,7 +183,8 @@
         </div>
 
         <p class="field-note">
-          Runs locally in this browser with WebGPU. Only Transformers.js-compatible repos with ONNX assets can load, and the browser caches the downloaded files after the first load.
+          Runs locally in this browser with WebGPU. Only Transformers.js-compatible repos with ONNX
+          assets can load, and the browser caches the downloaded files after the first load.
         </p>
       </section>
     </aside>
@@ -177,7 +193,9 @@
   <template x-if="mode === 'admin'">
     <section class="huggingface-card huggingface-config-card huggingface-config-card--admin">
       <p class="field-note">
-        Hugging Face ONNX runs the model locally in this browser through Transformers.js on WebGPU. Enter any compatible repo id here or pick a saved model, then load it directly from this dialog. First load will download the browser assets and show progress below.
+        Hugging Face ONNX runs the model locally in this browser through Transformers.js on WebGPU.
+        Enter any compatible repo id here or pick a saved model, then load it directly from this
+        dialog. First load will download the browser assets and show progress below.
       </p>
 
       <div class="huggingface-current-block">
@@ -190,7 +208,10 @@
           ></span>
         </div>
         <div class="huggingface-current-main">
-          <p class="huggingface-current-model" x-text="$store.adminAgent.huggingfaceCurrentModelLabel"></p>
+          <p
+            class="huggingface-current-model"
+            x-text="$store.adminAgent.huggingfaceCurrentModelLabel"
+          ></p>
           <button
             type="button"
             class="secondary-button huggingface-unload-button"
@@ -217,7 +238,10 @@
                 :style="`--huggingface-progress-width: ${$store.adminAgent.huggingfaceLoadProgressPercent}%`"
               ></div>
             </div>
-            <p class="huggingface-progress-step" x-text="$store.adminAgent.huggingfaceSelectedModelStatusText"></p>
+            <p
+              class="huggingface-progress-step"
+              x-text="$store.adminAgent.huggingfaceSelectedModelStatusText"
+            ></p>
           </div>
         </template>
       </div>
@@ -251,7 +275,10 @@
           @change="$store.adminAgent.handleSettingsHuggingFaceModelDraftChange($event.target.value)"
         >
           <option value="">Choose from saved models</option>
-          <template x-for="model in $store.adminAgent.huggingfaceSavedModels" :key="`${model.modelId}:${model.dtype}`">
+          <template
+            x-for="model in $store.adminAgent.huggingfaceSavedModels"
+            :key="`${model.modelId}:${model.dtype}`"
+          >
             <option
               :value="$store.adminAgent.getHuggingFaceSavedModelSelectionValue(model)"
               x-text="`${model.modelId} · ${model.dtype}`"
@@ -281,7 +308,11 @@
           @click="$store.adminAgent.requestAdminSelectedHuggingFaceModelAction()"
           x-text="$store.adminAgent.adminHuggingFaceSelectedModelActionLabel"
         ></button>
-        <button type="button" class="secondary-button" @click="$store.adminAgent.openHuggingFaceConfiguration()">
+        <button
+          type="button"
+          class="secondary-button"
+          @click="$store.adminAgent.openHuggingFaceConfiguration()"
+        >
           Open Testing Chat
         </button>
       </div>
@@ -291,7 +322,9 @@
   <template x-if="mode === 'onscreen'">
     <section class="huggingface-card huggingface-config-card huggingface-config-card--onscreen">
       <p class="field-note">
-        Hugging Face ONNX runs the model locally in this browser through Transformers.js on WebGPU. Enter any compatible repo id here or pick a saved model, then load it directly from this dialog. First load will download the browser assets and show progress below.
+        Hugging Face ONNX runs the model locally in this browser through Transformers.js on WebGPU.
+        Enter any compatible repo id here or pick a saved model, then load it directly from this
+        dialog. First load will download the browser assets and show progress below.
       </p>
 
       <div class="huggingface-current-block">
@@ -304,7 +337,10 @@
           ></span>
         </div>
         <div class="huggingface-current-main">
-          <p class="huggingface-current-model" x-text="$store.onscreenAgent.huggingfaceCurrentModelLabel"></p>
+          <p
+            class="huggingface-current-model"
+            x-text="$store.onscreenAgent.huggingfaceCurrentModelLabel"
+          ></p>
           <button
             type="button"
             class="secondary-button huggingface-unload-button"
@@ -331,7 +367,10 @@
                 :style="`--huggingface-progress-width: ${$store.onscreenAgent.huggingfaceLoadProgressPercent}%`"
               ></div>
             </div>
-            <p class="huggingface-progress-step" x-text="$store.onscreenAgent.huggingfaceSelectedModelStatusText"></p>
+            <p
+              class="huggingface-progress-step"
+              x-text="$store.onscreenAgent.huggingfaceSelectedModelStatusText"
+            ></p>
           </div>
         </template>
       </div>
@@ -352,7 +391,10 @@
           :value="$store.onscreenAgent.settingsDraft.huggingfaceDtype"
           @change="$store.onscreenAgent.handleSettingsHuggingFaceDtypeChange($event.target.value)"
         >
-          <template x-for="option in $store.onscreenAgent.huggingfaceDtypeOptions" :key="option.value">
+          <template
+            x-for="option in $store.onscreenAgent.huggingfaceDtypeOptions"
+            :key="option.value"
+          >
             <option :value="option.value" x-text="option.label"></option>
           </template>
         </select>
@@ -365,7 +407,10 @@
           @change="$store.onscreenAgent.handleSettingsHuggingFaceModelDraftChange($event.target.value)"
         >
           <option value="">Choose from saved models</option>
-          <template x-for="model in $store.onscreenAgent.huggingfaceSavedModels" :key="`${model.modelId}:${model.dtype}`">
+          <template
+            x-for="model in $store.onscreenAgent.huggingfaceSavedModels"
+            :key="`${model.modelId}:${model.dtype}`"
+          >
             <option
               :value="$store.onscreenAgent.getHuggingFaceSavedModelSelectionValue(model)"
               x-text="`${model.modelId} · ${model.dtype}`"
@@ -395,7 +440,11 @@
           @click="$store.onscreenAgent.requestOnscreenSelectedHuggingFaceModelAction()"
           x-text="$store.onscreenAgent.onscreenHuggingFaceSelectedModelActionLabel"
         ></button>
-        <button type="button" class="secondary-button" @click="$store.onscreenAgent.openHuggingFaceConfiguration()">
+        <button
+          type="button"
+          class="secondary-button"
+          @click="$store.onscreenAgent.openHuggingFaceConfiguration()"
+        >
           Open Testing Chat
         </button>
       </div>

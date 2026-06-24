@@ -2660,9 +2660,7 @@
           "case_path": "tests/agent_llm_performance/cases/silent_widget_failure_reopens_repair.json",
           "history_path": "tests/agent_llm_performance/histories/silent_widget_failure_reopens_repair.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"quote-board\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"quote-board\"\\)/u"],
           "response_type": "thrust",
           "response": "Rechecking the same widget now...\n_____javascript\nreturn await space.current.seeWidget(\"quote-board\")",
           "usage": {
@@ -4634,9 +4632,7 @@
           "case_path": "tests/agent_llm_performance/cases/verification_reveals_remaining_widget_error_requires_correction.json",
           "history_path": "tests/agent_llm_performance/histories/verification_reveals_remaining_widget_error_requires_correction.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"financials\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"financials\"\\)/u"],
           "response_type": "thrust",
           "response": "I can see the financials widget is returning an AMZN 429 rate-limit error.  \n_____javascript\nreturn await space.current.seeWidget(\"financials\")",
           "usage": {
@@ -4797,9 +4793,7 @@
           "case_path": "tests/agent_llm_performance/cases/fresh_widget_read_then_do_it_requires_patch.json",
           "history_path": "tests/agent_llm_performance/histories/fresh_widget_read_then_do_it_requires_patch.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.patchWidget(\"quote-board\", { edits: [] })",
           "usage": {
@@ -4906,9 +4900,7 @@
           "case_path": "tests/agent_llm_performance/cases/weather_self_scope_followup.json",
           "history_path": "tests/agent_llm_performance/histories/weather_self_scope_followup.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.api.userSelfInfo()",
           "usage": {
@@ -5226,9 +5218,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Updating your full name to Pan Example now.\n_____javascript\nconst current = await space.api.fileRead(\"~/user.yaml\", \"utf8\")\nconst data = space.utils.yaml.parse(current)\ndata.full_name = \"Pan Example\"\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(data), \"utf8\")",
           "usage": {
@@ -5932,9 +5922,7 @@
           "case_path": "tests/agent_llm_performance/cases/repeat_do_it_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/repeat_do_it_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.patchWidget(\"snake-game\", { edits: [] })",
           "usage": {

@@ -8,13 +8,13 @@ Phase B closed at "two processes side-by-side". This branch makes them talk.
 
 ## What landed
 
-| Area                       | Files                                                                                                | Phase |
-| -------------------------- | ---------------------------------------------------------------------------------------------------- | ----- |
-| Shell → runtime proxy      | `server/lib/runtime_proxy.js`, dispatch in `server/router/router.js`                                 | D     |
-| Browser-side runtime client | `app/L0/_all/mod/_prime_silo/runtime_client/runtime-client.js`                                       | D     |
-| Widget registry client     | `app/L0/_all/mod/_prime_silo/widgets/widget-registry.js`                                             | C     |
-| Module docs                | `app/L0/_all/mod/_prime_silo/{,runtime_client,widgets}/AGENTS.md`                                    | C/D   |
-| Tests                      | `tests/runtime_proxy_test.mjs` (5 cases), `tests/widget_registry_test.mjs` (5 cases)                 | C/D   |
+| Area                        | Files                                                                                | Phase |
+| --------------------------- | ------------------------------------------------------------------------------------ | ----- |
+| Shell → runtime proxy       | `server/lib/runtime_proxy.js`, dispatch in `server/router/router.js`                 | D     |
+| Browser-side runtime client | `app/L0/_all/mod/_prime_silo/runtime_client/runtime-client.js`                       | D     |
+| Widget registry client      | `app/L0/_all/mod/_prime_silo/widgets/widget-registry.js`                             | C     |
+| Module docs                 | `app/L0/_all/mod/_prime_silo/{,runtime_client,widgets}/AGENTS.md`                    | C/D   |
+| Tests                       | `tests/runtime_proxy_test.mjs` (5 cases), `tests/widget_registry_test.mjs` (5 cases) | C/D   |
 
 ## How the proxy works
 
@@ -69,7 +69,7 @@ $env:BENNY_HMAC_KEY = "<your hex key>"
 
 ## What is NOT yet wired
 
-Phase D's *first half* lands here. The remainder is Phase D2/D3:
+Phase D's _first half_ lands here. The remainder is Phase D2/D3:
 
 1. **Shell-side agent runtime header injection.** Space-agent's existing
    browser-resident agent runtime needs to route any `/api/runtime/*`

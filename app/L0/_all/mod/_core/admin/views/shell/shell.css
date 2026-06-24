@@ -25,10 +25,22 @@ body.app-page-admin {
     radial-gradient(1180px 620px at 50% -220px, rgba(156, 175, 136, 0.15) 0%, transparent 74%),
     radial-gradient(720px 520px at 10% 34%, rgba(156, 175, 136, 0.08) 0%, transparent 76%),
     radial-gradient(760px 560px at 92% 42%, rgba(156, 175, 136, 0.07) 0%, transparent 76%),
-    radial-gradient(1280px 760px at 50% calc(100% + 300px), rgba(156, 175, 136, 0.22) 0%, transparent 76%),
-    linear-gradient(180deg, var(--color-canvas-elevated) 0%, var(--color-canvas) 52%, var(--color-canvas-deep) 100%);
+    radial-gradient(
+      1280px 760px at 50% calc(100% + 300px),
+      rgba(156, 175, 136, 0.22) 0%,
+      transparent 76%
+    ),
+    linear-gradient(
+      180deg,
+      var(--color-canvas-elevated) 0%,
+      var(--color-canvas) 52%,
+      var(--color-canvas-deep) 100%
+    );
   color: var(--color-text);
-  font: 14px/1.5 "SF Pro Text", "Segoe UI", sans-serif;
+  font:
+    14px/1.5 "SF Pro Text",
+    "Segoe UI",
+    sans-serif;
   overflow: hidden;
 }
 
@@ -50,7 +62,11 @@ body.app-page-admin > div[x-data] {
     radial-gradient(620px 460px at 18% 34%, rgba(156, 175, 136, 0.05) 0%, transparent 76%),
     radial-gradient(620px 500px at 84% 68%, rgba(156, 175, 136, 0.04) 0%, transparent 76%),
     linear-gradient(180deg, #10110d 0%, #08111d 100%);
-  --admin-divider-bg: linear-gradient(180deg, rgba(16, 17, 13, 0.98) 0%, rgba(10, 11, 8, 0.98) 100%);
+  --admin-divider-bg: linear-gradient(
+    180deg,
+    rgba(16, 17, 13, 0.98) 0%,
+    rgba(10, 11, 8, 0.98) 100%
+  );
   --admin-border: rgba(232, 217, 191, 0.14);
   --admin-border-strong: rgba(232, 217, 191, 0.24);
   --space-chrome-surface: var(--admin-pane-section-bg-strong);

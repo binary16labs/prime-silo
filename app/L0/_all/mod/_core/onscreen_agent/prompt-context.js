@@ -83,10 +83,10 @@ function ensureDirectoryNode(node, directoryName) {
 }
 
 function shouldOmitListedPath(segments = [], isDirectory = false) {
-  return segments.some((segment, index) => (
-    OMITTED_DIRECTORY_BASENAMES.has(segment) &&
-    (isDirectory || index < segments.length - 1)
-  ));
+  return segments.some(
+    (segment, index) =>
+      OMITTED_DIRECTORY_BASENAMES.has(segment) && (isDirectory || index < segments.length - 1)
+  );
 }
 
 function buildUserHomeTree(paths = []) {
@@ -147,7 +147,10 @@ function buildMoreChildrenLines(options = {}) {
   const folderCount = normalizeNonNegativeInteger(options.folderCount, 0);
   const fileCount = normalizeNonNegativeInteger(options.fileCount, 0);
   const indentLevel = normalizeNonNegativeInteger(options.indentLevel, 0);
-  const maxLines = Math.max(0, Number.isFinite(options.maxLines) ? Number(options.maxLines) : Number.POSITIVE_INFINITY);
+  const maxLines = Math.max(
+    0,
+    Number.isFinite(options.maxLines) ? Number(options.maxLines) : Number.POSITIVE_INFINITY
+  );
   const reason = String(options.reason || "").trim();
   const lines = [];
 
@@ -177,7 +180,10 @@ function countSummaryLines(folderCount, fileCount) {
 function renderTreeNodeLines(node, options = {}) {
   const depth = normalizeNonNegativeInteger(options.depth, 0);
   const indentLevel = normalizeNonNegativeInteger(options.indentLevel, 0);
-  const maxDepth = normalizePositiveInteger(options.maxDepth, USER_HOME_FILE_TREE_DEFAULTS.maxDepth);
+  const maxDepth = normalizePositiveInteger(
+    options.maxDepth,
+    USER_HOME_FILE_TREE_DEFAULTS.maxDepth
+  );
   const maxFoldersPerFolder = normalizePositiveInteger(
     options.maxFoldersPerFolder,
     USER_HOME_FILE_TREE_DEFAULTS.maxFoldersPerFolder
@@ -188,7 +194,9 @@ function renderTreeNodeLines(node, options = {}) {
   );
   const remainingLines = normalizeNonNegativeInteger(options.remainingLines, 0);
   const lines = [];
-  const directories = sortNames(node?.directories?.keys?.() || []).map((name) => node.directories.get(name));
+  const directories = sortNames(node?.directories?.keys?.() || []).map((name) =>
+    node.directories.get(name)
+  );
   const files = sortNames(node?.files || []);
 
   if (!remainingLines || (!directories.length && !files.length)) {
@@ -217,13 +225,15 @@ function renderTreeNodeLines(node, options = {}) {
     );
 
     if (lines.length + 1 > remainingLines - reservedSummaryLines) {
-      lines.push(...buildMoreChildrenLines({
-        fileCount: files.length,
-        folderCount: directories.length - shownDirectoryCount,
-        indentLevel,
-        maxLines: remainingLines - lines.length,
-        reason: LINE_LIMIT_REASON
-      }));
+      lines.push(
+        ...buildMoreChildrenLines({
+          fileCount: files.length,
+          folderCount: directories.length - shownDirectoryCount,
+          indentLevel,
+          maxLines: remainingLines - lines.length,
+          reason: LINE_LIMIT_REASON
+        })
+      );
       return lines;
     }
 
@@ -248,13 +258,15 @@ function renderTreeNodeLines(node, options = {}) {
     const reservedFileSummaryLines = countSummaryLines(0, files.length);
 
     if (lines.length + 1 > remainingLines - reservedFileSummaryLines) {
-      lines.push(...buildMoreChildrenLines({
-        fileCount: files.length,
-        folderCount: omittedDirectoryCount,
-        indentLevel,
-        maxLines: remainingLines - lines.length,
-        reason: LINE_LIMIT_REASON
-      }));
+      lines.push(
+        ...buildMoreChildrenLines({
+          fileCount: files.length,
+          folderCount: omittedDirectoryCount,
+          indentLevel,
+          maxLines: remainingLines - lines.length,
+          reason: LINE_LIMIT_REASON
+        })
+      );
       return lines;
     }
 
@@ -269,12 +281,14 @@ function renderTreeNodeLines(node, options = {}) {
     const reservedSummaryLines = countSummaryLines(0, remainingFileCountAfterCurrent);
 
     if (lines.length + 1 > remainingLines - reservedSummaryLines) {
-      lines.push(...buildMoreChildrenLines({
-        fileCount: files.length - shownFileCount,
-        indentLevel,
-        maxLines: remainingLines - lines.length,
-        reason: LINE_LIMIT_REASON
-      }));
+      lines.push(
+        ...buildMoreChildrenLines({
+          fileCount: files.length - shownFileCount,
+          indentLevel,
+          maxLines: remainingLines - lines.length,
+          reason: LINE_LIMIT_REASON
+        })
+      );
       return lines;
     }
 
@@ -304,14 +318,16 @@ export function buildUserHomeFileTreeLines(paths = [], options = {}) {
     return lines.slice(0, normalizedOptions.maxLines);
   }
 
-  lines.push(...renderTreeNodeLines(rootNode, {
-    depth: 0,
-    indentLevel: 1,
-    maxDepth: normalizedOptions.maxDepth,
-    maxFilesPerFolder: normalizedOptions.maxFilesPerFolder,
-    maxFoldersPerFolder: normalizedOptions.maxFoldersPerFolder,
-    remainingLines: normalizedOptions.maxLines - lines.length
-  }));
+  lines.push(
+    ...renderTreeNodeLines(rootNode, {
+      depth: 0,
+      indentLevel: 1,
+      maxDepth: normalizedOptions.maxDepth,
+      maxFilesPerFolder: normalizedOptions.maxFilesPerFolder,
+      maxFoldersPerFolder: normalizedOptions.maxFoldersPerFolder,
+      remainingLines: normalizedOptions.maxLines - lines.length
+    })
+  );
 
   return lines.slice(0, normalizedOptions.maxLines);
 }
@@ -339,7 +355,9 @@ export async function listUserHomeTreePaths(runtime = globalThis.space) {
 }
 
 export async function buildUserHomeFileTreeTransientSectionFromRuntime(options = {}) {
-  const paths = Array.isArray(options.paths) ? options.paths : await listUserHomeTreePaths(options.runtime);
+  const paths = Array.isArray(options.paths)
+    ? options.paths
+    : await listUserHomeTreePaths(options.runtime);
   return buildUserHomeFileTreeTransientSection({
     ...options,
     paths

@@ -41,10 +41,7 @@
 //
 // Returns { update, refresh, destroy, get layout, get rawGraph }.
 
-import {
-  runtimeFetch,
-  readRuntimeJson
-} from "../../../runtime_client/runtime-client.js";
+import { runtimeFetch, readRuntimeJson } from "../../../runtime_client/runtime-client.js";
 
 const STATE_LOADING = "loading";
 const STATE_READY = "ready";
@@ -227,9 +224,10 @@ export function computeLayout(nodes, edges, props = {}) {
     });
   }
 
-  const width = activeBands === 0
-    ? LEFT_PADDING * 2 + BAND_WIDTH
-    : LEFT_PADDING * 2 + activeBands * BAND_WIDTH + Math.max(0, activeBands - 1) * BAND_GAP;
+  const width =
+    activeBands === 0
+      ? LEFT_PADDING * 2 + BAND_WIDTH
+      : LEFT_PADDING * 2 + activeBands * BAND_WIDTH + Math.max(0, activeBands - 1) * BAND_GAP;
   const height = Math.max(
     SVG_MIN_HEIGHT,
     TOP_PADDING + Math.max(0, maxRows - 1) * NODE_VERTICAL_GAP + BOTTOM_PADDING + 16
@@ -248,7 +246,9 @@ function renderBandLabels(layout) {
   layout.bandRenderIndex.forEach((renderIdx, bandIdx) => {
     if (renderIdx < 0) return;
     const x = LEFT_PADDING + renderIdx * (BAND_WIDTH + BAND_GAP) + BAND_WIDTH / 2;
-    labels.push(`<text class="prime-silo-cg__band-label" x="${x}" y="14" text-anchor="middle">${escapeHtml(bandLabelForIndex(bandIdx))}</text>`);
+    labels.push(
+      `<text class="prime-silo-cg__band-label" x="${x}" y="14" text-anchor="middle">${escapeHtml(bandLabelForIndex(bandIdx))}</text>`
+    );
   });
   return labels.join("");
 }
@@ -293,7 +293,7 @@ export function renderSvg(layout, props) {
 }
 
 function renderError(host, error) {
-  const detail = (error && (error.body && error.body.detail || error.message)) || String(error);
+  const detail = (error && ((error.body && error.body.detail) || error.message)) || String(error);
   host.dataset.widgetState = STATE_ERROR;
   host.innerHTML = `<div class="prime-silo-cg__error">Code graph load failed: ${escapeHtml(detail)}</div>`;
 }
@@ -364,8 +364,8 @@ export function createCodeGraphCanvasWidget(host, initialProps, options = {}) {
         payload = await client.readRuntimeJson(response);
       }
       if (aborted) return;
-      const nodes = (payload && Array.isArray(payload.nodes)) ? payload.nodes : [];
-      const edges = (payload && Array.isArray(payload.edges)) ? payload.edges : [];
+      const nodes = payload && Array.isArray(payload.nodes) ? payload.nodes : [];
+      const edges = payload && Array.isArray(payload.edges) ? payload.edges : [];
       lastGraph = { nodes, edges };
       if (nodes.length === 0) {
         lastLayout = computeLayout([], [], props);
@@ -388,8 +388,7 @@ export function createCodeGraphCanvasWidget(host, initialProps, options = {}) {
       merged.pathFilter !== props.pathFilter ||
       (merged.data || null) !== (props.data || null);
     const visibilityChanged =
-      JSON.stringify(merged.visibleTypes || null) !==
-      JSON.stringify(props.visibleTypes || null);
+      JSON.stringify(merged.visibleTypes || null) !== JSON.stringify(props.visibleTypes || null);
     props = merged;
     if (fetchKeyChanged) {
       load();
@@ -415,7 +414,11 @@ export function createCodeGraphCanvasWidget(host, initialProps, options = {}) {
       host.removeEventListener("click", onClick);
     }
     if (rendererHandle && typeof rendererHandle.dispose === "function") {
-      try { rendererHandle.dispose(); } catch (_e) { /* swallow */ }
+      try {
+        rendererHandle.dispose();
+      } catch (_e) {
+        /* swallow */
+      }
     }
     rendererHandle = null;
     host.classList.remove("prime-silo-cg");

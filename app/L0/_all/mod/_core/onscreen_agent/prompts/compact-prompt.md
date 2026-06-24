@@ -6,6 +6,7 @@ the system prompt is not included
 return exactly one plain-text block starting with Conversation summary:
 
 keep
+
 - current objective
 - constraints decisions assumptions
 - important paths apis commands errors outputs and state
@@ -17,6 +18,7 @@ prefer recent context over old detail
 make the ending clear enough that a later turn can continue immediately
 
 drop
+
 - repetition
 - minor back and forth
 - empty retries

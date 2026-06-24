@@ -33,8 +33,7 @@ export function determineInputType() {
     // Step 1: Check for touch capability (touchOnly or hybrid)
     const hasTouch = () => {
       if ("maxTouchPoints" in navigator) return navigator.maxTouchPoints > 0;
-      if (window.matchMedia)
-        return window.matchMedia("(any-pointer: coarse)").matches;
+      if (window.matchMedia) return window.matchMedia("(any-pointer: coarse)").matches;
       return "ontouchstart" in window || navigator.msMaxTouchPoints > 0;
     };
 

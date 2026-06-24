@@ -39,7 +39,11 @@ function escapeHtml(text) {
 }
 
 function basename(p) {
-  return String(p || "").split(/[\\/]/).pop() || "";
+  return (
+    String(p || "")
+      .split(/[\\/]/)
+      .pop() || ""
+  );
 }
 
 function formatBytes(bytes) {
@@ -96,11 +100,15 @@ function renderProcessesCard(metrics) {
   if (!metrics || !Array.isArray(metrics.processes)) {
     return cardShell("Top processes", `<div class="mray-oc__muted">Loading process table…</div>`);
   }
-  const rows = metrics.processes.map((p) => `
+  const rows = metrics.processes
+    .map(
+      (p) => `
     <div class="mray-oc__proc">
       <span class="mray-oc__mono">${escapeHtml(p.name)}</span>
       <span class="mray-oc__proc-stats">${escapeHtml(p.cpu)}% · ${escapeHtml(p.mem)} MB</span>
-    </div>`).join("");
+    </div>`
+    )
+    .join("");
   return cardShell("Top processes", rows || `<div class="mray-oc__muted">No processes.</div>`);
 }
 
@@ -114,21 +122,34 @@ function renderEcosystemCard(overview) {
 
 function renderCapabilitiesCard(caps) {
   if (!caps) {
-    return wideCardShell("System capabilities", `<div class="mray-oc__muted">Scanning registries…</div>`);
+    return wideCardShell(
+      "System capabilities",
+      `<div class="mray-oc__muted">Scanning registries…</div>`
+    );
   }
-  const plugins = (caps.antigravity?.plugins || []).map((p) => `<span class="mray-oc__chip">${escapeHtml(p)}</span>`).join("")
-    || `<span class="mray-oc__muted">No custom plugins.</span>`;
-  const mcp = (caps.claude?.mcpServers || []).map((m) => `
+  const plugins =
+    (caps.antigravity?.plugins || [])
+      .map((p) => `<span class="mray-oc__chip">${escapeHtml(p)}</span>`)
+      .join("") || `<span class="mray-oc__muted">No custom plugins.</span>`;
+  const mcp =
+    (caps.claude?.mcpServers || [])
+      .map(
+        (m) => `
     <div class="mray-oc__chip mray-oc__chip--stack">
       <strong>${escapeHtml(m.name)}</strong>
       <span class="mray-oc__mono mray-oc__chip-sub">${escapeHtml(m.command)}</span>
-    </div>`).join("") || `<span class="mray-oc__muted">No MCP servers.</span>`;
-  const perms = (caps.antigravity?.permissions || []).map((perm) => {
-    const isCmd = String(perm).startsWith("command");
-    const label = isCmd ? "EXECUTE" : "READ/WRITE";
-    const value = String(perm).replace(/^(command|read_file|write_file)\(|\)$/g, "");
-    return `<div class="mray-oc__chip mray-oc__chip--stack"><span class="mray-oc__chip-tag">${label}</span><span class="mray-oc__mono">${escapeHtml(value)}</span></div>`;
-  }).join("") || `<span class="mray-oc__muted">No global permissions.</span>`;
+    </div>`
+      )
+      .join("") || `<span class="mray-oc__muted">No MCP servers.</span>`;
+  const perms =
+    (caps.antigravity?.permissions || [])
+      .map((perm) => {
+        const isCmd = String(perm).startsWith("command");
+        const label = isCmd ? "EXECUTE" : "READ/WRITE";
+        const value = String(perm).replace(/^(command|read_file|write_file)\(|\)$/g, "");
+        return `<div class="mray-oc__chip mray-oc__chip--stack"><span class="mray-oc__chip-tag">${label}</span><span class="mray-oc__mono">${escapeHtml(value)}</span></div>`;
+      })
+      .join("") || `<span class="mray-oc__muted">No global permissions.</span>`;
 
   const body = `
     <div class="mray-oc__caps">
@@ -140,26 +161,40 @@ function renderCapabilitiesCard(caps) {
 }
 
 function renderWorktreesCard(overview) {
-  const items = (overview.worktrees || []).map((wt) => `
+  const items =
+    (overview.worktrees || [])
+      .map(
+        (wt) => `
     <div class="mray-oc__wt">
       <div class="mray-oc__wt-branch">${escapeHtml(wt.branch || "(detached)")}</div>
       <div class="mray-oc__wt-repo">Repo: ${escapeHtml(basename(wt.baseRepo) || "Unknown")}</div>
       <div class="mray-oc__wt-meta"><span>${wt.createdAt ? escapeHtml(new Date(wt.createdAt).toLocaleDateString()) : "—"}</span></div>
-    </div>`).join("") || `<span class="mray-oc__muted">No active isolated environments.</span>`;
-  return cardShell("Active git worktrees", `<div class="mray-oc__scroll">${items}</div>`, "mray-oc__card--span1");
+    </div>`
+      )
+      .join("") || `<span class="mray-oc__muted">No active isolated environments.</span>`;
+  return cardShell(
+    "Active git worktrees",
+    `<div class="mray-oc__scroll">${items}</div>`,
+    "mray-oc__card--span1"
+  );
 }
 
 function renderHeatmapCard(overview) {
   const hot = Array.isArray(overview.hotFiles) ? overview.hotFiles.slice(0, 10) : [];
   if (hot.length === 0) {
-    return cardShell("File memory heatmap", `<span class="mray-oc__muted">No file memory compiled yet.</span>`, "mray-oc__card--span2");
+    return cardShell(
+      "File memory heatmap",
+      `<span class="mray-oc__muted">No file memory compiled yet.</span>`,
+      "mray-oc__card--span2"
+    );
   }
   const maxCount = overview.hotFiles[0].count || 1;
-  const rows = hot.map((file, idx) => {
-    const heatPct = (file.count / maxCount) * 100;
-    const isClaude = String(file.agent || "").toLowerCase() === "claude";
-    const label = basename(file.fileName || file.filePath) || "Unknown file";
-    return `
+  const rows = hot
+    .map((file, idx) => {
+      const heatPct = (file.count / maxCount) * 100;
+      const isClaude = String(file.agent || "").toLowerCase() === "claude";
+      const label = basename(file.fileName || file.filePath) || "Unknown file";
+      return `
       <div class="mray-oc__heat-row">
         <span class="mray-oc__heat-rank">#${idx + 1}</span>
         <div class="mray-oc__heat-bar">
@@ -168,13 +203,17 @@ function renderHeatmapCard(overview) {
         </div>
         <span class="mray-oc__heat-count ${isClaude ? "mray-oc__accent-golden" : "mray-oc__accent-slate"}">${Number(file.count)}×</span>
       </div>`;
-  }).join("");
+    })
+    .join("");
   return cardShell("File memory heatmap", rows, "mray-oc__card--span2");
 }
 
 function renderRecentCard(overview) {
   const recent = deriveRecentSessions(overview);
-  const rows = recent.map((s) => `
+  const rows =
+    recent
+      .map(
+        (s) => `
     <button type="button" class="mray-oc__session" data-session-id="${escapeHtml(s.id)}">
       <span class="mray-oc__session-main">
         <span class="mray-oc__session-title">${escapeHtml(s.title || "Untitled session")}</span>
@@ -184,7 +223,9 @@ function renderRecentCard(overview) {
         <span>${s.timestamp ? escapeHtml(new Date(s.timestamp).toLocaleString()) : "—"}</span>
         <span class="mray-oc__accent-golden">${Number(s.nodes || 0)} steps</span>
       </span>
-    </button>`).join("") || `<span class="mray-oc__muted">No recent activity.</span>`;
+    </button>`
+      )
+      .join("") || `<span class="mray-oc__muted">No recent activity.</span>`;
   return cardShell("Recent agent activity", rows, "mray-oc__card--full");
 }
 
@@ -253,17 +294,24 @@ export function createOverviewCardsWidget(host, initialProps = {}, options = {})
     } catch (err) {
       if (aborted) return;
       if (isMemorayDisabled(err)) {
-        renderState(`<p class="mray-oc__offline">Memo-Ray is disabled. Enable it in the configuration wizard or with <code>node space set MEMORAY_ENABLED=true</code>.</p>`);
+        renderState(
+          `<p class="mray-oc__offline">Memo-Ray is disabled. Enable it in the configuration wizard or with <code>node space set MEMORAY_ENABLED=true</code>.</p>`
+        );
       } else if (isMemorayOffline(err)) {
-        renderState(`<p class="mray-oc__offline">Memo-Ray is offline. Boot it with <code>scripts/memoray.ps1</code> and refresh.</p>`);
+        renderState(
+          `<p class="mray-oc__offline">Memo-Ray is offline. Boot it with <code>scripts/memoray.ps1</code> and refresh.</p>`
+        );
       } else {
-        renderState(`<p class="mray-oc__error">Command Center failed to load: ${escapeHtml(err.message)}</p>`);
+        renderState(
+          `<p class="mray-oc__error">Command Center failed to load: ${escapeHtml(err.message)}</p>`
+        );
       }
     }
   }
 
   async function pollMetrics() {
-    if (aborted || typeof document !== "undefined" && document.visibilityState === "hidden") return;
+    if (aborted || (typeof document !== "undefined" && document.visibilityState === "hidden"))
+      return;
     try {
       const next = await client.readMemorayJson(await client.memorayFetch("/system/metrics"));
       if (aborted) return;
@@ -284,7 +332,10 @@ export function createOverviewCardsWidget(host, initialProps = {}, options = {})
 
   function startMetricsPolling() {
     pollMetrics();
-    metricsTimer = setInterval(pollMetrics, Math.max(2000, Number(props.metricsIntervalMs) || 5000));
+    metricsTimer = setInterval(
+      pollMetrics,
+      Math.max(2000, Number(props.metricsIntervalMs) || 5000)
+    );
     if (typeof document !== "undefined") {
       document.addEventListener("visibilitychange", pollMetrics);
     }

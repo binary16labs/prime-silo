@@ -23,7 +23,9 @@ export function createUnavailableBackendResult(name, reason) {
 }
 
 export function createSourceCheckoutError() {
-  return new Error("The update command is only available for source installs in a real Git checkout.");
+  return new Error(
+    "The update command is only available for source installs in a real Git checkout."
+  );
 }
 
 export function normalizeBackendName(rawValue, options = {}) {
@@ -94,7 +96,10 @@ function resolveRuntimeParamBackendName(runtimeParams) {
 }
 
 export function resolveRequestedGitBackend(options = {}) {
-  if (Object.prototype.hasOwnProperty.call(options, "backendName") && options.backendName !== undefined) {
+  if (
+    Object.prototype.hasOwnProperty.call(options, "backendName") &&
+    options.backendName !== undefined
+  ) {
     return normalizeBackendName(options.backendName, {
       allowAuto: true,
       sourceLabel: "git backend"
@@ -162,7 +167,9 @@ export function filterHistoryChangedFiles(files = [], ignoredPaths = []) {
 }
 
 export function normalizeHistoryFileAction(status = "") {
-  const value = String(status || "").trim().toUpperCase();
+  const value = String(status || "")
+    .trim()
+    .toUpperCase();
 
   if (value.startsWith("A")) {
     return "added";
@@ -194,7 +201,10 @@ export function normalizeHistoryFileEntry(entry) {
 
   const pathValue = normalizeGitRelativePath(entry.path || entry.filePath || entry.newPath);
   const oldPath = normalizeGitRelativePath(entry.oldPath || "");
-  const status = String(entry.status || "").trim().toUpperCase() || "M";
+  const status =
+    String(entry.status || "")
+      .trim()
+      .toUpperCase() || "M";
 
   if (!pathValue) {
     return null;
@@ -225,7 +235,9 @@ export function normalizeHistoryFileEntries(files = []) {
 export function filterHistoryFileEntries(files = [], ignoredPaths = []) {
   const ignoredPathSet = normalizeHistoryIgnoredPaths(ignoredPaths);
 
-  return normalizeHistoryFileEntries(files).filter((entry) => !isHistoryIgnoredPath(entry.path, ignoredPathSet));
+  return normalizeHistoryFileEntries(files).filter(
+    (entry) => !isHistoryIgnoredPath(entry.path, ignoredPathSet)
+  );
 }
 
 export function getHistoryChangedFilePaths(files = []) {
@@ -360,9 +372,7 @@ export function normalizeRemoteUrl(remoteUrl) {
     return `https://${scpLikeMatch[1]}/${scpLikeMatch[2].replace(/^\/+/, "")}`;
   }
 
-  throw new Error(
-    `isomorphic-git requires an HTTP(S) remote. Unsupported remote URL: ${value}`
-  );
+  throw new Error(`isomorphic-git requires an HTTP(S) remote. Unsupported remote URL: ${value}`);
 }
 
 function decodeUrlCredential(value) {

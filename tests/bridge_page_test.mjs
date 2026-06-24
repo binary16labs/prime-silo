@@ -26,7 +26,16 @@ async function main() {
 function testModesAndChips() {
   assert.equal(bridge.MODES.length, 8);
   const ids = bridge.MODES.map((m) => m.id);
-  assert.deepEqual(ids, ["pulse", "memory", "documents", "code", "flows", "studio", "runs", "agents"]);
+  assert.deepEqual(ids, [
+    "pulse",
+    "memory",
+    "documents",
+    "code",
+    "flows",
+    "studio",
+    "runs",
+    "agents"
+  ]);
   // Every mode has chips, and each chip carries an instruction to dispatch.
   for (const id of ids) {
     assert.ok(Array.isArray(bridge.CHIPS[id]) && bridge.CHIPS[id].length > 0, `${id} has chips`);
@@ -38,7 +47,10 @@ function testModesAndChips() {
 }
 
 function testReadQuery() {
-  assert.deepEqual(bridge.readQuery("#/_prime_silo/bridge?mode=code&id=n1"), { mode: "code", id: "n1" });
+  assert.deepEqual(bridge.readQuery("#/_prime_silo/bridge?mode=code&id=n1"), {
+    mode: "code",
+    id: "n1"
+  });
   assert.deepEqual(bridge.readQuery("#/_prime_silo/bridge"), { mode: "", id: "" });
   assert.deepEqual(bridge.readQuery(""), { mode: "", id: "" });
 }
@@ -66,7 +78,10 @@ function testRelativeTime() {
 
 function testSummariseRuns() {
   assert.deepEqual(bridge.summariseRuns([]), { total: 0, lastId: "", lastStatus: "" });
-  const s = bridge.summariseRuns([{ run_id: "r1", status: "ok" }, { run_id: "r0", status: "ok" }]);
+  const s = bridge.summariseRuns([
+    { run_id: "r1", status: "ok" },
+    { run_id: "r0", status: "ok" }
+  ]);
   assert.equal(s.total, 2);
   assert.equal(s.lastId, "r1");
   assert.equal(s.lastStatus, "ok");

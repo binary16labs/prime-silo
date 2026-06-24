@@ -43,7 +43,10 @@ function extractStreamingDelta(payload) {
     // so we return something rather than triggering the protocol-correction loop.
     const thinking = extractTextContent(delta.reasoning_content || "");
     if (thinking) {
-      console.debug("[onscreen_agent] extracted reasoning_content (thinking fallback):", thinking.slice(0, 80));
+      console.debug(
+        "[onscreen_agent] extracted reasoning_content (thinking fallback):",
+        thinking.slice(0, 80)
+      );
       return thinking;
     }
     return "";
@@ -51,7 +54,7 @@ function extractStreamingDelta(payload) {
 
   // Support Benny / OpenAI-adjacent top-level fields
   const topLevelContent = payload?.answer || payload?.message || payload?.content || "";
-  
+
   if (typeof topLevelContent === "string" && topLevelContent.trim()) {
     console.debug("[onscreen_agent] extracted from top-level string:", topLevelContent);
     return topLevelContent;
@@ -145,7 +148,8 @@ function noteCompletionPayload(meta, payload, textChunk = "") {
 }
 
 function finalizeCompletionResponseMeta(meta) {
-  const protocolObserved = meta.mode === "standard" ? meta.payloadCount > 0 : meta.payloadCount > 0 || meta.sawDoneMarker;
+  const protocolObserved =
+    meta.mode === "standard" ? meta.payloadCount > 0 : meta.payloadCount > 0 || meta.sawDoneMarker;
 
   return {
     ...meta,
@@ -169,7 +173,9 @@ async function throwResponseError(response) {
     detail = await response.text();
   }
 
-  throw new Error(`Chat request failed with status ${response.status}: ${detail || response.statusText}`);
+  throw new Error(
+    `Chat request failed with status ${response.status}: ${detail || response.statusText}`
+  );
 }
 
 async function readStandardResponse(response, onDelta) {
@@ -431,9 +437,7 @@ function isLocalModelEndpoint(url) {
 function patchMessagesForLocalModel(messages) {
   if (!Array.isArray(messages)) return messages;
   return messages.map((msg) =>
-    msg && msg.role === "system"
-      ? { ...msg, content: LOCAL_MODEL_MINIMAL_SYSTEM_PROMPT }
-      : msg
+    msg && msg.role === "system" ? { ...msg, content: LOCAL_MODEL_MINIMAL_SYSTEM_PROMPT } : msg
   );
 }
 
@@ -473,11 +477,10 @@ function buildFetchRequestInit(apiRequest, signal) {
       ? { ...apiRequest.requestInit }
       : {};
   const headers =
-    apiRequest?.headers && typeof apiRequest.headers === "object"
-      ? { ...apiRequest.headers }
-      : {};
+    apiRequest?.headers && typeof apiRequest.headers === "object" ? { ...apiRequest.headers } : {};
 
-  requestInit.method = typeof apiRequest?.method === "string" && apiRequest.method.trim() ? apiRequest.method : "POST";
+  requestInit.method =
+    typeof apiRequest?.method === "string" && apiRequest.method.trim() ? apiRequest.method : "POST";
   requestInit.headers = headers;
   requestInit.signal = signal;
 
@@ -531,8 +534,7 @@ export class OnscreenAgentApiLlmClient extends OnscreenAgentLlmClient {
     }
 
     const isLocal =
-      settings.apiEndpoint.includes("localhost") ||
-      settings.apiEndpoint.includes("127.0.0.1");
+      settings.apiEndpoint.includes("localhost") || settings.apiEndpoint.includes("127.0.0.1");
 
     if (!isLocal && !settings.apiKey.trim()) {
       throw new Error("Set an API key before sending a message.");
@@ -609,10 +611,14 @@ export class OnscreenAgentLocalLlmClient extends OnscreenAgentLlmClient {
     const requestBodyMessages = Array.isArray(preparedRequest?.requestBody?.messages)
       ? preparedRequest.requestBody.messages
       : [];
-    const requestMessages = Array.isArray(preparedRequest?.messages) ? preparedRequest.messages : [];
+    const requestMessages = Array.isArray(preparedRequest?.messages)
+      ? preparedRequest.messages
+      : [];
 
     // Local generation should reuse the same final transport message shape as the API path.
-    return normalizeCompletionMessagesForLocal(requestBodyMessages.length ? requestBodyMessages : requestMessages);
+    return normalizeCompletionMessagesForLocal(
+      requestBodyMessages.length ? requestBodyMessages : requestMessages
+    );
   }
 
   async streamCompletion(options = {}) {
@@ -645,7 +651,8 @@ export const prepareOnscreenAgentApiRequest = globalThis.space.extend(
     const effectiveSettings =
       settings && typeof settings === "object"
         ? settings
-        : effectivePreparedRequest?.settings && typeof effectivePreparedRequest.settings === "object"
+        : effectivePreparedRequest?.settings &&
+            typeof effectivePreparedRequest.settings === "object"
           ? effectivePreparedRequest.settings
           : config.DEFAULT_ONSCREEN_AGENT_SETTINGS;
     const apiEndpoint = String(effectiveSettings?.apiEndpoint || "").trim();
@@ -653,21 +660,27 @@ export const prepareOnscreenAgentApiRequest = globalThis.space.extend(
     return {
       apiEndpoint,
       headers: createApiRequestHeaders(String(effectiveSettings?.apiKey || "").trim()),
-      messages: Array.isArray(effectivePreparedRequest?.messages) ? effectivePreparedRequest.messages : [],
+      messages: Array.isArray(effectivePreparedRequest?.messages)
+        ? effectivePreparedRequest.messages
+        : [],
       method: "POST",
       preparedRequest: effectivePreparedRequest,
       promptInput:
-        effectivePreparedRequest?.promptInput && typeof effectivePreparedRequest.promptInput === "object"
+        effectivePreparedRequest?.promptInput &&
+        typeof effectivePreparedRequest.promptInput === "object"
           ? effectivePreparedRequest.promptInput
           : null,
       requestBody: createApiRequestBody(effectiveSettings, effectivePreparedRequest),
       requestUrl:
-        typeof effectivePreparedRequest?.requestUrl === "string" && effectivePreparedRequest.requestUrl.trim()
+        typeof effectivePreparedRequest?.requestUrl === "string" &&
+        effectivePreparedRequest.requestUrl.trim()
           ? effectivePreparedRequest.requestUrl
           : apiEndpoint,
       settings: effectiveSettings,
       systemPrompt:
-        typeof effectivePreparedRequest?.systemPrompt === "string" ? effectivePreparedRequest.systemPrompt : ""
+        typeof effectivePreparedRequest?.systemPrompt === "string"
+          ? effectivePreparedRequest.systemPrompt
+          : ""
     };
   }
 );

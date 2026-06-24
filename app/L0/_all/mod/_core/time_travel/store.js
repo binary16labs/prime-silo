@@ -29,7 +29,9 @@ function logTimeTravelError(context, error) {
 }
 
 function normalizeFileAction(value = "") {
-  const action = String(value || "").trim().toLowerCase();
+  const action = String(value || "")
+    .trim()
+    .toLowerCase();
 
   if (action === "added" || action === "deleted" || action === "modified") {
     return action;
@@ -52,7 +54,10 @@ function stripTrailingSlash(value = "") {
 }
 
 function normalizeRepositoryPath(value = "") {
-  const rawPath = String(value || "").trim().replace(/\\/gu, "/").replace(/^\/app\//u, "");
+  const rawPath = String(value || "")
+    .trim()
+    .replace(/\\/gu, "/")
+    .replace(/^\/app\//u, "");
 
   if (!rawPath) {
     return "";
@@ -117,11 +122,12 @@ function extractRevertConflictPath(detail = "") {
 function describeTimeTravelActionError(error, { action = "", phase = "execute" } = {}) {
   const details = String(error?.message || "").trim();
   const statusCode = parseApiErrorStatus(error);
-  const fallbackSummary = phase === "preview"
-    ? "Unable to preview affected files."
-    : action === "revert"
-      ? "Unable to revert changes."
-      : "Unable to travel in time.";
+  const fallbackSummary =
+    phase === "preview"
+      ? "Unable to preview affected files."
+      : action === "revert"
+        ? "Unable to revert changes."
+        : "Unable to travel in time.";
 
   if (action === "revert" && phase !== "preview" && statusCode === 409) {
     const filePath = extractRevertConflictPath(details);
@@ -356,13 +362,16 @@ const model = {
 
   get selectedCommit() {
     const pageCommit = this.commits.find((commit) => commit.hash === this.selectedHash) || null;
-    const snapshot = this.selectedCommitSnapshot?.hash === this.selectedHash ? this.selectedCommitSnapshot : null;
+    const snapshot =
+      this.selectedCommitSnapshot?.hash === this.selectedHash ? this.selectedCommitSnapshot : null;
 
     return pageCommit || snapshot || this.commits[0] || null;
   },
 
   get selectedChangedFiles() {
-    return [...(this.selectedCommit?.files || [])].sort((left, right) => left.path.localeCompare(right.path));
+    return [...(this.selectedCommit?.files || [])].sort((left, right) =>
+      left.path.localeCompare(right.path)
+    );
   },
 
   get selectedFileActionCounts() {
@@ -441,21 +450,21 @@ const model = {
   get canRollback() {
     return Boolean(
       this.selectedCommit &&
-        this.selectedCommit.hash &&
-        this.selectedCommit.hash !== this.currentHash &&
-        !this.loading &&
-        !this.rollingBack &&
-        !this.reverting
+      this.selectedCommit.hash &&
+      this.selectedCommit.hash !== this.currentHash &&
+      !this.loading &&
+      !this.rollingBack &&
+      !this.reverting
     );
   },
 
   get canRevert() {
     return Boolean(
       this.selectedCommit &&
-        this.selectedCommit.hash &&
-        !this.loading &&
-        !this.rollingBack &&
-        !this.reverting
+      this.selectedCommit.hash &&
+      !this.loading &&
+      !this.rollingBack &&
+      !this.reverting
     );
   },
 
@@ -493,7 +502,9 @@ const model = {
     const fallbackCount = Math.min(PREVIEW_FILE_LIMIT, files.length);
     const layoutCount = Number(this.previewLayouts[commit?.hash]);
 
-    return Number.isFinite(layoutCount) ? Math.max(0, Math.min(fallbackCount, layoutCount)) : fallbackCount;
+    return Number.isFinite(layoutCount)
+      ? Math.max(0, Math.min(fallbackCount, layoutCount))
+      : fallbackCount;
   },
 
   async loadHistory(options = {}) {
@@ -528,8 +539,13 @@ const model = {
       this.historyResolvedPath = normalizeRepositoryPath(result?.path || this.historyPath);
       this.hasMore = Boolean(result?.hasMore);
       this.total = Number.isFinite(Number(result?.total)) ? Number(result.total) : null;
-      const selectedFromPage = commits.find((commit) => commit.hash === previousSelectedHash) || null;
-      const selectedCommit = selectedFromPage || (keepMissingSelection ? previousSelectedCommit : null) || commits[0] || null;
+      const selectedFromPage =
+        commits.find((commit) => commit.hash === previousSelectedHash) || null;
+      const selectedCommit =
+        selectedFromPage ||
+        (keepMissingSelection ? previousSelectedCommit : null) ||
+        commits[0] ||
+        null;
 
       this.selectedHash = selectedCommit?.hash || "";
       this.selectedCommitSnapshot = selectedCommit;
@@ -546,7 +562,9 @@ const model = {
       this.commits = [];
       this.currentHash = "";
       this.gitBackend = "";
-      this.historyResolvedPath = normalizeRepositoryPath(this.historyResolvedPath || this.historyPath);
+      this.historyResolvedPath = normalizeRepositoryPath(
+        this.historyResolvedPath || this.historyPath
+      );
       this.selectedHash = "";
       this.selectedCommitSnapshot = null;
       this.errorText = String(error?.message || "Unable to load Git history.");
@@ -593,7 +611,9 @@ const model = {
           patterns: [GIT_REPOSITORY_PATTERN]
         }
       });
-      const paths = Array.isArray(result?.[GIT_REPOSITORY_PATTERN]) ? result[GIT_REPOSITORY_PATTERN] : [];
+      const paths = Array.isArray(result?.[GIT_REPOSITORY_PATTERN])
+        ? result[GIT_REPOSITORY_PATTERN]
+        : [];
 
       this.repositories = paths
         .map(normalizeRepositoryEntry)
@@ -602,7 +622,9 @@ const model = {
     } catch (error) {
       logTimeTravelError("loadRepositories failed", error);
       this.repositories = [];
-      this.repositoryErrorText = String(error?.message || "Unable to find writable Git repositories.");
+      this.repositoryErrorText = String(
+        error?.message || "Unable to find writable Git repositories."
+      );
     } finally {
       this.repositoryLoading = false;
     }
@@ -698,13 +720,15 @@ const model = {
       return;
     }
 
-    this.previewMeasureFrame = globalThis.requestAnimationFrame?.(() => {
-      this.previewMeasureFrame = 0;
-      this.measurePreviewLayouts();
-    }) || globalThis.setTimeout?.(() => {
-      this.previewMeasureFrame = 0;
-      this.measurePreviewLayouts();
-    }, 0);
+    this.previewMeasureFrame =
+      globalThis.requestAnimationFrame?.(() => {
+        this.previewMeasureFrame = 0;
+        this.measurePreviewLayouts();
+      }) ||
+      globalThis.setTimeout?.(() => {
+        this.previewMeasureFrame = 0;
+        this.measurePreviewLayouts();
+      }, 0);
   },
 
   ensurePreviewMeasureRoot() {
@@ -763,9 +787,8 @@ const model = {
 
     for (let index = 0; index < 6; index += 1) {
       const hiddenCount = total - visibleCount;
-      const itemWidths = hiddenCount > 0
-        ? [this.measureMorePillWidth(hiddenCount), ...fileWidths]
-        : fileWidths;
+      const itemWidths =
+        hiddenCount > 0 ? [this.measureMorePillWidth(hiddenCount), ...fileWidths] : fileWidths;
       const itemVisibleCount = fitsInPreviewRows(itemWidths, containerWidth, gap);
       const nextVisibleCount = Math.max(
         0,

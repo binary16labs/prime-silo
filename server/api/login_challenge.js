@@ -1,5 +1,9 @@
 import { isGuestUsername } from "../lib/auth/user_manage.js";
-import { areGuestUsersAllowed, isLoginAllowed, isSingleUserApp } from "../lib/utils/runtime_params.js";
+import {
+  areGuestUsersAllowed,
+  isLoginAllowed,
+  isSingleUserApp
+} from "../lib/utils/runtime_params.js";
 
 export const allowAnonymous = true;
 
@@ -34,6 +38,9 @@ export async function post(context) {
       username: payload.username
     });
   } catch (error) {
-    throw createHttpError(error.message || "Login challenge failed.", Number(error.statusCode) || 401);
+    throw createHttpError(
+      error.message || "Login challenge failed.",
+      Number(error.statusCode) || 401
+    );
   }
 }

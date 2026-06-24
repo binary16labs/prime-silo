@@ -24,23 +24,17 @@
 
 // Relative imports so node-based tests can resolve the same module graph
 // the shell mod loader resolves via /mod/<path> at runtime.
-import {
-  runtimeFetch,
-  readRuntimeJson
-} from "../runtime_client/runtime-client.js";
+import { runtimeFetch, readRuntimeJson } from "../runtime_client/runtime-client.js";
 import { createDagCanvasWidget } from "../widgets/dag/canvas/index.js";
-import {
-  mapManifestToDagData,
-  summariseManifest
-} from "./manifest-mapping.js";
+import { mapManifestToDagData, summariseManifest } from "./manifest-mapping.js";
 
 window.manifestExplorer = function manifestExplorer() {
   return {
-    state: "loading",        // "loading" | "ready" | "empty" | "error"
+    state: "loading", // "loading" | "ready" | "empty" | "error"
     error: "",
-    manifests: [],           // [{ id, requirement }]
+    manifests: [], // [{ id, requirement }]
     activeId: "",
-    summary: null,           // returned by summariseManifest
+    summary: null, // returned by summariseManifest
     _widgetHandle: null,
     _canvasHost: null,
 
@@ -58,9 +52,10 @@ window.manifestExplorer = function manifestExplorer() {
           return;
         }
         const requested = readManifestIdFromQuery();
-        const initialId = requested && this.manifests.some((m) => m.id === requested)
-          ? requested
-          : this.manifests[0].id;
+        const initialId =
+          requested && this.manifests.some((m) => m.id === requested)
+            ? requested
+            : this.manifests[0].id;
         await this.selectManifest(initialId);
       } catch (err) {
         this.state = "error";
@@ -72,10 +67,12 @@ window.manifestExplorer = function manifestExplorer() {
       const response = await runtimeFetch("/manifests");
       const list = await readRuntimeJson(response);
       this.manifests = Array.isArray(list)
-        ? list.map((m) => ({
-            id: typeof m.id === "string" ? m.id : "",
-            requirement: typeof m.requirement === "string" ? m.requirement : ""
-          })).filter((m) => m.id)
+        ? list
+            .map((m) => ({
+              id: typeof m.id === "string" ? m.id : "",
+              requirement: typeof m.requirement === "string" ? m.requirement : ""
+            }))
+            .filter((m) => m.id)
         : [];
     },
 
@@ -85,9 +82,7 @@ window.manifestExplorer = function manifestExplorer() {
       this.state = "loading";
       this.error = "";
       try {
-        const response = await runtimeFetch(
-          `/manifests/${encodeURIComponent(manifestId)}`
-        );
+        const response = await runtimeFetch(`/manifests/${encodeURIComponent(manifestId)}`);
         const manifest = await readRuntimeJson(response);
         this.summary = summariseManifest(manifest);
         const dagData = mapManifestToDagData(manifest);

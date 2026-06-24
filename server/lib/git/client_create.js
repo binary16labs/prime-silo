@@ -16,9 +16,7 @@ const CLONE_BACKEND_FACTORIES = {
 const DEFAULT_BACKEND_ORDER = ["native", "isomorphic"];
 
 function buildUnavailableBackendMessage(attempts) {
-  return attempts
-    .map((attempt) => `${attempt.name}: ${attempt.reason}`)
-    .join("; ");
+  return attempts.map((attempt) => `${attempt.name}: ${attempt.reason}`).join("; ");
 }
 
 function resolveBackendOrder(options = {}) {

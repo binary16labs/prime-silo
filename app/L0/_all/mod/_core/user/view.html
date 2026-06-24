@@ -88,7 +88,9 @@
                   :disabled="$store.userPage.loading || $store.userPage.profileSaving || $store.userPage.reauthPending || !$store.userPage.isFullNameDirty"
                   @click="$store.userPage.saveFullName()"
                 >
-                  <x-icon x-text="$store.userPage.profileSaving ? 'hourglass_top' : 'save'"></x-icon>
+                  <x-icon
+                    x-text="$store.userPage.profileSaving ? 'hourglass_top' : 'save'"
+                  ></x-icon>
                   <span x-text="$store.userPage.profileSaving ? 'Saving…' : 'Save'"></span>
                 </button>
               </div>
@@ -177,8 +179,12 @@
                       :disabled="!$store.userPage.canChangePassword"
                       @click="$store.userPage.changePassword()"
                     >
-                      <x-icon x-text="$store.userPage.passwordSaving ? 'hourglass_top' : 'vpn_key'"></x-icon>
-                      <span x-text="$store.userPage.passwordSaving ? 'Changing…' : 'Change Password'"></span>
+                      <x-icon
+                        x-text="$store.userPage.passwordSaving ? 'hourglass_top' : 'vpn_key'"
+                      ></x-icon>
+                      <span
+                        x-text="$store.userPage.passwordSaving ? 'Changing…' : 'Change Password'"
+                      ></span>
                     </button>
                   </div>
                 </div>

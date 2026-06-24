@@ -1050,9 +1050,7 @@
           "case_path": "tests/agent_llm_performance/cases/terminal_after_result_retry_literal.json",
           "history_path": "tests/agent_llm_performance/histories/terminal_after_result_retry_literal.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /\\S/u"
-          ],
+          "failures": ["missing required pattern: /\\S/u"],
           "response_type": "terminal",
           "response": "",
           "usage": {
@@ -1846,9 +1844,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating your contacts now...\n_____javascript\nconst text = await space.api.fileRead(\"~/contacts.yaml\", \"utf8\")\nconst data = space.utils.yaml.parse(text)\nif (data && typeof data === \"object\") {\n  for (const key of Object.keys(data)) {\n    const v = data[key]\n    if (v && typeof v === \"object\" && !Array.isArray(v)) {\n      if (v.full_name === \"mr_kowalski\") v.full_name = \"John Ronald Kowalski\"\n      if (v.name === \"mr_kowalski\") v.name = \"John Ronald Kowalski\"\n    } else if (v === \"mr_kowalski\") {\n      data[key] = \"John Ronald Kowalski\"\n    }\n  }\n}\nreturn await space.api.fileWrite(\"~/contacts.yaml\", space.utils.yaml.stringify(data), \"utf8\")",
           "usage": {
@@ -1883,9 +1879,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_widget_fix_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_widget_fix_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.readWidget(\"snake-game\")",
           "usage": {
@@ -2685,9 +2679,7 @@
           "case_path": "tests/agent_llm_performance/cases/page_title_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/page_title_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn { title: document.title, url: location.href }",
           "usage": {
@@ -2757,9 +2749,7 @@
           "case_path": "tests/agent_llm_performance/cases/time_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/time_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn new Date().toString()",
           "usage": {
@@ -2794,9 +2784,7 @@
           "case_path": "tests/agent_llm_performance/cases/weather_omitted_scope.json",
           "history_path": "tests/agent_llm_performance/histories/weather_omitted_scope.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn \"I need your current location or a weather source to check the weather.\"",
           "usage": {
@@ -3203,9 +3191,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating the contacts file now...\n\n\n_____javascript\nconst path = \"~/contacts.yaml\";\nconst text = await space.api.fileRead(path, \"utf8\");\nconst data = space.utils.yaml.parse(text);\n\nif (data && typeof data === \"object\") {\n  if (data.mr_kowalski && typeof data.mr_kowalski === \"object\") {\n    data.mr_kowalski.full_name = \"John Ronald Kowalski\";\n  } else if (data.mr_kowalski !== undefined) {\n    data.mr_kowalski = { full_name: \"John Ronald Kowalski\" };\n  } else {\n    data.mr_kowalski = { full_name: \"John Ronald Kowalski\" };\n  }\n}\n\nconst out = space.utils.yaml.stringify(data);\nreturn await space.api.fileWrite(path, out, \"utf8\");",
           "usage": {
@@ -3240,9 +3226,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_widget_fix_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_widget_fix_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.readWidget(\"snake-game\")",
           "usage": {
@@ -3382,9 +3366,7 @@
           "case_path": "tests/agent_llm_performance/cases/space_navigation_after_take_me_there_uses_open_helper.json",
           "history_path": "tests/agent_llm_performance/histories/space_navigation_after_take_me_there_uses_open_helper.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.spaces.openSpace(\"space-1\")",
           "usage": {
@@ -3419,9 +3401,7 @@
           "case_path": "tests/agent_llm_performance/cases/space_navigation_after_user_push_uses_open_helper.json",
           "history_path": "tests/agent_llm_performance/histories/space_navigation_after_user_push_uses_open_helper.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.spaces.openSpace(\"space-1\")",
           "usage": {
@@ -3771,9 +3751,7 @@
           "case_path": "tests/agent_llm_performance/cases/repeat_do_it_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/repeat_do_it_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.patchWidget(\"snake-game\", {\n  edits: [\n    {\n      type: \"replace\",\n      find: \"return await space.current.readWidget(\\\"snake-game\\\")\",\n      replace: \"\"\n    }\n  ]\n})",
           "usage": {
@@ -3852,9 +3830,7 @@
           "case_path": "tests/agent_llm_performance/cases/protocol_nudge_requires_real_thrust.json",
           "history_path": "tests/agent_llm_performance/histories/protocol_nudge_requires_real_thrust.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.patchWidget(\"snake-game\", {\n  edits: [\n    {\n      // smooth grid-to-grid movement for the snake/caterpillar\n      find: /(\\bfunction\\b[\\s\\S]*?\\bmoveSnake\\b[\\s\\S]*?\\{[\\s\\S]*?)(\\n\\s*\\})/m,\n      replace: `$1\n\n  // Smooth interpolation between logical grid positions\n  const SEGMENT_ANIM_MS = 120;\n\n  if (!state.segmentOffsets) state.segmentOffsets = [];\n  if (!state.prevSnake) state.prevSnake = state.snake.map(p => ({ ...p }));\n  state.prevSnake = state.snake.map(p => ({ ...p }));\n\n  const now = performance.now();\n  state.moveStartedAt = now;\n  state.segmentOffsets = state.snake.map((_, i) => {\n    if (i === 0) return { x: 0, y: 0 };\n    const prev = state.prevSnake[i] || state.prevSnake[i - 1] || state.snake[i];\n    const curr = state.snake[i];\n    return {\n      x: (prev.x - curr.x) * cellSize,\n      y: (prev.y - curr.y) * cellSize\n    };\n  });\n$2`\n    },\n    {\n      // add animation frame updater if there is a render loop\n      find: /(\\bfunction\\b[\\s\\S]*?\\brender\\b[\\s\\S]*?\\{[\\s\\S]*?)(\\n\\s*\\})/m,\n      replace: `$1\n  const t = Math.min(1, (performance.now() - (state.moveStartedAt || 0)) / 120);\n  const ease = t * (2 - t); // smooth ease-out\n  state.renderEase = ease;\n$2`\n    },\n    {\n      // use transforms for snake segments when drawing\n      find: /(\\bsegment\\.style\\.left\\s*=\\s*.*?;\\s*\\n\\s*segment\\.style\\.top\\s*=\\s*.*?;)/g,\n      replace: `$1\nsegment.style.transform = \\`translate(\\${(state.segmentOffsets?.[i]?.x || 0) * (1 - (state.renderEase ?? 1))}px, \\${(state.segmentOffsets?.[i]?.y || 0) * (1 - (state.renderEase ?? 1))}px)\\`;`\n    }\n  ]\n})",
           "usage": {

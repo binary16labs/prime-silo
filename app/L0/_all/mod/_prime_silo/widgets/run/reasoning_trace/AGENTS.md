@@ -15,10 +15,10 @@ agents see.
 
 ## Files
 
-| File                          | Owns                                                        |
-| ----------------------------- | ----------------------------------------------------------- |
-| `index.js`                    | `createReasoningTraceWidget(host, props, options)` factory. |
-| `reasoning_trace.css`         | Card layout, status chip, scrollable reasoning `<pre>`.     |
+| File                  | Owns                                                        |
+| --------------------- | ----------------------------------------------------------- |
+| `index.js`            | `createReasoningTraceWidget(host, props, options)` factory. |
+| `reasoning_trace.css` | Card layout, status chip, scrollable reasoning `<pre>`.     |
 
 ## Manifest mapping
 
@@ -78,7 +78,7 @@ import { createReasoningTraceWidget } from "./index.js";
 
 const handle = createReasoningTraceWidget(hostEl, {
   run_id: "20260507-141200-studio",
-  workspace: "default",
+  workspace: "default"
 });
 
 // Pin to a single node (e.g. when the user clicks one in lineage_timeline).

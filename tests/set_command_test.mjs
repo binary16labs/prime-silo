@@ -3,7 +3,11 @@ import test from "node:test";
 
 import { __test as setCommandTest } from "../commands/set.js";
 import { resolveRequestedGitBackend } from "../server/lib/git/shared.js";
-import { createRuntimeParams, loadParamSpecs, validateConfigValue } from "../server/lib/utils/runtime_params.js";
+import {
+  createRuntimeParams,
+  loadParamSpecs,
+  validateConfigValue
+} from "../server/lib/utils/runtime_params.js";
 
 test("set parses one or more KEY=VALUE assignments", () => {
   assert.deepEqual(setCommandTest.parseSetArgs(["HOST=127.0.0.1"]), [

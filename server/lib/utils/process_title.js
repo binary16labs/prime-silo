@@ -1,7 +1,9 @@
 const LINUX_PROCESS_TITLE_LIMIT = 15;
 
 function clampProcessTitle(value) {
-  return String(value || "").trim().slice(0, LINUX_PROCESS_TITLE_LIMIT);
+  return String(value || "")
+    .trim()
+    .slice(0, LINUX_PROCESS_TITLE_LIMIT);
 }
 
 function buildSupervisorProcessTitle() {

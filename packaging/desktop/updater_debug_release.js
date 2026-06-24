@@ -1,8 +1,5 @@
 const semver = require("semver");
-const {
-  parseUpdateInfo,
-  resolveFiles
-} = require("electron-updater/out/providers/Provider");
+const { parseUpdateInfo, resolveFiles } = require("electron-updater/out/providers/Provider");
 
 const DEFAULT_GITHUB_HOST = "github.com";
 const WINDOWS_RELEASE_METADATA_FILE = "metadata-latest-windows.yml";
@@ -11,7 +8,9 @@ const LINUX_RELEASE_METADATA_FILE = "metadata-latest-linux.yml";
 const LINUX_ARM64_RELEASE_METADATA_FILE = "metadata-latest-linux-arm64.yml";
 
 function normalizeDesktopReleaseAssetVersion(version = "") {
-  const normalizedVersion = String(version || "").trim().replace(/^v/u, "");
+  const normalizedVersion = String(version || "")
+    .trim()
+    .replace(/^v/u, "");
   if (!normalizedVersion) {
     throw new Error("Desktop release asset resolution requires a non-empty version.");
   }
@@ -22,10 +21,16 @@ function normalizeDesktopReleaseAssetVersion(version = "") {
 
   const parsedVersion = semver.parse(normalizedVersion);
   if (!parsedVersion) {
-    throw new Error(`Desktop release asset resolution received an invalid version "${normalizedVersion}".`);
+    throw new Error(
+      `Desktop release asset resolution received an invalid version "${normalizedVersion}".`
+    );
   }
 
-  if (!parsedVersion.prerelease.length && !parsedVersion.build.length && parsedVersion.patch === 0) {
+  if (
+    !parsedVersion.prerelease.length &&
+    !parsedVersion.build.length &&
+    parsedVersion.patch === 0
+  ) {
     return `${parsedVersion.major}.${parsedVersion.minor}`;
   }
 
@@ -33,7 +38,9 @@ function normalizeDesktopReleaseAssetVersion(version = "") {
 }
 
 function normalizeDesktopWindowsReleaseArch(arch = process.arch) {
-  const normalizedArch = String(arch || "").trim().toLowerCase();
+  const normalizedArch = String(arch || "")
+    .trim()
+    .toLowerCase();
   if (!normalizedArch) {
     throw new Error("Desktop Windows release asset resolution requires a non-empty arch.");
   }
@@ -50,7 +57,9 @@ function normalizeDesktopWindowsReleaseArch(arch = process.arch) {
 }
 
 function resolveDesktopWindowsReleaseAssetArch(value = "") {
-  const normalizedValue = String(value || "").trim().toLowerCase();
+  const normalizedValue = String(value || "")
+    .trim()
+    .toLowerCase();
   if (!normalizedValue) {
     return "";
   }
@@ -66,16 +75,17 @@ function resolveDesktopWindowsReleaseAssetArch(value = "") {
   return "";
 }
 
-function resolveDesktopWindowsReleaseAssetFileName({
-  version = "",
-  arch = process.arch
-} = {}) {
+function resolveDesktopWindowsReleaseAssetFileName({ version = "", arch = process.arch } = {}) {
   return `Space-Agent-${normalizeDesktopReleaseAssetVersion(version)}-windows-${normalizeDesktopWindowsReleaseArch(arch)}.exe`;
 }
 
 function getDesktopWindowsReleaseFiles(updateInfo = {}) {
-  return (Array.isArray(updateInfo?.files) ? updateInfo.files : [])
-    .filter((file) => String(file?.url || "").trim().toLowerCase().endsWith(".exe"));
+  return (Array.isArray(updateInfo?.files) ? updateInfo.files : []).filter((file) =>
+    String(file?.url || "")
+      .trim()
+      .toLowerCase()
+      .endsWith(".exe")
+  );
 }
 
 function findDesktopWindowsReleaseFile(updateInfo = {}, arch = process.arch) {
@@ -110,10 +120,14 @@ function resolveDesktopWindowsReleaseArchFallback(updateInfo = {}, arch = proces
 
 function normalizeDesktopDebugReleaseVersion(requestedVersion, currentVersion = "") {
   const fallbackVersion = String(currentVersion || "").trim();
-  const rawValue = String(requestedVersion || fallbackVersion).trim().replace(/^v/u, "");
+  const rawValue = String(requestedVersion || fallbackVersion)
+    .trim()
+    .replace(/^v/u, "");
 
   if (!rawValue) {
-    throw new Error("Desktop debug reinstall requires a version or a current packaged app version.");
+    throw new Error(
+      "Desktop debug reinstall requires a version or a current packaged app version."
+    );
   }
 
   if (/^\d+\.\d+$/u.test(rawValue)) {
@@ -122,10 +136,16 @@ function normalizeDesktopDebugReleaseVersion(requestedVersion, currentVersion = 
 
   const parsedVersion = semver.parse(rawValue);
   if (!parsedVersion) {
-    throw new Error(`Desktop debug reinstall requires a valid release version, received \"${rawValue}\".`);
+    throw new Error(
+      `Desktop debug reinstall requires a valid release version, received \"${rawValue}\".`
+    );
   }
 
-  if (!parsedVersion.prerelease.length && !parsedVersion.build.length && parsedVersion.patch === 0) {
+  if (
+    !parsedVersion.prerelease.length &&
+    !parsedVersion.build.length &&
+    parsedVersion.patch === 0
+  ) {
     return `${parsedVersion.major}.${parsedVersion.minor}`;
   }
 
@@ -137,7 +157,9 @@ function resolveDesktopDebugReleaseTag(requestedVersion, currentVersion = "") {
 }
 
 function resolveDesktopDebugComparisonVersion(version) {
-  const normalizedVersion = String(version || "").trim().replace(/^v/u, "");
+  const normalizedVersion = String(version || "")
+    .trim()
+    .replace(/^v/u, "");
   if (!normalizedVersion) {
     throw new Error("Desktop debug reinstall comparison requires a non-empty version.");
   }
@@ -148,7 +170,9 @@ function resolveDesktopDebugComparisonVersion(version) {
 
   const parsedVersion = semver.parse(normalizedVersion);
   if (!parsedVersion) {
-    throw new Error(`Desktop debug reinstall comparison received an invalid version \"${normalizedVersion}\".`);
+    throw new Error(
+      `Desktop debug reinstall comparison received an invalid version \"${normalizedVersion}\".`
+    );
   }
 
   return parsedVersion.version;
@@ -192,7 +216,9 @@ function validateDesktopDebugGitHubPublishConfig(publishConfig = {}) {
   const repo = String(publishConfig.repo || "").trim();
 
   if (provider !== "github") {
-    throw new Error(`Desktop debug reinstall requires a GitHub publish config, received provider \"${provider || "unknown"}\".`);
+    throw new Error(
+      `Desktop debug reinstall requires a GitHub publish config, received provider \"${provider || "unknown"}\".`
+    );
   }
 
   if (!owner || !repo) {
@@ -216,11 +242,7 @@ function resolveDesktopDebugGitHubBasePath(publishConfig = {}) {
   return `/${owner}/${repo}/releases`;
 }
 
-function resolveDesktopDebugReleaseAssetUrl({
-  publishConfig,
-  tag,
-  fileName
-}) {
+function resolveDesktopDebugReleaseAssetUrl({ publishConfig, tag, fileName }) {
   const normalizedTag = String(tag || "").trim();
   const normalizedFileName = String(fileName || "").trim();
 
@@ -237,9 +259,16 @@ function escapeDesktopDebugRegExp(value) {
   return String(value || "").replace(/[|\\{}()[\]^$+*?.]/gu, "\\$&");
 }
 
-function getDesktopDebugReleaseBlockMapFiles(baseFileUrl, oldVersion, newVersion, oldBlockMapFileBaseUrl = null) {
+function getDesktopDebugReleaseBlockMapFiles(
+  baseFileUrl,
+  oldVersion,
+  newVersion,
+  oldBlockMapFileBaseUrl = null
+) {
   const normalizedBaseFileUrl = baseFileUrl instanceof URL ? baseFileUrl : new URL(baseFileUrl);
-  const oldBlockMapBaseUrl = oldBlockMapFileBaseUrl ? new URL(oldBlockMapFileBaseUrl) : normalizedBaseFileUrl;
+  const oldBlockMapBaseUrl = oldBlockMapFileBaseUrl
+    ? new URL(oldBlockMapFileBaseUrl)
+    : normalizedBaseFileUrl;
   const normalizedOldVersion = String(oldVersion || "").trim();
   const normalizedNewVersion = String(newVersion || "").trim();
   const oldBlockMapPath = `${normalizedBaseFileUrl.pathname.replace(
@@ -253,9 +282,7 @@ function getDesktopDebugReleaseBlockMapFiles(baseFileUrl, oldVersion, newVersion
   ];
 }
 
-function createDesktopDebugReleaseProvider({
-  publishConfig
-}) {
+function createDesktopDebugReleaseProvider({ publishConfig }) {
   const baseUrl = resolveDesktopDebugGitHubBaseUrl(publishConfig);
   const releasePath = resolveDesktopDebugGitHubBasePath(publishConfig);
 
@@ -270,21 +297,22 @@ function createDesktopDebugReleaseProvider({
       return resolveFiles(
         updateInfo,
         baseUrl,
-        (assetPath) => `${releasePath}/download/${updateInfo.tag}/${String(assetPath || "").replace(/ /gu, "-")}`
+        (assetPath) =>
+          `${releasePath}/download/${updateInfo.tag}/${String(assetPath || "").replace(/ /gu, "-")}`
       );
     },
     getBlockMapFiles(baseFileUrl, oldVersion, newVersion, oldBlockMapFileBaseUrl = null) {
-      return getDesktopDebugReleaseBlockMapFiles(baseFileUrl, oldVersion, newVersion, oldBlockMapFileBaseUrl);
+      return getDesktopDebugReleaseBlockMapFiles(
+        baseFileUrl,
+        oldVersion,
+        newVersion,
+        oldBlockMapFileBaseUrl
+      );
     }
   };
 }
 
-function parseDesktopDebugReleaseInfo({
-  rawData,
-  tag,
-  metadataFileName,
-  metadataUrl
-}) {
+function parseDesktopDebugReleaseInfo({ rawData, tag, metadataFileName, metadataUrl }) {
   const parsedInfo = parseUpdateInfo(rawData, metadataFileName, metadataUrl);
   return {
     tag,
@@ -304,7 +332,10 @@ async function stageDesktopDebugRelease({
     throw new Error("Desktop debug reinstall requires a metadata fetch function.");
   }
 
-  const normalizedTargetVersion = normalizeDesktopDebugReleaseVersion(requestedVersion, currentVersion);
+  const normalizedTargetVersion = normalizeDesktopDebugReleaseVersion(
+    requestedVersion,
+    currentVersion
+  );
   const tag = resolveDesktopDebugReleaseTag(normalizedTargetVersion, currentVersion);
   const metadataFileName = resolveDesktopDebugReleaseMetadataFileName({
     platform,
@@ -324,7 +355,10 @@ async function stageDesktopDebugRelease({
   });
 
   return {
-    comparison: compareDesktopDebugReleaseVersions(info.version || normalizedTargetVersion, currentVersion),
+    comparison: compareDesktopDebugReleaseVersions(
+      info.version || normalizedTargetVersion,
+      currentVersion
+    ),
     info,
     metadataFileName,
     metadataUrl,

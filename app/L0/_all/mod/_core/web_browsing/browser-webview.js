@@ -43,8 +43,9 @@ export function usesDesktopBrowserWebview() {
 
 export function getDesktopBrowserWebviewPartition(browserId) {
   const browserApi = getDesktopBrowserApi();
-  const prefix = String(browserApi?.webviewPartitionPrefix || DEFAULT_WEBVIEW_PARTITION_PREFIX).trim()
-    || DEFAULT_WEBVIEW_PARTITION_PREFIX;
+  const prefix =
+    String(browserApi?.webviewPartitionPrefix || DEFAULT_WEBVIEW_PARTITION_PREFIX).trim() ||
+    DEFAULT_WEBVIEW_PARTITION_PREFIX;
 
   return `${prefix}${normalizeBrowserId(browserId)}`;
 }
@@ -126,8 +127,9 @@ function ensureShadowLayout(webview) {
   });
 
   const activeNodes = new Set();
-  const frameNodes = Array.from(shadowRoot.querySelectorAll(WEBVIEW_EMBEDDER_FRAME_SELECTOR))
-    .filter((node) => node instanceof Element);
+  const frameNodes = Array.from(
+    shadowRoot.querySelectorAll(WEBVIEW_EMBEDDER_FRAME_SELECTOR)
+  ).filter((node) => node instanceof Element);
 
   frameNodes.forEach((frameNode) => {
     collectEmbedderNodeChain(frameNode, shadowRoot).forEach((node) => {
@@ -138,7 +140,11 @@ function ensureShadowLayout(webview) {
   activeNodes.forEach((node) => {
     const isRootLevelNode = node.parentNode === shadowRoot;
     const tagName = String(node.tagName || "").toUpperCase();
-    const isFrameNode = tagName === "IFRAME" || tagName === "EMBED" || tagName === "OBJECT" || tagName === "BROWSERPLUGIN";
+    const isFrameNode =
+      tagName === "IFRAME" ||
+      tagName === "EMBED" ||
+      tagName === "OBJECT" ||
+      tagName === "BROWSERPLUGIN";
 
     applyEmbedderFrameStyles(node, {
       absolute: isRootLevelNode,
@@ -264,7 +270,9 @@ async function fetchSourceText(scriptPath) {
       credentials: "same-origin"
     });
     if (!response.ok) {
-      throw new Error(`Desktop browser webview injection could not load ${normalizedScriptPath} (${response.status}).`);
+      throw new Error(
+        `Desktop browser webview injection could not load ${normalizedScriptPath} (${response.status}).`
+      );
     }
 
     return response.text();
@@ -431,8 +439,9 @@ export async function injectBrowserWebviewRuntime(webview, options = {}) {
   const injectPath = normalizeInjectPath(options.injectPath);
   const scriptSource = await fetchInjectSource(injectPath);
   const scriptUrl = new URL(injectPath, globalThis.location?.href || "http://localhost/").href;
-  const sourceUrl = String(scriptUrl || injectPath || "space-desktop-browser-webview-injected-script")
-    .replace(/[\r\n]+/gu, " ");
+  const sourceUrl = String(
+    scriptUrl || injectPath || "space-desktop-browser-webview-injected-script"
+  ).replace(/[\r\n]+/gu, " ");
   const bootstrap = {
     browserId,
     iframeId: browserId,

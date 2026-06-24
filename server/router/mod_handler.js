@@ -24,7 +24,7 @@ function resolveModuleFilePath(projectRoot, requestPath, username, stateSystem, 
     requestPath: normalizedPath,
     runtimeParams: options.runtimeParams,
     stateSystem,
-    username,
+    username
   });
 
   return resolvedModulePath ? resolvedModulePath.absolutePath : "";
@@ -58,7 +58,9 @@ async function handleModuleRequest(res, requestPath, options = {}) {
   const projectPath = projectRoot
     ? resolveProjectPathFromAbsolute(projectRoot, filePath, { runtimeParams })
     : "";
-  const knownMissing = Boolean(stateSystem && projectPath && !hasIndexedProjectPath(stateSystem, projectPath));
+  const knownMissing = Boolean(
+    stateSystem && projectPath && !hasIndexedProjectPath(stateSystem, projectPath)
+  );
 
   sendFile(res, filePath, {
     headers: createNoStoreHeaders(),

@@ -52,22 +52,35 @@ Report back: tray status, which surfaces worked, and any console errors
 
 async function main() {
   if (process.platform !== "win32") {
-    console.warn(`This local test targets Windows x64 (Phase 1). Current platform: ${process.platform}. Continuing, but the bundle assembler only has Windows-x64 download URLs pinned.`);
+    console.warn(
+      `This local test targets Windows x64 (Phase 1). Current platform: ${process.platform}. Continuing, but the bundle assembler only has Windows-x64 download URLs pinned.`
+    );
   }
   // Force the full runtime-bundle assembly during this build.
   process.env.PRIME_SILO_BUNDLE_RUNTIME = "1";
 
   console.log("Building a local zero-install test (unpacked app with full runtime bundle)...");
-  console.log("This downloads ~hundreds of MB (Python + Neo4j + JRE) and runs pip — first run is slow.\n");
+  console.log(
+    "This downloads ~hundreds of MB (Python + Neo4j + JRE) and runs pip — first run is slow.\n"
+  );
 
   // --dir = unpacked app (fast, no installer); --x64 = the supported arch.
   await runDesktopPackaging("windows", ["--dir", "--x64"]);
 
-  const exePath = path.join(PROJECT_ROOT, "dist", "desktop", "windows", "win-unpacked", "Space Agent.exe");
+  const exePath = path.join(
+    PROJECT_ROOT,
+    "dist",
+    "desktop",
+    "windows",
+    "win-unpacked",
+    "Space Agent.exe"
+  );
   if (fs.existsSync(exePath)) {
     console.log(checklist(exePath));
   } else {
-    console.warn(`\nBuild finished but the expected EXE was not found at:\n  ${exePath}\nCheck the build output above for the actual output directory.`);
+    console.warn(
+      `\nBuild finished but the expected EXE was not found at:\n  ${exePath}\nCheck the build output above for the actual output directory.`
+    );
   }
 }
 

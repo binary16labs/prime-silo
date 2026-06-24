@@ -33,7 +33,8 @@ function collectGuestFileStats(watchdog, username) {
       return;
     }
 
-    const entry = metadata && typeof metadata === "object" && !Array.isArray(metadata) ? metadata : {};
+    const entry =
+      metadata && typeof metadata === "object" && !Array.isArray(metadata) ? metadata : {};
     const mtimeMs = Math.trunc(Number(entry.mtimeMs) || 0);
 
     if (mtimeMs > latestAnyMtimeMs) {

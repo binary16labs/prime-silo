@@ -9,10 +9,7 @@
     "require_single_separator": true,
     "require_code_after_separator": true,
     "require_valid_javascript": true,
-    "must_contain": [
-      "_____javascript",
-      "snake-game"
-    ],
+    "must_contain": ["_____javascript", "snake-game"],
     "must_match": [
       {
         "pattern": "space\\.current\\.readWidget\\(",
@@ -25,9 +22,6 @@
         "flags": "u"
       }
     ],
-    "must_not_contain": [
-      "patched successfully",
-      "done"
-    ]
+    "must_not_contain": ["patched successfully", "done"]
   }
 }

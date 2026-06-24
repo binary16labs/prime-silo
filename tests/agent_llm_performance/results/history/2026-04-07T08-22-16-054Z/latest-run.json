@@ -11,9 +11,7 @@
       "passed_attempts": 56,
       "total_attempts": 57,
       "attempt_pass_rate": 0.9825,
-      "failed_cases": [
-        "repeat_do_it_requires_execution"
-      ],
+      "failed_cases": ["repeat_do_it_requires_execution"],
       "cases": [
         {
           "case_id": "page_title_requires_execution",
@@ -3088,9 +3086,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_text_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_text_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating the people file now...\n_____javascript\nconst path = \"~/people.txt\"\nlet text = await space.api.fileRead(path, \"utf8\")\ntext = text.replace(/\\bmr\\.?\\s+Kowalski\\b/gi, \"John Ronald Kowalski\")\nreturn await space.api.fileWrite(path, text, \"utf8\")",
           "usage": {
@@ -3125,9 +3121,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating the contacts file now...\n\n\n_____javascript\nconst path = \"~/contacts.yaml\"\nlet text = await space.api.fileRead(path, \"utf8\")\nif (typeof text !== \"string\") text = String(text)\nconst updated = text.replace(/(\\bmr_kowalski\\b\\s*:\\s*)(.*)/, \"$1John Ronald Kowalski\")\nif (updated === text) {\n  throw new Error(\"No matching mr_kowalski entry found to update\")\n}\nawait space.api.fileWrite(path, updated, \"utf8\")\nreturn \"Updated ~/contacts.yaml\"",
           "usage": {
@@ -3162,9 +3156,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_widget_fix_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_widget_fix_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.current\\.readWidget\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.current\\.readWidget\\(/u"],
           "response_type": "thrust",
           "response": "Checking the current widget now...\n\n\n_____javascript\nreturn await space.current.seeWidget(\"snake-game\")",
           "usage": {
@@ -3339,9 +3331,7 @@
           "case_path": "tests/agent_llm_performance/cases/space_navigation_after_user_push_uses_open_helper.json",
           "history_path": "tests/agent_llm_performance/histories/space_navigation_after_user_push_uses_open_helper.json",
           "passed": false,
-          "failures": [
-            "missing required text: space-1"
-          ],
+          "failures": ["missing required text: space-1"],
           "response_type": "thrust",
           "response": "Opening your weather space now...\n_____javascript\nconst spaces = await space.spaces.listSpaces()\nconst weather = spaces.find(s => /weather/i.test(s.title))\nreturn weather ? await space.spaces.openSpace(weather.id) : { error: \"weather space not found\", spaces }",
           "usage": {
@@ -4142,9 +4132,7 @@
           "case_path": "tests/agent_llm_performance/cases/time_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/time_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn new Date().toLocaleTimeString()",
           "usage": {
@@ -4327,9 +4315,7 @@
           "case_path": "tests/agent_llm_performance/cases/click_button_without_helper_uses_browser_js.json",
           "history_path": "tests/agent_llm_performance/histories/click_button_without_helper_uses_browser_js.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nconst buttons = Array.from(document.querySelectorAll('button'))\nif (!buttons.length) return { clicked: false, reason: 'no buttons found' }\nbuttons[0].click()\nreturn { clicked: true, text: buttons[0].innerText || buttons[0].textContent || '' }",
           "usage": {
@@ -4437,9 +4423,7 @@
           "case_path": "tests/agent_llm_performance/cases/fix_visible_widget_error_requires_readwidget.json",
           "history_path": "tests/agent_llm_performance/histories/fix_visible_widget_error_requires_readwidget.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"status-board\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"status-board\"\\)/u"],
           "response_type": "thrust",
           "response": "Patching the status widget now...\n_____javascript\nreturn await space.current.patchWidget(\"status-board\", { edits: [{ op: \"replace\", path: \"/content\", value: \"Service unavailable. Please try again shortly.\" }] })",
           "usage": {
@@ -5080,9 +5064,7 @@
           "case_path": "tests/agent_llm_performance/cases/create_note_after_user_detail_read.json",
           "history_path": "tests/agent_llm_performance/histories/create_note_after_user_detail_read.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Creating the file now...\n_____javascript\nreturn await space.files.write(\"~/notes/whoami.txt\", \"pan\")",
           "usage": {
@@ -5152,9 +5134,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_text_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_text_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Reading the target file now...\n_____javascript\nreturn await browser.readFile(\"~/people.txt\")",
           "usage": {
@@ -5189,9 +5169,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Updating the contact file now...\n_____javascript\nconst path = \"~/contacts.yaml\"\nconst content = await space.fs.readFile(path, \"utf8\").catch(() => null)\nif (content == null) return { error: \"contacts file not found\", path }\nconst updated = content.replace(/^(\\s*mr_kowalski:\\s*)(.*)$/m, \"$1John Ronald Kowalski\")\nif (updated === content) return { error: \"mr_kowalski not found or already unchanged\" }\nreturn await space.fs.writeFile(path, updated, \"utf8\").then(() => ({ ok: true, path }))",
           "usage": {

@@ -1,9 +1,7 @@
 {
   "generated_at": "2026-04-13T11:08:43.037Z",
   "generation_id": "2026-04-13T11-08-43-037Z",
-  "models": [
-    "openai/gpt-5.4-mini"
-  ],
+  "models": ["openai/gpt-5.4-mini"],
   "results": [
     {
       "prompt_id": "086A_082A_no_half_thrust_onboarding",
@@ -32,9 +30,7 @@
           "case_path": "tests/agent_llm_performance/cases/page_title_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/page_title_requires_execution.json",
           "passed": false,
-          "failures": [
-            "invalid javascript after execution separator: Unexpected token ':'"
-          ],
+          "failures": ["invalid javascript after execution separator: Unexpected token ':'"],
           "response_type": "thrust",
           "response": "Checking the current page now...\n_____javascript\nreturn { title: document.title, url: location.href }\n\n\n{ title: document.title, url: location.href }",
           "usage": {
@@ -106,9 +102,7 @@
           "case_path": "tests/agent_llm_performance/cases/time_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/time_requires_execution.json",
           "passed": false,
-          "failures": [
-            "invalid javascript after execution separator: Unexpected identifier 'Apr'"
-          ],
+          "failures": ["invalid javascript after execution separator: Unexpected identifier 'Apr'"],
           "response_type": "thrust",
           "response": "Checking the current time now...\n_____javascript\nreturn new Date().toString()\n\n\nFri Apr 12 2026 23:40:12 GMT+0000 (Coordinated Universal Time)",
           "usage": {
@@ -288,9 +282,7 @@
           "case_path": "tests/agent_llm_performance/cases/screenshot_download_without_helper_uses_browser_js.json",
           "history_path": "tests/agent_llm_performance/histories/screenshot_download_without_helper_uses_browser_js.json",
           "passed": false,
-          "failures": [
-            "execution separator must appear exactly once on its own line"
-          ],
+          "failures": ["execution separator must appear exactly once on its own line"],
           "response_type": "thrust",
           "response": "Taking a screenshot of the current page now..._____javascript\nconst html2canvasSrc = \"https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js\"\nif (!window.html2canvas) {\n  await new Promise((resolve, reject) => {\n    const s = document.createElement(\"script\")\n    s.src = html2canvasSrc\n    s.onload = resolve\n    s.onerror = reject\n    document.head.appendChild(s)\n  })\n}\nconst canvas = await window.html2canvas(document.body)\nconst blob = await new Promise(resolve => canvas.toBlob(resolve, \"image/png\"))\nconst a = document.createElement(\"a\")\na.href = URL.createObjectURL(blob)\na.download = `screenshot-${Date.now()}.png`\na.click()\nreturn \"Screenshot captured and download triggered\"",
           "usage": {
@@ -1416,9 +1408,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Reading the current contacts file first.\n\n_____javascript\nconst text = await space.api.fileRead(\"~/contacts.yaml\", \"utf8\")\nconst data = space.utils.yaml.parse(text)\nfunction walk(node) {\n  if (Array.isArray(node)) return node.map(walk)\n  if (node && typeof node === \"object\") {\n    for (const [k, v] of Object.entries(node)) node[k] = walk(v)\n    return node\n  }\n  if (node === \"mr_kowalski\") return \"John Ronald Kowalski\"\n  return node\n}\nconst updated = walk(data)\nreturn await space.api.fileWrite(\"~/contacts.yaml\", space.utils.yaml.stringify(updated), \"utf8\")",
           "usage": {
@@ -3884,9 +3874,7 @@
           "case_path": "tests/agent_llm_performance/cases/create_note_after_user_detail_read.json",
           "history_path": "tests/agent_llm_performance/histories/create_note_after_user_detail_read.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Writing your note now...\n_____javascript\nconst content = \"pan\\n\"\nconst blob = new Blob([content], { type: \"text/plain;charset=utf-8\" })\nconst a = document.createElement(\"a\")\na.href = URL.createObjectURL(blob)\na.download = \"whoami.txt\"\na.click()\nreturn \"downloaded whoami.txt\"",
           "usage": {
@@ -3958,9 +3946,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_text_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_text_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating the people list now...\n_____javascript\nconst path = \"~/people.txt\"\nconst current = await space.api.fileRead(path, \"utf8\")\nconst updated = current.replace(/\\bmr\\.\\s*Kowalski\\b/gi, \"John Ronald Kowalski\")\nif (updated === current) throw new Error('No \"mr. Kowalski\" entry found to update')\nreturn await space.api.fileWrite(path, updated, \"utf8\")",
           "usage": {
@@ -3996,9 +3982,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating the contacts file now...\n_____javascript\nconst path = \"~/contacts.yaml\"\nconst current = await space.api.fileRead(path, \"utf8\")\nconst data = space.utils.yaml.parse(current)\nif (!data || typeof data !== \"object\") throw new Error(\"contacts.yaml did not parse to an object\")\n\nfunction updateName(node) {\n  if (Array.isArray(node)) {\n    for (const item of node) updateName(item)\n    return\n  }\n  if (node && typeof node === \"object\") {\n    for (const [key, value] of Object.entries(node)) {\n      if (key === \"mr_kowalski\") node[key] = \"John Ronald Kowalski\"\n      else updateName(value)\n    }\n  }\n}\n\nupdateName(data)\nconst updated = space.utils.yaml.stringify(data)\nreturn await space.api.fileWrite(path, updated, \"utf8\")",
           "usage": {
@@ -4034,9 +4018,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_widget_fix_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_widget_fix_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.current\\.readWidget\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.current\\.readWidget\\(/u"],
           "response_type": "thrust",
           "response": "Inspecting the snake game now...\n_____javascript\nreturn await space.current.seeWidget(\"snake-game\")",
           "usage": {
@@ -4858,9 +4840,7 @@
           "case_path": "tests/agent_llm_performance/cases/protocol_nudge_requires_real_thrust.json",
           "history_path": "tests/agent_llm_performance/histories/protocol_nudge_requires_real_thrust.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.current\\.patchWidget\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.current\\.patchWidget\\(/u"],
           "response_type": "thrust",
           "response": "Patching the snake motion to animate between grid squares.\n_____javascript\nreturn await space.current.readWidget(\"snake-game\")",
           "usage": {
@@ -5832,9 +5812,7 @@
           "case_path": "tests/agent_llm_performance/cases/look_at_it_now_uses_see_widget.json",
           "history_path": "tests/agent_llm_performance/histories/look_at_it_now_uses_see_widget.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await seeWidget()",
           "usage": {
@@ -6079,9 +6057,7 @@
           "case_path": "tests/agent_llm_performance/cases/fresh_widget_read_then_do_it_requires_patch.json",
           "history_path": "tests/agent_llm_performance/histories/fresh_widget_read_then_do_it_requires_patch.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /patchWidget\\(\"quote-board\"/u"
-          ],
+          "failures": ["missing required pattern: /patchWidget\\(\"quote-board\"/u"],
           "response_type": "thrust",
           "response": "Adding the missing widget logic now...\n_____javascript\nreturn await space.current.renderWidget({\n  id: \"quote-board\",\n  name: \"Quotes\",\n  cols: 6,\n  rows: 5,\n  renderer: async (parent) => {\n    const state = { symbols: [\"AAPL\", \"MSFT\", \"BTC-USD\"] }\n\n    parent.innerHTML = `\n      <div style=\"font-family: system-ui; padding: 12px;\">\n        <h3 style=\"margin: 0 0 8px;\">Quotes</h3>\n        <ul id=\"quote-list\" style=\"margin: 0; padding-left: 18px;\"></ul>\n      </div>\n    `\n\n    const list = parent.querySelector(\"#quote-list\")\n    const data = await fetch(\"https://api.example.test/quotes\").then(r => r.json())\n\n    list.innerHTML = state.symbols.map(symbol => {\n      const quote = data?.[symbol]\n      const price = quote?.price ?? \"—\"\n      return `<li><strong>${symbol}</strong>: ${price}</li>`\n    }).join(\"\")\n  }\n})",
           "usage": {
@@ -7588,9 +7564,7 @@
           "case_path": "tests/agent_llm_performance/cases/repeat_do_it_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/repeat_do_it_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nconst widget = await space.current.readWidget(\"snake-game\")\nconst original = widget.renderer\n\nreturn await space.current.renderWidget({\n  ...widget,\n  renderer: async (parent, ...args) => {\n    parent.innerHTML = `\n      <style>\n        .snake-wrap {\n          position: relative;\n          width: 100%;\n          height: 100%;\n          overflow: hidden;\n          background: #111;\n        }\n        .snake-cell {\n          position: absolute;\n          width: 16px;\n          height: 16px;\n          border-radius: 4px;\n          background: #7CFC00;\n          box-shadow: 0 0 8px rgba(124,252,0,.35);\n          transform: translate3d(0,0,0);\n          transition: transform 110ms linear;\n          will-change: transform;\n        }\n      </style>\n      <div class=\"snake-wrap\"></div>\n    `\n    const wrap = parent.querySelector(\".snake-wrap\")\n\n    const cells = []\n    const grid = 20\n    const size = 16\n    const gap = 2\n    const step = size + gap\n\n    let snake = [{ x: 8, y: 8 }]\n    let dir = { x: 1, y: 0 }\n\n    function ensureCells(n) {\n      while (cells.length < n) {\n        const el = document.createElement(\"div\")\n        el.className = \"snake-cell\"\n        wrap.appendChild(el)\n        cells.push(el)\n      }\n      while (cells.length > n) {\n        cells.pop().remove()\n      }\n    }\n\n    function draw() {\n      ensureCells(snake.length)\n      snake.forEach((seg, i) => {\n        const el = cells[i]\n        el.style.opacity = String(1 - i * 0.05)\n        el.style.transform = `translate3d(${seg.x * step}px, ${seg.y * step}px, 0)`\n      })\n    }\n\n    function tick() {\n      const head = snake[0]\n      const next = { x: head.x + dir.x, y: head.y + dir.y }\n      if (next.x < 0) next.x = grid - 1\n      if (next.y < 0) next.y = grid - 1\n      if (next.x >= grid) next.x = 0\n      if (next.y >= grid) next.y = 0\n      snake = [next, ...snake.slice(0, -1)]\n      draw()\n    }\n\n    draw()\n    setInterval(tick, 120)\n\n    if (typeof original === \"function\") {\n      try { await original(parent, ...args) } catch {}\n    }\n  }\n})",
           "usage": {

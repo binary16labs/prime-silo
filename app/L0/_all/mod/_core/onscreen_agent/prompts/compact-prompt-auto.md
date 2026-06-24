@@ -10,6 +10,7 @@ drop old detail before recent detail unless old detail still constrains the curr
 return exactly one plain-text block starting with Conversation summary:
 
 keep
+
 - current objective
 - constraints decisions assumptions that still matter
 - important paths apis commands errors outputs and state for the current step
@@ -18,6 +19,7 @@ keep
 - exact lines only when the next step still depends on them
 
 drop
+
 - repetition
 - minor back and forth
 - empty retries

@@ -112,7 +112,10 @@ async function isRetryableStateSyncResponse(request, response) {
     return false;
   }
 
-  const detail = await response.clone().text().catch(() => "");
+  const detail = await response
+    .clone()
+    .text()
+    .catch(() => "");
   return detail.includes(RETRYABLE_STATE_SYNC_ERROR);
 }
 

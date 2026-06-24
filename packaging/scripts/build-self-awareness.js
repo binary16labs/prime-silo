@@ -28,27 +28,31 @@ const DEFAULT_PROJECT_ROOT = path.resolve(__dirname, "../..");
 // Source trees that define the shell's behaviour. Kept deliberately tight so the
 // bundle stays small and the graph stays meaningful; the runtime ships its own
 // agent guide and is vendored separately.
-const SOURCE_INCLUDES = [
-  "server",
-  "commands",
-  "app/L0/_all/mod/_prime_silo"
-];
+const SOURCE_INCLUDES = ["server", "commands", "app/L0/_all/mod/_prime_silo"];
 
-const MANIFEST_SOURCES = [
-  "manifests",
-  "runtime/manifests/templates"
-];
+const MANIFEST_SOURCES = ["manifests", "runtime/manifests/templates"];
 
 // Where to harvest SKILL definitions so Benny can navigate the code.
-const SKILL_ROOTS = [
-  "app/L0/_all/mod",
-  "runtime/skills"
-];
+const SKILL_ROOTS = ["app/L0/_all/mod", "runtime/skills"];
 
 const EXCLUDE_DIR_NAMES = new Set([
-  "node_modules", ".git", ".github", "dist", "build", "logs", "__pycache__",
-  ".benny_home", "brain", "chromadb", ".claude", "worktrees", ".venv", "venv",
-  "coverage", ".pytest_cache", ".mypy_cache"
+  "node_modules",
+  ".git",
+  ".github",
+  "dist",
+  "build",
+  "logs",
+  "__pycache__",
+  ".benny_home",
+  "brain",
+  "chromadb",
+  ".claude",
+  "worktrees",
+  ".venv",
+  "venv",
+  "coverage",
+  ".pytest_cache",
+  ".mypy_cache"
 ]);
 
 // Skip oversized files (vendored bundles, minified libs) from the snapshot and
@@ -218,7 +222,9 @@ function extractSymbols(rel, content) {
       if (m) push(m[1], "Function");
       m = line.match(/^\s*(?:export\s+)?class\s+([A-Za-z_$][\w$]*)/);
       if (m) push(m[1], "Class");
-      m = line.match(/^\s*(?:export\s+)?const\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s+)?(?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>/);
+      m = line.match(
+        /^\s*(?:export\s+)?const\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s+)?(?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>/
+      );
       if (m) push(m[1], "Function");
     }
   }
@@ -238,7 +244,12 @@ function buildCodeGraph(outSourceDir) {
       return id;
     }
     folderIds.add(id);
-    nodes.push({ id, type: "Folder", label: relDir === "." ? "/" : path.posix.basename(relDir), path: relDir });
+    nodes.push({
+      id,
+      type: "Folder",
+      label: relDir === "." ? "/" : path.posix.basename(relDir),
+      path: relDir
+    });
     const parent = path.posix.dirname(relDir);
     if (relDir !== "." && parent !== relDir) {
       const parentId = addFolder(parent === "" ? "." : parent);
@@ -285,7 +296,10 @@ function buildCodeGraph(outSourceDir) {
 
 function resolveGitCommit(projectRoot) {
   try {
-    return execFileSync("git", ["rev-parse", "HEAD"], { cwd: projectRoot, encoding: "utf8" }).trim();
+    return execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: projectRoot,
+      encoding: "utf8"
+    }).trim();
   } catch {
     return "";
   }
@@ -293,7 +307,9 @@ function resolveGitCommit(projectRoot) {
 
 function readVersion(projectRoot) {
   try {
-    return JSON.parse(fs.readFileSync(path.join(projectRoot, "package.json"), "utf8")).version || "";
+    return (
+      JSON.parse(fs.readFileSync(path.join(projectRoot, "package.json"), "utf8")).version || ""
+    );
   } catch {
     return "";
   }
@@ -351,9 +367,11 @@ module.exports = { buildSelfAwarenessBundle };
 if (require.main === module) {
   const result = buildSelfAwarenessBundle();
   const c = result.bundle.counts;
-  console.log(`Built Benny self-awareness bundle at ${path.relative(DEFAULT_PROJECT_ROOT, result.outDir)}`);
+  console.log(
+    `Built Benny self-awareness bundle at ${path.relative(DEFAULT_PROJECT_ROOT, result.outDir)}`
+  );
   console.log(
     `  ${c.source_files} source files · ${c.manifests} manifests · ${c.skills} skills · ` +
-    `${c.graph_nodes} graph nodes / ${c.graph_edges} edges`
+      `${c.graph_nodes} graph nodes / ${c.graph_edges} edges`
   );
 }

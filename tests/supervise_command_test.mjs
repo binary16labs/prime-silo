@@ -3,7 +3,10 @@ import path from "node:path";
 import test from "node:test";
 
 import { __test as superviseTest } from "../commands/supervise.js";
-import { buildServeProcessTitle, buildSupervisorProcessTitle } from "../server/lib/utils/process_title.js";
+import {
+  buildServeProcessTitle,
+  buildSupervisorProcessTitle
+} from "../server/lib/utils/process_title.js";
 
 test("supervise keeps serve args opaque and reserves only supervisor-owned flags", () => {
   const { options, serveArgs } = superviseTest.parseSuperviseArgs([
@@ -52,11 +55,7 @@ test("supervise rewrites only child host port and customware path", () => {
 });
 
 test("supervise resolves public bind and required customware from args then env", () => {
-  const serveArgs = [
-    "HOST=1.2.3.4",
-    "PORT=4567",
-    "CUSTOMWARE_PATH=relative-state"
-  ];
+  const serveArgs = ["HOST=1.2.3.4", "PORT=4567", "CUSTOMWARE_PATH=relative-state"];
   const env = {
     CUSTOMWARE_PATH: "/ignored/by/arg",
     HOST: "9.9.9.9",

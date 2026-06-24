@@ -3,7 +3,13 @@ import path from "node:path";
 
 import { areGuestUsersAllowed, isSingleUserApp } from "../lib/utils/runtime_params.js";
 import { runTrackedMutation } from "../runtime/request_mutations.js";
-import { createNoStoreHeaders, sendFile, sendJson, sendNotFound, sendRedirect } from "./responses.js";
+import {
+  createNoStoreHeaders,
+  sendFile,
+  sendJson,
+  sendNotFound,
+  sendRedirect
+} from "./responses.js";
 
 const LEGACY_ROUTE_REDIRECTS = new Map([
   ["/index.html", "/"],
@@ -151,11 +157,14 @@ async function sendPageHtml(res, filePath, options = {}) {
     options.runtimeParams
   );
 
-  res.writeHead(200, createNoStoreHeaders({
-    ...(options.headers || {}),
-    "Content-Length": Buffer.byteLength(body),
-    "Content-Type": "text/html; charset=utf-8"
-  }));
+  res.writeHead(
+    200,
+    createNoStoreHeaders({
+      ...(options.headers || {}),
+      "Content-Length": Buffer.byteLength(body),
+      "Content-Type": "text/html; charset=utf-8"
+    })
+  );
   res.end(body);
 }
 
@@ -163,11 +172,7 @@ async function handleLogoutRequest(res, options = {}) {
   const { auth, requestContext } = options;
 
   try {
-    if (
-      requestContext?.user?.isAuthenticated &&
-      auth &&
-      typeof auth.revokeSession === "function"
-    ) {
+    if (requestContext?.user?.isAuthenticated && auth && typeof auth.revokeSession === "function") {
       await runTrackedMutation(options, async () =>
         auth.revokeSession(requestContext.user.sessionToken, requestContext.user.username)
       );
@@ -313,7 +318,11 @@ async function handlePageRequest(res, requestUrl, options = {}) {
 
   if (sharePageRequest) {
     if (sharePageRequest.kind === "redirect") {
-      sendRedirect(res, sharePageRequest.location, createSessionCleanupHeaders(requestContext, auth));
+      sendRedirect(
+        res,
+        sharePageRequest.location,
+        createSessionCleanupHeaders(requestContext, auth)
+      );
       return;
     }
 

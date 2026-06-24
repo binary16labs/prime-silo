@@ -40,14 +40,22 @@ function testDeepLink() {
 }
 
 function testDescribeContext() {
-  const line = describeContext({ mode: "code", selection: { label: "swarm.py" }, workspace: "c5_test" });
+  const line = describeContext({
+    mode: "code",
+    selection: { label: "swarm.py" },
+    workspace: "c5_test"
+  });
   assert.match(line, /mode: code/);
   assert.match(line, /selected: swarm\.py/);
   assert.match(line, /workspace: c5_test/);
 }
 
 function testComposePromptGroundsAndPointsAtSkill() {
-  const prompt = composePrompt("Explain this graph", { mode: "code", workspace: "ws", selection: { id: "n1" } });
+  const prompt = composePrompt("Explain this graph", {
+    mode: "code",
+    workspace: "ws",
+    selection: { id: "n1" }
+  });
   assert.match(prompt, /Explain this graph/);
   assert.match(prompt, /Bridge context/);
   assert.match(prompt, /mode: code/);
@@ -55,13 +63,17 @@ function testComposePromptGroundsAndPointsAtSkill() {
   assert.ok(prompt.includes(__testing.SKILL_IMPORT), "prompt includes the benny-pilot import path");
   // Skill must be declared loaded — not ask Benny to load it.
   assert.match(prompt, /is loaded/);
-  assert.ok(!prompt.includes("space.skills.load"), "prompt must not ask Benny to call space.skills.load");
+  assert.ok(
+    !prompt.includes("space.skills.load"),
+    "prompt must not ask Benny to call space.skills.load"
+  );
   // Must instruct Benny to answer from real data, not hypothetically.
   assert.match(prompt, /not hypothetically/);
 }
 
 function testComposePromptIncludesLiveData() {
-  const liveData = 'Code graph (workspace "ws"): 42 nodes (15 File, 12 Class, 15 Function), 89 edges. No node selected.';
+  const liveData =
+    'Code graph (workspace "ws"): 42 nodes (15 File, 12 Class, 15 Function), 89 edges. No node selected.';
   const prompt = composePrompt("Explain this graph", { mode: "code", workspace: "ws" }, liveData);
   assert.match(prompt, /Live data:/);
   assert.match(prompt, /42 nodes/);
@@ -85,7 +97,11 @@ async function testDispatchRoutesToAgent() {
   const calls = [];
   const ctx = createBridgeContext({
     globalTarget: {},
-    agent: { async submitPrompt(text) { calls.push(text); } }
+    agent: {
+      async submitPrompt(text) {
+        calls.push(text);
+      }
+    }
   });
   ctx.set({ mode: "memory" });
   const result = await ctx.dispatch("What did I work on?");
@@ -110,8 +126,16 @@ async function testDispatchAutoLoadsSkill() {
   const submitted = [];
   const target = {
     space: {
-      skills: { load: async (id) => { loaded.push(id); } },
-      onscreenAgent: { submitPrompt: async (p) => { submitted.push(p); } }
+      skills: {
+        load: async (id) => {
+          loaded.push(id);
+        }
+      },
+      onscreenAgent: {
+        submitPrompt: async (p) => {
+          submitted.push(p);
+        }
+      }
     }
   };
   const ctx = createBridgeContext({ globalTarget: target });
@@ -126,8 +150,16 @@ async function testDispatchSwallowsSkillLoadError() {
   const submitted = [];
   const target = {
     space: {
-      skills: { load: async () => { throw new Error("skill runtime unavailable"); } },
-      onscreenAgent: { submitPrompt: async (p) => { submitted.push(p); } }
+      skills: {
+        load: async () => {
+          throw new Error("skill runtime unavailable");
+        }
+      },
+      onscreenAgent: {
+        submitPrompt: async (p) => {
+          submitted.push(p);
+        }
+      }
     }
   };
   const ctx = createBridgeContext({ globalTarget: target });

@@ -14,18 +14,26 @@ export function initializeRuntime(options = {}) {
 
   installFetchProxy({ proxyPath });
   const api = createApiClient({ basePath: apiBasePath });
-  const previousRuntime = globalThis.space && typeof globalThis.space === "object" ? globalThis.space : {};
+  const previousRuntime =
+    globalThis.space && typeof globalThis.space === "object" ? globalThis.space : {};
   const previousConfig =
-    previousRuntime.config && typeof previousRuntime.config === "object" ? previousRuntime.config : {};
+    previousRuntime.config && typeof previousRuntime.config === "object"
+      ? previousRuntime.config
+      : {};
   const previousFw =
     previousRuntime.fw && typeof previousRuntime.fw === "object" ? previousRuntime.fw : {};
   const previousUtils =
     previousRuntime.utils && typeof previousRuntime.utils === "object" ? previousRuntime.utils : {};
   const previousMarkdownUtils =
-    previousUtils.markdown && typeof previousUtils.markdown === "object" ? previousUtils.markdown : {};
-  const previousChat = previousRuntime.chat && typeof previousRuntime.chat === "object" ? previousRuntime.chat : null;
+    previousUtils.markdown && typeof previousUtils.markdown === "object"
+      ? previousUtils.markdown
+      : {};
+  const previousChat =
+    previousRuntime.chat && typeof previousRuntime.chat === "object" ? previousRuntime.chat : null;
   const legacyCurrentChat =
-    previousRuntime.currentChat && typeof previousRuntime.currentChat === "object" ? previousRuntime.currentChat : null;
+    previousRuntime.currentChat && typeof previousRuntime.currentChat === "object"
+      ? previousRuntime.currentChat
+      : null;
   const serverConfigValues = getFrontendServerConfigValues();
 
   const runtime = {
@@ -38,14 +46,18 @@ export function initializeRuntime(options = {}) {
         return { ...serverConfigValues };
       },
       get(name, fallback = undefined) {
-        const normalizedName = String(name || "").trim().toUpperCase();
+        const normalizedName = String(name || "")
+          .trim()
+          .toUpperCase();
 
         return Object.prototype.hasOwnProperty.call(serverConfigValues, normalizedName)
           ? serverConfigValues[normalizedName]
           : fallback;
       },
       has(name) {
-        const normalizedName = String(name || "").trim().toUpperCase();
+        const normalizedName = String(name || "")
+          .trim()
+          .toUpperCase();
         return Object.prototype.hasOwnProperty.call(serverConfigValues, normalizedName);
       },
       values: serverConfigValues

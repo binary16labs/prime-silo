@@ -89,21 +89,26 @@ function looksLikeTypedHost(value) {
   }
 
   const host = normalizedValue.split(/[/?#]/u, 1)[0] || "";
-  return /^(?:localhost|\[[0-9a-f:.]+\]|(?:\d{1,3}\.){3}\d{1,3}|(?:[a-z\d](?:[a-z\d-]{0,61}[a-z\d])?\.)+[a-z\d-]{2,63})(?::\d+)?$/iu.test(host);
+  return /^(?:localhost|\[[0-9a-f:.]+\]|(?:\d{1,3}\.){3}\d{1,3}|(?:[a-z\d](?:[a-z\d-]{0,61}[a-z\d])?\.)+[a-z\d-]{2,63})(?::\d+)?$/iu.test(
+    host
+  );
 }
 
 function normalizeUrl(value) {
   const rawValue = normalizeText(value);
   if (!rawValue) {
-    throw createNamedError("BrowserHarnessUrlError", "Browser harness navigation requires a non-empty URL.");
+    throw createNamedError(
+      "BrowserHarnessUrlError",
+      "Browser harness navigation requires a non-empty URL."
+    );
   }
 
   try {
     if (
-      !/^[a-z][a-z\d+\-.]*:\/\//iu.test(rawValue)
-      && !/^(about|blob|data|file|mailto|tel):/iu.test(rawValue)
-      && !/^[/?#.]/u.test(rawValue)
-      && looksLikeTypedHost(rawValue)
+      !/^[a-z][a-z\d+\-.]*:\/\//iu.test(rawValue) &&
+      !/^(about|blob|data|file|mailto|tel):/iu.test(rawValue) &&
+      !/^[/?#.]/u.test(rawValue) &&
+      looksLikeTypedHost(rawValue)
     ) {
       const protocol = looksLikeLocalHost(rawValue) ? "http://" : "https://";
       return new URL(`${protocol}${rawValue}`).href;
@@ -123,7 +128,10 @@ function parseSelectorInput(value) {
 
   const parsed = JSON.parse(normalizedValue);
   if (!Array.isArray(parsed)) {
-    throw createNamedError("BrowserHarnessSelectorError", "Browser harness selectors must be a JSON array of CSS selectors.");
+    throw createNamedError(
+      "BrowserHarnessSelectorError",
+      "Browser harness selectors must be a JSON array of CSS selectors."
+    );
   }
 
   return {
@@ -195,11 +203,11 @@ class BrowserHarnessController {
       }
 
       const nextUrl = normalizeText(event?.url) || this.browserState.currentUrl;
-      const isSameDocument = !this.forceNextDocumentLifecycleReset && (
-        event?.isSameDocument === true
-        || isHashOnlyNavigation(this.browserState.currentUrl, nextUrl)
-        || nextUrl === this.browserState.currentUrl
-      );
+      const isSameDocument =
+        !this.forceNextDocumentLifecycleReset &&
+        (event?.isSameDocument === true ||
+          isHashOnlyNavigation(this.browserState.currentUrl, nextUrl) ||
+          nextUrl === this.browserState.currentUrl);
       this.updateBrowserState({
         currentUrl: nextUrl,
         ...(isSameDocument ? {} : { loading: true })
@@ -208,7 +216,11 @@ class BrowserHarnessController {
         this.resetDocumentLifecycle("did-start-navigation");
       }
       this.forceNextDocumentLifecycleReset = false;
-      this.log("info", isSameDocument ? "Guest same-document navigation started." : "Guest navigation started.", this.readStateSnapshot());
+      this.log(
+        "info",
+        isSameDocument ? "Guest same-document navigation started." : "Guest navigation started.",
+        this.readStateSnapshot()
+      );
     });
 
     this.webview.addEventListener("did-start-loading", () => {
@@ -285,12 +297,14 @@ class BrowserHarnessController {
 
     for (const [requestId, pendingRequest] of this.pendingRequests.entries()) {
       globalThis.clearTimeout(pendingRequest.timer);
-      pendingRequest.reject(createNamedError(errorName, errorMessage, {
-        nextDocumentVersion: Number(this.documentVersion || 0) + 1,
-        reason,
-        requestId,
-        type: pendingRequest.type
-      }));
+      pendingRequest.reject(
+        createNamedError(errorName, errorMessage, {
+          nextDocumentVersion: Number(this.documentVersion || 0) + 1,
+          reason,
+          requestId,
+          type: pendingRequest.type
+        })
+      );
       this.pendingRequests.delete(requestId);
     }
   }
@@ -309,7 +323,8 @@ class BrowserHarnessController {
     }
 
     if (Object.hasOwn(patch, "currentUrl")) {
-      this.browserState.currentUrl = normalizeText(patch.currentUrl) || this.browserState.currentUrl;
+      this.browserState.currentUrl =
+        normalizeText(patch.currentUrl) || this.browserState.currentUrl;
     }
 
     if (Object.hasOwn(patch, "loading")) {
@@ -336,11 +351,8 @@ class BrowserHarnessController {
     const values = Array.isArray(args) ? [...args] : [];
     const firstValue = values[0];
     if (
-      values.length > minimumArgumentCount
-      && (
-        firstValue === this.browserId
-        || normalizeText(firstValue) === this.browserInternalId
-      )
+      values.length > minimumArgumentCount &&
+      (firstValue === this.browserId || normalizeText(firstValue) === this.browserInternalId)
     ) {
       values.shift();
     }
@@ -400,10 +412,7 @@ class BrowserHarnessController {
 
       const remainingMs = Math.max(1, deadline - Date.now());
       try {
-        await Promise.race([
-          this.coreReadyDeferred.promise,
-          delay(Math.min(remainingMs, 50))
-        ]);
+        await Promise.race([this.coreReadyDeferred.promise, delay(Math.min(remainingMs, 50))]);
       } catch (error) {
         if (error?.name === "BrowserHarnessDocumentReplacedError") {
           continue;
@@ -478,12 +487,12 @@ class BrowserHarnessController {
     globalThis.clearTimeout(pendingRequest.timer);
 
     if (envelope.ok === false) {
-      const errorPayload = envelope.payload && typeof envelope.payload === "object"
-        ? envelope.payload
-        : {};
+      const errorPayload =
+        envelope.payload && typeof envelope.payload === "object" ? envelope.payload : {};
       const error = createNamedError(
         normalizeText(errorPayload.name) || "BrowserHarnessGuestError",
-        normalizeText(errorPayload.message) || `Guest request "${normalizeText(envelope.type)}" failed.`,
+        normalizeText(errorPayload.message) ||
+          `Guest request "${normalizeText(envelope.type)}" failed.`,
         {
           code: errorPayload.code ?? null,
           details: errorPayload.details || {}
@@ -555,15 +564,17 @@ class BrowserHarnessController {
       const deferred = createDeferred();
       const timer = globalThis.setTimeout(() => {
         this.pendingRequests.delete(requestId);
-        deferred.reject(createNamedError(
-          "BrowserHarnessTimeoutError",
-          `Browser webview bridge request "${type}" timed out after ${timeoutMs}ms.`,
-          {
-            requestId,
-            timeoutMs,
-            type
-          }
-        ));
+        deferred.reject(
+          createNamedError(
+            "BrowserHarnessTimeoutError",
+            `Browser webview bridge request "${type}" timed out after ${timeoutMs}ms.`,
+            {
+              requestId,
+              timeoutMs,
+              type
+            }
+          )
+        );
       }, timeoutMs);
 
       this.pendingRequests.set(requestId, {
@@ -668,12 +679,16 @@ class BrowserHarnessController {
         throw error;
       }
 
-      this.log("warn", "Guest bridge readiness timed out after navigation; returning the settled page state instead.", {
-        browserState: this.readStateSnapshot(),
-        error: String(error?.message || error),
-        quietMs,
-        timeoutMs
-      });
+      this.log(
+        "warn",
+        "Guest bridge readiness timed out after navigation; returning the settled page state instead.",
+        {
+          browserState: this.readStateSnapshot(),
+          error: String(error?.message || error),
+          quietMs,
+          timeoutMs
+        }
+      );
       return this.readStateSnapshot();
     }
   }
@@ -689,10 +704,12 @@ class BrowserHarnessController {
     };
     status.urlChanged = beforeState.currentUrl !== state.currentUrl;
     status.titleChanged = beforeState.title !== state.title;
-    status.historyChanged = beforeState.canGoBack !== state.canGoBack
-      || beforeState.canGoForward !== state.canGoForward;
+    status.historyChanged =
+      beforeState.canGoBack !== state.canGoBack || beforeState.canGoForward !== state.canGoForward;
     status.navigated = status.urlChanged || beforeState.currentUrl !== state.currentUrl;
-    status.reacted = Object.entries(status).some(([key, value]) => key !== "reacted" && key !== "noObservedEffect" && value === true);
+    status.reacted = Object.entries(status).some(
+      ([key, value]) => key !== "reacted" && key !== "noObservedEffect" && value === true
+    );
     status.noObservedEffect = !status.reacted;
 
     return {
@@ -704,11 +721,11 @@ class BrowserHarnessController {
     };
   }
 
-  async runNavigatingAction(type, payload = null, {
-    actionTimeoutMs = 30000,
-    navigationReadyTimeoutMs = 8000,
-    navigationWaitMs = 2500
-  } = {}) {
+  async runNavigatingAction(
+    type,
+    payload = null,
+    { actionTimeoutMs = 30000, navigationReadyTimeoutMs = 8000, navigationWaitMs = 2500 } = {}
+  ) {
     const beforeState = this.readStateSnapshot();
     const previousVersion = this.documentVersion;
     let result = null;
@@ -716,17 +733,25 @@ class BrowserHarnessController {
     try {
       result = await this.sendRequest(type, payload, actionTimeoutMs);
     } catch (error) {
-      if (error?.name !== "BrowserHarnessDocumentReplacedError" || this.documentVersion === previousVersion) {
+      if (
+        error?.name !== "BrowserHarnessDocumentReplacedError" ||
+        this.documentVersion === previousVersion
+      ) {
         throw error;
       }
 
       const state = await this.waitForGuestUsableOrSettled(navigationReadyTimeoutMs);
-      return this.buildActionResponse({
-        effect: {},
-        status: {}
-      }, beforeState, state, {
-        navigated: true
-      });
+      return this.buildActionResponse(
+        {
+          effect: {},
+          status: {}
+        },
+        beforeState,
+        state,
+        {
+          navigated: true
+        }
+      );
     }
 
     const navigated = await this.waitForPossibleNavigation(previousVersion, navigationWaitMs);
@@ -752,10 +777,14 @@ class BrowserHarnessController {
       const loadPromise = this.webview.loadURL(nextUrl);
       if (loadPromise && typeof loadPromise.catch === "function") {
         void loadPromise.catch((error) => {
-          this.log("warn", "Guest loadURL reported an error; continuing to follow observed navigation state.", {
-            error: String(error?.message || error),
-            url: nextUrl
-          });
+          this.log(
+            "warn",
+            "Guest loadURL reported an error; continuing to follow observed navigation state.",
+            {
+              error: String(error?.message || error),
+              url: nextUrl
+            }
+          );
         });
       }
     } else {
@@ -788,20 +817,28 @@ class BrowserHarnessController {
     const [referenceId] = this.normalizeScopedArgs(args, {
       minimumArgumentCount: 1
     });
-    return await this.sendRequestWithRetry("detail", {
-      referenceId
-    }, 30000);
+    return await this.sendRequestWithRetry(
+      "detail",
+      {
+        referenceId
+      },
+      30000
+    );
   }
 
   async click(...args) {
     const [referenceId] = this.normalizeScopedArgs(args, {
       minimumArgumentCount: 1
     });
-    return await this.runNavigatingAction("click", {
-      referenceId
-    }, {
-      actionTimeoutMs: 30000
-    });
+    return await this.runNavigatingAction(
+      "click",
+      {
+        referenceId
+      },
+      {
+        actionTimeoutMs: 30000
+      }
+    );
   }
 
   async type(...args) {
@@ -809,10 +846,14 @@ class BrowserHarnessController {
       minimumArgumentCount: 2
     });
     const beforeState = this.readStateSnapshot();
-    const result = await this.sendRequest("type", {
-      referenceId,
-      value
-    }, 30000);
+    const result = await this.sendRequest(
+      "type",
+      {
+        referenceId,
+        value
+      },
+      30000
+    );
     return this.buildActionResponse(result, beforeState, this.readStateSnapshot());
   }
 
@@ -820,23 +861,31 @@ class BrowserHarnessController {
     const [referenceId, value] = this.normalizeScopedArgs(args, {
       minimumArgumentCount: 2
     });
-    return await this.runNavigatingAction("type_submit", {
-      referenceId,
-      value
-    }, {
-      actionTimeoutMs: 30000
-    });
+    return await this.runNavigatingAction(
+      "type_submit",
+      {
+        referenceId,
+        value
+      },
+      {
+        actionTimeoutMs: 30000
+      }
+    );
   }
 
   async submit(...args) {
     const [referenceId] = this.normalizeScopedArgs(args, {
       minimumArgumentCount: 1
     });
-    return await this.runNavigatingAction("submit", {
-      referenceId
-    }, {
-      actionTimeoutMs: 30000
-    });
+    return await this.runNavigatingAction(
+      "submit",
+      {
+        referenceId
+      },
+      {
+        actionTimeoutMs: 30000
+      }
+    );
   }
 
   async scroll(...args) {
@@ -844,9 +893,13 @@ class BrowserHarnessController {
       minimumArgumentCount: 1
     });
     const beforeState = this.readStateSnapshot();
-    const result = await this.sendRequest("scroll", {
-      referenceId
-    }, 30000);
+    const result = await this.sendRequest(
+      "scroll",
+      {
+        referenceId
+      },
+      30000
+    );
     return this.buildActionResponse(result, beforeState, this.readStateSnapshot());
   }
 
@@ -909,9 +962,10 @@ function setResult(value) {
 
 function log(level, message, details = null) {
   const prefix = `[browser-component-harness/${level}]`;
-  const line = details && typeof details === "object" && Object.keys(details).length
-    ? `${prefix} ${message} ${formatValue(details)}`
-    : `${prefix} ${message}`;
+  const line =
+    details && typeof details === "object" && Object.keys(details).length
+      ? `${prefix} ${message} ${formatValue(details)}`
+      : `${prefix} ${message}`;
   logOutput.textContent = `${line}\n${logOutput.textContent}`.trim();
 
   if (level === "error") {
@@ -940,7 +994,10 @@ function readReferenceId() {
   const rawValue = normalizeText(referenceInput.value);
   const referenceId = Number.parseInt(rawValue, 10);
   if (!Number.isInteger(referenceId)) {
-    throw createNamedError("BrowserHarnessReferenceError", "Browser harness actions require an integer reference id.");
+    throw createNamedError(
+      "BrowserHarnessReferenceError",
+      "Browser harness actions require an integer reference id."
+    );
   }
 
   return referenceId;
@@ -1044,16 +1101,24 @@ host.onRequest(async (request = {}) => {
       const args = Array.isArray(request.payload?.args) ? request.payload.args : [];
       const handler = requestMethodMap.get(method);
       if (!handler) {
-        throw createNamedError("BrowserHarnessMethodError", `Standalone browser harness does not support "${method}".`, {
-          method
-        });
+        throw createNamedError(
+          "BrowserHarnessMethodError",
+          `Standalone browser harness does not support "${method}".`,
+          {
+            method
+          }
+        );
       }
 
       result = await handler(...args);
     } else {
-      throw createNamedError("BrowserHarnessRequestError", `Standalone browser harness does not support request type "${type}".`, {
-        type
-      });
+      throw createNamedError(
+        "BrowserHarnessRequestError",
+        `Standalone browser harness does not support request type "${type}".`,
+        {
+          type
+        }
+      );
     }
 
     host.respond({

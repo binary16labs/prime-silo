@@ -25,7 +25,10 @@ export const PROMPT_INCLUDE_TRANSIENT_KEY_PREFIX = "promptinclude:transient";
 export const PROMPT_INCLUDE_TRANSIENT_ITEM_ORDER_START = 0;
 
 function normalizePromptIncludePath(inputPath = "") {
-  return String(inputPath || "").trim().replaceAll("\\", "/").replace(/^\/+/, "");
+  return String(inputPath || "")
+    .trim()
+    .replaceAll("\\", "/")
+    .replace(/^\/+/, "");
 }
 
 function toPromptIncludeDisplayPath(inputPath = "") {
@@ -35,10 +38,7 @@ function toPromptIncludeDisplayPath(inputPath = "") {
 
 function createPromptIncludeFence(content = "") {
   const backtickRuns = String(content || "").match(/`+/gu) || [];
-  const longestRun = backtickRuns.reduce(
-    (maximum, run) => Math.max(maximum, run.length),
-    0
-  );
+  const longestRun = backtickRuns.reduce((maximum, run) => Math.max(maximum, run.length), 0);
 
   return "`".repeat(Math.max(3, longestRun + 1));
 }
@@ -53,9 +53,10 @@ function normalizePromptIncludeEntry(entry) {
 
   return {
     content: typeof source.content === "string" ? source.content : "",
-    heading: typeof (source.heading ?? source.title ?? source.label) === "string"
-      ? String(source.heading ?? source.title ?? source.label).trim()
-      : "",
+    heading:
+      typeof (source.heading ?? source.title ?? source.label) === "string"
+        ? String(source.heading ?? source.title ?? source.label).trim()
+        : "",
     key: typeof source.key === "string" ? source.key.trim() : "",
     order: Number.isFinite(Number(source.order)) ? Number(source.order) : null,
     path: normalizedPath,
@@ -72,11 +73,7 @@ function normalizePromptIncludePatterns(inputPatterns) {
       ? [inputPatterns]
       : [];
 
-  return [...new Set(
-    patterns
-      .map((pattern) => String(pattern || "").trim())
-      .filter(Boolean)
-  )];
+  return [...new Set(patterns.map((pattern) => String(pattern || "").trim()).filter(Boolean))];
 }
 
 function buildPromptIncludeSystemItemKey(path = "") {
@@ -129,20 +126,19 @@ function formatPromptIncludeSystemPromptItem(item = {}) {
     return value;
   }
 
-  return [
-    `source: ${sourcePath}`,
-    value
-  ].join("\n");
+  return [`source: ${sourcePath}`, value].join("\n");
 }
 
 export function formatPromptIncludeSystemPromptSections(entries = []) {
-  return sortPromptIncludeEntries(entries).map((entry) =>
-    formatPromptIncludeSystemPromptItem({
-      path: entry.path,
-      sourcePath: entry.path,
-      value: entry.content
-    })
-  ).filter(Boolean);
+  return sortPromptIncludeEntries(entries)
+    .map((entry) =>
+      formatPromptIncludeSystemPromptItem({
+        path: entry.path,
+        sourcePath: entry.path,
+        value: entry.content
+      })
+    )
+    .filter(Boolean);
 }
 
 export function buildPromptIncludeSystemPromptSection() {
@@ -157,7 +153,9 @@ function getPromptIncludeApiClient() {
     typeof apiClient.call !== "function" ||
     typeof apiClient.fileRead !== "function"
   ) {
-    throw new Error("Prompt include loading requires space.api.call(...) and space.api.fileRead(...).");
+    throw new Error(
+      "Prompt include loading requires space.api.call(...) and space.api.fileRead(...)."
+    );
   }
 
   return apiClient;
@@ -166,8 +164,7 @@ function getPromptIncludeApiClient() {
 export async function listPromptIncludePaths(options = {}) {
   const patterns = normalizePromptIncludePatterns(
     options.patterns ??
-      options.pattern ??
-      [SYSTEM_PROMPT_INCLUDE_FILE_PATTERN, TRANSIENT_PROMPT_INCLUDE_FILE_PATTERN]
+      options.pattern ?? [SYSTEM_PROMPT_INCLUDE_FILE_PATTERN, TRANSIENT_PROMPT_INCLUDE_FILE_PATTERN]
   );
 
   if (!patterns.length) {
@@ -184,8 +181,13 @@ export async function listPromptIncludePaths(options = {}) {
     Array.isArray(result?.[pattern]) ? result[pattern] : []
   );
 
-  return [...new Set(matchedPaths.map((matchedPath) => normalizePromptIncludePath(matchedPath)).filter(Boolean))]
-    .sort((left, right) => toPromptIncludeDisplayPath(left).localeCompare(toPromptIncludeDisplayPath(right)));
+  return [
+    ...new Set(
+      matchedPaths.map((matchedPath) => normalizePromptIncludePath(matchedPath)).filter(Boolean)
+    )
+  ].sort((left, right) =>
+    toPromptIncludeDisplayPath(left).localeCompare(toPromptIncludeDisplayPath(right))
+  );
 }
 
 export async function readPromptIncludeEntries(options = {}) {
@@ -223,7 +225,9 @@ export function sortPromptIncludeEntries(entries = []) {
   return (Array.isArray(entries) ? entries : [])
     .map((entry) => normalizePromptIncludeEntry(entry))
     .filter(Boolean)
-    .sort((left, right) => toPromptIncludeDisplayPath(left.path).localeCompare(toPromptIncludeDisplayPath(right.path)));
+    .sort((left, right) =>
+      toPromptIncludeDisplayPath(left.path).localeCompare(toPromptIncludeDisplayPath(right.path))
+    );
 }
 
 export async function buildPromptIncludeTransientItems(options = {}) {
@@ -238,22 +242,24 @@ export async function buildPromptIncludeTransientItems(options = {}) {
     : PROMPT_INCLUDE_TRANSIENT_ITEM_ORDER_START;
 
   return Object.fromEntries(
-    entries.map((entry, index) => {
-      const key = entry.key || buildPromptIncludeTransientItemKey(entry.path);
-      const displayPath = toPromptIncludeDisplayPath(entry.path);
+    entries
+      .map((entry, index) => {
+        const key = entry.key || buildPromptIncludeTransientItemKey(entry.path);
+        const displayPath = toPromptIncludeDisplayPath(entry.path);
 
-      return [
-        key,
-        {
-          heading: entry.heading || displayPath || PROMPT_INCLUDE_TRANSIENT_HEADING,
-          order: entry.order ?? (baseOrder + index),
-          sourcePath: entry.sourcePath || entry.path,
-          trimAllowed: entry.trimAllowed,
-          trimPriority: entry.trimPriority ?? 30,
-          value: formatPromptIncludeTransientItemValue(entry.content)
-        }
-      ];
-    }).filter(([key]) => Boolean(key))
+        return [
+          key,
+          {
+            heading: entry.heading || displayPath || PROMPT_INCLUDE_TRANSIENT_HEADING,
+            order: entry.order ?? baseOrder + index,
+            sourcePath: entry.sourcePath || entry.path,
+            trimAllowed: entry.trimAllowed,
+            trimPriority: entry.trimPriority ?? 30,
+            value: formatPromptIncludeTransientItemValue(entry.content)
+          }
+        ];
+      })
+      .filter(([key]) => Boolean(key))
   );
 }
 
@@ -304,7 +310,7 @@ export async function buildPromptIncludeSystemPromptItems(options = {}) {
     }
 
     items[key] = {
-      order: entry.order ?? (baseOrder + index),
+      order: entry.order ?? baseOrder + index,
       sourcePath: entry.sourcePath || entry.path,
       trimAllowed: entry.trimAllowed,
       trimPriority: entry.trimPriority ?? 30,
@@ -317,5 +323,7 @@ export async function buildPromptIncludeSystemPromptItems(options = {}) {
 
 export async function buildPromptIncludeSystemPromptSections(options = {}) {
   const items = await buildPromptIncludeSystemPromptItems(options);
-  return listPromptItems(items).map((item) => formatPromptIncludeSystemPromptItem(item)).filter(Boolean);
+  return listPromptItems(items)
+    .map((item) => formatPromptIncludeSystemPromptItem(item))
+    .filter(Boolean);
 }

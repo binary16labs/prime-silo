@@ -16,6 +16,7 @@ those slices from scratch:
   **knowledge source** that feeds memo-ray's lineage graph and (Phase 2b) Benny's RAG.
 
 Two product moves on top:
+
 1. **memo-ray = the universal local-agent audit layer.** Today it ingests + audits Claude,
    Gemini/Antigravity, opencode, and open-notebook through one repeatable 4-seam pattern.
 2. **Benny = a floating German Shepherd** — an in-cockpit overlay (4a, done) and a
@@ -29,34 +30,34 @@ Decision log: target opencode + open-notebook; **extend memo-ray + prime-silo in
 - `memo-ray/` (git) — Agent OS Dashboard. Node/Express server + Vite/React client. Port **3030**.
   - server: `agent-os-dashboard/server/` · client: `agent-os-dashboard/client/src/`
 - `prime-silo/` (git) — Benny runtime (vendored, `runtime/`) + Space-Agent shell (`app/`, `server/`)
-  + Electron desktop (`packaging/desktop/`).
+  - Electron desktop (`packaging/desktop/`).
 
 ## Status
 
-| Phase | What | State | Verified |
-|------|------|-------|----------|
-| 1 | opencode audited in memo-ray | ✅ done | parser → 4 sessions/87 entities; capabilities OK; client builds |
-| 2 | open-notebook ingested + audited in memo-ray | ✅ done | notebook+note → Session+Thought; 6 transformations audited; client builds |
-| 2b | open-notebook sources → Benny RAG | ⏳ export done, ingest untested | bridge `scripts/openstudio-notebook-bridge.mjs`; export verified e2e vs mock; ingest POST needs live Benny |
-| 3 | opencode as a Benny execution backend | ⏳ built, live run untested | adapter `tools/opencode.py` + route `POST /api/opencode/run`; compiles, plumbing tested; needs Benny+ollama for a live coding run |
-| 4a | Benny overlay reskinned to dog (in-cockpit) | ✅ done | SVG renders; refs repointed; not run in live app |
-| 4b | Standalone desktop-pet window | ✅ done | 4 desktop files `node --check` OK; not run in live Electron |
-| 5 | Unify packaging/tray/release | ⏳ services + tray + skill done | `packaging/desktop/openstudio_services.js` + tray controls + per-install ON key; DevOps skill added; **desktop:pack build succeeds** (Space Agent.exe, pet files bundled). Full runtime-bundle of opencode/open-notebook = future |
+| Phase | What                                         | State                           | Verified                                                                                                                                                                                                                          |
+| ----- | -------------------------------------------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | opencode audited in memo-ray                 | ✅ done                         | parser → 4 sessions/87 entities; capabilities OK; client builds                                                                                                                                                                   |
+| 2     | open-notebook ingested + audited in memo-ray | ✅ done                         | notebook+note → Session+Thought; 6 transformations audited; client builds                                                                                                                                                         |
+| 2b    | open-notebook sources → Benny RAG            | ⏳ export done, ingest untested | bridge `scripts/openstudio-notebook-bridge.mjs`; export verified e2e vs mock; ingest POST needs live Benny                                                                                                                        |
+| 3     | opencode as a Benny execution backend        | ⏳ built, live run untested     | adapter `tools/opencode.py` + route `POST /api/opencode/run`; compiles, plumbing tested; needs Benny+ollama for a live coding run                                                                                                 |
+| 4a    | Benny overlay reskinned to dog (in-cockpit)  | ✅ done                         | SVG renders; refs repointed; not run in live app                                                                                                                                                                                  |
+| 4b    | Standalone desktop-pet window                | ✅ done                         | 4 desktop files `node --check` OK; not run in live Electron                                                                                                                                                                       |
+| 5     | Unify packaging/tray/release                 | ⏳ services + tray + skill done | `packaging/desktop/openstudio_services.js` + tray controls + per-install ON key; DevOps skill added; **desktop:pack build succeeds** (Space Agent.exe, pet files bundled). Full runtime-bundle of opencode/open-notebook = future |
 
 ## Architecture coordinates (memorize these)
 
-| Thing | Where | Notes |
-|------|-------|------|
-| memo-ray API | `http://localhost:3030/api` | `/system/capabilities`, `/beta/overview`, `/setup/status`, `/sync` |
-| memo-ray runtime config | `~/.memoray/memoray.config.js` | **auto-generated** from `server/lib/config.js`+`lib/detector.js`; the repo `memoray.config.js` is a template |
-| memo-ray data | `~/.memoray/data/entities/*.json` + `index.json` | one JSON file per entity |
-| opencode config | `~/.config/opencode/opencode.json` | providers/models/mcp/permission |
-| opencode sessions | `~/.local/share/opencode/storage/{session,message,part}/…` | JSON tree (project→session→message→part) |
-| open-notebook UI / API | `http://localhost:8502` / `http://localhost:5055` | docker-compose at `C:\Users\nsdha\docker-compose.yml` |
-| open-notebook storage | SurrealDB `:8000` (root/root, ns+db `open_notebook`) | reach via the 5055 REST API, not the DB |
-| Benny RAG ingest | `POST /api/runtime/rag/ingest` (space-agent proxy) → Benny `POST /rag/ingest` | **ingests files from the workspace `data_in/` dir**, NOT raw text in the body |
-| Benny API auth | header `X-Benny-API-Key: benny-mesh-2026-auth` | required unless path whitelisted |
-| Benny workspace data_in | `$BENNY_HOME/workspaces/<workspace>/data_in/` | drop files here, then ingest |
+| Thing                   | Where                                                                         | Notes                                                                                                        |
+| ----------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| memo-ray API            | `http://localhost:3030/api`                                                   | `/system/capabilities`, `/beta/overview`, `/setup/status`, `/sync`                                           |
+| memo-ray runtime config | `~/.memoray/memoray.config.js`                                                | **auto-generated** from `server/lib/config.js`+`lib/detector.js`; the repo `memoray.config.js` is a template |
+| memo-ray data           | `~/.memoray/data/entities/*.json` + `index.json`                              | one JSON file per entity                                                                                     |
+| opencode config         | `~/.config/opencode/opencode.json`                                            | providers/models/mcp/permission                                                                              |
+| opencode sessions       | `~/.local/share/opencode/storage/{session,message,part}/…`                    | JSON tree (project→session→message→part)                                                                     |
+| open-notebook UI / API  | `http://localhost:8502` / `http://localhost:5055`                             | docker-compose at `C:\Users\nsdha\docker-compose.yml`                                                        |
+| open-notebook storage   | SurrealDB `:8000` (root/root, ns+db `open_notebook`)                          | reach via the 5055 REST API, not the DB                                                                      |
+| Benny RAG ingest        | `POST /api/runtime/rag/ingest` (space-agent proxy) → Benny `POST /rag/ingest` | **ingests files from the workspace `data_in/` dir**, NOT raw text in the body                                |
+| Benny API auth          | header `X-Benny-API-Key: benny-mesh-2026-auth`                                | required unless path whitelisted                                                                             |
+| Benny workspace data_in | `$BENNY_HOME/workspaces/<workspace>/data_in/`                                 | drop files here, then ingest                                                                                 |
 
 ## The repeatable audit pattern (how to add ANY new local agent to memo-ray)
 
@@ -97,6 +98,7 @@ deep_synthesis, ...}` — it does **not** accept raw text. So the bridge is two 
 **(A) export sources to files in `data_in/`**, then **(B) trigger ingest**.
 
 **Implementation:** `prime-silo/scripts/openstudio-notebook-bridge.mjs` (Node, no deps).
+
 - Env: `OPEN_NOTEBOOK_URL` (default `http://localhost:5055`), `BENNY_DATA_IN` (target
   `data_in` dir), `BENNY_INGEST_URL` (default `http://localhost:3000/api/runtime/rag/ingest`),
   `BENNY_API_KEY` (default `benny-mesh-2026-auth`), `BENNY_WORKSPACE` (default `default`).
@@ -106,12 +108,14 @@ deep_synthesis, ...}` — it does **not** accept raw text. So the bridge is two 
 - Step B (unless `--no-ingest`): `POST` ingest with `{workspace, deep_synthesis:true}`.
 
 **Run / test:**
+
 ```
 # export only (safe, no Benny needed):
 node prime-silo/scripts/openstudio-notebook-bridge.mjs --data-in "<BENNY_HOME>/workspaces/default/data_in" --no-ingest
 # then, with Benny running, trigger ingest:
 node prime-silo/scripts/openstudio-notebook-bridge.mjs --data-in "<…>/data_in"
 ```
+
 **Verify:** files appear in `data_in/`; ingest returns `{status:"completed", total_documents}`;
 `GET /api/runtime/rag/status` shows the new sources; ask Benny a question grounded in them.
 
@@ -123,6 +127,7 @@ Benny only ingests `.txt/.md/.pdf/.docx/.pptx/.html`. Auth header required on th
 
 open-notebook needs 7 model roles set before sources can be added/processed. This is
 **config-driven** so the operator can change models without touching code:
+
 - Config: `scripts/openstudio-models.config.json` — providers (LM Studio + Lemonade reached at
   `host.docker.internal` because open-notebook is containerized) + model registrations + the
   role→model map.
@@ -130,6 +135,7 @@ open-notebook needs 7 model roles set before sources can be added/processed. Thi
   models, sets the 7 defaults, tests chat + embedding. Re-run any time after editing the config.
 
 Scanned + wired on this machine (combination of local engines):
+
 - **LM Studio** (`:1234/v1`) for the heavy roles — `google/gemma-4-12b-qat` → chat, transformation,
   large-context; `text-embedding-nomic-embed-text-v1.5` → embedding (768-dim, tested OK).
 - **Lemonade NPU** (`:13305/api/v1`) for the light roles — `Qwen3-8B-Hybrid` → tools; `kokoro-v1`
@@ -141,14 +147,15 @@ Heavy models (gemma-12b) JIT-load on first request, so the built-in connectivity
 while cold even though the wiring is correct — warm the model once and re-test. Embedding model must
 stay consistent between ingest and query (re-embedding needed if you change it).
 
-## Phase 3 — opencode as a Benny execution backend  (built; live run untested)
+## Phase 3 — opencode as a Benny execution backend (built; live run untested)
 
-**Goal:** Benny delegates *coding* tasks to opencode instead of growing its own coding agent.
+**Goal:** Benny delegates _coding_ tasks to opencode instead of growing its own coding agent.
 
 **Built:**
+
 - `runtime/benny/tools/opencode.py` — stdlib-only adapter. `opencode_available()` +
   `run_opencode_task(prompt, cwd, model?, agent?, timeout?)`. Runs `opencode run <prompt>
-  [-m provider/model] [--agent A]` headless in `cwd`, captures stdout/stderr/returncode, and
+[-m provider/model] [--agent A]` headless in `cwd`, captures stdout/stderr/returncode, and
   (when `cwd` is a git repo) the `git diff` + changed-file list opencode produced.
 - `runtime/benny/api/opencode_routes.py` — `GET /api/opencode/status` and
   `POST /api/opencode/run` `{prompt, workspace, subdir?, model?, agent?, timeout?}`. Confines
@@ -160,12 +167,14 @@ stay consistent between ingest and query (re-embedding needed if you change it).
 coding run is auto-lineage-tracked there too.
 
 **Verify (needs Benny runtime + ollama up):**
+
 ```
 curl localhost:<benny>/api/opencode/status -H "X-Benny-API-Key: benny-mesh-2026-auth"
 curl -X POST localhost:<benny>/api/opencode/run -H "X-Benny-API-Key: benny-mesh-2026-auth" \
   -H "Content-Type: application/json" \
   -d '{"prompt":"create hello.py that prints hi","workspace":"default","model":"ollama/gpt-oss:20b"}'
 ```
+
 Expect `status:"completed"`, `output`, and a `git.changed_files` list (if the workspace is a git
 repo). The opencode session also appears in memo-ray's lineage graph after its next sync.
 
@@ -190,9 +199,10 @@ there) and gate it behind an explicit HITL approval node for mutating runs.
 - **Not yet run in a live build.** To verify: build the desktop app and toggle "Show Benny on
   desktop" from the tray.
 
-## Phase 5 — unify packaging, tray & release  (services + tray + skill done)
+## Phase 5 — unify packaging, tray & release (services + tray + skill done)
 
 **Built:**
+
 - `packaging/desktop/openstudio_services.js` — start/stop `opencode serve`; start/stop
   open-notebook via `docker compose up -d/down`; `isOpencodeServeRunning` / `isOpenNotebookRunning`
   probes; `ensureEncryptionKey()` generates+persists a per-install `OPEN_NOTEBOOK_ENCRYPTION_KEY`
@@ -203,10 +213,10 @@ there) and gate it behind an explicit HITL approval node for mutating runs.
 - **DevOps skill** at `.claude/skills/devops-pipeline/SKILL.md` — codifies build types,
   release flow, gates, and these services. Invoke for "build the app / cut a release / package".
 - **Build verified:** `npm run desktop:pack` succeeds → `dist/desktop/windows/win-unpacked/
-  Space Agent.exe` (~201 MB); all new desktop files (`pet.*`, `openstudio_services.js`) + dog
+Space Agent.exe` (~201 MB); all new desktop files (`pet.*`, `openstudio_services.js`) + dog
   SVGs confirmed bundled.
 
-**Future (not done):** bundle opencode + open-notebook *inside* the installer (extend
+**Future (not done):** bundle opencode + open-notebook _inside_ the installer (extend
 `packaging/runtime-bundle/` + `runtime_supervisor.js` the way the Benny runtime is bundled), so a
 zero-install user gets them without a separate `opencode`/`docker` install. Mind the release lesson:
 push `main` before the tag or build jobs are skipped; validate with `desktop:localtest` before tagging.

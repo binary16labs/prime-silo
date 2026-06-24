@@ -182,24 +182,62 @@ test("space.browser.navigate waits for observed browser navigation before return
   const result = await runtime.browser.navigate(1, githubUrl);
   await observation;
 
-  assert.equal(result?.currentUrl, githubUrl, JSON.stringify({
-    result,
-    stateReadVersions
-  }, null, 2));
-  assert.equal(result?.frameSrc, githubUrl, JSON.stringify({
-    result,
-    stateReadVersions
-  }, null, 2));
-  assert.equal(result?.title, githubTitle, JSON.stringify({
-    result,
-    stateReadVersions
-  }, null, 2));
-  assert.ok(stateReadVersions.length >= 1, JSON.stringify({
-    result,
-    stateReadVersions
-  }, null, 2));
-  assert.ok(stateReadVersions.every((version) => version > 0), JSON.stringify({
-    result,
-    stateReadVersions
-  }, null, 2));
+  assert.equal(
+    result?.currentUrl,
+    githubUrl,
+    JSON.stringify(
+      {
+        result,
+        stateReadVersions
+      },
+      null,
+      2
+    )
+  );
+  assert.equal(
+    result?.frameSrc,
+    githubUrl,
+    JSON.stringify(
+      {
+        result,
+        stateReadVersions
+      },
+      null,
+      2
+    )
+  );
+  assert.equal(
+    result?.title,
+    githubTitle,
+    JSON.stringify(
+      {
+        result,
+        stateReadVersions
+      },
+      null,
+      2
+    )
+  );
+  assert.ok(
+    stateReadVersions.length >= 1,
+    JSON.stringify(
+      {
+        result,
+        stateReadVersions
+      },
+      null,
+      2
+    )
+  );
+  assert.ok(
+    stateReadVersions.every((version) => version > 0),
+    JSON.stringify(
+      {
+        result,
+        stateReadVersions
+      },
+      null,
+      2
+    )
+  );
 });

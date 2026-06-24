@@ -27,10 +27,7 @@
 // reasoning_trace are skipped — the widget is *for* surfacing thinking,
 // not enumerating every node (lineage_timeline already does that).
 
-import {
-  runtimeFetch,
-  readRuntimeJson
-} from "../../../runtime_client/runtime-client.js";
+import { runtimeFetch, readRuntimeJson } from "../../../runtime_client/runtime-client.js";
 
 const STATE_LOADING = "loading";
 const STATE_READY = "ready";
@@ -91,11 +88,12 @@ function extractTraces(events, props) {
 }
 
 function renderStatusChip(status) {
-  const cls = status === "completed" || status === "success"
-    ? "prime-silo-rt__status--ok"
-    : status === "failed" || status === "error"
-      ? "prime-silo-rt__status--err"
-      : "prime-silo-rt__status--neutral";
+  const cls =
+    status === "completed" || status === "success"
+      ? "prime-silo-rt__status--ok"
+      : status === "failed" || status === "error"
+        ? "prime-silo-rt__status--err"
+        : "prime-silo-rt__status--neutral";
   return `<span class="prime-silo-rt__status ${cls}" data-status="${escapeHtml(status)}">${escapeHtml(status)}</span>`;
 }
 
@@ -137,7 +135,7 @@ function renderShell(traces, props) {
 }
 
 function renderError(host, error) {
-  const detail = (error && (error.body && error.body.detail || error.message)) || String(error);
+  const detail = (error && ((error.body && error.body.detail) || error.message)) || String(error);
   host.dataset.widgetState = STATE_ERROR;
   host.innerHTML = `<div class="prime-silo-rt__error">Reasoning load failed: ${escapeHtml(detail)}</div>`;
 }
@@ -175,7 +173,7 @@ export function createReasoningTraceWidget(host, initialProps, options = {}) {
       if (aborted) {
         return;
       }
-      const events = (payload && Array.isArray(payload.events)) ? payload.events : [];
+      const events = payload && Array.isArray(payload.events) ? payload.events : [];
       const traces = extractTraces(events, props);
       lastEvents = events;
       lastTraces = traces;

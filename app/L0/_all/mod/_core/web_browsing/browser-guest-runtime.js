@@ -31,7 +31,9 @@ export const buildBrowserGuestRuntimeScriptPaths = globalThis.space.extend(
     const postBootstrapScriptPaths = readScriptPathList(runtimeContext, "postBootstrapScriptPaths");
 
     postBootstrapScriptPaths.push("/mod/_core/web_browsing/browser-page-content.js");
-    postBootstrapScriptPaths.push("/mod/_core/web_browsing/ext/browser_guest_runtime/core/handle-message.js");
+    postBootstrapScriptPaths.push(
+      "/mod/_core/web_browsing/ext/browser_guest_runtime/core/handle-message.js"
+    );
 
     runtimeContext.preBootstrapScriptPaths = dedupeScriptPaths(preBootstrapScriptPaths);
     runtimeContext.postBootstrapScriptPaths = dedupeScriptPaths(postBootstrapScriptPaths);

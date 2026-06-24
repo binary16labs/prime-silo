@@ -189,7 +189,9 @@ function isCustomwareWatchdogEnabled(runtimeParams) {
     return rawValue;
   }
 
-  const normalized = String(rawValue ?? "").trim().toLowerCase();
+  const normalized = String(rawValue ?? "")
+    .trim()
+    .toLowerCase();
 
   if (!normalized) {
     return true;
@@ -403,9 +405,13 @@ function matchesCompiledPatterns(compiledPatterns, projectPath) {
     return false;
   }
 
-  const candidates = normalized.endsWith("/") ? [normalized, normalized.slice(0, -1)] : [normalized];
+  const candidates = normalized.endsWith("/")
+    ? [normalized, normalized.slice(0, -1)]
+    : [normalized];
 
-  return compiledPatterns.some(({ matcher }) => candidates.some((candidate) => candidate && matcher.test(candidate)));
+  return compiledPatterns.some(({ matcher }) =>
+    candidates.some((candidate) => candidate && matcher.test(candidate))
+  );
 }
 
 function toAbsolutePath(projectRoot, projectPath, runtimeParams) {
@@ -936,7 +942,9 @@ export function createWatchdog(options = {}) {
   function resolvePathIndexRecord(absolutePath, entryOptions = {}) {
     const stats = entryOptions.stats || tryStat(absolutePath);
     const isDirectory =
-      entryOptions.isDirectory === undefined ? stats?.isDirectory() : Boolean(entryOptions.isDirectory);
+      entryOptions.isDirectory === undefined
+        ? stats?.isDirectory()
+        : Boolean(entryOptions.isDirectory);
     const projectPath = stats
       ? toProjectPath(projectRoot, absolutePath, {
           isDirectory,
@@ -948,7 +956,10 @@ export function createWatchdog(options = {}) {
       return null;
     }
 
-    if (isIgnoredProjectPath(projectPath) || !matchesCompiledPatterns(compiledPatterns, projectPath)) {
+    if (
+      isIgnoredProjectPath(projectPath) ||
+      !matchesCompiledPatterns(compiledPatterns, projectPath)
+    ) {
       return {
         entry: null,
         projectPath
@@ -1262,7 +1273,9 @@ export function createWatchdog(options = {}) {
         continue;
       }
 
-      await configuredHandler.instance.onChanges(createHandlerContext(configuredHandler, matchingChanges));
+      await configuredHandler.instance.onChanges(
+        createHandlerContext(configuredHandler, matchingChanges)
+      );
       syncHandlerState(configuredHandler);
     }
   }
@@ -1379,18 +1392,27 @@ export function createWatchdog(options = {}) {
         }
       }
 
-      changed = upsertCurrentEntry(targetPath, {
-        isDirectory: true,
-        stats
-      }, changedProjectPaths) || changed;
+      changed =
+        upsertCurrentEntry(
+          targetPath,
+          {
+            isDirectory: true,
+            stats
+          },
+          changedProjectPaths
+        ) || changed;
 
       const directories = new Set();
       walkDirectories(targetPath, directories);
       directories.forEach((directoryPath) => {
         changed =
-          upsertCurrentEntry(directoryPath, {
-            isDirectory: true
-          }, changedProjectPaths) || changed;
+          upsertCurrentEntry(
+            directoryPath,
+            {
+              isDirectory: true
+            },
+            changedProjectPaths
+          ) || changed;
       });
 
       walkFiles(targetPath, (filePath) => {
@@ -1407,10 +1429,16 @@ export function createWatchdog(options = {}) {
       ? removeCurrentEntries(directoryProjectPath, changedProjectPaths)
       : removeCurrentEntry(projectPath, changedProjectPaths);
 
-    return upsertCurrentEntry(targetPath, {
-      isDirectory: false,
-      stats
-    }, changedProjectPaths) || changed;
+    return (
+      upsertCurrentEntry(
+        targetPath,
+        {
+          isDirectory: false,
+          stats
+        },
+        changedProjectPaths
+      ) || changed
+    );
   }
 
   function syncMetadataOnlyPath(targetPath, options = {}) {
@@ -1446,10 +1474,14 @@ export function createWatchdog(options = {}) {
       watchDirectory(targetPath);
     }
 
-    return upsertCurrentEntry(targetPath, {
-      isDirectory: true,
-      stats
-    }, changedProjectPaths);
+    return upsertCurrentEntry(
+      targetPath,
+      {
+        isDirectory: true,
+        stats
+      },
+      changedProjectPaths
+    );
   }
 
   function shouldSyncWatchedAbsolutePath(targetPath) {
@@ -1512,9 +1544,11 @@ export function createWatchdog(options = {}) {
       : [
           ...new Set(
             (Array.isArray(options.fileChangeProjectPaths) ? options.fileChangeProjectPaths : [])
-              .map((projectPath) => normalizeProjectPath(projectPath, {
-                isDirectory: String(projectPath || "").endsWith("/")
-              }))
+              .map((projectPath) =>
+                normalizeProjectPath(projectPath, {
+                  isDirectory: String(projectPath || "").endsWith("/")
+                })
+              )
               .filter(Boolean)
           )
         ];
@@ -2107,7 +2141,10 @@ export function createWatchdog(options = {}) {
       };
     }
 
-    if (isL2FileIndexShardId(normalizedShardId) && !fileIndexStore.isShardCurrent(normalizedShardId)) {
+    if (
+      isL2FileIndexShardId(normalizedShardId) &&
+      !fileIndexStore.isShardCurrent(normalizedShardId)
+    ) {
       const username = normalizedShardId.slice("L2/".length);
       return scanL2UserFileIndexShard(username);
     }
@@ -2313,7 +2350,10 @@ export function createWatchdog(options = {}) {
       throw new Error("Replica watchdogs cannot scan authoritative filesystem changes.");
     }
 
-    const expandedProjectPaths = collectProjectSyncTargets(normalizedProjectPaths, createPathIndexSnapshot());
+    const expandedProjectPaths = collectProjectSyncTargets(
+      normalizedProjectPaths,
+      createPathIndexSnapshot()
+    );
     const absolutePaths = expandedProjectPaths.map((target) => ({
       absolutePath: toAbsolutePath(projectRoot, target.projectPath, runtimeParams),
       metadataOnly: target.metadataOnly

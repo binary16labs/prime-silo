@@ -1,6 +1,11 @@
 import { deriveModelIdFromUrl } from "/mod/_core/webllm/helpers.js";
 import { WORKER_INBOUND, WORKER_OUTBOUND } from "/mod/_core/webllm/protocol.js";
-import { deleteModelAllInfoInCache, hasModelInCache, MLCEngine, prebuiltAppConfig } from "/mod/_core/webllm/web-llm.js";
+import {
+  deleteModelAllInfoInCache,
+  hasModelInCache,
+  MLCEngine,
+  prebuiltAppConfig
+} from "/mod/_core/webllm/web-llm.js";
 
 let engine = null;
 let currentGenerateRequestId = "";
@@ -70,7 +75,8 @@ function normalizeLoadRequest(payload = {}) {
       throw new Error("Custom models require both a model URL and a model library URL.");
     }
 
-    const resolvedModelId = customModelId || deriveModelIdFromUrl(customModelUrl) || `custom-${Date.now()}`;
+    const resolvedModelId =
+      customModelId || deriveModelIdFromUrl(customModelUrl) || `custom-${Date.now()}`;
 
     return {
       appConfig: {
@@ -162,12 +168,14 @@ async function handleLoadModel(payload = {}) {
 async function handleScanCache() {
   const cachedModelIds = [];
 
-  await Promise.allSettled(prebuiltAppConfig.model_list.map(async (modelRecord) => {
-    const isCached = await hasModelInCache(modelRecord.model_id, prebuiltAppConfig);
-    if (isCached) {
-      cachedModelIds.push(modelRecord.model_id);
-    }
-  }));
+  await Promise.allSettled(
+    prebuiltAppConfig.model_list.map(async (modelRecord) => {
+      const isCached = await hasModelInCache(modelRecord.model_id, prebuiltAppConfig);
+      if (isCached) {
+        cachedModelIds.push(modelRecord.model_id);
+      }
+    })
+  );
 
   postMessageToHost(WORKER_OUTBOUND.CACHE_STATUS, {
     cachedModelIds

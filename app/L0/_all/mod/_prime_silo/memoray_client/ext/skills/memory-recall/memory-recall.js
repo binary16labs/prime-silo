@@ -15,10 +15,14 @@ async function getJson(path) {
     let detail = `Memo-Ray request failed (${response.status}).`;
     try {
       const body = await response.json();
-      if (body?.error === "memoray_unreachable") detail = "Memo-Ray is offline — ask the user to boot it with scripts/memoray.ps1.";
-      else if (body?.error === "memoray_disabled") detail = "Memo-Ray is disabled — it can be enabled in the configuration wizard.";
+      if (body?.error === "memoray_unreachable")
+        detail = "Memo-Ray is offline — ask the user to boot it with scripts/memoray.ps1.";
+      else if (body?.error === "memoray_disabled")
+        detail = "Memo-Ray is disabled — it can be enabled in the configuration wizard.";
       else if (body?.detail) detail = body.detail;
-    } catch { /* keep default */ }
+    } catch {
+      /* keep default */
+    }
     throw new Error(detail);
   }
   return response.json();

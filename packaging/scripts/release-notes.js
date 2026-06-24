@@ -174,7 +174,8 @@ function parseCliArgs(argv) {
     throw new Error(`Unknown release-notes argument: ${arg}`);
   }
 
-  options.currentTag = options.currentTag || process.env.RELEASE_TAG || process.env.GITHUB_REF_NAME || "";
+  options.currentTag =
+    options.currentTag || process.env.RELEASE_TAG || process.env.GITHUB_REF_NAME || "";
   options.previousTag = options.previousTag || process.env.PREVIOUS_RELEASE_TAG || "";
 
   if (!options.currentTag) {
@@ -192,7 +193,9 @@ function parseCommitEntries(rawLog) {
     .map((entry) => {
       const [heading, description = ""] = entry.split("\x1f");
       return {
-        heading: String(heading || "").replace(/\s+/gu, " ").trim(),
+        heading: String(heading || "")
+          .replace(/\s+/gu, " ")
+          .trim(),
         description: String(description || "").trim()
       };
     })
@@ -294,11 +297,15 @@ function extractOpenRouterMessageContent(payload) {
 
 async function generateReleaseBodyWithOpenRouter(commits, options = {}) {
   const apiKey = String(process.env.OPENROUTER_API_KEY || "").trim();
-  const model = String(process.env.OPENROUTER_MODEL_NAME || process.env.OPENROUTER_MODEL || "").trim();
+  const model = String(
+    process.env.OPENROUTER_MODEL_NAME || process.env.OPENROUTER_MODEL || ""
+  ).trim();
 
   if (!apiKey || !model) {
     if (options.requireAi) {
-      throw new Error("OPENROUTER_API_KEY and OPENROUTER_MODEL_NAME are required when --require-ai is set.");
+      throw new Error(
+        "OPENROUTER_API_KEY and OPENROUTER_MODEL_NAME are required when --require-ai is set."
+      );
     }
 
     return "";
@@ -332,16 +339,24 @@ async function generateReleaseBodyWithOpenRouter(commits, options = {}) {
 
   if (!response.ok) {
     const details = await response.text();
-    throw new Error(`OpenRouter request failed: ${response.status} ${response.statusText}\n${details}`.trim());
+    throw new Error(
+      `OpenRouter request failed: ${response.status} ${response.statusText}\n${details}`.trim()
+    );
   }
 
   const responsePayload = await response.json();
-  if (!responsePayload || typeof responsePayload !== "object" || !Array.isArray(responsePayload.choices)) {
+  if (
+    !responsePayload ||
+    typeof responsePayload !== "object" ||
+    !Array.isArray(responsePayload.choices)
+  ) {
     throw new Error("OpenRouter response did not include choices.");
   }
 
   const firstChoice = responsePayload.choices[0];
-  const body = sanitizeReleaseBody(extractOpenRouterMessageContent(firstChoice && firstChoice.message));
+  const body = sanitizeReleaseBody(
+    extractOpenRouterMessageContent(firstChoice && firstChoice.message)
+  );
   return body || "";
 }
 
@@ -380,7 +395,9 @@ async function main() {
       throw error;
     }
 
-    console.error(`Release note generation failed for ${options.currentTag}. Falling back to static notes.`);
+    console.error(
+      `Release note generation failed for ${options.currentTag}. Falling back to static notes.`
+    );
     console.error(error.message || error);
   }
 

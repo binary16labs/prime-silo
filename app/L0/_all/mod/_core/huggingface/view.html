@@ -14,7 +14,10 @@
           x-destroy="$store.huggingface.unmount()"
         >
           <div class="huggingface-layout">
-            <x-component path="/mod/_core/huggingface/config-sidebar.html" mode="testing"></x-component>
+            <x-component
+              path="/mod/_core/huggingface/config-sidebar.html"
+              mode="testing"
+            ></x-component>
 
             <section class="huggingface-card huggingface-chat-card">
               <div class="huggingface-card-header">
@@ -52,21 +55,39 @@
               <div class="huggingface-thread" x-ref="thread">
                 <template x-if="!$store.huggingface.messages.length">
                   <div class="huggingface-empty-state">
-                    <p>Load a compatible Hugging Face model, set a system prompt, and send a message to start a simple browser-only chat.</p>
+                    <p>
+                      Load a compatible Hugging Face model, set a system prompt, and send a message
+                      to start a simple browser-only chat.
+                    </p>
                   </div>
                 </template>
 
                 <template x-for="message in $store.huggingface.messages" :key="message.id">
-                  <article class="huggingface-message" :class="`huggingface-message--${message.role}`">
+                  <article
+                    class="huggingface-message"
+                    :class="`huggingface-message--${message.role}`"
+                  >
                     <header class="huggingface-message-header">
-                      <span class="huggingface-message-role" x-text="message.role === 'assistant' ? 'Assistant' : 'User'"></span>
-                      <span class="huggingface-message-finish" x-text="message.finishReason || (message.isStreaming ? 'streaming' : '')"></span>
+                      <span
+                        class="huggingface-message-role"
+                        x-text="message.role === 'assistant' ? 'Assistant' : 'User'"
+                      ></span>
+                      <span
+                        class="huggingface-message-finish"
+                        x-text="message.finishReason || (message.isStreaming ? 'streaming' : '')"
+                      ></span>
                     </header>
-                    <pre class="huggingface-message-body" x-text="message.content || (message.isStreaming ? 'Generating...' : '')"></pre>
+                    <pre
+                      class="huggingface-message-body"
+                      x-text="message.content || (message.isStreaming ? 'Generating...' : '')"
+                    ></pre>
 
                     <template x-if="message.metrics">
                       <div class="huggingface-message-meta">
-                        <span class="huggingface-message-meta-item huggingface-message-meta-item--model" x-show="message.modelId">
+                        <span
+                          class="huggingface-message-meta-item huggingface-message-meta-item--model"
+                          x-show="message.modelId"
+                        >
                           <strong x-text="message.modelId"></strong>
                         </span>
                         <span
@@ -75,7 +96,9 @@
                           title="Tokens per second"
                         >
                           t/s
-                          <strong x-text="$store.huggingface.formatTokenRate(message.metrics.tokensPerSecond)"></strong>
+                          <strong
+                            x-text="$store.huggingface.formatTokenRate(message.metrics.tokensPerSecond)"
+                          ></strong>
                         </span>
                         <span
                           class="huggingface-message-meta-item"
@@ -83,7 +106,9 @@
                           title="Tokens per minute"
                         >
                           t/min
-                          <strong x-text="$store.huggingface.formatTokenRate(message.metrics.tokensPerMinute)"></strong>
+                          <strong
+                            x-text="$store.huggingface.formatTokenRate(message.metrics.tokensPerMinute)"
+                          ></strong>
                         </span>
                         <span
                           class="huggingface-message-meta-item"
@@ -101,7 +126,9 @@
                           title="Time to first token"
                         >
                           ttft
-                          <strong x-text="$store.huggingface.formatDuration(message.metrics.timeToFirstTokenSeconds)"></strong>
+                          <strong
+                            x-text="$store.huggingface.formatDuration(message.metrics.timeToFirstTokenSeconds)"
+                          ></strong>
                         </span>
                         <span
                           class="huggingface-message-meta-item"
@@ -109,7 +136,9 @@
                           title="End-to-end latency"
                         >
                           e2e
-                          <strong x-text="$store.huggingface.formatDuration(message.metrics.endToEndLatencySeconds)"></strong>
+                          <strong
+                            x-text="$store.huggingface.formatDuration(message.metrics.endToEndLatencySeconds)"
+                          ></strong>
                         </span>
                       </div>
                     </template>
@@ -117,7 +146,10 @@
                 </template>
               </div>
 
-              <form class="huggingface-composer" @submit.prevent="$store.huggingface.handleComposerPrimaryAction()">
+              <form
+                class="huggingface-composer"
+                @submit.prevent="$store.huggingface.handleComposerPrimaryAction()"
+              >
                 <textarea
                   x-ref="composer"
                   rows="2"

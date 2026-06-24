@@ -7,9 +7,12 @@
   const meta = globalThis[META_KEY] || {};
   if (!runtime || globalThis[INSTALL_FLAG]) {
     if (!runtime) {
-      console.error("[space-browser/frame] Core guest handler install skipped because the bridge runtime is unavailable.", {
-        location: String(globalThis.location?.href || "")
-      });
+      console.error(
+        "[space-browser/frame] Core guest handler install skipped because the bridge runtime is unavailable.",
+        {
+          location: String(globalThis.location?.href || "")
+        }
+      );
     }
     return;
   }
@@ -28,7 +31,9 @@
   runtime.registerMessageHandler("type_submit", (payload) => runtime.typeSubmitReference(payload));
   runtime.registerMessageHandler("scroll", (payload) => runtime.scrollReference(payload));
   runtime.registerMessageHandler("navigation_state_get", () => runtime.collectNavigationState());
-  runtime.registerMessageHandler("location_navigate", (payload) => runtime.scheduleNavigate(payload));
+  runtime.registerMessageHandler("location_navigate", (payload) =>
+    runtime.scheduleNavigate(payload)
+  );
   runtime.registerMessageHandler("history_back", () => runtime.scheduleHistoryAction("back"));
   runtime.registerMessageHandler("history_forward", () => runtime.scheduleHistoryAction("forward"));
   runtime.registerMessageHandler("location_reload", () => runtime.scheduleReload());

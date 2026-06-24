@@ -40,11 +40,15 @@ test("resolveCurrentSpaceModulePath resolves current-space relative scripts", ()
 
 test("resolveCurrentSpaceModulePath keeps explicit app-rooted paths", () => {
   assert.equal(
-    resolveCurrentSpaceModulePath("~/spaces/space-7/scripts/utils.js", { spaceRootPath: "~/spaces/space-7/" }),
+    resolveCurrentSpaceModulePath("~/spaces/space-7/scripts/utils.js", {
+      spaceRootPath: "~/spaces/space-7/"
+    }),
     "~/spaces/space-7/scripts/utils.js"
   );
   assert.equal(
-    resolveCurrentSpaceModulePath("/~/spaces/space-7/scripts/utils.js", { spaceRootPath: "~/spaces/space-7/" }),
+    resolveCurrentSpaceModulePath("/~/spaces/space-7/scripts/utils.js", {
+      spaceRootPath: "~/spaces/space-7/"
+    }),
     "~/spaces/space-7/scripts/utils.js"
   );
   assert.equal(
@@ -59,7 +63,10 @@ test("resolveCurrentSpaceModulePath rejects unsupported URL and traversal specif
     /may not escape the current space root/
   );
   assert.throws(
-    () => resolveCurrentSpaceModulePath("https://example.com/demo.js", { spaceRootPath: "~/spaces/space-7/" }),
+    () =>
+      resolveCurrentSpaceModulePath("https://example.com/demo.js", {
+        spaceRootPath: "~/spaces/space-7/"
+      }),
     /do not support URL specifiers/
   );
 });

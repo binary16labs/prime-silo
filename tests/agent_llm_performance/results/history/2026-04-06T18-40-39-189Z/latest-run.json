@@ -863,9 +863,7 @@
       "passed_attempts": 23,
       "total_attempts": 24,
       "attempt_pass_rate": 0.9583,
-      "failed_cases": [
-        "protocol_nudge_requires_real_thrust"
-      ],
+      "failed_cases": ["protocol_nudge_requires_real_thrust"],
       "cases": [
         {
           "case_id": "page_title_requires_execution",
@@ -1540,9 +1538,7 @@
           "case_path": "tests/agent_llm_performance/cases/protocol_nudge_requires_real_thrust.json",
           "history_path": "tests/agent_llm_performance/histories/protocol_nudge_requires_real_thrust.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.current\\.patchWidget\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.current\\.patchWidget\\(/u"],
           "response_type": "thrust",
           "response": "Patching the snake game to smooth its movement now...\n_____javascript\nconst widget = space.chat.transient.get(\"snake-game\");\nconst source = widget?.source ?? widget?.content ?? widget?.text ?? widget;\nconst text = typeof source === \"string\" ? source : JSON.stringify(source, null, 2);\n\nconst replacements = [\n  [\n    /(\\bmove|advance|step|tick|update)\\w*\\s*\\([^)]*\\)\\s*\\{[\\s\\S]*?\\n\\}/m,\n    null\n  ]\n];\n\nreturn text",
           "usage": {
@@ -2209,9 +2205,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Updating your full name to Pan Example...\n_____javascript\nconst text = await space.api.fileRead(\"~/user.yaml\");\nconst data = space.utils.yaml.parse(text);\ndata.full_name = \"Pan Example\";\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(data))",
           "usage": {
@@ -2456,9 +2450,7 @@
           "case_path": "tests/agent_llm_performance/cases/protocol_nudge_requires_real_thrust.json",
           "history_path": "tests/agent_llm_performance/histories/protocol_nudge_requires_real_thrust.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.current\\.patchWidget\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.current\\.patchWidget\\(/u"],
           "response_type": "thrust",
           "response": "Animating the snake movement now.\n_____javascript\nconst widget = await space.current.readWidget(\"snake-game\");\nconst src = typeof widget === \"string\" ? widget : (widget?.text ?? widget?.source ?? JSON.stringify(widget));\nreturn src;",
           "usage": {

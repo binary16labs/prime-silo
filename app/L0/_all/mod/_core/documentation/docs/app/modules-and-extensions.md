@@ -174,7 +174,9 @@ Modules may also export live context tags with hidden helper elements:
 ```html
 <x-context data-tags="onscreen"></x-context>
 <x-context data-tags="admin"></x-context>
-<x-context :data-tags="$store.router.current?.path ? `route:${$store.router.current.path}` : ''"></x-context>
+<x-context
+  :data-tags="$store.router.current?.path ? `route:${$store.router.current.path}` : ''"
+></x-context>
 <x-context :data-tags="$store.webBrowsing.hasOpenBrowsers ? 'browser:open' : ''"></x-context>
 ```
 
@@ -183,7 +185,12 @@ Framework bootstrap also injects one hidden runtime context automatically: `data
 Framework helper import:
 
 ```js
-import { getContexts, getAttributeValues, getTags, getContents } from "/mod/_core/framework/js/context.js";
+import {
+  getContexts,
+  getAttributeValues,
+  getTags,
+  getContents
+} from "/mod/_core/framework/js/context.js";
 ```
 
 Rules:

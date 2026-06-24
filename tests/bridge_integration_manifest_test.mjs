@@ -20,7 +20,10 @@ import { signManifest, verifyManifest } from "../server/lib/manifest_signing.js"
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 async function readManifest(id) {
-  const raw = await fs.readFile(path.join(projectRoot, "manifests", "integrations", `${id}.integration.json`), "utf8");
+  const raw = await fs.readFile(
+    path.join(projectRoot, "manifests", "integrations", `${id}.integration.json`),
+    "utf8"
+  );
   return JSON.parse(raw);
 }
 
@@ -53,7 +56,10 @@ async function testBridgeChecksAreHonest() {
   assert.ok(checks.has("signature") && checks.has("config_surface") && checks.has("owners"));
   // The audit's live fetcher targets memo-ray, not the runtime — so the bridge
   // must NOT claim to probe runtime payloads/health (it would falsely drift).
-  assert.ok(!checks.has("payload_contracts"), "bridge must not declare payload_contracts (runtime not probed here)");
+  assert.ok(
+    !checks.has("payload_contracts"),
+    "bridge must not declare payload_contracts (runtime not probed here)"
+  );
   assert.ok(!checks.has("health"), "bridge must not declare health (runtime not probed here)");
   for (const ep of m.endpoints) {
     assert.equal(ep.probe, false, `endpoint ${ep.id} is documentation-only (probe:false)`);
@@ -67,11 +73,21 @@ async function testBridgeSignatureVerifies() {
   // verifies under whatever key this bare test shell happens to have. Instead:
   // the envelope is well-formed, and the canonical-payload sign/verify path
   // round-trips under an explicit key (environment-independent).
-  assert.ok(m.signature && m.signature.algorithm === "HMAC-SHA256", "bridge manifest carries an HMAC-SHA256 signature envelope");
-  assert.ok(/^[0-9a-f]{64}$/.test(m.signature.value || ""), "signature value is a sha256 hex digest");
+  assert.ok(
+    m.signature && m.signature.algorithm === "HMAC-SHA256",
+    "bridge manifest carries an HMAC-SHA256 signature envelope"
+  );
+  assert.ok(
+    /^[0-9a-f]{64}$/.test(m.signature.value || ""),
+    "signature value is a sha256 hex digest"
+  );
   const env = { BENNY_HMAC_KEY: "ab".repeat(32) };
   const fresh = signManifest(m, { env });
-  assert.equal(verifyManifest(m, fresh, { env }), true, "sign/verify round-trips for the bridge manifest payload");
+  assert.equal(
+    verifyManifest(m, fresh, { env }),
+    true,
+    "sign/verify round-trips for the bridge manifest payload"
+  );
 }
 
 async function testBridgeOwnersExistOnDisk() {

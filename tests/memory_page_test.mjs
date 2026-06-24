@@ -14,13 +14,20 @@
 import assert from "node:assert/strict";
 
 globalThis.window = { location: { hash: "" } };
-globalThis.document = { visibilityState: "visible", addEventListener() {}, removeEventListener() {} };
+globalThis.document = {
+  visibilityState: "visible",
+  addEventListener() {},
+  removeEventListener() {}
+};
 
 const mod = await import("../app/L0/_all/mod/_prime_silo/memory/memory.js");
 const page = mod.__testing;
 
 function jsonResponse(body, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json" }
+  });
 }
 
 function installFetch(router) {
@@ -76,14 +83,34 @@ async function testOfflineState() {
 
 async function testReadyAndSelectMountsGraph() {
   globalThis.window.location.hash = "";
-  const sessions = [{ id: "s1", agent: "Claude", content: "Session one", metadata: { project: "P" } }];
+  const sessions = [
+    { id: "s1", agent: "Claude", content: "Session one", metadata: { project: "P" } }
+  ];
   installFetch((url) => {
     if (url.includes("/api/memoray/sessions")) return jsonResponse(sessions);
-    if (url.includes("/api/integration_audit")) return jsonResponse({ integrations: [{ id: "memoray", status: "pass", summary: { drift: 0 } }] });
-    if (url.includes("/api/memoray/beta/overview")) return jsonResponse({ projects: [], worktrees: [], totalSessions: 1, totalTokens: 0, hotFiles: [] });
-    if (url.includes("/api/memoray/system/capabilities")) return jsonResponse({ claude: { mcpServers: [] }, antigravity: { plugins: [] } });
-    if (url.includes("/api/memoray/system/metrics")) return jsonResponse({ cpu: "1", ram: { used: 1, total: 2, percent: "50" }, network: {}, processes: [] });
-    if (url.includes("/api/memoray/graph/")) return jsonResponse({ nodes: [{ id: "s1", type: "Session", label: "S" }], links: [] });
+    if (url.includes("/api/integration_audit"))
+      return jsonResponse({
+        integrations: [{ id: "memoray", status: "pass", summary: { drift: 0 } }]
+      });
+    if (url.includes("/api/memoray/beta/overview"))
+      return jsonResponse({
+        projects: [],
+        worktrees: [],
+        totalSessions: 1,
+        totalTokens: 0,
+        hotFiles: []
+      });
+    if (url.includes("/api/memoray/system/capabilities"))
+      return jsonResponse({ claude: { mcpServers: [] }, antigravity: { plugins: [] } });
+    if (url.includes("/api/memoray/system/metrics"))
+      return jsonResponse({
+        cpu: "1",
+        ram: { used: 1, total: 2, percent: "50" },
+        network: {},
+        processes: []
+      });
+    if (url.includes("/api/memoray/graph/"))
+      return jsonResponse({ nodes: [{ id: "s1", type: "Session", label: "S" }], links: [] });
     return jsonResponse({});
   });
 

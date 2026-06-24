@@ -1,9 +1,6 @@
 import * as api from "./api.js";
 import * as cache from "./cache.js";
-import {
-  applyModuleResolution,
-  getConfiguredModuleMaxLayer
-} from "./moduleResolution.js";
+import { applyModuleResolution, getConfiguredModuleMaxLayer } from "./moduleResolution.js";
 
 /**
  * @typedef {string} ExtensionPath
@@ -70,9 +67,7 @@ const JS_EXTENSION_SCOPE = "js";
 const FRAMEWORK_HEAD_EXTENSION_POINT = "_core/framework/head/end";
 export const HTML_EXTENSION_READY_ATTRIBUTE = "data-space-extension-ready";
 
-export const API_EXTENSION_EXCLUDED_ENDPOINTS = new Set([
-  "/api/extensions_load",
-]);
+export const API_EXTENSION_EXCLUDED_ENDPOINTS = new Set(["/api/extensions_load"]);
 
 export function clearCache() {
   cache.clear(JS_CACHE_AREA);
@@ -95,8 +90,7 @@ function ensureFrameworkHeadExtensionAnchor() {
 
   const existing = Array.from(head.children).find(
     (child) =>
-      child.tagName === "X-EXTENSION" &&
-      child.getAttribute("id") === FRAMEWORK_HEAD_EXTENSION_POINT
+      child.tagName === "X-EXTENSION" && child.getAttribute("id") === FRAMEWORK_HEAD_EXTENSION_POINT
   );
   if (existing instanceof HTMLElement) {
     return existing;
@@ -170,10 +164,8 @@ function parseModulePath(moduleRef) {
   let pathname = normalizedModuleUrl;
 
   try {
-    pathname = new URL(
-      normalizedModuleUrl,
-      globalThis.location?.origin || "http://localhost"
-    ).pathname;
+    pathname = new URL(normalizedModuleUrl, globalThis.location?.origin || "http://localhost")
+      .pathname;
   } catch {
     pathname = normalizedModuleUrl;
   }
@@ -262,7 +254,9 @@ function setFunctionName(target, name) {
  */
 export function extend(moduleRef, extensionPointNameOrOriginal, maybeOriginal) {
   const hasExplicitName = typeof extensionPointNameOrOriginal === "string";
-  const original = /** @type {T} */ (hasExplicitName ? maybeOriginal : extensionPointNameOrOriginal);
+  const original = /** @type {T} */ (
+    hasExplicitName ? maybeOriginal : extensionPointNameOrOriginal
+  );
 
   if (typeof original !== "function" || isClassConstructor(original)) {
     throw new TypeError("space.extend() wraps standalone functions only.");
@@ -280,7 +274,7 @@ export function extend(moduleRef, extensionPointNameOrOriginal, maybeOriginal) {
   }
 
   const functionName = inferFunctionName(extensionPoint, original);
-  const wrapped = async function(...incomingArgs) {
+  const wrapped = async function (...incomingArgs) {
     /** @type {ExtensionHookContext} */
     const hookContext = {
       args: Array.isArray(incomingArgs) ? incomingArgs : [],
@@ -344,10 +338,7 @@ export function extend(moduleRef, extensionPointNameOrOriginal, maybeOriginal) {
 ensureSpaceRuntime().extend = extend;
 
 function createExtensionPatterns(extensionPoint, filters, scope) {
-  const normalizedExtensionPoint = normalizeExtensionPointForScope(
-    extensionPoint,
-    scope
-  );
+  const normalizedExtensionPoint = normalizeExtensionPointForScope(extensionPoint, scope);
 
   if (!normalizedExtensionPoint) {
     return [];
@@ -368,10 +359,9 @@ function createExtensionLookupKey(patterns) {
     return "";
   }
 
-  return [
-    "maxLayer:" + (maxLayer === null ? "" : String(maxLayer)),
-    ...normalizedPatterns
-  ].join("\n");
+  return ["maxLayer:" + (maxLayer === null ? "" : String(maxLayer)), ...normalizedPatterns].join(
+    "\n"
+  );
 }
 
 function createExtensionCacheKey(extensionPoint, scope) {
@@ -393,10 +383,7 @@ let queuedExtensionWaitHandle = null;
 let queuedExtensionTimeoutHandle = null;
 
 function clearExtensionLookupSchedule() {
-  if (
-    queuedExtensionFrameHandle != null &&
-    typeof globalThis.cancelAnimationFrame === "function"
-  ) {
+  if (queuedExtensionFrameHandle != null && typeof globalThis.cancelAnimationFrame === "function") {
     globalThis.cancelAnimationFrame(queuedExtensionFrameHandle);
   }
 
@@ -431,9 +418,7 @@ async function flushQueuedExtensionLookups() {
       requests: queuedRequests.map(({ patterns }) => ({ patterns }))
     });
 
-    const results = Array.isArray(response?.results)
-      ? response.results
-      : [];
+    const results = Array.isArray(response?.results) ? response.results : [];
 
     for (const [index, request] of queuedRequests.entries()) {
       const paths = Array.isArray(results[index]?.extensions)
@@ -477,9 +462,7 @@ function scheduleFrameAwareExtensionLookupFlush() {
   }
 
   if (typeof globalThis.requestAnimationFrame === "function") {
-    queuedExtensionFrameHandle = globalThis.requestAnimationFrame(
-      runScheduledExtensionLookupFlush
-    );
+    queuedExtensionFrameHandle = globalThis.requestAnimationFrame(runScheduledExtensionLookupFlush);
   }
 
   if (typeof globalThis.setTimeout === "function") {
@@ -503,8 +486,7 @@ function scheduleExtensionLookupFlush() {
   }
 
   const batchWaitMs =
-    Number.isFinite(HTML_EXTENSIONS_LOAD_BATCH_WAIT_MS) &&
-    HTML_EXTENSIONS_LOAD_BATCH_WAIT_MS > 0
+    Number.isFinite(HTML_EXTENSIONS_LOAD_BATCH_WAIT_MS) && HTML_EXTENSIONS_LOAD_BATCH_WAIT_MS > 0
       ? HTML_EXTENSIONS_LOAD_BATCH_WAIT_MS
       : 0;
   if (batchWaitMs > 0 && typeof globalThis.setTimeout === "function") {
@@ -538,10 +520,9 @@ function loadExtensionPaths(extensionPoint, filters, scope) {
   }
 
   if (scope !== HTML_EXTENSION_SCOPE) {
-    const lookupPromise = requestExtensionLookupPaths(patterns)
-      .finally(() => {
-        pendingExtensionLookups.delete(lookupKey);
-      });
+    const lookupPromise = requestExtensionLookupPaths(patterns).finally(() => {
+      pendingExtensionLookups.delete(lookupKey);
+    });
     pendingExtensionLookups.set(lookupKey, lookupPromise);
     return lookupPromise;
   }
@@ -567,17 +548,15 @@ function loadExtensionPaths(extensionPoint, filters, scope) {
  * @param {...any} data
  * @returns {Promise<void>}
  */
-export async function callJsExtensions(extensionPoint, ...data){
+export async function callJsExtensions(extensionPoint, ...data) {
   const cacheKey = createExtensionCacheKey(extensionPoint, JS_EXTENSION_SCOPE);
   const cachedExtensions = readCachedValue(JS_CACHE_AREA, cacheKey);
   const extensions =
-    cachedExtensions !== undefined
-      ? cachedExtensions
-      : await loadJsExtensions(extensionPoint);
-  for(const extension of extensions){
-    try{
+    cachedExtensions !== undefined ? cachedExtensions : await loadJsExtensions(extensionPoint);
+  for (const extension of extensions) {
+    try {
       await extension.module.default(...data);
-    }catch(error){
+    } catch (error) {
       console.error(`Error calling extension: ${extension.path}`, error);
     }
   }
@@ -595,11 +574,7 @@ export async function loadJsExtensions(extensionPoint) {
     const cached = readCachedValue(JS_CACHE_AREA, cacheKey);
     if (cached !== undefined) return cached;
 
-    const paths = await loadExtensionPaths(
-      extensionPoint,
-      ["*.js", "*.mjs"],
-      JS_EXTENSION_SCOPE
-    );
+    const paths = await loadExtensionPaths(extensionPoint, ["*.js", "*.mjs"], JS_EXTENSION_SCOPE);
     /** @type {JsExtensionImport[]} */
     const imports = await Promise.all(
       paths.map(async (path) => ({
@@ -631,7 +606,7 @@ export async function loadHtmlExtensions(roots = [document.documentElement]) {
     // Find all top-level components and load them in parallel
     /** @type {Element[]} */
     const extensions = rootElements.flatMap((root) =>
-      Array.from(root.querySelectorAll("x-extension")),
+      Array.from(root.querySelectorAll("x-extension"))
     );
 
     if (extensions.length === 0) return;
@@ -644,7 +619,7 @@ export async function loadHtmlExtensions(roots = [document.documentElement]) {
           return;
         }
         await importHtmlExtensions(path, /** @type {HTMLElement} */ (extension));
-      }),
+      })
     );
   } catch (error) {
     console.error("Error loading HTML extensions:", error);
@@ -664,7 +639,7 @@ export async function reloadHtmlExtensions(roots = [document.documentElement]) {
 
     /** @type {Element[]} */
     const extensions = rootElements.flatMap((root) =>
-      Array.from(root.querySelectorAll("x-extension")),
+      Array.from(root.querySelectorAll("x-extension"))
     );
 
     if (extensions.length === 0) return;
@@ -679,7 +654,7 @@ export async function reloadHtmlExtensions(roots = [document.documentElement]) {
 
         extension.innerHTML = "";
         await importHtmlExtensions(path, /** @type {HTMLElement} */ (extension));
-      }),
+      })
     );
   } catch (error) {
     console.error("Error reloading HTML extensions:", error);
@@ -698,10 +673,7 @@ export async function importHtmlExtensions(extensionPoint, targetElement) {
   targetElement.setAttribute(HTML_EXTENSION_READY_ATTRIBUTE, "false");
 
   try {
-    const cacheKey = createExtensionCacheKey(
-      extensionPoint,
-      HTML_EXTENSION_SCOPE
-    );
+    const cacheKey = createExtensionCacheKey(extensionPoint, HTML_EXTENSION_SCOPE);
     const cachedHtml = readCachedValue(HTML_CACHE_AREA, cacheKey);
     if (cachedHtml !== undefined) {
       targetElement.innerHTML = cachedHtml;

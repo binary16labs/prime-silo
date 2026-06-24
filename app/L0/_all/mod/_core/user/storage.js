@@ -35,7 +35,11 @@ function getRuntime() {
 
 function isMissingFileError(error) {
   const message = String(error?.message || "");
-  return /\bstatus 404\b/u.test(message) || /File not found\./u.test(message) || /Path not found\./u.test(message);
+  return (
+    /\bstatus 404\b/u.test(message) ||
+    /File not found\./u.test(message) ||
+    /Path not found\./u.test(message)
+  );
 }
 
 function normalizeList(values) {
@@ -84,7 +88,10 @@ export function isSingleUserRuntime() {
 
 export async function loadUserSettings() {
   const runtime = getRuntime();
-  const [identityResult, config] = await Promise.all([runtime.api.userSelfInfo(), readUserConfig(runtime)]);
+  const [identityResult, config] = await Promise.all([
+    runtime.api.userSelfInfo(),
+    readUserConfig(runtime)
+  ]);
   const identity = normalizeIdentity(identityResult);
 
   return {

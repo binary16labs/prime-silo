@@ -16,7 +16,10 @@
   --dashboard-space-card-tag-row-height: 1.65rem;
   --dashboard-space-card-tag-gap: 0.34rem;
   display: grid;
-  grid-template-columns: repeat(var(--dashboard-space-grid-columns), minmax(0, var(--dashboard-space-card-size)));
+  grid-template-columns: repeat(
+    var(--dashboard-space-grid-columns),
+    minmax(0, var(--dashboard-space-card-size))
+  );
   justify-content: center;
   align-items: flex-start;
   column-gap: var(--dashboard-space-grid-base-gap);
@@ -73,8 +76,11 @@
   color: var(--color-text-primary);
   font-weight: 500;
   text-wrap: balance;
-  transform:
-    translate3d(var(--dashboard-empty-title-float-x), var(--dashboard-empty-title-float-y), 0)
+  transform: translate3d(
+      var(--dashboard-empty-title-float-x),
+      var(--dashboard-empty-title-float-y),
+      0
+    )
     rotate(var(--dashboard-empty-title-rotate));
   transform-origin: 52% 52%;
   will-change: transform;
@@ -131,7 +137,12 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(7, 12, 20, 0.18) 0%, rgba(7, 12, 20, 0.28) 34%, rgba(7, 12, 20, 0.82) 100%),
+    linear-gradient(
+      180deg,
+      rgba(7, 12, 20, 0.18) 0%,
+      rgba(7, 12, 20, 0.28) 34%,
+      rgba(7, 12, 20, 0.82) 100%
+    ),
     radial-gradient(circle at top right, rgba(236, 230, 216, 0.12), transparent 36%);
 }
 
@@ -181,7 +192,12 @@
 }
 
 .dashboard-space-card--thumbnail .dashboard-space-card-open {
-  background: linear-gradient(180deg, rgba(7, 12, 20, 0.08), rgba(7, 12, 20, 0.18) 48%, rgba(7, 12, 20, 0.36) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(7, 12, 20, 0.08),
+    rgba(7, 12, 20, 0.18) 48%,
+    rgba(7, 12, 20, 0.36) 100%
+  );
 }
 
 .dashboard-space-card-open:focus-visible,
@@ -263,11 +279,10 @@
   gap: var(--dashboard-space-card-tag-gap);
   align-content: flex-start;
   align-self: stretch;
-  max-height:
-    calc(
-      (var(--dashboard-space-card-tag-rows) * var(--dashboard-space-card-tag-row-height))
-      + ((var(--dashboard-space-card-tag-rows) - 1) * var(--dashboard-space-card-tag-gap))
-    );
+  max-height: calc(
+    (var(--dashboard-space-card-tag-rows) * var(--dashboard-space-card-tag-row-height)) +
+      ((var(--dashboard-space-card-tag-rows) - 1) * var(--dashboard-space-card-tag-gap))
+  );
   overflow: hidden;
 }
 

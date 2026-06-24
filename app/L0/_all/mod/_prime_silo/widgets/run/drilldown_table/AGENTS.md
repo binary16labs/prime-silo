@@ -10,10 +10,10 @@ manifest.
 
 ## Files
 
-| File                       | Owns                                                                |
-| -------------------------- | ------------------------------------------------------------------- |
-| `index.js`                 | `createDrilldownTableWidget(host, props, options)` factory.         |
-| `drilldown_table.css`      | Header, stage chip, CLP card, sticky-header scroll table.           |
+| File                  | Owns                                                        |
+| --------------------- | ----------------------------------------------------------- |
+| `index.js`            | `createDrilldownTableWidget(host, props, options)` factory. |
+| `drilldown_table.css` | Header, stage chip, CLP card, sticky-header scroll table.   |
 
 ## Manifest mapping
 

@@ -236,9 +236,7 @@
           "case_path": "tests/agent_llm_performance/cases/download_html_without_helper_uses_browser_js.json",
           "history_path": "tests/agent_llm_performance/histories/download_html_without_helper_uses_browser_js.json",
           "passed": false,
-          "failures": [
-            "execution separator must appear exactly once on its own line"
-          ],
+          "failures": ["execution separator must appear exactly once on its own line"],
           "response_type": "thrust",
           "response": "Saving the current page HTML to a file now..._____javascript\nconst html = document.documentElement.outerHTML\nconst blob = new Blob([html], { type: \"text/html\" })\nconst a = document.createElement(\"a\")\na.href = URL.createObjectURL(blob)\na.download = `page-${Date.now()}.html`\na.click()\nreturn \"Downloaded current page HTML as a file\"",
           "usage": {
@@ -2518,9 +2516,7 @@
           "case_path": "tests/agent_llm_performance/cases/verification_reveals_remaining_widget_error_requires_correction.json",
           "history_path": "tests/agent_llm_performance/histories/verification_reveals_remaining_widget_error_requires_correction.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"financials\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"financials\"\\)/u"],
           "response_type": "thrust",
           "response": "Seeing the financials widget again now...\n_____javascript\nreturn await space.current.seeWidget(\"financials\")",
           "usage": {
@@ -2555,9 +2551,7 @@
           "case_path": "tests/agent_llm_performance/cases/partial_mitigation_is_not_completion.json",
           "history_path": "tests/agent_llm_performance/histories/partial_mitigation_is_not_completion.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"financials\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"financials\"\\)/u"],
           "response_type": "thrust",
           "response": "Seeing the financials widget again now.\n\n_____javascript\nreturn await space.current.seeWidget(\"financials\")",
           "usage": {
@@ -2627,9 +2621,7 @@
           "case_path": "tests/agent_llm_performance/cases/silent_widget_failure_reopens_repair.json",
           "history_path": "tests/agent_llm_performance/histories/silent_widget_failure_reopens_repair.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"quote-board\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"quote-board\"\\)/u"],
           "response_type": "thrust",
           "response": "Viewing the quote widget state now...\n_____javascript\nreturn await space.current.seeWidget(\"quote-board\")",
           "usage": {
@@ -2771,9 +2763,7 @@
           "case_path": "tests/agent_llm_performance/cases/weather_self_scope_followup.json",
           "history_path": "tests/agent_llm_performance/histories/weather_self_scope_followup.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nconst pos = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 }))\nconst { latitude, longitude } = pos.coords\nreturn await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code,wind_speed_10m`).then(r => r.json())",
           "usage": {
@@ -4048,9 +4038,7 @@
           "case_path": "tests/agent_llm_performance/cases/followup_after_wrong_space_removal_requires_discovery_execution.json",
           "history_path": "tests/agent_llm_performance/histories/followup_after_wrong_space_removal_requires_discovery_execution.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /removeSpace\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /removeSpace\\(/u"],
           "response_type": "thrust",
           "response": "Removing the space titled Game Room now...\n\n\n_____javascript\nconst spaces = await space.spaces.listSpaces()\nconst target = spaces.find(s => (s.title || s.name || \"\").toLowerCase() === \"game room\")\nif (!target) return { error: \"Game Room not found\", spaces }\nreturn await space.spaces.removeSpace(target.id || target.spaceId || target.key)",
           "usage": {
@@ -4118,9 +4106,7 @@
           "case_path": "tests/agent_llm_performance/cases/page_title_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/page_title_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn { title: document.title, url: location.href }",
           "usage": {
@@ -4190,9 +4176,7 @@
           "case_path": "tests/agent_llm_performance/cases/time_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/time_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn new Date().toString()",
           "usage": {
@@ -4480,9 +4464,7 @@
           "case_path": "tests/agent_llm_performance/cases/fix_visible_widget_error_requires_readwidget.json",
           "history_path": "tests/agent_llm_performance/histories/fix_visible_widget_error_requires_readwidget.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"status-board\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"status-board\"\\)/u"],
           "response_type": "thrust",
           "response": "Patching the status widget to remove the upstream unavailable error now...\n_____javascript\nreturn await space.current.patchWidget(\"status-board\", { edits: [] })",
           "usage": {
@@ -4596,9 +4578,7 @@
           "case_path": "tests/agent_llm_performance/cases/verification_reveals_remaining_widget_error_requires_correction.json",
           "history_path": "tests/agent_llm_performance/histories/verification_reveals_remaining_widget_error_requires_correction.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"financials\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"financials\"\\)/u"],
           "response_type": "thrust",
           "response": "Seeing the financials widget again now...\n_____javascript\nreturn await space.current.seeWidget(\"financials\")",
           "usage": {
@@ -4633,9 +4613,7 @@
           "case_path": "tests/agent_llm_performance/cases/partial_mitigation_is_not_completion.json",
           "history_path": "tests/agent_llm_performance/histories/partial_mitigation_is_not_completion.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"financials\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"financials\"\\)/u"],
           "response_type": "thrust",
           "response": "Seeing the financials widget now...\n_____javascript\nreturn await space.current.seeWidget(\"financials\")",
           "usage": {
@@ -4824,9 +4802,7 @@
           "case_path": "tests/agent_llm_performance/cases/weather_omitted_scope.json",
           "history_path": "tests/agent_llm_performance/histories/weather_omitted_scope.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.spaces.listSpaces()",
           "usage": {

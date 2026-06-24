@@ -26,7 +26,10 @@ try {
 
   assert.ok(fs.existsSync(path.join(outDir, "bundle.json")), "bundle.json should exist");
   assert.ok(fs.existsSync(path.join(outDir, "code-graph.json")), "code-graph.json should exist");
-  assert.ok(fs.existsSync(path.join(outDir, "skills", "skills-index.json")), "skills-index.json should exist");
+  assert.ok(
+    fs.existsSync(path.join(outDir, "skills", "skills-index.json")),
+    "skills-index.json should exist"
+  );
   assert.ok(fs.existsSync(path.join(outDir, "source")), "source snapshot should exist");
 
   assert.equal(bundle.schema, "prime-silo.self-awareness/1");
@@ -38,8 +41,14 @@ try {
   const graph = JSON.parse(fs.readFileSync(path.join(outDir, "code-graph.json"), "utf8"));
   assert.equal(graph.nodes.length, graph.stats.nodes, "graph stats should match node list");
   assert.equal(graph.edges.length, graph.stats.edges, "graph stats should match edge list");
-  assert.ok(graph.nodes.some((n) => n.type === "File"), "graph should contain File nodes");
-  assert.ok(graph.edges.some((e) => e.type === "CONTAINS"), "graph should contain CONTAINS edges");
+  assert.ok(
+    graph.nodes.some((n) => n.type === "File"),
+    "graph should contain File nodes"
+  );
+  assert.ok(
+    graph.edges.some((e) => e.type === "CONTAINS"),
+    "graph should contain CONTAINS edges"
+  );
 
   console.log("self_awareness_bundle_test: ok");
 } finally {

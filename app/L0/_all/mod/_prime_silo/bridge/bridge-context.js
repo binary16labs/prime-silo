@@ -44,11 +44,17 @@ async function fetchModeData(currentState) {
         return `Code graph for workspace "${workspace}" has 0 nodes — not yet populated (run a Tree-Sitter scan via benny enrich to seed it).`;
       }
       const byType = {};
-      nodes.forEach((n) => { const t = n.type || "unknown"; byType[t] = (byType[t] || 0) + 1; });
-      const typeSummary = Object.entries(byType).map(([t, c]) => `${c} ${t}`).join(", ");
-      const selNote = currentState.selection && currentState.selection.id
-        ? ` Selected node: "${currentState.selection.label || currentState.selection.id}".`
-        : " No node selected.";
+      nodes.forEach((n) => {
+        const t = n.type || "unknown";
+        byType[t] = (byType[t] || 0) + 1;
+      });
+      const typeSummary = Object.entries(byType)
+        .map(([t, c]) => `${c} ${t}`)
+        .join(", ");
+      const selNote =
+        currentState.selection && currentState.selection.id
+          ? ` Selected node: "${currentState.selection.label || currentState.selection.id}".`
+          : " No node selected.";
       return `Code graph (workspace "${workspace}"): ${nodes.length} nodes (${typeSummary}), ${edges.length} edges.${selNote}`;
     }
 
@@ -61,12 +67,17 @@ async function fetchModeData(currentState) {
         return `Documents: the knowledge graph for workspace "${workspace}" is empty — ingest documents from the Documents stage (or run benny enrich) to populate it.`;
       }
       let sources = [];
-      try { sources = await pilot.documentSources(workspace); } catch { /* counts are enough */ }
+      try {
+        sources = await pilot.documentSources(workspace);
+      } catch {
+        /* counts are enough */
+      }
       const sample = sources.slice(0, 5).join(", ");
       const more = sources.length > 5 ? `, +${sources.length - 5} more` : "";
-      const sel = currentState.selection && currentState.selection.id
-        ? ` Selected concept: "${currentState.selection.label || currentState.selection.id}".`
-        : "";
+      const sel =
+        currentState.selection && currentState.selection.id
+          ? ` Selected concept: "${currentState.selection.label || currentState.selection.id}".`
+          : "";
       return `Documents (workspace "${workspace}"): ${docCount} source document(s) → ${conceptCount} concept(s).${sources.length ? ` Sources include: ${sample}${more}.` : ""}${sel}`;
     }
 
@@ -168,12 +179,17 @@ export function createBridgeContext(options = {}) {
 
   function resolveAgent() {
     if (options.agent) return options.agent;
-    const space = globalTarget.space || (typeof globalThis !== "undefined" ? globalThis.space : null);
+    const space =
+      globalTarget.space || (typeof globalThis !== "undefined" ? globalThis.space : null);
     return space && space.onscreenAgent ? space.onscreenAgent : null;
   }
 
   function snapshot() {
-    return { ...state, selection: state.selection ? { ...state.selection } : null, route: bridgeDeepLink(state) };
+    return {
+      ...state,
+      selection: state.selection ? { ...state.selection } : null,
+      route: bridgeDeepLink(state)
+    };
   }
 
   function publish() {
@@ -195,8 +211,8 @@ export function createBridgeContext(options = {}) {
   // it (which produces the "I haven't loaded the skill yet" refusal).
   async function ensureBennyPilotLoaded() {
     try {
-      const space = globalTarget.space ||
-        (typeof globalThis !== "undefined" ? globalThis.space : null);
+      const space =
+        globalTarget.space || (typeof globalThis !== "undefined" ? globalThis.space : null);
       if (space && space.skills && typeof space.skills.load === "function") {
         await space.skills.load("benny-pilot");
       }

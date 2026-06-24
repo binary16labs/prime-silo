@@ -1,8 +1,5 @@
 const { contextBridge, ipcRenderer } = require("electron");
-const DESKTOP_LAUNCHER_BRIDGE_PATHS = new Set([
-  "/enter",
-  "/login"
-]);
+const DESKTOP_LAUNCHER_BRIDGE_PATHS = new Set(["/enter", "/login"]);
 const DESKTOP_BROWSER_WEBVIEW_PARTITION_PREFIX = "space-browser-";
 const DESKTOP_BROWSER_WEBVIEW_PRELOAD_URL = (() => {
   const baseDir = String(typeof __dirname === "string" ? __dirname : "")
@@ -82,9 +79,11 @@ function dispatchBrowserHostEvent(payload = {}) {
 }
 
 ipcRenderer.on("space-desktop:update-status", (_event, payload) => {
-  window.dispatchEvent(new CustomEvent("space-desktop:update-status", {
-    detail: payload
-  }));
+  window.dispatchEvent(
+    new CustomEvent("space-desktop:update-status", {
+      detail: payload
+    })
+  );
 });
 ipcRenderer.on(DESKTOP_BROWSER_ENVELOPE_FROM_MAIN_CHANNEL, (_event, payload = {}) => {
   dispatchBrowserEnvelope(payload);
@@ -93,9 +92,10 @@ ipcRenderer.on(DESKTOP_BROWSER_HOST_EVENT_CHANNEL, (_event, payload = {}) => {
   dispatchBrowserHostEvent(payload);
 });
 
-const debugReinstall = (version = "") => ipcRenderer.invoke("space-desktop:debug-reinstall", {
-  version
-});
+const debugReinstall = (version = "") =>
+  ipcRenderer.invoke("space-desktop:debug-reinstall", {
+    version
+  });
 
 contextBridge.exposeInMainWorld("spaceDesktop", {
   browser: {

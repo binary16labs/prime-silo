@@ -19,10 +19,14 @@ async function getJson(base, path) {
     let detail = `Request failed (${response.status}).`;
     try {
       const body = await response.json();
-      if (body?.error === "memoray_unreachable") detail = "Memo-Ray is offline — ask the user to boot it with scripts/memoray.ps1.";
-      else if (body?.error === "memoray_disabled") detail = "Memo-Ray is disabled — it can be enabled in the configuration wizard.";
+      if (body?.error === "memoray_unreachable")
+        detail = "Memo-Ray is offline — ask the user to boot it with scripts/memoray.ps1.";
+      else if (body?.error === "memoray_disabled")
+        detail = "Memo-Ray is disabled — it can be enabled in the configuration wizard.";
       else if (body?.detail) detail = body.detail;
-    } catch { /* keep default */ }
+    } catch {
+      /* keep default */
+    }
     throw new Error(detail);
   }
   return response.json();
@@ -116,22 +120,34 @@ export async function documentSources(workspace = "default") {
  * and relations extracted from ingested documents. Paged by default because the
  * full graph can be multi-megabyte; pass { showAll: true } to fetch everything.
  */
-export async function knowledgeGraph(workspace = "default", { page = 0, pageSize = 50, showAll = false } = {}) {
+export async function knowledgeGraph(
+  workspace = "default",
+  { page = 0, pageSize = 50, showAll = false } = {}
+) {
   const params = new URLSearchParams({ workspace });
   if (showAll) params.set("show_all", "true");
-  else { params.set("page", String(page)); params.set("page_size", String(pageSize)); }
+  else {
+    params.set("page", String(page));
+    params.set("page_size", String(pageSize));
+  }
   return getJson(RUNTIME, `/graph/full?${params.toString()}`);
 }
 
 /** Recursively scan the entire workspace directory including files. */
 export async function workspaceFileList(workspace = "prime_silo_self") {
-  const body = await getJson(RUNTIME, `/files/recursive-scan?workspace=${encodeURIComponent(workspace)}`);
+  const body = await getJson(
+    RUNTIME,
+    `/files/recursive-scan?workspace=${encodeURIComponent(workspace)}`
+  );
   return body?.files || [];
 }
 
 /** Get text content preview or metadata for a file in the workspace. */
 export async function workspaceFileRead(path, workspace = "prime_silo_self") {
-  return getJson(RUNTIME, `/files/preview?workspace=${encodeURIComponent(workspace)}&path=${encodeURIComponent(path)}`);
+  return getJson(
+    RUNTIME,
+    `/files/preview?workspace=${encodeURIComponent(workspace)}&path=${encodeURIComponent(path)}`
+  );
 }
 
 export default {
@@ -148,4 +164,3 @@ export default {
   workspaceFileList,
   workspaceFileRead
 };
-

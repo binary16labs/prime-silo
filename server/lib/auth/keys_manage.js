@@ -35,7 +35,10 @@ function resolveAuthDataDirOverride(env = process.env) {
 }
 
 function buildAuthDataDir(projectRoot, env = process.env) {
-  return resolveAuthDataDirOverride(env) || path.join(String(projectRoot || ""), "server", AUTH_DATA_DIRNAME);
+  return (
+    resolveAuthDataDirOverride(env) ||
+    path.join(String(projectRoot || ""), "server", AUTH_DATA_DIRNAME)
+  );
 }
 
 function ensureAuthDataDir(projectRoot, env = process.env) {

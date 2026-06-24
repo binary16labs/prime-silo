@@ -12,10 +12,7 @@ import { SERVER_TMP_DIR } from "../../config.js";
 import { recordAppPathMutations } from "../customware/git_history.js";
 import { normalizeEntityId } from "../customware/layout.js";
 import { ensureServerTmpDir } from "../tmp/tmp_watch.js";
-import {
-  areGuestUsersAllowed,
-  isCloudShareAllowed
-} from "../utils/runtime_params.js";
+import { areGuestUsersAllowed, isCloudShareAllowed } from "../utils/runtime_params.js";
 import { createGuestUser } from "../auth/user_manage.js";
 import { buildUserAbsolutePath } from "../auth/user_files.js";
 
@@ -43,7 +40,9 @@ function normalizeBoolean(value, fallback = false) {
     return value;
   }
 
-  const candidate = String(value || "").trim().toLowerCase();
+  const candidate = String(value || "")
+    .trim()
+    .toLowerCase();
 
   if (candidate === "true") {
     return true;
@@ -227,7 +226,10 @@ async function createHostedCloudShare(options = {}) {
   }
 
   const encryptionMeta = normalizeCloudShareEncryptionMeta(options.meta || {});
-  const shareStoreRoot = await ensureCloudShareStoreRoot(options.projectRoot, options.runtimeParams);
+  const shareStoreRoot = await ensureCloudShareStoreRoot(
+    options.projectRoot,
+    options.runtimeParams
+  );
   const shareToken = await findAvailableCloudShareToken(shareStoreRoot);
   const createdAt = new Date().toISOString();
   const metadata = {
@@ -244,7 +246,10 @@ async function createHostedCloudShare(options = {}) {
 
   return {
     shareToken,
-    shareUrl: normalizeCloudSharePublicBaseUrl(options.runtimeParams, options.requestUrl) + "/share/space/" + shareToken
+    shareUrl:
+      normalizeCloudSharePublicBaseUrl(options.runtimeParams, options.requestUrl) +
+      "/share/space/" +
+      shareToken
   };
 }
 
@@ -327,7 +332,11 @@ function createUniqueTempDir(prefix) {
   const tmpRoot = ensureServerTmpDir(SERVER_TMP_DIR);
   const tempDirPath = path.join(
     tmpRoot,
-    sanitizeTempSegment(prefix) + "-" + Date.now().toString(36) + "-" + randomBytes(5).toString("hex")
+    sanitizeTempSegment(prefix) +
+      "-" +
+      Date.now().toString(36) +
+      "-" +
+      randomBytes(5).toString("hex")
   );
   fs.mkdirSync(tempDirPath, { recursive: true });
   return tempDirPath;
@@ -363,7 +372,12 @@ function runArchiveTool(command, args, options = {}) {
     });
 
     child.once("error", (error) => {
-      reject(createShareError((options.missingCommandMessage || "Archive tool is unavailable.") + " " + error.message, 500));
+      reject(
+        createShareError(
+          (options.missingCommandMessage || "Archive tool is unavailable.") + " " + error.message,
+          500
+        )
+      );
     });
 
     child.once("close", (code, signal) => {
@@ -378,7 +392,12 @@ function runArchiveTool(command, args, options = {}) {
       const detail = stderrText.trim() || stdoutText.trim();
       reject(
         createShareError(
-          (options.failurePrefix || "Archive tool failed.") + (detail ? " " + detail : signal ? " Interrupted by " + signal + "." : " Exit code " + String(code) + "."),
+          (options.failurePrefix || "Archive tool failed.") +
+            (detail
+              ? " " + detail
+              : signal
+                ? " Interrupted by " + signal + "."
+                : " Exit code " + String(code) + "."),
           400
         )
       );
@@ -387,14 +406,10 @@ function runArchiveTool(command, args, options = {}) {
 }
 
 async function listArchiveEntries(archivePath) {
-  const result = await runArchiveTool(
-    "unzip",
-    ["-Z1", archivePath],
-    {
-      failurePrefix: "Share archive inspection failed.",
-      missingCommandMessage: "The unzip tool is unavailable on this host."
-    }
-  );
+  const result = await runArchiveTool("unzip", ["-Z1", archivePath], {
+    failurePrefix: "Share archive inspection failed.",
+    missingCommandMessage: "The unzip tool is unavailable on this host."
+  });
 
   return result.stdoutText
     .split(/\r?\n/gu)
@@ -408,7 +423,9 @@ function validateArchiveEntries(entries) {
   }
 
   return entries.map((entry) => {
-    const normalizedEntry = String(entry || "").replace(/\\/gu, "/").trim();
+    const normalizedEntry = String(entry || "")
+      .replace(/\\/gu, "/")
+      .trim();
 
     if (!normalizedEntry) {
       throw createShareError("Shared space archive contains an invalid entry.", 400);
@@ -429,14 +446,10 @@ function validateArchiveEntries(entries) {
 }
 
 async function extractArchiveToDirectory(archivePath, targetDir) {
-  await runArchiveTool(
-    "unzip",
-    ["-q", archivePath, "-d", targetDir],
-    {
-      failurePrefix: "Share archive extraction failed.",
-      missingCommandMessage: "The unzip tool is unavailable on this host."
-    }
-  );
+  await runArchiveTool("unzip", ["-q", archivePath, "-d", targetDir], {
+    failurePrefix: "Share archive extraction failed.",
+    missingCommandMessage: "The unzip tool is unavailable on this host."
+  });
 }
 
 async function resolveExtractedSpaceRoot(extractionDir) {
@@ -451,7 +464,9 @@ async function resolveExtractedSpaceRoot(extractionDir) {
   } catch {}
 
   const topLevelEntries = await fsp.readdir(extractionDir, { withFileTypes: true });
-  const candidateDirectories = topLevelEntries.filter((entry) => entry.isDirectory() && entry.name !== "__MACOSX");
+  const candidateDirectories = topLevelEntries.filter(
+    (entry) => entry.isDirectory() && entry.name !== "__MACOSX"
+  );
   const nonAuxiliaryEntries = topLevelEntries.filter((entry) => entry.name !== "__MACOSX");
 
   if (candidateDirectories.length === 1 && nonAuxiliaryEntries.length === 1) {
@@ -509,7 +524,9 @@ async function validateExtractedSpaceRoot(spaceRoot) {
   }
 
   const widgetEntries = await fsp.readdir(widgetsDir, { withFileTypes: true }).catch(() => []);
-  const widgetFiles = widgetEntries.filter((entry) => entry.isFile() && /\.(yaml|js)$/u.test(entry.name));
+  const widgetFiles = widgetEntries.filter(
+    (entry) => entry.isFile() && /\.(yaml|js)$/u.test(entry.name)
+  );
 
   if (widgetFiles.length === 0) {
     throw createShareError("Shared spaces must include at least one widget.", 400);
@@ -585,7 +602,9 @@ async function readExistingImportedSpaceIds(projectRoot, username, runtimeParams
 }
 
 async function createNextImportedSpaceId(projectRoot, username, runtimeParams) {
-  const existingIds = new Set(await readExistingImportedSpaceIds(projectRoot, username, runtimeParams));
+  const existingIds = new Set(
+    await readExistingImportedSpaceIds(projectRoot, username, runtimeParams)
+  );
   let suffix = 1;
 
   while (true) {
@@ -626,7 +645,12 @@ async function installExtractedSpaceIntoUser(options = {}) {
     throw createShareError("Imported spaces require a destination id and username.", 400);
   }
 
-  const spacesRoot = buildUserAbsolutePath(options.projectRoot, username, "spaces", options.runtimeParams);
+  const spacesRoot = buildUserAbsolutePath(
+    options.projectRoot,
+    username,
+    "spaces",
+    options.runtimeParams
+  );
   const destinationRoot = path.join(spacesRoot, destinationId);
   await fsp.mkdir(spacesRoot, { recursive: true });
   await fsp.rm(destinationRoot, { force: true, recursive: true });
@@ -634,7 +658,12 @@ async function installExtractedSpaceIntoUser(options = {}) {
   await fsp.mkdir(path.join(destinationRoot, "data"), { recursive: true });
   await fsp.mkdir(path.join(destinationRoot, "assets"), { recursive: true });
   await fsp.mkdir(path.join(destinationRoot, "widgets"), { recursive: true });
-  writeInstalledSpaceManifest(destinationRoot, options.manifest, destinationId, options.destinationTitle);
+  writeInstalledSpaceManifest(
+    destinationRoot,
+    options.manifest,
+    destinationId,
+    options.destinationTitle
+  );
   recordAppPathMutations(
     {
       projectRoot: options.projectRoot,
@@ -656,7 +685,9 @@ async function importSpaceArchiveForUser(options = {}) {
     throw createShareError("Space import requires an authenticated user.", 401);
   }
 
-  const mode = String(options.mode || "import").trim().toLowerCase();
+  const mode = String(options.mode || "import")
+    .trim()
+    .toLowerCase();
   const archiveHandle = await extractValidatedSpaceArchive(options.payloadBuffer, {
     tempPrefix: "space-import-" + username
   });
@@ -680,7 +711,11 @@ async function importSpaceArchiveForUser(options = {}) {
       });
     }
 
-    const destinationId = await createNextImportedSpaceId(options.projectRoot, username, options.runtimeParams);
+    const destinationId = await createNextImportedSpaceId(
+      options.projectRoot,
+      username,
+      options.runtimeParams
+    );
 
     return await installExtractedSpaceIntoUser({
       destinationId,

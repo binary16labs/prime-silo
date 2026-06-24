@@ -16,11 +16,16 @@ const MAX_COLLECTION_ENTRIES = 8;
 const MAX_FORMAT_DEPTH = 2;
 
 function isLoadedAdminSkill(value) {
-  return Boolean(value?.__spaceAdminSkill) && typeof value?.content === "string" && typeof value?.path === "string";
+  return (
+    Boolean(value?.__spaceAdminSkill) &&
+    typeof value?.content === "string" &&
+    typeof value?.path === "string"
+  );
 }
 
 function formatLoadedSkillResultText(skill) {
-  const responseText = typeof skill?.loadResponseText === "string" ? skill.loadResponseText.trim() : "";
+  const responseText =
+    typeof skill?.loadResponseText === "string" ? skill.loadResponseText.trim() : "";
   return responseText || String(skill?.content || "").trim();
 }
 
@@ -417,7 +422,12 @@ function patchConsole(targetWindow, logs) {
     const originalMethod = targetWindow.console[methodName].bind(targetWindow.console);
 
     try {
-      targetWindow.console[methodName] = createConsoleRecorder(methodName, originalMethod, logs, targetWindow);
+      targetWindow.console[methodName] = createConsoleRecorder(
+        methodName,
+        originalMethod,
+        logs,
+        targetWindow
+      );
       originalMethods.push([methodName, originalMethod]);
     } catch {
       // Ignore read-only console implementations.
@@ -514,7 +524,12 @@ function createExecutionScope(targetWindow, sharedState) {
         return true;
       }
 
-      if (key === "space" || WINDOW_ALIAS_KEYS.has(key) || key === "console" || key === "document") {
+      if (
+        key === "space" ||
+        WINDOW_ALIAS_KEYS.has(key) ||
+        key === "console" ||
+        key === "document"
+      ) {
         return false;
       }
 
@@ -576,12 +591,14 @@ function formatExecutionResultValue(value, options) {
 }
 
 function formatExecutionResultLines(result) {
-  const status = typeof result?.status === "string" && result.status.trim() ? result.status.trim() : "done";
+  const status =
+    typeof result?.status === "string" && result.status.trim() ? result.status.trim() : "done";
   const lines = [`execution ${status}`];
   const prints = Array.isArray(result?.logs) ? result.logs : [];
 
   prints.forEach((entry) => {
-    const level = typeof entry?.level === "string" && entry.level.trim() ? entry.level.trim() : "log";
+    const level =
+      typeof entry?.level === "string" && entry.level.trim() ? entry.level.trim() : "log";
     appendExecutionTextBlock(lines, level, entry?.text ?? "");
   });
 
@@ -628,7 +645,8 @@ function createExecutionError(error) {
 function createExecutionOutputSnapshot(result) {
   return {
     outputLines: formatExecutionResultLines(result),
-    status: typeof result?.status === "string" && result.status.trim() ? result.status.trim() : "done"
+    status:
+      typeof result?.status === "string" && result.status.trim() ? result.status.trim() : "done"
   };
 }
 

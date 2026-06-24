@@ -1,7 +1,12 @@
 /* ADR-001 Phase C — lineage_timeline widget styles. */
 
 .prime-silo-lt {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   font-size: 13px;
   line-height: 1.45;
   color: inherit;

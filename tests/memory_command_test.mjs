@@ -25,12 +25,18 @@ function captureConsole() {
   console.error = (...a) => lines.push(a.join(" "));
   return {
     lines,
-    restore() { console.log = log; console.error = err; }
+    restore() {
+      console.log = log;
+      console.error = err;
+    }
   };
 }
 
 function jsonResponse(body, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json" }
+  });
 }
 
 // A temp project whose .env points MEMORAY_BASE_URL somewhere harmless; the
@@ -40,7 +46,10 @@ async function tempProject() {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "memcmd-"));
   await fs.mkdir(path.join(dir, "commands"), { recursive: true });
   await fs.mkdir(path.join(dir, "manifests", "integrations"), { recursive: true });
-  await fs.copyFile(path.join(realProjectRoot, "commands", "params.yaml"), path.join(dir, "commands", "params.yaml"));
+  await fs.copyFile(
+    path.join(realProjectRoot, "commands", "params.yaml"),
+    path.join(dir, "commands", "params.yaml")
+  );
   await fs.copyFile(
     path.join(realProjectRoot, "manifests", "integrations", "memoray.integration.json"),
     path.join(dir, "manifests", "integrations", "memoray.integration.json")
@@ -62,7 +71,12 @@ async function testStatusOnline() {
   const dir = await tempProject();
   globalThis.fetch = async (url) => {
     assert.match(String(url), /memoray\.test/, "uses the .env base URL");
-    return jsonResponse({ totalNodes: 7, claude: { sessions: 3 }, antigravity: { sessions: 1 }, lastSync: 1700000000000 });
+    return jsonResponse({
+      totalNodes: 7,
+      claude: { sessions: 3 },
+      antigravity: { sessions: 1 },
+      lastSync: 1700000000000
+    });
   };
   const cap = captureConsole();
   let code;
@@ -80,7 +94,9 @@ async function testStatusOnline() {
 
 async function testStatusOfflineExitsNonZero() {
   const dir = await tempProject();
-  globalThis.fetch = async () => { throw new Error("ECONNREFUSED"); };
+  globalThis.fetch = async () => {
+    throw new Error("ECONNREFUSED");
+  };
   const cap = captureConsole();
   let code;
   try {
@@ -97,7 +113,11 @@ async function testSearch() {
   const dir = await tempProject();
   globalThis.fetch = async (url) => {
     assert.match(String(url), /\/beta\/search\?q=lineage/);
-    return jsonResponse({ sessions: [{ title: "Lineage work", id: "s1" }], files: [], actions: [] });
+    return jsonResponse({
+      sessions: [{ title: "Lineage work", id: "s1" }],
+      files: [],
+      actions: []
+    });
   };
   const cap = captureConsole();
   let code;
@@ -131,7 +151,9 @@ async function testAuditExitCodeReflectsDrift() {
   // memo-ray owner paths won't resolve under the temp root → owners drift is
   // possible. We assert the command returns a number and prints an overall line.
   const dir = await tempProject();
-  globalThis.fetch = async () => { throw new Error("ECONNREFUSED"); };
+  globalThis.fetch = async () => {
+    throw new Error("ECONNREFUSED");
+  };
   const cap = captureConsole();
   let code;
   try {

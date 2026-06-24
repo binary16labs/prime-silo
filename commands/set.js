@@ -26,12 +26,7 @@ async function applySetArgs(projectRoot, commandsDir, assignments, options = {})
   const entries = [];
 
   for (const assignment of assignments) {
-    const entry = await setter(
-      projectRoot,
-      commandsDir,
-      assignment.paramName,
-      assignment.value
-    );
+    const entry = await setter(projectRoot, commandsDir, assignment.paramName, assignment.value);
     entries.push(entry);
   }
 

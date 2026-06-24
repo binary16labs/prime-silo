@@ -1,9 +1,9 @@
 (function (global) {
-  var NAMESPACE = "SpaceBrowserCompatibility";
-  var cachedPromise = null;
-  var cachedResult = null;
-  var hasRenderedFailure = false;
-  var STORAGE_TEST_KEY = "__space_browser_compat_test__";
+  const NAMESPACE = "SpaceBrowserCompatibility";
+  let cachedPromise = null;
+  let cachedResult = null;
+  let hasRenderedFailure = false;
+  const STORAGE_TEST_KEY = "__space_browser_compat_test__";
 
   function createProblem(id, label, detail) {
     return {
@@ -27,9 +27,13 @@
 
   function canUseStorage(storageName) {
     try {
-      var storage = global && global[storageName];
+      const storage = global && global[storageName];
 
-      if (!storage || typeof storage.getItem !== "function" || typeof storage.setItem !== "function") {
+      if (
+        !storage ||
+        typeof storage.getItem !== "function" ||
+        typeof storage.setItem !== "function"
+      ) {
         return false;
       }
 
@@ -54,10 +58,10 @@
   }
 
   function collectSyncProblems() {
-    var problems = [];
-    var cryptoApi = global && global.crypto;
-    var subtle = cryptoApi && cryptoApi.subtle;
-    var missingCryptoParts = [];
+    const problems = [];
+    const cryptoApi = global && global.crypto;
+    const subtle = cryptoApi && cryptoApi.subtle;
+    const missingCryptoParts = [];
 
     if (!supportsModernJavascriptSyntax()) {
       problems.push(
@@ -207,7 +211,7 @@
     }
 
     if (missingCryptoParts.length > 0) {
-      var cryptoDetail =
+      let cryptoDetail =
         "Password login and user crypto require " + missingCryptoParts.join(", ") + ".";
 
       if (global.isSecureContext === false) {
@@ -236,8 +240,8 @@
 
   function probeDynamicImport() {
     return new Promise(function (resolve) {
-      var factory = buildModuleImportFactory("export default 1;");
-      var result;
+      const factory = buildModuleImportFactory("export default 1;");
+      let result;
 
       if (!factory) {
         resolve(
@@ -293,8 +297,8 @@
 
   function probeTopLevelAwait() {
     return new Promise(function (resolve) {
-      var factory = buildModuleImportFactory("await 0; export default 1;");
-      var result;
+      const factory = buildModuleImportFactory("await 0; export default 1;");
+      let result;
 
       if (!factory) {
         resolve(
@@ -349,23 +353,19 @@
   }
 
   function buildFailureHtml(result) {
-    var missing = result && result.missing ? result.missing : [];
-    var html =
+    const missing = result && result.missing ? result.missing : [];
+    let html =
       '<p class="browser-compat-eyebrow">Browser compatibility check failed</p>' +
       '<h2 class="browser-compat-title">Browser Not Supported</h2>' +
       '<p class="browser-compat-copy">Space Agent cannot run in this browser because it is missing:</p>' +
       '<ul class="browser-compat-list">';
-    var index;
-    var item;
+    let index;
+    let item;
 
     for (index = 0; index < missing.length; index += 1) {
       item = missing[index];
       html +=
-        "<li><strong>" +
-        escapeHtml(item.label) +
-        ".</strong> " +
-        escapeHtml(item.detail) +
-        "</li>";
+        "<li><strong>" + escapeHtml(item.label) + ".</strong> " + escapeHtml(item.detail) + "</li>";
     }
 
     html +=
@@ -376,10 +376,10 @@
   }
 
   function renderFailure(result) {
-    var documentObject = global.document;
-    var target;
-    var interactiveNodes;
-    var index;
+    const documentObject = global.document;
+    let target;
+    let interactiveNodes;
+    let index;
 
     if (hasRenderedFailure || !documentObject || !documentObject.querySelector) {
       return result;
@@ -420,7 +420,7 @@
   }
 
   function check() {
-    var syncProblems;
+    let syncProblems;
 
     if (cachedResult) {
       if (typeof global.Promise === "function") {

@@ -2,10 +2,7 @@ const fs = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
 
-const DESKTOP_UPDATER_CACHE_DIRNAMES = Object.freeze([
-  "space-agent-updater",
-  "agent-one-updater"
-]);
+const DESKTOP_UPDATER_CACHE_DIRNAMES = Object.freeze(["space-agent-updater", "agent-one-updater"]);
 const DESKTOP_UPDATER_INSTALL_MARKER_FILENAME = "desktop-updater-install.json";
 const DESKTOP_UPDATER_PENDING_DIRNAME = "pending";
 
@@ -14,14 +11,18 @@ function resolveDesktopUpdaterBaseCachePath(options = {}) {
   const homeDir = String(options.homeDir || os.homedir()).trim() || os.homedir();
 
   if (platform === "win32") {
-    return String(options.localAppDataPath || process.env.LOCALAPPDATA || path.join(homeDir, "AppData", "Local")).trim();
+    return String(
+      options.localAppDataPath || process.env.LOCALAPPDATA || path.join(homeDir, "AppData", "Local")
+    ).trim();
   }
 
   if (platform === "darwin") {
     return path.join(homeDir, "Library", "Caches");
   }
 
-  return String(options.xdgCacheHome || process.env.XDG_CACHE_HOME || path.join(homeDir, ".cache")).trim();
+  return String(
+    options.xdgCacheHome || process.env.XDG_CACHE_HOME || path.join(homeDir, ".cache")
+  ).trim();
 }
 
 function resolveDesktopUpdaterCacheRoots(options = {}) {

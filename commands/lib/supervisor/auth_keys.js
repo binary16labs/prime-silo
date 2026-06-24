@@ -106,8 +106,16 @@ async function loadSupervisorAuthEnv({ env = process.env, stateDir }) {
       );
     }
 
-    parseSecretKey({ [PASSWORD_SEAL_KEY_NAME]: passwordSealKey }, PASSWORD_SEAL_KEY_NAME, "process.env");
-    parseSecretKey({ [SESSION_HMAC_KEY_NAME]: sessionHmacKey }, SESSION_HMAC_KEY_NAME, "process.env");
+    parseSecretKey(
+      { [PASSWORD_SEAL_KEY_NAME]: passwordSealKey },
+      PASSWORD_SEAL_KEY_NAME,
+      "process.env"
+    );
+    parseSecretKey(
+      { [SESSION_HMAC_KEY_NAME]: sessionHmacKey },
+      SESSION_HMAC_KEY_NAME,
+      "process.env"
+    );
 
     return {
       env: {
@@ -129,8 +137,4 @@ async function loadSupervisorAuthEnv({ env = process.env, stateDir }) {
   };
 }
 
-export {
-  PASSWORD_SEAL_KEY_ENV_NAME,
-  SESSION_HMAC_KEY_ENV_NAME,
-  loadSupervisorAuthEnv
-};
+export { PASSWORD_SEAL_KEY_ENV_NAME, SESSION_HMAC_KEY_ENV_NAME, loadSupervisorAuthEnv };

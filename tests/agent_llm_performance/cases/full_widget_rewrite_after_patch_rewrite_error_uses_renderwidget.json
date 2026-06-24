@@ -9,9 +9,7 @@
     "require_single_separator": true,
     "require_code_after_separator": true,
     "require_valid_javascript": true,
-    "must_contain": [
-      "_____javascript"
-    ],
+    "must_contain": ["_____javascript"],
     "must_match": [
       {
         "pattern": "space\\.current\\.renderWidget\\(",

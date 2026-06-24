@@ -13,7 +13,9 @@ function joinClassNames(...classNames) {
 }
 
 function defaultFormatAttachmentSize(bytes) {
-  const normalizedBytes = Number.isFinite(Number(bytes)) ? Math.max(0, Math.round(Number(bytes))) : 0;
+  const normalizedBytes = Number.isFinite(Number(bytes))
+    ? Math.max(0, Math.round(Number(bytes)))
+    : 0;
 
   if (normalizedBytes < 1024) {
     return `${normalizedBytes} B`;
@@ -45,21 +47,27 @@ function buildDefaultEmptyState(text) {
 }
 
 export function createAgentThreadView(config = {}) {
-  const assistantAvatarPath = typeof config.assistantAvatarPath === "string" ? config.assistantAvatarPath : "";
+  const assistantAvatarPath =
+    typeof config.assistantAvatarPath === "string" ? config.assistantAvatarPath : "";
   const autoResizeMaxHeight = Number.isFinite(Number(config.autoResizeMaxHeight))
     ? Math.max(32, Math.round(Number(config.autoResizeMaxHeight)))
     : 120;
   const groupConsecutiveAvatars = config.groupConsecutiveAvatars === true;
   const renderMarkdownWithMarked = config.renderMarkdownWithMarked === true;
   const assistantMarkdownClassName =
-    typeof config.assistantMarkdownClassName === "string" ? config.assistantMarkdownClassName.trim() : "";
+    typeof config.assistantMarkdownClassName === "string"
+      ? config.assistantMarkdownClassName.trim()
+      : "";
   const defaultEmptyStateText =
     typeof config.emptyStateText === "string" && config.emptyStateText.trim()
       ? config.emptyStateText.trim()
       : "Send a message to start the thread.";
-  const executionModule = config.execution && typeof config.execution === "object" ? config.execution : null;
+  const executionModule =
+    config.execution && typeof config.execution === "object" ? config.execution : null;
   const formatAttachmentSize =
-    typeof config.formatAttachmentSize === "function" ? config.formatAttachmentSize : defaultFormatAttachmentSize;
+    typeof config.formatAttachmentSize === "function"
+      ? config.formatAttachmentSize
+      : defaultFormatAttachmentSize;
   const createEmptyState =
     typeof config.createEmptyState === "function" ? config.createEmptyState : null;
 
@@ -154,7 +162,10 @@ export function createAgentThreadView(config = {}) {
       return null;
     }
 
-    const lines = content.trim().split(/\r?\n/u).map((line) => line.trimEnd());
+    const lines = content
+      .trim()
+      .split(/\r?\n/u)
+      .map((line) => line.trimEnd());
     const results = [];
     let currentResult = null;
 
@@ -497,7 +508,12 @@ export function createAgentThreadView(config = {}) {
   }
 
   function buildAssistantMarkdownClassName(...classNames) {
-    return joinClassNames("message-content", "message-markdown", assistantMarkdownClassName, ...classNames);
+    return joinClassNames(
+      "message-content",
+      "message-markdown",
+      assistantMarkdownClassName,
+      ...classNames
+    );
   }
 
   function createAttachmentList(attachments) {
@@ -547,7 +563,9 @@ export function createAgentThreadView(config = {}) {
   function createMessageAvatar(role) {
     const avatar = document.createElement("div");
     avatar.className =
-      role === "assistant" ? "message-avatar message-avatar-agent" : "message-avatar message-avatar-user";
+      role === "assistant"
+        ? "message-avatar message-avatar-agent"
+        : "message-avatar message-avatar-user";
     avatar.setAttribute("aria-hidden", "true");
 
     if (role === "assistant") {
@@ -575,7 +593,13 @@ export function createAgentThreadView(config = {}) {
     return avatar;
   }
 
-  function createAssistantMessageActionButton({ action, disabled = false, iconName, messageId, title }) {
+  function createAssistantMessageActionButton({
+    action,
+    disabled = false,
+    iconName,
+    messageId,
+    title
+  }) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "assistant-message-action";
@@ -593,7 +617,8 @@ export function createAgentThreadView(config = {}) {
 
   function createMessageAccessory(role, options = {}) {
     const accessory = document.createElement("div");
-    accessory.className = role === "assistant" ? "message-accessory" : "message-accessory message-accessory-user";
+    accessory.className =
+      role === "assistant" ? "message-accessory" : "message-accessory message-accessory-user";
 
     if (options.showAvatar === false) {
       accessory.classList.add("is-avatar-continuation");
@@ -607,7 +632,9 @@ export function createAgentThreadView(config = {}) {
 
   function createMessageRow(role, bubble, extraClassName = "", options = {}) {
     const row = document.createElement("div");
-    row.className = extraClassName ? `message-row ${role} ${extraClassName}` : `message-row ${role}`;
+    row.className = extraClassName
+      ? `message-row ${role} ${extraClassName}`
+      : `message-row ${role}`;
 
     if (options.showAvatar === false) {
       row.classList.add("is-avatar-continuation");
@@ -629,7 +656,12 @@ export function createAgentThreadView(config = {}) {
     }
 
     if (Array.isArray(results) && results.length) {
-      const hasError = results.some((result) => String(result?.status || "").trim().toLowerCase() === "error");
+      const hasError = results.some(
+        (result) =>
+          String(result?.status || "")
+            .trim()
+            .toLowerCase() === "error"
+      );
       return `Executed ${lineLabel} of code - ${hasError ? "Error" : "Success"}`;
     }
 
@@ -652,7 +684,12 @@ export function createAgentThreadView(config = {}) {
     }
 
     const normalizedResults = Array.isArray(results) ? results : [];
-    const hasError = normalizedResults.some((result) => String(result?.status || "").trim().toLowerCase() === "error");
+    const hasError = normalizedResults.some(
+      (result) =>
+        String(result?.status || "")
+          .trim()
+          .toLowerCase() === "error"
+    );
 
     if (hasError) {
       return {
@@ -734,7 +771,14 @@ export function createAgentThreadView(config = {}) {
     });
   }
 
-  function createExecutionDetailButton({ action, active = false, disabled = false, iconName, label, messageId }) {
+  function createExecutionDetailButton({
+    action,
+    active = false,
+    disabled = false,
+    iconName,
+    label,
+    messageId
+  }) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "execution-detail-button";
@@ -756,7 +800,14 @@ export function createAgentThreadView(config = {}) {
     return button;
   }
 
-  function createExecutionCard({ executeDisplay, isConversationBusy, isStreaming, messageId, outputResults, rerunningMessageId }) {
+  function createExecutionCard({
+    executeDisplay,
+    isConversationBusy,
+    isStreaming,
+    messageId,
+    outputResults,
+    rerunningMessageId
+  }) {
     const lineCount = getExecuteDisplayLineCount(executeDisplay);
     const displayOutputResults = rerunningMessageId === messageId ? null : outputResults;
     const pendingState = isStreaming
@@ -794,7 +845,11 @@ export function createAgentThreadView(config = {}) {
     const summaryTitle = document.createElement("span");
     summaryTitle.className = "execution-summary-title";
     summaryTitle.dataset.executionSummaryTitle = "true";
-    summaryTitle.textContent = formatExecutionSummaryLabel(lineCount, pendingState, displayOutputResults);
+    summaryTitle.textContent = formatExecutionSummaryLabel(
+      lineCount,
+      pendingState,
+      displayOutputResults
+    );
 
     summaryText.append(summaryTitle);
     summaryMain.append(status, summaryText);
@@ -915,7 +970,10 @@ export function createAgentThreadView(config = {}) {
         return bubble;
       }
 
-      const contentBlock = createFormattedMessageBlock(message.content || "", buildAssistantMarkdownClassName());
+      const contentBlock = createFormattedMessageBlock(
+        message.content || "",
+        buildAssistantMarkdownClassName()
+      );
 
       if (contentBlock) {
         bubble.append(contentBlock);
@@ -1088,7 +1146,8 @@ export function createAgentThreadView(config = {}) {
     }
 
     const existingNarration = sectionElement.querySelector("[data-execution-narration]");
-    const narrationText = typeof executeDisplay?.narration === "string" ? executeDisplay.narration.trim() : "";
+    const narrationText =
+      typeof executeDisplay?.narration === "string" ? executeDisplay.narration.trim() : "";
 
     if (!narrationText) {
       existingNarration?.remove();
@@ -1140,7 +1199,16 @@ export function createAgentThreadView(config = {}) {
     const statusIcon = executionCard?.querySelector("[data-execution-status-icon]");
     const summaryTitle = executionCard?.querySelector("[data-execution-summary-title]");
 
-    if (!bubble || !sectionElement || !executionCard || !inputPane || !inputBody || !status || !statusIcon || !summaryTitle) {
+    if (
+      !bubble ||
+      !sectionElement ||
+      !executionCard ||
+      !inputPane ||
+      !inputBody ||
+      !status ||
+      !statusIcon ||
+      !summaryTitle
+    ) {
       return false;
     }
 
@@ -1256,9 +1324,11 @@ export function createAgentThreadView(config = {}) {
       snapshots.nodes.set(element.dataset.scrollKey, createScrollSnapshot(element));
     });
 
-    thread.querySelectorAll("[data-execution-card][data-execution-message-id][open]").forEach((element) => {
-      snapshots.openExecutionCards.add(element.dataset.executionMessageId);
-    });
+    thread
+      .querySelectorAll("[data-execution-card][data-execution-message-id][open]")
+      .forEach((element) => {
+        snapshots.openExecutionCards.add(element.dataset.executionMessageId);
+      });
 
     return snapshots;
   }
@@ -1266,11 +1336,13 @@ export function createAgentThreadView(config = {}) {
   function restoreThreadScrollSnapshots(thread, snapshots, options = {}) {
     const scroller = options.scroller || getDocumentScroller();
 
-    thread.querySelectorAll("[data-execution-card][data-execution-message-id]").forEach((element) => {
-      if (snapshots?.openExecutionCards?.has(element.dataset.executionMessageId)) {
-        element.open = true;
-      }
-    });
+    thread
+      .querySelectorAll("[data-execution-card][data-execution-message-id]")
+      .forEach((element) => {
+        if (snapshots?.openExecutionCards?.has(element.dataset.executionMessageId)) {
+          element.open = true;
+        }
+      });
 
     restoreScrollSnapshot(scroller, snapshots?.document, {
       forcePreserve: options.preserveScroll === true
@@ -1287,7 +1359,8 @@ export function createAgentThreadView(config = {}) {
 
     for (let index = 0; index < history.length; index += 1) {
       const message = history[index];
-      const executeDisplay = message.role === "assistant" ? parseExecuteDisplayContent(message.content) : null;
+      const executeDisplay =
+        message.role === "assistant" ? parseExecuteDisplayContent(message.content) : null;
       const standaloneOutputResults = getExecutionOutputResults(message);
 
       if (executeDisplay) {
@@ -1411,19 +1484,19 @@ export function createAgentThreadView(config = {}) {
       return [
         avatarSignature,
         group.sections
-        .map((section) => {
-          if (section?.type === "execute") {
-            return [
-              "execute",
-              getMessageRenderSignature(section.message),
-              getExecutionResultsRenderSignature(section.outputResults),
-              section?.message?.id === options.rerunningMessageId ? "rerunning" : ""
-            ].join("\u241f");
-          }
+          .map((section) => {
+            if (section?.type === "execute") {
+              return [
+                "execute",
+                getMessageRenderSignature(section.message),
+                getExecutionResultsRenderSignature(section.outputResults),
+                section?.message?.id === options.rerunningMessageId ? "rerunning" : ""
+              ].join("\u241f");
+            }
 
-          return ["text", getMessageRenderSignature(section.message)].join("\u241f");
-        })
-        .join("\u241e")
+            return ["text", getMessageRenderSignature(section.message)].join("\u241f");
+          })
+          .join("\u241e")
       ].join("\u241f");
     }
 
@@ -1453,9 +1526,14 @@ export function createAgentThreadView(config = {}) {
     let row = null;
 
     if (group.type === "assistant-sequence") {
-      row = createMessageRow("assistant", createAssistantSequenceBubble(group, options), "terminal-row", {
-        showAvatar: group.showAvatar !== false
-      });
+      row = createMessageRow(
+        "assistant",
+        createAssistantSequenceBubble(group, options),
+        "terminal-row",
+        {
+          showAvatar: group.showAvatar !== false
+        }
+      );
     } else if (group.type === "standalone-output") {
       row = createMessageRow(
         "assistant",
@@ -1527,7 +1605,8 @@ export function createAgentThreadView(config = {}) {
 
     return groups.map((group) => {
       const speakerRole = getGroupSpeakerRole(group);
-      const showAvatar = !groupConsecutiveAvatars || !speakerRole || speakerRole !== previousSpeakerRole;
+      const showAvatar =
+        !groupConsecutiveAvatars || !speakerRole || speakerRole !== previousSpeakerRole;
 
       if (speakerRole) {
         previousSpeakerRole = speakerRole;
@@ -1548,7 +1627,9 @@ export function createAgentThreadView(config = {}) {
 
     const queuedMessages = Array.isArray(options.queuedMessages) ? options.queuedMessages : [];
     const renderedMessages = queuedMessages.length ? [...history, ...queuedMessages] : history;
-    const groups = renderedMessages.length ? applyAvatarGrouping(buildMessageDisplayGroups(renderedMessages, options)) : [];
+    const groups = renderedMessages.length
+      ? applyAvatarGrouping(buildMessageDisplayGroups(renderedMessages, options))
+      : [];
 
     if (!groups.length && thread.classList.contains("is-empty")) {
       return;
@@ -1572,7 +1653,9 @@ export function createAgentThreadView(config = {}) {
 
       thread.innerHTML = "";
       thread.classList.add("is-empty");
-      thread.append(emptyState || buildDefaultEmptyState(options.emptyStateText || defaultEmptyStateText));
+      thread.append(
+        emptyState || buildDefaultEmptyState(options.emptyStateText || defaultEmptyStateText)
+      );
       window.requestAnimationFrame(() => {
         restoreThreadScrollSnapshots(thread, scrollSnapshots, options);
       });
@@ -1719,13 +1802,16 @@ export function createAgentThreadView(config = {}) {
     document.body.append(textarea);
     textarea.select();
 
-    const copied = typeof document.execCommand === "function" ? document.execCommand("copy") : false;
+    const copied =
+      typeof document.execCommand === "function" ? document.execCommand("copy") : false;
     textarea.remove();
     return copied;
   }
 
   function findExecuteSection(history, messageId, outputOverrides = {}) {
-    const messageIndex = history.findIndex((message) => message.id === messageId && message.role === "assistant");
+    const messageIndex = history.findIndex(
+      (message) => message.id === messageId && message.role === "assistant"
+    );
 
     if (messageIndex === -1) {
       return null;

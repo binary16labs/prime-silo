@@ -585,7 +585,13 @@
 .agent-thread-surface .raw-output,
 .agent-thread-surface .prompt-history-body {
   margin: 0;
-  font: 0.82rem/1.58 "SFMono-Regular", "SF Mono", "Menlo", "Monaco", "Consolas", monospace;
+  font:
+    0.82rem/1.58 "SFMono-Regular",
+    "SF Mono",
+    "Menlo",
+    "Monaco",
+    "Consolas",
+    monospace;
   white-space: pre-wrap;
   word-break: break-word;
 }

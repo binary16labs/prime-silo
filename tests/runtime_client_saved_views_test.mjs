@@ -64,7 +64,9 @@ function installFetchStub(handler) {
   };
   return {
     calls,
-    restore() { globalThis.fetch = original; }
+    restore() {
+      globalThis.fetch = original;
+    }
   };
 }
 
@@ -72,7 +74,9 @@ function extractHeaderMap(headers) {
   if (!headers) return {};
   if (headers instanceof Headers) {
     const out = {};
-    headers.forEach((value, name) => { out[name.toLowerCase()] = value; });
+    headers.forEach((value, name) => {
+      out[name.toLowerCase()] = value;
+    });
     return out;
   }
   const out = {};
@@ -163,14 +167,8 @@ async function testSaveViewExplicitAgentIdWins() {
 }
 
 async function testSaveViewRejectsNullContent() {
-  await assert.rejects(
-    () => saveView("w", "v.aamp.view", null),
-    /JSON-serialisable/
-  );
-  await assert.rejects(
-    () => saveView("w", "v.aamp.view", undefined),
-    /JSON-serialisable/
-  );
+  await assert.rejects(() => saveView("w", "v.aamp.view", null), /JSON-serialisable/);
+  await assert.rejects(() => saveView("w", "v.aamp.view", undefined), /JSON-serialisable/);
 }
 
 async function testLoadViewParsesJsonByDefault() {
@@ -227,10 +225,7 @@ async function testLoadViewRaisesOnInvalidJson() {
     })
   );
   try {
-    await assert.rejects(
-      loadView("w", "v.aamp.view"),
-      /not valid JSON/
-    );
+    await assert.rejects(loadView("w", "v.aamp.view"), /not valid JSON/);
   } finally {
     stub.restore();
   }
@@ -351,11 +346,12 @@ async function testBoundClientReadOnlyScopeStillWritesViaHeader() {
   // (not this module) decides whether the scope is allowed to write. We assert
   // here that read_only saveView calls go out with the correct header so the
   // 403 is the runtime's decision, not silently downgraded by the client.
-  const stub = installFetchStub(async () =>
-    new Response(JSON.stringify({ detail: "agent write outside sandbox" }), {
-      status: 403,
-      headers: { "content-type": "application/json" }
-    })
+  const stub = installFetchStub(
+    async () =>
+      new Response(JSON.stringify({ detail: "agent write outside sandbox" }), {
+        status: 403,
+        headers: { "content-type": "application/json" }
+      })
   );
   try {
     const client = createAgentRuntimeClient("read_only");
@@ -374,11 +370,12 @@ async function testBoundClientReadOnlyScopeStillWritesViaHeader() {
 }
 
 async function testSaveView403RaisesRuntimeError() {
-  const stub = installFetchStub(async () =>
-    new Response(JSON.stringify({ detail: "View content must be valid JSON" }), {
-      status: 400,
-      headers: { "content-type": "application/json" }
-    })
+  const stub = installFetchStub(
+    async () =>
+      new Response(JSON.stringify({ detail: "View content must be valid JSON" }), {
+        status: 400,
+        headers: { "content-type": "application/json" }
+      })
   );
   try {
     let raised = null;

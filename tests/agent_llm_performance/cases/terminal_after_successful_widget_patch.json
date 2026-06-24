@@ -4,12 +4,7 @@
   "history": "../histories/terminal_after_successful_widget_patch.json",
   "expect": {
     "response_type": "terminal",
-    "must_not_contain": [
-      "_____javascript",
-      "live snake source",
-      "source is ready",
-      "ready for"
-    ],
+    "must_not_contain": ["_____javascript", "live snake source", "source is ready", "ready for"],
     "must_not_match": [
       {
         "pattern": "^(?:Patching|Loading|Reading|Fetching|Updating)\\b",

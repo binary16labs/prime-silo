@@ -1,9 +1,7 @@
 {
   "generated_at": "2026-04-13T09:30:39.163Z",
   "generation_id": "2026-04-13T09-30-39-163Z",
-  "models": [
-    "openai/gpt-5.4-mini"
-  ],
+  "models": ["openai/gpt-5.4-mini"],
   "results": [
     {
       "prompt_id": "081A_069A_scope_and_collapse_surgical",
@@ -2288,9 +2286,7 @@
           "case_path": "tests/agent_llm_performance/cases/remove_space_by_title_requires_discovery_first.json",
           "history_path": "tests/agent_llm_performance/histories/remove_space_by_title_requires_discovery_first.json",
           "passed": false,
-          "failures": [
-            "execution separator must appear exactly once on its own line"
-          ],
+          "failures": ["execution separator must appear exactly once on its own line"],
           "response_type": "thrust",
           "response": "Listing spaces first to find the exact space id._____javascript\nreturn await space.spaces.listSpaces()",
           "usage": {
@@ -2901,9 +2897,7 @@
           "case_path": "tests/agent_llm_performance/cases/verification_reveals_remaining_widget_error_requires_correction.json",
           "history_path": "tests/agent_llm_performance/histories/verification_reveals_remaining_widget_error_requires_correction.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"financials\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"financials\"\\)/u"],
           "response_type": "thrust",
           "response": "Inspecting the financials widget error now...\n_____javascript\nreturn await space.current.seeWidget(\"financials\")",
           "usage": {
@@ -3618,9 +3612,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Updating your full name now...\n_____javascript\nconst current = await space.api.fileRead(\"~/user.yaml\", \"utf8\")\nconst data = space.utils.yaml.parse(current)\ndata.full_name = \"Pan Example\"\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(data), \"utf8\")",
           "usage": {
@@ -3692,9 +3684,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Reading the contacts file first.\n\n_____javascript\nconst text = await space.api.fileRead(\"~/contacts.yaml\", \"utf8\")\nconst lines = String(text).split(\"\\n\")\nconst updated = lines.map(line => line.startsWith(\"mr_kowalski:\") ? \"mr_kowalski: John Ronald Kowalski\" : line).join(\"\\n\")\nreturn await space.api.fileWrite(\"~/contacts.yaml\", updated, \"utf8\")",
           "usage": {
@@ -3730,9 +3720,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_widget_fix_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_widget_fix_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.current\\.readWidget\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.current\\.readWidget\\(/u"],
           "response_type": "thrust",
           "response": "Checking the snake widget now...\n\n\n_____javascript\nreturn await space.current.seeWidget(\"snake-game\")",
           "usage": {
@@ -5305,9 +5293,7 @@
           "case_path": "tests/agent_llm_performance/cases/verification_reveals_remaining_widget_error_requires_correction.json",
           "history_path": "tests/agent_llm_performance/histories/verification_reveals_remaining_widget_error_requires_correction.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"financials\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"financials\"\\)/u"],
           "response_type": "thrust",
           "response": "The widget is showing an AMZN rate-limit error.  \n_____javascript\nreturn \"done\"",
           "usage": {
@@ -5618,9 +5604,7 @@
           "case_path": "tests/agent_llm_performance/cases/weather_omitted_scope.json",
           "history_path": "tests/agent_llm_performance/histories/weather_omitted_scope.json",
           "passed": false,
-          "failures": [
-            "execution separator must appear exactly once on its own line"
-          ],
+          "failures": ["execution separator must appear exactly once on its own line"],
           "response_type": "thrust",
           "response": "Checking the current weather now..._____javascript\nconst pos = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 }))\nconst { latitude, longitude } = pos.coords\nreturn await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code,wind_speed_10m`).then(r => r.json())",
           "usage": {
@@ -6019,9 +6003,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Updating the name in the file now...\n_____javascript\nconst text = await space.api.fileRead(\"~/user.yaml\", \"utf8\")\nconst data = space.utils.yaml.parse(text)\ndata.full_name = \"Pan Example\"\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(data), \"utf8\")",
           "usage": {
@@ -6057,9 +6039,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_text_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_text_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating the file now.\n\n_____javascript\nreturn await space.api.fileWrite(\"~/people.txt\", (await space.api.fileRead(\"~/people.txt\", \"utf8\")).replaceAll(\"mr. Kowalski\", \"John Ronald Kowalski\"), \"utf8\")",
           "usage": {
@@ -6095,9 +6075,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating the contacts file now.\n\n_____javascript\nreturn await space.api.fileWrite(\"~/contacts.yaml\", await (async () => {\n  const existing = await space.api.fileRead(\"~/contacts.yaml\", \"utf8\").catch(() => \"\")\n  const data = existing ? space.utils.yaml.parse(existing) : {}\n  if (data.mr_kowalski !== undefined) data.mr_kowalski = \"John Ronald Kowalski\"\n  return space.utils.yaml.stringify(data)\n})(), \"utf8\")",
           "usage": {

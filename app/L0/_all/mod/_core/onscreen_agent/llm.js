@@ -12,14 +12,18 @@ import {
   trimPromptLongMessage
 } from "/mod/_core/agent_prompt/prompt-items.js";
 import { createAgentPromptInstance } from "/mod/_core/agent_prompt/prompt-runtime.js";
-import { buildMessagePromptParts, MESSAGE_PROMPT_PART_BLOCK } from "/mod/_core/onscreen_agent/attachments.js";
+import {
+  buildMessagePromptParts,
+  MESSAGE_PROMPT_PART_BLOCK
+} from "/mod/_core/onscreen_agent/attachments.js";
 import * as llmParams from "/mod/_core/onscreen_agent/llm-params.js";
 import * as skills from "/mod/_core/onscreen_agent/skills.js";
 import { mergeConsecutiveChatMessages } from "/mod/_core/framework/js/chat-messages.js";
 import { countTextTokens } from "/mod/_core/framework/js/token-count.js";
 import * as proxyUrl from "/mod/_core/framework/js/proxy-url.js";
 
-export const DEFAULT_ONSCREEN_AGENT_SYSTEM_PROMPT_PATH = "/mod/_core/onscreen_agent/prompts/system-prompt.md";
+export const DEFAULT_ONSCREEN_AGENT_SYSTEM_PROMPT_PATH =
+  "/mod/_core/onscreen_agent/prompts/system-prompt.md";
 export const ONSCREEN_AGENT_HISTORY_COMPACT_MODE = Object.freeze({
   AUTOMATIC: "automatic",
   USER: "user"
@@ -29,7 +33,8 @@ export const ONSCREEN_AGENT_PREPARED_MESSAGE_BLOCK = Object.freeze({
   TRANSIENT: "_____transient",
   USER: "_____user"
 });
-export const ONSCREEN_AGENT_HISTORY_COMPACT_PROMPT_PATH = "/mod/_core/onscreen_agent/prompts/compact-prompt.md";
+export const ONSCREEN_AGENT_HISTORY_COMPACT_PROMPT_PATH =
+  "/mod/_core/onscreen_agent/prompts/compact-prompt.md";
 export const ONSCREEN_AGENT_HISTORY_AUTO_COMPACT_PROMPT_PATH =
   "/mod/_core/onscreen_agent/prompts/compact-prompt-auto.md";
 
@@ -40,7 +45,8 @@ const ONSCREEN_AGENT_PROMPT_MESSAGE_SOURCE = Object.freeze({
   SYSTEM: "system",
   TRANSIENT: "transient"
 });
-const ONSCREEN_AGENT_EXAMPLE_RESET_TEXT = "start of new conversation - don't refer to previous contents";
+const ONSCREEN_AGENT_EXAMPLE_RESET_TEXT =
+  "start of new conversation - don't refer to previous contents";
 const MIN_PROMPT_PART_TRIM_TOKENS = 250;
 const ONSCREEN_AGENT_SYSTEM_ITEM_KEY = Object.freeze({
   AUTO_LOADED_SKILLS: "onscreen:system:auto-loaded-skills",
@@ -117,9 +123,7 @@ function normalizePromptSections(sections) {
     return [];
   }
 
-  return sections
-    .map((section) => normalizeSystemPrompt(section))
-    .filter(Boolean);
+  return sections.map((section) => normalizeSystemPrompt(section)).filter(Boolean);
 }
 
 function formatPromptSourcePath(sourcePath = "") {
@@ -144,10 +148,7 @@ function renderSystemPromptItem(item = {}) {
     return value;
   }
 
-  return [
-    `source: ${sourcePath}`,
-    value
-  ].join("\n");
+  return [`source: ${sourcePath}`, value].join("\n");
 }
 
 function renderSystemPromptItems(items = {}) {
@@ -183,14 +184,22 @@ function buildBaseSystemPromptItems(context = {}) {
       order: ONSCREEN_AGENT_SYSTEM_ITEM_ORDER.SKILLS,
       trimPriority: ONSCREEN_AGENT_SYSTEM_ITEM_TRIM_PRIORITY.SKILLS
     }),
-    createSystemPromptItem(ONSCREEN_AGENT_SYSTEM_ITEM_KEY.AUTO_LOADED_SKILLS, context.autoLoadedSkillsSection, {
-      order: ONSCREEN_AGENT_SYSTEM_ITEM_ORDER.AUTO_LOADED_SKILLS,
-      trimPriority: ONSCREEN_AGENT_SYSTEM_ITEM_TRIM_PRIORITY.AUTO_LOADED_SKILLS
-    }),
-    createSystemPromptItem(ONSCREEN_AGENT_SYSTEM_ITEM_KEY.LOADED_SKILLS, context.loadedSkillsSection, {
-      order: ONSCREEN_AGENT_SYSTEM_ITEM_ORDER.LOADED_SKILLS,
-      trimPriority: ONSCREEN_AGENT_SYSTEM_ITEM_TRIM_PRIORITY.LOADED_SKILLS
-    })
+    createSystemPromptItem(
+      ONSCREEN_AGENT_SYSTEM_ITEM_KEY.AUTO_LOADED_SKILLS,
+      context.autoLoadedSkillsSection,
+      {
+        order: ONSCREEN_AGENT_SYSTEM_ITEM_ORDER.AUTO_LOADED_SKILLS,
+        trimPriority: ONSCREEN_AGENT_SYSTEM_ITEM_TRIM_PRIORITY.AUTO_LOADED_SKILLS
+      }
+    ),
+    createSystemPromptItem(
+      ONSCREEN_AGENT_SYSTEM_ITEM_KEY.LOADED_SKILLS,
+      context.loadedSkillsSection,
+      {
+        order: ONSCREEN_AGENT_SYSTEM_ITEM_ORDER.LOADED_SKILLS,
+        trimPriority: ONSCREEN_AGENT_SYSTEM_ITEM_TRIM_PRIORITY.LOADED_SKILLS
+      }
+    )
   ];
 
   systemItems.filter(Boolean).forEach((item) => {
@@ -248,7 +257,12 @@ function normalizeConversationMessage(message) {
     ? Math.max(0, Math.floor(Number(message.tokenCount)))
     : countTextTokens(content);
 
-  if (message && typeof message === "object" && !Array.isArray(message) && !Number.isFinite(Number(message?.tokenCount))) {
+  if (
+    message &&
+    typeof message === "object" &&
+    !Array.isArray(message) &&
+    !Number.isFinite(Number(message?.tokenCount))
+  ) {
     message.tokenCount = tokenCount;
   }
 
@@ -273,10 +287,7 @@ function normalizeConversationMessages(messages) {
 function formatPreparedUserMessageBlock(content, blockMarker) {
   const normalizedContent = typeof content === "string" ? content.trim() : "";
 
-  return [
-    blockMarker,
-    normalizedContent || "[empty]"
-  ].join("\n");
+  return [blockMarker, normalizedContent || "[empty]"].join("\n");
 }
 
 function normalizePromptMessageSource(source = ONSCREEN_AGENT_PROMPT_MESSAGE_SOURCE.HISTORY) {
@@ -289,7 +300,13 @@ function normalizePromptMessageSource(source = ONSCREEN_AGENT_PROMPT_MESSAGE_SOU
 
 function createPreparedPromptEntry(role, content, options = {}) {
   const normalizedRole =
-    role === "system" ? "system" : role === "assistant" ? "assistant" : role === "user" ? "user" : "";
+    role === "system"
+      ? "system"
+      : role === "assistant"
+        ? "assistant"
+        : role === "user"
+          ? "user"
+          : "";
   const normalizedContent = typeof content === "string" ? content.trim() : "";
 
   if (!normalizedRole || !normalizedContent) {
@@ -325,7 +342,9 @@ function createPromptMessagesFromEntries(entries) {
   return clonePreparedPromptEntries(entries).map((entry) => ({
     content: entry.content,
     role: entry.role,
-    tokenCount: Number.isFinite(Number(entry?.tokenCount)) ? Math.max(0, Math.floor(Number(entry.tokenCount))) : 0
+    tokenCount: Number.isFinite(Number(entry?.tokenCount))
+      ? Math.max(0, Math.floor(Number(entry.tokenCount)))
+      : 0
   }));
 }
 
@@ -400,8 +419,9 @@ function createPreparedPromptEntriesFromMessage(message, options = {}) {
 }
 
 function buildPreparedPromptEntriesFromMessages(messages, options = {}) {
-  return normalizeConversationMessages(messages)
-    .flatMap((message) => createPreparedPromptEntriesFromMessage(message, options));
+  return normalizeConversationMessages(messages).flatMap((message) =>
+    createPreparedPromptEntriesFromMessage(message, options)
+  );
 }
 
 function createSystemPromptEntry(systemPrompt = "") {
@@ -468,7 +488,10 @@ function createTransientPromptItem(section = {}, fallbackKey = "") {
 function normalizeTransientItems(items = {}) {
   return normalizePromptItemMap(items, {
     fromArray(entry, index) {
-      return createTransientPromptItem(entry, `${ONSCREEN_AGENT_TRANSIENT_ITEM_PREFIX}:${index + 1}`);
+      return createTransientPromptItem(
+        entry,
+        `${ONSCREEN_AGENT_TRANSIENT_ITEM_PREFIX}:${index + 1}`
+      );
     },
     keyPrefix: ONSCREEN_AGENT_TRANSIENT_ITEM_PREFIX
   });
@@ -506,10 +529,7 @@ function renderTransientPromptItem(item = {}) {
     return "";
   }
 
-  return [
-    `### ${heading || item.key}`,
-    value
-  ].join("\n");
+  return [`### ${heading || item.key}`, value].join("\n");
 }
 
 function renderTransientPromptItems(items = {}) {
@@ -612,7 +632,9 @@ function resolvePromptBudgetConfig(context = {}) {
     options.maxTokens ?? context.maxTokens ?? context?.settings?.maxTokens
   );
   const ratios = normalizePromptBudgetRatios(
-    options.promptBudgetRatios ?? context.promptBudgetRatios ?? context?.settings?.promptBudgetRatios
+    options.promptBudgetRatios ??
+      context.promptBudgetRatios ??
+      context?.settings?.promptBudgetRatios
   );
 
   return {
@@ -621,7 +643,9 @@ function resolvePromptBudgetConfig(context = {}) {
     promptBudgetRatios: ratios,
     singleHistoryMessageBudget: Math.max(
       0,
-      Math.floor((Math.max(0, Math.floor((maxTokens * ratios.history) / 100)) * ratios.singleMessage) / 100)
+      Math.floor(
+        (Math.max(0, Math.floor((maxTokens * ratios.history) / 100)) * ratios.singleMessage) / 100
+      )
     ),
     systemBudget: Math.max(0, Math.floor((maxTokens * ratios.system) / 100)),
     transientBudget: Math.max(0, Math.floor((maxTokens * ratios.transient) / 100))
@@ -685,7 +709,9 @@ function clonePromptContributorPromptEntry(entry, contributor) {
     ...entry,
     content: contributor?.currentText || entry.content,
     promptItemId: Number.isFinite(Number(contributor?.id)) ? Number(contributor.id) : 0,
-    removedChars: Number.isFinite(Number(contributor?.removedChars)) ? Number(contributor.removedChars) : 0,
+    removedChars: Number.isFinite(Number(contributor?.removedChars))
+      ? Number(contributor.removedChars)
+      : 0,
     tokenCount: Number.isFinite(Number(contributor?.tokenCount))
       ? Math.max(0, Math.floor(Number(contributor.tokenCount)))
       : Number.isFinite(Number(entry?.tokenCount))
@@ -698,10 +724,10 @@ function clonePromptContributorPromptEntry(entry, contributor) {
 function canTrimPromptContributor(contributor) {
   return Boolean(
     contributor &&
-      contributor.trimAllowed !== false &&
-      typeof contributor.originalValueText === "string" &&
-      contributor.originalValueText.trim() &&
-      contributor.exhausted !== true
+    contributor.trimAllowed !== false &&
+    typeof contributor.originalValueText === "string" &&
+    contributor.originalValueText.trim() &&
+    contributor.exhausted !== true
   );
 }
 
@@ -716,26 +742,26 @@ function trimPromptContributorByOverflow(contributor, overflowTokens) {
   const currentTokenCount = Math.max(0, contributor.tokenCount);
   const targetTokenCount = Math.max(0, currentTokenCount - normalizedOverflowTokens);
   const originalValueTokenCount = Math.max(1, contributor.originalValueTokenCount);
-  const estimatedRemovedChars = contributor.removedChars + estimatePromptCharsForTokenRemoval(
-    contributor.originalValueText,
-    normalizedOverflowTokens,
-    {
+  const estimatedRemovedChars =
+    contributor.removedChars +
+    estimatePromptCharsForTokenRemoval(contributor.originalValueText, normalizedOverflowTokens, {
       tokenCount: originalValueTokenCount
-    }
-  );
+    });
   const placeholderTokenCount = countTextTokens(
     buildPromptLongMessagePlaceholder({
       id: contributor.id,
       removedChars: estimatedRemovedChars
     })
   );
-  const nextRemovedChars = contributor.removedChars + estimatePromptCharsForTokenRemoval(
-    contributor.originalValueText,
-    normalizedOverflowTokens + placeholderTokenCount,
-    {
-      tokenCount: originalValueTokenCount
-    }
-  );
+  const nextRemovedChars =
+    contributor.removedChars +
+    estimatePromptCharsForTokenRemoval(
+      contributor.originalValueText,
+      normalizedOverflowTokens + placeholderTokenCount,
+      {
+        tokenCount: originalValueTokenCount
+      }
+    );
   let trimmedValue = trimPromptLongMessage(contributor.originalValueText, {
     id: contributor.id,
     minimumVisibleChars: contributor.minimumVisibleChars,
@@ -745,13 +771,11 @@ function trimPromptContributorByOverflow(contributor, overflowTokens) {
 
   if (trimmedValueTokenCount > targetTokenCount) {
     const additionalOverflowTokens = trimmedValueTokenCount - targetTokenCount;
-    const recalibratedRemovedChars = trimmedValue.removedChars + estimatePromptCharsForTokenRemoval(
-      contributor.originalValueText,
-      additionalOverflowTokens,
-      {
+    const recalibratedRemovedChars =
+      trimmedValue.removedChars +
+      estimatePromptCharsForTokenRemoval(contributor.originalValueText, additionalOverflowTokens, {
         tokenCount: originalValueTokenCount
-      }
-    );
+      });
 
     trimmedValue = trimPromptLongMessage(contributor.originalValueText, {
       id: contributor.id,
@@ -784,10 +808,7 @@ function trimPromptContributorToTokenLimit(contributor, tokenLimit) {
     : 0;
 
   if (contributor.tokenCount > normalizedTokenLimit) {
-    trimPromptContributorByOverflow(
-      contributor,
-      contributor.tokenCount - normalizedTokenLimit
-    );
+    trimPromptContributorByOverflow(contributor, contributor.tokenCount - normalizedTokenLimit);
   }
 
   return contributor;
@@ -847,12 +868,16 @@ function createPromptPartSectionContributor(part, contributors = [], options = {
     part,
     renderValue: (valueText) => valueText,
     trimAllowed: true,
-    trimPriority: Number.isFinite(Number(options.trimPriority)) ? Number(options.trimPriority) : 100,
+    trimPriority: Number.isFinite(Number(options.trimPriority))
+      ? Number(options.trimPriority)
+      : 100,
     valueText: bodyText,
     valueTokenCount: countTextTokens(bodyText)
   });
 
-  contributor.id = Number.isFinite(Number(options.id)) ? Math.max(1, Math.floor(Number(options.id))) : 0;
+  contributor.id = Number.isFinite(Number(options.id))
+    ? Math.max(1, Math.floor(Number(options.id)))
+    : 0;
   return contributor;
 }
 
@@ -931,7 +956,8 @@ function applyPromptPartBudget({
 
   if (plan.mode === "contributors") {
     const didTrim = plan.steps.reduce(
-      (trimmed, step) => trimPromptContributorByOverflow(step.contributor, step.removeTokens) || trimmed,
+      (trimmed, step) =>
+        trimPromptContributorByOverflow(step.contributor, step.removeTokens) || trimmed,
       false
     );
 
@@ -1186,7 +1212,8 @@ function createEmptyPromptInput() {
 }
 
 function clonePromptInput(promptInput) {
-  const normalizedPromptInput = promptInput && typeof promptInput === "object" ? promptInput : createEmptyPromptInput();
+  const normalizedPromptInput =
+    promptInput && typeof promptInput === "object" ? promptInput : createEmptyPromptInput();
 
   return {
     ...normalizedPromptInput,
@@ -1202,7 +1229,10 @@ function clonePromptInput(promptInput) {
     systemItems: normalizePromptItemMap(normalizedPromptInput.systemItems),
     systemPrompt: normalizeSystemPrompt(normalizedPromptInput.systemPrompt),
     systemPromptSections: normalizePromptSections(normalizedPromptInput.systemPromptSections),
-    transientBlock: typeof normalizedPromptInput.transientBlock === "string" ? normalizedPromptInput.transientBlock : "",
+    transientBlock:
+      typeof normalizedPromptInput.transientBlock === "string"
+        ? normalizedPromptInput.transientBlock
+        : "",
     transientEntry: clonePreparedPromptEntry(normalizedPromptInput.transientEntry),
     transientItems: normalizeTransientItems(normalizedPromptInput.transientItems),
     transientSections: normalizeTransientSections(normalizedPromptInput.transientSections)
@@ -1241,16 +1271,21 @@ export const fetchOnscreenAgentHistoryCompactPrompt = globalThis.space.extend(
     }
 
     const promptConfig = resolveHistoryCompactPromptConfig(mode);
-    compactPromptPromises[mode] = loadPromptFile(promptConfig.path, promptConfig.label).catch((error) => {
-      compactPromptPromises[mode] = null;
-      throw error;
-    });
+    compactPromptPromises[mode] = loadPromptFile(promptConfig.path, promptConfig.label).catch(
+      (error) => {
+        compactPromptPromises[mode] = null;
+        throw error;
+      }
+    );
 
     return compactPromptPromises[mode];
   }
 );
 
-export function extractCustomOnscreenAgentSystemPrompt(storedPrompt = "", defaultSystemPrompt = "") {
+export function extractCustomOnscreenAgentSystemPrompt(
+  storedPrompt = "",
+  defaultSystemPrompt = ""
+) {
   return stripDefaultPromptPrefix(storedPrompt, defaultSystemPrompt);
 }
 
@@ -1320,7 +1355,9 @@ export const buildOnscreenAgentExampleMessages = globalThis.space.extend(
 export const buildOnscreenAgentHistoryMessages = globalThis.space.extend(
   import.meta,
   async function buildOnscreenAgentHistoryMessages(context = {}) {
-    const historyMessages = Array.isArray(context.historyMessages) ? context.historyMessages : context.messages;
+    const historyMessages = Array.isArray(context.historyMessages)
+      ? context.historyMessages
+      : context.messages;
 
     return {
       ...context,
@@ -1349,13 +1386,17 @@ export const buildOnscreenAgentPromptInput = globalThis.space.extend(
   import.meta,
   async function buildOnscreenAgentPromptInput(context = {}) {
     const { prompt, ...promptInputContext } = context;
-    const historyMessagesInput = Array.isArray(context.historyMessages) ? context.historyMessages : context.messages;
+    const historyMessagesInput = Array.isArray(context.historyMessages)
+      ? context.historyMessages
+      : context.messages;
     const systemPromptContext = await buildOnscreenAgentSystemPromptSections({
       defaultSystemPrompt: context.defaultSystemPrompt,
       options: context.options,
       systemPrompt: context.systemPrompt
     });
-    const historyMessagesForPrompt = Array.isArray(historyMessagesInput) ? historyMessagesInput : [];
+    const historyMessagesForPrompt = Array.isArray(historyMessagesInput)
+      ? historyMessagesInput
+      : [];
     const systemItems = normalizePromptItemMap(systemPromptContext?.systemItems);
     const runtimeSystemPrompt = renderSystemPromptItems(systemItems).join("\n\n");
     const exampleContext = await buildOnscreenAgentExampleMessages({
@@ -1402,7 +1443,10 @@ export const buildOnscreenAgentPromptInput = globalThis.space.extend(
       ...context,
       exampleEntries: clonePreparedPromptEntries(exampleEntries),
       historyEntries: clonePreparedPromptEntries(historyEntries),
-      requestEntries: [...clonePreparedPromptEntries(exampleEntries), ...clonePreparedPromptEntries(historyEntries)],
+      requestEntries: [
+        ...clonePreparedPromptEntries(exampleEntries),
+        ...clonePreparedPromptEntries(historyEntries)
+      ],
       sections: transientSeedSections,
       runtimeSystemPrompt,
       systemPrompt: runtimeSystemPrompt,

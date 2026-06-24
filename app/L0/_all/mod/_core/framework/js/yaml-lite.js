@@ -15,7 +15,9 @@ function createYamlError(reason, lineNumber) {
 }
 
 function normalizeYamlSource(sourceText) {
-  return String(sourceText ?? "").replace(/^\uFEFF/u, "").replace(/\r\n?/gu, "\n");
+  return String(sourceText ?? "")
+    .replace(/^\uFEFF/u, "")
+    .replace(/\r\n?/gu, "\n");
 }
 
 function normalizeMultilineString(value) {
@@ -28,26 +30,34 @@ function getLeadingWhitespace(value) {
 }
 
 function createSourceLines(sourceText) {
-  return normalizeYamlSource(sourceText).split("\n").map((rawLine, index) => {
-    const lineNumber = index + 1;
-    const leadingWhitespace = getLeadingWhitespace(rawLine);
+  return normalizeYamlSource(sourceText)
+    .split("\n")
+    .map((rawLine, index) => {
+      const lineNumber = index + 1;
+      const leadingWhitespace = getLeadingWhitespace(rawLine);
 
-    if (leadingWhitespace.includes("\t")) {
-      throw createYamlError("tabs are not supported; use spaces for indentation", lineNumber);
-    }
+      if (leadingWhitespace.includes("\t")) {
+        throw createYamlError("tabs are not supported; use spaces for indentation", lineNumber);
+      }
 
-    return {
-      content: rawLine.slice(leadingWhitespace.length),
-      indent: leadingWhitespace.length,
-      lineNumber,
-      rawLine,
-      trimmed: rawLine.trim()
-    };
-  });
+      return {
+        content: rawLine.slice(leadingWhitespace.length),
+        indent: leadingWhitespace.length,
+        lineNumber,
+        rawLine,
+        trimmed: rawLine.trim()
+      };
+    });
 }
 
 function isIgnorableLine(line) {
-  return !line || !line.trimmed || line.trimmed.startsWith("#") || line.trimmed === "---" || line.trimmed === "...";
+  return (
+    !line ||
+    !line.trimmed ||
+    line.trimmed.startsWith("#") ||
+    line.trimmed === "---" ||
+    line.trimmed === "..."
+  );
 }
 
 function nextMeaningfulIndex(lines, index) {
@@ -241,7 +251,10 @@ function parseValueToken(rawValue, lineNumber) {
     return null;
   }
 
-  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
     return parseQuotedString(value, lineNumber);
   }
 
@@ -277,7 +290,13 @@ function isListItemContent(text) {
 }
 
 function isCompactMapContent(text) {
-  if (!text || text.startsWith("[") || text.startsWith("{") || text.startsWith('"') || text.startsWith("'")) {
+  if (
+    !text ||
+    text.startsWith("[") ||
+    text.startsWith("{") ||
+    text.startsWith('"') ||
+    text.startsWith("'")
+  ) {
     return false;
   }
 
@@ -489,7 +508,14 @@ function createParser(lines) {
     let workingIndex = index;
 
     if (firstEntryContent != null) {
-      const firstEntry = parseMapEntry(lines, indent, firstEntryContent, firstLineNumber, workingIndex, parseNode);
+      const firstEntry = parseMapEntry(
+        lines,
+        indent,
+        firstEntryContent,
+        firstLineNumber,
+        workingIndex,
+        parseNode
+      );
       result[firstEntry.key] = firstEntry.value;
       workingIndex = firstEntry.nextIndex;
     }
@@ -512,10 +538,20 @@ function createParser(lines) {
       }
 
       if (isListItemContent(line.content)) {
-        throw createYamlError("list item found where a key: value pair was expected", line.lineNumber);
+        throw createYamlError(
+          "list item found where a key: value pair was expected",
+          line.lineNumber
+        );
       }
 
-      const entry = parseMapEntry(lines, indent, line.content, line.lineNumber, workingIndex + 1, parseNode);
+      const entry = parseMapEntry(
+        lines,
+        indent,
+        line.content,
+        line.lineNumber,
+        workingIndex + 1,
+        parseNode
+      );
       result[entry.key] = entry.value;
       workingIndex = entry.nextIndex;
     }
@@ -690,7 +726,12 @@ function needsQuotedString(value) {
     return true;
   }
 
-  if (value.startsWith("[") || value.startsWith("{") || value.startsWith("]") || value.startsWith("}")) {
+  if (
+    value.startsWith("[") ||
+    value.startsWith("{") ||
+    value.startsWith("]") ||
+    value.startsWith("}")
+  ) {
     return true;
   }
 
@@ -737,7 +778,8 @@ function createBlockScalarSerialization(value, indent) {
   const trailingNewlines = trailingNewlineMatch ? trailingNewlineMatch[0].length : 0;
   const chompMode = trailingNewlines === 0 ? "-" : trailingNewlines === 1 ? "" : "+";
   const header = `|${chompMode}`;
-  const bodyLines = trailingNewlines > 0 ? normalized.split("\n").slice(0, -1) : normalized.split("\n");
+  const bodyLines =
+    trailingNewlines > 0 ? normalized.split("\n").slice(0, -1) : normalized.split("\n");
   const bodyIndent = " ".repeat(indent + 2);
   const body = bodyLines.map((line) => `${bodyIndent}${line}`).join("\n");
 

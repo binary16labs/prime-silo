@@ -1,8 +1,5 @@
 import { logServerStartup, startServer } from "../server/server.js";
-import {
-  findParamSpec,
-  validateConfigValue
-} from "../server/lib/utils/runtime_params.js";
+import { findParamSpec, validateConfigValue } from "../server/lib/utils/runtime_params.js";
 
 const PARAM_ASSIGNMENT_PATTERN = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/u;
 

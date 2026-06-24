@@ -17,7 +17,11 @@ import {
   removeSavedModelEntries,
   validateModelSelection
 } from "/mod/_core/huggingface/helpers.js";
-import { WORKER_INBOUND, WORKER_OUTBOUND, WORKER_RUNTIME_VERSION } from "/mod/_core/huggingface/protocol.js";
+import {
+  WORKER_INBOUND,
+  WORKER_OUTBOUND,
+  WORKER_RUNTIME_VERSION
+} from "/mod/_core/huggingface/protocol.js";
 
 const HUGGINGFACE_CONFIG_ROUTE = "/#/huggingface";
 const PERSISTED_MODEL_STORAGE_KEY = "space.huggingface.last-loaded-model";
@@ -32,7 +36,12 @@ function isPlainObject(value) {
 }
 
 function cloneValue(value, seen = new WeakMap()) {
-  if (value == null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+  if (
+    value == null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
     return value;
   }
 
@@ -93,10 +102,7 @@ function cloneValue(value, seen = new WeakMap()) {
     seen.set(value, clonedEntries);
 
     value.forEach((entryValue, entryKey) => {
-      clonedEntries.push([
-        cloneValue(entryKey, seen),
-        cloneValue(entryValue, seen)
-      ]);
+      clonedEntries.push([cloneValue(entryKey, seen), cloneValue(entryValue, seen)]);
     });
 
     return clonedEntries;
@@ -199,9 +205,9 @@ function normalizeHuggingFaceRuntimeErrorMessage(message = "") {
   const lowerMessage = normalizedMessage.toLowerCase();
 
   if (
-    lowerMessage.includes("failed to allocate memory for buffer mapping")
-    || lowerMessage.includes("failed to download data from buffer")
-    || lowerMessage.includes("mapasync")
+    lowerMessage.includes("failed to allocate memory for buffer mapping") ||
+    lowerMessage.includes("failed to download data from buffer") ||
+    lowerMessage.includes("mapasync")
   ) {
     return "Local Hugging Face generation ran out of WebGPU memory. Try a smaller model, shorter admin history, or a lower max-new-tokens value.";
   }
@@ -373,7 +379,9 @@ function updateSelectionState(state, selection = {}) {
 }
 
 function isMatchingSelection(leftSelection = {}, rightSelection = {}) {
-  return leftSelection.modelId === rightSelection.modelId && leftSelection.dtype === rightSelection.dtype;
+  return (
+    leftSelection.modelId === rightSelection.modelId && leftSelection.dtype === rightSelection.dtype
+  );
 }
 
 class HuggingFaceManager {
@@ -510,10 +518,10 @@ class HuggingFaceManager {
     }
 
     if (
-      this.state.activeModelId
-      || this.state.isLoadingModel
-      || this.state.savedModels.length
-      || readPersistedModelSelection()
+      this.state.activeModelId ||
+      this.state.isLoadingModel ||
+      this.state.savedModels.length ||
+      readPersistedModelSelection()
     ) {
       return;
     }
@@ -661,7 +669,9 @@ class HuggingFaceManager {
     this.worker = null;
 
     if (this.readyDeferred) {
-      this.readyDeferred.reject(createHuggingFaceAbortError(statusText || "Hugging Face worker restarted."));
+      this.readyDeferred.reject(
+        createHuggingFaceAbortError(statusText || "Hugging Face worker restarted.")
+      );
     }
 
     this.readyDeferred = null;
@@ -703,16 +713,20 @@ class HuggingFaceManager {
   }
 
   handleWorkerError(event) {
-    logHuggingFaceConsoleError("Worker error", {
-      colno: event.colno,
-      error: event.error,
-      filename: event.filename,
-      isTrusted: event.isTrusted,
-      lastWorkerTraceStage: this.state.lastWorkerTraceStage,
-      lineno: event.lineno,
-      message: event.message,
-      type: event.type
-    }, event);
+    logHuggingFaceConsoleError(
+      "Worker error",
+      {
+        colno: event.colno,
+        error: event.error,
+        filename: event.filename,
+        isTrusted: event.isTrusted,
+        lastWorkerTraceStage: this.state.lastWorkerTraceStage,
+        lineno: event.lineno,
+        message: event.message,
+        type: event.type
+      },
+      event
+    );
 
     const error = createWorkerError(
       event.error || event.message,
@@ -729,12 +743,16 @@ class HuggingFaceManager {
   }
 
   handleWorkerMessageError(event) {
-    logHuggingFaceConsoleError("Worker message error", {
-      data: event.data,
-      isTrusted: event.isTrusted,
-      origin: event.origin,
-      type: event.type
-    }, event);
+    logHuggingFaceConsoleError(
+      "Worker message error",
+      {
+        data: event.data,
+        isTrusted: event.isTrusted,
+        origin: event.origin,
+        type: event.type
+      },
+      event
+    );
 
     const error = new Error("The Hugging Face worker produced an invalid message.");
     this.setState({
@@ -754,11 +772,12 @@ class HuggingFaceManager {
           error: "",
           isWorkerBooting: false,
           isWorkerReady: true,
-          statusText: payload.webgpuSupported === false
-            ? "WebGPU is unavailable in this browser context."
-            : this.state.isLoadingModel
-              ? this.state.statusText
-              : "Enter a model id or Hub URL and load it.",
+          statusText:
+            payload.webgpuSupported === false
+              ? "WebGPU is unavailable in this browser context."
+              : this.state.isLoadingModel
+                ? this.state.statusText
+                : "Enter a model id or Hub URL and load it.",
           webgpuSupported: payload.webgpuSupported !== false
         });
         this.readyDeferred?.resolve(this.getSnapshot());
@@ -906,8 +925,11 @@ class HuggingFaceManager {
         }
 
         const nextText = String(payload.text || "");
-        const previousText = typeof this.pendingGenerate.fullText === "string" ? this.pendingGenerate.fullText : "";
-        const delta = nextText.startsWith(previousText) ? nextText.slice(previousText.length) : nextText;
+        const previousText =
+          typeof this.pendingGenerate.fullText === "string" ? this.pendingGenerate.fullText : "";
+        const delta = nextText.startsWith(previousText)
+          ? nextText.slice(previousText.length)
+          : nextText;
         this.pendingGenerate.fullText = nextText;
 
         if (delta) {
@@ -999,7 +1021,9 @@ class HuggingFaceManager {
   }
 
   buildRequestedSelection(overrides = {}) {
-    const modelInput = String(overrides.modelInput ?? overrides.modelId ?? this.state.modelInput).trim();
+    const modelInput = String(
+      overrides.modelInput ?? overrides.modelId ?? this.state.modelInput
+    ).trim();
     const modelId = normalizeHuggingFaceModelInput(overrides.modelId ?? modelInput);
 
     return {
@@ -1038,20 +1062,25 @@ class HuggingFaceManager {
       once: true
     });
 
-    this.setState(updateSelectionState({
-      ...this.state,
-      error: "",
-      isLoadingModel: true,
-      loadProgress: {
-        file: "",
-        progress: 0.01,
-        status: "queued",
-        stepKey: "queued",
-        stepLabel: "Queued"
-      },
-      loadingModelLabel: describeModelSelection(selection),
-      statusText: `Loading ${describeModelSelection(selection)}...`
-    }, selection));
+    this.setState(
+      updateSelectionState(
+        {
+          ...this.state,
+          error: "",
+          isLoadingModel: true,
+          loadProgress: {
+            file: "",
+            progress: 0.01,
+            status: "queued",
+            stepKey: "queued",
+            stepLabel: "Queued"
+          },
+          loadingModelLabel: describeModelSelection(selection),
+          statusText: `Loading ${describeModelSelection(selection)}...`
+        },
+        selection
+      )
+    );
 
     this.postMessage(WORKER_INBOUND.LOAD_MODEL, {
       dtype: selection.dtype,
@@ -1096,10 +1125,7 @@ class HuggingFaceManager {
       throw createHuggingFaceAbortError("Model load stopped.");
     }
 
-    if (
-      this.pendingLoad
-      && isMatchingSelection(this.pendingLoad.selection, selection)
-    ) {
+    if (this.pendingLoad && isMatchingSelection(this.pendingLoad.selection, selection)) {
       return this.awaitAbortablePromise(
         this.pendingLoad.deferred.promise,
         signal,
@@ -1115,9 +1141,9 @@ class HuggingFaceManager {
     }
 
     if (
-      this.state.activeModelId === selection.modelId
-      && this.state.activeDtype === selection.dtype
-      && !this.state.isLoadingModel
+      this.state.activeModelId === selection.modelId &&
+      this.state.activeDtype === selection.dtype &&
+      !this.state.isLoadingModel
     ) {
       persistModelSelection({
         dtype: selection.dtype,
@@ -1125,30 +1151,40 @@ class HuggingFaceManager {
         modelId: selection.modelId,
         modelInput: selection.modelInput || selection.modelId
       });
-      this.setState(updateSelectionState({
-        ...this.state,
-        error: ""
-      }, selection));
+      this.setState(
+        updateSelectionState(
+          {
+            ...this.state,
+            error: ""
+          },
+          selection
+        )
+      );
       return {
         dtype: selection.dtype,
         modelId: selection.modelId
       };
     }
 
-    this.setState(updateSelectionState({
-      ...this.state,
-      error: "",
-      isLoadingModel: true,
-      loadProgress: {
-        file: "",
-        progress: 0.01,
-        status: "queued",
-        stepKey: "queued",
-        stepLabel: "Queued"
-      },
-      loadingModelLabel: describeModelSelection(selection),
-      statusText: `Loading ${describeModelSelection(selection)}...`
-    }, selection));
+    this.setState(
+      updateSelectionState(
+        {
+          ...this.state,
+          error: "",
+          isLoadingModel: true,
+          loadProgress: {
+            file: "",
+            progress: 0.01,
+            status: "queued",
+            stepKey: "queued",
+            stepLabel: "Queued"
+          },
+          loadingModelLabel: describeModelSelection(selection),
+          statusText: `Loading ${describeModelSelection(selection)}...`
+        },
+        selection
+      )
+    );
 
     await this.ensureWorker();
 
@@ -1162,10 +1198,7 @@ class HuggingFaceManager {
       throw createHuggingFaceAbortError("Model load stopped.");
     }
 
-    if (
-      this.pendingLoad
-      && isMatchingSelection(this.pendingLoad.selection, selection)
-    ) {
+    if (this.pendingLoad && isMatchingSelection(this.pendingLoad.selection, selection)) {
       return this.awaitAbortablePromise(
         this.pendingLoad.deferred.promise,
         signal,
@@ -1190,11 +1223,8 @@ class HuggingFaceManager {
     }
 
     if (
-      this.state.activeModelId
-      && (
-        this.state.activeModelId !== selection.modelId
-        || this.state.activeDtype !== selection.dtype
-      )
+      this.state.activeModelId &&
+      (this.state.activeModelId !== selection.modelId || this.state.activeDtype !== selection.dtype)
     ) {
       this.restartWorker({
         clearPersistedSelection: false,
@@ -1221,9 +1251,9 @@ class HuggingFaceManager {
     }
 
     if (
-      this.state.activeModelId === requestedSelection.modelId
-      && this.state.activeDtype === requestedSelection.dtype
-      && !this.state.isLoadingModel
+      this.state.activeModelId === requestedSelection.modelId &&
+      this.state.activeDtype === requestedSelection.dtype &&
+      !this.state.isLoadingModel
     ) {
       return {
         dtype: requestedSelection.dtype,
@@ -1239,15 +1269,19 @@ class HuggingFaceManager {
   }
 
   isDiscardingSavedModel(entry = {}) {
-    return Boolean(this.state.discardingSavedModelKey)
-      && this.state.discardingSavedModelKey === getSavedModelEntryKey(entry);
+    return (
+      Boolean(this.state.discardingSavedModelKey) &&
+      this.state.discardingSavedModelKey === getSavedModelEntryKey(entry)
+    );
   }
 
   canDiscardSavedModel(entry = {}) {
-    return Boolean(entry?.modelId)
-      && !this.state.isGenerating
-      && !this.state.isLoadingModel
-      && !this.state.discardingSavedModelKey;
+    return (
+      Boolean(entry?.modelId) &&
+      !this.state.isGenerating &&
+      !this.state.isLoadingModel &&
+      !this.state.discardingSavedModelKey
+    );
   }
 
   getSavedModelActionLabel(entry = {}) {
@@ -1336,11 +1370,15 @@ class HuggingFaceManager {
       });
       this.ensureDefaultModelInput();
     } catch (error) {
-      logHuggingFaceConsoleError("Cached model discard failed", {
-        activeModelId: this.state.activeModelId,
-        error,
-        modelId
-      }, error);
+      logHuggingFaceConsoleError(
+        "Cached model discard failed",
+        {
+          activeModelId: this.state.activeModelId,
+          error,
+          modelId
+        },
+        error
+      );
       this.setState({
         discardingSavedModelKey: "",
         error: error?.message || "Cached model discard failed.",
@@ -1356,10 +1394,10 @@ class HuggingFaceManager {
 
   restorePersistedModel() {
     if (
-      this.state.hasTriedPersistedReload
-      || !this.state.isWorkerReady
-      || !this.state.webgpuSupported
-      || this.state.isLoadingModel
+      this.state.hasTriedPersistedReload ||
+      !this.state.isWorkerReady ||
+      !this.state.webgpuSupported ||
+      this.state.isLoadingModel
     ) {
       return;
     }
@@ -1398,19 +1436,23 @@ class HuggingFaceManager {
     const signal = options.signal;
     const requestedSelection = options.modelSelection || {};
     const requestedMessages = Array.isArray(options.messages) ? options.messages : [];
-    const {
-      maxNewTokens,
-      requestOptions
-    } = normalizeRequestOptions(options.requestOptions, this.state.maxNewTokens);
+    const { maxNewTokens, requestOptions } = normalizeRequestOptions(
+      options.requestOptions,
+      this.state.maxNewTokens
+    );
 
-    await this.ensureModelLoaded({
-      dtype: requestedSelection.dtype || this.state.activeDtype || DEFAULT_DTYPE,
-      maxNewTokens,
-      modelId: requestedSelection.modelId || this.state.activeModelId,
-      modelInput: requestedSelection.modelInput || requestedSelection.modelId || this.state.activeModelId
-    }, {
-      signal
-    });
+    await this.ensureModelLoaded(
+      {
+        dtype: requestedSelection.dtype || this.state.activeDtype || DEFAULT_DTYPE,
+        maxNewTokens,
+        modelId: requestedSelection.modelId || this.state.activeModelId,
+        modelInput:
+          requestedSelection.modelInput || requestedSelection.modelId || this.state.activeModelId
+      },
+      {
+        signal
+      }
+    );
 
     if (signal?.aborted) {
       throw createHuggingFaceAbortError();
@@ -1467,7 +1509,10 @@ class HuggingFaceManager {
   async resetChat() {}
 
   openConfiguration() {
-    const targetUrl = new URL(HUGGINGFACE_CONFIG_ROUTE, globalThis.location?.origin || globalThis.location?.href || "/").href;
+    const targetUrl = new URL(
+      HUGGINGFACE_CONFIG_ROUTE,
+      globalThis.location?.origin || globalThis.location?.href || "/"
+    ).href;
     globalThis.open?.(targetUrl, "_blank", "noopener");
   }
 }

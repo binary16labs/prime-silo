@@ -37,7 +37,7 @@ function resolveInheritedModuleProjectPath({
   requestPath,
   runtimeParams,
   stateSystem,
-  username,
+  username
 }) {
   const normalizedRequestPath = normalizeModuleRequestPath(requestPath);
 
@@ -45,7 +45,8 @@ function resolveInheritedModuleProjectPath({
     return null;
   }
 
-  const groupIndex = getRuntimeGroupIndexFromStateSystem(stateSystem, runtimeParams) || createEmptyGroupIndex();
+  const groupIndex =
+    getRuntimeGroupIndexFromStateSystem(stateSystem, runtimeParams) || createEmptyGroupIndex();
   const candidatePaths = findCandidateModuleProjectPaths({
     groupIndex,
     maxLayer,
@@ -56,7 +57,8 @@ function resolveInheritedModuleProjectPath({
   const accessiblePaths = filterAccessibleModulePaths(candidatePaths, username, groupIndex, {
     maxLayer
   });
-  const selectedProjectPath = accessiblePaths.length > 0 ? accessiblePaths[accessiblePaths.length - 1] : "";
+  const selectedProjectPath =
+    accessiblePaths.length > 0 ? accessiblePaths[accessiblePaths.length - 1] : "";
 
   if (!selectedProjectPath) {
     return null;

@@ -54,7 +54,8 @@ export async function execute({ args, projectRoot }) {
     console.log(`Registry: ${registryPath}`);
     for (const app of apps) {
       const provides = (app.manifest && app.manifest.provides) || [];
-      const ports = provides.map((p) => `${p.service}:${p.preferredPort}`).join(", ") || "(no services)";
+      const ports =
+        provides.map((p) => `${p.service}:${p.preferredPort}`).join(", ") || "(no services)";
       const role = (app.manifest && app.manifest.role) || "?";
       console.log(`  ${app.member.id.padEnd(14)} [${role}] ${ports}`);
     }

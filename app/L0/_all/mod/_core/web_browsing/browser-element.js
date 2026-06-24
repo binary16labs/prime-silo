@@ -95,7 +95,9 @@ export function defineBrowserElement(storeProvider) {
     }
 
     get browserId() {
-      return normalizeAttributeText(this.dataset?.browserId || this.getAttribute("data-browser-id"));
+      return normalizeAttributeText(
+        this.dataset?.browserId || this.getAttribute("data-browser-id")
+      );
     }
 
     setupBrowserSurface(options = {}) {
@@ -148,7 +150,10 @@ export function defineBrowserElement(storeProvider) {
 
       this.syncToolbar();
 
-      if (!this.__spaceBrowserFrameShell?.isConnected || this.__spaceBrowserFrameShell.parentElement !== this) {
+      if (
+        !this.__spaceBrowserFrameShell?.isConnected ||
+        this.__spaceBrowserFrameShell.parentElement !== this
+      ) {
         this.__spaceBrowserFrameShell = document.createElement("div");
         this.__spaceBrowserFrameShell.className = "space-browser-frame-shell";
         this.appendChild(this.__spaceBrowserFrameShell);
@@ -170,7 +175,10 @@ export function defineBrowserElement(storeProvider) {
         return;
       }
 
-      if (this.__spaceBrowserToolbar?.isConnected && this.__spaceBrowserToolbar.parentElement === this) {
+      if (
+        this.__spaceBrowserToolbar?.isConnected &&
+        this.__spaceBrowserToolbar.parentElement === this
+      ) {
         return;
       }
 
@@ -306,16 +314,24 @@ export function defineBrowserElement(storeProvider) {
         return;
       }
 
-      if (this.__spaceBrowserAddressInput && document.activeElement !== this.__spaceBrowserAddressInput) {
-        this.__spaceBrowserAddressInput.value = browserState.addressValue || browserState.currentUrl || browserState.frameSrc || "";
+      if (
+        this.__spaceBrowserAddressInput &&
+        document.activeElement !== this.__spaceBrowserAddressInput
+      ) {
+        this.__spaceBrowserAddressInput.value =
+          browserState.addressValue || browserState.currentUrl || browserState.frameSrc || "";
       }
 
       if (this.__spaceBrowserBackButton) {
-        this.__spaceBrowserBackButton.disabled = Boolean(browserState.bridgeStateReady && !browserState.canGoBack);
+        this.__spaceBrowserBackButton.disabled = Boolean(
+          browserState.bridgeStateReady && !browserState.canGoBack
+        );
       }
 
       if (this.__spaceBrowserForwardButton) {
-        this.__spaceBrowserForwardButton.disabled = Boolean(browserState.bridgeStateReady && !browserState.canGoForward);
+        this.__spaceBrowserForwardButton.disabled = Boolean(
+          browserState.bridgeStateReady && !browserState.canGoForward
+        );
       }
     }
   }

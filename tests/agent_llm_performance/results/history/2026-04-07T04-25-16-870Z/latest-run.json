@@ -11,9 +11,7 @@
       "passed_attempts": 36,
       "total_attempts": 37,
       "attempt_pass_rate": 0.973,
-      "failed_cases": [
-        "repeat_do_it_requires_execution"
-      ],
+      "failed_cases": ["repeat_do_it_requires_execution"],
       "cases": [
         {
           "case_id": "page_title_requires_execution",
@@ -2403,9 +2401,7 @@
           "case_path": "tests/agent_llm_performance/cases/repeat_do_it_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/repeat_do_it_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.patchWidget(\"snake-game\", { edits: [] })",
           "usage": {
@@ -2475,9 +2471,7 @@
           "case_path": "tests/agent_llm_performance/cases/protocol_nudge_requires_real_thrust.json",
           "history_path": "tests/agent_llm_performance/histories/protocol_nudge_requires_real_thrust.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.patchWidget(\"snake-game\", { edits: [] })",
           "usage": {
@@ -2749,9 +2743,7 @@
           "case_path": "tests/agent_llm_performance/cases/time_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/time_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn new Date().toString()",
           "usage": {
@@ -3129,9 +3121,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.api.fileWrite(\"~/user.yaml\", \"full_name: Pan Example\\nbio: hello there\\n\")",
           "usage": {
@@ -3166,9 +3156,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_text_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_text_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.api.fileRead(\"~/people.txt\", \"utf8\")",
           "usage": {
@@ -3343,9 +3331,7 @@
           "case_path": "tests/agent_llm_performance/cases/space_navigation_read_is_not_completion.json",
           "history_path": "tests/agent_llm_performance/histories/space_navigation_read_is_not_completion.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.spaces.openSpace(\"space-1\")",
           "usage": {
@@ -3380,9 +3366,7 @@
           "case_path": "tests/agent_llm_performance/cases/space_navigation_after_take_me_there_uses_open_helper.json",
           "history_path": "tests/agent_llm_performance/histories/space_navigation_after_take_me_there_uses_open_helper.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.spaces.openSpace(\"space-1\")",
           "usage": {
@@ -3417,9 +3401,7 @@
           "case_path": "tests/agent_llm_performance/cases/space_navigation_after_user_push_uses_open_helper.json",
           "history_path": "tests/agent_llm_performance/histories/space_navigation_after_user_push_uses_open_helper.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.spaces.openSpace(\"space-1\")",
           "usage": {
@@ -3778,9 +3760,7 @@
           "case_path": "tests/agent_llm_performance/cases/repeat_do_it_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/repeat_do_it_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.patchWidget(\"snake-game\", source => {\n  const s = String(source)\n\n  const replacements = [\n    [\n      /const\\s+CELL_SIZE\\s*=\\s*([0-9]+)\\s*;?/,\n      (m, n) => `const CELL_SIZE = ${n};\\nconst MOVE_ANIM_MS = 120;`\n    ]\n  ]\n\n  let out = s\n  for (const [re, fn] of replacements) out = out.replace(re, fn)\n\n  if (!/MOVE_ANIM_MS/.test(out)) {\n    out = out.replace(/(const\\s+CELL_SIZE\\s*=\\s*[0-9]+\\s*;?\\s*)/, `$1\\nconst MOVE_ANIM_MS = 120;\\n`)\n  }\n\n  if (/requestAnimationFrame\\s*\\(/.test(out) && /transform\\s*=/.test(out)) return out\n\n  out = out.replace(\n    /class\\s+SnakeGame\\s*{[\\s\\S]*?render\\(\\)\\s*{[\\s\\S]*?}\\s*$/m,\n    match => {\n      const renderStart = match.indexOf('render()')\n      return match\n    }\n  )\n\n  if (!/this\\.segmentOffsets/.test(out)) {\n    out = out.replace(\n      /(constructor\\s*\\([^)]*\\)\\s*{[\\s\\S]*?this\\.snake\\s*=\\s*\\[[\\s\\S]*?\\];)/,\n      `$1\\n    this.segmentOffsets = this.snake.map(() => ({ x: 0, y: 0 }));\\n    this.animating = false;\\n    this.animStart = 0;\\n    this.animFrom = null;\\n    this.animTo = null;`\n    )\n  }\n\n  if (/moveSnake\\s*\\(\\)\\s*{/.test(out) && !/animateSnakeMove/.test(out)) {\n    out = out.replace(\n      /moveSnake\\s*\\(\\)\\s*{[\\s\\S]*?}\\n\\s*draw\\(/,\n      `moveSnake() {\\n    const head = this.snake[0]\\n    const next = { x: head.x + this.dir.x, y: head.y + this.dir.y }\\n    if (this.isCollision(next)) return\\n\\n    this.animating = true\\n    this.animStart = performance.now()\\n    this.animFrom = this.snake.map(p => ({ x: p.x, y: p.y }))\\n    this.animTo = [next, ...this.snake.slice(0, -1).map(p => ({ x: p.x, y: p.y }))]\\n\\n    const step = (now) => {\\n      const t = Math.min(1, (now - this.animStart) / MOVE_ANIM_MS)\\n      const eased = t * (2 - t)\\n      this.animT = eased\\n      if (t < 1) {\\n        requestAnimationFrame(step)\\n        return\\n      }\\n      this.snake = this.animTo\\n      this.animating = false\\n      this.animFrom = null\\n      this.animTo = null\\n      this.animT = 1\\n    }\\n    requestAnimationFrame(step)\\n  }\\n\\n  draw(`\n    )\n  }\n\n  if (/draw\\(ctx\\)\\s*{/.test(out) && !/interpolate/.test(out)) {\n    out = out.replace(\n      /draw\\(ctx\\)\\s*{([\\s\\S]*?)}\\n\\s*}/,\n      (m, body) => `draw(ctx) {${body.replace(/this\\.snake\\.forEach\\(\\(segment, i\\) => \\{[\\s\\S]*?\\}\\)/, `\n    const renderSnake = (segments, offsets = null) => {\n      segments.forEach((segment, i) => {\n        const off = offsets?.[i] || { x: 0, y: 0 }\n        const x = (segment.x + off.x) * CELL_SIZE\n        const y = (segment.y + off.y) * CELL_SIZE\n        ctx.fillStyle = i === 0 ? '#2ecc71' : '#27ae60'\n        ctx.beginPath()\n        ctx.roundRect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4, 8)\n        ctx.fill()\n      })\n    }\n\n    if (this.animating && this.animFrom && this.animTo) {\n      const dx = this.animTo[0].x - this.animFrom[0].x\n      const dy = this.animTo[0].y - this.animFrom[0].y\n      const animated = this.animFrom.map((seg, i) => ({\n        x: seg.x + (this.animTo[i].x - seg.x) * this.animT,\n        y: seg.y + (this.animTo[i].y - seg.y) * this.animT\n      }))\n      renderSnake(animated)\n    } else {\n      renderSnake(this.snake)\n    }`)}`\n    )\n  }\n\n  return out\n})",
           "usage": {

@@ -52,9 +52,9 @@ export async function compactHistoryForCheckpoint(history, settings) {
   // Phase H2 will call fetchOnscreenAgentHistoryCompactPrompt here.
   throw new Error(
     `Session history is too large to checkpoint (${(byteLength / 1024 / 1024).toFixed(1)} MB). ` +
-    "Compact your conversation history first (use the history compact action in the agent panel), " +
-    "then retry the checkpoint save. " +
-    `Maximum checkpoint size is ${(MAX_CHECKPOINT_BYTES / 1024 / 1024).toFixed(0)} MB.`
+      "Compact your conversation history first (use the history compact action in the agent panel), " +
+      "then retry the checkpoint save. " +
+      `Maximum checkpoint size is ${(MAX_CHECKPOINT_BYTES / 1024 / 1024).toFixed(0)} MB.`
   );
 }
 
@@ -81,5 +81,5 @@ export function isHistoryWithinCheckpointLimit(history) {
 }
 
 export const __testing = {
-  MAX_CHECKPOINT_BYTES,
+  MAX_CHECKPOINT_BYTES
 };

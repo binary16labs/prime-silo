@@ -85,8 +85,14 @@
               <template x-if="$store.fileExplorer.hasClipboard">
                 <div class="file-explorer-summary-row file-explorer-summary-row--clipboard">
                   <div class="file-explorer-summary-copy">
-                    <span class="file-explorer-summary-label" x-text="$store.fileExplorer.clipboardLabel"></span>
-                    <span class="file-explorer-summary-note" x-text="$store.fileExplorer.clipboardPreviewText"></span>
+                    <span
+                      class="file-explorer-summary-label"
+                      x-text="$store.fileExplorer.clipboardLabel"
+                    ></span>
+                    <span
+                      class="file-explorer-summary-note"
+                      x-text="$store.fileExplorer.clipboardPreviewText"
+                    ></span>
                   </div>
 
                   <div class="file-explorer-summary-actions">
@@ -105,14 +111,18 @@
                       type="button"
                       @click="$store.fileExplorer.toggleClipboardExpanded()"
                     >
-                      <x-icon x-text="$store.fileExplorer.clipboardExpanded ? 'expand_less' : 'expand_more'"></x-icon>
+                      <x-icon
+                        x-text="$store.fileExplorer.clipboardExpanded ? 'expand_less' : 'expand_more'"
+                      ></x-icon>
                       <span x-text="$store.fileExplorer.clipboardExpandedToggleLabel"></span>
                     </button>
                   </div>
                 </div>
               </template>
 
-              <template x-if="$store.fileExplorer.hasClipboard && $store.fileExplorer.clipboardExpanded">
+              <template
+                x-if="$store.fileExplorer.hasClipboard && $store.fileExplorer.clipboardExpanded"
+              >
                 <div class="file-explorer-clipboard-list">
                   <template x-for="item in $store.fileExplorer.clipboardItems" :key="item.path">
                     <div class="file-explorer-clipboard-item">
@@ -142,8 +152,14 @@
               <template x-if="$store.fileExplorer.hasSelection">
                 <div class="file-explorer-summary-row file-explorer-summary-row--selection">
                   <div class="file-explorer-summary-copy">
-                    <span class="file-explorer-summary-label" x-text="$store.fileExplorer.selectionLabel"></span>
-                    <span class="file-explorer-summary-note" x-text="$store.fileExplorer.selectionPreviewText"></span>
+                    <span
+                      class="file-explorer-summary-label"
+                      x-text="$store.fileExplorer.selectionLabel"
+                    ></span>
+                    <span
+                      class="file-explorer-summary-note"
+                      x-text="$store.fileExplorer.selectionPreviewText"
+                    ></span>
                   </div>
 
                   <div class="file-explorer-summary-actions">
@@ -186,7 +202,9 @@
                   class="file-explorer-notice"
                   :class="{ 'is-error': $store.fileExplorer.noticeTone === 'error' }"
                 >
-                  <x-icon x-text="$store.fileExplorer.noticeTone === 'error' ? 'error' : 'info'"></x-icon>
+                  <x-icon
+                    x-text="$store.fileExplorer.noticeTone === 'error' ? 'error' : 'info'"
+                  ></x-icon>
                   <span x-text="$store.fileExplorer.noticeText"></span>
                 </div>
               </template>
@@ -218,7 +236,9 @@
                 </div>
               </template>
 
-              <template x-if="!$store.fileExplorer.loading && !$store.fileExplorer.errorTitle && !$store.fileExplorer.entries.length">
+              <template
+                x-if="!$store.fileExplorer.loading && !$store.fileExplorer.errorTitle && !$store.fileExplorer.entries.length"
+              >
                 <div class="file-explorer-empty">
                   <x-icon>folder_off</x-icon>
                   <p>This folder is empty.</p>
@@ -245,7 +265,9 @@
                     :title="`${$store.fileExplorer.isSelected(entry.path) ? 'Unselect' : 'Select'} ${entry.name}`"
                     @click.stop="$store.fileExplorer.toggleSelection(entry.path, { focusList: true, scrollIntoView: false })"
                   >
-                    <x-icon x-text="$store.fileExplorer.isSelected(entry.path) ? 'check_box' : 'check_box_outline_blank'"></x-icon>
+                    <x-icon
+                      x-text="$store.fileExplorer.isSelected(entry.path) ? 'check_box' : 'check_box_outline_blank'"
+                    ></x-icon>
                   </button>
 
                   <button
@@ -309,8 +331,16 @@
 
           <template x-teleport="body">
             <div class="space-dialog-layer">
-              <dialog class="chat-dialog" x-ref="createDialog" @cancel.prevent="$store.fileExplorer.closeCreateDialog()">
-                <form method="dialog" class="dialog-card file-explorer-dialog-card" @submit.prevent="$store.fileExplorer.submitCreateDialog()">
+              <dialog
+                class="chat-dialog"
+                x-ref="createDialog"
+                @cancel.prevent="$store.fileExplorer.closeCreateDialog()"
+              >
+                <form
+                  method="dialog"
+                  class="dialog-card file-explorer-dialog-card"
+                  @submit.prevent="$store.fileExplorer.submitCreateDialog()"
+                >
                   <header class="dialog-header">
                     <div>
                       <p class="page-eyebrow">File Browser</p>
@@ -320,28 +350,57 @@
 
                   <label class="field">
                     <span>Name</span>
-                    <input type="text" autocomplete="off" x-model="$store.fileExplorer.createDraftName" />
+                    <input
+                      type="text"
+                      autocomplete="off"
+                      x-model="$store.fileExplorer.createDraftName"
+                    />
                   </label>
 
                   <p class="dialog-note">
-                    <code x-text="$store.fileExplorer.createDialogPathPreview || $store.fileExplorer.currentPath"></code>
+                    <code
+                      x-text="$store.fileExplorer.createDialogPathPreview || $store.fileExplorer.currentPath"
+                    ></code>
                   </p>
 
                   <template x-if="$store.fileExplorer.createDialogError">
-                    <p class="dialog-note file-explorer-dialog-note is-error" x-text="$store.fileExplorer.createDialogError"></p>
+                    <p
+                      class="dialog-note file-explorer-dialog-note is-error"
+                      x-text="$store.fileExplorer.createDialogError"
+                    ></p>
                   </template>
 
                   <div class="dialog-actions">
-                    <button type="button" class="secondary-button" @click="$store.fileExplorer.closeCreateDialog()">Cancel</button>
-                    <button type="submit" class="confirm-button" :disabled="$store.fileExplorer.createDialogSaving">
-                      <span x-text="$store.fileExplorer.createDialogSaving ? 'Creating...' : 'Create'"></span>
+                    <button
+                      type="button"
+                      class="secondary-button"
+                      @click="$store.fileExplorer.closeCreateDialog()"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      class="confirm-button"
+                      :disabled="$store.fileExplorer.createDialogSaving"
+                    >
+                      <span
+                        x-text="$store.fileExplorer.createDialogSaving ? 'Creating...' : 'Create'"
+                      ></span>
                     </button>
                   </div>
                 </form>
               </dialog>
 
-              <dialog class="chat-dialog" x-ref="renameDialog" @cancel.prevent="$store.fileExplorer.closeRenameDialog()">
-                <form method="dialog" class="dialog-card file-explorer-dialog-card" @submit.prevent="$store.fileExplorer.submitRenameDialog()">
+              <dialog
+                class="chat-dialog"
+                x-ref="renameDialog"
+                @cancel.prevent="$store.fileExplorer.closeRenameDialog()"
+              >
+                <form
+                  method="dialog"
+                  class="dialog-card file-explorer-dialog-card"
+                  @submit.prevent="$store.fileExplorer.submitRenameDialog()"
+                >
                   <header class="dialog-header">
                     <div>
                       <p class="page-eyebrow">File Browser</p>
@@ -351,24 +410,51 @@
 
                   <label class="field">
                     <span>Name</span>
-                    <input type="text" autocomplete="off" x-model="$store.fileExplorer.renameDraftName" />
+                    <input
+                      type="text"
+                      autocomplete="off"
+                      x-model="$store.fileExplorer.renameDraftName"
+                    />
                   </label>
 
                   <template x-if="$store.fileExplorer.renameDialogError">
-                    <p class="dialog-note file-explorer-dialog-note is-error" x-text="$store.fileExplorer.renameDialogError"></p>
+                    <p
+                      class="dialog-note file-explorer-dialog-note is-error"
+                      x-text="$store.fileExplorer.renameDialogError"
+                    ></p>
                   </template>
 
                   <div class="dialog-actions">
-                    <button type="button" class="secondary-button" @click="$store.fileExplorer.closeRenameDialog()">Cancel</button>
-                    <button type="submit" class="confirm-button" :disabled="$store.fileExplorer.renameDialogSaving">
-                      <span x-text="$store.fileExplorer.renameDialogSaving ? 'Saving...' : 'Rename'"></span>
+                    <button
+                      type="button"
+                      class="secondary-button"
+                      @click="$store.fileExplorer.closeRenameDialog()"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      class="confirm-button"
+                      :disabled="$store.fileExplorer.renameDialogSaving"
+                    >
+                      <span
+                        x-text="$store.fileExplorer.renameDialogSaving ? 'Saving...' : 'Rename'"
+                      ></span>
                     </button>
                   </div>
                 </form>
               </dialog>
 
-              <dialog class="chat-dialog" x-ref="deleteDialog" @cancel.prevent="$store.fileExplorer.closeDeleteDialog()">
-                <form method="dialog" class="dialog-card file-explorer-dialog-card" @submit.prevent="$store.fileExplorer.submitDeleteDialog()">
+              <dialog
+                class="chat-dialog"
+                x-ref="deleteDialog"
+                @cancel.prevent="$store.fileExplorer.closeDeleteDialog()"
+              >
+                <form
+                  method="dialog"
+                  class="dialog-card file-explorer-dialog-card"
+                  @submit.prevent="$store.fileExplorer.submitDeleteDialog()"
+                >
                   <header class="dialog-header">
                     <div>
                       <p class="page-eyebrow">File Browser</p>
@@ -377,32 +463,64 @@
                   </header>
 
                   <div class="file-explorer-delete-preview">
-                    <template x-for="entry in $store.fileExplorer.deleteDialogEntries" :key="entry.path">
+                    <template
+                      x-for="entry in $store.fileExplorer.deleteDialogEntries"
+                      :key="entry.path"
+                    >
                       <div class="file-explorer-delete-preview-item">
                         <x-icon x-text="entry.isDirectory ? 'folder' : 'description'"></x-icon>
                         <span class="file-explorer-delete-preview-copy">
-                          <span class="file-explorer-delete-preview-name" x-text="entry.name"></span>
-                          <span class="file-explorer-delete-preview-path" x-text="entry.path"></span>
+                          <span
+                            class="file-explorer-delete-preview-name"
+                            x-text="entry.name"
+                          ></span>
+                          <span
+                            class="file-explorer-delete-preview-path"
+                            x-text="entry.path"
+                          ></span>
                         </span>
                       </div>
                     </template>
                   </div>
 
                   <template x-if="$store.fileExplorer.deleteDialogError">
-                    <p class="dialog-note file-explorer-dialog-note is-error" x-text="$store.fileExplorer.deleteDialogError"></p>
+                    <p
+                      class="dialog-note file-explorer-dialog-note is-error"
+                      x-text="$store.fileExplorer.deleteDialogError"
+                    ></p>
                   </template>
 
                   <div class="dialog-actions">
-                    <button type="button" class="secondary-button" @click="$store.fileExplorer.closeDeleteDialog()">Cancel</button>
-                    <button type="submit" class="secondary-button danger" :disabled="$store.fileExplorer.deleteDialogSaving">
-                      <span x-text="$store.fileExplorer.deleteDialogSaving ? 'Removing...' : 'Remove'"></span>
+                    <button
+                      type="button"
+                      class="secondary-button"
+                      @click="$store.fileExplorer.closeDeleteDialog()"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      class="secondary-button danger"
+                      :disabled="$store.fileExplorer.deleteDialogSaving"
+                    >
+                      <span
+                        x-text="$store.fileExplorer.deleteDialogSaving ? 'Removing...' : 'Remove'"
+                      ></span>
                     </button>
                   </div>
                 </form>
               </dialog>
 
-              <dialog class="chat-dialog" x-ref="editorDialog" @cancel.prevent="$store.fileExplorer.closeEditorDialog()">
-                <form method="dialog" class="dialog-card dialog-card-raw file-explorer-dialog-card" @submit.prevent="$store.fileExplorer.submitEditorDialog()">
+              <dialog
+                class="chat-dialog"
+                x-ref="editorDialog"
+                @cancel.prevent="$store.fileExplorer.closeEditorDialog()"
+              >
+                <form
+                  method="dialog"
+                  class="dialog-card dialog-card-raw file-explorer-dialog-card"
+                  @submit.prevent="$store.fileExplorer.submitEditorDialog()"
+                >
                   <header class="dialog-header">
                     <div>
                       <p class="page-eyebrow">File Browser</p>
@@ -411,7 +529,9 @@
                   </header>
 
                   <p class="dialog-note">
-                    <code x-text="$store.fileExplorer.editorDialogPath || '[No file selected]'"></code>
+                    <code
+                      x-text="$store.fileExplorer.editorDialogPath || '[No file selected]'"
+                    ></code>
                   </p>
 
                   <label class="field">
@@ -429,17 +549,28 @@
                   </template>
 
                   <template x-if="$store.fileExplorer.editorDialogError">
-                    <p class="dialog-note file-explorer-dialog-note is-error" x-text="$store.fileExplorer.editorDialogError"></p>
+                    <p
+                      class="dialog-note file-explorer-dialog-note is-error"
+                      x-text="$store.fileExplorer.editorDialogError"
+                    ></p>
                   </template>
 
                   <div class="dialog-actions">
-                    <button type="button" class="secondary-button" @click="$store.fileExplorer.closeEditorDialog()">Cancel</button>
+                    <button
+                      type="button"
+                      class="secondary-button"
+                      @click="$store.fileExplorer.closeEditorDialog()"
+                    >
+                      Cancel
+                    </button>
                     <button
                       type="submit"
                       class="confirm-button"
                       :disabled="$store.fileExplorer.editorDialogLoading || $store.fileExplorer.editorDialogSaving"
                     >
-                      <span x-text="$store.fileExplorer.editorDialogSaving ? 'Saving...' : 'Save'"></span>
+                      <span
+                        x-text="$store.fileExplorer.editorDialogSaving ? 'Saving...' : 'Save'"
+                      ></span>
                     </button>
                   </div>
                 </form>

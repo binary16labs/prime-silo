@@ -10,10 +10,7 @@ import {
 
 test("buildUserHomeFileTreeTransientSection shows an empty root when no files are present", () => {
   assert.deepEqual(buildUserHomeFileTreeTransientSection({ paths: [] }), {
-    content: [
-      "~/",
-      "  # empty"
-    ].join("\n"),
+    content: ["~/", "  # empty"].join("\n"),
     heading: "user home files",
     key: USER_HOME_FILE_TREE_TRANSIENT_KEY,
     order: 100
@@ -44,57 +41,30 @@ test("buildUserHomeFileTreeLines omits .git directories and their descendants", 
         maxLines: 20
       }
     ),
-    [
-      "~/",
-      "  conf/",
-      "    app.yaml",
-      "  user.yaml"
-    ]
+    ["~/", "  conf/", "    app.yaml", "  user.yaml"]
   );
 });
 
 test("buildUserHomeFileTreeLines lists folders first and caps per-folder folders and files", () => {
   assert.deepEqual(
     buildUserHomeFileTreeLines(
-      [
-        "~/delta/",
-        "~/beta/",
-        "~/alpha/",
-        "~/gamma/",
-        "~/c.txt",
-        "~/a.txt",
-        "~/b.txt"
-      ],
+      ["~/delta/", "~/beta/", "~/alpha/", "~/gamma/", "~/c.txt", "~/a.txt", "~/b.txt"],
       {
         maxFilesPerFolder: 2,
         maxFoldersPerFolder: 2,
         maxLines: 20
       }
     ),
-    [
-      "~/",
-      "  alpha/",
-      "  beta/",
-      "  # 2 more folders",
-      "  a.txt",
-      "  b.txt",
-      "  # 1 more files"
-    ]
+    ["~/", "  alpha/", "  beta/", "  # 2 more folders", "  a.txt", "  b.txt", "  # 1 more files"]
   );
 });
 
 test("buildUserHomeFileTreeLines marks undisplayed children at the depth limit", () => {
   assert.deepEqual(
-    buildUserHomeFileTreeLines(
-      [
-        "~/projects/app/src/index.js",
-        "~/projects/app/README.md"
-      ],
-      {
-        maxDepth: 2,
-        maxLines: 20
-      }
-    ),
+    buildUserHomeFileTreeLines(["~/projects/app/src/index.js", "~/projects/app/README.md"], {
+      maxDepth: 2,
+      maxLines: 20
+    }),
     [
       "~/",
       "  projects/",
@@ -107,24 +77,12 @@ test("buildUserHomeFileTreeLines marks undisplayed children at the depth limit",
 
 test("buildUserHomeFileTreeLines keeps a visible line-limit summary when the tree is truncated", () => {
   assert.deepEqual(
-    buildUserHomeFileTreeLines(
-      [
-        "~/alpha/a/1.txt",
-        "~/alpha/b/2.txt",
-        "~/beta.txt"
-      ],
-      {
-        maxDepth: 4,
-        maxFilesPerFolder: 8,
-        maxFoldersPerFolder: 8,
-        maxLines: 4
-      }
-    ),
-    [
-      "~/",
-      "  alpha/",
-      "    # 2 more folders (line limit)",
-      "  beta.txt"
-    ]
+    buildUserHomeFileTreeLines(["~/alpha/a/1.txt", "~/alpha/b/2.txt", "~/beta.txt"], {
+      maxDepth: 4,
+      maxFilesPerFolder: 8,
+      maxFoldersPerFolder: 8,
+      maxLines: 4
+    }),
+    ["~/", "  alpha/", "    # 2 more folders (line limit)", "  beta.txt"]
   );
 });

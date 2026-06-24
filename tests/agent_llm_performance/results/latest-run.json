@@ -1,9 +1,7 @@
 {
   "generated_at": "2026-04-18T06:45:26.080Z",
   "generation_id": "2026-04-18T06-45-26-080Z",
-  "models": [
-    "openai/gpt-5.4-mini"
-  ],
+  "models": ["openai/gpt-5.4-mini"],
   "results": [
     {
       "prompt_id": "089A_086A_browser_skill_exact_id",
@@ -5714,9 +5712,7 @@
               "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
               "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
               "passed": false,
-              "failures": [
-                "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-              ],
+              "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
               "response_type": "thrust",
               "response": "Reading the contacts file now...\n\n\n_____javascript\nconst text = await space.api.fileRead(\"~/contacts.yaml\", \"utf8\")\nconst data = space.utils.yaml.parse(text)\n\nfunction walk(node) {\n  if (Array.isArray(node)) return node.map(walk)\n  if (node && typeof node === \"object\") {\n    for (const [k, v] of Object.entries(node)) {\n      if (k === \"mr_kowalski\" && typeof v === \"string\") {\n        node[k] = \"John Ronald Kowalski\"\n      } else {\n        node[k] = walk(v)\n      }\n    }\n  }\n  return node\n}\n\nconst updated = walk(data)\nreturn await space.api.fileWrite(\"~/contacts.yaml\", space.utils.yaml.stringify(updated), \"utf8\")",
               "usage": {
@@ -5752,9 +5748,7 @@
               "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
               "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
               "passed": false,
-              "failures": [
-                "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-              ],
+              "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
               "response_type": "thrust",
               "response": "Reading the current contacts file now...\n\n\n_____javascript\nconst text = await space.api.fileRead(\"~/contacts.yaml\", \"utf8\")\nconst data = space.utils.yaml.parse(text)\nfunction walk(node) {\n  if (Array.isArray(node)) return node.map(walk)\n  if (node && typeof node === \"object\") {\n    for (const [k, v] of Object.entries(node)) {\n      if (k === \"mr_kowalski\") {\n        if (typeof v === \"string\") node[k] = \"John Ronald Kowalski\"\n        else if (v && typeof v === \"object\") {\n          if (\"full_name\" in v) v.full_name = \"John Ronald Kowalski\"\n          else if (\"fullName\" in v) v.fullName = \"John Ronald Kowalski\"\n          else node[k] = { ...v, full_name: \"John Ronald Kowalski\" }\n        } else {\n          node[k] = \"John Ronald Kowalski\"\n        }\n      } else {\n        node[k] = walk(v)\n      }\n    }\n  }\n  return node\n}\nconst updated = walk(data)\nreturn await space.api.fileWrite(\"~/contacts.yaml\", space.utils.yaml.stringify(updated), \"utf8\")",
               "usage": {

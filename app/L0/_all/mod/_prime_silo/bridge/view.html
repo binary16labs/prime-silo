@@ -4,13 +4,28 @@
          mirrors these into its --ps-* tokens so it never drifts from the
          framework (make-project-right rule 9). -->
     <link rel="stylesheet" href="/mod/_core/framework/css/colors.css?v=1" />
-    <link rel="stylesheet" href="/mod/_prime_silo/widgets/memoray/overview_cards/overview_cards.css" />
-    <link rel="stylesheet" href="/mod/_prime_silo/widgets/memoray/lineage_graph/lineage_graph.css" />
+    <link
+      rel="stylesheet"
+      href="/mod/_prime_silo/widgets/memoray/overview_cards/overview_cards.css"
+    />
+    <link
+      rel="stylesheet"
+      href="/mod/_prime_silo/widgets/memoray/lineage_graph/lineage_graph.css"
+    />
     <link rel="stylesheet" href="/mod/_prime_silo/widgets/three_renderer/renderer.css" />
     <!-- Run observability widgets — render unstyled without these. -->
-    <link rel="stylesheet" href="/mod/_prime_silo/widgets/run/lineage_timeline/lineage_timeline.css" />
-    <link rel="stylesheet" href="/mod/_prime_silo/widgets/run/reasoning_trace/reasoning_trace.css" />
-    <link rel="stylesheet" href="/mod/_prime_silo/widgets/run/drilldown_table/drilldown_table.css" />
+    <link
+      rel="stylesheet"
+      href="/mod/_prime_silo/widgets/run/lineage_timeline/lineage_timeline.css"
+    />
+    <link
+      rel="stylesheet"
+      href="/mod/_prime_silo/widgets/run/reasoning_trace/reasoning_trace.css"
+    />
+    <link
+      rel="stylesheet"
+      href="/mod/_prime_silo/widgets/run/drilldown_table/drilldown_table.css"
+    />
     <link rel="stylesheet" href="/mod/_prime_silo/bridge/bridge.css?v=6" />
     <script type="module" src="/mod/_prime_silo/bridge/bridge.js"></script>
   </head>
@@ -38,8 +53,13 @@
           >
             <span class="ps-bridge__status-dot"></span>
             <span x-show="conformance.status === 'pass'">mesh healthy</span>
-            <span x-show="conformance.status === 'drift'" x-text="`drift (${conformance.driftCount})`"></span>
-            <span x-show="conformance.status === 'unknown' || !conformance.status">conformance —</span>
+            <span
+              x-show="conformance.status === 'drift'"
+              x-text="`drift (${conformance.driftCount})`"
+            ></span>
+            <span x-show="conformance.status === 'unknown' || !conformance.status"
+              >conformance —</span
+            >
           </span>
           <button
             type="button"
@@ -73,7 +93,11 @@
               <span x-text="m.label"></span>
             </button>
           </template>
-          <button type="button" class="ps-bridge__mode ps-bridge__mode--cta" @click="setMode('flows')">
+          <button
+            type="button"
+            class="ps-bridge__mode ps-bridge__mode--cta"
+            @click="setMode('flows')"
+          >
             <x-icon>add</x-icon>
             <span>New flow</span>
           </button>
@@ -82,7 +106,10 @@
         <!-- Stage -->
         <main class="ps-bridge__stage">
           <!-- workspace selector (shared, shown where it scopes the surface) -->
-          <div class="ps-bridge__stage-bar" x-show="['documents','code','flows','studio','runs'].includes(mode)">
+          <div
+            class="ps-bridge__stage-bar"
+            x-show="['documents','code','flows','studio','runs'].includes(mode)"
+          >
             <label class="ps-bridge__ws">
               <span>Workspace</span>
               <select x-model="workspace" @change="onWorkspaceChange()">
@@ -96,644 +123,1048 @@
           <!-- primary stage | secondary Observe pane (shown in split view) -->
           <div class="ps-bridge__panes" :class="{ 'is-split': splitActive }">
             <div class="ps-bridge__pane ps-bridge__pane--primary">
-
-          <!-- PULSE -->
-          <div class="ps-bridge__panel" x-show="mode === 'pulse'">
-            <div class="ps-bridge__cards" x-ref="pulseCards"></div>
-            <section class="ps-bridge__feed" aria-label="Mesh activity feed">
-              <h3>Lifelog <span class="ps-bridge__muted">— sessions, artifacts &amp; commits across the mesh</span></h3>
-              <p class="ps-bridge__muted" x-show="lifelogState === 'offline'">Memo-Ray is offline — boot it with <code>scripts/memoray.ps1</code>, then <button type="button" class="ps-bridge__link-btn" @click="loadLifelog()">retry</button>.</p>
-              <p class="ps-bridge__muted" x-show="lifelogState === 'disabled'">Memo-Ray is disabled (<code>node space set MEMORAY_ENABLED=true</code>).</p>
-              <p class="ps-bridge__muted" x-show="lifelogState === 'ready' && lifelog.length === 0">No recent activity.</p>
-              <ul class="ps-bridge__feed-list" x-show="lifelogState === 'ready'">
-                <template x-for="item in lifelog" :key="item.id">
-                  <li class="ps-bridge__feed-item" :data-kind="item.type">
-                    <x-icon class="ps-bridge__feed-icon" x-text="lifelogIcon(item.type)"></x-icon>
-                    <span class="ps-bridge__feed-body">
-                      <span class="ps-bridge__feed-text" x-text="item.content"></span>
-                      <span class="ps-bridge__feed-meta">
-                        <span x-text="item.project || item.agent || ''"></span>
-                        <span x-show="item.timestamp" x-text="' · ' + ago(item.timestamp)"></span>
-                      </span>
-                    </span>
-                  </li>
-                </template>
-              </ul>
-            </section>
-          </div>
-
-          <!-- MEMORY -->
-          <div class="ps-bridge__panel" x-show="mode === 'memory'">
-            <div class="ps-bridge__split">
-              <aside class="ps-bridge__list">
-                <h3>Sessions</h3>
-                <div class="ps-bridge__list-scroll">
-                  <template x-for="s in sessions" :key="s.id">
-                    <button type="button" class="ps-bridge__list-item" :class="{ 'is-active': s.id === activeSessionId }" @click="selectSession(s.id)">
-                      <span class="ps-bridge__list-title" x-text="s.content || 'Untitled'"></span>
-                      <span class="ps-bridge__list-sub"><span x-text="s.agent"></span> · <span x-text="(s.metadata && s.metadata.project) ? s.metadata.project : '—'"></span></span>
-                    </button>
-                  </template>
-                  <p class="ps-bridge__muted" x-show="sessions.length === 0">No sessions — boot Memo-Ray or sync.</p>
-                </div>
-              </aside>
-              <div class="ps-bridge__graph" x-ref="memoryGraph"></div>
-            </div>
-          </div>
-
-          <!-- DOCUMENTS -->
-          <div class="ps-bridge__panel" x-show="mode === 'documents'">
-            <div class="ps-bridge__docbar">
-              <div class="ps-bridge__files">
-                <h3>Documents
-                  <span class="ps-bridge__muted" x-text="`(${files.length} staged · ${pendingCount} awaiting · ${selectedFiles.length} selected)`"></span>
-                </h3>
-
-                <!-- Drag-and-drop drop zone: files go through Benny's /files/upload
-                     ingestion path, then land as 'Not ingested' until Ingest runs. -->
-                <div
-                  class="ps-bridge__dropzone"
-                  :class="{ 'is-dragover': dragOver, 'is-busy': uploading }"
-                  @dragover.prevent="onDragOver()"
-                  @dragenter.prevent="onDragOver()"
-                  @dragleave.prevent="onDragLeave()"
-                  @drop.prevent="onDrop($event)"
-                  @click="$refs.fileInput.click()"
-                  role="button"
-                  tabindex="0"
-                  @keydown.enter="$refs.fileInput.click()"
-                >
-                  <x-icon x-text="uploading ? 'hourglass_top' : 'upload_file'"></x-icon>
-                  <span x-text="uploading ? 'Uploading…' : 'Drop files here or click to upload'"></span>
-                  <span class="ps-bridge__muted">PDF · TXT · MD · JSON</span>
-                  <input
-                    type="file"
-                    x-ref="fileInput"
-                    class="ps-bridge__file-input"
-                    multiple
-                    accept=".pdf,.txt,.md,.json"
-                    @change="onFilePick($event)"
-                  />
-                </div>
-
-                <div class="ps-bridge__files-tools" x-show="files.length">
-                  <button type="button" class="ps-bridge__link" @click="selectAllFiles()">Select all</button>
-                  <span class="ps-bridge__muted">·</span>
-                  <button type="button" class="ps-bridge__link" @click="clearFileSelection()">None</button>
-                </div>
-                <ul class="ps-bridge__files-list">
-                  <template x-for="f in files" :key="f.name || f">
-                    <li class="ps-bridge__file-row">
-                      <label class="ps-bridge__file-pick">
-                        <input type="checkbox" :checked="isSelected(f.name)" @change="toggleFile(f.name)" />
-                        <span class="ps-bridge__file-name" x-text="f.name || f"></span>
-                      </label>
-                      <span
-                        class="ps-bridge__file-status"
-                        :class="statusClass(f.status)"
-                        x-text="f.chunks ? `${statusLabel(f.status)} · ${f.chunks} chunks` : statusLabel(f.status)"
-                      ></span>
-                    </li>
-                  </template>
-                  <li class="ps-bridge__muted" x-show="files.length === 0">No documents staged. Drop files above, or use the file explorer.</li>
-                </ul>
-                <div class="ps-bridge__doc-actions">
-                  <button type="button" class="ps-bridge__btn ps-bridge__btn--go" @click="ingest()" :disabled="ingesting || !selectedFiles.length">
-                    <x-icon x-text="ingesting ? 'hourglass_top' : 'auto_awesome'"></x-icon>
-                    <span x-text="ingesting ? 'Ingesting…' : `Ingest selected (${selectedFiles.length}) → triples`"></span>
-                  </button>
-                  <button type="button" class="ps-bridge__btn" @click="rescanWorkspace()" :disabled="rescanning">
-                    <x-icon x-text="rescanning ? 'hourglass_top' : 'refresh'"></x-icon>
-                    <span x-text="rescanning ? 'Rescanning…' : 'Rescan workspace'"></span>
-                  </button>
-                  <button type="button" class="ps-bridge__btn" @click="correlate()">
-                    <x-icon>hub</x-icon><span>Correlate w/ code</span>
-                  </button>
-                  <a class="ps-bridge__link" href="/#/file_explorer" target="_blank" rel="noopener">File explorer ↗</a>
-                </div>
-                <p class="ps-bridge__note" x-show="ingestNote" x-text="ingestNote"></p>
-
-                <!-- Ask the docs (semantic RAG over ingested chunks) -->
-                <div class="ps-bridge__ask">
-                  <div class="ps-bridge__ask-row">
-                    <input
-                      type="text"
-                      class="ps-bridge__ask-input"
-                      placeholder="Ask a question about these documents…"
-                      x-model="docQuestion"
-                      @keydown.enter="askDocs()"
-                      :disabled="asking"
-                    />
-                    <button type="button" class="ps-bridge__btn ps-bridge__btn--go" @click="askDocs()" :disabled="asking || !docQuestion.trim()">
-                      <x-icon x-text="asking ? 'hourglass_top' : 'forum'"></x-icon>
-                      <span x-text="asking ? 'Asking…' : 'Ask'"></span>
-                    </button>
-                    <label class="ps-bridge__ask-toggle" title="Agent decides whether/how to search, grades the chunks, and self-corrects. Off = quick single-shot retrieval.">
-                      <input type="checkbox" x-model="agentMode" />
-                      <span>Agent</span>
-                    </label>
-                  </div>
-                  <div class="ps-bridge__ask-answer" x-show="docAnswer" x-text="docAnswer"></div>
-                  <div class="ps-bridge__ask-route" x-show="docRoute">
-                    <span class="ps-bridge__muted">Agent route:</span>
-                    <span class="ps-bridge__file-status is-ingested" x-text="docRoute"></span>
-                    <span class="ps-bridge__muted" x-show="docTrace.length" x-text="docTrace.join(' → ')"></span>
-                  </div>
-                  <div class="ps-bridge__ask-sources" x-show="docSources.length">
-                    <span class="ps-bridge__muted">Sources:</span>
-                    <template x-for="s in docSources" :key="s">
-                      <span class="ps-bridge__file-status is-ingested" x-text="s"></span>
+              <!-- PULSE -->
+              <div class="ps-bridge__panel" x-show="mode === 'pulse'">
+                <div class="ps-bridge__cards" x-ref="pulseCards"></div>
+                <section class="ps-bridge__feed" aria-label="Mesh activity feed">
+                  <h3>
+                    Lifelog
+                    <span class="ps-bridge__muted"
+                      >— sessions, artifacts &amp; commits across the mesh</span
+                    >
+                  </h3>
+                  <p class="ps-bridge__muted" x-show="lifelogState === 'offline'">
+                    Memo-Ray is offline — boot it with <code>scripts/memoray.ps1</code>, then
+                    <button type="button" class="ps-bridge__link-btn" @click="loadLifelog()">
+                      retry</button
+                    >.
+                  </p>
+                  <p class="ps-bridge__muted" x-show="lifelogState === 'disabled'">
+                    Memo-Ray is disabled (<code>node space set MEMORAY_ENABLED=true</code>).
+                  </p>
+                  <p
+                    class="ps-bridge__muted"
+                    x-show="lifelogState === 'ready' && lifelog.length === 0"
+                  >
+                    No recent activity.
+                  </p>
+                  <ul class="ps-bridge__feed-list" x-show="lifelogState === 'ready'">
+                    <template x-for="item in lifelog" :key="item.id">
+                      <li class="ps-bridge__feed-item" :data-kind="item.type">
+                        <x-icon
+                          class="ps-bridge__feed-icon"
+                          x-text="lifelogIcon(item.type)"
+                        ></x-icon>
+                        <span class="ps-bridge__feed-body">
+                          <span class="ps-bridge__feed-text" x-text="item.content"></span>
+                          <span class="ps-bridge__feed-meta">
+                            <span x-text="item.project || item.agent || ''"></span>
+                            <span
+                              x-show="item.timestamp"
+                              x-text="' · ' + ago(item.timestamp)"
+                            ></span>
+                          </span>
+                        </span>
+                      </li>
                     </template>
-                  </div>
-                </div>
+                  </ul>
+                </section>
               </div>
-              <div class="ps-bridge__graph-wrap" :class="{ 'is-expanded': expanded }">
-                <div class="ps-bridge__graph-head">
-                  <div class="ps-bridge__graph-head-left">
-                    <span class="ps-bridge__muted">Knowledge graph — semantic triples</span>
-                    <div class="ps-bridge__filters" aria-label="Focus an abstraction layer">
-                      <button
-                        type="button"
-                        class="ps-bridge__filter"
-                        :class="{ 'ps-bridge__filter--on': !docsFocusLayer }"
-                        @click="setDocsFocus(0)"
-                      >All</button>
-                      <template x-for="l in [1, 2, 3, 4, 5]" :key="l">
+
+              <!-- MEMORY -->
+              <div class="ps-bridge__panel" x-show="mode === 'memory'">
+                <div class="ps-bridge__split">
+                  <aside class="ps-bridge__list">
+                    <h3>Sessions</h3>
+                    <div class="ps-bridge__list-scroll">
+                      <template x-for="s in sessions" :key="s.id">
                         <button
                           type="button"
-                          class="ps-bridge__filter"
-                          :class="{ 'ps-bridge__filter--on': docsFocusLayer === l }"
-                          @click="setDocsFocus(l)"
-                          x-text="'L' + l"
-                        ></button>
+                          class="ps-bridge__list-item"
+                          :class="{ 'is-active': s.id === activeSessionId }"
+                          @click="selectSession(s.id)"
+                        >
+                          <span
+                            class="ps-bridge__list-title"
+                            x-text="s.content || 'Untitled'"
+                          ></span>
+                          <span class="ps-bridge__list-sub"
+                            ><span x-text="s.agent"></span> ·
+                            <span
+                              x-text="(s.metadata && s.metadata.project) ? s.metadata.project : '—'"
+                            ></span
+                          ></span>
+                        </button>
                       </template>
+                      <p class="ps-bridge__muted" x-show="sessions.length === 0">
+                        No sessions — boot Memo-Ray or sync.
+                      </p>
                     </div>
-                  </div>
-                  <div class="ps-bridge__graph-head-right">
-                    <button
-                      type="button"
-                      class="ps-bridge__toggle"
-                      :class="{ 'ps-bridge__toggle--active': docsPhysics === 'fluid' }"
-                      x-show="docs3d"
-                      @click="toggleDocsPhysics()"
-                      x-text="docsPhysics === 'fluid' ? 'Fluid (Classic Benny)' : 'Rigid'"
-                    ></button>
-                    <button type="button" class="ps-bridge__toggle" @click="toggleDocs3d()" x-text="docs3d ? '2D' : '3D'"></button>
-                    <button type="button" class="ps-bridge__toggle" @click="toggleExpand()" x-text="expanded ? 'Collapse' : 'Expand'"></button>
-                  </div>
+                  </aside>
+                  <div class="ps-bridge__graph" x-ref="memoryGraph"></div>
                 </div>
-                <div class="ps-bridge__graph" x-ref="docsGraph"></div>
               </div>
-            </div>
-          </div>
 
-          <!-- CODE 3D -->
-          <div class="ps-bridge__panel" x-show="mode === 'code'">
-            <div class="ps-bridge__graph-wrap" :class="{ 'is-expanded': expanded }">
-              <div class="ps-bridge__graph-head">
-                <div class="ps-bridge__graph-head-left">
-                  <span class="ps-bridge__muted">Code graph — Tree-Sitter AST · workspace <span x-text="workspace"></span></span>
-                  <div class="ps-bridge__filters" aria-label="Filter node types">
-                    <template x-for="t in codeTypes" :key="t.id">
+              <!-- DOCUMENTS -->
+              <div class="ps-bridge__panel" x-show="mode === 'documents'">
+                <div class="ps-bridge__docbar">
+                  <div class="ps-bridge__files">
+                    <h3>
+                      Documents
+                      <span
+                        class="ps-bridge__muted"
+                        x-text="`(${files.length} staged · ${pendingCount} awaiting · ${selectedFiles.length} selected)`"
+                      ></span>
+                    </h3>
+
+                    <!-- Drag-and-drop drop zone: files go through Benny's /files/upload
+                     ingestion path, then land as 'Not ingested' until Ingest runs. -->
+                    <div
+                      class="ps-bridge__dropzone"
+                      :class="{ 'is-dragover': dragOver, 'is-busy': uploading }"
+                      @dragover.prevent="onDragOver()"
+                      @dragenter.prevent="onDragOver()"
+                      @dragleave.prevent="onDragLeave()"
+                      @drop.prevent="onDrop($event)"
+                      @click="$refs.fileInput.click()"
+                      role="button"
+                      tabindex="0"
+                      @keydown.enter="$refs.fileInput.click()"
+                    >
+                      <x-icon x-text="uploading ? 'hourglass_top' : 'upload_file'"></x-icon>
+                      <span
+                        x-text="uploading ? 'Uploading…' : 'Drop files here or click to upload'"
+                      ></span>
+                      <span class="ps-bridge__muted">PDF · TXT · MD · JSON</span>
+                      <input
+                        type="file"
+                        x-ref="fileInput"
+                        class="ps-bridge__file-input"
+                        multiple
+                        accept=".pdf,.txt,.md,.json"
+                        @change="onFilePick($event)"
+                      />
+                    </div>
+
+                    <div class="ps-bridge__files-tools" x-show="files.length">
+                      <button type="button" class="ps-bridge__link" @click="selectAllFiles()">
+                        Select all
+                      </button>
+                      <span class="ps-bridge__muted">·</span>
+                      <button type="button" class="ps-bridge__link" @click="clearFileSelection()">
+                        None
+                      </button>
+                    </div>
+                    <ul class="ps-bridge__files-list">
+                      <template x-for="f in files" :key="f.name || f">
+                        <li class="ps-bridge__file-row">
+                          <label class="ps-bridge__file-pick">
+                            <input
+                              type="checkbox"
+                              :checked="isSelected(f.name)"
+                              @change="toggleFile(f.name)"
+                            />
+                            <span class="ps-bridge__file-name" x-text="f.name || f"></span>
+                          </label>
+                          <span
+                            class="ps-bridge__file-status"
+                            :class="statusClass(f.status)"
+                            x-text="f.chunks ? `${statusLabel(f.status)} · ${f.chunks} chunks` : statusLabel(f.status)"
+                          ></span>
+                        </li>
+                      </template>
+                      <li class="ps-bridge__muted" x-show="files.length === 0">
+                        No documents staged. Drop files above, or use the file explorer.
+                      </li>
+                    </ul>
+                    <div class="ps-bridge__doc-actions">
                       <button
                         type="button"
-                        class="ps-bridge__filter"
-                        :class="codeVisibleTypes.includes(t.id) ? 'ps-bridge__filter--on' : 'ps-bridge__filter--off'"
-                        @click="toggleCodeType(t.id)"
+                        class="ps-bridge__btn ps-bridge__btn--go"
+                        @click="ingest()"
+                        :disabled="ingesting || !selectedFiles.length"
                       >
-                        <span class="ps-bridge__filter-swatch" :style="`background:${t.color}`"></span>
-                        <span x-text="t.id"></span>
+                        <x-icon x-text="ingesting ? 'hourglass_top' : 'auto_awesome'"></x-icon>
+                        <span
+                          x-text="ingesting ? 'Ingesting…' : `Ingest selected (${selectedFiles.length}) → triples`"
+                        ></span>
                       </button>
-                    </template>
-                  </div>
-                </div>
-                <div class="ps-bridge__graph-head-right">
-                  <button
-                    type="button"
-                    class="ps-bridge__toggle"
-                    :class="{ 'ps-bridge__toggle--active': codePhysics === 'fluid' }"
-                    x-show="code3d"
-                    @click="toggleCodePhysics()"
-                    x-text="codePhysics === 'fluid' ? 'Fluid (Classic Benny)' : 'Rigid'"
-                  ></button>
-                  <button type="button" class="ps-bridge__toggle" @click="toggleCode3d()" x-text="code3d ? '2D' : '3D'"></button>
-                  <button type="button" class="ps-bridge__toggle" @click="toggleExpand()" x-text="expanded ? 'Collapse' : 'Expand'"></button>
-                </div>
-              </div>
-              <div class="ps-bridge__graph ps-bridge__graph--tall" x-ref="codeGraph"></div>
-            </div>
-          </div>
-
-          <!-- FLOWS -->
-          <div class="ps-bridge__panel" x-show="mode === 'flows'">
-            <!-- Workflow library: manage / view / update from template or your own -->
-            <div class="ps-bridge__wflib">
-              <div class="ps-bridge__wflib-head">
-                <h3>Workflows <span class="ps-bridge__muted" x-text="`(${workflows.length})`"></span></h3>
-                <div class="ps-bridge__wflib-tools">
-                  <button type="button" class="ps-bridge__btn" @click="newWorkflow()"><x-icon>add</x-icon><span>New</span></button>
-                  <button type="button" class="ps-bridge__btn" @click="loadWorkflows()" :disabled="workflowsLoading">
-                    <x-icon x-text="workflowsLoading ? 'hourglass_top' : 'refresh'"></x-icon><span>Refresh</span>
-                  </button>
-                </div>
-              </div>
-              <div class="ps-bridge__wflib-body">
-                <ul class="ps-bridge__wflist">
-                  <template x-for="w in workflows" :key="w.id">
-                    <li class="ps-bridge__wfrow" :class="{ 'is-active': selectedWorkflowId === w.id }">
-                      <button type="button" class="ps-bridge__wfopen" @click="openWorkflow(w.id)">
-                        <span class="ps-bridge__wfname" x-text="w.name || w.id"></span>
-                        <span class="ps-bridge__wfbadge" :class="(w.type === 'example' || w.readonly) ? 'is-template' : 'is-user'"
-                              x-text="(w.type === 'example' || w.readonly) ? 'Template' : 'Yours'"></span>
+                      <button
+                        type="button"
+                        class="ps-bridge__btn"
+                        @click="rescanWorkspace()"
+                        :disabled="rescanning"
+                      >
+                        <x-icon x-text="rescanning ? 'hourglass_top' : 'refresh'"></x-icon>
+                        <span x-text="rescanning ? 'Rescanning…' : 'Rescan workspace'"></span>
                       </button>
-                      <button type="button" class="ps-bridge__wfdel" x-show="!(w.type === 'example' || w.readonly)"
-                              @click="deleteWorkflow(w.id)" title="Delete"><x-icon>delete</x-icon></button>
-                    </li>
-                  </template>
-                  <li class="ps-bridge__muted" x-show="!workflows.length && !workflowsLoading">No workflows yet — click New, clone a template, or Plan one below.</li>
-                </ul>
+                      <button type="button" class="ps-bridge__btn" @click="correlate()">
+                        <x-icon>hub</x-icon><span>Correlate w/ code</span>
+                      </button>
+                      <a
+                        class="ps-bridge__link"
+                        href="/#/file_explorer"
+                        target="_blank"
+                        rel="noopener"
+                        >File explorer ↗</a
+                      >
+                    </div>
+                    <p class="ps-bridge__note" x-show="ingestNote" x-text="ingestNote"></p>
 
-                <div class="ps-bridge__wfdetail" x-show="selectedWorkflow">
-                  <div class="ps-bridge__wfdetail-head">
-                    <template x-if="selectedWorkflow && workflowEditable()">
-                      <div class="ps-bridge__wfmeta">
-                        <input type="text" x-model="selectedWorkflow.name" placeholder="Workflow name" />
-                        <input type="text" x-model="selectedWorkflow.description" placeholder="Description (optional)" />
+                    <!-- Ask the docs (semantic RAG over ingested chunks) -->
+                    <div class="ps-bridge__ask">
+                      <div class="ps-bridge__ask-row">
+                        <input
+                          type="text"
+                          class="ps-bridge__ask-input"
+                          placeholder="Ask a question about these documents…"
+                          x-model="docQuestion"
+                          @keydown.enter="askDocs()"
+                          :disabled="asking"
+                        />
+                        <button
+                          type="button"
+                          class="ps-bridge__btn ps-bridge__btn--go"
+                          @click="askDocs()"
+                          :disabled="asking || !docQuestion.trim()"
+                        >
+                          <x-icon x-text="asking ? 'hourglass_top' : 'forum'"></x-icon>
+                          <span x-text="asking ? 'Asking…' : 'Ask'"></span>
+                        </button>
+                        <label
+                          class="ps-bridge__ask-toggle"
+                          title="Agent decides whether/how to search, grades the chunks, and self-corrects. Off = quick single-shot retrieval."
+                        >
+                          <input type="checkbox" x-model="agentMode" />
+                          <span>Agent</span>
+                        </label>
                       </div>
-                    </template>
-                    <template x-if="selectedWorkflow && !workflowEditable()">
-                      <strong x-text="selectedWorkflow ? (selectedWorkflow.name || selectedWorkflow.id) : ''"></strong>
-                    </template>
-                    <span class="ps-bridge__wfbadge is-template" x-show="selectedWorkflow && (selectedWorkflow.readonly || selectedWorkflow.type === 'example')">read-only template</span>
-                  </div>
-                  <div class="ps-bridge__wfactions">
-                    <button type="button" class="ps-bridge__btn" @click="designWorkflow()"><x-icon>account_tree</x-icon><span>Design</span></button>
-                    <button type="button" class="ps-bridge__btn" @click="designerOn = false; workflowEditing = !workflowEditing">
-                      <x-icon>data_object</x-icon><span x-text="workflowEditing ? 'Hide JSON' : 'Edit JSON'"></span>
-                    </button>
-                    <button type="button" class="ps-bridge__btn" @click="cloneWorkflow()"><x-icon>content_copy</x-icon><span>Clone</span></button>
-                    <button type="button" class="ps-bridge__btn ps-bridge__btn--go" x-show="workflowEditable()" @click="saveWorkflow()" :disabled="workflowSaving">
-                      <x-icon x-text="workflowSaving ? 'hourglass_top' : 'save'"></x-icon><span x-text="workflowSaving ? 'Saving…' : 'Save'"></span>
-                    </button>
-                  </div>
-
-                  <!-- visual node designer -->
-                  <div x-show="designerOn">
-                    <template x-if="designerNode">
-                      <div class="ps-bridge__wfnodeform">
-                        <span class="ps-bridge__muted">Selected node</span>
-                        <input type="text" x-model="designerNode.label" @input="applyDesignerNode()" placeholder="Label" />
-                        <select x-model="designerNode.type" @change="applyDesignerNode()">
-                          <option value="trigger">trigger</option>
-                          <option value="llm">llm</option>
-                          <option value="tool">tool</option>
-                          <option value="logic">logic</option>
-                          <option value="data">data</option>
-                          <option value="a2a">a2a</option>
-                        </select>
-                        <span class="ps-bridge__muted">drag a node's right dot onto another to connect · Delete key removes</span>
+                      <div
+                        class="ps-bridge__ask-answer"
+                        x-show="docAnswer"
+                        x-text="docAnswer"
+                      ></div>
+                      <div class="ps-bridge__ask-route" x-show="docRoute">
+                        <span class="ps-bridge__muted">Agent route:</span>
+                        <span class="ps-bridge__file-status is-ingested" x-text="docRoute"></span>
+                        <span
+                          class="ps-bridge__muted"
+                          x-show="docTrace.length"
+                          x-text="docTrace.join(' → ')"
+                        ></span>
                       </div>
-                    </template>
-                    <div x-ref="wfDesigner"></div>
-                  </div>
-
-                  <!-- raw JSON editor (fallback / power-user) -->
-                  <textarea class="ps-bridge__wfeditor" x-show="workflowEditing" x-model="workflowDraft" rows="12" spellcheck="false"
-                            placeholder='{ "id": "...", "name": "...", "nodes": [], "edges": [] }'></textarea>
-                </div>
-              </div>
-              <p class="ps-bridge__note" x-show="workflowNote" x-text="workflowNote"></p>
-            </div>
-
-            <div class="ps-bridge__flow">
-              <textarea
-                class="ps-bridge__req"
-                x-model="requirement"
-                rows="2"
-                placeholder="Describe what the pipeline should do — e.g. score trades for credit risk and explain the top exposures."
-              ></textarea>
-              <div class="ps-bridge__flow-actions">
-                <label class="ps-bridge__ws">
-                  <span>Strategy</span>
-                  <select x-model="strategy">
-                    <option value="auto">auto</option>
-                    <option value="oneshot">oneshot</option>
-                    <option value="incremental">incremental</option>
-                    <option value="swarm">swarm</option>
-                  </select>
-                </label>
-                <button type="button" class="ps-bridge__btn ps-bridge__btn--go" @click="planFlow()" :disabled="planning">
-                  <x-icon x-text="planning ? 'hourglass_top' : 'auto_fix_high'"></x-icon>
-                  <span x-text="planning ? 'Planning…' : 'Plan'"></span>
-                </button>
-                <x-icon class="ps-bridge__arrow">arrow_forward</x-icon>
-                <button type="button" class="ps-bridge__btn" @click="runFlow()" :disabled="running || !flowManifestId">
-                  <x-icon x-text="running ? 'hourglass_top' : 'play_arrow'"></x-icon>
-                  <span x-text="running ? 'Running…' : 'Run'"></span>
-                </button>
-              </div>
-              <p class="ps-bridge__note" x-show="flowNote" x-text="flowNote"></p>
-            </div>
-            <div class="ps-bridge__graph" x-ref="flowsDag"></div>
-
-            <!-- Deep produce: one goal → orchestrated fan-out → multi-panel view -->
-            <div class="ps-bridge__deep">
-              <div class="ps-bridge__deep-head">
-                <h3>Deep produce <span class="ps-bridge__muted">fan-out → multi-panel view</span></h3>
-              </div>
-              <textarea
-                class="ps-bridge__req"
-                x-model="dpGoal"
-                rows="2"
-                placeholder="One goal, decomposed into panels — each generated by its own model call, then synthesized into a multi-panel view with a full fan-out trace. e.g. 'A dashboard explaining how the Bridge cockpit works.'"
-              ></textarea>
-              <div class="ps-bridge__flow-actions">
-                <label class="ps-bridge__ws">
-                  <span>Panels</span>
-                  <select x-model.number="dpPanels">
-                    <option>3</option><option>4</option><option>5</option><option>6</option>
-                  </select>
-                </label>
-                <button type="button" class="ps-bridge__btn ps-bridge__btn--go" @click="deepProduce()" :disabled="dpStatus === 'running'">
-                  <x-icon x-text="dpStatus === 'running' ? 'hourglass_top' : 'dashboard_customize'"></x-icon>
-                  <span x-text="dpStatus === 'running' ? 'Producing…' : 'Deep produce'"></span>
-                </button>
-                <button type="button" class="ps-bridge__btn" x-show="dpRunId" @click="openDeepProduceTrace()">
-                  <x-icon>timeline</x-icon><span>Fan-out trace</span>
-                </button>
-              </div>
-              <p class="ps-bridge__note" x-show="dpNote" x-text="dpNote"></p>
-
-              <div class="ps-bridge__deep-view" x-show="dpView">
-                <h4 class="ps-bridge__deep-title" x-text="dpView && dpView.title"></h4>
-                <div class="ps-bridge__panels">
-                  <template x-for="p in (dpView ? dpView.panels : [])" :key="p.id">
-                    <article class="ps-bridge__panel-card">
-                      <h5 x-text="p.title"></h5>
-                      <pre class="ps-bridge__panel-md" x-text="p.markdown"></pre>
-                    </article>
-                  </template>
-                </div>
-                <details class="ps-bridge__deep-review" x-show="dpView && dpView.review">
-                  <summary>Reviewer critique</summary>
-                  <pre x-text="dpView && dpView.review"></pre>
-                </details>
-              </div>
-            </div>
-          </div>
-
-          <!-- STUDIO (notebook — cells unify ask + deep-produce) -->
-          <div class="ps-bridge__panel" x-show="mode === 'studio'">
-            <div class="ps-bridge__studio">
-              <div class="ps-bridge__studio-head">
-                <h3>Studio <span class="ps-bridge__muted">notebook — single chat responses &amp; multi-step reports in one place</span></h3>
-                <div class="ps-bridge__studio-tools">
-                  <button type="button" class="ps-bridge__btn" @click="addStudioCell('chat')"><x-icon>forum</x-icon><span>Chat cell</span></button>
-                  <button type="button" class="ps-bridge__btn" @click="addStudioCell('report')"><x-icon>dashboard_customize</x-icon><span>Report cell</span></button>
-                </div>
-              </div>
-
-              <div class="ps-bridge__cells">
-                <template x-for="cell in studioCells" :key="cell.id">
-                  <article class="ps-bridge__cell" :data-kind="cell.kind" :data-status="cell.status">
-                    <div class="ps-bridge__cell-bar">
-                      <span class="ps-bridge__cell-kind">
-                        <x-icon x-text="cell.kind === 'report' ? 'dashboard_customize' : 'forum'"></x-icon>
-                        <span x-text="cell.kind === 'report' ? 'Report' : 'Chat'"></span>
-                      </span>
-                      <span class="ps-bridge__cell-status" x-text="cell.status"></span>
-                      <span class="ps-bridge__metrics-spacer"></span>
-                      <label class="ps-bridge__ws" x-show="cell.kind === 'report'">
-                        <span>Panels</span>
-                        <select x-model.number="cell.panels"><option>3</option><option>4</option><option>5</option><option>6</option></select>
-                      </label>
-                      <button type="button" class="ps-bridge__wfdel" @click="removeStudioCell(cell.id)" title="Remove cell"><x-icon>close</x-icon></button>
-                    </div>
-
-                    <textarea
-                      class="ps-bridge__req"
-                      x-model="cell.prompt"
-                      rows="2"
-                      :placeholder="cell.kind === 'report' ? 'A goal to decompose into a multi-panel report — e.g. how the Bridge cockpit works.' : 'Ask a question grounded in this workspace…'"
-                      @keydown.enter.meta="runStudioCell(cell.id)"
-                    ></textarea>
-
-                    <div class="ps-bridge__flow-actions">
-                      <button type="button" class="ps-bridge__btn ps-bridge__btn--go" @click="runStudioCell(cell.id)" :disabled="cell.status === 'running'">
-                        <x-icon x-text="cell.status === 'running' ? 'hourglass_top' : 'play_arrow'"></x-icon>
-                        <span x-text="cell.status === 'running' ? 'Running…' : 'Run'"></span>
-                      </button>
-                      <button type="button" class="ps-bridge__btn" x-show="cell.kind === 'report' && cell.runId" @click="openStudioCellTrace(cell.id)">
-                        <x-icon>timeline</x-icon><span>Trace</span>
-                      </button>
-                      <span class="ps-bridge__muted" x-show="cell.note" x-text="cell.note"></span>
-                    </div>
-
-                    <!-- chat output -->
-                    <div class="ps-bridge__ask-answer" x-show="cell.kind === 'chat' && cell.answer" x-text="cell.answer"></div>
-                    <div class="ps-bridge__ask-route" x-show="cell.kind === 'chat' && cell.route">
-                      <span class="ps-bridge__muted">Route:</span>
-                      <span class="ps-bridge__file-status is-ingested" x-text="cell.route"></span>
-                      <span class="ps-bridge__muted" x-show="cell.trace.length" x-text="cell.trace.join(' → ')"></span>
-                    </div>
-                    <div class="ps-bridge__ask-sources" x-show="cell.kind === 'chat' && cell.sources.length">
-                      <span class="ps-bridge__muted">Sources:</span>
-                      <template x-for="s in cell.sources" :key="s">
-                        <span class="ps-bridge__file-status is-ingested" x-text="s"></span>
-                      </template>
-                    </div>
-
-                    <!-- report output -->
-                    <div class="ps-bridge__deep-view" x-show="cell.kind === 'report' && cell.view">
-                      <h4 class="ps-bridge__deep-title" x-text="cell.view && cell.view.title"></h4>
-                      <div class="ps-bridge__panels">
-                        <template x-for="p in (cell.view ? cell.view.panels : [])" :key="p.id">
-                          <article class="ps-bridge__panel-card">
-                            <h5 x-text="p.title"></h5>
-                            <pre class="ps-bridge__panel-md" x-text="p.markdown"></pre>
-                          </article>
+                      <div class="ps-bridge__ask-sources" x-show="docSources.length">
+                        <span class="ps-bridge__muted">Sources:</span>
+                        <template x-for="s in docSources" :key="s">
+                          <span class="ps-bridge__file-status is-ingested" x-text="s"></span>
                         </template>
                       </div>
-                      <details class="ps-bridge__deep-review" x-show="cell.view && cell.view.review">
-                        <summary>Reviewer critique</summary>
-                        <pre x-text="cell.view && cell.view.review"></pre>
-                      </details>
                     </div>
-                  </article>
-                </template>
-                <p class="ps-bridge__muted" x-show="!studioCells.length">No cells yet — add a Chat or Report cell above.</p>
+                  </div>
+                  <div class="ps-bridge__graph-wrap" :class="{ 'is-expanded': expanded }">
+                    <div class="ps-bridge__graph-head">
+                      <div class="ps-bridge__graph-head-left">
+                        <span class="ps-bridge__muted">Knowledge graph — semantic triples</span>
+                        <div class="ps-bridge__filters" aria-label="Focus an abstraction layer">
+                          <button
+                            type="button"
+                            class="ps-bridge__filter"
+                            :class="{ 'ps-bridge__filter--on': !docsFocusLayer }"
+                            @click="setDocsFocus(0)"
+                          >
+                            All
+                          </button>
+                          <template x-for="l in [1, 2, 3, 4, 5]" :key="l">
+                            <button
+                              type="button"
+                              class="ps-bridge__filter"
+                              :class="{ 'ps-bridge__filter--on': docsFocusLayer === l }"
+                              @click="setDocsFocus(l)"
+                              x-text="'L' + l"
+                            ></button>
+                          </template>
+                        </div>
+                      </div>
+                      <div class="ps-bridge__graph-head-right">
+                        <button
+                          type="button"
+                          class="ps-bridge__toggle"
+                          :class="{ 'ps-bridge__toggle--active': docsPhysics === 'fluid' }"
+                          x-show="docs3d"
+                          @click="toggleDocsPhysics()"
+                          x-text="docsPhysics === 'fluid' ? 'Fluid (Classic Benny)' : 'Rigid'"
+                        ></button>
+                        <button
+                          type="button"
+                          class="ps-bridge__toggle"
+                          @click="toggleDocs3d()"
+                          x-text="docs3d ? '2D' : '3D'"
+                        ></button>
+                        <button
+                          type="button"
+                          class="ps-bridge__toggle"
+                          @click="toggleExpand()"
+                          x-text="expanded ? 'Collapse' : 'Expand'"
+                        ></button>
+                      </div>
+                    </div>
+                    <div class="ps-bridge__graph" x-ref="docsGraph"></div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          <!-- RUNS -->
-          <div class="ps-bridge__panel" x-show="mode === 'runs'">
-            <div class="ps-bridge__split">
-              <aside class="ps-bridge__list">
-                <h3>Runs</h3>
-                <div class="ps-bridge__list-scroll">
-                  <template x-for="r in runs" :key="r.run_id || r.id">
-                    <button type="button" class="ps-bridge__list-item" :class="{ 'is-active': (r.run_id || r.id) === activeRunId }" @click="selectRun(r.run_id || r.id)">
-                      <span class="ps-bridge__list-title" x-text="(r.run_id || r.id || '').slice(0, 18)"></span>
-                      <span class="ps-bridge__list-sub" x-text="r.status || ''"></span>
-                    </button>
-                  </template>
-                  <p class="ps-bridge__muted" x-show="runs.length === 0">No runs yet — plan and run a flow.</p>
-                </div>
-              </aside>
-              <div class="ps-bridge__runstage">
-                <!-- run metrics strip — real fields only (status, timing, steps,
-                     failures, errors) + a live indicator and poll toggle. -->
-                <div class="ps-bridge__metrics" x-show="activeRunId">
-                  <span class="ps-bridge__metric ps-bridge__metric--status" :data-status="String(runMetrics.status).toLowerCase()">
-                    <x-icon>radio_button_checked</x-icon><span x-text="runMetrics.status"></span>
-                  </span>
-                  <span class="ps-bridge__metric"><x-icon>schedule</x-icon><span x-text="runMetrics.duration"></span></span>
-                  <span class="ps-bridge__metric"><x-icon>account_tree</x-icon><span x-text="runMetrics.steps + ' steps'"></span></span>
-                  <span class="ps-bridge__metric is-bad" x-show="runMetrics.failed"><x-icon>error</x-icon><span x-text="runMetrics.failed + ' failed'"></span></span>
-                  <span class="ps-bridge__metric is-bad" x-show="runMetrics.errors"><x-icon>report</x-icon><span x-text="runMetrics.errors + ' errors'"></span></span>
-                  <span class="ps-bridge__metric ps-bridge__metric--live" x-show="runMetrics.inflight"><span class="ps-bridge__live-dot"></span> live</span>
-                  <span class="ps-bridge__metrics-spacer"></span>
-                  <button type="button" class="ps-bridge__toggle" :class="{ 'ps-bridge__toggle--active': livePoll }" @click="toggleLive()" x-text="livePoll ? 'Live on' : 'Live off'"></button>
-                </div>
-
-                <!-- steps — click to drill into a step's rows + CLP binding. -->
-                <div class="ps-bridge__steps" x-show="runStepRows.length">
-                  <span class="ps-bridge__muted">Steps</span>
-                  <template x-for="s in runStepRows" :key="s.id">
-                    <button type="button" class="ps-bridge__step" :class="{ 'is-active': s.id === activeStepId }" :data-status="String(s.status).toLowerCase()" @click="selectStep(s.id)">
-                      <span x-text="s.id"></span>
-                    </button>
-                  </template>
-                </div>
-
-                <div class="ps-bridge__drill" x-ref="runsDrilldown" x-show="activeStepId"></div>
-
-                <div class="ps-bridge__graph" x-ref="runsTimeline"></div>
-                <div class="ps-bridge__graph" x-ref="runsTrace"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- AGENTS (model + provider routing — single config surface) -->
-          <div class="ps-bridge__panel" x-show="mode === 'agents'">
-            <div class="ps-bridge__agents">
-              <div class="ps-bridge__agents-col">
-                <h3>Providers</h3>
-                <p class="ps-bridge__muted">Local model servers Benny can route to. Start one, then assign its models below.</p>
-                <ul class="ps-bridge__provider-list">
-                  <template x-for="p in agentProviderList()" :key="p.key">
-                    <li class="ps-bridge__provider">
-                      <span class="ps-bridge__provider-dot" :class="p.running ? 'is-on' : 'is-off'"></span>
-                      <span class="ps-bridge__provider-name" x-text="p.name"></span>
-                      <span class="ps-bridge__provider-meta" x-text="(p.running ? (p.models + ' models') : 'stopped') + (p.port ? ' · :' + p.port : '')"></span>
-                      <span class="ps-bridge__provider-err" x-show="p.error" x-text="p.error"></span>
+              <!-- CODE 3D -->
+              <div class="ps-bridge__panel" x-show="mode === 'code'">
+                <div class="ps-bridge__graph-wrap" :class="{ 'is-expanded': expanded }">
+                  <div class="ps-bridge__graph-head">
+                    <div class="ps-bridge__graph-head-left">
+                      <span class="ps-bridge__muted"
+                        >Code graph — Tree-Sitter AST · workspace <span x-text="workspace"></span
+                      ></span>
+                      <div class="ps-bridge__filters" aria-label="Filter node types">
+                        <template x-for="t in codeTypes" :key="t.id">
+                          <button
+                            type="button"
+                            class="ps-bridge__filter"
+                            :class="codeVisibleTypes.includes(t.id) ? 'ps-bridge__filter--on' : 'ps-bridge__filter--off'"
+                            @click="toggleCodeType(t.id)"
+                          >
+                            <span
+                              class="ps-bridge__filter-swatch"
+                              :style="`background:${t.color}`"
+                            ></span>
+                            <span x-text="t.id"></span>
+                          </button>
+                        </template>
+                      </div>
+                    </div>
+                    <div class="ps-bridge__graph-head-right">
                       <button
                         type="button"
                         class="ps-bridge__toggle"
-                        x-show="p.running ? p.canStop : p.canStart"
-                        @click="toggleProvider(p.key, p.running)"
-                        x-text="p.running ? 'Stop' : 'Start'"
+                        :class="{ 'ps-bridge__toggle--active': codePhysics === 'fluid' }"
+                        x-show="code3d"
+                        @click="toggleCodePhysics()"
+                        x-text="codePhysics === 'fluid' ? 'Fluid (Classic Benny)' : 'Rigid'"
                       ></button>
-                    </li>
-                  </template>
-                </ul>
-                <button type="button" class="ps-bridge__btn" @click="loadAgents()">
-                  <x-icon>refresh</x-icon><span>Refresh</span>
-                </button>
+                      <button
+                        type="button"
+                        class="ps-bridge__toggle"
+                        @click="toggleCode3d()"
+                        x-text="code3d ? '2D' : '3D'"
+                      ></button>
+                      <button
+                        type="button"
+                        class="ps-bridge__toggle"
+                        @click="toggleExpand()"
+                        x-text="expanded ? 'Collapse' : 'Expand'"
+                      ></button>
+                    </div>
+                  </div>
+                  <div class="ps-bridge__graph ps-bridge__graph--tall" x-ref="codeGraph"></div>
+                </div>
               </div>
 
-              <div class="ps-bridge__agents-col ps-bridge__agents-col--wide">
-                <h3>Model routing</h3>
-                <p class="ps-bridge__muted">One place to choose which model runs each role. Saved to the workspace manifest — <code>get_active_model()</code> reads it on the next call. Leave a role on <em>Default</em> to inherit the default model.</p>
-                <template x-if="agentConfig">
-                  <div class="ps-bridge__routing">
-                    <div class="ps-bridge__field">
-                      <label class="form-label">Default model (master)</label>
-                      <select class="ps-bridge__select" x-model="agentConfig.default_model">
-                        <option value="">Auto-detect (running local provider)</option>
-                        <template x-for="opt in agentModelOptions" :key="opt.value">
-                          <option :value="opt.value" x-text="opt.label + '  ·  ' + opt.provider + (opt.running ? '' : ' (stopped)')"></option>
-                        </template>
-                      </select>
-                    </div>
-
-                    <template x-for="role in agentRoles" :key="role">
-                      <div class="ps-bridge__field">
-                        <label class="form-label" x-text="role"></label>
-                        <select class="ps-bridge__select" :value="roleValue(role)" @change="setRoleValue(role, $event.target.value)">
-                          <option value="">Default (inherit)</option>
-                          <template x-for="opt in agentModelOptions" :key="role + ':' + opt.value">
-                            <option :value="opt.value" :selected="roleValue(role) === opt.value" x-text="opt.label + '  ·  ' + opt.provider + (opt.running ? '' : ' (stopped)')"></option>
-                          </template>
-                        </select>
-                        <span class="ps-bridge__resolved" x-show="resolvedFor(role)">resolves to <strong x-text="resolvedFor(role)"></strong></span>
-                      </div>
-                    </template>
-
-                    <div class="ps-bridge__thinking" x-show="agentModelOptions.length">
-                      <label class="form-label">Reasoning (thinking)</label>
-                      <p class="ps-bridge__muted">Turn a reasoning model's hidden chain-of-thought off when it burns the token budget or returns empty (e.g. gemma-4-12b-qat, Qwen3-8B-Hybrid). Leave on for models that need it (qwen3.5-9b-FLM). Applies <code>/no_think</code> + <code>enable_thinking:false</code>.</p>
-                      <template x-for="opt in agentModelOptions" :key="'think:' + opt.value">
-                        <label class="ps-bridge__think-row">
-                          <input type="checkbox" :checked="!thinkingOff(opt.value)" @change="toggleThinking(opt.value)" />
-                          <span class="ps-bridge__think-name" x-text="opt.label"></span>
-                          <span class="ps-bridge__muted" x-text="opt.provider + (opt.running ? '' : ' (stopped)')"></span>
-                          <span class="ps-bridge__think-state" x-text="thinkingOff(opt.value) ? 'thinking off' : 'thinking on'"></span>
-                        </label>
-                      </template>
-                    </div>
-
-                    <div class="ps-bridge__doc-actions">
-                      <button type="button" class="ps-bridge__btn ps-bridge__btn--go" @click="saveAgents()" :disabled="agentSaving">
-                        <x-icon x-text="agentSaving ? 'hourglass_top' : 'save'"></x-icon>
-                        <span x-text="agentSaving ? 'Saving…' : 'Save routing'"></span>
+              <!-- FLOWS -->
+              <div class="ps-bridge__panel" x-show="mode === 'flows'">
+                <!-- Workflow library: manage / view / update from template or your own -->
+                <div class="ps-bridge__wflib">
+                  <div class="ps-bridge__wflib-head">
+                    <h3>
+                      Workflows
+                      <span class="ps-bridge__muted" x-text="`(${workflows.length})`"></span>
+                    </h3>
+                    <div class="ps-bridge__wflib-tools">
+                      <button type="button" class="ps-bridge__btn" @click="newWorkflow()">
+                        <x-icon>add</x-icon><span>New</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="ps-bridge__btn"
+                        @click="loadWorkflows()"
+                        :disabled="workflowsLoading"
+                      >
+                        <x-icon x-text="workflowsLoading ? 'hourglass_top' : 'refresh'"></x-icon
+                        ><span>Refresh</span>
                       </button>
                     </div>
                   </div>
-                </template>
-                <p class="ps-bridge__note" x-show="agentNote" x-text="agentNote"></p>
+                  <div class="ps-bridge__wflib-body">
+                    <ul class="ps-bridge__wflist">
+                      <template x-for="w in workflows" :key="w.id">
+                        <li
+                          class="ps-bridge__wfrow"
+                          :class="{ 'is-active': selectedWorkflowId === w.id }"
+                        >
+                          <button
+                            type="button"
+                            class="ps-bridge__wfopen"
+                            @click="openWorkflow(w.id)"
+                          >
+                            <span class="ps-bridge__wfname" x-text="w.name || w.id"></span>
+                            <span
+                              class="ps-bridge__wfbadge"
+                              :class="(w.type === 'example' || w.readonly) ? 'is-template' : 'is-user'"
+                              x-text="(w.type === 'example' || w.readonly) ? 'Template' : 'Yours'"
+                            ></span>
+                          </button>
+                          <button
+                            type="button"
+                            class="ps-bridge__wfdel"
+                            x-show="!(w.type === 'example' || w.readonly)"
+                            @click="deleteWorkflow(w.id)"
+                            title="Delete"
+                          >
+                            <x-icon>delete</x-icon>
+                          </button>
+                        </li>
+                      </template>
+                      <li class="ps-bridge__muted" x-show="!workflows.length && !workflowsLoading">
+                        No workflows yet — click New, clone a template, or Plan one below.
+                      </li>
+                    </ul>
+
+                    <div class="ps-bridge__wfdetail" x-show="selectedWorkflow">
+                      <div class="ps-bridge__wfdetail-head">
+                        <template x-if="selectedWorkflow && workflowEditable()">
+                          <div class="ps-bridge__wfmeta">
+                            <input
+                              type="text"
+                              x-model="selectedWorkflow.name"
+                              placeholder="Workflow name"
+                            />
+                            <input
+                              type="text"
+                              x-model="selectedWorkflow.description"
+                              placeholder="Description (optional)"
+                            />
+                          </div>
+                        </template>
+                        <template x-if="selectedWorkflow && !workflowEditable()">
+                          <strong
+                            x-text="selectedWorkflow ? (selectedWorkflow.name || selectedWorkflow.id) : ''"
+                          ></strong>
+                        </template>
+                        <span
+                          class="ps-bridge__wfbadge is-template"
+                          x-show="selectedWorkflow && (selectedWorkflow.readonly || selectedWorkflow.type === 'example')"
+                          >read-only template</span
+                        >
+                      </div>
+                      <div class="ps-bridge__wfactions">
+                        <button type="button" class="ps-bridge__btn" @click="designWorkflow()">
+                          <x-icon>account_tree</x-icon><span>Design</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="ps-bridge__btn"
+                          @click="designerOn = false; workflowEditing = !workflowEditing"
+                        >
+                          <x-icon>data_object</x-icon
+                          ><span x-text="workflowEditing ? 'Hide JSON' : 'Edit JSON'"></span>
+                        </button>
+                        <button type="button" class="ps-bridge__btn" @click="cloneWorkflow()">
+                          <x-icon>content_copy</x-icon><span>Clone</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="ps-bridge__btn ps-bridge__btn--go"
+                          x-show="workflowEditable()"
+                          @click="saveWorkflow()"
+                          :disabled="workflowSaving"
+                        >
+                          <x-icon x-text="workflowSaving ? 'hourglass_top' : 'save'"></x-icon
+                          ><span x-text="workflowSaving ? 'Saving…' : 'Save'"></span>
+                        </button>
+                      </div>
+
+                      <!-- visual node designer -->
+                      <div x-show="designerOn">
+                        <template x-if="designerNode">
+                          <div class="ps-bridge__wfnodeform">
+                            <span class="ps-bridge__muted">Selected node</span>
+                            <input
+                              type="text"
+                              x-model="designerNode.label"
+                              @input="applyDesignerNode()"
+                              placeholder="Label"
+                            />
+                            <select x-model="designerNode.type" @change="applyDesignerNode()">
+                              <option value="trigger">trigger</option>
+                              <option value="llm">llm</option>
+                              <option value="tool">tool</option>
+                              <option value="logic">logic</option>
+                              <option value="data">data</option>
+                              <option value="a2a">a2a</option>
+                            </select>
+                            <span class="ps-bridge__muted"
+                              >drag a node's right dot onto another to connect · Delete key
+                              removes</span
+                            >
+                          </div>
+                        </template>
+                        <div x-ref="wfDesigner"></div>
+                      </div>
+
+                      <!-- raw JSON editor (fallback / power-user) -->
+                      <textarea
+                        class="ps-bridge__wfeditor"
+                        x-show="workflowEditing"
+                        x-model="workflowDraft"
+                        rows="12"
+                        spellcheck="false"
+                        placeholder='{ "id": "...", "name": "...", "nodes": [], "edges": [] }'
+                      ></textarea>
+                    </div>
+                  </div>
+                  <p class="ps-bridge__note" x-show="workflowNote" x-text="workflowNote"></p>
+                </div>
+
+                <div class="ps-bridge__flow">
+                  <textarea
+                    class="ps-bridge__req"
+                    x-model="requirement"
+                    rows="2"
+                    placeholder="Describe what the pipeline should do — e.g. score trades for credit risk and explain the top exposures."
+                  ></textarea>
+                  <div class="ps-bridge__flow-actions">
+                    <label class="ps-bridge__ws">
+                      <span>Strategy</span>
+                      <select x-model="strategy">
+                        <option value="auto">auto</option>
+                        <option value="oneshot">oneshot</option>
+                        <option value="incremental">incremental</option>
+                        <option value="swarm">swarm</option>
+                      </select>
+                    </label>
+                    <button
+                      type="button"
+                      class="ps-bridge__btn ps-bridge__btn--go"
+                      @click="planFlow()"
+                      :disabled="planning"
+                    >
+                      <x-icon x-text="planning ? 'hourglass_top' : 'auto_fix_high'"></x-icon>
+                      <span x-text="planning ? 'Planning…' : 'Plan'"></span>
+                    </button>
+                    <x-icon class="ps-bridge__arrow">arrow_forward</x-icon>
+                    <button
+                      type="button"
+                      class="ps-bridge__btn"
+                      @click="runFlow()"
+                      :disabled="running || !flowManifestId"
+                    >
+                      <x-icon x-text="running ? 'hourglass_top' : 'play_arrow'"></x-icon>
+                      <span x-text="running ? 'Running…' : 'Run'"></span>
+                    </button>
+                  </div>
+                  <p class="ps-bridge__note" x-show="flowNote" x-text="flowNote"></p>
+                </div>
+                <div class="ps-bridge__graph" x-ref="flowsDag"></div>
+
+                <!-- Deep produce: one goal → orchestrated fan-out → multi-panel view -->
+                <div class="ps-bridge__deep">
+                  <div class="ps-bridge__deep-head">
+                    <h3>
+                      Deep produce <span class="ps-bridge__muted">fan-out → multi-panel view</span>
+                    </h3>
+                  </div>
+                  <textarea
+                    class="ps-bridge__req"
+                    x-model="dpGoal"
+                    rows="2"
+                    placeholder="One goal, decomposed into panels — each generated by its own model call, then synthesized into a multi-panel view with a full fan-out trace. e.g. 'A dashboard explaining how the Bridge cockpit works.'"
+                  ></textarea>
+                  <div class="ps-bridge__flow-actions">
+                    <label class="ps-bridge__ws">
+                      <span>Panels</span>
+                      <select x-model.number="dpPanels">
+                        <option>3</option>
+                        <option>4</option>
+                        <option>5</option>
+                        <option>6</option>
+                      </select>
+                    </label>
+                    <button
+                      type="button"
+                      class="ps-bridge__btn ps-bridge__btn--go"
+                      @click="deepProduce()"
+                      :disabled="dpStatus === 'running'"
+                    >
+                      <x-icon
+                        x-text="dpStatus === 'running' ? 'hourglass_top' : 'dashboard_customize'"
+                      ></x-icon>
+                      <span x-text="dpStatus === 'running' ? 'Producing…' : 'Deep produce'"></span>
+                    </button>
+                    <button
+                      type="button"
+                      class="ps-bridge__btn"
+                      x-show="dpRunId"
+                      @click="openDeepProduceTrace()"
+                    >
+                      <x-icon>timeline</x-icon><span>Fan-out trace</span>
+                    </button>
+                  </div>
+                  <p class="ps-bridge__note" x-show="dpNote" x-text="dpNote"></p>
+
+                  <div class="ps-bridge__deep-view" x-show="dpView">
+                    <h4 class="ps-bridge__deep-title" x-text="dpView && dpView.title"></h4>
+                    <div class="ps-bridge__panels">
+                      <template x-for="p in (dpView ? dpView.panels : [])" :key="p.id">
+                        <article class="ps-bridge__panel-card">
+                          <h5 x-text="p.title"></h5>
+                          <pre class="ps-bridge__panel-md" x-text="p.markdown"></pre>
+                        </article>
+                      </template>
+                    </div>
+                    <details class="ps-bridge__deep-review" x-show="dpView && dpView.review">
+                      <summary>Reviewer critique</summary>
+                      <pre x-text="dpView && dpView.review"></pre>
+                    </details>
+                  </div>
+                </div>
+              </div>
+
+              <!-- STUDIO (notebook — cells unify ask + deep-produce) -->
+              <div class="ps-bridge__panel" x-show="mode === 'studio'">
+                <div class="ps-bridge__studio">
+                  <div class="ps-bridge__studio-head">
+                    <h3>
+                      Studio
+                      <span class="ps-bridge__muted"
+                        >notebook — single chat responses &amp; multi-step reports in one
+                        place</span
+                      >
+                    </h3>
+                    <div class="ps-bridge__studio-tools">
+                      <button type="button" class="ps-bridge__btn" @click="addStudioCell('chat')">
+                        <x-icon>forum</x-icon><span>Chat cell</span>
+                      </button>
+                      <button type="button" class="ps-bridge__btn" @click="addStudioCell('report')">
+                        <x-icon>dashboard_customize</x-icon><span>Report cell</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="ps-bridge__cells">
+                    <template x-for="cell in studioCells" :key="cell.id">
+                      <article
+                        class="ps-bridge__cell"
+                        :data-kind="cell.kind"
+                        :data-status="cell.status"
+                      >
+                        <div class="ps-bridge__cell-bar">
+                          <span class="ps-bridge__cell-kind">
+                            <x-icon
+                              x-text="cell.kind === 'report' ? 'dashboard_customize' : 'forum'"
+                            ></x-icon>
+                            <span x-text="cell.kind === 'report' ? 'Report' : 'Chat'"></span>
+                          </span>
+                          <span class="ps-bridge__cell-status" x-text="cell.status"></span>
+                          <span class="ps-bridge__metrics-spacer"></span>
+                          <label class="ps-bridge__ws" x-show="cell.kind === 'report'">
+                            <span>Panels</span>
+                            <select x-model.number="cell.panels">
+                              <option>3</option>
+                              <option>4</option>
+                              <option>5</option>
+                              <option>6</option>
+                            </select>
+                          </label>
+                          <button
+                            type="button"
+                            class="ps-bridge__wfdel"
+                            @click="removeStudioCell(cell.id)"
+                            title="Remove cell"
+                          >
+                            <x-icon>close</x-icon>
+                          </button>
+                        </div>
+
+                        <textarea
+                          class="ps-bridge__req"
+                          x-model="cell.prompt"
+                          rows="2"
+                          :placeholder="cell.kind === 'report' ? 'A goal to decompose into a multi-panel report — e.g. how the Bridge cockpit works.' : 'Ask a question grounded in this workspace…'"
+                          @keydown.enter.meta="runStudioCell(cell.id)"
+                        ></textarea>
+
+                        <div class="ps-bridge__flow-actions">
+                          <button
+                            type="button"
+                            class="ps-bridge__btn ps-bridge__btn--go"
+                            @click="runStudioCell(cell.id)"
+                            :disabled="cell.status === 'running'"
+                          >
+                            <x-icon
+                              x-text="cell.status === 'running' ? 'hourglass_top' : 'play_arrow'"
+                            ></x-icon>
+                            <span x-text="cell.status === 'running' ? 'Running…' : 'Run'"></span>
+                          </button>
+                          <button
+                            type="button"
+                            class="ps-bridge__btn"
+                            x-show="cell.kind === 'report' && cell.runId"
+                            @click="openStudioCellTrace(cell.id)"
+                          >
+                            <x-icon>timeline</x-icon><span>Trace</span>
+                          </button>
+                          <span
+                            class="ps-bridge__muted"
+                            x-show="cell.note"
+                            x-text="cell.note"
+                          ></span>
+                        </div>
+
+                        <!-- chat output -->
+                        <div
+                          class="ps-bridge__ask-answer"
+                          x-show="cell.kind === 'chat' && cell.answer"
+                          x-text="cell.answer"
+                        ></div>
+                        <div
+                          class="ps-bridge__ask-route"
+                          x-show="cell.kind === 'chat' && cell.route"
+                        >
+                          <span class="ps-bridge__muted">Route:</span>
+                          <span
+                            class="ps-bridge__file-status is-ingested"
+                            x-text="cell.route"
+                          ></span>
+                          <span
+                            class="ps-bridge__muted"
+                            x-show="cell.trace.length"
+                            x-text="cell.trace.join(' → ')"
+                          ></span>
+                        </div>
+                        <div
+                          class="ps-bridge__ask-sources"
+                          x-show="cell.kind === 'chat' && cell.sources.length"
+                        >
+                          <span class="ps-bridge__muted">Sources:</span>
+                          <template x-for="s in cell.sources" :key="s">
+                            <span class="ps-bridge__file-status is-ingested" x-text="s"></span>
+                          </template>
+                        </div>
+
+                        <!-- report output -->
+                        <div
+                          class="ps-bridge__deep-view"
+                          x-show="cell.kind === 'report' && cell.view"
+                        >
+                          <h4
+                            class="ps-bridge__deep-title"
+                            x-text="cell.view && cell.view.title"
+                          ></h4>
+                          <div class="ps-bridge__panels">
+                            <template x-for="p in (cell.view ? cell.view.panels : [])" :key="p.id">
+                              <article class="ps-bridge__panel-card">
+                                <h5 x-text="p.title"></h5>
+                                <pre class="ps-bridge__panel-md" x-text="p.markdown"></pre>
+                              </article>
+                            </template>
+                          </div>
+                          <details
+                            class="ps-bridge__deep-review"
+                            x-show="cell.view && cell.view.review"
+                          >
+                            <summary>Reviewer critique</summary>
+                            <pre x-text="cell.view && cell.view.review"></pre>
+                          </details>
+                        </div>
+                      </article>
+                    </template>
+                    <p class="ps-bridge__muted" x-show="!studioCells.length">
+                      No cells yet — add a Chat or Report cell above.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- RUNS -->
+              <div class="ps-bridge__panel" x-show="mode === 'runs'">
+                <div class="ps-bridge__split">
+                  <aside class="ps-bridge__list">
+                    <h3>Runs</h3>
+                    <div class="ps-bridge__list-scroll">
+                      <template x-for="r in runs" :key="r.run_id || r.id">
+                        <button
+                          type="button"
+                          class="ps-bridge__list-item"
+                          :class="{ 'is-active': (r.run_id || r.id) === activeRunId }"
+                          @click="selectRun(r.run_id || r.id)"
+                        >
+                          <span
+                            class="ps-bridge__list-title"
+                            x-text="(r.run_id || r.id || '').slice(0, 18)"
+                          ></span>
+                          <span class="ps-bridge__list-sub" x-text="r.status || ''"></span>
+                        </button>
+                      </template>
+                      <p class="ps-bridge__muted" x-show="runs.length === 0">
+                        No runs yet — plan and run a flow.
+                      </p>
+                    </div>
+                  </aside>
+                  <div class="ps-bridge__runstage">
+                    <!-- run metrics strip — real fields only (status, timing, steps,
+                     failures, errors) + a live indicator and poll toggle. -->
+                    <div class="ps-bridge__metrics" x-show="activeRunId">
+                      <span
+                        class="ps-bridge__metric ps-bridge__metric--status"
+                        :data-status="String(runMetrics.status).toLowerCase()"
+                      >
+                        <x-icon>radio_button_checked</x-icon
+                        ><span x-text="runMetrics.status"></span>
+                      </span>
+                      <span class="ps-bridge__metric"
+                        ><x-icon>schedule</x-icon><span x-text="runMetrics.duration"></span
+                      ></span>
+                      <span class="ps-bridge__metric"
+                        ><x-icon>account_tree</x-icon
+                        ><span x-text="runMetrics.steps + ' steps'"></span
+                      ></span>
+                      <span class="ps-bridge__metric is-bad" x-show="runMetrics.failed"
+                        ><x-icon>error</x-icon><span x-text="runMetrics.failed + ' failed'"></span
+                      ></span>
+                      <span class="ps-bridge__metric is-bad" x-show="runMetrics.errors"
+                        ><x-icon>report</x-icon><span x-text="runMetrics.errors + ' errors'"></span
+                      ></span>
+                      <span
+                        class="ps-bridge__metric ps-bridge__metric--live"
+                        x-show="runMetrics.inflight"
+                        ><span class="ps-bridge__live-dot"></span> live</span
+                      >
+                      <span class="ps-bridge__metrics-spacer"></span>
+                      <button
+                        type="button"
+                        class="ps-bridge__toggle"
+                        :class="{ 'ps-bridge__toggle--active': livePoll }"
+                        @click="toggleLive()"
+                        x-text="livePoll ? 'Live on' : 'Live off'"
+                      ></button>
+                    </div>
+
+                    <!-- steps — click to drill into a step's rows + CLP binding. -->
+                    <div class="ps-bridge__steps" x-show="runStepRows.length">
+                      <span class="ps-bridge__muted">Steps</span>
+                      <template x-for="s in runStepRows" :key="s.id">
+                        <button
+                          type="button"
+                          class="ps-bridge__step"
+                          :class="{ 'is-active': s.id === activeStepId }"
+                          :data-status="String(s.status).toLowerCase()"
+                          @click="selectStep(s.id)"
+                        >
+                          <span x-text="s.id"></span>
+                        </button>
+                      </template>
+                    </div>
+
+                    <div class="ps-bridge__drill" x-ref="runsDrilldown" x-show="activeStepId"></div>
+
+                    <div class="ps-bridge__graph" x-ref="runsTimeline"></div>
+                    <div class="ps-bridge__graph" x-ref="runsTrace"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- AGENTS (model + provider routing — single config surface) -->
+              <div class="ps-bridge__panel" x-show="mode === 'agents'">
+                <div class="ps-bridge__agents">
+                  <div class="ps-bridge__agents-col">
+                    <h3>Providers</h3>
+                    <p class="ps-bridge__muted">
+                      Local model servers Benny can route to. Start one, then assign its models
+                      below.
+                    </p>
+                    <ul class="ps-bridge__provider-list">
+                      <template x-for="p in agentProviderList()" :key="p.key">
+                        <li class="ps-bridge__provider">
+                          <span
+                            class="ps-bridge__provider-dot"
+                            :class="p.running ? 'is-on' : 'is-off'"
+                          ></span>
+                          <span class="ps-bridge__provider-name" x-text="p.name"></span>
+                          <span
+                            class="ps-bridge__provider-meta"
+                            x-text="(p.running ? (p.models + ' models') : 'stopped') + (p.port ? ' · :' + p.port : '')"
+                          ></span>
+                          <span
+                            class="ps-bridge__provider-err"
+                            x-show="p.error"
+                            x-text="p.error"
+                          ></span>
+                          <button
+                            type="button"
+                            class="ps-bridge__toggle"
+                            x-show="p.running ? p.canStop : p.canStart"
+                            @click="toggleProvider(p.key, p.running)"
+                            x-text="p.running ? 'Stop' : 'Start'"
+                          ></button>
+                        </li>
+                      </template>
+                    </ul>
+                    <button type="button" class="ps-bridge__btn" @click="loadAgents()">
+                      <x-icon>refresh</x-icon><span>Refresh</span>
+                    </button>
+                  </div>
+
+                  <div class="ps-bridge__agents-col ps-bridge__agents-col--wide">
+                    <h3>Model routing</h3>
+                    <p class="ps-bridge__muted">
+                      One place to choose which model runs each role. Saved to the workspace
+                      manifest — <code>get_active_model()</code> reads it on the next call. Leave a
+                      role on <em>Default</em> to inherit the default model.
+                    </p>
+                    <template x-if="agentConfig">
+                      <div class="ps-bridge__routing">
+                        <div class="ps-bridge__field">
+                          <label class="form-label">Default model (master)</label>
+                          <select class="ps-bridge__select" x-model="agentConfig.default_model">
+                            <option value="">Auto-detect (running local provider)</option>
+                            <template x-for="opt in agentModelOptions" :key="opt.value">
+                              <option
+                                :value="opt.value"
+                                x-text="opt.label + '  ·  ' + opt.provider + (opt.running ? '' : ' (stopped)')"
+                              ></option>
+                            </template>
+                          </select>
+                        </div>
+
+                        <template x-for="role in agentRoles" :key="role">
+                          <div class="ps-bridge__field">
+                            <label class="form-label" x-text="role"></label>
+                            <select
+                              class="ps-bridge__select"
+                              :value="roleValue(role)"
+                              @change="setRoleValue(role, $event.target.value)"
+                            >
+                              <option value="">Default (inherit)</option>
+                              <template
+                                x-for="opt in agentModelOptions"
+                                :key="role + ':' + opt.value"
+                              >
+                                <option
+                                  :value="opt.value"
+                                  :selected="roleValue(role) === opt.value"
+                                  x-text="opt.label + '  ·  ' + opt.provider + (opt.running ? '' : ' (stopped)')"
+                                ></option>
+                              </template>
+                            </select>
+                            <span class="ps-bridge__resolved" x-show="resolvedFor(role)"
+                              >resolves to <strong x-text="resolvedFor(role)"></strong
+                            ></span>
+                          </div>
+                        </template>
+
+                        <div class="ps-bridge__thinking" x-show="agentModelOptions.length">
+                          <label class="form-label">Reasoning (thinking)</label>
+                          <p class="ps-bridge__muted">
+                            Turn a reasoning model's hidden chain-of-thought off when it burns the
+                            token budget or returns empty (e.g. gemma-4-12b-qat, Qwen3-8B-Hybrid).
+                            Leave on for models that need it (qwen3.5-9b-FLM). Applies
+                            <code>/no_think</code> + <code>enable_thinking:false</code>.
+                          </p>
+                          <template x-for="opt in agentModelOptions" :key="'think:' + opt.value">
+                            <label class="ps-bridge__think-row">
+                              <input
+                                type="checkbox"
+                                :checked="!thinkingOff(opt.value)"
+                                @change="toggleThinking(opt.value)"
+                              />
+                              <span class="ps-bridge__think-name" x-text="opt.label"></span>
+                              <span
+                                class="ps-bridge__muted"
+                                x-text="opt.provider + (opt.running ? '' : ' (stopped)')"
+                              ></span>
+                              <span
+                                class="ps-bridge__think-state"
+                                x-text="thinkingOff(opt.value) ? 'thinking off' : 'thinking on'"
+                              ></span>
+                            </label>
+                          </template>
+                        </div>
+
+                        <div class="ps-bridge__doc-actions">
+                          <button
+                            type="button"
+                            class="ps-bridge__btn ps-bridge__btn--go"
+                            @click="saveAgents()"
+                            :disabled="agentSaving"
+                          >
+                            <x-icon x-text="agentSaving ? 'hourglass_top' : 'save'"></x-icon>
+                            <span x-text="agentSaving ? 'Saving…' : 'Save routing'"></span>
+                          </button>
+                        </div>
+                      </div>
+                    </template>
+                    <p class="ps-bridge__note" x-show="agentNote" x-text="agentNote"></p>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-            </div><!-- /pane--primary -->
+            <!-- /pane--primary -->
 
             <!-- Secondary Observe pane: run lineage timeline + reasoning trace,
                  mounted into its own refs so a primary mode switch never tears
                  it down. Only rendered when splitActive (opt-in ∧ wide). -->
-            <aside class="ps-bridge__pane ps-bridge__pane--secondary" x-show="splitActive" aria-label="Observe — run lineage and reasoning trace">
+            <aside
+              class="ps-bridge__pane ps-bridge__pane--secondary"
+              x-show="splitActive"
+              aria-label="Observe — run lineage and reasoning trace"
+            >
               <div class="ps-bridge__obs-head">
                 <div class="ps-bridge__obs-title">
                   <x-icon>timeline</x-icon><span>Observe</span>
-                  <span class="ps-bridge__muted" x-text="activeRunId ? ('run ' + activeRunId.slice(0, 12)) : 'no run selected'"></span>
+                  <span
+                    class="ps-bridge__muted"
+                    x-text="activeRunId ? ('run ' + activeRunId.slice(0, 12)) : 'no run selected'"
+                  ></span>
                 </div>
-                <select class="ps-bridge__obs-pick" x-model="activeRunId" @change="observeRun(activeRunId)">
+                <select
+                  class="ps-bridge__obs-pick"
+                  x-model="activeRunId"
+                  @change="observeRun(activeRunId)"
+                >
                   <option value="">latest…</option>
                   <template x-for="r in runs" :key="(r.run_id || r.id)">
-                    <option :value="r.run_id || r.id" x-text="((r.run_id || r.id || '').slice(0, 16)) + ' · ' + (r.status || '')"></option>
+                    <option
+                      :value="r.run_id || r.id"
+                      x-text="((r.run_id || r.id || '').slice(0, 16)) + ' · ' + (r.status || '')"
+                    ></option>
                   </template>
                 </select>
               </div>
               <div class="ps-bridge__metrics ps-bridge__metrics--mini" x-show="activeRunId">
-                <span class="ps-bridge__metric ps-bridge__metric--status" :data-status="String(runMetrics.status).toLowerCase()">
+                <span
+                  class="ps-bridge__metric ps-bridge__metric--status"
+                  :data-status="String(runMetrics.status).toLowerCase()"
+                >
                   <x-icon>radio_button_checked</x-icon><span x-text="runMetrics.status"></span>
                 </span>
-                <span class="ps-bridge__metric"><x-icon>schedule</x-icon><span x-text="runMetrics.duration"></span></span>
-                <span class="ps-bridge__metric"><x-icon>account_tree</x-icon><span x-text="runMetrics.steps"></span></span>
-                <span class="ps-bridge__metric ps-bridge__metric--live" x-show="runMetrics.inflight"><span class="ps-bridge__live-dot"></span> live</span>
+                <span class="ps-bridge__metric"
+                  ><x-icon>schedule</x-icon><span x-text="runMetrics.duration"></span
+                ></span>
+                <span class="ps-bridge__metric"
+                  ><x-icon>account_tree</x-icon><span x-text="runMetrics.steps"></span
+                ></span>
+                <span class="ps-bridge__metric ps-bridge__metric--live" x-show="runMetrics.inflight"
+                  ><span class="ps-bridge__live-dot"></span> live</span
+                >
               </div>
               <div class="ps-bridge__obs-graph" x-ref="obsTimeline"></div>
               <div class="ps-bridge__obs-graph" x-ref="obsTrace"></div>
-              <p class="ps-bridge__muted" x-show="!runs.length">No runs yet — plan and run a flow.</p>
+              <p class="ps-bridge__muted" x-show="!runs.length">
+                No runs yet — plan and run a flow.
+              </p>
             </aside>
-          </div><!-- /panes -->
+          </div>
+          <!-- /panes -->
         </main>
 
         <!-- Benny dock -->
         <aside class="ps-bridge__benny" aria-label="Benny">
-          <div class="ps-bridge__benny-head">
-            <x-icon>auto_awesome</x-icon><span>Benny</span>
-          </div>
+          <div class="ps-bridge__benny-head"><x-icon>auto_awesome</x-icon><span>Benny</span></div>
           <div class="ps-bridge__benny-context">
             <x-icon>visibility</x-icon>
             <span x-text="bennyContextLine"></span>
@@ -744,8 +1175,16 @@
               <span x-text="chip.label"></span><span class="ps-bridge__chip-arrow">↗</span>
             </button>
           </template>
-          <p class="ps-bridge__benny-foot"><x-icon>memory</x-icon> grounded in this view · local-first</p>
-          <a class="ps-bridge__benny-doclink" href="https://github.com/binary16labs/prime-silo/blob/main/docs/USER_GUIDE.md" target="_blank" rel="noopener">User Guide ↗</a>
+          <p class="ps-bridge__benny-foot">
+            <x-icon>memory</x-icon> grounded in this view · local-first
+          </p>
+          <a
+            class="ps-bridge__benny-doclink"
+            href="https://github.com/binary16labs/prime-silo/blob/main/docs/USER_GUIDE.md"
+            target="_blank"
+            rel="noopener"
+            >User Guide ↗</a
+          >
         </aside>
       </div>
     </section>

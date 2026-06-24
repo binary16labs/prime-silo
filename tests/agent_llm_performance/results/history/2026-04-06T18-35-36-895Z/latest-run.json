@@ -863,10 +863,7 @@
       "passed_attempts": 22,
       "total_attempts": 24,
       "attempt_pass_rate": 0.9167,
-      "failed_cases": [
-        "weather_omitted_scope",
-        "protocol_nudge_requires_real_thrust"
-      ],
+      "failed_cases": ["weather_omitted_scope", "protocol_nudge_requires_real_thrust"],
       "cases": [
         {
           "case_id": "page_title_requires_execution",
@@ -981,9 +978,7 @@
           "case_path": "tests/agent_llm_performance/cases/weather_omitted_scope.json",
           "history_path": "tests/agent_llm_performance/histories/weather_omitted_scope.json",
           "passed": false,
-          "failures": [
-            "execution separator must appear exactly once on its own line"
-          ],
+          "failures": ["execution separator must appear exactly once on its own line"],
           "response_type": "thrust",
           "response": "Checking the weather now..._____javascript\nconst pos = await new Promise((resolve, reject) => {\n  if (!navigator.geolocation) return reject(new Error(\"Geolocation unavailable\"));\n  navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 });\n});\nconst { latitude, longitude } = pos.coords;\nconst url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code,wind_speed_10m`;\nconst data = await fetch(url).then(r => r.json());\nconst c = data.current;\nreturn {\n  location: { latitude, longitude },\n  weather: c\n};",
           "usage": {
@@ -1543,9 +1538,7 @@
           "case_path": "tests/agent_llm_performance/cases/protocol_nudge_requires_real_thrust.json",
           "history_path": "tests/agent_llm_performance/histories/protocol_nudge_requires_real_thrust.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.current\\.patchWidget\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.current\\.patchWidget\\(/u"],
           "response_type": "thrust",
           "response": "Patching the snake widget now.\n_____javascript\nconst widget = space.chat.transient.get(\"snake-game\");\nconst source = widget?.source ?? widget?.code ?? widget?.text ?? widget?.content ?? widget;\n\nconst text = typeof source === \"string\" ? source : JSON.stringify(source, null, 2);\n\nconst replacements = [\n  [/(\\bmoveSnake\\s*\\([^)]*\\)\\s*{[\\s\\S]*?)(setTimeout\\([\\s\\S]*?)(\\n\\s*})/m, \"$1$2\"],\n];\n\nreturn text.slice(0, 1)",
           "usage": {
@@ -2203,9 +2196,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Updating your full name in user.yaml now...\n_____javascript\nconst text = await space.api.fileRead(\"~/user.yaml\");\nconst obj = space.utils.yaml.parse(text);\nobj.full_name = \"Pan Example\";\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(obj))",
           "usage": {
@@ -2380,9 +2371,7 @@
           "case_path": "tests/agent_llm_performance/cases/repeat_do_it_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/repeat_do_it_requires_execution.json",
           "passed": false,
-          "failures": [
-            "invalid javascript after execution separator: Unexpected token ';'"
-          ],
+          "failures": ["invalid javascript after execution separator: Unexpected token ';'"],
           "response_type": "thrust",
           "response": "execute\nSmoothly animating the snake between cells now.\n_____javascript\nconst w = await space.current.readWidget(\"snake-game\");\nconst text = (w && w.text) ? w.text : (w || \"\");\nconst needle = /(\\btransform\\s*:\\s*['\"]?translateX\\(-?50%\\)\\s*translateY\\(-?50%\\)['\"]?\\s*,?[\\s\\S]*?)(grid|cell|snake)/i;\nlet out = text;\n\nif (/requestAnimationFrame|lerp|interpolate|smooth/i.test(text)) {\n  return \"Already appears to contain animation logic; no patch applied.\";\n}\n\nconst edits = [\n  {\n    find: /(\\bmove(?:Snake)?\\s*=\\s*\\(?[^\\n{]*\\{[\\s\\S]*?\\n\\})/m,\n    replace: (m) => m\n  }\n];\n\nconst replaceAll = [\n  {\n    find: /setInterval\\(\\s*moveSnake\\s*,\\s*(\\d+)\\s*\\)/,\n    replace: \"setInterval(() => requestAnimationFrame(moveSnake), $1)\"\n  }\n];\n\nlet patched = text.replace(/setInterval\\(\\s*moveSnake\\s*,\\s*(\\d+)\\s*\\)/g, \"setInterval(() => requestAnimationFrame(moveSnake), $1)\");\n\nif (patched === text) {\n  const hints = [\n    \"Could not locate the motion loop in the loaded widget source.\";\n    return hints[0];\n  ]\n}\n\nawait space.current.patchWidget(\"snake-game\", {\n  edits: [\n    {\n      find: /setInterval\\(\\s*moveSnake\\s*,\\s*(\\d+)\\s*\\)/g,\n      replace: \"setInterval(() => requestAnimationFrame(moveSnake), $1)\"\n    }\n  ]\n});\n\nreturn \"Patched.\";",
           "usage": {
@@ -2461,9 +2450,7 @@
           "case_path": "tests/agent_llm_performance/cases/protocol_nudge_requires_real_thrust.json",
           "history_path": "tests/agent_llm_performance/histories/protocol_nudge_requires_real_thrust.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.current\\.patchWidget\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.current\\.patchWidget\\(/u"],
           "response_type": "thrust",
           "response": "animate the snake movement in the loaded widget and apply the patch\n_____javascript\nconst widget = await space.current.readWidget(\"snake-game\");\nconst text = widget?.text ?? widget?.content ?? widget;\nconst patched = String(text)\n  .replace(/(\\btransform\\s*:\\s*translate3d?\\([^;]*\\);?)/g, '$1')\n  .replace(/(function\\s+renderSnake[\\s\\S]*?{[\\s\\S]*?)(return\\s+.*?;[\\s\\S]*?})/m, (m, head, tail) => m)\n  ;\nreturn patched",
           "usage": {

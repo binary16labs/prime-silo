@@ -78,7 +78,9 @@ function getStateSystemFileIndexShard(stateSystem, shardId) {
   }
 
   const shardValue = stateSystem.getValue(FILE_INDEX_AREA, normalizedShardId);
-  return shardValue && typeof shardValue === "object" && !Array.isArray(shardValue) ? shardValue : null;
+  return shardValue && typeof shardValue === "object" && !Array.isArray(shardValue)
+    ? shardValue
+    : null;
 }
 
 function getIndexedProjectPathMap(options = {}, projectPath) {
@@ -89,7 +91,11 @@ function getIndexedProjectPathMap(options = {}, projectPath) {
     return stateShard;
   }
 
-  if (options.pathIndex && typeof options.pathIndex === "object" && !Array.isArray(options.pathIndex)) {
+  if (
+    options.pathIndex &&
+    typeof options.pathIndex === "object" &&
+    !Array.isArray(options.pathIndex)
+  ) {
     return options.pathIndex;
   }
 
@@ -132,7 +138,12 @@ function getIndexedProjectPathSize(options = {}, projectPath) {
 
     matched = true;
 
-    if (metadata && typeof metadata === "object" && !Array.isArray(metadata) && metadata.isDirectory !== true) {
+    if (
+      metadata &&
+      typeof metadata === "object" &&
+      !Array.isArray(metadata) &&
+      metadata.isDirectory !== true
+    ) {
       totalBytes += Math.max(0, Number(metadata.sizeBytes) || 0);
     }
   }
@@ -182,7 +193,9 @@ function getCachedUserFolderSize(target, options = {}) {
 
   const indexedBytes = getIndexedProjectPathSize(options, target?.rootProjectPath);
   const bytes =
-    indexedBytes === null ? readAbsolutePathSize(target?.rootAbsolutePath || cacheKey) : indexedBytes;
+    indexedBytes === null
+      ? readAbsolutePathSize(target?.rootAbsolutePath || cacheKey)
+      : indexedBytes;
 
   userFolderSizeCache.set(cacheKey, {
     bytes
@@ -253,13 +266,12 @@ function createUserFolderQuotaPlan(options = {}, deltas = []) {
       continue;
     }
 
-    const entry =
-      entriesByCacheKey.get(target.cacheKey) || {
-        ...target,
-        currentBytes: getCachedUserFolderSize(target, options),
-        deltaBytes: 0,
-        limitBytes
-      };
+    const entry = entriesByCacheKey.get(target.cacheKey) || {
+      ...target,
+      currentBytes: getCachedUserFolderSize(target, options),
+      deltaBytes: 0,
+      limitBytes
+    };
 
     entry.deltaBytes += deltaBytes;
     entriesByCacheKey.set(target.cacheKey, entry);

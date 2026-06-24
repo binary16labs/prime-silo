@@ -1,9 +1,7 @@
 {
   "generated_at": "2026-04-13T09:27:52.002Z",
   "generation_id": "2026-04-13T09-27-52-002Z",
-  "models": [
-    "openai/gpt-5.4-mini"
-  ],
+  "models": ["openai/gpt-5.4-mini"],
   "results": [
     {
       "prompt_id": "081A_069A_scope_and_collapse_surgical",
@@ -1237,9 +1235,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Updating your full name now...\n_____javascript\nconst text = await space.api.fileRead(\"~/user.yaml\", \"utf8\")\nconst data = space.utils.yaml.parse(text)\ndata.full_name = \"Pan Example\"\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(data), \"utf8\")",
           "usage": {
@@ -1275,9 +1271,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_text_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_text_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Reading the file first, then updating the name.\n\n_____javascript\nconst text = await space.api.fileRead(\"~/people.txt\", \"utf8\")\nconst updated = text.replace(/\\bmr\\.?\\s+Kowalski\\b/gi, \"John Ronald Kowalski\")\nreturn await space.api.fileWrite(\"~/people.txt\", updated, \"utf8\")",
           "usage": {
@@ -2899,9 +2893,7 @@
           "case_path": "tests/agent_llm_performance/cases/verification_reveals_remaining_widget_error_requires_correction.json",
           "history_path": "tests/agent_llm_performance/histories/verification_reveals_remaining_widget_error_requires_correction.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"financials\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"financials\"\\)/u"],
           "response_type": "thrust",
           "response": "Repairing the financials widget now...\n_____javascript\nreturn await space.current.patchWidget(\"financials\", {\n  edits: [\n    {\n      op: \"replace\",\n      path: \"/renderer\",\n      value: async (parent) => {\n        parent.innerHTML = \"<div>Error: AMZN: 429 Too Many Requests</div>\"\n      }\n    }\n  ]\n})",
           "usage": {
@@ -2937,9 +2929,7 @@
           "case_path": "tests/agent_llm_performance/cases/partial_mitigation_is_not_completion.json",
           "history_path": "tests/agent_llm_performance/histories/partial_mitigation_is_not_completion.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"financials\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"financials\"\\)/u"],
           "response_type": "thrust",
           "response": "Showing the current widget now...\n_____javascript\nreturn await space.current.seeWidget(\"financials\")",
           "usage": {
@@ -3709,9 +3699,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_widget_fix_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_widget_fix_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.current\\.readWidget\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.current\\.readWidget\\(/u"],
           "response_type": "thrust",
           "response": "Checking the snake widget now...\n\n\n_____javascript\nreturn await space.current.seeWidget(\"snake-game\")",
           "usage": {
@@ -5299,9 +5287,7 @@
           "case_path": "tests/agent_llm_performance/cases/verification_reveals_remaining_widget_error_requires_correction.json",
           "history_path": "tests/agent_llm_performance/histories/verification_reveals_remaining_widget_error_requires_correction.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"financials\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"financials\"\\)/u"],
           "response_type": "thrust",
           "response": "The widget shows a rate-limit error for AMZN.\n_____javascript\nreturn \"done\"",
           "usage": {
@@ -6046,9 +6032,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_text_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_text_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating the file now.\n\n_____javascript\nreturn await space.api.fileRead(\"~/people.txt\", \"utf8\").then(text => {\n  const updated = text.replace(/\\bmr\\.\\s*Kowalski\\b/gi, \"John Ronald Kowalski\")\n  return space.api.fileWrite(\"~/people.txt\", updated, \"utf8\")\n})",
           "usage": {
@@ -6084,9 +6068,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating the contacts file now.\n\n_____javascript\nreturn await space.api.fileWrite(\"~/contacts.yaml\", (text => {\n  const data = space.utils.yaml.parse(text || \"\") || {}\n  if (data.mr_kowalski && typeof data.mr_kowalski === \"object\") {\n    data.mr_kowalski.full_name = \"John Ronald Kowalski\"\n  } else {\n    data.mr_kowalski = { full_name: \"John Ronald Kowalski\" }\n  }\n  return space.utils.yaml.stringify(data)\n})(await space.api.fileRead(\"~/contacts.yaml\", \"utf8\")), \"utf8\")",
           "usage": {

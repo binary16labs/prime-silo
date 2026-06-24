@@ -47,7 +47,9 @@ export function normalizeSkillSegment(segment) {
 }
 
 export function normalizeSkillPath(path) {
-  const rawPath = String(path || "").trim().replace(/^\/+|\/+$/gu, "");
+  const rawPath = String(path || "")
+    .trim()
+    .replace(/^\/+|\/+$/gu, "");
 
   if (!rawPath) {
     throw new Error("Skill path must not be empty.");
@@ -183,7 +185,9 @@ function normalizeSkillLoadedConfig(config) {
 
 function createContextTagSet(contextTags) {
   return new Set(
-    Array.isArray(contextTags) && contextTags.length ? normalizeSkillTags(contextTags) : normalizeSkillTags(getTags())
+    Array.isArray(contextTags) && contextTags.length
+      ? normalizeSkillTags(contextTags)
+      : normalizeSkillTags(getTags())
   );
 }
 
@@ -336,7 +340,9 @@ function createSkillPromptRuntime() {
     },
     list(placement) {
       const skills = [...loadedSkillsByIdentity.values()];
-      return placement ? filterPromptSkillsByPlacement(skills, placement) : buildPromptSkillList(skills);
+      return placement
+        ? filterPromptSkillsByPlacement(skills, placement)
+        : buildPromptSkillList(skills);
     },
     remember(skill) {
       const normalizedSkill = normalizePromptSkill(skill);
@@ -435,7 +441,8 @@ function createSkillTransientSection(skill, options = {}) {
     return null;
   }
 
-  const headingPrefix = typeof options.headingPrefix === "string" ? options.headingPrefix.trim() : "Skill";
+  const headingPrefix =
+    typeof options.headingPrefix === "string" ? options.headingPrefix.trim() : "Skill";
   const keyPrefix = typeof options.keyPrefix === "string" ? options.keyPrefix.trim() : "skill";
   const orderBase = Number.isFinite(options.orderBase) ? Number(options.orderBase) : 0;
   const orderOffset = Number.isFinite(options.orderOffset) ? Number(options.orderOffset) : 0;
@@ -674,16 +681,16 @@ export function buildSkillCatalogPromptSection(index, options = {}) {
 }
 
 export function buildAutoLoadedSkillsPromptSection(index) {
-  const systemSkills = filterPromptSkillsByPlacement(index?.autoLoadedSkills, SKILL_PLACEMENT.SYSTEM);
+  const systemSkills = filterPromptSkillsByPlacement(
+    index?.autoLoadedSkills,
+    SKILL_PLACEMENT.SYSTEM
+  );
 
   if (!systemSkills.length) {
     return "";
   }
 
-  return [
-    "auto loaded",
-    ...systemSkills.map((skill) => formatSkillPromptBlock(skill))
-  ]
+  return ["auto loaded", ...systemSkills.map((skill) => formatSkillPromptBlock(skill))]
     .filter(Boolean)
     .join("\n\n");
 }
@@ -718,7 +725,9 @@ export function buildRuntimeLoadedSkillsPromptSection(options = {}) {
   }
 
   return [
-    typeof options.heading === "string" && options.heading.trim() ? options.heading.trim() : "loaded skills",
+    typeof options.heading === "string" && options.heading.trim()
+      ? options.heading.trim()
+      : "loaded skills",
     ...systemSkills.map((skill) => formatSkillPromptBlock(skill))
   ]
     .filter(Boolean)

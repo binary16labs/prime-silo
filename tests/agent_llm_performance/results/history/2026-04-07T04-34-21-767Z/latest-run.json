@@ -492,9 +492,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_text_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_text_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Reading ~/people.txt now...\n\n\n_____javascript\nconst text = await space.api.fileRead(\"~/people.txt\", \"utf8\")\nconst updated = text.replace(/\\bmr\\. Kowalski\\b/gi, \"John Ronald Kowalski\")\nreturn await space.api.fileWrite(\"~/people.txt\", updated, \"utf8\")",
           "usage": {
@@ -1772,9 +1770,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Updating your full name now...\n_____javascript\nconst text = await space.api.fileRead(\"~/user.yaml\", \"utf8\")\nconst data = space.utils.yaml.parse(text)\ndata.full_name = \"Pan Example\"\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(data), \"utf8\")",
           "usage": {
@@ -1809,9 +1805,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_text_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_text_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Reading the file now...\n\n_____javascript\nconst text = await space.api.fileRead(\"~/people.txt\", \"utf8\")\nconst updated = text.replace(/\\bmr\\. Kowalski\\b/gi, \"John Ronald Kowalski\")\nreturn await space.api.fileWrite(\"~/people.txt\", updated, \"utf8\")",
           "usage": {
@@ -2863,9 +2857,7 @@
           "case_path": "tests/agent_llm_performance/cases/weather_self_scope_after_indirect_fail.json",
           "history_path": "tests/agent_llm_performance/histories/weather_self_scope_after_indirect_fail.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /navigator\\.geolocation|getCurrentPosition/u"
-          ],
+          "failures": ["missing required pattern: /navigator\\.geolocation|getCurrentPosition/u"],
           "response_type": "thrust",
           "response": "Checking the weather for your current location now...\n_____javascript\nconst loc = await space.chat.transient.list().catch(() => null)\nconst query = loc?.currentLocation || \"your location\"\nconst data = await fetch(`https://wttr.in/${encodeURIComponent(query)}?format=j1`).then(r => r.json())\nconst c = data.current_condition?.[0] || {}\nreturn { location: query, tempC: c.temp_C, feelsLikeC: c.FeelsLikeC, humidity: c.humidity, desc: c.weatherDesc?.[0]?.value, windKph: c.windspeedKmph }",
           "usage": {

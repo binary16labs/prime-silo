@@ -4,7 +4,11 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { listAppPaths, listAppPathsByPatterns, writeAppFile } from "../server/lib/customware/file_access.js";
+import {
+  listAppPaths,
+  listAppPathsByPatterns,
+  writeAppFile
+} from "../server/lib/customware/file_access.js";
 import { createLocalGitHistoryClient } from "../server/lib/git/local_history.js";
 import {
   flushGitHistoryCommits,
@@ -99,7 +103,6 @@ function sleep(ms) {
   });
 }
 
-
 function readGitExecutablePath() {
   const result = spawnSync("bash", ["-lc", "command -v git"], {
     encoding: "utf8",
@@ -107,7 +110,9 @@ function readGitExecutablePath() {
   });
 
   if (result.error || result.status !== 0) {
-    throw result.error || new Error(String(result.stderr || result.stdout || "git not found").trim());
+    throw (
+      result.error || new Error(String(result.stderr || result.stdout || "git not found").trim())
+    );
   }
 
   return result.stdout.trim();
@@ -151,7 +156,10 @@ function runGit(repoRoot, args, options = {}) {
   });
 
   if (result.error || result.status !== 0) {
-    throw result.error || new Error(String(result.stderr || result.stdout || "git command failed").trim());
+    throw (
+      result.error ||
+      new Error(String(result.stderr || result.stdout || "git command failed").trim())
+    );
   }
 
   return result.stdout.trim();
@@ -200,14 +208,14 @@ try {
   assert.equal(primaryScheduledFlush.length, 1);
   assert.equal(primaryScheduledFlush[0].path, "L2/bob/");
 
-  writeAppFile({
+  await writeAppFile({
     content: "one\n",
     path: "~/notes.txt",
     projectRoot,
     runtimeParams,
     username: "alice"
   });
-  writeAppFile({
+  await writeAppFile({
     content: "two\n",
     path: "~/notes.txt",
     projectRoot,
@@ -241,14 +249,14 @@ try {
   assert.match(userGitignore, /^meta\/password\.json$/m);
   assert.match(userGitignore, /^meta\/logins\.json$/m);
 
-  writeAppFile({
+  await writeAppFile({
     content: "password-state\n",
     path: "~/meta/password.json",
     projectRoot,
     runtimeParams,
     username: "alice"
   });
-  writeAppFile({
+  await writeAppFile({
     content: "login-state\n",
     path: "~/meta/logins.json",
     projectRoot,
@@ -267,7 +275,7 @@ try {
 
   assert.equal(userHistory.commits.length, 1);
 
-  writeAppFile({
+  await writeAppFile({
     content: "three\n",
     path: "~/notes.txt",
     projectRoot,
@@ -288,7 +296,10 @@ try {
   const previousCommitHash = userHistory.commits[1].hash;
   const latestCommitHash = userHistory.commits[0].hash;
   assert.ok(userHistory.currentHash);
-  assert.equal(userHistory.commits[0].files.find((file) => file.path === "notes.txt")?.action, "modified");
+  assert.equal(
+    userHistory.commits[0].files.find((file) => file.path === "notes.txt")?.action,
+    "modified"
+  );
 
   const pagedHistory = await listLayerHistoryCommits({
     limit: 1,
@@ -315,14 +326,14 @@ try {
 
   assert.equal(filteredHistory.commits.length, 2);
 
-  writeAppFile({
+  await writeAppFile({
     content: "include\n",
     path: "~/settings/personality.system.include.md",
     projectRoot,
     runtimeParams,
     username: "alice"
   });
-  writeAppFile({
+  await writeAppFile({
     content: "other\n",
     path: "~/settings/other.md",
     projectRoot,
@@ -343,11 +354,11 @@ try {
   assert.equal(personalityHistory.commits.length, 1);
   const personalityCommitHash = personalityHistory.commits[0].hash;
   assert.ok(
-    personalityHistory.commits[0].files.some((file) => file.path === "settings/personality.system.include.md")
+    personalityHistory.commits[0].files.some(
+      (file) => file.path === "settings/personality.system.include.md"
+    )
   );
-  assert.ok(
-    personalityHistory.commits[0].files.some((file) => file.path === "settings/other.md")
-  );
+  assert.ok(personalityHistory.commits[0].files.some((file) => file.path === "settings/other.md"));
 
   const revertPreview = await getLayerHistoryOperationPreview({
     commitHash: personalityCommitHash,
@@ -359,10 +370,14 @@ try {
   });
 
   assert.equal(
-    revertPreview.files.find((file) => file.path === "settings/personality.system.include.md")?.action,
+    revertPreview.files.find((file) => file.path === "settings/personality.system.include.md")
+      ?.action,
     "deleted"
   );
-  assert.equal(revertPreview.files.find((file) => file.path === "settings/other.md")?.action, "deleted");
+  assert.equal(
+    revertPreview.files.find((file) => file.path === "settings/other.md")?.action,
+    "deleted"
+  );
 
   const travelPreview = await getLayerHistoryOperationPreview({
     commitHash: previousCommitHash,
@@ -426,7 +441,7 @@ try {
   assert.ok(userHistory.commits.some((commit) => commit.hash === previousCommitHash));
   assert.ok(userHistory.commits.some((commit) => commit.hash === latestCommitHash));
 
-  writeAppFile({
+  await writeAppFile({
     content: "after rollback\n",
     path: "~/notes.txt",
     projectRoot,
@@ -456,7 +471,7 @@ try {
     "two\n"
   );
 
-  writeAppFile({
+  await writeAppFile({
     content: "alpha\n",
     path: "L2/isomorphic/notes.txt",
     projectRoot,
@@ -465,7 +480,7 @@ try {
   });
   await flushGitHistoryCommits({ throwOnError: true });
 
-  writeAppFile({
+  await writeAppFile({
     content: "beta\n",
     path: "L2/isomorphic/notes.txt",
     projectRoot,
@@ -577,7 +592,7 @@ try {
   assert.equal(isomorphicHistory.currentHash, isomorphicPreviousCommitHash);
   assert.ok(isomorphicHistory.commits.some((commit) => commit.hash === isomorphicLatestCommitHash));
 
-  writeAppFile({
+  await writeAppFile({
     content: "gamma\n",
     path: "L2/isomorphic/notes.txt",
     projectRoot,
@@ -634,7 +649,7 @@ try {
   assert.notEqual(isomorphicHistory.currentHash, isomorphicRevertTargetHash);
   assert.ok(isomorphicHistory.commits.some((commit) => commit.hash === isomorphicRevertTargetHash));
 
-  writeAppFile({
+  await writeAppFile({
     content: "base\nstable\n",
     path: "L2/isomorphic/merge.txt",
     projectRoot,
@@ -643,7 +658,7 @@ try {
   });
   await flushGitHistoryCommits({ throwOnError: true });
 
-  writeAppFile({
+  await writeAppFile({
     content: "updated\nstable\n",
     path: "L2/isomorphic/merge.txt",
     projectRoot,
@@ -661,7 +676,7 @@ try {
   });
   const isomorphicMergeTargetHash = isomorphicHistory.currentHash;
 
-  writeAppFile({
+  await writeAppFile({
     content: "updated\nstable\nlater\n",
     path: "L2/isomorphic/merge.txt",
     projectRoot,
@@ -683,7 +698,7 @@ try {
     "base\nstable\nlater\n"
   );
 
-  writeAppFile({
+  await writeAppFile({
     content: "group\n",
     path: "L1/team/group.txt",
     projectRoot,
@@ -708,7 +723,10 @@ try {
     groupHistory.commits[0].changedFiles.sort((left, right) => left.localeCompare(right)),
     [".gitignore", "group.txt"]
   );
-  assert.equal(fs.readFileSync(path.join(projectRoot, "app", "L1", "team", ".gitignore"), "utf8"), "");
+  assert.equal(
+    fs.readFileSync(path.join(projectRoot, "app", "L1", "team", ".gitignore"), "utf8"),
+    ""
+  );
 
   const repositoryWatchdog = createGroupWatchdog(collectProjectPaths(projectRoot));
   const aliceWritableRepositories = listAppPathsByPatterns({
@@ -800,10 +818,16 @@ try {
   });
 
   assert.equal(fs.readFileSync(path.join(legacyRoot, "notes.txt"), "utf8"), "old\n");
-  assert.equal(fs.readFileSync(path.join(legacyRoot, "meta", "password.json"), "utf8"), "current-password\n");
-  assert.equal(fs.readFileSync(path.join(legacyRoot, "meta", "logins.json"), "utf8"), "current-logins\n");
+  assert.equal(
+    fs.readFileSync(path.join(legacyRoot, "meta", "password.json"), "utf8"),
+    "current-password\n"
+  );
+  assert.equal(
+    fs.readFileSync(path.join(legacyRoot, "meta", "logins.json"), "utf8"),
+    "current-logins\n"
+  );
 
-  writeAppFile({
+  await writeAppFile({
     content: "after rollback\n",
     path: "L2/legacy/notes.txt",
     projectRoot,
@@ -870,15 +894,12 @@ try {
       runGit(queuedRepoRoot, ["log", "--format=%s"]).split(/\r?\n/u).filter(Boolean).slice(0, 2),
       ["queue second", "queue first"]
     );
-    assert.deepEqual(
-      fs.readFileSync(gitLogPath, "utf8").split(/\r?\n/u).filter(Boolean),
-      [
-        `start ${queuedRepoRoot}`,
-        `end ${queuedRepoRoot}`,
-        `start ${queuedRepoRoot}`,
-        `end ${queuedRepoRoot}`
-      ]
-    );
+    assert.deepEqual(fs.readFileSync(gitLogPath, "utf8").split(/\r?\n/u).filter(Boolean), [
+      `start ${queuedRepoRoot}`,
+      `end ${queuedRepoRoot}`,
+      `start ${queuedRepoRoot}`,
+      `end ${queuedRepoRoot}`
+    ]);
   } finally {
     process.env.PATH = originalPath;
 

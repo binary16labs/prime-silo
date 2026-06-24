@@ -1,9 +1,7 @@
 {
   "generated_at": "2026-04-13T10:33:28.583Z",
   "generation_id": "2026-04-13T10-33-28-583Z",
-  "models": [
-    "openai/gpt-5.4-mini"
-  ],
+  "models": ["openai/gpt-5.4-mini"],
   "results": [
     {
       "prompt_id": "082A_069A_reliability_surgical",
@@ -1774,9 +1772,7 @@
           "case_path": "tests/agent_llm_performance/cases/full_rewrite_contract_error_continues_without_user_push.json",
           "history_path": "tests/agent_llm_performance/histories/full_rewrite_contract_error_continues_without_user_push.json",
           "passed": false,
-          "failures": [
-            "missing required text: starter-widget"
-          ],
+          "failures": ["missing required text: starter-widget"],
           "response_type": "thrust",
           "response": "Rewriting the clock widget now...\n_____javascript\nreturn await space.current.renderWidget({\n  id: \"analog-clock\",\n  name: \"Analog Clock\",\n  cols: 8,\n  rows: 8,\n  renderer: async (parent) => {\n    parent.innerHTML = `\n      <div id=\"clock\" style=\"width:100%;height:100%;display:flex;align-items:center;justify-content:center;\">\n        <div id=\"face\" style=\"position:relative;width:220px;height:220px;border:8px solid #222;border-radius:50%;background:#fff;box-sizing:border-box;\">\n          <div id=\"center\" style=\"position:absolute;left:50%;top:50%;width:12px;height:12px;margin-left:-6px;margin-top:-6px;background:#222;border-radius:50%;z-index:5;\"></div>\n          <div class=\"hand hour\" style=\"position:absolute;left:50%;top:50%;width:6px;height:56px;background:#222;transform-origin:50% 90%;margin-left:-3px;margin-top:-56px;border-radius:3px;z-index:4;\"></div>\n          <div class=\"hand minute\" style=\"position:absolute;left:50%;top:50%;width:4px;height:78px;background:#444;transform-origin:50% 92%;margin-left:-2px;margin-top:-78px;border-radius:3px;z-index:3;\"></div>\n          <div class=\"hand second\" style=\"position:absolute;left:50%;top:50%;width:2px;height:92px;background:#d22;transform-origin:50% 94%;margin-left:-1px;margin-top:-92px;border-radius:2px;z-index:2;\"></div>\n        </div>\n      </div>\n    `\n\n    const face = parent.querySelector(\"#face\")\n    const hour = parent.querySelector(\".hand.hour\")\n    const minute = parent.querySelector(\".hand.minute\")\n    const second = parent.querySelector(\".hand.second\")\n\n    for (let i = 1; i <= 12; i++) {\n      const mark = document.createElement(\"div\")\n      const angle = i * 30\n      mark.style.position = \"absolute\"\n      mark.style.left = \"50%\"\n      mark.style.top = \"50%\"\n      mark.style.width = \"2px\"\n      mark.style.height = i % 3 === 0 ? \"18px\" : \"10px\"\n      mark.style.background = \"#222\"\n      mark.style.transformOrigin = \"center 110px\"\n      mark.style.transform = `translate(-50%, -110px) rotate(${angle}deg)`\n      face.appendChild(mark)\n    }\n\n    const update = () => {\n      const now = new Date()\n      const s = now.getSeconds()\n      const m = now.getMinutes() + s / 60\n      const h = (now.getHours() % 12) + m / 60\n\n      hour.style.transform = `rotate(${h * 30}deg)`\n      minute.style.transform = `rotate(${m * 6}deg)`\n      second.style.transform = `rotate(${s * 6}deg)`\n    }\n\n    update()\n    setInterval(update, 1000)\n  }\n})",
           "usage": {
@@ -2290,9 +2286,7 @@
           "case_path": "tests/agent_llm_performance/cases/protocol_nudge_requires_real_thrust.json",
           "history_path": "tests/agent_llm_performance/histories/protocol_nudge_requires_real_thrust.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.patchWidget(\"snake-game\", { edits: [] })",
           "usage": {
@@ -4167,9 +4161,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_widget_fix_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_widget_fix_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.current\\.readWidget\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.current\\.readWidget\\(/u"],
           "response_type": "thrust",
           "response": "I need to inspect the snake game widget before I can fix the freeze.\n_____javascript\nreturn await space.current.seeWidget(\"snake-game\")",
           "usage": {
@@ -4460,9 +4452,7 @@
           "case_path": "tests/agent_llm_performance/cases/full_rewrite_contract_error_continues_without_user_push.json",
           "history_path": "tests/agent_llm_performance/histories/full_rewrite_contract_error_continues_without_user_push.json",
           "passed": false,
-          "failures": [
-            "invalid javascript after execution separator: Unexpected identifier '$'"
-          ],
+          "failures": ["invalid javascript after execution separator: Unexpected identifier '$'"],
           "response_type": "thrust",
           "response": "Rewriting the widget as a full analog clock renderer now...\n_____javascript\nreturn await space.current.renderWidget({\n  id: \"starter-widget\",\n  name: \"analog-clock\",\n  cols: 20,\n  rows: 20,\n  renderer: `async (parent) => {\n  const size = 20;\n  const cx = 10;\n  const cy = 10;\n  const r = 9;\n\n  const pad = (n) => String(n).padStart(2, \"0\");\n\n  function tick() {\n    const now = new Date();\n    const sec = now.getSeconds();\n    const min = now.getMinutes() + sec / 60;\n    const hr = (now.getHours() % 12) + min / 60;\n\n    parent.innerHTML = \"\";\n\n    const svgNS = \"http://www.w3.org/2000/svg\";\n    const svg = document.createElementNS(svgNS, \"svg\");\n    svg.setAttribute(\"viewBox\", \"0 0 20 20\");\n    svg.setAttribute(\"width\", \"100%\");\n    svg.setAttribute(\"height\", \"100%\");\n    svg.setAttribute(\"style\", \"display:block;background:#fff;\");\n\n    const circle = document.createElementNS(svgNS, \"circle\");\n    circle.setAttribute(\"cx\", cx);\n    circle.setAttribute(\"cy\", cy);\n    circle.setAttribute(\"r\", r);\n    circle.setAttribute(\"fill\", \"white\");\n    circle.setAttribute(\"stroke\", \"black\");\n    circle.setAttribute(\"stroke-width\", \"0.4\");\n    svg.appendChild(circle);\n\n    for (let i = 0; i < 12; i++) {\n      const angle = ((i / 12) * Math.PI * 2) - Math.PI / 2;\n      const x1 = cx + Math.cos(angle) * (r - 0.4);\n      const y1 = cy + Math.sin(angle) * (r - 0.4);\n      const x2 = cx + Math.cos(angle) * (r - (i % 3 === 0 ? 1.3 : 0.8));\n      const y2 = cy + Math.sin(angle) * (r - (i % 3 === 0 ? 1.3 : 0.8));\n\n      const mark = document.createElementNS(svgNS, \"line\");\n      mark.setAttribute(\"x1\", x1);\n      mark.setAttribute(\"y1\", y1);\n      mark.setAttribute(\"x2\", x2);\n      mark.setAttribute(\"y2\", y2);\n      mark.setAttribute(\"stroke\", \"black\");\n      mark.setAttribute(\"stroke-width\", i % 3 === 0 ? \"0.35\" : \"0.18\");\n      svg.appendChild(mark);\n    }\n\n    function hand(angle, length, width, color) {\n      const x2 = cx + Math.cos(angle) * length;\n      const y2 = cy + Math.sin(angle) * length;\n      const line = document.createElementNS(svgNS, \"line\");\n      line.setAttribute(\"x1\", cx);\n      line.setAttribute(\"y1\", cy);\n      line.setAttribute(\"x2\", x2);\n      line.setAttribute(\"y2\", y2);\n      line.setAttribute(\"stroke\", color);\n      line.setAttribute(\"stroke-linecap\", \"round\");\n      line.setAttribute(\"stroke-width\", width);\n      svg.appendChild(line);\n    }\n\n    hand(((hr / 12) * Math.PI * 2) - Math.PI / 2, 4.8, 0.7, \"black\");\n    hand(((min / 60) * Math.PI * 2) - Math.PI / 2, 6.8, 0.45, \"black\");\n    hand(((sec / 60) * Math.PI * 2) - Math.PI / 2, 7.4, 0.2, \"red\");\n\n    const center = document.createElementNS(svgNS, \"circle\");\n    center.setAttribute(\"cx\", cx);\n    center.setAttribute(\"cy\", cy);\n    center.setAttribute(\"r\", 0.35);\n    center.setAttribute(\"fill\", \"black\");\n    svg.appendChild(center);\n\n    const label = document.createElementNS(svgNS, \"text\");\n    label.setAttribute(\"x\", cx);\n    label.setAttribute(\"y\", 18.7);\n    label.setAttribute(\"text-anchor\", \"middle\");\n    label.setAttribute(\"font-size\", \"1.1\");\n    label.setAttribute(\"font-family\", \"monospace\");\n    label.textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;\n    svg.appendChild(label);\n\n    parent.appendChild(svg);\n  }\n\n  tick();\n  setInterval(tick, 1000);\n}`\n})",
           "usage": {
@@ -5784,9 +5774,7 @@
           "case_path": "tests/agent_llm_performance/cases/click_button_without_helper_uses_browser_js.json",
           "history_path": "tests/agent_llm_performance/histories/click_button_without_helper_uses_browser_js.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /click\\(/u"
-          ],
+          "failures": ["missing required pattern: /click\\(/u"],
           "response_type": "thrust",
           "response": "Clicking the first button on the current page now...\n_____javascript\nconst widgets = await space.current.seeWidget()\nconst root = widgets?.root || widgets\nfunction findFirstButton(node) {\n  if (!node) return null\n  if (Array.isArray(node)) {\n    for (const item of node) {\n      const found = findFirstButton(item)\n      if (found) return found\n    }\n    return null\n  }\n  if (node.type === 'button' || node.tagName === 'button' || node.role === 'button') return node\n  const kids = node.children || node.content || node.nodes || []\n  if (Array.isArray(kids)) {\n    for (const child of kids) {\n      const found = findFirstButton(child)\n      if (found) return found\n    }\n  }\n  return null\n}\nconst button = findFirstButton(root)\nif (!button) return { ok: false, error: 'No button found' }\nreturn await space.current.patchWidget(button.id || button.widgetId || button.name, {\n  edits: [{ action: 'click' }]\n})",
           "usage": {
@@ -6818,9 +6806,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_text_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_text_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating the file now...\n_____javascript\nconst path = \"~/people.txt\"\nconst text = await space.api.fileRead(path, \"utf8\")\nconst updated = text.replace(/\\bmr\\.\\s*Kowalski\\b/g, \"John Ronald Kowalski\")\nreturn await space.api.fileWrite(path, updated, \"utf8\")",
           "usage": {
@@ -6856,9 +6842,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Reading the contacts file now...\n\n\n_____javascript\nconst text = await space.api.fileRead(\"~/contacts.yaml\", \"utf8\")\nconst data = space.utils.yaml.parse(text)\nif (data && typeof data === \"object\") {\n  if (data.mr_kowalski && typeof data.mr_kowalski === \"object\") {\n    data.mr_kowalski.full_name = \"John Ronald Kowalski\"\n  } else {\n    data.mr_kowalski = { full_name: \"John Ronald Kowalski\" }\n  }\n}\nreturn await space.api.fileWrite(\"~/contacts.yaml\", space.utils.yaml.stringify(data), \"utf8\")",
           "usage": {
@@ -6894,9 +6878,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_widget_fix_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_widget_fix_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.current\\.readWidget\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.current\\.readWidget\\(/u"],
           "response_type": "thrust",
           "response": "Investigating the snake game widget now...\n_____javascript\nreturn await space.current.seeWidget(\"snake-game\")",
           "usage": {
@@ -7194,9 +7176,7 @@
           "case_path": "tests/agent_llm_performance/cases/full_rewrite_contract_error_continues_without_user_push.json",
           "history_path": "tests/agent_llm_performance/histories/full_rewrite_contract_error_continues_without_user_push.json",
           "passed": false,
-          "failures": [
-            "missing required text: starter-widget"
-          ],
+          "failures": ["missing required text: starter-widget"],
           "response_type": "thrust",
           "response": "Rewriting the clock widget fully now...\n_____javascript\nreturn await space.current.renderWidget({\n  id: \"analog-clock\",\n  name: \"Analog Clock\",\n  cols: 10,\n  rows: 10,\n  renderer: async (parent) => {\n    parent.innerHTML = `\n      <div style=\"display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#111;\">\n        <svg id=\"clock\" viewBox=\"0 0 200 200\" width=\"100%\" height=\"100%\" style=\"max-width:180px;max-height:180px;\">\n          <circle cx=\"100\" cy=\"100\" r=\"96\" fill=\"#f8f8f8\" stroke=\"#222\" stroke-width=\"4\"></circle>\n          <circle cx=\"100\" cy=\"100\" r=\"4\" fill=\"#222\"></circle>\n          <g id=\"marks\" stroke=\"#222\" stroke-linecap=\"round\"></g>\n          <line id=\"hourHand\" x1=\"100\" y1=\"100\" x2=\"100\" y2=\"55\" stroke=\"#222\" stroke-width=\"6\" stroke-linecap=\"round\"></line>\n          <line id=\"minuteHand\" x1=\"100\" y1=\"100\" x2=\"100\" y2=\"35\" stroke=\"#222\" stroke-width=\"4\" stroke-linecap=\"round\"></line>\n          <line id=\"secondHand\" x1=\"100\" y1=\"110\" x2=\"100\" y2=\"25\" stroke=\"#d11\" stroke-width=\"2\" stroke-linecap=\"round\"></line>\n        </svg>\n      </div>\n    `;\n\n    const marks = parent.querySelector(\"#marks\");\n    for (let i = 0; i < 60; i++) {\n      const isHour = i % 5 === 0;\n      const angle = (i / 60) * Math.PI * 2 - Math.PI / 2;\n      const r1 = isHour ? 82 : 88;\n      const r2 = 94;\n      const x1 = 100 + Math.cos(angle) * r1;\n      const y1 = 100 + Math.sin(angle) * r1;\n      const x2 = 100 + Math.cos(angle) * r2;\n      const y2 = 100 + Math.sin(angle) * r2;\n      const line = document.createElementNS(\"http://www.w3.org/2000/svg\", \"line\");\n      line.setAttribute(\"x1\", x1);\n      line.setAttribute(\"y1\", y1);\n      line.setAttribute(\"x2\", x2);\n      line.setAttribute(\"y2\", y2);\n      line.setAttribute(\"stroke-width\", isHour ? \"4\" : \"2\");\n      marks.appendChild(line);\n    }\n\n    const hourHand = parent.querySelector(\"#hourHand\");\n    const minuteHand = parent.querySelector(\"#minuteHand\");\n    const secondHand = parent.querySelector(\"#secondHand\");\n\n    const setHand = (el, angle, cx, cy) => {\n      const len = parseFloat(el.getAttribute(\"y1\")) - parseFloat(el.getAttribute(\"y2\"));\n      const rad = (Math.PI / 180) * angle - Math.PI / 2;\n      const x2 = cx + Math.cos(rad) * len;\n      const y2 = cy + Math.sin(rad) * len;\n      el.setAttribute(\"x2\", x2);\n      el.setAttribute(\"y2\", y2);\n    };\n\n    const tick = () => {\n      const now = new Date();\n      const s = now.getSeconds() + now.getMilliseconds() / 1000;\n      const m = now.getMinutes() + s / 60;\n      const h = (now.getHours() % 12) + m / 60;\n\n      setHand(hourHand, h * 30, 100, 100);\n      setHand(minuteHand, m * 6, 100, 100);\n      setHand(secondHand, s * 6, 100, 100);\n    };\n\n    tick();\n    setInterval(tick, 1000 / 30);\n  }\n})",
           "usage": {

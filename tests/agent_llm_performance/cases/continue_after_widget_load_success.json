@@ -9,10 +9,7 @@
     "require_single_separator": true,
     "require_code_after_separator": true,
     "require_valid_javascript": true,
-    "must_contain": [
-      "_____javascript",
-      "snake-game"
-    ],
+    "must_contain": ["_____javascript", "snake-game"],
     "must_match": [
       {
         "pattern": "(?:space\\.current\\.patchWidget\\(\"snake-game\"|space\\.chat\\.transient\\.)",

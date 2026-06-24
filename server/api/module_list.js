@@ -7,10 +7,7 @@ function readListArea(context) {
 
 function readListOwnerId(context) {
   return String(
-    context.params.ownerId ||
-      context.params.owner_id ||
-      context.params.username ||
-      ""
+    context.params.ownerId || context.params.owner_id || context.params.username || ""
   ).trim();
 }
 
@@ -28,7 +25,7 @@ export async function get(context) {
       runtimeParams: context.runtimeParams,
       search: readListSearch(context),
       stateSystem: context.stateSystem,
-      username: context.user?.username,
+      username: context.user?.username
     });
   } catch (error) {
     throw createHttpError(error.message || "Module list failed.", Number(error.statusCode) || 500);

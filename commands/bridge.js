@@ -23,23 +23,24 @@ export const help = {
   summary: "Drive the Bridge cockpit golden paths from the terminal.",
   usage: [
     "node space bridge status",
-    "node space bridge plan \"<requirement>\" [--workspace W] [--strategy auto|oneshot|incremental|swarm]",
+    'node space bridge plan "<requirement>" [--workspace W] [--strategy auto|oneshot|incremental|swarm]',
     "node space bridge run <manifest_id> [--workspace W]",
     "node space bridge ingest [--workspace W]",
     "node space bridge open"
   ],
   description:
     "Headless access to the Bridge — the one cockpit that unifies memory, documents, code, flows and runs. `plan`/`run` push the swarm golden path; `ingest` pushes the documents->triples path; `status` is a one-shot mesh snapshot. Same runtime/memoray endpoints the page uses.",
-  arguments: [
-    { name: "<subcommand>", description: "status | plan | run | ingest | open" }
-  ],
+  arguments: [{ name: "<subcommand>", description: "status | plan | run | ingest | open" }],
   options: [
     { name: "--workspace", description: "Workspace to scope plan/run/ingest (default 'default')." },
-    { name: "--strategy", description: "Planner strategy for plan (auto|oneshot|incremental|swarm)." }
+    {
+      name: "--strategy",
+      description: "Planner strategy for plan (auto|oneshot|incremental|swarm)."
+    }
   ],
   examples: [
     "node space bridge status",
-    "node space bridge plan \"score trades for credit risk\" --workspace pypes_demo",
+    'node space bridge plan "score trades for credit risk" --workspace pypes_demo',
     "node space bridge run mf_1a2b3c --workspace pypes_demo",
     "node space bridge ingest --workspace c5_test"
   ]
@@ -55,8 +56,10 @@ function parseFlags(args) {
     if (arg.startsWith("--")) {
       const key = arg.slice(2);
       const next = args[i + 1];
-      if (next !== undefined && !next.startsWith("--")) { flags[key] = next; i += 1; }
-      else flags[key] = true;
+      if (next !== undefined && !next.startsWith("--")) {
+        flags[key] = next;
+        i += 1;
+      } else flags[key] = true;
     } else {
       positional.push(arg);
     }
@@ -65,7 +68,9 @@ function parseFlags(args) {
 }
 
 function reportRuntimeDown(result) {
-  console.error(`Benny runtime unreachable (${result.url}). ${result.hint || "Boot it with scripts/dev.ps1."}`);
+  console.error(
+    `Benny runtime unreachable (${result.url}). ${result.hint || "Boot it with scripts/dev.ps1."}`
+  );
 }
 
 async function cmdStatus(ctx) {
@@ -79,7 +84,9 @@ async function cmdStatus(ctx) {
       const m = mem.body || {};
       const claude = m.claude?.sessions || 0;
       const anti = m.antigravity?.sessions || 0;
-      console.log(`memory: online — ${claude + anti} sessions (claude ${claude}, antigravity ${anti}), ${m.totalNodes || 0} nodes`);
+      console.log(
+        `memory: online — ${claude + anti} sessions (claude ${claude}, antigravity ${anti}), ${m.totalNodes || 0} nodes`
+      );
     } else {
       console.log("memory: offline");
     }
@@ -89,32 +96,45 @@ async function cmdStatus(ctx) {
   const runs = await runtimeRequest("/manifests/runs?limit=5");
   if (runs.ok && Array.isArray(runs.body)) {
     const last = runs.body[0];
-    console.log(`runs: ${runs.body.length}+ recorded${last ? ` — last ${last.run_id || last.id} (${last.status || "?"})` : ""}`);
+    console.log(
+      `runs: ${runs.body.length}+ recorded${last ? ` — last ${last.run_id || last.id} (${last.status || "?"})` : ""}`
+    );
   } else {
     console.log("runs: runtime unreachable");
   }
 
   const report = await runIntegrationAudit(ctx);
-  console.log(`conformance: ${report.status.toUpperCase()} (${report.integrations.map((r) => `${r.id}=${r.status}`).join(", ")})`);
+  console.log(
+    `conformance: ${report.status.toUpperCase()} (${report.integrations.map((r) => `${r.id}=${r.status}`).join(", ")})`
+  );
   console.log(`open: ${ROUTE}`);
   return 0;
 }
 
 async function cmdPlan(ctx, requirement, flags) {
   if (!requirement) {
-    console.error("Usage: node space bridge plan \"<requirement>\" [--workspace W] [--strategy S]");
+    console.error('Usage: node space bridge plan "<requirement>" [--workspace W] [--strategy S]');
     return 1;
   }
   const body = { requirement, workspace: flags.workspace || "default" };
   if (flags.strategy) body.strategy = flags.strategy;
   const result = await runtimeRequest("/manifests/plan", { method: "POST", body });
-  if (!result.ok) { reportRuntimeDown(result); return 1; }
+  if (!result.ok) {
+    reportRuntimeDown(result);
+    return 1;
+  }
   const m = result.body || {};
-  const nodes = Array.isArray(m.nodes) ? m.nodes.length : (Array.isArray(m.steps) ? m.steps.length : 0);
+  const nodes = Array.isArray(m.nodes)
+    ? m.nodes.length
+    : Array.isArray(m.steps)
+      ? m.steps.length
+      : 0;
   console.log(`planned: ${m.id || "(no id)"}`);
   console.log(`requirement: ${m.requirement || requirement}`);
   console.log(`nodes: ${nodes}`);
-  console.log(`run it: node space bridge run ${m.id || "<id>"}${flags.workspace ? ` --workspace ${flags.workspace}` : ""}`);
+  console.log(
+    `run it: node space bridge run ${m.id || "<id>"}${flags.workspace ? ` --workspace ${flags.workspace}` : ""}`
+  );
   return 0;
 }
 
@@ -127,7 +147,10 @@ async function cmdRun(ctx, manifestId, flags) {
     method: "POST",
     body: { workspace: flags.workspace || "default" }
   });
-  if (!result.ok) { reportRuntimeDown(result); return 1; }
+  if (!result.ok) {
+    reportRuntimeDown(result);
+    return 1;
+  }
   const r = result.body || {};
   const runId = r.run_id || r.id || "(no run id)";
   console.log(`run: ${runId}`);
@@ -141,7 +164,10 @@ async function cmdIngest(ctx, flags) {
     method: "POST",
     body: { workspace: flags.workspace || "default" }
   });
-  if (!result.ok) { reportRuntimeDown(result); return 1; }
+  if (!result.ok) {
+    reportRuntimeDown(result);
+    return 1;
+  }
   const r = result.body || {};
   console.log(`ingest: ${r.run_id || r.task_id || r.id || "started"}`);
   console.log(`workspace: ${flags.workspace || "default"}`);
@@ -156,10 +182,14 @@ export async function execute(context) {
   const ctx = { runtimeParams, projectRoot: context.projectRoot };
 
   switch (subcommand) {
-    case "status": return cmdStatus(ctx);
-    case "plan": return cmdPlan(ctx, positional.slice(1).join(" ").trim(), flags);
-    case "run": return cmdRun(ctx, positional[1], flags);
-    case "ingest": return cmdIngest(ctx, flags);
+    case "status":
+      return cmdStatus(ctx);
+    case "plan":
+      return cmdPlan(ctx, positional.slice(1).join(" ").trim(), flags);
+    case "run":
+      return cmdRun(ctx, positional[1], flags);
+    case "ingest":
+      return cmdIngest(ctx, flags);
     case "open":
       console.log(ROUTE);
       return 0;

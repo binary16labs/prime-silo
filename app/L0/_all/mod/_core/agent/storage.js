@@ -20,7 +20,11 @@ function getRuntime() {
 
 function isMissingFileError(error) {
   const message = String(error?.message || "");
-  return /\bstatus 404\b/u.test(message) || /File not found\./u.test(message) || /Path not found\./u.test(message);
+  return (
+    /\bstatus 404\b/u.test(message) ||
+    /File not found\./u.test(message) ||
+    /Path not found\./u.test(message)
+  );
 }
 
 export async function loadAgentPersonality() {

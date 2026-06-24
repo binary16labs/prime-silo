@@ -66,7 +66,9 @@ class SpaceSupervisor {
       }
 
       const exitLabel = signal ? `signal ${signal}` : `code ${code}`;
-      console.error(`[supervise] Active serve child ${child.label} exited unexpectedly with ${exitLabel}.`);
+      console.error(
+        `[supervise] Active serve child ${child.label} exited unexpectedly with ${exitLabel}.`
+      );
       this.activeChild = null;
       this.tryFallbackToDrainingChild();
 
@@ -77,7 +79,9 @@ class SpaceSupervisor {
   }
 
   async startTarget(target) {
-    console.log(`[supervise] Starting ${target.label} from ${path.relative(process.cwd(), target.rootDir) || "."}.`);
+    console.log(
+      `[supervise] Starting ${target.label} from ${path.relative(process.cwd(), target.rootDir) || "."}.`
+    );
     const child = await startServeChild({
       env: this.childEnv,
       label: target.label,
@@ -159,12 +163,14 @@ class SpaceSupervisor {
 
     clearTimeout(this.updateTimer);
     this.updateTimer = setTimeout(() => {
-      this.checkForUpdates().catch((error) => {
-        console.error("[supervise] Update check failed.");
-        console.error(error);
-      }).finally(() => {
-        this.scheduleUpdateCheck();
-      });
+      this.checkForUpdates()
+        .catch((error) => {
+          console.error("[supervise] Update check failed.");
+          console.error(error);
+        })
+        .finally(() => {
+          this.scheduleUpdateCheck();
+        });
     }, delayMs);
   }
 
@@ -202,7 +208,9 @@ class SpaceSupervisor {
       try {
         child = await this.startTarget(target);
       } catch (error) {
-        console.error(`[supervise] Replacement ${target.label} did not become healthy; keeping ${this.activeChild?.label || "current child"}.`);
+        console.error(
+          `[supervise] Replacement ${target.label} did not become healthy; keeping ${this.activeChild?.label || "current child"}.`
+        );
         throw error;
       }
 
@@ -268,7 +276,9 @@ class SpaceSupervisor {
     const listener = await this.proxy.listen();
     console.log(`[supervise] Public proxy listening at ${listener.browserUrl}.`);
     if (this.isAutoUpdateEnabled()) {
-      console.log(`[supervise] Checking ${sanitizeRemoteUrl(this.remoteUrl)} ${this.branchName} every ${this.autoUpdateIntervalMs / 1000}s.`);
+      console.log(
+        `[supervise] Checking ${sanitizeRemoteUrl(this.remoteUrl)} ${this.branchName} every ${this.autoUpdateIntervalMs / 1000}s.`
+      );
       this.scheduleUpdateCheck();
       return;
     }
@@ -293,12 +303,14 @@ class SpaceSupervisor {
 
     await Promise.all(
       children.map((child) =>
-        child.stop({
-          graceMs: this.drainTimeoutMs
-        }).catch((error) => {
-          console.error(`[supervise] Failed to stop child ${child.label}.`);
-          console.error(error);
-        })
+        child
+          .stop({
+            graceMs: this.drainTimeoutMs
+          })
+          .catch((error) => {
+            console.error(`[supervise] Failed to stop child ${child.label}.`);
+            console.error(error);
+          })
       )
     );
 

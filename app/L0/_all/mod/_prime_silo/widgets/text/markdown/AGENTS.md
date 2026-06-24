@@ -24,7 +24,7 @@ props:        { source: string, workspace?: string }
 frame_bindings: []  (this widget reads its source directly, not from a frame)
 ```
 
-`source` is a *filename* relative to `agent_sandbox/notes/` — not a path. The runtime rejects path separators in the filename.
+`source` is a _filename_ relative to `agent_sandbox/notes/` — not a path. The runtime rejects path separators in the filename.
 
 ## Authority + safety
 

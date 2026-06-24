@@ -38,7 +38,10 @@
                 @click="$store.spacesPage.toggleConfigPanel($event.currentTarget)"
               >
                 <span class="spaces-config-toggle-copy">
-                  <span class="spaces-config-toggle-title" x-text="$store.spacesPage.currentSpaceDisplayTitle"></span>
+                  <span
+                    class="spaces-config-toggle-title"
+                    x-text="$store.spacesPage.currentSpaceDisplayTitle"
+                  ></span>
                 </span>
                 <x-icon class="spaces-config-toggle-icon">expand_more</x-icon>
               </button>
@@ -158,13 +161,25 @@
 
                     <div class="dialog-scroll-body">
                       <div class="spaces-share-stack">
-                        <p class="field-note">Create a hosted share link, or move the current space around as a ZIP.</p>
+                        <p class="field-note">
+                          Create a hosted share link, or move the current space around as a ZIP.
+                        </p>
 
-                        <section class="space-card spaces-share-panel" x-show="$store.spacesShareModal.canShareToCloud" x-cloak>
+                        <section
+                          class="space-card spaces-share-panel"
+                          x-show="$store.spacesShareModal.canShareToCloud"
+                          x-cloak
+                        >
                           <div class="spaces-share-copy-block">
                             <p class="page-eyebrow">Hosted Share</p>
-                            <h3>Share via <span x-text="$store.spacesShareModal.cloudShareHostLabel"></span></h3>
-                            <p class="field-note">Create a public guest-share link. Add a password to encrypt the ZIP in the browser before upload.</p>
+                            <h3>
+                              Share via
+                              <span x-text="$store.spacesShareModal.cloudShareHostLabel"></span>
+                            </h3>
+                            <p class="field-note">
+                              Create a public guest-share link. Add a password to encrypt the ZIP in
+                              the browser before upload.
+                            </p>
                           </div>
 
                           <label class="field">
@@ -245,7 +260,11 @@
                           <div class="spaces-share-copy-block">
                             <p class="page-eyebrow">ZIP Transfer</p>
                             <h3>Download or upload ZIP</h3>
-                            <p class="field-note">Download the current space as a ZIP, or import a ZIP into this space. Imports can replace the current space or land as a new <code>imported-N</code> space.</p>
+                            <p class="field-note">
+                              Download the current space as a ZIP, or import a ZIP into this space.
+                              Imports can replace the current space or land as a new
+                              <code>imported-N</code> space.
+                            </p>
                           </div>
 
                           <div class="space-action-grid">
@@ -271,7 +290,10 @@
                               <x-icon>upload_file</x-icon>
                               <span class="space-action-card-copy">
                                 <strong>Upload ZIP</strong>
-                                <span>Import a ZIP and decide whether to replace this space or keep both.</span>
+                                <span
+                                  >Import a ZIP and decide whether to replace this space or keep
+                                  both.</span
+                                >
                               </span>
                             </button>
                           </div>
@@ -301,7 +323,12 @@
                     </div>
 
                     <div class="dialog-actions">
-                      <button type="button" class="secondary-button" :disabled="$store.spacesShareModal.isBusy" @click="void $store.spacesShareModal.closeShareDialog()">
+                      <button
+                        type="button"
+                        class="secondary-button"
+                        :disabled="$store.spacesShareModal.isBusy"
+                        @click="void $store.spacesShareModal.closeShareDialog()"
+                      >
                         Close
                       </button>
                     </div>
@@ -320,7 +347,11 @@
           x-destroy="$store.spacesPage.unmount()"
           x-ref="canvas"
         >
-          <div class="spaces-widget-grid" x-ref="grid" :aria-busy="String($store.spacesPage.loadingSpace)"></div>
+          <div
+            class="spaces-widget-grid"
+            x-ref="grid"
+            :aria-busy="String($store.spacesPage.loadingSpace)"
+          ></div>
         </section>
       </template>
     </div>

@@ -116,13 +116,15 @@ export const help = {
   arguments: [
     {
       name: "<username>",
-      description: "User id under the logical L2/<username>/ root, stored under CUSTOMWARE_PATH/L2 when configured."
+      description:
+        "User id under the logical L2/<username>/ root, stored under CUSTOMWARE_PATH/L2 when configured."
     }
   ],
   options: [
     {
       flag: "create",
-      description: "Create a user directory with user.yaml, meta/password.json, meta/logins.json, and mod/."
+      description:
+        "Create a user directory with user.yaml, meta/password.json, meta/logins.json, and mod/."
     },
     {
       flag: "password",
@@ -138,7 +140,8 @@ export const help = {
     },
     {
       flag: "--groups <group[,group...]>",
-      description: "Comma-separated groups to add during user creation. Missing writable L1 groups are created automatically."
+      description:
+        "Comma-separated groups to add during user creation. Missing writable L1 groups are created automatically."
     },
     {
       flag: "--force",
@@ -147,14 +150,16 @@ export const help = {
   ],
   examples: [
     "node space user create alice --password secret123",
-    "node space user create alice --password secret123 --full-name \"Alice Example\"",
+    'node space user create alice --password secret123 --full-name "Alice Example"',
     "node space user create alice --password secret123 --groups _admin,team-red",
     "node space user password alice --password newsecret456"
   ]
 };
 
 export async function execute(context) {
-  const subcommand = String(context.args[0] || "").trim().toLowerCase();
+  const subcommand = String(context.args[0] || "")
+    .trim()
+    .toLowerCase();
   const subcommandArgs = context.args.slice(1);
   const runtimeParams = await createRuntimeParams(context.projectRoot, {
     env: context.originalEnv
@@ -188,7 +193,5 @@ export async function execute(context) {
     return 0;
   }
 
-  throw new Error(
-    'Unknown user subcommand. Use "node space help user" for available subcommands.'
-  );
+  throw new Error('Unknown user subcommand. Use "node space help user" for available subcommands.');
 }

@@ -159,7 +159,11 @@ async function proxyExternalRequest(req, res, requestUrl) {
     return;
   }
 
-  const responseHeaders = createClientHeaders(upstreamResponse.headers, targetUrl, upstreamResponse);
+  const responseHeaders = createClientHeaders(
+    upstreamResponse.headers,
+    targetUrl,
+    upstreamResponse
+  );
   applyApiCorsHeaders(res);
   res.writeHead(upstreamResponse.status, responseHeaders);
   await pipeUpstreamBodyToResponse(res, upstreamResponse);

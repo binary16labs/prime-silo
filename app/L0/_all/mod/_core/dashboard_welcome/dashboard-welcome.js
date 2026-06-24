@@ -97,7 +97,9 @@ function normalizeExampleDescription(value) {
 
 function parseExampleManifestPath(path) {
   const normalizedPath = String(path || "").trim();
-  const match = normalizedPath.match(/^(L[0-2]\/[^/]+\/mod\/_core\/dashboard_welcome\/examples\/([^/]+)\/)space\.yaml$/u);
+  const match = normalizedPath.match(
+    /^(L[0-2]\/[^/]+\/mod\/_core\/dashboard_welcome\/examples\/([^/]+)\/)space\.yaml$/u
+  );
 
   if (!match) {
     return null;
@@ -155,7 +157,9 @@ async function loadExamples() {
     throw new Error(`Unable to list bundled examples: ${error.message}`);
   }
 
-  const matchedPaths = Array.isArray(result?.[EXAMPLE_MANIFEST_PATTERN]) ? result[EXAMPLE_MANIFEST_PATTERN] : [];
+  const matchedPaths = Array.isArray(result?.[EXAMPLE_MANIFEST_PATTERN])
+    ? result[EXAMPLE_MANIFEST_PATTERN]
+    : [];
   const effectiveExamples = new Map();
 
   matchedPaths.forEach((matchedPath) => {
@@ -195,9 +199,11 @@ globalThis.dashboardWelcome = function dashboardWelcome() {
     savingPreference: false,
 
     async init() {
-      this.dashboardWelcomeHiddenChangeCleanup = subscribeDashboardWelcomeHiddenChange((nextHidden) => {
-        this.hidden = nextHidden;
-      });
+      this.dashboardWelcomeHiddenChangeCleanup = subscribeDashboardWelcomeHiddenChange(
+        (nextHidden) => {
+          this.hidden = nextHidden;
+        }
+      );
 
       try {
         const [prefs, examples] = await Promise.all([loadDashboardPrefs(), loadExamples()]);

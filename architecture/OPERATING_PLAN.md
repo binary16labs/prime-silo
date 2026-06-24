@@ -3,9 +3,10 @@
 How to run, test, and ship work in `binary16labs/prime-silo`.
 
 Cross-references:
-- [ROADMAP.md](ROADMAP.md) — *what* is being built and in what order.
-- [ADR-001](../runtime/architecture/ADR-001-prime-silo-shell-fork.md) — *why*.
-- [OPERATING_MANUAL.md](OPERATING_MANUAL.md) — *how to operate the shipped features* (setup from scratch, feature walkthroughs, diagnostic playbook). The audience is the operator; this file's audience is the next phase contributor.
+
+- [ROADMAP.md](ROADMAP.md) — _what_ is being built and in what order.
+- [ADR-001](../runtime/architecture/ADR-001-prime-silo-shell-fork.md) — _why_.
+- [OPERATING_MANUAL.md](OPERATING_MANUAL.md) — _how to operate the shipped features_ (setup from scratch, feature walkthroughs, diagnostic playbook). The audience is the operator; this file's audience is the next phase contributor.
 
 ## Repo layout (the parts that matter to a phase delivery)
 
@@ -73,13 +74,13 @@ The full pytest suite has unrelated collection errors in some modules (kg3d, mcp
 
 ### When to run what
 
-| Change | Run |
-| ------ | --- |
-| Widget under `app/L0/_all/mod/_prime_silo/widgets/` | the matching `widgets_*_test.mjs` + `widget_registry_test.mjs` |
-| Runtime client (`runtime-client.js`) | all four `runtime_client_*_test.mjs` + `agent_runtime_test.mjs` + every widget test (they all consume the runtime client) |
-| Agent runtime (`agent-runtime.js`) | `agent_runtime_test.mjs` + `runtime_client_agent_scope_test.mjs` |
-| Runtime API (`runtime/benny/api/*`) | matching pytest under `runtime/tests/api/` + the browser test of any consumer |
-| Shell proxy (`server/lib/runtime_proxy.js`) | `runtime_proxy_test.mjs` + smoke any widget test |
+| Change                                              | Run                                                                                                                       |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Widget under `app/L0/_all/mod/_prime_silo/widgets/` | the matching `widgets_*_test.mjs` + `widget_registry_test.mjs`                                                            |
+| Runtime client (`runtime-client.js`)                | all four `runtime_client_*_test.mjs` + `agent_runtime_test.mjs` + every widget test (they all consume the runtime client) |
+| Agent runtime (`agent-runtime.js`)                  | `agent_runtime_test.mjs` + `runtime_client_agent_scope_test.mjs`                                                          |
+| Runtime API (`runtime/benny/api/*`)                 | matching pytest under `runtime/tests/api/` + the browser test of any consumer                                             |
+| Shell proxy (`server/lib/runtime_proxy.js`)         | `runtime_proxy_test.mjs` + smoke any widget test                                                                          |
 
 ## Dev loop per phase
 
@@ -102,11 +103,11 @@ The full pytest suite has unrelated collection errors in some modules (kg3d, mcp
 
 ## Local-only files to keep out of commits
 
-| File | Why |
-| ---- | --- |
+| File                                    | Why                                                             |
+| --------------------------------------- | --------------------------------------------------------------- |
 | `runtime/benny.bat`, `runtime/benny.sh` | Hard-coded Python interpreter paths for the operator's machine. |
-| `BENNY_HMAC_KEY` exports in shell rc | Secret. Stays in env, never in repo. |
-| `$BENNY_HOME/` contents | Workspace state — already gitignored. |
+| `BENNY_HMAC_KEY` exports in shell rc    | Secret. Stays in env, never in repo.                            |
+| `$BENNY_HOME/` contents                 | Workspace state — already gitignored.                           |
 
 ## Common gotchas
 
@@ -120,7 +121,7 @@ The full pytest suite has unrelated collection errors in some modules (kg3d, mcp
 
 - This file + [ROADMAP.md](ROADMAP.md) are the durable context. Read them first when reopening the project.
 - Per-AGENTS.md docs are scoped to their folder and updated alongside code.
-- Claude Code's `~/.claude/projects/.../memory/` is *supplementary* — pointers to these docs, not duplicates. The repo wins on conflict.
+- Claude Code's `~/.claude/projects/.../memory/` is _supplementary_ — pointers to these docs, not duplicates. The repo wins on conflict.
 
 ## Release gates not in scope here
 

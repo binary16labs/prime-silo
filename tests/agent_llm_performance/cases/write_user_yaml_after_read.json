@@ -9,10 +9,7 @@
     "require_single_separator": true,
     "require_code_after_separator": true,
     "require_valid_javascript": true,
-    "must_contain": [
-      "_____javascript",
-      "Pan Example"
-    ],
+    "must_contain": ["_____javascript", "Pan Example"],
     "must_match": [
       {
         "pattern": "space\\.api\\.fileWrite\\(",
@@ -29,9 +26,6 @@
         "flags": "u"
       }
     ],
-    "must_not_contain_before_separator": [
-      "full_name: pan",
-      "I found your user.yaml"
-    ]
+    "must_not_contain_before_separator": ["full_name: pan", "I found your user.yaml"]
   }
 }

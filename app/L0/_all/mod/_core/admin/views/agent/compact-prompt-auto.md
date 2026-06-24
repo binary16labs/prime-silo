@@ -9,6 +9,7 @@ Older context matters only when it still constrains the current step. When you m
 Return exactly one plain-text block that starts with `Conversation summary:` and then continues with a tight, readable summary.
 
 Preserve the important parts:
+
 - the current objective
 - key constraints, decisions, and assumptions that still matter now
 - important file paths, APIs, commands, errors, outputs, and state that affect the current step
@@ -16,6 +17,7 @@ Preserve the important parts:
 - the clearest possible statement of what should happen next
 
 Remove what does not help the next assistant turn:
+
 - repetition
 - minor back-and-forth
 - empty retries

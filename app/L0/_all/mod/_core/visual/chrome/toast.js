@@ -3,7 +3,9 @@ const TOAST_DISMISS_DELAY_MS = 180;
 const DEFAULT_TOAST_DURATION_MS = 4200;
 
 function normalizeToastTone(value) {
-  const tone = String(value || "info").trim().toLowerCase();
+  const tone = String(value || "info")
+    .trim()
+    .toLowerCase();
 
   if (tone === "error" || tone === "success") {
     return tone;
@@ -143,6 +145,9 @@ export function showToast(message, options = {}) {
   return record;
 }
 
-const space = globalThis.space && typeof globalThis.space === "object" ? globalThis.space : (globalThis.space = {});
+const space =
+  globalThis.space && typeof globalThis.space === "object"
+    ? globalThis.space
+    : (globalThis.space = {});
 space.visual = space.visual || {};
 space.visual.showToast = showToast;

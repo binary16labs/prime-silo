@@ -24,10 +24,11 @@ export default async function injectUserHomeFileTreeTransientSection(hookContext
     return;
   }
 
-  const userHomeFileTreeTransientSection = await buildUserHomeFileTreeTransientSectionFromRuntime().catch((error) => {
-    console.error("Unable to build the user home file tree transient section.", error);
-    return null;
-  });
+  const userHomeFileTreeTransientSection =
+    await buildUserHomeFileTreeTransientSectionFromRuntime().catch((error) => {
+      console.error("Unable to build the user home file tree transient section.", error);
+      return null;
+    });
 
   if (!userHomeFileTreeTransientSection) {
     return;

@@ -2134,9 +2134,7 @@
           "case_path": "tests/agent_llm_performance/cases/time_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/time_requires_execution.json",
           "passed": false,
-          "failures": [
-            "execution separator must appear exactly once on its own line"
-          ],
+          "failures": ["execution separator must appear exactly once on its own line"],
           "response_type": "thrust",
           "response": "Checking the current time now..._____javascript\nreturn new Date().toString()\n\n\nreturn new Date().toString()",
           "usage": {
@@ -2521,9 +2519,7 @@
           "case_path": "tests/agent_llm_performance/cases/verification_reveals_remaining_widget_error_requires_correction.json",
           "history_path": "tests/agent_llm_performance/histories/verification_reveals_remaining_widget_error_requires_correction.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"financials\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"financials\"\\)/u"],
           "response_type": "thrust",
           "response": "Repairing the financials widget now...\n_____javascript\nreturn await space.current.patchWidget(\"financials\", { edits: [] })",
           "usage": {
@@ -2558,9 +2554,7 @@
           "case_path": "tests/agent_llm_performance/cases/partial_mitigation_is_not_completion.json",
           "history_path": "tests/agent_llm_performance/histories/partial_mitigation_is_not_completion.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"financials\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"financials\"\\)/u"],
           "response_type": "thrust",
           "response": "I’m checking the same widget again now.\n_____javascript\nreturn await space.current.seeWidget(\"financials\")",
           "usage": {
@@ -3144,9 +3138,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_text_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_text_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating ~/people.txt to replace mr. Kowalski with John Ronald Kowalski now.\n_____javascript\nconst path = \"~/people.txt\"\nconst text = await space.api.fileRead(path, \"utf8\")\nconst updated = text.replace(/mr\\.\\s*Kowalski/g, \"John Ronald Kowalski\")\nreturn await space.api.fileWrite(path, updated, \"utf8\")",
           "usage": {
@@ -3181,9 +3173,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating the contacts file now.\n\n_____javascript\nconst text = await space.api.fileRead(\"~/contacts.yaml\", \"utf8\")\nconst data = space.utils.yaml.parse(text)\nif (data && data.mr_kowalski) data.mr_kowalski = \"John Ronald Kowalski\"\nconst updated = space.utils.yaml.stringify(data)\nreturn await space.api.fileWrite(\"~/contacts.yaml\", updated, \"utf8\")",
           "usage": {
@@ -4064,9 +4054,7 @@
           "case_path": "tests/agent_llm_performance/cases/followup_after_wrong_space_removal_requires_discovery_execution.json",
           "history_path": "tests/agent_llm_performance/histories/followup_after_wrong_space_removal_requires_discovery_execution.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /removeSpace\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /removeSpace\\(/u"],
           "response_type": "thrust",
           "response": "Removing the space titled Game Room now.\n_____javascript\nconst spaces = await space.spaces.listSpaces()\nconst target = spaces.find(s => (s.title || s.name || \"\").toLowerCase() === \"game room\")\nreturn target ? await space.spaces.removeSpace(target.id) : { error: \"Game Room not found\", spaces }",
           "usage": {
@@ -4478,9 +4466,7 @@
           "case_path": "tests/agent_llm_performance/cases/fix_visible_widget_error_requires_readwidget.json",
           "history_path": "tests/agent_llm_performance/histories/fix_visible_widget_error_requires_readwidget.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"status-board\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"status-board\"\\)/u"],
           "response_type": "thrust",
           "response": "Repairing the status widget’s upstream unavailable error now.\n_____javascript\nreturn await space.current.patchWidget(\"status-board\", {\n  edits: [\n    {\n      op: \"replace\",\n      path: \"/content\",\n      value: \"<div>Status unavailable right now. Please try again later.</div>\"\n    }\n  ]\n})",
           "usage": {
@@ -4594,9 +4580,7 @@
           "case_path": "tests/agent_llm_performance/cases/verification_reveals_remaining_widget_error_requires_correction.json",
           "history_path": "tests/agent_llm_performance/histories/verification_reveals_remaining_widget_error_requires_correction.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"financials\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"financials\"\\)/u"],
           "response_type": "thrust",
           "response": "Repairing the financials widget to address the AMZN 429 error now...\n_____javascript\nreturn await space.current.patchWidget(\"financials\", {\n  edits: [\n    {\n      op: \"replace\",\n      path: \"/source\",\n      value: `\nconst container = document.createElement(\"div\")\ncontainer.textContent = \"Error: AMZN: 429 Too Many Requests\"\nreturn container\n`\n    }\n  ]\n})",
           "usage": {
@@ -4631,9 +4615,7 @@
           "case_path": "tests/agent_llm_performance/cases/partial_mitigation_is_not_completion.json",
           "history_path": "tests/agent_llm_performance/histories/partial_mitigation_is_not_completion.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"financials\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"financials\"\\)/u"],
           "response_type": "thrust",
           "response": "Fixing the financials widget now.\n_____javascript\nreturn await space.current.patchWidget(\"financials\", {\n  edits: [\n    {\n      op: \"replace\",\n      path: \"/content\",\n      value: `<div style=\"padding:12px;font-family:system-ui\">\n  <div style=\"margin-bottom:8px\">Market data temporarily unavailable for one or more symbols.</div>\n  <div>Please try again in a moment.</div>\n</div>`\n    }\n  ]\n})",
           "usage": {
@@ -5222,9 +5204,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_text_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_text_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating ~/people.txt to replace mr. Kowalski with John Ronald Kowalski now...\n_____javascript\nconst path = \"~/people.txt\"\nconst text = await space.api.fileRead(path, \"utf8\")\nconst updated = text.replace(/\\bmr\\.\\s*Kowalski\\b/g, \"John Ronald Kowalski\")\nreturn await space.api.fileWrite(path, updated, \"utf8\")",
           "usage": {
@@ -5259,9 +5239,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating ~/contacts.yaml to expand mr_kowalski to John Ronald Kowalski now...\n_____javascript\nconst path = \"~/contacts.yaml\"\nconst text = await space.api.fileRead(path, \"utf8\")\nconst yaml = space.utils.yaml.parse(text)\nif (yaml && typeof yaml === \"object\" && yaml.mr_kowalski !== undefined) {\n  yaml.mr_kowalski = \"John Ronald Kowalski\"\n}\nconst out = space.utils.yaml.stringify(yaml)\nreturn await space.api.fileWrite(path, out, \"utf8\")",
           "usage": {

@@ -59,8 +59,8 @@ function startFloatingTitleAnimation(element, motionQuery = null) {
     }
 
     const elapsed = timestamp - startTime;
-    const orbitAngle = ((elapsed / EMPTY_SPACE_FLOAT_PROFILE.orbitPeriodMs) * TAU) + 0.45;
-    const rotationAngle = ((elapsed / EMPTY_SPACE_FLOAT_PROFILE.rotationPeriodMs) * TAU) + 1.1;
+    const orbitAngle = (elapsed / EMPTY_SPACE_FLOAT_PROFILE.orbitPeriodMs) * TAU + 0.45;
+    const rotationAngle = (elapsed / EMPTY_SPACE_FLOAT_PROFILE.rotationPeriodMs) * TAU + 1.1;
 
     applyFloatingTitlePose(
       element,
@@ -116,7 +116,13 @@ function startFloatingTitleAnimation(element, motionQuery = null) {
 }
 
 function normalizeWidgetPreviewNames(entry) {
-  return (Array.isArray(entry?.widgetPreviewNames) ? entry.widgetPreviewNames : Array.isArray(entry?.widgetNames) ? entry.widgetNames : [])
+  return (
+    Array.isArray(entry?.widgetPreviewNames)
+      ? entry.widgetPreviewNames
+      : Array.isArray(entry?.widgetNames)
+        ? entry.widgetNames
+        : []
+  )
     .map((value) => String(value || "").trim())
     .filter(Boolean)
     .filter((value, index, values) => values.indexOf(value) === index);
@@ -124,7 +130,9 @@ function normalizeWidgetPreviewNames(entry) {
 
 function normalizeSpaceEntry(entry = {}) {
   const widgetPreviewNames = normalizeWidgetPreviewNames(entry);
-  const totalWidgetNames = Array.isArray(entry?.widgetNames) ? entry.widgetNames.length : widgetPreviewNames.length;
+  const totalWidgetNames = Array.isArray(entry?.widgetNames)
+    ? entry.widgetNames.length
+    : widgetPreviewNames.length;
   const displayTitle = getSpaceDisplayTitle(entry);
   const thumbnailUrl = String(entry?.thumbnailUrl || "").trim();
 
@@ -252,7 +260,11 @@ globalThis.spacesDashboardLauncher = function spacesDashboardLauncher() {
       const slots = Array.from(element.children).filter((child) => child instanceof HTMLElement);
       const firstCard = element.querySelector(".dashboard-space-card");
       const computedStyle = window.getComputedStyle(element);
-      const maxColumns = Math.max(1, Number.parseInt(computedStyle.getPropertyValue("--dashboard-space-grid-max-columns"), 10) || 5);
+      const maxColumns = Math.max(
+        1,
+        Number.parseInt(computedStyle.getPropertyValue("--dashboard-space-grid-max-columns"), 10) ||
+          5
+      );
       const baseGap = Math.max(0, Number.parseFloat(computedStyle.rowGap) || 0);
 
       if (!firstCard) {
@@ -270,10 +282,7 @@ globalThis.spacesDashboardLauncher = function spacesDashboardLauncher() {
       const totalCards = slots.length;
       const capacity = Math.max(
         1,
-        Math.min(
-          maxColumns,
-          Math.floor((availableWidth + baseGap + 0.5) / (cardWidth + baseGap))
-        )
+        Math.min(maxColumns, Math.floor((availableWidth + baseGap + 0.5) / (cardWidth + baseGap)))
       );
       const usesFilledStage = totalCards >= capacity;
       const columns = Math.max(1, usesFilledStage ? capacity : totalCards);
@@ -325,9 +334,15 @@ globalThis.spacesDashboardLauncher = function spacesDashboardLauncher() {
     async duplicateSpace(spaceId) {
       const normalizedSpaceId = String(spaceId || "").trim();
       const entry = this.entries.find((item) => item?.id === normalizedSpaceId);
-      const label = String(entry?.displayTitle || entry?.title || normalizedSpaceId || "this space");
+      const label = String(
+        entry?.displayTitle || entry?.title || normalizedSpaceId || "this space"
+      );
 
-      if (!normalizedSpaceId || this.duplicatingSpaceId === normalizedSpaceId || this.deletingSpaceId === normalizedSpaceId) {
+      if (
+        !normalizedSpaceId ||
+        this.duplicatingSpaceId === normalizedSpaceId ||
+        this.deletingSpaceId === normalizedSpaceId
+      ) {
         return;
       }
 
@@ -354,10 +369,16 @@ globalThis.spacesDashboardLauncher = function spacesDashboardLauncher() {
     async deleteSpace(spaceId) {
       const normalizedSpaceId = String(spaceId || "").trim();
       const entry = this.entries.find((item) => item?.id === normalizedSpaceId);
-      const label = String(entry?.displayTitle || entry?.title || normalizedSpaceId || "this space");
+      const label = String(
+        entry?.displayTitle || entry?.title || normalizedSpaceId || "this space"
+      );
       const nextEntries = this.entries.filter((item) => item?.id !== normalizedSpaceId);
 
-      if (!normalizedSpaceId || this.deletingSpaceId === normalizedSpaceId || this.duplicatingSpaceId === normalizedSpaceId) {
+      if (
+        !normalizedSpaceId ||
+        this.deletingSpaceId === normalizedSpaceId ||
+        this.duplicatingSpaceId === normalizedSpaceId
+      ) {
         return;
       }
 

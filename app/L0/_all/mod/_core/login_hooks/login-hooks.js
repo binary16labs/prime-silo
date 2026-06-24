@@ -23,10 +23,7 @@ function getRuntime() {
     throw new Error("space.api login hook helpers are not available.");
   }
 
-  if (
-    typeof runtime.api.fileInfo !== "function" &&
-    typeof runtime.api.fileRead !== "function"
-  ) {
+  if (typeof runtime.api.fileInfo !== "function" && typeof runtime.api.fileRead !== "function") {
     throw new Error("space.api fileInfo() or fileRead() is required for login hook marker checks.");
   }
 
@@ -35,7 +32,11 @@ function getRuntime() {
 
 export function isMissingFileError(error) {
   const message = String(error?.message || "");
-  return /\bstatus 404\b/u.test(message) || /File not found\./u.test(message) || /Path not found\./u.test(message);
+  return (
+    /\bstatus 404\b/u.test(message) ||
+    /File not found\./u.test(message) ||
+    /Path not found\./u.test(message)
+  );
 }
 
 function normalizePathname(pathname) {
@@ -79,11 +80,15 @@ export function isLoginNavigation({
 export function buildLoginHooksStateContent({
   firstLoginCompletedAt = new Date().toISOString()
 } = {}) {
-  return `${JSON.stringify({
-    first_login_completed: true,
-    first_login_completed_at: String(firstLoginCompletedAt || "").trim(),
-    version: 1
-  }, null, 2)}\n`;
+  return `${JSON.stringify(
+    {
+      first_login_completed: true,
+      first_login_completed_at: String(firstLoginCompletedAt || "").trim(),
+      version: 1
+    },
+    null,
+    2
+  )}\n`;
 }
 
 async function hasFirstLoginMarker(runtime, markerPath) {

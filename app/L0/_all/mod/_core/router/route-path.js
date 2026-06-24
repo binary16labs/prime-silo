@@ -86,7 +86,8 @@ export function resolveRouteViewPath(path, search = "") {
 }
 
 export function parseRouteTarget(target, options = {}) {
-  const defaultPath = normalizeRoutePath(options.defaultPath, DEFAULT_ROUTE_PATH) || DEFAULT_ROUTE_PATH;
+  const defaultPath =
+    normalizeRoutePath(options.defaultPath, DEFAULT_ROUTE_PATH) || DEFAULT_ROUTE_PATH;
   const targetString =
     typeof target === "string"
       ? target.trim()
@@ -100,7 +101,7 @@ export function parseRouteTarget(target, options = {}) {
   const paramsInput =
     target && typeof target === "object" && !Array.isArray(target) && "params" in target
       ? target.params
-      : options.params ?? inlineSearch;
+      : (options.params ?? inlineSearch);
   const searchParams = createSearchParams(paramsInput);
   const searchText = searchParams.toString();
   const search = searchText ? `?${searchText}` : "";

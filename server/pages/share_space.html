@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -287,19 +287,37 @@
         <div class="share-preview-body">
           <p class="share-preview-eyebrow">Shared Space Preview</p>
           <h2 id="share-preview-title" class="share-preview-title">Untitled</h2>
-          <div id="share-preview-pills" class="share-pill-row" aria-label="Shared space widgets"></div>
+          <div
+            id="share-preview-pills"
+            class="share-pill-row"
+            aria-label="Shared space widgets"
+          ></div>
         </div>
       </section>
 
       <form id="share-password-form" class="share-password-prompt" hidden>
         <label class="share-password-label">
           <span>Password</span>
-          <input id="share-password-input" class="share-password-input" type="password" autocomplete="current-password" />
+          <input
+            id="share-password-input"
+            class="share-password-input"
+            type="password"
+            autocomplete="current-password"
+          />
         </label>
-        <button id="share-password-submit" class="share-password-submit" type="submit">Show Shared Space</button>
+        <button id="share-password-submit" class="share-password-submit" type="submit">
+          Show Shared Space
+        </button>
       </form>
 
-      <button id="share-open-button" class="share-password-submit share-open-button" type="button" hidden>Open Shared Space</button>
+      <button
+        id="share-open-button"
+        class="share-password-submit share-open-button"
+        type="button"
+        hidden
+      >
+        Open Shared Space
+      </button>
 
       <p id="share-status" class="share-status" role="status" aria-live="polite" hidden></p>
     </main>

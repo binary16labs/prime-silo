@@ -32,9 +32,8 @@ export function normalizeHuggingFaceModelInput(value) {
   try {
     const parsedUrl = new URL(rawValue);
     const hostname = parsedUrl.hostname.toLowerCase();
-    const isHubHost = hostname === "huggingface.co"
-      || hostname === "www.huggingface.co"
-      || hostname === "hf.co";
+    const isHubHost =
+      hostname === "huggingface.co" || hostname === "www.huggingface.co" || hostname === "hf.co";
 
     if (!isHubHost) {
       return rawValue;
@@ -42,15 +41,16 @@ export function normalizeHuggingFaceModelInput(value) {
 
     const pathParts = parsedUrl.pathname.split("/").filter(Boolean);
     const scopedParts = pathParts[0] === "models" ? pathParts.slice(1) : pathParts;
-    const stopIndex = scopedParts.findIndex((part) => (
-      part === "blob"
-      || part === "resolve"
-      || part === "tree"
-      || part === "raw"
-      || part === "commit"
-      || part === "discussions"
-      || part === "pull"
-    ));
+    const stopIndex = scopedParts.findIndex(
+      (part) =>
+        part === "blob" ||
+        part === "resolve" ||
+        part === "tree" ||
+        part === "raw" ||
+        part === "commit" ||
+        part === "discussions" ||
+        part === "pull"
+    );
     const relevantParts = stopIndex >= 0 ? scopedParts.slice(0, stopIndex) : scopedParts;
 
     return relevantParts.slice(0, 2).join("/");
@@ -111,8 +111,9 @@ export function mergeSavedModelEntries(existingEntries = [], nextEntry) {
     return Array.isArray(existingEntries) ? existingEntries : [];
   }
 
-  const filteredEntries = (Array.isArray(existingEntries) ? existingEntries : [])
-    .filter((entry) => !(entry?.modelId === nextEntry.modelId && entry?.dtype === nextEntry.dtype));
+  const filteredEntries = (Array.isArray(existingEntries) ? existingEntries : []).filter(
+    (entry) => !(entry?.modelId === nextEntry.modelId && entry?.dtype === nextEntry.dtype)
+  );
 
   return [nextEntry, ...filteredEntries].slice(0, 16);
 }
@@ -209,9 +210,7 @@ export function readSavedModelEntries() {
       return [];
     }
 
-    return parsedValue
-      .map((entry) => createSavedModelEntry(entry))
-      .filter(Boolean);
+    return parsedValue.map((entry) => createSavedModelEntry(entry)).filter(Boolean);
   } catch {
     return [];
   }
@@ -219,7 +218,10 @@ export function readSavedModelEntries() {
 
 export function persistSavedModelEntries(entries) {
   try {
-    globalThis.localStorage?.setItem(HUGGINGFACE_SAVED_MODELS_STORAGE_KEY, JSON.stringify(Array.isArray(entries) ? entries : []));
+    globalThis.localStorage?.setItem(
+      HUGGINGFACE_SAVED_MODELS_STORAGE_KEY,
+      JSON.stringify(Array.isArray(entries) ? entries : [])
+    );
   } catch {
     // Ignore storage failures in restricted browser contexts.
   }
@@ -242,11 +244,15 @@ function normalizeHuggingFaceChatRole(role = "") {
 }
 
 function normalizeHuggingFaceChatContent(value) {
-  return String(value ?? "").replace(/\r\n?/gu, "\n").trim();
+  return String(value ?? "")
+    .replace(/\r\n?/gu, "\n")
+    .trim();
 }
 
 function joinHuggingFaceMessageContent(left = "", right = "") {
-  return [left, right].filter((content) => typeof content === "string" && content.length).join("\n\n");
+  return [left, right]
+    .filter((content) => typeof content === "string" && content.length)
+    .join("\n\n");
 }
 
 function mergeHuggingFaceChatMessages(messages = []) {
@@ -254,11 +260,14 @@ function mergeHuggingFaceChatMessages(messages = []) {
     const previousMessage = mergedMessages[mergedMessages.length - 1];
 
     if (
-      previousMessage
-      && previousMessage.role === message.role
-      && (message.role === "user" || message.role === "assistant")
+      previousMessage &&
+      previousMessage.role === message.role &&
+      (message.role === "user" || message.role === "assistant")
     ) {
-      previousMessage.content = joinHuggingFaceMessageContent(previousMessage.content, message.content);
+      previousMessage.content = joinHuggingFaceMessageContent(
+        previousMessage.content,
+        message.content
+      );
       return mergedMessages;
     }
 
@@ -292,7 +301,9 @@ export function normalizeHuggingFaceChatMessages(messages = []) {
 }
 
 export function buildHuggingFaceFallbackPrompt(messages = []) {
-  const normalizedMessages = mergeHuggingFaceChatMessages(normalizeHuggingFaceChatMessages(messages));
+  const normalizedMessages = mergeHuggingFaceChatMessages(
+    normalizeHuggingFaceChatMessages(messages)
+  );
   const systemMessages = normalizedMessages.filter((message) => message.role === "system");
   const conversationMessages = normalizedMessages.filter((message) => message.role !== "system");
   const promptBlocks = [
@@ -330,10 +341,12 @@ export function buildChatMessages(systemPrompt, messages = []) {
 
   return mergeHuggingFaceChatMessages([
     ...(normalizedSystemPrompt
-      ? [{
-          content: normalizedSystemPrompt,
-          role: "system"
-        }]
+      ? [
+          {
+            content: normalizedSystemPrompt,
+            role: "system"
+          }
+        ]
       : []),
     ...normalizeHuggingFaceChatMessages(messages)
   ]);

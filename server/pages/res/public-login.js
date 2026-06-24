@@ -44,7 +44,9 @@ function toBase64Url(bytes) {
 }
 
 function fromBase64Url(value) {
-  const normalized = String(value || "").replace(/-/gu, "+").replace(/_/gu, "/");
+  const normalized = String(value || "")
+    .replace(/-/gu, "+")
+    .replace(/_/gu, "/");
   const padding = normalized.length % 4 === 0 ? "" : "=".repeat(4 - (normalized.length % 4));
   const decoded = atob(normalized + padding);
   return Uint8Array.from(decoded, (char) => char.charCodeAt(0));
@@ -188,15 +190,18 @@ async function deriveSaltedPassword(password, salt, iterations) {
   return new Uint8Array(bits);
 }
 
-async function persistUnlockedUserCryptoSession({
-  password,
-  passwordIterations,
-  passwordSalt,
-  passwordSecret,
-  sessionId,
-  userCrypto,
-  username
-} = {}, options = {}) {
+async function persistUnlockedUserCryptoSession(
+  {
+    password,
+    passwordIterations,
+    passwordSalt,
+    passwordSecret,
+    sessionId,
+    userCrypto,
+    username
+  } = {},
+  options = {}
+) {
   const userCryptoState = String(userCrypto?.state || "").trim();
 
   if (userCryptoState !== "ready") {
@@ -274,13 +279,10 @@ async function persistLocalStorageUserCryptoSession(cacheEntry, options = {}) {
   }
 }
 
-async function persistUserCryptoLoginBootstrap({
-  passwordIterations,
-  passwordSalt,
-  passwordSecret,
-  sessionId,
-  username
-}, options = {}) {
+async function persistUserCryptoLoginBootstrap(
+  { passwordIterations, passwordSalt, passwordSecret, sessionId, username },
+  options = {}
+) {
   const bootstrapEntry = createUserCryptoLoginBootstrapEntry({
     passwordIterations,
     passwordSalt,
@@ -403,31 +405,40 @@ export async function loginWithPassword({
   }
 
   if (String(userCryptoChallenge.state || "").trim() === "missing") {
-    await persistUserCryptoLoginBootstrap({
-      passwordIterations: Number(challenge.iterations),
-      passwordSalt: decodeBase64Url(challenge.salt),
-      passwordSecret: saltedPassword,
-      sessionId: String(loginResult.sessionId || "").trim(),
-      username: normalizedUsername
-    }, warningOptions);
+    await persistUserCryptoLoginBootstrap(
+      {
+        passwordIterations: Number(challenge.iterations),
+        passwordSalt: decodeBase64Url(challenge.salt),
+        passwordSecret: saltedPassword,
+        sessionId: String(loginResult.sessionId || "").trim(),
+        username: normalizedUsername
+      },
+      warningOptions
+    );
   }
 
-  const unlockedUserCryptoSession = await persistUnlockedUserCryptoSession({
-    password: normalizedPassword,
-    passwordIterations: Number(challenge.iterations),
-    passwordSalt: decodeBase64Url(challenge.salt),
-    passwordSecret:
-      String(userCryptoChallenge.state || "").trim() === "missing" ? saltedPassword : null,
-    sessionId: String(loginResult.sessionId || "").trim(),
-    userCrypto: loginResult.userCrypto,
-    username: normalizedUsername
-  }, warningOptions);
+  const unlockedUserCryptoSession = await persistUnlockedUserCryptoSession(
+    {
+      password: normalizedPassword,
+      passwordIterations: Number(challenge.iterations),
+      passwordSalt: decodeBase64Url(challenge.salt),
+      passwordSecret:
+        String(userCryptoChallenge.state || "").trim() === "missing" ? saltedPassword : null,
+      sessionId: String(loginResult.sessionId || "").trim(),
+      userCrypto: loginResult.userCrypto,
+      username: normalizedUsername
+    },
+    warningOptions
+  );
 
   if (unlockedUserCryptoSession.cacheEntry) {
-    stateVersion = await persistLocalStorageUserCryptoSession(unlockedUserCryptoSession.cacheEntry, {
-      minimumStateVersion: stateVersion,
-      onWarning
-    });
+    stateVersion = await persistLocalStorageUserCryptoSession(
+      unlockedUserCryptoSession.cacheEntry,
+      {
+        minimumStateVersion: stateVersion,
+        onWarning
+      }
+    );
   }
 
   if (unlockedUserCryptoSession.state === "missing") {

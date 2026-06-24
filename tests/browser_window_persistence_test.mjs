@@ -243,23 +243,26 @@ async function withStoreEnvironment(run, options = {}) {
 
 test("browser store restores persisted windows on mount and clamps them to the viewport", async () => {
   await withStoreEnvironment(async ({ storage, store }) => {
-    storage.setItem(PERSISTED_BROWSER_WINDOWS_STORAGE_KEY, JSON.stringify([
-      {
-        id: "browser-1",
-        instanceKey: 7,
-        isMinimized: true,
-        position: {
-          x: 9_999,
-          y: 9_999
-        },
-        size: {
-          height: 9_999,
-          width: 9_999
-        },
-        url: "https://example.com/ethereum",
-        zIndex: 2147481300
-      }
-    ]));
+    storage.setItem(
+      PERSISTED_BROWSER_WINDOWS_STORAGE_KEY,
+      JSON.stringify([
+        {
+          id: "browser-1",
+          instanceKey: 7,
+          isMinimized: true,
+          position: {
+            x: 9_999,
+            y: 9_999
+          },
+          size: {
+            height: 9_999,
+            width: 9_999
+          },
+          url: "https://example.com/ethereum",
+          zIndex: 2147481300
+        }
+      ])
+    );
 
     store.mount();
 
@@ -339,7 +342,10 @@ test("browser store registers inline x-browser elements as generic browser surfa
     assert.equal(browserSurface.frameSrc, "https://google.com/");
     assert.equal(browserSurface.isWindow, false);
     assert.equal(store.getWindow("browser-1"), null);
-    assert.deepEqual(store.getBrowserList().map((entry) => entry.id), ["browser-1"]);
+    assert.deepEqual(
+      store.getBrowserList().map((entry) => entry.id),
+      ["browser-1"]
+    );
     assert.equal(store.hasOpenBrowsers, true);
 
     store.updateBrowserElementSource(browserElement, "localhost:3000");

@@ -9,19 +9,13 @@
     "require_single_separator": true,
     "require_code_after_separator": true,
     "require_valid_javascript": true,
-    "must_contain": [
-      "_____javascript"
-    ],
+    "must_contain": ["_____javascript"],
     "must_match": [
       {
         "pattern": "document\\.title|location\\.href|window\\.location\\.href",
         "flags": "u"
       }
     ],
-    "must_not_contain": [
-      "I can tell you",
-      "If you tell me",
-      "I need more context"
-    ]
+    "must_not_contain": ["I can tell you", "If you tell me", "I need more context"]
   }
 }

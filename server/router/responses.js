@@ -188,7 +188,8 @@ async function sendHttpResponse(res, response) {
     const body = JSON.stringify(response.body, null, 2);
     res.writeHead(status, {
       ...headers,
-      "Content-Type": headers["Content-Type"] || headers["content-type"] || "application/json; charset=utf-8",
+      "Content-Type":
+        headers["Content-Type"] || headers["content-type"] || "application/json; charset=utf-8",
       "Content-Length": Buffer.byteLength(body)
     });
     res.end(body);
@@ -217,7 +218,8 @@ async function sendHttpResponse(res, response) {
   const textBody = String(response.body);
   res.writeHead(status, {
     ...headers,
-    "Content-Type": headers["Content-Type"] || headers["content-type"] || "text/plain; charset=utf-8",
+    "Content-Type":
+      headers["Content-Type"] || headers["content-type"] || "text/plain; charset=utf-8",
     "Content-Length": Buffer.byteLength(textBody)
   });
   res.end(textBody);

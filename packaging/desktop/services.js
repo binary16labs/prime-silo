@@ -48,7 +48,12 @@ function resolveBennyLauncher(configuredHome) {
     }
   }
   // PATH fallback — the command exists somewhere on PATH.
-  return { command: launcherName, home, binDir: home ? path.join(home, "bin") : "", source: "path" };
+  return {
+    command: launcherName,
+    home,
+    binDir: home ? path.join(home, "bin") : "",
+    source: "path"
+  };
 }
 
 // Open a native console with BENNY_HOME + bin/ on PATH, optionally running a
@@ -64,9 +69,13 @@ function openBennyConsole({ home, binDir, command = "" } = {}) {
       const tail = command ? `benny ${command}` : "";
       const script = [...setEnv, `cd /d "${cwd}"`, tail].filter(Boolean).join(" & ");
       const child = spawn("cmd.exe", ["/c", "start", "cmd.exe", "/k", script], {
-        detached: true, stdio: "ignore", windowsVerbatimArguments: true
+        detached: true,
+        stdio: "ignore",
+        windowsVerbatimArguments: true
       });
-      child.on("error", (error) => console.error("[Services] Failed to open Benny console:", error));
+      child.on("error", (error) =>
+        console.error("[Services] Failed to open Benny console:", error)
+      );
       child.unref();
       return true;
     }
@@ -75,8 +84,14 @@ function openBennyConsole({ home, binDir, command = "" } = {}) {
     if (binDir) env.PATH = `${binDir}${path.delimiter}${env.PATH || ""}`;
     if (process.platform === "darwin") {
       // Terminal.app can't take inline env easily; open at home (launchers self-locate).
-      const child = spawn("open", ["-a", "Terminal", cwd], { detached: true, stdio: "ignore", env });
-      child.on("error", (error) => console.error("[Services] Failed to open Benny console:", error));
+      const child = spawn("open", ["-a", "Terminal", cwd], {
+        detached: true,
+        stdio: "ignore",
+        env
+      });
+      child.on("error", (error) =>
+        console.error("[Services] Failed to open Benny console:", error)
+      );
       child.unref();
       return true;
     }
@@ -153,9 +168,13 @@ function openBundledBennyConsole({ python, site, benny, bennyHome, command = "" 
         : `echo Bundled Benny CLI ready.  Try:  python -m benny_cli --help`;
       const script = [...setEnv, `cd /d "${cwd}"`, tail].join(" & ");
       const child = spawn("cmd.exe", ["/c", "start", "cmd.exe", "/k", script], {
-        detached: true, stdio: "ignore", windowsVerbatimArguments: true
+        detached: true,
+        stdio: "ignore",
+        windowsVerbatimArguments: true
       });
-      child.on("error", (error) => console.error("[Services] Failed to open bundled Benny console:", error));
+      child.on("error", (error) =>
+        console.error("[Services] Failed to open bundled Benny console:", error)
+      );
       child.unref();
       return true;
     }
@@ -164,8 +183,14 @@ function openBundledBennyConsole({ python, site, benny, bennyHome, command = "" 
     if (pythonPath) env.PYTHONPATH = pythonPath;
     env.PATH = `${pyDir}${path.delimiter}${env.PATH || ""}`;
     if (process.platform === "darwin") {
-      const child = spawn("open", ["-a", "Terminal", cwd], { detached: true, stdio: "ignore", env });
-      child.on("error", (error) => console.error("[Services] Failed to open bundled Benny console:", error));
+      const child = spawn("open", ["-a", "Terminal", cwd], {
+        detached: true,
+        stdio: "ignore",
+        env
+      });
+      child.on("error", (error) =>
+        console.error("[Services] Failed to open bundled Benny console:", error)
+      );
       child.unref();
       return true;
     }

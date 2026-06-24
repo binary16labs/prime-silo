@@ -14,17 +14,20 @@ metadata:
 Use this skill for widget work in the current open space
 
 storage
+
 - ~/spaces/<spaceId>/space.yaml = space meta + live layout
 - ~/spaces/<spaceId>/widgets/<widgetId>.yaml = widget meta + renderer
 - ~/spaces/<spaceId>/data/ and assets/ = widget-owned files
 - ~/spaces/<spaceId>/scripts/ = current-space shared JS modules loaded through `context.import("scripts/...")`
 
 transient
+
 - `Current Space Widgets` in `_____transient` lists `id|name|col|row|cols|rows|state|render status`
 - `Current Widget` appears after patchWidget(), renderWidget(), or reloadWidget()
 - `Current Widget` is one envelope with `rendered↓` for stripped live HTML and `source↓` for the numbered readback
 
 main helpers
+
 - listWidgets()
 - readWidget(id)
 - seeWidget(id, full=false)
@@ -35,11 +38,12 @@ main helpers
 - rearrangeWidgets(...), toggleWidgets(...), repairLayout(), rearrange(), reload(options?)
 
 catalog and readback
+
 - Prefer `space.current.*` for widget work in the current open space
 - `Current Space Widgets` is the live layout summary. Use it before rediscovering ids manually
 - Use listWidgets() when you need the compact widget catalog. It returns:
-widgets (id|name|description)↓
-example|Example|expanded, 4x3 widget
+  widgets (id|name|description)↓
+  example|Example|expanded, 4x3 widget
 - That catalog is plain text, not JSON. Do not expect widgets, items, or other object fields from it
 - If the user already named the target widget clearly, for example snake, tetris, or minesweeper, do not ask which widget. Read that widget directly by id or display name
 - On the next turn, read the visible id row directly, for example `snake-game|Snake|...` means use `readWidget("snake-game")`
@@ -60,19 +64,21 @@ cols: 4
 rows: 3
 renderer↓
 0 async (parent, currentSpace, context) => {
-1   console.log("hello");
+1 console.log("hello");
 2 }
+
 - Patch numbers come only from numbered renderer lines after renderer↓ inside source↓
 - Do not copy displayed line numbers into patch content
-- In prepared input, optional example turns may appear before live history, _____user = human, _____framework = runtime output, and _____transient = trailing current-space widget context
+- In prepared input, optional example turns may appear before live history, **\_**user = human, **\_**framework = runtime output, and **\_**transient = trailing current-space widget context
 
 staged turns
+
 - listWidgets(), readWidget(), and seeWidget() are discovery calls. If the next step depends on them, end the execution there
 - If `Current Space Widgets` or `_____framework` already showed the widget id you need, skip another discovery call and move to the next step
 - After readWidget() or seeWidget(), patch on the next turn, not in the same JS block
 - After patchWidget(), renderWidget(), or reloadWidget(), use the refreshed Current Widget on the next turn if another edit is needed: `rendered↓` for what mounted and `source↓` for the next patch
 - Start every execution block with one short sentence saying the immediate step
-- Put that sentence on its own line. Then put _____javascript alone on the next line
+- Put that sentence on its own line. Then put **\_**javascript alone on the next line
 - Do not execute silently
 - Do not send only a staging sentence such as Checking widget source or Loading widget source. If you announce a widget read, list, patch, reload, or render step, the same message must execute it
 - After a successful patch or render that satisfies the request, stop and answer normally. Do not keep making more visual tweaks unless the user asked for another iteration or the runtime reported failure
@@ -81,30 +87,30 @@ staged turns
 
 examples
 Checking widget catalog
-_____javascript
+**\_**javascript
 return await space.current.listWidgets()
 
 Reading the widget source
-_____javascript
+**\_**javascript
 return await space.current.readWidget("tetris-game")
 
 Seeing the current rendered widget HTML
-_____javascript
+**\_**javascript
 return await space.current.seeWidget("tetris-game")
 
 After the catalog already showed snake-game, reading Snake source
-_____javascript
+**\_**javascript
 return await space.current.readWidget("snake-game")
 
 User asked for the snake widget, reading it directly
-_____javascript
+**\_**javascript
 return await space.current.readWidget("snake")
 
 bad
 Checking the current widget source
 
 bad
-_____javascript
+**\_**javascript
 return await space.current.readWidget("snake-game")
 
 bad
@@ -128,6 +134,7 @@ Updating the snake widget background now
 Applying the color edits now
 
 patch vs rewrite
+
 - Use patchWidget() for bounded edits to an existing renderer
 - Use renderWidget() for new widgets or full rewrites
 - patchWidget() is not a whole-renderer rewrite API. Do not use broad guesses like 0-999
@@ -147,26 +154,28 @@ patch vs rewrite
 - If patchWidget() or renderWidget() says No files were written, the old widget file is still the source of truth. Fix and retry
 
 example exact snippet patch
-_____javascript
+**\_**javascript
 return await space.current.patchWidget("snake-game", {
-  edits: [
-    {
-      find: "parent.style.background = '#6f8f54';",
-      replace: "parent.style.background = '#5f7f3f';"
-    }
-  ]
+edits: [
+{
+find: "parent.style.background = '#6f8f54';",
+replace: "parent.style.background = '#5f7f3f';"
+}
+]
 })
 
 write and reload behavior
+
 - readWidget() returns the numbered source readback
 - seeWidget() returns rendered HTML
-- patchWidget(), renderWidget(), and reloadWidget() return short status strings and refresh Current Widget in _____transient with both `rendered↓` and `source↓`
+- patchWidget(), renderWidget(), and reloadWidget() return short status strings and refresh Current Widget in **\_**transient with both `rendered↓` and `source↓`
 - Helpers also emit plain-text console status
 - Do not parse status strings. The execution output is enough
 - If a write or reload reports a render failure, keep fixing the widget from Current Widget `source↓` before claiming success
 - Use reloadWidget(id) when you want an explicit rerun without changing source
 
 renderer rules
+
 - Prefer async (parent, currentSpace, context) => { ... }
 - Render into parent
 - Use `const mod = await context.import("scripts/utils.js")` when several widgets need shared state, widget-to-widget communication, or other space-global functionality
@@ -192,6 +201,7 @@ renderer rules
 - Do not use global plain-key listeners that interfere with chat. Require widget focus or use modified shortcuts
 
 flow
+
 1. listWidgets() if you need the live catalog
 2. readWidget(id) for any existing widget you will change
 3. seeWidget(id) only when you need the live rendered DOM rather than source

@@ -59,38 +59,100 @@ export const MODES = [
 // bridge-context appends the live mode/selection/workspace before dispatch.
 export const CHIPS = {
   pulse: [
-    { label: "Tour this project", instruction: "Give me a tour of this project: what Benny is, the workflows I have, and where to start. Load the project-guide skill." },
-    { label: "What did I work on?", instruction: "Summarise what I worked on most recently across my agent sessions and git activity." },
-    { label: "Is the mesh healthy?", instruction: "Check the integration conformance and tell me if anything has drifted, with the owner file to fix." }
+    {
+      label: "Tour this project",
+      instruction:
+        "Give me a tour of this project: what Benny is, the workflows I have, and where to start. Load the project-guide skill."
+    },
+    {
+      label: "What did I work on?",
+      instruction:
+        "Summarise what I worked on most recently across my agent sessions and git activity."
+    },
+    {
+      label: "Is the mesh healthy?",
+      instruction:
+        "Check the integration conformance and tell me if anything has drifted, with the owner file to fix."
+    }
   ],
   memory: [
-    { label: "What did I work on?", instruction: "Summarise my most recent agent sessions and link the most relevant ones." },
-    { label: "Sessions that touched a file…", instruction: "Find which sessions touched a file I name and link each one." }
+    {
+      label: "What did I work on?",
+      instruction: "Summarise my most recent agent sessions and link the most relevant ones."
+    },
+    {
+      label: "Sessions that touched a file…",
+      instruction: "Find which sessions touched a file I name and link each one."
+    }
   ],
   documents: [
-    { label: "Ingest these docs", instruction: "Walk me through ingesting the documents in the current workspace into the knowledge graph as semantic triples." },
-    { label: "What's in this workspace?", instruction: "Summarise the documents and concepts in the current workspace." },
-    { label: "Query the docs", instruction: "Answer a question using the ingested documents in the current workspace." }
+    {
+      label: "Ingest these docs",
+      instruction:
+        "Walk me through ingesting the documents in the current workspace into the knowledge graph as semantic triples."
+    },
+    {
+      label: "What's in this workspace?",
+      instruction: "Summarise the documents and concepts in the current workspace."
+    },
+    {
+      label: "Query the docs",
+      instruction: "Answer a question using the ingested documents in the current workspace."
+    }
   ],
   code: [
-    { label: "Explain this graph", instruction: "Explain the code graph I'm looking at and the role of the selected node." },
-    { label: "What depends on this?", instruction: "Describe what depends on the selected code node and what it depends on." }
+    {
+      label: "Explain this graph",
+      instruction: "Explain the code graph I'm looking at and the role of the selected node."
+    },
+    {
+      label: "What depends on this?",
+      instruction: "Describe what depends on the selected code node and what it depends on."
+    }
   ],
   flows: [
-    { label: "Help me phrase a requirement", instruction: "Help me phrase a clear requirement for a pipeline I can then plan and run." },
-    { label: "Re-run the last manifest", instruction: "Re-run the most recent manifest and report the outcome." }
+    {
+      label: "Help me phrase a requirement",
+      instruction: "Help me phrase a clear requirement for a pipeline I can then plan and run."
+    },
+    {
+      label: "Re-run the last manifest",
+      instruction: "Re-run the most recent manifest and report the outcome."
+    }
   ],
   studio: [
-    { label: "Draft a research question", instruction: "Help me phrase a sharp question I can ask the documents in this workspace from a Studio chat cell." },
-    { label: "Outline a report", instruction: "Suggest a goal for a multi-step report I can run as a Studio report cell over this workspace." }
+    {
+      label: "Draft a research question",
+      instruction:
+        "Help me phrase a sharp question I can ask the documents in this workspace from a Studio chat cell."
+    },
+    {
+      label: "Outline a report",
+      instruction:
+        "Suggest a goal for a multi-step report I can run as a Studio report cell over this workspace."
+    }
   ],
   runs: [
-    { label: "Explain this run", instruction: "Explain what happened in the selected run, step by step." },
-    { label: "Why did it fail?", instruction: "If the selected run failed, diagnose the likely cause from its lineage." }
+    {
+      label: "Explain this run",
+      instruction: "Explain what happened in the selected run, step by step."
+    },
+    {
+      label: "Why did it fail?",
+      instruction: "If the selected run failed, diagnose the likely cause from its lineage."
+    }
   ],
   agents: [
-    { label: "Which model runs synthesis?", instruction: "Tell me which model is currently resolved for graph_synthesis in this workspace and whether it's local." },
-    { label: "Recommend a local setup", instruction: "Recommend which local models to assign to chat and graph_synthesis given my running providers." }
+    {
+      label: "Which model runs synthesis?",
+      instruction:
+        "Tell me which model is currently resolved for graph_synthesis in this workspace and whether it's local."
+    },
+    {
+      label: "Recommend a local setup",
+      instruction:
+        "Recommend which local models to assign to chat and graph_synthesis given my running providers."
+    }
   ]
 };
 
@@ -108,18 +170,25 @@ export const UPLOAD_EXTENSIONS = [".pdf", ".txt", ".md", ".json"];
 //            unsupported type, or freshly uploaded before the next rescan).
 export function fileStatusLabel(status) {
   switch (status) {
-    case "ALIGNED": return "Ingested";
-    case "MISSING": return "Not ingested";
-    case "STAGED": return "Staged";
-    default: return status || "Unknown";
+    case "ALIGNED":
+      return "Ingested";
+    case "MISSING":
+      return "Not ingested";
+    case "STAGED":
+      return "Staged";
+    default:
+      return status || "Unknown";
   }
 }
 
 export function fileStatusClass(status) {
   switch (status) {
-    case "ALIGNED": return "is-ingested";
-    case "MISSING": return "is-pending";
-    default: return "is-staged";
+    case "ALIGNED":
+      return "is-ingested";
+    case "MISSING":
+      return "is-pending";
+    default:
+      return "is-staged";
   }
 }
 
@@ -152,20 +221,25 @@ export function workflowToDag(wf) {
     nodes: (Array.isArray(w.nodes) ? w.nodes : []).map((n) => ({
       id: n.id,
       label: (n.data && n.data.label) || n.label || n.id,
-      kind: n.type || "node",
+      kind: n.type || "node"
     })),
     edges: (Array.isArray(w.edges) ? w.edges : []).map((e) => ({
       source: e.source,
       target: e.target,
-      label: e.label,
-    })),
+      label: e.label
+    }))
   };
 }
 
 export function readQuery(hash) {
   const out = { mode: "", id: "" };
   try {
-    const h = typeof hash === "string" ? hash : (typeof window !== "undefined" && window.location ? window.location.hash : "");
+    const h =
+      typeof hash === "string"
+        ? hash
+        : typeof window !== "undefined" && window.location
+          ? window.location.hash
+          : "";
     const qi = h.indexOf("?");
     if (qi < 0) return out;
     const params = new URLSearchParams(h.slice(qi + 1));
@@ -183,10 +257,14 @@ export function isValidMode(mode) {
 
 export function lifelogIconFor(type) {
   switch (type) {
-    case "commit": return "commit";
-    case "artifact": return "draft";
-    case "session": return "forum";
-    default: return "circle";
+    case "commit":
+      return "commit";
+    case "artifact":
+      return "draft";
+    case "session":
+      return "forum";
+    default:
+      return "circle";
   }
 }
 
@@ -208,15 +286,25 @@ export function summariseRuns(runs) {
   const last = rows[0] || null;
   return {
     total: rows.length,
-    lastId: last ? (last.run_id || last.id || "") : "",
-    lastStatus: last ? (last.status || "") : ""
+    lastId: last ? last.run_id || last.id || "" : "",
+    lastStatus: last ? last.status || "" : ""
   };
 }
 
 // A run is "done" (stop live-polling) once it reaches any terminal status.
 export function isTerminalStatus(status) {
-  return ["completed", "complete", "succeeded", "success", "failed", "failure", "error", "errored", "cancelled", "canceled"]
-    .includes(String(status || "").toLowerCase());
+  return [
+    "completed",
+    "complete",
+    "succeeded",
+    "success",
+    "failed",
+    "failure",
+    "error",
+    "errored",
+    "cancelled",
+    "canceled"
+  ].includes(String(status || "").toLowerCase());
 }
 
 // Human-readable duration from milliseconds.
@@ -257,7 +345,7 @@ export function createBridgePage(options = {}) {
 
     // documents
     files: [],
-    selectedFiles: [],   // names of files the operator picked to ingest
+    selectedFiles: [], // names of files the operator picked to ingest
     ingesting: false,
     ingestNote: "",
     dragOver: false,
@@ -306,10 +394,10 @@ export function createBridgePage(options = {}) {
     workflowsLoading: false,
     selectedWorkflowId: "",
     selectedWorkflow: null,
-    workflowDraft: "",       // JSON of the selected workflow being edited
-    workflowEditing: false,  // toggles the raw JSON editor
-    designerOn: false,       // toggles the visual node designer
-    designerNode: null,      // { id, label, type } of the selected node (config form)
+    workflowDraft: "", // JSON of the selected workflow being edited
+    workflowEditing: false, // toggles the raw JSON editor
+    designerOn: false, // toggles the visual node designer
+    designerNode: null, // { id, label, type } of the selected node (config form)
     workflowSaving: false,
     workflowNote: "",
 
@@ -329,31 +417,31 @@ export function createBridgePage(options = {}) {
     // runs (observability)
     runs: [],
     activeRunId: "",
-    runDetail: null,        // /manifests/runs/{run_id} — node_states, errors, timings
-    activeStepId: "",       // step drilled into (drilldown_table)
-    livePoll: true,         // auto-refresh while a run is in-flight
+    runDetail: null, // /manifests/runs/{run_id} — node_states, errors, timings
+    activeStepId: "", // step drilled into (drilldown_table)
+    livePoll: true, // auto-refresh while a run is in-flight
     _livePollTimer: null,
-    _runTimeline: null,     // widget handles kept for live refresh()
+    _runTimeline: null, // widget handles kept for live refresh()
     _runTrace: null,
     _obsTimeline: null,
     _obsTrace: null,
     _drillWidget: null,
 
     // agents (model + provider routing — single config surface)
-    agentProviders: {},     // raw /llm/status
-    agentConfig: null,      // /llm/config (default_model, model_roles, resolved)
-    agentModelOptions: [],  // [{ value:"lmstudio/<id>", label, provider, running }]
+    agentProviders: {}, // raw /llm/status
+    agentConfig: null, // /llm/config (default_model, model_roles, resolved)
+    agentModelOptions: [], // [{ value:"lmstudio/<id>", label, provider, running }]
     agentRoles: [],
     agentSaving: false,
     agentNote: "",
 
     // multi-pane (split view) — a secondary Observe pane beside the stage
-    splitView: false,   // operator opt-in; only honoured when `wide`
-    wide: false,        // viewport ≥ 1600px
+    splitView: false, // operator opt-in; only honoured when `wide`
+    wide: false, // viewport ≥ 1600px
 
     _ctx: null,
     _widgets: [],
-    _widgets2: [],      // secondary-pane widgets — tracked + destroyed apart
+    _widgets2: [], // secondary-pane widgets — tracked + destroyed apart
     _onResize: null,
     _codeWidget: null,
     _docsWidget: null,
@@ -362,7 +450,7 @@ export function createBridgePage(options = {}) {
       this._ctx = injected.context || createBridgeContext({ agent: injected.agent });
       const q = readQuery();
       if (q.id) this.selection = { id: q.id };
-      const initialMode = isValidMode(q.mode) ? q.mode : (await this.resolveDefaultMode());
+      const initialMode = isValidMode(q.mode) ? q.mode : await this.resolveDefaultMode();
       this.loadConformance();
       this.loadWorkspaces();
       await this.setMode(initialMode);
@@ -401,7 +489,8 @@ export function createBridgePage(options = {}) {
     // Run metrics distilled from the RunRecord (real fields only — status,
     // timing, per-step states, errors). No fabricated cost/token numbers.
     get runMetrics() {
-      const r = this.runDetail || this.runs.find((x) => (x.run_id || x.id) === this.activeRunId) || {};
+      const r =
+        this.runDetail || this.runs.find((x) => (x.run_id || x.id) === this.activeRunId) || {};
       const states = r.node_states || {};
       const stepIds = Object.keys(states);
       const failed = stepIds.filter((id) => /fail|error/i.test(String(states[id]))).length;
@@ -462,15 +551,24 @@ export function createBridgePage(options = {}) {
 
     async mountStage() {
       switch (this.mode) {
-        case "pulse": return this.mountPulse();
-        case "memory": return this.mountMemory();
-        case "documents": return this.mountDocuments();
-        case "code": return this.mountCode();
-        case "flows": return this.mountFlows();
-        case "studio": return this.mountStudio();
-        case "runs": return this.mountRuns();
-        case "agents": return this.mountAgents();
-        default: return undefined;
+        case "pulse":
+          return this.mountPulse();
+        case "memory":
+          return this.mountMemory();
+        case "documents":
+          return this.mountDocuments();
+        case "code":
+          return this.mountCode();
+        case "flows":
+          return this.mountFlows();
+        case "studio":
+          return this.mountStudio();
+        case "runs":
+          return this.mountRuns();
+        case "agents":
+          return this.mountAgents();
+        default:
+          return undefined;
       }
     },
 
@@ -481,14 +579,25 @@ export function createBridgePage(options = {}) {
 
     destroyWidgets() {
       for (const w of this._widgets) {
-        try { w.destroy(); } catch { /* swallow */ }
+        try {
+          w.destroy();
+        } catch {
+          /* swallow */
+        }
       }
       this._widgets = [];
       this._codeWidget = null;
       this._docsWidget = null;
       this._runTimeline = null;
       this._runTrace = null;
-      if (this._drillWidget) { try { this._drillWidget.destroy(); } catch { /* swallow */ } this._drillWidget = null; }
+      if (this._drillWidget) {
+        try {
+          this._drillWidget.destroy();
+        } catch {
+          /* swallow */
+        }
+        this._drillWidget = null;
+      }
     },
 
     /* ── multi-pane (split view) ──────────────────────────────────────────
@@ -521,7 +630,11 @@ export function createBridgePage(options = {}) {
 
     destroySecondary() {
       for (const w of this._widgets2) {
-        try { w.destroy(); } catch { /* swallow */ }
+        try {
+          w.destroy();
+        } catch {
+          /* swallow */
+        }
       }
       this._widgets2 = [];
       this._obsTimeline = null;
@@ -548,10 +661,17 @@ export function createBridgePage(options = {}) {
       const timeline = this.$refs.obsTimeline;
       const trace = this.$refs.obsTrace;
       if (timeline && this.activeRunId) {
-        this._obsTimeline = this.track2(createLineageTimelineWidget(timeline, { workspace: this.workspace, run_id: this.activeRunId }));
+        this._obsTimeline = this.track2(
+          createLineageTimelineWidget(timeline, {
+            workspace: this.workspace,
+            run_id: this.activeRunId
+          })
+        );
       }
       if (trace && this.activeRunId) {
-        this._obsTrace = this.track2(createReasoningTraceWidget(trace, { workspace: this.workspace, run_id: this.activeRunId }));
+        this._obsTrace = this.track2(
+          createReasoningTraceWidget(trace, { workspace: this.workspace, run_id: this.activeRunId })
+        );
       }
       this.startRunPoll();
     },
@@ -587,9 +707,14 @@ export function createBridgePage(options = {}) {
     async mountPulse() {
       const host = this.$refs.pulseCards;
       if (host) {
-        this.track(createOverviewCardsWidget(host, {
-          onSelectSession: (id) => { this.activeSessionId = id; this.setMode("memory"); }
-        }));
+        this.track(
+          createOverviewCardsWidget(host, {
+            onSelectSession: (id) => {
+              this.activeSessionId = id;
+              this.setMode("memory");
+            }
+          })
+        );
       }
       this.loadLifelog();
       this.loadRuns();
@@ -603,12 +728,20 @@ export function createBridgePage(options = {}) {
         this.lifelogState = "ready";
       } catch (err) {
         this.lifelog = [];
-        this.lifelogState = isMemorayDisabled(err) ? "disabled" : isMemorayOffline(err) ? "offline" : "error";
+        this.lifelogState = isMemorayDisabled(err)
+          ? "disabled"
+          : isMemorayOffline(err)
+            ? "offline"
+            : "error";
       }
     },
 
-    lifelogIcon(type) { return lifelogIconFor(type); },
-    ago(ts) { return relativeTime(ts); },
+    lifelogIcon(type) {
+      return lifelogIconFor(type);
+    },
+    ago(ts) {
+      return relativeTime(ts);
+    },
 
     /* ── Memory ── */
 
@@ -637,17 +770,19 @@ export function createBridgePage(options = {}) {
 
     sessionTitle(id) {
       const s = this.sessions.find((x) => x.id === id);
-      return s ? (s.content || "Untitled") : id;
+      return s ? s.content || "Untitled" : id;
     },
 
     mountSessionGraph(sessionId) {
       const host = this.$refs.memoryGraph;
       if (!host) return;
       this.destroyWidgets();
-      this.track(createLineageGraphWidget(host, {
-        sessionId,
-        onSelect: (nodeId) => this.onNodeSelect(nodeId)
-      }));
+      this.track(
+        createLineageGraphWidget(host, {
+          sessionId,
+          onSelect: (nodeId) => this.onNodeSelect(nodeId)
+        })
+      );
     },
 
     /* ── Documents (workspace + files + ingest -> triples) ── */
@@ -661,14 +796,23 @@ export function createBridgePage(options = {}) {
       const host = this.$refs.docsGraph;
       if (!host) return;
       this.destroyWidgets();
-      this._docsWidget = this.track(createSynopticWebWidget(host, {
-        workspace: this.workspace,
-        focusedLayer: this.docsFocusLayer || undefined,
-        onSelect: (id) => this.onNodeSelect(id)
-      }, this.docs3d ? { renderer: this.makeThreeRenderer(this.docsPhysics) } : {}));
+      this._docsWidget = this.track(
+        createSynopticWebWidget(
+          host,
+          {
+            workspace: this.workspace,
+            focusedLayer: this.docsFocusLayer || undefined,
+            onSelect: (id) => this.onNodeSelect(id)
+          },
+          this.docs3d ? { renderer: this.makeThreeRenderer(this.docsPhysics) } : {}
+        )
+      );
     },
 
-    toggleDocs3d() { this.docs3d = !this.docs3d; this.mountKnowledgeGraph(); },
+    toggleDocs3d() {
+      this.docs3d = !this.docs3d;
+      this.mountKnowledgeGraph();
+    },
 
     toggleDocsPhysics() {
       this.docsPhysics = this.docsPhysics === "pinned" ? "fluid" : "pinned";
@@ -689,7 +833,9 @@ export function createBridgePage(options = {}) {
     async loadFiles() {
       try {
         const [filesBody, manifest] = await Promise.all([
-          readRuntimeJson(await runtimeFetch(`/files?workspace=${encodeURIComponent(this.workspace)}`)),
+          readRuntimeJson(
+            await runtimeFetch(`/files?workspace=${encodeURIComponent(this.workspace)}`)
+          ),
           this.loadIndexingManifest()
         ]);
         const dataIn = filesBody && Array.isArray(filesBody.data_in) ? filesBody.data_in : [];
@@ -718,7 +864,9 @@ export function createBridgePage(options = {}) {
       this.selectedFiles = keep;
     },
 
-    isSelected(name) { return this.selectedFiles.includes(name); },
+    isSelected(name) {
+      return this.selectedFiles.includes(name);
+    },
 
     toggleFile(name) {
       const i = this.selectedFiles.indexOf(name);
@@ -726,13 +874,19 @@ export function createBridgePage(options = {}) {
       else this.selectedFiles.splice(i, 1);
     },
 
-    selectAllFiles() { this.selectedFiles = this.files.map((f) => f.name); },
-    clearFileSelection() { this.selectedFiles = []; },
+    selectAllFiles() {
+      this.selectedFiles = this.files.map((f) => f.name);
+    },
+    clearFileSelection() {
+      this.selectedFiles = [];
+    },
 
     async loadIndexingManifest() {
       try {
         const body = await readRuntimeJson(
-          await runtimeFetch(`/rag/indexing-manifest?workspace=${encodeURIComponent(this.workspace)}`)
+          await runtimeFetch(
+            `/rag/indexing-manifest?workspace=${encodeURIComponent(this.workspace)}`
+          )
         );
         return body && Array.isArray(body.manifest) ? body.manifest : [];
       } catch {
@@ -740,8 +894,12 @@ export function createBridgePage(options = {}) {
       }
     },
 
-    statusLabel(status) { return fileStatusLabel(status); },
-    statusClass(status) { return fileStatusClass(status); },
+    statusLabel(status) {
+      return fileStatusLabel(status);
+    },
+    statusClass(status) {
+      return fileStatusClass(status);
+    },
 
     get pendingCount() {
       return this.files.filter((f) => f.status !== "ALIGNED").length;
@@ -749,8 +907,12 @@ export function createBridgePage(options = {}) {
 
     /* ── drag-drop + upload (correct Benny ingestion path) ── */
 
-    onDragOver() { this.dragOver = true; },
-    onDragLeave() { this.dragOver = false; },
+    onDragOver() {
+      this.dragOver = true;
+    },
+    onDragLeave() {
+      this.dragOver = false;
+    },
 
     async onDrop(event) {
       this.dragOver = false;
@@ -772,7 +934,11 @@ export function createBridgePage(options = {}) {
       const all = fileList ? Array.from(fileList) : [];
       if (!all.length) return;
       const accepted = all.filter((f) =>
-        UPLOAD_EXTENSIONS.some((ext) => String(f.name || "").toLowerCase().endsWith(ext))
+        UPLOAD_EXTENSIONS.some((ext) =>
+          String(f.name || "")
+            .toLowerCase()
+            .endsWith(ext)
+        )
       );
       const rejected = all.length - accepted.length;
       if (!accepted.length) {
@@ -788,10 +954,12 @@ export function createBridgePage(options = {}) {
           const form = new FormData();
           form.append("file", file, file.name);
           // No explicit Content-Type — the browser sets the multipart boundary.
-          await readRuntimeJson(await runtimeFetch(
-            `/files/upload?workspace=${encodeURIComponent(this.workspace)}`,
-            { method: "POST", body: form }
-          ));
+          await readRuntimeJson(
+            await runtimeFetch(`/files/upload?workspace=${encodeURIComponent(this.workspace)}`, {
+              method: "POST",
+              body: form
+            })
+          );
           ok += 1;
         } catch (err) {
           errors.push(`${file.name}: ${err && err.message ? err.message : String(err)}`);
@@ -814,11 +982,16 @@ export function createBridgePage(options = {}) {
       this.ingestNote = "Rescanning the workspace for files…";
       try {
         const body = await readRuntimeJson(
-          await runtimeFetch(`/files/recursive-scan?workspace=${encodeURIComponent(this.workspace)}`)
+          await runtimeFetch(
+            `/files/recursive-scan?workspace=${encodeURIComponent(this.workspace)}`
+          )
         );
-        const total = body && Number.isFinite(body.total)
-          ? body.total
-          : (body && Array.isArray(body.files) ? body.files.length : 0);
+        const total =
+          body && Number.isFinite(body.total)
+            ? body.total
+            : body && Array.isArray(body.files)
+              ? body.files.length
+              : 0;
         await this.loadFiles();
         this.ingestNote = `Workspace rescanned — ${total} file${total === 1 ? "" : "s"} on disk, ${this.pendingCount} awaiting ingestion.`;
       } catch (err) {
@@ -845,11 +1018,17 @@ export function createBridgePage(options = {}) {
         // deep_synthesis:true extracts semantic triples into Neo4j — without it
         // the Documents knowledge graph (which reads Neo4j) stays empty even on
         // a "successful" vector ingest. The chip promises triples, so build them.
-        const body = await readRuntimeJson(await runtimeFetch("/rag/ingest", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ workspace: this.workspace, deep_synthesis: true, files: targets })
-        }));
+        const body = await readRuntimeJson(
+          await runtimeFetch("/rag/ingest", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              workspace: this.workspace,
+              deep_synthesis: true,
+              files: targets
+            })
+          })
+        );
         const status = body && body.status;
         if (status === "failed") {
           // The runtime now reports honest failures (e.g. embedding provider
@@ -879,12 +1058,15 @@ export function createBridgePage(options = {}) {
     async correlate() {
       this.ingestNote = "Building CORRELATES_WITH edges between documents and code…";
       try {
-        await readRuntimeJson(await runtimeFetch("/rag/correlate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ workspace: this.workspace })
-        }));
-        this.ingestNote = "Correlation overlay built — switch to Code 3D to see the linked concepts.";
+        await readRuntimeJson(
+          await runtimeFetch("/rag/correlate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ workspace: this.workspace })
+          })
+        );
+        this.ingestNote =
+          "Correlation overlay built — switch to Code 3D to see the linked concepts.";
         this.mountKnowledgeGraph();
       } catch (err) {
         this.ingestNote = `Correlate failed: ${err && err.message ? err.message : String(err)}`;
@@ -907,11 +1089,13 @@ export function createBridgePage(options = {}) {
       this.docTrace = [];
       try {
         const mode = this.agentMode ? "adaptive" : "semantic";
-        const body = await readRuntimeJson(await runtimeFetch("/rag/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: q, workspace: this.workspace, mode })
-        }));
+        const body = await readRuntimeJson(
+          await runtimeFetch("/rag/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: q, workspace: this.workspace, mode })
+          })
+        );
         this.docAnswer = (body && body.answer) || "No answer returned.";
         this.docSources = body && Array.isArray(body.sources) ? body.sources : [];
         this.docRoute = (body && body.route) || "";
@@ -928,15 +1112,25 @@ export function createBridgePage(options = {}) {
     async mountCode() {
       const host = this.$refs.codeGraph;
       if (!host) return;
-      this._codeWidget = this.track(createCodeGraphCanvasWidget(host, {
-        workspace: this.workspace,
-        selectedNodeId: this.selection ? this.selection.id : "",
-        visibleTypes: [...this.codeVisibleTypes],
-        onSelect: (id) => this.onNodeSelect(id)
-      }, this.code3d ? { renderer: this.makeThreeRenderer(this.codePhysics) } : {}));
+      this._codeWidget = this.track(
+        createCodeGraphCanvasWidget(
+          host,
+          {
+            workspace: this.workspace,
+            selectedNodeId: this.selection ? this.selection.id : "",
+            visibleTypes: [...this.codeVisibleTypes],
+            onSelect: (id) => this.onNodeSelect(id)
+          },
+          this.code3d ? { renderer: this.makeThreeRenderer(this.codePhysics) } : {}
+        )
+      );
     },
 
-    toggleCode3d() { this.code3d = !this.code3d; this.destroyWidgets(); this.mountCode(); },
+    toggleCode3d() {
+      this.code3d = !this.code3d;
+      this.destroyWidgets();
+      this.mountCode();
+    },
 
     toggleCodePhysics() {
       this.codePhysics = this.codePhysics === "pinned" ? "fluid" : "pinned";
@@ -993,7 +1187,10 @@ export function createBridgePage(options = {}) {
     },
 
     teardownDesigner() {
-      if (_designerWidget) { _designerWidget.destroy(); _designerWidget = null; }
+      if (_designerWidget) {
+        _designerWidget.destroy();
+        _designerWidget = null;
+      }
       this.designerOn = false;
       this.designerNode = null;
     },
@@ -1003,7 +1200,9 @@ export function createBridgePage(options = {}) {
       this.workflowEditing = false;
       this.teardownDesigner();
       try {
-        const wf = await readRuntimeJson(await runtimeFetch(`/workflows/workflows/${encodeURIComponent(id)}`));
+        const wf = await readRuntimeJson(
+          await runtimeFetch(`/workflows/workflows/${encodeURIComponent(id)}`)
+        );
         this.selectedWorkflowId = id;
         this.selectedWorkflow = wf;
         this.workflowDraft = JSON.stringify(wf, null, 2);
@@ -1031,20 +1230,32 @@ export function createBridgePage(options = {}) {
       this.$nextTick(() => {
         const hostEl = this.$refs.wfDesigner;
         if (!hostEl) return;
-        if (_designerWidget) { _designerWidget.destroy(); _designerWidget = null; }
+        if (_designerWidget) {
+          _designerWidget.destroy();
+          _designerWidget = null;
+        }
         _designerWidget = createWorkflowDesignerWidget(hostEl, {
           workflow: this.selectedWorkflow || { nodes: [], edges: [] },
           readonly: !this.workflowEditable(),
           onChange: (graph) => {
             const m = this.selectedWorkflow || {};
             this.workflowDraft = JSON.stringify(
-              { id: m.id, name: m.name, description: m.description || "", nodes: graph.nodes, edges: graph.edges },
-              null, 2
+              {
+                id: m.id,
+                name: m.name,
+                description: m.description || "",
+                nodes: graph.nodes,
+                edges: graph.edges
+              },
+              null,
+              2
             );
           },
           onSelect: (node) => {
-            this.designerNode = node ? { id: node.id, label: node.data.label, type: node.type } : null;
-          },
+            this.designerNode = node
+              ? { id: node.id, label: node.data.label, type: node.type }
+              : null;
+          }
         });
       });
     },
@@ -1052,7 +1263,10 @@ export function createBridgePage(options = {}) {
     // Push the node config form's label/type back into the canvas live.
     applyDesignerNode() {
       if (_designerWidget && this.designerNode) {
-        _designerWidget.patchNode(this.designerNode.id, { label: this.designerNode.label, type: this.designerNode.type });
+        _designerWidget.patchNode(this.designerNode.id, {
+          label: this.designerNode.label,
+          type: this.designerNode.type
+        });
       }
     },
 
@@ -1075,7 +1289,9 @@ export function createBridgePage(options = {}) {
       const base = String(src.id || "workflow").replace(/[^a-zA-Z0-9_-]/g, "_");
       const id = `${base}_copy_${Date.now().toString(36)}`;
       const def = { ...src, id, name: `Copy of ${src.name || src.id}` };
-      delete def.readonly; delete def.type; delete def.file_path;
+      delete def.readonly;
+      delete def.type;
+      delete def.file_path;
       this.selectedWorkflowId = id;
       this.selectedWorkflow = def;
       this.workflowDraft = JSON.stringify(def, null, 2);
@@ -1090,20 +1306,38 @@ export function createBridgePage(options = {}) {
         // Build the definition from the live canvas + the editable meta fields.
         const m = this.selectedWorkflow || {};
         const g = _designerWidget.getGraph();
-        def = { id: m.id, name: m.name, description: m.description || "", nodes: g.nodes, edges: g.edges };
+        def = {
+          id: m.id,
+          name: m.name,
+          description: m.description || "",
+          nodes: g.nodes,
+          edges: g.edges
+        };
       } else {
-        try { def = JSON.parse(this.workflowDraft); }
-        catch (e) { this.workflowNote = `Invalid JSON: ${e.message}`; return; }
+        try {
+          def = JSON.parse(this.workflowDraft);
+        } catch (e) {
+          this.workflowNote = `Invalid JSON: ${e.message}`;
+          return;
+        }
       }
-      if (!def.id) { this.workflowNote = 'Workflow needs an "id".'; return; }
-      if (!def.name) { this.workflowNote = 'Workflow needs a "name".'; return; }
+      if (!def.id) {
+        this.workflowNote = 'Workflow needs an "id".';
+        return;
+      }
+      if (!def.name) {
+        this.workflowNote = 'Workflow needs a "name".';
+        return;
+      }
       this.workflowSaving = true;
       try {
-        await readRuntimeJson(await runtimeFetch("/workflows/workflows", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(def)
-        }));
+        await readRuntimeJson(
+          await runtimeFetch("/workflows/workflows", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(def)
+          })
+        );
         this.workflowNote = `Saved "${def.name}".`;
         this.workflowEditing = false;
         await this.loadWorkflows();
@@ -1117,9 +1351,13 @@ export function createBridgePage(options = {}) {
 
     async deleteWorkflow(id) {
       try {
-        await readRuntimeJson(await runtimeFetch(`/workflows/workflows/${encodeURIComponent(id)}`, { method: "DELETE" }));
+        await readRuntimeJson(
+          await runtimeFetch(`/workflows/workflows/${encodeURIComponent(id)}`, { method: "DELETE" })
+        );
         if (this.selectedWorkflowId === id) {
-          this.selectedWorkflow = null; this.selectedWorkflowId = ""; this.workflowDraft = "";
+          this.selectedWorkflow = null;
+          this.selectedWorkflowId = "";
+          this.workflowDraft = "";
           this.destroyWidgets();
         }
         this.workflowNote = "Deleted.";
@@ -1131,15 +1369,24 @@ export function createBridgePage(options = {}) {
 
     async planFlow() {
       const requirement = this.requirement.trim();
-      if (!requirement) { this.flowNote = "Type what you want the pipeline to do first."; return; }
+      if (!requirement) {
+        this.flowNote = "Type what you want the pipeline to do first.";
+        return;
+      }
       this.planning = true;
       this.flowNote = "Planning…";
       try {
-        const manifest = await readRuntimeJson(await runtimeFetch("/manifests/plan", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ requirement, workspace: this.workspace, strategy: this.strategy })
-        }));
+        const manifest = await readRuntimeJson(
+          await runtimeFetch("/manifests/plan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              requirement,
+              workspace: this.workspace,
+              strategy: this.strategy
+            })
+          })
+        );
         this.flowManifestId = manifest && manifest.id ? manifest.id : "";
         this.flowNote = this.flowManifestId
           ? `Planned manifest ${this.flowManifestId}. Review the DAG, then Run.`
@@ -1148,7 +1395,9 @@ export function createBridgePage(options = {}) {
         const host = this.$refs.flowsDag;
         if (host) {
           this.destroyWidgets();
-          this.track(createDagCanvasWidget(host, { mode: "manifest", data: mapManifestToDagData(manifest) }));
+          this.track(
+            createDagCanvasWidget(host, { mode: "manifest", data: mapManifestToDagData(manifest) })
+          );
         }
         this.syncContext();
       } catch (err) {
@@ -1159,15 +1408,20 @@ export function createBridgePage(options = {}) {
     },
 
     async runFlow() {
-      if (!this.flowManifestId) { this.flowNote = "Plan a manifest first."; return; }
+      if (!this.flowManifestId) {
+        this.flowNote = "Plan a manifest first.";
+        return;
+      }
       this.running = true;
       this.flowNote = "Running…";
       try {
-        const res = await readRuntimeJson(await runtimeFetch(`/manifests/${encodeURIComponent(this.flowManifestId)}/run`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ workspace: this.workspace })
-        }));
+        const res = await readRuntimeJson(
+          await runtimeFetch(`/manifests/${encodeURIComponent(this.flowManifestId)}/run`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ workspace: this.workspace })
+          })
+        );
         const runId = res && (res.run_id || res.id);
         if (runId) {
           this.activeRunId = runId;
@@ -1195,19 +1449,28 @@ export function createBridgePage(options = {}) {
 
     async deepProduce() {
       const goal = (this.dpGoal || "").trim();
-      if (!goal) { this.dpNote = "Type a goal to produce first."; return; }
+      if (!goal) {
+        this.dpNote = "Type a goal to produce first.";
+        return;
+      }
       this.stopDeepProducePoll();
       this.dpView = null;
       this.dpStatus = "running";
       this.dpNote = "Planning panels and fanning out model calls…";
       try {
-        const body = await readRuntimeJson(await runtimeFetch("/deep-produce", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ goal, workspace: this.workspace, panels: this.dpPanels })
-        }));
+        const body = await readRuntimeJson(
+          await runtimeFetch("/deep-produce", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ goal, workspace: this.workspace, panels: this.dpPanels })
+          })
+        );
         this.dpRunId = body && body.run_id ? body.run_id : "";
-        if (!this.dpRunId) { this.dpStatus = "failed"; this.dpNote = "No run id returned."; return; }
+        if (!this.dpRunId) {
+          this.dpStatus = "failed";
+          this.dpNote = "No run id returned.";
+          return;
+        }
         this.dpNote = `Run ${this.dpRunId} started — fanning out ${this.dpPanels} panels. Open the fan-out trace to watch each call.`;
         this.pollDeepProduce();
       } catch (err) {
@@ -1219,9 +1482,11 @@ export function createBridgePage(options = {}) {
     async pollDeepProduce() {
       if (!this.dpRunId) return;
       try {
-        const res = await readRuntimeJson(await runtimeFetch(
-          `/deep-produce/${encodeURIComponent(this.dpRunId)}?workspace=${encodeURIComponent(this.workspace)}`
-        ));
+        const res = await readRuntimeJson(
+          await runtimeFetch(
+            `/deep-produce/${encodeURIComponent(this.dpRunId)}?workspace=${encodeURIComponent(this.workspace)}`
+          )
+        );
         const status = res && res.status ? res.status : "";
         if (status === "completed" && res.view) {
           this.dpView = res.view;
@@ -1245,7 +1510,10 @@ export function createBridgePage(options = {}) {
     },
 
     stopDeepProducePoll() {
-      if (this._dpPollTimer) { clearTimeout(this._dpPollTimer); this._dpPollTimer = null; }
+      if (this._dpPollTimer) {
+        clearTimeout(this._dpPollTimer);
+        this._dpPollTimer = null;
+      }
     },
 
     openDeepProduceTrace() {
@@ -1273,23 +1541,33 @@ export function createBridgePage(options = {}) {
         kind: kind === "report" ? "report" : "chat",
         prompt: "",
         panels: 4,
-        status: "idle",   // idle | running | done | error
+        status: "idle", // idle | running | done | error
         note: "",
-        answer: "", sources: [], route: "", trace: [],
-        view: null, runId: "",
+        answer: "",
+        sources: [],
+        route: "",
+        trace: [],
+        view: null,
+        runId: "",
         _timer: null
       });
     },
 
     removeStudioCell(id) {
       const c = this.studioCells.find((x) => x.id === id);
-      if (c && c._timer) { clearTimeout(c._timer); c._timer = null; }
+      if (c && c._timer) {
+        clearTimeout(c._timer);
+        c._timer = null;
+      }
       this.studioCells = this.studioCells.filter((x) => x.id !== id);
     },
 
     stopStudioPolls() {
       for (const c of this.studioCells) {
-        if (c._timer) { clearTimeout(c._timer); c._timer = null; }
+        if (c._timer) {
+          clearTimeout(c._timer);
+          c._timer = null;
+        }
       }
     },
 
@@ -1297,18 +1575,26 @@ export function createBridgePage(options = {}) {
       const cell = this.studioCells.find((x) => x.id === id);
       if (!cell) return;
       const prompt = (cell.prompt || "").trim();
-      if (!prompt) { cell.note = "Type a prompt first."; return; }
+      if (!prompt) {
+        cell.note = "Type a prompt first.";
+        return;
+      }
       cell.status = "running";
       cell.note = "";
       if (cell.kind === "chat") {
-        cell.answer = ""; cell.sources = []; cell.route = ""; cell.trace = [];
+        cell.answer = "";
+        cell.sources = [];
+        cell.route = "";
+        cell.trace = [];
         try {
           const mode = this.agentMode ? "adaptive" : "semantic";
-          const body = await readRuntimeJson(await runtimeFetch("/rag/chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query: prompt, workspace: this.workspace, mode })
-          }));
+          const body = await readRuntimeJson(
+            await runtimeFetch("/rag/chat", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ query: prompt, workspace: this.workspace, mode })
+            })
+          );
           cell.answer = (body && body.answer) || "No answer returned.";
           cell.sources = body && Array.isArray(body.sources) ? body.sources : [];
           cell.route = (body && body.route) || "";
@@ -1321,15 +1607,26 @@ export function createBridgePage(options = {}) {
         return;
       }
       // report cell → deep produce
-      cell.view = null; cell.runId = "";
+      cell.view = null;
+      cell.runId = "";
       try {
-        const body = await readRuntimeJson(await runtimeFetch("/deep-produce", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ goal: prompt, workspace: this.workspace, panels: cell.panels || 4 })
-        }));
+        const body = await readRuntimeJson(
+          await runtimeFetch("/deep-produce", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              goal: prompt,
+              workspace: this.workspace,
+              panels: cell.panels || 4
+            })
+          })
+        );
         cell.runId = body && body.run_id ? body.run_id : "";
-        if (!cell.runId) { cell.status = "error"; cell.note = "No run id returned."; return; }
+        if (!cell.runId) {
+          cell.status = "error";
+          cell.note = "No run id returned.";
+          return;
+        }
         cell.note = `Run ${cell.runId} — producing ${cell.panels || 4} panels…`;
         this.pollStudioCell(id);
       } catch (err) {
@@ -1342,9 +1639,11 @@ export function createBridgePage(options = {}) {
       const cell = this.studioCells.find((x) => x.id === id);
       if (!cell || !cell.runId) return;
       try {
-        const res = await readRuntimeJson(await runtimeFetch(
-          `/deep-produce/${encodeURIComponent(cell.runId)}?workspace=${encodeURIComponent(this.workspace)}`
-        ));
+        const res = await readRuntimeJson(
+          await runtimeFetch(
+            `/deep-produce/${encodeURIComponent(cell.runId)}?workspace=${encodeURIComponent(this.workspace)}`
+          )
+        );
         const status = res && res.status ? res.status : "";
         if (status === "completed" && res.view) {
           cell.view = res.view;
@@ -1400,9 +1699,14 @@ export function createBridgePage(options = {}) {
 
     // Full RunRecord for the active run — node_states (steps), errors, timing.
     async loadRunDetail(runId) {
-      if (!runId) { this.runDetail = null; return; }
+      if (!runId) {
+        this.runDetail = null;
+        return;
+      }
       try {
-        this.runDetail = await readRuntimeJson(await runtimeFetch(`/manifests/runs/${encodeURIComponent(runId)}`));
+        this.runDetail = await readRuntimeJson(
+          await runtimeFetch(`/manifests/runs/${encodeURIComponent(runId)}`)
+        );
       } catch {
         this.runDetail = null;
       }
@@ -1422,10 +1726,14 @@ export function createBridgePage(options = {}) {
       const timeline = this.$refs.runsTimeline;
       const trace = this.$refs.runsTrace;
       if (timeline) {
-        this._runTimeline = this.track(createLineageTimelineWidget(timeline, { workspace: this.workspace, run_id: runId }));
+        this._runTimeline = this.track(
+          createLineageTimelineWidget(timeline, { workspace: this.workspace, run_id: runId })
+        );
       }
       if (trace) {
-        this._runTrace = this.track(createReasoningTraceWidget(trace, { workspace: this.workspace, run_id: runId }));
+        this._runTrace = this.track(
+          createReasoningTraceWidget(trace, { workspace: this.workspace, run_id: runId })
+        );
       }
       this.mountDrilldown();
     },
@@ -1433,13 +1741,20 @@ export function createBridgePage(options = {}) {
     // Drill into a step: rows + CLP binding via /pypes/runs/{run}/steps/{step}.
     // The widget renders an honest "no checkpoint" message for non-pypes steps.
     async selectStep(stepId) {
-      this.activeStepId = (this.activeStepId === stepId) ? "" : stepId;
+      this.activeStepId = this.activeStepId === stepId ? "" : stepId;
       await this.$nextTick();
       this.mountDrilldown();
     },
 
     mountDrilldown() {
-      if (this._drillWidget) { try { this._drillWidget.destroy(); } catch { /* swallow */ } this._drillWidget = null; }
+      if (this._drillWidget) {
+        try {
+          this._drillWidget.destroy();
+        } catch {
+          /* swallow */
+        }
+        this._drillWidget = null;
+      }
       const host = this.$refs.runsDrilldown;
       if (host && this.activeStepId && this.activeRunId) {
         this._drillWidget = createDrilldownTableWidget(host, {
@@ -1460,17 +1775,24 @@ export function createBridgePage(options = {}) {
     },
 
     stopRunPoll() {
-      if (this._livePollTimer) { clearTimeout(this._livePollTimer); this._livePollTimer = null; }
+      if (this._livePollTimer) {
+        clearTimeout(this._livePollTimer);
+        this._livePollTimer = null;
+      }
     },
 
     startRunPoll() {
       this.stopRunPoll();
       if (!this.livePoll) return;
       const tick = async () => {
-        if (!this.livePoll) { this._livePollTimer = null; return; }
+        if (!this.livePoll) {
+          this._livePollTimer = null;
+          return;
+        }
         // Only do work when an observability surface is actually on screen.
         const visible = this.mode === "runs" || this.splitActive;
-        const rec = this.runDetail || this.runs.find((r) => (r.run_id || r.id) === this.activeRunId);
+        const rec =
+          this.runDetail || this.runs.find((r) => (r.run_id || r.id) === this.activeRunId);
         const inflight = this.activeRunId && rec && !isTerminalStatus(rec.status);
         if (visible && inflight) {
           await this.loadRuns();
@@ -1497,7 +1819,9 @@ export function createBridgePage(options = {}) {
       try {
         const [status, config] = await Promise.all([
           readRuntimeJson(await runtimeFetch("/llm/status")),
-          readRuntimeJson(await runtimeFetch(`/llm/config?workspace=${encodeURIComponent(this.workspace)}`))
+          readRuntimeJson(
+            await runtimeFetch(`/llm/config?workspace=${encodeURIComponent(this.workspace)}`)
+          )
         ]);
         this.agentProviders = status && typeof status === "object" ? status : {};
         this.agentConfig = config || null;
@@ -1516,7 +1840,12 @@ export function createBridgePage(options = {}) {
         const models = p && p.models && Array.isArray(p.models.data) ? p.models.data : [];
         for (const m of models) {
           if (!m || !m.id) continue;
-          opts.push({ value: `${key}/${m.id}`, label: m.id, provider: (p && p.name) || key, running: !!(p && p.running) });
+          opts.push({
+            value: `${key}/${m.id}`,
+            label: m.id,
+            provider: (p && p.name) || key,
+            running: !!(p && p.running)
+          });
         }
       }
       return opts;
@@ -1536,7 +1865,8 @@ export function createBridgePage(options = {}) {
     },
 
     roleValue(role) {
-      const roles = this.agentConfig && this.agentConfig.model_roles ? this.agentConfig.model_roles : {};
+      const roles =
+        this.agentConfig && this.agentConfig.model_roles ? this.agentConfig.model_roles : {};
       return roles[role] || "";
     },
 
@@ -1554,7 +1884,8 @@ export function createBridgePage(options = {}) {
     // Per-model reasoning toggle. thinkingOff(value)=true → the model runs with
     // hidden chain-of-thought suppressed (/no_think + enable_thinking:false).
     thinkingOff(modelValue) {
-      const m = this.agentConfig && this.agentConfig.model_thinking ? this.agentConfig.model_thinking : {};
+      const m =
+        this.agentConfig && this.agentConfig.model_thinking ? this.agentConfig.model_thinking : {};
       return m[modelValue] === "off";
     },
 
@@ -1562,9 +1893,9 @@ export function createBridgePage(options = {}) {
       if (!this.agentConfig) return;
       if (!this.agentConfig.model_thinking) this.agentConfig.model_thinking = {};
       if (this.agentConfig.model_thinking[modelValue] === "off") {
-        delete this.agentConfig.model_thinking[modelValue];   // back to model default (think on)
+        delete this.agentConfig.model_thinking[modelValue]; // back to model default (think on)
       } else {
-        this.agentConfig.model_thinking[modelValue] = "off";  // suppress thinking
+        this.agentConfig.model_thinking[modelValue] = "off"; // suppress thinking
       }
     },
 
@@ -1573,16 +1904,18 @@ export function createBridgePage(options = {}) {
       this.agentSaving = true;
       this.agentNote = "Saving model routing…";
       try {
-        const updated = await readRuntimeJson(await runtimeFetch("/llm/config", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            workspace: this.workspace,
-            default_model: this.agentConfig.default_model || "",
-            model_roles: this.agentConfig.model_roles || {},
-            model_thinking: this.agentConfig.model_thinking || {}
+        const updated = await readRuntimeJson(
+          await runtimeFetch("/llm/config", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              workspace: this.workspace,
+              default_model: this.agentConfig.default_model || "",
+              model_roles: this.agentConfig.model_roles || {},
+              model_thinking: this.agentConfig.model_thinking || {}
+            })
           })
-        }));
+        );
         this.agentConfig = updated || this.agentConfig;
         this.agentNote = "Saved. New routing takes effect on the next run — no restart needed.";
       } catch (err) {
@@ -1596,7 +1929,9 @@ export function createBridgePage(options = {}) {
       const action = running ? "stop" : "start";
       this.agentNote = `${running ? "Stopping" : "Starting"} ${key}…`;
       try {
-        await readRuntimeJson(await runtimeFetch(`/llm/${encodeURIComponent(key)}/${action}`, { method: "POST" }));
+        await readRuntimeJson(
+          await runtimeFetch(`/llm/${encodeURIComponent(key)}/${action}`, { method: "POST" })
+        );
         this.agentNote = `${key}: ${action} requested.`;
         setTimeout(() => this.loadAgents(), 1500);
       } catch (err) {
@@ -1636,14 +1971,19 @@ export function createBridgePage(options = {}) {
       this.syncContext();
       // Re-mount the workspace-scoped surfaces.
       if (this.mode === "documents") this.mountDocuments();
-      else if (this.mode === "code") { this.destroyWidgets(); this.mountCode(); }
-      else if (this.mode === "agents") this.loadAgents();
+      else if (this.mode === "code") {
+        this.destroyWidgets();
+        this.mountCode();
+      } else if (this.mode === "agents") this.loadAgents();
     },
 
     async loadConformance() {
       try {
         const res = await fetch("/api/integration_audit", { credentials: "same-origin" });
-        if (!res.ok) { this.conformance = { status: "unknown", driftCount: 0 }; return; }
+        if (!res.ok) {
+          this.conformance = { status: "unknown", driftCount: 0 };
+          return;
+        }
         const report = await res.json();
         const reports = report.integrations || [];
         const drift = reports.reduce((sum, r) => sum + (r.summary ? r.summary.drift : 0), 0);
@@ -1659,15 +1999,20 @@ export function createBridgePage(options = {}) {
     async runChip(instruction) {
       const result = await this._ctx.dispatch(instruction);
       if (!result.ok && result.reason === "agent_unavailable") {
-        this.flowNote = "Benny isn't available on this page yet — open the agent dock and try again.";
+        this.flowNote =
+          "Benny isn't available on this page yet — open the agent dock and try again.";
       }
     },
 
     /* ── zen ── */
 
-    toggleZen() { this.zen = !this.zen; },
+    toggleZen() {
+      this.zen = !this.zen;
+    },
 
-    retry() { this.init(); },
+    retry() {
+      this.init();
+    },
 
     destroy() {
       this.stopDeepProducePoll();

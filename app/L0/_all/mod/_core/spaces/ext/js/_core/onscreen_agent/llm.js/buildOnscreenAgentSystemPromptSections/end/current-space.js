@@ -13,11 +13,7 @@ function buildCurrentSpaceAgentInstructionsPromptSection(currentSpace) {
     return "";
   }
 
-  return [
-    "## Current Space Agent Instructions",
-    "",
-    normalizedAgentInstructions
-  ].join("\n");
+  return ["## Current Space Agent Instructions", "", normalizedAgentInstructions].join("\n");
 }
 
 export default function injectCurrentSpacePromptSection(hookContext) {
@@ -37,13 +33,15 @@ export default function injectCurrentSpacePromptSection(hookContext) {
     return;
   }
 
-  const currentSpaceAgentInstructionsPromptSection = buildCurrentSpaceAgentInstructionsPromptSection(currentSpace);
+  const currentSpaceAgentInstructionsPromptSection =
+    buildCurrentSpaceAgentInstructionsPromptSection(currentSpace);
 
   if (!currentSpaceAgentInstructionsPromptSection) {
     return;
   }
 
-  promptContext.currentSpaceAgentInstructionsPromptSection = currentSpaceAgentInstructionsPromptSection;
+  promptContext.currentSpaceAgentInstructionsPromptSection =
+    currentSpaceAgentInstructionsPromptSection;
   promptContext.currentSpacePromptSection = "";
   promptContext.systemItems = setPromptItem(promptContext.systemItems, CURRENT_SPACE_SYSTEM_KEY, {
     order: CURRENT_SPACE_SYSTEM_ORDER,

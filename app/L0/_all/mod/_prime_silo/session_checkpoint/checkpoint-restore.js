@@ -53,7 +53,7 @@ export async function applyCheckpointRestore(checkpoint, options = {}) {
 
   // 2. Skills
   const loadedSkills = [];
-  for (const skillId of (checkpoint.skills ?? [])) {
+  for (const skillId of checkpoint.skills ?? []) {
     try {
       if (api && api.skills && typeof api.skills.load === "function") {
         await api.skills.load(skillId);
@@ -76,7 +76,9 @@ export async function applyCheckpointRestore(checkpoint, options = {}) {
       } else {
         // No fileRead available — include item reference without content.
         restoredTransient[key] = { ...item };
-        warnings.push(`Transient item "${key}": fileRead API not available, path reference preserved.`);
+        warnings.push(
+          `Transient item "${key}": fileRead API not available, path reference preserved.`
+        );
       }
     } catch (err) {
       const msg = `Could not re-stage transient item "${key}" (${item.path}): ${
@@ -93,7 +95,7 @@ export async function applyCheckpointRestore(checkpoint, options = {}) {
     failedSkills,
     restoredTransient,
     failedTransient,
-    warnings,
+    warnings
   };
 }
 
@@ -119,7 +121,7 @@ export async function applyCheckpointRestore(checkpoint, options = {}) {
 export function buildForkName(baseName, existingCheckpoints) {
   const prefix = `${baseName}_fork_`;
   let maxIndex = 0;
-  for (const cp of (existingCheckpoints ?? [])) {
+  for (const cp of existingCheckpoints ?? []) {
     if (typeof cp.name === "string" && cp.name.startsWith(prefix)) {
       const suffix = cp.name.slice(prefix.length);
       const n = parseInt(suffix, 10);
@@ -159,5 +161,5 @@ export function buildPreRestoreName() {
 export const __testing = {
   buildForkName,
   buildRestoreNotice,
-  buildPreRestoreName,
+  buildPreRestoreName
 };

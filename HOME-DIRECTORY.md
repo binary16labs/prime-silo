@@ -7,11 +7,13 @@ The **Home Directory** is where Prime-Silo stores its workspace data, including 
 ## Finding Your Home Directory
 
 ### On Windows/Linux
+
 1. **Right-click the Prime-Silo system tray icon** (bottom right of taskbar)
-2. Look for the line: **`Home: <directory name>`** 
+2. Look for the line: **`Home: <directory name>`**
 3. Click it to open the folder in your file explorer
 
 ### On macOS
+
 1. **Right-click the Prime-Silo menu bar icon** (top right)
 2. Look for the line: **`Home: <directory name>`**
 3. Click it to open the folder in Finder
@@ -21,6 +23,7 @@ If the home directory is not configured, it will show: **`Home: (not configured)
 ## Configuring the Home Directory
 
 ### First-Time Setup
+
 1. Right-click the Prime-Silo system tray icon
 2. Click **"Configure Home Directory..."**
 3. Select (or create) a folder where you want to store Prime-Silo workspace data
@@ -29,7 +32,9 @@ If the home directory is not configured, it will show: **`Home: (not configured)
 The path will be saved and persists across restarts.
 
 ### Changing the Home Directory
+
 To change the home directory later:
+
 1. Right-click the system tray icon
 2. Click **"Configure Home Directory..."**
 3. Select a different folder
@@ -47,6 +52,7 @@ console.log("Configured home:", homeDir);
 ```
 
 This makes it possible for agents to:
+
 - Know where the workspace is located
 - Access workspace-relative paths
 - Configure their own workspace initialization
@@ -54,23 +60,28 @@ This makes it possible for agents to:
 ## Troubleshooting
 
 ### "Home: (not configured)"
+
 If you see this message, no home directory has been set yet. Click **"Configure Home Directory..."** to set one up.
 
 ### Home directory won't open
+
 Make sure the directory still exists. If you've moved or deleted the folder, use **"Configure Home Directory..."** to point to the correct location.
 
 ### Changes not taking effect
+
 Some changes require a restart of Prime-Silo. Close the app completely (use tray "Quit") and reopen it.
 
 ## Default Behavior
 
 If no home directory is configured:
+
 - The app uses its default internal workspace (if one exists)
 - To make this explicit, configure one using the tray menu
 
 ## File Location
 
 The home directory configuration is stored in:
+
 - **Windows:** `%APPDATA%\Prime-Silo\prime-silo-config.json`
 - **macOS:** `~/Library/Application Support/Prime-Silo/prime-silo-config.json`
 - **Linux:** `~/.config/Prime-Silo/prime-silo-config.json`

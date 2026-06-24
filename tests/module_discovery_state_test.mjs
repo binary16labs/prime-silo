@@ -194,10 +194,7 @@ test("state-backed extension discovery respects layered overrides and caller vis
 
   const grouped = listResolvedExtensionRequests({
     maxLayer: 2,
-    requests: [
-      { patterns: ["panels/*.yaml"] },
-      { patterns: ["panels/team.yaml"] }
-    ],
+    requests: [{ patterns: ["panels/*.yaml"] }, { patterns: ["panels/team.yaml"] }],
     runtimeParams,
     stateSystem,
     username: "alice"

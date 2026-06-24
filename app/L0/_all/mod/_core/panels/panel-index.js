@@ -61,7 +61,9 @@ function normalizePanelColor(value) {
 }
 
 function normalizeModuleRoutePath(requestPath) {
-  const normalizedRequestPath = String(requestPath || "").trim().replace(/^\/+/u, "");
+  const normalizedRequestPath = String(requestPath || "")
+    .trim()
+    .replace(/^\/+/u, "");
   const match = normalizedRequestPath.match(/^mod\/([^/]+)\/([^/]+)\/(.+)$/u);
 
   if (!match) {
@@ -109,7 +111,9 @@ export function normalizePanelRoutePath(value) {
 
 function parseManifestRequestPath(requestPath) {
   const normalizedRequestPath = String(requestPath || "").trim();
-  const match = normalizedRequestPath.match(/^\/mod\/([^/]+)\/([^/]+)\/ext\/panels\/(.+\.(?:ya?ml))$/iu);
+  const match = normalizedRequestPath.match(
+    /^\/mod\/([^/]+)\/([^/]+)\/ext\/panels\/(.+\.(?:ya?ml))$/iu
+  );
 
   if (!match) {
     return {
@@ -128,7 +132,9 @@ function parseManifestRequestPath(requestPath) {
 
 function parseDiscoveredPanelManifestFile(filePath) {
   const normalizedFilePath = String(filePath || "").trim();
-  const match = normalizedFilePath.match(/^L[0-2]\/[^/]+\/mod\/([^/]+)\/([^/]+)\/ext\/panels\/(.+\.(?:ya?ml))$/iu);
+  const match = normalizedFilePath.match(
+    /^L[0-2]\/[^/]+\/mod\/([^/]+)\/([^/]+)\/ext\/panels\/(.+\.(?:ya?ml))$/iu
+  );
 
   if (!match) {
     return null;
@@ -145,9 +151,7 @@ function parseDiscoveredPanelManifestFile(filePath) {
 
 export function normalizePanelManifest(manifest = {}, options = {}) {
   const normalizedManifest =
-    manifest && typeof manifest === "object" && !Array.isArray(manifest)
-      ? manifest
-      : {};
+    manifest && typeof manifest === "object" && !Array.isArray(manifest) ? manifest : {};
   const routePath = normalizePanelRoutePath(
     normalizedManifest.path ?? normalizedManifest.route ?? normalizedManifest.href
   );
@@ -164,9 +168,7 @@ export function normalizePanelManifest(manifest = {}, options = {}) {
 
   return {
     color: normalizePanelColor(
-      normalizedManifest.color ??
-      normalizedManifest.icon_color ??
-      normalizedManifest.iconColor
+      normalizedManifest.color ?? normalizedManifest.icon_color ?? normalizedManifest.iconColor
     ),
     description: normalizePanelDescription(
       normalizedManifest.description ?? normalizedManifest.summary
@@ -203,10 +205,11 @@ async function listPanelManifestFiles() {
     effectivePanelFiles.set(`${panelFile.modulePath}|${panelFile.manifestName}`, panelFile);
   });
 
-  return [...effectivePanelFiles.values()].sort((left, right) =>
-    left.modulePath.localeCompare(right.modulePath) ||
-    left.manifestName.localeCompare(right.manifestName) ||
-    left.filePath.localeCompare(right.filePath)
+  return [...effectivePanelFiles.values()].sort(
+    (left, right) =>
+      left.modulePath.localeCompare(right.modulePath) ||
+      left.manifestName.localeCompare(right.manifestName) ||
+      left.filePath.localeCompare(right.filePath)
   );
 }
 
@@ -225,7 +228,9 @@ export async function loadPanelManifest(manifestPath) {
     });
 
     if (!response.ok) {
-      throw new Error(`Unable to read ${normalizedManifestPath}: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Unable to read ${normalizedManifestPath}: ${response.status} ${response.statusText}`
+      );
     }
 
     manifestSource = await response.text();

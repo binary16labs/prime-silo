@@ -3,7 +3,12 @@ const DOM_HELPER_FLAG = "__spaceBrowserDomHelperInstalled__";
 const DOM_HELPER_KEY = "__spaceBrowserDomHelper__";
 const DOM_HELPER_TIMEOUT_MS = 500;
 
-function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELPER_KEY, channel = DOM_HELPER_CHANNEL, timeoutMs = DOM_HELPER_TIMEOUT_MS) {
+function installBrowserDomHelper(
+  flagKey = DOM_HELPER_FLAG,
+  helperKey = DOM_HELPER_KEY,
+  channel = DOM_HELPER_CHANNEL,
+  timeoutMs = DOM_HELPER_TIMEOUT_MS
+) {
   if (globalThis[flagKey]) {
     return;
   }
@@ -59,17 +64,10 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
     "touchend",
     "touchstart"
   ]);
-  const INTERACTIVE_EVENT_PROPERTIES = [...INTERACTIVE_EVENT_NAMES]
-    .map((eventName) => `on${eventName}`);
-  const SKIP_TAGS = new Set([
-    "HEAD",
-    "LINK",
-    "META",
-    "NOSCRIPT",
-    "SCRIPT",
-    "STYLE",
-    "TEMPLATE"
-  ]);
+  const INTERACTIVE_EVENT_PROPERTIES = [...INTERACTIVE_EVENT_NAMES].map(
+    (eventName) => `on${eventName}`
+  );
+  const SKIP_TAGS = new Set(["HEAD", "LINK", "META", "NOSCRIPT", "SCRIPT", "STYLE", "TEMPLATE"]);
   const VOID_TAGS = new Set([
     "area",
     "base",
@@ -92,18 +90,21 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
   const nodeIdsByElement = new WeakMap();
   const pendingRequests = new Map();
   const requestTimeoutMs = Math.max(100, Number(timeoutMs) || DOM_HELPER_TIMEOUT_MS);
-  const helperFrameId = typeof globalThis.crypto?.randomUUID === "function"
-    ? globalThis.crypto.randomUUID()
-    : `space-browser-frame-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const helperFrameId =
+    typeof globalThis.crypto?.randomUUID === "function"
+      ? globalThis.crypto.randomUUID()
+      : `space-browser-frame-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   let nextNodeId = 1;
   let nextRequestId = 1;
 
-  if (typeof globalThis.Element?.prototype?.attachShadow === "function" && !globalThis.__spaceBrowserDomHelperShadowRootOverrideInstalled__) {
+  if (
+    typeof globalThis.Element?.prototype?.attachShadow === "function" &&
+    !globalThis.__spaceBrowserDomHelperShadowRootOverrideInstalled__
+  ) {
     const originalAttachShadow = globalThis.Element.prototype.attachShadow;
     globalThis.Element.prototype.attachShadow = function attachShadow(options) {
-      const shadowOptions = options && typeof options === "object"
-        ? { ...options, mode: "open" }
-        : { mode: "open" };
+      const shadowOptions =
+        options && typeof options === "object" ? { ...options, mode: "open" } : { mode: "open" };
 
       return originalAttachShadow.call(this, shadowOptions);
     };
@@ -153,7 +154,9 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
   }
 
   function isInteractiveEventAttributeName(attributeName) {
-    const normalizedName = String(attributeName || "").trim().toLowerCase();
+    const normalizedName = String(attributeName || "")
+      .trim()
+      .toLowerCase();
     if (!normalizedName) {
       return false;
     }
@@ -190,7 +193,9 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
   }
 
   function hasInteractiveEventHandler(element) {
-    return hasInteractiveEventHandlerAttribute(element) || hasInteractiveEventHandlerProperty(element);
+    return (
+      hasInteractiveEventHandlerAttribute(element) || hasInteractiveEventHandlerProperty(element)
+    );
   }
 
   function truncateText(value, maxLength = 120) {
@@ -210,9 +215,7 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
   }
 
   function escapeHtmlAttribute(value) {
-    return escapeHtmlText(value)
-      .replace(/"/gu, "&quot;")
-      .replace(/'/gu, "&#39;");
+    return escapeHtmlText(value).replace(/"/gu, "&quot;").replace(/'/gu, "&#39;");
   }
 
   function isElementNode(value) {
@@ -236,11 +239,13 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
       return false;
     }
 
-    return /(?:^|;)display:none(?:;|$)/u.test(normalizedStyleValue)
-      || /(?:^|;)visibility:hidden(?:;|$)/u.test(normalizedStyleValue)
-      || /(?:^|;)visibility:collapse(?:;|$)/u.test(normalizedStyleValue)
-      || /(?:^|;)content-visibility:hidden(?:;|$)/u.test(normalizedStyleValue)
-      || /(?:^|;)opacity:0(?:\.0+)?(?:;|$)/u.test(normalizedStyleValue);
+    return (
+      /(?:^|;)display:none(?:;|$)/u.test(normalizedStyleValue) ||
+      /(?:^|;)visibility:hidden(?:;|$)/u.test(normalizedStyleValue) ||
+      /(?:^|;)visibility:collapse(?:;|$)/u.test(normalizedStyleValue) ||
+      /(?:^|;)content-visibility:hidden(?:;|$)/u.test(normalizedStyleValue) ||
+      /(?:^|;)opacity:0(?:\.0+)?(?:;|$)/u.test(normalizedStyleValue)
+    );
   }
 
   function isComputedStyleHidden(computedStyle) {
@@ -253,11 +258,13 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
     const contentVisibility = normalizeText(computedStyle.contentVisibility).toLowerCase();
     const opacity = Number(computedStyle.opacity || 1);
 
-    return display === "none"
-      || visibility === "hidden"
-      || visibility === "collapse"
-      || contentVisibility === "hidden"
-      || opacity <= 0;
+    return (
+      display === "none" ||
+      visibility === "hidden" ||
+      visibility === "collapse" ||
+      contentVisibility === "hidden" ||
+      opacity <= 0
+    );
   }
 
   function isEffectivelyHiddenByAncestor(element) {
@@ -296,7 +303,10 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
       return true;
     }
 
-    if (tagName === "INPUT" && String(element.getAttribute?.("type") || "").toLowerCase() === "hidden") {
+    if (
+      tagName === "INPUT" &&
+      String(element.getAttribute?.("type") || "").toLowerCase() === "hidden"
+    ) {
       return true;
     }
 
@@ -334,7 +344,9 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
       return true;
     }
 
-    const role = String(element.getAttribute?.("role") || "").trim().toLowerCase();
+    const role = String(element.getAttribute?.("role") || "")
+      .trim()
+      .toLowerCase();
     if (INTERACTIVE_ROLES.has(role)) {
       return true;
     }
@@ -347,7 +359,10 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
       return true;
     }
 
-    return hasInteractiveEventHandlerProperty(element) && Boolean(normalizeText(element.textContent || ""));
+    return (
+      hasInteractiveEventHandlerProperty(element) &&
+      Boolean(normalizeText(element.textContent || ""))
+    );
   }
 
   function parseCssColor(value) {
@@ -420,9 +435,9 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
       if (max === r) {
         hue = 60 * (((g - b) / delta) % 6);
       } else if (max === g) {
-        hue = 60 * (((b - r) / delta) + 2);
+        hue = 60 * ((b - r) / delta + 2);
       } else {
-        hue = 60 * (((r - g) / delta) + 4);
+        hue = 60 * ((r - g) / delta + 4);
       }
     }
 
@@ -466,8 +481,13 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
     const backgroundColor = parseCssColor(computedStyle?.backgroundColor || "");
     const borderColor = parseCssColor(computedStyle?.borderTopColor || "");
     const foregroundColor = parseCssColor(computedStyle?.color || "");
-    const isButtonLike = ["BUTTON", "INPUT", "SUMMARY"].includes(getTagName(element))
-      || ["button", "tab", "menuitem"].includes(String(element?.getAttribute?.("role") || "").trim().toLowerCase());
+    const isButtonLike =
+      ["BUTTON", "INPUT", "SUMMARY"].includes(getTagName(element)) ||
+      ["button", "tab", "menuitem"].includes(
+        String(element?.getAttribute?.("role") || "")
+          .trim()
+          .toLowerCase()
+      );
 
     if (metadata.disabled || metadata.blocked || opacity <= 0.58) {
       return "muted";
@@ -485,11 +505,7 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
       return "";
     }
 
-    const {
-      hue,
-      lightness,
-      saturation
-    } = preferredColor.hsl;
+    const { hue, lightness, saturation } = preferredColor.hsl;
     if (saturation < 0.2) {
       return "";
     }
@@ -528,35 +544,58 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
     const computedStyle = getComputedStyleSafe(element);
     const rect = getElementRectSafe(element);
     const tagName = getTagName(element);
-    const ariaDisabled = String(element.getAttribute?.("aria-disabled") || "").trim().toLowerCase() === "true";
-    const ariaBusy = String(element.getAttribute?.("aria-busy") || "").trim().toLowerCase() === "true";
-    const ariaChecked = String(element.getAttribute?.("aria-checked") || "").trim().toLowerCase() === "true";
+    const ariaDisabled =
+      String(element.getAttribute?.("aria-disabled") || "")
+        .trim()
+        .toLowerCase() === "true";
+    const ariaBusy =
+      String(element.getAttribute?.("aria-busy") || "")
+        .trim()
+        .toLowerCase() === "true";
+    const ariaChecked =
+      String(element.getAttribute?.("aria-checked") || "")
+        .trim()
+        .toLowerCase() === "true";
     const ariaCurrent = normalizeText(element.getAttribute?.("aria-current"));
-    const ariaInvalid = String(element.getAttribute?.("aria-invalid") || "").trim().toLowerCase() === "true";
-    const ariaPressed = String(element.getAttribute?.("aria-pressed") || "").trim().toLowerCase() === "true";
-    const ariaReadonly = String(element.getAttribute?.("aria-readonly") || "").trim().toLowerCase() === "true";
-    const ariaRequired = String(element.getAttribute?.("aria-required") || "").trim().toLowerCase() === "true";
-    const ariaSelected = String(element.getAttribute?.("aria-selected") || "").trim().toLowerCase() === "true";
+    const ariaInvalid =
+      String(element.getAttribute?.("aria-invalid") || "")
+        .trim()
+        .toLowerCase() === "true";
+    const ariaPressed =
+      String(element.getAttribute?.("aria-pressed") || "")
+        .trim()
+        .toLowerCase() === "true";
+    const ariaReadonly =
+      String(element.getAttribute?.("aria-readonly") || "")
+        .trim()
+        .toLowerCase() === "true";
+    const ariaRequired =
+      String(element.getAttribute?.("aria-required") || "")
+        .trim()
+        .toLowerCase() === "true";
+    const ariaSelected =
+      String(element.getAttribute?.("aria-selected") || "")
+        .trim()
+        .toLowerCase() === "true";
     const closestInert = typeof element.closest === "function" ? element.closest("[inert]") : null;
-    const pointerEventsNone = normalizeText(computedStyle?.pointerEvents || "").toLowerCase() === "none";
+    const pointerEventsNone =
+      normalizeText(computedStyle?.pointerEvents || "").toLowerCase() === "none";
     const disabled = Boolean(element.disabled || ariaDisabled || closestInert);
     const blocked = !disabled && pointerEventsNone;
     const checked = Boolean(element.checked || ariaChecked);
-    const selected = tagName === "OPTION"
-      ? Boolean(element.selected)
-      : Boolean(ariaSelected);
+    const selected = tagName === "OPTION" ? Boolean(element.selected) : Boolean(ariaSelected);
     const invalid = Boolean(ariaInvalid || element.matches?.(":invalid"));
     const readonly = Boolean(element.readOnly || ariaReadonly);
     const required = Boolean(element.required || ariaRequired);
-    const expanded = String(element.getAttribute?.("aria-expanded") || "").trim().toLowerCase() === "true";
+    const expanded =
+      String(element.getAttribute?.("aria-expanded") || "")
+        .trim()
+        .toLowerCase() === "true";
     const pressed = ariaPressed;
     const busy = ariaBusy;
     const current = Boolean(ariaCurrent && ariaCurrent !== "false");
     const zeroRect = Boolean(
-      rect
-      && element.ownerDocument === globalThis.document
-      && rect.width <= 1
-      && rect.height <= 1
+      rect && element.ownerDocument === globalThis.document && rect.width <= 1 && rect.height <= 1
     );
     const opacity = Number(computedStyle?.opacity || 1);
     const semanticTone = detectSemanticTone(element, computedStyle, {
@@ -599,7 +638,9 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
   function getReferenceValueMetadata(element) {
     const tagName = getTagName(element);
     if (tagName === "INPUT") {
-      const inputType = String(element.getAttribute?.("type") || element.type || "text").toLowerCase();
+      const inputType = String(
+        element.getAttribute?.("type") || element.type || "text"
+      ).toLowerCase();
       if (inputType === "password") {
         return "";
       }
@@ -639,9 +680,7 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
         ? frameChain.split(">")
         : [];
 
-    return rawFrameChain
-      .map((entry) => String(entry || "").trim())
-      .filter(Boolean);
+    return rawFrameChain.map((entry) => String(entry || "").trim()).filter(Boolean);
   }
 
   function encodeFrameChain(frameChain) {
@@ -706,22 +745,38 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
     if (isActionableElement(element)) {
       const stateMetadata = collectElementStateMetadata(element);
       const liveValue = getReferenceValueMetadata(element);
-      serializedAttributes.push(` data-space-browser-node-id="${escapeHtmlAttribute(ensureNodeId(element))}"`);
-      serializedAttributes.push(` data-space-browser-frame-id="${escapeHtmlAttribute(helperFrameId)}"`);
-      serializedAttributes.push(` data-space-browser-frame-chain="${escapeHtmlAttribute(encodeFrameChain(frameChain))}"`);
+      serializedAttributes.push(
+        ` data-space-browser-node-id="${escapeHtmlAttribute(ensureNodeId(element))}"`
+      );
+      serializedAttributes.push(
+        ` data-space-browser-frame-id="${escapeHtmlAttribute(helperFrameId)}"`
+      );
+      serializedAttributes.push(
+        ` data-space-browser-frame-chain="${escapeHtmlAttribute(encodeFrameChain(frameChain))}"`
+      );
       if (stateMetadata.stateTags.length) {
-        serializedAttributes.push(` data-space-browser-state-tags="${escapeHtmlAttribute(stateMetadata.stateTags.join(" "))}"`);
+        serializedAttributes.push(
+          ` data-space-browser-state-tags="${escapeHtmlAttribute(stateMetadata.stateTags.join(" "))}"`
+        );
       }
       if (stateMetadata.semanticTags.length) {
-        serializedAttributes.push(` data-space-browser-semantic-tags="${escapeHtmlAttribute(stateMetadata.semanticTags.join(" "))}"`);
+        serializedAttributes.push(
+          ` data-space-browser-semantic-tags="${escapeHtmlAttribute(stateMetadata.semanticTags.join(" "))}"`
+        );
       }
       if (stateMetadata.descriptorTags.length) {
-        serializedAttributes.push(` data-space-browser-descriptor-tags="${escapeHtmlAttribute(stateMetadata.descriptorTags.join(" "))}"`);
+        serializedAttributes.push(
+          ` data-space-browser-descriptor-tags="${escapeHtmlAttribute(stateMetadata.descriptorTags.join(" "))}"`
+        );
       }
       if (liveValue) {
-        serializedAttributes.push(` data-space-browser-live-value="${escapeHtmlAttribute(liveValue)}"`);
+        serializedAttributes.push(
+          ` data-space-browser-live-value="${escapeHtmlAttribute(liveValue)}"`
+        );
         if (getTagName(element) === "SELECT") {
-          serializedAttributes.push(` data-space-browser-selected-text="${escapeHtmlAttribute(liveValue)}"`);
+          serializedAttributes.push(
+            ` data-space-browser-selected-text="${escapeHtmlAttribute(liveValue)}"`
+          );
         }
       }
     }
@@ -730,25 +785,28 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
   }
 
   function normalizeSnapshotMode(value) {
-    return String(value || "").trim().toLowerCase() || "dom";
+    return (
+      String(value || "")
+        .trim()
+        .toLowerCase() || "dom"
+    );
   }
 
   function normalizeSelectorList(payload = {}) {
-    const rawSelectors = typeof payload === "string"
-      ? [payload]
-      : Array.isArray(payload?.selectors)
-        ? payload.selectors
-        : typeof payload?.selectors === "string"
-          ? [payload.selectors]
-          : Array.isArray(payload?.selector)
-            ? payload.selector
-            : typeof payload?.selector === "string"
-              ? [payload.selector]
-              : [];
+    const rawSelectors =
+      typeof payload === "string"
+        ? [payload]
+        : Array.isArray(payload?.selectors)
+          ? payload.selectors
+          : typeof payload?.selectors === "string"
+            ? [payload.selectors]
+            : Array.isArray(payload?.selector)
+              ? payload.selector
+              : typeof payload?.selector === "string"
+                ? [payload.selector]
+                : [];
 
-    return rawSelectors
-      .map((selector) => String(selector || "").trim())
-      .filter(Boolean);
+    return rawSelectors.map((selector) => String(selector || "").trim()).filter(Boolean);
   }
 
   function isContentSnapshotMode(payload = {}) {
@@ -796,16 +854,18 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
       const requestId = createRequestId();
       const timer = globalThis.setTimeout(() => {
         pendingRequests.delete(requestId);
-        reject(createNamedError(
-          "BrowserDomHelperFrameTimeoutError",
-          `Embedded frame request "${type}" timed out.`,
-          {
-            code: "browser_dom_helper_frame_timeout",
-            details: {
-              type
+        reject(
+          createNamedError(
+            "BrowserDomHelperFrameTimeoutError",
+            `Embedded frame request "${type}" timed out.`,
+            {
+              code: "browser_dom_helper_frame_timeout",
+              details: {
+                type
+              }
             }
-          }
-        ));
+          )
+        );
       }, requestTimeoutMs);
 
       pendingRequests.set(requestId, {
@@ -816,26 +876,31 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
       });
 
       try {
-        targetWindow.postMessage({
-          channel,
-          payload,
-          requestId,
-          type
-        }, "*");
+        targetWindow.postMessage(
+          {
+            channel,
+            payload,
+            requestId,
+            type
+          },
+          "*"
+        );
       } catch (error) {
         globalThis.clearTimeout(timer);
         pendingRequests.delete(requestId);
-        reject(createNamedError(
-          "BrowserDomHelperFrameRequestError",
-          `Embedded frame request "${type}" could not be posted.`,
-          {
-            cause: error,
-            code: "browser_dom_helper_frame_postmessage_failed",
-            details: {
-              type
+        reject(
+          createNamedError(
+            "BrowserDomHelperFrameRequestError",
+            `Embedded frame request "${type}" could not be posted.`,
+            {
+              cause: error,
+              code: "browser_dom_helper_frame_postmessage_failed",
+              details: {
+                type
+              }
             }
-          }
-        ));
+          )
+        );
       }
     });
   }
@@ -945,7 +1010,12 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
       // Cross-origin frame fallback below.
     }
 
-    const snapshot = await requestChildFrameOperation(childWindow, "capture_document", childPayload, frameElement);
+    const snapshot = await requestChildFrameOperation(
+      childWindow,
+      "capture_document",
+      childPayload,
+      frameElement
+    );
     registerChildFrame(snapshot?.frameId, childWindow);
     return snapshot;
   }
@@ -954,16 +1024,18 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
     const normalizedSnapshot = snapshot && typeof snapshot === "object" ? snapshot : {};
     const frameChain = encodeFrameChain(normalizedSnapshot.frameChain);
     const frameId = String(normalizedSnapshot.frameId || "").trim();
-    const status = normalizedSnapshot.ok === false
-      ? String(normalizedSnapshot.status || "error").trim() || "error"
-      : "ok";
+    const status =
+      normalizedSnapshot.ok === false
+        ? String(normalizedSnapshot.status || "error").trim() || "error"
+        : "ok";
     const message = String(normalizedSnapshot.message || "").trim();
     const src = String(frameElement?.getAttribute?.("src") || frameElement?.src || "").trim();
-    const title = String(normalizedSnapshot.title || frameElement?.getAttribute?.("title") || "").trim();
+    const title = String(
+      normalizedSnapshot.title || frameElement?.getAttribute?.("title") || ""
+    ).trim();
     const url = String(normalizedSnapshot.url || src).trim();
     const content = String(
-      normalizedSnapshot.html
-      || escapeHtmlText(message || "Embedded frame snapshot unavailable.")
+      normalizedSnapshot.html || escapeHtmlText(message || "Embedded frame snapshot unavailable.")
     );
 
     if (isContentSnapshotMode(payload)) {
@@ -974,15 +1046,17 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
       return extractDocumentBodyHtml(content);
     }
 
-    return `<space-browser-frame-document`
-      + ` data-space-browser-frame-id="${escapeHtmlAttribute(frameId)}"`
-      + ` data-space-browser-frame-chain="${escapeHtmlAttribute(frameChain)}"`
-      + ` data-space-browser-status="${escapeHtmlAttribute(status)}"`
-      + ` data-space-browser-frame-url="${escapeHtmlAttribute(url)}"`
-      + ` data-space-browser-frame-title="${escapeHtmlAttribute(title)}"`
-      + ` data-space-browser-frame-src="${escapeHtmlAttribute(src)}">`
-      + content
-      + `</space-browser-frame-document>`;
+    return (
+      `<space-browser-frame-document` +
+      ` data-space-browser-frame-id="${escapeHtmlAttribute(frameId)}"` +
+      ` data-space-browser-frame-chain="${escapeHtmlAttribute(frameChain)}"` +
+      ` data-space-browser-status="${escapeHtmlAttribute(status)}"` +
+      ` data-space-browser-frame-url="${escapeHtmlAttribute(url)}"` +
+      ` data-space-browser-frame-title="${escapeHtmlAttribute(title)}"` +
+      ` data-space-browser-frame-src="${escapeHtmlAttribute(src)}">` +
+      content +
+      `</space-browser-frame-document>`
+    );
   }
 
   function createFrameCaptureFailureSnapshot(frameElement, frameChain, error) {
@@ -990,8 +1064,9 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
     const frameUrl = String(frameElement?.getAttribute?.("src") || frameElement?.src || "").trim();
     const frameTitle = String(frameElement?.getAttribute?.("title") || "").trim();
     const errorCode = String(error?.code || "").trim() || "capture_failed";
-    const errorMessage = String(error?.message || "Embedded frame snapshot unavailable.").trim()
-      || "Embedded frame snapshot unavailable.";
+    const errorMessage =
+      String(error?.message || "Embedded frame snapshot unavailable.").trim() ||
+      "Embedded frame snapshot unavailable.";
 
     return {
       frameChain: normalizedFrameChain,
@@ -1134,13 +1209,18 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
     if (selectors.length) {
       return {
         ...documentSnapshot,
-        targets: await serializeSelectorTargets(globalThis.document, selectors, currentFrameChain, payload)
+        targets: await serializeSelectorTargets(
+          globalThis.document,
+          selectors,
+          currentFrameChain,
+          payload
+        )
       };
     }
 
     return {
       ...documentSnapshot,
-      html: await serializeDocumentNode(globalThis.document, currentFrameChain, payload),
+      html: await serializeDocumentNode(globalThis.document, currentFrameChain, payload)
     };
   }
 
@@ -1245,9 +1325,8 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
   }
 
   function dispatchDomEvent(target, eventName, EventType = "Event", options = {}) {
-    const EventConstructor = typeof globalThis[EventType] === "function"
-      ? globalThis[EventType]
-      : globalThis.Event;
+    const EventConstructor =
+      typeof globalThis[EventType] === "function" ? globalThis[EventType] : globalThis.Event;
     const event = new EventConstructor(eventName, {
       bubbles: true,
       cancelable: true,
@@ -1259,9 +1338,8 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
   }
 
   function dispatchKeyboardEvent(target, eventName, options = {}) {
-    const KeyboardEventConstructor = typeof globalThis.KeyboardEvent === "function"
-      ? globalThis.KeyboardEvent
-      : globalThis.Event;
+    const KeyboardEventConstructor =
+      typeof globalThis.KeyboardEvent === "function" ? globalThis.KeyboardEvent : globalThis.Event;
     const event = new KeyboardEventConstructor(eventName, {
       bubbles: true,
       cancelable: true,
@@ -1298,7 +1376,10 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
     const normalizedValue = String(nextValue ?? "");
 
     if (tagName === "INPUT") {
-      const descriptor = Object.getOwnPropertyDescriptor(globalThis.HTMLInputElement?.prototype || {}, "value");
+      const descriptor = Object.getOwnPropertyDescriptor(
+        globalThis.HTMLInputElement?.prototype || {},
+        "value"
+      );
       if (typeof descriptor?.set === "function") {
         descriptor.set.call(element, normalizedValue);
       } else {
@@ -1308,7 +1389,10 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
     }
 
     if (tagName === "TEXTAREA") {
-      const descriptor = Object.getOwnPropertyDescriptor(globalThis.HTMLTextAreaElement?.prototype || {}, "value");
+      const descriptor = Object.getOwnPropertyDescriptor(
+        globalThis.HTMLTextAreaElement?.prototype || {},
+        "value"
+      );
       if (typeof descriptor?.set === "function") {
         descriptor.set.call(element, normalizedValue);
       } else {
@@ -1319,13 +1403,18 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
 
     if (tagName === "SELECT") {
       const matchedOption = [...(element.options || [])].find((option) => {
-        return option.value === normalizedValue
-          || normalizeText(option.textContent || "") === normalizeText(normalizedValue)
-          || normalizeText(option.label || "") === normalizeText(normalizedValue);
+        return (
+          option.value === normalizedValue ||
+          normalizeText(option.textContent || "") === normalizeText(normalizedValue) ||
+          normalizeText(option.label || "") === normalizeText(normalizedValue)
+        );
       });
 
       const resolvedValue = matchedOption ? matchedOption.value : normalizedValue;
-      const descriptor = Object.getOwnPropertyDescriptor(globalThis.HTMLSelectElement?.prototype || {}, "value");
+      const descriptor = Object.getOwnPropertyDescriptor(
+        globalThis.HTMLSelectElement?.prototype || {},
+        "value"
+      );
       if (typeof descriptor?.set === "function") {
         descriptor.set.call(element, resolvedValue);
       } else {
@@ -1354,7 +1443,9 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
       return false;
     }
 
-    const inputType = String(element.getAttribute?.("type") || element.type || "text").toLowerCase();
+    const inputType = String(
+      element.getAttribute?.("type") || element.type || "text"
+    ).toLowerCase();
     return ![
       "button",
       "checkbox",
@@ -1391,9 +1482,13 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
       return globalThis.document?.body || globalThis.document?.documentElement || null;
     }
 
-    return element.closest?.("form, fieldset, dialog, [role='dialog'], [role='alert'], [role='status'], [aria-live], article, section, main, li, tr, td, th")
-      || element.parentElement
-      || element;
+    return (
+      element.closest?.(
+        "form, fieldset, dialog, [role='dialog'], [role='alert'], [role='status'], [aria-live], article, section, main, li, tr, td, th"
+      ) ||
+      element.parentElement ||
+      element
+    );
   }
 
   function getElementDirectText(element) {
@@ -1423,9 +1518,10 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
 
       const role = normalizeText(element.getAttribute?.("role")).toLowerCase();
       const directText = getElementDirectText(element);
-      const fallbackText = ["alert", "status"].includes(role) || element.hasAttribute?.("aria-live")
-        ? normalizeText(element.textContent || "")
-        : "";
+      const fallbackText =
+        ["alert", "status"].includes(role) || element.hasAttribute?.("aria-live")
+          ? normalizeText(element.textContent || "")
+          : "";
       const text = truncateText(directText || fallbackText, 220);
       if (!text) {
         return;
@@ -1446,7 +1542,10 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
     };
 
     acceptElement(root);
-    const walker = globalThis.document?.createTreeWalker?.(root, globalThis.NodeFilter?.SHOW_ELEMENT ?? 1);
+    const walker = globalThis.document?.createTreeWalker?.(
+      root,
+      globalThis.NodeFilter?.SHOW_ELEMENT ?? 1
+    );
     if (!walker) {
       return entries;
     }
@@ -1473,14 +1572,16 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
     };
   }
 
-  async function withObservedActionWindow(observationRoot, action, {
-    quietMs = 40,
-    timeoutMs = 180
-  } = {}) {
-    const target = observationRoot?.ownerDocument?.body
-      || observationRoot?.ownerDocument?.documentElement
-      || globalThis.document?.body
-      || globalThis.document?.documentElement;
+  async function withObservedActionWindow(
+    observationRoot,
+    action,
+    { quietMs = 40, timeoutMs = 180 } = {}
+  ) {
+    const target =
+      observationRoot?.ownerDocument?.body ||
+      observationRoot?.ownerDocument?.documentElement ||
+      globalThis.document?.body ||
+      globalThis.document?.documentElement;
     if (!target || typeof globalThis.MutationObserver !== "function") {
       const result = await action();
       await delayMs(timeoutMs);
@@ -1544,22 +1645,32 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
       return !beforeSnapshot.textEntries.some((beforeEntry) => beforeEntry.text === entryData.text);
     });
     const validationEntries = newTextEntries.filter((entryData) => {
-      return entryData.invalid
-        || ["alert", "status"].includes(entryData.role)
-        || ["error", "warning"].includes(entryData.semanticTone);
+      return (
+        entryData.invalid ||
+        ["alert", "status"].includes(entryData.role) ||
+        ["error", "warning"].includes(entryData.semanticTone)
+      );
     });
     const focusChanged = beforeSnapshot.activeElement !== afterSnapshot.activeElement;
     const nearbyTextChanged = beforeSnapshot.observationText !== afterSnapshot.observationText;
     const valueChanged = beforeSnapshot.value !== afterSnapshot.value;
     const checkedChanged = beforeSnapshot.targetState.checked !== afterSnapshot.targetState.checked;
-    const selectedChanged = beforeSnapshot.targetState.selected !== afterSnapshot.targetState.selected;
-    const expandedChanged = beforeSnapshot.targetState.expanded !== afterSnapshot.targetState.expanded;
+    const selectedChanged =
+      beforeSnapshot.targetState.selected !== afterSnapshot.targetState.selected;
+    const expandedChanged =
+      beforeSnapshot.targetState.expanded !== afterSnapshot.targetState.expanded;
     const pressedChanged = beforeSnapshot.targetState.pressed !== afterSnapshot.targetState.pressed;
-    const descriptorChanged = compareDescriptorTags(beforeSnapshot.targetState.descriptorTags, afterSnapshot.targetState.descriptorTags);
+    const descriptorChanged = compareDescriptorTags(
+      beforeSnapshot.targetState.descriptorTags,
+      afterSnapshot.targetState.descriptorTags
+    );
     const targetDomChanged = beforeSnapshot.targetDom !== afterSnapshot.targetDom;
-    const domChanged = Boolean(observedMutations.mutationCount) || targetDomChanged || nearbyTextChanged;
+    const domChanged =
+      Boolean(observedMutations.mutationCount) || targetDomChanged || nearbyTextChanged;
     const status = {
-      alertTextAdded: newTextEntries.some((entryData) => ["alert", "status"].includes(entryData.role)),
+      alertTextAdded: newTextEntries.some((entryData) =>
+        ["alert", "status"].includes(entryData.role)
+      ),
       checkedChanged,
       descriptorChanged,
       domChanged,
@@ -1569,12 +1680,21 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
       pressedChanged,
       reacted: false,
       selectedChanged,
-      targetChanged: descriptorChanged || targetDomChanged || valueChanged || checkedChanged || selectedChanged || expandedChanged || pressedChanged,
+      targetChanged:
+        descriptorChanged ||
+        targetDomChanged ||
+        valueChanged ||
+        checkedChanged ||
+        selectedChanged ||
+        expandedChanged ||
+        pressedChanged,
       targetDomChanged,
       valueChanged,
       validationTextAdded: validationEntries.length > 0
     };
-    status.reacted = Object.entries(status).some(([key, value]) => key !== "reacted" && value === true);
+    status.reacted = Object.entries(status).some(
+      ([key, value]) => key !== "reacted" && value === true
+    );
     status.noObservedEffect = !status.reacted;
 
     return {
@@ -1583,7 +1703,9 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
         mutationAttributes: observedMutations.attributeNames.slice(0, 8),
         mutationCount: observedMutations.mutationCount,
         newText: newTextEntries.map((entryData) => entryData.text).slice(0, 3),
-        semanticHints: [...new Set(newTextEntries.map((entryData) => entryData.semanticTone).filter(Boolean))].slice(0, 3),
+        semanticHints: [
+          ...new Set(newTextEntries.map((entryData) => entryData.semanticTone).filter(Boolean))
+        ].slice(0, 3),
         validationText: validationEntries.map((entryData) => entryData.text).slice(0, 3)
       },
       status
@@ -1635,7 +1757,11 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
       }
     }).then(({ observedMutations }) => ({
       ...collectActionResult(element),
-      ...buildActionEffectResult(beforeSnapshot, captureActionEffectSnapshot(element), observedMutations)
+      ...buildActionEffectResult(
+        beforeSnapshot,
+        captureActionEffectSnapshot(element),
+        observedMutations
+      )
     }));
   }
 
@@ -1667,7 +1793,11 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
       return appliedValue;
     }).then(({ observedMutations, result }) => ({
       ...collectActionResult(element),
-      ...buildActionEffectResult(beforeSnapshot, captureActionEffectSnapshot(element), observedMutations),
+      ...buildActionEffectResult(
+        beforeSnapshot,
+        captureActionEffectSnapshot(element),
+        observedMutations
+      ),
       value: result
     }));
   }
@@ -1714,7 +1844,11 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
       }
     }).then(({ observedMutations }) => ({
       ...collectActionResult(element),
-      ...buildActionEffectResult(beforeSnapshot, captureActionEffectSnapshot(element), observedMutations)
+      ...buildActionEffectResult(
+        beforeSnapshot,
+        captureActionEffectSnapshot(element),
+        observedMutations
+      )
     }));
   }
 
@@ -1742,10 +1876,10 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
       });
 
       if (
-        !keydownEvent.defaultPrevented
-        && !keypressEvent.defaultPrevented
-        && !keyupEvent.defaultPrevented
-        && shouldEnterSubmitForm(element)
+        !keydownEvent.defaultPrevented &&
+        !keypressEvent.defaultPrevented &&
+        !keyupEvent.defaultPrevented &&
+        shouldEnterSubmitForm(element)
       ) {
         if (typeof element.form?.requestSubmit === "function") {
           element.form.requestSubmit();
@@ -1758,7 +1892,11 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
       }
     }).then(({ observedMutations }) => ({
       ...collectActionResult(element),
-      ...buildActionEffectResult(beforeSnapshot, captureActionEffectSnapshot(element), observedMutations)
+      ...buildActionEffectResult(
+        beforeSnapshot,
+        captureActionEffectSnapshot(element),
+        observedMutations
+      )
     }));
   }
 
@@ -1773,16 +1911,36 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
         }
       });
     });
-    mergedStatus.reacted = Object.entries(mergedStatus).some(([key, value]) => key !== "reacted" && key !== "noObservedEffect" && value === true);
+    mergedStatus.reacted = Object.entries(mergedStatus).some(
+      ([key, value]) => key !== "reacted" && key !== "noObservedEffect" && value === true
+    );
     mergedStatus.noObservedEffect = !mergedStatus.reacted;
     return {
       ...submitted,
       effect: {
-        mutationAttributes: [...new Set([...(typed?.effect?.mutationAttributes || []), ...(submitted?.effect?.mutationAttributes || [])])],
-        mutationCount: Number(typed?.effect?.mutationCount || 0) + Number(submitted?.effect?.mutationCount || 0),
-        newText: [...new Set([...(typed?.effect?.newText || []), ...(submitted?.effect?.newText || [])])].slice(0, 3),
-        semanticHints: [...new Set([...(typed?.effect?.semanticHints || []), ...(submitted?.effect?.semanticHints || [])])].slice(0, 3),
-        validationText: [...new Set([...(typed?.effect?.validationText || []), ...(submitted?.effect?.validationText || [])])].slice(0, 3)
+        mutationAttributes: [
+          ...new Set([
+            ...(typed?.effect?.mutationAttributes || []),
+            ...(submitted?.effect?.mutationAttributes || [])
+          ])
+        ],
+        mutationCount:
+          Number(typed?.effect?.mutationCount || 0) + Number(submitted?.effect?.mutationCount || 0),
+        newText: [
+          ...new Set([...(typed?.effect?.newText || []), ...(submitted?.effect?.newText || [])])
+        ].slice(0, 3),
+        semanticHints: [
+          ...new Set([
+            ...(typed?.effect?.semanticHints || []),
+            ...(submitted?.effect?.semanticHints || [])
+          ])
+        ].slice(0, 3),
+        validationText: [
+          ...new Set([
+            ...(typed?.effect?.validationText || []),
+            ...(submitted?.effect?.validationText || [])
+          ])
+        ].slice(0, 3)
       },
       status: mergedStatus,
       value: typed.value
@@ -1918,15 +2076,20 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
       }
 
       if (rawMessage.ok === false) {
-        pendingRequest.reject(createNamedError(
-          "BrowserDomHelperRemoteError",
-          String(rawMessage?.payload?.message || `Embedded frame request "${pendingRequest.type}" failed.`),
-          {
-            code: rawMessage?.payload?.code ?? "browser_dom_helper_remote_error",
-            details: rawMessage?.payload?.details || {},
-            payload: rawMessage.payload
-          }
-        ));
+        pendingRequest.reject(
+          createNamedError(
+            "BrowserDomHelperRemoteError",
+            String(
+              rawMessage?.payload?.message ||
+                `Embedded frame request "${pendingRequest.type}" failed.`
+            ),
+            {
+              code: rawMessage?.payload?.code ?? "browser_dom_helper_remote_error",
+              details: rawMessage?.payload?.details || {},
+              payload: rawMessage.payload
+            }
+          )
+        );
         return;
       }
 
@@ -1940,27 +2103,35 @@ function installBrowserDomHelper(flagKey = DOM_HELPER_FLAG, helperKey = DOM_HELP
 
     Promise.resolve(routeOperation(rawMessage.type, rawMessage.payload || {}))
       .then((payload) => {
-        event.source.postMessage({
-          channel,
-          ok: true,
-          payload,
-          requestId,
-          type: `${rawMessage.type}_result`
-        }, "*");
+        event.source.postMessage(
+          {
+            channel,
+            ok: true,
+            payload,
+            requestId,
+            type: `${rawMessage.type}_result`
+          },
+          "*"
+        );
       })
       .catch((error) => {
         console.error(`[space-browser/dom-helper] Request "${rawMessage.type}" failed.`, error);
-        event.source.postMessage({
-          channel,
-          ok: false,
-          payload: {
-            code: error?.code ?? "browser_dom_helper_error",
-            details: error?.details || {},
-            message: String(error?.message || `Embedded frame request "${rawMessage.type}" failed.`)
+        event.source.postMessage(
+          {
+            channel,
+            ok: false,
+            payload: {
+              code: error?.code ?? "browser_dom_helper_error",
+              details: error?.details || {},
+              message: String(
+                error?.message || `Embedded frame request "${rawMessage.type}" failed.`
+              )
+            },
+            requestId,
+            type: `${rawMessage.type}_result`
           },
-          requestId,
-          type: `${rawMessage.type}_result`
-        }, "*");
+          "*"
+        );
       });
   });
 

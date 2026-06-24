@@ -2064,9 +2064,7 @@
           "case_path": "tests/agent_llm_performance/cases/page_title_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/page_title_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn { title: document.title, url: location.href }",
           "usage": {
@@ -2136,9 +2134,7 @@
           "case_path": "tests/agent_llm_performance/cases/time_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/time_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn new Date().toString()",
           "usage": {
@@ -2313,9 +2309,7 @@
           "case_path": "tests/agent_llm_performance/cases/click_button_without_helper_uses_browser_js.json",
           "history_path": "tests/agent_llm_performance/histories/click_button_without_helper_uses_browser_js.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nconst buttons = Array.from(document.querySelectorAll('button'))\nif (!buttons.length) throw new Error('No button found')\nbuttons[0].click()\nreturn { clickedText: buttons[0].textContent?.trim() || null, buttonCount: buttons.length }",
           "usage": {
@@ -2420,9 +2414,7 @@
           "case_path": "tests/agent_llm_performance/cases/fix_visible_widget_error_requires_readwidget.json",
           "history_path": "tests/agent_llm_performance/histories/fix_visible_widget_error_requires_readwidget.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"status-board\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"status-board\"\\)/u"],
           "response_type": "thrust",
           "response": "Patching the broken status widget now...\n_____javascript\nreturn await space.current.patchWidget(\"status-board\", { edits: [{ type: \"replaceText\", selector: \"body\", text: \"Status unavailable\" }] })",
           "usage": {
@@ -2527,9 +2519,7 @@
           "case_path": "tests/agent_llm_performance/cases/verification_reveals_remaining_widget_error_requires_correction.json",
           "history_path": "tests/agent_llm_performance/histories/verification_reveals_remaining_widget_error_requires_correction.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"financials\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"financials\"\\)/u"],
           "response_type": "thrust",
           "response": "Seeing the financials widget now.\n_____javascript\nreturn await space.current.seeWidget(\"financials\")",
           "usage": {
@@ -2759,9 +2749,7 @@
           "case_path": "tests/agent_llm_performance/cases/weather_omitted_scope.json",
           "history_path": "tests/agent_llm_performance/histories/weather_omitted_scope.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn { error: \"I can’t access live weather data from here. If you want, I can help you check a weather page or parse weather info you provide.\" }",
           "usage": {
@@ -2796,9 +2784,7 @@
           "case_path": "tests/agent_llm_performance/cases/weather_self_scope_followup.json",
           "history_path": "tests/agent_llm_performance/histories/weather_self_scope_followup.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.api.userSelfInfo()",
           "usage": {
@@ -3189,9 +3175,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "Updating the contacts file now.\n\n\n_____javascript\nconst text = await space.api.fileRead(\"~/contacts.yaml\", \"utf8\")\nconst data = space.utils.yaml.parse(text)\n\nfunction updateMrKowalski(node) {\n  if (Array.isArray(node)) return node.map(updateMrKowalski)\n  if (node && typeof node === \"object\") {\n    const out = {}\n    for (const [k, v] of Object.entries(node)) {\n      if (k === \"mr_kowalski\") {\n        if (v && typeof v === \"object\" && !Array.isArray(v)) {\n          out[k] = { ...v, full_name: \"John Ronald Kowalski\" }\n        } else {\n          out[k] = { full_name: \"John Ronald Kowalski\" }\n        }\n      } else {\n        out[k] = updateMrKowalski(v)\n      }\n    }\n    return out\n  }\n  return node\n}\n\nconst updated = updateMrKowalski(data)\nconst newText = space.utils.yaml.stringify(updated)\nawait space.api.fileWrite(\"~/contacts.yaml\", newText, \"utf8\")\nreturn newText",
           "usage": {
@@ -3226,9 +3210,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_widget_fix_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_widget_fix_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /space\\.current\\.readWidget\\(/u"
-          ],
+          "failures": ["missing required pattern: /space\\.current\\.readWidget\\(/u"],
           "response_type": "thrust",
           "response": "Checking the snake widget now...\n\n\n_____javascript\nreturn await space.current.seeWidget(\"snake-game\")",
           "usage": {
@@ -4046,9 +4028,7 @@
           "case_path": "tests/agent_llm_performance/cases/remove_space_by_title_requires_discovery_first.json",
           "history_path": "tests/agent_llm_performance/histories/remove_space_by_title_requires_discovery_first.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nconst spaces = await space.spaces.listSpaces()\nconst target = spaces.find(s => String(s.name || s.title || \"\").toLowerCase().includes(\"game room\"))\nif (!target) return \"Game room space not found\"\nif (space.spaces.deleteSpace) {\n  await space.spaces.deleteSpace(target.id)\n  return `Removed space: ${target.id}`\n}\nreturn `Found space but no delete helper is available: ${target.id}`",
           "usage": {
@@ -4507,9 +4487,7 @@
           "case_path": "tests/agent_llm_performance/cases/fix_visible_widget_error_requires_readwidget.json",
           "history_path": "tests/agent_llm_performance/histories/fix_visible_widget_error_requires_readwidget.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"status-board\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"status-board\"\\)/u"],
           "response_type": "thrust",
           "response": "I’m patching the broken status widget now.\n_____javascript\nreturn await space.current.patchWidget(\"status-board\", {\n  edits: [\n    {\n      op: \"replace\",\n      path: \"/render\",\n      value: `function render() {\n  return '<div><div>Status service is temporarily unavailable. Please try again later.</div></div>'\n}`\n    }\n  ]\n})",
           "usage": {
@@ -4614,9 +4592,7 @@
           "case_path": "tests/agent_llm_performance/cases/verification_reveals_remaining_widget_error_requires_correction.json",
           "history_path": "tests/agent_llm_performance/histories/verification_reveals_remaining_widget_error_requires_correction.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"financials\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"financials\"\\)/u"],
           "response_type": "thrust",
           "response": "I see the financials widget is rate-limited with an AMZN 429 error, and I’m checking the widget output now.\n_____javascript\nreturn await space.current.seeWidget(\"financials\")",
           "usage": {
@@ -4761,9 +4737,7 @@
           "case_path": "tests/agent_llm_performance/cases/fresh_widget_read_then_do_it_requires_patch.json",
           "history_path": "tests/agent_llm_performance/histories/fresh_widget_read_then_do_it_requires_patch.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.patchWidget(\"quote-board\", { edits: [{ line: 2, text: '  const data = await fetch(\"https://api.example.test/quotes?fresh=1\").then(r => r.json())' }] })",
           "usage": {
@@ -4870,9 +4844,7 @@
           "case_path": "tests/agent_llm_performance/cases/weather_self_scope_followup.json",
           "history_path": "tests/agent_llm_performance/histories/weather_self_scope_followup.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.api.userSelfInfo()",
           "usage": {
@@ -5190,9 +5162,7 @@
           "case_path": "tests/agent_llm_performance/cases/write_user_yaml_after_read.json",
           "history_path": "tests/agent_llm_performance/histories/write_user_yaml_after_read.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileRead\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileRead\\(/u"],
           "response_type": "thrust",
           "response": "Updating your full name to Pan Example now...\n_____javascript\nconst current = await space.api.fileRead(\"~/user.yaml\", \"utf8\")\nconst data = space.utils.yaml.parse(current)\ndata.full_name = \"Pan Example\"\nreturn await space.api.fileWrite(\"~/user.yaml\", space.utils.yaml.stringify(data), \"utf8\")",
           "usage": {
@@ -5227,9 +5197,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_text_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_text_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "I’m updating the contacts file entry for Mr. Kowalski now.\n\n\n_____javascript\nconst path = \"~/people.txt\"\nconst text = await space.api.fileRead(path, \"utf8\")\nconst updated = text.replace(/\\bmr\\.\\s*Kowalski\\b/gi, \"John Ronald Kowalski\")\nif (updated === text) return \"No matching entry found to update.\"\nawait space.api.fileWrite(path, updated, \"utf8\")\nreturn \"Updated ~/people.txt\"",
           "usage": {
@@ -5264,9 +5232,7 @@
           "case_path": "tests/agent_llm_performance/cases/selective_yaml_edit_requires_read_first.json",
           "history_path": "tests/agent_llm_performance/histories/selective_yaml_edit_requires_read_first.json",
           "passed": false,
-          "failures": [
-            "matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"
-          ],
+          "failures": ["matched forbidden pattern: /space\\.api\\.fileWrite\\(/u"],
           "response_type": "thrust",
           "response": "I’m updating the contacts file to expand mr_kowalski to John Ronald Kowalski now.\n_____javascript\nconst path = \"~/contacts.yaml\"\nconst text = await space.api.fileRead(path, \"utf8\")\nlet data = space.utils.yaml.parse(text)\n\nfunction updateDeep(obj) {\n  if (Array.isArray(obj)) {\n    return obj.map(updateDeep)\n  }\n  if (obj && typeof obj === \"object\") {\n    for (const key of Object.keys(obj)) {\n      if (key === \"mr_kowalski\") obj[key] = \"John Ronald Kowalski\"\n      else obj[key] = updateDeep(obj[key])\n    }\n  }\n  return obj\n}\n\ndata = updateDeep(data)\nconst out = space.utils.yaml.stringify(data)\nawait space.api.fileWrite(path, out, \"utf8\")\nreturn \"Updated ~/contacts.yaml\"",
           "usage": {
@@ -5886,9 +5852,7 @@
           "case_path": "tests/agent_llm_performance/cases/repeat_do_it_requires_execution.json",
           "history_path": "tests/agent_llm_performance/histories/repeat_do_it_requires_execution.json",
           "passed": false,
-          "failures": [
-            "missing staging line before execution separator"
-          ],
+          "failures": ["missing staging line before execution separator"],
           "response_type": "thrust",
           "response": "_____javascript\nreturn await space.current.patchWidget(\"snake-game\", {\n  edits: [\n    {\n      op: \"replace\",\n      path: \"/\",\n      value: await (async () => {\n        const src = await space.current.readWidget(\"snake-game\")\n        return src\n      })()\n    }\n  ]\n})",
           "usage": {

@@ -7,7 +7,11 @@
     <script type="module" src="/mod/_core/onscreen_agent/store.js"></script>
   </head>
   <body>
-    <div x-data class="onscreen-agent-root agent-thread-surface" x-init="$nextTick(() => $store.onscreenAgent.init())">
+    <div
+      x-data
+      class="onscreen-agent-root agent-thread-surface"
+      x-init="$nextTick(() => $store.onscreenAgent.init())"
+    >
       <x-context data-tags="onscreen"></x-context>
       <template x-if="$store.onscreenAgent && $store.onscreenAgent.shouldRenderShell">
         <section
@@ -114,7 +118,11 @@
                     title="Resize chat history"
                     @pointerdown="$store.onscreenAgent.handleHistoryResizePointerDown($event)"
                   ></div>
-                  <div class="onscreen-agent-history" x-ref="scroller" @click="$store.onscreenAgent.handleThreadClick($event)">
+                  <div
+                    class="onscreen-agent-history"
+                    x-ref="scroller"
+                    @click="$store.onscreenAgent.handleThreadClick($event)"
+                  >
                     <div class="chat-thread" x-ignore data-chat-thread></div>
                   </div>
                 </div>
@@ -212,7 +220,10 @@
 
                 <template x-if="$store.onscreenAgent.draftAttachments.length">
                   <div class="composer-attachments" aria-label="Selected attachments">
-                    <template x-for="attachment in $store.onscreenAgent.draftAttachments" :key="attachment.id">
+                    <template
+                      x-for="attachment in $store.onscreenAgent.draftAttachments"
+                      :key="attachment.id"
+                    >
                       <button
                         type="button"
                         class="composer-attachment"
@@ -226,10 +237,7 @@
                   </div>
                 </template>
 
-                <div
-                  class="onscreen-agent-footer"
-                  x-show="$store.onscreenAgent.isFullMode"
-                >
+                <div class="onscreen-agent-footer" x-show="$store.onscreenAgent.isFullMode">
                   <button
                     type="button"
                     class="onscreen-agent-footer-icon"
@@ -249,7 +257,10 @@
                     <span class="chat-option-value" x-text="$store.onscreenAgent.llmSummary"></span>
                   </button>
                   <div class="onscreen-agent-footer-meta">
-                    <span class="onscreen-agent-token-count" x-text="$store.onscreenAgent.historyTokenSummary"></span>
+                    <span
+                      class="onscreen-agent-token-count"
+                      x-text="$store.onscreenAgent.historyTokenSummary"
+                    ></span>
                     <button
                       type="button"
                       class="onscreen-agent-footer-icon"
@@ -287,7 +298,11 @@
           </div>
 
           <template x-teleport="body">
-            <div class="space-popover-layer onscreen-agent-popover-layer" x-show="$store.onscreenAgent.isComposerActionMenuOpen" x-cloak>
+            <div
+              class="space-popover-layer onscreen-agent-popover-layer"
+              x-show="$store.onscreenAgent.isComposerActionMenuOpen"
+              x-cloak
+            >
               <div
                 id="onscreen-agent-composer-menu"
                 class="space-popover-panel onscreen-agent-action-menu"
@@ -297,7 +312,10 @@
                 @click.outside="$store.onscreenAgent.closeComposerActionMenu()"
                 @keydown.escape.window="$store.onscreenAgent.closeComposerActionMenu()"
               >
-                <template x-for="action in $store.onscreenAgent.composerActionMenuActions" :key="action.id">
+                <template
+                  x-for="action in $store.onscreenAgent.composerActionMenuActions"
+                  :key="action.id"
+                >
                   <button
                     type="button"
                     class="space-popover-action"
@@ -321,7 +339,11 @@
                 x-ref="settingsDialog"
                 @cancel.prevent="$store.onscreenAgent.closeSettingsDialog()"
               >
-                <form method="dialog" class="dialog-card dialog-card-shell" @submit.prevent="$store.onscreenAgent.saveSettingsFromDialog()">
+                <form
+                  method="dialog"
+                  class="dialog-card dialog-card-shell"
+                  @submit.prevent="$store.onscreenAgent.saveSettingsFromDialog()"
+                >
                   <header class="dialog-header">
                     <div>
                       <p class="page-eyebrow">Settings</p>
@@ -329,7 +351,11 @@
                     </div>
                   </header>
                   <div class="dialog-scroll-body">
-                    <div class="dialog-segmented-control onscreen-agent-provider-switch" role="tablist" aria-label="LLM provider">
+                    <div
+                      class="dialog-segmented-control onscreen-agent-provider-switch"
+                      role="tablist"
+                      aria-label="LLM provider"
+                    >
                       <button
                         type="button"
                         class="secondary-button dialog-segmented-button"
@@ -350,12 +376,15 @@
                     <div x-show="$store.onscreenAgent.isSettingsDraftUsingApiProvider" x-cloak>
                       <label class="field">
                         <span>Provider API Endpoint URL</span>
-                        <input type="url" x-model="$store.onscreenAgent.settingsDraft.apiEndpoint" />
+                        <input
+                          type="url"
+                          x-model="$store.onscreenAgent.settingsDraft.apiEndpoint"
+                        />
                         <p class="field-note">
                           Cloud <em>and</em> local model servers both go here — Lemonade:
-                          <code>http://localhost:13305/api/v1/chat/completions</code>.
-                          Local servers need no API key. ("In-browser" is only for
-                          HuggingFace models that download into the browser itself.)
+                          <code>http://localhost:13305/api/v1/chat/completions</code>. Local servers
+                          need no API key. ("In-browser" is only for HuggingFace models that
+                          download into the browser itself.)
                         </p>
                       </label>
                       <label class="field">
@@ -364,26 +393,48 @@
                       </label>
                       <label class="field">
                         <span>API Key</span>
-                        <input type="password" x-model="$store.onscreenAgent.settingsDraft.apiKey" />
-                        <p class="field-note">Leave empty for local servers like Lemonade or Ollama.</p>
+                        <input
+                          type="password"
+                          x-model="$store.onscreenAgent.settingsDraft.apiKey"
+                        />
+                        <p class="field-note">
+                          Leave empty for local servers like Lemonade or Ollama.
+                        </p>
                       </label>
                     </div>
-                    <div x-show="$store.onscreenAgent.isSettingsDraftUsingLocalProvider" x-cloak class="onscreen-agent-local-settings">
+                    <div
+                      x-show="$store.onscreenAgent.isSettingsDraftUsingLocalProvider"
+                      x-cloak
+                      class="onscreen-agent-local-settings"
+                    >
                       <div class="onscreen-agent-local-provider-panel">
-                        <x-component path="/mod/_core/huggingface/config-sidebar.html" mode="onscreen"></x-component>
+                        <x-component
+                          path="/mod/_core/huggingface/config-sidebar.html"
+                          mode="onscreen"
+                        ></x-component>
                       </div>
                     </div>
                     <label class="field">
                       <span>Max Tokens</span>
-                      <input type="number" min="1" step="1" inputmode="numeric" x-model="$store.onscreenAgent.settingsDraft.maxTokens" />
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        inputmode="numeric"
+                        x-model="$store.onscreenAgent.settingsDraft.maxTokens"
+                      />
                       <p class="field-note">
-                        Shared across both provider modes. Default <code>120000</code>. When prompt history exceeds this, compaction runs automatically before the next send.
+                        Shared across both provider modes. Default <code>120000</code>. When prompt
+                        history exceeds this, compaction runs automatically before the next send.
                       </p>
                     </label>
                     <div class="field prompt-budget-field">
                       <span>Prompt Budget</span>
                       <div class="prompt-budget-preview" aria-hidden="true">
-                        <template x-for="segment in $store.onscreenAgent.settingsDraftPromptBudgetSegments" :key="segment.key">
+                        <template
+                          x-for="segment in $store.onscreenAgent.settingsDraftPromptBudgetSegments"
+                          :key="segment.key"
+                        >
                           <span
                             class="prompt-budget-segment"
                             :class="segment.colorClass"
@@ -393,7 +444,12 @@
                       </div>
                       <div class="prompt-budget-grid">
                         <label class="prompt-budget-control">
-                          <span>System <strong x-text="`${$store.onscreenAgent.settingsDraftPromptBudgetRatios.system}%`"></strong></span>
+                          <span
+                            >System
+                            <strong
+                              x-text="`${$store.onscreenAgent.settingsDraftPromptBudgetRatios.system}%`"
+                            ></strong
+                          ></span>
                           <input
                             type="range"
                             min="0"
@@ -404,7 +460,12 @@
                           />
                         </label>
                         <label class="prompt-budget-control">
-                          <span>History <strong x-text="`${$store.onscreenAgent.settingsDraftPromptBudgetRatios.history}%`"></strong></span>
+                          <span
+                            >History
+                            <strong
+                              x-text="`${$store.onscreenAgent.settingsDraftPromptBudgetRatios.history}%`"
+                            ></strong
+                          ></span>
                           <input
                             type="range"
                             min="0"
@@ -415,7 +476,12 @@
                           />
                         </label>
                         <label class="prompt-budget-control">
-                          <span>Transient <strong x-text="`${$store.onscreenAgent.settingsDraftPromptBudgetRatios.transient}%`"></strong></span>
+                          <span
+                            >Transient
+                            <strong
+                              x-text="`${$store.onscreenAgent.settingsDraftPromptBudgetRatios.transient}%`"
+                            ></strong
+                          ></span>
                           <input
                             type="range"
                             min="0"
@@ -426,7 +492,12 @@
                           />
                         </label>
                         <label class="prompt-budget-control prompt-budget-control-single">
-                          <span>Single History Message <strong x-text="`${$store.onscreenAgent.settingsDraftPromptBudgetRatios.singleMessage}%`"></strong></span>
+                          <span
+                            >Single History Message
+                            <strong
+                              x-text="`${$store.onscreenAgent.settingsDraftPromptBudgetRatios.singleMessage}%`"
+                            ></strong
+                          ></span>
                           <input
                             type="range"
                             min="0"
@@ -438,7 +509,8 @@
                         </label>
                       </div>
                       <p class="field-note">
-                        System, history, and transient rebalance to 100% of <code>max tokens</code>. Single history message is a percentage of the history budget.
+                        System, history, and transient rebalance to 100% of <code>max tokens</code>.
+                        Single history message is a percentage of the history budget.
                       </p>
                     </div>
                     <label class="field">
@@ -450,7 +522,8 @@
                         x-model="$store.onscreenAgent.settingsDraft.paramsText"
                       ></textarea>
                       <p class="field-note">
-                        YAML format. Passed through to the active provider. Example: <code>temperature:0.2</code>
+                        YAML format. Passed through to the active provider. Example:
+                        <code>temperature:0.2</code>
                       </p>
                     </label>
                     <label class="field">
@@ -460,18 +533,30 @@
                         x-model="$store.onscreenAgent.systemPromptDraft"
                       ></textarea>
                       <p class="field-note">
-                        Appended after the fixed onscreen agent system prompt. Clear this field to use the default prompt only.
+                        Appended after the fixed onscreen agent system prompt. Clear this field to
+                        use the default prompt only.
                       </p>
                     </label>
                     <p class="dialog-note">
-                      These values and custom instructions are stored in <code>~/conf/onscreen-agent.yaml</code>.
+                      These values and custom instructions are stored in
+                      <code>~/conf/onscreen-agent.yaml</code>.
                     </p>
                   </div>
                   <div class="dialog-actions">
-                    <button type="button" class="secondary-button" @click="$store.onscreenAgent.resetSettingsDraftToDefaults()">
+                    <button
+                      type="button"
+                      class="secondary-button"
+                      @click="$store.onscreenAgent.resetSettingsDraftToDefaults()"
+                    >
                       Defaults
                     </button>
-                    <button type="button" class="secondary-button" @click="$store.onscreenAgent.closeSettingsDialog()">Cancel</button>
+                    <button
+                      type="button"
+                      class="secondary-button"
+                      @click="$store.onscreenAgent.closeSettingsDialog()"
+                    >
+                      Cancel
+                    </button>
                     <button type="submit" class="confirm-button">Save Settings</button>
                   </div>
                 </form>
@@ -491,10 +576,19 @@
                     </div>
                   </header>
                   <div class="raw-output-frame">
-                    <pre class="raw-output" x-text="$store.onscreenAgent.rawOutputContent || '[No raw output available]'"></pre>
+                    <pre
+                      class="raw-output"
+                      x-text="$store.onscreenAgent.rawOutputContent || '[No raw output available]'"
+                    ></pre>
                   </div>
                   <div class="dialog-actions">
-                    <button type="button" class="secondary-button" @click="$store.onscreenAgent.closeRawDialog()">Close</button>
+                    <button
+                      type="button"
+                      class="secondary-button"
+                      @click="$store.onscreenAgent.closeRawDialog()"
+                    >
+                      Close
+                    </button>
                   </div>
                 </div>
               </dialog>
@@ -512,7 +606,11 @@
                       <h2 x-text="$store.onscreenAgent.promptHistoryTitle"></h2>
                     </div>
                     <div class="dialog-header-actions">
-                      <div class="dialog-segmented-control" role="tablist" aria-label="Prompt history mode">
+                      <div
+                        class="dialog-segmented-control"
+                        role="tablist"
+                        aria-label="Prompt history mode"
+                      >
                         <button
                           type="button"
                           class="secondary-button dialog-segmented-button"
@@ -540,13 +638,19 @@
                         <template x-if="!$store.onscreenAgent.promptHistorySections.length">
                           <pre class="raw-output"></pre>
                         </template>
-                        <template x-for="(section, index) in $store.onscreenAgent.promptHistorySections" :key="`${section.role}-${index}`">
+                        <template
+                          x-for="(section, index) in $store.onscreenAgent.promptHistorySections"
+                          :key="`${section.role}-${index}`"
+                        >
                           <section
                             class="prompt-history-section"
                             :class="{ 'is-target': section.isTarget }"
                             :data-prompt-history-message-index="section.messageIndex"
                           >
-                            <div class="prompt-history-role" x-text="`${section.role} (${section.tokenCountLabel}):`"></div>
+                            <div
+                              class="prompt-history-role"
+                              x-text="`${section.role} (${section.tokenCountLabel}):`"
+                            ></div>
                             <pre class="prompt-history-body" x-text="section.content"></pre>
                           </section>
                         </template>
@@ -594,7 +698,9 @@
                         <x-icon>keyboard_arrow_down</x-icon>
                       </button>
                     </div>
-                    <div class="dialog-actions-group dialog-actions-group-end prompt-history-actions-right">
+                    <div
+                      class="dialog-actions-group dialog-actions-group-end prompt-history-actions-right"
+                    >
                       <button
                         type="button"
                         class="secondary-button dialog-action-button-fixed prompt-history-action-button"

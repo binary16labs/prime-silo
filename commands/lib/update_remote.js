@@ -12,13 +12,17 @@ function parseRuntimeAssignment(rawValue) {
   }
 
   return {
-    name: String(match[1] || "").trim().toUpperCase(),
+    name: String(match[1] || "")
+      .trim()
+      .toUpperCase(),
     value: match[2]
   };
 }
 
 function findLastAssignmentValue(args, paramName) {
-  const normalizedParamName = String(paramName || "").trim().toUpperCase();
+  const normalizedParamName = String(paramName || "")
+    .trim()
+    .toUpperCase();
 
   for (let index = args.length - 1; index >= 0; index -= 1) {
     const assignment = parseRuntimeAssignment(args[index]);

@@ -451,8 +451,20 @@
   width: 100%;
   height: 100%;
   background:
-    linear-gradient(135deg, transparent 38%, rgba(236, 230, 216, 0.5) 40%, rgba(236, 230, 216, 0.5) 48%, transparent 50%),
-    linear-gradient(135deg, transparent 58%, rgba(236, 230, 216, 0.5) 60%, rgba(236, 230, 216, 0.5) 68%, transparent 70%);
+    linear-gradient(
+      135deg,
+      transparent 38%,
+      rgba(236, 230, 216, 0.5) 40%,
+      rgba(236, 230, 216, 0.5) 48%,
+      transparent 50%
+    ),
+    linear-gradient(
+      135deg,
+      transparent 58%,
+      rgba(236, 230, 216, 0.5) 60%,
+      rgba(236, 230, 216, 0.5) 68%,
+      transparent 70%
+    );
 }
 
 .spaces-widget-resize-handle:hover,
@@ -526,7 +538,6 @@
     grid-template-columns: minmax(0, 1fr) auto;
   }
 }
-
 
 .spaces-share-dialog {
   --space-dialog-width: 44rem;

@@ -62,7 +62,7 @@ function testMapManifestExtractsTasksAndEdges() {
     plan: {
       tasks: [
         { id: "ingest", label: "Ingest trades", status: "completed" },
-        { id: "score",  label: "Score risk",    status: "running"   }
+        { id: "score", label: "Score risk", status: "running" }
       ],
       edges: [{ source: "ingest", target: "score" }],
       waves: [["ingest"], ["score"]]
@@ -70,7 +70,7 @@ function testMapManifestExtractsTasksAndEdges() {
   });
   assert.deepEqual(out.nodes, [
     { id: "ingest", label: "Ingest trades", status: "completed", wave: 0 },
-    { id: "score",  label: "Score risk",    status: "running",   wave: 1 }
+    { id: "score", label: "Score risk", status: "running", wave: 1 }
   ]);
   assert.deepEqual(out.edges, [{ source: "ingest", target: "score" }]);
 }
@@ -79,9 +79,9 @@ function testMapManifestUsesLabelOrNameOrId() {
   const out = mapManifestToDagData({
     plan: {
       tasks: [
-        { id: "a", label: "Label A" },           // label wins
-        { id: "b", name: "Name B" },             // name wins when label missing
-        { id: "c" }                              // id is the fallback
+        { id: "a", label: "Label A" }, // label wins
+        { id: "b", name: "Name B" }, // name wins when label missing
+        { id: "c" } // id is the fallback
       ]
     }
   });
@@ -94,8 +94,8 @@ function testMapManifestStatusFallbackChain() {
   const out = mapManifestToDagData({
     plan: {
       tasks: [
-        { id: "a", status: "failed" },           // task status wins
-        { id: "b" }                              // pending fallback
+        { id: "a", status: "failed" }, // task status wins
+        { id: "b" } // pending fallback
       ]
     }
   });
@@ -106,9 +106,7 @@ function testMapManifestStatusFallbackChain() {
 function testMapManifestWaveIndexInversion() {
   const out = mapManifestToDagData({
     plan: {
-      tasks: [
-        { id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }
-      ],
+      tasks: [{ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }],
       waves: [["a"], ["b", "c"], ["d"]]
     }
   });
@@ -152,8 +150,8 @@ function testMapManifestSkipsTasksWithoutId() {
     plan: {
       tasks: [
         { id: "ok" },
-        { label: "no id" },          // dropped
-        { id: "" }                   // dropped
+        { label: "no id" }, // dropped
+        { id: "" } // dropped
       ]
     }
   });
@@ -166,9 +164,9 @@ function testMapManifestSkipsEdgesWithMissingEnds() {
     plan: {
       edges: [
         { source: "a", target: "b" },
-        { source: "a" },               // dropped
-        { target: "b" },               // dropped
-        { source: 1, target: "b" }     // dropped (non-string)
+        { source: "a" }, // dropped
+        { target: "b" }, // dropped
+        { source: 1, target: "b" } // dropped (non-string)
       ]
     }
   });
@@ -180,7 +178,7 @@ function testMapManifestPropagatesEdgeLabels() {
     plan: {
       edges: [
         { source: "a", target: "b", label: "feeds" },
-        { source: "b", target: "c", label: "" }    // empty label dropped
+        { source: "b", target: "c", label: "" } // empty label dropped
       ]
     }
   });
@@ -194,7 +192,11 @@ function testMapManifestPropagatesEdgeLabels() {
 
 function testSummariseManifestEmptyEnvelope() {
   assert.deepEqual(summariseManifest(null), {
-    id: "", requirement: "", taskCount: 0, edgeCount: 0, waveCount: 0
+    id: "",
+    requirement: "",
+    taskCount: 0,
+    edgeCount: 0,
+    waveCount: 0
   });
 }
 
@@ -244,9 +246,8 @@ async function testReadManifestIdFromHashQuery() {
   // window.location at MODULE LOAD time inside a try/catch via the helper,
   // so it's safe either way.
   try {
-    const mod = await import(
-      "../app/L0/_all/mod/_prime_silo/manifest_explorer/manifest-explorer.js"
-    );
+    const mod =
+      await import("../app/L0/_all/mod/_prime_silo/manifest_explorer/manifest-explorer.js");
     // Direct call.
     fakeWindow.location.hash = "#/_prime_silo/manifest_explorer?manifest_id=m42";
     assert.equal(mod.__testing.readManifestIdFromQuery(), "m42");

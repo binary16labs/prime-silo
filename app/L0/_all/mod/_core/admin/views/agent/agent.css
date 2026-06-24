@@ -207,17 +207,27 @@
 }
 
 @keyframes admin-bounce-x {
-  from { left: 0; }
-  to   { left: calc(100% - 96px); }
+  from {
+    left: 0;
+  }
+  to {
+    left: calc(100% - 96px);
+  }
 }
 
 @keyframes admin-bounce-y {
-  from { top: 0; }
-  to   { top: calc(100% - 96px); }
+  from {
+    top: 0;
+  }
+  to {
+    top: calc(100% - 96px);
+  }
 }
 
 @keyframes admin-fadein {
-  to { opacity: 1; }
+  to {
+    opacity: 1;
+  }
 }
 
 /* Image only handles rotation */
@@ -230,7 +240,9 @@
 }
 
 @keyframes admin-bounce-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .chat-empty-hint {

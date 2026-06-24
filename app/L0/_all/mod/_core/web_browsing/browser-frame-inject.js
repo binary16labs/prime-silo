@@ -23,9 +23,9 @@
 
     const prototype = Object.getPrototypeOf(value);
     return (
-      prototype === Object.prototype
-      || prototype === null
-      || prototype?.constructor?.name === "Object"
+      prototype === Object.prototype ||
+      prototype === null ||
+      prototype?.constructor?.name === "Object"
     );
   }
 
@@ -69,7 +69,12 @@
   }
 
   function cloneValue(value, seen = new WeakMap()) {
-    if (value == null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    if (
+      value == null ||
+      typeof value === "string" ||
+      typeof value === "number" ||
+      typeof value === "boolean"
+    ) {
       return value;
     }
 
@@ -130,10 +135,7 @@
       seen.set(value, clonedEntries);
 
       value.forEach((entryValue, entryKey) => {
-        clonedEntries.push([
-          cloneValue(entryKey, seen),
-          cloneValue(entryValue, seen)
-        ]);
+        clonedEntries.push([cloneValue(entryKey, seen), cloneValue(entryValue, seen)]);
       });
 
       return clonedEntries;
@@ -222,7 +224,8 @@
     return {
       code: serialized.code ?? null,
       details: normalizePayload(serialized.details || {}),
-      message: serialized.message || String(fallbackMessage || "Browser frame bridge request failed."),
+      message:
+        serialized.message || String(fallbackMessage || "Browser frame bridge request failed."),
       name: serialized.name || "Error"
     };
   }
@@ -231,13 +234,17 @@
     const payload = isPlainObject(message.payload)
       ? message.payload
       : {
-          message: String(message.payload || `Browser frame bridge request \"${message.type}\" failed.`),
+          message: String(
+            message.payload || `Browser frame bridge request \"${message.type}\" failed.`
+          ),
           name: "BrowserFrameBridgeError"
         };
 
     return createNamedError(
       typeof payload.name === "string" && payload.name ? payload.name : "BrowserFrameBridgeError",
-      typeof payload.message === "string" && payload.message ? payload.message : `Browser frame bridge request \"${message.type}\" failed.`,
+      typeof payload.message === "string" && payload.message
+        ? payload.message
+        : `Browser frame bridge request \"${message.type}\" failed.`,
       {
         code: payload.code ?? null,
         details: isPlainObject(payload.details) ? payload.details : {},
@@ -285,21 +292,25 @@
       return null;
     }
 
-    const receiveEventName = typeof transport.receiveEventName === "string" && transport.receiveEventName.trim()
-      ? transport.receiveEventName.trim()
-      : typeof transport.eventName === "string" && transport.eventName.trim()
-      ? transport.eventName.trim()
-      : "";
-    const sendEventName = typeof transport.sendEventName === "string" && transport.sendEventName.trim()
-      ? transport.sendEventName.trim()
-      : "";
+    const receiveEventName =
+      typeof transport.receiveEventName === "string" && transport.receiveEventName.trim()
+        ? transport.receiveEventName.trim()
+        : typeof transport.eventName === "string" && transport.eventName.trim()
+          ? transport.eventName.trim()
+          : "";
+    const sendEventName =
+      typeof transport.sendEventName === "string" && transport.sendEventName.trim()
+        ? transport.sendEventName.trim()
+        : "";
 
     return {
       postEnvelope(envelope) {
         if (sendEventName) {
-          globalThis.dispatchEvent(new CustomEvent(sendEventName, {
-            detail: envelope
-          }));
+          globalThis.dispatchEvent(
+            new CustomEvent(sendEventName, {
+              detail: envelope
+            })
+          );
           return envelope;
         }
 
@@ -341,9 +352,10 @@
   }
 
   function resolveWindowTransport(options = {}) {
-    const targetOrigin = typeof options.targetOrigin === "string" && options.targetOrigin.trim()
-      ? options.targetOrigin.trim()
-      : "*";
+    const targetOrigin =
+      typeof options.targetOrigin === "string" && options.targetOrigin.trim()
+        ? options.targetOrigin.trim()
+        : "*";
 
     return {
       postEnvelope(envelope) {
@@ -437,9 +449,8 @@
         helperPayload.selectors = selectors;
       }
 
-      const snapshotMode = typeof payload?.snapshotMode === "string"
-        ? payload.snapshotMode.trim()
-        : "";
+      const snapshotMode =
+        typeof payload?.snapshotMode === "string" ? payload.snapshotMode.trim() : "";
       if (snapshotMode) {
         helperPayload.snapshotMode = snapshotMode;
       }
@@ -516,9 +527,7 @@
           );
         }
 
-        return parsedElements
-          .map((element) => String(element?.outerHTML || ""))
-          .join("\n");
+        return parsedElements.map((element) => String(element?.outerHTML || "")).join("\n");
       }
     }
 
@@ -537,9 +546,7 @@
       );
     }
 
-    return elements
-      .map((element) => String(element?.outerHTML || ""))
-      .join("\n");
+    return elements.map((element) => String(element?.outerHTML || "")).join("\n");
   }
 
   async function collectDomSnapshot(payload = null) {
@@ -550,9 +557,8 @@
       };
     }
 
-    const helperPayload = payload && typeof payload === "object" && !Array.isArray(payload)
-      ? { ...payload }
-      : {};
+    const helperPayload =
+      payload && typeof payload === "object" && !Array.isArray(payload) ? { ...payload } : {};
     const helperDocument = await captureDomHelperDocument({
       ...helperPayload,
       selectors,
@@ -598,9 +604,10 @@
 
   function resolveTypedReferencePayload(payload) {
     const referenceId = resolveReferencePayload(payload);
-    const value = payload && typeof payload === "object" && !Array.isArray(payload)
-      ? payload.value ?? payload.text ?? ""
-      : "";
+    const value =
+      payload && typeof payload === "object" && !Array.isArray(payload)
+        ? (payload.value ?? payload.text ?? "")
+        : "";
 
     return {
       referenceId,
@@ -628,18 +635,14 @@
     try {
       return await method(...args);
     } catch (error) {
-      throw createNamedError(
-        errorName,
-        errorMessage,
-        {
-          code: errorCode,
-          cause: error,
-          details: {
-            action: methodName,
-            cause: serializeErrorSummary(error, errorMessage)
-          }
+      throw createNamedError(errorName, errorMessage, {
+        code: errorCode,
+        cause: error,
+        details: {
+          action: methodName,
+          cause: serializeErrorSummary(error, errorMessage)
         }
-      );
+      });
     }
   }
 
@@ -718,9 +721,7 @@
   }
 
   function resolveEvaluateScript(payload = null) {
-    const rawScript = typeof payload === "string"
-      ? payload
-      : payload?.script;
+    const rawScript = typeof payload === "string" ? payload : payload?.script;
     const script = String(rawScript || "").trim();
 
     if (script) {
@@ -749,7 +750,10 @@
           code: "browser_frame_evaluate_error",
           cause: error,
           details: {
-            cause: serializeErrorSummary(error, "Browser frame bridge could not evaluate the requested script.")
+            cause: serializeErrorSummary(
+              error,
+              "Browser frame bridge could not evaluate the requested script."
+            )
           }
         }
       );
@@ -757,9 +761,7 @@
   }
 
   function readNavigationCapability(key) {
-    return typeof globalThis.navigation?.[key] === "boolean"
-      ? globalThis.navigation[key]
-      : null;
+    return typeof globalThis.navigation?.[key] === "boolean" ? globalThis.navigation[key] : null;
   }
 
   function collectNavigationState() {
@@ -831,15 +833,19 @@
   }
 
   function normalizeNavigationTarget(payload) {
-    const rawTarget = typeof payload === "string"
-      ? payload
-      : payload && typeof payload === "object"
-        ? payload.url
-        : "";
+    const rawTarget =
+      typeof payload === "string"
+        ? payload
+        : payload && typeof payload === "object"
+          ? payload.url
+          : "";
     const normalizedTarget = String(rawTarget || "").trim();
 
     const looksLikeLocalHost = (value) => {
-      const host = String(value || "").trim().split(/[/?#]/u, 1)[0] || "";
+      const host =
+        String(value || "")
+          .trim()
+          .split(/[/?#]/u, 1)[0] || "";
       return /^(?:localhost|\[[0-9a-f:.]+\]|(?:\d{1,3}\.){3}\d{1,3})(?::\d+)?$/iu.test(host);
     };
 
@@ -850,7 +856,9 @@
       }
 
       const host = trimmedValue.split(/[/?#]/u, 1)[0] || "";
-      return /^(?:localhost|\[[0-9a-f:.]+\]|(?:\d{1,3}\.){3}\d{1,3}|(?:[a-z\d](?:[a-z\d-]{0,61}[a-z\d])?\.)+[a-z\d-]{2,63})(?::\d+)?$/iu.test(host);
+      return /^(?:localhost|\[[0-9a-f:.]+\]|(?:\d{1,3}\.){3}\d{1,3}|(?:[a-z\d](?:[a-z\d-]{0,61}[a-z\d])?\.)+[a-z\d-]{2,63})(?::\d+)?$/iu.test(
+        host
+      );
     };
 
     if (!normalizedTarget) {
@@ -862,13 +870,16 @@
 
     try {
       if (
-        !/^[a-z][a-z\d+\-.]*:\/\//iu.test(normalizedTarget)
-        && !/^(about|blob|data|file|mailto|tel):/iu.test(normalizedTarget)
-        && !/^[/?#.]/u.test(normalizedTarget)
-        && looksLikeTypedHost(normalizedTarget)
+        !/^[a-z][a-z\d+\-.]*:\/\//iu.test(normalizedTarget) &&
+        !/^(about|blob|data|file|mailto|tel):/iu.test(normalizedTarget) &&
+        !/^[/?#.]/u.test(normalizedTarget) &&
+        looksLikeTypedHost(normalizedTarget)
       ) {
         const protocol = looksLikeLocalHost(normalizedTarget) ? "http://" : "https://";
-        return new URL(`${protocol}${normalizedTarget}`, globalThis.location?.href || "http://localhost/").href;
+        return new URL(
+          `${protocol}${normalizedTarget}`,
+          globalThis.location?.href || "http://localhost/"
+        ).href;
       }
 
       return new URL(normalizedTarget, globalThis.location?.href || "http://localhost/").href;
@@ -951,13 +962,16 @@
       return bridge;
     }
 
-    const originalOpen = typeof globalThis.open === "function"
-      ? globalThis.open.bind(globalThis)
-      : null;
+    const originalOpen =
+      typeof globalThis.open === "function" ? globalThis.open.bind(globalThis) : null;
 
     globalThis.open = function patchedOpen(url = "", target = "_blank", features = "") {
       const normalizedTarget = normalizeWindowTarget(target);
-      if (normalizedTarget === "_self" || normalizedTarget === "_top" || normalizedTarget === "_parent") {
+      if (
+        normalizedTarget === "_self" ||
+        normalizedTarget === "_top" ||
+        normalizedTarget === "_parent"
+      ) {
         if (originalOpen) {
           return originalOpen(url, normalizedTarget, features);
         }
@@ -977,41 +991,48 @@
       return null;
     };
 
-    globalThis.document?.addEventListener?.("click", (event) => {
-      if (event.defaultPrevented || event.button !== 0) {
-        return;
-      }
+    globalThis.document?.addEventListener?.(
+      "click",
+      (event) => {
+        if (event.defaultPrevented || event.button !== 0) {
+          return;
+        }
 
-      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-        return;
-      }
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+          return;
+        }
 
-      const anchor = event.target instanceof Element
-        ? event.target.closest("a[href][target]")
-        : null;
-      if (!(anchor instanceof HTMLAnchorElement)) {
-        return;
-      }
+        const anchor =
+          event.target instanceof Element ? event.target.closest("a[href][target]") : null;
+        if (!(anchor instanceof HTMLAnchorElement)) {
+          return;
+        }
 
-      const normalizedTarget = normalizeWindowTarget(anchor.getAttribute("target"));
-      if (normalizedTarget === "_self" || normalizedTarget === "_top" || normalizedTarget === "_parent") {
-        return;
-      }
+        const normalizedTarget = normalizeWindowTarget(anchor.getAttribute("target"));
+        if (
+          normalizedTarget === "_self" ||
+          normalizedTarget === "_top" ||
+          normalizedTarget === "_parent"
+        ) {
+          return;
+        }
 
-      const requestedWindow = emitRequestedWindowOpen(bridge, {
-        disposition: "target-blank",
-        frameName: normalizedTarget,
-        referrerUrl: globalThis.location?.href || "",
-        url: anchor.href || anchor.getAttribute("href") || ""
-      });
+        const requestedWindow = emitRequestedWindowOpen(bridge, {
+          disposition: "target-blank",
+          frameName: normalizedTarget,
+          referrerUrl: globalThis.location?.href || "",
+          url: anchor.href || anchor.getAttribute("href") || ""
+        });
 
-      if (!requestedWindow) {
-        return;
-      }
+        if (!requestedWindow) {
+          return;
+        }
 
-      event.preventDefault();
-      event.stopPropagation();
-    }, true);
+        event.preventDefault();
+        event.stopPropagation();
+      },
+      true
+    );
 
     bridge[BRIDGE_OPEN_WINDOW_FLAG] = true;
     return bridge;
@@ -1062,42 +1083,59 @@
       const handler = requestHandlers.get(message.type);
       if (!handler) {
         postEnvelope(
-          createEnvelope(BRIDGE_PHASE.RESPONSE, message.type, serializeError({
-            message: `No browser frame bridge handler is registered for \"${message.type}\".`,
-            name: "BrowserFrameBridgeMissingHandlerError"
-          }), {
-            ok: false,
-            requestId: message.requestId
-          })
+          createEnvelope(
+            BRIDGE_PHASE.RESPONSE,
+            message.type,
+            serializeError({
+              message: `No browser frame bridge handler is registered for \"${message.type}\".`,
+              name: "BrowserFrameBridgeMissingHandlerError"
+            }),
+            {
+              ok: false,
+              requestId: message.requestId
+            }
+          )
         );
         return;
       }
 
       try {
         const responsePayload = await handler(message.payload, message);
-        postEnvelope(createEnvelope(BRIDGE_PHASE.RESPONSE, message.type, responsePayload, {
-          ok: true,
-          requestId: message.requestId
-        }));
+        postEnvelope(
+          createEnvelope(BRIDGE_PHASE.RESPONSE, message.type, responsePayload, {
+            ok: true,
+            requestId: message.requestId
+          })
+        );
       } catch (error) {
         console.error(
           `[space-browser/frame] Request handler failed for "${message.type}".`,
           serializeError(error)
         );
-        postEnvelope(createEnvelope(BRIDGE_PHASE.RESPONSE, message.type, serializeError(error), {
-          ok: false,
-          requestId: message.requestId
-        }));
+        postEnvelope(
+          createEnvelope(BRIDGE_PHASE.RESPONSE, message.type, serializeError(error), {
+            ok: false,
+            requestId: message.requestId
+          })
+        );
       }
     }
 
     function handleEnvelope(rawMessage, meta = {}) {
-      if (!rawMessage || rawMessage.channel !== BRIDGE_CHANNEL || typeof rawMessage.type !== "string") {
+      if (
+        !rawMessage ||
+        rawMessage.channel !== BRIDGE_CHANNEL ||
+        typeof rawMessage.type !== "string"
+      ) {
         return;
       }
 
       const phase = rawMessage.phase;
-      if (phase !== BRIDGE_PHASE.EVENT && phase !== BRIDGE_PHASE.REQUEST && phase !== BRIDGE_PHASE.RESPONSE) {
+      if (
+        phase !== BRIDGE_PHASE.EVENT &&
+        phase !== BRIDGE_PHASE.REQUEST &&
+        phase !== BRIDGE_PHASE.RESPONSE
+      ) {
         return;
       }
 
@@ -1145,9 +1183,8 @@
       pendingRequest.resolve(message);
     }
 
-    const offTransport = typeof transport?.subscribe === "function"
-      ? transport.subscribe(handleEnvelope)
-      : () => {};
+    const offTransport =
+      typeof transport?.subscribe === "function" ? transport.subscribe(handleEnvelope) : () => {};
 
     return {
       channel: BRIDGE_CHANNEL,
@@ -1159,7 +1196,9 @@
             clearTimeout(pendingRequest.timeoutId);
           }
 
-          pendingRequest.reject(createNamedError("AbortError", "Browser frame bridge is destroyed."));
+          pendingRequest.reject(
+            createNamedError("AbortError", "Browser frame bridge is destroyed.")
+          );
         });
         pendingRequests.clear();
         eventListeners.clear();
@@ -1212,11 +1251,13 @@
         if (timeoutMs > 0) {
           timeoutId = setTimeout(() => {
             pendingRequests.delete(requestId);
-            deferred.reject(createNamedError(
-              "TimeoutError",
-              `Browser frame bridge request \"${normalizedType}\" timed out after ${timeoutMs}ms.`,
-              { requestId, type: normalizedType }
-            ));
+            deferred.reject(
+              createNamedError(
+                "TimeoutError",
+                `Browser frame bridge request \"${normalizedType}\" timed out after ${timeoutMs}ms.`,
+                { requestId, type: normalizedType }
+              )
+            );
           }, timeoutMs);
         }
 
@@ -1228,7 +1269,9 @@
         });
 
         try {
-          postEnvelope(createEnvelope(BRIDGE_PHASE.REQUEST, normalizedType, payload, { requestId }));
+          postEnvelope(
+            createEnvelope(BRIDGE_PHASE.REQUEST, normalizedType, payload, { requestId })
+          );
         } catch (error) {
           pendingRequests.delete(requestId);
           if (timeoutId != null) {
@@ -1272,13 +1315,7 @@
 
     installHistoryChangeHooks(notify);
 
-    [
-      "DOMContentLoaded",
-      "hashchange",
-      "load",
-      "pageshow",
-      "popstate"
-    ].forEach((eventName) => {
+    ["DOMContentLoaded", "hashchange", "load", "pageshow", "popstate"].forEach((eventName) => {
       globalThis.addEventListener(eventName, notify);
     });
 
@@ -1332,11 +1369,13 @@
 
         const normalizedType = normalizeType(type);
         messageHandlers.set(normalizedType, handler);
-        const offBridge = bridge.handle(normalizedType, (payload, message) => runtime.handleMessage({
-          ...message,
-          payload,
-          type: normalizedType
-        }));
+        const offBridge = bridge.handle(normalizedType, (payload, message) =>
+          runtime.handleMessage({
+            ...message,
+            payload,
+            type: normalizedType
+          })
+        );
 
         return () => {
           if (messageHandlers.get(normalizedType) === handler) {
@@ -1364,14 +1403,13 @@
   const existingBridge = globalThis[BRIDGE_GLOBAL_KEY];
   const bridge = existingBridge || createBridge();
   const existingRuntime = globalThis[BRIDGE_RUNTIME_KEY];
-  const runtime = existingRuntime?.bridge === bridge
-    ? existingRuntime
-    : createInjectedRuntime(bridge);
+  const runtime =
+    existingRuntime?.bridge === bridge ? existingRuntime : createInjectedRuntime(bridge);
   const bootstrap = isPlainObject(globalThis[BRIDGE_BOOTSTRAP_KEY])
     ? globalThis[BRIDGE_BOOTSTRAP_KEY]
     : isPlainObject(globalThis.__spaceBrowserFrameInjectBootstrap__)
-    ? globalThis.__spaceBrowserFrameInjectBootstrap__
-    : {};
+      ? globalThis.__spaceBrowserFrameInjectBootstrap__
+      : {};
 
   globalThis[BRIDGE_GLOBAL_KEY] = bridge;
   globalThis[BRIDGE_RUNTIME_KEY] = runtime;

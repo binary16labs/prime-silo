@@ -1,7 +1,9 @@
 import { SimpleYamlError, parseYamlDocument } from "../framework/js/yaml-lite.js";
 
 function createYamlError(message, lineNumber) {
-  return new Error(lineNumber ? `Invalid LLM params YAML on line ${lineNumber}: ${message}` : message);
+  return new Error(
+    lineNumber ? `Invalid LLM params YAML on line ${lineNumber}: ${message}` : message
+  );
 }
 
 export function parseOnscreenAgentParamsText(sourceText) {

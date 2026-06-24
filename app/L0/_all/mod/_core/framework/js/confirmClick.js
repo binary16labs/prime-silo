@@ -5,5 +5,10 @@ export function registerAlpineMagic() {
   }
 
   Alpine.__spaceConfirmClickRegistered = true;
-  Alpine.magic("confirmClick", () => (message = "Are you sure?") => globalThis.confirm(message));
+  Alpine.magic(
+    "confirmClick",
+    () =>
+      (message = "Are you sure?") =>
+        globalThis.confirm(message)
+  );
 }

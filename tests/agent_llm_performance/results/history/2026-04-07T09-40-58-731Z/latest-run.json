@@ -1,9 +1,7 @@
 {
   "generated_at": "2026-04-07T09:40:58.731Z",
   "generation_id": "2026-04-07T09-40-58-731Z",
-  "models": [
-    "openai/gpt-5.4-mini"
-  ],
+  "models": ["openai/gpt-5.4-mini"],
   "results": [
     {
       "prompt_id": "077A_surgical_followup_and_stop",
@@ -2733,9 +2731,7 @@
           "case_path": "tests/agent_llm_performance/cases/verification_reveals_remaining_widget_error_requires_correction.json",
           "history_path": "tests/agent_llm_performance/histories/verification_reveals_remaining_widget_error_requires_correction.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"financials\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"financials\"\\)/u"],
           "response_type": "thrust",
           "response": "Seeing the exact same widget again to verify the error state...\n_____javascript\nreturn await space.current.seeWidget(\"financials\")",
           "usage": {
@@ -5002,9 +4998,7 @@
           "case_path": "tests/agent_llm_performance/cases/verification_reveals_remaining_widget_error_requires_correction.json",
           "history_path": "tests/agent_llm_performance/histories/verification_reveals_remaining_widget_error_requires_correction.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"financials\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"financials\"\\)/u"],
           "response_type": "thrust",
           "response": "Seeing the same widget again now.\n_____javascript\nreturn await space.current.seeWidget(\"financials\")",
           "usage": {
@@ -5040,9 +5034,7 @@
           "case_path": "tests/agent_llm_performance/cases/partial_mitigation_is_not_completion.json",
           "history_path": "tests/agent_llm_performance/histories/partial_mitigation_is_not_completion.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"financials\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"financials\"\\)/u"],
           "response_type": "thrust",
           "response": "Reopening the same widget to fix the rate-limit error now.\n_____javascript\nreturn await space.current.patchWidget(\"financials\", { edits: [] })",
           "usage": {
@@ -5152,9 +5144,7 @@
           "case_path": "tests/agent_llm_performance/cases/silent_widget_failure_reopens_repair.json",
           "history_path": "tests/agent_llm_performance/histories/silent_widget_failure_reopens_repair.json",
           "passed": false,
-          "failures": [
-            "missing required pattern: /readWidget\\(\"quote-board\"\\)/u"
-          ],
+          "failures": ["missing required pattern: /readWidget\\(\"quote-board\"\\)/u"],
           "response_type": "thrust",
           "response": "Seeing the quote board again now.\n_____javascript\nreturn await space.current.seeWidget(\"quote-board\")",
           "usage": {
@@ -5630,9 +5620,7 @@
           "case_path": "tests/agent_llm_performance/cases/create_note_after_user_detail_read.json",
           "history_path": "tests/agent_llm_performance/histories/create_note_after_user_detail_read.json",
           "passed": false,
-          "failures": [
-            "contains forbidden text: username: pan"
-          ],
+          "failures": ["contains forbidden text: username: pan"],
           "response_type": "thrust",
           "response": "Writing the notes file now...\n_____javascript\nreturn await space.api.fileWrite(\"~/notes/whoami.txt\", \"username: pan\\n\", \"utf8\")",
           "usage": {

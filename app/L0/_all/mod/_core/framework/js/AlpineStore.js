@@ -27,7 +27,9 @@ export function createStore(name, initialState) {
   if (globalThis.Alpine) {
     globalThis.Alpine.store(name, initialState);
   } else {
-    document.addEventListener("alpine:init", () => { globalThis.Alpine.store(name, initialState) });
+    document.addEventListener("alpine:init", () => {
+      globalThis.Alpine.store(name, initialState);
+    });
   }
 
   // Store the proxy

@@ -271,10 +271,7 @@ export function formatExecutionStructuredValueAsYaml(value, options = {}) {
       );
 
       if (wrappedYaml.startsWith("items:\n")) {
-        return wrappedYaml
-          .slice("items:\n".length)
-          .replace(/^  /gmu, "")
-          .trimEnd();
+        return wrappedYaml.slice("items:\n".length).replace(/^  /gmu, "").trimEnd();
       }
 
       if (wrappedYaml.startsWith("items: ")) {
@@ -318,9 +315,7 @@ export function formatExecutionTranscriptValue(value, options = {}) {
   }
 
   if (typeof value === "function" || value instanceof Error) {
-    return typeof formatFallback === "function"
-      ? formatFallback(value, options)
-      : String(value);
+    return typeof formatFallback === "function" ? formatFallback(value, options) : String(value);
   }
 
   if (typeof value === "object") {
@@ -339,9 +334,7 @@ export function formatExecutionTranscriptValue(value, options = {}) {
     }
   }
 
-  return typeof formatFallback === "function"
-    ? formatFallback(value, options)
-    : String(value);
+  return typeof formatFallback === "function" ? formatFallback(value, options) : String(value);
 }
 
 export function formatExecutionLogArgs(args, options = {}) {
