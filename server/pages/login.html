@@ -40,40 +40,39 @@
     <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
-    <link rel="stylesheet" href="/pages/res/space-backdrop.css" />
     <style>
       :root {
         color-scheme: dark;
         font-family: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
-        --color-canvas: #050816;
-        --color-canvas-elevated: #09111f;
-        --color-canvas-deep: #02050d;
-        --color-surface-1: #0d1628;
-        --color-surface-2: #121d33;
-        --color-surface-3: #182540;
-        --color-surface-glass: rgba(11, 18, 34, 0.78);
-        --color-border-soft: rgba(148, 167, 201, 0.16);
-        --color-border-strong: rgba(168, 186, 219, 0.28);
-        --color-text-primary: #f3f7ff;
-        --color-text-secondary: #b8c4da;
-        --color-text-tertiary: #8e9bb2;
-        --color-accent-primary: #7ddcff;
-        --color-accent-primary-strong: #94bcff;
-        --color-accent-primary-soft: rgba(125, 220, 255, 0.14);
-        --color-accent-secondary: #79edd8;
-        --color-accent-ink: #04101d;
-        --color-status-success: #7ce4b0;
-        --color-status-warning: #ffd166;
-        --color-status-danger: #ff8d98;
-        --color-layer-overlay: rgba(2, 7, 17, 0.68);
-        --color-backdrop-glow-primary: rgba(148, 188, 255, 0.18);
-        --color-backdrop-glow-secondary: rgba(121, 237, 216, 0.14);
-        --color-backdrop-glow-depth: rgba(59, 95, 172, 0.26);
-        --color-backdrop-star-strong: rgba(255, 255, 255, 0.76);
-        --color-backdrop-star-soft: rgba(255, 255, 255, 0.26);
-        --color-backdrop-star-accent: rgba(148, 188, 255, 0.48);
-        --color-backdrop-star-halo: rgba(255, 255, 255, 0.12);
-        --color-backdrop-star-halo-accent: rgba(148, 188, 255, 0.16);
+        --color-canvas: #151816;
+        --color-canvas-elevated: #1a1d1b;
+        --color-canvas-deep: #101211;
+        --color-surface-1: #222624;
+        --color-surface-2: #2a2e2c;
+        --color-surface-3: #323634;
+        --color-surface-glass: rgba(26, 29, 27, 0.78);
+        --color-border-soft: rgba(255, 255, 255, 0.06);
+        --color-border-strong: rgba(255, 255, 255, 0.12);
+        --color-text-primary: #e8ece9;
+        --color-text-secondary: #a4b3a8;
+        --color-text-tertiary: #6b7c70;
+        --color-accent-primary: #8b9c8b;
+        --color-accent-primary-strong: #6a8a6a;
+        --color-accent-primary-soft: rgba(139, 156, 139, 0.15);
+        --color-accent-secondary: #b8a898;
+        --color-accent-ink: #1a1d1b;
+        --color-status-success: #8b9c8b;
+        --color-status-warning: #c4a882;
+        --color-status-danger: #c47a6a;
+        --color-layer-overlay: rgba(21, 24, 22, 0.85);
+        --color-backdrop-glow-primary: rgba(139, 156, 139, 0.12);
+        --color-backdrop-glow-secondary: rgba(184, 168, 152, 0.08);
+        --color-backdrop-glow-depth: rgba(106, 138, 106, 0.1);
+        --color-backdrop-star-strong: transparent;
+        --color-backdrop-star-soft: transparent;
+        --color-backdrop-star-accent: transparent;
+        --color-backdrop-star-halo: transparent;
+        --color-backdrop-star-halo-accent: transparent;
         --radius-panel: 26px;
         --radius-control: 16px;
         --space-2: 0.5rem;
@@ -87,13 +86,13 @@
         box-sizing: border-box;
       }
 
-      body.space-theme-canvas :where(*, *::before, *::after) {
-        box-shadow: none !important;
-        text-shadow: none !important;
+      body.space-theme-canvas {
+        background: var(--color-canvas);
+        background-image: radial-gradient(circle at 50% 0%, var(--color-backdrop-glow-primary) 0%, transparent 60%);
       }
 
       body.space-theme-canvas :focus-visible {
-        outline: 2px solid rgba(125, 220, 255, 0.55) !important;
+        outline: 2px solid rgba(139, 156, 139, 0.55) !important;
         outline-offset: 2px;
       }
 

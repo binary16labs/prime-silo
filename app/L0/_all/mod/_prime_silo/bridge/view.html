@@ -13,6 +13,10 @@
       href="/mod/_prime_silo/widgets/memoray/lineage_graph/lineage_graph.css"
     />
     <link rel="stylesheet" href="/mod/_prime_silo/widgets/three_renderer/renderer.css" />
+    <link
+      rel="stylesheet"
+      href="/mod/_prime_silo/widgets/force_graph_2d/force_graph_2d.css"
+    />
     <!-- Run observability widgets — render unstyled without these. -->
     <link
       rel="stylesheet"
@@ -26,7 +30,7 @@
       rel="stylesheet"
       href="/mod/_prime_silo/widgets/run/drilldown_table/drilldown_table.css"
     />
-    <link rel="stylesheet" href="/mod/_prime_silo/bridge/bridge.css?v=6" />
+    <link rel="stylesheet" href="/mod/_prime_silo/bridge/bridge.css?v=8" />
     <script type="module" src="/mod/_prime_silo/bridge/bridge.js"></script>
   </head>
   <body>
@@ -105,12 +109,29 @@
 
         <!-- Stage -->
         <main class="ps-bridge__stage">
-          <!-- workspace selector (shared, shown where it scopes the surface) -->
-          <div
-            class="ps-bridge__stage-bar"
-            x-show="['documents','code','flows','studio','runs'].includes(mode)"
-          >
-            <label class="ps-bridge__ws">
+          <!-- Breadcrumb bar: orientation + "up" navigation, plus the
+               workspace selector where the workspace scopes the surface. -->
+          <div class="ps-bridge__stage-bar">
+            <nav class="ps-bridge__crumbs" aria-label="Breadcrumb">
+              <template x-for="(c, i) in crumbs" :key="i">
+                <span class="ps-bridge__crumb-wrap">
+                  <span class="ps-bridge__crumb-sep" x-show="i > 0" aria-hidden="true">›</span>
+                  <button
+                    type="button"
+                    class="ps-bridge__crumb"
+                    :class="{ 'is-current': c.current }"
+                    :disabled="c.current"
+                    :aria-current="c.current ? 'page' : false"
+                    @click="goCrumb(c)"
+                    x-text="c.label"
+                  ></button>
+                </span>
+              </template>
+            </nav>
+            <label
+              class="ps-bridge__ws"
+              x-show="['documents','code','flows','studio','runs'].includes(mode)"
+            >
               <span>Workspace</span>
               <select x-model="workspace" @change="onWorkspaceChange()">
                 <template x-for="w in workspaces" :key="w">
@@ -390,7 +411,6 @@
                           type="button"
                           class="ps-bridge__toggle"
                           :class="{ 'ps-bridge__toggle--active': docsPhysics === 'fluid' }"
-                          x-show="docs3d"
                           @click="toggleDocsPhysics()"
                           x-text="docsPhysics === 'fluid' ? 'Fluid (Classic Benny)' : 'Rigid'"
                         ></button>
@@ -443,7 +463,6 @@
                         type="button"
                         class="ps-bridge__toggle"
                         :class="{ 'ps-bridge__toggle--active': codePhysics === 'fluid' }"
-                        x-show="code3d"
                         @click="toggleCodePhysics()"
                         x-text="codePhysics === 'fluid' ? 'Fluid (Classic Benny)' : 'Rigid'"
                       ></button>

@@ -1,0 +1,29 @@
+/* Organic 2D force-graph renderer — container + minimap + error chrome.
+   The host element is supplied by the widget (e.g. .ps-bridge__graph); these
+   rules style only what the renderer injects into it. Themed via the canonical
+   --color-* tokens with Memo-Ray earth-tone literal fallbacks. */
+
+.prime-silo-fg2d__minimap {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  z-index: 10;
+  display: block;
+  border: 1px solid var(--color-border-soft, rgba(232, 236, 233, 0.18));
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
+.prime-silo-fg2d__error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 160px;
+  padding: 16px;
+  text-align: center;
+  color: var(--color-status-danger, #c47a6a);
+  font-size: 13px;
+}

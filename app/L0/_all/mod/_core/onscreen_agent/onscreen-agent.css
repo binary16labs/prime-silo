@@ -458,8 +458,22 @@
   place-items: center;
   width: 100%;
   height: 100%;
-  animation: onscreen-agent-avatar-float 8.4s linear infinite;
   transform-origin: center;
+}
+
+@keyframes onscreen-agent-avatar-idle {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-6px) scale(1.02);
+  }
+}
+
+@keyframes onscreen-agent-avatar-processing {
+  0%, 100% { transform: rotate(0deg) scale(1.02); }
+  25% { transform: rotate(-4deg) scale(1.02); }
+  75% { transform: rotate(4deg) scale(1.02); }
 }
 
 .onscreen-agent-avatar-flip {
@@ -480,6 +494,13 @@
   height: 100%;
   object-fit: contain;
   user-select: none;
+  animation: onscreen-agent-avatar-idle 4.2s ease-in-out infinite;
+  transition: filter 300ms ease;
+}
+
+.onscreen-agent-shell.is-processing .onscreen-agent-avatar-image {
+  animation: onscreen-agent-avatar-processing 1.2s ease-in-out infinite;
+  filter: drop-shadow(0 0 12px rgba(139, 156, 139, 0.4));
 }
 
 .onscreen-agent-shell.is-right {

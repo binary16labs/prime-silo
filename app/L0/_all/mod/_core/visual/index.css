@@ -7,18 +7,37 @@
 @import "./conversation/agent-thread.css";
 @import "./surfaces/cards.css";
 
-/*
- * Space Agent glass stays shadowless across authenticated app surfaces.
- * Depth comes from blur, borders, and background contrast rather than painted shadows.
- */
-body.app-page-router :where(*, *::before, *::after),
-body.app-page-admin :where(*, *::before, *::after) {
-  box-shadow: none !important;
-  text-shadow: none !important;
+:root {
+  --bg-deep: #151816;
+  --bg-base: #1a1d1b;
+  --bg-surface: #222624;
+  --bg-elevated: #2a2e2c;
+  --bg-hover: #323634;
+
+  --border-subtle: rgba(255,255,255,0.06);
+  --border-default: rgba(255,255,255,0.08);
+  --border-emphasis: rgba(255,255,255,0.12);
+
+  --text-primary: #e8ece9;
+  --text-secondary: #a4b3a8;
+  --text-tertiary: #6b7c70;
+
+  --sage: #8b9c8b;
+  --sage-dim: rgba(139,156,139,0.15);
+  --moss: #6a8a6a;
+  --moss-dim: rgba(106,138,106,0.15);
+  --taupe: #b8a898;
+  --taupe-dim: rgba(184,168,152,0.12);
+  --slate: #8a9aa4;
+  --slate-dim: rgba(138,154,164,0.12);
+  --golden: #c4a882;
+  --golden-dim: rgba(196,168,130,0.12);
+  --rust: #c47a6a;
+  --rust-dim: rgba(196,122,106,0.12);
 }
 
 body.app-page-router :focus-visible,
 body.app-page-admin :focus-visible {
-  outline: 2px solid rgba(156, 175, 136, 0.5) !important;
+  outline: 2px solid var(--sage) !important;
   outline-offset: 2px;
 }

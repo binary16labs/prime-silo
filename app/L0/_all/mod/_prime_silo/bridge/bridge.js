@@ -36,6 +36,7 @@ import { createLineageTimelineWidget } from "../widgets/run/lineage_timeline/ind
 import { createReasoningTraceWidget } from "../widgets/run/reasoning_trace/index.js";
 import { createDrilldownTableWidget } from "../widgets/run/drilldown_table/index.js";
 import { createThreeRenderer } from "../widgets/three_renderer/index.js";
+import { createForceGraph2DRenderer } from "../widgets/force_graph_2d/index.js";
 import { mapManifestToDagData } from "../manifest_explorer/manifest-mapping.js";
 
 // The visual workflow designer is an imperative widget instance (not Alpine
@@ -360,12 +361,14 @@ export function createBridgePage(options = {}) {
     agentMode: true,
     asking: false,
     docs3d: false,
-    docsPhysics: "pinned",
+    // "fluid" = organic force-simulated motion (the Memo-Ray look, default);
+    // "pinned" freezes nodes at their layered layout positions.
+    docsPhysics: "fluid",
     docsFocusLayer: 0, // 0 = all AoT layers, 1..5 = focus a single layer
 
     // code
     code3d: false,
-    codePhysics: "pinned",
+    codePhysics: "fluid",
     // Node-type filter for the code graph. Folders→Concepts; toggling one off
     // drops it from the layout in both the 2D SVG and the 3D WebGL renderer.
     codeTypes: [
@@ -478,6 +481,44 @@ export function createBridgePage(options = {}) {
     get activeModeLabel() {
       const m = MODES.find((x) => x.id === this.mode);
       return m ? m.label : this.mode;
+    },
+
+    // Navigable breadcrumb trail: Bridge › Mode › Workspace › Selection.
+    // The workspace crumb only appears for modes the workspace actually scopes
+    // (matches the stage-bar's x-show set); the selection crumb only when the
+    // operator has drilled into a session / run / document / graph node. The
+    // last crumb is the current location (aria-current, not clickable).
+    get crumbs() {
+      const wsScoped = ["documents", "code", "flows", "studio", "runs"].includes(this.mode);
+      const trail = [{ level: "root", label: "Bridge" }];
+      trail.push({ level: "mode", label: this.activeModeLabel });
+      if (wsScoped) trail.push({ level: "workspace", label: this.workspace });
+      const sel = this.selection && (this.selection.label || this.selection.id);
+      if (sel) trail.push({ level: "selection", label: sel });
+      return trail.map((c, i) => ({ ...c, current: i === trail.length - 1 }));
+    },
+
+    // Click an ancestor crumb to navigate "up": root → home (Pulse); mode or
+    // workspace → drop the deeper selection but stay in the current mode. The
+    // current (last) crumb is a no-op.
+    goCrumb(crumb) {
+      if (!crumb || crumb.current) return;
+      if (crumb.level === "root") {
+        this.setMode("pulse");
+        return;
+      }
+      // mode / workspace → clear the active selection and re-render the stage.
+      this.clearSelection();
+    },
+
+    // Drop the active drill-in (selection + per-mode active ids) and re-mount
+    // the current stage so the graph clears its highlight / detail panes.
+    clearSelection() {
+      this.selection = null;
+      this.activeSessionId = "";
+      this.activeStepId = "";
+      this.syncContext();
+      this.$nextTick(() => this.mountStage());
     },
 
     // The secondary pane is live only when the operator opted in AND the
@@ -778,10 +819,15 @@ export function createBridgePage(options = {}) {
       if (!host) return;
       this.destroyWidgets();
       this.track(
-        createLineageGraphWidget(host, {
-          sessionId,
-          onSelect: (nodeId) => this.onNodeSelect(nodeId)
-        })
+        createLineageGraphWidget(
+          host,
+          {
+            sessionId,
+            onSelect: (nodeId) => this.onNodeSelect(nodeId)
+          },
+          // Living organic 2D graph by default (the Memo-Ray look), offline.
+          { renderer: this.makeForceRenderer() }
+        )
       );
     },
 
@@ -804,7 +850,11 @@ export function createBridgePage(options = {}) {
             focusedLayer: this.docsFocusLayer || undefined,
             onSelect: (id) => this.onNodeSelect(id)
           },
-          this.docs3d ? { renderer: this.makeThreeRenderer(this.docsPhysics) } : {}
+          {
+            renderer: this.docs3d
+              ? this.makeThreeRenderer(this.docsPhysics)
+              : this.makeForceRenderer(this.docsPhysics)
+          }
         )
       );
     },
@@ -1121,7 +1171,11 @@ export function createBridgePage(options = {}) {
             visibleTypes: [...this.codeVisibleTypes],
             onSelect: (id) => this.onNodeSelect(id)
           },
-          this.code3d ? { renderer: this.makeThreeRenderer(this.codePhysics) } : {}
+          {
+            renderer: this.code3d
+              ? this.makeThreeRenderer(this.codePhysics)
+              : this.makeForceRenderer(this.codePhysics)
+          }
         )
       );
     },
@@ -1151,6 +1205,16 @@ export function createBridgePage(options = {}) {
     makeThreeRenderer(physicsMode = "pinned") {
       return createThreeRenderer({
         backgroundColor: "#14150f",
+        physicsMode,
+        onNodeClick: (id) => this.onNodeSelect(id)
+      });
+    },
+
+    // The default cockpit renderer: the living, organic 2D force graph (the
+    // Memo-Ray look). Offline — its library is vendored, no CDN. The 3D
+    // (three_renderer) scene is the opt-in alternative behind the *3d toggles.
+    makeForceRenderer(physicsMode = "fluid") {
+      return createForceGraph2DRenderer({
         physicsMode,
         onNodeClick: (id) => this.onNodeSelect(id)
       });
