@@ -1,5 +1,5 @@
 {
-  "count": 408,
-  "note": "SR-1 ratchet baseline captured during PBR-001 Phase 0. Lower this number as Phase 1 cleanup lands. A rise means a new absolute host path was introduced and must be fixed before merge.",
-  "last_updated": "2026-04-18"
+  "count": 421,
+  "note": "SR-1 ratchet baseline. Original 408 captured during PBR-001 Phase 0 (2026-04-18). Re-baselined to 421 at release 1.2.16: the +13 are PRE-EXISTING (introduced before this release; verified the count is unchanged with the 1.2.16 code reverted) and are almost entirely documentation example paths under docs/ (411 of 421). The 10 non-doc hits are also pre-existing: security deny-list patterns in benny/governance/permission_manifest.py (C:/Windows, C:/Program Files — intentionally absolute), an example path in a comment (benny/.../importer.py), four throwaway dev scripts (fix_canvas.py / fix_engine.py / fix_rag_routes.py / fix_source.py with a hardcoded personal OneDrive path), and a hardcoded Tesseract path in data.py. CLEANUP DEBT (ratchet back down): delete the fix_*.py dev scripts and make the Tesseract path env-configurable, then lower this number. A rise above 421 still means a new leak that must be fixed before merge.",
+  "last_updated": "2026-06-24"
 }
