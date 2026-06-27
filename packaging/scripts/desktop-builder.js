@@ -29,14 +29,19 @@ function ensureMemorayServerDeps() {
     return; // already installed (vendored or a prior build).
   }
   console.log("Installing vendored Memo-Ray server dependencies for the bundle…");
-  const npm = process.platform === "win32" ? "npm.cmd" : "npm";
-  const result = spawnSync(npm, ["install", "--omit=dev", "--no-audit", "--no-fund"], {
+  // Run via the shell with a single command string: on Windows `npm` is `npm.cmd`,
+  // which Node's spawnSync cannot launch directly (exits `null`) — the shell
+  // resolves it. A single string (not an args array) avoids the shell-args
+  // deprecation warning and keeps it cross-platform.
+  const result = spawnSync("npm install --omit=dev --no-audit --no-fund", {
     cwd: serverDir,
-    stdio: "inherit"
+    stdio: "inherit",
+    shell: true
   });
-  if (result.status !== 0) {
+  if (result.error || result.status !== 0) {
+    const why = result.error ? result.error.message : `npm exited ${result.status}`;
     throw new Error(
-      `Failed to install Memo-Ray server dependencies (npm exited ${result.status}). ` +
+      `Failed to install Memo-Ray server dependencies (${why}). ` +
         `The packaged app would ship a non-bootable memory-graph server.`
     );
   }
