@@ -33,7 +33,7 @@ body.space-theme-canvas::before {
 }
 
 .space-backdrop {
-  --space-backdrop-speed-multiplier: 2;
+  --space-backdrop-speed-multiplier: 0.45;
   position: fixed;
   inset: 0;
   overflow: hidden;
@@ -78,7 +78,7 @@ body.space-theme-canvas::before {
 .space-backdrop-glow {
   --space-layer-rotate: -6deg;
   --space-layer-scale: 1.08;
-  opacity: 0.64;
+  opacity: 0.45;
   background:
     radial-gradient(
       calc(520px * var(--space-backdrop-scale)) calc(280px * var(--space-backdrop-scale)) at

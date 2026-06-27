@@ -1,0 +1,13 @@
+{
+  "version": "1.0",
+  "name": "prime-silo",
+  "description": "Default configuration for Prime-Silo project.",
+  "layers": {
+    "L1": "group/manifests",
+    "L2": "user/manifests"
+  },
+  "sandbox": {
+    "views": "agent_sandbox/views",
+    "drafts": "agent_sandbox/drafts"
+  }
+}

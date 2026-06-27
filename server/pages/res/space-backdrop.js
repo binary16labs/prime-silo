@@ -2,8 +2,8 @@
   const SPACE_BACKDROP_RUNTIME_KEY = "__spaceBackdropRuntime";
   const SPACE_BACKDROP_TRAIL_SELECTOR = "[data-space-backdrop-trail]";
   const SPACE_BACKDROP_TRAIL_PROFILE = Object.freeze({
-    delayMaxMs: 6200,
-    delayMinMs: 1800,
+    delayMaxMs: 16000,
+    delayMinMs: 7000,
     durationMaxMs: 1480,
     durationMinMs: 960,
     initialDelayMaxMs: 2200,

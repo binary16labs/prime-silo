@@ -1,0 +1,5 @@
+{
+  "name": "prime-silo",
+  "description": "Antigravity plugin for operating Prime-Silo repositories, Neo4j graphs, and DevSecOps pipelines.",
+  "version": "1.0.0"
+}

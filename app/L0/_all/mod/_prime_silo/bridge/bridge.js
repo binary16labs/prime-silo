@@ -352,6 +352,15 @@ export function createBridgePage(options = {}) {
     dragOver: false,
     uploading: false,
     rescanning: false,
+    
+    // wizard
+    wizardActive: false,
+    wizardWorkflow: "",
+    wizardCliRunning: false,
+    wizardCliVisible: false,
+    wizardCliStatus: "",
+    wizardCliOutput: "",
+    
     // documents — ask (RAG chat over the ingested docs)
     docQuestion: "",
     docAnswer: "",
@@ -889,7 +898,9 @@ export function createBridgePage(options = {}) {
           this.loadIndexingManifest()
         ]);
         const dataIn = filesBody && Array.isArray(filesBody.data_in) ? filesBody.data_in : [];
-        this.files = mergeFileStatus(dataIn, manifest);
+        const staging = filesBody && Array.isArray(filesBody.staging) ? filesBody.staging : [];
+        const allFiles = [...staging, ...dataIn];
+        this.files = mergeFileStatus(allFiles, manifest);
         this.reconcileSelection();
       } catch {
         this.files = [];
@@ -1005,7 +1016,7 @@ export function createBridgePage(options = {}) {
           form.append("file", file, file.name);
           // No explicit Content-Type — the browser sets the multipart boundary.
           await readRuntimeJson(
-            await runtimeFetch(`/files/upload?workspace=${encodeURIComponent(this.workspace)}`, {
+            await runtimeFetch(`/files/upload?workspace=${encodeURIComponent(this.workspace)}&subdir=staging`, {
               method: "POST",
               body: form
             })
@@ -1102,6 +1113,72 @@ export function createBridgePage(options = {}) {
         this.ingestNote = `Ingest failed: ${err && err.message ? err.message : String(err)}`;
       } finally {
         this.ingesting = false;
+      }
+    },
+
+    async runWizardWorkflow() {
+      if (!this.wizardWorkflow || this.wizardCliRunning) return;
+      this.wizardCliRunning = true;
+      this.wizardCliVisible = true;
+      this.wizardCliStatus = "Starting...";
+      this.wizardCliOutput = "";
+      
+      try {
+        const res = await fetch("/api/workflows_run", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            workspace: this.workspace,
+            workflowCommand: this.wizardWorkflow
+          })
+        });
+
+        if (!res.ok) {
+          throw new Error(`Server returned ${res.status}`);
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let buffer = "";
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          
+          buffer += decoder.decode(value, { stream: true });
+          const events = buffer.split("\n\n");
+          
+          // keep the last chunk if it's incomplete
+          buffer = events.pop() || "";
+          
+          for (const ev of events) {
+            const lines = ev.split("\n");
+            let eventName = "";
+            let dataStr = "";
+            for (const line of lines) {
+              if (line.startsWith("event: ")) eventName = line.substring(7).trim();
+              if (line.startsWith("data: ")) dataStr = line.substring(6).trim();
+            }
+            if (eventName && dataStr) {
+              try {
+                const data = JSON.parse(dataStr);
+                if (eventName === "status") this.wizardCliStatus = data;
+                if (eventName === "stdout") this.wizardCliOutput += data;
+                if (eventName === "stderr") this.wizardCliOutput += data;
+                if (eventName === "close") this.wizardCliStatus = `Finished (code ${data.code})`;
+                if (eventName === "error") this.wizardCliStatus = `Error: ${data.message}`;
+                
+                // scroll to bottom
+                const pre = this.$refs.cliOutput;
+                if (pre) pre.scrollTop = pre.scrollHeight;
+              } catch(e) {}
+            }
+          }
+        }
+      } catch (err) {
+        this.wizardCliStatus = `Failed: ${err.message}`;
+      } finally {
+        this.wizardCliRunning = false;
       }
     },
 

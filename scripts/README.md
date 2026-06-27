@@ -122,6 +122,47 @@ Snapshot builds are automatically created for every commit to `main` via the `sn
 - Available as workflow artifacts for 30 days
 - Useful for testing the latest main branch changes
 
+## Workflow Runner
+
+The `run-workflows.mjs` script acts as an orchestration manager to run three distinct workflows: staging data ingestion, Lemonade NPU model benchmarks in isolated workspaces, and LM-Studio benchmarks.
+
+### Usage
+
+```bash
+# General usage
+node scripts/run-workflows.mjs <command> [workspace]
+```
+
+### Commands
+
+#### `ingest [workspace]`
+Scans the workspace's `staging/` directory for raw documents (PDF, TXT, DOCX, PPTX, HTML, MD). It converts them to Markdown, moves them to `data_in/`, archives the raw sources in `staging/archive/`, and triggers global RAG indexing into ChromaDB. Defaults to the `"default"` workspace.
+
+```bash
+node scripts/run-workflows.mjs ingest default
+```
+
+#### `test-lemonade`
+Probes the local Lemonade server on port 13305, lists all downloaded models, creates an isolated workspace `ws_lemonade_<model_id>` for each model, generates a comparison spec, and runs a head-to-head `model-bench` run to save performance reports.
+
+```bash
+node scripts/run-workflows.mjs test-lemonade
+```
+
+#### `test-lmstudio`
+Probes the local LM-Studio server on port 1234, lists all loaded/active models, creates an isolated workspace `ws_lmstudio_<model_id>` for each model, and runs a head-to-head `model-bench` run.
+
+```bash
+node scripts/run-workflows.mjs test-lmstudio
+```
+
+#### `all [workspace]`
+Runs the ingestion, Lemonade, and LM-Studio workflows sequentially.
+
+```bash
+node scripts/run-workflows.mjs all default
+```
+
 ## Requirements
 
 - Node.js >= 20

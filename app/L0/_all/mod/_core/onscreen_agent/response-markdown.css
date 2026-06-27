@@ -11,7 +11,7 @@
   --onscreen-agent-response-rule-color: rgba(232, 217, 191, 0.18);
   --onscreen-agent-response-table-border: rgba(232, 217, 191, 0.16);
   --onscreen-agent-response-table-head-bg: rgba(156, 175, 136, 0.08);
-  --onscreen-agent-response-table-row-bg: rgba(10, 18, 31, 0.28);
+  --onscreen-agent-response-table-row-bg: var(--color-canvas-deep, #10110d);
   --onscreen-agent-response-table-row-alt-bg: rgba(26, 29, 23, 0.6);
 }
 

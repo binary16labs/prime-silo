@@ -228,7 +228,74 @@
 
               <!-- DOCUMENTS -->
               <div class="ps-bridge__panel" x-show="mode === 'documents'">
-                <div class="ps-bridge__docbar">
+                
+                <!-- WORKFLOW WIZARD -->
+                <div class="ps-bridge__wizard" x-show="wizardActive" x-cloak>
+                  <div class="ps-bridge__wizard-header">
+                    <h3>Workflow Wizard</h3>
+                    <button type="button" class="ps-bridge__btn" @click="wizardActive = false">
+                      <x-icon>close</x-icon><span>Close</span>
+                    </button>
+                  </div>
+                  
+                  <div class="ps-bridge__wizard-steps" x-show="!wizardCliRunning">
+                    <div class="ps-bridge__wizard-step">
+                      <h4>1. Workspace & Data</h4>
+                      <label>
+                        <span>Target Workspace:</span>
+                        <select x-model="workspace" @change="onWorkspaceChange()">
+                          <template x-for="w in workspaces" :key="w">
+                            <option :value="w" x-text="w"></option>
+                          </template>
+                        </select>
+                      </label>
+                      <p class="ps-bridge__muted">To load data, close the wizard and drop files into the staging area, or use the File Explorer to copy files.</p>
+                    </div>
+
+                    <div class="ps-bridge__wizard-step">
+                      <h4>2. Select Workflow</h4>
+                      <div class="ps-bridge__wizard-workflows">
+                        <label class="ps-bridge__radio-card">
+                          <input type="radio" x-model="wizardWorkflow" value="ingest" />
+                          <span><strong>Standard Ingestion</strong><br/>Extract raw text to Markdown chunks.</span>
+                        </label>
+                        <label class="ps-bridge__radio-card">
+                          <input type="radio" x-model="wizardWorkflow" value="ingest --deep" />
+                          <span><strong>Deep Synthesis</strong><br/>Extract Knowledge Triples using local models.</span>
+                        </label>
+                        <label class="ps-bridge__radio-card">
+                          <input type="radio" x-model="wizardWorkflow" value="triples-eval" />
+                          <span><strong>Triples Evaluation</strong><br/>Benchmark extraction precision/recall across models.</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div class="ps-bridge__wizard-step">
+                      <h4>3. Execute & Monitor</h4>
+                      <button 
+                        type="button" 
+                        class="ps-bridge__btn ps-bridge__btn--go" 
+                        @click="runWizardWorkflow()"
+                        :disabled="!wizardWorkflow || wizardCliRunning"
+                      >
+                        <x-icon>play_arrow</x-icon>
+                        <span x-text="`Run '${wizardWorkflow}' in ${workspace}`"></span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- CLI MONITOR -->
+                  <div class="ps-bridge__cli-monitor" x-show="wizardCliVisible">
+                    <div class="ps-bridge__cli-header">
+                      <span>CLI Output</span>
+                      <span class="ps-bridge__cli-status" x-text="wizardCliStatus"></span>
+                      <button class="ps-bridge__btn" x-show="!wizardCliRunning" @click="wizardCliVisible = false">Back</button>
+                    </div>
+                    <pre class="ps-bridge__cli-output" x-ref="cliOutput" x-text="wizardCliOutput"></pre>
+                  </div>
+                </div>
+
+                <div class="ps-bridge__docbar" x-show="!wizardActive">
                   <div class="ps-bridge__files">
                     <h3>
                       Documents
@@ -301,6 +368,13 @@
                     <div class="ps-bridge__doc-actions">
                       <button
                         type="button"
+                        class="ps-bridge__btn ps-bridge__btn--go"
+                        @click="wizardActive = !wizardActive"
+                      >
+                        <x-icon x-text="wizardActive ? 'close' : 'magic_button'"></x-icon>
+                        <span x-text="wizardActive ? 'Close Wizard' : 'Workflow Wizard'"></span>
+                      </button>
+                      <button
                         class="ps-bridge__btn ps-bridge__btn--go"
                         @click="ingest()"
                         :disabled="ingesting || !selectedFiles.length"

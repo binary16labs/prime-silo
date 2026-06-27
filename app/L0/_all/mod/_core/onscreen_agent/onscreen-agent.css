@@ -21,7 +21,7 @@
   --onscreen-agent-panel-bg: rgba(16, 17, 13, 0.82);
   --onscreen-agent-panel-bg-strong: rgba(32, 35, 29, 0.74);
   --onscreen-agent-panel-shadow: none;
-  --onscreen-agent-ui-bubble-bg: #fff;
+  --onscreen-agent-ui-bubble-bg: var(--color-surface-raised, #1a1d1b);
   --onscreen-agent-ui-bubble-max-width: min(20em, calc(100vw - 104px));
   --onscreen-agent-ui-bubble-min-width: calc(
     var(--onscreen-agent-ui-bubble-tail-base-left) + 0.8em
@@ -37,7 +37,7 @@
   --onscreen-agent-ui-bubble-tail-width: 4em;
   --onscreen-agent-ui-bubble-tail-height: 1.8em;
   --onscreen-agent-ui-bubble-shadow: none;
-  --onscreen-agent-ui-bubble-text: #14150f;
+  --onscreen-agent-ui-bubble-text: var(--color-text-primary, #ece6d8);
   --onscreen-agent-inline-ring: rgba(156, 175, 136, 0.16);
   --space-button-radius: 10px;
   --space-button-gap: 6px;
@@ -137,6 +137,21 @@
   scrollbar-gutter: stable;
 }
 
+.onscreen-agent-history::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.onscreen-agent-history::-webkit-scrollbar-track {
+  background: transparent;
+}
+.onscreen-agent-history::-webkit-scrollbar-thumb {
+  background: var(--color-border-soft, rgba(232, 217, 191, 0.12));
+  border-radius: 999px;
+}
+.onscreen-agent-history::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-strong, rgba(232, 217, 191, 0.28));
+}
+
 .onscreen-agent-history-resize-handle {
   position: absolute;
   left: 0;
@@ -210,7 +225,7 @@
   min-width: var(--onscreen-agent-ui-bubble-min-width);
   max-width: var(--onscreen-agent-ui-bubble-max-width);
   padding: 0.74rem 0.94rem 0.8rem;
-  border: 1px solid rgba(32, 35, 29, 0.16);
+  border: 1px solid var(--onscreen-agent-border);
   border-radius: 1.5rem;
   background: var(--onscreen-agent-ui-bubble-bg);
   box-shadow: var(--onscreen-agent-ui-bubble-shadow);
@@ -218,7 +233,7 @@
   font-size: 0.95rem;
   font-weight: 500;
   letter-spacing: 0.01em;
-  line-height: 1.2;
+  line-height: 1.45;
   pointer-events: none;
   will-change: opacity, transform;
 }
@@ -390,24 +405,28 @@
 .onscreen-agent-ui-bubble .onscreen-agent-ui-bubble-text code {
   padding: 0.1em 0.34em;
   border-radius: 0.35rem;
-  background: rgba(32, 35, 29, 0.08);
+  background: var(--color-accent-primary-soft, rgba(156, 175, 136, 0.16));
+  border: 1px solid rgba(156, 175, 136, 0.25);
+  color: var(--color-accent-primary, #9caf88);
 }
 
 .onscreen-agent-ui-bubble .onscreen-agent-ui-bubble-text pre {
   overflow: auto;
   padding: 0.7rem 0.8rem;
   border-radius: 0.8rem;
-  background: rgba(32, 35, 29, 0.08);
+  background: var(--color-surface-sunken, #10110d);
+  border: 1px solid var(--onscreen-agent-border);
 }
 
 .onscreen-agent-ui-bubble .onscreen-agent-ui-bubble-text pre code {
   padding: 0;
   background: transparent;
+  color: var(--color-text-primary, #ece6d8);
 }
 
 .onscreen-agent-ui-bubble .onscreen-agent-ui-bubble-text blockquote {
   padding-left: 0.7rem;
-  border-left: 2px solid rgba(32, 35, 29, 0.18);
+  border-left: 2px solid var(--onscreen-agent-border-strong);
 }
 
 .onscreen-agent-ui-bubble .onscreen-agent-ui-bubble-text :is(h1, h2, h3, h4, h5, h6) {

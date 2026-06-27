@@ -13,6 +13,8 @@ import {
   createThreeRenderer,
   layoutToGraphData,
   nodeMatchesProps,
+  labelFor,
+  identifierFor,
   __testing
 } from "../app/L0/_all/mod/_prime_silo/widgets/three_renderer/index.js";
 
@@ -45,6 +47,18 @@ async function main() {
   // Filters (focusedLayer) — node/link visibility predicates.
   testNodeMatchesProps();
   await testFocusedLayerAppliesVisibility();
+
+  // Camera framing — zoomToFit on engine settle.
+  await testFitsToViewOnEngineStop();
+  await testRefitsAfterDataUpdate();
+  await testFitOnLoadDisabledSkipsFit();
+
+  // Labels + force spacing.
+  testLabelForAndIdentifier();
+  testLayoutAttachesNameAndIdent();
+  await testForceSpacingApplied();
+  await testLabelsAttachWhenSpriteLoads();
+  await testLabelsDisabledSkipsSprite();
 
   console.log("widgets_three_renderer_test: ok");
 }
@@ -531,6 +545,196 @@ async function testFocusedLayerAppliesVisibility() {
   // Clearing the focus (update with no focusedLayer) re-opens everything.
   handle.update(kg3dLayout(), {});
   assert.equal(inst._nodeVisibility({ layer: 3 }), true);
+}
+
+// ---------------------------------------------------------------------------
+// Camera framing — zoomToFit
+// ---------------------------------------------------------------------------
+
+function stubForceGraph3DWithFit() {
+  const base = stubForceGraph3D();
+  const instance = base._instance;
+  instance.zoomToFit = function zoomToFit(...args) {
+    this._calls.push(["zoomToFit", args]);
+    this._fitCount = (this._fitCount || 0) + 1;
+    return this;
+  };
+  instance.onEngineStop = function onEngineStop(...args) {
+    this._calls.push(["onEngineStop", args]);
+    this._engineStop = args[0];
+    return this;
+  };
+  return base;
+}
+
+async function testFitsToViewOnEngineStop() {
+  const ForceGraph3D = stubForceGraph3DWithFit();
+  const r = createThreeRenderer({ loader: () => Promise.resolve(ForceGraph3D) });
+  r.mount(fakeHost(), kg3dLayout(), {});
+  await flushAsync();
+  const inst = ForceGraph3D._instance;
+  assert.equal(typeof inst._engineStop, "function", "onEngineStop handler must be registered");
+  assert.equal(inst._fitCount || 0, 0, "no fit before the engine settles");
+  // Simulate 3d-force-graph cooling down.
+  inst._engineStop();
+  assert.equal(inst._fitCount, 1, "engine settle must frame the graph once");
+  // A second settle without new data must NOT re-fit (would fight the user's pan/zoom).
+  inst._engineStop();
+  assert.equal(inst._fitCount, 1, "no re-fit without new data");
+}
+
+async function testRefitsAfterDataUpdate() {
+  const ForceGraph3D = stubForceGraph3DWithFit();
+  const r = createThreeRenderer({ loader: () => Promise.resolve(ForceGraph3D) });
+  const handle = r.mount(fakeHost(), kg3dLayout(), {});
+  await flushAsync();
+  const inst = ForceGraph3D._instance;
+  inst._engineStop();
+  assert.equal(inst._fitCount, 1);
+  // New data → reheat → settle → one more fit.
+  handle.update(codegraphLayout(), {});
+  inst._engineStop();
+  assert.equal(inst._fitCount, 2, "new data must re-frame on the next settle");
+}
+
+async function testFitOnLoadDisabledSkipsFit() {
+  const ForceGraph3D = stubForceGraph3DWithFit();
+  const r = createThreeRenderer({
+    loader: () => Promise.resolve(ForceGraph3D),
+    fitOnLoad: false
+  });
+  r.mount(fakeHost(), kg3dLayout(), {});
+  await flushAsync();
+  const inst = ForceGraph3D._instance;
+  // With fitting off, the onEngineStop handler is never registered.
+  assert.equal(inst._engineStop, undefined, "onEngineStop must not be registered when fitOnLoad=false");
+  assert.equal(inst._fitCount || 0, 0);
+}
+
+// ---------------------------------------------------------------------------
+// Labels + force spacing
+// ---------------------------------------------------------------------------
+
+function testLabelForAndIdentifier() {
+  // kg3d shape — display_name wins.
+  assert.equal(labelFor({ node: { display_name: "Neural networks", id: "nn" } }), "Neural networks");
+  // codegraph shape — File path collapses to basename on the label, full path
+  // on the identifier.
+  assert.equal(labelFor({ node: { id: "/src/app/auth.py", type: "File" } }), "auth.py");
+  assert.equal(identifierFor({ node: { id: "/src/app/auth.py", type: "File" } }), "/src/app/auth.py");
+  // Bare type fallback when nothing nameable exists.
+  assert.equal(labelFor({ node: { type: "Concept" } }), "Concept");
+}
+
+function testLayoutAttachesNameAndIdent() {
+  const out = layoutToGraphData(codegraphLayout());
+  const file = out.nodes.find((n) => n.id === "/src/foo.py");
+  assert.equal(file.name, "foo.py", "label collapses path to basename");
+  assert.equal(file.ident, "/src/foo.py", "ident keeps the full path");
+}
+
+function stubForceGraph3DWithForces() {
+  const base = stubForceGraph3D();
+  const instance = base._instance;
+  instance._forces = {};
+  instance.d3Force = function d3Force(name) {
+    this._calls.push(["d3Force", [name]]);
+    if (!this._forces[name]) {
+      const f = {};
+      f.strength = (v) => {
+        f._strength = v;
+        return f;
+      };
+      f.distance = (v) => {
+        f._distance = v;
+        return f;
+      };
+      this._forces[name] = f;
+    }
+    return this._forces[name];
+  };
+  instance.nodeLabel = function nodeLabel(...args) {
+    this._calls.push(["nodeLabel", args]);
+    this._nodeLabel = args[0];
+    return this;
+  };
+  return base;
+}
+
+async function testForceSpacingApplied() {
+  const ForceGraph3D = stubForceGraph3DWithForces();
+  const r = createThreeRenderer({ loader: () => Promise.resolve(ForceGraph3D) });
+  r.mount(fakeHost(), kg3dLayout(), {});
+  await flushAsync();
+  const inst = ForceGraph3D._instance;
+  // Charge must be strengthened (more negative than the lib default of -30).
+  assert.ok(inst._forces.charge._strength < -30, "charge repulsion must be strengthened");
+  assert.ok(inst._forces.link._distance > 30, "link distance must be lengthened");
+  // Hover tooltip wired with a function.
+  assert.equal(typeof inst._nodeLabel, "function");
+  assert.match(inst._nodeLabel({ name: "Neural networks", ident: "nn" }), /Neural networks/);
+}
+
+function stubForceGraph3DWithLabels() {
+  const base = stubForceGraph3DWithForces();
+  const instance = base._instance;
+  instance.nodeThreeObject = function nodeThreeObject(...args) {
+    this._calls.push(["nodeThreeObject", args]);
+    this._nodeThreeObject = args[0];
+    return this;
+  };
+  instance.nodeThreeObjectExtend = function nodeThreeObjectExtend(...args) {
+    this._calls.push(["nodeThreeObjectExtend", args]);
+    this._extend = args[0];
+    return this;
+  };
+  return base;
+}
+
+// Minimal SpriteText double — records the text and exposes a position object.
+function FakeSpriteText(text) {
+  this.text = text;
+  this.position = {
+    _xyz: null,
+    set(x, y, z) {
+      this._xyz = [x, y, z];
+    }
+  };
+}
+
+async function testLabelsAttachWhenSpriteLoads() {
+  const ForceGraph3D = stubForceGraph3DWithLabels();
+  const r = createThreeRenderer({
+    loader: () => Promise.resolve(ForceGraph3D),
+    labelLoader: () => Promise.resolve(FakeSpriteText)
+  });
+  r.mount(fakeHost(), kg3dLayout(), {});
+  await flushAsync();
+  await flushAsync(); // label loader resolves on a later microtask turn
+  const inst = ForceGraph3D._instance;
+  assert.equal(typeof inst._nodeThreeObject, "function", "nodeThreeObject accessor registered");
+  assert.equal(inst._extend, true, "sphere kept alongside the label sprite");
+  const sprite = inst._nodeThreeObject({ name: "Backprop", id: "backprop", val: 8 });
+  assert.equal(sprite.text, "Backprop", "sprite shows the friendly name");
+  assert.ok(Array.isArray(sprite.position._xyz), "label is offset off the node");
+}
+
+async function testLabelsDisabledSkipsSprite() {
+  let labelLoaderCalls = 0;
+  const ForceGraph3D = stubForceGraph3DWithLabels();
+  const r = createThreeRenderer({
+    loader: () => Promise.resolve(ForceGraph3D),
+    showLabels: false,
+    labelLoader: () => {
+      labelLoaderCalls += 1;
+      return Promise.resolve(FakeSpriteText);
+    }
+  });
+  r.mount(fakeHost(), kg3dLayout(), {});
+  await flushAsync();
+  await flushAsync();
+  assert.equal(labelLoaderCalls, 0, "label loader must not run when showLabels=false");
+  assert.equal(ForceGraph3D._instance._nodeThreeObject, undefined);
 }
 
 main().catch((err) => {

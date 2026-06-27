@@ -73,6 +73,63 @@ class AdaptiveRAGResponse(BaseModel):
     hallucination_check: Optional[bool]
     answer_quality: Optional[bool]
 
+class EvalTriplesRequest(BaseModel):
+    text: str
+    workspace: str = "default"
+    model: str = "lemonade/Qwen3-8B-Hybrid"
+
+@router.post("/rag/eval-triples")
+async def eval_triples(request: EvalTriplesRequest):
+    """Evaluate triples extraction on a single text chunk."""
+    run_id = str(uuid.uuid4())
+    from ..synthesis.engine import parallel_extract_triples
+    import time
+    
+    start_t = time.time()
+    sections = [{"title": "Eval Chunk", "text": request.text}]
+    try:
+        triples = await parallel_extract_triples(
+            sections=sections,
+            run_id=run_id,
+            workspace=request.workspace,
+            model=request.model,
+            timeout=120.0
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Extraction failed: {e}")
+        
+    elapsed = time.time() - start_t
+    
+    # Run LLM-as-a-judge
+    judge_score = None
+    try:
+        from ..synthesis.engine import call_llm
+        triples_str = "\\n".join([f"{t.subject} -> {t.predicate} -> {t.object}" for t in triples])
+        judge_prompt = (
+            f"You are an impartial judge evaluating a knowledge graph extraction pipeline.\\n"
+            f"Given the original text and the extracted triples, score the PRECISION (are the triples factually accurate based ONLY on the text?) "
+            f"and RECALL (did it capture the core concepts?) from 0.0 to 1.0.\\n\\n"
+            f"TEXT:\\n{request.text}\\n\\n"
+            f"TRIPLES:\\n{triples_str}\\n\\n"
+            f"Respond ONLY with a JSON object like {{\\"precision\\": 0.9, \\"recall\\": 0.8}}"
+        )
+        judge_res = await call_llm(judge_prompt, workspace=request.workspace, run_id=run_id)
+        import json
+        import re
+        match = re.search(r'\\{.*\\}', judge_res, re.DOTALL)
+        if match:
+            judge_score = json.loads(match.group(0))
+    except Exception as e:
+        logger.warning(f"Judge failed: {e}")
+        
+    return {
+        "triples_count": len(triples),
+        "elapsed_seconds": round(elapsed, 2),
+        "avg_confidence": round(sum(t.confidence for t in triples) / len(triples), 2) if triples else 0,
+        "judge_score": judge_score,
+        "triples": [t.model_dump() for t in triples]
+    }
+
 @router.post("/rag/ingest")
 async def ingest_files(request: IngestRequest):
     """Ingest files from data_in into ChromaDB using structured extraction (Docling)."""
@@ -148,6 +205,8 @@ async def ingest_files(request: IngestRequest):
         task_manager.update_task(run_id, total_steps=len(file_paths), progress=10)
         
         ingested = []
+        total_triples_extracted = 0
+        sum_confidence = 0.0
         for idx, file_path in enumerate(file_paths):
             try:
                 msg = f"Processing {file_path.name} ({idx+1}/{len(file_paths)})..."
@@ -242,6 +301,8 @@ async def ingest_files(request: IngestRequest):
                         print(f"DEBUG: FINISHED Triple Extraction for {file_path.name}: Found {len(triples)} triples")
                         
                         if triples:
+                            total_triples_extracted += len(triples)
+                            sum_confidence += sum(t.confidence for t in triples)
                             await save_knowledge_triples(request.workspace, triples, file_path.name)
                             track_aer(run_id, "rag_ingest", request.workspace, f"Synthesis complete for {file_path.name}", f"Extracted {len(triples)} triples")
                             
@@ -301,6 +362,17 @@ async def ingest_files(request: IngestRequest):
                     top_k_per_concept=request.correlation_top_k,
                     use_ann=request.correlation_use_ann,
                 )
+                
+                avg_conf = sum_confidence / total_triples_extracted if total_triples_extracted > 0 else 0.0
+                task_manager.update_task(run_id, metadata={
+                    "stage": "COMPLETE",
+                    "graph_metrics": {
+                        "triples": total_triples_extracted,
+                        "confidence": round(avg_conf, 2),
+                        "clusters": cluster_results.get('communities_found', 0),
+                        "safe_links": correlation_results.get('safe_links', 0)
+                    }
+                })
                 
                 track_aer(run_id, "rag_ingest", request.workspace, "Deep Processing complete", 
                           f"Clusters: {cluster_results.get('communities_found', 0)}, " 

@@ -62,10 +62,19 @@
 //     the underlying 3d-force-graph instance once loaded.
 
 const DEFAULT_CDN_URL = "https://esm.sh/3d-force-graph@1";
+// Text-sprite labels are an optional second module; loaded best-effort so the
+// scene still renders (just without floating names) if the CDN is blocked.
+const DEFAULT_SPRITE_CDN_URL = "https://esm.sh/three-spritetext@1";
 const DEFAULT_BACKGROUND = "#0b1220";
 const DEFAULT_NODE_REL_SIZE = 4;
 const DEFAULT_LINK_COLOR = "rgba(148, 163, 184, 0.55)";
 const DEFAULT_NODE_COLOR = "#94a3b8";
+const DEFAULT_LABEL_COLOR = "rgba(232, 236, 233, 0.92)";
+// Default force tuning. 3d-force-graph ships with a weak charge (-30) and a
+// short link distance, which packs nodes into unreadable clumps. These push
+// clusters apart so labels stop overlapping. Overridable via options.
+const DEFAULT_CHARGE_STRENGTH = -120;
+const DEFAULT_LINK_DISTANCE = 45;
 
 const HTML_ESCAPES = {
   "&": "&amp;",
@@ -77,6 +86,50 @@ const HTML_ESCAPES = {
 
 function escapeHtml(text) {
   return String(text == null ? "" : text).replace(/[&<>"']/g, (ch) => HTML_ESCAPES[ch]);
+}
+
+// Last path segment, so a File node reads "auth.py" instead of the full
+// "/src/app/services/auth.py". Trailing slashes are trimmed first.
+function basename(value) {
+  const str = String(value).replace(/[\\/]+$/, "");
+  const seg = str.split(/[\\/]/).pop();
+  return seg || str;
+}
+
+function looksLikePath(value) {
+  return typeof value === "string" && /[\\/]/.test(value) && !/\s/.test(value);
+}
+
+// Friendly name for a node, unified across the three graph shapes (kept in
+// sync with force_graph_2d's labelFor):
+//   • kg3d (Documents): display_name → canonical_name → …
+//   • codegraph (Code): name → label → path(basename) → …
+//   • memoray (Memory): content / label / type
+export function labelFor(entry) {
+  const safe = entry && typeof entry === "object" ? entry : {};
+  const node = safe.node && typeof safe.node === "object" ? safe.node : {};
+  const named =
+    node.display_name ||
+    node.canonical_name ||
+    node.name ||
+    node.title ||
+    node.label ||
+    node.content ||
+    safe.label;
+  if (named) return basename(String(named).trim());
+  const path = node.path || safe.path;
+  if (path) return basename(path);
+  const id = safe.id || node.id;
+  if (id != null) return looksLikePath(id) ? basename(id) : String(id);
+  return node.type || safe.type || "node";
+}
+
+// Full identifier (path / canonical name / id) for the hover tooltip, so the
+// friendly label never costs the ability to tell two similar nodes apart.
+export function identifierFor(entry) {
+  const safe = entry && typeof entry === "object" ? entry : {};
+  const node = safe.node && typeof safe.node === "object" ? safe.node : {};
+  return String(node.path || node.canonical_name || node.id || safe.id || "");
 }
 
 /**
@@ -96,7 +149,11 @@ export function layoutToGraphData(layout, physicsMode = "pinned") {
       // `val` drives the default node size in 3d-force-graph. Pre-computed
       // radii from the 2D layout map directly so the visual weight scales
       // the same way under both renderers.
-      val: typeof safe.radius === "number" ? safe.radius : 1
+      val: typeof safe.radius === "number" ? safe.radius : 1,
+      // Friendly name for the floating label / hover tooltip; full identifier
+      // for the tooltip's second line.
+      name: labelFor(safe),
+      ident: identifierFor(safe)
     };
     // Seed the force layout with the SVG-layout coordinates.
     // If physicsMode is "pinned", we fix/pin the X and Y coordinates.
@@ -190,6 +247,30 @@ export function createThreeRenderer(options = {}) {
     typeof options.linkColor === "string" ? options.linkColor : DEFAULT_LINK_COLOR;
   const onNodeClick = typeof options.onNodeClick === "function" ? options.onNodeClick : null;
   const physicsMode = typeof options.physicsMode === "string" ? options.physicsMode : "pinned";
+  // After the force layout settles, frame the whole graph in the viewport.
+  // Without this the camera sits at 3d-force-graph's fixed default distance,
+  // so any graph larger than that default spills off the frame — the bug this
+  // renderer exhibited on the code graph and the dense semantic-triples graph.
+  const fitOnLoad = options.fitOnLoad === false ? false : true;
+  const fitPaddingPx = typeof options.fitPaddingPx === "number" ? options.fitPaddingPx : 60;
+  const fitDurationMs = typeof options.fitDurationMs === "number" ? options.fitDurationMs : 600;
+  // Floating 3D text labels. On by default; needs the optional spritetext
+  // module (lazy-loaded from its own CDN, separate from 3d-force-graph).
+  const showLabels = options.showLabels === false ? false : true;
+  const spriteCdnUrl =
+    typeof options.spriteCdnUrl === "string" && options.spriteCdnUrl
+      ? options.spriteCdnUrl
+      : DEFAULT_SPRITE_CDN_URL;
+  const labelLoader =
+    typeof options.labelLoader === "function" ? options.labelLoader : () => defaultLoader(spriteCdnUrl);
+  const labelColor =
+    typeof options.labelColor === "string" ? options.labelColor : DEFAULT_LABEL_COLOR;
+  // Force-layout spacing. Stronger (more negative) charge + longer links push
+  // dense clusters apart so labels stop colliding.
+  const chargeStrength =
+    typeof options.chargeStrength === "number" ? options.chargeStrength : DEFAULT_CHARGE_STRENGTH;
+  const linkDistance =
+    typeof options.linkDistance === "number" ? options.linkDistance : DEFAULT_LINK_DISTANCE;
 
   function mount(host, layout, props) {
     if (!host || typeof host.querySelector !== "function") {
@@ -204,7 +285,12 @@ export function createThreeRenderer(options = {}) {
       // Updates that arrive before the CDN import resolves are stashed
       // here and replayed on activation. We only keep the latest layout —
       // a 3D scene only needs the most recent state, not the history.
-      pending: { layout, props }
+      pending: { layout, props },
+      // Set whenever new data is applied; cleared once the camera has framed
+      // the settled graph (on the next `onEngineStop`). Re-framing per data
+      // change keeps the whole graph in view as it grows or is filtered.
+      needsFit: fitOnLoad,
+      resizeObserver: null
     };
 
     function applyData() {
@@ -217,8 +303,31 @@ export function createThreeRenderer(options = {}) {
           }
         }
       }
+      // New data reheats the force engine; ask for a re-fit once it settles.
+      if (fitOnLoad) state.needsFit = true;
       state.instance.graphData(data);
       applyFilters();
+    }
+
+    // Frame all nodes in the viewport. Guarded — minimal lib stubs (and the
+    // node-runner test double) don't implement zoomToFit.
+    function fitToView() {
+      if (state.disposed || !state.instance) return;
+      if (typeof state.instance.zoomToFit === "function") {
+        state.instance.zoomToFit(fitDurationMs, fitPaddingPx);
+      }
+    }
+
+    // Keep the WebGL canvas sized to its host. 3d-force-graph only listens for
+    // window resizes, so panel/split resizes (the cockpit's Expand toggle,
+    // dragging the Observe split) would otherwise leave a stale canvas size
+    // and the graph clipped at the frame edge.
+    function syncSize() {
+      if (state.disposed || !state.instance || !state.host) return;
+      const w = state.host.clientWidth;
+      const h = state.host.clientHeight;
+      if (typeof state.instance.width === "function" && w) state.instance.width(w);
+      if (typeof state.instance.height === "function" && h) state.instance.height(h);
     }
 
     // Re-apply the visibility accessors so filters (e.g. focusedLayer) take
@@ -250,14 +359,82 @@ export function createThreeRenderer(options = {}) {
           .nodeRelSize(nodeRelSize)
           .nodeColor((n) => (n && n.color) || DEFAULT_NODE_COLOR)
           .linkColor((l) => (l && l.color) || fallbackLinkColor);
+        // Hover tooltip — friendly name plus the full identifier when it
+        // differs. Cheap, works even if the text-sprite module never loads.
+        if (typeof instance.nodeLabel === "function") {
+          instance.nodeLabel((n) => {
+            if (!n) return "";
+            const name = escapeHtml(String(n.name || n.id || ""));
+            const ident = n.ident && n.ident !== n.name ? escapeHtml(String(n.ident)) : "";
+            return ident ? `<strong>${name}</strong><br><span style="opacity:.7">${ident}</span>` : `<strong>${name}</strong>`;
+          });
+        }
+        // Spread dense clusters so labels don't pile up. d3Force returns the
+        // underlying force; guarded for minimal lib stubs.
+        if (typeof instance.d3Force === "function") {
+          const charge = instance.d3Force("charge");
+          if (charge && typeof charge.strength === "function") charge.strength(chargeStrength);
+          const link = instance.d3Force("link");
+          if (link && typeof link.distance === "function") link.distance(linkDistance);
+        }
+        // Floating text labels via the optional spritetext module. Best-effort:
+        // only attempted when the lib supports custom node objects, and never
+        // blocks the scene if the sprite CDN fails. The hover tooltip above
+        // remains as the fallback.
+        if (showLabels && typeof instance.nodeThreeObject === "function") {
+          Promise.resolve()
+            .then(() => labelLoader())
+            .then((SpriteText) => {
+              if (state.disposed || !state.instance || typeof SpriteText !== "function") return;
+              instance.nodeThreeObject((node) => {
+                const text = node && (node.name || node.id);
+                if (!text) return null;
+                const sprite = new SpriteText(String(text));
+                sprite.color = labelColor;
+                sprite.textHeight = 4;
+                sprite.fontWeight = "500";
+                // Lift the label clear of the node sphere so they don't overlap.
+                sprite.position.set(0, (node.val || 1) + 6, 0);
+                return sprite;
+              });
+              // Keep the colored sphere AND show the label beside it.
+              if (typeof instance.nodeThreeObjectExtend === "function") {
+                instance.nodeThreeObjectExtend(true);
+              }
+            })
+            .catch(() => {
+              /* labels are optional — silently fall back to hover tooltip */
+            });
+        }
         if (onNodeClick) {
           instance.onNodeClick((n) => {
             if (!n) return;
             onNodeClick(n.id, n);
           });
         }
+        // Frame the graph once the layout cools. onEngineStop fires after the
+        // initial layout and again after every reheat (each graphData call),
+        // so the `needsFit` flag gates it to one fit per data change.
+        if (fitOnLoad && typeof instance.onEngineStop === "function") {
+          instance.onEngineStop(() => {
+            if (state.needsFit) {
+              state.needsFit = false;
+              fitToView();
+            }
+          });
+        }
         state.instance = instance;
+        syncSize();
         applyData();
+        // Track host resizes so the canvas (and framing) follow panel layout
+        // changes, not just window resizes.
+        if (typeof ResizeObserver === "function" && state.host) {
+          state.resizeObserver = new ResizeObserver(() => {
+            syncSize();
+            fitToView();
+          });
+          state.resizeObserver.observe(state.host);
+        }
       })
       .catch((err) => {
         if (state.disposed || !state.host) return;
@@ -275,6 +452,14 @@ export function createThreeRenderer(options = {}) {
       },
       dispose() {
         state.disposed = true;
+        if (state.resizeObserver && typeof state.resizeObserver.disconnect === "function") {
+          try {
+            state.resizeObserver.disconnect();
+          } catch (_e) {
+            /* swallow */
+          }
+          state.resizeObserver = null;
+        }
         if (state.instance && typeof state.instance._destructor === "function") {
           // 3d-force-graph exposes _destructor() for teardown of the
           // Three.js scene + WebGL context. Wrap in try/catch — a partial

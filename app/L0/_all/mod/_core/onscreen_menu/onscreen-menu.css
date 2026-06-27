@@ -71,9 +71,9 @@ body.app-page-router {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(156, 175, 136, 0.82) 18%,
-    rgba(236, 230, 216, 0.94) 50%,
-    rgba(156, 175, 136, 0.82) 82%,
+    rgba(156, 175, 136, 0.28) 18%,
+    rgba(236, 230, 216, 0.38) 50%,
+    rgba(156, 175, 136, 0.28) 82%,
     transparent 100%
   );
 }
@@ -160,10 +160,10 @@ body.app-page-router {
 }
 
 .onscreen-menu-shell .space-topbar-button:not(.onscreen-menu-button).is-active {
-  color: rgba(236, 230, 216, 0.98);
-  border-color: transparent;
-  background: transparent;
-  box-shadow: none;
+  color: var(--color-accent-primary, #9caf88);
+  border-color: rgba(156, 175, 136, 0.24);
+  background: var(--color-accent-primary-soft, rgba(156, 175, 136, 0.12));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
 }
 
 .onscreen-menu-panel {

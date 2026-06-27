@@ -62,6 +62,11 @@ const HIGHLIGHT_COLOR = "#db533f"; // rust red, matches Memo-Ray
 const LINK_COLOR = "rgba(138,154,164,0.12)";
 const LABEL_COLOR = "rgba(232,236,233,0.7)";
 const DEFAULT_NODE_VAL = 6;
+// force-graph ships a weak charge (-30) and short links, which packs nodes
+// into clumps where labels overlap. Stronger repulsion + longer links open the
+// clusters up so names are readable. Overridable via options.
+const DEFAULT_CHARGE_STRENGTH = -180;
+const DEFAULT_LINK_DISTANCE = 60;
 
 const HTML_ESCAPES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 function escapeHtml(text) {
@@ -216,6 +221,10 @@ export function createForceGraph2DRenderer(options = {}) {
   const factoryOnNodeClick =
     typeof options.onNodeClick === "function" ? options.onNodeClick : null;
   const showMinimap = options.minimap !== false;
+  const chargeStrength =
+    typeof options.chargeStrength === "number" ? options.chargeStrength : DEFAULT_CHARGE_STRENGTH;
+  const linkDistance =
+    typeof options.linkDistance === "number" ? options.linkDistance : DEFAULT_LINK_DISTANCE;
 
   function mount(host, layout, props) {
     if (!host || typeof host.querySelector !== "function") {
@@ -545,6 +554,14 @@ export function createForceGraph2DRenderer(options = {}) {
             const onBg = state.pending && state.pending.props && state.pending.props.onBackgroundClick;
             if (typeof onBg === "function") onBg();
           });
+        // Open up dense clusters so labels stop overlapping (fluid mode only —
+        // pinned nodes keep their fixed positions). Guarded for lib stubs.
+        if (typeof instance.d3Force === "function") {
+          const charge = instance.d3Force("charge");
+          if (charge && typeof charge.strength === "function") charge.strength(chargeStrength);
+          const link = instance.d3Force("link");
+          if (link && typeof link.distance === "function") link.distance(linkDistance);
+        }
         state.instance = instance;
         applyData();
         scheduleResize();
