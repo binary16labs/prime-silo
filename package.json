@@ -1,6 +1,6 @@
 {
   "name": "space-agent",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "private": true,
   "description": "Browser-first AI agent with a thin Node.js server.",
   "author": "Jan Tomasek",
@@ -87,7 +87,10 @@
       {
         "from": "memoray/server/node_modules",
         "to": "memoray/server/node_modules",
-        "filter": ["**/*", "!.bin/**"]
+        "filter": [
+          "**/*",
+          "!.bin/**"
+        ]
       }
     ],
     "mac": {
