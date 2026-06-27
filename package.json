@@ -86,7 +86,8 @@
       },
       {
         "from": "memoray/server/node_modules",
-        "to": "memoray/server/node_modules"
+        "to": "memoray/server/node_modules",
+        "filter": ["**/*", "!.bin/**"]
       }
     ],
     "mac": {
