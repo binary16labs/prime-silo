@@ -28,8 +28,14 @@ import {
   isMemorayOffline,
   isMemorayDisabled
 } from "../../../memoray_client/memoray-client.js";
+import { createForceGraph2DRenderer } from "../../force_graph_2d/index.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
+
+// In `auto` layout mode, sessions with more nodes than this render with the
+// free-floating force graph (the "Memo-Ray drilldown" look); smaller ones use
+// the calmer layered SVG. Tunable per-call via props.forceThreshold.
+const DEFAULT_FORCE_THRESHOLD = 60;
 
 const HTML_ESCAPES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 function escapeHtml(text) {
@@ -193,9 +199,19 @@ function createDefaultRenderer() {
     return { update, dispose };
   }
 
+  function highlightIdSet(props) {
+    const ids = [];
+    if (props && Array.isArray(props.highlightIds)) ids.push(...props.highlightIds);
+    if (props && Array.isArray(props.highlightNodeIds)) ids.push(...props.highlightNodeIds);
+    return new Set(ids.filter(Boolean).map(String));
+  }
+
   function update(layout, props) {
     if (!svg) return;
     onSelect = (props && props.onSelect) || onSelect;
+    const hot = highlightIdSet(props);
+    const track = Boolean(props && props.track);
+    let firstHotEl = null;
     const { positions, edges, width, height } = layout;
     svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
     svg.setAttribute("width", String(width));
@@ -221,10 +237,12 @@ function createDefaultRenderer() {
       const node = pos.node;
       const color = colorFor(node.type);
       const group = document.createElementNS(SVG_NS, "g");
-      group.setAttribute("class", "mray-lg__node");
+      const isHot = hot.has(String(node.id));
+      group.setAttribute("class", isHot ? "mray-lg__node is-current" : "mray-lg__node");
       group.setAttribute("tabindex", "0");
       group.setAttribute("role", "button");
       group.dataset.nodeId = node.id;
+      if (isHot && !firstHotEl) firstHotEl = group;
       group.setAttribute("aria-label", `${node.type}: ${nodeLabel(node)}`);
 
       if (isArtifact(node)) {
@@ -269,6 +287,11 @@ function createDefaultRenderer() {
 
       svg.appendChild(group);
     }
+
+    // Camera-track: scroll the highlighted node into view (Step-Through player).
+    if (track && firstHotEl && typeof firstHotEl.scrollIntoView === "function") {
+      firstHotEl.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+    }
   }
 
   function dispose() {
@@ -288,13 +311,41 @@ export function createLineageGraphWidget(host, initialProps = {}, options = {}) 
   }
 
   const client = ensureClient(options);
-  const renderer = options.renderer || createDefaultRenderer();
-  let props = { ...initialProps };
+  let props = { layoutMode: "linear", ...initialProps };
   let aborted = false;
+  let renderer = null;
+  let currentMode = null;
   let rendererHandle = null;
   let layout = null;
+  let lastData = null;
 
   host.classList.add("mray-lg");
+
+  // Props passed down to a renderer: expose the highlight set under BOTH names so
+  // the SVG renderer (highlightIds) and the force renderer (highlightNodeIds) each
+  // find it from one `props.highlightIds`.
+  function rendererProps() {
+    const ids = props.highlightIds || props.highlightNodeIds || [];
+    return { ...props, highlightIds: ids, highlightNodeIds: ids };
+  }
+
+  // Resolve the effective layout for a node count. An explicit options.renderer
+  // always wins (callers that hard-wire a renderer); otherwise layoutMode picks,
+  // with `auto` choosing force above the threshold.
+  function resolveMode(nodeCount) {
+    if (options.renderer) return "custom";
+    const mode = props.layoutMode || "linear";
+    if (mode === "force") return "force";
+    if (mode === "linear") return "linear";
+    const threshold = Number(props.forceThreshold) || DEFAULT_FORCE_THRESHOLD;
+    return nodeCount > threshold ? "force" : "linear";
+  }
+
+  function chooseRenderer(mode) {
+    if (mode === "custom") return options.renderer;
+    if (mode === "force") return createForceGraph2DRenderer({ physicsMode: "fluid" });
+    return createDefaultRenderer();
+  }
 
   function renderState(html) {
     teardownRenderer();
@@ -304,19 +355,29 @@ export function createLineageGraphWidget(host, initialProps = {}, options = {}) 
   function teardownRenderer() {
     if (rendererHandle && typeof rendererHandle.dispose === "function") {
       rendererHandle.dispose();
-    } else if (typeof renderer.dispose === "function") {
+    } else if (renderer && typeof renderer.dispose === "function") {
       renderer.dispose();
     }
     rendererHandle = null;
+    currentMode = null;
   }
 
   function paint(data) {
+    lastData = data;
     layout = computeLayout(data.nodes, data.links);
+    const mode = resolveMode((data.nodes || []).length);
+    // Swap renderers when the resolved layout changes (e.g. layoutMode toggled,
+    // or an `auto` session crossed the node-count threshold).
+    if (mode !== currentMode) {
+      teardownRenderer();
+      renderer = chooseRenderer(mode);
+      currentMode = mode;
+    }
     host.innerHTML = "";
     if (rendererHandle && typeof rendererHandle.update === "function") {
-      rendererHandle.update(layout, props);
+      rendererHandle.update(layout, rendererProps());
     } else {
-      rendererHandle = renderer.mount(host, layout, props);
+      rendererHandle = renderer.mount(host, layout, rendererProps());
     }
   }
 
@@ -357,12 +418,25 @@ export function createLineageGraphWidget(host, initialProps = {}, options = {}) 
   }
 
   function update(nextProps) {
-    const merged = { ...props, ...nextProps };
-    const changed = merged.sessionId !== props.sessionId || merged.data !== props.data;
-    props = merged;
-    if (changed) {
+    const prev = props;
+    props = { ...props, ...nextProps };
+    const dataChanged = props.sessionId !== prev.sessionId || props.data !== prev.data;
+    const layoutChanged = props.layoutMode !== prev.layoutMode;
+    if (dataChanged) {
       teardownRenderer();
       load();
+      return;
+    }
+    // A layout-mode flip (linear↔force) re-resolves the renderer over the same data.
+    if (layoutChanged && lastData) {
+      paint(lastData);
+      return;
+    }
+    // Highlight / tracking change: push to the active renderer in place — no
+    // refetch, no relayout (the force sim keeps its positions; the SVG re-marks
+    // the current node).
+    if (rendererHandle && layout && typeof rendererHandle.update === "function") {
+      rendererHandle.update(layout, rendererProps());
     }
   }
 

@@ -1,0 +1,136 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="/mod/_prime_silo/memoray_client/memoray-theme.css" />
+    <link
+      rel="stylesheet"
+      href="/mod/_prime_silo/widgets/memoray/lineage_graph/lineage_graph.css"
+    />
+    <link rel="stylesheet" href="/mod/_prime_silo/session_graph/session_graph.css" />
+    <script type="module" src="/mod/_prime_silo/session_graph/session_graph.js"></script>
+  </head>
+  <body>
+    <section
+      class="prime-silo-sg mray-theme"
+      x-data="sessionGraphPage()"
+      x-init="init()"
+      x-destroy="destroy()"
+      x-cloak
+    >
+      <header class="prime-silo-sg__header">
+        <p class="prime-silo-sg__eyebrow">Review zone · cognitive mesh memory graph</p>
+        <h1 class="prime-silo-sg__title">Session Graph</h1>
+        <p class="prime-silo-sg__subtitle">
+          Pick a session to explore its recursive lineage — inputs, thoughts, tool calls, and the
+          files each touched. Click any node to inspect it.
+        </p>
+        <button
+          type="button"
+          class="prime-silo-sg__btn prime-silo-sg__stepthrough"
+          x-show="state === 'ready' && activeSessionId"
+          @click="stepThrough()"
+        >
+          ▶ Step through this session
+        </button>
+      </header>
+
+      <template x-if="state === 'disabled'">
+        <div class="prime-silo-sg__notice">
+          <h2>Memo-Ray is disabled</h2>
+          <p>Run <code>node space set MEMORAY_ENABLED=true</code> and restart the shell.</p>
+        </div>
+      </template>
+
+      <template x-if="state === 'offline'">
+        <div class="prime-silo-sg__notice">
+          <h2>Memo-Ray is offline</h2>
+          <p>Boot the memory-graph server with <code>scripts/memoray.ps1</code>, then retry.</p>
+          <button type="button" class="prime-silo-sg__btn" @click="retry()">Retry</button>
+        </div>
+      </template>
+
+      <template x-if="state === 'error'">
+        <div class="prime-silo-sg__notice prime-silo-sg__notice--error">
+          <h2>Session graph failed to load</h2>
+          <p x-text="error"></p>
+          <button type="button" class="prime-silo-sg__btn" @click="retry()">Retry</button>
+        </div>
+      </template>
+
+      <template x-if="state === 'loading'">
+        <div class="prime-silo-sg__notice">
+          <p class="prime-silo-sg__muted">Loading sessions…</p>
+        </div>
+      </template>
+
+      <template x-if="state === 'ready'">
+        <div class="prime-silo-sg__body">
+          <aside class="prime-silo-sg__sessions">
+            <label class="prime-silo-sg__filter">
+              <span>Agent</span>
+              <select x-model="agentFilter">
+                <option value="all">All</option>
+                <option value="claude">Claude</option>
+                <option value="antigravity">Antigravity</option>
+              </select>
+            </label>
+            <div class="prime-silo-sg__session-list">
+              <template x-for="s in filteredSessions" :key="s.id">
+                <button
+                  type="button"
+                  class="prime-silo-sg__session-item"
+                  :class="{ 'is-active': s.id === activeSessionId }"
+                  @click="selectSession(s.id)"
+                >
+                  <span class="prime-silo-sg__session-title" x-text="s.content || 'Untitled'"></span>
+                  <span class="prime-silo-sg__session-sub">
+                    <span x-text="s.agent"></span> ·
+                    <span x-text="s.metadata && s.metadata.project ? s.metadata.project : '—'"></span>
+                  </span>
+                </button>
+              </template>
+              <p class="prime-silo-sg__muted" x-show="filteredSessions.length === 0">
+                No sessions for this filter.
+              </p>
+            </div>
+          </aside>
+
+          <div class="prime-silo-sg__graph" x-ref="graph"></div>
+
+          <aside class="prime-silo-sg__inspector" x-show="inspector">
+            <h3 x-text="inspector ? inspector.type : ''"></h3>
+            <dl x-show="inspector">
+              <dt>Agent</dt>
+              <dd x-text="inspector ? inspector.agent : ''"></dd>
+              <template x-if="inspector && inspector.metadata && inspector.metadata.toolName">
+                <div>
+                  <dt>Tool</dt>
+                  <dd x-text="inspector.metadata.toolName"></dd>
+                </div>
+              </template>
+              <template x-if="inspector && inspector.metadata && inspector.metadata.filePath">
+                <div>
+                  <dt>File</dt>
+                  <dd>
+                    <span x-text="inspector.metadata.fileName || inspector.metadata.filePath"></span>
+                    <button
+                      type="button"
+                      class="prime-silo-sg__open"
+                      @click="openFile(inspector.metadata.filePath)"
+                    >
+                      Open
+                    </button>
+                  </dd>
+                </div>
+              </template>
+            </dl>
+            <pre
+              class="prime-silo-sg__content"
+              x-show="inspector"
+              x-text="inspector ? inspector.content : ''"
+            ></pre>
+          </aside>
+        </div>
+      </template>
+    </section>
+  </body>
+</html>

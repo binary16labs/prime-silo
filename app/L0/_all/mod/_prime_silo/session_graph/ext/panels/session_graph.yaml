@@ -1,0 +1,5 @@
+name: Session Graph
+path: _prime_silo/session_graph
+description: A full-canvas lineage explorer — pick a session and walk its recursive graph of inputs, thoughts, tool calls, and touched files.
+icon: account_tree
+color: "#8a9aa4"

@@ -2,7 +2,7 @@
   "schema": "aamp.integration/1",
   "id": "memoray",
   "title": "Memo-Ray memory graph",
-  "version": "1.1.0",
+  "version": "1.3.0",
   "description": "Declares the Memo-Ray integration: the memory graph of the cognitive mesh, third first-class graph beside the knowledge graph (documents) and the code graph (AST). Memo-Ray X-rays Claude + Antigravity session logs into an explorable lineage map; this manifest is the single source of truth the shell proxy, widgets, page, agent skill, CLI, and conformance audit are all held against.",
   "maintenance": {
     "loop": "read this manifest -> GET /api/integration_audit (or `node space memory audit`) -> for each drift finding draft a fix at the finding's owner path -> human review -> re-sign via scripts/audit-integrations.mjs --sign",
@@ -164,6 +164,26 @@
       }
     },
     {
+      "id": "beta_timeline",
+      "method": "GET",
+      "path": "/beta/timeline?session={session_id}&limit=100000",
+      "purpose": "Full chronological action list for a session (User Input / Thought / Tool Call / Tool Result / Artifact), consumed by the Step-Through Audit player.",
+      "probe": false,
+      "contract": {
+        "type": "array",
+        "items": {
+          "id": "string",
+          "type": "string",
+          "agent": "string",
+          "sessionId": "string",
+          "timestamp": "number",
+          "toolName": "string?",
+          "fileName": "string?",
+          "contentSnippet": "string?"
+        }
+      }
+    },
+    {
       "id": "graph",
       "method": "GET",
       "path": "/graph/{session_id}",
@@ -288,6 +308,58 @@
           }
         }
       }
+    },
+    {
+      "id": "heatmap_stats",
+      "method": "GET",
+      "path": "/heatmap-stats",
+      "purpose": "365-day activity calendar + ecosystem stat rollup for the Activity Radar widget (Lifelog + Mission Control pages).",
+      "contract": {
+        "days": "object",
+        "stats": {
+          "type": "object",
+          "fields": {
+            "totalSessions": "number",
+            "totalMessages": "number",
+            "totalTokens": "number",
+            "activeDays": "number",
+            "currentStreak": "number",
+            "longestStreak": "number",
+            "peakHour": "string",
+            "favoriteModel": "string"
+          }
+        }
+      }
+    },
+    {
+      "id": "setup_status",
+      "method": "GET",
+      "path": "/setup/status",
+      "purpose": "Per-source scan-path detection report (value/exists/source/guide/probed) consumed by the native Setup page.",
+      "contract": {
+        "results": "object",
+        "mem0ray": "object"
+      }
+    },
+    {
+      "id": "setup_save",
+      "method": "POST",
+      "path": "/setup/save",
+      "purpose": "Persist the memory-graph scan paths from the native Setup page to the ~/.memoray config. Whitelisted in the shell proxy.",
+      "probe": false,
+      "contract": {
+        "status": "string"
+      }
+    },
+    {
+      "id": "open_folder",
+      "method": "POST",
+      "path": "/open-folder",
+      "purpose": "Reveal a configured scan directory in the OS file manager (Setup page 'Open' buttons). Whitelisted in the shell proxy.",
+      "probe": false,
+      "contract": {
+        "status": "string"
+      }
     }
   ],
   "process_map": [
@@ -295,7 +367,9 @@
       "id": "claude_logs",
       "kind": "source",
       "produces": "Claude desktop/code/CLI session logs (audit.jsonl, *.jsonl)",
-      "consumes": ["MEMORAY_CLAUDE_DIRS"],
+      "consumes": [
+        "MEMORAY_CLAUDE_DIRS"
+      ],
       "owner": {
         "repo": "memo-ray",
         "path": "agent-os-dashboard/server/parsers/claudeParser.js"
@@ -305,7 +379,9 @@
       "id": "antigravity_brain",
       "kind": "source",
       "produces": "Antigravity brain artifacts",
-      "consumes": ["MEMORAY_ANTIGRAVITY_DIR"],
+      "consumes": [
+        "MEMORAY_ANTIGRAVITY_DIR"
+      ],
       "owner": {
         "repo": "memo-ray",
         "path": "agent-os-dashboard/server/parsers/antigravityParser.js"
@@ -325,7 +401,9 @@
       "id": "memoray_api",
       "kind": "service",
       "produces": "HTTP API on MEMORAY_BASE_URL (localhost-only CORS, no auth)",
-      "consumes": ["PORT"],
+      "consumes": [
+        "PORT"
+      ],
       "health": {
         "endpoint": "ecosystem_manifest",
         "expect": "totalNodes"
@@ -338,8 +416,13 @@
     {
       "id": "shell_proxy",
       "kind": "proxy",
-      "produces": "/api/memoray/<path> on the shell origin (GET any, POST /files/open only)",
-      "consumes": ["MEMORAY_ENABLED", "MEMORAY_BASE_URL", "memoray.enabled", "memoray.base_url"],
+      "produces": "/api/memoray/<path> on the shell origin (GET any; POST /files/open, /setup/save, /open-folder)",
+      "consumes": [
+        "MEMORAY_ENABLED",
+        "MEMORAY_BASE_URL",
+        "memoray.enabled",
+        "memoray.base_url"
+      ],
       "owner": {
         "repo": "prime-silo",
         "path": "server/lib/memoray_proxy.js"
@@ -359,7 +442,12 @@
       "id": "widget_overview_cards",
       "kind": "widget",
       "produces": "memoray.overview_cards Command Center widget",
-      "consumes": ["beta_overview", "system_metrics", "system_capabilities", "ecosystem_manifest"],
+      "consumes": [
+        "beta_overview",
+        "system_metrics",
+        "system_capabilities",
+        "ecosystem_manifest"
+      ],
       "owner": {
         "repo": "prime-silo",
         "path": "app/L0/_all/mod/_prime_silo/widgets/memoray/overview_cards/index.js"
@@ -369,7 +457,10 @@
       "id": "widget_lineage_graph",
       "kind": "widget",
       "produces": "memoray.lineage_graph session lineage widget (2D SVG default, pluggable renderer)",
-      "consumes": ["graph", "entities"],
+      "consumes": [
+        "graph",
+        "entities"
+      ],
       "owner": {
         "repo": "prime-silo",
         "path": "app/L0/_all/mod/_prime_silo/widgets/memoray/lineage_graph/index.js"
@@ -379,7 +470,12 @@
       "id": "memory_page",
       "kind": "page",
       "produces": "#/_prime_silo/memory review-zone shell page",
-      "consumes": ["sessions", "beta_search", "sync", "files_open"],
+      "consumes": [
+        "sessions",
+        "beta_search",
+        "sync",
+        "files_open"
+      ],
       "owner": {
         "repo": "prime-silo",
         "path": "app/L0/_all/mod/_prime_silo/memory/view.html"
@@ -389,7 +485,12 @@
       "id": "agent_skill",
       "kind": "skill",
       "produces": "memory-recall onscreen-agent skill (catalog-loaded on demand)",
-      "consumes": ["beta_search", "sessions", "graph", "beta_overview"],
+      "consumes": [
+        "beta_search",
+        "sessions",
+        "graph",
+        "beta_overview"
+      ],
       "owner": {
         "repo": "prime-silo",
         "path": "app/L0/_all/mod/_prime_silo/memoray_client/ext/skills/memory-recall/SKILL.md"
@@ -399,7 +500,12 @@
       "id": "cli_memory",
       "kind": "cli",
       "produces": "node space memory <status|sync|sessions|search|audit>",
-      "consumes": ["ecosystem_manifest", "sync", "sessions", "beta_search"],
+      "consumes": [
+        "ecosystem_manifest",
+        "sync",
+        "sessions",
+        "beta_search"
+      ],
       "owner": {
         "repo": "prime-silo",
         "path": "commands/memory.js"
@@ -409,10 +515,122 @@
       "id": "bridge_pulse",
       "kind": "page",
       "produces": "Bridge cockpit Pulse landing — mesh activity feed (lifelog) + Command Center + conformance",
-      "consumes": ["lifelog", "beta_overview", "system_metrics"],
+      "consumes": [
+        "lifelog",
+        "beta_overview",
+        "system_metrics"
+      ],
       "owner": {
         "repo": "prime-silo",
         "path": "app/L0/_all/mod/_prime_silo/bridge/view.html"
+      }
+    },
+    {
+      "id": "theme",
+      "kind": "theme",
+      "produces": "Shared, scoped earth-tone memo-ray theme (.mray-theme) — every native memo-ray page opts in so the deliberate dyslexia/ADHD-friendly palette + typography sticks over the shell tokens.",
+      "consumes": [],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "app/L0/_all/mod/_prime_silo/memoray_client/memoray-theme.css"
+      }
+    },
+    {
+      "id": "widget_heatmap_radar",
+      "kind": "widget",
+      "produces": "memoray.heatmap_radar Activity Radar widget (365-day calendar + stat cards)",
+      "consumes": [
+        "heatmap_stats"
+      ],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "app/L0/_all/mod/_prime_silo/widgets/memoray/heatmap_radar/index.js"
+      }
+    },
+    {
+      "id": "page_lifelog",
+      "kind": "page",
+      "produces": "#/_prime_silo/lifelog — native Agent Lifelog (unified commit + agent-action timeline with the radar; teleports to Memory)",
+      "consumes": [
+        "lifelog",
+        "heatmap_stats"
+      ],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "app/L0/_all/mod/_prime_silo/lifelog/view.html"
+      }
+    },
+    {
+      "id": "page_mission_control",
+      "kind": "page",
+      "produces": "#/_prime_silo/mission_control — native Command Center (overview_cards + heatmap_radar + omnibar, live 10s sync)",
+      "consumes": [
+        "beta_overview",
+        "system_metrics",
+        "system_capabilities",
+        "heatmap_stats",
+        "beta_search",
+        "sync"
+      ],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "app/L0/_all/mod/_prime_silo/mission_control/view.html"
+      }
+    },
+    {
+      "id": "page_setup",
+      "kind": "page",
+      "produces": "#/_prime_silo/setup — native Setup (per-source scan-path config with auto-detect status)",
+      "consumes": [
+        "setup_status",
+        "setup_save",
+        "open_folder"
+      ],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "app/L0/_all/mod/_prime_silo/setup/view.html"
+      }
+    },
+    {
+      "id": "page_session_graph",
+      "kind": "page",
+      "produces": "#/_prime_silo/session_graph — native full-canvas lineage explorer (lineage_graph widget + inspector)",
+      "consumes": [
+        "sessions",
+        "graph",
+        "entities",
+        "files_open"
+      ],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "app/L0/_all/mod/_prime_silo/session_graph/view.html"
+      }
+    },
+    {
+      "id": "page_step_through",
+      "kind": "page",
+      "produces": "#/_prime_silo/step_through — native Step-Through Audit player (playback / speed / keyboard / gamepad / speech narrator; milestone scrubber; lineage map tracks + highlights the current step)",
+      "consumes": [
+        "beta_timeline",
+        "graph",
+        "entities",
+        "sessions"
+      ],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "app/L0/_all/mod/_prime_silo/step_through/view.html"
+      }
+    },
+    {
+      "id": "mcp_server",
+      "kind": "mcp",
+      "produces": "Vendored memo-ray MCP server (stdio) exposing the memory graph as agent tools; registered via prime-silo/.mcp.json",
+      "consumes": [
+        "MEMORAY_DATA_DIR"
+      ],
+      "owner": {
+        "repo": "prime-silo",
+        "path": "memoray/mcp-server/index.js"
       }
     },
     {
@@ -459,7 +677,13 @@
     }
   },
   "conformance": {
-    "checks": ["signature", "config_surface", "health", "payload_contracts", "owners"],
+    "checks": [
+      "signature",
+      "config_surface",
+      "health",
+      "payload_contracts",
+      "owners"
+    ],
     "gating_tests": [
       "tests/memoray_proxy_test.mjs",
       "tests/integration_manifest_test.mjs",
@@ -473,7 +697,7 @@
   },
   "signature": {
     "algorithm": "HMAC-SHA256",
-    "value": "733e95ca4874f706f9086442bb6f6169fbe2b98796cdf1fef94afa5c4b4066a9",
-    "signed_at": "2026-06-16T13:41:48.488Z"
+    "value": "5a7402158654df9679a3e7b82b2be46d3722969f781da377d6c511f88efd72b5",
+    "signed_at": "2026-06-27T12:05:55.412Z"
   }
 }

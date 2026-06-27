@@ -1,0 +1,5 @@
+name: Lifelog
+path: _prime_silo/lifelog
+description: A unified timeline of git commits and agent actions across all workspaces, with an activity radar that filters the feed by day.
+icon: timeline
+color: "#9caf88"

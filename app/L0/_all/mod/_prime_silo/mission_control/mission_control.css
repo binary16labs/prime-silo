@@ -1,0 +1,149 @@
+/* Phase 2 — Mission Control page styles (earth-tone memo-ray theme).
+ * Thin layout shell; the cards + radar bring their own widget styles. */
+
+.prime-silo-mc {
+  display: block;
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 1.5rem 2rem 4rem;
+}
+
+[x-cloak] {
+  display: none !important;
+}
+
+.prime-silo-mc__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.prime-silo-mc__eyebrow {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  margin: 0 0 0.4rem;
+}
+
+.prime-silo-mc__title {
+  margin: 0;
+  font-size: 1.7rem;
+  color: var(--text-primary);
+}
+
+.prime-silo-mc__live {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.prime-silo-mc__pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sage);
+  opacity: 0.5;
+}
+
+.prime-silo-mc__pulse.is-active {
+  opacity: 1;
+  animation: prime-silo-mc-pulse 0.9s ease-in-out infinite;
+}
+
+@keyframes prime-silo-mc-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.5;
+  }
+}
+
+.prime-silo-mc__muted {
+  color: var(--text-tertiary);
+}
+
+.prime-silo-mc__notice {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  background: var(--surface-raised);
+}
+
+.prime-silo-mc__notice--error {
+  border-color: var(--danger);
+}
+
+.prime-silo-mc__btn {
+  margin-top: 0.75rem;
+  background: var(--sage);
+  border: 1px solid var(--sage);
+  border-radius: var(--radius-sm);
+  color: #16201a;
+  cursor: pointer;
+  padding: 0.4rem 0.9rem;
+}
+
+.prime-silo-mc__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.prime-silo-mc__search {
+  position: relative;
+}
+
+.prime-silo-mc__search input {
+  width: 100%;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  padding: 0.7rem 1rem;
+}
+
+.prime-silo-mc__search input:focus {
+  outline: none;
+  border-color: var(--sage);
+}
+
+.prime-silo-mc__search-results {
+  position: absolute;
+  z-index: 5;
+  left: 0;
+  right: 0;
+  margin-top: 0.35rem;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.prime-silo-mc__search-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 0.55rem 0.9rem;
+}
+
+.prime-silo-mc__search-row:hover {
+  background: var(--surface-hover);
+}

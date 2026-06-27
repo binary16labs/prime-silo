@@ -15,6 +15,7 @@ const { spawn } = require("node:child_process");
 const { app, Tray, Menu, shell, nativeImage, dialog, ipcMain } = require("electron");
 const services = require("./services");
 const openStudio = require("./openstudio_services");
+const memoray = require("./memoray_service");
 
 const PROJECT_ROOT = path.resolve(__dirname, "../..");
 const LOCK_FILENAME = "apps.lock.json";
@@ -403,6 +404,20 @@ function buildMenu(options) {
         ]
       : []),
     { type: "separator" },
+    // Memo-Ray memory graph — vendored child service (MEMORAY-MERGE.md). The
+    // start/stop toggle appears only when the vendored server is present.
+    ...(memoray.memorayAvailable()
+      ? [
+          {
+            label: memoray.isMemorayRunning() ? "Stop Memo-Ray" : "Start Memo-Ray",
+            click: () => {
+              if (memoray.isMemorayRunning()) memoray.stopMemoray();
+              else memoray.startMemoray();
+              if (tray) tray.setContextMenu(buildMenu(options));
+            }
+          }
+        ]
+      : []),
     memorayUrl
       ? { label: `Memo-Ray: ${memorayUrl}`, click: () => void shell.openExternal(memorayUrl) }
       : { label: "Memo-Ray: not resolved", enabled: false },

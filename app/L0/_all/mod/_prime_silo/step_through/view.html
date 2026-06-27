@@ -1,0 +1,205 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="/mod/_prime_silo/memoray_client/memoray-theme.css" />
+    <link
+      rel="stylesheet"
+      href="/mod/_prime_silo/widgets/memoray/lineage_graph/lineage_graph.css"
+    />
+    <link rel="stylesheet" href="/mod/_prime_silo/step_through/step_through.css" />
+    <script type="module" src="/mod/_prime_silo/step_through/step_through.js"></script>
+  </head>
+  <body>
+    <section
+      class="prime-silo-st mray-theme"
+      x-data="stepThroughPage()"
+      x-init="init()"
+      x-destroy="destroy()"
+      x-cloak
+    >
+      <header class="prime-silo-st__header">
+        <p class="prime-silo-st__eyebrow">Review zone · cognitive mesh memory graph</p>
+        <h1 class="prime-silo-st__title">Step-Through Audit</h1>
+        <p class="prime-silo-st__subtitle">
+          Walk a session one action at a time — what happened, why, and the change it made — with a
+          lineage map that follows along. ←/→ or the bumpers to navigate, space to play.
+        </p>
+      </header>
+
+      <template x-if="state === 'disabled'">
+        <div class="prime-silo-st__notice">
+          <h2>Memo-Ray is disabled</h2>
+          <p>Run <code>node space set MEMORAY_ENABLED=true</code> and restart the shell.</p>
+        </div>
+      </template>
+
+      <template x-if="state === 'offline'">
+        <div class="prime-silo-st__notice">
+          <h2>Memo-Ray is offline</h2>
+          <p>Boot the memory-graph server with <code>scripts/memoray.ps1</code>, then retry.</p>
+          <button type="button" class="prime-silo-st__btn" @click="retry()">Retry</button>
+        </div>
+      </template>
+
+      <template x-if="state === 'error'">
+        <div class="prime-silo-st__notice prime-silo-st__notice--error">
+          <h2>Step-through failed to load</h2>
+          <p x-text="error"></p>
+          <button type="button" class="prime-silo-st__btn" @click="retry()">Retry</button>
+        </div>
+      </template>
+
+      <template x-if="state === 'loading'">
+        <div class="prime-silo-st__notice">
+          <p class="prime-silo-st__muted">Loading timeline…</p>
+        </div>
+      </template>
+
+      <!-- Session picker (no ?session_id deep-link) -->
+      <template x-if="state === 'picking'">
+        <div class="prime-silo-st__picker">
+          <h2>Choose a session to step through</h2>
+          <div class="prime-silo-st__picker-list">
+            <template x-for="s in sessions" :key="s.id">
+              <button type="button" class="prime-silo-st__picker-item" @click="pickSession(s.id)">
+                <span class="prime-silo-st__picker-title" x-text="s.content || 'Untitled'"></span>
+                <span class="prime-silo-st__picker-sub">
+                  <span x-text="s.agent"></span> ·
+                  <span x-text="s.metadata && s.metadata.project ? s.metadata.project : '—'"></span>
+                </span>
+              </button>
+            </template>
+            <p class="prime-silo-st__muted" x-show="sessions.length === 0">No sessions recorded.</p>
+          </div>
+        </div>
+      </template>
+
+      <template x-if="state === 'ready'">
+        <div class="prime-silo-st__player">
+          <!-- Control bar -->
+          <div class="prime-silo-st__controls">
+            <div class="prime-silo-st__toggles">
+              <button
+                type="button"
+                class="prime-silo-st__toggle"
+                :class="{ 'is-on': narrator }"
+                @click="toggleNarrator()"
+                x-text="narrator ? '🔊 Narrator on' : '🔈 Narrator off'"
+              ></button>
+              <button
+                type="button"
+                class="prime-silo-st__toggle"
+                :class="{ 'is-on': showMap }"
+                @click="toggleMap()"
+                x-text="showMap ? '🗺️ Hide map' : '🗺️ Show map'"
+              ></button>
+              <button
+                type="button"
+                class="prime-silo-st__toggle"
+                :class="{ 'is-on': tracking }"
+                x-show="showMap"
+                @click="toggleTracking()"
+                x-text="tracking ? '🎥 Tracking' : '🕊️ Free roam'"
+              ></button>
+              <button
+                type="button"
+                class="prime-silo-st__toggle"
+                x-show="showMap"
+                @click="cycleGraphMode()"
+                x-text="graphModeLabel()"
+                title="Graph layout — Auto picks free-floating for large sessions, or force Linear / Free-floating"
+              ></button>
+              <span class="prime-silo-st__progress"
+                >Step <span x-text="timeline.length ? stepIndex + 1 : 0"></span> of
+                <span x-text="timeline.length"></span
+              ></span>
+            </div>
+
+            <div class="prime-silo-st__nav">
+              <button
+                type="button"
+                class="prime-silo-st__nav-btn"
+                @click="prev()"
+                :disabled="stepIndex === 0"
+              >
+                ←
+              </button>
+              <button
+                type="button"
+                class="prime-silo-st__nav-btn prime-silo-st__play"
+                :class="{ 'is-on': isPlaying }"
+                @click="togglePlay()"
+                :disabled="stepIndex >= timeline.length - 1"
+                x-text="isPlaying ? '⏸ Pause' : '▶ Play'"
+              ></button>
+              <select
+                class="prime-silo-st__speed"
+                x-model.number="speed"
+                @change="onSpeedChange()"
+                title="Playback speed (steps per second)"
+              >
+                <option value="1">1×</option>
+                <option value="2">2×</option>
+                <option value="5">5×</option>
+                <option value="10">10×</option>
+                <option value="20">20×</option>
+              </select>
+              <button
+                type="button"
+                class="prime-silo-st__nav-btn"
+                @click="next()"
+                :disabled="stepIndex >= timeline.length - 1"
+              >
+                →
+              </button>
+            </div>
+          </div>
+
+          <!-- Milestone scrubber -->
+          <div class="prime-silo-st__milestones">
+            <template x-for="seg in milestoneSegments" :key="seg.idx">
+              <div
+                class="prime-silo-st__seg"
+                :class="segClass(seg)"
+                @click="setStep(seg.idx)"
+              ></div>
+            </template>
+          </div>
+
+          <template x-if="timeline.length === 0">
+            <p class="prime-silo-st__muted">No actions found for this session.</p>
+          </template>
+
+          <!-- Stage: action card + map -->
+          <div class="prime-silo-st__stage" :class="{ 'has-map': showMap }" x-show="timeline.length > 0">
+            <div class="prime-silo-st__card">
+              <div class="prime-silo-st__hero" x-text="heroText"></div>
+              <div class="prime-silo-st__meta" x-show="current">
+                <span
+                  class="prime-silo-st__agent"
+                  :class="current && current.agent ? current.agent.toLowerCase() : ''"
+                  x-text="current ? current.agent : ''"
+                ></span>
+                <span x-text="current ? formatTime(current.timestamp) : ''"></span>
+                <span x-show="current && current.fileName" x-text="current ? '📄 ' + current.fileName : ''"></span>
+                <span x-show="current && current.toolName" x-text="current ? '🔧 ' + current.toolName : ''"></span>
+                <button
+                  type="button"
+                  class="prime-silo-st__why-btn"
+                  x-show="current && !current.isGroup"
+                  @click="showWhy = !showWhy"
+                  x-text="showWhy ? 'Hide intent' : '🤔 Why?'"
+                ></button>
+              </div>
+              <div class="prime-silo-st__why" x-show="showWhy">
+                <strong>Intent:</strong> <span x-text="whyText"></span>
+              </div>
+              <div class="prime-silo-st__content" x-html="contentHtml()"></div>
+            </div>
+
+            <div class="prime-silo-st__map" x-ref="graph" x-show="showMap"></div>
+          </div>
+        </div>
+      </template>
+    </section>
+  </body>
+</html>

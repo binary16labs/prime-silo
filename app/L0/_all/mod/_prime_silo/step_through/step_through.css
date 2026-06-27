@@ -1,0 +1,336 @@
+/* Phase 2b (deep mode) — Step-Through Audit Player styles (earth-tone theme).
+ * Calm, focused: a large action card beside a lineage map that highlights the
+ * current step. Tokens from memoray-theme.css via .mray-theme. */
+
+.prime-silo-st {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 1.5rem 2rem;
+}
+
+[x-cloak] {
+  display: none !important;
+}
+
+.prime-silo-st__header {
+  flex: 0 0 auto;
+  margin-bottom: 1rem;
+}
+
+.prime-silo-st__eyebrow {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  margin: 0 0 0.4rem;
+}
+
+.prime-silo-st__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.7rem;
+  color: var(--text-primary);
+}
+
+.prime-silo-st__subtitle {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.prime-silo-st__muted {
+  color: var(--text-tertiary);
+}
+
+.prime-silo-st__notice {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  background: var(--surface-raised);
+}
+
+.prime-silo-st__notice--error {
+  border-color: var(--danger);
+}
+
+.prime-silo-st__btn {
+  margin-top: 0.75rem;
+  background: var(--sage);
+  border: 1px solid var(--sage);
+  border-radius: var(--radius-sm);
+  color: #16201a;
+  cursor: pointer;
+  padding: 0.4rem 0.9rem;
+}
+
+/* ── session picker ─────────────────────────────────────────── */
+.prime-silo-st__picker h2 {
+  color: var(--text-primary);
+  margin: 0 0 1rem;
+}
+
+.prime-silo-st__picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-width: 760px;
+}
+
+.prime-silo-st__picker-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  text-align: left;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 0.6rem 0.8rem;
+}
+
+.prime-silo-st__picker-item:hover {
+  border-color: var(--sage);
+}
+
+.prime-silo-st__picker-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prime-silo-st__picker-sub {
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+}
+
+/* ── player ─────────────────────────────────────────────────── */
+.prime-silo-st__player {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.prime-silo-st__controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.prime-silo-st__toggles,
+.prime-silo-st__nav {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.prime-silo-st__toggle,
+.prime-silo-st__nav-btn,
+.prime-silo-st__speed {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.82rem;
+  padding: 0.35rem 0.7rem;
+}
+
+.prime-silo-st__toggle.is-on,
+.prime-silo-st__play.is-on {
+  border-color: var(--sage);
+  color: var(--sage);
+  background: var(--sage-dim);
+}
+
+.prime-silo-st__nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.prime-silo-st__progress {
+  font-size: 0.82rem;
+  color: var(--text-tertiary);
+  margin-left: 0.5rem;
+}
+
+.prime-silo-st__play {
+  min-width: 78px;
+}
+
+/* ── milestone scrubber ─────────────────────────────────────── */
+.prime-silo-st__milestones {
+  display: flex;
+  gap: 1px;
+  height: 10px;
+  flex: 0 0 auto;
+}
+
+.prime-silo-st__seg {
+  flex: 1 1 auto;
+  min-width: 1px;
+  background: var(--surface-hover);
+  cursor: pointer;
+  border-radius: 1px;
+}
+
+.prime-silo-st__seg.past {
+  background: var(--moss);
+}
+
+.prime-silo-st__seg.is-milestone {
+  background: var(--golden);
+}
+
+.prime-silo-st__seg.active {
+  background: var(--text-primary);
+  transform: scaleY(1.6);
+}
+
+/* ── stage ──────────────────────────────────────────────────── */
+.prime-silo-st__stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.prime-silo-st__stage.has-map {
+  grid-template-columns: minmax(420px, 1fr) 1fr;
+}
+
+.prime-silo-st__card {
+  min-height: 0;
+  overflow-y: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  padding: 1.25rem 1.5rem;
+}
+
+.prime-silo-st__hero {
+  font-size: 1.3rem;
+  line-height: 1.4;
+  color: var(--text-primary);
+  margin-bottom: 0.9rem;
+}
+
+.prime-silo-st__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.82rem;
+  color: var(--text-tertiary);
+  margin-bottom: 0.6rem;
+}
+
+.prime-silo-st__agent {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.prime-silo-st__agent.claude {
+  color: var(--golden);
+}
+.prime-silo-st__agent.antigravity {
+  color: var(--slate);
+}
+
+.prime-silo-st__why-btn {
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.76rem;
+  padding: 0.15rem 0.5rem;
+}
+
+.prime-silo-st__why {
+  background: var(--sage-dim);
+  border-left: 3px solid var(--sage);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.8rem;
+  margin-bottom: 0.8rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.prime-silo-st__content {
+  font-size: 0.85rem;
+}
+
+.prime-silo-st__content pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--surface-sunken);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem;
+  color: var(--text-secondary);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  max-height: 50vh;
+  overflow: auto;
+}
+
+.prime-silo-st__group {
+  text-align: center;
+  color: var(--text-tertiary);
+  padding: 1rem;
+}
+
+/* diff */
+.prime-silo-st__diff {
+  background: var(--surface-sunken);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.8rem;
+  max-height: 50vh;
+  overflow: auto;
+}
+
+.prime-silo-st__diff-chunk + .prime-silo-st__diff-chunk {
+  margin-top: 0.6rem;
+  border-top: 1px dashed var(--border-default);
+  padding-top: 0.6rem;
+}
+
+.prime-silo-st__diff-line {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.prime-silo-st__diff-line.removed {
+  color: var(--rust);
+  background: var(--rust-dim);
+}
+.prime-silo-st__diff-line.added {
+  color: var(--moss);
+  background: var(--moss-dim);
+}
+
+/* ── map ────────────────────────────────────────────────────── */
+.prime-silo-st__map {
+  position: relative; /* force renderer mounts an inset:0 absolute canvas layer */
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+}
+
+/* current-step highlight on the reused lineage_graph nodes */
+.prime-silo-st .mray-lg__node.is-current circle,
+.prime-silo-st .mray-lg__node.is-current rect {
+  stroke: var(--golden);
+  stroke-width: 3;
+}
+
+.prime-silo-st .mray-lg__node.is-current text {
+  fill: var(--golden);
+  font-weight: 600;
+}

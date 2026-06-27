@@ -13,6 +13,12 @@ const {
 } = require("./tray");
 const { toggleDesktopPet, destroyDesktopPet, isDesktopPetVisible } = require("./pet");
 const { stopAllOpenStudioServices } = require("./openstudio_services");
+const {
+  startMemoray,
+  stopMemoray,
+  isMemorayRunning,
+  memorayAvailable
+} = require("./memoray_service");
 const { seedSelfAwareness } = require("./self_awareness");
 const { createRuntimeSupervisor } = require("./runtime_supervisor");
 const {
@@ -1053,6 +1059,12 @@ function prepareDesktopForQuit() {
   // stack alone (it may be shared / long-lived).
   try {
     stopAllOpenStudioServices();
+  } catch {
+    /* best-effort */
+  }
+  // Stop the vendored Memo-Ray child we started at launch (MEMORAY-MERGE.md).
+  try {
+    stopMemoray();
   } catch {
     /* best-effort */
   }
@@ -2242,6 +2254,18 @@ async function startDesktop() {
       }
     })
     .catch((error) => console.warn("[runtime] supervisor start failed:", error?.message || error));
+
+  // Memo-Ray memory graph (MEMORAY-MERGE.md — Phase 1). Vendored at memoray/server
+  // and started as a child here so the desktop app is a single application. The
+  // shell proxy already points at it via apps.lock.json. Best-effort: no-ops when
+  // the vendored server is absent, never blocks the UI.
+  try {
+    if (startMemoray()) {
+      console.log("[Memo-Ray] memory-graph server started.");
+    }
+  } catch (error) {
+    console.warn("[Memo-Ray] start failed:", error?.message || error);
+  }
 
   createWindow();
   createDesktopTray({

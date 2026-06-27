@@ -598,11 +598,36 @@ export function createForceGraph2DRenderer(options = {}) {
         )}</div>`;
       });
 
+    // Camera-track the highlighted node: when props.track is set, pan the
+    // viewport to the first highlighted node (used by the Step-Through player so
+    // the free-floating graph follows the current step). Best-effort — positions
+    // may not be settled yet on the first frames, so we retry briefly.
+    function maybeCenterOnHighlight() {
+      const p = state.pending && state.pending.props;
+      if (!p || !p.track || !state.instance) return;
+      const ids = highlightIdsFromProps(p);
+      if (!ids.length) return;
+      const tryCenter = () => {
+        if (state.disposed || !state.instance) return false;
+        const gd = typeof state.instance.graphData === "function" ? state.instance.graphData() : null;
+        const node = gd && gd.nodes.find((n) => ids.includes(String(n.id)));
+        if (node && typeof node.x === "number" && typeof state.instance.centerAt === "function") {
+          state.instance.centerAt(node.x, node.y, 600);
+          return true;
+        }
+        return false;
+      };
+      if (!tryCenter()) {
+        for (const delay of [120, 400, 900]) setTimeout(tryCenter, delay);
+      }
+    }
+
     return {
       update(nextLayout, nextProps) {
         state.pending = { layout: nextLayout, props: nextProps };
         applyData();
         scheduleResize();
+        maybeCenterOnHighlight();
       },
       dispose() {
         state.disposed = true;

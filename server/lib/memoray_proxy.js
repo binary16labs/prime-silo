@@ -51,9 +51,15 @@ const DEFAULT_MEMORAY_ENABLED = true;
 
 const CONFIG_MANIFEST_FILENAME = "prime-silo.config.json";
 
-// Memo-Ray's only mutating endpoint the shell is allowed to reach. Opening
-// a file is lineage-validated upstream; nothing else may POST through.
-const POST_PATH_WHITELIST = new Set(["/files/open"]);
+// Memo-Ray's mutating endpoints the shell is allowed to reach.
+//   /files/open   — open a lineage-indexed file (validated upstream).
+//   /setup/save   — persist the memory-graph scan paths from the native Setup
+//                   page (MEMORAY-MERGE.md Phase 2c); writes ~/.memoray config.
+//   /open-folder  — reveal a configured scan directory in the OS file manager,
+//                   used by the Setup page's "Open" buttons.
+// All are same-origin/localhost only (memo-ray's CORS is localhost-only and the
+// proxy carries no Origin). Declared in memoray.integration.json + re-signed.
+const POST_PATH_WHITELIST = new Set(["/files/open", "/setup/save", "/open-folder"]);
 
 const BOOT_HINT =
   "Memo-Ray is not running. Boot it with scripts/memoray.ps1 (or scripts/memoray.sh), or point MEMORAY_BASE_URL at a running instance.";

@@ -1,0 +1,5 @@
+name: Mission Control
+path: _prime_silo/mission_control
+description: The Command Center — live ecosystem rollup, system resources and capabilities, the file-memory heatmap, activity radar, and an omnibar across sessions, files, and actions.
+icon: dashboard
+color: "#8b9c8b"

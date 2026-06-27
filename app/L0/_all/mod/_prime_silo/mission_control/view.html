@@ -1,0 +1,96 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="/mod/_prime_silo/memoray_client/memoray-theme.css" />
+    <link
+      rel="stylesheet"
+      href="/mod/_prime_silo/widgets/memoray/overview_cards/overview_cards.css"
+    />
+    <link
+      rel="stylesheet"
+      href="/mod/_prime_silo/widgets/memoray/heatmap_radar/heatmap_radar.css"
+    />
+    <link rel="stylesheet" href="/mod/_prime_silo/mission_control/mission_control.css" />
+    <script type="module" src="/mod/_prime_silo/mission_control/mission_control.js"></script>
+  </head>
+  <body>
+    <section
+      class="prime-silo-mc mray-theme"
+      x-data="missionControlPage()"
+      x-init="init()"
+      x-destroy="destroy()"
+      x-cloak
+    >
+      <header class="prime-silo-mc__header">
+        <div class="prime-silo-mc__heading">
+          <p class="prime-silo-mc__eyebrow">Review zone · cognitive mesh memory graph</p>
+          <h1 class="prime-silo-mc__title">Mission Control</h1>
+        </div>
+        <div class="prime-silo-mc__live" x-show="state === 'ready'">
+          <span class="prime-silo-mc__pulse" :class="{ 'is-active': liveSyncing }"></span>
+          <span x-text="liveSyncing ? 'Syncing…' : 'Live'"></span>
+        </div>
+      </header>
+
+      <template x-if="state === 'disabled'">
+        <div class="prime-silo-mc__notice">
+          <h2>Memo-Ray is disabled</h2>
+          <p>Run <code>node space set MEMORAY_ENABLED=true</code> and restart the shell.</p>
+        </div>
+      </template>
+
+      <template x-if="state === 'offline'">
+        <div class="prime-silo-mc__notice">
+          <h2>Memo-Ray is offline</h2>
+          <p>Boot the memory-graph server with <code>scripts/memoray.ps1</code>, then retry.</p>
+          <button type="button" class="prime-silo-mc__btn" @click="retry()">Retry</button>
+        </div>
+      </template>
+
+      <template x-if="state === 'error'">
+        <div class="prime-silo-mc__notice prime-silo-mc__notice--error">
+          <h2>Mission Control failed to load</h2>
+          <p x-text="error"></p>
+          <button type="button" class="prime-silo-mc__btn" @click="retry()">Retry</button>
+        </div>
+      </template>
+
+      <template x-if="state === 'loading'">
+        <div class="prime-silo-mc__notice">
+          <p class="prime-silo-mc__muted">Initializing Command Center…</p>
+        </div>
+      </template>
+
+      <template x-if="state === 'ready'">
+        <div class="prime-silo-mc__body">
+          <!-- Omnibar -->
+          <div class="prime-silo-mc__search">
+            <input
+              type="search"
+              placeholder="Search sessions, files, actions…"
+              x-model="searchQuery"
+              @input.debounce.300ms="runSearch()"
+              aria-label="Search the memory graph"
+            />
+            <div
+              class="prime-silo-mc__search-results"
+              x-show="searchResults && searchResults.sessions && searchResults.sessions.length"
+            >
+              <template x-for="s in (searchResults ? searchResults.sessions : [])" :key="s.id">
+                <button type="button" class="prime-silo-mc__search-row" @click="openSession(s.id)">
+                  <span x-text="s.title || s.content || 'Untitled'"></span>
+                  <span class="prime-silo-mc__muted" x-text="`${s.nodes || 0} nodes`"></span>
+                </button>
+              </template>
+            </div>
+          </div>
+
+          <!-- Activity radar -->
+          <div class="prime-silo-mc__radar" x-ref="radar"></div>
+
+          <!-- Command Center cards -->
+          <div class="prime-silo-mc__cards" x-ref="cards"></div>
+        </div>
+      </template>
+    </section>
+  </body>
+</html>

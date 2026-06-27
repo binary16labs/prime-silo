@@ -1,0 +1,141 @@
+/* Phase 2 — memoray.heatmap_radar widget styles.
+ * Activity Radar: stat cards + a 365-day GitHub-style calendar heatmap.
+ * Uses the shell's design tokens so it themes with the rest of the cockpit. */
+
+.mray-hr {
+  display: block;
+}
+
+.mray-hr__state {
+  padding: 1rem 0;
+}
+
+.mray-hr__loading,
+.mray-hr__muted {
+  color: var(--text-tertiary, #8a8f98);
+  font-size: 0.9rem;
+}
+
+.mray-hr__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.mray-hr__title {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: var(--text-primary, #e8e8e8);
+}
+
+.mray-hr__toggle {
+  background: transparent;
+  border: 1px solid var(--border-subtle, #2a2a2a);
+  border-radius: var(--radius-sm, 6px);
+  color: var(--text-secondary, #b8b8b8);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0.2rem 0.6rem;
+}
+
+.mray-hr__toggle:hover {
+  border-color: var(--border-strong, #444);
+}
+
+.mray-hr__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.mray-hr__stat {
+  background: var(--surface-raised, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border-subtle, #2a2a2a);
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.6rem 0.75rem;
+}
+
+.mray-hr__stat-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary, #8a8f98);
+}
+
+.mray-hr__stat-value {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text-primary, #e8e8e8);
+  margin-top: 0.2rem;
+}
+
+.mray-hr__stat-value--sm {
+  font-size: 1rem;
+  margin-top: 0.35rem;
+}
+
+.mray-hr__grid-wrap {
+  position: relative;
+}
+
+/* 53 weeks across, 7 days down, filled column-major like GitHub's graph. */
+.mray-hr__grid {
+  display: grid;
+  grid-template-rows: repeat(7, 1fr);
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 3px;
+}
+
+.mray-hr__cell {
+  aspect-ratio: 1 / 1;
+  border-radius: 2px;
+  cursor: pointer;
+  background: var(--heat-0, rgba(255, 255, 255, 0.05));
+}
+
+.mray-hr__cell.level-0 {
+  background: var(--heat-0, rgba(255, 255, 255, 0.05));
+}
+.mray-hr__cell.level-1 {
+  background: var(--heat-1, #1e3a2f);
+}
+.mray-hr__cell.level-2 {
+  background: var(--heat-2, #2f6b4f);
+}
+.mray-hr__cell.level-3 {
+  background: var(--heat-3, #4f9e74);
+}
+.mray-hr__cell.level-4 {
+  background: var(--heat-4, #9caf88);
+}
+
+.mray-hr__cell.selected {
+  outline: 2px solid var(--accent, #9caf88);
+  outline-offset: 1px;
+}
+
+.mray-hr__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary, #b8b8b8);
+  background: var(--surface-raised, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border-subtle, #2a2a2a);
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+}
+
+.mray-hr__pill-clear {
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary, #8a8f98);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}

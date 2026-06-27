@@ -1,0 +1,121 @@
+/* Memo-Ray theme — shared, scoped (MEMORAY-MERGE.md Phase 2).
+ *
+ * The memo-ray palette was chosen deliberately: earth tones, dyslexia/ADHD-
+ * friendly (muted contrast instead of harsh black-on-white, calm green canvas,
+ * roomy line-height + letter-spacing, light font weights), with Anthropic-style
+ * restraint and elegance. The prime-silo shell otherwise imposes its own tokens
+ * on embedded pages, which washes this out — so every native memo-ray screen
+ * opts INTO this theme by adding the `mray-theme` class to its root element and
+ * linking this file. The tokens are scoped to `.mray-theme`, so they re-bind both
+ * memo-ray's own variable names (--sage, --bg-deep, …) AND the generic token
+ * names the widgets/pages use (--text-primary, --surface-raised, --accent, …),
+ * overriding the shell within the memo-ray page subtree only — the rest of the
+ * cockpit is untouched.
+ *
+ * Source of truth: memo-ray/agent-os-dashboard/client/src/index.css :root.
+ * Canonical project palette: framework/css/colors.css (same earth-tone family).
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap");
+
+.mray-theme {
+  /* ── Earth-tone canvas ───────────────────────────────────────── */
+  --bg-deep: #151816;
+  --bg-base: #1a1d1b;
+  --bg-surface: #222624;
+  --bg-elevated: #2a2e2c;
+  --bg-hover: #323634;
+
+  /* ── Organic accent palette ──────────────────────────────────── */
+  --sage: #8b9c8b;
+  --sage-dim: rgba(139, 156, 139, 0.15);
+  --moss: #6a8a6a;
+  --moss-dim: rgba(106, 138, 106, 0.15);
+  --taupe: #b8a898;
+  --taupe-dim: rgba(184, 168, 152, 0.12);
+  --slate: #8a9aa4;
+  --slate-dim: rgba(138, 154, 164, 0.12);
+  --golden: #c4a882;
+  --golden-dim: rgba(196, 168, 130, 0.12);
+  --rust: #c47a6a;
+  --rust-dim: rgba(196, 122, 106, 0.12);
+
+  /* ── Radii + motion ──────────────────────────────────────────── */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --font: "Inter", -apple-system, system-ui, sans-serif;
+  --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── Re-bind the generic shell token names the widgets/pages use,
+   *    so the memo-ray palette wins inside this subtree. ─────────── */
+  --text-primary: #e8ece9;
+  --text-secondary: #a4b3a8;
+  --text-tertiary: #6b7c70;
+
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.08);
+  --border-emphasis: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.12);
+
+  --surface-raised: var(--bg-surface);
+  --surface-hover: var(--bg-hover);
+  --surface-sunken: var(--bg-base);
+
+  --accent: var(--sage);
+  --accent-golden: var(--golden);
+  --accent-slate: var(--slate);
+  --accent-taupe: var(--taupe);
+  --danger: var(--rust);
+
+  /* Activity-radar heat ramp — a calm sage/moss progression, not a
+     traffic-light scale, so intensity reads without alarming contrast. */
+  --heat-0: rgba(255, 255, 255, 0.04);
+  --heat-1: rgba(106, 138, 106, 0.28);
+  --heat-2: #4a6a4f;
+  --heat-3: var(--moss);
+  --heat-4: var(--sage);
+
+  /* ── Readability baseline (dyslexia / ADHD friendly) ─────────── */
+  color: var(--text-primary);
+  background: var(--bg-base);
+  font-family: var(--font);
+  font-weight: 400;
+  line-height: 1.65;
+  letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Calm, light headings with tight tracking — Anthropic-style restraint. */
+.mray-theme h1,
+.mray-theme h2,
+.mray-theme h3,
+.mray-theme h4 {
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+/* Comfortable measure: cap body copy line length so long text stays scannable
+   for dyslexic / ADHD readers. */
+.mray-theme p {
+  max-width: 72ch;
+}
+
+/* Quiet, earth-tone scrollbars to match the canvas. */
+.mray-theme ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.mray-theme ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.mray-theme ::-webkit-scrollbar-thumb {
+  background: var(--border-emphasis);
+  border-radius: 3px;
+}
+.mray-theme ::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}

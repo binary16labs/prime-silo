@@ -70,8 +70,7 @@ if ($shellOwner) {
 # Soft warnings for the other services this script is about to start.
 foreach ($svc in @(
     @{ Port = 8005; Label = "Benny runtime" },
-    @{ Port = 3030; Label = "Memo-Ray server" },
-    @{ Port = 5175; Label = "Memo-Ray client" }
+    @{ Port = 3030; Label = "Memo-Ray server" }
 )) {
     $owner = Get-PortOwner $svc.Port
     if ($owner) {
@@ -124,24 +123,26 @@ $shell = Start-Process `
 Write-Host "  runtime PID = $($runtime.Id)"
 Write-Host "  shell   PID = $($shell.Id)"
 
-# Memo-Ray memory graph (Phase M1) - auto-boot when enabled and the checkout
-# exists, so the in-shell page at #/_prime_silo/memory works from one command.
+# Memo-Ray memory graph - auto-boot when enabled, so the in-shell page at
+# #/_prime_silo/memory works from one command. memo-ray is now VENDORED into
+# prime-silo at memoray/server (MEMORAY-MERGE.md), so there is nothing to clone.
 # The shell proxies /api/memoray to the server on the registry-resolved port
-# (default :3030); the Vite client (:5175) backs the page's "Zen mode" link-out.
-# MEMORAY_ENABLED=false skips both.
+# (default :3030). MEMORAY_ENABLED=false skips it. MEMORAY_DIR overrides to an
+# external checkout (vendored `<dir>/server` or upstream
+# `<dir>/agent-os-dashboard/server` layouts are both auto-detected).
 $procs = @($runtime, $shell)
 if ($env:MEMORAY_ENABLED -ne "false") {
-    $memorayDir = if ($env:MEMORAY_DIR) { $env:MEMORAY_DIR } else { Join-Path (Split-Path -Parent $root) "memo-ray" }
-    $memorayServerDir = Join-Path $memorayDir "agent-os-dashboard\server"
-    $memorayClientDir = Join-Path $memorayDir "agent-os-dashboard\client"
+    $memorayDir = if ($env:MEMORAY_DIR) { $env:MEMORAY_DIR } else { Join-Path $root "memoray" }
+    $memorayServerDir = Join-Path $memorayDir "server"
+    if (-not (Test-Path $memorayServerDir)) {
+        $memorayServerDir = Join-Path $memorayDir "agent-os-dashboard\server"
+    }
     if (Test-Path $memorayServerDir) {
-        foreach ($dir in @($memorayServerDir, $memorayClientDir)) {
-            if ((Test-Path $dir) -and -not (Test-Path (Join-Path $dir "node_modules"))) {
-                Write-Host "> npm install ($dir)"
-                Push-Location $dir
-                npm install
-                Pop-Location
-            }
+        if (-not (Test-Path (Join-Path $memorayServerDir "node_modules"))) {
+            Write-Host "> npm install ($memorayServerDir)"
+            Push-Location $memorayServerDir
+            npm install
+            Pop-Location
         }
         # Resolve ports through the app registry (writes apps.lock.json); both the
         # memo-ray server and the prime-silo proxy read the lock, so they agree.
@@ -156,23 +157,9 @@ if ($env:MEMORAY_ENABLED -ne "false") {
             -NoNewWindow
         $procs += $memorayServer
         Write-Host "  memoray server PID = $($memorayServer.Id) (registry-resolved port - page at /#/_prime_silo/memory)"
-
-        # Client (:5175) - backs the "Zen mode" link. Optional: if the client
-        # dir is missing we still have the in-shell page, just no zen link.
-        if (Test-Path $memorayClientDir) {
-            $npmExec = if ($IsWindows -or $env:OS -match "Windows") { "npm.cmd" } else { "npm" }
-            $memorayClient = Start-Process `
-                -FilePath $npmExec `
-                -ArgumentList "run","dev" `
-                -WorkingDirectory $memorayClientDir `
-                -PassThru `
-                -NoNewWindow
-            $procs += $memorayClient
-            Write-Host "  memoray client PID = $($memorayClient.Id) (:5175 - Zen mode)"
-        }
     } else {
-        Write-Host "  memo-ray not found at '$memorayDir' - memory page will show an offline screen."
-        Write-Host "  Clone https://github.com/binary16labs/memo-ray beside prime-silo (or set MEMORAY_DIR), then run scripts/memoray.ps1."
+        Write-Host "  memo-ray server not found at '$memorayServerDir' - memory page will show an offline screen."
+        Write-Host "  It is vendored at prime-silo/memoray; set MEMORAY_DIR to use an external checkout."
     }
 }
 

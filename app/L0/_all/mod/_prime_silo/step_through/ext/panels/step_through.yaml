@@ -1,0 +1,5 @@
+name: Step-Through
+path: _prime_silo/step_through
+description: Replay a session one action at a time — what happened, why, and the change it made — with playback, narration, and a lineage map that follows the current step.
+icon: smart_display
+color: "#c4a882"

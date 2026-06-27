@@ -1,0 +1,111 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="/mod/_prime_silo/memoray_client/memoray-theme.css" />
+    <link
+      rel="stylesheet"
+      href="/mod/_prime_silo/widgets/memoray/heatmap_radar/heatmap_radar.css"
+    />
+    <link rel="stylesheet" href="/mod/_prime_silo/lifelog/lifelog.css" />
+    <script type="module" src="/mod/_prime_silo/lifelog/lifelog.js"></script>
+  </head>
+  <body>
+    <section
+      class="prime-silo-lifelog mray-theme"
+      x-data="lifelogPage()"
+      x-init="init()"
+      x-destroy="destroy()"
+      x-cloak
+    >
+      <header class="prime-silo-lifelog__header">
+        <p class="prime-silo-lifelog__eyebrow">Review zone · cognitive mesh memory graph</p>
+        <h1 class="prime-silo-lifelog__title">Agent Lifelog</h1>
+        <p class="prime-silo-lifelog__subtitle">
+          A unified timeline of git commits and agent actions across all workspaces. Click a session
+          or artifact to jump into its lineage.
+        </p>
+      </header>
+
+      <!-- Disabled / offline / error first-class screens -->
+      <template x-if="state === 'disabled'">
+        <div class="prime-silo-lifelog__notice">
+          <h2>Memo-Ray is disabled</h2>
+          <p>
+            Enable the memory graph in the configuration wizard, or run
+            <code>node space set MEMORAY_ENABLED=true</code> and restart the shell.
+          </p>
+        </div>
+      </template>
+
+      <template x-if="state === 'offline'">
+        <div class="prime-silo-lifelog__notice">
+          <h2>Memo-Ray is offline</h2>
+          <p>The memory-graph server isn't answering on its configured endpoint. Boot it with:</p>
+          <pre><code># Windows
+.\scripts\memoray.ps1
+
+# macOS / Linux
+./scripts/memoray.sh</code></pre>
+          <button type="button" class="prime-silo-lifelog__btn" @click="retry()">Retry</button>
+        </div>
+      </template>
+
+      <template x-if="state === 'error'">
+        <div class="prime-silo-lifelog__notice prime-silo-lifelog__notice--error">
+          <h2>Lifelog failed to load</h2>
+          <p x-text="error"></p>
+          <button type="button" class="prime-silo-lifelog__btn" @click="retry()">Retry</button>
+        </div>
+      </template>
+
+      <template x-if="state === 'loading'">
+        <div class="prime-silo-lifelog__notice">
+          <p class="prime-silo-lifelog__muted">Gathering lifelog…</p>
+        </div>
+      </template>
+
+      <template x-if="state === 'ready'">
+        <div class="prime-silo-lifelog__body">
+          <!-- Activity radar (heatmap widget) -->
+          <div class="prime-silo-lifelog__radar" x-ref="heatmap"></div>
+
+          <!-- Feed -->
+          <div class="prime-silo-lifelog__feed">
+            <template x-for="item in filteredItems" :key="item.id">
+              <div
+                class="prime-silo-lifelog__post"
+                :class="{
+                  'is-teleportable': isTeleportable(item),
+                  [`type-${item.type}`]: true
+                }"
+                :style="isTeleportable(item) ? 'cursor:pointer' : 'cursor:default'"
+                @click="teleport(item)"
+              >
+                <div class="prime-silo-lifelog__avatar" :data-kind="avatarKind(item)">
+                  <span x-show="avatarKind(item) === 'commit'">📦</span>
+                  <span x-show="avatarKind(item) === 'artifact'">📄</span>
+                  <span x-show="avatarKind(item) === 'claude'" class="is-claude">C</span>
+                  <span x-show="avatarKind(item) === 'antigravity'" class="is-anti">A</span>
+                </div>
+                <div class="prime-silo-lifelog__content">
+                  <div class="prime-silo-lifelog__meta">
+                    <span class="prime-silo-lifelog__agent" x-text="primaryName(item)"></span>
+                    <span class="prime-silo-lifelog__project" x-text="item.project"></span>
+                    <span
+                      class="prime-silo-lifelog__time"
+                      x-text="formatTime(item.timestamp)"
+                    ></span>
+                  </div>
+                  <div class="prime-silo-lifelog__text" x-text="item.content"></div>
+                </div>
+              </div>
+            </template>
+
+            <p class="prime-silo-lifelog__muted" x-show="filteredItems.length === 0">
+              No lifelog events found for this filter.
+            </p>
+          </div>
+        </div>
+      </template>
+    </section>
+  </body>
+</html>

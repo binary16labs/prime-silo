@@ -1,0 +1,207 @@
+/* Phase 2 — Session Graph page styles (earth-tone memo-ray theme).
+ * Full-height three-pane explorer: sessions | graph canvas | inspector. */
+
+.prime-silo-sg {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 1.5rem 2rem;
+}
+
+[x-cloak] {
+  display: none !important;
+}
+
+.prime-silo-sg__header {
+  margin-bottom: 1rem;
+  flex: 0 0 auto;
+}
+
+.prime-silo-sg__eyebrow {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  margin: 0 0 0.4rem;
+}
+
+.prime-silo-sg__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.7rem;
+  color: var(--text-primary);
+}
+
+.prime-silo-sg__subtitle {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.prime-silo-sg__muted {
+  color: var(--text-tertiary);
+}
+
+.prime-silo-sg__notice {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  background: var(--surface-raised);
+}
+
+.prime-silo-sg__notice--error {
+  border-color: var(--danger);
+}
+
+.prime-silo-sg__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 1rem;
+}
+
+.prime-silo-sg__body:has(.prime-silo-sg__inspector[style*="display: block"]),
+.prime-silo-sg__body:has(.prime-silo-sg__inspector:not([style*="display: none"])) {
+  grid-template-columns: 280px 1fr 320px;
+}
+
+.prime-silo-sg__sessions {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  padding: 0.75rem;
+}
+
+.prime-silo-sg__filter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.6rem;
+}
+
+.prime-silo-sg__filter select {
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 0.25rem 0.4rem;
+}
+
+.prime-silo-sg__session-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.prime-silo-sg__session-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 0.5rem 0.6rem;
+}
+
+.prime-silo-sg__session-item:hover {
+  background: var(--surface-hover);
+}
+
+.prime-silo-sg__session-item.is-active {
+  border-color: var(--sage);
+  background: var(--sage-dim);
+}
+
+.prime-silo-sg__session-title {
+  font-size: 0.88rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prime-silo-sg__session-sub {
+  font-size: 0.74rem;
+  color: var(--text-tertiary);
+}
+
+.prime-silo-sg__graph {
+  min-height: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+
+.prime-silo-sg__inspector {
+  min-height: 0;
+  overflow-y: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  padding: 1rem;
+}
+
+.prime-silo-sg__inspector h3 {
+  margin: 0 0 0.6rem;
+  color: var(--text-primary);
+}
+
+.prime-silo-sg__inspector dt {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  margin-top: 0.5rem;
+}
+
+.prime-silo-sg__inspector dd {
+  margin: 0.1rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.prime-silo-sg__open {
+  margin-left: 0.5rem;
+  background: var(--sage-dim);
+  border: 1px solid var(--sage);
+  border-radius: var(--radius-sm);
+  color: var(--sage);
+  cursor: pointer;
+  font-size: 0.72rem;
+  padding: 0.1rem 0.5rem;
+}
+
+.prime-silo-sg__content {
+  margin-top: 0.75rem;
+  padding: 0.6rem;
+  background: var(--surface-sunken);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 40vh;
+  overflow: auto;
+}
+
+.prime-silo-sg__btn {
+  margin-top: 0.75rem;
+  background: var(--sage);
+  border: 1px solid var(--sage);
+  border-radius: var(--radius-sm);
+  color: #16201a;
+  cursor: pointer;
+  padding: 0.4rem 0.9rem;
+}

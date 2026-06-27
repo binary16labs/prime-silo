@@ -32,6 +32,13 @@ archive/
 prime-silo-core/
 
 
+# Vendored memo-ray child service (MEMORAY-MERGE.md). Source is committed under
+# memoray/; its node_modules are covered by the top-level `node_modules` rule and
+# are reinstalled by scripts/memoray.ps1 / the desktop build, never committed.
+# The entity store is per-user runtime data (canonical: ~/.memoray/data) — the
+# in-repo copy that came along in the vendor snapshot is not source.
+/memoray/server/data/
+
 # App-registry generated port lockfile (machine-local; never committed).
 # The descriptors (app.manifest.json) and registry are source; the lock is not.
 apps.lock.json

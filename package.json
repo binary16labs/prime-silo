@@ -62,6 +62,7 @@
       "!app/L2/**/*",
       "commands/**/*",
       "server/**/*",
+      "scripts/**/*",
       "packaging/desktop/**/*",
       "packaging/self-awareness/**/*",
       "packaging/platforms/windows/icon.ico",
@@ -72,6 +73,17 @@
       "app": ".",
       "buildResources": "packaging/resources"
     },
+    "extraResources": [
+      {
+        "from": "memoray/server",
+        "to": "memoray/server",
+        "filter": ["**/*", "!data/**", "!node_modules/**", "!**/*.log"]
+      },
+      {
+        "from": "memoray/server/node_modules",
+        "to": "memoray/server/node_modules"
+      }
+    ],
     "mac": {
       "icon": "packaging/resources/icons/source/space-agent-icon.png",
       "category": "public.app-category.developer-tools",

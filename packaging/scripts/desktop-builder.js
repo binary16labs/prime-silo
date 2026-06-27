@@ -2,6 +2,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const { spawnSync } = require("node:child_process");
 const { PROJECT_ROOT, loadPackagingDependency, resolvePackagingDependency } = require("./tooling");
 const { resolveDesktopBuildVersion } = require("./release-version");
 const { buildSelfAwarenessBundle } = require("./build-self-awareness");
@@ -13,6 +14,33 @@ const ELECTRON_DIST_PATH = path.join(
   path.dirname(resolvePackagingDependency("electron/package.json")),
   "dist"
 );
+
+// Zero-install Memo-Ray (MEMORAY-MERGE.md Phase 4): the vendored memory-graph
+// server ships via `extraResources` and runs under Electron-as-node (no separate
+// Node install). Its node_modules are gitignored, so on a clean CI clone they
+// must be installed before electron-builder copies the folder — otherwise the
+// shipped server can't `require('express')`. Idempotent: skips when present.
+function ensureMemorayServerDeps() {
+  const serverDir = path.join(PROJECT_ROOT, "memoray", "server");
+  if (!fs.existsSync(path.join(serverDir, "index.js"))) {
+    return; // memo-ray not vendored in this checkout — nothing to bundle.
+  }
+  if (fs.existsSync(path.join(serverDir, "node_modules"))) {
+    return; // already installed (vendored or a prior build).
+  }
+  console.log("Installing vendored Memo-Ray server dependencies for the bundle…");
+  const npm = process.platform === "win32" ? "npm.cmd" : "npm";
+  const result = spawnSync(npm, ["install", "--omit=dev", "--no-audit", "--no-fund"], {
+    cwd: serverDir,
+    stdio: "inherit"
+  });
+  if (result.status !== 0) {
+    throw new Error(
+      `Failed to install Memo-Ray server dependencies (npm exited ${result.status}). ` +
+        `The packaged app would ship a non-bootable memory-graph server.`
+    );
+  }
+}
 
 const PLATFORM_SPECS = {
   macos: {
@@ -537,6 +565,9 @@ async function runDesktopPackaging(platformKey, argv = process.argv.slice(2)) {
   // separate release asset (see packaging/scripts/pack-runtime-bundle.js) and the
   // app downloads + extracts it into userData on first launch
   // (packaging/desktop/runtime_fetch.js). Keeping the installer small + reliable.
+
+  // Ensure the vendored Memo-Ray server can boot from the bundle (zero-install).
+  ensureMemorayServerDeps();
 
   console.log(`Packaging Space Agent for ${platformSpec.label}...`);
 

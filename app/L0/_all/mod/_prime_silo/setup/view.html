@@ -1,0 +1,210 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="/mod/_prime_silo/memoray_client/memoray-theme.css" />
+    <link rel="stylesheet" href="/mod/_prime_silo/setup/setup.css" />
+    <script type="module" src="/mod/_prime_silo/setup/setup.js"></script>
+  </head>
+  <body>
+    <section
+      class="prime-silo-setup mray-theme"
+      x-data="setupPage()"
+      x-init="init()"
+      x-cloak
+    >
+      <header class="prime-silo-setup__header">
+        <p class="prime-silo-setup__eyebrow">Review zone · cognitive mesh memory graph</p>
+        <h1 class="prime-silo-setup__title">Memory Graph Setup</h1>
+        <p class="prime-silo-setup__subtitle">
+          Configure where the memory graph scans for agent activity. Verify the paths below; saved
+          paths are written to your <code>~/.memoray</code> config.
+        </p>
+      </header>
+
+      <template x-if="state === 'disabled'">
+        <div class="prime-silo-setup__notice">
+          <h2>Memo-Ray is disabled</h2>
+          <p>Run <code>node space set MEMORAY_ENABLED=true</code> and restart the shell.</p>
+        </div>
+      </template>
+
+      <template x-if="state === 'offline'">
+        <div class="prime-silo-setup__notice">
+          <h2>Memo-Ray is offline</h2>
+          <p>Boot the memory-graph server with <code>scripts/memoray.ps1</code>, then retry.</p>
+          <button type="button" class="prime-silo-setup__btn" @click="retry()">Retry</button>
+        </div>
+      </template>
+
+      <template x-if="state === 'error'">
+        <div class="prime-silo-setup__notice prime-silo-setup__notice--error">
+          <h2>Setup failed to load</h2>
+          <p x-text="error"></p>
+          <button type="button" class="prime-silo-setup__btn" @click="retry()">Retry</button>
+        </div>
+      </template>
+
+      <template x-if="state === 'loading'">
+        <div class="prime-silo-setup__notice">
+          <p class="prime-silo-setup__muted">Analyzing workspace lineage…</p>
+        </div>
+      </template>
+
+      <template x-if="state === 'ready'">
+        <form class="prime-silo-setup__form" @submit.prevent="save()">
+          <div class="prime-silo-setup__grid">
+            <template x-for="field in fields" :key="field.key">
+              <div
+                class="prime-silo-setup__card"
+                :class="info(field.key).exists ? 'is-valid' : 'is-invalid'"
+              >
+                <div class="prime-silo-setup__card-head">
+                  <label class="prime-silo-setup__label" x-text="field.label"></label>
+                  <div class="prime-silo-setup__badges">
+                    <span
+                      class="prime-silo-setup__badge"
+                      :class="sourceBadge(info(field.key).source).cls"
+                      x-text="sourceBadge(info(field.key).source).label"
+                    ></span>
+                    <span
+                      class="prime-silo-setup__status"
+                      :class="info(field.key).exists ? 'is-ok' : 'is-missing'"
+                      x-text="info(field.key).exists ? '✓ Found' : '⚠ Not found'"
+                    ></span>
+                  </div>
+                </div>
+
+                <p class="prime-silo-setup__desc" x-text="info(field.key).guide"></p>
+
+                <!-- multi-path (textarea) field -->
+                <template x-if="field.isArray">
+                  <div class="prime-silo-setup__input-wrap">
+                    <textarea
+                      class="prime-silo-setup__textarea"
+                      rows="2"
+                      placeholder="One path per line…"
+                      x-model="form[field.key]"
+                    ></textarea>
+                    <div class="prime-silo-setup__paths">
+                      <template x-for="p in pathsOf(field.key)" :key="p">
+                        <div class="prime-silo-setup__path-row">
+                          <span class="prime-silo-setup__path" :title="p" x-text="p"></span>
+                          <button
+                            type="button"
+                            class="prime-silo-setup__open"
+                            :disabled="!pathExists(field.key, p)"
+                            @click="openPath(p)"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </template>
+
+                <!-- single-path field -->
+                <template x-if="!field.isArray">
+                  <div class="prime-silo-setup__input-wrap prime-silo-setup__input-wrap--row">
+                    <input
+                      type="text"
+                      class="prime-silo-setup__input"
+                      placeholder="Absolute path…"
+                      x-model="form[field.key]"
+                    />
+                    <button
+                      type="button"
+                      class="prime-silo-setup__open"
+                      :disabled="!info(field.key).exists"
+                      @click="openPath(form[field.key])"
+                    >
+                      Open
+                    </button>
+                  </div>
+                </template>
+
+                <!-- probing diagnostics for missing paths -->
+                <template x-if="!info(field.key).exists">
+                  <div class="prime-silo-setup__trouble">
+                    <button
+                      type="button"
+                      class="prime-silo-setup__trouble-toggle"
+                      @click="toggleTroubleshoot(field.key)"
+                      x-text="troubleshoot[field.key] ? 'Hide probing info ▲' : 'Show probing info ▼'"
+                    ></button>
+                    <div class="prime-silo-setup__trouble-logs" x-show="troubleshoot[field.key]">
+                      <p class="prime-silo-setup__trouble-head">Paths checked during startup:</p>
+                      <template x-for="prob in (info(field.key).probed || [])" :key="prob.path">
+                        <div class="prime-silo-setup__probed">
+                          <span
+                            class="prime-silo-setup__dot"
+                            :class="prob.exists ? 'found' : 'missing'"
+                          ></span>
+                          <span class="prime-silo-setup__path" :title="prob.path" x-text="prob.path"></span>
+                          <span
+                            class="prime-silo-setup__muted"
+                            x-text="prob.exists ? '(found)' : '(not found)'"
+                          ></span>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </template>
+          </div>
+
+          <!-- memo-ray system storage panel -->
+          <div class="prime-silo-setup__card prime-silo-setup__card--system" x-show="report && report.mem0ray">
+            <div class="prime-silo-setup__card-head">
+              <label class="prime-silo-setup__label">Memo-Ray system storage</label>
+              <span class="prime-silo-setup__status is-ok">✓ Active</span>
+            </div>
+            <p class="prime-silo-setup__desc">
+              Internal settings file and sync database for the memory graph itself.
+            </p>
+            <div class="prime-silo-setup__sys" x-show="report && report.mem0ray">
+              <div class="prime-silo-setup__sys-row">
+                <span class="prime-silo-setup__mono" x-text="`Config: ${report.mem0ray.configPath}`"></span>
+                <button
+                  type="button"
+                  class="prime-silo-setup__open"
+                  x-show="report.mem0ray.configExists"
+                  @click="openPath(report.mem0ray.configPath)"
+                >
+                  Open
+                </button>
+              </div>
+              <div class="prime-silo-setup__sys-row">
+                <span class="prime-silo-setup__mono" x-text="`Database: ${report.mem0ray.dataDir}`"></span>
+                <button
+                  type="button"
+                  class="prime-silo-setup__open"
+                  x-show="report.mem0ray.dataExists"
+                  @click="openPath(report.mem0ray.dataDir)"
+                >
+                  Open
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <p class="prime-silo-setup__save-error" x-show="saveError" x-text="saveError"></p>
+
+          <div class="prime-silo-setup__actions">
+            <button
+              type="button"
+              class="prime-silo-setup__btn prime-silo-setup__btn--secondary"
+              @click="fetchStatus()"
+              :disabled="saving"
+            >
+              Rescan system
+            </button>
+            <button type="submit" class="prime-silo-setup__btn" :disabled="saving">
+              <span x-text="saving ? 'Saving…' : 'Save configuration'"></span>
+            </button>
+          </div>
+        </form>
+      </template>
+    </section>
+  </body>
+</html>

@@ -1,0 +1,307 @@
+/* Phase 2 — Memory Graph Setup page styles.
+ * Earth-tone memo-ray theme (tokens come from memoray-theme.css via .mray-theme).
+ * A responsive grid of per-source path cards with auto-detect status. */
+
+.prime-silo-setup {
+  display: block;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem 2rem 4rem;
+}
+
+[x-cloak] {
+  display: none !important;
+}
+
+.prime-silo-setup__header {
+  margin-bottom: 1.5rem;
+}
+
+.prime-silo-setup__eyebrow {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  margin: 0 0 0.4rem;
+}
+
+.prime-silo-setup__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.7rem;
+  color: var(--text-primary);
+}
+
+.prime-silo-setup__subtitle {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.prime-silo-setup__subtitle code,
+.prime-silo-setup__desc code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  background: var(--surface-sunken);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+}
+
+.prime-silo-setup__muted {
+  color: var(--text-tertiary);
+}
+
+.prime-silo-setup__notice {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  background: var(--surface-raised);
+}
+
+.prime-silo-setup__notice--error {
+  border-color: var(--danger);
+}
+
+.prime-silo-setup__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 1rem;
+}
+
+.prime-silo-setup__card {
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--border-emphasis);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  padding: 1rem 1.1rem;
+}
+
+.prime-silo-setup__card.is-valid {
+  border-left-color: var(--sage);
+}
+
+.prime-silo-setup__card.is-invalid {
+  border-left-color: var(--rust);
+}
+
+.prime-silo-setup__card--system {
+  grid-column: 1 / -1;
+  margin-top: 1rem;
+  border-style: dashed;
+  background: var(--surface-sunken);
+}
+
+.prime-silo-setup__card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.prime-silo-setup__label {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.prime-silo-setup__badges {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.prime-silo-setup__badge,
+.prime-silo-setup__status {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.prime-silo-setup__badge {
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+}
+.prime-silo-setup__badge.is-saved {
+  border-color: var(--sage);
+  color: var(--sage);
+}
+.prime-silo-setup__badge.is-detected {
+  border-color: var(--slate);
+  color: var(--slate);
+}
+.prime-silo-setup__badge.is-guess {
+  border-color: var(--taupe);
+  color: var(--taupe);
+}
+
+.prime-silo-setup__status.is-ok {
+  background: var(--sage-dim);
+  color: var(--sage);
+}
+.prime-silo-setup__status.is-missing {
+  background: var(--rust-dim);
+  color: var(--rust);
+}
+
+.prime-silo-setup__desc {
+  color: var(--text-tertiary);
+  font-size: 0.85rem;
+  margin: 0 0 0.75rem;
+}
+
+.prime-silo-setup__input-wrap--row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.prime-silo-setup__input,
+.prime-silo-setup__textarea {
+  width: 100%;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.85rem;
+  padding: 0.5rem 0.6rem;
+  resize: vertical;
+}
+
+.prime-silo-setup__input:focus,
+.prime-silo-setup__textarea:focus {
+  outline: none;
+  border-color: var(--sage);
+}
+
+.prime-silo-setup__paths {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.prime-silo-setup__path-row,
+.prime-silo-setup__sys-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background: var(--surface-sunken);
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.5rem;
+}
+
+.prime-silo-setup__path,
+.prime-silo-setup__mono {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prime-silo-setup__open {
+  flex: 0 0 auto;
+  background: var(--sage-dim);
+  border: 1px solid var(--sage);
+  border-radius: var(--radius-sm);
+  color: var(--sage);
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
+}
+
+.prime-silo-setup__open:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  border-color: var(--border-default);
+  color: var(--text-tertiary);
+  background: transparent;
+}
+
+.prime-silo-setup__trouble {
+  margin-top: 0.6rem;
+}
+
+.prime-silo-setup__trouble-toggle {
+  background: transparent;
+  border: none;
+  color: var(--slate);
+  cursor: pointer;
+  font-size: 0.78rem;
+  padding: 0;
+}
+
+.prime-silo-setup__trouble-logs {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  background: var(--surface-sunken);
+  border-radius: var(--radius-sm);
+}
+
+.prime-silo-setup__trouble-head {
+  font-weight: 600;
+  font-size: 0.8rem;
+  margin: 0 0 0.4rem;
+}
+
+.prime-silo-setup__probed {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  padding: 0.15rem 0;
+}
+
+.prime-silo-setup__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+.prime-silo-setup__dot.found {
+  background: var(--sage);
+}
+.prime-silo-setup__dot.missing {
+  background: var(--rust);
+}
+
+.prime-silo-setup__sys {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.prime-silo-setup__save-error {
+  color: var(--rust);
+  margin: 1rem 0 0;
+}
+
+.prime-silo-setup__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.prime-silo-setup__btn {
+  background: var(--sage);
+  border: 1px solid var(--sage);
+  border-radius: var(--radius-sm);
+  color: #16201a;
+  cursor: pointer;
+  font-weight: 500;
+  padding: 0.5rem 1.1rem;
+}
+
+.prime-silo-setup__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.prime-silo-setup__btn--secondary {
+  background: transparent;
+  border-color: var(--border-emphasis);
+  color: var(--text-secondary);
+}

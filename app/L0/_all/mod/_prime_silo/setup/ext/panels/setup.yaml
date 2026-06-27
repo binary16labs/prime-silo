@@ -1,0 +1,5 @@
+name: Memory Setup
+path: _prime_silo/setup
+description: Configure where the memory graph scans for agent activity — Claude, Antigravity, Gemini, and opencode log and config paths — with auto-detect status.
+icon: tune
+color: "#b8a898"

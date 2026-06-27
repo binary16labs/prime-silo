@@ -280,8 +280,14 @@ export function createOverviewCardsWidget(host, initialProps = {}, options = {})
     });
   }
 
-  async function loadStatic() {
-    renderState(`<p class="mray-oc__loading">Initializing Command Center…</p>`);
+  async function loadStatic(silent = false) {
+    // Background refreshes (silent) keep the current cards on screen and swap in
+    // fresh data when it arrives, so the live 10s sync doesn't flash the
+    // "Initializing…" state. The first load (and user-initiated refresh) still
+    // shows it.
+    if (!silent || !overview) {
+      renderState(`<p class="mray-oc__loading">Initializing Command Center…</p>`);
+    }
     try {
       const [ov, caps] = await Promise.all([
         client.readMemorayJson(await client.memorayFetch("/beta/overview")),
@@ -346,8 +352,8 @@ export function createOverviewCardsWidget(host, initialProps = {}, options = {})
     if (overview) renderCards();
   }
 
-  function refresh() {
-    return loadStatic();
+  function refresh(silent = false) {
+    return loadStatic(silent);
   }
 
   function destroy() {

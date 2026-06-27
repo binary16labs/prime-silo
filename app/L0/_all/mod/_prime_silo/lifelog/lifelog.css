@@ -1,0 +1,159 @@
+/* Phase 2 — Agent Lifelog page styles.
+ * A thin presentational layer over the heatmap widget + a timeline feed. Uses
+ * the shell design tokens so it themes with the rest of the cockpit. */
+
+.prime-silo-lifelog {
+  display: block;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem 2rem 4rem;
+}
+
+.prime-silo-lifelog [x-cloak],
+[x-cloak] {
+  display: none !important;
+}
+
+.prime-silo-lifelog__header {
+  margin-bottom: 1.5rem;
+}
+
+.prime-silo-lifelog__eyebrow {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary, #8a8f98);
+  margin: 0 0 0.4rem;
+}
+
+.prime-silo-lifelog__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.7rem;
+  font-weight: 600;
+  color: var(--text-primary, #e8e8e8);
+}
+
+.prime-silo-lifelog__subtitle {
+  margin: 0;
+  color: var(--text-secondary, #b8b8b8);
+  font-size: 0.95rem;
+  max-width: 70ch;
+}
+
+.prime-silo-lifelog__muted {
+  color: var(--text-tertiary, #8a8f98);
+  font-size: 0.9rem;
+}
+
+.prime-silo-lifelog__notice {
+  border: 1px solid var(--border-subtle, #2a2a2a);
+  border-radius: var(--radius-md, 10px);
+  padding: 1.5rem;
+  background: var(--surface-raised, rgba(255, 255, 255, 0.03));
+}
+
+.prime-silo-lifelog__notice--error {
+  border-color: var(--danger, #b4524a);
+}
+
+.prime-silo-lifelog__notice h2 {
+  margin: 0 0 0.5rem;
+  color: var(--text-primary, #e8e8e8);
+}
+
+.prime-silo-lifelog__notice pre {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+}
+
+.prime-silo-lifelog__btn {
+  margin-top: 0.75rem;
+  background: var(--surface-raised, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--border-subtle, #2a2a2a);
+  border-radius: var(--radius-sm, 6px);
+  color: var(--text-primary, #e8e8e8);
+  cursor: pointer;
+  padding: 0.4rem 0.9rem;
+}
+
+.prime-silo-lifelog__radar {
+  margin-bottom: 2rem;
+}
+
+.prime-silo-lifelog__feed {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.prime-silo-lifelog__post {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border-subtle, #2a2a2a);
+  border-radius: var(--radius-md, 10px);
+  background: var(--surface-raised, rgba(255, 255, 255, 0.02));
+}
+
+.prime-silo-lifelog__post.is-teleportable:hover {
+  border-color: var(--accent, #9caf88);
+  background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+}
+
+.prime-silo-lifelog__avatar {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  background: var(--surface-sunken, rgba(255, 255, 255, 0.06));
+}
+
+.prime-silo-lifelog__avatar .is-claude {
+  color: var(--accent-golden, #d4a843);
+}
+
+.prime-silo-lifelog__avatar .is-anti {
+  color: var(--accent-slate, #6f8fb0);
+}
+
+.prime-silo-lifelog__content {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.prime-silo-lifelog__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: baseline;
+  font-size: 0.8rem;
+  margin-bottom: 0.25rem;
+}
+
+.prime-silo-lifelog__agent {
+  font-weight: 600;
+  color: var(--text-primary, #e8e8e8);
+}
+
+.prime-silo-lifelog__project {
+  color: var(--text-secondary, #b8b8b8);
+}
+
+.prime-silo-lifelog__time {
+  color: var(--text-tertiary, #8a8f98);
+  margin-left: auto;
+}
+
+.prime-silo-lifelog__text {
+  color: var(--text-secondary, #c8c8c8);
+  font-size: 0.92rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
