@@ -24,7 +24,7 @@
 const path = require("node:path");
 const fs = require("node:fs");
 const { spawn } = require("node:child_process");
-const { ensureRuntimeBundle } = require("./runtime_fetch");
+const { ensureRuntimeBundle, isBundleInstalled } = require("./runtime_fetch");
 
 const DEFAULT_API_PORT = 8005;
 const DEFAULT_NEO4J_HTTP_PORT = 7474;
@@ -272,6 +272,7 @@ function createRuntimeSupervisor(options = {}) {
     maxRestarts = 5,
     backoffMsFn = (attempt) => Math.min(15000, 1000 * 2 ** (attempt - 1)),
     isBundleCompleteFn = isBundleComplete,
+    isBundleInstalledFn = isBundleInstalled,
     killTreeFn = hardKillChild,
     appVersion = "",
     fetchFn = ensureRuntimeBundle,
@@ -344,11 +345,23 @@ function createRuntimeSupervisor(options = {}) {
     started = true;
     stopping = false;
 
-    // First launch: download + extract the runtime bundle into the per-user dir
-    // if it isn't already there. Idempotent (a version marker short-circuits) and
-    // non-fatal — if it can't complete (offline), we no-op and retry next launch.
-    if (!isBundleCompleteFn(bundleDir, platform) && fetchFn && appVersion) {
-      logger.log?.("[runtime] runtime not installed yet; downloading on first launch…");
+    // Download + extract the runtime bundle into the per-user dir when it's
+    // missing OR when the installed bundle doesn't match the current app version.
+    // The old gate checked completeness only (files exist), so an app UPDATE
+    // never refreshed an intact-but-older bundle — the user had to delete the
+    // dir by hand to force a re-fetch. Version-aware now; idempotent + non-fatal
+    // (offline → run the existing bundle and retry next launch).
+    const needsFetch =
+      Boolean(appVersion) &&
+      Boolean(fetchFn) &&
+      !isBundleInstalledFn(bundleDir, appVersion, fs.existsSync, platform);
+    if (needsFetch) {
+      const updating = isBundleCompleteFn(bundleDir, platform);
+      logger.log?.(
+        updating
+          ? `[runtime] runtime is out of date; updating to ${appVersion}…`
+          : "[runtime] runtime not installed yet; downloading on first launch…"
+      );
       onStatus?.({ phase: "downloading" });
       try {
         const result = await fetchFn({ destDir: bundleDir, version: appVersion, platform, logger });
