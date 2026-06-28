@@ -5,11 +5,12 @@ Provides connection management and core Cypher query helpers for the
 relational graph, embedding storage, and synthesis operations.
 """
 
-import os
 import json
 import logging
+import os
 from contextlib import contextmanager
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Any, Dict, List, Optional
+
 from neo4j import GraphDatabase
 
 logger = logging.getLogger(__name__)
@@ -33,7 +34,7 @@ def get_driver():
             NEO4J_URI,
             auth=(NEO4J_USER, NEO4J_PASSWORD),
             max_connection_pool_size=16,  # Reduced from 50 for Windows stability (PBR-001)
-            connection_acquisition_timeout=30
+            connection_acquisition_timeout=30,
         )
     return _driver
 
@@ -80,16 +81,21 @@ def introspect_schema(workspace: str = "default") -> dict:
         labels = labels_result.single()["labels"]
 
         # 2. All relationship types
-        rel_result = session.run("CALL db.relationshipTypes() YIELD relationshipType RETURN collect(relationshipType) as types")
+        rel_result = session.run(
+            "CALL db.relationshipTypes() YIELD relationshipType RETURN collect(relationshipType) as types"
+        )
         rel_types = rel_result.single()["types"]
 
         # 3. Entity type distribution within this workspace
-        dist_result = session.run("""
+        dist_result = session.run(
+            """
             MATCH (n {workspace: $workspace})
             WITH labels(n) as label_set, n.type as type_prop
             RETURN label_set, type_prop, count(*) as cnt
             ORDER BY cnt DESC
-        """, workspace=workspace)
+        """,
+            workspace=workspace,
+        )
 
         distribution = {}
         for record in dist_result:
@@ -100,42 +106,35 @@ def introspect_schema(workspace: str = "default") -> dict:
             "labels": labels,
             "relationship_types": rel_types,
             "entity_type_distribution": distribution,
-            "workspace": workspace
+            "workspace": workspace,
         }
 
 
 def verify_connectivity() -> dict:
     """Verify Neo4j is reachable and return server info."""
-    from neo4j.exceptions import ServiceUnavailable, AuthError
+    from neo4j.exceptions import AuthError, ServiceUnavailable
+
     try:
         driver = get_driver()
         driver.verify_connectivity()
         with read_session() as session:
             result = session.run("RETURN 1 AS ping")
             record = result.single()
-            return {
-                "status": "connected",
-                "ping": record["ping"],
-                "uri": NEO4J_URI
-            }
+            return {"status": "connected", "ping": record["ping"], "uri": NEO4J_URI}
     except ServiceUnavailable:
         return {
             "status": "unavailable",
             "error": "Could not connect to Neo4j. Is the server running on " + NEO4J_URI + "?",
-            "uri": NEO4J_URI
+            "uri": NEO4J_URI,
         }
     except AuthError:
         return {
             "status": "auth_error",
             "error": "Neo4j authentication failed. Check your username and password.",
-            "uri": NEO4J_URI
+            "uri": NEO4J_URI,
         }
     except Exception as e:
-        return {
-            "status": "error",
-            "error": str(e),
-            "uri": NEO4J_URI
-        }
+        return {"status": "error", "error": str(e), "uri": NEO4J_URI}
 
 
 # =============================================================================
@@ -149,11 +148,11 @@ _detected_embedding_dims: Optional[int] = None
 def init_schema():
     """
     Create constraints and indexes for the knowledge graph.
-    
+
     Node labels:
         - Concept: core idea/entity extracted from documents
         - Source: the originating document
-    
+
     Relationship types:
         - RELATES_TO: explicit relationship with a predicate property
         - SOURCED_FROM: links a concept back to its source document
@@ -225,6 +224,7 @@ def update_vector_index_dimensions(dims: int):
 # TRIPLE MANAGEMENT (Subject, Predicate, Object)
 # =============================================================================
 
+
 def add_triple(
     subject: str,
     predicate: str,
@@ -238,18 +238,19 @@ def add_triple(
     object_type: str = "Concept",
     citation: str = "",
     confidence: float = 1.0,
-    run_id: Optional[str] = None
+    run_id: Optional[str] = None,
 ) -> dict:
     """
     Add a knowledge triple to the graph.
-    
-    Creates or merges Subject and Object as Concept nodes (with types), 
+
+    Creates or merges Subject and Object as Concept nodes (with types),
     then creates a RELATES_TO edge with the predicate, citation, and confidence.
     """
     meta_json = json.dumps(metadata or {})
 
     with write_session() as session:
-        result = session.run("""
+        result = session.run(
+            """
             MERGE (s:Concept {name: $subject, workspace: $workspace})
             ON CREATE SET s.created_at = datetime(), s.domain = '', s.node_type = $subject_type
             ON MATCH SET s.node_type = $subject_type
@@ -270,24 +271,36 @@ def add_triple(
             }]->(o)
             
             RETURN elementId(s) AS sid, elementId(o) AS oid, elementId(r) AS rid
-        """, subject=subject, predicate=predicate, obj=obj,
-             workspace=workspace, source_name=source_name or "",
-             metadata=meta_json, timestamp=timestamp or "",
-             section=section or "", citation=citation, confidence=confidence,
-             subject_type=subject_type, object_type=object_type, run_id=run_id or "")
+        """,
+            subject=subject,
+            predicate=predicate,
+            obj=obj,
+            workspace=workspace,
+            source_name=source_name or "",
+            metadata=meta_json,
+            timestamp=timestamp or "",
+            section=section or "",
+            citation=citation,
+            confidence=confidence,
+            subject_type=subject_type,
+            object_type=object_type,
+            run_id=run_id or "",
+        )
 
         record = result.single()
         return {
             "subject_id": record["sid"],
             "object_id": record["oid"],
             "relation_id": record["rid"],
-            "triple": [subject, predicate, obj]
+            "triple": [subject, predicate, obj],
         }
 
 
-def run_cypher(query: str, params: Optional[Dict[str, Any]] = None, workspace: str = "default") -> List[Dict[str, Any]]:
+def run_cypher(
+    query: str, params: Optional[Dict[str, Any]] = None, workspace: str = "default"
+) -> List[Dict[str, Any]]:
     """
-    Execute a generic Cypher query. 
+    Execute a generic Cypher query.
     Auto-injects workspace constraint if not present in simple queries.
     """
     with read_session() as session:
@@ -303,31 +316,19 @@ def scope_cypher_query(query: str, nexus_id: str) -> str:
     Injects {run_id: $nexus_id} or {snapshot_id: $nexus_id} into relationship patterns.
     """
     import re
-    
+
     # 1. Inject snapshot_id into CodeEntity node matches
     # (n:CodeEntity) -> (n:CodeEntity {snapshot_id: $nexus_id})
-    query = re.sub(
-        r'\((\w+):CodeEntity\)', 
-        fr'(\1:CodeEntity {{snapshot_id: $nexus_id}})', 
-        query
-    )
-    
+    query = re.sub(r"\((\w+):CodeEntity\)", r"(\1:CodeEntity {snapshot_id: $nexus_id})", query)
+
     # 2. Inject run_id into RELATES_TO relationship matches
     # -[r:RELATES_TO]-> -> -[r:RELATES_TO {run_id: $nexus_id}]->
-    query = re.sub(
-        r'-\[(\w+):RELATES_TO\]->', 
-        fr'-[\1:RELATES_TO {{run_id: $nexus_id}}]->', 
-        query
-    )
-    
+    query = re.sub(r"-\[(\w+):RELATES_TO\]->", r"-[\1:RELATES_TO {run_id: $nexus_id}]->", query)
+
     # 3. Inject snapshot_id into CODE_REL relationship matches
     # -[r:CODE_REL]-> -> -[r:CODE_REL {snapshot_id: $nexus_id}]->
-    query = re.sub(
-        r'-\[(\w+):CODE_REL\]->', 
-        fr'-[\1:CODE_REL {{snapshot_id: $nexus_id}}]->', 
-        query
-    )
-    
+    query = re.sub(r"-\[(\w+):CODE_REL\]->", r"-[\1:CODE_REL {snapshot_id: $nexus_id}]->", query)
+
     return query
 
 
@@ -335,7 +336,7 @@ def batch_add_triples(
     triples: List[Any],
     workspace: str = "default",
     source_name: Optional[str] = None,
-    run_id: Optional[str] = None
+    run_id: Optional[str] = None,
 ) -> dict:
     """
     Add multiple knowledge triples in a single broad transaction.
@@ -347,34 +348,39 @@ def batch_add_triples(
     processed_triples = []
     for t in triples:
         if isinstance(t, KnowledgeTriple):
-            processed_triples.append({
-                "subject": t.subject,
-                "predicate": t.predicate,
-                "obj": t.object,
-                "subject_type": t.subject_type,
-                "object_type": t.object_type,
-                "citation": t.citation,
-                "confidence": t.confidence,
-                "section": t.section_title or source_name or "",
-                "timestamp": "",
-                "metadata": "{}"
-            })
+            processed_triples.append(
+                {
+                    "subject": t.subject,
+                    "predicate": t.predicate,
+                    "obj": t.object,
+                    "subject_type": t.subject_type,
+                    "object_type": t.object_type,
+                    "citation": t.citation,
+                    "confidence": t.confidence,
+                    "section": t.section_title or source_name or "",
+                    "timestamp": "",
+                    "metadata": "{}",
+                }
+            )
         elif isinstance(t, dict):
-            processed_triples.append({
-                "subject": t.get("subject", ""),
-                "predicate": t.get("predicate", ""),
-                "obj": t.get("object", ""),
-                "subject_type": t.get("subject_type", "Concept"),
-                "object_type": t.get("object_type", "Concept"),
-                "citation": t.get("citation", ""),
-                "confidence": float(t.get("confidence", 1.0)),
-                "section": t.get("section_title", source_name or ""),
-                "timestamp": t.get("timestamp", ""),
-                "metadata": json.dumps(t.get("metadata", {}))
-            })
+            processed_triples.append(
+                {
+                    "subject": t.get("subject", ""),
+                    "predicate": t.get("predicate", ""),
+                    "obj": t.get("object", ""),
+                    "subject_type": t.get("subject_type", "Concept"),
+                    "object_type": t.get("object_type", "Concept"),
+                    "citation": t.get("citation", ""),
+                    "confidence": float(t.get("confidence", 1.0)),
+                    "section": t.get("section_title", source_name or ""),
+                    "timestamp": t.get("timestamp", ""),
+                    "metadata": json.dumps(t.get("metadata", {})),
+                }
+            )
 
     with write_session() as session:
-        session.run("""
+        session.run(
+            """
             UNWIND $triples AS t
             
             MERGE (s:Concept {name: t.subject, workspace: $workspace})
@@ -405,8 +411,12 @@ def batch_add_triples(
             MERGE (o)-[:SOURCED_FROM]->(src_node)
             
             RETURN count(r) AS count
-        """, triples=processed_triples, workspace=workspace,
-             source_name=source_name or "", run_id=run_id or "")
+        """,
+            triples=processed_triples,
+            workspace=workspace,
+            source_name=source_name or "",
+            run_id=run_id or "",
+        )
 
     return {"status": "batch_completed", "count": len(processed_triples)}
 
@@ -414,44 +424,49 @@ def batch_add_triples(
 def add_source_link(concept_name: str, source_name: str, workspace: str = "default") -> dict:
     """Link a concept node to its source document."""
     with write_session() as session:
-        session.run("""
+        session.run(
+            """
             MERGE (c:Concept {name: $concept, workspace: $workspace})
             MERGE (s:Source {name: $source, workspace: $workspace})
             ON CREATE SET s.created_at = datetime()
             MERGE (c)-[:SOURCED_FROM]->(s)
-        """, concept=concept_name, source=source_name, workspace=workspace)
+        """,
+            concept=concept_name,
+            source=source_name,
+            workspace=workspace,
+        )
     return {"status": "linked", "concept": concept_name, "source": source_name}
 
 
 def add_conflict(
-    concept_a: str,
-    concept_b: str,
-    description: str,
-    workspace: str = "default"
+    concept_a: str, concept_b: str, description: str, workspace: str = "default"
 ) -> dict:
     """Mark a conflict between two concepts."""
     with write_session() as session:
-        session.run("""
+        session.run(
+            """
             MERGE (a:Concept {name: $a, workspace: $workspace})
             MERGE (b:Concept {name: $b, workspace: $workspace})
             CREATE (a)-[:CONFLICTS_WITH {
                 description: $description,
                 created_at: datetime()
             }]->(b)
-        """, a=concept_a, b=concept_b, description=description, workspace=workspace)
+        """,
+            a=concept_a,
+            b=concept_b,
+            description=description,
+            workspace=workspace,
+        )
     return {"status": "conflict_added", "between": [concept_a, concept_b]}
 
 
 def add_analogy(
-    concept_a: str,
-    concept_b: str,
-    description: str,
-    pattern: str,
-    workspace: str = "default"
+    concept_a: str, concept_b: str, description: str, pattern: str, workspace: str = "default"
 ) -> dict:
     """Create a structural isomorphism link (cross-domain analogy)."""
     with write_session() as session:
-        session.run("""
+        session.run(
+            """
             MERGE (a:Concept {name: $a, workspace: $workspace})
             MERGE (b:Concept {name: $b, workspace: $workspace})
             CREATE (a)-[:ANALOGOUS_TO {
@@ -459,8 +474,13 @@ def add_analogy(
                 pattern: $pattern,
                 created_at: datetime()
             }]->(b)
-        """, a=concept_a, b=concept_b, description=description,
-             pattern=pattern, workspace=workspace)
+        """,
+            a=concept_a,
+            b=concept_b,
+            description=description,
+            pattern=pattern,
+            workspace=workspace,
+        )
     return {"status": "analogy_added", "between": [concept_a, concept_b], "pattern": pattern}
 
 
@@ -468,45 +488,67 @@ def add_analogy(
 # EMBEDDING STORAGE
 # =============================================================================
 
-def set_concept_embedding(concept_name: str, embedding: List[float], workspace: str = "default") -> dict:
+
+def set_concept_embedding(
+    concept_name: str, embedding: List[float], workspace: str = "default"
+) -> dict:
     """Store a vector embedding on a Concept node."""
     # Auto-detect dimensions on first embedding
     update_vector_index_dimensions(len(embedding))
 
     with write_session() as session:
-        session.run("""
+        session.run(
+            """
             MERGE (c:Concept {name: $name, workspace: $workspace})
             SET c.embedding = $embedding
-        """, name=concept_name, embedding=embedding, workspace=workspace)
+        """,
+            name=concept_name,
+            embedding=embedding,
+            workspace=workspace,
+        )
     return {"status": "embedding_set", "concept": concept_name, "dimensions": len(embedding)}
 
 
-def vector_search(query_embedding: List[float], workspace: str = "default", top_k: int = 10, run_id: Optional[str] = None) -> List[dict]:
+def vector_search(
+    query_embedding: List[float],
+    workspace: str = "default",
+    top_k: int = 10,
+    run_id: Optional[str] = None,
+) -> List[dict]:
     """Find the nearest concepts by vector similarity."""
     with read_session() as session:
         # Use Neo4j's native vector index
         try:
             # Note: We filter by workspace, and optionally by run_id if it's stored on the node
-            # Concepts currently don't have run_id (they are merged), but we can filter by 
+            # Concepts currently don't have run_id (they are merged), but we can filter by
             # whether they have a relationship in that run_id if needed.
             # For now, we filter by workspace.
-            result = session.run("""
+            result = session.run(
+                """
                 CALL db.index.vector.queryNodes('concept_embedding', $topK, $embedding)
                 YIELD node, score
                 WHERE node.workspace = $workspace
                 RETURN node.name AS name, node.domain AS domain, score
                 ORDER BY score DESC
-            """, embedding=query_embedding, topK=top_k, workspace=workspace)
+            """,
+                embedding=query_embedding,
+                topK=top_k,
+                workspace=workspace,
+            )
             return [dict(r) for r in result]
         except Exception:
             # Fallback: brute-force cosine (for dev / small graphs)
-            result = session.run("""
+            result = session.run(
+                """
                 MATCH (c:Concept {workspace: $workspace})
                 WHERE c.embedding IS NOT NULL
                 RETURN c.name AS name, c.domain AS domain, c.embedding AS embedding
-            """, workspace=workspace)
+            """,
+                workspace=workspace,
+            )
 
             from math import sqrt
+
             records = list(result)
             if not records:
                 return []
@@ -530,36 +572,48 @@ def vector_search(query_embedding: List[float], workspace: str = "default", top_
 # GRAPH QUERYING
 # =============================================================================
 
+
 def get_full_graph(
     workspace: str = "default",
     page: Optional[int] = None,
     page_size: int = 200,
     show_all: bool = False,
-    run_id: Optional[str] = None
+    run_id: Optional[str] = None,
 ) -> dict:
     """
     Return the knowledge graph for a workspace as nodes + edges
     suitable for 3d-force-graph rendering.
-    
-    If run_id is provided, only nodes and edges associated with that run 
+
+    If run_id is provided, only nodes and edges associated with that run
     (or concepts connected by those relationships) are returned.
     """
     with read_session() as session:
         # 1. Fetch Edges based on workspace and optional run_id
         # We now support multiple relationship types to accommodate Code Graphs and Correlations
         valid_rels = [
-            'RELATES_TO', 'REPRESENTS', 'CORRELATES_WITH', 'CODE_REL', 
-            'DEFINES', 'CALLS', 'INHERITS', 'DEPENDS_ON', 'CONTAINS', 
-            'SOURCED_FROM', 'PREREQUISITE_FOR', 'CONFLICTS_WITH', 'ANALOGOUS_TO'
+            "RELATES_TO",
+            "REPRESENTS",
+            "CORRELATES_WITH",
+            "CODE_REL",
+            "DEFINES",
+            "CALLS",
+            "INHERITS",
+            "DEPENDS_ON",
+            "CONTAINS",
+            "SOURCED_FROM",
+            "PREREQUISITE_FOR",
+            "CONFLICTS_WITH",
+            "ANALOGOUS_TO",
         ]
-        
+
         edge_match = "MATCH (a {workspace: $workspace})-[r]->(b {workspace: $workspace})"
         where_clause = "WHERE type(r) IN $rels"
-        
+
         if run_id:
             where_clause += " AND (r.run_id = $run_id OR r.snapshot_id = $run_id)"
-        
-        edge_result = session.run(f"{edge_match} {where_clause}" + """
+
+        edge_result = session.run(
+            f"{edge_match} {where_clause}" + """
             RETURN elementId(a) AS source, a.name AS source_name,
                    elementId(b) AS target, b.name AS target_name,
                    type(r) AS type, r.predicate AS predicate, 
@@ -568,30 +622,36 @@ def get_full_graph(
                    r.timestamp AS timestamp, r.section AS section, 
                    r.citation AS citation, r.confidence AS confidence,
                    r.run_id AS run_id
-        """, workspace=workspace, run_id=run_id or "", rels=valid_rels)
+        """,
+            workspace=workspace,
+            run_id=run_id or "",
+            rels=valid_rels,
+        )
 
         edges = []
         visible_node_ids = set()
         for rec in edge_result:
-            edges.append({
-                "source": str(rec["source"]),
-                "target": str(rec["target"]),
-                "type": rec["type"],
-                "predicate": rec["predicate"] or "",
-                "description": rec["description"] or "",
-                "pattern": rec["pattern"] or "",
-                "source_doc": rec["source_doc"] or "",
-                "section": rec["section"] or "",
-                "citation": rec["citation"] or "",
-                "confidence": rec["confidence"] if rec["confidence"] is not None else 1.0,
-                "created_at": str(rec["created_at"]) if rec["created_at"] else "",
-                "timestamp": rec["timestamp"] or "",
-                "run_id": rec["run_id"] or ""
-            })
+            edges.append(
+                {
+                    "source": str(rec["source"]),
+                    "target": str(rec["target"]),
+                    "type": rec["type"],
+                    "predicate": rec["predicate"] or "",
+                    "description": rec["description"] or "",
+                    "pattern": rec["pattern"] or "",
+                    "source_doc": rec["source_doc"] or "",
+                    "section": rec["section"] or "",
+                    "citation": rec["citation"] or "",
+                    "confidence": rec["confidence"] if rec["confidence"] is not None else 1.0,
+                    "created_at": str(rec["created_at"]) if rec["created_at"] else "",
+                    "timestamp": rec["timestamp"] or "",
+                    "run_id": rec["run_id"] or "",
+                }
+            )
             visible_node_ids.add(str(rec["source"]))
             visible_node_ids.add(str(rec["target"]))
 
-        # 2. Fetch Nodes - filter to only those in the edges if run_id is active, 
+        # 2. Fetch Nodes - filter to only those in the edges if run_id is active,
         # or all workspace nodes if showing global nexus.
         if run_id:
             node_query = """
@@ -601,7 +661,9 @@ def get_full_graph(
                        n.domain AS domain, n.created_at AS created_at, n.node_type AS node_type,
                        n.centrality AS centrality
             """
-            node_result = session.run(node_query, workspace=workspace, node_ids=list(visible_node_ids))
+            node_result = session.run(
+                node_query, workspace=workspace, node_ids=list(visible_node_ids)
+            )
         else:
             node_query = """
                 MATCH (n {workspace: $workspace})
@@ -611,31 +673,44 @@ def get_full_graph(
                        n.centrality AS centrality
             """
             if not show_all and page is None:
-                 node_query += f" LIMIT {page_size}"
+                node_query += f" LIMIT {page_size}"
             elif page is not None:
-                 node_query += f" SKIP {page * page_size} LIMIT {page_size}"
-            
+                node_query += f" SKIP {page * page_size} LIMIT {page_size}"
+
             node_result = session.run(node_query, workspace=workspace)
 
         nodes = []
         for rec in node_result:
-            nodes.append({
-                "id": str(rec["id"]),
-                "name": rec["name"],
-                "labels": rec["labels"],
-                "domain": rec["domain"] or "",
-                "created_at": str(rec["created_at"]) if rec["created_at"] else "",
-                "node_type": rec["node_type"] or (rec["labels"][0] if rec["labels"] else "Concept"),
-                "centrality": rec["centrality"] or 0,
-                "community_id": rec.get("community_id")
-            })
+            nodes.append(
+                {
+                    "id": str(rec["id"]),
+                    "name": rec["name"],
+                    "labels": rec["labels"],
+                    "domain": rec["domain"] or "",
+                    "created_at": str(rec["created_at"]) if rec["created_at"] else "",
+                    "node_type": rec["node_type"]
+                    or (rec["labels"][0] if rec["labels"] else "Concept"),
+                    "centrality": rec["centrality"] or 0,
+                    "community_id": rec.get("community_id"),
+                }
+            )
+
+    # Consistency: never return edges whose endpoints aren't in the node set.
+    # Node fetching can be paged/label-filtered while edges are fetched
+    # unbounded, which otherwise leaves dangling edges that render as a
+    # "disconnected" graph (e.g. SOURCED_FROM edges to Source nodes cut by the
+    # node LIMIT). A rendered graph should only contain edges between visible
+    # nodes; the run_id path already scopes nodes to edge endpoints, so this is
+    # a no-op there.
+    node_id_set = {n["id"] for n in nodes}
+    edges = [e for e in edges if e["source"] in node_id_set and e["target"] in node_id_set]
 
     return {
         "nodes": nodes,
         "edges": edges,
         "total_nodes": len(nodes),
         "page": page,
-        "page_size": page_size
+        "page_size": page_size,
     }
 
 
@@ -645,7 +720,8 @@ def get_recent_updates(workspace: str = "default", seconds: int = 10) -> dict:
     Used for real-time 'fly-to-continent' visualization during ingestion.
     """
     with read_session() as session:
-        result = session.run("""
+        result = session.run(
+            """
             MATCH (a {workspace: $workspace})-[r]->(b {workspace: $workspace})
             WHERE r.created_at > datetime() - duration({seconds: $seconds})
             RETURN elementId(a) AS source, a.name AS source_name,
@@ -654,19 +730,24 @@ def get_recent_updates(workspace: str = "default", seconds: int = 10) -> dict:
                    r.created_at AS created_at
             ORDER BY r.created_at DESC
             LIMIT 100
-        """, workspace=workspace, seconds=seconds)
+        """,
+            workspace=workspace,
+            seconds=seconds,
+        )
 
         edges = []
         for rec in result:
-            edges.append({
-                "source": str(rec["source"]),
-                "source_name": rec["source_name"],
-                "target": str(rec["target"]),
-                "target_name": rec["target_name"],
-                "type": rec["type"],
-                "predicate": rec["predicate"] or "",
-                "created_at": str(rec["created_at"]) if rec["created_at"] else ""
-            })
+            edges.append(
+                {
+                    "source": str(rec["source"]),
+                    "source_name": rec["source_name"],
+                    "target": str(rec["target"]),
+                    "target_name": rec["target_name"],
+                    "type": rec["type"],
+                    "predicate": rec["predicate"] or "",
+                    "created_at": str(rec["created_at"]) if rec["created_at"] else "",
+                }
+            )
 
     return {"edges": edges, "count": len(edges)}
 
@@ -676,19 +757,21 @@ def get_node_count(workspace: str = "default") -> int:
     with read_session() as session:
         result = session.run(
             "MATCH (n {workspace: $ws}) WHERE n:Concept OR n:Source RETURN count(n) AS n",
-            ws=workspace
+            ws=workspace,
         )
         return result.single()["n"]
 
 
-def get_neighbors(concept_name: str, workspace: str = "default", depth: int = 1, run_id: Optional[str] = None) -> dict:
+def get_neighbors(
+    concept_name: str, workspace: str = "default", depth: int = 1, run_id: Optional[str] = None
+) -> dict:
     """Get a concept's neighbourhood (nodes + edges) up to N hops, optionally filtered by run_id."""
     with read_session() as session:
         # If run_id is provided, we restrict to relationships within that run/snapshot
         rel_filter = ""
         if run_id:
             rel_filter = " WHERE all(rel in relationships(path) WHERE rel.run_id = $run_id OR rel.snapshot_id = $run_id)"
-            
+
         query = f"""
             MATCH path = (c:Concept {{name: $name, workspace: $workspace}})-[*1..{depth}]->(n)
             {rel_filter}
@@ -706,15 +789,25 @@ def get_neighbors(concept_name: str, workspace: str = "default", depth: int = 1,
             src_id = str(rec["src_id"])
             tgt_id = str(rec["tgt_id"])
             if src_id not in nodes_map:
-                nodes_map[src_id] = {"id": src_id, "name": rec["src_name"], "labels": rec["src_labels"]}
+                nodes_map[src_id] = {
+                    "id": src_id,
+                    "name": rec["src_name"],
+                    "labels": rec["src_labels"],
+                }
             if tgt_id not in nodes_map:
-                nodes_map[tgt_id] = {"id": tgt_id, "name": rec["tgt_name"], "labels": rec["tgt_labels"]}
-            edges.append({
-                "source": src_id,
-                "target": tgt_id,
-                "type": rec["rel_type"],
-                "predicate": rec["predicate"] or ""
-            })
+                nodes_map[tgt_id] = {
+                    "id": tgt_id,
+                    "name": rec["tgt_name"],
+                    "labels": rec["tgt_labels"],
+                }
+            edges.append(
+                {
+                    "source": src_id,
+                    "target": tgt_id,
+                    "type": rec["rel_type"],
+                    "predicate": rec["predicate"] or "",
+                }
+            )
 
     return {"nodes": list(nodes_map.values()), "edges": edges}
 
@@ -753,19 +846,22 @@ def get_graph_stats(workspace: str = "default", run_id: Optional[str] = None) ->
             "node_types": node_types,
             "relationship_types": rel_types,
             "workspace": workspace,
-            "run_id": run_id
+            "run_id": run_id,
         }
 
 
 def get_mapped_sources(workspace: str = "default") -> List[str]:
     """Get a list of all source documents that have been mapped into the graph."""
     with read_session() as session:
-        result = session.run("""
+        result = session.run(
+            """
             MATCH (s {workspace: $ws})
             WHERE s:Source OR s:Document
             RETURN s.name AS name
             ORDER BY s.created_at DESC
-        """, ws=workspace)
+        """,
+            ws=workspace,
+        )
         return [record["name"] for record in result]
 
 
@@ -777,24 +873,34 @@ def delete_source_from_graph(source_name: str, workspace: str = "default") -> di
     """
     with write_session() as session:
         # 1. Delete all RELATES_TO edges attributed to this source
-        session.run("""
+        session.run(
+            """
             MATCH ()-[r:RELATES_TO {source: $source_name}]->()
             DELETE r
-        """, source_name=source_name)
+        """,
+            source_name=source_name,
+        )
 
         # 2. Delete the Source node and its connections (SOURCED_FROM)
-        session.run("""
+        session.run(
+            """
             MATCH (s:Source {name: $source_name, workspace: $workspace})
             DETACH DELETE s
-        """, source_name=source_name, workspace=workspace)
+        """,
+            source_name=source_name,
+            workspace=workspace,
+        )
 
         # 3. Clean up orphaned concepts and their derived relations (like Analogies or Conflicts)
         # Any concept in this workspace with no incoming or outgoing edges left is deleted.
-        session.run("""
+        session.run(
+            """
             MATCH (c:Concept {workspace: $workspace})
             WHERE NOT (c)--()
             DELETE c
-        """, workspace=workspace)
+        """,
+            workspace=workspace,
+        )
 
     return {"status": "deleted", "source": source_name, "workspace": workspace}
 
@@ -807,11 +913,12 @@ def create_synthesis_run(
     files: List[str],
     version: str = "1.0.0",
     artifact_path: str = "",
-    name: Optional[str] = None
+    name: Optional[str] = None,
 ) -> dict:
     """Create a new SynthesisRun node with metadata."""
     with write_session() as session:
-        session.run("""
+        session.run(
+            """
             MERGE (r:SynthesisRun {run_id: $run_id})
             ON CREATE SET 
                 r.partition_key = $pk,
@@ -822,54 +929,69 @@ def create_synthesis_run(
                 r.artifact_path = $artifact_path,
                 r.name = $name,
                 r.created_at = datetime()
-        """, run_id=run_id, pk=partition_key, model=model,
-             workspace=workspace, files=files, version=version,
-             artifact_path=artifact_path, name=name or f"Synthesis_{run_id[:8]}")
+        """,
+            run_id=run_id,
+            pk=partition_key,
+            model=model,
+            workspace=workspace,
+            files=files,
+            version=version,
+            artifact_path=artifact_path,
+            name=name or f"Synthesis_{run_id[:8]}",
+        )
     return {"status": "run_created", "run_id": run_id}
 
 
 def create_code_scan(
-    scan_id: str,
-    workspace: str,
-    root_dir: str,
-    name: Optional[str] = None
+    scan_id: str, workspace: str, root_dir: str, name: Optional[str] = None
 ) -> dict:
     """Create a new CodeScan node with metadata."""
     with write_session() as session:
-        session.run("""
+        session.run(
+            """
             MERGE (s:CodeScan {scan_id: $scan_id})
             ON CREATE SET 
                 s.workspace = $workspace,
                 s.root_dir = $root_dir,
                 s.name = $name,
                 s.created_at = datetime()
-        """, scan_id=scan_id, workspace=workspace, root_dir=root_dir, 
-             name=name or f"CodeScan_{scan_id[:8]}")
+        """,
+            scan_id=scan_id,
+            workspace=workspace,
+            root_dir=root_dir,
+            name=name or f"CodeScan_{scan_id[:8]}",
+        )
     return {"status": "scan_created", "scan_id": scan_id}
 
 
 def get_code_scan_history(workspace: str = "default") -> List[dict]:
     """List all code scans in a workspace."""
     with read_session() as session:
-        result = session.run("""
+        result = session.run(
+            """
             MATCH (s:CodeScan {workspace: $workspace})
             RETURN s.scan_id AS scan_id, s.name AS name, s.root_dir AS root_dir, 
                    s.created_at AS created_at
             ORDER BY s.created_at DESC
-        """, workspace=workspace)
+        """,
+            workspace=workspace,
+        )
         return [dict(rec) for rec in result]
 
 
 def get_synthesis_history(workspace: str = "default") -> List[dict]:
     """List all synthesis runs in a workspace."""
     with read_session() as session:
-        result = session.run("""
+        result = session.run(
+            """
             MATCH (r:SynthesisRun {workspace: $workspace})
             RETURN r.run_id AS run_id, r.model AS model, r.timestamp AS timestamp, 
                    r.name AS name, r.files AS files, r.version AS version, 
                    r.created_at AS created_at, r.partition_key AS partition_key
             ORDER BY r.created_at DESC
-        """, workspace=workspace)
+        """,
+            workspace=workspace,
+        )
         return [dict(rec) for rec in result]
 
 
@@ -877,23 +999,33 @@ def delete_synthesis_run(run_id: str, workspace: str = "default") -> dict:
     """Delete a specific run and all its associated triples."""
     with write_session() as session:
         # 1. Delete all edges tagged with this run_id
-        session.run("""
+        session.run(
+            """
             MATCH ()-[r:RELATES_TO {run_id: $run_id}]->()
             DELETE r
-        """, run_id=run_id)
+        """,
+            run_id=run_id,
+        )
 
         # 2. Delete the SynthesisRun node
-        session.run("""
+        session.run(
+            """
             MATCH (r:SynthesisRun {run_id: $run_id, workspace: $workspace})
             DELETE r
-        """, run_id=run_id, workspace=workspace)
+        """,
+            run_id=run_id,
+            workspace=workspace,
+        )
 
         # 3. Cleanup orphaned concepts
-        session.run("""
+        session.run(
+            """
             MATCH (c:Concept {workspace: $workspace})
             WHERE NOT (c)--()
             DELETE c
-        """, workspace=workspace)
+        """,
+            workspace=workspace,
+        )
 
     return {"status": "run_deleted", "run_id": run_id}
 
@@ -907,18 +1039,22 @@ def update_graph_centrality(workspace: str = "default") -> dict:
     with write_session() as session:
         # Try APOC PageRank if available
         try:
-            session.run("""
+            session.run(
+                """
                 CALL apoc.algo.pageRank('Concept') YIELD node, score
                 WHERE node.workspace = $workspace
                 SET node.centrality = score
-            """, workspace=workspace)
+            """,
+                workspace=workspace,
+            )
             return {"status": "centrality_updated", "method": "pagerank"}
         except Exception:
             pass
 
-        # Fallback: weighted degree centrality 
+        # Fallback: weighted degree centrality
         # (count direct connections + 0.5 * second-degree connections)
-        session.run("""
+        session.run(
+            """
             MATCH (c:Concept {workspace: $workspace})
             OPTIONAL MATCH (c)--(neighbor)
             WITH c, count(DISTINCT neighbor) AS degree
@@ -926,34 +1062,38 @@ def update_graph_centrality(workspace: str = "default") -> dict:
             WHERE second <> c
             WITH c, degree, count(DISTINCT second) AS second_degree
             SET c.centrality = degree + (second_degree * 0.3)
-        """, workspace=workspace)
+        """,
+            workspace=workspace,
+        )
 
     return {"status": "centrality_updated", "method": "weighted_degree"}
 
 
-def multi_hop_traversal(query: str, workspace: str = "default", depth: int = 3, limit: int = 10) -> List[Dict[str, Any]]:
+def multi_hop_traversal(
+    query: str, workspace: str = "default", depth: int = 3, limit: int = 10
+) -> List[Dict[str, Any]]:
     """
     Perform multi-hop graph traversal from entities mentioned in the query.
-    
+
     Algorithm:
     1. Extract entity names from the query using simple NLP (word matching against existing nodes)
     2. For each matched entity, traverse relationships up to `depth` hops
     3. Collect connected nodes and relationship paths
     4. Return as list of {content, source, path} dicts
-    
+
     Args:
         query: The search query
         workspace: Workspace scope
         depth: Maximum relationship hops (1-5)
         limit: Maximum results to return
-    
+
     Returns:
         List of documents with relational context
     """
     driver = get_driver()
     if driver is None:
         return []
-    
+
     results = []
     try:
         with driver.session() as session:
@@ -968,13 +1108,13 @@ def multi_hop_traversal(query: str, workspace: str = "default", depth: int = 3, 
             words = [w for w in query.split() if len(w) > 3]  # Skip short words
             if not words:
                 return []
-            
+
             entities = session.run(entity_query, words=words)
             entity_names = [record["name"] for record in entities]
-            
+
             if not entity_names:
                 return []
-            
+
             # Step 2: Multi-hop traversal from each entity
             hop_query = f"""
             MATCH path = (start)-[*1..{min(depth, 5)}]-(connected)
@@ -987,13 +1127,9 @@ def multi_hop_traversal(query: str, workspace: str = "default", depth: int = 3, 
             ORDER BY hops ASC
             LIMIT $limit
             """
-            
-            traversal_results = session.run(
-                hop_query, 
-                entity_names=entity_names, 
-                limit=limit
-            )
-            
+
+            traversal_results = session.run(hop_query, entity_names=entity_names, limit=limit)
+
             for record in traversal_results:
                 path_str = " → ".join(record["relationship_types"])
                 content = (
@@ -1003,15 +1139,17 @@ def multi_hop_traversal(query: str, workspace: str = "default", depth: int = 3, 
                 )
                 if record.get("description"):
                     content += f"Description: {record['description']}\n"
-                
-                results.append({
-                    "content": content,
-                    "source": f"neo4j://{record['source_entity']}/{path_str}",
-                    "hops": record["hops"],
-                })
+
+                results.append(
+                    {
+                        "content": content,
+                        "source": f"neo4j://{record['source_entity']}/{path_str}",
+                        "hops": record["hops"],
+                    }
+                )
     except Exception as e:
         logger.warning("Multi-hop traversal failed: %s", e)
-    
+
     return results
 
 
@@ -1023,22 +1161,30 @@ def delete_workspace_data(workspace: str) -> dict:
     with write_session() as session:
         # 1. Delete all nodes with the workspace property (Concepts, Sources, etc.)
         # DETACH DELETE removes all associated relationships.
-        session.run("""
+        session.run(
+            """
             MATCH (n {workspace: $workspace})
             DETACH DELETE n
-        """, workspace=workspace)
-        
+        """,
+            workspace=workspace,
+        )
+
         # 2. Delete any SynthesisRuns associated with the workspace
-        session.run("""
+        session.run(
+            """
             MATCH (r:SynthesisRun {workspace: $workspace})
             DETACH DELETE r
-        """, workspace=workspace)
-        
+        """,
+            workspace=workspace,
+        )
+
         # 3. Delete any CodeScans or other workspace-specific structures
-        session.run("""
+        session.run(
+            """
             MATCH (s:CodeScan {workspace: $workspace})
             DETACH DELETE s
-        """, workspace=workspace)
+        """,
+            workspace=workspace,
+        )
 
     return {"status": "workspace_data_deleted", "workspace": workspace}
-
