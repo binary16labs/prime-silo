@@ -111,7 +111,7 @@ async def eval_triples(request: EvalTriplesRequest):
             f"and RECALL (did it capture the core concepts?) from 0.0 to 1.0.\\n\\n"
             f"TEXT:\\n{request.text}\\n\\n"
             f"TRIPLES:\\n{triples_str}\\n\\n"
-            f"Respond ONLY with a JSON object like {{\\"precision\\": 0.9, \\"recall\\": 0.8}}"
+            f"Respond ONLY with a JSON object like {{\"precision\": 0.9, \"recall\": 0.8}}"
         )
         judge_res = await call_llm(judge_prompt, workspace=request.workspace, run_id=run_id)
         import json
@@ -148,26 +148,43 @@ async def ingest_files(request: IngestRequest):
         logger.warning("Lineage tracking failed (init): %s", e)
 
     try:
+        # Promote any raw files still sitting in staging/ into data_in before we
+        # glob. Without this, an ingest fired before the staging→data_in
+        # conversion has run sees an empty data_in and fails with "No supported
+        # files found" — even though the user just staged files. (Race observed
+        # 2026-06-25: run 12bf027c failed, then succeeded once conversion ran.)
+        try:
+            from .etl_routes import promote_staged_files
+            promoted = promote_staged_files(request.workspace)
+            if promoted:
+                logger.info(f"Promoted {len(promoted)} staged file(s) to data_in: {promoted}")
+        except Exception as promote_e:
+            logger.warning("Staging promotion failed (continuing): %s", promote_e)
+
         data_in_path = get_workspace_path(request.workspace, "data_in")
         if not data_in_path.exists():
             task_manager.update_task(run_id, status="failed", message="No files found in data_in")
             raise HTTPException(404, "No files found in data_in")
-        
+
         # Get files to ingest
         if request.files:
             file_paths = [data_in_path / f for f in request.files]
         else:
             file_paths = list(data_in_path.glob("*.*"))
-        
+
         # Filter for supported types
         supported = ['.txt', '.md', '.pdf', '.docx', '.pptx', '.html']
         file_paths = [f for f in file_paths if f.suffix.lower() in supported]
-        
+
         logger.info(f"Ingestion started for {len(file_paths)} files in {data_in_path}")
-        
+
         if not file_paths:
-            task_manager.update_task(run_id, status="failed", message="No supported files found")
-            raise HTTPException(404, "No supported files found")
+            msg = (
+                "No supported files found in data_in. If you just staged files, "
+                "they could not be converted — check staging/ and the converter."
+            )
+            task_manager.update_task(run_id, status="failed", message=msg)
+            raise HTTPException(404, msg)
 
         # Preflight: the knowledge collection embeds via the local HTTP provider
         # (LocalEmbeddingFunction → LM Studio / Lemonade / Ollama). If that
