@@ -53,8 +53,8 @@ def promote_staged_files(workspace: str = "default", only: list[str] | None = No
             continue
 
         md_out_path = data_in_dir / f"{staged_path.stem}.md"
-        if md_out_path.exists() and md_out_path.stat().st_mtime >= staged_path.stat().st_mtime:
-            continue  # already converted and up to date
+        if md_out_path.exists() and md_out_path.stat().st_mtime >= staged_path.stat().st_mtime and md_out_path.stat().st_size > 0:
+            continue  # already converted, up to date, and not empty
 
         try:
             text = extract_structured_text(staged_path, use_docling=use_docling, do_ocr=do_ocr)

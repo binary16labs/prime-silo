@@ -57,7 +57,7 @@ def extract_structured_text(file_path: Path, log_fn: Callable = print, use_docli
         # Optimize for memory (std::bad_alloc fix)
         pipeline_options = PdfPipelineOptions()
         pipeline_options.do_ocr = do_ocr # Faster and lighter if PDF has text; handles pages one-by-one.
-        pipeline_options.do_table_structure = False # Disabled to prevent massive RAM spikes on complex PDFs
+        pipeline_options.do_table_structure = True # Enabled to better extract headings and document structure.
         
         converter = DocumentConverter(
             format_options={
