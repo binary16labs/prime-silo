@@ -28,7 +28,7 @@ def _basic_extract(file_path: Path) -> str:
         raise ValueError(f"Unsupported file type for basic extraction: {ext}")
 
 
-def extract_structured_text(file_path: Path, log_fn: Callable = print) -> str:
+def extract_structured_text(file_path: Path, log_fn: Callable = print, use_docling: bool = True, do_ocr: bool = False) -> str:
     """
     Extract high-quality structured Markdown from a document using Docling.
     Falls back to basic text extraction if Docling is unavailable or fails.
@@ -43,8 +43,9 @@ def extract_structured_text(file_path: Path, log_fn: Callable = print) -> str:
         except Exception as e:
             log_fn(f"Warning: Failed to read {file_path.name} as UTF-8: {e}")
     
-    # Force basic extraction to avoid Docling deadlock/hang
-    return _basic_extract(file_path)
+    if not use_docling:
+        log_fn(f"[INFO] Skipping Docling (use_docling=False), using basic extraction for {file_path.name}...")
+        return _basic_extract(file_path)
 
     try:
         # log_fn(f"[INFO] Using Docling (PyPdfium Backend) to extract structured content from {file_path.name}...")
@@ -55,7 +56,7 @@ def extract_structured_text(file_path: Path, log_fn: Callable = print) -> str:
         
         # Optimize for memory (std::bad_alloc fix)
         pipeline_options = PdfPipelineOptions()
-        pipeline_options.do_ocr = False # Faster and lighter if PDF has text; handles pages one-by-one.
+        pipeline_options.do_ocr = do_ocr # Faster and lighter if PDF has text; handles pages one-by-one.
         pipeline_options.do_table_structure = False # Disabled to prevent massive RAM spikes on complex PDFs
         
         converter = DocumentConverter(

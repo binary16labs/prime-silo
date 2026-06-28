@@ -5,7 +5,7 @@ ETL Routes - Staging and Conversion Pipeline
 import shutil
 from pathlib import Path
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, HTTPException, UploadFile, Form
 
 from ..core.extraction import extract_structured_text
 from ..core.workspace import get_workspace_path
@@ -17,7 +17,7 @@ router = APIRouter()
 SUPPORTED_RAW = {".txt", ".md", ".pdf", ".docx", ".pptx", ".html"}
 
 
-def promote_staged_files(workspace: str = "default", only: list[str] | None = None) -> list[str]:
+def promote_staged_files(workspace: str = "default", only: list[str] | None = None, use_docling: bool = True, do_ocr: bool = False) -> list[str]:
     """Convert raw files sitting in ``staging/`` into markdown in ``data_in/``.
 
     Idempotent: a staged file is skipped when its converted ``.md`` already
@@ -57,7 +57,7 @@ def promote_staged_files(workspace: str = "default", only: list[str] | None = No
             continue  # already converted and up to date
 
         try:
-            text = extract_structured_text(staged_path)
+            text = extract_structured_text(staged_path, use_docling=use_docling, do_ocr=do_ocr)
             with open(md_out_path, "w", encoding="utf-8") as f:
                 f.write(text)
             try:
@@ -76,7 +76,7 @@ def promote_staged_files(workspace: str = "default", only: list[str] | None = No
 
 
 @router.post("/stage-and-convert")
-async def stage_and_convert_file(file: UploadFile = File(...), workspace: str = "default"):
+async def stage_and_convert_file(file: UploadFile = File(...), workspace: str = "default", use_docling: bool = Form(True), do_ocr: bool = Form(False)):
     """Explicit ETL Pipeline Step: Upload a RAW file to staging, convert to markdown, output to data_in"""
     try:
         staging_dir = get_workspace_path(workspace, "staging")
@@ -88,7 +88,7 @@ async def stage_and_convert_file(file: UploadFile = File(...), workspace: str = 
             shutil.copyfileobj(file.file, buffer)
 
         # Parse it safely into UTF-8 text using Docling
-        text = extract_structured_text(staged_path)
+        text = extract_structured_text(staged_path, use_docling=use_docling, do_ocr=do_ocr)
 
         markdown_filename = f"{staged_path.stem}.md"
         data_in_dir = get_workspace_path(workspace, "data_in")

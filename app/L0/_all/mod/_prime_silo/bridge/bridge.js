@@ -352,6 +352,8 @@ export function createBridgePage(options = {}) {
     dragOver: false,
     uploading: false,
     rescanning: false,
+    useDocling: true,
+    doOcr: false,
     
     // wizard
     wizardActive: false,
@@ -1086,6 +1088,8 @@ export function createBridgePage(options = {}) {
             body: JSON.stringify({
               workspace: this.workspace,
               deep_synthesis: true,
+              use_docling: this.useDocling,
+              do_ocr: this.doOcr,
               files: targets
             })
           })

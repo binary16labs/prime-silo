@@ -125,6 +125,16 @@ function parseSha256Sidecar(text) {
   return /^[0-9a-f]{64}$/i.test(token) ? token.toLowerCase() : "";
 }
 
+function killLingeringProcesses(targetDir, platform = process.platform, logger = console) {
+  if (platform !== "win32") return;
+  try {
+    const psCmd = `Get-Process | Where-Object { $_.Path -and $_.Path.StartsWith('${targetDir}\\', 'CurrentCultureIgnoreCase') } | Stop-Process -Force`;
+    execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", psCmd], { stdio: "ignore", windowsHide: true });
+  } catch (error) {
+    logger.warn && logger.warn(`[runtime-fetch] failed to kill lingering processes in ${targetDir}: ${error.message || error}`);
+  }
+}
+
 /* ── main ────────────────────────────────────────────────────────────── */
 
 /**
@@ -170,8 +180,10 @@ async function ensureRuntimeBundle(opts = {}) {
     const base = path.basename(destDir);
     for (const entry of fs.readdirSync(parent)) {
       if (entry.startsWith(`${base}.old-`) || entry.startsWith(`${base}.staging-`)) {
+        const fullPath = path.join(parent, entry);
+        killLingeringProcesses(fullPath, platform, logger);
         try {
-          fs.rmSync(path.join(parent, entry), { recursive: true, force: true });
+          fs.rmSync(fullPath, { recursive: true, force: true });
         } catch {
           /* still locked — leave for next launch */
         }
@@ -240,6 +252,7 @@ async function ensureRuntimeBundle(opts = {}) {
   // fails the existing bundle is left intact and usable.
   try {
     if (fs.existsSync(destDir)) {
+      killLingeringProcesses(destDir, platform, logger);
       const retired = `${destDir}.old-${Date.now()}`;
       fs.renameSync(destDir, retired);
       try {

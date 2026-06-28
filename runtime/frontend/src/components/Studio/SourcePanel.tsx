@@ -30,6 +30,8 @@ export default function DataManagementPanel() {
   const [ingestionStrategy, setIngestionStrategy] = useState<'safe' | 'aggressive'>('safe');
   const [deepSynthesis, setDeepSynthesis] = useState(true);
   const [correlationThreshold, setCorrelationThreshold] = useState(0.70);
+  const [useDocling, setUseDocling] = useState(true);
+  const [doOcr, setDoOcr] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const logsEndRef = useRef<HTMLDivElement>(null);
@@ -136,6 +138,8 @@ export default function DataManagementPanel() {
     for (const file of files) {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('use_docling', useDocling.toString());
+      formData.append('do_ocr', doOcr.toString());
       try {
         if (file.name.toLowerCase().endsWith('.pdf')) {
           const res = await fetch(`${API_BASE_URL}/api/etl/stage-and-convert?workspace=${currentWorkspace}`, {
@@ -173,7 +177,9 @@ export default function DataManagementPanel() {
             batch_size: batchSize,
             strategy: ingestionStrategy,
             deep_synthesis: deepSynthesis,
-            correlation_threshold: correlationThreshold
+            correlation_threshold: correlationThreshold,
+            use_docling: useDocling,
+            do_ocr: doOcr
           })
         });
         alert('Files uploaded and indexed successfully!');
@@ -240,7 +246,9 @@ export default function DataManagementPanel() {
             body: JSON.stringify({ 
               workspace: currentWorkspace,
               files: [uploadedFile],
-              batch_size: batchSize
+              batch_size: batchSize,
+              use_docling: useDocling,
+              do_ocr: doOcr
             })
           });
           alert('File imported and indexed successfully!');
@@ -294,7 +302,9 @@ export default function DataManagementPanel() {
               workspace: currentWorkspace,
               files: [uploadedFile],
               batch_size: batchSize,
-              strategy: ingestionStrategy
+              strategy: ingestionStrategy,
+              use_docling: useDocling,
+              do_ocr: doOcr
             })
           });
           alert('Gutenberg Book imported and indexed successfully!');
@@ -356,7 +366,9 @@ export default function DataManagementPanel() {
           batch_size: batchSize,
           strategy: ingestionStrategy,
           deep_synthesis: deepSynthesis,
-          correlation_threshold: correlationThreshold
+          correlation_threshold: correlationThreshold,
+          use_docling: useDocling,
+          do_ocr: doOcr
         })
       });
       alert(`Successfully indexed ${activeSources.size} file(s)!`);
@@ -882,6 +894,33 @@ export default function DataManagementPanel() {
                   onChange={(e) => setCorrelationThreshold(parseFloat(e.target.value))}
                   style={{ width: '100%', accentColor: '#FF00FF', height: '4px' }}
                 />
+            </div>
+            
+            {/* Extraction Controls */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
+               <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-white/80 uppercase">Docling Extraction</span>
+               </div>
+               <button 
+                 onClick={() => setUseDocling(!useDocling)}
+                 className={`w-10 h-5 rounded-full transition-all relative ${useDocling ? 'bg-[var(--primary)]' : 'bg-white/10'}`}
+                 style={{ backgroundColor: useDocling ? '#8b5cf6' : 'rgba(255,255,255,0.1)' }}
+               >
+                  <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${useDocling ? 'right-1' : 'left-1'}`} />
+               </button>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: useDocling ? 1 : 0.5, pointerEvents: useDocling ? 'auto' : 'none' }}>
+               <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-white/80 uppercase">Enable OCR (Scanned PDFs)</span>
+               </div>
+               <button 
+                 onClick={() => setDoOcr(!doOcr)}
+                 className={`w-10 h-5 rounded-full transition-all relative ${doOcr ? 'bg-[var(--primary)]' : 'bg-white/10'}`}
+                 style={{ backgroundColor: doOcr ? '#8b5cf6' : 'rgba(255,255,255,0.1)' }}
+               >
+                  <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${doOcr ? 'right-1' : 'left-1'}`} />
+               </button>
             </div>
 
             <button 
