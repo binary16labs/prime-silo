@@ -92,16 +92,12 @@ $docFiles = @(
 
 $destStaging = Join-Path $wsPath "staging"
 
-# Sync Doc Folders
+# Sync Doc Folders (cross-platform; see Copy-Filtered above — robocopy is Windows-only)
 foreach ($f in $docFolders) {
     $fullPath = Join-Path $repoRoot $f
     if (Test-Path $fullPath) {
-        $destPath = Join-Path $destStaging $f
         Write-Host "    Syncing folder $f -> staging/$f"
-        & robocopy $fullPath $destPath /E /XD node_modules .venv .git workspace workspaces dist runtime-bundle home /R:1 /W:1 /NDL /NFL /NJH /NJS | Out-Null
-        if ($LASTEXITCODE -ge 8) {
-            Write-Error "Robocopy of $f failed with exit code $LASTEXITCODE"
-        }
+        Copy-Filtered $fullPath (Join-Path $destStaging $f) $excludeDirs
     }
 }
 
