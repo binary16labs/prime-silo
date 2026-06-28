@@ -162,6 +162,25 @@ async function ensureRuntimeBundle(opts = {}) {
     return { ok: true, reason: "already-present", destDir };
   }
 
+  // Best-effort: prune leftovers from a previous interrupted/locked install
+  // (.old-* retired bundles, .staging-* partial extracts). A copy still locked
+  // by a lingering process is skipped and removed on a later launch.
+  try {
+    const parent = path.dirname(destDir);
+    const base = path.basename(destDir);
+    for (const entry of fs.readdirSync(parent)) {
+      if (entry.startsWith(`${base}.old-`) || entry.startsWith(`${base}.staging-`)) {
+        try {
+          fs.rmSync(path.join(parent, entry), { recursive: true, force: true });
+        } catch {
+          /* still locked — leave for next launch */
+        }
+      }
+    }
+  } catch {
+    /* best-effort */
+  }
+
   const names = runtimeBundleAssetNames(platform, arch);
 
   // Resolve the expected checksum: caller override, else the .sha256 sidecar.
@@ -197,16 +216,43 @@ async function ensureRuntimeBundle(opts = {}) {
     return { ok: false, reason: "checksum-mismatch", destDir };
   }
 
+  // Extract to a sibling staging dir first, then swap it into place. Extracting
+  // straight into destDir (after rmSync) used to leave a half-deleted, corrupt
+  // bundle when a lingering java/neo4j held a lock under destDir on Windows —
+  // the recursive delete throws *after* removing the unlocked files.
+  const staging = `${destDir}.staging-${process.pid}-${Date.now()}`;
   try {
-    // Clean any partial/previous install, then extract fresh.
-    fs.rmSync(destDir, { recursive: true, force: true });
-    fs.mkdirSync(destDir, { recursive: true });
-    extractFn(archivePath, destDir);
+    fs.rmSync(staging, { recursive: true, force: true });
+    fs.mkdirSync(staging, { recursive: true });
+    extractFn(archivePath, staging);
   } catch (error) {
+    fs.rmSync(staging, { recursive: true, force: true });
     logger.error && logger.error(`[runtime-fetch] extract failed: ${error.message || error}`);
     return { ok: false, reason: "extract-failed", destDir };
   } finally {
     fs.rmSync(archivePath, { force: true });
+  }
+
+  // Swap without an in-place delete of a possibly-locked dir. Renaming a
+  // directory succeeds even when files inside are open (same volume), so we move
+  // the old bundle aside, move staging in, then prune the old copy best-effort
+  // (a locked leftover is harmless and cleaned on a later launch). If the swap
+  // fails the existing bundle is left intact and usable.
+  try {
+    if (fs.existsSync(destDir)) {
+      const retired = `${destDir}.old-${Date.now()}`;
+      fs.renameSync(destDir, retired);
+      try {
+        fs.rmSync(retired, { recursive: true, force: true });
+      } catch {
+        /* locked — pruned on a later launch */
+      }
+    }
+    fs.renameSync(staging, destDir);
+  } catch (error) {
+    fs.rmSync(staging, { recursive: true, force: true });
+    logger.error && logger.error(`[runtime-fetch] install swap failed: ${error.message || error}`);
+    return { ok: false, reason: "replace-busy", destDir };
   }
 
   if (
