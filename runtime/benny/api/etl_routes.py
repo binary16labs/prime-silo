@@ -3,6 +3,7 @@ ETL Routes - Staging and Conversion Pipeline
 """
 
 import shutil
+from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
@@ -16,12 +17,17 @@ router = APIRouter()
 SUPPORTED_RAW = {".txt", ".md", ".pdf", ".docx", ".pptx", ".html"}
 
 
-def promote_staged_files(workspace: str = "default") -> list[str]:
-    """Convert any raw files sitting in ``staging/`` into markdown in ``data_in/``.
+def promote_staged_files(workspace: str = "default", only: list[str] | None = None) -> list[str]:
+    """Convert raw files sitting in ``staging/`` into markdown in ``data_in/``.
 
     Idempotent: a staged file is skipped when its converted ``.md`` already
     exists in ``data_in`` and is at least as new as the source. Returns the
     list of filenames converted on this call.
+
+    ``only`` restricts conversion to staged files whose stem matches one of the
+    given names (matched by stem, so ``foo.pdf`` selects ``staging/foo.pdf``).
+    When ``None`` every staged file is promoted. This lets a single-file ingest
+    convert just that document instead of the whole staging folder.
 
     This is the shared promotion step so that callers (e.g. ``/rag/ingest``)
     can guarantee ``data_in`` reflects everything the user has staged, instead
@@ -35,11 +41,15 @@ def promote_staged_files(workspace: str = "default") -> list[str]:
     data_in_dir = get_workspace_path(workspace, "data_in")
     data_in_dir.mkdir(parents=True, exist_ok=True)
 
+    only_stems = {Path(n).stem for n in only} if only else None
+
     converted: list[str] = []
     for staged_path in staging_dir.glob("*.*"):
         if not staged_path.is_file():
             continue
         if staged_path.suffix.lower() not in SUPPORTED_RAW:
+            continue
+        if only_stems is not None and staged_path.stem not in only_stems:
             continue
 
         md_out_path = data_in_dir / f"{staged_path.stem}.md"

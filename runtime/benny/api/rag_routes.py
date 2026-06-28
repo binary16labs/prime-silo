@@ -178,7 +178,7 @@ async def ingest_files(request: IngestRequest):
         try:
             from .etl_routes import promote_staged_files
 
-            promoted = promote_staged_files(request.workspace)
+            promoted = promote_staged_files(request.workspace, only=request.files)
             if promoted:
                 logger.info(f"Promoted {len(promoted)} staged file(s) to data_in: {promoted}")
         except Exception as promote_e:
@@ -189,9 +189,18 @@ async def ingest_files(request: IngestRequest):
             task_manager.update_task(run_id, status="failed", message="No files found in data_in")
             raise HTTPException(404, "No files found in data_in")
 
-        # Get files to ingest
+        # Get files to ingest. A requested name may be a raw upload (e.g.
+        # foo.pdf) whose ingestable form in data_in is the converted foo.md —
+        # so resolve each name to the file as-named, else its <stem>.md.
+        def _resolve_in_data_in(name: str) -> Path:
+            direct = data_in_path / name
+            if direct.exists():
+                return direct
+            md = data_in_path / f"{Path(name).stem}.md"
+            return md if md.exists() else direct
+
         if request.files:
-            file_paths = [data_in_path / f for f in request.files]
+            file_paths = [_resolve_in_data_in(f) for f in request.files]
         else:
             file_paths = list(data_in_path.glob("*.*"))
 
@@ -707,8 +716,6 @@ async def get_indexing_manifest(workspace: str = "default"):
 
         manifest = []
         import os
-
-
 
         for base_path_obj in [data_in_path]:
             base_path = str(base_path_obj)
@@ -1292,8 +1299,6 @@ async def get_wiki_article(filename: str, workspace: str = "default"):
         raise
     except Exception as e:
         raise HTTPException(500, f"Failed to read article: {str(e)}")
-
-
 
 
 @router.post("/rag/adaptive-query", response_model=AdaptiveRAGResponse)
