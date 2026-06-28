@@ -1,28 +1,42 @@
-import json
 import hashlib
+import json
 import uuid
-from typing import Dict, List, Any, Optional
 from pathlib import Path
-from ...core.graph_db import get_full_graph
-from .schema import Node, Edge, NodeMetrics, NodeCategory, EdgeKind
+from typing import List, Optional
 
-FIXTURE_PATH = Path(__file__).parent.parent.parent.parent / "tests" / "fixtures" / "kg3d" / "ml_knowledge_graph_v1.json"
+from ...core.graph_db import get_full_graph
+from .schema import Edge, EdgeKind, Node, NodeCategory, NodeMetrics
+
+FIXTURE_PATH = (
+    Path(__file__).parent.parent.parent.parent
+    / "tests"
+    / "fixtures"
+    / "kg3d"
+    / "ml_knowledge_graph_v1.json"
+)
+
 
 class Graph:
     def __init__(self, nodes: List[Node], edges: List[Edge]):
         self.nodes = nodes
         self.edges = edges
 
+
 async def load_default_ontology(workspace: Optional[str] = None) -> Graph:
     """
-    Loads the ontology. 
+    Loads the ontology.
     If a workspace is provided, it attempts to fetch live data from Neo4j.
     Otherwise, it falls back to the canonical ML ontology fixture.
     """
     if workspace:
         try:
-            raw_data = get_full_graph(workspace=workspace)
-            
+            # show_all=True: the 3D ontology needs the COMPLETE graph, not a
+            # paged slice. The default LIMIT (page_size=200) silently dropped
+            # nodes (notably the Source nodes), which dangled every SOURCED_FROM
+            # edge → a "disconnected" graph, and truncated descendant_ratio so
+            # every node collapsed to aot_layer 5 (flat hierarchy).
+            raw_data = get_full_graph(workspace=workspace, show_all=True)
+
             if raw_data.get("nodes"):
                 nodes = []
                 # Map Neo4j nodes to KG3D Node schema
@@ -30,7 +44,7 @@ async def load_default_ontology(workspace: Optional[str] = None) -> Graph:
                     # Determine category based on labels and properties
                     label_list = n.get("labels", [])
                     main_label = label_list[0] if label_list else "Concept"
-                    
+
                     category = NodeCategory.CONCEPT
                     if "Source" in label_list:
                         category = NodeCategory.DOCUMENTATION
@@ -47,18 +61,20 @@ async def load_default_ontology(workspace: Optional[str] = None) -> Graph:
                         betweenness=0.0,
                         descendant_ratio=0.0,
                         prerequisite_ratio=0.0,
-                        reachability_ratio=0.0
+                        reachability_ratio=0.0,
                     )
 
-                    nodes.append(Node(
-                        id=str(n["id"]),
-                        canonical_name=n.get("name", "Unknown"),
-                        display_name=n.get("name", "Unknown"),
-                        category=category,
-                        aot_layer=3, # Default, metrics.py will update this
-                        metrics=metrics,
-                        source_refs=[n.get("source_doc")] if n.get("source_doc") else []
-                    ))
+                    nodes.append(
+                        Node(
+                            id=str(n["id"]),
+                            canonical_name=n.get("name", "Unknown"),
+                            display_name=n.get("name", "Unknown"),
+                            category=category,
+                            aot_layer=3,  # Default, metrics.py will update this
+                            metrics=metrics,
+                            source_refs=[n.get("source_doc")] if n.get("source_doc") else [],
+                        )
+                    )
 
                 edges = []
                 for e in raw_data.get("edges", []):
@@ -68,15 +84,17 @@ async def load_default_ontology(workspace: Optional[str] = None) -> Graph:
                         kind = EdgeKind.PREREQUISITE
                     elif e.get("type") == "CONFLICTS_WITH":
                         kind = EdgeKind.CONTRADICTS
-                    
-                    edges.append(Edge(
-                        id=str(uuid.uuid4())[:8],
-                        source_id=str(e["source"]),
-                        target_id=str(e["target"]),
-                        kind=kind,
-                        weight=e.get("confidence", 1.0)
-                    ))
-                
+
+                    edges.append(
+                        Edge(
+                            id=str(uuid.uuid4())[:8],
+                            source_id=str(e["source"]),
+                            target_id=str(e["target"]),
+                            kind=kind,
+                            weight=e.get("confidence", 1.0),
+                        )
+                    )
+
                 return Graph(nodes=nodes, edges=edges)
         except Exception as e:
             print(f"FAILED TO LOAD LIVE ONTOLOGY FOR WORKSPACE {workspace}: {e}")
@@ -84,15 +102,16 @@ async def load_default_ontology(workspace: Optional[str] = None) -> Graph:
 
     # Fallback to fixture
     if not FIXTURE_PATH.exists():
-        return Graph(nodes=[], edges=[]) # Total empty if fixture missing too
-    
+        return Graph(nodes=[], edges=[])  # Total empty if fixture missing too
+
     with open(FIXTURE_PATH, "r") as f:
         data = json.load(f)
-    
+
     nodes = [Node(**n) for n in data.get("nodes", [])]
     edges = [Edge(**e) for e in data.get("edges", [])]
-    
+
     return Graph(nodes=nodes, edges=edges)
+
 
 def _enum_value(v) -> str:
     return v.value if hasattr(v, "value") else str(v)
