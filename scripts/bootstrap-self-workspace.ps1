@@ -37,24 +37,31 @@ $srcFiles = @("package.json", "space.js")
 
 $destSrc = Join-Path $wsPath "src"
 
-# Copy Folders using Robocopy (very fast, reliable exclusions)
+# Exclusions: dev/build artifacts that must never enter the workspace copy.
+$excludeDirs = @("node_modules", ".venv", ".git", ".pytest_cache", ".benny_home",
+                 "workspace", "workspaces", "dist", "runtime-bundle", "home")
+
+# Cross-platform recursive copy that skips excluded directory NAMES during
+# traversal (so excluded trees are never copied). Replaces robocopy, which is
+# Windows-only and broke the Linux CI runner ("robocopy is not recognized").
+function Copy-Filtered($src, $dst, $exclude) {
+    New-Item -ItemType Directory -Force -Path $dst | Out-Null
+    foreach ($item in Get-ChildItem -LiteralPath $src -Force) {
+        if ($item.PSIsContainer) {
+            if ($exclude -contains $item.Name) { continue }
+            Copy-Filtered $item.FullName (Join-Path $dst $item.Name) $exclude
+        } else {
+            Copy-Item -LiteralPath $item.FullName -Destination (Join-Path $dst $item.Name) -Force
+        }
+    }
+}
+
+# Copy Folders (cross-platform; excludes dev/build artifacts during traversal).
 foreach ($f in $srcFolders) {
     $fullPath = Join-Path $repoRoot $f
     if (Test-Path $fullPath) {
-        $destPath = Join-Path $destSrc $f
         Write-Host "    Syncing folder $f -> src/$f"
-        
-        # Robocopy command
-        # /E: Copy subdirectories, including empty ones.
-        # /XD: Exclude directories matching names/paths.
-        # /R:1 /W:1: Retries/Wait times.
-        # /NDL /NFL /NJH /NJS: quiet flags to avoid massive console spam.
-        & robocopy $fullPath $destPath /E /XD node_modules .venv .git .pytest_cache .benny_home workspace workspaces dist runtime-bundle home /R:1 /W:1 /NDL /NFL /NJH /NJS | Out-Null
-        
-        # Robocopy returns exit codes 0-7 for success. 8+ indicates errors.
-        if ($LASTEXITCODE -ge 8) {
-            Write-Error "Robocopy of $f failed with exit code $LASTEXITCODE"
-        }
+        Copy-Filtered $fullPath (Join-Path $destSrc $f) $excludeDirs
     }
 }
 
