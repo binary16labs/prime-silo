@@ -1,6 +1,7 @@
 """
 MCP Server for Benny — expose workflow surface to external agents.
 """
+
 from __future__ import annotations
 
 import collections
@@ -19,45 +20,51 @@ from ..core.manifest_hash import verify_signature
 # Use FastMCP for easy tool registration.
 mcp = FastMCP("Benny")
 
+
 def _get_api_url() -> str:
     port = os.environ.get("BENNY_API_PORT", "8000")
     return f"http://127.0.0.1:{port}"
+
 
 def _is_offline() -> bool:
     val = os.environ.get("BENNY_OFFLINE", "").lower()
     return val in ("1", "true", "yes", "on")
 
+
 def _require_signatures() -> bool:
     val = os.environ.get("BENNY_REQUIRE_SIGNATURES", "").lower()
     return val in ("1", "true", "yes", "on")
 
+
 # ---- Tools -----------------------------------------------------------------
+
 
 @mcp.tool()
 async def plan_workflow(requirement: str, workspace: str = "default") -> str:
     """Plan a new swarm workflow from a natural language requirement.
-    
+
     Returns the signed SwarmManifest JSON.
     """
     if _is_offline():
         # Phase 4 requirement: check offline before I/O
-        # Note: In a real implementation, we might check if the requirement 
-        # would use a cloud model, but here we proxy to the API which 
+        # Note: In a real implementation, we might check if the requirement
+        # would use a cloud model, but here we proxy to the API which
         # handles the routing.
         pass
 
     async with httpx.AsyncClient(timeout=60.0) as client:
         resp = await client.post(
             f"{_get_api_url()}/api/workflows/plan",
-            json={"requirement": requirement, "workspace": workspace}
+            json={"requirement": requirement, "workspace": workspace},
         )
         resp.raise_for_status()
         return resp.text
 
+
 @mcp.tool()
 async def run_workflow(manifest: Union[str, dict]) -> str:
     """Execute a workflow manifest.
-    
+
     Accepts a manifest ID or a full manifest JSON object.
     Returns the RunResponse (run_id).
     """
@@ -77,6 +84,7 @@ async def run_workflow(manifest: Union[str, dict]) -> str:
     if _require_signatures():
         # We need a SwarmManifest object to verify
         from ..core.manifest import SwarmManifest
+
         try:
             m = SwarmManifest.model_validate(manifest)
             if m.signature is None:
@@ -87,18 +95,16 @@ async def run_workflow(manifest: Union[str, dict]) -> str:
             return f"Error: Integrity check failed: {e}"
 
     async with httpx.AsyncClient(timeout=10.0) as client:
-        resp = await client.post(
-            f"{_get_api_url()}/api/workflows/run",
-            json=manifest
-        )
+        resp = await client.post(f"{_get_api_url()}/api/workflows/run", json=manifest)
         resp.raise_for_status()
         return resp.text
+
 
 @mcp.tool()
 async def stream_events(run_id: str) -> str:
     """Stream lifecycle events for a specific run and return the terminal outcome.
-    
-    Note: MCP tools are usually request-response, so this tool pools the 
+
+    Note: MCP tools are usually request-response, so this tool pools the
     SSE stream and returns the accumulated events as a string once complete.
     """
     events = []
@@ -108,9 +114,10 @@ async def stream_events(run_id: str) -> str:
                 if line.startswith("data: "):
                     event_data = line[6:]
                     events.append(event_data)
-                    # If it's terminal, we could stop early, but SSE stream 
+                    # If it's terminal, we could stop early, but SSE stream
                     # should close itself.
     return "\n".join(events)
+
 
 @mcp.tool()
 async def get_run(run_id: str) -> str:
@@ -119,6 +126,7 @@ async def get_run(run_id: str) -> str:
         resp = await client.get(f"{_get_api_url()}/api/runs/{run_id}/record")
         resp.raise_for_status()
         return resp.text
+
 
 if __name__ == "__main__":
     # Standard MCP entry point

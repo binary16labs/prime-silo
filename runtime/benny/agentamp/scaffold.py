@@ -23,7 +23,7 @@ import os
 import re
 from pathlib import Path
 
-from .contracts import SkinManifest, SkinTokens, SkinCliPalette
+from .contracts import SkinCliPalette, SkinManifest, SkinTokens
 
 # skin_id must be a safe directory name: alphanumerics, hyphens, underscores only
 _SAFE_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_\-]{0,63}$")
@@ -87,8 +87,7 @@ def scaffold_skin(
     """
     if not _SAFE_ID_RE.match(skin_id or ""):
         raise ValueError(
-            f"skin_id {skin_id!r} is invalid — "
-            "must match [A-Za-z0-9][A-Za-z0-9_-]{{0,63}}"
+            f"skin_id {skin_id!r} is invalid — " "must match [A-Za-z0-9][A-Za-z0-9_-]{{0,63}}"
         )
 
     if drafts_dir is None:

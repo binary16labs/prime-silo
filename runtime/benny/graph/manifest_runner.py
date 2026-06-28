@@ -104,8 +104,7 @@ async def plan_from_requirement(
     max_expansions = 32  # safety — prevents runaway loops on buggy planners
     while expansion_guard < max_expansions:
         unexpanded = [
-            t for t in (state.get("plan") or [])
-            if t.get("is_pillar") and not t.get("is_expanded")
+            t for t in (state.get("plan") or []) if t.get("is_pillar") and not t.get("is_expanded")
         ]
         if not unexpanded:
             break
@@ -137,11 +136,11 @@ async def plan_from_requirement(
         manifest.name = name
     if output_spec:
         manifest.outputs = output_spec
-    
+
     # Mark as planned and approved so execute_manifest can bypass macro-planner
     manifest.metadata["execution_status"] = "planned"
     manifest.metadata["plan_approved"] = True
-    
+
     manifest.touch()
 
     return manifest
@@ -182,13 +181,12 @@ async def execute_manifest(
         max_depth=manifest.config.max_depth,
         handover_summary_limit=manifest.config.handover_summary_limit,
     )
-    
+
     # NEW: Register with TaskManager so aero/telemetry works
     from ..core.task_manager import task_manager
+
     task_manager.create_task(
-        workspace=manifest.workspace,
-        task_type="swarm_workflow",
-        task_id=run_id
+        workspace=manifest.workspace, task_type="swarm_workflow", task_id=run_id
     )
 
     # Overlay the manifest's pre-built plan/dep_graph/waves so the planner

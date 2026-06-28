@@ -9,15 +9,15 @@ A Remix Server is a scoped view of the skill registry that:
 
 from __future__ import annotations
 
-import logging
 import json
-from typing import List, Dict, Any, Optional
-from pathlib import Path
+import logging
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
-from ..core.skill_registry import registry, Skill
+from ..core.skill_registry import Skill, registry
 from ..core.workspace import get_workspace_path
 from .rbac import AgentRole, ToolOperation, check_permission
 
@@ -26,10 +26,11 @@ logger = logging.getLogger(__name__)
 
 class RemixServerConfig(BaseModel):
     """Configuration for a Remix Server instance."""
+
     id: str
     name: str
     description: str = ""
-    skill_ids: List[str]              # Skills exposed in this Remix Server
+    skill_ids: List[str]  # Skills exposed in this Remix Server
     agent_role: AgentRole = AgentRole.EXECUTOR
     workspace: str = "default"
     max_calls_per_session: int = 100
@@ -38,6 +39,7 @@ class RemixServerConfig(BaseModel):
 
 class RemixExecutionResult(BaseModel):
     """Result from executing a tool via Remix Server."""
+
     success: bool
     tool_id: str
     output: Optional[str] = None
@@ -48,52 +50,47 @@ class RemixExecutionResult(BaseModel):
 class RemixServer:
     """
     A runtime instance of a Remix Server.
-    
+
     Usage:
         config = RemixServerConfig(id="rag_only", name="RAG Only", skill_ids=["search_kb", "list_documents"])
         server = RemixServer(config)
         result = server.execute("search_kb", "default", agent_id="executor_1", query="test")
     """
-    
+
     def __init__(self, config: RemixServerConfig):
         self.config = config
         self._call_count = 0
         self._available_skills: Optional[List[Skill]] = None
-    
+
     @property
     def available_skills(self) -> List[Skill]:
         """Get the skills this Remix Server exposes."""
         if self._available_skills is None:
             self._available_skills = registry.get_skills_by_ids(
-                self.config.skill_ids,
-                self.config.workspace
+                self.config.skill_ids, self.config.workspace
             )
         return self._available_skills
-    
+
     def list_tools(self) -> List[Dict[str, Any]]:
         """List available tools in this Remix Server (for agent discovery)."""
         return [s.to_dict() for s in self.available_skills]
-    
+
     def get_tool_schemas(self) -> List[Dict]:
         """Get OpenAI function-calling schemas for available tools."""
         return [s.to_openai_tool_schema() for s in self.available_skills]
-    
+
     async def execute(
-        self,
-        tool_id: str,
-        workspace: str,
-        agent_id: str = "default",
-        **kwargs
+        self, tool_id: str, workspace: str, agent_id: str = "default", **kwargs
     ) -> RemixExecutionResult:
         """
         Execute a tool through the Remix Server with RBAC enforcement.
-        
+
         Args:
             tool_id: ID of the tool to execute
             workspace: Current workspace
             agent_id: Identifier of the calling agent
             **kwargs: Tool-specific arguments
-        
+
         Returns:
             RemixExecutionResult with outcome
         """
@@ -105,7 +102,7 @@ class RemixServer:
                 error=f"Tool '{tool_id}' is not available in this Remix Server '{self.config.name}'",
                 permission_granted=False,
             )
-        
+
         # Check 2: Session call limit
         if self._call_count >= self.config.max_calls_per_session:
             return RemixExecutionResult(
@@ -114,7 +111,7 @@ class RemixServer:
                 error=f"Session call limit ({self.config.max_calls_per_session}) exceeded",
                 permission_granted=False,
             )
-        
+
         # Check 3: RBAC permission
         permitted = check_permission(
             workspace=workspace,
@@ -123,7 +120,7 @@ class RemixServer:
             operation=ToolOperation.EXECUTE,
             agent_id=agent_id,
         )
-        
+
         if not permitted:
             return RemixExecutionResult(
                 success=False,
@@ -131,7 +128,7 @@ class RemixServer:
                 error=f"Permission denied: role '{self.config.agent_role.value}' cannot execute '{tool_id}'",
                 permission_granted=False,
             )
-        
+
         # Execute the tool
         self._call_count += 1
         try:

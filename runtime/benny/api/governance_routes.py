@@ -2,31 +2,33 @@
 Governance Routes - API endpoints for security manuals and audit integrity.
 """
 
-from fastapi import APIRouter, HTTPException, Query, Body
-from typing import List, Optional, Dict, Any
-from pathlib import Path
 import logging
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
+from fastapi import APIRouter, Body, HTTPException, Query
+
+from ..core.workspace import get_workspace_path
 from ..governance.audit import (
-    verify_audit_integrity,
     emit_security_event,
     read_audit_events,
+    verify_audit_integrity,
 )
 from ..governance.execution_audit import (
-    retrieve_execution_audit,
+    generate_execution_report,
     get_failed_nodes,
-    generate_execution_report
+    retrieve_execution_audit,
 )
 from ..governance.operating_manual import (
-    get_agent_identity, 
-    get_user_context, 
-    get_operational_rules
+    get_agent_identity,
+    get_operational_rules,
+    get_user_context,
 )
-from ..core.workspace import get_workspace_path
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
 
 @router.get("/integrity")
 async def check_integrity(workspace: str = Query("global")):
@@ -36,6 +38,7 @@ async def check_integrity(workspace: str = Query("global")):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/manuals/{workspace}")
 async def get_manuals(workspace: str):
     """Retrieve the current operating manuals for a workspace."""
@@ -43,25 +46,22 @@ async def get_manuals(workspace: str):
         identity = get_agent_identity(workspace)
         user_ctx = get_user_context(workspace)
         rules = get_operational_rules(workspace)
-        
-        return {
-            "identity": identity,
-            "user_context": user_ctx,
-            "operational_rules": rules
-        }
+
+        return {"identity": identity, "user_context": user_ctx, "operational_rules": rules}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/manuals/{workspace}/{filename}")
 async def update_manual(workspace: str, filename: str, content: Dict[str, str] = Body(...)):
     """Update an operating manual file."""
     if filename not in ["SOUL.md", "USER.md", "AGENTS.md"]:
         raise HTTPException(status_code=400, detail="Invalid manual filename")
-        
+
     try:
         file_path = get_workspace_path(workspace) / filename
         file_path.write_text(content.get("content", ""), encoding="utf-8")
-        
+
         # Log the security event
         emit_security_event(
             event_type="MANUAL_UPDATED",
@@ -69,12 +69,13 @@ async def update_manual(workspace: str, filename: str, content: Dict[str, str] =
             action=f"Update {filename}",
             result="success",
             details={"filename": filename},
-            workspace_id=workspace
+            workspace_id=workspace,
         )
-        
+
         return {"status": "updated", "file": filename}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/events")
 async def list_governance_events(
@@ -119,10 +120,11 @@ async def list_security_events(workspace: str = Query("global"), limit: int = 50
         result = verify_audit_integrity(workspace)
         return {
             "integrity_status": result,
-            "hint": "Security events are mirrored in the governance.log and workspace-specific audit.log"
+            "hint": "Security events are mirrored in the governance.log and workspace-specific audit.log",
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/verify-audit/{execution_id}")
 async def verify_execution_audit(execution_id: str, workspace: str = Query("default")):
@@ -130,11 +132,14 @@ async def verify_execution_audit(execution_id: str, workspace: str = Query("defa
     Enhanced audit verification endpoint with detailed failure information.
     """
     try:
-        audit = retrieve_execution_audit(execution_id, workspace, include_nodes=True, include_checkpoints=True)
+        audit = retrieve_execution_audit(
+            execution_id, workspace, include_nodes=True, include_checkpoints=True
+        )
         return audit
     except Exception as e:
         logger.error(f"Error retrieving execution audit for {execution_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/execution/{execution_id}/failures")
 async def get_execution_failures(execution_id: str, workspace: str = Query("default")):
@@ -152,11 +157,14 @@ async def get_execution_failures(execution_id: str, workspace: str = Query("defa
         logger.error(f"Error retrieving failures for {execution_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/execution/{execution_id}/nodes")
 async def get_execution_nodes(execution_id: str, workspace: str = Query("default")):
     """Get detailed node execution states."""
     try:
-        audit = retrieve_execution_audit(execution_id, workspace, include_nodes=True, include_checkpoints=False)
+        audit = retrieve_execution_audit(
+            execution_id, workspace, include_nodes=True, include_checkpoints=False
+        )
         nodes_by_status = {"completed": [], "failed": [], "other": []}
         for node_event in audit.get("node_states", []):
             node_data = node_event.get("data", {})
@@ -167,7 +175,7 @@ async def get_execution_nodes(execution_id: str, workspace: str = Query("default
                 nodes_by_status["failed"].append(node_data)
             else:
                 nodes_by_status["other"].append(node_data)
-        
+
         return {
             "execution_id": execution_id,
             "status": audit.get("status"),
@@ -178,15 +186,13 @@ async def get_execution_nodes(execution_id: str, workspace: str = Query("default
         logger.error(f"Error retrieving nodes for {execution_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/execution/{execution_id}/report")
 async def get_execution_report(execution_id: str, workspace: str = Query("default")):
     """Generate a human-readable text report of the execution failure."""
     try:
         report = generate_execution_report(execution_id, workspace)
-        return {
-            "execution_id": execution_id,
-            "report": report
-        }
+        return {"execution_id": execution_id, "report": report}
     except Exception as e:
         logger.error(f"Error generating report for {execution_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))

@@ -173,7 +173,11 @@ class Orchestrator:
         emitter.run_start()
 
         context = PipelineContext()
-        prior_store = CheckpointStore.for_run(workspace_root, resume_from_run_id) if resume_from_run_id else None
+        prior_store = (
+            CheckpointStore.for_run(workspace_root, resume_from_run_id)
+            if resume_from_run_id
+            else None
+        )
 
         order = _topological_order(resolved.steps)
         log.info("pypes: run=%s manifest=%s order=%s", run_id, resolved.id, order)
@@ -186,8 +190,10 @@ class Orchestrator:
             step = resolved.step(step_id)
             if step is None:
                 continue
-            if only_steps and step.id not in only_steps and (
-                prior_store is None or not prior_store.has(step.id)
+            if (
+                only_steps
+                and step.id not in only_steps
+                and (prior_store is None or not prior_store.has(step.id))
             ):
                 # Skipped by filter and no prior checkpoint — mark pending.
                 outcomes[step.id] = StepOutcome(step_id=step.id, status="SKIPPED")
@@ -254,7 +260,10 @@ class Orchestrator:
                 )
                 emitter.step_complete(
                     step,
-                    ValidationResult(status="FAIL", checks=[{"check": "execution", "status": "FAILED", "error": err}]),
+                    ValidationResult(
+                        status="FAIL",
+                        checks=[{"check": "execution", "status": "FAILED", "error": err}],
+                    ),
                 )
                 overall_status = "FAILED"
                 # Fail-fast by default — downstream steps have no inputs anyway
@@ -267,10 +276,10 @@ class Orchestrator:
         )
         for report in resolved.reports:
             try:
-                baseline_store = CheckpointStore.for_run(
-                    workspace_root, resume_from_run_id
-                ) if resume_from_run_id else _find_baseline_store(
-                    workspace_root, resolved.id, run_id
+                baseline_store = (
+                    CheckpointStore.for_run(workspace_root, resume_from_run_id)
+                    if resume_from_run_id
+                    else _find_baseline_store(workspace_root, resolved.id, run_id)
                 )
                 path = render_report(
                     engine=_select_engine(EngineType.PANDAS),
@@ -314,14 +323,14 @@ class Orchestrator:
             if pre.status == "FAIL":
                 raise ValueError(
                     f"pre-validation FAIL on step '{step.id}': "
-                    + "; ".join(c.get("check", "?") for c in pre.checks if c.get("status") == "FAILED")
+                    + "; ".join(
+                        c.get("check", "?") for c in pre.checks if c.get("status") == "FAILED"
+                    )
                 )
 
         # 3. Sub-manifest recursion OR operation dispatch
         if step.sub_manifest_uri:
-            df = self._run_sub_manifest(
-                step, df, manifest, workspace_root, run_id, variables
-            )
+            df = self._run_sub_manifest(step, df, manifest, workspace_root, run_id, variables)
         else:
             for op in step.operations:
                 df = self.registry.execute(
@@ -329,7 +338,11 @@ class Orchestrator:
                     df,
                     OperationSpec(
                         operation=op.operation,
-                        params={**op.params, "context": context.snapshot()} if op.operation in {"join", "union"} else op.params,
+                        params=(
+                            {**op.params, "context": context.snapshot()}
+                            if op.operation in {"join", "union"}
+                            else op.params
+                        ),
                     ),
                 )
 
@@ -340,10 +353,13 @@ class Orchestrator:
             except Exception as exc:
                 # Parquet engine may be missing — fall back to CSV alongside the original.
                 from .models import FormatType, SourceSpec
+
                 fallback_uri = step.destination.uri.rsplit(".", 1)[0] + ".csv"
                 log.warning(
                     "pypes: destination save failed for step '%s' (%s); writing CSV fallback to %s",
-                    step.id, exc, fallback_uri,
+                    step.id,
+                    exc,
+                    fallback_uri,
                 )
                 engine.save(
                     df,
@@ -364,7 +380,11 @@ class Orchestrator:
                     baseline_df = engine.load(
                         SourceSpec(
                             uri=str(baseline_path),
-                            format=FormatType.PARQUET if str(baseline_path).endswith(".parquet") else FormatType.CSV,
+                            format=(
+                                FormatType.PARQUET
+                                if str(baseline_path).endswith(".parquet")
+                                else FormatType.CSV
+                            ),
                         )
                     )
                 except Exception:  # pragma: no cover
@@ -455,14 +475,20 @@ class Orchestrator:
             run_id=run_id,
             manifest_id=manifest.id,
             workspace=manifest.workspace,
-            status="SUCCESS" if status == "SUCCESS" else "PARTIAL" if status == "PARTIAL" else "FAILED",
+            status=(
+                "SUCCESS" if status == "SUCCESS" else "PARTIAL" if status == "PARTIAL" else "FAILED"
+            ),
             started_at=datetime.utcfromtimestamp(start).isoformat(),
             step_results={
                 sid: (
                     o.validation
                     if o.validation is not None
                     else ValidationResult(
-                        status="PASS" if o.status in {"SUCCESS", "REUSED", "SKIPPED", "PASS"} else "FAIL"
+                        status=(
+                            "PASS"
+                            if o.status in {"SUCCESS", "REUSED", "SKIPPED", "PASS"}
+                            else "FAIL"
+                        )
                     )
                 )
                 for sid, o in outcomes.items()
@@ -510,9 +536,7 @@ def _topological_order(steps: List[PipelineStep]) -> List[str]:
                     ready.append(t)
     remaining = [s.id for s in steps if s.id not in order]
     if remaining:
-        raise ValueError(
-            f"DAG cycle or unresolved dependency among steps: {remaining}"
-        )
+        raise ValueError(f"DAG cycle or unresolved dependency among steps: {remaining}")
     return order
 
 

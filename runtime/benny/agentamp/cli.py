@@ -38,7 +38,6 @@ import zipfile
 from pathlib import Path
 from typing import Optional
 
-
 # ---------------------------------------------------------------------------
 # Subparser registration (called from benny_cli.py build_parser)
 # ---------------------------------------------------------------------------
@@ -165,10 +164,10 @@ def _scaffold(args: argparse.Namespace) -> int:
         return 1
 
     print(f"[agentamp] draft created: {root}")
-    print(f"  skin.manifest.json  (signature: null — sign before installing)")
-    print(f"  shaders/post_glow.frag.glsl")
-    print(f"")
-    print(f"Next:")
+    print("  skin.manifest.json  (signature: null — sign before installing)")
+    print("  shaders/post_glow.frag.glsl")
+    print("")
+    print("Next:")
     print(f"  benny agentamp pack {root} --out {args.skin_id}.aamp")
     print(f"  benny agentamp sign {args.skin_id}.aamp")
     print(f"  benny agentamp install {args.skin_id}.aamp")
@@ -268,7 +267,7 @@ def _sign(args: argparse.Namespace) -> int:
 
 
 def _install(args: argparse.Namespace) -> int:
-    from .skin import load, SkinSignatureMissing, SkinSignatureInvalid, SkinPathEscape
+    from .skin import SkinPathEscape, SkinSignatureInvalid, SkinSignatureMissing, load
 
     pack_path = Path(args.pack_path)
     dev_mode: bool = getattr(args, "dev_mode", False)
@@ -299,6 +298,7 @@ def _install(args: argparse.Namespace) -> int:
 
     # Copy pack into registry
     import shutil
+
     dest = registry_dir / pack_path.name
     shutil.copy2(pack_path, dest)
 
@@ -377,7 +377,7 @@ def _export_cockpit(args: argparse.Namespace) -> int:
 
     print(f"[agentamp] cockpit exported: {out_path}  ({out_path.stat().st_size} bytes)")
     print("  Contains: cockpit.json, eq.json, bundle.json")
-    print(f"\nTo restore on another host:")
+    print("\nTo restore on another host:")
     print(f"  benny agentamp import-cockpit {out_path}")
     return 0
 

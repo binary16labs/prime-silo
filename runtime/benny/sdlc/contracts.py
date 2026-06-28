@@ -11,7 +11,6 @@ from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
-
 # ---------------------------------------------------------------------------
 # TOGAF ADM phases A–D  (AOS-F2)
 # ---------------------------------------------------------------------------

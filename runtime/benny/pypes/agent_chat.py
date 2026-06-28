@@ -135,8 +135,14 @@ class ChatHarness:
                     continue
                 self.history.append(ChatTurn("assistant", reply))
                 self.console.print()
-                self.console.print(Panel(reply, title="[bold green] Risk Analyst [/]",
-                                          border_style="green", padding=(1, 2)))
+                self.console.print(
+                    Panel(
+                        reply,
+                        title="[bold green] Risk Analyst [/]",
+                        border_style="green",
+                        padding=(1, 2),
+                    )
+                )
         finally:
             pass
 
@@ -148,10 +154,7 @@ class ChatHarness:
         gold_steps = [k for k in self.facts.keys() if not k.startswith("__")]
         breaches = self.facts.get("__threshold_breaches__", {}).get("breaches", [])
         local_hints = self._banner_local_hints()
-        local_line = (
-            f"\n[bold white]Local models[/] [muted]{local_hints}[/]"
-            if local_hints else ""
-        )
+        local_line = f"\n[bold white]Local models[/] [muted]{local_hints}[/]" if local_hints else ""
         warn_line = ""
         if isinstance(self.model, str) and self.model.endswith("/default"):
             warn_line = (
@@ -159,21 +162,26 @@ class ChatHarness:
                 "\n[muted]   Run [/][accent]/models[/][muted] then [/][accent]/model <id>[/][muted] before sending a message.[/]"
             )
         self.console.print()
-        self.console.print(Panel.fit(
-            f"[bold white]Run id[/]      [accent]{self.run_id}[/]\n"
-            f"[bold white]Manifest[/]    [accent]{self.manifest.id}[/]  [muted]({self.manifest.name})[/]\n"
-            f"[bold white]Workspace[/]   [accent]{self.manifest.workspace}[/]\n"
-            f"[bold white]Status[/]      [accent]{self.receipt.status}[/]  [muted]({self.receipt.duration_ms or '?'} ms)[/]\n"
-            f"[bold white]Agent[/]       [accent]{self.agent.name}[/]  [muted]({self.model})[/]\n"
-            f"[bold white]Gold facts[/]  [white]{len(gold_steps)}[/] tables, "
-            f"[white]{len(breaches)}[/] breach(es)\n"
-            f"[bold white]History cap[/] [muted]{self.max_history} turns[/]"
-            f"{local_line}{warn_line}",
-            title="[bold cyan]  Benny Pypes — Risk-Analyst Chat [/]",
-            border_style="cyan", padding=(0, 2),
-        ))
-        self.console.print("[muted]Ask anything about the run. Type[/] [accent]/help[/] "
-                            "[muted]for slash commands,[/] [accent]/exit[/] [muted]to leave.[/]")
+        self.console.print(
+            Panel.fit(
+                f"[bold white]Run id[/]      [accent]{self.run_id}[/]\n"
+                f"[bold white]Manifest[/]    [accent]{self.manifest.id}[/]  [muted]({self.manifest.name})[/]\n"
+                f"[bold white]Workspace[/]   [accent]{self.manifest.workspace}[/]\n"
+                f"[bold white]Status[/]      [accent]{self.receipt.status}[/]  [muted]({self.receipt.duration_ms or '?'} ms)[/]\n"
+                f"[bold white]Agent[/]       [accent]{self.agent.name}[/]  [muted]({self.model})[/]\n"
+                f"[bold white]Gold facts[/]  [white]{len(gold_steps)}[/] tables, "
+                f"[white]{len(breaches)}[/] breach(es)\n"
+                f"[bold white]History cap[/] [muted]{self.max_history} turns[/]"
+                f"{local_line}{warn_line}",
+                title="[bold cyan]  Benny Pypes — Risk-Analyst Chat [/]",
+                border_style="cyan",
+                padding=(0, 2),
+            )
+        )
+        self.console.print(
+            "[muted]Ask anything about the run. Type[/] [accent]/help[/] "
+            "[muted]for slash commands,[/] [accent]/exit[/] [muted]to leave.[/]"
+        )
         self.console.print()
 
     def _prompt(self) -> str:
@@ -189,42 +197,50 @@ class ChatHarness:
             self.console.print("[muted]bye[/]")
             return True
         if cmd == "/help":
-            self.console.print(Panel(
-                "[bold]Slash commands[/]\n"
-                "  /facts            show loaded gold tables and a row sample\n"
-                "  /receipt          print the run receipt JSON\n"
-                "  /history          show current conversation history\n"
-                "  /clear            clear conversation history (facts remain loaded)\n"
-                "  /save <path>      save the chat transcript to a Markdown file\n"
-                "  /models           list locally-available LLM ids (probes Lemonade / Ollama)\n"
-                "  /model <id>       switch the active model for the rest of the session\n"
-                "  /help             show this help\n"
-                "  /exit | /quit     leave the harness",
-                border_style="dim", padding=(0, 1),
-            ))
+            self.console.print(
+                Panel(
+                    "[bold]Slash commands[/]\n"
+                    "  /facts            show loaded gold tables and a row sample\n"
+                    "  /receipt          print the run receipt JSON\n"
+                    "  /history          show current conversation history\n"
+                    "  /clear            clear conversation history (facts remain loaded)\n"
+                    "  /save <path>      save the chat transcript to a Markdown file\n"
+                    "  /models           list locally-available LLM ids (probes Lemonade / Ollama)\n"
+                    "  /model <id>       switch the active model for the rest of the session\n"
+                    "  /help             show this help\n"
+                    "  /exit | /quit     leave the harness",
+                    border_style="dim",
+                    padding=(0, 1),
+                )
+            )
             return False
         if cmd == "/models":
             self._render_local_models_table()
             return False
         if cmd == "/model":
             if not rest:
-                self.console.print("[red]usage: /model <id>   e.g. /model lemonade/Gemma-4-E4B-it-GGUF[/]")
+                self.console.print(
+                    "[red]usage: /model <id>   e.g. /model lemonade/Gemma-4-E4B-it-GGUF[/]"
+                )
                 return False
             old, self.model = self.model, rest
             self.console.print(f"[green]model switched: [bold]{old}[/] -> [bold]{self.model}[/][/]")
             return False
         if cmd == "/facts":
             tbl = Table(box=None, show_header=True, header_style="bold cyan", expand=True)
-            tbl.add_column("Table",     style="bold white", min_width=22)
-            tbl.add_column("Rows",      justify="right")
-            tbl.add_column("Columns",   justify="right", style="muted")
-            tbl.add_column("Stage",     style="muted")
+            tbl.add_column("Table", style="bold white", min_width=22)
+            tbl.add_column("Rows", justify="right")
+            tbl.add_column("Columns", justify="right", style="muted")
+            tbl.add_column("Stage", style="muted")
             for name, payload in self.facts.items():
                 if name.startswith("__"):
                     continue
-                tbl.add_row(name, f"{payload.get('row_count', 0):,}",
-                            str(len(payload.get("columns", []))),
-                            payload.get("stage", "-"))
+                tbl.add_row(
+                    name,
+                    f"{payload.get('row_count', 0):,}",
+                    str(len(payload.get("columns", []))),
+                    payload.get("stage", "-"),
+                )
             self.console.print(tbl)
             breaches = self.facts.get("__threshold_breaches__", {}).get("breaches", [])
             if breaches:
@@ -330,6 +346,7 @@ class ChatHarness:
     def _render_local_models_table(self) -> None:
         """Hit Lemonade + Ollama and show what's actually loadable."""
         from rich.table import Table as _T
+
         tbl = _T(box=None, show_header=True, header_style="bold cyan", expand=True)
         tbl.add_column("Provider", style="muted")
         tbl.add_column("Model id (use as `/model <id>`)", style="bold white", min_width=42)
@@ -337,23 +354,32 @@ class ChatHarness:
         tbl.add_column("Size GB", justify="right", style="muted")
         any_rows = False
         for raw_id, labels, size in _list_lemonade_models():
-            tbl.add_row("lemonade", f"lemonade/{raw_id}", ",".join(labels[:3]), f"{size:.1f}" if size else "-")
+            tbl.add_row(
+                "lemonade",
+                f"lemonade/{raw_id}",
+                ",".join(labels[:3]),
+                f"{size:.1f}" if size else "-",
+            )
             any_rows = True
         for raw_id, _, size in _list_ollama_models():
             tbl.add_row("ollama", f"ollama/{raw_id}", "", f"{size:.1f}" if size else "-")
             any_rows = True
         if not any_rows:
-            self.console.print("[yellow]No local providers reachable. Try Ctrl-C and pass --model openai/gpt-4o-mini[/]")
+            self.console.print(
+                "[yellow]No local providers reachable. Try Ctrl-C and pass --model openai/gpt-4o-mini[/]"
+            )
             return
         self.console.print(tbl)
-        self.console.print("[muted]Tip:[/] [accent]/model lemonade/Gemma-4-E4B-it-GGUF[/]  [muted](or any id from above)[/]")
+        self.console.print(
+            "[muted]Tip:[/] [accent]/model lemonade/Gemma-4-E4B-it-GGUF[/]  [muted](or any id from above)[/]"
+        )
 
     def _call_llm(self, latest_user_message: str) -> str:
         """Send system + windowed history + new user message to call_model()."""
         from ..core.models import call_model
 
         # Sliding window of conversation history (excluding the just-pushed user turn).
-        prior = self.history[-(self.max_history * 2 + 1):-1]
+        prior = self.history[-(self.max_history * 2 + 1) : -1]
         msgs: List[Dict[str, str]] = [{"role": "system", "content": self.system_prompt}]
         for t in prior:
             msgs.append({"role": t.role, "content": t.content})
@@ -390,39 +416,62 @@ class ChatHarness:
         ctx_overflow = (
             "max length reached" in lower
             or "no 'choices'" in lower
-            or "context" in lower and "length" in lower
+            or "context" in lower
+            and "length" in lower
         )
         is_default_id = isinstance(self.model, str) and self.model.endswith("/default")
         body = [f"[red]{msg}[/]"]
         if ctx_overflow:
             cur_budget = os.environ.get("BENNY_PYPES_FACTS_CHAR_BUDGET", "5000")
             body.append("")
-            body.append("[yellow]Likely cause:[/] this local model's context window can't hold the full facts payload.")
+            body.append(
+                "[yellow]Likely cause:[/] this local model's context window can't hold the full facts payload."
+            )
             body.append(f"[muted]Current facts budget:[/] [accent]{cur_budget}[/] chars")
             body.append("[muted]Try one of:[/]")
             body.append("  [accent]/clear[/]                                  drop chat history")
             body.append("  [accent]/model lemonade/Gemma-4-E4B-it-GGUF[/]     bigger window (~5GB)")
             body.append("  [accent]/model lemonade/Gemma-4-26B-A4B-it-GGUF[/] roomier (~17GB)")
-            body.append("  [accent]$env:BENNY_PYPES_FACTS_CHAR_BUDGET=2500[/] (PowerShell) then restart chat")
+            body.append(
+                "  [accent]$env:BENNY_PYPES_FACTS_CHAR_BUDGET=2500[/] (PowerShell) then restart chat"
+            )
         elif is_default_id:
             body.append("")
-            body.append("[muted]Active model id is the placeholder [/][accent]'/default'[/][muted].[/]")
-            body.append("[muted]Switch in-session:[/] [accent]/models[/][muted] then [/][accent]/model <id>[/]")
+            body.append(
+                "[muted]Active model id is the placeholder [/][accent]'/default'[/][muted].[/]"
+            )
+            body.append(
+                "[muted]Switch in-session:[/] [accent]/models[/][muted] then [/][accent]/model <id>[/]"
+            )
         elif isinstance(self.model, str) and self.model.startswith("lemonade/"):
             ids = [m[0] for m in _list_lemonade_models()]
-            chat_ids = [i for i in ids if not any(x in i.lower() for x in ("embed", "whisper", "kokoro", "nomic"))]
+            chat_ids = [
+                i
+                for i in ids
+                if not any(x in i.lower() for x in ("embed", "whisper", "kokoro", "nomic"))
+            ]
             if chat_ids:
                 body.append("")
                 body.append("[muted]Try a different Lemonade chat model:[/]")
                 body.append(f"  [accent]{', '.join(chat_ids[:4])}[/]")
-                body.append(f"[muted]Switch in-session:[/] [accent]/model lemonade/{chat_ids[0]}[/]")
+                body.append(
+                    f"[muted]Switch in-session:[/] [accent]/model lemonade/{chat_ids[0]}[/]"
+                )
                 body.append("[muted]List all:[/] [accent]/models[/]")
             else:
-                body.append("[muted]Run [/][accent]/models[/][muted] to see locally-available ids.[/]")
+                body.append(
+                    "[muted]Run [/][accent]/models[/][muted] to see locally-available ids.[/]"
+                )
         else:
-            body.append("[muted]Run [/][accent]/models[/][muted] to see what local providers expose, then [/][accent]/model <id>[/][muted] to switch.[/]")
-        return Panel("\n".join(body), title="[bold red] LLM call failed [/]",
-                     border_style="red", padding=(0, 1))
+            body.append(
+                "[muted]Run [/][accent]/models[/][muted] to see what local providers expose, then [/][accent]/model <id>[/][muted] to switch.[/]"
+            )
+        return Panel(
+            "\n".join(body),
+            title="[bold red] LLM call failed [/]",
+            border_style="red",
+            padding=(0, 1),
+        )
 
     def _banner_local_hints(self) -> Optional[str]:
         """Build a 'local models available' line for the startup banner."""
@@ -430,9 +479,12 @@ class ChatHarness:
             return None
         if not self.model.startswith(("lemonade/", "ollama/")):
             return None
-        models = _list_lemonade_models() if self.model.startswith("lemonade/") else _list_ollama_models()
+        models = (
+            _list_lemonade_models() if self.model.startswith("lemonade/") else _list_ollama_models()
+        )
         chat_models = [
-            m for m in models
+            m
+            for m in models
             if not any(x in m[0].lower() for x in ("embed", "whisper", "kokoro", "nomic"))
         ]
         if not chat_models:
@@ -471,7 +523,7 @@ class ChatHarness:
 
 
 _LEMONADE_BASE = os.environ.get("BENNY_LEMONADE_BASE", "http://127.0.0.1:13305/api/v1")
-_OLLAMA_BASE   = os.environ.get("BENNY_OLLAMA_BASE",   "http://127.0.0.1:11434")
+_OLLAMA_BASE = os.environ.get("BENNY_OLLAMA_BASE", "http://127.0.0.1:11434")
 
 _lemonade_cache: Optional[List[tuple]] = None
 _ollama_cache: Optional[List[tuple]] = None
@@ -508,7 +560,7 @@ def _list_ollama_models() -> List[tuple]:
         with urllib.request.urlopen(f"{_OLLAMA_BASE}/api/tags", timeout=2.0) as r:
             payload = json.loads(r.read().decode("utf-8"))
         for m in payload.get("models", []):
-            size_gb = float(m.get("size", 0)) / (1024 ** 3) if m.get("size") else 0
+            size_gb = float(m.get("size", 0)) / (1024**3) if m.get("size") else 0
             out.append((m.get("name", ""), [], size_gb))
     except Exception as exc:
         log.debug("chat: ollama probe failed (%s)", exc)

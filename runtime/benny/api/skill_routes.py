@@ -2,12 +2,12 @@
 Skill Routes - REST API for managing workspace skills and catalog
 """
 
+from typing import Any, Dict, List, Optional
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Dict, List, Any, Optional
 
-from ..core.skill_registry import registry, SkillParameter
-
+from ..core.skill_registry import SkillParameter, registry
 
 router = APIRouter()
 
@@ -36,7 +36,7 @@ async def list_skills(workspace: str = "default"):
         return {
             "workspace": workspace,
             "skills": [s.to_dict() for s in skills],
-            "count": len(skills)
+            "count": len(skills),
         }
     except Exception as e:
         raise HTTPException(500, f"Failed to list skills: {str(e)}")
@@ -47,10 +47,7 @@ async def get_skill_catalog(workspace: str = "default"):
     """Get skills grouped by category for progressive discovery"""
     try:
         catalog = registry.get_catalog(workspace)
-        return {
-            "workspace": workspace,
-            "catalog": catalog
-        }
+        return {"workspace": workspace, "catalog": catalog}
     except Exception as e:
         raise HTTPException(500, f"Failed to get catalog: {str(e)}")
 
@@ -64,7 +61,7 @@ async def create_skill(request: SkillCreate, workspace: str = "default"):
         if request.id in builtins:
             # We allow overriding, but maybe add a warning or specific flag later
             pass
-            
+
         skill_data = request.model_dump()
         result = registry.save_workspace_skill(workspace, skill_data)
         return result
@@ -82,7 +79,7 @@ async def delete_skill(skill_id: str, workspace: str = "default"):
         builtins = {s.id for s in registry.get_builtin_skills()}
         if skill_id in builtins:
             raise HTTPException(400, f"Cannot delete built-in skill: {skill_id}")
-            
+
         result = registry.delete_workspace_skill(workspace, skill_id)
         return result
     except FileNotFoundError:
@@ -97,11 +94,14 @@ async def delete_skill(skill_id: str, workspace: str = "default"):
 # GATEWAY & REMIX SERVER ROUTES
 # =============================================================================
 
+from ..gateway.rbac import AgentRole, RBACPolicy, load_policy, save_policy
 from ..gateway.remix_server import (
-    RemixServerConfig, save_remix_config, list_remix_configs,
-    load_remix_config, create_remix_server,
+    RemixServerConfig,
+    create_remix_server,
+    list_remix_configs,
+    load_remix_config,
+    save_remix_config,
 )
-from ..gateway.rbac import AgentRole, load_policy, save_policy, RBACPolicy
 
 
 @router.post("/remix-servers")

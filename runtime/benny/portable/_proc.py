@@ -6,6 +6,7 @@ extension, and every major OS the PBR matrix supports can answer
 
 Windows uses kernel32 via ctypes; POSIX uses ``os.kill`` with signal 0.
 """
+
 from __future__ import annotations
 
 import os
@@ -63,6 +64,7 @@ def terminate(pid: int, *, grace_seconds: float = 10.0) -> bool:
 
     if _IS_WINDOWS:
         import subprocess
+
         # /T kills the entire process tree so child processes (e.g. node/vite
         # spawned by benny-ui.cmd) don't become orphans after the wrapper dies.
         subprocess.run(

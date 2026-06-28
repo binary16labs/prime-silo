@@ -134,7 +134,9 @@ class WikidataConnector(BaseConnector):
             "properties": prop_data.get("results", {}).get("bindings", []),
         }
 
-    def parse(self, raw: Dict[str, Any], entity_name: str, entity_type: str, api_url: str) -> List[KnowledgeTriple]:
+    def parse(
+        self, raw: Dict[str, Any], entity_name: str, entity_type: str, api_url: str
+    ) -> List[KnowledgeTriple]:
         if raw.get("_empty"):
             return []
 
@@ -163,20 +165,26 @@ class WikidataConnector(BaseConnector):
 
         qid = raw.get("_qid", "").split("/")[-1]
         if qid:
-            triples.append(self._make_triple(
-                entity_name, "has_wikidata_id", qid, api_url, raw, object_type="Identifier"
-            ))
+            triples.append(
+                self._make_triple(
+                    entity_name, "has_wikidata_id", qid, api_url, raw, object_type="Identifier"
+                )
+            )
         if raw.get("_description"):
-            triples.append(self._make_triple(
-                entity_name, "has_description", raw["_description"][:200], api_url, raw
-            ))
+            triples.append(
+                self._make_triple(
+                    entity_name, "has_description", raw["_description"][:200], api_url, raw
+                )
+            )
 
         for binding in raw.get("properties", []):
             prop_label = binding.get("propLabel", {}).get("value", "")
             value_label = binding.get("valueLabel", {}).get("value", "")
             if not prop_label or not value_label:
                 continue
-            predicate = _PREDICATE_MAP.get(prop_label, f"wikidata_{prop_label.lower().replace(' ', '_')}")
+            predicate = _PREDICATE_MAP.get(
+                prop_label, f"wikidata_{prop_label.lower().replace(' ', '_')}"
+            )
             triples.append(self._make_triple(entity_name, predicate, value_label, api_url, raw))
 
         return triples

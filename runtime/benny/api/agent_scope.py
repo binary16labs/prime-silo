@@ -108,9 +108,7 @@ class AgentScopeMiddleware(BaseHTTPMiddleware):
 
         # read_only scope — no writes anywhere.
         if scope == SCOPE_READ_ONLY:
-            return _forbidden(
-                "Agent scope 'read_only' may not perform mutating requests."
-            )
+            return _forbidden("Agent scope 'read_only' may not perform mutating requests.")
 
         # sandbox scope — writes only inside the agent_sandbox route prefix.
         path = request.url.path

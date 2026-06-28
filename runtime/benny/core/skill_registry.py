@@ -7,24 +7,26 @@ Built-in skills are always available; workspace skills override/extend them.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, asdict
-from typing import Any, Callable, Dict, List, Optional
-from pathlib import Path
 import json
-import yaml
 import re
+from dataclasses import asdict, dataclass, field
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
 
-from .workspace import get_workspace_path
+import yaml
+
 from ..governance.permission_manifest import validate_tool_access
-
+from .workspace import get_workspace_path
 
 # =============================================================================
 # SKILL MODEL
 # =============================================================================
 
+
 @dataclass
 class SkillParameter:
     """A single parameter for a skill."""
+
     name: str
     type: str  # string, integer, boolean, number
     description: str
@@ -35,6 +37,7 @@ class SkillParameter:
 @dataclass
 class Skill:
     """A skill (tool) that an agent can use."""
+
     id: str
     name: str
     description: str
@@ -43,7 +46,9 @@ class Skill:
     builtin: bool = True
     workspace: Optional[str] = None  # None = global built-in
     content: Optional[str] = None  # Full Markdown instructions from SKILL.md
-    metadata: Dict[str, Any] = field(default_factory=dict) # Extensible attributes (priority, author, etc.)
+    metadata: Dict[str, Any] = field(
+        default_factory=dict
+    )  # Extensible attributes (priority, author, etc.)
 
     def to_dict(self) -> dict:
         return {
@@ -79,8 +84,8 @@ class Skill:
                     "type": "object",
                     "properties": properties,
                     "required": required,
-                }
-            }
+                },
+            },
         }
 
 
@@ -96,7 +101,9 @@ BUILTIN_SKILLS: List[Skill] = [
         category="knowledge",
         parameters=[
             SkillParameter("query", "string", "Search query to find relevant documents"),
-            SkillParameter("top_k", "integer", "Number of results to return", required=False, default=20),
+            SkillParameter(
+                "top_k", "integer", "Number of results to return", required=False, default=20
+            ),
         ],
     ),
     Skill(
@@ -122,7 +129,13 @@ BUILTIN_SKILLS: List[Skill] = [
         category="files",
         parameters=[
             SkillParameter("filename", "string", "Name of the file to read"),
-            SkillParameter("subdir", "string", "Directory to read from (data_in or data_out)", required=False, default="data_in"),
+            SkillParameter(
+                "subdir",
+                "string",
+                "Directory to read from (data_in or data_out)",
+                required=False,
+                default="data_in",
+            ),
         ],
     ),
     Skill(
@@ -141,7 +154,13 @@ BUILTIN_SKILLS: List[Skill] = [
         description="List all files in a workspace directory.",
         category="files",
         parameters=[
-            SkillParameter("subdir", "string", "Directory to list (data_in, data_out, reports)", required=False, default="data_out"),
+            SkillParameter(
+                "subdir",
+                "string",
+                "Directory to list (data_in, data_out, reports)",
+                required=False,
+                default="data_out",
+            ),
         ],
     ),
     Skill(
@@ -160,7 +179,9 @@ BUILTIN_SKILLS: List[Skill] = [
         category="data",
         parameters=[
             SkillParameter("csv_path", "string", "Path to CSV file (relative to data_in)"),
-            SkillParameter("query", "string", "Pandas query string (e.g., 'amount > 100' or 'df.head(10)')"),
+            SkillParameter(
+                "query", "string", "Pandas query string (e.g., 'amount > 100' or 'df.head(10)')"
+            ),
         ],
     ),
     Skill(
@@ -178,10 +199,32 @@ BUILTIN_SKILLS: List[Skill] = [
         description="Ingest files from workspace, perform deep synthesis (triple extraction), and index into ChromaDB.",
         category="knowledge",
         parameters=[
-            SkillParameter("files", "string", "JSON list of filenames or relative directory paths (e.g., 'staging/')"),
-            SkillParameter("strategy", "string", "Ingestion strategy (safe, aggressive, comprehensive)", required=False, default="comprehensive"),
-            SkillParameter("deep_synthesis", "boolean", "Whether to extract knowledge triples into Neo4j", required=False, default=True),
-            SkillParameter("correlation_threshold", "number", "Threshold for linking concepts", required=False, default=0.7),
+            SkillParameter(
+                "files",
+                "string",
+                "JSON list of filenames or relative directory paths (e.g., 'staging/')",
+            ),
+            SkillParameter(
+                "strategy",
+                "string",
+                "Ingestion strategy (safe, aggressive, comprehensive)",
+                required=False,
+                default="comprehensive",
+            ),
+            SkillParameter(
+                "deep_synthesis",
+                "boolean",
+                "Whether to extract knowledge triples into Neo4j",
+                required=False,
+                default=True,
+            ),
+            SkillParameter(
+                "correlation_threshold",
+                "number",
+                "Threshold for linking concepts",
+                required=False,
+                default=0.7,
+            ),
         ],
     ),
     Skill(
@@ -190,7 +233,13 @@ BUILTIN_SKILLS: List[Skill] = [
         description="Finalize graph by performing topological correlation and clustering between code and knowledge concepts.",
         category="knowledge",
         parameters=[
-            SkillParameter("threshold", "number", "Threshold for correlation links (0.0-1.0)", required=False, default=0.75),
+            SkillParameter(
+                "threshold",
+                "number",
+                "Threshold for correlation links (0.0-1.0)",
+                required=False,
+                default=0.75,
+            ),
         ],
     ),
     Skill(
@@ -199,8 +248,20 @@ BUILTIN_SKILLS: List[Skill] = [
         description="Trigger a recursive tree-sitter scan of the workspace to build the structural graph (folders, files, classes, functions).",
         category="knowledge",
         parameters=[
-            SkillParameter("root_dir", "string", "Optional subdirectory to limit the scan (relative to workspace root)", required=False, default=""),
-            SkillParameter("deep_scan", "boolean", "Whether to perform deep AST analysis", required=False, default=True),
+            SkillParameter(
+                "root_dir",
+                "string",
+                "Optional subdirectory to limit the scan (relative to workspace root)",
+                required=False,
+                default="",
+            ),
+            SkillParameter(
+                "deep_scan",
+                "boolean",
+                "Whether to perform deep AST analysis",
+                required=False,
+                default=True,
+            ),
         ],
     ),
     Skill(
@@ -217,78 +278,101 @@ BUILTIN_SKILLS: List[Skill] = [
 # SKILL EXECUTION HANDLERS
 # =============================================================================
 
+
 async def _execute_search_kb(workspace: str, **kwargs) -> str:
     """Execute search_kb skill."""
     from ..tools.knowledge import search_knowledge_workspace
-    return await search_knowledge_workspace.ainvoke({
-        "query": kwargs.get("query", ""),
-        "workspace": workspace,
-        "top_k": kwargs.get("top_k", 20),
-    })
+
+    return await search_knowledge_workspace.ainvoke(
+        {
+            "query": kwargs.get("query", ""),
+            "workspace": workspace,
+            "top_k": kwargs.get("top_k", 20),
+        }
+    )
 
 
 async def _execute_list_documents(workspace: str, **kwargs) -> str:
     from ..tools.knowledge import list_available_documents
+
     return await list_available_documents.ainvoke({"workspace": workspace})
 
 
 async def _execute_read_document(workspace: str, **kwargs) -> str:
     from ..tools.knowledge import read_full_document
-    return await read_full_document.ainvoke({
-        "document_name": kwargs.get("document_name", ""),
-        "workspace": workspace,
-    })
+
+    return await read_full_document.ainvoke(
+        {
+            "document_name": kwargs.get("document_name", ""),
+            "workspace": workspace,
+        }
+    )
 
 
 async def _execute_read_file(workspace: str, **kwargs) -> str:
     from ..tools.files import read_file
-    return await read_file.ainvoke({
-        "filename": kwargs.get("filename", ""),
-        "workspace": workspace,
-        "subdir": kwargs.get("subdir", "data_in"),
-    })
+
+    return await read_file.ainvoke(
+        {
+            "filename": kwargs.get("filename", ""),
+            "workspace": workspace,
+            "subdir": kwargs.get("subdir", "data_in"),
+        }
+    )
 
 
 async def _execute_write_file(workspace: str, **kwargs) -> str:
     from ..tools.files import write_file
-    return await write_file.ainvoke({
-        "filename": kwargs.get("filename", ""),
-        "content": kwargs.get("content", ""),
-        "workspace": workspace,
-    })
+
+    return await write_file.ainvoke(
+        {
+            "filename": kwargs.get("filename", ""),
+            "content": kwargs.get("content", ""),
+            "workspace": workspace,
+        }
+    )
 
 
 async def _execute_list_files(workspace: str, **kwargs) -> str:
     from ..tools.files import list_files
-    return await list_files.ainvoke({
-        "workspace": workspace,
-        "subdir": kwargs.get("subdir", "data_out"),
-    })
+
+    return await list_files.ainvoke(
+        {
+            "workspace": workspace,
+            "subdir": kwargs.get("subdir", "data_out"),
+        }
+    )
 
 
 async def _execute_extract_pdf(workspace: str, **kwargs) -> str:
     from ..tools.data import extract_pdf_text
-    return await extract_pdf_text.ainvoke({
-        "pdf_path": kwargs.get("pdf_path", ""),
-        "workspace": workspace,
-    })
+
+    return await extract_pdf_text.ainvoke(
+        {
+            "pdf_path": kwargs.get("pdf_path", ""),
+            "workspace": workspace,
+        }
+    )
 
 
 async def _execute_query_csv(workspace: str, **kwargs) -> str:
     from ..tools.data import query_csv
-    return await query_csv.ainvoke({
-        "csv_path": kwargs.get("csv_path", ""),
-        "query": kwargs.get("query", ""),
-        "workspace": workspace,
-    })
+
+    return await query_csv.ainvoke(
+        {
+            "csv_path": kwargs.get("csv_path", ""),
+            "query": kwargs.get("query", ""),
+            "workspace": workspace,
+        }
+    )
 
 
 async def _execute_query_graph(workspace: str, **kwargs) -> str:
     from ..core.graph_db import run_cypher, scope_cypher_query
-    
+
     query = kwargs.get("query", "")
     nexus_id = kwargs.get("active_nexus_id")
-    
+
     # If a Neural Nexus is selected, deterministically scope the query
     if nexus_id and nexus_id != "neural_nexus":
         query = scope_cypher_query(query, nexus_id)
@@ -296,26 +380,23 @@ async def _execute_query_graph(workspace: str, **kwargs) -> str:
         params = {"nexus_id": nexus_id}
     else:
         params = {}
-        
-    results = run_cypher(
-        query=query,
-        params=params,
-        workspace=workspace
-    )
+
+    results = run_cypher(query=query, params=params, workspace=workspace)
     return json.dumps(results, indent=2, default=str)
 
 
 async def _execute_rag_ingest(workspace: str, **kwargs) -> str:
     """Execute rag_ingest skill - awaits background ingestion."""
-    import uuid
     import asyncio
+    import uuid
+
     from ..api.graph_routes import _background_ingest_files
-    
+
     # Reuse existing run_id from swarm if available to ensure manifest-aware model resolution
     run_id = kwargs.get("run_id") or kwargs.get("execution_id") or str(uuid.uuid4())
 
     files_raw = kwargs.get("files", "[]")
-    
+
     try:
         if isinstance(files_raw, str):
             files = json.loads(files_raw)
@@ -338,72 +419,81 @@ async def _execute_rag_ingest(workspace: str, **kwargs) -> str:
         embedding_model=kwargs.get("embedding_model"),
         direction=kwargs.get("direction", ""),
         inference_delay=kwargs.get("inference_delay", 2.0),
-        name=kwargs.get("name")
+        name=kwargs.get("name"),
     )
-    
+
     count = len(results) if results else 0
-    return json.dumps({
-        "status": "completed",
-        "run_id": run_id,
-        "message": f"Ingestion completed for {count} item(s)."
-    })
+    return json.dumps(
+        {
+            "status": "completed",
+            "run_id": run_id,
+            "message": f"Ingestion completed for {count} item(s).",
+        }
+    )
 
 
 async def _execute_kg3d_ingest(workspace: str, **kwargs) -> str:
     """Execute kg3d_ingest skill - runs topological correlation and clustering."""
-    from ..synthesis.correlation import run_full_correlation_suite
     from ..graph.clustering_service import ClusteringService
-    
+    from ..synthesis.correlation import run_full_correlation_suite
+
     threshold = float(kwargs.get("threshold") or kwargs.get("correlation_threshold") or 0.75)
-    
+
     # 1. Run community detection
     await ClusteringService.run_lpa_on_workspace(workspace)
-    
+
     # 2. Run correlation suite (links concepts to code)
     await run_full_correlation_suite(workspace, threshold=threshold)
-    
+
     return "[OK] Knowledge Graph synthesis and community detection complete."
 
 
 async def _execute_code_scan(workspace: str, **kwargs) -> str:
     """Execute code_scan skill - triggers background tree-sitter scan."""
     import uuid
-    from .workspace import get_workspace_path
-    from ..graph.code_analyzer import CodeGraphAnalyzer
+
     from ..graph.clustering_service import ClusteringService
-    
+    from ..graph.code_analyzer import CodeGraphAnalyzer
+    from .workspace import get_workspace_path
+
     run_id = str(uuid.uuid4())
     ws_path = get_workspace_path(workspace)
     root_dir = kwargs.get("root_dir", "")
     deep_scan = bool(kwargs.get("deep_scan", True))
-    
+
     # Run analyzer
     analyzer = CodeGraphAnalyzer(str(ws_path))
     analyzer.analyze_workspace(root_dir, deep_scan=deep_scan)
     analyzer.save_to_neo4j(workspace, run_id, name=kwargs.get("name") or "Swarm Code Scan")
-    
+
     # Run clustering
     await ClusteringService.run_lpa_on_workspace(workspace)
-    
-    return json.dumps({
-        "status": "completed",
-        "run_id": run_id,
-        "message": f"Code scan and clustering completed for {workspace}."
-    })
+
+    return json.dumps(
+        {
+            "status": "completed",
+            "run_id": run_id,
+            "message": f"Code scan and clustering completed for {workspace}.",
+        }
+    )
 
 
 async def _execute_validate_enrichment(workspace: str, **kwargs) -> str:
     """Execute validate_enrichment skill."""
     from .graph_db import run_cypher
-    
-    query = "MATCH ()-[r:CORRELATES_WITH]->() WHERE r.workspace = $workspace RETURN count(r) AS count"
+
+    query = (
+        "MATCH ()-[r:CORRELATES_WITH]->() WHERE r.workspace = $workspace RETURN count(r) AS count"
+    )
     results = run_cypher(query, {"workspace": workspace})
     count = results[0]["count"] if results else 0
-    
+
     if count > 0:
         return f"[OK] Validation successful: Found {count} CORRELATES_WITH edges in the graph."
     else:
-        raise ValueError(f"[!] Validation failed: No CORRELATES_WITH edges found in workspace '{workspace}'.")
+        raise ValueError(
+            f"[!] Validation failed: No CORRELATES_WITH edges found in workspace '{workspace}'."
+        )
 
 
 # Map skill IDs to their handler functions
@@ -428,6 +518,7 @@ SKILL_HANDLERS: Dict[str, Callable] = {
 # SKILL REGISTRY
 # =============================================================================
 
+
 class SkillRegistry:
     """Manages built-in + workspace-scoped skills."""
 
@@ -444,7 +535,7 @@ class SkillRegistry:
             return []
 
         custom_skills = []
-        
+
         # Format 1: Standalone JSON skills
         for skill_file in skills_dir.glob("*.json"):
             try:
@@ -458,7 +549,7 @@ class SkillRegistry:
                     parameters=params,
                     builtin=False,
                     workspace=workspace,
-                    metadata=data.get("metadata", {})
+                    metadata=data.get("metadata", {}),
                 )
                 custom_skills.append(skill)
             except Exception as e:
@@ -468,14 +559,14 @@ class SkillRegistry:
         for skill_folder in skills_dir.iterdir():
             if not skill_folder.is_dir():
                 continue
-            
+
             skill_md = skill_folder / "SKILL.md"
             if not skill_md.exists():
                 continue
-                
+
             try:
                 raw_content = skill_md.read_text(encoding="utf-8")
-                
+
                 # Extract YAML frontmatter
                 fm_match = re.match(r"^---\s*\n(.*?)\n---\s*\n(.*)$", raw_content, re.DOTALL)
                 if fm_match:
@@ -484,14 +575,19 @@ class SkillRegistry:
                     data = yaml.safe_load(yaml_fm)
                 else:
                     # Fallback: Treat whole file as instructions if no frontmatter
-                    data = {"name": skill_folder.name, "description": f"Skill from {skill_folder.name}"}
+                    data = {
+                        "name": skill_folder.name,
+                        "description": f"Skill from {skill_folder.name}",
+                    }
                     instructions = raw_content
-                
+
                 # Align with Skill model
-                skill_id = data.get("id") or data.get("name", skill_folder.name).lower().replace(" ", "-")
+                skill_id = data.get("id") or data.get("name", skill_folder.name).lower().replace(
+                    " ", "-"
+                )
                 params_data = data.get("parameters", [])
                 params = [SkillParameter(**p) for p in params_data]
-                
+
                 skill = Skill(
                     id=skill_id,
                     name=data.get("name", skill_folder.name),
@@ -501,7 +597,7 @@ class SkillRegistry:
                     builtin=False,
                     workspace=workspace,
                     content=instructions.strip(),
-                    metadata=data.get("metadata", data) # Keep all FM data in metadata
+                    metadata=data.get("metadata", data),  # Keep all FM data in metadata
                 )
                 custom_skills.append(skill)
             except Exception as e:
@@ -535,10 +631,18 @@ class SkillRegistry:
         skills = self.get_skills_by_ids(skill_ids, workspace)
         return [s.to_openai_tool_schema() for s in skills]
 
-    async def execute_skill(self, skill_id: str, workspace: str, agent_role: str = "executor", agent_id: str = "default", active_nexus_id: Optional[str] = None, **kwargs) -> str:
+    async def execute_skill(
+        self,
+        skill_id: str,
+        workspace: str,
+        agent_role: str = "executor",
+        agent_id: str = "default",
+        active_nexus_id: Optional[str] = None,
+        **kwargs,
+    ) -> str:
         """Execute a skill by ID with RBAC enforcement and optional Nexus scoping."""
-        from ..gateway.rbac import check_permission, AgentRole, ToolOperation
-        
+        from ..gateway.rbac import AgentRole, ToolOperation, check_permission
+
         # RBAC check (non-blocking — logs violation but allows if no policy exists)
         try:
             role = AgentRole(agent_role)
@@ -554,26 +658,30 @@ class SkillRegistry:
         except Exception as e:
             # If RBAC system fails, allow execution but log warning
             import logging
+
             logging.getLogger(__name__).warning("RBAC check failed, allowing execution: %s", e)
-        
+
         # Least Skills Security Check (Permission Manifest)
         violation = validate_tool_access(agent_id, skill_id, workspace)
         if violation:
             return f"[!] SECURITY_PERMISSION_VIOLATION: {violation.message}"
-        
+
         handler = SKILL_HANDLERS.get(skill_id)
         if not handler:
             return f"[!] Unknown skill: {skill_id}"
         try:
             # Propagate agent_id as run_id to ensure context-aware model resolution (PBR-001 §4.2)
-            result = await handler(workspace=workspace, active_nexus_id=active_nexus_id, run_id=agent_id, **kwargs)
-            
+            result = await handler(
+                workspace=workspace, active_nexus_id=active_nexus_id, run_id=agent_id, **kwargs
+            )
+
             # Context Guard: Protect against massive tool outputs
             from .context_guard import guard_tool_output
-            # Note: In a real scenario, we'd pass the actual model name if available. 
+
+            # Note: In a real scenario, we'd pass the actual model name if available.
             # Defaulting to 'local' thresholds if unknown.
             return guard_tool_output(result, model="fastflowlm", tool_name=skill_id)
-            
+
         except Exception as e:
             return f"[!] Skill execution error ({skill_id}): {str(e)}"
 

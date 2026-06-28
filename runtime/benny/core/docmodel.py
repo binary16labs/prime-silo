@@ -17,6 +17,7 @@ The Docling-dependent extraction is intentionally thin; the transformation logic
 (hashing, bbox/table serialization, traversal guard) is pure and unit-tested
 offline (VIS-NFR1).
 """
+
 from __future__ import annotations
 
 import datetime
@@ -94,7 +95,14 @@ def _df_to_table_json(df: Any) -> Dict[str, Any]:
     }
 
 
-def _element_id(reading_order: int, label: str, page: Any, bbox: Optional[Dict[str, Any]], text: Optional[str], self_ref: Any) -> str:
+def _element_id(
+    reading_order: int,
+    label: str,
+    page: Any,
+    bbox: Optional[Dict[str, Any]],
+    text: Optional[str],
+    self_ref: Any,
+) -> str:
     """Stable per-element id. Uses structural coordinates (order/type/page/bbox)
     plus a text/self_ref discriminator so re-extracting the same document yields
     the same ids (idempotent crop keys, stable provenance)."""
@@ -128,10 +136,10 @@ def _build_converter(do_ocr: bool, images_scale: float, emit_crops: bool):
     ``PictureItem.get_image(doc)`` (the non-deprecated path in docling 2.107).
     ``do_table_structure`` powers ``export_to_dataframe`` → table JSON.
     """
-    from docling.document_converter import DocumentConverter, PdfFormatOption
+    from docling.backend.pypdfium2_backend import PyPdfiumDocumentBackend
     from docling.datamodel.base_models import InputFormat
     from docling.datamodel.pipeline_options import PdfPipelineOptions
-    from docling.backend.pypdfium2_backend import PyPdfiumDocumentBackend
+    from docling.document_converter import DocumentConverter, PdfFormatOption
 
     opts = PdfPipelineOptions()
     opts.do_ocr = do_ocr
@@ -186,24 +194,41 @@ def build_docmodel(
     try:
         if backend == "docling":
             model = _extract_with_docling(
-                file_path, workspace, out_dir, crops_dir, stem,
-                do_ocr=do_ocr, images_scale=images_scale, emit_crops=emit_crops, log_fn=log_fn,
+                file_path,
+                workspace,
+                out_dir,
+                crops_dir,
+                stem,
+                do_ocr=do_ocr,
+                images_scale=images_scale,
+                emit_crops=emit_crops,
+                log_fn=log_fn,
             )
         else:
             model = _extract_with_pymupdf(
-                file_path, workspace, crops_dir, stem,
-                emit_crops=emit_crops, log_fn=log_fn,
+                file_path,
+                workspace,
+                crops_dir,
+                stem,
+                emit_crops=emit_crops,
+                log_fn=log_fn,
             )
     except ImportError as e:
-        log_fn(f"[docmodel] {backend} backend unavailable ({e}); text-only fallback for {file_path.name}")
+        log_fn(
+            f"[docmodel] {backend} backend unavailable ({e}); text-only fallback for {file_path.name}"
+        )
         model = _fallback_textonly(file_path, stem, reason=f"{backend}-import:{e}", log_fn=log_fn)
     except Exception as e:
-        log_fn(f"[docmodel] {backend} extraction failed for {file_path.name}: {e}; text-only fallback")
+        log_fn(
+            f"[docmodel] {backend} extraction failed for {file_path.name}: {e}; text-only fallback"
+        )
         model = _fallback_textonly(file_path, stem, reason=f"{backend}-error:{e}", log_fn=log_fn)
 
     json_path.write_text(json.dumps(model, indent=2, ensure_ascii=False), encoding="utf-8")
-    log_fn(f"[docmodel] wrote {json_path.name} [{backend}]: {len(model['elements'])} elements "
-           f"({model['counts']})")
+    log_fn(
+        f"[docmodel] wrote {json_path.name} [{backend}]: {len(model['elements'])} elements "
+        f"({model['counts']})"
+    )
     return model
 
 
@@ -213,8 +238,13 @@ def build_docmodel(
 
 
 def _bbox_tuple_to_dict(t: Tuple[float, float, float, float]) -> Dict[str, Any]:
-    return {"l": float(t[0]), "t": float(t[1]), "r": float(t[2]), "b": float(t[3]),
-            "coord_origin": "TOPLEFT"}
+    return {
+        "l": float(t[0]),
+        "t": float(t[1]),
+        "r": float(t[2]),
+        "b": float(t[3]),
+        "coord_origin": "TOPLEFT",
+    }
 
 
 def _rows_to_table_json(rows: List[List[Any]]) -> Dict[str, Any]:
@@ -268,22 +298,42 @@ def _classify_text_block(text: str, max_size: float, median_size: float, page_no
 
 
 def _extract_with_pymupdf(
-    file_path: Path, workspace: str, crops_dir: Path, stem: str,
-    *, emit_crops: bool, log_fn: Callable,
+    file_path: Path,
+    workspace: str,
+    crops_dir: Path,
+    stem: str,
+    *,
+    emit_crops: bool,
+    log_fn: Callable,
 ) -> Dict[str, Any]:
     ext = file_path.suffix.lower()
     # Plain text needs no PyMuPDF — handle before importing fitz so a text ingest
     # works even where PyMuPDF isn't installed.
     if ext in (".txt", ".md"):
         text = file_path.read_text(encoding="utf-8", errors="replace").strip()
-        els = ([{"id": _element_id(0, "text", None, None, text, None), "reading_order": 0,
-                 "type": "text", "page": None, "bbox": None, "self_ref": None, "text": text}]
-               if text else [])
-        return _model_envelope(file_path, workspace, "pymupdf", n_pages=None,
-                               counts={"text": len(els)}, elements=els)
+        els = (
+            [
+                {
+                    "id": _element_id(0, "text", None, None, text, None),
+                    "reading_order": 0,
+                    "type": "text",
+                    "page": None,
+                    "bbox": None,
+                    "self_ref": None,
+                    "text": text,
+                }
+            ]
+            if text
+            else []
+        )
+        return _model_envelope(
+            file_path, workspace, "pymupdf", n_pages=None, counts={"text": len(els)}, elements=els
+        )
     if ext != ".pdf":
         # docx/pptx/html aren't well served by PyMuPDF — use backend="docling" for those.
-        raise NotImplementedError(f"pymupdf backend handles .pdf/.txt/.md, not {ext} (use backend='docling')")
+        raise NotImplementedError(
+            f"pymupdf backend handles .pdf/.txt/.md, not {ext} (use backend='docling')"
+        )
 
     import fitz  # PyMuPDF
 
@@ -296,8 +346,13 @@ def _extract_with_pymupdf(
         page = doc[pno]
         page_no = pno + 1
         td = page.get_text("dict")
-        sizes = [sp.get("size", 0) for b in td["blocks"] if b.get("type", 0) == 0
-                 for ln in b.get("lines", []) for sp in ln.get("spans", [])]
+        sizes = [
+            sp.get("size", 0)
+            for b in td["blocks"]
+            if b.get("type", 0) == 0
+            for ln in b.get("lines", [])
+            for sp in ln.get("spans", [])
+        ]
         median_size = statistics.median(sizes) if sizes else 10.0
 
         items: List[Tuple[float, float, Dict[str, Any]]] = []  # (y0, x0, partial)
@@ -312,8 +367,13 @@ def _extract_with_pymupdf(
                     continue
                 bbox = tuple(t.bbox)
                 table_rects.append(bbox)
-                items.append((bbox[1], bbox[0], {"type": "table", "bbox": bbox,
-                                                 "table": _rows_to_table_json(rows)}))
+                items.append(
+                    (
+                        bbox[1],
+                        bbox[0],
+                        {"type": "table", "bbox": bbox, "table": _rows_to_table_json(rows)},
+                    )
+                )
         except Exception as e:
             log_fn(f"[docmodel] find_tables p{page_no} failed: {e}")
 
@@ -338,7 +398,9 @@ def _extract_with_pymupdf(
                     crop_rel = str(cp.relative_to(get_workspace_path(workspace))).replace("\\", "/")
                 except Exception as e:
                     log_fn(f"[docmodel] image xref {xref} extract failed: {e}")
-                items.append((bbox[1], bbox[0], {"type": "picture", "bbox": bbox, "crop": crop_rel}))
+                items.append(
+                    (bbox[1], bbox[0], {"type": "picture", "bbox": bbox, "crop": crop_rel})
+                )
 
         # 3. text blocks (skip those inside a table or figure region)
         for b in td["blocks"]:
@@ -347,16 +409,28 @@ def _extract_with_pymupdf(
             bbox = tuple(b["bbox"])
             if any(_rect_mostly_inside(r, bbox) for r in table_rects + img_rects):
                 continue
-            lines = [" ".join(sp.get("text", "") for sp in ln.get("spans", [])).strip()
-                     for ln in b.get("lines", [])]
-            text = " ".join(l for l in lines if l).strip()
+            lines = [
+                " ".join(sp.get("text", "") for sp in ln.get("spans", [])).strip()
+                for ln in b.get("lines", [])
+            ]
+            text = " ".join(ln for ln in lines if ln).strip()
             if not text:
                 continue
-            max_size = max((sp.get("size", 0) for ln in b.get("lines", []) for sp in ln.get("spans", [])),
-                           default=median_size)
-            items.append((bbox[1], bbox[0],
-                          {"type": _classify_text_block(text, max_size, median_size, page_no),
-                           "bbox": bbox, "text": text}))
+            max_size = max(
+                (sp.get("size", 0) for ln in b.get("lines", []) for sp in ln.get("spans", [])),
+                default=median_size,
+            )
+            items.append(
+                (
+                    bbox[1],
+                    bbox[0],
+                    {
+                        "type": _classify_text_block(text, max_size, median_size, page_no),
+                        "bbox": bbox,
+                        "text": text,
+                    },
+                )
+            )
 
         # reading order: top-to-bottom, then left-to-right
         items.sort(key=lambda it: (round(it[0], 1), round(it[1], 1)))
@@ -365,9 +439,14 @@ def _extract_with_pymupdf(
             counts[label] = counts.get(label, 0) + 1
             bbox_d = _bbox_tuple_to_dict(d["bbox"])
             text = d.get("text")
-            el = {"id": _element_id(order, label, page_no, bbox_d, text, None),
-                  "reading_order": order, "type": label, "page": page_no,
-                  "bbox": bbox_d, "self_ref": None}
+            el = {
+                "id": _element_id(order, label, page_no, bbox_d, text, None),
+                "reading_order": order,
+                "type": label,
+                "page": page_no,
+                "bbox": bbox_d,
+                "self_ref": None,
+            }
             if text:
                 el["text"] = text
             if "table" in d:
@@ -379,11 +458,14 @@ def _extract_with_pymupdf(
 
     n_pages = doc.page_count
     doc.close()
-    return _model_envelope(file_path, workspace, "pymupdf", n_pages=n_pages,
-                           counts=counts, elements=elements)
+    return _model_envelope(
+        file_path, workspace, "pymupdf", n_pages=n_pages, counts=counts, elements=elements
+    )
 
 
-def _model_envelope(file_path: Path, workspace: str, backend: str, *, n_pages, counts, elements) -> Dict[str, Any]:
+def _model_envelope(
+    file_path: Path, workspace: str, backend: str, *, n_pages, counts, elements
+) -> Dict[str, Any]:
     return {
         "schema": DOCMODEL_SCHEMA,
         "source": file_path.name,
@@ -404,11 +486,18 @@ def _model_envelope(file_path: Path, workspace: str, backend: str, *, n_pages, c
 
 
 def _extract_with_docling(
-    file_path: Path, workspace: str, out_dir: Path, crops_dir: Path, stem: str,
-    *, do_ocr: bool, images_scale: float, emit_crops: bool, log_fn: Callable,
+    file_path: Path,
+    workspace: str,
+    out_dir: Path,
+    crops_dir: Path,
+    stem: str,
+    *,
+    do_ocr: bool,
+    images_scale: float,
+    emit_crops: bool,
+    log_fn: Callable,
 ) -> Dict[str, Any]:
-    from importlib.metadata import version
-    from docling_core.types.doc import TableItem, PictureItem
+    from docling_core.types.doc import PictureItem, TableItem
 
     converter = _build_converter(do_ocr, images_scale, emit_crops)
     result = converter.convert(str(file_path))
@@ -468,7 +557,9 @@ def _extract_with_docling(
     }
 
 
-def _save_crop(item: Any, doc: Any, crops_dir: Path, workspace: str, log_fn: Callable) -> Optional[str]:
+def _save_crop(
+    item: Any, doc: Any, crops_dir: Path, workspace: str, log_fn: Callable
+) -> Optional[str]:
     """Render a picture's crop to PNG keyed by image-bytes hash (so identical
     images dedupe across re-ingest). Returns the workspace-relative path or None."""
     try:
@@ -492,7 +583,9 @@ def _save_crop(item: Any, doc: Any, crops_dir: Path, workspace: str, log_fn: Cal
         return None
 
 
-def _fallback_textonly(file_path: Path, stem: str, *, reason: str, log_fn: Callable) -> Dict[str, Any]:
+def _fallback_textonly(
+    file_path: Path, stem: str, *, reason: str, log_fn: Callable
+) -> Dict[str, Any]:
     """Produce a minimal text-only DocModel using basic extraction when Docling
     is unavailable/failed — keeps the pipeline alive without pretending the rich
     structure was extracted (``degraded`` flag + reason)."""
@@ -506,15 +599,17 @@ def _fallback_textonly(file_path: Path, stem: str, *, reason: str, log_fn: Calla
 
     elements = []
     if text.strip():
-        elements.append({
-            "id": _element_id(0, "text", None, None, text, "#/texts/0"),
-            "reading_order": 0,
-            "type": "text",
-            "page": None,
-            "bbox": None,
-            "self_ref": "#/texts/0",
-            "text": text,
-        })
+        elements.append(
+            {
+                "id": _element_id(0, "text", None, None, text, "#/texts/0"),
+                "reading_order": 0,
+                "type": "text",
+                "page": None,
+                "bbox": None,
+                "self_ref": "#/texts/0",
+                "text": text,
+            }
+        )
 
     return {
         "schema": DOCMODEL_SCHEMA,

@@ -2,21 +2,20 @@
 Chat Routes - RAG-powered chat interface for notebook-scoped Q&A
 """
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from typing import List, Optional
+import json
+import uuid
 from datetime import datetime
 from pathlib import Path
-import json
+from typing import List, Optional
 
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
-from ..core.workspace import get_workspace_path
-from ..tools.knowledge import get_chromadb_client
-from ..core.models import call_model, get_model_config, get_active_model
 from ..core.manifest import should_trigger_swarm
-from ..governance.lineage import track_workflow_start, track_workflow_complete, track_llm_call
-import uuid
-
+from ..core.models import call_model, get_active_model, get_model_config
+from ..core.workspace import get_workspace_path
+from ..governance.lineage import track_llm_call, track_workflow_complete, track_workflow_start
+from ..tools.knowledge import get_chromadb_client
 
 router = APIRouter()
 
@@ -60,10 +59,10 @@ def get_chat_history_file(notebook_id: str, workspace: str = "default") -> Path:
 def load_chat_history(notebook_id: str, workspace: str = "default") -> List[ChatMessage]:
     """Load chat history for a notebook"""
     history_file = get_chat_history_file(notebook_id, workspace)
-    
+
     if not history_file.exists():
         return []
-    
+
     try:
         data = json.loads(history_file.read_text())
         return [ChatMessage(**msg) for msg in data]
@@ -75,43 +74,48 @@ def load_chat_history(notebook_id: str, workspace: str = "default") -> List[Chat
 def save_chat_history(notebook_id: str, history: List[ChatMessage], workspace: str = "default"):
     """Save chat history for a notebook"""
     history_file = get_chat_history_file(notebook_id, workspace)
-    data = [msg.model_dump(mode='json') for msg in history]
+    data = [msg.model_dump(mode="json") for msg in history]
     history_file.write_text(json.dumps(data, indent=2, default=str))
 
 
-def retrieve_context(notebook_id: str, query: str, top_k: int, workspace: str = "default") -> List[SourceCitation]:
+def retrieve_context(
+    notebook_id: str, query: str, top_k: int, workspace: str = "default"
+) -> List[SourceCitation]:
     """Retrieve relevant context from notebook's ChromaDB collection"""
     try:
         client = get_chromadb_client(workspace)
         collection_name = f"notebook_{notebook_id}"
-        
+
         try:
             collection = client.get_collection(collection_name)
         except Exception:
             # Collection doesn't exist yet
             return []
-        
+
         if collection.count() == 0:
             return []
-        
+
         # Query ChromaDB
         import re
         from pathlib import Path
-        all_data = collection.get(include=['metadatas'])
-        available_sources = set(meta.get('source', 'Unknown') for meta in all_data['metadatas'] if 'source' in meta)
-        
+
+        all_data = collection.get(include=["metadatas"])
+        available_sources = set(
+            meta.get("source", "Unknown") for meta in all_data["metadatas"] if "source" in meta
+        )
+
         mentioned_sources = []
         query_lower = query.lower()
         for source in available_sources:
             source_stem = Path(source).stem.lower()
-            words = [w for w in set(re.split(r'[^a-zA-Z0-9]', source_stem)) if len(w) > 3]
+            words = [w for w in set(re.split(r"[^a-zA-Z0-9]", source_stem)) if len(w) > 3]
             for w in words:
                 if w in query_lower:
                     mentioned_sources.append(source)
                     break
-                    
+
         results_list = []
-        
+
         if mentioned_sources:
             k_per_source = max(3, top_k // len(mentioned_sources))
             for source in mentioned_sources:
@@ -119,32 +123,36 @@ def retrieve_context(notebook_id: str, query: str, top_k: int, workspace: str = 
                     res = collection.query(
                         query_texts=[query],
                         n_results=min(k_per_source, collection.count()),
-                        where={"source": source}
+                        where={"source": source},
                     )
-                    if res['documents'] and res['documents'][0]:
-                        for doc, meta, distance in zip(res['documents'][0], res['metadatas'][0], res['distances'][0]):
+                    if res["documents"] and res["documents"][0]:
+                        for doc, meta, distance in zip(
+                            res["documents"][0], res["metadatas"][0], res["distances"][0]
+                        ):
                             results_list.append((doc, meta, distance))
                 except Exception:
                     pass
-            
+
             try:
                 gen_res = collection.query(
-                    query_texts=[query],
-                    n_results=min(3, collection.count())
+                    query_texts=[query], n_results=min(3, collection.count())
                 )
-                if gen_res['documents'] and gen_res['documents'][0]:
-                    for doc, meta, distance in zip(gen_res['documents'][0], gen_res['metadatas'][0], gen_res['distances'][0]):
+                if gen_res["documents"] and gen_res["documents"][0]:
+                    for doc, meta, distance in zip(
+                        gen_res["documents"][0], gen_res["metadatas"][0], gen_res["distances"][0]
+                    ):
                         results_list.append((doc, meta, distance))
             except Exception:
                 pass
         else:
             try:
                 res = collection.query(
-                    query_texts=[query],
-                    n_results=min(top_k, collection.count())
+                    query_texts=[query], n_results=min(top_k, collection.count())
                 )
-                if res['documents'] and res['documents'][0]:
-                    for doc, meta, distance in zip(res['documents'][0], res['metadatas'][0], res['distances'][0]):
+                if res["documents"] and res["documents"][0]:
+                    for doc, meta, distance in zip(
+                        res["documents"][0], res["metadatas"][0], res["distances"][0]
+                    ):
                         results_list.append((doc, meta, distance))
             except Exception:
                 pass
@@ -156,15 +164,15 @@ def retrieve_context(notebook_id: str, query: str, top_k: int, workspace: str = 
             if doc not in seen_docs:
                 seen_docs.add(doc)
                 citation = SourceCitation(
-                    source=meta.get('source', 'Unknown'),
-                    chunk_index=meta.get('chunk_index', 0),
+                    source=meta.get("source", "Unknown"),
+                    chunk_index=meta.get("chunk_index", 0),
                     relevance=round((1 - distance) * 100, 1),
-                    text=doc
+                    text=doc,
                 )
                 citations.append(citation)
-        
+
         return citations
-        
+
     except Exception as e:
         print(f"Error retrieving context: {e}")
         return []
@@ -173,11 +181,10 @@ def retrieve_context(notebook_id: str, query: str, top_k: int, workspace: str = 
 def build_prompt(query: str, context: List[SourceCitation], history: List[ChatMessage]) -> str:
     """Build prompt with context and conversation history"""
     # Build context section
-    context_text = "\n\n".join([
-        f"[Source: {c.source}, Relevance: {c.relevance}%]\n{c.text}"
-        for c in context
-    ])
-    
+    context_text = "\n\n".join(
+        [f"[Source: {c.source}, Relevance: {c.relevance}%]\n{c.text}" for c in context]
+    )
+
     # Build conversation history (last 5 messages)
     history_text = ""
     if history:
@@ -185,7 +192,7 @@ def build_prompt(query: str, context: List[SourceCitation], history: List[ChatMe
         for msg in recent_history:
             role = "User" if msg.role == "user" else "Assistant"
             history_text += f"{role}: {msg.content}\n\n"
-    
+
     # Construct final prompt. NB: keep backslash escapes OUT of the f-string
     # expression parts — that is a SyntaxError on Python 3.11 (the bundled
     # zero-install runtime), only legal on 3.12+.
@@ -207,7 +214,7 @@ INSTRUCTIONS:
 - If asked to summarize, cover the main points from all relevant sources
 
 ANSWER:"""
-    
+
     return prompt
 
 
@@ -217,18 +224,13 @@ async def query_chat(request: ChatRequest, workspace: str = "default"):
     try:
         # Load chat history
         history = load_chat_history(request.notebook_id, workspace)
-        
+
         # Retrieve context from ChromaDB
-        context = retrieve_context(
-            request.notebook_id,
-            request.message,
-            request.top_k,
-            workspace
-        )
-        
+        context = retrieve_context(request.notebook_id, request.message, request.top_k, workspace)
+
         # Build prompt with context and history
         prompt = build_prompt(request.message, context, history)
-        
+
         # Unified Audit Tracking
         run_id = f"chat_{str(uuid.uuid4())[:12]}"
         session_ref = f"notebook_{request.notebook_id}"
@@ -247,23 +249,23 @@ async def query_chat(request: ChatRequest, workspace: str = "default"):
         try:
             # Resolve model via role-based orchestrator
             active_model = await get_active_model(workspace, role="chat")
-            
+
             assistant_message = await call_model(
                 model=active_model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=request.temperature,
-                run_id=run_id
+                run_id=run_id,
             )
-            
+
             track_workflow_complete(
-                run_id, 
-                "notebook_chat", 
-                workspace, 
-                ["rag_retrieval", "generation"], 
+                run_id,
+                "notebook_chat",
+                workspace,
+                ["rag_retrieval", "generation"],
                 0,
-                outputs=[f"chat_reply_{run_id}"]
+                outputs=[f"chat_reply_{run_id}"],
             )
-            
+
         except Exception as e:
             # Fallback if LLM fails
             if context:
@@ -272,27 +274,20 @@ async def query_chat(request: ChatRequest, workspace: str = "default"):
                     assistant_message += f"{i}. From {c.source}:\n{c.text[:200]}...\n\n"
             else:
                 assistant_message = "I couldn't find any relevant information in your documents to answer this question."
-        
+
         # Save user message to history
-        user_msg = ChatMessage(
-            role="user",
-            content=request.message,
-            timestamp=datetime.now()
-        )
+        user_msg = ChatMessage(role="user", content=request.message, timestamp=datetime.now())
         history.append(user_msg)
-        
+
         # Save assistant message to history with sources
         assistant_msg = ChatMessage(
-            role="assistant",
-            content=assistant_message,
-            timestamp=datetime.now(),
-            sources=context
+            role="assistant", content=assistant_message, timestamp=datetime.now(), sources=context
         )
         history.append(assistant_msg)
-        
+
         # Save updated history
         save_chat_history(request.notebook_id, history, workspace)
-        
+
         # Extract context snippets for UI
         context_snippets = [c.text[:300] + "..." if len(c.text) > 300 else c.text for c in context]
 
@@ -311,7 +306,7 @@ async def query_chat(request: ChatRequest, workspace: str = "default"):
             consider_swarm=consider_swarm,
             swarm_reason=swarm_reason if consider_swarm else None,
         )
-        
+
     except Exception as e:
         raise HTTPException(500, f"Chat query failed: {str(e)}")
 
@@ -321,16 +316,16 @@ async def get_chat_history(notebook_id: str, workspace: str = "default", limit: 
     """Retrieve conversation history for a notebook"""
     try:
         history = load_chat_history(notebook_id, workspace)
-        
+
         # Return most recent messages (up to limit)
         recent = history[-limit:] if len(history) > limit else history
-        
+
         return {
             "notebook_id": notebook_id,
             "messages": [msg.model_dump() for msg in recent],
-            "total_count": len(history)
+            "total_count": len(history),
         }
-        
+
     except Exception as e:
         raise HTTPException(500, f"Failed to retrieve chat history: {str(e)}")
 
@@ -341,11 +336,8 @@ async def clear_chat_history(notebook_id: str, workspace: str = "default"):
     try:
         history_file = get_chat_history_file(notebook_id, workspace)
         history_file.write_text("[]")
-        
-        return {
-            "status": "cleared",
-            "notebook_id": notebook_id
-        }
-        
+
+        return {"status": "cleared", "notebook_id": notebook_id}
+
     except Exception as e:
         raise HTTPException(500, f"Failed to clear chat history: {str(e)}")

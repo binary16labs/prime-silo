@@ -50,7 +50,9 @@ class SpotifyConnector(BaseConnector):
         token = await _get_token(client_id, client_secret)
         headers = {"Authorization": f"Bearer {token}"}
 
-        search_type = {"track": "track", "artist": "artist", "album": "album"}.get(entity_type, "track")
+        search_type = {"track": "track", "artist": "artist", "album": "album"}.get(
+            entity_type, "track"
+        )
         search_url = f"{_API_BASE}/search"
         params = {"q": entity_name, "type": search_type, "limit": 1}
 
@@ -85,7 +87,9 @@ class SpotifyConnector(BaseConnector):
         detail["_entity_type"] = entity_type
         return detail
 
-    def parse(self, raw: Dict[str, Any], entity_name: str, entity_type: str, api_url: str) -> List[KnowledgeTriple]:
+    def parse(
+        self, raw: Dict[str, Any], entity_name: str, entity_type: str, api_url: str
+    ) -> List[KnowledgeTriple]:
         if raw.get("_empty"):
             return []
 
@@ -94,7 +98,11 @@ class SpotifyConnector(BaseConnector):
 
         def t(pred: str, obj: str, obj_type: str = "Concept") -> None:
             if obj and str(obj).strip():
-                triples.append(self._make_triple(name, pred, str(obj).strip(), api_url, raw, object_type=obj_type))
+                triples.append(
+                    self._make_triple(
+                        name, pred, str(obj).strip(), api_url, raw, object_type=obj_type
+                    )
+                )
 
         if entity_type == "track":
             album = raw.get("album") or {}

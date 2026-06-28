@@ -43,9 +43,7 @@ class OperationRegistry:
     def execute(self, engine: Any, df: Any, op: OperationSpec) -> Any:
         handler = self._ops.get(op.operation)
         if handler is None:
-            raise KeyError(
-                f"Unknown operation '{op.operation}'. Registered: {sorted(self._ops)}"
-            )
+            raise KeyError(f"Unknown operation '{op.operation}'. Registered: {sorted(self._ops)}")
         return handler(engine, df, **op.params)
 
     def names(self) -> list[str]:
@@ -73,12 +71,22 @@ def _op_load(engine: Any, df: Any, source_id: Optional[str] = None, **_: Any) ->
 
 
 @default_registry.register_decorator("standardize")
-def _op_standardize(engine: Any, df: Any, columns: Optional[list] = None, case: str = "upper", **_: Any) -> Any:
+def _op_standardize(
+    engine: Any, df: Any, columns: Optional[list] = None, case: str = "upper", **_: Any
+) -> Any:
     return engine.standardize(df, columns=columns, case=case)
 
 
 @default_registry.register_decorator("filter")
-def _op_filter(engine: Any, df: Any, column: Optional[str] = None, op: str = "==", value: Any = None, expr: Optional[str] = None, **_: Any) -> Any:
+def _op_filter(
+    engine: Any,
+    df: Any,
+    column: Optional[str] = None,
+    op: str = "==",
+    value: Any = None,
+    expr: Optional[str] = None,
+    **_: Any,
+) -> Any:
     return engine.filter(df, column=column, op=op, value=value, expr=expr)
 
 
@@ -103,7 +111,15 @@ def _op_calc(engine: Any, df: Any, target: str, expr: str, **_: Any) -> Any:
 
 
 @default_registry.register_decorator("join")
-def _op_join(engine: Any, df: Any, right: str, on: list, how: str = "inner", context: Optional[Dict[str, Any]] = None, **_: Any) -> Any:
+def _op_join(
+    engine: Any,
+    df: Any,
+    right: str,
+    on: list,
+    how: str = "inner",
+    context: Optional[Dict[str, Any]] = None,
+    **_: Any,
+) -> Any:
     """``right`` refers to another step output carried in the context."""
     context = context or {}
     right_df = context.get(right)
@@ -118,7 +134,9 @@ def _op_aggregate(engine: Any, df: Any, group_by: list, metrics: Dict[str, str],
 
 
 @default_registry.register_decorator("dedupe")
-def _op_dedupe(engine: Any, df: Any, subset: Optional[list] = None, keep: str = "first", **_: Any) -> Any:
+def _op_dedupe(
+    engine: Any, df: Any, subset: Optional[list] = None, keep: str = "first", **_: Any
+) -> Any:
     return engine.dedupe(df, subset=subset, keep=keep)
 
 
@@ -128,7 +146,9 @@ def _op_sort(engine: Any, df: Any, by: list, descending: bool = False, **_: Any)
 
 
 @default_registry.register_decorator("union")
-def _op_union(engine: Any, df: Any, right: str, context: Optional[Dict[str, Any]] = None, **_: Any) -> Any:
+def _op_union(
+    engine: Any, df: Any, right: str, context: Optional[Dict[str, Any]] = None, **_: Any
+) -> Any:
     context = context or {}
     right_df = context.get(right)
     if right_df is None:

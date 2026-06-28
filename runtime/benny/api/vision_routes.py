@@ -13,8 +13,8 @@ Exposes the multimodal document-parsing workflow over HTTP so the
 Both are long-running (Docling + local VLM); callers use the manifest's
 blocking_with_task_fallback. All model calls flow through ``call_model``.
 """
+
 import json
-from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException
@@ -29,8 +29,12 @@ SUPPORTED = {".pdf", ".docx", ".pptx", ".html", ".md", ".txt"}
 
 
 @router.post("/docmodel")
-async def vision_docmodel(workspace: str = "default", emit_crops: bool = True,
-                          source: Optional[str] = None, force: bool = False):
+async def vision_docmodel(
+    workspace: str = "default",
+    emit_crops: bool = True,
+    source: Optional[str] = None,
+    force: bool = False,
+):
     """Build DocModels for ingestible files under the workspace (staging + data_in)."""
     results = []
     seen = set()
@@ -46,8 +50,14 @@ async def vision_docmodel(workspace: str = "default", emit_crops: bool = True,
             seen.add(_safe_stem(f.name))
             try:
                 model = build_docmodel(f, workspace=workspace, emit_crops=emit_crops, force=force)
-                results.append({"source": f.name, "elements": len(model["elements"]),
-                                "counts": model["counts"], "degraded": model["degraded"]})
+                results.append(
+                    {
+                        "source": f.name,
+                        "elements": len(model["elements"]),
+                        "counts": model["counts"],
+                        "degraded": model["degraded"],
+                    }
+                )
             except Exception as e:  # one bad file must not sink the batch
                 results.append({"source": f.name, "error": str(e)})
     if not results:
@@ -56,10 +66,15 @@ async def vision_docmodel(workspace: str = "default", emit_crops: bool = True,
 
 
 @router.post("/enrich")
-async def vision_enrich(workspace: str = "default", source: Optional[str] = None,
-                        vlm_model: Optional[str] = None, reviewer_model: Optional[str] = None,
-                        render_check: bool = False, limit: Optional[int] = None,
-                        write_to_data_in: bool = True):
+async def vision_enrich(
+    workspace: str = "default",
+    source: Optional[str] = None,
+    vlm_model: Optional[str] = None,
+    reviewer_model: Optional[str] = None,
+    render_check: bool = False,
+    limit: Optional[int] = None,
+    write_to_data_in: bool = True,
+):
     """Run the describer ladder over each DocModel's visuals, stitch an enriched
     markdown (+ JSON sidecar), and drop the enriched markdown into data_in/ so the
     existing RAG ingest picks up the visually-complete document."""
@@ -87,7 +102,9 @@ async def vision_enrich(workspace: str = "default", source: Optional[str] = None
             md_name = f"{_safe_stem(docmodel.get('source', jf.stem))}.md"
             (di / md_name).write_text(res["markdown"], encoding="utf-8")
             paths["data_in"] = str(di / md_name)
-        enriched.append({"source": docmodel.get("source"), "summary": res["summary"], "paths": paths})
+        enriched.append(
+            {"source": docmodel.get("source"), "summary": res["summary"], "paths": paths}
+        )
 
     if not enriched:
         raise HTTPException(404, f"No matching DocModel to enrich in workspace '{workspace}'.")

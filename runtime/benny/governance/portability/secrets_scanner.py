@@ -9,6 +9,7 @@ combines two signals:
    high-entropy mixed-case alphanumeric blob looks like a credential even
    if the vendor shape is unknown.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -25,14 +26,14 @@ from typing import Iterable, Sequence
 # just the vendor word — a bare reference like "ANTHROPIC_API_KEY_REF=FOO" is
 # not a leak.
 _KNOWN_PREFIXES: list[tuple[str, re.Pattern[str]]] = [
-    ("anthropic",   re.compile(r"sk-ant-api03-[A-Za-z0-9_\-]{90,}")),
-    ("openai",      re.compile(r"\bsk-(?!ant-)[A-Za-z0-9_\-]{40,}")),
-    ("aws_access",  re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
+    ("anthropic", re.compile(r"sk-ant-api03-[A-Za-z0-9_\-]{90,}")),
+    ("openai", re.compile(r"\bsk-(?!ant-)[A-Za-z0-9_\-]{40,}")),
+    ("aws_access", re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
     ("github_fine", re.compile(r"\bgithub_pat_[A-Za-z0-9_]{70,}\b")),
-    ("github_pat",  re.compile(r"\bghp_[A-Za-z0-9]{30,}\b")),
-    ("slack_bot",   re.compile(r"\bxox[bpars]-[A-Za-z0-9\-]{20,}\b")),
-    ("gcp",         re.compile(r"\bAIza[A-Za-z0-9_\-]{30,}\b")),
-    ("nvidia_nim",  re.compile(r"\bnvapi-[A-Za-z0-9_\-]{20,}\b")),
+    ("github_pat", re.compile(r"\bghp_[A-Za-z0-9]{30,}\b")),
+    ("slack_bot", re.compile(r"\bxox[bpars]-[A-Za-z0-9\-]{20,}\b")),
+    ("gcp", re.compile(r"\bAIza[A-Za-z0-9_\-]{30,}\b")),
+    ("nvidia_nim", re.compile(r"\bnvapi-[A-Za-z0-9_\-]{20,}\b")),
 ]
 
 # Assignment-context pattern for entropy fallback. Captures the RHS.

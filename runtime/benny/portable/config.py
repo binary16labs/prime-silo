@@ -4,6 +4,7 @@ Reads ``<root>/config/benny.toml`` and enforces FR-2: any absolute path in
 the config must point inside the configured ``$BENNY_HOME``. Relative paths
 are fine. Anything else is a load-time error.
 """
+
 from __future__ import annotations
 
 import dataclasses

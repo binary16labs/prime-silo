@@ -165,9 +165,7 @@ def load_checkpoint(run_id: str, directory: Path) -> RunCheckpoint:
         if candidate.exists():
             return _from_envelope(candidate.read_text(encoding="utf-8"))
 
-    raise FileNotFoundError(
-        f"No checkpoint found for run {run_id!r} in {directory!r}"
-    )
+    raise FileNotFoundError(f"No checkpoint found for run {run_id!r} in {directory!r}")
 
 
 def write_pause(run_id: str, checkpoint: RunCheckpoint, directory: Path) -> Path:
@@ -227,9 +225,7 @@ def check_time_budget(checkpoint: RunCheckpoint) -> None:
     """
     if checkpoint.time_budget_s is None or checkpoint.started_at is None:
         return
-    elapsed = (
-        datetime.utcnow() - datetime.fromisoformat(checkpoint.started_at)
-    ).total_seconds()
+    elapsed = (datetime.utcnow() - datetime.fromisoformat(checkpoint.started_at)).total_seconds()
     if elapsed >= checkpoint.time_budget_s:
         raise TimeBudgetExceededError(
             f"Time budget {checkpoint.time_budget_s:.1f}s exceeded "

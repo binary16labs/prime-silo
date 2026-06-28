@@ -60,31 +60,36 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Dict, Iterable, Iterator, List, Optional
 
-
 # ---------------------------------------------------------------------------
 # Event type constants
 # ---------------------------------------------------------------------------
 
-_DISPATCHER_EVENTS = frozenset({
-    "wave_started",
-    "task_started",
-})
+_DISPATCHER_EVENTS = frozenset(
+    {
+        "wave_started",
+        "task_started",
+    }
+)
 
-_REASONER_EVENTS = frozenset({
-    "wave_ended",
-    "task_completed",
-    "quality_gate_passed",
-    "quality_gate_failed",
-})
+_REASONER_EVENTS = frozenset(
+    {
+        "wave_ended",
+        "task_completed",
+        "quality_gate_passed",
+        "quality_gate_failed",
+    }
+)
 
-_POLICY_EVENTS = frozenset({
-    "policy_denied",
-    "policy_approved",
-})
+_POLICY_EVENTS = frozenset(
+    {
+        "policy_denied",
+        "policy_approved",
+    }
+)
 
 # Number of spectrum bins; same as aamp.dsp.spectrum_bins config default.
 DEFAULT_SPECTRUM_BINS: int = 32
-DEFAULT_WINDOW_SIZE: int = 64   # events; controls VU rolling window
+DEFAULT_WINDOW_SIZE: int = 64  # events; controls VU rolling window
 
 
 # ---------------------------------------------------------------------------
@@ -104,11 +109,11 @@ class DerivedData:
     (AAMP-F21).
     """
 
-    spectrum_bin: List[float]           # 32 (or spectrum_bins) floats in [0, 1]
-    vu_left: float                      # dispatcher activity ratio [0, 1]
-    vu_right: float                     # reasoner activity ratio [0, 1]
-    loop_index: int                     # number of wave_started events seen so far
-    policy_state: str                   # "approved" | "denied"
+    spectrum_bin: List[float]  # 32 (or spectrum_bins) floats in [0, 1]
+    vu_left: float  # dispatcher activity ratio [0, 1]
+    vu_right: float  # reasoner activity ratio [0, 1]
+    loop_index: int  # number of wave_started events seen so far
+    policy_state: str  # "approved" | "denied"
     layout_event: Optional[str] = None  # set for layout transitions (AAMP-F21)
 
     def to_dict(self) -> dict:
@@ -134,13 +139,15 @@ class Envelope:
 
     kind: str = "aamp_event"
     source_event: Dict = field(default_factory=dict)
-    derived: DerivedData = field(default_factory=lambda: DerivedData(
-        spectrum_bin=[0.0] * DEFAULT_SPECTRUM_BINS,
-        vu_left=0.0,
-        vu_right=0.0,
-        loop_index=0,
-        policy_state="approved",
-    ))
+    derived: DerivedData = field(
+        default_factory=lambda: DerivedData(
+            spectrum_bin=[0.0] * DEFAULT_SPECTRUM_BINS,
+            vu_left=0.0,
+            vu_right=0.0,
+            loop_index=0,
+            policy_state="approved",
+        )
+    )
     captured_at: str = ""  # set at construction; excluded from determinism
 
     def to_dict(self) -> dict:
@@ -200,9 +207,7 @@ class DSPTransform:
         window_size: int = DEFAULT_WINDOW_SIZE,
     ) -> None:
         if spectrum_bins not in (16, 32, 64):
-            raise ValueError(
-                f"spectrum_bins must be 16, 32, or 64; got {spectrum_bins}"
-            )
+            raise ValueError(f"spectrum_bins must be 16, 32, or 64; got {spectrum_bins}")
         self._bins = spectrum_bins
         self._window = window_size
 
@@ -284,7 +289,7 @@ class DSPTransform:
         # --- VU ---
         d_list = list(self._dispatcher_buf)
         r_list = list(self._reasoner_buf)
-        vu_left  = sum(d_list) / len(d_list) if d_list else 0.0
+        vu_left = sum(d_list) / len(d_list) if d_list else 0.0
         vu_right = sum(r_list) / len(r_list) if r_list else 0.0
 
         return DerivedData(

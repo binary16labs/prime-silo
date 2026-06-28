@@ -49,7 +49,6 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
-
 # ---------------------------------------------------------------------------
 # Sandbox constants (AAMP-SEC1, AAMP-SEC2, AAMP-NFR12)
 # ---------------------------------------------------------------------------
@@ -82,7 +81,7 @@ class PluginPermissions(BaseModel):
     """AAMP-SEC2: plugin permissions; must be a subset of the host skin's."""
 
     events: List[str] = Field(default_factory=list)
-    egress: List[str] = Field(default_factory=list)   # empty = deny-all
+    egress: List[str] = Field(default_factory=list)  # empty = deny-all
     audio: bool = False
     haptic: bool = False
 
@@ -100,14 +99,14 @@ class PluginManifest(BaseModel):
     """
 
     schema_version: str = "1.0"
-    kind: str = "agentvis"          # "agentvis" | "effect"
+    kind: str = "agentvis"  # "agentvis" | "effect"
     id: str
     name: str = ""
     version: str = "1.0.0"
-    entry: str = "index.js"         # ES module loaded into sandbox iframe
+    entry: str = "index.js"  # ES module loaded into sandbox iframe
     events_subscribed: List[str] = Field(default_factory=list)
-    events_emitted: List[str] = Field(default_factory=list)    # plugins don't synthesise SSE
-    renders: str = "canvas"          # "canvas" | "dom" | "audio" | "haptic"
+    events_emitted: List[str] = Field(default_factory=list)  # plugins don't synthesise SSE
+    renders: str = "canvas"  # "canvas" | "dom" | "audio" | "haptic"
     sdk_min: str = "1.0"
     permissions: PluginPermissions = Field(default_factory=PluginPermissions)
     signature: Optional[dict] = None  # SkinSignature shape; None in drafts
@@ -175,9 +174,7 @@ def validate_permissions_subset(
 
     for ev in plugin_perms.events:
         if ev not in skin_perms_events:
-            violations.append(
-                f"plugin declares event {ev!r} not permitted by host skin"
-            )
+            violations.append(f"plugin declares event {ev!r} not permitted by host skin")
     if plugin_perms.audio and not skin_perms_audio:
         violations.append("plugin requests audio but host skin denies it")
     if plugin_perms.haptic and not skin_perms_haptic:

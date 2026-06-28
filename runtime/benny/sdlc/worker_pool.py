@@ -39,10 +39,10 @@ from typing import Any, Callable, Optional
 
 from benny.sdlc.checkpoint import RunCheckpoint, check_iteration_budget
 
-
 # ---------------------------------------------------------------------------
 # VRAM introspection (mockable via BENNY_VRAM_BUDGET_MB env var)
 # ---------------------------------------------------------------------------
+
 
 def vram_available_mb() -> int:
     """Return the available VRAM budget in MB.
@@ -88,6 +88,7 @@ def vram_available_mb() -> int:
 # Custom exceptions
 # ---------------------------------------------------------------------------
 
+
 class QueueDepthExceededError(RuntimeError):
     """Raised when WorkerPool.dispatch() is called while the queue is full.
 
@@ -103,6 +104,7 @@ class QueueDepthExceededError(RuntimeError):
 # ---------------------------------------------------------------------------
 # VramPool
 # ---------------------------------------------------------------------------
+
 
 class VramPool:
     """Counting semaphore bounded by VRAM budget / per-task VRAM requirement.
@@ -159,6 +161,7 @@ class VramPool:
 # ---------------------------------------------------------------------------
 # WorkerPool
 # ---------------------------------------------------------------------------
+
 
 class WorkerPool:
     """VRAM-aware task dispatcher with backpressure (AOS-F17, F18, F19, NFR5).
@@ -246,7 +249,7 @@ class WorkerPool:
 
         # ── 3, 4, 5: VRAM slot + execute + release ───────────────────────────
         try:
-            self._vram_pool.acquire()   # blocks until a VRAM slot is free
+            self._vram_pool.acquire()  # blocks until a VRAM slot is free
             try:
                 return fn(*args, **kwargs)
             finally:
@@ -292,5 +295,5 @@ class WorkerPool:
         QueueDepthExceededError
             If the pool queue is full (propagated from :meth:`dispatch`).
         """
-        check_iteration_budget(checkpoint)   # raises IterationBudgetExceededError if over
+        check_iteration_budget(checkpoint)  # raises IterationBudgetExceededError if over
         return self.dispatch(fn, *args, **kwargs)

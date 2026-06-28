@@ -2,14 +2,14 @@
 Workspace Isolation - Multi-tenant workspace management
 """
 
-from pathlib import Path
-from typing import Optional, List, Dict, Any
-import os
-import yaml
 import json
+import os
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import yaml
 
 from .schema import WorkspaceManifest
-
 
 # Resolve workspace root: prefer $BENNY_HOME/workspaces when the env var is set
 # (i.e. when the API was launched via `benny up`); fall back to a relative
@@ -22,25 +22,25 @@ def get_workspace_path(workspace_id: str = "default", subdir: str = "") -> Path:
     """
     Get workspace-scoped path for multi-tenant isolation.
     Strictly validates that the path is within WORKSPACE_ROOT to prevent traversal.
-    
+
     Args:
         workspace_id: Workspace identifier
         subdir: Subdirectory within workspace (data_in, data_out, chromadb, etc.)
-        
+
     Returns:
         Absolute path to the workspace directory or subdirectory
     """
     # 1. Resolve potential traversal before joining
     # We use .resolve() to satisfy traversal checks
     root_abs = WORKSPACE_ROOT.resolve()
-    
+
     # Construct the target path
     target = root_abs / str(workspace_id)
     if subdir:
         target = target / str(subdir)
-        
+
     target_abs = target.resolve()
-    
+
     # 2. Strict validation: Target must be a child of root_abs
     try:
         common = os.path.commonpath([str(root_abs), str(target_abs)])
@@ -48,7 +48,7 @@ def get_workspace_path(workspace_id: str = "default", subdir: str = "") -> Path:
             raise PermissionError(f"Path traversal attempt detected: {workspace_id}/{subdir}")
     except ValueError:
         raise PermissionError(f"Invalid workspace path: {workspace_id}/{subdir}")
-        
+
     return target_abs
 
 
@@ -77,8 +77,7 @@ def get_agent_sandbox_path(workspace_id: str = "default", subdir: str = "") -> P
     """
     if subdir and subdir not in AGENT_SANDBOX_SUBDIRS:
         raise ValueError(
-            f"Unknown agent_sandbox subdir {subdir!r}; "
-            f"expected one of {AGENT_SANDBOX_SUBDIRS}"
+            f"Unknown agent_sandbox subdir {subdir!r}; " f"expected one of {AGENT_SANDBOX_SUBDIRS}"
         )
     relative = AGENT_SANDBOX_DIR
     if subdir:
@@ -164,8 +163,17 @@ def ensure_workspace_structure(workspace_id: str = "default") -> dict:
     """
     base = get_workspace_path(workspace_id)
     subdirs = [
-        "agents", "chromadb", "data_in", "data_out", "reports", "skills", "runs", "staging",
-        "live/sources", "live/cache", "live/runs",
+        "agents",
+        "chromadb",
+        "data_in",
+        "data_out",
+        "reports",
+        "skills",
+        "runs",
+        "staging",
+        "live/sources",
+        "live/cache",
+        "live/runs",
         # ADR-001: agent sandbox — restricted agent-write surface
         f"{AGENT_SANDBOX_DIR}/views",
         f"{AGENT_SANDBOX_DIR}/notes",
@@ -174,14 +182,14 @@ def ensure_workspace_structure(workspace_id: str = "default") -> dict:
         # Phase H: session checkpoints (draft inside sandbox, pinned outside)
         f"{AGENT_SANDBOX_DIR}/checkpoints",
     ]
-    
+
     created = []
     for subdir in subdirs:
         path = base / subdir
         if not path.exists():
             path.mkdir(parents=True, exist_ok=True)
             created.append(subdir)
-    
+
     # Initialize manifest if missing
     manifest_path = base / "manifest.yaml"
     if not manifest_path.exists():
@@ -189,9 +197,11 @@ def ensure_workspace_structure(workspace_id: str = "default") -> dict:
         with open(manifest_path, "w", encoding="utf-8") as f:
             yaml.dump(manifest.dict(), f, sort_keys=False)
         created.append("manifest.yaml")
-    
+
     # Create default Operating Manuals if they don't exist
-    _create_default_manual(base / "SOUL.md", """# Name
+    _create_default_manual(
+        base / "SOUL.md",
+        """# Name
 Benny
 
 # Purpose
@@ -211,9 +221,12 @@ Professional, precise, and transparent. Always explain reasoning.
 - Always cite sources when providing information
 - Escalate to human reviewers when confidence is below 70%
 - Never expose credentials or sensitive information in outputs
-""")
+""",
+    )
 
-    _create_default_manual(base / "USER.md", """# Organization
+    _create_default_manual(
+        base / "USER.md",
+        """# Organization
 [Your Organization Name]
 
 # Authorized Personnel
@@ -225,9 +238,12 @@ Professional, precise, and transparent. Always explain reasoning.
 # Compliance Requirements
 - All outputs must be auditable via governance logs
 - PII must be handled per applicable regulations
-""")
+""",
+    )
 
-    _create_default_manual(base / "AGENTS.md", """# Coding Standards
+    _create_default_manual(
+        base / "AGENTS.md",
+        """# Coding Standards
 - Use type hints in all Python functions
 - Follow PEP 8 style guidelines
 - Write docstrings for all public functions
@@ -246,7 +262,8 @@ Professional, precise, and transparent. Always explain reasoning.
 # Output Formatting
 - Use Markdown for all generated documents
 - Include timestamps and provenance in generated artifacts
-""")
+""",
+    )
 
     # Seed default Live Mode source manifests (only if they don't exist)
     _seed_live_source_manifests(base / "live" / "sources")
@@ -264,7 +281,7 @@ Professional, precise, and transparent. Always explain reasoning.
         "path": str(base.absolute()),
         "created_dirs": [d for d in created if d != "manifest.yaml"],
         "manifest_created": "manifest.yaml" in created,
-        "isolation": "scoped_directory_structure"
+        "isolation": "scoped_directory_structure",
     }
 
 
@@ -276,6 +293,7 @@ def _create_default_manual(path: Path, content: str) -> None:
         except Exception as e:
             # We don't want task saving to crash the main process
             import logging
+
             logging.error(f"TaskManager persistence failed for {path}: {e}")
 
 
@@ -474,6 +492,7 @@ def _seed_live_source_manifests(sources_dir: Path) -> None:
                 dest.write_text(content, encoding="utf-8")
             except Exception as e:
                 import logging
+
                 logging.warning(f"Could not seed live source manifest {filename}: {e}")
 
 
@@ -482,7 +501,7 @@ def load_manifest(workspace_id: str) -> WorkspaceManifest:
     path = get_workspace_path(workspace_id) / "manifest.yaml"
     if not path.exists():
         return WorkspaceManifest(version="1.0.0")
-    
+
     try:
         with open(path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
@@ -521,62 +540,69 @@ def list_workspaces() -> List[dict]:
     if not WORKSPACE_ROOT.exists():
         WORKSPACE_ROOT.mkdir(parents=True, exist_ok=True)
         return []
-    
+
     workspaces = []
     for item in WORKSPACE_ROOT.iterdir():
         if item.is_dir():
             manifest = load_manifest(item.name)
-            workspaces.append({
-                "id": item.name,
-                "path": str(item.absolute()),
-                "has_chromadb": (item / "chromadb").exists(),
-                "has_data": (item / "data_in").exists() and any((item / "data_in").iterdir()) if (item / "data_in").exists() else False,
-                "manifest": manifest.dict()  # Enriched discovery metadata
-            })
-    
-    return workspaces
+            workspaces.append(
+                {
+                    "id": item.name,
+                    "path": str(item.absolute()),
+                    "has_chromadb": (item / "chromadb").exists(),
+                    "has_data": (
+                        (item / "data_in").exists() and any((item / "data_in").iterdir())
+                        if (item / "data_in").exists()
+                        else False
+                    ),
+                    "manifest": manifest.dict(),  # Enriched discovery metadata
+                }
+            )
 
+    return workspaces
 
 
 def delete_workspace(workspace_id: str) -> dict:
     """
     Delete a workspace directory and its associated database records.
-    
+
     Args:
         workspace_id: ID of the workspace to delete
-        
+
     Returns:
         Status dictionary
     """
     if workspace_id == "default":
         raise PermissionError("The default workspace cannot be deleted.")
-        
+
     # 1. Clean up Neo4j
     from .graph_db import delete_workspace_data
+
     try:
         delete_workspace_data(workspace_id)
     except Exception as e:
         import logging
+
         logging.error(f"Failed to clean up Neo4j data for workspace {workspace_id}: {e}")
-        
+
     # 2. Delete the directory structure
     import shutil
+
     path = get_workspace_path(workspace_id)
     if path.exists():
         shutil.rmtree(path)
-        
-    return {"status": "deleted", "workspace_id": workspace_id}
 
+    return {"status": "deleted", "workspace_id": workspace_id}
 
 
 def get_workspace_files(workspace_id: str, subdir: str = "data_out") -> List[dict]:
     """
     List files in a workspace subdirectory.
-    
+
     Args:
         workspace_id: Workspace identifier
         subdir: Subdirectory to list (default: data_out)
-        
+
     Returns:
         List of file info dicts
     """
@@ -584,26 +610,29 @@ def get_workspace_files(workspace_id: str, subdir: str = "data_out") -> List[dic
         path = get_workspace_path(workspace_id, subdir)
         if not path.exists():
             return []
-        
+
         files = []
         try:
             for item in path.iterdir():
                 if item.is_file():
                     try:
-                        files.append({
-                            "name": item.name,
-                            "path": str(item.relative_to(WORKSPACE_ROOT.absolute())),
-                            "size": item.stat().st_size,
-                            "modified": item.stat().st_mtime
-                        })
+                        files.append(
+                            {
+                                "name": item.name,
+                                "path": str(item.relative_to(WORKSPACE_ROOT.absolute())),
+                                "size": item.stat().st_size,
+                                "modified": item.stat().st_mtime,
+                            }
+                        )
                     except Exception:
-                        continue # Skip problematic files
+                        continue  # Skip problematic files
         except Exception:
             return []
-        
+
         return files
     except Exception as e:
         import logging
+
         logging.error(f"Error listing files for {workspace_id}/{subdir}: {e}")
         return []
 
@@ -613,34 +642,34 @@ PASS_BY_REFERENCE_THRESHOLD = 5 * 1024
 
 
 def smart_output(
-    content: str, 
-    filename: str, 
+    content: str,
+    filename: str,
     workspace_id: str = "default",
-    server_url: str = "http://localhost:8005"
+    server_url: str = "http://localhost:8005",
 ) -> str:
     """
     Return content directly if small, otherwise save and return URL reference.
-    
+
     Reduces token costs by 60-80% for large outputs.
-    
+
     Args:
         content: Content to output
         filename: Filename if saved
         workspace_id: Target workspace
         server_url: Base URL for download links
-        
+
     Returns:
         Content if small, or download URL if large
     """
     # Ensure we strip BOM to avoid confusion in MIME detection downstream
-    content = content.lstrip('\ufeff')
-    
-    if len(content.encode('utf-8', errors='replace')) < PASS_BY_REFERENCE_THRESHOLD:
+    content = content.lstrip("\ufeff")
+
+    if len(content.encode("utf-8", errors="replace")) < PASS_BY_REFERENCE_THRESHOLD:
         return content
-    
+
     # Save to file and return reference
     path = get_workspace_path(workspace_id, f"data_out/{filename}")
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding='utf-8')
-    
+    path.write_text(content, encoding="utf-8")
+
     return f"[SAVED] Content saved: {server_url}/api/files/{workspace_id}/{filename}"

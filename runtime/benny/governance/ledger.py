@@ -102,19 +102,19 @@ class LedgerEntry:
     """
 
     # --- caller-supplied ---
-    prompt_hash:  str
-    diff_hash:    str
-    persona:      str
-    model:        str
-    model_hash:   str
+    prompt_hash: str
+    diff_hash: str
+    persona: str
+    model: str
+    model_hash: str
     manifest_sig: str
 
     # --- assigned by append_entry ---
-    seq:        int        = field(default=0, compare=False)
-    prev_hash:  str        = field(default=_GENESIS_HASH, compare=False)
-    entry_hash: str        = field(default="", compare=False)
-    hmac:       str        = field(default="", compare=False)
-    timestamp:  str        = field(default="", compare=False)
+    seq: int = field(default=0, compare=False)
+    prev_hash: str = field(default=_GENESIS_HASH, compare=False)
+    entry_hash: str = field(default="", compare=False)
+    hmac: str = field(default="", compare=False)
+    timestamp: str = field(default="", compare=False)
 
 
 # ---------------------------------------------------------------------------
@@ -139,17 +139,17 @@ def _compute_hmac(secret: bytes, prompt_hash: str, diff_hash: str, prev_hash: st
 def _record_dict(entry: LedgerEntry) -> dict:
     """Serialise *entry* to the canonical dict used for hashing and JSONL storage."""
     return {
-        "seq":          entry.seq,
-        "prompt_hash":  entry.prompt_hash,
-        "diff_hash":    entry.diff_hash,
-        "prev_hash":    entry.prev_hash,
-        "persona":      entry.persona,
-        "model":        entry.model,
-        "model_hash":   entry.model_hash,
+        "seq": entry.seq,
+        "prompt_hash": entry.prompt_hash,
+        "diff_hash": entry.diff_hash,
+        "prev_hash": entry.prev_hash,
+        "persona": entry.persona,
+        "model": entry.model,
+        "model_hash": entry.model_hash,
         "manifest_sig": entry.manifest_sig,
-        "timestamp":    entry.timestamp,
-        "hmac":         entry.hmac,
-        "entry_hash":   entry.entry_hash,
+        "timestamp": entry.timestamp,
+        "hmac": entry.hmac,
+        "entry_hash": entry.entry_hash,
     }
 
 
@@ -213,7 +213,7 @@ def append_entry(
 
     # Compute entry_hash over the record *including* the hmac (final fingerprint)
     record = _record_dict(entry)
-    record["entry_hash"] = ""   # placeholder while hashing
+    record["entry_hash"] = ""  # placeholder while hashing
     record["entry_hash"] = _hash_record(record)
     entry.entry_hash = record["entry_hash"]
 

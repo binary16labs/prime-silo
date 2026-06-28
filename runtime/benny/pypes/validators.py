@@ -98,10 +98,17 @@ def run_validations(
         field = mv.get("field")
         threshold_pct = float(mv.get("threshold_percent", 20.0))
         if field is None:
-            result.checks.append({"check": "move_analysis", "status": "SKIPPED", "reason": "no field"})
+            result.checks.append(
+                {"check": "move_analysis", "status": "SKIPPED", "reason": "no field"}
+            )
         elif baseline_df is None:
             result.checks.append(
-                {"check": "move_analysis", "field": field, "status": "WARN", "reason": "no baseline checkpoint"}
+                {
+                    "check": "move_analysis",
+                    "field": field,
+                    "status": "WARN",
+                    "reason": "no baseline checkpoint",
+                }
             )
             if result.status == "PASS":
                 result.status = "WARN"

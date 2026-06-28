@@ -136,7 +136,9 @@ def build_tree_from_text(text: str, title: str = "document") -> TreeNode:
     """Generic deterministic fallback: split unstructured text into fixed-size
     sections under a single root. No LLM.
     """
-    blocks = [b.strip() for b in text.split("\n\n") if b.strip()] or ([text.strip()] if text.strip() else [])
+    blocks = [b.strip() for b in text.split("\n\n") if b.strip()] or (
+        [text.strip()] if text.strip() else []
+    )
     sections: List[str] = []
     for b in blocks:
         if len(b) > _MAX_SECTION_CHARS:
@@ -171,12 +173,14 @@ def _fill_summaries_deterministic(tree: TreeNode) -> None:
             node["summary"] = _first_sentence(node.get("text", "")) or node.get("title", "")
 
 
-async def enrich_summaries(tree: TreeNode, model: Optional[str], workspace: str = "default") -> TreeNode:
+async def enrich_summaries(
+    tree: TreeNode, model: Optional[str], workspace: str = "default"
+) -> TreeNode:
     """Upgrade leaf summaries with one `call_model()` call each, falling back to
     the deterministic summary on any failure (offline-safe).
     """
-    from .pageindex import flatten_leaves
     from .models import call_model
+    from .pageindex import flatten_leaves
 
     for leaf in flatten_leaves(tree):
         body = (leaf.get("text") or "").strip()
@@ -186,7 +190,10 @@ async def enrich_summaries(tree: TreeNode, model: Optional[str], workspace: str 
             resp = await call_model(
                 model=model,
                 messages=[
-                    {"role": "system", "content": "Summarise the section in ONE sentence. Output only the sentence."},
+                    {
+                        "role": "system",
+                        "content": "Summarise the section in ONE sentence. Output only the sentence.",
+                    },
                     {"role": "user", "content": body[:2000]},
                 ],
                 temperature=0.0,
@@ -217,6 +224,7 @@ def build_document_tree(text: str, source: str) -> TreeNode:
 # --------------------------------------------------------------------------- #
 # Persistence (PIX-F8 / PIX-SEC2)
 # --------------------------------------------------------------------------- #
+
 
 def _pageindex_dir(workspace: str) -> Path:
     base = get_workspace_path(workspace) / ".benny" / "pageindex"

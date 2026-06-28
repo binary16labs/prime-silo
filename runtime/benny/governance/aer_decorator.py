@@ -9,7 +9,7 @@ import functools
 import logging
 import time
 import uuid
-from typing import Callable, Optional, Any
+from typing import Any, Callable, Optional
 
 from .execution_audit import emit_node_execution_state
 
@@ -47,6 +47,7 @@ def aer_tracked(tool_name: str, workspace_resolver: Callable = None):
         async def run_safe_correlation(workspace: str):
             ...
     """
+
     def decorator(func):
         @functools.wraps(func)
         async def wrapper(*args, **kwargs):
@@ -59,7 +60,7 @@ def aer_tracked(tool_name: str, workspace_resolver: Callable = None):
                 workspace_id=ws,
                 node_id=tool_name,
                 status="started",
-                inputs={"args_count": len(args), "kwargs_keys": list(kwargs.keys())}
+                inputs={"args_count": len(args), "kwargs_keys": list(kwargs.keys())},
             )
 
             try:
@@ -79,9 +80,9 @@ def aer_tracked(tool_name: str, workspace_resolver: Callable = None):
                                 usage = usage.model_dump()
                             elif not isinstance(usage, dict):
                                 usage = dict(usage)
-                            result_summary["prompt_tokens"]     = usage.get("prompt_tokens", 0)
+                            result_summary["prompt_tokens"] = usage.get("prompt_tokens", 0)
                             result_summary["completion_tokens"] = usage.get("completion_tokens", 0)
-                            result_summary["total_tokens"]      = usage.get("total_tokens", 0)
+                            result_summary["total_tokens"] = usage.get("total_tokens", 0)
                     elif isinstance(result, (int, float)):
                         result_summary["value"] = result
                     elif isinstance(result, (list, tuple)):
@@ -93,7 +94,7 @@ def aer_tracked(tool_name: str, workspace_resolver: Callable = None):
                     node_id=tool_name,
                     status="completed",
                     outputs=result_summary,
-                    duration_ms=duration
+                    duration_ms=duration,
                 )
 
                 logger.debug(f"AER[{tool_name}]: Completed in {duration:.1f}ms")
@@ -108,13 +109,14 @@ def aer_tracked(tool_name: str, workspace_resolver: Callable = None):
                     node_id=tool_name,
                     status="failed",
                     error=f"{type(e).__name__}: {str(e)}",
-                    duration_ms=duration
+                    duration_ms=duration,
                 )
 
                 logger.warning(f"AER[{tool_name}]: Failed after {duration:.1f}ms - {e}")
                 raise
 
         return wrapper
+
     return decorator
 
 
@@ -129,6 +131,7 @@ def aer_tracked_sync(tool_name: str, workspace_resolver: Callable = None):
         def analyze_workspace(workspace_root: str):
             ...
     """
+
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -141,7 +144,7 @@ def aer_tracked_sync(tool_name: str, workspace_resolver: Callable = None):
                 workspace_id=ws,
                 node_id=tool_name,
                 status="started",
-                inputs={"args_count": len(args), "kwargs_keys": list(kwargs.keys())}
+                inputs={"args_count": len(args), "kwargs_keys": list(kwargs.keys())},
             )
 
             try:
@@ -162,7 +165,7 @@ def aer_tracked_sync(tool_name: str, workspace_resolver: Callable = None):
                     node_id=tool_name,
                     status="completed",
                     outputs=result_summary,
-                    duration_ms=duration
+                    duration_ms=duration,
                 )
 
                 logger.debug(f"AER[{tool_name}]: Completed in {duration:.1f}ms")
@@ -177,11 +180,12 @@ def aer_tracked_sync(tool_name: str, workspace_resolver: Callable = None):
                     node_id=tool_name,
                     status="failed",
                     error=f"{type(e).__name__}: {str(e)}",
-                    duration_ms=duration
+                    duration_ms=duration,
                 )
 
                 logger.warning(f"AER[{tool_name}]: Failed after {duration:.1f}ms - {e}")
                 raise
 
         return wrapper
+
     return decorator

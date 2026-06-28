@@ -49,7 +49,6 @@ from .plugins import (
     validate_permissions_subset,
 )
 
-
 # ---------------------------------------------------------------------------
 # Exceptions
 # ---------------------------------------------------------------------------
@@ -166,8 +165,7 @@ class SandboxHost:
         )
         if violations:
             raise PluginPermissionsViolation(
-                f"plugin {plugin_manifest.id!r} permission violations: "
-                + "; ".join(violations)
+                f"plugin {plugin_manifest.id!r} permission violations: " + "; ".join(violations)
             )
 
         callback = on_watchdog_fire if on_watchdog_fire is not None else lambda: None

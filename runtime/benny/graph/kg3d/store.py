@@ -1,10 +1,12 @@
 import logging
 from typing import Any
+
+from ...core.graph_db import get_driver
 from .ontology import Graph
 from .schema import Proposal
-from ...core.graph_db import get_driver
 
 logger = logging.getLogger(__name__)
+
 
 def upsert_graph(driver, graph: Graph):
     """
@@ -14,7 +16,8 @@ def upsert_graph(driver, graph: Graph):
     with driver.session() as session:
         # 1. Upsert Nodes
         nodes_batch = [n.model_dump(mode="json") for n in graph.nodes]
-        session.run("""
+        session.run(
+            """
             UNWIND $nodes AS n
             MERGE (c:MLConcept {canonical_name: n.canonical_name})
             SET c += {
@@ -30,12 +33,15 @@ def upsert_graph(driver, graph: Graph):
                 reachability_ratio: n.metrics.reachability_ratio,
                 updated_at: datetime(n.updated_at)
             }
-        """, nodes=nodes_batch)
+        """,
+            nodes=nodes_batch,
+        )
 
         # 2. Upsert Edges
         # We need to look up IDs since MERGE works on properties
         edges_batch = [e.model_dump(mode="json") for e in graph.edges]
-        session.run("""
+        session.run(
+            """
             UNWIND $edges AS e
             MATCH (source:MLConcept {id: e.source_id})
             MATCH (target:MLConcept {id: e.target_id})
@@ -46,9 +52,12 @@ def upsert_graph(driver, graph: Graph):
                 evidence: e.evidence,
                 created_at: datetime(e.created_at)
             }
-        """, edges=edges_batch)
+        """,
+            edges=edges_batch,
+        )
 
     logger.info("KG3D: Upserted %d nodes and %d edges", len(graph.nodes), len(graph.edges))
+
 
 async def upsert_proposal_to_neo4j(proposal: Proposal) -> bool:
     """
@@ -58,7 +67,7 @@ async def upsert_proposal_to_neo4j(proposal: Proposal) -> bool:
     driver = get_driver()
     if not driver:
         return False
-        
+
     try:
         # We can reuse upsert_graph by wrapping proposal into a temporary Graph object
         temp_graph = Graph(nodes=proposal.nodes_upsert, edges=proposal.edges_upsert)

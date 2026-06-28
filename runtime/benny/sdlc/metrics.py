@@ -125,15 +125,15 @@ def phoenix_attrs(metric: ProcessMetric) -> dict[str, Any]:
         OTLP attribute dict ready to attach to a Phoenix workflow span.
     """
     return {
-        "aos.metrics.run_id":                    metric.run_id,
-        "aos.metrics.model":                     metric.model,
-        "aos.metrics.tool_selection_accuracy":   metric.tool_selection_accuracy,
-        "aos.metrics.tool_efficiency":           metric.tool_efficiency,
-        "aos.metrics.context_efficiency":        metric.context_efficiency,
-        "aos.metrics.iteration_latency_ms_p95":  metric.iteration_latency_ms_p95,
-        "aos.metrics.loop_count_p95":            metric.loop_count_p95,
-        "aos.metrics.constraint_adherence":      metric.constraint_adherence,
-        "aos.metrics.captured_at":               metric.captured_at,
+        "aos.metrics.run_id": metric.run_id,
+        "aos.metrics.model": metric.model,
+        "aos.metrics.tool_selection_accuracy": metric.tool_selection_accuracy,
+        "aos.metrics.tool_efficiency": metric.tool_efficiency,
+        "aos.metrics.context_efficiency": metric.context_efficiency,
+        "aos.metrics.iteration_latency_ms_p95": metric.iteration_latency_ms_p95,
+        "aos.metrics.loop_count_p95": metric.loop_count_p95,
+        "aos.metrics.constraint_adherence": metric.constraint_adherence,
+        "aos.metrics.captured_at": metric.captured_at,
     }
 
 

@@ -37,10 +37,10 @@ NF constraints:
 from __future__ import annotations
 
 import json
+import os
 import re
 from pathlib import Path
 from typing import Any, List, Literal, Optional
-import os
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
@@ -235,9 +235,7 @@ def _validate_checkpoint_object(cp: dict[str, Any]) -> None:
         raise HTTPException(status_code=400, detail="Checkpoint history must be an array.")
     for i, msg in enumerate(history):
         if not isinstance(msg, dict):
-            raise HTTPException(
-                status_code=400, detail=f"history[{i}] must be an object."
-            )
+            raise HTTPException(status_code=400, detail=f"history[{i}] must be an object.")
         role = msg.get("role", "")
         if role not in _VALID_ROLES:
             raise HTTPException(
@@ -256,8 +254,9 @@ def _validate_checkpoint_object(cp: dict[str, Any]) -> None:
         )
 
 
-def _extract_summary(name: str, cp: dict[str, Any], status: str = "draft",
-                     valid: Optional[bool] = None) -> CheckpointSummary:
+def _extract_summary(
+    name: str, cp: dict[str, Any], status: str = "draft", valid: Optional[bool] = None
+) -> CheckpointSummary:
     """Extract a summary row from a full checkpoint object."""
     meta = cp.get("metadata") or {}
     history = cp.get("history") or []
@@ -559,9 +558,7 @@ async def list_pinned_checkpoints(workspace: str) -> List[CheckpointSummary]:
 
 
 @pinned_router.get("/load/{workspace}/{name}", response_model=LoadPinnedCheckpointResponse)
-async def load_pinned_checkpoint(
-    workspace: str, name: str
-) -> LoadPinnedCheckpointResponse:
+async def load_pinned_checkpoint(workspace: str, name: str) -> LoadPinnedCheckpointResponse:
     """Read a pinned checkpoint and verify its embedded signature in one round-trip.
 
     Returns ``{checkpoint, signature, valid, …}``. A missing or malformed

@@ -1,58 +1,77 @@
 """
 Graph Routes - API endpoints for the Synthesis Knowledge Engine.
 
-Provides CRUD for the knowledge graph, synthesis operations, 
+Provides CRUD for the knowledge graph, synthesis operations,
 real-time graph data for the 3D visualization, and SSE progress streaming.
 """
 
 import asyncio
-import anyio
 import hashlib
 import json
 import logging
+import random
 import re
 import shutil
 import uuid
-import random
 from datetime import datetime, timezone
-from typing import List, Optional, Dict, Any, AsyncGenerator
+from typing import Any, AsyncGenerator, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+import anyio
+from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from ..core.graph_db import (
-    verify_connectivity, init_schema, get_full_graph, get_neighbors,
-    get_graph_stats, add_triple, add_source_link, add_conflict,
-    add_analogy, set_concept_embedding, vector_search,
-    get_mapped_sources, delete_source_from_graph,
-    create_synthesis_run, get_synthesis_history, delete_synthesis_run,
-    update_graph_centrality, batch_add_triples, get_recent_updates, run_cypher
-)
-from ..synthesis.engine import (
-    extract_triples, detect_conflicts, find_synthesis,
-    cross_domain_analogy, get_embedding, compute_cluster_similarities,
-    parallel_extract_triples, extract_directed_triples_from_section,
-    batch_embed_concepts, deduplicate_triples
-)
-from ..core.workspace import get_workspace_path, load_manifest
 from ..core.extraction import extract_structured_text
-from ..core.schema import (
-    KnowledgeTriple, SynthesisConfig, IngestionEvent, IngestionEventType
+from ..core.graph_db import (
+    add_analogy,
+    add_conflict,
+    add_source_link,
+    add_triple,
+    batch_add_triples,
+    create_synthesis_run,
+    delete_source_from_graph,
+    delete_synthesis_run,
+    get_full_graph,
+    get_graph_stats,
+    get_mapped_sources,
+    get_neighbors,
+    get_recent_updates,
+    get_synthesis_history,
+    init_schema,
+    run_cypher,
+    set_concept_embedding,
+    update_graph_centrality,
+    vector_search,
+    verify_connectivity,
 )
+from ..core.schema import IngestionEvent, IngestionEventType, KnowledgeTriple, SynthesisConfig
 from ..core.task_manager import task_manager
+from ..core.workspace import get_workspace_path, load_manifest
 from ..governance.lineage import (
-    track_workflow_start, 
-    track_workflow_complete, 
+    track_aer,
     track_llm_call,
     track_tool_execution,
-    track_aer
+    track_workflow_complete,
+    track_workflow_start,
 )
 from ..graph.code_analyzer import CodeGraphAnalyzer, get_workspace_graph, list_workspace_dirs
+from ..synthesis.engine import (
+    batch_embed_concepts,
+    compute_cluster_similarities,
+    cross_domain_analogy,
+    deduplicate_triples,
+    detect_conflicts,
+    extract_directed_triples_from_section,
+    extract_triples,
+    find_synthesis,
+    get_embedding,
+    parallel_extract_triples,
+)
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
 
 @router.post("/graph/layout")
 async def trigger_graph_layout(workspace: str = "default"):
@@ -62,17 +81,19 @@ async def trigger_graph_layout(workspace: str = "default"):
     """
     try:
         from ..graph.gravity_index import GravityIndex
+
         engine = GravityIndex(workspace)
         result = await engine.run()
         return result
     except Exception as e:
         raise HTTPException(500, f"Layout calculation failed: {str(e)}")
 
+
 @router.get("/graph/code/lod")
 async def get_graph_lod(workspace: str = "default", tier: int = 1):
     """
     Return a semantically filtered graph based on Level-of-Detail (LoD).
-    
+
     Tiers:
       1 (High):   Full graph (Files, Symbols, Concepts).
       2 (Medium): High-level hierarchy (Files, Classes, Hub Concepts).
@@ -80,21 +101,21 @@ async def get_graph_lod(workspace: str = "default", tier: int = 1):
     """
     try:
         from ..core.graph_db import read_session
-        
+
         # Base node types for each tier
         tier_filters = {
             1: ["CodeEntity", "Concept", "File", "Class", "Function", "Documentation"],
             2: ["File", "Class", "Concept", "Documentation"],
-            3: ["File", "Concept"] # Tier 3 also uses centrality logic below
+            3: ["File", "Concept"],  # Tier 3 also uses centrality logic below
         }
-        
+
         labels = tier_filters.get(tier, tier_filters[1])
-        
+
         query = """
         MATCH (n {workspace: $ws})
         WHERE any(label IN labels(n) WHERE label IN $labels)
         """
-        
+
         # Additional Tier 3 logic: Limit to top nodes by degree or community hub
         if tier == 3:
             query += """
@@ -104,13 +125,13 @@ async def get_graph_lod(workspace: str = "default", tier: int = 1):
             ORDER BY degree DESC
             LIMIT 66
             """
-            
+
         query += """
         RETURN elementId(n) as id, n.name as name, labels(n)[0] as type, 
                n.pos_x as x, n.pos_y as y, n.pos_z as z,
                n.community_id as community_id, n.community_name as community_name
         """
-        
+
         nodes = []
         with read_session() as session:
             result = session.run(query, ws=workspace, labels=labels)
@@ -119,18 +140,20 @@ async def get_graph_lod(workspace: str = "default", tier: int = 1):
                 x = record["x"] or (random.random() * 20 - 10)
                 y = record["y"] or (random.random() * 20 - 10)
                 z = record["z"] or (random.random() * 20 - 10)
-                
-                nodes.append({
-                    "id": record["id"],
-                    "name": record["name"],
-                    "type": record["type"],
-                    "position": [x, y, z],
-                    "metadata": {
-                        "community_id": record["community_id"],
-                        "community_name": record["community_name"]
+
+                nodes.append(
+                    {
+                        "id": record["id"],
+                        "name": record["name"],
+                        "type": record["type"],
+                        "position": [x, y, z],
+                        "metadata": {
+                            "community_id": record["community_id"],
+                            "community_name": record["community_name"],
+                        },
                     }
-                })
-        
+                )
+
         # Fetch edges between the filtered nodes
         node_ids = [n["id"] for n in nodes]
         edge_query = """
@@ -147,7 +170,7 @@ async def get_graph_lod(workspace: str = "default", tier: int = 1):
                 edge = {
                     "source": record["source"],
                     "target": record["target"],
-                    "type": record["type"]
+                    "type": record["type"],
                 }
                 if record["confidence"] is not None:
                     edge["confidence"] = record["confidence"]
@@ -156,9 +179,9 @@ async def get_graph_lod(workspace: str = "default", tier: int = 1):
                 if record["predicate"] is not None:
                     edge["predicate"] = record["predicate"]
                 edges.append(edge)
-                
+
         return {"nodes": nodes, "edges": edges}
-        
+
     except Exception as e:
         raise HTTPException(500, f"LoD graph fetch failed: {str(e)}")
 
@@ -166,6 +189,7 @@ async def get_graph_lod(workspace: str = "default", tier: int = 1):
 # =============================================================================
 # MODELS
 # =============================================================================
+
 
 class TripleRequest(BaseModel):
     subject: str
@@ -259,6 +283,7 @@ class WorkspaceSettingsUpdateRequest(BaseModel):
 # STATUS & SCHEMA
 # =============================================================================
 
+
 @router.get("/graph/status")
 async def graph_status():
     """Check Neo4j connectivity and return graph statistics."""
@@ -319,16 +344,21 @@ async def schema_health(workspace: str = "default"):
         schema = introspect_schema(workspace)
 
         expected_labels = [
-            "CodeEntity", "Concept", "Source", "File",
-            "Class", "Function", "Interface", "Documentation"
+            "CodeEntity",
+            "Concept",
+            "Source",
+            "File",
+            "Class",
+            "Function",
+            "Interface",
+            "Documentation",
         ]
         present_labels = schema.get("labels", [])
         missing_labels = [l for l in expected_labels if l not in present_labels]
 
         semantic_edge_types = ["CORRELATES_WITH", "REL", "RELATES_TO"]
         semantic_edges_present = [
-            t for t in schema.get("relationship_types", [])
-            if t in semantic_edge_types
+            t for t in schema.get("relationship_types", []) if t in semantic_edge_types
         ]
 
         adapter = SchemaAdapter(workspace)
@@ -348,6 +378,7 @@ async def schema_health(workspace: str = "default"):
         raise
     except Exception as e:
         raise HTTPException(500, f"Schema health check failed: {str(e)}")
+
 
 @router.get("/graph/health")
 async def graph_health_grade(workspace: str = "default"):
@@ -369,10 +400,10 @@ async def graph_health_grade(workspace: str = "default"):
         raise HTTPException(503, f"Neo4j not available: {conn.get('error')}")
     try:
         from ..synthesis.diagnostics import get_graph_health
+
         return get_graph_health(workspace)
     except Exception as e:
         raise HTTPException(500, f"Health grade computation failed: {str(e)}")
-
 
 
 @router.get("/graph/full")
@@ -381,11 +412,11 @@ async def full_graph(
     page: Optional[int] = None,
     page_size: int = 200,
     show_all: bool = False,
-    run_id: Optional[str] = None
+    run_id: Optional[str] = None,
 ):
     """
     Get the knowledge graph for visualization (nodes + edges).
-    
+
     Modes:
       - ?show_all=true: Complete graph (no pagination)
       - ?page=0&page_size=200: Paginated for large graphs
@@ -396,7 +427,9 @@ async def full_graph(
     if conn["status"] != "connected":
         raise HTTPException(status_code=503, detail=f"Neo4j not available: {conn.get('error')}")
     try:
-        return get_full_graph(workspace, page=page, page_size=page_size, show_all=show_all, run_id=run_id)
+        return get_full_graph(
+            workspace, page=page, page_size=page_size, show_all=show_all, run_id=run_id
+        )
     except Exception as e:
         raise HTTPException(500, f"Failed to fetch graph: {str(e)}")
 
@@ -463,6 +496,7 @@ async def delete_run(run_id: str, workspace: str = "default"):
         data_path = get_workspace_path(workspace, f"runs/{run_id}")
         if data_path.exists():
             import shutil
+
             shutil.rmtree(data_path)
 
         return {**graph_result, "files_deleted": True}
@@ -473,44 +507,50 @@ async def delete_run(run_id: str, workspace: str = "default"):
 @router.get("/graph/catalog")
 async def get_graph_catalog(workspace: str = "default"):
     """
-    Get a unified list of all selectable graphs (snapshots and scans) 
+    Get a unified list of all selectable graphs (snapshots and scans)
     in a workspace.
     """
     try:
         from ..core.graph_db import get_code_scan_history, get_synthesis_history
-        
+
         scans = get_code_scan_history(workspace)
         runs = get_synthesis_history(workspace)
-        
+
         catalog = []
-        
+
         # 1. Neural Nexus (Global Merged View)
-        catalog.append({
-            "id": "neural_nexus",
-            "name": "Neural Nexus (Merged Global view)",
-            "type": "knowledge",
-            "timestamp": datetime.now().isoformat(),
-            "is_global": True
-        })
-        
+        catalog.append(
+            {
+                "id": "neural_nexus",
+                "name": "Neural Nexus (Merged Global view)",
+                "type": "knowledge",
+                "timestamp": datetime.now().isoformat(),
+                "is_global": True,
+            }
+        )
+
         # 2. Add Code Scans
         for s in scans:
-            catalog.append({
-                "id": s["scan_id"],
-                "name": s["name"],
-                "type": "code",
-                "timestamp": str(s["created_at"])
-            })
-            
+            catalog.append(
+                {
+                    "id": s["scan_id"],
+                    "name": s["name"],
+                    "type": "code",
+                    "timestamp": str(s["created_at"]),
+                }
+            )
+
         # 3. Add Synthesis Runs
         for r in runs:
-            catalog.append({
-                "id": r["run_id"],
-                "name": r.get("name") or f"Synthesis_{r['run_id'][:8]}",
-                "type": "knowledge",
-                "timestamp": str(r["created_at"])
-            })
-            
+            catalog.append(
+                {
+                    "id": r["run_id"],
+                    "name": r.get("name") or f"Synthesis_{r['run_id'][:8]}",
+                    "type": "knowledge",
+                    "timestamp": str(r["created_at"]),
+                }
+            )
+
         return {"catalog": catalog}
     except Exception as e:
         raise HTTPException(500, f"Failed to fetch catalog: {str(e)}")
@@ -532,8 +572,11 @@ async def get_recent_graph_updates(workspace: str = "default", seconds: int = 10
 # CODE GRAPH (Tree-sitter & Logic)
 # =============================================================================
 
+
 @router.get("/graph/code")
-async def fetch_code_graph(workspace: str = "default", snapshot_id: Optional[str] = None, path: Optional[str] = None):
+async def fetch_code_graph(
+    workspace: str = "default", snapshot_id: Optional[str] = None, path: Optional[str] = None
+):
     """Fetch the analyzed code graph for 3D visualization."""
     try:
         return get_workspace_graph(workspace, snapshot_id=snapshot_id, path_filter=path)
@@ -545,9 +588,10 @@ async def fetch_code_graph(workspace: str = "default", snapshot_id: Optional[str
 async def generate_code_graph(request: CodeGraphGenerateRequest, background_tasks: BackgroundTasks):
     """Trigger a recursive tree-sitter scan of the workspace."""
     run_id = str(uuid.uuid4())
-    
+
     # Load manifest to check deep_scan setting
     from ..core.workspace import load_manifest
+
     manifest = load_manifest(request.workspace)
     deep_scan = getattr(manifest, "deep_scan", True)
 
@@ -555,19 +599,20 @@ async def generate_code_graph(request: CodeGraphGenerateRequest, background_task
         try:
             # We use the actual workspace path
             ws_path = get_workspace_path(request.workspace)
-            
+
             # Offload CPU-bound analyzer to a thread
             def _analyze():
                 analyzer = CodeGraphAnalyzer(str(ws_path))
                 analyzer.analyze_workspace(request.root_dir, deep_scan=deep_scan)
                 # Save as a distinct snapshot
                 analyzer.save_to_neo4j(request.workspace, run_id, name=request.name)
-            
+
             await anyio.to_thread.run_sync(_analyze)
-            
+
             # --- PHASE 3: TOPOLOGICAL LOGIC (LPA Clustering) ---
             try:
                 from ..graph.clustering_service import ClusteringService
+
                 await ClusteringService.run_lpa_on_workspace(request.workspace)
                 logger.info(f"Clustering complete for {request.workspace}")
             except Exception as ce:
@@ -578,11 +623,11 @@ async def generate_code_graph(request: CodeGraphGenerateRequest, background_task
             logger.error(f"Code graph generation failed: {e}", exc_info=True)
 
     background_tasks.add_task(_run_analyzer)
-    
+
     return {
         "status": "accepted",
         "run_id": run_id,
-        "message": "Neural code analysis started in background"
+        "message": "Neural code analysis started in background",
     }
 
 
@@ -591,15 +636,16 @@ async def update_workspace_settings(request: WorkspaceSettingsUpdateRequest):
     """Update workspace-specific analysis settings in manifest.yaml."""
     try:
         from ..core.workspace import update_manifest
+
         updates = {}
         if request.exclude_patterns is not None:
             updates["exclude_patterns"] = request.exclude_patterns
         if request.deep_scan is not None:
             updates["deep_scan"] = request.deep_scan
-        
+
         if not updates:
             return {"status": "no_changes"}
-            
+
         update_manifest(request.workspace, updates)
         return {"status": "success", "updated": list(updates.keys())}
     except Exception as e:
@@ -626,7 +672,7 @@ async def create_triple(request: TripleRequest):
             obj=request.object,
             workspace=request.workspace,
             source_name=request.source_name,
-            timestamp=request.timestamp
+            timestamp=request.timestamp,
         )
         return result
     except Exception as e:
@@ -682,8 +728,8 @@ async def stream_ingestion_events(run_id: str):
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
-            "X-Accel-Buffering": "no"
-        }
+            "X-Accel-Buffering": "no",
+        },
     )
 
 
@@ -691,26 +737,27 @@ async def stream_ingestion_events(run_id: str):
 # MARKDOWN SEGMENTATION
 # =============================================================================
 
+
 def _split_markdown_into_segments(text: str) -> List[Dict[str, str]]:
     """Splits markdown text into logical sections based on headers."""
     segments = []
-    lines = text.split('\n')
+    lines = text.split("\n")
     current_title = "Introduction / Main"
     current_content = []
 
     for line in lines:
-        header_match = re.match(r'^(#{1,3})\s+(.*)', line)
+        header_match = re.match(r"^(#{1,3})\s+(.*)", line)
         if header_match:
             # Save the previous chunk
-            if ''.join(current_content).strip():
-                segments.append({"title": current_title, "text": '\n'.join(current_content)})
+            if "".join(current_content).strip():
+                segments.append({"title": current_title, "text": "\n".join(current_content)})
             current_title = header_match.group(2).strip()
             current_content = [line]
         else:
             current_content.append(line)
 
-    if ''.join(current_content).strip():
-        segments.append({"title": current_title, "text": '\n'.join(current_content)})
+    if "".join(current_content).strip():
+        segments.append({"title": current_title, "text": "\n".join(current_content)})
 
     # If no headers found at all, just return one big segment
     if not segments:
@@ -723,6 +770,7 @@ def _split_markdown_into_segments(text: str) -> List[Dict[str, str]]:
 # SYNTHESIS OPERATIONS
 # =============================================================================
 
+
 @router.post("/graph/ingest")
 async def ingest_text(request: GraphIngestRequest, background_tasks: BackgroundTasks):
     """
@@ -731,7 +779,7 @@ async def ingest_text(request: GraphIngestRequest, background_tasks: BackgroundT
     try:
         run_id = str(uuid.uuid4())
         _ingestion_events[run_id] = asyncio.Queue()
-        
+
         background_tasks.add_task(
             _process_content_to_graph,
             request.text,
@@ -746,7 +794,7 @@ async def ingest_text(request: GraphIngestRequest, background_tasks: BackgroundT
             request.inference_delay,
             run_id,
             _emit_event,
-            name=request.name
+            name=request.name,
         )
         return {"status": "accepted", "run_id": run_id}
     except Exception as e:
@@ -777,14 +825,14 @@ async def ingest_files_to_graph(request: IngestFilesRequest, background_tasks: B
         embedding_model=request.embedding_model,
         direction=request.direction,
         inference_delay=request.inference_delay,
-        name=request.name
+        name=request.name,
     )
 
     return {
         "status": "accepted",
         "run_id": run_id,
         "sse_url": f"/api/graph/ingest/events/{run_id}",
-        "message": f"Background ingestion started for {len(request.files)} file(s)"
+        "message": f"Background ingestion started for {len(request.files)} file(s)",
     }
 
 
@@ -799,39 +847,37 @@ async def _background_ingest_files(
     embedding_model: Optional[str],
     direction: str,
     inference_delay: float,
-    name: Optional[str] = None
+    name: Optional[str] = None,
 ):
     """Background task for batch file ingestion with SSE event emission."""
     results = []
     event_callback = _emit_event
 
-    await event_callback(IngestionEvent(
-        event=IngestionEventType.STARTED,
-        run_id=run_id,
-        message=f"Starting ingestion of {len(files)} file(s)",
-        data={"files": files, "total": len(files)}
-    ))
+    await event_callback(
+        IngestionEvent(
+            event=IngestionEventType.STARTED,
+            run_id=run_id,
+            message=f"Starting ingestion of {len(files)} file(s)",
+            data={"files": files, "total": len(files)},
+        )
+    )
 
     # Register in TaskManager for Mesh Visibility
     task_manager.create_task(workspace, "graph_ingest", task_id=run_id)
     track_workflow_start(
-        run_id, 
-        "graph_ingest", 
-        workspace, 
-        inputs=files,
-        outputs=[f"graph_run_{run_id}"]
+        run_id, "graph_ingest", workspace, inputs=files, outputs=[f"graph_run_{run_id}"]
     )
     task_manager.add_aer_entry(
         run_id,
         intent=f"Ingesting {len(files)} files into Knowledge Graph",
         observation="Initialization complete",
-        plan="1. Structured extraction 2. Parallel Triple extraction 3. Conflict detection 4. Batch Neo4j store 5. Embedding"
+        plan="1. Structured extraction 2. Parallel Triple extraction 3. Conflict detection 4. Batch Neo4j store 5. Embedding",
     )
 
     try:
         data_in_path = get_workspace_path(workspace, "data_in")
         staging_path = get_workspace_path(workspace, "staging")
-        
+
         # Step 0: Expand directories and resolve paths
         to_process = []
         workspace_root = get_workspace_path(workspace)
@@ -843,32 +889,34 @@ async def _background_ingest_files(
                 p = data_in_path / f
                 if not p.exists():
                     p = staging_path / f
-            
+
             if not p.exists():
                 logger.warning("File or directory not found: %s", f)
                 continue
-            
+
             if p.is_dir():
                 logger.info("Expanding directory: %s", f)
                 for item in p.rglob("*"):
-                    if item.is_file() and item.suffix.lower() in ['.md', '.txt', '.pdf']:
+                    if item.is_file() and item.suffix.lower() in [".md", ".txt", ".pdf"]:
                         to_process.append(item)
             else:
                 to_process.append(p)
 
         if not to_process:
             logger.warning("No eligible files found for ingestion.")
-            await event_callback(IngestionEvent(
-                event=IngestionEventType.COMPLETED,
-                run_id=run_id,
-                message="Ingestion complete: 0 file(s) processed (no eligible files found)",
-                data={"files_processed": 0}
-            ))
+            await event_callback(
+                IngestionEvent(
+                    event=IngestionEventType.COMPLETED,
+                    run_id=run_id,
+                    message="Ingestion complete: 0 file(s) processed (no eligible files found)",
+                    data={"files_processed": 0},
+                )
+            )
             return
 
         for file_idx, file_path in enumerate(to_process):
             filename = file_path.name
-            
+
             # Determine if this file is in the staging area
             is_staged = staging_path in file_path.parents
 
@@ -881,7 +929,7 @@ async def _background_ingest_files(
                 continue
 
             # Step 2: Process to graph
-            # We use the filename as source_name. 
+            # We use the filename as source_name.
             # Note: We align the DB with the final data_in location by using the filename
             file_result = await _process_content_to_graph(
                 text=text,
@@ -896,9 +944,9 @@ async def _background_ingest_files(
                 inference_delay=inference_delay,
                 run_id=run_id,
                 event_callback=_emit_event,
-                name=name
+                name=name,
             )
-            
+
             # Step 3: Lifecycle Management - Move from staging to data_in on success
             if file_result.get("status") == "ingested" and is_staged:
                 try:
@@ -906,51 +954,59 @@ async def _background_ingest_files(
                     # Ensure we don't overwrite if it somehow exists (or we do?)
                     if dest_path.exists():
                         import time
+
                         dest_path = data_in_path / f"{int(time.time())}_{filename}"
-                    
+
                     shutil.move(str(file_path), str(dest_path))
                     logger.info("Successfully moved %s to data_in", filename)
                 except Exception as move_err:
                     logger.error("Failed to move %s to data_in: %s", filename, move_err)
 
-            results.append({
-                "file": filename,
-                "status": file_result.get("status"),
-                "triples": file_result.get("triples_extracted", 0)
-            })
-            
+            results.append(
+                {
+                    "file": filename,
+                    "status": file_result.get("status"),
+                    "triples": file_result.get("triples_extracted", 0),
+                }
+            )
+
             # Update TaskManager Progress
             progress = int((file_idx + 1) / len(to_process) * 100)
-            task_manager.update_task(run_id, progress=progress, message=f"Processed {file_idx+1}/{len(files)}: {filename}")
+            task_manager.update_task(
+                run_id,
+                progress=progress,
+                message=f"Processed {file_idx+1}/{len(files)}: {filename}",
+            )
 
-        await event_callback(IngestionEvent(
-            event=IngestionEventType.COMPLETED,
-            run_id=run_id,
-            message=f"Ingestion complete: {len(results)} file(s) processed",
-            data={
-                "files_processed": len(results),
-                "details": results
-            }
-        ))
-        
-        task_manager.update_task(run_id, status="completed", progress=100, message="Graph ingestion successful")
+        await event_callback(
+            IngestionEvent(
+                event=IngestionEventType.COMPLETED,
+                run_id=run_id,
+                message=f"Ingestion complete: {len(results)} file(s) processed",
+                data={"files_processed": len(results), "details": results},
+            )
+        )
+
+        task_manager.update_task(
+            run_id, status="completed", progress=100, message="Graph ingestion successful"
+        )
         track_workflow_complete(
-            run_id, 
-            "graph_ingest", 
-            workspace, 
-            ["extraction", "synthesis", "neo4j_store"], 
+            run_id,
+            "graph_ingest",
+            workspace,
+            ["extraction", "synthesis", "neo4j_store"],
             0,
-            outputs=[f"graph_run_{run_id}"]
+            outputs=[f"graph_run_{run_id}"],
         )
         return results
 
     except Exception as e:
         logger.error("Background ingestion failed: %s", e, exc_info=True)
-        await event_callback(IngestionEvent(
-            event=IngestionEventType.ERROR,
-            run_id=run_id,
-            message=f"Ingestion failed: {str(e)}"
-        ))
+        await event_callback(
+            IngestionEvent(
+                event=IngestionEventType.ERROR, run_id=run_id, message=f"Ingestion failed: {str(e)}"
+            )
+        )
 
     finally:
         # Clean up event queue after a delay (allow SSE client to receive final event)
@@ -971,7 +1027,7 @@ async def _process_content_to_graph(
     inference_delay: float = 2.0,
     run_id: Optional[str] = None,
     event_callback: Optional[Any] = None,
-    name: Optional[str] = None
+    name: Optional[str] = None,
 ):
     """Core ingestion pipeline: extract -> validate -> store -> embed -> centrality."""
     # Step 0: Ensure Run ID and Partition Key
@@ -987,7 +1043,7 @@ async def _process_content_to_graph(
     if conn["status"] != "connected":
         raise HTTPException(
             status_code=503,
-            detail=f"Knowledge Graph database not available: {conn.get('error', 'Unknown connection error')}"
+            detail=f"Knowledge Graph database not available: {conn.get('error', 'Unknown connection error')}",
         )
 
     manifest = load_manifest(workspace)
@@ -1003,24 +1059,36 @@ async def _process_content_to_graph(
         files=[source_name],
         version="1.0.0",
         artifact_path=str(get_workspace_path(workspace, f"runs/{run_id}")),
-        name=name
+        name=name,
     )
-    
+
     # Track metadata in TaskManager registry
     task_manager.update_task(run_id, content_hash=content_hash, partition_key=partition_key)
 
     # Step 1: Parallel Extraction of Triples
     sections = _split_markdown_into_segments(text)
-    logger.info("Hierarchical parallel parsing initiated for %s: %d sections found.", source_name, len(sections))
+    logger.info(
+        "Hierarchical parallel parsing initiated for %s: %d sections found.",
+        source_name,
+        len(sections),
+    )
 
     # Trace AER for extraction
     try:
-        track_aer(run_id, "graph_ingest", workspace, f"Extracting triples from {source_name}", f"Split into {len(sections)} sections")
+        track_aer(
+            run_id,
+            "graph_ingest",
+            workspace,
+            f"Extracting triples from {source_name}",
+            f"Split into {len(sections)} sections",
+        )
     except Exception as e:
         logger.warning("Lineage tracking failed (extraction): %s", e)
 
     # Filter microscopic sections early
-    active_sections = [s for s in sections if len(s['text'].strip()) >= synthesis_config.min_section_chars]
+    active_sections = [
+        s for s in sections if len(s["text"].strip()) >= synthesis_config.min_section_chars
+    ]
 
     triples = await parallel_extract_triples(
         sections=active_sections,
@@ -1033,11 +1101,13 @@ async def _process_content_to_graph(
         config=synthesis_config,
         event_callback=event_callback,
         workspace=workspace,
-        run_id=run_id
+        run_id=run_id,
     )
 
     if not triples:
-        task_manager.add_aer_entry(run_id, "Extraction finished", f"No triples found for {source_name}")
+        task_manager.add_aer_entry(
+            run_id, "Extraction finished", f"No triples found for {source_name}"
+        )
         return {"status": "no_triples_found", "triples_extracted": 0}
 
     # Step 2: Check for conflicts against existing graph
@@ -1063,59 +1133,66 @@ async def _process_content_to_graph(
             model=model,
             timeout=llm_timeout,
             config=synthesis_config,
-            run_id=run_id
+            run_id=run_id,
         )
-        
+
         # Track conflict detection as a tool execution nested under the ingest workflow
         track_tool_execution(
             parent_run_id=run_id,
             tool_name="conflict_detection",
             tool_args={"existing_count": len(existing), "new_count": len(triples)},
             success=True,
-            parent_job_name="graph_ingest"
+            parent_job_name="graph_ingest",
         )
 
     if event_callback:
-        await event_callback(IngestionEvent(
-            event=IngestionEventType.CONFLICTS_CHECKED,
-            run_id=run_id,
-            source_name=source_name,
-            message=f"Conflict check: {len(conflicts)} conflicts found",
-            data={"conflicts": len(conflicts)}
-        ))
+        await event_callback(
+            IngestionEvent(
+                event=IngestionEventType.CONFLICTS_CHECKED,
+                run_id=run_id,
+                source_name=source_name,
+                message=f"Conflict check: {len(conflicts)} conflicts found",
+                data={"conflicts": len(conflicts)},
+            )
+        )
 
     # Step 3: Store triples in Neo4j (Batch Mode)
     # Convert KnowledgeTriple objects to dicts for batch storage
     triple_dicts = [t.model_dump() if isinstance(t, KnowledgeTriple) else t for t in triples]
     stored_result = batch_add_triples(
-        triples=triples,
-        workspace=workspace,
-        source_name=source_name,
-        run_id=run_id
+        triples=triples, workspace=workspace, source_name=source_name, run_id=run_id
     )
-    
+
     # Track Neo4j batch storage as a tool execution
     track_tool_execution(
         parent_run_id=run_id,
         tool_name="neo4j_batch_storage",
         tool_args={"workspace": workspace, "source": source_name, "count": len(triples)},
         success=stored_result.get("count", 0) > 0,
-        parent_job_name="graph_ingest"
+        parent_job_name="graph_ingest",
     )
-    logger.info("[SUCCESS] Batched %d triples into Neo4j successfully.", stored_result['count'])
+    logger.info("[SUCCESS] Batched %d triples into Neo4j successfully.", stored_result["count"])
 
     if event_callback:
-        await event_callback(IngestionEvent(
-            event=IngestionEventType.STORED,
-            run_id=run_id,
-            source_name=source_name,
-            message=f"Stored {stored_result['count']} triples",
-            data={"count": stored_result["count"]}
-        ))
+        await event_callback(
+            IngestionEvent(
+                event=IngestionEventType.STORED,
+                run_id=run_id,
+                source_name=source_name,
+                message=f"Stored {stored_result['count']} triples",
+                data={"count": stored_result["count"]},
+            )
+        )
 
     # Track AER for storage
     try:
-        track_aer(run_id, "graph_ingest", workspace, f"Storing triples for {source_name}", f"Committed {stored_result['count']} triples to Neo4j database")
+        track_aer(
+            run_id,
+            "graph_ingest",
+            workspace,
+            f"Storing triples for {source_name}",
+            f"Committed {stored_result['count']} triples to Neo4j database",
+        )
     except Exception as e:
         logger.warning("Lineage tracking failed (storage): %s", e)
 
@@ -1137,7 +1214,7 @@ async def _process_content_to_graph(
             "source": source_name,
             "triples_count": len(triples),
             "conflicts_count": len(conflicts),
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
         with open(run_dir / "metadata.json", "w", encoding="utf-8") as f:
             json.dump(meta, f, indent=2)
@@ -1167,7 +1244,7 @@ async def _process_content_to_graph(
                 concept_a=conflict["concept_a"],
                 concept_b=conflict["concept_b"],
                 description=conflict.get("description", ""),
-                workspace=workspace
+                workspace=workspace,
             )
         except Exception:
             pass
@@ -1196,26 +1273,27 @@ async def _process_content_to_graph(
             provider=actual_emb_provider,
             model=embedding_model,
             batch_size=synthesis_config.embedding_batch_size,
-            event_callback=event_callback if event_callback else None
+            event_callback=event_callback if event_callback else None,
         )
 
         for concept_name, emb in embeddings.items():
             if emb:
                 set_concept_embedding(concept_name, emb, workspace)
                 embedded_count += 1
-        
+
         # Step 5b: Sync to ChromaDB for semantic search (Snapshotted)
         try:
             from ..tools.knowledge import get_chromadb_client, get_knowledge_collection
+
             client = get_chromadb_client(workspace)
             collection = get_knowledge_collection(client)
-            
+
             # Use paragraphs as simple chunks
-            chunks = [c.strip() for c in text.split('\n\n') if c.strip()]
+            chunks = [c.strip() for c in text.split("\n\n") if c.strip()]
             if chunks:
                 batch_ids = [f"{source_name}_{run_id[-4:]}_{j}" for j in range(len(chunks))]
                 batch_metadatas = [
-                    {"source": source_name, "chunk_index": j, "run_id": run_id} 
+                    {"source": source_name, "chunk_index": j, "run_id": run_id}
                     for j in range(len(chunks))
                 ]
                 collection.add(documents=chunks, metadatas=batch_metadatas, ids=batch_ids)
@@ -1227,11 +1305,13 @@ async def _process_content_to_graph(
     try:
         update_graph_centrality(workspace)
         if event_callback:
-            await event_callback(IngestionEvent(
-                event=IngestionEventType.CENTRALITY_UPDATED,
-                run_id=run_id,
-                message="Centrality scores updated"
-            ))
+            await event_callback(
+                IngestionEvent(
+                    event=IngestionEventType.CENTRALITY_UPDATED,
+                    run_id=run_id,
+                    message="Centrality scores updated",
+                )
+            )
     except Exception:
         pass
 
@@ -1244,7 +1324,7 @@ async def _process_content_to_graph(
         "conflicts_detected": len(conflicts),
         "concepts_embedded": embedded_count,
         "triples": triple_dicts,
-        "conflicts": conflicts
+        "conflicts": conflicts,
     }
 
 
@@ -1256,32 +1336,27 @@ async def synthesize(request: SynthesizeRequest, background_tasks: BackgroundTas
     """
     task_id = str(uuid.uuid4())
     task_manager.create_task(request.workspace, "synthesis", task_id=task_id)
-    
+
     background_tasks.add_task(
         _background_synthesis,
         workspace=request.workspace,
         provider=request.provider,
         model=request.model,
-        task_id=task_id
+        task_id=task_id,
     )
-    
+
     return {
         "status": "started",
         "task_id": task_id,
-        "message": "Synthesis initiated in background (Topological Batching mode)"
+        "message": "Synthesis initiated in background (Topological Batching mode)",
     }
 
 
-async def _background_synthesis(
-    workspace: str,
-    provider: str,
-    model: Optional[str],
-    task_id: str
-):
+async def _background_synthesis(workspace: str, provider: str, model: Optional[str], task_id: str):
     """Background worker for community-based synthesis."""
     try:
         track_workflow_start(task_id, "synthesis", workspace)
-        
+
         # 1. Fetch communities and their sizes
         query = """
             MATCH (n {workspace: $workspace}) 
@@ -1290,7 +1365,7 @@ async def _background_synthesis(
             ORDER BY count DESC
         """
         communities = run_cypher(query, {"workspace": workspace})
-        
+
         if not communities:
             # Fallback to global synthesis if no communities found
             communities = [{"cid": None, "count": 0}]
@@ -1298,18 +1373,22 @@ async def _background_synthesis(
         # Load manifest for timeout
         manifest = load_manifest(workspace)
         llm_timeout = manifest.llm_timeout
-        
+
         total_analogies = 0
         all_analogies = []
-        
+
         processed = 0
         for comm in communities:
             cid = comm["cid"]
             count = comm["count"]
-            
+
             processed += 1
             progress = int((processed / len(communities)) * 95)
-            task_manager.update_task(task_id, progress=progress, message=f"Analyzing community {processed}/{len(communities)} (id={cid})")
+            task_manager.update_task(
+                task_id,
+                progress=progress,
+                message=f"Analyzing community {processed}/{len(communities)} (id={cid})",
+            )
 
             # 2. Extract local subgraph summary
             # We exclude SOURCED_FROM and focus on RELATES_TO for conceptual synthesis
@@ -1340,7 +1419,7 @@ async def _background_synthesis(
                 task_id,
                 intent=f"Finding isomorphisms in community {cid}",
                 observation=f"Extracted {len(lines)} relationships",
-                plan="LLM pattern match"
+                plan="LLM pattern match",
             )
 
             analogies = await find_synthesis(
@@ -1349,9 +1428,8 @@ async def _background_synthesis(
                 provider=provider,
                 model=model,
                 timeout=llm_timeout,
-                run_id=task_id
+                run_id=task_id,
             )
-
 
             # 4. Store discovered analogies
             for a in analogies:
@@ -1361,15 +1439,22 @@ async def _background_synthesis(
                         concept_b=a["concept_b"],
                         description=a.get("description", ""),
                         pattern=a.get("pattern", ""),
-                        workspace=workspace
+                        workspace=workspace,
                     )
                     total_analogies += 1
                     all_analogies.append(a)
                 except Exception:
                     pass
 
-        task_manager.update_task(task_id, status="completed", progress=100, message=f"Found {total_analogies} analogies across {len(communities)} communities")
-        track_workflow_complete(task_id, "synthesis", workspace, ["pattern_match", "graph_update"], 0)
+        task_manager.update_task(
+            task_id,
+            status="completed",
+            progress=100,
+            message=f"Found {total_analogies} analogies across {len(communities)} communities",
+        )
+        track_workflow_complete(
+            task_id, "synthesis", workspace, ["pattern_match", "graph_update"], 0
+        )
 
     except Exception as e:
         logger.error("Background synthesis failed: %s", e, exc_info=True)
@@ -1404,14 +1489,13 @@ async def cross_domain(request: CrossDomainRequest):
             workspace=request.workspace,
             provider=request.provider,
             model=request.model,
-            timeout=llm_timeout
+            timeout=llm_timeout,
         )
-
 
         return {
             "concept": request.concept,
             "target_domain": request.target_domain,
-            "result": result
+            "result": result,
         }
 
     except Exception as e:
@@ -1422,21 +1506,14 @@ async def cross_domain(request: CrossDomainRequest):
 # EMBEDDING & CLUSTERING
 # =============================================================================
 
+
 @router.post("/graph/embed")
 async def embed_concept(request: EmbedConceptRequest):
     """Compute and store an embedding for a concept."""
     try:
-        emb = await get_embedding(
-            request.concept,
-            provider=request.provider,
-            model=request.model
-        )
+        emb = await get_embedding(request.concept, provider=request.provider, model=request.model)
         set_concept_embedding(request.concept, emb, request.workspace)
-        return {
-            "status": "embedded",
-            "concept": request.concept,
-            "dimensions": len(emb)
-        }
+        return {"status": "embedded", "concept": request.concept, "dimensions": len(emb)}
     except Exception as e:
         raise HTTPException(500, f"Embedding failed: {str(e)}")
 
@@ -1446,9 +1523,7 @@ async def semantic_search(request: VectorSearchRequest):
     """Find concepts similar to a query by vector similarity."""
     try:
         query_emb = await get_embedding(
-            request.query,
-            provider=request.provider,
-            model=request.model
+            request.query, provider=request.provider, model=request.model
         )
         results = vector_search(query_emb, request.workspace, request.top_k)
         return {"query": request.query, "results": results}
@@ -1464,22 +1539,24 @@ async def find_clusters(request: ClusterRequest):
         if not concepts:
             # Use all concepts with embeddings
             from ..core.graph_db import get_driver
+
             driver = get_driver()
             with driver.session() as session:
-                result = session.run("""
+                result = session.run(
+                    """
                     MATCH (c:Concept {workspace: $workspace})
                     WHERE c.embedding IS NOT NULL
                     RETURN c.name AS name
-                """, workspace=request.workspace)
+                """,
+                    workspace=request.workspace,
+                )
                 concepts = [r["name"] for r in result]
 
         if len(concepts) < 2:
             return {"clusters": [], "message": "Need at least 2 embedded concepts."}
 
         clusters = await compute_cluster_similarities(
-            concepts=concepts,
-            workspace=request.workspace,
-            threshold=request.threshold
+            concepts=concepts, workspace=request.workspace, threshold=request.threshold
         )
 
         return {"clusters": clusters, "count": len(clusters)}

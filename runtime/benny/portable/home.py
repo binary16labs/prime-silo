@@ -6,6 +6,7 @@ of the system resolves paths through a ``BennyHome`` instance.
 
 See PBR-001 §4.1 for the declared shape.
 """
+
 from __future__ import annotations
 
 import dataclasses
@@ -161,7 +162,7 @@ _LAUNCHERS: tuple[tuple[str, str, bool], ...] = (
     ("benny-llm.cmd", _WINDOWS_LLM_LAUNCHER, False),
     ("benny-neo4j", _POSIX_NEO4J_LAUNCHER, True),
     ("benny-neo4j.cmd", _WINDOWS_NEO4J_LAUNCHER, False),
-    ("benny-mcp", _POSIX_LAUNCHER, True),   # mcp variant resolved in _seed_launchers
+    ("benny-mcp", _POSIX_LAUNCHER, True),  # mcp variant resolved in _seed_launchers
     ("benny-mcp.cmd", _WINDOWS_LAUNCHER, False),
 )
 

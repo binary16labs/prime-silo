@@ -15,6 +15,7 @@ HMAC is not full cryptographic provenance (no key rotation, no chain of
 custody) — it's a tamper-evident marker that proves a holder of the secret
 produced this payload. Real signing (ed25519 + registry) lands in Phase 6.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -60,9 +61,7 @@ def compute_content_hash(manifest: "SwarmManifest") -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
-def sign_manifest(
-    manifest: "SwarmManifest", *, hmac_key: bytes | None = None
-) -> "SwarmManifest":
+def sign_manifest(manifest: "SwarmManifest", *, hmac_key: bytes | None = None) -> "SwarmManifest":
     """Return a new manifest with ``content_hash`` and ``signature`` set.
 
     The original is left untouched — callers store the signed copy.

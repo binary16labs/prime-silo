@@ -4,10 +4,12 @@ Prevents context overload by providing layered, summarized access to the code gr
 """
 
 import logging
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
 from ..core.graph_db import run_cypher
 
 logger = logging.getLogger(__name__)
+
 
 class GraphNavigator:
     """Service for hierarchical exploration of the Neural Graph."""
@@ -24,7 +26,7 @@ class GraphNavigator:
         RETURN n.type as type, count(n) as count
         """
         results = run_cypher(query, params={"snap": self.snapshot_id}, workspace=self.workspace)
-        return {r['type']: r['count'] for r in results}
+        return {r["type"]: r["count"] for r in results}
 
     def get_workspace_blueprint(self) -> List[Dict[str, Any]]:
         """Layer 0: Returns only File and Directory-level structure."""
@@ -44,12 +46,10 @@ class GraphNavigator:
         MATCH (f)-[:CODE_REL {type: 'DEFINES'}]->(s:CodeEntity)
         RETURN s.id as id, s.name as name, s.type as type, s.file_path as path
         """
-        symbols = run_cypher(query, params={"path": file_path, "snap": self.snapshot_id}, workspace=self.workspace)
-        return {
-            "file": file_path,
-            "symbols": symbols,
-            "count": len(symbols)
-        }
+        symbols = run_cypher(
+            query, params={"path": file_path, "snap": self.snapshot_id}, workspace=self.workspace
+        )
+        return {"file": file_path, "symbols": symbols, "count": len(symbols)}
 
     def peek_symbol(self, symbol_id: str) -> Dict[str, Any]:
         """Layer 2: Returns the neighborhood of a symbol (references, definition details)."""
@@ -68,12 +68,12 @@ class GraphNavigator:
         """Discovery: Returns the current labels and relationship types in the Nexus."""
         node_query = "MATCH (n) RETURN DISTINCT labels(n) as labels"
         rel_query = "MATCH ()-[r]->() RETURN DISTINCT type(r) as types"
-        
+
         nodes = run_cypher(node_query)
         rels = run_cypher(rel_query)
-        
+
         return {
-            "node_labels": [n['labels'] for n in nodes],
-            "relationship_types": [r['types'] for r in rels],
-            "recommended_flow": "0: Blueprint -> 1: Explore File -> 2: Peek Symbol"
+            "node_labels": [n["labels"] for n in nodes],
+            "relationship_types": [r["types"] for r in rels],
+            "recommended_flow": "0: Blueprint -> 1: Explore File -> 2: Peek Symbol",
         }

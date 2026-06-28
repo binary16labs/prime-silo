@@ -32,7 +32,6 @@ from typing import Any, Dict, List, Optional
 
 from ..persistence import run_store
 
-
 # ---------------------------------------------------------------------------
 # PlaylistEntry — lightweight run view
 # ---------------------------------------------------------------------------
@@ -94,14 +93,8 @@ def get_playlist(
         # Pull model from the manifest snapshot config section
         snapshot: Dict[str, Any] = rec.manifest_snapshot or {}
         cfg = snapshot.get("config", {})
-        model: Optional[str] = (
-            cfg.get("model") if isinstance(cfg, dict) else None
-        )
-        status_str = (
-            rec.status.value
-            if hasattr(rec.status, "value")
-            else str(rec.status)
-        )
+        model: Optional[str] = cfg.get("model") if isinstance(cfg, dict) else None
+        status_str = rec.status.value if hasattr(rec.status, "value") else str(rec.status)
         entries.append(
             PlaylistEntry(
                 run_id=rec.run_id,

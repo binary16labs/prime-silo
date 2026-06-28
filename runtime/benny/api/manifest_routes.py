@@ -153,9 +153,7 @@ async def _run_and_record(manifest: SwarmManifest, run_id: str) -> None:
 
 
 @router.post("/{manifest_id}/run", response_model=RunResponse)
-async def run_manifest(
-    manifest_id: str, background_tasks: BackgroundTasks
-) -> RunResponse:
+async def run_manifest(manifest_id: str, background_tasks: BackgroundTasks) -> RunResponse:
     manifest = run_store.get_manifest(manifest_id)
     if not manifest:
         raise HTTPException(404, f"Manifest not found: {manifest_id}")
@@ -207,16 +205,12 @@ async def run_inline_manifest(
 
 
 @router.get("/runs", response_model=List[RunRecord])
-async def list_runs(
-    workspace: Optional[str] = None, limit: int = 100
-) -> List[RunRecord]:
+async def list_runs(workspace: Optional[str] = None, limit: int = 100) -> List[RunRecord]:
     return run_store.list_runs(workspace=workspace, limit=limit)
 
 
 @router.get("/{manifest_id}/runs", response_model=List[RunRecord])
-async def list_runs_for_manifest(
-    manifest_id: str, limit: int = 50
-) -> List[RunRecord]:
+async def list_runs_for_manifest(manifest_id: str, limit: int = 50) -> List[RunRecord]:
     return run_store.list_runs(manifest_id=manifest_id, limit=limit)
 
 

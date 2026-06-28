@@ -38,6 +38,7 @@ router = APIRouter()
 # REQUEST / RESPONSE MODELS
 # =============================================================================
 
+
 class EnrichEntity(BaseModel):
     name: str
     type: str = "any"
@@ -58,6 +59,7 @@ class SourcePatchRequest(BaseModel):
 # =============================================================================
 # HELPERS
 # =============================================================================
+
 
 def _sources_dir(workspace: str) -> Path:
     return get_workspace_path(workspace) / "live" / "sources"
@@ -90,6 +92,7 @@ def _save_source_manifest(workspace: str, source_id: str, data: Dict[str, Any]) 
 # ENRICHMENT
 # =============================================================================
 
+
 @router.post("/live/enrich")
 async def trigger_enrichment(request: EnrichRequest, background_tasks: BackgroundTasks):
     """
@@ -97,6 +100,7 @@ async def trigger_enrichment(request: EnrichRequest, background_tasks: Backgroun
     Returns run_id immediately; stream progress via /api/live/enrich/events/{run_id}.
     """
     import uuid
+
     run_id = str(uuid.uuid4())
     entities = [e.model_dump() for e in request.entities]
 
@@ -152,6 +156,7 @@ async def enrichment_events(run_id: str):
 # SOURCE MANIFEST MANAGEMENT
 # =============================================================================
 
+
 @router.get("/live/sources/{workspace}")
 async def list_sources(workspace: str):
     """List all source manifests for a workspace with live status."""
@@ -187,17 +192,19 @@ async def list_sources(workspace: str):
             cache_d = _cache_dir(workspace, source_id)
             cache_entries = len(list(cache_d.glob("*.json"))) if cache_d.exists() else 0
 
-            sources.append({
-                "source_id": source_id,
-                "name": data.get("name", source_id),
-                "enabled": data.get("enabled", False),
-                "confidence_default": data.get("confidence_default", 0.7),
-                "entity_types": data.get("entity_types", []),
-                "auth_type": (data.get("auth") or {}).get("type", "none"),
-                "last_run": last_run,
-                "total_triples_enriched": total_triples,
-                "cache_entries": cache_entries,
-            })
+            sources.append(
+                {
+                    "source_id": source_id,
+                    "name": data.get("name", source_id),
+                    "enabled": data.get("enabled", False),
+                    "confidence_default": data.get("confidence_default", 0.7),
+                    "entity_types": data.get("entity_types", []),
+                    "auth_type": (data.get("auth") or {}).get("type", "none"),
+                    "last_run": last_run,
+                    "total_triples_enriched": total_triples,
+                    "cache_entries": cache_entries,
+                }
+            )
         except Exception as e:
             logger.warning(f"Could not parse {yaml_file}: {e}")
 
@@ -238,6 +245,7 @@ async def update_source(workspace: str, source_id: str, patch: SourcePatchReques
 # =============================================================================
 # RUN HISTORY & LINEAGE
 # =============================================================================
+
 
 @router.get("/live/runs/{workspace}")
 async def list_runs(workspace: str, limit: int = Query(default=20, le=100)):
@@ -281,6 +289,7 @@ async def get_run_triples(workspace: str, run_id: str):
 # CACHE MANAGEMENT
 # =============================================================================
 
+
 @router.get("/live/cache/{workspace}/{source_id}")
 async def cache_stats(workspace: str, source_id: str):
     """Return cache entry count and approximate size for a source."""
@@ -302,6 +311,7 @@ async def cache_stats(workspace: str, source_id: str):
 async def bust_cache(workspace: str, source_id: str):
     """Delete all cached responses for a source."""
     import shutil
+
     cache_d = _cache_dir(workspace, source_id)
     if cache_d.exists():
         shutil.rmtree(cache_d)
@@ -311,6 +321,7 @@ async def bust_cache(workspace: str, source_id: str):
 # =============================================================================
 # CONNECTOR REGISTRY
 # =============================================================================
+
 
 @router.get("/live/connectors")
 async def get_connectors():

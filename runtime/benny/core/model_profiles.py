@@ -199,7 +199,9 @@ def resolved_capabilities(workspace: Optional[str] = None) -> Dict[str, Dict[str
     return out
 
 
-def set_workspace_model_capability(workspace: str, model: str, thinking: str, profile: str = "default") -> Path:
+def set_workspace_model_capability(
+    workspace: str, model: str, thinking: str, profile: str = "default"
+) -> Path:
     """Persist an on-screen capability edit to the per-workspace override FILE
     (<workspace>/.benny/model_profiles.json). thinking ∈ capable|fragile|none."""
     if thinking not in ("capable", "fragile", "none"):
@@ -209,7 +211,9 @@ def set_workspace_model_capability(workspace: str, model: str, thinking: str, pr
     path = get_workspace_path(workspace) / ".benny" / "model_profiles.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     current = _load_json(path)
-    current.setdefault("profiles", {}).setdefault(profile, {}).setdefault("models", {})[model] = {"thinking": thinking}
+    current.setdefault("profiles", {}).setdefault(profile, {}).setdefault("models", {})[model] = {
+        "thinking": thinking
+    }
     path.write_text(json.dumps(current, indent=2, ensure_ascii=False), encoding="utf-8")
     return path
 
@@ -229,7 +233,9 @@ def should_suppress_thinking(
       3. profile default: 'capable' model on a structured/synthesis role → suppress.
       4. otherwise → don't.
     """
-    provider = (actual_model or model or "").split("/")[0] if "/" in (actual_model or model or "") else ""
+    provider = (
+        (actual_model or model or "").split("/")[0] if "/" in (actual_model or model or "") else ""
+    )
     cap = get_thinking_capability(actual_model or model, provider=provider, workspace=workspace)
 
     if cap == "fragile":

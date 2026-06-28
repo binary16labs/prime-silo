@@ -2,18 +2,20 @@
 Multi-Model Orchestration - LiteLLM integration with local/cloud providers
 """
 
-import os
-import httpx
-from typing import Optional, Dict, Any, List
-from litellm import completion
-import logging
-from .litert_engine import LiteRTEngine
 import datetime
-from .event_bus import event_bus
 import json
+import logging
+import os
+from typing import Any, Dict, List, Optional
+
+import httpx
+from litellm import completion
+
+from .event_bus import event_bus
+from .litert_engine import LiteRTEngine
 
 # Local Executor imports (added for direct access)
-from .local_executor import resolve_executor, _as_text
+from .local_executor import _as_text, resolve_executor
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +31,7 @@ LOCAL_PROVIDERS = {
         "base_url": "http://127.0.0.1:13305/api/v1",
         "docs": "https://github.com/skybluecycology/lemonade",
         "startup_cmd": "LemonadeServer.exe serve --port 13305",
-        "check_url": "http://127.0.0.1:13305/api/v1/models"
+        "check_url": "http://127.0.0.1:13305/api/v1/models",
     },
     "fastflowlm": {
         "port": 52625,
@@ -40,7 +42,7 @@ LOCAL_PROVIDERS = {
         "port": 1234,
         "base_url": "http://localhost:1234/v1",
         "docs": "https://lmstudio.ai",
-    }
+    },
 }
 
 # ---------------------------------------------------------------------------
@@ -58,52 +60,48 @@ CLOUD_PROVIDERS = {
 
 MODEL_REGISTRY = {
     # Cloud providers
-    "openai/gpt-4o": {
-        "provider": "openai",
-        "model": "gpt-4o",
-        "cost_per_1k": 0.03
-    },
+    "openai/gpt-4o": {"provider": "openai", "model": "gpt-4o", "cost_per_1k": 0.03},
     "anthropic/claude-3-sonnet": {
         "provider": "anthropic",
         "model": "claude-3-sonnet-20240229",
-        "cost_per_1k": 0.015
+        "cost_per_1k": 0.015,
     },
     # Local models for privacy and cost savings
     "local_lemonade": {
         "model": "qwen3.5-9b-FLM",
         "provider": "lemonade",
         "cost_per_1k": 0.0,
-        "use_for": ["offline", "sensitive_data", "testing", "reasoning", "content_generation"]
+        "use_for": ["offline", "sensitive_data", "testing", "reasoning", "content_generation"],
     },
     "local_ollama": {
         "model": "ollama/llama3",
         "provider": "ollama",
         "cost_per_1k": 0.0,
-        "use_for": ["offline", "sensitive_data"]
+        "use_for": ["offline", "sensitive_data"],
     },
     "local_fastflow": {
         "model": "openai/deepseek-r1:8b",
         "provider": "fastflowlm",
         "cost_per_1k": 0.0,
-        "use_for": ["intel_npu", "offline", "testing", "reasoning"]
+        "use_for": ["intel_npu", "offline", "testing", "reasoning"],
     },
     "local_lmstudio": {
-        "model": "openai/Gemma-4-E4B-it-GGUF", # Optimized ID for Lemonade-compatible requests
+        "model": "openai/Gemma-4-E4B-it-GGUF",  # Optimized ID for Lemonade-compatible requests
         "provider": "lmstudio",
         "cost_per_1k": 0.0,
-        "use_for": ["offline", "sensitive_data", "testing", "reasoning"]
+        "use_for": ["offline", "sensitive_data", "testing", "reasoning"],
     },
     "local_litert": {
         "model": "litert/gemma-4-E4B-it.litertlm",
         "provider": "litert",
         "cost_per_1k": 0.0,
-        "use_for": ["on-device", "offline", "npu-accelerated", "testing", "gemma-4"]
+        "use_for": ["on-device", "offline", "npu-accelerated", "testing", "gemma-4"],
     },
     "voice_speed": {
         "model": "openai/qwen3-tk-4b-FLM",
         "provider": "lemonade",
         "cost_per_1k": 0.0,
-        "use_for": ["voice", "speed", "high_speed", "low_latency"]
+        "use_for": ["voice", "speed", "high_speed", "low_latency"],
     },
     # ---------------------------------------------------------------------------
     # NVIDIA NIM — OpenAI-compatible cloud inference
@@ -114,31 +112,31 @@ MODEL_REGISTRY = {
         "provider": "nvidia_nim",
         "model": "deepseek-ai/deepseek-r1",
         "cost_per_1k": 0.004,
-        "use_for": ["reasoning", "cloud", "nvidia", "thinking"]
+        "use_for": ["reasoning", "cloud", "nvidia", "thinking"],
     },
     "nvidia/deepseek-ai/deepseek-v3": {
         "provider": "nvidia_nim",
         "model": "deepseek-ai/deepseek-v3",
         "cost_per_1k": 0.0004,
-        "use_for": ["general", "cloud", "nvidia"]
+        "use_for": ["general", "cloud", "nvidia"],
     },
     "nvidia/meta/llama-3.3-70b-instruct": {
         "provider": "nvidia_nim",
         "model": "meta/llama-3.3-70b-instruct",
         "cost_per_1k": 0.00077,
-        "use_for": ["general", "cloud", "nvidia", "instruction"]
+        "use_for": ["general", "cloud", "nvidia", "instruction"],
     },
     "nvidia/mistralai/mistral-large-2-instruct": {
         "provider": "nvidia_nim",
         "model": "mistralai/mistral-large-2-instruct",
         "cost_per_1k": 0.002,
-        "use_for": ["general", "cloud", "nvidia"]
+        "use_for": ["general", "cloud", "nvidia"],
     },
     "nvidia/google/gemma-3-27b-it": {
         "provider": "nvidia_nim",
         "model": "google/gemma-3-27b-it",
         "cost_per_1k": 0.0002,
-        "use_for": ["general", "cloud", "nvidia"]
+        "use_for": ["general", "cloud", "nvidia"],
     },
     # AOS-001 OQ-1 (2026-04-26): default model for all AOS personas.
     # Exact Lemonade model name confirmed at Phase 0 wire-up — adjust the
@@ -148,7 +146,7 @@ MODEL_REGISTRY = {
         "model": "openai/Qwen3-8B-Instruct-FLM",
         "provider": "lemonade",
         "cost_per_1k": 0.0,
-        "use_for": ["sdlc", "offline", "planner", "architect", "aos_default"]
+        "use_for": ["sdlc", "offline", "planner", "architect", "aos_default"],
     },
     # VIS-001 / ADR-003: local vision-language model for the `vision` role
     # (figure/diagram/chart/table description). OQ-1 (2026-06-28) confirmed
@@ -158,8 +156,8 @@ MODEL_REGISTRY = {
         "model": "qwen3vl-it-4b-FLM",
         "provider": "lemonade",
         "cost_per_1k": 0.0,
-        "use_for": ["vision", "offline", "image", "diagram", "chart", "ocr"]
-    }
+        "use_for": ["vision", "offline", "image", "diagram", "chart", "ocr"],
+    },
 }
 
 
@@ -199,9 +197,11 @@ def _offline_enabled() -> bool:
 class OfflineRefusal(Exception):
     """Raised when a non-local model is requested while offline mode is active."""
 
+
 # =============================================================================
 # MODEL RESOLUTION
 # =============================================================================
+
 
 def get_model_config(model_id: str) -> Dict[str, Any]:
     """Resolve a model ID to a provider and configuration."""
@@ -210,20 +210,18 @@ def get_model_config(model_id: str) -> Dict[str, Any]:
         # Enrich cloud-provider registry entries with base_url / api_key_env
         provider = config.get("provider", "")
         if provider in CLOUD_PROVIDERS and "base_url" not in config:
-            config.update({
-                "base_url": CLOUD_PROVIDERS[provider]["base_url"],
-                "api_key_env": CLOUD_PROVIDERS[provider]["api_key_env"],
-            })
+            config.update(
+                {
+                    "base_url": CLOUD_PROVIDERS[provider]["base_url"],
+                    "api_key_env": CLOUD_PROVIDERS[provider]["api_key_env"],
+                }
+            )
         return config
-    
+
     # Handle direct provider/model strings
     if "/" in model_id:
         provider, model = model_id.split("/", 1)
-        config = {
-            "provider": provider,
-            "model": model,
-            "cost_per_1k": 0.0
-        }
+        config = {"provider": provider, "model": model, "cost_per_1k": 0.0}
         # Inject base_url for local providers if not in registry
         if provider in LOCAL_PROVIDERS:
             config["base_url"] = LOCAL_PROVIDERS[provider]["base_url"]
@@ -231,18 +229,17 @@ def get_model_config(model_id: str) -> Dict[str, Any]:
         elif provider == "nvidia":
             nim = CLOUD_PROVIDERS["nvidia_nim"]
             config["provider"] = "nvidia_nim"
-            config["model"] = model          # full slug e.g. "deepseek-ai/deepseek-r1"
+            config["model"] = model  # full slug e.g. "deepseek-ai/deepseek-r1"
             config["base_url"] = nim["base_url"]
             config["api_key_env"] = nim["api_key_env"]
         return config
-    
-    return {
-        "provider": "openai",
-        "model": model_id,
-        "cost_per_1k": 0.0
-    }
 
-async def get_active_model(workspace_id: str = "default", role: str = "chat", run_id: Optional[str] = None) -> str:
+    return {"provider": "openai", "model": model_id, "cost_per_1k": 0.0}
+
+
+async def get_active_model(
+    workspace_id: str = "default", role: str = "chat", run_id: Optional[str] = None
+) -> str:
     """Determine which model is currently 'active' for a role in a workspace."""
     # Priority -1: Global environment override
     env_default = os.environ.get("BENNY_DEFAULT_MODEL")
@@ -253,6 +250,7 @@ async def get_active_model(workspace_id: str = "default", role: str = "chat", ru
     if run_id:
         try:
             from ..persistence.run_store import get_run
+
             record = get_run(run_id)
             if record and record.manifest_snapshot:
                 # SwarmManifest.config.model is the primary override
@@ -268,18 +266,19 @@ async def get_active_model(workspace_id: str = "default", role: str = "chat", ru
 
     try:
         from .workspace import load_manifest
+
         manifest = load_manifest(workspace_id)
-        
+
         # 1. Check role-specific mapping
         if hasattr(manifest, "model_roles") and role in manifest.model_roles:
             return manifest.model_roles[role]
-            
+
         # 2. Check workspace default
         if hasattr(manifest, "default_model") and manifest.default_model:
             return manifest.default_model
     except Exception as e:
         logger.debug(f"Manifest load failed for {workspace_id}: {e}")
-    
+
     # 3. Auto-detect local providers (Heartbeat probe)
     # Increased timeout (5.0s) to handle busy local NPUs/CPUs (PBR-001 Phase 3)
     for provider_name, config in LOCAL_PROVIDERS.items():
@@ -311,9 +310,11 @@ async def get_active_model(workspace_id: str = "default", role: str = "chat", ru
         return "lemonade/default"
     return "openai/gpt-4o"
 
+
 # =============================================================================
 # LOGGING & AUDIT
 # =============================================================================
+
 
 def log_llm_call(data: Dict[str, Any]):
     """Log LLM call metadata to a JSONL file for audit and fine-tuning."""
@@ -322,18 +323,22 @@ def log_llm_call(data: Dict[str, Any]):
     with open(log_file, "a", encoding="utf-8") as f:
         f.write(json.dumps(data) + "\n")
 
+
 # =============================================================================
 # CORE DISPATCHER
 # =============================================================================
 
+
 async def _await_if_needed(obj):
-    if hasattr(obj, '__await__'):
+    if hasattr(obj, "__await__"):
         return await obj
     return obj
+
 
 def _run_completion(**kwargs):
     """Sync wrapper for litellm.completion to allow easy patching."""
     return completion(**kwargs)
+
 
 def _thinking_disabled(model: str, actual_model: str, workspace_id: str) -> bool:
     """True if the operator explicitly toggled this model to 'off' in the Agents
@@ -349,6 +354,7 @@ def _operator_thinking_override(model: str, actual_model: str, workspace_id: str
     "Qwen3-8B-Hybrid" matches a prefixed call "lemonade/Qwen3-8B-Hybrid"."""
     try:
         from .workspace import load_manifest
+
         prefs = getattr(load_manifest(workspace_id), "model_thinking", {}) or {}
     except Exception:
         return None
@@ -381,7 +387,7 @@ async def call_model(
     Handles LiteRT (local), LiteLLM (cloud/local), and system prompt augmentation.
     """
     print(f"DEBUG: call_model(model='{model}', run_id='{run_id}')")
-    
+
     # 0. RESOLVE REGISTRY KEY (Ensures LiteLLM doesn't see 'local_lemonade')
     actual_model = model
     if model in MODEL_REGISTRY:
@@ -389,22 +395,15 @@ async def call_model(
         actual_model = config.get("model", model)
         provider = config.get("provider", "").lower()
         if "/" not in actual_model and provider:
-             actual_model = f"{provider}/{actual_model}"
+            actual_model = f"{provider}/{actual_model}"
         print(f"DEBUG: Resolved registry key '{model}' to '{actual_model}'")
-    
+
     start_ts = datetime.datetime.now()
-    log_data = {
-        "ts": start_ts.isoformat(),
-        "run_id": run_id,
-        "model": model,
-        "ok": False
-    }
+    log_data = {"ts": start_ts.isoformat(), "run_id": run_id, "model": model, "ok": False}
 
     # 1. OFFLINE KILL-SWITCH (PBR-001 Phase 3)
     if _offline_enabled() and not is_local_model(model):
-        raise OfflineRefusal(
-            f"BENNY_OFFLINE is set; refusing to call non-local model: {model}"
-        )
+        raise OfflineRefusal(f"BENNY_OFFLINE is set; refusing to call non-local model: {model}")
 
     # 2. SYSTEM PROMPT AUGMENTATION
     # Prefer an explicitly-passed workspace_id (e.g. from the synthesis engine,
@@ -415,12 +414,14 @@ async def call_model(
         for msg in messages:
             if msg.get("role") == "system" and "workspace:" in msg.get("content", ""):
                 import re
+
                 match = re.search(r"workspace:\s*(\S+)", msg["content"])
                 if match:
                     workspace_id = match.group(1)
                     break
-    
+
     from ..governance.operating_manual import build_system_prompt_augmentation
+
     augmentation = build_system_prompt_augmentation(workspace_id, tools=authorized_tools)
     if augmentation:
         system_found = False
@@ -443,8 +444,11 @@ async def call_model(
     # and LiteLLM paths both inherit it.
     think_extra = None
     from .model_profiles import should_suppress_thinking
+
     _override = _operator_thinking_override(model, actual_model, workspace_id)
-    if should_suppress_thinking(model, actual_model, workspace_id, role, operator_override=_override):
+    if should_suppress_thinking(
+        model, actual_model, workspace_id, role, operator_override=_override
+    ):
         for i in range(len(messages) - 1, -1, -1):
             if messages[i].get("role") == "user":
                 content = messages[i].get("content", "")
@@ -472,6 +476,7 @@ async def call_model(
         else:
             try:
                 from .workspace import load_manifest
+
                 manifest = load_manifest(workspace_id)
                 actual_timeout = getattr(manifest, "llm_timeout", 300.0)
             except Exception:
@@ -485,7 +490,9 @@ async def call_model(
             response = await engine.generate(model_id, messages, temperature, max_tokens)
             log_data["ok"] = True
             log_data["provider"] = "litert"
-            log_data["duration_ms"] = int((datetime.datetime.now() - start_ts).total_seconds() * 1000)
+            log_data["duration_ms"] = int(
+                (datetime.datetime.now() - start_ts).total_seconds() * 1000
+            )
             log_llm_call(log_data)
             return response
         except Exception as e:
@@ -500,11 +507,11 @@ async def call_model(
         config = get_model_config(model)
         provider = config.get("provider", "").lower()
         model_id = config.get("model", "")
-        
+
         lookup_str = model
         if "/" not in model and provider:
             lookup_str = f"{provider}/{model_id}"
-            
+
         executor = resolve_executor(lookup_str)
         print(f"DEBUG: is_local_model=True, lookup='{lookup_str}', executor={executor}")
         if executor:
@@ -515,7 +522,7 @@ async def call_model(
                     system_msg = msg.get("content")
                 elif msg.get("role") == "user":
                     user_msg = msg.get("content", "")
-            
+
             try:
                 content = await executor.generate(
                     prompt=user_msg,
@@ -526,21 +533,28 @@ async def call_model(
                     timeout=actual_timeout or 300.0,
                     extra_body=think_extra,
                 )
-                
+
                 log_data["ok"] = True
                 log_data["provider"] = f"local/{executor.provider_name}"
-                log_data["duration_ms"] = int((datetime.datetime.now() - start_ts).total_seconds() * 1000)
+                log_data["duration_ms"] = int(
+                    (datetime.datetime.now() - start_ts).total_seconds() * 1000
+                )
                 try:
                     # user_msg may be multimodal list content (vision) — flatten
                     # to its text parts before token counting (VIS-001).
-                    log_data["tokens_in"] = executor.count_tokens(_as_text(user_msg) + (system_msg or ""))
+                    log_data["tokens_in"] = executor.count_tokens(
+                        _as_text(user_msg) + (system_msg or "")
+                    )
                     log_data["tokens_out"] = executor.count_tokens(content)
-                except Exception: pass
+                except Exception:
+                    pass
                 log_llm_call(log_data)
                 return content
             except Exception as e:
                 log_data["error"] = str(e)
-                log_data["duration_ms"] = int((datetime.datetime.now() - start_ts).total_seconds() * 1000)
+                log_data["duration_ms"] = int(
+                    (datetime.datetime.now() - start_ts).total_seconds() * 1000
+                )
                 log_llm_call(log_data)
                 raise
 
@@ -555,13 +569,16 @@ async def call_model(
         # machines instead of serializing on one model server. No pool → unchanged.
         if config.get("base_url") and provider in LOCAL_PROVIDERS:
             from .endpoints import resolve_endpoint
+
             config["base_url"] = resolve_endpoint(provider, config["base_url"])
 
         # Ensure we use the model ID without the provider prefix for the actual call
         litellm_model = actual_model
-        if "/" in litellm_model and (provider in ["lemonade", "ollama", "fastflowlm", "lmstudio"] or "base_url" in config):
+        if "/" in litellm_model and (
+            provider in ["lemonade", "ollama", "fastflowlm", "lmstudio"] or "base_url" in config
+        ):
             litellm_model = litellm_model.split("/")[-1]
-        
+
         # Normalize local providers for LiteLLM if they somehow leaked here
         local_mapping = ["lemonade", "fastflowlm", "lmstudio", "ollama"]
         if provider in local_mapping or "base_url" in config:
@@ -577,41 +594,39 @@ async def call_model(
             "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
-            "fallbacks": fallbacks or []
+            "fallbacks": fallbacks or [],
         }
         if think_extra:
             kwargs["extra_body"] = think_extra
 
         if "base_url" in config and config["base_url"]:
             kwargs["api_base"] = config["base_url"]
-            kwargs["base_url"] = config["base_url"] # Double-bagging for OpenAI v1
-            kwargs["custom_llm_provider"] = "openai" # Force OpenAI-compatible mode
-        
+            kwargs["base_url"] = config["base_url"]  # Double-bagging for OpenAI v1
+            kwargs["custom_llm_provider"] = "openai"  # Force OpenAI-compatible mode
+
         # 6a. TOOL RESOLUTION
         if authorized_tools:
             from .skill_registry import registry
+
             tool_schemas = registry.get_tool_schemas(authorized_tools, workspace_id)
             if tool_schemas:
                 kwargs["tools"] = tool_schemas
-        
+
         # Inject API key — cloud providers read from env; local providers use sentinel.
         if provider == "nvidia_nim":
             # Key comes from env — never hardcoded. Warn clearly if missing.
-            nvidia_key = os.environ.get(
-                config.get("api_key_env", "NVIDIA_API_KEY"), ""
-            )
+            nvidia_key = os.environ.get(config.get("api_key_env", "NVIDIA_API_KEY"), "")
             if not nvidia_key:
                 logger.warning(
                     "NVIDIA_API_KEY is not set. NVIDIA NIM calls will be rejected. "
                     "Set it with: [Environment]::SetEnvironmentVariable('NVIDIA_API_KEY','nvapi-...','User')"
                 )
             kwargs["api_key"] = nvidia_key or "not-set"
-            kwargs["custom_llm_provider"] = "openai"   # NIM is OpenAI-compatible
+            kwargs["custom_llm_provider"] = "openai"  # NIM is OpenAI-compatible
         elif "api_key" in config and config["api_key"]:
             kwargs["api_key"] = config["api_key"]
         elif provider in local_mapping or "api_base" in kwargs:
             kwargs["api_key"] = "not-needed"
-
 
         if actual_timeout:
             kwargs["timeout"] = actual_timeout
@@ -620,94 +635,129 @@ async def call_model(
         max_steps = 5
         current_step = 0
         final_content = ""
-        
+
         while current_step < max_steps:
             current_step += 1
-            print(f"DEBUG: Calling model={model} (step {current_step}) via LiteLLM as {litellm_model} @ {kwargs.get('api_base')}")
-            
+            print(
+                f"DEBUG: Calling model={model} (step {current_step}) via LiteLLM as {litellm_model} @ {kwargs.get('api_base')}"
+            )
+
             response = await _await_if_needed(_run_completion(**kwargs))
 
             if isinstance(response, str):
                 final_content = response
                 break
-            
+
             # Extract message
             if hasattr(response, "choices") and len(response.choices) > 0:
                 message = response.choices[0].message
-            elif isinstance(response, dict) and "choices" in response and len(response["choices"]) > 0:
+            elif (
+                isinstance(response, dict)
+                and "choices" in response
+                and len(response["choices"]) > 0
+            ):
                 message = response["choices"][0].get("message")
             else:
                 final_content = str(response)
                 break
-                
+
             messages.append(message)
-            
+
             # Handle Tool Calls
-            tool_calls = getattr(message, "tool_calls", None) or (message.get("tool_calls") if isinstance(message, dict) else None)
+            tool_calls = getattr(message, "tool_calls", None) or (
+                message.get("tool_calls") if isinstance(message, dict) else None
+            )
             if tool_calls:
                 from .skill_registry import registry
+
                 for tc in tool_calls:
-                    func_name = tc.function.name if hasattr(tc, "function") else tc.get("function", {}).get("name")
+                    func_name = (
+                        tc.function.name
+                        if hasattr(tc, "function")
+                        else tc.get("function", {}).get("name")
+                    )
                     call_id = tc.id if hasattr(tc, "id") else tc.get("id")
-                    args_str = tc.function.arguments if hasattr(tc, "function") else tc.get("function", {}).get("arguments", "{}")
-                    
+                    args_str = (
+                        tc.function.arguments
+                        if hasattr(tc, "function")
+                        else tc.get("function", {}).get("arguments", "{}")
+                    )
+
                     try:
                         args = json.loads(args_str)
                         print(f"DEBUG: Executing tool '{func_name}' with args: {args}")
-                        
+
                         # Execute skill
                         result = await registry.execute_skill(
-                            func_name, 
-                            workspace_id, 
-                            agent_id=run_id, 
-                            **args
+                            func_name, workspace_id, agent_id=run_id, **args
                         )
-                        
-                        messages.append({
-                            "role": "tool",
-                            "tool_call_id": call_id,
-                            "name": func_name,
-                            "content": str(result)
-                        })
+
+                        messages.append(
+                            {
+                                "role": "tool",
+                                "tool_call_id": call_id,
+                                "name": func_name,
+                                "content": str(result),
+                            }
+                        )
                     except Exception as te:
                         print(f"DEBUG: Tool execution failed: {te}")
-                        messages.append({
-                            "role": "tool",
-                            "tool_call_id": call_id,
-                            "name": func_name,
-                            "content": f"Error: {str(te)}"
-                        })
+                        messages.append(
+                            {
+                                "role": "tool",
+                                "tool_call_id": call_id,
+                                "name": func_name,
+                                "content": f"Error: {str(te)}",
+                            }
+                        )
                 # Update kwargs with new messages for next iteration
                 kwargs["messages"] = messages
             else:
                 # No more tool calls, we are done
-                final_content = message.content if hasattr(message, "content") else message.get("content", "")
+                final_content = (
+                    message.content if hasattr(message, "content") else message.get("content", "")
+                )
                 break
-        
+
         # Final result from the loop
         response_obj = response
         content = final_content
-        
+
         # Usage Tracking
         try:
-             usage = response_obj.get("usage", {}) if hasattr(response_obj, "get") else getattr(response_obj, "usage", {})
-             usage_data = usage if isinstance(usage, dict) else (usage.model_dump() if hasattr(usage, 'model_dump') else dict(usage))
-             
-             event_bus.emit(run_id, "resource_usage", {
-                 "model": litellm_model,
-                 "provider": provider,
-                 "usage": usage_data,
-                 "duration_ms": int((datetime.datetime.now() - start_ts).total_seconds() * 1000),
-                 "timestamp": datetime.datetime.now().isoformat()
-             })
-             
-             log_data["ok"] = True
-             log_data["provider"] = provider
-             log_data["tokens_in"] = usage_data.get("prompt_tokens", 0)
-             log_data["tokens_out"] = usage_data.get("completion_tokens", 0)
-             log_data["duration_ms"] = int((datetime.datetime.now() - start_ts).total_seconds() * 1000)
-             log_llm_call(log_data)
-        except Exception: pass
+            usage = (
+                response_obj.get("usage", {})
+                if hasattr(response_obj, "get")
+                else getattr(response_obj, "usage", {})
+            )
+            usage_data = (
+                usage
+                if isinstance(usage, dict)
+                else (usage.model_dump() if hasattr(usage, "model_dump") else dict(usage))
+            )
+
+            event_bus.emit(
+                run_id,
+                "resource_usage",
+                {
+                    "model": litellm_model,
+                    "provider": provider,
+                    "usage": usage_data,
+                    "duration_ms": int((datetime.datetime.now() - start_ts).total_seconds() * 1000),
+                    "timestamp": datetime.datetime.now().isoformat(),
+                },
+            )
+
+            log_data["ok"] = True
+            log_data["provider"] = provider
+            log_data["tokens_in"] = usage_data.get("prompt_tokens", 0)
+            log_data["tokens_out"] = usage_data.get("completion_tokens", 0)
+            log_data["duration_ms"] = int(
+                (datetime.datetime.now() - start_ts).total_seconds() * 1000
+            )
+            log_llm_call(log_data)
+        except Exception:
+            pass
 
         if not content:
             logger.warning(f"Model {model} returned an empty response (run_id={run_id})")
@@ -718,10 +768,13 @@ async def call_model(
         log_data["error"] = str(e)
         log_data["duration_ms"] = int((datetime.datetime.now() - start_ts).total_seconds() * 1000)
         log_llm_call(log_data)
-        
+
         if fallbacks:
             for fallback in fallbacks:
                 try:
-                    return await call_model(fallback, messages, temperature, max_tokens, timeout=timeout, run_id=run_id)
-                except: continue
+                    return await call_model(
+                        fallback, messages, temperature, max_tokens, timeout=timeout, run_id=run_id
+                    )
+                except:
+                    continue
         raise e

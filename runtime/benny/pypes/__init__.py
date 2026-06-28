@@ -55,8 +55,8 @@ from .models import (
     ValidationResult,
     ValidationSpec,
 )
-from .registry import OperationRegistry, default_registry
 from .orchestrator import Orchestrator, load_manifest, run_manifest
+from .registry import OperationRegistry, default_registry
 
 __all__ = [
     "CLPMetaModel",

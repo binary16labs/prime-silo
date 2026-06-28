@@ -106,7 +106,9 @@ class YouTubeConnector(BaseConnector):
         result["_entity_type"] = entity_type
         return result
 
-    def parse(self, raw: Dict[str, Any], entity_name: str, entity_type: str, api_url: str) -> List[KnowledgeTriple]:
+    def parse(
+        self, raw: Dict[str, Any], entity_name: str, entity_type: str, api_url: str
+    ) -> List[KnowledgeTriple]:
         if raw.get("_empty"):
             return []
 
@@ -119,7 +121,11 @@ class YouTubeConnector(BaseConnector):
 
         def t(pred: str, obj: str, obj_type: str = "Concept") -> None:
             if obj and str(obj).strip():
-                triples.append(self._make_triple(name, pred, str(obj).strip(), api_url, raw, object_type=obj_type))
+                triples.append(
+                    self._make_triple(
+                        name, pred, str(obj).strip(), api_url, raw, object_type=obj_type
+                    )
+                )
 
         if entity_type == "channel":
             branding = raw.get("brandingSettings", {}).get("channel", {})
@@ -150,7 +156,7 @@ class YouTubeConnector(BaseConnector):
                 t("has_duration_seconds", duration_secs, "Quantity")
 
             t("has_definition", content.get("definition", ""))  # hd / sd
-            t("has_caption", content.get("caption", ""))        # true / false
+            t("has_caption", content.get("caption", ""))  # true / false
 
             # Statistics
             t("has_view_count", stats.get("viewCount", ""), "Quantity")

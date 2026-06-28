@@ -76,9 +76,7 @@ async def list_sandbox(workspace: str, subdir: SubdirLiteral) -> dict:
 
 
 @router.get("/read/{workspace}/{subdir}/{filename}")
-async def read_sandbox_file(
-    workspace: str, subdir: SubdirLiteral, filename: str
-) -> dict:
+async def read_sandbox_file(workspace: str, subdir: SubdirLiteral, filename: str) -> dict:
     """Return the UTF-8 contents of a sandbox file.
 
     Read-only counterpart of :func:`write_sandbox_file`. Path validation is

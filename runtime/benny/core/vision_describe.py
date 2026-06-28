@@ -17,6 +17,7 @@ greater than any single pass:
 All model calls go through ``call_model`` (ADR-001 / VIS-SEC3). The vision and
 reviewer models are parameters so the workflow is reusable across documents.
 """
+
 from __future__ import annotations
 
 import logging
@@ -38,8 +39,20 @@ DEFAULT_REVIEWER = "lemonade/qwen3.5-9b-FLM"
 
 # DocItemLabel values that are decorative vs. technical. docling already emits a
 # distinct ``chart`` label; everything else under ``picture`` we sub-classify.
-_DIAGRAM_HINTS = ("figure", "diagram", "architecture", "cycle", "framework", "model",
-                  "flow", "process", "metamodel", "structure", "relationship", "overview")
+_DIAGRAM_HINTS = (
+    "figure",
+    "diagram",
+    "architecture",
+    "cycle",
+    "framework",
+    "model",
+    "flow",
+    "process",
+    "metamodel",
+    "structure",
+    "relationship",
+    "overview",
+)
 _CHART_HINTS = ("chart", "graph", "plot", "trend", "distribution", "histogram", "bar ", "pie")
 
 
@@ -71,8 +84,17 @@ def classify_visual(label: str, caption: str = "") -> str:
 # =============================================================================
 
 _MERMAID_HEADERS = (
-    "flowchart", "graph", "sequencediagram", "classdiagram", "statediagram",
-    "erdiagram", "journey", "gantt", "mindmap", "timeline", "C4Context",
+    "flowchart",
+    "graph",
+    "sequencediagram",
+    "classdiagram",
+    "statediagram",
+    "erdiagram",
+    "journey",
+    "gantt",
+    "mindmap",
+    "timeline",
+    "C4Context",
 )
 
 
@@ -116,7 +138,7 @@ def validate_mermaid(code: str) -> Tuple[bool, str]:
     (ok, reason)."""
     if not code or not code.strip():
         return False, "empty"
-    lines = [l.rstrip() for l in code.strip().splitlines() if l.strip()]
+    lines = [ln.rstrip() for ln in code.strip().splitlines() if ln.strip()]
     header = lines[0].strip().lower()
     if not header.startswith(tuple(h.lower() for h in _MERMAID_HEADERS)):
         return False, f"no valid diagram header (got: {lines[0][:40]!r})"
@@ -131,8 +153,8 @@ def validate_mermaid(code: str) -> Tuple[bool, str]:
         if not re.search(r"--|==|-\.|-->|---", body):
             return False, "no edges/connections found"
     # crude prose detector: a non-comment line that reads like a sentence
-    for l in lines[1:]:
-        s = l.strip()
+    for ln in lines[1:]:
+        s = ln.strip()
         if s.startswith("%%"):
             continue
         if s.endswith(".") and " " in s and not re.search(r"[\[\]{}()|>\-=]", s):
@@ -149,13 +171,17 @@ def _find_mmdc_cli() -> Optional[str]:
         return env
     here = Path(__file__).resolve()
     for parent in here.parents:
-        cand = parent / "packaging" / "node_modules" / "@mermaid-js" / "mermaid-cli" / "src" / "cli.js"
+        cand = (
+            parent / "packaging" / "node_modules" / "@mermaid-js" / "mermaid-cli" / "src" / "cli.js"
+        )
         if cand.exists():
             return str(cand)
     return None
 
 
-def render_validate_mermaid(code: str, *, out_png: Optional[str] = None, timeout: int = 120) -> Tuple[bool, str, Optional[str]]:
+def render_validate_mermaid(
+    code: str, *, out_png: Optional[str] = None, timeout: int = 120
+) -> Tuple[bool, str, Optional[str]]:
     """Authoritative 'does it render' check: run mermaid-cli (mmdc) to render the
     diagram to PNG. Returns (ok, reason, png_path|None). Falls back to (None-ish)
     when node/mmdc are absent so callers can degrade to structural validation."""
@@ -169,12 +195,20 @@ def render_validate_mermaid(code: str, *, out_png: Optional[str] = None, timeout
     png.parent.mkdir(parents=True, exist_ok=True)
     mmd.write_text(code, encoding="utf-8")
     try:
-        proc = subprocess.run([node, cli, "-i", str(mmd), "-o", str(png)],
-                              capture_output=True, text=True, timeout=timeout)
+        proc = subprocess.run(
+            [node, cli, "-i", str(mmd), "-o", str(png)],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
         if proc.returncode == 0 and png.exists() and png.stat().st_size > 0:
             return True, "rendered", str(png)
         err = (proc.stderr or proc.stdout or "").strip().splitlines()
-        return False, "render-failed: " + (err[-1][:160] if err else f"exit {proc.returncode}"), None
+        return (
+            False,
+            "render-failed: " + (err[-1][:160] if err else f"exit {proc.returncode}"),
+            None,
+        )
     except subprocess.TimeoutExpired:
         return False, "render-timeout", None
     except Exception as e:
@@ -184,8 +218,10 @@ def render_validate_mermaid(code: str, *, out_png: Optional[str] = None, timeout
 def _table_json_to_markdown(table: Dict[str, Any], max_rows: int = 8) -> str:
     cols = table.get("columns", [])
     rows = table.get("rows", [])[:max_rows]
-    out = ["| " + " | ".join(str(c) for c in cols) + " |",
-           "| " + " | ".join("---" for _ in cols) + " |"]
+    out = [
+        "| " + " | ".join(str(c) for c in cols) + " |",
+        "| " + " | ".join("---" for _ in cols) + " |",
+    ]
     for r in rows:
         out.append("| " + " | ".join("" if c is None else str(c) for c in r) + " |")
     return "\n".join(out)
@@ -281,6 +317,7 @@ def _parse_review(raw: str) -> Dict[str, Any]:
     def field(tag):
         m = re.search(rf"<{tag}>(.*?)</{tag}>", raw, re.DOTALL | re.IGNORECASE)
         return m.group(1).strip() if m else ""
+
     score_s = field("score")
     try:
         score = float(re.search(r"[\d.]+", score_s).group())
@@ -324,17 +361,32 @@ async def describe_element(
     attempts: List[Dict[str, Any]] = []
 
     if kind == "illustration":
-        desc = await _vision_call(_fmt(ILLUSTRATION_PROMPT, context=ctx), crop_bytes, vlm_model, run_id)
-        return {"type": label, "surrogate_kind": "caption", "content": desc.strip(),
-                "validated": bool(desc.strip()), "score": None, "attempts": [], "model_id": vlm_model}
+        desc = await _vision_call(
+            _fmt(ILLUSTRATION_PROMPT, context=ctx), crop_bytes, vlm_model, run_id
+        )
+        return {
+            "type": label,
+            "surrogate_kind": "caption",
+            "content": desc.strip(),
+            "validated": bool(desc.strip()),
+            "score": None,
+            "attempts": [],
+            "model_id": vlm_model,
+        }
 
     if kind == "chart":
         raw = await _vision_call(_fmt(CHART_PROMPT, context=ctx), crop_bytes, vlm_model, run_id)
         js = extract_code(raw, "json")
         ok = js.strip().startswith("{") and js.strip().endswith("}")
-        return {"type": label, "surrogate_kind": "chart_json" if ok else "caption",
-                "content": js if ok else raw.strip(), "validated": ok, "score": None,
-                "attempts": [], "model_id": vlm_model}
+        return {
+            "type": label,
+            "surrogate_kind": "chart_json" if ok else "caption",
+            "content": js if ok else raw.strip(),
+            "validated": ok,
+            "score": None,
+            "attempts": [],
+            "model_id": vlm_model,
+        }
 
     # --- diagram: the multi-model loop ---
     # The VISION model always OWNS the topology (it can see the image). The text
@@ -361,40 +413,75 @@ async def describe_element(
         log_fn(f"[describe] diagram attempt {i}: valid={ok} ({reason}) {len(mermaid)} chars")
 
         # review with the text model (cross-check vs document text)
-        review_raw = await _text_call(_fmt(REVIEW_PROMPT, context=ctx, mermaid=mermaid), reviewer_model, run_id)
+        review_raw = await _text_call(
+            _fmt(REVIEW_PROMPT, context=ctx, mermaid=mermaid), reviewer_model, run_id
+        )
         review = _parse_review(review_raw)
-        log_fn(f"[review] score={review['score']} valid_syntax={review['valid_syntax']} "
-               f"missing={review['missing'][:60]!r}")
+        log_fn(
+            f"[review] score={review['score']} valid_syntax={review['valid_syntax']} "
+            f"missing={review['missing'][:60]!r}"
+        )
 
-        cand = {"mermaid": mermaid, "valid": ok, "reason": reason,
-                "score": review["score"], "review": review, "source": "vision"}
-        if best is None or (ok and not best["valid"]) or (ok == best["valid"] and review["score"] > best["score"]):
+        cand = {
+            "mermaid": mermaid,
+            "valid": ok,
+            "reason": reason,
+            "score": review["score"],
+            "review": review,
+            "source": "vision",
+        }
+        if (
+            best is None
+            or (ok and not best["valid"])
+            or (ok == best["valid"] and review["score"] > best["score"])
+        ):
             best = cand
 
         # capture a VALID reviewer-proposed diagram as fallback only (blind model)
         improved = review.get("improved_mermaid", "")
         if improved and reviewer_fallback is None and validate_mermaid(improved)[0]:
-            reviewer_fallback = {"mermaid": improved, "valid": True, "score": review["score"],
-                                 "review": review, "source": "reviewer_fallback"}
+            reviewer_fallback = {
+                "mermaid": improved,
+                "valid": True,
+                "score": review["score"],
+                "review": review,
+                "source": "reviewer_fallback",
+            }
 
         if best["valid"] and review["score"] >= 8:
             break  # vision attempt is valid and the reviewer is happy
         if i < max_refine:
-            prompt = (_fmt(DIAGRAM_PROMPT, context=ctx) +
-                      f"\n\nYour previous attempt scored {review['score']}/10. FIX these, keeping the layout you can see:\n"
-                      f"- missing nodes/edges: {review.get('missing','')}\n"
-                      f"- remove if not in image: {review.get('hallucinated','')}\n"
-                      f"- syntax issue: {reason if not ok else 'none'}\n")
+            prompt = (
+                _fmt(DIAGRAM_PROMPT, context=ctx)
+                + f"\n\nYour previous attempt scored {review['score']}/10. FIX these, keeping the layout you can see:\n"
+                f"- missing nodes/edges: {review.get('missing','')}\n"
+                f"- remove if not in image: {review.get('hallucinated','')}\n"
+                f"- syntax issue: {reason if not ok else 'none'}\n"
+            )
 
     chosen = best if (best and best["valid"]) else (reviewer_fallback or best)
     if chosen and chosen["valid"]:
-        return {"type": label, "surrogate_kind": "mermaid", "content": chosen["mermaid"],
-                "validated": True, "score": chosen["score"], "attempts": attempts,
-                "review": chosen.get("review", review), "model_id": vlm_model,
-                "source": chosen.get("source", "vision")}
+        return {
+            "type": label,
+            "surrogate_kind": "mermaid",
+            "content": chosen["mermaid"],
+            "validated": True,
+            "score": chosen["score"],
+            "attempts": attempts,
+            "review": chosen.get("review", review),
+            "model_id": vlm_model,
+            "source": chosen.get("source", "vision"),
+        }
 
     # fallback: plain caption (no hollow success)
     cap = await _vision_call(_fmt(ILLUSTRATION_PROMPT, context=ctx), crop_bytes, vlm_model, run_id)
-    return {"type": label, "surrogate_kind": "caption_fallback", "content": cap.strip(),
-            "validated": False, "score": best["score"] if best else 0.0,
-            "attempts": attempts, "review": review, "model_id": vlm_model}
+    return {
+        "type": label,
+        "surrogate_kind": "caption_fallback",
+        "content": cap.strip(),
+        "validated": False,
+        "score": best["score"] if best else 0.0,
+        "attempts": attempts,
+        "review": review,
+        "model_id": vlm_model,
+    }

@@ -1,11 +1,12 @@
-import os
-import sqlite3
 import json
 import logging
+import os
+import sqlite3
 from pathlib import Path
 from typing import Dict, Optional
-from .schema import NodeMetrics
+
 from .ontology import Graph, content_hash
+from .schema import NodeMetrics
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +14,7 @@ logger = logging.getLogger(__name__)
 # CWD, so the cache file landed in an unpredictable (often unwritable) place.
 CACHE_DIR = Path(os.environ.get("BENNY_HOME") or (Path.home() / ".benny")) / "kg3d_cache"
 CACHE_FILE = CACHE_DIR / "metrics.sqlite"
+
 
 def init_cache():
     """Initializes the SQLite cache database (idempotent)."""
@@ -26,13 +28,16 @@ def init_cache():
             )
         """)
 
+
 def get_cached_metrics(graph: Graph) -> Optional[Dict[str, NodeMetrics]]:
     """Retrieves cached metrics if the graph hash matches."""
     g_hash = content_hash(graph)
     try:
         init_cache()  # ensure the table exists before we read it
         with sqlite3.connect(CACHE_FILE) as conn:
-            cursor = conn.execute("SELECT metrics_json FROM metrics_cache WHERE graph_hash = ?", (g_hash,))
+            cursor = conn.execute(
+                "SELECT metrics_json FROM metrics_cache WHERE graph_hash = ?", (g_hash,)
+            )
             row = cursor.fetchone()
             if row:
                 data = json.loads(row[0])
@@ -41,17 +46,23 @@ def get_cached_metrics(graph: Graph) -> Optional[Dict[str, NodeMetrics]]:
         logger.warning("Cache retrieval failed: %s", e)
     return None
 
+
 def save_metrics_to_cache(graph: Graph, metrics: Dict[str, NodeMetrics]):
     """Saves computed metrics to the SQLite cache."""
     g_hash = content_hash(graph)
-    metrics_json = json.dumps({node_id: m.model_dump(mode="json") for node_id, m in metrics.items()})
+    metrics_json = json.dumps(
+        {node_id: m.model_dump(mode="json") for node_id, m in metrics.items()}
+    )
 
     try:
         init_cache()  # ensure the table exists before we write to it
         with sqlite3.connect(CACHE_FILE) as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT OR REPLACE INTO metrics_cache (graph_hash, metrics_json)
                 VALUES (?, ?)
-            """, (g_hash, metrics_json))
+            """,
+                (g_hash, metrics_json),
+            )
     except Exception as e:
         logger.error("Cache save failed: %s", e)

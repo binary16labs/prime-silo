@@ -45,7 +45,6 @@ import textwrap
 from pathlib import Path
 from typing import Optional
 
-
 # ---------------------------------------------------------------------------
 # Schema loading (lazy, module-level cache)
 # ---------------------------------------------------------------------------
@@ -58,12 +57,7 @@ def _load_prd_schema() -> dict:
     global _PRD_SCHEMA
     if _PRD_SCHEMA is None:
         # Resolve relative to this file: benny/sdlc/ → repo root → schemas/
-        schema_path = (
-            Path(__file__).parent.parent.parent
-            / "schemas"
-            / "aos"
-            / "prd_v1.schema.json"
-        )
+        schema_path = Path(__file__).parent.parent.parent / "schemas" / "aos" / "prd_v1.schema.json"
         _PRD_SCHEMA = json.loads(schema_path.read_text(encoding="utf-8"))
     return _PRD_SCHEMA
 
@@ -105,9 +99,7 @@ def validate_prd(prd: dict) -> None:
     try:
         jsonschema.validate(prd, schema)
     except jsonschema.ValidationError as exc:
-        raise PrdValidationError(
-            f"PRD schema validation failed: {exc.message}"
-        ) from exc
+        raise PrdValidationError(f"PRD schema validation failed: {exc.message}") from exc
 
 
 # ---------------------------------------------------------------------------
@@ -268,7 +260,7 @@ def generate_prd(
 
     prd = json.loads(cleaned)
 
-    validate_prd(prd)   # AOS-F22: raises PrdValidationError on schema failure
+    validate_prd(prd)  # AOS-F22: raises PrdValidationError on schema failure
 
     gherkin = prd_to_gherkin(prd)
 

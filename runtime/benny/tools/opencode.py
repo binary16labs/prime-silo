@@ -15,6 +15,7 @@ opencode also writes to its own session store, so memo-ray ingests every run
 
 Stdlib-only (asyncio, shutil, pathlib) so it imports without the rest of the runtime.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -43,7 +44,13 @@ async def _run(cmd: List[str], cwd: str, timeout: float) -> Dict[str, Any]:
             proc.kill()
         except ProcessLookupError:
             pass
-        return {"ok": False, "timed_out": True, "stdout": "", "stderr": f"timed out after {timeout}s", "returncode": None}
+        return {
+            "ok": False,
+            "timed_out": True,
+            "stdout": "",
+            "stderr": f"timed out after {timeout}s",
+            "returncode": None,
+        }
     return {
         "ok": proc.returncode == 0,
         "timed_out": False,

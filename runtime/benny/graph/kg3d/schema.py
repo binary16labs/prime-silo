@@ -1,8 +1,10 @@
+import math
 from datetime import datetime, timezone
 from enum import Enum
-from typing import List, Optional, Dict, Literal
+from typing import Dict, List, Literal, Optional
+
 from pydantic import BaseModel, Field, field_validator
-import math
+
 
 # KG3D-001 Categorical Ontology
 class NodeCategory(str, Enum):
@@ -22,7 +24,7 @@ class NodeCategory(str, Enum):
     OPTIMISATION_REINFORCEMENT_LEARNING = "optimisation_reinforcement_learning"
     ODE_PDE = "ode_pde"
     PROBABILITY_STOCHASTIC_STATISTICS = "probability_stochastic_statistics"
-    
+
     # Synthesized Categories
     PERSON = "person"
     THEORY = "theory"
@@ -33,12 +35,14 @@ class NodeCategory(str, Enum):
     CONCEPT = "concept"
     DOCUMENTATION = "documentation"
 
+
 class EdgeKind(str, Enum):
     PREREQUISITE = "prerequisite"
     REFERENCES = "references"
     CONTRADICTS = "contradicts"
     GENERALISES = "generalises"
     SPECIALISES = "specialises"
+
 
 class NodeMetrics(BaseModel):
     pagerank: float = Field(ge=0)
@@ -48,17 +52,21 @@ class NodeMetrics(BaseModel):
     prerequisite_ratio: float = Field(ge=0, le=1)
     reachability_ratio: float = Field(ge=0, le=1)
 
-    @field_validator("pagerank", "betweenness", "descendant_ratio", "prerequisite_ratio", "reachability_ratio")
+    @field_validator(
+        "pagerank", "betweenness", "descendant_ratio", "prerequisite_ratio", "reachability_ratio"
+    )
     @classmethod
     def validate_finite(cls, v: float) -> float:
         if not math.isfinite(v):
             raise ValueError("Metric must be finite")
         return v
 
+
 class PositionHint(BaseModel):
     x: float
     y: float
     z: float
+
 
 def aot_layer_for(descendant_ratio: float) -> int:
     """
@@ -77,6 +85,7 @@ def aot_layer_for(descendant_ratio: float) -> int:
         return 4
     return 5
 
+
 class Node(BaseModel):
     id: str
     canonical_name: str
@@ -94,6 +103,7 @@ class Node(BaseModel):
     def validate_aot(cls, v: int, info) -> int:
         return v
 
+
 class Edge(BaseModel):
     id: str
     source_id: str
@@ -110,16 +120,21 @@ class Edge(BaseModel):
             raise ValueError("Self-loops are forbidden at ingest time")
         return v
 
+
 class Proposal(BaseModel):
     nodes_upsert: List[Node]
     edges_upsert: List[Edge]
     rationale_md: str
 
+
 class DeltaEvent(BaseModel):
-    kind: Literal["upsert_node", "upsert_edge", "remove_node", "remove_edge", "metrics_refresh", "heartbeat"]
+    kind: Literal[
+        "upsert_node", "upsert_edge", "remove_node", "remove_edge", "metrics_refresh", "heartbeat"
+    ]
     payload: Optional[Dict] = None
     seq: int
     ts: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 
 def validate_node(node: Node) -> bool:
     """Enforces KG3D-001 node invariants."""
@@ -127,6 +142,7 @@ def validate_node(node: Node) -> bool:
     if node.aot_layer != expected_layer:
         return False
     return True
+
 
 def validate_edge(edge: Edge) -> bool:
     """Enforces KG3D-001 edge invariants."""

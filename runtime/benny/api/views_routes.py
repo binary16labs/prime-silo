@@ -39,6 +39,7 @@ Endpoints:
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any, Optional
 
@@ -57,7 +58,6 @@ from .views_signing import (
     sign_view,
     verify_view,
 )
-import os
 
 router = APIRouter()
 
@@ -287,9 +287,7 @@ class LoadPinnedViewResponse(BaseModel):
     "/load/{workspace}/{filename}",
     response_model=LoadPinnedViewResponse,
 )
-async def load_pinned_view_endpoint(
-    workspace: str, filename: str
-) -> LoadPinnedViewResponse:
+async def load_pinned_view_endpoint(workspace: str, filename: str) -> LoadPinnedViewResponse:
     """Read a pinned view and verify its embedded signature in one round-trip.
 
     The shell calls this on every pinned-view replay so the runtime — the

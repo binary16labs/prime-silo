@@ -1,12 +1,14 @@
+import logging
 import os
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Set
-from tree_sitter import Language, Parser, QueryCursor
-import tree_sitter_python as tspython
-import tree_sitter_javascript as tsjavascript
-import tree_sitter_typescript as ts_ts
-import logging
+from typing import Any, Dict, List, Optional, Set
+
 import pathspec
+import tree_sitter_javascript as tsjavascript
+import tree_sitter_python as tspython
+import tree_sitter_typescript as ts_ts
+from tree_sitter import Language, Parser, QueryCursor
+
 from benny.core.workspace import load_manifest
 
 logger = logging.getLogger(__name__)
@@ -82,26 +84,37 @@ QUERIES = {
 
         (call_expression function: (identifier) @call_target)
         (call_expression function: (member_expression property: (property_identifier) @call_target))
-    """
+    """,
 }
 
+
 class CodeNode:
-    def __init__(self, id: str, name: str, type: str, file_path: str, metadata: Dict[str, Any] = None,
-                 ast_range_start: Optional[list] = None, ast_range_end: Optional[list] = None):
+    def __init__(
+        self,
+        id: str,
+        name: str,
+        type: str,
+        file_path: str,
+        metadata: Dict[str, Any] = None,
+        ast_range_start: Optional[list] = None,
+        ast_range_end: Optional[list] = None,
+    ):
         self.id = id
         self.name = name
         self.type = type  # File, Class, Function, Interface
         self.file_path = file_path
         self.metadata = metadata or {}
         self.ast_range_start = ast_range_start  # [line, col] from Tree-sitter
-        self.ast_range_end   = ast_range_end    # [line, col] from Tree-sitter
+        self.ast_range_end = ast_range_end  # [line, col] from Tree-sitter
+
 
 class CodeEdge:
     def __init__(self, source: str, target: str, type: str, metadata: Dict[str, Any] = None):
         self.source = source
         self.target = target
-        self.type = type # DEFINES, CALLS, INHERITS, DEPENDS_ON
+        self.type = type  # DEFINES, CALLS, INHERITS, DEPENDS_ON
         self.metadata = metadata or {}
+
 
 class CodeGraphAnalyzer:
     def __init__(self, workspace_root: str):
@@ -109,20 +122,17 @@ class CodeGraphAnalyzer:
         self.nodes: Dict[str, CodeNode] = {}
         self.edges: List[CodeEdge] = []
         self.parsers: Dict[str, Parser] = {}
-        
+
         for ext, lang in LANGUAGES.items():
             parser = Parser(lang)
             self.parsers[ext] = parser
-            
+
         self.ignore_patterns = self._load_ignore_patterns()
 
     def _load_ignore_patterns(self) -> pathspec.PathSpec:
         """Load patterns from manifest and .gitignore into a PathSpec object"""
-        patterns = [
-            ".git", "node_modules", "__pycache__",
-            "dist", "build", ".venv", "venv"
-        ]
-        
+        patterns = [".git", "node_modules", "__pycache__", "dist", "build", ".venv", "venv"]
+
         # 1. Try to load from manifest
         try:
             # convention: workspace/ID/...
@@ -132,7 +142,7 @@ class CodeGraphAnalyzer:
                 if len(parts) > ws_idx + 1:
                     ws_id = parts[ws_idx + 1]
                     manifest = load_manifest(ws_id)
-                    if hasattr(manifest, 'exclude_patterns'):
+                    if hasattr(manifest, "exclude_patterns"):
                         patterns.extend(manifest.exclude_patterns)
         except Exception:
             pass
@@ -145,8 +155,8 @@ class CodeGraphAnalyzer:
                     patterns.extend(f.readlines())
             except Exception:
                 pass
-                
-        return pathspec.PathSpec.from_lines('gitwildmatch', patterns)
+
+        return pathspec.PathSpec.from_lines("gitwildmatch", patterns)
 
     def _should_ignore(self, file_path: str) -> bool:
         """Check if a path matches the pathspec ignore patterns"""
@@ -173,20 +183,24 @@ class CodeGraphAnalyzer:
             rel_root = os.path.relpath(root, self.workspace_root).replace("\\", "/")
             if rel_root != ".":
                 if rel_root not in self.nodes:
-                    self.nodes[rel_root] = CodeNode(rel_root, os.path.basename(root), "Folder", rel_root)
-                
+                    self.nodes[rel_root] = CodeNode(
+                        rel_root, os.path.basename(root), "Folder", rel_root
+                    )
+
                 # Link Parent Folder -> Current Folder
                 parent_dir = os.path.dirname(rel_root)
                 if parent_dir and parent_dir != ".":
                     if parent_dir not in self.nodes:
-                        self.nodes[parent_dir] = CodeNode(parent_dir, os.path.basename(parent_dir), "Folder", parent_dir)
+                        self.nodes[parent_dir] = CodeNode(
+                            parent_dir, os.path.basename(parent_dir), "Folder", parent_dir
+                        )
                     self.edges.append(CodeEdge(parent_dir, rel_root, "DEFINES"))
 
             for file in files:
                 full_path = os.path.join(root, file)
                 if self._should_ignore(full_path):
                     continue
-                    
+
                 ext = os.path.splitext(file)[1].lower()
                 if ext in self.parsers:
                     file_node_id = self._analyze_file(full_path, ext, deep_scan=deep_scan)
@@ -197,23 +211,27 @@ class CodeGraphAnalyzer:
                     file_node_id = self._get_node_id(full_path)
                     rel_path = os.path.relpath(full_path, self.workspace_root).replace("\\", "/")
                     if file_node_id not in self.nodes:
-                        self.nodes[file_node_id] = CodeNode(file_node_id, os.path.basename(full_path), "Documentation", rel_path)
+                        self.nodes[file_node_id] = CodeNode(
+                            file_node_id, os.path.basename(full_path), "Documentation", rel_path
+                        )
                     if rel_root != "." and file_node_id:
                         self.edges.append(CodeEdge(rel_root, file_node_id, "CONTAINS"))
 
         return {
             "nodes": [vars(n) for n in self.nodes.values()],
-            "edges": [vars(e) for e in self.edges]
+            "edges": [vars(e) for e in self.edges],
         }
 
     def _analyze_file(self, file_path: str, ext: str, deep_scan: bool = True) -> str:
         parser = self.parsers[ext]
         rel_path = os.path.relpath(file_path, self.workspace_root).replace("\\", "/")
-        
+
         # Create File Node
         file_node_id = self._get_node_id(file_path)
         if file_node_id not in self.nodes:
-            self.nodes[file_node_id] = CodeNode(file_node_id, os.path.basename(file_path), "File", rel_path)
+            self.nodes[file_node_id] = CodeNode(
+                file_node_id, os.path.basename(file_path), "File", rel_path
+            )
 
         if not deep_scan:
             return file_node_id
@@ -222,19 +240,22 @@ class CodeGraphAnalyzer:
             content = f.read()
             tree = parser.parse(content)
 
-        lang_key = "python" if ext == ".py" else "typescript" if ext in [".ts", ".tsx"] else "javascript"
+        lang_key = (
+            "python" if ext == ".py" else "typescript" if ext in [".ts", ".tsx"] else "javascript"
+        )
         query_str = QUERIES.get(lang_key)
-        
+
         if not query_str:
             return file_node_id
 
         # Tree-sitter 0.25.2 requires Query constructor
         from tree_sitter import Query
+
         query = Query(LANGUAGES[ext], query_str)
         cursor = QueryCursor(query)
         # captures() returns a dictionary of lists in 0.25.2
         captures = cursor.captures(tree.root_node)
-        
+
         # Process symbols in document order.
         # Flatten captures dict (tag -> [Node]) into (start_byte, tag, node) and sort
         # so that current_class is always set before method_name/parent_name are processed.
@@ -247,16 +268,19 @@ class CodeGraphAnalyzer:
         current_class = None
 
         for _, tag, node in all_captures:
-            name = content[node.start_byte:node.end_byte].decode("utf-8", errors="replace")
+            name = content[node.start_byte : node.end_byte].decode("utf-8", errors="replace")
 
             if tag in ["class_name", "interface_name"]:
                 node_type = "Class" if tag == "class_name" else "Interface"
                 symbol_id = self._get_node_id(file_path, name)
                 if symbol_id not in self.nodes:
                     self.nodes[symbol_id] = CodeNode(
-                        symbol_id, name, node_type, rel_path,
+                        symbol_id,
+                        name,
+                        node_type,
+                        rel_path,
                         ast_range_start=list(node.start_point),
-                        ast_range_end=list(node.end_point)
+                        ast_range_end=list(node.end_point),
                     )
                     # Edge: File -> Class/Interface
                     self.edges.append(CodeEdge(file_node_id, symbol_id, "DEFINES"))
@@ -267,12 +291,17 @@ class CodeGraphAnalyzer:
                 symbol_id = self._get_node_id(file_path, name)
                 if symbol_id not in self.nodes:
                     self.nodes[symbol_id] = CodeNode(
-                        symbol_id, name, node_type, rel_path,
+                        symbol_id,
+                        name,
+                        node_type,
+                        rel_path,
                         ast_range_start=list(node.start_point),
-                        ast_range_end=list(node.end_point)
+                        ast_range_end=list(node.end_point),
                     )
                     # Edge: Class -> Method, or File -> top-level Function
-                    parent_id = current_class if (current_class and tag == "method_name") else file_node_id
+                    parent_id = (
+                        current_class if (current_class and tag == "method_name") else file_node_id
+                    )
                     self.edges.append(CodeEdge(parent_id, symbol_id, "DEFINES"))
 
             elif tag == "parent_name":
@@ -280,7 +309,9 @@ class CodeGraphAnalyzer:
                 if current_class:
                     target_id = f"virtual::{name}"
                     if target_id not in self.nodes:
-                        self.nodes[target_id] = CodeNode(target_id, name, "ExternalClass", "unknown")
+                        self.nodes[target_id] = CodeNode(
+                            target_id, name, "ExternalClass", "unknown"
+                        )
                     self.edges.append(CodeEdge(current_class, target_id, "INHERITS"))
 
             elif tag == "import":
@@ -290,9 +321,12 @@ class CodeGraphAnalyzer:
                 first_line = name.strip().split("\n")[0][:80]
                 if import_id not in self.nodes:
                     self.nodes[import_id] = CodeNode(
-                        import_id, first_line, "Import", rel_path,
+                        import_id,
+                        first_line,
+                        "Import",
+                        rel_path,
                         ast_range_start=list(node.start_point),
-                        ast_range_end=list(node.end_point)
+                        ast_range_end=list(node.end_point),
                     )
                 self.edges.append(CodeEdge(file_node_id, import_id, "DEPENDS_ON", {"raw": name}))
 
@@ -308,15 +342,16 @@ class CodeGraphAnalyzer:
 
     def save_to_neo4j(self, workspace: str, snapshot_id: str, name: Optional[str] = None):
         """Sync the analyzed graph to Neo4j as a unique snapshot"""
-        from ..core.graph_db import write_session, create_code_scan
-        
+        from ..core.graph_db import create_code_scan, write_session
+
         # 1. Register the scan snapshot
         create_code_scan(snapshot_id, workspace, str(self.workspace_root), name)
 
         with write_session() as session:
             # 2. Add CodeEntity Nodes and link to Concepts
             for node in self.nodes.values():
-                session.run("""
+                session.run(
+                    """
                     MERGE (n:CodeEntity {id: $id, workspace: $ws, snapshot_id: $snap})
                     ON CREATE SET n.name = $name, n.type = $type, n.file_path = $path,
                                   n.created_at = datetime(),
@@ -335,35 +370,52 @@ class CodeGraphAnalyzer:
                     ON MATCH SET  c.updated_at = datetime()
                     MERGE (n)-[:REPRESENTS]->(c)
                 """,
-                    id=node.id, ws=workspace, name=node.name, type=node.type,
-                    path=node.file_path, snap=snapshot_id,
+                    id=node.id,
+                    ws=workspace,
+                    name=node.name,
+                    type=node.type,
+                    path=node.file_path,
+                    snap=snapshot_id,
                     ast_start=node.ast_range_start,
-                    ast_end=node.ast_range_end
+                    ast_end=node.ast_range_end,
                 )
 
             # 3. Add internal code relationships (DEFINES, CALLS, etc)
             for edge in self.edges:
-                session.run("""
+                session.run(
+                    """
                     MATCH (s:CodeEntity {id: $src, workspace: $ws, snapshot_id: $snap})
                     MATCH (t:CodeEntity {id: $tgt, workspace: $ws, snapshot_id: $snap})
                     MERGE (s)-[r:CODE_REL {type: $rel_type}]->(t)
                     ON CREATE SET r.snapshot_id = $snap, r.created_at = datetime()
                     ON MATCH SET  r.snapshot_id = $snap, r.updated_at = datetime()
-                """, src=edge.source, tgt=edge.target, ws=workspace, rel_type=edge.type, snap=snapshot_id)
+                """,
+                    src=edge.source,
+                    tgt=edge.target,
+                    ws=workspace,
+                    rel_type=edge.type,
+                    snap=snapshot_id,
+                )
 
-def get_workspace_graph(workspace_id: str, snapshot_id: Optional[str] = None, path_filter: Optional[str] = None):
+
+def get_workspace_graph(
+    workspace_id: str, snapshot_id: Optional[str] = None, path_filter: Optional[str] = None
+):
     """Fetch the code graph from Neo4j in a format suited for Three.js"""
     from ..core.graph_db import read_session
-    
+
     with read_session() as session:
         # If no snapshot_id provided, find the most recent one for this workspace
         if not snapshot_id:
-            latest_res = session.run("""
+            latest_res = session.run(
+                """
                 MATCH (s:CodeScan {workspace: $ws})
                 RETURN s.scan_id AS scan_id
                 ORDER BY s.created_at DESC
                 LIMIT 1
-            """, ws=workspace_id)
+            """,
+                ws=workspace_id,
+            )
             record = latest_res.single()
             if record:
                 snapshot_id = record["scan_id"]
@@ -377,12 +429,12 @@ def get_workspace_graph(workspace_id: str, snapshot_id: Optional[str] = None, pa
             OPTIONAL MATCH (n)-[r:CODE_REL {snapshot_id: $snap}]->(m:CodeEntity {workspace: $ws, snapshot_id: $snap})
             RETURN n, r, m
         """
-        
+
         result = session.run(query, ws=workspace_id, snap=snapshot_id, path=path_filter)
-        
+
         nodes = {}
         edges = []
-        
+
         for record in result:
             n = record["n"]
             if n.element_id not in nodes:
@@ -391,26 +443,28 @@ def get_workspace_graph(workspace_id: str, snapshot_id: Optional[str] = None, pa
                     "name": n["name"],
                     "type": n["type"],
                     "path": n["file_path"],
-                    "elementId": n.element_id
+                    "elementId": n.element_id,
                 }
-            
+
             r = record["r"]
             m = record["m"]
             if r and m:
-                 edges.append({
-                     "source": n["id"],
-                     "target": m["id"],
-                     "type": r["type"],
-                     "metadata": dict(r)
-                 })
-                 
+                edges.append(
+                    {"source": n["id"], "target": m["id"], "type": r["type"], "metadata": dict(r)}
+                )
+
         return {"nodes": list(nodes.values()), "edges": edges}
+
 
 def list_workspace_dirs(workspace_root: str) -> List[str]:
     """Helper to list directories for picker"""
     root = Path(workspace_root)
     dirs = ["/"]
     for p in root.rglob("*"):
-        if p.is_dir() and not any(part.startswith('.') for part in p.parts) and "node_modules" not in p.parts:
+        if (
+            p.is_dir()
+            and not any(part.startswith(".") for part in p.parts)
+            and "node_modules" not in p.parts
+        ):
             dirs.append(str(p.relative_to(root)).replace("\\", "/"))
     return sorted(dirs)

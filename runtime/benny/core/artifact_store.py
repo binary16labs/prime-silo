@@ -128,7 +128,7 @@ def get(uri: str, *, workspace_path: Path) -> bytes:
     """
     if not isinstance(uri, str) or not uri.startswith(_ARTIFACT_URI_PREFIX):
         raise ValueError(f"Not an artifact URI: {uri!r}")
-    sha = uri[len(_ARTIFACT_URI_PREFIX):]
+    sha = uri[len(_ARTIFACT_URI_PREFIX) :]
     target = path_for(sha, workspace_path=workspace_path)
     if not target.exists():
         raise FileNotFoundError(f"Artifact not found: {uri!r}")

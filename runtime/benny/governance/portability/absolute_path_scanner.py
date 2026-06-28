@@ -9,6 +9,7 @@ The **only** absolute path allowed to appear is the configured `<SSD_ROOT>`
 (for example `D:/optimus`), passed in by the caller. Everything else is a
 violation.
 """
+
 from __future__ import annotations
 
 import argparse

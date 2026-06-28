@@ -201,7 +201,7 @@ def _collect_facts(
     # Breach roll-up directly off the receipt
     breaches: List[Dict[str, Any]] = []
     for step_id, vr in receipt.step_results.items():
-        for check in (vr.checks or []):
+        for check in vr.checks or []:
             if check.get("status") == "FAILED":
                 breaches.append({"step": step_id, **check})
     if breaches:

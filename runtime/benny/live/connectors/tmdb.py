@@ -51,10 +51,16 @@ class TMDBConnector(BaseConnector):
         item_id = top.get("id")
 
         # Fetch full detail
-        detail_type = "tv" if entity_type == "tv_show" else entity_type if entity_type in ("movie", "person") else "movie"
+        detail_type = (
+            "tv"
+            if entity_type == "tv_show"
+            else entity_type if entity_type in ("movie", "person") else "movie"
+        )
         detail_url = f"{_TMDB_BASE}/{detail_type}/{item_id}"
         async with httpx.AsyncClient(timeout=15) as client:
-            detail_resp = await client.get(detail_url, params={"api_key": api_key, "language": "en-US"})
+            detail_resp = await client.get(
+                detail_url, params={"api_key": api_key, "language": "en-US"}
+            )
             detail_resp.raise_for_status()
             detail = detail_resp.json()
 
@@ -63,7 +69,9 @@ class TMDBConnector(BaseConnector):
         detail["_entity_type"] = entity_type
         return detail
 
-    def parse(self, raw: Dict[str, Any], entity_name: str, entity_type: str, api_url: str) -> List[KnowledgeTriple]:
+    def parse(
+        self, raw: Dict[str, Any], entity_name: str, entity_type: str, api_url: str
+    ) -> List[KnowledgeTriple]:
         if raw.get("_empty"):
             return []
 
@@ -72,7 +80,11 @@ class TMDBConnector(BaseConnector):
 
         def t(pred: str, obj: str, obj_type: str = "Concept") -> None:
             if obj and str(obj).strip():
-                triples.append(self._make_triple(name, pred, str(obj).strip(), api_url, raw, object_type=obj_type))
+                triples.append(
+                    self._make_triple(
+                        name, pred, str(obj).strip(), api_url, raw, object_type=obj_type
+                    )
+                )
 
         if entity_type == "movie":
             t("released_on", raw.get("release_date", ""), "Date")

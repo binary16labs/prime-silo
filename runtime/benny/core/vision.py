@@ -6,6 +6,7 @@ qwen3vl-it-4b-FLM on Lemonade accepts the `image_url` OBJECT form
 (``{"type": "image_url", "image_url": {"url": <data-uri>}}``), so that is what we
 emit. Calls flow through ``call_model()`` like any other model (ADR-001 / VIS-SEC3).
 """
+
 from __future__ import annotations
 
 import base64
@@ -32,7 +33,9 @@ def to_data_uri(image: ImageSource, mime: str = "image/png") -> str:
     return f"data:{mime};base64," + base64.b64encode(data).decode()
 
 
-def vision_message(text: str, *images: ImageSource, mime: str = "image/png") -> List[Dict[str, Any]]:
+def vision_message(
+    text: str, *images: ImageSource, mime: str = "image/png"
+) -> List[Dict[str, Any]]:
     """Build a single-user-message list for ``call_model(messages=...)`` carrying
     text plus one or more images, in the FLM-confirmed object form."""
     content: List[Dict[str, Any]] = [{"type": "text", "text": text}]

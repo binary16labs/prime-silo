@@ -125,7 +125,9 @@ class PolarsEngine:
         expr: Optional[str] = None,
     ) -> pl.DataFrame:
         if expr is not None:
-            raise ValueError("PolarsEngine.filter does not support raw `expr` — use column/op/value")
+            raise ValueError(
+                "PolarsEngine.filter does not support raw `expr` — use column/op/value"
+            )
         if column is None:
             raise ValueError("filter requires a 'column'")
         c = pl.col(column)
@@ -240,7 +242,9 @@ class PolarsEngine:
     def union(self, left: pl.DataFrame, right: pl.DataFrame) -> pl.DataFrame:
         return pl.concat([left, right], how="diagonal_relaxed")
 
-    def mask_pii(self, df: pl.DataFrame, columns: List[str], hash_with: str = "sha256") -> pl.DataFrame:
+    def mask_pii(
+        self, df: pl.DataFrame, columns: List[str], hash_with: str = "sha256"
+    ) -> pl.DataFrame:
         def _hash(x: Any) -> Optional[str]:
             if x is None:
                 return None

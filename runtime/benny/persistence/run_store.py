@@ -155,7 +155,12 @@ def update_run_status(
         return None
 
     rec.status = status
-    if status in (RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.PARTIAL_SUCCESS, RunStatus.CANCELLED):
+    if status in (
+        RunStatus.COMPLETED,
+        RunStatus.FAILED,
+        RunStatus.PARTIAL_SUCCESS,
+        RunStatus.CANCELLED,
+    ):
         rec.completed_at = datetime.utcnow().isoformat()
         if rec.started_at:
             try:

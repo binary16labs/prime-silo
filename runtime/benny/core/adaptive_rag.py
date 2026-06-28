@@ -2,23 +2,23 @@
 Adaptive RAG Pipeline — Self-correcting retrieval with Smart Router.
 
 Architecture:
-  START → SmartRouter → [NoRetrieval | SingleStep | MultiHop] → 
-  GradeDocuments → GenerateAnswer → HallucinationGrader → 
+  START → SmartRouter → [NoRetrieval | SingleStep | MultiHop] →
+  GradeDocuments → GenerateAnswer → HallucinationGrader →
   AnswerGrader → [END | RewriteQuery → loop back]
 """
 
 from __future__ import annotations
 
-import logging
 import json
-from typing import TypedDict, Optional, List, Dict, Any, Literal
+import logging
+from typing import Any, Dict, List, Literal, Optional, TypedDict
 
-from langgraph.graph import StateGraph, START, END
+from langgraph.graph import END, START, StateGraph
 
-from ..core.models import call_model
 from ..core.graph_db import get_driver, multi_hop_traversal  # For multi-hop traversal
+from ..core.models import call_model
 from ..core.workspace import get_workspace_path
-from ..governance.lineage import track_workflow_start, track_workflow_complete
+from ..governance.lineage import track_workflow_complete, track_workflow_start
 from ..tools.knowledge import get_chromadb_client, get_knowledge_collection
 
 logger = logging.getLogger(__name__)
@@ -27,51 +27,58 @@ logger = logging.getLogger(__name__)
 # STATE DEFINITION
 # =============================================================================
 
+
 class RetrievedDocument(TypedDict):
     """A single retrieved document with metadata."""
+
     content: str
     source: str
     relevance_score: float  # 0.0 to 1.0, set by RetrieverGrader
 
+
 class AdaptiveRAGState(TypedDict):
     """State schema for the Adaptive RAG pipeline."""
+
     # Input
-    query: str                          # Original user query
-    workspace: str                      # Workspace for ChromaDB/Neo4j scoping
-    model: str                          # LLM model identifier (passed to call_model)
-    
+    query: str  # Original user query
+    workspace: str  # Workspace for ChromaDB/Neo4j scoping
+    model: str  # LLM model identifier (passed to call_model)
+
     # Routing
-    route: Literal["no_retrieval", "single_step", "multi_hop", "structured"]  # Smart Router decision
-    
+    route: Literal[
+        "no_retrieval", "single_step", "multi_hop", "structured"
+    ]  # Smart Router decision
+
     # Retrieval
-    documents: List[RetrievedDocument]   # Raw retrieved documents
+    documents: List[RetrievedDocument]  # Raw retrieved documents
     graded_documents: List[RetrievedDocument]  # Documents that passed relevance grading
-    
+
     # Generation
-    generation: Optional[str]           # Generated answer
-    
+    generation: Optional[str]  # Generated answer
+
     # Quality Control
     hallucination_check: Optional[bool]  # True = grounded, False = hallucinated
-    answer_quality: Optional[bool]       # True = adequate, False = needs improvement
-    
+    answer_quality: Optional[bool]  # True = adequate, False = needs improvement
+
     # Self-Correction
-    rewritten_query: Optional[str]       # Refined query for retry
-    retry_count: int                     # Current retry iteration
-    max_retries: int                     # Maximum retries (default 3)
-    
+    rewritten_query: Optional[str]  # Refined query for retry
+    retry_count: int  # Current retry iteration
+    max_retries: int  # Maximum retries (default 3)
+
     # Metadata
-    route_explanation: str               # Why the router chose this route
-    execution_trace: List[str]           # Ordered list of nodes executed
+    route_explanation: str  # Why the router chose this route
+    execution_trace: List[str]  # Ordered list of nodes executed
 
 
 # =============================================================================
 # NODE FUNCTIONS
 # =============================================================================
 
+
 async def smart_router(state: AdaptiveRAGState) -> dict:
     """Classify the query into no_retrieval, single_step, or multi_hop."""
     logger.info("--- NODE: smart_router ---")
-    
+
     system_prompt = """You are a smart router for a RAG pipeline.
 Your goal is to classify a user query into one of three routes based on its complexity:
 
@@ -89,9 +96,9 @@ Respond ONLY with a JSON object: {"route": "no_retrieval" | "single_step" | "mul
 
     messages = [
         {"role": "system", "content": system_prompt},
-        {"role": "user", "content": state["query"]}
+        {"role": "user", "content": state["query"]},
     ]
-    
+
     # Pre-initialise so the except block can't raise UnboundLocalError when
     # call_model itself fails (e.g. the resolved provider is down / 500s). A
     # dead LLM must degrade to single_step retrieval, not crash the pipeline.
@@ -115,56 +122,55 @@ Respond ONLY with a JSON object: {"route": "no_retrieval" | "single_step" | "mul
         explanation = f"Defaulted to single_step (router LLM unavailable: {e})"
 
     return {
-        "route": route, 
-        "route_explanation": explanation, 
-        "execution_trace": state.get("execution_trace", []) + ["smart_router"]
+        "route": route,
+        "route_explanation": explanation,
+        "execution_trace": state.get("execution_trace", []) + ["smart_router"],
     }
 
 
 async def retrieve_single_step(state: AdaptiveRAGState) -> dict:
     """Retrieve documents from ChromaDB."""
     logger.info("--- NODE: retrieve_single_step ---")
-    
+
     query = state.get("rewritten_query") or state["query"]
     workspace = state["workspace"]
-    
+
     try:
         client = get_chromadb_client(workspace)
         collection = get_knowledge_collection(client)
-        
-        results = collection.query(
-            query_texts=[query],
-            n_results=10
-        )
-        
+
+        results = collection.query(query_texts=[query], n_results=10)
+
         documents = []
         if results and results["documents"] and results["documents"][0]:
             for doc, meta in zip(results["documents"][0], results["metadatas"][0]):
-                documents.append({
-                    "content": doc,
-                    "source": meta.get("source", "Unknown"),
-                    "relevance_score": 0.0
-                })
-        
+                documents.append(
+                    {
+                        "content": doc,
+                        "source": meta.get("source", "Unknown"),
+                        "relevance_score": 0.0,
+                    }
+                )
+
         return {
             "documents": documents,
-            "execution_trace": state.get("execution_trace", []) + ["retrieve_single_step"]
+            "execution_trace": state.get("execution_trace", []) + ["retrieve_single_step"],
         }
     except Exception as e:
         logger.error(f"Retrieval failed: {e}")
         return {
             "documents": [],
-            "execution_trace": state.get("execution_trace", []) + ["retrieve_single_step"]
+            "execution_trace": state.get("execution_trace", []) + ["retrieve_single_step"],
         }
 
 
 async def retrieve_multi_hop(state: AdaptiveRAGState) -> dict:
     """Retrieve from ChromaDB and perform multi-hop graph traversal."""
     logger.info("--- NODE: retrieve_multi_hop ---")
-    
+
     query = state.get("rewritten_query") or state["query"]
     workspace = state["workspace"]
-    
+
     # 1. ChromaDB Retrieval
     chroma_docs = []
     try:
@@ -173,11 +179,13 @@ async def retrieve_multi_hop(state: AdaptiveRAGState) -> dict:
         results = collection.query(query_texts=[query], n_results=10)
         if results and results["documents"] and results["documents"][0]:
             for doc, meta in zip(results["documents"][0], results["metadatas"][0]):
-                chroma_docs.append({
-                    "content": doc,
-                    "source": meta.get("source", "Unknown"),
-                    "relevance_score": 0.0
-                })
+                chroma_docs.append(
+                    {
+                        "content": doc,
+                        "source": meta.get("source", "Unknown"),
+                        "relevance_score": 0.0,
+                    }
+                )
     except Exception as e:
         logger.error(f"ChromaDB retrieval failed in multi-hop: {e}")
 
@@ -185,11 +193,9 @@ async def retrieve_multi_hop(state: AdaptiveRAGState) -> dict:
     graph_docs = multi_hop_traversal(query, workspace=workspace)
     formatted_graph_docs = []
     for gdoc in graph_docs:
-        formatted_graph_docs.append({
-            "content": gdoc["content"],
-            "source": gdoc["source"],
-            "relevance_score": 0.0
-        })
+        formatted_graph_docs.append(
+            {"content": gdoc["content"], "source": gdoc["source"], "relevance_score": 0.0}
+        )
 
     # Merge and deduplicate (by source/content simplified)
     merged = chroma_docs + formatted_graph_docs
@@ -202,7 +208,7 @@ async def retrieve_multi_hop(state: AdaptiveRAGState) -> dict:
 
     return {
         "documents": deduped,
-        "execution_trace": state.get("execution_trace", []) + ["retrieve_multi_hop"]
+        "execution_trace": state.get("execution_trace", []) + ["retrieve_multi_hop"],
     }
 
 
@@ -240,18 +246,23 @@ async def retrieve_structured(state: AdaptiveRAGState) -> dict:
         "You navigate a document's table of contents. Given a question and a "
         "catalogue of documents with section ids in [brackets], return the "
         "section ids whose content most likely answers the question. Respond "
-        "ONLY with a JSON array of strings like [\"USER_GUIDE:0.2\", \"GUIDE:0.5\"], "
+        'ONLY with a JSON array of strings like ["USER_GUIDE:0.2", "GUIDE:0.5"], '
         "using the form SOURCE:node_id. Pick at most 6."
     )
     user_prompt = f"QUESTION: {query}\n\nCATALOGUE:\n{catalogue}"
 
     selected: List[tuple] = []
     try:
-        response = await call_model(model=state["model"], messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ], temperature=0.0)
+        response = await call_model(
+            model=state["model"],
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.0,
+        )
         import re as _re
+
         match = _re.search(r"\[.*\]", response or "", _re.DOTALL)
         if match:
             for item in json.loads(match.group(0)):
@@ -263,6 +274,7 @@ async def retrieve_structured(state: AdaptiveRAGState) -> dict:
 
     # Resolve selected (source, node_id) → leaf text. Fall back to first leaves.
     from .pageindex import flatten_leaves
+
     documents: List[RetrievedDocument] = []
     leaf_index = {
         (name, leaf.get("node_id")): leaf
@@ -276,11 +288,13 @@ async def retrieve_structured(state: AdaptiveRAGState) -> dict:
         chosen = chosen[:6]
 
     for leaf in chosen:
-        documents.append({
-            "content": leaf.get("text", ""),
-            "source": f"{leaf.get('title', 'Section')} [{leaf.get('node_id', '')}]",
-            "relevance_score": 1.0,
-        })
+        documents.append(
+            {
+                "content": leaf.get("text", ""),
+                "source": f"{leaf.get('title', 'Section')} [{leaf.get('node_id', '')}]",
+                "relevance_score": 1.0,
+            }
+        )
 
     return {
         "documents": documents,
@@ -326,12 +340,17 @@ async def grade_documents(state: AdaptiveRAGState) -> dict:
 
     graded_documents = []
     try:
-        response = await call_model(model=state["model"], messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ], temperature=0.0)
+        response = await call_model(
+            model=state["model"],
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.0,
+        )
 
         import re as _re
+
         match = _re.search(r"\[[\d,\s]*\]", response or "")
         if match:
             for i in json.loads(match.group(0)):
@@ -351,18 +370,18 @@ async def grade_documents(state: AdaptiveRAGState) -> dict:
 
     return {
         "graded_documents": graded_documents,
-        "execution_trace": state.get("execution_trace", []) + ["grade_documents"]
+        "execution_trace": state.get("execution_trace", []) + ["grade_documents"],
     }
 
 
 async def generate_answer(state: AdaptiveRAGState) -> dict:
     """Generate the answer based on context or parametric knowledge."""
     logger.info("--- NODE: generate_answer ---")
-    
+
     query = state.get("rewritten_query") or state["query"]
     route = state["route"]
     graded_docs = state["graded_documents"]
-    
+
     if route == "no_retrieval":
         system_prompt = "You are a helpful research assistant. Answer the question accurately based on your knowledge."
         context_str = "No external context used."
@@ -372,80 +391,94 @@ If the context doesn't contain the answer, say so explicitly."""
         context_str = "\n".join([f"[Source: {d['source']}]\n{d['content']}" for d in graded_docs])
 
     user_prompt = f"CONTEXT:\n{context_str}\n\nQUESTION: {query}"
-    
+
     try:
-        generation = await call_model(model=state["model"], messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ])
-        
+        generation = await call_model(
+            model=state["model"],
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+        )
+
         return {
             "generation": generation,
-            "execution_trace": state.get("execution_trace", []) + ["generate_answer"]
+            "execution_trace": state.get("execution_trace", []) + ["generate_answer"],
         }
     except Exception as e:
         logger.error(f"Generation failed: {e}")
         return {
             "generation": f"Error generating answer: {str(e)}",
-            "execution_trace": state.get("execution_trace", []) + ["generate_answer"]
+            "execution_trace": state.get("execution_trace", []) + ["generate_answer"],
         }
 
 
 async def check_hallucination(state: AdaptiveRAGState) -> dict:
     """Check if the answer is grounded in the documents."""
     logger.info("--- NODE: check_hallucination ---")
-    
+
     if state["route"] == "no_retrieval":
-        return {"hallucination_check": True, "execution_trace": state.get("execution_trace", []) + ["check_hallucination"]}
-    
+        return {
+            "hallucination_check": True,
+            "execution_trace": state.get("execution_trace", []) + ["check_hallucination"],
+        }
+
     graded_docs = state["graded_documents"]
     generation = state["generation"]
-    
-    context_str = "\n".join([d['content'] for d in graded_docs])
-    
+
+    context_str = "\n".join([d["content"] for d in graded_docs])
+
     system_prompt = """You are a hallucination grader. evaluate if the generated answer is fully grounded in the provided facts.
 Respond with ONLY 'yes' if it is grounded, or 'no' if it contains hallucinations or unverified info."""
-    
+
     user_prompt = f"FACTS:\n{context_str}\n\nANSWER:\n{generation}"
-    
+
     try:
-        response = await call_model(model=state["model"], messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ], temperature=0.0)
-        
+        response = await call_model(
+            model=state["model"],
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.0,
+        )
+
         is_grounded = "yes" in response.lower()
         return {
             "hallucination_check": is_grounded,
-            "execution_trace": state.get("execution_trace", []) + ["check_hallucination"]
+            "execution_trace": state.get("execution_trace", []) + ["check_hallucination"],
         }
     except Exception as e:
         logger.warning(f"Hallucination check failed: {e}")
-        return {"hallucination_check": True} # Default to true on error to avoid loops
+        return {"hallucination_check": True}  # Default to true on error to avoid loops
 
 
 async def check_answer_quality(state: AdaptiveRAGState) -> dict:
     """Check if the answer addresses the user query."""
     logger.info("--- NODE: check_answer_quality ---")
-    
+
     query = state["query"]
     generation = state["generation"]
-    
+
     system_prompt = """You are a quality grader. Does the following answer adequately address the original question? Is it complete and useful? 
 Respond with ONLY 'yes' or 'no'."""
-    
+
     user_prompt = f"QUESTION: {query}\n\nANSWER: {generation}"
-    
+
     try:
-        response = await call_model(model=state["model"], messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ], temperature=0.0)
-        
+        response = await call_model(
+            model=state["model"],
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.0,
+        )
+
         is_adequate = "yes" in response.lower()
         return {
             "answer_quality": is_adequate,
-            "execution_trace": state.get("execution_trace", []) + ["check_answer_quality"]
+            "execution_trace": state.get("execution_trace", []) + ["check_answer_quality"],
         }
     except Exception as e:
         logger.warning(f"Quality check failed: {e}")
@@ -455,29 +488,32 @@ Respond with ONLY 'yes' or 'no'."""
 async def rewrite_query(state: AdaptiveRAGState) -> dict:
     """Rewrite the query for better retrieval."""
     logger.info("--- NODE: rewrite_query ---")
-    
+
     query = state["query"]
-    
+
     system_prompt = """The following question did not produce a satisfactory answer. 
 Rewrite it to be more specific and searchable for a vector database. 
 Return ONLY the rewritten question, nothing else."""
-    
+
     try:
-        new_query = await call_model(model=state["model"], messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": query}
-        ])
-        
+        new_query = await call_model(
+            model=state["model"],
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": query},
+            ],
+        )
+
         return {
             "rewritten_query": new_query.strip(),
             "retry_count": state["retry_count"] + 1,
-            "execution_trace": state.get("execution_trace", []) + ["rewrite_query"]
+            "execution_trace": state.get("execution_trace", []) + ["rewrite_query"],
         }
     except Exception as e:
         logger.warning(f"Query rewrite failed: {e}")
         return {
             "retry_count": state["retry_count"] + 1,
-            "execution_trace": state.get("execution_trace", []) + ["rewrite_query"]
+            "execution_trace": state.get("execution_trace", []) + ["rewrite_query"],
         }
 
 
@@ -485,7 +521,12 @@ Return ONLY the rewritten question, nothing else."""
 # ROUTING FUNCTIONS
 # =============================================================================
 
-def route_query(state: AdaptiveRAGState) -> Literal["generate_answer", "retrieve_single_step", "retrieve_multi_hop", "retrieve_structured"]:
+
+def route_query(
+    state: AdaptiveRAGState,
+) -> Literal[
+    "generate_answer", "retrieve_single_step", "retrieve_multi_hop", "retrieve_structured"
+]:
     """Route after smart_router based on the classified route."""
     route = state.get("route", "single_step")
     if route == "no_retrieval":
@@ -497,6 +538,7 @@ def route_query(state: AdaptiveRAGState) -> Literal["generate_answer", "retrieve
     else:
         return "retrieve_single_step"
 
+
 def after_grading(state: AdaptiveRAGState) -> Literal["generate_answer", "rewrite_query"]:
     """After grading, decide: generate or rewrite."""
     graded = state.get("graded_documents", [])
@@ -504,19 +546,30 @@ def after_grading(state: AdaptiveRAGState) -> Literal["generate_answer", "rewrit
         return "rewrite_query"
     return "generate_answer"
 
-def after_hallucination_check(state: AdaptiveRAGState) -> Literal["check_answer_quality", "rewrite_query"]:
+
+def after_hallucination_check(
+    state: AdaptiveRAGState,
+) -> Literal["check_answer_quality", "rewrite_query"]:
     """After hallucination check: if hallucinated and retries left, rewrite."""
-    if not state.get("hallucination_check", True) and state.get("retry_count", 0) < state.get("max_retries", 3):
+    if not state.get("hallucination_check", True) and state.get("retry_count", 0) < state.get(
+        "max_retries", 3
+    ):
         return "rewrite_query"
     return "check_answer_quality"
 
+
 def after_answer_quality(state: AdaptiveRAGState) -> Literal["__end__", "rewrite_query"]:
     """After answer quality check: if poor and retries left, rewrite."""
-    if not state.get("answer_quality", True) and state.get("retry_count", 0) < state.get("max_retries", 3):
+    if not state.get("answer_quality", True) and state.get("retry_count", 0) < state.get(
+        "max_retries", 3
+    ):
         return "rewrite_query"
     return "__end__"
 
-def after_rewrite(state: AdaptiveRAGState) -> Literal["retrieve_single_step", "retrieve_multi_hop", "retrieve_structured"]:
+
+def after_rewrite(
+    state: AdaptiveRAGState,
+) -> Literal["retrieve_single_step", "retrieve_multi_hop", "retrieve_structured"]:
     """After rewrite, go back to retrieval using the original route."""
     route = state.get("route", "single_step")
     if route == "multi_hop":
@@ -529,6 +582,7 @@ def after_rewrite(state: AdaptiveRAGState) -> Literal["retrieve_single_step", "r
 # =============================================================================
 # GRAPH CONSTRUCTION
 # =============================================================================
+
 
 def build_adaptive_rag_graph(self_check: bool = False) -> StateGraph:
     """Build the Adaptive RAG LangGraph.
@@ -554,40 +608,66 @@ def build_adaptive_rag_graph(self_check: bool = False) -> StateGraph:
     graph.add_node("rewrite_query", rewrite_query)
 
     graph.add_edge(START, "smart_router")
-    graph.add_conditional_edges("smart_router", route_query, {
-        "generate_answer": "generate_answer",
-        "retrieve_single_step": "retrieve_single_step",
-        "retrieve_multi_hop": "retrieve_multi_hop",
-        "retrieve_structured": "retrieve_structured",
-    })
+    graph.add_conditional_edges(
+        "smart_router",
+        route_query,
+        {
+            "generate_answer": "generate_answer",
+            "retrieve_single_step": "retrieve_single_step",
+            "retrieve_multi_hop": "retrieve_multi_hop",
+            "retrieve_structured": "retrieve_structured",
+        },
+    )
     graph.add_edge("retrieve_single_step", "grade_documents")
     graph.add_edge("retrieve_multi_hop", "grade_documents")
     graph.add_edge("retrieve_structured", "grade_documents")
-    graph.add_conditional_edges("grade_documents", after_grading, {
-        "generate_answer": "generate_answer",
-        "rewrite_query": "rewrite_query",
-    })
-    graph.add_conditional_edges("rewrite_query", after_rewrite, {
-        "retrieve_single_step": "retrieve_single_step",
-        "retrieve_multi_hop": "retrieve_multi_hop",
-        "retrieve_structured": "retrieve_structured",
-    })
+    graph.add_conditional_edges(
+        "grade_documents",
+        after_grading,
+        {
+            "generate_answer": "generate_answer",
+            "rewrite_query": "rewrite_query",
+        },
+    )
+    graph.add_conditional_edges(
+        "rewrite_query",
+        after_rewrite,
+        {
+            "retrieve_single_step": "retrieve_single_step",
+            "retrieve_multi_hop": "retrieve_multi_hop",
+            "retrieve_structured": "retrieve_structured",
+        },
+    )
 
     if self_check:
         graph.add_node("check_hallucination", check_hallucination)
         graph.add_node("check_answer_quality", check_answer_quality)
-        graph.add_conditional_edges("generate_answer", lambda s: "check_answer_quality" if s["route"] == "no_retrieval" else "check_hallucination", {
-            "check_hallucination": "check_hallucination",
-            "check_answer_quality": "check_answer_quality",
-        })
-        graph.add_conditional_edges("check_hallucination", after_hallucination_check, {
-            "check_answer_quality": "check_answer_quality",
-            "rewrite_query": "rewrite_query",
-        })
-        graph.add_conditional_edges("check_answer_quality", after_answer_quality, {
-            "__end__": END,
-            "rewrite_query": "rewrite_query",
-        })
+        graph.add_conditional_edges(
+            "generate_answer",
+            lambda s: (
+                "check_answer_quality" if s["route"] == "no_retrieval" else "check_hallucination"
+            ),
+            {
+                "check_hallucination": "check_hallucination",
+                "check_answer_quality": "check_answer_quality",
+            },
+        )
+        graph.add_conditional_edges(
+            "check_hallucination",
+            after_hallucination_check,
+            {
+                "check_answer_quality": "check_answer_quality",
+                "rewrite_query": "rewrite_query",
+            },
+        )
+        graph.add_conditional_edges(
+            "check_answer_quality",
+            after_answer_quality,
+            {
+                "__end__": END,
+                "rewrite_query": "rewrite_query",
+            },
+        )
     else:
         # Lean: stop after a grounded answer — no extra LLM round-trips.
         graph.add_edge("generate_answer", END)
@@ -609,6 +689,7 @@ async def run_adaptive_rag(
     if not model:
         try:
             from ..core.models import get_active_model
+
             model = await get_active_model(workspace, role="chat")
         except Exception:
             model = "fastflowlm/default"
@@ -631,6 +712,6 @@ async def run_adaptive_rag(
         "route_explanation": "",
         "execution_trace": [],
     }
-    
+
     result = await graph.ainvoke(initial_state)
     return result

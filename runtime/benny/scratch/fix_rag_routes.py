@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 
 path = r"c:\Users\nsdha\OneDrive\code\benny\benny\api\rag_routes.py"
 with open(path, "r", encoding="utf-8") as f:

@@ -15,9 +15,9 @@ Structure:
 from __future__ import annotations
 
 import logging
-from typing import Optional, Dict, Any, List
-from pathlib import Path
 from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from ..core.workspace import get_workspace_path
 
@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class AgentIdentity:
     """Parsed identity from SOUL.md."""
+
     name: str = "Benny"
     purpose: str = ""
     communication_style: str = ""
@@ -38,6 +39,7 @@ class AgentIdentity:
 @dataclass
 class UserContext:
     """Parsed context from USER.md."""
+
     organization: str = ""
     authorized_personnel: list = field(default_factory=list)
     escalation_paths: list = field(default_factory=list)
@@ -49,6 +51,7 @@ class UserContext:
 @dataclass
 class OperationalRules:
     """Parsed rules from AGENTS.md."""
+
     coding_standards: list = field(default_factory=list)
     tool_usage_policies: list = field(default_factory=list)
     forbidden_actions: list = field(default_factory=list)
@@ -76,7 +79,7 @@ def _parse_sections(content: str) -> Dict[str, str]:
     sections: Dict[str, str] = {}
     current_heading = "preamble"
     current_content = []
-    
+
     for line in content.split("\n"):
         stripped = line.strip()
         if stripped.startswith("# ") or stripped.startswith("## "):
@@ -87,10 +90,10 @@ def _parse_sections(content: str) -> Dict[str, str]:
             current_content = []
         else:
             current_content.append(line)
-    
+
     if current_content:
         sections[current_heading] = "\n".join(current_content).strip()
-    
+
     return sections
 
 
@@ -109,9 +112,9 @@ def get_agent_identity(workspace: str) -> AgentIdentity:
     content = _read_manual(workspace, "SOUL.md")
     if not content:
         return AgentIdentity(raw_content="")
-    
+
     sections = _parse_sections(content)
-    
+
     return AgentIdentity(
         name=sections.get("name", "Benny").strip(),
         purpose=sections.get("purpose", ""),
@@ -127,9 +130,9 @@ def get_user_context(workspace: str) -> UserContext:
     content = _read_manual(workspace, "USER.md")
     if not content:
         return UserContext(raw_content="")
-    
+
     sections = _parse_sections(content)
-    
+
     return UserContext(
         organization=sections.get("organization", ""),
         authorized_personnel=_parse_list(sections.get("authorized personnel", "")),
@@ -145,9 +148,9 @@ def get_operational_rules(workspace: str) -> OperationalRules:
     content = _read_manual(workspace, "AGENTS.md")
     if not content:
         return OperationalRules(raw_content="")
-    
+
     sections = _parse_sections(content)
-    
+
     return OperationalRules(
         coding_standards=_parse_list(sections.get("coding standards", "")),
         tool_usage_policies=_parse_list(sections.get("tool usage policies", "")),
@@ -166,18 +169,22 @@ def build_system_prompt_augmentation(workspace: str, tools: Optional[List[str]] 
     identity = get_agent_identity(workspace)
     user_ctx = get_user_context(workspace)
     rules = get_operational_rules(workspace)
-    
+
     parts = []
-    
+
     # 1. Platform Authorization (Explicit Permission Grant)
     if tools:
-        parts.append(f"=== TOOL AUTHORIZATION ===")
-        parts.append(f"The following tools are EXPLICITLY whitelisted for the current session by the platform:")
+        parts.append("=== TOOL AUTHORIZATION ===")
+        parts.append(
+            "The following tools are EXPLICITLY whitelisted for the current session by the platform:"
+        )
         parts.append(f"Tools: {', '.join(tools)}")
-        parts.append("Execution of these tools is pre-authorized by the enterprise governance layer. You have full permission to invoke these tools as needed to complete the task.")
-    
+        parts.append(
+            "Execution of these tools is pre-authorized by the enterprise governance layer. You have full permission to invoke these tools as needed to complete the task."
+        )
+
     if identity.raw_content:
-        parts.append(f"=== AGENT IDENTITY ===")
+        parts.append("=== AGENT IDENTITY ===")
         if identity.name:
             parts.append(f"Name: {identity.name}")
         if identity.purpose:
@@ -186,29 +193,33 @@ def build_system_prompt_augmentation(workspace: str, tools: Optional[List[str]] 
             parts.append(f"Communication Style: {identity.communication_style}")
         if identity.boundaries:
             parts.append(f"Boundaries: {'; '.join(identity.boundaries)}")
-    
+
     if user_ctx.raw_content:
-        parts.append(f"\n=== ENTERPRISE CONTEXT ===")
+        parts.append("\n=== ENTERPRISE CONTEXT ===")
         if user_ctx.organization:
             parts.append(f"Organization: {user_ctx.organization}")
         if user_ctx.domain_context:
             parts.append(f"Domain: {user_ctx.domain_context}")
         if user_ctx.compliance_requirements:
             parts.append(f"Compliance: {'; '.join(user_ctx.compliance_requirements)}")
-    
+
     if rules.raw_content:
-        parts.append(f"\n=== OPERATIONAL RULES ===")
+        parts.append("\n=== OPERATIONAL RULES ===")
         if rules.forbidden_actions:
             parts.append(f"FORBIDDEN: {'; '.join(rules.forbidden_actions)}")
         if rules.tool_usage_policies:
             parts.append(f"Tool Policies: {'; '.join(rules.tool_usage_policies)}")
-        
+
     # Standardized Reasoning Instruction
     parts.append("\n=== REASONING PROTOCOL ===")
-    parts.append("If you need to think, process, or plan before answering, wrap your internal monologue in <think> tags.")
-    parts.append("Output your final response outside these tags. Do not mention your thinking process in the final response unless requested.")
-    
+    parts.append(
+        "If you need to think, process, or plan before answering, wrap your internal monologue in <think> tags."
+    )
+    parts.append(
+        "Output your final response outside these tags. Do not mention your thinking process in the final response unless requested."
+    )
+
     if not parts:
         return ""
-    
+
     return "\n".join(parts) + "\n\n"

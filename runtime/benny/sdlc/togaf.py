@@ -63,7 +63,6 @@ from typing import Any, Optional
 
 from benny.sdlc.contracts import Adr, QualityGate, TogafPhase
 
-
 # ---------------------------------------------------------------------------
 # Custom exceptions
 # ---------------------------------------------------------------------------
@@ -327,7 +326,7 @@ def run_quality_gate(
                 f"Quality gate [{gate.kind}] failed (exit={exit_code}): "
                 f"{gate.command}\n{output}"
             )
-        action: str = gate.on_failure   # "retry" or "escalate"
+        action: str = gate.on_failure  # "retry" or "escalate"
     else:
         action = "pass"
 
@@ -389,7 +388,7 @@ def build_quality_gate_event(
         "gate_kind": gate.kind,
         "gate_command": gate.command,
         "exit_code": exit_code,
-        "output": output[:2000],    # truncate to prevent payload bloat
+        "output": output[:2000],  # truncate to prevent payload bloat
         "on_failure": gate.on_failure,
     }
 

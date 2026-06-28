@@ -13,6 +13,7 @@ honest, and the result is a single document where every figure is a Mermaid diag
 every table is JSON, and every surrogate cites its page/bbox/source figure — feeding
 the existing PageIndex/triple pipeline unchanged.
 """
+
 from __future__ import annotations
 
 import json
@@ -24,9 +25,9 @@ from .docmodel import _safe_stem
 from .vision_describe import (
     DEFAULT_REVIEWER,
     DEFAULT_VLM,
+    _table_json_to_markdown,
     classify_visual,
     describe_element,
-    _table_json_to_markdown,
 )
 from .workspace import get_workspace_path
 
@@ -83,7 +84,9 @@ def _surrogate_to_markdown(el: dict) -> str:
 
     if t == "table" and el.get("table"):
         md = _table_json_to_markdown(el["table"], max_rows=50)
-        js = json.dumps({"columns": el["table"]["columns"], "rows": el["table"]["rows"]}, ensure_ascii=False)
+        js = json.dumps(
+            {"columns": el["table"]["columns"], "rows": el["table"]["rows"]}, ensure_ascii=False
+        )
         return f"{prov}\n{md}\n\n```json\n{js}\n```"
 
     if t in VISUAL_TYPES and sur:
@@ -131,9 +134,16 @@ async def enrich_docmodel(
         visuals = visuals[:limit]
     todo_ids = {e["id"] for e in visuals}
 
-    summary = {"visual_total": sum(1 for e in elements if e.get("type") in VISUAL_TYPES),
-               "visual_processed": 0, "diagrams": 0, "validated": 0,
-               "caption_fallback": 0, "charts": 0, "tables": 0, "scores": []}
+    summary = {
+        "visual_total": sum(1 for e in elements if e.get("type") in VISUAL_TYPES),
+        "visual_processed": 0,
+        "diagrams": 0,
+        "validated": 0,
+        "caption_fallback": 0,
+        "charts": 0,
+        "tables": 0,
+        "scores": [],
+    }
 
     for el in elements:
         if el.get("type") == "table" and el.get("table"):
@@ -148,12 +158,21 @@ async def enrich_docmodel(
         caption = _caption_for(by_order, el["reading_order"])
         context = _context_for(by_order, el["reading_order"])
         kind = classify_visual(el["type"], caption)
-        log_fn(f"[pipeline] #{el['reading_order']} p{el.get('page')} {el['type']} -> {kind}  ({caption[:50]!r})")
+        log_fn(
+            f"[pipeline] #{el['reading_order']} p{el.get('page')} {el['type']} -> {kind}  ({caption[:50]!r})"
+        )
 
         sur = await describe_element(
-            crop_path.read_bytes(), label=el["type"], caption=caption, context=context,
-            vlm_model=vlm_model, reviewer_model=reviewer_model, max_refine=max_refine,
-            render_check=render_check, run_id=run_id, log_fn=lambda *a: log_fn("    ", *a),
+            crop_path.read_bytes(),
+            label=el["type"],
+            caption=caption,
+            context=context,
+            vlm_model=vlm_model,
+            reviewer_model=reviewer_model,
+            max_refine=max_refine,
+            render_check=render_check,
+            run_id=run_id,
+            log_fn=lambda *a: log_fn("    ", *a),
         )
         el["surrogate"] = sur
         summary["visual_processed"] += 1
@@ -171,14 +190,22 @@ async def enrich_docmodel(
     scores = summary.pop("scores")
     summary["avg_score"] = round(sum(scores) / len(scores), 2) if scores else None
 
-    markdown = "\n\n".join(_surrogate_to_markdown(e) for e in elements if _surrogate_to_markdown(e).strip())
+    markdown = "\n\n".join(
+        _surrogate_to_markdown(e) for e in elements if _surrogate_to_markdown(e).strip()
+    )
 
-    return {"markdown": markdown, "elements": elements, "summary": summary,
-            "source": docmodel.get("source"), "workspace": ws}
+    return {
+        "markdown": markdown,
+        "elements": elements,
+        "summary": summary,
+        "source": docmodel.get("source"),
+        "workspace": ws,
+    }
 
 
-def write_enriched(result: Dict[str, Any], workspace: str, stem: str,
-                   workspace_root: Optional[Path] = None) -> Dict[str, str]:
+def write_enriched(
+    result: Dict[str, Any], workspace: str, stem: str, workspace_root: Optional[Path] = None
+) -> Dict[str, str]:
     """Persist the enriched markdown (for ingest) + JSON sidecar (provenance) under
     ``.benny/docmodel/``. Returns the written paths."""
     root = workspace_root or get_workspace_path(workspace)
@@ -188,7 +215,16 @@ def write_enriched(result: Dict[str, Any], workspace: str, stem: str,
     md_path = out_dir / f"{stem}.enriched.md"
     json_path = out_dir / f"{stem}.enriched.json"
     md_path.write_text(result["markdown"], encoding="utf-8")
-    json_path.write_text(json.dumps(
-        {"source": result.get("source"), "summary": result["summary"], "elements": result["elements"]},
-        indent=2, ensure_ascii=False), encoding="utf-8")
+    json_path.write_text(
+        json.dumps(
+            {
+                "source": result.get("source"),
+                "summary": result["summary"],
+                "elements": result["elements"],
+            },
+            indent=2,
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
     return {"markdown": str(md_path), "json": str(json_path)}

@@ -3,24 +3,29 @@ Clustering Service - Topological community detection for the knowledge graph.
 Implements a lightweight Label Propagation Algorithm (LPA) to identify 'Semantic Neighborhoods'.
 """
 
-import logging
 import asyncio
-import anyio
-from typing import Dict, List, Any, Set
+import logging
 from collections import Counter
+from typing import Any, Dict, List, Set
+
+import anyio
+
 from ..core.graph_db import get_driver
 
 logger = logging.getLogger(__name__)
 
+
 class ClusteringService:
     @staticmethod
-    async def run_lpa_on_workspace(workspace: str, iterations: int = 5, auto_layout: bool = True) -> Dict[str, Any]:
+    async def run_lpa_on_workspace(
+        workspace: str, iterations: int = 5, auto_layout: bool = True
+    ) -> Dict[str, Any]:
         """
         Runs Label Propagation Algorithm on the graph for a specific workspace.
         Assigns a 'community_id' to every node (Concept, File, Symbol).
         """
         driver = get_driver()
-        
+
         # 1. Fetch the adjacency list (only within the workspace)
         # We treat the graph as undirected for clustering purposes
         query = """
@@ -28,21 +33,21 @@ class ClusteringService:
         OPTIONAL MATCH (n)-[r]-(m {workspace: $workspace})
         RETURN id(n) as node_id, collect(id(m)) as neighbors
         """
-        
-        nodes: Dict[int, int] = {} # node_id -> community_id
+
+        nodes: Dict[int, int] = {}  # node_id -> community_id
         adj: Dict[int, List[int]] = {}
-        
+
         def _fetch_graph():
             with driver.session() as session:
                 result = session.run(query, workspace=workspace)
                 for record in result:
                     n_id = record["node_id"]
-                    nodes[n_id] = n_id # Initial state: every node is its own community
+                    nodes[n_id] = n_id  # Initial state: every node is its own community
                     adj[n_id] = [nb for nb in record["neighbors"] if nb is not None]
             return nodes, adj
 
         nodes, adj = await anyio.to_thread.run_sync(_fetch_graph)
-        
+
         if not nodes:
             return {"status": "empty", "workspace": workspace}
 
@@ -61,12 +66,14 @@ class ClusteringService:
                     if nodes[n_id] != most_common:
                         nodes[n_id] = most_common
                         changes += 1
-                logger.info(f"LPA Iteration {i+1}: {changes} community changes in workspace {workspace}")
+                logger.info(
+                    f"LPA Iteration {i+1}: {changes} community changes in workspace {workspace}"
+                )
                 if changes == 0:
                     break
 
         await anyio.to_thread.run_sync(_iterate_lpa)
-        
+
         # 3. Write results back to Neo4j
         def _write_results():
             write_query = """
@@ -79,11 +86,12 @@ class ClusteringService:
                 session.run(write_query, data=data)
 
         await anyio.to_thread.run_sync(_write_results)
-            
+
         # 4. Generate Semantic Names for major communities
         from ..synthesis.engine import name_community
-        
+
         community_members: Dict[int, List[str]] = {}
+
         def _fetch_members():
             name_query = """
             MATCH (n {workspace: $workspace})
@@ -94,7 +102,8 @@ class ClusteringService:
                 res = session.run(name_query, workspace=workspace)
                 for record in res:
                     c_id = record["community"]
-                    if c_id not in community_members: community_members[c_id] = []
+                    if c_id not in community_members:
+                        community_members[c_id] = []
                     community_members[c_id].append(record["name"])
             return community_members
 
@@ -105,21 +114,31 @@ class ClusteringService:
                 naming_res = await name_community(members, workspace=workspace)
                 c_name = naming_res.get("community_name", "Cluster Hub")
                 c_just = naming_res.get("justification", "")
-                
+
                 def _update_name():
                     update_name_query = """
                     MATCH (n {workspace: $workspace, community_id: $c_id})
                     SET n.community_name = $c_name, n.community_justification = $c_just
                     """
                     with driver.session() as session:
-                        session.run(update_name_query, workspace=workspace, c_id=c_id, c_name=c_name, c_just=c_just)
-                
+                        session.run(
+                            update_name_query,
+                            workspace=workspace,
+                            c_id=c_id,
+                            c_name=c_name,
+                            c_just=c_just,
+                        )
+
                 await anyio.to_thread.run_sync(_update_name)
             except Exception as e:
                 logger.error(f"Failed to name community {c_id}: {e}")
 
         # Execute naming in parallel
-        tasks = [name_and_update(c_id, members) for c_id, members in community_members.items() if len(members) >= 3]
+        tasks = [
+            name_and_update(c_id, members)
+            for c_id, members in community_members.items()
+            if len(members) >= 3
+        ]
         if tasks:
             await asyncio.gather(*tasks)
 
@@ -127,6 +146,7 @@ class ClusteringService:
         if auto_layout:
             try:
                 from .gravity_index import GravityIndex
+
                 engine = GravityIndex(workspace)
                 await engine.run()
                 logger.info(f"GravityIndex: Auto-layout completed for {workspace}")
@@ -137,7 +157,7 @@ class ClusteringService:
             "status": "completed",
             "workspace": workspace,
             "nodes_processed": len(nodes),
-            "communities_found": len(set(nodes.values()))
+            "communities_found": len(set(nodes.values())),
         }
 
     @staticmethod

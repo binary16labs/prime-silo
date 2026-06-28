@@ -4,7 +4,7 @@ Supports <think> tags, stray </think> tags, and tagless thinking (Qwen3 via Lemo
 """
 
 import re
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 
 def extract_reasoning(text: str) -> Tuple[str, str]:
@@ -21,18 +21,18 @@ def extract_reasoning(text: str) -> Tuple[str, str]:
     body = text
 
     # 1. Full <think>...</think> block (explicit tags, most reliable)
-    think_match = re.search(r'<think>(.*?)(?:</think>|$)', body, re.DOTALL)
+    think_match = re.search(r"<think>(.*?)(?:</think>|$)", body, re.DOTALL)
     if think_match:
         reasoning = think_match.group(1).strip()
-        body = re.sub(r'<think>.*?</think>', '', body, flags=re.DOTALL).strip()
+        body = re.sub(r"<think>.*?</think>", "", body, flags=re.DOTALL).strip()
         # Handle unclosed tag edge case
         if reasoning and body == text:
-            body = re.sub(r'<think>.*$', '', body, flags=re.DOTALL).strip()
+            body = re.sub(r"<think>.*$", "", body, flags=re.DOTALL).strip()
         return body, reasoning
 
     # 2. Stray </think> with no opener — split on it
-    if '</think>' in body:
-        parts = body.split('</think>', 1)
+    if "</think>" in body:
+        parts = body.split("</think>", 1)
         reasoning = parts[0].strip()
         body = parts[1].strip()
         return body, reasoning
@@ -42,7 +42,7 @@ def extract_reasoning(text: str) -> Tuple[str, str]:
     #    Any text preceding the first JSON boundary character is treated as reasoning.
     json_start = -1
     for i, ch in enumerate(body):
-        if ch in '{[':
+        if ch in "{[":
             json_start = i
             break
 
@@ -61,7 +61,7 @@ def extract_reasoning(text: str) -> Tuple[str, str]:
         match = re.search(pattern, body, re.DOTALL | re.IGNORECASE)
         if match:
             reasoning = match.group(1).strip()
-            body = body[match.end():].strip()
+            body = body[match.end() :].strip()
             break
 
     return body, reasoning

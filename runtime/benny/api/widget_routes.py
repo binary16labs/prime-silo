@@ -23,16 +23,18 @@ router = APIRouter()
 
 
 WidgetAuthority = Literal[
-    "read_only",            # pure visualisation — never mutates state
-    "read_write_sandbox",   # may write to agent_sandbox/ via the guarded API
-    "deterministic_only",   # mutates institutional state — agent CANNOT compose
+    "read_only",  # pure visualisation — never mutates state
+    "read_write_sandbox",  # may write to agent_sandbox/ via the guarded API
+    "deterministic_only",  # mutates institutional state — agent CANNOT compose
 ]
 
 
 class FrameBinding(BaseModel):
     """A single binding from a widget prop to a field on the run's output frame."""
 
-    field: str = Field(description="JSON-pointer-style path into the frame, e.g. 'assertions[].entity'.")
+    field: str = Field(
+        description="JSON-pointer-style path into the frame, e.g. 'assertions[].entity'."
+    )
     required: bool = Field(default=True)
     description: str | None = None
 
@@ -157,9 +159,7 @@ _PHASE_A_REGISTRY: List[WidgetManifest] = [
                 },
                 "visibleTypes": {
                     "type": "array",
-                    "items": {
-                        "enum": ["Folder", "File", "Module", "Class", "Function", "Concept"]
-                    },
+                    "items": {"enum": ["Folder", "File", "Module", "Class", "Function", "Concept"]},
                     "description": (
                         "Which node types to render. Defaults to all known types; "
                         "supply a subset to e.g. show only Files + Classes."
@@ -370,4 +370,5 @@ async def get_widget(widget_id: str) -> WidgetManifest:
         if entry.id == widget_id:
             return entry
     from fastapi import HTTPException
+
     raise HTTPException(status_code=404, detail=f"Unknown widget id: {widget_id}")

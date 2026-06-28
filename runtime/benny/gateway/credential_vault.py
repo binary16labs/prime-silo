@@ -7,14 +7,14 @@ Credentials stored at: workspace/credentials/vault.json (encrypted)
 
 from __future__ import annotations
 
-import os
+import base64
+import hashlib
 import json
 import logging
-import hashlib
-import base64
-from typing import Optional, Dict
-from pathlib import Path
+import os
 from datetime import datetime
+from pathlib import Path
+from typing import Dict, Optional
 
 from ..core.workspace import get_workspace_path
 from ..governance.audit import emit_governance_event
@@ -31,9 +31,11 @@ def _get_fernet():
     try:
         from cryptography.fernet import Fernet
     except ImportError:
-        logger.warning("cryptography package not installed. Vault will use base64 encoding (NOT SECURE).")
+        logger.warning(
+            "cryptography package not installed. Vault will use base64 encoding (NOT SECURE)."
+        )
         return None
-    
+
     raw_key = os.getenv(VAULT_KEY_ENV, DEFAULT_KEY)
     # Derive a 32-byte key using SHA-256, then base64-encode for Fernet
     key_bytes = hashlib.sha256(raw_key.encode()).digest()
@@ -68,53 +70,53 @@ def _save_vault(workspace: str, vault: Dict[str, str]) -> None:
 def store_credential(workspace: str, name: str, value: str) -> Dict:
     """
     Store an encrypted credential.
-    
+
     Args:
         workspace: Target workspace
         name: Credential name (e.g., "openai_api_key")
         value: Plain-text credential value
-    
+
     Returns:
         Status dict
     """
     fernet = _get_fernet()
     vault = _load_vault(workspace)
-    
+
     if fernet:
         encrypted = fernet.encrypt(value.encode()).decode()
     else:
         # Fallback: base64 (NOT secure, only for dev)
         encrypted = base64.b64encode(value.encode()).decode()
-    
+
     vault[name] = encrypted
     _save_vault(workspace, vault)
-    
+
     _audit_credential_access(workspace, name, "store")
-    
+
     return {"status": "stored", "name": name}
 
 
 def get_credential(workspace: str, name: str) -> Optional[str]:
     """
     Retrieve and decrypt a credential.
-    
+
     Args:
         workspace: Target workspace
         name: Credential name
-    
+
     Returns:
         Decrypted credential value, or None if not found
     """
     fernet = _get_fernet()
     vault = _load_vault(workspace)
-    
+
     encrypted = vault.get(name)
     if encrypted is None:
         _audit_credential_access(workspace, name, "get_not_found")
         return None
-    
+
     _audit_credential_access(workspace, name, "get")
-    
+
     try:
         if fernet:
             return fernet.decrypt(encrypted.encode()).decode()
@@ -152,7 +154,7 @@ def _audit_credential_access(workspace: str, name: str, operation: str):
                 "operation": operation,
                 "timestamp": datetime.utcnow().isoformat(),
             },
-            workspace_id=workspace
+            workspace_id=workspace,
         )
     except Exception:
         pass

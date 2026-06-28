@@ -180,7 +180,12 @@ async def ingest_files(request: IngestRequest):
         try:
             from .etl_routes import promote_staged_files
 
-            promoted = promote_staged_files(request.workspace, only=request.files, use_docling=request.use_docling, do_ocr=request.do_ocr)
+            promoted = promote_staged_files(
+                request.workspace,
+                only=request.files,
+                use_docling=request.use_docling,
+                do_ocr=request.do_ocr,
+            )
             if promoted:
                 logger.info(f"Promoted {len(promoted)} staged file(s) to data_in: {promoted}")
         except Exception as promote_e:

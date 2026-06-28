@@ -18,7 +18,6 @@ import pandas as pd
 
 from ..models import FormatType, SourceSpec
 
-
 # SAFE_AGG is the allow-list for ``aggregate.metrics`` expressions. The parser
 # rejects anything outside this set — agent-generated manifests should not be
 # able to smuggle arbitrary Python through the ``expr`` field.
@@ -93,9 +92,7 @@ class PandasEngine:
         payload = json.dumps(
             {
                 "columns": sorted(self.columns(df)),
-                "rows": df.sort_index(axis=1)
-                .astype(str)
-                .to_dict(orient="records"),
+                "rows": df.sort_index(axis=1).astype(str).to_dict(orient="records"),
             },
             sort_keys=True,
             default=str,
@@ -246,7 +243,9 @@ class PandasEngine:
     def union(self, left: pd.DataFrame, right: pd.DataFrame) -> pd.DataFrame:
         return pd.concat([left, right], ignore_index=True)
 
-    def mask_pii(self, df: pd.DataFrame, columns: List[str], hash_with: str = "sha256") -> pd.DataFrame:
+    def mask_pii(
+        self, df: pd.DataFrame, columns: List[str], hash_with: str = "sha256"
+    ) -> pd.DataFrame:
         out = df.copy()
 
         def _hash(x: Any) -> Optional[str]:

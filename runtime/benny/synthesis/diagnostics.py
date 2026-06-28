@@ -12,34 +12,42 @@ Used by:
 """
 
 import logging
-from typing import Dict, Any, Optional, List
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 # Expected labels in a healthy, fully-ingested workspace
 EXPECTED_LABELS = [
-    "CodeEntity", "Concept", "Source", "Document",
-    "File", "Class", "Function", "Documentation"
+    "CodeEntity",
+    "Concept",
+    "Source",
+    "Document",
+    "File",
+    "Class",
+    "Function",
+    "Documentation",
 ]
 
 # Expected relationship types in a healthy graph
-EXPECTED_REL_TYPES = [
-    "DEFINES", "REPRESENTS", "CORRELATES_WITH", "REL", "CONTAINS"
-]
+EXPECTED_REL_TYPES = ["DEFINES", "REPRESENTS", "CORRELATES_WITH", "REL", "CONTAINS"]
 
 # Scoring weights
-WEIGHT_LABELS       = 0.30   # Label coverage: are expected labels present?
-WEIGHT_SEM_EDGES    = 0.40   # Semantic edges: CORRELATES_WITH + REL count
-WEIGHT_TEMPORAL     = 0.20   # Temporal coverage: do nodes have created_at?
-WEIGHT_RATIONALE    = 0.10   # Lineage coverage: do edges have rationale?
+WEIGHT_LABELS = 0.30  # Label coverage: are expected labels present?
+WEIGHT_SEM_EDGES = 0.40  # Semantic edges: CORRELATES_WITH + REL count
+WEIGHT_TEMPORAL = 0.20  # Temporal coverage: do nodes have created_at?
+WEIGHT_RATIONALE = 0.10  # Lineage coverage: do edges have rationale?
 
 
 def _letter_grade(score: float) -> str:
     """Convert 0-100 score to a letter grade."""
-    if score >= 90: return "A"
-    if score >= 75: return "B"
-    if score >= 55: return "C"
-    if score >= 35: return "D"
+    if score >= 90:
+        return "A"
+    if score >= 75:
+        return "B"
+    if score >= 55:
+        return "C"
+    if score >= 35:
+        return "D"
     return "F"
 
 
@@ -88,10 +96,10 @@ def get_graph_health(workspace: str = "default") -> Dict[str, Any]:
             "grade_color": _grade_color("F"),
             "error": str(e),
             "zero_link_condition": True,
-            "recommendations": ["Neo4j is not reachable. Verify bolt://localhost:7687 is running."]
+            "recommendations": ["Neo4j is not reachable. Verify bolt://localhost:7687 is running."],
         }
 
-    present_labels    = set(schema.get("labels", []))
+    present_labels = set(schema.get("labels", []))
     present_rel_types = set(schema.get("relationship_types", []))
 
     # ---- 2. Label coverage score ----
@@ -112,15 +120,14 @@ def get_graph_health(workspace: str = "default") -> Dict[str, Any]:
             # Count CORRELATES_WITH
             r1 = session.run(
                 "MATCH ()-[r:CORRELATES_WITH {workspace: $ws}]->() RETURN count(r) AS cnt",
-                ws=workspace
+                ws=workspace,
             ).single()
             cw_count = r1["cnt"] if r1 else 0
             sem_edge_breakdown["CORRELATES_WITH"] = cw_count
 
             # Count REL
             r2 = session.run(
-                "MATCH ()-[r:REL {workspace: $ws}]->() RETURN count(r) AS cnt",
-                ws=workspace
+                "MATCH ()-[r:REL {workspace: $ws}]->() RETURN count(r) AS cnt", ws=workspace
             ).single()
             rel_count = r2["cnt"] if r2 else 0
             sem_edge_breakdown["REL"] = rel_count
@@ -157,12 +164,12 @@ def get_graph_health(workspace: str = "default") -> Dict[str, Any]:
                 "MATCH (n:CodeEntity {workspace: $ws}) "
                 "RETURN count(n) AS total, "
                 "count(CASE WHEN n.created_at IS NOT NULL THEN 1 END) AS with_ts",
-                ws=workspace
+                ws=workspace,
             ).single()
             if r3:
                 total_ce = r3["total"] or 0
                 ce_with_ts = r3["with_ts"] or 0
-                temporal_detail["code_entities_total"]   = total_ce
+                temporal_detail["code_entities_total"] = total_ce
                 temporal_detail["code_entities_with_ts"] = ce_with_ts
                 temporal_score = (ce_with_ts / total_ce * 100) if total_ce > 0 else 100.0
     except Exception as e:
@@ -186,13 +193,13 @@ def get_graph_health(workspace: str = "default") -> Dict[str, Any]:
                 "WHERE r.workspace IS NULL OR r.workspace = $ws "
                 "RETURN count(r) AS total, "
                 "count(CASE WHEN r.rationale IS NOT NULL THEN 1 END) AS with_rationale",
-                ws=workspace
+                ws=workspace,
             ).single()
             if r4:
                 total_cw = r4["total"] or 0
                 cw_with_rat = r4["with_rationale"] or 0
-                rationale_detail["correlates_with_total"]      = total_cw
-                rationale_detail["correlates_with_rationale"]  = cw_with_rat
+                rationale_detail["correlates_with_total"] = total_cw
+                rationale_detail["correlates_with_rationale"] = cw_with_rat
                 rationale_score = (cw_with_rat / total_cw * 100) if total_cw > 0 else 100.0
     except Exception as e:
         logger.warning("get_graph_health: rationale query failed: %s", e)
@@ -207,10 +214,10 @@ def get_graph_health(workspace: str = "default") -> Dict[str, Any]:
 
     # ---- 6. Composite score ----
     composite = (
-        score_components["label"]    * WEIGHT_LABELS    +
-        score_components["semantic"] * WEIGHT_SEM_EDGES +
-        score_components["temporal"] * WEIGHT_TEMPORAL  +
-        score_components["rationale"]* WEIGHT_RATIONALE
+        score_components["label"] * WEIGHT_LABELS
+        + score_components["semantic"] * WEIGHT_SEM_EDGES
+        + score_components["temporal"] * WEIGHT_TEMPORAL
+        + score_components["rationale"] * WEIGHT_RATIONALE
     )
 
     grade = _letter_grade(composite)
@@ -218,6 +225,7 @@ def get_graph_health(workspace: str = "default") -> Dict[str, Any]:
     # ---- 7. Schema mode ----
     try:
         from ..synthesis.schema_adapter import SchemaAdapter
+
         adapter = SchemaAdapter(workspace)
         schema_mode = adapter.get_schema_mode()
     except Exception:
@@ -230,21 +238,23 @@ def get_graph_health(workspace: str = "default") -> Dict[str, Any]:
         "zero_link_condition": zero_link,
         "schema_mode": schema_mode,
         "score_components": {
-            "label_coverage_pct":    round(score_components["label"], 1),
-            "semantic_density_pct":  round(score_components["semantic"], 1),
+            "label_coverage_pct": round(score_components["label"], 1),
+            "semantic_density_pct": round(score_components["semantic"], 1),
             "temporal_coverage_pct": round(score_components["temporal"], 1),
-            "rationale_coverage_pct":round(score_components["rationale"], 1),
+            "rationale_coverage_pct": round(score_components["rationale"], 1),
         },
         "label_coverage": {
-            "present":  list(present_labels),
+            "present": list(present_labels),
             "expected": EXPECTED_LABELS,
-            "missing":  missing_labels,
+            "missing": missing_labels,
         },
         "semantic_edges": {
-            "breakdown":      sem_edge_breakdown,
-            "total":          semantic_edge_count,
+            "breakdown": sem_edge_breakdown,
+            "total": semantic_edge_count,
         },
-        "temporal_coverage":  temporal_detail,
+        "temporal_coverage": temporal_detail,
         "rationale_coverage": rationale_detail,
-        "recommendations": recommendations if recommendations else ["Graph is healthy. No action required."],
+        "recommendations": (
+            recommendations if recommendations else ["Graph is healthy. No action required."]
+        ),
     }

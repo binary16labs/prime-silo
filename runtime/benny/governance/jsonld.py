@@ -47,24 +47,24 @@ from typing import Any, Optional
 # ---------------------------------------------------------------------------
 
 _INLINE_CONTEXT: dict[str, Any] = {
-    "prov":   "http://www.w3.org/ns/prov#",
-    "xsd":    "http://www.w3.org/2001/XMLSchema#",
-    "rdfs":   "http://www.w3.org/2000/01/rdf-schema#",
-    "benny":  "https://benny.io/ontology/",
-    "prov:Activity":          {"@id": "prov:Activity"},
-    "prov:Entity":            {"@id": "prov:Entity"},
-    "prov:used":              {"@id": "prov:used",              "@type": "@id"},
-    "prov:generated":         {"@id": "prov:generated",         "@type": "@id"},
+    "prov": "http://www.w3.org/ns/prov#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "benny": "https://benny.io/ontology/",
+    "prov:Activity": {"@id": "prov:Activity"},
+    "prov:Entity": {"@id": "prov:Entity"},
+    "prov:used": {"@id": "prov:used", "@type": "@id"},
+    "prov:generated": {"@id": "prov:generated", "@type": "@id"},
     "prov:wasAssociatedWith": {"@id": "prov:wasAssociatedWith", "@type": "@id"},
-    "prov:startedAtTime":     {"@id": "prov:startedAtTime",     "@type": "xsd:dateTime"},
-    "prov:endedAtTime":       {"@id": "prov:endedAtTime",       "@type": "xsd:dateTime"},
-    "benny:prompt_hash":      {"@id": "benny:prompt_hash"},
-    "benny:reasoning_hash":   {"@id": "benny:reasoning_hash"},
-    "benny:adr_refs":         {"@id": "benny:adr_refs",         "@container": "@list"},
-    "benny:policy_decision":  {"@id": "benny:policy_decision"},
-    "benny:cde_refs":         {"@id": "benny:cde_refs",         "@container": "@list"},
-    "benny:model":            {"@id": "benny:model"},
-    "benny:model_hash":       {"@id": "benny:model_hash"},
+    "prov:startedAtTime": {"@id": "prov:startedAtTime", "@type": "xsd:dateTime"},
+    "prov:endedAtTime": {"@id": "prov:endedAtTime", "@type": "xsd:dateTime"},
+    "benny:prompt_hash": {"@id": "benny:prompt_hash"},
+    "benny:reasoning_hash": {"@id": "benny:reasoning_hash"},
+    "benny:adr_refs": {"@id": "benny:adr_refs", "@container": "@list"},
+    "benny:policy_decision": {"@id": "benny:policy_decision"},
+    "benny:cde_refs": {"@id": "benny:cde_refs", "@container": "@list"},
+    "benny:model": {"@id": "benny:model"},
+    "benny:model_hash": {"@id": "benny:model_hash"},
 }
 
 _VENDOR_RELATIVE = "vendor/prov-o/prov-o.jsonld"
@@ -95,7 +95,7 @@ def _artifact_exists(sha: str, workspace_path: Path) -> bool:
 def _sha_from_uri(uri: str) -> Optional[str]:
     """Extract the SHA-256 hex string from an artifact:// URI, or None."""
     if isinstance(uri, str) and uri.startswith(_ARTIFACT_PREFIX):
-        return uri[len(_ARTIFACT_PREFIX):]
+        return uri[len(_ARTIFACT_PREFIX) :]
     return None
 
 
@@ -179,9 +179,7 @@ def emit_provenance(
         context = _INLINE_CONTEXT
 
     # Build prov:used / prov:generated URI lists
-    used: list[str] = [
-        f"{_ARTIFACT_PREFIX}{sha}" for sha in (inputs_shas or [])
-    ]
+    used: list[str] = [f"{_ARTIFACT_PREFIX}{sha}" for sha in (inputs_shas or [])]
     generated: list[str] = [
         f"{_ARTIFACT_PREFIX}{sha}"
         for sha in (outputs_shas if outputs_shas is not None else [artifact_sha])

@@ -11,6 +11,7 @@ The four first-class services in PBR-001 are ``neo4j``, ``lemonade``,
 ``PortableConfig`` so that port assignments, host-independent paths, and
 profile-specific launcher scripts stay in one place.
 """
+
 from __future__ import annotations
 
 import dataclasses

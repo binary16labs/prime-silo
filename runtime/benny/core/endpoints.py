@@ -22,6 +22,7 @@ Endpoints in a pool are LAN hosts of the *same local provider*, so the offline
 guard still treats them as local. With no pool configured, the provider's
 default ``base_url`` is returned unchanged — fully backwards compatible.
 """
+
 from __future__ import annotations
 
 import itertools
@@ -80,8 +81,9 @@ def get_endpoint_pools(env: Optional[Dict[str, str]] = None) -> Dict[str, List[s
     return pools
 
 
-def resolve_endpoint(provider: str, default_base_url: str,
-                     env: Optional[Dict[str, str]] = None) -> str:
+def resolve_endpoint(
+    provider: str, default_base_url: str, env: Optional[Dict[str, str]] = None
+) -> str:
     """Return the base URL to use for the next call to ``provider``.
 
     With no pool configured (or a single-entry pool) this is deterministic; with

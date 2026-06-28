@@ -1,7 +1,7 @@
-import os
 import asyncio
-from typing import Optional
+import os
 from pathlib import Path
+from typing import Optional
 
 # MediaPipe LLM Inference import
 # Note: On Windows, GenAI (llm_inference) is often missing from standard pip wheels.
@@ -12,11 +12,13 @@ except (ImportError, ModuleNotFoundError, AttributeError):
     mp = None
     llm_inference = None
 
+
 class LiteRTEngine:
     """
     Singleton manager for LiteRT (MediaPipe) LLM Inference.
     Handles model loading and thread-pooled execution for high-performance extraction.
     """
+
     _instance = None
     _engine = None
     _model_path = None
@@ -36,7 +38,9 @@ class LiteRTEngine:
         """Pre-load the model into memory/NPU."""
         if not cls.is_available():
             # On Windows, we shim this to return gracefully, letting the caller decide fallback.
-            print("LiteRT (MediaPipe GenAI) is not available on this platform. Requests will fallback to NPU server.")
+            print(
+                "LiteRT (MediaPipe GenAI) is not available on this platform. Requests will fallback to NPU server."
+            )
             return
 
         if cls._engine is not None and cls._model_path == model_path:
@@ -48,19 +52,18 @@ class LiteRTEngine:
             model_path = str(base_dir / "models" / "litert" / "gemma-2b-it-gpu-int4.bin")
 
         if not os.path.exists(model_path):
-            raise FileNotFoundError(f"LiteRT model not found at {model_path}. Please place a compatible .bin file there.")
+            raise FileNotFoundError(
+                f"LiteRT model not found at {model_path}. Please place a compatible .bin file there."
+            )
 
         print(f"Initializing LiteRT Engine with model: {model_path}")
-        
+
         # Configure MediaPipe LLM Options
         # Note: 'GPU' backend is often preferred on Windows for NPU/GPU acceleration
         options = llm_inference.LlmInferenceOptions(
-            model_bundle_path=model_path,
-            max_tokens=1024,
-            temperature=0.3,
-            top_k=40
+            model_bundle_path=model_path, max_tokens=1024, temperature=0.3, top_k=40
         )
-        
+
         try:
             cls._engine = llm_inference.LlmInference.create_from_options(options)
             cls._model_path = model_path
@@ -74,7 +77,7 @@ class LiteRTEngine:
         """Run inference in a separate thread to avoid blocking the event loop."""
         if cls._engine is None:
             cls.initialize(model_path)
-        
+
         # MediaPipe's generate_response is synchronous, so we use to_thread
         return await asyncio.to_thread(cls._engine.generate_response, prompt)
 

@@ -9,12 +9,14 @@ Phase 1 Refactor (6-Sigma):
   - run_full_correlation_suite passes correlation_threshold from IngestRequest.
 """
 
-import logging
 import asyncio
-from typing import List, Dict, Any, Optional
+import logging
+from typing import Any, Dict, List, Optional
+
+import numpy as np
+
 from ..core.graph_db import get_driver, read_session, write_session
 from ..governance.aer_decorator import aer_tracked
-import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +40,9 @@ async def run_safe_correlation(workspace: str) -> int:
 
     logger.info(
         "Safe Correlation: workspace='%s', schema_mode='%s', entity_types=%s",
-        workspace, schema_mode, valid_types
+        workspace,
+        schema_mode,
+        valid_types,
     )
 
     # Dynamic query — works for both label-based and property-based graphs
@@ -67,8 +71,7 @@ async def run_safe_correlation(workspace: str) -> int:
         summary = result.single()
         link_count = summary["links"] if summary else 0
         logger.info(
-            "Safe Correlation: created/updated %d links in workspace '%s'",
-            link_count, workspace
+            "Safe Correlation: created/updated %d links in workspace '%s'", link_count, workspace
         )
         return link_count
 
@@ -100,8 +103,8 @@ async def run_aggressive_correlation(
         use_ann:            If True and hnswlib is importable, use HNSW index; else
                             use the numpy fallback.
     """
-    from .schema_adapter import SchemaAdapter
     from .engine import batch_embed_concepts
+    from .schema_adapter import SchemaAdapter
 
     adapter = SchemaAdapter(workspace)
     valid_types = adapter.get_valid_entity_types()
@@ -121,23 +124,39 @@ async def run_aggressive_correlation(
     logger.info(
         "Aggressive Correlation: workspace='%s', comparing %d concepts vs %d symbols "
         "(threshold=%.2f, top_k=%d, use_ann=%s)",
-        workspace, len(concepts), len(symbols), threshold, top_k_per_concept, use_ann,
+        workspace,
+        len(concepts),
+        len(symbols),
+        threshold,
+        top_k_per_concept,
+        use_ann,
     )
 
     # 2. Compute embeddings
     logger.info("Aggressive Correlation: Generating embeddings for %d concepts...", len(concepts))
     concept_names = [c["name"] for c in concepts]
-    concept_embeddings_kv = await batch_embed_concepts(concept_names, provider="local", workspace=workspace)
+    concept_embeddings_kv = await batch_embed_concepts(
+        concept_names, provider="local", workspace=workspace
+    )
 
-    logger.info("Aggressive Correlation: Generating embeddings for %d symbols (this may take time)...", len(symbols))
+    logger.info(
+        "Aggressive Correlation: Generating embeddings for %d symbols (this may take time)...",
+        len(symbols),
+    )
     symbol_texts = [f"{s['name']}: {s.get('summary', '') or ''}" for s in symbols]
-    symbol_embeddings_kv = await batch_embed_concepts(symbol_texts, provider="local", workspace=workspace)
+    symbol_embeddings_kv = await batch_embed_concepts(
+        symbol_texts, provider="local", workspace=workspace
+    )
 
     logger.info("Aggressive Correlation: Embeddings generated. Running kNN search...")
 
     # Convert to matrices for vectorized math
-    C_matrix = np.array([concept_embeddings_kv.get(name, [0.0]*768) for name in concept_names], dtype=np.float32)
-    S_matrix = np.array([symbol_embeddings_kv.get(text, [0.0]*768) for text in symbol_texts], dtype=np.float32)
+    C_matrix = np.array(
+        [concept_embeddings_kv.get(name, [0.0] * 768) for name in concept_names], dtype=np.float32
+    )
+    S_matrix = np.array(
+        [symbol_embeddings_kv.get(text, [0.0] * 768) for text in symbol_texts], dtype=np.float32
+    )
 
     # Normalize rows (so dot-product == cosine similarity)
     C_norms = np.linalg.norm(C_matrix, axis=1, keepdims=True)
@@ -150,12 +169,13 @@ async def run_aggressive_correlation(
     effective_k = min(top_k_per_concept, len(symbols))
 
     # 3. Find top-K symbol matches per concept — HNSW path or numpy fallback
-    hits: List[tuple] = []   # list of (c_idx, s_idx, sim)
+    hits: List[tuple] = []  # list of (c_idx, s_idx, sim)
     ann_used = False
 
     if use_ann:
         try:
             import hnswlib  # optional dep
+
             dim = S_normed.shape[1]
             index = hnswlib.Index(space="cosine", dim=dim)
             # Reasonable defaults; for <100k vectors these finish in well under a second.
@@ -176,12 +196,14 @@ async def run_aggressive_correlation(
         except ImportError:
             logger.info("Aggressive Correlation: hnswlib not installed — using numpy fallback")
         except Exception as e:
-            logger.warning("Aggressive Correlation: HNSW path failed (%s) — falling back to numpy", e)
+            logger.warning(
+                "Aggressive Correlation: HNSW path failed (%s) — falling back to numpy", e
+            )
 
     if not ann_used:
         # Full similarity matrix (still vectorized) + per-row argpartition
         # to bound fan-out per concept.
-        sim_matrix = np.dot(C_normed, S_normed.T)       # shape (N, M)
+        sim_matrix = np.dot(C_normed, S_normed.T)  # shape (N, M)
         # argpartition to get top-K per row without a full sort
         if effective_k < sim_matrix.shape[1]:
             top_idx = np.argpartition(-sim_matrix, kth=effective_k - 1, axis=1)[:, :effective_k]
@@ -197,16 +219,18 @@ async def run_aggressive_correlation(
     for c_idx, s_idx, sim in hits:
         c = concepts[c_idx]
         s = symbols[s_idx]
-        batch_data.append({
-            "c_id": c["id"],
-            "s_id": s["id"],
-            "sim": sim,
-            "rationale": (
-                f"Cosine similarity {sim:.4f} >= {threshold:.2f} between Concept "
-                f"'{c['name']}' and {s['type']} '{s['name']}' "
-                f"(top-{top_k_per_concept}, ann={'hnsw' if ann_used else 'numpy'})"
-            ),
-        })
+        batch_data.append(
+            {
+                "c_id": c["id"],
+                "s_id": s["id"],
+                "sim": sim,
+                "rationale": (
+                    f"Cosine similarity {sim:.4f} >= {threshold:.2f} between Concept "
+                    f"'{c['name']}' and {s['type']} '{s['name']}' "
+                    f"(top-{top_k_per_concept}, ann={'hnsw' if ann_used else 'numpy'})"
+                ),
+            }
+        )
 
     if not batch_data:
         return 0
@@ -229,7 +253,7 @@ async def run_aggressive_correlation(
         r.rationale  = row.rationale,
         r.updated_at = timestamp()
     """
-    
+
     # Process in chunks of 500 to avoid locking issues on massive graphs
     chunk_size = 500
     links_created = 0
@@ -239,7 +263,9 @@ async def run_aggressive_correlation(
             session.run(write_query, batch=chunk)
             links_created += len(chunk)
 
-    logger.info("Aggressive Correlation: created %d links in workspace '%s'", links_created, workspace)
+    logger.info(
+        "Aggressive Correlation: created %d links in workspace '%s'", links_created, workspace
+    )
     return links_created
 
 
@@ -270,7 +296,9 @@ async def run_full_correlation_suite(
     total = safe_count + aggressive_count
     logger.info(
         "Correlation suite complete: safe=%d, aggressive=%d, total=%d",
-        safe_count, aggressive_count, total
+        safe_count,
+        aggressive_count,
+        total,
     )
     return {
         "safe_links": safe_count,

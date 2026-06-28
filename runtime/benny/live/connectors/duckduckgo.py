@@ -45,13 +45,19 @@ class DuckDuckGoConnector(BaseConnector):
         data["_entity_type"] = entity_type
         return data
 
-    def parse(self, raw: Dict[str, Any], entity_name: str, entity_type: str, api_url: str) -> List[KnowledgeTriple]:
+    def parse(
+        self, raw: Dict[str, Any], entity_name: str, entity_type: str, api_url: str
+    ) -> List[KnowledgeTriple]:
         triples: List[KnowledgeTriple] = []
         name = entity_name
 
         def t(pred: str, obj: str, obj_type: str = "Concept") -> None:
             if obj and str(obj).strip():
-                triples.append(self._make_triple(name, pred, str(obj).strip(), api_url, raw, object_type=obj_type))
+                triples.append(
+                    self._make_triple(
+                        name, pred, str(obj).strip(), api_url, raw, object_type=obj_type
+                    )
+                )
 
         # Abstract text
         abstract = (raw.get("Abstract") or "").strip()

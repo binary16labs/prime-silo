@@ -48,25 +48,27 @@ class SchemaAdapter:
         """Fetch live schema and populate the cache."""
         try:
             from ..core.graph_db import introspect_schema
+
             result = introspect_schema(workspace)
             SchemaAdapter._cache[workspace] = result
             logger.info(
                 "SchemaAdapter: introspected workspace='%s' — labels=%s, rel_types=%s",
                 workspace,
                 result.get("labels", []),
-                result.get("relationship_types", [])
+                result.get("relationship_types", []),
             )
         except Exception as e:
             logger.warning(
                 "SchemaAdapter: introspection failed for workspace='%s': %s — "
                 "falling back to property-based queries.",
-                workspace, e
+                workspace,
+                e,
             )
             # Safe fallback — property-based queries always work on existing data
             SchemaAdapter._cache[workspace] = {
                 "labels": [],
                 "relationship_types": [],
-                "entity_type_distribution": {}
+                "entity_type_distribution": {},
             }
 
     @classmethod
@@ -98,15 +100,11 @@ class SchemaAdapter:
 
         if entity_type in labels:
             # Label-based (faster — uses index)
-            clause = (
-                f"MATCH (n:{entity_type} {{workspace: $workspace}})"
-            )
+            clause = f"MATCH (n:{entity_type} {{workspace: $workspace}})"
             logger.debug("SchemaAdapter: resolved '%s' → label-based", entity_type)
         else:
             # Property-based (works with CodeEntity + type property model)
-            clause = (
-                f"MATCH (n:CodeEntity {{workspace: $workspace, type: '{entity_type}'}})"
-            )
+            clause = f"MATCH (n:CodeEntity {{workspace: $workspace, type: '{entity_type}'}})"
             logger.debug("SchemaAdapter: resolved '%s' → property-based", entity_type)
 
         return clause
@@ -155,8 +153,8 @@ class SchemaAdapter:
         dist = self._schema.get("entity_type_distribution", {})
         if not dist:
             logger.warning(
-                "SchemaAdapter: no entity_type_distribution found — "
-                "using defaults: %s", DEFAULT_ENTITY_TYPES
+                "SchemaAdapter: no entity_type_distribution found — " "using defaults: %s",
+                DEFAULT_ENTITY_TYPES,
             )
             return DEFAULT_ENTITY_TYPES
 
@@ -182,7 +180,8 @@ class SchemaAdapter:
 
         logger.info(
             "SchemaAdapter: resolved valid entity types for workspace='%s': %s",
-            self._workspace, result
+            self._workspace,
+            result,
         )
         return result
 

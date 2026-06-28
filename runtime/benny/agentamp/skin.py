@@ -28,7 +28,6 @@ from typing import Tuple
 from .contracts import SkinManifest
 from .signing import verify_skin_pack
 
-
 # ---------------------------------------------------------------------------
 # Exceptions
 # ---------------------------------------------------------------------------
@@ -61,9 +60,7 @@ def _check_member(name: str) -> None:
         )
     # Absolute POSIX paths
     if PurePosixPath(name).is_absolute():
-        raise SkinPathEscape(
-            f"zip member {name!r} is an absolute path — pack rejected"
-        )
+        raise SkinPathEscape(f"zip member {name!r} is an absolute path — pack rejected")
 
 
 # ---------------------------------------------------------------------------
@@ -104,9 +101,7 @@ def load(
             raw = zf.read(_MANIFEST_ENTRY).decode("utf-8")
         except KeyError:
             zf.close()
-            raise FileNotFoundError(
-                f"{_MANIFEST_ENTRY!r} not found in {path!r}"
-            )
+            raise FileNotFoundError(f"{_MANIFEST_ENTRY!r} not found in {path!r}")
 
         # 3. Parse manifest
         try:
@@ -130,7 +125,13 @@ def load(
                     "pack may be tampered or signed with a different key"
                 )
 
-    except (SkinPathEscape, SkinSignatureMissing, SkinSignatureInvalid, FileNotFoundError, ValueError):
+    except (
+        SkinPathEscape,
+        SkinSignatureMissing,
+        SkinSignatureInvalid,
+        FileNotFoundError,
+        ValueError,
+    ):
         raise
     except Exception:
         zf.close()

@@ -59,8 +59,8 @@ class JudgeConfig(BaseModel):
         "  - completeness: covers all the points the requirement asks for\n"
         "  - faithfulness: stays grounded in the requirement / facts; no hallucination\n"
         "  - usability:    a domain expert could act on the output without rework\n"
-        "Return JSON: {\"completeness\": int, \"faithfulness\": int, \"usability\": int, "
-        "\"rationale\": \"<2 sentences>\"}"
+        'Return JSON: {"completeness": int, "faithfulness": int, "usability": int, '
+        '"rationale": "<2 sentences>"}'
     )
     max_tokens: int = 400
 
@@ -115,6 +115,7 @@ class ModelCompareSpec(BaseModel):
 @dataclass
 class TrialScores:
     """Auto-rubric scores. Each field is in [0.0, 1.0]."""
+
     schema_valid: float = 0.0
     has_required_ops: float = 0.0
     step_count_ok: float = 0.0
@@ -128,8 +129,12 @@ class TrialScores:
     def total(self) -> float:
         """Mean of the 7 sub-scores, in [0.0, 1.0]."""
         scores = [
-            self.schema_valid, self.has_required_ops, self.step_count_ok,
-            self.has_gold_steps, self.has_validations, self.has_reports,
+            self.schema_valid,
+            self.has_required_ops,
+            self.step_count_ok,
+            self.has_gold_steps,
+            self.has_validations,
+            self.has_reports,
             self.nonempty_response,
         ]
         return round(sum(scores) / len(scores), 3)
@@ -251,7 +256,8 @@ def _trial_to_dict(t: TrialResult) -> Dict[str, Any]:
             "nonempty_response": t.auto_scores.nonempty_response,
         },
         "judge_score": (
-            None if t.judge_score is None
+            None
+            if t.judge_score is None
             else {
                 "completeness": t.judge_score.completeness,
                 "faithfulness": t.judge_score.faithfulness,
@@ -273,11 +279,7 @@ def _trial_to_dict(t: TrialResult) -> Dict[str, Any]:
 def _expand_paths(value: str) -> str:
     """Replace ``${benny_home}`` (and friends) with real paths."""
     home = os.environ.get("BENNY_HOME") or str(Path.home() / ".benny")
-    return (
-        value
-        .replace("${benny_home}", home)
-        .replace("${BENNY_HOME}", home)
-    )
+    return value.replace("${benny_home}", home).replace("${BENNY_HOME}", home)
 
 
 def load_spec(path: str) -> ModelCompareSpec:
@@ -307,6 +309,7 @@ def _get_encoding():
     if _ENCODING is None:
         try:
             import tiktoken
+
             enc = tiktoken.get_encoding("cl100k_base")
             # Stubbed test environments may return None — treat as fallback.
             _ENCODING = enc if enc is not None and hasattr(enc, "encode") else "fallback"
@@ -410,15 +413,14 @@ def score_plan_output(
     # Gold steps
     gold = [s for s in manifest.steps if s.stage.value == "gold"]
     scores.has_gold_steps = (
-        1.0 if len(gold) >= min_gold_steps
-        else round(len(gold) / max(min_gold_steps, 1), 2)
+        1.0 if len(gold) >= min_gold_steps else round(len(gold) / max(min_gold_steps, 1), 2)
     )
     scores.detail["gold_steps"] = len(gold)
 
     # Required ops coverage
     used_ops = set()
     for s in manifest.steps:
-        for op in (s.operations or []):
+        for op in s.operations or []:
             used_ops.add(op.operation)
     if required_ops:
         hits = sum(1 for op in required_ops if op in used_ops)
@@ -491,12 +493,17 @@ def judge_output(
         f"# Scoring rubric\n{judge_cfg.rubric}\n"
     )
     msgs = [
-        {"role": "system", "content": "You are an impartial senior reviewer scoring an LLM's output."},
+        {
+            "role": "system",
+            "content": "You are an impartial senior reviewer scoring an LLM's output.",
+        },
         {"role": "user", "content": user},
     ]
     try:
         coro = call_model(
-            model=judge_cfg.model, messages=msgs, temperature=0.0,
+            model=judge_cfg.model,
+            messages=msgs,
+            temperature=0.0,
             max_tokens=judge_cfg.max_tokens,
         )
         try:
@@ -534,15 +541,21 @@ def judge_output(
 
 
 def _call_with_sampler(
-    *, model: str, messages: List[Dict[str, str]], temperature: float, max_tokens: int,
+    *,
+    model: str,
+    messages: List[Dict[str, str]],
+    temperature: float,
+    max_tokens: int,
     sample_interval: float = 0.05,
 ) -> Tuple[str, _ResourceSampler, float]:
     """Invoke ``call_model`` synchronously and capture wall + resource samples."""
     from ..core.models import call_model
 
     coro = call_model(
-        model=model, messages=messages,
-        temperature=temperature, max_tokens=max_tokens,
+        model=model,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
     )
     t0 = time.perf_counter()
     with _ResourceSampler(interval_seconds=sample_interval) as sampler:
@@ -566,11 +579,9 @@ def _build_plan_messages(spec: ModelCompareSpec) -> Tuple[List[Dict[str, str]], 
     from . import planner as _planner
     from .registry import default_registry
 
-    system_content = (
-        _planner._SYSTEM_PROMPT
-        .replace("{operations}", "\n".join(f"- {n}" for n in default_registry.names()))
-        .replace("{example}", json.dumps(_planner._MINIMAL_EXAMPLE, indent=2))
-    )
+    system_content = _planner._SYSTEM_PROMPT.replace(
+        "{operations}", "\n".join(f"- {n}" for n in default_registry.names())
+    ).replace("{example}", json.dumps(_planner._MINIMAL_EXAMPLE, indent=2))
     user_content = _planner._USER_PROMPT.format(
         requirement=(spec.requirement or "").strip(),
         workspace=spec.workspace,
@@ -592,7 +603,9 @@ def _build_agent_report_messages(spec: ModelCompareSpec) -> Tuple[List[Dict[str,
 
     ws_root = _resolve_workspace_root(spec.workspace)
     run_dir = ws_root / "runs" / f"pypes-{spec.run_id}"
-    receipt = _ar.RunReceipt.model_validate_json((run_dir / "receipt.json").read_text(encoding="utf-8"))
+    receipt = _ar.RunReceipt.model_validate_json(
+        (run_dir / "receipt.json").read_text(encoding="utf-8")
+    )
     manifest = _ar._load_run_manifest(run_dir)
     if manifest is None:
         raise FileNotFoundError(f"Manifest snapshot missing for run {spec.run_id}")
@@ -634,7 +647,7 @@ def _build_chat_qa_messages(spec: ModelCompareSpec) -> Tuple[List[Dict[str, str]
     harness = _ac.ChatHarness(workspace_root=ws_root, run_id=spec.run_id, model=spec.models[0].id)
     msgs = [
         {"role": "system", "content": harness.system_prompt},
-        {"role": "user",   "content": spec.question or ""},
+        {"role": "user", "content": spec.question or ""},
     ]
     return msgs, (spec.question or "")
 
@@ -672,8 +685,13 @@ def run_model_comparison(spec: ModelCompareSpec) -> ComparisonResult:
     trials: List[TrialResult] = []
     for model in spec.models:
         for repeat_idx in range(1, spec.repeats + 1):
-            log.info("model_compare: %s / %s (repeat %s/%s)",
-                     spec.task, model.label, repeat_idx, spec.repeats)
+            log.info(
+                "model_compare: %s / %s (repeat %s/%s)",
+                spec.task,
+                model.label,
+                repeat_idx,
+                spec.repeats,
+            )
             messages = [dict(m) for m in base_messages]  # shallow copy per-call
             error = None
             raw_text = ""
@@ -681,8 +699,10 @@ def run_model_comparison(spec: ModelCompareSpec) -> ComparisonResult:
             sampler = None
             try:
                 raw_text, sampler, wall = _call_with_sampler(
-                    model=model.id, messages=messages,
-                    temperature=model.temperature, max_tokens=model.max_tokens,
+                    model=model.id,
+                    messages=messages,
+                    temperature=model.temperature,
+                    max_tokens=model.max_tokens,
                 )
             except Exception as exc:
                 error = str(exc)[:500]
@@ -692,8 +712,9 @@ def run_model_comparison(spec: ModelCompareSpec) -> ComparisonResult:
             ext = "json" if spec.task == "plan" else "md"
             response_path = out_root / f"{model.label}__r{repeat_idx}.{ext}"
             try:
-                response_path.write_text(raw_text or f"<!-- ERROR: {error or 'no response'} -->",
-                                         encoding="utf-8")
+                response_path.write_text(
+                    raw_text or f"<!-- ERROR: {error or 'no response'} -->", encoding="utf-8"
+                )
             except Exception:
                 pass
 
@@ -716,41 +737,54 @@ def run_model_comparison(spec: ModelCompareSpec) -> ComparisonResult:
             if spec.judge.enabled and raw_text and not error:
                 judge = judge_output(spec.judge, requirement=judge_input, response_text=raw_text)
 
-            trials.append(TrialResult(
-                label=model.label,
-                model_id=model.id,
-                repeat_idx=repeat_idx,
-                wall_seconds=round(wall, 4),
-                cpu_seconds=round(sampler.cpu_seconds, 4) if sampler else 0.0,
-                cpu_percent_mean=sampler.cpu_percent_mean if sampler else 0.0,
-                rss_mb_peak=sampler.rss_peak_mb if sampler else 0.0,
-                rss_mb_delta=round(
-                    (sampler.rss_peak_mb - sampler.baseline_rss_mb), 2
-                ) if sampler else 0.0,
-                prompt_tokens=prompt_tokens,
-                completion_tokens=completion_tokens,
-                response_chars=len(raw_text or ""),
-                response_path=str(response_path),
-                cost_usd=trial_cost(
-                    model=model, prompt_tokens=prompt_tokens,
-                    completion_tokens=completion_tokens, wall_seconds=wall,
-                ),
-                auto_scores=auto,
-                judge_score=judge,
-                error=error,
-            ))
+            trials.append(
+                TrialResult(
+                    label=model.label,
+                    model_id=model.id,
+                    repeat_idx=repeat_idx,
+                    wall_seconds=round(wall, 4),
+                    cpu_seconds=round(sampler.cpu_seconds, 4) if sampler else 0.0,
+                    cpu_percent_mean=sampler.cpu_percent_mean if sampler else 0.0,
+                    rss_mb_peak=sampler.rss_peak_mb if sampler else 0.0,
+                    rss_mb_delta=(
+                        round((sampler.rss_peak_mb - sampler.baseline_rss_mb), 2)
+                        if sampler
+                        else 0.0
+                    ),
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
+                    response_chars=len(raw_text or ""),
+                    response_path=str(response_path),
+                    cost_usd=trial_cost(
+                        model=model,
+                        prompt_tokens=prompt_tokens,
+                        completion_tokens=completion_tokens,
+                        wall_seconds=wall,
+                    ),
+                    auto_scores=auto,
+                    judge_score=judge,
+                    error=error,
+                )
+            )
 
     finished_at = datetime.utcnow().isoformat() + "Z"
     result = ComparisonResult(
-        spec_id=spec.id, spec_name=spec.name, task=spec.task,
-        workspace=spec.workspace, output_dir=str(out_root),
-        started_at=started_at, finished_at=finished_at, trials=trials,
+        spec_id=spec.id,
+        spec_name=spec.name,
+        task=spec.task,
+        workspace=spec.workspace,
+        output_dir=str(out_root),
+        started_at=started_at,
+        finished_at=finished_at,
+        trials=trials,
     )
     # Write the structured report alongside per-trial artifacts.
     (out_root / "results.json").write_text(
-        json.dumps(result.to_dict(), indent=2, default=str), encoding="utf-8",
+        json.dumps(result.to_dict(), indent=2, default=str),
+        encoding="utf-8",
     )
     (out_root / "spec.snapshot.json").write_text(
-        spec.model_dump_json(indent=2), encoding="utf-8",
+        spec.model_dump_json(indent=2),
+        encoding="utf-8",
     )
     return result

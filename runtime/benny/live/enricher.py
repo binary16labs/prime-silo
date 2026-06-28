@@ -30,7 +30,12 @@ from benny.core.graph_db import batch_add_triples
 from benny.core.schema import IngestionEvent, IngestionEventType, KnowledgeTriple
 from benny.core.task_manager import TaskManager
 from benny.core.workspace import get_workspace_path, load_manifest
-from benny.governance.lineage import track_tool_execution, track_workflow_complete, track_workflow_fail, track_workflow_start
+from benny.governance.lineage import (
+    track_tool_execution,
+    track_workflow_complete,
+    track_workflow_fail,
+    track_workflow_start,
+)
 from benny.live.connector import get_connector, list_connectors
 
 logger = logging.getLogger(__name__)
@@ -69,7 +74,9 @@ async def run_enrichment(
         run_id
     """
     run_id = run_id or str(uuid.uuid4())
-    task = task_manager.create_task(workspace=workspace, task_type="live_enrichment", task_id=run_id)
+    task = task_manager.create_task(
+        workspace=workspace, task_type="live_enrichment", task_id=run_id
+    )
 
     # Register SSE queue before any async work
     _live_events[run_id] = asyncio.Queue(maxsize=500)
@@ -77,11 +84,14 @@ async def run_enrichment(
     manifest = load_manifest(workspace)
 
     if not manifest.live_mode:
-        _emit(run_id, IngestionEvent(
-            event=IngestionEventType.ERROR,
-            run_id=run_id,
-            message="Live mode is disabled in workspace manifest. Set live_mode: true to enable.",
-        ))
+        _emit(
+            run_id,
+            IngestionEvent(
+                event=IngestionEventType.ERROR,
+                run_id=run_id,
+                message="Live mode is disabled in workspace manifest. Set live_mode: true to enable.",
+            ),
+        )
         task_manager.update_task(run_id, status="failed", message="Live mode disabled")
         return run_id
 
@@ -105,12 +115,15 @@ async def run_enrichment(
         outputs=[{"store": "neo4j", "workspace": workspace}],
     )
 
-    _emit(run_id, IngestionEvent(
-        event=IngestionEventType.STARTED,
-        run_id=run_id,
-        message=f"Live enrichment started: {len(entities)} entities × {len(active_sources)} sources",
-        data={"entities": entities, "sources": active_sources},
-    ))
+    _emit(
+        run_id,
+        IngestionEvent(
+            event=IngestionEventType.STARTED,
+            run_id=run_id,
+            message=f"Live enrichment started: {len(entities)} entities × {len(active_sources)} sources",
+            data={"entities": entities, "sources": active_sources},
+        ),
+    )
 
     task_manager.add_aer_entry(
         run_id,
@@ -134,16 +147,29 @@ async def run_enrichment(
         for source_id in active_sources:
             step += 1
             progress = int(step / total_steps * 90)  # reserve last 10% for DB write
-            task_manager.update_task(run_id, progress=progress, current_step=step, total_steps=total_steps,
-                                     message=f"Fetching {entity_name} from {source_id}")
+            task_manager.update_task(
+                run_id,
+                progress=progress,
+                current_step=step,
+                total_steps=total_steps,
+                message=f"Fetching {entity_name} from {source_id}",
+            )
 
-            _emit(run_id, IngestionEvent(
-                event=IngestionEventType.SECTION_PROGRESS,
-                run_id=run_id,
-                source_name=source_id,
-                message=f"Fetching {entity_name} ({entity_type}) from {source_id}",
-                data={"entity": entity_name, "source": source_id, "step": step, "total": total_steps},
-            ))
+            _emit(
+                run_id,
+                IngestionEvent(
+                    event=IngestionEventType.SECTION_PROGRESS,
+                    run_id=run_id,
+                    source_name=source_id,
+                    message=f"Fetching {entity_name} ({entity_type}) from {source_id}",
+                    data={
+                        "entity": entity_name,
+                        "source": source_id,
+                        "step": step,
+                        "total": total_steps,
+                    },
+                ),
+            )
 
             success = False
             error_msg: Optional[str] = None
@@ -151,7 +177,9 @@ async def run_enrichment(
 
             try:
                 connector = get_connector(source_id, workspace)
-                fetched = await connector.enrich(entity_name, entity_type, ttl_hours=ttl, run_artifacts_dir=run_dir)
+                fetched = await connector.enrich(
+                    entity_name, entity_type, ttl_hours=ttl, run_artifacts_dir=run_dir
+                )
                 entity_triples.extend(fetched)
                 success = True
 
@@ -178,7 +206,9 @@ async def run_enrichment(
 
             except Exception as e:
                 error_msg = str(e)
-                logger.error(f"[enricher] {source_id} failed for '{entity_name}': {e}", exc_info=True)
+                logger.error(
+                    f"[enricher] {source_id} failed for '{entity_name}': {e}", exc_info=True
+                )
                 task_manager.add_aer_entry(
                     run_id,
                     intent=f"Enrich '{entity_name}' from {source_id}",
@@ -196,41 +226,60 @@ async def run_enrichment(
                 error_message=error_msg,
             )
 
-            _emit(run_id, IngestionEvent(
-                event=IngestionEventType.TRIPLES_EXTRACTED,
-                run_id=run_id,
-                source_name=source_id,
-                message=f"{len(fetched)} triples from {source_id} for '{entity_name}'",
-                data={"entity": entity_name, "source": source_id, "count": len(fetched), "success": success},
-            ))
+            _emit(
+                run_id,
+                IngestionEvent(
+                    event=IngestionEventType.TRIPLES_EXTRACTED,
+                    run_id=run_id,
+                    source_name=source_id,
+                    message=f"{len(fetched)} triples from {source_id} for '{entity_name}'",
+                    data={
+                        "entity": entity_name,
+                        "source": source_id,
+                        "count": len(fetched),
+                        "success": success,
+                    },
+                ),
+            )
 
         all_triples.extend(entity_triples)
-        per_entity_stats.append({
-            "entity": entity_name,
-            "type": entity_type,
-            "triple_count": len(entity_triples),
-            "sources": active_sources,
-        })
+        per_entity_stats.append(
+            {
+                "entity": entity_name,
+                "type": entity_type,
+                "triple_count": len(entity_triples),
+                "sources": active_sources,
+            }
+        )
 
     # Persist to Neo4j
-    task_manager.update_task(run_id, progress=90, message=f"Writing {len(all_triples)} triples to Neo4j")
-    _emit(run_id, IngestionEvent(
-        event=IngestionEventType.STORED,
-        run_id=run_id,
-        message=f"Writing {len(all_triples)} triples to Neo4j",
-        data={"total_triples": len(all_triples)},
-    ))
+    task_manager.update_task(
+        run_id, progress=90, message=f"Writing {len(all_triples)} triples to Neo4j"
+    )
+    _emit(
+        run_id,
+        IngestionEvent(
+            event=IngestionEventType.STORED,
+            run_id=run_id,
+            message=f"Writing {len(all_triples)} triples to Neo4j",
+            data={"total_triples": len(all_triples)},
+        ),
+    )
 
     db_result: Dict[str, Any] = {}
     try:
         if all_triples:
-            db_result = batch_add_triples(all_triples, workspace=workspace, source_name="live_enrichment", run_id=run_id)
+            db_result = batch_add_triples(
+                all_triples, workspace=workspace, source_name="live_enrichment", run_id=run_id
+            )
     except Exception as e:
         logger.error(f"[enricher] Neo4j write failed: {e}", exc_info=True)
         db_result = {"error": str(e)}
 
     # Save run artifacts
-    _save_artifacts(run_dir, run_id, workspace, entities, active_sources, all_triples, per_entity_stats)
+    _save_artifacts(
+        run_dir, run_id, workspace, entities, active_sources, all_triples, per_entity_stats
+    )
 
     # OpenLineage completion
     completed_at = datetime.now(timezone.utc).isoformat()
@@ -256,17 +305,20 @@ async def run_enrichment(
         },
     )
 
-    _emit(run_id, IngestionEvent(
-        event=IngestionEventType.COMPLETED,
-        run_id=run_id,
-        message=f"Enrichment complete: {len(all_triples)} triples across {len(entities)} entities",
-        data={
-            "total_triples": len(all_triples),
-            "per_entity": per_entity_stats,
-            "run_dir": str(run_dir),
-            "completed_at": completed_at,
-        },
-    ))
+    _emit(
+        run_id,
+        IngestionEvent(
+            event=IngestionEventType.COMPLETED,
+            run_id=run_id,
+            message=f"Enrichment complete: {len(all_triples)} triples across {len(entities)} entities",
+            data={
+                "total_triples": len(all_triples),
+                "per_entity": per_entity_stats,
+                "run_dir": str(run_dir),
+                "completed_at": completed_at,
+            },
+        ),
+    )
 
     # Signal SSE stream termination
     try:
@@ -297,10 +349,14 @@ def _save_artifacts(
         "total_triples": len(triples),
         "per_entity_stats": stats,
     }
-    (run_dir / "metadata.json").write_text(json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8")
+    (run_dir / "metadata.json").write_text(
+        json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
     triples_data = [t.model_dump() for t in triples]
-    (run_dir / "triples.json").write_text(json.dumps(triples_data, indent=2, ensure_ascii=False), encoding="utf-8")
+    (run_dir / "triples.json").write_text(
+        json.dumps(triples_data, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
     lineage_snapshot = {
         "run_id": run_id,
@@ -324,4 +380,6 @@ def _save_artifacts(
             for t in triples[:200]  # cap snapshot size
         ],
     }
-    (run_dir / "lineage.json").write_text(json.dumps(lineage_snapshot, indent=2, ensure_ascii=False), encoding="utf-8")
+    (run_dir / "lineage.json").write_text(
+        json.dumps(lineage_snapshot, indent=2, ensure_ascii=False), encoding="utf-8"
+    )

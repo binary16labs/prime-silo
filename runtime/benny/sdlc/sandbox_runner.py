@@ -207,19 +207,25 @@ def write_sandbox_report(
 
     lines: List[str] = [
         f"# Sandbox Report — `{manifest_id}`",
-        f"",
+        "",
         f"Generated: {ts}",
         f"Models compared: {', '.join(r.model for r in results)}",
-        f"",
+        "",
         "## Per-model metrics",
         "",
     ]
 
     # Table header
     cols = [
-        "model", "tool_selection_accuracy", "tool_efficiency",
-        "context_efficiency", "iteration_latency_ms_p95", "loop_count_p95",
-        "constraint_adherence", "total_cost", "total_tokens",
+        "model",
+        "tool_selection_accuracy",
+        "tool_efficiency",
+        "context_efficiency",
+        "iteration_latency_ms_p95",
+        "loop_count_p95",
+        "constraint_adherence",
+        "total_cost",
+        "total_tokens",
     ]
     lines.append("| " + " | ".join(cols) + " |")
     lines.append("| " + " | ".join(["---"] * len(cols)) + " |")

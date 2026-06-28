@@ -2,11 +2,18 @@
 Workspace Routes - API endpoints for decentralized manifest management.
 """
 
-from fastapi import APIRouter, HTTPException, Body
-from ..core.workspace import load_manifest, save_manifest, ensure_workspace_structure, list_workspaces
+from fastapi import APIRouter, Body, HTTPException
+
 from ..core.schema import WorkspaceManifest
+from ..core.workspace import (
+    ensure_workspace_structure,
+    list_workspaces,
+    load_manifest,
+    save_manifest,
+)
 
 router = APIRouter()
+
 
 @router.get("", response_model=list[str])
 async def get_workspaces():
@@ -17,7 +24,9 @@ async def get_workspaces():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 from benny.core.graph_db import init_schema
+
 
 @router.post("/{workspace_id}")
 async def create_workspace(workspace_id: str):
@@ -33,6 +42,7 @@ async def create_workspace(workspace_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/{workspace_id}/manifest", response_model=WorkspaceManifest)
 async def get_workspace_manifest(workspace_id: str):
     """Retrieve the validated manifest for a workspace."""
@@ -42,6 +52,7 @@ async def get_workspace_manifest(workspace_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.post("/{workspace_id}/manifest", response_model=WorkspaceManifest)
 async def update_workspace_manifest(workspace_id: str, updates: dict = Body(...)):
     """
@@ -50,12 +61,15 @@ async def update_workspace_manifest(workspace_id: str, updates: dict = Body(...)
     """
     try:
         ensure_workspace_structure(workspace_id)
-        
+
         # Validation specific to critical fields if present
         if "llm_timeout" in updates and updates["llm_timeout"] > 3600:
-            raise HTTPException(status_code=400, detail="Timeout exceeds maximum governance limit (3600s)")
-            
+            raise HTTPException(
+                status_code=400, detail="Timeout exceeds maximum governance limit (3600s)"
+            )
+
         from ..core.workspace import update_manifest
+
         manifest = update_manifest(workspace_id, updates)
         return manifest
         raise he
@@ -68,10 +82,10 @@ async def delete_workspace_endpoint(workspace_id: str):
     """Deep delete a workspace and all its metadata."""
     try:
         from ..core.workspace import delete_workspace
+
         result = delete_workspace(workspace_id)
         return result
     except PermissionError as pe:
         raise HTTPException(status_code=403, detail=str(pe))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-

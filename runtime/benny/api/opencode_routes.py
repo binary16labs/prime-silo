@@ -7,6 +7,7 @@ working directory, lineage-tracked like any other Benny run.
 ADR-001 determinism boundary: the run is confined to the workspace root (the review/
 sandbox zone). A ``subdir`` may scope it further but may not escape the workspace.
 """
+
 import logging
 import uuid
 from pathlib import Path
@@ -15,14 +16,14 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from ..tools.opencode import opencode_available, run_opencode_task
-from ..core.workspace import get_workspace_path
 from ..core.task_manager import task_manager
+from ..core.workspace import get_workspace_path
 from ..governance.lineage import (
-    track_workflow_start,
     track_workflow_complete,
     track_workflow_fail,
+    track_workflow_start,
 )
+from ..tools.opencode import opencode_available, run_opencode_task
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -31,9 +32,9 @@ router = APIRouter()
 class OpencodeRunRequest(BaseModel):
     prompt: str
     workspace: str = "default"
-    subdir: Optional[str] = None       # optional dir inside the workspace to run in
-    model: Optional[str] = None        # provider/model, e.g. "ollama/gpt-oss:20b"
-    agent: Optional[str] = None        # opencode agent override
+    subdir: Optional[str] = None  # optional dir inside the workspace to run in
+    model: Optional[str] = None  # provider/model, e.g. "ollama/gpt-oss:20b"
+    agent: Optional[str] = None  # opencode agent override
     timeout: float = 600.0
 
 
@@ -81,13 +82,18 @@ async def opencode_run(req: OpencodeRunRequest):
     try:
         if result.get("ok"):
             track_workflow_complete(
-                run_id, "opencode_run", req.workspace,
-                ["opencode"], 0,
+                run_id,
+                "opencode_run",
+                req.workspace,
+                ["opencode"],
+                0,
                 outputs=result.get("git", {}).get("changed_files", []),
             )
         else:
             track_workflow_fail(
-                run_id, "opencode_run", req.workspace,
+                run_id,
+                "opencode_run",
+                req.workspace,
                 result.get("stderr") or result.get("error") or "opencode failed",
             )
     except Exception as e:

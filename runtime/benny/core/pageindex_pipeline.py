@@ -23,7 +23,7 @@ import hashlib
 import logging
 from typing import Any, Dict, List, Optional
 
-from .pageindex import build_section_edges, flatten_leaves, tree_to_sections, TreeNode
+from .pageindex import TreeNode, build_section_edges, flatten_leaves, tree_to_sections
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 # --------------------------------------------------------------------------- #
 # Section graph write (PIX-F12)
 # --------------------------------------------------------------------------- #
+
 
 def save_section_tree(workspace: str, source: str, tree: TreeNode) -> Dict[str, Any]:
     """Write (:Document)-[:HAS_SECTION]->(:Section)-[:HAS_SECTION]->... to Neo4j.
@@ -84,9 +85,21 @@ def save_section_tree(workspace: str, source: str, tree: TreeNode) -> Dict[str, 
                 )
             for e in edges:
                 if e["from_kind"] == "Document":
-                    session.run(edge_doc_query, from_id=e["from_id"], to_id=e["to_id"], source=source, ws=workspace)
+                    session.run(
+                        edge_doc_query,
+                        from_id=e["from_id"],
+                        to_id=e["to_id"],
+                        source=source,
+                        ws=workspace,
+                    )
                 else:
-                    session.run(edge_sec_query, from_id=e["from_id"], to_id=e["to_id"], source=source, ws=workspace)
+                    session.run(
+                        edge_sec_query,
+                        from_id=e["from_id"],
+                        to_id=e["to_id"],
+                        source=source,
+                        ws=workspace,
+                    )
         return {"written": True, "sections": len(edges)}
     except Exception as e:
         logger.warning("Section graph write failed: %s", e)
@@ -96,6 +109,7 @@ def save_section_tree(workspace: str, source: str, tree: TreeNode) -> Dict[str, 
 # --------------------------------------------------------------------------- #
 # Provenance-anchored triple fan-out (PIX-F10 / PIX-F11)
 # --------------------------------------------------------------------------- #
+
 
 def _fragment_id(source: str, node_id: str) -> str:
     return hashlib.md5(f"{source}#{node_id}".encode()).hexdigest()[:12]
@@ -155,6 +169,7 @@ async def extract_triples_over_tree(
 # --------------------------------------------------------------------------- #
 # Full vectorless ingestion (PIX-F7..F12 end to end)
 # --------------------------------------------------------------------------- #
+
 
 async def run_pageindex_ingest(
     workspace: str,

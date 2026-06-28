@@ -3,11 +3,13 @@ Triple Persistence - Merging knowledge triples into the Neo4j Graph.
 """
 
 import logging
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
 from ..core.graph_db import get_driver
 from ..core.schema import KnowledgeTriple
 
 logger = logging.getLogger(__name__)
+
 
 async def save_knowledge_triples(workspace: str, triples: List[KnowledgeTriple], source_file: str):
     """
@@ -15,7 +17,7 @@ async def save_knowledge_triples(workspace: str, triples: List[KnowledgeTriple],
     Merges Concepts and creates typed relationships.
     """
     driver = get_driver()
-    
+
     # 1. Create the Source document node if it doesn't exist
     source_query = """
     MERGE (d:Source {name: $name, workspace: $workspace})
@@ -23,7 +25,7 @@ async def save_knowledge_triples(workspace: str, triples: List[KnowledgeTriple],
     ON MATCH SET  d.updated_at = timestamp()
     RETURN d
     """
-    
+
     # 2. Add each triple
     # Note: We use MERGE for concepts to deduplicate them by name+workspace
     triple_query = """
@@ -70,6 +72,7 @@ async def save_knowledge_triples(workspace: str, triples: List[KnowledgeTriple],
         # Batch insert triples
         for t in triples:
             import hashlib
+
             # Generate doc_fragment_id from citation text for DNA trace
             fragment_id = hashlib.md5(
                 (t.citation or f"{t.subject}|{t.predicate}|{t.object}").encode()
@@ -96,7 +99,7 @@ async def save_knowledge_triples(workspace: str, triples: List[KnowledgeTriple],
                     strategy=t.strategy,
                     rationale=rationale,
                     source_file=source_file,
-                    doc_fragment_id=getattr(t, 'fragment_id', fragment_id)
+                    doc_fragment_id=getattr(t, "fragment_id", fragment_id),
                 )
             except Exception as e:
                 logger.error(f"Failed to save triple {t.subject}->{t.object}: {e}")

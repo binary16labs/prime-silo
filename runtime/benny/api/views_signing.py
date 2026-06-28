@@ -42,7 +42,6 @@ from typing import Any
 
 from pydantic import BaseModel
 
-
 # Same dev fallback string used by benny.agentamp.signing — keeping the keys
 # aligned in dev mode means a single ``BENNY_HMAC_KEY=hex...`` exports both
 # surfaces. The default is explicitly NOT a production key.

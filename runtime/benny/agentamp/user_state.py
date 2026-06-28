@@ -44,7 +44,6 @@ from typing import Dict, Optional
 
 from pydantic import BaseModel, Field
 
-
 # ---------------------------------------------------------------------------
 # Data models
 # ---------------------------------------------------------------------------
@@ -91,9 +90,7 @@ class CockpitUserState(BaseModel):
 
     active_skin_id: str = "benny-default"
     knob_locks: Dict[str, bool] = Field(default_factory=dict)
-    window_positions: Dict[str, CockpitWindowPosition] = Field(
-        default_factory=dict
-    )
+    window_positions: Dict[str, CockpitWindowPosition] = Field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
@@ -127,9 +124,7 @@ def load_user_state(benny_home: Optional[Path] = None) -> CockpitUserState:
     p = home / _COCKPIT_USER_FILE
     if p.exists():
         try:
-            return CockpitUserState.model_validate_json(
-                p.read_text(encoding="utf-8")
-            )
+            return CockpitUserState.model_validate_json(p.read_text(encoding="utf-8"))
         except Exception:
             pass  # corrupt file — return fresh state
     return CockpitUserState()

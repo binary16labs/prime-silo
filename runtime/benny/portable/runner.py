@@ -13,6 +13,7 @@ Scope (PBR-001 §5.2):
 The runner is intentionally synchronous and single-threaded per service;
 orchestration across multiple services happens in the caller (CLI).
 """
+
 from __future__ import annotations
 
 import dataclasses
@@ -239,9 +240,7 @@ def down(home: BennyHome, names: Iterable[str] | None = None) -> list[str]:
     return stopped
 
 
-def status(
-    home: BennyHome, names: Iterable[str] | None = None
-) -> list[ServiceStatus]:
+def status(home: BennyHome, names: Iterable[str] | None = None) -> list[ServiceStatus]:
     """Report status for the named services (or every service with a PID file)."""
     targets = list(names) if names is not None else _known_services(home)
     out: list[ServiceStatus] = []

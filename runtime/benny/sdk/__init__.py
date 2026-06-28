@@ -1,6 +1,7 @@
 """
 Benny Python SDK — synchronous convenience wrappers for the workflow API.
 """
+
 from __future__ import annotations
 
 import json
@@ -20,12 +21,12 @@ class BennyClient:
 
     def plan(self, requirement: str, workspace: str = "default", **kwargs) -> SwarmManifest:
         """Plan a workflow from a requirement.
-        
+
         Args:
             requirement: Natural language requirement.
             workspace: Target workspace.
             **kwargs: Additional PlanRequest fields (model, max_concurrency, etc.)
-            
+
         Returns:
             A signed SwarmManifest.
         """
@@ -36,7 +37,7 @@ class BennyClient:
 
     def run(self, manifest: SwarmManifest) -> Dict[str, Any]:
         """Execute a manifest.
-        
+
         Returns:
             RunResponse dict (run_id, manifest_id, status).
         """

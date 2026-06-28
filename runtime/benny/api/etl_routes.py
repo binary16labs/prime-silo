@@ -5,7 +5,7 @@ ETL Routes - Staging and Conversion Pipeline
 import shutil
 from pathlib import Path
 
-from fastapi import APIRouter, File, HTTPException, UploadFile, Form
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from ..core.extraction import extract_structured_text
 from ..core.workspace import get_workspace_path
@@ -17,7 +17,12 @@ router = APIRouter()
 SUPPORTED_RAW = {".txt", ".md", ".pdf", ".docx", ".pptx", ".html"}
 
 
-def promote_staged_files(workspace: str = "default", only: list[str] | None = None, use_docling: bool = True, do_ocr: bool = False) -> list[str]:
+def promote_staged_files(
+    workspace: str = "default",
+    only: list[str] | None = None,
+    use_docling: bool = True,
+    do_ocr: bool = False,
+) -> list[str]:
     """Convert raw files sitting in ``staging/`` into markdown in ``data_in/``.
 
     Idempotent: a staged file is skipped when its converted ``.md`` already
@@ -53,7 +58,11 @@ def promote_staged_files(workspace: str = "default", only: list[str] | None = No
             continue
 
         md_out_path = data_in_dir / f"{staged_path.stem}.md"
-        if md_out_path.exists() and md_out_path.stat().st_mtime >= staged_path.stat().st_mtime and md_out_path.stat().st_size > 0:
+        if (
+            md_out_path.exists()
+            and md_out_path.stat().st_mtime >= staged_path.stat().st_mtime
+            and md_out_path.stat().st_size > 0
+        ):
             continue  # already converted, up to date, and not empty
 
         try:
@@ -76,7 +85,12 @@ def promote_staged_files(workspace: str = "default", only: list[str] | None = No
 
 
 @router.post("/stage-and-convert")
-async def stage_and_convert_file(file: UploadFile = File(...), workspace: str = "default", use_docling: bool = Form(True), do_ocr: bool = Form(False)):
+async def stage_and_convert_file(
+    file: UploadFile = File(...),
+    workspace: str = "default",
+    use_docling: bool = Form(True),
+    do_ocr: bool = Form(False),
+):
     """Explicit ETL Pipeline Step: Upload a RAW file to staging, convert to markdown, output to data_in"""
     try:
         staging_dir = get_workspace_path(workspace, "staging")

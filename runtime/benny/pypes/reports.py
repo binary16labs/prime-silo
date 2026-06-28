@@ -143,7 +143,9 @@ def _render_move_analysis(
     cols = [c for c in engine.columns(df) if _is_numeric_col(engine, df, c)]
     baseline_df = baseline_store.read(engine, spec.source_step) if baseline_store else None
     if baseline_df is None:
-        lines.append("_No baseline run found for this manifest — first run establishes the baseline._")
+        lines.append(
+            "_No baseline run found for this manifest — first run establishes the baseline._"
+        )
         return "\n".join(lines) + "\n"
 
     header = ["column", "current_mean", "baseline_mean", "delta_percent"]
@@ -272,10 +274,14 @@ def _clp_provenance_lines(manifest: PypesManifest, spec: ReportSpec) -> List[str
             entity, attr = ref, ""
         concept = concept_index.get(entity)
         concept_name = concept.name if concept else entity
-        physical = next(
-            (p.uri_template for p in manifest.physical if p.entity == entity),
-            "",
-        ) if hasattr(manifest, "physical") else ""
+        physical = (
+            next(
+                (p.uri_template for p in manifest.physical if p.entity == entity),
+                "",
+            )
+            if hasattr(manifest, "physical")
+            else ""
+        )
         lines.append(f"| `{col}` | {concept_name} | {entity}.{attr} | {physical} |")
     return lines
 

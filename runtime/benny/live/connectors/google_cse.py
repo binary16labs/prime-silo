@@ -47,7 +47,9 @@ class GoogleCSEConnector(BaseConnector):
         data["_entity_type"] = entity_type
         return data
 
-    def parse(self, raw: Dict[str, Any], entity_name: str, entity_type: str, api_url: str) -> List[KnowledgeTriple]:
+    def parse(
+        self, raw: Dict[str, Any], entity_name: str, entity_type: str, api_url: str
+    ) -> List[KnowledgeTriple]:
         items = raw.get("items", [])
         if not items:
             return []
@@ -58,19 +60,29 @@ class GoogleCSEConnector(BaseConnector):
         for item in items[:3]:
             snippet = (item.get("snippet") or "").strip()
             if snippet:
-                triples.append(self._make_triple(
-                    entity_name, "has_search_snippet", snippet[:300],
-                    item.get("link", api_url), raw,
-                    confidence=self.manifest.confidence_default,
-                ))
+                triples.append(
+                    self._make_triple(
+                        entity_name,
+                        "has_search_snippet",
+                        snippet[:300],
+                        item.get("link", api_url),
+                        raw,
+                        confidence=self.manifest.confidence_default,
+                    )
+                )
             title = (item.get("title") or "").strip()
             link = (item.get("link") or "").strip()
             if title and link:
-                triples.append(self._make_triple(
-                    entity_name, "has_reference_url", link,
-                    link, raw,
-                    object_type="Identifier",
-                    confidence=self.manifest.confidence_default,
-                ))
+                triples.append(
+                    self._make_triple(
+                        entity_name,
+                        "has_reference_url",
+                        link,
+                        link,
+                        raw,
+                        object_type="Identifier",
+                        confidence=self.manifest.confidence_default,
+                    )
+                )
 
         return triples

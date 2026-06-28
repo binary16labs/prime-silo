@@ -18,14 +18,15 @@ Manifest format (permissions.json alongside skill code):
 
 from __future__ import annotations
 
-import re
 import logging
+import re
 import sys
-from typing import List, Optional, Dict, Any
-from pathlib import Path
-from fnmatch import fnmatch
-from pydantic import BaseModel, Field
 from datetime import datetime
+from fnmatch import fnmatch
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
 
 from ..governance.audit import emit_governance_event
 
@@ -34,17 +35,23 @@ logger = logging.getLogger(__name__)
 
 class PermissionManifest(BaseModel):
     """Declared capabilities for a skill/tool."""
+
     skill_id: str
     declared_capabilities: List[str] = Field(default_factory=list)
-    # Valid capabilities: file:read, file:write, file:delete, network:http, 
+    # Valid capabilities: file:read, file:write, file:delete, network:http,
     #                    network:ws, subprocess:run, database:read, database:write
     max_file_size_bytes: int = 10 * 1024 * 1024  # 10MB default
     allowed_path_patterns: List[str] = Field(default_factory=lambda: ["workspace/**"])
-    forbidden_path_patterns: List[str] = Field(default_factory=lambda: [
-        "../**", "../../**",  # Path traversal
-        "/etc/**", "/root/**",  # Linux system
-        "C:\\Windows\\**", "C:\\Program Files\\**",  # Windows system
-    ])
+    forbidden_path_patterns: List[str] = Field(
+        default_factory=lambda: [
+            "../**",
+            "../../**",  # Path traversal
+            "/etc/**",
+            "/root/**",  # Linux system
+            "C:\\Windows\\**",
+            "C:\\Program Files\\**",  # Windows system
+        ]
+    )
     network_access: bool = False
     subprocess_access: bool = False
 
@@ -56,26 +63,28 @@ def create_ephemeral_manifest(task_id: str, allowed_tools: List[str]) -> Permiss
         declared_capabilities=[f"tool:{t}" for t in allowed_tools],
         # Restrict to workspace only
         allowed_path_patterns=["workspace/**"],
-        network_access=False 
+        network_access=False,
     )
 
 
 class ManifestViolation:
     """A detected violation between declared and actual behavior."""
+
     def __init__(self, skill_id: str, violation_type: str, message: str, severity: str = "high"):
         self.skill_id = skill_id
         self.violation_type = violation_type
         self.message = message
         self.severity = severity
-    
+
     def __repr__(self):
         return f"ManifestViolation({self.skill_id}: {self.violation_type} - {self.message})"
 
 
 # Global manifest registry — Shared across all module instances for security consistency
-if not hasattr(sys, '_benny_manifests'):
+if not hasattr(sys, "_benny_manifests"):
     sys._benny_manifests = {}
 _manifests = sys._benny_manifests
+
 
 def register_manifest(manifest: PermissionManifest) -> None:
     """Register a permission manifest for a skill."""
@@ -92,22 +101,22 @@ def validate_file_access(
     skill_id: str,
     file_path: str,
     operation: str,  # "read", "write", "delete"
-    workspace: str = "default"
+    workspace: str = "default",
 ) -> Optional[ManifestViolation]:
     """
     Validate a file access attempt against the skill's manifest.
-    
+
     Args:
         skill_id: Tool attempting the file access
         file_path: Path being accessed
         operation: read/write/delete
         workspace: Current workspace
-    
+
     Returns:
         ManifestViolation if blocked, None if allowed
     """
     manifest = get_manifest(skill_id)
-    
+
     if manifest is None:
         # No manifest = deny by default (PRD requirement)
         violation = ManifestViolation(
@@ -117,7 +126,7 @@ def validate_file_access(
         )
         _audit_violation(violation, workspace)
         return violation
-    
+
     # Check capability declaration
     required_capability = f"file:{operation}"
     if required_capability not in manifest.declared_capabilities:
@@ -128,10 +137,10 @@ def validate_file_access(
         )
         _audit_violation(violation, workspace)
         return violation
-    
+
     # Normalize path for pattern matching
     normalized = str(file_path).replace("\\", "/")
-    
+
     # Check forbidden patterns first (deny takes precedence)
     for pattern in manifest.forbidden_path_patterns:
         if fnmatch(normalized, pattern):
@@ -142,14 +151,14 @@ def validate_file_access(
             )
             _audit_violation(violation, workspace)
             return violation
-    
+
     # Check allowed patterns
     path_allowed = False
     for pattern in manifest.allowed_path_patterns:
         if fnmatch(normalized, pattern):
             path_allowed = True
             break
-    
+
     if not path_allowed:
         violation = ManifestViolation(
             skill_id=skill_id,
@@ -158,19 +167,21 @@ def validate_file_access(
         )
         _audit_violation(violation, workspace)
         return violation
-    
+
     return None  # Access allowed
 
 
-def validate_network_access(skill_id: str, workspace: str = "default") -> Optional[ManifestViolation]:
+def validate_network_access(
+    skill_id: str, workspace: str = "default"
+) -> Optional[ManifestViolation]:
     """Validate that a tool is allowed to make network calls."""
     manifest = get_manifest(skill_id)
-    
+
     if manifest is None:
         violation = ManifestViolation(skill_id, "no_manifest", "No manifest registered")
         _audit_violation(violation, workspace)
         return violation
-    
+
     if not manifest.network_access:
         violation = ManifestViolation(
             skill_id=skill_id,
@@ -179,19 +190,21 @@ def validate_network_access(skill_id: str, workspace: str = "default") -> Option
         )
         _audit_violation(violation, workspace)
         return violation
-    
+
     return None
 
 
-def validate_subprocess_access(skill_id: str, workspace: str = "default") -> Optional[ManifestViolation]:
+def validate_subprocess_access(
+    skill_id: str, workspace: str = "default"
+) -> Optional[ManifestViolation]:
     """Validate that a tool is allowed to spawn subprocesses."""
     manifest = get_manifest(skill_id)
-    
+
     if manifest is None:
         violation = ManifestViolation(skill_id, "no_manifest", "No manifest registered")
         _audit_violation(violation, workspace)
         return violation
-    
+
     if not manifest.subprocess_access:
         violation = ManifestViolation(
             skill_id=skill_id,
@@ -200,14 +213,16 @@ def validate_subprocess_access(skill_id: str, workspace: str = "default") -> Opt
         )
         _audit_violation(violation, workspace)
         return violation
-    
+
     return None
 
 
-def validate_tool_access(skill_id: str, tool_name: str, workspace: str = "default") -> Optional[ManifestViolation]:
+def validate_tool_access(
+    skill_id: str, tool_name: str, workspace: str = "default"
+) -> Optional[ManifestViolation]:
     """Validate that a skill is allowed to call a specific tool."""
     manifest = get_manifest(skill_id)
-    
+
     if manifest is None:
         # Deny by default
         violation = ManifestViolation(
@@ -217,9 +232,9 @@ def validate_tool_access(skill_id: str, tool_name: str, workspace: str = "defaul
         )
         _audit_violation(violation, workspace)
         return violation
-    
+
     required_capability = f"tool:{tool_name}"
-    # Special case: some tools might be implicitly allowed by file:write etc? 
+    # Special case: some tools might be implicitly allowed by file:write etc?
     # For now, stick to explicit tool:name
     if required_capability not in manifest.declared_capabilities:
         violation = ManifestViolation(
@@ -229,7 +244,7 @@ def validate_tool_access(skill_id: str, tool_name: str, workspace: str = "defaul
         )
         _audit_violation(violation, workspace)
         return violation
-    
+
     return None
 
 
@@ -237,7 +252,11 @@ def _audit_violation(violation: ManifestViolation, workspace: str) -> None:
     """Emit a governance event for manifest violations."""
     try:
         emit_governance_event(
-            event_type="SECURITY_PERMISSION_VIOLATION" if violation.violation_type == "SECURITY_PERMISSION_VIOLATION" else "PERMISSION_MANIFEST_VIOLATION",
+            event_type=(
+                "SECURITY_PERMISSION_VIOLATION"
+                if violation.violation_type == "SECURITY_PERMISSION_VIOLATION"
+                else "PERMISSION_MANIFEST_VIOLATION"
+            ),
             data={
                 "skill_id": violation.skill_id,
                 "violation_type": violation.violation_type,
@@ -245,7 +264,7 @@ def _audit_violation(violation: ManifestViolation, workspace: str) -> None:
                 "severity": violation.severity,
                 "timestamp": datetime.utcnow().isoformat(),
             },
-            workspace_id=workspace
+            workspace_id=workspace,
         )
     except Exception:
         pass
@@ -295,6 +314,6 @@ def register_builtin_manifests() -> None:
             subprocess_access=False,
         ),
     ]
-    
+
     for m in manifests:
         register_manifest(m)

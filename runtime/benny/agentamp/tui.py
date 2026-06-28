@@ -51,9 +51,10 @@ from typing import List, Optional
 try:
     from textual.app import App, ComposeResult
     from textual.color import Color
+    from textual.containers import Horizontal, ScrollableContainer, Vertical
     from textual.css.query import NoMatches
     from textual.widgets import Footer, Header, Label, Log, Static
-    from textual.containers import Horizontal, Vertical, ScrollableContainer
+
     _TEXTUAL_AVAILABLE = True
 except ImportError:  # pragma: no cover
     _TEXTUAL_AVAILABLE = False
@@ -61,7 +62,6 @@ except ImportError:  # pragma: no cover
     ComposeResult = None  # type: ignore[assignment]
 
 from .contracts import SkinCliPalette, SkinGlyphs
-
 
 # ---------------------------------------------------------------------------
 # Terminal floor constants (AAMP-F8)
@@ -85,18 +85,18 @@ class SkinPalette:
     """
 
     # ANSI colours (CSS-compatible strings)
-    bg:     str = "#1a1a2e"
-    fg:     str = "#eaeaea"
+    bg: str = "#1a1a2e"
+    fg: str = "#eaeaea"
     accent: str = "#e94560"
-    muted:  str = "#6c6c8a"
+    muted: str = "#6c6c8a"
 
     # Glyphs
-    bullet:  str = "▸"
+    bullet: str = "▸"
     running: str = "◆"
-    done:    str = "✔"
-    failed:  str = "✖"
+    done: str = "✔"
+    failed: str = "✖"
     warning: str = "⚠"
-    paused:  str = "⏸"
+    paused: str = "⏸"
 
 
 def extract_palette(cli_palette: SkinCliPalette) -> SkinPalette:
@@ -193,9 +193,7 @@ class BennyTUI(App):  # type: ignore[misc]
         # Store palette BEFORE super().__init__() so get_css_variables() works
         self._palette: SkinPalette = palette or _default_palette()
         self._workspace = workspace
-        self._benny_home = benny_home or Path(
-            os.environ.get("BENNY_HOME", Path.home() / ".benny")
-        )
+        self._benny_home = benny_home or Path(os.environ.get("BENNY_HOME", Path.home() / ".benny"))
         super().__init__()
 
     # ------------------------------------------------------------------
@@ -204,12 +202,14 @@ class BennyTUI(App):  # type: ignore[misc]
 
     def get_css_variables(self) -> dict:  # type: ignore[override]
         variables = super().get_css_variables()
-        variables.update({
-            "aamp_bg":     self._palette.bg,
-            "aamp_fg":     self._palette.fg,
-            "aamp_accent": self._palette.accent,
-            "aamp_muted":  self._palette.muted,
-        })
+        variables.update(
+            {
+                "aamp_bg": self._palette.bg,
+                "aamp_fg": self._palette.fg,
+                "aamp_accent": self._palette.accent,
+                "aamp_muted": self._palette.muted,
+            }
+        )
         return variables
 
     # ------------------------------------------------------------------
@@ -308,8 +308,7 @@ def run_tui(
     """
     if not _TEXTUAL_AVAILABLE:  # pragma: no cover
         print(
-            "TUI mini-mode requires textual. "
-            "Install with: pip install 'textual>=0.80.0'",
+            "TUI mini-mode requires textual. " "Install with: pip install 'textual>=0.80.0'",
             file=sys.stderr,
         )
         return 1
@@ -320,7 +319,7 @@ def run_tui(
     if columns is None or rows is None:
         real_cols, real_rows = _terminal_size()
         cols = columns if columns is not None else real_cols
-        r    = rows    if rows    is not None else real_rows
+        r = rows if rows is not None else real_rows
     else:
         cols, r = columns, rows
 

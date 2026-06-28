@@ -1,6 +1,7 @@
 """
 Benny Doctor — Automated health probes for the portable stack.
 """
+
 from __future__ import annotations
 
 import os
@@ -10,11 +11,11 @@ from pathlib import Path
 from typing import List, Tuple
 
 import httpx
-from benny.core.models import LOCAL_PROVIDERS, is_local_model, _offline_enabled
-from benny.core.manifest import SwarmManifest, MANIFEST_SCHEMA_VERSION
-from benny.core.workspace import load_manifest
-
 from pydantic import BaseModel
+
+from benny.core.manifest import MANIFEST_SCHEMA_VERSION, SwarmManifest
+from benny.core.models import LOCAL_PROVIDERS, _offline_enabled, is_local_model
+from benny.core.workspace import load_manifest
 
 
 class CheckResult(BaseModel):
@@ -44,9 +45,13 @@ def _home() -> Path | None:
 def check_home_dir() -> CheckResult:
     home = _home()
     if not home:
-        return CheckResult(name="BENNY_HOME", status="ERROR", message="Environment variable not set.")
+        return CheckResult(
+            name="BENNY_HOME", status="ERROR", message="Environment variable not set."
+        )
     if not home.exists():
-        return CheckResult(name="BENNY_HOME", status="ERROR", message=f"Path does not exist: {home}")
+        return CheckResult(
+            name="BENNY_HOME", status="ERROR", message=f"Path does not exist: {home}"
+        )
     try:
         test_file = home / ".doctor_write_test"
         test_file.write_text("ok")
@@ -59,14 +64,20 @@ def check_home_dir() -> CheckResult:
 def check_structure() -> CheckResult:
     home = _home()
     if not home:
-        return CheckResult(name="Structure", status="ERROR", message="BENNY_HOME not set; cannot check.")
+        return CheckResult(
+            name="Structure", status="ERROR", message="BENNY_HOME not set; cannot check."
+        )
 
     required = ["bin", "config", "workspaces", "logs", "state", "data", "models", "tmp"]
     missing = [d for d in required if not (home / d).is_dir()]
 
     if not missing:
-        return CheckResult(name="Structure", status="OK", message="All required directories present.")
-    return CheckResult(name="Structure", status="ERROR", message=f"Missing directories: {', '.join(missing)}")
+        return CheckResult(
+            name="Structure", status="OK", message="All required directories present."
+        )
+    return CheckResult(
+        name="Structure", status="ERROR", message=f"Missing directories: {', '.join(missing)}"
+    )
 
 
 def check_python() -> CheckResult:
@@ -154,6 +165,7 @@ def check_config() -> CheckResult:
         )
     try:
         from benny.portable.config import load
+
         load(home)
         return CheckResult(name="Config", status="OK", message=str(toml))
     except Exception as exc:
@@ -179,10 +191,16 @@ async def check_services() -> List[CheckResult]:
         name = p_info.get("name", p_id)
         url = p_info.get("check_url")
         if not url:
-            results.append(CheckResult(name=f"Service: {name}", status="OK", message="Static library (no probe)"))
+            results.append(
+                CheckResult(
+                    name=f"Service: {name}", status="OK", message="Static library (no probe)"
+                )
+            )
             continue
         ok, msg = await probe_service(name, url)
-        results.append(CheckResult(name=f"Service: {name}", status="OK" if ok else "WARN", message=msg))
+        results.append(
+            CheckResult(name=f"Service: {name}", status="OK" if ok else "WARN", message=msg)
+        )
 
     # Derive API port from benny.toml when possible.
     api_port = 8000
@@ -190,6 +208,7 @@ async def check_services() -> List[CheckResult]:
     if home:
         try:
             from benny.portable.config import load
+
             cfg = load(home)
             api_port = cfg.api_port
         except Exception:
@@ -245,9 +264,17 @@ def check_kg3d_stack() -> List[CheckResult]:
     if home:
         cache_path = home / "data" / "kg3d_metrics.db"
         if cache_path.exists():
-            results.append(CheckResult(name="KG3D: Metrics Cache", status="OK", message="Database exists."))
+            results.append(
+                CheckResult(name="KG3D: Metrics Cache", status="OK", message="Database exists.")
+            )
         else:
-            results.append(CheckResult(name="KG3D: Metrics Cache", status="WARN", message="Will be created on first run."))
+            results.append(
+                CheckResult(
+                    name="KG3D: Metrics Cache",
+                    status="WARN",
+                    message="Will be created on first run.",
+                )
+            )
     return results
 
 
@@ -264,7 +291,9 @@ async def run_doctor() -> DoctorReport:
     service_checks = await check_services()
     checks.extend(service_checks)
 
-    checks.append(CheckResult(name="Manifest Schema", status="OK", message=f"v{MANIFEST_SCHEMA_VERSION}"))
+    checks.append(
+        CheckResult(name="Manifest Schema", status="OK", message=f"v{MANIFEST_SCHEMA_VERSION}")
+    )
     checks.extend(check_kg3d_stack())
 
     return DoctorReport(checks=checks)

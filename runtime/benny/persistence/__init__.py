@@ -3,10 +3,10 @@ Benny Persistence - State checkpointing and durability
 """
 
 from .checkpointer import (
-    SQLiteCheckpointer,
     PostgresCheckpointer,
-    get_checkpointer,
+    SQLiteCheckpointer,
     TimeTravelDebugger,
+    get_checkpointer,
 )
 
 __all__ = [

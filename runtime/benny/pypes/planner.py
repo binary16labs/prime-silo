@@ -31,9 +31,9 @@ from typing import Any, Dict, List, Literal, Optional, Tuple
 
 from pydantic import ValidationError
 
+from ..graph.swarm import parse_json_safe
 from .models import PypesManifest
 from .registry import default_registry
-from ..graph.swarm import parse_json_safe
 
 log = logging.getLogger(__name__)
 
@@ -134,7 +134,10 @@ _MINIMAL_EXAMPLE = {
             "inputs": ["raw_trades"],
             "outputs": ["clean_trades"],
             "operations": [
-                {"operation": "filter", "params": {"column": "status", "op": "==", "value": "completed"}},
+                {
+                    "operation": "filter",
+                    "params": {"column": "status", "op": "==", "value": "completed"},
+                },
                 {"operation": "dedupe", "params": {"subset": ["trade_id"]}},
             ],
         },
@@ -276,22 +279,35 @@ def plan_pypes_manifest(
 
     if strategy == "oneshot":
         return _plan_oneshot(
-            requirement=requirement, workspace=workspace, model=resolved_model,
-            manifest_id=manifest_id, extra_notes=extra_notes,
-            temperature=temperature, max_tokens=max_tokens,
+            requirement=requirement,
+            workspace=workspace,
+            model=resolved_model,
+            manifest_id=manifest_id,
+            extra_notes=extra_notes,
+            temperature=temperature,
+            max_tokens=max_tokens,
         )
     if strategy == "incremental":
         return _plan_incremental(
-            requirement=requirement, workspace=workspace, model=resolved_model,
-            manifest_id=manifest_id, extra_notes=extra_notes,
-            temperature=temperature, max_tokens=max_tokens,
+            requirement=requirement,
+            workspace=workspace,
+            model=resolved_model,
+            manifest_id=manifest_id,
+            extra_notes=extra_notes,
+            temperature=temperature,
+            max_tokens=max_tokens,
         )
     # strategy == "swarm"
     return _plan_swarm(
-        requirement=requirement, workspace=workspace, primary_model=resolved_model,
-        swarm_models=swarm_models, judge_model=judge_model,
-        manifest_id=manifest_id, extra_notes=extra_notes,
-        temperature=temperature, max_tokens=max_tokens,
+        requirement=requirement,
+        workspace=workspace,
+        primary_model=resolved_model,
+        swarm_models=swarm_models,
+        judge_model=judge_model,
+        manifest_id=manifest_id,
+        extra_notes=extra_notes,
+        temperature=temperature,
+        max_tokens=max_tokens,
     )
 
 
@@ -308,7 +324,9 @@ def _resolve_model(model: Optional[str], workspace: str) -> str:
     # ``get_active_model`` falls back to ``lemonade/default`` (a non-existent
     # model id) when its heartbeat URL math fails on ``/api/v1`` bases. Probe
     # Lemonade directly and pick a real chat-capable model id instead.
-    if not resolved_model or (isinstance(resolved_model, str) and resolved_model.endswith("/default")):
+    if not resolved_model or (
+        isinstance(resolved_model, str) and resolved_model.endswith("/default")
+    ):
         from .agent_chat import _first_chat_capable_lemonade_model, _first_ollama_model
 
         real = _first_chat_capable_lemonade_model()
@@ -357,11 +375,9 @@ def _plan_oneshot(
     # ``str.format`` treats every `{...}` as a placeholder. The embedded JSON
     # example contains literal tokens like ``${data_dir}`` whose `{...}` would
     # explode the formatter. Render placeholders manually instead.
-    system_content = (
-        _SYSTEM_PROMPT
-        .replace("{operations}", "\n".join(f"- {n}" for n in default_registry.names()))
-        .replace("{example}", json.dumps(_MINIMAL_EXAMPLE, indent=2))
-    )
+    system_content = _SYSTEM_PROMPT.replace(
+        "{operations}", "\n".join(f"- {n}" for n in default_registry.names())
+    ).replace("{example}", json.dumps(_MINIMAL_EXAMPLE, indent=2))
     system_msg = {"role": "system", "content": system_content}
     user_msg = {
         "role": "user",
@@ -665,7 +681,9 @@ def _plan_incremental(
     outline = _stage_call(
         system=_OUTLINE_SYSTEM,
         user=f"Requirement:\n{requirement}{notes_suffix}\n\nProduce the outline JSON now.",
-        model=model, temperature=temperature, max_tokens=min(max_tokens, 4096),
+        model=model,
+        temperature=temperature,
+        max_tokens=min(max_tokens, 4096),
         stage_name="outline",
     )
     skeleton = outline.get("step_skeleton") or outline.get("steps") or []
@@ -684,7 +702,9 @@ def _plan_incremental(
             f"Original requirement:\n{requirement}\n\n"
             "Produce the logical model JSON now."
         ),
-        model=model, temperature=temperature, max_tokens=min(max_tokens, 4096),
+        model=model,
+        temperature=temperature,
+        max_tokens=min(max_tokens, 4096),
         stage_name="clp_logical",
     )
     logical = clp_payload.get("logical", [])
@@ -705,7 +725,9 @@ def _plan_incremental(
                 f"Original requirement:\n{requirement}\n\n"
                 "Produce the single PipelineStep JSON now."
             ),
-            model=model, temperature=temperature, max_tokens=min(max_tokens, 4096),
+            model=model,
+            temperature=temperature,
+            max_tokens=min(max_tokens, 4096),
             stage_name=f"step:{skel.get('id', '?')}",
         )
         # Force the step id to match the skeleton — small models tend to
@@ -718,7 +740,8 @@ def _plan_incremental(
     # ─── Stage 4: reports + governance ──────────────────────────────────────
     gold_summaries = [
         {"id": s.get("id"), "outputs": s.get("outputs", [])}
-        for s in steps if s.get("stage") == "gold"
+        for s in steps
+        if s.get("stage") == "gold"
     ]
     reports_payload = _stage_call(
         system=_REPORTS_SYSTEM,
@@ -727,7 +750,9 @@ def _plan_incremental(
             f"Original requirement:\n{requirement}\n\n"
             "Produce the governance + reports JSON now."
         ),
-        model=model, temperature=temperature, max_tokens=min(max_tokens, 4096),
+        model=model,
+        temperature=temperature,
+        max_tokens=min(max_tokens, 4096),
         stage_name="reports",
     )
 
@@ -748,8 +773,11 @@ def _plan_incremental(
 
     # ─── Stage 5: validate + repair loop ────────────────────────────────────
     manifest, repair_iters = _validate_and_repair(
-        payload, requirement=requirement, model=model,
-        temperature=temperature, max_tokens=max_tokens,
+        payload,
+        requirement=requirement,
+        model=model,
+        temperature=temperature,
+        max_tokens=max_tokens,
     )
 
     meta = {
@@ -792,7 +820,9 @@ def _stage_call(
         raw = "{" + raw
     payload = _extract_json(raw)
     if payload is not None:
-        log.debug("planner.incremental[%s]: parsed on first attempt (%d chars)", stage_name, len(raw))
+        log.debug(
+            "planner.incremental[%s]: parsed on first attempt (%d chars)", stage_name, len(raw)
+        )
         return payload
 
     # Second attempt — terser prompt, force thinking-style suppression.
@@ -840,7 +870,9 @@ def _validate_and_repair(
             last_err = exc
             log.info(
                 "planner.repair[%d/%d]: %d validation error(s)",
-                attempt, max_iters, len(exc.errors()),
+                attempt,
+                max_iters,
+                len(exc.errors()),
             )
             if attempt >= max_iters:
                 break
@@ -855,7 +887,8 @@ def _validate_and_repair(
                         "Produce a JSON patch object containing ONLY the top-level "
                         "keys to replace. Do NOT return the full manifest."
                     ),
-                    model=model, temperature=temperature,
+                    model=model,
+                    temperature=temperature,
                     max_tokens=min(max_tokens, 4096),
                     stage_name=f"repair#{attempt}",
                 )
@@ -907,9 +940,13 @@ def _plan_swarm(
     for m in members:
         try:
             mf, _ = _plan_incremental(
-                requirement=requirement, workspace=workspace, model=m,
-                manifest_id=manifest_id, extra_notes=extra_notes,
-                temperature=temperature, max_tokens=max_tokens,
+                requirement=requirement,
+                workspace=workspace,
+                model=m,
+                manifest_id=manifest_id,
+                extra_notes=extra_notes,
+                temperature=temperature,
+                max_tokens=max_tokens,
             )
             drafts.append((m, mf))
             log.info("planner.swarm: member %s produced a valid draft", m)
@@ -926,20 +963,30 @@ def _plan_swarm(
     if len(drafts) == 1:
         only_model, only_mf = drafts[0]
         return only_mf, {
-            "model": only_model, "manifest_id": manifest_id,
-            "workspace": workspace, "strategy": "swarm",
-            "swarm_members": [only_model], "swarm_drafts": 1,
-            "swarm_failures": failures, "judge": None,
+            "model": only_model,
+            "manifest_id": manifest_id,
+            "workspace": workspace,
+            "strategy": "swarm",
+            "swarm_members": [only_model],
+            "swarm_drafts": 1,
+            "swarm_failures": failures,
+            "judge": None,
         }
 
     judge = judge_model or primary_model
     final = _stage_judge(
-        drafts=drafts, requirement=requirement, manifest_id=manifest_id,
-        workspace=workspace, judge=judge,
-        temperature=temperature, max_tokens=max_tokens,
+        drafts=drafts,
+        requirement=requirement,
+        manifest_id=manifest_id,
+        workspace=workspace,
+        judge=judge,
+        temperature=temperature,
+        max_tokens=max_tokens,
     )
     return final, {
-        "model": judge, "manifest_id": manifest_id, "workspace": workspace,
+        "model": judge,
+        "manifest_id": manifest_id,
+        "workspace": workspace,
         "strategy": "swarm",
         "swarm_members": [m for m, _ in drafts],
         "swarm_drafts": len(drafts),
@@ -988,10 +1035,7 @@ def _stage_judge(
     max_tokens: int,
 ) -> PypesManifest:
     """Synthesize one PypesManifest from N drafts via the Judge model."""
-    drafts_payload = [
-        {"model": m, "manifest": mf.model_dump(mode="json")}
-        for m, mf in drafts
-    ]
+    drafts_payload = [{"model": m, "manifest": mf.model_dump(mode="json")} for m, mf in drafts]
     user = (
         f"Original requirement:\n{requirement}\n\n"
         f"Drafts from {len(drafts)} models (truncated to fit):\n"
@@ -1002,12 +1046,17 @@ def _stage_judge(
     )
     try:
         payload = _stage_call(
-            system=_JUDGE_SYSTEM, user=user, model=judge,
-            temperature=temperature, max_tokens=max(max_tokens, 16384),
+            system=_JUDGE_SYSTEM,
+            user=user,
+            model=judge,
+            temperature=temperature,
+            max_tokens=max(max_tokens, 16384),
             stage_name="judge",
         )
     except RuntimeError as exc:
-        log.warning("planner.swarm.judge: synthesis call failed (%s); falling back to first draft", exc)
+        log.warning(
+            "planner.swarm.judge: synthesis call failed (%s); falling back to first draft", exc
+        )
         return drafts[0][1]
 
     payload["id"] = manifest_id
@@ -1019,7 +1068,8 @@ def _stage_judge(
     except ValidationError as exc:
         log.warning(
             "planner.swarm.judge: synthesis output failed validation (%s); "
-            "falling back to first valid draft", exc,
+            "falling back to first valid draft",
+            exc,
         )
         return drafts[0][1]
 
@@ -1068,9 +1118,7 @@ _TRAILING_COMMA_RE = re.compile(r",(\s*[}\]])")
 # JSON has no native comments. Pattern: ``"_commented_out_<anything>": <value>``
 # followed by an optional comma. We strip these key/value pairs entirely.
 _COMMENT_KEY_RE = re.compile(
-    r'"_commented_out_[^"]*"\s*:\s*'
-    r'(?:"[^"]*"|true|false|null|-?\d+(?:\.\d+)?)'
-    r'\s*,?',
+    r'"_commented_out_[^"]*"\s*:\s*' r'(?:"[^"]*"|true|false|null|-?\d+(?:\.\d+)?)' r"\s*,?",
     re.IGNORECASE,
 )
 
@@ -1129,7 +1177,7 @@ def _try_parse(text: str) -> Optional[Dict[str, Any]]:
         return json.loads(text)
     except json.JSONDecodeError:
         pass
-    
+
     try:
         # Robust fallback path
         payload, _ = parse_json_safe(text)

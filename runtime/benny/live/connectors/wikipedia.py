@@ -36,10 +36,13 @@ class WikipediaConnector(BaseConnector):
             resp = await client.get(summary_url)
             if resp.status_code == 404:
                 # Try a search-based redirect
-                search_url = f"https://en.wikipedia.org/w/api.php"
+                search_url = "https://en.wikipedia.org/w/api.php"
                 params = {
-                    "action": "query", "list": "search", "srsearch": entity_name,
-                    "format": "json", "srlimit": 1,
+                    "action": "query",
+                    "list": "search",
+                    "srsearch": entity_name,
+                    "format": "json",
+                    "srlimit": 1,
                 }
                 search_resp = await client.get(search_url, params=params)
                 search_resp.raise_for_status()
@@ -73,7 +76,9 @@ class WikipediaConnector(BaseConnector):
         summary["_entity_type"] = entity_type
         return summary
 
-    def parse(self, raw: Dict[str, Any], entity_name: str, entity_type: str, api_url: str) -> List[KnowledgeTriple]:
+    def parse(
+        self, raw: Dict[str, Any], entity_name: str, entity_type: str, api_url: str
+    ) -> List[KnowledgeTriple]:
         if raw.get("_empty"):
             return []
 
@@ -82,7 +87,11 @@ class WikipediaConnector(BaseConnector):
 
         def t(pred: str, obj: str, obj_type: str = "Concept") -> None:
             if obj and str(obj).strip():
-                triples.append(self._make_triple(name, pred, str(obj).strip(), api_url, raw, object_type=obj_type))
+                triples.append(
+                    self._make_triple(
+                        name, pred, str(obj).strip(), api_url, raw, object_type=obj_type
+                    )
+                )
 
         # Description and extract
         t("has_description", raw.get("description", ""))

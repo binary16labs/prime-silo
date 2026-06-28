@@ -42,7 +42,7 @@ class _DisclosureEntry:
         docs_uri: Optional[str] = None,
     ) -> None:
         self.tool_name = tool_name
-        self.summary = summary[:80]          # hard clamp for budget safety
+        self.summary = summary[:80]  # hard clamp for budget safety
         self._schema: Optional[Dict[str, Any]] = schema
         self._schema_factory = schema_factory
         self._schema_cached: Optional[Dict[str, Any]] = None
@@ -131,10 +131,7 @@ class DisclosureRegistry:
         Each entry has exactly two keys: ``tool_name`` and ``summary``.
         The complete serialised index MUST remain ≤ 500 tokens (AOS-F8 / NFR12).
         """
-        return [
-            {"tool_name": e.tool_name, "summary": e.summary}
-            for e in self._entries.values()
-        ]
+        return [{"tool_name": e.tool_name, "summary": e.summary} for e in self._entries.values()]
 
     def activate(self, tool_name: str) -> Dict[str, Any]:
         """Return the Layer 2 JSON Schema for *tool_name*.

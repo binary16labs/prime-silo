@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 
 path = r"c:\Users\nsdha\OneDrive\code\benny\benny\synthesis\engine.py"
 with open(path, "r", encoding="utf-8") as f:

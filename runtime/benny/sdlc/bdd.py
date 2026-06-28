@@ -32,7 +32,6 @@ from __future__ import annotations
 import re
 import textwrap
 
-
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
@@ -91,16 +90,16 @@ def _parse_scenarios(feature_text: str) -> list[dict]:
         if lower.startswith("scenario:"):
             if current is not None:
                 scenarios.append(current)
-            title = line[len("scenario:"):].strip()
+            title = line[len("scenario:") :].strip()
             current = {"title": title, "given": "", "when": "", "then": ""}
 
         elif current is not None:
             if lower.startswith("given ") and not current["given"]:
-                current["given"] = line[len("given "):].strip()
+                current["given"] = line[len("given ") :].strip()
             elif lower.startswith("when ") and not current["when"]:
-                current["when"] = line[len("when "):].strip()
+                current["when"] = line[len("when ") :].strip()
             elif lower.startswith("then ") and not current["then"]:
-                current["then"] = line[len("then "):].strip()
+                current["then"] = line[len("then ") :].strip()
 
     if current is not None:
         scenarios.append(current)

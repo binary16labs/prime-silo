@@ -53,18 +53,17 @@ import json
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-
-from pydantic import BaseModel, Field
-
-from .contracts import SkinSignature
-from .signing import sign_skin_pack
 
 # Governance imports are deferred to function-call time to avoid pulling in
 # openlineage (optional heavy dep) at module import time.  The concrete types
 # are still referenced in type annotations below — those are strings in
 # TYPE_CHECKING blocks so they stay annotation-only.
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
+
+from .contracts import SkinSignature
+from .signing import sign_skin_pack
 
 if TYPE_CHECKING:  # pragma: no cover
     from ..governance.ledger import LedgerEntry
@@ -76,15 +75,17 @@ if TYPE_CHECKING:  # pragma: no cover
 # ---------------------------------------------------------------------------
 
 # Exact config-level knob paths (dot-notation from SwarmManifest root)
-_CONFIG_PATHS: frozenset[str] = frozenset({
-    "config.model",
-    "config.max_concurrency",
-    "config.max_depth",
-    "config.handover_summary_limit",
-    "config.allow_swarm",
-    "config.skills_allowed",
-    "config.model_per_persona",
-})
+_CONFIG_PATHS: frozenset[str] = frozenset(
+    {
+        "config.model",
+        "config.max_concurrency",
+        "config.max_depth",
+        "config.handover_summary_limit",
+        "config.allow_swarm",
+        "config.skills_allowed",
+        "config.model_per_persona",
+    }
+)
 
 # Regex for per-task knob paths: tasks[<index or *>].<field>
 _TASK_PATH_RE = re.compile(
@@ -226,7 +227,7 @@ def _apply_path(manifest: Dict[str, Any], path: str, value: Any) -> None:
       ``tasks[*].<field>``        → all tasks get the value
     """
     if path.startswith("config."):
-        key = path[len("config."):]
+        key = path[len("config.") :]
         cfg = manifest.setdefault("config", {})
         cfg[key] = value
         return
@@ -234,9 +235,7 @@ def _apply_path(manifest: Dict[str, Any], path: str, value: Any) -> None:
     m = _TASK_PATH_RE.match(path)
     if m:
         idx_str, task_field = m.group(1), m.group(2)
-        tasks: List[Dict[str, Any]] = (
-            manifest.get("plan", {}).get("tasks", [])
-        )
+        tasks: List[Dict[str, Any]] = manifest.get("plan", {}).get("tasks", [])
         if idx_str == "*":
             for task in tasks:
                 task[task_field] = value
@@ -364,8 +363,7 @@ def apply_eq_write(
     )
     if decision == PolicyDecision.DENIED:
         raise PolicyDeniedError(
-            f"Policy denied [{persona}] → '{AAMP_TOOL_EQ_WRITE}' "
-            f"for workspace {workspace!r}"
+            f"Policy denied [{persona}] → '{AAMP_TOOL_EQ_WRITE}' " f"for workspace {workspace!r}"
         )
 
     # 3. Capture previous signature (AAMP-COMP2)

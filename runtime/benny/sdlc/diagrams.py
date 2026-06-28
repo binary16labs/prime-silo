@@ -79,7 +79,7 @@ def to_plantuml(plan: "ManifestPlan") -> str:
             task = task_map.get(tid)
             label = task.description[:40] if (task and task.description) else tid
             safe = _safe_id(tid)
-            lines.append(f'  [{label}] as {safe}')
+            lines.append(f"  [{label}] as {safe}")
         lines.append("}")
 
     for edge in plan.edges:

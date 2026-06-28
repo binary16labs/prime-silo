@@ -48,7 +48,6 @@ import re
 from enum import Enum
 from typing import Any, Optional
 
-
 # ---------------------------------------------------------------------------
 # Decision type
 # ---------------------------------------------------------------------------
@@ -58,7 +57,7 @@ class PolicyDecision(str, Enum):
     """Outcome of a policy evaluation (AOS-F25)."""
 
     APPROVED = "approved"
-    DENIED   = "denied"
+    DENIED = "denied"
     ESCALATE = "escalate"
 
 
@@ -179,7 +178,7 @@ class PolicyEvaluator:
             return self._denied(
                 tool=tool,
                 persona=persona,
-                reason=f"Path traversal detected in intent or workspace",
+                reason="Path traversal detected in intent or workspace",
             )
 
         # --- Rule 2: persona allowlist (AOS-SEC1) ---
@@ -210,9 +209,7 @@ class PolicyEvaluator:
     ) -> PolicyDecision:
         """Return DENIED or raise PolicyDeniedError depending on mode."""
         if self.mode == "enforce":
-            raise PolicyDeniedError(
-                f"Policy denied [{persona}] → '{tool}': {reason}"
-            )
+            raise PolicyDeniedError(f"Policy denied [{persona}] → '{tool}': {reason}")
         return PolicyDecision.DENIED
 
 
@@ -224,15 +221,15 @@ class PolicyEvaluator:
 # instead of inline strings prevents typo drift across the codebase.
 # ---------------------------------------------------------------------------
 
-AAMP_INTENT_SKIN_LOAD    = "aamp.skin_load"
+AAMP_INTENT_SKIN_LOAD = "aamp.skin_load"
 AAMP_INTENT_SKIN_INSTALL = "aamp.skin_install"
 AAMP_INTENT_PLUGIN_INVOKE = "aamp.plugin_invoke"
-AAMP_INTENT_EQ_WRITE     = "aamp.eq_write"
+AAMP_INTENT_EQ_WRITE = "aamp.eq_write"
 AAMP_INTENT_DESIGNER_RUN = "aamp.designer_run"
 
 # Default AAMP tool names — paired with the intent constants above
-AAMP_TOOL_SKIN_LOAD    = "agentamp.load_skin"
+AAMP_TOOL_SKIN_LOAD = "agentamp.load_skin"
 AAMP_TOOL_SKIN_INSTALL = "agentamp.install_skin"
 AAMP_TOOL_PLUGIN_INVOKE = "agentamp.invoke_plugin"
-AAMP_TOOL_EQ_WRITE     = "agentamp.eq_write"
+AAMP_TOOL_EQ_WRITE = "agentamp.eq_write"
 AAMP_TOOL_DESIGNER_RUN = "agentamp.designer_run"

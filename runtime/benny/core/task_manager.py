@@ -1,12 +1,12 @@
-import threading
-import json
-import uuid
-import sys
 import asyncio
-from typing import Dict, Optional, List, Any
+import json
+import sys
+import threading
+import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor
+from typing import Any, Dict, List, Optional
 
 # Force Proactor on Windows to handle many concurrent sockets/files
 if sys.platform == "win32":
@@ -15,16 +15,18 @@ if sys.platform == "win32":
     except Exception:
         pass
 
+from ..governance.audit import emit_governance_event
+from ..governance.lineage import track_aer
+from .event_bus import event_bus
 from .schema import Task, TaskStatus
 from .workspace import get_workspace_path
-from ..governance.audit import emit_governance_event
-from .event_bus import event_bus
-from ..governance.lineage import track_aer
+
 
 class TaskManager:
     """
     Central registry for background tasks with persistence.
     """
+
     def __init__(self):
         self._tasks: Dict[str, Task] = {}
         self._lock = threading.Lock()
@@ -39,7 +41,7 @@ class TaskManager:
             type=task_type,
             status=TaskStatus.RUNNING,
             created_at=datetime.now().isoformat(),
-            updated_at=datetime.now().isoformat()
+            updated_at=datetime.now().isoformat(),
         )
         with self._lock:
             self._tasks[tid] = task
@@ -51,7 +53,7 @@ class TaskManager:
         with self._lock:
             if task_id not in self._tasks:
                 return None
-            
+
             task = self._tasks[task_id]
             for key, value in kwargs.items():
                 if hasattr(task, key):
@@ -64,7 +66,7 @@ class TaskManager:
                         setattr(task, key, TaskStatus(value))
                     else:
                         setattr(task, key, value)
-            
+
             task.updated_at = datetime.now().isoformat()
             self.save_task(task)
             return task
@@ -74,7 +76,16 @@ class TaskManager:
         self.update_task(task_id, topology=topology)
         event_bus.emit(task_id, "topology_updated", topology)
 
-    def add_aer_entry(self, task_id: str, intent: str, observation: str, inference: str = "", plan: str = "", nodeId: Optional[str] = None, type: str = "think"):
+    def add_aer_entry(
+        self,
+        task_id: str,
+        intent: str,
+        observation: str,
+        inference: str = "",
+        plan: str = "",
+        nodeId: Optional[str] = None,
+        type: str = "think",
+    ):
         """Helper to add a structured Agent Execution Record entry."""
         entry = {
             "timestamp": datetime.now().isoformat(),
@@ -82,19 +93,23 @@ class TaskManager:
             "observation": observation,
             "inference": inference,
             "plan": plan,
-            "type": type
+            "type": type,
         }
         self.update_task(task_id, aer_log=[entry])
-        
+
         # Also mirror as a progress event to EventBus for real-time UI logs
-        event_bus.emit(task_id, "node_progress", {
-            "nodeId": nodeId or "task_manager",
-            "message": intent,
-            "inference": inference,
-            "reasoning": entry,
-            "type": type,
-            "data": entry
-        })
+        event_bus.emit(
+            task_id,
+            "node_progress",
+            {
+                "nodeId": nodeId or "task_manager",
+                "message": intent,
+                "inference": inference,
+                "reasoning": entry,
+                "type": type,
+                "data": entry,
+            },
+        )
 
         # Log to OpenLineage for formal audit trail — fire-and-forget so Marquez
         # latency / unreachability never stalls the execution pipeline.
@@ -117,14 +132,21 @@ class TaskManager:
 
         self._executor.submit(_emit_aer)
 
-    def add_tool_event(self, task_id: str, tool_name: str, args: Dict[str, Any], result: Any, nodeId: str = "executor"):
+    def add_tool_event(
+        self,
+        task_id: str,
+        tool_name: str,
+        args: Dict[str, Any],
+        result: Any,
+        nodeId: str = "executor",
+    ):
         """Record a tool invocation event."""
         data = {
             "tool_name": tool_name,
             "args": args,
             "result": str(result)[:1000],  # Truncate large results
             "nodeId": nodeId,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
         self.add_event(task_id, "tool_used", data)
         # Also add as a thinking step for node-level visibility
@@ -134,19 +156,15 @@ class TaskManager:
             observation=f"Args: {json.dumps(args)}",
             inference=f"Result: {str(result)[:500]}...",
             nodeId=nodeId,
-            type="tool"
+            type="tool",
         )
 
     def add_event(self, task_id: str, event_type: str, data: Dict[str, Any]):
         """Record an SSE event into the persistent task log and emit to EventBus."""
         if "nodeId" not in data:
             data["nodeId"] = "task_manager"
-            
-        entry = {
-            "timestamp": datetime.now().isoformat(),
-            "type": event_type,
-            "data": data
-        }
+
+        entry = {"timestamp": datetime.now().isoformat(), "type": event_type, "data": data}
         self.update_task(task_id, event_log=[entry])
         event_bus.emit(task_id, event_type, data)
 
@@ -174,7 +192,7 @@ class TaskManager:
             runs_dir = get_workspace_path(task.workspace, "runs")
             runs_dir.mkdir(parents=True, exist_ok=True)
             registry_path = runs_dir / "task_registry.json"
-            
+
             # Load existing
             registry = {}
             if registry_path.exists():
@@ -183,10 +201,10 @@ class TaskManager:
                         registry = json.load(f)
                 except json.JSONDecodeError:
                     registry = {}
-            
+
             # Update
             registry[task.task_id] = task.model_dump()
-            
+
             # Save
             with open(registry_path, "w", encoding="utf-8") as f:
                 json.dump(registry, f, indent=2)
@@ -195,11 +213,12 @@ class TaskManager:
             emit_governance_event(
                 event_type="TASK_METADATA_UPDATE",
                 data=task.model_dump(),
-                workspace_id=task.workspace
+                workspace_id=task.workspace,
             )
         except Exception as e:
             # We don't want task saving to crash the main process
             print(f"[ERROR] TaskManager persistence failed for {task.task_id}: {e}")
+
 
 # Global instance
 task_manager = TaskManager()

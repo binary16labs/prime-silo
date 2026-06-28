@@ -18,6 +18,7 @@ the fan-out, and the run is recorded in the same ``run_store`` the Runs list
 reads. Fan-out is sequential for now (single local endpoint = a quality win over
 the single-context ceiling); cross-machine parallelism is a later phase.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -39,7 +40,9 @@ def _run_store():
     deep_produce does not drag in benny.persistence (and its LangGraph
     checkpointer) — deep_produce only needs the run-record CRUD."""
     from ..persistence import run_store
+
     return run_store
+
 
 DEFAULT_PANEL_COUNT = 4
 MAX_PANEL_COUNT = 8
@@ -104,13 +107,23 @@ def _extract_json(text: str) -> Any:
 
 
 def _fallback_panels(goal: str, panel_count: int) -> Dict[str, Any]:
-    titles = ["Overview", "Key details", "Risks & considerations", "Next steps",
-              "Context", "Data points", "Open questions", "Summary"]
+    titles = [
+        "Overview",
+        "Key details",
+        "Risks & considerations",
+        "Next steps",
+        "Context",
+        "Data points",
+        "Open questions",
+        "Summary",
+    ]
     panels = [{"title": titles[i % len(titles)], "focus": goal} for i in range(panel_count)]
     return {"title": f"{goal[:80]}", "panels": panels}
 
 
-async def _decompose(goal: str, model: str, run_id: str, workspace: str, panel_count: int) -> Dict[str, Any]:
+async def _decompose(
+    goal: str, model: str, run_id: str, workspace: str, panel_count: int
+) -> Dict[str, Any]:
     start = time.monotonic()
     prompt = (
         f"You are planning a multi-panel dashboard that thoroughly answers this goal:\n\n"
@@ -120,8 +133,13 @@ async def _decompose(goal: str, model: str, run_id: str, workspace: str, panel_c
         f'{{"title": "<concise dashboard title>", "panels": '
         f'[{{"title": "<panel title>", "focus": "<one sentence on what this panel should contain>"}}]}}'
     )
-    raw = await call_model(model, [{"role": "user", "content": prompt}],
-                           temperature=0.3, max_tokens=1024, run_id=run_id)
+    raw = await call_model(
+        model,
+        [{"role": "user", "content": prompt}],
+        temperature=0.3,
+        max_tokens=1024,
+        run_id=run_id,
+    )
     parsed = _extract_json(raw)
     plan: Dict[str, Any]
     if isinstance(parsed, dict) and isinstance(parsed.get("panels"), list) and parsed["panels"]:
@@ -136,41 +154,60 @@ async def _decompose(goal: str, model: str, run_id: str, workspace: str, panel_c
         if isinstance(spec, str):
             panels.append({"title": spec, "focus": goal})
         elif isinstance(spec, dict):
-            panels.append({"title": str(spec.get("title") or "Panel"), "focus": str(spec.get("focus") or goal)})
+            panels.append(
+                {
+                    "title": str(spec.get("title") or "Panel"),
+                    "focus": str(spec.get("focus") or goal),
+                }
+            )
     if not panels:
         panels = _fallback_panels(goal, panel_count)["panels"]
     plan["panels"] = panels
     plan["title"] = str(plan.get("title") or goal[:80])
     duration_ms = int((time.monotonic() - start) * 1000)
     _emit_node(
-        workspace, run_id, "decompose", "success",
+        workspace,
+        run_id,
+        "decompose",
+        "success",
         reasoning=f"Decomposed the goal into {len(panels)} panels: "
-                  + ", ".join(p["title"] for p in panels),
-        response=json.dumps(plan), duration_ms=duration_ms,
+        + ", ".join(p["title"] for p in panels),
+        response=json.dumps(plan),
+        duration_ms=duration_ms,
     )
     return plan
 
 
-async def _produce_panel(panel: Dict[str, Any], goal: str, model: str, run_id: str,
-                         workspace: str, index: int) -> Dict[str, Any]:
+async def _produce_panel(
+    panel: Dict[str, Any], goal: str, model: str, run_id: str, workspace: str, index: int
+) -> Dict[str, Any]:
     start = time.monotonic()
     title = panel["title"]
     focus = panel["focus"]
     prompt = (
         f"You are writing ONE panel of a multi-panel dashboard about:\n{goal}\n\n"
-        f"This panel is titled \"{title}\". Focus: {focus}\n\n"
+        f'This panel is titled "{title}". Focus: {focus}\n\n'
         f"Write concise, information-dense Markdown for THIS panel only — no title "
         f"heading (the panel already has one), no preamble, no closing remarks."
     )
-    content = await call_model(model, [{"role": "user", "content": prompt}],
-                               temperature=0.6, max_tokens=1536, run_id=run_id)
+    content = await call_model(
+        model,
+        [{"role": "user", "content": prompt}],
+        temperature=0.6,
+        max_tokens=1536,
+        run_id=run_id,
+    )
     content = (content or "").strip()
     duration_ms = int((time.monotonic() - start) * 1000)
     node_id = f"panel:{index + 1}:{_slug(title, str(index + 1))}"
     _emit_node(
-        workspace, run_id, node_id, "success",
+        workspace,
+        run_id,
+        node_id,
+        "success",
         reasoning=f"Produced panel '{title}' ({len(content)} chars). Focus: {focus}",
-        response=content, duration_ms=duration_ms,
+        response=content,
+        duration_ms=duration_ms,
     )
     return {"id": f"panel-{index + 1}", "title": title, "type": "markdown", "markdown": content}
 
@@ -184,13 +221,27 @@ async def _review(view: Dict[str, Any], goal: str, model: str, run_id: str, work
         f"GOAL: {goal}\n\nPANELS:\n{outline}"
     )
     try:
-        critique = (await call_model(model, [{"role": "user", "content": prompt}],
-                                     temperature=0.3, max_tokens=768, run_id=run_id) or "").strip()
+        critique = (
+            await call_model(
+                model,
+                [{"role": "user", "content": prompt}],
+                temperature=0.3,
+                max_tokens=768,
+                run_id=run_id,
+            )
+            or ""
+        ).strip()
     except Exception as exc:  # review is advisory — never fail the run on it
         critique = f"(review skipped: {exc})"
     duration_ms = int((time.monotonic() - start) * 1000)
-    _emit_node(workspace, run_id, "review", "success",
-               reasoning=critique or "(no critique returned)", duration_ms=duration_ms)
+    _emit_node(
+        workspace,
+        run_id,
+        "review",
+        "success",
+        reasoning=critique or "(no critique returned)",
+        duration_ms=duration_ms,
+    )
     return critique
 
 
@@ -201,6 +252,7 @@ def _fanout_concurrency(model: str, panel_count: int) -> int:
     try:
         from ..core.endpoints import get_endpoint_pools
         from ..core.models import get_model_config
+
         provider = (get_model_config(model).get("provider") or "").lower()
         pool = get_endpoint_pools().get(provider) or []
         return max(1, min(len(pool) or 1, panel_count))
@@ -239,11 +291,16 @@ async def deep_produce(
         except Exception:
             model = "local_lemonade"
 
-    _run_store().save_run(RunRecord(
-        run_id=run_id, manifest_id=MANIFEST_ID, workspace=workspace,
-        status=RunStatus.RUNNING, started_at=_now(),
-        manifest_snapshot={"goal": goal, "panel_count": panel_count, "model": model},
-    ))
+    _run_store().save_run(
+        RunRecord(
+            run_id=run_id,
+            manifest_id=MANIFEST_ID,
+            workspace=workspace,
+            status=RunStatus.RUNNING,
+            started_at=_now(),
+            manifest_snapshot={"goal": goal, "panel_count": panel_count, "model": model},
+        )
+    )
 
     try:
         plan = await _decompose(goal, model, run_id, workspace, panel_count)
@@ -264,8 +321,9 @@ async def deep_produce(
                 async with sem:
                     return await _produce_panel(spec, goal, model, run_id, workspace, index)
 
-            panels = list(await asyncio.gather(
-                *(_bounded(i, s) for i, s in enumerate(plan["panels"]))))
+            panels = list(
+                await asyncio.gather(*(_bounded(i, s) for i, s in enumerate(plan["panels"])))
+            )
 
         view: Dict[str, Any] = {
             "format": VIEW_FORMAT,
@@ -281,12 +339,19 @@ async def deep_produce(
         rel_path = _write_view(workspace, run_id, view)
 
         _run_store().update_run_status(
-            run_id, RunStatus.COMPLETED,
-            artifact_paths=[rel_path], final_document=view["title"],
+            run_id,
+            RunStatus.COMPLETED,
+            artifact_paths=[rel_path],
+            final_document=view["title"],
             node_states={p["id"]: "completed" for p in panels},
         )
-        return {"run_id": run_id, "status": "completed", "view": view,
-                "view_path": rel_path, "model": model}
+        return {
+            "run_id": run_id,
+            "status": "completed",
+            "view": view,
+            "view_path": rel_path,
+            "model": model,
+        }
     except Exception as exc:
         _emit_node(workspace, run_id, "error", "failed", reasoning=str(exc))
         _run_store().update_run_status(run_id, RunStatus.FAILED, errors=[str(exc)])
@@ -299,7 +364,10 @@ def load_run_result(run_id: str, workspace: str = "default") -> Dict[str, Any]:
     rec = _run_store().get_run(run_id)
     if not rec:
         return {"run_id": run_id, "status": "unknown", "error": "run not found"}
-    result: Dict[str, Any] = {"run_id": run_id, "status": rec.status.value if hasattr(rec.status, "value") else str(rec.status)}
+    result: Dict[str, Any] = {
+        "run_id": run_id,
+        "status": rec.status.value if hasattr(rec.status, "value") else str(rec.status),
+    }
     if rec.errors:
         result["error"] = rec.errors[0]
     for rel in rec.artifact_paths or []:

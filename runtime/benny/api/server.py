@@ -12,24 +12,27 @@ import os as _os
 if not _os.environ.get("SSL_CERT_FILE"):
     try:
         import certifi as _certifi
+
         _os.environ["SSL_CERT_FILE"] = _certifi.where()
     except ImportError:
         pass  # certifi not installed; fall through to OS defaults
 
+import asyncio as _asyncio
 import builtins
 import sys as _sys
-import asyncio as _asyncio
 
 # Monkey-patch print to prevent UnicodeEncodeError on Windows CP1252 consoles
 _original_print = builtins.print
+
 
 def _safe_print(*args, **kwargs):
     try:
         _original_print(*args, **kwargs)
     except UnicodeEncodeError:
         # Replace non-encodable characters with '?' for console stability
-        safe_args = [str(a).encode('ascii', 'replace').decode('ascii') for a in args]
+        safe_args = [str(a).encode("ascii", "replace").decode("ascii") for a in args]
         _original_print(*safe_args, **kwargs)
+
 
 builtins.print = _safe_print
 
@@ -38,9 +41,10 @@ if _sys.platform == "win32":
     try:
         # Increase the C runtime's max files limit if supported
         import msvcrt
+
         if hasattr(msvcrt, "setmaxstdio"):
             msvcrt.setmaxstdio(2048)
-        
+
         # Force ProactorEventLoopPolicy for this process
         _asyncio.set_event_loop_policy(_asyncio.WindowsProactorEventLoopPolicy())
         print("✓ Windows ProactorEventLoopPolicy Enforced (IOCP)")
@@ -48,50 +52,52 @@ if _sys.platform == "win32":
         print(f"Warning: Failed to enforce ProactorEventLoop: {e}")
 
 import json
+import os
+from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
-from pathlib import Path
-import os
 
-from contextlib import asynccontextmanager
-from .llm_routes import router as llm_router
-from .workflow_routes import router as workflow_router
-from .file_routes import router as file_router
-from .etl_routes import router as etl_router
-from .rag_routes import router as rag_router
-from .vision_routes import router as vision_router
-from .notebook_routes import router as notebook_router
-from .chat_routes import router as chat_router
-from .studio_executor import router as studio_router
-from .skill_routes import router as skill_router
-from .graph_routes import router as graph_router
-from .workspace_routes import router as workspace_router
-from .task_routes import router as task_router
-from .governance_routes import router as governance_router
-from .system_routes import router as system_router
 from ..a2a.server import router as a2a_router
-from .live_routes import router as live_router
-from .manifest_routes import router as manifest_router
-from .workflow_endpoints import router as workflow_endpoints_router
-from .audio_routes import router as audio_router
-from .ops_endpoints import router as ops_router
-from .kg3d import router as kg3d_router
-from .pypes_routes import router as pypes_router
-from .agentamp_routes import router as agentamp_router
 from .agent_sandbox_routes import router as agent_sandbox_router
 from .agent_scope import AgentScopeMiddleware
-from .views_routes import router as views_router
-from .widget_routes import router as widget_router
+from .agentamp_routes import router as agentamp_router
+from .audio_routes import router as audio_router
+from .chat_routes import router as chat_router
+from .checkpoint_routes import pinned_router as checkpoint_pinned_router
+from .checkpoint_routes import sandbox_router as checkpoint_sandbox_router
 from .deep_produce_routes import router as deep_produce_router
+from .etl_routes import router as etl_router
+from .file_routes import router as file_router
+from .governance_routes import router as governance_router
+from .graph_routes import router as graph_router
+from .kg3d import router as kg3d_router
+from .live_routes import router as live_router
+from .llm_routes import router as llm_router
+from .manifest_routes import router as manifest_router
+from .notebook_routes import router as notebook_router
 from .opencode_routes import router as opencode_router
-from .checkpoint_routes import sandbox_router as checkpoint_sandbox_router, pinned_router as checkpoint_pinned_router
+from .ops_endpoints import router as ops_router
+from .pypes_routes import router as pypes_router
+from .rag_routes import router as rag_router
+from .skill_routes import router as skill_router
+from .studio_executor import router as studio_router
+from .system_routes import router as system_router
+from .task_routes import router as task_router
+from .views_routes import router as views_router
+from .vision_routes import router as vision_router
+from .widget_routes import router as widget_router
+from .workflow_endpoints import router as workflow_endpoints_router
+from .workflow_routes import router as workflow_router
+from .workspace_routes import router as workspace_router
 
 # Temporary fix for missing rbac.py module
 GOVERNANCE_WHITELIST = ["/api/health", "/api/status"]
 from ..core.workspace import get_workspace_path
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -113,21 +119,25 @@ async def lifespan(app: FastAPI):
                 print("✓ Per-install signing key loaded from $BENNY_HOME/state/hmac-key")
         except Exception as exc:  # never block startup on key loading
             print(f"⚠ Could not load per-install signing key: {exc}")
-    
+
     if _sys.platform == "win32" and loop_type == "SelectorEventLoop":
-        print("⚠ WARNING: Server is running on SelectorEventLoop on Windows. "
-              "File descriptor errors may occur under load.")
-    
+        print(
+            "⚠ WARNING: Server is running on SelectorEventLoop on Windows. "
+            "File descriptor errors may occur under load."
+        )
+
     yield
     # Shutdown: Clean up
     print("Neo4j driver closed")
+
 
 app = FastAPI(
     title="Benny Neural Nexus API",
     description="Cognitive Mesh Engine for Software Synthesis",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
+
 
 # Governance Middleware (FR-5: RBAC Enforcement)
 class GovernanceMiddleware(BaseHTTPMiddleware):
@@ -136,7 +146,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
         path = request.url.path
         if path == "/" or path.startswith("/docs") or path.startswith("/openapi.json"):
             return await call_next(request)
-            
+
         for white_path in GOVERNANCE_WHITELIST:
             if path.startswith(white_path):
                 return await call_next(request)
@@ -144,14 +154,23 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
         # 2. Extract API Key
         api_key = request.headers.get("X-Benny-API-Key")
         if not api_key:
-             return Response(content='{"detail":"Unauthorized: X-Benny-API-Key required"}', status_code=401, media_type="application/json")
-        
+            return Response(
+                content='{"detail":"Unauthorized: X-Benny-API-Key required"}',
+                status_code=401,
+                media_type="application/json",
+            )
+
         # 3. RBAC Check (PBR-001 Phase 3)
         # Simplified for now: just check if key exists. Full implementation in Phase 8.
         if api_key != "benny-mesh-2026-auth":
-             return Response(content='{"detail":"Forbidden: Invalid API Key"}', status_code=403, media_type="application/json")
+            return Response(
+                content='{"detail":"Forbidden: Invalid API Key"}',
+                status_code=403,
+                media_type="application/json",
+            )
 
         return await call_next(request)
+
 
 # app.add_middleware(GovernanceMiddleware)
 
@@ -163,7 +182,7 @@ app.add_middleware(AgentScopeMiddleware)
 # Enable CORS for Benny Studio (UX-REC-001)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, restrict to studio domain
+    allow_origins=["*"],  # In production, restrict to studio domain
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -206,7 +225,9 @@ app.include_router(agent_sandbox_router, prefix="/api/agent_sandbox", tags=["Age
 app.include_router(views_router, prefix="/api/views", tags=["Views"])
 # ADR-001 Phase H: Session checkpoint draft operations. Mounted under the
 # agent_sandbox prefix so AgentScopeMiddleware allows scoped agent writes.
-app.include_router(checkpoint_sandbox_router, prefix="/api/agent_sandbox/checkpoints", tags=["Checkpoints"])
+app.include_router(
+    checkpoint_sandbox_router, prefix="/api/agent_sandbox/checkpoints", tags=["Checkpoints"]
+)
 # ADR-001 Phase H: Pinned checkpoint operations (pin / load / list).
 # Mounted OUTSIDE agent_sandbox so AgentScopeMiddleware blocks agent POSTs.
 app.include_router(checkpoint_pinned_router, prefix="/api/checkpoints", tags=["Checkpoints"])
@@ -214,13 +235,14 @@ app.include_router(checkpoint_pinned_router, prefix="/api/checkpoints", tags=["C
 # agent (and the frontend) may compose into a Review-zone layout.
 app.include_router(widget_router, prefix="/api/widgets", tags=["Widgets"])
 
+
 @app.get("/")
 async def root():
     return {
         "app": "Benny Neural Nexus",
         "status": "online",
         "mesh_version": "2026.4.1",
-        "engine": "Synthesis Knowledge Engine v2"
+        "engine": "Synthesis Knowledge Engine v2",
     }
 
 
@@ -248,6 +270,7 @@ app.mount("/api/static", StaticFiles(directory=str(workspace_path)), name="files
 
 if __name__ == "__main__":
     import uvicorn
+
     # Cognitive Mesh Security: Bind to loopback only by default
     # Note: Use string import for better reload stability on Windows
     uvicorn.run("benny.api.server:app", host="0.0.0.0", port=8005, reload=True, loop="asyncio")

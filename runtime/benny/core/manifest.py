@@ -113,7 +113,7 @@ class ManifestTask(BaseModel):
     parent_id: Optional[str] = None
     is_pillar: bool = False
     is_expanded: bool = False
-    deterministic: bool = False            # When True, executor runs skill_hint directly — no LLM
+    deterministic: bool = False  # When True, executor runs skill_hint directly — no LLM
     skill_args: Dict[str, Any] = Field(default_factory=dict)  # Args forwarded to the skill
     complexity: Literal["low", "medium", "high"] = "medium"
     files_touched: List[str] = Field(default_factory=list)
@@ -229,7 +229,7 @@ class SwarmManifest(BaseModel):
 
     # AOS-001 v1.1 extension fields — all Optional so v1.0 payloads still parse.
     # Values are stored as plain dicts; use benny.sdlc.contracts for typed access.
-    sdlc: Optional[Dict[str, Any]] = None    # SdlcConfig
+    sdlc: Optional[Dict[str, Any]] = None  # SdlcConfig
     policy: Optional[Dict[str, Any]] = None  # PolicyConfig
     memory: Optional[Dict[str, Any]] = None  # MemoryConfig
 
@@ -276,7 +276,11 @@ def manifest_from_swarm_state(state: Dict[str, Any]) -> SwarmManifest:
                 complexity=t.get("complexity", "medium") or "medium",
                 files_touched=list(t.get("files_touched", []) or []),
                 estimated_tokens=t.get("estimated_tokens"),
-                status=TaskStatus(t.get("status", "pending")) if t.get("status") in [s.value for s in TaskStatus] else TaskStatus.PENDING,
+                status=(
+                    TaskStatus(t.get("status", "pending"))
+                    if t.get("status") in [s.value for s in TaskStatus]
+                    else TaskStatus.PENDING
+                ),
             )
         )
 
@@ -311,9 +315,7 @@ def manifest_from_swarm_state(state: Dict[str, Any]) -> SwarmManifest:
     )
 
 
-def swarm_state_seed_from_manifest(
-    manifest: SwarmManifest, execution_id: str
-) -> Dict[str, Any]:
+def swarm_state_seed_from_manifest(manifest: SwarmManifest, execution_id: str) -> Dict[str, Any]:
     """Build an initial `SwarmState` kwargs dict from a manifest.
 
     Callers can pass this to `create_swarm_state(...)` to execute the manifest

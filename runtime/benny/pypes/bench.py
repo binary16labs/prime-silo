@@ -194,6 +194,7 @@ def run_one(
         try:
             from .engines import get_engine
             from .models import EngineType
+
             for s in manifest.steps:
                 if s.engine.value == "polars":
                     get_engine(EngineType.POLARS)
@@ -252,8 +253,12 @@ def run_bench(
     by_label: Dict[str, List[BenchResult]] = {}
     for label, path in pairs:
         for i in range(repeats):
-            r = run_one(path, label=f"{label}#{i+1}" if repeats > 1 else label,
-                        workspace=workspace, sample_interval=sample_interval)
+            r = run_one(
+                path,
+                label=f"{label}#{i+1}" if repeats > 1 else label,
+                workspace=workspace,
+                sample_interval=sample_interval,
+            )
             by_label.setdefault(label, []).append(r)
 
     # Pick best (lowest wall) per label, restore original label.

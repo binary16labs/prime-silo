@@ -42,6 +42,7 @@ class BaseConnector(ABC):
 
     def _load_manifest(self) -> SourceManifest:
         from benny.core.workspace import get_workspace_path
+
         path = get_workspace_path(self.workspace) / "live" / "sources" / f"{self.source_id}.yaml"
         if not path.exists():
             raise FileNotFoundError(
@@ -72,8 +73,11 @@ class BaseConnector(ABC):
 
     def _cache_path(self, entity_name: str, entity_type: str) -> Path:
         from benny.core.workspace import get_workspace_path
+
         key = hashlib.md5(f"{entity_name}:{entity_type}".encode()).hexdigest()
-        return get_workspace_path(self.workspace) / "live" / "cache" / self.source_id / f"{key}.json"
+        return (
+            get_workspace_path(self.workspace) / "live" / "cache" / self.source_id / f"{key}.json"
+        )
 
     def _read_cache(self, entity_name: str, entity_type: str, ttl_hours: int) -> Optional[dict]:
         """Return cached raw response if it exists and is within TTL."""
@@ -83,7 +87,9 @@ class BaseConnector(ABC):
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
             cached_at = datetime.fromisoformat(payload.get("_cached_at", "1970-01-01"))
-            age_hours = (datetime.now(timezone.utc) - cached_at.replace(tzinfo=timezone.utc)).total_seconds() / 3600
+            age_hours = (
+                datetime.now(timezone.utc) - cached_at.replace(tzinfo=timezone.utc)
+            ).total_seconds() / 3600
             if age_hours <= ttl_hours:
                 return payload.get("raw")
         except Exception as e:
@@ -105,7 +111,9 @@ class BaseConnector(ABC):
         """Call the external API and return the raw JSON response dict."""
 
     @abstractmethod
-    def parse(self, raw: Dict[str, Any], entity_name: str, entity_type: str, api_url: str) -> List[KnowledgeTriple]:
+    def parse(
+        self, raw: Dict[str, Any], entity_name: str, entity_type: str, api_url: str
+    ) -> List[KnowledgeTriple]:
         """
         Convert raw API response into KnowledgeTriples.
         Must set on every triple:
@@ -132,7 +140,9 @@ class BaseConnector(ABC):
         Saves raw response to run_artifacts_dir/raw/ if provided.
         """
         if not self.manifest.enabled:
-            logger.info(f"[{self.source_id}] Connector disabled in manifest, skipping {entity_name}")
+            logger.info(
+                f"[{self.source_id}] Connector disabled in manifest, skipping {entity_name}"
+            )
             return []
 
         raw = self._read_cache(entity_name, entity_type, ttl_hours)
@@ -206,8 +216,7 @@ def get_connector(source_id: str, workspace: str = "default") -> BaseConnector:
     """Instantiate a connector by source_id."""
     if source_id not in _REGISTRY:
         raise ValueError(
-            f"Unknown connector '{source_id}'. "
-            f"Available: {sorted(_REGISTRY.keys())}"
+            f"Unknown connector '{source_id}'. " f"Available: {sorted(_REGISTRY.keys())}"
         )
     return _REGISTRY[source_id](workspace=workspace)
 
@@ -218,7 +227,15 @@ def list_connectors() -> List[str]:
 
 def _auto_register_all() -> None:
     """Import all connector modules so their @register_connector decorators fire."""
-    from benny.live.connectors import tmdb, spotify, wikipedia, wikidata, google_cse, duckduckgo, youtube  # noqa: F401
+    from benny.live.connectors import (  # noqa: F401
+        duckduckgo,
+        google_cse,
+        spotify,
+        tmdb,
+        wikidata,
+        wikipedia,
+        youtube,
+    )
 
 
 _auto_register_all()

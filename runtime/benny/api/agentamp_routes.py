@@ -55,6 +55,7 @@ from ..agentamp.equalizer import (
     EqWriteResult,
     apply_eq_write,
 )
+from ..agentamp.layout import SNAP_ZONES, LayoutResult, apply_layout
 from ..agentamp.playlist import PlaylistEntry, get_playlist
 from ..agentamp.user_state import (
     CockpitUserState,
@@ -62,7 +63,6 @@ from ..agentamp.user_state import (
     load_user_state,
     save_user_state,
 )
-from ..agentamp.layout import SNAP_ZONES, LayoutResult, apply_layout
 from ..governance.policy import PolicyDeniedError
 
 logger = logging.getLogger(__name__)
@@ -266,6 +266,7 @@ async def enqueue_run(
 
     async def _run(m: SwarmManifest, rid: str) -> None:
         from ..core.manifest import RunStatus
+
         try:
             await execute_manifest(m, run_id=rid)
         except Exception as exc:  # noqa: BLE001
@@ -376,9 +377,7 @@ async def apply_layout_endpoint(body: LayoutApplyRequest) -> List[LayoutResultRe
     skin_layout = SkinLayout(windows=windows)
 
     try:
-        results: List[LayoutResult] = apply_layout(
-            skin_layout, body.viewport_w, body.viewport_h
-        )
+        results: List[LayoutResult] = apply_layout(skin_layout, body.viewport_w, body.viewport_h)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 

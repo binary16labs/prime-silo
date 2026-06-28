@@ -10,6 +10,7 @@ The *manifest* module still owns CRUD (/api/manifests/*). These endpoints
 are the cross-surface contract Claude, the CLI, and the UI all target
 identically — the name "workflows" signals "plan + run" as one thing.
 """
+
 from __future__ import annotations
 
 import logging
@@ -55,9 +56,7 @@ async def plan_workflow(req: PlanRequest) -> SwarmManifest:
             model=model,
             input_files=list(req.inputs.files),
             output_spec=req.outputs,
-            max_concurrency=(
-                req.config.max_concurrency if req.config else req.max_concurrency
-            ),
+            max_concurrency=(req.config.max_concurrency if req.config else req.max_concurrency),
             max_depth=(req.config.max_depth if req.config else req.max_depth),
             name=req.name,
         )
@@ -106,16 +105,16 @@ async def _run_in_background(manifest: SwarmManifest, run_id: str) -> None:
         run_id,
         "workflow_completed",
         {
-            "status": record.status.value if hasattr(record.status, "value") else str(record.status),
+            "status": (
+                record.status.value if hasattr(record.status, "value") else str(record.status)
+            ),
             "artifact_paths": list(record.artifact_paths or []),
         },
     )
 
 
 @router.post("/run", response_model=RunResponse)
-async def run_workflow(
-    manifest: SwarmManifest, background_tasks: BackgroundTasks
-) -> RunResponse:
+async def run_workflow(manifest: SwarmManifest, background_tasks: BackgroundTasks) -> RunResponse:
     """Execute an inline manifest. If the manifest carries a signature, it is
     verified before the run is queued — we refuse to execute tampered
     manifests."""

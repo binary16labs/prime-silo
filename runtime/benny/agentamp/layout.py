@@ -50,7 +50,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
-
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -118,9 +117,7 @@ def resolve_snap(
         If *snap* is not in :data:`SNAP_ZONES`.
     """
     if snap not in SNAP_ZONES:
-        raise ValueError(
-            f"Invalid snap zone {snap!r}. Allowed: {sorted(SNAP_ZONES)}"
-        )
+        raise ValueError(f"Invalid snap zone {snap!r}. Allowed: {sorted(SNAP_ZONES)}")
 
     if snap == "tl":
         return (0, 0)

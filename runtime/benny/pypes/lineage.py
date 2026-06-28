@@ -147,12 +147,8 @@ class LineageEmitter:
             step_run_id = self._step_run_ids.get(step.id) or _uuid_for(f"{self.run_id}:{step.id}")
             self._step_run_ids[step.id] = step_run_id
 
-            inputs: List[Any] = [
-                Dataset(namespace=_NAMESPACE, name=name) for name in step.inputs
-            ]
-            outputs: List[Any] = [
-                Dataset(namespace=_NAMESPACE, name=name) for name in step.outputs
-            ]
+            inputs: List[Any] = [Dataset(namespace=_NAMESPACE, name=name) for name in step.inputs]
+            outputs: List[Any] = [Dataset(namespace=_NAMESPACE, name=name) for name in step.outputs]
             event = RunEvent(
                 eventType=getattr(RunState, state.upper(), RunState.COMPLETE),
                 eventTime=_now(),
@@ -226,14 +222,14 @@ _SILVER_GOLD_STAGES = {"silver", "gold"}
 
 # Inline PROV-O prefix map (stdlib-only, no network)
 _PROV_CONTEXT = {
-    "prov":  "http://www.w3.org/ns/prov#",
-    "xsd":   "http://www.w3.org/2001/XMLSchema#",
+    "prov": "http://www.w3.org/ns/prov#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
     "benny": "https://benny.io/ontology/",
-    "prov:used":      {"@id": "prov:used"},
+    "prov:used": {"@id": "prov:used"},
     "prov:generated": {"@id": "prov:generated"},
     "benny:cde_refs": {"@id": "benny:cde_refs", "@container": "@list"},
     "benny:manifest_id": {"@id": "benny:manifest_id"},
-    "benny:stage":    {"@id": "benny:stage"},
+    "benny:stage": {"@id": "benny:stage"},
 }
 
 

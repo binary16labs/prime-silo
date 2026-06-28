@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 
 path = r"C:\Users\nsdha\OneDrive\code\benny\frontend\src\components\Studio\CodeGraphCanvas.tsx"
 with open(path, "r", encoding="utf-8") as f:
