@@ -149,6 +149,12 @@ const BUNDLE_RUNTIME_REQUIREMENTS = [
   "polars>=1.0.0",
   "pyarrow>=15.0.0",
   // Documents ingest (PDF + HTML cleanup). fitz == PyMuPDF.
+  // PyMuPDF is also the DEFAULT DocModel backend for vision-augmented ingestion
+  // (VIS-001 / ADR-003): it supplies figure crops (extract_image), tables
+  // (find_tables) and text-in-reading-order with NO torch and NO model download,
+  // keeping the bundle lean and fully offline. Docling is an OPTIONAL higher-
+  // accuracy backend (torch/transformers, +~1.5GB, fetches HF weights on first
+  // use) — deliberately NOT bundled; install it separately to opt in.
   "pypdf>=5.0.0",
   "beautifulsoup4>=4.12.0",
   "markdownify>=0.13.0",

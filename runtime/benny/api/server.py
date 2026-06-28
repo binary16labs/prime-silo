@@ -62,6 +62,7 @@ from .workflow_routes import router as workflow_router
 from .file_routes import router as file_router
 from .etl_routes import router as etl_router
 from .rag_routes import router as rag_router
+from .vision_routes import router as vision_router
 from .notebook_routes import router as notebook_router
 from .chat_routes import router as chat_router
 from .studio_executor import router as studio_router
@@ -175,6 +176,7 @@ app.include_router(workspace_router, prefix="/api/workspaces", tags=["Workspaces
 app.include_router(file_router, prefix="/api/files", tags=["Files"])
 app.include_router(etl_router, prefix="/api/etl", tags=["ETL"])
 app.include_router(rag_router, prefix="/api", tags=["RAG"])
+app.include_router(vision_router, prefix="/api/vision", tags=["Vision"])
 app.include_router(graph_router, prefix="/api", tags=["Knowledge Graph"])
 app.include_router(notebook_router, prefix="/api/notebooks", tags=["Notebooks"])
 app.include_router(chat_router, prefix="/api/chat", tags=["Chat"])

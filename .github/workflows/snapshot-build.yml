@@ -28,6 +28,10 @@ jobs:
       - name: Registry resolver test
         run: node tests/registry_resolver_test.mjs
 
+      - name: Validate workspace bootstrapping
+        shell: pwsh
+        run: ./scripts/bootstrap-self-workspace.ps1
+
   build:
     needs: validate
     runs-on: ${{ matrix.runner }}

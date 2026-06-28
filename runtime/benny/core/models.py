@@ -13,7 +13,7 @@ from .event_bus import event_bus
 import json
 
 # Local Executor imports (added for direct access)
-from .local_executor import resolve_executor
+from .local_executor import resolve_executor, _as_text
 
 logger = logging.getLogger(__name__)
 
@@ -149,6 +149,16 @@ MODEL_REGISTRY = {
         "provider": "lemonade",
         "cost_per_1k": 0.0,
         "use_for": ["sdlc", "offline", "planner", "architect", "aos_default"]
+    },
+    # VIS-001 / ADR-003: local vision-language model for the `vision` role
+    # (figure/diagram/chart/table description). OQ-1 (2026-06-28) confirmed
+    # qwen3vl-it-4b-FLM on Lemonade accepts OpenAI `image_url` content and truly
+    # sees images. Workspaces route a role here via manifest model_roles["vision"].
+    "qwen3vl": {
+        "model": "qwen3vl-it-4b-FLM",
+        "provider": "lemonade",
+        "cost_per_1k": 0.0,
+        "use_for": ["vision", "offline", "image", "diagram", "chart", "ocr"]
     }
 }
 
@@ -437,7 +447,19 @@ async def call_model(
     if should_suppress_thinking(model, actual_model, workspace_id, role, operator_override=_override):
         for i in range(len(messages) - 1, -1, -1):
             if messages[i].get("role") == "user":
-                messages[i]["content"] = "/no_think\n" + messages[i].get("content", "")
+                content = messages[i].get("content", "")
+                # Multimodal (vision) content is a list of parts — prepend the
+                # directive to the first text part (or insert one) instead of
+                # string-concatenating, which would crash on a list (VIS-001).
+                if isinstance(content, list):
+                    for part in content:
+                        if isinstance(part, dict) and part.get("type") == "text":
+                            part["text"] = "/no_think\n" + part.get("text", "")
+                            break
+                    else:
+                        content.insert(0, {"type": "text", "text": "/no_think\n"})
+                else:
+                    messages[i]["content"] = "/no_think\n" + content
                 break
         think_extra = {"chat_template_kwargs": {"enable_thinking": False}}
 
@@ -509,7 +531,9 @@ async def call_model(
                 log_data["provider"] = f"local/{executor.provider_name}"
                 log_data["duration_ms"] = int((datetime.datetime.now() - start_ts).total_seconds() * 1000)
                 try:
-                    log_data["tokens_in"] = executor.count_tokens(user_msg + (system_msg or ""))
+                    # user_msg may be multimodal list content (vision) — flatten
+                    # to its text parts before token counting (VIS-001).
+                    log_data["tokens_in"] = executor.count_tokens(_as_text(user_msg) + (system_msg or ""))
                     log_data["tokens_out"] = executor.count_tokens(content)
                 except Exception: pass
                 log_llm_call(log_data)

@@ -3,6 +3,10 @@
     "memoray": {
       "command": "node",
       "args": ["memoray/mcp-server/index.js"]
+    },
+    "prime-silo-nexus": {
+      "command": "node",
+      "args": ["mcp/server.js"]
     }
   }
 }

@@ -47,6 +47,29 @@ function ensureMemorayServerDeps() {
   }
 }
 
+// Ensure the new prime-silo-nexus MCP server can run from the bundle.
+function ensureMcpServerDeps() {
+  const mcpDir = path.join(PROJECT_ROOT, "mcp");
+  if (!fs.existsSync(path.join(mcpDir, "server.js"))) {
+    return; // MCP server not present — nothing to bundle.
+  }
+  if (fs.existsSync(path.join(mcpDir, "node_modules"))) {
+    return; // already installed.
+  }
+  console.log("Installing Prime-Silo Nexus MCP server dependencies for the bundle…");
+  const result = spawnSync("npm install --omit=dev --no-audit --no-fund", {
+    cwd: mcpDir,
+    stdio: "inherit",
+    shell: true
+  });
+  if (result.error || result.status !== 0) {
+    const why = result.error ? result.error.message : `npm exited ${result.status}`;
+    throw new Error(
+      `Failed to install Prime-Silo Nexus MCP server dependencies (${why}).`
+    );
+  }
+}
+
 const PLATFORM_SPECS = {
   macos: {
     key: "macos",
@@ -573,6 +596,19 @@ async function runDesktopPackaging(platformKey, argv = process.argv.slice(2)) {
 
   // Ensure the vendored Memo-Ray server can boot from the bundle (zero-install).
   ensureMemorayServerDeps();
+
+  // Ensure the new Prime-Silo Nexus MCP server can boot from the bundle.
+  ensureMcpServerDeps();
+
+  // Bootstrap the self-workspace before packaging so it's fresh and complete in the bundle.
+  console.log("Bootstrapping self-workspace for bundling...");
+  const shellCmd = process.platform === "win32" ? "powershell" : "pwsh";
+  const bootstrapResult = spawnSync(shellCmd, ["-File", path.join(PROJECT_ROOT, "scripts", "bootstrap-self-workspace.ps1")], {
+    stdio: "inherit"
+  });
+  if (bootstrapResult.error || bootstrapResult.status !== 0) {
+    console.warn("Warning: Failed to bootstrap self-workspace before packaging.");
+  }
 
   console.log(`Packaging Space Agent for ${platformSpec.label}...`);
 

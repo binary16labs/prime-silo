@@ -17,6 +17,34 @@ from .litert_engine import LiteRTEngine
 
 logger = logging.getLogger(__name__)
 
+# A chat "content" is either a plain string or a list of OpenAI multimodal parts
+# (``{"type": "text", ...}`` / ``{"type": "image_url", ...}``). Vision calls
+# (VIS-001 / ADR-003) send the list form; everything else stays a string.
+Content = Union[str, List[Dict[str, Any]]]
+
+
+def _as_text(content: Content) -> str:
+    """Flatten chat content to plain text for token counting / usage logging.
+
+    For multimodal list content this keeps only the ``text`` parts — image parts
+    have no token-countable text here. A plain string passes straight through.
+    """
+    if isinstance(content, list):
+        return "\n".join(
+            p.get("text", "")
+            for p in content
+            if isinstance(p, dict) and p.get("type") == "text"
+        )
+    return content or ""
+
+
+def _is_multimodal(content: Content) -> bool:
+    """True if content is the list form carrying at least one image part."""
+    return isinstance(content, list) and any(
+        isinstance(p, dict) and p.get("type") == "image_url" for p in content
+    )
+
+
 # =============================================================================
 # PROTOCOL (LC-1..4)
 # =============================================================================
@@ -95,8 +123,13 @@ class BaseOpenAICompatibleExecutor(BaseLocalExecutor):
         # Use a longer default timeout for local models (LC-5.4)
         self.timeout = float(os.environ.get("BENNY_LLM_TIMEOUT", "900"))
 
-    async def generate(self, prompt: str, system: Optional[str] = None, run_id: Optional[str] = None, **kwargs) -> str:
+    async def generate(self, prompt: Content, system: Optional[str] = None, run_id: Optional[str] = None, **kwargs) -> str:
         start_ts = time.time()
+        # ``prompt`` may be a plain string OR a list of OpenAI multimodal parts
+        # (vision calls, VIS-001). Pass it through to ``content`` verbatim — local
+        # OpenAI-compatible servers (Lemonade/FLM confirmed via OQ-1) accept list
+        # content. Only the token/usage bookkeeping needs the flattened text.
+        prompt_text = _as_text(prompt)
         messages = []
         if system:
             messages.append({"role": "system", "content": system})
@@ -159,7 +192,7 @@ class BaseOpenAICompatibleExecutor(BaseLocalExecutor):
                 )
             content = data["choices"][0]["message"]["content"]
 
-            self._emit_usage(run_id, prompt, content, int((time.time() - start_ts) * 1000))
+            self._emit_usage(run_id, prompt_text, content, int((time.time() - start_ts) * 1000))
             return content
 
     async def stream(self, prompt: str, system: Optional[str] = None, run_id: Optional[str] = None, **kwargs) -> AsyncIterator[str]:

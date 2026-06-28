@@ -67,6 +67,8 @@
       "packaging/self-awareness/**/*",
       "packaging/platforms/windows/icon.ico",
       "packaging/platforms/linux/icons/**/*",
+      "mcp/**/*",
+      "workspace/prime_silo_self/**/*",
       "package.json"
     ],
     "directories": {

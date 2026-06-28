@@ -1,0 +1,14 @@
+{
+  "name": "prime-silo-nexus",
+  "version": "1.0.0",
+  "description": "MCP server to search and navigate the prime-silo knowledge graph",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.6.0",
+    "neo4j-driver": "^5.25.0"
+  }
+}

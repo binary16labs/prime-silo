@@ -29,7 +29,13 @@ mcp>=1.0
 beautifulsoup4>=4.12.0
 markdownify>=0.13.0
 PyMuPDF>=1.24.0
-docling>=2.4.0
+# Optional rich DocModel backend (VIS-001 / ADR-003). The DEFAULT backend is
+# PyMuPDF (above) — lean, offline, no torch. Docling gives higher-accuracy
+# layout/table structure but pulls a torch/transformers stack and fetches HF
+# model weights on first use, so it is NOT in the shipped bundle. Install to opt
+# into backend="docling". Pillow is only needed by the Docling backend's crop step.
+# docling>=2.4.0
+# Pillow>=10.0.0
 # Code graph (Tree-Sitter AST + language grammars). Imported by
 # benny/graph/code_analyzer.py — required for the Code 3D surface.
 tree-sitter>=0.21.0

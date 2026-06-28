@@ -1,0 +1,400 @@
+{
+  "schema_version": "2.0",
+  "id": "vision-ingestion-pipeline-v1",
+  "name": "Vision-Augmented Ingestion Pipeline",
+  "description": "Declarative end-to-end pipeline (ADR-003 / VIS-001): parse a document into Docling's element tree, classify each visual element, describe it with a local VLM through a type-routed escalation ladder (illustration→caption, diagram→Mermaid/PlantUML, chart→JSON+desc, table→JSON), validate every surrogate, stitch them back in reading order into enriched markdown, then hand off to the EXISTING rag_ingest + deep_synthesis (PageIndex) spine so figure-derived facts land in Neo4j with Section provenance. The vision stages PREPEND to the current pipeline — downstream ingest is unchanged.",
+  "requirement": "Stop discarding figures/diagrams/charts/tables at ingest: turn them into graph-ready, agent-readable surrogates anchored to their source Section, page and bbox.",
+
+  "__doc": {
+    "variables": "Values of the form ${name} are substituted at load time from (in order): CLI flags, environment variables, and then the `variables` map below (as defaults). Unresolved variables are left literal so a future runner can bind them.",
+    "execution.kind": "Dispatcher hint consumed by the CLI/executor: 'inspect_and_classify' | 'fire_and_poll' | 'blocking' | 'blocking_with_task_fallback' | 'blocking_with_task_list_fallback' | 'validate' | 'report'.",
+    "status": "DESIGN-TIME SPEC. Tasks docmodel_extract / classify_elements / describe_visuals / validate_surrogates / stitch_enriched reference skills + endpoints that are VIS-001 deliverables (see per-task [NEW — VIS-001 Phase N] tags and docs/requirements/13). rag_ingest, deep_synthesis and the report stage reuse the existing knowledge_enrichment_pipeline endpoints and are runnable today. This manifest is the executable contract the project is built against.",
+    "vlm": "vlm_model is local-first (Lemonade/FLM). If OQ-1 finds FLM does not accept image_url content, set vlm_model=${vlm_fallback} (lmstudio). The vision pass is opt-in, off the request path, and content-hash cached."
+  },
+
+  "workspace": "${workspace}",
+
+  "variables": {
+    "workspace":          "c5_test",
+    "staging_dir":        "staging",
+    "data_in_dir":        "data_in",
+    "data_out_dir":       "data_out",
+    "docmodel_dir":       ".benny/docmodel",
+    "vlm_model":          "lemonade/qwen3vl-it-4b-FLM",
+    "vlm_fallback":       "lmstudio/qwen3vl",
+    "synthesis_model":    "lemonade/qwen3-tk-4b-FLM",
+    "diagram_format":     "mermaid",
+    "classify_threshold": 0.6,
+    "resume_from_run_id": "",
+    "api_base":           "http://127.0.0.1:8005",
+    "api_key":            "benny-mesh-2026-auth",
+    "benny_home":         "${BENNY_HOME}"
+  },
+
+  "inputs": {
+    "files":   ["${staging_dir}/", "${data_in_dir}/"],
+    "context": {
+      "docmodel_dir":   "${docmodel_dir}",
+      "diagram_format": "${diagram_format}",
+      "vlm_model":      "${vlm_model}"
+    }
+  },
+
+  "outputs": {
+    "base_dir": "${benny_home}/workspace/${workspace}/${data_out_dir}",
+    "files":    ["vision_ingestion_report.md"],
+    "format":   "md",
+    "spec":     "Counts of visual elements detected, classified by type, surrogates generated, validation pass/fail (+ caption fallbacks), enriched docs produced, and figure-derived triples + Sections written."
+  },
+
+  "config": {
+    "model":           "${synthesis_model}",
+    "vlm_model":       "${vlm_model}",
+    "max_concurrency": 2,
+    "max_depth":       3,
+    "skills_allowed":  ["extract_docmodel", "classify_elements", "describe_visuals", "validate_surrogates", "stitch_enriched", "rag_ingest", "validate_vision"]
+  },
+
+  "execution": {
+    "run_folder_template":   "${benny_home}/workspace/${workspace}/runs/vision-${run_id}",
+    "wave_isolation":        true,
+    "stop_on_first_failure": true,
+
+    "api": {
+      "base":         "${api_base}",
+      "auth_header":  "X-Benny-API-Key",
+      "auth_value":   "${api_key}",
+      "content_type": "application/json"
+    },
+
+    "preflight": {
+      "method":       "GET",
+      "path":         "/api/system/pulse",
+      "timeout_s":    5,
+      "on_fail_hint": "Start the server first: benny up --home $BENNY_HOME"
+    },
+
+    "resume": {
+      "enabled":         true,
+      "strategy":        "prior_run_folder",
+      "from_run_id":     "${resume_from_run_id}",
+      "scan_glob":       "task_*.json",
+      "skip_if_status":  ["done", "completed", "completed_after_timeout", "reused", "cached"],
+      "always_rerun":    ["generate_report"],
+      "rehydrate_emits": true
+    },
+
+    "governance": {
+      "lineage_enabled":  true,
+      "lineage_endpoint": "http://localhost:3010",
+      "gdpr_record":      true,
+      "audit_events":     true,
+      "sha256_seal":      true
+    }
+  },
+
+  "plan": {
+    "tasks": [
+      {
+        "id": "docmodel_extract",
+        "description": "[DETERMINISTIC] [NEW — VIS-001 Phase 0] Parse each ingestible doc into Docling's element tree (type/page/bbox/reading-order). Export tables to JSON, persist a crop per picture keyed by content-hash, and write workspace/.benny/docmodel/<source>.json. No VLM.",
+        "skill_hint": "extract_docmodel",
+        "wave": 0,
+        "complexity": "medium",
+        "node_type": "task",
+        "files_touched": ["${staging_dir}/", "${data_in_dir}/", "${docmodel_dir}/"],
+        "execution": {
+          "kind": "blocking_with_task_fallback",
+          "generate_run_id_as": "task_run_id",
+          "request": {
+            "method": "POST",
+            "path":   "/api/vision/docmodel",
+            "body": {
+              "workspace": "${workspace}",
+              "run_id":    "${task_run_id}",
+              "emit_crops": true
+            },
+            "timeout": { "connect": 10, "read": 1200, "write": 120, "pool": 10 }
+          },
+          "fallback_on_timeout": {
+            "method":  "GET",
+            "path":    "/api/tasks/tasks/${task_run_id}",
+            "timeout_s": 10,
+            "success_when_status": ["completed", "complete", "done"],
+            "success_result": { "status": "completed_after_timeout", "docmodels": "$.total_steps", "task_id": "${task_run_id}" }
+          },
+          "emits": { "visual_elements": "$.visual_elements", "docmodel_paths": "$.docmodels" }
+        }
+      },
+
+      {
+        "id": "classify_elements",
+        "description": "[DETERMINISTIC] [NEW — VIS-001 Phase 2] Classify each visual element into a treatment type (illustration | diagram | chart | table | formula) using the Docling picture classifier and/or a cheap VLM routing prompt above ${classify_threshold}. Tables/formulas bypass the VLM describer.",
+        "skill_hint": "classify_elements",
+        "dependencies": ["docmodel_extract"],
+        "wave": 1,
+        "complexity": "low",
+        "node_type": "task",
+        "inputs_from": {
+          "visual_elements": { "source_task": "docmodel_extract", "emits_key": "visual_elements" }
+        },
+        "execution": {
+          "kind": "blocking",
+          "request": {
+            "method": "POST",
+            "path":   "/api/vision/classify",
+            "body": {
+              "workspace": "${workspace}",
+              "threshold": "${classify_threshold}",
+              "elements":  "${inputs.visual_elements}"
+            },
+            "timeout": { "connect": 10, "read": 600, "write": 60, "pool": 10 }
+          },
+          "emits": { "typed_elements": "$.typed_elements" }
+        }
+      },
+
+      {
+        "id": "describe_visuals",
+        "description": "[AGENTIC/VISION] [NEW — VIS-001 Phase 1+2] Run the type-routed describer ladder via the multimodal call_model path: illustration→caption, diagram→${diagram_format} (Mermaid/PlantUML), chart→data-series JSON + description. Content-hash cached — unchanged crops are reused, never re-described.",
+        "skill_hint": "describe_visuals",
+        "assigned_model": "${vlm_model}",
+        "dependencies": ["classify_elements"],
+        "wave": 2,
+        "complexity": "high",
+        "node_type": "task",
+        "inputs_from": {
+          "typed_elements": { "source_task": "classify_elements", "emits_key": "typed_elements" }
+        },
+        "execution": {
+          "kind": "blocking_with_task_list_fallback",
+          "request": {
+            "method": "POST",
+            "path":   "/api/vision/describe",
+            "body": {
+              "workspace":      "${workspace}",
+              "vlm_model":      "${vlm_model}",
+              "diagram_format": "${diagram_format}",
+              "elements":       "${inputs.typed_elements}"
+            },
+            "timeout": { "connect": 10, "read": 2400, "write": 60, "pool": 10 }
+          },
+          "fallback_on_timeout": {
+            "method":              "GET",
+            "path":                "/api/tasks",
+            "params":              { "workspace": "${workspace}" },
+            "timeout_s":           10,
+            "filter_type":         "vision",
+            "sort_by":             "updated_at",
+            "order":               "desc",
+            "success_when_status": ["completed", "complete", "done"],
+            "success_result":      { "status": "completed_after_timeout", "task_id": "$.task_id", "message": "$.message" }
+          },
+          "emits": { "surrogates": "$.surrogates" }
+        }
+      },
+
+      {
+        "id": "validate_surrogates",
+        "description": "[DETERMINISTIC] [NEW — VIS-001 Phase 2] Gate every surrogate: Mermaid/PlantUML must pass a headless parse; chart/table JSON must validate against schema. A surrogate that fails degrades to a plain caption — it is NEVER reported as success (no hollow success).",
+        "skill_hint": "validate_surrogates",
+        "dependencies": ["describe_visuals"],
+        "wave": 3,
+        "complexity": "low",
+        "node_type": "task",
+        "inputs_from": {
+          "surrogates": { "source_task": "describe_visuals", "emits_key": "surrogates" }
+        },
+        "execution": {
+          "kind": "validate",
+          "request": {
+            "method":    "POST",
+            "path":      "/api/vision/validate",
+            "body":      { "workspace": "${workspace}", "surrogates": "${inputs.surrogates}", "diagram_format": "${diagram_format}" },
+            "timeout_s": 300
+          },
+          "assertion": {
+            "select":        "$.surrogates[?(@.validated == true)]",
+            "require_count": ">= 1",
+            "fail_message":  "No surrogate passed validation. Check describe_visuals output and the ${diagram_format} parser; everything fell back to captions."
+          },
+          "emit_on_success": { "validated_surrogates": "$.surrogates", "validated_count": "$.surrogates[?(@.validated == true)] | length", "caption_fallbacks": "$.fallback_count" }
+        }
+      },
+
+      {
+        "id": "stitch_enriched",
+        "description": "[DETERMINISTIC] [NEW — VIS-001 Phase 3] Replace each visual element with its validated surrogate at the element's original reading-order position and write enriched markdown into ${data_in_dir}/ (overwriting the visually-blind version). Each surrogate keeps node_id/page/bbox/crop provenance for downstream Section anchoring.",
+        "skill_hint": "stitch_enriched",
+        "dependencies": ["validate_surrogates"],
+        "wave": 4,
+        "complexity": "medium",
+        "node_type": "task",
+        "files_touched": ["${data_in_dir}/"],
+        "inputs_from": {
+          "validated_surrogates": { "source_task": "validate_surrogates", "emits_key": "validated_surrogates" }
+        },
+        "execution": {
+          "kind": "blocking",
+          "request": {
+            "method": "POST",
+            "path":   "/api/vision/stitch",
+            "body":   { "workspace": "${workspace}", "surrogates": "${inputs.validated_surrogates}", "target_dir": "${data_in_dir}" },
+            "timeout": { "connect": 10, "read": 600, "write": 120, "pool": 10 }
+          },
+          "emits": { "enriched_docs": "$.enriched_docs" }
+        }
+      },
+
+      {
+        "id": "rag_ingest",
+        "description": "[DETERMINISTIC] [EXISTING] Chunk and embed the ENRICHED docs into ChromaDB. Unchanged from knowledge_enrichment_pipeline — it now sees figure surrogates and table JSON inline, not a visually-blind doc.",
+        "skill_hint": "rag_ingest",
+        "dependencies": ["stitch_enriched"],
+        "wave": 5,
+        "complexity": "medium",
+        "node_type": "task",
+        "inputs_from": {
+          "enriched_docs": { "source_task": "stitch_enriched", "emits_key": "enriched_docs" }
+        },
+        "execution": {
+          "kind": "blocking_with_task_fallback",
+          "generate_run_id_as": "task_run_id",
+          "request": {
+            "method": "POST",
+            "path":   "/api/rag/ingest",
+            "body": {
+              "workspace":      "${workspace}",
+              "deep_synthesis": false,
+              "run_id":         "${task_run_id}",
+              "files":          "${inputs.enriched_docs}"
+            },
+            "timeout": { "connect": 10, "read": 1800, "write": 120, "pool": 10 }
+          },
+          "fallback_on_timeout": {
+            "method":  "GET",
+            "path":    "/api/tasks/tasks/${task_run_id}",
+            "timeout_s": 10,
+            "success_when_status": ["completed", "complete", "done"],
+            "success_result": { "status": "completed_after_timeout", "rag_chunks": "$.total_steps", "task_id": "${task_run_id}" }
+          }
+        }
+      },
+
+      {
+        "id": "deep_synthesis",
+        "description": "[AGENTIC] [EXISTING] Build the PageIndex tree over the enriched corpus and fan triple extraction over its Section leaves (ADR-002). Figure-derived triples now exist and inherit Section + page provenance.",
+        "skill_hint": "rag_ingest",
+        "assigned_model": "${synthesis_model}",
+        "dependencies": ["rag_ingest"],
+        "wave": 6,
+        "complexity": "high",
+        "node_type": "task",
+        "execution": {
+          "kind": "blocking_with_task_list_fallback",
+          "request": {
+            "method": "POST",
+            "path":   "/api/graph/synthesize",
+            "body":   { "workspace": "${workspace}", "model": "${synthesis_model}" },
+            "timeout": { "connect": 10, "read": 1800, "write": 60, "pool": 10 }
+          },
+          "fallback_on_timeout": {
+            "method":              "GET",
+            "path":                "/api/tasks",
+            "params":              { "workspace": "${workspace}" },
+            "timeout_s":           10,
+            "filter_type":         "synthesis",
+            "sort_by":             "updated_at",
+            "order":               "desc",
+            "success_when_status": ["completed", "complete", "done"],
+            "success_result":      { "status": "completed_after_timeout", "task_id": "$.task_id", "message": "$.message" }
+          }
+        }
+      },
+
+      {
+        "id": "validate_vision",
+        "description": "[DETERMINISTIC] [NEW — VIS-001 Phase 3] Prove the figures made it into the graph: query for triples/Sections whose source element type is a figure/diagram/chart/table. Fail if zero figure-derived facts exist.",
+        "skill_hint": "validate_vision",
+        "dependencies": ["deep_synthesis"],
+        "wave": 7,
+        "complexity": "low",
+        "node_type": "task",
+        "execution": {
+          "kind": "validate",
+          "request": {
+            "method":    "GET",
+            "path":      "/api/graph/stats",
+            "params":    { "workspace": "${workspace}", "include_element_types": true },
+            "timeout_s": 30
+          },
+          "assertion": {
+            "select":        "$.sections[?(@.source_element_type in ['picture','diagram','chart','table'])]",
+            "require_count": ">= 1",
+            "fail_message":  "Zero figure-derived Sections in '${workspace}'. The vision stages produced no graph content — check stitch_enriched wrote enriched docs and deep_synthesis ran over them."
+          },
+          "emit_on_success": { "figure_sections": "$ | length" }
+        }
+      },
+
+      {
+        "id": "generate_report",
+        "description": "[AGENTIC] [EXISTING-style] Write vision_ingestion_report.md: elements detected/classified, surrogates by type, validation pass-rate + caption fallbacks, enriched docs, and figure-derived triples/Sections.",
+        "skill_hint": "rag_ingest",
+        "assigned_model": "${synthesis_model}",
+        "dependencies": ["validate_vision"],
+        "wave": 7,
+        "complexity": "medium",
+        "node_type": "output",
+        "files_touched": ["${data_out_dir}/vision_ingestion_report.md"],
+        "execution": {
+          "kind": "report",
+          "stats_request": {
+            "method":    "GET",
+            "path":      "/api/graph/stats",
+            "params":    { "workspace": "${workspace}" },
+            "timeout_s": 30
+          },
+          "output": {
+            "path":        "${outputs.base_dir}/vision_ingestion_report.md",
+            "format":      "md",
+            "template_id": "vision_ingestion_report_default"
+          }
+        }
+      }
+    ],
+
+    "edges": [
+      { "id": "e_doc_classify",  "source": "docmodel_extract",    "target": "classify_elements",   "label": "visual elements",      "animated": true },
+      { "id": "e_classify_desc", "source": "classify_elements",   "target": "describe_visuals",    "label": "typed elements",       "animated": true },
+      { "id": "e_desc_val",      "source": "describe_visuals",    "target": "validate_surrogates", "label": "surrogates",           "animated": true },
+      { "id": "e_val_stitch",    "source": "validate_surrogates", "target": "stitch_enriched",     "label": "validated surrogates", "animated": true },
+      { "id": "e_stitch_rag",    "source": "stitch_enriched",     "target": "rag_ingest",          "label": "enriched docs",        "animated": true },
+      { "id": "e_rag_synth",     "source": "rag_ingest",          "target": "deep_synthesis",      "label": "indexed corpus",       "animated": true },
+      { "id": "e_synth_val",     "source": "deep_synthesis",      "target": "validate_vision",     "label": "figure triples",       "animated": true },
+      { "id": "e_val_report",    "source": "validate_vision",     "target": "generate_report",     "label": "validated",            "animated": true }
+    ],
+
+    "waves": [
+      ["docmodel_extract"],
+      ["classify_elements"],
+      ["describe_visuals"],
+      ["validate_surrogates"],
+      ["stitch_enriched"],
+      ["rag_ingest"],
+      ["deep_synthesis"],
+      ["validate_vision", "generate_report"]
+    ],
+
+    "ascii_dag": "docmodel_extract → classify_elements → describe_visuals[VLM] → validate_surrogates → stitch_enriched ┐\n                                                                                                  │\n  ┌──────────────────────────────────────────────────────────────────┘\n  └→ rag_ingest → deep_synthesis → validate_vision → generate_report"
+  },
+
+  "tags": ["vision", "ingestion", "multimodal", "knowledge-graph", "template", "vis-001"],
+
+  "metadata": {
+    "template":     true,
+    "generated_by": "ADR-003 / VIS-001",
+    "related":      ["architecture/ADR-003-vision-augmented-ingestion.md", "docs/requirements/13/project_plan.md"],
+    "notes": "DESIGN-TIME CONTRACT. The /api/vision/* endpoints + extract_docmodel/classify_elements/describe_visuals/validate_surrogates/stitch_enriched/validate_vision skills are VIS-001 deliverables (Phases 0–3); rag_ingest + deep_synthesis reuse the existing knowledge_enrichment pipeline. Inspect with: benny enrich --manifest manifests/templates/vision_ingestion_pipeline.json (dry) ; run a single wave once its skills land. Set vlm_model=${vlm_fallback} if OQ-1 shows FLM lacks image_url support."
+  }
+}
