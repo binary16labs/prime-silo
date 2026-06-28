@@ -12,12 +12,12 @@ import json
 import logging
 import os
 import re
-from typing import List, Dict, Any, Optional, AsyncGenerator, Tuple, Callable
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import httpx
 
 from ..core.models import LOCAL_PROVIDERS, call_model
-from ..core.schema import KnowledgeTriple, SynthesisConfig, IngestionEvent, IngestionEventType
+from ..core.schema import IngestionEvent, IngestionEventType, KnowledgeTriple, SynthesisConfig
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ def _get_shared_client() -> httpx.AsyncClient:
     if _shared_client is None or _shared_client.is_closed:
         _shared_client = httpx.AsyncClient(
             timeout=httpx.Timeout(300.0, connect=10.0),
-            limits=httpx.Limits(max_connections=20, max_keepalive_connections=10)
+            limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
         )
     return _shared_client
 
@@ -51,7 +51,11 @@ Rules:
 - CROSS-LINKING: If the text describes a design decision, architecture, or pattern, try to link it to potential code symbols or files (e.g., "AuthenticationService", "schema.py").
 - If the text mentions a source document name, include triples that reference it.
 
-Return ONLY an XML block representing the triples, like this:
+Output format (STRICT):
+- Respond with ONLY the XML below. Start your reply directly with <triples>.
+- Do NOT use Markdown, bullet/numbered lists, prose, code fences, or <think> tags.
+- Every tag must be well-formed: <object>value</object> (never <object(value)</object>).
+
 <triples>
   <triple>
     <subject>Dopamine</subject>
@@ -85,7 +89,9 @@ Rules for Extraction:
 TEXT SECTION: {section_title}
 {text}
 
-Output ONLY an XML block of triples. Example format:
+Output format (STRICT): respond with ONLY the XML block below, starting
+directly with <triples>. No Markdown, lists, prose, code fences, or <think>
+tags. Every tag must be well-formed (<object>value</object>). Example:
 <triples>
   <triple>
     <subject>Dopamine</subject>
@@ -211,10 +217,10 @@ Return ONLY an XML block:
 XML:"""
 
 
-
 # =============================================================================
 # ADAPTIVE CHUNKING
 # =============================================================================
+
 
 def estimate_tokens(text: str) -> int:
     """Estimate token count from character length (~4 chars per token)."""
@@ -232,18 +238,19 @@ def adaptive_truncate(text: str, max_tokens: int = 4000) -> str:
 
     # Try to break at the last sentence boundary within the budget
     truncated = text[:max_chars]
-    last_period = truncated.rfind('. ')
-    last_newline = truncated.rfind('\n')
+    last_period = truncated.rfind(". ")
+    last_newline = truncated.rfind("\n")
     break_at = max(last_period, last_newline)
 
     if break_at > max_chars * 0.6:  # Only break at boundary if we keep >60% of content
-        return truncated[:break_at + 1]
+        return truncated[: break_at + 1]
     return truncated
 
 
 # =============================================================================
 # LLM CALL WITH RETRY
 # =============================================================================
+
 
 async def call_llm(
     prompt: str,
@@ -253,7 +260,7 @@ async def call_llm(
     config: Optional[SynthesisConfig] = None,
     run_id: Optional[str] = None,
     workspace: Optional[str] = None,
-    role: str = "default"
+    role: str = "default",
 ) -> str:
     """
     Consolidated LLM call with retry and exponential backoff.
@@ -266,6 +273,7 @@ async def call_llm(
     if not model and (workspace or run_id):
         try:
             from ..core.models import get_active_model
+
             model = await get_active_model(workspace or "default", role=role, run_id=run_id)
         except Exception:
             pass
@@ -305,17 +313,31 @@ async def call_llm(
         except Exception as e:
             last_error = e
             if attempt < cfg.max_retries - 1:
-                delay = cfg.retry_base_delay * (2 ** attempt)
+                delay = cfg.retry_base_delay * (2**attempt)
                 logger.warning(
                     "LLM call attempt %d/%d failed (%s). Retrying in %.1fs...",
-                    attempt + 1, cfg.max_retries, str(e)[:100], delay
+                    attempt + 1,
+                    cfg.max_retries,
+                    str(e)[:100],
+                    delay,
                 )
                 await asyncio.sleep(delay)
             else:
-                logger.error("LLM call failed after %d attempts for role '%s': %s", cfg.max_retries, role, last_error)
+                logger.error(
+                    "LLM call failed after %d attempts for role '%s': %s",
+                    cfg.max_retries,
+                    role,
+                    last_error,
+                )
                 if run_id:
-                     from ..core.task_manager import task_manager
-                     task_manager.add_aer_entry(run_id, intent=f"LLM Call ({role})", observation="Final retry failed", inference=str(last_error))
+                    from ..core.task_manager import task_manager
+
+                    task_manager.add_aer_entry(
+                        run_id,
+                        intent=f"LLM Call ({role})",
+                        observation="Final retry failed",
+                        inference=str(last_error),
+                    )
 
     raise last_error
 
@@ -323,6 +345,31 @@ async def call_llm(
 # =============================================================================
 # ROBUST JSON PARSING
 # =============================================================================
+
+
+def _extract_xml_field(tag: str, s: str) -> Optional[str]:
+    """Extract an XML field value, tolerating the malformed tags local models
+    emit. Tries, in order: a well-formed ``<tag>..</tag>``; an open tag with
+    attributes ``<tag x=..>..</tag>``; and a broken open tag with no closing
+    ``>`` such as ``<object(reasoning, tool use)</object>`` (observed from
+    qwen3.5-9b). Returns the cleaned inner value or ``None``."""
+    for pat in (
+        rf"<{tag}>(.*?)</{tag}>",
+        rf"<{tag}\s[^>]*>(.*?)</{tag}>",
+        rf"<{tag}\b(.*?)</{tag}>",
+    ):
+        m = re.search(pat, s, re.IGNORECASE | re.DOTALL)
+        if m:
+            v = m.group(1).strip()
+            # Broken-open-tag capture can lead with a stray '>' or wrap the
+            # value in the parens the model used in place of '>' .. '<'.
+            if v.startswith(">"):
+                v = v[1:].strip()
+            if v.startswith("(") and v.endswith(")"):
+                v = v[1:-1].strip()
+            return v
+    return None
+
 
 def _parse_json_from_llm(text: str) -> Tuple[Any, str]:
     """
@@ -333,16 +380,16 @@ def _parse_json_from_llm(text: str) -> Tuple[Any, str]:
     thinking = ""
     # Extract and strip all think blocks
     cleaned = text
-    think_blocks = re.findall(r'<think>(.*?)</think>', cleaned, re.DOTALL)
+    think_blocks = re.findall(r"<think>(.*?)</think>", cleaned, re.DOTALL)
     if think_blocks:
         thinking = "\n---\n".join([t.strip() for t in think_blocks])
-        cleaned = re.sub(r'<think>.*?</think>', '', cleaned, flags=re.DOTALL).strip()
+        cleaned = re.sub(r"<think>.*?</think>", "", cleaned, flags=re.DOTALL).strip()
     else:
         # Fallback for unclosed think block
-        think_match = re.search(r'<think>(.*)', cleaned, re.DOTALL)
+        think_match = re.search(r"<think>(.*)", cleaned, re.DOTALL)
         if think_match:
             thinking = think_match.group(1).strip()
-            cleaned = re.sub(r'<think>.*', '', cleaned, flags=re.DOTALL).strip()
+            cleaned = re.sub(r"<think>.*", "", cleaned, flags=re.DOTALL).strip()
 
     # Strip markdown code fences (more robustly)
     if "```" in cleaned:
@@ -358,49 +405,67 @@ def _parse_json_from_llm(text: str) -> Tuple[Any, str]:
             lines = cleaned.split("\n")
             lines = [l for l in lines if not l.strip().startswith("```")]
             cleaned = "\n".join(lines).strip()
-    
+
     # ---------------------------------------------------------
     # NEW: Indestructible XML Parsing for Rigid Operating Model
     # ---------------------------------------------------------
     # If the prompt used XML tags (e.g. <triples>), we parse it via regex to avoid strict syntax errors.
     xml_data = []
-    
+
     # 1. Triples
     if "<triple>" in cleaned:
-        for triple_match in re.finditer(r'<triple>(.*?)</triple>', cleaned, re.IGNORECASE | re.DOTALL):
+        for triple_match in re.finditer(
+            r"<triple>(.*?)</triple>", cleaned, re.IGNORECASE | re.DOTALL
+        ):
             t_str = triple_match.group(1)
             triple = {}
-            for tag in ["subject", "subject_type", "predicate", "object", "object_type", "citation", "confidence"]:
-                m = re.search(fr'<{tag}>(.*?)</{tag}>', t_str, re.IGNORECASE | re.DOTALL)
-                if m:
-                    val = m.group(1).strip()
+            for tag in [
+                "subject",
+                "subject_type",
+                "predicate",
+                "object",
+                "object_type",
+                "citation",
+                "confidence",
+            ]:
+                val = _extract_xml_field(tag, t_str)
+                if val is not None:
                     if tag == "confidence":
-                        try: val = float(val)
-                        except: val = 1.0
+                        try:
+                            val = float(val)
+                        except:
+                            val = 1.0
                     triple[tag] = val
             if "subject" in triple and "object" in triple:
                 xml_data.append(triple)
-        if xml_data: return xml_data, thinking
+        if xml_data:
+            return xml_data, thinking
 
     # 2. Conflicts / Analogies (generic list of objects)
     for root_tag, item_tag in [("conflicts", "conflict"), ("analogies", "analogy")]:
         if f"<{item_tag}>" in cleaned:
-            for match in re.finditer(fr'<{item_tag}>(.*?)</{item_tag}>', cleaned, re.IGNORECASE | re.DOTALL):
+            for match in re.finditer(
+                rf"<{item_tag}>(.*?)</{item_tag}>", cleaned, re.IGNORECASE | re.DOTALL
+            ):
                 i_str = match.group(1)
                 item = {}
                 # Extract any child tags generically
-                for tag_match in re.finditer(r'<([a-zA-Z0-9_]+)>(.*?)</\1>', i_str, re.DOTALL):
+                for tag_match in re.finditer(r"<([a-zA-Z0-9_]+)>(.*?)</\1>", i_str, re.DOTALL):
                     item[tag_match.group(1).lower()] = tag_match.group(2).strip()
-                if item: xml_data.append(item)
-            if xml_data: return xml_data, thinking
-            
+                if item:
+                    xml_data.append(item)
+            if xml_data:
+                return xml_data, thinking
+
     # 3. Community (single object)
     if "<community_name>" in cleaned:
         comm = {}
         for tag in ["community_name", "justification", "analogous_concept", "mapping"]:
-            m = re.search(fr'<{tag}>(.*?)</{tag}>', cleaned, re.IGNORECASE | re.DOTALL)
-            if m: comm[tag] = m.group(1).strip()
-        if comm: return comm, thinking
+            m = re.search(rf"<{tag}>(.*?)</{tag}>", cleaned, re.IGNORECASE | re.DOTALL)
+            if m:
+                comm[tag] = m.group(1).strip()
+        if comm:
+            return comm, thinking
 
     # ---------------------------------------------------------
     # JSON Parsing Fallback
@@ -430,39 +495,39 @@ def _parse_json_from_llm(text: str) -> Tuple[Any, str]:
         start_idx = match.start()
         start_char = cleaned[start_idx]
         end_char = "}" if start_char == "{" else "]"
-        
+
         # Look for the last occurrence of the matching end bracket
         # and work backwards to find the largest valid JSON.
         end_matches = list(re.finditer(re.escape(end_char), cleaned[start_idx:]))
         for end_match in reversed(end_matches):
             current_end_idx = start_idx + end_match.end()
             json_str = cleaned[start_idx:current_end_idx]
-            
+
             # Clean up trailing commas
-            json_str = re.sub(r',\s*([\]}])', r'\1', json_str)
-            
+            json_str = re.sub(r",\s*([\]}])", r"\1", json_str)
+
             try:
                 data = json.loads(json_str)
                 score = score_json(data)
-                if score > max_score: 
+                if score > max_score:
                     max_score = score
                     best_data = data
             except:
                 continue
 
     # Final fallback for truncated JSON
-    if max_score <= 5: # If we only found empty lists or dicts, try harder
+    if max_score <= 5:  # If we only found empty lists or dicts, try harder
         first_start = re.search(r"\{|\[", cleaned)
         if first_start:
             start_idx = first_start.start()
             json_str = cleaned[start_idx:]
-            
+
             # Very aggressive truncation recovery: try adding combinations of closing brackets
             for i in range(1, 6):
                 for trial_suffix in ["}", "]", "}]", "]}", "}}] ", "}]}]"]:
                     trial = json_str + (trial_suffix * i)
                     try:
-                        trial_clean = re.sub(r',\s*([\]}])', r'\1', trial)
+                        trial_clean = re.sub(r",\s*([\]}])", r"\1", trial)
                         data = json.loads(trial_clean)
                         score = score_json(data)
                         if score > max_score:
@@ -473,22 +538,31 @@ def _parse_json_from_llm(text: str) -> Tuple[Any, str]:
 
     if max_score > -1:
         return best_data, thinking
-        
+
     logger.warning("Failed to parse JSON from LLM output (%d chars).", len(text))
-    # DEBUG: Save failed output to a file for inspection
-    try:
-        debug_path = os.path.join(os.getcwd(), f"failed_llm_output_{int(asyncio.get_event_loop().time())}.txt")
-        with open(debug_path, "w", encoding="utf-8") as f:
-            f.write(text)
-        logger.info("Saved failed LLM output to %s", debug_path)
-    except:
-        pass
+    # Optionally save the raw output for inspection. Gated behind BENNY_DEBUG_LLM
+    # and written to the system temp dir — the old unconditional os.getcwd()
+    # dump littered the repo/working dir with failed_llm_output_*.txt files.
+    if os.environ.get("BENNY_DEBUG_LLM"):
+        try:
+            import tempfile
+
+            debug_path = os.path.join(
+                tempfile.gettempdir(),
+                f"failed_llm_output_{int(asyncio.get_event_loop().time())}.txt",
+            )
+            with open(debug_path, "w", encoding="utf-8") as f:
+                f.write(text)
+            logger.info("Saved failed LLM output to %s", debug_path)
+        except Exception:
+            pass
     return [], thinking
 
 
 # =============================================================================
 # DEDUPLICATION & QUALITY FILTERING
 # =============================================================================
+
 
 def deduplicate_triples(triples: List[KnowledgeTriple]) -> List[KnowledgeTriple]:
     """Remove near-duplicate triples using normalized subject|predicate|object keys."""
@@ -502,18 +576,27 @@ def deduplicate_triples(triples: List[KnowledgeTriple]) -> List[KnowledgeTriple]
         else:
             logger.debug("Deduplicated triple: %s", key)
     if len(triples) != len(unique):
-        logger.info("Deduplication: %d -> %d triples (removed %d duplicates)",
-                     len(triples), len(unique), len(triples) - len(unique))
+        logger.info(
+            "Deduplication: %d -> %d triples (removed %d duplicates)",
+            len(triples),
+            len(unique),
+            len(triples) - len(unique),
+        )
     return unique
 
 
-def filter_by_confidence(triples: List[KnowledgeTriple], min_confidence: float = 0.3) -> List[KnowledgeTriple]:
+def filter_by_confidence(
+    triples: List[KnowledgeTriple], min_confidence: float = 0.3
+) -> List[KnowledgeTriple]:
     """Discard low-confidence triples below the threshold."""
     filtered = [t for t in triples if t.confidence >= min_confidence]
     removed = len(triples) - len(filtered)
     if removed:
-        logger.info("Confidence filter: removed %d low-confidence triples (threshold=%.2f)",
-                     removed, min_confidence)
+        logger.info(
+            "Confidence filter: removed %d low-confidence triples (threshold=%.2f)",
+            removed,
+            min_confidence,
+        )
     return filtered
 
 
@@ -522,7 +605,7 @@ def _validate_and_convert_triples(
     section_title: str = "",
     config: Optional[SynthesisConfig] = None,
     model_id: str = "unknown",
-    strategy: str = "safe"
+    strategy: str = "safe",
 ) -> List[KnowledgeTriple]:
     """Convert raw LLM JSON output into validated KnowledgeTriple models."""
     cfg = config or SynthesisConfig()
@@ -544,7 +627,7 @@ def _validate_and_convert_triples(
                     confidence=float(t.get("confidence", 1.0)),
                     section_title=section_title or t.get("section_title", ""),
                     model_id=model_id,
-                    strategy=strategy
+                    strategy=strategy,
                 )
                 valid.append(triple)
             except Exception as e:
@@ -560,6 +643,7 @@ def _validate_and_convert_triples(
 # TRIPLE EXTRACTION
 # =============================================================================
 
+
 async def extract_triples(
     text: str,
     source_name: str = "unknown",
@@ -567,14 +651,14 @@ async def extract_triples(
     workspace: Optional[str] = "default",
     config: Optional[SynthesisConfig] = None,
     strategy: str = "safe",
-    timeout: Optional[float] = None
+    timeout: Optional[float] = None,
 ) -> List[KnowledgeTriple]:
     """
     Extract knowledge triples from text using the configured LLM.
     Uses adaptive chunking instead of hardcoded truncation.
     """
     cfg = config or SynthesisConfig()
-    
+
     # Use adaptive chunking to fit the model's context window
     safe_text = adaptive_truncate(text, cfg.max_context_tokens)
     prompt = TRIPLE_EXTRACTION_PROMPT.format(text=safe_text)
@@ -582,35 +666,47 @@ async def extract_triples(
     try:
         # Resolve model_id to track provenance
         from ..core.models import get_active_model
+
         resolved_model = await get_active_model(workspace)
 
         # Pass workspace and role to ensure manifest-level model selection
-        raw = await call_llm(prompt, run_id=run_id, workspace=workspace, config=cfg, role="graph_synthesis", timeout=timeout)
-        
+        raw = await call_llm(
+            prompt,
+            run_id=run_id,
+            workspace=workspace,
+            config=cfg,
+            role="graph_synthesis",
+            timeout=timeout,
+        )
+
         # Robustly parse JSON and capture any reasoning/thinking blocks
         triples_data, thinking = _parse_json_from_llm(raw)
-        
+
         if thinking and run_id:
-             from ..core.task_manager import task_manager
-             task_manager.add_aer_entry(run_id, intent=f"Synthesis extraction for {source_name}", observation="Reasoning detected", inference=thinking)
+            from ..core.task_manager import task_manager
+
+            task_manager.add_aer_entry(
+                run_id,
+                intent=f"Synthesis extraction for {source_name}",
+                observation="Reasoning detected",
+                inference=thinking,
+            )
 
         return _validate_and_convert_triples(
-            triples_data, 
-            section_title=source_name, 
+            triples_data,
+            section_title=source_name,
             config=cfg,
             model_id=resolved_model,
-            strategy=strategy
+            strategy=strategy,
         )
-        
+
     except Exception as e:
         logger.error(f"Extraction failed for {source_name}: {e}")
         return []
 
 
 async def name_community(
-    concepts: List[str],
-    workspace: str = "default",
-    run_id: Optional[str] = None
+    concepts: List[str], workspace: str = "default", run_id: Optional[str] = None
 ) -> Dict[str, str]:
     """
     Generate a concise name and justification for a semantic community.
@@ -638,7 +734,7 @@ async def extract_directed_triples_from_section(
     strategy: str = "safe",
     inference_delay: float = 0.5,
     timeout: Optional[float] = None,
-    config: Optional[SynthesisConfig] = None
+    config: Optional[SynthesisConfig] = None,
 ) -> List[KnowledgeTriple]:
     """
     Extract L2 points from a document section, optionally influenced by user direction.
@@ -657,15 +753,14 @@ async def extract_directed_triples_from_section(
         dir_prompt = f"DIRECTION / INTENT:\nThe user is specifically looking for: '{direction}'. Focus heavily on points that help answer this intent."
 
     prompt = DIRECTED_EXTRACTION_PROMPT.format(
-        direction_prompt=dir_prompt,
-        section_title=section_title,
-        text=safe_text
+        direction_prompt=dir_prompt, section_title=section_title, text=safe_text
     )
 
     # Resolve model_id to track provenance
     from ..core.models import get_active_model
+
     resolved_model = await get_active_model(workspace)
-    
+
     raw = await call_llm(
         prompt,
         provider=provider,
@@ -679,21 +774,26 @@ async def extract_directed_triples_from_section(
         # emit no parseable JSON → empty knowledge graph.
         workspace=workspace,
     )
-    
+
     raw_triples, thinking = _parse_json_from_llm(raw)
-    
+
     if thinking and run_id:
-         from ..core.task_manager import task_manager
-         task_manager.add_aer_entry(run_id, intent=f"Extracting section: {section_title}", observation="Reasoning detected", inference=thinking)
+        from ..core.task_manager import task_manager
+
+        task_manager.add_aer_entry(
+            run_id,
+            intent=f"Extracting section: {section_title}",
+            observation="Reasoning detected",
+            inference=thinking,
+        )
 
     return _validate_and_convert_triples(
-        raw_triples, 
-        section_title=section_title, 
+        raw_triples,
+        section_title=section_title,
         config=cfg,
         model_id=resolved_model,
-        strategy=strategy
+        strategy=strategy,
     )
- 
 
 
 async def parallel_extract_triples(
@@ -708,7 +808,7 @@ async def parallel_extract_triples(
     event_callback: Optional[Callable] = None,
     workspace: str = "default",
     run_id: Optional[str] = None,
-    **kwargs
+    **kwargs,
 ) -> List[KnowledgeTriple]:
     """
     Process multiple document sections in parallel for high-performance ingestion.
@@ -724,11 +824,13 @@ async def parallel_extract_triples(
         async with semaphore:
             logger.info("Extracting section %d/%d: %s", idx + 1, total, section["title"])
             if event_callback:
-                await event_callback(IngestionEvent(
-                    event=IngestionEventType.SECTION_PROGRESS,
-                    message=f"Processing section {idx + 1}/{total}: {section['title']}",
-                    data={"current": idx + 1, "total": total, "section": section["title"]}
-                ))
+                await event_callback(
+                    IngestionEvent(
+                        event=IngestionEventType.SECTION_PROGRESS,
+                        message=f"Processing section {idx + 1}/{total}: {section['title']}",
+                        data={"current": idx + 1, "total": total, "section": section["title"]},
+                    )
+                )
             return await extract_directed_triples_from_section(
                 text=section["text"],
                 section_title=section["title"],
@@ -739,7 +841,7 @@ async def parallel_extract_triples(
                 timeout=timeout,
                 config=cfg,
                 run_id=run_id,
-                workspace=workspace
+                workspace=workspace,
             )
 
     # Launch parallel tasks
@@ -759,11 +861,13 @@ async def parallel_extract_triples(
         flat_triples = deduplicate_triples(flat_triples)
 
     if event_callback:
-        await event_callback(IngestionEvent(
-            event=IngestionEventType.TRIPLES_EXTRACTED,
-            message=f"Extraction complete: {len(flat_triples)} triples",
-            data={"count": len(flat_triples)}
-        ))
+        await event_callback(
+            IngestionEvent(
+                event=IngestionEventType.TRIPLES_EXTRACTED,
+                message=f"Extraction complete: {len(flat_triples)} triples",
+                data={"count": len(flat_triples)},
+            )
+        )
 
     return flat_triples
 
@@ -771,6 +875,7 @@ async def parallel_extract_triples(
 # =============================================================================
 # CONFLICT DETECTION
 # =============================================================================
+
 
 async def detect_conflicts(
     existing_triples: List[Any],
@@ -780,8 +885,7 @@ async def detect_conflicts(
     model: str = None,
     timeout: Optional[float] = None,
     config: Optional[SynthesisConfig] = None,
-    run_id: Optional[str] = None
-
+    run_id: Optional[str] = None,
 ) -> List[Dict[str, str]]:
     """Detect logical conflicts between existing and new triples."""
     cfg = config or SynthesisConfig()
@@ -804,17 +908,31 @@ async def detect_conflicts(
 
     prompt = CONFLICT_DETECTION_PROMPT.format(
         existing=json.dumps(serialize(existing_triples, cfg.max_conflict_triples)),
-        new_triples=json.dumps(serialize(new_triples, cfg.max_conflict_triples))
+        new_triples=json.dumps(serialize(new_triples, cfg.max_conflict_triples)),
     )
 
     try:
-        raw = await call_llm(prompt, provider=provider, model=model, timeout=timeout, config=cfg, workspace=workspace, run_id=run_id)
+        raw = await call_llm(
+            prompt,
+            provider=provider,
+            model=model,
+            timeout=timeout,
+            config=cfg,
+            workspace=workspace,
+            run_id=run_id,
+        )
 
         conflicts, thinking = _parse_json_from_llm(raw)
 
         if thinking and run_id:
-             from ..core.task_manager import task_manager
-             task_manager.add_aer_entry(run_id, intent="Detecting conflicts", observation="Reasoning detected", inference=thinking)
+            from ..core.task_manager import task_manager
+
+            task_manager.add_aer_entry(
+                run_id,
+                intent="Detecting conflicts",
+                observation="Reasoning detected",
+                inference=thinking,
+            )
 
         if not isinstance(conflicts, list):
             return []
@@ -829,6 +947,7 @@ async def detect_conflicts(
 # SYNTHESIS & ANALOGIES
 # =============================================================================
 
+
 async def find_synthesis(
     graph_summary: str,
     workspace: str = "default",
@@ -836,20 +955,33 @@ async def find_synthesis(
     model: str = None,
     timeout: Optional[float] = None,
     config: Optional[SynthesisConfig] = None,
-    run_id: Optional[str] = None
+    run_id: Optional[str] = None,
 ) -> List[Dict[str, str]]:
-
     """Find structural isomorphisms in the knowledge graph."""
     cfg = config or SynthesisConfig()
     prompt = SYNTHESIS_PROMPT.format(graph_summary=graph_summary)
 
-    raw = await call_llm(prompt, provider=provider, model=model, timeout=timeout, config=cfg, workspace=workspace, run_id=run_id)
+    raw = await call_llm(
+        prompt,
+        provider=provider,
+        model=model,
+        timeout=timeout,
+        config=cfg,
+        workspace=workspace,
+        run_id=run_id,
+    )
 
     analogies, thinking = _parse_json_from_llm(raw)
 
     if thinking and run_id:
-         from ..core.task_manager import task_manager
-         task_manager.add_aer_entry(run_id, intent="Searching for synthesis/analogies", observation="Reasoning detected", inference=thinking)
+        from ..core.task_manager import task_manager
+
+        task_manager.add_aer_entry(
+            run_id,
+            intent="Searching for synthesis/analogies",
+            observation="Reasoning detected",
+            inference=thinking,
+        )
 
     if not isinstance(analogies, list):
         return []
@@ -866,24 +998,35 @@ async def cross_domain_analogy(
     model: str = None,
     timeout: Optional[float] = None,
     config: Optional[SynthesisConfig] = None,
-    run_id: Optional[str] = None
+    run_id: Optional[str] = None,
 ) -> Dict[str, Any]:
-
     """Map a concept into a different domain."""
     cfg = config or SynthesisConfig()
     prompt = CROSS_DOMAIN_PROMPT.format(
-        concept=concept,
-        relationships=relationships,
-        target_domain=target_domain
+        concept=concept, relationships=relationships, target_domain=target_domain
     )
 
-    raw = await call_llm(prompt, provider=provider, model=model, timeout=timeout, config=cfg, workspace=workspace, run_id=run_id)
+    raw = await call_llm(
+        prompt,
+        provider=provider,
+        model=model,
+        timeout=timeout,
+        config=cfg,
+        workspace=workspace,
+        run_id=run_id,
+    )
 
     result, thinking = _parse_json_from_llm(raw)
 
     if thinking and run_id:
-         from ..core.task_manager import task_manager
-         task_manager.add_aer_entry(run_id, intent=f"Generating cross-domain analogy: {target_domain}", observation="Reasoning detected", inference=thinking)
+        from ..core.task_manager import task_manager
+
+        task_manager.add_aer_entry(
+            run_id,
+            intent=f"Generating cross-domain analogy: {target_domain}",
+            observation="Reasoning detected",
+            inference=thinking,
+        )
 
     if isinstance(result, dict):
         return result
@@ -894,34 +1037,38 @@ async def cross_domain_analogy(
 # B. CONCEPTUAL CLUSTER - Dual-Model Embedding
 # =============================================================================
 
+
 async def get_embedding(
-    text: str, 
-    provider: str = "local", 
+    text: str,
+    provider: str = "local",
     model: str = None,
     workspace: Optional[str] = None,
-    role: str = "graph_synthesis"
+    role: str = "graph_synthesis",
 ) -> List[float]:
     """
     Get a vector embedding for text using either a local or cloud provider.
-    
+
     Providers:
         - "local" / "ollama": Uses ollama's embedding endpoint
         - "openai": Uses OpenAI text-embedding-3-small
     """
     if provider == "openai":
         return await _get_openai_embedding(text, model or "text-embedding-3-small")
-    
+
     # Resolve 'local' to the actual active provider if possible
     if provider == "local":
         try:
             from ..core.models import get_active_model
-            active_id = await get_active_model(workspace_id=workspace or "default", role="graph_synthesis")
+
+            active_id = await get_active_model(
+                workspace_id=workspace or "default", role="graph_synthesis"
+            )
             if "/" in active_id:
                 provider = active_id.split("/")[0]
             else:
-                provider = "lemonade" # Default fallback for local
-        except Exception as e:
-            provider = "ollama" # Final fallback
+                provider = "lemonade"  # Default fallback for local
+        except Exception:
+            provider = "ollama"  # Final fallback
 
     if provider == "ollama":
         return await _get_ollama_embedding(text, model or "nomic-embed-text")
@@ -974,6 +1121,7 @@ async def _get_ollama_embedding(text: str, model: str = "nomic-embed-text") -> L
 async def _get_openai_embedding(text: str, model: str = "text-embedding-3-small") -> List[float]:
     """Get embedding from OpenAI API."""
     import openai
+
     client_obj = openai.AsyncOpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
     response = await client_obj.embeddings.create(input=text, model=model)
     return response.data[0].embedding
@@ -985,21 +1133,21 @@ async def batch_embed_concepts(
     model: str = None,
     batch_size: int = 16,
     event_callback: Optional[Any] = None,
-    workspace: Optional[str] = None
+    workspace: Optional[str] = None,
 ) -> Dict[str, List[float]]:
     """
     Embed multiple concepts concurrently with database-backed caching.
-    
+
     Logic:
     1. Check Neo4j for existing embeddings for these concepts in this workspace.
     2. Only send missing ones to the LLM provider.
     3. Save newly generated embeddings back to Neo4j.
     """
     from ..core.graph_db import read_session, write_session
-    
+
     results: Dict[str, List[float]] = {}
     missing_concepts: List[str] = []
-    
+
     # 1. Check Cache (Neo4j)
     if workspace:
         logger.info("Embedding Cache: checking Neo4j for %d existing vectors...", len(concepts))
@@ -1018,7 +1166,7 @@ async def batch_embed_concepts(
                 if rec["summary"] and f"{rec['name']}: {rec['summary']}" in concepts:
                     key = f"{rec['name']}: {rec['summary']}"
                 results[key] = rec["embedding"]
-        
+
         logger.info("Embedding Cache: found %d/%d vectors in Neo4j", len(results), len(concepts))
 
     missing_concepts = [c for c in concepts if c not in results]
@@ -1026,7 +1174,9 @@ async def batch_embed_concepts(
         return results
 
     # 2. Embed Missing via LLM
-    logger.info("Embedding: sending %d missing items to %s provider...", len(missing_concepts), provider)
+    logger.info(
+        "Embedding: sending %d missing items to %s provider...", len(missing_concepts), provider
+    )
     semaphore = asyncio.Semaphore(batch_size)
     total = len(missing_concepts)
     completed = 0
@@ -1035,31 +1185,41 @@ async def batch_embed_concepts(
         nonlocal completed
         async with semaphore:
             try:
-                embedding = await get_embedding(concept, provider=provider, model=model, workspace=workspace)
+                embedding = await get_embedding(
+                    concept, provider=provider, model=model, workspace=workspace
+                )
                 results[concept] = embedding
                 completed += 1
                 if event_callback:
-                    await event_callback(IngestionEvent(
-                        event=IngestionEventType.SECTION_PROGRESS,
-                        message=f"Embedded {completed}/{total} new items",
-                        data={"current": completed, "total": total}
-                    ))
-                
+                    await event_callback(
+                        IngestionEvent(
+                            event=IngestionEventType.SECTION_PROGRESS,
+                            message=f"Embedded {completed}/{total} new items",
+                            data={"current": completed, "total": total},
+                        )
+                    )
+
                 # 3. Save back to Neo4j (Async/Background)
                 if workspace:
                     # We determine if it's a Concept or CodeEntity by splitting
                     is_symbol = ": " in concept
                     name = concept.split(": ")[0] if is_symbol else concept
                     summary = concept.split(": ")[1] if is_symbol else None
-                    
+
                     with write_session() as w_session:
                         save_query = """
                         MATCH (n {workspace: $ws, name: $name})
                         WHERE ($summary IS NULL OR n.summary = $summary)
                         SET n.embedding = $embedding
                         """
-                        w_session.run(save_query, ws=workspace, name=name, summary=summary, embedding=embedding)
-                        
+                        w_session.run(
+                            save_query,
+                            ws=workspace,
+                            name=name,
+                            summary=summary,
+                            embedding=embedding,
+                        )
+
             except Exception as e:
                 logger.error(f"Failed to embed '{concept[:30]}...': {e}")
                 results[concept] = [0.0] * 768
@@ -1070,26 +1230,29 @@ async def batch_embed_concepts(
 
 
 async def compute_cluster_similarities(
-    concepts: List[str],
-    workspace: str = "default",
-    threshold: float = 0.75
+    concepts: List[str], workspace: str = "default", threshold: float = 0.75
 ) -> List[Dict[str, Any]]:
     """
     Compute pairwise similarities for a list of concepts using their stored embeddings.
     Returns pairs above the threshold - this powers the "Venn" clustering.
     """
-    from ..core.graph_db import get_driver
     from math import sqrt
+
+    from ..core.graph_db import get_driver
 
     driver = get_driver()
     embeddings = {}
 
     with driver.session() as session:
         for concept in concepts:
-            result = session.run("""
+            result = session.run(
+                """
                 MATCH (c:Concept {name: $name, workspace: $workspace})
                 RETURN c.embedding AS embedding
-            """, name=concept, workspace=workspace)
+            """,
+                name=concept,
+                workspace=workspace,
+            )
             record = result.single()
             if record and record["embedding"]:
                 embeddings[concept] = record["embedding"]
@@ -1107,11 +1270,13 @@ async def compute_cluster_similarities(
         for j in range(i + 1, len(concept_list)):
             sim = cosine_sim(embeddings[concept_list[i]], embeddings[concept_list[j]])
             if sim >= threshold:
-                clusters.append({
-                    "concept_a": concept_list[i],
-                    "concept_b": concept_list[j],
-                    "similarity": round(sim, 4)
-                })
+                clusters.append(
+                    {
+                        "concept_a": concept_list[i],
+                        "concept_b": concept_list[j],
+                        "similarity": round(sim, 4),
+                    }
+                )
 
     clusters.sort(key=lambda x: x["similarity"], reverse=True)
     return clusters
@@ -1121,29 +1286,35 @@ async def compute_cluster_similarities(
 # C. LIBRARIAN - Synthesis Wiki Persistence (Karpathy-style)
 # =============================================================================
 
+
 async def save_concept_article(
     workspace: str,
     concept_name: str,
     summary: str,
     relationships: List[Dict[str, str]],
-    source_files: List[str]
+    source_files: List[str],
 ) -> str:
     """
     Generate and save a 'Rationale Hub' article as a Markdown file in .benny/wiki/.
     This creates the permanent 'Compounding Artifact' record.
     """
     from ..core.workspace import get_workspace_path
-    
+
     wiki_path = get_workspace_path(workspace) / ".benny" / "wiki"
     wiki_path.mkdir(parents=True, exist_ok=True)
-    
-    filename = re.sub(r'[^a-zA-Z0-9]', '_', concept_name) + ".md"
+
+    filename = re.sub(r"[^a-zA-Z0-9]", "_", concept_name) + ".md"
     file_path = wiki_path / filename
-    
+
     # Format relationships for the wiki
-    rel_md = "\n".join([f"- **{r['predicate'].title()}**: {r['object']} ({r['object_type']})" for r in relationships])
+    rel_md = "\n".join(
+        [
+            f"- **{r['predicate'].title()}**: {r['object']} ({r['object_type']})"
+            for r in relationships
+        ]
+    )
     sources_md = "\n".join([f"- {s}" for s in source_files])
-    
+
     content = f"""# {concept_name}
 
 ## 💡 Rationale Summary
@@ -1158,8 +1329,8 @@ async def save_concept_article(
 ---
 *Generated by Benny Synthesis Engine. This is a Compounding Rationale Hub.*
 """
-    
+
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(content.strip())
-        
+
     return str(file_path)
