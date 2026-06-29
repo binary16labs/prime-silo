@@ -100,12 +100,13 @@ in the ledger, not a number to claim.
   red-escalation; outbox/digest discipline; ledger; MCP tool; runner; report —
   all implemented and covered by `tests/core/test_offload.py` (network-free).
 - ✅ **Verified live (2026-06-29):** end-to-end `generate` + judge against
-  Lemonade — executor `qwen3-tk-4b-FLM`, judge `Qwen2.5-0.5B-Instruct-CPU`
-  (distinct models, `collusion: False`), judge 0.85 → passed in 1 iteration,
-  digest 509 chars while the verbose artifact stayed in the outbox. The earlier
-  run also confirmed honest **escalation** when the executor model 500'd
-  (GGUF/llamacpp + NPU recipes fail to load `llama-server` on this box — matrix
-  defaults were re-pointed to the FLM/ONNX-CPU models that actually serve).
+  Lemonade. Default executor `qwen3.5-9b-FLM` produced clean, correct code
+  (no reasoning-dump), judge `Qwen2.5-0.5B-Instruct-CPU` (distinct model,
+  `collusion: False`) scored 0.95 → passed in 1 iteration, digest 512 chars while
+  the artifact stayed in the outbox. (`qwen3-tk-4b-FLM` also passed at 0.85 but
+  buried the code in chain-of-thought — hence 9b is the default.) An earlier run
+  confirmed honest **escalation** when the executor model 500'd (GGUF/llamacpp +
+  NPU recipes fail to load `llama-server` on this box).
 - ⚠️ **Still unverified:** the actual offload *rate* on a real task stream — the
   ledger is the instrument to validate the 75% hypothesis; needs volume.
 

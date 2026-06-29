@@ -34,9 +34,10 @@ _FALLBACK_MATRIX: Dict[str, Any] = {
         },
     },
     "defaults": {
-        # confirmed serving on the operator's Lemonade (2026-06-29); GGUF/NPU
-        # recipes failed to load there. Override via router.matrix.json.
-        "executor_model": "lemonade/qwen3-tk-4b-FLM",
+        # confirmed serving on the operator's Lemonade (2026-06-29); 9b-FLM
+        # gives clean code (judge 0.95). GGUF/NPU recipes failed to load there.
+        # Override via router.matrix.json.
+        "executor_model": "lemonade/qwen3.5-9b-FLM",
         "judge_model": "lemonade/Qwen2.5-0.5B-Instruct-CPU",
         "judge_pass_threshold": 0.8,
         "max_iterations": 3,

@@ -11,7 +11,7 @@
   "risk_tier": "yellow",
   "executor": {
     "mode": "generate",
-    "model": "lemonade/qwen3-tk-4b-FLM",
+    "model": "lemonade/qwen3.5-9b-FLM",
     "prompt": "Implement the fix described in the intent. Return a unified diff limited to allowed_paths plus the new test."
   },
   "eval_plan": {

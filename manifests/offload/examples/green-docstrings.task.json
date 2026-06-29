@@ -18,7 +18,7 @@
   "risk_tier": "green",
   "executor": {
     "mode": "generate",
-    "model": "lemonade/qwen3-tk-4b-FLM",
+    "model": "lemonade/qwen3.5-9b-FLM",
     "prompt": "Add concise one-line docstrings to every public function and the module in the referenced file. Do not change any logic. Return the full updated file."
   },
   "eval_plan": {
