@@ -89,6 +89,16 @@ rubber-stamps (the strawman failure mode from the memo-ray token-audit). The gat
 **flags** `judge == executor` and treats that judgment as low-confidence. The
 deterministic checks are the hard backstop the judge can never override.
 
+**Judge reliability is the current weak link (measured).** See
+`manifests/offload/JUDGE-CALIBRATION.md`. On this box the small local judges are
+not reliable enough to *pass* work: the 0.5B false-positived broken code (0.9), so
+the default judge is `Phi-4-mini-instruct-NPU` whose failure mode is *safe* (it
+rejects bad work / escalates good work rather than rubber-stamping). Consequence:
+**reliable savings come from GREEN deterministic tasks**; YELLOW judged tasks often
+escalate even when good, until a more capable non-reasoning judge model is
+available. `run_judge` forces `response_format: json_object`, retries once, and
+parses the last balanced JSON to maximize what reliability is achievable.
+
 **Pick a fast *non-reasoning* instruct model as judge.** Live finding (2026-06-29):
 `deepseek-r1-8b-FLM` as judge spent its whole token budget reasoning in prose and
 never emitted the JSON verdict — so every judgment came back unscored and escalated,

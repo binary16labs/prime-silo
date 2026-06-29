@@ -35,10 +35,11 @@ _FALLBACK_MATRIX: Dict[str, Any] = {
     },
     "defaults": {
         # confirmed serving on the operator's Lemonade (2026-06-29); 9b-FLM
-        # gives clean code (judge 0.95). GGUF/NPU recipes failed to load there.
-        # Override via router.matrix.json.
+        # gives clean code. Judge = Phi-4-mini (safe failure mode: rejects bad
+        # code; the 0.5B sometimes false-positived bad code 0.9). See
+        # JUDGE-CALIBRATION.md. Override via router.matrix.json.
         "executor_model": "lemonade/qwen3.5-9b-FLM",
-        "judge_model": "lemonade/Qwen2.5-0.5B-Instruct-CPU",
+        "judge_model": "lemonade/Phi-4-mini-instruct-NPU",
         "judge_pass_threshold": 0.8,
         "max_iterations": 3,
     },

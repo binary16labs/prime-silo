@@ -16,7 +16,7 @@
   },
   "eval_plan": {
     "deterministic": ["pytest runtime/tests -k token -q"],
-    "judge": { "enabled": true, "model": "lemonade/Qwen2.5-0.5B-Instruct-CPU", "pass_threshold": 0.8 }
+    "judge": { "enabled": true, "model": "lemonade/Phi-4-mini-instruct-NPU", "pass_threshold": 0.8 }
   },
   "allowed_paths": ["runtime/benny/core/local_executor.py", "runtime/tests/**"],
   "budget": { "max_iterations": 3, "max_seconds": 1200 },

@@ -52,9 +52,9 @@
     }
   },
   "defaults": {
-    "_comment": "Models confirmed serving on the operator's Lemonade (2026-06-29). qwen3.5-9b-FLM produces clean code (judge 0.95, no reasoning-dump) and is the executor default; Qwen2.5-0.5B-Instruct-CPU is a fast, distinct judge (anti-collusion). GGUF/llamacpp recipes (Gemma-*, Qwen2.5-Coder-7B-NPU) currently fail to load llama-server on this box. Re-point these if your local server differs.",
+    "_comment": "Models confirmed serving on the operator's Lemonade (2026-06-29). qwen3.5-9b-FLM produces clean code and is the executor default. Judge = Phi-4-mini-instruct-NPU: in the head-to-head it reliably REJECTS bad code (safe failure mode), where the 0.5B sometimes rubber-stamped bad code 0.9 (false positive = dangerous). Phi is conservative (false-negatives some good code -> escalates), so YELLOW-task savings are modest; reliable savings come from GREEN shell/deterministic tasks. See JUDGE-CALIBRATION.md. GGUF/llamacpp recipes (Gemma-*) fail to load on this box.",
     "executor_model": "lemonade/qwen3.5-9b-FLM",
-    "judge_model": "lemonade/Qwen2.5-0.5B-Instruct-CPU",
+    "judge_model": "lemonade/Phi-4-mini-instruct-NPU",
     "judge_pass_threshold": 0.8,
     "max_iterations": 3
   }

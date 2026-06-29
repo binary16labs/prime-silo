@@ -129,19 +129,32 @@ async def run_judge(manifest: OffloadManifest, artifact: str, judge_model: str) 
         '{\"score\": <float 0..1>, \"rationale\": \"<one sentence>\", '
         '\"unmet\": [\"<criterion ids not satisfied>\"]}'
     )
-    try:
-        raw = await executor.generate(
-            prompt, system="Return only JSON.", temperature=0.0, max_tokens=800,
-            # ask thinking-capable recipes to skip chain-of-thought; harmless if unsupported
-            extra_body={"chat_template_kwargs": {"enable_thinking": False}},
-        )
-    except Exception as exc:
-        return {"score": None, "rationale": f"judge error: {exc}", "available": True}
-    data = _extract_last_json(raw)
+    # extra_body: force a JSON envelope (Lemonade honors response_format on the
+    # local instruct models — measured 2026-06-29) and ask thinking-capable recipes
+    # to skip chain-of-thought. Both are harmless if a server ignores them.
+    extra = {
+        "response_format": {"type": "json_object"},
+        "chat_template_kwargs": {"enable_thinking": False},
+    }
+    raw = ""
+    data = None
+    # one retry: small local judges intermittently emit unparseable output
+    for attempt in range(2):
+        try:
+            raw = await executor.generate(
+                prompt, system="Return only JSON.", temperature=0.0,
+                max_tokens=800, extra_body=extra,
+            )
+        except Exception as exc:
+            return {"score": None, "rationale": f"judge error: {exc}", "available": True}
+        data = _extract_last_json(raw)
+        if data is not None and "score" in data:
+            break
     if data is None or "score" not in data:
         return {"score": None,
-                "rationale": f"judge returned no parseable JSON verdict (model may be a "
-                             f"reasoning model that exhausted its budget): {(raw or '')[:160]}",
+                "rationale": f"judge returned no parseable JSON verdict after retry "
+                             f"(reasoning model, or model too small to follow format): "
+                             f"{(raw or '')[:160]}",
                 "available": True}
     try:
         score = float(data.get("score"))
