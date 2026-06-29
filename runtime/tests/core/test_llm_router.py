@@ -223,3 +223,28 @@ async def test_offline_env_allows_local_call(monkeypatch: pytest.MonkeyPatch) ->
         messages=[{"role": "user", "content": "hello"}],
     )
     assert out == "ok"
+
+
+@pytest.mark.asyncio
+async def test_local_planner_temp_clamping(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verifies that role='planner' with a local model clamps the temperature to 0.1."""
+    mock_executor = AsyncMock()
+    mock_executor.count_tokens = MagicMock(return_value=10)
+    mock_executor.provider_name = "test-provider"
+    
+    captured_kwargs = {}
+    async def fake_generate(**kwargs):
+        captured_kwargs.update(kwargs)
+        return "ok"
+        
+    mock_executor.generate = fake_generate
+    monkeypatch.setattr("benny.core.models.resolve_executor", lambda _: mock_executor)
+    
+    # Check that temperature is clamped to 0.1 for local planner role
+    await llm.call_model(
+        model="lemonade/openai/deepseek-r1-8b-FLM",
+        messages=[{"role": "user", "content": "hello"}],
+        temperature=0.7,
+        role="planner",
+    )
+    assert captured_kwargs.get("temperature") == 0.1

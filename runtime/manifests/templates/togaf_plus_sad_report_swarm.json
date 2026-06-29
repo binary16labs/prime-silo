@@ -1,0 +1,126 @@
+{
+  "schema_version": "2.0",
+  "id": "togaf-plus-sad-report-swarm",
+  "name": "TOGAF-Plus System Architecture Document (SAD) Swarm",
+  "description": "Multi-agent swarm for planning, mapping processes, generating UML & C4 diagrams, generating PlantUML technical code structures, conceptual-logical-physical data modeling, delta analysis, and vision-guided diagram validation.",
+  "workspace": "${workspace}",
+  "variables": {
+    "workspace": "default",
+    "topic": "prime-silo Application Architecture & Runtime Environment",
+    "model": "lemonade/qwen3.5-9b-FLM",
+    "output_file": "data_out/TOGAF_Plus_SAD_prime_silo.md",
+    "word_count_target": 4500
+  },
+  "config": {
+    "model": "${model}",
+    "max_concurrency": 1,
+    "allow_swarm": true,
+    "skills_allowed": ["search_kb", "query_graph", "read_file", "write_file"]
+  },
+  "inputs": {
+    "files": []
+  },
+  "outputs": {
+    "files": ["${output_file}"],
+    "format": "md",
+    "word_count_target": "${word_count_target}",
+    "spec": "TOGAF-Plus System Architecture Document (SAD) for ${topic}. Target length: ${word_count_target} words. Structure: Scope and Context, Business & Process Mapping (BPMN to Service), Application & UML Design (C4, Use-Case, Sequence, Robustness), Technical Code Blueprints (PlantUML), Data Architecture (Conceptual-Logical-Physical), Gap & Impact Analysis, and Vision-Verified Diagram Appendices."
+  },
+  "plan": {
+    "tasks": [
+      {
+        "id": "sad_planning",
+        "description": "Planner Agent: Outline a TOGAF-Plus compliant System Architecture Document (SAD) targeting '${topic}'. Define the scope, boundaries, stakeholders, and draft the Scope and Context section. Ensure the plan includes mappings for C4 models, UML diagrams, data models, and BPMN swimlanes.",
+        "assigned_model": "${model}",
+        "persona": "planner",
+        "dependencies": [],
+        "wave": 0,
+        "complexity": "medium",
+        "node_type": "task"
+      },
+      {
+        "id": "bpmn_process_mapping",
+        "description": "Process Architect: Document the core business processes of the system '${topic}'. Map the workflows from pure business process models (BPMN style) to automated application services using Mermaid flowchart swimlane syntax. Query the knowledge graph (`query_graph`) first.",
+        "assigned_model": "${model}",
+        "persona": "architect",
+        "assigned_skills": ["query_graph", "read_file"],
+        "dependencies": ["sad_planning"],
+        "wave": 1,
+        "complexity": "high",
+        "node_type": "task"
+      },
+      {
+        "id": "uml_application_design",
+        "description": "UML Designer: Design the structural and behavioral views of '${topic}'. Generate Use-Case diagrams, Sequence interaction flows, Robustness diagrams (Boundary, Entity, Control), and the C4 Model (Context, Container, Component layers) using Mermaid syntax.",
+        "assigned_model": "${model}",
+        "persona": "designer",
+        "dependencies": ["bpmn_process_mapping"],
+        "wave": 2,
+        "complexity": "high",
+        "node_type": "task"
+      },
+      {
+        "id": "technical_code_skeletons",
+        "description": "Technical Architect: Formulate detailed code skeletons and structural relationships for the application components in '${topic}'. Use PlantUML class syntax to create detailed class skeletons from which physical code skeletons could be generated.",
+        "assigned_model": "${model}",
+        "persona": "developer",
+        "dependencies": ["uml_application_design"],
+        "wave": 3,
+        "complexity": "high",
+        "node_type": "task"
+      },
+      {
+        "id": "data_tier_modeling",
+        "description": "Data Architect: Model the data storage and structures of '${topic}'. Provide a conceptual entity relationship diagram (ERD) using Mermaid, a logical table schema definition (keys, relationships), and a physical database representation mapping (indexes, table engines, Neo4j schema definitions).",
+        "assigned_model": "${model}",
+        "persona": "data_architect",
+        "dependencies": ["technical_code_skeletons"],
+        "wave": 4,
+        "complexity": "high",
+        "node_type": "task"
+      },
+      {
+        "id": "gap_and_impact_analysis",
+        "description": "Delta Analyst: Analyze the delta between baseline current state and target state. Identify components to be created, updated, or decommissioned (Gap Analysis). Perform Impact Analysis covering security, downstream integration, and infrastructure.",
+        "assigned_model": "${model}",
+        "persona": "analyst",
+        "dependencies": ["data_tier_modeling"],
+        "wave": 5,
+        "complexity": "medium",
+        "node_type": "task"
+      },
+      {
+        "id": "editorial_validation_refinement",
+        "description": "Publishing Editor: Collect all draft sections and Mermaid/PlantUML diagram source files. Run the syntax verification CLI tools (`verify_diagram.py`) on each block. Refine the final System Architecture Document (SAD) section-by-section using sliding window critique loops to ensure high editorial quality and that the final output satisfies the target length of ${word_count_target} words, writing it to '${output_file}'.",
+        "assigned_model": "${model}",
+        "persona": "editor",
+        "assigned_skills": ["read_file", "write_file"],
+        "dependencies": ["gap_and_impact_analysis"],
+        "wave": 6,
+        "complexity": "high",
+        "node_type": "output"
+      }
+    ],
+    "edges": [
+      ["sad_planning", "bpmn_process_mapping"],
+      ["bpmn_process_mapping", "uml_application_design"],
+      ["uml_application_design", "technical_code_skeletons"],
+      ["technical_code_skeletons", "data_tier_modeling"],
+      ["data_tier_modeling", "gap_and_impact_analysis"],
+      ["gap_and_impact_analysis", "editorial_validation_refinement"]
+    ],
+    "waves": [
+      ["sad_planning"],
+      ["bpmn_process_mapping"],
+      ["uml_application_design"],
+      ["technical_code_skeletons"],
+      ["data_tier_modeling"],
+      ["gap_and_impact_analysis"],
+      ["editorial_validation_refinement"]
+    ]
+  },
+  "metadata": {
+    "publishing_standard": "TOGAF-Plus-SAD-Standard",
+    "notes": "Single-laptop optimized TOGAF-Plus SAD report swarm featuring Mermaid diagrams, PlantUML blueprints, and custom syntax verification."
+  }
+}

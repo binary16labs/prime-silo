@@ -1,0 +1,114 @@
+{
+  "schema_version": "2.0",
+  "id": "togaf-sad-report-swarm",
+  "name": "TOGAF-Compliant System Architecture Document (SAD) Swarm",
+  "description": "Multi-agent swarm for planning, extracting baseline current state, designing target state, conducting gap/impact analyses, generating viewpoint diagrams, and refining the final SAD.",
+  "workspace": "${workspace}",
+  "variables": {
+    "workspace": "default",
+    "topic": "prime-silo Application Architecture & Runtime Environment",
+    "model": "lemonade/qwen3.5-9b-FLM",
+    "output_file": "data_out/TOGAF_SAD_prime_silo.md",
+    "word_count_target": 3500
+  },
+  "config": {
+    "model": "${model}",
+    "max_concurrency": 1,
+    "allow_swarm": true,
+    "skills_allowed": ["search_kb", "query_graph", "read_file", "write_file"]
+  },
+  "inputs": {
+    "files": []
+  },
+  "outputs": {
+    "files": ["${output_file}"],
+    "format": "md",
+    "word_count_target": "${word_count_target}",
+    "spec": "TOGAF-compliant System Architecture Document (SAD) for ${topic}. Target length: ${word_count_target} words. Core Sections: Scope and Context, Baseline Application Architecture, Target Application Architecture, Gap Analysis, Impact Analysis, and Architecture Viewpoints (Catalogs, Matrices, Diagrams in Mermaid)."
+  },
+  "plan": {
+    "tasks": [
+      {
+        "id": "sad_planning",
+        "description": "Planner Agent: Decompose focus topic '${topic}' into a structured TOGAF-compliant System Architecture Document outline targeting a length of ${word_count_target} words. Scope context, identify stakeholders, baseline, target states, and draft the Scope and Context section of the report.",
+        "assigned_model": "${model}",
+        "persona": "planner",
+        "dependencies": [],
+        "wave": 0,
+        "complexity": "medium",
+        "node_type": "task"
+      },
+      {
+        "id": "baseline_extraction",
+        "description": "Current State Analyst: Query the knowledge graph (`query_graph`) and scan workspace repository files (`read_file`) to document the Baseline Application Architecture (Current State) of the system '${topic}'. Compile the Application Portfolio Catalog (identifying core components like web servers, APIs, runtime engines) and the Interface Catalog (API endpoints, protocols, data models).",
+        "assigned_model": "${model}",
+        "persona": "document_analyst",
+        "assigned_skills": ["query_graph", "read_file", "search_kb"],
+        "dependencies": ["sad_planning"],
+        "wave": 1,
+        "complexity": "high",
+        "node_type": "task"
+      },
+      {
+        "id": "target_abstraction",
+        "description": "Target State Architect: Define the Target Application Architecture (Future State) for the system '${topic}'. Explicitly distinguish between Logical Application Components (abstraction of functionality independent of implementation) and Physical Application Components (actual deployed software/services). Define key meta-model relationships: realizes (Component to Service), supports (Service to Process), consumes (Actor/Role to Service), accesses/updates (Component to Data Entity), communicates with (Component to Component), and hosts (Technology to Component).",
+        "assigned_model": "${model}",
+        "persona": "architect",
+        "dependencies": ["baseline_extraction"],
+        "wave": 2,
+        "complexity": "high",
+        "node_type": "task"
+      },
+      {
+        "id": "gap_and_impact_analysis",
+        "description": "Delta Analyst: Analyze the delta between baseline and target states. Explicitly identify components to be created, updated, or decommissioned (Gap Analysis). Perform Impact Analysis detailing security, downstream reporting, and infrastructure impacts.",
+        "assigned_model": "${model}",
+        "persona": "analyst",
+        "dependencies": ["target_abstraction"],
+        "wave": 3,
+        "complexity": "high",
+        "node_type": "task"
+      },
+      {
+        "id": "viewpoints_generation",
+        "description": "Viewpoint Designer: Formulate architectural viewpoints. Generate Catalogs and Matrices (Application/Business Function Matrix, Application/Data Matrix). Write out Diagrams (Application Communication Diagram, Application and User Location Diagram, Enterprise Manageability Diagram) using Mermaid syntax.",
+        "assigned_model": "${model}",
+        "persona": "designer",
+        "dependencies": ["gap_and_impact_analysis"],
+        "wave": 4,
+        "complexity": "medium",
+        "node_type": "task"
+      },
+      {
+        "id": "editorial_refinement",
+        "description": "Publishing Editor: Refine the combined draft section-by-section using sliding window constraints to ensure consistency, tone, and that the final output satisfies the target length of ${word_count_target} words. Write the final TOGAF-compliant System Architecture Document (SAD) to '${output_file}'.",
+        "assigned_model": "${model}",
+        "persona": "editor",
+        "assigned_skills": ["read_file", "write_file"],
+        "dependencies": ["viewpoints_generation"],
+        "wave": 5,
+        "complexity": "high",
+        "node_type": "output"
+      }
+    ],
+    "edges": [
+      ["sad_planning", "baseline_extraction"],
+      ["baseline_extraction", "target_abstraction"],
+      ["target_abstraction", "gap_and_impact_analysis"],
+      ["gap_and_impact_analysis", "viewpoints_generation"],
+      ["viewpoints_generation", "editorial_refinement"]
+    ],
+    "waves": [
+      ["sad_planning"],
+      ["baseline_extraction"],
+      ["target_abstraction"],
+      ["gap_and_impact_analysis"],
+      ["viewpoints_generation"],
+      ["editorial_refinement"]
+    ]
+  },
+  "metadata": {
+    "publishing_standard": "TOGAF-SAD-Standard",
+    "notes": "Single-laptop optimized TOGAF SAD report swarm. The codebase is analyzed via graph queries first."
+  }
+}

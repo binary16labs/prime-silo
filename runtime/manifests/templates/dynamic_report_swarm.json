@@ -1,0 +1,95 @@
+{
+  "schema_version": "2.0",
+  "id": "dynamic-report-synthesis-swarm",
+  "name": "Dynamic Publishing-Standard Report Synthesis Swarm",
+  "description": "Multi-agent swarm for report planning, graph-first document reviews, and sliding-window cross-analysis refinement.",
+  "workspace": "${workspace}",
+  "variables": {
+    "workspace": "default",
+    "topic": "Strategic implications of local model alignment standardizations",
+    "documents": [
+      "FrolovRoutledge2024.pdf",
+      "The TOGAF Standard, 10th Edition - Introduction and Core Concepts.md",
+      "solving_a_million_step_llm_task_zero_mistake.md"
+    ],
+    "model": "lemonade/qwen3.5-9b-FLM",
+    "output_file": "data_out/comprehensive_report.md",
+    "word_count_target": 2500
+  },
+  "config": {
+    "model": "${model}",
+    "max_concurrency": 1,
+    "allow_swarm": true,
+    "skills_allowed": ["search_kb", "query_graph", "read_file", "write_file"]
+  },
+  "inputs": {
+    "files": "${documents}"
+  },
+  "outputs": {
+    "files": ["${output_file}"],
+    "format": "md",
+    "word_count_target": "${word_count_target}",
+    "spec": "Focus topic: ${topic}. Target length: ${word_count_target} words. Structure: Introduction, Reviews of ${documents}, Cross-Analysis, and Conclusion."
+  },
+  "plan": {
+    "tasks": [
+      {
+        "id": "report_planning",
+        "description": "Planner Agent: Decompose focus topic '${topic}' into a structured outline targeting a length of ${word_count_target} words. Write the approach, methodology, and the Introduction section of the report.",
+        "assigned_model": "${model}",
+        "persona": "planner",
+        "dependencies": [],
+        "wave": 0,
+        "complexity": "medium",
+        "node_type": "task"
+      },
+      {
+        "id": "document_reviews",
+        "description": "Document Analyst: Read and analyze each document in the list ${documents} targeting focus topic '${topic}'. Execute graph first queries (`query_graph`) to extract structured concepts from the pre-loaded knowledge graph, falling back to document scan (`read_file`) and vector RAG (`search_kb`) if needed, producing compiled individual reviews.",
+        "assigned_model": "${model}",
+        "persona": "document_analyst",
+        "assigned_skills": ["query_graph", "search_kb", "read_file"],
+        "dependencies": ["report_planning"],
+        "wave": 1,
+        "complexity": "high",
+        "node_type": "task"
+      },
+      {
+        "id": "cross_analysis",
+        "description": "Synthesizer Agent: Execute cross-document analysis comparing findings from document_reviews to surface higher-order insights, synthesis patterns, and contradictions related to '${topic}'. Ensure the combined findings exceed the sum of the individual parts.",
+        "assigned_model": "${model}",
+        "persona": "synthesizer",
+        "dependencies": ["document_reviews"],
+        "wave": 2,
+        "complexity": "high",
+        "node_type": "task"
+      },
+      {
+        "id": "sliding_window_refinement",
+        "description": "Publishing Editor: Refine the combined draft section-by-section using sliding window constraints to ensure consistency, flow, and that the final output satisfies the target length of ${word_count_target} words, writing the final result to '${output_file}'.",
+        "assigned_model": "${model}",
+        "persona": "editor",
+        "assigned_skills": ["read_file", "write_file"],
+        "dependencies": ["cross_analysis"],
+        "wave": 3,
+        "complexity": "high",
+        "node_type": "output"
+      }
+    ],
+    "edges": [
+      ["report_planning", "document_reviews"],
+      ["document_reviews", "cross_analysis"],
+      ["cross_analysis", "sliding_window_refinement"]
+    ],
+    "waves": [
+      ["report_planning"],
+      ["document_reviews"],
+      ["cross_analysis"],
+      ["sliding_window_refinement"]
+    ]
+  },
+  "metadata": {
+    "publishing_standard": "academic-peer-review",
+    "notes": "Single-laptop optimized report swarm. Documents are pre-loaded in the default workspace. Target word count is specified dynamically."
+  }
+}

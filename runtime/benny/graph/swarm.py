@@ -35,7 +35,7 @@ from ..core.artifact_store import (
     resolve_uris_in_args,
 )
 from ..core.event_bus import event_bus
-from ..core.models import MODEL_REGISTRY, call_model, get_model_config
+from ..core.models import MODEL_REGISTRY, call_model, get_model_config, is_local_model
 from ..core.reasoning import extract_reasoning
 from ..core.skill_registry import registry
 from ..core.state import PartialResult, SwarmState, TaskItem, create_swarm_state
@@ -108,6 +108,18 @@ def parse_json_safe(text: str) -> Tuple[Dict[str, Any], str]:
 
     # Clean up trailing commas in objects/arrays (common model error)
     cleaned = re.sub(r",\s*([\]}])", r"\1", cleaned)
+
+    # Clean up typical local model JSON structure errors
+    # 1. Fix missing opening quotes on string values like `"task_id": t-003",` -> `"task_id": "t-003",`
+    cleaned = re.sub(r':\s*([a-zA-Z0-9\-_]+)"', r': "\1"', cleaned)
+
+    # 2. Fix colon inside key quote like `"description: Define..."` -> `"description": "Define..."`
+    cleaned = re.sub(r'"task_id:\s*(.*?)"', r'"task_id": "\1"', cleaned)
+    cleaned = re.sub(r'"description:\s*(.*?)"', r'"description": "\1"', cleaned)
+    cleaned = re.sub(r'"is_pillar:\s*(.*?)"', r'"is_pillar": \1', cleaned)
+    cleaned = re.sub(r'"skill_hint:\s*(.*?)"', r'"skill_hint": "\1"', cleaned)
+    cleaned = re.sub(r'"dependencies:\s*\[(.*?)\]"', r'"dependencies": [\1]', cleaned)
+    cleaned = re.sub(r'"complexity:\s*(.*?)"', r'"complexity": "\1"', cleaned)
 
     # 1. Handle missing commas between properties/items (common in some local models)
     # Match "... "value" "next_key": ..." or "... } { ..."
@@ -325,19 +337,28 @@ OUTPUT FORMAT:
     for attempt in range(max_retries):
         try:
             model_id = state.get("model") or "local_lemonade"
+            active_system_prompt = system_prompt
+            if is_local_model(model_id):
+                active_system_prompt += """
+Additional Rules for Local Execution Optimization:
+4. Ensure all JSON string values are properly enclosed in double quotes. Never output unquoted placeholders or text outside of string values.
+5. Prioritize graph-first search: design document-analysis and code-analysis tasks to check query_graph or code_scan first before using vector search or file scans.
+6. Enforce sequential dependencies and sequential waves (e.g. wave 0 -> wave 1 -> wave 2) to maintain safe single-laptop resource limits.
+"""
             print(f"DEBUG: Planner calling call_model with model_id='{model_id}'")
             response_text = await call_model(
                 model=model_id,
                 messages=[
                     {
                         "role": "system",
-                        "content": system_prompt + f"\n\nRef: workspace:{workspace_id}",
+                        "content": active_system_prompt + f"\n\nRef: workspace:{workspace_id}",
                     },
                     {"role": "user", "content": user_prompt},
                 ],
                 temperature=0.2,
                 max_tokens=2000,
                 run_id=execution_id,
+                role="planner",
             )
 
             parsed, thinking = parse_json_safe(response_text)

@@ -238,6 +238,25 @@ def get_model_config(model_id: str) -> Dict[str, Any]:
 
 
 async def get_active_model(
+    workspace_id: str = "default",
+    role: str = "chat",
+    run_id: Optional[str] = None,
+    executor_override: Optional[str] = None,
+    local_only: bool = False,
+) -> str:
+    """Determine which model is currently 'active' for a role in a workspace."""
+    if executor_override:
+        if local_only and not is_local_model(executor_override):
+            raise ValueError(f"local_only is True; refusing cloud model: {executor_override}")
+        return executor_override
+
+    resolved = await _get_active_model_raw(workspace_id, role, run_id)
+    if local_only and not is_local_model(resolved):
+        raise ValueError(f"local_only is True; refusing cloud model: {resolved}")
+    return resolved
+
+
+async def _get_active_model_raw(
     workspace_id: str = "default", role: str = "chat", run_id: Optional[str] = None
 ) -> str:
     """Determine which model is currently 'active' for a role in a workspace."""
@@ -387,6 +406,11 @@ async def call_model(
     Handles LiteRT (local), LiteLLM (cloud/local), and system prompt augmentation.
     """
     print(f"DEBUG: call_model(model='{model}', run_id='{run_id}')")
+
+    # Force low temperature for structured local planners to prevent schema hallucinations
+    if role == "planner" and is_local_model(model):
+        temperature = 0.1
+        print(f"DEBUG: Local planner detected. Clamped temperature to {temperature}")
 
     # 0. RESOLVE REGISTRY KEY (Ensures LiteLLM doesn't see 'local_lemonade')
     actual_model = model
