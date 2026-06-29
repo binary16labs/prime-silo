@@ -79,6 +79,16 @@ rubber-stamps (the strawman failure mode from the memo-ray token-audit). The gat
 **flags** `judge == executor` and treats that judgment as low-confidence. The
 deterministic checks are the hard backstop the judge can never override.
 
+**Pick a fast *non-reasoning* instruct model as judge.** Live finding (2026-06-29):
+`deepseek-r1-8b-FLM` as judge spent its whole token budget reasoning in prose and
+never emitted the JSON verdict — so every judgment came back unscored and escalated,
+defeating the gate. Reasoning models belong on the **executor** (hard generation),
+not the judge (quick structured scoring). `run_judge` is hardened to survive a
+reasoning judge anyway — it requests thinking-off (`enable_thinking: false`), gives a
+larger budget, and parses the **last** balanced JSON object (ignoring leading
+chain-of-thought / `<think>` blocks) — but a small instruct judge (e.g.
+`Qwen2.5-0.5B-Instruct-CPU`, the default) is faster and more reliable.
+
 ## 6. ADR-001 boundary (why this is safe)
 
 The executor writes only into `$BENNY_HOME/workspaces/<ws>/offload/` (scratch /

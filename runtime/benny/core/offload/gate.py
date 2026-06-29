@@ -72,11 +72,46 @@ async def run_deterministic(manifest: OffloadManifest, timeout: int = 600) -> Li
     return results
 
 
-_JSON_RE = re.compile(r"\{.*\}", re.DOTALL)
+_THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
+
+
+def _extract_last_json(text: str) -> Optional[dict]:
+    """Pull the LAST balanced JSON object out of a model reply.
+
+    Reasoning models emit prose (sometimes <think>...</think>) BEFORE the answer,
+    so a greedy first-{-to-last-} match captures garbage. We strip any think
+    block, then scan from the end for the last balanced ``{...}`` that parses.
+    """
+    if not text:
+        return None
+    cleaned = _THINK_RE.sub("", text)
+    # find candidate closing braces from the end; for each, walk back to its match
+    for close in range(len(cleaned) - 1, -1, -1):
+        if cleaned[close] != "}":
+            continue
+        depth = 0
+        for open_ in range(close, -1, -1):
+            ch = cleaned[open_]
+            if ch == "}":
+                depth += 1
+            elif ch == "{":
+                depth -= 1
+                if depth == 0:
+                    try:
+                        return json.loads(cleaned[open_:close + 1])
+                    except json.JSONDecodeError:
+                        break  # not parseable from here; try an earlier close
+    return None
 
 
 async def run_judge(manifest: OffloadManifest, artifact: str, judge_model: str) -> Dict:
-    """Score the artifact against acceptance criteria. Returns {score, rationale}."""
+    """Score the artifact against acceptance criteria. Returns {score, rationale}.
+
+    Robust to reasoning judges (R1/qwen-thinking): we ask for thinking off, give a
+    larger token budget so the model can finish, and parse the LAST JSON object so
+    leading chain-of-thought does not poison the result. NOTE: a fast non-reasoning
+    instruct model is still the recommended judge — reasoning models are slow and
+    spend their budget thinking instead of scoring (see ADR-004 §5)."""
     from ..local_executor import resolve_executor  # deferred: keeps the deterministic gate importable without httpx/tiktoken
     executor = resolve_executor(judge_model)
     if executor is None:
@@ -95,21 +130,25 @@ async def run_judge(manifest: OffloadManifest, artifact: str, judge_model: str) 
         '\"unmet\": [\"<criterion ids not satisfied>\"]}'
     )
     try:
-        raw = await executor.generate(prompt, system="Return only JSON.",
-                                      temperature=0.0, max_tokens=400)
+        raw = await executor.generate(
+            prompt, system="Return only JSON.", temperature=0.0, max_tokens=800,
+            # ask thinking-capable recipes to skip chain-of-thought; harmless if unsupported
+            extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+        )
     except Exception as exc:
         return {"score": None, "rationale": f"judge error: {exc}", "available": True}
-    match = _JSON_RE.search(raw or "")
-    if not match:
-        return {"score": None, "rationale": f"judge returned non-JSON: {raw[:160]}",
+    data = _extract_last_json(raw)
+    if data is None or "score" not in data:
+        return {"score": None,
+                "rationale": f"judge returned no parseable JSON verdict (model may be a "
+                             f"reasoning model that exhausted its budget): {(raw or '')[:160]}",
                 "available": True}
     try:
-        data = json.loads(match.group(0))
         score = float(data.get("score"))
         return {"score": max(0.0, min(1.0, score)),
                 "rationale": str(data.get("rationale", ""))[:300],
                 "unmet": data.get("unmet", []), "available": True}
-    except Exception as exc:
+    except (TypeError, ValueError) as exc:
         return {"score": None, "rationale": f"judge parse error: {exc}", "available": True}
 
 

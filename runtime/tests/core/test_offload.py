@@ -131,6 +131,27 @@ async def test_deterministic_gate_failure_escalates():
     assert not res.passed and not res.deterministic_ok and res.escalate
 
 
+def test_extract_last_json_survives_reasoning_prefix():
+    # a reasoning judge emits prose (and maybe stray braces) before the verdict
+    reply = (
+        "Okay, let me think. The function should collapse {runs}. "
+        "Considering criterion ac1... and ac2...\n\n"
+        '{"score": 0.9, "rationale": "meets both", "unmet": []}'
+    )
+    data = G._extract_last_json(reply)
+    assert data is not None and data["score"] == 0.9 and data["unmet"] == []
+
+
+def test_extract_last_json_strips_think_block():
+    reply = '<think>maybe {0.2}? no...</think>\n{"score": 0.75, "rationale": "ok"}'
+    data = G._extract_last_json(reply)
+    assert data is not None and data["score"] == 0.75
+
+
+def test_extract_last_json_returns_none_when_absent():
+    assert G._extract_last_json("no json here, just reasoning that never finished") is None
+
+
 @pytest.mark.asyncio
 async def test_green_passes_on_deterministic_only_without_judge():
     res = await G.evaluate(M.from_dict(_green_task()), artifact="ok", final_tier="green",
