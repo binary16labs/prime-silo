@@ -92,8 +92,10 @@ def _surrogate_to_markdown(el: dict) -> str:
     if t in VISUAL_TYPES and sur:
         kind = sur.get("surrogate_kind")
         score = sur.get("score")
+        vscore = sur.get("visual_score")
         if kind == "mermaid":
-            return f"{prov[:-4]} figure_score={score} -->\n```mermaid\n{sur['content']}\n```"
+            vtag = "" if vscore is None else f" visual_score={vscore}"
+            return f"{prov[:-4]} figure_score={score}{vtag} -->\n```mermaid\n{sur['content']}\n```"
         if kind == "chart_json":
             return f"{prov}\n```json\n{sur['content']}\n```"
         # caption / caption_fallback
@@ -108,6 +110,21 @@ def _surrogate_to_markdown(el: dict) -> str:
 # =============================================================================
 
 
+def _resolve_page_bytes(pages: Dict[Any, str], page: Any, root: Path) -> Optional[bytes]:
+    """Read the whole-page PNG for ``page`` from the docmodel ``pages`` map. JSON keys
+    are strings; an in-memory docmodel may use ints — try both. None when absent."""
+    if not pages or page is None:
+        return None
+    rel = pages.get(page) or pages.get(str(page))
+    if not rel:
+        return None
+    p = root / rel
+    try:
+        return p.read_bytes() if p.exists() else None
+    except Exception:
+        return None
+
+
 async def enrich_docmodel(
     docmodel: Dict[str, Any],
     *,
@@ -116,6 +133,8 @@ async def enrich_docmodel(
     reviewer_model: str = DEFAULT_REVIEWER,
     max_refine: int = 1,
     render_check: bool = False,
+    visual_judge: bool = True,
+    min_fidelity: float = 7.0,
     limit: Optional[int] = None,
     run_id: Optional[str] = None,
     log_fn: Callable = print,
@@ -123,9 +142,14 @@ async def enrich_docmodel(
     """Run the describer ladder over every visual element of ``docmodel`` and stitch
     an enriched document. Returns ``{markdown, elements, summary}``. Tables reuse the
     Phase-0 JSON (no VLM). Mutates a copy — the input docmodel is left intact.
+
+    Each visual is described with its whole-page render as grounding, and (when
+    ``visual_judge``) the produced diagram is scored for fidelity against the original
+    figure — the advisory gate that closes the cascade.
     """
     ws = docmodel.get("workspace") or "default"
     root = workspace_root or get_workspace_path(ws)
+    pages = docmodel.get("pages") or {}
     elements = [dict(e) for e in docmodel.get("elements", [])]
     by_order = {e["reading_order"]: e for e in elements}
 
@@ -137,12 +161,18 @@ async def enrich_docmodel(
     summary = {
         "visual_total": sum(1 for e in elements if e.get("type") in VISUAL_TYPES),
         "visual_processed": 0,
+        "region_crops": sum(1 for e in elements if e.get("region")),
         "diagrams": 0,
         "validated": 0,
         "caption_fallback": 0,
         "charts": 0,
         "tables": 0,
+        "visual_judged": 0,
+        "faithful": 0,
+        "partial": 0,
+        "poor": 0,
         "scores": [],
+        "visual_scores": [],
     }
 
     for el in elements:
@@ -157,9 +187,12 @@ async def enrich_docmodel(
             continue
         caption = _caption_for(by_order, el["reading_order"])
         context = _context_for(by_order, el["reading_order"])
-        kind = classify_visual(el["type"], caption)
+        is_region = bool(el.get("region"))
+        kind = classify_visual(el["type"], caption, is_region=is_region)
+        page_bytes = _resolve_page_bytes(pages, el.get("page"), root)
         log_fn(
-            f"[pipeline] #{el['reading_order']} p{el.get('page')} {el['type']} -> {kind}  ({caption[:50]!r})"
+            f"[pipeline] #{el['reading_order']} p{el.get('page')} {el['type']}"
+            f"{' region' if is_region else ''} -> {kind}  ({caption[:50]!r})"
         )
 
         sur = await describe_element(
@@ -167,10 +200,14 @@ async def enrich_docmodel(
             label=el["type"],
             caption=caption,
             context=context,
+            is_region=is_region,
+            page_bytes=page_bytes,
             vlm_model=vlm_model,
             reviewer_model=reviewer_model,
             max_refine=max_refine,
             render_check=render_check,
+            visual_judge=visual_judge,
+            min_fidelity=min_fidelity,
             run_id=run_id,
             log_fn=lambda *a: log_fn("    ", *a),
         )
@@ -186,9 +223,17 @@ async def enrich_docmodel(
             summary["caption_fallback"] += 1
         if sur.get("score") is not None:
             summary["scores"].append(sur["score"])
+        if sur.get("visual_score") is not None:
+            summary["visual_judged"] += 1
+            summary["visual_scores"].append(sur["visual_score"])
+        verdict = sur.get("verdict")
+        if verdict in ("faithful", "partial", "poor"):
+            summary[verdict] += 1
 
     scores = summary.pop("scores")
+    vscores = summary.pop("visual_scores")
     summary["avg_score"] = round(sum(scores) / len(scores), 2) if scores else None
+    summary["avg_visual_score"] = round(sum(vscores) / len(vscores), 2) if vscores else None
 
     markdown = "\n\n".join(
         _surrogate_to_markdown(e) for e in elements if _surrogate_to_markdown(e).strip()

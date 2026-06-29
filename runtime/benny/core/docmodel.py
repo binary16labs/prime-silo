@@ -282,6 +282,44 @@ def _rect_mostly_inside(outer: Tuple, inner: Tuple, frac: float = 0.6) -> bool:
     return inter / area >= frac
 
 
+def _is_diagram_region(
+    rect: Tuple[float, float, float, float],
+    page_rect: Tuple[float, float, float, float],
+    *,
+    table_rects: List[Tuple],
+    img_rects: List[Tuple],
+    min_area_frac: float = 0.02,
+    max_area_frac: float = 0.92,
+    min_side: float = 24.0,
+    max_aspect: float = 12.0,
+) -> bool:
+    """Decide whether a clustered vector-drawing bbox is a *figure-like region* worth
+    cropping (the vector/SVG diagrams the xref-image path misses — the #1 reason
+    Databricks-style architecture figures never get a surrogate).
+
+    Pure geometry, no fitz — so it is unit-tested offline. Rejects: tiny marks/icons,
+    skinny rules/dividers, full-page backgrounds/borders, and clusters already covered
+    by a captured table or raster image. ``cluster_drawings`` only returns vector
+    drawings (not text), so prose is excluded upstream."""
+    w = max(0.0, rect[2] - rect[0])
+    h = max(0.0, rect[3] - rect[1])
+    if w <= 0 or h <= 0:
+        return False
+    page_area = max(1e-6, (page_rect[2] - page_rect[0]) * (page_rect[3] - page_rect[1]))
+    frac = (w * h) / page_area
+    if frac < min_area_frac or frac > max_area_frac:
+        return False
+    if min(w, h) < min_side:
+        return False  # rule / thin divider / icon
+    if max(w, h) / max(1.0, min(w, h)) > max_aspect:
+        return False  # long skinny line, not a diagram
+    if any(_rect_mostly_inside(r, rect) or _rect_mostly_inside(rect, r) for r in table_rects):
+        return False  # already captured as a table
+    if any(_rect_mostly_inside(r, rect) or _rect_mostly_inside(rect, r) for r in img_rects):
+        return False  # already captured as a raster figure
+    return True
+
+
 def _classify_text_block(text: str, max_size: float, median_size: float, page_no: int) -> str:
     s = text.strip()
     low = s.lower()
@@ -340,11 +378,30 @@ def _extract_with_pymupdf(
     doc = fitz.open(str(file_path))
     elements: List[Dict[str, Any]] = []
     counts: Dict[str, int] = {}
+    pages: Dict[int, str] = {}  # page_no -> ws-relative full-page PNG (review substrate)
+    pages_dir = crops_dir.parents[1] / "pages" / stem
     order = 0
 
     for pno in range(doc.page_count):
         page = doc[pno]
         page_no = pno + 1
+
+        # Full-page render — the "image of the whole page" the fidelity judge reviews
+        # against, and the in-situ grounding for the describer. 2x for legible labels.
+        if emit_crops:
+            try:
+                ppix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+                pdata = ppix.tobytes("png")
+                pages_dir.mkdir(parents=True, exist_ok=True)
+                pp = pages_dir / f"p{page_no}.png"
+                if not pp.exists() or pp.stat().st_size == 0:
+                    pp.write_bytes(pdata)
+                pages[page_no] = str(pp.relative_to(get_workspace_path(workspace))).replace(
+                    "\\", "/"
+                )
+            except Exception as e:
+                log_fn(f"[docmodel] page image p{page_no} failed: {e}")
+
         td = page.get_text("dict")
         sizes = [
             sp.get("size", 0)
@@ -402,6 +459,43 @@ def _extract_with_pymupdf(
                     (bbox[1], bbox[0], {"type": "picture", "bbox": bbox, "crop": crop_rel})
                 )
 
+        # 2b. vector-drawing figure regions (architecture/lakehouse diagrams drawn as
+        # vectors have NO raster xref, so the loop above misses them entirely). Cluster
+        # the page's drawings and crop the figure-like ones via a clipped render.
+        if emit_crops and hasattr(page, "cluster_drawings"):
+            page_rect = tuple(page.rect)
+            try:
+                clusters = [tuple(r) for r in page.cluster_drawings()]
+            except Exception as e:
+                log_fn(f"[docmodel] cluster_drawings p{page_no} failed: {e}")
+                clusters = []
+            for rect in clusters:
+                if not _is_diagram_region(
+                    rect, page_rect, table_rects=table_rects, img_rects=img_rects
+                ):
+                    continue
+                crop_rel = None
+                try:
+                    pix = page.get_pixmap(matrix=fitz.Matrix(2, 2), clip=fitz.Rect(rect))
+                    data = pix.tobytes("png")
+                    digest = hashlib.sha256(data).hexdigest()[:16]
+                    crops_dir.mkdir(parents=True, exist_ok=True)
+                    cp = crops_dir / f"{digest}.png"
+                    if not cp.exists():
+                        cp.write_bytes(data)
+                    crop_rel = str(cp.relative_to(get_workspace_path(workspace))).replace("\\", "/")
+                except Exception as e:
+                    log_fn(f"[docmodel] region crop p{page_no} failed: {e}")
+                # Treat as a captured figure so text inside it stays with the figure.
+                img_rects.append(rect)
+                items.append(
+                    (
+                        rect[1],
+                        rect[0],
+                        {"type": "picture", "bbox": rect, "crop": crop_rel, "region": True},
+                    )
+                )
+
         # 3. text blocks (skip those inside a table or figure region)
         for b in td["blocks"]:
             if b.get("type", 0) != 0:
@@ -453,18 +547,26 @@ def _extract_with_pymupdf(
                 el["table"] = d["table"]
             if d.get("crop"):
                 el["crop"] = d["crop"]
+            if d.get("region"):
+                el["region"] = True
             elements.append(el)
             order += 1
 
     n_pages = doc.page_count
     doc.close()
     return _model_envelope(
-        file_path, workspace, "pymupdf", n_pages=n_pages, counts=counts, elements=elements
+        file_path,
+        workspace,
+        "pymupdf",
+        n_pages=n_pages,
+        counts=counts,
+        elements=elements,
+        pages=pages,
     )
 
 
 def _model_envelope(
-    file_path: Path, workspace: str, backend: str, *, n_pages, counts, elements
+    file_path: Path, workspace: str, backend: str, *, n_pages, counts, elements, pages=None
 ) -> Dict[str, Any]:
     return {
         "schema": DOCMODEL_SCHEMA,
@@ -476,6 +578,7 @@ def _model_envelope(
         "n_pages": n_pages,
         "degraded": False,
         "counts": counts,
+        "pages": pages or {},
         "elements": elements,
     }
 
@@ -544,6 +647,8 @@ def _extract_with_docling(
 
         elements.append(el)
 
+    pages = _save_docling_page_images(doc, out_dir / "pages" / stem, workspace, log_fn) if emit_crops else {}
+
     return {
         "schema": DOCMODEL_SCHEMA,
         "source": file_path.name,
@@ -553,8 +658,40 @@ def _extract_with_docling(
         "n_pages": _num_pages(doc),
         "degraded": False,
         "counts": counts,
+        "pages": pages,
         "elements": elements,
     }
+
+
+def _save_docling_page_images(
+    doc: Any, pages_dir: Path, workspace: str, log_fn: Callable
+) -> Dict[int, str]:
+    """Persist Docling's per-page renders (enabled via ``generate_page_images``) as the
+    whole-page review substrate. Best-effort + guarded — Docling's page-image access
+    shifts across versions, and a missing page image must not sink extraction."""
+    pages: Dict[int, str] = {}
+    try:
+        page_map = getattr(doc, "pages", {}) or {}
+        ws_root = get_workspace_path(workspace)
+        for pno, page in page_map.items():
+            img = getattr(getattr(page, "image", None), "pil_image", None)
+            if img is None:
+                continue
+            try:
+                import io
+
+                buf = io.BytesIO()
+                img.save(buf, format="PNG")
+                pages_dir.mkdir(parents=True, exist_ok=True)
+                pp = pages_dir / f"p{int(pno)}.png"
+                if not pp.exists() or pp.stat().st_size == 0:
+                    pp.write_bytes(buf.getvalue())
+                pages[int(pno)] = str(pp.relative_to(ws_root)).replace("\\", "/")
+            except Exception as e:
+                log_fn(f"[docmodel] docling page image p{pno} failed: {e}")
+    except Exception as e:
+        log_fn(f"[docmodel] docling page images unavailable: {e}")
+    return pages
 
 
 def _save_crop(

@@ -25,6 +25,8 @@
     "synthesis_model":    "lemonade/qwen3-tk-4b-FLM",
     "diagram_format":     "mermaid",
     "classify_threshold": 0.6,
+    "visual_judge":       true,
+    "min_fidelity":       7.0,
     "resume_from_run_id": "",
     "api_base":           "http://127.0.0.1:8005",
     "api_key":            "benny-mesh-2026-auth",
@@ -44,7 +46,7 @@
     "base_dir": "${benny_home}/workspace/${workspace}/${data_out_dir}",
     "files":    ["vision_ingestion_report.md"],
     "format":   "md",
-    "spec":     "Counts of visual elements detected, classified by type, surrogates generated, validation pass/fail (+ caption fallbacks), enriched docs produced, and figure-derived triples + Sections written."
+    "spec":     "Counts of visual elements detected (incl. vector regions), classified by type, surrogates generated, validation pass/fail (+ caption fallbacks), average VISUAL fidelity score over judged diagrams, enriched docs produced, and figure-derived triples + Sections written."
   },
 
   "config": {
@@ -97,7 +99,7 @@
     "tasks": [
       {
         "id": "docmodel_extract",
-        "description": "[DETERMINISTIC] [NEW — VIS-001 Phase 0] Parse each ingestible doc into Docling's element tree (type/page/bbox/reading-order). Export tables to JSON, persist a crop per picture keyed by content-hash, and write workspace/.benny/docmodel/<source>.json. No VLM.",
+        "description": "[DETERMINISTIC] [NEW — VIS-001 Phase 0] Parse each ingestible doc into the element tree (type/page/bbox/reading-order). Export tables to JSON, persist a crop per picture keyed by content-hash, ALSO lift vector-drawing figure regions (cluster_drawings) that have no embedded raster — the architecture/lakehouse diagrams the xref path misses — and render a whole-page PNG per page (the fidelity-judge substrate). Writes workspace/.benny/docmodel/<source>.json + pages/. No VLM.",
         "skill_hint": "extract_docmodel",
         "wave": 0,
         "complexity": "medium",
@@ -156,7 +158,7 @@
 
       {
         "id": "describe_visuals",
-        "description": "[AGENTIC/VISION] [NEW — VIS-001 Phase 1+2] Run the type-routed describer ladder via the multimodal call_model path: illustration→caption, diagram→${diagram_format} (Mermaid/PlantUML), chart→data-series JSON + description. Content-hash cached — unchanged crops are reused, never re-described.",
+        "description": "[AGENTIC/VISION] [NEW — VIS-001 Phase 1+2] Run the type-routed describer ladder via the multimodal call_model path: illustration→caption, diagram→${diagram_format} (Mermaid/PlantUML), chart→data-series JSON + description. Each visual is grounded with its whole-page render, and (visual_judge) each produced diagram is scored for VISUAL fidelity against the original figure — the vision judge the blind text reviewer cannot replace — driving a best-wins refine loop down to min_fidelity. Content-hash cached — unchanged crops are reused, never re-described.",
         "skill_hint": "describe_visuals",
         "assigned_model": "${vlm_model}",
         "dependencies": ["classify_elements"],
@@ -175,6 +177,8 @@
               "workspace":      "${workspace}",
               "vlm_model":      "${vlm_model}",
               "diagram_format": "${diagram_format}",
+              "visual_judge":   "${visual_judge}",
+              "min_fidelity":   "${min_fidelity}",
               "elements":       "${inputs.typed_elements}"
             },
             "timeout": { "connect": 10, "read": 2400, "write": 60, "pool": 10 }
@@ -196,7 +200,7 @@
 
       {
         "id": "validate_surrogates",
-        "description": "[DETERMINISTIC] [NEW — VIS-001 Phase 2] Gate every surrogate: Mermaid/PlantUML must pass a headless parse; chart/table JSON must validate against schema. A surrogate that fails degrades to a plain caption — it is NEVER reported as success (no hollow success).",
+        "description": "[DETERMINISTIC] [NEW — VIS-001 Phase 2] Gate every surrogate: Mermaid/PlantUML must pass a headless parse; chart/table JSON must validate against schema. The vision fidelity score (visual_score) is carried as an ADVISORY signal — a valid-but-imperfect diagram still wins over a caption (best-wins), it just records a lower fidelity; only a surrogate that never validates degrades to a plain caption. NEVER reported as hollow success.",
         "skill_hint": "validate_surrogates",
         "dependencies": ["describe_visuals"],
         "wave": 3,
@@ -218,7 +222,7 @@
             "require_count": ">= 1",
             "fail_message":  "No surrogate passed validation. Check describe_visuals output and the ${diagram_format} parser; everything fell back to captions."
           },
-          "emit_on_success": { "validated_surrogates": "$.surrogates", "validated_count": "$.surrogates[?(@.validated == true)] | length", "caption_fallbacks": "$.fallback_count" }
+          "emit_on_success": { "validated_surrogates": "$.surrogates", "validated_count": "$.surrogates[?(@.validated == true)] | length", "caption_fallbacks": "$.fallback_count", "avg_visual_score": "$.summary.avg_visual_score", "diagrams_below_fidelity": "$.surrogates[?(@.surrogate_kind == 'mermaid' && @.validated == false)] | length" }
         }
       },
 
@@ -395,6 +399,6 @@
     "template":     true,
     "generated_by": "ADR-003 / VIS-001",
     "related":      ["architecture/ADR-003-vision-augmented-ingestion.md", "docs/requirements/13/project_plan.md"],
-    "notes": "DESIGN-TIME CONTRACT. The /api/vision/* endpoints + extract_docmodel/classify_elements/describe_visuals/validate_surrogates/stitch_enriched/validate_vision skills are VIS-001 deliverables (Phases 0–3); rag_ingest + deep_synthesis reuse the existing knowledge_enrichment pipeline. Inspect with: benny enrich --manifest manifests/templates/vision_ingestion_pipeline.json (dry) ; run a single wave once its skills land. Set vlm_model=${vlm_fallback} if OQ-1 shows FLM lacks image_url support."
+    "notes": "DESIGN-TIME CONTRACT. The classify/describe/validate/stitch stages are IMPLEMENTED today by the 2-endpoint runnable path /api/vision/docmodel + /api/vision/enrich (enrich_docmodel folds classify→describe→fidelity-judge→validate→stitch); the per-task /api/vision/{classify,describe,validate,stitch} split here is the design-time decomposition. The Bridge ingest path (bridge.js, visionIngest toggle) calls the 2-endpoint flow with visual_judge + render_check on, so the fidelity cascade runs automatically. rag_ingest + deep_synthesis reuse the existing knowledge_enrichment pipeline. visual_judge=true scores each diagram against the original figure (advisory best-wins, min_fidelity gate). Inspect funnel with scripts/vision_eval.py --workspace <ws>. Set vlm_model=${vlm_fallback} if FLM lacks image_url support."
   }
 }

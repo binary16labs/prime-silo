@@ -72,6 +72,8 @@ async def vision_enrich(
     vlm_model: Optional[str] = None,
     reviewer_model: Optional[str] = None,
     render_check: bool = False,
+    visual_judge: bool = True,
+    min_fidelity: float = 7.0,
     limit: Optional[int] = None,
     write_to_data_in: bool = True,
 ):
@@ -89,7 +91,12 @@ async def vision_enrich(
         if source and _safe_stem(jf.stem) != _safe_stem(source):
             continue
         docmodel = json.loads(jf.read_text(encoding="utf-8"))
-        kwargs = {"render_check": render_check, "limit": limit}
+        kwargs = {
+            "render_check": render_check,
+            "visual_judge": visual_judge,
+            "min_fidelity": min_fidelity,
+            "limit": limit,
+        }
         if vlm_model:
             kwargs["vlm_model"] = vlm_model
         if reviewer_model:

@@ -118,6 +118,70 @@ def test_bbox_tuple_to_dict():
         "l": 1.0, "t": 2.0, "r": 3.0, "b": 4.0, "coord_origin": "TOPLEFT"}
 
 
+# --------------------------------------------------------------------------- #
+# vector-region detection (the Databricks fix) — pure geometry, no fitz
+# --------------------------------------------------------------------------- #
+
+def test_is_diagram_region_accepts_figure_sized_cluster():
+    page = (0, 0, 600, 800)
+    rect = (100, 200, 400, 450)  # ~16% of page, square-ish
+    assert D._is_diagram_region(rect, page, table_rects=[], img_rects=[]) is True
+
+
+def test_is_diagram_region_rejects_tiny_thin_and_fullpage():
+    page = (0, 0, 600, 800)
+    assert D._is_diagram_region((0, 0, 30, 30), page, table_rects=[], img_rects=[]) is False  # tiny icon
+    assert D._is_diagram_region((0, 0, 590, 12), page, table_rects=[], img_rects=[]) is False  # thin rule
+    assert D._is_diagram_region((1, 1, 599, 799), page, table_rects=[], img_rects=[]) is False  # full page
+
+
+def test_is_diagram_region_rejects_when_already_captured():
+    page = (0, 0, 600, 800)
+    rect = (100, 200, 400, 450)
+    assert D._is_diagram_region(rect, page, table_rects=[rect], img_rects=[]) is False
+    assert D._is_diagram_region(rect, page, table_rects=[], img_rects=[(90, 190, 410, 460)]) is False
+
+
+# --------------------------------------------------------------------------- #
+# PyMuPDF backend: page images + vector regions get captured (needs fitz)
+# --------------------------------------------------------------------------- #
+
+def test_pymupdf_captures_vector_region_and_page_image(tmp_path, monkeypatch):
+    fitz = pytest.importorskip("fitz")
+    monkeypatch.setattr(D, "get_workspace_path",
+                        lambda ws="default", sub="": (tmp_path / ws / sub) if sub else (tmp_path / ws))
+
+    # A PDF whose only figure is drawn as VECTORS (no embedded raster) — exactly the
+    # case the xref-image path misses and the region path must now catch.
+    pdf = tmp_path / "vec.pdf"
+    doc = fitz.open()
+    page = doc.new_page(width=600, height=800)
+    page.insert_text((80, 120), "Medallion Architecture")
+    page.draw_rect(fitz.Rect(120, 220, 300, 340), width=2)
+    page.draw_rect(fitz.Rect(360, 220, 520, 340), width=2)
+    page.draw_line(fitz.Point(300, 280), fitz.Point(360, 280))
+    page.draw_oval(fitz.Rect(220, 420, 420, 520))
+    doc.save(str(pdf))
+    doc.close()
+
+    if not hasattr(fitz.open(str(pdf))[0], "cluster_drawings"):
+        pytest.skip("PyMuPDF without cluster_drawings")
+
+    model = D.build_docmodel(pdf, workspace="wsV", emit_crops=True, force=True,
+                             log_fn=lambda *_: None)
+
+    # whole-page render persisted (the fidelity-judge substrate)
+    assert model["pages"], "expected a per-page image map"
+    page_rel = model["pages"].get(1) or model["pages"].get("1")
+    assert page_rel and (tmp_path / "wsV" / page_rel).exists()
+
+    # the vector drawing was lifted off the page as a region crop
+    regions = [e for e in model["elements"] if e.get("type") == "picture" and e.get("region")]
+    assert regions, "expected at least one vector region picture element"
+    crop_rel = regions[0]["crop"]
+    assert crop_rel and (tmp_path / "wsV" / crop_rel).exists()
+
+
 def test_fallback_textonly_marks_degraded(tmp_path):
     src = tmp_path / "note.txt"
     src.write_text("hello world from a plain text file", encoding="utf-8")

@@ -61,16 +61,24 @@ _CHART_HINTS = ("chart", "graph", "plot", "trend", "distribution", "histogram", 
 # =============================================================================
 
 
-def classify_visual(label: str, caption: str = "") -> str:
+def classify_visual(label: str, caption: str = "", is_region: bool = False) -> str:
     """Decide the treatment type for a visual element.
 
     ``chart`` (docling label) → chart. Otherwise use caption keywords to tell a
     technical *diagram* from a decorative *illustration*; default to diagram in a
     technical document since that is the high-value case.
+
+    ``is_region`` marks a vector-drawing cluster lifted off the page (no embedded
+    raster). Those are virtually always technical diagrams (architecture/flow), and
+    they typically have NO "Figure N" caption — so without this they fell through to
+    ``illustration`` and got a one-line caption instead of a diagram. Treat a region
+    as a diagram unless its caption clearly says chart.
     """
     cap = (caption or "").lower()
     if label == "chart" or any(h in cap for h in _CHART_HINTS):
         return "chart"
+    if is_region:
+        return "diagram"
     if any(h in cap for h in _DIAGRAM_HINTS):
         return "diagram"
     # A captioned "Figure N" in a standards doc is almost always a diagram.
@@ -280,6 +288,26 @@ A corrected/improved full Mermaid diagram (keep what is right, fix the rest). If
 </review>"""
 
 
+VISUAL_JUDGE_PROMPT = """You are checking whether a Mermaid diagram FAITHFULLY reproduces a
+figure from a document. You are shown image(s): the ORIGINAL figure first{rendered_note}.
+{mermaid_block}
+Compare what the diagram encodes against what the original figure actually shows.
+Judge ONLY visual/structural fidelity — nodes present, labels correct, connections
+and their direction, groupings. Ignore styling/colour/layout aesthetics.
+
+CONTEXT (caption + surrounding text, for label spelling):
+{context}
+
+Reply in this EXACT XML form, nothing outside it:
+<judge>
+  <fidelity>0-10</fidelity>
+  <missing>boxes/arrows in the figure but absent from the diagram, or "none"</missing>
+  <wrong>nodes/edges present but mislabelled or wrongly connected, or "none"</wrong>
+  <extra>nodes/edges in the diagram not in the figure, or "none"</extra>
+  <verdict>faithful|partial|poor</verdict>
+</judge>"""
+
+
 def _fmt(prompt: str, **kw) -> str:
     return prompt.format(**kw)
 
@@ -289,10 +317,15 @@ def _fmt(prompt: str, **kw) -> str:
 # =============================================================================
 
 
-async def _vision_call(prompt: str, crop_bytes: bytes, model: str, run_id: Optional[str]) -> str:
+async def _vision_call(
+    prompt: str, crop_bytes: bytes, model: str, run_id: Optional[str], *extra_images: Optional[bytes]
+) -> str:
+    """Vision call for the `vision` role. Extra images (e.g. the full page, for in-situ
+    grounding) are appended after the crop; ``None`` entries are dropped."""
+    images = [crop_bytes, *[img for img in extra_images if img]]
     return await call_model(
         model=model,
-        messages=vision_message(prompt, crop_bytes),
+        messages=vision_message(prompt, *images),
         temperature=0.0,
         max_tokens=1024,
         workspace_id="default",
@@ -332,6 +365,80 @@ def _parse_review(raw: str) -> Dict[str, Any]:
     }
 
 
+def _parse_judge(raw: str) -> Dict[str, Any]:
+    def field(tag):
+        m = re.search(rf"<{tag}>(.*?)</{tag}>", raw, re.DOTALL | re.IGNORECASE)
+        return m.group(1).strip() if m else ""
+
+    try:
+        fidelity = float(re.search(r"[\d.]+", field("fidelity")).group())
+    except Exception:
+        fidelity = 0.0
+    return {
+        "fidelity": fidelity,
+        "missing": field("missing"),
+        "wrong": field("wrong"),
+        "extra": field("extra"),
+        "verdict": (field("verdict").lower() or "unknown"),
+    }
+
+
+async def judge_visual_fidelity(
+    source_bytes: bytes,
+    mermaid: str,
+    *,
+    rendered_bytes: Optional[bytes] = None,
+    page_bytes: Optional[bytes] = None,
+    context: str = "",
+    vlm_model: str = DEFAULT_VLM,
+    run_id: Optional[str] = None,
+    log_fn: Callable = print,
+) -> Dict[str, Any]:
+    """Vision-grounded fidelity check — the loop the blind text reviewer can't close.
+
+    Shows the VLM the ORIGINAL figure and, when a renderer is available, the RENDERED
+    diagram produced from the candidate Mermaid, and asks how faithfully one reproduces
+    the other (missing/wrong/extra + a 0-10 fidelity). Always vision-grounded: with no
+    renderer it still sees the figure and judges the Mermaid as code. Returns the parsed
+    judge dict with ``available``; never raises (degrades to ``available=False``)."""
+    images: List[bytes] = [source_bytes]
+    if rendered_bytes:
+        images.append(rendered_bytes)
+        rendered_note = ", then the RENDERED diagram produced from the Mermaid"
+        mermaid_block = ""
+    else:
+        rendered_note = ""
+        mermaid_block = (
+            "\nThe candidate Mermaid (no render available — read it as code):\n"
+            f"```mermaid\n{mermaid}\n```\n"
+        )
+    if page_bytes:
+        images.append(page_bytes)
+        rendered_note += ", then the FULL PAGE for context"
+    prompt = _fmt(
+        VISUAL_JUDGE_PROMPT,
+        rendered_note=rendered_note,
+        mermaid_block=mermaid_block,
+        context=context or "(none)",
+    )
+    try:
+        raw = await call_model(
+            model=vlm_model,
+            messages=vision_message(prompt, *images),
+            temperature=0.0,
+            max_tokens=512,
+            workspace_id="default",
+            role="vision",
+            run_id=run_id,
+        )
+    except Exception as e:
+        log_fn(f"[judge] vision fidelity judge failed: {e}")
+        return {"available": False, "fidelity": 0.0, "verdict": "unknown"}
+    out = _parse_judge(raw)
+    out["available"] = True
+    return out
+
+
 # =============================================================================
 # ORCHESTRATION
 # =============================================================================
@@ -343,21 +450,31 @@ async def describe_element(
     label: str = "picture",
     caption: str = "",
     context: str = "",
+    is_region: bool = False,
+    page_bytes: Optional[bytes] = None,
     vlm_model: str = DEFAULT_VLM,
     reviewer_model: str = DEFAULT_REVIEWER,
     max_refine: int = 1,
     render_check: bool = False,
+    visual_judge: bool = True,
+    min_fidelity: float = 7.0,
     run_id: Optional[str] = None,
     log_fn: Callable = print,
 ) -> Dict[str, Any]:
-    """Run the full describe→validate→review→refine ladder for one visual element.
+    """Run the full describe→validate→review→**fidelity-judge**→refine ladder for one
+    visual element.
 
     Returns a surrogate dict: {type, surrogate_kind, content, validated, score,
-    attempts:[...], review:{...}, model_id}. Never raises on a bad generation —
-    degrades to a caption with validated=False.
+    visual_score, verdict, attempts:[...], review:{...}, judge:{...}, model_id}. Never
+    raises on a bad generation — degrades to a caption with validated=False.
+
+    ``page_bytes`` (the whole-page render) grounds the describer in situ and lets the
+    vision fidelity judge compare the produced diagram against the original figure.
+    The fidelity gate is **advisory**: a valid-but-imperfect diagram still wins over a
+    caption (best-wins), it just carries a lower ``visual_score``.
     """
     ctx = (caption + "\n" + context).strip() or "(no surrounding text available)"
-    kind = classify_visual(label, caption)
+    kind = classify_visual(label, caption, is_region=is_region)
     attempts: List[Dict[str, Any]] = []
 
     if kind == "illustration":
@@ -388,31 +505,39 @@ async def describe_element(
             "model_id": vlm_model,
         }
 
-    # --- diagram: the multi-model loop ---
-    # The VISION model always OWNS the topology (it can see the image). The text
-    # reviewer is blind, so it only GUIDES — scores, flags missing/hallucinated/
-    # syntax — which we feed back as a refinement critique. A reviewer-proposed
-    # diagram is kept ONLY as a last resort if no vision attempt ever validates.
+    # --- diagram: the multi-model loop, closed on VISUAL fidelity ---
+    # The VISION model OWNS the topology (it sees the image). The blind text reviewer
+    # GUIDES syntax/missing/hallucinated. The VISION JUDGE then compares the produced
+    # diagram against the ORIGINAL figure (+page) and scores fidelity — that visual
+    # score drives best-wins and the refine critique ("try another approach", grounded
+    # in seeing both images). A reviewer-proposed diagram is a last resort only.
     best: Optional[Dict[str, Any]] = None
     reviewer_fallback: Optional[Dict[str, Any]] = None
     review: Dict[str, Any] = {}
     prompt = _fmt(DIAGRAM_PROMPT, context=ctx)
 
     for i in range(max_refine + 1):
-        raw = await _vision_call(prompt, crop_bytes, vlm_model, run_id)
+        # describe — the whole page grounds the figure in situ (labels/neighbours)
+        raw = await _vision_call(prompt, crop_bytes, vlm_model, run_id, page_bytes)
         mermaid = extract_code(raw, "mermaid")
         ok, reason = validate_mermaid(mermaid)
-        # Optional authoritative gate: only count as valid if mmdc actually renders
-        # it (catches everything the structural check can't). Skipped silently when
-        # the renderer isn't installed.
-        if ok and render_check:
-            rok, rreason, _png = render_validate_mermaid(mermaid)
+        # Render once: doubles as the authoritative gate (render_check) AND the image
+        # the fidelity judge compares against. Skipped silently when mmdc is absent.
+        rendered_png: Optional[bytes] = None
+        if ok and (render_check or visual_judge):
+            rok, rreason, png = render_validate_mermaid(mermaid)
             if rreason != "mmdc-unavailable":
-                ok, reason = rok, (reason if rok else rreason)
+                if render_check:
+                    ok, reason = rok, (reason if rok else rreason)
+                if rok and png:
+                    try:
+                        rendered_png = Path(png).read_bytes()
+                    except Exception:
+                        rendered_png = None
         attempts.append({"iter": i, "valid": ok, "reason": reason, "chars": len(mermaid)})
         log_fn(f"[describe] diagram attempt {i}: valid={ok} ({reason}) {len(mermaid)} chars")
 
-        # review with the text model (cross-check vs document text)
+        # blind text review (cross-check vs document text)
         review_raw = await _text_call(
             _fmt(REVIEW_PROMPT, context=ctx, mermaid=mermaid), reviewer_model, run_id
         )
@@ -422,19 +547,39 @@ async def describe_element(
             f"missing={review['missing'][:60]!r}"
         )
 
+        # vision fidelity judge — the loop the blind reviewer can't close. Only worth
+        # running on a syntactically valid candidate.
+        judge: Dict[str, Any] = {}
+        visual_score: Optional[float] = None
+        if visual_judge and ok:
+            judge = await judge_visual_fidelity(
+                crop_bytes,
+                mermaid,
+                rendered_bytes=rendered_png,
+                page_bytes=page_bytes,
+                context=ctx,
+                vlm_model=vlm_model,
+                run_id=run_id,
+                log_fn=log_fn,
+            )
+            if judge.get("available"):
+                visual_score = judge.get("fidelity")
+                log_fn(
+                    f"[judge] fidelity={visual_score} verdict={judge.get('verdict')} "
+                    f"missing={str(judge.get('missing',''))[:50]!r}"
+                )
+
         cand = {
             "mermaid": mermaid,
             "valid": ok,
             "reason": reason,
             "score": review["score"],
+            "visual_score": visual_score,
             "review": review,
+            "judge": judge if visual_score is not None else {},
             "source": "vision",
         }
-        if (
-            best is None
-            or (ok and not best["valid"])
-            or (ok == best["valid"] and review["score"] > best["score"])
-        ):
+        if best is None or _diagram_cand_better(cand, best):
             best = cand
 
         # capture a VALID reviewer-proposed diagram as fallback only (blind model)
@@ -444,44 +589,86 @@ async def describe_element(
                 "mermaid": improved,
                 "valid": True,
                 "score": review["score"],
+                "visual_score": None,
                 "review": review,
+                "judge": {},
                 "source": "reviewer_fallback",
             }
 
-        if best["valid"] and review["score"] >= 8:
-            break  # vision attempt is valid and the reviewer is happy
+        # stop when the diagram is valid AND visually faithful (or, with no judge, when
+        # the blind reviewer is satisfied).
+        if best["valid"]:
+            if visual_score is not None and visual_score >= min_fidelity:
+                break
+            if visual_score is None and review["score"] >= 8:
+                break
         if i < max_refine:
-            prompt = (
-                _fmt(DIAGRAM_PROMPT, context=ctx)
-                + f"\n\nYour previous attempt scored {review['score']}/10. FIX these, keeping the layout you can see:\n"
-                f"- missing nodes/edges: {review.get('missing','')}\n"
-                f"- remove if not in image: {review.get('hallucinated','')}\n"
-                f"- syntax issue: {reason if not ok else 'none'}\n"
-            )
+            if judge.get("available"):
+                prompt = (
+                    _fmt(DIAGRAM_PROMPT, context=ctx)
+                    + f"\n\nYour previous diagram scored {visual_score}/10 on VISUAL fidelity to the "
+                    "figure. Look at the image again and FIX these:\n"
+                    f"- in the figure but MISSING from your diagram: {judge.get('missing','')}\n"
+                    f"- present but WRONG (label or connection): {judge.get('wrong','')}\n"
+                    f"- in your diagram but NOT in the figure (remove): {judge.get('extra','')}\n"
+                )
+            else:
+                prompt = (
+                    _fmt(DIAGRAM_PROMPT, context=ctx)
+                    + f"\n\nYour previous attempt scored {review['score']}/10. FIX these, keeping the layout you can see:\n"
+                    f"- missing nodes/edges: {review.get('missing','')}\n"
+                    f"- remove if not in image: {review.get('hallucinated','')}\n"
+                    f"- syntax issue: {reason if not ok else 'none'}\n"
+                )
 
     chosen = best if (best and best["valid"]) else (reviewer_fallback or best)
     if chosen and chosen["valid"]:
+        vs = chosen.get("visual_score")
         return {
             "type": label,
             "surrogate_kind": "mermaid",
             "content": chosen["mermaid"],
-            "validated": True,
+            # syntax is always valid here; the visual gate is advisory (best-wins),
+            # so a judged-but-below-threshold diagram is emitted with validated=False.
+            "validated": bool(vs is None or vs >= min_fidelity),
             "score": chosen["score"],
+            "visual_score": vs,
+            "verdict": (chosen.get("judge") or {}).get("verdict"),
             "attempts": attempts,
             "review": chosen.get("review", review),
+            "judge": chosen.get("judge", {}),
             "model_id": vlm_model,
             "source": chosen.get("source", "vision"),
         }
 
     # fallback: plain caption (no hollow success)
-    cap = await _vision_call(_fmt(ILLUSTRATION_PROMPT, context=ctx), crop_bytes, vlm_model, run_id)
+    cap = await _vision_call(
+        _fmt(ILLUSTRATION_PROMPT, context=ctx), crop_bytes, vlm_model, run_id, page_bytes
+    )
     return {
         "type": label,
         "surrogate_kind": "caption_fallback",
         "content": cap.strip(),
         "validated": False,
         "score": best["score"] if best else 0.0,
+        "visual_score": best.get("visual_score") if best else None,
         "attempts": attempts,
         "review": review,
         "model_id": vlm_model,
     }
+
+
+def _diagram_cand_better(cand: Dict[str, Any], best: Dict[str, Any]) -> bool:
+    """best-wins ordering for diagram candidates: (1) syntactically valid beats invalid;
+    (2) higher VISUAL fidelity wins (a judged candidate beats an unjudged one — more
+    evidence); (3) fall back to the blind reviewer's score."""
+    if cand["valid"] != best["valid"]:
+        return bool(cand["valid"])
+    cv, bv = cand.get("visual_score"), best.get("visual_score")
+    if cv is not None and bv is not None and cv != bv:
+        return cv > bv
+    if cv is not None and bv is None:
+        return True
+    if cv is None and bv is not None:
+        return False
+    return cand["score"] > best["score"]

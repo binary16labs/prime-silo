@@ -353,7 +353,8 @@ export function createBridgePage(options = {}) {
     uploading: false,
     rescanning: false,
     visionIngest: false,
-    
+    visionSummary: "",
+
     // wizard
     wizardActive: false,
     wizardWorkflow: "",
@@ -1075,6 +1076,7 @@ export function createBridgePage(options = {}) {
         return;
       }
       this.ingesting = true;
+      this.visionSummary = "";
       try {
         // Optional Vision pass (VIS-001 / ADR-003): a local vision model reads each
         // figure/diagram into Mermaid diagram-as-code and tables into JSON, stitching
@@ -1085,12 +1087,43 @@ export function createBridgePage(options = {}) {
         if (this.visionIngest) {
           this.ingestNote = `Vision pass: reading figures & tables in ${targets.length} document${targets.length === 1 ? "" : "s"} with the local vision model (slower)…`;
           try {
+            // Aggregate the cascade outcome so the operator can SEE that figures became
+            // diagrams (and how faithfully) — the whole point of the vision pass.
+            let diagrams = 0, charts = 0, tables = 0, regions = 0;
+            let judged = 0, captionFallbacks = 0;
+            const vScores = [];
             for (const name of targets) {
               const q = `workspace=${encodeURIComponent(this.workspace)}&source=${encodeURIComponent(name)}`;
               await runtimeFetch(`/vision/docmodel?${q}`, { method: "POST" });
-              await runtimeFetch(`/vision/enrich?${q}`, { method: "POST" });
+              // visual_judge + render_check default on: each produced diagram is scored
+              // for fidelity against the original figure (best-wins, advisory gate).
+              const eb = await readRuntimeJson(
+                await runtimeFetch(`/vision/enrich?${q}&render_check=true`, { method: "POST" })
+              );
+              for (const doc of (eb && eb.enriched) || []) {
+                const s = doc.summary || {};
+                diagrams += s.diagrams || 0;
+                charts += s.charts || 0;
+                tables += s.tables || 0;
+                regions += s.region_crops || 0;
+                judged += s.visual_judged || 0;
+                captionFallbacks += s.caption_fallback || 0;
+                if (s.avg_visual_score != null && s.visual_judged) vScores.push([s.avg_visual_score, s.visual_judged]);
+              }
             }
+            // Weighted mean of per-doc averages → one fidelity number.
+            const totJudged = vScores.reduce((a, [, n]) => a + n, 0);
+            const avgFidelity = totJudged
+              ? (vScores.reduce((a, [v, n]) => a + v * n, 0) / totJudged).toFixed(1)
+              : null;
+            this.visionSummary =
+              `Vision pass: ${diagrams} diagram${diagrams === 1 ? "" : "s"}` +
+              (regions ? ` (${regions} from vector figures)` : "") +
+              `, ${charts} chart${charts === 1 ? "" : "s"}, ${tables} table${tables === 1 ? "" : "s"}` +
+              (avgFidelity != null ? ` · avg fidelity ${avgFidelity}/10 over ${judged} judged` : "") +
+              (captionFallbacks ? ` · ${captionFallbacks} fell back to captions` : "");
           } catch (verr) {
+            this.visionSummary = "";
             this.ingestNote = `Vision pass failed (${verr && verr.message ? verr.message : verr}) — is the local vision model running? Continuing with standard ingest…`;
           }
         }
@@ -1122,6 +1155,7 @@ export function createBridgePage(options = {}) {
           if (indexed !== null) parts.push(`Indexed ${indexed} file${indexed === 1 ? "" : "s"}`);
           if (failed) parts.push(`${failed} failed`);
           parts.push(runId ? `(run ${runId})` : "");
+          if (this.visionSummary) parts.push(this.visionSummary);
           parts.push("Triples will populate the graph as files are processed.");
           this.ingestNote = parts.filter(Boolean).join(" · ");
         }
