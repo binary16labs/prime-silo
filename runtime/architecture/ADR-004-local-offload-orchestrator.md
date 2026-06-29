@@ -72,6 +72,16 @@ fidelity judge, the MCP server, the `resolve_executor` local-model layer):
 | 🟡 yellow | feature against a spec, bug fix with a repro, multi-file edit       | deterministic gate **+ judge**   |
 | 🔴 red    | architecture, ambiguous reqs, security/signing, deterministic zone  | **escalate — never offloaded**   |
 
+**`shell` vs `generate` — what the gate can actually validate.** A `shell` task
+acts *in place*, so the deterministic gate validates the real effect → it can be
+true green. A `generate` task produces an *unapplied proposal* in the outbox
+(ADR-001); deterministic checks run against the unchanged repo and cannot validate
+it. So the router **upgrades every generate task to yellow** and the gate
+**refuses to auto-pass** a generate proposal without a judge — the judge reading
+the artifact is the only valid evaluator for unapplied output. (Found while
+preparing to run a `generate` docstring task on real code: it would have "passed"
+deterministic checks against the stale file — a false pass this rule prevents.)
+
 ## 5. Anti-collusion
 
 The judge model SHOULD differ from the executor model; same-model self-judging

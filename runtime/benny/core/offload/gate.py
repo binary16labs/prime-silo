@@ -166,7 +166,16 @@ async def evaluate(manifest: OffloadManifest, artifact: str, final_tier: str,
         result.summary = f"deterministic gate failed: {len(failed)} check(s)"
         return result
 
-    # green: deterministic-only, auto-pass
+    # A generate task is an unapplied proposal — deterministic checks ran against
+    # the live repo, not the artifact, so they CANNOT auto-pass it. Require a judge;
+    # if none is configured, escalate honestly rather than report a false pass.
+    if manifest.executor_mode == "generate" and (final_tier == "green" or not manifest.judge_enabled):
+        result.escalate = manifest.escalation_policy != "never"
+        result.summary = ("generate proposal cannot be validated by deterministic checks on the "
+                          "live repo (ADR-001); no judge configured — escalating")
+        return result
+
+    # green (shell, acts in place): deterministic-only, auto-pass
     if final_tier == "green" or not manifest.judge_enabled:
         result.passed = True
         result.summary = "passed (deterministic gate)" + (

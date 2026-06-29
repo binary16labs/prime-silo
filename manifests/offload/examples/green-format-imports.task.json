@@ -1,0 +1,34 @@
+{
+  "format": "aamp.offload_task/1",
+  "id": "green-format-imports-rag-routes",
+  "intent": "Sort and clean imports in runtime/benny/api/rag_routes.py with ruff, in place. This is a mechanical, deterministically-verifiable transform — true green. Done when ruff's import rules report clean.",
+  "context_pointers": ["runtime/benny/api/rag_routes.py"],
+  "acceptance_criteria": [
+    {
+      "id": "ac1",
+      "statement": "imports are sorted/clean per ruff (I rules)",
+      "verify": "ruff check --select I runtime/benny/api/rag_routes.py"
+    },
+    {
+      "id": "ac2",
+      "statement": "file still parses",
+      "verify": "python -c \"import ast; ast.parse(open('runtime/benny/api/rag_routes.py').read())\""
+    }
+  ],
+  "risk_tier": "green",
+  "executor": {
+    "mode": "shell",
+    "command": "ruff check --select I --fix runtime/benny/api/rag_routes.py"
+  },
+  "eval_plan": {
+    "deterministic": [
+      "ruff check --select I runtime/benny/api/rag_routes.py",
+      "python -c \"import ast; ast.parse(open('runtime/benny/api/rag_routes.py').read())\""
+    ],
+    "judge": { "enabled": false }
+  },
+  "allowed_paths": ["runtime/benny/api/rag_routes.py"],
+  "budget": { "max_iterations": 1, "max_seconds": 300 },
+  "escalation_policy": "on_fail",
+  "workspace": "default"
+}

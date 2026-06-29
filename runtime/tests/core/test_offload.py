@@ -109,6 +109,29 @@ def test_router_never_downgrades():
     assert d.final_tier == "red"
 
 
+def test_router_upgrades_generate_green_to_yellow():
+    # a generate proposal is unapplied; deterministic checks can't validate it
+    task = _green_task(id="t-gen", executor={"mode": "generate", "model": "lemonade/x",
+                                             "prompt": "do it"})
+    d = R.classify(M.from_dict(task))
+    assert d.final_tier == "yellow" and d.upgraded
+    assert any("generate" in r for r in d.reasons)
+
+
+@pytest.mark.asyncio
+async def test_generate_without_judge_escalates_not_passes(offload_root):
+    # generate + judge disabled must NOT auto-pass on deterministic checks
+    m = M.from_dict(_green_task(
+        id="t-gen-nojudge",
+        executor={"mode": "generate", "model": "lemonade/x", "prompt": "do it"},
+        eval_plan={"deterministic": ["python -c \"raise SystemExit(0)\""],
+                   "judge": {"enabled": False}},
+    ))
+    res = await G.evaluate(m, artifact="some proposed code", final_tier="green",
+                           executor_model="lemonade/x", judge_model="")
+    assert not res.passed and res.escalate and "deterministic checks" in res.summary
+
+
 # --------------------------------------------------------------------------- #
 # deterministic gate
 # --------------------------------------------------------------------------- #

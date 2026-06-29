@@ -105,6 +105,14 @@ def classify(manifest: OffloadManifest, touched_paths: List[str] | None = None) 
                 tier = _max_tier(tier, "yellow")
                 reasons.append(f"force_yellow: intent matches '{kw}'")
                 break
+        # A generate task is an UNAPPLIED proposal in the outbox (ADR-001); the
+        # deterministic gate runs against the live repo, so it cannot validate the
+        # artifact. Only the judge can. So generate output never auto-passes green.
+        if manifest.executor_mode == "generate":
+            tier = _max_tier(tier, "yellow")
+            if "generate" not in " ".join(reasons):
+                reasons.append("force_yellow: generate output is an unapplied proposal — "
+                               "needs the judge, not deterministic checks on the live repo")
         # a declared-green task whose criteria are not all deterministically
         # checkable cannot stay green — the gate would have nothing to check.
         if declared == "green":

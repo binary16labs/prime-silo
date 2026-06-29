@@ -57,8 +57,19 @@ machine pre-filter in front of that human gate, not a replacement for it.
 
 - `task.manifest.schema.json` — `aamp.offload_task/1` JSON Schema (the contract).
 - `router.matrix.json` — `aamp.offload_router/1` risk matrix + upgrade signals.
-- `examples/green-docstrings.task.json` — deterministic-only task.
-- `examples/yellow-bugfix.task.json` — judged task with escalation.
+- `examples/green-format-imports.task.json` — true green: `shell` codemod, acts in
+  place, deterministic-only.
+- `examples/yellow-bugfix.task.json` — `generate` task judged against criteria.
+
+### `shell` vs `generate` — which the gate can actually validate
+
+A **`shell`** task acts *in place*, so the deterministic gate validates the real
+effect → it can be true green (deterministic-only). A **`generate`** task produces
+an *unapplied proposal* in the outbox (ADR-001 — it never touches the live file),
+so deterministic checks run against the *unchanged* repo and cannot validate it.
+The router therefore **upgrades every generate task to yellow** and the gate
+**refuses to auto-pass** a generate proposal without a judge — the judge reads the
+artifact text directly and is the only valid evaluator for unapplied output.
 
 ## Lanes
 
