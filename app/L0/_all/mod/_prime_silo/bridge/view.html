@@ -405,13 +405,9 @@
                       >
                     </div>
                     <div style="display: flex; gap: 16px; align-items: center; padding: 0 4px; margin-bottom: 8px; margin-top: 4px;">
-                      <label class="ps-bridge__ask-toggle" title="Use Docling for high-quality structured Markdown extraction (PDF/DOCX/HTML)">
-                        <input type="checkbox" x-model="useDocling" />
-                        <span style="font-size: 11px;">Docling Extraction</span>
-                      </label>
-                      <label class="ps-bridge__ask-toggle" title="Run OCR on images/scanned PDFs (Slower but required for image-only files)" :style="useDocling ? '' : 'opacity: 0.5; pointer-events: none;'">
-                        <input type="checkbox" x-model="doOcr" :disabled="!useDocling" />
-                        <span style="font-size: 11px;">Enable OCR</span>
+                      <label class="ps-bridge__ask-toggle" title="Vision ingest (VIS-001): a local vision model (qwen3vl) reads each figure/diagram into Mermaid diagram-as-code and tables into JSON, then ingests the enriched document. Slower, and requires the local vision model to be running.">
+                        <input type="checkbox" x-model="visionIngest" />
+                        <span style="font-size: 11px;">Vision ingest (figures → diagrams)</span>
                       </label>
                     </div>
                     <p class="ps-bridge__note" x-show="ingestNote" x-text="ingestNote"></p>

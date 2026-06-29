@@ -352,8 +352,7 @@ export function createBridgePage(options = {}) {
     dragOver: false,
     uploading: false,
     rescanning: false,
-    useDocling: true,
-    doOcr: false,
+    visionIngest: false,
     
     // wizard
     wizardActive: false,
@@ -1076,8 +1075,26 @@ export function createBridgePage(options = {}) {
         return;
       }
       this.ingesting = true;
-      this.ingestNote = `Ingesting ${targets.length} document${targets.length === 1 ? "" : "s"} into the knowledge graph…`;
       try {
+        // Optional Vision pass (VIS-001 / ADR-003): a local vision model reads each
+        // figure/diagram into Mermaid diagram-as-code and tables into JSON, stitching
+        // an enriched document into data_in BEFORE the standard ingest picks it up
+        // (the enriched .md is newer than its source, so the converter skips it and
+        // the enrichment survives). It's slower and needs the local vision model, so
+        // a failure degrades gracefully to standard ingest rather than blocking.
+        if (this.visionIngest) {
+          this.ingestNote = `Vision pass: reading figures & tables in ${targets.length} document${targets.length === 1 ? "" : "s"} with the local vision model (slower)…`;
+          try {
+            for (const name of targets) {
+              const q = `workspace=${encodeURIComponent(this.workspace)}&source=${encodeURIComponent(name)}`;
+              await runtimeFetch(`/vision/docmodel?${q}`, { method: "POST" });
+              await runtimeFetch(`/vision/enrich?${q}`, { method: "POST" });
+            }
+          } catch (verr) {
+            this.ingestNote = `Vision pass failed (${verr && verr.message ? verr.message : verr}) — is the local vision model running? Continuing with standard ingest…`;
+          }
+        }
+        this.ingestNote = `Ingesting ${targets.length} document${targets.length === 1 ? "" : "s"} into the knowledge graph…`;
         // deep_synthesis:true extracts semantic triples into Neo4j — without it
         // the Documents knowledge graph (which reads Neo4j) stays empty even on
         // a "successful" vector ingest. The chip promises triples, so build them.
@@ -1088,8 +1105,6 @@ export function createBridgePage(options = {}) {
             body: JSON.stringify({
               workspace: this.workspace,
               deep_synthesis: true,
-              use_docling: this.useDocling,
-              do_ocr: this.doOcr,
               files: targets
             })
           })
