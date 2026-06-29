@@ -11,12 +11,12 @@
   "risk_tier": "yellow",
   "executor": {
     "mode": "generate",
-    "model": "lemonade/Qwen3-Coder-4B",
+    "model": "lemonade/qwen3-tk-4b-FLM",
     "prompt": "Implement the fix described in the intent. Return a unified diff limited to allowed_paths plus the new test."
   },
   "eval_plan": {
     "deterministic": ["pytest runtime/tests -k token -q"],
-    "judge": { "enabled": true, "model": "ollama/qwen2.5-coder:7b", "pass_threshold": 0.8 }
+    "judge": { "enabled": true, "model": "lemonade/Qwen2.5-0.5B-Instruct-CPU", "pass_threshold": 0.8 }
   },
   "allowed_paths": ["runtime/benny/core/local_executor.py", "runtime/tests/**"],
   "budget": { "max_iterations": 3, "max_seconds": 1200 },
