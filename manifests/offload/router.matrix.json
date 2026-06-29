@@ -1,0 +1,60 @@
+{
+  "format": "aamp.offload_router/1",
+  "description": "Risk-tier routing matrix. The router classifies a task by matching its intent/acceptance_criteria against these rules. The CORE PRINCIPLE: if the planner can write crisp, testable acceptance criteria up front, the work is offloadable; if defining 'done' needs judgment, it stays RED with the planner. The router may UPGRADE a manifest's declared tier (green->yellow->red) but never silently downgrades it.",
+  "principle": "offloadable iff acceptance_criteria are deterministically checkable; otherwise red.",
+  "tiers": {
+    "green": {
+      "handling": "Offload. Deterministic gate only. Auto-pass on exit-0. No LLM judge, no planner involvement.",
+      "examples": [
+        "scaffolding / boilerplate from a template",
+        "mechanical refactor or codemod with a verifiable transform",
+        "test stub generation",
+        "doc/comment generation from existing code",
+        "formatting, lint --fix, import sorting",
+        "dependency version bump with passing build",
+        "file moves / renames",
+        "search-and-summarize over the graph or a directory"
+      ],
+      "requires": "Every acceptance_criterion has a `verify` command, OR executor.mode == 'shell' with a deterministic eval_plan."
+    },
+    "yellow": {
+      "handling": "Offload + LLM judge. Deterministic gate first; if it passes, the judge scores against acceptance_criteria. Below pass_threshold -> escalate per policy.",
+      "examples": [
+        "feature implementation against a written spec",
+        "bug fix with a reproducing test",
+        "multi-file edit with a clear contract",
+        "data transform where output shape is specified but content needs judgment"
+      ],
+      "requires": "acceptance_criteria are clear but not all deterministically checkable; a repro or spec exists."
+    },
+    "red": {
+      "handling": "Do NOT offload. Escalate to the planner (Claude). The orchestrator records the task and returns escalate=true without running the executor.",
+      "examples": [
+        "architecture / design decisions and trade-offs",
+        "ambiguous or underspecified requirements",
+        "security-sensitive changes (auth, crypto, secrets, signing)",
+        "cross-cutting changes touching the deterministic zone (L1/L2, manifests/, signing)",
+        "anything where acceptance criteria cannot be stated before doing the work"
+      ],
+      "requires": "Acceptance criteria require judgment to define, or the change touches a guarded surface."
+    }
+  },
+  "upgrade_signals": {
+    "force_red": {
+      "description": "If any of these match the intent or a touched path, the task is forced to red regardless of declared tier.",
+      "path_globs": ["L1/**", "L2/**", "manifests/**", "**/*.sig", "**/manifest_signing*", "**/agent_scope*"],
+      "intent_keywords": ["auth", "credential", "secret", "private key", "signing key", "sign manifest", "delete history", "production deploy", "release", "rotate key", "rm -rf", "DROP ", "force push"]
+    },
+    "force_yellow": {
+      "description": "Green tasks carrying these signals are upgraded to yellow so a judge double-checks them.",
+      "intent_keywords": ["migration", "schema change", "public api", "concurrency", "race", "regex"],
+      "no_verify_criteria": "A declared-green task with any acceptance_criterion lacking a `verify` command is upgraded to yellow."
+    }
+  },
+  "defaults": {
+    "executor_model": "lemonade/Qwen3-Coder-4B",
+    "judge_model": "ollama/qwen2.5-coder:7b",
+    "judge_pass_threshold": 0.8,
+    "max_iterations": 3
+  }
+}

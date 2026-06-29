@@ -89,6 +89,36 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ["name"],
         },
       },
+      {
+        name: "offload_exec",
+        description:
+          "Offload an execution task to the local model (Benny) instead of doing it yourself. " +
+          "Submit an aamp.offload_task/1 manifest; the orchestrator routes it by risk, runs it " +
+          "locally, evaluates it against the acceptance criteria (deterministic gate + LLM judge), " +
+          "and returns ONLY a compact digest — never the raw output. RED tasks (architecture, " +
+          "ambiguous, security, signing/deterministic-zone) are refused and returned for you to " +
+          "handle directly. Use this for the offloadable bulk (scaffolds, codemods, doc-gen, " +
+          "spec'd features, repro'd bug fixes) so your tokens go to planning. The rule: if you can " +
+          "write crisp testable acceptance_criteria up front, offload it.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            task: {
+              type: "object",
+              description:
+                "A complete aamp.offload_task/1 manifest (see manifests/offload/task.manifest.schema.json). " +
+                "Required: format, id, intent, acceptance_criteria, risk_tier.",
+            },
+            wait: {
+              type: "boolean",
+              description:
+                "true (default) = run now and return the digest (sync lane). " +
+                "false = enqueue for the async runner and return immediately.",
+            },
+          },
+          required: ["task"],
+        },
+      },
     ],
   };
 });
@@ -229,6 +259,49 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         } finally {
           await session.close();
           await driver.close();
+        }
+      }
+
+      case "offload_exec": {
+        const task = args?.task;
+        const wait = args?.wait !== false; // default true (sync)
+        const apiPort = process.env.BENNY_API_PORT || 8005;
+        const apiHost = process.env.BENNY_API_HOST || "127.0.0.1";
+        if (!task || typeof task !== "object") {
+          return {
+            content: [{ type: "text", text: "offload_exec requires a `task` manifest object." }],
+            isError: true,
+          };
+        }
+        try {
+          const res = await fetch(
+            `http://${apiHost}:${apiPort}/api/offload/submit?wait=${wait ? 1 : 0}`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-Benny-API-Key": "benny-mesh-2026-auth",
+              },
+              body: JSON.stringify(task),
+            }
+          );
+          const data = await res.json();
+          if (!res.ok) {
+            // surface validation problems / router refusal compactly
+            return {
+              content: [{ type: "text", text: `Offload rejected (${res.status}): ${JSON.stringify(data.detail || data)}` }],
+              isError: true,
+            };
+          }
+          // Return ONLY the compact digest — never the raw artifact.
+          return {
+            content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+          };
+        } catch (e) {
+          return {
+            content: [{ type: "text", text: `Offload Error: ${e.message} (is the Benny runtime up on ${apiHost}:${apiPort}?)` }],
+            isError: true,
+          };
         }
       }
 

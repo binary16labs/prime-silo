@@ -1,0 +1,113 @@
+# ADR-004: Local Offload Orchestrator — Route Execution to Benny, Reserve the Planner for Strategy and Adjudication
+
+| Field      | Value                                                                                          |
+| ---------- | ---------------------------------------------------------------------------------------------- |
+| Status     | Proposed (Phase 0–4 implemented; cascade-with-real-local-model unverified)                      |
+| Date       | 2026-06-29                                                                                      |
+| Authors    | Binary 16 (engineering authority)                                                              |
+| Related    | ADR-001 (determinism boundary / agent_sandbox), opencode audit pattern, memo-ray token-audit   |
+
+---
+
+## 1. Problem
+
+Driving Prime-Silo development through a cloud planning agent (Claude Code,
+Antigravity) burns credits/tokens on work a local model could do. The operator's
+hypothesis: **≥75% of execution tasks are offloadable**, which would free the
+planner's budget for planning and strategy.
+
+## 2. The one insight that shapes the design
+
+**Offloading *execution* to a local model does not, by itself, save the planner's
+tokens.** The expensive resource is tokens flowing **through the planner's
+context** — so if the planner reads the full local output back, nothing is saved.
+The savings come from three disciplines:
+
+1. The planner writes a **compact manifest** instead of doing the work.
+2. An **evaluation gate** absorbs verbose output **locally**.
+3. The planner reads back only a **digest + verdict**, and is escalated to only on
+   failure or ambiguity.
+
+This reframes "MCP sub-agent vs. async queue": it is **both, behind one gate**.
+The async/manifest lane is what unlocks the bulk; the gate is what makes it safe.
+
+## 3. Decision
+
+A **local-first executor with an audit gate**, composed from primitives Prime-Silo
+already has (workflow manifests, the integration-audit pattern, the vision
+fidelity judge, the MCP server, the `resolve_executor` local-model layer):
+
+- **Contract** — `aamp.offload_task/1` (`manifests/offload/task.manifest.schema.json`).
+  Planner authors `intent` + testable `acceptance_criteria` + `risk_tier`.
+- **Router** (`benny/core/offload/router.py`, `router.matrix.json`) — classifies
+  green / yellow / red. May **upgrade** a tier, never silently downgrades.
+  Guarded paths (`L1/ L2/ manifests/`, signing) and security intents force red.
+- **Executor** (`executor.py`) — `shell` (codemods/scaffolds) or `generate` (local
+  model via `resolve_executor`). Output is a *proposed artifact*, never a direct
+  write to the deterministic zone.
+- **Gate** (`gate.py`) — deterministic checks first (build/lint/type/test, every
+  `verify` command, all must exit 0); then, for yellow only, an **LLM judge**
+  scores the artifact against the acceptance criteria.
+- **Orchestrator** (`orchestrator.py`) — ties submit → route → execute → gate →
+  digest; persists the full artifact to the workspace **outbox** and returns only
+  a compact **digest** to the planner.
+- **Ledger** (`ledger.py`) — append-only JSONL of honest components for
+  measurement.
+
+### Two lanes, one gate
+
+- **Sync (MCP):** `offload_exec` tool → `POST /api/offload/submit?wait=1` → digest
+  inline. For small bounded tasks the planner needs now.
+- **Async (queue):** `enqueue` → inbox → `scripts/offload-runner.mjs` drains →
+  outbox + digest. The default for bulk work — the "less synchronous" path.
+
+## 4. The routing rule
+
+> **If you can write crisp, testable acceptance criteria up front, the task is
+> offloadable. If defining "done" needs judgment, the planner keeps it.**
+
+| Tier      | Examples                                                            | Handling                         |
+| --------- | ------------------------------------------------------------------ | -------------------------------- |
+| 🟢 green  | scaffolds, codemods, test stubs, doc-gen, formatting, dep bumps     | deterministic gate only          |
+| 🟡 yellow | feature against a spec, bug fix with a repro, multi-file edit       | deterministic gate **+ judge**   |
+| 🔴 red    | architecture, ambiguous reqs, security/signing, deterministic zone  | **escalate — never offloaded**   |
+
+## 5. Anti-collusion
+
+The judge model SHOULD differ from the executor model; same-model self-judging
+rubber-stamps (the strawman failure mode from the memo-ray token-audit). The gate
+**flags** `judge == executor` and treats that judgment as low-confidence. The
+deterministic checks are the hard backstop the judge can never override.
+
+## 6. ADR-001 boundary (why this is safe)
+
+The executor writes only into `$BENNY_HOME/workspaces/<ws>/offload/` (scratch /
+outbox). Promotion of a passing result into `manifests/` / L1 / L2 stays a
+**human-signed** step — the existing `drafts/ → HITL → sign_manifest()` flow. The
+gate is the machine pre-filter in front of the human gate, not a replacement.
+
+## 7. Honesty / measurement
+
+Per the memo-ray token-audit lesson, **measure** the savings, don't assert them.
+`scripts/offload-report.mjs` reports the **offload rate** (passed locally without
+escalation), the **read-back cost** (digest chars the planner consumed), and a
+clearly-labelled **estimate** of saved completion tokens. 75% is a target to reach
+in the ledger, not a number to claim.
+
+## 8. Status / what is and isn't verified
+
+- ✅ Phase 0 contract; router; deterministic gate; orchestrator control-flow;
+  red-escalation; outbox/digest discipline; ledger; MCP tool; runner; report —
+  all implemented and covered by `tests/core/test_offload.py` (network-free).
+- ⚠️ **Unverified:** the `generate` and LLM-judge paths against a *real* local
+  model (Lemonade/Ollama/FLM) end-to-end, and the actual offload rate on real
+  tasks. Both require a running local server; the ledger is the instrument to
+  validate the 75% hypothesis.
+
+## 9. Consequences
+
+- The planner's budget shifts toward planning/adjudication.
+- New surface to maintain (router matrix, gate). Mitigated by reuse + tests.
+- Risk: output bloat back into context — mitigated by strict digest discipline
+  (enforced + tested). Risk: silent quality erosion — tracked via escalation rate
+  and (future) defect-escape rate in the ledger.

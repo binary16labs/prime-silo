@@ -1,0 +1,137 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://binary16.app/schemas/aamp.offload_task/1",
+  "title": "aamp.offload_task/1",
+  "description": "Contract between a planning agent (Claude) and the local executor (Benny). The planner authors this once, cheaply; Benny executes, the gate evaluates, and the planner only ever reads back the compact outbox digest. See manifests/offload/README.md and runtime/architecture/ADR-004-local-offload-orchestrator.md.",
+  "type": "object",
+  "required": ["format", "id", "intent", "acceptance_criteria", "risk_tier"],
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "aamp.offload_task/1",
+      "description": "Format discriminator. Always 'aamp.offload_task/1'."
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]{2,63}$",
+      "description": "Stable task id. Lowercase kebab/snake, 3-64 chars. Used as the inbox/outbox/ledger key."
+    },
+    "intent": {
+      "type": "string",
+      "minLength": 8,
+      "description": "One-paragraph statement of what 'done' looks like, in prose. The judge reads this alongside acceptance_criteria."
+    },
+    "context_pointers": {
+      "type": "array",
+      "description": "Paths / run ids / URLs the executor should read first. Pointers, not pasted content — keeps the manifest (and the planner's out-tokens) small.",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Testable, atomic statements of done. THIS is what the judge scores and what deterministic checks map onto. If you cannot write these crisply, the task is RED and belongs with the planner — do not offload it.",
+      "items": {
+        "type": "object",
+        "required": ["id", "statement"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^ac[0-9]+$", "description": "ac1, ac2, ..." },
+          "statement": { "type": "string", "minLength": 4 },
+          "verify": {
+            "type": "string",
+            "description": "Optional deterministic check that proves this criterion: a shell command whose exit 0 == pass. When present the gate runs it before (and instead of trusting) the LLM judge.",
+            "default": ""
+          }
+        }
+      }
+    },
+    "risk_tier": {
+      "enum": ["green", "yellow", "red"],
+      "description": "green = auto-pass on deterministic gate; yellow = deterministic gate + LLM judge; red = must escalate to the planner, never auto-merged. The router may UPGRADE (never silently downgrade) this based on router.matrix.json."
+    },
+    "executor": {
+      "type": "object",
+      "description": "How Benny should produce the result.",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "enum": ["shell", "generate"],
+          "default": "generate",
+          "description": "'shell' runs a command (codemods, scaffolds, formatters, test stubs). 'generate' asks the local model for an answer/patch grounded on context_pointers."
+        },
+        "model": {
+          "type": "string",
+          "description": "Local model string understood by resolve_executor() (e.g. 'lemonade/Qwen3-4B', 'ollama/qwen2.5-coder'). Omit to use the configured offload default.",
+          "default": ""
+        },
+        "command": {
+          "type": "string",
+          "description": "Shell command for mode=shell. Runs inside the workspace offload scratch dir.",
+          "default": ""
+        },
+        "prompt": {
+          "type": "string",
+          "description": "Prompt for mode=generate. The orchestrator appends the acceptance criteria automatically.",
+          "default": ""
+        }
+      }
+    },
+    "eval_plan": {
+      "type": "object",
+      "description": "The gate. Deterministic checks run first (cheapest); the LLM judge only runs for yellow and only if deterministic checks pass.",
+      "additionalProperties": false,
+      "properties": {
+        "deterministic": {
+          "type": "array",
+          "description": "Shell commands; every one must exit 0. build / lint / type-check / test / schema-validate live here.",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "judge": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "model": {
+              "type": "string",
+              "description": "Judge model string. SHOULD differ from executor.model — same-model self-judging collude (see ADR-004 anti-collusion). Falls back to the configured judge default.",
+              "default": ""
+            },
+            "pass_threshold": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "default": 0.8,
+              "description": "Minimum judge score (0-1) to pass a yellow task without escalation."
+            }
+          }
+        }
+      }
+    },
+    "allowed_paths": {
+      "type": "array",
+      "description": "Glob allow-list. The executor's writes are confined here (default: workspace offload scratch only). The deterministic zone (L1/L2, manifests/) is never writable — ADR-001.",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_iterations": { "type": "integer", "minimum": 1, "default": 3, "description": "Executor retries on gate failure before forced escalation." },
+        "max_seconds": { "type": "integer", "minimum": 1, "default": 1800 }
+      }
+    },
+    "escalation_policy": {
+      "enum": ["on_fail", "on_low_confidence", "never", "always"],
+      "default": "on_fail",
+      "description": "When to surface to the planner. on_fail = only when the gate fails after budget exhausted. on_low_confidence = also when judge score is within 0.1 of threshold. red tasks behave as 'always'."
+    },
+    "workspace": {
+      "type": "string",
+      "default": "default",
+      "description": "Benny workspace the task runs in."
+    }
+  }
+}

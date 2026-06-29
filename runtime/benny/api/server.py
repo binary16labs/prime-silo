@@ -67,6 +67,7 @@ from .agent_scope import AgentScopeMiddleware
 from .agentamp_routes import router as agentamp_router
 from .audio_routes import router as audio_router
 from .chat_routes import router as chat_router
+from .offload_routes import router as offload_router
 from .checkpoint_routes import pinned_router as checkpoint_pinned_router
 from .checkpoint_routes import sandbox_router as checkpoint_sandbox_router
 from .deep_produce_routes import router as deep_produce_router
@@ -199,6 +200,7 @@ app.include_router(vision_router, prefix="/api/vision", tags=["Vision"])
 app.include_router(graph_router, prefix="/api", tags=["Knowledge Graph"])
 app.include_router(notebook_router, prefix="/api/notebooks", tags=["Notebooks"])
 app.include_router(chat_router, prefix="/api/chat", tags=["Chat"])
+app.include_router(offload_router, prefix="/api/offload", tags=["Offload"])
 app.include_router(studio_router, prefix="/api/workflows/studio", tags=["Studio"])
 app.include_router(workflow_router, prefix="/api/workflows", tags=["Workflows"])
 app.include_router(workflow_endpoints_router, prefix="/api/workflows", tags=["Workflows"])
