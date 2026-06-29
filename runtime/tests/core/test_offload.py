@@ -1,13 +1,14 @@
 """ADR-004 — Local Offload Orchestrator tests.
 
-Network-free: every test here exercises the routing, validation, deterministic
-gate, orchestration control-flow, and ledger WITHOUT a running local model. The
-LLM-judge / generate paths are covered by their contract (router escalation,
-graceful "model unavailable") rather than by hitting a server.
+Network-free: every test here runs WITHOUT a real local model. Control-flow
+(routing, validation, deterministic gate, ledger) runs directly; the
+generate/judge/route network paths are exercised with a fake executor injected via
+``resolve_executor`` so no server is required.
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
 
 import pytest
@@ -17,6 +18,36 @@ from benny.core.offload import router as R
 from benny.core.offload import gate as G
 from benny.core.offload import ledger as L
 from benny.core.offload import orchestrator as O
+from benny.core.offload import executor as E
+
+
+class _FakeExec:
+    """Stand-in for a resolved local executor (LC-1/LC-3 surface)."""
+
+    def __init__(self, reply):
+        self._reply = reply  # str to return, or Exception to raise
+
+    async def generate(self, prompt, system=None, **kwargs):
+        if isinstance(self._reply, Exception):
+            raise self._reply
+        return self._reply
+
+    def count_tokens(self, text):
+        return len((text or "").split())
+
+
+@pytest.fixture
+def fake_models(monkeypatch):
+    """Inject fake executors keyed by model string. Pass a {model: reply} map."""
+    def _install(mapping):
+        def _resolve(model_str):
+            if model_str in mapping:
+                return _FakeExec(mapping[model_str])
+            return None
+        # gate.py and executor.py both do `from ..local_executor import resolve_executor`
+        # at call time, so patching the source module covers both.
+        monkeypatch.setattr("benny.core.local_executor.resolve_executor", _resolve)
+    return _install
 
 
 @pytest.fixture
@@ -232,3 +263,151 @@ async def test_ledger_records_each_task(offload_root):
     assert {"t-led1", "t-led2"} <= ids
     red_row = next(r for r in rows if r["task_id"] == "t-led2")
     assert red_row["status"] == "red-escalated" and red_row["planner_tokens_saved_estimate"] == 0
+
+
+# --------------------------------------------------------------------------- #
+# executor — generate path (fake model)
+# --------------------------------------------------------------------------- #
+
+def _generate_task(**over):
+    base = {
+        "format": "aamp.offload_task/1", "id": "t-gen-exec", "risk_tier": "yellow",
+        "intent": "produce a slugify function meeting the criteria",
+        "acceptance_criteria": [{"id": "ac1", "statement": "defines slugify(s)"}],
+        "executor": {"mode": "generate", "model": "fake/exec", "prompt": "write it"},
+        "eval_plan": {"judge": {"enabled": True, "model": "fake/judge", "pass_threshold": 0.8}},
+    }
+    base.update(over)
+    return base
+
+
+@pytest.mark.asyncio
+async def test_executor_generate_returns_artifact(fake_models):
+    fake_models({"fake/exec": "def slugify(s): return s"})
+    res = await E.execute(M.from_dict(_generate_task()), "fake/exec")
+    assert res.ok and "slugify" in res.artifact and res.completion_tokens > 0
+
+
+def test_gather_context_handles_real_and_missing_pointers(tmp_path):
+    f = tmp_path / "ctx.py"
+    f.write_text("# real file contents", encoding="utf-8")
+    from benny.core.offload.executor import _gather_context
+    blob = _gather_context(M.from_dict(_generate_task(
+        id="t-ctx", context_pointers=[f"{f}:somesymbol", "not/a/real/file.xyz"])), tmp_path)
+    assert "real file contents" in blob and "not a local file" in blob
+
+
+@pytest.mark.asyncio
+async def test_executor_generate_model_unavailable(fake_models):
+    fake_models({})  # nothing resolves
+    res = await E.execute(M.from_dict(_generate_task()), "fake/missing")
+    assert not res.ok and "no local executor" in res.error
+
+
+# --------------------------------------------------------------------------- #
+# judge — fake model
+# --------------------------------------------------------------------------- #
+
+@pytest.mark.asyncio
+async def test_run_judge_parses_score(fake_models):
+    fake_models({"fake/judge": 'reasoning... {"score": 0.9, "rationale": "ok", "unmet": []}'})
+    m = M.from_dict(_generate_task())
+    v = await G.run_judge(m, "def slugify(s): ...", "fake/judge")
+    assert v["score"] == 0.9 and v["available"]
+
+
+@pytest.mark.asyncio
+async def test_run_judge_unparseable_after_retry(fake_models):
+    fake_models({"fake/judge": "no json at all, just prose"})
+    v = await G.run_judge(M.from_dict(_generate_task()), "x", "fake/judge")
+    assert v["score"] is None
+
+
+@pytest.mark.asyncio
+async def test_evaluate_yellow_judge_pass(fake_models):
+    fake_models({"fake/judge": '{"score": 0.95, "rationale": "great"}'})
+    m = M.from_dict(_generate_task())
+    res = await G.evaluate(m, "artifact", "yellow", "fake/exec", "fake/judge")
+    assert res.passed and res.judge_ran and res.judge_score == 0.95
+
+
+@pytest.mark.asyncio
+async def test_evaluate_yellow_judge_low_escalates(fake_models):
+    fake_models({"fake/judge": '{"score": 0.2, "rationale": "missing things"}'})
+    m = M.from_dict(_generate_task())
+    res = await G.evaluate(m, "artifact", "yellow", "fake/exec", "fake/judge")
+    assert not res.passed and res.escalate
+
+
+@pytest.mark.asyncio
+async def test_evaluate_collusion_flag(fake_models):
+    fake_models({"same/model": '{"score": 0.95, "rationale": "ok"}'})
+    m = M.from_dict(_generate_task(escalation_policy="on_low_confidence"))
+    res = await G.evaluate(m, "artifact", "yellow", "same/model", "same/model")
+    assert res.collusion_flag
+
+
+# --------------------------------------------------------------------------- #
+# orchestrator — generate end-to-end (fake models)
+# --------------------------------------------------------------------------- #
+
+@pytest.mark.asyncio
+async def test_orchestrator_generate_passes_end_to_end(offload_root, fake_models):
+    fake_models({"fake/exec": "def slugify(s): return s.lower()",
+                 "fake/judge": '{"score": 0.92, "rationale": "meets criteria"}'})
+    out = await O.run_task(_generate_task(id="t-e2e"))
+    assert out.status == "passed" and out.final_tier == "yellow"
+    rows = L.read_all("default")
+    row = next(r for r in rows if r["task_id"] == "t-e2e")
+    assert row["planner_tokens_saved_estimate"] > 0 and row["local_completion_tokens"] > 0
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_generate_escalates_on_low_judge(offload_root, fake_models):
+    fake_models({"fake/exec": "bad code", "fake/judge": '{"score": 0.1, "rationale": "no"}'})
+    out = await O.run_task(_generate_task(id="t-e2e-fail", budget={"max_iterations": 1}))
+    assert out.status == "escalated" and out.escalate
+
+
+# --------------------------------------------------------------------------- #
+# API routes
+# --------------------------------------------------------------------------- #
+
+def test_routes_health_and_validate():
+    import benny.api.offload_routes as RR
+    assert asyncio.run(RR.health())["format"] == M.FORMAT
+    bad = asyncio.run(RR.validate({"format": "x", "id": "y"}))
+    assert bad["valid"] is False
+    good = asyncio.run(RR.validate(_green_task(id="t-route-val")))
+    assert good["valid"] and good["final_tier"] == "green"
+
+
+def test_routes_submit_enqueue_and_queue(offload_root):
+    import benny.api.offload_routes as RR
+    resp = asyncio.run(RR.submit(_green_task(id="t-route-q"), wait=False))
+    assert resp.mode == "enqueued" and resp.queued_path
+    q = asyncio.run(RR.queue("default"))
+    assert any("t-route-q" in p for p in q["pending"])
+
+
+def test_routes_submit_wait_red(offload_root):
+    import benny.api.offload_routes as RR
+    resp = asyncio.run(RR.submit(_green_task(id="t-route-red", risk_tier="red"), wait=True))
+    assert resp.mode == "sync" and resp.digest["status"] == "red-escalated"
+
+
+def test_routes_result_and_ledger(offload_root):
+    import benny.api.offload_routes as RR
+    asyncio.run(O.run_task(_green_task(id="t-route-res")))
+    res = asyncio.run(RR.result("default", "t-route-res", full=False))
+    # default strips the heavy artifact and leaves a pointer
+    assert "artifact_available_via" in res and res["executor"].get("artifact") is None
+    led = asyncio.run(RR.ledger("default"))
+    assert any(r["task_id"] == "t-route-res" for r in led["entries"])
+
+
+def test_routes_result_missing_raises():
+    import benny.api.offload_routes as RR
+    from fastapi import HTTPException
+    with pytest.raises(HTTPException):
+        asyncio.run(RR.result("default", "does-not-exist", full=False))

@@ -57,13 +57,27 @@ async def _run_shell(cmd: str, cwd: Path, timeout: int) -> ExecResult:
     )
 
 
+def _resolve_pointer(ptr: str, root: Path) -> Optional[Path]:
+    """Resolve a context pointer to a file. Accepts "path", "path:symbol", and
+    "path:line". Tries the whole pointer first so a Windows drive-letter colon is
+    never mistaken for a ``:symbol`` separator; only if that is not a file do we
+    strip a trailing ``:suffix``."""
+    candidate = (root / ptr)
+    if candidate.is_file():
+        return candidate
+    if ":" in ptr:
+        head = ptr.rsplit(":", 1)[0]
+        stripped = (root / head)
+        if stripped.is_file():
+            return stripped
+    return None
+
+
 def _gather_context(manifest: OffloadManifest, root: Path) -> str:
     chunks: List[str] = []
     for ptr in manifest.context_pointers:
-        # accept "path" or "path:symbol" / "path:line" — read the file part only
-        file_part = ptr.split(":", 1)[0]
-        fp = (root / file_part)
-        if fp.is_file():
+        fp = _resolve_pointer(ptr, root)
+        if fp is not None:
             try:
                 body = fp.read_text(encoding="utf-8", errors="replace")[:_MAX_POINTER_BYTES]
                 chunks.append(f"### {ptr}\n```\n{body}\n```")
