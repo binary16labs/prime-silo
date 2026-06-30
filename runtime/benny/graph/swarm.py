@@ -19,7 +19,7 @@ import re
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Tuple
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.checkpoint.memory import MemorySaver
@@ -583,7 +583,7 @@ def dispatcher_node(state: SwarmState) -> Dict[str, Any]:
     return {"status": "executing"}
 
 
-def dispatch_tasks(state: SwarmState) -> List[Send]:
+def dispatch_tasks(state: SwarmState) -> Union[List[Send], str]:
     """
     Dynamic router for fan-out tasks.
     Used in conditional edges to spin up parallel executors.
@@ -594,7 +594,7 @@ def dispatch_tasks(state: SwarmState) -> List[Send]:
     execution_id = state.get("execution_id", "")
 
     if current_wave >= len(waves):
-        return []  # Should not happen as context_handover guards this
+        return "expansion_monitor"
 
     current_wave_task_ids = set(waves[current_wave])
     wave_tasks = [t for t in plan if t["task_id"] in current_wave_task_ids]
@@ -617,6 +617,10 @@ def dispatch_tasks(state: SwarmState) -> List[Send]:
                 },
             )
         )
+
+    if not sends:
+        logger.info(f"Dispatcher: Wave {current_wave} contains no executable tasks (e.g. only pillars), routing directly to expansion_monitor")
+        return "expansion_monitor"
 
     return sends
 
@@ -813,11 +817,20 @@ Do this sparingly and only for significant knowledge gaps."""
                         elif getattr(_m, "type", None) in ("human", "user"):
                             _user_msg = _m.content
 
+                # Single-laptop tuning: local models run ~6 tok/s and serialize
+                # one request at a time, so a 3000-token cap meant ~8 min PER task
+                # (6 tasks ≈ 48 min — the cause of the 38-min "not successful"
+                # TOGAF run). Cap output to a conservative default, overridable via
+                # BENNY_EXECUTOR_MAX_TOKENS, and honor a per-task estimate when the
+                # manifest provides one.
+                _exec_cap = int(os.environ.get("BENNY_EXECUTOR_MAX_TOKENS", "1200"))
+                _task_est = task.get("estimated_tokens")
+                _local_max_tokens = min(_exec_cap, int(_task_est)) if _task_est else _exec_cap
                 _raw_text = await _local_exec.generate(
                     prompt=_user_msg,
                     system=_sys_msg,
                     temperature=0.7,
-                    max_tokens=3000,
+                    max_tokens=_local_max_tokens,
                     run_id=execution_id,
                 )
 
@@ -1292,7 +1305,7 @@ def build_swarm_graph(checkpointer=None) -> StateGraph:
 
     # orchestrator routes to dispatcher or planner via Command
     # dispatcher (dynamic fan-out) → executor (parallel tasks) → expansion_monitor (join)
-    graph.add_conditional_edges("dispatcher", dispatch_tasks, ["executor"])
+    graph.add_conditional_edges("dispatcher", dispatch_tasks, ["executor", "expansion_monitor"])
     graph.add_edge("executor", "expansion_monitor")
     graph.add_edge("expansion_monitor", "context_handover")
 

@@ -31,6 +31,7 @@ if sys.platform == "win32":
 import argparse
 import asyncio
 import json
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -106,9 +107,27 @@ async def cmd_run(args: argparse.Namespace) -> int:
     from benny.graph.manifest_runner import execute_manifest
     from benny.persistence import run_store
 
-    manifest = _load_manifest(args.manifest)
+    overrides: Dict[str, Any] = {}
+    if getattr(args, "model", None):
+        overrides["model"] = args.model
+    if getattr(args, "workspace", None):
+        overrides["workspace"] = args.workspace
+    manifest = _load_manifest(args.manifest, overrides=overrides)
     if args.workspace:
         manifest.workspace = args.workspace
+
+    # Guard: variable substitution must have fully resolved the model. A
+    # surviving ``${...}`` token means the manifest referenced a variable that
+    # was never defined — fail fast with a clear message instead of handing the
+    # literal token to litellm (which fails per-task with an opaque provider
+    # error after the run has already started).
+    if "${" in (manifest.config.model or ""):
+        print(
+            f"[run] ERROR: unresolved variable in config.model={manifest.config.model!r}. "
+            f"Define it in the manifest 'variables' block or pass --model.",
+            file=sys.stderr,
+        )
+        return 2
 
     # Persist so runs reference a real, resolvable manifest id.
     run_store.save_manifest(manifest)
@@ -1479,11 +1498,66 @@ async def cmd_enrich(args: argparse.Namespace) -> int:  # noqa: C901 — intenti
 # =============================================================================
 
 
-def _load_manifest(ref: str) -> SwarmManifest:
-    """Load a manifest from a file path OR a manifest id in the run_store."""
+def _render_manifest_vars(raw: Dict[str, Any], overrides: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Resolve ``${name}`` tokens in a raw manifest dict from its own
+    ``variables`` block (plus any caller overrides and a few env vars).
+
+    Report-swarm templates (schema_version 2.0) carry a ``variables`` block and
+    reference it via ``${model}`` / ``${topic}`` / ``${output_file}`` tokens.
+    ``SwarmManifest`` has no ``variables`` field, so without this pass those
+    literal tokens survive validation and reach the executor — e.g. the model
+    string stays ``"${model}"`` and litellm rejects it with "LLM Provider NOT
+    provided". Substitution must therefore happen on the raw dict, before
+    ``model_validate``.
+
+    The replacement is a bounded, per-token ``str.replace`` (max 4 passes, with
+    a fixpoint break). It is deliberately NOT a recursive/character-level
+    expansion: doing that wrong yields a combinatorial blow-up (output_file ×
+    topic × model) — the failure mode that produced the 267 MB corrupt render.
+    """
+
+    ctx: Dict[str, Any] = dict(raw.get("variables", {}) or {})
+    for key in ("BENNY_HOME", "BENNY_API_URL", "BENNY_API_KEY"):
+        if os.environ.get(key):
+            ctx[key] = os.environ[key]
+    if overrides:
+        ctx.update({k: v for k, v in overrides.items() if v is not None})
+
+    def _subst(value: Any) -> Any:
+        if isinstance(value, str):
+            out = value
+            for _ in range(4):  # bounded nested resolution
+                prev = out
+                for k, v in ctx.items():
+                    token = "${" + str(k) + "}"
+                    if token in out:
+                        out = out.replace(token, "" if v is None else str(v))
+                if out == prev:  # fixpoint — stop (prevents runaway)
+                    break
+            return out
+        if isinstance(value, list):
+            return [_subst(v) for v in value]
+        if isinstance(value, dict):
+            return {k: _subst(v) for k, v in value.items()}
+        return value  # ints/bools/None pass through unchanged
+
+    rendered = _subst(raw)
+    rendered.pop("variables", None)  # consumed; SwarmManifest does not model it
+    return rendered
+
+
+def _load_manifest(ref: str, overrides: Optional[Dict[str, Any]] = None) -> SwarmManifest:
+    """Load a manifest from a file path OR a manifest id in the run_store.
+
+    File-path manifests are run through :func:`_render_manifest_vars` so that
+    ``${...}`` template tokens are resolved from the manifest's ``variables``
+    block before validation.
+    """
     path = Path(ref)
     if path.exists():
-        return SwarmManifest.model_validate(json.loads(path.read_text(encoding="utf-8")))
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        raw = _render_manifest_vars(raw, overrides)
+        return SwarmManifest.model_validate(raw)
 
     from benny.persistence import run_store
 
@@ -1528,6 +1602,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_run = sub.add_parser("run", help="Execute a SwarmManifest (by path or by id)")
     p_run.add_argument("manifest", help="Path to manifest.json OR manifest id")
     p_run.add_argument("--workspace", default=None, help="Override the workspace baked into the manifest")
+    p_run.add_argument("--model", default=None, help="Override the ${model} variable / config.model")
     p_run.add_argument("--json", action="store_true", help="Emit the final RunRecord as JSON")
 
     # runs
