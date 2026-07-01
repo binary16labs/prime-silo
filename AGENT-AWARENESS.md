@@ -24,7 +24,9 @@ Query where workspace data lives:
 **Electron (Desktop App):**
 
 ```javascript
-const { homeDir } = await ipcRenderer.invoke("space-desktop:get-home-directory");
+// Full resolved report: { homeDir, home: { root, source, bennyHome, customwarePath, warnings } }
+const { home } = await ipcRenderer.invoke("space-desktop:get-home-directory");
+// Or, from anywhere with server access: fetch("/api/home") — same report + provenance.
 console.log("Workspace root:", homeDir);
 // Returns: { homeDir: "/home/user/prime-silo-workspace" } or null
 ```
@@ -351,7 +353,9 @@ If running in the Electron desktop app, you can access:
 
 ```javascript
 // Get configured home directory
-const { homeDir } = await ipcRenderer.invoke("space-desktop:get-home-directory");
+// Full resolved report: { homeDir, home: { root, source, bennyHome, customwarePath, warnings } }
+const { home } = await ipcRenderer.invoke("space-desktop:get-home-directory");
+// Or, from anywhere with server access: fetch("/api/home") — same report + provenance.
 
 // Example response
 if (homeDir) {
@@ -413,7 +417,9 @@ const recall =
 ```javascript
 // 1. Check system state
 const config = await fetch("/api/config").then(r => r.json());
-const { homeDir } = await ipcRenderer.invoke("space-desktop:get-home-directory");
+// Full resolved report: { homeDir, home: { root, source, bennyHome, customwarePath, warnings } }
+const { home } = await ipcRenderer.invoke("space-desktop:get-home-directory");
+// Or, from anywhere with server access: fetch("/api/home") — same report + provenance.
 console.log("Working in:", homeDir);
 
 // 2. Find relevant run

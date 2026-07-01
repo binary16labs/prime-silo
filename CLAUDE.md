@@ -51,8 +51,10 @@ See **[AGENT-AWARENESS.md](AGENT-AWARENESS.md)** for complete details.
 **Home Directory (Electron desktop):**
 
 ```javascript
-const { homeDir } = await ipcRenderer.invoke("space-desktop:get-home-directory");
-// Returns: "/path/to/workspace" or null
+// Full resolved report: { homeDir, home: { root, source, bennyHome, customwarePath, warnings } }
+const { home } = await ipcRenderer.invoke("space-desktop:get-home-directory");
+// Or, from anywhere with server access: fetch("/api/home") — same report + provenance.
+// See HOME-DIRECTORY.md for the precedence rules and legacy handling.
 ```
 
 **Configuration:**
@@ -259,7 +261,9 @@ const config = await fetch("/api/config").then((r) => r.json());
 const homeDir = config.customware_path;
 
 // Or (in Electron):
-const { homeDir } = await ipcRenderer.invoke("space-desktop:get-home-directory");
+// Full resolved report: { homeDir, home: { root, source, bennyHome, customwarePath, warnings } }
+const { home } = await ipcRenderer.invoke("space-desktop:get-home-directory");
+// Or, from anywhere with server access: fetch("/api/home") — same report + provenance.
 ```
 
 ### Creating Analysis Drafts
@@ -316,7 +320,7 @@ benny pypes plan "transform data from JSON to Parquet" --save
 ### "Home not configured"
 
 - User needs to right-click system tray icon
-- Select "Configure Home Directory..."
+- Select "Configure Home..." (one home; benny/ + customware/ derive from it — see HOME-DIRECTORY.md)
 - Choose a folder
 
 ### "Can't execute manifest"

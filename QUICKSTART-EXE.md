@@ -26,7 +26,7 @@ Prime-Silo is an AI-powered cognitive mesh platform. The desktop application run
 When you launch Prime-Silo for the first time:
 
 1. **System Tray Icon** — Look for the Prime-Silo icon in your taskbar (bottom-right)
-2. **Configure Home Directory** — Right-click the tray icon and select **"Configure Home Directory..."**
+2. **Configure Home Directory** — Right-click the tray icon and select **"Configure Home..."** (benny/ and customware/ live under it — see HOME-DIRECTORY.md)
    - Choose (or create) a folder where Prime-Silo will store your workspace
    - This is where all your data, configs, and customware will live
 3. **Browser Window** — The main browser interface should open at `http://localhost:3000`
@@ -79,7 +79,7 @@ Right-click the Prime-Silo icon in your taskbar for quick access:
 - **Open in browser** — Open the app in your default browser
 - **Home: `<your directory>`** — Click to open your home directory in File Explorer
 - **Open Terminal Here** — Open a terminal already in your home directory
-- **Configure Home Directory...** — Change where your workspace data is stored
+- **Configure Home...** — Change the one declared home all workspace data derives from
 - **Benny runtime: running / stopped** — Live status of the Benny services
 - **Start Benny services** — Start the Benny runtime (Documents, graphs, deep-produce)
 - **Stop Benny services** — Stop the Benny runtime
@@ -128,7 +128,7 @@ All changes are automatically saved to your home directory. No manual save neede
 ### Change Home Directory
 
 1. Right-click the system tray icon
-2. Click **"Configure Home Directory..."**
+2. Click **"Configure Home..."**
 3. Select a new folder
 4. Restart Prime-Silo for changes to take effect
 
@@ -146,7 +146,7 @@ Restart the application to check for updates, or go to **Settings → Check for 
 
 ### "Home: (not configured)"
 
-Your home directory hasn't been set up yet. Right-click the tray icon and select **"Configure Home Directory..."**.
+Your home directory hasn't been set up yet. Right-click the tray icon and select **"Configure Home..."** (benny/ and customware/ live under it — see HOME-DIRECTORY.md).
 
 ### App won't start
 
