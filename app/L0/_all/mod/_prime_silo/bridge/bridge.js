@@ -20,6 +20,7 @@
 // three_renderer WebGL scene on demand.
 
 import { runtimeFetch, readRuntimeJson } from "../runtime_client/runtime-client.js";
+import { subscribeActivity } from "../runtime_client/activity-store.js";
 import {
   memorayFetch,
   readMemorayJson,
@@ -330,6 +331,10 @@ export function createBridgePage(options = {}) {
     error: "",
 
     // shared
+    // App-wide run activity (activity-store.js): one SSE/poll subscription
+    // shared by every screen; drives the header activity chip.
+    activity: { transport: "connecting", runs: [], running: 0, failures: 0 },
+    _activityUnsub: null,
     conformance: { status: "", driftCount: 0 },
     workspace: "default",
     workspaces: ["default"],
@@ -362,7 +367,7 @@ export function createBridgePage(options = {}) {
     wizardCliVisible: false,
     wizardCliStatus: "",
     wizardCliOutput: "",
-    
+
     // documents — ask (RAG chat over the ingested docs)
     docQuestion: "",
     docAnswer: "",
@@ -467,8 +472,25 @@ export function createBridgePage(options = {}) {
       const initialMode = isValidMode(q.mode) ? q.mode : await this.resolveDefaultMode();
       this.loadConformance();
       this.loadWorkspaces();
+      this._activityUnsub = subscribeActivity((snap) => {
+        this.activity = snap;
+      });
       await this.setMode(initialMode);
       this._setupViewport();
+    },
+
+    // Header activity chip → jump to the most relevant run in Runs mode:
+    // newest active run, else newest failure, else just the runs list.
+    async openActivity() {
+      const runs = this.activity.runs || [];
+      const target =
+        runs.find((r) => ["pending", "planning", "running"].includes(r.status)) ||
+        runs.find((r) => r.status === "failed") ||
+        runs[0];
+      await this.setMode("runs");
+      if (target && typeof this.selectRun === "function") {
+        await this.selectRun(target.runId);
+      }
     },
 
     async resolveDefaultMode() {
@@ -1018,10 +1040,13 @@ export function createBridgePage(options = {}) {
           form.append("file", file, file.name);
           // No explicit Content-Type — the browser sets the multipart boundary.
           await readRuntimeJson(
-            await runtimeFetch(`/files/upload?workspace=${encodeURIComponent(this.workspace)}&subdir=staging`, {
-              method: "POST",
-              body: form
-            })
+            await runtimeFetch(
+              `/files/upload?workspace=${encodeURIComponent(this.workspace)}&subdir=staging`,
+              {
+                method: "POST",
+                body: form
+              }
+            )
           );
           ok += 1;
         } catch (err) {
@@ -1089,8 +1114,12 @@ export function createBridgePage(options = {}) {
           try {
             // Aggregate the cascade outcome so the operator can SEE that figures became
             // diagrams (and how faithfully) — the whole point of the vision pass.
-            let diagrams = 0, charts = 0, tables = 0, regions = 0;
-            let judged = 0, captionFallbacks = 0;
+            let diagrams = 0,
+              charts = 0,
+              tables = 0,
+              regions = 0;
+            let judged = 0,
+              captionFallbacks = 0;
             const vScores = [];
             for (const name of targets) {
               const q = `workspace=${encodeURIComponent(this.workspace)}&source=${encodeURIComponent(name)}`;
@@ -1108,7 +1137,8 @@ export function createBridgePage(options = {}) {
                 regions += s.region_crops || 0;
                 judged += s.visual_judged || 0;
                 captionFallbacks += s.caption_fallback || 0;
-                if (s.avg_visual_score != null && s.visual_judged) vScores.push([s.avg_visual_score, s.visual_judged]);
+                if (s.avg_visual_score != null && s.visual_judged)
+                  vScores.push([s.avg_visual_score, s.visual_judged]);
               }
             }
             // Weighted mean of per-doc averages → one fidelity number.
@@ -1120,7 +1150,9 @@ export function createBridgePage(options = {}) {
               `Vision pass: ${diagrams} diagram${diagrams === 1 ? "" : "s"}` +
               (regions ? ` (${regions} from vector figures)` : "") +
               `, ${charts} chart${charts === 1 ? "" : "s"}, ${tables} table${tables === 1 ? "" : "s"}` +
-              (avgFidelity != null ? ` · avg fidelity ${avgFidelity}/10 over ${judged} judged` : "") +
+              (avgFidelity != null
+                ? ` · avg fidelity ${avgFidelity}/10 over ${judged} judged`
+                : "") +
               (captionFallbacks ? ` · ${captionFallbacks} fell back to captions` : "");
           } catch (verr) {
             this.visionSummary = "";
@@ -1175,7 +1207,7 @@ export function createBridgePage(options = {}) {
       this.wizardCliVisible = true;
       this.wizardCliStatus = "Starting...";
       this.wizardCliOutput = "";
-      
+
       try {
         const res = await fetch("/api/workflows_run", {
           method: "POST",
@@ -1197,13 +1229,13 @@ export function createBridgePage(options = {}) {
         while (true) {
           const { value, done } = await reader.read();
           if (done) break;
-          
+
           buffer += decoder.decode(value, { stream: true });
           const events = buffer.split("\n\n");
-          
+
           // keep the last chunk if it's incomplete
           buffer = events.pop() || "";
-          
+
           for (const ev of events) {
             const lines = ev.split("\n");
             let eventName = "";
@@ -1220,11 +1252,11 @@ export function createBridgePage(options = {}) {
                 if (eventName === "stderr") this.wizardCliOutput += data;
                 if (eventName === "close") this.wizardCliStatus = `Finished (code ${data.code})`;
                 if (eventName === "error") this.wizardCliStatus = `Error: ${data.message}`;
-                
+
                 // scroll to bottom
                 const pre = this.$refs.cliOutput;
                 if (pre) pre.scrollTop = pre.scrollHeight;
-              } catch(e) {}
+              } catch (e) {}
             }
           }
         }
@@ -2209,6 +2241,10 @@ export function createBridgePage(options = {}) {
     },
 
     destroy() {
+      if (this._activityUnsub) {
+        this._activityUnsub();
+        this._activityUnsub = null;
+      }
       this.stopDeepProducePoll();
       this.stopRunPoll();
       this.stopStudioPolls();

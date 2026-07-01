@@ -25,6 +25,18 @@
   --color-status-success: #9caf88;
   --color-status-warning: #c4a882;
   --color-status-danger: #c47a6a;
+
+  /* ── Canonical run-status colors ────────────────────────────────
+   * One token per RunStatus value (benny/core/manifest.py). Every
+   * badge/chip that shows a run state maps through these — screens
+   * must not invent their own status→color pairings. */
+  --color-run-pending: rgba(236, 230, 216, 0.4);
+  --color-run-planning: #8a9aa4;
+  --color-run-running: #9caf88;
+  --color-run-completed: #9caf88;
+  --color-run-partial_success: #c4a882;
+  --color-run-failed: #c47a6a;
+  --color-run-cancelled: rgba(236, 230, 216, 0.6);
   --color-layer-overlay: rgba(20, 21, 15, 0.68);
   --color-backdrop-glow-primary: rgba(156, 175, 136, 0.1);
   --color-backdrop-glow-secondary: rgba(196, 168, 130, 0.08);

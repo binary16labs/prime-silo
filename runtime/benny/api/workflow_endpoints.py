@@ -157,6 +157,19 @@ async def stream_run_events(run_id: str) -> StreamingResponse:
     )
 
 
+@router.get("/events")
+async def stream_all_events() -> StreamingResponse:
+    """App-wide activity feed: every EventBus event from every run, one SSE
+    stream. Never terminates on run completion — this is what the global
+    activity indicator subscribes to (with /api/runs polling as fallback).
+    Starts at "now"; history comes from /api/runs."""
+    return StreamingResponse(
+        event_bus.subscribe_all(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
 # ---- last-known run status (used by UI reconnect) --------------------------
 
 

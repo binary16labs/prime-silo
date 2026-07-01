@@ -121,6 +121,49 @@
   color: var(--ps-coral);
 }
 
+/* App-wide run-activity chip (activity-store.js). Same pill idiom as the
+   conformance status; pulses while runs are in flight. */
+.ps-bridge__activity {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  background: var(--ps-surface-2);
+  color: var(--ps-muted);
+}
+.ps-bridge__activity-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6b7378;
+}
+.ps-bridge__activity[data-state="running"] {
+  color: var(--ps-sage);
+}
+.ps-bridge__activity[data-state="running"] .ps-bridge__activity-dot {
+  background: var(--ps-sage);
+  animation: ps-bridge-activity-pulse 1.6s ease-in-out infinite;
+}
+.ps-bridge__activity[data-state="failed"] {
+  color: var(--ps-coral);
+}
+.ps-bridge__activity[data-state="failed"] .ps-bridge__activity-dot {
+  background: var(--ps-coral);
+}
+@keyframes ps-bridge-activity-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
 .ps-bridge__zen {
   background: transparent;
   color: var(--ps-text);

@@ -14,11 +14,20 @@ class EventBus:
     _instance = None
     _lock = asyncio.Lock()
 
+    # Global feed kept to this many recent events; subscribers that lag past
+    # the window miss events (history belongs to /api/runs, not the bus).
+    ALL_FEED_MAX = 500
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(EventBus, cls).__new__(cls)
             cls._instance._events = {}  # run_id -> List[Dict]
             cls._instance._flags = {}  # run_id -> asyncio.Event
+            cls._instance._all_events = []  # bounded global feed (all runs)
+            cls._instance._all_base = 0  # count of events trimmed off the front
+            # Per-subscriber wake events (each created inside the subscriber's
+            # own loop — a single shared Event would bind to the first loop).
+            cls._instance._all_waiters = set()
         return cls._instance
 
     def emit(self, run_id: str, event_type: str, data: Dict[str, Any]):
@@ -39,6 +48,15 @@ class EventBus:
         }
 
         self._events[run_id].append(event)
+
+        # Mirror into the bounded global feed (the /live/events fan-in).
+        self._all_events.append(event)
+        overflow = len(self._all_events) - self.ALL_FEED_MAX
+        if overflow > 0:
+            del self._all_events[:overflow]
+            self._all_base += overflow
+        for waiter in list(self._all_waiters):
+            waiter.set()
 
         # Signal any waiting consumers
         flag = self._flags.get(run_id)
@@ -102,6 +120,52 @@ class EventBus:
             # as there might be multiple subscribers or history lookups.
             # Maintenance should be handled by a separate TTL/cleanup task.
             pass
+
+    async def subscribe_all(self) -> AsyncGenerator[str, None]:
+        """Subscribe to the global SSE feed: every event from every run.
+
+        Unlike ``subscribe``, the stream never terminates on run completion —
+        it is the app-wide activity feed. Starts at "now" (no history replay;
+        past runs come from /api/runs). Heartbeats every 15s keep proxies from
+        closing an idle connection.
+        """
+
+        def json_serial(obj):
+            if isinstance(obj, datetime):
+                return obj.isoformat()
+            if hasattr(obj, "model_dump"):
+                return obj.model_dump()
+            if hasattr(obj, "dict"):
+                return obj.dict()
+            try:
+                return dict(obj)
+            except Exception:
+                return str(obj)
+
+        cursor = self._all_base + len(self._all_events)
+        waiter = asyncio.Event()
+        self._all_waiters.add(waiter)
+        logging.info("[EVENT_BUS] Global subscription started")
+        try:
+            while True:
+                # A subscriber that lagged past the bounded window skips ahead.
+                if cursor < self._all_base:
+                    cursor = self._all_base
+                end = self._all_base + len(self._all_events)
+                while cursor < end:
+                    event = self._all_events[cursor - self._all_base]
+                    yield f"data: {json.dumps(event, default=json_serial)}\n\n"
+                    cursor += 1
+
+                try:
+                    await asyncio.wait_for(waiter.wait(), timeout=15.0)
+                    waiter.clear()
+                except asyncio.TimeoutError:
+                    yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
+        except asyncio.CancelledError:
+            logging.info("[EVENT_BUS] Global subscription cancelled")
+        finally:
+            self._all_waiters.discard(waiter)
 
     def clear(self, run_id: str):
         """Manually purge events for a run ID."""

@@ -13,10 +13,7 @@
       href="/mod/_prime_silo/widgets/memoray/lineage_graph/lineage_graph.css"
     />
     <link rel="stylesheet" href="/mod/_prime_silo/widgets/three_renderer/renderer.css" />
-    <link
-      rel="stylesheet"
-      href="/mod/_prime_silo/widgets/force_graph_2d/force_graph_2d.css"
-    />
+    <link rel="stylesheet" href="/mod/_prime_silo/widgets/force_graph_2d/force_graph_2d.css" />
     <!-- Run observability widgets — render unstyled without these. -->
     <link
       rel="stylesheet"
@@ -50,6 +47,24 @@
           <span class="ps-bridge__tagline">cognitive mesh · mission control</span>
         </div>
         <div class="ps-bridge__top-right">
+          <!-- App-wide run activity (activity-store.js): running count while
+               anything is in flight, failure badge otherwise. Click drills
+               into the most relevant run in Runs mode. -->
+          <button
+            type="button"
+            class="ps-bridge__activity"
+            x-show="activity.running > 0 || activity.failures > 0"
+            :data-state="activity.running > 0 ? 'running' : 'failed'"
+            @click="openActivity()"
+            :title="activity.transport === 'sse' ? 'live event stream' : 'polling'"
+          >
+            <span class="ps-bridge__activity-dot"></span>
+            <span x-show="activity.running > 0" x-text="`${activity.running} running`"></span>
+            <span
+              x-show="activity.running === 0 && activity.failures > 0"
+              x-text="`${activity.failures} failed`"
+            ></span>
+          </button>
           <span
             class="ps-bridge__status"
             :data-status="conformance.status"
@@ -228,7 +243,6 @@
 
               <!-- DOCUMENTS -->
               <div class="ps-bridge__panel" x-show="mode === 'documents'">
-                
                 <!-- WORKFLOW WIZARD -->
                 <div class="ps-bridge__wizard" x-show="wizardActive" x-cloak>
                   <div class="ps-bridge__wizard-header">
@@ -237,7 +251,7 @@
                       <x-icon>close</x-icon><span>Close</span>
                     </button>
                   </div>
-                  
+
                   <div class="ps-bridge__wizard-steps" x-show="!wizardCliRunning">
                     <div class="ps-bridge__wizard-step">
                       <h4>1. Workspace & Data</h4>
@@ -249,7 +263,10 @@
                           </template>
                         </select>
                       </label>
-                      <p class="ps-bridge__muted">To load data, close the wizard and drop files into the staging area, or use the File Explorer to copy files.</p>
+                      <p class="ps-bridge__muted">
+                        To load data, close the wizard and drop files into the staging area, or use
+                        the File Explorer to copy files.
+                      </p>
                     </div>
 
                     <div class="ps-bridge__wizard-step">
@@ -257,24 +274,33 @@
                       <div class="ps-bridge__wizard-workflows">
                         <label class="ps-bridge__radio-card">
                           <input type="radio" x-model="wizardWorkflow" value="ingest" />
-                          <span><strong>Standard Ingestion</strong><br/>Extract raw text to Markdown chunks.</span>
+                          <span
+                            ><strong>Standard Ingestion</strong><br />Extract raw text to Markdown
+                            chunks.</span
+                          >
                         </label>
                         <label class="ps-bridge__radio-card">
                           <input type="radio" x-model="wizardWorkflow" value="ingest --deep" />
-                          <span><strong>Deep Synthesis</strong><br/>Extract Knowledge Triples using local models.</span>
+                          <span
+                            ><strong>Deep Synthesis</strong><br />Extract Knowledge Triples using
+                            local models.</span
+                          >
                         </label>
                         <label class="ps-bridge__radio-card">
                           <input type="radio" x-model="wizardWorkflow" value="triples-eval" />
-                          <span><strong>Triples Evaluation</strong><br/>Benchmark extraction precision/recall across models.</span>
+                          <span
+                            ><strong>Triples Evaluation</strong><br />Benchmark extraction
+                            precision/recall across models.</span
+                          >
                         </label>
                       </div>
                     </div>
 
                     <div class="ps-bridge__wizard-step">
                       <h4>3. Execute & Monitor</h4>
-                      <button 
-                        type="button" 
-                        class="ps-bridge__btn ps-bridge__btn--go" 
+                      <button
+                        type="button"
+                        class="ps-bridge__btn ps-bridge__btn--go"
                         @click="runWizardWorkflow()"
                         :disabled="!wizardWorkflow || wizardCliRunning"
                       >
@@ -289,9 +315,19 @@
                     <div class="ps-bridge__cli-header">
                       <span>CLI Output</span>
                       <span class="ps-bridge__cli-status" x-text="wizardCliStatus"></span>
-                      <button class="ps-bridge__btn" x-show="!wizardCliRunning" @click="wizardCliVisible = false">Back</button>
+                      <button
+                        class="ps-bridge__btn"
+                        x-show="!wizardCliRunning"
+                        @click="wizardCliVisible = false"
+                      >
+                        Back
+                      </button>
                     </div>
-                    <pre class="ps-bridge__cli-output" x-ref="cliOutput" x-text="wizardCliOutput"></pre>
+                    <pre
+                      class="ps-bridge__cli-output"
+                      x-ref="cliOutput"
+                      x-text="wizardCliOutput"
+                    ></pre>
                   </div>
                 </div>
 
@@ -404,10 +440,22 @@
                         >File explorer ↗</a
                       >
                     </div>
-                    <div style="display: flex; gap: 16px; align-items: center; padding: 0 4px; margin-bottom: 8px; margin-top: 4px;">
-                      <label class="ps-bridge__ask-toggle" title="Vision ingest (VIS-001): a local vision model (qwen3vl) reads each figure/diagram into Mermaid diagram-as-code and tables into JSON, then ingests the enriched document. Slower, and requires the local vision model to be running.">
+                    <div
+                      style="
+                        display: flex;
+                        gap: 16px;
+                        align-items: center;
+                        padding: 0 4px;
+                        margin-bottom: 8px;
+                        margin-top: 4px;
+                      "
+                    >
+                      <label
+                        class="ps-bridge__ask-toggle"
+                        title="Vision ingest (VIS-001): a local vision model (qwen3vl) reads each figure/diagram into Mermaid diagram-as-code and tables into JSON, then ingests the enriched document. Slower, and requires the local vision model to be running."
+                      >
                         <input type="checkbox" x-model="visionIngest" />
-                        <span style="font-size: 11px;">Vision ingest (figures → diagrams)</span>
+                        <span style="font-size: 11px">Vision ingest (figures → diagrams)</span>
                       </label>
                     </div>
                     <p class="ps-bridge__note" x-show="ingestNote" x-text="ingestNote"></p>
