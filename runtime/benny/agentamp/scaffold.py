@@ -91,8 +91,10 @@ def scaffold_skin(
         )
 
     if drafts_dir is None:
-        benny_home = os.environ.get("BENNY_HOME", ".")
-        drafts_dir = Path(benny_home) / "agentamp" / "drafts"
+        # Resolved home — never the cwd, which used to litter git checkouts.
+        from benny.portable.home import resolve_benny_home
+
+        drafts_dir = resolve_benny_home() / "agentamp" / "drafts"
 
     root = Path(drafts_dir) / skin_id
     root.mkdir(parents=True, exist_ok=True)

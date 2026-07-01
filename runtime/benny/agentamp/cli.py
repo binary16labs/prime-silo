@@ -292,8 +292,10 @@ def _install(args: argparse.Namespace) -> int:
         return 1
 
     # Register in local registry under $BENNY_HOME/agentamp/registry/<skin_id>/
-    benny_home = os.environ.get("BENNY_HOME", ".")
-    registry_dir = Path(benny_home) / "agentamp" / "registry" / manifest.id
+    # (resolved home — never the cwd, which used to litter git checkouts).
+    from benny.portable.home import resolve_benny_home
+
+    registry_dir = resolve_benny_home() / "agentamp" / "registry" / manifest.id
     registry_dir.mkdir(parents=True, exist_ok=True)
 
     # Copy pack into registry

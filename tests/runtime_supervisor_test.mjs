@@ -110,10 +110,16 @@ function testGate() {
 }
 
 function testManagedHomeAndCliContext() {
-  // config.bennyHome overrides the default the shell passes in.
-  assert.equal(sup.resolveManagedBennyHome("/default", {}), "/default");
-  assert.equal(sup.resolveManagedBennyHome("/default", { bennyHome: "  /custom  " }), "/custom");
-  assert.equal(sup.resolveManagedBennyHome("/default", { bennyHome: "" }), "/default");
+  // Precedence mirrors home_resolver.js: BENNY_HOME env > config.bennyHome >
+  // the default the shell passes in. Explicit empty env keeps this hermetic
+  // on machines that export BENNY_HOME.
+  assert.equal(sup.resolveManagedBennyHome("/default", {}, {}), "/default");
+  assert.equal(sup.resolveManagedBennyHome("/default", { bennyHome: "  /custom  " }, {}), "/custom");
+  assert.equal(sup.resolveManagedBennyHome("/default", { bennyHome: "" }, {}), "/default");
+  assert.equal(
+    sup.resolveManagedBennyHome("/default", { bennyHome: "/custom" }, { BENNY_HOME: " /env " }),
+    "/env"
+  );
 
   // The supervisor exposes the resolved home + a CLI context pointing at the
   // bundled Python (what the tray uses for "Open Benny CLI").

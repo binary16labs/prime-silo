@@ -50,10 +50,15 @@ function resolveBundleDir(resourcesPath, here = __dirname) {
   return "";
 }
 
-// Resolve the writable BENNY_HOME the bundled runtime should use. A user can
-// relocate it via the tray ("Configure Benny Home…", persisted as config.bennyHome);
-// otherwise we fall back to the per-user default the shell passes in.
-function resolveManagedBennyHome(defaultHome, config = {}) {
+// Resolve the writable BENNY_HOME the bundled runtime should use. Precedence
+// mirrors home_resolver.js: an explicit BENNY_HOME env override wins, then the
+// legacy tray key (config.bennyHome), then the default the shell passes in
+// (already derived from the declared home by home_resolver.js).
+function resolveManagedBennyHome(defaultHome, config = {}, env = process.env) {
+  const envHome = String((env && env.BENNY_HOME) || "").trim();
+  if (envHome) {
+    return envHome;
+  }
   const configured = String(config.bennyHome || "").trim();
   return configured || defaultHome || "";
 }
@@ -280,7 +285,7 @@ function createRuntimeSupervisor(options = {}) {
   } = options;
 
   const bundleDir = options.bundleDir || resolveBundleDir(resourcesPath);
-  const bennyHome = resolveManagedBennyHome(defaultBennyHome, config);
+  const bennyHome = resolveManagedBennyHome(defaultBennyHome, config, env);
   const children = new Map(); // service -> { child, spec, restarts }
   let stopping = false;
   let started = false;

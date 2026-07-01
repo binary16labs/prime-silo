@@ -42,6 +42,29 @@ def _home() -> Path | None:
     return Path(h) if h else None
 
 
+def check_home_resolution() -> CheckResult:
+    """Report the resolved Prime-Silo home with provenance and divergence.
+
+    The declared home (PRIME_SILO_HOME / desktop config / per-user default)
+    is the authority; a BENNY_HOME env override or legacy config key is
+    honored but surfaced as WARN so drift is always inspectable.
+    """
+    from benny.portable.home import resolve_home
+
+    resolved = resolve_home()
+    detail = (
+        f"root={resolved.root} (source: {resolved.source}); "
+        f"benny_home={resolved.benny_home} (source: {resolved.benny_home_source})"
+    )
+    if resolved.warnings:
+        return CheckResult(
+            name="Home resolution",
+            status="WARN",
+            message=f"{detail} — " + " | ".join(resolved.warnings),
+        )
+    return CheckResult(name="Home resolution", status="OK", message=detail)
+
+
 def check_home_dir() -> CheckResult:
     home = _home()
     if not home:
@@ -280,6 +303,7 @@ def check_kg3d_stack() -> List[CheckResult]:
 
 async def run_doctor() -> DoctorReport:
     checks: List[CheckResult] = []
+    checks.append(check_home_resolution())
     checks.append(check_home_dir())
     checks.append(check_python())
     checks.append(check_launchers())

@@ -363,6 +363,112 @@ def _seed_config(root: Path, profile: Profile) -> None:
         allow_path.write_text(_SERVER_OPS_ALLOWLIST_JSON, encoding="utf-8")
 
 
+# ---- home resolution (mirror of packaging/desktop/home_resolver.js) ---------
+#
+# One declared Prime-Silo home; $BENNY_HOME derives from it as <root>/benny.
+# Precedence for the effective Benny home (highest wins):
+#   1. BENNY_HOME env                      → source "env-override"
+#   2. bennyHome in prime-silo-config.json → source "legacy-config"
+#   3. PRIME_SILO_HOME env or homeDir in prime-silo-config.json → <root>/benny
+#   4. pre-unification per-user default (<userData>/benny-home), if it exists
+#   5. derived from the per-user default root
+# There is deliberately NO repo-relative fallback: nothing may silently write
+# into a git checkout (that is how run debris ended up committed pre-Phase-0).
+
+_CONFIG_DIR_NAME = "Prime-Silo"
+_CONFIG_FILENAME = "prime-silo-config.json"
+_DEFAULT_HOME_DIRNAME = "prime-silo-home"
+_LEGACY_BENNY_DIRNAME = "benny-home"
+
+
+def _user_data_path(env: dict | None = None) -> Path:
+    env = os.environ if env is None else env
+    if sys.platform == "win32":
+        base = env.get("APPDATA") or str(Path.home() / "AppData" / "Roaming")
+    elif sys.platform == "darwin":
+        base = str(Path.home() / "Library" / "Application Support")
+    else:
+        base = env.get("XDG_CONFIG_HOME") or str(Path.home() / ".config")
+    return Path(base) / _CONFIG_DIR_NAME
+
+
+def _read_desktop_config(env: dict | None = None) -> dict:
+    """Best-effort read of the shared desktop config; absent/broken → {}."""
+    import json
+
+    try:
+        raw = (_user_data_path(env) / _CONFIG_FILENAME).read_text(encoding="utf-8")
+        value = json.loads(raw)
+        return value if isinstance(value, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+@dataclasses.dataclass(frozen=True)
+class ResolvedHome:
+    root: Path  # the declared Prime-Silo home
+    source: str  # "env" | "config" | "default"
+    benny_home: Path  # effective $BENNY_HOME
+    benny_home_source: str  # "env-override" | "legacy-config" | "legacy-default" | "derived"
+    warnings: tuple[str, ...]
+
+
+def resolve_home(env: dict | None = None) -> ResolvedHome:
+    env = os.environ if env is None else env
+    config = _read_desktop_config(env)
+    user_data = _user_data_path(env)
+    warnings: list[str] = []
+
+    env_root = str(env.get("PRIME_SILO_HOME") or "").strip()
+    config_root = str(config.get("homeDir") or "").strip()
+    if env_root:
+        root, source = Path(env_root).resolve(), "env"
+    elif config_root:
+        root, source = Path(config_root).resolve(), "config"
+    else:
+        root, source = user_data / _DEFAULT_HOME_DIRNAME, "default"
+
+    env_benny = str(env.get("BENNY_HOME") or "").strip()
+    config_benny = str(config.get("bennyHome") or "").strip()
+    legacy_default = user_data / _LEGACY_BENNY_DIRNAME
+    if env_benny:
+        benny_home, benny_source = Path(env_benny).resolve(), "env-override"
+        try:
+            benny_home.relative_to(root)
+        except ValueError:
+            warnings.append(
+                f"BENNY_HOME env override ({benny_home}) points outside the declared home ({root})."
+            )
+    elif config_benny:
+        benny_home, benny_source = Path(config_benny).resolve(), "legacy-config"
+        warnings.append(
+            f'Benny home comes from the legacy config key "bennyHome" ({benny_home}); '
+            f"adopt the unified home to derive it from {root}."
+        )
+    elif source == "default" and legacy_default.is_dir():
+        benny_home, benny_source = legacy_default, "legacy-default"
+        warnings.append(
+            f"Benny home uses the pre-unification default ({benny_home}); "
+            f"adopt the unified home to move it under {root}."
+        )
+    else:
+        benny_home, benny_source = root / "benny", "derived"
+
+    return ResolvedHome(
+        root=root,
+        source=source,
+        benny_home=benny_home,
+        benny_home_source=benny_source,
+        warnings=tuple(warnings),
+    )
+
+
+def resolve_benny_home(env: dict | None = None) -> Path:
+    """The effective ``$BENNY_HOME`` — the single call sites should use instead
+    of reading the env var (with a repo-relative fallback) themselves."""
+    return resolve_home(env).benny_home
+
+
 # ---- public API ------------------------------------------------------------
 
 

@@ -21,6 +21,7 @@ const {
 } = require("./memoray_service");
 const { seedSelfAwareness } = require("./self_awareness");
 const { createRuntimeSupervisor } = require("./runtime_supervisor");
+const { resolveHome } = require("./home_resolver");
 const {
   resolveDesktopAuthDataDir,
   resolveDesktopServerTmpDir,
@@ -822,10 +823,22 @@ function createDesktopRuntimeParamOverrides() {
   if (app.isPackaged) {
     overrides.WORKERS = "1";
     overrides.SINGLE_USER_APP = "true";
-    overrides.CUSTOMWARE_PATH = path.join(app.getPath("userData"), "customware");
+    // Customware is derived from the declared home (home_resolver.js). Legacy
+    // installs that already populated userData/customware keep that location
+    // until the user adopts the unified home.
+    overrides.CUSTOMWARE_PATH = resolveDesktopHome().customwarePath;
   }
 
   return overrides;
+}
+
+// The one place the desktop shell resolves the declared home. Reads the live
+// config each call so tray changes are reflected without caching staleness.
+function resolveDesktopHome() {
+  return resolveHome({
+    userDataPath: app.getPath("userData"),
+    config: readDesktopConfigFile()
+  });
 }
 
 function createDesktopServerOptions(runtimeParamOverrides) {
@@ -2230,7 +2243,10 @@ async function startDesktop() {
   runtimeSupervisor = createRuntimeSupervisor({
     bundleDir: path.join(app.getPath("userData"), "runtime-bundle"),
     appVersion: app.getVersion(),
-    bennyHome: path.join(app.getPath("userData"), "benny-home"),
+    // Derived from the declared home (home_resolver.js); the supervisor still
+    // honors an explicit BENNY_HOME env / legacy config.bennyHome on top,
+    // which resolves to the same value the resolver reports.
+    bennyHome: resolveDesktopHome().bennyHome,
     config: readDesktopConfigFile(),
     env: process.env,
     // Surface first-run download + start-up phases in the tray status line so the
@@ -2340,16 +2356,14 @@ app.on("window-all-closed", () => {
 
 ipcMain.handle("space-desktop:get-runtime-info", () => getDesktopRuntimeInfo());
 ipcMain.handle("space-desktop:get-home-directory", () => {
-  const configPath = path.join(app.getPath("userData"), "prime-silo-config.json");
-  try {
-    if (fs.existsSync(configPath)) {
-      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-      return { homeDir: config.homeDir || null };
-    }
-  } catch {
-    // ignore config read errors
-  }
-  return { homeDir: null };
+  // Full resolved-home report (home_resolver.js). `homeDir` keeps its legacy
+  // meaning for existing callers: null until the user configures a home or an
+  // env override is active — the declared default is reported separately.
+  const resolved = resolveDesktopHome();
+  return {
+    homeDir: resolved.source === "default" ? null : resolved.root,
+    home: resolved
+  };
 });
 ipcMain.on(DESKTOP_BROWSER_CREATE_CHANNEL, (_event, payload = {}) => {
   createDesktopBrowserView(payload);

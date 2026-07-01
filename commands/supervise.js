@@ -11,6 +11,7 @@ import {
   applyProcessTitle,
   buildSupervisorProcessTitle
 } from "../server/lib/utils/process_title.js";
+import homeResolver from "../packaging/desktop/home_resolver.js";
 
 const CHILD_HOST = "127.0.0.1";
 const CHILD_PORT = "0";
@@ -240,9 +241,13 @@ function resolveRequiredCustomwarePath(projectRoot, serveArgs, env = process.env
   });
 
   if (!configuredPath) {
-    throw new Error(
-      "Supervise requires CUSTOMWARE_PATH. Set it with CUSTOMWARE_PATH=<path> or node space set CUSTOMWARE_PATH=<path>."
+    // Derive from the declared home (home_resolver.js) instead of failing:
+    // supervise should follow the same home the desktop shell and dev serve use.
+    const home = homeResolver.resolveHome({ env });
+    console.log(
+      `[supervise] CUSTOMWARE_PATH not set; using ${home.customwarePath} (home source: ${home.source}).`
     );
+    return home.customwarePath;
   }
 
   return resolveProjectPath(projectRoot, configuredPath);

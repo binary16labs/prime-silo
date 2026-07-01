@@ -1,5 +1,6 @@
 import { logServerStartup, startServer } from "../server/server.js";
 import { findParamSpec, validateConfigValue } from "../server/lib/utils/runtime_params.js";
+import homeResolver from "../packaging/desktop/home_resolver.js";
 
 const PARAM_ASSIGNMENT_PATTERN = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/u;
 
@@ -54,6 +55,19 @@ export const help = {
 
 export async function execute(context) {
   const runtimeParamOverrides = await parseServeArgs(context.args, context.projectRoot);
+
+  // No explicit CUSTOMWARE_PATH (arg or env) → derive it from the declared
+  // home (home_resolver.js) so dev serves use the same customware as the
+  // desktop shell instead of silently running without one.
+  const env = context.originalEnv || process.env;
+  if (!runtimeParamOverrides.CUSTOMWARE_PATH && !String(env.CUSTOMWARE_PATH || "").trim()) {
+    const home = homeResolver.resolveHome({ env });
+    runtimeParamOverrides.CUSTOMWARE_PATH = home.customwarePath;
+    console.log(
+      `[serve] CUSTOMWARE_PATH not set; using ${home.customwarePath} (home source: ${home.source}).`
+    );
+  }
+
   const server = await startServer({
     projectRoot: context.projectRoot,
     runtimeParamEnv: context.originalEnv,

@@ -16,6 +16,7 @@ const { app, Tray, Menu, shell, nativeImage, dialog, ipcMain } = require("electr
 const services = require("./services");
 const openStudio = require("./openstudio_services");
 const memoray = require("./memoray_service");
+const { resolveHome } = require("./home_resolver");
 
 const PROJECT_ROOT = path.resolve(__dirname, "../..");
 const LOCK_FILENAME = "apps.lock.json";
@@ -63,20 +64,14 @@ function writeConfigPatch(patch) {
   }
 }
 
-function readHomeDirectoryConfig() {
-  return readConfig().homeDir || null;
-}
-
 function writeHomeDirectoryConfig(homeDir) {
   writeConfigPatch({ homeDir: homeDir || null });
 }
 
-function readBennyHomeConfig() {
-  return readConfig().bennyHome || null;
-}
-
-function writeBennyHomeConfig(bennyHome) {
-  writeConfigPatch({ bennyHome: bennyHome || null });
+// The tray's view of the declared home — one resolver call, re-read from the
+// live config so a configure action is reflected on the next menu build.
+function resolveTrayHome() {
+  return resolveHome({ userDataPath: app.getPath("userData"), config: readConfig() });
 }
 
 // Open a native terminal rooted at the configured home directory. Best-effort
@@ -211,8 +206,15 @@ function buildMenu(options) {
   // When a bundled runtime is being supervised in-process, Start/Stop drive it;
   // otherwise they drive an external Benny install (services.js).
   const bundledManaged = Boolean(runtime && runtime.isManaged && runtime.isManaged());
-  // The BENNY_HOME the supervisor actually uses (configured override or default).
+  // One declared home; benny/customware derive from it (home_resolver.js).
+  const home = resolveTrayHome();
+  currentHomeDir = home.root;
+  currentBennyHome = home.bennyHome;
+  // The BENNY_HOME the supervisor actually uses (should match home.bennyHome;
+  // shown as drift if it doesn't, e.g. after a configure without restart).
   const managedBennyHome = bundledManaged && runtime.homeDir ? String(runtime.homeDir() || "") : "";
+  const homeSourceLabel =
+    home.source === "env" ? "env override" : home.source === "config" ? "configured" : "default";
   const memorayUrl = readMemorayUrlFromLock();
   const template = [
     {
@@ -233,36 +235,67 @@ function buildMenu(options) {
     },
     { type: "separator" },
     {
-      label: currentHomeDir ? `Home: ${path.basename(currentHomeDir)}` : "Home: (not configured)",
+      label: `Home: ${path.basename(home.root)} (${homeSourceLabel})`,
       click: () => {
-        if (currentHomeDir && fs.existsSync(currentHomeDir)) {
-          void shell.openPath(currentHomeDir);
+        if (fs.existsSync(home.root)) {
+          void shell.openPath(home.root);
         }
+      }
+    },
+    // Derived locations — read-only children of the declared home. Sources
+    // other than "derived" mean a legacy key or env override is still active.
+    {
+      label: `  Benny data: ${path.basename(home.bennyHome)}${
+        home.bennyHomeSource === "derived" ? "" : ` (${home.bennyHomeSource})`
+      }`,
+      click: () => {
+        if (fs.existsSync(home.bennyHome)) void shell.openPath(home.bennyHome);
+      }
+    },
+    {
+      label: `  Customware: ${path.basename(home.customwarePath)}${
+        home.customwareSource === "derived" ? "" : ` (${home.customwareSource})`
+      }`,
+      click: () => {
+        if (fs.existsSync(home.customwarePath)) void shell.openPath(home.customwarePath);
       }
     },
     {
       label: "Open Terminal Here",
-      enabled: Boolean(currentHomeDir && fs.existsSync(currentHomeDir)),
-      click: () => openTerminalAt(currentHomeDir)
+      enabled: Boolean(home.root && fs.existsSync(home.root)),
+      click: () => openTerminalAt(home.root)
     },
     {
-      label: "Configure Home Directory...",
+      label: "Configure Home...",
+      enabled: home.source !== "env",
       click: async () => {
         const result = await dialog.showOpenDialog({
-          title: "Select Prime-Silo Home Directory",
-          defaultPath: currentHomeDir || PROJECT_ROOT,
-          properties: ["openDirectory"]
+          title: "Select Prime-Silo Home (benny/ + customware/ live under it)",
+          defaultPath: home.root || PROJECT_ROOT,
+          properties: ["openDirectory", "createDirectory"]
         });
         if (!result.canceled && result.filePaths.length > 0) {
-          const selectedPath = result.filePaths[0];
-          currentHomeDir = selectedPath;
-          writeHomeDirectoryConfig(selectedPath);
+          writeHomeDirectoryConfig(result.filePaths[0]);
           if (tray) {
             tray.setContextMenu(buildMenu(options));
           }
         }
       }
     },
+    // Migration surface: while a legacy config.bennyHome override is active the
+    // derived layout is not in effect; clearing it is the explicit adoption
+    // step (data is never moved automatically).
+    ...(home.bennyHomeSource === "legacy-config"
+      ? [
+          {
+            label: "Clear legacy Benny Home override (applies next launch)",
+            click: () => {
+              writeConfigPatch({ bennyHome: null });
+              if (tray) tray.setContextMenu(buildMenu(options));
+            }
+          }
+        ]
+      : []),
     { type: "separator" },
     // ── Benny services ──────────────────────────────────────────────────
     {
@@ -315,40 +348,20 @@ function buildMenu(options) {
         writeConfigPatch({ useBundledRuntime: item.checked });
       }
     },
-    // In bundled mode the supervisor owns BENNY_HOME (the configured value if set,
-    // else the per-user default). Show the live managed home, and let "Open" reveal
-    // it. The chooser below relocates it (persisted; applies on next launch).
-    ...(bundledManaged && managedBennyHome
+    // The supervisor's live BENNY_HOME normally equals home.bennyHome; show it
+    // only when it drifts (configure since last launch → restart pending).
+    ...(bundledManaged &&
+    managedBennyHome &&
+    path.resolve(managedBennyHome) !== path.resolve(home.bennyHome)
       ? [
           {
-            label: `Benny Home: ${path.basename(managedBennyHome)} (bundled)`,
+            label: `Runtime using: ${path.basename(managedBennyHome)} (restart to apply new home)`,
             click: () => {
               if (fs.existsSync(managedBennyHome)) void shell.openPath(managedBennyHome);
             }
           }
         ]
       : []),
-    {
-      label: bundledManaged
-        ? "Relocate Benny Home (applies next launch)..."
-        : currentBennyHome
-          ? `Benny Home: ${path.basename(currentBennyHome)}`
-          : "Configure Benny Home...",
-      click: async () => {
-        const result = await dialog.showOpenDialog({
-          title: "Select Benny Home ($BENNY_HOME)",
-          defaultPath: currentBennyHome || managedBennyHome || currentHomeDir || PROJECT_ROOT,
-          properties: ["openDirectory"]
-        });
-        if (!result.canceled && result.filePaths.length > 0) {
-          currentBennyHome = result.filePaths[0];
-          writeBennyHomeConfig(currentBennyHome);
-          if (tray) {
-            tray.setContextMenu(buildMenu(options));
-          }
-        }
-      }
-    },
     { type: "separator" },
     // Benny desktop pet — float the dog over the whole desktop (Phase 4b).
     ...(typeof togglePet === "function"
@@ -461,8 +474,9 @@ function createDesktopTray(options = {}) {
   }
 
   menuOptions = options;
-  currentHomeDir = readHomeDirectoryConfig();
-  currentBennyHome = readBennyHomeConfig();
+  const initialHome = resolveTrayHome();
+  currentHomeDir = initialHome.root;
+  currentBennyHome = initialHome.bennyHome;
 
   tray.setToolTip("Prime-Silo");
   const refreshMenu = () => tray && tray.setContextMenu(buildMenu(options));

@@ -10,12 +10,13 @@ from typing import Any, Dict, List, Optional
 import yaml
 
 from .schema import WorkspaceManifest
+from benny.portable.home import resolve_benny_home
 
-# Resolve workspace root: prefer $BENNY_HOME/workspaces when the env var is set
-# (i.e. when the API was launched via `benny up`); fall back to a relative
-# "workspace" dir for plain dev-server runs from the project root.
-_benny_home = os.environ.get("BENNY_HOME")
-WORKSPACE_ROOT = Path(_benny_home) / "workspaces" if _benny_home else Path("workspace")
+# Workspace root always lives under the resolved home ($BENNY_HOME env, the
+# desktop config, or the per-user default — see benny.portable.home). There is
+# deliberately no cwd-relative fallback: plain dev-server runs used to write a
+# "workspace/" dir into the git checkout.
+WORKSPACE_ROOT = resolve_benny_home() / "workspaces"
 
 
 def get_workspace_path(workspace_id: str = "default", subdir: str = "") -> Path:
