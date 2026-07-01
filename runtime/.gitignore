@@ -48,3 +48,14 @@ logs/
 
 # Large Data Artifacts
 architecture/RAW_AST_BENNY.json
+
+# Agent/dev litter — one-off debug scripts and run dumps never belong in git.
+# Put throwaway work in scratch/ (kept on disk, never committed).
+scratch/
+tmp/
+.claude/worktrees/
+.claude/settings.local.json
+run_output*.txt
+debug_out*.txt
+extracted_outputs*.json
+trace.txt

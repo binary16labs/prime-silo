@@ -166,21 +166,6 @@ _LAUNCHERS: tuple[tuple[str, str, bool], ...] = (
     ("benny-mcp.cmd", _WINDOWS_LAUNCHER, False),
 )
 
-# Project-root wrappers written next to benny_cli.py so `./benny` / `benny.bat`
-# works from the project directory without activating the venv.
-_PROJECT_POSIX_WRAPPER = """#!/usr/bin/env sh
-# Quick-launch wrapper — run from the project root.
-set -e
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-exec {python_exe} "$SCRIPT_DIR/benny_cli.py" "$@"
-"""
-
-_PROJECT_WINDOWS_WRAPPER = """@echo off
-rem Quick-launch wrapper — run from the project root without activating the venv.
-set "SCRIPT_DIR=%~dp0"
-"{python_exe}" "%SCRIPT_DIR%\\benny_cli.py" %*
-"""
-
 # Declarative compose manifest for the `app` profile (PBR-001 §4.3).
 # Kept minimal and generic — the image tags are placeholders the app-profile
 # builder pins at release time. Paths use relative-to-$BENNY_HOME forms only.
@@ -348,28 +333,6 @@ def _seed_launchers(root: Path, python_exe: str) -> None:
     (root / "state" / "python-path").write_text(python_exe, encoding="utf-8")
 
 
-def _seed_project_entry_points(project_root: Path, python_exe: str) -> None:
-    """Write ``benny.bat`` / ``benny.sh`` next to ``benny_cli.py`` so users
-    can launch Benny from the project directory without activating the venv.
-
-    Uses ``benny.sh`` (not ``benny``) on POSIX to avoid a name collision with
-    the ``benny/`` package directory that lives in the same project root.
-    """
-    import os
-    import stat
-
-    py = python_exe.replace("\\", "/")
-
-    bat = project_root / "benny.bat"
-    bat.write_text(_PROJECT_WINDOWS_WRAPPER.format(python_exe=py), encoding="utf-8")
-
-    sh = project_root / "benny.sh"
-    sh.write_text(_PROJECT_POSIX_WRAPPER.format(python_exe=py), encoding="utf-8")
-    if os.name == "posix":
-        mode = sh.stat().st_mode
-        sh.chmod(mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-
-
 def _seed_app_compose(root: Path) -> None:
     """Seed ``<root>/app/compose.yml`` for the `app` profile only."""
     compose = root / "app" / "compose.yml"
@@ -425,11 +388,12 @@ def init(root: Path, *, profile: Profile) -> BennyHome:
     for rel in _expected_dirs(profile):
         (root / rel).mkdir(parents=True, exist_ok=True)
 
+    # Everything init seeds lives under $BENNY_HOME — never the project checkout.
+    # The repo-root benny.bat / benny.sh are static, committed wrappers.
     python_exe = sys.executable
     _seed_state(root, profile)
     _seed_config(root, profile)
     _seed_launchers(root, python_exe)
-    _seed_project_entry_points(Path(__file__).parent.parent.parent, python_exe)
     if profile == "app":
         _seed_app_compose(root)
 
