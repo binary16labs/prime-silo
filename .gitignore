@@ -6,6 +6,9 @@ node_modules
 dist
 coverage
 release
+# The unanchored `release` rule above is for build output, but it also swallows
+# source dirs that happen to be named release — carve those back in.
+!runtime/tests/release/
 /app/L1/
 /app/L2/
 
