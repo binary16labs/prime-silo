@@ -14,7 +14,7 @@
     "reduce_max_tokens": 1800,
     "thin_session_chars": 200,
     "deep_synthesis": true,
-    "ingest_batch_size": 1,
+    "ingest_batch_size": 40,
     "delta_reduce_threshold": 5,
     "weave_loops": 2,
     "weave_questions": 4,
