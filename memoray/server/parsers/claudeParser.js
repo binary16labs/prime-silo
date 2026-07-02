@@ -468,38 +468,11 @@ function isSessionActive(sessionId) {
   return false;
 }
 
-/**
- * Return a summary of all currently active Claude Code sessions.
- */
-function getActiveSessions() {
-  const sessions = [];
-  const sessionsDir = getClaudeSessionsDir();
-  try {
-    if (!fs.existsSync(sessionsDir)) return sessions;
-    const files = fs.readdirSync(sessionsDir);
-    for (const f of files) {
-      if (!f.endsWith(".json")) continue;
-      try {
-        const data = JSON.parse(fs.readFileSync(path.join(CLAUDE_SESSIONS_DIR, f), "utf-8"));
-        if (data.sessionId === sessionId) {
-          // The PID is the filename (without .json)
-          const pid = parseInt(f.replace(".json", ""), 10);
-          try {
-            process.kill(pid, 0);
-            return true;
-          } catch {
-            return false;
-          }
-        }
-      } catch {
-        continue;
-      }
-    }
-  } catch {
-    /* ignore */
-  }
-  return false;
-}
+// NOTE: 1.8.2 shipped a mangled duplicate of getActiveSessions here — an
+// is-alive check mis-merged under the wrong name, referencing an undefined
+// `sessionId`. Duplicate function declarations are a parse error under
+// module-mode lint, and the broken copy was dead at runtime (the later
+// declaration won), so it has been removed.
 
 /**
  * Return a summary of all currently active Claude Code sessions.
