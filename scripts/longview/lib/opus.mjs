@@ -77,10 +77,43 @@ async function buildOutline(interrupted) {
     /* build it */
   }
   if (!outline) {
-    console.log("[opus] outline: parts + chapters…");
-    outline = await jsonCall("outline", prompt("vampire_outline"), foundationDigest(), 2200);
+    // Parts only — a full 14-18 chapter outline overflows the output budget
+    // and truncates into unparseable JSON (seen live). Hierarchy all the way:
+    // parts → chapters-per-part → sections-per-chapter.
+    console.log("[opus] outline: parts…");
+    outline = await jsonCall("outline", prompt("vampire_outline"), foundationDigest(), 900);
     if (!outline?.parts?.length) throw new Error("outline did not parse — rerun the opus phase");
     fs.writeFileSync(outlinePath, JSON.stringify(outline, null, 2));
+  }
+
+  // Per-part chapter breakdown, resume-safe per part.
+  let nextChapter = 1;
+  for (const part of outline.parts) {
+    if (Array.isArray(part.chapters) && part.chapters.length) {
+      nextChapter = Math.max(nextChapter, ...part.chapters.map((c) => c.n)) + 1;
+      continue;
+    }
+    if (interrupted()) return outline;
+    console.log(`[opus] chapters for part ${part.n}: ${part.title}`);
+    const spec = await jsonCall(
+      `chapters:p${part.n}`,
+      prompt("vampire_part_chapters"),
+      [
+        `## Book\n${JSON.stringify({ title: outline.title, metaphor: outline.metaphor, arc: outline.arc }).slice(0, 1200)}`,
+        `## All parts\n${outline.parts.map((p) => `${p.n}. ${p.title} — ${p.theme}`).join("\n")}`,
+        `## THIS part\n${JSON.stringify({ n: part.n, title: part.title, theme: part.theme })}`,
+        `## Chapter numbering starts at ${nextChapter}`,
+        `## Evidence available\n${foundationDigest().slice(0, 2500)}`
+      ].join("\n\n"),
+      1100
+    );
+    if (spec?.chapters?.length) {
+      part.chapters = spec.chapters.map((c, i) => ({ ...c, n: nextChapter + i }));
+      nextChapter += spec.chapters.length;
+      fs.writeFileSync(outlinePath, JSON.stringify(outline, null, 2));
+    } else {
+      console.log(`[opus] WARN chapters for part ${part.n} did not parse — rerun resumes here`);
+    }
   }
 
   // Per-chapter section breakdown, resume-safe per chapter.
