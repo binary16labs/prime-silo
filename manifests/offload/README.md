@@ -1,12 +1,12 @@
 # Local Offload Orchestrator — the Claude↔Benny contract
 
-> Goal: route the bulk of *execution* to the local model (Benny) so Claude's
+> Goal: route the bulk of _execution_ to the local model (Benny) so Claude's
 > tokens/credits are spent on **planning, strategy, and adjudication** — not on
 > typing out boilerplate and reading verbose output back.
 
 ## The one insight that shapes everything
 
-Offloading *execution* to a local model does **not** save tokens on its own. The
+Offloading _execution_ to a local model does **not** save tokens on its own. The
 expensive resource is tokens flowing **through the planner's context** — so the
 savings come from three disciplines, not from "Benny ran the command":
 
@@ -23,11 +23,11 @@ is the product.
 **If you can write crisp, testable acceptance criteria up front, the task is
 offloadable. If defining "done" needs judgment, the planner keeps it.**
 
-| Tier      | What                                                                 | Handling                                  |
-|-----------|---------------------------------------------------------------------|-------------------------------------------|
-| 🟢 green  | scaffolds, codemods, test stubs, doc-gen, formatting, dep bumps     | deterministic gate only, auto-pass        |
-| 🟡 yellow | feature against a spec, bug fix with a repro, multi-file edit       | deterministic gate **+ LLM judge**        |
-| 🔴 red    | architecture, ambiguous reqs, security/signing, deterministic zone  | **escalate to planner — never offloaded** |
+| Tier      | What                                                               | Handling                                  |
+| --------- | ------------------------------------------------------------------ | ----------------------------------------- |
+| 🟢 green  | scaffolds, codemods, test stubs, doc-gen, formatting, dep bumps    | deterministic gate only, auto-pass        |
+| 🟡 yellow | feature against a spec, bug fix with a repro, multi-file edit      | deterministic gate **+ LLM judge**        |
+| 🔴 red    | architecture, ambiguous reqs, security/signing, deterministic zone | **escalate to planner — never offloaded** |
 
 `router.matrix.json` encodes this and may **upgrade** a declared tier (it never
 silently downgrades). Touching `L1/ L2/ manifests/` or signing keys forces red.
@@ -43,7 +43,7 @@ silently downgrades). Touching `L1/ L2/ manifests/` or signing keys forces red.
 
 ⚠️ **Anti-collusion:** the judge model SHOULD differ from the executor model.
 Same-model self-judging rubber-stamps. Every judgment is anchored by the
-deterministic checks regardless — the judge can never *override* a red gate.
+deterministic checks regardless — the judge can never _override_ a red gate.
 
 ## ADR-001 boundary (why this is safe)
 
@@ -63,10 +63,10 @@ machine pre-filter in front of that human gate, not a replacement for it.
 
 ### `shell` vs `generate` — which the gate can actually validate
 
-A **`shell`** task acts *in place*, so the deterministic gate validates the real
+A **`shell`** task acts _in place_, so the deterministic gate validates the real
 effect → it can be true green (deterministic-only). A **`generate`** task produces
-an *unapplied proposal* in the outbox (ADR-001 — it never touches the live file),
-so deterministic checks run against the *unchanged* repo and cannot validate it.
+an _unapplied proposal_ in the outbox (ADR-001 — it never touches the live file),
+so deterministic checks run against the _unchanged_ repo and cannot validate it.
 The router therefore **upgrades every generate task to yellow** and the gate
 **refuses to auto-pass** a generate proposal without a judge — the judge reads the
 artifact text directly and is the only valid evaluator for unapplied output.
@@ -83,7 +83,7 @@ artifact text directly and is the only valid evaluator for unapplied output.
 
 Per the memo-ray token-audit lesson: **measure** the savings, don't assert them.
 `scripts/offload-report.mjs` reads the ledger and reports
-*planner-tokens-saved-estimate*, local pass-rate, and escalation rate. Do not
+_planner-tokens-saved-estimate_, local pass-rate, and escalation rate. Do not
 claim "75% offloaded" until the ledger shows it.
 
 See `runtime/architecture/ADR-004-local-offload-orchestrator.md` for the full design.

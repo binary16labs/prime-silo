@@ -647,7 +647,11 @@ def _extract_with_docling(
 
         elements.append(el)
 
-    pages = _save_docling_page_images(doc, out_dir / "pages" / stem, workspace, log_fn) if emit_crops else {}
+    pages = (
+        _save_docling_page_images(doc, out_dir / "pages" / stem, workspace, log_fn)
+        if emit_crops
+        else {}
+    )
 
     return {
         "schema": DOCMODEL_SCHEMA,

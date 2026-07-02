@@ -8,15 +8,15 @@
 
 ### 1.1 Four competing "homes"
 
-The app resolves *where its data lives* in four independent ways, and they only
+The app resolves _where its data lives_ in four independent ways, and they only
 agree by accident:
 
-| # | Mechanism | Set by | Read by | Default |
-|---|-----------|--------|---------|---------|
-| 1 | `config.homeDir` in `%APPDATA%\Prime-Silo\prime-silo-config.json` | Tray "Configure Home Directory…" (`packaging/desktop/tray.js:70`) | IPC `space-desktop:get-home-directory` (`packaging/desktop/main.js:2347`) | `null` ("not configured") |
-| 2 | `config.bennyHome` (same config file, **different key**) | Tray "Configure Benny Home…" (`tray.js:318-339`) | `runtime_supervisor.js:56 resolveManagedBennyHome()` → exported as `BENNY_HOME` | per-user default passed by shell |
-| 3 | `CUSTOMWARE_PATH` | env var / `node space set` / serve args (`commands/supervise.js:236`) | Space server (Node) | packaged: `userData/customware` (`main.js:825`); dev: whatever the shell has |
-| 4 | Repo-relative fallbacks | nobody (implicit) | `runtime/benny/core/workspace.py:18` falls back to `Path("workspace")` when `BENNY_HOME` unset; `benny init` seeds `benny.bat`/`benny.sh` into the repo root (`portable/home.py:432`) | the git checkout itself |
+| #   | Mechanism                                                         | Set by                                                                | Read by                                                                                                                                                                               | Default                                                                      |
+| --- | ----------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| 1   | `config.homeDir` in `%APPDATA%\Prime-Silo\prime-silo-config.json` | Tray "Configure Home Directory…" (`packaging/desktop/tray.js:70`)     | IPC `space-desktop:get-home-directory` (`packaging/desktop/main.js:2347`)                                                                                                             | `null` ("not configured")                                                    |
+| 2   | `config.bennyHome` (same config file, **different key**)          | Tray "Configure Benny Home…" (`tray.js:318-339`)                      | `runtime_supervisor.js:56 resolveManagedBennyHome()` → exported as `BENNY_HOME`                                                                                                       | per-user default passed by shell                                             |
+| 3   | `CUSTOMWARE_PATH`                                                 | env var / `node space set` / serve args (`commands/supervise.js:236`) | Space server (Node)                                                                                                                                                                   | packaged: `userData/customware` (`main.js:825`); dev: whatever the shell has |
+| 4   | Repo-relative fallbacks                                           | nobody (implicit)                                                     | `runtime/benny/core/workspace.py:18` falls back to `Path("workspace")` when `BENNY_HOME` unset; `benny init` seeds `benny.bat`/`benny.sh` into the repo root (`portable/home.py:432`) | the git checkout itself                                                      |
 
 Consequences visible today:
 
@@ -51,7 +51,7 @@ colors also differ per screen.
 
 ### 1.3 Guides
 
-Docs are plentiful but describe the *old* fragmented reality (HOME-DIRECTORY.md,
+Docs are plentiful but describe the _old_ fragmented reality (HOME-DIRECTORY.md,
 GUIDE.md, QUICKSTART-EXE.md, CLAUDE.md each explain a different slice of path
 config), and there is no in-app answer to "where is my data / what is running".
 
@@ -77,8 +77,8 @@ Resolution precedence (highest wins), identical in every process:
    **never** a repo-relative path.
 
 Explicit overrides of the derived paths (`BENNY_HOME`, `CUSTOMWARE_PATH` env)
-remain honored for advanced setups, but the resolver *logs a divergence
-warning* when they point outside the declared home.
+remain honored for advanced setups, but the resolver _logs a divergence
+warning_ when they point outside the declared home.
 
 ---
 
@@ -110,7 +110,7 @@ portability suite still green (`pytest tests/portability`).
    `{ root, customwarePath, bennyHome, source: "env"|"config"|"default", warnings[] }`.
    - `main.js:825` stops hardcoding `userData/customware` → uses resolver.
    - `runtime_supervisor.js:resolveManagedBennyHome` → uses resolver;
-     `config.bennyHome` becomes a *legacy* input (see migration).
+     `config.bennyHome` becomes a _legacy_ input (see migration).
    - `commands/supervise.js` / `serve.js`: when `CUSTOMWARE_PATH` is not
      explicitly given, derive from resolver instead of erroring.
 2. **Python resolver** — `runtime/benny/portable/home.py` gains
@@ -190,12 +190,12 @@ no screen owns a bare `setInterval` for run status anymore.
 
 ## 4. Ordering, risk, effort
 
-| Phase | Effort | Risk | Depends on |
-|-------|--------|------|-----------|
-| 0 hygiene | ~½ day | none | — |
-| 1 home authority | 2–3 days | medium (packaged-app migration) | 0 |
-| 2 UI status | 3–4 days | low (additive; pollers removed screen-by-screen) | ships alone, but home chip needs 1 |
-| 3 guides | 1–2 days | none | 1, 2 |
+| Phase            | Effort   | Risk                                             | Depends on                         |
+| ---------------- | -------- | ------------------------------------------------ | ---------------------------------- |
+| 0 hygiene        | ~½ day   | none                                             | —                                  |
+| 1 home authority | 2–3 days | medium (packaged-app migration)                  | 0                                  |
+| 2 UI status      | 3–4 days | low (additive; pollers removed screen-by-screen) | ships alone, but home chip needs 1 |
+| 3 guides         | 1–2 days | none                                             | 1, 2                               |
 
 Biggest risk is Phase 1 step 4 (existing installs with `config.bennyHome`
 pointing at a lived-in home). Mitigation: never move data automatically —

@@ -15,58 +15,62 @@
  * runner does the work and only a digest comes back.
  */
 
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const projectRoot = path.resolve(__dirname, '..');
+const projectRoot = path.resolve(__dirname, "..");
 
 function loadEnv() {
-  const envPath = path.join(projectRoot, '.env');
+  const envPath = path.join(projectRoot, ".env");
   const fileConfig = {};
   if (fs.existsSync(envPath)) {
-    for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
+    for (const line of fs.readFileSync(envPath, "utf8").split("\n")) {
       const t = line.trim();
-      if (t && !t.startsWith('#')) {
-        const i = t.indexOf('=');
-        if (i > 0) fileConfig[t.slice(0, i).trim()] = t.slice(i + 1).trim().replace(/^['"]|['"]$/g, '');
+      if (t && !t.startsWith("#")) {
+        const i = t.indexOf("=");
+        if (i > 0)
+          fileConfig[t.slice(0, i).trim()] = t
+            .slice(i + 1)
+            .trim()
+            .replace(/^['"]|['"]$/g, "");
       }
     }
   }
-  let bennyHome = process.env.BENNY_HOME || fileConfig.BENNY_HOME || '.benny_home';
+  let bennyHome = process.env.BENNY_HOME || fileConfig.BENNY_HOME || ".benny_home";
   if (!path.isAbsolute(bennyHome)) bennyHome = path.resolve(projectRoot, bennyHome);
   return {
     BENNY_HOME: bennyHome,
-    API_HOST: process.env.BENNY_API_HOST || fileConfig.BENNY_API_HOST || '127.0.0.1',
-    API_PORT: process.env.BENNY_API_PORT || fileConfig.BENNY_API_PORT || '8005',
-    API_KEY: process.env.BENNY_API_KEY || fileConfig.BENNY_API_KEY || 'benny-mesh-2026-auth',
+    API_HOST: process.env.BENNY_API_HOST || fileConfig.BENNY_API_HOST || "127.0.0.1",
+    API_PORT: process.env.BENNY_API_PORT || fileConfig.BENNY_API_PORT || "8005",
+    API_KEY: process.env.BENNY_API_KEY || fileConfig.BENNY_API_KEY || "benny-mesh-2026-auth"
   };
 }
 
 const env = loadEnv();
 const args = process.argv.slice(2);
 const workspace = (() => {
-  const i = args.indexOf('--workspace');
-  return i >= 0 ? args[i + 1] : 'default';
+  const i = args.indexOf("--workspace");
+  return i >= 0 ? args[i + 1] : "default";
 })();
-const watch = args.includes('--watch');
+const watch = args.includes("--watch");
 const apiBase = `http://${env.API_HOST}:${env.API_PORT}`;
 
 function inboxDir() {
-  return path.join(env.BENNY_HOME, 'workspaces', workspace, 'offload', 'inbox');
+  return path.join(env.BENNY_HOME, "workspaces", workspace, "offload", "inbox");
 }
 function processedDir() {
-  const d = path.join(env.BENNY_HOME, 'workspaces', workspace, 'offload', 'processed');
+  const d = path.join(env.BENNY_HOME, "workspaces", workspace, "offload", "processed");
   fs.mkdirSync(d, { recursive: true });
   return d;
 }
 
 async function submit(task) {
   const res = await fetch(`${apiBase}/api/offload/submit?wait=1`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Benny-API-Key': env.API_KEY },
-    body: JSON.stringify(task),
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Benny-API-Key": env.API_KEY },
+    body: JSON.stringify(task)
   });
   const data = await res.json().catch(() => ({}));
   return { ok: res.ok, status: res.status, data };
@@ -78,7 +82,7 @@ async function drainOnce() {
     console.log(`(no inbox yet for workspace '${workspace}')`);
     return 0;
   }
-  const files = fs.readdirSync(dir).filter((f) => f.endsWith('.task.json'));
+  const files = fs.readdirSync(dir).filter((f) => f.endsWith(".task.json"));
   if (files.length === 0) {
     console.log(`Inbox empty for workspace '${workspace}'.`);
     return 0;
@@ -88,7 +92,7 @@ async function drainOnce() {
     const full = path.join(dir, file);
     let task;
     try {
-      task = JSON.parse(fs.readFileSync(full, 'utf8'));
+      task = JSON.parse(fs.readFileSync(full, "utf8"));
     } catch (e) {
       console.error(`  [skip] ${file}: invalid JSON (${e.message})`);
       continue;
@@ -101,7 +105,9 @@ async function drainOnce() {
         continue;
       }
       const d = data.digest || {};
-      console.log(`${d.status || 'done'} [${d.tier}]${d.judge_score != null ? ` judge=${d.judge_score}` : ''}`);
+      console.log(
+        `${d.status || "done"} [${d.tier}]${d.judge_score != null ? ` judge=${d.judge_score}` : ""}`
+      );
       // move processed manifest out of the inbox
       fs.renameSync(full, path.join(processedDir(), file));
       processed++;
@@ -118,7 +124,9 @@ async function main() {
     const h = await fetch(`${apiBase}/api/offload/health`);
     if (!h.ok) throw new Error(`health ${h.status}`);
   } catch (e) {
-    console.error(`ERROR: Benny offload API unreachable at ${apiBase} (${e.message}). Is the runtime up?`);
+    console.error(
+      `ERROR: Benny offload API unreachable at ${apiBase} (${e.message}). Is the runtime up?`
+    );
     process.exit(1);
   }
   console.log(`Offload runner — workspace '${workspace}' @ ${apiBase}`);
@@ -134,6 +142,6 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error('Fatal:', e);
+  console.error("Fatal:", e);
   process.exit(1);
 });

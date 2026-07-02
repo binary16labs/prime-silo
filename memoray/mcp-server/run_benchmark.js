@@ -1,15 +1,15 @@
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const DATA_DIR = path.join(__dirname, '..', 'agent-os-dashboard', 'server', 'data');
-const ENTITIES_DIR = path.join(DATA_DIR, 'entities');
-const INDEX_PATH = path.join(DATA_DIR, 'index.json');
+const DATA_DIR = path.join(__dirname, "..", "agent-os-dashboard", "server", "data");
+const ENTITIES_DIR = path.join(DATA_DIR, "entities");
+const INDEX_PATH = path.join(DATA_DIR, "index.json");
 
 // Hardcoded to lowest model as requested (behavior is identical for context logic)
 const modelName = "Gemini 3.5 Flash";
@@ -19,8 +19,8 @@ function estimateTokens(str) {
 }
 
 function calculateCost(inTokens, outTokens) {
-  const inputCost = (inTokens / 1_000_000) * 3.00;
-  const outputCost = (outTokens / 1_000_000) * 15.00;
+  const inputCost = (inTokens / 1_000_000) * 3.0;
+  const outputCost = (outTokens / 1_000_000) * 15.0;
   return inputCost + outputCost;
 }
 
@@ -30,17 +30,17 @@ function truncateString(str, length = 500) {
 }
 
 async function getTargetSessionId() {
-  const indexData = await fs.readFile(INDEX_PATH, 'utf-8');
+  const indexData = await fs.readFile(INDEX_PATH, "utf-8");
   const index = JSON.parse(indexData);
   const sessionIds = index.sessions || [];
-  
+
   let sessions = [];
   for (const id of sessionIds) {
     try {
-      const data = await fs.readFile(path.join(ENTITIES_DIR, `${id}.json`), 'utf-8');
+      const data = await fs.readFile(path.join(ENTITIES_DIR, `${id}.json`), "utf-8");
       const session = JSON.parse(data);
       sessions.push(session);
-    } catch(e) {}
+    } catch (e) {}
   }
   sessions.sort((a, b) => b.timestamp - a.timestamp);
   return sessions[0]?.id || sessions[0]?.sessionId;
@@ -48,9 +48,9 @@ async function getTargetSessionId() {
 
 async function runWithoutMCP_Test1(targetId) {
   const start = performance.now();
-  const indexData = await fs.readFile(INDEX_PATH, 'utf-8');
+  const indexData = await fs.readFile(INDEX_PATH, "utf-8");
   const entityPath = path.join(ENTITIES_DIR, `${targetId}.json`);
-  const entityData = await fs.readFile(entityPath, 'utf-8');
+  const entityData = await fs.readFile(entityPath, "utf-8");
   const duration = performance.now() - start;
 
   const payloadReceived = indexData + entityData;
@@ -77,8 +77,9 @@ async function runWithMCP_Test1(client) {
   });
   const duration = performance.now() - start;
   const responseText = response.content[0].text;
-  
-  const tokensIn = estimateTokens(JSON.stringify({ name: "get_recent_sessions", arguments: { limit: 1 } })) + 100;
+
+  const tokensIn =
+    estimateTokens(JSON.stringify({ name: "get_recent_sessions", arguments: { limit: 1 } })) + 100;
   const responseTokens = estimateTokens(responseText);
   const totalTokensIn = tokensIn + responseTokens;
   const tokensOut = 30;
@@ -97,20 +98,20 @@ async function runWithMCP_Test1(client) {
 
 async function runWithoutMCP_Test2(targetId) {
   const start = performance.now();
-  const indexData = await fs.readFile(INDEX_PATH, 'utf-8');
+  const indexData = await fs.readFile(INDEX_PATH, "utf-8");
   const entityPath = path.join(ENTITIES_DIR, `${targetId}.json`);
-  const entityData = await fs.readFile(entityPath, 'utf-8');
+  const entityData = await fs.readFile(entityPath, "utf-8");
   const session = JSON.parse(entityData);
-  
+
   let payloadReceived = indexData + entityData;
   const queue = [...(session.children_ids || [])];
   let loadedCount = 0;
-  
+
   while (queue.length > 0) {
     const childId = queue.shift();
     try {
       const childPath = path.join(ENTITIES_DIR, `${childId}.json`);
-      const childData = await fs.readFile(childPath, 'utf-8');
+      const childData = await fs.readFile(childPath, "utf-8");
       payloadReceived += childData;
       loadedCount++;
       const child = JSON.parse(childData);
@@ -143,20 +144,25 @@ async function runWithMCP_Test2(client, targetId) {
   });
   const duration = performance.now() - start;
   const responseText = responseTimeline.content[0].text;
-  
-  const tokensIn = estimateTokens(JSON.stringify({ name: "get_session_timeline", arguments: { sessionId: targetId } })) + 100;
+
+  const tokensIn =
+    estimateTokens(
+      JSON.stringify({ name: "get_session_timeline", arguments: { sessionId: targetId } })
+    ) + 100;
   const responseTokens = estimateTokens(responseText);
   const totalTokensIn = tokensIn + responseTokens;
   const tokensOut = 50;
 
   const timeline = JSON.parse(responseText);
-  const events = timeline.map(event => ({
-    type: event.type || "Event",
-    agent: event.agent || "System",
-    timestamp: event.timestamp,
-    sizeBytes: JSON.stringify(event).length,
-    tokens: estimateTokens(JSON.stringify(event))
-  })).sort((a, b) => a.timestamp - b.timestamp);
+  const events = timeline
+    .map((event) => ({
+      type: event.type || "Event",
+      agent: event.agent || "System",
+      timestamp: event.timestamp,
+      sizeBytes: JSON.stringify(event).length,
+      tokens: estimateTokens(JSON.stringify(event))
+    }))
+    .sort((a, b) => a.timestamp - b.timestamp);
 
   return {
     name: "Reconstruct Session Timeline",
@@ -173,16 +179,16 @@ async function runWithMCP_Test2(client, targetId) {
 
 async function runWithoutMCP_Test3() {
   const start = performance.now();
-  const indexData = await fs.readFile(INDEX_PATH, 'utf-8');
+  const indexData = await fs.readFile(INDEX_PATH, "utf-8");
   const index = JSON.parse(indexData);
   const sessionIds = index.sessions || [];
-  
+
   let payloadReceived = indexData;
   let checkedCount = 0;
   for (const id of sessionIds) {
     try {
       const entityPath = path.join(ENTITIES_DIR, `${id}.json`);
-      const data = await fs.readFile(entityPath, 'utf-8');
+      const data = await fs.readFile(entityPath, "utf-8");
       payloadReceived += data;
       checkedCount++;
     } catch (e) {}
@@ -211,8 +217,14 @@ async function runWithMCP_Test3(client) {
   });
   const duration = performance.now() - start;
   const responseText = response.content[0].text;
-  
-  const tokensIn = estimateTokens(JSON.stringify({ name: "get_project_activity", arguments: { projectPath: "benny", limit: 5 } })) + 100;
+
+  const tokensIn =
+    estimateTokens(
+      JSON.stringify({
+        name: "get_project_activity",
+        arguments: { projectPath: "benny", limit: 5 }
+      })
+    ) + 100;
   const responseTokens = estimateTokens(responseText);
   const totalTokensIn = tokensIn + responseTokens;
   const tokensOut = 40;
@@ -231,16 +243,16 @@ async function runWithMCP_Test3(client) {
 
 async function runWithoutMCP_Test4() {
   const start = performance.now();
-  const indexData = await fs.readFile(INDEX_PATH, 'utf-8');
+  const indexData = await fs.readFile(INDEX_PATH, "utf-8");
   const index = JSON.parse(indexData);
   const sessionIds = index.sessions || [];
-  
+
   let payloadReceived = indexData;
   let loadedSessions = 0;
   for (const id of sessionIds.slice(0, 3)) {
     try {
       const entityPath = path.join(ENTITIES_DIR, `${id}.json`);
-      const data = await fs.readFile(entityPath, 'utf-8');
+      const data = await fs.readFile(entityPath, "utf-8");
       payloadReceived += data;
       loadedSessions++;
     } catch (e) {}
@@ -269,8 +281,9 @@ async function runWithMCP_Test4(client) {
   });
   const duration = performance.now() - start;
   const responseText = response.content[0].text;
-  
-  const tokensIn = estimateTokens(JSON.stringify({ name: "get_recent_sessions", arguments: { limit: 3 } })) + 200;
+
+  const tokensIn =
+    estimateTokens(JSON.stringify({ name: "get_recent_sessions", arguments: { limit: 3 } })) + 200;
   const responseTokens = estimateTokens(responseText);
   const totalTokensIn = tokensIn + responseTokens;
   const tokensOut = 150;
@@ -289,23 +302,23 @@ async function runWithMCP_Test4(client) {
 
 async function runWithoutMCP_Test5() {
   const start = performance.now();
-  const indexData = await fs.readFile(INDEX_PATH, 'utf-8');
+  const indexData = await fs.readFile(INDEX_PATH, "utf-8");
   const index = JSON.parse(indexData);
   const sessionIds = index.sessions || [];
-  
+
   let payloadReceived = indexData;
   let loadedSessions = 0;
-  
+
   // Loading EVERYTHING again just to parse stats out of text!
   for (const id of sessionIds) {
     try {
       const entityPath = path.join(ENTITIES_DIR, `${id}.json`);
-      const data = await fs.readFile(entityPath, 'utf-8');
+      const data = await fs.readFile(entityPath, "utf-8");
       payloadReceived += data;
       loadedSessions++;
     } catch (e) {}
   }
-  
+
   const duration = performance.now() - start;
   const tokensIn = estimateTokens(payloadReceived) + 4000; // Large prompt asking to extract skills from raw JSON
   const tokensOut = 600;
@@ -340,8 +353,14 @@ async function runWithMCP_Test5(client) {
   });
   const duration = performance.now() - start;
   const responseText = response.content[0].text;
-  
-  const tokensIn = estimateTokens(JSON.stringify({ name: "get_project_summary_and_skills", arguments: { projectPath: "benny" } })) + 100;
+
+  const tokensIn =
+    estimateTokens(
+      JSON.stringify({
+        name: "get_project_summary_and_skills",
+        arguments: { projectPath: "benny" }
+      })
+    ) + 100;
   const responseTokens = estimateTokens(responseText);
   const totalTokensIn = tokensIn + responseTokens;
   const tokensOut = 100;
@@ -379,20 +398,20 @@ async function runWithMCP_Test5(client) {
 
 async function runWithoutMCP_Test6(targetId) {
   const start = performance.now();
-  const indexData = await fs.readFile(INDEX_PATH, 'utf-8');
+  const indexData = await fs.readFile(INDEX_PATH, "utf-8");
   const entityPath = path.join(ENTITIES_DIR, `${targetId}.json`);
-  const entityData = await fs.readFile(entityPath, 'utf-8');
+  const entityData = await fs.readFile(entityPath, "utf-8");
   const session = JSON.parse(entityData);
-  
+
   let payloadReceived = indexData + entityData;
   const queue = [...(session.children_ids || [])];
   let loadedCount = 0;
-  
+
   while (queue.length > 0) {
     const childId = queue.shift();
     try {
       const childPath = path.join(ENTITIES_DIR, `${childId}.json`);
-      const childData = await fs.readFile(childPath, 'utf-8');
+      const childData = await fs.readFile(childPath, "utf-8");
       payloadReceived += childData;
       loadedCount++;
       const child = JSON.parse(childData);
@@ -426,14 +445,20 @@ async function runWithMCP_Test6(client, targetId) {
   });
   const duration = performance.now() - start;
   const responseText = response.content[0].text;
-  
-  const tokensIn = estimateTokens(JSON.stringify({ name: "get_session_timeline_window", arguments: { sessionId: targetId, limit: 50, offset: 0 } })) + 100;
+
+  const tokensIn =
+    estimateTokens(
+      JSON.stringify({
+        name: "get_session_timeline_window",
+        arguments: { sessionId: targetId, limit: 50, offset: 0 }
+      })
+    ) + 100;
   const responseTokens = estimateTokens(responseText);
   const totalTokensIn = tokensIn + responseTokens;
   const tokensOut = 50;
 
   const windowData = JSON.parse(responseText);
-  const events = windowData.events.map(event => ({
+  const events = windowData.events.map((event) => ({
     type: event.type || "Event",
     agent: event.agent || "System",
     timestamp: event.timestamp,
@@ -460,12 +485,15 @@ async function main() {
     args: ["index.js"]
   });
 
-  const client = new Client({
-    name: "benchmark-client",
-    version: "1.0.0"
-  }, {
-    capabilities: {}
-  });
+  const client = new Client(
+    {
+      name: "benchmark-client",
+      version: "1.0.0"
+    },
+    {
+      capabilities: {}
+    }
+  );
 
   await client.connect(transport);
   console.log(`Running benchmarks with model: ${modelName}`);
@@ -492,7 +520,7 @@ async function main() {
   const t4_no_mcp = await runWithoutMCP_Test4();
   const t4_mcp = await runWithMCP_Test4(client);
   results.push({ testId: 4, noMcp: t4_no_mcp, mcp: t4_mcp });
-  
+
   console.log("Running Test 5 (Skill Extraction)...");
   const t5_no_mcp = await runWithoutMCP_Test5();
   const t5_mcp = await runWithMCP_Test5(client);
@@ -544,15 +572,17 @@ async function main() {
     tests: results
   };
 
-  const JS_OUTPUT_PATH = path.join(__dirname, '..', 'scratch', 'mcp_benchmark_results.js');
+  const JS_OUTPUT_PATH = path.join(__dirname, "..", "scratch", "mcp_benchmark_results.js");
 
-  await fs.mkdir(path.join(__dirname, '..', 'scratch'), { recursive: true });
+  await fs.mkdir(path.join(__dirname, "..", "scratch"), { recursive: true });
 
   // Replace completely to clear out old multi-model data history, since we only want the new single model run
   const jsContent = `window.mcpBenchmarkData = ${JSON.stringify({ runs: [currentRunData] }, null, 2)};`;
   await fs.writeFile(JS_OUTPUT_PATH, jsContent);
 
-  console.log(`\nBenchmarks completed! Outputs written to ${path.join(__dirname, '..', 'scratch')}`);
+  console.log(
+    `\nBenchmarks completed! Outputs written to ${path.join(__dirname, "..", "scratch")}`
+  );
   process.exit(0);
 }
 

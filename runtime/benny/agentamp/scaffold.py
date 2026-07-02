@@ -23,7 +23,7 @@ import os
 import re
 from pathlib import Path
 
-from .contracts import SkinCliPalette, SkinManifest, SkinTokens
+from .contracts import SkinManifest
 
 # skin_id must be a safe directory name: alphanumerics, hyphens, underscores only
 _SAFE_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_\-]{0,63}$")

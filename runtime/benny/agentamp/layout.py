@@ -48,7 +48,7 @@ Requirements covered
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -191,7 +191,7 @@ def clamp_window(
 
 
 def apply_layout(
-    skin_layout: "benny.agentamp.contracts.SkinLayout",  # type: ignore[name-defined]
+    skin_layout: Any,  # type: ignore[name-defined]
     viewport_w: int,
     viewport_h: int,
 ) -> List[LayoutResult]:
@@ -250,9 +250,9 @@ def layout_event_envelope(
     window_id: str,
     event_type: str,
     *,
-    dsp_state: Optional["benny.agentamp.dsp.DerivedData"] = None,  # type: ignore[name-defined]
+    dsp_state: Optional[Any] = None,  # type: ignore[name-defined]
     spectrum_bins: int = 32,
-) -> "benny.agentamp.dsp.Envelope":  # type: ignore[name-defined]
+) -> Any:  # type: ignore[name-defined]
     """Build a DSP-A Envelope for a layout transition event (AAMP-F21).
 
     Delegates to :func:`benny.agentamp.dsp.make_layout_envelope`.

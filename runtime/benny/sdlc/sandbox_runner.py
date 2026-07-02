@@ -38,7 +38,6 @@ Dependencies: stdlib only (dataclasses, datetime, json, pathlib, shutil, sys).
 
 from __future__ import annotations
 
-import json
 import logging
 import shutil
 import sys

@@ -27,10 +27,6 @@ from typing import Any, Dict, List, Optional
 from langgraph.checkpoint.memory import MemorySaver
 
 from ..core.manifest import (
-    ManifestConfig,
-    ManifestEdge,
-    ManifestPlan,
-    ManifestTask,
     OutputSpec,
     RunRecord,
     RunStatus,
@@ -86,7 +82,7 @@ async def plan_from_requirement(
     # 1. Macro-strategy pass.
     try:
         delta = await planner_node(state)
-    except Exception as e:
+    except Exception:
         logger.exception("plan_from_requirement: macro planner failed")
         raise
     state = _apply_delta(state, delta)

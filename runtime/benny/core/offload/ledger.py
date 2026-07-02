@@ -21,11 +21,11 @@ from __future__ import annotations
 
 import json
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from .paths import offload_subdir, LEDGER
+from .paths import LEDGER, offload_subdir
 
 
 @dataclass
@@ -36,7 +36,7 @@ class LedgerEntry:
     declared_tier: str
     final_tier: str
     upgraded: bool
-    status: str                       # passed | failed | escalated | red-escalated
+    status: str  # passed | failed | escalated | red-escalated
     escalated: bool
     iterations: int
     local_model: str

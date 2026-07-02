@@ -30,6 +30,72 @@ const DEFAULT_API_PORT = 8005;
 const DEFAULT_NEO4J_HTTP_PORT = 7474;
 const DEFAULT_RUNTIME_BASE_URLS = new Set(["", "http://127.0.0.1:8005", "http://localhost:8005"]);
 
+const { exec } = require("node:child_process");
+
+function getProcessPath(pid) {
+  return new Promise((resolve) => {
+    if (process.platform === "win32") {
+      exec(`powershell -NoProfile -Command "(Get-Process -Id ${pid} -ErrorAction SilentlyContinue).Path"`, (err, stdout) => {
+        if (err) return resolve("");
+        resolve(stdout.trim());
+      });
+    } else {
+      exec(`ps -p ${pid} -o command=`, (err, stdout) => {
+        if (err) return resolve("");
+        resolve(stdout.trim());
+      });
+    }
+  });
+}
+
+function findPidOnPort(port) {
+  return new Promise((resolve) => {
+    if (process.platform === "win32") {
+      exec(`netstat -ano -p tcp`, (err, stdout) => {
+        if (err) return resolve(null);
+        const lines = stdout.split("\n");
+        for (const line of lines) {
+          if (line.includes(`:${port}`)) {
+            const tokens = line.trim().split(/\s+/);
+            const pid = parseInt(tokens[tokens.length - 1], 10);
+            if (!isNaN(pid)) return resolve(pid);
+          }
+        }
+        resolve(null);
+      });
+    } else {
+      exec(`lsof -t -i:${port}`, (err, stdout) => {
+        if (err) return resolve(null);
+        const pid = parseInt(stdout.trim(), 10);
+        if (!isNaN(pid)) return resolve(pid);
+        resolve(null);
+      });
+    }
+  });
+}
+
+async function cleanOrphanedPort(port, bundleDir, logger) {
+  const pid = await findPidOnPort(port);
+  if (!pid) return;
+
+  const procPath = await getProcessPath(pid);
+  if (procPath && procPath.toLowerCase().includes(bundleDir.toLowerCase())) {
+    logger.log?.(`[runtime] Found orphaned process ${pid} on port ${port} inside bundle. Terminating...`);
+    try {
+      if (process.platform === "win32") {
+        await new Promise((resolve) => {
+          exec(`taskkill /PID ${pid} /T /F`, () => resolve());
+        });
+      } else {
+        process.kill(pid, "SIGKILL");
+      }
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    } catch (err) {
+      logger.warn?.(`[runtime] Failed to kill orphaned process ${pid}: ${err.message}`);
+    }
+  }
+}
+
 /* ── pure helpers (unit-tested) ──────────────────────────────────────── */
 
 // Find the shipped runtime bundle, if any.
@@ -349,6 +415,15 @@ function createRuntimeSupervisor(options = {}) {
     }
     started = true;
     stopping = false;
+
+    // Clean up any lingering processes on ports 8005, 7474, and 7687
+    try {
+      await cleanOrphanedPort(DEFAULT_API_PORT, bundleDir, logger);
+      await cleanOrphanedPort(DEFAULT_NEO4J_HTTP_PORT, bundleDir, logger);
+      await cleanOrphanedPort(7687, bundleDir, logger);
+    } catch (err) {
+      logger.warn?.(`[runtime] Pre-flight port cleanup failed: ${err.message}`);
+    }
 
     // Download + extract the runtime bundle into the per-user dir when it's
     // missing OR when the installed bundle doesn't match the current app version.

@@ -1,5 +1,4 @@
 import logging
-from typing import Any
 
 from ...core.graph_db import get_driver
 from .ontology import Graph

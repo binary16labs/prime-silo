@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional
+from typing import List
 
 from .schema import Edge, Node, NodeMetrics, Proposal
 from .store import upsert_proposal_to_neo4j

@@ -2,12 +2,12 @@
 Skill Routes - REST API for managing workspace skills and catalog
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from ..core.skill_registry import SkillParameter, registry
+from ..core.skill_registry import registry
 
 router = APIRouter()
 
@@ -94,12 +94,11 @@ async def delete_skill(skill_id: str, workspace: str = "default"):
 # GATEWAY & REMIX SERVER ROUTES
 # =============================================================================
 
-from ..gateway.rbac import AgentRole, RBACPolicy, load_policy, save_policy
+from ..gateway.rbac import RBACPolicy, load_policy, save_policy
 from ..gateway.remix_server import (
     RemixServerConfig,
     create_remix_server,
     list_remix_configs,
-    load_remix_config,
     save_remix_config,
 )
 

@@ -318,7 +318,11 @@ def _fmt(prompt: str, **kw) -> str:
 
 
 async def _vision_call(
-    prompt: str, crop_bytes: bytes, model: str, run_id: Optional[str], *extra_images: Optional[bytes]
+    prompt: str,
+    crop_bytes: bytes,
+    model: str,
+    run_id: Optional[str],
+    *extra_images: Optional[bytes],
 ) -> str:
     """Vision call for the `vision` role. Extra images (e.g. the full page, for in-situ
     grounding) are appended after the crop; ``None`` entries are dropped."""

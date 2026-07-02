@@ -1,9 +1,8 @@
 import asyncio
-import json
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import AsyncGenerator, Dict, List, Optional
+from typing import AsyncGenerator, Dict
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import StreamingResponse
@@ -11,7 +10,7 @@ from fastapi.responses import StreamingResponse
 from ..graph.kg3d.cache import get_cached_metrics, save_metrics_to_cache
 from ..graph.kg3d.metrics import compute_all, update_node_aot_layers
 from ..graph.kg3d.ontology import load_default_ontology
-from ..graph.kg3d.schema import DeltaEvent, Edge, Node, Proposal
+from ..graph.kg3d.schema import DeltaEvent, Proposal
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/kg3d", tags=["kg3d"])

@@ -12,7 +12,7 @@ this step) the check downgrades to ``WARN`` rather than ``FAIL``.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from .engine import ExecutionEngine
 from .models import ValidationResult, ValidationSpec

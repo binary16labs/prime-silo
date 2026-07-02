@@ -23,9 +23,9 @@ export async function post(context) {
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache",
-    "Connection": "keep-alive"
+    Connection: "keep-alive"
   });
-  
+
   const sendEvent = (event, data) => {
     if (!res.writableEnded) {
       res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
@@ -36,9 +36,9 @@ export async function post(context) {
     // Prevent malicious commands by restricting to known scripts
     // workflowCommand looks like "ingest" or "ingest --deep"
     const args = [SCRIPT_PATH, ...workflowCommand.split(" "), workspace];
-    
+
     sendEvent("status", `Spawning: node scripts/run-workflows.mjs ${workflowCommand} ${workspace}`);
-    
+
     const child = spawn("node", args, {
       cwd: ROOT_DIR,
       stdio: ["ignore", "pipe", "pipe"]
@@ -57,13 +57,13 @@ export async function post(context) {
       res.end();
       resolve(undefined);
     });
-    
+
     child.on("error", (error) => {
       sendEvent("error", { message: error.message });
       res.end();
       resolve(undefined);
     });
-    
+
     req.on("close", () => {
       if (!child.killed) {
         child.kill();

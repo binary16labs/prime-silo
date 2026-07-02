@@ -230,9 +230,7 @@ async def pull_ollama_model(request: PullRequest):
     """Pull a new model from Ollama registry"""
     try:
         async with httpx.AsyncClient(timeout=300.0) as client:
-            resp = await client.post(
-                "http://localhost:11434/api/pull", json={"name": request.model}
-            )
+            await client.post("http://localhost:11434/api/pull", json={"name": request.model})
             return {"status": "pulling", "model": request.model}
     except httpx.ConnectError:
         raise HTTPException(503, "Ollama not running")
@@ -243,7 +241,7 @@ async def delete_ollama_model(model: str):
     """Delete an Ollama model"""
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.delete("http://localhost:11434/api/delete", json={"name": model})
+            await client.delete("http://localhost:11434/api/delete", json={"name": model})
             return {"status": "deleted", "model": model}
     except httpx.ConnectError:
         raise HTTPException(503, "Ollama not running")

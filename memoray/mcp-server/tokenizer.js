@@ -20,15 +20,15 @@
 //   - otherwise: api if ANTHROPIC_API_KEY is set, else offline.
 
 export async function makeCounter() {
-  const forced = (process.env.TOKENIZER || '').toLowerCase();
+  const forced = (process.env.TOKENIZER || "").toLowerCase();
   const hasKey = !!process.env.ANTHROPIC_API_KEY;
-  const useApi = forced === 'api' || (forced !== 'offline' && hasKey);
+  const useApi = forced === "api" || (forced !== "offline" && hasKey);
 
   if (useApi) {
-    if (!hasKey) throw new Error('TOKENIZER=api but ANTHROPIC_API_KEY is not set.');
-    const { default: Anthropic } = await import('@anthropic-ai/sdk');
+    if (!hasKey) throw new Error("TOKENIZER=api but ANTHROPIC_API_KEY is not set.");
+    const { default: Anthropic } = await import("@anthropic-ai/sdk");
     const client = new Anthropic();
-    const model = process.env.MODEL || 'claude-opus-4-8';
+    const model = process.env.MODEL || "claude-opus-4-8";
     const cache = new Map();
     return {
       method: `exact (count_tokens, ${model})`,
@@ -38,24 +38,24 @@ export async function makeCounter() {
         if (cache.has(text)) return cache.get(text);
         const r = await client.messages.countTokens({
           model,
-          messages: [{ role: 'user', content: text }],
+          messages: [{ role: "user", content: text }]
         });
         cache.set(text, r.input_tokens);
         return r.input_tokens;
-      },
+      }
     };
   }
 
   // offline
-  const mod = await import('@anthropic-ai/tokenizer');
+  const mod = await import("@anthropic-ai/tokenizer");
   const ct = mod.countTokens || mod.default?.countTokens;
-  if (typeof ct !== 'function') throw new Error('offline tokenizer unavailable');
+  if (typeof ct !== "function") throw new Error("offline tokenizer unavailable");
   return {
-    method: 'offline-approx (@anthropic-ai/tokenizer, legacy Claude BPE)',
+    method: "offline-approx (@anthropic-ai/tokenizer, legacy Claude BPE)",
     exact: false,
     model: null,
     async count(text) {
       return ct(text);
-    },
+    }
   };
 }

@@ -1,5 +1,4 @@
 import logging
-from typing import List, Optional
 
 from .schema import Edge, Node
 
@@ -24,7 +23,6 @@ class GCoTEngine:
         In a full implementation, this calls an LLM kernel.
         """
         # Placeholder for actual LLM orchestration
-        prompt = f"Explain the {relation_type} relationship between {source.canonical_name} and {target.canonical_name} in machine learning."
 
         # Mocking LLM response for TDD Phase 8
         return f"GCo_REASONING: {source.canonical_name} provides the foundational component of {target.canonical_name} via {relation_type} logic."

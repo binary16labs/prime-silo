@@ -14,3 +14,7 @@ site/
 **/*.yml
 **/*.min.js
 **/vendor/
+
+# Ignore benchmark history and generated test prompts
+tests/agent_llm_performance/results/
+tests/agent_llm_performance/prompts/

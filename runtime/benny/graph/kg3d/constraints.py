@@ -1,7 +1,7 @@
 from typing import List, Tuple
 
 from .ontology import Graph
-from .schema import Edge, Node, validate_edge, validate_node
+from .schema import validate_edge, validate_node
 
 
 def check_aot_coherence(graph: Graph) -> List[Tuple[str, str]]:

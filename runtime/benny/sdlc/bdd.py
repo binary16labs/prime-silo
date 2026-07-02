@@ -30,7 +30,6 @@ No new top-level dependency is introduced.
 from __future__ import annotations
 
 import re
-import textwrap
 
 # ---------------------------------------------------------------------------
 # Internal helpers

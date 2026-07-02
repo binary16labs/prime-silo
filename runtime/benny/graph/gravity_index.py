@@ -16,7 +16,7 @@ import math
 import random
 from typing import Any, Dict, List, Tuple
 
-from ..core.graph_db import get_driver, read_session, write_session
+from ..core.graph_db import read_session, write_session
 
 logger = logging.getLogger(__name__)
 

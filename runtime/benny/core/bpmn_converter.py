@@ -1,6 +1,6 @@
 import uuid
 import xml.etree.ElementTree as ET
-from typing import Any, Dict, List
+from typing import Dict, List
 
 
 def json_to_bpmn(nodes: List[Dict], edges: List[Dict], process_name: str = "BennyProcess") -> str:
@@ -56,20 +56,16 @@ def json_to_bpmn(nodes: List[Dict], edges: List[Dict], process_name: str = "Benn
         node_to_bpmn_id[node_id] = bpmn_id
 
         if node_type == "trigger":
-            element = ET.SubElement(process, f"{{{BPMN}}}startEvent", {"id": bpmn_id, "name": name})
+            ET.SubElement(process, f"{{{BPMN}}}startEvent", {"id": bpmn_id, "name": name})
         elif node_type == "llm":
             # LLM Agents are mapped to ServiceTasks in BPMN 2.0
-            element = ET.SubElement(
-                process, f"{{{BPMN}}}serviceTask", {"id": bpmn_id, "name": name}
-            )
+            ET.SubElement(process, f"{{{BPMN}}}serviceTask", {"id": bpmn_id, "name": name})
         elif node_type == "logic":
-            element = ET.SubElement(
-                process, f"{{{BPMN}}}exclusiveGateway", {"id": bpmn_id, "name": name}
-            )
+            ET.SubElement(process, f"{{{BPMN}}}exclusiveGateway", {"id": bpmn_id, "name": name})
         elif node_type == "data":
-            element = ET.SubElement(process, f"{{{BPMN}}}manualTask", {"id": bpmn_id, "name": name})
+            ET.SubElement(process, f"{{{BPMN}}}manualTask", {"id": bpmn_id, "name": name})
         else:
-            element = ET.SubElement(process, f"{{{BPMN}}}task", {"id": bpmn_id, "name": name})
+            ET.SubElement(process, f"{{{BPMN}}}task", {"id": bpmn_id, "name": name})
 
     # 2. Map Edges to Sequence Flows
     for i, edge in enumerate(edges):
@@ -78,7 +74,7 @@ def json_to_bpmn(nodes: List[Dict], edges: List[Dict], process_name: str = "Benn
 
         if source_id and target_id:
             flow_id = f"Flow_{i}_{str(uuid.uuid4())[:4]}"
-            flow = ET.SubElement(
+            ET.SubElement(
                 process,
                 f"{{{BPMN}}}sequenceFlow",
                 {"id": flow_id, "sourceRef": source_id, "targetRef": target_id},
@@ -97,7 +93,7 @@ def json_to_bpmn(nodes: List[Dict], edges: List[Dict], process_name: str = "Benn
     # 3. Add simplistic BPMNDI (Diagram Interchange) - Required for some viewers
     # Note: We don't have absolute layout coords for all tools, so we emit a stub
     collaboration = ET.SubElement(root, f"{{{BPMNDI}}}BPMNDiagram", {"id": "BPMNDiagram_1"})
-    plane = ET.SubElement(
+    ET.SubElement(
         collaboration, f"{{{BPMNDI}}}BPMNPlane", {"id": "BPMNPlane_1", "bpmnElement": process_id}
     )
 

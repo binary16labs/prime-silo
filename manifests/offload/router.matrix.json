@@ -42,12 +42,40 @@
   "upgrade_signals": {
     "force_red": {
       "description": "If any of these match the intent or a touched path, the task is forced to red regardless of declared tier.",
-      "path_globs": ["L1/**", "L2/**", "manifests/**", "**/*.sig", "**/manifest_signing*", "**/agent_scope*"],
-      "intent_keywords": ["auth", "credential", "secret", "private key", "signing key", "sign manifest", "delete history", "production deploy", "release", "rotate key", "rm -rf", "DROP ", "force push"]
+      "path_globs": [
+        "L1/**",
+        "L2/**",
+        "manifests/**",
+        "**/*.sig",
+        "**/manifest_signing*",
+        "**/agent_scope*"
+      ],
+      "intent_keywords": [
+        "auth",
+        "credential",
+        "secret",
+        "private key",
+        "signing key",
+        "sign manifest",
+        "delete history",
+        "production deploy",
+        "release",
+        "rotate key",
+        "rm -rf",
+        "DROP ",
+        "force push"
+      ]
     },
     "force_yellow": {
       "description": "Green tasks carrying these signals are upgraded to yellow so a judge double-checks them.",
-      "intent_keywords": ["migration", "schema change", "public api", "concurrency", "race", "regex"],
+      "intent_keywords": [
+        "migration",
+        "schema change",
+        "public api",
+        "concurrency",
+        "race",
+        "regex"
+      ],
       "no_verify_criteria": "A declared-green task with any acceptance_criterion lacking a `verify` command is upgraded to yellow."
     }
   },

@@ -4,7 +4,7 @@ Supports <think> tags, stray </think> tags, and tagless thinking (Qwen3 via Lemo
 """
 
 import re
-from typing import Optional, Tuple
+from typing import Tuple
 
 
 def extract_reasoning(text: str) -> Tuple[str, str]:

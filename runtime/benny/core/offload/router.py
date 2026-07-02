@@ -21,16 +21,39 @@ from .paths import router_matrix_path
 _FALLBACK_MATRIX: Dict[str, Any] = {
     "upgrade_signals": {
         "force_red": {
-            "path_globs": ["L1/**", "L2/**", "manifests/**", "**/*.sig",
-                           "**/manifest_signing*", "**/agent_scope*"],
-            "intent_keywords": ["auth", "credential", "secret", "private key",
-                                "signing key", "sign manifest", "delete history",
-                                "production deploy", "release", "rotate key",
-                                "rm -rf", "drop ", "force push"],
+            "path_globs": [
+                "L1/**",
+                "L2/**",
+                "manifests/**",
+                "**/*.sig",
+                "**/manifest_signing*",
+                "**/agent_scope*",
+            ],
+            "intent_keywords": [
+                "auth",
+                "credential",
+                "secret",
+                "private key",
+                "signing key",
+                "sign manifest",
+                "delete history",
+                "production deploy",
+                "release",
+                "rotate key",
+                "rm -rf",
+                "drop ",
+                "force push",
+            ],
         },
         "force_yellow": {
-            "intent_keywords": ["migration", "schema change", "public api",
-                                "concurrency", "race", "regex"],
+            "intent_keywords": [
+                "migration",
+                "schema change",
+                "public api",
+                "concurrency",
+                "race",
+                "regex",
+            ],
         },
     },
     "defaults": {
@@ -53,7 +76,7 @@ class RouterDecision:
     declared_tier: str
     final_tier: str
     upgraded: bool
-    escalate_immediately: bool       # red -> never run the executor
+    escalate_immediately: bool  # red -> never run the executor
     reasons: List[str] = field(default_factory=list)
     defaults: Dict[str, Any] = field(default_factory=dict)
 
@@ -112,8 +135,10 @@ def classify(manifest: OffloadManifest, touched_paths: List[str] | None = None) 
         if manifest.executor_mode == "generate":
             tier = _max_tier(tier, "yellow")
             if "generate" not in " ".join(reasons):
-                reasons.append("force_yellow: generate output is an unapplied proposal — "
-                               "needs the judge, not deterministic checks on the live repo")
+                reasons.append(
+                    "force_yellow: generate output is an unapplied proposal — "
+                    "needs the judge, not deterministic checks on the live repo"
+                )
         # a declared-green task whose criteria are not all deterministically
         # checkable cannot stay green — the gate would have nothing to check.
         if declared == "green":

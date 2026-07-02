@@ -119,7 +119,12 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "max_iterations": { "type": "integer", "minimum": 1, "default": 3, "description": "Executor retries on gate failure before forced escalation." },
+        "max_iterations": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 3,
+          "description": "Executor retries on gate failure before forced escalation."
+        },
         "max_seconds": { "type": "integer", "minimum": 1, "default": 1800 }
       }
     },

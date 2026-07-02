@@ -3,9 +3,8 @@ Extraction Utility - Structured document parsing using Docling
 """
 
 import logging
-import os
 from pathlib import Path
-from typing import Callable, List, Optional
+from typing import Callable
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

@@ -12,9 +12,9 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from ..core.manifest import should_trigger_swarm
-from ..core.models import call_model, get_active_model, get_model_config
+from ..core.models import call_model, get_active_model
 from ..core.workspace import get_workspace_path
-from ..governance.lineage import track_llm_call, track_workflow_complete, track_workflow_start
+from ..governance.lineage import track_workflow_complete, track_workflow_start
 from ..tools.knowledge import get_chromadb_client
 
 router = APIRouter()
@@ -266,7 +266,7 @@ async def query_chat(request: ChatRequest, workspace: str = "default"):
                 outputs=[f"chat_reply_{run_id}"],
             )
 
-        except Exception as e:
+        except Exception:
             # Fallback if LLM fails
             if context:
                 assistant_message = f"I found {len(context)} relevant passages from your documents, but I'm having trouble generating a response. Here's what I found:\n\n"

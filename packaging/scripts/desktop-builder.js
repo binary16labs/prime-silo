@@ -64,9 +64,7 @@ function ensureMcpServerDeps() {
   });
   if (result.error || result.status !== 0) {
     const why = result.error ? result.error.message : `npm exited ${result.status}`;
-    throw new Error(
-      `Failed to install Prime-Silo Nexus MCP server dependencies (${why}).`
-    );
+    throw new Error(`Failed to install Prime-Silo Nexus MCP server dependencies (${why}).`);
   }
 }
 
@@ -603,9 +601,13 @@ async function runDesktopPackaging(platformKey, argv = process.argv.slice(2)) {
   // Bootstrap the self-workspace before packaging so it's fresh and complete in the bundle.
   console.log("Bootstrapping self-workspace for bundling...");
   const shellCmd = process.platform === "win32" ? "powershell" : "pwsh";
-  const bootstrapResult = spawnSync(shellCmd, ["-File", path.join(PROJECT_ROOT, "scripts", "bootstrap-self-workspace.ps1")], {
-    stdio: "inherit"
-  });
+  const bootstrapResult = spawnSync(
+    shellCmd,
+    ["-File", path.join(PROJECT_ROOT, "scripts", "bootstrap-self-workspace.ps1")],
+    {
+      stdio: "inherit"
+    }
+  );
   if (bootstrapResult.error || bootstrapResult.status !== 0) {
     console.warn("Warning: Failed to bootstrap self-workspace before packaging.");
   }

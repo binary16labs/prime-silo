@@ -13,7 +13,7 @@ from typing import List, Tuple
 import httpx
 from pydantic import BaseModel
 
-from benny.core.manifest import MANIFEST_SCHEMA_VERSION, SwarmManifest
+from benny.core.manifest import MANIFEST_SCHEMA_VERSION
 from benny.core.models import LOCAL_PROVIDERS, _offline_enabled, is_local_model
 from benny.core.workspace import load_manifest
 

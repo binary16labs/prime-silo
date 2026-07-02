@@ -13,7 +13,7 @@ import random
 import re
 import shutil
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
 import anyio
@@ -25,7 +25,6 @@ from ..core.extraction import extract_structured_text
 from ..core.graph_db import (
     add_analogy,
     add_conflict,
-    add_source_link,
     add_triple,
     batch_add_triples,
     create_synthesis_run,
@@ -44,12 +43,11 @@ from ..core.graph_db import (
     vector_search,
     verify_connectivity,
 )
-from ..core.schema import IngestionEvent, IngestionEventType, KnowledgeTriple, SynthesisConfig
+from ..core.schema import IngestionEvent, IngestionEventType, KnowledgeTriple
 from ..core.task_manager import task_manager
 from ..core.workspace import get_workspace_path, load_manifest
 from ..governance.lineage import (
     track_aer,
-    track_llm_call,
     track_tool_execution,
     track_workflow_complete,
     track_workflow_start,
@@ -59,10 +57,7 @@ from ..synthesis.engine import (
     batch_embed_concepts,
     compute_cluster_similarities,
     cross_domain_analogy,
-    deduplicate_triples,
     detect_conflicts,
-    extract_directed_triples_from_section,
-    extract_triples,
     find_synthesis,
     get_embedding,
     parallel_extract_triples,
@@ -1380,7 +1375,7 @@ async def _background_synthesis(workspace: str, provider: str, model: Optional[s
         processed = 0
         for comm in communities:
             cid = comm["cid"]
-            count = comm["count"]
+            comm["count"]
 
             processed += 1
             progress = int((processed / len(communities)) * 95)

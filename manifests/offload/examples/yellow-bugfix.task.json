@@ -4,8 +4,15 @@
   "intent": "Fix the rough token-count fallback in local_executor.py so it never returns 0 for non-empty text when tiktoken is unavailable. Done when the fallback returns at least 1 for any non-empty string and the new behaviour is covered by a test.",
   "context_pointers": ["runtime/benny/core/local_executor.py:count_tokens"],
   "acceptance_criteria": [
-    { "id": "ac1", "statement": "count_tokens returns >=1 for any non-empty input even with tiktoken disabled." },
-    { "id": "ac2", "statement": "Existing token-count tests still pass.", "verify": "pytest runtime/tests -k token -q" },
+    {
+      "id": "ac1",
+      "statement": "count_tokens returns >=1 for any non-empty input even with tiktoken disabled."
+    },
+    {
+      "id": "ac2",
+      "statement": "Existing token-count tests still pass.",
+      "verify": "pytest runtime/tests -k token -q"
+    },
     { "id": "ac3", "statement": "A regression test for the non-empty fallback is added." }
   ],
   "risk_tier": "yellow",

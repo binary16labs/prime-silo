@@ -3,7 +3,7 @@ Triple Persistence - Merging knowledge triples into the Neo4j Graph.
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import List
 
 from ..core.graph_db import get_driver
 from ..core.schema import KnowledgeTriple

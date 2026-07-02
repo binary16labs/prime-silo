@@ -40,9 +40,9 @@ from __future__ import annotations
 
 import os
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 # ---------------------------------------------------------------------------
 # Soft import — Textual is optional; absence caught at run_tui() time.
@@ -50,10 +50,8 @@ from typing import List, Optional
 
 try:
     from textual.app import App, ComposeResult
-    from textual.color import Color
     from textual.containers import Horizontal, ScrollableContainer, Vertical
-    from textual.css.query import NoMatches
-    from textual.widgets import Footer, Header, Label, Log, Static
+    from textual.widgets import Log, Static
 
     _TEXTUAL_AVAILABLE = True
 except ImportError:  # pragma: no cover
@@ -61,7 +59,7 @@ except ImportError:  # pragma: no cover
     App = object  # type: ignore[assignment,misc]
     ComposeResult = None  # type: ignore[assignment]
 
-from .contracts import SkinCliPalette, SkinGlyphs
+from .contracts import SkinCliPalette
 
 # ---------------------------------------------------------------------------
 # Terminal floor constants (AAMP-F8)

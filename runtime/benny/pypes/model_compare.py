@@ -641,7 +641,6 @@ def _build_agent_report_messages(spec: ModelCompareSpec) -> Tuple[List[Dict[str,
 def _build_chat_qa_messages(spec: ModelCompareSpec) -> Tuple[List[Dict[str, str]], str]:
     """Single-turn QA against a finished run, mirroring ``ChatHarness._build_system_prompt``."""
     from . import agent_chat as _ac
-    from . import agent_report as _ar
 
     ws_root = _resolve_workspace_root(spec.workspace)
     harness = _ac.ChatHarness(workspace_root=ws_root, run_id=spec.run_id, model=spec.models[0].id)

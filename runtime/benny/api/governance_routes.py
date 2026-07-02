@@ -3,8 +3,7 @@ Governance Routes - API endpoints for security manuals and audit integrity.
 """
 
 import logging
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, Optional
 
 from fastapi import APIRouter, Body, HTTPException, Query
 
@@ -16,7 +15,6 @@ from ..governance.audit import (
 )
 from ..governance.execution_audit import (
     generate_execution_report,
-    get_failed_nodes,
     retrieve_execution_audit,
 )
 from ..governance.operating_manual import (

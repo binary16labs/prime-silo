@@ -2,10 +2,8 @@
 Torch-free Embedding Utilities - Bypasses WinError 4551 by using HTTP providers.
 """
 
-import asyncio
 import logging
-import os
-from typing import Any, List, Optional
+from typing import List, Optional
 
 import httpx
 

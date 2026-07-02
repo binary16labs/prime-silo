@@ -52,7 +52,6 @@ from ..core.workspace import (
 from ..governance.audit import emit_governance_event
 from .views_signing import (
     ViewSignature,
-    canonical_view_payload,
     sign_view,
     verify_view,
 )

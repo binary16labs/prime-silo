@@ -2,16 +2,13 @@
 Workflow Routes - Execute and manage graph workflows
 """
 
-import asyncio
-import json
 import logging
 import uuid
 from datetime import datetime
-from pathlib import Path
-from typing import Any, AsyncGenerator, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -19,11 +16,10 @@ logger = logging.getLogger(__name__)
 from langchain_core.messages import HumanMessage
 
 from ..core.event_bus import event_bus
-from ..core.state import create_swarm_state
 from ..core.workspace import ensure_workspace_structure, get_workspace_path, list_workspaces
 from ..governance.lineage import track_workflow_complete, track_workflow_start
-from ..governance.tracing import init_tracing, trace_span
-from ..graph.swarm import build_swarm_graph, get_governance_url, run_swarm_workflow
+from ..governance.tracing import init_tracing
+from ..graph.swarm import get_governance_url, run_swarm_workflow
 from ..graph.workflow import WorkflowState, build_workflow_graph
 from ..persistence.checkpointer import SQLiteCheckpointer, TimeTravelDebugger
 from ..persistence.workflow_storage import WorkflowStorage
@@ -175,13 +171,12 @@ async def _execute_swarm_async(execution_id: str, request: WorkflowRequest) -> N
 
         # Get configuration from env or params
         max_concurrency = int(os.getenv("SWARM_MAX_CONCURRENCY", "1"))
-        handover_limit = 500
 
         if request.params:
             if "max_concurrency" in request.params:
                 max_concurrency = request.params["max_concurrency"]
             if "handover_summary_limit" in request.params:
-                handover_limit = request.params["handover_summary_limit"]
+                request.params["handover_summary_limit"]
 
         # Fetch the strategy YAML to get trigger files and outputs
         workflow_def = workflow_storage.get_workflow(request.workflow)

@@ -11,15 +11,15 @@ Mounted at ``/api/offload`` in ``server.py``.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
-from ..core.offload import manifest as manifest_mod
 from ..core.offload import ledger as ledger_mod
+from ..core.offload import manifest as manifest_mod
 from ..core.offload.orchestrator import enqueue, list_inbox, run_task
-from ..core.offload.paths import offload_subdir, OUTBOX
+from ..core.offload.paths import OUTBOX, offload_subdir
 from ..core.offload.router import classify
 
 router = APIRouter()
@@ -27,7 +27,7 @@ router = APIRouter()
 
 class SubmitResponse(BaseModel):
     task_id: str
-    mode: str                     # "sync" | "enqueued"
+    mode: str  # "sync" | "enqueued"
     digest: Optional[Dict[str, Any]] = None
     queued_path: Optional[str] = None
 
@@ -58,8 +58,11 @@ async def validate(task: Dict[str, Any]) -> dict:
 @router.post("/submit", response_model=SubmitResponse)
 async def submit(
     task: Dict[str, Any],
-    wait: bool = Query(False, description="true = run now and return the digest (sync MCP lane); "
-                                          "false = enqueue for the async runner."),
+    wait: bool = Query(
+        False,
+        description="true = run now and return the digest (sync MCP lane); "
+        "false = enqueue for the async runner.",
+    ),
 ) -> SubmitResponse:
     problems = manifest_mod.validate_manifest(task)
     if problems:
@@ -87,6 +90,7 @@ async def result(workspace: str, task_id: str, full: bool = Query(False)) -> dic
     if not out.is_file():
         raise HTTPException(status_code=404, detail=f"no result for '{task_id}' in '{workspace}'")
     import json
+
     payload = json.loads(out.read_text(encoding="utf-8"))
     if not full:
         # strip the heavy artifact from the response; leave a pointer

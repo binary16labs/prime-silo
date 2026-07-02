@@ -2,15 +2,15 @@
 Workspace Isolation - Multi-tenant workspace management
 """
 
-import json
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import yaml
 
-from .schema import WorkspaceManifest
 from benny.portable.home import resolve_benny_home
+
+from .schema import WorkspaceManifest
 
 # Workspace root always lives under the resolved home ($BENNY_HOME env, the
 # desktop config, or the per-user default — see benny.portable.home). There is

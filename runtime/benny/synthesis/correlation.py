@@ -9,9 +9,8 @@ Phase 1 Refactor (6-Sigma):
   - run_full_correlation_suite passes correlation_threshold from IngestRequest.
 """
 
-import asyncio
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import numpy as np
 

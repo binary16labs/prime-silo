@@ -171,7 +171,9 @@ function kg3dLayout() {
       },
       backprop: { x: 200, y: 140, radius: 8, layer: 3, color: "#22d3ee", node: { id: "backprop" } }
     },
-    edges: [{ id: "e1", source: "neural_nets", target: "backprop", kind: "prerequisite", weight: 0.9 }],
+    edges: [
+      { id: "e1", source: "neural_nets", target: "backprop", kind: "prerequisite", weight: 0.9 }
+    ],
     width: 720,
     height: 480
   };
@@ -251,7 +253,10 @@ function testColorForFallback() {
 function testLabelForAcrossWidgetShapes() {
   const { labelFor, basename } = __testing;
   // kg3d (Documents): display_name wins, then canonical_name.
-  assert.equal(labelFor({ node: { display_name: "Neural Networks", canonical_name: "nn" } }), "Neural Networks");
+  assert.equal(
+    labelFor({ node: { display_name: "Neural Networks", canonical_name: "nn" } }),
+    "Neural Networks"
+  );
   assert.equal(labelFor({ node: { canonical_name: "Backpropagation" } }), "Backpropagation");
   // codegraph (Code): name wins; a bare path is shortened to its basename.
   assert.equal(labelFor({ node: { name: "authenticate" } }), "authenticate");
@@ -269,7 +274,10 @@ function testIdentifierForFullPath() {
   const { identifierFor } = __testing;
   // The full path is preserved for the hover tooltip even though the canvas
   // label is shortened to the basename.
-  assert.equal(identifierFor({ node: { type: "File", path: "/src/app/auth.py" } }), "/src/app/auth.py");
+  assert.equal(
+    identifierFor({ node: { type: "File", path: "/src/app/auth.py" } }),
+    "/src/app/auth.py"
+  );
   assert.equal(identifierFor({ node: { canonical_name: "nn" } }), "nn");
   assert.equal(identifierFor({ id: "x1" }), "x1");
 }
@@ -278,10 +286,10 @@ function testHighlightIdsFromProps() {
   assert.deepEqual(__testing.highlightIdsFromProps(null), []);
   assert.deepEqual(__testing.highlightIdsFromProps({ selectedNodeId: "x" }), ["x"]);
   assert.deepEqual(__testing.highlightIdsFromProps({ highlightNodeId: 7 }), ["7"]);
-  assert.deepEqual(
-    __testing.highlightIdsFromProps({ highlightNodeIds: ["a", null, "b"] }),
-    ["a", "b"]
-  );
+  assert.deepEqual(__testing.highlightIdsFromProps({ highlightNodeIds: ["a", null, "b"] }), [
+    "a",
+    "b"
+  ]);
 }
 
 function testNodeMatchesProps() {

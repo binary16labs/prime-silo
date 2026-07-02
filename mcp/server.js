@@ -1,20 +1,17 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
+import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import neo4j from "neo4j-driver";
 
 const server = new Server(
   {
     name: "prime-silo-nexus",
-    version: "1.0.0",
+    version: "1.0.0"
   },
   {
     capabilities: {
-      tools: {},
-    },
+      tools: {}
+    }
   }
 );
 
@@ -24,70 +21,74 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: "execute_cypher",
-        description: "Execute an arbitrary Cypher query on the Neo4j dual graph (contains both Tree-sitter code structures and Docling RAG concepts connected via CORRELATES_WITH).",
+        description:
+          "Execute an arbitrary Cypher query on the Neo4j dual graph (contains both Tree-sitter code structures and Docling RAG concepts connected via CORRELATES_WITH).",
         inputSchema: {
           type: "object",
           properties: {
             query: {
               type: "string",
-              description: "The Cypher query to execute on Neo4j.",
-            },
+              description: "The Cypher query to execute on Neo4j."
+            }
           },
-          required: ["query"],
-        },
+          required: ["query"]
+        }
       },
       {
         name: "semantic_search",
-        description: "Search the knowledge base semantically using vector embeddings stored in ChromaDB (via Benny API).",
+        description:
+          "Search the knowledge base semantically using vector embeddings stored in ChromaDB (via Benny API).",
         inputSchema: {
           type: "object",
           properties: {
             query: {
               type: "string",
-              description: "The semantic search query.",
+              description: "The semantic search query."
             },
             workspace: {
               type: "string",
-              description: "The workspace to search (default: 'default').",
+              description: "The workspace to search (default: 'default')."
             },
             top_k: {
               type: "number",
-              description: "Maximum number of results to return (default: 5).",
-            },
+              description: "Maximum number of results to return (default: 5)."
+            }
           },
-          required: ["query"],
-        },
+          required: ["query"]
+        }
       },
       {
         name: "get_graph_stats",
-        description: "Get summary statistics of the dual graph (node counts by label, relationship counts by type) for a workspace.",
+        description:
+          "Get summary statistics of the dual graph (node counts by label, relationship counts by type) for a workspace.",
         inputSchema: {
           type: "object",
           properties: {
             workspace: {
               type: "string",
-              description: "The workspace to summarize (default: 'default').",
-            },
-          },
-        },
+              description: "The workspace to summarize (default: 'default')."
+            }
+          }
+        }
       },
       {
         name: "find_correlated_concepts",
-        description: "Find concept/documentation nodes that correlate with code symbols (or vice versa) via the CORRELATES_WITH edges in the Neo4j dual graph.",
+        description:
+          "Find concept/documentation nodes that correlate with code symbols (or vice versa) via the CORRELATES_WITH edges in the Neo4j dual graph.",
         inputSchema: {
           type: "object",
           properties: {
             name: {
               type: "string",
-              description: "Substring filter to search in symbol names or concept names.",
+              description: "Substring filter to search in symbol names or concept names."
             },
             workspace: {
               type: "string",
-              description: "The workspace context (default: 'default').",
-            },
+              description: "The workspace context (default: 'default')."
+            }
           },
-          required: ["name"],
-        },
+          required: ["name"]
+        }
       },
       {
         name: "offload_exec",
@@ -107,19 +108,19 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: "object",
               description:
                 "A complete aamp.offload_task/1 manifest (see manifests/offload/task.manifest.schema.json). " +
-                "Required: format, id, intent, acceptance_criteria, risk_tier.",
+                "Required: format, id, intent, acceptance_criteria, risk_tier."
             },
             wait: {
               type: "boolean",
               description:
                 "true (default) = run now and return the digest (sync lane). " +
-                "false = enqueue for the async runner and return immediately.",
-            },
+                "false = enqueue for the async runner and return immediately."
+            }
           },
-          required: ["task"],
-        },
-      },
-    ],
+          required: ["task"]
+        }
+      }
+    ]
   };
 });
 
@@ -131,15 +132,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     switch (name) {
       case "execute_cypher": {
         const query = String(args?.query);
-        const uri = process.env.NEO4J_URI || 'bolt://localhost:7687';
-        const user = process.env.NEO4J_USER || 'neo4j';
-        const password = process.env.NEO4J_PASSWORD || 'primesilo_dev_password';
+        const uri = process.env.NEO4J_URI || "bolt://localhost:7687";
+        const user = process.env.NEO4J_USER || "neo4j";
+        const password = process.env.NEO4J_PASSWORD || "primesilo_dev_password";
 
         const driver = neo4j.driver(uri, neo4j.auth.basic(user, password));
         const session = driver.session();
         try {
           const result = await session.run(query);
-          const records = result.records.map(r => r.toObject());
+          const records = result.records.map((r) => r.toObject());
           return {
             content: [{ type: "text", text: JSON.stringify(records, null, 2) }]
           };
@@ -160,7 +161,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const topK = args?.top_k || 5;
         const apiPort = process.env.BENNY_API_PORT || 8005;
         const apiHost = process.env.BENNY_API_HOST || "127.0.0.1";
-        
+
         try {
           const res = await fetch(`http://${apiHost}:${apiPort}/api/rag/query`, {
             method: "POST",
@@ -191,9 +192,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "get_graph_stats": {
         const ws = args?.workspace || "default";
-        const uri = process.env.NEO4J_URI || 'bolt://localhost:7687';
-        const user = process.env.NEO4J_USER || 'neo4j';
-        const password = process.env.NEO4J_PASSWORD || 'primesilo_dev_password';
+        const uri = process.env.NEO4J_URI || "bolt://localhost:7687";
+        const user = process.env.NEO4J_USER || "neo4j";
+        const password = process.env.NEO4J_PASSWORD || "primesilo_dev_password";
 
         const driver = neo4j.driver(uri, neo4j.auth.basic(user, password));
         const session = driver.session();
@@ -208,15 +209,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
              RETURN type(r) as type, count(r) as count`,
             { ws: ws }
           );
-          
-          const nodeCounts = nodeResult.records.map(r => r.toObject());
-          const relCounts = relResult.records.map(r => r.toObject());
-          
+
+          const nodeCounts = nodeResult.records.map((r) => r.toObject());
+          const relCounts = relResult.records.map((r) => r.toObject());
+
           return {
-            content: [{
-              type: "text",
-              text: JSON.stringify({ workspace: ws, nodeCounts, relCounts }, null, 2)
-            }]
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify({ workspace: ws, nodeCounts, relCounts }, null, 2)
+              }
+            ]
           };
         } catch (e) {
           return {
@@ -232,9 +235,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "find_correlated_concepts": {
         const nameFilter = String(args?.name);
         const ws = args?.workspace || "default";
-        const uri = process.env.NEO4J_URI || 'bolt://localhost:7687';
-        const user = process.env.NEO4J_USER || 'neo4j';
-        const password = process.env.NEO4J_PASSWORD || 'primesilo_dev_password';
+        const uri = process.env.NEO4J_URI || "bolt://localhost:7687";
+        const user = process.env.NEO4J_USER || "neo4j";
+        const password = process.env.NEO4J_PASSWORD || "primesilo_dev_password";
 
         const driver = neo4j.driver(uri, neo4j.auth.basic(user, password));
         const session = driver.session();
@@ -247,7 +250,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             LIMIT 50
           `;
           const result = await session.run(query, { ws, nameFilter });
-          const records = result.records.map(r => r.toObject());
+          const records = result.records.map((r) => r.toObject());
           return {
             content: [{ type: "text", text: JSON.stringify(records, null, 2) }]
           };
@@ -270,7 +273,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (!task || typeof task !== "object") {
           return {
             content: [{ type: "text", text: "offload_exec requires a `task` manifest object." }],
-            isError: true,
+            isError: true
           };
         }
         try {
@@ -280,27 +283,37 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
-                "X-Benny-API-Key": "benny-mesh-2026-auth",
+                "X-Benny-API-Key": "benny-mesh-2026-auth"
               },
-              body: JSON.stringify(task),
+              body: JSON.stringify(task)
             }
           );
           const data = await res.json();
           if (!res.ok) {
             // surface validation problems / router refusal compactly
             return {
-              content: [{ type: "text", text: `Offload rejected (${res.status}): ${JSON.stringify(data.detail || data)}` }],
-              isError: true,
+              content: [
+                {
+                  type: "text",
+                  text: `Offload rejected (${res.status}): ${JSON.stringify(data.detail || data)}`
+                }
+              ],
+              isError: true
             };
           }
           // Return ONLY the compact digest — never the raw artifact.
           return {
-            content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+            content: [{ type: "text", text: JSON.stringify(data, null, 2) }]
           };
         } catch (e) {
           return {
-            content: [{ type: "text", text: `Offload Error: ${e.message} (is the Benny runtime up on ${apiHost}:${apiPort}?)` }],
-            isError: true,
+            content: [
+              {
+                type: "text",
+                text: `Offload Error: ${e.message} (is the Benny runtime up on ${apiHost}:${apiPort}?)`
+              }
+            ],
+            isError: true
           };
         }
       }
@@ -310,10 +323,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [
             {
               type: "text",
-              text: `Unknown tool: ${name}`,
-            },
+              text: `Unknown tool: ${name}`
+            }
           ],
-          isError: true,
+          isError: true
         };
     }
   } catch (error) {
@@ -321,10 +334,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       content: [
         {
           type: "text",
-          text: `Error executing tool ${name}: ${error.message}`,
-        },
+          text: `Error executing tool ${name}: ${error.message}`
+        }
       ],
-      isError: true,
+      isError: true
     };
   }
 });

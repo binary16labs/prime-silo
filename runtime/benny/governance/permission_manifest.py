@@ -19,12 +19,10 @@ Manifest format (permissions.json alongside skill code):
 from __future__ import annotations
 
 import logging
-import re
 import sys
 from datetime import datetime
 from fnmatch import fnmatch
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 

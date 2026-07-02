@@ -3,24 +3,20 @@ Benny Governance - OpenLineage integration for data lineage tracking
 Emits lineage events to Marquez for full auditability
 """
 
-import json
 import logging
 import os
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import attr
-import httpx
 from openlineage.client import OpenLineageClient
 from openlineage.client.facet import (
     BaseFacet,
     DocumentationDatasetFacet,
     DocumentationJobFacet,
     ParentRunFacet,
-    SourceCodeLocationJobFacet,
-    SqlJobFacet,
 )
 from openlineage.client.run import InputDataset, Job, OutputDataset, Run, RunEvent, RunState
 

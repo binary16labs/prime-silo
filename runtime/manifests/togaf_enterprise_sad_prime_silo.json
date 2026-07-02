@@ -1,0 +1,680 @@
+{
+  "schema_version": "2.0",
+  "id": "togaf-enterprise-sad-report-swarm",
+  "name": "TOGAF Enterprise System Architecture Document (SAD) — Comprehensive Swarm",
+  "description": "Maximal-coverage TOGAF SAD: scope/context, full actor + interaction-channel catalog (UI/CLI/API/MCP/tray/A2A), all use cases per channel, business process (BPMN), C4 (context/container/component), behavioural UML (sequence/state/robustness), data architecture (conceptual-logical-physical + ER), code design (class), non-functional requirements & quality-attribute scenarios, security architecture & threat model, DevSecOps & CI/CD, deployment topologies (desktop vs server), observability/operations, gap/impact/ADR/risk, and an editorial validation pass. All diagrams are portable Mermaid.",
+  "requirement": "",
+  "workspace": "default",
+  "inputs": {
+    "files": [],
+    "context": {}
+  },
+  "outputs": {
+    "files": [
+      "data_out/TOGAF_Enterprise_SAD_prime_silo.md"
+    ],
+    "format": "md",
+    "word_count_target": 14000,
+    "sections": [],
+    "spec": "Comprehensive TOGAF-aligned Enterprise System Architecture Document (SAD) for prime-silo (Benny Studio) Application Architecture & Runtime Environment. Target length: 14000+ words. It MUST cover, in depth: Scope & Context, Architecture Principles & Constraints, Stakeholder & Actor Catalog, Interaction Channels (Studio UI, CLI, REST API, MCP, desktop tray, A2A, file ingestion), complete Use-Case coverage per channel, Business Process (BPMN), Application Architecture (C4 Context/Container/Component), Behavioural UML (Sequence, State, Robustness), Data Architecture (Conceptual/Logical/Physical + ER), Code Design (Class), Non-Functional Requirements with quality-attribute scenarios and fitness functions, Security Architecture & Threat Model, DevSecOps & CI/CD, Deployment Topologies (desktop single-laptop vs server/Docker/mesh), Observability & Operations, Gap/Impact/Transition, Architecture Decisions (ADRs), Risk Register, and Viewpoint Catalogs & Matrices. DIAGRAMS: Mermaid only (flowchart/graph/sequenceDiagram/classDiagram/erDiagram); no PlantUML, no Mermaid C4; no parentheses inside node labels; unique node IDs; quote reserved erDiagram entity names."
+  },
+  "plan": {
+    "tasks": [
+      {
+        "id": "sad_planning",
+        "description": "Lead Architect (Planner): Establish the document foundation. Write: (1) Document Control (purpose, audience, scope in/out, TOGAF ADM alignment, conventions), (2) Architecture Vision & Principles (local-first, deterministic zone, signed manifests, portability under BENNY_HOME, offline capability), (3) Assumptions, Constraints and key Architecture Requirements, (4) a Stakeholder map. Reference the REAL prime-silo platform from the grounding. Output the Executive Summary, Scope & Context, and Principles sections. No diagrams required here.",
+        "skill_hint": null,
+        "assigned_skills": [],
+        "assigned_model": "lemonade/qwen3.5-9b-FLM",
+        "dependencies": [],
+        "wave": 0,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": false,
+        "skill_args": {},
+        "complexity": "medium",
+        "files_touched": [],
+        "estimated_tokens": 1600,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "actor_and_channel_catalog",
+        "description": "Business Analyst: Produce the COMPLETE Actor Catalog and Interaction-Channel Catalog. Enumerate every actor (Operator/Architect, End-user/Analyst, Claude/External Agent via MCP & A2A, the seven swarm personas, CI/CD system, Admin) with role, goals, and authority (e.g. only humans sign/pin; agents are read-only in the deterministic zone). Enumerate every interaction channel: Studio UI (:3000), CLI (benny + space), REST API (:8005), MCP server (prime-silo-nexus), A2A protocol, desktop system tray, and file-drop ingestion. Provide an Actor x Channel x Capability matrix as a Markdown table. Include ONE Mermaid `flowchart LR` overview mapping actors to the channels they use.",
+        "skill_hint": null,
+        "assigned_skills": [],
+        "assigned_model": "lemonade/qwen3.5-9b-FLM",
+        "dependencies": [
+          "sad_planning"
+        ],
+        "wave": 1,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": false,
+        "skill_args": {},
+        "complexity": "high",
+        "files_touched": [],
+        "estimated_tokens": 1700,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "usecases_ui",
+        "description": "Use-Case Designer (UI): Document ALL Studio UI use cases across every surface: Workflow Studio (author/plan/approve/run manifests, view DAG), Notebook + KnowledgeGraphCanvas (ingest docs, RAG chat, browse concepts), Studio + CodeGraphCanvas (Tree-Sitter code graph), kg3d/ontology 3D, AgentAmp cockpit (skins, EQ, playlist), Run History & Lineage, HITL approval gates, Settings/Home-directory config, document drag-drop ingestion, vision-ingestion review. Group by surface with a short flow per use case. Provide Mermaid `flowchart LR` use-case diagrams (actor --> ([Use Case]) inside `subgraph` per surface). Portable Mermaid only.",
+        "skill_hint": null,
+        "assigned_skills": [],
+        "assigned_model": "lemonade/qwen3.5-9b-FLM",
+        "dependencies": [
+          "actor_and_channel_catalog"
+        ],
+        "wave": 2,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": false,
+        "skill_args": {},
+        "complexity": "high",
+        "files_touched": [],
+        "estimated_tokens": 1800,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "usecases_cli",
+        "description": "Use-Case Designer (CLI): Document ALL command-line use cases. For `benny` (benny_cli.py): plan, run, runs ls/show, enrich, pypes (plan/run/inspect/drilldown/rerun/agent-report/bench/model-bench/chat), agentamp (scaffold/pack/sign/install/enqueue/export-cockpit), up/down/status/doctor, req. For `space` (space.js): registry, memory, serve, version, get/set, help. Give each a one-line intent and note which are deterministic-zone vs sandbox. Provide ONE Mermaid `flowchart LR` use-case diagram for the CLI and ONE `sequenceDiagram` for `benny run manifest.json` (CLI -> Manifest Runner -> Swarm Executor -> LLM Router -> run-store). Portable Mermaid only.",
+        "skill_hint": null,
+        "assigned_skills": [],
+        "assigned_model": "lemonade/qwen3.5-9b-FLM",
+        "dependencies": [
+          "usecases_ui"
+        ],
+        "wave": 3,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": false,
+        "skill_args": {},
+        "complexity": "high",
+        "files_touched": [],
+        "estimated_tokens": 1800,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "usecases_api_mcp_a2a",
+        "description": "Use-Case Designer (Programmatic): Document the REST API, MCP and A2A use cases. REST: the ~23 FastAPI route groups (manifests, runs, rag, graph, pypes, agentamp, governance, llm, offload, vision, chat, tasks, system) and the X-Benny-API-Key governance. MCP (prime-silo-nexus): semantic_search, execute_cypher, get_graph_stats, find_correlated_concepts, offload_exec — note read-only deterministic-zone access and the green/yellow/red offload risk router. A2A: client/server/registry. Provide a Mermaid `flowchart LR` use-case diagram (External Agent + REST client) and a `sequenceDiagram` for an MCP offload_exec round-trip (Agent -> MCP -> Offload Router -> Local Model -> Gate -> Digest). Portable Mermaid only.",
+        "skill_hint": null,
+        "assigned_skills": [],
+        "assigned_model": "lemonade/qwen3.5-9b-FLM",
+        "dependencies": [
+          "usecases_cli"
+        ],
+        "wave": 4,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": false,
+        "skill_args": {},
+        "complexity": "high",
+        "files_touched": [],
+        "estimated_tokens": 1800,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "business_process_bpmn",
+        "description": "Process Architect: Model the core business processes as BPMN-style swimlanes using Mermaid `flowchart` with `subgraph` lanes. Cover: (1) the Manifest Lifecycle (requirement -> plan -> HITL approve -> execute -> aggregate -> audit), (2) Document Ingestion & Knowledge Enrichment (staging -> promote -> RAG/vision -> concepts -> CORRELATES_WITH), and (3) the Offload workflow (task -> risk router -> local execution -> deterministic+judge gate -> digest). Lanes map to real components (Operator, Studio UI, Backend API, Swarm Executor, Pypes, Neo4j, Governance). Unique node IDs, no parentheses in labels.",
+        "skill_hint": null,
+        "assigned_skills": [],
+        "assigned_model": "lemonade/qwen3.5-9b-FLM",
+        "dependencies": [
+          "usecases_api_mcp_a2a"
+        ],
+        "wave": 5,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": false,
+        "skill_args": {},
+        "complexity": "high",
+        "files_touched": [],
+        "estimated_tokens": 1700,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "c4_context_container",
+        "description": "Solution Architect: Provide the C4 Context and Container views as portable Mermaid `flowchart TB` with `subgraph` boundaries (NOT Mermaid C4). Context: actors (Operator, End-user, Claude/MCP) and external systems (LLM providers lemonade:13305/ollama, Git/GitHub) around the Benny Studio boundary. Container: Backend API (FastAPI :8005), Studio UI (React/Three.js :3000), Swarm Executor (LangGraph), Pypes Engine, AgentAmp, MCP Server, and data stores (Neo4j dual graph :7474/:7687, SQLite run-store, Chroma vectors). Show key relationships. No parentheses inside node labels; use <br/> for detail.",
+        "skill_hint": null,
+        "assigned_skills": [],
+        "assigned_model": "lemonade/qwen3.5-9b-FLM",
+        "dependencies": [
+          "business_process_bpmn"
+        ],
+        "wave": 6,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": false,
+        "skill_args": {},
+        "complexity": "high",
+        "files_touched": [],
+        "estimated_tokens": 1700,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "c4_components",
+        "description": "Solution Architect: Provide C4 Component views (portable Mermaid `flowchart TB` with subgraphs) decomposing the principal containers into components: (a) Backend API -> route modules, Manifest Runner (manifest_runner.py), Swarm Executor (swarm.py), LLM Router (models.py + local_executor.py), Governance middleware; (b) Swarm Executor -> planner/wave_scheduler/orchestrator/dispatcher/executor/aggregator nodes; (c) Pypes Engine -> bronze/silver/gold stages + CLP lineage. Reference real file paths. No parentheses in labels; unique IDs.",
+        "skill_hint": null,
+        "assigned_skills": [],
+        "assigned_model": "lemonade/qwen3.5-9b-FLM",
+        "dependencies": [
+          "c4_context_container"
+        ],
+        "wave": 7,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": false,
+        "skill_args": {},
+        "complexity": "high",
+        "files_touched": [],
+        "estimated_tokens": 1700,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "behavioural_uml",
+        "description": "UML Designer: Provide behavioural views in portable Mermaid. (1) `sequenceDiagram` for plan->approve->run, (2) `sequenceDiagram` for a RAG query (UI -> rag_routes -> adaptive_rag -> Chroma + Neo4j -> answer), (3) a `stateDiagram-v2` for the Manifest/Run lifecycle (Draft -> Approved -> Running -> Completed/Failed/Partial), and (4) a Robustness view as `graph LR` separating Boundary, Control, and Entity elements for the run-execution use case. Strip parentheses from any `[node label]`; unique node IDs.",
+        "skill_hint": null,
+        "assigned_skills": [],
+        "assigned_model": "lemonade/qwen3.5-9b-FLM",
+        "dependencies": [
+          "c4_components"
+        ],
+        "wave": 8,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": false,
+        "skill_args": {},
+        "complexity": "high",
+        "files_touched": [],
+        "estimated_tokens": 1800,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "data_architecture",
+        "description": "Data Architect: Model the data architecture across Conceptual, Logical and Physical layers. Conceptual: SwarmManifest, ManifestTask, RunRecord, GovernanceEvent, Concept, Document/Source, CodeEntity (File/\"Class\"/\"Function\"), Workspace. Provide a Mermaid `erDiagram` (QUOTE reserved entity names \"Class\" and \"Function\"). Logical: Neo4j dual-graph schema (labels, key properties, relationship types RELATES_TO/SOURCED_FROM/DEFINES/DEPENDS_ON/CORRELATES_WITH) and the SQLite run-store schema, presented as Markdown tables. Physical: Neo4j :7474/:7687, SQLite file, Chroma embeddings (768 Local vs 384 ONNX note), indexes. ",
+        "skill_hint": null,
+        "assigned_skills": [],
+        "assigned_model": "lemonade/qwen3.5-9b-FLM",
+        "dependencies": [
+          "behavioural_uml"
+        ],
+        "wave": 9,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": false,
+        "skill_args": {},
+        "complexity": "high",
+        "files_touched": [],
+        "estimated_tokens": 1800,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "code_design_class",
+        "description": "Technical Architect: Provide code-level structural design as a Mermaid `classDiagram` (NOT PlantUML). Model the core classes and relationships: SwarmManifest, ManifestTask, ManifestConfig, OutputSpec, RunRecord, WaveScheduler, the LLM Router (call_model / LocalExecutor implementations LemonadeExecutor/OllamaExecutor), and a Pypes stage. Use Mermaid classDiagram member syntax (+type name, +method() Return), generics as ~T~, and relationships (*--, o--, --|>, ..>). Reference real modules in prose.",
+        "skill_hint": null,
+        "assigned_skills": [],
+        "assigned_model": "lemonade/qwen3.5-9b-FLM",
+        "dependencies": [
+          "data_architecture"
+        ],
+        "wave": 10,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": false,
+        "skill_args": {},
+        "complexity": "high",
+        "files_touched": [],
+        "estimated_tokens": 1700,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "nfr_quality_attributes",
+        "description": "Quality Architect: Write the COMPREHENSIVE Non-Functional Requirements section. Cover every quality attribute with a definition, target/fitness function, and how prime-silo meets it: Performance (local model ~6 tok/s, serialized; plan latency <300ms gate), Scalability (endpoint mesh BENNY_MODEL_ENDPOINTS fan-out), Availability/Reliability, Security & Privacy (local inference, offline kill-switch), Observability, Maintainability (~200 tests, 24 route modules), Portability (no absolute paths, SR-1 gate <=408), Reproducibility (signed manifests, content_hash), Usability & Accessibility, Internationalisation, Cost/Efficiency, Compliance/Auditability. Include a Quality-Attribute Scenario table (Source, Stimulus, Response, Measure) and an NFR x Component traceability table. Diagrams optional; if used, portable Mermaid only.",
+        "skill_hint": null,
+        "assigned_skills": [],
+        "assigned_model": "lemonade/qwen3.5-9b-FLM",
+        "dependencies": [
+          "code_design_class"
+        ],
+        "wave": 11,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": false,
+        "skill_args": {},
+        "complexity": "high",
+        "files_touched": [],
+        "estimated_tokens": 1900,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "security_architecture",
+        "description": "Security Architect: Write the Security Architecture and Threat Model. Cover: the ADR-001 determinism boundary (deterministic zone read-only for agents, review sandbox), ADR-003 agent-scope credential binding (two proxy facades + same-origin isolation), HMAC-SHA256 manifest signing (BENNY_HMAC_KEY), X-Benny-API-Key governance + GOVERNANCE_WHITELIST, offline guard (OfflineRefusal), least-skills ephemeral manifests, secrets handling. Provide a STRIDE-style threat table per interaction channel (UI/CLI/API/MCP/tray/file-ingest) and a Mermaid `flowchart LR` trust-boundary diagram (subgraphs for Untrusted, Review Sandbox, Deterministic Zone). Portable Mermaid only; no parentheses in node labels.",
+        "skill_hint": null,
+        "assigned_skills": [],
+        "assigned_model": "lemonade/qwen3.5-9b-FLM",
+        "dependencies": [
+          "nfr_quality_attributes"
+        ],
+        "wave": 12,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": false,
+        "skill_args": {},
+        "complexity": "high",
+        "files_touched": [],
+        "estimated_tokens": 1800,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "devsecops_cicd",
+        "description": "DevSecOps Engineer: Document the DevSecOps and CI/CD architecture. Cover: GitHub Actions release-desktop.yml (6 platforms: Win/macOS/Linux x x64+arm64), snapshot-build.yml (every commit), scripts/manage-release.js; the 6-sigma release gates run by pytest tests/release — G-COV (>=85% coverage), G-SR1 (<=408 absolute-path violations), G-LAT (<300ms plan), G-ERR (0 flakes), G-SIG (manifest signature integrity), G-OFF (offline compliance); plus where SAST/DAST/SCA, dependency & supply-chain scanning, SBOM, secret scanning, container scanning, and manifest signing fit. Provide a Mermaid `flowchart` of the pipeline (commit -> build -> test/scan gates -> sign -> release) using subgraph stages. Unique node IDs, no parentheses in labels.",
+        "skill_hint": null,
+        "assigned_skills": [],
+        "assigned_model": "lemonade/qwen3.5-9b-FLM",
+        "dependencies": [
+          "security_architecture"
+        ],
+        "wave": 13,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": false,
+        "skill_args": {},
+        "complexity": "high",
+        "files_touched": [],
+        "estimated_tokens": 1800,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "deployment_topologies",
+        "description": "Infrastructure Architect: Document and CONTRAST the two deployment topologies in depth. (A) Desktop / single-laptop: Electron Space-Agent shell wrapping the FastAPI backend; zero-install runtime bundle shipping Python+Neo4j+JRE inside the EXE (supervisor + assembler auto-boot); system tray; runtime fetched as a release asset; NSIS x64 installer; per-install key. (B) Server-based: docker-compose services Neo4j + Marquez + Phoenix + N8N; FastAPI via uvicorn; multi-machine model mesh via BENNY_MODEL_ENDPOINTS endpoint pool. Provide TWO Mermaid `flowchart TB` deployment diagrams (one per topology, subgraphs = nodes/hosts) and a Markdown comparison matrix (install, scaling, availability, ops burden, data location, cost, when-to-use). Portable Mermaid only.",
+        "skill_hint": null,
+        "assigned_skills": [],
+        "assigned_model": "lemonade/qwen3.5-9b-FLM",
+        "dependencies": [
+          "devsecops_cicd"
+        ],
+        "wave": 14,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": false,
+        "skill_args": {},
+        "complexity": "high",
+        "files_touched": [],
+        "estimated_tokens": 1900,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "observability_operations",
+        "description": "SRE / Operations: Document Observability & Operations. Cover: logs/llm_calls.jsonl (per-call model/tokens/duration), governance events (NODE_EXECUTION_STATE) over the SSE bus, Marquez (OpenLineage), Phoenix (LLM tracing), the AER (Action-Event-Reasoning) log, the SQLite run-store (RunRecord history/lineage), and health via `benny doctor`/`status`. Define example SLOs/SLIs, key metrics, alerting, backup/restore of $BENNY_HOME, and a short runbook for a stuck local model (the lemonade generation-wedge: control plane up, generation hangs -> restart). Optional Mermaid `flowchart` of the telemetry pipeline; portable Mermaid only.",
+        "skill_hint": null,
+        "assigned_skills": [],
+        "assigned_model": "lemonade/qwen3.5-9b-FLM",
+        "dependencies": [
+          "deployment_topologies"
+        ],
+        "wave": 15,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": false,
+        "skill_args": {},
+        "complexity": "medium",
+        "files_touched": [],
+        "estimated_tokens": 1600,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "gap_impact_transition",
+        "description": "Delta Analyst: Provide Gap Analysis, Impact Analysis and the Transition Architecture / Roadmap. Identify components to be created, enhanced, or decommissioned across the baseline->target delta (e.g. grounded skill-execution on local models, swarm-executor observability, native C4 rendering, multi-machine mesh maturity). Impact across security, data, infrastructure, and operations. Present a phased roadmap (Now/Next/Later) as a Markdown table. Diagrams optional; portable Mermaid only.",
+        "skill_hint": null,
+        "assigned_skills": [],
+        "assigned_model": "lemonade/qwen3.5-9b-FLM",
+        "dependencies": [
+          "observability_operations"
+        ],
+        "wave": 16,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": false,
+        "skill_args": {},
+        "complexity": "medium",
+        "files_touched": [],
+        "estimated_tokens": 1500,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "adr_risk_viewpoints",
+        "description": "Architecture Governance: Provide (1) an ADR catalog summarising key Architecture Decision Records — ADR-001 determinism boundary, ADR-003 vision-augmented ingestion & credential binding, ADR-004 local offload orchestrator — each with context, decision, consequences; (2) a Risk Register (risk, likelihood, impact, mitigation, owner) as a Markdown table covering local-model wedge, single-laptop performance, supply-chain, key management, data loss; and (3) TOGAF Viewpoint Catalogs & Matrices: Application/Function matrix, Application/Data matrix, Actor/Use-Case matrix, and an NFR/Component matrix (Markdown tables). Requirements traceability note.",
+        "skill_hint": null,
+        "assigned_skills": [],
+        "assigned_model": "lemonade/qwen3.5-9b-FLM",
+        "dependencies": [
+          "gap_impact_transition"
+        ],
+        "wave": 17,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": false,
+        "skill_args": {},
+        "complexity": "high",
+        "files_touched": [],
+        "estimated_tokens": 1700,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "editorial_validation",
+        "description": "Publishing Editor: Produce the final front-matter and closing material that bind the document together: a polished Executive Summary, a Table of Contents reflecting all sections, a Glossary of prime-silo terms and acronyms (BENNY_HOME, AAMP, CLP, HITL, SAD, ADM, SR-1, AER, MCP, A2A), and a Conclusion. Note that all diagrams are portable Mermaid and validated. Do NOT restate full sections; provide the connective editorial material and a consistency/completeness checklist confirming coverage of scope, actors, all channels, use cases, NFRs, security, DevSecOps, deployment topologies, and viewpoints.",
+        "skill_hint": null,
+        "assigned_skills": [
+          "read_file",
+          "write_file"
+        ],
+        "assigned_model": "lemonade/qwen3.5-9b-FLM",
+        "dependencies": [
+          "adr_risk_viewpoints"
+        ],
+        "wave": 18,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": false,
+        "skill_args": {},
+        "complexity": "high",
+        "files_touched": [],
+        "estimated_tokens": 1700,
+        "status": "pending",
+        "position": null,
+        "node_type": "output"
+      }
+    ],
+    "edges": [
+      {
+        "id": null,
+        "source": "sad_planning",
+        "target": "actor_and_channel_catalog",
+        "label": null,
+        "animated": true
+      },
+      {
+        "id": null,
+        "source": "actor_and_channel_catalog",
+        "target": "usecases_ui",
+        "label": null,
+        "animated": true
+      },
+      {
+        "id": null,
+        "source": "usecases_ui",
+        "target": "usecases_cli",
+        "label": null,
+        "animated": true
+      },
+      {
+        "id": null,
+        "source": "usecases_cli",
+        "target": "usecases_api_mcp_a2a",
+        "label": null,
+        "animated": true
+      },
+      {
+        "id": null,
+        "source": "usecases_api_mcp_a2a",
+        "target": "business_process_bpmn",
+        "label": null,
+        "animated": true
+      },
+      {
+        "id": null,
+        "source": "business_process_bpmn",
+        "target": "c4_context_container",
+        "label": null,
+        "animated": true
+      },
+      {
+        "id": null,
+        "source": "c4_context_container",
+        "target": "c4_components",
+        "label": null,
+        "animated": true
+      },
+      {
+        "id": null,
+        "source": "c4_components",
+        "target": "behavioural_uml",
+        "label": null,
+        "animated": true
+      },
+      {
+        "id": null,
+        "source": "behavioural_uml",
+        "target": "data_architecture",
+        "label": null,
+        "animated": true
+      },
+      {
+        "id": null,
+        "source": "data_architecture",
+        "target": "code_design_class",
+        "label": null,
+        "animated": true
+      },
+      {
+        "id": null,
+        "source": "code_design_class",
+        "target": "nfr_quality_attributes",
+        "label": null,
+        "animated": true
+      },
+      {
+        "id": null,
+        "source": "nfr_quality_attributes",
+        "target": "security_architecture",
+        "label": null,
+        "animated": true
+      },
+      {
+        "id": null,
+        "source": "security_architecture",
+        "target": "devsecops_cicd",
+        "label": null,
+        "animated": true
+      },
+      {
+        "id": null,
+        "source": "devsecops_cicd",
+        "target": "deployment_topologies",
+        "label": null,
+        "animated": true
+      },
+      {
+        "id": null,
+        "source": "deployment_topologies",
+        "target": "observability_operations",
+        "label": null,
+        "animated": true
+      },
+      {
+        "id": null,
+        "source": "observability_operations",
+        "target": "gap_impact_transition",
+        "label": null,
+        "animated": true
+      },
+      {
+        "id": null,
+        "source": "gap_impact_transition",
+        "target": "adr_risk_viewpoints",
+        "label": null,
+        "animated": true
+      },
+      {
+        "id": null,
+        "source": "adr_risk_viewpoints",
+        "target": "editorial_validation",
+        "label": null,
+        "animated": true
+      }
+    ],
+    "waves": [
+      [
+        "sad_planning"
+      ],
+      [
+        "actor_and_channel_catalog"
+      ],
+      [
+        "usecases_ui"
+      ],
+      [
+        "usecases_cli"
+      ],
+      [
+        "usecases_api_mcp_a2a"
+      ],
+      [
+        "business_process_bpmn"
+      ],
+      [
+        "c4_context_container"
+      ],
+      [
+        "c4_components"
+      ],
+      [
+        "behavioural_uml"
+      ],
+      [
+        "data_architecture"
+      ],
+      [
+        "code_design_class"
+      ],
+      [
+        "nfr_quality_attributes"
+      ],
+      [
+        "security_architecture"
+      ],
+      [
+        "devsecops_cicd"
+      ],
+      [
+        "deployment_topologies"
+      ],
+      [
+        "observability_operations"
+      ],
+      [
+        "gap_impact_transition"
+      ],
+      [
+        "adr_risk_viewpoints"
+      ],
+      [
+        "editorial_validation"
+      ]
+    ],
+    "ascii_dag": null,
+    "mermaid": null
+  },
+  "config": {
+    "model": "lemonade/qwen3.5-9b-FLM",
+    "max_concurrency": 1,
+    "max_depth": 3,
+    "handover_summary_limit": 500,
+    "allow_swarm": true,
+    "skills_allowed": [
+      "search_kb",
+      "query_graph",
+      "read_file",
+      "write_file"
+    ],
+    "model_per_persona": {}
+  },
+  "created_at": "2026-06-30T16:25:14.911535",
+  "updated_at": "2026-06-30T16:25:14.911545",
+  "created_by": "benny-planner",
+  "tags": [],
+  "metadata": {
+    "publishing_standard": "TOGAF-Enterprise-SAD-Standard",
+    "notes": "Comprehensive single-laptop Enterprise SAD swarm. 19 sequential tasks, portable-Mermaid diagrams, finalized with diagram validation + PDF by report_finalize.py."
+  },
+  "latest_run": null,
+  "sdlc": null,
+  "policy": null,
+  "memory": null,
+  "content_hash": null,
+  "signature": null
+}

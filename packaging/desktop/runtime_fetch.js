@@ -129,9 +129,15 @@ function killLingeringProcesses(targetDir, platform = process.platform, logger =
   if (platform !== "win32") return;
   try {
     const psCmd = `Get-Process | Where-Object { $_.Path -and $_.Path.StartsWith('${targetDir}\\', 'CurrentCultureIgnoreCase') } | Stop-Process -Force`;
-    execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", psCmd], { stdio: "ignore", windowsHide: true });
+    execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", psCmd], {
+      stdio: "ignore",
+      windowsHide: true
+    });
   } catch (error) {
-    logger.warn && logger.warn(`[runtime-fetch] failed to kill lingering processes in ${targetDir}: ${error.message || error}`);
+    logger.warn &&
+      logger.warn(
+        `[runtime-fetch] failed to kill lingering processes in ${targetDir}: ${error.message || error}`
+      );
   }
 }
 

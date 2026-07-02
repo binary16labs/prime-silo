@@ -481,7 +481,8 @@
 }
 
 @keyframes onscreen-agent-avatar-idle {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px) scale(1);
   }
   50% {
@@ -490,9 +491,16 @@
 }
 
 @keyframes onscreen-agent-avatar-processing {
-  0%, 100% { transform: rotate(0deg) scale(1.02); }
-  25% { transform: rotate(-4deg) scale(1.02); }
-  75% { transform: rotate(4deg) scale(1.02); }
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1.02);
+  }
+  25% {
+    transform: rotate(-4deg) scale(1.02);
+  }
+  75% {
+    transform: rotate(4deg) scale(1.02);
+  }
 }
 
 .onscreen-agent-avatar-flip {

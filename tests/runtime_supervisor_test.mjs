@@ -114,7 +114,10 @@ function testManagedHomeAndCliContext() {
   // the default the shell passes in. Explicit empty env keeps this hermetic
   // on machines that export BENNY_HOME.
   assert.equal(sup.resolveManagedBennyHome("/default", {}, {}), "/default");
-  assert.equal(sup.resolveManagedBennyHome("/default", { bennyHome: "  /custom  " }, {}), "/custom");
+  assert.equal(
+    sup.resolveManagedBennyHome("/default", { bennyHome: "  /custom  " }, {}),
+    "/custom"
+  );
   assert.equal(sup.resolveManagedBennyHome("/default", { bennyHome: "" }, {}), "/default");
   assert.equal(
     sup.resolveManagedBennyHome("/default", { bennyHome: "/custom" }, { BENNY_HOME: " /env " }),

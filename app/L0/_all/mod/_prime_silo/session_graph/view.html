@@ -81,10 +81,15 @@
                   :class="{ 'is-active': s.id === activeSessionId }"
                   @click="selectSession(s.id)"
                 >
-                  <span class="prime-silo-sg__session-title" x-text="s.content || 'Untitled'"></span>
+                  <span
+                    class="prime-silo-sg__session-title"
+                    x-text="s.content || 'Untitled'"
+                  ></span>
                   <span class="prime-silo-sg__session-sub">
                     <span x-text="s.agent"></span> ·
-                    <span x-text="s.metadata && s.metadata.project ? s.metadata.project : '—'"></span>
+                    <span
+                      x-text="s.metadata && s.metadata.project ? s.metadata.project : '—'"
+                    ></span>
                   </span>
                 </button>
               </template>
@@ -111,7 +116,9 @@
                 <div>
                   <dt>File</dt>
                   <dd>
-                    <span x-text="inspector.metadata.fileName || inspector.metadata.filePath"></span>
+                    <span
+                      x-text="inspector.metadata.fileName || inspector.metadata.filePath"
+                    ></span>
                     <button
                       type="button"
                       class="prime-silo-sg__open"

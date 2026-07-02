@@ -8,8 +8,8 @@ Each wave contains tasks whose dependencies are ALL satisfied by previous waves.
 from __future__ import annotations
 
 import logging
-from collections import defaultdict, deque
-from typing import Any, Dict, List, Optional, Set, Tuple
+from collections import defaultdict
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

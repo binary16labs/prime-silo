@@ -8,7 +8,6 @@ import logging
 import traceback
 from datetime import datetime, timezone
 from enum import Enum
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .audit import _get_workspace_path, emit_governance_event

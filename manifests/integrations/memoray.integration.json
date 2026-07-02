@@ -367,9 +367,7 @@
       "id": "claude_logs",
       "kind": "source",
       "produces": "Claude desktop/code/CLI session logs (audit.jsonl, *.jsonl)",
-      "consumes": [
-        "MEMORAY_CLAUDE_DIRS"
-      ],
+      "consumes": ["MEMORAY_CLAUDE_DIRS"],
       "owner": {
         "repo": "memo-ray",
         "path": "agent-os-dashboard/server/parsers/claudeParser.js"
@@ -379,9 +377,7 @@
       "id": "antigravity_brain",
       "kind": "source",
       "produces": "Antigravity brain artifacts",
-      "consumes": [
-        "MEMORAY_ANTIGRAVITY_DIR"
-      ],
+      "consumes": ["MEMORAY_ANTIGRAVITY_DIR"],
       "owner": {
         "repo": "memo-ray",
         "path": "agent-os-dashboard/server/parsers/antigravityParser.js"
@@ -401,9 +397,7 @@
       "id": "memoray_api",
       "kind": "service",
       "produces": "HTTP API on MEMORAY_BASE_URL (localhost-only CORS, no auth)",
-      "consumes": [
-        "PORT"
-      ],
+      "consumes": ["PORT"],
       "health": {
         "endpoint": "ecosystem_manifest",
         "expect": "totalNodes"
@@ -417,12 +411,7 @@
       "id": "shell_proxy",
       "kind": "proxy",
       "produces": "/api/memoray/<path> on the shell origin (GET any; POST /files/open, /setup/save, /open-folder)",
-      "consumes": [
-        "MEMORAY_ENABLED",
-        "MEMORAY_BASE_URL",
-        "memoray.enabled",
-        "memoray.base_url"
-      ],
+      "consumes": ["MEMORAY_ENABLED", "MEMORAY_BASE_URL", "memoray.enabled", "memoray.base_url"],
       "owner": {
         "repo": "prime-silo",
         "path": "server/lib/memoray_proxy.js"
@@ -442,12 +431,7 @@
       "id": "widget_overview_cards",
       "kind": "widget",
       "produces": "memoray.overview_cards Command Center widget",
-      "consumes": [
-        "beta_overview",
-        "system_metrics",
-        "system_capabilities",
-        "ecosystem_manifest"
-      ],
+      "consumes": ["beta_overview", "system_metrics", "system_capabilities", "ecosystem_manifest"],
       "owner": {
         "repo": "prime-silo",
         "path": "app/L0/_all/mod/_prime_silo/widgets/memoray/overview_cards/index.js"
@@ -457,10 +441,7 @@
       "id": "widget_lineage_graph",
       "kind": "widget",
       "produces": "memoray.lineage_graph session lineage widget (2D SVG default, pluggable renderer)",
-      "consumes": [
-        "graph",
-        "entities"
-      ],
+      "consumes": ["graph", "entities"],
       "owner": {
         "repo": "prime-silo",
         "path": "app/L0/_all/mod/_prime_silo/widgets/memoray/lineage_graph/index.js"
@@ -470,12 +451,7 @@
       "id": "memory_page",
       "kind": "page",
       "produces": "#/_prime_silo/memory review-zone shell page",
-      "consumes": [
-        "sessions",
-        "beta_search",
-        "sync",
-        "files_open"
-      ],
+      "consumes": ["sessions", "beta_search", "sync", "files_open"],
       "owner": {
         "repo": "prime-silo",
         "path": "app/L0/_all/mod/_prime_silo/memory/view.html"
@@ -485,12 +461,7 @@
       "id": "agent_skill",
       "kind": "skill",
       "produces": "memory-recall onscreen-agent skill (catalog-loaded on demand)",
-      "consumes": [
-        "beta_search",
-        "sessions",
-        "graph",
-        "beta_overview"
-      ],
+      "consumes": ["beta_search", "sessions", "graph", "beta_overview"],
       "owner": {
         "repo": "prime-silo",
         "path": "app/L0/_all/mod/_prime_silo/memoray_client/ext/skills/memory-recall/SKILL.md"
@@ -500,12 +471,7 @@
       "id": "cli_memory",
       "kind": "cli",
       "produces": "node space memory <status|sync|sessions|search|audit>",
-      "consumes": [
-        "ecosystem_manifest",
-        "sync",
-        "sessions",
-        "beta_search"
-      ],
+      "consumes": ["ecosystem_manifest", "sync", "sessions", "beta_search"],
       "owner": {
         "repo": "prime-silo",
         "path": "commands/memory.js"
@@ -515,11 +481,7 @@
       "id": "bridge_pulse",
       "kind": "page",
       "produces": "Bridge cockpit Pulse landing — mesh activity feed (lifelog) + Command Center + conformance",
-      "consumes": [
-        "lifelog",
-        "beta_overview",
-        "system_metrics"
-      ],
+      "consumes": ["lifelog", "beta_overview", "system_metrics"],
       "owner": {
         "repo": "prime-silo",
         "path": "app/L0/_all/mod/_prime_silo/bridge/view.html"
@@ -539,9 +501,7 @@
       "id": "widget_heatmap_radar",
       "kind": "widget",
       "produces": "memoray.heatmap_radar Activity Radar widget (365-day calendar + stat cards)",
-      "consumes": [
-        "heatmap_stats"
-      ],
+      "consumes": ["heatmap_stats"],
       "owner": {
         "repo": "prime-silo",
         "path": "app/L0/_all/mod/_prime_silo/widgets/memoray/heatmap_radar/index.js"
@@ -551,10 +511,7 @@
       "id": "page_lifelog",
       "kind": "page",
       "produces": "#/_prime_silo/lifelog — native Agent Lifelog (unified commit + agent-action timeline with the radar; teleports to Memory)",
-      "consumes": [
-        "lifelog",
-        "heatmap_stats"
-      ],
+      "consumes": ["lifelog", "heatmap_stats"],
       "owner": {
         "repo": "prime-silo",
         "path": "app/L0/_all/mod/_prime_silo/lifelog/view.html"
@@ -581,11 +538,7 @@
       "id": "page_setup",
       "kind": "page",
       "produces": "#/_prime_silo/setup — native Setup (per-source scan-path config with auto-detect status)",
-      "consumes": [
-        "setup_status",
-        "setup_save",
-        "open_folder"
-      ],
+      "consumes": ["setup_status", "setup_save", "open_folder"],
       "owner": {
         "repo": "prime-silo",
         "path": "app/L0/_all/mod/_prime_silo/setup/view.html"
@@ -595,12 +548,7 @@
       "id": "page_session_graph",
       "kind": "page",
       "produces": "#/_prime_silo/session_graph — native full-canvas lineage explorer (lineage_graph widget + inspector)",
-      "consumes": [
-        "sessions",
-        "graph",
-        "entities",
-        "files_open"
-      ],
+      "consumes": ["sessions", "graph", "entities", "files_open"],
       "owner": {
         "repo": "prime-silo",
         "path": "app/L0/_all/mod/_prime_silo/session_graph/view.html"
@@ -610,12 +558,7 @@
       "id": "page_step_through",
       "kind": "page",
       "produces": "#/_prime_silo/step_through — native Step-Through Audit player (playback / speed / keyboard / gamepad / speech narrator; milestone scrubber; lineage map tracks + highlights the current step)",
-      "consumes": [
-        "beta_timeline",
-        "graph",
-        "entities",
-        "sessions"
-      ],
+      "consumes": ["beta_timeline", "graph", "entities", "sessions"],
       "owner": {
         "repo": "prime-silo",
         "path": "app/L0/_all/mod/_prime_silo/step_through/view.html"
@@ -625,9 +568,7 @@
       "id": "mcp_server",
       "kind": "mcp",
       "produces": "Vendored memo-ray MCP server (stdio) exposing the memory graph as agent tools; registered via prime-silo/.mcp.json",
-      "consumes": [
-        "MEMORAY_DATA_DIR"
-      ],
+      "consumes": ["MEMORAY_DATA_DIR"],
       "owner": {
         "repo": "prime-silo",
         "path": "memoray/mcp-server/index.js"
@@ -677,13 +618,7 @@
     }
   },
   "conformance": {
-    "checks": [
-      "signature",
-      "config_surface",
-      "health",
-      "payload_contracts",
-      "owners"
-    ],
+    "checks": ["signature", "config_surface", "health", "payload_contracts", "owners"],
     "gating_tests": [
       "tests/memoray_proxy_test.mjs",
       "tests/integration_manifest_test.mjs",

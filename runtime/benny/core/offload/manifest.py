@@ -11,7 +11,7 @@ import json
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 FORMAT = "aamp.offload_task/1"
 _ID_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{2,63}$")
@@ -99,10 +99,14 @@ def validate_manifest(data: Dict[str, Any]) -> List[str]:
         return problems
 
     req(data.get("format") == FORMAT, f"format must be '{FORMAT}'")
-    req(isinstance(data.get("id"), str) and bool(_ID_RE.match(data.get("id", ""))),
-        "id must match ^[a-z0-9][a-z0-9_-]{2,63}$")
-    req(isinstance(data.get("intent"), str) and len(data.get("intent", "")) >= 8,
-        "intent must be a string of at least 8 chars")
+    req(
+        isinstance(data.get("id"), str) and bool(_ID_RE.match(data.get("id", ""))),
+        "id must match ^[a-z0-9][a-z0-9_-]{2,63}$",
+    )
+    req(
+        isinstance(data.get("intent"), str) and len(data.get("intent", "")) >= 8,
+        "intent must be a string of at least 8 chars",
+    )
     req(data.get("risk_tier") in _VALID_TIERS, f"risk_tier must be one of {sorted(_VALID_TIERS)}")
 
     ac = data.get("acceptance_criteria")

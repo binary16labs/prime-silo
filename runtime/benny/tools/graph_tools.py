@@ -5,20 +5,16 @@ These tools allow autonomous Benny agents in LangGraph workflows to
 read from and write to the structural long-term memory.
 """
 
-import json
-from typing import List, Optional
+from typing import Optional
 
 from langchain_core.tools import tool
 
 from ..core.graph_db import (
-    add_analogy,
-    add_conflict,
     add_source_link,
     add_triple,
     get_full_graph,
     get_graph_stats,
     get_neighbors,
-    set_concept_embedding,
     vector_search,
 )
 
@@ -124,7 +120,7 @@ def add_knowledge_triple(
         Confirmation of the stored triple
     """
     try:
-        result = add_triple(
+        add_triple(
             subject=subject,
             predicate=predicate,
             obj=obj,

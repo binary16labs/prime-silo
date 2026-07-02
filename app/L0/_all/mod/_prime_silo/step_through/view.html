@@ -170,7 +170,11 @@
           </template>
 
           <!-- Stage: action card + map -->
-          <div class="prime-silo-st__stage" :class="{ 'has-map': showMap }" x-show="timeline.length > 0">
+          <div
+            class="prime-silo-st__stage"
+            :class="{ 'has-map': showMap }"
+            x-show="timeline.length > 0"
+          >
             <div class="prime-silo-st__card">
               <div class="prime-silo-st__hero" x-text="heroText"></div>
               <div class="prime-silo-st__meta" x-show="current">
@@ -180,8 +184,14 @@
                   x-text="current ? current.agent : ''"
                 ></span>
                 <span x-text="current ? formatTime(current.timestamp) : ''"></span>
-                <span x-show="current && current.fileName" x-text="current ? '📄 ' + current.fileName : ''"></span>
-                <span x-show="current && current.toolName" x-text="current ? '🔧 ' + current.toolName : ''"></span>
+                <span
+                  x-show="current && current.fileName"
+                  x-text="current ? '📄 ' + current.fileName : ''"
+                ></span>
+                <span
+                  x-show="current && current.toolName"
+                  x-text="current ? '🔧 ' + current.toolName : ''"
+                ></span>
                 <button
                   type="button"
                   class="prime-silo-st__why-btn"

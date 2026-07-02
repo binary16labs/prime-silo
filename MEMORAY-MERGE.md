@@ -39,38 +39,38 @@ The integration is architected and signed. Single source of truth:
 `manifests/integrations/memoray.integration.json` (schema `aamp.integration/1`),
 held against `GET /api/integration_audit`.
 
-| Seam | Owner path (prime-silo) | Status |
-| --- | --- | --- |
-| Shell proxy `/api/memoray/*` → `127.0.0.1:3030` | `server/lib/memoray_proxy.js` | ✅ done |
-| Browser client helpers | `app/L0/_all/mod/_prime_silo/memoray_client/memoray-client.js` | ✅ done |
-| Command Center widget | `app/L0/_all/mod/_prime_silo/widgets/memoray/overview_cards/` | ✅ done |
-| Lineage graph widget | `app/L0/_all/mod/_prime_silo/widgets/memoray/lineage_graph/` | ✅ done |
-| Memory review page | `app/L0/_all/mod/_prime_silo/memory/view.html` | ✅ done |
-| `memory-recall` agent skill | `app/L0/_all/mod/_prime_silo/memoray_client/ext/skills/memory-recall/` | ✅ done |
-| `node space memory` CLI | `commands/memory.js` | ✅ done |
-| Conformance audit | `server/api/integration_audit.js` | ✅ done |
-| Dev boot of the sibling checkout | `scripts/memoray.ps1` (+ `scripts/dev.ps1` auto-boot) | ✅ done (points at `../memo-ray`) |
+| Seam                                            | Owner path (prime-silo)                                                | Status                            |
+| ----------------------------------------------- | ---------------------------------------------------------------------- | --------------------------------- |
+| Shell proxy `/api/memoray/*` → `127.0.0.1:3030` | `server/lib/memoray_proxy.js`                                          | ✅ done                           |
+| Browser client helpers                          | `app/L0/_all/mod/_prime_silo/memoray_client/memoray-client.js`         | ✅ done                           |
+| Command Center widget                           | `app/L0/_all/mod/_prime_silo/widgets/memoray/overview_cards/`          | ✅ done                           |
+| Lineage graph widget                            | `app/L0/_all/mod/_prime_silo/widgets/memoray/lineage_graph/`           | ✅ done                           |
+| Memory review page                              | `app/L0/_all/mod/_prime_silo/memory/view.html`                         | ✅ done                           |
+| `memory-recall` agent skill                     | `app/L0/_all/mod/_prime_silo/memoray_client/ext/skills/memory-recall/` | ✅ done                           |
+| `node space memory` CLI                         | `commands/memory.js`                                                   | ✅ done                           |
+| Conformance audit                               | `server/api/integration_audit.js`                                      | ✅ done                           |
+| Dev boot of the sibling checkout                | `scripts/memoray.ps1` (+ `scripts/dev.ps1` auto-boot)                  | ✅ done (points at `../memo-ray`) |
 
 What lives **only** in memo-ray and must come over:
 
 - **Backend** — `agent-os-dashboard/server/` (Express server, parsers for Claude /
   Antigravity / opencode / open-notebook, entity store, system metrics).
 - **Standalone React client** — `agent-os-dashboard/client/` (Command Center grid,
-  omnibar search, entity inspector, Setup wizard). Prime-silo has re-skinned *some*
+  omnibar search, entity inspector, Setup wizard). Prime-silo has re-skinned _some_
   of this as widgets; the rest is the Phase 2 port target.
 - **MCP server** — `mcp-server/` (memory graph over MCP).
 
 ## Architecture coordinates (memorize these)
 
-| Thing | Where | Notes |
-| --- | --- | --- |
-| memo-ray API | `http://127.0.0.1:3030/api` | `/system/capabilities`, `/beta/overview`, `/sessions`, `/graph/{id}`, `/lifelog`, `/sync` |
-| memo-ray runtime config | `~/.memoray/memoray.config.js` | **auto-generated** from `server/lib/config.js` + `lib/detector.js`; repo `mem0ray.config.js` is a template |
-| memo-ray data | `~/.memoray/data/entities/*.json` + `index.json` | one JSON file per entity; in-memory store cached by `index.json` mtime |
-| Port discovery | `apps.lock.json` (binary16 registry) | server reads its resolved port at boot; prime-silo proxy reads the same lock → always agree |
-| Proxy URL resolution | `server/lib/memoray_proxy.js :: resolveMemoraySettings` | precedence: runtime param `MEMORAY_BASE_URL` → `prime-silo.config.json` `memoray` block → `apps.lock.json` → default `:3030` |
-| Sync cadence | memo-ray ingests on boot + every 30s | opencode/open-notebook entities appear after a sync |
-| Module system | memo-ray = **CommonJS** (`require`); prime-silo server = **ESM** (`import`) | Option A keeps memo-ray a separate process → **no conversion needed** |
+| Thing                   | Where                                                                       | Notes                                                                                                                        |
+| ----------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| memo-ray API            | `http://127.0.0.1:3030/api`                                                 | `/system/capabilities`, `/beta/overview`, `/sessions`, `/graph/{id}`, `/lifelog`, `/sync`                                    |
+| memo-ray runtime config | `~/.memoray/memoray.config.js`                                              | **auto-generated** from `server/lib/config.js` + `lib/detector.js`; repo `mem0ray.config.js` is a template                   |
+| memo-ray data           | `~/.memoray/data/entities/*.json` + `index.json`                            | one JSON file per entity; in-memory store cached by `index.json` mtime                                                       |
+| Port discovery          | `apps.lock.json` (binary16 registry)                                        | server reads its resolved port at boot; prime-silo proxy reads the same lock → always agree                                  |
+| Proxy URL resolution    | `server/lib/memoray_proxy.js :: resolveMemoraySettings`                     | precedence: runtime param `MEMORAY_BASE_URL` → `prime-silo.config.json` `memoray` block → `apps.lock.json` → default `:3030` |
+| Sync cadence            | memo-ray ingests on boot + every 30s                                        | opencode/open-notebook entities appear after a sync                                                                          |
+| Module system           | memo-ray = **CommonJS** (`require`); prime-silo server = **ESM** (`import`) | Option A keeps memo-ray a separate process → **no conversion needed**                                                        |
 
 ## Companion-service rails to reuse (the precedent)
 
@@ -90,13 +90,13 @@ memo-ray child service on these:
 
 ## Status
 
-| Phase | What | State | Verified |
-| ----- | ---- | ----- | -------- |
-| 0 | Vendor memo-ray into `prime-silo/memoray/` (server + mcp-server) | ✅ done | vendored server boots from new home; `/api/beta/overview` → 3223 nodes |
-| 1 | Boot memo-ray as a bundled child service (dev + desktop + tray) | ✅ done (live packaged build untested) | `node --check` + eslint clean on memoray_service.js / main.js / tray.js; service resolves vendored entry; `memoray_proxy_test` green; ps1 scripts parse OK |
-| 2 | Make ALL memo-ray screens native prime-silo pages | ✅ done | All 5 screens (lifelog, mission_control, setup, session_graph, **step_through**) **verified in-shell**, earth-tone theme sticks, 0 console errors. Manifest v1.3.0 re-signed, conformance tests green. |
-| 3 | Fold memo-ray MCP server into prime-silo's MCP config | ✅ done | Vendored mcp-server data-path fixed (reads ~/.memoray/data), registered via prime-silo/.mcp.json; smoke-tested (returns live sessions). |
-| 4 | Zero-install bundle (Electron-as-node + extraResources) | ✅ done | `desktop:pack` ships server + 68 deps (sample data excluded); bundled copy boots `200`; build-time dep guard. **Repo-retire decided AGAINST — standalone memo-ray repo kept (intentional vendored fork; may drift).** |
+| Phase | What                                                             | State                                  | Verified                                                                                                                                                                                                              |
+| ----- | ---------------------------------------------------------------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | Vendor memo-ray into `prime-silo/memoray/` (server + mcp-server) | ✅ done                                | vendored server boots from new home; `/api/beta/overview` → 3223 nodes                                                                                                                                                |
+| 1     | Boot memo-ray as a bundled child service (dev + desktop + tray)  | ✅ done (live packaged build untested) | `node --check` + eslint clean on memoray_service.js / main.js / tray.js; service resolves vendored entry; `memoray_proxy_test` green; ps1 scripts parse OK                                                            |
+| 2     | Make ALL memo-ray screens native prime-silo pages                | ✅ done                                | All 5 screens (lifelog, mission_control, setup, session_graph, **step_through**) **verified in-shell**, earth-tone theme sticks, 0 console errors. Manifest v1.3.0 re-signed, conformance tests green.                |
+| 3     | Fold memo-ray MCP server into prime-silo's MCP config            | ✅ done                                | Vendored mcp-server data-path fixed (reads ~/.memoray/data), registered via prime-silo/.mcp.json; smoke-tested (returns live sessions).                                                                               |
+| 4     | Zero-install bundle (Electron-as-node + extraResources)          | ✅ done                                | `desktop:pack` ships server + 68 deps (sample data excluded); bundled copy boots `200`; build-time dep guard. **Repo-retire decided AGAINST — standalone memo-ray repo kept (intentional vendored fork; may drift).** |
 
 > **Phase 1 remaining verification:** run `npm run desktop:pack`, launch `Space Agent.exe`,
 > confirm Memo-Ray auto-starts (Memory page populated), the tray Start/Stop toggle works,
@@ -163,6 +163,7 @@ under the key `mem0ray` / `memory-graph` — keep that key. Its data/config stil
    (express, cors, systeminformation, systray2 if used).
 
 **Verify:**
+
 - Dev: `scripts/dev.ps1` (or `scripts/memoray.ps1`) boots the vendored server; the
   Bridge Pulse / Command Center widgets render live data through the proxy;
   `node space memory status` reports connected.
@@ -172,6 +173,7 @@ under the key `mem0ray` / `memory-graph` — keep that key. Its data/config stil
   its own (Memory page populated) and the tray toggles work; quitting kills the child.
 
 **Gotchas:**
+
 - The proxy needs **no** change — it already resolves the URL from `apps.lock.json`.
 - In a packaged app, `node` may not be on PATH. Spawn via Electron's bundled node
   (`process.execPath` with `ELECTRON_RUN_AS_NODE=1`) the way `runtime_supervisor.js`
@@ -195,7 +197,7 @@ memo-ray screen into three layers, all in the one app:
    proxy at `/api/memoray/*` is the one CORS/policy chokepoint).
 2. **Widget layer (reusable, vanilla):** `widgets/memoray/<name>/index.js` factories
    `createXWidget(host, props, { memorayClient })` returning `{ update, refresh, destroy }`
-   + a sibling `.css`. All DOM + rendering lives here.
+   - a sibling `.css`. All DOM + rendering lives here.
 3. **Page layer (thin Alpine view):** `mod/_prime_silo/<page>/` = `view.html`
    (`x-data="<page>()"`, `x-init`, `x-destroy`) + `<page>.js`
    (`window.<page> = function(){ return { state, init(), destroy(), … } }`) + `<page>.css`,
@@ -205,14 +207,14 @@ memo-ray screen into three layers, all in the one app:
 
 **Screen map (memo-ray React → native prime-silo target):**
 
-| memo-ray screen (client/src) | Native target | Status |
-| --- | --- | --- |
-| `App.jsx` Setup gate + `SetupWizard.jsx` | `mod/_prime_silo/setup/` page over `/setup/*` | ✅ Phase 2c |
-| `BetaDashboard.jsx` "Mission Control" (landing) | `mod/_prime_silo/mission_control/` (reuses `overview_cards` + `heatmap_radar` + omnibar, live sync) | ✅ Phase 2b landing |
-| `BetaDashboard.jsx` step-through *player* (playback / gamepad / narrator / diff / current-step graph) | `mod/_prime_silo/step_through/` (reuses `lineage_graph`; highlights current node via `data-node-id`) | ✅ done |
-| `AgentLifelog.jsx` + `HeatmapRadar.jsx` | `mod/_prime_silo/lifelog/` + `widgets/memoray/heatmap_radar/` | ✅ Phase 2a |
-| `UnifiedDashboard.jsx` + `OrganicGraph.jsx` "Session Graph" | standalone `mod/_prime_silo/session_graph/` (reuses `lineage_graph`) | ✅ Phase 2d |
-| `OverviewGrid.jsx` | already ported → `widgets/memoray/overview_cards` | ✅ pre-existing |
+| memo-ray screen (client/src)                                                                          | Native target                                                                                        | Status              |
+| ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------- |
+| `App.jsx` Setup gate + `SetupWizard.jsx`                                                              | `mod/_prime_silo/setup/` page over `/setup/*`                                                        | ✅ Phase 2c         |
+| `BetaDashboard.jsx` "Mission Control" (landing)                                                       | `mod/_prime_silo/mission_control/` (reuses `overview_cards` + `heatmap_radar` + omnibar, live sync)  | ✅ Phase 2b landing |
+| `BetaDashboard.jsx` step-through _player_ (playback / gamepad / narrator / diff / current-step graph) | `mod/_prime_silo/step_through/` (reuses `lineage_graph`; highlights current node via `data-node-id`) | ✅ done             |
+| `AgentLifelog.jsx` + `HeatmapRadar.jsx`                                                               | `mod/_prime_silo/lifelog/` + `widgets/memoray/heatmap_radar/`                                        | ✅ Phase 2a         |
+| `UnifiedDashboard.jsx` + `OrganicGraph.jsx` "Session Graph"                                           | standalone `mod/_prime_silo/session_graph/` (reuses `lineage_graph`)                                 | ✅ Phase 2d         |
+| `OverviewGrid.jsx`                                                                                    | already ported → `widgets/memoray/overview_cards`                                                    | ✅ pre-existing     |
 
 **Theme (owner directive):** the memo-ray palette (earth tones; dyslexia/ADHD-friendly
 muted contrast, roomy line-height; Anthropic restraint) was being washed out by the
@@ -265,7 +267,7 @@ toggle → linear SVG, highlight tracks in both, 0 console errors. (Backward-com
 audit timeout; memo-ray is up.
 
 **Headless verify gotchas:** (1) the shell gates every page behind `/enter` — set
-`sessionStorage['space.enter.tab-access']='1'` *on the served origin* then navigate.
+`sessionStorage['space.enter.tab-access']='1'` _on the served origin_ then navigate.
 (2) `node space serve` resolves its own PORT via the registry and will bump off a taken
 port (e.g. 3000→3020), so the preview's assigned proxy port may not match — read the
 "listening at …" line (preview_logs) and drive the browser at the actual port.
@@ -380,7 +382,7 @@ node space memory audit
   `server/`) is unchanged by this merge — see `OPEN-STUDIO.md` for how to add a new
   audited agent.
 - Each memo-ray parser keeps its **own** copies of `saveEntity/loadIndex/hash/
-  updateParentChild` — match that; don't refactor into a shared module unless asked.
+updateParentChild` — match that; don't refactor into a shared module unless asked.
 - Re-sign `memoray.integration.json` after any `process_map` edit, or the conformance
   audit fails.
 - Private running notes live in the author's memory files (`project_open_studio_*`,

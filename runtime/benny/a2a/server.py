@@ -10,13 +10,11 @@ Endpoints:
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from datetime import datetime
 from typing import Dict
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
-from fastapi.responses import StreamingResponse
 
 from .models import (
     A2AArtifact,

@@ -158,7 +158,7 @@ async def eval_triples(request: EvalTriplesRequest):
 async def ingest_files(request: IngestRequest):
     """Ingest files from data_in into ChromaDB using structured extraction (Docling)."""
     run_id = request.run_id or str(uuid.uuid4())
-    task = task_manager.create_task(request.workspace, "rag_ingest", task_id=run_id)
+    task_manager.create_task(request.workspace, "rag_ingest", task_id=run_id)
 
     try:
         track_workflow_start(run_id, "rag_ingest", request.workspace, inputs=request.files or [])
@@ -417,7 +417,7 @@ async def ingest_files(request: IngestRequest):
                                     summary_prompt, run_id=run_id, workspace=request.workspace
                                 )
 
-                                wiki_file = await save_concept_article(
+                                await save_concept_article(
                                     workspace=request.workspace,
                                     concept_name=primary_concept,
                                     summary=summary,

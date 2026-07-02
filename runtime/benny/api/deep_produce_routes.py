@@ -40,7 +40,7 @@ async def _run_and_record(
         await deep_produce(
             goal=goal, workspace=workspace, model=model, panel_count=panels, run_id=run_id
         )
-    except Exception as exc:  # deep_produce already marks the run FAILED
+    except Exception:  # deep_produce already marks the run FAILED
         logger.exception("deep-produce run failed: %s", run_id)
 
 

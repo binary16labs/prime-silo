@@ -2,7 +2,7 @@
 
 /**
  * Prime-Silo Workflow Orchestrator
- * 
+ *
  * Supports:
  *   1. Ingestion: Convert and ingest files from staging directory.
  *   2. Test Lemonade: Run pypes model-bench on active NPU models in Lemonade.
@@ -10,30 +10,30 @@
  *   4. Sequenced Run: Executes all of the above in sequence.
  */
 
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { spawn, execSync } from 'child_process';
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import { spawn, execSync } from "child_process";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const projectRoot = path.resolve(__dirname, '..');
+const projectRoot = path.resolve(__dirname, "..");
 
 // Load environment config from .env if present, allowing process.env overrides
 function loadEnv() {
-  const envPath = path.join(projectRoot, '.env');
+  const envPath = path.join(projectRoot, ".env");
   const fileConfig = {};
 
   if (fs.existsSync(envPath)) {
-    const content = fs.readFileSync(envPath, 'utf8');
-    for (const line of content.split('\n')) {
+    const content = fs.readFileSync(envPath, "utf8");
+    for (const line of content.split("\n")) {
       const trimmed = line.trim();
-      if (trimmed && !trimmed.startsWith('#')) {
-        const parts = trimmed.split('=');
+      if (trimmed && !trimmed.startsWith("#")) {
+        const parts = trimmed.split("=");
         if (parts.length >= 2) {
           const key = parts[0].trim();
-          let value = parts.slice(1).join('=').trim();
-          value = value.replace(/^['"]|['"]$/g, ''); // strip quotes
+          let value = parts.slice(1).join("=").trim();
+          value = value.replace(/^['"]|['"]$/g, ""); // strip quotes
           fileConfig[key] = value;
         }
       }
@@ -41,10 +41,11 @@ function loadEnv() {
   }
 
   const config = {
-    PORT: process.env.PORT || fileConfig.PORT || '3020',
-    BENNY_HOME: process.env.BENNY_HOME || fileConfig.BENNY_HOME || '.benny_home',
-    RUNTIME_BASE_URL: process.env.RUNTIME_BASE_URL || fileConfig.RUNTIME_BASE_URL || 'http://127.0.0.1:8005',
-    BENNY_API_KEY: process.env.BENNY_API_KEY || fileConfig.BENNY_API_KEY || 'benny-mesh-2026-auth'
+    PORT: process.env.PORT || fileConfig.PORT || "3020",
+    BENNY_HOME: process.env.BENNY_HOME || fileConfig.BENNY_HOME || ".benny_home",
+    RUNTIME_BASE_URL:
+      process.env.RUNTIME_BASE_URL || fileConfig.RUNTIME_BASE_URL || "http://127.0.0.1:8005",
+    BENNY_API_KEY: process.env.BENNY_API_KEY || fileConfig.BENNY_API_KEY || "benny-mesh-2026-auth"
   };
 
   // Resolve absolute path for BENNY_HOME
@@ -67,7 +68,7 @@ async function assertRuntimeOnline() {
   try {
     const url = `${env.RUNTIME_BASE_URL}/api/health`;
     const res = await fetch(url, {
-      headers: { 'X-Benny-API-Key': apiKey }
+      headers: { "X-Benny-API-Key": apiKey }
     });
     if (res.status === 200) {
       return true;
@@ -91,9 +92,9 @@ async function createWorkspace(workspaceId) {
   console.log(`Checking/Creating workspace: "${workspaceId}"...`);
   try {
     const res = await fetch(`${apiBase}/workspaces/${workspaceId}`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'X-Benny-API-Key': apiKey
+        "X-Benny-API-Key": apiKey
       }
     });
 
@@ -117,9 +118,9 @@ async function runIngestion(workspace, deepSynthesis = false) {
   console.log(`WORKFLOW 1: Ingesting files from staging in "${workspace}"`);
   console.log(`======================================================`);
 
-  const stagingDir = path.join(bennyHome, 'workspaces', workspace, 'staging');
-  const dataInDir = path.join(bennyHome, 'workspaces', workspace, 'data_in');
-  const archiveDir = path.join(stagingDir, 'archive');
+  const stagingDir = path.join(bennyHome, "workspaces", workspace, "staging");
+  const dataInDir = path.join(bennyHome, "workspaces", workspace, "data_in");
+  const archiveDir = path.join(stagingDir, "archive");
 
   // Auto-init workspace if directory structure is missing
   if (!fs.existsSync(stagingDir)) {
@@ -131,7 +132,7 @@ async function runIngestion(workspace, deepSynthesis = false) {
     return;
   }
 
-  const files = fs.readdirSync(stagingDir).filter(f => {
+  const files = fs.readdirSync(stagingDir).filter((f) => {
     const filePath = path.join(stagingDir, f);
     return fs.statSync(filePath).isFile();
   });
@@ -143,7 +144,7 @@ async function runIngestion(workspace, deepSynthesis = false) {
   }
 
   console.log(`Found ${files.length} raw file(s) for ingestion:`, files);
-  
+
   if (!fs.existsSync(archiveDir)) {
     fs.mkdirSync(archiveDir, { recursive: true });
   }
@@ -154,21 +155,26 @@ async function runIngestion(workspace, deepSynthesis = false) {
     try {
       // 1. Stage and convert using API
       const fileBuffer = fs.readFileSync(filePath);
-      const blob = new Blob([fileBuffer], { type: 'application/octet-stream' });
+      const blob = new Blob([fileBuffer], { type: "application/octet-stream" });
       const formData = new FormData();
-      formData.append('file', blob, filename);
+      formData.append("file", blob, filename);
 
       console.log(`  Converting raw format to markdown via Docling...`);
-      const convertRes = await fetch(`${env.RUNTIME_BASE_URL}/api/etl/stage-and-convert?workspace=${workspace}`, {
-        method: 'POST',
-        headers: {
-          'X-Benny-API-Key': apiKey
-        },
-        body: formData
-      });
+      const convertRes = await fetch(
+        `${env.RUNTIME_BASE_URL}/api/etl/stage-and-convert?workspace=${workspace}`,
+        {
+          method: "POST",
+          headers: {
+            "X-Benny-API-Key": apiKey
+          },
+          body: formData
+        }
+      );
 
       if (!convertRes.ok) {
-        throw new Error(`ETL stage-and-convert failed: ${convertRes.statusText} (${await convertRes.text()})`);
+        throw new Error(
+          `ETL stage-and-convert failed: ${convertRes.statusText} (${await convertRes.text()})`
+        );
       }
 
       const convertData = await convertRes.json();
@@ -187,16 +193,18 @@ async function runIngestion(workspace, deepSynthesis = false) {
   console.log(`\nTriggering ChromaDB RAG Ingestion for workspace "${workspace}"...`);
   try {
     const ingestRes = await fetch(`${apiBase}/rag/ingest`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'X-Benny-API-Key': apiKey,
-        'Content-Type': 'application/json'
+        "X-Benny-API-Key": apiKey,
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({ workspace, deep_synthesis: deepSynthesis })
     });
 
     if (!ingestRes.ok) {
-      throw new Error(`RAG Ingest request failed: ${ingestRes.statusText} (${await ingestRes.text()})`);
+      throw new Error(
+        `RAG Ingest request failed: ${ingestRes.statusText} (${await ingestRes.text()})`
+      );
     }
 
     const ingestData = await ingestRes.json();
@@ -207,40 +215,50 @@ async function runIngestion(workspace, deepSynthesis = false) {
     let isCompleted = false;
     let seenAerCount = 0;
     while (!isCompleted) {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
       try {
         const taskRes = await fetch(`${apiBase}/tasks/${runId}`, {
-          headers: { 'X-Benny-API-Key': apiKey }
+          headers: { "X-Benny-API-Key": apiKey }
         });
         if (!taskRes.ok) continue;
-        
+
         const taskData = await taskRes.json();
-        
+
         // Print any new Agent Execution Record (AER) logs
         const aerLog = taskData.aer_log || [];
         for (let i = seenAerCount; i < aerLog.length; i++) {
           const entry = aerLog[i];
           // Clear current line before printing AER so it doesn't overlap with progress
-          process.stdout.write('\\r\\x1b[K');
-          console.log(`    [AER] ${entry.intent || 'Event'}: ${entry.observation || ''}`);
+          process.stdout.write("\\r\\x1b[K");
+          console.log(`    [AER] ${entry.intent || "Event"}: ${entry.observation || ""}`);
         }
         seenAerCount = aerLog.length;
 
         // Print progress indicator on a single line
-        const stepInfo = taskData.total_steps > 0 ? `${taskData.current_step}/${taskData.total_steps} steps` : `Preparing`;
-        process.stdout.write(`\\r    Progress: ${stepInfo} (${taskData.progress}%) [${taskData.status.toUpperCase()}] - ${taskData.message || ''}\\x1b[K`);
-        
-        if (['completed', 'failed', 'completed_with_errors'].includes(taskData.status)) {
+        const stepInfo =
+          taskData.total_steps > 0
+            ? `${taskData.current_step}/${taskData.total_steps} steps`
+            : `Preparing`;
+        process.stdout.write(
+          `\\r    Progress: ${stepInfo} (${taskData.progress}%) [${taskData.status.toUpperCase()}] - ${taskData.message || ""}\\x1b[K`
+        );
+
+        if (["completed", "failed", "completed_with_errors"].includes(taskData.status)) {
           isCompleted = true;
-          console.log(`\\n  ✓ Ingestion job finished with status: ${taskData.status.toUpperCase()}`);
-          
+          console.log(
+            `\\n  ✓ Ingestion job finished with status: ${taskData.status.toUpperCase()}`
+          );
+
           // Save ingestion report for unified metrics
-          const wsPath = path.join(bennyHome, 'workspaces', workspace);
-          const reportsDir = path.join(wsPath, 'reports');
+          const wsPath = path.join(bennyHome, "workspaces", workspace);
+          const reportsDir = path.join(wsPath, "reports");
           fs.mkdirSync(reportsDir, { recursive: true });
-          fs.writeFileSync(path.join(reportsDir, 'ingest_report.json'), JSON.stringify(taskData, null, 2));
+          fs.writeFileSync(
+            path.join(reportsDir, "ingest_report.json"),
+            JSON.stringify(taskData, null, 2)
+          );
         }
-      } catch(e) {
+      } catch (e) {
         // Ignore fetch errors during polling, backend might be busy
       }
     }
@@ -256,24 +274,24 @@ function runModelBench(specPath, workspace, reportPath) {
   return new Promise((resolve, reject) => {
     console.log(`Executing model-bench comparison command...`);
     const args = [
-      path.join(projectRoot, 'runtime', 'benny_cli.py'),
-      'pypes',
-      'model-bench',
+      path.join(projectRoot, "runtime", "benny_cli.py"),
+      "pypes",
+      "model-bench",
       specPath,
-      '--workspace',
+      "--workspace",
       workspace
     ];
 
     if (reportPath) {
-      args.push('--save-report', reportPath);
+      args.push("--save-report", reportPath);
     }
 
-    const proc = spawn('python', args, {
+    const proc = spawn("python", args, {
       cwd: projectRoot,
-      stdio: 'inherit'
+      stdio: "inherit"
     });
 
-    proc.on('close', (code) => {
+    proc.on("close", (code) => {
       if (code === 0) {
         resolve();
       } else {
@@ -291,7 +309,7 @@ async function runLemonadeTest(workspaceOverride) {
   console.log(`WORKFLOW 2: Testing Lemonade NPU Models`);
   console.log(`======================================================`);
 
-  const lemonadeUrl = 'http://127.0.0.1:13305/api/v1/models';
+  const lemonadeUrl = "http://127.0.0.1:13305/api/v1/models";
   console.log(`Probing Lemonade server at: http://127.0.0.1:13305...`);
 
   let models = [];
@@ -309,16 +327,14 @@ async function runLemonadeTest(workspaceOverride) {
   }
 
   const targetScopes = [
-    'DeepSeek-Qwen3-8B-GGUF', 
-    'Qwen3-8B-Hybrid', 
-    'qwen3.5-9b-FLM', 
-    'qwen3-tk-4b-FLM'
+    "DeepSeek-Qwen3-8B-GGUF",
+    "Qwen3-8B-Hybrid",
+    "qwen3.5-9b-FLM",
+    "qwen3-tk-4b-FLM"
   ];
 
   // Filter discovered models against the requested test scope
-  const filteredModels = models.filter(m => 
-    targetScopes.some(target => m.id.includes(target))
-  );
+  const filteredModels = models.filter((m) => targetScopes.some((target) => m.id.includes(target)));
 
   if (filteredModels.length === 0) {
     console.warn(`Lemonade is running, but none of the targeted models are available.`);
@@ -333,9 +349,9 @@ async function runLemonadeTest(workspaceOverride) {
   for (const model of filteredModels) {
     const rawId = model.id;
     // Strip slashes and special chars for workspace safety
-    const cleanId = rawId.replace(/[^a-zA-Z0-9_\-]/g, '_').toLowerCase();
+    const cleanId = rawId.replace(/[^a-zA-Z0-9_\-]/g, "_").toLowerCase();
     const wsName = workspaceOverride || `ws_lemonade_${cleanId}`;
-    
+
     console.log(`\n--- Benchmarking Model: "${rawId}" in Workspace: "${wsName}" ---`);
 
     // Create workspace
@@ -343,13 +359,14 @@ async function runLemonadeTest(workspaceOverride) {
 
     // Build spec JSON
     const spec = {
-      schema_version: '1.0',
-      kind: 'pypes_model_comparison',
+      schema_version: "1.0",
+      kind: "pypes_model_comparison",
       id: `compare-lemonade-${cleanId}`,
       name: `Lemonade NPU Benchmark: ${rawId}`,
-      task: 'plan',
+      task: "plan",
       workspace: wsName,
-      requirement: 'Build a data pipeline that loads sales CSV, normalises currency to USD, filters out rows where quantity < 1, and saves a Gold aggregated report of total revenue by region.',
+      requirement:
+        "Build a data pipeline that loads sales CSV, normalises currency to USD, filters out rows where quantity < 1, and saves a Gold aggregated report of total revenue by region.",
       models: [
         {
           label: cleanId.substring(0, 15),
@@ -359,7 +376,7 @@ async function runLemonadeTest(workspaceOverride) {
         }
       ],
       repeats: 1,
-      rubric_required_ops: ['load', 'filter', 'calc', 'aggregate'],
+      rubric_required_ops: ["load", "filter", "calc", "aggregate"],
       rubric_min_steps: 4,
       rubric_min_gold_steps: 1,
       judge: {
@@ -367,20 +384,24 @@ async function runLemonadeTest(workspaceOverride) {
       }
     };
 
-    const wsPath = path.join(bennyHome, 'workspaces', wsName);
-    const specDir = path.join(wsPath, 'manifests', 'templates');
+    const wsPath = path.join(bennyHome, "workspaces", wsName);
+    const specDir = path.join(wsPath, "manifests", "templates");
     fs.mkdirSync(specDir, { recursive: true });
 
-    const specPath = path.join(specDir, 'model_compare_spec.json');
-    fs.writeFileSync(specPath, JSON.stringify(spec, null, 2), 'utf8');
-    console.log(`  ✓ Generated comparison spec at: workspaces/${wsName}/manifests/templates/model_compare_spec.json`);
+    const specPath = path.join(specDir, "model_compare_spec.json");
+    fs.writeFileSync(specPath, JSON.stringify(spec, null, 2), "utf8");
+    console.log(
+      `  ✓ Generated comparison spec at: workspaces/${wsName}/manifests/templates/model_compare_spec.json`
+    );
 
-    const reportPath = path.join(wsPath, 'reports', `npu_benchmark_${cleanId}.md`);
-    
+    const reportPath = path.join(wsPath, "reports", `npu_benchmark_${cleanId}.md`);
+
     try {
       await runModelBench(specPath, wsName, reportPath);
       console.log(`  ✓ Benchmark run complete for ${rawId}.`);
-      console.log(`  ✓ Saved Markdown scorecard to: workspaces/${wsName}/reports/npu_benchmark_${cleanId}.md`);
+      console.log(
+        `  ✓ Saved Markdown scorecard to: workspaces/${wsName}/reports/npu_benchmark_${cleanId}.md`
+      );
     } catch (err) {
       console.error(`  ✗ Benchmark run failed for model ${rawId}:`, err.message);
     }
@@ -395,7 +416,7 @@ async function runLMStudioTest(workspaceOverride) {
   console.log(`WORKFLOW 3: Testing LM-Studio Models`);
   console.log(`======================================================`);
 
-  const lmStudioUrl = 'http://127.0.0.1:1234/v1/models';
+  const lmStudioUrl = "http://127.0.0.1:1234/v1/models";
   console.log(`Probing LM-Studio server at: http://127.0.0.1:1234...`);
 
   let models = [];
@@ -408,7 +429,9 @@ async function runLMStudioTest(workspaceOverride) {
     models = data.data || [];
   } catch (err) {
     console.error(`ERROR: LM-Studio server is offline or unreachable at ${lmStudioUrl}`);
-    console.error(`Please launch LM-Studio, load your model, and enable "Local Server" on port 1234.`);
+    console.error(
+      `Please launch LM-Studio, load your model, and enable "Local Server" on port 1234.`
+    );
     return;
   }
 
@@ -424,9 +447,9 @@ async function runLMStudioTest(workspaceOverride) {
 
   for (const model of models) {
     const rawId = model.id;
-    const cleanId = rawId.replace(/[^a-zA-Z0-9_\-]/g, '_').toLowerCase();
+    const cleanId = rawId.replace(/[^a-zA-Z0-9_\-]/g, "_").toLowerCase();
     const wsName = workspaceOverride || `ws_lmstudio_${cleanId}`;
-    
+
     console.log(`\n--- Benchmarking Model: "${rawId}" in Workspace: "${wsName}" ---`);
 
     // Create workspace
@@ -434,13 +457,14 @@ async function runLMStudioTest(workspaceOverride) {
 
     // Build spec JSON
     const spec = {
-      schema_version: '1.0',
-      kind: 'pypes_model_comparison',
+      schema_version: "1.0",
+      kind: "pypes_model_comparison",
       id: `compare-lmstudio-${cleanId}`,
       name: `LM-Studio Benchmark: ${rawId}`,
-      task: 'plan',
+      task: "plan",
       workspace: wsName,
-      requirement: 'Build a data pipeline that loads sales CSV, normalises currency to USD, filters out rows where quantity < 1, and saves a Gold aggregated report of total revenue by region.',
+      requirement:
+        "Build a data pipeline that loads sales CSV, normalises currency to USD, filters out rows where quantity < 1, and saves a Gold aggregated report of total revenue by region.",
       models: [
         {
           label: cleanId.substring(0, 15),
@@ -450,7 +474,7 @@ async function runLMStudioTest(workspaceOverride) {
         }
       ],
       repeats: 1,
-      rubric_required_ops: ['load', 'filter', 'calc', 'aggregate'],
+      rubric_required_ops: ["load", "filter", "calc", "aggregate"],
       rubric_min_steps: 4,
       rubric_min_gold_steps: 1,
       judge: {
@@ -458,20 +482,24 @@ async function runLMStudioTest(workspaceOverride) {
       }
     };
 
-    const wsPath = path.join(bennyHome, 'workspaces', wsName);
-    const specDir = path.join(wsPath, 'manifests', 'templates');
+    const wsPath = path.join(bennyHome, "workspaces", wsName);
+    const specDir = path.join(wsPath, "manifests", "templates");
     fs.mkdirSync(specDir, { recursive: true });
 
-    const specPath = path.join(specDir, 'model_compare_spec.json');
-    fs.writeFileSync(specPath, JSON.stringify(spec, null, 2), 'utf8');
-    console.log(`  ✓ Generated comparison spec at: workspaces/${wsName}/manifests/templates/model_compare_spec.json`);
+    const specPath = path.join(specDir, "model_compare_spec.json");
+    fs.writeFileSync(specPath, JSON.stringify(spec, null, 2), "utf8");
+    console.log(
+      `  ✓ Generated comparison spec at: workspaces/${wsName}/manifests/templates/model_compare_spec.json`
+    );
 
-    const reportPath = path.join(wsPath, 'reports', `lmstudio_benchmark_${cleanId}.md`);
-    
+    const reportPath = path.join(wsPath, "reports", `lmstudio_benchmark_${cleanId}.md`);
+
     try {
       await runModelBench(specPath, wsName, reportPath);
       console.log(`  ✓ Benchmark run complete for ${rawId}.`);
-      console.log(`  ✓ Saved Markdown scorecard to: workspaces/${wsName}/reports/lmstudio_benchmark_${cleanId}.md`);
+      console.log(
+        `  ✓ Saved Markdown scorecard to: workspaces/${wsName}/reports/lmstudio_benchmark_${cleanId}.md`
+      );
     } catch (err) {
       console.error(`  ✗ Benchmark run failed for model ${rawId}:`, err.message);
     }
@@ -511,11 +539,11 @@ async function generateReport(workspace) {
   const reports = [];
 
   // 1. Ingestion Metrics
-  const wsPath = path.join(bennyHome, 'workspaces', workspace);
-  const ingestReportPath = path.join(wsPath, 'reports', 'ingest_report.json');
+  const wsPath = path.join(bennyHome, "workspaces", workspace);
+  const ingestReportPath = path.join(wsPath, "reports", "ingest_report.json");
   if (fs.existsSync(ingestReportPath)) {
     try {
-      const taskData = JSON.parse(fs.readFileSync(ingestReportPath, 'utf8'));
+      const taskData = JSON.parse(fs.readFileSync(ingestReportPath, "utf8"));
       let elapsedStr = "N/A";
       if (taskData.created_at && taskData.updated_at) {
         const start = new Date(taskData.created_at);
@@ -523,15 +551,15 @@ async function generateReport(workspace) {
         elapsedStr = ((end - start) / 1000).toFixed(1) + "s";
       }
       reports.push({
-        workflow: 'Ingestion',
-        model: 'Various (LLM/Embed)',
+        workflow: "Ingestion",
+        model: "Various (LLM/Embed)",
         status: taskData.status,
         elapsed: elapsedStr,
-        prompt_tokens: 'N/A',
-        completion_tokens: 'N/A',
-        cost: 'N/A',
-        cpu_mean: 'N/A',
-        rss_peak: 'N/A',
+        prompt_tokens: "N/A",
+        completion_tokens: "N/A",
+        cost: "N/A",
+        cpu_mean: "N/A",
+        rss_peak: "N/A",
         graph_metrics: taskData.metadata?.graph_metrics || null
       });
     } catch (err) {
@@ -540,19 +568,19 @@ async function generateReport(workspace) {
   }
 
   // 2. Model Benchmarks
-  const runsDir = path.join(bennyHome, 'runs', 'model-compare');
+  const runsDir = path.join(bennyHome, "runs", "model-compare");
   if (fs.existsSync(runsDir)) {
     const runDirs = fs.readdirSync(runsDir);
     for (const runDir of runDirs) {
-      const resultsPath = path.join(runsDir, runDir, 'results.json');
+      const resultsPath = path.join(runsDir, runDir, "results.json");
       if (fs.existsSync(resultsPath)) {
         try {
-          const resultData = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
+          const resultData = JSON.parse(fs.readFileSync(resultsPath, "utf8"));
           if (resultData.workspace === workspace || runDir.includes(workspace)) {
             const bestPerModel = resultData.best_per_model || [];
             for (const t of bestPerModel) {
               reports.push({
-                workflow: resultData.name || 'Model Bench',
+                workflow: resultData.name || "Model Bench",
                 model: t.model_id || t.label,
                 status: t.status,
                 elapsed: t.wall_seconds ? t.wall_seconds.toFixed(1) + "s" : "N/A",
@@ -572,7 +600,9 @@ async function generateReport(workspace) {
   }
 
   if (reports.length === 0) {
-    console.log(`No metrics found for workspace "${workspace}". Run ingest or test workflows first.`);
+    console.log(
+      `No metrics found for workspace "${workspace}". Run ingest or test workflows first.`
+    );
     return;
   }
 
@@ -582,16 +612,18 @@ async function generateReport(workspace) {
     `|----------|-------|--------|---------|-------------|-----------|-----------|----------|----------|`
   ];
   for (const r of reports) {
-    mdTable.push(`| ${r.workflow} | ${r.model} | ${r.status} | ${r.elapsed} | ${r.prompt_tokens} | ${r.completion_tokens} | ${r.cost} | ${r.cpu_mean} | ${r.rss_peak} |`);
+    mdTable.push(
+      `| ${r.workflow} | ${r.model} | ${r.status} | ${r.elapsed} | ${r.prompt_tokens} | ${r.completion_tokens} | ${r.cost} | ${r.cpu_mean} | ${r.rss_peak} |`
+    );
   }
 
-  let mdReport = `# Consolidated Metrics Report: ${workspace}\n\n${mdTable.join('\\n')}\n`;
-  
+  let mdReport = `# Consolidated Metrics Report: ${workspace}\n\n${mdTable.join("\\n")}\n`;
+
   // Print to console
-  console.log(`\n` + mdTable.join('\n'));
+  console.log(`\n` + mdTable.join("\n"));
 
   // Graph Metrics Table
-  const graphReports = reports.filter(r => r.graph_metrics);
+  const graphReports = reports.filter((r) => r.graph_metrics);
   if (graphReports.length > 0) {
     const gTable = [
       `\n## Graph Telemetry`,
@@ -599,19 +631,23 @@ async function generateReport(workspace) {
       `|----------|---------|----------------|------------|-------------|`
     ];
     for (const r of graphReports) {
-      gTable.push(`| ${r.workflow} | ${r.graph_metrics.triples} | ${r.graph_metrics.confidence.toFixed(2)} | ${r.graph_metrics.safe_links} | ${r.graph_metrics.clusters} |`);
+      gTable.push(
+        `| ${r.workflow} | ${r.graph_metrics.triples} | ${r.graph_metrics.confidence.toFixed(2)} | ${r.graph_metrics.safe_links} | ${r.graph_metrics.clusters} |`
+      );
     }
-    mdReport += gTable.join('\\n') + '\\n';
-    console.log(gTable.join('\n'));
+    mdReport += gTable.join("\\n") + "\\n";
+    console.log(gTable.join("\n"));
   }
-  
+
   console.log();
 
   // Save to file
-  const consolidatedPath = path.join(wsPath, 'reports', 'consolidated_workflow_report.md');
-  fs.mkdirSync(path.join(wsPath, 'reports'), { recursive: true });
-  fs.writeFileSync(consolidatedPath, mdReport, 'utf8');
-  console.log(`  ✓ Saved consolidated report to: workspaces/${workspace}/reports/consolidated_workflow_report.md`);
+  const consolidatedPath = path.join(wsPath, "reports", "consolidated_workflow_report.md");
+  fs.mkdirSync(path.join(wsPath, "reports"), { recursive: true });
+  fs.writeFileSync(consolidatedPath, mdReport, "utf8");
+  console.log(
+    `  ✓ Saved consolidated report to: workspaces/${workspace}/reports/consolidated_workflow_report.md`
+  );
 }
 
 /**
@@ -631,21 +667,23 @@ The Mem-Ray controller governs this eviction process to prevent thrashing.
 `;
 
   const modelsToTest = [
-    'lemonade/DeepSeek-Qwen3-8B-GGUF',
-    'lemonade/Qwen3-8B-Hybrid',
-    'lemonade/qwen3.5-9b-FLM',
-    'lemonade/qwen3-tk-4b-FLM'
+    "lemonade/DeepSeek-Qwen3-8B-GGUF",
+    "lemonade/Qwen3-8B-Hybrid",
+    "lemonade/qwen3.5-9b-FLM",
+    "lemonade/qwen3-tk-4b-FLM"
   ];
 
-  console.log(`Evaluating triples extraction across ${modelsToTest.length} targeted Lemonade models...`);
+  console.log(
+    `Evaluating triples extraction across ${modelsToTest.length} targeted Lemonade models...`
+  );
   console.log(`Target Text Length: ${evalText.length} characters`);
 
   for (const model of modelsToTest) {
     console.log(`\n[ Evaluating Model: ${model} ]`);
     try {
       const res = await fetch(`${BENNY_URL}/api/rag/eval-triples`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text: evalText,
           workspace,
@@ -661,21 +699,25 @@ The Mem-Ray controller governs this eviction process to prevent thrashing.
       const data = await res.json();
       console.log(`  ✓ Extracted ${data.triples_count} triples in ${data.elapsed_seconds}s`);
       console.log(`  ✓ Avg Confidence: ${data.avg_confidence}`);
-      
+
       if (data.judge_score) {
-        console.log(`  ✓ Judge Score - Precision: ${data.judge_score.precision}, Recall: ${data.judge_score.recall}`);
+        console.log(
+          `  ✓ Judge Score - Precision: ${data.judge_score.precision}, Recall: ${data.judge_score.recall}`
+        );
       } else {
         console.log(`  ⚠ Judge Score unavailable (Judge model might be offline)`);
       }
-      
+
       if (data.triples && data.triples.length > 0) {
-        console.log(`  Sample: [${data.triples[0].subject}] -(${data.triples[0].predicate})-> [${data.triples[0].object}]`);
+        console.log(
+          `  Sample: [${data.triples[0].subject}] -(${data.triples[0].predicate})-> [${data.triples[0].object}]`
+        );
       }
     } catch (err) {
       console.log(`  ✗ Error testing model: ${err.message}`);
     }
   }
-  
+
   console.log(`\nTriples evaluation benchmark complete!`);
 }
 
@@ -685,9 +727,9 @@ The Mem-Ray controller governs this eviction process to prevent thrashing.
 async function main() {
   const args = process.argv.slice(2);
   const command = args[0];
-  const workspaceArg = args[1] || 'default';
+  const workspaceArg = args[1] || "default";
 
-  if (!command || command === 'help' || command === '--help' || command === '-h') {
+  if (!command || command === "help" || command === "--help" || command === "-h") {
     printHelp();
     process.exit(0);
   }
@@ -696,28 +738,28 @@ async function main() {
   await assertRuntimeOnline();
 
   // Check if --deep flag is present in any argument
-  const runDeep = args.includes('--deep');
-  
+  const runDeep = args.includes("--deep");
+
   // Clean workspaceArg if it was accidentally --deep
-  const workspace = (workspaceArg === '--deep') ? 'default' : workspaceArg;
+  const workspace = workspaceArg === "--deep" ? "default" : workspaceArg;
 
   switch (command) {
-    case 'ingest':
+    case "ingest":
       await runIngestion(workspace, runDeep);
       break;
-    case 'test-lemonade':
+    case "test-lemonade":
       await runLemonadeTest();
       break;
-    case 'test-lmstudio':
+    case "test-lmstudio":
       await runLMStudioTest();
       break;
-    case 'triples-eval':
+    case "triples-eval":
       await runTriplesEval(workspace);
       break;
-    case 'report':
+    case "report":
       await generateReport(workspace);
       break;
-    case 'all':
+    case "all":
       console.log(`Starting sequenced run of all workflows...`);
       await runIngestion(workspace, runDeep);
       await runLemonadeTest();
@@ -732,7 +774,7 @@ async function main() {
   }
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error("Fatal workflow orchestrator error:", err);
   process.exit(1);
 });

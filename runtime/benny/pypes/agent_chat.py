@@ -27,15 +27,13 @@ import asyncio
 import json
 import logging
 import os
-import sys
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from rich.console import Console
 from rich.panel import Panel
-from rich.rule import Rule
 from rich.table import Table
 
 from .agent_report import RiskAnalystAgent, _collect_facts, _load_run_manifest

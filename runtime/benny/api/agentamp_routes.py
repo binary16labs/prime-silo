@@ -55,11 +55,10 @@ from ..agentamp.equalizer import (
     EqWriteResult,
     apply_eq_write,
 )
-from ..agentamp.layout import SNAP_ZONES, LayoutResult, apply_layout
+from ..agentamp.layout import LayoutResult, apply_layout
 from ..agentamp.playlist import PlaylistEntry, get_playlist
 from ..agentamp.user_state import (
     CockpitUserState,
-    CockpitWindowPosition,
     load_user_state,
     save_user_state,
 )
@@ -265,7 +264,6 @@ async def enqueue_run(
     run_store.save_run(pending)
 
     async def _run(m: SwarmManifest, rid: str) -> None:
-        from ..core.manifest import RunStatus
 
         try:
             await execute_manifest(m, run_id=rid)

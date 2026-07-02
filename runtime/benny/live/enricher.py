@@ -33,7 +33,6 @@ from benny.core.workspace import get_workspace_path, load_manifest
 from benny.governance.lineage import (
     track_tool_execution,
     track_workflow_complete,
-    track_workflow_fail,
     track_workflow_start,
 )
 from benny.live.connector import get_connector, list_connectors
@@ -74,9 +73,7 @@ async def run_enrichment(
         run_id
     """
     run_id = run_id or str(uuid.uuid4())
-    task = task_manager.create_task(
-        workspace=workspace, task_type="live_enrichment", task_id=run_id
-    )
+    task_manager.create_task(workspace=workspace, task_type="live_enrichment", task_id=run_id)
 
     # Register SSE queue before any async work
     _live_events[run_id] = asyncio.Queue(maxsize=500)
@@ -266,15 +263,14 @@ async def run_enrichment(
         ),
     )
 
-    db_result: Dict[str, Any] = {}
     try:
         if all_triples:
-            db_result = batch_add_triples(
+            batch_add_triples(
                 all_triples, workspace=workspace, source_name="live_enrichment", run_id=run_id
             )
     except Exception as e:
         logger.error(f"[enricher] Neo4j write failed: {e}", exc_info=True)
-        db_result = {"error": str(e)}
+        {"error": str(e)}
 
     # Save run artifacts
     _save_artifacts(

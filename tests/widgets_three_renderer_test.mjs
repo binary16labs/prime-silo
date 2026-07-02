@@ -607,7 +607,11 @@ async function testFitOnLoadDisabledSkipsFit() {
   await flushAsync();
   const inst = ForceGraph3D._instance;
   // With fitting off, the onEngineStop handler is never registered.
-  assert.equal(inst._engineStop, undefined, "onEngineStop must not be registered when fitOnLoad=false");
+  assert.equal(
+    inst._engineStop,
+    undefined,
+    "onEngineStop must not be registered when fitOnLoad=false"
+  );
   assert.equal(inst._fitCount || 0, 0);
 }
 
@@ -617,11 +621,17 @@ async function testFitOnLoadDisabledSkipsFit() {
 
 function testLabelForAndIdentifier() {
   // kg3d shape — display_name wins.
-  assert.equal(labelFor({ node: { display_name: "Neural networks", id: "nn" } }), "Neural networks");
+  assert.equal(
+    labelFor({ node: { display_name: "Neural networks", id: "nn" } }),
+    "Neural networks"
+  );
   // codegraph shape — File path collapses to basename on the label, full path
   // on the identifier.
   assert.equal(labelFor({ node: { id: "/src/app/auth.py", type: "File" } }), "auth.py");
-  assert.equal(identifierFor({ node: { id: "/src/app/auth.py", type: "File" } }), "/src/app/auth.py");
+  assert.equal(
+    identifierFor({ node: { id: "/src/app/auth.py", type: "File" } }),
+    "/src/app/auth.py"
+  );
   // Bare type fallback when nothing nameable exists.
   assert.equal(labelFor({ node: { type: "Concept" } }), "Concept");
 }

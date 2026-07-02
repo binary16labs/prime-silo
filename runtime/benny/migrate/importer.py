@@ -149,7 +149,7 @@ class MigrationEngine:
                     report.count_rewrites += rewrites
                 else:
                     report.errors.append(f"Could not migrate {rel_p}")
-            except Exception as e:
+            except Exception:
                 # Silently skip non-manifest JSON unless it was explicitly supposed to be one
                 pass
 

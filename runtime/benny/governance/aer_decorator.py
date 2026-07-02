@@ -9,7 +9,7 @@ import functools
 import logging
 import time
 import uuid
-from typing import Any, Callable, Optional
+from typing import Callable
 
 from .execution_audit import emit_node_execution_state
 

@@ -1,4 +1,4 @@
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
 export class GraphWebview {
   public static currentPanel: GraphWebview | undefined;
@@ -16,11 +16,11 @@ export class GraphWebview {
       GraphWebview.currentPanel._panel.reveal(vscode.ViewColumn.One);
     } else {
       const panel = vscode.window.createWebviewPanel(
-        'primeSiloGraph',
-        'Prime-Silo Memory Graph',
+        "primeSiloGraph",
+        "Prime-Silo Memory Graph",
         vscode.ViewColumn.One,
         {
-          enableScripts: true,
+          enableScripts: true
         }
       );
 

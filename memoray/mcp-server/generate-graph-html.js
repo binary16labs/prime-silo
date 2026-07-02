@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 /**
  * generate-graph-html.js
- * 
+ *
  * Connects to the Mem0Ray MCP server, fetches graph data for a session,
  * and generates a self-contained HTML file with an embedded canvas renderer.
- * 
+ *
  * Usage (from any agent — Antigravity or Claude):
  *   node mcp-server/generate-graph-html.js --session <sessionId> --output media_pack/session_graph.html
- * 
+ *
  * If --session is omitted, it uses the most recent session automatically.
  */
 
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
@@ -23,11 +23,11 @@ const __dirname = path.dirname(__filename);
 // Parse args
 const args = process.argv.slice(2);
 let sessionId = null;
-let outputPath = path.join(__dirname, '..', 'media_pack', 'session_graph.html');
+let outputPath = path.join(__dirname, "..", "media_pack", "session_graph.html");
 
 for (let i = 0; i < args.length; i++) {
-  if (args[i] === '--session' && args[i + 1]) sessionId = args[++i];
-  if (args[i] === '--output' && args[i + 1]) outputPath = args[++i];
+  if (args[i] === "--session" && args[i + 1]) sessionId = args[++i];
+  if (args[i] === "--output" && args[i + 1]) outputPath = args[++i];
 }
 
 async function main() {
@@ -43,7 +43,10 @@ async function main() {
   // If no session ID, get the most recent one
   if (!sessionId) {
     console.log("No --session provided, fetching most recent...");
-    const recentRes = await client.callTool({ name: "get_recent_sessions", arguments: { limit: 1 } });
+    const recentRes = await client.callTool({
+      name: "get_recent_sessions",
+      arguments: { limit: 1 }
+    });
     const recent = JSON.parse(recentRes.content[0].text);
     if (!recent || recent.length === 0) {
       console.error("No sessions found.");
@@ -60,8 +63,8 @@ async function main() {
   console.log(`Graph: ${graphData.nodeCount} nodes, ${graphData.linkCount} links`);
 
   // Read the renderer script
-  const rendererPath = path.join(__dirname, '..', 'media_pack', 'graph-renderer.js');
-  const rendererCode = await fs.readFile(rendererPath, 'utf-8');
+  const rendererPath = path.join(__dirname, "..", "media_pack", "graph-renderer.js");
+  const rendererCode = await fs.readFile(rendererPath, "utf-8");
 
   // Generate self-contained HTML
   const html = `<!DOCTYPE html>
@@ -226,4 +229,7 @@ ${rendererCode}
   process.exit(0);
 }
 
-main().catch(e => { console.error(e); process.exit(1); });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

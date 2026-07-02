@@ -52,10 +52,8 @@ from .models import (
     OperationSpec,
     PipelineStep,
     PypesManifest,
-    ReportSpec,
     RunReceipt,
     ValidationResult,
-    ValidationSpec,
 )
 from .registry import OperationRegistry, default_registry
 from .reports import render_report

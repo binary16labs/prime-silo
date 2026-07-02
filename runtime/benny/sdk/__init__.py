@@ -5,7 +5,7 @@ Benny Python SDK — synchronous convenience wrappers for the workflow API.
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, Optional
 
 import httpx
 

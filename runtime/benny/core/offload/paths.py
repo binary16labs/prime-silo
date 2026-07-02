@@ -19,10 +19,10 @@ from ..workspace import get_workspace_path
 
 # offload/ subdirs under the workspace
 OFFLOAD_DIR = "offload"
-INBOX = "inbox"        # submitted manifests awaiting execution (async lane)
-OUTBOX = "outbox"      # result digests + proposed artifacts (human-promotable)
-SCRATCH = "scratch"    # executor working files
-LEDGER = "ledger"      # append-only JSONL instrumentation
+INBOX = "inbox"  # submitted manifests awaiting execution (async lane)
+OUTBOX = "outbox"  # result digests + proposed artifacts (human-promotable)
+SCRATCH = "scratch"  # executor working files
+LEDGER = "ledger"  # append-only JSONL instrumentation
 
 
 def repo_root() -> Path:

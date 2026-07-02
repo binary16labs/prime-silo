@@ -1,0 +1,255 @@
+{
+  "schema_version": "2.0",
+  "id": "togaf-sad-report-swarm",
+  "name": "TOGAF-Compliant System Architecture Document (SAD) Swarm",
+  "description": "Multi-agent swarm for planning, extracting baseline current state, designing target state, conducting gap/impact analyses, generating viewpoint diagrams, and refining the final SAD.",
+  "requirement": "",
+  "workspace": "default",
+  "inputs": {
+    "files": [],
+    "context": {}
+  },
+  "outputs": {
+    "files": [
+      "data_out/TOGAF_SAD_prime_silo.md"
+    ],
+    "format": "md",
+    "word_count_target": 3500,
+    "sections": [],
+    "spec": "TOGAF-compliant System Architecture Document (SAD) for prime-silo Application Architecture & Runtime Environment. Target length: 3500 words. Core Sections: Scope and Context, Baseline Application Architecture, Target Application Architecture, Gap Analysis, Impact Analysis, and Architecture Viewpoints (Catalogs, Matrices, Diagrams in Mermaid)."
+  },
+  "plan": {
+    "tasks": [
+      {
+        "id": "sad_planning",
+        "description": "Planner Agent: Decompose focus topic 'prime-silo Application Architecture & Runtime Environment' into a structured TOGAF-compliant System Architecture Document outline targeting a length of 3500 words. Scope context, identify stakeholders, baseline, target states, and draft the Scope and Context section of the report.",
+        "skill_hint": null,
+        "assigned_skills": [],
+        "assigned_model": "lemonade/qwen3.5-9b-FLM",
+        "dependencies": [],
+        "wave": 0,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": false,
+        "skill_args": {},
+        "complexity": "medium",
+        "files_touched": [],
+        "estimated_tokens": null,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "baseline_extraction",
+        "description": "Current State Analyst: Query the knowledge graph (`query_graph`) and scan workspace repository files (`read_file`) to document the Baseline Application Architecture (Current State) of the system 'prime-silo Application Architecture & Runtime Environment'. Compile the Application Portfolio Catalog (identifying core components like web servers, APIs, runtime engines) and the Interface Catalog (API endpoints, protocols, data models).",
+        "skill_hint": null,
+        "assigned_skills": [
+          "query_graph",
+          "read_file",
+          "search_kb"
+        ],
+        "assigned_model": "lemonade/qwen3.5-9b-FLM",
+        "dependencies": [
+          "sad_planning"
+        ],
+        "wave": 1,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": false,
+        "skill_args": {},
+        "complexity": "high",
+        "files_touched": [],
+        "estimated_tokens": null,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "target_abstraction",
+        "description": "Target State Architect: Define the Target Application Architecture (Future State) for the system 'prime-silo Application Architecture & Runtime Environment'. Explicitly distinguish between Logical Application Components (abstraction of functionality independent of implementation) and Physical Application Components (actual deployed software/services). Define key meta-model relationships: realizes (Component to Service), supports (Service to Process), consumes (Actor/Role to Service), accesses/updates (Component to Data Entity), communicates with (Component to Component), and hosts (Technology to Component).",
+        "skill_hint": null,
+        "assigned_skills": [],
+        "assigned_model": "lemonade/qwen3.5-9b-FLM",
+        "dependencies": [
+          "baseline_extraction"
+        ],
+        "wave": 2,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": false,
+        "skill_args": {},
+        "complexity": "high",
+        "files_touched": [],
+        "estimated_tokens": null,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "gap_and_impact_analysis",
+        "description": "Delta Analyst: Analyze the delta between baseline and target states. Explicitly identify components to be created, updated, or decommissioned (Gap Analysis). Perform Impact Analysis detailing security, downstream reporting, and infrastructure impacts.",
+        "skill_hint": null,
+        "assigned_skills": [],
+        "assigned_model": "lemonade/qwen3.5-9b-FLM",
+        "dependencies": [
+          "target_abstraction"
+        ],
+        "wave": 3,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": false,
+        "skill_args": {},
+        "complexity": "high",
+        "files_touched": [],
+        "estimated_tokens": null,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "viewpoints_generation",
+        "description": "Viewpoint Designer: Formulate architectural viewpoints. Generate Catalogs and Matrices (Application/Business Function Matrix, Application/Data Matrix). Write out Diagrams (Application Communication Diagram, Application and User Location Diagram, Enterprise Manageability Diagram) using Mermaid syntax.",
+        "skill_hint": null,
+        "assigned_skills": [],
+        "assigned_model": "lemonade/qwen3.5-9b-FLM",
+        "dependencies": [
+          "gap_and_impact_analysis"
+        ],
+        "wave": 4,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": false,
+        "skill_args": {},
+        "complexity": "medium",
+        "files_touched": [],
+        "estimated_tokens": null,
+        "status": "pending",
+        "position": null,
+        "node_type": "task"
+      },
+      {
+        "id": "editorial_refinement",
+        "description": "Publishing Editor: Refine the combined draft section-by-section using sliding window constraints to ensure consistency, tone, and that the final output satisfies the target length of 3500 words. Write the final TOGAF-compliant System Architecture Document (SAD) to 'data_out/TOGAF_SAD_prime_silo.md'.",
+        "skill_hint": null,
+        "assigned_skills": [
+          "read_file",
+          "write_file"
+        ],
+        "assigned_model": "lemonade/qwen3.5-9b-FLM",
+        "dependencies": [
+          "viewpoints_generation"
+        ],
+        "wave": 5,
+        "depth": 0,
+        "parent_id": null,
+        "is_pillar": false,
+        "is_expanded": false,
+        "deterministic": false,
+        "skill_args": {},
+        "complexity": "high",
+        "files_touched": [],
+        "estimated_tokens": null,
+        "status": "pending",
+        "position": null,
+        "node_type": "output"
+      }
+    ],
+    "edges": [
+      {
+        "id": null,
+        "source": "sad_planning",
+        "target": "baseline_extraction",
+        "label": null,
+        "animated": true
+      },
+      {
+        "id": null,
+        "source": "baseline_extraction",
+        "target": "target_abstraction",
+        "label": null,
+        "animated": true
+      },
+      {
+        "id": null,
+        "source": "target_abstraction",
+        "target": "gap_and_impact_analysis",
+        "label": null,
+        "animated": true
+      },
+      {
+        "id": null,
+        "source": "gap_and_impact_analysis",
+        "target": "viewpoints_generation",
+        "label": null,
+        "animated": true
+      },
+      {
+        "id": null,
+        "source": "viewpoints_generation",
+        "target": "editorial_refinement",
+        "label": null,
+        "animated": true
+      }
+    ],
+    "waves": [
+      [
+        "sad_planning"
+      ],
+      [
+        "baseline_extraction"
+      ],
+      [
+        "target_abstraction"
+      ],
+      [
+        "gap_and_impact_analysis"
+      ],
+      [
+        "viewpoints_generation"
+      ],
+      [
+        "editorial_refinement"
+      ]
+    ],
+    "ascii_dag": null,
+    "mermaid": null
+  },
+  "config": {
+    "model": "lemonade/qwen3.5-9b-FLM",
+    "max_concurrency": 1,
+    "max_depth": 3,
+    "handover_summary_limit": 500,
+    "allow_swarm": true,
+    "skills_allowed": [
+      "search_kb",
+      "query_graph",
+      "read_file",
+      "write_file"
+    ],
+    "model_per_persona": {}
+  },
+  "created_at": "2026-06-30T09:47:28.719429",
+  "updated_at": "2026-06-30T09:47:28.719439",
+  "created_by": "benny-planner",
+  "tags": [],
+  "metadata": {
+    "publishing_standard": "TOGAF-SAD-Standard",
+    "notes": "Single-laptop optimized TOGAF SAD report swarm. The codebase is analyzed via graph queries first."
+  },
+  "latest_run": null,
+  "sdlc": null,
+  "policy": null,
+  "memory": null,
+  "content_hash": null,
+  "signature": null
+}

@@ -13,7 +13,7 @@ import asyncio
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from .manifest import OffloadManifest
 from .paths import repo_root
@@ -26,7 +26,7 @@ _MAX_POINTER_BYTES = 20_000  # cap per-pointer context so we don't blow local ct
 @dataclass
 class ExecResult:
     ok: bool
-    artifact: str                       # generated text/patch, or shell stdout
+    artifact: str  # generated text/patch, or shell stdout
     mode: str
     detail: str = ""
     prompt_tokens: int = 0
@@ -38,15 +38,18 @@ class ExecResult:
 
 async def _run_shell(cmd: str, cwd: Path, timeout: int) -> ExecResult:
     proc = await asyncio.create_subprocess_shell(
-        cmd, cwd=str(cwd),
-        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT,
+        cmd,
+        cwd=str(cwd),
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.STDOUT,
     )
     try:
         out, _ = await asyncio.wait_for(proc.communicate(), timeout=timeout)
     except asyncio.TimeoutError:
         proc.kill()
-        return ExecResult(ok=False, artifact="", mode="shell",
-                          error=f"timeout after {timeout}s", detail=cmd)
+        return ExecResult(
+            ok=False, artifact="", mode="shell", error=f"timeout after {timeout}s", detail=cmd
+        )
     text = (out or b"").decode("utf-8", "replace")
     return ExecResult(
         ok=(proc.returncode == 0),
@@ -62,12 +65,12 @@ def _resolve_pointer(ptr: str, root: Path) -> Optional[Path]:
     "path:line". Tries the whole pointer first so a Windows drive-letter colon is
     never mistaken for a ``:symbol`` separator; only if that is not a file do we
     strip a trailing ``:suffix``."""
-    candidate = (root / ptr)
+    candidate = root / ptr
     if candidate.is_file():
         return candidate
     if ":" in ptr:
         head = ptr.rsplit(":", 1)[0]
-        stripped = (root / head)
+        stripped = root / head
         if stripped.is_file():
             return stripped
     return None
@@ -88,14 +91,22 @@ def _gather_context(manifest: OffloadManifest, root: Path) -> str:
     return "\n\n".join(chunks)
 
 
-async def _run_generate(manifest: OffloadManifest, model: str,
-                        root: Path, timeout: int) -> ExecResult:
-    from ..local_executor import resolve_executor  # deferred: avoids importing httpx/tiktoken until a generate task actually runs
+async def _run_generate(
+    manifest: OffloadManifest, model: str, root: Path, timeout: int
+) -> ExecResult:
+    from ..local_executor import (
+        resolve_executor,  # deferred: avoids importing httpx/tiktoken until a generate task actually runs
+    )
+
     executor = resolve_executor(model)
     if executor is None:
-        return ExecResult(ok=False, artifact="", mode="generate", model=model,
-                          error=f"no local executor resolves model '{model}' "
-                                f"(is the local server running?)")
+        return ExecResult(
+            ok=False,
+            artifact="",
+            mode="generate",
+            model=model,
+            error=f"no local executor resolves model '{model}' " f"(is the local server running?)",
+        )
     context = _gather_context(manifest, root)
     criteria = "\n".join(f"- [{c.id}] {c.statement}" for c in manifest.acceptance_criteria)
     base_prompt = manifest.executor.get("prompt") or "Complete the task described below."
@@ -117,11 +128,17 @@ async def _run_generate(manifest: OffloadManifest, model: str,
             timeout=timeout,
         )
     except asyncio.TimeoutError:
-        return ExecResult(ok=False, artifact="", mode="generate", model=model,
-                          error=f"generation timeout after {timeout}s")
+        return ExecResult(
+            ok=False,
+            artifact="",
+            mode="generate",
+            model=model,
+            error=f"generation timeout after {timeout}s",
+        )
     except Exception as exc:
-        return ExecResult(ok=False, artifact="", mode="generate", model=model,
-                          error=f"generation failed: {exc}")
+        return ExecResult(
+            ok=False, artifact="", mode="generate", model=model, error=f"generation failed: {exc}"
+        )
     return ExecResult(
         ok=bool(text.strip()),
         artifact=text,

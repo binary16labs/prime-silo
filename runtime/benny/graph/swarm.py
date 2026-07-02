@@ -11,46 +11,35 @@ Architecture:
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import os
 import re
 import uuid
 from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command, Send
-from litellm import acompletion, completion
 
-logger = logging.getLogger(__name__)
-
-from ..core.artifact_store import (
-    DEFAULT_PBR_THRESHOLD_TOKENS,
-    maybe_promote,
-    resolve_uris_in_args,
-)
-from ..core.event_bus import event_bus
 from ..core.models import MODEL_REGISTRY, call_model, get_model_config, is_local_model
 from ..core.reasoning import extract_reasoning
 from ..core.skill_registry import registry
 from ..core.state import PartialResult, SwarmState, TaskItem, create_swarm_state
 from ..core.task_manager import task_manager
 from ..core.workspace import get_workspace_path
-from ..governance.lineage import get_lineage_client, track_workflow_complete, track_workflow_start
+from ..governance.lineage import track_workflow_complete, track_workflow_fail, track_workflow_start
 from ..governance.permission_manifest import create_ephemeral_manifest, register_manifest
 from .wave_scheduler import (
     CircularDependencyError,
     assign_models,
     compute_waves,
-    detect_conflicts,
     generate_ascii_dag,
     resolve_conflicts,
 )
+
+logger = logging.getLogger(__name__)
 
 # =============================================================================
 # UTILS
@@ -177,7 +166,7 @@ def parse_json_safe(text: str) -> Tuple[Dict[str, Any], str]:
                 # Try adding a recursive set of closers
                 repair_attempt = cleaned.rstrip(", :") + "}"
                 return json.loads(repair_attempt), thinking
-            except:
+            except Exception:
                 pass
 
         logger.debug(
@@ -305,9 +294,7 @@ async def planner_node(state: SwarmState) -> Dict[str, Any]:
         return {"status": "scheduled", "active_task_pool": state["plan"], "target_pillar_id": None}
 
     available_skills = discover_skills(workspace_id)
-    skills_context = "\n".join(
-        [f"- {s['id']}: {s.get('description', 'No description')}" for s in available_skills]
-    )
+    "\n".join([f"- {s['id']}: {s.get('description', 'No description')}" for s in available_skills])
 
     system_prompt = f"""You are a Hierarchical Task Planner for the Benny Swarm.
 MODE: {mode}
@@ -536,7 +523,7 @@ def orchestrator_node(state: SwarmState) -> Command:
     plan = state.get("plan", [])
     waves = state.get("waves", [])
     current_wave_idx = state.get("current_wave", 0)
-    execution_id = state.get("execution_id", "")
+    state.get("execution_id", "")
 
     if not plan:
         return Command(update={"status": "failed", "errors": ["No plan generated"]}, goto=END)
@@ -619,7 +606,9 @@ def dispatch_tasks(state: SwarmState) -> Union[List[Send], str]:
         )
 
     if not sends:
-        logger.info(f"Dispatcher: Wave {current_wave} contains no executable tasks (e.g. only pillars), routing directly to expansion_monitor")
+        logger.info(
+            f"Dispatcher: Wave {current_wave} contains no executable tasks (e.g. only pillars), routing directly to expansion_monitor"
+        )
         return "expansion_monitor"
 
     return sends
@@ -742,7 +731,6 @@ async def executor_node(state: Dict[str, Any]) -> Dict[str, Any]:
         if skill_hint and skill_hint not in assigned_skills:
             assigned_skills.append(skill_hint)
 
-        tools = None
         if assigned_skills:
             # We map assigned_skills (Markdown skill stems) to tools
             # In Phase 7.2, we assume skill IDs match the stems
@@ -750,7 +738,7 @@ async def executor_node(state: Dict[str, Any]) -> Dict[str, Any]:
                 assigned_skills, state.get("workspace", "default")
             )
             if tool_schemas:
-                tools = tool_schemas
+                pass
 
         # Build execution prompt
         if skill_content:
@@ -788,7 +776,6 @@ Do this sparingly and only for significant knowledge gaps."""
         # Tool-calling loop
         max_steps = 5
         current_step = 0
-        executed_tools = []
         final_content = ""
 
         while current_step < max_steps:
@@ -850,8 +837,8 @@ Do this sparingly and only for significant knowledge gaps."""
 
             else:
                 # Cloud / LiteLLM path
-                model_cfg = get_model_config(model)
-                litellm_model = normalize_model_string(model)
+                get_model_config(model)
+                normalize_model_string(model)
 
                 # Use call_model for the actual inference to benefit from resolution/local bypass
                 # but we still want the raw response if we want to handle tools here.
@@ -875,73 +862,73 @@ Do this sparingly and only for significant knowledge gaps."""
                 break
 
                 # Robust content/message extraction (cloud/LiteLLM path)
-                if hasattr(response, "choices") and len(response.choices) > 0:
-                    message = response.choices[0].message
-                elif (
-                    isinstance(response, dict)
-                    and "choices" in response
-                    and len(response["choices"]) > 0
-                ):
-                    choice = response["choices"][0]
-                    if isinstance(choice, dict):
-                        message = choice.get("message")
-                    else:
-                        message = choice.message
-                else:
-                    logger.warning(f"Swarm executor: Response missing 'choices' block from {model}")
-                    from langchain_core.messages import AIMessage
-
-                    message = AIMessage(content=str(response))
-
-                messages.append(message)
-
-                if hasattr(message, "tool_calls") and message.tool_calls:
-                    workspace_path = get_workspace_path(workspace_id)
-                    pbr_threshold = (
-                        state.get("pbr_threshold_tokens") or DEFAULT_PBR_THRESHOLD_TOKENS
-                    )
-                    for tc in message.tool_calls:
-                        func_name = tc.function.name
-                        call_id = tc.id
-                        try:
-                            args = json.loads(tc.function.arguments)
-                        except Exception:
-                            args = {}
-
-                        # AOS-F7: resolve any artifact:// URIs in tool args before dispatch
-                        args = resolve_uris_in_args(args, workspace_path=workspace_path)
-
-                        result_str = await registry.execute_skill(
-                            func_name, workspace_id, agent_id=execution_id, **args
-                        )
-
-                        # AOS-F6: auto-promote large tool outputs above threshold
-                        promoted = maybe_promote(
-                            result_str,
-                            workspace_path=workspace_path,
-                            threshold_tokens=pbr_threshold,
-                            task_id=task_id,
-                        )
-                        content_for_llm = (
-                            json.dumps(promoted) if isinstance(promoted, dict) else promoted
-                        )
-
-                        executed_tools.append({"name": func_name, "args": args})
-                        task_manager.add_tool_event(
-                            execution_id, func_name, args, result_str, nodeId="executor"
-                        )
-                        messages.append(
-                            {
-                                "role": "tool",
-                                "tool_call_id": call_id,
-                                "name": func_name,
-                                "content": content_for_llm,
-                            }
-                        )
-                    continue
-                else:
-                    final_content = message.content or ""
-                    break
+                # if hasattr(response, "choices") and len(response.choices) > 0:
+                #     message = response.choices[0].message
+                # elif (
+                #     isinstance(response, dict)
+                #     and "choices" in response
+                #     and len(response["choices"]) > 0
+                # ):
+                #     choice = response["choices"][0]
+                #     if isinstance(choice, dict):
+                #         message = choice.get("message")
+                #     else:
+                #         message = choice.message
+                # else:
+                #     logger.warning(f"Swarm executor: Response missing 'choices' block from {model}")
+                #     from langchain_core.messages import AIMessage
+                #
+                #     message = AIMessage(content=str(response))
+                #
+                # messages.append(message)
+                #
+                # if hasattr(message, "tool_calls") and message.tool_calls:
+                #     workspace_path = get_workspace_path(workspace_id)
+                #     pbr_threshold = (
+                #         state.get("pbr_threshold_tokens") or DEFAULT_PBR_THRESHOLD_TOKENS
+                #     )
+                #     for tc in message.tool_calls:
+                #         func_name = tc.function.name
+                #         call_id = tc.id
+                #         try:
+                #             args = json.loads(tc.function.arguments)
+                #         except Exception:
+                #             args = {}
+                #
+                #         # AOS-F7: resolve any artifact:// URIs in tool args before dispatch
+                #         args = resolve_uris_in_args(args, workspace_path=workspace_path)
+                #
+                #         result_str = await registry.execute_skill(
+                #             func_name, workspace_id, agent_id=execution_id, **args
+                #         )
+                #
+                #         # AOS-F6: auto-promote large tool outputs above threshold
+                #         promoted = maybe_promote(
+                #             result_str,
+                #             workspace_path=workspace_path,
+                #             threshold_tokens=pbr_threshold,
+                #             task_id=task_id,
+                #         )
+                #         content_for_llm = (
+                #             json.dumps(promoted) if isinstance(promoted, dict) else promoted
+                #         )
+                #
+                #         executed_tools.append({"name": func_name, "args": args})
+                #         task_manager.add_tool_event(
+                #             execution_id, func_name, args, result_str, nodeId="executor"
+                #         )
+                #         messages.append(
+                #             {
+                #                 "role": "tool",
+                #                 "tool_call_id": call_id,
+                #                 "name": func_name,
+                #                 "content": content_for_llm,
+                #             }
+                #         )
+                #     continue
+                # else:
+                #     final_content = message.content or ""
+                #     break
 
         execution_time = int((datetime.now() - start_time).total_seconds() * 1000)
 
@@ -1177,7 +1164,7 @@ async def context_handover_node(state: SwarmState) -> Dict[str, Any]:
     partial_results = state.get("partial_results", [])
     current_waveIdx = state.get("current_wave", 0)
     waves = state.get("waves", [])
-    plan = state.get("plan", [])
+    state.get("plan", [])
     limit = state.get("handover_summary_limit", 500)
 
     # Collect results from the current wave
@@ -1407,7 +1394,7 @@ async def run_swarm_workflow(
         execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
         try:
             track_workflow_fail(execution_id, "swarm", workspace, str(e))
-        except:
+        except Exception:
             pass
         raise e
 

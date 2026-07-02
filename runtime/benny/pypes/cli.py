@@ -523,7 +523,7 @@ def _run_with_progress(
     """Run the orchestrator while streaming step-level status to the live table."""
     from .orchestrator import _topological_order
 
-    step_map = {s.id: s for s in manifest.steps}
+    {s.id: s for s in manifest.steps}
     order = _topological_order(manifest.steps)
     if only_steps:
         order = [sid for sid in order if sid in only_steps]
@@ -1075,7 +1075,7 @@ def _print_run_header(manifest: PypesManifest, args: argparse.Namespace) -> None
 
 def _print_receipt_panel(receipt: RunReceipt) -> None:
     ok = receipt.status not in ("FAILED", "FAIL")
-    status_text = _status_text(receipt.status)
+    _status_text(receipt.status)
     dur = f"{receipt.duration_ms/1000:.2f}s" if receipt.duration_ms else "-"
 
     # ── Step results table ───────────────────────────────────────────────────

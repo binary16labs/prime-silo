@@ -5,12 +5,7 @@
     <script type="module" src="/mod/_prime_silo/setup/setup.js"></script>
   </head>
   <body>
-    <section
-      class="prime-silo-setup mray-theme"
-      x-data="setupPage()"
-      x-init="init()"
-      x-cloak
-    >
+    <section class="prime-silo-setup mray-theme" x-data="setupPage()" x-init="init()" x-cloak>
       <header class="prime-silo-setup__header">
         <p class="prime-silo-setup__eyebrow">Review zone · cognitive mesh memory graph</p>
         <h1 class="prime-silo-setup__title">Memory Graph Setup</h1>
@@ -139,7 +134,11 @@
                             class="prime-silo-setup__dot"
                             :class="prob.exists ? 'found' : 'missing'"
                           ></span>
-                          <span class="prime-silo-setup__path" :title="prob.path" x-text="prob.path"></span>
+                          <span
+                            class="prime-silo-setup__path"
+                            :title="prob.path"
+                            x-text="prob.path"
+                          ></span>
                           <span
                             class="prime-silo-setup__muted"
                             x-text="prob.exists ? '(found)' : '(not found)'"
@@ -154,7 +153,10 @@
           </div>
 
           <!-- memo-ray system storage panel -->
-          <div class="prime-silo-setup__card prime-silo-setup__card--system" x-show="report && report.mem0ray">
+          <div
+            class="prime-silo-setup__card prime-silo-setup__card--system"
+            x-show="report && report.mem0ray"
+          >
             <div class="prime-silo-setup__card-head">
               <label class="prime-silo-setup__label">Memo-Ray system storage</label>
               <span class="prime-silo-setup__status is-ok">✓ Active</span>
@@ -164,7 +166,10 @@
             </p>
             <div class="prime-silo-setup__sys" x-show="report && report.mem0ray">
               <div class="prime-silo-setup__sys-row">
-                <span class="prime-silo-setup__mono" x-text="`Config: ${report.mem0ray.configPath}`"></span>
+                <span
+                  class="prime-silo-setup__mono"
+                  x-text="`Config: ${report.mem0ray.configPath}`"
+                ></span>
                 <button
                   type="button"
                   class="prime-silo-setup__open"
@@ -175,7 +180,10 @@
                 </button>
               </div>
               <div class="prime-silo-setup__sys-row">
-                <span class="prime-silo-setup__mono" x-text="`Database: ${report.mem0ray.dataDir}`"></span>
+                <span
+                  class="prime-silo-setup__mono"
+                  x-text="`Database: ${report.mem0ray.dataDir}`"
+                ></span>
                 <button
                   type="button"
                   class="prime-silo-setup__open"

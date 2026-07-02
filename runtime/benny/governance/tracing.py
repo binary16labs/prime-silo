@@ -281,7 +281,6 @@ def get_trace_context() -> Dict[str, str]:
         return {}
 
     from opentelemetry import propagate
-    from opentelemetry.propagators.textmap import CarrierT
 
     carrier: Dict[str, str] = {}
     propagate.inject(carrier)

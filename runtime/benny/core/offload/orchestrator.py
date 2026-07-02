@@ -15,16 +15,15 @@ from __future__ import annotations
 import json
 import logging
 import time
-from dataclasses import dataclass, field
-from pathlib import Path
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 from . import gate as gate_mod
 from . import ledger as ledger_mod
-from .executor import execute, ExecResult
+from .executor import ExecResult, execute
 from .manifest import OffloadManifest, from_dict
-from .paths import offload_subdir, INBOX, OUTBOX
-from .router import classify, RouterDecision
+from .paths import INBOX, OUTBOX, offload_subdir
+from .router import RouterDecision, classify
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +31,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TaskOutcome:
     task_id: str
-    status: str                       # passed | failed | escalated | red-escalated
+    status: str  # passed | failed | escalated | red-escalated
     final_tier: str
     escalate: bool
     digest: Dict[str, Any]
@@ -46,15 +45,21 @@ def _resolve_models(manifest: OffloadManifest, decision: RouterDecision) -> tupl
     return exec_model, judge_model
 
 
-def build_digest(manifest: OffloadManifest, decision: RouterDecision,
-                 status: str, *, exec_result: Optional[ExecResult] = None,
-                 gate_result: Optional["gate_mod.GateResult"] = None,
-                 iterations: int = 0, reason: str = "",
-                 outbox_path: Optional[str] = None) -> Dict[str, Any]:
+def build_digest(
+    manifest: OffloadManifest,
+    decision: RouterDecision,
+    status: str,
+    *,
+    exec_result: Optional[ExecResult] = None,
+    gate_result: Optional["gate_mod.GateResult"] = None,
+    iterations: int = 0,
+    reason: str = "",
+    outbox_path: Optional[str] = None,
+) -> Dict[str, Any]:
     """The ONLY thing the planner reads back. Deliberately tiny — pointers, not dumps."""
     digest: Dict[str, Any] = {
         "task_id": manifest.id,
-        "status": status,                       # passed | failed | escalated | red-escalated
+        "status": status,  # passed | failed | escalated | red-escalated
         "tier": decision.final_tier,
         "tier_upgraded_from": decision.declared_tier if decision.upgraded else None,
         "router": decision.reasons[0] if decision.reasons else "",
@@ -72,7 +77,7 @@ def build_digest(manifest: OffloadManifest, decision: RouterDecision,
     if iterations:
         digest["iterations"] = iterations
     if outbox_path:
-        digest["artifact"] = outbox_path        # pointer; planner reads only if it must
+        digest["artifact"] = outbox_path  # pointer; planner reads only if it must
     digest["next"] = {
         "passed": "human-promote outbox artifact via signed manifest (ADR-001)",
         "escalated": "planner adjudication required",
@@ -92,7 +97,7 @@ def _write_outbox(manifest: OffloadManifest, payload: Dict[str, Any]) -> str:
 async def run_task(data: Dict[str, Any]) -> TaskOutcome:
     """Run a single task dict (already-parsed manifest JSON) to completion."""
     start = time.time()
-    manifest = from_dict(data)                  # raises ManifestError on bad input
+    manifest = from_dict(data)  # raises ManifestError on bad input
     decision = classify(manifest)
     exec_model, judge_model = _resolve_models(manifest, decision)
 
@@ -100,16 +105,30 @@ async def run_task(data: Dict[str, Any]) -> TaskOutcome:
     if decision.escalate_immediately:
         reason = decision.reasons[0] if decision.reasons else "classified red"
         digest = build_digest(manifest, decision, "red-escalated", reason=reason)
-        ledger_mod.record(ledger_mod.LedgerEntry(
-            task_id=manifest.id, workspace=manifest.workspace, ts=ledger_mod.now_iso(),
-            declared_tier=decision.declared_tier, final_tier=decision.final_tier,
-            upgraded=decision.upgraded, status="red-escalated", escalated=True,
-            iterations=0, local_model="", judge_model="",
-            local_prompt_tokens=0, local_completion_tokens=0, judge_score=None,
-            collusion_flag=False, digest_chars=len(json.dumps(digest)),
-            artifact_chars=0, duration_ms=int((time.time() - start) * 1000),
-            planner_tokens_saved_estimate=0, note=reason,
-        ))
+        ledger_mod.record(
+            ledger_mod.LedgerEntry(
+                task_id=manifest.id,
+                workspace=manifest.workspace,
+                ts=ledger_mod.now_iso(),
+                declared_tier=decision.declared_tier,
+                final_tier=decision.final_tier,
+                upgraded=decision.upgraded,
+                status="red-escalated",
+                escalated=True,
+                iterations=0,
+                local_model="",
+                judge_model="",
+                local_prompt_tokens=0,
+                local_completion_tokens=0,
+                judge_score=None,
+                collusion_flag=False,
+                digest_chars=len(json.dumps(digest)),
+                artifact_chars=0,
+                duration_ms=int((time.time() - start) * 1000),
+                planner_tokens_saved_estimate=0,
+                note=reason,
+            )
+        )
         return TaskOutcome(manifest.id, "red-escalated", decision.final_tier, True, digest)
 
     # --- GREEN / YELLOW: execute with bounded retries -----------------------
@@ -130,7 +149,9 @@ async def run_task(data: Dict[str, Any]) -> TaskOutcome:
             break
 
     passed = bool(last_gate and last_gate.passed)
-    escalate = bool(last_gate and last_gate.escalate) or (last_exec is not None and not last_exec.ok)
+    escalate = bool(last_gate and last_gate.escalate) or (
+        last_exec is not None and not last_exec.ok
+    )
     status = "passed" if passed else ("escalated" if escalate else "failed")
 
     # persist full artifact + logs to outbox (human-promotable, NOT read by planner)
@@ -150,8 +171,12 @@ async def run_task(data: Dict[str, Any]) -> TaskOutcome:
             "summary": last_gate.summary if last_gate else "gate never ran",
             "deterministic_ok": last_gate.deterministic_ok if last_gate else False,
             "checks": [
-                {"command": c.command, "ok": c.ok, "exit_code": c.exit_code,
-                 "output_tail": c.output_tail}
+                {
+                    "command": c.command,
+                    "ok": c.ok,
+                    "exit_code": c.exit_code,
+                    "output_tail": c.output_tail,
+                }
                 for c in (last_gate.checks if last_gate else [])
             ],
             "judge_score": last_gate.judge_score if last_gate else None,
@@ -164,34 +189,48 @@ async def run_task(data: Dict[str, Any]) -> TaskOutcome:
     outbox_path = _write_outbox(manifest, outbox_payload)
 
     digest = build_digest(
-        manifest, decision, status, exec_result=last_exec, gate_result=last_gate,
+        manifest,
+        decision,
+        status,
+        exec_result=last_exec,
+        gate_result=last_gate,
         iterations=iterations,
         outbox_path=outbox_path if status != "red-escalated" else None,
     )
 
     artifact_chars = len(last_exec.artifact) if last_exec else 0
     completion_tokens = last_exec.completion_tokens if last_exec else 0
-    ledger_mod.record(ledger_mod.LedgerEntry(
-        task_id=manifest.id, workspace=manifest.workspace, ts=ledger_mod.now_iso(),
-        declared_tier=decision.declared_tier, final_tier=decision.final_tier,
-        upgraded=decision.upgraded, status=status, escalated=escalate,
-        iterations=iterations, local_model=exec_model, judge_model=judge_model,
-        local_prompt_tokens=last_exec.prompt_tokens if last_exec else 0,
-        local_completion_tokens=completion_tokens,
-        judge_score=last_gate.judge_score if last_gate else None,
-        collusion_flag=last_gate.collusion_flag if last_gate else False,
-        digest_chars=len(json.dumps(digest)),
-        artifact_chars=artifact_chars,
-        duration_ms=int((time.time() - start) * 1000),
-        # ESTIMATE: deliverable tokens the planner did not have to generate.
-        planner_tokens_saved_estimate=(completion_tokens if passed else 0),
-        note=last_gate.summary if last_gate else "",
-    ))
+    ledger_mod.record(
+        ledger_mod.LedgerEntry(
+            task_id=manifest.id,
+            workspace=manifest.workspace,
+            ts=ledger_mod.now_iso(),
+            declared_tier=decision.declared_tier,
+            final_tier=decision.final_tier,
+            upgraded=decision.upgraded,
+            status=status,
+            escalated=escalate,
+            iterations=iterations,
+            local_model=exec_model,
+            judge_model=judge_model,
+            local_prompt_tokens=last_exec.prompt_tokens if last_exec else 0,
+            local_completion_tokens=completion_tokens,
+            judge_score=last_gate.judge_score if last_gate else None,
+            collusion_flag=last_gate.collusion_flag if last_gate else False,
+            digest_chars=len(json.dumps(digest)),
+            artifact_chars=artifact_chars,
+            duration_ms=int((time.time() - start) * 1000),
+            # ESTIMATE: deliverable tokens the planner did not have to generate.
+            planner_tokens_saved_estimate=(completion_tokens if passed else 0),
+            note=last_gate.summary if last_gate else "",
+        )
+    )
 
     return TaskOutcome(manifest.id, status, decision.final_tier, escalate, digest, outbox_path)
 
 
 # ---- async queue lane ------------------------------------------------------
+
 
 def enqueue(data: Dict[str, Any]) -> str:
     """Drop a validated manifest into the workspace inbox for the async runner."""

@@ -43,7 +43,7 @@ async def load_default_ontology(workspace: Optional[str] = None) -> Graph:
                 for n in raw_data["nodes"]:
                     # Determine category based on labels and properties
                     label_list = n.get("labels", [])
-                    main_label = label_list[0] if label_list else "Concept"
+                    label_list[0] if label_list else "Concept"
 
                     category = NodeCategory.CONCEPT
                     if "Source" in label_list:

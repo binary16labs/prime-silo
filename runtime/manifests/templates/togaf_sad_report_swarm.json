@@ -23,7 +23,7 @@
   "outputs": {
     "files": ["${output_file}"],
     "format": "md",
-    "word_count_target": "${word_count_target}",
+    "word_count_target": 3500,
     "spec": "TOGAF-compliant System Architecture Document (SAD) for ${topic}. Target length: ${word_count_target} words. Core Sections: Scope and Context, Baseline Application Architecture, Target Application Architecture, Gap Analysis, Impact Analysis, and Architecture Viewpoints (Catalogs, Matrices, Diagrams in Mermaid)."
   },
   "plan": {

@@ -23,7 +23,7 @@ import hashlib
 import logging
 from typing import Any, Dict, List, Optional
 
-from .pageindex import TreeNode, build_section_edges, flatten_leaves, tree_to_sections
+from .pageindex import TreeNode, build_section_edges, flatten_leaves
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +131,7 @@ async def extract_triples_over_tree(
 
     leaves = flatten_leaves(tree)
     semaphore = asyncio.Semaphore(parallel_limit)
-    leaf_by_title: Dict[str, TreeNode] = {l.get("title", ""): l for l in leaves}
+    {l.get("title", ""): l for l in leaves}
 
     async def run_leaf(leaf: TreeNode) -> List[Any]:
         async with semaphore:

@@ -52,8 +52,10 @@ class GateResult:
 async def _run_check(cmd: str, cwd: Path, timeout: int) -> CheckResult:
     try:
         proc = await asyncio.create_subprocess_shell(
-            cmd, cwd=str(cwd),
-            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT,
+            cmd,
+            cwd=str(cwd),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
         )
         out, _ = await asyncio.wait_for(proc.communicate(), timeout=timeout)
         tail = (out or b"").decode("utf-8", "replace")[-400:]
@@ -98,7 +100,7 @@ def _extract_last_json(text: str) -> Optional[dict]:
                 depth -= 1
                 if depth == 0:
                     try:
-                        return json.loads(cleaned[open_:close + 1])
+                        return json.loads(cleaned[open_ : close + 1])
                     except json.JSONDecodeError:
                         break  # not parseable from here; try an earlier close
     return None
@@ -112,11 +114,17 @@ async def run_judge(manifest: OffloadManifest, artifact: str, judge_model: str) 
     leading chain-of-thought does not poison the result. NOTE: a fast non-reasoning
     instruct model is still the recommended judge — reasoning models are slow and
     spend their budget thinking instead of scoring (see ADR-004 §5)."""
-    from ..local_executor import resolve_executor  # deferred: keeps the deterministic gate importable without httpx/tiktoken
+    from ..local_executor import (
+        resolve_executor,  # deferred: keeps the deterministic gate importable without httpx/tiktoken
+    )
+
     executor = resolve_executor(judge_model)
     if executor is None:
-        return {"score": None, "rationale": f"judge model '{judge_model}' unavailable",
-                "available": False}
+        return {
+            "score": None,
+            "rationale": f"judge model '{judge_model}' unavailable",
+            "available": False,
+        }
     criteria = "\n".join(f"- [{c.id}] {c.statement}" for c in manifest.acceptance_criteria)
     prompt = (
         "You are a strict reviewer. Score how well the DELIVERABLE satisfies EVERY "
@@ -126,8 +134,8 @@ async def run_judge(manifest: OffloadManifest, artifact: str, judge_model: str) 
         f"## Acceptance criteria\n{criteria}\n\n"
         f"## Deliverable\n```\n{artifact[:12000]}\n```\n\n"
         "Respond with ONLY a JSON object: "
-        '{\"score\": <float 0..1>, \"rationale\": \"<one sentence>\", '
-        '\"unmet\": [\"<criterion ids not satisfied>\"]}'
+        '{"score": <float 0..1>, "rationale": "<one sentence>", '
+        '"unmet": ["<criterion ids not satisfied>"]}'
     )
     # extra_body: force a JSON envelope (Lemonade honors response_format on the
     # local instruct models — measured 2026-06-29) and ask thinking-capable recipes
@@ -142,8 +150,11 @@ async def run_judge(manifest: OffloadManifest, artifact: str, judge_model: str) 
     for attempt in range(2):
         try:
             raw = await executor.generate(
-                prompt, system="Return only JSON.", temperature=0.0,
-                max_tokens=800, extra_body=extra,
+                prompt,
+                system="Return only JSON.",
+                temperature=0.0,
+                max_tokens=800,
+                extra_body=extra,
             )
         except Exception as exc:
             return {"score": None, "rationale": f"judge error: {exc}", "available": True}
@@ -151,22 +162,28 @@ async def run_judge(manifest: OffloadManifest, artifact: str, judge_model: str) 
         if data is not None and "score" in data:
             break
     if data is None or "score" not in data:
-        return {"score": None,
-                "rationale": f"judge returned no parseable JSON verdict after retry "
-                             f"(reasoning model, or model too small to follow format): "
-                             f"{(raw or '')[:160]}",
-                "available": True}
+        return {
+            "score": None,
+            "rationale": f"judge returned no parseable JSON verdict after retry "
+            f"(reasoning model, or model too small to follow format): "
+            f"{(raw or '')[:160]}",
+            "available": True,
+        }
     try:
         score = float(data.get("score"))
-        return {"score": max(0.0, min(1.0, score)),
-                "rationale": str(data.get("rationale", ""))[:300],
-                "unmet": data.get("unmet", []), "available": True}
+        return {
+            "score": max(0.0, min(1.0, score)),
+            "rationale": str(data.get("rationale", ""))[:300],
+            "unmet": data.get("unmet", []),
+            "available": True,
+        }
     except (TypeError, ValueError) as exc:
         return {"score": None, "rationale": f"judge parse error: {exc}", "available": True}
 
 
-async def evaluate(manifest: OffloadManifest, artifact: str, final_tier: str,
-                   executor_model: str, judge_model: str) -> GateResult:
+async def evaluate(
+    manifest: OffloadManifest, artifact: str, final_tier: str, executor_model: str, judge_model: str
+) -> GateResult:
     """Run the full gate and decide pass / escalate for a non-red task."""
     checks = await run_deterministic(manifest)
     det_ok = all(c.ok for c in checks)  # vacuously True with no checks
@@ -182,17 +199,22 @@ async def evaluate(manifest: OffloadManifest, artifact: str, final_tier: str,
     # A generate task is an unapplied proposal — deterministic checks ran against
     # the live repo, not the artifact, so they CANNOT auto-pass it. Require a judge;
     # if none is configured, escalate honestly rather than report a false pass.
-    if manifest.executor_mode == "generate" and (final_tier == "green" or not manifest.judge_enabled):
+    if manifest.executor_mode == "generate" and (
+        final_tier == "green" or not manifest.judge_enabled
+    ):
         result.escalate = manifest.escalation_policy != "never"
-        result.summary = ("generate proposal cannot be validated by deterministic checks on the "
-                          "live repo (ADR-001); no judge configured — escalating")
+        result.summary = (
+            "generate proposal cannot be validated by deterministic checks on the "
+            "live repo (ADR-001); no judge configured — escalating"
+        )
         return result
 
     # green (shell, acts in place): deterministic-only, auto-pass
     if final_tier == "green" or not manifest.judge_enabled:
         result.passed = True
         result.summary = "passed (deterministic gate)" + (
-            "" if not manifest.judge_enabled else "; judge disabled")
+            "" if not manifest.judge_enabled else "; judge disabled"
+        )
         return result
 
     # yellow: judge

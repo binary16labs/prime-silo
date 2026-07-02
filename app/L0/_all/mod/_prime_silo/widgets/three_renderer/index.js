@@ -262,7 +262,9 @@ export function createThreeRenderer(options = {}) {
       ? options.spriteCdnUrl
       : DEFAULT_SPRITE_CDN_URL;
   const labelLoader =
-    typeof options.labelLoader === "function" ? options.labelLoader : () => defaultLoader(spriteCdnUrl);
+    typeof options.labelLoader === "function"
+      ? options.labelLoader
+      : () => defaultLoader(spriteCdnUrl);
   const labelColor =
     typeof options.labelColor === "string" ? options.labelColor : DEFAULT_LABEL_COLOR;
   // Force-layout spacing. Stronger (more negative) charge + longer links push
@@ -366,7 +368,9 @@ export function createThreeRenderer(options = {}) {
             if (!n) return "";
             const name = escapeHtml(String(n.name || n.id || ""));
             const ident = n.ident && n.ident !== n.name ? escapeHtml(String(n.ident)) : "";
-            return ident ? `<strong>${name}</strong><br><span style="opacity:.7">${ident}</span>` : `<strong>${name}</strong>`;
+            return ident
+              ? `<strong>${name}</strong><br><span style="opacity:.7">${ident}</span>`
+              : `<strong>${name}</strong>`;
           });
         }
         // Spread dense clusters so labels don't pile up. d3Force returns the

@@ -6,7 +6,7 @@ and intelligent truncation of tool outputs and message history.
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from .models import get_model_config
 
@@ -62,7 +62,9 @@ class ContextGuard:
             return text
 
         truncated = text[:limit]
-        marker = f"\n\n✂️ [TRUNCATED {len(text) - limit} chars of {source_hint} for context stability] ✂️"
+        marker = (
+            f"\n\n✂️ [TRUNCATED {len(text) - limit} chars of {source_hint} for context stability] ✂️"
+        )
         return truncated + marker
 
     @staticmethod

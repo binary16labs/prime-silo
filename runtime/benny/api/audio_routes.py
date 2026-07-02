@@ -2,17 +2,12 @@
 Audio Routes - STT (Whisper) and TTS (Kokoro) orchestration via Lemonade
 """
 
-import io
-import json
-import os
-from typing import Optional
-
 import httpx
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
-from fastapi.responses import Response, StreamingResponse
+from fastapi.responses import Response
 from pydantic import BaseModel
 
-from ..core.models import LOCAL_PROVIDERS, call_model, get_active_model
+from ..core.models import call_model, get_active_model
 
 router = APIRouter()
 

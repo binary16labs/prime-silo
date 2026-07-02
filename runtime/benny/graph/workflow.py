@@ -5,11 +5,10 @@ Deterministic workflow execution with conditional routing and HITL checkpoints
 
 from __future__ import annotations
 
-import json
 import logging
 from typing import Annotated, Any, Literal, Optional, TypedDict
 
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
@@ -18,7 +17,6 @@ from ..core.models import call_model, get_active_model, get_model_config
 
 logger = logging.getLogger(__name__)
 
-from ..core.state import GraphState
 
 # =============================================================================
 # STATE DEFINITION

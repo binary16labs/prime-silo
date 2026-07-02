@@ -9,7 +9,6 @@ from ..core.workspace import (
     ensure_workspace_structure,
     list_workspaces,
     load_manifest,
-    save_manifest,
 )
 
 router = APIRouter()
@@ -72,7 +71,6 @@ async def update_workspace_manifest(workspace_id: str, updates: dict = Body(...)
 
         manifest = update_manifest(workspace_id, updates)
         return manifest
-        raise he
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

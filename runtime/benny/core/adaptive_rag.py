@@ -11,14 +11,12 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict, List, Literal, Optional, TypedDict
+from typing import List, Literal, Optional, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
-from ..core.graph_db import get_driver, multi_hop_traversal  # For multi-hop traversal
+from ..core.graph_db import multi_hop_traversal  # For multi-hop traversal
 from ..core.models import call_model
-from ..core.workspace import get_workspace_path
-from ..governance.lineage import track_workflow_complete, track_workflow_start
 from ..tools.knowledge import get_chromadb_client, get_knowledge_collection
 
 logger = logging.getLogger(__name__)

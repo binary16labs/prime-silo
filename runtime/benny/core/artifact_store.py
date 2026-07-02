@@ -12,7 +12,6 @@ No network calls.  All storage is under workspace_path/artifacts/.
 from __future__ import annotations
 
 import hashlib
-import json
 import os
 from pathlib import Path
 from typing import Any, Dict, Optional, Union

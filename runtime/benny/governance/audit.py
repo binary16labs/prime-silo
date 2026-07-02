@@ -3,11 +3,9 @@ Benny Governance - Unified Audit Logging
 Consolidates lineage, task status, and reasoning logs into a single, verifiable trail.
 """
 
-import asyncio
 import hashlib
 import json
 import logging
-import os
 import queue
 import threading
 from datetime import datetime, timezone
@@ -22,6 +20,8 @@ GLOBAL_AUDIT_LOG = WORKSPACE_ROOT / "governance.log"
 AUDIT_PAYLOAD_LIMIT = 10 * 1024  # 10KB
 ROTATION_MAX_BYTES = 5 * 1024 * 1024  # 5MB
 ROTATION_BACKUP_COUNT = 5
+
+logger = logging.getLogger(__name__)
 
 
 class BennyAuditEncoder(json.JSONEncoder):

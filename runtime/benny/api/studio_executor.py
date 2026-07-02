@@ -8,7 +8,7 @@ import json
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, AsyncGenerator, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import httpx
 from fastapi import APIRouter, HTTPException
@@ -16,7 +16,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from ..core.event_bus import event_bus
-from ..core.models import LOCAL_PROVIDERS, call_model, get_active_model, get_model_config
+from ..core.models import get_active_model, get_model_config
 from ..core.reasoning import extract_reasoning, format_combined_output
 from ..core.task_manager import task_manager
 from ..core.workspace import get_workspace_path
@@ -27,9 +27,7 @@ from ..governance.execution_audit import (
     emit_node_execution_state,
 )
 from ..governance.lineage import (
-    track_llm_call,
     track_policy_breach,
-    track_tool_execution,
     track_workflow_complete,
     track_workflow_start,
 )
@@ -314,7 +312,6 @@ async def execute_llm_node(
     node: StudioNode, context: Dict, workspace: str, run_id: str, agent_id: str = "default"
 ) -> Dict:
     """Execute an LLM node — the core reasoning brain."""
-    from ..core.models import get_active_model
     from ..core.skill_registry import registry
 
     config = node.data.get("config") or {}
@@ -393,7 +390,6 @@ async def execute_llm_node(
 
     max_steps = 5
     current_step = 0
-    total_tokens = 0
     executed_tools = []
 
     async with httpx.AsyncClient(timeout=300.0) as client:
@@ -534,8 +530,6 @@ async def _run_workflow_background(
     )
 
     node_results: List[NodeResult] = []
-    artifact_path = None
-    final_output = None
     overall_status = "completed"
 
     try:
@@ -562,7 +556,7 @@ async def _run_workflow_background(
                     output = await execute_llm_node(node, context, request.workspace, run_id=run_id)
                     if output.get("response"):
                         context["llm_output"] = output["response"]
-                        final_output = output["response"]
+                        output["response"]
                 elif node.type == "a2a":
                     output = await execute_a2a_node(node, context, request.workspace)
                 elif node.type == "intervention":

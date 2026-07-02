@@ -493,7 +493,8 @@ window.stepThroughPage = function stepThroughPage() {
 
     cancelSpeech() {
       try {
-        if (typeof window !== "undefined" && window.speechSynthesis) window.speechSynthesis.cancel();
+        if (typeof window !== "undefined" && window.speechSynthesis)
+          window.speechSynthesis.cancel();
       } catch {
         /* ignore */
       }

@@ -36,7 +36,6 @@ import os
 import sys
 import zipfile
 from pathlib import Path
-from typing import Optional
 
 # ---------------------------------------------------------------------------
 # Subparser registration (called from benny_cli.py build_parser)

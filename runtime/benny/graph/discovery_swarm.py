@@ -5,7 +5,7 @@ Specialized for architectural mapping and progressive discovery.
 
 import json
 import logging
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import Any, Dict, List, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 

@@ -4,7 +4,6 @@ File Routes - Upload, list, and manage workspace files
 
 import shutil
 from pathlib import Path
-from typing import List
 
 import httpx
 from bs4 import BeautifulSoup
@@ -12,7 +11,6 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from markdownify import markdownify as md
 from pydantic import BaseModel
 
-from ..core.extraction import extract_structured_text
 from ..core.workspace import get_workspace_files, get_workspace_path
 from ..governance.lineage import track_file_conversion
 

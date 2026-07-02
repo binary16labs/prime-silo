@@ -10,7 +10,6 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import asdict, dataclass, field
-from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 import yaml
@@ -387,7 +386,6 @@ async def _execute_query_graph(workspace: str, **kwargs) -> str:
 
 async def _execute_rag_ingest(workspace: str, **kwargs) -> str:
     """Execute rag_ingest skill - awaits background ingestion."""
-    import asyncio
     import uuid
 
     from ..api.graph_routes import _background_ingest_files

@@ -4,15 +4,12 @@ MCP Server for Benny — expose workflow surface to external agents.
 
 from __future__ import annotations
 
-import collections
 import json
 import os
-import sys
-from typing import AsyncIterator, Optional, Union
+from typing import Union
 
 import httpx
 from mcp.server.fastmcp import FastMCP
-from pydantic import BaseModel
 
 from ..core.manifest_hash import verify_signature
 

@@ -6,7 +6,7 @@ Implements a lightweight Label Propagation Algorithm (LPA) to identify 'Semantic
 import asyncio
 import logging
 from collections import Counter
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List
 
 import anyio
 

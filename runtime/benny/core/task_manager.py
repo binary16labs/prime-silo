@@ -5,7 +5,6 @@ import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 # Force Proactor on Windows to handle many concurrent sockets/files

@@ -2,9 +2,6 @@
 File Tools - Read/write files with workspace scoping
 """
 
-from pathlib import Path
-from typing import List
-
 from langchain_core.tools import tool
 
 from ..core.workspace import get_workspace_files, get_workspace_path, smart_output

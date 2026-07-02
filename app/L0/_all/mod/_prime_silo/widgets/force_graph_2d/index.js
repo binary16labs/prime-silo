@@ -212,14 +212,15 @@ async function defaultLoader(vendorUrl) {
  */
 export function createForceGraph2DRenderer(options = {}) {
   const vendorUrl =
-    typeof options.vendorUrl === "string" && options.vendorUrl ? options.vendorUrl : DEFAULT_VENDOR_URL;
+    typeof options.vendorUrl === "string" && options.vendorUrl
+      ? options.vendorUrl
+      : DEFAULT_VENDOR_URL;
   const loader =
     typeof options.loader === "function" ? options.loader : () => defaultLoader(vendorUrl);
   const backgroundColor =
     typeof options.backgroundColor === "string" ? options.backgroundColor : DEFAULT_BACKGROUND;
   const physicsMode = typeof options.physicsMode === "string" ? options.physicsMode : "fluid";
-  const factoryOnNodeClick =
-    typeof options.onNodeClick === "function" ? options.onNodeClick : null;
+  const factoryOnNodeClick = typeof options.onNodeClick === "function" ? options.onNodeClick : null;
   const showMinimap = options.minimap !== false;
   const chargeStrength =
     typeof options.chargeStrength === "number" ? options.chargeStrength : DEFAULT_CHARGE_STRENGTH;
@@ -506,7 +507,9 @@ export function createForceGraph2DRenderer(options = {}) {
             const name = escapeHtml(String(n.label || n.id || ""));
             const type = n.type ? escapeHtml(String(n.type)) : "";
             const ident = n.ident && n.ident !== n.label ? escapeHtml(String(n.ident)) : "";
-            const head = type ? `<strong>${name}</strong> <em>${type}</em>` : `<strong>${name}</strong>`;
+            const head = type
+              ? `<strong>${name}</strong> <em>${type}</em>`
+              : `<strong>${name}</strong>`;
             return ident ? `${head}<br><span style="opacity:.7">${ident}</span>` : head;
           })
           .nodeCanvasObject(paintNode)
@@ -551,7 +554,8 @@ export function createForceGraph2DRenderer(options = {}) {
           .onNodeClick((n) => fireClick(n))
           .onNodeHover((n) => fireHover(n))
           .onBackgroundClick(() => {
-            const onBg = state.pending && state.pending.props && state.pending.props.onBackgroundClick;
+            const onBg =
+              state.pending && state.pending.props && state.pending.props.onBackgroundClick;
             if (typeof onBg === "function") onBg();
           });
         // Open up dense clusters so labels stop overlapping (fluid mode only —
@@ -626,7 +630,8 @@ export function createForceGraph2DRenderer(options = {}) {
       if (!ids.length) return;
       const tryCenter = () => {
         if (state.disposed || !state.instance) return false;
-        const gd = typeof state.instance.graphData === "function" ? state.instance.graphData() : null;
+        const gd =
+          typeof state.instance.graphData === "function" ? state.instance.graphData() : null;
         const node = gd && gd.nodes.find((n) => ids.includes(String(n.id)));
         if (node && typeof node.x === "number" && typeof state.instance.centerAt === "function") {
           state.instance.centerAt(node.x, node.y, 600);

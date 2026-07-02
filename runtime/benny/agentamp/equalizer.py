@@ -51,7 +51,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 # Governance imports are deferred to function-call time to avoid pulling in
@@ -66,8 +66,7 @@ from .contracts import SkinSignature
 from .signing import sign_skin_pack
 
 if TYPE_CHECKING:  # pragma: no cover
-    from ..governance.ledger import LedgerEntry
-    from ..governance.policy import PolicyEvaluator
+    pass
 
 
 # ---------------------------------------------------------------------------

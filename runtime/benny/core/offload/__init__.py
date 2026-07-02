@@ -14,8 +14,8 @@ Public surface:
 - :class:`benny.core.offload.ledger.Ledger`
 """
 
-from .manifest import OffloadManifest, ManifestError, load_manifest, validate_manifest
-from .router import classify, RouterDecision
+from .manifest import ManifestError, OffloadManifest, load_manifest, validate_manifest
+from .router import RouterDecision, classify
 
 __all__ = [
     "OffloadManifest",

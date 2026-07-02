@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import AsyncIterator, Optional
+from typing import Optional
 
 import httpx
 
