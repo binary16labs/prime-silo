@@ -18,10 +18,14 @@
  * Delta mode:   `delta` — only sessions new/changed since their card.
  * Heartbeat:    <workspace>/longview/status.json; honest numbers: ledger.jsonl.
  */
+import { spawnSync } from "child_process";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { runOpus } from "./lib/opus.mjs";
+import { evidenceFor, graphCatalog } from "./lib/retrieve.mjs";
+import { mdToHtml, htmlToPdf } from "./lib/book_pdf.mjs";
 import { config, ensureWorkspace, workspaceDir, stateDir, projectRoot } from "./lib/config.mjs";
 import { syncStore, listSessions } from "./lib/store.mjs";
 import { buildEvidencePack } from "./lib/evidence.mjs";
@@ -309,20 +313,39 @@ function loadCards() {
 }
 
 function renderCardMd(card) {
-  const list = (k) =>
-    card[k] && card[k].length ? card[k].map((x) => `- ${x}`).join("\n") : "- (none)";
+  const list = (k, label) =>
+    card[k] && card[k].length ? `**${label}:**\n${card[k].map((x) => `- ${x}`).join("\n")}` : "";
+  // Three H2 sections, not ten: deep synthesis extracts per H2 section (capped
+  // at 10/doc), so section count IS the per-document LLM cost. Ten sections
+  // cost ~10 min/doc and caused the 30-min batch timeouts; three cost ~3 min.
+  const overview = [
+    card.intent,
+    list("applications", "Applications"),
+    list("capabilities", "Capabilities")
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+  const happened = [
+    list("decisions", "Decisions"),
+    list("outcomes", "Outcomes"),
+    list("failures", "Failures")
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+  const threads = [
+    list("skills_observed", "Skills observed"),
+    list("operator_traits", "Operator traits"),
+    list("open_threads", "Open threads"),
+    list("proposed_next", "Proposed next")
+  ]
+    .filter(Boolean)
+    .join("\n\n");
   return [
     `# Session card: ${card.project} (${card.period})`,
     `Session ${card.session_id} · agent ${card.agent}`,
-    `\n## Intent\n${card.intent}`,
-    `\n## Applications\n${list("applications")}`,
-    `\n## Capabilities\n${list("capabilities")}`,
-    `\n## Decisions\n${list("decisions")}`,
-    `\n## Outcomes\n${list("outcomes")}`,
-    `\n## Failures\n${list("failures")}`,
-    `\n## Skills observed\n${list("skills_observed")}`,
-    `\n## Open threads\n${list("open_threads")}`,
-    `\n## Proposed next\n${list("proposed_next")}`
+    `\n## Overview\n${overview || "(none)"}`,
+    `\n## What happened\n${happened || "(none)"}`,
+    `\n## Threads and signals\n${threads || "(none)"}`
   ].join("\n");
 }
 
@@ -595,11 +618,26 @@ async function runReduce({ onlyOverride = null, skipBookOverride = null } = {}) 
 
   // 2. Cross-project themes — the greater-than-the-sum pass.
   let themes = "";
+  // Discovery notes (weave phase) — when they exist, every synthesis input
+  // stands on them too: the loop's findings compound into the deliverables.
+  let discoveryDigest = "";
+  try {
+    const dDir = outDir("discovery");
+    discoveryDigest = fs
+      .readdirSync(dDir)
+      .filter((f) => f.endsWith(".md"))
+      .map((f) => fs.readFileSync(path.join(dDir, f), "utf8").slice(0, 1200))
+      .join("\n\n---\n\n")
+      .slice(0, 8000);
+  } catch {
+    /* no weave yet */
+  }
+
   if (want("themes") && !interrupted) {
     themes = await reduceCall(
       "themes",
       prompt("themes"),
-      `${dossierSummaries}\n\n## Timeline rollup\n${rollup("timeline")}\n\n## Operator rollup\n${rollup("operator").slice(0, 6000)}`,
+      `${dossierSummaries}\n\n## Timeline rollup\n${rollup("timeline")}\n\n## Operator rollup\n${rollup("operator").slice(0, 6000)}${discoveryDigest ? `\n\n## Discovery notes (cross-reference findings)\n${discoveryDigest}` : ""}`,
       outDir("THEMES.md")
     );
   } else if (fs.existsSync(outDir("THEMES.md"))) {
@@ -695,6 +733,171 @@ async function runReduce({ onlyOverride = null, skipBookOverride = null } = {}) 
     console.log("[reduce] togaf → data_out/TOGAF-RUN.md (human-launched)");
   }
   writeStatus({ phase: "reduce_done", deliverables_at: workspaceDir("data_out") });
+}
+
+// --------------------------------------------------------------------- code
+// AST/code-graph feed (ADR-005 horizontal mechanism, code half): junction the
+// repo into the workspace src/, then run the existing declarative enrichment
+// manifest (Tree-Sitter scan → code graph → CORRELATES_WITH links to the
+// knowledge concepts). Reuses benny enrich end to end.
+async function runCode() {
+  const srcRoot = workspaceDir("src");
+  const target = path.join(srcRoot, "prime-silo");
+  fs.mkdirSync(srcRoot, { recursive: true });
+  if (!fs.existsSync(target)) {
+    // Junction (no admin needed on Windows), so the scan sees the live repo.
+    const r = spawnSync("cmd", ["/c", "mklink", "/J", target, projectRoot], { encoding: "utf8" });
+    if (!fs.existsSync(target)) {
+      console.log(`[code] junction failed (${(r.stderr || "").trim()}) — skipping code graph`);
+      appendLedger({ phase: "code", ok: false, error: "junction failed" });
+      return;
+    }
+    console.log(`[code] junction: ${target} → ${projectRoot}`);
+  }
+  writeStatus({ phase: "code" });
+  const started = Date.now();
+  console.log("[code] benny enrich (Tree-Sitter scan → code graph → correlate)…");
+  const r = spawnSync(
+    "python",
+    ["benny_cli.py", "enrich", "--workspace", config.WORKSPACE, "--src", "src/prime-silo", "--run"],
+    { cwd: path.join(projectRoot, "runtime"), encoding: "utf8", timeout: 3600000 }
+  );
+  const ok = r.status === 0;
+  const tail = ((r.stdout || "") + (r.stderr || ""))
+    .split("\n")
+    .filter(Boolean)
+    .slice(-4)
+    .join(" | ");
+  console.log(
+    `[code] ${ok ? "ok" : "FAILED"} (${((Date.now() - started) / 1000 / 60).toFixed(1)} min) ${tail.slice(0, 300)}`
+  );
+  appendLedger({ phase: "code", ok, ms: Date.now() - started, tail: tail.slice(0, 500) });
+}
+
+// -------------------------------------------------------------------- weave
+// Discovery loops (the request: "loops of discovery… cross reference and
+// discovery through the graph and the text"). Each loop: ask the model what
+// is under-explored → answer each question from retrieval (chunks + graph
+// concepts) → write a cited discovery note → ingest the note back, so the
+// next loop (and every deliverable) stands on a richer corpus.
+async function runWeave({ loops = null, questionsPerLoop = null } = {}) {
+  const nLoops = loops ?? Number(opt("loops", 2));
+  const nQuestions = questionsPerLoop ?? Number(opt("questions", 4));
+  const discoveryDir = workspaceDir("data_out", "discovery");
+  fs.mkdirSync(discoveryDir, { recursive: true });
+  const outDir = workspaceDir("data_out");
+  const themes = fs.existsSync(path.join(outDir, "THEMES.md"))
+    ? fs.readFileSync(path.join(outDir, "THEMES.md"), "utf8")
+    : "";
+
+  for (let loop = 1; loop <= nLoops; loop++) {
+    if (interrupted) break;
+    const existingNotes = fs
+      .readdirSync(discoveryDir)
+      .filter((f) => f.endsWith(".md"))
+      .map((f) => "- " + f.replace(/\.md$/, "").replace(/_/g, " "));
+    const concepts = await graphCatalog(25);
+    writeStatus({ phase: "weave", weave_loop: loop, weave_loops_total: nLoops });
+    console.log(`[weave] loop ${loop}/${nLoops}: generating ${nQuestions} discovery questions…`);
+    const started = Date.now();
+    const res = await chat({
+      system: prompt("discovery_questions"),
+      user: [
+        `Generate exactly ${nQuestions} questions.`,
+        `## Current themes\n${themes.slice(0, 4000)}`,
+        concepts.length ? `## Top graph concepts\n${concepts.join(", ")}` : "",
+        existingNotes.length
+          ? `## Notes already written\n${existingNotes.join("\n").slice(0, 1500)}`
+          : ""
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
+      maxTokens: 900,
+      json: true,
+      temperature: 0.6
+    });
+    const qs = lastBalancedJson(res.content)?.questions || [];
+    appendLedger({
+      phase: "weave",
+      artifact: `loop${loop}:questions`,
+      ms: Date.now() - started,
+      count: qs.length
+    });
+    if (!qs.length) {
+      console.log(`[weave] loop ${loop}: no questions parsed — stopping weave`);
+      break;
+    }
+
+    const noteFiles = [];
+    for (const [i, q] of qs.entries()) {
+      if (interrupted) break;
+      const noteName = `loop${loop}_q${i + 1}.md`;
+      const notePath = path.join(discoveryDir, noteName);
+      if (fs.existsSync(notePath)) continue;
+      const t0 = Date.now();
+      const evidence = await evidenceFor(q.question, { topK: 6, budget: 4200 });
+      const note = await chat({
+        system: prompt("discovery_note"),
+        user: `## Question\n${q.question}\n\n## Why it matters\n${q.why || ""}\n\n## Retrieved evidence\n${evidence}`,
+        maxTokens: 1100,
+        temperature: 0.4
+      });
+      fs.writeFileSync(notePath, note.content.trim());
+      noteFiles.push(noteName);
+      appendLedger({
+        phase: "weave",
+        artifact: `loop${loop}:note${i + 1}`,
+        ms: Date.now() - t0,
+        prompt_tokens: note.prompt_tokens,
+        completion_tokens: note.completion_tokens
+      });
+      console.log(`[weave] loop ${loop} note ${i + 1}/${qs.length}: ${q.question.slice(0, 70)}…`);
+    }
+
+    // Feed the notes back into the corpus so the NEXT loop (and opus retrieval)
+    // can stand on them. Vectors are what retrieval needs; graph synthesis of
+    // notes rides the same ingestBatch discipline.
+    for (const name of noteFiles) {
+      const stagedName = `longview_note_${name}`;
+      fs.copyFileSync(path.join(discoveryDir, name), workspaceDir("data_in", stagedName));
+      const verdict = await ingestBatch([stagedName]);
+      appendLedger({
+        phase: "weave",
+        action: "ingest",
+        file: stagedName,
+        ok: verdict.ok,
+        run_id: verdict.runId
+      });
+      console.log(
+        `[weave] ingest ${stagedName}: ${verdict.ok ? "ok" : "FAILED (" + verdict.error + ")"}`
+      );
+      if (interrupted) break;
+    }
+  }
+  writeStatus({ phase: "weave_done" });
+}
+
+// ---------------------------------------------------------------------- pdf
+function runPdfPhase() {
+  const bookMd = workspaceDir("data_out", "opus", "THE-AI-VAMPIRE.md");
+  if (!fs.existsSync(bookMd)) {
+    console.log(
+      "[pdf] no assembled book at data_out/opus/THE-AI-VAMPIRE.md — run the opus phase first"
+    );
+    return;
+  }
+  const md = fs.readFileSync(bookMd, "utf8");
+  const htmlPath = workspaceDir("data_out", "opus", "THE-AI-VAMPIRE.html");
+  fs.writeFileSync(htmlPath, mdToHtml(md, { title: "The AI Vampire" }));
+  const pdfPath = workspaceDir("data_out", "opus", "THE-AI-VAMPIRE.pdf");
+  const r = htmlToPdf(htmlPath, pdfPath);
+  appendLedger({ phase: "pdf", ok: r.ok, bytes: r.bytes, error: r.error });
+  console.log(
+    r.ok
+      ? `[pdf] ${pdfPath} (${(r.bytes / 1024 / 1024).toFixed(1)} MB via ${r.browser})`
+      : `[pdf] FAILED — ${r.error} (HTML is at ${htmlPath})`
+  );
+  writeStatus({ phase: "pdf_done", pdf: r.ok ? pdfPath : null });
 }
 
 // ------------------------------------------------------------ status/report
@@ -871,11 +1074,19 @@ async function runManifest() {
     else if (ph.id === "extract") runExtract();
     else if (ph.id === "map") await runMap({ limitOverride: Number(ph.limit) || Infinity });
     else if (ph.id === "model") await runModel();
+    else if (ph.id === "code") await runCode();
+    else if (ph.id === "weave")
+      await runWeave({
+        loops: Number(ph.loops) || null,
+        questionsPerLoop: Number(ph.questions) || null
+      });
     else if (ph.id === "reduce")
       await runReduce({
         onlyOverride: Array.isArray(ph.only) && ph.only.length ? ph.only : null,
         skipBookOverride: ph.skip_book === true ? true : null
       });
+    else if (ph.id === "opus") await runOpus({ interrupted: () => interrupted });
+    else if (ph.id === "pdf") runPdfPhase();
     else console.log(`[run] unknown phase '${ph.id}' — skipped`);
   }
 }
@@ -890,7 +1101,11 @@ const MUTATING_COMMANDS = new Set([
   "extract",
   "map",
   "model",
-  "reduce"
+  "code",
+  "weave",
+  "reduce",
+  "opus",
+  "pdf"
 ]);
 
 async function main() {
@@ -912,8 +1127,20 @@ async function main() {
     case "model":
       await runModel();
       break;
+    case "code":
+      await runCode();
+      break;
+    case "weave":
+      await runWeave();
+      break;
     case "reduce":
       await runReduce();
+      break;
+    case "opus":
+      await runOpus({ interrupted: () => interrupted });
+      break;
+    case "pdf":
+      runPdfPhase();
       break;
     case "all":
       await runInventory();

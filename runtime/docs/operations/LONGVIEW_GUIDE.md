@@ -51,9 +51,27 @@ python benny_cli.py longview status               # heartbeat: phase, counts, ET
 python benny_cli.py longview report               # honest ledger report
 ```
 
-Phases (declared in the manifest): `inventory` → `extract` → `map` → `model` → `reduce`.
-Edit the manifest to change model, budgets, batch sizes, `deep_synthesis`, or
-to disable phases — no code changes.
+Phases (declared in the manifest, executed in order):
+`inventory` → `extract` → `map` → `model` → `code` → `weave` → `reduce` → `opus` → `pdf`.
+Edit the manifest to change model, budgets, batch sizes, `deep_synthesis`,
+loop counts, or to disable phases — no code changes.
+
+- **code** — junctions the repo into `<workspace>/src/` and runs `benny enrich`
+  (Tree-Sitter scan → code graph → `CORRELATES_WITH` links to the knowledge
+  concepts). The dual graph is what lets later phases cross-reference decisions
+  to the code they shaped.
+- **weave** — discovery loops (`weave_loops` × `weave_questions`): the model
+  proposes under-explored questions, each is answered from retrieval (vector
+  chunks + graph concepts) into a **cited discovery note**, and the notes are
+  ingested back — so every loop, and every deliverable after it, stands on a
+  richer corpus. This is the compounding "greater than the sum" mechanism.
+- **opus** — *The AI Vampire*: a 200+ page narrative-nonfiction book built
+  hierarchically (one outline call → per-chapter section specs → ~100
+  retrieval-grounded sections of 650–950 words, each cited, each resume-safe
+  as a file under `data_out/opus/sections/`). Assembles to
+  `data_out/opus/THE-AI-VAMPIRE.md`; partial assemblies are valid previews.
+- **pdf** — the assembled book → print-styled HTML → PDF via headless
+  Edge/Chrome: `data_out/opus/THE-AI-VAMPIRE.pdf`.
 
 ## Test procedure (small slice first, then the whole)
 

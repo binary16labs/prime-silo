@@ -93,8 +93,11 @@ export const config = {
   // LLM-per-document, so batches are small and the timeout generous.
   DEEP_SYNTHESIS: env("LONGVIEW_DEEP_SYNTHESIS", "true") !== "false",
   INGEST_MODEL: env("LONGVIEW_INGEST_MODEL", "lemonade/qwen3.5-9b-FLM"),
-  INGEST_BATCH: Number(env("LONGVIEW_INGEST_BATCH", 5)),
-  INGEST_TIMEOUT_MS: Number(env("LONGVIEW_INGEST_TIMEOUT_MS", 1800000)),
+  // batch=1: a batch must never outlive its timeout, or timed-out polls fire
+  // the next batch onto a still-running server task — five stacked synthesis
+  // tasks knocked the embedding provider over (2026-07-02 overnight run).
+  INGEST_BATCH: Number(env("LONGVIEW_INGEST_BATCH", 1)),
+  INGEST_TIMEOUT_MS: Number(env("LONGVIEW_INGEST_TIMEOUT_MS", 2700000)),
   LLM_TIMEOUT_MS: Number(env("LONGVIEW_LLM_TIMEOUT_MS", 900000)),
   // Sessions with less extractable text than this are recorded as thin, not mapped.
   THIN_SESSION_CHARS: Number(env("LONGVIEW_THIN_CHARS", 200)),

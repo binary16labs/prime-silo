@@ -14,8 +14,11 @@
     "reduce_max_tokens": 1800,
     "thin_session_chars": 200,
     "deep_synthesis": true,
-    "ingest_batch_size": 5,
-    "delta_reduce_threshold": 5
+    "ingest_batch_size": 1,
+    "delta_reduce_threshold": 5,
+    "weave_loops": 2,
+    "weave_questions": 4,
+    "opus_title": "The AI Vampire"
   },
   "plan": {
     "phases": [
@@ -41,11 +44,33 @@
         "description": "Deterministic rollups + /rag/ingest with deep_synthesis so cards become graph Documents/Concepts, not just vectors"
       },
       {
+        "id": "code",
+        "enabled": true,
+        "description": "Code graph: junction the repo into src/, Tree-Sitter scan → code graph → CORRELATES_WITH links to knowledge concepts (reuses benny enrich)"
+      },
+      {
+        "id": "weave",
+        "enabled": true,
+        "loops": 2,
+        "questions": 4,
+        "description": "Discovery loops: under-explored questions → retrieval (chunks + graph) → cited discovery notes → re-ingested so each loop and every deliverable stands on a richer corpus"
+      },
+      {
         "id": "reduce",
         "enabled": true,
         "skip_book": false,
         "only": [],
-        "description": "Dossiers → themes → report/PRD/skill/book + TOGAF SAD run instructions (bounded calls, citations kept)"
+        "description": "Dossiers → themes → report/PRD/skill/book + TOGAF SAD run instructions (bounded calls, citations kept, discovery notes woven in)"
+      },
+      {
+        "id": "opus",
+        "enabled": true,
+        "description": "The AI Vampire: hierarchical outline (parts→chapters→sections) then ~100 retrieval-grounded cited sections assembled into a 200+ page book (resume-safe per section)"
+      },
+      {
+        "id": "pdf",
+        "enabled": true,
+        "description": "Assembled book → print-styled HTML → PDF via headless Edge/Chrome"
       }
     ]
   },
