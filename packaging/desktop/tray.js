@@ -318,7 +318,9 @@ function buildMenu(options) {
       const h = lv.heartbeat || {};
       const summary = lv.running
         ? `LONGVIEW: running — ${h.phase || "starting"}${
-            h.cards_ok != null && h.backlog_total != null ? ` (${h.cards_ok}/${h.backlog_total} cards)` : ""
+            h.cards_ok != null && h.backlog_total != null
+              ? ` (${h.cards_ok}/${h.backlog_total} cards)`
+              : ""
           }`
         : `LONGVIEW: idle${h.cards_ok != null ? ` (${h.cards_ok} cards synthesized)` : ""}`;
       return [

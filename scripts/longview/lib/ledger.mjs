@@ -7,7 +7,10 @@ const ledgerPath = () => stateDir("ledger.jsonl");
 const statusPath = () => stateDir("status.json");
 
 export function appendLedger(entry) {
-  fs.appendFileSync(ledgerPath(), JSON.stringify({ ts: new Date().toISOString(), ...entry }) + "\n");
+  fs.appendFileSync(
+    ledgerPath(),
+    JSON.stringify({ ts: new Date().toISOString(), ...entry }) + "\n"
+  );
 }
 
 export function readLedger() {

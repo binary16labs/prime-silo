@@ -114,7 +114,12 @@ function reloadConfig() {
 
     for (const [key, val] of Object.entries(userConfig)) {
       if (val !== undefined && val !== null) {
-        if (Array.isArray(val) && val.length === 0 && Array.isArray(defaultConfig[key]) && defaultConfig[key].length > 0) {
+        if (
+          Array.isArray(val) &&
+          val.length === 0 &&
+          Array.isArray(defaultConfig[key]) &&
+          defaultConfig[key].length > 0
+        ) {
           continue;
         }
         if (val === "" && defaultConfig[key]) {

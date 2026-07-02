@@ -35,10 +35,13 @@ const { exec } = require("node:child_process");
 function getProcessPath(pid) {
   return new Promise((resolve) => {
     if (process.platform === "win32") {
-      exec(`powershell -NoProfile -Command "(Get-Process -Id ${pid} -ErrorAction SilentlyContinue).Path"`, (err, stdout) => {
-        if (err) return resolve("");
-        resolve(stdout.trim());
-      });
+      exec(
+        `powershell -NoProfile -Command "(Get-Process -Id ${pid} -ErrorAction SilentlyContinue).Path"`,
+        (err, stdout) => {
+          if (err) return resolve("");
+          resolve(stdout.trim());
+        }
+      );
     } else {
       exec(`ps -p ${pid} -o command=`, (err, stdout) => {
         if (err) return resolve("");
@@ -80,7 +83,9 @@ async function cleanOrphanedPort(port, bundleDir, logger) {
 
   const procPath = await getProcessPath(pid);
   if (procPath && procPath.toLowerCase().includes(bundleDir.toLowerCase())) {
-    logger.log?.(`[runtime] Found orphaned process ${pid} on port ${port} inside bundle. Terminating...`);
+    logger.log?.(
+      `[runtime] Found orphaned process ${pid} on port ${port} inside bundle. Terminating...`
+    );
     try {
       if (process.platform === "win32") {
         await new Promise((resolve) => {
@@ -89,7 +94,7 @@ async function cleanOrphanedPort(port, bundleDir, logger) {
       } else {
         process.kill(pid, "SIGKILL");
       }
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     } catch (err) {
       logger.warn?.(`[runtime] Failed to kill orphaned process ${pid}: ${err.message}`);
     }

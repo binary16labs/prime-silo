@@ -76,7 +76,11 @@ function acquireLock() {
   }
   fs.writeFileSync(
     lockPath(),
-    JSON.stringify({ pid: process.pid, command, args: args.slice(1), started_at: new Date().toISOString() }, null, 2)
+    JSON.stringify(
+      { pid: process.pid, command, args: args.slice(1), started_at: new Date().toISOString() },
+      null,
+      2
+    )
   );
   const release = () => {
     try {
@@ -106,7 +110,10 @@ async function runInventory() {
       console.log(`FAILED (${e.message}) — proceeding with the store as-is`);
     }
   }
-  const agents = (opt("agents", "antigravity,claude") || "").toLowerCase().split(",").filter(Boolean);
+  const agents = (opt("agents", "antigravity,claude") || "")
+    .toLowerCase()
+    .split(",")
+    .filter(Boolean);
   const sessions = listSessions({ agents });
   const inventory = sessions.map((s) => ({
     id: s.id,
@@ -183,7 +190,9 @@ async function runMap({ deltaMode = false, limitOverride = null } = {}) {
     return true; // previous failure → retry
   });
 
-  console.log(`[map] queue ${Math.min(queue.length, limit)} of ${inventory.length} sessions (model ${config.LONGVIEW_MODEL})`);
+  console.log(
+    `[map] queue ${Math.min(queue.length, limit)} of ${inventory.length} sessions (model ${config.LONGVIEW_MODEL})`
+  );
   let ok = 0,
     failed = 0,
     thin = 0,
@@ -194,7 +203,12 @@ async function runMap({ deltaMode = false, limitOverride = null } = {}) {
     processed++;
     const meta = JSON.parse(fs.readFileSync(evidenceMetaPath(item.id), "utf8"));
     if (meta.signal_chars < config.THIN_SESSION_CHARS) {
-      appendLedger({ phase: "map", session_id: item.id, status: "skipped_thin", signal_chars: meta.signal_chars });
+      appendLedger({
+        phase: "map",
+        session_id: item.id,
+        status: "skipped_thin",
+        signal_chars: meta.signal_chars
+      });
       thin++;
       continue;
     }
@@ -246,11 +260,22 @@ async function runMap({ deltaMode = false, limitOverride = null } = {}) {
         project: card.project
       });
       ok++;
-      console.log(`[map] ok  ${sid8(item.id)} ${card.project.padEnd(20).slice(0, 20)} ${(ms / 1000).toFixed(0)}s`);
+      console.log(
+        `[map] ok  ${sid8(item.id)} ${card.project.padEnd(20).slice(0, 20)} ${(ms / 1000).toFixed(0)}s`
+      );
     } else {
-      appendLedger({ phase: "map", session_id: item.id, status: "failed", ms, retries, gate_errors: gateErrors });
+      appendLedger({
+        phase: "map",
+        session_id: item.id,
+        status: "failed",
+        ms,
+        retries,
+        gate_errors: gateErrors
+      });
       failed++;
-      console.log(`[map] FAIL ${sid8(item.id)} ${(ms / 1000).toFixed(0)}s — ${gateErrors.join("; ").slice(0, 120)}`);
+      console.log(
+        `[map] FAIL ${sid8(item.id)} ${(ms / 1000).toFixed(0)}s — ${gateErrors.join("; ").slice(0, 120)}`
+      );
     }
 
     const allVerdicts = mapVerdicts();
@@ -269,7 +294,9 @@ async function runMap({ deltaMode = false, limitOverride = null } = {}) {
       eta_hours_remaining: avgMs ? +((remaining * avgMs) / 3600000).toFixed(1) : null
     });
   }
-  console.log(`[map] done: ok=${ok} failed=${failed} thin=${thin}${interrupted ? " (interrupted — resume with the same command)" : ""}`);
+  console.log(
+    `[map] done: ok=${ok} failed=${failed} thin=${thin}${interrupted ? " (interrupted — resume with the same command)" : ""}`
+  );
 }
 
 // -------------------------------------------------------------------- model
@@ -282,7 +309,8 @@ function loadCards() {
 }
 
 function renderCardMd(card) {
-  const list = (k) => (card[k] && card[k].length ? card[k].map((x) => `- ${x}`).join("\n") : "- (none)");
+  const list = (k) =>
+    card[k] && card[k].length ? card[k].map((x) => `- ${x}`).join("\n") : "- (none)";
   return [
     `# Session card: ${card.project} (${card.period})`,
     `Session ${card.session_id} · agent ${card.agent}`,
@@ -339,8 +367,15 @@ async function ingestBatch(batch) {
       // appears means the POST was rejected — surface its status if the
       // response is available, without hanging on a still-open connection.
       if (!seen && Date.now() - started > 60000) {
-        const r = await Promise.race([post, new Promise((res) => setTimeout(() => res(undefined), 5000))]);
-        return { ok: false, runId, error: r ? `submit rejected (${r.status})` : "no task registered after 60s" };
+        const r = await Promise.race([
+          post,
+          new Promise((res) => setTimeout(() => res(undefined), 5000))
+        ]);
+        return {
+          ok: false,
+          runId,
+          error: r ? `submit rejected (${r.status})` : "no task registered after 60s"
+        };
       }
       continue;
     }
@@ -349,9 +384,14 @@ async function ingestBatch(batch) {
       return { ok: true, runId, partial: task.status === "completed_with_errors" };
     }
     if (task.status === "failed") return { ok: false, runId, error: task.message || "task failed" };
-    if (interrupted) return { ok: false, runId, error: "interrupted while waiting (server task continues)" };
+    if (interrupted)
+      return { ok: false, runId, error: "interrupted while waiting (server task continues)" };
   }
-  return { ok: false, runId, error: `timeout after ${config.INGEST_TIMEOUT_MS}ms (server task may still be running)` };
+  return {
+    ok: false,
+    runId,
+    error: `timeout after ${config.INGEST_TIMEOUT_MS}ms (server task may still be running)`
+  };
 }
 
 async function runModel() {
@@ -402,11 +442,19 @@ async function runModel() {
     for (const t of c.operator_traits || []) (operator.traits[t] ||= []).push(sid8(c.session_id));
     for (const s of c.skills_observed || []) (operator.skills[s] ||= []).push(sid8(c.session_id));
   }
-  const dehydrate = (o) =>
-    JSON.parse(JSON.stringify(o, (k, v) => (v instanceof Set ? [...v] : v)));
-  fs.writeFileSync(stateDir("rollups", "projects.json"), JSON.stringify(dehydrate(projects), null, 2));
-  fs.writeFileSync(stateDir("rollups", "capabilities.json"), JSON.stringify(dehydrate(capabilities), null, 2));
-  fs.writeFileSync(stateDir("rollups", "timeline.json"), JSON.stringify(dehydrate(timeline), null, 2));
+  const dehydrate = (o) => JSON.parse(JSON.stringify(o, (k, v) => (v instanceof Set ? [...v] : v)));
+  fs.writeFileSync(
+    stateDir("rollups", "projects.json"),
+    JSON.stringify(dehydrate(projects), null, 2)
+  );
+  fs.writeFileSync(
+    stateDir("rollups", "capabilities.json"),
+    JSON.stringify(dehydrate(capabilities), null, 2)
+  );
+  fs.writeFileSync(
+    stateDir("rollups", "timeline.json"),
+    JSON.stringify(dehydrate(timeline), null, 2)
+  );
   fs.writeFileSync(stateDir("rollups", "operator.json"), JSON.stringify(operator, null, 2));
   fs.writeFileSync(
     stateDir("rollups", "threads.json"),
@@ -444,7 +492,9 @@ async function runModel() {
     );
     for (let i = 0; i < pending.length; i += step) {
       const batch = pending.slice(i, i + step);
-      process.stdout.write(`[model] /rag/ingest batch ${Math.floor(i / step) + 1} (${batch.length} files)… `);
+      process.stdout.write(
+        `[model] /rag/ingest batch ${Math.floor(i / step) + 1} (${batch.length} files)… `
+      );
       const verdict = await ingestBatch(batch);
       console.log(verdict.ok ? `ok (run ${verdict.runId})` : `FAILED (${verdict.error})`);
       appendLedger({
@@ -482,7 +532,9 @@ async function reduceCall(name, system, user, outPath) {
     completion_tokens: res.completion_tokens,
     usage_estimated: res.usage_estimated
   });
-  console.log(`[reduce] ${name} → ${path.relative(config.BENNY_HOME, outPath)} (${((Date.now() - started) / 1000).toFixed(0)}s)`);
+  console.log(
+    `[reduce] ${name} → ${path.relative(config.BENNY_HOME, outPath)} (${((Date.now() - started) / 1000).toFixed(0)}s)`
+  );
   return res.content;
 }
 
@@ -531,7 +583,8 @@ async function runReduce({ onlyOverride = null, skipBookOverride = null } = {}) 
     }
   } else {
     for (const f of fs.readdirSync(outDir("dossiers"))) {
-      if (f.endsWith(".md")) dossiers[f.replace(/\.md$/, "")] = fs.readFileSync(outDir("dossiers", f), "utf8");
+      if (f.endsWith(".md"))
+        dossiers[f.replace(/\.md$/, "")] = fs.readFileSync(outDir("dossiers", f), "utf8");
     }
   }
 
@@ -593,7 +646,9 @@ async function runReduce({ onlyOverride = null, skipBookOverride = null } = {}) 
       for (const ch of outline.chapters) {
         if (interrupted) break;
         const relevant = Object.entries(dossiers)
-          .filter(([p]) => (ch.projects || []).some((x) => p.toLowerCase().includes(String(x).toLowerCase())))
+          .filter(([p]) =>
+            (ch.projects || []).some((x) => p.toLowerCase().includes(String(x).toLowerCase()))
+          )
           .map(([, d]) => d.slice(0, 5000))
           .join("\n\n");
         const text = await reduceCall(
@@ -607,7 +662,9 @@ async function runReduce({ onlyOverride = null, skipBookOverride = null } = {}) 
       fs.writeFileSync(outDir("book", "BOOK.md"), parts.join("\n\n---\n\n"));
       console.log(`[reduce] book assembled (${outline.chapters.length} chapters)`);
     } else {
-      console.log("[reduce] book outline did not parse — chapters skipped (rerun with --only book)");
+      console.log(
+        "[reduce] book outline did not parse — chapters skipped (rerun with --only book)"
+      );
     }
   }
 
@@ -653,7 +710,10 @@ function runReport() {
   const ok = maps.filter((e) => e.status === "ok");
   const failed = maps.filter((e) => e.status === "failed");
   const thin = maps.filter((e) => e.status === "skipped_thin");
-  const msArr = ok.map((e) => e.ms).filter(Boolean).sort((a, b) => a - b);
+  const msArr = ok
+    .map((e) => e.ms)
+    .filter(Boolean)
+    .sort((a, b) => a - b);
   const median = msArr.length ? msArr[Math.floor(msArr.length / 2)] : 0;
   const mean = msArr.length ? msArr.reduce((a, b) => a + b, 0) / msArr.length : 0;
   const tok = (k) => ok.reduce((a, e) => a + (e[k] || 0), 0);
@@ -699,7 +759,9 @@ async function runDelta() {
     console.log(`[delta] ${newCards} new cards → re-running reduce`);
     await runReduce();
   } else {
-    console.log(`[delta] ${newCards} new cards (< ${config.DELTA_REDUCE_THRESHOLD}) — reduce skipped; use --refresh to force`);
+    console.log(
+      `[delta] ${newCards} new cards (< ${config.DELTA_REDUCE_THRESHOLD}) — reduce skipped; use --refresh to force`
+    );
   }
 }
 
@@ -719,7 +781,13 @@ function runExtractForce() {
     fs.writeFileSync(
       evidenceMetaPath(item.id),
       JSON.stringify(
-        { signal_chars: ev.signalChars, artifact_names: ev.artifactNames, project: ev.project, first_ts: ev.firstTs, last_ts: ev.lastTs },
+        {
+          signal_chars: ev.signalChars,
+          artifact_names: ev.artifactNames,
+          project: ev.project,
+          first_ts: ev.firstTs,
+          last_ts: ev.lastTs
+        },
         null,
         2
       )
@@ -755,7 +823,10 @@ function loadManifest() {
       workspace: config.WORKSPACE,
       variables: {},
       plan: {
-        phases: ["inventory", "extract", "map", "model", "reduce"].map((id) => ({ id, enabled: true }))
+        phases: ["inventory", "extract", "map", "model", "reduce"].map((id) => ({
+          id,
+          enabled: true
+        }))
       }
     };
   }
@@ -778,14 +849,16 @@ async function runManifest() {
   const { path: manifestPath, manifest } = loadManifest();
   ensureWorkspace(); // the manifest may have switched the workspace
   acquireLock();
-  console.log(`[run] manifest ${manifest.id} (${path.basename(manifestPath)}) → workspace '${config.WORKSPACE}', model ${config.LONGVIEW_MODEL}`);
+  console.log(
+    `[run] manifest ${manifest.id} (${path.basename(manifestPath)}) → workspace '${config.WORKSPACE}', model ${config.LONGVIEW_MODEL}`
+  );
   if (flag("delta")) {
     await runDelta();
     return;
   }
   const onlyPhase = opt("phase", null);
-  const phases = (manifest.plan?.phases || []).filter(
-    (ph) => (onlyPhase ? ph.id === onlyPhase : ph.enabled !== false)
+  const phases = (manifest.plan?.phases || []).filter((ph) =>
+    onlyPhase ? ph.id === onlyPhase : ph.enabled !== false
   );
   if (onlyPhase && phases.length === 0) {
     console.error(`[run] phase '${onlyPhase}' not found in manifest`);
@@ -810,7 +883,15 @@ async function runManifest() {
 // --------------------------------------------------------------------- main
 // "run" locks inside runManifest — after the manifest has set the workspace,
 // so the lock lands in the workspace it actually guards.
-const MUTATING_COMMANDS = new Set(["all", "delta", "inventory", "extract", "map", "model", "reduce"]);
+const MUTATING_COMMANDS = new Set([
+  "all",
+  "delta",
+  "inventory",
+  "extract",
+  "map",
+  "model",
+  "reduce"
+]);
 
 async function main() {
   ensureWorkspace();

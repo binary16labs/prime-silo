@@ -1016,9 +1016,11 @@ export function createBridgePage(options = {}) {
       const h = this.longview.heartbeat;
       if (!h) return this.longview.running ? "starting…" : "idle";
       const parts = [`phase ${h.phase || "?"}`];
-      if (h.cards_ok != null && h.backlog_total != null) parts.push(`${h.cards_ok}/${h.backlog_total} cards`);
+      if (h.cards_ok != null && h.backlog_total != null)
+        parts.push(`${h.cards_ok}/${h.backlog_total} cards`);
       if (h.map_failed) parts.push(`${h.map_failed} failed`);
-      if (h.eta_hours_remaining != null && this.longview.running) parts.push(`~${h.eta_hours_remaining}h left`);
+      if (h.eta_hours_remaining != null && this.longview.running)
+        parts.push(`~${h.eta_hours_remaining}h left`);
       return parts.join(" · ");
     },
 

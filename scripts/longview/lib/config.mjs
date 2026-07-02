@@ -17,7 +17,11 @@ function loadDotEnv() {
       const t = line.trim();
       if (t && !t.startsWith("#")) {
         const i = t.indexOf("=");
-        if (i > 0) cfg[t.slice(0, i).trim()] = t.slice(i + 1).trim().replace(/^['"]|['"]$/g, "");
+        if (i > 0)
+          cfg[t.slice(0, i).trim()] = t
+            .slice(i + 1)
+            .trim()
+            .replace(/^['"]|['"]$/g, "");
       }
     }
   }
@@ -33,7 +37,9 @@ const env = (k, fallback) => process.env[k] || dotenv[k] || fallback;
 // workspace MUST live under the runtime's home, not a repo-relative one.
 let bennyHome;
 try {
-  const { resolveHome } = require(path.join(projectRoot, "packaging", "desktop", "home_resolver.js"));
+  const { resolveHome } = require(
+    path.join(projectRoot, "packaging", "desktop", "home_resolver.js")
+  );
   bennyHome = resolveHome({ env: { ...dotenv, ...process.env } }).bennyHome;
 } catch {
   bennyHome = env("BENNY_HOME", ".benny_home");

@@ -288,12 +288,7 @@ async function syncAntigravity() {
       if (!stat.isDirectory()) continue;
 
       const sessionUUID = hash(sessionFolder);
-      let transcriptPath = path.join(
-        sessionPath,
-        ".system_generated",
-        "logs",
-        "transcript.jsonl"
-      );
+      let transcriptPath = path.join(sessionPath, ".system_generated", "logs", "transcript.jsonl");
       if (!fs.existsSync(transcriptPath)) {
         const altTranscript = path.join(
           sessionPath,
@@ -315,7 +310,8 @@ async function syncAntigravity() {
         try {
           tStats = fs.statSync(transcriptPath);
           shouldParseTranscript =
-            tStats.mtimeMs > (index.antigravity_last_sync_timestamp || 0) - SYNC_BUFFER_MS || !fs.existsSync(existingFile);
+            tStats.mtimeMs > (index.antigravity_last_sync_timestamp || 0) - SYNC_BUFFER_MS ||
+            !fs.existsSync(existingFile);
         } catch {
           /* skip */
         }

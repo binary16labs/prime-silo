@@ -363,7 +363,8 @@ async function syncClaude() {
       }
       const sessionUUID = hash(file);
       const entityExists = fs.existsSync(path.join(ENTITIES_DIR, `${sessionUUID}.json`));
-      if (stats.mtimeMs <= (index.claude_last_sync_timestamp || 0) - SYNC_BUFFER_MS && entityExists) continue;
+      if (stats.mtimeMs <= (index.claude_last_sync_timestamp || 0) - SYNC_BUFFER_MS && entityExists)
+        continue;
 
       // Derive a rough project name from the path — will be refined
       // below with cwd from the parsed entries.

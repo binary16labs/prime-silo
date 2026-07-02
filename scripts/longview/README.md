@@ -38,7 +38,7 @@ python benny_cli.py longview report               # honest ledger report
 ```
 
 (Equivalent direct form: `node scripts/longview/longview.mjs run [manifest] [--phase X] [--delta]`.)
-Per ADR-005 §4 the manifest's tasks are the five *phases* — the per-session
+Per ADR-005 §4 the manifest's tasks are the five _phases_ — the per-session
 fan-out stays inside the map phase's checkpointed loop, never as swarm tasks.
 Edit the manifest to change model, budgets, batch sizes, or to disable phases.
 
@@ -58,13 +58,13 @@ after clearing `longview/rollups/ingested.json` back-fills the graph.
 
 ## Phases (runnable individually)
 
-| Phase     | Command       | What                                                        | LLM? |
-| --------- | ------------- | ----------------------------------------------------------- | ---- |
-| inventory | `inventory`   | memo-ray sync + session census                              | no   |
-| extract   | `extract`     | deterministic evidence packs (≤9 KB each)                   | no   |
-| map       | `map`         | evidence → session cards, gated + ledgered (the long part)  | yes  |
-| model     | `model`       | rollups + cards into the workspace knowledge graph          | no*  |
-| reduce    | `reduce`      | dossiers → themes → report/PRD/skill/book (+ TOGAF prep)    | yes  |
+| Phase     | Command     | What                                                       | LLM? |
+| --------- | ----------- | ---------------------------------------------------------- | ---- |
+| inventory | `inventory` | memo-ray sync + session census                             | no   |
+| extract   | `extract`   | deterministic evidence packs (≤9 KB each)                  | no   |
+| map       | `map`       | evidence → session cards, gated + ledgered (the long part) | yes  |
+| model     | `model`     | rollups + cards into the workspace knowledge graph         | no\* |
+| reduce    | `reduce`    | dossiers → themes → report/PRD/skill/book (+ TOGAF prep)   | yes  |
 
 \* `model` calls Benny `/rag/ingest`, which embeds locally. Skip with `--no-graph`.
 
