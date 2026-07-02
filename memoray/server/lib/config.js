@@ -85,6 +85,14 @@ const vm = require("vm");
 
 function reloadConfig() {
   try {
+    const { detectPaths } = require("./detector");
+    const detected = detectPaths().results;
+    const defaultConfig = {};
+    for (const key of Object.keys(detected)) {
+      defaultConfig[key] = detected[key].value;
+    }
+
+    let userConfig = {};
     if (fs.existsSync(configPath)) {
       const content = fs.readFileSync(configPath, "utf8");
       const sandbox = {
@@ -95,12 +103,25 @@ function reloadConfig() {
         console: console
       };
       vm.runInNewContext(content, sandbox);
+      userConfig = sandbox.module.exports || {};
+    }
 
-      // Mutate the existing config object in-place so references in other modules remain valid
-      for (const key of Object.keys(config)) {
-        delete config[key];
+    // Mutate the existing config object in-place so references in other modules remain valid
+    for (const key of Object.keys(config)) {
+      delete config[key];
+    }
+    Object.assign(config, defaultConfig);
+
+    for (const [key, val] of Object.entries(userConfig)) {
+      if (val !== undefined && val !== null) {
+        if (Array.isArray(val) && val.length === 0 && Array.isArray(defaultConfig[key]) && defaultConfig[key].length > 0) {
+          continue;
+        }
+        if (val === "" && defaultConfig[key]) {
+          continue;
+        }
+        config[key] = val;
       }
-      Object.assign(config, sandbox.module.exports);
     }
   } catch (e) {
     console.error(`[Config] Failed to load configuration from ${configPath}:`, e.message);

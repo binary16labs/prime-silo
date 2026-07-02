@@ -7,15 +7,18 @@ const crypto = require("crypto");
 // Load central configuration contract
 const { config, dataDir } = require("../lib/config");
 
-// Active Claude Code sessions directory
-const CLAUDE_SESSIONS_DIR = config.CLAUDE_SESSIONS_DIR;
+function getClaudeSessionsDir() {
+  return config.CLAUDE_SESSIONS_DIR || path.join(os.homedir(), ".claude", "sessions");
+}
 
-// Override with MEM0RAY_CLAUDE_DIRS for testing against fixtures
-const CLAUDE_BASE_DIRS = process.env.MEM0RAY_CLAUDE_DIRS
-  ? process.env.MEM0RAY_CLAUDE_DIRS.split(";")
+function getClaudeBaseDirs() {
+  if (process.env.MEM0RAY_CLAUDE_DIRS) {
+    return process.env.MEM0RAY_CLAUDE_DIRS.split(";")
       .map((p) => p.trim())
-      .filter(Boolean)
-  : config.CLAUDE_LOG_DIRS;
+      .filter(Boolean);
+  }
+  return config.CLAUDE_LOG_DIRS || [];
+}
 const DATA_DIR = dataDir;
 const ENTITIES_DIR = path.join(DATA_DIR, "entities");
 const INDEX_FILE = path.join(DATA_DIR, "index.json");
@@ -323,9 +326,10 @@ function findAuditFiles(dir, filesList = []) {
           findAuditFiles(fullPath, filesList);
         } else {
           const isAudit = file === "audit.jsonl";
+          const normPath = fullPath.toLowerCase();
           const isCliLog =
             file.endsWith(".jsonl") &&
-            fullPath.toLowerCase().includes(".claude" + path.sep + "projects");
+            (normPath.includes("claude") || normPath.includes(".claude"));
           if (isAudit || isCliLog) {
             filesList.push(fullPath);
           }
@@ -348,7 +352,7 @@ async function syncClaude() {
   const newSyncTime = Date.now();
   let totalNodes = 0;
 
-  for (const baseDir of CLAUDE_BASE_DIRS) {
+  for (const baseDir of getClaudeBaseDirs()) {
     const auditFiles = findAuditFiles(baseDir);
     for (const file of auditFiles) {
       let stats;
@@ -357,16 +361,18 @@ async function syncClaude() {
       } catch {
         continue;
       }
-      if (stats.mtimeMs <= (index.claude_last_sync_timestamp || 0) - SYNC_BUFFER_MS) continue;
+      const sessionUUID = hash(file);
+      const entityExists = fs.existsSync(path.join(ENTITIES_DIR, `${sessionUUID}.json`));
+      if (stats.mtimeMs <= (index.claude_last_sync_timestamp || 0) - SYNC_BUFFER_MS && entityExists) continue;
 
       // Derive a rough project name from the path — will be refined
       // below with cwd from the parsed entries.
       let projectName = path.basename(path.dirname(path.dirname(file)));
-      const isSelfProject = file.toLowerCase().includes(".claude" + path.sep + "projects");
+      const isSelfProject =
+        file.toLowerCase().includes("claude" + path.sep + "projects") ||
+        file.toLowerCase().includes(".claude" + path.sep + "projects");
 
       console.log(`[Claude Sync] Parsing: ${path.basename(file)}`);
-
-      const sessionUUID = hash(file);
       const title = extractSessionTitle(file) || `Session ${path.basename(file, ".jsonl")}`;
 
       let taskType = "Chat";
@@ -434,9 +440,43 @@ async function syncClaude() {
  */
 function isSessionActive(sessionId) {
   if (!sessionId) return false;
+  const sessionsDir = getClaudeSessionsDir();
   try {
-    if (!fs.existsSync(CLAUDE_SESSIONS_DIR)) return false;
-    const files = fs.readdirSync(CLAUDE_SESSIONS_DIR);
+    if (!fs.existsSync(sessionsDir)) return false;
+    const files = fs.readdirSync(sessionsDir);
+    for (const f of files) {
+      if (!f.endsWith(".json")) continue;
+      try {
+        const data = JSON.parse(fs.readFileSync(path.join(sessionsDir, f), "utf-8"));
+        if (data.sessionId === sessionId) {
+          // The PID is the filename (without .json)
+          const pid = parseInt(f.replace(".json", ""), 10);
+          try {
+            process.kill(pid, 0);
+            return true;
+          } catch {
+            return false;
+          }
+        }
+      } catch {
+        continue;
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
+
+/**
+ * Return a summary of all currently active Claude Code sessions.
+ */
+function getActiveSessions() {
+  const sessions = [];
+  const sessionsDir = getClaudeSessionsDir();
+  try {
+    if (!fs.existsSync(sessionsDir)) return sessions;
+    const files = fs.readdirSync(sessionsDir);
     for (const f of files) {
       if (!f.endsWith(".json")) continue;
       try {

@@ -7,10 +7,13 @@ const crypto = require("crypto");
 // Load central configuration contract
 const { config, dataDir } = require("../lib/config");
 
-// Override with MEM0RAY_ANTIGRAVITY_DIR for non-standard installs or fixtures
-const ANTIGRAVITY_DIRS = process.env.MEM0RAY_ANTIGRAVITY_DIR
-  ? [process.env.MEM0RAY_ANTIGRAVITY_DIR]
-  : config.ANTIGRAVITY_BRAIN_DIRS;
+function getAntigravityDirs() {
+  if (process.env.MEM0RAY_ANTIGRAVITY_DIR) {
+    return [process.env.MEM0RAY_ANTIGRAVITY_DIR];
+  }
+  return config.ANTIGRAVITY_BRAIN_DIRS || [];
+}
+
 const DATA_DIR = dataDir;
 const ENTITIES_DIR = path.join(DATA_DIR, "entities");
 const INDEX_FILE = path.join(DATA_DIR, "index.json");
@@ -268,7 +271,7 @@ async function syncAntigravity() {
   let totalNodes = 0,
     totalArtifacts = 0;
 
-  for (const baseDir of ANTIGRAVITY_DIRS) {
+  for (const baseDir of getAntigravityDirs()) {
     if (!fs.existsSync(baseDir)) {
       continue;
     }
@@ -285,14 +288,26 @@ async function syncAntigravity() {
       if (!stat.isDirectory()) continue;
 
       const sessionUUID = hash(sessionFolder);
-      const transcriptPath = path.join(
+      let transcriptPath = path.join(
         sessionPath,
         ".system_generated",
         "logs",
         "transcript.jsonl"
       );
+      if (!fs.existsSync(transcriptPath)) {
+        const altTranscript = path.join(
+          sessionPath,
+          ".system_generated",
+          "logs",
+          "transcript_full.jsonl"
+        );
+        if (fs.existsSync(altTranscript)) {
+          transcriptPath = altTranscript;
+        }
+      }
 
-      let isNew = !index.sessions.includes(sessionUUID);
+      const existingFile = path.join(ENTITIES_DIR, `${sessionUUID}.json`);
+      let isNew = !index.sessions.includes(sessionUUID) || !fs.existsSync(existingFile);
       let tStats;
       let shouldParseTranscript = false;
 
@@ -300,7 +315,7 @@ async function syncAntigravity() {
         try {
           tStats = fs.statSync(transcriptPath);
           shouldParseTranscript =
-            tStats.mtimeMs > (index.antigravity_last_sync_timestamp || 0) - SYNC_BUFFER_MS;
+            tStats.mtimeMs > (index.antigravity_last_sync_timestamp || 0) - SYNC_BUFFER_MS || !fs.existsSync(existingFile);
         } catch {
           /* skip */
         }
