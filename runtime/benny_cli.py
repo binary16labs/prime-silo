@@ -180,6 +180,38 @@ def cmd_runs_show(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_longview(args: argparse.Namespace) -> int:
+    """LONGVIEW session synthesis (ADR-005) — thin wrapper over the Node runner.
+
+    The pipeline definition lives in manifests/templates/longview_synthesis.json
+    and executes via scripts/longview/longview.mjs. The per-session fan-out stays
+    inside the runner's checkpointed loop, never as swarm tasks (ADR-005 §4);
+    this command makes the pipeline manageable from the Benny CLI.
+    """
+    import shutil
+    import subprocess
+
+    project_root = Path(__file__).resolve().parent.parent
+    runner = project_root / "scripts" / "longview" / "longview.mjs"
+    node = shutil.which("node")
+    if node is None:
+        print("[longview] Node.js not found on PATH — the LONGVIEW runner needs it.")
+        return 2
+    if not runner.exists():
+        print(f"[longview] runner not found at {runner} (needs the repo checkout).")
+        return 2
+
+    cmd = [node, str(runner), args.longview_cmd]
+    if args.longview_cmd == "run":
+        if getattr(args, "manifest", None):
+            cmd += ["--manifest", args.manifest]
+        if getattr(args, "phase", None):
+            cmd += ["--phase", args.phase]
+        if getattr(args, "delta", False):
+            cmd.append("--delta")
+    return subprocess.call(cmd, cwd=str(project_root))
+
+
 def cmd_manifests_ls(args: argparse.Namespace) -> int:
     from benny.persistence import run_store
 
@@ -1699,6 +1731,19 @@ def build_parser() -> argparse.ArgumentParser:
     p_tui = sub.add_parser("tui", help="Launch AgentAmp TUI mini-mode (alias for benny --tui)")
     p_tui.add_argument("--workspace", default="default", help="Active workspace")
 
+    # longview — session synthesis pipeline (ADR-005)
+    p_lv = sub.add_parser(
+        "longview",
+        help="LONGVIEW session synthesis (ADR-005): run manifest phases, check status, ledger report"
+    )
+    lv_sub = p_lv.add_subparsers(dest="longview_cmd", required=True)
+    p_lv_run = lv_sub.add_parser("run", help="Execute the longview_synthesis manifest (resume-safe)")
+    p_lv_run.add_argument("--manifest", default=None, help="Manifest path (default: manifests/templates/longview_synthesis.json)")
+    p_lv_run.add_argument("--phase", default=None, help="Run one phase: inventory|extract|map|model|reduce")
+    p_lv_run.add_argument("--delta", action="store_true", help="Delta mode: only new/changed sessions")
+    lv_sub.add_parser("status", help="Live heartbeat (phase, counts, ETA)")
+    lv_sub.add_parser("report", help="Honest ledger report (throughput, tokens, failures)")
+
     # migrate (PBR-001 Phase 8)
     p_pix = sub.add_parser("pageindex", help="PageIndex vectorless spine (build trees, ingest, show outline)")
     pix_sub = p_pix.add_subparsers(dest="pageindex_cmd", required=True)
@@ -1807,6 +1852,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         parser.print_help()
         return 1
 
+    if args.cmd == "longview":
+        return cmd_longview(args)
     if args.cmd == "plan":
         return asyncio.run(cmd_plan(args))
     if args.cmd == "run":

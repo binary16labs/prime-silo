@@ -172,7 +172,9 @@ async def list_files(workspace: str = "default"):
     try:
         staging_files = get_workspace_files(workspace, "staging")
         data_in_files = get_workspace_files(workspace, "data_in")
-        data_out_files = get_workspace_files(workspace, "data_out")
+        # data_out holds generated trees (skills/, dossiers/, book/, …) — list
+        # recursively so deliverables are actually visible to API consumers.
+        data_out_files = get_workspace_files(workspace, "data_out", recursive=True)
 
         return {
             "workspace": workspace,

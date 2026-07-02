@@ -23,6 +23,9 @@ New to Benny? Read in this order:
 | [PYPES_TRANSFORMATION_GUIDE.md](operations/PYPES_TRANSFORMATION_GUIDE.md) | `benny pypes` — declarative, DAG-based transformation engine with CLP lineage, checkpoints, drill-down, and financial-risk reports |
 | [AGENTAMP_GUIDE.md](operations/AGENTAMP_GUIDE.md) | `benny agentamp` — skinnable cockpit: scaffold, pack, sign, and install `.aamp` skin packs; HMAC signing; release gates |
 | [KNOWLEDGE_ENRICHMENT_WORKFLOW.md](operations/KNOWLEDGE_ENRICHMENT_WORKFLOW.md) | `benny enrich` pipeline — extract docs → synthesise triples → correlate to code → enable Studio ENRICH toggle |
+| [LONGVIEW_GUIDE.md](operations/LONGVIEW_GUIDE.md) | `benny longview` — long-horizon session synthesis (ADR-005): agent-session backlog → knowledge graph + cited report/PRD/skill/book; backlog + delta modes |
+| [TOGAF_SAD_SWARM_GUIDE.md](operations/TOGAF_SAD_SWARM_GUIDE.md) | TOGAF SAD report swarm — bounded 6-task manifest generating a System Architecture Document from the workspace graph |
+| [VISION_INGESTION_GUIDE.md](operations/VISION_INGESTION_GUIDE.md) | Vision-augmented ingestion (VIS-001) — figures/diagrams/tables read by the local vision model into diagram-as-code before ingest |
 | [LOG_AND_LINEAGE_GUIDE.md](operations/LOG_AND_LINEAGE_GUIDE.md) | All log files, SSE events, Marquez lineage, Phoenix tracing, AER audit records, end-to-end process trace |
 | [manifest_operating_manual.md](operations/manifest_operating_manual.md) | Manifest execution and planning detail |
 | [local_llm_setup.md](operations/local_llm_setup.md) | Configuring Lemonade, Ollama, LMStudio, LiteRT |

@@ -36,9 +36,11 @@ when the home is unconfigured; the per-user default is used instead.
 
 ## Checking where your home is (and why)
 
-- **Tray** — right-click the Prime-Silo tray icon: `Home: <name> (source)`
-  with derived `Benny data:` and `Customware:` children. Click any of them
-  to open the folder.
+- **Tray** — right-click the Prime-Silo tray icon: one `Home: <name> (source)`
+  entry whose submenu holds everything home-related — **Open workspaces
+  (runs & outputs)** first (that's where generated deliverables land, e.g.
+  `workspaces/<ws>/data_out/`), then home folder / Benny data / customware,
+  Open Terminal Here, and Configure Home….
 - **API** — `GET /api/home` on the Space server returns the resolved
   triple, each path's source, and any divergence warnings.
 - **CLI** — `benny doctor` prints a `Home resolution` check with the same
@@ -48,8 +50,8 @@ when the home is unconfigured; the per-user default is used instead.
 
 ## Configuring
 
-1. Right-click the tray icon → **"Configure Home…"** → pick (or create) a
-   folder. `benny/` and `customware/` will live under it.
+1. Right-click the tray icon → **Home** submenu → **"Configure Home…"** →
+   pick (or create) a folder. `benny/` and `customware/` will live under it.
 2. Restart Prime-Silo for the runtime to adopt the new location (the tray
    shows a `Runtime using: … (restart to apply new home)` line until then).
 

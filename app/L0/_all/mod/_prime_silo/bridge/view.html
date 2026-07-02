@@ -460,6 +460,34 @@
                     </div>
                     <p class="ps-bridge__note" x-show="ingestNote" x-text="ingestNote"></p>
 
+                    <!-- Outputs: generated deliverables in data_out (reports, skills,
+                     dossiers, books…). Read-only; each row opens the file through the
+                     runtime's workspace static mount. Without this section the EXE had
+                     no way to see what pipelines wrote into the workspace. -->
+                    <div class="ps-bridge__files" x-show="outputs.length">
+                      <h3>
+                        Outputs
+                        <span class="ps-bridge__muted" x-text="`(${outputs.length} in data_out)`"></span>
+                      </h3>
+                      <ul class="ps-bridge__files-list">
+                        <template x-for="f in outputs" :key="f.name">
+                          <li class="ps-bridge__file-row">
+                            <a
+                              class="ps-bridge__file-name ps-bridge__link"
+                              :href="outputHref(f)"
+                              target="_blank"
+                              rel="noopener"
+                              x-text="f.name"
+                            ></a>
+                            <span
+                              class="ps-bridge__muted"
+                              x-text="f.size >= 1024 ? `${(f.size / 1024).toFixed(1)} KB` : `${f.size} B`"
+                            ></span>
+                          </li>
+                        </template>
+                      </ul>
+                    </div>
+
                     <!-- Ask the docs (semantic RAG over ingested chunks) -->
                     <div class="ps-bridge__ask">
                       <div class="ps-bridge__ask-row">

@@ -4,10 +4,10 @@
 
 ---
 
-## Current Status (as of 2026-06-17)
+## Current Status (as of 2026-07-02)
 
-**Latest Release:** v1.2.4 (PUBLISHED)  
-**Documentation:** Complete overhaul with QUICKSTART-EXE.md, CLI.md, AGENT-AWARENESS.md, INDEX.md  
+**Latest Release:** v1.9.0 (LONGVIEW session synthesis)  
+**New in 1.9.0:** LONGVIEW workflow (ADR-005) — `benny longview run|status|report` over `manifests/templates/longview_synthesis.json`; deep-synthesis graph ingestion fix; recursive `data_out` listing + Bridge Outputs pane; tray Home submenu with "Open workspaces"; operator guides for LONGVIEW, TOGAF SAD swarm, and vision ingestion under `runtime/docs/operations/`  
 **All Packages:** Built and published for 6 platforms (Windows, macOS, Linux × x64 + ARM64)
 
 ---

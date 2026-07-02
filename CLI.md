@@ -461,6 +461,44 @@ benny runs ls --workspace analytics
 benny runs inspect abc123def456
 ```
 
+### `longview` — Session Synthesis Pipeline
+
+Run the LONGVIEW long-horizon session synthesis (ADR-005): agent-session
+backlog → knowledge graph + cited deliverables (report, PRD, skill, book,
+TOGAF prep). Defined by `manifests/templates/longview_synthesis.json`.
+
+**Usage:**
+
+```bash
+benny longview run [--manifest <path>] [--phase <id>] [--delta]
+benny longview status
+benny longview report
+```
+
+**Options:**
+
+- `--phase <id>` — Run one phase: `inventory` | `extract` | `map` | `model` | `reduce`
+- `--delta` — Only new/changed sessions since the last run
+- `--manifest <path>` — Alternate manifest (default: `manifests/templates/longview_synthesis.json`)
+
+**Examples:**
+
+```bash
+# Full backlog (resume-safe — Ctrl+C and rerun anytime)
+benny longview run
+
+# Re-run graph ingestion only (deep synthesis)
+benny longview run --phase model
+
+# Keep the picture current after the backlog is done
+benny longview run --delta
+
+# Honest ledger report: throughput, tokens, failed session ids
+benny longview report
+```
+
+**See:** [runtime/docs/operations/LONGVIEW_GUIDE.md](runtime/docs/operations/LONGVIEW_GUIDE.md)
+
 ### `pypes run` — Transformation Pipeline
 
 Execute a Pypes transformation (data pipeline with bronze/silver/gold stages).

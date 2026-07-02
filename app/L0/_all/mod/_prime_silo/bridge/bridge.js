@@ -351,6 +351,7 @@ export function createBridgePage(options = {}) {
 
     // documents
     files: [],
+    outputs: [], // generated deliverables in data_out (read-only, recursive)
     selectedFiles: [], // names of files the operator picked to ingest
     ingesting: false,
     ingestNote: "",
@@ -925,11 +926,25 @@ export function createBridgePage(options = {}) {
         const staging = filesBody && Array.isArray(filesBody.staging) ? filesBody.staging : [];
         const allFiles = [...staging, ...dataIn];
         this.files = mergeFileStatus(allFiles, manifest);
+        // Generated deliverables (reports, skills, dossiers…) — data_out is
+        // listed recursively by the runtime, so nested trees show up here.
+        this.outputs = filesBody && Array.isArray(filesBody.data_out) ? filesBody.data_out : [];
         this.reconcileSelection();
       } catch {
         this.files = [];
+        this.outputs = [];
         this.selectedFiles = [];
       }
+    },
+
+    // Serve an output through the runtime's workspace static mount (proxied):
+    // /api/runtime/static/<ws>/data_out/<relative path>.
+    outputHref(f) {
+      const rel = String((f && f.name) || "")
+        .split("/")
+        .map(encodeURIComponent)
+        .join("/");
+      return `/api/runtime/static/${encodeURIComponent(this.workspace)}/data_out/${rel}`;
     },
 
     // Keep the selection in sync with what's actually staged: drop names that

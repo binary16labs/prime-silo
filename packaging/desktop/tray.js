@@ -234,68 +234,75 @@ function buildMenu(options) {
       }
     },
     { type: "separator" },
+    // One Home entry. Everything home-related lives in this submenu so the
+    // tray stays flat; the most-wanted destination (workspaces — where runs
+    // and generated outputs land) is one click deep instead of undiscoverable.
     {
       label: `Home: ${path.basename(home.root)} (${homeSourceLabel})`,
-      click: () => {
-        if (fs.existsSync(home.root)) {
-          void shell.openPath(home.root);
-        }
-      }
-    },
-    // Derived locations — read-only children of the declared home. Sources
-    // other than "derived" mean a legacy key or env override is still active.
-    {
-      label: `  Benny data: ${path.basename(home.bennyHome)}${
-        home.bennyHomeSource === "derived" ? "" : ` (${home.bennyHomeSource})`
-      }`,
-      click: () => {
-        if (fs.existsSync(home.bennyHome)) void shell.openPath(home.bennyHome);
-      }
-    },
-    {
-      label: `  Customware: ${path.basename(home.customwarePath)}${
-        home.customwareSource === "derived" ? "" : ` (${home.customwareSource})`
-      }`,
-      click: () => {
-        if (fs.existsSync(home.customwarePath)) void shell.openPath(home.customwarePath);
-      }
-    },
-    {
-      label: "Open Terminal Here",
-      enabled: Boolean(home.root && fs.existsSync(home.root)),
-      click: () => openTerminalAt(home.root)
-    },
-    {
-      label: "Configure Home...",
-      enabled: home.source !== "env",
-      click: async () => {
-        const result = await dialog.showOpenDialog({
-          title: "Select Prime-Silo Home (benny/ + customware/ live under it)",
-          defaultPath: home.root || PROJECT_ROOT,
-          properties: ["openDirectory", "createDirectory"]
-        });
-        if (!result.canceled && result.filePaths.length > 0) {
-          writeHomeDirectoryConfig(result.filePaths[0]);
-          if (tray) {
-            tray.setContextMenu(buildMenu(options));
-          }
-        }
-      }
-    },
-    // Migration surface: while a legacy config.bennyHome override is active the
-    // derived layout is not in effect; clearing it is the explicit adoption
-    // step (data is never moved automatically).
-    ...(home.bennyHomeSource === "legacy-config"
-      ? [
-          {
-            label: "Clear legacy Benny Home override (applies next launch)",
-            click: () => {
-              writeConfigPatch({ bennyHome: null });
-              if (tray) tray.setContextMenu(buildMenu(options));
+      submenu: [
+        {
+          label: "Open workspaces (runs & outputs)",
+          enabled: fs.existsSync(path.join(home.bennyHome, "workspaces")),
+          click: () => void shell.openPath(path.join(home.bennyHome, "workspaces"))
+        },
+        {
+          label: "Open home folder",
+          enabled: fs.existsSync(home.root),
+          click: () => void shell.openPath(home.root)
+        },
+        {
+          label: `Open Benny data${
+            home.bennyHomeSource === "derived" ? "" : ` (${home.bennyHomeSource})`
+          }`,
+          enabled: fs.existsSync(home.bennyHome),
+          click: () => void shell.openPath(home.bennyHome)
+        },
+        {
+          label: `Open customware${
+            home.customwareSource === "derived" ? "" : ` (${home.customwareSource})`
+          }`,
+          enabled: fs.existsSync(home.customwarePath),
+          click: () => void shell.openPath(home.customwarePath)
+        },
+        { type: "separator" },
+        {
+          label: "Open Terminal Here",
+          enabled: Boolean(home.root && fs.existsSync(home.root)),
+          click: () => openTerminalAt(home.root)
+        },
+        {
+          label: "Configure Home...",
+          enabled: home.source !== "env",
+          click: async () => {
+            const result = await dialog.showOpenDialog({
+              title: "Select Prime-Silo Home (benny/ + customware/ live under it)",
+              defaultPath: home.root || PROJECT_ROOT,
+              properties: ["openDirectory", "createDirectory"]
+            });
+            if (!result.canceled && result.filePaths.length > 0) {
+              writeHomeDirectoryConfig(result.filePaths[0]);
+              if (tray) {
+                tray.setContextMenu(buildMenu(options));
+              }
             }
           }
-        ]
-      : []),
+        },
+        // Migration surface: while a legacy config.bennyHome override is active
+        // the derived layout is not in effect; clearing it is the explicit
+        // adoption step (data is never moved automatically).
+        ...(home.bennyHomeSource === "legacy-config"
+          ? [
+              {
+                label: "Clear legacy Benny Home override (applies next launch)",
+                click: () => {
+                  writeConfigPatch({ bennyHome: null });
+                  if (tray) tray.setContextMenu(buildMenu(options));
+                }
+              }
+            ]
+          : [])
+      ]
+    },
     { type: "separator" },
     // ── Benny services ──────────────────────────────────────────────────
     {

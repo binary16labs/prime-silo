@@ -1,0 +1,62 @@
+{
+  "schema_version": "2.0",
+  "id": "longview_synthesis",
+  "name": "LONGVIEW — Long-Horizon Session Synthesis",
+  "description": "Map-reduce months of agent sessions (memo-ray entity store) into a workspace knowledge graph and cited deliverables (report, PRD, skill, book, TOGAF prep) on the local model. Phases are bounded; the per-session fan-out lives inside the map phase's checkpointed loop, never as manifest tasks (ADR-005 §4). Execute via `benny longview run` or `node scripts/longview/longview.mjs run`.",
+  "workspace": "longview",
+  "variables": {
+    "model": "qwen3.5-9b-FLM",
+    "ingest_model": "lemonade/qwen3.5-9b-FLM",
+    "agents": "antigravity,claude",
+    "evidence_budget_chars": 7500,
+    "reduce_input_chars": 8500,
+    "card_max_tokens": 1200,
+    "reduce_max_tokens": 1800,
+    "thin_session_chars": 200,
+    "deep_synthesis": true,
+    "ingest_batch_size": 5,
+    "delta_reduce_threshold": 5
+  },
+  "plan": {
+    "phases": [
+      {
+        "id": "inventory",
+        "enabled": true,
+        "description": "memo-ray sync + session census (deterministic, no LLM)"
+      },
+      {
+        "id": "extract",
+        "enabled": true,
+        "description": "Evidence packs, bounded by evidence_budget_chars (deterministic)"
+      },
+      {
+        "id": "map",
+        "enabled": true,
+        "limit": 0,
+        "description": "One gated session card per session via the local model; ledgered and resume-safe. limit 0 = whole backlog."
+      },
+      {
+        "id": "model",
+        "enabled": true,
+        "description": "Deterministic rollups + /rag/ingest with deep_synthesis so cards become graph Documents/Concepts, not just vectors"
+      },
+      {
+        "id": "reduce",
+        "enabled": true,
+        "skip_book": false,
+        "only": [],
+        "description": "Dossiers → themes → report/PRD/skill/book + TOGAF SAD run instructions (bounded calls, citations kept)"
+      }
+    ]
+  },
+  "outputs": {
+    "state": "longview/ (inventory, evidence, cards, rollups, ledger.jsonl, status.json)",
+    "deliverables": "data_out/ (PORTFOLIO-REPORT.md, PRD-WHAT-COMES-NEXT.md, THEMES.md, dossiers/, skills/, book/, TOGAF-RUN.md)"
+  },
+  "metadata": {
+    "adr": "runtime/architecture/ADR-005-longview-session-synthesis.md",
+    "runner": "scripts/longview/longview.mjs",
+    "cli": "benny longview run [--phase <id>] [--delta] | status | report",
+    "delta_mode": "benny longview run --delta — maps only new/changed sessions; reduce reruns at delta_reduce_threshold new cards"
+  }
+}

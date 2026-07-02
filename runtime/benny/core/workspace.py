@@ -596,30 +596,44 @@ def delete_workspace(workspace_id: str) -> dict:
     return {"status": "deleted", "workspace_id": workspace_id}
 
 
-def get_workspace_files(workspace_id: str, subdir: str = "data_out") -> List[dict]:
+def get_workspace_files(
+    workspace_id: str, subdir: str = "data_out", recursive: bool = False, max_depth: int = 4
+) -> List[dict]:
     """
     List files in a workspace subdirectory.
 
     Args:
         workspace_id: Workspace identifier
         subdir: Subdirectory to list (default: data_out)
+        recursive: Descend into subdirectories. Without this, generated output
+            trees (data_out/skills, data_out/dossiers, …) are invisible to every
+            API consumer — directories were silently skipped.
+        max_depth: Recursion bound, relative to the subdir root.
 
     Returns:
-        List of file info dicts
+        List of file info dicts. For nested files ``name`` is the path relative
+        to the subdir (posix separators) so it stays unique and previewable.
     """
     try:
         path = get_workspace_path(workspace_id, subdir)
         if not path.exists():
             return []
 
-        files = []
-        try:
-            for item in path.iterdir():
+        files: List[dict] = []
+
+        def _walk(directory: Path, depth: int) -> None:
+            try:
+                entries = sorted(directory.iterdir())
+            except Exception:
+                return
+            for item in entries:
+                if item.name.startswith("."):
+                    continue
                 if item.is_file():
                     try:
                         files.append(
                             {
-                                "name": item.name,
+                                "name": item.relative_to(path).as_posix(),
                                 "path": str(item.relative_to(WORKSPACE_ROOT.absolute())),
                                 "size": item.stat().st_size,
                                 "modified": item.stat().st_mtime,
@@ -627,9 +641,10 @@ def get_workspace_files(workspace_id: str, subdir: str = "data_out") -> List[dic
                         )
                     except Exception:
                         continue  # Skip problematic files
-        except Exception:
-            return []
+                elif recursive and item.is_dir() and depth < max_depth:
+                    _walk(item, depth + 1)
 
+        _walk(path, 0)
         return files
     except Exception as e:
         import logging

@@ -73,6 +73,9 @@
 - **Run a manifest:** See [GUIDE.md](GUIDE.md) §5c or [CLI.md](CLI.md#Part-2-Benny-Python-Commands)
 - **Create a manifest:** [CLI.md](CLI.md#plan--ai-generate-manifest)
 - **Deterministic zone:** [README.md](README.md) (ADR-001) or [runtime/architecture/](runtime/architecture/)
+- **LONGVIEW session synthesis** (`benny longview`): [runtime/docs/operations/LONGVIEW_GUIDE.md](runtime/docs/operations/LONGVIEW_GUIDE.md)
+- **TOGAF SAD report swarm:** [runtime/docs/operations/TOGAF_SAD_SWARM_GUIDE.md](runtime/docs/operations/TOGAF_SAD_SWARM_GUIDE.md)
+- **Vision-augmented ingestion (VIS-001):** [runtime/docs/operations/VISION_INGESTION_GUIDE.md](runtime/docs/operations/VISION_INGESTION_GUIDE.md)
 
 ### Knowledge & Code Graphs
 
