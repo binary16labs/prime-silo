@@ -1,5 +1,6 @@
 // LONGVIEW configuration (ADR-005). Same .env conventions as offload-runner.mjs.
 import fs from "fs";
+import os from "os";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createRequire } from "module";
@@ -43,11 +44,17 @@ export const config = {
   BENNY_HOME: bennyHome,
   WORKSPACE: env("LONGVIEW_WORKSPACE", "longview"),
 
-  // memo-ray entity store (the ADR-005 seam). Default: sibling checkout.
-  MEMORAY_DATA_DIR: env(
-    "MEMORAY_DATA_DIR",
-    path.resolve(projectRoot, "..", "memo-ray", "agent-os-dashboard", "server", "data")
-  ),
+  // memo-ray entity store (the ADR-005 seam). Fallback chain so the runner
+  // works both from a dev checkout (sibling standalone memo-ray) and from the
+  // packaged app (vendored memoray builds its store under ~/.mem0ray).
+  MEMORAY_DATA_DIR:
+    env("MEMORAY_DATA_DIR", "") ||
+    [
+      path.resolve(projectRoot, "..", "memo-ray", "agent-os-dashboard", "server", "data"),
+      path.join(os.homedir(), ".mem0ray", "data"),
+      path.resolve(projectRoot, "memoray", "server", "data")
+    ].find((p) => fs.existsSync(path.join(p, "index.json"))) ||
+    path.resolve(projectRoot, "..", "memo-ray", "agent-os-dashboard", "server", "data"),
   MEMORAY_SERVER_DIR: env(
     "MEMORAY_SERVER_DIR",
     path.resolve(projectRoot, "..", "memo-ray", "agent-os-dashboard", "server")

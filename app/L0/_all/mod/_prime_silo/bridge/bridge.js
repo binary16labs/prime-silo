@@ -352,6 +352,11 @@ export function createBridgePage(options = {}) {
     // documents
     files: [],
     outputs: [], // generated deliverables in data_out (read-only, recursive)
+    // LONGVIEW pipeline (ADR-005) — launch + live heartbeat for the longview
+    // workspace. Truth comes from /api/longview_status (runner lock + the
+    // runner's own status.json), so it reflects CLI/tray launches too.
+    longview: { running: false, heartbeat: null, busy: false, error: "", lastLog: "" },
+    _longviewTimer: null,
     selectedFiles: [], // names of files the operator picked to ingest
     ingesting: false,
     ingestNote: "",
@@ -930,11 +935,91 @@ export function createBridgePage(options = {}) {
         // listed recursively by the runtime, so nested trees show up here.
         this.outputs = filesBody && Array.isArray(filesBody.data_out) ? filesBody.data_out : [];
         this.reconcileSelection();
+        if (this.workspace === "longview") this.loadLongviewStatus();
       } catch {
         this.files = [];
         this.outputs = [];
         this.selectedFiles = [];
       }
+    },
+
+    // ── LONGVIEW launch + observability (ADR-005) ──
+    async loadLongviewStatus() {
+      try {
+        const res = await fetch("/api/longview_status", { credentials: "same-origin" });
+        if (!res.ok) throw new Error(`status ${res.status}`);
+        const s = await res.json();
+        const wasRunning = this.longview.running;
+        this.longview.running = Boolean(s.running);
+        this.longview.heartbeat = s.heartbeat || null;
+        this.longview.lastLog = (s.log_tail && s.log_tail[s.log_tail.length - 1]) || "";
+        this.longview.error = "";
+        if (this.longview.running) {
+          this.startLongviewPolling();
+        } else if (wasRunning) {
+          // A run just finished — outputs and graph likely changed.
+          this.stopLongviewPolling();
+          this.loadFiles();
+        } else {
+          this.stopLongviewPolling();
+        }
+      } catch (e) {
+        this.longview.error = String(e.message || e);
+        this.stopLongviewPolling();
+      }
+    },
+
+    startLongviewPolling() {
+      if (this._longviewTimer) return;
+      this._longviewTimer = setInterval(() => this.loadLongviewStatus(), 8000);
+    },
+
+    stopLongviewPolling() {
+      if (this._longviewTimer) {
+        clearInterval(this._longviewTimer);
+        this._longviewTimer = null;
+      }
+    },
+
+    async runLongview(mode) {
+      this.longview.busy = true;
+      try {
+        const res = await fetch("/api/longview_run", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode })
+        });
+        const body = await res.json().catch(() => ({}));
+        this.longview.error = res.ok ? "" : body.error || `run ${res.status}`;
+      } catch (e) {
+        this.longview.error = String(e.message || e);
+      } finally {
+        this.longview.busy = false;
+        await this.loadLongviewStatus();
+      }
+    },
+
+    async stopLongview() {
+      this.longview.busy = true;
+      try {
+        await fetch("/api/longview_stop", { method: "POST", credentials: "same-origin" });
+      } catch {
+        /* status poll below reports the truth */
+      } finally {
+        this.longview.busy = false;
+        await this.loadLongviewStatus();
+      }
+    },
+
+    longviewSummary() {
+      const h = this.longview.heartbeat;
+      if (!h) return this.longview.running ? "starting…" : "idle";
+      const parts = [`phase ${h.phase || "?"}`];
+      if (h.cards_ok != null && h.backlog_total != null) parts.push(`${h.cards_ok}/${h.backlog_total} cards`);
+      if (h.map_failed) parts.push(`${h.map_failed} failed`);
+      if (h.eta_hours_remaining != null && this.longview.running) parts.push(`~${h.eta_hours_remaining}h left`);
+      return parts.join(" · ");
     },
 
     // Serve an output through the runtime's workspace static mount (proxied):

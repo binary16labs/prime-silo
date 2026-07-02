@@ -16,6 +16,7 @@ const { app, Tray, Menu, shell, nativeImage, dialog, ipcMain } = require("electr
 const services = require("./services");
 const openStudio = require("./openstudio_services");
 const memoray = require("./memoray_service");
+const longview = require("./longview_service");
 const { resolveHome } = require("./home_resolver");
 
 const PROJECT_ROOT = path.resolve(__dirname, "../..");
@@ -303,6 +304,47 @@ function buildMenu(options) {
           : [])
       ]
     },
+    { type: "separator" },
+    // ── LONGVIEW session synthesis (ADR-005) ────────────────────────────
+    // Status is disk-truth from the runner's lock + heartbeat, so runs
+    // launched from the CLI or Bridge show here identically.
+    ...(() => {
+      let lv;
+      try {
+        lv = longview.longviewStatus({ tail: 0 });
+      } catch {
+        return [];
+      }
+      const h = lv.heartbeat || {};
+      const summary = lv.running
+        ? `LONGVIEW: running — ${h.phase || "starting"}${
+            h.cards_ok != null && h.backlog_total != null ? ` (${h.cards_ok}/${h.backlog_total} cards)` : ""
+          }`
+        : `LONGVIEW: idle${h.cards_ok != null ? ` (${h.cards_ok} cards synthesized)` : ""}`;
+      return [
+        { label: summary, enabled: false },
+        lv.running
+          ? {
+              label: "Stop LONGVIEW (resume-safe)",
+              click: () => {
+                longview.stopLongview();
+                if (tray) tray.setContextMenu(buildMenu(options));
+              }
+            }
+          : {
+              label: "Run LONGVIEW delta sync",
+              click: () => {
+                longview.startLongview("delta");
+                if (tray) tray.setContextMenu(buildMenu(options));
+              }
+            },
+        {
+          label: "Open LONGVIEW outputs",
+          enabled: fs.existsSync(lv.paths.deliverables),
+          click: () => void shell.openPath(lv.paths.deliverables)
+        }
+      ];
+    })(),
     { type: "separator" },
     // ── Benny services ──────────────────────────────────────────────────
     {

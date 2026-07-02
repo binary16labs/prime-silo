@@ -22,6 +22,25 @@ The workspace lives under the **runtime's resolved home** (desktop config →
 e.g. `%APPDATA%\space-agent\benny-home\benny\workspaces\longview`), never the
 repo. The runner resolves it identically via `packaging/desktop/home_resolver.js`.
 
+## Run from the EXE (v1.9.1+)
+
+No terminal needed — both surfaces call the same launcher and read the same
+disk-truth status (runner lock + heartbeat), so runs started anywhere show
+everywhere:
+
+- **Tray** — right-click Prime-Silo: `LONGVIEW: idle/running (…)` status line,
+  **Run LONGVIEW delta sync**, **Stop LONGVIEW (resume-safe)**, and
+  **Open LONGVIEW outputs**.
+- **Bridge → Documents** (workspace `longview`) — the **LONGVIEW pipeline**
+  panel: *Run delta sync* / *Run full pipeline* / *Stop*, with a live heartbeat
+  (phase, cards done/total, failures, ETA) and the last runner log line while
+  running. Deliverables appear below in **Outputs**.
+- **API** — `POST /api/longview_run {"mode":"delta"|"all"|"<phase>"}`,
+  `GET /api/longview_status`, `POST /api/longview_stop`.
+
+The child process logs to `<workspace>/longview/runner.log`; only one runner
+per workspace can hold the lock, regardless of launcher.
+
 ## Commands (all from `prime-silo/runtime/`)
 
 ```powershell

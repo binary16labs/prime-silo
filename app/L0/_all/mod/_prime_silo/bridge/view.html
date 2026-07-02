@@ -460,6 +460,56 @@
                     </div>
                     <p class="ps-bridge__note" x-show="ingestNote" x-text="ingestNote"></p>
 
+                    <!-- LONGVIEW (ADR-005): one-click pipeline launch + live heartbeat
+                     for the longview workspace. Status is disk-truth from the runner
+                     (lock + status.json via /api/longview_status), so runs started
+                     from the CLI or tray show here identically. -->
+                    <div class="ps-bridge__files" x-show="workspace === 'longview'">
+                      <h3>
+                        LONGVIEW pipeline
+                        <span
+                          class="ps-bridge__file-status"
+                          :class="longview.running ? 'is-ok' : ''"
+                          x-text="longview.running ? 'running' : 'idle'"
+                        ></span>
+                      </h3>
+                      <p class="ps-bridge__muted" x-text="longviewSummary()"></p>
+                      <p
+                        class="ps-bridge__muted"
+                        x-show="longview.running && longview.lastLog"
+                        style="font-family: monospace; font-size: 11px"
+                        x-text="longview.lastLog"
+                      ></p>
+                      <p class="ps-bridge__note" x-show="longview.error" x-text="longview.error"></p>
+                      <div class="ps-bridge__doc-actions">
+                        <button
+                          class="ps-bridge__btn ps-bridge__btn--go"
+                          @click="runLongview('delta')"
+                          :disabled="longview.busy || longview.running"
+                          title="Sync memo-ray, map only new/changed sessions, refresh rollups; re-synthesizes deliverables once enough new cards accumulate."
+                        >
+                          <x-icon>update</x-icon><span>Run delta sync</span>
+                        </button>
+                        <button
+                          class="ps-bridge__btn"
+                          @click="runLongview('all')"
+                          :disabled="longview.busy || longview.running"
+                          title="Full pipeline: inventory → extract → map → model (graph) → reduce (deliverables). Resume-safe."
+                        >
+                          <x-icon>all_inclusive</x-icon><span>Run full pipeline</span>
+                        </button>
+                        <button
+                          class="ps-bridge__btn"
+                          @click="stopLongview()"
+                          x-show="longview.running"
+                          :disabled="longview.busy"
+                          title="Stops the runner. Safe: it checkpoints per card and resumes on the next run."
+                        >
+                          <x-icon>stop_circle</x-icon><span>Stop</span>
+                        </button>
+                      </div>
+                    </div>
+
                     <!-- Outputs: generated deliverables in data_out (reports, skills,
                      dossiers, books…). Read-only; each row opens the file through the
                      runtime's workspace static mount. Without this section the EXE had

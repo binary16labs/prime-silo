@@ -47,6 +47,48 @@ process.on("SIGINT", () => {
   console.log("\n[longview] finishing current item, then stopping (Ctrl+C again to force)…");
 });
 
+// Single-instance lock — the EXE tray, Bridge button, and CLI can all launch
+// the runner; only one may mutate a workspace at a time. Stale locks (dead
+// pid) are reclaimed. status/report stay lock-free.
+const lockPath = () => stateDir("runner.lock");
+
+function pidAlive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function acquireLock() {
+  try {
+    const held = JSON.parse(fs.readFileSync(lockPath(), "utf8"));
+    if (held.pid && held.pid !== process.pid && pidAlive(held.pid)) {
+      console.error(
+        `[longview] already running (pid ${held.pid}, ${held.command || "?"} since ${held.started_at}). ` +
+          `Use 'status' to watch it, or stop that run first.`
+      );
+      process.exit(3);
+    }
+  } catch {
+    /* no lock or unreadable — take it */
+  }
+  fs.writeFileSync(
+    lockPath(),
+    JSON.stringify({ pid: process.pid, command, args: args.slice(1), started_at: new Date().toISOString() }, null, 2)
+  );
+  const release = () => {
+    try {
+      const held = JSON.parse(fs.readFileSync(lockPath(), "utf8"));
+      if (held.pid === process.pid) fs.unlinkSync(lockPath());
+    } catch {
+      /* already gone */
+    }
+  };
+  process.on("exit", release);
+}
+
 const sid8 = (id) => String(id).slice(0, 8);
 const inventoryPath = () => stateDir("inventory.json");
 const cardPath = (id) => stateDir("cards", `${id}.json`);
@@ -701,7 +743,22 @@ function loadManifest() {
     "longview_synthesis.json"
   );
   const p = opt("manifest", args[1] && !args[1].startsWith("--") ? args[1] : defaultPath);
-  const manifest = JSON.parse(fs.readFileSync(p, "utf8"));
+  // Packaged installs ship scripts/ but not runtime/ (the runtime is a fetched
+  // asset) — fall back to the built-in defaults, which mirror the template.
+  let manifest;
+  if (fs.existsSync(p)) {
+    manifest = JSON.parse(fs.readFileSync(p, "utf8"));
+  } else {
+    console.log(`[run] manifest not found at ${p} — using built-in defaults (all phases)`);
+    manifest = {
+      id: "longview_synthesis(builtin-defaults)",
+      workspace: config.WORKSPACE,
+      variables: {},
+      plan: {
+        phases: ["inventory", "extract", "map", "model", "reduce"].map((id) => ({ id, enabled: true }))
+      }
+    };
+  }
   const v = manifest.variables || {};
   if (manifest.workspace) config.WORKSPACE = manifest.workspace;
   if (v.model) config.LONGVIEW_MODEL = v.model;
@@ -719,6 +776,8 @@ function loadManifest() {
 
 async function runManifest() {
   const { path: manifestPath, manifest } = loadManifest();
+  ensureWorkspace(); // the manifest may have switched the workspace
+  acquireLock();
   console.log(`[run] manifest ${manifest.id} (${path.basename(manifestPath)}) → workspace '${config.WORKSPACE}', model ${config.LONGVIEW_MODEL}`);
   if (flag("delta")) {
     await runDelta();
@@ -749,8 +808,13 @@ async function runManifest() {
 }
 
 // --------------------------------------------------------------------- main
+// "run" locks inside runManifest — after the manifest has set the workspace,
+// so the lock lands in the workspace it actually guards.
+const MUTATING_COMMANDS = new Set(["all", "delta", "inventory", "extract", "map", "model", "reduce"]);
+
 async function main() {
   ensureWorkspace();
+  if (MUTATING_COMMANDS.has(command)) acquireLock();
   switch (command) {
     case "run":
       await runManifest();
