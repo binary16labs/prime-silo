@@ -317,6 +317,46 @@ export function createSynopticWebWidget(host, initialProps, options = {}) {
     host.innerHTML = renderSvg(layout, props);
   }
 
+  // Fallback when /kg3d/ontology comes back empty: read the raw dual graph
+  // from /graph/full (which works on every runtime version) and adapt it to
+  // the widget's node shape. Seen live: a runtime whose ontology loader failed
+  // and whose demo fixture was removed returned {nodes:[], edges:[]} while the
+  // graph itself held 900+ concepts — the canvas said "no concepts" over a
+  // perfectly good graph. Layers are derived from connectivity (sources on
+  // top, hubs high, leaves low) since raw nodes carry no aot_layer.
+  async function loadGraphFullFallback() {
+    const ws = encodeURIComponent(props.workspace || "default");
+    const response = await client.runtimeFetch(`/graph/full?workspace=${ws}&show_all=true`);
+    const raw = await client.readRuntimeJson(response);
+    const rawNodes = (raw && raw.nodes) || [];
+    const rawEdges = (raw && raw.edges) || [];
+    const degree = new Map();
+    for (const e of rawEdges) {
+      degree.set(e.source, (degree.get(e.source) || 0) + 1);
+      degree.set(e.target, (degree.get(e.target) || 0) + 1);
+    }
+    const maxDeg = Math.max(1, ...degree.values());
+    // Layering by connectivity semantics: a synthesized concept's baseline is
+    // degree 2 (its SOURCED_FROM + one RELATES_TO), so ≥3 means it connects
+    // beyond its own document — the cross-reference tier. Top 5% are hubs.
+    const sortedDeg = [...degree.values()].sort((a, b) => b - a);
+    const hub = Math.max(4, sortedDeg[Math.floor(sortedDeg.length * 0.05)] || 4);
+    const nodes = rawNodes.map((n) => {
+      const d = degree.get(n.id) || 0;
+      const isSource = (n.labels || []).includes("Source");
+      const layer = isSource ? 1 : d >= hub ? 2 : d >= 3 ? 3 : d > 0 ? 4 : 5;
+      return {
+        id: String(n.id),
+        display_name: n.name || String(n.id),
+        canonical_name: n.name || String(n.id),
+        category: isSource ? "documentation" : "concept",
+        aot_layer: layer,
+        metrics: { pagerank: (d / maxDeg) * 100 }
+      };
+    });
+    return { nodes, edges: rawEdges };
+  }
+
   async function load() {
     renderLoading(host, props);
     try {
@@ -326,6 +366,9 @@ export function createSynopticWebWidget(host, initialProps, options = {}) {
       } else {
         const response = await client.runtimeFetch(buildOntologyPath(props));
         payload = await client.readRuntimeJson(response);
+        if (!payload || !Array.isArray(payload.nodes) || payload.nodes.length === 0) {
+          payload = await loadGraphFullFallback();
+        }
       }
       if (aborted) return;
       const nodes = payload && Array.isArray(payload.nodes) ? payload.nodes : [];
