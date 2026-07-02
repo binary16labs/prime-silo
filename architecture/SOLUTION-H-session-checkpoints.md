@@ -126,9 +126,7 @@ Request body:
 {
   "workspace": "c5_test",
   "name": "after-data-load",
-  "checkpoint": {
-    /* full aamp.checkpoint/1 object */
-  }
+  "checkpoint": {/* full aamp.checkpoint/1 object */}
 }
 ```
 

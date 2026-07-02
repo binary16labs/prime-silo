@@ -249,13 +249,13 @@ if (!button) throw new Error("No button found")
 button.click()
 return "clicked first button"
 
-Reading ~/people.txt now...
+Reading ~~/people.txt now...
 **\_**javascript
-return await space.api.fileRead("~/people.txt", "utf8")
+return await space.api.fileRead("~~/people.txt", "utf8")
 
-Reading ~/contacts.yaml now...
+Reading ~~/contacts.yaml now...
 **\_**javascript
-return await space.api.fileRead("~/contacts.yaml", "utf8")
+return await space.api.fileRead("~~/contacts.yaml", "utf8")
 
 Loading the snake widget source now...
 **\_**javascript

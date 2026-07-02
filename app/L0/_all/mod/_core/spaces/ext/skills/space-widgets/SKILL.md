@@ -54,7 +54,8 @@ catalog and readback
 - `seeWidget(id)` strips script/style tags, inline handlers, class lists, ids, and data attrs by default
 - Use `seeWidget(id, true)` only when you explicitly need the full live innerHTML
 - Current Widget format after a write or reload↓
-rendered↓
+  rendered↓
+
 <div>Hello</div>
 
 source↓

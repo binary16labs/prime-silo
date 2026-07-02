@@ -3125,7 +3125,7 @@ function requireLib$2() {
           }
         }
         sizeofPtr() {
-          return this.wasm32 ? 4 /* SizeOf.I32 */ : 8 /* SizeOf.I64 */;
+          return this.wasm32 ? 4 /* SizeOf.I32 */ : 8; /* SizeOf.I64 */
         }
         /**
          * Load raw bytes from ptr.
@@ -3566,7 +3566,7 @@ function requireLib$2() {
       class AsyncifyHandler {
         constructor(exports$1, memory) {
           /** current state kind */
-          this.state = 0 /* AsyncifyStateKind.None */;
+          this.state = 0; /* AsyncifyStateKind.None */
           /** The stored value before unwind */
           this.storedPromiseBeforeUnwind = null;
           // NOTE: asynctify do not work with exceptions
@@ -3593,7 +3593,7 @@ function requireLib$2() {
          * @returns The current asynctify state
          */
         isNormalStackState() {
-          return this.state == 0 /* AsyncifyStateKind.None */;
+          return this.state == 0; /* AsyncifyStateKind.None */
         }
         /**
          * Get the current asynctify state
@@ -3705,28 +3705,28 @@ function requireLib$2() {
             throw Error("Asynctify is not enabled, please compile with -s ASYNCIFY=1 in emcc");
           }
           this.exports.asyncify_start_rewind(ASYNCIFY_DATA_ADDR);
-          this.state = 2 /* AsyncifyStateKind.Rewinding */;
+          this.state = 2; /* AsyncifyStateKind.Rewinding */
         }
         stopRewind() {
           if (this.exports.asyncify_stop_rewind === undefined) {
             throw Error("Asynctify is not enabled, please compile with -s ASYNCIFY=1 in emcc");
           }
           this.exports.asyncify_stop_rewind();
-          this.state = 0 /* AsyncifyStateKind.None */;
+          this.state = 0; /* AsyncifyStateKind.None */
         }
         startUnwind() {
           if (this.exports.asyncify_start_unwind === undefined) {
             throw Error("Asynctify is not enabled, please compile with -s ASYNCIFY=1 in emcc");
           }
           this.exports.asyncify_start_unwind(ASYNCIFY_DATA_ADDR);
-          this.state = 1 /* AsyncifyStateKind.Unwinding */;
+          this.state = 1; /* AsyncifyStateKind.Unwinding */
         }
         stopUnwind() {
           if (this.exports.asyncify_stop_unwind === undefined) {
             throw Error("Asynctify is not enabled, please compile with -s ASYNCIFY=1 in emcc");
           }
           this.exports.asyncify_stop_unwind();
-          this.state = 0 /* AsyncifyStateKind.None */;
+          this.state = 0; /* AsyncifyStateKind.None */
         }
         /**
          * Initialize the wasm memory to setup necessary meta-data
@@ -8936,7 +8936,7 @@ fn fragment_clear(@location(0) uv : vec2<f32>) -> @location(0) vec4<f32> {
           }
         }
         getDLTensorFromArrayHandle(handle) {
-          return handle + 24 /* SizeOf.ObjectHeader */;
+          return handle + 24; /* SizeOf.ObjectHeader */
         }
       }
       /**
@@ -12785,14 +12785,12 @@ function requireLib$1() {
                 }
                 var length;
                 var valueIsOfTypeString = typeof value == "string";
-                if (
-                  !(
-                    valueIsOfTypeString ||
-                    value instanceof Uint8Array ||
-                    value instanceof Uint8ClampedArray ||
-                    value instanceof Int8Array
-                  )
-                ) {
+                if (!(
+                  valueIsOfTypeString ||
+                  value instanceof Uint8Array ||
+                  value instanceof Uint8ClampedArray ||
+                  value instanceof Int8Array
+                )) {
                   throwBindingError("Cannot pass non-string to std::string");
                 }
                 if (stdStringIsUTF8 && valueIsOfTypeString) {
@@ -23545,14 +23543,12 @@ function requireLib() {
                 }
                 var length;
                 var valueIsOfTypeString = typeof value == "string";
-                if (
-                  !(
-                    valueIsOfTypeString ||
-                    value instanceof Uint8Array ||
-                    value instanceof Uint8ClampedArray ||
-                    value instanceof Int8Array
-                  )
-                ) {
+                if (!(
+                  valueIsOfTypeString ||
+                  value instanceof Uint8Array ||
+                  value instanceof Uint8ClampedArray ||
+                  value instanceof Int8Array
+                )) {
                   throwBindingError("Cannot pass non-string to std::string");
                 }
                 if (stdStringIsUTF8 && valueIsOfTypeString) {

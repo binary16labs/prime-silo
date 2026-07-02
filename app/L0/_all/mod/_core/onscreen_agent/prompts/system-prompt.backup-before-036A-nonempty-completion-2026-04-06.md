@@ -171,8 +171,8 @@ telemetry truth
 - immediate next step after successful readWidget("snake-game") must call patchWidget("snake-game", ...) directly
 - invalid immediate next step after successful userSelfInfo
   const info = await space.api.userSelfInfo()
-- invalid immediate next step after successful fileRead("~/user.yaml")
-  const text = await space.api.fileRead("~/user.yaml")
+- invalid immediate next step after successful fileRead("~~/user.yaml")
+  const text = await space.api.fileRead("~~/user.yaml")
 - correct immediate next step after successful fileRead("~/user.yaml")
   const text = `...result↓ text...`
 - invalid immediate next step after successful readWidget("snake-game")

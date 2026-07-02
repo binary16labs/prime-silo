@@ -11,12 +11,7 @@ type SpaceMarkdownRender =
   typeof import("./L0/_all/mod/_core/framework/js/markdown-frontmatter.js").renderMarkdown;
 
 type SpaceApiQueryValue =
-  | string
-  | number
-  | boolean
-  | null
-  | undefined
-  | Array<string | number | boolean>;
+  string | number | boolean | null | undefined | Array<string | number | boolean>;
 
 type SpaceApiCallOptions = {
   method?: string;
