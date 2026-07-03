@@ -762,6 +762,12 @@ def get_knowledge_graph(
             "node_type": rec.get("node_type")
             or (rec["labels"][0] if rec["labels"] else "Concept"),
             "centrality": rec.get("centrality") or 0,
+            # Enrichment fields (benny.graph.graph_enrichment): merge_count drives
+            # node size in the view; category/community drive theme colouring.
+            "merge_count": rec.get("merge_count") or 1,
+            "category": rec.get("category") or "",
+            "community_id": rec.get("community_id"),
+            "community_name": rec.get("community_name") or "",
         }
         if rec.get("concept_count") is not None:
             node["concept_count"] = rec["concept_count"]
@@ -787,7 +793,9 @@ def get_knowledge_graph(
                 WITH s, collect(c) AS concepts
                 UNWIND ([s] + concepts) AS n
                 RETURN DISTINCT elementId(n) AS id, labels(n) AS labels, n.name AS name,
-                       n.domain AS domain, n.node_type AS node_type, n.centrality AS centrality
+                       n.domain AS domain, n.node_type AS node_type, n.centrality AS centrality,
+                       n.merge_count AS merge_count, n.category AS category,
+                       n.community_id AS community_id, n.community_name AS community_name
                 """,
                 workspace=workspace,
                 source_id=source_id,
@@ -818,6 +826,8 @@ def get_knowledge_graph(
                 MATCH (s:Source {workspace: $workspace})
                 RETURN elementId(s) AS id, labels(s) AS labels, s.name AS name,
                        s.domain AS domain, s.node_type AS node_type, s.centrality AS centrality,
+                       s.merge_count AS merge_count, s.category AS category,
+                       s.community_id AS community_id, s.community_name AS community_name,
                        SIZE([(c:Concept {workspace: $workspace})-[:SOURCED_FROM]->(s) | c]) AS concept_count
                 """,
                 workspace=workspace,
@@ -850,7 +860,9 @@ def get_knowledge_graph(
                 MATCH (n {workspace: $workspace})
                 WHERE n:Concept OR n:Source OR n:Document
                 RETURN elementId(n) AS id, labels(n) AS labels, n.name AS name,
-                       n.domain AS domain, n.node_type AS node_type, n.centrality AS centrality
+                       n.domain AS domain, n.node_type AS node_type, n.centrality AS centrality,
+                       n.merge_count AS merge_count, n.category AS category,
+                       n.community_id AS community_id, n.community_name AS community_name
                 """,
                 workspace=workspace,
             )
@@ -863,7 +875,9 @@ def get_knowledge_graph(
                 WHERE (n:Concept OR n:Source OR n:Document)
                   AND (elementId(n) IN $ids OR n:Source)
                 RETURN elementId(n) AS id, labels(n) AS labels, n.name AS name,
-                       n.domain AS domain, n.node_type AS node_type, n.centrality AS centrality
+                       n.domain AS domain, n.node_type AS node_type, n.centrality AS centrality,
+                       n.merge_count AS merge_count, n.category AS category,
+                       n.community_id AS community_id, n.community_name AS community_name
                 """,
                 workspace=workspace,
                 ids=list(connected_ids),

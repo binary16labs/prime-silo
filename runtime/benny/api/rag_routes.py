@@ -53,6 +53,9 @@ class IngestRequest(BaseModel):
     correlation_use_ann: bool = (
         True  # Use HNSW ANN index when hnswlib is installed; falls back to numpy top-K
     )
+    enrich_merge: bool = (
+        False  # Opt-in: also canonical-merge near-duplicate concepts during ingest (destructive; deletes variant nodes)
+    )
     force_reingest: bool = False  # Whether to force re-processing even if already in DB
     model: Optional[str] = None  # Optional model override for synthesis
     use_docling: bool = True  # Enable structured extraction (Docling)
@@ -464,7 +467,27 @@ async def ingest_files(request: IngestRequest):
         if request.deep_synthesis:
             try:
                 from ..graph.clustering_service import ClusteringService
+                from ..graph.graph_enrichment import enrich_graph
                 from ..synthesis.correlation import run_full_correlation_suite
+
+                # Graph enrichment: persist embeddings, add cross-document concept
+                # similarity links, and promote typed relations BEFORE clustering so
+                # communities form over the enriched edge set. Canonical merge is
+                # destructive (deletes nodes), so it stays opt-in (request.enrich_merge);
+                # the deliberate `benny enrich-graph --apply` backfill runs it with a
+                # dry-run preview first.
+                enrich_stages = (
+                    ["embeddings", "merge", "similarity", "rel_class"]
+                    if getattr(request, "enrich_merge", False)
+                    else ["embeddings", "similarity", "rel_class"]
+                )
+                task_manager.update_task(run_id, metadata={"stage": "ENRICHING"})
+                try:
+                    await enrich_graph(
+                        request.workspace, dry_run=False, stages=enrich_stages
+                    )
+                except Exception as e:
+                    logger.warning("Graph enrichment stage failed (non-fatal): %s", e)
 
                 track_aer(
                     run_id,

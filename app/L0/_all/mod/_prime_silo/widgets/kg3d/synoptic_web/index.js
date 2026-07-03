@@ -91,9 +91,33 @@ const TOP_PADDING = 28;
 const BOTTOM_PADDING = 28;
 const SVG_WIDTH = 720;
 
+// Fixed hues for the coarse doc/concept split used by the lean fallback.
+const RESERVED_CATEGORY_COLORS = {
+  documentation: "#c4a882",
+  concept: "#8b9c8b"
+};
+
+// Stable, distinct colour for an arbitrary category string (e.g. an enrichment
+// community/theme name). Same string → same hue every render, so a theme reads
+// as one colour across the graph — this is what makes categorisation legible.
+function hashCategoryColor(category) {
+  let h = 0;
+  for (let i = 0; i < category.length; i += 1) {
+    h = (h * 31 + category.charCodeAt(i)) | 0;
+  }
+  const hue = ((h % 360) + 360) % 360;
+  return `hsl(${hue}, 52%, 60%)`;
+}
+
 function pickCategoryColor(category) {
   if (category && CATEGORY_COLORS[category]) {
     return CATEGORY_COLORS[category];
+  }
+  if (category && RESERVED_CATEGORY_COLORS[category]) {
+    return RESERVED_CATEGORY_COLORS[category];
+  }
+  if (category && category !== "default") {
+    return hashCategoryColor(category);
   }
   return CATEGORY_COLORS.default;
 }
@@ -389,17 +413,23 @@ export function createSynopticWebWidget(host, initialProps, options = {}) {
       const d = degree.get(String(n.id)) || 0;
       const isSource = (n.labels || []).includes("Source");
       const layer = isSource ? 1 : d >= hub ? 2 : d >= 3 ? 3 : d > 0 ? 4 : 5;
+      // merge_count (graph_enrichment) = how many concept variants collapsed into
+      // this node, i.e. how many times the idea recurred across sessions. Add it to
+      // the size signal so cross-session recurring concepts grow, per the brief.
+      const mergeCount = typeof n.merge_count === "number" && n.merge_count > 0 ? n.merge_count : 1;
       const pagerank =
         typeof n.concept_count === "number"
           ? (n.concept_count / maxConcepts) * 100
-          : (d / maxDeg) * 100;
+          : Math.min(100, (d / maxDeg) * 60 + (mergeCount - 1) * 8);
       return {
         id: String(n.id),
         display_name: n.name || String(n.id),
         canonical_name: n.name || String(n.id),
-        category: isSource ? "documentation" : "concept",
+        // Prefer the enrichment-derived category (community/theme) for colour;
+        // fall back to the coarse source/concept split.
+        category: isSource ? "documentation" : n.category || "concept",
         aot_layer: layer,
-        metrics: { pagerank }
+        metrics: { pagerank, merge_count: mergeCount }
       };
     });
     const edges = rawEdges.filter(

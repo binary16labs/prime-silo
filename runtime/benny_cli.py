@@ -212,6 +212,40 @@ def cmd_longview(args: argparse.Namespace) -> int:
     return subprocess.call(cmd, cwd=str(project_root))
 
 
+async def cmd_enrich_graph(args: argparse.Namespace) -> int:
+    """Enrich an existing knowledge graph so cross-session patterns become visible:
+    canonical-merge near-duplicate concepts (sizing by merge count), add
+    cross-document similarity links, promote typed relations, correlate code↔docs,
+    and recluster. Dry-run by default; pass --apply to write."""
+    import json as _json
+
+    from benny.graph.graph_enrichment import enrich_graph
+
+    stages = [s.strip() for s in args.stages.split(",")] if getattr(args, "stages", None) else None
+    dry_run = not getattr(args, "apply", False)
+
+    report = await enrich_graph(
+        args.workspace,
+        dry_run=dry_run,
+        stages=stages,
+        correlation_threshold=args.threshold,
+    )
+
+    if getattr(args, "json", False):
+        print(_json.dumps(report, indent=2, default=str))
+        return 0
+
+    mode = "DRY RUN (no writes)" if dry_run else "APPLIED"
+    print(f"\n[enrich-graph] workspace={args.workspace} — {mode}")
+    if "doc_concepts" in report:
+        print(f"  document concepts: {report['doc_concepts']}")
+    for name, res in report.get("stages", {}).items():
+        print(f"  • {name}: {res}")
+    if dry_run:
+        print("\nRe-run with --apply to write these changes. Back up Neo4j first.")
+    return 0
+
+
 def cmd_manifests_ls(args: argparse.Namespace) -> int:
     from benny.persistence import run_store
 
@@ -1719,6 +1753,16 @@ def build_parser() -> argparse.ArgumentParser:
     p_enrich.add_argument("--manifest", default=None, help="Load a declarative manifest from disk (e.g. manifests/templates/knowledge_enrichment_pipeline.json) instead of building one inline. Variables (workspace, src_path, model, threshold, strategy, api_base, api_key, benny_home, resume_from_run_id) are substituted from CLI flags + env.")
     p_enrich.add_argument("--resume", dest="resume_run_id", default=None, help="Reuse already-completed tasks from a prior run (e.g. --resume 6d0856035fe6). Reads workspace/<ws>/runs/enrich-<run_id>/task_*.json and skips any task whose status is in execution.resume.skip_if_status.")
 
+    p_enrich_graph = sub.add_parser(
+        "enrich-graph",
+        help="Enrich an existing knowledge graph: canonical-merge concepts, add cross-document similarity links, typed relations, code correlation, and recluster.",
+    )
+    p_enrich_graph.add_argument("--workspace", required=True, help="Target workspace (e.g. longview)")
+    p_enrich_graph.add_argument("--apply", dest="apply", action="store_true", default=False, help="Apply changes. Without this flag the command is a DRY RUN that only reports counts.")
+    p_enrich_graph.add_argument("--stages", default=None, help="Comma-separated subset of: embeddings,merge,similarity,rel_class,correlation,recluster (default: all, in order)")
+    p_enrich_graph.add_argument("--threshold", type=float, default=0.82, help="Cosine threshold for code↔docs correlation (default: 0.82)")
+    p_enrich_graph.add_argument("--json", action="store_true", help="Emit the per-stage report as JSON")
+
     # pypes — declarative transformation engine (manifest-driven DAG)
     from benny.pypes.cli import add_subparser as _pypes_add_subparser
     _pypes_add_subparser(sub)
@@ -1886,6 +1930,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         return asyncio.run(cmd_req(args))
     if args.cmd == "enrich":
         return asyncio.run(cmd_enrich(args))
+    if args.cmd == "enrich-graph":
+        return asyncio.run(cmd_enrich_graph(args))
     if args.cmd == "pypes":
         from benny.pypes.cli import cmd_pypes
         return cmd_pypes(args)

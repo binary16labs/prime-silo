@@ -58,8 +58,17 @@ function testPickCategoryAndEdgeColors() {
     kgTesting.pickCategoryColor("ai_deep_learning"),
     kgTesting.CATEGORY_COLORS.ai_deep_learning
   );
-  assert.equal(kgTesting.pickCategoryColor("not_a_category"), kgTesting.CATEGORY_COLORS.default);
+  // Unknown category strings (e.g. enrichment community/theme names) now get a
+  // stable, deterministic non-default colour so a theme reads as one colour.
+  const themeColor = kgTesting.pickCategoryColor("Neural Execution Layer");
+  assert.notEqual(themeColor, kgTesting.CATEGORY_COLORS.default);
+  assert.equal(
+    themeColor,
+    kgTesting.pickCategoryColor("Neural Execution Layer"),
+    "same theme → same colour"
+  );
   assert.equal(kgTesting.pickCategoryColor(undefined), kgTesting.CATEGORY_COLORS.default);
+  assert.equal(kgTesting.pickCategoryColor("default"), kgTesting.CATEGORY_COLORS.default);
 
   assert.equal(kgTesting.pickEdgeColor("prerequisite"), kgTesting.EDGE_COLORS.prerequisite);
   assert.equal(kgTesting.pickEdgeColor("references"), kgTesting.EDGE_COLORS.references);
