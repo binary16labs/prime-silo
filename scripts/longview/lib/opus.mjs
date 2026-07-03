@@ -107,11 +107,14 @@ async function buildOutline(interrupted) {
     // and truncates into unparseable JSON (seen live). Hierarchy all the way:
     // parts → chapters-per-part → sections-per-chapter.
     console.log("[opus] outline: parts…");
+    // Budget math on the 4k-ctx model: the full digest (~2.2k tokens) plus a
+    // 1200-token output left no room — both attempts truncated mid-JSON
+    // (2026-07-03). Trim the digest and spend the savings on output room.
     outline = await jsonCall(
       "outline",
       prompt("vampire_outline"),
-      foundationDigest(),
-      1200,
+      foundationDigest().slice(0, 3500),
+      1800,
       "parts"
     );
     if (!outline?.parts?.length) throw new Error("outline did not parse — rerun the opus phase");
