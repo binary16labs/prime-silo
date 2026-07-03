@@ -355,7 +355,7 @@ function renderCardMd(card) {
 // the graph kept filling). So: POST with a client-generated run_id, tolerate
 // the connection dying, and poll the runtime's task record until it settles.
 // This also serializes batches — the next POST waits for this task to finish.
-async function ingestBatch(batch) {
+async function ingestBatch(batch, { deepSynthesis = config.DEEP_SYNTHESIS } = {}) {
   const runId = crypto.randomUUID();
   const post = fetch(`${config.BENNY_API_BASE}/api/rag/ingest`, {
     method: "POST",
@@ -364,7 +364,7 @@ async function ingestBatch(batch) {
       workspace: config.WORKSPACE,
       files: batch,
       run_id: runId,
-      deep_synthesis: config.DEEP_SYNTHESIS,
+      deep_synthesis: deepSynthesis,
       model: config.INGEST_MODEL
     })
   }).catch(() => null); // connection death ≠ ingest death — the task record decides
@@ -877,7 +877,9 @@ async function runWeave({ loops = null, questionsPerLoop = null } = {}) {
     for (const name of noteFiles) {
       const stagedName = `longview_note_${name}`;
       fs.copyFileSync(path.join(discoveryDir, name), workspaceDir("data_in", stagedName));
-      const verdict = await ingestBatch([stagedName]);
+      // Vectors only: notes exist for retrieval, and a deep-synthesis ingest
+      // pays the full ~40-min clustering pass PER NOTE at this graph size.
+      const verdict = await ingestBatch([stagedName], { deepSynthesis: false });
       appendLedger({
         phase: "weave",
         action: "ingest",
