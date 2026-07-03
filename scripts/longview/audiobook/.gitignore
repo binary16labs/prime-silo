@@ -1,0 +1,7 @@
+# Generated audiobook artifacts (regenerate via the pipeline; do not version)
+build/
+*.wav
+*.mp3
+*.m4b
+__pycache__/
+*.pyc

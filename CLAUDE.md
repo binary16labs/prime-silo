@@ -6,7 +6,8 @@
 
 ## Current Status (as of 2026-07-03)
 
-**Latest Release:** v1.10.1 (LONGVIEW decoupling + Documents-tab graph fix)  
+**Latest Release:** v1.11.0 (LONGVIEW audiobook pipeline)  
+**New in 1.11.0:** `scripts/longview/audiobook/` — deterministic 3-stage pipeline that turns the _The AI Vampire_ book output into a narrated audiobook via **Voicebox** (local TTS). `01_prepare.py` cleans markdown to `#`-free, citation-stripped per-chapter narration text + a fixed-order `manifest.json`; `02_run_kokoro.py` drives the Voicebox backend (`POST /generate`, Kokoro engine ~0.35× real-time on CPU vs ~10× for cloned qwen) into one WAV per chapter; `03_stitch.py` concatenates them in manifest order (stdlib `wave`, no ffmpeg) with an inter-chapter silence gap + chapter cue sheet. Voicebox = source repo at `binary16/voicebox` (FastAPI on :17493, MCP at `/mcp`); registered in Claude user config. Set `LONGVIEW_BOOK_DIR` to point the pipeline at the book output.  
 **New in 1.10.1:** kg3d synoptic-web `/graph/full` fallback capped at 400 nodes — fixes "Maximum call stack size exceeded" on the Documents tab at post-synthesis graph sizes (~30k concepts); LONGVIEW phase isolation (a throwing phase is ledgered `phase_error`, never fatal to the run), opus outline validation requires a non-empty list, reduce retries empty model replies and never overwrites a real deliverable with nothing, case-variant project dossiers merged. Book path is standalone: `reduce --only dossiers,themes,report` → `opus` → `pdf` (no ingest needed) — see `runtime/docs/operations/LONGVIEW_GUIDE.md`  
 **New in 1.10.0:** LONGVIEW code/weave/opus/pdf phases (code graph via `benny enrich`, discovery loops, _The AI Vampire_ 200+ page book, print PDF); hierarchical outline for 4k-ctx local models; single large ingest batch amortizes the per-batch clustering pass  
 **All Packages:** Built and published for 6 platforms (Windows, macOS, Linux × x64 + ARM64)
