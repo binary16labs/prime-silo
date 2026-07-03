@@ -56,7 +56,10 @@ function foundationDigest() {
 async function jsonCall(name, system, user, maxTokens, requiredKey = null) {
   // Two attempts: local JSON mode still sometimes truncates or wraps in prose
   // (seen live: the outline call parsed to an inner object, losing .parts).
-  // The retry quotes the failure back; validity means the required key exists.
+  // The retry quotes the failure back; validity means the required key is a
+  // non-empty list — every required key here (parts/chapters/sections) is one,
+  // and the weaker `!= null` check let an empty/malformed value through, which
+  // then blew up the strict caller check (fatal on the 2026-07-03 run).
   let lastHead = "";
   for (let attempt = 0; attempt < 2; attempt++) {
     const started = Date.now();
@@ -72,7 +75,9 @@ async function jsonCall(name, system, user, maxTokens, requiredKey = null) {
       temperature: attempt === 0 ? 0.5 : 0.3
     });
     const parsed = lastBalancedJson(res.content);
-    const valid = Boolean(parsed) && (!requiredKey || parsed[requiredKey] != null);
+    const valid =
+      Boolean(parsed) &&
+      (!requiredKey || (Array.isArray(parsed[requiredKey]) && parsed[requiredKey].length > 0));
     appendLedger({
       phase: "opus",
       artifact: name,

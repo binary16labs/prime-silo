@@ -545,20 +545,32 @@ async function reduceCall(name, system, user, outPath) {
   // Per-part slices control composition; this cap guarantees the total fits
   // the model's context window regardless of corpus size (see config note).
   user = user.slice(0, config.REDUCE_INPUT_BUDGET);
-  const res = await chat({ system, user, maxTokens: config.REDUCE_MAX_TOKENS, temperature: 0.4 });
-  fs.writeFileSync(outPath, res.content);
+  // A wedged model answers 200 with an empty body; written as-is that became a
+  // 0-byte prime-silo dossier that fed every downstream deliverable including
+  // the book (2026-07-03 run). Retry once; never replace a real file with
+  // nothing, and ledger the failure honestly.
+  let res = await chat({ system, user, maxTokens: config.REDUCE_MAX_TOKENS, temperature: 0.4 });
+  if (res.content.trim().length < 80) {
+    res = await chat({ system, user, maxTokens: config.REDUCE_MAX_TOKENS, temperature: 0.4 });
+  }
+  const ok = res.content.trim().length >= 80;
+  if (ok) fs.writeFileSync(outPath, res.content);
   appendLedger({
     phase: "reduce",
     artifact: name,
     ms: Date.now() - started,
+    ok,
     prompt_tokens: res.prompt_tokens,
     completion_tokens: res.completion_tokens,
     usage_estimated: res.usage_estimated
   });
   console.log(
-    `[reduce] ${name} → ${path.relative(config.BENNY_HOME, outPath)} (${((Date.now() - started) / 1000).toFixed(0)}s)`
+    ok
+      ? `[reduce] ${name} → ${path.relative(config.BENNY_HOME, outPath)} (${((Date.now() - started) / 1000).toFixed(0)}s)`
+      : `[reduce] ${name} FAILED — empty response twice (kept any existing file)`
   );
-  return res.content;
+  if (ok) return res.content;
+  return fs.existsSync(outPath) ? fs.readFileSync(outPath, "utf8") : "";
 }
 
 const cardDigest = (c) =>
@@ -584,9 +596,17 @@ async function runReduce({ onlyOverride = null, skipBookOverride = null } = {}) 
   const outDir = (...p) => workspaceDir("data_out", ...p);
   writeStatus({ phase: "reduce" });
 
-  // 1. Project dossiers — one bounded call per project.
+  // 1. Project dossiers — one bounded call per project. Card project names
+  // vary in case ("benny"/"Benny", "prime-silo"/"Prime-Silo"); the Windows fs
+  // is case-insensitive, so their dossier files collide and the last write
+  // wins. Merge case-variants under the first-seen spelling instead.
   const byProject = {};
-  for (const c of cards) (byProject[c.project] ||= []).push(c);
+  const canonical = new Map();
+  for (const c of cards) {
+    const lower = String(c.project).toLowerCase();
+    if (!canonical.has(lower)) canonical.set(lower, c.project);
+    (byProject[canonical.get(lower)] ||= []).push(c);
+  }
   const dossiers = {};
   if (want("dossiers")) {
     for (const [project, pcards] of Object.entries(byProject)) {
@@ -1089,24 +1109,33 @@ async function runManifest() {
   for (const ph of phases) {
     if (interrupted) break;
     console.log(`[run] phase: ${ph.id}`);
-    if (ph.id === "inventory") await runInventory();
-    else if (ph.id === "extract") runExtract();
-    else if (ph.id === "map") await runMap({ limitOverride: Number(ph.limit) || Infinity });
-    else if (ph.id === "model") await runModel();
-    else if (ph.id === "code") await runCode();
-    else if (ph.id === "weave")
-      await runWeave({
-        loops: Number(ph.loops) || null,
-        questionsPerLoop: Number(ph.questions) || null
-      });
-    else if (ph.id === "reduce")
-      await runReduce({
-        onlyOverride: Array.isArray(ph.only) && ph.only.length ? ph.only : null,
-        skipBookOverride: ph.skip_book === true ? true : null
-      });
-    else if (ph.id === "opus") await runOpus({ interrupted: () => interrupted });
-    else if (ph.id === "pdf") runPdfPhase();
-    else console.log(`[run] unknown phase '${ph.id}' — skipped`);
+    // Phase isolation: a throwing phase is ledgered and skipped, never fatal —
+    // the opus outline throw on the 2026-07-03 run killed the process and took
+    // the pdf phase (and the whole book) down with it.
+    try {
+      if (ph.id === "inventory") await runInventory();
+      else if (ph.id === "extract") runExtract();
+      else if (ph.id === "map") await runMap({ limitOverride: Number(ph.limit) || Infinity });
+      else if (ph.id === "model") await runModel();
+      else if (ph.id === "code") await runCode();
+      else if (ph.id === "weave")
+        await runWeave({
+          loops: Number(ph.loops) || null,
+          questionsPerLoop: Number(ph.questions) || null
+        });
+      else if (ph.id === "reduce")
+        await runReduce({
+          onlyOverride: Array.isArray(ph.only) && ph.only.length ? ph.only : null,
+          skipBookOverride: ph.skip_book === true ? true : null
+        });
+      else if (ph.id === "opus") await runOpus({ interrupted: () => interrupted });
+      else if (ph.id === "pdf") runPdfPhase();
+      else console.log(`[run] unknown phase '${ph.id}' — skipped`);
+    } catch (e) {
+      const error = String((e && e.message) || e);
+      appendLedger({ phase: ph.id, action: "phase_error", ok: false, error });
+      console.log(`[run] phase ${ph.id} FAILED — ${error} (continuing with remaining phases)`);
+    }
   }
 }
 
