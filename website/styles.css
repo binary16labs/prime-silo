@@ -1,0 +1,1005 @@
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+/* ==========================================================================
+   Binary 16 Labs // Canonical Design System
+   Theme: Institutional Modernism & Editorial Symmetry
+   Architecture: Responsive Scroll Journey & Floating Glass HUD
+   ========================================================================== */
+
+:root {
+  /* Institutional Alabaster & Cream (Editorial Reading Zones) */
+  --bg-alabaster: #F5F2EB;
+  --bg-cream-card: #EAE5D9;
+  --bg-cream-hover: #DFDAD0;
+  
+  /* Deep Moss Green Sanctuary (Technical & 3D Substrates) */
+  --bg-moss: #1E2D24;
+  --bg-moss-dark: #16221B;
+  --bg-moss-surface: #26382D;
+  
+  /* Earthy Retro Accents */
+  --accent-rust: #B85D3D;
+  --accent-rust-hover: #A04E31;
+  --accent-sage: #9CAF88;
+  --accent-sage-light: #B4C4A3;
+  --border-taupe: #C5B38E;
+  
+  /* Typography Colors */
+  --text-charcoal: #1A241E;
+  --text-alabaster: #F5F2EB;
+  --text-muted-dark: rgba(26, 36, 30, 0.68);
+  --text-muted-light: rgba(245, 242, 235, 0.68);
+  
+  /* Typography Families */
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'Courier Prime', 'Courier New', monospace;
+  
+  /* Layout & Animation */
+  --transition-smooth: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+}
+
+/* ==========================================================================
+   Global Reset & Neuro-Assist Override Foundations
+   ========================================================================== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-alabaster);
+  color: var(--text-charcoal);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-x: hidden;
+  transition: var(--transition-smooth);
+}
+
+/* Dyslexic font override */
+body.neuro-dyslexic * {
+  font-family: 'Lexend', var(--font-sans), sans-serif !important;
+  letter-spacing: 0.03em;
+}
+
+/* Line spacing override */
+body.neuro-spacing {
+  line-height: 1.95 !important;
+}
+
+body.neuro-spacing p, 
+body.neuro-spacing li {
+  margin-bottom: 1.2rem !important;
+}
+
+/* Bionic reading anchors */
+.bionic-anchor {
+  font-weight: 700 !important;
+  color: var(--accent-rust);
+}
+
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ==========================================================================
+   Navigation // Symmetrical Boxed Navbar
+   ========================================================================== */
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba(245, 242, 235, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 2px solid var(--border-taupe);
+  padding: 14px 0;
+}
+
+.nav-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: var(--text-charcoal);
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 1.3rem;
+  letter-spacing: 0.02em;
+}
+
+.brand-icon {
+  width: 38px;
+  height: 38px;
+  background: var(--bg-moss);
+  color: var(--bg-alabaster);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.1rem;
+  border: 1.5px solid var(--border-taupe);
+  border-radius: var(--radius-sm);
+}
+
+.brand-tag {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--accent-rust);
+  border: 1px solid var(--accent-rust);
+  padding: 2px 8px;
+  border-radius: 100px;
+  text-transform: uppercase;
+}
+
+.nav-links {
+  display: flex;
+  gap: 28px;
+  list-style: none;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: var(--text-charcoal);
+  font-weight: 500;
+  font-size: 0.92rem;
+  padding: 4px 8px;
+  border-bottom: 2px solid transparent;
+  transition: var(--transition-smooth);
+}
+
+.nav-links a:hover,
+.nav-links a.active {
+  color: var(--accent-rust);
+  border-bottom-color: var(--accent-rust);
+}
+
+.nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* ==========================================================================
+   Buttons & Interactive Elements (Retro Modernism)
+   ========================================================================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 22px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.88rem;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  border: 1.5px solid transparent;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.btn-primary {
+  background: var(--accent-rust);
+  color: var(--bg-alabaster);
+  border-color: var(--accent-rust);
+  box-shadow: 0 4px 12px rgba(184, 93, 61, 0.25);
+}
+
+.btn-primary:hover {
+  background: var(--accent-rust-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(184, 93, 61, 0.35);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--bg-moss);
+  border-color: var(--bg-moss);
+}
+
+.btn-secondary:hover {
+  background: var(--bg-moss);
+  color: var(--bg-alabaster);
+}
+
+.btn-audio {
+  background: var(--bg-cream-card);
+  color: var(--text-charcoal);
+  border: 1.5px solid var(--border-taupe);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+.btn-audio.playing {
+  background: var(--accent-sage);
+  color: var(--bg-moss-dark);
+  border-color: var(--bg-moss);
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   Section 1: Hero Studio // Institutional Symmetry
+   ========================================================================== */
+.hero {
+  padding: 70px 0 60px;
+  text-align: center;
+  border-bottom: 2px solid var(--border-taupe);
+  background: radial-gradient(circle at 50% 20%, rgba(197, 179, 142, 0.18) 0%, transparent 70%);
+}
+
+.hero-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--accent-rust);
+  background: var(--bg-cream-card);
+  border: 1.5px solid var(--border-taupe);
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 22px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.hero-title {
+  font-family: var(--font-serif);
+  font-size: 3.4rem;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--text-charcoal);
+  max-width: 900px;
+  margin: 0 auto 22px;
+}
+
+.hero-title span {
+  color: var(--accent-rust);
+  font-style: italic;
+  font-weight: 600;
+}
+
+.hero-subtitle {
+  font-size: 1.15rem;
+  color: var(--text-muted-dark);
+  max-width: 760px;
+  margin: 0 auto 38px;
+  font-weight: 400;
+}
+
+.hero-actions {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin-bottom: 54px;
+}
+
+/* ==========================================================================
+   Architecture Showcase Helper Styling
+   ========================================================================== */
+.chapter-specs {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chapter-specs li {
+  font-size: 0.92rem;
+  color: var(--text-charcoal);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.chapter-specs li::before {
+  content: "➔";
+  color: var(--accent-rust);
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   CINEMATIC ACTS // Mobile-First Floating Glass HUD over Sticky Substrates
+   ========================================================================== */
+.cinematic-act {
+  position: relative;
+  background: var(--bg-moss-dark);
+  color: var(--text-alabaster);
+  border-bottom: 2px solid var(--border-taupe);
+}
+
+/* Sticky Background Substrate Container */
+.sticky-substrate {
+  position: sticky;
+  top: 72px;
+  height: calc(100vh - 74px);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none; /* Let clicks/scroll pass through to floating cards */
+}
+
+/* Act I Substrate: Fullscreen 3D Canvas */
+.blueprint-canvas-container {
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, var(--bg-moss) 0%, var(--bg-moss-dark) 100%);
+  position: relative;
+}
+
+#blueprintCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.substrate-badge {
+  position: absolute;
+  top: 20px; left: 24px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--accent-sage);
+  background: rgba(22, 34, 27, 0.88);
+  padding: 6px 14px;
+  border: 1px solid var(--accent-sage);
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.substrate-status {
+  position: absolute;
+  bottom: 20px; right: 24px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--border-taupe);
+  background: rgba(22, 34, 27, 0.88);
+  padding: 6px 14px;
+  border: 1px solid var(--border-taupe);
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Act II Substrate: Cockpit Telemetry HUD */
+.cockpit-hud-container {
+  width: 90%;
+  max-width: 1040px;
+  height: 78%;
+  background: rgba(22, 34, 27, 0.94);
+  border: 2px solid var(--border-taupe);
+  border-radius: var(--radius-md);
+  padding: 32px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.hud-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px dashed rgba(197, 179, 142, 0.4);
+  padding-bottom: 12px;
+  margin-bottom: 20px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--accent-sage);
+}
+
+.hud-screen {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(197, 179, 142, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 24px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.65;
+  color: var(--bg-alabaster);
+  white-space: pre-wrap;
+  overflow-x: auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Act II/III Substrates: Institutional Architecture Graph & CLI Console */
+.textual-tui-container, .arch-graph-container {
+  width: 92%;
+  max-width: 1120px;
+  height: 82%;
+  background: rgba(14, 20, 16, 0.98);
+  border: 2px solid var(--border-taupe);
+  border-radius: var(--radius-md);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.7);
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-mono);
+  overflow: hidden;
+  color: var(--bg-alabaster);
+}
+
+.arch-graph-canvas-wrap {
+  flex: 1;
+  position: relative;
+  background: radial-gradient(circle at 50% 50%, rgba(30, 45, 36, 0.6) 0%, rgba(14, 20, 16, 0.98) 100%);
+  overflow: hidden;
+  display: flex;
+}
+
+canvas#archGraphCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.arch-graph-overlay {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  left: 20px;
+  background: rgba(22, 34, 27, 0.9);
+  border: 1.5px solid var(--border-taupe);
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+
+.overlay-title {
+  color: var(--accent-rust);
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+  letter-spacing: 0.05em;
+}
+
+.overlay-stats {
+  color: var(--accent-sage-light);
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+  font-family: var(--font-mono);
+}
+
+.overlay-desc {
+  color: var(--text-alabaster);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  font-family: var(--font-serif);
+}
+
+.tui-header {
+  background: var(--bg-moss-surface);
+  padding: 10px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1.5px solid var(--border-taupe);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.tui-header-left, .tui-header-right { display: flex; align-items: center; gap: 10px; }
+.tui-box-char { color: var(--border-taupe); font-weight: 400; }
+.tui-title-accent { color: var(--text-alabaster); letter-spacing: 0.05em; }
+.tui-badge-ready { color: var(--accent-sage); background: rgba(156, 175, 136, 0.15); padding: 2px 10px; border-radius: 100px; font-size: 0.72rem; }
+
+.tui-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.tui-sidebar {
+  width: 250px;
+  background: rgba(22, 34, 27, 0.6);
+  border-right: 1.5px solid var(--border-taupe);
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.82rem;
+}
+
+.tui-sidebar-title {
+  color: var(--border-taupe);
+  font-weight: 700;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.tui-tab {
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted-light);
+  cursor: default;
+  transition: var(--transition-smooth);
+  border: 1px solid transparent;
+}
+
+.tui-tab.active-tab {
+  background: var(--bg-moss);
+  color: var(--accent-rust);
+  border-color: var(--accent-rust);
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(184, 93, 61, 0.25);
+  transform: translateX(4px);
+}
+
+.tui-sidebar-footer {
+  margin-top: auto;
+  border-top: 1px dashed rgba(197, 179, 142, 0.3);
+  padding-top: 14px;
+  font-size: 0.72rem;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.tui-console {
+  flex: 1;
+  padding: 24px 32px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  font-size: 0.88rem;
+  line-height: 1.7;
+}
+
+.tui-welcome {
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px dashed rgba(197, 179, 142, 0.3);
+}
+
+.tui-output-stream {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Rich Textual UI Widgets inside Console */
+.tui-box-panel {
+  background: rgba(245, 242, 235, 0.05);
+  border: 1.5px solid var(--border-taupe);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  margin: 10px 0;
+  line-height: 1.6;
+}
+
+.tui-box-title { color: var(--accent-rust); font-weight: 700; margin-bottom: 6px; display: block; text-transform: uppercase; font-size: 0.82rem; }
+.tui-box-desc { color: var(--text-alabaster); font-size: 0.92rem; }
+.tui-specs-list { margin-top: 10px; padding-left: 14px; color: var(--accent-sage-light); font-size: 0.82rem; }
+.tui-specs-list li { margin-bottom: 4px; }
+
+.t-line { display: flex; align-items: baseline; }
+.t-prompt { color: var(--accent-rust); font-weight: 700; margin-right: 10px; }
+.t-cmd { color: var(--text-alabaster); font-weight: 700; font-size: 1rem; }
+.t-out { color: var(--accent-sage-light); padding-left: 18px; font-size: 0.85rem; }
+.t-success { color: var(--accent-sage); font-weight: 700; padding-left: 18px; }
+
+.tui-progress-bar {
+  color: var(--accent-rust);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  padding-left: 18px;
+  margin: 4px 0;
+}
+
+.tui-footer {
+  background: var(--bg-moss-surface);
+  padding: 8px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-top: 1.5px solid var(--border-taupe);
+  font-size: 0.76rem;
+}
+
+.tui-footer-stat { color: var(--text-muted-light); }
+.tui-footer-sep { color: var(--border-taupe); }
+
+/* Scrolling Foreground Layer (Floating Glass HUDs) */
+.floating-glass-layer {
+  position: relative;
+  z-index: 10;
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 15vh 24px 25vh;
+  display: flex;
+  flex-direction: column;
+  gap: 65vh; /* Large spacing so each card gets exclusive stage time */
+  pointer-events: none; /* Let empty space pass clicks */
+}
+
+/* Floating Alabaster Glass Card */
+.floating-glass-panel {
+  pointer-events: auto; /* Enable interaction inside the glass card */
+  width: 540px;
+  background: rgba(245, 242, 235, 0.88);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 2px solid var(--border-taupe);
+  border-radius: var(--radius-lg);
+  padding: 36px;
+  color: var(--text-charcoal);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+  transition: var(--transition-smooth);
+}
+
+.floating-glass-panel.align-left { align-self: flex-start; margin-left: 20px; }
+.floating-glass-panel.align-right { align-self: flex-end; margin-right: 20px; }
+.floating-glass-panel.align-center { align-self: center; }
+
+.floating-glass-panel.active-card {
+  border-color: var(--accent-rust);
+  background: rgba(245, 242, 235, 0.95);
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 24px 64px rgba(184, 93, 61, 0.3);
+}
+
+.chapter-number {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--accent-rust);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 10px;
+}
+
+.chapter-title {
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  color: var(--text-charcoal);
+  margin-bottom: 14px;
+  line-height: 1.25;
+}
+
+.chapter-desc {
+  font-size: 1rem;
+  color: var(--text-muted-dark);
+  margin-bottom: 20px;
+  line-height: 1.65;
+}
+
+.chapter-specs {
+  list-style: none;
+  border-top: 1px dashed rgba(197, 179, 142, 0.4);
+  padding-top: 14px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--bg-moss);
+  font-weight: 600;
+}
+
+.chapter-specs li {
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chapter-specs li::before {
+  content: "■";
+  color: var(--accent-rust);
+  font-size: 0.7rem;
+}
+
+/* ==========================================================================
+   Section 3: Zero Token Tax Calculator (Editorial Layout)
+   ========================================================================== */
+.section {
+  padding: 80px 0;
+  border-bottom: 2px solid var(--border-taupe);
+}
+
+.section-header {
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto 48px;
+}
+
+.section-title {
+  font-family: var(--font-serif);
+  font-size: 2.6rem;
+  color: var(--text-charcoal);
+  margin-bottom: 14px;
+}
+
+.section-subtitle {
+  font-size: 1.1rem;
+  color: var(--text-muted-dark);
+}
+
+.calc-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 36px;
+  background: var(--bg-cream-card);
+  border: 2px solid var(--border-taupe);
+  border-radius: var(--radius-md);
+  padding: 36px;
+}
+
+.calc-controls { display: flex; flex-direction: column; gap: 24px; }
+
+.slider-group label {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text-charcoal);
+  font-family: var(--font-sans);
+}
+
+.slider-val { font-family: var(--font-mono); color: var(--accent-rust); font-weight: 700; }
+
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%; height: 8px;
+  background: var(--bg-alabaster);
+  border: 1px solid var(--border-taupe);
+  border-radius: 4px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px; height: 22px;
+  background: var(--accent-rust);
+  border: 2px solid var(--bg-alabaster);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  background: var(--accent-rust-hover);
+}
+
+.toggle-card:has(input:checked) {
+  border-color: var(--accent-rust) !important;
+  background: rgba(184, 93, 61, 0.06) !important;
+}
+.toggle-card:hover {
+  border-color: var(--text-charcoal) !important;
+}
+
+.calc-results { display: flex; flex-direction: column; gap: 14px; }
+
+.result-card {
+  background: var(--bg-alabaster);
+  border: 1.5px solid var(--border-taupe);
+  border-radius: var(--radius-sm);
+  padding: 18px;
+  text-align: center;
+}
+
+.result-title {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-muted-dark);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.result-number { font-family: var(--font-serif); font-size: 2.1rem; font-weight: 700; }
+.result-number.legacy { color: #A04E31; text-decoration: line-through; opacity: 0.75; }
+.result-number.saving { color: var(--bg-moss); }
+
+/* ==========================================================================
+   Section 6: Neuro-Assist Floating Dock (Retro Brass)
+   ========================================================================== */
+.neuro-dock {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 2000;
+}
+
+.dock-trigger {
+  width: 56px;
+  height: 56px;
+  background: var(--accent-rust);
+  color: var(--bg-alabaster);
+  border: 2px solid var(--border-taupe);
+  border-radius: 50%;
+  font-size: 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(184, 93, 61, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-smooth);
+}
+
+.dock-trigger:hover {
+  transform: scale(1.1) rotate(10deg);
+  background: var(--accent-rust-hover);
+}
+
+.dock-menu {
+  position: absolute;
+  bottom: 70px;
+  right: 0;
+  width: 310px;
+  background: var(--bg-alabaster);
+  border: 2px solid var(--border-taupe);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.25);
+  display: none;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dock-menu.open { display: flex; }
+
+.dock-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 1.1rem;
+  border-bottom: 1.5px solid var(--border-taupe);
+  padding-bottom: 8px;
+  color: var(--text-charcoal);
+}
+
+.dock-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-charcoal);
+}
+
+/* Toggle Switch */
+.switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider-round {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: var(--bg-cream-card);
+  border: 1px solid var(--border-taupe);
+  transition: .3s;
+  border-radius: 34px;
+}
+.slider-round:before {
+  position: absolute;
+  content: "";
+  height: 16px; width: 16px;
+  left: 3px; bottom: 3px;
+  background-color: var(--text-muted-dark);
+  transition: .3s;
+  border-radius: 50%;
+}
+input:checked + .slider-round { background-color: var(--accent-rust); }
+input:checked + .slider-round:before {
+  transform: translateX(20px);
+  background-color: var(--bg-alabaster);
+}
+
+/* ==========================================================================
+   Footer
+   ========================================================================== */
+.footer {
+  background: var(--bg-moss-dark);
+  color: var(--text-alabaster);
+  border-top: 2px solid var(--border-taupe);
+  padding: 60px 0;
+  text-align: center;
+}
+
+.footer-brand {
+  font-family: var(--font-serif);
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: var(--border-taupe);
+}
+
+.footer p { color: var(--text-muted-light); max-width: 600px; margin: 0 auto; }
+
+/* ==========================================================================
+   MOBILE-FIRST RESPONSIVE PERFECTION (< 768px)
+   ========================================================================== */
+@media (max-width: 768px) {
+  .nav-links { display: none; } /* Simplify navbar on phone */
+  .hero-title { font-size: 2.3rem; }
+  
+  /* Make all floating glass panels center-aligned on mobile */
+  .floating-glass-panel,
+  .floating-glass-panel.align-left,
+  .floating-glass-panel.align-right,
+  .floating-glass-panel.align-center {
+    width: 92% !important;
+    max-width: 100% !important;
+    align-self: center !important;
+    margin: 0 auto !important;
+    padding: 24px;
+  }
+  
+  .floating-glass-layer {
+    gap: 55vh;
+    padding: 10vh 16px 20vh;
+  }
+  
+  .sticky-substrate {
+    top: 60px;
+    height: calc(100vh - 60px);
+  }
+  
+  .cockpit-hud-container,
+  .terminal-hud-container,
+  .textual-tui-container {
+    width: 96%;
+    height: 84%;
+    padding: 0;
+  }
+  
+  .tui-body {
+    flex-direction: column;
+  }
+  
+  .tui-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1.5px solid var(--border-taupe);
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 8px;
+    gap: 4px;
+  }
+  
+  .tui-sidebar-title,
+  .tui-sidebar-footer {
+    display: none;
+  }
+  
+  .tui-tab {
+    padding: 6px 10px;
+    font-size: 0.72rem;
+  }
+  
+  .tui-console {
+    padding: 14px 16px;
+    font-size: 0.8rem;
+  }
+
+  .calc-grid {
+    grid-template-columns: 1fr;
+    padding: 18px;
+  }
+}
