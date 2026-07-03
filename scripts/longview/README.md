@@ -38,7 +38,7 @@ python benny_cli.py longview report               # honest ledger report
 ```
 
 (Equivalent direct form: `node scripts/longview/longview.mjs run [manifest] [--phase X] [--delta]`.)
-Per ADR-005 §4 the manifest's tasks are the five _phases_ — the per-session
+Per ADR-005 §4 the manifest's tasks are the _phases_ — the per-session
 fan-out stays inside the map phase's checkpointed loop, never as swarm tasks.
 Edit the manifest to change model, budgets, batch sizes, or to disable phases.
 
@@ -46,27 +46,50 @@ Resume-safe at card granularity: Ctrl+C anytime, rerun the same command, it
 continues where the ledger says it stopped. Delta reduce re-runs automatically
 once ≥5 new cards accumulate (`delta_reduce_threshold`).
 
+Phases are **isolated** (v1.10.1): one that throws is ledgered as a
+`phase_error` entry and skipped; the rest of the run continues. A missing
+deliverable always has a ledger entry saying why.
+
 ## Graph ingestion (deep synthesis)
 
 `deep_synthesis: true` in the manifest is what turns card docs into
 Document/Concept nodes in Neo4j — without it `/rag/ingest` writes **vectors
 only** and the knowledge-graph views stay empty (found live: 55 cards in
-Chroma, zero graph nodes). Synthesis is LLM-per-document, so ingest batches
-are small (`ingest_batch_size: 5`) and slow; the phase is idempotent (old
-vectors per source are deleted before re-add), so re-running `--phase model`
-after clearing `longview/rollups/ingested.json` back-fills the graph.
+Chroma, zero graph nodes). Synthesis is LLM-per-document and the runtime runs a
+**full clustering pass after every batch** (~hours at ~30k concepts), so one
+large batch (`ingest_batch_size: 40`) amortizes that cost to a single pass; the
+phase is idempotent (old vectors per source are deleted before re-add), so
+re-running `--phase model` after clearing `longview/rollups/ingested.json`
+back-fills the graph. **Never run a deep ingest concurrently with reduce/opus**
+— it wedges the shared Lemonade instance and the LLM phases get empty replies.
 
 ## Phases (runnable individually)
 
-| Phase     | Command     | What                                                       | LLM? |
-| --------- | ----------- | ---------------------------------------------------------- | ---- |
-| inventory | `inventory` | memo-ray sync + session census                             | no   |
-| extract   | `extract`   | deterministic evidence packs (≤9 KB each)                  | no   |
-| map       | `map`       | evidence → session cards, gated + ledgered (the long part) | yes  |
-| model     | `model`     | rollups + cards into the workspace knowledge graph         | no\* |
-| reduce    | `reduce`    | dossiers → themes → report/PRD/skill/book (+ TOGAF prep)   | yes  |
+| Phase     | Command     | What                                                             | LLM? |
+| --------- | ----------- | ---------------------------------------------------------------- | ---- |
+| inventory | `inventory` | memo-ray sync + session census                                   | no   |
+| extract   | `extract`   | deterministic evidence packs (≤9 KB each)                        | no   |
+| map       | `map`       | evidence → session cards, gated + ledgered (the long part)       | yes  |
+| model     | `model`     | rollups + cards into the workspace knowledge graph               | no\* |
+| code      | `code`      | repo junction → Tree-Sitter code graph → `CORRELATES_WITH` links | no\* |
+| weave     | `weave`     | discovery loops: questions → cited notes → re-ingested           | yes  |
+| reduce    | `reduce`    | dossiers → themes → report/PRD/skill/book (+ TOGAF prep)         | yes  |
+| opus      | `opus`      | _The AI Vampire_: outline → chapters → ~100 cited sections       | yes  |
+| pdf       | `pdf`       | assembled book → print-styled HTML → PDF (headless Edge/Chrome)  | no   |
 
-\* `model` calls Benny `/rag/ingest`, which embeds locally. Skip with `--no-graph`.
+\* `model` calls Benny `/rag/ingest` (embeds locally; skip with `--no-graph`);
+`code` shells out to `benny enrich`.
+
+### Book on demand (decoupled from ingestion)
+
+Opus needs no ingest — it reads THEMES/dossiers from `data_out/` and retrieves
+evidence from the vectors/graph that already exist:
+
+```powershell
+node scripts/longview/longview.mjs reduce --only dossiers,themes,report  # refresh foundation
+node scripts/longview/longview.mjs opus                                  # resume-safe per section
+node scripts/longview/longview.mjs pdf
+```
 
 ## Where things land
 
@@ -78,7 +101,9 @@ $BENNY_HOME/workspaces/longview/
 └── data_out/            deliverables:
     ├── PORTFOLIO-REPORT.md, THEMES.md, PRD-WHAT-COMES-NEXT.md
     ├── dossiers/<project>.md, skills/working-with-this-operator.SKILL.md
-    ├── book/BOOK.md (+ outline.json, chapter-NN.md)
+    ├── book/BOOK.md (+ outline.json, chapter-NN.md)   short-form (reduce phase)
+    ├── opus/THE-AI-VAMPIRE.md|.pdf (+ sections/)      long-form (opus + pdf phases)
+    ├── discovery/loopN_qM.md                          weave discovery notes
     └── TOGAF-RUN.md     the human-launched SAD swarm command (ADR-001)
 ```
 

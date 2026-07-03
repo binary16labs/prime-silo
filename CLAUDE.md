@@ -4,10 +4,11 @@
 
 ---
 
-## Current Status (as of 2026-07-02)
+## Current Status (as of 2026-07-03)
 
-**Latest Release:** v1.9.0 (LONGVIEW session synthesis)  
-**New in 1.9.0:** LONGVIEW workflow (ADR-005) — `benny longview run|status|report` over `manifests/templates/longview_synthesis.json`; deep-synthesis graph ingestion fix; recursive `data_out` listing + Bridge Outputs pane; tray Home submenu with "Open workspaces"; operator guides for LONGVIEW, TOGAF SAD swarm, and vision ingestion under `runtime/docs/operations/`  
+**Latest Release:** v1.10.1 (LONGVIEW decoupling + Documents-tab graph fix)  
+**New in 1.10.1:** kg3d synoptic-web `/graph/full` fallback capped at 400 nodes — fixes "Maximum call stack size exceeded" on the Documents tab at post-synthesis graph sizes (~30k concepts); LONGVIEW phase isolation (a throwing phase is ledgered `phase_error`, never fatal to the run), opus outline validation requires a non-empty list, reduce retries empty model replies and never overwrites a real deliverable with nothing, case-variant project dossiers merged. Book path is standalone: `reduce --only dossiers,themes,report` → `opus` → `pdf` (no ingest needed) — see `runtime/docs/operations/LONGVIEW_GUIDE.md`  
+**New in 1.10.0:** LONGVIEW code/weave/opus/pdf phases (code graph via `benny enrich`, discovery loops, _The AI Vampire_ 200+ page book, print PDF); hierarchical outline for 4k-ctx local models; single large ingest batch amortizes the per-batch clustering pass  
 **All Packages:** Built and published for 6 platforms (Windows, macOS, Linux × x64 + ARM64)
 
 ---
@@ -420,6 +421,6 @@ git push origin main && git push origin v1.2.X
 
 ---
 
-**Last updated:** 2026-06-17  
-**Release v1.2.4:** ✅ Complete  
+**Last updated:** 2026-07-03  
+**Release v1.10.1:** ✅ Complete  
 **Next agent:** Welcome! Please update this file when you hand off.

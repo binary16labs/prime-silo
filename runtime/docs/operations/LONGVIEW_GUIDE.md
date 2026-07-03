@@ -56,6 +56,12 @@ Phases (declared in the manifest, executed in order):
 Edit the manifest to change model, budgets, batch sizes, `deep_synthesis`,
 loop counts, or to disable phases — no code changes.
 
+**Phase isolation (v1.10.1):** a phase that throws is ledgered as a
+`phase_error` entry and skipped — the remaining phases still run. (Before this,
+an opus outline parse failure killed the whole process and took the pdf phase
+with it.) Check `longview report` / the ledger after a full run; a missing
+deliverable now always has a ledger entry saying why.
+
 - **code** — junctions the repo into `<workspace>/src/` and runs `benny enrich`
   (Tree-Sitter scan → code graph → `CORRELATES_WITH` links to the knowledge
   concepts). The dual graph is what lets later phases cross-reference decisions
@@ -72,6 +78,26 @@ loop counts, or to disable phases — no code changes.
   `data_out/opus/THE-AI-VAMPIRE.md`; partial assemblies are valid previews.
 - **pdf** — the assembled book → print-styled HTML → PDF via headless
   Edge/Chrome: `data_out/opus/THE-AI-VAMPIRE.pdf`.
+
+## Book on demand (decoupled from ingestion)
+
+The book does **not** need the model/ingest phase: the opus phase reads
+THEMES.md + dossiers from `data_out/` and pulls evidence by retrieval from the
+vectors and graph that already exist. Once a corpus is in place, regenerate the
+book (and nothing else) with:
+
+```powershell
+node scripts/longview/longview.mjs reduce --only dossiers,themes,report   # refresh the foundation (~30-40 min)
+node scripts/longview/longview.mjs opus                                   # ~100 sections, resume-safe per section
+node scripts/longview/longview.mjs pdf                                    # THE-AI-VAMPIRE.pdf via headless Edge
+```
+
+Skip the first command if the foundation is current. Operational rule: **never
+run a deep-synthesis ingest concurrently with reduce/opus** — at ~30k concepts
+one ingest batch pays a multi-hour clustering pass that wedges Lemonade, and a
+wedged model answers the reduce calls with empty bodies (seen live as 0-byte
+dossiers; since v1.10.1 those are retried and ledgered `ok:false` instead of
+being written over good files).
 
 ## Test procedure (small slice first, then the whole)
 
@@ -121,3 +147,7 @@ loop counts, or to disable phases — no code changes.
 | Wrong workspace / files "missing" | Home divergence — the runner resolves the runtime's home via `home_resolver.js`; check the tray Home submenu or `/api/home`. |
 | Antigravity sessions missing | memo-ray sync stale — the runner triggers it; check memo-ray server or run its parsers. `antigravity-backup/brain` needs a one-line addition to memo-ray's config to be included. |
 | Quality ceiling | Raise Lemonade FLM `ctx_size` to 16384+, then `evidence_budget_chars`/`reduce_input_chars` in the manifest. |
+| 0-byte dossiers / empty deliverables | A wedged model (usually a concurrent deep-synthesis ingest) answers 200 with an empty body. v1.10.1: reduce retries once, never overwrites a real file with nothing, ledgers `ok:false`. Restart Lemonade, rerun `reduce --only …`. |
+| Full run finished but no book/PDF | Pre-v1.10.1 an opus outline parse failure was fatal to the whole run. Now it's a `phase_error` ledger entry; rerun `--phase opus` then `--phase pdf` (both resume-safe). |
+| Documents tab: "Knowledge graph load failed: Maximum call stack size exceeded" | Post-synthesis graphs (~30k concepts) blew the widget's fallback renderer in v1.10.0. Fixed in v1.10.1 — the fallback caps the view at 400 nodes (all Sources + most-connected concepts). |
+| Two dossiers for the same project / one overwrites the other | Case-variant project names ("benny"/"Benny") collide on Windows' case-insensitive fs. v1.10.1 merges them under the first-seen spelling. |
