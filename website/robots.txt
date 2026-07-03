@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://binary16labs.github.io/prime-silo/sitemap.xml
