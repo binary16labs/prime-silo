@@ -760,7 +760,14 @@ async function runCode() {
   const r = spawnSync(
     "python",
     ["benny_cli.py", "enrich", "--workspace", config.WORKSPACE, "--src", "src/prime-silo", "--run"],
-    { cwd: path.join(projectRoot, "runtime"), encoding: "utf8", timeout: 3600000 }
+    {
+      cwd: path.join(projectRoot, "runtime"),
+      encoding: "utf8",
+      timeout: 3600000,
+      // The enrich CLI prints progress glyphs (braille spinners) that crash
+      // Python's cp1252 console encoder on Windows — force UTF-8 stdio.
+      env: { ...process.env, PYTHONIOENCODING: "utf-8", PYTHONUTF8: "1" }
+    }
   );
   const ok = r.status === 0;
   const tail = ((r.stdout || "") + (r.stderr || ""))
@@ -799,32 +806,42 @@ async function runWeave({ loops = null, questionsPerLoop = null } = {}) {
     const concepts = await graphCatalog(25);
     writeStatus({ phase: "weave", weave_loop: loop, weave_loops_total: nLoops });
     console.log(`[weave] loop ${loop}/${nLoops}: generating ${nQuestions} discovery questions…`);
-    const started = Date.now();
-    const res = await chat({
-      system: prompt("discovery_questions"),
-      user: [
-        `Generate exactly ${nQuestions} questions.`,
-        `## Current themes\n${themes.slice(0, 4000)}`,
-        concepts.length ? `## Top graph concepts\n${concepts.join(", ")}` : "",
-        existingNotes.length
-          ? `## Notes already written\n${existingNotes.join("\n").slice(0, 1500)}`
-          : ""
-      ]
-        .filter(Boolean)
-        .join("\n\n"),
-      maxTokens: 900,
-      json: true,
-      temperature: 0.6
-    });
-    const qs = lastBalancedJson(res.content)?.questions || [];
-    appendLedger({
-      phase: "weave",
-      artifact: `loop${loop}:questions`,
-      ms: Date.now() - started,
-      count: qs.length
-    });
+    // Two attempts — local JSON mode sometimes wraps in prose or truncates.
+    let qs = [];
+    for (let attempt = 0; attempt < 2 && qs.length === 0; attempt++) {
+      const started = Date.now();
+      const res = await chat({
+        system: prompt("discovery_questions"),
+        user: [
+          `Generate exactly ${nQuestions} questions.`,
+          `## Current themes\n${themes.slice(0, 4000)}`,
+          concepts.length ? `## Top graph concepts\n${concepts.join(", ")}` : "",
+          existingNotes.length
+            ? `## Notes already written\n${existingNotes.join("\n").slice(0, 1500)}`
+            : "",
+          attempt > 0 ? "Your previous answer was not valid JSON. Return ONLY the JSON object." : ""
+        ]
+          .filter(Boolean)
+          .join("\n\n"),
+        maxTokens: 900,
+        json: true,
+        temperature: attempt === 0 ? 0.6 : 0.3
+      });
+      qs = lastBalancedJson(res.content)?.questions || [];
+      appendLedger({
+        phase: "weave",
+        artifact: `loop${loop}:questions`,
+        ms: Date.now() - started,
+        attempt,
+        count: qs.length
+      });
+      if (!qs.length)
+        console.log(
+          `[weave] loop ${loop} attempt ${attempt + 1}: no questions parsed — head: ${res.content.slice(0, 100).replace(/\s+/g, " ")}`
+        );
+    }
     if (!qs.length) {
-      console.log(`[weave] loop ${loop}: no questions parsed — stopping weave`);
+      console.log(`[weave] loop ${loop}: questions failed twice — stopping weave`);
       break;
     }
 

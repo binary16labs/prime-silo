@@ -53,19 +53,40 @@ function foundationDigest() {
   return parts.join("\n\n");
 }
 
-async function jsonCall(name, system, user, maxTokens) {
-  const started = Date.now();
-  const res = await chat({ system, user, maxTokens, json: true, temperature: 0.5 });
-  const parsed = lastBalancedJson(res.content);
-  appendLedger({
-    phase: "opus",
-    artifact: name,
-    ms: Date.now() - started,
-    prompt_tokens: res.prompt_tokens,
-    completion_tokens: res.completion_tokens,
-    ok: Boolean(parsed)
-  });
-  return parsed;
+async function jsonCall(name, system, user, maxTokens, requiredKey = null) {
+  // Two attempts: local JSON mode still sometimes truncates or wraps in prose
+  // (seen live: the outline call parsed to an inner object, losing .parts).
+  // The retry quotes the failure back; validity means the required key exists.
+  let lastHead = "";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const started = Date.now();
+    const feedback =
+      attempt > 0
+        ? `\n\nYour previous answer was not valid (${lastHead ? `it began: ${lastHead}` : "empty"}). Return ONLY the complete JSON object, nothing else, and keep it compact.`
+        : "";
+    const res = await chat({
+      system,
+      user: user + feedback,
+      maxTokens,
+      json: true,
+      temperature: attempt === 0 ? 0.5 : 0.3
+    });
+    const parsed = lastBalancedJson(res.content);
+    const valid = Boolean(parsed) && (!requiredKey || parsed[requiredKey] != null);
+    appendLedger({
+      phase: "opus",
+      artifact: name,
+      ms: Date.now() - started,
+      prompt_tokens: res.prompt_tokens,
+      completion_tokens: res.completion_tokens,
+      attempt,
+      ok: valid
+    });
+    if (valid) return parsed;
+    lastHead = res.content.slice(0, 120).replace(/\s+/g, " ");
+    console.log(`[opus] ${name} attempt ${attempt + 1} invalid — head: ${lastHead}`);
+  }
+  return null;
 }
 
 async function buildOutline(interrupted) {
@@ -81,7 +102,13 @@ async function buildOutline(interrupted) {
     // and truncates into unparseable JSON (seen live). Hierarchy all the way:
     // parts → chapters-per-part → sections-per-chapter.
     console.log("[opus] outline: parts…");
-    outline = await jsonCall("outline", prompt("vampire_outline"), foundationDigest(), 900);
+    outline = await jsonCall(
+      "outline",
+      prompt("vampire_outline"),
+      foundationDigest(),
+      1200,
+      "parts"
+    );
     if (!outline?.parts?.length) throw new Error("outline did not parse — rerun the opus phase");
     fs.writeFileSync(outlinePath, JSON.stringify(outline, null, 2));
   }
@@ -105,7 +132,8 @@ async function buildOutline(interrupted) {
         `## Chapter numbering starts at ${nextChapter}`,
         `## Evidence available\n${foundationDigest().slice(0, 2500)}`
       ].join("\n\n"),
-      1100
+      1300,
+      "chapters"
     );
     if (spec?.chapters?.length) {
       part.chapters = spec.chapters.map((c, i) => ({ ...c, n: nextChapter + i }));
@@ -131,7 +159,8 @@ async function buildOutline(interrupted) {
           `## Chapter (write sections for THIS one)\n${JSON.stringify({ part: part.n, chapter: ch.n, title: ch.title, brief: ch.brief, projects: ch.projects, motifs: ch.motifs })}`,
           `## Evidence available\n${foundationDigest().slice(0, 3000)}`
         ].join("\n\n"),
-        1400
+        1400,
+        "sections"
       );
       if (spec?.sections?.length) {
         ch.sections = spec.sections;
