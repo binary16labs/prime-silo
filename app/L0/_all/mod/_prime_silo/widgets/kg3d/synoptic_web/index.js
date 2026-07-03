@@ -324,6 +324,12 @@ export function createSynopticWebWidget(host, initialProps, options = {}) {
   // graph itself held 900+ concepts — the canvas said "no concepts" over a
   // perfectly good graph. Layers are derived from connectivity (sources on
   // top, hubs high, leaves low) since raw nodes carry no aot_layer.
+  // Cap the fallback view: post-synthesis workspaces reach tens of thousands
+  // of concepts, which (a) blew the call stack via spread-max over the degree
+  // values ("Maximum call stack size exceeded" on v1.10.0) and (b) would hang
+  // the tab as SVG anyway. Keep every Source plus the most-connected concepts.
+  const FALLBACK_NODE_BUDGET = 400;
+
   async function loadGraphFullFallback() {
     const ws = encodeURIComponent(props.workspace || "default");
     const response = await client.runtimeFetch(`/graph/full?workspace=${ws}&show_all=true`);
@@ -331,17 +337,34 @@ export function createSynopticWebWidget(host, initialProps, options = {}) {
     const rawNodes = (raw && raw.nodes) || [];
     const rawEdges = (raw && raw.edges) || [];
     const degree = new Map();
+    let maxDeg = 1;
     for (const e of rawEdges) {
-      degree.set(e.source, (degree.get(e.source) || 0) + 1);
-      degree.set(e.target, (degree.get(e.target) || 0) + 1);
+      const ds = (degree.get(e.source) || 0) + 1;
+      const dt = (degree.get(e.target) || 0) + 1;
+      degree.set(e.source, ds);
+      degree.set(e.target, dt);
+      if (ds > maxDeg) maxDeg = ds;
+      if (dt > maxDeg) maxDeg = dt;
     }
-    const maxDeg = Math.max(1, ...degree.values());
     // Layering by connectivity semantics: a synthesized concept's baseline is
     // degree 2 (its SOURCED_FROM + one RELATES_TO), so ≥3 means it connects
     // beyond its own document — the cross-reference tier. Top 5% are hubs.
     const sortedDeg = [...degree.values()].sort((a, b) => b - a);
     const hub = Math.max(4, sortedDeg[Math.floor(sortedDeg.length * 0.05)] || 4);
-    const nodes = rawNodes.map((n) => {
+
+    const sources = [];
+    const concepts = [];
+    for (const n of rawNodes) {
+      if ((n.labels || []).includes("Source")) sources.push(n);
+      else concepts.push(n);
+    }
+    concepts.sort((a, b) => (degree.get(b.id) || 0) - (degree.get(a.id) || 0));
+    const kept = sources.concat(
+      concepts.slice(0, Math.max(0, FALLBACK_NODE_BUDGET - sources.length))
+    );
+    const keptIds = new Set(kept.map((n) => n.id));
+
+    const nodes = kept.map((n) => {
       const d = degree.get(n.id) || 0;
       const isSource = (n.labels || []).includes("Source");
       const layer = isSource ? 1 : d >= hub ? 2 : d >= 3 ? 3 : d > 0 ? 4 : 5;
@@ -354,7 +377,8 @@ export function createSynopticWebWidget(host, initialProps, options = {}) {
         metrics: { pagerank: (d / maxDeg) * 100 }
       };
     });
-    return { nodes, edges: rawEdges };
+    const edges = rawEdges.filter((e) => keptIds.has(e.source) && keptIds.has(e.target));
+    return { nodes, edges };
   }
 
   async function load() {

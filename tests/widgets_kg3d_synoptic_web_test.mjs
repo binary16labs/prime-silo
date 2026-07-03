@@ -27,6 +27,7 @@ async function main() {
   await testWidgetRendersFromInlineData();
   await testWidgetSurfacesError();
   await testWidgetEmptyOntology();
+  await testWidgetGraphFullFallbackBudget();
   await testWidgetUpdateReloadsOnWorkspaceChange();
   await testWidgetUpdateRepaintsOnFocusedLayer();
   await testWidgetCustomRendererReceivesLayout();
@@ -257,7 +258,9 @@ function createClientStub() {
 }
 
 async function settle() {
-  for (let i = 0; i < 5; i += 1) await Promise.resolve();
+  // Macrotask drain, not just microtasks — the /graph/full fallback adds a
+  // second fetch round-trip, and Response.text() can resolve across timers.
+  for (let i = 0; i < 4; i += 1) await new Promise((r) => setTimeout(r, 0));
 }
 
 const SAMPLE_ONTOLOGY = {
@@ -341,6 +344,45 @@ async function testWidgetEmptyOntology() {
   assert.equal(host.dataset.widgetState, "ready");
   assert.match(host.innerHTML, /No concepts in workspace/);
   assert.match(host.innerHTML, /<code>fresh<\/code>/);
+}
+
+async function testWidgetGraphFullFallbackBudget() {
+  // Regression for v1.10.0: a post-synthesis workspace (tens of thousands of
+  // concepts) reached the /graph/full fallback and died with "Maximum call
+  // stack size exceeded" (spread-max over the degree values). The fallback now
+  // caps the view at 400 nodes: every Source plus the most-connected concepts.
+  const nodes = [
+    { id: "s1", name: "doc-one.md", labels: ["Source"] },
+    { id: "s2", name: "doc-two.md", labels: ["Source"] }
+  ];
+  const edges = [];
+  for (let i = 0; i < 1000; i += 1) {
+    nodes.push({ id: `c${i}`, name: `Concept ${i}`, labels: ["Concept"] });
+    if (i > 0) edges.push({ source: `c${i - 1}`, target: `c${i}` });
+  }
+  // Make c0 an unmistakable hub so it must survive the cut.
+  for (let i = 500; i < 520; i += 1) edges.push({ source: "c0", target: `c${i}` });
+
+  const host = createFakeHost();
+  const client = createClientStub();
+  client.runtimeHandler = (path) =>
+    path.startsWith("/graph/full")
+      ? jsonResponse({ nodes, edges })
+      : jsonResponse({ nodes: [], edges: [] });
+
+  const handle = createSynopticWebWidget(host, { workspace: "big" }, { runtimeClient: client });
+  await settle();
+
+  assert.equal(host.dataset.widgetState, "ready");
+  const kept = Object.keys(handle.layout.positions);
+  assert.equal(kept.length, 400, "fallback must cap the rendered graph at 400 nodes");
+  assert.ok(handle.layout.positions.s1, "sources always survive the cut");
+  assert.ok(handle.layout.positions.s2, "sources always survive the cut");
+  assert.ok(handle.layout.positions.c0, "the highest-degree concept survives the cut");
+  // Edges to dropped nodes are filtered, not left dangling.
+  for (const e of handle.layout.edges) {
+    assert.ok(handle.layout.positions[e.source] && handle.layout.positions[e.target]);
+  }
 }
 
 async function testWidgetUpdateReloadsOnWorkspaceChange() {
