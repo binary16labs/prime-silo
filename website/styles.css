@@ -167,6 +167,12 @@ body.neuro-spacing li {
   }
 }
 
+@media (max-width: 1024px) {
+  .nav-links {
+    display: none;
+  }
+}
+
 .nav-links {
   display: flex;
   gap: 16px;
@@ -960,6 +966,51 @@ input:checked + .slider-round:before {
    ========================================================================== */
 @media (max-width: 768px) {
   .nav-links { display: none; } /* Simplify navbar on phone */
+  
+  .navbar {
+    padding: 10px 0;
+  }
+  
+  .nav-content {
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  
+  .brand {
+    justify-content: center;
+    width: 100%;
+    gap: 6px;
+    font-size: 1.1rem;
+    flex-wrap: wrap;
+  }
+  
+  .brand-logo {
+    height: 20px;
+    max-width: 24px;
+  }
+  
+  .brand-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 0.85rem;
+  }
+  
+  .nav-controls {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .nav-controls .btn {
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    gap: 4px;
+  }
+  
   .hero-title { font-size: 2.3rem; }
   
   /* Make all floating glass panels center-aligned on mobile */
