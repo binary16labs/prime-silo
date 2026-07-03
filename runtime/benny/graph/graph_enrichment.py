@@ -42,6 +42,10 @@ MERGE_NAME_JACCARD = 0.5
 SIMILARITY_COSINE = 0.82
 SIMILARITY_TOP_K = 16
 EMBED_DIM = 768
+# Community naming (stage 6): only name the biggest clusters — colours must stay
+# legible and each name is one LLM call.
+MIN_NAMED_COMMUNITY = 4
+MAX_NAMED_COMMUNITIES = 60
 
 # Free-text predicate → controlled relation class. Matched as case-insensitive
 # substrings against r.predicate; first hit wins, default "relates".
@@ -370,23 +374,98 @@ async def stage_correlation(workspace: str, threshold: float, dry_run: bool) -> 
 # ── Stage 6: recluster + categorise ──────────────────────────────────────────
 
 async def stage_recluster(workspace: str, dry_run: bool) -> Dict[str, Any]:
-    if dry_run:
-        return {"note": "would re-run LPA and set category from community"}
-    from .clustering_service import ClusteringService
+    """Label-propagation over the KNOWLEDGE subgraph only — document concepts +
+    sources + RELATES_TO/SOURCED_FROM edges — then name communities and set
+    `category` from the community name so the view colours by theme.
 
-    result = await ClusteringService.run_lpa_on_workspace(workspace)
-    # Derive a lightweight category from the (now cross-document) community name so
-    # the graph view can colour by theme.
+    Deliberately does NOT use ClusteringService.run_lpa_on_workspace, which
+    clusters every node in the workspace: on a synthesized graph that pulls in the
+    200k-node code graph and the LPA never finishes. Scoping to the ~2k knowledge
+    nodes (now cross-linked by the similarity stage) makes it complete in seconds
+    and keeps communities meaningful for the Documents view."""
+    from collections import Counter
+
+    fetch = """
+    MATCH (n:Concept {workspace: $ws})
+    WHERE SIZE([(n)-[:SOURCED_FROM]->(:Source) | 1]) > 0
+    OPTIONAL MATCH (n)-[:RELATES_TO|SOURCED_FROM]-(m {workspace: $ws})
+    WHERE m:Concept OR m:Source
+    RETURN id(n) AS id, n.name AS name, collect(DISTINCT id(m)) AS nbrs
+    """
+    with read_session() as session:
+        rows = [dict(r) for r in session.run(fetch, ws=workspace)]
+    if not rows:
+        return {"nodes": 0}
+
+    names = {r["id"]: r["name"] for r in rows}
+    adj = {r["id"]: [x for x in r["nbrs"] if x is not None] for r in rows}
+
+    # Label propagation: each node adopts the most common community among its
+    # neighbours until stable (or 6 iterations).
+    comm = {nid: nid for nid in adj}
+    for _ in range(6):
+        changes = 0
+        for nid, nbrs in adj.items():
+            if not nbrs:
+                continue
+            labels = [comm[x] for x in nbrs if x in comm]
+            if not labels:
+                continue
+            top = Counter(labels).most_common(1)[0][0]
+            if comm[nid] != top:
+                comm[nid] = top
+                changes += 1
+        if changes == 0:
+            break
+
+    groups: Dict[int, List[int]] = {}
+    for nid, c in comm.items():
+        groups.setdefault(c, []).append(nid)
+    # Only name the substantial communities, largest first, capped — 600+ tiny
+    # clusters aren't legible as colours and would be 600 LLM calls. The long tail
+    # keeps the neutral default colour.
+    namable = sorted(
+        (m for m in groups.values() if len(m) >= MIN_NAMED_COMMUNITY),
+        key=len,
+        reverse=True,
+    )[:MAX_NAMED_COMMUNITIES]
+
+    if dry_run:
+        return {
+            "nodes": len(adj),
+            "communities": len(groups),
+            "namable": len(namable),
+            "largest": [len(m) for m in namable[:8]],
+        }
+
     with write_session() as session:
         session.run(
-            """
-            MATCH (c:Concept {workspace: $ws})
-            WHERE c.community_name IS NOT NULL
-            SET c.category = c.community_name
-            """,
-            ws=workspace,
+            "UNWIND $data AS d MATCH (n) WHERE id(n) = d.id SET n.community_id = d.c",
+            data=[{"id": nid, "c": c} for nid, c in comm.items()],
         )
-    return {"clustering": result}
+
+    # Name the substantial communities and set category = community name (theme).
+    from ..synthesis.engine import name_community
+
+    labeled = 0
+    for members in namable:
+        member_names = [names[m] for m in members if names.get(m)][:50]
+        try:
+            info = await name_community(member_names, workspace=workspace)
+            cname = (info or {}).get("community_name") or f"Community {members[0]}"
+        except Exception as e:
+            logger.warning("Community naming failed (non-fatal): %s", e)
+            cname = f"Community {members[0]}"
+        with write_session() as session:
+            session.run(
+                "UNWIND $ids AS nid MATCH (n) WHERE id(n) = nid "
+                "SET n.community_name = $cn, n.category = $cn",
+                ids=members,
+                cn=cname,
+            )
+        labeled += 1
+
+    return {"nodes": len(adj), "communities": len(groups), "labeled": labeled}
 
 
 # ── orchestrator ─────────────────────────────────────────────────────────────
