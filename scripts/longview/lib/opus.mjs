@@ -8,7 +8,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { config, workspaceDir } from "./config.mjs";
-import { chat, lastBalancedJson } from "./llm.mjs";
+import { chat, lastBalancedJson, repairTruncatedJson } from "./llm.mjs";
 import { appendLedger, writeStatus } from "./ledger.mjs";
 import { evidenceFor } from "./retrieve.mjs";
 
@@ -74,10 +74,14 @@ async function jsonCall(name, system, user, maxTokens, requiredKey = null) {
       json: true,
       temperature: attempt === 0 ? 0.5 : 0.3
     });
-    const parsed = lastBalancedJson(res.content);
-    const valid =
-      Boolean(parsed) &&
-      (!requiredKey || (Array.isArray(parsed[requiredKey]) && parsed[requiredKey].length > 0));
+    // The model stops early mid-object regardless of budget (~300 tokens,
+    // ledgered live) — then lastBalancedJson finds an INNER object with no
+    // required key. Fall back to truncation repair before declaring invalid.
+    const hasKey = (o) =>
+      Boolean(o) && (!requiredKey || (Array.isArray(o[requiredKey]) && o[requiredKey].length > 0));
+    let parsed = lastBalancedJson(res.content);
+    if (!hasKey(parsed)) parsed = repairTruncatedJson(res.content);
+    const valid = hasKey(parsed);
     appendLedger({
       phase: "opus",
       artifact: name,

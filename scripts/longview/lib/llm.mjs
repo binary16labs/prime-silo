@@ -39,6 +39,48 @@ export async function chat({ system, user, maxTokens, json = false, temperature 
   };
 }
 
+// Best-effort repair of JSON cut off by an early stop (seen live: qwen3.5 in
+// JSON mode ends generation mid-object at ~300 tokens regardless of budget).
+// Cut back to the last point where a value had just completed (a '}' or ']'),
+// verify string/nesting state up to the cut, close the open containers, parse.
+// Tried from the longest cut backwards so we keep as much as possible.
+export function repairTruncatedJson(text) {
+  const start = text.indexOf("{");
+  if (start < 0) return null;
+  const body = text.slice(start);
+  const cuts = [];
+  for (let i = 0; i < body.length; i++) if (body[i] === "}" || body[i] === "]") cuts.push(i);
+  for (let c = cuts.length - 1; c >= 0; c--) {
+    const slice = body.slice(0, cuts[c] + 1);
+    const stack = [];
+    let inString = false,
+      escaped = false,
+      broken = false;
+    for (const ch of slice) {
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (ch === "\\") escaped = true;
+        else if (ch === '"') inString = false;
+      } else if (ch === '"') inString = true;
+      else if (ch === "{") stack.push("}");
+      else if (ch === "[") stack.push("]");
+      else if (ch === "}" || ch === "]") {
+        if (stack.pop() !== ch) {
+          broken = true;
+          break;
+        }
+      }
+    }
+    if (broken || inString) continue;
+    try {
+      return JSON.parse(slice + stack.reverse().join(""));
+    } catch {
+      /* try an earlier cut */
+    }
+  }
+  return null;
+}
+
 // Parse the LAST balanced JSON object in a string (survives leading prose /
 // <think> blocks — the run_judge trick from ADR-004 §5).
 export function lastBalancedJson(text) {

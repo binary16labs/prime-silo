@@ -29,7 +29,7 @@ import { mdToHtml, htmlToPdf } from "./lib/book_pdf.mjs";
 import { config, ensureWorkspace, workspaceDir, stateDir, projectRoot } from "./lib/config.mjs";
 import { syncStore, listSessions } from "./lib/store.mjs";
 import { buildEvidencePack } from "./lib/evidence.mjs";
-import { chat, lastBalancedJson } from "./lib/llm.mjs";
+import { chat, lastBalancedJson, repairTruncatedJson } from "./lib/llm.mjs";
 import { validateCard } from "./lib/gate.mjs";
 import { appendLedger, readLedger, mapVerdicts, writeStatus, readStatus } from "./lib/ledger.mjs";
 
@@ -698,7 +698,11 @@ async function runReduce({ onlyOverride = null, skipBookOverride = null } = {}) 
       `## Themes\n${themes.slice(0, 6000)}\n\n## Dossier summaries\n${dossierSummaries.slice(0, 14000)}\n\n## Timeline\n${rollup("timeline")}`,
       outDir("book", "outline.json")
     );
-    const outline = lastBalancedJson(outlineRaw);
+    let outline = lastBalancedJson(outlineRaw);
+    // Early-stop truncation loses the closing braces and lastBalancedJson
+    // then returns an inner object — salvage the complete chapters instead
+    // (yesterday's outline.json on disk ended exactly this way).
+    if (!outline?.chapters?.length) outline = repairTruncatedJson(outlineRaw);
     if (outline?.chapters?.length) {
       const parts = [`# ${outline.title}\n\n_${outline.subtitle || ""}_\n\n${outline.arc || ""}\n`];
       for (const ch of outline.chapters) {
