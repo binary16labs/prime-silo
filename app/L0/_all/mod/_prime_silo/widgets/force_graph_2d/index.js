@@ -67,6 +67,9 @@ const DEFAULT_NODE_VAL = 6;
 // clusters up so names are readable. Overridable via options.
 const DEFAULT_CHARGE_STRENGTH = -180;
 const DEFAULT_LINK_DISTANCE = 60;
+// Node count above which the renderer switches to the lite profile (see
+// createForceGraph2DRenderer options).
+const LITE_NODE_THRESHOLD = 2000;
 
 const HTML_ESCAPES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 function escapeHtml(text) {
@@ -226,6 +229,14 @@ export function createForceGraph2DRenderer(options = {}) {
     typeof options.chargeStrength === "number" ? options.chargeStrength : DEFAULT_CHARGE_STRENGTH;
   const linkDistance =
     typeof options.linkDistance === "number" ? options.linkDistance : DEFAULT_LINK_DISTANCE;
+  // Above this many nodes the renderer drops into a "lite" profile — no trace
+  // particles, labels only when zoomed in or highlighted, node glow off, and the
+  // simulation settles fast and stays put. This is the less-intensive fallback
+  // that keeps the "Everything" (orphan dust) view usable without windowing.
+  // `options.lite: true` forces it on; `false` forces it off.
+  const liteThreshold =
+    typeof options.liteThreshold === "number" ? options.liteThreshold : LITE_NODE_THRESHOLD;
+  const forceLite = typeof options.lite === "boolean" ? options.lite : null;
 
   function mount(host, layout, props) {
     if (!host || typeof host.querySelector !== "function") {
@@ -247,6 +258,7 @@ export function createForceGraph2DRenderer(options = {}) {
       lastH: 0,
       hasFitted: false,
       refitTimer: null,
+      lite: false,
       pending: { layout, props }
     };
 
@@ -261,7 +273,9 @@ export function createForceGraph2DRenderer(options = {}) {
       const size = (node.val || DEFAULT_NODE_VAL) * (hot ? 2.2 : 1);
 
       ctx.save();
-      if (node.type === "Session" || node.type === "Artifact" || hot) {
+      // Node glow is a per-frame cost; in lite mode keep it only for highlighted
+      // nodes so a huge graph doesn't repaint thousands of shadow blurs.
+      if (hot || (!state.lite && (node.type === "Session" || node.type === "Artifact"))) {
         ctx.shadowColor = hot ? HIGHLIGHT_COLOR : color;
         ctx.shadowBlur = hot ? 36 : 12;
       }
@@ -307,7 +321,10 @@ export function createForceGraph2DRenderer(options = {}) {
       // Show labels sooner (was zoom > 1.2 — too late to read a docs/code graph
       // at a normal fit) and let a bit more text through so names aren't clipped
       // to nothing. Highlighted nodes always label.
-      if (globalScale > 0.55 || hot) {
+      // In lite mode only label highlighted nodes or when zoomed right in — drawing
+      // thousands of text runs every frame is the dominant cost on a large graph.
+      const labelThreshold = state.lite ? 2.2 : 0.55;
+      if (globalScale > labelThreshold || hot) {
         const fontSize = Math.max(11 / globalScale, 4.5);
         ctx.font = hot
           ? `bold ${fontSize + 1}px Inter, system-ui`
@@ -387,6 +404,16 @@ export function createForceGraph2DRenderer(options = {}) {
       const visibleLinks = data.links.filter(
         (l) => visibleIds.has(String(l.source)) && visibleIds.has(String(l.target))
       );
+      // Decide the render profile from the visible node count (or an explicit
+      // override). In lite mode, let the sim settle fast and stop so a large graph
+      // isn't perpetually reheating the CPU.
+      state.lite = forceLite === null ? visibleNodes.length > liteThreshold : forceLite;
+      if (typeof state.instance.warmupTicks === "function") {
+        state.instance.warmupTicks(state.lite ? 8 : 50);
+      }
+      if (typeof state.instance.cooldownTime === "function") {
+        state.instance.cooldownTime(state.lite ? 1200 : 3000);
+      }
       state.instance.graphData({ nodes: visibleNodes, links: visibleLinks });
     }
 
@@ -530,6 +557,7 @@ export function createForceGraph2DRenderer(options = {}) {
             return s || t ? 3 : 1;
           })
           .linkDirectionalParticles((l) => {
+            if (state.lite) return 0; // trace particles are per-frame animation cost
             const { s, t } = linkHot(l);
             return s || t ? 4 : 0;
           })

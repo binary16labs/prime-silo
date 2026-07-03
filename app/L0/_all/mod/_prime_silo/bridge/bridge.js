@@ -387,6 +387,12 @@ export function createBridgePage(options = {}) {
     // "pinned" freezes nodes at their layered layout positions.
     docsPhysics: "fluid",
     docsFocusLayer: 0, // 0 = all AoT layers, 1..5 = focus a single layer
+    // Knowledge-graph view mode:
+    //   "connected" — all documents + every connected concept (orphans hidden)
+    //   "all"       — the above + orphan concepts (isolated dust; lite renderer)
+    //   "macro"     — document super-nodes; click one to expand its concepts
+    docsGraphMode: "connected",
+    docsSourceId: null, // when set (macro drill-down), the expanded document
 
     // code
     code3d: false,
@@ -887,7 +893,9 @@ export function createBridgePage(options = {}) {
           {
             workspace: this.workspace,
             focusedLayer: this.docsFocusLayer || undefined,
-            onSelect: (id) => this.onNodeSelect(id)
+            mode: this.docsGraphMode,
+            sourceId: this.docsSourceId || undefined,
+            onSelect: (id) => this.onDocsNodeSelect(id)
           },
           {
             renderer: this.docs3d
@@ -896,6 +904,33 @@ export function createBridgePage(options = {}) {
           }
         )
       );
+    },
+
+    // Switch the knowledge-graph view. Leaving macro clears any drill-down so we
+    // don't stay pinned to a single expanded document.
+    setDocsGraphMode(mode) {
+      if (this.docsGraphMode === mode && !this.docsSourceId) return;
+      this.docsGraphMode = mode;
+      this.docsSourceId = null;
+      this.mountKnowledgeGraph();
+    },
+
+    // In macro mode a click on a document super-node drills into that document's
+    // concepts; elsewhere a click is a normal node selection.
+    onDocsNodeSelect(id) {
+      if (this.docsGraphMode === "macro" && !this.docsSourceId) {
+        this.docsSourceId = id;
+        this.mountKnowledgeGraph();
+        return;
+      }
+      this.onNodeSelect(id);
+    },
+
+    // Back out of a macro drill-down to the 61-document overview.
+    clearDocsDrilldown() {
+      if (!this.docsSourceId) return;
+      this.docsSourceId = null;
+      this.mountKnowledgeGraph();
     },
 
     toggleDocs3d() {

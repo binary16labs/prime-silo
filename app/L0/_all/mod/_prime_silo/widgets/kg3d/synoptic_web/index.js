@@ -317,32 +317,40 @@ export function createSynopticWebWidget(host, initialProps, options = {}) {
     host.innerHTML = renderSvg(layout, props);
   }
 
-  // Fallback when /kg3d/ontology comes back empty: read the raw dual graph
-  // from /graph/full (which works on every runtime version) and adapt it to
-  // the widget's node shape. Seen live: a runtime whose ontology loader failed
-  // and whose demo fixture was removed returned {nodes:[], edges:[]} while the
-  // graph itself held 900+ concepts — the canvas said "no concepts" over a
-  // perfectly good graph. Layers are derived from connectivity (sources on
-  // top, hubs high, leaves low) since raw nodes carry no aot_layer.
-  // Cap the fallback view: post-synthesis workspaces reach tens of thousands
-  // of concepts, which (a) blew the call stack via spread-max over the degree
-  // values ("Maximum call stack size exceeded" on v1.10.0) and (b) would hang
-  // the tab as SVG anyway. Keep every Source plus the most-connected concepts.
-  const FALLBACK_NODE_BUDGET = 400;
+  // Lean knowledge-graph fallback. Sourced from `/graph/knowledge` — a code-free,
+  // metrics-free endpoint that (unlike `/graph/full?show_all=true`, which drags in
+  // the entire 200k-node code graph) returns only documents + concepts and the
+  // knowledge edges between them. Adapted here to the widget's node shape. Layers
+  // are derived from connectivity (sources on top, hubs high, leaves low) since raw
+  // nodes carry no aot_layer.
+  //
+  // View modes (props.mode):
+  //   • "connected" (default) — all documents + every connected concept. Small by
+  //     nature (longview: ~a few thousand), so nothing is windowed — you see it all.
+  //   • "all"                 — connected set + orphan concepts (isolated dust).
+  //   • "macro"               — Source super-nodes sized by concept_count.
+  //
+  // Only "all" can grow unbounded, so a ceiling bites there alone; connected/macro
+  // are never truncated.
+  const ORPHAN_NODE_CEILING = 20000;
 
-  async function loadGraphFullFallback() {
+  async function loadKnowledgeGraph() {
     const ws = encodeURIComponent(props.workspace || "default");
-    const response = await client.runtimeFetch(`/graph/full?workspace=${ws}&show_all=true`);
+    const mode = props.mode || "connected";
+    let path = `/graph/knowledge?workspace=${ws}&mode=${encodeURIComponent(mode)}`;
+    if (props.sourceId) path += `&source_id=${encodeURIComponent(props.sourceId)}`;
+    const response = await client.runtimeFetch(path);
     const raw = await client.readRuntimeJson(response);
     const rawNodes = (raw && raw.nodes) || [];
     const rawEdges = (raw && raw.edges) || [];
+
     const degree = new Map();
     let maxDeg = 1;
     for (const e of rawEdges) {
-      const ds = (degree.get(e.source) || 0) + 1;
-      const dt = (degree.get(e.target) || 0) + 1;
-      degree.set(e.source, ds);
-      degree.set(e.target, dt);
+      const ds = (degree.get(String(e.source)) || 0) + 1;
+      const dt = (degree.get(String(e.target)) || 0) + 1;
+      degree.set(String(e.source), ds);
+      degree.set(String(e.target), dt);
       if (ds > maxDeg) maxDeg = ds;
       if (dt > maxDeg) maxDeg = dt;
     }
@@ -352,32 +360,51 @@ export function createSynopticWebWidget(host, initialProps, options = {}) {
     const sortedDeg = [...degree.values()].sort((a, b) => b - a);
     const hub = Math.max(4, sortedDeg[Math.floor(sortedDeg.length * 0.05)] || 4);
 
-    const sources = [];
-    const concepts = [];
-    for (const n of rawNodes) {
-      if ((n.labels || []).includes("Source")) sources.push(n);
-      else concepts.push(n);
+    // Only mode="all" can exceed the ceiling; keep every Source + the most-
+    // connected concepts up to the budget. connected/macro pass through whole.
+    let keptNodes = rawNodes;
+    if (rawNodes.length > ORPHAN_NODE_CEILING) {
+      const sources = [];
+      const rest = [];
+      for (const n of rawNodes) {
+        if ((n.labels || []).includes("Source")) sources.push(n);
+        else rest.push(n);
+      }
+      rest.sort((a, b) => (degree.get(String(b.id)) || 0) - (degree.get(String(a.id)) || 0));
+      keptNodes = sources.concat(
+        rest.slice(0, Math.max(0, ORPHAN_NODE_CEILING - sources.length))
+      );
     }
-    concepts.sort((a, b) => (degree.get(b.id) || 0) - (degree.get(a.id) || 0));
-    const kept = sources.concat(
-      concepts.slice(0, Math.max(0, FALLBACK_NODE_BUDGET - sources.length))
-    );
-    const keptIds = new Set(kept.map((n) => n.id));
+    const keptIds = new Set(keptNodes.map((n) => String(n.id)));
 
-    const nodes = kept.map((n) => {
-      const d = degree.get(n.id) || 0;
+    // Size macro super-nodes by concept_count; everything else by degree.
+    let maxConcepts = 1;
+    for (const n of keptNodes) {
+      if (typeof n.concept_count === "number" && n.concept_count > maxConcepts) {
+        maxConcepts = n.concept_count;
+      }
+    }
+
+    const nodes = keptNodes.map((n) => {
+      const d = degree.get(String(n.id)) || 0;
       const isSource = (n.labels || []).includes("Source");
       const layer = isSource ? 1 : d >= hub ? 2 : d >= 3 ? 3 : d > 0 ? 4 : 5;
+      const pagerank =
+        typeof n.concept_count === "number"
+          ? (n.concept_count / maxConcepts) * 100
+          : (d / maxDeg) * 100;
       return {
         id: String(n.id),
         display_name: n.name || String(n.id),
         canonical_name: n.name || String(n.id),
         category: isSource ? "documentation" : "concept",
         aot_layer: layer,
-        metrics: { pagerank: (d / maxDeg) * 100 }
+        metrics: { pagerank }
       };
     });
-    const edges = rawEdges.filter((e) => keptIds.has(e.source) && keptIds.has(e.target));
+    const edges = rawEdges.filter(
+      (e) => keptIds.has(String(e.source)) && keptIds.has(String(e.target))
+    );
     return { nodes, edges };
   }
 
@@ -385,13 +412,26 @@ export function createSynopticWebWidget(host, initialProps, options = {}) {
     renderLoading(host, props);
     try {
       let payload;
+      const mode = props.mode || "connected";
       if (props.data && (props.data.nodes || props.data.edges)) {
         payload = { nodes: props.data.nodes || [], edges: props.data.edges || [] };
+      } else if (mode !== "connected" || props.sourceId) {
+        // Non-default views come straight from the lean knowledge endpoint — the
+        // ontology fast-path only serves the default curated ontology shape.
+        payload = await loadKnowledgeGraph();
       } else {
-        const response = await client.runtimeFetch(buildOntologyPath(props));
-        payload = await client.readRuntimeJson(response);
+        // Fast path: /kg3d/ontology (curated, small workspaces). Fall back to the
+        // lean knowledge endpoint when ontology is empty OR errors — a synthesized
+        // workspace 500s the metrics compute, and must still render rather than
+        // showing "load failed" over a perfectly good graph.
+        try {
+          const response = await client.runtimeFetch(buildOntologyPath(props));
+          payload = await client.readRuntimeJson(response);
+        } catch (_ontologyErr) {
+          payload = null;
+        }
         if (!payload || !Array.isArray(payload.nodes) || payload.nodes.length === 0) {
-          payload = await loadGraphFullFallback();
+          payload = await loadKnowledgeGraph();
         }
       }
       if (aborted) return;
@@ -413,7 +453,10 @@ export function createSynopticWebWidget(host, initialProps, options = {}) {
   function update(nextProps) {
     const merged = { ...props, ...nextProps };
     const fetchKeyChanged =
-      merged.workspace !== props.workspace || (merged.data || null) !== (props.data || null);
+      merged.workspace !== props.workspace ||
+      (merged.data || null) !== (props.data || null) ||
+      (merged.mode || "connected") !== (props.mode || "connected") ||
+      (merged.sourceId || null) !== (props.sourceId || null);
     props = merged;
     if (fetchKeyChanged) {
       load();

@@ -618,6 +618,44 @@
                             ></button>
                           </template>
                         </div>
+                        <div class="ps-bridge__filters" aria-label="Knowledge graph view mode">
+                          <button
+                            type="button"
+                            class="ps-bridge__filter"
+                            :class="{ 'ps-bridge__filter--on': docsGraphMode === 'connected' }"
+                            @click="setDocsGraphMode('connected')"
+                            title="All documents + every connected concept"
+                          >
+                            Connected
+                          </button>
+                          <button
+                            type="button"
+                            class="ps-bridge__filter"
+                            :class="{ 'ps-bridge__filter--on': docsGraphMode === 'all' }"
+                            @click="setDocsGraphMode('all')"
+                            title="Everything, including orphan concepts (lite render)"
+                          >
+                            Everything
+                          </button>
+                          <button
+                            type="button"
+                            class="ps-bridge__filter"
+                            :class="{ 'ps-bridge__filter--on': docsGraphMode === 'macro' }"
+                            @click="setDocsGraphMode('macro')"
+                            title="Documents overview — click a document to expand"
+                          >
+                            Documents
+                          </button>
+                          <button
+                            type="button"
+                            class="ps-bridge__filter"
+                            x-show="docsSourceId"
+                            @click="clearDocsDrilldown()"
+                            title="Back to the documents overview"
+                          >
+                            ← Back
+                          </button>
+                        </div>
                       </div>
                       <div class="ps-bridge__graph-head-right">
                         <button

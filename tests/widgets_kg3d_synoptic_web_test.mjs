@@ -27,7 +27,9 @@ async function main() {
   await testWidgetRendersFromInlineData();
   await testWidgetSurfacesError();
   await testWidgetEmptyOntology();
-  await testWidgetGraphFullFallbackBudget();
+  await testWidgetKnowledgeFallbackOnOntologyError();
+  await testWidgetKnowledgeConnectedRendersEverything();
+  await testWidgetModeChangeRefetches();
   await testWidgetUpdateReloadsOnWorkspaceChange();
   await testWidgetUpdateRepaintsOnFocusedLayer();
   await testWidgetCustomRendererReceivesLayout();
@@ -346,43 +348,102 @@ async function testWidgetEmptyOntology() {
   assert.match(host.innerHTML, /<code>fresh<\/code>/);
 }
 
-async function testWidgetGraphFullFallbackBudget() {
-  // Regression for v1.10.0: a post-synthesis workspace (tens of thousands of
-  // concepts) reached the /graph/full fallback and died with "Maximum call
-  // stack size exceeded" (spread-max over the degree values). The fallback now
-  // caps the view at 400 nodes: every Source plus the most-connected concepts.
-  const nodes = [
-    { id: "s1", name: "doc-one.md", labels: ["Source"] },
-    { id: "s2", name: "doc-two.md", labels: ["Source"] }
-  ];
-  const edges = [];
-  for (let i = 0; i < 1000; i += 1) {
-    nodes.push({ id: `c${i}`, name: `Concept ${i}`, labels: ["Concept"] });
-    if (i > 0) edges.push({ source: `c${i - 1}`, target: `c${i}` });
-  }
-  // Make c0 an unmistakable hub so it must survive the cut.
-  for (let i = 500; i < 520; i += 1) edges.push({ source: "c0", target: `c${i}` });
+async function testWidgetKnowledgeFallbackOnOntologyError() {
+  // Core regression: /kg3d/ontology 500s on a synthesized workspace (metrics
+  // compute over tens of thousands of nodes). The widget must fall back to the
+  // lean /graph/knowledge endpoint instead of surfacing "load failed" over a
+  // perfectly good graph.
+  const host = createFakeHost();
+  const client = createClientStub();
+  const paths = [];
+  client.runtimeHandler = (path) => {
+    paths.push(path);
+    if (path.startsWith("/kg3d/ontology")) return makeRuntimeError(500, "metrics timeout");
+    if (path.startsWith("/graph/knowledge")) {
+      return jsonResponse({
+        nodes: [
+          { id: "s1", name: "doc.md", labels: ["Source"] },
+          { id: "c1", name: "Concept One", labels: ["Concept"] }
+        ],
+        edges: [{ source: "c1", target: "s1", type: "SOURCED_FROM" }]
+      });
+    }
+    return jsonResponse({ nodes: [], edges: [] });
+  };
 
+  const handle = createSynopticWebWidget(host, { workspace: "longview" }, { runtimeClient: client });
+  await settle();
+
+  assert.equal(host.dataset.widgetState, "ready");
+  assert.ok(
+    paths.some((p) => p.startsWith("/kg3d/ontology")),
+    "tries the ontology fast-path first"
+  );
+  assert.ok(
+    paths.some((p) => p.startsWith("/graph/knowledge") && /mode=connected/.test(p)),
+    "falls back to the lean knowledge endpoint on ontology error"
+  );
+  assert.ok(handle.layout.positions.s1);
+  assert.ok(handle.layout.positions.c1);
+}
+
+async function testWidgetKnowledgeConnectedRendersEverything() {
+  // No windowing: the connected view renders every node the endpoint returns.
+  // The old 400-node cap is gone — the connected set is small by construction,
+  // so the operator sees the whole graph.
+  const nodes = [{ id: "s1", name: "doc.md", labels: ["Source"] }];
+  const edges = [];
+  for (let i = 0; i < 1200; i += 1) {
+    nodes.push({ id: `c${i}`, name: `Concept ${i}`, labels: ["Concept"] });
+    edges.push({ source: `c${i}`, target: "s1", type: "SOURCED_FROM" });
+  }
   const host = createFakeHost();
   const client = createClientStub();
   client.runtimeHandler = (path) =>
-    path.startsWith("/graph/full")
+    path.startsWith("/graph/knowledge")
       ? jsonResponse({ nodes, edges })
-      : jsonResponse({ nodes: [], edges: [] });
+      : makeRuntimeError(500, "no ontology");
 
   const handle = createSynopticWebWidget(host, { workspace: "big" }, { runtimeClient: client });
   await settle();
 
   assert.equal(host.dataset.widgetState, "ready");
-  const kept = Object.keys(handle.layout.positions);
-  assert.equal(kept.length, 400, "fallback must cap the rendered graph at 400 nodes");
-  assert.ok(handle.layout.positions.s1, "sources always survive the cut");
-  assert.ok(handle.layout.positions.s2, "sources always survive the cut");
-  assert.ok(handle.layout.positions.c0, "the highest-degree concept survives the cut");
-  // Edges to dropped nodes are filtered, not left dangling.
-  for (const e of handle.layout.edges) {
-    assert.ok(handle.layout.positions[e.source] && handle.layout.positions[e.target]);
-  }
+  assert.equal(
+    Object.keys(handle.layout.positions).length,
+    1201,
+    "connected view renders all nodes, uncapped"
+  );
+}
+
+async function testWidgetModeChangeRefetches() {
+  // Switching view mode (Connected → Documents/Everything) must refetch with the
+  // new mode, and non-default modes go straight to /graph/knowledge.
+  const host = createFakeHost();
+  const client = createClientStub();
+  const paths = [];
+  client.runtimeHandler = (path) => {
+    paths.push(path);
+    if (path.startsWith("/graph/knowledge")) {
+      return jsonResponse({ nodes: [{ id: "s1", name: "doc.md", labels: ["Source"] }], edges: [] });
+    }
+    return makeRuntimeError(500, "no ontology");
+  };
+
+  const widget = createSynopticWebWidget(
+    host,
+    { workspace: "w", mode: "connected" },
+    { runtimeClient: client }
+  );
+  await settle();
+  const before = client.calls.length;
+  widget.update({ mode: "macro" });
+  await settle();
+
+  assert.ok(client.calls.length > before, "changing mode triggers a refetch");
+  assert.ok(
+    paths.some((p) => p.startsWith("/graph/knowledge") && /mode=macro/.test(p)),
+    "macro mode hits the knowledge endpoint with mode=macro"
+  );
 }
 
 async function testWidgetUpdateReloadsOnWorkspaceChange() {

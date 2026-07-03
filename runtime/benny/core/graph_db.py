@@ -714,6 +714,169 @@ def get_full_graph(
     }
 
 
+# Knowledge-only relationship + label sets. Deliberately excludes the code graph
+# (REPRESENTS / CODE_REL / DEFINES / CALLS / … and the CodeEntity label) and the
+# cross-graph CORRELATES_WITH overlay. On a synthesized workspace the code graph
+# dwarfs the knowledge graph (longview: 201,960 CodeEntity + REPRESENTS vs. 61
+# Sources + ~3.7k knowledge edges), so pulling it into the Documents view is both
+# meaningless and the reason `/graph/full?show_all=true` hangs/500s there.
+KNOWLEDGE_RELS = [
+    "RELATES_TO",
+    "SOURCED_FROM",
+    "PREREQUISITE_FOR",
+    "CONFLICTS_WITH",
+    "ANALOGOUS_TO",
+]
+
+
+def get_knowledge_graph(
+    workspace: str = "default",
+    mode: str = "connected",
+    run_id: Optional[str] = None,
+    source_id: Optional[str] = None,
+) -> dict:
+    """
+    Lean, code-free knowledge graph for the Documents view. Never touches the
+    code graph, and never computes metrics (pagerank/betweenness) — the cheap
+    "less-intensive" path that scales to synthesized workspaces.
+
+    Modes:
+      - "connected" (default): every Source plus every Concept/Source that
+        participates in a knowledge edge. Orphan concepts are excluded. This is
+        the whole *meaningful* graph — no windowing.
+      - "all": the connected set plus orphan Concept nodes (isolated dust). Heavy
+        by node count; the frontend renders it points-only.
+      - "macro": Source super-nodes only, each carrying `concept_count`
+        (documents-level overview). Click a source → pass `source_id` to expand.
+
+    `source_id` (any mode): return just that Source, its SOURCED_FROM concepts,
+    and the RELATES_TO edges among them — the macro drill-down payload.
+    """
+
+    def _shape_node(rec) -> dict:
+        node = {
+            "id": str(rec["id"]),
+            "name": rec["name"],
+            "labels": rec["labels"],
+            "domain": rec.get("domain") or "",
+            "node_type": rec.get("node_type")
+            or (rec["labels"][0] if rec["labels"] else "Concept"),
+            "centrality": rec.get("centrality") or 0,
+        }
+        if rec.get("concept_count") is not None:
+            node["concept_count"] = rec["concept_count"]
+        return node
+
+    def _shape_edge(rec) -> dict:
+        return {
+            "source": str(rec["source"]),
+            "target": str(rec["target"]),
+            "type": rec["type"],
+            "predicate": rec["predicate"] or "",
+            "confidence": rec["confidence"] if rec["confidence"] is not None else 1.0,
+        }
+
+    with read_session() as session:
+        # ── Macro drill-down: one Source + its concepts + their inter-relations ──
+        if source_id:
+            node_result = session.run(
+                """
+                MATCH (s:Source {workspace: $workspace})
+                WHERE elementId(s) = $source_id
+                OPTIONAL MATCH (c:Concept {workspace: $workspace})-[:SOURCED_FROM]->(s)
+                WITH s, collect(c) AS concepts
+                UNWIND ([s] + concepts) AS n
+                RETURN DISTINCT elementId(n) AS id, labels(n) AS labels, n.name AS name,
+                       n.domain AS domain, n.node_type AS node_type, n.centrality AS centrality
+                """,
+                workspace=workspace,
+                source_id=source_id,
+            )
+            nodes = [_shape_node(rec) for rec in node_result]
+            node_id_set = {n["id"] for n in nodes}
+            edge_result = session.run(
+                """
+                MATCH (a:Concept {workspace: $workspace})-[r:SOURCED_FROM|RELATES_TO]->(b {workspace: $workspace})
+                WHERE elementId(a) = $source_id OR (a)-[:SOURCED_FROM]->(:Source {workspace: $workspace})
+                RETURN elementId(a) AS source, elementId(b) AS target, type(r) AS type,
+                       r.predicate AS predicate, r.confidence AS confidence
+                """,
+                workspace=workspace,
+                source_id=source_id,
+            )
+            edges = [
+                _shape_edge(rec)
+                for rec in edge_result
+                if str(rec["source"]) in node_id_set and str(rec["target"]) in node_id_set
+            ]
+            return {"nodes": nodes, "edges": edges, "total_nodes": len(nodes), "mode": "macro"}
+
+        # ── Macro overview: Source super-nodes sized by concept count ──
+        if mode == "macro":
+            node_result = session.run(
+                """
+                MATCH (s:Source {workspace: $workspace})
+                RETURN elementId(s) AS id, labels(s) AS labels, s.name AS name,
+                       s.domain AS domain, s.node_type AS node_type, s.centrality AS centrality,
+                       SIZE([(c:Concept {workspace: $workspace})-[:SOURCED_FROM]->(s) | c]) AS concept_count
+                """,
+                workspace=workspace,
+            )
+            nodes = [_shape_node(rec) for rec in node_result]
+            return {"nodes": nodes, "edges": [], "total_nodes": len(nodes), "mode": "macro"}
+
+        # ── connected / all: knowledge edges first, then nodes ──
+        where_clause = "WHERE type(r) IN $rels"
+        if run_id:
+            where_clause += " AND (r.run_id = $run_id OR r.snapshot_id = $run_id)"
+        edge_result = session.run(
+            f"MATCH (a {{workspace: $workspace}})-[r]->(b {{workspace: $workspace}}) {where_clause} "
+            "RETURN elementId(a) AS source, elementId(b) AS target, type(r) AS type, "
+            "r.predicate AS predicate, r.confidence AS confidence",
+            workspace=workspace,
+            rels=KNOWLEDGE_RELS,
+            run_id=run_id or "",
+        )
+        edges = [_shape_edge(rec) for rec in edge_result]
+        connected_ids = set()
+        for e in edges:
+            connected_ids.add(e["source"])
+            connected_ids.add(e["target"])
+
+        if mode == "all":
+            # Every knowledge node in the workspace (includes orphan concepts).
+            node_result = session.run(
+                """
+                MATCH (n {workspace: $workspace})
+                WHERE n:Concept OR n:Source OR n:Document
+                RETURN elementId(n) AS id, labels(n) AS labels, n.name AS name,
+                       n.domain AS domain, n.node_type AS node_type, n.centrality AS centrality
+                """,
+                workspace=workspace,
+            )
+        else:
+            # connected: edge endpoints ∪ all Sources (a document with no extracted
+            # relations still shows as a node).
+            node_result = session.run(
+                """
+                MATCH (n {workspace: $workspace})
+                WHERE (n:Concept OR n:Source OR n:Document)
+                  AND (elementId(n) IN $ids OR n:Source)
+                RETURN elementId(n) AS id, labels(n) AS labels, n.name AS name,
+                       n.domain AS domain, n.node_type AS node_type, n.centrality AS centrality
+                """,
+                workspace=workspace,
+                ids=list(connected_ids),
+            )
+        nodes = [_shape_node(rec) for rec in node_result]
+
+    # Never return edges whose endpoints aren't in the node set.
+    node_id_set = {n["id"] for n in nodes}
+    edges = [e for e in edges if e["source"] in node_id_set and e["target"] in node_id_set]
+
+    return {"nodes": nodes, "edges": edges, "total_nodes": len(nodes), "mode": mode}
+
+
 def get_recent_updates(workspace: str = "default", seconds: int = 10) -> dict:
     """
     Get graph updates from the last N seconds using real timestamp filtering.

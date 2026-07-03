@@ -31,6 +31,7 @@ from ..core.graph_db import (
     delete_source_from_graph,
     delete_synthesis_run,
     get_full_graph,
+    get_knowledge_graph,
     get_graph_stats,
     get_mapped_sources,
     get_neighbors,
@@ -427,6 +428,36 @@ async def full_graph(
         )
     except Exception as e:
         raise HTTPException(500, f"Failed to fetch graph: {str(e)}")
+
+
+@router.get("/graph/knowledge")
+async def knowledge_graph(
+    workspace: str = "default",
+    mode: str = "connected",
+    source_id: Optional[str] = None,
+    run_id: Optional[str] = None,
+):
+    """
+    Lean, code-free knowledge graph for the Documents view.
+
+    Unlike /graph/full this never pulls the code graph (CodeEntity/REPRESENTS) and
+    never computes metrics, so it stays fast on synthesized workspaces.
+
+    Modes:
+      - ?mode=connected (default): all documents + every connected concept (no orphans)
+      - ?mode=all: connected set + orphan concepts (isolated dust)
+      - ?mode=macro: Source super-nodes sized by concept_count
+      - ?source_id=XXX: expand one document into its concepts (macro drill-down)
+    """
+    conn = verify_connectivity()
+    if conn["status"] != "connected":
+        raise HTTPException(status_code=503, detail=f"Neo4j not available: {conn.get('error')}")
+    try:
+        return get_knowledge_graph(
+            workspace, mode=mode, run_id=run_id, source_id=source_id
+        )
+    except Exception as e:
+        raise HTTPException(500, f"Failed to fetch knowledge graph: {str(e)}")
 
 
 @router.get("/graph/stats")
