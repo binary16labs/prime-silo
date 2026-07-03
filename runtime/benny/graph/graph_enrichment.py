@@ -399,10 +399,17 @@ async def enrich_graph(
     dry_run: bool = True,
     stages: Optional[List[str]] = None,
     correlation_threshold: float = 0.82,
+    model: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Run the enrichment stages in order. Returns a per-stage report."""
+    """Run the enrichment stages in order. Returns a per-stage report.
+
+    ``model`` is informational here (the caller pins it via BENNY_DEFAULT_MODEL);
+    only the recluster stage's community naming uses an LLM.
+    """
     stages = stages or DEFAULT_STAGES
     report: Dict[str, Any] = {"workspace": workspace, "dry_run": dry_run, "stages": {}}
+    if model:
+        report["naming_model"] = model
 
     concepts: List[Dict[str, Any]] = []
     if "embeddings" in stages or "merge" in stages:

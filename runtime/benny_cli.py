@@ -218,17 +218,27 @@ async def cmd_enrich_graph(args: argparse.Namespace) -> int:
     cross-document similarity links, promote typed relations, correlate code↔docs,
     and recluster. Dry-run by default; pass --apply to write."""
     import json as _json
+    import os as _os
 
     from benny.graph.graph_enrichment import enrich_graph
 
     stages = [s.strip() for s in args.stages.split(",")] if getattr(args, "stages", None) else None
     dry_run = not getattr(args, "apply", False)
 
+    # Pin the community-naming model for this run via the router's top-priority
+    # override (BENNY_DEFAULT_MODEL, priority -1 in _get_active_model_raw). Only the
+    # recluster stage's name_community() call uses an LLM.
+    model = getattr(args, "model", None)
+    if model:
+        _os.environ["BENNY_DEFAULT_MODEL"] = model
+        print(f"[enrich-graph] pinned naming model: {model}")
+
     report = await enrich_graph(
         args.workspace,
         dry_run=dry_run,
         stages=stages,
         correlation_threshold=args.threshold,
+        model=model,
     )
 
     if getattr(args, "json", False):
@@ -1761,6 +1771,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_enrich_graph.add_argument("--apply", dest="apply", action="store_true", default=False, help="Apply changes. Without this flag the command is a DRY RUN that only reports counts.")
     p_enrich_graph.add_argument("--stages", default=None, help="Comma-separated subset of: embeddings,merge,similarity,rel_class,correlation,recluster (default: all, in order)")
     p_enrich_graph.add_argument("--threshold", type=float, default=0.82, help="Cosine threshold for code↔docs correlation (default: 0.82)")
+    p_enrich_graph.add_argument("--model", default=None, help="Pin the LLM used for community naming (recluster stage), e.g. fastflowlm/qwen3.5-9b-FLM. Overrides router auto-detect for this run. Only the naming stage uses an LLM; the rest is embeddings + graph math. FLM models get thinking auto-suppressed.")
     p_enrich_graph.add_argument("--json", action="store_true", help="Emit the per-stage report as JSON")
 
     # pypes — declarative transformation engine (manifest-driven DAG)
