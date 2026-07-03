@@ -53,13 +53,24 @@ function foundationDigest() {
   return parts.join("\n\n");
 }
 
-async function jsonCall(name, system, user, maxTokens, requiredKey = null) {
-  // Two attempts: local JSON mode still sometimes truncates or wraps in prose
-  // (seen live: the outline call parsed to an inner object, losing .parts).
-  // The retry quotes the failure back; validity means the required key is a
-  // non-empty list — every required key here (parts/chapters/sections) is one,
-  // and the weaker `!= null` check let an empty/malformed value through, which
-  // then blew up the strict caller check (fatal on the 2026-07-03 run).
+async function jsonCall(name, system, user, maxTokens, requiredKey = null, minItems = 1) {
+  // Two attempts. Hard-won constraints on this stack (all ledgered live):
+  // - lemonade's JSON mode (response_format json_object) makes qwen3.5 stop
+  //   mid-object at ~300 tokens and interleave stray scalars ("parts": [1,
+  //   {…}]) — while plain-text calls of the same length complete fine. So ask
+  //   for JSON in the prompt and parse it out (lastBalancedJson strips prose).
+  // - Early stops lose the closing braces and lastBalancedJson then finds an
+  //   INNER object: fall back to truncation repair before declaring invalid.
+  // - Validity = the required key holds ≥ minItems real entries (objects with
+  //   a title); stray scalars are filtered out rather than fatal downstream.
+  const normalize = (o) => {
+    if (!o) return null;
+    if (!requiredKey) return o;
+    const v = Array.isArray(o[requiredKey]) ? o[requiredKey] : null;
+    if (!v) return null;
+    const items = v.filter((x) => x && typeof x === "object" && typeof x.title === "string");
+    return items.length >= minItems ? { ...o, [requiredKey]: items } : null;
+  };
   let lastHead = "";
   for (let attempt = 0; attempt < 2; attempt++) {
     const started = Date.now();
@@ -71,17 +82,10 @@ async function jsonCall(name, system, user, maxTokens, requiredKey = null) {
       system,
       user: user + feedback,
       maxTokens,
-      json: true,
       temperature: attempt === 0 ? 0.5 : 0.3
     });
-    // The model stops early mid-object regardless of budget (~300 tokens,
-    // ledgered live) — then lastBalancedJson finds an INNER object with no
-    // required key. Fall back to truncation repair before declaring invalid.
-    const hasKey = (o) =>
-      Boolean(o) && (!requiredKey || (Array.isArray(o[requiredKey]) && o[requiredKey].length > 0));
-    let parsed = lastBalancedJson(res.content);
-    if (!hasKey(parsed)) parsed = repairTruncatedJson(res.content);
-    const valid = hasKey(parsed);
+    const parsed =
+      normalize(lastBalancedJson(res.content)) ?? normalize(repairTruncatedJson(res.content));
     appendLedger({
       phase: "opus",
       artifact: name,
@@ -89,9 +93,9 @@ async function jsonCall(name, system, user, maxTokens, requiredKey = null) {
       prompt_tokens: res.prompt_tokens,
       completion_tokens: res.completion_tokens,
       attempt,
-      ok: valid
+      ok: Boolean(parsed)
     });
-    if (valid) return parsed;
+    if (parsed) return parsed;
     lastHead = res.content.slice(0, 120).replace(/\s+/g, " ");
     console.log(`[opus] ${name} attempt ${attempt + 1} invalid — head: ${lastHead}`);
   }
@@ -100,9 +104,18 @@ async function jsonCall(name, system, user, maxTokens, requiredKey = null) {
 
 async function buildOutline(interrupted) {
   const outlinePath = opusDir("outline.json");
+  const realParts = (o) =>
+    Array.isArray(o?.parts)
+      ? o.parts.filter((p) => p && typeof p === "object" && typeof p.title === "string")
+      : [];
   let outline = null;
   try {
     outline = JSON.parse(fs.readFileSync(outlinePath, "utf8"));
+    // A previous run may have persisted a degenerate outline (stray scalars in
+    // parts, or a single salvaged part) — rebuild rather than resume garbage.
+    const parts = realParts(outline);
+    if (parts.length >= 3) outline.parts = parts;
+    else outline = null;
   } catch {
     /* build it */
   }
@@ -119,9 +132,13 @@ async function buildOutline(interrupted) {
       prompt("vampire_outline"),
       foundationDigest().slice(0, 3500),
       1800,
-      "parts"
+      "parts",
+      3
     );
     if (!outline?.parts?.length) throw new Error("outline did not parse — rerun the opus phase");
+    outline.parts.forEach((p, i) => {
+      if (typeof p.n !== "number") p.n = i + 1;
+    });
     fs.writeFileSync(outlinePath, JSON.stringify(outline, null, 2));
   }
 
@@ -145,7 +162,8 @@ async function buildOutline(interrupted) {
         `## Evidence available\n${foundationDigest().slice(0, 2500)}`
       ].join("\n\n"),
       1300,
-      "chapters"
+      "chapters",
+      2
     );
     if (spec?.chapters?.length) {
       part.chapters = spec.chapters.map((c, i) => ({ ...c, n: nextChapter + i }));
@@ -172,10 +190,15 @@ async function buildOutline(interrupted) {
           `## Evidence available\n${foundationDigest().slice(0, 3000)}`
         ].join("\n\n"),
         1400,
-        "sections"
+        "sections",
+        3
       );
       if (spec?.sections?.length) {
-        ch.sections = spec.sections;
+        // Section ids become filenames — never let a missing id collide.
+        ch.sections = spec.sections.map((s, i) => ({
+          ...s,
+          id: s.id || `p${part.n}c${ch.n}s${i + 1}`
+        }));
         fs.writeFileSync(outlinePath, JSON.stringify(outline, null, 2));
       } else {
         console.log(
