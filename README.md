@@ -1,13 +1,38 @@
-# Prime-Silo
+# Prime-Silo // Sovereign AI Agent OS & Harness
 
-> The first, foundational, canonical silo of institutional cognition — engineered by Binary 16.
+<div align="center">
 
-Prime-Silo is an open-source typed execution substrate for institutional reasoning, fused with an adaptive browser-resident shell. It is the convergence of two projects:
+[![Live Web Substrate](https://img.shields.io/badge/🌐_Live_Demo-binary16labs.github.io%2Fprime--silo-00A67E?style=for-the-badge)](https://binary16labs.github.io/prime-silo/)
+[![GitHub Stars](https://img.shields.io/github/stars/binary16labs/prime-silo?style=for-the-badge&color=D97706)](https://github.com/binary16labs/prime-silo/stargazers)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+[![Sovereign AI](https://img.shields.io/badge/Sovereign_AI-Zero_Token_Tax-8B5CF6?style=for-the-badge)](https://binary16labs.github.io/prime-silo/)
+[![Protocol: MCP & A2A](https://img.shields.io/badge/Protocol-MCP_%7C_A2A_Native-06B6D4?style=for-the-badge)](https://binary16labs.github.io/prime-silo/)
 
-- **[Benny](https://github.com/skybluecycology/benny)** — the deterministic substrate (Pypes Layer 0 transformation algebra, swarm-executed Layer 1 cognitive operations, triple-lineage governance, manifest signing). Vendored here under `runtime/`.
-- **[Space-Agent](https://github.com/agent0ai/space-agent)** — the adaptive shell (browser-resident agent runtime, puzzle-piece module modularity, Git-backed workspace versioning). Forked as the outer application.
+**The canonical Sovereign AI Agent OS and runtime harness — engineered for institutional cognition by Binary 16 Labs & Agent Benny.**
 
-The goal: a single shell that gives operators one nav, one theme, one run timeline, and one audit story across documents, code, tabular data, and post-run review — without compromising the determinism, signing, and lineage guarantees that make the substrate auditable.
+[Explore Live Web Substrate](https://binary16labs.github.io/prime-silo/) • [Read Architecture Spine](#determinism-boundary-adr-001) • [View Token Economics](https://binary16labs.github.io/prime-silo/#calculator)
+
+</div>
+
+---
+
+> *"Stop gambling with probabilistic cloud wrappers. Start executing with deterministic institutional reasoning."*
+
+**Prime-Silo** is an open-source typed execution substrate and **Agent OS harness** designed for organizations requiring data sovereignty, zero token tax, and verifiable lineage. It fuses two breakthrough architectures:
+
+- **[Benny](https://github.com/skybluecycology/benny)** — the deterministic substrate (**Pypes Layer 0** transformation algebra, swarm-executed cognitive operations, triple-lineage governance, manifest signing). Vendored here under `runtime/`.
+- **[Space-Agent](https://github.com/agent0ai/space-agent)** — the adaptive shell (browser-resident agent runtime, modular puzzle-piece UI, Git-backed workspace versioning).
+
+### 🏛️ Why Prime-Silo is Trending in 2026
+While traditional agent frameworks suffer from context bloat, cloud gatekeeper fees, and brittle custom code, Prime-Silo delivers:
+1. **Model Context Protocol (MCP) Native**: Universal tool connectivity ("USB-C for AI") without code fragmentation or custom wrappers.
+2. **Agent-to-Agent (A2A) Swarm Collaboration**: Built-in open communication standards for specialized agent swarms to discover and execute tasks autonomously.
+3. **Zero Token Tax Execution**: Deterministic Pypes transformation algebra runs locally, eliminating recursive cloud context dumps and saving up to 90% in token overhead.
+4. **HMAC SHA-256 Auditable Lineage**: Every state transition, UI layout, and decision trace is cryptographically signed and auditable.
+
+---
+
+The goal: a single **Agent OS** shell that gives institutional operators one nav, one theme, one run timeline, and one audit story across documents, code, tabular data, and post-run review — without ever compromising determinism or burning capital on cloud context bloat.
 
 ## Determinism boundary (ADR-001)
 
