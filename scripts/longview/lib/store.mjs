@@ -73,7 +73,11 @@ export async function syncStore() {
   const r = spawnSync(process.execPath, ["-e", script], {
     cwd: config.MEMORAY_SERVER_DIR,
     encoding: "utf8",
-    timeout: 600000
+    timeout: 600000,
+    // memo-ray's own CLAUDE_LOG_DIRS can be undefined (found live: 7 stale Claude
+    // sessions, recent ones missing). Hand the parser the resolved Claude dir so
+    // the direct-parser fallback discovers every ~/.claude/projects session.
+    env: { ...process.env, MEM0RAY_CLAUDE_DIRS: config.CLAUDE_DIRS }
   });
   if (r.status !== 0) {
     throw new Error(`memo-ray direct sync failed: ${r.stderr || r.stdout || r.status}`);

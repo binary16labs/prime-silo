@@ -66,6 +66,10 @@ export const config = {
     path.resolve(projectRoot, "..", "memo-ray", "agent-os-dashboard", "server")
   ),
   MEMORAY_SERVER_URL: env("MEMORAY_SERVER_URL", "http://127.0.0.1:3030"),
+  // Claude Code session logs for the direct-parser fallback. Defaults to the
+  // standard location so the fallback is never blind (memo-ray's own
+  // CLAUDE_LOG_DIRS can be undefined); overridable via MEM0RAY_CLAUDE_DIRS.
+  CLAUDE_DIRS: env("MEM0RAY_CLAUDE_DIRS", path.join(os.homedir(), ".claude", "projects")),
 
   // Local model host (same one benny/core/models.py resolves to).
   LEMONADE_BASE_URL: env("LEMONADE_BASE_URL", "http://127.0.0.1:13305/api/v1"),
