@@ -511,6 +511,15 @@
                         >
                           <x-icon>stop_circle</x-icon><span>Stop</span>
                         </button>
+                        <button
+                          class="ps-bridge__btn"
+                          x-show="hasRecord()"
+                          @click="openRecord('run', { live: longview.running })"
+                          title="Open the Benny Record player on the whole run. While running it tail-follows the ledger — the real-time telemetry view."
+                        >
+                          <x-icon>fiber_manual_record</x-icon
+                          ><span x-text="longview.running ? 'Live record' : 'Open record'"></span>
+                        </button>
                       </div>
                     </div>
 
@@ -540,6 +549,15 @@
                               class="ps-bridge__muted"
                               x-text="f.size >= 1024 ? `${(f.size / 1024).toFixed(1)} KB` : `${f.size} B`"
                             ></span>
+                            <button
+                              type="button"
+                              class="ps-bridge__btn"
+                              x-show="hasRecord()"
+                              @click="openRecord(recordScope(f))"
+                              title="Benny Record: replay how the pipeline produced this output — every model call, gate verdict and retrieval — with its full lineage."
+                            >
+                              <x-icon>fiber_manual_record</x-icon><span>Record</span>
+                            </button>
                           </li>
                         </template>
                       </ul>

@@ -1,0 +1,258 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="/mod/_prime_silo/memoray_client/memoray-theme.css" />
+    <link
+      rel="stylesheet"
+      href="/mod/_prime_silo/widgets/memoray/lineage_graph/lineage_graph.css"
+    />
+    <link rel="stylesheet" href="/mod/_prime_silo/benny_record/benny_record.css" />
+    <script type="module" src="/mod/_prime_silo/benny_record/benny_record.js"></script>
+  </head>
+  <body>
+    <section
+      class="benny-rec mray-theme"
+      x-data="bennyRecordPage()"
+      x-init="init()"
+      x-destroy="destroy()"
+      x-cloak
+    >
+      <header class="benny-rec__header">
+        <p class="benny-rec__eyebrow">Review zone · Benny Record — output lineage</p>
+        <h1 class="benny-rec__title">
+          Benny Record <span class="benny-rec__title-scope" x-text="scope"></span>
+        </h1>
+        <p class="benny-rec__subtitle">
+          Replay how the pipeline produced this output — every model call, gate verdict, retrieval
+          and ingest, one step at a time — with a lineage map that follows along. ←/→ to navigate,
+          space to play.
+        </p>
+        <!-- Run badge: the exact config the deliverable was pinned to. -->
+        <div class="benny-rec__badge" x-show="runConfig">
+          <span
+            class="benny-rec__badge-chip"
+            x-show="runConfig && runConfig.model"
+            x-text="runConfig ? '🧠 ' + runConfig.model : ''"
+          ></span>
+          <span
+            class="benny-rec__badge-chip"
+            x-show="runConfig && runConfig.ctx_size"
+            x-text="runConfig ? 'ctx ' + runConfig.ctx_size : ''"
+          ></span>
+          <span
+            class="benny-rec__badge-chip"
+            x-show="runConfig && runConfig.git_commit"
+            x-text="runConfig ? '⑂ ' + String(runConfig.git_commit).slice(0, 8) : ''"
+          ></span>
+          <span class="benny-rec__badge-chip" x-show="workspace" x-text="'ws ' + workspace"></span>
+        </div>
+      </header>
+
+      <template x-if="state === 'error'">
+        <div class="benny-rec__notice benny-rec__notice--error">
+          <h2>Record failed to load</h2>
+          <p x-text="error"></p>
+          <button type="button" class="benny-rec__btn" @click="retry()">Retry</button>
+        </div>
+      </template>
+
+      <template x-if="state === 'loading'">
+        <div class="benny-rec__notice">
+          <p class="benny-rec__muted">Assembling record…</p>
+        </div>
+      </template>
+
+      <template x-if="state === 'empty'">
+        <div class="benny-rec__notice">
+          <h2>No record yet for <code x-text="scope"></code></h2>
+          <p class="benny-rec__muted">
+            Nothing has been produced under this scope. Once the pipeline runs, its steps appear
+            here. Try <code>scope=run</code> for the whole run.
+          </p>
+          <button type="button" class="benny-rec__btn" @click="retry()">Retry</button>
+        </div>
+      </template>
+
+      <template x-if="state === 'ready'">
+        <div class="benny-rec__player">
+          <!-- Control bar -->
+          <div class="benny-rec__controls">
+            <div class="benny-rec__toggles">
+              <button
+                type="button"
+                class="benny-rec__toggle"
+                :class="{ 'is-live': live }"
+                @click="toggleLive()"
+                x-text="live ? '🔴 Live' : '⚪ Live off'"
+                title="Tail-follow the append-only ledger — the real-time telemetry view. New steps auto-advance; pause to scrub history."
+              ></button>
+              <span
+                class="benny-rec__progress"
+                x-show="live && heartbeat"
+                x-text="liveSummary()"
+              ></span>
+              <button
+                type="button"
+                class="benny-rec__toggle"
+                :class="{ 'is-on': showMap }"
+                @click="toggleMap()"
+                x-text="showMap ? '🗺️ Hide map' : '🗺️ Show map'"
+              ></button>
+              <button
+                type="button"
+                class="benny-rec__toggle"
+                :class="{ 'is-on': tracking }"
+                x-show="showMap"
+                @click="toggleTracking()"
+                x-text="tracking ? '🎥 Tracking' : '🕊️ Free roam'"
+              ></button>
+              <button
+                type="button"
+                class="benny-rec__toggle"
+                x-show="showMap"
+                @click="cycleGraphMode()"
+                x-text="graphModeLabel()"
+                title="Graph layout — Auto picks free-floating for large lineages, or force Linear / Free-floating"
+              ></button>
+              <span class="benny-rec__progress"
+                >Step <span x-text="actions.length ? stepIndex + 1 : 0"></span> of
+                <span x-text="actions.length"></span
+              ></span>
+            </div>
+
+            <div class="benny-rec__nav">
+              <button
+                type="button"
+                class="benny-rec__nav-btn"
+                @click="prev()"
+                :disabled="stepIndex === 0"
+              >
+                ←
+              </button>
+              <button
+                type="button"
+                class="benny-rec__nav-btn benny-rec__play"
+                :class="{ 'is-on': isPlaying }"
+                @click="togglePlay()"
+                :disabled="stepIndex >= actions.length - 1"
+                x-text="isPlaying ? '⏸ Pause' : '▶ Play'"
+              ></button>
+              <select
+                class="benny-rec__speed"
+                x-model.number="speed"
+                @change="onSpeedChange()"
+                title="Playback speed (steps per second)"
+              >
+                <option value="1">1×</option>
+                <option value="2">2×</option>
+                <option value="5">5×</option>
+                <option value="10">10×</option>
+              </select>
+              <button
+                type="button"
+                class="benny-rec__nav-btn"
+                @click="next()"
+                :disabled="stepIndex >= actions.length - 1"
+              >
+                →
+              </button>
+            </div>
+          </div>
+
+          <!-- Phase rail -->
+          <div class="benny-rec__rail">
+            <template x-for="p in phaseRail" :key="p.phase">
+              <span
+                class="benny-rec__rail-step"
+                :class="{ done: p.done, active: p.active }"
+                x-text="p.phase"
+              ></span>
+            </template>
+          </div>
+
+          <!-- Milestone scrubber -->
+          <div class="benny-rec__milestones">
+            <template x-for="seg in milestoneSegments" :key="seg.idx">
+              <div class="benny-rec__seg" :class="segClass(seg)" @click="setStep(seg.idx)"></div>
+            </template>
+          </div>
+
+          <!-- Stage: action card + lineage map -->
+          <div class="benny-rec__stage" :class="{ 'has-map': showMap }">
+            <div class="benny-rec__card">
+              <div class="benny-rec__hero" x-text="heroText"></div>
+
+              <!-- Chips: gate, tokens, time, graph-delta, why, cross-jump -->
+              <div class="benny-rec__chips">
+                <span
+                  class="benny-rec__chip"
+                  :class="gate ? (gate.pass ? 'benny-rec__chip--gate-pass' : 'benny-rec__chip--gate-fail') : ''"
+                  x-show="gate"
+                  x-text="gate ? (gate.pass ? '✓ gate pass' : '✗ gate fail') : ''"
+                ></span>
+                <span
+                  class="benny-rec__chip benny-rec__chip--tokens"
+                  x-show="stepTokens"
+                  x-text="'⚡ ' + fmtTokens(stepTokens) + ' tok'"
+                ></span>
+                <span
+                  class="benny-rec__chip"
+                  x-show="current && current.ms"
+                  x-text="'⏱ ' + fmtMs(current ? current.ms : 0)"
+                ></span>
+                <span
+                  class="benny-rec__chip"
+                  x-show="current && current.ts"
+                  x-text="formatTime(current ? current.ts : '')"
+                ></span>
+                <template x-for="d in graphDelta" :key="d">
+                  <span class="benny-rec__chip benny-rec__chip--delta" x-text="d"></span>
+                </template>
+                <button
+                  type="button"
+                  class="benny-rec__why-btn"
+                  x-show="whyText"
+                  @click="showWhy = !showWhy"
+                  x-text="showWhy ? 'Hide intent' : '🤔 Why?'"
+                ></button>
+                <button
+                  type="button"
+                  class="benny-rec__jump-btn"
+                  x-show="sourceSessionId"
+                  @click="openSourceSession()"
+                  title="Open the source session in the Step-Through Audit player"
+                >
+                  ↪ Open source session
+                </button>
+              </div>
+
+              <!-- Token-burn meter (cumulative up to this step) -->
+              <div class="benny-rec__meter" x-show="tokensTotal">
+                <div
+                  class="benny-rec__meter-fill"
+                  :style="`width: ${tokensTotal ? Math.round((tokensSoFar / tokensTotal) * 100) : 0}%`"
+                ></div>
+              </div>
+
+              <div class="benny-rec__why" x-show="showWhy">
+                <strong>Why this step:</strong> <span x-text="whyText"></span>
+              </div>
+
+              <div class="benny-rec__gate-errors" x-show="gate && !gate.pass && gate.errors.length">
+                <strong>Gate errors:</strong>
+                <ul>
+                  <template x-for="err in (gate ? gate.errors : [])" :key="err">
+                    <li x-text="err"></li>
+                  </template>
+                </ul>
+              </div>
+
+              <div class="benny-rec__content" x-html="contentHtml()"></div>
+            </div>
+
+            <div class="benny-rec__map" x-ref="graph" x-show="showMap"></div>
+          </div>
+        </div>
+      </template>
+    </section>
+  </body>
+</html>

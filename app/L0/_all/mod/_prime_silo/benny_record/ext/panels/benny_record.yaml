@@ -1,0 +1,5 @@
+name: Benny Record
+path: _prime_silo/benny_record
+description: Replay how the pipeline produced any output — every model call, gate verdict, retrieval and ingest, step by step — with a token meter, gate chips, a model/ctx/commit badge, a live telemetry tail, and a lineage map that follows the current step.
+icon: fiber_manual_record
+color: "#c4a882"

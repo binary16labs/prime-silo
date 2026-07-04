@@ -1,0 +1,378 @@
+/* Benny Record — step-through playback of how the pipeline made a deliverable.
+ * Shares the earth-tone memo-ray theme (.mray-theme tokens) and the step_through
+ * layout language, plus prime-silo enrichments: gate chips, a token meter, a
+ * model/ctx/commit badge, and a phase rail. */
+
+.benny-rec {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 1.5rem 2rem;
+}
+
+[x-cloak] {
+  display: none !important;
+}
+
+.benny-rec__header {
+  flex: 0 0 auto;
+  margin-bottom: 0.9rem;
+}
+
+.benny-rec__eyebrow {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  margin: 0 0 0.4rem;
+}
+
+.benny-rec__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.7rem;
+  color: var(--text-primary);
+}
+
+.benny-rec__title-scope {
+  color: var(--golden);
+  font-size: 1.05rem;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+.benny-rec__subtitle {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.benny-rec__muted {
+  color: var(--text-tertiary);
+}
+
+.benny-rec__notice {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  background: var(--surface-raised);
+}
+
+.benny-rec__notice--error {
+  border-color: var(--danger);
+}
+
+.benny-rec__btn {
+  margin-top: 0.75rem;
+  background: var(--sage);
+  border: 1px solid var(--sage);
+  border-radius: var(--radius-sm);
+  color: #16201a;
+  cursor: pointer;
+  padding: 0.4rem 0.9rem;
+}
+
+/* ── run badge (model / ctx / commit) ───────────────────────────── */
+.benny-rec__badge {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.5rem 0 0;
+}
+
+.benny-rec__badge-chip {
+  font-size: 0.72rem;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  color: var(--text-secondary);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.15rem 0.5rem;
+}
+
+/* ── player ─────────────────────────────────────────────────────── */
+.benny-rec__player {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.benny-rec__controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.benny-rec__toggles,
+.benny-rec__nav {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.benny-rec__toggle,
+.benny-rec__nav-btn,
+.benny-rec__speed {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.82rem;
+  padding: 0.35rem 0.7rem;
+}
+
+.benny-rec__toggle.is-on,
+.benny-rec__play.is-on {
+  border-color: var(--sage);
+  color: var(--sage);
+  background: var(--sage-dim);
+}
+
+.benny-rec__toggle.is-live {
+  border-color: var(--rust);
+  color: var(--rust);
+  background: var(--rust-dim);
+}
+
+.benny-rec__nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.benny-rec__progress {
+  font-size: 0.82rem;
+  color: var(--text-tertiary);
+  margin-left: 0.5rem;
+}
+
+.benny-rec__play {
+  min-width: 78px;
+}
+
+/* ── phase rail ─────────────────────────────────────────────────── */
+.benny-rec__rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  flex: 0 0 auto;
+}
+
+.benny-rec__rail-step {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  background: var(--surface-hover);
+  border-radius: var(--radius-sm);
+  padding: 0.12rem 0.45rem;
+}
+
+.benny-rec__rail-step.done {
+  color: var(--moss);
+  background: var(--moss-dim);
+}
+
+.benny-rec__rail-step.active {
+  color: var(--text-primary);
+  background: var(--golden);
+  font-weight: 600;
+}
+
+/* ── milestone scrubber ─────────────────────────────────────────── */
+.benny-rec__milestones {
+  display: flex;
+  gap: 1px;
+  height: 10px;
+  flex: 0 0 auto;
+}
+
+.benny-rec__seg {
+  flex: 1 1 auto;
+  min-width: 1px;
+  background: var(--surface-hover);
+  cursor: pointer;
+  border-radius: 1px;
+}
+
+.benny-rec__seg.past {
+  background: var(--moss);
+}
+
+.benny-rec__seg.is-milestone {
+  background: var(--golden);
+}
+
+.benny-rec__seg.active {
+  background: var(--text-primary);
+  transform: scaleY(1.6);
+}
+
+/* ── stage ──────────────────────────────────────────────────────── */
+.benny-rec__stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.benny-rec__stage.has-map {
+  grid-template-columns: minmax(420px, 1fr) 1fr;
+}
+
+.benny-rec__card {
+  min-height: 0;
+  overflow-y: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  padding: 1.25rem 1.5rem;
+}
+
+.benny-rec__hero {
+  font-size: 1.3rem;
+  line-height: 1.4;
+  color: var(--text-primary);
+  margin-bottom: 0.7rem;
+}
+
+/* ── chips row (gate / tokens / time / graph-delta) ─────────────── */
+.benny-rec__chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.7rem;
+}
+
+.benny-rec__chip {
+  font-size: 0.74rem;
+  border-radius: var(--radius-sm);
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  background: var(--surface-sunken);
+}
+
+.benny-rec__chip--gate-pass {
+  color: var(--moss);
+  background: var(--moss-dim);
+  border-color: var(--moss);
+}
+
+.benny-rec__chip--gate-fail {
+  color: var(--rust);
+  background: var(--rust-dim);
+  border-color: var(--rust);
+}
+
+.benny-rec__chip--tokens {
+  color: var(--golden);
+  background: transparent;
+  border-color: var(--golden);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+.benny-rec__chip--delta {
+  color: var(--sage);
+  border-color: var(--sage);
+  background: var(--sage-dim);
+}
+
+.benny-rec__why-btn,
+.benny-rec__jump-btn {
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.74rem;
+  padding: 0.15rem 0.5rem;
+}
+
+.benny-rec__jump-btn {
+  color: var(--golden);
+  border-color: var(--golden);
+}
+
+/* ── token meter ────────────────────────────────────────────────── */
+.benny-rec__meter {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--surface-hover);
+  overflow: hidden;
+  margin-bottom: 0.8rem;
+}
+
+.benny-rec__meter-fill {
+  height: 100%;
+  background: var(--golden);
+  transition: width 0.2s ease;
+}
+
+/* ── why + gate errors ──────────────────────────────────────────── */
+.benny-rec__why {
+  background: var(--sage-dim);
+  border-left: 3px solid var(--sage);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.8rem;
+  margin-bottom: 0.8rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.benny-rec__gate-errors {
+  background: var(--rust-dim);
+  border-left: 3px solid var(--rust);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.8rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.benny-rec__gate-errors ul {
+  margin: 0.3rem 0 0;
+  padding-left: 1.1rem;
+}
+
+/* ── content ────────────────────────────────────────────────────── */
+.benny-rec__content {
+  font-size: 0.85rem;
+}
+
+.benny-rec__content pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--surface-sunken);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem;
+  color: var(--text-secondary);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  max-height: 50vh;
+  overflow: auto;
+}
+
+/* ── map ────────────────────────────────────────────────────────── */
+.benny-rec__map {
+  position: relative;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+}
+
+.benny-rec .mray-lg__node.is-current circle,
+.benny-rec .mray-lg__node.is-current rect {
+  stroke: var(--golden);
+  stroke-width: 3;
+}
+
+.benny-rec .mray-lg__node.is-current text {
+  fill: var(--golden);
+  font-weight: 600;
+}

@@ -1069,6 +1069,29 @@ export function createBridgePage(options = {}) {
       return `/api/runtime/static/${encodeURIComponent(this.workspace)}/data_out/${rel}`;
     },
 
+    // ── Benny Record (ADR-005): map an output file to the record scope that
+    // explains it, and open the player. Dossiers and book artifacts have their
+    // own scopes; everything else falls back to the whole run. Only the longview
+    // workspace produces records, so the ▶ Record affordance is gated on it.
+    recordScope(f) {
+      const name = String((f && f.name) || "");
+      const dossier = name.match(/dossiers[\\/]([^\\/]+)\.md$/i);
+      if (dossier) return `dossier:${dossier[1]}`;
+      if (/(^|[\\/])opus[\\/]/i.test(name) || /\.pdf$/i.test(name)) return "book";
+      return "run";
+    },
+
+    hasRecord() {
+      return this.workspace === "longview" || this.workspace === "longview_v2";
+    },
+
+    openRecord(scope, { live = false } = {}) {
+      const p = new URLSearchParams({ scope: scope || "run" });
+      if (this.workspace) p.set("workspace", this.workspace);
+      if (live) p.set("live", "1");
+      window.location.hash = `#/_prime_silo/benny_record?${p.toString()}`;
+    },
+
     // Keep the selection in sync with what's actually staged: drop names that
     // disappeared, and default-select anything still awaiting ingestion so the
     // common case (ingest the doc I just added) is one click. Already-ingested
