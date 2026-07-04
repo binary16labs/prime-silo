@@ -1436,7 +1436,13 @@ function loadManifest() {
     };
   }
   const v = manifest.variables || {};
-  if (manifest.workspace) config.WORKSPACE = manifest.workspace;
+  // Precedence: an explicitly-set LONGVIEW_WORKSPACE env wins over the manifest
+  // default. Found live: `LONGVIEW_WORKSPACE=longview_v2 … run` silently ran
+  // against 'longview' because the manifest hardcodes its workspace — an
+  // operator's explicit target must never be overridden by a template default.
+  if (manifest.workspace && !process.env.LONGVIEW_WORKSPACE) {
+    config.WORKSPACE = manifest.workspace;
+  }
   if (v.model) config.LONGVIEW_MODEL = v.model;
   if (v.ingest_model) config.INGEST_MODEL = v.ingest_model;
   if (v.evidence_budget_chars) config.EVIDENCE_BUDGET_CHARS = Number(v.evidence_budget_chars);
