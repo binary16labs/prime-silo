@@ -56,6 +56,11 @@
         "description": "Discovery loops: under-explored questions → retrieval (chunks + graph) → cited discovery notes → re-ingested so each loop and every deliverable stands on a richer corpus"
       },
       {
+        "id": "enrich",
+        "enabled": true,
+        "description": "Graph enrichment: persist embeddings, canonical-merge near-duplicate concepts (merge_count sizing), cross-document similarity links, typed rel_class, re-cluster into named themes (reuses benny enrich-graph)"
+      },
+      {
         "id": "reduce",
         "enabled": true,
         "skip_book": false,

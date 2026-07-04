@@ -805,6 +805,47 @@ async function runCode() {
   appendLedger({ phase: "code", ok, ms: Date.now() - started, tail: tail.slice(0, 500) });
 }
 
+// Graph enrichment (ADR-005 horizontal mechanism, knowledge half): after the
+// corpus is ingested + woven, connect the per-document concept islands into a
+// cross-session web — persist embeddings, canonical-merge near-duplicate concepts
+// (so a recurring idea becomes one node sized by merge_count), add cross-document
+// similarity links, promote typed relations, and re-cluster into named themes.
+// Reuses `benny enrich-graph` end to end (fast: reuses persisted embeddings).
+async function runEnrichGraph() {
+  writeStatus({ phase: "enrich" });
+  const started = Date.now();
+  console.log("[enrich] benny enrich-graph (merge → cross-doc links → rel_class → themes)…");
+  const r = spawnSync(
+    "python",
+    [
+      "benny_cli.py",
+      "enrich-graph",
+      "--workspace",
+      config.WORKSPACE,
+      "--apply",
+      "--model",
+      config.INGEST_MODEL
+    ],
+    {
+      cwd: path.join(projectRoot, "runtime"),
+      encoding: "utf8",
+      timeout: 3600000,
+      // Same cp1252 braille-glyph guard as runCode.
+      env: { ...process.env, PYTHONIOENCODING: "utf-8", PYTHONUTF8: "1" }
+    }
+  );
+  const ok = r.status === 0;
+  const tail = ((r.stdout || "") + (r.stderr || ""))
+    .split("\n")
+    .filter(Boolean)
+    .slice(-4)
+    .join(" | ");
+  console.log(
+    `[enrich] ${ok ? "ok" : "FAILED"} (${((Date.now() - started) / 1000 / 60).toFixed(1)} min) ${tail.slice(0, 300)}`
+  );
+  appendLedger({ phase: "enrich", ok, ms: Date.now() - started, tail: tail.slice(0, 500) });
+}
+
 // -------------------------------------------------------------------- weave
 // Discovery loops (the request: "loops of discovery… cross reference and
 // discovery through the graph and the text"). Each loop: ask the model what
@@ -1122,6 +1163,7 @@ async function runManifest() {
       else if (ph.id === "map") await runMap({ limitOverride: Number(ph.limit) || Infinity });
       else if (ph.id === "model") await runModel();
       else if (ph.id === "code") await runCode();
+      else if (ph.id === "enrich") await runEnrichGraph();
       else if (ph.id === "weave")
         await runWeave({
           loops: Number(ph.loops) || null,
@@ -1181,6 +1223,9 @@ async function main() {
       break;
     case "code":
       await runCode();
+      break;
+    case "enrich":
+      await runEnrichGraph();
       break;
     case "weave":
       await runWeave();
