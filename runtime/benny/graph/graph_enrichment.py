@@ -498,9 +498,16 @@ async def enrich_graph(
     if "embeddings" in stages:
         report["stages"]["embeddings"] = await stage_embeddings(workspace, concepts, dry_run)
     if "merge" in stages:
-        if not concepts or "_vec" not in concepts[0]:
-            # merge needs vectors; compute them without persisting if embeddings skipped
-            await stage_embeddings(workspace, concepts, dry_run=True)
+        if concepts and "_vec" not in concepts[0]:
+            # Prefer embeddings already persisted by a prior run so a merge-only
+            # invocation doesn't re-embed thousands of concepts against the flaky
+            # local embedder. Fall back to computing them only if none are stored.
+            if all(c.get("embedding") and len(c["embedding"]) == EMBED_DIM for c in concepts):
+                normed = _normed_matrix([c["embedding"] for c in concepts])
+                for i, c in enumerate(concepts):
+                    c["_vec"] = normed[i]
+            else:
+                await stage_embeddings(workspace, concepts, dry_run=True)
         report["stages"]["merge"] = await stage_merge(workspace, concepts, dry_run)
     if "similarity" in stages:
         report["stages"]["similarity"] = await stage_similarity_links(workspace, dry_run)
