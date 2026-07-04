@@ -61,6 +61,11 @@
         "description": "Graph enrichment: persist embeddings, canonical-merge near-duplicate concepts (merge_count sizing), cross-document similarity links, typed rel_class, re-cluster into named themes (reuses benny enrich-graph)"
       },
       {
+        "id": "review",
+        "enabled": true,
+        "description": "Post-graph session review: for each session, collate its contribution against the concept graph + cross-session links into data_out/reviews/<sid>.md (the 'greater than the sum' pass)"
+      },
+      {
         "id": "reduce",
         "enabled": true,
         "skip_book": false,

@@ -85,6 +85,16 @@ export const config = {
   // Raise LONGVIEW_EVIDENCE_BUDGET only after raising the FLM ctx_size.
   EVIDENCE_BUDGET_CHARS: Number(env("LONGVIEW_EVIDENCE_BUDGET", 7500)),
   CARD_MAX_TOKENS: Number(env("LONGVIEW_CARD_MAX_TOKENS", 1200)),
+  // Graph-walk extraction: chunk the FULL session timeline into windows this many
+  // chars wide (fits qwen3.5's 4096-ctx with room for the small fragment output),
+  // extract a tiny fragment per window (bounded output — never near the ~415-token
+  // self-limit), and assemble the card losslessly in code. INTENT is one small call.
+  WINDOW_INPUT_CHARS: Number(env("LONGVIEW_WINDOW_CHARS", 7000)),
+  FRAGMENT_MAX_TOKENS: Number(env("LONGVIEW_FRAGMENT_MAX_TOKENS", 500)),
+  INTENT_MAX_TOKENS: Number(env("LONGVIEW_INTENT_MAX_TOKENS", 300)),
+  // Post-graph session review pass.
+  REVIEW_INPUT_CHARS: Number(env("LONGVIEW_REVIEW_CHARS", 4000)),
+  REVIEW_MAX_TOKENS: Number(env("LONGVIEW_REVIEW_MAX_TOKENS", 900)),
   REDUCE_MAX_TOKENS: Number(env("LONGVIEW_REDUCE_MAX_TOKENS", 1800)),
   // Hard cap on any composed reduce input (chars). 4096-token ctx ⇒ input must
   // stay ≈ ≤2200 tokens once the ~1800-token output budget is reserved. Raise

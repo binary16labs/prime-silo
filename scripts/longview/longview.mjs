@@ -24,11 +24,12 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { runOpus } from "./lib/opus.mjs";
-import { evidenceFor, graphCatalog } from "./lib/retrieve.mjs";
+import { evidenceFor, graphCatalog, graphNeighbors } from "./lib/retrieve.mjs";
 import { mdToHtml, htmlToPdf } from "./lib/book_pdf.mjs";
 import { config, ensureWorkspace, workspaceDir, stateDir, projectRoot } from "./lib/config.mjs";
 import { syncStore, listSessions } from "./lib/store.mjs";
 import { buildEvidencePack } from "./lib/evidence.mjs";
+import { walkSessionWindows } from "./lib/walk.mjs";
 import { chat, lastBalancedJson, repairTruncatedJson } from "./lib/llm.mjs";
 import { validateCard } from "./lib/gate.mjs";
 import { appendLedger, readLedger, mapVerdicts, writeStatus, readStatus } from "./lib/ledger.mjs";
@@ -174,12 +175,128 @@ function runExtract() {
   console.log(`[extract] built ${done}, kept ${skipped} existing`);
 }
 
+// Graph-walk extraction helpers (ADR-005). Each window yields a tiny fragment;
+// the card is assembled from all fragments in code (lossless) so the model never
+// has to emit a large 12-field object (which it truncates at ~415 tokens).
+// Fragment cache is keyed by window size: changing LONGVIEW_WINDOW_CHARS (e.g.
+// after raising the FLM ctx_size) re-windows a session, so old fragments must
+// not be mixed with the new layout.
+const windowFragPath = (id, n) =>
+  stateDir("windows", id, `w${config.WINDOW_INPUT_CHARS}_${n}.json`);
+const FRAG_LISTS = [
+  "decisions",
+  "outcomes",
+  "failures",
+  "capabilities",
+  "applications",
+  "artifacts",
+  "concepts",
+  "skills_observed",
+  "open_threads",
+  "proposed_next",
+  "evidence"
+];
+
+function uniqCap(arr, cap) {
+  const seen = new Set();
+  const out = [];
+  for (const x of arr) {
+    const s = String(x == null ? "" : x).trim();
+    if (!s) continue;
+    const k = s.toLowerCase();
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(s);
+    if (out.length >= cap) break;
+  }
+  return out;
+}
+
+function mergeFragments(fragments) {
+  const m = {};
+  for (const key of FRAG_LISTS) m[key] = [];
+  let project = "";
+  for (const f of fragments) {
+    if (!f || typeof f !== "object") continue;
+    if (!project && typeof f.project === "string" && f.project.trim()) project = f.project.trim();
+    for (const key of FRAG_LISTS) {
+      const v = f[key];
+      if (Array.isArray(v)) for (const x of v) if (typeof x === "string") m[key].push(x);
+    }
+  }
+  return { project, ...m };
+}
+
+// Deterministic, lossless assembly of the 12-field card from window fragments,
+// plus ONE tiny LLM call for the human-readable intent line.
+async function assembleCard(item, fragments) {
+  const m = mergeFragments(fragments);
+  const project = m.project || item.metadata?.project || item.project || "unknown";
+  const period = new Date(item.timestamp || Date.now()).toISOString().slice(0, 7); // YYYY-MM
+  const decisions = uniqCap(m.decisions, 6);
+  const outcomes = uniqCap(m.outcomes, 6);
+  const failures = uniqCap(m.failures, 6);
+  const capabilities = uniqCap(m.capabilities, 6);
+  const applications = uniqCap([...m.applications, project], 6);
+  let evidence = uniqCap([...m.evidence, ...m.artifacts], 6);
+  if (!evidence.length) evidence = [project];
+
+  let intent = "";
+  const intentTokens = { prompt: 0, completion: 0 };
+  try {
+    const highlights = [
+      `project: ${project}`,
+      decisions.length ? `decisions: ${decisions.join("; ")}` : "",
+      outcomes.length ? `outcomes: ${outcomes.join("; ")}` : "",
+      failures.length ? `failures: ${failures.join("; ")}` : ""
+    ]
+      .filter(Boolean)
+      .join("\n")
+      .slice(0, 2000);
+    const res = await chat({
+      system:
+        "You summarise one working session's intent in 1-3 plain-language sentences (what the operator was trying to achieve). Output the sentences only — no JSON, no preamble.",
+      user: highlights,
+      maxTokens: config.INTENT_MAX_TOKENS,
+      json: false,
+      temperature: 0.3
+    });
+    intent = (res.content || "").replace(/\s+/g, " ").trim();
+    intentTokens.prompt = res.prompt_tokens;
+    intentTokens.completion = res.completion_tokens;
+  } catch {
+    /* fall back below */
+  }
+  if (intent.length < 20) {
+    intent = `Work on ${project}: ${outcomes[0] || decisions[0] || "session activity"}`.slice(0, 300);
+    if (intent.length < 20) intent = `Working session on ${project} (${period}).`;
+  }
+
+  const card = {
+    project,
+    period,
+    intent,
+    applications,
+    capabilities,
+    decisions,
+    outcomes,
+    failures,
+    skills_observed: uniqCap(m.skills_observed, 6),
+    operator_traits: [],
+    open_threads: uniqCap(m.open_threads, 6),
+    proposed_next: uniqCap(m.proposed_next, 6),
+    evidence,
+    concepts: uniqCap(m.concepts, 12)
+  };
+  return { card, intentTokens };
+}
+
 // ---------------------------------------------------------------------- map
 async function runMap({ deltaMode = false, limitOverride = null } = {}) {
   const inventory = loadInventory();
   const limit = limitOverride ?? (Number(opt("limit", 0)) || Infinity);
   const verdicts = mapVerdicts();
-  const system = prompt("session_card");
+  const fragmentSystem = prompt("window_fragment");
 
   const queue = inventory.filter((item) => {
     if (!fs.existsSync(evidencePath(item.id))) return false;
@@ -216,37 +333,52 @@ async function runMap({ deltaMode = false, limitOverride = null } = {}) {
       thin++;
       continue;
     }
-    const pack = fs.readFileSync(evidencePath(item.id), "utf8");
     const started = Date.now();
     let card = null,
       gateErrors = [],
       retries = 0,
       tokens = { prompt: 0, completion: 0, estimated: false };
 
-    for (let attempt = 0; attempt < 2 && !card; attempt++) {
-      retries = attempt;
-      try {
-        const feedback =
-          attempt > 0
-            ? `\n\nYour previous answer failed validation: ${gateErrors.join("; ")}. Return corrected JSON only.`
-            : "";
-        const res = await chat({
-          system,
-          user: pack + feedback,
-          maxTokens: config.CARD_MAX_TOKENS,
-          json: true
-        });
-        tokens = {
-          prompt: tokens.prompt + res.prompt_tokens,
-          completion: tokens.completion + res.completion_tokens,
-          estimated: res.usage_estimated
-        };
-        const parsed = lastBalancedJson(res.content);
-        gateErrors = validateCard(parsed, { sessionId: item.id, agent: item.agent });
-        if (gateErrors.length === 0) card = parsed;
-      } catch (e) {
-        gateErrors = [`llm error: ${e.message}`];
+    try {
+      // Walk the FULL session timeline in short windows; extract a tiny fragment
+      // per window (cached under windows/<sid>/<n>.json — resume-safe, so a restart
+      // never re-runs completed windows even for 1000+ step sessions), then assemble
+      // the card losslessly in code so the model never emits a large (truncating) object.
+      const { windows } = walkSessionWindows(item, { inputChars: config.WINDOW_INPUT_CHARS });
+      const fragments = [];
+      for (const w of windows) {
+        if (interrupted) break;
+        const fp = windowFragPath(item.id, w.index);
+        if (fs.existsSync(fp)) {
+          fragments.push(JSON.parse(fs.readFileSync(fp, "utf8")));
+          continue;
+        }
+        let frag = {};
+        try {
+          const res = await chat({
+            system: fragmentSystem,
+            user: w.text,
+            maxTokens: config.FRAGMENT_MAX_TOKENS,
+            json: true
+          });
+          tokens.prompt += res.prompt_tokens;
+          tokens.completion += res.completion_tokens;
+          tokens.estimated = res.usage_estimated;
+          frag = lastBalancedJson(res.content) || repairTruncatedJson(res.content) || {};
+        } catch (e) {
+          frag = { _error: String(e.message) };
+        }
+        fs.mkdirSync(path.dirname(fp), { recursive: true });
+        fs.writeFileSync(fp, JSON.stringify(frag));
+        fragments.push(frag);
       }
+      const { card: assembled, intentTokens } = await assembleCard(item, fragments);
+      tokens.prompt += intentTokens.prompt;
+      tokens.completion += intentTokens.completion;
+      gateErrors = validateCard(assembled, { sessionId: item.id, agent: item.agent });
+      if (gateErrors.length === 0) card = assembled;
+    } catch (e) {
+      gateErrors = [`walk error: ${e.message}`];
     }
 
     const ms = Date.now() - started;
@@ -846,6 +978,94 @@ async function runEnrichGraph() {
   appendLedger({ phase: "enrich", ok, ms: Date.now() - started, tail: tail.slice(0, 500) });
 }
 
+// -------------------------------------------------------------------- review
+// Post-graph session review (the "greater than the sum" pass, ADR-005). Runs
+// after enrich, so the concept graph + cross-document links + themes exist. For
+// each session card it pulls the session's concepts and their graph neighbours
+// (concepts from OTHER sessions that connect to it) and writes a graph-grounded
+// review note collating the session's contribution in the context of the corpus.
+async function runReview({ limitOverride = null } = {}) {
+  const reviewsDir = workspaceDir("data_out", "reviews");
+  fs.mkdirSync(reviewsDir, { recursive: true });
+  const system = prompt("session_review");
+  const cardsDir = stateDir("cards");
+  let cardFiles = [];
+  try {
+    cardFiles = fs.readdirSync(cardsDir).filter((f) => f.endsWith(".json"));
+  } catch {
+    cardFiles = [];
+  }
+  const limit = limitOverride ?? (Number(opt("limit", 0)) || Infinity);
+  let done = 0,
+    skipped = 0,
+    processed = 0;
+
+  for (const cf of cardFiles) {
+    if (processed >= limit || interrupted) break;
+    const sid = cf.replace(/\.json$/, "");
+    const notePath = path.join(reviewsDir, `${sid}.md`);
+    if (!flag("force") && fs.existsSync(notePath)) {
+      skipped++;
+      continue;
+    }
+    let card;
+    try {
+      card = JSON.parse(fs.readFileSync(path.join(cardsDir, cf), "utf8"));
+    } catch {
+      continue;
+    }
+    processed++;
+    const anchors = uniqCap([...(card.concepts || []), ...(card.capabilities || [])], 6);
+    const related = [];
+    for (const a of anchors.slice(0, 4)) {
+      if (interrupted) break;
+      for (const n of await graphNeighbors(a, 6)) if (!anchors.includes(n)) related.push(n);
+    }
+    const relatedUniq = uniqCap(related, 20);
+    const user = [
+      `## Session card`,
+      `project: ${card.project}`,
+      `intent: ${card.intent}`,
+      card.decisions?.length ? `decisions: ${card.decisions.join("; ")}` : "",
+      card.outcomes?.length ? `outcomes: ${card.outcomes.join("; ")}` : "",
+      card.failures?.length ? `failures: ${card.failures.join("; ")}` : "",
+      `\n## This session's concepts`,
+      anchors.join(", ") || "(none)",
+      `\n## Related concepts from other sessions (graph)`,
+      relatedUniq.join(", ") || "(none found)"
+    ]
+      .filter(Boolean)
+      .join("\n")
+      .slice(0, config.REVIEW_INPUT_CHARS);
+
+    const started = Date.now();
+    let note = "";
+    try {
+      const res = await chat({
+        system,
+        user,
+        maxTokens: config.REVIEW_MAX_TOKENS,
+        json: false,
+        temperature: 0.35
+      });
+      note = (res.content || "").trim();
+    } catch (e) {
+      note = "";
+    }
+    if (note.length > 40) {
+      fs.writeFileSync(notePath, `# Review: ${card.project} — ${sid8(sid)}\n\n${note}\n`);
+      appendLedger({ phase: "review", session_id: sid, status: "ok", ms: Date.now() - started });
+      done++;
+      console.log(`[review] ok  ${sid8(sid)} ${card.project}`);
+    } else {
+      appendLedger({ phase: "review", session_id: sid, status: "failed", ms: Date.now() - started });
+      console.log(`[review] FAIL ${sid8(sid)}`);
+    }
+    writeStatus({ phase: "review", reviews_done: done });
+  }
+  console.log(`[review] done: ok=${done} skipped=${skipped}`);
+}
+
 // -------------------------------------------------------------------- weave
 // Discovery loops (the request: "loops of discovery… cross reference and
 // discovery through the graph and the text"). Each loop: ask the model what
@@ -1164,6 +1384,7 @@ async function runManifest() {
       else if (ph.id === "model") await runModel();
       else if (ph.id === "code") await runCode();
       else if (ph.id === "enrich") await runEnrichGraph();
+      else if (ph.id === "review") await runReview({ limitOverride: Number(ph.limit) || null });
       else if (ph.id === "weave")
         await runWeave({
           loops: Number(ph.loops) || null,
@@ -1226,6 +1447,9 @@ async function main() {
       break;
     case "enrich":
       await runEnrichGraph();
+      break;
+    case "review":
+      await runReview();
       break;
     case "weave":
       await runWeave();
