@@ -68,18 +68,30 @@ export async function graphNeighbors(concept, limit = 10) {
 
 // Compose a compact evidence block for a generation call: chunks first (the
 // substance), then graph context (the cross-references), clipped to budget.
-export async function evidenceFor(query, { topK = 5, budget = 4500 } = {}) {
+export async function evidenceFor(query, opts = {}) {
+  return (await evidenceForWithSources(query, opts)).text;
+}
+
+// Provenance-aware variant (Benny Record): returns WHICH sources fed the pack —
+// the previously-discarded edge that makes output lineage traceable.
+export async function evidenceForWithSources(query, { topK = 5, budget = 4500 } = {}) {
   const chunks = await ragQuery(query, topK);
+  const sources = [];
   let out = "";
   for (const c of chunks) {
     const piece = `\n[${c.source}]\n${c.text.slice(0, 900)}\n`;
     if (out.length + piece.length > budget) break;
     out += piece;
+    sources.push({ kind: "chunk", source: c.source });
   }
   const firstWords = query.split(/\s+/).slice(0, 3).join(" ");
   const neighbors = await graphNeighbors(firstWords, 8);
   if (neighbors.length && out.length < budget - 200) {
     out += `\n[graph: related concepts] ${neighbors.join(", ")}\n`;
+    for (const n of neighbors) sources.push({ kind: "graph", source: n });
   }
-  return out || "(no retrieved evidence — write only from the chapter brief, conservatively)";
+  return {
+    text: out || "(no retrieved evidence — write only from the chapter brief, conservatively)",
+    sources
+  };
 }

@@ -345,7 +345,25 @@ async function runMap({ deltaMode = false, limitOverride = null } = {}) {
       // per window (cached under windows/<sid>/<n>.json — resume-safe, so a restart
       // never re-runs completed windows even for 1000+ step sessions), then assemble
       // the card losslessly in code so the model never emits a large (truncating) object.
-      const { windows } = walkSessionWindows(item, { inputChars: config.WINDOW_INPUT_CHARS });
+      const { windows, stepCount } = walkSessionWindows(item, {
+        inputChars: config.WINDOW_INPUT_CHARS
+      });
+      // Benny Record provenance: which timeline steps each window covered.
+      fs.mkdirSync(stateDir("windows", item.id), { recursive: true });
+      fs.writeFileSync(
+        stateDir("windows", item.id, "manifest.json"),
+        JSON.stringify({
+          session_id: item.id,
+          agent: item.agent,
+          step_count: stepCount,
+          window_chars: config.WINDOW_INPUT_CHARS,
+          windows: windows.map((w) => ({
+            index: w.index,
+            steps: [w.steps[0] ?? 0, w.steps[w.steps.length - 1] ?? 0],
+            chars: w.text.length
+          }))
+        })
+      );
       const fragments = [];
       for (const w of windows) {
         if (interrupted) break;
@@ -385,6 +403,17 @@ async function runMap({ deltaMode = false, limitOverride = null } = {}) {
     const ms = Date.now() - started;
     if (card) {
       fs.writeFileSync(cardPath(item.id), JSON.stringify(card, null, 2));
+      fs.writeFileSync(
+        stateDir("cards", `${item.id}.meta.json`),
+        JSON.stringify({
+          session_id: item.id,
+          window_chars: config.WINDOW_INPUT_CHARS,
+          tokens,
+          ms,
+          model: config.LONGVIEW_MODEL,
+          ts: new Date().toISOString()
+        })
+      );
       appendLedger({
         phase: "map",
         session_id: item.id,
@@ -444,7 +473,7 @@ function loadCards() {
   const dir = stateDir("cards");
   return fs
     .readdirSync(dir)
-    .filter((f) => f.endsWith(".json"))
+    .filter((f) => f.endsWith(".json") && !f.endsWith(".meta.json"))
     .sort()
     .map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")))
     .sort(
@@ -729,7 +758,19 @@ async function reduceCall(name, system, user, outPath) {
     res = await chat({ system, user, maxTokens: config.REDUCE_MAX_TOKENS, temperature: 0.4 });
   }
   const ok = res.content.trim().length >= 80;
-  if (ok) fs.writeFileSync(outPath, res.content);
+  if (ok) {
+    fs.writeFileSync(outPath, res.content);
+    // Benny Record provenance: what fed this deliverable + what it cost.
+    fs.writeFileSync(outPath + ".meta.json", JSON.stringify({
+      artifact: name,
+      input_chars: user.length,
+      input_head: user.slice(0, 400),
+      prompt_tokens: res.prompt_tokens,
+      completion_tokens: res.completion_tokens,
+      model: config.LONGVIEW_MODEL,
+      ts: new Date().toISOString()
+    }));
+  }
   appendLedger({
     phase: "reduce",
     artifact: name,
@@ -1054,7 +1095,10 @@ async function runReview({ limitOverride = null } = {}) {
   const cardsDir = stateDir("cards");
   let cardFiles = [];
   try {
-    cardFiles = fs.readdirSync(cardsDir).filter((f) => f.endsWith(".json"));
+    cardFiles = fs
+      .readdirSync(cardsDir)
+      .filter((f) => f.endsWith(".json") && !f.endsWith(".meta.json"))
+      .sort();
   } catch {
     cardFiles = [];
   }
@@ -1117,7 +1161,14 @@ async function runReview({ limitOverride = null } = {}) {
     }
     if (note.length > 40) {
       fs.writeFileSync(notePath, `# Review: ${card.project} — ${sid8(sid)}\n\n${note}\n`);
-      appendLedger({ phase: "review", session_id: sid, status: "ok", ms: Date.now() - started });
+      appendLedger({
+        phase: "review",
+        session_id: sid,
+        status: "ok",
+        ms: Date.now() - started,
+        anchors,
+        related_concepts: relatedUniq.slice(0, 12)
+      });
       done++;
       console.log(`[review] ok  ${sid8(sid)} ${card.project}`);
     } else {
@@ -1597,6 +1648,27 @@ async function main() {
     case "review":
       await runReview();
       break;
+    case "record": {
+      // Benny Record: ordered action timeline + lineage breadcrumbs for a scope
+      // (run | card:<sid8> | section:<id> | dossier:<name> | book).
+      const { recordFor, lineageFor } = await import("./lib/record.mjs");
+      const scope = args[1] && !args[1].startsWith("--") ? args[1] : "run";
+      const rec = recordFor(scope);
+      const lin = lineageFor(scope);
+      if (flag("json")) {
+        console.log(JSON.stringify({ record: rec, lineage: lin }, null, 2));
+      } else {
+        console.log(`[record] ${scope} — ${rec.actions.length} actions`);
+        for (const a of rec.actions.slice(-40)) {
+          console.log(`  ${a.ts || ""} ${a.caption}${a.tokens ? ` [${a.tokens} tok]` : ""}`);
+        }
+        console.log(`[lineage] ${lin.nodes.length} nodes:`);
+        for (const n of lin.nodes.slice(0, 40)) {
+          console.log(`  ${"  ".repeat(n.depth)}${n.type}: ${n.label}${n.meta?.log_path ? ` → ${n.meta.log_path}` : ""}`);
+        }
+      }
+      break;
+    }
     case "weave":
       await runWeave();
       break;

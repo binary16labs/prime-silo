@@ -10,7 +10,7 @@ import { fileURLToPath } from "url";
 import { config, workspaceDir, stateDir } from "./config.mjs";
 import { chat, lastBalancedJson, repairTruncatedJson } from "./llm.mjs";
 import { appendLedger, writeStatus } from "./ledger.mjs";
-import { evidenceFor } from "./retrieve.mjs";
+import { evidenceForWithSources } from "./retrieve.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const prompt = (name) =>
@@ -299,10 +299,12 @@ export async function runOpus({ interrupted = () => false } = {}) {
     if (interrupted()) break;
     const started = Date.now();
     try {
-      let evidence = await evidenceFor(s.query || `${ch.title} ${s.title}`, {
+      const ev = await evidenceForWithSources(s.query || `${ch.title} ${s.title}`, {
         topK: 4,
         budget: s.reflection ? 2400 : 3800
       });
+      let evidence = ev.text;
+      const evidenceSources = ev.sources;
       // Reflection sections are grounded in the post-graph session reviews —
       // the cross-session collation is what the interlude reflects on.
       if (s.reflection) {
@@ -361,6 +363,26 @@ export async function runOpus({ interrupted = () => false } = {}) {
       }
       if (!best || best.length < 200) throw new Error("no usable draft after retry");
       fs.writeFileSync(file, best);
+      // Benny Record provenance: WHAT went into this section — the lineage edge.
+      fs.writeFileSync(
+        opusDir("sections", `${s.id}.meta.json`),
+        JSON.stringify(
+          {
+            id: s.id,
+            query: s.query || `${ch.title} ${s.title}`,
+            reflection: !!s.reflection,
+            evidence_sources: evidenceSources,
+            cited_sids: [...new Set((best.match(/\(sid:\s*[a-z0-9]{6,}\s*\)/gi) || []).map((m) => m.replace(/.*sid:\s*/i, "").replace(/\s*\).*/, "").slice(0, 8)))],
+            cited_concepts: [...new Set((best.match(/\(concept:\s*[^)]+\)/gi) || []).map((m) => m.replace(/.*concept:\s*/i, "").replace(/\s*\).*/, "").trim()))],
+            tokens,
+            gate: bestGate,
+            model: config.LONGVIEW_MODEL,
+            ts: new Date().toISOString()
+          },
+          null,
+          2
+        )
+      );
       const passed = bestGate.errs.length === 0;
       if (passed) done++;
       else failed++;

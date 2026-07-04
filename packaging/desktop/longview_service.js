@@ -127,3 +127,44 @@ function stopLongview() {
 }
 
 module.exports = { startLongview, longviewStatus, stopLongview, MODES };
+
+// ── Benny Record additions (observability) ─────────────────────────────────
+
+// Incremental tail of the runner's append-only ledger. `since` = line offset;
+// returns only new entries + the heartbeat, so a UI can poll cheaply.
+function longviewLedger({ since = 0, workspace = WORKSPACE } = {}) {
+  const dir = path.join(resolveHome().bennyHome, "workspaces", workspace, "longview");
+  let entries = [];
+  let total = 0;
+  try {
+    const lines = fs.readFileSync(path.join(dir, "ledger.jsonl"), "utf8").split("\n").filter(Boolean);
+    total = lines.length;
+    entries = lines.slice(Math.max(0, Number(since) || 0)).map((l) => {
+      try { return JSON.parse(l); } catch { return { raw: l }; }
+    });
+  } catch { /* no ledger yet */ }
+  let heartbeat = null;
+  try { heartbeat = JSON.parse(fs.readFileSync(path.join(dir, "status.json"), "utf8")); } catch { /* none */ }
+  return { workspace, since: Number(since) || 0, next: total, entries, heartbeat };
+}
+
+// Full record (action timeline + lineage tree) for a scope, via the runner's
+// own CLI so there is exactly one assembly implementation (record.mjs).
+function longviewRecord({ scope = "run", workspace = WORKSPACE } = {}) {
+  const { spawnSync } = require("child_process");
+  const runner = path.join(__dirname, "..", "..", "scripts", "longview", "longview.mjs");
+  const r = spawnSync(process.execPath, [runner, "record", String(scope), "--json"], {
+    encoding: "utf8",
+    timeout: 60000,
+    env: { ...process.env, LONGVIEW_WORKSPACE: workspace }
+  });
+  try {
+    const start = r.stdout.indexOf("{");
+    return JSON.parse(r.stdout.slice(start));
+  } catch {
+    return { error: "record assembly failed", detail: (r.stderr || r.stdout || "").slice(-400) };
+  }
+}
+
+module.exports.longviewLedger = longviewLedger;
+module.exports.longviewRecord = longviewRecord;
