@@ -7,7 +7,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { config, workspaceDir } from "./config.mjs";
+import { config, workspaceDir, stateDir } from "./config.mjs";
 import { chat, lastBalancedJson, repairTruncatedJson } from "./llm.mjs";
 import { appendLedger, writeStatus } from "./ledger.mjs";
 import { evidenceFor } from "./retrieve.mjs";
@@ -30,12 +30,16 @@ function foundationDigest() {
   const out = workspaceDir("data_out");
   const parts = [
     `## Themes\n${readIf(path.join(out, "THEMES.md"), 5000)}`,
+    // Chronological spine (deterministic, from reduce) — the outline and chapter
+    // specs follow the actual arc of the journey, not just thematic clusters.
+    `## Timeline (the journey, month by month)\n${readIf(path.join(out, "TIMELINE.md"), 3500)}`,
     `## Portfolio report (excerpt)\n${readIf(path.join(out, "PORTFOLIO-REPORT.md"), 2500)}`
   ];
   try {
     const dossiers = fs
       .readdirSync(path.join(out, "dossiers"))
       .filter((f) => f.endsWith(".md"))
+      .sort()
       .map((f) => f.replace(/\.md$/, ""));
     parts.push(`## Projects with dossiers\n${dossiers.join(", ")}`);
   } catch {
@@ -51,6 +55,23 @@ function foundationDigest() {
     /* none yet */
   }
   return parts.join("\n\n");
+}
+
+// Sorted, clipped digest of the post-graph session reviews — the cross-session
+// collation material that grounds the reflection sections.
+function reviewsDigest(cap = 3200) {
+  const rDir = workspaceDir("data_out", "reviews");
+  try {
+    return fs
+      .readdirSync(rDir)
+      .filter((f) => f.endsWith(".md"))
+      .sort()
+      .map((f) => readIf(path.join(rDir, f), 800))
+      .join("\n\n---\n\n")
+      .slice(0, cap);
+  } catch {
+    return "";
+  }
 }
 
 async function jsonCall(name, system, user, maxTokens, requiredKey = null, minItems = 1) {
@@ -168,6 +189,20 @@ async function buildOutline(interrupted) {
     if (spec?.chapters?.length) {
       part.chapters = spec.chapters.map((c, i) => ({ ...c, n: nextChapter + i }));
       nextChapter += spec.chapters.length;
+      // Cohesion contract (enforced deterministically, not asked of the model):
+      // every part closes with a Reflection chapter grounded in the post-graph
+      // session reviews — the "greater than the sum" interludes of the journey.
+      if (!part.chapters.some((c) => /reflection/i.test(c.title || ""))) {
+        part.chapters.push({
+          n: nextChapter++,
+          title: `Reflection — ${part.title}`,
+          brief:
+            `A reflective interlude closing Part ${part.n}: what this stretch of the ` +
+            `journey taught — patterns, reversals, and lessons across its sessions, ` +
+            `grounded in the session reviews and themes. Ends looking forward.`,
+          reflection: true
+        });
+      }
       fs.writeFileSync(outlinePath, JSON.stringify(outline, null, 2));
     } else {
       console.log(`[opus] WARN chapters for part ${part.n} did not parse — rerun resumes here`);
@@ -179,6 +214,21 @@ async function buildOutline(interrupted) {
     for (const ch of part.chapters || []) {
       if (interrupted()) return outline;
       if (Array.isArray(ch.sections) && ch.sections.length) continue;
+      // Reflection chapters get one fixed, deterministic section — no LLM
+      // planning call, no drift.
+      if (ch.reflection) {
+        ch.sections = [
+          {
+            id: `p${part.n}c${ch.n}s1`,
+            title: ch.title,
+            brief: ch.brief,
+            reflection: true,
+            query: `lessons learned reflection patterns ${part.title} ${part.theme || ""}`
+          }
+        ];
+        fs.writeFileSync(outlinePath, JSON.stringify(outline, null, 2));
+        continue;
+      }
       console.log(`[opus] sections for part ${part.n} ch ${ch.n}: ${ch.title}`);
       const spec = await jsonCall(
         `sections:p${part.n}c${ch.n}`,
@@ -210,6 +260,18 @@ async function buildOutline(interrupted) {
   return outline;
 }
 
+// Deterministic craft gate — the prompt's rules (length, inline citations) are
+// VALIDATED, not just requested. Returns the violations so a retry can quote them.
+function sectionGate(text) {
+  const words = text.split(/\s+/).filter(Boolean).length;
+  const cites = (text.match(/\((sid|concept|doc):\s*[^)]+\)/g) || []).length;
+  const errs = [];
+  if (words < 400) errs.push(`too short (${words} words; need 650-950)`);
+  if (words > 1300) errs.push(`too long (${words} words; need 650-950)`);
+  if (cites < 2) errs.push(`only ${cites} inline citation(s); need 2-5 like (sid: abc123)`);
+  return { errs, words, cites };
+}
+
 function allSections(outline) {
   const list = [];
   for (const part of outline.parts || []) {
@@ -237,10 +299,16 @@ export async function runOpus({ interrupted = () => false } = {}) {
     if (interrupted()) break;
     const started = Date.now();
     try {
-      const evidence = await evidenceFor(s.query || `${ch.title} ${s.title}`, {
+      let evidence = await evidenceFor(s.query || `${ch.title} ${s.title}`, {
         topK: 4,
-        budget: 3800
+        budget: s.reflection ? 2400 : 3800
       });
+      // Reflection sections are grounded in the post-graph session reviews —
+      // the cross-session collation is what the interlude reflects on.
+      if (s.reflection) {
+        const rd = reviewsDigest(2400);
+        if (rd) evidence += `\n\n## Session reviews (cross-session collation)\n${rd}`;
+      }
       // Continuity: the tail of the previous section, if it exists.
       const idx = sections.findIndex((x) => x.s.id === s.id);
       let prevTail = "";
@@ -251,34 +319,64 @@ export async function runOpus({ interrupted = () => false } = {}) {
           prevTail = prev.slice(-350);
         }
       }
-      const res = await chat({
-        system: prompt("vampire_section"),
-        user: [
-          `## Book\n${JSON.stringify({ metaphor: outline.metaphor, arc: outline.arc }).slice(0, 1200)}`,
-          `## Chapter ${ch.n}: ${ch.title}\n${ch.brief || ""}`,
-          `## This section\n${JSON.stringify({ title: s.title, brief: s.brief })}`,
-          prevTail ? `## Previous section ends…\n${prevTail}` : "",
-          `## Retrieved evidence\n${evidence}`
-        ]
-          .filter(Boolean)
-          .join("\n\n"),
-        maxTokens: 1500,
-        temperature: 0.65
-      });
-      const text = res.content.trim();
-      if (text.length < 400) throw new Error(`section too short (${text.length} chars)`);
-      fs.writeFileSync(file, text);
-      done++;
+      const baseUser = [
+        `## Book\n${JSON.stringify({ metaphor: outline.metaphor, arc: outline.arc }).slice(0, 1200)}`,
+        `## Chapter ${ch.n}: ${ch.title}\n${ch.brief || ""}`,
+        `## This section\n${JSON.stringify({ title: s.title, brief: s.brief })}`,
+        s.reflection
+          ? `## Note\nThis is a REFLECTION interlude: step back from scene narration; synthesise the lessons, patterns and reversals of this part across its sessions, drawing on the session reviews. Still cite.`
+          : "",
+        prevTail ? `## Previous section ends…\n${prevTail}` : "",
+        `## Retrieved evidence\n${evidence}`
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+
+      // Deterministic craft gate with one retry: the prompt's length/citation
+      // rules are enforced, and the better of the two attempts is kept —
+      // never a hole in the book, never a silently substandard section.
+      let best = null;
+      let bestGate = null;
+      let tokens = { prompt: 0, completion: 0 };
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const feedback =
+          attempt > 0 && bestGate
+            ? `\n\n## Fix these problems from your previous draft\n- ${bestGate.errs.join("\n- ")}`
+            : "";
+        const res = await chat({
+          system: prompt("vampire_section"),
+          user: baseUser + feedback,
+          maxTokens: 1500,
+          temperature: 0.65
+        });
+        tokens.prompt += res.prompt_tokens;
+        tokens.completion += res.completion_tokens;
+        const text = res.content.trim();
+        const g = sectionGate(text);
+        if (!best || g.errs.length < bestGate.errs.length || (g.errs.length === bestGate.errs.length && g.cites > bestGate.cites)) {
+          best = text;
+          bestGate = g;
+        }
+        if (g.errs.length === 0) break;
+      }
+      if (!best || best.length < 200) throw new Error("no usable draft after retry");
+      fs.writeFileSync(file, best);
+      const passed = bestGate.errs.length === 0;
+      if (passed) done++;
+      else failed++;
       appendLedger({
         phase: "opus",
         artifact: `section:${s.id}`,
         ms: Date.now() - started,
-        prompt_tokens: res.prompt_tokens,
-        completion_tokens: res.completion_tokens,
-        words: text.split(/\s+/).length
+        prompt_tokens: tokens.prompt,
+        completion_tokens: tokens.completion,
+        words: bestGate.words,
+        citations: bestGate.cites,
+        ok: passed,
+        ...(passed ? {} : { gate_errors: bestGate.errs })
       });
       console.log(
-        `[opus] ${s.id} ok (${done}/${sections.length}, ${((Date.now() - started) / 1000).toFixed(0)}s)`
+        `[opus] ${s.id} ${passed ? "ok" : "GATE-FAIL (kept best draft)"} (${done}/${sections.length}, ${((Date.now() - started) / 1000).toFixed(0)}s, ${bestGate.cites} cites)`
       );
     } catch (e) {
       failed++;
@@ -302,15 +400,98 @@ export async function runOpus({ interrupted = () => false } = {}) {
   // Assemble whatever exists — partial assemblies are useful previews and the
   // assembly is deterministic + idempotent.
   const words = assembleBook(outline);
+  const coverage = writeCoverage(outline, sections, words);
   console.log(
-    `[opus] assembled: ${done}/${sections.length} sections, ~${words} words (~${Math.round(words / 350)} pages)`
+    `[opus] assembled: ${done}/${sections.length} sections, ~${words} words (~${Math.round(words / 350)} pages), session coverage ${(coverage * 100).toFixed(0)}%`
   );
   writeStatus({
     phase: "opus_done",
     opus_sections_done: done,
     opus_sections_total: sections.length,
-    opus_words: words
+    opus_words: words,
+    opus_citation_coverage: +coverage.toFixed(3)
   });
+}
+
+// Deterministic honesty report: how much of the corpus the book actually stands
+// on. Written next to the book; thresholds warn (non-fatal) so a thin book is
+// visible, never silent.
+function writeCoverage(outline, sections, words) {
+  const book = readIf(opusDir("THE-AI-VAMPIRE.md"), 10000000);
+  const sids = new Set(
+    (book.match(/\(sid:\s*[a-z0-9]{6,}\s*\)/gi) || []).map((m) =>
+      m.replace(/.*sid:\s*/i, "").replace(/\s*\).*/, "").slice(0, 8)
+    )
+  );
+  let totalCards = 0;
+  try {
+    totalCards = fs.readdirSync(stateDir("cards")).filter((f) => f.endsWith(".json")).length;
+  } catch {
+    /* no cards dir */
+  }
+  let dossiers = [];
+  let dossiersReferenced = 0;
+  try {
+    dossiers = fs
+      .readdirSync(workspaceDir("data_out", "dossiers"))
+      .filter((f) => f.endsWith(".md"))
+      .map((f) => f.replace(/\.md$/, ""));
+    const lower = book.toLowerCase();
+    dossiersReferenced = dossiers.filter((d) =>
+      lower.includes(d.replace(/_/g, " ").toLowerCase())
+    ).length;
+  } catch {
+    /* none */
+  }
+  let pass = 0,
+    gateFail = 0,
+    missing = 0,
+    reflections = 0;
+  for (const { s } of sections) {
+    const f = opusDir("sections", `${s.id}.md`);
+    if (!fs.existsSync(f)) {
+      missing++;
+      continue;
+    }
+    if (s.reflection) reflections++;
+    const g = sectionGate(fs.readFileSync(f, "utf8"));
+    if (g.errs.length === 0) pass++;
+    else gateFail++;
+  }
+  const coverage = totalCards ? sids.size / totalCards : 0;
+  const min = Number(process.env.LONGVIEW_OPUS_MIN_CITE_COVERAGE || 0.35);
+  const md = [
+    "# Book coverage report (deterministic)",
+    "",
+    `- words: ${words} (~${Math.round(words / 350)} pages)`,
+    `- sections: ${pass} pass gate, ${gateFail} gate-fail (kept best draft), ${missing} missing`,
+    `- reflection interludes: ${reflections}`,
+    `- distinct sessions cited: ${sids.size} of ${totalCards} cards (${(coverage * 100).toFixed(1)}%)`,
+    `- dossiers referenced in text: ${dossiersReferenced} of ${dossiers.length}`,
+    `- citation-coverage threshold: ${min} → ${coverage >= min ? "MET" : "BELOW (see ledger)"}`,
+    ""
+  ].join("\n");
+  fs.writeFileSync(opusDir("COVERAGE.md"), md);
+  appendLedger({
+    phase: "opus",
+    artifact: "coverage",
+    words,
+    sections_pass: pass,
+    sections_gate_fail: gateFail,
+    sections_missing: missing,
+    reflections,
+    sessions_cited: sids.size,
+    cards_total: totalCards,
+    citation_coverage: +coverage.toFixed(3),
+    dossiers_referenced: dossiersReferenced,
+    dossiers_total: dossiers.length,
+    ok: coverage >= min
+  });
+  if (coverage < min)
+    console.log(
+      `[opus] WARN citation coverage ${(coverage * 100).toFixed(1)}% < ${min * 100}% threshold — book stands on a thin slice of the corpus`
+    );
+  return coverage;
 }
 
 function assembleBook(outline) {

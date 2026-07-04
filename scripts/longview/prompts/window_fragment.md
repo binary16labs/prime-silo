@@ -12,6 +12,7 @@ Return ONLY a compact JSON object with these fields (every value an array of sho
 "artifacts": ["files/artifacts created or edited in this slice"],
 "concepts": ["key technical concepts or entities named in this slice"],
 "skills_observed": ["reusable techniques/workflows demonstrated in this slice"],
+"operator_traits": ["working preferences the operator showed in this slice, e.g. 'demands measured claims over assertions' (0-2 max)"],
 "open_threads": ["explicitly unfinished work or stated TODOs in this slice"],
 "proposed_next": ["logical next steps stated or clearly implied in this slice"],
 "evidence": ["names of artifacts/tools/inputs from this slice that support the above"]

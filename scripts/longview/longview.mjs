@@ -192,6 +192,7 @@ const FRAG_LISTS = [
   "artifacts",
   "concepts",
   "skills_observed",
+  "operator_traits",
   "open_threads",
   "proposed_next",
   "evidence"
@@ -282,7 +283,7 @@ async function assembleCard(item, fragments) {
     outcomes,
     failures,
     skills_observed: uniqCap(m.skills_observed, 6),
-    operator_traits: [],
+    operator_traits: uniqCap(m.operator_traits, 6),
     open_threads: uniqCap(m.open_threads, 6),
     proposed_next: uniqCap(m.proposed_next, 6),
     evidence,
@@ -437,11 +438,45 @@ async function runMap({ deltaMode = false, limitOverride = null } = {}) {
 
 // -------------------------------------------------------------------- model
 function loadCards() {
+  // Deterministic order (enterprise reproducibility): never depend on fs
+  // enumeration order — sort by (period, session_id) so every downstream
+  // deliverable sees the corpus identically on every run.
   const dir = stateDir("cards");
   return fs
     .readdirSync(dir)
     .filter((f) => f.endsWith(".json"))
-    .map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")));
+    .sort()
+    .map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")))
+    .sort(
+      (a, b) =>
+        (a.period || "").localeCompare(b.period || "") ||
+        String(a.session_id).localeCompare(String(b.session_id))
+    );
+}
+
+// Deterministic chronological spine (no LLM): cards → data_out/TIMELINE.md,
+// grouped by month with (sid) citations. Feeds the dossier/theme calls and the
+// opus outline so the book follows the actual arc of the journey.
+function buildTimelineMd(cards) {
+  const byMonth = new Map();
+  for (const c of cards) {
+    const m = c.period || "unknown";
+    if (!byMonth.has(m)) byMonth.set(m, []);
+    byMonth.get(m).push(c);
+  }
+  const months = [...byMonth.keys()].sort();
+  const lines = ["# Timeline — the journey month by month", ""];
+  for (const m of months) {
+    lines.push(`## ${m}`);
+    for (const c of byMonth.get(m)) {
+      const top = (c.outcomes || [])[0] || (c.decisions || [])[0] || "";
+      lines.push(
+        `- **${c.project}** — ${String(c.intent || "").slice(0, 160)}${top ? ` Key: ${String(top).slice(0, 120)}.` : ""} (sid: ${sid8(c.session_id)})`
+      );
+    }
+    lines.push("");
+  }
+  return lines.join("\n");
 }
 
 function renderCardMd(card) {
@@ -472,12 +507,20 @@ function renderCardMd(card) {
   ]
     .filter(Boolean)
     .join("\n\n");
+  // 4th section: the walk-extracted concepts + evidence, so deep synthesis
+  // anchors its triples on the already-distilled entities instead of
+  // re-deriving them from prose (a second lossy LLM pass). Still 4 H2s —
+  // inside the 10-section/doc synthesis cap.
+  const grounding = [list("concepts", "Concepts"), list("evidence", "Evidence")]
+    .filter(Boolean)
+    .join("\n\n");
   return [
     `# Session card: ${card.project} (${card.period})`,
     `Session ${card.session_id} · agent ${card.agent}`,
     `\n## Overview\n${overview || "(none)"}`,
     `\n## What happened\n${happened || "(none)"}`,
-    `\n## Threads and signals\n${threads || "(none)"}`
+    `\n## Threads and signals\n${threads || "(none)"}`,
+    `\n## Concepts and evidence\n${grounding || "(none)"}`
   ].join("\n");
 }
 
@@ -728,6 +771,10 @@ async function runReduce({ onlyOverride = null, skipBookOverride = null } = {}) 
   const outDir = (...p) => workspaceDir("data_out", ...p);
   writeStatus({ phase: "reduce" });
 
+  // Chronological spine — deterministic, byte-identical for the same cards.
+  const timelineMd = buildTimelineMd(cards);
+  fs.writeFileSync(outDir("TIMELINE.md"), timelineMd);
+
   // 1. Project dossiers — one bounded call per project. Card project names
   // vary in case ("benny"/"Benny", "prime-silo"/"Prime-Silo"); the Windows fs
   // is case-insensitive, so their dossier files collide and the last write
@@ -785,11 +832,27 @@ async function runReduce({ onlyOverride = null, skipBookOverride = null } = {}) 
     /* no weave yet */
   }
 
+  // Review notes (post-graph collation pass) — when they exist, themes stand on
+  // the cross-session "greater than the sum" material too. Sorted read: determinism.
+  let reviewDigest = "";
+  try {
+    const rDir = outDir("reviews");
+    reviewDigest = fs
+      .readdirSync(rDir)
+      .filter((f) => f.endsWith(".md"))
+      .sort()
+      .map((f) => fs.readFileSync(path.join(rDir, f), "utf8").slice(0, 1000))
+      .join("\n\n---\n\n")
+      .slice(0, 8000);
+  } catch {
+    /* no review phase yet */
+  }
+
   if (want("themes") && !interrupted) {
     themes = await reduceCall(
       "themes",
       prompt("themes"),
-      `${dossierSummaries}\n\n## Timeline rollup\n${rollup("timeline")}\n\n## Operator rollup\n${rollup("operator").slice(0, 6000)}${discoveryDigest ? `\n\n## Discovery notes (cross-reference findings)\n${discoveryDigest}` : ""}`,
+      `${dossierSummaries}\n\n## Timeline (chronological spine)\n${timelineMd.slice(0, 6000)}\n\n## Operator rollup\n${rollup("operator").slice(0, 6000)}${discoveryDigest ? `\n\n## Discovery notes (cross-reference findings)\n${discoveryDigest}` : ""}${reviewDigest ? `\n\n## Session reviews (post-graph collation)\n${reviewDigest}` : ""}`,
       outDir("THEMES.md")
     );
   } else if (fs.existsSync(outDir("THEMES.md"))) {
@@ -1064,6 +1127,41 @@ async function runReview({ limitOverride = null } = {}) {
     writeStatus({ phase: "review", reviews_done: done });
   }
   console.log(`[review] done: ok=${done} skipped=${skipped}`);
+
+  // Make the review notes retrievable: stage into data_in and ingest as vectors
+  // (no deep synthesis — the collation prose doesn't need re-conceptualising).
+  // opus sections and weave loops then surface them via evidenceFor()/ragQuery.
+  try {
+    const ingestedPath = stateDir("rollups", "reviews_ingested.json");
+    let ingested = [];
+    try {
+      ingested = JSON.parse(fs.readFileSync(ingestedPath, "utf8"));
+    } catch {
+      /* first run */
+    }
+    const ingestedSet = new Set(ingested);
+    const pending = [];
+    for (const f of fs.readdirSync(reviewsDir).filter((x) => x.endsWith(".md")).sort()) {
+      const name = `longview_review_${sid8(f.replace(/\.md$/, ""))}.md`;
+      if (ingestedSet.has(name)) continue;
+      fs.writeFileSync(
+        workspaceDir("data_in", name),
+        fs.readFileSync(path.join(reviewsDir, f), "utf8")
+      );
+      pending.push(name);
+    }
+    if (pending.length && !interrupted) {
+      console.log(`[review] ingesting ${pending.length} review notes (vectors)…`);
+      const verdict = await ingestBatch(pending, { deepSynthesis: false });
+      if (verdict.ok) {
+        for (const n of pending) ingestedSet.add(n);
+        fs.writeFileSync(ingestedPath, JSON.stringify([...ingestedSet], null, 2));
+      }
+      appendLedger({ phase: "review", action: "ingest_reviews", ok: verdict.ok, files: pending.length });
+    }
+  } catch (e) {
+    appendLedger({ phase: "review", action: "ingest_reviews", ok: false, error: String(e.message) });
+  }
 }
 
 // -------------------------------------------------------------------- weave
@@ -1370,6 +1468,48 @@ async function runManifest() {
   if (onlyPhase && phases.length === 0) {
     console.error(`[run] phase '${onlyPhase}' not found in manifest`);
     process.exit(2);
+  }
+  // Enterprise reproducibility: pin this run to an exact configuration. Every
+  // deliverable (incl. the book) is then attributable to a commit + model + ctx
+  // + budgets via the ledger.
+  try {
+    let gitCommit = "unknown";
+    try {
+      gitCommit = spawnSync("git", ["rev-parse", "--short", "HEAD"], {
+        cwd: projectRoot,
+        encoding: "utf8"
+      }).stdout.trim();
+    } catch {
+      /* not a checkout */
+    }
+    let ctx = null;
+    try {
+      const ro = JSON.parse(
+        fs.readFileSync(
+          path.join(process.env.USERPROFILE || "", ".cache", "lemonade", "recipe_options.json"),
+          "utf8"
+        )
+      );
+      ctx = ro[config.LONGVIEW_MODEL]?.ctx_size ?? null;
+    } catch {
+      /* lemonade config not readable */
+    }
+    appendLedger({
+      phase: "run",
+      action: "run_config",
+      git_commit: gitCommit,
+      model: config.LONGVIEW_MODEL,
+      ingest_model: config.INGEST_MODEL,
+      ctx_size: ctx,
+      window_chars: config.WINDOW_INPUT_CHARS,
+      fragment_max_tokens: config.FRAGMENT_MAX_TOKENS,
+      evidence_budget: config.EVIDENCE_BUDGET_CHARS,
+      reduce_input: config.REDUCE_INPUT_BUDGET,
+      workspace: config.WORKSPACE,
+      phases: phases.map((p) => p.id)
+    });
+  } catch {
+    /* the snapshot is best-effort — never blocks the run */
   }
   for (const ph of phases) {
     if (interrupted) break;
