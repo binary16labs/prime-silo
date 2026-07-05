@@ -6,7 +6,7 @@
 One run-event stream per DAG execution = progress+telemetry+lineage; BennyTUI DAG tracker; verbs registry generating CLI/REST/agent tools (parity by construction) + MCP-registry publishing; workflow-type catalog + guided wizard.
 
 ## Phases → task contracts
-- [ ] `G0` — unified run-event stream (lineage = fold; OpenLineage = optional tail adapter)
+- [ ] `G0` — unified run-event stream (lineage = fold; OpenLineage = optional tail adapter; node_heartbeat liveness events)
 - [ ] `G1` — DAG-aware TUI tracker (evolve BennyTUI)
 - [ ] `G2` — verbs registry + live run view + MCP registry publishing
 - [ ] `G3` — workflow-type catalog + wizard + agent-assisted authoring (step ceiling ≤12)

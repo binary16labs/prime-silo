@@ -6,7 +6,7 @@
 Local qwen3.5-9B-FLM does real execution work: verified path, windowed generation respecting prefill economics, dev/knowledge/agent-support manifest packs, offline assurance, sovereignty gradient for weak hardware.
 
 ## Phases → task contracts
-- [ ] `A0` — verify real offload path (FIRST after Q0)
+- [ ] `A0` — verify real offload path (FIRST after Q0; compute-aware watchdog: wedge = silence AND idle compute, prefill_in_progress state, model_restarted event)
 - [ ] `A1` — windowing/assembly helper (≤~400-tok outputs, few full windows)
 - [ ] `A2` — dev-task pack (commit_summary, docstring_gen, unit_test_gen, log_triage, code_review_notes)
 - [ ] `A3` — knowledge-task pack (summarize_doc, card_gen, graph_enrich_batch, report_section)
