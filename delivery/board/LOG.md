@@ -1,0 +1,8 @@
+# Delivery log (append-only — never edit or delete lines)
+
+Format: `<ISO-ts> | <task-id> | <event> | <agent> | <note>`
+Events: authored, claimed, ready-for-verify, verified-by, done, blocked, unblocked, okr-score, note
+
+2026-07-05T18:30:00Z | - | authored | claude | delivery/ system created from plan rev 11: OKRs, 10 epics, M1/M2, board, 6 starter contracts (Q0 B0 G0 C0 A0 W0)
+2026-07-05T19:05:00Z | - | note | claude | Gemini 3.1 Pro review addressed: (1) 6 starter contracts + _TEMPLATE now actually written (generator had not run); (2) delivery/tasks/ confirmed canonical backlog, plan W0 updated (backlog/ superseded); (3) Antigravity protocol renders to delivery/AGENTS.md + index line in root /AGENTS.md; (4) standing backend approval for B/G/Q/W within contract allowlists recorded in README + plan 1.5; (5) Q0 rescoped — credential is a systemic dev-default (57 occurrences/40+ files incl. runtime_proxy DEV_FALLBACK, mcp/server.js, scripts, frontend constants, manifest templates), budget 600, .env.example + historical-allowlist added; (6) sequential verification provision added to README rule 7 (fresh clean-checkout session with distinct verifier identity)
+2026-07-05T19:40:00Z | - | note | claude | Antigravity/Gemini enabler review integrated as plan rev 12: W2 worktree mechanics (.worktrees/<id>, feat/<id> branch), Q2 verifier-audit CI gate (audit-delivery-log.mjs) + VCR tape fixtures, W1 blocker-triage self-healing loop, A1 semantic content-addressed cache (judge-verdict-gated, G0 cached:true honesty), C7 cognitive profiles, F8 sovereignty shield, F2 test-drive, M2-6 memo-ray memory mesh (async emission, wedge caution), M2-7 architecture drift radar
