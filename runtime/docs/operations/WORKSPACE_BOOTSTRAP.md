@@ -32,7 +32,7 @@ benny status --home $env:BENNY_HOME
 # If not: benny up --home $env:BENNY_HOME
 
 # 1b. Confirm Benny API is reachable
-curl.exe -H "X-Benny-API-Key: benny-mesh-2026-auth" http://127.0.0.1:8005/api/system/pulse
+curl.exe -H "X-Benny-API-Key: $BENNY_API_KEY" http://127.0.0.1:8005/api/system/pulse
 
 # 1c. (Recommended) Install hnswlib for sub-linear correlation kNN
 pip install hnswlib>=0.8.0

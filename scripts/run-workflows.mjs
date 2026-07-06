@@ -19,6 +19,24 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "..");
 
+// Q0: single resolution path — env BENNY_API_KEY -> per-install keystore
+// ($BENNY_HOME/state/hmac-key) -> fail fast. No shipped default remains.
+function resolveBennyApiKey(bennyHome, fileConfig) {
+  const envKey = process.env.BENNY_API_KEY || fileConfig.BENNY_API_KEY;
+  if (envKey) return envKey;
+  try {
+    const value = fs.readFileSync(path.join(bennyHome, "state", "hmac-key"), "utf8").trim();
+    if (value) return value;
+  } catch {
+    // fall through to fail-fast
+  }
+  throw new Error(
+    "BENNY_API_KEY is not set and no per-install key was found at " +
+      "<BENNY_HOME>/state/hmac-key. Set the BENNY_API_KEY environment variable, " +
+      "or run `benny init` to generate a per-install keystore."
+  );
+}
+
 // Load environment config from .env if present, allowing process.env overrides
 function loadEnv() {
   const envPath = path.join(projectRoot, ".env");
@@ -45,13 +63,15 @@ function loadEnv() {
     BENNY_HOME: process.env.BENNY_HOME || fileConfig.BENNY_HOME || ".benny_home",
     RUNTIME_BASE_URL:
       process.env.RUNTIME_BASE_URL || fileConfig.RUNTIME_BASE_URL || "http://127.0.0.1:8005",
-    BENNY_API_KEY: process.env.BENNY_API_KEY || fileConfig.BENNY_API_KEY || "benny-mesh-2026-auth"
+    BENNY_API_KEY: ""
   };
 
   // Resolve absolute path for BENNY_HOME
   if (!path.isAbsolute(config.BENNY_HOME)) {
     config.BENNY_HOME = path.resolve(projectRoot, config.BENNY_HOME);
   }
+
+  config.BENNY_API_KEY = resolveBennyApiKey(config.BENNY_HOME, fileConfig);
 
   return config;
 }

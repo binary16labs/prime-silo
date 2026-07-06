@@ -19,6 +19,11 @@ import {
   __testing as runtimeProxyTesting
 } from "../server/lib/runtime_proxy.js";
 
+// Q0: no shipped default keys remain — the proxy fails fast without configured
+// credentials, so the suite pins explicit test fixtures before any proxy call.
+process.env.BENNY_API_KEY = "q0-test-fixture-human-key";
+process.env.BENNY_AGENT_API_KEY = "q0-test-fixture-agent-key";
+
 async function main() {
   testIsRuntimeProxyPath();
   testBuildUpstreamUrl();
@@ -180,8 +185,8 @@ async function testHumanPathStripsClientScope() {
     );
     assert.equal(
       seen.headers["x-benny-api-key"],
-      "benny-mesh-2026-auth",
-      "human path injects the trusted key (dev fallback)"
+      "q0-test-fixture-human-key",
+      "human path injects the trusted key (test fixture via BENNY_API_KEY)"
     );
     assert.equal(
       JSON.parse(seen.body).filename,
@@ -210,7 +215,7 @@ async function testAgentPathForcesSandboxAndAgentKey() {
         "content-type": "application/json",
         // Attempt to widen scope — must be ignored and overwritten.
         "X-Benny-Agent-Scope": "read_only",
-        "X-Benny-API-Key": "benny-mesh-2026-auth"
+        "X-Benny-API-Key": "q0-test-fixture-human-key"
       },
       body: JSON.stringify({ workspace: "default", filename: "hello.md", content: "# hi" })
     });
@@ -224,7 +229,7 @@ async function testAgentPathForcesSandboxAndAgentKey() {
     );
     assert.equal(
       seen.headers["x-benny-api-key"],
-      "benny-agent-sandbox-2026-dev",
+      "q0-test-fixture-agent-key",
       "agent path injects the sandbox-bound agent key, overwriting any client key"
     );
   } finally {

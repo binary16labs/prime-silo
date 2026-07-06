@@ -42,7 +42,27 @@ const ON_BASE = (
 const DATA_IN = opt("data-in", process.env.BENNY_DATA_IN) || "";
 const INGEST_URL =
   opt("ingest-url", process.env.BENNY_INGEST_URL) || "http://localhost:3000/api/runtime/rag/ingest";
-const API_KEY = opt("api-key", process.env.BENNY_API_KEY) || "benny-mesh-2026-auth";
+// Q0: single resolution path — --api-key/env BENNY_API_KEY -> per-install
+// keystore ($BENNY_HOME/state/hmac-key) -> fail fast. No shipped default remains.
+const API_KEY = (() => {
+  const explicit = opt("api-key", process.env.BENNY_API_KEY);
+  if (explicit) return explicit;
+  const bennyHome = process.env.BENNY_HOME;
+  if (bennyHome) {
+    try {
+      const value = fs.readFileSync(path.join(bennyHome, "state", "hmac-key"), "utf8").trim();
+      if (value) return value;
+    } catch {
+      // fall through to fail-fast
+    }
+  }
+  console.error(
+    "ERROR: BENNY_API_KEY is not set and no per-install key was found at " +
+      "<BENNY_HOME>/state/hmac-key. Set the BENNY_API_KEY environment variable " +
+      "(or pass --api-key), or run `benny init` to generate a per-install keystore."
+  );
+  process.exit(1);
+})();
 const WORKSPACE = opt("workspace", process.env.BENNY_WORKSPACE) || "default";
 const ONLY_NOTEBOOK = opt("notebook", "");
 const NO_INGEST = flag("no-ingest");

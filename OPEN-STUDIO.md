@@ -56,7 +56,7 @@ Decision log: target opencode + open-notebook; **extend memo-ray + prime-silo in
 | open-notebook UI / API  | `http://localhost:8502` / `http://localhost:5055`                             | docker-compose at `C:\Users\nsdha\docker-compose.yml`                                                        |
 | open-notebook storage   | SurrealDB `:8000` (root/root, ns+db `open_notebook`)                          | reach via the 5055 REST API, not the DB                                                                      |
 | Benny RAG ingest        | `POST /api/runtime/rag/ingest` (space-agent proxy) → Benny `POST /rag/ingest` | **ingests files from the workspace `data_in/` dir**, NOT raw text in the body                                |
-| Benny API auth          | header `X-Benny-API-Key: benny-mesh-2026-auth`                                | required unless path whitelisted                                                                             |
+| Benny API auth          | header `X-Benny-API-Key: $BENNY_API_KEY`                                | required unless path whitelisted                                                                             |
 | Benny workspace data_in | `$BENNY_HOME/workspaces/<workspace>/data_in/`                                 | drop files here, then ingest                                                                                 |
 
 ## The repeatable audit pattern (how to add ANY new local agent to memo-ray)
@@ -101,7 +101,9 @@ deep_synthesis, ...}` — it does **not** accept raw text. So the bridge is two 
 
 - Env: `OPEN_NOTEBOOK_URL` (default `http://localhost:5055`), `BENNY_DATA_IN` (target
   `data_in` dir), `BENNY_INGEST_URL` (default `http://localhost:3000/api/runtime/rag/ingest`),
-  `BENNY_API_KEY` (default `benny-mesh-2026-auth`), `BENNY_WORKSPACE` (default `default`).
+  `BENNY_API_KEY` (no shipped default — resolved via env, then the per-install
+  keystore at `%BENNY_HOME%\state\hmac-key`; fails fast when neither is set),
+  `BENNY_WORKSPACE` (default `default`).
 - Step A: `GET /api/notebooks` → for each, `GET /api/sources?notebook_id=…`; for each source
   fetch full text (`source.full_text`, else `GET /api/sources/{id}`, else
   `GET /api/sources/{id}/download`); write `data_in/<safe-title>.md`.
@@ -169,8 +171,8 @@ coding run is auto-lineage-tracked there too.
 **Verify (needs Benny runtime + ollama up):**
 
 ```
-curl localhost:<benny>/api/opencode/status -H "X-Benny-API-Key: benny-mesh-2026-auth"
-curl -X POST localhost:<benny>/api/opencode/run -H "X-Benny-API-Key: benny-mesh-2026-auth" \
+curl localhost:<benny>/api/opencode/status -H "X-Benny-API-Key: $BENNY_API_KEY"
+curl -X POST localhost:<benny>/api/opencode/run -H "X-Benny-API-Key: $BENNY_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"prompt":"create hello.py that prints hi","workspace":"default","model":"ollama/gpt-oss:20b"}'
 ```

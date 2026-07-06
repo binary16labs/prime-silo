@@ -14,7 +14,7 @@ on the local model, for electricity instead of tokens.
 | What | Check |
 | ---- | ----- |
 | Lemonade on `:13305` with `qwen3.5-9b-FLM` | `curl http://127.0.0.1:13305/api/v1/models` |
-| Benny runtime on `:8005` | `curl -H "X-Benny-API-Key: benny-mesh-2026-auth" http://127.0.0.1:8005/api/offload/health` |
+| Benny runtime on `:8005` | `curl -H "X-Benny-API-Key: $BENNY_API_KEY" http://127.0.0.1:8005/api/offload/health` |
 | memo-ray checkout sibling of prime-silo | its server running is optional (sync falls back to direct parsers) |
 | Node.js on PATH | the runner is Node; `benny longview` shells out to it |
 

@@ -1,13 +1,21 @@
-import pytest
+import os
+
 from fastapi.testclient import TestClient
+
 from benny.api.server import app
-from benny.graph.kg3d.schema import Proposal, Node, NodeMetrics
+from benny.graph.kg3d.schema import Node, NodeMetrics, Proposal
 
 client = TestClient(app)
 
+# Q0: no shipped default key remains — pin a test fixture so the governance
+# middleware (which resolves env BENNY_API_KEY per request) accepts the calls.
+_FIXTURE_KEY = "q0-test-fixture-key"
+os.environ["BENNY_API_KEY"] = _FIXTURE_KEY
+
+
 def test_kg3d_api_ontology():
     # We must use the header since we are hitting /api/kg3d/ontology which is NOT in whitelist
-    headers = {"X-Benny-API-Key": "benny-mesh-2026-auth"}
+    headers = {"X-Benny-API-Key": _FIXTURE_KEY}
     response = client.get("/api/kg3d/ontology", headers=headers)
     assert response.status_code == 200
     data = response.json()
@@ -15,9 +23,10 @@ def test_kg3d_api_ontology():
     assert "edges" in data
     assert len(data["nodes"]) > 0
 
+
 def test_kg3d_api_proposals():
-    headers = {"X-Benny-API-Key": "benny-mesh-2026-auth"}
-    
+    headers = {"X-Benny-API-Key": _FIXTURE_KEY}
+
     # 1. List proposals (should be empty initially)
     response = client.get("/api/kg3d/proposals", headers=headers)
     assert response.status_code == 200
@@ -25,6 +34,7 @@ def test_kg3d_api_proposals():
 
     # 2. Inject a test proposal (using internal helper for simplicity in Phase 3 test)
     from benny.api.kg3d import inject_test_proposal
+
     test_node = Node(
         id="new-node-1",
         canonical_name="New Node",
@@ -32,9 +42,13 @@ def test_kg3d_api_proposals():
         category="ai_deep_learning",
         aot_layer=3,
         metrics=NodeMetrics(
-            pagerank=0.1, degree=1, betweenness=0,
-            descendant_ratio=0.3, prerequisite_ratio=0.1, reachability_ratio=0.1
-        )
+            pagerank=0.1,
+            degree=1,
+            betweenness=0,
+            descendant_ratio=0.3,
+            prerequisite_ratio=0.1,
+            reachability_ratio=0.1,
+        ),
     )
     proposal = Proposal(nodes_upsert=[test_node], edges_upsert=[], rationale_md="Test")
     p_id = inject_test_proposal(proposal)
@@ -48,11 +62,12 @@ def test_kg3d_api_proposals():
     # 4. Approve it
     response = client.post(f"/api/kg3d/proposals/{p_id}/approve", headers=headers)
     assert response.status_code == 200
-    
+
     # 5. Verify it's gone from pending
     response = client.get("/api/kg3d/proposals", headers=headers)
     assert response.status_code == 200
     assert response.json() == []
+
 
 def test_kg3d_sse_whitelisted():
     # Stream endpoint should be whitelisted (no header needed)

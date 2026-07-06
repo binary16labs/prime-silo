@@ -98,8 +98,9 @@ def add_subparser(sub: argparse._SubParsersAction) -> None:
     )
     p_enqueue.add_argument(
         "--api-key",
-        default="benny-mesh-2026-auth",
-        help="API key for X-Benny-API-Key header",
+        default=None,
+        help="API key for X-Benny-API-Key header (default: resolve via env "
+        "BENNY_API_KEY, then the per-install keystore)",
     )
 
     # export-cockpit (AAMP-F19)

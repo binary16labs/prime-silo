@@ -29,7 +29,7 @@
     "min_fidelity":       7.0,
     "resume_from_run_id": "",
     "api_base":           "http://127.0.0.1:8005",
-    "api_key":            "benny-mesh-2026-auth",
+    "api_key":            "",
     "benny_home":         "${BENNY_HOME}"
   },
 

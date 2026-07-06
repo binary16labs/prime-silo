@@ -259,7 +259,7 @@ ls $BENNY_HOME/workspaces/c5_test/src/
 # Expected: Python/TS/JS source tree
 
 # 5. Check RAG status before running
-curl -H "X-Benny-API-Key: benny-mesh-2026-auth" \
+curl -H "X-Benny-API-Key: $BENNY_API_KEY" \
      "http://127.0.0.1:8005/api/rag/status?workspace=c5_test"
 ```
 
@@ -270,7 +270,7 @@ curl -H "X-Benny-API-Key: benny-mesh-2026-auth" \
 ```bash
 # Follow execution events in real time (after benny enrich --run)
 curl -N \
-     -H "X-Benny-API-Key: benny-mesh-2026-auth" \
+     -H "X-Benny-API-Key: $BENNY_API_KEY" \
      -H "Accept: text/event-stream" \
      http://127.0.0.1:8005/api/workflows/execute/<manifest_id>
 
@@ -284,7 +284,7 @@ benny runs show <run_id>
 # ORDER BY r.confidence DESC LIMIT 25
 
 # Or via API
-curl -H "X-Benny-API-Key: benny-mesh-2026-auth" \
+curl -H "X-Benny-API-Key: $BENNY_API_KEY" \
      "http://127.0.0.1:8005/api/graph/stats?workspace=c5_test" | jq '.relationship_types'
 ```
 

@@ -8,6 +8,8 @@
 import { useState } from 'react';
 import { Sliders, Lock, Unlock, Plus, Trash2, CheckCircle, AlertCircle, Loader } from 'lucide-react';
 
+import { GOVERNANCE_HEADERS } from '../constants';
+
 // Mirror of benny.agentamp.equalizer.EQ_ALLOWED_PATHS
 const EQ_ALLOWED_PATHS = [
   'config.model',
@@ -126,7 +128,7 @@ export default function EqualizerPanel() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'X-Benny-API-Key': 'benny-mesh-2026-auth',
+          ...GOVERNANCE_HEADERS,
         },
         body: JSON.stringify(payload),
       });

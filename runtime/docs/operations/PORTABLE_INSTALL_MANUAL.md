@@ -171,7 +171,7 @@ These are all env vars Benny reads, in priority order from most to least essenti
 **HTTP API key** (not an env var — passed as a request header):
 
 ```
-X-Benny-API-Key: benny-mesh-2026-auth
+X-Benny-API-Key: $BENNY_API_KEY
 ```
 
 This header is required on every API call except the whitelisted paths (`/`, `/api/health`, `/docs`, SSE streams, `/.well-known/agent.json`). The value is fixed in this release; see `benny/api/server.py` to customise it.
@@ -539,7 +539,7 @@ at signing time; migrate re-signs them with the new path.
 
 Any direct HTTP call to the API needs the key header:
 ```
-curl -H "X-Benny-API-Key: benny-mesh-2026-auth" http://127.0.0.1:8000/api/health
+curl -H "X-Benny-API-Key: $BENNY_API_KEY" http://127.0.0.1:8000/api/health
 ```
 
 ### Checkpoint HMAC mismatch warning

@@ -90,7 +90,7 @@ benny manifests ls
 All routes mounted at `/api`. Every request must include:
 
 ```
-X-Benny-API-Key: benny-mesh-2026-auth
+X-Benny-API-Key: $BENNY_API_KEY
 ```
 
 | Method | Path                               | Purpose                                           |

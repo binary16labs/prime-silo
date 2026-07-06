@@ -337,7 +337,7 @@ Task paths (`tasks[<N>|*].*`) additionally support a **per-task picker** (AAMP-F
 
 ```bash
 curl -X PUT http://localhost:8000/api/agentamp/eq \
-  -H "X-Benny-API-Key: benny-mesh-2026-auth" \
+  -H "X-Benny-API-Key: $BENNY_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "manifest": { "schema_version": "1.0", "config": { "model": "gpt-4o", "max_concurrency": 2 }, "plan": { "tasks": [] } },

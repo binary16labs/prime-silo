@@ -44,8 +44,26 @@ function loadEnv() {
     BENNY_HOME: bennyHome,
     API_HOST: process.env.BENNY_API_HOST || fileConfig.BENNY_API_HOST || "127.0.0.1",
     API_PORT: process.env.BENNY_API_PORT || fileConfig.BENNY_API_PORT || "8005",
-    API_KEY: process.env.BENNY_API_KEY || fileConfig.BENNY_API_KEY || "benny-mesh-2026-auth"
+    API_KEY: resolveBennyApiKey(bennyHome, fileConfig)
   };
+}
+
+// Q0: single resolution path — env BENNY_API_KEY -> per-install keystore
+// ($BENNY_HOME/state/hmac-key) -> fail fast. No shipped default remains.
+function resolveBennyApiKey(bennyHome, fileConfig) {
+  const envKey = process.env.BENNY_API_KEY || fileConfig.BENNY_API_KEY;
+  if (envKey) return envKey;
+  try {
+    const value = fs.readFileSync(path.join(bennyHome, "state", "hmac-key"), "utf8").trim();
+    if (value) return value;
+  } catch {
+    // fall through to fail-fast
+  }
+  throw new Error(
+    "BENNY_API_KEY is not set and no per-install key was found at " +
+      "<BENNY_HOME>/state/hmac-key. Set the BENNY_API_KEY environment variable, " +
+      "or run `benny init` to generate a per-install keystore."
+  );
 }
 
 const env = loadEnv();

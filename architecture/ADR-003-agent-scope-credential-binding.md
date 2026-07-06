@@ -85,6 +85,29 @@ Until then, this ADR delivers: (1) scope can no longer be forged by tampering
 with a header, (2) human and agent traffic carry distinct, scoped credentials,
 and (3) no shipped default key in production.
 
+### Q0 follow-up (2026-07-06) — residual status
+
+Q0 (delivery/tasks/Q0.md) hardened every server-side-enforceable part of this
+boundary; the invariants are pinned by
+`tests/adr003_same_origin_followup_test.mjs` so they cannot silently regress:
+
+- **No shipped default key in ANY mode** — the dev fallbacks
+  (`benny-mesh-2026-auth`, `benny-agent-sandbox-2026-dev`) are burned. Both
+  keys resolve env → per-install keystore (`$BENNY_HOME/state/hmac-key`;
+  agent key = HMAC-SHA256(install key, `"benny-agent-scope"`), identical
+  derivation in Node and Python) → fail-fast at startup.
+- **Loopback by default** — the shell binds 127.0.0.1 unless `HOST` names a
+  wildcard interface explicitly, which logs a LAN-exposure warning. The
+  boundary's audience shrinks from "anyone on the LAN" to "code already
+  running on this machine".
+- **Facade path integrity** — encoded dot-segments (`..%2f`, `%2e%2e%2f`)
+  are rejected with 400 before proxying, so a caller cannot escape a facade's
+  `/api` prefix via upstream decoding.
+
+**Still open (unchanged):** in-page JS choosing the human path. That requires
+the worker/iframe isolation described above and remains the ADR-001 follow-up;
+nothing in Q0 claims to close it.
+
 ## Consequences
 
 - `tests/runtime_proxy_test.mjs` updated: the human facade now _strips_ the

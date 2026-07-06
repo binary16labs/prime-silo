@@ -147,7 +147,9 @@ Key flags:
 
 ### 4.2 HTTP API
 
-All endpoints require `X-Benny-API-Key: benny-mesh-2026-auth` except the whitelist in `benny/api/server.py` (`/`, `/api/health`, `/docs`, SSE streams, `/.well-known/agent.json`).
+All endpoints require `X-Benny-API-Key: $BENNY_API_KEY` except the whitelist in `benny/api/server.py` (`/`, `/api/health`, `/docs`, SSE streams, `/.well-known/agent.json`).
+
+There is no shipped default key (Q0). The key resolves the same way on the server and every client: env `BENNY_API_KEY` → the per-install keystore at `$BENNY_HOME/state/hmac-key` (written once by `benny init`) → a fail-fast startup error naming both. The old shared dev literal is burned; treat any copy of it as invalid.
 
 | Verb | Path | Purpose |
 |------|------|---------|
@@ -349,7 +351,7 @@ tail -f $BENNY_HOME/logs/api.log
 
 ```bash
 curl -N -H "Accept: text/event-stream" \
-     -H "X-Benny-API-Key: benny-mesh-2026-auth" \
+     -H "X-Benny-API-Key: $BENNY_API_KEY" \
      http://127.0.0.1:8005/api/workflows/execute/<manifest_id>
 ```
 
@@ -380,7 +382,7 @@ export PHOENIX_ENDPOINT=http://localhost:4317
 `/api/system/*` (see `benny/api/system_routes.py`) exposes Neo4j, disk, and workspace metrics.
 
 ```bash
-curl -H "X-Benny-API-Key: benny-mesh-2026-auth" \
+curl -H "X-Benny-API-Key: $BENNY_API_KEY" \
      http://127.0.0.1:8005/api/system/metrics | jq .
 ```
 
@@ -470,7 +472,7 @@ Baseline for G-SR1 lives at the path in `docs/requirements/release_gates.yaml`. 
 | Test `test_plan_from_requirement_success` flakes | `grep AsyncMock tests/graph/test_manifest_runner.py` | `wave_scheduler_node` is called **synchronously** — the fixture must be `MagicMock`, not `AsyncMock`. Planner IS awaited, keep it `AsyncMock`. |
 | `OfflineRefusal` on every call | `echo $BENNY_OFFLINE` | Either `unset BENNY_OFFLINE` or change the workspace `default_model` to a local one |
 | `AttributeError: module ... has no attribute 'get_active_model'` in rag_routes | Stale import | Already fixed on master — ensure you're on the latest tip; `get_active_model` is explicitly imported in `benny/api/rag_routes.py` |
-| `Governance violation: Invalid or missing X-Benny-API-Key` | curl without header | Add `-H "X-Benny-API-Key: benny-mesh-2026-auth"` or whitelist the path in `server.GOVERNANCE_WHITELIST` |
+| `Governance violation: Invalid or missing X-Benny-API-Key` | curl without header | Add `-H "X-Benny-API-Key: $BENNY_API_KEY"` or whitelist the path in `server.GOVERNANCE_WHITELIST` |
 | Merge conflict markers in `benny/api/server.py` | `grep -n '<<<<<<' benny/api/server.py` | Keep the "Updated upstream" side — it has the Phase 2+ routers (`manifest_router`, `workflow_endpoints_router`). |
 | `coverage.json` missing → G-COV fails | Run `pytest --cov=benny --cov-report=json:coverage.json` first | The gate test is permissive — it calls pytest itself, so check the subprocess stderr |
 | Dirty `logs/llm_calls.jsonl` in `git status` | The file is now git-ignored | `git rm --cached logs/llm_calls.jsonl` if it re-appears; the root cause is an old checkout |

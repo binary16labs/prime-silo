@@ -61,7 +61,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from ..a2a.server import router as a2a_router
 from .agent_sandbox_routes import router as agent_sandbox_router
-from .agent_scope import AgentScopeMiddleware
+from .agent_scope import AgentScopeMiddleware, resolve_benny_api_key
 from .agentamp_routes import router as agentamp_router
 from .audio_routes import router as audio_router
 from .chat_routes import router as chat_router
@@ -96,6 +96,10 @@ from .workspace_routes import router as workspace_router
 # Temporary fix for missing rbac.py module
 GOVERNANCE_WHITELIST = ["/api/health", "/api/status"]
 from ..core.workspace import get_workspace_path
+
+# Q0: the canonical resolver lives in agent_scope (light imports, so the
+# key-resolution tests never have to pull in the whole route tree).
+_resolve_benny_api_key = resolve_benny_api_key
 
 
 @asynccontextmanager
@@ -161,7 +165,15 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
 
         # 3. RBAC Check (PBR-001 Phase 3)
         # Simplified for now: just check if key exists. Full implementation in Phase 8.
-        if api_key != "benny-mesh-2026-auth":
+        try:
+            expected_key = _resolve_benny_api_key()
+        except RuntimeError as exc:
+            return Response(
+                content=f'{{"detail":"Server misconfigured: {exc}"}}',
+                status_code=500,
+                media_type="application/json",
+            )
+        if api_key != expected_key:
             return Response(
                 content='{"detail":"Forbidden: Invalid API Key"}',
                 status_code=403,
@@ -271,6 +283,8 @@ app.mount("/api/static", StaticFiles(directory=str(workspace_path)), name="files
 if __name__ == "__main__":
     import uvicorn
 
-    # Cognitive Mesh Security: Bind to loopback only by default
+    # Cognitive Mesh Security: Bind to loopback only by default (Q0). Set
+    # BENNY_API_HOST=0.0.0.0 explicitly to expose this dev server on the LAN.
     # Note: Use string import for better reload stability on Windows
-    uvicorn.run("benny.api.server:app", host="0.0.0.0", port=8005, reload=True, loop="asyncio")
+    _dev_host = _os.environ.get("BENNY_API_HOST", "127.0.0.1")
+    uvicorn.run("benny.api.server:app", host=_dev_host, port=8005, reload=True, loop="asyncio")

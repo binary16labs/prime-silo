@@ -10,7 +10,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ReactFlow, Background, Controls, MiniMap, Position } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-const API_KEY = 'benny-mesh-2026-auth';
+import { GOVERNANCE_HEADERS } from '../../constants';
+
 const NODE_W = 260;
 const NODE_H = 110;
 const GAP_X = 320;
@@ -108,7 +109,7 @@ export default function PipelineCanvas({ workspace, runId, manifest: manifestPro
     let active = true;
     setLoading(true);
     fetch(`/api/pypes/runs/${runId}?workspace=${encodeURIComponent(workspace)}`, {
-      headers: { 'X-Benny-API-Key': API_KEY },
+      headers: { ...GOVERNANCE_HEADERS },
     })
       .then((r) => (r.ok ? r.json() : Promise.reject(r.statusText)))
       .then((d) => {
@@ -222,7 +223,7 @@ export default function PipelineCanvas({ workspace, runId, manifest: manifestPro
     try {
       const res = await fetch(
         `/api/pypes/runs/${runId}/steps/${node.id}?workspace=${encodeURIComponent(workspace)}&rows=20`,
-        { headers: { 'X-Benny-API-Key': API_KEY } },
+        { headers: { ...GOVERNANCE_HEADERS } },
       );
       if (!res.ok) {
         setError(`drilldown failed: ${res.statusText}`);

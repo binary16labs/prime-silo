@@ -160,7 +160,8 @@ Open `http://localhost:3000` in your browser.
 # Terminal 1 — runtime
 cd runtime
 python -m benny.api.server
-# → Uvicorn running on http://0.0.0.0:8005
+# → Uvicorn running on http://127.0.0.1:8005 (loopback by default; set
+#   BENNY_API_HOST=0.0.0.0 only to expose the dev runtime on the LAN)
 
 # Terminal 2 — shell
 node server/dev_server.js
@@ -777,10 +778,13 @@ Then refresh the Manifest Explorer page.
 
 ### curl to runtime returns 401
 
-All runtime API calls require the header `X-Benny-API-Key: benny-mesh-2026-auth` (dev default):
+All runtime API calls require the `X-Benny-API-Key` header. There is no shipped
+default key (Q0): the value resolves as env `BENNY_API_KEY` → the per-install
+keystore at `%BENNY_HOME%\state\hmac-key` (written by `benny init`) → an
+actionable startup error. Export `BENNY_API_KEY` (see `.env.example`) and:
 
 ```bash
-curl -H "X-Benny-API-Key: benny-mesh-2026-auth" \
+curl -H "X-Benny-API-Key: $BENNY_API_KEY" \
      http://localhost:8005/api/manifests
 ```
 

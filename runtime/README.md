@@ -158,7 +158,7 @@ benny mcp   # starts the MCP stdio server; exposes plan / run / doctor as tools
 
 **Key invariants to respect:**
 
-1. All HTTP calls require `X-Benny-API-Key: benny-mesh-2026-auth`
+1. All HTTP calls require `X-Benny-API-Key: $BENNY_API_KEY`
 2. Never use absolute paths in manifests — always `${BENNY_HOME}` tokens
 3. Always call `call_model()` (never raw litellm) — this fires offline guard, logging, and lineage
 4. Large artefacts (> 1 024 tokens) are automatically promoted to content-addressed store and replaced with an `artifact://sha256` reference in context — **do not inline them**

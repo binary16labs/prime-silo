@@ -32,6 +32,15 @@ function resolveBrowserHost(host) {
   return host;
 }
 
+// Q0: loopback by default. LAN exposure only happens when HOST names a
+// wildcard interface explicitly — and that opt-in is flagged so startup can
+// log a warning the operator cannot miss.
+export function resolveBindHost(rawHost) {
+  const host = String(rawHost || "").trim() || "127.0.0.1";
+  const lanExposed = host === "0.0.0.0" || host === "::" || host === "[::]";
+  return { host, lanExposed };
+}
+
 function buildBrowserUrl(browserHost, port) {
   return `http://${browserHost}:${port}`;
 }
@@ -82,7 +91,13 @@ async function createServerBootstrap(overrides = {}) {
       env: runtimeParamEnv,
       overrides: runtimeParamOverrides
     }));
-  const host = runtimeParams.get("HOST", "0.0.0.0");
+  const { host, lanExposed } = resolveBindHost(runtimeParams.get("HOST", ""));
+  if (lanExposed) {
+    console.warn(
+      `[security] HOST=${host} binds the server to ALL interfaces — it is reachable from the LAN. ` +
+        `The default is loopback (127.0.0.1); unset HOST unless LAN exposure is intentional.`
+    );
+  }
   const browserHost = overrides.browserHost || resolveBrowserHost(host);
   const configuredPort = Number(runtimeParams.get("PORT", 3000));
   const activePort = configuredPort;

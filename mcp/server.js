@@ -1,7 +1,31 @@
+import fs from "node:fs";
+import path from "node:path";
+
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import neo4j from "neo4j-driver";
+
+// Q0: single resolution path — env BENNY_API_KEY -> per-install keystore
+// ($BENNY_HOME/state/hmac-key) -> fail fast at startup. No shipped default remains.
+const BENNY_API_KEY = (() => {
+  if (process.env.BENNY_API_KEY) return process.env.BENNY_API_KEY;
+  const bennyHome = process.env.BENNY_HOME;
+  if (bennyHome) {
+    try {
+      const value = fs.readFileSync(path.join(bennyHome, "state", "hmac-key"), "utf8").trim();
+      if (value) return value;
+    } catch {
+      // fall through to fail-fast
+    }
+  }
+  console.error(
+    "BENNY_API_KEY is not set and no per-install key was found at " +
+      "<BENNY_HOME>/state/hmac-key. Set the BENNY_API_KEY environment variable, " +
+      "or run `benny init` to generate a per-install keystore."
+  );
+  process.exit(1);
+})();
 
 const server = new Server(
   {
@@ -167,7 +191,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "X-Benny-API-Key": "benny-mesh-2026-auth"
+              "X-Benny-API-Key": BENNY_API_KEY
             },
             body: JSON.stringify({
               query: queryStr,
@@ -283,7 +307,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
-                "X-Benny-API-Key": "benny-mesh-2026-auth"
+                "X-Benny-API-Key": BENNY_API_KEY
               },
               body: JSON.stringify(task)
             }

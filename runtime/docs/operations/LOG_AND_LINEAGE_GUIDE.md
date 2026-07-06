@@ -77,7 +77,7 @@ States: `healthy` (health probe passed) · `alive` (process up, probe failing) �
 
 ```bash
 # JSON form via API
-curl -H "X-Benny-API-Key: benny-mesh-2026-auth" \
+curl -H "X-Benny-API-Key: $BENNY_API_KEY" \
      http://127.0.0.1:8005/api/ops/doctor
 ```
 
@@ -85,7 +85,7 @@ curl -H "X-Benny-API-Key: benny-mesh-2026-auth" \
 
 ```bash
 # Neo4j entity counts, disk usage, workspace stats
-curl -H "X-Benny-API-Key: benny-mesh-2026-auth" \
+curl -H "X-Benny-API-Key: $BENNY_API_KEY" \
      http://127.0.0.1:8005/api/system/metrics | jq .
 ```
 
@@ -95,7 +95,7 @@ Every workflow run emits a Server-Sent Events stream. Connect with curl to watch
 
 ```bash
 curl -N \
-     -H "X-Benny-API-Key: benny-mesh-2026-auth" \
+     -H "X-Benny-API-Key: $BENNY_API_KEY" \
      -H "Accept: text/event-stream" \
      http://127.0.0.1:8005/api/workflows/execute/<manifest_id>
 ```
@@ -122,10 +122,10 @@ benny runs ls --limit 20
 benny runs show <run_id>
 
 # Via API
-curl -H "X-Benny-API-Key: benny-mesh-2026-auth" \
+curl -H "X-Benny-API-Key: $BENNY_API_KEY" \
      http://127.0.0.1:8005/api/workflows/runs | jq .
 
-curl -H "X-Benny-API-Key: benny-mesh-2026-auth" \
+curl -H "X-Benny-API-Key: $BENNY_API_KEY" \
      http://127.0.0.1:8005/api/workflows/runs/<run_id> | jq .
 ```
 
@@ -228,11 +228,11 @@ Every task execution writes an **AER** — a structured record of what the agent
 
 ```bash
 # List audit records for a run
-curl -H "X-Benny-API-Key: benny-mesh-2026-auth" \
+curl -H "X-Benny-API-Key: $BENNY_API_KEY" \
      "http://127.0.0.1:8005/api/governance/audit?run_id=<run_id>" | jq .
 
 # Get audit record for a specific task
-curl -H "X-Benny-API-Key: benny-mesh-2026-auth" \
+curl -H "X-Benny-API-Key: $BENNY_API_KEY" \
      "http://127.0.0.1:8005/api/governance/audit/<task_id>" | jq .
 ```
 

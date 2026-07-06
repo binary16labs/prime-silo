@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+// Q0: no shipped default keys remain - the server fails fast at boot without
+// configured credentials, so server-booting suites pin explicit test fixtures.
+process.env.BENNY_API_KEY = process.env.BENNY_API_KEY || "q0-test-fixture-human-key";
+process.env.BENNY_AGENT_API_KEY = process.env.BENNY_AGENT_API_KEY || "q0-test-fixture-agent-key";
 
 import cluster from "node:cluster";
 import { execFile } from "node:child_process";

@@ -89,7 +89,7 @@ function parseWorkerBootstrapEnv() {
     assetDir: String(parsed.assetDir || ""),
     browserHost: String(parsed.browserHost || ""),
     fileWatchConfigPath: String(parsed.fileWatchConfigPath || FILE_WATCH_CONFIG_PATH),
-    host: String(parsed.host || "0.0.0.0"),
+    host: String(parsed.host || "127.0.0.1"),
     pagesDir: String(parsed.pagesDir || ""),
     projectRoot: String(parsed.projectRoot || ""),
     runtimeEntries: Array.isArray(parsed.runtimeEntries) ? parsed.runtimeEntries : [],
