@@ -4,7 +4,6 @@
 > Only the non-author verifier moves VERIFY → DONE. Order in READY = priority (human-edited only).
 
 ## READY  (take from the top)
-- Q0 — security remediation  *(authored, tasks/Q0.md)*
 - B0 — coordination ledger spec  *(authored, tasks/B0.md)*
 - G0 — unified run-event stream spec  *(authored, tasks/G0.md)*
 - C0 — design system contract  *(authored, tasks/C0.md)*
@@ -12,7 +11,7 @@
 - W0 — work-contract format + full backlog conversion  *(authored, tasks/W0.md — converts remaining plan phases into tasks/)*
 
 ## CLAIMED (agent · date)
-*(empty)*
+- Q0 — security remediation · claude · 2026-07-06
 
 ## VERIFY (awaiting non-author verification)
 - A9 — server-side call deadlines · author claude · 2026-07-06 · gate a9.py GREEN — verifier: re-run `python scripts/gates/a9.py` from clean checkout
