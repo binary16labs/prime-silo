@@ -6,7 +6,7 @@
 | OKR | KR | Epic | Milestone | Tasks |
 |---|---|---|---|---|
 | O1 | KR1.1 | EP-A | M1 | A0 |
-| O1 | KR1.2 | EP-A | M1 | A1 A2 A3 A5 |
+| O1 | KR1.2 | EP-A | M1 | A1 A2 A3 A5 A8 |
 | O1 | KR1.3 | EP-A | M1 | A4 |
 | O1 | KR1.4 | EP-A | M1 | A6 |
 | O1 | (knowledge quality) | EP-A | M2-adjacent | A7 (after v2 run) |

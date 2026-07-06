@@ -14,6 +14,7 @@ Local qwen3.5-9B-FLM does real execution work: verified path, windowed generatio
 - [ ] `A5` — offline assurance (localhost-only network audit)
 - [ ] `A6` — sovereignty gradient (full local / LAN / frontier-assisted)
 - [ ] `A7` — LONGVIEW card schema v2 (ONLY after current v2 run completes)
+- [ ] `A8` — model-routing hygiene + ingest resilience (no catalog roulette, run-level model affinity, minutes-scale timeouts, per-card checkpointing)
 
 ## Exit
 All phase gates green, verified by non-author agent; close with a VISION-CHECK note (plan §0.5):

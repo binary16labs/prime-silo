@@ -5,6 +5,7 @@
 
 ## READY  (take from the top)
 - Q0 — security remediation  *(authored, tasks/Q0.md)*
+- A8 — model-routing hygiene + ingest resilience  *(authored, tasks/A8.md — hotfix-class from 2026-07-06 swap-thrash incident; operator env-pin mitigation runs first, by hand)*
 - B0 — coordination ledger spec  *(authored, tasks/B0.md)*
 - G0 — unified run-event stream spec  *(authored, tasks/G0.md)*
 - C0 — design system contract  *(authored, tasks/C0.md)*
