@@ -720,6 +720,24 @@ async function runModel() {
     /* first run */
   }
   const ingestedSet = new Set(ingested);
+  // A8.1 (startup reconcile): a run killed mid-batch — or one that failed
+  // before the reconcile logic existed — never marked its completed files, so
+  // a FRESH process recomputed "pending" from a stale/absent ingested.json and
+  // re-ingested finished cards (observed 2026-07-06: relaunch saw 164 pending
+  // instead of 124 and re-ran the 40-card batch 1). Wiki evidence is ground
+  // truth regardless of which process produced it — reconcile BEFORE deciding
+  // what is pending, not only after an in-run failure.
+  if (config.DEEP_SYNTHESIS) {
+    const allNames = cards.map((c) => `longview_card_${sid8(c.session_id)}.md`);
+    const recovered = reconcileIngested(allNames, workspaceDir(".benny", "wiki"), fs, ingestedSet);
+    if (recovered.length) {
+      fs.writeFileSync(ingestedPath, JSON.stringify([...ingestedSet], null, 2));
+      console.log(
+        `[model] startup reconcile: ${recovered.length} cards already synthesized (wiki evidence) — skipping`
+      );
+      appendLedger({ phase: "model", action: "ingest_reconcile_startup", files: recovered.length });
+    }
+  }
   const pending = cards
     .map((c) => `longview_card_${sid8(c.session_id)}.md`)
     .filter((n) => !ingestedSet.has(n));

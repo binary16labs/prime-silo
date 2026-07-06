@@ -62,5 +62,22 @@ assert.deepEqual(
   "retry processes exactly the unfinished files"
 );
 
+// --- A8.1 startup reconcile: a FRESH process (empty ingested.json — the old
+// process died before marking anything) must recover ALL wiki-evidenced files
+// before computing pending, or it re-ingests finished work (observed live
+// 2026-07-06: relaunch saw 164 pending instead of 124 and re-ran batch 1).
+const freshSet = new Set();
+const startupRecovered = reconcileIngested(batch, tmp, fs, freshSet);
+assert.deepEqual(
+  startupRecovered.sort(),
+  ["card_a.md", "card_c.md"],
+  "startup reconcile recovers every wiki-evidenced card, not just in-run failures"
+);
+assert.deepEqual(
+  batch.filter((n) => !freshSet.has(n)),
+  ["card_b.md", "card_d.md"],
+  "fresh process resumes at the first genuinely-unfinished card"
+);
+
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log("longview_ingest_state_test: all assertions passed");
