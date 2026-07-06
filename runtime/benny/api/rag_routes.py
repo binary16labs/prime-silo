@@ -4,6 +4,7 @@ RAG Routes - Document ingestion and semantic search
 
 import json
 import logging
+import os
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -367,7 +368,7 @@ async def ingest_files(request: IngestRequest):
                 if request.deep_synthesis:
                     try:
                         from ..graph.triples import save_knowledge_triples
-                        from ..synthesis.engine import parallel_extract_triples
+                        from ..synthesis.engine import parallel_extract_triples, run_with_deadline
 
                         track_aer(
                             run_id,
@@ -391,23 +392,42 @@ async def ingest_files(request: IngestRequest):
                             if len(c) > 100
                         ]
 
-                        triples = await parallel_extract_triples(
-                            sections=sections,
-                            run_id=run_id,
-                            workspace=request.workspace,
-                            strategy=request.strategy,
-                            model=request.model,
-                            timeout=300.0,
-                            parallel_limit=2,
-                        )
-                        print(
-                            f"DEBUG: FINISHED Triple Extraction for {file_path.name}: Found {len(triples)} triples"
+                        async def _synthesize_one_file():
+                            # A9: everything awaited for this file lives inside
+                            # this coroutine so ONE deadline covers extraction,
+                            # Neo4j writes, the wiki LLM call, and file IO —
+                            # whichever of them hangs, the file fails and the
+                            # task record keeps advancing (never frozen at
+                            # SYNTHESIZING like the 2026-07-06 incident).
+                            nonlocal total_triples_extracted, sum_confidence
+                            triples = await parallel_extract_triples(
+                                sections=sections,
+                                run_id=run_id,
+                                workspace=request.workspace,
+                                strategy=request.strategy,
+                                model=request.model,
+                                timeout=300.0,
+                                parallel_limit=2,
+                            )
+                            print(
+                                f"DEBUG: FINISHED Triple Extraction for {file_path.name}: Found {len(triples)} triples"
+                            )
+                            return triples
+
+                        triples = await run_with_deadline(
+                            _synthesize_one_file(),
+                            float(os.environ.get("BENNY_SYNTH_FILE_TIMEOUT", "1200")),
+                            f"deep synthesis (extraction) of {file_path.name}",
                         )
 
                         if triples:
                             total_triples_extracted += len(triples)
                             sum_confidence += sum(t.confidence for t in triples)
-                            await save_knowledge_triples(request.workspace, triples, file_path.name)
+                            await run_with_deadline(
+                                save_knowledge_triples(request.workspace, triples, file_path.name),
+                                float(os.environ.get("BENNY_GRAPH_WRITE_TIMEOUT", "300")),
+                                f"graph write for {file_path.name}",
+                            )
                             track_aer(
                                 run_id,
                                 "rag_ingest",
@@ -425,8 +445,12 @@ async def ingest_files(request: IngestRequest):
                                 summary_prompt = f"Summarize the core concepts of this document section in 3-4 sentences for a technical wiki:\n\n{text[:2000]}"
                                 from ..synthesis.engine import call_llm
 
-                                summary = await call_llm(
-                                    summary_prompt, run_id=run_id, workspace=request.workspace
+                                summary = await run_with_deadline(
+                                    call_llm(
+                                        summary_prompt, run_id=run_id, workspace=request.workspace
+                                    ),
+                                    float(os.environ.get("BENNY_SYNTH_FILE_TIMEOUT", "1200")),
+                                    f"wiki summary for {file_path.name}",
                                 )
 
                                 await save_concept_article(

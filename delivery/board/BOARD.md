@@ -5,7 +5,6 @@
 
 ## READY  (take from the top)
 - Q0 — security remediation  *(authored, tasks/Q0.md)*
-- A9 — server-side call-deadline audit  *(authored, tasks/A9.md — from the 2026-07-06 frozen-synthesis incident; client protection shipped, server fix pending)*
 - B0 — coordination ledger spec  *(authored, tasks/B0.md)*
 - G0 — unified run-event stream spec  *(authored, tasks/G0.md)*
 - C0 — design system contract  *(authored, tasks/C0.md)*
@@ -16,6 +15,7 @@
 *(empty)*
 
 ## VERIFY (awaiting non-author verification)
+- A9 — server-side call deadlines · author claude · 2026-07-06 · gate a9.py GREEN — verifier: re-run `python scripts/gates/a9.py` from clean checkout
 - A8 — model-routing hygiene + ingest resilience · author claude · 2026-07-06 · gate a8.py GREEN — verifier: Antigravity re-run `python scripts/gates/a8.py` from clean checkout
 
 ## DONE (id · verified-by · date)

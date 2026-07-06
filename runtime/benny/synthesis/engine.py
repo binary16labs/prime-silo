@@ -25,6 +25,19 @@ logger = logging.getLogger(__name__)
 _shared_client: Optional[httpx.AsyncClient] = None
 
 
+async def run_with_deadline(awaitable, seconds: float, label: str = "operation"):
+    """A9 (2026-07-06 frozen-synthesis incident): a task may FAIL, but may
+    never FREEZE. Wraps any awaited step in a hard deadline so a hung inner
+    call (Neo4j write, embedding, LLM retry loop, file IO) surfaces as an
+    honest, named error instead of a task frozen mid-file for hours."""
+    try:
+        return await asyncio.wait_for(awaitable, timeout=seconds)
+    except asyncio.TimeoutError:
+        raise TimeoutError(
+            f"{label} exceeded its {seconds:.0f}s deadline (A9: fail, never freeze)"
+        ) from None
+
+
 def _get_shared_client() -> httpx.AsyncClient:
     """Get or create a shared httpx client with connection pooling."""
     global _shared_client
@@ -1122,7 +1135,13 @@ async def _get_openai_embedding(text: str, model: str = "text-embedding-3-small"
     """Get embedding from OpenAI API."""
     import openai
 
-    client_obj = openai.AsyncOpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
+    # A9: the SDK defaults to 600s timeout x silent retries — >=30 minutes of
+    # invisible hang per call. Pin both explicitly.
+    client_obj = openai.AsyncOpenAI(
+        api_key=os.environ.get("OPENAI_API_KEY", ""),
+        timeout=float(os.environ.get("BENNY_EMBED_TIMEOUT", "120")),
+        max_retries=1,
+    )
     response = await client_obj.embeddings.create(input=text, model=model)
     return response.data[0].embedding
 
