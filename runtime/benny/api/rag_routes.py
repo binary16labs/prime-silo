@@ -161,6 +161,15 @@ async def eval_triples(request: EvalTriplesRequest):
 async def ingest_files(request: IngestRequest):
     """Ingest files from data_in into ChromaDB using structured extraction (Docling)."""
     run_id = request.run_id or str(uuid.uuid4())
+    # A8: pin the run's primary model so every downstream call in this run —
+    # including default-role clustering/correlation after deep synthesis —
+    # resolves to the SAME model/engine as the synthesis itself. Without this,
+    # unmapped roles fell through to catalog-order auto-detect and alternated
+    # engines on one NPU (the 2026-07-06 overnight swap-thrash loop).
+    if request.model:
+        from ..core.models import set_run_model_affinity
+
+        set_run_model_affinity(run_id, request.model)
     task_manager.create_task(request.workspace, "rag_ingest", task_id=run_id)
 
     try:
@@ -483,9 +492,7 @@ async def ingest_files(request: IngestRequest):
                 )
                 task_manager.update_task(run_id, metadata={"stage": "ENRICHING"})
                 try:
-                    await enrich_graph(
-                        request.workspace, dry_run=False, stages=enrich_stages
-                    )
+                    await enrich_graph(request.workspace, dry_run=False, stages=enrich_stages)
                 except Exception as e:
                     logger.warning("Graph enrichment stage failed (non-fatal): %s", e)
 

@@ -237,6 +237,41 @@ def get_model_config(model_id: str) -> Dict[str, Any]:
     return {"provider": "openai", "model": model_id, "cost_per_1k": 0.0}
 
 
+# =============================================================================
+# RUN-LEVEL MODEL AFFINITY (A8 — 2026-07-06 swap-thrash incident)
+# =============================================================================
+# One run must never alternate models/engines by accident. On a single NPU,
+# graph_synthesis calls pinned to qwen (FLM engine) alternating with
+# default-role calls resolved by catalog order to a GGUF model (llamacpp
+# engine) evict each other on EVERY alternation; the load race then fails
+# both sides with "No model loaded". The /rag/ingest handler registers the
+# request's model here; every role in that run that the workspace manifest
+# does not EXPLICITLY map then resolves to the run's primary model.
+_RUN_MODEL_AFFINITY: Dict[str, str] = {}
+_RUN_MODEL_AFFINITY_MAX = 512
+
+
+def set_run_model_affinity(run_id: str, model: str) -> None:
+    """Pin a run's primary model. First write wins — a mid-run caller cannot
+    flip the run onto a second engine."""
+    if not run_id or not model or run_id in _RUN_MODEL_AFFINITY:
+        return
+    if len(_RUN_MODEL_AFFINITY) >= _RUN_MODEL_AFFINITY_MAX:
+        # insertion-ordered dict: drop the oldest half (runs are transient)
+        for k in list(_RUN_MODEL_AFFINITY)[: _RUN_MODEL_AFFINITY_MAX // 2]:
+            _RUN_MODEL_AFFINITY.pop(k, None)
+    _RUN_MODEL_AFFINITY[run_id] = model
+
+
+def get_run_model_affinity(run_id: Optional[str]) -> Optional[str]:
+    return _RUN_MODEL_AFFINITY.get(run_id) if run_id else None
+
+
+def clear_run_model_affinity() -> None:
+    """Test hook."""
+    _RUN_MODEL_AFFINITY.clear()
+
+
 async def get_active_model(
     workspace_id: str = "default",
     role: str = "chat",
@@ -283,22 +318,33 @@ async def _get_active_model_raw(
         except Exception as e:
             logger.debug(f"RunStore lookup failed for {run_id}: {e}")
 
+    manifest = None
     try:
         from .workspace import load_manifest
 
         manifest = load_manifest(workspace_id)
-
-        # 1. Check role-specific mapping
-        if hasattr(manifest, "model_roles") and role in manifest.model_roles:
-            return manifest.model_roles[role]
-
-        # 2. Check workspace default
-        if hasattr(manifest, "default_model") and manifest.default_model:
-            return manifest.default_model
     except Exception as e:
         logger.debug(f"Manifest load failed for {workspace_id}: {e}")
 
-    # 3. Auto-detect local providers (Heartbeat probe)
+    # 1. Explicit role-specific mapping — the ONLY thing that may put a second
+    #    model inside a run (opt-in alternation, e.g. a vision role).
+    if manifest is not None:
+        if hasattr(manifest, "model_roles") and role in manifest.model_roles:
+            return manifest.model_roles[role]
+
+    # 2. Run-level affinity (A8): the run's primary model, registered by the
+    #    entry handler (e.g. /rag/ingest from the request's `model` field).
+    #    Beats the workspace default — a run already committed to one engine.
+    affinity = get_run_model_affinity(run_id)
+    if affinity:
+        return affinity
+
+    # 3. Workspace default
+    if manifest is not None:
+        if hasattr(manifest, "default_model") and manifest.default_model:
+            return manifest.default_model
+
+    # 4. Auto-detect local providers (Heartbeat probe)
     # Increased timeout (5.0s) to handle busy local NPUs/CPUs (PBR-001 Phase 3)
     for provider_name, config in LOCAL_PROVIDERS.items():
         try:
@@ -310,12 +356,49 @@ async def _get_active_model_raw(
             models_url = config["base_url"].rstrip("/") + "/models"
             async with httpx.AsyncClient(timeout=5.0) as client:
                 resp = await client.get(models_url)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    models = data.get("data", [])
-                    if models:
-                        model_id = models[0].get("id")
-                        return f"{provider_name}/{model_id}"
+                if resp.status_code != 200:
+                    continue
+                data = resp.json()
+                models = data.get("data", [])
+                if not models:
+                    continue
+                catalog_ids = [m.get("id") for m in models if m.get("id")]
+
+                # 4a. Prefer the provider's CURRENTLY LOADED model — a
+                #     swap-free choice by definition (A8: catalog order once
+                #     picked DeepSeek-GGUF while qwen-FLM was loaded, and the
+                #     two engines evicted each other all night).
+                try:
+                    health_url = config["base_url"].rstrip("/") + "/health"
+                    hresp = await client.get(health_url)
+                    if hresp.status_code == 200:
+                        hdata = hresp.json()
+                        for key in ("model_loaded", "loaded_model", "model"):
+                            loaded = hdata.get(key)
+                            if isinstance(loaded, str) and loaded:
+                                resolved = f"{provider_name}/{loaded}"
+                                if run_id:
+                                    set_run_model_affinity(run_id, resolved)
+                                return resolved
+                except Exception:
+                    pass  # no health endpoint — fall through to catalog
+
+                # 4b. Last resort: first catalog entry. Legal but LOUD, and
+                #     sticky per run so even the fallback cannot ping-pong
+                #     two engines within one run.
+                resolved = f"{provider_name}/{catalog_ids[0]}"
+                logger.warning(
+                    "model roulette: no explicit model for role=%r ws=%r run=%r — "
+                    "falling back to first catalog entry %r. Pin BENNY_DEFAULT_MODEL "
+                    "or pass `model` on the request to avoid engine swaps.",
+                    role,
+                    workspace_id,
+                    run_id,
+                    resolved,
+                )
+                if run_id:
+                    set_run_model_affinity(run_id, resolved)
+                return resolved
         except Exception:
             pass
 

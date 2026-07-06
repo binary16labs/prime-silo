@@ -117,6 +117,12 @@ export const config = {
   // Hence: large batch, larger timeout (3 min/doc synthesis + one clustering).
   INGEST_BATCH: Number(env("LONGVIEW_INGEST_BATCH", 40)),
   INGEST_TIMEOUT_MS: Number(env("LONGVIEW_INGEST_TIMEOUT_MS", 14400000)),
+  // A8 (2026-07-06): the 4h ceiling is legitimate for a HEALTHY batch (per-doc
+  // synthesis + one amortized clustering pass), but a task whose own record
+  // stops advancing is not healthy — fail after 30 min of task-level silence
+  // instead of burning the rest of the window (the overnight swap-thrash loop
+  // spent 2x4h re-chewing one batch). 0 disables.
+  INGEST_STALL_MS: Number(env("LONGVIEW_INGEST_STALL_MS", 1800000)),
   LLM_TIMEOUT_MS: Number(env("LONGVIEW_LLM_TIMEOUT_MS", 900000)),
   // Sessions with less extractable text than this are recorded as thin, not mapped.
   THIN_SESSION_CHARS: Number(env("LONGVIEW_THIN_CHARS", 200)),

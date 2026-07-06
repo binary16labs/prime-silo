@@ -27,6 +27,7 @@ import { runOpus } from "./lib/opus.mjs";
 import { evidenceFor, graphCatalog, graphNeighbors } from "./lib/retrieve.mjs";
 import { mdToHtml, htmlToPdf } from "./lib/book_pdf.mjs";
 import { config, ensureWorkspace, workspaceDir, stateDir, projectRoot } from "./lib/config.mjs";
+import { taskStalled, reconcileIngested } from "./lib/ingest_state.mjs";
 import { syncStore, listSessions } from "./lib/store.mjs";
 import { buildEvidencePack } from "./lib/evidence.mjs";
 import { walkSessionWindows } from "./lib/walk.mjs";
@@ -269,7 +270,10 @@ async function assembleCard(item, fragments) {
     /* fall back below */
   }
   if (intent.length < 20) {
-    intent = `Work on ${project}: ${outcomes[0] || decisions[0] || "session activity"}`.slice(0, 300);
+    intent = `Work on ${project}: ${outcomes[0] || decisions[0] || "session activity"}`.slice(
+      0,
+      300
+    );
     if (intent.length < 20) intent = `Working session on ${project} (${period}).`;
   }
 
@@ -607,6 +611,15 @@ async function ingestBatch(batch, { deepSynthesis = config.DEEP_SYNTHESIS } = {}
       continue;
     }
     seen = true;
+    // A8: a task whose own record stops advancing is wedged, whatever the
+    // batch deadline says — fail fast with the evidence.
+    if (taskStalled(task, Date.now(), config.INGEST_STALL_MS)) {
+      return {
+        ok: false,
+        runId,
+        error: `stalled: no task progress for ${Math.round(config.INGEST_STALL_MS / 60000)} min (task updated_at ${task.updated_at})`
+      };
+    }
     if (task.status === "completed" || task.status === "completed_with_errors") {
       return { ok: true, runId, partial: task.status === "completed_with_errors" };
     }
@@ -736,6 +749,23 @@ async function runModel() {
       if (verdict.ok) {
         for (const n of batch) ingestedSet.add(n);
         fs.writeFileSync(ingestedPath, JSON.stringify([...ingestedSet], null, 2));
+      } else if (config.DEEP_SYNTHESIS) {
+        // A8: the server writes .benny/wiki/<name>.md per synthesized doc —
+        // ground truth for what a dead batch actually finished. Without this,
+        // a batch that died at file 39/40 re-ingested all 40 on retry.
+        const recovered = reconcileIngested(batch, workspaceDir(".benny", "wiki"), fs, ingestedSet);
+        if (recovered.length) {
+          fs.writeFileSync(ingestedPath, JSON.stringify([...ingestedSet], null, 2));
+          console.log(
+            `[model] reconciled ${recovered.length}/${batch.length} files already synthesized (wiki evidence) — retry will skip them`
+          );
+          appendLedger({
+            phase: "model",
+            action: "ingest_reconcile",
+            files: recovered.length,
+            run_id: verdict.runId
+          });
+        }
       }
       if (interrupted) break;
     }
@@ -761,15 +791,18 @@ async function reduceCall(name, system, user, outPath) {
   if (ok) {
     fs.writeFileSync(outPath, res.content);
     // Benny Record provenance: what fed this deliverable + what it cost.
-    fs.writeFileSync(outPath + ".meta.json", JSON.stringify({
-      artifact: name,
-      input_chars: user.length,
-      input_head: user.slice(0, 400),
-      prompt_tokens: res.prompt_tokens,
-      completion_tokens: res.completion_tokens,
-      model: config.LONGVIEW_MODEL,
-      ts: new Date().toISOString()
-    }));
+    fs.writeFileSync(
+      outPath + ".meta.json",
+      JSON.stringify({
+        artifact: name,
+        input_chars: user.length,
+        input_head: user.slice(0, 400),
+        prompt_tokens: res.prompt_tokens,
+        completion_tokens: res.completion_tokens,
+        model: config.LONGVIEW_MODEL,
+        ts: new Date().toISOString()
+      })
+    );
   }
   appendLedger({
     phase: "reduce",
@@ -1172,7 +1205,12 @@ async function runReview({ limitOverride = null } = {}) {
       done++;
       console.log(`[review] ok  ${sid8(sid)} ${card.project}`);
     } else {
-      appendLedger({ phase: "review", session_id: sid, status: "failed", ms: Date.now() - started });
+      appendLedger({
+        phase: "review",
+        session_id: sid,
+        status: "failed",
+        ms: Date.now() - started
+      });
       console.log(`[review] FAIL ${sid8(sid)}`);
     }
     writeStatus({ phase: "review", reviews_done: done });
@@ -1192,7 +1230,10 @@ async function runReview({ limitOverride = null } = {}) {
     }
     const ingestedSet = new Set(ingested);
     const pending = [];
-    for (const f of fs.readdirSync(reviewsDir).filter((x) => x.endsWith(".md")).sort()) {
+    for (const f of fs
+      .readdirSync(reviewsDir)
+      .filter((x) => x.endsWith(".md"))
+      .sort()) {
       const name = `longview_review_${sid8(f.replace(/\.md$/, ""))}.md`;
       if (ingestedSet.has(name)) continue;
       fs.writeFileSync(
@@ -1208,10 +1249,20 @@ async function runReview({ limitOverride = null } = {}) {
         for (const n of pending) ingestedSet.add(n);
         fs.writeFileSync(ingestedPath, JSON.stringify([...ingestedSet], null, 2));
       }
-      appendLedger({ phase: "review", action: "ingest_reviews", ok: verdict.ok, files: pending.length });
+      appendLedger({
+        phase: "review",
+        action: "ingest_reviews",
+        ok: verdict.ok,
+        files: pending.length
+      });
     }
   } catch (e) {
-    appendLedger({ phase: "review", action: "ingest_reviews", ok: false, error: String(e.message) });
+    appendLedger({
+      phase: "review",
+      action: "ingest_reviews",
+      ok: false,
+      error: String(e.message)
+    });
   }
 }
 
@@ -1664,7 +1715,9 @@ async function main() {
         }
         console.log(`[lineage] ${lin.nodes.length} nodes:`);
         for (const n of lin.nodes.slice(0, 40)) {
-          console.log(`  ${"  ".repeat(n.depth)}${n.type}: ${n.label}${n.meta?.log_path ? ` → ${n.meta.log_path}` : ""}`);
+          console.log(
+            `  ${"  ".repeat(n.depth)}${n.type}: ${n.label}${n.meta?.log_path ? ` → ${n.meta.log_path}` : ""}`
+          );
         }
       }
       break;

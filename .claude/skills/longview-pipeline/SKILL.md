@@ -22,6 +22,15 @@ Code: `scripts/longview/`. Guide: `runtime/docs/operations/LONGVIEW_GUIDE.md`.
 - **Workspace precedence:** a manifest's hardcoded `workspace` silently overrode env once (killed a run).
   Always verify the `[run] … → workspace 'X'` log line after launch.
 - **Never disturb a live run** — analysis of cards/ledger is read-only; normalizations run post-hoc.
+- **One run = one model/engine (A8, fixed v1.12.3).** Never let two models alternate on one NPU:
+  graph_synthesis on qwen (FLM) + default-role calls on a catalog-roulette GGUF pick (llamacpp)
+  evict each other per call → "No model loaded" both sides → the 2026-07-06 overnight loop.
+  The fix: /rag/ingest pins run affinity from its `model` field; auto-detect prefers the
+  currently-loaded model; roulette picks WARN. Belt-and-braces env pin: `BENNY_DEFAULT_MODEL=
+  lemonade/qwen3.5-9b-FLM`. Ingest client fails a batch after 30 min of task-record silence
+  (`LONGVIEW_INGEST_STALL_MS`) and reconciles per-file via `.benny/wiki/` evidence on failure —
+  retries skip completed cards. Diagnosis pattern: read `runs/task_registry.json` think-log and
+  `longview/ledger.jsonl`, check flm.exe PID changes; ledger `ts` is UTC, file mtimes local.
 
 ## Card corpus facts (2026-07-05 review — full doc: architecture/REVIEW-longview-cards-2026-07-05.md)
 
