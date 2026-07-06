@@ -27,7 +27,7 @@ import { runOpus } from "./lib/opus.mjs";
 import { evidenceFor, graphCatalog, graphNeighbors } from "./lib/retrieve.mjs";
 import { mdToHtml, htmlToPdf } from "./lib/book_pdf.mjs";
 import { config, ensureWorkspace, workspaceDir, stateDir, projectRoot } from "./lib/config.mjs";
-import { taskStalled, reconcileIngested } from "./lib/ingest_state.mjs";
+import { taskStalled, reconcileIngested, isStallVerdict } from "./lib/ingest_state.mjs";
 import { syncStore, listSessions } from "./lib/store.mjs";
 import { buildEvidencePack } from "./lib/evidence.mjs";
 import { walkSessionWindows } from "./lib/walk.mjs";
@@ -784,6 +784,23 @@ async function runModel() {
             run_id: verdict.runId
           });
         }
+      }
+      if (isStallVerdict(verdict)) {
+        // A8.2: a stalled server task is still ALIVE in unknown state —
+        // firing the next batch at it stacks synthesis tasks on a sick
+        // server (2026-07-02 embedder overload). Stop the phase honestly;
+        // the operator restarts the runtime to clear the hung task, then
+        // reruns — startup reconcile (A8.1) resumes at the right card.
+        appendLedger({
+          phase: "model",
+          action: "phase_error",
+          error:
+            "ingest stalled — stopping model phase (restart the benny runtime to clear the hung server task, then rerun; resume is automatic)"
+        });
+        console.error(
+          "[model] STOPPED: server ingest task stalled. Restart the benny runtime (clears the hung synthesis task), then rerun `longview run` — startup reconcile resumes at the first unfinished card."
+        );
+        break;
       }
       if (interrupted) break;
     }

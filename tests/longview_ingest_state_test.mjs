@@ -3,7 +3,11 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { taskStalled, reconcileIngested } from "../scripts/longview/lib/ingest_state.mjs";
+import {
+  taskStalled,
+  reconcileIngested,
+  isStallVerdict
+} from "../scripts/longview/lib/ingest_state.mjs";
 
 const NOW = Date.parse("2026-07-06T08:00:00Z");
 const MIN = 60_000;
@@ -78,6 +82,16 @@ assert.deepEqual(
   ["card_b.md", "card_d.md"],
   "fresh process resumes at the first genuinely-unfinished card"
 );
+
+// --- isStallVerdict (A8.2): stalls stop the phase, other failures do not ------
+assert.equal(isStallVerdict({ ok: false, error: "stalled: no task progress for 30 min" }), true);
+assert.equal(
+  isStallVerdict({ ok: false, error: "submit rejected (500)" }),
+  false,
+  "non-stall failures continue the loop"
+);
+assert.equal(isStallVerdict({ ok: true }), false, "success is never a stall");
+assert.equal(isStallVerdict(null), false);
 
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log("longview_ingest_state_test: all assertions passed");

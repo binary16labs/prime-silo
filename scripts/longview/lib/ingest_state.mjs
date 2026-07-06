@@ -22,6 +22,15 @@ export function taskStalled(task, nowMs, stallMs) {
 }
 
 /**
+ * A stalled verdict means the SERVER still holds a hung synthesis task in
+ * unknown state. Firing the next batch at it stacks a second task on a sick
+ * server (the 2026-07-02 embedder-overload failure). The phase must stop.
+ */
+export function isStallVerdict(verdict) {
+  return Boolean(verdict && !verdict.ok && /^stalled:/.test(String(verdict.error || "")));
+}
+
+/**
  * After a failed deep-synthesis batch, reconcile which files ACTUALLY made it:
  * the server writes `<workspace>/.benny/wiki/<name>.md` per synthesized doc,
  * so wiki presence is ground truth. Marks those files in `ingestedSet` and

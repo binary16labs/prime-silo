@@ -5,6 +5,7 @@
 
 ## READY  (take from the top)
 - Q0 — security remediation  *(authored, tasks/Q0.md)*
+- A9 — server-side call-deadline audit  *(authored, tasks/A9.md — from the 2026-07-06 frozen-synthesis incident; client protection shipped, server fix pending)*
 - B0 — coordination ledger spec  *(authored, tasks/B0.md)*
 - G0 — unified run-event stream spec  *(authored, tasks/G0.md)*
 - C0 — design system contract  *(authored, tasks/C0.md)*
