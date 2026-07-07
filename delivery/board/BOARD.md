@@ -4,15 +4,15 @@
 > Only the non-author verifier moves VERIFY → DONE. Order in READY = priority (human-edited only).
 
 ## READY  (take from the top)
-- G0 — unified run-event stream spec  *(authored, tasks/G0.md)*
-- C0 — design system contract  *(authored, tasks/C0.md)*
-- A0 — verify real offload path  *(authored, tasks/A0.md — needs lemonade up; blocked-by-service is honest)*
+*(empty — next entries arrive when feat/W0 merges: B1, Q1, E0)*
 
 ## CLAIMED (agent · date)
-- W0 — work-contract format + full backlog conversion · claude · 2026-07-07
+- G0 — unified run-event stream spec · claude-g0 · 2026-07-07
+- C0 — design system contract · claude-c0 · 2026-07-07
+- A0 — verify real offload path · claude-a0 · 2026-07-07 (lemonade confirmed up by owner)
 
 ## VERIFY (awaiting non-author verification)
-*(empty)*
+- W0 — work-contract format + full backlog conversion · author claude · 2026-07-07 · gate w0.mjs GREEN (60 contracts) on branch feat/W0 (.worktrees/W0) — verifier: re-run `node scripts/gates/w0.mjs` from clean checkout of feat/W0 (zero dependencies)
 
 ## DONE (id · verified-by · date)
 - B0 — coordination ledger spec + validator · verified-by claude-verifier · 2026-07-07 *(merged to main 2026-07-07)*
