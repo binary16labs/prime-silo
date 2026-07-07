@@ -473,7 +473,7 @@ function createRuntimeSupervisor(options = {}) {
     // First-run: initialise the writable BENNY_HOME (dirs, config, hmac-key).
     try {
       fs.mkdirSync(bennyHome, { recursive: true });
-      if (!fs.existsSync(path.join(bennyHome, "state", "hmac-key"))) {
+      if (!fs.existsSync(path.join(bennyHome, "state", "profile-lock"))) {
         await initFn({ bundleDir, bennyHome, platform, env });
       }
     } catch (error) {

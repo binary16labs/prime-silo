@@ -169,6 +169,7 @@ Guidance:
 - keep Git backend forcing in the shared runtime-param schema through `GIT_BACKEND` instead of inventing command-local Git flags; `auto` should remain the normal fallback path and concrete values should map to the shared backend abstraction in `server/lib/git/`
 - print the shared Git-derived project version on startup through `server/lib/utils/project_version.js`, while preserving the existing `space server listening at ...` line as a separate line for supervisor readiness parsing
 - prefer `node space set CUSTOMWARE_PATH=<path>` before user or group creation when documenting persistent writable-root setup, because launch-only `CUSTOMWARE_PATH=...` overrides affect only that `serve` process
+- automatically resolve `BENNY_HOME` via `home_resolver.js` and call `ensureBennyKeystore` before starting the server so dev serve runs satisfy Q0 fail-fast requirements without shipped default keys
 - do not move application behavior into the command when it belongs in `server/`
 
 ### `supervise`
@@ -212,6 +213,7 @@ Guidance:
 - keep the supervisor process title set to `space-supervise` so operator tools such as `htop` can distinguish it from child runtimes
 - keep child `space serve` launch args opaque and passthrough; `supervise` should only consume supervisor flags, normalize `CUSTOMWARE_PATH`, and replace child `HOST` and `PORT`
 - normalize `CUSTOMWARE_PATH` to an absolute path before passing it to children so every release shares the same writable `L1` and `L2` roots
+- automatically call `homeResolver.ensureBennyKeystore` during home resolution so supervised server runs satisfy Q0 fail-fast requirements without shipped default keys
 - keep the watched update repository shared with `node space update`: `--remote-url` overrides `GIT_URL`, `GIT_URL` overrides the local `origin` remote URL, and only then should the canonical fallback apply
 - keep release staging out of the live source checkout to avoid mixed old-code/new-asset windows
 - keep update attempts non-overlapping and bounded so a stalled Git, install, or child-readiness step cannot block future intervals forever

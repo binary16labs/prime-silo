@@ -60,13 +60,14 @@ export async function execute(context) {
   // home (home_resolver.js) so dev serves use the same customware as the
   // desktop shell instead of silently running without one.
   const env = context.originalEnv || process.env;
+  const home = homeResolver.resolveHome({ env });
   if (!runtimeParamOverrides.CUSTOMWARE_PATH && !String(env.CUSTOMWARE_PATH || "").trim()) {
-    const home = homeResolver.resolveHome({ env });
     runtimeParamOverrides.CUSTOMWARE_PATH = home.customwarePath;
     console.log(
       `[serve] CUSTOMWARE_PATH not set; using ${home.customwarePath} (home source: ${home.source}).`
     );
   }
+  homeResolver.ensureBennyKeystore({ bennyHome: home.bennyHome, env });
 
   const server = await startServer({
     projectRoot: context.projectRoot,

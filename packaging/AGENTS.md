@@ -48,6 +48,8 @@ Required coverage:
 
 `packaging/desktop/server_storage_paths.js` is the canonical packaged-desktop helper for choosing the stable packaged `userData` root across desktop rebrands and for locating writable server temp and auth fallback storage outside the installed bundle.
 
+`packaging/desktop/home_resolver.js` is the canonical helper for resolving `BENNY_HOME` and `CUSTOMWARE_PATH` across packaged desktop runs and local CLI commands (`serve`, `supervise`). It also owns `ensureBennyKeystore`, which idempotently seeds a per-install 64-character hex HMAC secret in `<BENNY_HOME>/state/hmac-key` before the embedded server boots on a cold start, ensuring the Q0 security fail-fast check (`assertRuntimeProxyConfig`) is satisfied without shipping default credentials. To allow `benny_cli init` to still run its full setup on first launch after keystore seeding, `runtime_supervisor.js` checks for `<BENNY_HOME>/state/profile-lock` instead of `hmac-key`.
+
 Standalone browser-bridge debugging belongs under `tests/browser_component_harness/`, not inside the real desktop host. `packaging/desktop/main.js` and `packaging/desktop/preload.js` must stay focused on production desktop behavior and should not grow test-driver IPC or scenario hooks for browser harness work.
 
 `packaging/desktop/updater_artifacts.js` is the canonical packaged-desktop helper for updater cache ownership: it writes a marker before explicit restart-to-install handoff, then clears stale `pending/` payloads from the current and legacy updater cache roots on the next packaged launch while leaving reusable metadata such as blockmaps intact.

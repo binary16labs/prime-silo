@@ -30,6 +30,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
+const { randomBytes } = require("node:crypto");
 
 const CONFIG_DIR_NAME = "Prime-Silo";
 const CONFIG_FILENAME = "prime-silo-config.json";
@@ -210,8 +211,41 @@ function dirExists(target) {
   }
 }
 
+function ensureBennyKeystore(options = {}) {
+  const bennyHome = trimmed(options.bennyHome);
+  const env = options.env || process.env;
+
+  if (!bennyHome) {
+    return false;
+  }
+
+  if (!env.BENNY_HOME) {
+    env.BENNY_HOME = bennyHome;
+  }
+
+  if (env.BENNY_API_KEY || env.BENNY_AGENT_API_KEY) {
+    return false;
+  }
+
+  try {
+    const stateDir = path.join(bennyHome, "state");
+    const hmacKeyFile = path.join(stateDir, "hmac-key");
+    if (!fs.existsSync(hmacKeyFile)) {
+      fs.mkdirSync(stateDir, { recursive: true });
+      const freshKey = randomBytes(32).toString("hex");
+      fs.writeFileSync(hmacKeyFile, freshKey, "utf8");
+      return true;
+    }
+  } catch (error) {
+    console.warn("[home_resolver] failed to seed benny keystore:", error?.message || error);
+  }
+
+  return false;
+}
+
 module.exports = {
   resolveHome,
+  ensureBennyKeystore,
   readDesktopConfig,
   defaultUserDataPath,
   configFilePath,

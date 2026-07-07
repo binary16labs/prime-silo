@@ -12,7 +12,7 @@ import path from "node:path";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const { resolveHome, DEFAULT_HOME_DIRNAME } = require("../packaging/desktop/home_resolver.js");
+const { resolveHome, ensureBennyKeystore, DEFAULT_HOME_DIRNAME } = require("../packaging/desktop/home_resolver.js");
 
 // Hermetic base: userData under a temp dir, empty env unless a case sets one.
 const tmpBase = fs.mkdtempSync(path.join(os.tmpdir(), "ps-home-resolver-"));
@@ -103,6 +103,31 @@ function resolve({ env = {}, config = {} } = {}) {
   const adopted = resolve({ config: { homeDir: path.join(tmpBase, "adopted") } });
   assert.equal(adopted.bennyHomeSource, "derived");
   assert.equal(adopted.customwareSource, "derived");
+}
+
+// ── ensureBennyKeystore seeds per-install hmac-key and sets BENNY_HOME ──────
+{
+  const testBennyHome = path.join(tmpBase, "keystore-test-benny");
+  const testEnv = {};
+  const seeded = ensureBennyKeystore({ bennyHome: testBennyHome, env: testEnv });
+  assert.equal(seeded, true);
+  assert.equal(testEnv.BENNY_HOME, testBennyHome);
+  const keyFile = path.join(testBennyHome, "state", "hmac-key");
+  assert.ok(fs.existsSync(keyFile));
+  const keyText = fs.readFileSync(keyFile, "utf8").trim();
+  assert.equal(keyText.length, 64);
+  assert.match(keyText, /^[0-9a-f]{64}$/);
+
+  // Idempotent: second call does not overwrite or return true.
+  const second = ensureBennyKeystore({ bennyHome: testBennyHome, env: testEnv });
+  assert.equal(second, false);
+  assert.equal(fs.readFileSync(keyFile, "utf8").trim(), keyText);
+
+  // Skipped when BENNY_API_KEY is already in env.
+  const envWithKey = { BENNY_API_KEY: "custom-key" };
+  const untouchedHome = path.join(tmpBase, "untouched-benny");
+  assert.equal(ensureBennyKeystore({ bennyHome: untouchedHome, env: envWithKey }), false);
+  assert.ok(!fs.existsSync(path.join(untouchedHome, "state", "hmac-key")));
 }
 
 fs.rmSync(tmpBase, { recursive: true, force: true });

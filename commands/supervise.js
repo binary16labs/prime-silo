@@ -240,10 +240,12 @@ function resolveRequiredCustomwarePath(projectRoot, serveArgs, env = process.env
     envValue: env.CUSTOMWARE_PATH
   });
 
+  const home = homeResolver.resolveHome({ env });
+  homeResolver.ensureBennyKeystore({ bennyHome: home.bennyHome, env });
+
   if (!configuredPath) {
     // Derive from the declared home (home_resolver.js) instead of failing:
     // supervise should follow the same home the desktop shell and dev serve use.
-    const home = homeResolver.resolveHome({ env });
     console.log(
       `[supervise] CUSTOMWARE_PATH not set; using ${home.customwarePath} (home source: ${home.source}).`
     );

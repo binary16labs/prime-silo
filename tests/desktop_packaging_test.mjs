@@ -460,7 +460,7 @@ test("packaged desktop updater cleanup keeps cached blockmaps but removes stale 
   );
 });
 test("packaged desktop auth data moves to the user-data tree", () => {
-  const userDataPath = "/home/alessandro/.config/Space Agent";
+  const userDataPath = path.resolve("/home/alessandro/.config/Space Agent");
 
   assert.equal(
     resolveDesktopAuthDataDir({
@@ -505,4 +505,48 @@ test("server bootstrap honors a packaged desktop tmpDir override", async (testCo
 
   assert.equal(bootstrap.tmpDir, tmpDir);
   assert.equal(stats.isDirectory(), true);
+});
+
+test("packaged desktop seeds per-install benny keystore before server boot on cold start", async (testContext) => {
+  const runtimeRoot = await fs.mkdtemp(path.join(os.tmpdir(), "space-desktop-cold-start-"));
+  const bennyHome = path.join(runtimeRoot, "benny");
+  const tmpDir = path.join(runtimeRoot, "runtime", "server-tmp");
+
+  testContext.after(async () => {
+    await fs.rm(runtimeRoot, {
+      force: true,
+      recursive: true
+    });
+  });
+
+  const coldEnv = { ...process.env };
+  delete coldEnv.BENNY_API_KEY;
+  delete coldEnv.BENNY_AGENT_API_KEY;
+
+  // Simulate applyPackagedDesktopStorageOverrides seeding the keystore before createServerBootstrap:
+  const { ensureBennyKeystore } = require("../packaging/desktop/home_resolver.js");
+  ensureBennyKeystore({ bennyHome, env: coldEnv });
+
+  const originalEnv = process.env;
+  try {
+    process.env = coldEnv;
+    const bootstrap = await createServerBootstrap({
+      projectRoot: PROJECT_ROOT,
+      runtimeParamEnv: coldEnv,
+      runtimeParamOverrides: {
+        CUSTOMWARE_PATH: path.join(runtimeRoot, "customware"),
+        HOST: "127.0.0.1",
+        PORT: "0",
+        SINGLE_USER_APP: "true",
+        WORKERS: "1"
+      },
+      tmpDir
+    });
+    assert.ok(bootstrap);
+    const keyFile = path.join(bennyHome, "state", "hmac-key");
+    const keyText = await fs.readFile(keyFile, "utf8");
+    assert.equal(keyText.trim().length, 64);
+  } finally {
+    process.env = originalEnv;
+  }
 });

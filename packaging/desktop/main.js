@@ -21,7 +21,7 @@ const {
 } = require("./memoray_service");
 const { seedSelfAwareness } = require("./self_awareness");
 const { createRuntimeSupervisor } = require("./runtime_supervisor");
-const { resolveHome } = require("./home_resolver");
+const { resolveHome, ensureBennyKeystore } = require("./home_resolver");
 const {
   resolveDesktopAuthDataDir,
   resolveDesktopServerTmpDir,
@@ -870,6 +870,9 @@ function applyPackagedDesktopStorageOverrides() {
   if (authDataDir && !process.env[AUTH_DATA_DIR_ENV_NAME]) {
     process.env[AUTH_DATA_DIR_ENV_NAME] = authDataDir;
   }
+
+  const { bennyHome } = resolveDesktopHome();
+  ensureBennyKeystore({ bennyHome, env: process.env });
 }
 
 function resolveDesktopLaunchPath() {
