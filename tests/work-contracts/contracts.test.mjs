@@ -57,31 +57,55 @@ test("Scenario: bloated or vague contracts are rejected — over token budget", 
   assert.ok(estimateTokens(fat) > MAX_TOKENS);
   const r = validateContract(fat, { id: "X1", repoRoot: ROOT, knownIds: KNOWN });
   assert.equal(r.ok, false);
-  assert.ok(r.errors.some((e) => /token/i.test(e)), `names the token rule: ${r.errors}`);
+  assert.ok(
+    r.errors.some((e) => /token/i.test(e)),
+    `names the token rule: ${r.errors}`
+  );
 });
 
 test("Scenario: bloated or vague contracts are rejected — missing acceptance scenario", () => {
   const vague = contract().replace(/```gherkin[\s\S]*```/, "");
   const r = validateContract(vague, { id: "X1", repoRoot: ROOT, knownIds: KNOWN });
   assert.equal(r.ok, false);
-  assert.ok(r.errors.some((e) => /scenario/i.test(e)), `names the Scenario rule: ${r.errors}`);
+  assert.ok(
+    r.errors.some((e) => /scenario/i.test(e)),
+    `names the Scenario rule: ${r.errors}`
+  );
 });
 
 test("Scenario: bloated or vague contracts are rejected — unresolved dep and bad allowlist root", () => {
   const badDep = validateContract(contract({ deps: "[ZZ99]" }), {
-    id: "X1", repoRoot: ROOT, knownIds: KNOWN
+    id: "X1",
+    repoRoot: ROOT,
+    knownIds: KNOWN
   });
-  assert.ok(badDep.errors.some((e) => /ZZ99/.test(e)), `names the dep: ${badDep.errors}`);
+  assert.ok(
+    badDep.errors.some((e) => /ZZ99/.test(e)),
+    `names the dep: ${badDep.errors}`
+  );
 
   const badPath = validateContract(contract({ allowlist: "[nonexistent-root/x.js]" }), {
-    id: "X1", repoRoot: ROOT, knownIds: KNOWN
+    id: "X1",
+    repoRoot: ROOT,
+    knownIds: KNOWN
   });
-  assert.ok(badPath.errors.some((e) => /nonexistent-root/.test(e)), `names the path: ${badPath.errors}`);
+  assert.ok(
+    badPath.errors.some((e) => /nonexistent-root/.test(e)),
+    `names the path: ${badPath.errors}`
+  );
 
-  const badVerify = validateContract(contract({ verify: "node scripts/gates/zz.mjs", allowlist: "[server/coordination/]" }), {
-    id: "X1", repoRoot: ROOT, knownIds: KNOWN
-  });
-  assert.ok(badVerify.errors.some((e) => /verify/i.test(e)), `names the verify rule: ${badVerify.errors}`);
+  const badVerify = validateContract(
+    contract({ verify: "node scripts/gates/zz.mjs", allowlist: "[server/coordination/]" }),
+    {
+      id: "X1",
+      repoRoot: ROOT,
+      knownIds: KNOWN
+    }
+  );
+  assert.ok(
+    badVerify.errors.some((e) => /verify/i.test(e)),
+    `names the verify rule: ${badVerify.errors}`
+  );
 });
 
 test("Scenario: nothing is lost between plan and backlog — cycle detection works", () => {

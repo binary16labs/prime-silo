@@ -10,8 +10,9 @@ const planDeps = JSON.parse(fs.readFileSync(path.join(here, "plan-deps.json"), "
 delete planDeps.$comment;
 
 // Target is ~600 tokens; the hard ceiling accommodates the largest legitimate
-// exemplar (Q0 ≈ 1200 est. tokens). Estimator: chars/4 (deliberately simple).
-export const MAX_TOKENS = 1300;
+// exemplar (Q0, a rescoped security sweep, ≈1440 est. tokens after its merge
+// amendments). Estimator: chars/4 (deliberately simple).
+export const MAX_TOKENS = 1500;
 export const estimateTokens = (text) => Math.ceil(text.length / 4);
 const ID_RE = /^(?:[A-Z]\d+|M2-\d+)$/;
 
@@ -50,13 +51,19 @@ export function validateContract(text, { id, repoRoot, knownIds }) {
   if (!["worktree", "in-place"].includes(fm.sandbox)) errors.push(`${id}: sandbox '${fm.sandbox}'`);
   if (!(parseInt(fm.budget, 10) > 0)) errors.push(`${id}: budget '${fm.budget}'`);
   if (!Array.isArray(fm.deps)) errors.push(`${id}: deps must be a list`);
-  else for (const d of fm.deps) if (!knownIds.includes(d)) errors.push(`${id}: dep '${d}' does not resolve to a task`);
+  else
+    for (const d of fm.deps)
+      if (!knownIds.includes(d)) errors.push(`${id}: dep '${d}' does not resolve to a task`);
   if (!Array.isArray(fm.tools) || fm.tools.length === 0) errors.push(`${id}: tools empty`);
 
-  if (!Array.isArray(fm.allowlist) || fm.allowlist.length === 0) errors.push(`${id}: allowlist empty`);
+  if (!Array.isArray(fm.allowlist) || fm.allowlist.length === 0)
+    errors.push(`${id}: allowlist empty`);
   else
     for (const p of fm.allowlist) {
-      if (p.includes("..") || path.isAbsolute(p)) { errors.push(`${id}: allowlist path '${p}' not repo-relative`); continue; }
+      if (p.includes("..") || path.isAbsolute(p)) {
+        errors.push(`${id}: allowlist path '${p}' not repo-relative`);
+        continue;
+      }
       const root = p.split("/")[0];
       if (!fs.existsSync(path.join(repoRoot, p)) && !fs.existsSync(path.join(repoRoot, root)))
         errors.push(`${id}: allowlist root '${root}' does not exist (path '${p}')`);
@@ -69,7 +76,9 @@ export function validateContract(text, { id, repoRoot, knownIds }) {
       fs.existsSync(path.join(repoRoot, g)) ||
       (Array.isArray(fm.allowlist) && fm.allowlist.some((a) => g === a || g.startsWith(a)));
     if (gate && !covered(gate))
-      errors.push(`${id}: verify gate '${gate}' neither exists nor is in the contract's own allowlist`);
+      errors.push(
+        `${id}: verify gate '${gate}' neither exists nor is in the contract's own allowlist`
+      );
   }
 
   if (!/^## Goal/m.test(text)) errors.push(`${id}: '## Goal' section missing`);
@@ -79,7 +88,9 @@ export function validateContract(text, { id, repoRoot, knownIds }) {
 
   const tokens = estimateTokens(text);
   if (tokens > MAX_TOKENS)
-    errors.push(`${id}: ~${tokens} tokens exceeds the ${MAX_TOKENS} token ceiling — split the contract`);
+    errors.push(
+      `${id}: ~${tokens} tokens exceeds the ${MAX_TOKENS} token ceiling — split the contract`
+    );
 
   return { ok: errors.length === 0, errors };
 }
@@ -109,7 +120,10 @@ function boardIds(boardText) {
   let section = "";
   for (const line of boardText.split(/\r?\n/)) {
     const h = line.match(/^## (\w+)/);
-    if (h) { section = h[1]; continue; }
+    if (h) {
+      section = h[1];
+      continue;
+    }
     if (!section || section === "BACKLOG") continue;
     if (section === "AUTHORED") {
       for (const tok of line.split(/[\s·]+/)) if (ID_RE.test(tok)) ids.push(tok);
@@ -149,16 +163,24 @@ export function validateBacklog(repoRoot) {
 
   // nothing lost between plan and backlog
   const planIds = Object.keys(planDeps);
-  for (const p of planIds) if (!ids.includes(p)) errors.push(`plan phase ${p} has no contract in delivery/tasks/`);
-  for (const t of ids) if (!planIds.includes(t)) errors.push(`task ${t} is not a plan phase (scope enters via plan revs)`);
+  for (const p of planIds)
+    if (!ids.includes(p)) errors.push(`plan phase ${p} has no contract in delivery/tasks/`);
   for (const t of ids)
-    if (planDeps[t] && JSON.stringify([...graph[t]].sort()) !== JSON.stringify([...planDeps[t]].sort()))
+    if (!planIds.includes(t))
+      errors.push(`task ${t} is not a plan phase (scope enters via plan revs)`);
+  for (const t of ids)
+    if (
+      planDeps[t] &&
+      JSON.stringify([...graph[t]].sort()) !== JSON.stringify([...planDeps[t]].sort())
+    )
       errors.push(`${t}: deps [${graph[t]}] diverge from plan section 12 [${planDeps[t]}]`);
   const cycle = detectCycle(graph);
   if (cycle) errors.push(`dependency cycle: ${cycle}`);
 
   // board: every id exactly once across columns
-  const board = boardIds(fs.readFileSync(path.join(repoRoot, "delivery", "board", "BOARD.md"), "utf8"));
+  const board = boardIds(
+    fs.readFileSync(path.join(repoRoot, "delivery", "board", "BOARD.md"), "utf8")
+  );
   for (const t of ids) {
     const n = board.filter((b) => b === t).length;
     if (n !== 1) errors.push(`${t}: appears ${n} times on the board (must be exactly 1)`);
@@ -166,7 +188,9 @@ export function validateBacklog(repoRoot) {
   for (const b of board) if (!ids.includes(b)) errors.push(`board id ${b} has no contract`);
 
   // traceability: every id exactly once, every row id exists
-  const trace = traceabilityIds(fs.readFileSync(path.join(repoRoot, "delivery", "TRACEABILITY.md"), "utf8"));
+  const trace = traceabilityIds(
+    fs.readFileSync(path.join(repoRoot, "delivery", "TRACEABILITY.md"), "utf8")
+  );
   for (const t of ids) {
     const n = trace.filter((x) => x === t).length;
     if (n !== 1) errors.push(`${t}: appears ${n} times in TRACEABILITY (must be exactly 1)`);
