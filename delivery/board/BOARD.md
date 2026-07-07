@@ -4,14 +4,13 @@
 > Only the non-author verifier moves VERIFY → DONE. Order in READY = priority (human-edited only).
 
 ## READY  (take from the top)
-- B0 — coordination ledger spec  *(authored, tasks/B0.md)*
 - G0 — unified run-event stream spec  *(authored, tasks/G0.md)*
 - C0 — design system contract  *(authored, tasks/C0.md)*
 - A0 — verify real offload path  *(authored, tasks/A0.md — needs lemonade up; blocked-by-service is honest)*
 - W0 — work-contract format + full backlog conversion  *(authored, tasks/W0.md — converts remaining plan phases into tasks/)*
 
 ## CLAIMED (agent · date)
-*(empty)*
+- B0 — coordination ledger spec · claude · 2026-07-07
 
 ## VERIFY (awaiting non-author verification)
 - Q0 — security remediation · author claude · 2026-07-06 · gate q0.mjs GREEN (8/8) on branch feat/Q0 (.worktrees/Q0) — verifier: re-run `node scripts/gates/q0.mjs` from clean checkout of feat/Q0 (needs `npm ci` first). MERGE DEFERRED until the live LONGVIEW run completes (see LOG)
