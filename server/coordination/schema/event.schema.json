@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "prime-silo/coordination/event.schema.json",
+  "title": "Coordination ledger event (one JSONL line in PRIME_SILO_HOME/coordination/tasks.jsonl)",
+  "type": "object",
+  "required": ["id", "ts", "type", "agent", "task_id", "payload"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "description": "ULID — sortable unique event id",
+      "type": "string",
+      "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "ts": {
+      "description": "ISO-8601 timestamp with timezone",
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]\\d{2}:\\d{2})$"
+    },
+    "type": {
+      "enum": [
+        "task_created",
+        "task_claimed",
+        "task_progress",
+        "task_done",
+        "task_blocked",
+        "task_released",
+        "knowledge_added"
+      ]
+    },
+    "agent": {
+      "description": "Registered agent id — membership checked against coordination/agents.json by the validator (registry is extensible; not a schema enum by design)",
+      "type": "string",
+      "minLength": 1
+    },
+    "task_id": {
+      "description": "Task this event belongs to; '-' for knowledge_added events not tied to a task",
+      "type": "string",
+      "minLength": 1
+    },
+    "run_id": {
+      "description": "Optional — links a ledger task to a G0 run-event stream (runs/<run_id>/events.jsonl)",
+      "type": "string",
+      "minLength": 1
+    },
+    "payload": { "type": "object" },
+    "prev": {
+      "description": "Tamper-evidence chain: first 16 hex chars of SHA-256 of the previous raw ledger line, or 'genesis'. Set by the appender, never by the caller.",
+      "type": "string",
+      "pattern": "^(genesis|[0-9a-f]{16})$"
+    }
+  }
+}
