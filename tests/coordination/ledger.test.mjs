@@ -16,7 +16,7 @@ import {
   readEvents,
   foldState,
   claimTask,
-  renewLease,
+  renewLease
 } from "../../server/coordination/lib/ledger.mjs";
 
 const execFileP = promisify(execFile);
@@ -36,7 +36,7 @@ function validEvent(overrides = {}) {
     agent: "claude",
     task_id: "T1",
     payload: {},
-    ...overrides,
+    ...overrides
   };
 }
 
@@ -45,13 +45,20 @@ test("Scenario: malformed events never enter the ledger", (t) => {
   const agents = ["claude", "antigravity", "opencode", "benny", "human"];
 
   const bad = [
-    ["missing task_id", (() => { const e = validEvent(); delete e.task_id; return e; })()],
+    [
+      "missing task_id",
+      (() => {
+        const e = validEvent();
+        delete e.task_id;
+        return e;
+      })()
+    ],
     ["unregistered agent", validEvent({ agent: "gpt-9" })],
     ["bad ts", validEvent({ ts: "yesterday" })],
     ["unknown event type", validEvent({ type: "task_exploded" })],
     ["bad ulid", validEvent({ id: "not-a-ulid" })],
     ["payload not an object", validEvent({ payload: "hi" })],
-    ["extra field", validEvent({ sneaky: true })],
+    ["extra field", validEvent({ sneaky: true })]
   ];
   for (const [label, evt] of bad) {
     const v = validateEvent(evt, agents);
@@ -138,7 +145,7 @@ test("Scenario: ledger is append-only truth", () => {
     ["task_created", "human", "T6", {}],
     ["task_claimed", "benny", "T6", {}],
     ["task_released", "benny", "T6", {}],
-    ["knowledge_added", "antigravity", "-", { file: "knowledge/lemonade-wedge.md" }],
+    ["knowledge_added", "antigravity", "-", { file: "knowledge/lemonade-wedge.md" }]
   ];
   for (const [type, agent, task_id, payload] of seq) {
     appendEvent(dir, validEvent({ type, agent, task_id, payload }));

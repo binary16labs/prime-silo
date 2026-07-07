@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "prime-silo/coordination/knowledge.schema.json",
+  "title": "Frontmatter of a shared knowledge note (coordination/knowledge/*.md — one fact per file)",
+  "type": "object",
+  "required": ["topic", "source_agent", "confidence"],
+  "additionalProperties": true,
+  "properties": {
+    "topic": { "type": "string", "minLength": 1 },
+    "source_agent": {
+      "description": "Registered agent id from coordination/agents.json",
+      "type": "string",
+      "minLength": 1
+    },
+    "confidence": { "enum": ["low", "medium", "high"] }
+  }
+}
