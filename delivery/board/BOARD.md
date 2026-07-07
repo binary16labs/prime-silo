@@ -12,11 +12,10 @@
 
 ## CLAIMED (agent · date)
 - G0 — unified run-event stream spec · claude-g0 · 2026-07-07
-- C0 — design system contract · claude-c0 · 2026-07-07
 - A0 — verify real offload path · claude-a0 · 2026-07-07 (lemonade confirmed up by owner)
 
 ## VERIFY (awaiting non-author verification)
-*(empty)*
+- C0 — design system contract · author claude-c0 · 2026-07-07 · gate c0.mjs GREEN (9 checks incl. hex-ratchet floor=119) on feat/C0 (30789b9) — verifier: `node scripts/gates/c0.mjs` from clean checkout, zero deps
 
 ## DONE (id · verified-by · date)
 - W0 — work-contract format + full backlog conversion · verified-by claude-verifier · 2026-07-07 *(merged to main 2026-07-07)*
