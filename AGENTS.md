@@ -172,6 +172,9 @@ These rules apply across the codebase:
 - do not create new scratch, temporary, or throwaway directories under the repo as tracked content, especially hidden paths such as `.tmp/`; local verification artifacts must stay outside the published repo or in ignored local paths unless the user explicitly asks for a checked-in fixture
 - do not check generated binaries, staged release outputs, or other ephemeral build artifacts into ad hoc repo locations; if a durable fixture is truly required, keep it small, intentional, and in an owned non-hidden test or documentation path
 - for visual elements, reusable UI primitives, and dialog chrome, follow `/app/L0/_all/mod/_core/visual/AGENTS.md` as the binding contract instead of inventing feature-local alternatives when the shared visual system already covers the need
+- on Windows, always open log files and text streams using `errors='ignore'` or `errors='replace'` to prevent `UnicodeDecodeError` crashes on non-ASCII characters
+- avoid executing complex inline commands containing nested quotation marks directly in the terminal; instead, write them to a temporary scratch file and run the file
+- when monitoring background longview runners or active workspace tasks on Windows, include `node` / `node.exe` in the process filtering list alongside `python` and `lemonade` to ensure Node-based child processes are correctly tracked
 
 ## Top-Level Structure
 
