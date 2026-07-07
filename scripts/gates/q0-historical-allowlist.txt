@@ -1,0 +1,13 @@
+# Q0 gate — tracked files allowed to still contain the burned literal.
+# Purely historical/spec references only (contract Q0.md context, category e).
+# One repo-relative path per line; a trailing slash marks a directory prefix.
+# Lines starting with # are comments.
+architecture/ADR-003-agent-scope-credential-binding.md
+architecture/PLAN-local-power-unified-ui.md
+PHASE_C_D_NOTES.md
+runtime/.claude/recovery/UX-REC-001-diff.patch
+delivery/tasks/Q0.md
+delivery/board/LOG.md
+runtime/docs/requirements/
+scripts/gates/q0.mjs
+scripts/gates/q0-historical-allowlist.txt

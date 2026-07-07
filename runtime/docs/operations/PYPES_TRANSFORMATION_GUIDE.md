@@ -178,7 +178,7 @@ benny pypes registry
 
 ## HTTP API (Studio integration)
 
-Every CLI action has a paired endpoint under `/api/pypes/`. All endpoints require the standard `X-Benny-API-Key: benny-mesh-2026-auth` header.
+Every CLI action has a paired endpoint under `/api/pypes/`. All endpoints require the standard `X-Benny-API-Key: $BENNY_API_KEY` header.
 
 | Method | Path | Purpose |
 |--------|------|---------|

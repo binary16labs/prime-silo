@@ -102,7 +102,7 @@ benny doctor --json | jq '.aos'                                # AOS health sect
 
 # Observe a run in real time
 curl -N -H "Accept: text/event-stream" \
-     -H "X-Benny-API-Key: benny-mesh-2026-auth" \
+     -H "X-Benny-API-Key: $BENNY_API_KEY" \
      http://127.0.0.1:8005/api/workflows/execute/<manifest_id>
 
 # Logs

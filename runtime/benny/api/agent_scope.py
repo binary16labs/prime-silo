@@ -27,7 +27,10 @@ making the agent's authoring history itself auditable.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import os
+from pathlib import Path
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -60,13 +63,75 @@ _RESTRICTIVENESS = {SCOPE_READ_ONLY: 2, SCOPE_SANDBOX: 1}
 # holds even if the header is forged or stripped. The trusted/human key carries
 # no key-derived scope and falls through to header behaviour (back-compat).
 #
-# Must match server/lib/runtime_proxy.js DEV_FALLBACK_AGENT_API_KEY in dev; set
-# BENNY_AGENT_API_KEY in both processes to the same secret in production.
-_DEV_FALLBACK_AGENT_API_KEY = "benny-agent-sandbox-2026-dev"
+# Q0: no shipped default remains. Resolution: env BENNY_AGENT_API_KEY, else
+# derive from the per-install keystore via HMAC-SHA256(installKeyBytes,
+# b"benny-agent-scope") hex — this MUST match server/lib/runtime_proxy.js's
+# resolveBennyAgentApiKey byte-for-byte (cross-language parity pinned by a test).
+_AGENT_SCOPE_DERIVATION_LABEL = b"benny-agent-scope"
 
 
-def _agent_api_key() -> str:
-    return os.environ.get("BENNY_AGENT_API_KEY") or _DEV_FALLBACK_AGENT_API_KEY
+def _install_key_bytes() -> bytes | None:
+    """Resolve the per-install keystore content as bytes: hex-decoded if the
+    stored value is valid hex, else its raw utf-8 bytes."""
+    benny_home = os.environ.get("BENNY_HOME")
+    if not benny_home:
+        return None
+    from ..portable.home import read_install_hmac_key
+
+    value = read_install_hmac_key(Path(benny_home))
+    if not value:
+        return None
+    try:
+        decoded = bytes.fromhex(value)
+        if decoded and decoded.hex() == value.lower():
+            return decoded
+    except ValueError:
+        pass
+    return value.encode("utf-8")
+
+
+def resolve_benny_api_key() -> str:
+    """Single resolution path (Q0) for the trusted/human key: env BENNY_API_KEY
+    -> per-install keystore ($BENNY_HOME/state/hmac-key) -> fail fast. No
+    shipped default remains. Canonical for the runtime API (server.py aliases
+    this); consumer scripts duplicate the same three steps per their contracts."""
+    value = os.environ.get("BENNY_API_KEY")
+    if value:
+        return value
+
+    benny_home = os.environ.get("BENNY_HOME")
+    if benny_home:
+        from ..portable.home import read_install_hmac_key
+
+        keystore_value = read_install_hmac_key(Path(benny_home))
+        if keystore_value:
+            return keystore_value
+
+    raise RuntimeError(
+        "BENNY_API_KEY is not set and no per-install key was found at "
+        "<BENNY_HOME>/state/hmac-key. Set the BENNY_API_KEY environment variable, "
+        "or run `benny init` to generate a per-install keystore."
+    )
+
+
+def derive_agent_api_key_from_install_key(install_key_bytes: bytes) -> str:
+    """HMAC-SHA256(install_key_bytes, b"benny-agent-scope") hex. Exposed for the
+    cross-language parity test against server/lib/runtime_proxy.js."""
+    return hmac.new(install_key_bytes, _AGENT_SCOPE_DERIVATION_LABEL, hashlib.sha256).hexdigest()
+
+
+def _agent_api_key() -> str | None:
+    """Resolve the sandbox-bound agent key: env override, else derived from the
+    per-install keystore. Returns ``None`` if neither is available (no install
+    key yet) — callers must treat that as "no agent key configured", not as a
+    match against an empty string."""
+    env_value = os.environ.get("BENNY_AGENT_API_KEY")
+    if env_value:
+        return env_value
+    install_key_bytes = _install_key_bytes()
+    if install_key_bytes is None:
+        return None
+    return derive_agent_api_key_from_install_key(install_key_bytes)
 
 
 def _effective_scope(request: Request) -> str:
@@ -78,7 +143,8 @@ def _effective_scope(request: Request) -> str:
     """
     candidates: list[str] = []
 
-    if request.headers.get("X-Benny-API-Key", "") == _agent_api_key():
+    agent_key = _agent_api_key()
+    if agent_key is not None and request.headers.get("X-Benny-API-Key", "") == agent_key:
         candidates.append(SCOPE_SANDBOX)
 
     header_scope = request.headers.get("X-Benny-Agent-Scope", "").strip().lower()

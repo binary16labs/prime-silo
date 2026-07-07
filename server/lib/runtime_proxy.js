@@ -26,11 +26,18 @@
 //
 // Configuration (env):
 //   RUNTIME_BASE_URL     Default: "http://127.0.0.1:8005"
-//   BENNY_API_KEY        Trusted/human key. Required in production.
-//   BENNY_AGENT_API_KEY  Sandbox-bound agent key. Required in production.
+//   BENNY_API_KEY        Trusted/human key. Falls back to the per-install
+//                        keystore ($BENNY_HOME/state/hmac-key); fails fast if
+//                        neither is present.
+//   BENNY_AGENT_API_KEY  Sandbox-bound agent key. Derived from the per-install
+//                        keystore when absent; fails fast if neither resolves.
 //
 // Streams request/response bodies; hop-by-hop headers stripped both directions
 // (see service_proxy.js).
+
+import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
 
 import { buildUpstreamHeaders, forwardToUpstream } from "./service_proxy.js";
 
@@ -42,43 +49,97 @@ const DEFAULT_RUNTIME_BASE_URL = "http://127.0.0.1:8005";
 const AGENT_SCOPE_HEADER = "X-Benny-Agent-Scope";
 const SANDBOX_SCOPE = "sandbox";
 
-// Dev-only fallbacks. In production these are refused (see resolveCredential /
-// assertRuntimeProxyConfig) so a real deployment can never run on a shipped key.
-const DEV_FALLBACK_API_KEY = "benny-mesh-2026-auth";
-const DEV_FALLBACK_AGENT_API_KEY = "benny-agent-sandbox-2026-dev";
+// Derivation label for the sandbox-bound agent key, HMAC'd from the per-install
+// keystore. MUST match runtime/benny/api/agent_scope.py byte-for-byte.
+const AGENT_SCOPE_DERIVATION_LABEL = "benny-agent-scope";
 
-function isProduction() {
-  const env = String(process.env.NODE_ENV || process.env.PRIME_SILO_ENV || "").toLowerCase();
-  return env === "production";
+function keystorePath(env) {
+  if (!env.BENNY_HOME) {
+    return null;
+  }
+  return path.join(env.BENNY_HOME, "state", "hmac-key");
 }
 
-function resolveCredential(envName, devFallback) {
-  const value = process.env[envName];
-  if (value) {
-    return value;
+function readKeystore(env) {
+  const p = keystorePath(env);
+  if (!p) {
+    return null;
   }
-  if (isProduction()) {
-    throw new Error(
-      `${envName} is required in production. Refusing to proxy to the Benny runtime with a built-in development key. ` +
-        `Set ${envName} in the environment (see DEVOPS.md / docker-compose).`
-    );
+  try {
+    const value = fs.readFileSync(p, "utf8").trim();
+    return value || null;
+  } catch {
+    return null;
   }
-  return devFallback;
+}
+
+function actionableError(envName) {
+  return new Error(
+    `${envName} is not set and no per-install key was found at <BENNY_HOME>/state/hmac-key. ` +
+      `Set the ${envName} environment variable, or run \`benny init\` to generate a per-install keystore.`
+  );
 }
 
 /**
- * Fail-fast credential check, called once at server startup (see app.js). In
- * production this throws before the server begins listening if either Benny key
- * is missing, rather than silently falling back to a shipped default per
- * request. In development it is a no-op (dev fallbacks apply).
+ * Single resolution path for the trusted/human Benny API key:
+ *   1. env.BENNY_API_KEY
+ *   2. per-install keystore at $BENNY_HOME/state/hmac-key (trimmed file text)
+ *   3. fail fast — actionable error naming BENNY_API_KEY and the keystore path
+ */
+export function resolveBennyApiKey({ env = process.env } = {}) {
+  if (env.BENNY_API_KEY) {
+    return env.BENNY_API_KEY;
+  }
+  const keystoreValue = readKeystore(env);
+  if (keystoreValue) {
+    return keystoreValue;
+  }
+  throw actionableError("BENNY_API_KEY");
+}
+
+/**
+ * Single resolution path for the sandbox-bound agent key:
+ *   1. env.BENNY_AGENT_API_KEY
+ *   2. derived: hmac-sha256(installKeyBytes, "benny-agent-scope") hex, where
+ *      installKeyBytes = hex-decode of the keystore content if valid hex, else
+ *      its raw utf8 bytes. MUST match agent_scope.py's derivation.
+ *   3. fail fast — actionable error naming BENNY_AGENT_API_KEY and the keystore path
+ */
+export function resolveBennyAgentApiKey({ env = process.env } = {}) {
+  if (env.BENNY_AGENT_API_KEY) {
+    return env.BENNY_AGENT_API_KEY;
+  }
+  const keystoreValue = readKeystore(env);
+  if (keystoreValue) {
+    let installKeyBytes;
+    try {
+      installKeyBytes = Buffer.from(keystoreValue, "hex");
+      if (
+        installKeyBytes.length === 0 ||
+        installKeyBytes.toString("hex") !== keystoreValue.toLowerCase()
+      ) {
+        installKeyBytes = Buffer.from(keystoreValue, "utf8");
+      }
+    } catch {
+      installKeyBytes = Buffer.from(keystoreValue, "utf8");
+    }
+    return crypto
+      .createHmac("sha256", installKeyBytes)
+      .update(AGENT_SCOPE_DERIVATION_LABEL)
+      .digest("hex");
+  }
+  throw actionableError("BENNY_AGENT_API_KEY");
+}
+
+/**
+ * Fail-fast credential check, called once at server startup (see app.js).
+ * Throws before the server begins listening if either Benny key cannot be
+ * resolved via env or the per-install keystore — in ALL modes, not just
+ * production, since there is no shipped default left to fall back to.
  */
 export function assertRuntimeProxyConfig() {
-  if (!isProduction()) {
-    return;
-  }
-  // resolveCredential throws in production when the env var is absent.
-  resolveCredential("BENNY_API_KEY", DEV_FALLBACK_API_KEY);
-  resolveCredential("BENNY_AGENT_API_KEY", DEV_FALLBACK_AGENT_API_KEY);
+  resolveBennyApiKey();
+  resolveBennyAgentApiKey();
 }
 
 function getRuntimeBaseUrl() {
@@ -86,11 +147,11 @@ function getRuntimeBaseUrl() {
 }
 
 function getBennyApiKey() {
-  return resolveCredential("BENNY_API_KEY", DEV_FALLBACK_API_KEY);
+  return resolveBennyApiKey();
 }
 
 function getBennyAgentApiKey() {
-  return resolveCredential("BENNY_AGENT_API_KEY", DEV_FALLBACK_AGENT_API_KEY);
+  return resolveBennyAgentApiKey();
 }
 
 export function isRuntimeProxyPath(pathname) {
@@ -108,6 +169,28 @@ function buildUpstreamUrlFor(prefix, requestUrl) {
   // /api/runtime/agent_sandbox/health → http://127.0.0.1:8005/api/agent_sandbox/health
   const trimmed = requestUrl.pathname.slice(prefix.length) || "/";
   return `${getRuntimeBaseUrl()}/api${trimmed}${requestUrl.search}`;
+}
+
+/**
+ * ADR-003 (Q0 follow-up): dot-segments must never survive into the upstream
+ * URL. `new URL()` normalises literal `..` before routing, but percent-encoded
+ * dots (`%2e%2e`) pass through `pathname` untouched and would be decoded and
+ * normalised by the upstream server — letting a caller escape the facade's
+ * `/api` prefix. Undecodable paths are rejected as traversal too.
+ */
+export function hasPathTraversal(pathname) {
+  let decoded = String(pathname || "");
+  try {
+    decoded = decodeURIComponent(decoded);
+  } catch {
+    return true;
+  }
+  return decoded.split(/[\\/]+/).some((segment) => segment === "..");
+}
+
+function rejectTraversal(res) {
+  res.writeHead(400, { "Content-Type": "application/json" });
+  res.end(JSON.stringify({ error: "invalid_path", detail: "dot-segments are not allowed" }));
 }
 
 function mapUnreachable(err, upstreamUrl) {
@@ -129,6 +212,10 @@ function mapUnreachable(err, upstreamUrl) {
  * scope. Resolves once the response has fully streamed.
  */
 export async function proxyToRuntime(req, res, requestUrl) {
+  if (hasPathTraversal(requestUrl.pathname)) {
+    rejectTraversal(res);
+    return;
+  }
   const upstreamUrl = buildUpstreamUrlFor(RUNTIME_PATH_PREFIX, requestUrl);
   const headers = buildUpstreamHeaders(req.headers, {
     // The client value is never trusted: a forged X-Benny-Agent-Scope is dropped.
@@ -154,6 +241,10 @@ export async function proxyToRuntime(req, res, requestUrl) {
  * to sandbox at Benny.
  */
 export async function proxyToAgentRuntime(req, res, requestUrl) {
+  if (hasPathTraversal(requestUrl.pathname)) {
+    rejectTraversal(res);
+    return;
+  }
   const upstreamUrl = buildUpstreamUrlFor(AGENT_RUNTIME_PATH_PREFIX, requestUrl);
   const headers = buildUpstreamHeaders(req.headers, {
     dropHeaders: [AGENT_SCOPE_HEADER],

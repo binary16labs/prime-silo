@@ -738,6 +738,32 @@ async def execute_intervention_node(
     return {"message": "No breach detected", "status": "bypass"}
 
 
+def _resolve_a2a_api_key() -> str:
+    """Q0: env BENNY_API_KEY -> per-install keystore -> fail fast. See
+    server.py's _resolve_benny_api_key (same shape, duplicated per allowlist)."""
+    import os
+
+    value = os.environ.get("BENNY_API_KEY")
+    if value:
+        return value
+
+    benny_home = os.environ.get("BENNY_HOME")
+    if benny_home:
+        from pathlib import Path
+
+        from ..portable.home import read_install_hmac_key
+
+        keystore_value = read_install_hmac_key(Path(benny_home))
+        if keystore_value:
+            return keystore_value
+
+    raise RuntimeError(
+        "BENNY_API_KEY is not set and no per-install key was found at "
+        "<BENNY_HOME>/state/hmac-key. Set the BENNY_API_KEY environment variable, "
+        "or run `benny init` to generate a per-install keystore."
+    )
+
+
 async def execute_a2a_node(node: StudioNode, context: Dict, workspace: str) -> Dict:
     """Execute an A2A delegation node — sends task to a remote agent."""
     from ..a2a.client import A2AClient, A2AClientError
@@ -752,7 +778,7 @@ async def execute_a2a_node(node: StudioNode, context: Dict, workspace: str) -> D
     message = context.get("message", "") or context.get("llm_output", "")
 
     try:
-        client = A2AClient(api_key="benny-mesh-2026-auth", timeout=timeout)
+        client = A2AClient(api_key=_resolve_a2a_api_key(), timeout=timeout)
 
         # Send task
         task = await client.send_task(agent_url, message, workspace)

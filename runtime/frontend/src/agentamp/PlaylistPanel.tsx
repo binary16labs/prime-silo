@@ -21,6 +21,8 @@ import {
   Cpu,
 } from 'lucide-react';
 
+import { GOVERNANCE_HEADERS } from '../constants';
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -91,7 +93,7 @@ export default function PlaylistPanel({ onLoadManifest, workspace }: PlaylistPan
     try {
       const qs = workspace ? `?workspace=${encodeURIComponent(workspace)}&limit=50` : '?limit=50';
       const res = await fetch(`/api/agentamp/playlist${qs}`, {
-        headers: { 'X-Benny-API-Key': 'benny-mesh-2026-auth' },
+        headers: { ...GOVERNANCE_HEADERS },
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({ detail: res.statusText }));

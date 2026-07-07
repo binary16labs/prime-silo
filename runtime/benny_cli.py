@@ -354,8 +354,26 @@ async def cmd_enrich(args: argparse.Namespace) -> int:  # noqa: C901 — intenti
 
     console = Console()
 
+    def _resolve_cli_api_key() -> str:
+        """Q0: env BENNY_API_KEY -> per-install keystore -> fail fast."""
+        value = os.environ.get("BENNY_API_KEY")
+        if value:
+            return value
+        benny_home = os.environ.get("BENNY_HOME")
+        if benny_home:
+            from benny.portable.home import read_install_hmac_key
+
+            keystore_value = read_install_hmac_key(Path(benny_home))
+            if keystore_value:
+                return keystore_value
+        raise SystemExit(
+            "BENNY_API_KEY is not set and no per-install key was found at "
+            "<BENNY_HOME>/state/hmac-key. Set the BENNY_API_KEY environment variable, "
+            "or run `benny init` to generate a per-install keystore."
+        )
+
     API_BASE = os.environ.get("BENNY_API_URL", "http://127.0.0.1:8005")
-    API_KEY  = os.environ.get("BENNY_API_KEY",  "benny-mesh-2026-auth")
+    API_KEY  = _resolve_cli_api_key()
     _H = {"X-Benny-API-Key": API_KEY}
     _HJ = {**_H, "Content-Type": "application/json"}
 

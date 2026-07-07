@@ -112,7 +112,7 @@ Start all: `docker compose up -d` (from repo root). See `docker-compose.yml`.
 /api/governance/*              GET   permission + audit endpoints
 ```
 
-All endpoints require `X-Benny-API-Key: benny-mesh-2026-auth` unless listed in `GOVERNANCE_WHITELIST` (`benny/api/server.py`).
+All endpoints require `X-Benny-API-Key: $BENNY_API_KEY` unless listed in `GOVERNANCE_WHITELIST` (`benny/api/server.py`).
 
 ---
 

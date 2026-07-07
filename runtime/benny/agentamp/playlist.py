@@ -25,6 +25,7 @@ Requirements covered
 from __future__ import annotations
 
 import json
+import os
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -116,12 +117,33 @@ def get_playlist(
 # ---------------------------------------------------------------------------
 
 
+def _resolve_playlist_api_key() -> str:
+    """Q0: env BENNY_API_KEY -> per-install keystore -> fail fast."""
+    value = os.environ.get("BENNY_API_KEY")
+    if value:
+        return value
+    benny_home = os.environ.get("BENNY_HOME")
+    if benny_home:
+        from pathlib import Path
+
+        from ..portable.home import read_install_hmac_key
+
+        keystore_value = read_install_hmac_key(Path(benny_home))
+        if keystore_value:
+            return keystore_value
+    raise RuntimeError(
+        "BENNY_API_KEY is not set and no per-install key was found at "
+        "<BENNY_HOME>/state/hmac-key. Set the BENNY_API_KEY environment variable, "
+        "or run `benny init` to generate a per-install keystore."
+    )
+
+
 def enqueue_manifest(
     manifest_dict: Dict[str, Any],
     *,
     workspace: str = "default",
     api_base: str = "http://localhost:8000",
-    api_key: str = "benny-mesh-2026-auth",
+    api_key: str | None = None,
 ) -> str:
     """POST *manifest_dict* to ``POST /api/run`` and return the new run_id.
 
@@ -138,7 +160,8 @@ def enqueue_manifest(
     api_base:
         Base URL of the Benny API server (default ``http://localhost:8000``).
     api_key:
-        API key for the ``X-Benny-API-Key`` header.
+        API key for the ``X-Benny-API-Key`` header. When omitted, resolved via
+        env BENNY_API_KEY -> per-install keystore -> fail fast (Q0).
 
     Returns
     -------
@@ -152,6 +175,8 @@ def enqueue_manifest(
     ValueError
         If the server returns a non-200 response.
     """
+    resolved_api_key = api_key if api_key else _resolve_playlist_api_key()
+
     # Inject the requested workspace so the run is filed correctly
     payload = dict(manifest_dict)
     payload["workspace"] = workspace
@@ -163,7 +188,7 @@ def enqueue_manifest(
         data=body,
         headers={
             "Content-Type": "application/json",
-            "X-Benny-API-Key": api_key,
+            "X-Benny-API-Key": resolved_api_key,
         },
         method="POST",
     )

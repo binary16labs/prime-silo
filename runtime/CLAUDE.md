@@ -85,7 +85,7 @@ benny longview report                                  # honest ledger report
 1. **Always use `call_model()`** (`benny/core/models.py`) — never call litellm directly. This is how offline mode, logging, and lineage fire.
 2. **Never add absolute paths** to manifests or config. Use `${BENNY_HOME}` tokens. The SR-1 gate (`pytest tests/portability`) enforces this.
 3. **Always sign manifests** with `sign_manifest()` before sharing or executing.
-4. **All HTTP API calls need** `X-Benny-API-Key: benny-mesh-2026-auth` (unless path is in `GOVERNANCE_WHITELIST`).
+4. **All HTTP API calls need** `X-Benny-API-Key: $BENNY_API_KEY` (unless path is in `GOVERNANCE_WHITELIST`).
 5. **Never commit** `logs/`, `brain/`, `$BENNY_HOME/` contents — they are git-ignored for good reason.
 
 ## Dual-graph architecture

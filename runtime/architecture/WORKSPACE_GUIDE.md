@@ -34,7 +34,7 @@ workspaces/<name>/
 benny plan "..." --workspace c5_test
 
 # HTTP API
-curl -H "X-Benny-API-Key: benny-mesh-2026-auth" \
+curl -H "X-Benny-API-Key: $BENNY_API_KEY" \
      "http://127.0.0.1:8005/api/rag/status?workspace=c5_test"
 
 # Global default
@@ -57,11 +57,11 @@ export BENNY_WORKSPACE=c5_test
 **Typical operations**:
 ```bash
 # Check RAG status
-curl -H "X-Benny-API-Key: benny-mesh-2026-auth" \
+curl -H "X-Benny-API-Key: $BENNY_API_KEY" \
      "http://127.0.0.1:8005/api/rag/status?workspace=c4_test"
 
 # Semantic chat
-curl -X POST -H "X-Benny-API-Key: benny-mesh-2026-auth" \
+curl -X POST -H "X-Benny-API-Key: $BENNY_API_KEY" \
      -H "Content-Type: application/json" \
      -d '{"query": "What happens in The Time Machine?", "workspace": "c4_test", "mode": "semantic"}' \
      http://127.0.0.1:8005/api/rag/chat
@@ -91,13 +91,13 @@ curl -X POST -H "X-Benny-API-Key: benny-mesh-2026-auth" \
 
 ```bash
 # Step 1: Run code analysis on the workspace source
-curl -X POST -H "X-Benny-API-Key: benny-mesh-2026-auth" \
+curl -X POST -H "X-Benny-API-Key: $BENNY_API_KEY" \
      -H "Content-Type: application/json" \
      -d '{"workspace": "c5_test", "path": "src/dangpy"}' \
      http://127.0.0.1:8005/api/graph/code/analyze
 
 # Step 2: Run semantic correlator to link Concepts → CodeEntities
-curl -X POST -H "X-Benny-API-Key: benny-mesh-2026-auth" \
+curl -X POST -H "X-Benny-API-Key: $BENNY_API_KEY" \
      -H "Content-Type: application/json" \
      -d '{"workspace": "c5_test", "strategy": "aggressive"}' \
      http://127.0.0.1:8005/api/rag/synthesize

@@ -77,7 +77,25 @@ export const config = {
 
   // Benny runtime API (Phase D ingestion, workspace paths).
   BENNY_API_BASE: `http://${env("BENNY_API_HOST", "127.0.0.1")}:${env("BENNY_API_PORT", "8005")}`,
-  BENNY_API_KEY: env("BENNY_API_KEY", "benny-mesh-2026-auth"),
+  // Q0: single resolution path — env BENNY_API_KEY -> per-install keystore
+  // ($BENNY_HOME/state/hmac-key) -> fail fast. Lazy getter so LONGVIEW phases
+  // that never call the Benny API (map, reduce, opus, pdf) cannot be killed at
+  // import time by a missing key; only API-using phases (ingest) trigger it.
+  get BENNY_API_KEY() {
+    const explicit = env("BENNY_API_KEY", "");
+    if (explicit) return explicit;
+    try {
+      const value = fs.readFileSync(path.join(bennyHome, "state", "hmac-key"), "utf8").trim();
+      if (value) return value;
+    } catch {
+      // fall through to fail-fast
+    }
+    throw new Error(
+      "BENNY_API_KEY is not set and no per-install key was found at " +
+        "<BENNY_HOME>/state/hmac-key. Set the BENNY_API_KEY environment variable, " +
+        "or run `benny init` to generate a per-install keystore."
+    );
+  },
 
   // Budgets — evidence pack size bounds per-card latency on a 9B model.
   // NOTE: lemonade serves qwen3.5-9b-FLM with ctx_size 4096 on this box;

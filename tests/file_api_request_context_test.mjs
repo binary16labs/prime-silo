@@ -1,3 +1,8 @@
+// Q0: no shipped default keys remain - the server fails fast at boot without
+// configured credentials, so server-booting suites pin explicit test fixtures.
+process.env.BENNY_API_KEY = process.env.BENNY_API_KEY || "q0-test-fixture-human-key";
+process.env.BENNY_AGENT_API_KEY = process.env.BENNY_AGENT_API_KEY || "q0-test-fixture-agent-key";
+
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
