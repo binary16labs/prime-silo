@@ -12,9 +12,10 @@
 - A0 — verify real offload path · claude-a0 · 2026-07-07 (lemonade confirmed up by owner)
 
 ## VERIFY (awaiting non-author verification)
-- W0 — work-contract format + full backlog conversion · author claude · 2026-07-07 · gate w0.mjs GREEN (60 contracts) on branch feat/W0 (.worktrees/W0) — verifier: re-run `node scripts/gates/w0.mjs` from clean checkout of feat/W0 (zero dependencies)
+*(empty)*
 
 ## DONE (id · verified-by · date)
+- W0 — work-contract format + full backlog conversion · verified-by claude-verifier · 2026-07-07 *(on feat/W0, merge pending)*
 - B0 — coordination ledger spec + validator · verified-by claude-verifier · 2026-07-07 *(merged to main 2026-07-07)*
 - Q0 — security remediation · verified-by claude-verifier · 2026-07-07 *(merged to main 2026-07-07 — LONGVIEW run stopped by owner; NOTE: resuming LONGVIEW now requires BENNY_API_KEY in env or state/hmac-key keystore, fail-fast by design)*
 - A9 — server-side call deadlines · verified-by claude-verifier · 2026-07-07 *(on main, released v1.12.6)*

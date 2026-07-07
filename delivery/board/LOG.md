@@ -36,3 +36,4 @@ Events: authored, claimed, ready-for-verify, verified-by, done, blocked, unblock
 2026-07-07T19:56:00Z | G0 | claimed | claude-g0 | owner-directed parallel session (lemonade up, nothing else running); worktree .worktrees/G0
 2026-07-07T19:56:00Z | C0 | claimed | claude-c0 | owner-directed parallel session; worktree .worktrees/C0
 2026-07-07T19:56:00Z | A0 | claimed | claude-a0 | owner-directed parallel session; lemonade confirmed up by owner; worktree .worktrees/A0
+2026-07-07T20:45:00Z | W0 | verified-by | claude-verifier | gate re-run GREEN from clean checkout (feat/W0 5ffa7ba) — 60 contracts, 6/6 scenarios; spot-read Q3, M2-2, B1: pointer quality good — context pointers cite plan sections/lines and spec files without inlining plan content, frontmatter complete, each has gherkin Scenarios
