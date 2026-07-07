@@ -13,13 +13,13 @@
 *(empty)*
 
 ## VERIFY (awaiting non-author verification)
-- B0 — coordination ledger spec + validator · author claude · 2026-07-07 · gate b0.mjs GREEN (6/6 scenarios incl. 20/20 wx race) on branch feat/B0 (.worktrees/B0) — verifier: re-run `node scripts/gates/b0.mjs` from clean checkout of feat/B0 (zero dependencies, no npm ci needed)
-- Q0 — security remediation · author claude · 2026-07-06 · gate q0.mjs GREEN (8/8) on branch feat/Q0 (.worktrees/Q0) — verifier: re-run `node scripts/gates/q0.mjs` from clean checkout of feat/Q0 (needs `npm ci` first). MERGE DEFERRED until the live LONGVIEW run completes (see LOG)
-- A9 — server-side call deadlines · author claude · 2026-07-06 · gate a9.py GREEN — verifier: re-run `python scripts/gates/a9.py` from clean checkout
-- A8 — model-routing hygiene + ingest resilience · author claude · 2026-07-06 · gate a8.py GREEN — verifier: Antigravity re-run `python scripts/gates/a8.py` from clean checkout
+*(empty)*
 
 ## DONE (id · verified-by · date)
-*(empty)*
+- B0 — coordination ledger spec + validator · verified-by claude-verifier · 2026-07-07 *(on feat/B0, merge pending — new files only, can merge independent of LONGVIEW)*
+- Q0 — security remediation · verified-by claude-verifier · 2026-07-07 *(on feat/Q0 d4cbe72; MERGE STILL DEFERRED until the live LONGVIEW run completes — see LOG 2026-07-06T16:25)*
+- A9 — server-side call deadlines · verified-by claude-verifier · 2026-07-07 *(on main, released v1.12.6)*
+- A8 — model-routing hygiene + ingest resilience · verified-by claude-verifier · 2026-07-07 *(on main, v1.12.3-5; known residual: lemonade health-probe shape, see LOG 2026-07-06T15:20)*
 
 ## BLOCKED (id · reason · date)
 *(empty)*
