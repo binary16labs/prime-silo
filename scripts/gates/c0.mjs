@@ -14,7 +14,45 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const FLOOR_FILE = path.join(ROOT, "scripts", "gates", "c0-violation-floor.json");
+
+// Ratchet floor — recorded when this gate first went green. These are
+// pre-existing hex literals in large, out-of-C0-budget module/widget CSS
+// (bridge, lifelog, memory, memoray_client, widgets/*) that predate this
+// contract; C0's allowlist doesn't cover them so they're grandfathered
+// here rather than silently ignored. Any later commit may only shrink
+// this list, never grow it (see the ratchet scenario below). Kept inline
+// (not a separate file) so the floor stays inside c0.mjs, C0's sole
+// allowlisted gate file.
+const VIOLATION_FLOOR = {
+  hexTotal: 119,
+  hexByFile: {
+    // chrome.css is outside C0's allowlist (not in the contract's file
+    // list), so its 2 hex literals (--space-chrome-hover-bg/active-bg)
+    // are grandfathered here rather than fixed in this task. Retheme
+    // target for C1/module-retheming work.
+    "app/L0/_all/mod/_core/framework/css/chrome.css": 2,
+    "app/L0/_all/mod/_prime_silo/benny_record/benny_record.css": 1,
+    "app/L0/_all/mod/_prime_silo/bridge/bridge.css": 27,
+    "app/L0/_all/mod/_prime_silo/lifelog/lifelog.css": 17,
+    "app/L0/_all/mod/_prime_silo/manifest_explorer/manifest-explorer.css": 2,
+    "app/L0/_all/mod/_prime_silo/memoray_client/memoray-theme.css": 15,
+    "app/L0/_all/mod/_prime_silo/memory/memory.css": 11,
+    "app/L0/_all/mod/_prime_silo/mission_control/mission_control.css": 1,
+    "app/L0/_all/mod/_prime_silo/session_graph/session_graph.css": 1,
+    "app/L0/_all/mod/_prime_silo/setup/setup.css": 1,
+    "app/L0/_all/mod/_prime_silo/step_through/step_through.css": 1,
+    "app/L0/_all/mod/_prime_silo/widgets/codegraph/canvas/canvas.css": 3,
+    "app/L0/_all/mod/_prime_silo/widgets/dag/canvas/canvas.css": 2,
+    "app/L0/_all/mod/_prime_silo/widgets/force_graph_2d/force_graph_2d.css": 1,
+    "app/L0/_all/mod/_prime_silo/widgets/kg3d/synoptic_web/synoptic_web.css": 3,
+    "app/L0/_all/mod/_prime_silo/widgets/memoray/heatmap_radar/heatmap_radar.css": 16,
+    "app/L0/_all/mod/_prime_silo/widgets/memoray/lineage_graph/lineage_graph.css": 5,
+    "app/L0/_all/mod/_prime_silo/widgets/memoray/overview_cards/overview_cards.css": 9,
+    "app/L0/_all/mod/_prime_silo/widgets/three_renderer/renderer.css": 1,
+  },
+  justifyTotal: 0,
+  baseFontTotal: 0,
+};
 
 const GOVERNED_DIRS = [
   path.join(ROOT, "app", "L0", "_all", "mod", "_prime_silo"),
@@ -158,10 +196,7 @@ check(
 // went green for pre-existing, out-of-budget files. A later run may not
 // exceed the recorded floor per rule; new files not in the floor's
 // "grandfathered" list must be completely clean.
-let floor = { hexTotal: 0, hexByFile: {}, justifyTotal: 0, baseFontTotal: 0 };
-if (fs.existsSync(FLOOR_FILE)) {
-  floor = JSON.parse(fs.readFileSync(FLOOR_FILE, "utf8"));
-}
+const floor = VIOLATION_FLOOR;
 
 const hexTotal = hexViolations.length;
 check(

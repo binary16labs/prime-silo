@@ -75,6 +75,14 @@
   --color-focus-border: rgba(156, 175, 136, 0.5);
   --color-focus-ring: rgba(156, 175, 136, 0.3);
 
+  /* ── Elevation (depth) — exactly 3 tokens, C0 ───────────────────
+   * ADR-004 removed the global `box-shadow: none !important` reset;
+   * these are the only sanctioned depth values. Low = resting card/
+   * chip, medium = popover/menu/topbar panel, high = modal/dialog. */
+  --elevation-1: 0 1px 4px rgba(0, 0, 0, 0.24);
+  --elevation-2: 0 8px 24px rgba(0, 0, 0, 0.32);
+  --elevation-3: 0 24px 60px rgba(0, 0, 0, 0.44);
+
   /* ── Evocative aliases — Memo-Ray parity ───────────────────────
    * Same colors, organic names. Lets the memory-graph client share
    * this exact palette via a mirrored token block. */

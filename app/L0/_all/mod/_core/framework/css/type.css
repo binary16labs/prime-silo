@@ -1,0 +1,70 @@
+/*
+ * Type tokens — C0 design system contract.
+ * Dyslexia-friendly type rules, codified as tokens so they're
+ * mechanically enforceable (see scripts/gates/c0.mjs) rather than
+ * aspirational. See architecture/DESIGN-SYSTEM.md for the full rule
+ * set and rationale. Ported by the website (E0) — keep portable.
+ */
+
+:root {
+  /* ── Base type scale — base >= 16px, never below ─────────────────
+   * html/body inherit the 16px browser default; this token exists so
+   * components can reference the base size explicitly instead of
+   * hardcoding "16px" or "1rem" inline. */
+  --font-size-base: 1rem; /* 16px */
+  --font-size-sm: 0.875rem; /* 14px — chrome/labels only, never body copy */
+  --font-size-lg: 1.125rem; /* 18px */
+  --font-size-xl: 1.5rem; /* 24px */
+
+  /* ── Line height — >= 1.5 for body copy (dyslexia-friendly) ──────
+   * Tight line-heights are reserved for single-line chrome (buttons,
+   * badges, labels) where wrapping doesn't occur. */
+  --line-height-body: 1.5;
+  --line-height-tight: 1.2; /* single-line chrome only */
+
+  /* ── All-caps letter-spacing — generous, per dyslexia rule ───────
+   * Any text-transform: uppercase label must pair with this token. */
+  --letter-spacing-caps: 0.06em;
+
+  /* ── Readable-font toggle (stub) ──────────────────────────────────
+   * Persisted setting key: `settings.readableFont` (boolean). When on,
+   * the app root gets `[data-readable-font="on"]` and swaps to a
+   * high-legibility stack. UI wiring (the actual toggle control) lands
+   * with C2; this stub defines the CSS hook + font stack now so later
+   * work only has to flip the attribute. */
+  --font-stack-default: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-stack-readable: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-stack-active: var(--font-stack-default);
+}
+
+[data-readable-font="on"] {
+  --font-stack-active: var(--font-stack-readable);
+}
+
+/*
+ * Dyslexia-friendly base rules. Governed CSS must not override these
+ * with text-align: justify or a base font-size below 16px — the c0
+ * gate lints for both.
+ */
+body {
+  font-family: var(--font-stack-active);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-body);
+}
+
+/* Reading measure — long-form text blocks cap at --measure-max (70ch,
+ * defined in layout.css) so lines stay scannable. Opt in with this
+ * class rather than a global max-width, since chrome/tables need full
+ * width. */
+.type-measure {
+  max-width: var(--measure-max);
+}
+
+/* Never justify body text — ragged-right is the dyslexia-friendly
+ * default; this rule exists to be the one legitimate `justify`
+ * declaration in governed CSS (setting it to `initial`), should any
+ * inherited or third-party style attempt to justify body copy. */
+body,
+.type-measure {
+  text-align: initial;
+}
