@@ -7,10 +7,9 @@
 - G0 — unified run-event stream spec  *(authored, tasks/G0.md)*
 - C0 — design system contract  *(authored, tasks/C0.md)*
 - A0 — verify real offload path  *(authored, tasks/A0.md — needs lemonade up; blocked-by-service is honest)*
-- W0 — work-contract format + full backlog conversion  *(authored, tasks/W0.md — converts remaining plan phases into tasks/)*
 
 ## CLAIMED (agent · date)
-*(empty)*
+- W0 — work-contract format + full backlog conversion · claude · 2026-07-07
 
 ## VERIFY (awaiting non-author verification)
 *(empty)*
