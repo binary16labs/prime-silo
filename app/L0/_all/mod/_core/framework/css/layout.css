@@ -1,0 +1,38 @@
+/*
+ * Layout tokens — C0 design system contract.
+ * Single source of truth for spacing, radius, and pane-gap scales.
+ * Extend, never hardcode: new layout work reads these `var(--*)` tokens
+ * instead of one-off px values, the same discipline colors.css enforces
+ * for color. Ported by the website (E0) — keep these portable (no
+ * app-specific selectors here, tokens only).
+ */
+
+:root {
+  /* ── Spacing scale (4px base unit) ────────────────────────────── */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ── Radius scale ──────────────────────────────────────────────── */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 999px;
+
+  /* ── Pane gap — the gutter between adjacent panes/panels ──────────
+   * C1 (adaptive layout contract) consumes this for the shell → page
+   * → pane chain; defined here so it is available before C1 lands. */
+  --pane-gap: var(--space-4);
+
+  /* ── Reading measure — dyslexia-friendly line length ─────────────
+   * Body copy should never exceed this width; see type.css. */
+  --measure-max: 70ch;
+}
