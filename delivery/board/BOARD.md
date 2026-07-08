@@ -17,8 +17,8 @@
 *(empty)*
 
 ## DONE (id · verified-by · date)
-- G0 — unified run-event stream spec · verified-by claude-verifier · 2026-07-08 *(on feat/G0, merge pending)*
-- C0 — design system contract · verified-by claude-verifier · 2026-07-08 *(on feat/C0, merge pending)*
+- G0 — unified run-event stream spec · verified-by claude-verifier · 2026-07-08 *(merged to main 2026-07-08)*
+- C0 — design system contract · verified-by claude-verifier · 2026-07-08 *(merged to main 2026-07-08)*
 - W0 — work-contract format + full backlog conversion · verified-by claude-verifier · 2026-07-07 *(merged to main 2026-07-07)*
 - B0 — coordination ledger spec + validator · verified-by claude-verifier · 2026-07-07 *(merged to main 2026-07-07)*
 - Q0 — security remediation · verified-by claude-verifier · 2026-07-07 *(merged to main 2026-07-07 — LONGVIEW run stopped by owner; NOTE: resuming LONGVIEW now requires BENNY_API_KEY in env or state/hmac-key keystore, fail-fast by design)*
