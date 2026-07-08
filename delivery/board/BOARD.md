@@ -11,10 +11,10 @@
 - E0 — website design brief + claims registry  *(zero-dep — entered READY 2026-07-07; human-signed)*
 
 ## CLAIMED (agent · date)
-- A0 — verify real offload path · claude-a0 · 2026-07-07 · ⏸ INCOMPLETE — subagent hit session limit mid-task (resets ~04:40 London); gate a0.py preserved+hardened on feat/A0 (79ca86e) but NEVER run green; punch-list in LOG 2026-07-08T08:25. Owner caught executor hitting Phi-4 not qwen (A8 roulette). Finish: run a0.py green with qwen loaded, then ready-for-verify
+*(empty)*
 
 ## VERIFY (awaiting non-author verification)
-*(empty)*
+- A0 — verify real offload path · author claude-a0 + claude (finish) · 2026-07-08 · gate a0.py GREEN against LIVE lemonade (qwen3.5-9B-FLM @16k confirmed; 10/10 judge calibration; wall 64-88s) on feat/A0 (8f7e6da) — verifier: `BENNY_HOME=<scratch> BENNY_DEFAULT_MODEL=lemonade/qwen3.5-9b-FLM python scripts/gates/a0.py` from clean checkout with lemonade UP (live-verification contract). Do NOT restart lemonade
 
 ## DONE (id · verified-by · date)
 - G0 — unified run-event stream spec · verified-by claude-verifier · 2026-07-08 *(merged to main 2026-07-08)*
