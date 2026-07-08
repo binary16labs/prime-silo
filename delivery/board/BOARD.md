@@ -11,7 +11,7 @@
 - E0 — website design brief + claims registry  *(zero-dep — entered READY 2026-07-07; human-signed)*
 
 ## CLAIMED (agent · date)
-- A0 — verify real offload path · claude-a0 · 2026-07-07 (lemonade confirmed up by owner)
+- A0 — verify real offload path · claude-a0 · 2026-07-07 · ⏸ INCOMPLETE — subagent hit session limit mid-task (resets ~04:40 London); gate a0.py preserved+hardened on feat/A0 (79ca86e) but NEVER run green; punch-list in LOG 2026-07-08T08:25. Owner caught executor hitting Phi-4 not qwen (A8 roulette). Finish: run a0.py green with qwen loaded, then ready-for-verify
 
 ## VERIFY (awaiting non-author verification)
 - G0 — unified run-event stream spec · author claude-g0 · 2026-07-08 · gate g0.py GREEN (37 pytest, 7 new scenario tests) on feat/G0 (3ca852a) — verifier: `python scripts/gates/g0.py` from clean checkout
