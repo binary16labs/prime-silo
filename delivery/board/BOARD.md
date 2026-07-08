@@ -14,10 +14,11 @@
 - A0 — verify real offload path · claude-a0 · 2026-07-07 · ⏸ INCOMPLETE — subagent hit session limit mid-task (resets ~04:40 London); gate a0.py preserved+hardened on feat/A0 (79ca86e) but NEVER run green; punch-list in LOG 2026-07-08T08:25. Owner caught executor hitting Phi-4 not qwen (A8 roulette). Finish: run a0.py green with qwen loaded, then ready-for-verify
 
 ## VERIFY (awaiting non-author verification)
-- G0 — unified run-event stream spec · author claude-g0 · 2026-07-08 · gate g0.py GREEN (37 pytest, 7 new scenario tests) on feat/G0 (3ca852a) — verifier: `python scripts/gates/g0.py` from clean checkout
-- C0 — design system contract · author claude-c0 · 2026-07-07 · gate c0.mjs GREEN (9 checks incl. hex-ratchet floor=119) on feat/C0 (30789b9) — verifier: `node scripts/gates/c0.mjs` from clean checkout, zero deps
+*(empty)*
 
 ## DONE (id · verified-by · date)
+- G0 — unified run-event stream spec · verified-by claude-verifier · 2026-07-08 *(on feat/G0, merge pending)*
+- C0 — design system contract · verified-by claude-verifier · 2026-07-08 *(on feat/C0, merge pending)*
 - W0 — work-contract format + full backlog conversion · verified-by claude-verifier · 2026-07-07 *(merged to main 2026-07-07)*
 - B0 — coordination ledger spec + validator · verified-by claude-verifier · 2026-07-07 *(merged to main 2026-07-07)*
 - Q0 — security remediation · verified-by claude-verifier · 2026-07-07 *(merged to main 2026-07-07 — LONGVIEW run stopped by owner; NOTE: resuming LONGVIEW now requires BENNY_API_KEY in env or state/hmac-key keystore, fail-fast by design)*
