@@ -46,6 +46,7 @@ from pydantic import BaseModel
 from .checkpoints import CheckpointStore
 from .engine import ExecutionEngine
 from .engines import get_engine
+from .events import RunEventStream
 from .lineage import LineageEmitter
 from .models import (
     EngineType,
@@ -180,6 +181,18 @@ class Orchestrator:
         order = _topological_order(resolved.steps)
         log.info("pypes: run=%s manifest=%s order=%s", run_id, resolved.id, order)
 
+        # G0 run-event stream: DAG frozen at run_started with the topo order
+        # already computed above. _safe_emit degrades on any failure.
+        manifest_hash = hashlib.sha256(resolved.model_dump_json().encode("utf-8")).hexdigest()
+        events = RunEventStream(run_id=run_id)
+        _safe_emit(
+            events.run_started,
+            manifest_id=resolved.id,
+            manifest_hash=manifest_hash,
+            nodes=order,
+            edges=_edges_from_order(resolved.steps, order),
+        )
+
         outcomes: Dict[str, StepOutcome] = {}
         errors: List[str] = []
         overall_status = "SUCCESS"
@@ -215,6 +228,9 @@ class Orchestrator:
                     continue
 
             emitter.step_start(step)
+            _safe_emit(events.node_started, node_id=step.id, attempt=1)
+            for in_name in step.inputs:
+                _safe_emit(events.artifact_consumed, node_id=step.id, artifact=in_name)
             t0 = time.time()
             try:
                 df, validation = self._execute_step(
@@ -234,6 +250,7 @@ class Orchestrator:
                 # Wire outputs into context
                 for out_name in step.outputs or [step.id]:
                     context.set(out_name, df)
+                    _safe_emit(events.artifact_produced, node_id=step.id, artifact=out_name)
 
                 if validation.status == "FAIL":
                     overall_status = "PARTIAL"
@@ -245,6 +262,7 @@ class Orchestrator:
                     output_names=step.outputs or [step.id],
                 )
                 emitter.step_complete(step, validation)
+                _safe_emit(events.node_finished, node_id=step.id, attempt=1, duration_ms=duration)
             except Exception as exc:
                 duration = int((time.time() - t0) * 1000)
                 err = f"{type(exc).__name__}: {exc}"
@@ -262,6 +280,9 @@ class Orchestrator:
                         status="FAIL",
                         checks=[{"check": "execution", "status": "FAILED", "error": err}],
                     ),
+                )
+                _safe_emit(
+                    events.node_failed, node_id=step.id, attempt=1, error=err, duration_ms=duration
                 )
                 overall_status = "FAILED"
                 # Fail-fast by default — downstream steps have no inputs anyway
@@ -297,6 +318,15 @@ class Orchestrator:
         receipt.signature = _sign_receipt(receipt)
         (run_dir / "receipt.json").write_text(receipt.model_dump_json(indent=2), encoding="utf-8")
         emitter.run_complete(receipt.status)
+        if receipt.status == "FAILED":
+            _safe_emit(
+                events.run_failed,
+                status=receipt.status,
+                error="; ".join(errors) or "run failed",
+                duration_ms=receipt.duration_ms,
+            )
+        else:
+            _safe_emit(events.run_finished, status=receipt.status, duration_ms=receipt.duration_ms)
         return receipt
 
     # -------------------------------------------------------------- steps
@@ -499,6 +529,34 @@ class Orchestrator:
 # =============================================================================
 # MODULE-LEVEL HELPERS
 # =============================================================================
+
+
+def _safe_emit(fn, /, *args: Any, **kwargs: Any) -> None:
+    """Call a RunEventStream method, degrading on any exception — event
+    emission must never block or fail a pypes step (G0 contract)."""
+    try:
+        fn(*args, **kwargs)
+    except Exception as exc:  # noqa: BLE001 - intentionally broad
+        log.warning("pypes.events: emit failed, degrading: %s", exc)
+
+
+def _edges_from_order(steps: List[PipelineStep], order: List[str]) -> List[Tuple[str, str]]:
+    """Producer->consumer edges (same rule as ``_topological_order``) for the header."""
+    producers: Dict[str, str] = {}
+    for s in steps:
+        for o in s.outputs or [s.id]:
+            producers[o] = s.id
+    by_id = {s.id: s for s in steps}
+    edges: List[Tuple[str, str]] = []
+    for step_id in order:
+        step = by_id.get(step_id)
+        if step is None:
+            continue
+        for name in step.inputs:
+            prod = producers.get(name)
+            if prod and prod != step_id:
+                edges.append((prod, step_id))
+    return edges
 
 
 def _topological_order(steps: List[PipelineStep]) -> List[str]:
