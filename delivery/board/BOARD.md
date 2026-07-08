@@ -14,9 +14,10 @@
 *(empty)*
 
 ## VERIFY (awaiting non-author verification)
-- A0 — verify real offload path · author claude-a0 + claude (finish) · 2026-07-08 · gate a0.py GREEN against LIVE lemonade (qwen3.5-9B-FLM @16k confirmed; 10/10 judge calibration; wall 64-88s) on feat/A0 (8f7e6da) — verifier: `BENNY_HOME=<scratch> BENNY_DEFAULT_MODEL=lemonade/qwen3.5-9b-FLM python scripts/gates/a0.py` from clean checkout with lemonade UP (live-verification contract). Do NOT restart lemonade
+*(empty)*
 
 ## DONE (id · verified-by · date)
+- A0 — verify real offload path · verified-by claude-verifier · 2026-07-08 *(on feat/A0, merge pending — live-verification contract; gate re-run GREEN vs live qwen)*
 - G0 — unified run-event stream spec · verified-by claude-verifier · 2026-07-08 *(merged to main 2026-07-08)*
 - C0 — design system contract · verified-by claude-verifier · 2026-07-08 *(merged to main 2026-07-08)*
 - W0 — work-contract format + full backlog conversion · verified-by claude-verifier · 2026-07-07 *(merged to main 2026-07-07)*
