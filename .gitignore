@@ -52,3 +52,9 @@ apps.lock.json
 runtime/logs/
 runtime/workspace/
 runtime/failed_llm_output_*.txt
+# G0 run-event streams land here when PRIME_SILO_HOME/BENNY_HOME are unset
+# (e.g. running gates/tests without env set) — per-run data, never committed.
+runtime/runs/
+# Delivery worktrees (git worktree add .worktrees/<id>) — local-only sandboxes,
+# never committed (a stray add here could commit an entire worktree tree).
+/.worktrees/
