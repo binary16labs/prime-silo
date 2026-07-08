@@ -55,8 +55,15 @@ def patch_manifest_missing(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("benny.core.workspace.load_manifest", _raise)
 
 
-def _stub_client_factory(catalog: list, loaded: str | None):
-    """httpx.AsyncClient stub: /models returns the catalog, /health the loaded model."""
+def _stub_client_factory(catalog: list, loaded: str | None, health_shape: str = "flat"):
+    """httpx.AsyncClient stub: /models returns the catalog, /health the loaded model.
+
+    ``health_shape`` selects how the loaded model is reported:
+      * ``flat`` — ``{"model_loaded": <id>}`` (the older probe assumption)
+      * ``list`` — ``{"all_models_loaded": [{"model_name": <id>, "type": "llm"}]}``
+        which is the shape real lemonade actually returns (A8.3 residual: the
+        probe scanned only the flat keys, so this form fell through to roulette)
+    """
 
     class _Resp:
         def __init__(self, payload):
@@ -81,6 +88,8 @@ def _stub_client_factory(catalog: list, loaded: str | None):
             if url.endswith("/health"):
                 if loaded is None:
                     raise ConnectionError("no health endpoint")
+                if health_shape == "list":
+                    return _Resp({"all_models_loaded": [{"model_name": loaded, "type": "llm"}]})
                 return _Resp({"model_loaded": loaded})
             raise ConnectionError(f"unexpected url {url}")
 
@@ -126,6 +135,27 @@ async def test_autodetect_prefers_loaded_model_over_catalog_order(
         "benny.core.models.httpx.AsyncClient",
         _stub_client_factory(
             catalog=["DeepSeek-Qwen3-8B-GGUF", "qwen3.5-9b-FLM"], loaded="qwen3.5-9b-FLM"
+        ),
+    )
+    resolved = await llm.get_active_model("longview_v2", role="default")
+    assert resolved.endswith("/qwen3.5-9b-FLM")
+
+
+@pytest.mark.asyncio
+async def test_autodetect_reads_lemonade_list_health_shape(
+    patch_manifest_missing, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A8.3: real lemonade reports the loaded model as all_models_loaded[].model_name
+    (a list), NOT a flat model_loaded key. The loaded-model preference must read
+    that shape — otherwise it falls through to catalog roulette against live lemonade
+    (the very swap-thrash A8 exists to prevent). Catalog lists DeepSeek first; qwen
+    is loaded and reported only in list form → resolution must still pick qwen."""
+    monkeypatch.setattr(
+        "benny.core.models.httpx.AsyncClient",
+        _stub_client_factory(
+            catalog=["DeepSeek-Qwen3-8B-GGUF", "qwen3.5-9b-FLM"],
+            loaded="qwen3.5-9b-FLM",
+            health_shape="list",
         ),
     )
     resolved = await llm.get_active_model("longview_v2", role="default")
