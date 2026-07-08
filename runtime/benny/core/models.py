@@ -291,6 +291,32 @@ async def get_active_model(
     return resolved
 
 
+def _loaded_model_from_health(hdata: dict) -> Optional[str]:
+    """Extract the currently-loaded LLM id from a local provider's /health payload.
+
+    A8.3 (2026-07-08): real lemonade reports loaded models as
+    ``all_models_loaded: [{"model_name": ..., "type": "llm"}, ...]`` (a list) —
+    the authoritative shape. Older code scanned only the flat ``model_loaded``
+    key, so against live lemonade the loaded-model preference silently fell
+    through to catalog roulette (the exact swap-thrash A8 exists to prevent).
+    Prefer the list form (an ``llm``-typed entry, else the first), then fall
+    back to the flat keys for providers/versions that only expose those.
+    """
+    entries = hdata.get("all_models_loaded")
+    if isinstance(entries, list) and entries:
+        llm_entries = [e for e in entries if isinstance(e, dict) and e.get("type") == "llm"]
+        chosen = (llm_entries or [e for e in entries if isinstance(e, dict)] or [None])[0]
+        if isinstance(chosen, dict):
+            name = chosen.get("model_name") or chosen.get("model")
+            if isinstance(name, str) and name:
+                return name
+    for key in ("model_loaded", "loaded_model", "model"):
+        loaded = hdata.get(key)
+        if isinstance(loaded, str) and loaded:
+            return loaded
+    return None
+
+
 async def _get_active_model_raw(
     workspace_id: str = "default", role: str = "chat", run_id: Optional[str] = None
 ) -> str:
@@ -373,13 +399,12 @@ async def _get_active_model_raw(
                     hresp = await client.get(health_url)
                     if hresp.status_code == 200:
                         hdata = hresp.json()
-                        for key in ("model_loaded", "loaded_model", "model"):
-                            loaded = hdata.get(key)
-                            if isinstance(loaded, str) and loaded:
-                                resolved = f"{provider_name}/{loaded}"
-                                if run_id:
-                                    set_run_model_affinity(run_id, resolved)
-                                return resolved
+                        loaded = _loaded_model_from_health(hdata)
+                        if loaded:
+                            resolved = f"{provider_name}/{loaded}"
+                            if run_id:
+                                set_run_model_affinity(run_id, resolved)
+                            return resolved
                 except Exception:
                     pass  # no health endpoint — fall through to catalog
 
