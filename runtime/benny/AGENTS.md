@@ -7,6 +7,7 @@ This directory contains the FastAPI backend, the LangGraph swarm executor, the P
 - `benny/graph/`: Swarm execution and state management. LangGraph nodes must be pure functions where possible, mutating state deterministically.
 - `benny/pypes/`: The declarative transformation engine. Changes here must maintain backward compatibility with existing pipeline manifests and preserve CLP (column-level provenance).
 - `benny/agentamp/`: Server-side support for the skinnable cockpit (handling .aamp files, signatures, DSP-A SSE streams).
+- `benny/core/`: Core runtime utilities including models, endpoints, and embeddings. `get_embedding_sync`, `get_embedding_async`, and local provider calls resolve endpoint overrides (`BENNY_<PROVIDER>_ENDPOINTS`) via `benny.core.endpoints.resolve_endpoint`.
 
 ## Implementation Rules
 1. **Deterministic Execution**: The core must remain byte-replay-identical. Do not introduce side-effects in manifest-execution paths.

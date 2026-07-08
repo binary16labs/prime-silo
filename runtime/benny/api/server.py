@@ -3,6 +3,30 @@ Benny API Server - FastAPI application with CORS and routers
 """
 
 import os as _os
+from pathlib import Path as _Path
+
+# Load repo-root .env so a background/service uvicorn (which does NOT inherit a
+# terminal's transient $env vars) still picks up pinned overrides such as
+# BENNY_LMSTUDIO_ENDPOINTS / BENNY_DEFAULT_MODEL. override=True so the .env pin
+# wins over any stale value a tray/desktop launcher may have exported into this
+# process tree — the whole point of the file is to be authoritative.
+_ENV_PATH = _Path(__file__).resolve().parent.parent.parent.parent / ".env"
+try:
+    import dotenv as _dotenv
+
+    _dotenv.load_dotenv(_ENV_PATH, override=True)
+except ImportError:
+    # In a frozen/bundled runtime python-dotenv may be absent. Fail loud (not
+    # silent) so a missing .env-load is diagnosable instead of silently
+    # reproducing the "endpoints not applied" bug.
+    import logging as _logging
+
+    _logging.getLogger(__name__).warning(
+        "python-dotenv not installed — %s was NOT loaded; env-var overrides "
+        "(BENNY_LMSTUDIO_ENDPOINTS, BENNY_DEFAULT_MODEL) must be set in the "
+        "process environment instead.",
+        _ENV_PATH,
+    )
 
 # ─── Windows aiohttp SSL hang fix ─────────────────────────────────────────────
 # aiohttp's connector.py calls ssl.SSLContext.set_default_verify_paths() at

@@ -1092,11 +1092,13 @@ async def get_embedding(
 
 async def _get_generic_local_embedding(text: str, provider: str, model: str = None) -> List[float]:
     """Get embedding from an OpenAI-compatible local AI endpoint (e.g. Lemonade)."""
+    from ..core.endpoints import resolve_endpoint
+
     provider_config = LOCAL_PROVIDERS.get(provider)
     if not provider_config:
         raise ValueError(f"Unknown local provider for embedding: {provider}")
 
-    api_base = provider_config["base_url"]
+    api_base = resolve_endpoint(provider, provider_config["base_url"])
     url = f"{api_base}/embeddings"
 
     model_name = model.split("/")[-1] if model else "default"

@@ -3,6 +3,7 @@ Torch-free Embedding Utilities - Bypasses WinError 4551 by using HTTP providers.
 """
 
 import logging
+import os
 from typing import List, Optional
 
 import httpx
@@ -32,6 +33,26 @@ def _get_sync_client() -> httpx.Client:
 _embed_model_cache: dict = {}
 
 
+def _embed_probe_ok(base: str, model_id: str) -> bool:
+    """Return True iff `model_id` actually returns a vector at `base`.
+
+    A provider can *list* an embed id that fails to load on demand (e.g. LM
+    Studio serving both a working `nomic-ai/…` and a broken community `cstr/…`
+    fork of the same model — the latter 400s "Failed to load embedding model").
+    Listing alone is not proof, so we spend one cheap call to confirm before
+    committing to (and caching) an id for the whole run.
+    """
+    try:
+        resp = _get_sync_client().post(
+            base.rstrip("/") + "/embeddings",
+            json={"model": model_id, "input": "ping"},
+            timeout=15.0,
+        )
+        return resp.status_code == 200 and bool(_extract_embedding(resp.json()))
+    except Exception:
+        return False
+
+
 def _resolve_embedding_model(
     current_provider: str, provider_config: Optional[dict], fallback_model: str
 ) -> str:
@@ -40,22 +61,47 @@ def _resolve_embedding_model(
     The hardcoded default ("nomic-embed-text-v1-GGUF") matches Lemonade but NOT
     LM Studio (which serves e.g. "text-embedding-nomic-embed-text-v1.5"). When
     the cascade falls through to a provider that doesn't have that exact id, the
-    provider returns "No models loaded" / 400. So we query the provider's
-    OpenAI-compatible /models once (cached) and prefer an id containing "embed";
-    otherwise we keep the caller's fallback (provider may JIT-load it).
+    provider returns "No models loaded" / 400. Resolution order:
+
+      1. explicit BENNY_EMBED_MODEL env pin (deterministic; no guessing);
+      2. the caller's fallback if the provider actually serves it;
+      3. a served id containing "embed" that PASSES a one-shot probe — so a
+         listed-but-broken fork is skipped instead of poisoning the cascade;
+      4. the caller's fallback (provider may JIT-load it).
     """
     if current_provider in _embed_model_cache:
         return _embed_model_cache[current_provider]
+
     model = fallback_model
     try:
-        base = (provider_config or {}).get("base_url")
-        if base:
+        from .endpoints import resolve_endpoint
+
+        raw_base = (provider_config or {}).get("base_url")
+        # Discover/probe against the SAME endpoint the embedding call will use —
+        # a LAN pool (BENNY_<PROVIDER>_ENDPOINTS) repoints the provider off
+        # localhost, so probing the static base_url would hit a dead local port.
+        base = resolve_endpoint(current_provider, raw_base) if raw_base else raw_base
+
+        pin = os.environ.get("BENNY_EMBED_MODEL")
+        if pin:
+            model = pin  # trust the operator's explicit choice
+        elif base:
             resp = _get_sync_client().get(base.rstrip("/") + "/models", timeout=4.0)
             if resp.status_code == 200:
                 ids = [m.get("id") for m in resp.json().get("data", []) if m.get("id")]
                 embed_ids = [i for i in ids if "embed" in i.lower()]
-                if embed_ids:
-                    model = embed_ids[0]
+                # Prefer the caller's fallback when the provider truly serves it;
+                # else try each embed candidate and keep the first that works.
+                if fallback_model in ids:
+                    model = fallback_model
+                else:
+                    for candidate in embed_ids:
+                        if _embed_probe_ok(base, candidate):
+                            model = candidate
+                            break
+                    else:
+                        if embed_ids:
+                            model = embed_ids[0]
     except Exception:
         pass
     _embed_model_cache[current_provider] = model
@@ -103,12 +149,15 @@ async def get_embedding_async(
 ) -> List[float]:
     """Get embeddings via HTTP (Async). No Torch/Transformers required."""
     from .models import LOCAL_PROVIDERS
+    from .endpoints import resolve_endpoint
 
     text = (text or "")[:_EMBED_MAX_CHARS]
     # Dynamic provider cascade for failover
-    providers_to_try = [provider] + [
+    preferred = ["lmstudio"] if os.environ.get("BENNY_LMSTUDIO_ENDPOINTS") else []
+    base_order = [provider] + [
         p for p in ["lmstudio", "fastflowlm", "ollama"] if p != provider
     ]
+    providers_to_try = preferred + [p for p in base_order if p not in preferred]
     client = _get_async_client()
 
     for current_provider in providers_to_try:
@@ -121,7 +170,8 @@ async def get_embedding_async(
             else:
                 continue
         else:
-            api_base = provider_config.get("base_url", "http://localhost:11434/api")
+            raw_base = provider_config.get("base_url", "http://localhost:11434/api")
+            api_base = resolve_endpoint(current_provider, raw_base)
             # fastflowlm and others might use /v1, so we ensure /embeddings is appended correctly
             url = f"{api_base}/embeddings"
             resolved = _resolve_embedding_model(current_provider, provider_config, model)
@@ -157,11 +207,14 @@ def get_embedding_sync(
 ) -> List[float]:
     """Get embeddings via HTTP (Sync). Used by ChromaDB EmbeddingFunction."""
     from .models import LOCAL_PROVIDERS
+    from .endpoints import resolve_endpoint
 
     text = (text or "")[:_EMBED_MAX_CHARS]
-    providers_to_try = [provider] + [
+    preferred = ["lmstudio"] if os.environ.get("BENNY_LMSTUDIO_ENDPOINTS") else []
+    base_order = [provider] + [
         p for p in ["lmstudio", "fastflowlm", "ollama"] if p != provider
     ]
+    providers_to_try = preferred + [p for p in base_order if p not in preferred]
     client = _get_sync_client()
 
     for current_provider in providers_to_try:
@@ -174,7 +227,8 @@ def get_embedding_sync(
             else:
                 continue
         else:
-            api_base = provider_config.get("base_url", "http://localhost:11434/api")
+            raw_base = provider_config.get("base_url", "http://localhost:11434/api")
+            api_base = resolve_endpoint(current_provider, raw_base)
             url = f"{api_base}/embeddings"
             resolved = _resolve_embedding_model(current_provider, provider_config, model)
             payload = {"model": resolved, "input": text}

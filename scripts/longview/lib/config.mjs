@@ -31,6 +31,11 @@ function loadDotEnv() {
 const dotenv = loadDotEnv();
 const env = (k, fallback) => process.env[k] || dotenv[k] || fallback;
 
+// Resolved env value (process.env → .env), "" when unset. Exported so callers
+// (runManifest's manifest-vs-env precedence) see .env-only overrides too, not
+// just exported process.env vars.
+export const envValue = (key) => env(key, "");
+
 // Resolve $BENNY_HOME exactly like the running runtime does (env override →
 // desktop config → per-user default), via the canonical Node mirror of
 // benny/portable/home.py. Phase D ingests through the runtime's API, so the
@@ -73,7 +78,19 @@ export const config = {
 
   // Local model host (same one benny/core/models.py resolves to).
   LEMONADE_BASE_URL: env("LEMONADE_BASE_URL", "http://127.0.0.1:13305/api/v1"),
-  LONGVIEW_MODEL: env("LONGVIEW_MODEL", "qwen3.5-9b-FLM"),
+  // OpenAI-compatible base URL the node runner posts completions to. Priority:
+  // explicit LONGVIEW_LLM_BASE_URL → the active lmstudio pool (first endpoint of
+  // BENNY_LMSTUDIO_ENDPOINTS) → lemonade default. Keeps map/weave/reduce/opus on
+  // the SAME provider profile as ingest (benny/core/models.py) instead of a
+  // hardwired host, so a repoint (or an eval sweep) moves every phase together.
+  LLM_BASE_URL:
+    env("LONGVIEW_LLM_BASE_URL", "") ||
+    env("BENNY_LMSTUDIO_ENDPOINTS", "").split(",")[0].trim().replace(/\/+$/, "") ||
+    env("LEMONADE_BASE_URL", "http://127.0.0.1:13305/api/v1"),
+  // Map/synthesis model. Priority: LONGVIEW_MODEL → BENNY_DEFAULT_MODEL profile →
+  // manifest default (applied in runManifest) → literal. Dynamic so provider/model
+  // profiles and eval sweeps swap it without editing the manifest.
+  LONGVIEW_MODEL: env("LONGVIEW_MODEL", "") || env("BENNY_DEFAULT_MODEL", "") || "qwen3.5-9b-FLM",
 
   // Benny runtime API (Phase D ingestion, workspace paths).
   BENNY_API_BASE: `http://${env("BENNY_API_HOST", "127.0.0.1")}:${env("BENNY_API_PORT", "8005")}`,
@@ -124,7 +141,8 @@ export const config = {
   // vectors (found live: 55 cards in Chroma, empty graph). Synthesis is
   // LLM-per-document, so batches are small and the timeout generous.
   DEEP_SYNTHESIS: env("LONGVIEW_DEEP_SYNTHESIS", "true") !== "false",
-  INGEST_MODEL: env("LONGVIEW_INGEST_MODEL", "lemonade/qwen3.5-9b-FLM"),
+  INGEST_MODEL:
+    env("LONGVIEW_INGEST_MODEL", "") || env("BENNY_DEFAULT_MODEL", "") || "lemonade/qwen3.5-9b-FLM",
   // Two hard-won constraints shape these numbers:
   // 1. A batch must never outlive its timeout, or timed-out polls fire the
   //    next batch onto a still-running server task — five stacked synthesis

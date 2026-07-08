@@ -4,8 +4,14 @@ import { config } from "./config.mjs";
 
 export async function chat({ system, user, maxTokens, json = false, temperature = 0.2 }) {
   const started = Date.now();
+  // OpenAI-compatible endpoints key on the bare model id; the provider prefix
+  // (lmstudio/…, lemonade/…) only selects the endpoint, which config.LLM_BASE_URL
+  // has already resolved. Mirror benny/core/models.py's split("/")[-1].
+  const modelId = String(config.LONGVIEW_MODEL).includes("/")
+    ? String(config.LONGVIEW_MODEL).split("/").pop()
+    : config.LONGVIEW_MODEL;
   const body = {
-    model: config.LONGVIEW_MODEL,
+    model: modelId,
     messages: [
       ...(system ? [{ role: "system", content: system }] : []),
       { role: "user", content: user }
@@ -16,7 +22,7 @@ export async function chat({ system, user, maxTokens, json = false, temperature 
     enable_thinking: false,
     ...(json ? { response_format: { type: "json_object" } } : {})
   };
-  const res = await fetch(`${config.LEMONADE_BASE_URL}/chat/completions`, {
+  const res = await fetch(`${config.LLM_BASE_URL}/chat/completions`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -24,7 +30,7 @@ export async function chat({ system, user, maxTokens, json = false, temperature 
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`lemonade ${res.status}: ${text.slice(0, 300)}`);
+    throw new Error(`llm ${res.status} @ ${config.LLM_BASE_URL}: ${text.slice(0, 300)}`);
   }
   const data = await res.json();
   const content = data.choices?.[0]?.message?.content ?? "";

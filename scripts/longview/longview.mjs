@@ -26,7 +26,7 @@ import { fileURLToPath } from "url";
 import { runOpus } from "./lib/opus.mjs";
 import { evidenceFor, graphCatalog, graphNeighbors } from "./lib/retrieve.mjs";
 import { mdToHtml, htmlToPdf } from "./lib/book_pdf.mjs";
-import { config, ensureWorkspace, workspaceDir, stateDir, projectRoot } from "./lib/config.mjs";
+import { config, ensureWorkspace, workspaceDir, stateDir, projectRoot, envValue } from "./lib/config.mjs";
 import { taskStalled, reconcileIngested, isStallVerdict } from "./lib/ingest_state.mjs";
 import { syncStore, listSessions } from "./lib/store.mjs";
 import { buildEvidencePack } from "./lib/evidence.mjs";
@@ -1049,7 +1049,7 @@ async function runReduce({ onlyOverride = null, skipBookOverride = null } = {}) 
         `python benny_cli.py run manifests/templates/togaf_sad_report_swarm.json --json ^`,
         `  --var workspace=${config.WORKSPACE} ^`,
         `  --var topic="The binary16 application estate (LONGVIEW synthesis)" ^`,
-        `  --var model=lemonade/${config.LONGVIEW_MODEL} ^`,
+        `  --var model=${config.LONGVIEW_MODEL} ^`,
         `  --var output_file=data_out/TOGAF_SAD_binary16.md`,
         "```",
         "",
@@ -1580,8 +1580,16 @@ function loadManifest() {
   if (manifest.workspace && !process.env.LONGVIEW_WORKSPACE) {
     config.WORKSPACE = manifest.workspace;
   }
-  if (v.model) config.LONGVIEW_MODEL = v.model;
-  if (v.ingest_model) config.INGEST_MODEL = v.ingest_model;
+  // Same precedence for the model: an explicit LONGVIEW_MODEL / BENNY_DEFAULT_MODEL
+  // profile (or the ingest equivalents) wins over the manifest's preconfigured
+  // default, so provider/model profiles and eval sweeps drive the run dynamically
+  // without editing the template. Manifest value applies only when no profile is set.
+  if (v.model && !envValue("LONGVIEW_MODEL") && !envValue("BENNY_DEFAULT_MODEL")) {
+    config.LONGVIEW_MODEL = v.model;
+  }
+  if (v.ingest_model && !envValue("LONGVIEW_INGEST_MODEL") && !envValue("BENNY_DEFAULT_MODEL")) {
+    config.INGEST_MODEL = v.ingest_model;
+  }
   if (v.evidence_budget_chars) config.EVIDENCE_BUDGET_CHARS = Number(v.evidence_budget_chars);
   if (v.reduce_input_chars) config.REDUCE_INPUT_BUDGET = Number(v.reduce_input_chars);
   if (v.card_max_tokens) config.CARD_MAX_TOKENS = Number(v.card_max_tokens);
