@@ -17,7 +17,7 @@
 *(empty)*
 
 ## DONE (id · verified-by · date)
-- A0 — verify real offload path · verified-by claude-verifier · 2026-07-08 *(on feat/A0, merge pending — live-verification contract; gate re-run GREEN vs live qwen)*
+- A0 — verify real offload path · verified-by claude-verifier · 2026-07-08 *(merged to main 2026-07-08 — live-verification contract; qwen3.5-9B-FLM @16k proven, judge 10/10, phi4-roulette hard-guard in place)*
 - G0 — unified run-event stream spec · verified-by claude-verifier · 2026-07-08 *(merged to main 2026-07-08)*
 - C0 — design system contract · verified-by claude-verifier · 2026-07-08 *(merged to main 2026-07-08)*
 - W0 — work-contract format + full backlog conversion · verified-by claude-verifier · 2026-07-07 *(merged to main 2026-07-07)*
