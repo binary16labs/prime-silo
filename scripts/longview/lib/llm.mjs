@@ -4,12 +4,14 @@ import { config } from "./config.mjs";
 
 export async function chat({ system, user, maxTokens, json = false, temperature = 0.2 }) {
   const started = Date.now();
-  // OpenAI-compatible endpoints key on the bare model id; the provider prefix
-  // (lmstudio/…, lemonade/…) only selects the endpoint, which config.LLM_BASE_URL
-  // has already resolved. Mirror benny/core/models.py's split("/")[-1].
-  const modelId = String(config.LONGVIEW_MODEL).includes("/")
-    ? String(config.LONGVIEW_MODEL).split("/").pop()
-    : config.LONGVIEW_MODEL;
+  // Strip ONLY the leading provider segment (lmstudio/…, lemonade/…) — it selects
+  // the endpoint, already resolved into config.LLM_BASE_URL. The rest is the id the
+  // endpoint keys on and may itself contain a slash (LM Studio serves org/model
+  // ids like "google/gemma-4-12b"), so a naive split("/").pop() would break them.
+  const modelId = String(config.LONGVIEW_MODEL).replace(
+    /^(lmstudio|lemonade|ollama|fastflowlm)\//,
+    ""
+  );
   const body = {
     model: modelId,
     messages: [
@@ -20,7 +22,12 @@ export async function chat({ system, user, maxTokens, json = false, temperature 
     temperature,
     // qwen3.5-9b-FLM emits clean output, but keep the ADR-004 hardening anyway.
     enable_thinking: false,
-    ...(json ? { response_format: { type: "json_object" } } : {})
+    // JSON-extraction calls: response_format is provider-sensitive (LM Studio
+    // 400s on json_object). config.JSON_MODE picks a compatible type; the caller's
+    // parser recovers the object from the text regardless. "off" omits it entirely.
+    ...(json && config.JSON_MODE !== "off"
+      ? { response_format: { type: config.JSON_MODE } }
+      : {})
   };
   const res = await fetch(`${config.LLM_BASE_URL}/chat/completions`, {
     method: "POST",

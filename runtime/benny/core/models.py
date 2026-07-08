@@ -704,12 +704,19 @@ async def call_model(
 
             config["base_url"] = resolve_endpoint(provider, config["base_url"])
 
-        # Ensure we use the model ID without the provider prefix for the actual call
+        # Strip ONLY the leading provider segment for the actual call. The remainder
+        # is the id the endpoint keys on and may itself contain a slash — LM Studio
+        # serves org/model ids like "google/gemma-4-12b", so split("/")[-1] would
+        # over-strip to "gemma-4-12b" and 400 ("No models loaded").
         litellm_model = actual_model
         if "/" in litellm_model and (
             provider in ["lemonade", "ollama", "fastflowlm", "lmstudio"] or "base_url" in config
         ):
-            litellm_model = litellm_model.split("/")[-1]
+            prefix = f"{provider}/"
+            if litellm_model.startswith(prefix):
+                litellm_model = litellm_model[len(prefix) :]
+            else:
+                litellm_model = litellm_model.split("/", 1)[-1]
 
         # Normalize local providers for LiteLLM if they somehow leaked here
         local_mapping = ["lemonade", "fastflowlm", "lmstudio", "ollama"]

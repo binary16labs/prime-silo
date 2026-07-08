@@ -245,7 +245,10 @@ async function assembleCard(item, fragments) {
 
   let intent = "";
   const intentTokens = { prompt: 0, completion: 0 };
-  try {
+  // The intent sentence is a nice-to-have (card body summary) and falls back to a
+  // deterministic template below. On slow reasoning models it doubles per-session
+  // latency, so LONGVIEW_INTENT_MAX_TOKENS=0 skips the call entirely.
+  if (config.INTENT_MAX_TOKENS > 0) try {
     const highlights = [
       `project: ${project}`,
       decisions.length ? `decisions: ${decisions.join("; ")}` : "",

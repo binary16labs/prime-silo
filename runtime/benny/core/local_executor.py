@@ -128,7 +128,13 @@ class BaseOpenAICompatibleExecutor(BaseLocalExecutor):
         self, model_id: str, provider_name: str, base_url: str, api_key: str = "not-needed"
     ):
         super().__init__(model_id, provider_name)
-        self.base_url = base_url.rstrip("/")
+        # Honor a configured endpoint override/pool (BENNY_<PROVIDER>_ENDPOINTS) so
+        # a LAN model server is reachable — otherwise the local executor always
+        # dials the hardcoded localhost default and 'All connection attempts failed'
+        # when the provider actually runs on another host (deep_synthesis path).
+        from .endpoints import resolve_endpoint
+
+        self.base_url = resolve_endpoint(provider_name, base_url).rstrip("/")
         self.api_key = api_key
         # Use a longer default timeout for local models (LC-5.4)
         self.timeout = float(os.environ.get("BENNY_LLM_TIMEOUT", "900"))
@@ -175,6 +181,17 @@ class BaseOpenAICompatibleExecutor(BaseLocalExecutor):
                 headers={"Authorization": f"Bearer {self.api_key}"},
                 json=json_payload,
             )
+            if resp.status_code >= 400:
+                import logging as _lg
+
+                _lg.getLogger(__name__).error(
+                    "local executor %s HTTP %s body=%s payload_keys=%s max_tokens=%s",
+                    self.base_url,
+                    resp.status_code,
+                    resp.text[:500],
+                    list(payload.keys()),
+                    payload.get("max_tokens"),
+                )
             resp.raise_for_status()
             data = resp.json()
             # Defensive: some local servers (notably Lemonade with the FLM

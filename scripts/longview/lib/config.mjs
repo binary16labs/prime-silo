@@ -91,6 +91,12 @@ export const config = {
   // manifest default (applied in runManifest) → literal. Dynamic so provider/model
   // profiles and eval sweeps swap it without editing the manifest.
   LONGVIEW_MODEL: env("LONGVIEW_MODEL", "") || env("BENNY_DEFAULT_MODEL", "") || "qwen3.5-9b-FLM",
+  // response_format.type for JSON-extraction calls. LM Studio rejects
+  // "json_object" (accepts only "json_schema"|"text") and the fragment parser
+  // (lastBalancedJson/repairTruncatedJson) already recovers JSON from free text
+  // and <think> preambles — so default to the portable "text". Set
+  // LONGVIEW_JSON_MODE=json_object for providers (lemonade) that require it.
+  JSON_MODE: env("LONGVIEW_JSON_MODE", "text"),
 
   // Benny runtime API (Phase D ingestion, workspace paths).
   BENNY_API_BASE: `http://${env("BENNY_API_HOST", "127.0.0.1")}:${env("BENNY_API_PORT", "8005")}`,
