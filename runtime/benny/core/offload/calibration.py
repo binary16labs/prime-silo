@@ -28,13 +28,23 @@ _BASE_TASK: Dict[str, Any] = {
     "format": "aamp.offload_task/1",
     "id": "calib-slugify",
     "intent": "Implement slugify(s): lowercase, strip, collapse non-alphanumeric runs "
-    "to a single hyphen, trim leading/trailing hyphens. Errors must be explicit and "
-    "actionable, never silent.",
+    "to a single hyphen, trim leading/trailing hyphens. The deliverable must be complete "
+    "and correct.",
+    # single, generously-scoped criterion: keeps the rubric aligned with the one
+    # dimension each fixture actually varies on (does the deliverable work?),
+    # rather than penalizing "good" fixtures for not exercising every unrelated
+    # dimension (measured false-negative risk with small local judges — see
+    # manifests/offload/JUDGE-CALIBRATION.md).
     "risk_tier": "yellow",
     "acceptance_criteria": [
-        {"id": "ac1", "statement": "defines a working slugify(s) function"},
-        {"id": "ac2", "statement": "raises a clear, actionable error on non-string input"},
-        {"id": "ac3", "statement": "output paths/identifiers use forward slashes, never mixed"},
+        {
+            "id": "ac1",
+            "statement": (
+                "defines a complete, syntactically valid slugify function that would work "
+                "correctly, with no silent failures, no malformed/mixed file paths, and no "
+                "truncation or invalid-JSON artifacts"
+            ),
+        },
     ],
     "executor": {"mode": "generate", "model": "calib/exec", "prompt": "n/a"},
     "eval_plan": {"judge": {"enabled": True, "model": "calib/judge", "pass_threshold": 0.8}},
@@ -86,16 +96,14 @@ KNOWN_GOOD: List[CalibrationFixture] = [
         ),
     ),
     CalibrationFixture(
-        id="good-forward-slash-paths",
+        id="good-guarded-simple",
         label="good",
         failure_class="",
         artifact=(
             "import re\n\n"
             "def slugify(s):\n"
             "    assert isinstance(s, str), 'slugify: s must be a string'\n"
-            "    out = re.sub(r'[^a-z0-9]+', '-', s.strip().lower()).strip('-')\n"
-            "    # identifiers derived from this never carry backslashes\n"
-            "    return out.replace('\\\\', '/')\n"
+            "    return re.sub(r'[^a-z0-9]+', '-', s.strip().lower()).strip('-')\n"
         ),
     ),
     CalibrationFixture(
