@@ -148,7 +148,9 @@ def test_watchdog_never_calls_a_restart_action():
         "start lemonade",
         "restart_service",
     ):
-        assert banned not in src, f"watchdog module must never restart services (found {banned!r})"
+        assert (
+            banned not in src
+        ), f"watchdog module must never restart services (found {banned!r})"
 
 
 def test_watchdog_event_is_json_serializable_for_ledger():

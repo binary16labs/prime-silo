@@ -27,15 +27,30 @@ def fake_judge(monkeypatch):
             # task intent/acceptance-criteria text above it.
             deliverable = prompt.split("## Deliverable", 1)[-1]
             if "silent failure" in deliverable or "not valid json" in deliverable:
-                return json.dumps({"score": 0.05, "rationale": "known-bad marker present"})
-            if "def slugify" not in deliverable or deliverable.count("(") != deliverable.count(")"):
-                return json.dumps({"score": 0.1, "rationale": "incomplete/truncated deliverable"})
+                return json.dumps(
+                    {"score": 0.05, "rationale": "known-bad marker present"}
+                )
+            if "def slugify" not in deliverable or deliverable.count(
+                "("
+            ) != deliverable.count(")"):
+                return json.dumps(
+                    {"score": 0.1, "rationale": "incomplete/truncated deliverable"}
+                )
             if "mixed\\\\output" in deliverable or "nested:path" in deliverable:
                 return json.dumps({"score": 0.1, "rationale": "path-mangled output"})
-            if "silently drops" in deliverable or "context/window overflow" in deliverable:
+            if (
+                "silently drops" in deliverable
+                or "context/window overflow" in deliverable
+            ):
                 return json.dumps({"score": 0.15, "rationale": "silent truncation"})
-            if "TypeError" in deliverable or "ValueError" in deliverable or "raise" in deliverable:
-                return json.dumps({"score": 0.9, "rationale": "explicit, actionable errors"})
+            if (
+                "TypeError" in deliverable
+                or "ValueError" in deliverable
+                or "raise" in deliverable
+            ):
+                return json.dumps(
+                    {"score": 0.9, "rationale": "explicit, actionable errors"}
+                )
             return json.dumps({"score": 0.85, "rationale": "clean implementation"})
 
         def count_tokens(self, text):
@@ -71,7 +86,9 @@ async def test_calibration_scores_all_ten_correctly(fake_judge):
     results = await C.calibrate("calib/judge", threshold=0.8)
     assert len(results) == 10
     incorrect = [r for r in results if not r.correct]
-    assert incorrect == [], f"miscalibrated: {[(r.fixture_id, r.score) for r in incorrect]}"
+    assert (
+        incorrect == []
+    ), f"miscalibrated: {[(r.fixture_id, r.score) for r in incorrect]}"
 
 
 @pytest.mark.asyncio

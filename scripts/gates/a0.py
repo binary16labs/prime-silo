@@ -35,7 +35,9 @@ import urllib.request
 from pathlib import Path
 
 RUN_TAG = str(int(time.time()))
-REQUIRED_EXEC_MODEL = "qwen3.5-9b-FLM"  # A0 contract: prove the real qwen3.5-9B-FLM path
+REQUIRED_EXEC_MODEL = (
+    "qwen3.5-9b-FLM"  # A0 contract: prove the real qwen3.5-9B-FLM path
+)
 JUDGE_MODEL = "Phi-4-mini-instruct-NPU"  # per manifests/offload/JUDGE-CALIBRATION.md
 
 
@@ -51,6 +53,7 @@ def _model_matches(actual: str, required: str) -> bool:
     a = (actual or "").split("/")[-1].strip().lower()
     r = (required or "").split("/")[-1].strip().lower()
     return a == r
+
 
 ROOT = Path(__file__).resolve().parents[2]
 RUNTIME = ROOT / "runtime"
@@ -114,10 +117,14 @@ def _trivial_green_manifest(task_id: str) -> dict:
         "id": task_id,
         "intent": "a0 gate smoke task: print a fixed marker and exit zero",
         "risk_tier": "green",
-        "executor": {"mode": "shell", "command": 'python -c "print(\'a0-gate-ok\')"'},
+        "executor": {"mode": "shell", "command": "python -c \"print('a0-gate-ok')\""},
         "eval_plan": {"deterministic": ['python -c "raise SystemExit(0)"']},
         "acceptance_criteria": [
-            {"id": "ac1", "statement": "exits zero", "verify": 'python -c "raise SystemExit(0)"'}
+            {
+                "id": "ac1",
+                "statement": "exits zero",
+                "verify": 'python -c "raise SystemExit(0)"',
+            }
         ],
         "budget": {"max_iterations": 1, "max_seconds": 60},
         "workspace": WORKSPACE,
@@ -140,7 +147,9 @@ def _real_model_manifest(task_id: str, model_id: str) -> dict:
             "prompt": "Reply with exactly one word: ready",
         },
         "eval_plan": {"judge": {"enabled": False}},
-        "acceptance_criteria": [{"id": "ac1", "statement": "produces a non-empty reply"}],
+        "acceptance_criteria": [
+            {"id": "ac1", "statement": "produces a non-empty reply"}
+        ],
         "budget": {"max_iterations": 1, "max_seconds": 240},
         "escalation_policy": "on_fail",
         "workspace": WORKSPACE,
@@ -204,7 +213,9 @@ async def run_calibration(judge_model: str):
     correct = sum(1 for r in results if r.correct)
     for r in results:
         mark = "OK" if r.correct else "MISCALIBRATED"
-        _log(f"  calibration[{r.fixture_id}] expected={r.label} score={r.score} -> {mark}")
+        _log(
+            f"  calibration[{r.fixture_id}] expected={r.label} score={r.score} -> {mark}"
+        )
     _log(f"judge calibration: {correct}/{len(results)} correct")
     return results, correct
 
@@ -239,7 +250,10 @@ def main() -> int:
 
     health = probe_lemonade()
     if health is None:
-        _log("GATE FAILED reason=service_down: lemonade unreachable at " f"{LEMONADE_HEALTH}")
+        _log(
+            "GATE FAILED reason=service_down: lemonade unreachable at "
+            f"{LEMONADE_HEALTH}"
+        )
         return 1
 
     model_id = health["model_id"]
@@ -256,13 +270,18 @@ def main() -> int:
     from benny.core.offload.paths import offload_root
 
     resolved_ws = offload_root(WORKSPACE)
-    _log(f"resolved workspace -> {resolved_ws}")  # the LONGVIEW manifest.workspace lesson
+    _log(
+        f"resolved workspace -> {resolved_ws}"
+    )  # the LONGVIEW manifest.workspace lesson
 
     ok = True
 
     try:
         sync_outcome = asyncio.run(run_sync_lane())
-        ok &= sync_outcome.status in ("passed", "escalated")  # escalated is still a real, honest run
+        ok &= sync_outcome.status in (
+            "passed",
+            "escalated",
+        )  # escalated is still a real, honest run
         # HARD proof the real qwen path ran (owner catch 2026-07-08: executor
         # was resolving to Phi-4 via catalog roulette). The sync lane pinned and
         # forced-loaded qwen on demand; re-probe NOW — before the judge phase
@@ -278,7 +297,9 @@ def main() -> int:
             )
             ok = False
         else:
-            _log(f"executor confirmed: responding model is '{responded}' (qwen path proven)")
+            _log(
+                f"executor confirmed: responding model is '{responded}' (qwen path proven)"
+            )
     except Exception as exc:
         _log(f"sync lane raised: {exc}")
         ok = False
