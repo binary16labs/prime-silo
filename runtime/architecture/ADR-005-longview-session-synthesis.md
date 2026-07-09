@@ -10,6 +10,25 @@
 
 ---
 
+## Addendum (2026-07-09, v1.15.0) — deterministic graph phase (longview_v2)
+
+The `model` phase's `deep_synthesis` runs a second LLM pass to re-extract triples
+from each card's prose. Since the `map` phase already distils every session into
+structured entity arrays (`concepts[]`, `applications[]`, `capabilities[]`,
+`skills_observed[]`), that re-extraction is redundant. A new **`graph`** phase maps
+those arrays **deterministically** into the identical `Source`/`Concept`/`RELATES_TO`/
+`SOURCED_FROM` schema — no model call, ~0.4 s/card vs ~60-120 s/card — then a
+vectors-only ingest keeps retrieval, and `enrich` merges duplicate concepts across
+cards into shared hubs. Provenance stays auditable (`confidence=1.0`,
+`strategy="structured-fragment"`). This does not replace the map-reduce design; it
+removes the one redundant LLM pass and adds an earned-ETA transparency layer
+(`<workspace>/longview/progress.json`). Code: `scripts/longview/lib/card_triples.mjs`,
+`scripts/longview/lib/eta.mjs`, route `POST /rag/graph-upsert`. `model`
+(deep_synthesis) is retained as an opt-in fallback for when link discovery beyond the
+fragments is wanted.
+
+---
+
 ## 1. Problem
 
 Nine months of agent-assisted work is sitting in local session stores, unread:

@@ -52,9 +52,38 @@ python benny_cli.py longview report               # honest ledger report
 ```
 
 Phases (declared in the manifest, executed in order):
-`inventory` → `extract` → `map` → `model` → `code` → `weave` → `reduce` → `opus` → `pdf`.
+`inventory` → `extract` → `map` → (`model` **or** `graph`) → `code` → `weave` → `enrich` → `reduce` → `opus` → `pdf`.
 Edit the manifest to change model, budgets, batch sizes, `deep_synthesis`,
 loop counts, or to disable phases — no code changes.
+
+**Building the knowledge graph — `graph` (v2, deterministic) vs `model` (deep_synthesis):**
+There are two ways to turn cards into the Concept graph. They write the **same**
+`Source` / `Concept` / `RELATES_TO` / `SOURCED_FROM` schema; pick by cost:
+
+| | `model` (deep_synthesis) | `graph` (longview_v2) |
+|---|---|---|
+| How | LLM re-extracts triples per card section | Deterministic map from the card's own `concepts[]`/`applications[]`/`capabilities[]`/`skills_observed[]` |
+| Cost | ~60–120 s/card (a second LLM pass) | **~0.4 s/card** (no model call) |
+| When | you want the model to find links the fragments missed | the cards are already good (they are — `map` distilled them) — **default for v2** |
+
+The `graph` phase is the **speed lever**: the `map` phase already ran one LLM pass
+to distil each session into structured entity arrays, so re-extracting them with a
+second pass is redundant. `graph` builds `(:Project)-[:INVOLVES/USES/DEMONSTRATES/APPLIES]->`
+concepts/tools/capabilities/skills plus an anchor `CO_OCCURS_WITH` star per card
+("cards at the centre, concepts radiating"), then still runs a vectors-only ingest
+for retrieval. Run `enrich` afterwards to merge duplicate concepts across cards into
+shared hubs (this is what connects sessions into a cross-session web). Both paths are
+env/profile-driven — `LONGVIEW_MODEL` / `BENNY_DEFAULT_MODEL` pick the model.
+
+```powershell
+node scripts/longview/longview.mjs run --phase graph     # deterministic upsert + vectors
+node scripts/longview/longview.mjs run --phase enrich     # merge duplicate concepts into hubs
+```
+
+Live progress + a **dynamic ETA earned from real per-card times** land in
+`<workspace>/longview/progress.json` during the `graph` phase; the `map` phase's
+per-card times are in the ledger and runner log. Blank cards (no entities) are
+counted and skipped, never written as empty Source hubs.
 
 **Phase isolation (v1.10.1):** a phase that throws is ledgered as a
 `phase_error` entry and skipped — the remaining phases still run. (Before this,

@@ -33,6 +33,8 @@ import { buildEvidencePack } from "./lib/evidence.mjs";
 import { walkSessionWindows } from "./lib/walk.mjs";
 import { chat, lastBalancedJson, repairTruncatedJson } from "./lib/llm.mjs";
 import { validateCard } from "./lib/gate.mjs";
+import { buildCardTriples } from "./lib/card_triples.mjs";
+import { Progress } from "./lib/eta.mjs";
 import { appendLedger, readLedger, mapVerdicts, writeStatus, readStatus } from "./lib/ledger.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -809,6 +811,117 @@ async function runModel() {
     }
   }
   writeStatus({ phase: "model", cards_ok: cards.length, projects: Object.keys(projects).length });
+}
+
+// -------------------------------------------------------------------- graph
+// longview_v2: build the knowledge graph DETERMINISTICALLY from the cards' own
+// structured fragments instead of re-extracting triples with the LLM
+// (deep_synthesis). The map phase already distilled each session into concepts/
+// applications/capabilities/skills — this phase turns those arrays into the exact
+// Source/Concept/RELATES_TO shape the graph already uses, then enrich() merges
+// duplicate concepts across cards into the shared hubs. No model call per card, so
+// what took hours takes seconds; a live progress.json gives an earned ETA.
+async function graphUpsert(sourceFile, triples) {
+  try {
+    const res = await fetch(`${config.BENNY_API_BASE}/api/rag/graph-upsert`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Benny-API-Key": config.BENNY_API_KEY },
+      body: JSON.stringify({ workspace: config.WORKSPACE, source_file: sourceFile, triples }),
+      signal: AbortSignal.timeout(60000)
+    });
+    if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
+    return { ok: true, ...(await res.json()) };
+  } catch (e) {
+    return { ok: false, error: String((e && e.message) || e) };
+  }
+}
+
+async function runGraph() {
+  const cards = loadCards();
+  console.log(`[graph] v2 deterministic graph build over ${cards.length} cards (no deep_synthesis)`);
+
+  // Render card markdown so vectors (semantic_search) stay available, same as model.
+  for (const c of cards) {
+    const p = workspaceDir("data_in", `longview_card_${sid8(c.session_id)}.md`);
+    if (!fs.existsSync(p)) fs.writeFileSync(p, renderCardMd(c));
+  }
+
+  // Resume state: which cards already have their triples in the graph.
+  const donePath = stateDir("rollups", "graph_upserted.json");
+  let done = [];
+  try {
+    done = JSON.parse(fs.readFileSync(donePath, "utf8"));
+  } catch {
+    /* first run */
+  }
+  const doneSet = new Set(done);
+  const pending = cards.filter((c) => !doneSet.has(sid8(c.session_id)));
+  console.log(`[graph] ${pending.length}/${cards.length} cards pending graph upsert`);
+
+  const prog = new Progress(stateDir("progress.json"), { phase: "graph", total: cards.length });
+  // Pre-count already-done cards so the dashboard total/ETA stay honest on resume.
+  for (let i = 0; i < doneSet.size; i++) prog.state.done = doneSet.size;
+
+  for (const c of pending) {
+    if (interrupted) break;
+    const sid = sid8(c.session_id);
+    const src = `longview_card_${sid}.md`;
+    const started = Date.now();
+    const { triples, stats } = buildCardTriples(c, { sid });
+
+    if (stats.empty || !triples.length) {
+      prog.record({ sid, seconds: (Date.now() - started) / 1000, status: "blank" });
+      appendLedger({ phase: "graph", action: "upsert", sid, ok: false, error: "blank card (no entities)" });
+      console.log(`[graph] ${sid}: BLANK (no concepts/apps/caps/skills) — skipped`);
+      continue;
+    }
+
+    const verdict = await graphUpsert(src, triples);
+    const seconds = (Date.now() - started) / 1000;
+    if (verdict.ok) {
+      doneSet.add(sid);
+      fs.writeFileSync(donePath, JSON.stringify([...doneSet], null, 2));
+      const ln = prog.record({ sid, seconds, status: "good", nodes: verdict.nodes, edges: verdict.edges });
+      appendLedger({ phase: "graph", action: "upsert", sid, ok: true, nodes: verdict.nodes, edges: verdict.edges });
+      console.log(`[graph] ${sid}: +${verdict.nodes} nodes / ${verdict.edges} edges  ·  ${ln}`);
+    } else {
+      prog.record({ sid, seconds, status: "errored" });
+      appendLedger({ phase: "graph", action: "upsert", sid, ok: false, error: verdict.error });
+      console.log(`[graph] ${sid}: FAILED (${verdict.error})`);
+    }
+  }
+
+  // Vectors for retrieval: ingest card markdown WITHOUT deep_synthesis (fast, no LLM).
+  if (!flag("no-vectors")) {
+    const names = cards.map((c) => `longview_card_${sid8(c.session_id)}.md`);
+    const vPath = stateDir("rollups", "vectors_ingested.json");
+    let vDone = [];
+    try {
+      vDone = JSON.parse(fs.readFileSync(vPath, "utf8"));
+    } catch {
+      /* first run */
+    }
+    const vSet = new Set(vDone);
+    const vPending = names.filter((n) => !vSet.has(n));
+    if (vPending.length) {
+      console.log(`[graph] ingesting ${vPending.length} card vectors (no deep_synthesis)…`);
+      for (let i = 0; i < vPending.length; i += 25) {
+        if (interrupted) break;
+        const batch = vPending.slice(i, i + 25);
+        const verdict = await ingestBatch(batch, { deepSynthesis: false });
+        if (verdict.ok) {
+          for (const n of batch) vSet.add(n);
+          fs.writeFileSync(vPath, JSON.stringify([...vSet], null, 2));
+        }
+        appendLedger({ phase: "graph", action: "ingest_vectors", files: batch.length, ok: verdict.ok, ...(verdict.error ? { error: verdict.error } : {}) });
+        console.log(`[graph] vectors batch ${Math.floor(i / 25) + 1}: ${verdict.ok ? "ok" : "FAILED (" + verdict.error + ")"}`);
+      }
+    }
+  }
+
+  console.log(`[graph] done — ${prog.line()}`);
+  console.log(`[graph] next: run 'enrich' to merge duplicate concepts across cards into shared hubs`);
+  writeStatus({ phase: "graph", cards_ok: cards.length, graph_done: doneSet.size });
 }
 
 // ------------------------------------------------------------------- reduce
@@ -1676,6 +1789,7 @@ async function runManifest() {
       else if (ph.id === "extract") runExtract();
       else if (ph.id === "map") await runMap({ limitOverride: Number(ph.limit) || Infinity });
       else if (ph.id === "model") await runModel();
+      else if (ph.id === "graph") await runGraph();
       else if (ph.id === "code") await runCode();
       else if (ph.id === "enrich") await runEnrichGraph();
       else if (ph.id === "review") await runReview({ limitOverride: Number(ph.limit) || null });
@@ -1710,6 +1824,7 @@ const MUTATING_COMMANDS = new Set([
   "extract",
   "map",
   "model",
+  "graph",
   "code",
   "weave",
   "reduce",
@@ -1735,6 +1850,9 @@ async function main() {
       break;
     case "model":
       await runModel();
+      break;
+    case "graph":
+      await runGraph();
       break;
     case "code":
       await runCode();

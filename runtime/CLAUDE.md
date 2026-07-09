@@ -64,7 +64,8 @@ benny agentamp export-cockpit <out.aamp.cockpit>      # export user state + EQ t
 benny agentamp import-cockpit <in.aamp.cockpit>       # restore user state + EQ from bundle
 benny up/down/status/doctor --home $BENNY_HOME        # service lifecycle
 # --- longview — session synthesis (ADR-005; docs/operations/LONGVIEW_GUIDE.md) ---
-benny longview run [--phase inventory|extract|map|model|reduce] [--delta]   # manifest-driven, resume-safe
+benny longview run [--phase inventory|extract|map|model|graph|enrich|reduce] [--delta]   # manifest-driven, resume-safe
+# graph = v2 deterministic KG from card fragments (no deep_synthesis LLM re-extract; ~0.4s/card); then enrich to merge concepts
 benny longview status                                  # heartbeat (phase, counts, ETA)
 benny longview report                                  # honest ledger report
 ```

@@ -58,3 +58,6 @@ runtime/runs/
 # Delivery worktrees (git worktree add .worktrees/<id>) — local-only sandboxes,
 # never committed (a stray add here could commit an entire worktree tree).
 /.worktrees/
+
+# local scratch: launchers with absolute paths + build logs + session names (repo AGENTS.md §172)
+scratch/

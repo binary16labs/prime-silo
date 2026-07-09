@@ -5,10 +5,30 @@ description: Operate, analyze, or extend the LONGVIEW session-synthesis pipeline
 
 # LONGVIEW pipeline — operational knowledge
 
-LONGVIEW map-reduces months of agent sessions (memo-ray store) into per-session **cards** via the local
-model (qwen3.5-9b-FLM through lemonade), then graph + themes + report/book/PDF/audiobook.
-Pipeline: inventory → extract → map(walk) → model → code → weave → enrich → review → reduce(TIMELINE) → opus → pdf.
+LONGVIEW map-reduces months of agent sessions (memo-ray store) into per-session **cards** via a local
+model, then graph + themes + report/book/PDF/audiobook.
+Pipeline: inventory → extract → map(walk) → (model **or** graph) → code → weave → enrich → review → reduce(TIMELINE) → opus → pdf.
 Code: `scripts/longview/`. Guide: `runtime/docs/operations/LONGVIEW_GUIDE.md`.
+
+**Model is env/profile-driven** (not hardcoded): `BENNY_DEFAULT_MODEL` / `LONGVIEW_MODEL` pick it,
+the manifest carries only a preconfigured default. Verified LAN setup: LM Studio on
+`192.168.68.125:1234` serving `lmstudio/google/gemma-4-12b` (a reasoning model — the per-call token
+budget must clear its ~500-1000-tok preamble, e.g. `LONGVIEW_FRAGMENT_MAX_TOKENS=1800`, or content
+comes back empty → blank cards; full org/model id required; `response_format` must be `json_schema|text`,
+never `json_object`). A wedged gemma engine returns HTTP 200 but zero tokens — reload the model on the
+LM host to reset it; embeddings on the same host still answering isolates it as generation-specific.
+
+**Graph build — two paths, same schema (Source/Concept/RELATES_TO/SOURCED_FROM):**
+- `model` = deep_synthesis: a second LLM pass re-extracts triples per card section. ~60-120s/card.
+- `graph` = **longview_v2, deterministic**: builds triples directly from the card's own
+  `concepts[]`/`applications[]`/`capabilities[]`/`skills_observed[]` — no model call, **~0.4s/card**.
+  `(:Project)-[INVOLVES/USES/DEMONSTRATES/APPLIES]->` entities + an anchor `CO_OCCURS_WITH` star per card.
+  The map phase already distilled the entities once, so re-extraction is redundant — `graph` is the
+  speed lever. Then run `enrich` to merge duplicate concepts across cards into shared hubs.
+  Code: `lib/card_triples.mjs` (pure `buildCardTriples`), server route `POST /rag/graph-upsert`
+  (→ `save_knowledge_triples`, no clustering), live earned-ETA via `lib/eta.mjs` → `<ws>/longview/progress.json`.
+  Sentence-shaped fields (decisions/outcomes/failures) are deliberately NOT nodes — they stay in the card
+  md for vectors. Blank cards (no entities) are counted + skipped, never written as empty hubs.
 
 ## Hard-won constraints (violate these and the run fails slowly)
 

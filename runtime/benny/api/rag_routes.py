@@ -100,6 +100,21 @@ class EvalTriplesRequest(BaseModel):
     model: str = "lemonade/Qwen3-8B-Hybrid"
 
 
+class GraphUpsertRequest(BaseModel):
+    """longview_v2: persist pre-built, deterministic triples straight into the graph.
+
+    The caller (the longview map/graph phase) has already distilled each session into
+    a structured card, so the entities are known — there is nothing to re-extract.
+    This route skips the LLM triple-extraction of deep_synthesis entirely and writes
+    the supplied triples via the same save_knowledge_triples path, so the graph schema
+    (Source / Concept / RELATES_TO / SOURCED_FROM) is identical. Fast and auditable.
+    """
+
+    workspace: str = "default"
+    source_file: str  # the card this triple set belongs to (becomes the Source node)
+    triples: List[dict]  # each shaped like core.schema.KnowledgeTriple
+
+
 @router.post("/rag/eval-triples")
 async def eval_triples(request: EvalTriplesRequest):
     """Evaluate triples extraction on a single text chunk."""
@@ -155,6 +170,60 @@ async def eval_triples(request: EvalTriplesRequest):
         ),
         "judge_score": judge_score,
         "triples": [t.model_dump() for t in triples],
+    }
+
+
+@router.post("/rag/graph-upsert")
+async def graph_upsert(request: GraphUpsertRequest):
+    """longview_v2 deterministic graph write — no LLM, no clustering pass.
+
+    Accepts triples already built from a card's structured fragments and merges them
+    into Neo4j exactly as deep_synthesis would, minus the (redundant) extraction cost.
+    Returns node/edge counts so the caller can show the graph filling in real time.
+    """
+    from ..core.schema import KnowledgeTriple
+    from ..graph.triples import save_knowledge_triples
+
+    if not request.triples:
+        # A blank card must never silently write an empty Source hub — surface it so
+        # the caller counts it as blank instead of pretending the card was ingested.
+        return {
+            "status": "empty",
+            "source_file": request.source_file,
+            "triples": 0,
+            "nodes": 0,
+            "edges": 0,
+        }
+
+    parsed: List[KnowledgeTriple] = []
+    errors = 0
+    for raw in request.triples:
+        try:
+            parsed.append(KnowledgeTriple(**raw))
+        except Exception as e:  # a malformed triple is dropped, not fatal
+            errors += 1
+            logger.warning(f"graph-upsert: dropped malformed triple {raw!r}: {e}")
+
+    if not parsed:
+        raise HTTPException(status_code=400, detail="no valid triples in request")
+
+    try:
+        await save_knowledge_triples(request.workspace, parsed, request.source_file)
+    except Exception as e:
+        logger.error(f"graph-upsert failed for {request.source_file}: {e}")
+        raise HTTPException(status_code=500, detail=f"graph write failed: {e}")
+
+    nodes = set()
+    for t in parsed:
+        nodes.add(t.subject.lower())
+        nodes.add(t.object.lower())
+    return {
+        "status": "ok",
+        "source_file": request.source_file,
+        "triples": len(parsed),
+        "dropped": errors,
+        "nodes": len(nodes),
+        "edges": len(parsed),
     }
 
 
