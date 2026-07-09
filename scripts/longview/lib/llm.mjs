@@ -22,6 +22,10 @@ export async function chat({ system, user, maxTokens, json = false, temperature 
     temperature,
     // qwen3.5-9b-FLM emits clean output, but keep the ADR-004 hardening anyway.
     enable_thinking: false,
+    // gemma-4-12b ignores enable_thinking; LM Studio honors reasoning_effort:"none"
+    // to skip the ~78%-of-tokens reasoning preamble on extraction calls. Env-gated
+    // (LONGVIEW_REASONING_EFFORT) so it's omitted for providers that would reject it.
+    ...(config.REASONING_EFFORT ? { reasoning_effort: config.REASONING_EFFORT } : {}),
     // JSON-extraction calls: response_format is provider-sensitive (LM Studio
     // 400s on json_object). config.JSON_MODE picks a compatible type; the caller's
     // parser recovers the object from the text regardless. "off" omits it entirely.

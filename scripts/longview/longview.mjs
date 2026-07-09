@@ -301,6 +301,16 @@ async function assembleCard(item, fragments) {
   return { card, intentTokens };
 }
 
+// An LM-engine wedge (LM Studio: the inference subprocess crashed) 400s / drops
+// every predict until the model is reloaded on the host — distinct from a per-call
+// timeout or a bad-JSON parse. Match its signatures so the map can stop instead of
+// burning the rest of the queue against a dead engine.
+function isEngineWedge(msg) {
+  return /predict request failed|engine protocol|fetch failed|econnrefused|socket hang up|connection (refused|reset)/i.test(
+    String(msg || "")
+  );
+}
+
 // ---------------------------------------------------------------------- map
 async function runMap({ deltaMode = false, limitOverride = null } = {}) {
   const inventory = loadInventory();
@@ -328,8 +338,16 @@ async function runMap({ deltaMode = false, limitOverride = null } = {}) {
     failed = 0,
     thin = 0,
     processed = 0;
+  // A LM-engine wedge (LM Studio: "Engine protocol predict request failed") is an
+  // infra failure, not a content failure: it 400s every subsequent call until the
+  // model is reloaded on the host. Without this guard the loop wrote an _error
+  // fragment, cached it (so resume never retried the window), and marched on
+  // corrupting every remaining session. On a wedge we now stop the phase cleanly —
+  // the operator reloads the model and reruns; resume re-maps the unwritten sessions.
+  let wedged = null;
 
   for (const item of queue) {
+    if (wedged) break;
     if (processed >= limit || interrupted) break;
     processed++;
     const meta = JSON.parse(fs.readFileSync(evidenceMetaPath(item.id), "utf8"));
@@ -375,7 +393,7 @@ async function runMap({ deltaMode = false, limitOverride = null } = {}) {
       );
       const fragments = [];
       for (const w of windows) {
-        if (interrupted) break;
+        if (interrupted || wedged) break;
         const fp = windowFragPath(item.id, w.index);
         if (fs.existsSync(fp)) {
           fragments.push(JSON.parse(fs.readFileSync(fp, "utf8")));
@@ -394,12 +412,22 @@ async function runMap({ deltaMode = false, limitOverride = null } = {}) {
           tokens.estimated = res.usage_estimated;
           frag = lastBalancedJson(res.content) || repairTruncatedJson(res.content) || {};
         } catch (e) {
-          frag = { _error: String(e.message) };
+          const emsg = String(e.message);
+          // Infra wedge → do NOT cache (so resume retries this window) and stop the
+          // phase after this session so the swash of remaining sessions isn't ruined.
+          if (isEngineWedge(emsg)) {
+            wedged = emsg;
+            break;
+          }
+          frag = { _error: emsg };
         }
         fs.mkdirSync(path.dirname(fp), { recursive: true });
         fs.writeFileSync(fp, JSON.stringify(frag));
         fragments.push(frag);
       }
+      // A wedge mid-session leaves partial fragments — do not assemble or write a
+      // degraded card; leave the session unmapped so resume redoes it cleanly.
+      if (wedged) break;
       const { card: assembled, intentTokens } = await assembleCard(item, fragments);
       tokens.prompt += intentTokens.prompt;
       tokens.completion += intentTokens.completion;
@@ -468,6 +496,24 @@ async function runMap({ deltaMode = false, limitOverride = null } = {}) {
       cards_per_hour: avgMs ? +(3600000 / avgMs).toFixed(1) : null,
       eta_hours_remaining: avgMs ? +((remaining * avgMs) / 3600000).toFixed(1) : null
     });
+  }
+  if (wedged) {
+    appendLedger({
+      phase: "map",
+      action: "phase_error",
+      ok: false,
+      error: `LM engine wedge — halted map to avoid corrupting the queue: ${wedged.slice(0, 160)}`
+    });
+    console.error(
+      `\n[map] STOPPED: the LM host's engine wedged ("${wedged.slice(0, 80)}"). ` +
+        `Reload the model on the LM host (eject + reload), then rerun the same command — ` +
+        `resume re-maps the unwritten sessions. ok=${ok} thin=${thin} before the wedge.`
+    );
+    // Non-zero exit so the phase runner / build_v2.sh stops here instead of running
+    // graph+enrich over a half-mapped corpus. Set (not process.exit) so locks and
+    // status files still flush cleanly on the way out.
+    process.exitCode = 3;
+    return;
   }
   console.log(
     `[map] done: ok=${ok} failed=${failed} thin=${thin}${interrupted ? " (interrupted — resume with the same command)" : ""}`

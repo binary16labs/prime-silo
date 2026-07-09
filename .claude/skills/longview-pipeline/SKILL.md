@@ -40,6 +40,20 @@ LM host to reset it; embeddings on the same host still answering isolates it as 
   with the runner stopped. Any timing measured while a probe competed with the map is inflated —
   discard it. This bit us live: the "gemma is slow / 56s probe / 1835s card" numbers were all self-
   inflicted concurrency, and killing a queued probe is what wedged the engine.
+- **Turn off reasoning on extraction calls (2026-07-09) — the 4× lever.** gemma-4-12b burns ~78% of
+  every call on a reasoning preamble that adds nothing to a *reading* task (verified: 640→0 reasoning
+  tokens, JSON still full/valid, 16-window card 160s/win → 42s/win). The prompt CANNOT suppress it and
+  `enable_thinking:false` / `thinking:false` / `reasoning_effort:"low"` are ignored — the working
+  control is the request param **`reasoning_effort:"none"`** (LM Studio honors it; it's on/off, not
+  low/med/high). Wired as `LONGVIEW_REASONING_EFFORT` → `llm.mjs`; env-gated so it's omitted for
+  providers that would reject it. Quality held completely (all 13 fields, rich concepts).
+- **Halt on an engine wedge, don't march through it (2026-07-09).** LM Studio's engine wedges
+  spontaneously under sustained load → `Engine protocol predict request failed: fetch failed` (400) on
+  every predict until reloaded. This is INDEPENDENT of reasoning on/off (seen both ways). The map now
+  detects the wedge (`isEngineWedge`), does NOT cache the failed window (so resume retries it), stops
+  the phase, and exits non-zero so build_v2.sh halts before graph/enrich. Recovery: reload the model on
+  the host, rerun — resume re-maps the unwritten sessions. Root-cause needs LM Studio's OWN logs
+  (OOM/KV-cache → lower ctx or GPU layers; GPU error → host; poison input → re-crashes same session).
 - **Window size vs timeout on a reasoning model (2026-07-09).** Full 24k-char windows on gemma-4-12b
   overran the 200s `LONGVIEW_LLM_TIMEOUT_MS` (prefill ~6.9k tok + ~1000-tok reasoning preamble + output)
   and got amputated → `{"_error":"...aborted due to timeout"}`, ~31% window loss on multi-window cards.

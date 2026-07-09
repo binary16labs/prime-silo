@@ -98,6 +98,13 @@ export const config = {
   // LONGVIEW_JSON_MODE=json_object for providers (lemonade) that require it.
   JSON_MODE: env("LONGVIEW_JSON_MODE", "text"),
 
+  // Reasoning models (gemma-4-12b) burn ~78% of each call on a reasoning preamble
+  // that adds nothing to a structured-extraction task. LM Studio honors
+  // `reasoning_effort:"none"` per request (verified 2026-07-09: reasoning_tokens
+  // 640→0, JSON still valid, ~4× faster). Empty = omit the field (safe for
+  // providers/models that would reject it — LM Studio ignores unknown values).
+  REASONING_EFFORT: env("LONGVIEW_REASONING_EFFORT", ""),
+
   // Benny runtime API (Phase D ingestion, workspace paths).
   BENNY_API_BASE: `http://${env("BENNY_API_HOST", "127.0.0.1")}:${env("BENNY_API_PORT", "8005")}`,
   // Q0: single resolution path — env BENNY_API_KEY -> per-install keystore
