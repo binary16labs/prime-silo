@@ -32,6 +32,24 @@ LM host to reset it; embeddings on the same host still answering isolates it as 
 
 ## Hard-won constraints (violate these and the run fails slowly)
 
+- **ONE clean call at a time — never probe the LM host during a run (2026-07-09).** A second
+  concurrent request, or an aborted in-flight call, wedges the LM Studio engine →
+  `{"_error":"Engine protocol predict request failed: fetch failed"}` (400) on every subsequent
+  predict, while `/v1/models` still says `loaded` and embeddings still answer. Recovery = eject +
+  reload the model on the LM host (no HTTP unload). Do diagnostic/health probes ONLY between runs
+  with the runner stopped. Any timing measured while a probe competed with the map is inflated —
+  discard it. This bit us live: the "gemma is slow / 56s probe / 1835s card" numbers were all self-
+  inflicted concurrency, and killing a queued probe is what wedged the engine.
+- **Window size vs timeout on a reasoning model (2026-07-09).** Full 24k-char windows on gemma-4-12b
+  overran the 200s `LONGVIEW_LLM_TIMEOUT_MS` (prefill ~6.9k tok + ~1000-tok reasoning preamble + output)
+  and got amputated → `{"_error":"...aborted due to timeout"}`, ~31% window loss on multi-window cards.
+  Fix that held: `LONGVIEW_WINDOW_CHARS=12000` + `LONGVIEW_LLM_TIMEOUT_MS=420000` → 0 timeouts.
+  Tradeoff: smaller windows = more calls/session, and gemma's reasoning tax is paid **per call**
+  (~90% of a small call's tokens are reasoning), so single-window sessions get ~2× slower. Distinguish
+  the two error strings: "aborted due to timeout" = shrink window / raise timeout; "Engine protocol
+  predict request failed" = engine wedge, reload the model. Purge affected cards+window dirs to re-map.
+- **Backlog then top-up.** Map the whole corpus once (all sessions), then `longview run --delta` for
+  incremental top-ups — don't cut scope to go faster; fix throughput instead.
 - **Local model output is short.** ~415-token self-truncation observed; 500 proven max (live telemetry
   2026-07-05). Window every extraction (`lib/walk.mjs`), assemble cards **losslessly in code** — never ask
   the model for a whole card.
