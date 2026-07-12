@@ -1,0 +1,55 @@
+/*
+ * Benny mascot micro-states (C5) — the ONE sanctioned ambient loop in the
+ * app (DESIGN-SYSTEM.md "No ambient motion" clause). mascot_state/
+ * mascot-state.js sets data-mascot-state="idle|listening|processing" on
+ * .onscreen-agent-avatar-button in response to REAL events only (focus,
+ * run activity) — never a timer. This file owns the animation and is the
+ * sole place that decides whether motion runs at all. Transform/opacity
+ * only, no color — exempt from the hex lint by construction.
+ */
+
+@keyframes benny-idle-breathe {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.015) rotate(-0.6deg); }
+}
+
+@keyframes benny-listening-perk {
+  0% { transform: scale(1) rotate(0deg); }
+  35% { transform: scale(1.05) rotate(2deg); }
+  70% { transform: scale(1.02) rotate(-1deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+@keyframes benny-processing-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.035); opacity: 0.92; }
+}
+
+/* Idle/processing loop quietly; listening is a single settle (not a loop —
+   a head-tilt repeated forever would be decorative motion, C0 forbids it). */
+.onscreen-agent-avatar-button[data-mascot-state="idle"] .onscreen-agent-avatar-image {
+  animation: benny-idle-breathe 6s ease-in-out infinite;
+  transform-origin: 50% 100%;
+}
+
+.onscreen-agent-avatar-button[data-mascot-state="listening"] .onscreen-agent-avatar-image {
+  animation: benny-listening-perk 900ms ease-out 1;
+  transform-origin: 50% 100%;
+}
+
+.onscreen-agent-avatar-button[data-mascot-state="processing"] .onscreen-agent-avatar-image {
+  animation: benny-processing-pulse 1.4s ease-in-out infinite;
+  transform-origin: 50% 100%;
+}
+
+/* Hard gate, no exceptions: the idle <img> markup is already the correct
+   final state, so forcing animation:none here loses nothing but motion. */
+@media (prefers-reduced-motion: reduce) {
+  .onscreen-agent-avatar-button[data-mascot-state] .onscreen-agent-avatar-image {
+    animation: none !important;
+  }
+}
+
+[data-profile="zen"] .onscreen-agent-avatar-button[data-mascot-state] .onscreen-agent-avatar-image {
+  animation: none !important;
+}
