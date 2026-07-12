@@ -9,6 +9,9 @@
 - B1 — coordination server API + SSE  *(dep B0 DONE — entered READY 2026-07-07)*
 - Q1 — reproducible supply chain  *(dep Q0 DONE — entered READY 2026-07-07)*
 - E0 — website design brief + claims registry  *(zero-dep — entered READY 2026-07-07; human-signed)*
+- C1 — adaptive layout contract  *(dep C0 DONE — entered READY 2026-07-12; owner-directed design push)*
+- C3 — login + first-run retheme  *(dep C0 DONE — entered READY 2026-07-12; owner-directed design push)*
+- C5 — mascot micro-states  *(dep C0 DONE — entered READY 2026-07-12; owner-directed design push)*
 
 ## CLAIMED (agent · date)
 *(empty)*
@@ -34,7 +37,7 @@ A1 A2 A3 A4 A5 A6 A7 ·
 B2 B3 ·
 W1 W2 W3 ·
 G1 G2 G3 ·
-C1 C2 C3 C4 C5 C6 C7 ·
+C2 C4 C6 C7 ·
 D1 D2 D3 ·
 E1 E2 ·
 F1 F2 F3 F4 F5 F6 F7 F8 ·
