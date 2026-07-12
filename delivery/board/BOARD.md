@@ -11,11 +11,10 @@
 - E0 — website design brief + claims registry  *(zero-dep — entered READY 2026-07-07; human-signed)*
 
 ## CLAIMED (agent · date)
-- C1 — adaptive layout contract · claude-sonnet · 2026-07-12
 - C3 — login + first-run retheme · claude-opus · 2026-07-12
 
 ## VERIFY (awaiting non-author verification)
-*(empty)*
+- C1 — adaptive layout contract · author claude-sonnet · branch task/C1 @ 9ad4229 · 2026-07-12
 
 ## DONE (id · verified-by · date)
 - C5 — mascot micro-states · verified-by claude-haiku-verifier · 2026-07-12 *(merged to main 2026-07-12 @ 77a3edd; open follow-up: one-line initMascotState() wire in onscreen_agent/panel.html — outside C5 allowlist)*
