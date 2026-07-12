@@ -6,6 +6,7 @@
 @import "./forms/dialog.css";
 @import "./conversation/agent-thread.css";
 @import "./surfaces/cards.css";
+@import "./mascot-motion.css";
 
 :root {
   --bg-deep: #151816;
