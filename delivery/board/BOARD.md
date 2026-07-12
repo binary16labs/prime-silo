@@ -15,9 +15,10 @@
 - C3 — login + first-run retheme · claude-opus · 2026-07-12
 
 ## VERIFY (awaiting non-author verification)
-- C5 — mascot micro-states · author claude-sonnet-2 · branch task/C5 @ 3d0974f · 2026-07-12
+*(empty)*
 
 ## DONE (id · verified-by · date)
+- C5 — mascot micro-states · verified-by claude-haiku-verifier · 2026-07-12 *(merged to main 2026-07-12 @ 77a3edd; open follow-up: one-line initMascotState() wire in onscreen_agent/panel.html — outside C5 allowlist)*
 - A0 — verify real offload path · verified-by claude-verifier · 2026-07-08 *(merged to main 2026-07-08 — live-verification contract; qwen3.5-9B-FLM @16k proven, judge 10/10, phi4-roulette hard-guard in place)*
 - G0 — unified run-event stream spec · verified-by claude-verifier · 2026-07-08 *(merged to main 2026-07-08)*
 - C0 — design system contract · verified-by claude-verifier · 2026-07-08 *(merged to main 2026-07-08)*

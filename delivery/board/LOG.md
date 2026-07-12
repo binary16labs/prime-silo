@@ -63,3 +63,5 @@ Events: authored, claimed, ready-for-verify, verified-by, done, blocked, unblock
 2026-07-12T10:40:00Z | C3 | claimed | claude-opus | claimed by orchestrator on agent's behalf (single-writer main); work in worktree task/C3
 2026-07-12T10:40:00Z | C5 | claimed | claude-sonnet-2 | claimed by orchestrator on agent's behalf (single-writer main); work in worktree task/C5
 2026-07-12T11:05:00Z | C5 | ready-for-verify | claude-sonnet-2 | task/C5 @ 3d0974f; gate c5.mjs green (19 static + DOM scenario), c0 green; 153/200 budget; gaps logged: init wiring out-of-allowlist (panel.html), listening-path DOM test partial, reduced-motion check static
+2026-07-12T11:20:00Z | C5 | verified-by | claude-haiku-verifier | PASS: gate green from clean checkout, allowlist clean, 133/200 budget, both scenarios mapped, no secrets; gaps assessed as scope boundaries not defects
+2026-07-12T11:21:00Z | C5 | done | claude-fable | merged to main @ 77a3edd; worktree removed; follow-up: initMascotState() wire in panel.html (outside C5 allowlist)
