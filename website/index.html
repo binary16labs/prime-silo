@@ -1,689 +1,1098 @@
+<!-- GENERATED FILE — DO NOT EDIT DIRECTLY. EDIT website/content.json & website/template.html AND RUN node website/build.mjs -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Prime-Silo // Sovereign AI Agent OS, MCP & A2A Harness for Institutional Cognition (Supported by Agent Benny)</title>
-  <meta name="description" content="Prime-Silo is the canonical Sovereign AI Agent OS and runtime harness. Power autonomous AI agents with standard MCP (Model Context Protocol) and A2A multi-agent collaboration, deterministic Pypes algebra, and zero-token tax execution.">
-  <meta name="keywords" content="Sovereign AI, AI Agents, MCP, Model Context Protocol, A2A, Agent-to-Agent, Agent Harness, Agent OS, AI Harness, Zero Token Tax, Institutional Cognition, Deterministic Pypes, Autonomous Agents, Multi-Agent Swarm, Binary 16 Labs, Supported by Agent Benny">
-  <meta name="author" content="Binary 16 Labs // Agent Benny">
-  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
-  <link rel="canonical" href="https://binary16labs.github.io/prime-silo/">
-  
-  <!-- Open Graph / Facebook / WhatsApp / LinkedIn -->
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://binary16labs.github.io/prime-silo/">
-  <meta property="og:title" content="Prime-Silo // Sovereign AI Agent OS, MCP & A2A Harness for Institutional Cognition (Supported by Agent Benny)">
-  <meta property="og:description" content="Prime-Silo is the canonical Sovereign AI Agent OS and runtime harness. Power autonomous AI agents with standard MCP (Model Context Protocol) and A2A multi-agent collaboration, deterministic Pypes algebra, and zero-token tax execution.">
-  <meta property="og:image" content="https://binary16labs.github.io/prime-silo/og-image.png">
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="630">
-  
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:url" content="https://binary16labs.github.io/prime-silo/">
-  <meta name="twitter:title" content="Prime-Silo // Sovereign AI Agent OS, MCP & A2A Harness for Institutional Cognition (Supported by Agent Benny)">
-  <meta name="twitter:description" content="Prime-Silo is the canonical Sovereign AI Agent OS and runtime harness. Power autonomous AI agents with standard MCP (Model Context Protocol) and A2A multi-agent collaboration, deterministic Pypes algebra, and zero-token tax execution.">
-  <meta name="twitter:image" content="https://binary16labs.github.io/prime-silo/og-image.png">
-  <link rel="icon" type="image/png" href="logo.png">
-
-  <!-- JSON-LD Structured Data for Maximum Search Authority -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prime-Silo — Sovereign Local-First AI Agent OS & Memory Mesh</title>
+  <meta name="description" content="Prime-Silo is a browser-first AI agent runtime with auditable tri-graph memory, local-model orchestration, and deterministic knowledge synthesis." />
+  <meta name="keywords" content="local-first AI, sovereign AI, AI agent OS, AI memory, knowledge graph, agentic AI, on-device AI, MCP, auditable AI, private AI assistant" />
+  <meta property="og:title" content="Prime-Silo — Sovereign Local-First AI Agent OS" />
+  <meta property="og:description" content="Own your AI memory. Deterministic tri-graph knowledge synthesis, local-model execution, and verifiable governance." />
+  <meta property="og:image" content="./og-image.png" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Prime-Silo — Sovereign Local-First AI Agent OS" />
+  <meta name="twitter:description" content="Own your AI memory. Deterministic tri-graph knowledge synthesis, local-model execution, and verifiable governance." />
+  <meta name="twitter:image" content="./og-image.png" />
+  <link rel="stylesheet" href="./styles.css?v=f9dd2db738" />
   <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "name": "Prime-Silo",
-    "operatingSystem": "Agent OS / Web / Cross-Platform",
-    "applicationCategory": "DeveloperApplication, AI Agent Harness, Institutional Architecture",
-    "description": "The canonical Sovereign AI Agent OS and runtime harness. Engineered with deterministic Pypes transformation algebra, Model Context Protocol (MCP) tool connectivity, and Agent-to-Agent (A2A) multi-agent orchestration under zero-token tax execution.",
-    "url": "https://binary16labs.github.io/prime-silo/",
-    "author": {
-      "@type": "Organization",
-      "name": "Binary 16 Labs",
-      "url": "https://github.com/binary16labs"
-    },
-    "offers": {
-      "@type": "Offer",
-      "price": "0.00",
-      "priceCurrency": "USD",
-      "description": "Zero Token Tax Institutional License"
-    },
-    "keywords": "Sovereign AI, AI Agents, MCP, Model Context Protocol, A2A, Agent-to-Agent, Agent Harness, Agent OS, Zero Token Tax, Institutional Cognition, Deterministic Pypes"
-  }
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Prime-Silo",
+  "operatingSystem": "Windows, macOS, Linux",
+  "applicationCategory": "DeveloperApplication",
+  "softwareVersion": "1.15.2",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "description": "Prime-Silo is an open-source, local-first AI Agent OS featuring an auditable tri-graph cognitive mesh, deterministic LONGVIEW knowledge graph synthesis, and zero-leakage local execution.",
+  "url": "https://binary16labs.github.io/prime-silo/",
+  "license": "https://opensource.org/licenses/MIT"
+}
   </script>
-
-  <!-- Three.js CDN for 3D Exploding Blueprint -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <!-- Shared SVG defs: gradients + static Benny symbol (footer use) -->
+  <svg style="position:absolute;width:0;height:0;overflow:hidden" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <linearGradient id="benny-tan" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#D79A52"/><stop offset="1" stop-color="#B97A38"/>
+      </linearGradient>
+      <linearGradient id="benny-black" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#3A322C"/><stop offset="1" stop-color="#241E1A"/>
+      </linearGradient>
+      <linearGradient id="benny-chest" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#EBCD9C"/><stop offset="1" stop-color="#D8B074"/>
+      </linearGradient>
+    </defs>
+    <symbol id="benny-symbol" viewBox="0 0 256 256">
+  <g class="b-tail"><path d="M192 176c28 4 40-16 32-34-7-16-28-14-32 2-3 12 4 18 12 16" fill="url(#benny-black)" stroke="#241E1A" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/></g>
+  <g class="b-body" stroke="#241E1A" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M82 150c-10 22-12 46-3 60 6 10 96 10 102 0 9-14 7-38-3-60z" fill="url(#benny-tan)"/>
+    <path d="M82 150c-6 13-9 27-7 40 30 10 80 10 110 0 2-13-1-27-7-40-18 12-78 12-96 0z" fill="url(#benny-black)" stroke="none"/>
+    <path d="M110 150c-4 22-4 44 0 58 6 7 30 7 36 0 4-14 4-36 0-58z" fill="url(#benny-chest)" stroke="none"/>
+    <path d="M92 196c-2 8-2 16 0 18 4 3 16 3 19 0 2-4 2-12 0-20z" fill="url(#benny-tan)"/>
+    <path d="M145 194c-3 8-3 16-1 20 3 3 15 3 19 0 2-2 2-10 0-18z" fill="url(#benny-tan)"/>
+    <ellipse cx="101" cy="214" rx="12" ry="7" fill="url(#benny-chest)"/>
+    <ellipse cx="155" cy="214" rx="12" ry="7" fill="url(#benny-chest)"/>
+  </g>
+  <g class="b-ear b-ear-left" stroke="#241E1A" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M78 64 58 12c24 0 40 14 48 38z" fill="url(#benny-tan)"/>
+    <path d="M80 56 66 22c14 1 24 9 30 23z" fill="url(#benny-black)" stroke="none"/>
+  </g>
+  <g class="b-ear b-ear-right" stroke="#241E1A" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M178 64l20-52c-24 0-40 14-48 38z" fill="url(#benny-tan)"/>
+    <path d="M176 56l14-34c-14 1-24 9-30 23z" fill="url(#benny-black)" stroke="none"/>
+  </g>
+  <g class="b-head">
+    <path d="M128 48c-38 0-60 26-60 58 0 30 26 52 60 52s60-22 60-52c0-32-22-58-60-58z" fill="url(#benny-tan)" stroke="#241E1A" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M128 86c-15 0-22 10-24 26-2 18 10 38 24 38s26-20 24-38c-2-16-9-26-24-26z" fill="url(#benny-black)" stroke="#241E1A" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+    <g class="b-eyes" fill="#1C1714"><ellipse cx="104" cy="98" rx="7.5" ry="9"/><ellipse cx="152" cy="98" rx="7.5" ry="9"/></g>
+    <circle cx="101.5" cy="95" r="2.3" fill="#fff"/><circle cx="149.5" cy="95" r="2.3" fill="#fff"/>
+    <ellipse cx="104" cy="84" rx="5" ry="3.5" fill="#E0A95E"/>
+    <ellipse cx="152" cy="84" rx="5" ry="3.5" fill="#E0A95E"/>
+    <ellipse cx="128" cy="120" rx="11" ry="8" fill="#120E0C"/>
+    <path d="M128 128v8m0 0c-6 0-11-3-13-8m13 8c6 0 11-3 13-8" fill="none" stroke="#0E0A08" stroke-width="4" stroke-linecap="round"/>
+    <path class="b-tongue" d="M124 136h8c0 6-2 10-4 10s-4-4-4-10z" fill="#E58A86"/>
+  </g></symbol>
+  </svg>
 
-  <!-- Top Navigation -->
-  <header class="navbar">
-    <div class="container nav-content">
-      <a href="#" class="brand">
-        <img src="logo.png" alt="Prime-Silo Emblem" class="brand-logo">
-        <div class="brand-icon">16</div>
-        <span>Prime-Silo</span>
-        <span class="brand-tag">Supported by Agent Benny</span>
-      </a>
-      
+  <!-- Navigation -->
+  <nav class="navbar">
+    <a href="#" class="nav-brand"><span>Prime-Silo</span></a>
+    <div class="nav-right">
       <ul class="nav-links">
-        <li><a href="#arch-showcase">Architecture Spine</a></li>
-        <li><a href="#blueprint-story">Act I: 3D Blueprint</a></li>
-        <li><a href="#calculator">Token Economics</a></li>
-        <li><a href="#cockpit">Act II: Cockpit HUD</a></li>
-        <li><a href="#terminal">Act III: CLI Cinema</a></li>
+        <li><a href="#problem">Problem</a></li>
+<li><a href="#trigraph">The Mesh</a></li>
+<li><a href="#longview">LONGVIEW</a></li>
+<li><a href="#features">Features</a></li>
       </ul>
+      <details class="nav-more">
+        <summary>More</summary>
+        <ul class="nav-more-list">
+          <li class="nav-dup"><a href="#problem">Problem</a></li>
+<li class="nav-dup"><a href="#trigraph">The Mesh</a></li>
+<li class="nav-dup"><a href="#longview">LONGVIEW</a></li>
+<li class="nav-dup"><a href="#features">Features</a></li>
+<li><a href="#calculator">Cost Model</a></li>
+<li><a href="#roadmap">Roadmap</a></li>
+<li><a href="#faq">FAQ</a></li>
+        </ul>
+      </details>
+      <a href="https://github.com/binary16labs/prime-silo/releases/latest" class="btn btn-primary nav-cta">Download</a>
+    </div>
+  </nav>
 
-      <div class="nav-controls">
-        <button id="audioZenBtn" class="btn btn-audio" title="Toggle 432Hz Binaural Focus Audio">
-          <span>🔇 Audio Zen: OFF</span>
-        </button>
-        <a href="https://github.com/binary16labs/prime-silo" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">GitHub Repo</a>
-        <a href="mailto:binary16.primesilo@gmail.com?subject=Prime-Silo%20Demo%20Request" class="btn btn-primary">Request Demo</a>
+  <main>
+
+  <header class="hero-section" id="hero">
+    <div class="hero-content">
+      <div class="section-kicker">Sovereign Local-First Agent OS</div>
+      <h1 class="section-headline hero-headline">Your AI Agent. Your Hardware. Your Auditable Memory.</h1>
+      <p class="section-sub">Prime-Silo is a browser-first agent runtime that replaces ephemeral chat context with a permanent, auditable tri-graph cognitive mesh. Run state-of-the-art local models with cryptographic governance and zero cloud leakage.</p>
+      <div class="hero-actions">
+        <a href="https://github.com/binary16labs/prime-silo/releases/latest" class="btn btn-primary">Download Desktop App</a>
+<a href="https://github.com/binary16labs/prime-silo" class="btn btn-ghost">Explore Source on GitHub</a>
       </div>
+      <div class="proof-chips">
+        <span class="proof-chip">248 sessions synthesized</span>
+<span class="proof-chip">30M+ tokens of agent history</span>
+<span class="proof-chip">6 platforms, zero-install</span>
+<span class="proof-chip">100k+ lines of foundations</span>
+<span class="proof-chip">v1.15.2</span>
+      </div>
+    </div>
+    <div class="hero-visual">
+      
+  <svg id="hero-silo" class="hero-silo" viewBox="0 0 340 470" role="img" aria-label="Prime-Silo grain silo assembling from ring segments">
+    <g class="hs-legs" stroke="#233026" stroke-width="3" stroke-linecap="round">
+      <line x1="82" y1="402" x2="62" y2="452"/><line x1="258" y1="402" x2="278" y2="452"/>
+      <line x1="170" y1="402" x2="170" y2="452"/><line x1="44" y1="452" x2="296" y2="452"/>
+    </g>
+    <g class="hs-ring"><rect x="66" y="132" width="208" height="45" fill="#F3EFE6" stroke="#233026" stroke-width="2.5"/><line x1="66" y1="177" x2="274" y2="177" stroke="#233026" stroke-width="1" opacity="0.35"/></g>
+<g class="hs-ring"><rect x="66" y="177" width="208" height="45" fill="#EDE7D9" stroke="#233026" stroke-width="2.5"/><line x1="66" y1="222" x2="274" y2="222" stroke="#233026" stroke-width="1" opacity="0.35"/></g>
+<g class="hs-ring"><rect x="66" y="222" width="208" height="45" fill="#F3EFE6" stroke="#233026" stroke-width="2.5"/><line x1="66" y1="267" x2="274" y2="267" stroke="#233026" stroke-width="1" opacity="0.35"/></g>
+<g class="hs-ring"><rect x="66" y="267" width="208" height="45" fill="#EDE7D9" stroke="#233026" stroke-width="2.5"/><line x1="66" y1="312" x2="274" y2="312" stroke="#233026" stroke-width="1" opacity="0.35"/></g>
+<g class="hs-ring"><rect x="66" y="312" width="208" height="45" fill="#F3EFE6" stroke="#233026" stroke-width="2.5"/><line x1="66" y1="357" x2="274" y2="357" stroke="#233026" stroke-width="1" opacity="0.35"/></g>
+<g class="hs-ring"><rect x="66" y="357" width="208" height="45" fill="#EDE7D9" stroke="#233026" stroke-width="2.5"/><line x1="66" y1="402" x2="274" y2="402" stroke="#233026" stroke-width="1" opacity="0.35"/></g>
+    <g class="hs-door"><rect x="150" y="342" width="40" height="60" rx="4" fill="#233026"/><circle cx="182" cy="374" r="3" fill="#B94B2A"/></g>
+    <g class="hs-roof"><path d="M56 131 L170 40 L284 131 Z" fill="#233026" stroke="#233026" stroke-width="2.5" stroke-linejoin="round"/><circle cx="170" cy="35" r="6" fill="#B94B2A"/></g>
+    <g class="hs-vent"><rect x="148" y="150" width="44" height="14" rx="7" fill="#B94B2A" opacity="0.9"/></g>
+  </svg>
+      
+    <div class="mascot-container benny-hero">
+      <svg class="benny-svg" viewBox="0 0 256 256" role="img" aria-label="Benny the German Shepherd mascot">
+  <g class="b-tail"><path d="M192 176c28 4 40-16 32-34-7-16-28-14-32 2-3 12 4 18 12 16" fill="url(#benny-black)" stroke="#241E1A" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/></g>
+  <g class="b-body" stroke="#241E1A" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M82 150c-10 22-12 46-3 60 6 10 96 10 102 0 9-14 7-38-3-60z" fill="url(#benny-tan)"/>
+    <path d="M82 150c-6 13-9 27-7 40 30 10 80 10 110 0 2-13-1-27-7-40-18 12-78 12-96 0z" fill="url(#benny-black)" stroke="none"/>
+    <path d="M110 150c-4 22-4 44 0 58 6 7 30 7 36 0 4-14 4-36 0-58z" fill="url(#benny-chest)" stroke="none"/>
+    <path d="M92 196c-2 8-2 16 0 18 4 3 16 3 19 0 2-4 2-12 0-20z" fill="url(#benny-tan)"/>
+    <path d="M145 194c-3 8-3 16-1 20 3 3 15 3 19 0 2-2 2-10 0-18z" fill="url(#benny-tan)"/>
+    <ellipse cx="101" cy="214" rx="12" ry="7" fill="url(#benny-chest)"/>
+    <ellipse cx="155" cy="214" rx="12" ry="7" fill="url(#benny-chest)"/>
+  </g>
+  <g class="b-ear b-ear-left" stroke="#241E1A" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M78 64 58 12c24 0 40 14 48 38z" fill="url(#benny-tan)"/>
+    <path d="M80 56 66 22c14 1 24 9 30 23z" fill="url(#benny-black)" stroke="none"/>
+  </g>
+  <g class="b-ear b-ear-right" stroke="#241E1A" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M178 64l20-52c-24 0-40 14-48 38z" fill="url(#benny-tan)"/>
+    <path d="M176 56l14-34c-14 1-24 9-30 23z" fill="url(#benny-black)" stroke="none"/>
+  </g>
+  <g class="b-head">
+    <path d="M128 48c-38 0-60 26-60 58 0 30 26 52 60 52s60-22 60-52c0-32-22-58-60-58z" fill="url(#benny-tan)" stroke="#241E1A" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M128 86c-15 0-22 10-24 26-2 18 10 38 24 38s26-20 24-38c-2-16-9-26-24-26z" fill="url(#benny-black)" stroke="#241E1A" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+    <g class="b-eyes" fill="#1C1714"><ellipse cx="104" cy="98" rx="7.5" ry="9"/><ellipse cx="152" cy="98" rx="7.5" ry="9"/></g>
+    <circle cx="101.5" cy="95" r="2.3" fill="#fff"/><circle cx="149.5" cy="95" r="2.3" fill="#fff"/>
+    <ellipse cx="104" cy="84" rx="5" ry="3.5" fill="#E0A95E"/>
+    <ellipse cx="152" cy="84" rx="5" ry="3.5" fill="#E0A95E"/>
+    <ellipse cx="128" cy="120" rx="11" ry="8" fill="#120E0C"/>
+    <path d="M128 128v8m0 0c-6 0-11-3-13-8m13 8c6 0 11-3 13-8" fill="none" stroke="#0E0A08" stroke-width="4" stroke-linecap="round"/>
+    <path class="b-tongue" d="M124 136h8c0 6-2 10-4 10s-4-4-4-10z" fill="#E58A86"/>
+  </g></svg>
+      <div class="mascot-caption">Benny — your sovereign agent guide</div>
+    </div>
     </div>
   </header>
 
-  <!-- Section 1: Hero Studio -->
-  <section id="hero" class="hero">
-    <div class="container">
-      <div class="hero-badge">
-        <span>🏛️ SOVEREIGN AI AGENT OS & HARNESS // MCP & A2A NATIVE // SUPPORTED BY AGENT BENNY // ZERO TOKEN TAX</span>
-      </div>
-      
-      <h1 class="hero-title bionic-target">
-        The Sovereign AI Agent OS.<br>
-        <span>Deterministic Harness for MCP, A2A & Institutional Reasoning.</span>
-      </h1>
-      
-      <p class="hero-subtitle bionic-target">
-        Prime-Silo is the canonical <strong>Sovereign AI Agent OS</strong> and runtime harness where deterministic Pypes transformation algebra meets institutional cognition. Power autonomous agents with the open-standard <strong>Model Context Protocol (MCP)</strong> for tool connectivity and <strong>Agent-to-Agent (A2A)</strong> collaborative swarms—delivering auditable lineage without cloud gatekeepers or burning capital on context dumps.
-      </p>
+  <section class="chapter chapter--light" id="inside-the-silo" data-visual="silo" data-beats="6">
+    <div class="chapter-pin">
+      <div class="chapter-stage">
+        
+  <svg id="silo-open-svg" viewBox="0 0 760 560" role="img" aria-label="Cutaway of the Prime-Silo silo revealing four architecture floors">
+    <line x1="150" y1="516" x2="610" y2="516" stroke="#233026" stroke-width="2.5" opacity="0.5"/>
+    <g id="silo-floors">
+    <g class="silo-floor" data-floor="0" transform="translate(216 140)">
+      <g class="floor-anim">
+        <rect x="0" y="0" width="328" height="78" rx="10" fill="#233026" stroke="#7F9A83" stroke-width="1.5"/>
+        <text x="20" y="48" font-size="20" fill="#B94B2A" class="svg-serif">L3</text>
+        <text x="66" y="33" font-size="14.5" fill="#F7F6F2" font-weight="600" class="svg-sans">LONGVIEW Cognitive Engine</text>
+        <text x="66" y="56" font-size="10" fill="#A8BFA8" letter-spacing="1.5" class="svg-mono">SYNTHESIS & RETRIEVAL</text>
+        <g transform="translate(290 39)"><g class="floor-glyph" stroke="#A8BFA8" stroke-width="1.6" fill="none">
+       <circle cx="0" cy="0" r="9" fill="#B94B2A" stroke="none"/>
+       <line x1="0" y1="0" x2="-22" y2="-12"/><line x1="0" y1="0" x2="24" y2="-8"/><line x1="0" y1="0" x2="4" y2="20"/>
+       <circle cx="-22" cy="-12" r="4.5" fill="#171F19"/><circle cx="24" cy="-8" r="4.5" fill="#171F19"/><circle cx="4" cy="20" r="4.5" fill="#171F19"/>
+     </g></g>
+      </g>
+    </g>
 
-      <div class="hero-actions">
-        <a href="#arch-showcase" class="btn btn-primary">Explore Architecture ↴</a>
-        <a href="#calculator" class="btn btn-secondary">Check Token Economics</a>
-        <a href="https://github.com/binary16labs/prime-silo" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">⭐ Star on GitHub</a>
-        <a href="mailto:binary16.primesilo@gmail.com?subject=Prime-Silo%20Demo%20Request" class="btn btn-secondary" style="border-color: var(--accent-sage); color: var(--bg-moss);">✉️ Book Demo</a>
+    <g class="silo-floor" data-floor="1" transform="translate(216 232)">
+      <g class="floor-anim">
+        <rect x="0" y="0" width="328" height="78" rx="10" fill="#233026" stroke="#7F9A83" stroke-width="1.5"/>
+        <text x="20" y="48" font-size="20" fill="#B94B2A" class="svg-serif">L2</text>
+        <text x="66" y="33" font-size="14.5" fill="#F7F6F2" font-weight="600" class="svg-sans">L2 Personal Workspace & HMAC Seal</text>
+        <text x="66" y="56" font-size="10" fill="#A8BFA8" letter-spacing="1.5" class="svg-mono">SOVEREIGN STORAGE</text>
+        <g transform="translate(290 39)"><g class="floor-glyph" stroke="#A8BFA8" stroke-width="1.8" fill="none">
+       <path d="M-9 -4 V-11 A9 9 0 0 1 9 -11 V-4"/>
+       <rect x="-13" y="-4" width="26" height="20" rx="4" fill="#B94B2A" stroke="none"/>
+       <circle cx="0" cy="5" r="2.6" fill="#171F19" stroke="none"/>
+     </g></g>
+      </g>
+    </g>
+
+    <g class="silo-floor" data-floor="2" transform="translate(216 324)">
+      <g class="floor-anim">
+        <rect x="0" y="0" width="328" height="78" rx="10" fill="#233026" stroke="#7F9A83" stroke-width="1.5"/>
+        <text x="20" y="48" font-size="20" fill="#B94B2A" class="svg-serif">L1</text>
+        <text x="66" y="33" font-size="14.5" fill="#F7F6F2" font-weight="600" class="svg-sans">L1 Group Memory & Git History</text>
+        <text x="66" y="56" font-size="10" fill="#A8BFA8" letter-spacing="1.5" class="svg-mono">COLLABORATION & ROLLBACK</text>
+        <g transform="translate(290 39)"><g class="floor-glyph" stroke="#A8BFA8" stroke-width="1.8" fill="none">
+       <path d="M-14 14 V-6 M-14 -6 C-14 -14 2 -10 10 -14"/>
+       <circle cx="-14" cy="14" r="5" fill="#171F19"/><circle cx="-14" cy="-10" r="5" fill="#B94B2A" stroke="none"/><circle cx="14" cy="-14" r="5" fill="#171F19"/>
+     </g></g>
+      </g>
+    </g>
+
+    <g class="silo-floor" data-floor="3" transform="translate(216 416)">
+      <g class="floor-anim">
+        <rect x="0" y="0" width="328" height="78" rx="10" fill="#233026" stroke="#7F9A83" stroke-width="1.5"/>
+        <text x="20" y="48" font-size="20" fill="#B94B2A" class="svg-serif">L0</text>
+        <text x="66" y="33" font-size="14.5" fill="#F7F6F2" font-weight="600" class="svg-sans">L0 Firmware & Tri-Graph Mesh</text>
+        <text x="66" y="56" font-size="10" fill="#A8BFA8" letter-spacing="1.5" class="svg-mono">FOUNDATION KERNEL</text>
+        <g transform="translate(290 39)"><g class="floor-glyph" stroke="#A8BFA8" stroke-width="1.6" fill="none">
+       <path d="M0 -16 L-18 12 L18 12 Z" stroke-dasharray="4 3"/>
+       <circle cx="0" cy="-16" r="5" fill="#B94B2A" stroke="none"/><circle cx="-18" cy="12" r="5" fill="#171F19"/><circle cx="18" cy="12" r="5" fill="#171F19"/>
+     </g></g>
+      </g>
+    </g></g>
+    <path class="floor-line" data-floor="0" d="M548 179 C 610 179, 640 179, 726 179" stroke="#B94B2A" stroke-width="2" fill="none" stroke-dasharray="5 5"/>
+<path class="floor-line" data-floor="1" d="M548 271 C 610 271, 640 271, 726 271" stroke="#B94B2A" stroke-width="2" fill="none" stroke-dasharray="5 5"/>
+<path class="floor-line" data-floor="2" d="M548 363 C 610 363, 640 363, 726 363" stroke="#B94B2A" stroke-width="2" fill="none" stroke-dasharray="5 5"/>
+<path class="floor-line" data-floor="3" d="M548 455 C 610 455, 640 455, 726 455" stroke="#B94B2A" stroke-width="2" fill="none" stroke-dasharray="5 5"/>
+    <g id="shell-left">
+      <path d="M380 42 L200 128 L200 508 L380 508 Z" fill="#F3EFE6" stroke="#233026" stroke-width="3" stroke-linejoin="round"/>
+      <line x1="200" y1="222" x2="380" y2="222" stroke="#233026" stroke-width="1.2" opacity="0.4"/>
+      <line x1="200" y1="314" x2="380" y2="314" stroke="#233026" stroke-width="1.2" opacity="0.4"/>
+      <line x1="200" y1="406" x2="380" y2="406" stroke="#233026" stroke-width="1.2" opacity="0.4"/>
+    </g>
+    <g id="shell-right">
+      <path d="M380 42 L560 128 L560 508 L380 508 Z" fill="#EDE7D9" stroke="#233026" stroke-width="3" stroke-linejoin="round"/>
+      <line x1="380" y1="222" x2="560" y2="222" stroke="#233026" stroke-width="1.2" opacity="0.4"/>
+      <line x1="380" y1="314" x2="560" y2="314" stroke="#233026" stroke-width="1.2" opacity="0.4"/>
+      <line x1="380" y1="406" x2="560" y2="406" stroke="#233026" stroke-width="1.2" opacity="0.4"/>
+    </g>
+    <g id="silo-seal" transform="translate(380 278)" opacity="0">
+      <g class="seal-anim">
+        <circle r="64" fill="#B94B2A"/>
+        <circle r="52" fill="none" stroke="#F7F6F2" stroke-width="2" stroke-dasharray="6 5"/>
+        <path d="M-22 2 L-6 18 L26 -18" fill="none" stroke="#F7F6F2" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+    </g>
+  </svg>
       </div>
+      <aside class="chapter-rail">
+        <div class="chapter-head">
+          <div class="section-kicker">Architecture Diagram</div>
+          <h2 class="section-headline">The Sovereign Stack Silo</h2>
+          <p class="chapter-sub">Explore the 4-layer local-first architecture. Click to explode the Silo stack or select individual layers to inspect L0 Kernel, L1 Group Memory, L2 Personal Workspace, and LONGVIEW Cognitive Engine.</p>
+        </div>
+        <ol class="chapter-steps">
+        <li class="step active" data-step="0">
+          <h4>LONGVIEW Cognitive Engine</h4>
+          <p>Deterministic 0.4s/card graph derivation, dual model/graph extraction, and enrichment hub clustering over Source/Concept triples.</p>
+        </li>
+
+        <li class="step" data-step="1">
+          <h4>L2 Personal Workspace & HMAC Seal</h4>
+          <p>User-owned space (~/.space/L2/) with cryptographic HMAC-SHA256 signing for zero-tamper audit logs.</p>
+        </li>
+
+        <li class="step" data-step="2">
+          <h4>L1 Group Memory & Git History</h4>
+          <p>Debounced local Git commits, time-travel rollback APIs, and modular space.extend runtime delivery.</p>
+        </li>
+
+        <li class="step" data-step="3">
+          <h4>L0 Firmware & Tri-Graph Mesh</h4>
+          <p>Core browser-first OS kernel maintaining the universal knowledge schema: Source -> Concept -> RELATES_TO -> SOURCED_FROM.</p>
+        </li>
+        </ol>
+        
+        <div class="chapter-dots" aria-hidden="true"><span class="chapter-dot active" data-dot="0"></span><span class="chapter-dot" data-dot="1"></span><span class="chapter-dot" data-dot="2"></span><span class="chapter-dot" data-dot="3"></span><span class="chapter-dot" data-dot="4"></span><span class="chapter-dot" data-dot="5"></span></div>
+      </aside>
     </div>
+    <div class="chapter-track" style="height:480vh" aria-hidden="true"></div>
   </section>
 
-  <!-- Section 2: Institutional Architecture Showcase // Scroll-Driven ADR & Requirements RAG Substrate -->
-  <section id="arch-showcase" class="cinematic-act arch-scroll-stage">
-    <!-- Persistent Sticky Architecture Substrate (Left/Background Viewport) -->
-    <div class="sticky-substrate">
-      <div class="arch-graph-container">
-        <div class="tui-header">
-          <div class="tui-header-left">
-            <span class="tui-box-char">╭─</span>
-            <span class="tui-title-accent">🕸️ TRI-GRAPH CAG & MEMO-RAY // LIVE INSTITUTIONAL NETWORK</span>
-          </div>
-          <div class="tui-header-right">
-            <span id="archStatusBadge" class="tui-badge-ready">● GRAPH ACTIVE // PULSES NOMINAL</span>
-            <span class="tui-box-char">─╮</span>
-          </div>
-        </div>
-
-        <div class="tui-body">
-          <!-- Sidebar: Document Hierarchy & Layer Filters -->
-          <div class="tui-sidebar">
-            <div class="tui-sidebar-title">│ 🔗 GRAPH LAYERS │</div>
-            <div id="archTab01" class="tui-tab active-tab">▶ 01. BOUNDARY GATE</div>
-            <div id="archTab02" class="tui-tab">  02. DOCLING SPINE</div>
-            <div id="archTab03" class="tui-tab">  03. VISION & SCOPE</div>
-            <div id="archTab04" class="tui-tab">  04. BRIDGE COCKPIT UI</div>
-            <div id="archTab05" class="tui-tab">  05. MEMO-RAY GRAPH</div>
-            <div id="archTab06" class="tui-tab">  06. 6σ CHECKPOINTS</div>
-            <div id="archTab07" class="tui-tab">  07. CLP LINEAGE</div>
-            <div class="tui-sidebar-footer">
-              <span style="color: var(--border-taupe);">│ ENGINE: Tri-Graph RAG │</span><br>
-              <span style="color: var(--accent-sage);">│ PROTOCOL: MCP Nexus │</span><br>
-              <span style="color: var(--accent-rust);">│ TAX: 0% Context Bloat │</span>
-            </div>
-          </div>
-
-          <!-- Main Interactive Canvas & Overlay Screen -->
-          <div id="archScreen" class="arch-graph-canvas-wrap">
-            <canvas id="archGraphCanvas"></canvas>
-            <div id="archGraphOverlay" class="arch-graph-overlay">
-              <div id="graphOverlayTitle" class="overlay-title">// L1 DETERMINISM BOUNDARY GATE</div>
-              <div id="graphOverlayStats" class="overlay-stats">Active Gate: HMAC SHA-256 | Drift: 0.00% | Manifests Verified: 1,420</div>
-              <div id="graphOverlayDesc" class="overlay-desc">Cryptographic payload verification gate preventing silent background mutations before pipeline execution.</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="tui-footer">
-          <span class="tui-box-char">╰─</span>
-          <span class="tui-footer-stat">ACTIVE NODE CLUSTER: <strong id="archFooterSpec" style="color: var(--accent-sage);">L1_GATE // HMAC_SHA256_VERIFIER</strong></span>
-          <span class="tui-footer-sep">│</span>
-          <span class="tui-footer-stat">BRIDGE COCKPIT: <strong style="color: var(--accent-rust);">CONNECTED (6 LENSES NOMINAL)</strong></span>
-          <span class="tui-box-char" style="margin-left: auto;">─╯</span>
-        </div>
+  <section class="chapter chapter--dark" id="trigraph" data-visual="trigraph" data-beats="5">
+    <div class="chapter-pin">
+      <div class="chapter-stage">
+        
+  <svg id="trigraph-svg" viewBox="0 0 760 560" role="img" aria-label="Tri-graph mesh separating into documents, code and memory clusters joined by CORRELATES_WITH edges">
+    <g id="tg-edges">
+      <path class="tg-edge" d="M262 196 C 320 210, 400 216, 496 216" stroke="#8C847A" stroke-width="2" fill="none" stroke-dasharray="7 6"/>
+      <path class="tg-edge" d="M238 232 C 280 320, 320 380, 350 424" stroke="#8C847A" stroke-width="2" fill="none" stroke-dasharray="7 6"/>
+      <path class="tg-edge" d="M540 262 C 510 330, 470 390, 430 430" stroke="#8C847A" stroke-width="2" fill="none" stroke-dasharray="7 6"/>
+      <text class="tg-edge-label svg-mono" x="378" y="196" text-anchor="middle" font-size="10.5" fill="#D1CDC7" letter-spacing="1.5">CORRELATES_WITH</text>
+      <text class="tg-edge-label svg-mono" x="238" y="340" text-anchor="middle" font-size="10.5" fill="#D1CDC7" letter-spacing="1.5" transform="rotate(64 238 340)">CORRELATES_WITH</text>
+      <text class="tg-edge-label svg-mono" x="520" y="352" text-anchor="middle" font-size="10.5" fill="#D1CDC7" letter-spacing="1.5" transform="rotate(-58 520 352)">CORRELATES_WITH</text>
+    </g>
+    
+    <g class="tg-cluster" id="tg-docs" transform="translate(190 160)">
+      <g class="cluster-anim">
+        <circle class="cluster-ring" r="70" fill="none" stroke="#A8BFA8" stroke-width="1.5" stroke-dasharray="4 5" opacity="0.7"/>
+        <line x1="0" y1="0" x2="-36" y2="-24" stroke="#A8BFA8" stroke-width="1.2" opacity="0.6"/><line x1="0" y1="0" x2="32" y2="-28" stroke="#A8BFA8" stroke-width="1.2" opacity="0.6"/><line x1="0" y1="0" x2="-22" y2="30" stroke="#A8BFA8" stroke-width="1.2" opacity="0.6"/><line x1="0" y1="0" x2="36" y2="22" stroke="#A8BFA8" stroke-width="1.2" opacity="0.6"/><line x1="0" y1="0" x2="6" y2="-48" stroke="#A8BFA8" stroke-width="1.2" opacity="0.6"/><circle cx="0" cy="0" r="12" fill="#A8BFA8" stroke="#A8BFA8" stroke-width="1.8"/><circle cx="-36" cy="-24" r="8" fill="#171F19" stroke="#A8BFA8" stroke-width="1.8"/><circle cx="32" cy="-28" r="7" fill="#171F19" stroke="#A8BFA8" stroke-width="1.8"/><circle cx="-22" cy="30" r="7" fill="#171F19" stroke="#A8BFA8" stroke-width="1.8"/><circle cx="36" cy="22" r="8" fill="#171F19" stroke="#A8BFA8" stroke-width="1.8"/><circle cx="6" cy="-48" r="6" fill="#171F19" stroke="#A8BFA8" stroke-width="1.8"/>
+        <text y="96" text-anchor="middle" font-size="13" fill="#A8BFA8" letter-spacing="2" class="svg-mono">DOCUMENTS</text>
+      </g>
+    </g>
+    
+    <g class="tg-cluster" id="tg-code" transform="translate(570 180)">
+      <g class="cluster-anim">
+        <circle class="cluster-ring" r="70" fill="none" stroke="#D65D38" stroke-width="1.5" stroke-dasharray="4 5" opacity="0.7"/>
+        <line x1="0" y1="0" x2="-36" y2="-24" stroke="#D65D38" stroke-width="1.2" opacity="0.6"/><line x1="0" y1="0" x2="32" y2="-28" stroke="#D65D38" stroke-width="1.2" opacity="0.6"/><line x1="0" y1="0" x2="-22" y2="30" stroke="#D65D38" stroke-width="1.2" opacity="0.6"/><line x1="0" y1="0" x2="36" y2="22" stroke="#D65D38" stroke-width="1.2" opacity="0.6"/><line x1="0" y1="0" x2="6" y2="-48" stroke="#D65D38" stroke-width="1.2" opacity="0.6"/><circle cx="0" cy="0" r="12" fill="#D65D38" stroke="#D65D38" stroke-width="1.8"/><circle cx="-36" cy="-24" r="8" fill="#171F19" stroke="#D65D38" stroke-width="1.8"/><circle cx="32" cy="-28" r="7" fill="#171F19" stroke="#D65D38" stroke-width="1.8"/><circle cx="-22" cy="30" r="7" fill="#171F19" stroke="#D65D38" stroke-width="1.8"/><circle cx="36" cy="22" r="8" fill="#171F19" stroke="#D65D38" stroke-width="1.8"/><circle cx="6" cy="-48" r="6" fill="#171F19" stroke="#D65D38" stroke-width="1.8"/>
+        <text y="96" text-anchor="middle" font-size="13" fill="#D65D38" letter-spacing="2" class="svg-mono">CODE · AST</text>
+      </g>
+    </g>
+    
+    <g class="tg-cluster" id="tg-memory" transform="translate(385 430)">
+      <g class="cluster-anim">
+        <circle class="cluster-ring" r="70" fill="none" stroke="#C5B38E" stroke-width="1.5" stroke-dasharray="4 5" opacity="0.7"/>
+        <line x1="0" y1="0" x2="-36" y2="-24" stroke="#C5B38E" stroke-width="1.2" opacity="0.6"/><line x1="0" y1="0" x2="32" y2="-28" stroke="#C5B38E" stroke-width="1.2" opacity="0.6"/><line x1="0" y1="0" x2="-22" y2="30" stroke="#C5B38E" stroke-width="1.2" opacity="0.6"/><line x1="0" y1="0" x2="36" y2="22" stroke="#C5B38E" stroke-width="1.2" opacity="0.6"/><line x1="0" y1="0" x2="6" y2="-48" stroke="#C5B38E" stroke-width="1.2" opacity="0.6"/><circle cx="0" cy="0" r="12" fill="#C5B38E" stroke="#C5B38E" stroke-width="1.8"/><circle cx="-36" cy="-24" r="8" fill="#171F19" stroke="#C5B38E" stroke-width="1.8"/><circle cx="32" cy="-28" r="7" fill="#171F19" stroke="#C5B38E" stroke-width="1.8"/><circle cx="-22" cy="30" r="7" fill="#171F19" stroke="#C5B38E" stroke-width="1.8"/><circle cx="36" cy="22" r="8" fill="#171F19" stroke="#C5B38E" stroke-width="1.8"/><circle cx="6" cy="-48" r="6" fill="#171F19" stroke="#C5B38E" stroke-width="1.8"/>
+        <text y="96" text-anchor="middle" font-size="13" fill="#C5B38E" letter-spacing="2" class="svg-mono">MEMORY</text>
+      </g>
+    </g>
+  </svg>
       </div>
-    </div>
-
-    <!-- Scrolling Foreground Alabaster Glass Cards -->
-    <div class="floating-glass-layer">
-      <!-- Card 1: ADR-001 -->
-      <div id="archCard1" class="floating-glass-panel align-right active-card" data-arch="01">
-        <div class="chapter-number">Document 01 // Determinism Boundary</div>
-        <h3 class="chapter-title bionic-target">ADR-001 // Split-Brain Execution Substrate</h3>
-        <p class="chapter-desc bionic-target">
-          Prime-Silo forks the execution shell into two strict boundaries: a read-only deterministic execution zone governed by cryptographic HMAC SHA-256 signatures, and an exploratory read-write agent sandbox (<code style="font-size: 0.8rem; color: var(--accent-sage-light);">agent_sandbox/views/</code>). Zero silent background mutation or scope creep.
-        </p>
-        <ul class="chapter-specs">
-          <li>Cryptographic HMAC SHA-256 payload verification before execution gate</li>
-          <li>Strict separation between signed production pypes and sandbox exploration</li>
-          <li>Eliminates agentic hallucination drift by anchoring to immutable manifests</li>
-        </ul>
-      </div>
-
-      <!-- Card 2: ADR-002 -->
-      <div id="archCard2" class="floating-glass-panel align-left" data-arch="02">
-        <div class="chapter-number">Document 02 // Vectorless Document Backbone</div>
-        <h3 class="chapter-title bionic-target">ADR-002 // PageIndex Vectorless RAG Spine</h3>
-        <p class="chapter-desc bionic-target">
-          Replaces flat vector chunking and probabilistic similarity search with deterministic Docling hierarchical tree extraction. Queries resolve precise section nodes via the Denodo pattern, eliminating vector hallucinations and enabling Triple fan-out cross-document reasoning.
-        </p>
-        <ul class="chapter-specs">
-          <li>Hierarchical tree extraction preserves heading structure and table geometry</li>
-          <li>Zero-vector retrieval invariants guarantee 100% deterministic citations</li>
-          <li>Triple fan-out graph generation connects specifications to code symbols</li>
-        </ul>
-      </div>
-
-      <!-- Card 3: ADR-003 -->
-      <div id="archCard3" class="floating-glass-panel align-right" data-arch="03">
-        <div class="chapter-number">Document 03 // Secure Ingestion & Credential Binding</div>
-        <h3 class="chapter-title bionic-target">ADR-003 // Vision Ingestion & Least-Privilege Scope</h3>
-        <p class="chapter-desc bionic-target">
-          Unifies multi-modal document understanding (PDFs, architectural diagrams, tables) with cryptographic capability tokens. Every subagent is bound to a least-privilege credential scope, preventing unauthorized cross-workspace access or key leakage.
-        </p>
-        <ul class="chapter-specs">
-          <li>Vision-augmented parsing extracts high-fidelity structural data from complex layouts</li>
-          <li>Cryptographic capability tokens bind subagent permissions to specific workspaces</li>
-          <li>Zero credential leakage across institutional boundary walls</li>
-        </ul>
-      </div>
-
-      <!-- Card 4: ADR-004 -->
-      <div id="archCard4" class="floating-glass-panel align-left" data-arch="04">
-        <div class="chapter-number">Document 04 // Token Economics & Local Routing</div>
-        <h3 class="chapter-title bionic-target">ADR-004 // Local Offload Orchestrator & Bridge Cockpit UI</h3>
-        <p class="chapter-desc bionic-target">
-          Enforces the Green/Yellow/Red risk tier matrix and connects directly to the <strong>Bridge Cockpit Telemetry HUD</strong>. Frontend UI control elements (the 6 Lenses: Pulse, Memory, Documents, Code, Flows, Runs) interface with the local LAN pool (<code style="font-size: 0.8rem; color: var(--accent-sage-light);">BENNY_LEMONADE_ENDPOINTS</code>) via <code style="font-size: 0.8rem; color: var(--accent-rust);">prime-silo-nexus</code> MCP without raw code dumping or cloud context tax.
-        </p>
-        <ul class="chapter-specs">
-          <li>Bridge Cockpit UI control elements (6 Lenses) interface with backend graph via MCP</li>
-          <li>Green/Yellow/Red risk tier matrix automates local vs. cloud task routing</li>
-          <li>Digest Discipline: local workers return compact verification summaries</li>
-        </ul>
-      </div>
-
-      <!-- Card 5: ADR-005 -->
-      <div id="archCard5" class="floating-glass-panel align-right" data-arch="05">
-        <div class="chapter-number">Document 05 // Memory Consolidation</div>
-        <h3 class="chapter-title bionic-target">ADR-005 // Longview Session Synthesis</h3>
-        <p class="chapter-desc bionic-target">
-          Addresses the "unread history problem" across 111+ agent session directories. Longview runs continuously on local background models to synthesize past transcripts, implementation plans, and walkthroughs into a unified, queryable organizational memory graph.
-        </p>
-        <ul class="chapter-specs">
-          <li>Synthesizes multi-agent conversation histories without burning cloud planner tokens</li>
-          <li>Extracts reusable skills and architectural patterns from historical trajectories</li>
-          <li>Maintains continuous organizational awareness across development cycles</li>
-        </ul>
-      </div>
-
-      <!-- Card 6: PBR-001 & REQ-H -->
-      <div id="archCard6" class="floating-glass-panel align-left" data-arch="06">
-        <div class="chapter-number">Requirements // Phase H & PBR-001</div>
-        <h3 class="chapter-title bionic-target">PBR-001 & REQ-H // Session Checkpoints & Portability</h3>
-        <p class="chapter-desc bionic-target">
-          Establishes 6σ-safe operational invariants (≤ 3.4 defects per million ops). Before any Human-In-The-Loop decision or experimental analysis, operators stamp named restore points in their session—guaranteeing zero context contamination and instant rollback capability.
-        </p>
-        <ul class="chapter-specs">
-          <li>6σ-safe quality target enforced across data integrity and path portability</li>
-          <li>Stamps named session checkpoints before HITL gates (<code style="font-size: 0.8rem; color: var(--accent-sage-light);">benny checkpoint stamp</code>)</li>
-          <li>Full external SSD portability (<code style="font-size: 0.8rem; color: var(--accent-sage-light);">&lt;SSD_ROOT&gt;</code>) with zero machine-dependent drift</li>
-        </ul>
-      </div>
-
-      <!-- Card 7: GUIDE.md -->
-      <div id="archCard7" class="floating-glass-panel align-right" data-arch="07">
-        <div class="chapter-number">Manual // Canonical Governance</div>
-        <h3 class="chapter-title bionic-target">GUIDE // Institutional Governance & Audit Lineage</h3>
-        <p class="chapter-desc bionic-target">
-          The comprehensive operating manual and governance standard for Prime-Silo. Enforces Chronological Lineage Protocol (CLP) audit logs, automated redaction of PII, and full compliance reporting for enterprise engineering teams.
-        </p>
-        <ul class="chapter-specs">
-          <li>Chronological Lineage Protocol (CLP) records every prompt, tool call, and result</li>
-          <li>Automated PII redaction and compliance reporting by default</li>
-          <li>Plain-English governance workflows designed for institutional reliability</li>
-        </ul>
-      </div>
-    </div>
-  </section>
-
-  <!-- ACT I: 3D Exploding Blueprint (Floating Glass HUD over Sticky Canvas) -->
-  <section id="blueprint-story" class="cinematic-act">
-    <!-- Persistent Sticky Background Substrate -->
-    <div class="sticky-substrate">
-      <div class="blueprint-canvas-container">
-        <div class="substrate-badge">[ACT I: 3D WIREFRAME TRI-GRAPH SUBSTRATE]</div>
-        <canvas id="blueprintCanvas"></canvas>
-        <div class="substrate-status" id="blueprintStatus">SCROLL DOWN TO EXPLODE LAYERS ↴</div>
-      </div>
-    </div>
-
-    <!-- Scrolling Foreground Glass Layer -->
-    <div class="floating-glass-layer">
-      <!-- Chapter I -->
-      <div id="chap1" class="floating-glass-panel align-left active-card" data-chapter="1">
-        <div class="chapter-number">Chapter I // Core Gate</div>
-        <h3 class="chapter-title bionic-target">The Deterministic HITL Signature Core</h3>
-        <p class="chapter-desc bionic-target">
-          At the center of Prime-Silo lies the immutable manifest engine. No agent can execute code or mutate system state without explicit cryptographic authorization. The inner cylinder glows as a permanent read-only anchor against agentic hallucination and drift.
-        </p>
-        <ul class="chapter-specs">
-          <li>Cryptographic HMAC SHA-256 payload verification</li>
-          <li>Strict ADR-001 boundary separation (Signed vs Sandbox)</li>
-          <li>Zero silent scope creep or background mutation</li>
-        </ul>
-      </div>
-
-      <!-- Chapter II -->
-      <div id="chap2" class="floating-glass-panel align-right" data-chapter="2">
-        <div class="chapter-number">Chapter II // Layer 0 Algebra</div>
-        <h3 class="chapter-title bionic-target">Pypes Transformation Prisms</h3>
-        <p class="chapter-desc bionic-target">
-          Surrounding the core are our hexagonal data transformation prisms. Rather than unstructured scripts, data flows through rigorous staged pipelines: raw Bronze ingestion, validated Silver schema enforcement, and aggregated Gold institutional intelligence.
-        </p>
-        <ul class="chapter-specs">
-          <li>High-performance vectorized Polars dataframe engine</li>
-          <li>Automated outlier rejection and strict schema checking</li>
-          <li>Instant step-level checkpoint resumption (--resume &lt;id&gt;)</li>
-        </ul>
-      </div>
-
-      <!-- Chapter III -->
-      <div id="chap3" class="floating-glass-panel align-left" data-chapter="3">
-        <div class="chapter-number">Chapter III // Denodo Pattern</div>
-        <h3 class="chapter-title bionic-target">Tri-Graph CAG & Data Virtualization</h3>
-        <p class="chapter-desc bionic-target">
-          As we expand further outward, the concentric rings tilt and separate. This is our Tri-Graph Context-Augmented Generation mesh. Instead of copying data or dumping massive file trees into prompt windows, Prime-Silo virtualizes data in place—querying only atomic nodes across Knowledge, Code ASTs, and Memo-Ray memory graphs.
-        </p>
-        <ul class="chapter-specs">
-          <li>Up to 98% elimination of prompt context token tax</li>
-          <li>Tree-Sitter AST real-time function boundary indexing</li>
-          <li>Memo-Ray chronological entity mapping (Session ➔ Thought ➔ Artifact)</li>
-        </ul>
-      </div>
-
-      <!-- Chapter IV -->
-      <div id="chap4" class="floating-glass-panel align-right" data-chapter="4">
-        <div class="chapter-number">Chapter IV // Swarm Layer</div>
-        <h3 class="chapter-title bionic-target">Longview Swarm Worker Constellation</h3>
-        <p class="chapter-desc bionic-target">
-          In full explosion mode, floating geometric nodes orbit the outer perimeter like weightless satellites. This represents our distributed Swarm Execution Layer. When complex tasks arise, Benny fans out parallel LAN worker nodes (`BENNY_LEMONADE_ENDPOINTS`) to synthesize code and analyze logs simultaneously, condensing results into single verified deliverables.
-        </p>
-        <ul class="chapter-specs">
-          <li>LAN worker auto-discovery across local Ryzen & ThinkPad hardware</li>
-          <li>Local CPU/GPU watchdog with thermal throttling guards</li>
-          <li>Unbroken chronological CLP audit ledger for 100% traceability</li>
-        </ul>
-      </div>
-    </div>
-  </section>
-
-  <!-- Section: Zero Token Tax Calculator -->
-  <section id="calculator" class="section">
-    <div class="container">
-      <div class="section-header">
-        <h2 class="section-title bionic-target">Zero Token Tax via Tri-Graph CAG</h2>
-        <p class="section-subtitle bionic-target">
-          Traditional agents dump massive manifests and ASTs into every prompt, bleeding capital and latency. Prime-Silo virtualizes data in place (The Denodo Pattern), combining Knowledge RAG, Code ASTs, and Memo-Ray memory graphs to eliminate context bloat by up to <strong>99%</strong>.
-        </p>
-      </div>
-
-      <div class="calc-grid">
-        <div class="calc-controls">
-          <div class="slider-group">
-            <label><span>Engineering Team Size</span> <span id="teamVal" class="slider-val">25 devs</span></label>
-            <input type="range" id="teamSize" min="5" max="200" step="5" value="25">
-          </div>
-          <div class="slider-group">
-            <label><span>Codebase Scale (Lines of Code)</span> <span id="codeVal" class="slider-val">100k lines</span></label>
-            <input type="range" id="codeSize" min="10" max="1000" step="10" value="100">
-          </div>
-          <div class="slider-group">
-            <label><span>Daily AI Queries per Dev</span> <span id="queryVal" class="slider-val">30/day</span></label>
-            <input type="range" id="queryCount" min="10" max="150" step="5" value="30">
-          </div>
+      <aside class="chapter-rail">
+        <div class="chapter-head">
+          <div class="section-kicker">Architecture Chapter 01</div>
+          <h2 class="section-headline">The Tri-Graph Cognitive Mesh</h2>
           
-          <div class="calc-toggles" style="display: flex; flex-direction: column; gap: 12px; margin-top: 4px; padding-top: 16px; border-top: 1px dashed var(--border-taupe);">
-            <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-charcoal); display: flex; justify-content: space-between; align-items: center;">
-              <span>⚡ Institutional Feature Savings Toggles</span>
-              <span style="font-size: 0.75rem; font-family: var(--font-mono); color: var(--bg-moss); background: rgba(74, 93, 78, 0.1); padding: 2px 8px; border-radius: 12px;">EMPIRICAL AUDIT PROOF</span>
-            </div>
-            
-            <label class="toggle-card" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px; background: var(--bg-cream-card); border: 1.5px solid var(--border-taupe); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s;">
-              <input type="checkbox" id="toggleUseCase1" checked style="margin-top: 4px; width: 18px; height: 18px; accent-color: var(--accent-rust); cursor: pointer;">
-              <div style="flex: 1;">
-                <div style="font-weight: 700; font-size: 0.9rem; color: var(--text-charcoal); display: flex; justify-content: space-between;">
-                  <span>Use Case A: Code Graph Navigation</span>
-                  <span style="font-family: var(--font-mono); color: var(--accent-rust); font-weight: 700;">-92.9% Context Tax</span>
-                </div>
-                <div style="font-size: 0.8rem; color: var(--text-muted-dark); margin-top: 2px;">
-                  Replaces OS shell <code style="font-size: 0.75rem;">cat/grep</code> dumps with atomic Neo4j/AST symbol queries via <code style="font-size: 0.75rem;">execute_cypher</code>.
-                </div>
-              </div>
-            </label>
-
-            <label class="toggle-card" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px; background: var(--bg-cream-card); border: 1.5px solid var(--border-taupe); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s;">
-              <input type="checkbox" id="toggleUseCase2" checked style="margin-top: 4px; width: 18px; height: 18px; accent-color: var(--accent-rust); cursor: pointer;">
-              <div style="flex: 1;">
-                <div style="font-weight: 700; font-size: 0.9rem; color: var(--text-charcoal); display: flex; justify-content: space-between;">
-                  <span>Use Case B: MCP Nexus Offloading</span>
-                  <span style="font-family: var(--font-mono); color: var(--accent-rust); font-weight: 700;">-86.1% Read-Back Tax</span>
-                </div>
-                <div style="font-size: 0.8rem; color: var(--text-muted-dark); margin-top: 2px;">
-                  Enforces <code style="font-size: 0.75rem;">offload_exec</code> Digest Discipline + shifts 80% of completion execution to local LAN models ($0.00 cloud burn).
-                </div>
-              </div>
-            </label>
-          </div>
-
-          <div style="padding: 16px; background: var(--bg-alabaster); border-radius: var(--radius-sm); border: 1px solid var(--border-taupe); font-size: 0.85rem; color: var(--text-muted-dark);">
-            💡 <strong style="color: var(--text-charcoal);">Architecture Win:</strong> Local model pool LAN offloading via <code style="color: var(--accent-rust); font-weight: 700;">BENNY_LEMONADE_ENDPOINTS</code> processes ~80% of queries locally at $0.00 cloud cost.
-          </div>
         </div>
+        <ol class="chapter-steps">
+        <li class="step active" data-step="0">
+          <h4>One Unified Mesh</h4>
+          <p>Prime-Silo unifies three distinct knowledge domains into a single interconnected graph, eliminating silos between documentation, source code, and historical agent memory.</p>
+        </li>
 
-        <div class="calc-results">
-          <div class="result-card">
-            <div class="result-title">Legacy Cloud Agent Monthly Burn</div>
-            <div id="legacyResult" class="result-number legacy">$2,363/mo</div>
-            <div style="font-size: 0.75rem; color: var(--text-muted-dark); margin-top: 4px;">~35k tokens/query (Full Manifest & AST Context Dumps)</div>
-          </div>
-          <div class="result-card">
-            <div class="result-title">Prime-Silo Local-First Tri-Graph Burn</div>
-            <div id="primeResult" class="result-number saving">$34/mo</div>
-            <div style="font-size: 0.75rem; color: var(--text-muted-dark); margin-top: 4px;">~2.3k tokens/query + 80% Local LAN Offloading</div>
-          </div>
-          <div class="result-card" style="border-color: var(--accent-rust); background: rgba(184, 93, 61, 0.06);">
-            <div class="result-title" style="color: var(--accent-rust); font-weight: 700;">Total Monthly Savings via Tri-Graph CAG</div>
-            <div id="savingResult" class="result-number" style="color: var(--accent-rust);">$2,329/mo</div>
-            <div id="percentResult" style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--bg-moss); font-weight: 700; margin-top: 4px;">
-              98% Token Tax Elimination
-            </div>
-          </div>
-        </div>
+        <li class="step" data-step="1">
+          <h4>Documents Graph</h4>
+          <p>Structured ingestion parses markdown, specifications, and whitepapers into discrete, citation-backed semantic concepts and relationships.</p>
+        </li>
+
+        <li class="step" data-step="2">
+          <h4>Code Graph</h4>
+          <p>Tree-Sitter AST extraction maps function signatures, module imports, class definitions, and architectural dependencies across your entire codebase.</p>
+        </li>
+
+        <li class="step" data-step="3">
+          <h4>Memory Graph</h4>
+          <p>Memo-Ray tracks every historical agent interaction, decision rationale, and outcome across sessions as structured, queryable memory cards.</p>
+        </li>
+
+        <li class="step" data-step="4">
+          <h4>CORRELATES_WITH Overlay</h4>
+          <p>An enrichment overlay dynamically computes CORRELATES_WITH edges between documents, code symbols, and past decisions—allowing your agent to traverse deep dependencies instantly.</p>
+        </li>
+        </ol>
+        
+        <div class="chapter-dots" aria-hidden="true"><span class="chapter-dot active" data-dot="0"></span><span class="chapter-dot" data-dot="1"></span><span class="chapter-dot" data-dot="2"></span><span class="chapter-dot" data-dot="3"></span><span class="chapter-dot" data-dot="4"></span></div>
+      </aside>
+    </div>
+    <div class="chapter-track" style="height:400vh" aria-hidden="true"></div>
+  </section>
+
+  <section class="enablers-section" id="enablers">
+    <div class="section-inner">
+      <div class="section-kicker">The Enablers</div>
+      <h2 class="section-headline">Six Primitives Every Workflow Stands On</h2>
+      <p class="section-sub enablers-intro">Prime-Silo is not a bundle of features — it is a small set of load-bearing primitives that every workflow composes. Build them once, honestly, and each new capability costs less than the last.</p>
+      <div class="enablers-grid">
+        
+        <article class="enabler-card reveal-item" data-enabler="0">
+          <div class="enabler-num svg-mono">01</div>
+          <h3>Session Memory Store</h3>
+          <p>Memo-Ray X-rays every agent session — across Claude Code, Antigravity and opencode — into one queryable timeline store instead of write-only logs.</p>
+          <p class="enabler-unlocks"><span class="unlock-arrow" aria-hidden="true">→</span> <strong>Unlocks:</strong> Long-horizon anything: you cannot collate what you never kept.</p>
+        </article>
+        <article class="enabler-card reveal-item" data-enabler="1">
+          <div class="enabler-num svg-mono">02</div>
+          <h3>Local-Model Orchestration</h3>
+          <p>One router in front of LM Studio, Lemonade and Ollama with an offline guard; models are env-profile driven, never hardcoded.</p>
+          <p class="enabler-unlocks"><span class="unlock-arrow" aria-hidden="true">→</span> <strong>Unlocks:</strong> Bulk cognition at electricity prices — and eval sweeps by swapping one variable.</p>
+        </article>
+        <article class="enabler-card reveal-item" data-enabler="2">
+          <div class="enabler-num svg-mono">03</div>
+          <h3>Deterministic Graph Substrate</h3>
+          <p>A single Source → Concept graph schema shared by documents, code and memory — derived deterministically wherever the entities are already known.</p>
+          <p class="enabler-unlocks"><span class="unlock-arrow" aria-hidden="true">→</span> <strong>Unlocks:</strong> Cited knowledge with no hallucination surface where it matters.</p>
+        </article>
+        <article class="enabler-card reveal-item" data-enabler="3">
+          <div class="enabler-num svg-mono">04</div>
+          <h3>Signed Manifests & Honest Ledger</h3>
+          <p>HMAC-SHA256 on every manifest; an append-only ledger that records failures as plainly as successes; CLP lineage end to end.</p>
+          <p class="enabler-unlocks"><span class="unlock-arrow" aria-hidden="true">→</span> <strong>Unlocks:</strong> Trust: every claim traceable, every run auditable, every gap visible.</p>
+        </article>
+        <article class="enabler-card reveal-item" data-enabler="4">
+          <div class="enabler-num svg-mono">05</div>
+          <h3>Resume-Safe Execution</h3>
+          <p>Phase checkpoints, per-item caches, reconcile-on-restart and halt-on-fault — a killed run resumes exactly where it stopped.</p>
+          <p class="enabler-unlocks"><span class="unlock-arrow" aria-hidden="true">→</span> <strong>Unlocks:</strong> Multi-day workflows on consumer hardware that survive sleeps, crashes and wedged engines.</p>
+        </article>
+        <article class="enabler-card reveal-item" data-enabler="5">
+          <div class="enabler-num svg-mono">06</div>
+          <h3>Portable Workspaces</h3>
+          <p>Isolated, disposable workspaces under one portable home — the whole runtime ships zero-install on six platforms.</p>
+          <p class="enabler-unlocks"><span class="unlock-arrow" aria-hidden="true">→</span> <strong>Unlocks:</strong> Clean experiments, honest A/B corpora, and the same stack on any machine.</p>
+        </article>
       </div>
     </div>
   </section>
 
-  <!-- ACT II: Bridge Cockpit (Scroll-Driven Telemetry HUD over Sticky Background) -->
-  <section id="cockpit" class="cinematic-act">
-    <!-- Persistent Sticky Background Substrate -->
-    <div class="sticky-substrate">
-      <div class="cockpit-hud-container">
-        <div class="hud-header">
-          <span>⚡ BRIDGE COCKPIT // INSTITUTIONAL TELEMETRY HUD</span>
-          <span id="cockpitLensBadge" style="color: var(--accent-rust); font-weight: 700;">LENS 01 // PULSE</span>
-        </div>
-        <pre id="cockpitScreen" class="hud-screen">[STATUS] All local systems nominal. 2 active LAN workers fanned out.
----
-Host: ryzen.local:13305/api/v1   [ACTIVE] Model: Qwen-2.5-Coder-32B  Latency: 12ms  GPU: 18.4GB/24GB
-Host: t480.local:13305/api/v1    [ACTIVE] Model: Llama-3-8B-Instruct  Latency: 28ms  CPU: 16 threads
----
-[TELEMETRY] Local Cache Hit Rate: 88.4% | Tokens Saved This Session: 412,890</pre>
-      </div>
-    </div>
+  <section class="chapter chapter--cream" id="longview" data-visual="dial" data-beats="6">
+    <div class="chapter-pin">
+      <div class="chapter-stage">
+        
+  <svg id="dial-svg" viewBox="0 0 640 640" role="img" aria-label="LONGVIEW workflow dial: inventory, extract, map, graph, enrich, deliver">
+    <circle cx="320" cy="320" r="230" fill="none" stroke="#E5E2DC" stroke-width="8"/>
+    <line x1="530.0" y1="320.0" x2="540.0" y2="320.0" stroke="#C5B38E" stroke-width="2"/><line x1="501.9" y1="425.0" x2="510.5" y2="430.0" stroke="#C5B38E" stroke-width="2"/><line x1="425.0" y1="501.9" x2="430.0" y2="510.5" stroke="#C5B38E" stroke-width="2"/><line x1="320.0" y1="530.0" x2="320.0" y2="540.0" stroke="#C5B38E" stroke-width="2"/><line x1="215.0" y1="501.9" x2="210.0" y2="510.5" stroke="#C5B38E" stroke-width="2"/><line x1="138.1" y1="425.0" x2="129.5" y2="430.0" stroke="#C5B38E" stroke-width="2"/><line x1="110.0" y1="320.0" x2="100.0" y2="320.0" stroke="#C5B38E" stroke-width="2"/><line x1="138.1" y1="215.0" x2="129.5" y2="210.0" stroke="#C5B38E" stroke-width="2"/><line x1="215.0" y1="138.1" x2="210.0" y2="129.5" stroke="#C5B38E" stroke-width="2"/><line x1="320.0" y1="110.0" x2="320.0" y2="100.0" stroke="#C5B38E" stroke-width="2"/><line x1="425.0" y1="138.1" x2="430.0" y2="129.5" stroke="#C5B38E" stroke-width="2"/><line x1="501.9" y1="215.0" x2="510.5" y2="210.0" stroke="#C5B38E" stroke-width="2"/>
+    <path id="dial-arc" d="M 320 90 A 230 230 0 1 1 320 550 A 230 230 0 1 1 320 90" fill="none" stroke="#B94B2A" stroke-width="8" stroke-linecap="round"/>
+    
+    <g class="dial-node" data-node="0" transform="translate(320.0 90.0)">
+      <g class="dial-node-anim">
+        <circle r="27" fill="#FFFFFF" stroke="#233026" stroke-width="2.5"/>
+        <text y="6" text-anchor="middle" font-size="15" fill="#233026" font-weight="700" class="svg-mono">01</text>
+      </g>
+      <text class="dial-node-label" x="0.0" y="-48.0" text-anchor="middle" font-size="14" fill="#59544E" letter-spacing="1.2" class="svg-mono">INVENTORY</text>
+    </g>
 
-    <!-- Scrolling Foreground Glass Layer -->
-    <div class="floating-glass-layer">
-      <!-- Lens 1 -->
-      <div class="floating-glass-panel align-left active-card" data-lens="pulse">
-        <div class="chapter-number">Lens 01 // Live Health</div>
-        <h3 class="chapter-title bionic-target">Pulse // LAN Cluster Telemetry</h3>
-        <p class="chapter-desc bionic-target">
-          Real-time telemetry monitoring distributed Benny Lemonade endpoints, local RAM watchdogs, and zero-token-tax cache hit rates across your institutional mesh. Notice how scrolling automatically transitions the live background HUD!
-        </p>
-        <ul class="chapter-specs">
-          <li>BENNY_LEMONADE_ENDPOINTS LAN pool auto-discovery</li>
-          <li>Local CPU/GPU memory watchdog and thermal throttling guard</li>
-          <li>Cryptographic HMAC signing status monitor</li>
-        </ul>
-      </div>
+    <g class="dial-node" data-node="1" transform="translate(519.2 205.0)">
+      <g class="dial-node-anim">
+        <circle r="27" fill="#FFFFFF" stroke="#233026" stroke-width="2.5"/>
+        <text y="6" text-anchor="middle" font-size="15" fill="#233026" font-weight="700" class="svg-mono">02</text>
+      </g>
+      <text class="dial-node-label" x="45.0" y="-22.0" text-anchor="start" font-size="14" fill="#59544E" letter-spacing="1.2" class="svg-mono">EXTRACT</text>
+    </g>
 
-      <!-- Lens 2 -->
-      <div class="floating-glass-panel align-right" data-lens="memory">
-        <div class="chapter-number">Lens 02 // Chronology</div>
-        <h3 class="chapter-title bionic-target">Memory // Memo-Ray Entity Tree</h3>
-        <p class="chapter-desc bionic-target">
-          Navigate institutional cognition through time. Every session, reasoning trace, and compiled artifact is structured into an auditable tree without external vector database costs.
-        </p>
-        <ul class="chapter-specs">
-          <li>Session ➔ Thought ➔ Artifact hierarchical lineage</li>
-          <li>Cross-session semantic similarity matching locally</li>
-          <li>Instant rollback to historical reasoning states</li>
-        </ul>
-      </div>
+    <g class="dial-node" data-node="2" transform="translate(519.2 435.0)">
+      <g class="dial-node-anim">
+        <circle r="27" fill="#FFFFFF" stroke="#233026" stroke-width="2.5"/>
+        <text y="6" text-anchor="middle" font-size="15" fill="#233026" font-weight="700" class="svg-mono">03</text>
+      </g>
+      <text class="dial-node-label" x="45.0" y="30.0" text-anchor="start" font-size="14" fill="#59544E" letter-spacing="1.2" class="svg-mono">MAP</text>
+    </g>
 
-      <!-- Lens 3 -->
-      <div class="floating-glass-panel align-left" data-lens="documents">
-        <div class="chapter-number">Lens 03 // Knowledge</div>
-        <h3 class="chapter-title bionic-target">Documents // TOGAF SAD RAG</h3>
-        <p class="chapter-desc bionic-target">
-          Ingest PDFs, markdown, and compliance guidelines locally. Tree-Sitter parsing indexes document structure with zero external data leakage or privacy risks.
-        </p>
-        <ul class="chapter-specs">
-          <li>Local-first embedding generation via Quantized ONNX models</li>
-          <li>Section-level citation anchors with direct diff overlays</li>
-          <li>Automatic redaction of PII before intermediate synthesis</li>
-        </ul>
-      </div>
+    <g class="dial-node" data-node="3" transform="translate(320.0 550.0)">
+      <g class="dial-node-anim">
+        <circle r="27" fill="#FFFFFF" stroke="#233026" stroke-width="2.5"/>
+        <text y="6" text-anchor="middle" font-size="15" fill="#233026" font-weight="700" class="svg-mono">04</text>
+      </g>
+      <text class="dial-node-label" x="0.0" y="56.0" text-anchor="middle" font-size="14" fill="#59544E" letter-spacing="1.2" class="svg-mono">GRAPH</text>
+    </g>
 
-      <!-- Lens 4 -->
-      <div class="floating-glass-panel align-right" data-lens="code">
-        <div class="chapter-number">Lens 04 // AST Index</div>
-        <h3 class="chapter-title bionic-target">Code // Tree-Sitter Graph</h3>
-        <p class="chapter-desc bionic-target">
-          Real-time structural indexing of your Python, Rust, and TypeScript repositories. Queries resolve exact AST nodes rather than dumping raw files into prompt windows.
-        </p>
-        <ul class="chapter-specs">
-          <li>Sub-millisecond AST boundary resolution for functions and classes</li>
-          <li>Automated impact analysis before code mutation</li>
-          <li>Seamless integration with local Benny Pypes execution engine</li>
-        </ul>
-      </div>
+    <g class="dial-node" data-node="4" transform="translate(120.8 435.0)">
+      <g class="dial-node-anim">
+        <circle r="27" fill="#FFFFFF" stroke="#233026" stroke-width="2.5"/>
+        <text y="6" text-anchor="middle" font-size="15" fill="#233026" font-weight="700" class="svg-mono">05</text>
+      </g>
+      <text class="dial-node-label" x="-45.0" y="30.0" text-anchor="end" font-size="14" fill="#59544E" letter-spacing="1.2" class="svg-mono">ENRICH</text>
+    </g>
 
-      <!-- Lens 5 -->
-      <div class="floating-glass-panel align-left" data-lens="flows">
-        <div class="chapter-number">Lens 05 // Pipelines</div>
-        <h3 class="chapter-title bionic-target">Flows // Pypes Layer 0 Algebra</h3>
-        <p class="chapter-desc bionic-target">
-          Design and monitor staged Bronze ➔ Silver ➔ Gold data pipelines. High-performance Polars execution with step-level checkpointing and outlier rejection.
-        </p>
-        <ul class="chapter-specs">
-          <li>Vectorized dataframe processing outperforming pandas 10x</li>
-          <li>Automatic schema enforcement and outlier rejection gates</li>
-          <li>Step-level checkpoint resume (--resume &lt;id&gt;)</li>
-        </ul>
-      </div>
-
-      <!-- Lens 6 -->
-      <div class="floating-glass-panel align-right" data-lens="runs">
-        <div class="chapter-number">Lens 06 // Ledgers</div>
-        <h3 class="chapter-title bionic-target">Runs // CLP Audit Ledger</h3>
-        <p class="chapter-desc bionic-target">
-          Track parallel agentic swarms across local and remote clusters. The Chronological Lineage Protocol (CLP) logs every prompt, tool call, and result.
-        </p>
-        <ul class="chapter-specs">
-          <li>100% reproducible execution logs with cryptographic checksums</li>
-          <li>Swarm worker fan-out monitoring with automatic retry logic</li>
-          <li>One-click export for regulatory compliance audits</li>
-        </ul>
-      </div>
-    </div>
-  </section>
-
-  <!-- ACT III: Benny Substrate CLI // Scroll-Driven Rich Textual TUI Cinema -->
-  <section id="terminal" class="cinematic-act tui-scroll-stage" style="height: 550vh;">
-    <!-- Persistent Sticky Rich TUI Substrate -->
-    <div class="sticky-substrate">
-      <div class="textual-tui-container">
-        <div class="tui-header">
-          <div class="tui-header-left">
-            <span class="tui-box-char">╭─</span>
-            <span class="tui-title-accent">🧠 BENNY SUBSTRATE // RICH TUI TASK OFFLOADING CONSOLE</span>
-          </div>
-          <div class="tui-header-right">
-            <span id="cliStatusBadge" class="tui-badge-ready">● SCROLL TO OFFLOAD TASKS</span>
-            <span class="tui-box-char">─╮</span>
-          </div>
-        </div>
-
-        <div class="tui-body">
-          <!-- Sidebar: Pipeline Stage Navigation -->
-          <div class="tui-sidebar">
-            <div class="tui-sidebar-title">│ ⚡ TASKS OFFLOADED │</div>
-            <div id="tuiTabRefactor" class="tui-tab active-tab">▶ 01. AST REFACTOR</div>
-            <div id="tuiTabAudit" class="tui-tab">  02. REGULATORY AUDIT</div>
-            <div id="tuiTabSwarm" class="tui-tab">  03. LAN SWARM RESEARCH</div>
-            <div id="tuiTabDocs" class="tui-tab">  04. SAD RAG INDEXING</div>
-            <div id="tuiTabTest" class="tui-tab">  05. CI/CD BLAST RADIUS</div>
-            <div id="tuiTabSign" class="tui-tab">  06. CRYPTO SEAL & PIN</div>
-            <div class="tui-sidebar-footer">
-              <span style="color: var(--border-taupe);">│ ARCH: Tri-Graph CAG │</span><br>
-              <span style="color: var(--accent-sage);">│ MCP: prime-silo-nexus │</span><br>
-              <span style="color: var(--accent-rust);">│ CONTRACT: offload_exec │</span>
-            </div>
-          </div>
-
-          <!-- Main Console Window (Rich Textual Output) -->
-          <div id="terminalScreen" class="tui-console">
-            <div class="tui-welcome">
-              <span style="color: var(--border-taupe);">│ // Welcome to Benny Execution Substrate v1.4.0 (Institutional Task Offloading Engine) │</span><br>
-              <span style="color: var(--accent-sage);">│ // Scroll down to explore how enterprises offload complex engineering & compliance tasks... │</span>
-            </div>
-            <div id="tuiOutput" class="tui-output-stream"></div>
-          </div>
-        </div>
-
-        <div class="tui-footer">
-          <span class="tui-box-char">╰─</span>
-          <span class="tui-footer-stat">LOCAL WORKERS: <strong style="color: var(--accent-sage);">4 ACTIVE (RYZ/T480/M3)</strong></span>
-          <span class="tui-footer-sep">│</span>
-          <span class="tui-footer-stat">CLOUD TOKEN TAX: <strong style="color: var(--accent-rust);">0.00% BURN</strong></span>
-          <span class="tui-footer-sep">│</span>
-          <span class="tui-footer-stat">CRYPTOGRAPHIC INTEGRITY: <strong style="color: var(--accent-sage);">HMAC SHA-256 SEALED</strong></span>
-          <span class="tui-box-char" style="margin-left: auto;">─╯</span>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Section: Institutional Demo & Contact CTA -->
-  <section id="contact-demo" class="section" style="background: var(--bg-cream-card); border-top: 2px solid var(--border-taupe); border-bottom: 2px solid var(--border-taupe); padding: 70px 0; text-align: center;">
-    <div class="container">
-      <div class="hero-badge" style="margin-bottom: 16px;">
-        <span>✉️ INSTITUTIONAL ONBOARDING // LIVE DEMO</span>
-      </div>
-      <h2 style="font-family: var(--font-serif); font-size: 2.2rem; color: var(--text-charcoal); margin-bottom: 14px; font-weight: 700;">
-        Ready to Deploy Deterministic Institutional Cognition?
-      </h2>
-      <p style="max-width: 680px; margin: 0 auto 28px; color: var(--text-muted-dark); font-size: 1.05rem; line-height: 1.6;">
-        Stop bleeding capital on context dumps and non-deterministic agent loops. Schedule an architectural deep dive or request access to the Canonical Prime-Silo substrate for your enterprise.
-      </p>
-      <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
-        <a href="mailto:binary16.primesilo@gmail.com?subject=Prime-Silo%20Enterprise%20Demo%20Request" class="btn btn-primary" style="font-size: 1rem; padding: 14px 32px; box-shadow: 0 8px 24px rgba(184, 93, 61, 0.3);">
-          ✉️ Book a Live Demo // binary16.primesilo@gmail.com
-        </a>
-        <a href="https://github.com/binary16labs/prime-silo" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 1rem; padding: 14px 32px; background: var(--bg-alabaster);">
-          ⭐ Explore Code on GitHub
-        </a>
-      </div>
-    </div>
-  </section>
-
-  <!-- Section: Neuro-Assist Floating Dock -->
-  <div class="neuro-dock">
-    <button id="dockTrigger" class="dock-trigger" title="Toggle Neuro-Assist Ergonomics">
-      🧠
-    </button>
-    <div id="dockMenu" class="dock-menu">
-      <div class="dock-title">
-        <span>Neuro-Assist Ergonomics</span>
-        <span style="font-size: 0.75rem; color: var(--accent-rust); font-family: var(--font-mono);">ADHD / DYSLEXIC</span>
-      </div>
+    <g class="dial-node" data-node="5" transform="translate(120.8 205.0)">
+      <g class="dial-node-anim">
+        <circle r="27" fill="#FFFFFF" stroke="#233026" stroke-width="2.5"/>
+        <text y="6" text-anchor="middle" font-size="15" fill="#233026" font-weight="700" class="svg-mono">06</text>
+      </g>
+      <text class="dial-node-label" x="-45.0" y="-22.0" text-anchor="end" font-size="14" fill="#59544E" letter-spacing="1.2" class="svg-mono">DELIVER</text>
+    </g>
+  </svg>
+  <div class="dial-readout">
+    <div class="dial-step-kicker">Phase 01 / 06</div>
+    <div class="dial-step-name">Inventory & Collation</div>
+    <div class="dial-stats">
       
-      <div class="dock-option">
-        <span>OpenDyslexic / Lexend Font</span>
-        <label class="switch">
-          <input type="checkbox" id="toggleDyslexicFont">
-          <span class="slider-round"></span>
-        </label>
+      <div class="dial-stat">
+        <span class="dial-num" data-target="248" data-decimals="0">248</span><span class="dial-suffix"> sessions</span>
+        <em>Synthesized local engineering history</em>
       </div>
-
-      <div class="dock-option">
-        <span>Bionic Reading Anchors</span>
-        <label class="switch">
-          <input type="checkbox" id="toggleBionicReading">
-          <span class="slider-round"></span>
-        </label>
+      <div class="dial-stat">
+        <span class="dial-num" data-target="30" data-decimals="0">30</span><span class="dial-suffix">M+ tokens</span>
+        <em>Processed entirely on private hardware</em>
       </div>
-
-      <div class="dock-option">
-        <span>Expanded Line Spacing</span>
-        <label class="switch">
-          <input type="checkbox" id="toggleLineSpacing">
-          <span class="slider-round"></span>
-        </label>
-      </div>
-
-      <div style="font-size: 0.75rem; color: var(--text-muted-dark); border-top: 1px solid var(--border-taupe); padding-top: 8px;">
-        💡 Tip: Combine with <strong>Audio Zen Mode</strong> in top navigation for maximum cognitive flow.
+      <div class="dial-stat">
+        <span class="dial-num" data-target="0.4" data-decimals="1">0.4</span><span class="dial-suffix">s / card</span>
+        <em>Deterministic graph phase execution speed</em>
       </div>
     </div>
   </div>
+      </div>
+      <aside class="chapter-rail">
+        <div class="chapter-head">
+          <div class="section-kicker">Long-Horizon Workflow № 01</div>
+          <h2 class="section-headline">LONGVIEW: Session Management & Collation at Machine Scale</h2>
+          <p class="chapter-sub">Every agent session you have ever run is raw material. LONGVIEW collates months of scattered history into one governed corpus, distils it with local models, and derives a cited knowledge graph — resume-safe across days, honest about every failure, live-metered with an earned ETA.</p>
+        </div>
+        <ol class="chapter-steps">
+        <li class="step active" data-step="0">
+          <h4>Inventory & Collation</h4>
+          <p>Sessions from every agent tool — Claude Code, Antigravity, opencode — are swept from their scattered logs into one queryable memory store: 248 sessions become a single governed corpus.</p>
+        </li>
+
+        <li class="step" data-step="1">
+          <h4>Extract</h4>
+          <p>Each session is rendered into a deterministic evidence pack — no model involved, byte-for-byte reproducible, thin sessions flagged and skipped honestly.</p>
+        </li>
+
+        <li class="step" data-step="2">
+          <h4>Map</h4>
+          <p>A local model walks every session timeline in bounded windows and distils structured cards — decisions, outcomes, failures, concepts — with per-card ledger entries and resume-safe caching.</p>
+        </li>
+
+        <li class="step" data-step="3">
+          <h4>Deterministic Graph</h4>
+          <p>Cards become the knowledge graph without a second model pass: entities the map already extracted are derived straight into cited Source → Concept triples at ~0.4s per card.</p>
+        </li>
+
+        <li class="step" data-step="4">
+          <h4>Enrich</h4>
+          <p>Duplicate concepts merge into cross-session hubs — the moment isolated sessions become one connected body of institutional knowledge.</p>
+        </li>
+
+        <li class="step" data-step="5">
+          <h4>Deliver & Top-Up</h4>
+          <p>Reports, dossiers, a print-ready book, even a locally-narrated audiobook — then delta runs keep the corpus current by collating only new sessions.</p>
+        </li>
+        </ol>
+        
+        <div class="built-on">
+          <span class="built-on-label svg-mono">Built on the enablers</span>
+          <div class="built-on-chips"><a class="built-on-chip" href="#enablers">Session Memory Store</a><a class="built-on-chip" href="#enablers">Local-Model Orchestration</a><a class="built-on-chip" href="#enablers">Deterministic Graph Substrate</a><a class="built-on-chip" href="#enablers">Honest Ledger</a><a class="built-on-chip" href="#enablers">Resume-Safe Execution</a></div>
+        </div>
+        <div class="chapter-dots" aria-hidden="true"><span class="chapter-dot active" data-dot="0"></span><span class="chapter-dot" data-dot="1"></span><span class="chapter-dot" data-dot="2"></span><span class="chapter-dot" data-dot="3"></span><span class="chapter-dot" data-dot="4"></span><span class="chapter-dot" data-dot="5"></span></div>
+      </aside>
+    </div>
+    <div class="chapter-track" style="height:440vh" aria-hidden="true"></div>
+  </section>
+
+  <section class="chapter chapter--dark" id="governance" data-visual="governance" data-beats="5">
+    <div class="chapter-pin">
+      <div class="chapter-stage">
+        
+  <svg id="governance-svg" viewBox="0 0 760 540" role="img" aria-label="Governance seal splitting into a manifest, an HMAC signature and a lineage chain">
+    <g id="gov-manifest" transform="translate(150 160)">
+      <g class="gov-anim">
+        <rect x="-52" y="-66" width="104" height="132" rx="8" fill="#171F19" stroke="#8C847A" stroke-width="2"/>
+        <text y="-42" text-anchor="middle" font-size="10.5" fill="#D65D38" class="svg-mono">run.manifest.json</text>
+        <line class="gov-doc-line" x1="-34" y1="-22" x2="34" y2="-22" stroke="#8C847A" stroke-width="2"/>
+        <line class="gov-doc-line" x1="-34" y1="-4" x2="20" y2="-4" stroke="#8C847A" stroke-width="2"/>
+        <line class="gov-doc-line" x1="-34" y1="14" x2="28" y2="14" stroke="#8C847A" stroke-width="2"/>
+        <line class="gov-doc-line" x1="-34" y1="32" x2="10" y2="32" stroke="#8C847A" stroke-width="2"/>
+        <text y="56" text-anchor="middle" font-size="9.5" fill="#A8BFA8" class="svg-mono">tool calls · file hashes</text>
+      </g>
+    </g>
+    <g id="gov-chain" transform="translate(612 250)">
+      <g class="gov-anim">
+        <path class="gov-link" d="M0 -105 L0 -55" stroke="#EBCD9C" stroke-width="2.5" fill="none"/><path class="gov-link" d="M0 -25 L0 25" stroke="#EBCD9C" stroke-width="2.5" fill="none"/><path class="gov-link" d="M0 55 L0 105" stroke="#EBCD9C" stroke-width="2.5" fill="none"/><circle cx="0" cy="-120" r="15" fill="#171F19" stroke="#EBCD9C" stroke-width="2"/><circle cx="0" cy="-40" r="15" fill="#171F19" stroke="#EBCD9C" stroke-width="2"/><circle cx="0" cy="40" r="15" fill="#171F19" stroke="#EBCD9C" stroke-width="2"/><circle cx="0" cy="120" r="15" fill="#B94B2A" stroke="#EBCD9C" stroke-width="2"/>
+        <text y="164" text-anchor="middle" font-size="10.5" fill="#A8BFA8" letter-spacing="1.5" class="svg-mono">CLP LINEAGE</text>
+      </g>
+    </g>
+    <g id="gov-seal" transform="translate(380 240)">
+      <g class="seal-anim">
+        <circle class="gov-seal-outer" r="78" fill="none" stroke="#EBCD9C" stroke-width="3"/>
+        <circle class="gov-seal-inner" r="62" fill="none" stroke="#EBCD9C" stroke-width="1.5" stroke-dasharray="7 6"/>
+        <path class="gov-seal-check" d="M-26 2 L-8 20 L30 -22" fill="none" stroke="#B94B2A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle class="gov-seal-pulse" r="78" fill="none" stroke="#B94B2A" stroke-width="2" opacity="0"/>
+      </g>
+      <text y="112" text-anchor="middle" font-size="12" fill="#D1CDC7" letter-spacing="3" class="svg-mono">HMAC-SHA256 · SEALED</text>
+    </g>
+    <text id="gov-hash" data-final="hmac: 9f3a c07d 41be 88e2 5f16 d2aa 73c9 0b41 — verified" x="380" y="452" text-anchor="middle" font-size="15" fill="#EBCD9C" class="svg-mono">hmac: 9f3a c07d 41be 88e2 5f16 d2aa 73c9 0b41 — verified</text>
+  </svg>
+      </div>
+      <aside class="chapter-rail">
+        <div class="chapter-head">
+          <div class="section-kicker">Architecture Chapter 03</div>
+          <h2 class="section-headline">Cryptographic Governance & Verifiable Lineage</h2>
+          
+        </div>
+        <ol class="chapter-steps">
+        <li class="step active" data-step="0">
+          <h4>Sealed Execution Runs</h4>
+          <p>Every agent execution is enclosed in an immutable runtime envelope that records inputs, parameters, and environment state.</p>
+        </li>
+
+        <li class="step" data-step="1">
+          <h4>Structured Manifests</h4>
+          <p>JSON manifests capture exact tool calls, modified file hashes, and model configurations for reproducible verification.</p>
+        </li>
+
+        <li class="step" data-step="2">
+          <h4>HMAC-SHA256 Signatures</h4>
+          <p>Cryptographic HMAC signatures seal every transaction log, preventing tampering or unauthorized modification.</p>
+        </li>
+
+        <li class="step" data-step="3">
+          <h4>CLP Lineage Chain</h4>
+          <p>Complete Data Lineage Protocol (CLP) tracking links downstream file mutations directly to their upstream source prompt and model.</p>
+        </li>
+        </ol>
+        
+        <div class="chapter-dots" aria-hidden="true"><span class="chapter-dot active" data-dot="0"></span><span class="chapter-dot" data-dot="1"></span><span class="chapter-dot" data-dot="2"></span><span class="chapter-dot" data-dot="3"></span><span class="chapter-dot" data-dot="4"></span></div>
+      </aside>
+    </div>
+    <div class="chapter-track" style="height:380vh" aria-hidden="true"></div>
+  </section>
+
+  <section class="chapter chapter--terminal" id="terminal" data-visual="terminal" data-beats="3">
+    <div class="chapter-pin">
+      <div class="chapter-stage chapter-stage--terminal">
+        <div class="terminal-head">
+          <div class="section-kicker">Live Execution Explorer</div>
+          <h2 class="section-headline">Interactive Terminal Walkthrough</h2>
+          <p class="section-sub">Switch between live command simulations to watch how Prime-Silo processes knowledge, synthesizes graphs, and verifies local memory integrity.</p>
+        </div>
+        <div class="terminal-window">
+          <div class="terminal-titlebar">
+            <div class="term-dots"><span class="term-dot dot-red"></span><span class="term-dot dot-yellow"></span><span class="term-dot dot-green"></span></div>
+            <div class="term-title">Prime-Silo Runtime — Sovereign Agent Shell</div>
+            <div class="term-status">HMAC: SECURE</div>
+          </div>
+          <div class="terminal-body">
+      <div class="term-block" data-beat="0">
+        <div class="term-line term-prompt">
+          <span class="term-user">operator@prime-silo:~$</span>
+          <span class="term-cmd" data-cmd="space ingest --source ./docs --tri-graph">space ingest --source ./docs --tri-graph</span><span class="term-caret" aria-hidden="true"></span>
+        </div>
+        <div class="term-out">
+          <div class="term-log">[INFO] Indexing local document corpus: ./docs (<span class="t-num" data-num="14">14</span> files)</div>
+<div class="term-log">[AST] Extracting symbols & markdown structure...</div>
+<div class="term-log">[TRI-GRAPH] Emitting triples: [Concept:SovereignMemory] --RELATES_TO--> [Source:docs/architecture.md]</div>
+<div class="term-log">[TRI-GRAPH] Emitting triples: [Concept:DeterministicGraph] --SOURCED_FROM--> [Source:docs/longview.md]</div>
+<div class="term-log">[SUCCESS] <span class="t-num" data-num="84">84</span> triples ingested into L<span class="t-num" data-num="0">0</span> Tri-Graph memory.</div>
+        </div>
+      </div>
+
+      <div class="term-block" data-beat="1">
+        <div class="term-line term-prompt">
+          <span class="term-user">operator@prime-silo:~$</span>
+          <span class="term-cmd" data-cmd="space longview run --graph --delta">space longview run --graph --delta</span><span class="term-caret" aria-hidden="true"></span>
+        </div>
+        <div class="term-out">
+          <div class="term-log">[INFO] Initializing LONGVIEW v<span class="t-num" data-num="2">2</span> in deterministic graph mode...</div>
+<div class="term-log">[SPEED] Processing <span class="t-num" data-num="42">42</span> memory cards without LLM extraction tax (~<span class="t-num" data-num="0.4">0.4</span>s/card)</div>
+<div class="term-log">[DERIVE] Mapping concepts[], applications[], and skills_observed[] arrays...</div>
+<div class="term-log">[ENRICH] Merging duplicate concepts across cards into shared hubs...</div>
+<div class="term-log">[SUCCESS] Graph upserted: <span class="t-num" data-num="42">42</span> cards -> <span class="t-num" data-num="186">186</span> concept hubs connected.</div>
+        </div>
+      </div>
+
+      <div class="term-block" data-beat="2">
+        <div class="term-line term-prompt">
+          <span class="term-user">operator@prime-silo:~$</span>
+          <span class="term-cmd" data-cmd="space verify --hmac --target ~/.space/L2/user.yaml">space verify --hmac --target ~/.space/L2/user.yaml</span><span class="term-caret" aria-hidden="true"></span>
+        </div>
+        <div class="term-out">
+          <div class="term-log">[INFO] Loading userCrypto wrapping key from session session_secret...</div>
+<div class="term-log">[HMAC] Computing SHA-<span class="t-num" data-num="256">256</span> digest over L<span class="t-num" data-num="2">2</span> memory files...</div>
+<div class="term-log">[CHECK] Comparing current hash against signed checkpoint manifest...</div>
+<div class="term-log">[AUDIT] Cryptographic seal verified. Zero unauthorized state mutations detected.</div>
+<div class="term-log">[SUCCESS] Workspace integrity <span class="t-num" data-num="100">100</span>% verified.</div>
+        </div>
+      </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="chapter-track" style="height:320vh" aria-hidden="true"></div>
+  </section>
+
+  <section class="problem-section" id="problem">
+    <div class="section-kicker">The Cloud Assistant Trap</div>
+    <h2 class="section-headline">Why Modern AI Workflows Break Down at Scale</h2>
+    <div class="cards-grid reveal-group">
+      
+      <div class="problem-card reveal-item">
+        <h3>Write-Only Agent Memory</h3>
+        <p>Traditional AI agents suffer from amnesia. They discard context after every session or dump unstructured chat transcripts into flat databases that degrade over time.</p>
+      </div>
+
+      <div class="problem-card reveal-item">
+        <h3>Cloud Privacy & Metered Cost</h3>
+        <p>Sending sensitive IP, proprietary codebases, and executive thinking through metered cloud APIs exposes your organization to ongoing privacy hazards and recurring operational spend.</p>
+      </div>
+
+      <div class="problem-card reveal-item">
+        <h3>Hallucinated Knowledge Layers</h3>
+        <p>Unverified vector search retrieves fragmented paragraphs out of context, forcing models to stitch together hallucinated answers without clear source provenance.</p>
+      </div>
+
+      <div class="problem-card reveal-item">
+        <h3>Unauditable AI Decisions</h3>
+        <p>When autonomous agents execute tools or modify files without cryptographic signatures and verifiable execution lineage, security audits become impossible.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="manifesto-section" id="boundary">
+    <div class="manifesto-inner">
+      <div class="section-kicker">The Architectural USP</div>
+      <h2 class="section-headline">Generated vs. Guaranteed</h2>
+      <p class="section-sub manifesto-intro">Language models are probabilistic reasoning engines—they excel at synthesis but cannot guarantee determinism. Prime-Silo draws a strict boundary between what the model generates and what the underlying runtime guarantees.</p>
+      <div class="manifesto-grid reveal-group">
+        <div class="manifesto-box generated reveal-item">
+          <h3>The LLM Generates</h3>
+          <ul><li>Natural language reasoning and candidate hypotheses</li>
+<li>Semantic entity extraction across document streams</li>
+<li>Code refactoring and creative problem solving</li></ul>
+        </div>
+        <div class="manifesto-box guaranteed reveal-item">
+          <h3>Prime-Silo Guarantees</h3>
+          <ul><li>Deterministic knowledge graph derivation without model drift</li>
+<li>HMAC-signed execution manifests for every tool invocation</li>
+<li>Precise source citation linked to exact file coordinates</li>
+<li>Complete auditability with cryptographic lineage chains</li></ul>
+        </div>
+      </div>
+      <p class="manifesto-outro">Never trust an agent whose memory you cannot inspect, verify, and own end-to-end.</p>
+    </div>
+  </section>
+
+  <section class="features-section" id="features">
+    <div class="section-kicker">Production Capabilities</div>
+    <h2 class="section-headline">Everything Shipped in Prime-Silo Today</h2>
+    <div class="features-grid reveal-group">
+      
+      <div class="feature-item reveal-item">
+        <div>
+          <span class="feature-tag">core</span>
+          <h3 class="feature-name">Tri-Graph Cognitive Mesh</h3>
+          <p class="feature-blurb">Unified multi-layer graph connecting documents, Tree-Sitter code ASTs, and Memo-Ray session memories.</p>
+        </div>
+      </div>
+
+      <div class="feature-item reveal-item">
+        <div>
+          <span class="feature-tag">ai</span>
+          <h3 class="feature-name">LONGVIEW Synthesis Pipeline</h3>
+          <p class="feature-blurb">High-throughput local knowledge distillation converting thousands of past interactions into structured hubs.</p>
+        </div>
+      </div>
+
+      <div class="feature-item reveal-item">
+        <div>
+          <span class="feature-tag">core</span>
+          <h3 class="feature-name">Pypes DAG Engine</h3>
+          <p class="feature-blurb">Bronze-silver-gold data refinement pipelines with end-to-end Data Lineage Protocol (CLP) tracking.</p>
+        </div>
+      </div>
+
+      <div class="feature-item reveal-item">
+        <div>
+          <span class="feature-tag">desktop</span>
+          <h3 class="feature-name">AgentAmp Cockpit</h3>
+          <p class="feature-blurb">Integrated desktop command center for live agent observation, process inspection, and resource management.</p>
+        </div>
+      </div>
+
+      <div class="feature-item reveal-item">
+        <div>
+          <span class="feature-tag">ai</span>
+          <h3 class="feature-name">Local-Model Orchestration</h3>
+          <p class="feature-blurb">Native integration with LM Studio, Lemonade, and Ollama with hardware fallback and strict offline guards.</p>
+        </div>
+      </div>
+
+      <div class="feature-item reveal-item">
+        <div>
+          <span class="feature-tag">ai</span>
+          <h3 class="feature-name">Offload Orchestrator</h3>
+          <p class="feature-blurb">Intelligent task scheduling balancing local GPU/NPU execution with optional secure proxy endpoints.</p>
+        </div>
+      </div>
+
+      <div class="feature-item reveal-item">
+        <div>
+          <span class="feature-tag">core</span>
+          <h3 class="feature-name">MCP + A2A Protocols</h3>
+          <p class="feature-blurb">Full support for Model Context Protocol servers and Agent-to-Agent communication channels.</p>
+        </div>
+      </div>
+
+      <div class="feature-item reveal-item">
+        <div>
+          <span class="feature-tag">governance</span>
+          <h3 class="feature-name">Signed Manifests & Governance</h3>
+          <p class="feature-blurb">HMAC-signed execution records ensuring audit readiness and verifiable provenance for every operation.</p>
+        </div>
+      </div>
+
+      <div class="feature-item reveal-item">
+        <div>
+          <span class="feature-tag">desktop</span>
+          <h3 class="feature-name">Bridge Desktop Cockpit</h3>
+          <p class="feature-blurb">Six specialized runtime modes for developer workflows, architectural review, and autonomous supervision.</p>
+        </div>
+      </div>
+
+      <div class="feature-item reveal-item">
+        <div>
+          <span class="feature-tag">governance</span>
+          <h3 class="feature-name">Session Checkpoints</h3>
+          <p class="feature-blurb">Instant state snapshots allowing time travel, branch exploration, and safe rollback of agent edits.</p>
+        </div>
+      </div>
+
+      <div class="feature-item reveal-item">
+        <div>
+          <span class="feature-tag">desktop</span>
+          <h3 class="feature-name">Zero-Install Desktop App</h3>
+          <p class="feature-blurb">Cross-platform native desktop runtime for Windows, macOS, and Linux with self-updating supervisor.</p>
+        </div>
+      </div>
+
+      <div class="feature-item reveal-item">
+        <div>
+          <span class="feature-tag">ai</span>
+          <h3 class="feature-name">Vision & Multimodal Ingestion</h3>
+          <p class="feature-blurb">Ingest architectural diagrams, UI mockups, and figures directly into the knowledge graph.</p>
+        </div>
+      </div>
+
+      <div class="feature-item reveal-item">
+        <div>
+          <span class="feature-tag">desktop</span>
+          <h3 class="feature-name">Neuro-Assist Accessibility</h3>
+          <p class="feature-blurb">Built-in accessibility suite featuring OpenDyslexic typography, bionic reading, and calm motion controls.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="compounding-section" id="compounding">
+    <div class="section-kicker">The Compounding Advantage</div>
+    <h2 class="section-headline">An Agent OS That Gets Smarter With Every Session</h2>
+    <p class="section-sub compounding-body">Unlike ephemeral chatbots that reset to zero every morning, Prime-Silo compounds institutional knowledge over time. Every task executed enriches the tri-graph mesh; every LONGVIEW run synthesizes new patterns; and every signed manifest strengthens your audit trail. The result is a sovereign engineering partner that is greater than the sum of its parts.</p>
+    <div class="chain-visual reveal-group">
+      
+      <div class="chain-node reveal-item"><strong>Enablers</strong><span>Six primitives, built once</span></div>
+      <span class="chain-arrow reveal-item">→</span>
+
+      <div class="chain-node reveal-item"><strong>LONGVIEW</strong><span>Deterministic graph synthesis</span></div>
+      <span class="chain-arrow reveal-item">→</span>
+
+      <div class="chain-node reveal-item"><strong>Lineage</strong><span>Cryptographic CLP audit trail</span></div>
+      <span class="chain-arrow reveal-item">→</span>
+
+      <div class="chain-node reveal-item"><strong>Cockpit</strong><span>Real-time observation & control</span></div>
+      <span class="chain-arrow reveal-item">→</span>
+
+      <div class="chain-node reveal-item"><strong>Studio (next)</strong><span>Next-gen audio & report generation</span></div>
+      
+    </div>
+  </section>
+
+  <section class="calculator-section" id="calculator">
+    <div class="section-kicker">Interactive Economic Model</div>
+    <h2 class="section-headline">Honest Cloud vs. Local TCO Calculator</h2>
+    <div class="calc-disclaimer">Illustrative model only. Every number below is an editable assumption—adjust them to reflect your actual usage patterns, hardware efficiency, and local electricity costs.</div>
+    <div class="calculator-card reveal-item">
+      <div class="calc-inputs">
+        
+        <div class="input-group">
+          <div class="input-header">
+            <span>Monthly Agent Sessions</span>
+            <span class="input-value-display" id="val-sessionsPerMonth">40</span>
+          </div>
+          <input type="range" id="input-sessionsPerMonth" data-calc-key="sessionsPerMonth" min="1" max="500" step="1" value="40" />
+        </div>
+
+        <div class="input-group">
+          <div class="input-header">
+            <span>Average Tokens per Session</span>
+            <span class="input-value-display" id="val-avgTokensPerSession">120000</span>
+          </div>
+          <input type="range" id="input-avgTokensPerSession" data-calc-key="avgTokensPerSession" min="1000" max="1000000" step="1000" value="120000" />
+        </div>
+
+        <div class="input-group">
+          <div class="input-header">
+            <span>Blended Cloud API ($ / Million Tokens)</span>
+            <span class="input-value-display" id="val-cloudPricePerMTok">3</span>
+          </div>
+          <input type="range" id="input-cloudPricePerMTok" data-calc-key="cloudPricePerMTok" min="0.1" max="60" step="0.1" value="3" />
+        </div>
+
+        <div class="input-group">
+          <div class="input-header">
+            <span>Repeated Context Multiplier</span>
+            <span class="input-value-display" id="val-reIngestFactor">1.5</span>
+          </div>
+          <input type="range" id="input-reIngestFactor" data-calc-key="reIngestFactor" min="1" max="10" step="0.1" value="1.5" />
+        </div>
+
+        <div class="input-group">
+          <div class="input-header">
+            <span>Local Workstation Power Draw (Watts)</span>
+            <span class="input-value-display" id="val-localPowerWatts">250</span>
+          </div>
+          <input type="range" id="input-localPowerWatts" data-calc-key="localPowerWatts" min="10" max="1000" step="10" value="250" />
+        </div>
+
+        <div class="input-group">
+          <div class="input-header">
+            <span>Electricity Rate ($ / kWh)</span>
+            <span class="input-value-display" id="val-electricityPerKwh">0.3</span>
+          </div>
+          <input type="range" id="input-electricityPerKwh" data-calc-key="electricityPerKwh" min="0.05" max="1" step="0.01" value="0.3" />
+        </div>
+      </div>
+      <div class="calc-results">
+        <div>
+          <h3 class="calc-results-title">Estimated Operational Spend</h3>
+          <div class="bars-comparison">
+            <div class="bar-row">
+              <div class="bar-header"><span>Cloud API Expenditure</span><strong id="display-cloud-cost">$0.00 / mo</strong></div>
+              <div class="bar-track"><div class="bar-fill cloud-fill" id="bar-cloud" style="width: 80%;"></div></div>
+            </div>
+            <div class="bar-row">
+              <div class="bar-header"><span>Prime-Silo Local Electrical Spend</span><strong id="display-local-cost">$0.00 / mo</strong></div>
+              <div class="bar-track"><div class="bar-fill local-fill" id="bar-local" style="width: 15%;"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="calc-formula">
+          <div>Cloud Cost = Sessions × Tokens × Repeated Context Multiplier × Cloud $/Mtok   |   Local Cost = Power Draw (kW) × Active Hours × Electricity Rate</div>
+          <div class="calc-footnote">* This interactive comparison models API spend versus active workstation electrical usage. It deliberately excludes fixed hardware acquisition costs, depreciation, host maintenance, and idle power draw so you can evaluate direct operational expenditure honestly.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="audiences-section" id="audiences">
+    <div class="section-kicker">Designed for Sovereignty</div>
+    <h2 class="section-headline">Built for Engineers. Trusted by Enterprise.</h2>
+    <div class="audiences-grid reveal-group">
+      <div class="audience-card reveal-item">
+        <h3>For Individual Developers</h3>
+        <ul><li>100% ownership over your code, notes, and agent memory</li>
+<li>Zero recurring API usage fees or rate-limiting bottlenecks</li>
+<li>Offline-first execution on your local GPU or NPU</li>
+<li>Seamless integration with your existing IDE and repositories</li></ul>
+      </div>
+      <div class="audience-card reveal-item">
+        <h3>For Enterprise & Research</h3>
+        <ul><li>Cryptographic governance and verifiable HMAC audit trails</li>
+<li>Strict data sovereignty compliance with on-prem deployment</li>
+<li>Data Lineage Protocol (CLP) tracking for all AI-generated edits</li>
+<li>Multi-user isolation and role-based access boundaries</li></ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="roadmap-section" id="roadmap">
+    <div class="roadmap-inner">
+      <div class="section-kicker">Workstream Roadmap</div>
+      <h2 class="section-headline">What's Coming Next in Prime-Silo</h2>
+      <div class="roadmap-grid reveal-group">
+        
+        <div class="roadmap-item reveal-item">
+          <h4>NotebookLM-Style Studio</h4>
+          <p>Interactive audio overviews, deep-dive podcasts, and executive briefings generated locally from your LONGVIEW knowledge graph.</p>
+        </div>
+
+        <div class="roadmap-item reveal-item">
+          <h4>DAG-Native Workflow Core</h4>
+          <p>Unified execution stream with live real-time NPU, GPU, and VRAM telemetry visualization.</p>
+        </div>
+
+        <div class="roadmap-item reveal-item">
+          <h4>Local Execution at Scale</h4>
+          <p>Distributed multi-device worker clustering across LAN hardware for high-throughput repository indexing.</p>
+        </div>
+
+        <div class="roadmap-item reveal-item">
+          <h4>AgentAmp Marketplace</h4>
+          <p>Curated, verified community skill sets and deterministic extension packages.</p>
+        </div>
+
+        <div class="roadmap-item reveal-item">
+          <h4>Sovereignty Gradient</h4>
+          <p>Adaptive compute scheduling that automatically scales between low-power CPU, local eGPU, and self-hosted clusters.</p>
+        </div>
+
+        <div class="roadmap-item reveal-item">
+          <h4>Sealed Compliance Exports</h4>
+          <p>One-click generation of tamper-evident compliance archives for SOC2 and internal IP audits.</p>
+        </div>
+
+        <div class="roadmap-item reveal-item">
+          <h4>Memory Mesh & Drift Radar</h4>
+          <p>Automated detection of conflicting assertions and outdated technical concepts across long-lived agent memories.</p>
+        </div>
+
+        <div class="roadmap-item reveal-item">
+          <h4>Self-Maintenance Loop</h4>
+          <p>Autonomous background maintenance tasks that clean up stale artifacts and draft documentation updates.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="faq-section" id="faq">
+    <div class="section-kicker">Frequently Asked Questions</div>
+    <h2 class="section-headline">Clear Answers on Sovereignty & Architecture</h2>
+    <div class="faq-list reveal-group">
+      
+      <div class="faq-item reveal-item">
+        <h4>Is my data or code ever sent to external cloud servers?</h4>
+        <p>No. Prime-Silo runs entirely on your local machine by default. All knowledge graphs, session transcripts, and files remain on your disk under your direct control. Outbound network requests occur only if you explicitly configure an external cloud provider.</p>
+      </div>
+
+      <div class="faq-item reveal-item">
+        <h4>What hardware do I need to run Prime-Silo locally?</h4>
+        <p>Prime-Silo runs comfortably on Apple Silicon (M1/M2/M3/M4 with 16GB+ unified memory) or Windows/Linux systems with an NVIDIA or AMD GPU (8GB+ VRAM recommended for 7B-12B models). For lower-powered hardware, it can orchestrate lightweight quantizations or LAN servers.</p>
+      </div>
+
+      <div class="faq-item reveal-item">
+        <h4>Which local LLM engines are supported?</h4>
+        <p>Prime-Silo connects seamlessly to LM Studio, Lemonade, Ollama, and standard OpenAI-compatible local endpoints. You can swap models per task without altering your underlying knowledge graph.</p>
+      </div>
+
+      <div class="faq-item reveal-item">
+        <h4>How does the Tri-Graph differ from standard RAG wrappers?</h4>
+        <p>Standard RAG simply splits text into vector chunks. Prime-Silo builds a deterministic semantic graph linking documentation, Tree-Sitter syntax trees (ASTs), and historical agent memories via explicit CORRELATES_WITH relationships—enabling precise structural reasoning.</p>
+      </div>
+
+      <div class="faq-item reveal-item">
+        <h4>Is Prime-Silo open source?</h4>
+        <p>Yes. Prime-Silo core modules and browser runtime are open-source under the MIT License, ensuring transparency and freedom from vendor lock-in.</p>
+      </div>
+
+      <div class="faq-item reveal-item">
+        <h4>Can my organization audit Prime-Silo's actions?</h4>
+        <p>Yes. Every tool execution and file modification generates an HMAC-signed manifest and Data Lineage Protocol (CLP) record, creating an unforgeable chain of custody for compliance reviews.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="contact-section" id="contact">
+    <div class="section-kicker">Get Started Today</div>
+    <h2 class="section-headline">Experience Sovereign Agentic Coding</h2>
+    <p class="section-sub contact-sub">Download the desktop app or explore our source code on GitHub. Join us in building AI systems where you own the memory.</p>
+    <div class="contact-actions">
+      <a href="https://github.com/binary16labs/prime-silo/releases/latest" class="btn btn-primary">Download Latest Release</a>
+      <a href="https://github.com/binary16labs/prime-silo" class="btn btn-ghost">Star on GitHub</a>
+    </div>
+    <p class="contact-email">Direct Contact: <a href="mailto:binary16.primesilo@gmail.com">binary16.primesilo@gmail.com</a></p>
+  </section>
+  </main>
 
   <!-- Footer -->
   <footer class="footer">
-    <div class="container">
-      <div class="footer-brand">Prime-Silo // Binary 16 Labs</div>
-      <p>The Canonical Silo of Institutional Cognition. Engineered under strict deterministic verification and zero-token tax execution.</p>
-      
-      <div style="margin: 20px 0; display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
-        <a href="https://github.com/binary16labs/prime-silo" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="border-color: var(--border-taupe); color: var(--text-charcoal); font-size: 0.82rem; padding: 8px 16px;">
-          🔗 GitHub Repository
-        </a>
-        <a href="mailto:binary16.primesilo@gmail.com?subject=Prime-Silo%20Demo%20Request" class="btn btn-primary" style="font-size: 0.82rem; padding: 8px 16px;">
-          ✉️ Request Institutional Demo // binary16.primesilo@gmail.com
-        </a>
-      </div>
-
-      <div style="margin: 24px auto; max-width: 850px; padding: 14px 18px; background: rgba(26, 36, 30, 0.04); border: 1px solid var(--border-taupe); border-radius: var(--radius-sm); text-align: center;">
-        <span style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--accent-rust); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 6px;">
-          🏛️ Sovereign AI // Agent OS // Protocol Ecosystem & Standards Matrix
-        </span>
-        <p style="font-size: 0.76rem; color: var(--text-charcoal); line-height: 1.6; margin: 0;">
-          Prime-Silo is engineered for institutional <strong>Sovereign AI</strong> deployments requiring zero data exfiltration and local-first governance. Our runtime substrate provides a deterministic <strong>Agent Harness</strong> and autonomous <strong>Agent OS</strong> layer, fully integrating the open-standard <strong>Model Context Protocol (MCP)</strong> for secure tool connectivity and <strong>Agent-to-Agent (A2A)</strong> communication for collaborative multi-agent swarms. Supported by Agent Benny under Strict Binary 16 Governance.
-        </p>
-      </div>
-
-      <p style="margin-top: 16px; color: var(--border-taupe); font-family: var(--font-mono); font-size: 0.75rem;">
-        LOCAL-FIRST • ZERO TOKEN TAX • HMAC SHA-256 SIGNED • TRI-GRAPH CAG
-      </p>
-      <p style="margin-top: 6px; color: var(--text-muted-dark); font-family: var(--font-mono); font-size: 0.72rem;">
-        Contact: <a href="mailto:binary16.primesilo@gmail.com" style="color: var(--accent-rust); text-decoration: underline;">binary16.primesilo@gmail.com</a> | Repository: <a href="https://github.com/binary16labs/prime-silo" target="_blank" rel="noopener noreferrer" style="color: var(--accent-sage); text-decoration: underline;">github.com/binary16labs/prime-silo</a>
-      </p>
+    
+  <div class="footer-content">
+    <div>
+      <h3 class="footer-line">Prime-Silo — Sovereign Local-First AI Agent OS</h3>
+      <p class="footer-seo">Prime-Silo is an open-source, local-first AI agent operating system designed for developers, researchers, and enterprises who demand complete data sovereignty, verifiable cryptographic governance, and auditable tri-graph knowledge memory.</p>
     </div>
+    <div class="footer-side">
+      <ul class="footer-links">
+        <li><a href="https://github.com/binary16labs/prime-silo">GitHub</a></li>
+<li><a href="https://github.com/binary16labs/prime-silo/releases">Releases</a></li>
+<li><a href="mailto:binary16.primesilo@gmail.com">Contact</a></li>
+      </ul>
+      <div class="mascot-container benny-footer">
+        <svg class="benny-svg benny-svg--small" viewBox="0 0 256 256" aria-hidden="true"><use href="#benny-symbol" /></svg>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>MIT License — Binary 16 Labs</span>
+    <span>v1.15.2</span>
+  </div>
   </footer>
 
-  <script src="app.js"></script>
+  <!-- Neuro-Assist Accessibility Dock -->
+  <aside class="neuro-dock" aria-label="Neuro-Assist Accessibility">
+    <button class="neuro-btn" id="toggle-dyslexic" title="Toggle OpenDyslexic font">Dyslexic Font</button>
+    <button class="neuro-btn" id="toggle-bionic" title="Toggle Bionic Reading highlight">Bionic</button>
+    <button class="neuro-btn" id="toggle-motion" title="Toggle Calm Motion mode">Calm Motion</button>
+  </aside>
+
+  <script type="module" src="./app.js?v=ee7edcb080"></script>
 </body>
 </html>

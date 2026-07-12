@@ -6,6 +6,12 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["space", "serve", "PORT=3000"],
       "port": 3000
+    },
+    {
+      "name": "longview-dashboard",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scratch/longview_run/dashboard/serve.mjs"],
+      "port": 8788
     }
   ]
 }

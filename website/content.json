@@ -1,0 +1,702 @@
+{
+  "_contract": "SCHEMA IS FROZEN. All copy validated. No bracket copy markers remaining. No invalidated claims. Relative asset paths only.",
+  "site": {
+    "title": "Prime-Silo",
+    "tagline": "Sovereign Local-First AI Agent OS",
+    "url": "https://binary16labs.github.io/prime-silo/",
+    "versionNote": "version injected at build from package.json — use {{site.version}} in copy",
+    "contactEmail": "binary16.primesilo@gmail.com",
+    "githubUrl": "https://github.com/binary16labs/prime-silo",
+    "downloadUrl": "https://github.com/binary16labs/prime-silo/releases/latest"
+  },
+  "seo": {
+    "metaTitle": "Prime-Silo — Sovereign Local-First AI Agent OS & Memory Mesh",
+    "metaDescription": "Prime-Silo is a browser-first AI agent runtime with auditable tri-graph memory, local-model orchestration, and deterministic knowledge synthesis.",
+    "keywords": [
+      "local-first AI",
+      "sovereign AI",
+      "AI agent OS",
+      "AI memory",
+      "knowledge graph",
+      "agentic AI",
+      "on-device AI",
+      "MCP",
+      "auditable AI",
+      "private AI assistant"
+    ],
+    "ogTitle": "Prime-Silo — Sovereign Local-First AI Agent OS",
+    "ogDescription": "Own your AI memory. Deterministic tri-graph knowledge synthesis, local-model execution, and verifiable governance.",
+    "ogImage": "./og-image.png",
+    "twitterCard": "summary_large_image",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Prime-Silo",
+      "operatingSystem": "Windows, macOS, Linux",
+      "applicationCategory": "DeveloperApplication",
+      "softwareVersion": "BUILD_INJECTS_VERSION",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "description": "Prime-Silo is an open-source, local-first AI Agent OS featuring an auditable tri-graph cognitive mesh, deterministic LONGVIEW knowledge graph synthesis, and zero-leakage local execution.",
+      "url": "https://binary16labs.github.io/prime-silo/",
+      "license": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "nav": {
+    "links": [
+      {
+        "label": "Problem",
+        "href": "#problem"
+      },
+      {
+        "label": "The Mesh",
+        "href": "#trigraph"
+      },
+      {
+        "label": "LONGVIEW",
+        "href": "#longview"
+      },
+      {
+        "label": "Features",
+        "href": "#features"
+      },
+      {
+        "label": "Cost Model",
+        "href": "#calculator"
+      },
+      {
+        "label": "Roadmap",
+        "href": "#roadmap"
+      }
+    ],
+    "cta": {
+      "label": "Download",
+      "href": "https://github.com/binary16labs/prime-silo/releases/latest"
+    }
+  },
+  "sections": [
+    {
+      "id": "hero",
+      "type": "hero",
+      "kicker": "Sovereign Local-First Agent OS",
+      "headline": "Your AI Agent. Your Hardware. Your Auditable Memory.",
+      "sub": "Prime-Silo is a browser-first agent runtime that replaces ephemeral chat context with a permanent, auditable tri-graph cognitive mesh. Run state-of-the-art local models with cryptographic governance and zero cloud leakage.",
+      "ctas": [
+        {
+          "label": "Download Desktop App",
+          "href": "https://github.com/binary16labs/prime-silo/releases/latest",
+          "kind": "primary"
+        },
+        {
+          "label": "Explore Source on GitHub",
+          "href": "https://github.com/binary16labs/prime-silo",
+          "kind": "ghost"
+        }
+      ],
+      "proofChips": [
+        "248 sessions synthesized",
+        "30M+ tokens of agent history",
+        "6 platforms, zero-install",
+        "100k+ lines of foundations",
+        "v{{site.version}}"
+      ]
+    },
+    {
+      "id": "problem",
+      "type": "problem",
+      "kicker": "The Cloud Assistant Trap",
+      "headline": "Why Modern AI Workflows Break Down at Scale",
+      "cards": [
+        {
+          "icon": "memory",
+          "title": "Write-Only Agent Memory",
+          "body": "Traditional AI agents suffer from amnesia. They discard context after every session or dump unstructured chat transcripts into flat databases that degrade over time."
+        },
+        {
+          "icon": "cloud",
+          "title": "Cloud Privacy & Metered Cost",
+          "body": "Sending sensitive IP, proprietary codebases, and executive thinking through metered cloud APIs exposes your organization to ongoing privacy hazards and recurring operational spend."
+        },
+        {
+          "icon": "hallucination",
+          "title": "Hallucinated Knowledge Layers",
+          "body": "Unverified vector search retrieves fragmented paragraphs out of context, forcing models to stitch together hallucinated answers without clear source provenance."
+        },
+        {
+          "icon": "audit",
+          "title": "Unauditable AI Decisions",
+          "body": "When autonomous agents execute tools or modify files without cryptographic signatures and verifiable execution lineage, security audits become impossible."
+        }
+      ]
+    },
+    {
+      "id": "boundary",
+      "type": "manifesto",
+      "kicker": "The Architectural USP",
+      "headline": "Generated vs. Guaranteed",
+      "intro": "Language models are probabilistic reasoning engines—they excel at synthesis but cannot guarantee determinism. Prime-Silo draws a strict boundary between what the model generates and what the underlying runtime guarantees.",
+      "left": {
+        "label": "The LLM Generates",
+        "items": [
+          "Natural language reasoning and candidate hypotheses",
+          "Semantic entity extraction across document streams",
+          "Code refactoring and creative problem solving"
+        ]
+      },
+      "right": {
+        "label": "Prime-Silo Guarantees",
+        "items": [
+          "Deterministic knowledge graph derivation without model drift",
+          "HMAC-signed execution manifests for every tool invocation",
+          "Precise source citation linked to exact file coordinates",
+          "Complete auditability with cryptographic lineage chains"
+        ]
+      },
+      "outro": "Never trust an agent whose memory you cannot inspect, verify, and own end-to-end."
+    },
+    {
+      "id": "trigraph",
+      "type": "explode-chapter",
+      "visual": "trigraph",
+      "theme": "dark",
+      "kicker": "Architecture Chapter 01",
+      "headline": "The Tri-Graph Cognitive Mesh",
+      "steps": [
+        {
+          "label": "One Unified Mesh",
+          "body": "Prime-Silo unifies three distinct knowledge domains into a single interconnected graph, eliminating silos between documentation, source code, and historical agent memory."
+        },
+        {
+          "label": "Documents Graph",
+          "body": "Structured ingestion parses markdown, specifications, and whitepapers into discrete, citation-backed semantic concepts and relationships."
+        },
+        {
+          "label": "Code Graph",
+          "body": "Tree-Sitter AST extraction maps function signatures, module imports, class definitions, and architectural dependencies across your entire codebase."
+        },
+        {
+          "label": "Memory Graph",
+          "body": "Memo-Ray tracks every historical agent interaction, decision rationale, and outcome across sessions as structured, queryable memory cards."
+        },
+        {
+          "label": "CORRELATES_WITH Overlay",
+          "body": "An enrichment overlay dynamically computes CORRELATES_WITH edges between documents, code symbols, and past decisions—allowing your agent to traverse deep dependencies instantly."
+        }
+      ]
+    },
+    {
+      "id": "enablers",
+      "type": "enablers",
+      "kicker": "The Enablers",
+      "headline": "Six Primitives Every Workflow Stands On",
+      "intro": "Prime-Silo is not a bundle of features — it is a small set of load-bearing primitives that every workflow composes. Build them once, honestly, and each new capability costs less than the last.",
+      "items": [
+        {
+          "name": "Session Memory Store",
+          "body": "Memo-Ray X-rays every agent session — across Claude Code, Antigravity and opencode — into one queryable timeline store instead of write-only logs.",
+          "unlocks": "Long-horizon anything: you cannot collate what you never kept."
+        },
+        {
+          "name": "Local-Model Orchestration",
+          "body": "One router in front of LM Studio, Lemonade and Ollama with an offline guard; models are env-profile driven, never hardcoded.",
+          "unlocks": "Bulk cognition at electricity prices — and eval sweeps by swapping one variable."
+        },
+        {
+          "name": "Deterministic Graph Substrate",
+          "body": "A single Source → Concept graph schema shared by documents, code and memory — derived deterministically wherever the entities are already known.",
+          "unlocks": "Cited knowledge with no hallucination surface where it matters."
+        },
+        {
+          "name": "Signed Manifests & Honest Ledger",
+          "body": "HMAC-SHA256 on every manifest; an append-only ledger that records failures as plainly as successes; CLP lineage end to end.",
+          "unlocks": "Trust: every claim traceable, every run auditable, every gap visible."
+        },
+        {
+          "name": "Resume-Safe Execution",
+          "body": "Phase checkpoints, per-item caches, reconcile-on-restart and halt-on-fault — a killed run resumes exactly where it stopped.",
+          "unlocks": "Multi-day workflows on consumer hardware that survive sleeps, crashes and wedged engines."
+        },
+        {
+          "name": "Portable Workspaces",
+          "body": "Isolated, disposable workspaces under one portable home — the whole runtime ships zero-install on six platforms.",
+          "unlocks": "Clean experiments, honest A/B corpora, and the same stack on any machine."
+        }
+      ]
+    },
+    {
+      "id": "longview",
+      "type": "explode-chapter",
+      "visual": "longview",
+      "theme": "light",
+      "kicker": "Long-Horizon Workflow № 01",
+      "headline": "LONGVIEW: Session Management & Collation at Machine Scale",
+      "steps": [
+        {
+          "label": "Inventory & Collation",
+          "body": "Sessions from every agent tool — Claude Code, Antigravity, opencode — are swept from their scattered logs into one queryable memory store: 248 sessions become a single governed corpus."
+        },
+        {
+          "label": "Extract",
+          "body": "Each session is rendered into a deterministic evidence pack — no model involved, byte-for-byte reproducible, thin sessions flagged and skipped honestly."
+        },
+        {
+          "label": "Map",
+          "body": "A local model walks every session timeline in bounded windows and distils structured cards — decisions, outcomes, failures, concepts — with per-card ledger entries and resume-safe caching."
+        },
+        {
+          "label": "Deterministic Graph",
+          "body": "Cards become the knowledge graph without a second model pass: entities the map already extracted are derived straight into cited Source → Concept triples at ~0.4s per card."
+        },
+        {
+          "label": "Enrich",
+          "body": "Duplicate concepts merge into cross-session hubs — the moment isolated sessions become one connected body of institutional knowledge."
+        },
+        {
+          "label": "Deliver & Top-Up",
+          "body": "Reports, dossiers, a print-ready book, even a locally-narrated audiobook — then delta runs keep the corpus current by collating only new sessions."
+        }
+      ],
+      "proofStats": [
+        {
+          "value": 248,
+          "suffix": " sessions",
+          "note": "Synthesized local engineering history"
+        },
+        {
+          "value": 30,
+          "suffix": "M+ tokens",
+          "note": "Processed entirely on private hardware"
+        },
+        {
+          "value": 0.4,
+          "suffix": "s / card",
+          "note": "Deterministic graph phase execution speed"
+        }
+      ],
+      "dial": [
+        "Inventory",
+        "Extract",
+        "Map",
+        "Graph",
+        "Enrich",
+        "Deliver"
+      ],
+      "sub": "Every agent session you have ever run is raw material. LONGVIEW collates months of scattered history into one governed corpus, distils it with local models, and derives a cited knowledge graph — resume-safe across days, honest about every failure, live-metered with an earned ETA.",
+      "builtOn": {
+        "label": "Built on the enablers",
+        "items": [
+          "Session Memory Store",
+          "Local-Model Orchestration",
+          "Deterministic Graph Substrate",
+          "Honest Ledger",
+          "Resume-Safe Execution"
+        ]
+      }
+    },
+    {
+      "id": "governance",
+      "type": "explode-chapter",
+      "visual": "seal",
+      "theme": "dark",
+      "kicker": "Architecture Chapter 03",
+      "headline": "Cryptographic Governance & Verifiable Lineage",
+      "steps": [
+        {
+          "label": "Sealed Execution Runs",
+          "body": "Every agent execution is enclosed in an immutable runtime envelope that records inputs, parameters, and environment state."
+        },
+        {
+          "label": "Structured Manifests",
+          "body": "JSON manifests capture exact tool calls, modified file hashes, and model configurations for reproducible verification."
+        },
+        {
+          "label": "HMAC-SHA256 Signatures",
+          "body": "Cryptographic HMAC signatures seal every transaction log, preventing tampering or unauthorized modification."
+        },
+        {
+          "label": "CLP Lineage Chain",
+          "body": "Complete Data Lineage Protocol (CLP) tracking links downstream file mutations directly to their upstream source prompt and model."
+        }
+      ]
+    },
+    {
+      "id": "features",
+      "type": "feature-grid",
+      "kicker": "Production Capabilities",
+      "headline": "Everything Shipped in Prime-Silo Today",
+      "features": [
+        {
+          "name": "Tri-Graph Cognitive Mesh",
+          "blurb": "Unified multi-layer graph connecting documents, Tree-Sitter code ASTs, and Memo-Ray session memories.",
+          "tag": "core"
+        },
+        {
+          "name": "LONGVIEW Synthesis Pipeline",
+          "blurb": "High-throughput local knowledge distillation converting thousands of past interactions into structured hubs.",
+          "tag": "ai"
+        },
+        {
+          "name": "Pypes DAG Engine",
+          "blurb": "Bronze-silver-gold data refinement pipelines with end-to-end Data Lineage Protocol (CLP) tracking.",
+          "tag": "core"
+        },
+        {
+          "name": "AgentAmp Cockpit",
+          "blurb": "Integrated desktop command center for live agent observation, process inspection, and resource management.",
+          "tag": "desktop"
+        },
+        {
+          "name": "Local-Model Orchestration",
+          "blurb": "Native integration with LM Studio, Lemonade, and Ollama with hardware fallback and strict offline guards.",
+          "tag": "ai"
+        },
+        {
+          "name": "Offload Orchestrator",
+          "blurb": "Intelligent task scheduling balancing local GPU/NPU execution with optional secure proxy endpoints.",
+          "tag": "ai"
+        },
+        {
+          "name": "MCP + A2A Protocols",
+          "blurb": "Full support for Model Context Protocol servers and Agent-to-Agent communication channels.",
+          "tag": "core"
+        },
+        {
+          "name": "Signed Manifests & Governance",
+          "blurb": "HMAC-signed execution records ensuring audit readiness and verifiable provenance for every operation.",
+          "tag": "governance"
+        },
+        {
+          "name": "Bridge Desktop Cockpit",
+          "blurb": "Six specialized runtime modes for developer workflows, architectural review, and autonomous supervision.",
+          "tag": "desktop"
+        },
+        {
+          "name": "Session Checkpoints",
+          "blurb": "Instant state snapshots allowing time travel, branch exploration, and safe rollback of agent edits.",
+          "tag": "governance"
+        },
+        {
+          "name": "Zero-Install Desktop App",
+          "blurb": "Cross-platform native desktop runtime for Windows, macOS, and Linux with self-updating supervisor.",
+          "tag": "desktop"
+        },
+        {
+          "name": "Vision & Multimodal Ingestion",
+          "blurb": "Ingest architectural diagrams, UI mockups, and figures directly into the knowledge graph.",
+          "tag": "ai"
+        },
+        {
+          "name": "Neuro-Assist Accessibility",
+          "blurb": "Built-in accessibility suite featuring OpenDyslexic typography, bionic reading, and calm motion controls.",
+          "tag": "desktop"
+        }
+      ]
+    },
+    {
+      "id": "compounding",
+      "type": "narrative",
+      "kicker": "The Compounding Advantage",
+      "headline": "An Agent OS That Gets Smarter With Every Session",
+      "body": "Unlike ephemeral chatbots that reset to zero every morning, Prime-Silo compounds institutional knowledge over time. Every task executed enriches the tri-graph mesh; every LONGVIEW run synthesizes new patterns; and every signed manifest strengthens your audit trail. The result is a sovereign engineering partner that is greater than the sum of its parts.",
+      "chain": [
+        {
+          "label": "Enablers",
+          "note": "Six primitives, built once"
+        },
+        {
+          "label": "LONGVIEW",
+          "note": "Deterministic graph synthesis"
+        },
+        {
+          "label": "Lineage",
+          "note": "Cryptographic CLP audit trail"
+        },
+        {
+          "label": "Cockpit",
+          "note": "Real-time observation & control"
+        },
+        {
+          "label": "Studio (next)",
+          "note": "Next-gen audio & report generation"
+        }
+      ]
+    },
+    {
+      "id": "calculator",
+      "type": "calculator",
+      "kicker": "Interactive Economic Model",
+      "headline": "Honest Cloud vs. Local TCO Calculator",
+      "disclaimer": "Illustrative model only. Every number below is an editable assumption—adjust them to reflect your actual usage patterns, hardware efficiency, and local electricity costs.",
+      "inputs": [
+        {
+          "key": "sessionsPerMonth",
+          "label": "Monthly Agent Sessions",
+          "default": 40,
+          "min": 1,
+          "max": 500,
+          "step": 1
+        },
+        {
+          "key": "avgTokensPerSession",
+          "label": "Average Tokens per Session",
+          "default": 120000,
+          "min": 1000,
+          "max": 1000000,
+          "step": 1000
+        },
+        {
+          "key": "cloudPricePerMTok",
+          "label": "Blended Cloud API ($ / Million Tokens)",
+          "default": 3,
+          "min": 0.1,
+          "max": 60,
+          "step": 0.1
+        },
+        {
+          "key": "reIngestFactor",
+          "label": "Repeated Context Multiplier",
+          "default": 1.5,
+          "min": 1,
+          "max": 10,
+          "step": 0.1
+        },
+        {
+          "key": "localPowerWatts",
+          "label": "Local Workstation Power Draw (Watts)",
+          "default": 250,
+          "min": 10,
+          "max": 1000,
+          "step": 10
+        },
+        {
+          "key": "electricityPerKwh",
+          "label": "Electricity Rate ($ / kWh)",
+          "default": 0.3,
+          "min": 0.05,
+          "max": 1,
+          "step": 0.01
+        }
+      ],
+      "formulaNote": "Cloud Cost = Sessions × Tokens × Repeated Context Multiplier × Cloud $/Mtok   |   Local Cost = Power Draw (kW) × Active Hours × Electricity Rate",
+      "assumptionsFootnote": "This interactive comparison models API spend versus active workstation electrical usage. It deliberately excludes fixed hardware acquisition costs, depreciation, host maintenance, and idle power draw so you can evaluate direct operational expenditure honestly."
+    },
+    {
+      "id": "audiences",
+      "type": "split",
+      "kicker": "Designed for Sovereignty",
+      "headline": "Built for Engineers. Trusted by Enterprise.",
+      "personal": {
+        "headline": "For Individual Developers",
+        "bullets": [
+          "100% ownership over your code, notes, and agent memory",
+          "Zero recurring API usage fees or rate-limiting bottlenecks",
+          "Offline-first execution on your local GPU or NPU",
+          "Seamless integration with your existing IDE and repositories"
+        ]
+      },
+      "institutional": {
+        "headline": "For Enterprise & Research",
+        "bullets": [
+          "Cryptographic governance and verifiable HMAC audit trails",
+          "Strict data sovereignty compliance with on-prem deployment",
+          "Data Lineage Protocol (CLP) tracking for all AI-generated edits",
+          "Multi-user isolation and role-based access boundaries"
+        ]
+      }
+    },
+    {
+      "id": "roadmap",
+      "type": "roadmap",
+      "kicker": "Workstream Roadmap",
+      "headline": "What's Coming Next in Prime-Silo",
+      "items": [
+        {
+          "name": "NotebookLM-Style Studio",
+          "blurb": "Interactive audio overviews, deep-dive podcasts, and executive briefings generated locally from your LONGVIEW knowledge graph."
+        },
+        {
+          "name": "DAG-Native Workflow Core",
+          "blurb": "Unified execution stream with live real-time NPU, GPU, and VRAM telemetry visualization."
+        },
+        {
+          "name": "Local Execution at Scale",
+          "blurb": "Distributed multi-device worker clustering across LAN hardware for high-throughput repository indexing."
+        },
+        {
+          "name": "AgentAmp Marketplace",
+          "blurb": "Curated, verified community skill sets and deterministic extension packages."
+        },
+        {
+          "name": "Sovereignty Gradient",
+          "blurb": "Adaptive compute scheduling that automatically scales between low-power CPU, local eGPU, and self-hosted clusters."
+        },
+        {
+          "name": "Sealed Compliance Exports",
+          "blurb": "One-click generation of tamper-evident compliance archives for SOC2 and internal IP audits."
+        },
+        {
+          "name": "Memory Mesh & Drift Radar",
+          "blurb": "Automated detection of conflicting assertions and outdated technical concepts across long-lived agent memories."
+        },
+        {
+          "name": "Self-Maintenance Loop",
+          "blurb": "Autonomous background maintenance tasks that clean up stale artifacts and draft documentation updates."
+        }
+      ]
+    },
+    {
+      "id": "faq",
+      "type": "faq",
+      "kicker": "Frequently Asked Questions",
+      "headline": "Clear Answers on Sovereignty & Architecture",
+      "items": [
+        {
+          "q": "Is my data or code ever sent to external cloud servers?",
+          "a": "No. Prime-Silo runs entirely on your local machine by default. All knowledge graphs, session transcripts, and files remain on your disk under your direct control. Outbound network requests occur only if you explicitly configure an external cloud provider."
+        },
+        {
+          "q": "What hardware do I need to run Prime-Silo locally?",
+          "a": "Prime-Silo runs comfortably on Apple Silicon (M1/M2/M3/M4 with 16GB+ unified memory) or Windows/Linux systems with an NVIDIA or AMD GPU (8GB+ VRAM recommended for 7B-12B models). For lower-powered hardware, it can orchestrate lightweight quantizations or LAN servers."
+        },
+        {
+          "q": "Which local LLM engines are supported?",
+          "a": "Prime-Silo connects seamlessly to LM Studio, Lemonade, Ollama, and standard OpenAI-compatible local endpoints. You can swap models per task without altering your underlying knowledge graph."
+        },
+        {
+          "q": "How does the Tri-Graph differ from standard RAG wrappers?",
+          "a": "Standard RAG simply splits text into vector chunks. Prime-Silo builds a deterministic semantic graph linking documentation, Tree-Sitter syntax trees (ASTs), and historical agent memories via explicit CORRELATES_WITH relationships—enabling precise structural reasoning."
+        },
+        {
+          "q": "Is Prime-Silo open source?",
+          "a": "Yes. Prime-Silo core modules and browser runtime are open-source under the MIT License, ensuring transparency and freedom from vendor lock-in."
+        },
+        {
+          "q": "Can my organization audit Prime-Silo's actions?",
+          "a": "Yes. Every tool execution and file modification generates an HMAC-signed manifest and Data Lineage Protocol (CLP) record, creating an unforgeable chain of custody for compliance reviews."
+        }
+      ]
+    },
+    {
+      "id": "contact",
+      "type": "contact",
+      "kicker": "Get Started Today",
+      "headline": "Experience Sovereign Agentic Coding",
+      "sub": "Download the desktop app or explore our source code on GitHub. Join us in building AI systems where you own the memory.",
+      "downloadCta": {
+        "label": "Download Latest Release",
+        "href": "https://github.com/binary16labs/prime-silo/releases/latest"
+      },
+      "githubCta": {
+        "label": "Star on GitHub",
+        "href": "https://github.com/binary16labs/prime-silo"
+      },
+      "email": "binary16.primesilo@gmail.com"
+    }
+  ],
+  "interactiveSilo": {
+    "kicker": "Architecture Diagram",
+    "headline": "The Sovereign Stack Silo",
+    "sub": "Explore the 4-layer local-first architecture. Click to explode the Silo stack or select individual layers to inspect L0 Kernel, L1 Group Memory, L2 Personal Workspace, and LONGVIEW Cognitive Engine.",
+    "layers": [
+      {
+        "id": 4,
+        "name": "LONGVIEW Cognitive Engine",
+        "tag": "SYNTHESIS & RETRIEVAL",
+        "desc": "Deterministic 0.4s/card graph derivation, dual model/graph extraction, and enrichment hub clustering over Source/Concept triples."
+      },
+      {
+        "id": 3,
+        "name": "L2 Personal Workspace & HMAC Seal",
+        "tag": "SOVEREIGN STORAGE",
+        "desc": "User-owned space (~/.space/L2/) with cryptographic HMAC-SHA256 signing for zero-tamper audit logs."
+      },
+      {
+        "id": 2,
+        "name": "L1 Group Memory & Git History",
+        "tag": "COLLABORATION & ROLLBACK",
+        "desc": "Debounced local Git commits, time-travel rollback APIs, and modular space.extend runtime delivery."
+      },
+      {
+        "id": 1,
+        "name": "L0 Firmware & Tri-Graph Mesh",
+        "tag": "FOUNDATION KERNEL",
+        "desc": "Core browser-first OS kernel maintaining the universal knowledge schema: Source -> Concept -> RELATES_TO -> SOURCED_FROM."
+      }
+    ]
+  },
+  "interactiveTerminal": {
+    "kicker": "Live Execution Explorer",
+    "headline": "Interactive Terminal Walkthrough",
+    "sub": "Switch between live command simulations to watch how Prime-Silo processes knowledge, synthesizes graphs, and verifies local memory integrity.",
+    "workflows": [
+      {
+        "id": "ingest",
+        "tab": "space ingest --tri-graph",
+        "command": "space ingest --source ./docs --tri-graph",
+        "logs": [
+          "[INFO] Indexing local document corpus: ./docs (14 files)",
+          "[AST] Extracting symbols & markdown structure...",
+          "[TRI-GRAPH] Emitting triples: [Concept:SovereignMemory] --RELATES_TO--> [Source:docs/architecture.md]",
+          "[TRI-GRAPH] Emitting triples: [Concept:DeterministicGraph] --SOURCED_FROM--> [Source:docs/longview.md]",
+          "[SUCCESS] 84 triples ingested into L0 Tri-Graph memory."
+        ]
+      },
+      {
+        "id": "longview",
+        "tab": "space longview run --graph",
+        "command": "space longview run --graph --delta",
+        "logs": [
+          "[INFO] Initializing LONGVIEW v2 in deterministic graph mode...",
+          "[SPEED] Processing 42 memory cards without LLM extraction tax (~0.4s/card)",
+          "[DERIVE] Mapping concepts[], applications[], and skills_observed[] arrays...",
+          "[ENRICH] Merging duplicate concepts across cards into shared hubs...",
+          "[SUCCESS] Graph upserted: 42 cards -> 186 concept hubs connected."
+        ]
+      },
+      {
+        "id": "verify",
+        "tab": "space verify --hmac",
+        "command": "space verify --hmac --target ~/.space/L2/user.yaml",
+        "logs": [
+          "[INFO] Loading userCrypto wrapping key from session session_secret...",
+          "[HMAC] Computing SHA-256 digest over L2 memory files...",
+          "[CHECK] Comparing current hash against signed checkpoint manifest...",
+          "[AUDIT] Cryptographic seal verified. Zero unauthorized state mutations detected.",
+          "[SUCCESS] Workspace integrity 100% verified."
+        ]
+      }
+    ]
+  },
+  "footer": {
+    "line": "Prime-Silo — Sovereign Local-First AI Agent OS",
+    "seoParagraph": "Prime-Silo is an open-source, local-first AI agent operating system designed for developers, researchers, and enterprises who demand complete data sovereignty, verifiable cryptographic governance, and auditable tri-graph knowledge memory.",
+    "links": [
+      {
+        "label": "GitHub",
+        "href": "https://github.com/binary16labs/prime-silo"
+      },
+      {
+        "label": "Releases",
+        "href": "https://github.com/binary16labs/prime-silo/releases"
+      },
+      {
+        "label": "Contact",
+        "href": "mailto:binary16.primesilo@gmail.com"
+      }
+    ],
+    "license": "MIT License — Binary 16 Labs"
+  },
+  "neuroAssist": {
+    "label": "Neuro-Assist",
+    "description": "Accessibility & Cognitive Comfort Dock",
+    "fonts": [
+      "OpenDyslexic",
+      "Lexend"
+    ],
+    "bionic": true,
+    "reducedMotionLabel": "Calm Motion Mode"
+  }
+}
