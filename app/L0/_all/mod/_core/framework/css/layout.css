@@ -35,4 +35,15 @@
   /* ── Reading measure — dyslexia-friendly line length ─────────────
    * Body copy should never exceed this width; see type.css. */
   --measure-max: 70ch;
+
+  /* ── Pane container-query hook — C1 adaptive layout contract ─────
+   * A pane host opts into SIZE-based responsiveness (not viewport-based)
+   * by setting `container-type: var(--pane-container-type); container-name:
+   * var(--pane-container-name);` on itself, then module CSS can write
+   * `@container pane (min-width: 480px) { ... }` — the widget adapts to the
+   * box it was actually given, correct even when that pane sits in a split
+   * view or a narrow secondary column on a 4K screen. Token, not a
+   * selector, so this file stays portable per its contract above. */
+  --pane-container-type: inline-size;
+  --pane-container-name: pane;
 }

@@ -14,6 +14,10 @@
   background: #0b0e13;
   border-radius: 8px;
   padding: 0.5rem;
+  /* C1 — fill the flex/grid host so the svg below has a definite bounding
+     box to scale into (mirrors kg3d.synoptic_web / codegraph.canvas). */
+  height: 100%;
+  box-sizing: border-box;
 }
 
 .prime-silo-dag[data-widget-state="rejected"] .prime-silo-dag__rejected,
@@ -52,7 +56,17 @@
 }
 
 .prime-silo-dag__svg {
+  /* Override the SVG presentation attributes (width="NNN" height="MMM") the
+     widget emits for every layout. CSS stylesheet rules beat presentation
+     attributes; combined with the viewBox, the browser applies the default
+     preserveAspectRatio="xMidYMid meet" — the whole DAG stays visible and
+     centered, scaled to fill whatever pane it's given (mirrors
+     kg3d.synoptic_web / codegraph.canvas — C1 fixed the one widget that was
+     missing this override, which left it locked to its computed layout
+     size instead of tracking pane resizes). */
   display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .prime-silo-dag__edge {

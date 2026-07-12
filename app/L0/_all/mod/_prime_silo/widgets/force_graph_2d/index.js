@@ -41,6 +41,8 @@
 // the SVG renderers, and the factory `options.onNodeClick(id, node)` used by
 // the Bridge's `makeThreeRenderer`-style wiring. Whichever is present fires.
 
+import { createPaneContract } from "../pane_contract.js";
+
 const DEFAULT_VENDOR_URL = new URL("./vendor/force-graph.module.js", import.meta.url).href;
 const DEFAULT_BACKGROUND = "transparent";
 
@@ -251,9 +253,7 @@ export function createForceGraph2DRenderer(options = {}) {
       highlight: highlightIdsFromProps(props),
       minimapCanvas: null,
       minimapTimer: null,
-      resizeObserver: null,
-      win: null,
-      onWinResize: null,
+      paneContract: null,
       lastW: 0,
       lastH: 0,
       hasFitted: false,
@@ -599,24 +599,18 @@ export function createForceGraph2DRenderer(options = {}) {
         scheduleResize();
 
         // Keep the canvas filling the host through fullscreen / pane resizes,
-        // and re-center the graph once the resize settles.
-        if (typeof ResizeObserver !== "undefined") {
-          state.resizeObserver = new ResizeObserver(() => {
+        // and re-center the graph once the resize settles. C1: debounced via
+        // the shared PaneContract helper (ResizeObserver + window-resize
+        // belt-and-braces, one place instead of per-widget) rather than a raw
+        // ResizeObserver firing on every intermediate drag-resize frame.
+        state.paneContract = createPaneContract(
+          state.host,
+          () => {
             sizeToHost();
             scheduleRefit();
-          });
-          state.resizeObserver.observe(state.host);
-        }
-        // Window maximize / restore doesn't always re-fire ResizeObserver on a
-        // flex-sized child, so listen for it directly as a belt-and-braces.
-        if (state.host.ownerDocument && state.host.ownerDocument.defaultView) {
-          state.win = state.host.ownerDocument.defaultView;
-          state.onWinResize = () => {
-            scheduleResize();
-            scheduleRefit();
-          };
-          state.win.addEventListener("resize", state.onWinResize);
-        }
+          },
+          { immediate: false }
+        );
 
         if (
           showMinimap &&
@@ -689,22 +683,9 @@ export function createForceGraph2DRenderer(options = {}) {
           clearTimeout(state.refitTimer);
           state.refitTimer = null;
         }
-        if (state.resizeObserver) {
-          try {
-            state.resizeObserver.disconnect();
-          } catch {
-            /* swallow */
-          }
-          state.resizeObserver = null;
-        }
-        if (state.win && state.onWinResize) {
-          try {
-            state.win.removeEventListener("resize", state.onWinResize);
-          } catch {
-            /* swallow */
-          }
-          state.win = null;
-          state.onWinResize = null;
+        if (state.paneContract) {
+          state.paneContract.dispose();
+          state.paneContract = null;
         }
         if (state.instance && typeof state.instance._destructor === "function") {
           try {

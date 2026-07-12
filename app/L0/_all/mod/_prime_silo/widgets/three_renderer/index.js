@@ -61,6 +61,8 @@
 //     Synchronous return. The handle's update / dispose route through to
 //     the underlying 3d-force-graph instance once loaded.
 
+import { createPaneContract } from "../pane_contract.js";
+
 const DEFAULT_CDN_URL = "https://esm.sh/3d-force-graph@1";
 // Text-sprite labels are an optional second module; loaded best-effort so the
 // scene still renders (just without floating names) if the CDN is blocked.
@@ -292,7 +294,7 @@ export function createThreeRenderer(options = {}) {
       // the settled graph (on the next `onEngineStop`). Re-framing per data
       // change keeps the whole graph in view as it grows or is filtered.
       needsFit: fitOnLoad,
-      resizeObserver: null
+      paneContract: null
     };
 
     function applyData() {
@@ -431,14 +433,16 @@ export function createThreeRenderer(options = {}) {
         syncSize();
         applyData();
         // Track host resizes so the canvas (and framing) follow panel layout
-        // changes, not just window resizes.
-        if (typeof ResizeObserver === "function" && state.host) {
-          state.resizeObserver = new ResizeObserver(() => {
+        // changes, not just window resizes. C1: routed through the shared,
+        // debounced PaneContract helper instead of a raw ResizeObserver.
+        state.paneContract = createPaneContract(
+          state.host,
+          () => {
             syncSize();
             fitToView();
-          });
-          state.resizeObserver.observe(state.host);
-        }
+          },
+          { immediate: false }
+        );
       })
       .catch((err) => {
         if (state.disposed || !state.host) return;
@@ -456,13 +460,9 @@ export function createThreeRenderer(options = {}) {
       },
       dispose() {
         state.disposed = true;
-        if (state.resizeObserver && typeof state.resizeObserver.disconnect === "function") {
-          try {
-            state.resizeObserver.disconnect();
-          } catch (_e) {
-            /* swallow */
-          }
-          state.resizeObserver = null;
+        if (state.paneContract) {
+          state.paneContract.dispose();
+          state.paneContract = null;
         }
         if (state.instance && typeof state.instance._destructor === "function") {
           // 3d-force-graph exposes _destructor() for teardown of the

@@ -474,11 +474,18 @@
 .ps-bridge__graph {
   position: relative; /* anchors the organic renderer's absolute minimap */
   min-height: 200px;
+  min-width: 0; /* C1 — never blocks the flex chain from shrinking */
   flex: 1;
   border: 1px solid var(--ps-border);
   border-radius: 10px;
   overflow: hidden;
   background: rgba(0, 0, 0, 0.18);
+  /* C1 — pane-level (not viewport-level) responsiveness: a widget mounted
+     here can `@container pane (min-width: ...)` against its OWN box
+     instead of guessing from window size (e.g. a graph in the Observe
+     split is narrow even on a wide 4K window). */
+  container-type: var(--pane-container-type, inline-size);
+  container-name: var(--pane-container-name, pane);
 }
 /* --tall no longer needed; flex:1 fills the available space. Kept as a no-op
    so any external references don't error. */
