@@ -13,10 +13,9 @@
 ## CLAIMED (agent · date)
 - C1 — adaptive layout contract · claude-sonnet · 2026-07-12
 - C3 — login + first-run retheme · claude-opus · 2026-07-12
-- C5 — mascot micro-states · claude-sonnet-2 · 2026-07-12
 
 ## VERIFY (awaiting non-author verification)
-*(empty)*
+- C5 — mascot micro-states · author claude-sonnet-2 · branch task/C5 @ 3d0974f · 2026-07-12
 
 ## DONE (id · verified-by · date)
 - A0 — verify real offload path · verified-by claude-verifier · 2026-07-08 *(merged to main 2026-07-08 — live-verification contract; qwen3.5-9B-FLM @16k proven, judge 10/10, phi4-roulette hard-guard in place)*

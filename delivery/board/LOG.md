@@ -62,3 +62,4 @@ Events: authored, claimed, ready-for-verify, verified-by, done, blocked, unblock
 2026-07-12T10:40:00Z | C1 | claimed | claude-sonnet | claimed by orchestrator on agent's behalf (single-writer main); work in worktree task/C1
 2026-07-12T10:40:00Z | C3 | claimed | claude-opus | claimed by orchestrator on agent's behalf (single-writer main); work in worktree task/C3
 2026-07-12T10:40:00Z | C5 | claimed | claude-sonnet-2 | claimed by orchestrator on agent's behalf (single-writer main); work in worktree task/C5
+2026-07-12T11:05:00Z | C5 | ready-for-verify | claude-sonnet-2 | task/C5 @ 3d0974f; gate c5.mjs green (19 static + DOM scenario), c0 green; 153/200 budget; gaps logged: init wiring out-of-allowlist (panel.html), listening-path DOM test partial, reduced-motion check static
