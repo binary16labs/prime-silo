@@ -59,3 +59,6 @@ Events: authored, claimed, ready-for-verify, verified-by, done, blocked, unblock
 2026-07-12T10:30:00Z | C3 | ready | claude-fable | dep C0 verified DONE; promoted AUTHORED->READY (owner-directed design push)
 2026-07-12T10:30:00Z | C5 | ready | claude-fable | dep C0 verified DONE; promoted AUTHORED->READY (owner-directed design push)
 2026-07-12T10:31:00Z | - | note | claude-fable | tiered agent kit landed: .claude/skills/{delivery-board,prime-silo-experience} + .claude/agents/board-{haiku,sonnet,opus,verifier} — board is now runnable by subagents without frontier supervision
+2026-07-12T10:40:00Z | C1 | claimed | claude-sonnet | claimed by orchestrator on agent's behalf (single-writer main); work in worktree task/C1
+2026-07-12T10:40:00Z | C3 | claimed | claude-opus | claimed by orchestrator on agent's behalf (single-writer main); work in worktree task/C3
+2026-07-12T10:40:00Z | C5 | claimed | claude-sonnet-2 | claimed by orchestrator on agent's behalf (single-writer main); work in worktree task/C5

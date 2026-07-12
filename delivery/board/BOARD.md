@@ -9,12 +9,11 @@
 - B1 — coordination server API + SSE  *(dep B0 DONE — entered READY 2026-07-07)*
 - Q1 — reproducible supply chain  *(dep Q0 DONE — entered READY 2026-07-07)*
 - E0 — website design brief + claims registry  *(zero-dep — entered READY 2026-07-07; human-signed)*
-- C1 — adaptive layout contract  *(dep C0 DONE — entered READY 2026-07-12; owner-directed design push)*
-- C3 — login + first-run retheme  *(dep C0 DONE — entered READY 2026-07-12; owner-directed design push)*
-- C5 — mascot micro-states  *(dep C0 DONE — entered READY 2026-07-12; owner-directed design push)*
 
 ## CLAIMED (agent · date)
-*(empty)*
+- C1 — adaptive layout contract · claude-sonnet · 2026-07-12
+- C3 — login + first-run retheme · claude-opus · 2026-07-12
+- C5 — mascot micro-states · claude-sonnet-2 · 2026-07-12
 
 ## VERIFY (awaiting non-author verification)
 *(empty)*
