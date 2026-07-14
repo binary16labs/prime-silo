@@ -292,9 +292,15 @@ const phaseDefs = [
 const pipeline = phaseDefs.map((p) => {
   const lb = ledgerByPhase.get(p.id) || null;
   let status = p.done ? "done" : "todo";
-  // enrich liveness comes from enrichState (progress-file freshness) — the
-  // status.json phase can be stale for hours after a killed run.
-  if (!p.done && (p.id === "enrich" ? enrichState.running : statusJson.phase === p.id)) status = "active";
+  // "active" requires an actually-live runner (state files written in the last
+  // 3 min) — the status.json phase alone goes stale after a killed run.
+  const live =
+    Math.min(
+      (() => { try { return Date.now() - fs.statSync(path.join(LV, "ledger.jsonl")).mtimeMs; } catch { return Infinity; } })(),
+      (() => { try { return Date.now() - fs.statSync(path.join(LV, "progress.json")).mtimeMs; } catch { return Infinity; } })(),
+      (() => { try { return Date.now() - fs.statSync(path.join(LV, "enrich_progress.json")).mtimeMs; } catch { return Infinity; } })()
+    ) < 180000;
+  if (!p.done && (p.id === "enrich" ? enrichState.running : statusJson.phase === p.id && live)) status = "active";
   else if (!p.done && lb && lb.entries > 0) status = "partial";
   return {
     id: p.id,
@@ -309,10 +315,72 @@ const pipeline = phaseDefs.map((p) => {
   };
 });
 
+// --- pipeline liveness: is a runner actually executing right now? Any of the
+// run-state files written within the last 3 minutes counts as alive. Without
+// this the rail can show a phase "active" for hours after a crashed/killed run.
+const freshMs = (p) => {
+  try {
+    return Date.now() - fs.statSync(p).mtimeMs;
+  } catch {
+    return Infinity;
+  }
+};
+const pipelineLive =
+  Math.min(
+    freshMs(path.join(LV, "ledger.jsonl")),
+    freshMs(path.join(LV, "progress.json")),
+    freshMs(path.join(LV, "enrich_progress.json"))
+  ) < 180000;
+
+// --- ontology: named themes + type mix, refreshed when the graph changes.
+// Aggregated from the lean knowledge endpoint (local API, code-free).
+const prevDash = readJSON(path.join(DASH, "dashboard.json"), {});
+let ontology = prevDash.ontology || null;
+const graphChanged =
+  graphStats &&
+  JSON.stringify((prevDash.phases || {}).graph_stats || {}) !== JSON.stringify(graphStats);
+if (graphStats && (graphChanged || !ontology)) {
+  try {
+    const ac = new AbortController();
+    const t = setTimeout(() => ac.abort(), 8000);
+    const r = await fetch(`http://127.0.0.1:8005/api/graph/knowledge?workspace=${WS}&mode=connected`, {
+      signal: ac.signal
+    });
+    clearTimeout(t);
+    if (r.ok) {
+      const g = await r.json();
+      const comms = new Map();
+      let unnamed = 0,
+        mergedHubs = 0;
+      for (const n of g.nodes || []) {
+        if (n.node_type !== "Concept") continue;
+        if ((n.merge_count || 1) > 1) mergedHubs++;
+        const cn = n.community_name || "";
+        if (!cn || /^Community \d+$/.test(cn)) unnamed++;
+        else comms.set(cn, (comms.get(cn) || 0) + 1);
+      }
+      ontology = {
+        updated: new Date().toISOString(),
+        connected_concepts: (g.nodes || []).filter((n) => n.node_type === "Concept").length,
+        merged_hubs: mergedHubs,
+        unnamed,
+        themes: [...comms.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 14)
+          .map(([name, size]) => ({ name, size }))
+      };
+    }
+  } catch {
+    /* keep the previous ontology snapshot */
+  }
+}
+
 const out = {
   generated: new Date().toISOString(),
   workspace: WS,
   pipeline,
+  pipeline_live: pipelineLive,
+  ontology,
   artifacts: art,
   phases: {
     current: statusJson.phase || "map",

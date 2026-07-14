@@ -128,6 +128,7 @@
   <div class="topbar">
     <div class="brand"><b>LONGVIEW</b><small>Mission Control</small></div>
     <div><span class="pill"><span class="dotlive"></span><span id="live">live</span></span>
+      <span class="pill" id="runlive">pipeline: —</span>
       <span class="pill" id="ws">—</span>
       <span class="pill" id="stamp">—</span></div>
   </div>
@@ -214,6 +215,20 @@
     </div>
   </div>
 
+  <!-- ontology -->
+  <div class="tile" style="margin-bottom:var(--gap)">
+    <h3>Ontology · named themes<i class="info" tabindex="0">i<span class="tip">The graph's semantic shape after enrich: concepts cluster into communities (label propagation), and the biggest ones get an LLM-generated name that becomes each node's <b>category</b> (colour in the graph views). <b>Merged hubs</b> are concepts that absorbed duplicates — node size in the app. Unnamed = clusters still carrying a fallback name; a recluster re-run fixes those.</span></i></h3>
+    <div class="row" style="gap:22px;margin:6px 0 4px">
+      <div class="kv"><div class="k">Connected concepts</div><div class="v" id="o-con">—</div></div>
+      <div class="kv"><div class="k">Merged hubs</div><div class="v" id="o-hubs">—</div></div>
+      <div class="kv"><div class="k">Named themes</div><div class="v" id="o-named">—</div></div>
+      <div class="kv"><div class="k">Unnamed / fallback</div><div class="v" id="o-unnamed">—</div></div>
+    </div>
+    <div class="barlist" id="o-themes"></div>
+    <div class="chips" id="o-rels" style="margin-top:10px"></div>
+    <div class="sub" id="o-stamp" style="margin-top:8px">no ontology snapshot yet — appears once the graph has enriched communities</div>
+  </div>
+
   <!-- composition -->
   <details class="tile" open style="margin-bottom:var(--gap)">
     <summary><h3 style="margin:0">Where the work is · session sizes</h3><span class="exp">planned windows</span></summary>
@@ -276,6 +291,26 @@ function arc(cx,cy,r,d0,d1){const[x0,y0]=polar(cx,cy,r,d0),[x1,y1]=polar(cx,cy,r
 
 function render(d){
   document.getElementById('ws').textContent=d.workspace;
+  // pipeline liveness pill — "running (phase)" only when state files are fresh
+  const rl=document.getElementById('runlive');
+  rl.textContent=d.pipeline_live?`pipeline: running (${(d.phases||{}).current||'?'})`:'pipeline: idle';
+  rl.style.color=d.pipeline_live?'var(--accent)':'var(--faint)';
+
+  // ontology
+  const o=d.ontology;
+  if(o){
+    document.getElementById('o-con').textContent=(o.connected_concepts||0).toLocaleString();
+    document.getElementById('o-hubs').textContent=(o.merged_hubs||0).toLocaleString();
+    document.getElementById('o-named').textContent=(o.themes||[]).length;
+    document.getElementById('o-unnamed').textContent=(o.unnamed||0).toLocaleString();
+    const mx=Math.max(...(o.themes||[]).map(t=>t.size),1);
+    document.getElementById('o-themes').innerHTML=(o.themes||[]).map(t=>
+      `<div class="barrow"><span class="lab">${t.name}</span><span class="num">${t.size} concepts</span><span class="meter"><i style="width:${Math.round(t.size/mx*100)}%"></i></span></div>`).join('');
+    const rc=((((d.phases||{}).enrich||{}).detail||{}).stages||[]).find(s=>s.id==='rel_class');
+    const dist=rc&&rc.result&&rc.result.distribution;
+    document.getElementById('o-rels').innerHTML=dist?Object.entries(dist).map(([k,v])=>`<span class="chip">${k}<b>${v.toLocaleString()}</b></span>`).join(''):'';
+    document.getElementById('o-stamp').textContent=`snapshot ${new Date(o.updated).toLocaleTimeString()} · refreshes when the graph changes`;
+  }
   document.getElementById('stamp').textContent='updated '+new Date(d.generated).toLocaleTimeString();
   document.getElementById('foot').textContent=`plan-validated · ${d.run.total_windows} windows across ${d.run.active_sessions} active sessions · read-only, no LM-host impact`;
 
@@ -339,6 +374,11 @@ function render(d){
       document.getElementById('e-sub').textContent='live stage detail from enrich_progress.json · only the theme-naming step calls the LLM';}
     else if(e.ok===true){badge.textContent=`complete · ${e.minutes} min`;badge.className='badge g';
       document.getElementById('e-sub').textContent='all stages applied';}
+    else if(e.ok===false&&d.pipeline_live&&(d.phases||{}).current!=='enrich'){
+      // A pipeline run is live at an earlier phase — the old failure is history,
+      // enrich will be re-executed when the run reaches it.
+      badge.textContent=`superseded · pipeline at ${(d.phases||{}).current}`;badge.className='badge w';badge.style.color='var(--accent2)';
+      document.getElementById('e-sub').textContent='last run failed, but a live pipeline pass will re-run enrich when it gets here — stage detail below is from the previous attempt';}
     else if(e.ok===false){
       // The run verdict can be FAILED (timeout/kill) while most stage WRITES
       // are applied and durable — say both, or the badge overstates the damage.
