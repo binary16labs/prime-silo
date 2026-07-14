@@ -5,6 +5,90 @@ import http from "http";
 import fs from "fs";
 import path from "path";
 import os from "os";
+import { spawn } from "child_process";
+
+// ── memory API (loopback ONLY — teleport moves data; never LAN-exposed) ─────
+const REPO = "C:/Users/nsdha/OneDrive/binary16/prime-silo";
+const WS_ROOT = "C:/Users/nsdha/AppData/Roaming/space-agent/benny-home/benny/workspaces";
+const isLoopback = (req) =>
+  ["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.socket.remoteAddress);
+
+function runMemory(workspace, cliArgs, cb) {
+  const child = spawn("node", [path.join(REPO, "scripts", "longview", "memory.mjs"), ...cliArgs], {
+    cwd: REPO,
+    env: { ...process.env, LONGVIEW_WORKSPACE: workspace || "sessions_v1" }
+  });
+  let out = "";
+  child.stdout.on("data", (b) => (out += b));
+  child.stderr.on("data", (b) => (out += b));
+  const t = setTimeout(() => child.kill(), 1800000);
+  child.on("close", (code) => {
+    clearTimeout(t);
+    cb(code, out);
+  });
+  child.on("error", (e) => {
+    clearTimeout(t);
+    cb(1, String(e));
+  });
+}
+
+function memoryApi(req, res, url) {
+  if (!isLoopback(req)) {
+    res.writeHead(403);
+    return res.end("memory API is loopback-only");
+  }
+  const q = Object.fromEntries(new URL(url, "http://x").searchParams);
+  const json = (code, obj) => {
+    res.writeHead(code, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(obj));
+  };
+  if (req.method === "GET" && url.startsWith("/api/memory/workspaces")) {
+    const list = fs
+      .readdirSync(WS_ROOT, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name);
+    return json(200, { workspaces: list });
+  }
+  if (req.method === "GET" && url.startsWith("/api/memory/search")) {
+    if (!q.terms) return json(400, { error: "terms required" });
+    return runMemory(q.workspace, ["resolve", "--terms", q.terms, "--json"], (code, out) => {
+      try {
+        json(200, JSON.parse(out.slice(out.indexOf("{"))));
+      } catch {
+        json(500, { error: out.slice(0, 500) });
+      }
+    });
+  }
+  if (req.method === "POST" && (url.startsWith("/api/memory/teleport") || url.startsWith("/api/memory/gate"))) {
+    let body = "";
+    req.on("data", (b) => (body += b));
+    req.on("end", () => {
+      let p;
+      try {
+        p = JSON.parse(body);
+      } catch {
+        return json(400, { error: "bad json" });
+      }
+      if (!p.terms) return json(400, { error: "terms required" });
+      // Target names: workspace-safe charset only — this becomes a directory
+      // and a Neo4j property value.
+      if (url.includes("teleport") && !/^[\w.-]+$/.test(p.target || ""))
+        return json(400, { error: "target must be [A-Za-z0-9_.-]+" });
+      const cliArgs = url.includes("gate")
+        ? ["gate", "--terms", p.terms]
+        : [
+            "teleport",
+            "--terms", p.terms,
+            "--to", p.target,
+            ...(p.sids ? ["--sids", p.sids] : []),
+            ...(p.dryRun ? ["--dry-run"] : [])
+          ];
+      runMemory(p.workspace, cliArgs, (code, out) => json(200, { code, output: out.slice(0, 20000) }));
+    });
+    return;
+  }
+  json(404, { error: "unknown memory endpoint" });
+}
 
 const DIR = path.resolve("C:/Users/nsdha/OneDrive/binary16/prime-silo/scratch/longview_run/dashboard");
 const PORT = 8788;
@@ -18,6 +102,7 @@ const TYPES = { ".html": "text/html", ".json": "application/json", ".js": "text/
 
 http
   .createServer((req, res) => {
+    if ((req.url || "").startsWith("/api/memory/")) return memoryApi(req, res, req.url);
     let p = decodeURIComponent((req.url || "/").split("?")[0]);
     if (p === "/") p = "/dashboard.html";
     const file = path.resolve(DIR, "." + p);

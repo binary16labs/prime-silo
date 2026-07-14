@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LONGVIEW · Memory Manager</title>
+<style>
+  :root{
+    --bg:#0b0e13; --panel:#131822; --panel2:#0f141d; --line:#232b39;
+    --ink:#e6edf6; --dim:#8a97ab; --faint:#5b6779;
+    --accent:#38e1c4; --accent2:#5aa9ff; --warn:#ffb454; --bad:#ff6b6b; --good:#57d38c;
+    --r:16px;
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#eef1f6; --panel:#ffffff; --panel2:#f5f7fb; --line:#dde3ec;
+      --ink:#141a24; --dim:#5b6779; --faint:#8a97ab; --accent:#0bbfa3; --accent2:#2f7ff0; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 600px at 70% -10%, #16202e 0%, var(--bg) 60%);
+    color:var(--ink);font:14px/1.45 -apple-system,Segoe UI,Roboto,Inter,system-ui,sans-serif;padding:22px;min-height:100vh}
+  .wrap{max-width:1080px;margin:0 auto}
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+  .brand b{font-size:18px} .brand small{color:var(--dim);margin-left:10px}
+  a{color:var(--accent2)}
+  .tile{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:var(--r);padding:18px;margin-bottom:16px}
+  h3{margin:0 0 10px;font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--dim)}
+  input,select,button{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:9px 12px;font:inherit}
+  input:focus,select:focus{outline:none;border-color:var(--accent2)}
+  button{cursor:pointer;font-weight:600}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:rgba(56,225,196,.12);border-color:var(--accent);color:var(--accent)}
+  button.danger{background:rgba(255,107,107,.1);border-color:var(--bad);color:var(--bad)}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:12.5px}
+  th{color:var(--dim);text-transform:uppercase;font-size:10.5px;letter-spacing:.8px;text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+  td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  td.sid{font-family:ui-monospace,monospace;color:var(--accent2)}
+  td.reasons{color:var(--faint);font-size:11px}
+  .sub{color:var(--faint);font-size:12px}
+  pre{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;font-size:11.5px;overflow:auto;max-height:340px;white-space:pre-wrap}
+  .pill{font-size:11px;color:var(--dim);border:1px solid var(--line);padding:4px 9px;border-radius:20px}
+  .warnbox{border:1px solid var(--warn);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:12px;margin-top:10px;display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand"><b>Memory Manager</b><small>search · label · teleport — moves, never deletes</small></div>
+    <div><span class="pill">workspace <input id="ws" value="sessions_v1" style="width:130px;padding:3px 8px;margin-left:6px"></span>
+      <a href="/" style="margin-left:12px">← Mission Control</a></div>
+  </div>
+
+  <div class="tile">
+    <h3>1 · Search memories by keyword</h3>
+    <div class="row">
+      <input id="terms" placeholder="cv, resume, jpmc, hsbc, t. rowe…" style="flex:1;min-width:280px">
+      <button class="primary" id="btn-search">Search</button>
+    </div>
+    <div class="sub" style="margin-top:8px">Terms match project names and session titles (case-insensitive; short terms like “cv” on word boundaries only). Comma-separate multiple terms. Matching is deterministic — same input, same result.</div>
+    <div id="results"></div>
+  </div>
+
+  <div class="tile">
+    <h3>2 · Declare target workspace &amp; teleport</h3>
+    <div class="row">
+      <select id="target-existing"><option value="">— existing workspace —</option></select>
+      <span class="sub">or new:</span>
+      <input id="target-new" placeholder="sessions_v1_private" style="width:200px">
+      <button id="btn-dry">Dry run</button>
+      <button class="danger" id="btn-teleport" disabled>Teleport selected</button>
+      <button id="btn-gate">Gate check deliverables</button>
+    </div>
+    <div class="warnbox" id="warn">Teleport moves the selected sessions’ cards, evidence, windows, reviews, graph nodes and vector chunks into the target workspace, and quarantines their sids from future runs. Fully reversible via <code>memory.mjs restore</code>. Run a dry run first.</div>
+    <pre id="out" style="margin-top:12px;display:none"></pre>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let lastResults=[];
+const api=async(p,opt)=>{const r=await fetch(p,opt);return r.json();};
+const selectedSids=()=>[...document.querySelectorAll('input.pick:checked')].map(c=>c.value);
+const target=()=>$('target-new').value.trim()||$('target-existing').value;
+const show=(t)=>{$('out').style.display='block';$('out').textContent=t;};
+
+async function loadWorkspaces(){
+  try{const d=await api('/api/memory/workspaces');
+    $('target-existing').innerHTML='<option value="">— existing workspace —</option>'+
+      d.workspaces.filter(w=>w!==$('ws').value).map(w=>`<option>${w}</option>`).join('');
+  }catch{}
+}
+loadWorkspaces();
+
+$('btn-search').onclick=async()=>{
+  const terms=$('terms').value.trim();
+  if(!terms)return;
+  $('results').innerHTML='<div class="sub" style="margin-top:10px">searching…</div>';
+  try{
+    const d=await api(`/api/memory/search?workspace=${encodeURIComponent($('ws').value)}&terms=${encodeURIComponent(terms)}`);
+    lastResults=d.sids||[];
+    if(!lastResults.length){$('results').innerHTML='<div class="sub" style="margin-top:10px">no sessions matched</div>';$('btn-teleport').disabled=true;return;}
+    $('results').innerHTML=`<table><tr><th><input type="checkbox" id="all" checked></th><th>sid</th><th>project</th><th>title</th><th>matched because</th></tr>`+
+      lastResults.map(e=>`<tr><td><input type="checkbox" class="pick" value="${e.sid}" checked></td>
+        <td class="sid">${e.sid.slice(0,8)}</td><td>${e.project||'?'}</td>
+        <td>${(e.title||'').slice(0,60)}</td><td class="reasons">${(e.reasons||[]).join(', ')}</td></tr>`).join('')+
+      `</table><div class="sub" style="margin-top:8px">${lastResults.length} sessions · ${d.files??'?'} files on disk (graph/vector counts come from the dry run)</div>`;
+    $('all').onchange=e=>document.querySelectorAll('input.pick').forEach(c=>c.checked=e.target.checked);
+    $('btn-teleport').disabled=false;
+    $('warn').style.display='block';
+  }catch(e){$('results').innerHTML=`<div class="sub" style="color:var(--bad)">${e}</div>`;}
+};
+
+async function teleport(dryRun){
+  const t=target();
+  if(!t){alert('Pick or name a target workspace.');return;}
+  const sids=selectedSids();
+  if(!sids.length){alert('Select at least one session.');return;}
+  if(!dryRun&&!confirm(`Teleport ${sids.length} session(s) from ${$('ws').value} → ${t}?\n\nMoves files + graph nodes + vectors. Reversible via restore.`))return;
+  show((dryRun?'dry run':'teleporting')+'…');
+  const d=await api('/api/memory/teleport',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({workspace:$('ws').value,terms:$('terms').value.trim(),sids:sids.join(','),target:t,dryRun})});
+  show(d.output||JSON.stringify(d));
+  if(!dryRun&&d.code===0)loadWorkspaces();
+}
+$('btn-dry').onclick=()=>teleport(true);
+$('btn-teleport').onclick=()=>teleport(false);
+$('btn-gate').onclick=async()=>{
+  const terms=$('terms').value.trim();
+  if(!terms){alert('Enter search terms first — the gate scans deliverables for them.');return;}
+  show('scanning deliverables…');
+  const d=await api('/api/memory/gate',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({workspace:$('ws').value,terms})});
+  show((d.code===0?'CLEAN — no leaks found.\n\n':'LEAKS FOUND (exit '+d.code+'):\n\n')+(d.output||''));
+};
+</script>
+</body>
+</html>

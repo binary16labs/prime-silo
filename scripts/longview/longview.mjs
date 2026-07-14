@@ -139,7 +139,27 @@ async function runInventory() {
   return inventory;
 }
 
-const loadInventory = () => JSON.parse(fs.readFileSync(inventoryPath(), "utf8"));
+// Quarantine (memory.mjs teleport): sids moved to a private workspace are
+// filtered out of EVERY inventory read — otherwise the next run would re-card
+// the teleported sessions straight back into this workspace.
+const quarantinedSids = () => {
+  try {
+    return new Set(
+      JSON.parse(fs.readFileSync(stateDir("quarantine.json"), "utf8")).sids || []
+    );
+  } catch {
+    return new Set();
+  }
+};
+const loadInventory = () => {
+  const inv = JSON.parse(fs.readFileSync(inventoryPath(), "utf8"));
+  const q = quarantinedSids();
+  if (!q.size) return inv;
+  const kept = inv.filter((s) => !q.has(s.id));
+  if (kept.length !== inv.length)
+    console.log(`[inventory] ${inv.length - kept.length} quarantined session(s) excluded (longview/quarantine.json)`);
+  return kept;
+};
 
 // ------------------------------------------------------------------ extract
 function runExtract() {
