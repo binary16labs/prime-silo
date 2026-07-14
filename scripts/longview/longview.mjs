@@ -18,7 +18,7 @@
  * Delta mode:   `delta` — only sessions new/changed since their card.
  * Heartbeat:    <workspace>/longview/status.json; honest numbers: ledger.jsonl.
  */
-import { spawnSync } from "child_process";
+import { spawn, spawnSync } from "child_process";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
@@ -26,7 +26,7 @@ import { fileURLToPath } from "url";
 import { runOpus } from "./lib/opus.mjs";
 import { evidenceFor, graphCatalog, graphNeighbors } from "./lib/retrieve.mjs";
 import { mdToHtml, htmlToPdf } from "./lib/book_pdf.mjs";
-import { config, ensureWorkspace, workspaceDir, stateDir, projectRoot, envValue } from "./lib/config.mjs";
+import { config, ensureWorkspace, workspaceDir, stateDir, projectRoot, envValue, subprocessEnv } from "./lib/config.mjs";
 import { taskStalled, reconcileIngested, isStallVerdict } from "./lib/ingest_state.mjs";
 import { syncStore, listSessions } from "./lib/store.mjs";
 import { buildEvidencePack } from "./lib/evidence.mjs";
@@ -424,6 +424,11 @@ async function runMap({ deltaMode = false, limitOverride = null } = {}) {
         fs.mkdirSync(path.dirname(fp), { recursive: true });
         fs.writeFileSync(fp, JSON.stringify(frag));
         fragments.push(frag);
+        // Cadence cooldown: brief idle between calls so a marginal GPU/eGPU link can
+        // settle before the next request (mitigates driver "channel error" wedges).
+        if (config.WINDOW_PAUSE_MS > 0) {
+          await new Promise((r) => setTimeout(r, config.WINDOW_PAUSE_MS));
+        }
       }
       // A wedge mid-session leaves partial fragments — do not assemble or write a
       // degraded card; leave the session unmapped so resume redoes it cleanly.
@@ -1256,7 +1261,8 @@ async function runCode() {
       timeout: 3600000,
       // The enrich CLI prints progress glyphs (braille spinners) that crash
       // Python's cp1252 console encoder on Windows — force UTF-8 stdio.
-      env: { ...process.env, PYTHONIOENCODING: "utf-8", PYTHONUTF8: "1" }
+      // subprocessEnv: python needs the repo .env (LM endpoints etc.) too.
+      env: subprocessEnv({ PYTHONIOENCODING: "utf-8", PYTHONUTF8: "1" })
     }
   );
   const ok = r.status === 0;
@@ -1281,31 +1287,78 @@ async function runEnrichGraph() {
   writeStatus({ phase: "enrich" });
   const started = Date.now();
   console.log("[enrich] benny enrich-graph (merge → cross-doc links → rel_class → themes)…");
-  const r = spawnSync(
-    "python",
-    [
-      "benny_cli.py",
-      "enrich-graph",
-      "--workspace",
-      config.WORKSPACE,
-      "--apply",
-      "--model",
-      config.INGEST_MODEL
-    ],
-    {
-      cwd: path.join(projectRoot, "runtime"),
-      encoding: "utf8",
-      timeout: 3600000,
-      // Same cp1252 braille-glyph guard as runCode.
-      env: { ...process.env, PYTHONIOENCODING: "utf-8", PYTHONUTF8: "1" }
-    }
+  console.log(
+    `[enrich] live stage detail: ${workspaceDir("longview", "enrich_progress.json")}`
   );
-  const ok = r.status === 0;
-  const tail = ((r.stdout || "") + (r.stderr || ""))
-    .split("\n")
-    .filter(Boolean)
-    .slice(-4)
-    .join(" | ");
+  // Streamed (not spawnSync-buffered) so stage progress reaches the console —
+  // and the dashboard — while the run is live instead of one blob at the end.
+  const { ok, tail } = await new Promise((resolve) => {
+    const child = spawn(
+      "python",
+      [
+        "benny_cli.py",
+        "enrich-graph",
+        "--workspace",
+        config.WORKSPACE,
+        "--apply",
+        "--model",
+        config.INGEST_MODEL
+      ],
+      {
+        cwd: path.join(projectRoot, "runtime"),
+        // Same cp1252 braille-glyph guard as runCode. subprocessEnv layers the
+        // repo .env under the real environment — the python side needs
+        // BENNY_LMSTUDIO_ENDPOINTS / BENNY_EMBED_MODEL etc. for its LLM calls.
+        env: subprocessEnv({ PYTHONIOENCODING: "utf-8", PYTHONUTF8: "1" })
+      }
+    );
+    const lines = [];
+    const onData = (buf) => {
+      for (const line of buf.toString("utf8").split(/\r?\n/)) {
+        if (!line.trim()) continue;
+        lines.push(line);
+        console.log(`[enrich] | ${line.slice(0, 300)}`);
+      }
+    };
+    child.stdout.on("data", onData);
+    child.stderr.on("data", onData);
+    // STALL watchdog, not a wall clock: a healthy first run legitimately takes
+    // 50+ min (fresh embeddings + up to 60 named themes), while a wedged LLM
+    // host produces silence. The python side now enforces per-call deadlines
+    // (BENNY_EMBED_TIMEOUT_S / BENNY_COMMUNITY_NAME_TIMEOUT_S), so "no progress
+    // written for stallMs" is the real death signal. An absolute cap remains as
+    // a backstop against pathological loops.
+    const stallMs = Number(envValue("LONGVIEW_ENRICH_STALL_MS")) || 900000; // 15 min
+    const capMs = Number(envValue("LONGVIEW_ENRICH_TIMEOUT_MS")) || 21600000; // 6 h
+    const progressPath = workspaceDir("longview", "enrich_progress.json");
+    const startedAt = Date.now();
+    const watchdog = setInterval(() => {
+      let lastWrite = startedAt;
+      try {
+        lastWrite = fs.statSync(progressPath).mtimeMs;
+      } catch {
+        /* not written yet — measure from spawn */
+      }
+      const stalled = Date.now() - Math.max(lastWrite, startedAt) > stallMs;
+      const capped = Date.now() - startedAt > capMs;
+      if (stalled || capped) {
+        console.log(
+          stalled
+            ? `[enrich] STALLED — no progress written for ${Math.round(stallMs / 60000)} min, killing subprocess`
+            : `[enrich] CAP — exceeded ${Math.round(capMs / 3600000)}h absolute backstop, killing subprocess`
+        );
+        child.kill();
+      }
+    }, 60000);
+    child.on("close", (code) => {
+      clearInterval(watchdog);
+      resolve({ ok: code === 0, tail: lines.slice(-4).join(" | ") });
+    });
+    child.on("error", (e) => {
+      clearInterval(watchdog);
+      resolve({ ok: false, tail: String(e) });
+    });
+  });
   console.log(
     `[enrich] ${ok ? "ok" : "FAILED"} (${((Date.now() - started) / 1000 / 60).toFixed(1)} min) ${tail.slice(0, 300)}`
   );

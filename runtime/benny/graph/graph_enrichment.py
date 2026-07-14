@@ -25,8 +25,11 @@ Runs as a one-off backfill (``benny enrich-graph``) and is wired into the ingest
 path for forward runs.
 """
 
+import json
 import logging
 import re
+import time
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import numpy as np
@@ -34,6 +37,135 @@ import numpy as np
 from ..core.graph_db import read_session, write_session
 
 logger = logging.getLogger(__name__)
+
+
+# ── live progress (observability) ────────────────────────────────────────────
+# The enrich run used to be a silent black box (one buffered subprocess, no
+# output until done). This reporter writes <workspace>/longview/
+# enrich_progress.json on every stage transition + throttled in-stage ticks so
+# dashboards can show todo/running/done with per-stage detail. Strictly
+# best-effort: any IO failure is swallowed — observability must never break
+# the run itself.
+
+STAGE_LABELS = {
+    "embeddings": "persist concept embeddings",
+    "merge": "canonical-merge near-duplicate concepts",
+    "similarity": "cross-document similarity links",
+    "rel_class": "type free-text predicates",
+    "correlation": "code↔docs correlation",
+    "recluster": "re-cluster + name themes (LLM)",
+}
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+class EnrichProgress:
+    def __init__(self, workspace: str, stages: List[str], dry_run: bool):
+        self.path = None
+        try:
+            from ..core.workspace import get_workspace_path
+
+            d = get_workspace_path(workspace, "longview")
+            d.mkdir(parents=True, exist_ok=True)
+            self.path = d / "enrich_progress.json"
+        except Exception:
+            pass
+        self.state: Dict[str, Any] = {
+            "workspace": workspace,
+            "dry_run": dry_run,
+            "started_at": _now_iso(),
+            "updated_at": _now_iso(),
+            "done": False,
+            "ok": None,
+            "stages": [
+                {
+                    "id": s,
+                    "label": STAGE_LABELS.get(s, s),
+                    "status": "todo",
+                    "started_at": None,
+                    "seconds": None,
+                    "done_items": None,
+                    "total_items": None,
+                    "note": None,
+                    "result": None,
+                    "error": None,
+                }
+                for s in stages
+            ],
+        }
+        self._t0: Dict[str, float] = {}
+        self._last_write = 0.0
+        self._write(force=True)
+
+    def _stage(self, sid: str) -> Optional[Dict[str, Any]]:
+        return next((s for s in self.state["stages"] if s["id"] == sid), None)
+
+    def _write(self, force: bool = False) -> None:
+        if self.path is None:
+            return
+        now = time.monotonic()
+        if not force and now - self._last_write < 0.5:
+            return
+        self._last_write = now
+        self.state["updated_at"] = _now_iso()
+        try:
+            self.path.write_text(json.dumps(self.state, default=str), encoding="utf-8")
+        except Exception:
+            pass
+
+    def start(self, sid: str, total: Optional[int] = None, note: Optional[str] = None) -> None:
+        st = self._stage(sid)
+        if not st:
+            return
+        st.update(status="running", started_at=_now_iso(), total_items=total, note=note)
+        self._t0[sid] = time.monotonic()
+        self._write(force=True)
+
+    def tick(
+        self, sid: str, done: int, total: Optional[int] = None, note: Optional[str] = None
+    ) -> None:
+        st = self._stage(sid)
+        if not st:
+            return
+        st["done_items"] = done
+        if total is not None:
+            st["total_items"] = total
+        if note is not None:
+            st["note"] = note
+        st["seconds"] = round(time.monotonic() - self._t0.get(sid, time.monotonic()), 1)
+        self._write()
+
+    def finish(self, sid: str, result: Any) -> None:
+        st = self._stage(sid)
+        if not st:
+            return
+        st.update(status="done", result=result)
+        st["seconds"] = round(time.monotonic() - self._t0.get(sid, time.monotonic()), 1)
+        self._write(force=True)
+
+    def fail(self, sid: str, err: str) -> None:
+        st = self._stage(sid)
+        if not st:
+            return
+        st.update(status="failed", error=str(err)[:500])
+        st["seconds"] = round(time.monotonic() - self._t0.get(sid, time.monotonic()), 1)
+        self._write(force=True)
+
+    def complete(self, ok: bool) -> None:
+        self.state["done"] = True
+        self.state["ok"] = ok
+        self._write(force=True)
+
+
+# Module-level handle so stage functions can tick without signature churn.
+_PROGRESS: Optional[EnrichProgress] = None
+
+
+def _tick(sid: str, done: int, total: Optional[int] = None, note: Optional[str] = None) -> None:
+    if _PROGRESS is not None:
+        _PROGRESS.tick(sid, done, total, note)
 
 # Cosine thresholds. Merge is deliberately stricter than linking: merging deletes
 # a node, linking only adds an edge.
@@ -132,7 +264,17 @@ async def stage_embeddings(
     from ..synthesis.engine import batch_embed_concepts
 
     names = [c["name"] for c in concepts]
-    kv = await batch_embed_concepts(names, provider="local", workspace=workspace)
+
+    # Progress ticks during the embed fan-out — this is the ~45-min long pole,
+    # and without per-item ticks the stall watchdog can't tell healthy from wedged.
+    async def _on_embed(ev) -> None:
+        d = getattr(ev, "data", None) or {}
+        if d.get("current"):
+            _tick("embeddings", d["current"], d.get("total"), note="embedding concepts")
+
+    kv = await batch_embed_concepts(
+        names, provider="local", workspace=workspace, event_callback=_on_embed
+    )
     vectors = [kv.get(n) for n in names]
     normed = _normed_matrix(vectors)
 
@@ -141,7 +283,9 @@ async def stage_embeddings(
         batch = [
             {"id": c["id"], "emb": [float(x) for x in vectors[i]]}
             for i, c in enumerate(concepts)
-            if vectors[i] is not None and len(vectors[i]) == EMBED_DIM
+            # any(): zero vectors are embed FAILURES (batch_embed_concepts's
+            # fallback) — persisting them poisons the cache for every later run.
+            if vectors[i] is not None and len(vectors[i]) == EMBED_DIM and any(vectors[i])
         ]
         write_query = """
         UNWIND $batch AS row
@@ -151,6 +295,7 @@ async def stage_embeddings(
         with write_session() as session:
             for i in range(0, len(batch), 500):
                 session.run(write_query, batch=batch[i : i + 500])
+                _tick("embeddings", min(i + 500, len(batch)), len(batch), note="persisting vectors")
         written = len(batch)
 
     # keep the freshly-computed vectors on the concept dicts for reuse
@@ -202,6 +347,8 @@ async def stage_merge(
             j = i + 1 + int(offset)
             if _jaccard(tokens[i], tokens[j]) >= MERGE_NAME_JACCARD:
                 pairs.append((i, j))
+        if i % 500 == 0:
+            _tick("merge", i, n, note=f"scanning candidates ({len(pairs)} pairs)")
 
     groups = _union_find_groups(pairs, n)
 
@@ -257,10 +404,16 @@ async def stage_merge(
     DETACH DELETE v
     """
     with write_session() as session:
-        for p in plan:
+        for gi, p in enumerate(plan):
             cid = concepts[p["canonical"]]["id"]
             for v in p["variants"]:
                 session.run(merge_query, cid=cid, vid=concepts[v]["id"])
+            _tick(
+                "merge",
+                gi + 1,
+                len(plan),
+                note=f"merging into '{concepts[p['canonical']]['name'][:60]}'",
+            )
         # recompute doc_count for canonicals we touched
         canon_ids = [concepts[p["canonical"]]["id"] for p in plan]
         session.run(
@@ -447,12 +600,37 @@ async def stage_recluster(workspace: str, dry_run: bool) -> Dict[str, Any]:
     # Name the substantial communities and set category = community name (theme).
     from ..synthesis.engine import name_community
 
+    # Per-CALL deadline, not per-run: a wedged LLM host hangs each request
+    # indefinitely (observed 2026-07-14: LM Studio answered /models but chat
+    # completions never returned) — without this every name burns the full
+    # transport timeout × retries and the whole stage looks frozen.
+    import asyncio as _asyncio
+    import os as _os
+
+    name_timeout = float(_os.environ.get("BENNY_COMMUNITY_NAME_TIMEOUT_S", "120"))
+    timeouts = 0
     labeled = 0
     for members in namable:
         member_names = [names[m] for m in members if names.get(m)][:50]
         try:
-            info = await name_community(member_names, workspace=workspace)
+            info = await _asyncio.wait_for(
+                name_community(member_names, workspace=workspace), timeout=name_timeout
+            )
             cname = (info or {}).get("community_name") or f"Community {members[0]}"
+            timeouts = 0  # consecutive counter — a success proves the host is alive
+        except _asyncio.TimeoutError:
+            timeouts += 1
+            logger.warning("Community naming timed out after %ss (host wedged?)", name_timeout)
+            cname = f"Community {members[0]}"
+            if timeouts >= 3:
+                # The host is not coming back mid-run — stop burning a deadline
+                # per community, leave the rest for a recluster re-run.
+                logger.error(
+                    "3 naming timeouts in a row — LLM host looks wedged; "
+                    "leaving remaining communities unnamed (re-run recluster later)"
+                )
+                _tick("recluster", labeled, len(namable), note="ABORTED naming: LLM host wedged")
+                break
         except Exception as e:
             logger.warning("Community naming failed (non-fatal): %s", e)
             cname = f"Community {members[0]}"
@@ -464,6 +642,7 @@ async def stage_recluster(workspace: str, dry_run: bool) -> Dict[str, Any]:
                 cn=cname,
             )
         labeled += 1
+        _tick("recluster", labeled, len(namable), note=f"named '{cname[:60]}'")
 
     return {"nodes": len(adj), "communities": len(groups), "labeled": labeled}
 
@@ -485,39 +664,76 @@ async def enrich_graph(
     ``model`` is informational here (the caller pins it via BENNY_DEFAULT_MODEL);
     only the recluster stage's community naming uses an LLM.
     """
+    global _PROGRESS
     stages = stages or DEFAULT_STAGES
     report: Dict[str, Any] = {"workspace": workspace, "dry_run": dry_run, "stages": {}}
     if model:
         report["naming_model"] = model
 
-    concepts: List[Dict[str, Any]] = []
-    if "embeddings" in stages or "merge" in stages:
-        concepts = _fetch_doc_concepts(workspace)
-        report["doc_concepts"] = len(concepts)
+    progress = EnrichProgress(workspace, stages, dry_run)
+    _PROGRESS = progress
 
-    if "embeddings" in stages:
-        report["stages"]["embeddings"] = await stage_embeddings(workspace, concepts, dry_run)
-    if "merge" in stages:
-        if concepts and "_vec" not in concepts[0]:
-            # Prefer embeddings already persisted by a prior run so a merge-only
-            # invocation doesn't re-embed thousands of concepts against the flaky
-            # local embedder. Fall back to computing them only if none are stored.
-            if all(c.get("embedding") and len(c["embedding"]) == EMBED_DIM for c in concepts):
-                normed = _normed_matrix([c["embedding"] for c in concepts])
-                for i, c in enumerate(concepts):
-                    c["_vec"] = normed[i]
-            else:
-                await stage_embeddings(workspace, concepts, dry_run=True)
-        report["stages"]["merge"] = await stage_merge(workspace, concepts, dry_run)
-    if "similarity" in stages:
-        report["stages"]["similarity"] = await stage_similarity_links(workspace, dry_run)
-    if "rel_class" in stages:
-        report["stages"]["rel_class"] = await stage_rel_class(workspace, dry_run)
-    if "correlation" in stages:
-        report["stages"]["correlation"] = await stage_correlation(
-            workspace, correlation_threshold, dry_run
-        )
-    if "recluster" in stages:
-        report["stages"]["recluster"] = await stage_recluster(workspace, dry_run)
+    async def _run_stage(sid: str, coro_factory, total: Optional[int] = None, note: Optional[str] = None):
+        progress.start(sid, total=total, note=note)
+        try:
+            res = await coro_factory()
+            report["stages"][sid] = res
+            progress.finish(sid, res)
+            logger.info("enrich stage %s done: %s", sid, res)
+            return res
+        except Exception as e:
+            progress.fail(sid, str(e))
+            logger.error("enrich stage %s FAILED: %s", sid, e)
+            raise
+
+    try:
+        concepts: List[Dict[str, Any]] = []
+        if "embeddings" in stages or "merge" in stages:
+            concepts = _fetch_doc_concepts(workspace)
+            report["doc_concepts"] = len(concepts)
+
+        if "embeddings" in stages:
+            await _run_stage(
+                "embeddings",
+                lambda: stage_embeddings(workspace, concepts, dry_run),
+                total=len(concepts),
+                note=f"embedding {len(concepts)} concepts",
+            )
+        if "merge" in stages:
+            if concepts and "_vec" not in concepts[0]:
+                # Prefer embeddings already persisted by a prior run so a merge-only
+                # invocation doesn't re-embed thousands of concepts against the flaky
+                # local embedder. Fall back to computing them only if none are stored.
+                if all(
+                    c.get("embedding") and len(c["embedding"]) == EMBED_DIM and any(c["embedding"])
+                    for c in concepts
+                ):
+                    normed = _normed_matrix([c["embedding"] for c in concepts])
+                    for i, c in enumerate(concepts):
+                        c["_vec"] = normed[i]
+                else:
+                    await stage_embeddings(workspace, concepts, dry_run=True)
+            await _run_stage(
+                "merge",
+                lambda: stage_merge(workspace, concepts, dry_run),
+                total=len(concepts),
+            )
+        if "similarity" in stages:
+            await _run_stage("similarity", lambda: stage_similarity_links(workspace, dry_run))
+        if "rel_class" in stages:
+            await _run_stage("rel_class", lambda: stage_rel_class(workspace, dry_run))
+        if "correlation" in stages:
+            await _run_stage(
+                "correlation",
+                lambda: stage_correlation(workspace, correlation_threshold, dry_run),
+            )
+        if "recluster" in stages:
+            await _run_stage("recluster", lambda: stage_recluster(workspace, dry_run))
+        progress.complete(ok=True)
+    except Exception:
+        progress.complete(ok=False)
+        raise
+    finally:
+        _PROGRESS = None
 
     return report

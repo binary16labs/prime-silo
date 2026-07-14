@@ -44,6 +44,11 @@
         "description": "Deterministic rollups + /rag/ingest with deep_synthesis so cards become graph Documents/Concepts, not just vectors"
       },
       {
+        "id": "graph",
+        "enabled": true,
+        "description": "longview_v2 deterministic KG: card fragments (concepts/applications/capabilities/skills) → buildCardTriples → POST /rag/graph-upsert (~0.4s/card, no deep_synthesis LLM re-extract); also ingests card vectors when deep_synthesis is off; resume-safe via rollups/graph_upserted.json"
+      },
+      {
         "id": "code",
         "enabled": true,
         "description": "Code graph: junction the repo into src/, Tree-Sitter scan → code graph → CORRELATES_WITH links to knowledge concepts (reuses benny enrich)"

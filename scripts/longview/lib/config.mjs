@@ -36,6 +36,15 @@ const env = (k, fallback) => process.env[k] || dotenv[k] || fallback;
 // just exported process.env vars.
 export const envValue = (key) => env(key, "");
 
+// Env for spawned subprocesses (python benny_cli.py etc.): .env values as
+// FALLBACK under the caller's real environment. Without this the python side
+// never sees BENNY_LMSTUDIO_ENDPOINTS / BENNY_EMBED_MODEL / … from .env and
+// every LLM/embed call fails with "All connection attempts failed" (the
+// 2026-07-14 enrich ran 60 min as a silent no-op this way). Deliberately NOT
+// backfilled into process.env itself — runManifest's manifest-vs-env
+// precedence must keep distinguishing explicitly-exported vars from .env ones.
+export const subprocessEnv = (extra = {}) => ({ ...dotenv, ...process.env, ...extra });
+
 // Resolve $BENNY_HOME exactly like the running runtime does (env override →
 // desktop config → per-user default), via the canonical Node mirror of
 // benny/portable/home.py. Phase D ingests through the runtime's API, so the
@@ -104,6 +113,12 @@ export const config = {
   // 640→0, JSON still valid, ~4× faster). Empty = omit the field (safe for
   // providers/models that would reject it — LM Studio ignores unknown values).
   REASONING_EFFORT: env("LONGVIEW_REASONING_EFFORT", ""),
+
+  // Cadence cooldown between window calls (ms). On a marginal GPU stack — e.g. a
+  // new-gen AMD card in an eGPU over Thunderbolt — hammering inference flat-out can
+  // trip the driver/link ("channel error" → engine wedge). A short breather between
+  // calls lets the GPU/link settle. 0 = no pause. Negligible vs a ~40-700s card.
+  WINDOW_PAUSE_MS: Number(env("LONGVIEW_WINDOW_PAUSE_MS", 0)),
 
   // Benny runtime API (Phase D ingestion, workspace paths).
   BENNY_API_BASE: `http://${env("BENNY_API_HOST", "127.0.0.1")}:${env("BENNY_API_PORT", "8005")}`,

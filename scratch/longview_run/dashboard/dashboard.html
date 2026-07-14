@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LONGVIEW · Mission Control</title>
+<style>
+  :root{
+    --bg:#0b0e13; --panel:#131822; --panel2:#0f141d; --line:#232b39;
+    --ink:#e6edf6; --dim:#8a97ab; --faint:#5b6779;
+    --accent:#38e1c4; --accent2:#5aa9ff; --warn:#ffb454; --bad:#ff6b6b; --good:#57d38c;
+    --r:16px; --gap:16px;
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#eef1f6; --panel:#ffffff; --panel2:#f5f7fb; --line:#dde3ec;
+      --ink:#141a24; --dim:#5b6779; --faint:#8a97ab;
+      --accent:#0bbfa3; --accent2:#2f7ff0; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 600px at 70% -10%, #16202e 0%, var(--bg) 60%);
+    color:var(--ink);font:14px/1.45 -apple-system,Segoe UI,Roboto,Inter,system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;padding:22px;min-height:100vh}
+  .wrap{max-width:1180px;margin:0 auto}
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand b{font-size:18px;letter-spacing:.3px}
+  .brand small{color:var(--dim)}
+  .pill{font-size:11px;color:var(--dim);border:1px solid var(--line);padding:4px 9px;border-radius:20px}
+  .dotlive{width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 0 0 var(--good);
+    animation:pulse 2s infinite;display:inline-block;margin-right:6px}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(87,211,140,.5)}70%{box-shadow:0 0 0 7px rgba(87,211,140,0)}100%{box-shadow:0 0 0 0 rgba(87,211,140,0)}}
+
+  /* pipeline lineage rail */
+  .track{background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--r);padding:14px 16px 10px;margin-bottom:var(--gap)}
+  .rail{display:flex;align-items:stretch;gap:4px;overflow-x:auto;padding-bottom:4px}
+  .lnode{flex:1;min-width:84px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);
+    padding:8px 9px;cursor:pointer;transition:border-color .2s}
+  .lnode:hover{border-color:var(--accent2)}
+  .lnode.sel{border-color:var(--accent2);box-shadow:0 0 0 1px var(--accent2)}
+  .lnode .nm{display:flex;align-items:center;gap:6px;font-weight:700;font-size:12px;color:var(--faint)}
+  .lnode .nm .dot{width:8px;height:8px;border-radius:50%;background:var(--line);flex:none}
+  .lnode.done .nm{color:var(--good)} .lnode.done .nm .dot{background:var(--good)}
+  .lnode.active .nm{color:var(--accent)} .lnode.active .nm .dot{background:var(--accent);box-shadow:0 0 8px rgba(56,225,196,.6);animation:pulse 2s infinite}
+  .lnode.partial .nm{color:var(--warn)} .lnode.partial .nm .dot{background:var(--warn)}
+  .lnode .cnt{font-size:10.5px;color:var(--dim);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ldrawer{border-top:1px solid var(--line);margin-top:10px;padding:10px 4px 2px;font-size:12.5px;color:var(--dim);display:none}
+  .ldrawer.open{display:block}
+  .ldrawer b{color:var(--ink)}
+  .ldrawer .meta2{color:var(--faint);font-size:11px;margin-top:4px}
+  /* ⓘ realtime guide popovers */
+  .info{display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;
+    border:1px solid var(--line);color:var(--faint);font-size:10px;font-style:normal;cursor:help;
+    margin-left:6px;position:relative;vertical-align:1px}
+  .info:hover{color:var(--accent);border-color:var(--accent)}
+  .info .tip{display:none;position:absolute;z-index:30;top:20px;left:50%;transform:translateX(-50%);
+    width:260px;background:var(--panel);border:1px solid var(--accent2);border-radius:10px;
+    padding:10px 12px;font-size:11.5px;line-height:1.5;color:var(--ink);font-weight:400;text-align:left;
+    box-shadow:0 8px 30px rgba(0,0,0,.45)}
+  .info:hover .tip,.info:focus .tip{display:block}
+
+  .grid{display:grid;gap:var(--gap)}
+  .hero{grid-template-columns:1.3fr 1fr 1fr;margin-bottom:var(--gap)}
+  @media(max-width:900px){.hero{grid-template-columns:1fr 1fr}.hero .tile:first-child{grid-column:1/-1}}
+  @media(max-width:560px){.hero{grid-template-columns:1fr}}
+  .tile{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);
+    border-radius:var(--r);padding:18px}
+  .tile h3{margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--dim);font-weight:700}
+  .tile .sub{color:var(--faint);font-size:12px}
+  .big{font-size:34px;font-weight:750;letter-spacing:-.5px;line-height:1.1}
+  .row{display:flex;align-items:center;gap:16px}
+  .ringwrap{display:flex;align-items:center;gap:18px}
+  .kv{display:flex;flex-direction:column} .kv .k{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.6px} .kv .v{font-size:20px;font-weight:700}
+  .flags{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+  .flag{font-size:11px;padding:4px 9px;border-radius:8px;border:1px solid var(--line);color:var(--dim);background:var(--panel2)}
+  .flag.on-good{color:var(--good);border-color:#1e4634} .flag.on-warn{color:var(--warn);border-color:#4a3a1e} .flag.on-bad{color:var(--bad);border-color:#4a2323}
+  .badge{font-size:11px;padding:2px 8px;border-radius:6px;font-weight:700}
+  .badge.g{background:rgba(87,211,140,.14);color:var(--good)} .badge.w{background:rgba(255,180,84,.14);color:var(--warn)}
+
+  .cols{grid-template-columns:1fr 1fr}@media(max-width:820px){.cols{grid-template-columns:1fr}}
+  .barlist{display:flex;flex-direction:column;gap:9px;margin-top:6px}
+  .barrow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+  .barrow .lab{font-size:12.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .barrow .num{font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
+  .meter{grid-column:1/-1;height:6px;background:var(--panel2);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .meter i{display:block;height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:6px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+  .chip{border:1px solid var(--line);background:var(--panel2);border-radius:20px;padding:5px 11px;font-size:12px}
+  .chip b{color:var(--accent);margin-left:5px;font-variant-numeric:tabular-nums}
+  .donut{display:flex;align-items:center;gap:16px}
+  .legend{display:flex;flex-direction:column;gap:6px}
+  .legend .li{display:flex;align-items:center;gap:8px;font-size:13px}
+  .legend .sw{width:10px;height:10px;border-radius:3px}
+  .ticker{max-height:150px;overflow:auto;margin-top:8px}
+  .tk{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);font-size:12.5px;align-items:center}
+  .tk .sid{color:var(--faint);font-family:ui-monospace,monospace}
+  .tk .pj{color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tk .w{color:var(--dim)} .tk .t{color:var(--accent2);font-variant-numeric:tabular-nums}
+  details.tile{cursor:default} details>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+  details>summary::-webkit-details-marker{display:none}
+  summary .exp{color:var(--faint);font-size:11px;border:1px solid var(--line);border-radius:6px;padding:2px 8px}
+  .spark{display:flex;align-items:flex-end;gap:3px;height:56px;margin-top:10px}
+  .spark .b{flex:1;background:linear-gradient(180deg,var(--accent2),transparent);border-radius:3px 3px 0 0;min-height:3px;opacity:.85}
+  .spark .b.now{background:linear-gradient(180deg,var(--accent),transparent)}
+  .foot{color:var(--faint);font-size:11px;text-align:center;margin-top:16px}
+  /* enrich stage list */
+  details.stg{border:1px solid var(--line);border-radius:10px;background:var(--panel2);margin-bottom:7px;padding:0}
+  details.stg>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:9px;padding:8px 11px;font-size:12.5px}
+  details.stg>summary::-webkit-details-marker{display:none}
+  .stg .ic{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:10px;flex:none;border:1.5px solid var(--line);color:var(--faint)}
+  .stg.done .ic{border-color:var(--good);color:var(--good)}
+  .stg.running .ic{border-color:var(--accent);color:var(--accent);box-shadow:0 0 10px rgba(56,225,196,.4)}
+  .stg.failed .ic{border-color:var(--bad);color:var(--bad)}
+  .stg .lab{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .stg.done .lab{color:var(--ink)} .stg.running .lab{color:var(--accent)} .stg .lab{color:var(--dim)}
+  .stg.failed .lab{color:var(--bad)}
+  .stg .meta{color:var(--faint);font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .stg .body{padding:2px 12px 10px 38px;font-size:11.5px;color:var(--dim)}
+  .stg .body .note{color:var(--accent2);margin-bottom:5px}
+  .stg .body pre{margin:6px 0 0;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;overflow:auto;max-height:130px;font-size:10.5px;color:var(--ink)}
+  .stg .smeter{height:4px;background:var(--bg);border-radius:4px;overflow:hidden;margin:6px 0 2px}
+  .stg .smeter i{display:block;height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent))}
+  svg .arc-bg{stroke:var(--line)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand"><b>LONGVIEW</b><small>Mission Control</small></div>
+    <div><span class="pill"><span class="dotlive"></span><span id="live">live</span></span>
+      <span class="pill" id="ws">—</span>
+      <span class="pill" id="stamp">—</span></div>
+  </div>
+
+  <div class="track">
+    <div class="rail" id="track"></div>
+    <div class="ldrawer" id="ldrawer"></div>
+  </div>
+
+  <div class="grid hero">
+    <!-- progress + eta -->
+    <div class="tile">
+      <h3>Backlog · work-weighted<i class="info" tabindex="0">i<span class="tip">Progress counted in <b>windows</b> (chunks of session transcript), not cards — a few giant sessions dominate, so this is the honest metric. ETA comes from the measured per-window rate. Over 100% means more windows were processed than the last plan predicted — run <b>dash.sh --replan</b> to refresh the plan.</span></i></h3>
+      <div class="ringwrap">
+        <svg width="118" height="118" viewBox="0 0 118 118">
+          <circle class="arc-bg" cx="59" cy="59" r="50" fill="none" stroke-width="10"/>
+          <circle id="ring" cx="59" cy="59" r="50" fill="none" stroke="var(--accent)" stroke-width="10"
+            stroke-linecap="round" transform="rotate(-90 59 59)" stroke-dasharray="314" stroke-dashoffset="314"/>
+          <text id="ringpct" x="59" y="55" text-anchor="middle" font-size="26" font-weight="750" fill="var(--ink)">0%</text>
+          <text x="59" y="74" text-anchor="middle" font-size="10" fill="var(--dim)">of windows</text>
+        </svg>
+        <div class="kv" style="gap:12px">
+          <div><div class="k">Windows</div><div class="v" id="wdone">0 / 0</div></div>
+          <div><div class="k">ETA · finishes</div><div class="v" id="eta" style="color:var(--accent)">—</div>
+            <div class="sub" id="etaclock">—</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- speedometer -->
+    <div class="tile">
+      <h3>Throughput</h3>
+      <div class="row">
+        <svg width="128" height="88" viewBox="0 0 128 88">
+          <path class="arc-bg" d="M14 80 A50 50 0 0 1 114 80" fill="none" stroke-width="9" stroke-linecap="round"/>
+          <path id="speedband" d="" fill="none" stroke="var(--accent2)" stroke-width="9" stroke-linecap="round" opacity=".5"/>
+          <line id="needle" x1="64" y1="80" x2="64" y2="36" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="64" cy="80" r="4" fill="var(--accent)"/>
+        </svg>
+        <div class="kv">
+          <div class="k">s / window</div><div class="v" id="rate">—</div>
+          <div class="sub" id="pband">p25–p75 —</div>
+          <div style="margin-top:6px"><span class="badge g" id="stab">stable</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- health -->
+    <div class="tile">
+      <h3>Status</h3>
+      <div class="big" id="cards">0</div><div class="sub">cards mapped · <span id="thin">0</span> thin-skipped</div>
+      <div class="flags">
+        <span class="flag on-good" id="fl-engine">engine ok</span>
+        <span class="flag" id="fl-wedge">0 wedges</span>
+        <span class="flag" id="fl-sess">0/248 sessions</span>
+      </div>
+      <div class="ticker" id="ticker"></div>
+    </div>
+  </div>
+
+  <!-- graph + enrich observability -->
+  <div class="grid cols" style="margin-bottom:var(--gap)">
+    <div class="tile">
+      <h3>Graph · knowledge graph <span class="badge g" id="g-live" style="display:none">live</span><i class="info" tabindex="0">i<span class="tip">Live counts polled from the local Benny API (never the LM host). <b>Sources</b> = session cards, <b>Concepts</b> = extracted ideas. During enrich, watch Concepts <b>fall</b> (duplicates merging into hubs) and RELATES_TO <b>rise</b> (new similarity links) — that IS the enrich progress.</span></i></h3>
+      <div class="row" style="gap:22px;margin-top:6px">
+        <div class="kv"><div class="k">Sources</div><div class="v" id="g-src">—</div></div>
+        <div class="kv"><div class="k">Concepts</div><div class="v" id="g-con">—</div></div>
+        <div class="kv"><div class="k">Relates_to</div><div class="v" id="g-rel">—</div></div>
+        <div class="kv"><div class="k">Sourced_from</div><div class="v" id="g-sf">—</div></div>
+      </div>
+      <div class="sub" id="g-phase" style="margin-top:10px">—</div>
+      <div class="spark" id="g-spark" style="height:42px"></div>
+      <div class="sub" id="g-sparklab"></div>
+    </div>
+    <div class="tile">
+      <h3>Enrich · stages <span id="e-statebadge" class="badge w" style="margin-left:6px">—</span><i class="info" tabindex="0">i<span class="tip">Six stages run in order; each pane shows its live counter, earned per-item rate and <b>ETA</b> once it has done a few items. Click a stage to expand its result detail. <b>embeddings</b> is the long pole on a first run (~45 min); <b>recluster</b> makes one LLM call per named theme (up to 60).</span></i></h3>
+      <div class="sub" id="e-sub">—</div>
+      <div id="e-stages" style="margin-top:10px"></div>
+      <div class="flags" style="margin-top:10px">
+        <span class="flag" id="e-merge">concept merges —</span>
+        <span class="flag" id="e-links">new links —</span>
+      </div>
+      <div class="sub" id="e-tail" style="margin-top:10px;font-family:ui-monospace,monospace;font-size:11px;word-break:break-all"></div>
+    </div>
+  </div>
+
+  <!-- composition -->
+  <details class="tile" open style="margin-bottom:var(--gap)">
+    <summary><h3 style="margin:0">Where the work is · session sizes</h3><span class="exp">planned windows</span></summary>
+    <div class="barlist" id="comp"></div>
+    <div class="sub" style="margin-top:8px">A few giant sessions dominate the backlog — this is why work-% ≠ card-%.</div>
+  </details>
+
+  <!-- 5W -->
+  <div class="grid cols">
+    <details class="tile" open>
+      <summary><h3 style="margin:0">Who · actors</h3><span class="exp">agents & models</span></summary>
+      <div class="donut" id="who"></div>
+      <div class="chips" id="traits" style="margin-top:12px"></div>
+    </details>
+
+    <details class="tile" open>
+      <summary><h3 style="margin:0">What · concepts</h3><span class="exp">top entities</span></summary>
+      <div class="chips" id="concepts"></div>
+      <div class="sub" id="whatmore" style="margin-top:10px"></div>
+    </details>
+
+    <details class="tile" open>
+      <summary><h3 style="margin:0">Where · projects</h3><span class="exp">windows done / planned</span></summary>
+      <div class="barlist" id="where"></div>
+    </details>
+
+    <details class="tile" open>
+      <summary><h3 style="margin:0">When · timeline</h3><span class="exp">sessions by month</span></summary>
+      <div class="spark" id="when"></div>
+      <div class="sub" id="whenlab" style="margin-top:8px"></div>
+    </details>
+  </div>
+
+  <div class="foot" id="foot">waiting for dashboard.json …</div>
+</div>
+
+<script>
+// Realtime guide — one plain-language entry per phase, shown in the drawer
+// when a node on the lineage rail is clicked.
+const GUIDE={
+ inventory:"Census of every session in the memo-ray store: who (agent), when, how big. Deterministic, no LLM. Output: longview/inventory.json.",
+ extract:"Cuts each session transcript into bounded evidence packs (windows) the local model can actually read. Deterministic. Output: longview/evidence/.",
+ map:"The long march: one gated LLM pass per session window → one structured session card (concepts, capabilities, skills, traits). Resume-safe; the ledger records every verdict. Output: longview/cards/.",
+ graph:"Deterministic knowledge-graph build: each card's own fragments become Source/Concept nodes + RELATES_TO/SOURCED_FROM edges via /rag/graph-upsert (~0.4s/card, no LLM). Also ingests card vectors.",
+ enrich:"Connects the per-card concept islands: embed all concepts, merge near-duplicates into hubs (node size = merge_count), add cross-document similarity links, type the relations, re-cluster and LLM-name the big themes.",
+ model:"Deterministic rollups — chronological timeline + operator profile digest — that reduce/opus later quote. Fast (file work only; vectors were already ingested by graph).",
+ review:"Post-graph collation: for each session, pull its concepts' graph neighbours from OTHER sessions and write a cited review note — the 'greater than the sum' pass. One LLM call per session (~2-3.5h for this corpus).",
+ weave:"Discovery loops: the model asks under-explored questions, retrieves across chunks+graph, writes cited discovery notes, re-ingests them so later deliverables stand on a richer corpus.",
+ reduce:"The deliverables pass: per-project dossiers → THEMES.md → PORTFOLIO-REPORT.md, PRD, skills/ — all cited from cards, reviews and discovery notes. Output: data_out/.",
+ opus:"The book: hierarchical outline (parts→chapters→sections), then ~100 retrieval-grounded cited sections assembled into a 200+ page manuscript. Resume-safe per section.",
+ pdf:"Assembles the book markdown into print-styled HTML and renders a PDF via headless Edge/Chrome. Minutes."};
+const fmtClock2=iso=>{try{return new Date(iso).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});}catch{return'—';}};
+let selPhase=null;
+const fmtDur=s=>{s=Math.round(s);const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?`${h}h ${m}m`:`${m}m`;};
+const fmtClock=iso=>{try{const d=new Date(iso);return d.toLocaleString(undefined,{weekday:'short',hour:'2-digit',minute:'2-digit'});}catch{return'—';}};
+const COL=['#38e1c4','#5aa9ff','#ffb454','#c58bff','#57d38c','#ff6b6b'];
+
+function polar(cx,cy,r,deg){const a=(deg-180)*Math.PI/180;return[cx+r*Math.cos(a),cy+r*Math.sin(a)];}
+function arc(cx,cy,r,d0,d1){const[x0,y0]=polar(cx,cy,r,d0),[x1,y1]=polar(cx,cy,r,d1);const large=d1-d0>180?1:0;return`M${x0} ${y0} A${r} ${r} 0 ${large} 1 ${x1} ${y1}`;}
+
+function render(d){
+  document.getElementById('ws').textContent=d.workspace;
+  document.getElementById('stamp').textContent='updated '+new Date(d.generated).toLocaleTimeString();
+  document.getElementById('foot').textContent=`plan-validated · ${d.run.total_windows} windows across ${d.run.active_sessions} active sessions · read-only, no LM-host impact`;
+
+  // pipeline lineage rail — evidence-based status per phase, click to inspect
+  const ph=d.phases||{};
+  const tr=document.getElementById('track');tr.innerHTML='';
+  const pipe=d.pipeline||[];
+  for(const p of pipe){
+    const cnt=p.status==='active'&&p.id==='enrich'&&ph.enrich?`running · ${fmtDur(ph.enrich.elapsed_s||0)}`
+      :p.id==='map'?`${p.count} cards · ${d.run.pct_work}%`
+      :p.count!=null&&p.count>0?`${p.count.toLocaleString()} ${p.unit}`
+      :p.status==='todo'?'queued':p.status;
+    tr.insertAdjacentHTML('beforeend',
+      `<div class="lnode ${p.status}${selPhase===p.id?' sel':''}" data-ph="${p.id}">
+         <div class="nm"><span class="dot"></span>${p.id}</div>
+         <div class="cnt">${cnt}</div></div>`);
+  }
+  tr.querySelectorAll('.lnode').forEach(el=>el.onclick=()=>{selPhase=selPhase===el.dataset.ph?null:el.dataset.ph;render(d);});
+  const drawer=document.getElementById('ldrawer');
+  const sp=pipe.find(p=>p.id===selPhase);
+  if(sp){
+    const when=sp.first?`first activity ${new Date(sp.first).toLocaleString()} · last ${new Date(sp.last).toLocaleString()}`:'no ledger activity yet';
+    const counts=`ledger: ${sp.ok} ok · ${sp.fail} failed`;
+    drawer.className='ldrawer open';
+    drawer.innerHTML=`<b>${sp.id}</b> — ${sp.makes} · <span class="badge ${sp.status==='done'?'g':'w'}">${sp.status}</span>
+      <div style="margin-top:6px">${GUIDE[sp.id]||''}</div>
+      <div class="meta2">${when} · ${counts}${sp.count!=null?` · on disk: ${sp.count.toLocaleString()} ${sp.unit}`:''}</div>`;
+  } else drawer.className='ldrawer';
+
+  // graph panel
+  const gs=ph.graph_stats;
+  if(gs){
+    document.getElementById('g-live').style.display='';
+    document.getElementById('g-src').textContent=(gs.node_types.Source||0).toLocaleString();
+    document.getElementById('g-con').textContent=(gs.node_types.Concept||0).toLocaleString();
+    document.getElementById('g-rel').textContent=(gs.relationship_types.RELATES_TO||0).toLocaleString();
+    document.getElementById('g-sf').textContent=(gs.relationship_types.SOURCED_FROM||0).toLocaleString();
+  }
+  if(ph.graph){
+    const g=ph.graph;
+    document.getElementById('g-phase').textContent=
+      `graph phase: ${g.cards_ok} cards upserted (+${g.nodes_added.toLocaleString()} nodes / ${g.edges_added.toLocaleString()} edges)`+
+      (g.cards_failed?` · ${g.cards_failed} FAILED (${g.last_error||''})`:'')+
+      (g.live?` · ~${g.live.per_item}/card · ETA ${g.live.eta}`:'');
+  }
+  const hist=ph.graph_history||[];
+  if(hist.length>1){
+    const series=hist.map(h=>(h.nodes.Concept||0)+(Object.values(h.rels).reduce((a,b)=>a+b,0)));
+    const mn=Math.min(...series),mx=Math.max(...series),span=mx-mn||1;
+    document.getElementById('g-spark').innerHTML=series.map((v,i)=>
+      `<div class="b${i===series.length-1?' now':''}" title="${hist[i].ts}: ${v.toLocaleString()}" style="height:${8+Math.round((v-mn)/span*92)}%"></div>`).join('');
+    document.getElementById('g-sparklab').textContent=`graph size over time (concepts+edges) · ${hist.length} samples`;
+  }
+
+  // enrich panel — the subprocess is silent, so live progress is read off the
+  // graph itself: Concept count falls as merges land, edge types grow as links land.
+  if(ph.enrich){
+    const e=ph.enrich;
+    const badge=document.getElementById('e-statebadge');
+    if(e.running){badge.textContent=`running · ${fmtDur(e.elapsed_s||0)}`;badge.className='badge w';
+      document.getElementById('e-sub').textContent='live stage detail from enrich_progress.json · only the theme-naming step calls the LLM';}
+    else if(e.ok===true){badge.textContent=`complete · ${e.minutes} min`;badge.className='badge g';
+      document.getElementById('e-sub').textContent='all stages applied';}
+    else if(e.ok===false){
+      // The run verdict can be FAILED (timeout/kill) while most stage WRITES
+      // are applied and durable — say both, or the badge overstates the damage.
+      const st=(e.detail&&e.detail.stages)||[];
+      const done=st.filter(s=>s.status==='done').length;
+      badge.textContent=done?`run failed · ${done}/${st.length} stages applied`:`FAILED · ${e.minutes} min`;
+      badge.className='badge w';badge.style.color='var(--bad)';
+      document.getElementById('e-sub').textContent=done
+        ?`the ${done} completed stages' writes are applied and durable — only the ${st.find(s=>s.status!=='done')?.id||'remaining'} stage needs a re-run`
+        :'see failed stage / tail below';}
+    else{badge.textContent='pending';badge.className='badge w';
+      document.getElementById('e-sub').textContent='runs after graph';}
+
+    // per-stage detail panes (todo / running / done / failed)
+    const box=document.getElementById('e-stages');
+    const det=e.detail;
+    if(det&&det.stages){
+      const openStates=Object.fromEntries([...box.querySelectorAll('details.stg')].map(el=>[el.dataset.sid,el.open]));
+      box.innerHTML=det.stages.map(s=>{
+        const icon=s.status==='done'?'✓':s.status==='running'?'▶':s.status==='failed'?'✗':'○';
+        // Earned ETA: rate = elapsed/done so far, projected over what's left.
+        let eta='';
+        if(s.status==='running'&&s.seconds>0&&s.done_items>0&&s.total_items>s.done_items){
+          const rate=s.seconds/s.done_items, left=(s.total_items-s.done_items)*rate;
+          eta=` · ~${rate>=1?Math.round(rate)+'s':'<1s'} each · ETA ${fmtDur(left)} (≈${fmtClock2(new Date(Date.now()+left*1000).toISOString())})`;
+        }
+        const meta=[s.status==='running'&&s.seconds!=null?`${fmtDur(s.seconds)} elapsed`:s.seconds!=null?fmtDur(s.seconds):null,
+                    s.done_items!=null?`${s.done_items.toLocaleString()}${s.total_items?' of '+s.total_items.toLocaleString():''} ${s.total_items?'items':''}`:null]
+                   .filter(Boolean).join(' · ')+eta;
+        const pct=s.total_items&&s.done_items!=null?Math.min(100,Math.round(s.done_items/s.total_items*100)):null;
+        const body=
+          (s.note?`<div class="note">${s.note}</div>`:'')+
+          (pct!=null&&s.status==='running'?`<div class="smeter"><i style="width:${pct}%"></i></div>`:'')+
+          (s.error?`<div style="color:var(--bad)">${s.error}</div>`:'')+
+          (s.result?`<pre>${JSON.stringify(s.result,null,1)}</pre>`:'')+
+          (!s.note&&!s.result&&!s.error?`<div>${s.status==='todo'?'queued':'no detail yet'}</div>`:'');
+        return `<details class="stg ${s.status}" data-sid="${s.id}" ${openStates[s.id]||s.status==='running'||s.status==='failed'?'open':''}>
+          <summary><span class="ic">${icon}</span><span class="lab">${s.label}</span><span class="meta">${meta}</span></summary>
+          <div class="body">${body}</div></details>`;
+      }).join('');
+      if(det.dry_run)box.insertAdjacentHTML('beforeend','<div class="sub">dry-run — counts only, no writes</div>');
+    } else {
+      box.innerHTML='<div class="sub">no per-stage detail yet — this run predates the instrumented enrich (next run emits enrich_progress.json)</div>';
+    }
+    document.getElementById('e-tail').textContent=e.tail||'';
+    // deltas since enrich started, from the history series
+    const t0=e.started?hist.find(h=>h.ts>=e.started):null;
+    const tN=hist[hist.length-1];
+    if(t0&&tN&&t0!==tN){
+      const dCon=(tN.nodes.Concept||0)-(t0.nodes.Concept||0);
+      const rels=h=>Object.values(h.rels).reduce((a,b)=>a+b,0);
+      const dRel=rels(tN)-rels(t0);
+      document.getElementById('e-merge').textContent=`concepts ${dCon<=0?dCon:'+'+dCon} (merges shrink this)`;
+      document.getElementById('e-merge').className='flag '+(dCon<0?'on-good':'');
+      document.getElementById('e-links').textContent=`edges ${dRel>=0?'+':''}${dRel}`;
+      document.getElementById('e-links').className='flag '+(dRel>0?'on-good':'');
+    }
+  }
+
+  // ring
+  const pct=d.run.pct_work, off=314-(314*pct/100);
+  const ring=document.getElementById('ring');ring.style.transition='stroke-dashoffset 1s cubic-bezier(.2,.8,.2,1)';ring.setAttribute('stroke-dashoffset',off);
+  document.getElementById('ringpct').textContent=pct+'%';
+  document.getElementById('wdone').textContent=`${d.run.done_windows.toLocaleString()} / ${d.run.total_windows.toLocaleString()}`;
+  document.getElementById('eta').textContent='~'+fmtDur(d.run.eta_seconds);
+  document.getElementById('etaclock').textContent='≈ '+fmtClock(d.run.eta_iso);
+
+  // speedo: map rate onto 40..160 s/win across the arc (0..180deg)
+  const r=d.run.rate_s_per_window;const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const toDeg=v=>clamp((v-40)/(160-40),0,1)*180;
+  document.getElementById('needle').setAttribute('transform',`rotate(${toDeg(r)-90} 64 80)`);
+  document.getElementById('speedband').setAttribute('d',arc(64,80,50,toDeg(d.throughput.p25),toDeg(d.throughput.p75)));
+  document.getElementById('rate').textContent=r+'s';
+  document.getElementById('pband').textContent=`p25–p75  ${d.throughput.p25}–${d.throughput.p75}s`;
+  const stab=d.throughput.stability||0;const sb=document.getElementById('stab');
+  sb.textContent=stab<1.6?`stable ×${stab}`:`noisy ×${stab}`;sb.className='badge '+(stab<1.6?'g':'w');
+
+  // status
+  document.getElementById('cards').textContent=d.run.cards_done;
+  document.getElementById('thin').textContent=d.run.thin;
+  document.getElementById('fl-wedge').textContent=`${d.run.wedges} wedges`;
+  document.getElementById('fl-wedge').className='flag '+(d.run.wedges?'on-warn':'on-good');
+  document.getElementById('fl-sess').textContent=`${d.run.cards_done+d.run.thin}/${d.run.sessions_total} sessions`;
+
+  // ticker
+  document.getElementById('ticker').innerHTML=(d.recent_cards||[]).map(c=>
+    `<div class="tk"><span class="sid">${c.sid}</span><span class="pj">${c.project}</span><span class="w">${c.windows}w</span><span class="t">${c.s}s</span></div>`).join('');
+
+  // composition
+  const maxW=Math.max(...d.composition.map(b=>b.windows),1);
+  document.getElementById('comp').innerHTML=d.composition.map(b=>
+    `<div class="barrow"><span class="lab">${b.label} windows/session · <span style="color:var(--dim)">${b.sessions} sessions</span></span><span class="num">${b.windows.toLocaleString()} w</span><span class="meter"><i style="width:${Math.round(b.windows/maxW*100)}%"></i></span></div>`).join('');
+
+  // who
+  const ag=Object.entries(d.who.agents);const tot=ag.reduce((a,[,n])=>a+n,0)||1;let acc=0;
+  const segs=ag.map(([k,n],i)=>{const frac=n/tot;const d0=acc*360,d1=(acc+frac)*360;acc+=frac;return `<path d="${arc(48,48,38,d0,d1)}" fill="none" stroke="${COL[i%COL.length]}" stroke-width="14"/>`;});
+  document.getElementById('who').innerHTML=
+    `<svg width="96" height="96" viewBox="0 0 96 96">${segs.join('')}<text x="48" y="52" text-anchor="middle" font-size="16" font-weight="700" fill="var(--ink)">${tot}</text></svg>`+
+    `<div class="legend">${ag.map(([k,n],i)=>`<div class="li"><span class="sw" style="background:${COL[i%COL.length]}"></span>${k} <b style="margin-left:auto;color:var(--dim)">${n}</b></div>`).join('')}
+      <div class="li" style="color:var(--faint);margin-top:4px">${Object.keys(d.who.models)[0]||''}</div></div>`;
+  document.getElementById('traits').innerHTML=(d.who.operator_traits||[]).slice(0,6).map(t=>`<span class="chip">${t.name}<b>${t.count}</b></span>`).join('');
+
+  // what
+  const cs=d.what.concepts;const mc=Math.max(...cs.map(c=>c.count),1);
+  document.getElementById('concepts').innerHTML=cs.slice(0,16).map(c=>`<span class="chip" style="font-size:${11+ (c.count/mc)*4}px">${c.name}<b>${c.count}</b></span>`).join('');
+  document.getElementById('whatmore').textContent=`${d.what.capabilities.length} capabilities · ${d.what.skills.length} skills tracked (grows as more cards land)`;
+
+  // where
+  const wmax=Math.max(...d.where.map(w=>w.windows_planned),1);
+  document.getElementById('where').innerHTML=d.where.slice(0,8).map(w=>
+    `<div class="barrow"><span class="lab">${w.project}</span><span class="num">${w.windows_done}/${w.windows_planned}w · ${w.pct}%</span><span class="meter"><i style="width:${Math.round(w.windows_planned/wmax*100)}%;opacity:.35"></i><i style="width:${Math.round(w.windows_done/wmax*100)}%;margin-top:-6px"></i></span></div>`).join('');
+
+  // when
+  const wm=d.when.by_month;const mx=Math.max(...wm.map(m=>m.windows),1);
+  document.getElementById('when').innerHTML=wm.map(m=>`<div class="b" title="${m.month}: ${m.sessions} sessions, ${m.windows} windows" style="height:${Math.round(m.windows/mx*100)}%"></div>`).join('');
+  document.getElementById('whenlab').textContent=wm.length?`${wm[0].month} → ${wm[wm.length-1].month} · ${wm.reduce((a,m)=>a+m.sessions,0)} sessions`:'';
+}
+
+async function tick(){
+  try{
+    const r=await fetch('dashboard.json?_='+Date.now());
+    if(!r.ok)throw 0; render(await r.json());
+    document.getElementById('live').textContent='live';
+  }catch(e){ document.getElementById('live').textContent='stale'; }
+}
+tick(); setInterval(tick, 15000);
+</script>
+</body>
+</html>

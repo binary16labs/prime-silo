@@ -1182,6 +1182,11 @@ async def batch_embed_concepts(
             """
             cache_res = session.run(query, ws=workspace, names=concepts)
             for rec in cache_res:
+                # A zero vector is a persisted embed FAILURE (the except branch
+                # below used to leak them into storage) — treat as cache miss or
+                # merge/similarity silently degenerate to 0 pairs forever.
+                if not rec["embedding"] or not any(rec["embedding"]):
+                    continue
                 key = rec["name"]
                 # Match the 'name: summary' format used in correlation
                 if rec["summary"] and f"{rec['name']}: {rec['summary']}" in concepts:
@@ -1202,12 +1207,17 @@ async def batch_embed_concepts(
     total = len(missing_concepts)
     completed = 0
 
+    # Per-call deadline: a wedged embed host hangs each request indefinitely,
+    # freezing all 16 semaphore slots at once with no error and no progress.
+    embed_timeout = float(os.environ.get("BENNY_EMBED_TIMEOUT_S", "180"))
+
     async def embed_one(concept: str):
         nonlocal completed
         async with semaphore:
             try:
-                embedding = await get_embedding(
-                    concept, provider=provider, model=model, workspace=workspace
+                embedding = await asyncio.wait_for(
+                    get_embedding(concept, provider=provider, model=model, workspace=workspace),
+                    timeout=embed_timeout,
                 )
                 results[concept] = embedding
                 completed += 1
