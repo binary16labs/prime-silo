@@ -44,7 +44,12 @@ export async function chat({ system, user, maxTokens, json = false, temperature 
     throw new Error(`llm ${res.status} @ ${config.LLM_BASE_URL}: ${text.slice(0, 300)}`);
   }
   const data = await res.json();
-  const content = data.choices?.[0]?.message?.content ?? "";
+  // LM Studio's reasoning parser can divert the ENTIRE reply into
+  // reasoning_content leaving content empty (observed 2026-07-14 after a host
+  // restart — weave wrote 0-byte notes). reasoning_effort:"none" is the real
+  // fix; this fallback keeps a run degraded-but-alive if the pin is missing.
+  const msg = data.choices?.[0]?.message ?? {};
+  const content = msg.content || msg.reasoning_content || "";
   const usage = data.usage || null;
   return {
     content,

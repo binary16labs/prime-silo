@@ -264,7 +264,10 @@ const countFiles = (p, ext) => {
 };
 const dataOut = path.join(LV, "..", "data_out");
 const activeCards = plan.totals.active;
-const rollupMds = countFiles(path.join(LV, "rollups"), ".md");
+// Rollups are JSON (operator/projects/capabilities/timeline/threads), not .md —
+// operator.json is the marker the reduce phase actually depends on.
+const rollupsDone = fs.existsSync(path.join(LV, "rollups", "operator.json"));
+const rollupCount = countFiles(path.join(LV, "rollups"), ".json");
 const enrichDone = enrichProgress && enrichProgress.done === true && enrichProgress.ok === true;
 const art = {
   reviews: countFiles(path.join(dataOut, "reviews"), ".md"),
@@ -282,7 +285,7 @@ const phaseDefs = [
   { id: "map", makes: "session cards", done: doneFiles.length >= activeCards, n: doneFiles.length, unit: "cards" },
   { id: "graph", makes: "knowledge graph", done: graphState.cards_ok >= doneFiles.length && doneFiles.length > 0, n: graphState.nodes_added, unit: "nodes" },
   { id: "enrich", makes: "merged concepts + themes", done: !!enrichDone, n: null, unit: "" },
-  { id: "model", makes: "rollups (timeline/operator)", done: rollupMds > 0, n: rollupMds, unit: "rollups" },
+  { id: "model", makes: "rollups (timeline/operator)", done: rollupsDone, n: rollupCount, unit: "rollups" },
   { id: "review", makes: "per-session reviews", done: art.reviews >= doneFiles.length && art.reviews > 0, n: art.reviews, unit: "reviews" },
   { id: "weave", makes: "discovery notes", done: (ledgerByPhase.get("weave") || {}).ok > 0, n: null, unit: "" },
   { id: "reduce", makes: "dossiers · skills · report · PRD", done: art.themes && art.report && art.dossiers > 0, n: art.dossiers, unit: "dossiers" },
@@ -419,7 +422,10 @@ const out = {
   composition: buckets,
   recent_cards: processing.slice(-12).reverse()
 };
-fs.writeFileSync(path.join(DASH, "dashboard.json"), JSON.stringify(out, null, 2));
+// Atomic write (tmp + rename) so the server never reads a half-written file.
+const outPath = path.join(DASH, "dashboard.json");
+fs.writeFileSync(outPath + ".tmp", JSON.stringify(out, null, 2));
+fs.renameSync(outPath + ".tmp", outPath);
 console.log(
   `[collect] ${out.run.pct_work}% work · ${doneWindows}/${totalWindows} windows · ${doneFiles.length} cards · ETA ${Math.round(etaSec / 3600)}h · rate ${out.run.rate_s_per_window}s/win → dashboard.json`
 );

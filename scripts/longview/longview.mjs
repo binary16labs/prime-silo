@@ -1539,6 +1539,11 @@ async function runWeave({ loops = null, questionsPerLoop = null } = {}) {
       .filter((f) => f.endsWith(".md"))
       .map((f) => "- " + f.replace(/\.md$/, "").replace(/_/g, " "));
     const concepts = await graphCatalog(25);
+    // Capability rollup as extra grounding — on a first full pass THEMES.md
+    // doesn't exist yet (reduce writes it), so without this the question
+    // generator has only the concept list to anchor on.
+    const capsPath = stateDir("rollups", "capabilities.json");
+    const capsSlice = fs.existsSync(capsPath) ? fs.readFileSync(capsPath, "utf8").slice(0, 2500) : "";
     writeStatus({ phase: "weave", weave_loop: loop, weave_loops_total: nLoops });
     console.log(`[weave] loop ${loop}/${nLoops}: generating ${nQuestions} discovery questions…`);
     // Two attempts — local JSON mode sometimes wraps in prose or truncates.
@@ -1548,9 +1553,10 @@ async function runWeave({ loops = null, questionsPerLoop = null } = {}) {
       const res = await chat({
         system: prompt("discovery_questions"),
         user: [
-          `Generate exactly ${nQuestions} questions.`,
-          `## Current themes\n${themes.slice(0, 4000)}`,
+          `Generate exactly ${nQuestions} questions. Ground every question in the concrete concepts/capabilities below — never invent placeholder names like "Project A" or "Technology X".`,
+          themes ? `## Current themes\n${themes.slice(0, 4000)}` : "",
           concepts.length ? `## Top graph concepts\n${concepts.join(", ")}` : "",
+          capsSlice ? `## Capability rollup (JSON)\n${capsSlice}` : "",
           existingNotes.length
             ? `## Notes already written\n${existingNotes.join("\n").slice(0, 1500)}`
             : "",
@@ -1594,7 +1600,16 @@ async function runWeave({ loops = null, questionsPerLoop = null } = {}) {
         maxTokens: 1100,
         temperature: 0.4
       });
-      fs.writeFileSync(notePath, note.content.trim());
+      const noteText = (note.content || "").trim();
+      if (noteText.length < 40) {
+        // An empty/near-empty reply must NOT hit disk: the existsSync resume
+        // check above would then block the retry forever (four 0-byte notes
+        // shipped this way on 2026-07-14).
+        appendLedger({ phase: "weave", artifact: `loop${loop}:note${i + 1}`, ok: false, error: `empty note (${noteText.length} chars)` });
+        console.log(`[weave] loop ${loop} note ${i + 1}/${qs.length}: EMPTY reply — skipped (will retry on re-run)`);
+        continue;
+      }
+      fs.writeFileSync(notePath, noteText);
       noteFiles.push(noteName);
       appendLedger({
         phase: "weave",

@@ -856,6 +856,14 @@ async def call_model(
                 final_content = (
                     message.content if hasattr(message, "content") else message.get("content", "")
                 )
+                if not final_content:
+                    # LM Studio's reasoning parser can divert the entire reply
+                    # into reasoning_content, leaving content empty (observed
+                    # 2026-07-14: community naming got "0 chars" after a host
+                    # restart). Fall back so callers get the text at all.
+                    final_content = getattr(message, "reasoning_content", None) or (
+                        message.get("reasoning_content", "") if isinstance(message, dict) else ""
+                    )
                 break
 
         # Final result from the loop

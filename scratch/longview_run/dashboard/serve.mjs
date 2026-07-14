@@ -25,11 +25,20 @@ http
       res.writeHead(404);
       return res.end("not found");
     }
-    res.writeHead(200, {
-      "Content-Type": TYPES[path.extname(file)] || "application/octet-stream",
-      "Cache-Control": "no-store"
-    });
-    fs.createReadStream(file).pipe(res);
+    // readFileSync (not a stream): the collector rewrites dashboard.json every
+    // 20s and an unhandled stream error on a mid-write read crashed the whole
+    // server (2026-07-14). A failed read is a 503 the page retries in 15s.
+    try {
+      const body = fs.readFileSync(file);
+      res.writeHead(200, {
+        "Content-Type": TYPES[path.extname(file)] || "application/octet-stream",
+        "Cache-Control": "no-store"
+      });
+      res.end(body);
+    } catch {
+      res.writeHead(503);
+      res.end("busy");
+    }
   })
   .listen(PORT, HOST, () =>
     console.log(

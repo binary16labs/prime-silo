@@ -37,14 +37,23 @@ export async function ragQuery(query, topK = 5) {
 // Top concepts in the workspace graph — the weave phase samples these to keep
 // discovery anchored to what the graph actually contains.
 export async function graphCatalog(limit = 30) {
+  // NOT /api/graph/catalog: that endpoint lists graph VIEWS ("Neural Nexus
+  // (Merged Global view)"), not concepts — weave fed the question generator
+  // that single string as its whole corpus grounding, and the model invented
+  // "Project A / Technology X" placeholder questions (2026-07-14). The lean
+  // knowledge endpoint has the real Concept nodes; merged hubs first — they
+  // are the cross-session ideas discovery questions should probe.
   try {
     const data = await bennyGet(
-      `/api/graph/catalog?workspace=${encodeURIComponent(config.WORKSPACE)}`
+      `/api/graph/knowledge?workspace=${encodeURIComponent(config.WORKSPACE)}&mode=connected`
     );
-    const rows = Array.isArray(data) ? data : data.concepts || data.catalog || data.items || [];
-    return rows
-      .map((c) => (typeof c === "string" ? c : c.name || c.concept || ""))
-      .filter(Boolean)
+    return (data.nodes || [])
+      .filter((n) => n.node_type === "Concept" && n.name)
+      .sort(
+        (a, b) =>
+          (b.merge_count || 1) - (a.merge_count || 1) || (b.centrality || 0) - (a.centrality || 0)
+      )
+      .map((n) => n.name)
       .slice(0, limit);
   } catch {
     return [];
