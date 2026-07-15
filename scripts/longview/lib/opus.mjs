@@ -524,7 +524,11 @@ function writeCoverage(outline, sections, words) {
   );
   let totalCards = 0;
   try {
-    totalCards = fs.readdirSync(stateDir("cards")).filter((f) => f.endsWith(".json")).length;
+    // .meta.json ALSO ends with .json — exclude it, or the denominator doubles
+    // and coverage reads at half its true value (2026-07-15: 59/376 vs 59/188).
+    totalCards = fs
+      .readdirSync(stateDir("cards"))
+      .filter((f) => f.endsWith(".json") && !f.endsWith(".meta.json")).length;
   } catch {
     /* no cards dir */
   }

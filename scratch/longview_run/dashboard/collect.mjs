@@ -8,6 +8,7 @@
 // alongside a live map — pure fs reads, output goes to the dashboard dir only.
 import fs from "fs";
 import path from "path";
+import { deriveLineage } from "./lineage.mjs";
 
 const WS = process.env.LONGVIEW_WORKSPACE || "sessions_v1";
 const LV = `C:/Users/nsdha/AppData/Roaming/space-agent/benny-home/benny/workspaces/${WS}/longview`;
@@ -20,6 +21,13 @@ const readJSON = (p, d = null) => {
     return JSON.parse(fs.readFileSync(p, "utf8"));
   } catch {
     return d;
+  }
+};
+const readTextIf = (p) => {
+  try {
+    return fs.readFileSync(p, "utf8");
+  } catch {
+    return "";
   }
 };
 const windowsOnDisk = (sid) => {
@@ -300,14 +308,71 @@ const projectTotal = projectsRollup
     : Object.keys(projectsRollup).length
   : null;
 const ROLLUP_SET = 7; // projects/capabilities/timeline/operator/threads/sids/ingested
-const outline = readJSON(path.join(dataOut, "opus", "outline.json"), null);
-const plannedSections = outline
-  ? (outline.parts || []).reduce(
-      (a, p) => a + (p.chapters || []).reduce((b, c) => b + (c.sections || []).length, 0),
-      0
-    ) || null
-  : null;
-const sectionFiles = countFiles(path.join(dataOut, "opus", "sections"), ".md");
+// --- book iterations: discover EVERY book output (opus/ + iterations/*), not
+// just opus/ — the "can't see v2-arcs" bug was the dashboard hard-coding opus/.
+// Each is reported with its own progress + coverage; the ACTIVE one (most
+// recently written sections) drives the opus phase denominator.
+function discoverBooks() {
+  const dirs = [{ id: "opus", dir: path.join(dataOut, "opus") }];
+  const itRoot = path.join(dataOut, "iterations");
+  try {
+    for (const name of fs.readdirSync(itRoot))
+      if (fs.statSync(path.join(itRoot, name)).isDirectory())
+        dirs.push({ id: `iterations/${name}`, dir: path.join(itRoot, name) });
+  } catch {
+    /* no iterations yet */
+  }
+  const books = [];
+  for (const { id, dir } of dirs) {
+    const ol = readJSON(path.join(dir, "outline.json"), null);
+    if (!ol && !fs.existsSync(path.join(dir, "sections"))) continue;
+    const planned = ol
+      ? (ol.parts || []).reduce((a, p) => a + (p.chapters || []).reduce((b, c) => b + (c.sections || []).length, 0), 0) || null
+      : null;
+    const written = countFiles(path.join(dir, "sections"), ".md");
+    // Coverage computed HERE from the assembled book (deterministic, consistent
+    // across books regardless of when each COVERAGE.md was written, and immune
+    // to the .meta.json double-count bug). distinct cited sids ÷ real cards.
+    const bookMd = readTextIf(path.join(dir, "THE-AI-VAMPIRE.md"));
+    const citedSids = new Set(
+      (bookMd.match(/\(sid:\s*[a-z0-9]{6,}\s*\)/gi) || []).map((m) =>
+        m.replace(/.*sid:\s*/i, "").replace(/\s*\).*/, "").slice(0, 8).toLowerCase()
+      )
+    );
+    const realCards = fs.existsSync(path.join(LV, "cards"))
+      ? fs.readdirSync(path.join(LV, "cards")).filter((f) => f.endsWith(".json") && !f.endsWith(".meta.json")).length
+      : 0;
+    const coverage_pct = realCards && citedSids.size ? +((citedSids.size / realCards) * 100).toFixed(1) : null;
+    const words = bookMd ? bookMd.split(/\s+/).filter(Boolean).length : null;
+    const arcs = readJSON(path.join(dir, "arcs.json"), null);
+    let mtime = 0;
+    try {
+      mtime = fs.statSync(path.join(dir, "sections")).mtimeMs;
+    } catch {
+      /* */
+    }
+    books.push({
+      id,
+      baseline: id === "opus",
+      arced: Boolean(arcs?.arcs?.length),
+      arcs: arcs?.arcs?.length || 0,
+      planned,
+      written,
+      pct: written && planned ? Math.round((written / planned) * 100) : null,
+      sessions_cited: citedSids.size || null,
+      cards_total: realCards || null,
+      coverage_pct,
+      words,
+      pdf: countFiles(dir, ".pdf") > 0,
+      mtime
+    });
+  }
+  return books.sort((a, b) => b.mtime - a.mtime);
+}
+const books = discoverBooks();
+const activeBook = books[0] || null; // most-recently-written = the live iteration
+const plannedSections = activeBook?.planned ?? null;
+const sectionFiles = activeBook?.written ?? 0;
 const evidenceCount = countFiles(path.join(LV, "evidence"), ".md");
 
 // Live census beats the (possibly stale) plan for denominators: inventory
@@ -417,12 +482,28 @@ if (graphStats && (graphChanged || !ontology)) {
   }
 }
 
+// --- lineage & governance: derive the OpenLineage-format DAG + execution
+// register deterministically from the ledger, and persist the standards-
+// compliant events for download/replay (single source of truth = the ledger).
+const lineage = deriveLineage(path.join(LV, "ledger.jsonl"), pipeline);
+try {
+  const olDir = path.join(LV, "lineage");
+  fs.mkdirSync(olDir, { recursive: true });
+  fs.writeFileSync(path.join(olDir, "openlineage.json"), JSON.stringify(lineage.openlineage, null, 2));
+  // Also expose it for the dashboard's download link (same-origin).
+  fs.writeFileSync(path.join(DASH, "openlineage.json"), JSON.stringify(lineage.openlineage, null, 2));
+} catch {
+  /* best-effort */
+}
+
 const out = {
   generated: new Date().toISOString(),
   workspace: WS,
   pipeline,
   pipeline_live: pipelineLive,
   ontology,
+  books,
+  lineage: { dag: lineage.dag, executions: lineage.executions, event_count: lineage.event_count },
   artifacts: art,
   phases: {
     current: statusJson.phase || "map",

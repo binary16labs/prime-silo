@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LONGVIEW · Lineage & Governance</title>
+<style>
+  :root{
+    --bg:#0b0e13; --panel:#131822; --panel2:#0f141d; --line:#232b39;
+    --ink:#e6edf6; --dim:#8a97ab; --faint:#5b6779;
+    --accent:#38e1c4; --accent2:#5aa9ff; --warn:#ffb454; --bad:#ff6b6b; --good:#57d38c; --ds:#7d6bd0;
+    --r:16px;
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#eef1f6; --panel:#fff; --panel2:#f5f7fb; --line:#dde3ec; --ink:#141a24; --dim:#5b6779; --faint:#8a97ab; --accent:#0bbfa3; --accent2:#2f7ff0; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 600px at 70% -10%, #16202e 0%, var(--bg) 60%);color:var(--ink);
+    font:14px/1.45 -apple-system,Segoe UI,Roboto,Inter,system-ui,sans-serif;padding:22px;min-height:100vh}
+  .wrap{max-width:1240px;margin:0 auto}
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+  .brand b{font-size:18px}.brand small{color:var(--dim);margin-left:10px}
+  a{color:var(--accent2)}
+  .pill{font-size:11px;color:var(--dim);border:1px solid var(--line);padding:4px 9px;border-radius:20px}
+  .tile{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:var(--r);padding:18px;margin-bottom:16px}
+  h3{margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--dim);font-weight:700}
+  .sub{color:var(--faint);font-size:12px}
+  .dagwrap{overflow-x:auto;padding-bottom:8px}
+  svg .edge{stroke:var(--line);stroke-width:1.5;fill:none}
+  svg .edge.consumes{stroke-dasharray:3 3}
+  svg text{fill:var(--ink);font:11px system-ui}
+  svg text.small{fill:var(--dim);font-size:9.5px}
+  .nodebox{cursor:pointer}
+  .nodebox rect{stroke-width:1.5}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px}
+  th{color:var(--dim);text-transform:uppercase;font-size:10px;letter-spacing:.7px;text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+  td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  td.mono{font-family:ui-monospace,monospace;color:var(--accent2)}
+  .badge{font-size:10.5px;padding:2px 8px;border-radius:6px;font-weight:700}
+  .badge.clean{background:rgba(87,211,140,.14);color:var(--good)}
+  .badge.partial{background:rgba(255,180,84,.14);color:var(--warn)}
+  .badge.failed{background:rgba(255,107,107,.14);color:var(--bad)}
+  .drawer{border:1px solid var(--accent2);border-radius:12px;background:var(--panel2);padding:12px 14px;margin-top:10px;display:none;font-size:12.5px}
+  .drawer.open{display:block}
+  .drawer b{color:var(--ink)}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:720px){.cols{grid-template-columns:1fr}}
+  .cmp{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--panel2)}
+  .cmp .big{font-size:26px;font-weight:750}
+  .cmp .win{color:var(--good);font-size:11px;font-weight:700}
+  .kv{display:inline-block;margin-right:20px}.kv .k{font-size:10px;text-transform:uppercase;color:var(--faint)}.kv .v{font-size:16px;font-weight:700}
+  button{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:7px 12px;font:inherit;cursor:pointer;font-weight:600}
+  button:hover{border-color:var(--accent)}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--dim);margin-top:6px}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand"><b>Lineage &amp; Governance</b><small>every execution, deterministic, from the ledger</small></div>
+    <div><span class="pill" id="stamp">—</span> <span class="pill" id="events">—</span> <a href="/" style="margin-left:10px">← Mission Control</a></div>
+  </div>
+
+  <div class="tile">
+    <h3>Pipeline DAG · data lineage</h3>
+    <div class="sub">Phases produce datasets that feed downstream phases. Colour = live status; click a phase for its execution stats. This is the OpenLineage graph, rendered live.</div>
+    <div class="legend">
+      <span><i style="background:var(--good)"></i>done</span><span><i style="background:var(--accent)"></i>active</span>
+      <span><i style="background:var(--warn)"></i>partial</span><span><i style="background:var(--bad)"></i>failed</span>
+      <span><i style="background:var(--faint)"></i>todo</span><span><i style="background:var(--ds)"></i>dataset</span>
+    </div>
+    <div class="dagwrap"><svg id="dag" width="1180" height="520"></svg></div>
+    <div class="drawer" id="drawer"></div>
+    <div style="margin-top:10px"><button id="dl">⬇ Download OpenLineage events (JSON)</button> <span class="sub" id="olcount"></span></div>
+  </div>
+
+  <div class="tile">
+    <h3>Book iterations · coverage comparison</h3>
+    <div class="sub">Baseline vs arc-driven rebuild. Coverage = distinct sessions cited ÷ total cards — the honest measure of how much of the corpus the book stands on.</div>
+    <div class="cols" id="books" style="margin-top:12px"></div>
+  </div>
+
+  <div class="tile">
+    <h3>Execution register · governance</h3>
+    <div class="sub">Every <code>longview run</code> invocation — commit, model, phases, outcome, cost. The immutable audit trail; newest first.</div>
+    <table id="execs"><tr><th>#</th><th>When</th><th>Commit</th><th>Model</th><th>Phases</th><th>Outcome</th><th>ok/fail</th><th>Duration</th><th>Tokens</th></tr></table>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const COL={done:'var(--good)',active:'var(--accent)',partial:'var(--warn)',failed:'var(--bad)',todo:'var(--faint)'};
+const fmtDur=ms=>{const s=Math.round(ms/1000);if(s<60)return s+'s';const m=Math.floor(s/60);return m<60?m+'m':Math.floor(m/60)+'h '+(m%60)+'m';};
+const fmtK=n=>n>=1000?(n/1000).toFixed(1)+'k':String(n||0);
+let DAG=null;
+
+// Deterministic layered layout: x = longest-path depth from a source, y = order
+// within the layer. Pure function of the edges — same graph, same picture.
+function layout(nodes,edges){
+  const byId=new Map(nodes.map(n=>[n.id,n]));
+  const indeg=new Map(nodes.map(n=>[n.id,0]));
+  const outAdj=new Map(nodes.map(n=>[n.id,[]]));
+  for(const e of edges){ if(byId.has(e.from)&&byId.has(e.to)){ indeg.set(e.to,indeg.get(e.to)+1); outAdj.get(e.from).push(e.to);} }
+  // longest-path layering
+  const layer=new Map(); const q=[...nodes.filter(n=>indeg.get(n.id)===0).map(n=>n.id)];
+  q.forEach(id=>layer.set(id,0));
+  const deg=new Map(indeg); const order=[...q];
+  for(let i=0;i<order.length;i++){ const u=order[i];
+    for(const v of outAdj.get(u)){ layer.set(v,Math.max(layer.get(v)||0,(layer.get(u)||0)+1));
+      deg.set(v,deg.get(v)-1); if(deg.get(v)===0)order.push(v);} }
+  nodes.forEach(n=>{if(!layer.has(n.id))layer.set(n.id,0);});
+  const cols={}; nodes.forEach(n=>{const l=layer.get(n.id);(cols[l]=cols[l]||[]).push(n);});
+  const CW=190,NH=34,GAP=16,PAD=20; let maxRows=0;
+  const pos=new Map();
+  Object.keys(cols).map(Number).sort((a,b)=>a-b).forEach(l=>{
+    cols[l].forEach((n,i)=>pos.set(n.id,{x:PAD+l*CW,y:PAD+i*(NH+GAP),w:CW-30,h:NH}));
+    maxRows=Math.max(maxRows,cols[l].length);
+  });
+  const width=PAD*2+(Math.max(...Object.keys(cols).map(Number))+1)*CW;
+  const height=PAD*2+maxRows*(NH+GAP);
+  return {pos,width,height};
+}
+
+function renderDag(d){
+  const {nodes,edges}=d.lineage.dag;
+  const {pos,width,height}=layout(nodes,edges);
+  const svg=$('dag'); svg.setAttribute('width',Math.max(1180,width)); svg.setAttribute('height',Math.max(360,height));
+  let s='';
+  for(const e of edges){ const a=pos.get(e.from),b=pos.get(e.to); if(!a||!b)continue;
+    const x1=a.x+a.w,y1=a.y+a.h/2,x2=b.x,y2=b.y+b.h/2,mx=(x1+x2)/2;
+    s+=`<path class="edge ${e.kind}" d="M${x1} ${y1} C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}"/>`;
+  }
+  for(const n of nodes){ const p=pos.get(n.id); if(!p)continue;
+    if(n.kind==='dataset'){
+      s+=`<g class="nodebox"><rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="8" fill="var(--panel)" stroke="var(--ds)" ${n.external?'stroke-dasharray="4 3"':''}/>`
+        +`<text x="${p.x+p.w/2}" y="${p.y+p.h/2+4}" text-anchor="middle" class="small">${n.id.length>26?n.id.slice(0,25)+'…':n.id}</text></g>`;
+    }else{
+      const c=COL[n.status]||COL.todo;
+      // Node face shows CURRENT progress (count/total); status colour encodes
+      // health. Cumulative all-time ok/fail lives in the drawer (governance),
+      // not here — else historical failures read as a current fire.
+      const label=n.total?`${n.count??'·'}/${n.total} ${n.unit||''}`:(n.count!=null?`${n.count} ${n.unit||''}`:'');
+      s+=`<g class="nodebox" data-ph="${n.id}"><rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="8" fill="var(--panel)" stroke="${c}"/>`
+        +`<circle cx="${p.x+12}" cy="${p.y+p.h/2}" r="5" fill="${c}"/>`
+        +`<text x="${p.x+24}" y="${p.y+p.h/2-1}" font-weight="600">${n.id}</text>`
+        +`<text x="${p.x+24}" y="${p.y+p.h/2+11}" class="small">${label.trim()}</text></g>`;
+    }
+  }
+  svg.innerHTML=s;
+  svg.querySelectorAll('.nodebox[data-ph]').forEach(g=>g.onclick=()=>drawer(d,g.dataset.ph));
+}
+
+function drawer(d,ph){
+  const n=d.lineage.dag.nodes.find(x=>x.id===ph); const el=$('drawer');
+  if(!n){el.className='drawer';return;}
+  el.className='drawer open';
+  const dur=n.first&&n.last?fmtDur(new Date(n.last)-new Date(n.first)):'—';
+  el.innerHTML=`<b>${n.id}</b> → produces <b>${n.produces}</b> · <span class="badge ${n.status==='done'?'clean':n.status==='failed'?'failed':n.status==='partial'?'partial':''}">${n.status}</span>`
+    +`<div style="margin-top:6px">`
+    +`<span class="kv"><span class="k">on disk</span><span class="v">${n.total?n.count+' / '+n.total+' '+n.unit:(n.count??'—')+' '+n.unit}</span></span>`
+    +`<span class="kv"><span class="k">ledger ok/fail</span><span class="v">${n.ok} / ${n.fail}</span></span>`
+    +`<span class="kv"><span class="k">wall time</span><span class="v">${dur}</span></span>`
+    +`<span class="kv"><span class="k">LLM tokens</span><span class="v">${fmtK(n.tokens)}</span></span>`
+    +`</div>`;
+}
+
+function renderBooks(d){
+  const bs=(d.books||[]).slice().sort((a,b)=>(a.baseline?-1:1)); // baseline left
+  const base=bs.find(b=>b.baseline);
+  $('books').innerHTML=bs.map(b=>{
+    const lift=(!b.baseline&&b.coverage_pct!=null&&base&&base.coverage_pct!=null)?(b.coverage_pct-base.coverage_pct):null;
+    const tag=b.baseline?' · baseline':(b.arced?' · arc-driven':' · building');
+    return `<div class="cmp"><h3 style="margin:0 0 6px">${b.id}${tag}</h3>`
+      +`<div class="big">${b.coverage_pct!=null?b.coverage_pct+'%':'—'}<span class="sub"> session coverage</span>`
+      +(lift!=null?` <span class="win" style="color:${lift>=0?'var(--good)':'var(--bad)'}">${lift>=0?'+':''}${lift.toFixed(1)}pt vs baseline</span>`:'')+`</div>`
+      +`<div class="sub" style="margin-top:6px">${b.written}/${b.planned||'?'} sections · ${b.words?b.words.toLocaleString()+' words':'—'} · ${b.arced?b.arcs+' arcs':'no arcs'} · pdf ${b.pdf?'✓':'…'}</div>`
+      +`<div class="sub">${b.sessions_cited!=null?b.sessions_cited+' of '+b.cards_total+' sessions cited':'coverage pending (book still assembling)'}</div></div>`;
+  }).join('');
+}
+
+function renderExecs(d){
+  const rows=(d.lineage.executions||[]).map(e=>
+    `<tr><td>${e.idx}</td><td class="sub">${e.started_at?new Date(e.started_at).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—'}</td>`
+    +`<td class="mono">${e.git_commit||'pre'}</td><td class="sub">${(e.model||'—').replace(/^lmstudio\//,'')}</td>`
+    +`<td class="sub">${e.phases.join(', ')||'—'}</td><td><span class="badge ${e.outcome}">${e.outcome}</span></td>`
+    +`<td>${e.ok}/${e.fail}</td><td>${e.duration_ms?fmtDur(e.duration_ms):'—'}</td><td>${fmtK(e.tokens)}</td></tr>`).join('');
+  $('execs').innerHTML='<tr><th>#</th><th>When</th><th>Commit</th><th>Model</th><th>Phases</th><th>Outcome</th><th>ok/fail</th><th>Duration</th><th>Tokens</th></tr>'+rows;
+}
+
+async function tick(){
+  try{
+    const d=await (await fetch('dashboard.json?_='+Date.now())).json();
+    DAG=d;
+    $('stamp').textContent='updated '+new Date(d.generated).toLocaleTimeString();
+    $('events').textContent=(d.lineage.event_count||0)+' ledger events';
+    $('olcount').textContent=(d.lineage.executions?.length||0)+' executions · OpenLineage RunEvents';
+    renderDag(d); renderBooks(d); renderExecs(d);
+  }catch(e){ $('stamp').textContent='stale'; }
+}
+$('dl').onclick=()=>window.open('openlineage.json','_blank');
+tick(); setInterval(tick,15000);
+</script>
+</body>
+</html>
