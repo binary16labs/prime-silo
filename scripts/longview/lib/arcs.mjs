@@ -211,7 +211,7 @@ async function narrateArc(sel) {
 
 // Public: build (or resume) arcs.json. Resume-safe — a complete file is reused.
 export async function buildArcs({ interrupted = () => false, limit = null } = {}) {
-  const arcsPath = workspaceDir("data_out", "opus", "arcs.json");
+  const arcsPath = workspaceDir("data_out", ...config.OPUS_DIR.split("/"), "arcs.json");
   const existing = readJSON(arcsPath);
   if (existing?.arcs?.length) {
     console.log(`[opus] arcs: reusing ${existing.arcs.length} planned arcs`);

@@ -118,6 +118,11 @@ export const config = {
   // is one bounded LLM call; sections inherit their chapter's ≤2 arcs.
   OPUS_ARCS: env("LONGVIEW_OPUS_ARCS", "12"),
 
+  // Opus output subdir under data_out/. Default "opus"; set e.g.
+  // "iterations/v2-arcs" to build a fresh book WITHOUT clobbering a prior one
+  // (inputs — themes/timeline/dossiers/reviews — stay shared at data_out/).
+  OPUS_DIR: env("LONGVIEW_OPUS_DIR", "opus"),
+
   // Cadence cooldown between window calls (ms). On a marginal GPU stack — e.g. a
   // new-gen AMD card in an eGPU over Thunderbolt — hammering inference flat-out can
   // trip the driver/link ("channel error" → engine wedge). A short breather between

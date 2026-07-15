@@ -17,7 +17,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const prompt = (name) =>
   fs.readFileSync(path.join(__dirname, "..", "prompts", `${name}.md`), "utf8");
 
-const opusDir = (...p) => workspaceDir("data_out", "opus", ...p);
+// Output subdir is configurable (config.OPUS_DIR) so a fresh iteration can be
+// built without clobbering a prior book — the "opus" default keeps legacy paths.
+const opusDir = (...p) => workspaceDir("data_out", ...config.OPUS_DIR.split("/"), ...p);
 
 function readIf(p, cap = 4000) {
   try {

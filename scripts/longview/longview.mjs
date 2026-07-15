@@ -1668,17 +1668,19 @@ async function runWeave({ loops = null, questionsPerLoop = null } = {}) {
 
 // ---------------------------------------------------------------------- pdf
 function runPdfPhase() {
-  const bookMd = workspaceDir("data_out", "opus", "THE-AI-VAMPIRE.md");
+  // Same configurable output subdir as opus (config.OPUS_DIR).
+  const opusSeg = config.OPUS_DIR.split("/");
+  const bookMd = workspaceDir("data_out", ...opusSeg, "THE-AI-VAMPIRE.md");
   if (!fs.existsSync(bookMd)) {
     console.log(
-      "[pdf] no assembled book at data_out/opus/THE-AI-VAMPIRE.md — run the opus phase first"
+      `[pdf] no assembled book at data_out/${config.OPUS_DIR}/THE-AI-VAMPIRE.md — run the opus phase first`
     );
     return;
   }
   const md = fs.readFileSync(bookMd, "utf8");
-  const htmlPath = workspaceDir("data_out", "opus", "THE-AI-VAMPIRE.html");
+  const htmlPath = workspaceDir("data_out", ...opusSeg, "THE-AI-VAMPIRE.html");
   fs.writeFileSync(htmlPath, mdToHtml(md, { title: "The AI Vampire" }));
-  const pdfPath = workspaceDir("data_out", "opus", "THE-AI-VAMPIRE.pdf");
+  const pdfPath = workspaceDir("data_out", ...opusSeg, "THE-AI-VAMPIRE.pdf");
   const r = htmlToPdf(htmlPath, pdfPath);
   appendLedger({ phase: "pdf", ok: r.ok, bytes: r.bytes, error: r.error });
   console.log(
