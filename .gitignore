@@ -61,3 +61,7 @@ runtime/runs/
 
 # local scratch: launchers with absolute paths + build logs + session names (repo AGENTS.md §172)
 scratch/
+
+# longview transient spawn files (memory gate / graph mover)
+scripts/longview/.gate_*.json
+scripts/longview/.mover_*.json

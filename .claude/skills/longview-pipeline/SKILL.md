@@ -10,6 +10,13 @@ model, then graph + themes + report/book/PDF/audiobook.
 Pipeline: inventory → extract → map(walk) → (model **or** graph) → code → weave → enrich → review → reduce(TIMELINE) → opus → pdf.
 Code: `scripts/longview/`. Guide: `runtime/docs/operations/LONGVIEW_GUIDE.md`.
 
+**Governance & observability (v1.16.x) — all deterministic, ledger-sourced:**
+- **Memory teleport** (`memory.mjs` + `memory_graph.py`): label→resolve→teleport sensitive sessions (CV/job) to a quarantine workspace (moves files + Neo4j nodes + Chroma chunks, journalled, reversible via `restore`); `quarantine.json` filters teleported sids from inventory forever; `lib/leak_gate.mjs` gates deliverables. Graph Source names use the **8-char sid prefix**, not the 32-char card filename. UI: `:8788/memory.html`.
+- **Dashboard** (`scratch/longview_run/dashboard/`, `bash dash.sh` → `:8788`): Mission Control (`/`) + Lineage/governance (`/lineage.html`, OpenLineage DAG + artifact explorer + step-through reusing `lib/record.mjs` + execution register) + `/kindle.html` (ES5). Every number derives from `ledger.jsonl` + disk — no hidden state.
+- **Arc-driven opus** (`lib/arcs.mjs`): timeline-walked cross-project arcs feed sections; `draft → gate → critique → revise`. `LONGVIEW_OPUS_DIR=iterations/<name>` builds without clobbering a prior book.
+- **Coverage gotcha:** `.meta.json` also ends in `.json` — always `filter(f=>f.endsWith('.json') && !f.endsWith('.meta.json'))` or card counts / coverage denominators double.
+- **Ingest wedge fix:** server-side `deep_synthesis` ingest kept flooding the LM host after client death — `POST /api/rag/ingest/cancel` + `GET /api/rag/ingest/active` + a 3-strike connectivity circuit breaker. `subprocessEnv()` forwards repo `.env` to spawned python (else LM endpoints unseen). `reasoning_effort:"none"` + empty-content→`reasoning_content` fallback (post-restart LM Studio diverts the whole reply into reasoning).
+
 **Model is env/profile-driven** (not hardcoded): `BENNY_DEFAULT_MODEL` / `LONGVIEW_MODEL` pick it,
 the manifest carries only a preconfigured default. Verified LAN setup: LM Studio on
 `192.168.68.125:1234` serving `lmstudio/google/gemma-4-12b` (a reasoning model — the per-call token
@@ -47,6 +54,16 @@ LM host to reset it; embeddings on the same host still answering isolates it as 
   control is the request param **`reasoning_effort:"none"`** (LM Studio honors it; it's on/off, not
   low/med/high). Wired as `LONGVIEW_REASONING_EFFORT` → `llm.mjs`; env-gated so it's omitted for
   providers that would reject it. Quality held completely (all 13 fields, rich concepts).
+- **LM-host hardware = AMD RDNA4 eGPU (2026-07-09) — the wedge is a driver/runtime problem, not config.**
+  The LAN LM Studio (`192.168.68.125:1234`) runs an **AMD RX 9060 XT 16 GB (RDNA4)** in a **Razer Core X
+  eGPU over Thunderbolt** on a T480. The recurring `channel error` / `Engine protocol predict request
+  failed` wedge (~every 1 session under sustained load) is **RDNA4/ROCm + eGPU instability, NOT VRAM**
+  (16 GB fits a 12B) and NOT a longview setting — window-size, context, and reasoning tuning did NOT fix
+  it (all tried). Levers: LM Studio **ROCm concurrency=1** + **disable experimental KV-cache share** +
+  map cooldown `LONGVIEW_WINDOW_PAUSE_MS` (~2000ms between window calls). **Vulkan is the stable AMD
+  runtime but won't load a 12B** (large-model Vulkan limit) → durable fix if ROCm keeps crashing is a
+  **7–8B instruct model (Qwen2.5-7B / Llama-3.1-8B) on Vulkan** (the map is extraction — a 7–8B suffices;
+  verify 2–3 cards). Don't blind-reload on repeat; check runtime + consider the smaller-model path.
 - **Halt on an engine wedge, don't march through it (2026-07-09).** LM Studio's engine wedges
   spontaneously under sustained load → `Engine protocol predict request failed: fetch failed` (400) on
   every predict until reloaded. This is INDEPENDENT of reasoning on/off (seen both ways). The map now
