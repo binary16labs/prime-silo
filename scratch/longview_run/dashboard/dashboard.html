@@ -320,10 +320,14 @@ function render(d){
   const tr=document.getElementById('track');tr.innerHTML='';
   const pipe=d.pipeline||[];
   for(const p of pipe){
+    // Always show done OF total when a total is known — a bare count answers
+    // "how much" but never "how far".
+    const ofTotal=p.count!=null&&p.total?`${p.count.toLocaleString()}/${p.total.toLocaleString()} ${p.unit}`
+      :p.count!=null&&p.count>0?`${p.count.toLocaleString()} ${p.unit}`:null;
     const cnt=p.status==='active'&&p.id==='enrich'&&ph.enrich?`running · ${fmtDur(ph.enrich.elapsed_s||0)}`
-      :p.id==='map'?`${p.count} cards · ${d.run.pct_work}%`
-      :p.count!=null&&p.count>0?`${p.count.toLocaleString()} ${p.unit}`
-      :p.status==='todo'?'queued':p.status;
+      :p.status==='active'&&ofTotal?`▶ ${ofTotal}`
+      :p.id==='map'&&ofTotal?`${ofTotal} · ${d.run.pct_work}%`
+      :ofTotal||(p.status==='todo'?'queued':p.status);
     tr.insertAdjacentHTML('beforeend',
       `<div class="lnode ${p.status}${selPhase===p.id?' sel':''}" data-ph="${p.id}">
          <div class="nm"><span class="dot"></span>${p.id}</div>
@@ -338,7 +342,7 @@ function render(d){
     drawer.className='ldrawer open';
     drawer.innerHTML=`<b>${sp.id}</b> — ${sp.makes} · <span class="badge ${sp.status==='done'?'g':'w'}">${sp.status}</span>
       <div style="margin-top:6px">${GUIDE[sp.id]||''}</div>
-      <div class="meta2">${when} · ${counts}${sp.count!=null?` · on disk: ${sp.count.toLocaleString()} ${sp.unit}`:''}</div>`;
+      <div class="meta2">${when} · ${counts}${sp.count!=null?` · on disk: ${sp.count.toLocaleString()}${sp.total?` of ${sp.total.toLocaleString()} expected`:''} ${sp.unit}`:''}${sp.extra?` · ${sp.extra}`:''}</div>`;
   } else drawer.className='ldrawer';
 
   // graph panel

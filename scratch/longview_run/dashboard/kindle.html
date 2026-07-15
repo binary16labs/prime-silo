@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- E-ink refresh: full page reload is kinder to old WebKit than live DOM churn. -->
+<meta http-equiv="refresh" content="60" />
+<title>LONGVIEW · Kindle</title>
+<style>
+  /* Kindle Scribe experimental browser: ancient WebKit, e-ink. Rules:
+     ES5-only JS (no arrows/templates/?./??/fetch — they kill the parser),
+     black-on-white, big type, table layout, zero animation. */
+  body{margin:0;padding:14px;background:#fff;color:#000;
+    font:17px/1.5 Georgia,serif}
+  h1{font-size:22px;margin:0 0 2px}
+  .sub{color:#444;font-size:14px;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;margin-bottom:16px}
+  th{font-size:12px;text-transform:uppercase;letter-spacing:1px;text-align:left;
+    border-bottom:2px solid #000;padding:6px 8px}
+  td{border-bottom:1px solid #999;padding:8px;font-size:16px;vertical-align:top}
+  td.st{font-weight:bold;width:92px}
+  .done{color:#000}.active{color:#000;text-decoration:underline}
+  .todo{color:#777}.partial{color:#333;font-style:italic}
+  .bar{height:12px;border:1px solid #000;margin-top:4px;width:100%;max-width:260px}
+  .bar div{height:100%;background:#000}
+  .big{font-size:30px;font-weight:bold}
+  .kv{display:inline-block;margin-right:26px;margin-bottom:8px}
+  .kv .k{font-size:12px;text-transform:uppercase;color:#555}
+  #err{color:#000;font-weight:bold}
+</style>
+</head>
+<body>
+<h1>LONGVIEW</h1>
+<div class="sub" id="stamp">loading&#8230;</div>
+<div id="hero"></div>
+<table id="pipe"><tr><th>Phase</th><th>Status</th><th>Progress</th></tr></table>
+<div id="err"></div>
+<script>
+// ES5 only — this file must parse on Kindle-era WebKit.
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+function row(p){
+  var prog="";
+  if(p.count!=null&&p.total){
+    var pct=Math.min(100,Math.round(p.count/p.total*100));
+    prog=esc(p.count)+" of "+esc(p.total)+" "+esc(p.unit)+
+      '<div class="bar"><div style="width:'+pct+'%"></div></div>';
+  }else if(p.count!=null&&p.count>0){prog=esc(p.count)+" "+esc(p.unit);}
+  else{prog="&#8212;";}
+  if(p.extra)prog+='<div style="font-size:13px;color:#444">'+esc(p.extra)+"</div>";
+  return "<tr><td>"+esc(p.id)+'</td><td class="st '+esc(p.status)+'">'+esc(p.status)+"</td><td>"+prog+"</td></tr>";
+}
+function render(d){
+  var i,ph=d.phases||{};
+  document.getElementById("stamp").innerHTML=
+    esc(d.workspace)+" &#183; updated "+new Date(d.generated).toLocaleTimeString()+
+    " &#183; pipeline "+(d.pipeline_live?("RUNNING ("+esc(ph.current)+")"):"idle");
+  var gs=ph.graph_stats,hero="";
+  if(gs){
+    hero+='<span class="kv"><span class="k">Sources</span><div class="big">'+esc(gs.node_types.Source||0)+"</div></span>";
+    hero+='<span class="kv"><span class="k">Concepts</span><div class="big">'+esc(gs.node_types.Concept||0)+"</div></span>";
+  }
+  hero+='<span class="kv"><span class="k">Cards</span><div class="big">'+esc(d.run.cards_done)+"</div></span>";
+  document.getElementById("hero").innerHTML=hero;
+  var rows='<tr><th>Phase</th><th>Status</th><th>Progress</th></tr>';
+  var pipe=d.pipeline||[];
+  for(i=0;i<pipe.length;i++)rows+=row(pipe[i]);
+  document.getElementById("pipe").innerHTML=rows;
+}
+var xhr=new XMLHttpRequest();
+xhr.open("GET","dashboard.json?_="+new Date().getTime(),true);
+xhr.onreadystatechange=function(){
+  if(xhr.readyState===4){
+    if(xhr.status===200){
+      try{render(JSON.parse(xhr.responseText));}
+      catch(e){document.getElementById("err").innerHTML="parse error: "+esc(e.message);}
+    }else{document.getElementById("err").innerHTML="dashboard.json unavailable (HTTP "+xhr.status+")";}
+  }
+};
+xhr.send();
+</script>
+</body>
+</html>

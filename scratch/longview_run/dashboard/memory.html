@@ -101,10 +101,10 @@ $('btn-search').onclick=async()=>{
     lastResults=d.sids||[];
     if(!lastResults.length){$('results').innerHTML='<div class="sub" style="margin-top:10px">no sessions matched</div>';$('btn-teleport').disabled=true;return;}
     $('results').innerHTML=`<table><tr><th><input type="checkbox" id="all" checked></th><th>sid</th><th>project</th><th>title</th><th>matched because</th></tr>`+
-      lastResults.map(e=>`<tr><td><input type="checkbox" class="pick" value="${e.sid}" checked></td>
-        <td class="sid">${e.sid.slice(0,8)}</td><td>${e.project||'?'}</td>
+      lastResults.map(e=>`<tr style="${e.quarantined?'opacity:.45':''}"><td><input type="checkbox" class="pick" value="${e.sid}" ${e.quarantined?'disabled':'checked'}></td>
+        <td class="sid">${e.sid.slice(0,8)}${e.quarantined?' 🔒':''}</td><td>${e.project||'?'}${e.quarantined?' <span style="color:var(--warn);font-size:10px">already quarantined</span>':''}</td>
         <td>${(e.title||'').slice(0,60)}</td><td class="reasons">${(e.reasons||[]).join(', ')}</td></tr>`).join('')+
-      `</table><div class="sub" style="margin-top:8px">${lastResults.length} sessions · ${d.files??'?'} files on disk (graph/vector counts come from the dry run)</div>`;
+      `</table><div class="sub" style="margin-top:8px">${lastResults.length} matched · ${lastResults.filter(e=>e.quarantined).length} already quarantined (locked rows live in the private workspace; use CLI restore to bring back) · ${d.files??'?'} files movable</div>`;
     $('all').onchange=e=>document.querySelectorAll('input.pick').forEach(c=>c.checked=e.target.checked);
     $('btn-teleport').disabled=false;
     $('warn').style.display='block';

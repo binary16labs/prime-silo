@@ -137,6 +137,11 @@ function resolveLabel(label) {
     }
   }
   for (const sid of spec.explicit_sids || []) add(sid, "explicit");
+  // Already-teleported sids still match (inventory keeps its census entry by
+  // design) — mark them so resolve/teleport/UI can say "already quarantined"
+  // instead of confusingly moving 0 files (2026-07-14 user report).
+  const q = new Set(readJSON(quarantinePath(), { sids: [] }).sids || []);
+  for (const e of bySid.values()) if (q.has(e.sid)) e.quarantined = true;
   let list = [...bySid.values()].sort((a, b) => a.sid.localeCompare(b.sid));
   // --sids a,b,c narrows to an explicit subset (UI checkbox selections);
   // accepts full sids or 8-char prefixes.
@@ -248,18 +253,29 @@ if (cmd === "labels") {
   if (flag("json")) {
     console.log(JSON.stringify({ label, sids, files }, null, 2));
   } else {
-    console.log(`[memory] label '${label}' → ${sids.length} sessions, ${files} files\n`);
+    const qN = sids.filter((e) => e.quarantined).length;
+    console.log(`[memory] label '${label}' → ${sids.length} sessions (${qN} already quarantined), ${files} files\n`);
     for (const e of sids)
-      console.log(`  ${e.sid.slice(0, 8)}  ${(e.project || "?").padEnd(24).slice(0, 24)}  ${e.reasons.join(", ")}${e.title ? `  · ${String(e.title).slice(0, 50)}` : ""}`);
+      console.log(`  ${e.sid.slice(0, 8)}  ${e.quarantined ? "[QUARANTINED] " : ""}${(e.project || "?").padEnd(24).slice(0, 24)}  ${e.reasons.join(", ")}${e.title ? `  · ${String(e.title).slice(0, 50)}` : ""}`);
     console.log(`\n  graph/vector blast radius: node memory_graph.py --dry-run (run 'teleport ${label} --dry-run')`);
   }
 } else if (cmd === "teleport" || cmd === "restore") {
   const label = labelArg();
   const restoring = cmd === "restore";
   const dryRun = flag("dry-run");
-  const { sids } = resolveLabel(label);
+  let { sids } = resolveLabel(label);
+  // teleport skips already-quarantined sids (their subtree is already in the
+  // target); restore operates ONLY on quarantined ones.
+  const already = sids.filter((e) => e.quarantined);
+  sids = restoring ? already : sids.filter((e) => !e.quarantined);
+  if (!restoring && already.length)
+    console.log(`[memory] ${already.length} session(s) already quarantined — skipped: ${already.map((e) => e.sid.slice(0, 8)).join(", ")}`);
   if (!sids.length) {
-    console.log(`[memory] label '${label}' resolves to 0 sessions — nothing to do`);
+    console.log(
+      restoring
+        ? `[memory] label '${label}': no quarantined sessions to restore`
+        : `[memory] label '${label}': nothing left to teleport — all matches are already quarantined. Use 'restore' to bring them back.`
+    );
     process.exit(0);
   }
   console.log(`[memory] ${cmd} '${label}': ${sids.length} sessions ${restoring ? "←" : "→"} ${TARGET}${dryRun ? " (DRY RUN)" : ""}`);

@@ -61,7 +61,14 @@ for (const e of mapLedger) {
 // --- graph + enrich phase state (ledger + progress.json + status.json)
 const statusJson = readJSON(path.join(LV, "status.json"), {});
 const progress = readJSON(path.join(LV, "progress.json"), {});
-const graphLedger = ledger.filter((e) => e.phase === "graph" && e.action === "upsert");
+// Teleported (quarantined) sids keep their ledger history but no longer count
+// toward THIS workspace's totals — without this filter graph/extract read
+// "198/188" after a teleport.
+const quarantined = new Set((readJSON(path.join(LV, "quarantine.json"), {}) || {}).sids || []);
+const q8 = new Set([...quarantined].map((s) => s.slice(0, 8)));
+const graphLedger = ledger.filter(
+  (e) => e.phase === "graph" && e.action === "upsert" && !quarantined.has(e.sid) && !q8.has(e.sid)
+);
 const graphOk = graphLedger.filter((e) => e.ok);
 // A card can fail then succeed on a re-run — count by latest verdict per sid.
 const graphBySid = new Map();
@@ -279,18 +286,48 @@ const art = {
   report: fs.existsSync(path.join(dataOut, "PORTFOLIO-REPORT.md")),
   prd: fs.existsSync(path.join(dataOut, "PRD-WHAT-COMES-NEXT.md"))
 };
+// Expected totals so every phase reads "done OF total", not a bare count.
+const manifest = readJSON(
+  path.join("C:/Users/nsdha/OneDrive/binary16/prime-silo/runtime/manifests/templates/longview_synthesis.json"),
+  {}
+);
+const weavePhase = ((manifest.plan || {}).phases || []).find((p) => p.id === "weave") || {};
+const weaveTotal = (Number(weavePhase.loops) || 2) * (Number(weavePhase.questions) || 4);
+const projectsRollup = readJSON(path.join(LV, "rollups", "projects.json"), null);
+const projectTotal = projectsRollup
+  ? Array.isArray(projectsRollup)
+    ? projectsRollup.length
+    : Object.keys(projectsRollup).length
+  : null;
+const ROLLUP_SET = 7; // projects/capabilities/timeline/operator/threads/sids/ingested
+const outline = readJSON(path.join(dataOut, "opus", "outline.json"), null);
+const plannedSections = outline
+  ? (outline.parts || []).reduce(
+      (a, p) => a + (p.chapters || []).reduce((b, c) => b + (c.sections || []).length, 0),
+      0
+    ) || null
+  : null;
+const sectionFiles = countFiles(path.join(dataOut, "opus", "sections"), ".md");
+const evidenceCount = countFiles(path.join(LV, "evidence"), ".md");
+
+// Live census beats the (possibly stale) plan for denominators: inventory
+// grows with each memo-ray sync and shrinks by quarantine.
+const inventoryNow = (readJSON(path.join(LV, "inventory.json"), []) || []).filter(
+  (s) => !quarantined.has(s.id)
+).length;
+
 const phaseDefs = [
-  { id: "inventory", makes: "session census", done: fs.existsSync(path.join(LV, "inventory.json")), n: plan.totals.sessions, unit: "sessions" },
-  { id: "extract", makes: "evidence packs", done: countFiles(path.join(LV, "evidence")) > 0, n: countFiles(path.join(LV, "evidence")), unit: "packs" },
-  { id: "map", makes: "session cards", done: doneFiles.length >= activeCards, n: doneFiles.length, unit: "cards" },
-  { id: "graph", makes: "knowledge graph", done: graphState.cards_ok >= doneFiles.length && doneFiles.length > 0, n: graphState.nodes_added, unit: "nodes" },
-  { id: "enrich", makes: "merged concepts + themes", done: !!enrichDone, n: null, unit: "" },
-  { id: "model", makes: "rollups (timeline/operator)", done: rollupsDone, n: rollupCount, unit: "rollups" },
-  { id: "review", makes: "per-session reviews", done: art.reviews >= doneFiles.length && art.reviews > 0, n: art.reviews, unit: "reviews" },
-  { id: "weave", makes: "discovery notes", done: (ledgerByPhase.get("weave") || {}).ok > 0, n: null, unit: "" },
-  { id: "reduce", makes: "dossiers · skills · report · PRD", done: art.themes && art.report && art.dossiers > 0, n: art.dossiers, unit: "dossiers" },
-  { id: "opus", makes: "the book (~100 sections)", done: art.book_files > 1, n: art.book_files, unit: "files" },
-  { id: "pdf", makes: "print PDF", done: art.pdf > 0, n: art.pdf, unit: "pdf" }
+  { id: "inventory", makes: "session census", done: fs.existsSync(path.join(LV, "inventory.json")), n: inventoryNow, total: inventoryNow, unit: "sessions" },
+  { id: "extract", makes: "evidence packs", done: evidenceCount > 0, n: evidenceCount, total: inventoryNow, unit: "packs" },
+  { id: "map", makes: "session cards", done: doneFiles.length >= activeCards, n: doneFiles.length, total: activeCards, unit: "cards" },
+  { id: "graph", makes: "knowledge graph", done: graphState.cards_ok >= doneFiles.length && doneFiles.length > 0, n: graphState.cards_ok, total: doneFiles.length, unit: "cards → graph" },
+  { id: "enrich", makes: "merged concepts + themes", done: !!enrichDone, n: null, total: null, unit: "" },
+  { id: "model", makes: "rollups (timeline/operator)", done: rollupsDone, n: Math.min(rollupCount, ROLLUP_SET), total: ROLLUP_SET, unit: "rollups" },
+  { id: "review", makes: "per-session reviews", done: art.reviews >= doneFiles.length && art.reviews > 0, n: art.reviews, total: doneFiles.length, unit: "reviews" },
+  { id: "weave", makes: "discovery notes", done: countFiles(path.join(dataOut, "discovery"), ".md") >= weaveTotal, n: countFiles(path.join(dataOut, "discovery"), ".md"), total: weaveTotal, unit: "notes" },
+  { id: "reduce", makes: "dossiers · skills · report · PRD", done: art.themes && art.report && art.dossiers > 0, n: art.dossiers, total: projectTotal, unit: "dossiers", extra: `themes ${art.themes ? "✓" : "…"} · report ${art.report ? "✓" : "…"} · PRD ${art.prd ? "✓" : "…"}` },
+  { id: "opus", makes: "the book (~100 sections)", done: plannedSections && sectionFiles >= plannedSections, n: sectionFiles, total: plannedSections, unit: "sections" },
+  { id: "pdf", makes: "print PDF", done: art.pdf > 0, n: art.pdf, total: 1, unit: "pdf" }
 ];
 const pipeline = phaseDefs.map((p) => {
   const lb = ledgerByPhase.get(p.id) || null;
@@ -310,6 +347,8 @@ const pipeline = phaseDefs.map((p) => {
     status,
     makes: p.makes,
     count: p.n,
+    total: p.total ?? null,
+    extra: p.extra || null,
     unit: p.unit,
     ok: lb ? lb.ok : 0,
     fail: lb ? lb.fail : 0,
