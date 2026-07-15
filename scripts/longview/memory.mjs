@@ -312,10 +312,17 @@ if (cmd === "labels") {
   const { spec, sids } = resolveLabel(label);
   const termsFile = path.join(projectRoot, "scripts", "longview", `.gate_${Date.now()}.json`);
   // Citations use both full sids and 8-char prefixes — gate on both.
+  // Only auto-add a session's project name as a gate term when the NAME ITSELF
+  // contains a matcher — generic catch-all projects ("outputs") otherwise flood
+  // the gate with false positives (155-finding run, 2026-07-14).
+  const matcherTerms = spec.match_projects || [];
+  const projectTerms = sids
+    .map((e) => e.project)
+    .filter((p) => p && matcherTerms.some((t) => matches(p, t)));
   fs.writeFileSync(
     termsFile,
     JSON.stringify({
-      terms: [...(spec.match_projects || []), ...sids.map((e) => e.project).filter(Boolean)],
+      terms: [...new Set([...matcherTerms, ...projectTerms])],
       sids: sids.flatMap((e) => [e.sid, e.sid.slice(0, 8)])
     })
   );
