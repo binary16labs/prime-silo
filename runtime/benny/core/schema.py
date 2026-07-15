@@ -269,6 +269,13 @@ class TaskStatus(str, Enum):
     PAUSED = "paused"
     COMPLETED = "completed"
     FAILED = "failed"
+    # Operator stopped the run mid-flight (POST /rag/ingest/cancel) — distinct
+    # from FAILED so a deliberate stop never reads as a system error.
+    CANCELLED = "cancelled"
+    # rag_routes already reported this string for partial ingests, but the enum
+    # never had it — TaskStatus("completed_with_errors") raised ValueError and
+    # 500'd the request after all the work was done.
+    COMPLETED_WITH_ERRORS = "completed_with_errors"
 
 
 class Task(BaseModel):

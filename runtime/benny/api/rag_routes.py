@@ -17,6 +17,7 @@ from pydantic import BaseModel
 
 from ..core.event_bus import event_bus
 from ..core.extraction import extract_structured_text
+from ..core.ingest_registry import ingest_registry
 from ..core.models import LOCAL_PROVIDERS, get_active_model
 from ..core.task_manager import task_manager
 from ..core.workspace import get_workspace_path
@@ -37,6 +38,35 @@ from ..tools.knowledge import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# Consecutive connectivity failures before the ingest loop stops trusting the
+# LLM host. Grinding through every remaining document when the host is down
+# just re-floods it with abandoned calls (2026-07-15 LM Studio incident).
+# Same pattern as the 3-timeout abort in graph_enrichment community naming.
+LLM_HOST_BREAKER_THRESHOLD = 3
+
+
+def _is_llm_connectivity_error(exc: BaseException) -> bool:
+    """True when a deep-synthesis failure smells like the model host being
+    down or wedged (connection refused, transport error, blown deadline)
+    rather than a content problem (bad JSON, schema mismatch). A dead host
+    fails every remaining document identically, so only these failures count
+    toward the circuit breaker. Also checks one level of cause/context since
+    the retry stack re-raises wrapped errors."""
+    for e in (exc, exc.__cause__, exc.__context__):
+        if e is None:
+            continue
+        # TimeoutError covers run_with_deadline's A9 deadline (raised
+        # `from None`, so it must match on the top-level exception itself).
+        if isinstance(e, (TimeoutError, httpx.TransportError)):
+            return True
+        blob = f"{type(e).__name__}: {e}".lower()
+        if any(
+            marker in blob
+            for marker in ("timeout", "timed out", "connect", "connection", "deadline", "unreachable")
+        ):
+            return True
+    return False
 
 
 class IngestRequest(BaseModel):
@@ -343,10 +373,28 @@ async def ingest_files(request: IngestRequest):
         # Update task total steps
         task_manager.update_task(run_id, total_steps=len(file_paths), progress=10)
 
+        # Register for out-of-band cancellation (POST /rag/ingest/cancel) and
+        # the /rag/ingest/active liveness view. The HTTP response only returns
+        # once this whole loop finishes, so a client that died mid-run has no
+        # other way to stop the server-side processing.
+        ingest_registry.register(run_id, docs_total=len(file_paths))
+
         ingested = []
         total_triples_extracted = 0
         sum_confidence = 0.0
+        cancelled = False
+        llm_conn_failures = 0  # consecutive host-connectivity failures; a success resets
+        llm_host_down = False
         for idx, file_path in enumerate(file_paths):
+            if ingest_registry.is_cancelled(run_id):
+                cancelled = True
+                logger.info(
+                    "Ingest %s cancelled by operator after %d/%d docs",
+                    run_id,
+                    idx,
+                    len(file_paths),
+                )
+                break
             try:
                 msg = f"Processing {file_path.name} ({idx+1}/{len(file_paths)})..."
                 logger.info(msg)
@@ -477,6 +525,10 @@ async def ingest_files(request: IngestRequest):
                                 model=request.model,
                                 timeout=300.0,
                                 parallel_limit=2,
+                                # A dead host fails EVERY section; surfacing that
+                                # as an exception (instead of a silent empty
+                                # result) is what feeds the circuit breaker below.
+                                raise_if_all_failed=True,
                             )
                             print(
                                 f"DEBUG: FINISHED Triple Extraction for {file_path.name}: Found {len(triples)} triples"
@@ -506,38 +558,47 @@ async def ingest_files(request: IngestRequest):
                             )
 
                             # 3b. Generate Librarian Wiki Article (Karpathy-style)
-                            try:
-                                from ..synthesis.engine import save_concept_article
+                            # Skipped when a cancel landed mid-document: no
+                            # further optional LLM call after the operator
+                            # said stop (the loop exits at the next doc).
+                            if not ingest_registry.is_cancelled(run_id):
+                                try:
+                                    from ..synthesis.engine import save_concept_article
 
-                                # Use the first few triples to identify the primary concept or use the filename
-                                primary_concept = file_path.stem
-                                summary_prompt = f"Summarize the core concepts of this document section in 3-4 sentences for a technical wiki:\n\n{text[:2000]}"
-                                from ..synthesis.engine import call_llm
+                                    # Use the first few triples to identify the primary concept or use the filename
+                                    primary_concept = file_path.stem
+                                    summary_prompt = f"Summarize the core concepts of this document section in 3-4 sentences for a technical wiki:\n\n{text[:2000]}"
+                                    from ..synthesis.engine import call_llm
 
-                                summary = await run_with_deadline(
-                                    call_llm(
-                                        summary_prompt, run_id=run_id, workspace=request.workspace
-                                    ),
-                                    float(os.environ.get("BENNY_SYNTH_FILE_TIMEOUT", "1200")),
-                                    f"wiki summary for {file_path.name}",
-                                )
+                                    summary = await run_with_deadline(
+                                        call_llm(
+                                            summary_prompt,
+                                            run_id=run_id,
+                                            workspace=request.workspace,
+                                        ),
+                                        float(os.environ.get("BENNY_SYNTH_FILE_TIMEOUT", "1200")),
+                                        f"wiki summary for {file_path.name}",
+                                    )
 
-                                await save_concept_article(
-                                    workspace=request.workspace,
-                                    concept_name=primary_concept,
-                                    summary=summary,
-                                    relationships=[t.model_dump() for t in triples[:10]],
-                                    source_files=[file_path.name],
-                                )
-                                track_aer(
-                                    run_id,
-                                    "rag_ingest",
-                                    request.workspace,
-                                    "Wiki Generated",
-                                    f"Saved Rationale Hub to {primary_concept}.md",
-                                )
-                            except Exception as wiki_e:
-                                logger.error(f"Wiki generation error: {wiki_e}")
+                                    await save_concept_article(
+                                        workspace=request.workspace,
+                                        concept_name=primary_concept,
+                                        summary=summary,
+                                        relationships=[t.model_dump() for t in triples[:10]],
+                                        source_files=[file_path.name],
+                                    )
+                                    track_aer(
+                                        run_id,
+                                        "rag_ingest",
+                                        request.workspace,
+                                        "Wiki Generated",
+                                        f"Saved Rationale Hub to {primary_concept}.md",
+                                    )
+                                except Exception as wiki_e:
+                                    logger.error(f"Wiki generation error: {wiki_e}")
+                        # The host answered this document — any consecutive-
+                        # failure streak is broken.
+                        llm_conn_failures = 0
                     except Exception as synth_e:
                         logger.error(f"Deep Synthesis error: {synth_e}")
                         track_aer(
@@ -547,6 +608,15 @@ async def ingest_files(request: IngestRequest):
                             f"Synthesis failed for {file_path.name}",
                             str(synth_e),
                         )
+                        if _is_llm_connectivity_error(synth_e):
+                            llm_conn_failures += 1
+                            if llm_conn_failures >= LLM_HOST_BREAKER_THRESHOLD:
+                                llm_host_down = True
+                        else:
+                            # A non-transport failure (parse error, schema,
+                            # Neo4j write) proves the host is reachable — it
+                            # must not count toward the breaker.
+                            llm_conn_failures = 0
 
                 file_result = {"file": file_path.name, "chunks": len(chunks)}
                 if index_error:
@@ -565,8 +635,23 @@ async def ingest_files(request: IngestRequest):
                 task_manager.add_aer_entry(run_id, "Error", f"Failed {file_path.name}: {str(e)}")
                 ingested.append({"file": file_path.name, "error": str(e)})
 
-        # 4. FINAL CLUSTERING & CORRELATION (if deep synthesis enabled)
-        if request.deep_synthesis:
+            ingest_registry.progress(run_id, idx + 1)
+            if llm_host_down:
+                # Every remaining document would burn the same retries and
+                # deadlines against a host that is not answering — and each
+                # abandoned call re-queues after the host restarts. Stop here.
+                abort_msg = (
+                    f"LLM host unhealthy — aborting ingest after {idx + 1}/{len(file_paths)} docs"
+                )
+                logger.error(abort_msg)
+                task_manager.add_aer_entry(run_id, "Circuit breaker", abort_msg)
+                break
+
+        # 4. FINAL CLUSTERING & CORRELATION (if deep synthesis enabled).
+        # Skipped after a cancel or breaker trip: enrichment, clustering and
+        # correlation all issue further LLM/host work — running them would
+        # re-create exactly the load the stop was meant to end.
+        if request.deep_synthesis and not cancelled and not llm_host_down:
             try:
                 from ..graph.clustering_service import ClusteringService
                 from ..graph.graph_enrichment import enrich_graph
@@ -647,7 +732,20 @@ async def ingest_files(request: IngestRequest):
         # report it as failed so the UI surfaces it instead of a green tick.
         succeeded = [f for f in ingested if f.get("indexed")]
         failed = [f for f in ingested if f.get("error")]
-        if succeeded:
+        if cancelled or llm_host_down:
+            # Partial-but-honest: say how far we got and why we stopped, and
+            # never dress a stopped run up as a clean completion.
+            final_status = "cancelled" if cancelled else "failed"
+            reason = (
+                "cancelled by operator"
+                if cancelled
+                else "aborted: LLM host unhealthy (circuit breaker)"
+            )
+            final_msg = (
+                f"Ingest {reason} after {len(ingested)} of {len(file_paths)} document(s); "
+                f"{len(succeeded)} indexed."
+            )
+        elif succeeded:
             final_status = "completed" if not failed else "completed_with_errors"
             final_msg = (
                 "Ingestion finished successfully"
@@ -665,7 +763,7 @@ async def ingest_files(request: IngestRequest):
 
         task_manager.update_task(run_id, status=final_status, progress=100, message=final_msg)
         try:
-            if final_status == "failed":
+            if final_status in ("failed", "cancelled"):
                 track_workflow_fail(run_id, "rag_ingest", request.workspace, final_msg)
             else:
                 track_workflow_complete(
@@ -688,6 +786,12 @@ async def ingest_files(request: IngestRequest):
             "indexed_files": len(succeeded),
             "failed_files": len(failed),
             "total_documents": collection.count(),
+            # Honest partial-result markers (additive; both false on the
+            # legacy happy path so existing clients see identical behavior).
+            "cancelled": cancelled,
+            "llm_host_aborted": llm_host_down,
+            "docs_processed": len(ingested),
+            "docs_total": len(file_paths),
         }
 
     except HTTPException:
@@ -695,6 +799,36 @@ async def ingest_files(request: IngestRequest):
     except Exception as e:
         task_manager.update_task(run_id, status="failed", message=str(e))
         raise HTTPException(500, f"Ingestion failed: {str(e)}")
+    finally:
+        # However the run ended — success, cancel, breaker, crash — it must
+        # leave the active list, or /rag/ingest/active would report ghosts.
+        ingest_registry.finish(run_id)
+
+
+class IngestCancelRequest(BaseModel):
+    run_id: str
+
+
+@router.post("/rag/ingest/cancel")
+async def cancel_ingest(request: IngestCancelRequest):
+    """Set the cooperative cancel flag for an in-flight ingest run.
+
+    Cancellation is not instantaneous: the loop polls the flag between
+    documents (and before the optional wiki LLM call), so the document
+    currently in flight finishes or times out first. known=false means the
+    run_id is not active — never started, already finished, or a different
+    server process.
+    """
+    known, was_cancelled = ingest_registry.cancel(request.run_id)
+    if known:
+        logger.info("Cancel flag set for ingest run %s", request.run_id)
+    return {"run_id": request.run_id, "cancelled": was_cancelled, "known": known}
+
+
+@router.get("/rag/ingest/active")
+async def list_active_ingests():
+    """In-flight ingest runs: run_id, started_at, docs_done/docs_total."""
+    return {"active": ingest_registry.active()}
 
 
 class PageIndexIngestRequest(BaseModel):

@@ -821,12 +821,19 @@ async def parallel_extract_triples(
     event_callback: Optional[Callable] = None,
     workspace: str = "default",
     run_id: Optional[str] = None,
+    raise_if_all_failed: bool = False,
     **kwargs,
 ) -> List[KnowledgeTriple]:
     """
     Process multiple document sections in parallel for high-performance ingestion.
     Uses an asyncio.Semaphore to prevent overloading the LLM provider.
     Emits progress events via event_callback if provided.
+
+    raise_if_all_failed: when every section raised, re-raise the first error
+    instead of returning []. When the LLM host is down, every section fails
+    identically; returning [] disguises the outage as "document had no
+    triples" and blinds the caller's circuit breaker (2026-07-15 incident).
+    Opt-in so legacy callers keep the swallow-and-continue behavior.
     """
     cfg = config or SynthesisConfig()
     actual_limit = parallel_limit or cfg.parallel_limit
@@ -863,11 +870,16 @@ async def parallel_extract_triples(
 
     # Flatten results, handling exceptions gracefully
     flat_triples: List[KnowledgeTriple] = []
+    failures: List[BaseException] = []
     for i, result in enumerate(results):
-        if isinstance(result, Exception):
+        if isinstance(result, BaseException):
+            failures.append(result)
             logger.error("Section %d extraction failed: %s", i + 1, result)
         elif isinstance(result, list):
             flat_triples.extend(result)
+
+    if raise_if_all_failed and failures and len(failures) == len(results):
+        raise failures[0]
 
     # Deduplicate across all sections
     if cfg.deduplicate:
