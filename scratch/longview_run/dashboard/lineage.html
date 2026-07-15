@@ -52,6 +52,16 @@
   button:hover{border-color:var(--accent)}
   .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--dim);margin-top:6px}
   .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  .chip{border:1px solid var(--line);background:var(--panel2);border-radius:20px;padding:4px 10px;font-size:11.5px;cursor:pointer}
+  .chip:hover{border-color:var(--accent2)}
+  .chip.concept{cursor:default;color:var(--ds);border-color:var(--ds)}
+  .chips-scroll{display:flex;flex-wrap:wrap;gap:6px;max-height:150px;overflow:auto;margin-top:6px}
+  .step-nav{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .step-nav button{padding:4px 10px}
+  .step-cap{font-weight:600;color:var(--ink);margin-bottom:4px}
+  .step-why{font-size:11.5px;color:var(--accent2);font-style:italic;margin-bottom:8px}
+  .step-fact{font-family:ui-monospace,monospace;font-size:10.5px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;max-height:150px;overflow:auto;white-space:pre-wrap;color:var(--dim)}
+  pre.ol{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:10px;max-height:180px;overflow:auto;white-space:pre-wrap;margin-top:6px}
 </style>
 </head>
 <body>
@@ -74,6 +84,28 @@
     <div style="margin-top:10px"><button id="dl">⬇ Download OpenLineage events (JSON)</button> <span class="sub" id="olcount"></span></div>
   </div>
 
+  <!-- artifact explorer: full lineage + step-through + ontology for one output -->
+  <div class="tile" id="explorer" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3 style="margin:0">Artifact lineage · <span id="ex-scope" style="color:var(--accent)">—</span></h3>
+      <button id="ex-close" style="padding:3px 10px">✕ close</button>
+    </div>
+    <div class="sub">The full chain that produced this output — every input document, card, session and concept — plus the step-through of exactly how it was made. Click a lineage node to jump to it.</div>
+    <div class="cols" style="margin-top:12px;grid-template-columns:1.15fr 1fr">
+      <div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:var(--dim);margin-bottom:6px">Lineage graph</div>
+        <div class="dagwrap"><svg id="ex-graph" width="560" height="360"></svg></div>
+        <div class="drawer" id="ex-node"></div>
+      </div>
+      <div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:var(--dim);margin-bottom:6px">Step-through · how it was made</div>
+        <div id="ex-step" style="border:1px solid var(--line);border-radius:12px;background:var(--panel2);padding:12px;min-height:150px"></div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:var(--dim);margin:12px 0 6px">Ontology · concepts in this lineage</div>
+        <div class="chips" id="ex-onto" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+      </div>
+    </div>
+  </div>
+
   <div class="tile">
     <h3>Book iterations · coverage comparison</h3>
     <div class="sub">Baseline vs arc-driven rebuild. Coverage = distinct sessions cited ÷ total cards — the honest measure of how much of the corpus the book stands on.</div>
@@ -81,9 +113,17 @@
   </div>
 
   <div class="tile">
-    <h3>Execution register · governance</h3>
-    <div class="sub">Every <code>longview run</code> invocation — commit, model, phases, outcome, cost. The immutable audit trail; newest first.</div>
-    <table id="execs"><tr><th>#</th><th>When</th><th>Commit</th><th>Model</th><th>Phases</th><th>Outcome</th><th>ok/fail</th><th>Duration</th><th>Tokens</th></tr></table>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <h3 style="margin:0">Execution register · governance</h3>
+      <div class="row" style="display:flex;gap:8px;align-items:center">
+        <span class="sub">workspace</span>
+        <select id="f-ws" style="background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:4px 8px;font:inherit"><option value="">all</option></select>
+        <span class="sub">group by</span>
+        <select id="f-grp" style="background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:4px 8px;font:inherit"><option value="none">none (timeline)</option><option value="output">output produced</option><option value="commit">commit</option><option value="workspace">workspace</option></select>
+      </div>
+    </div>
+    <div class="sub">Every <code>longview run</code> invocation — commit, model, phases, outcome, cost. The immutable audit trail; filter by workspace, group by the output ontology.</div>
+    <div id="execs"></div>
   </div>
 </div>
 
@@ -155,14 +195,86 @@ function drawer(d,ph){
   if(!n){el.className='drawer';return;}
   el.className='drawer open';
   const dur=n.first&&n.last?fmtDur(new Date(n.last)-new Date(n.first)):'—';
+  // OpenLineage facts: the COMPLETE RunEvent for this phase's latest execution.
+  const ol=(d.lineage.openlineage||[]).filter(e=>e.job&&e.job.name===n.id&&e.eventType!=='START').slice(-1)[0];
+  // Artifacts this dataset/phase contains, for drill-down.
+  const arts=(d.lineage.artifacts||{})[n.produces]||[];
   el.innerHTML=`<b>${n.id}</b> → produces <b>${n.produces}</b> · <span class="badge ${n.status==='done'?'clean':n.status==='failed'?'failed':n.status==='partial'?'partial':''}">${n.status}</span>`
     +`<div style="margin-top:6px">`
     +`<span class="kv"><span class="k">on disk</span><span class="v">${n.total?n.count+' / '+n.total+' '+n.unit:(n.count??'—')+' '+n.unit}</span></span>`
-    +`<span class="kv"><span class="k">ledger ok/fail</span><span class="v">${n.ok} / ${n.fail}</span></span>`
+    +`<span class="kv"><span class="k">ledger ok/fail (all runs)</span><span class="v">${n.ok} / ${n.fail}</span></span>`
     +`<span class="kv"><span class="k">wall time</span><span class="v">${dur}</span></span>`
     +`<span class="kv"><span class="k">LLM tokens</span><span class="v">${fmtK(n.tokens)}</span></span>`
-    +`</div>`;
+    +`</div>`
+    +(ol?`<details style="margin-top:8px"><summary class="sub">OpenLineage facts (RunEvent · job/run/datasets/facets)</summary><pre class="ol">${esc(JSON.stringify({eventType:ol.eventType,job:ol.job,run:ol.run,inputs:ol.inputs,outputs:ol.outputs},null,1))}</pre></details>`:'')
+    +(arts.length?`<div style="margin-top:8px"><div class="sub">${arts.length} artifacts — click to trace full lineage &amp; step-through:</div><div class="chips-scroll">`
+      +arts.slice(0,200).map(a=>`<span class="chip" data-scope="${a.id}">${esc(a.label)}</span>`).join('')+`</div></div>`:'');
+  el.querySelectorAll('.chip[data-scope]').forEach(c=>c.onclick=()=>openArtifact(c.dataset.scope));
 }
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+
+// --- artifact explorer: fetch lineageFor+recordFor and render graph + step + ontology
+let STEP={actions:[],i:0};
+async function openArtifact(scope){
+  $('explorer').style.display='block';
+  $('ex-scope').textContent=scope;
+  $('ex-step').innerHTML='<div class="sub">loading…</div>';
+  $('explorer').scrollIntoView({behavior:'smooth',block:'start'});
+  let d;
+  const ws=(DAG&&DAG.workspace)||'sessions_v1';
+  try{ d=await (await fetch('/api/lineage/artifact?scope='+encodeURIComponent(scope)+'&workspace='+encodeURIComponent(ws))).json(); }
+  catch(e){ $('ex-step').innerHTML='<div class="sub" style="color:var(--bad)">'+e+'</div>'; return; }
+  if(d.error){ $('ex-step').innerHTML='<div class="sub" style="color:var(--bad)">'+esc(d.error)+'</div>'; return; }
+  renderExGraph(d.lineage);
+  // ontology = distinct Concept nodes in the lineage
+  const concepts=(d.lineage?.nodes||[]).filter(n=>n.type==='Concept').map(n=>n.label);
+  $('ex-onto').innerHTML=concepts.length?concepts.map(c=>`<span class="chip concept">${esc(c)}</span>`).join(''):'<span class="sub">no graph concepts cited in this lineage</span>';
+  STEP={actions:d.record?.actions||[],i:0};
+  renderStep();
+}
+function renderExGraph(lin){
+  if(!lin||!lin.nodes){$('ex-graph').innerHTML='';return;}
+  // layer by depth; the record lineage already carries a depth per node.
+  const byDepth={}; lin.nodes.forEach(n=>{(byDepth[n.depth||0]=byDepth[n.depth||0]||[]).push(n);});
+  const CW=185,NH=30,GAP=12,PAD=12; const pos=new Map(); let maxRows=0;
+  Object.keys(byDepth).map(Number).sort((a,b)=>a-b).forEach(dp=>{
+    byDepth[dp].forEach((n,i)=>pos.set(n.id,{x:PAD+dp*CW,y:PAD+i*(NH+GAP)}));
+    maxRows=Math.max(maxRows,byDepth[dp].length);
+  });
+  const COLT={Section:'var(--accent)',Card:'var(--accent2)',Windows:'var(--warn)',Session:'var(--good)',Concept:'var(--ds)',Evidence:'var(--dim)',Dossier:'var(--accent)',Artifact:'var(--ink)',Book:'var(--accent)',Part:'var(--accent2)',Chapter:'var(--warn)'};
+  const w=PAD*2+(Math.max(...Object.keys(byDepth).map(Number))+1)*CW, h=Math.max(200,PAD*2+maxRows*(NH+GAP));
+  const g=$('ex-graph'); g.setAttribute('width',w); g.setAttribute('height',h);
+  let s='';
+  for(const l of lin.links){ const a=pos.get(l.source),b=pos.get(l.target); if(!a||!b)continue;
+    s+=`<path class="edge" d="M${a.x+160} ${a.y+NH/2} C${a.x+175} ${a.y+NH/2} ${b.x-15} ${b.y+NH/2} ${b.x} ${b.y+NH/2}"/>`; }
+  for(const n of lin.nodes){ const p=pos.get(n.id); if(!p)continue; const c=COLT[n.type]||'var(--faint)';
+    s+=`<g class="nodebox" data-nid="${esc(n.id)}"><rect x="${p.x}" y="${p.y}" width="160" height="${NH}" rx="7" fill="var(--panel)" stroke="${c}"/>`
+      +`<text x="${p.x+8}" y="${p.y+12}" class="small" fill="${c}">${esc(n.type)}</text>`
+      +`<text x="${p.x+8}" y="${p.y+24}" class="small">${esc((n.label||'').slice(0,24))}</text></g>`; }
+  g.innerHTML=s;
+  g.querySelectorAll('.nodebox[data-nid]').forEach(el=>el.onclick=()=>{
+    const n=lin.nodes.find(x=>x.id===el.dataset.nid);
+    $('ex-node').className='drawer open';
+    $('ex-node').innerHTML=`<b>${esc(n.type)}</b> · ${esc(n.label)}`+(n.meta&&Object.keys(n.meta).length?`<pre class="ol">${esc(JSON.stringify(n.meta,null,1).slice(0,1200))}</pre>`:'')
+      + (/^card:|^section:|^dossier:/.test(n.id)?`<div style="margin-top:6px"><span class="chip" onclick="openArtifact('${n.id}')">↳ trace this ${n.type.toLowerCase()}</span></div>`:'');
+  });
+}
+function renderStep(){
+  const a=STEP.actions[STEP.i]; const el=$('ex-step');
+  if(!a){el.innerHTML='<div class="sub">no recorded steps for this artifact</div>';return;}
+  el.innerHTML=`<div class="step-nav"><button ${STEP.i<=0?'disabled':''} id="sp-prev">◀</button>`
+    +`<span class="sub">step ${STEP.i+1} / ${STEP.actions.length}</span>`
+    +`<button ${STEP.i>=STEP.actions.length-1?'disabled':''} id="sp-next">▶</button>`
+    +`<span class="sub">${a.ts?new Date(a.ts).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):''}${a.ms?' · '+fmtDur(a.ms):''}${a.tokens?' · '+fmtK(a.tokens)+' tok':''}</span></div>`
+    +`<div class="step-cap">${esc(a.caption)}</div>`
+    +(a.why?`<div class="step-why">Why: ${esc(a.why)}</div>`:'')
+    +`<details><summary class="sub">raw ledger fact</summary><div class="step-fact">${esc(JSON.stringify(a.content,null,1))}</div></details>`;
+  const pv=$('sp-prev'),nx=$('sp-next');
+  if(pv)pv.onclick=()=>{STEP.i=Math.max(0,STEP.i-1);renderStep();};
+  if(nx)nx.onclick=()=>{STEP.i=Math.min(STEP.actions.length-1,STEP.i+1);renderStep();};
+}
+$('ex-close').onclick=()=>{$('explorer').style.display='none';};
+window.openArtifact=openArtifact;
 
 function renderBooks(d){
   const bs=(d.books||[]).slice().sort((a,b)=>(a.baseline?-1:1)); // baseline left
@@ -178,13 +290,41 @@ function renderBooks(d){
   }).join('');
 }
 
-function renderExecs(d){
-  const rows=(d.lineage.executions||[]).map(e=>
-    `<tr><td>${e.idx}</td><td class="sub">${e.started_at?new Date(e.started_at).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—'}</td>`
+// The "output ontology" of a run = the furthest-downstream deliverable it
+// produced (pdf > book > deliverables > reviews > discovery > graph > cards …),
+// so runs group by WHAT they made, not just which phases ran.
+const OUTPUT_RANK=['pdf','opus','reduce','weave','review','enrich','model','code','graph','map','extract','inventory'];
+const OUTPUT_LABEL={pdf:'📕 PDF',opus:'📖 book',reduce:'📄 deliverables',weave:'🔎 discovery',review:'🧭 reviews',enrich:'🕸 themes',model:'📊 rollups',code:'⌨ code graph',graph:'🔗 graph',map:'🃏 cards',extract:'✂ evidence',inventory:'📋 census'};
+const runOutput=e=>{ for(const p of OUTPUT_RANK) if(e.phases.includes(p)) return p; return e.phases[0]||'—'; };
+
+function execRow(e){
+  return `<tr><td>${e.idx}</td><td class="sub">${e.started_at?new Date(e.started_at).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—'}</td>`
     +`<td class="mono">${e.git_commit||'pre'}</td><td class="sub">${(e.model||'—').replace(/^lmstudio\//,'')}</td>`
-    +`<td class="sub">${e.phases.join(', ')||'—'}</td><td><span class="badge ${e.outcome}">${e.outcome}</span></td>`
-    +`<td>${e.ok}/${e.fail}</td><td>${e.duration_ms?fmtDur(e.duration_ms):'—'}</td><td>${fmtK(e.tokens)}</td></tr>`).join('');
-  $('execs').innerHTML='<tr><th>#</th><th>When</th><th>Commit</th><th>Model</th><th>Phases</th><th>Outcome</th><th>ok/fail</th><th>Duration</th><th>Tokens</th></tr>'+rows;
+    +`<td class="sub">${e.workspace||'—'}</td><td class="sub">${e.phases.join(', ')||'—'}</td><td><span class="badge ${e.outcome}">${e.outcome}</span></td>`
+    +`<td>${e.ok}/${e.fail}</td><td>${e.duration_ms?fmtDur(e.duration_ms):'—'}</td><td>${fmtK(e.tokens)}</td></tr>`;
+}
+function renderExecs(d){
+  let execs=(d.lineage.executions||[]).slice();
+  // populate workspace filter (once)
+  const wsSel=$('f-ws');
+  const wss=[...new Set(execs.map(e=>e.workspace).filter(Boolean))];
+  if(wsSel.options.length<=1) for(const w of wss){const o=document.createElement('option');o.value=w;o.textContent=w;wsSel.appendChild(o);}
+  const fWs=wsSel.value, grp=$('f-grp').value;
+  if(fWs) execs=execs.filter(e=>e.workspace===fWs);
+  const head='<table><tr><th>#</th><th>When</th><th>Commit</th><th>Model</th><th>Workspace</th><th>Phases</th><th>Outcome</th><th>ok/fail</th><th>Duration</th><th>Tokens</th></tr>';
+  if(grp==='none'){ $('execs').innerHTML=head+execs.map(execRow).join('')+'</table>'; return; }
+  const keyer=grp==='output'?(e=>runOutput(e)):grp==='commit'?(e=>e.git_commit||'pre'):(e=>e.workspace||'—');
+  const groups=new Map();
+  for(const e of execs){const k=keyer(e);(groups.get(k)||groups.set(k,[]).get(k)).push(e);}
+  let html='';
+  for(const [k,list] of groups){
+    const label=grp==='output'?(OUTPUT_LABEL[k]||k):k;
+    const tok=list.reduce((a,e)=>a+e.tokens,0), ms=list.reduce((a,e)=>a+e.duration_ms,0);
+    const clean=list.filter(e=>e.outcome==='clean').length;
+    html+=`<div style="margin:14px 0 4px;font-weight:700;color:var(--accent)">${label} <span class="sub" style="font-weight:400">· ${list.length} runs · ${clean} clean · ${fmtDur(ms)} · ${fmtK(tok)} tokens</span></div>`
+      +head.replace('<table>','<table style="margin-top:0">')+list.map(execRow).join('')+'</table>';
+  }
+  $('execs').innerHTML=html;
 }
 
 async function tick(){
@@ -198,6 +338,8 @@ async function tick(){
   }catch(e){ $('stamp').textContent='stale'; }
 }
 $('dl').onclick=()=>window.open('openlineage.json','_blank');
+$('f-ws').onchange=()=>{ if(DAG)renderExecs(DAG); };
+$('f-grp').onchange=()=>{ if(DAG)renderExecs(DAG); };
 tick(); setInterval(tick,15000);
 </script>
 </body>

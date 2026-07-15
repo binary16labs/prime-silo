@@ -32,6 +32,35 @@ function runMemory(workspace, cliArgs, cb) {
   });
 }
 
+// Artifact lineage + step-through, reusing scripts/longview/record_cli.mjs
+// (which reuses lib/record.mjs — the same disk-truth the app's benny_record
+// player uses). Read-only; safe on the LAN.
+function lineageApi(req, res, url) {
+  const q = Object.fromEntries(new URL(url, "http://x").searchParams);
+  const scope = q.scope;
+  if (!scope) {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "scope required (card:sid|section:id|dossier:name|book|run)" }));
+  }
+  const child = spawn("node", [path.join(REPO, "scripts", "longview", "record_cli.mjs"), "--scope", scope], {
+    cwd: REPO,
+    env: { ...process.env, LONGVIEW_WORKSPACE: q.workspace || "sessions_v1" }
+  });
+  let out = "";
+  child.stdout.on("data", (b) => (out += b));
+  child.stderr.on("data", () => {});
+  const t = setTimeout(() => child.kill(), 30000);
+  child.on("close", () => {
+    clearTimeout(t);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    try {
+      res.end(JSON.stringify(JSON.parse(out)));
+    } catch {
+      res.end(JSON.stringify({ error: out.slice(0, 300) || "no output" }));
+    }
+  });
+}
+
 function memoryApi(req, res, url) {
   if (!isLoopback(req)) {
     res.writeHead(403);
@@ -103,6 +132,7 @@ const TYPES = { ".html": "text/html", ".json": "application/json", ".js": "text/
 http
   .createServer((req, res) => {
     if ((req.url || "").startsWith("/api/memory/")) return memoryApi(req, res, req.url);
+    if ((req.url || "").startsWith("/api/lineage/")) return lineageApi(req, res, req.url);
     let p = decodeURIComponent((req.url || "/").split("?")[0]);
     if (p === "/") p = "/dashboard.html";
     const file = path.resolve(DIR, "." + p);

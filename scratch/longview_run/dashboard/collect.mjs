@@ -486,6 +486,33 @@ if (graphStats && (graphChanged || !ontology)) {
 // register deterministically from the ledger, and persist the standards-
 // compliant events for download/replay (single source of truth = the ledger).
 const lineage = deriveLineage(path.join(LV, "ledger.jsonl"), pipeline);
+// Artifact index: makes dataset nodes drillable (click → pick an artifact →
+// full lineage). Deterministic from disk; bounded. Maps each dataset label to
+// the scopes record_cli understands (card:/section:/dossier:).
+const cardsList = fs.existsSync(path.join(LV, "cards"))
+  ? fs.readdirSync(path.join(LV, "cards"))
+      .filter((f) => f.endsWith(".json") && !f.endsWith(".meta.json"))
+      .map((f) => {
+        const c = readJSON(path.join(LV, "cards", f), {});
+        return { id: `card:${f.slice(0, 8)}`, label: `${c.project || "?"} (${f.slice(0, 8)})`, project: c.project || "?" };
+      })
+  : [];
+const dossierList = fs.existsSync(path.join(dataOut, "dossiers"))
+  ? fs.readdirSync(path.join(dataOut, "dossiers"))
+      .filter((f) => f.endsWith(".md") && !f.endsWith(".meta.json"))
+      .map((f) => ({ id: `dossier:${f.replace(/\.md$/, "")}`, label: f.replace(/\.md$/, "").replace(/_/g, " ") }))
+  : [];
+const activeOutline = activeBook ? readJSON(path.join(dataOut, ...activeBook.id.split("/"), "outline.json"), null) : null;
+const sectionList = activeOutline
+  ? (activeOutline.parts || []).flatMap((p) =>
+      (p.chapters || []).flatMap((c) => (c.sections || []).map((s) => ({ id: `section:${s.id}`, label: `§${s.id} ${s.title || ""}`.slice(0, 50) })))
+    )
+  : [];
+const artifactIndex = {
+  "session cards": cardsList,
+  "dossiers · themes · report · PRD · skills": dossierList,
+  "the book (sections)": sectionList
+};
 try {
   const olDir = path.join(LV, "lineage");
   fs.mkdirSync(olDir, { recursive: true });
@@ -503,7 +530,7 @@ const out = {
   pipeline_live: pipelineLive,
   ontology,
   books,
-  lineage: { dag: lineage.dag, executions: lineage.executions, event_count: lineage.event_count },
+  lineage: { dag: lineage.dag, executions: lineage.executions, event_count: lineage.event_count, openlineage: lineage.openlineage, artifacts: artifactIndex },
   artifacts: art,
   phases: {
     current: statusJson.phase || "map",
