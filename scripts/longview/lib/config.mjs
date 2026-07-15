@@ -114,6 +114,10 @@ export const config = {
   // providers/models that would reject it — LM Studio ignores unknown values).
   REASONING_EFFORT: env("LONGVIEW_REASONING_EFFORT", ""),
 
+  // Opus arc planner: how many timeline-walked cross-project arcs to plan. Each
+  // is one bounded LLM call; sections inherit their chapter's ≤2 arcs.
+  OPUS_ARCS: env("LONGVIEW_OPUS_ARCS", "12"),
+
   // Cadence cooldown between window calls (ms). On a marginal GPU stack — e.g. a
   // new-gen AMD card in an eGPU over Thunderbolt — hammering inference flat-out can
   // trip the driver/link ("channel error" → engine wedge). A short breather between

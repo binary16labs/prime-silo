@@ -11,6 +11,7 @@ import { config, workspaceDir, stateDir } from "./config.mjs";
 import { chat, lastBalancedJson, repairTruncatedJson } from "./llm.mjs";
 import { appendLedger, writeStatus } from "./ledger.mjs";
 import { evidenceForWithSources } from "./retrieve.mjs";
+import { buildArcs, arcsForChapter, arcBriefs } from "./arcs.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const prompt = (name) =>
@@ -261,15 +262,48 @@ async function buildOutline(interrupted) {
 }
 
 // Deterministic craft gate — the prompt's rules (length, inline citations) are
-// VALIDATED, not just requested. Returns the violations so a retry can quote them.
-function sectionGate(text) {
+// VALIDATED, not just requested. When the section carries assigned arcs, it must
+// also cite at least one of the arc's real sids — that is the mechanical half of
+// "actually connects across projects" (the critique call judges the rest).
+function sectionGate(text, arcSids = []) {
   const words = text.split(/\s+/).filter(Boolean).length;
   const cites = (text.match(/\((sid|concept|doc):\s*[^)]+\)/g) || []).length;
+  const citedSids = (text.match(/\(sid:\s*[a-z0-9]{6,}\s*\)/gi) || []).map((m) =>
+    m.replace(/.*sid:\s*/i, "").replace(/\s*\).*/, "").slice(0, 8).toLowerCase()
+  );
+  const arcSet = new Set(arcSids.map((s) => s.slice(0, 8).toLowerCase()));
+  const hitsArc = arcSet.size ? citedSids.some((s) => arcSet.has(s)) : true;
   const errs = [];
   if (words < 400) errs.push(`too short (${words} words; need 650-950)`);
   if (words > 1300) errs.push(`too long (${words} words; need 650-950)`);
   if (cites < 2) errs.push(`only ${cites} inline citation(s); need 2-5 like (sid: abc123)`);
-  return { errs, words, cites };
+  if (arcSet.size && !hitsArc)
+    errs.push(`cite at least one of this section's arc sids: ${[...arcSet].slice(0, 4).join(", ")}`);
+  return { errs, words, cites, hitsArc };
+}
+
+// One connective-editor pass (LLM): does the draft draw the arc's cross-project
+// connection, or just describe one project? Returns fixes to fold into a revise.
+async function critiqueSection(arcList, draft) {
+  if (!arcList?.length) return { fixes: [], connects: null };
+  try {
+    const res = await chat({
+      system: prompt("vampire_critique"),
+      user: [`## Assigned arcs\n${arcBriefs(arcList)}`, `## Draft\n${draft.slice(0, 5000)}`].join("\n\n"),
+      maxTokens: 500,
+      temperature: 0.2,
+      json: true
+    });
+    const v = lastBalancedJson(res.content) ?? repairTruncatedJson(res.content) ?? {};
+    const fixes = Array.isArray(v.fixes) ? v.fixes.filter((f) => typeof f === "string").slice(0, 4) : [];
+    // Weak on any connective axis → surface it as a fix even if the model left fixes empty.
+    if (v.connects === false && !fixes.length) fixes.push("draw the actual cross-project connection the arc names — don't describe one project in isolation");
+    if (v.cites_arc_sids === false) fixes.push("cite at least one sid from the assigned arc beats");
+    if (v.invented === true) fixes.push("remove any project, sid, quote or number not in the evidence");
+    return { fixes, connects: v.connects ?? null, invented: v.invented ?? null };
+  } catch {
+    return { fixes: [], connects: null };
+  }
 }
 
 function allSections(outline) {
@@ -285,8 +319,14 @@ function allSections(outline) {
 export async function runOpus({ interrupted = () => false } = {}) {
   fs.mkdirSync(opusDir("sections"), { recursive: true });
   const outline = await buildOutline(interrupted);
+  // Timeline-walked arcs: the cross-project through-lines every chapter draws on.
+  const arcData = await buildArcs({ interrupted });
+  const chapterArcs = new Map(); // ch.n → arcs[]
+  for (const part of outline.parts || [])
+    for (const ch of part.chapters || [])
+      chapterArcs.set(ch.n, ch.reflection ? [] : arcsForChapter(ch, arcData.arcs || []));
   const sections = allSections(outline);
-  console.log(`[opus] ${sections.length} sections planned`);
+  console.log(`[opus] ${sections.length} sections planned · ${arcData.arcs?.length || 0} arcs assigned across chapters`);
   let done = 0,
     failed = 0;
 
@@ -298,13 +338,24 @@ export async function runOpus({ interrupted = () => false } = {}) {
     }
     if (interrupted()) break;
     const started = Date.now();
+    const arcList = chapterArcs.get(ch.n) || [];
+    const arcSids = [...new Set(arcList.flatMap((a) => a.sids || []))];
     try {
-      const ev = await evidenceForWithSources(s.query || `${ch.title} ${s.title}`, {
-        topK: 4,
+      // Retrieval query is arc-biased: fold the arc threads into the query so the
+      // chunks retrieved are the ones the arc connects, not scattered matches.
+      const query = [s.query || `${ch.title} ${s.title}`, ...arcList.map((a) => a.thread)]
+        .filter(Boolean)
+        .join(" ");
+      const ev = await evidenceForWithSources(query, {
+        topK: arcList.length ? 6 : 4,
         budget: s.reflection ? 2400 : 3800
       });
       let evidence = ev.text;
       const evidenceSources = ev.sources;
+      // The assigned arcs — concrete cross-project connections + the real sids to
+      // cite. This is the connective material the first book lacked.
+      const arcContext = arcBriefs(arcList);
+      if (arcContext) evidence += `\n\n## Narrative arcs to connect (cite their sids)\n${arcContext}`;
       // Reflection sections are grounded in the post-graph session reviews —
       // the cross-session collation is what the interlude reflects on.
       if (s.reflection) {
@@ -334,32 +385,53 @@ export async function runOpus({ interrupted = () => false } = {}) {
         .filter(Boolean)
         .join("\n\n");
 
-      // Deterministic craft gate with one retry: the prompt's length/citation
-      // rules are enforced, and the better of the two attempts is kept —
-      // never a hole in the book, never a silently substandard section.
+      // draft → critique → revise. The deterministic gate (length, citations,
+      // arc-sid coverage) is enforced every attempt; a connective-editor LLM
+      // pass then judges whether the draft actually draws the arc's cross-
+      // project connection, and its fixes fold into the revise. The best of the
+      // attempts is always kept — never a hole, never a silently thin section.
       let best = null;
       let bestGate = null;
+      let critique = { fixes: [], connects: null };
       let tokens = { prompt: 0, completion: 0 };
-      for (let attempt = 0; attempt < 2; attempt++) {
+      const MAX = arcList.length ? 3 : 2; // extra revise budget only where there's an arc to land
+      for (let attempt = 0; attempt < MAX; attempt++) {
+        const problems = [
+          ...(bestGate ? bestGate.errs : []),
+          ...(attempt > 0 ? critique.fixes : [])
+        ];
         const feedback =
-          attempt > 0 && bestGate
-            ? `\n\n## Fix these problems from your previous draft\n- ${bestGate.errs.join("\n- ")}`
+          attempt > 0 && problems.length
+            ? `\n\n## Fix these problems from your previous draft\n- ${problems.join("\n- ")}`
             : "";
         const res = await chat({
           system: prompt("vampire_section"),
           user: baseUser + feedback,
           maxTokens: 1500,
-          temperature: 0.65
+          temperature: attempt === 0 ? 0.65 : 0.45
         });
         tokens.prompt += res.prompt_tokens;
         tokens.completion += res.completion_tokens;
         const text = res.content.trim();
-        const g = sectionGate(text);
-        if (!best || g.errs.length < bestGate.errs.length || (g.errs.length === bestGate.errs.length && g.cites > bestGate.cites)) {
+        const g = sectionGate(text, arcSids);
+        // "Better" = fewer craft errors, then stronger arc landing, then more cites.
+        if (
+          !best ||
+          g.errs.length < bestGate.errs.length ||
+          (g.errs.length === bestGate.errs.length && g.hitsArc && !bestGate.hitsArc) ||
+          (g.errs.length === bestGate.errs.length && g.hitsArc === bestGate.hitsArc && g.cites > bestGate.cites)
+        ) {
           best = text;
           bestGate = g;
         }
-        if (g.errs.length === 0) break;
+        // Stop early only when craft is clean AND (no arc, or the connective
+        // editor is satisfied). Run the critique between draft and revise.
+        if (g.errs.length === 0) {
+          if (!arcList.length || attempt >= MAX - 1) break;
+          critique = await critiqueSection(arcList, text);
+          tokens.prompt += 0; // critique tokens ledgered inside its own call path
+          if (!critique.fixes.length) break; // editor satisfied
+        }
       }
       if (!best || best.length < 200) throw new Error("no usable draft after retry");
       fs.writeFileSync(file, best);
@@ -372,6 +444,9 @@ export async function runOpus({ interrupted = () => false } = {}) {
             query: s.query || `${ch.title} ${s.title}`,
             reflection: !!s.reflection,
             evidence_sources: evidenceSources,
+            arcs: arcList.map((a) => a.title),
+            arc_sids: arcSids,
+            connects: critique.connects,
             cited_sids: [...new Set((best.match(/\(sid:\s*[a-z0-9]{6,}\s*\)/gi) || []).map((m) => m.replace(/.*sid:\s*/i, "").replace(/\s*\).*/, "").slice(0, 8)))],
             cited_concepts: [...new Set((best.match(/\(concept:\s*[^)]+\)/gi) || []).map((m) => m.replace(/.*concept:\s*/i, "").replace(/\s*\).*/, "").trim()))],
             tokens,
@@ -398,7 +473,7 @@ export async function runOpus({ interrupted = () => false } = {}) {
         ...(passed ? {} : { gate_errors: bestGate.errs })
       });
       console.log(
-        `[opus] ${s.id} ${passed ? "ok" : "GATE-FAIL (kept best draft)"} (${done}/${sections.length}, ${((Date.now() - started) / 1000).toFixed(0)}s, ${bestGate.cites} cites)`
+        `[opus] ${s.id} ${passed ? "ok" : "GATE-FAIL (kept best draft)"} (${done}/${sections.length}, ${((Date.now() - started) / 1000).toFixed(0)}s, ${bestGate.cites} cites${arcList.length ? `, arc:${bestGate.hitsArc ? "✓" : "✗"}${critique.connects === false ? " connect:✗" : ""}` : ""})`
       );
     } catch (e) {
       failed++;
