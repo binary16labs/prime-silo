@@ -173,6 +173,13 @@ section), NOT by swapping out `governanceSvg()`. Keep every shipped set-piece; g
 
 ## 6b. Teardown-restore rule + environment gotchas (learned 2026-07-16, DAG anchor)
 
+- **SVG `marker-end` ignores `stroke-dashoffset`.** For an edge you reveal with
+  `createDrawable`/`draw`, a `marker-end` arrowhead renders at the path endpoint from
+  frame 0 — so every arrowhead is visible before any line is drawn. Don't use markers on
+  draw-in edges: emit **separate arrowhead elements** (a `<path>` triangle transformed to
+  the endpoint) that start `opacity:0` and fade in at each edge's draw completion. Keep
+  them in the SVG source (visible by default) so no-JS/reduced-motion shows the full graph.
+
 - **utils.set hides are UNTRACKED — you MUST restore them on teardown.** A scene that
   hides nodes at rest with `utils.set(el, { opacity: 0 })` / `{ draw: '0 0' }` (so the
   set-piece assembles on scroll) will leave those nodes **invisible** after the runtime
