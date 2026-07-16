@@ -1,0 +1,114 @@
+{
+  "schema_version": "2.0",
+  "id": "togaf-sad-prime-silo",
+  "name": "TOGAF SAD — binary16 estate (dual-graph: LONGVIEW KG + prime-silo AST)",
+  "description": "TOGAF SAD swarm grounded on BOTH graphs in the sessions_v1 workspace: the LONGVIEW session-card knowledge graph (what 9 months of sessions said the estate is) and the Tree-sitter code graph of the prime-silo repo (what the code actually is), joined by CORRELATES_WITH enrichment edges. Derived additively from togaf_sad_report_swarm.json; run `benny enrich --workspace sessions_v1 --src src/prime-silo --run` first so the code graph + overlay exist.",
+  "workspace": "${workspace}",
+  "variables": {
+    "workspace": "sessions_v1",
+    "topic": "The binary16 application estate (LONGVIEW synthesis + prime-silo code graph)",
+    "model": "lmstudio/google/gemma-4-12b",
+    "output_file": "data_out/TOGAF_SAD_binary16.md",
+    "word_count_target": 3500
+  },
+  "config": {
+    "model": "${model}",
+    "max_concurrency": 1,
+    "allow_swarm": true,
+    "skills_allowed": ["search_kb", "query_graph", "read_file", "write_file"]
+  },
+  "inputs": {
+    "files": []
+  },
+  "outputs": {
+    "files": ["${output_file}"],
+    "format": "md",
+    "word_count_target": 3500,
+    "spec": "TOGAF-compliant System Architecture Document (SAD) for ${topic}. Target length: ${word_count_target} words. Core Sections: Scope and Context, Baseline Application Architecture, Target Application Architecture, Gap Analysis, Impact Analysis, and Architecture Viewpoints (Catalogs, Matrices, Diagrams in Mermaid). The Baseline must reconcile TWO evidence sources: the session knowledge graph (claimed/narrated architecture) and the Tree-sitter code graph (observed architecture), citing CORRELATES_WITH links where claims and code agree and flagging where they diverge."
+  },
+  "plan": {
+    "tasks": [
+      {
+        "id": "sad_planning",
+        "description": "Planner Agent: Decompose focus topic '${topic}' into a structured TOGAF-compliant System Architecture Document outline targeting a length of ${word_count_target} words. Scope context, identify stakeholders, baseline, target states, and draft the Scope and Context section of the report. Note the dual-evidence method: the workspace graph holds BOTH a session knowledge graph (Source/Concept nodes from LONGVIEW synthesis) and a code graph (File/Class/Function nodes from a Tree-sitter scan of the prime-silo repo), linked by CORRELATES_WITH edges.",
+        "assigned_model": "${model}",
+        "persona": "planner",
+        "dependencies": [],
+        "wave": 0,
+        "complexity": "medium",
+        "node_type": "task"
+      },
+      {
+        "id": "baseline_extraction",
+        "description": "Current State Analyst: Document the Baseline Application Architecture (Current State) of '${topic}' from BOTH graphs via `query_graph`. (1) OBSERVED architecture from the code graph: `MATCH (f:File) RETURN f.path LIMIT 200` for the file inventory; `MATCH (c:Class) RETURN c.name, c.file LIMIT 100` and `MATCH (fn:Function) RETURN fn.name, fn.file LIMIT 150` for the symbol catalog; `MATCH (a)-[r:DEPENDS_ON]->(b) RETURN a.name, b.name LIMIT 150` for dependencies. Group Folder/File paths into applications (app/=frontend, server/=API server, runtime/benny/=Benny runtime, commands/=CLI, scripts/=pipelines, packaging/=desktop shell). (2) CLAIMED architecture from the knowledge graph: `MATCH (c:Concept)-[:RELATES_TO]-(d:Concept) RETURN c.name, d.name LIMIT 150` and `search_kb` for narrative context. (3) RECONCILIATION: `MATCH (c:Concept)-[r:CORRELATES_WITH]-(code) RETURN c.name, code.name, r.confidence ORDER BY r.confidence DESC LIMIT 100` — where sessions and code agree, cite it; where a claimed capability has NO code correlate, flag it explicitly as unverified. Compile the Application Portfolio Catalog and Interface Catalog from this evidence.",
+        "assigned_model": "${model}",
+        "persona": "document_analyst",
+        "assigned_skills": ["query_graph", "read_file", "search_kb"],
+        "dependencies": ["sad_planning"],
+        "wave": 1,
+        "complexity": "high",
+        "node_type": "task"
+      },
+      {
+        "id": "target_abstraction",
+        "description": "Target State Architect: Define the Target Application Architecture (Future State) for the system '${topic}'. Explicitly distinguish between Logical Application Components (abstraction of functionality independent of implementation) and Physical Application Components (actual deployed software/services — ground these in the code-graph file inventory from the baseline). Define key meta-model relationships: realizes (Component to Service), supports (Service to Process), consumes (Actor/Role to Service), accesses/updates (Component to Data Entity), communicates with (Component to Component), and hosts (Technology to Component).",
+        "assigned_model": "${model}",
+        "persona": "architect",
+        "dependencies": ["baseline_extraction"],
+        "wave": 2,
+        "complexity": "high",
+        "node_type": "task"
+      },
+      {
+        "id": "gap_and_impact_analysis",
+        "description": "Delta Analyst: Analyze the delta between baseline and target states. Explicitly identify components to be created, updated, or decommissioned (Gap Analysis). Include a claimed-vs-observed gap class: capabilities the session knowledge graph asserts but the code graph does not corroborate (and vice versa — code with no narrated purpose). Perform Impact Analysis detailing security, downstream reporting, and infrastructure impacts.",
+        "assigned_model": "${model}",
+        "persona": "analyst",
+        "dependencies": ["target_abstraction"],
+        "wave": 3,
+        "complexity": "high",
+        "node_type": "task"
+      },
+      {
+        "id": "viewpoints_generation",
+        "description": "Viewpoint Designer: Formulate architectural viewpoints. Generate Catalogs and Matrices (Application/Business Function Matrix, Application/Data Matrix). Write out Diagrams (Application Communication Diagram, Application and User Location Diagram, Enterprise Manageability Diagram) using Mermaid syntax. Base the Application Communication Diagram on the DEPENDS_ON edges observed in the code graph.",
+        "assigned_model": "${model}",
+        "persona": "designer",
+        "dependencies": ["gap_and_impact_analysis"],
+        "wave": 4,
+        "complexity": "medium",
+        "node_type": "task"
+      },
+      {
+        "id": "editorial_refinement",
+        "description": "Publishing Editor: Refine the combined draft section-by-section using sliding window constraints to ensure consistency, tone, and that the final output satisfies the target length of ${word_count_target} words. Write the final TOGAF-compliant System Architecture Document (SAD) to '${output_file}'.",
+        "assigned_model": "${model}",
+        "persona": "editor",
+        "assigned_skills": ["read_file", "write_file"],
+        "dependencies": ["viewpoints_generation"],
+        "wave": 5,
+        "complexity": "high",
+        "node_type": "output"
+      }
+    ],
+    "edges": [
+      ["sad_planning", "baseline_extraction"],
+      ["baseline_extraction", "target_abstraction"],
+      ["target_abstraction", "gap_and_impact_analysis"],
+      ["gap_and_impact_analysis", "viewpoints_generation"],
+      ["viewpoints_generation", "editorial_refinement"]
+    ],
+    "waves": [
+      ["sad_planning"],
+      ["baseline_extraction"],
+      ["target_abstraction"],
+      ["gap_and_impact_analysis"],
+      ["viewpoints_generation"],
+      ["editorial_refinement"]
+    ]
+  },
+  "metadata": {
+    "publishing_standard": "TOGAF-SAD-Standard",
+    "notes": "Dual-graph TOGAF SAD for the binary16 estate. Prerequisites: (1) Neo4j up; (2) `benny enrich --workspace sessions_v1 --src src/prime-silo --run` completed so the code graph + CORRELATES_WITH overlay exist alongside the LONGVIEW KG. Human-launched per ADR-001. Additive copy of togaf_sad_report_swarm.json — the original template is untouched."
+  }
+}

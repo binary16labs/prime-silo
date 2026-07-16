@@ -9,6 +9,7 @@
 import fs from "fs";
 import path from "path";
 import { deriveLineage } from "./lineage.mjs";
+import { deriveRuntimeLineage } from "./runtime_lineage.mjs";
 
 const WS = process.env.LONGVIEW_WORKSPACE || "sessions_v1";
 const LV = `C:/Users/nsdha/AppData/Roaming/space-agent/benny-home/benny/workspaces/${WS}/longview`;
@@ -523,6 +524,17 @@ try {
   /* best-effort */
 }
 
+// --- runtime swarm lineage (TOGAF SAD etc.): Marquez-free OpenLineage from
+// the governance ledger + run records. Additive key; LONGVIEW path untouched.
+let runtimeLineage = { executions: [], openlineage: [], event_count: 0, current: null, dag: null };
+try {
+  runtimeLineage = deriveRuntimeLineage();
+  fs.writeFileSync(path.join(LV, "lineage", "openlineage_runtime.json"), JSON.stringify(runtimeLineage.openlineage, null, 2));
+  fs.writeFileSync(path.join(DASH, "openlineage_runtime.json"), JSON.stringify(runtimeLineage.openlineage, null, 2));
+} catch {
+  /* best-effort */
+}
+
 const out = {
   generated: new Date().toISOString(),
   workspace: WS,
@@ -531,6 +543,7 @@ const out = {
   ontology,
   books,
   lineage: { dag: lineage.dag, executions: lineage.executions, event_count: lineage.event_count, openlineage: lineage.openlineage, artifacts: artifactIndex },
+  runtime_lineage: runtimeLineage,
   artifacts: art,
   phases: {
     current: statusJson.phase || "map",

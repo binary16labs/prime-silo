@@ -114,6 +114,19 @@
 
   <div class="tile">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <h3 style="margin:0">Runtime swarm runs · TOGAF SAD & report swarms</h3>
+      <button id="rt-dl" style="padding:3px 10px">⬇ OpenLineage (runtime)</button>
+    </div>
+    <div class="sub">Marquez-free OpenLineage from the governance ledger (<code>runtime/workspace/governance.log</code>, integrity-hashed) + run records (<code>runtime/workspace/manifests/runs/</code>). Live run shows elapsed + per-task states. <b>Operational hints:</b> launch = <code>python benny_cli.py run manifests/templates/togaf_sad_prime_silo.json --json</code> from <code>runtime/</code> with BENNY_HOME + BENNY_LMSTUDIO_ENDPOINTS set · console prints each wave · LM Studio token stream = ground truth for "is it generating" · output lands in <code>&lt;BENNY_HOME&gt;/workspaces/sessions_v1/data_out/</code>.</div>
+    <div id="rt-current"></div>
+    <div id="rt-tasks"></div>
+    <div id="rt-aer" style="max-height:260px;overflow:auto;margin-top:10px"></div>
+    <div id="rt-enrich" style="margin-top:10px"></div>
+    <div id="rt-execs"></div>
+  </div>
+
+  <div class="tile">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
       <h3 style="margin:0">Execution register · governance</h3>
       <div class="row" style="display:flex;gap:8px;align-items:center">
         <span class="sub">workspace</span>
@@ -327,6 +340,69 @@ function renderExecs(d){
   $('execs').innerHTML=html;
 }
 
+function renderRuntime(d){
+  const rt=d.runtime_lineage||{};
+  const badge=s=>{const c=s==='completed'?'clean':(s==='running'?'partial':(s==='failed'?'failed':'partial'));return `<span class="badge ${c}">${esc(s||'?')}</span>`;};
+  // current run banner
+  let cur='';
+  if(rt.current){
+    const c=rt.current, mins=c.elapsed_s?(c.elapsed_s/60).toFixed(1):'?';
+    cur=`<div class="drawer open" style="border-color:var(--warn)"><b>LIVE</b> · ${esc(c.manifest_name)} · run <code>${esc(c.run_id)}</code> · ws <code>${esc(c.workspace)}</code> · model <code>${esc(c.model)}</code> · elapsed <b>${mins} min</b> ${badge(c.status)}</div>`;
+  } else {
+    cur=`<div class="sub" style="margin-top:8px">No swarm run in flight. ${rt.event_count||0} OpenLineage events on the governance ledger · ${rt.manifests||0} manifests registered.</div>`;
+  }
+  $('rt-current').innerHTML=cur;
+  // task table for the live (or most recent) run's DAG
+  let tk='';
+  if(rt.dag){
+    tk='<table><tr><th>wave</th><th>task</th><th>persona</th><th>complexity</th><th>status</th></tr>'
+      +rt.dag.tasks.map(t=>`<tr><td>${t.wave}</td><td class="mono">${esc(t.id)}</td><td>${esc(t.persona||'—')}</td><td>${esc(t.complexity)}</td><td>${badge(t.status||'pending')}</td></tr>`).join('')
+      +'</table>';
+  }
+  $('rt-tasks').innerHTML=tk;
+  // live AER step-through: the swarm's Agent Execution Record, CLI-grade
+  let aer='';
+  if(rt.current&&rt.current.aer){
+    const a=rt.current.aer;
+    aer=`<div class="sub" style="margin-bottom:4px"><b>Live step-through</b> · ${esc(a.message)} · ${a.steps.length} AER steps</div>`
+      +'<table><tr><th>time</th><th>type</th><th>intent</th></tr>'
+      +a.steps.slice(-40).reverse().map(s=>`<tr><td class="mono">${esc(s.t)}</td><td>${esc(s.type)}</td><td>${esc(s.intent)}</td></tr>`).join('')
+      +'</table>';
+  }
+  $('rt-aer').innerHTML=aer;
+  // enrichment attributes (deterministic snapshot from Neo4j)
+  const en=rt.enrichment;
+  let eh='';
+  if(en){
+    const cw=en.correlates_with||{};
+    eh=`<div class="sub"><b>Enrichment attributes</b> · snapshot ${esc(en.snapshot||'')}</div>`
+      +`<div style="margin-top:4px">`
+      +`<span class="kv"><span class="k">correlates_with</span><br><span class="v">${cw.edges??'—'}</span></span>`
+      +`<span class="kv"><span class="k">avg conf</span><br><span class="v">${cw.avg_conf??'—'}</span></span>`
+      +`<span class="kv"><span class="k">concepts</span><br><span class="v">${en.graph?.concepts??'—'}</span></span>`
+      +`<span class="kv"><span class="k">code entities</span><br><span class="v">${en.graph?.code_entities??'—'}</span></span>`
+      +`<span class="kv"><span class="k">code_rel</span><br><span class="v">${en.graph?.code_rel_edges??'—'}</span></span>`
+      +`<span class="kv"><span class="k">strategies</span><br><span class="v">${(en.by_strategy||[]).map(s=>s.strategy+':'+s.n).join(' ')}</span></span>`
+      +`</div>`
+      +(en.notes||[]).map(n=>`<div class="sub" style="color:var(--warn);margin-top:4px">⚠ ${esc(n)}</div>`).join('');
+  }
+  $('rt-enrich').innerHTML=eh;
+  // executions register
+  const ex=rt.executions||[];
+  let html='';
+  if(ex.length){
+    html='<table><tr><th>started</th><th>manifest</th><th>run</th><th>workspace</th><th>model</th><th>status</th><th>duration</th><th>artifacts / errors</th></tr>'
+      +ex.map(e=>{
+        const dur=e.duration_ms?(e.duration_ms/60000).toFixed(1)+' min':(e.status==='running'?'…':'—');
+        const tail=e.errors&&e.errors.length?`<span style="color:var(--bad)">${esc(String(e.errors[0]).slice(0,80))}</span>`:esc((e.artifacts||[]).join(', ').slice(0,80)||'—');
+        return `<tr><td>${esc((e.started_at||'').replace('T',' ').slice(0,19))}</td><td>${esc(e.manifest_name)}</td><td class="mono">${esc(e.run_id)}</td><td>${esc(e.workspace)}</td><td>${esc(String(e.model).split('/').pop())}</td><td>${badge(e.status)}</td><td>${dur}</td><td>${tail}</td></tr>`;
+      }).join('')+'</table>';
+  } else {
+    html='<div class="sub">No runtime swarm executions recorded yet.</div>';
+  }
+  $('rt-execs').innerHTML=html;
+}
+
 async function tick(){
   try{
     const d=await (await fetch('dashboard.json?_='+Date.now())).json();
@@ -334,10 +410,11 @@ async function tick(){
     $('stamp').textContent='updated '+new Date(d.generated).toLocaleTimeString();
     $('events').textContent=(d.lineage.event_count||0)+' ledger events';
     $('olcount').textContent=(d.lineage.executions?.length||0)+' executions · OpenLineage RunEvents';
-    renderDag(d); renderBooks(d); renderExecs(d);
+    renderDag(d); renderBooks(d); renderExecs(d); renderRuntime(d);
   }catch(e){ $('stamp').textContent='stale'; }
 }
 $('dl').onclick=()=>window.open('openlineage.json','_blank');
+$('rt-dl').onclick=()=>window.open('openlineage_runtime.json','_blank');
 $('f-ws').onchange=()=>{ if(DAG)renderExecs(DAG); };
 $('f-grp').onchange=()=>{ if(DAG)renderExecs(DAG); };
 tick(); setInterval(tick,15000);
