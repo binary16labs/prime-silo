@@ -256,7 +256,7 @@
         },
         {
           "label": "Deliver & Top-Up",
-          "body": "Reports, dossiers, a print-ready book, even a locally-narrated audiobook — then delta runs keep the corpus current by collating only new sessions."
+          "body": "Reports, dossiers, a print-ready book woven along cross-project narrative arcs, even a locally-narrated audiobook — then delta runs keep the corpus current by collating only new sessions."
         }
       ],
       "proofStats": [
@@ -274,6 +274,11 @@
           "value": 0.4,
           "suffix": "s / card",
           "note": "Deterministic graph phase execution speed"
+        },
+        {
+          "value": 46.3,
+          "suffix": "% coverage",
+          "note": "Cross-project arcs lift book coverage from 31.4%"
         }
       ],
       "dial": [
@@ -318,7 +323,11 @@
         },
         {
           "label": "CLP Lineage Chain",
-          "body": "Complete Data Lineage Protocol (CLP) tracking links downstream file mutations directly to their upstream source prompt and model."
+          "body": "Complete Data Lineage Protocol (CLP) tracking links downstream file mutations directly to their upstream source prompt and model — rendered as an OpenLineage DAG with a per-artifact ontology and a workspace-grouped execution register."
+        },
+        {
+          "label": "Sovereign Memory Teleport",
+          "body": "Sensitive sessions are labelled, then teleported — never deleted — into an isolated workspace, moving files, graph nodes, and vector chunks together, journalled and reversible, with a leak gate on every deliverable."
         }
       ]
     },
@@ -392,6 +401,16 @@
           "name": "Neuro-Assist Accessibility",
           "blurb": "Built-in accessibility suite featuring OpenDyslexic typography, bionic reading, and calm motion controls.",
           "tag": "desktop"
+        },
+        {
+          "name": "OpenLineage Lineage Mesh",
+          "blurb": "Ledger-sourced OpenLineage DAG with per-artifact ontology, step-through replay, and a workspace-grouped execution register.",
+          "tag": "governance"
+        },
+        {
+          "name": "Sovereign Memory Teleport",
+          "blurb": "Label and relocate sensitive sessions into an isolated workspace — files, graph nodes, and vectors together — journalled, reversible, and leak-gated.",
+          "tag": "governance"
         }
       ]
     },
