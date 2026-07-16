@@ -170,3 +170,28 @@ section), NOT by swapping out `governanceSvg()`. Keep every shipped set-piece; g
    at every beat (no horizontal overflow — the classic narrow-breakage cause).
 5. Emulate `prefers-reduced-motion` → page fully readable, no motion.
 6. Resize during a pinned chapter (narrow→wide→narrow) → no stuck stages, no dead zones.
+
+## 6b. Teardown-restore rule + environment gotchas (learned 2026-07-16, DAG anchor)
+
+- **utils.set hides are UNTRACKED — you MUST restore them on teardown.** A scene that
+  hides nodes at rest with `utils.set(el, { opacity: 0 })` / `{ draw: '0 0' }` (so the
+  set-piece assembles on scroll) will leave those nodes **invisible** after the runtime
+  **Calm Motion** toggle: `teardownMotion` only `revert()`s tracked *animations*, and a
+  never-scrolled timeline has nothing to revert to. Fresh-load reduced-motion is fine
+  (init is skipped, SVG attribute defaults show the full graph) — the bug is ONLY the
+  mid-session toggle. Fix: write a `restoreX()` that clears inline `opacity/transform/
+  strokeDashoffset/strokeDasharray/strokeWidth` on the set-piece and CALL it in
+  `teardownMotion` (like `restoreTerminal`/`restoreLineage`). Test it: toggle Calm Motion,
+  assert every node opacity === 1 and edge `strokeDashoffset` === 0.
+- **anime's ScrollObserver does NOT react to synthetic scroll.** `window.scrollTo(...)` +
+  `dispatchEvent(new Event('scroll'))` does NOT advance a scrubbed timeline in the MCP
+  browser — the rail step stays 0 at every progress. This is an ENVIRONMENT limitation,
+  not a scene bug (the shipped governance chapter behaves identically). Do NOT "verify"
+  beats by programmatic scroll + reading node opacities — it always reads beat 0. Also do
+  NOT hide preceding sections with `display:none` to shrink the page: it invalidates the
+  observers' cached geometry and gives the same false negative.
+- **Huge programmatic scroll jumps wedge the MCP paint pipeline** (screenshots then time
+  out for the rest of the session while JS still runs). Scroll gently / in-view. When
+  screenshots are unavailable, fall back to JS assertions on static/contract states
+  (structure, init-ran, Calm-Motion-readable, overflow at 375/1280) and be explicit that
+  beat-visual capture was blocked — don't claim visual confirmation you don't have.
