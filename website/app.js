@@ -457,7 +457,8 @@ function initLineageChapter() {
     .forEach((s) => utils.set($(s), { opacity: 0 }));
   const quarItems = $$('#lineage-svg .ln-quar-item');
   const quarLabels = $$('#ln-quarantine > text');
-  utils.set([...quarItems, ...quarLabels], { opacity: 0 });
+  const arrows = $$('#lineage-svg .ln-arrow'); // 4 spine + teleport + 2 quar, in DOM order
+  utils.set([...quarItems, ...quarLabels, ...arrows], { opacity: 0 });
 
   const railSync = makeRailSync(section, 5);
   const tl = scrubTimeline(section, railSync);
@@ -492,6 +493,11 @@ function initLineageChapter() {
     .add(quar[1], { draw: '0 1', duration: 300, ease: 'inOutSine' }, 4780)
     .add(quarItems.slice(1), { opacity: [0, 1], delay: stagger(150), duration: 360 }, 4820)
     .add(quar[2], { draw: '0 1', duration: 300, ease: 'inOutSine' }, 4980);
+
+  // Arrowheads render in order — each fades in only as its edge finishes drawing
+  // (order: spine 0-3, then teleport, then the two quarantine edges).
+  [[0, 780], [1, 1680], [2, 2680], [3, 3980], [4, 4880], [5, 5060], [6, 5260]]
+    .forEach(([i, t]) => tl.add(arrows[i], { opacity: [0, 1], duration: 160, ease: 'out(2)' }, t));
 }
 
 /* Restore the lineage DAG to its full readable state (Calm Motion / teardown).
