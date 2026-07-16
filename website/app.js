@@ -434,6 +434,83 @@ function initGovernanceChapter() {
 }
 
 /* --------------------------------------------------------------------------
+   3f. LINEAGE MESH DAG — provenance graph assembles session->card->graph->
+   book->pdf, HMAC seal stamps, then a sensitive session teleports into an
+   isolated quarantine lane.  5 beats / 5000u.  Additive sibling of the seal
+   chapter; topology mirrors dashboard/lineage.mjs.
+   -------------------------------------------------------------------------- */
+function initLineageChapter() {
+  const section = $('#lineage');
+  if (!section) return;
+  section.classList.add('js-scrub');
+
+  const edges = $$('#lineage-svg .ln-edge').map((p) => createDrawable(p)[0]);
+  const seal = ['.ln-seal-outer', '.ln-seal-inner', '.ln-seal-check']
+    .map((s) => createDrawable(`#lineage-svg ${s}`)[0]);
+  const quar = $$('#lineage-svg .ln-teleport-path, #lineage-svg .ln-quar-edge')
+    .map((p) => createDrawable(p)[0]);
+  const box = createDrawable('#lineage-svg .ln-quar-box')[0];
+  [...edges, ...seal, ...quar, box].forEach((d) => utils.set(d, { draw: '0 0' }));
+
+  // Downstream nodes start hidden (JS-only; no-JS/reduced-motion shows the full DAG).
+  ['#ln-cards', '#ln-graph', '#ln-book', '#ln-pdf', '#ln-seal', '#ln-gate']
+    .forEach((s) => utils.set($(s), { opacity: 0 }));
+  const quarItems = $$('#lineage-svg .ln-quar-item');
+  const quarLabels = $$('#ln-quarantine > text');
+  utils.set([...quarItems, ...quarLabels], { opacity: 0 });
+
+  const railSync = makeRailSync(section, 5);
+  const tl = scrubTimeline(section, railSync);
+  const pop = { opacity: [0, 1], translateY: [14, 0], duration: 500, ease: 'out(3)' };
+
+  // beat 0 — Session -> Card
+  tl.add('#ln-cards', pop, 200)
+    .add(edges[0], { draw: '0 1', duration: 500, ease: 'inOutSine' }, 300);
+  // beat 1 — Card -> Graph
+  tl.add('#ln-graph', pop, 1100)
+    .add(edges[1], { draw: '0 1', duration: 500, ease: 'inOutSine' }, 1200);
+  // beat 2 — Graph -> Book, sealed
+  tl.add('#ln-book', pop, 2100)
+    .add(edges[2], { draw: '0 1', duration: 500, ease: 'inOutSine' }, 2200)
+    .add('#ln-seal', { opacity: [0, 1], duration: 300 }, 2500)
+    .add(seal[0], { draw: '0 1', duration: 400, ease: 'inOutSine' }, 2550)
+    .add(seal[1], { draw: '0 1', duration: 400, ease: 'inOutSine' }, 2660)
+    .add(seal[2], { draw: '0 1', duration: 320, ease: 'out(2)' }, 2820)
+    .add('#ln-seal .ln-seal-anim', { scale: [1, 1.16], duration: 200, ease: 'in(2)' }, 3060)
+    .add('#ln-seal .ln-seal-anim', { scale: 1, duration: 420, ease: 'outElastic(1, 0.5)' }, 3260)
+    .add('#ln-seal .ln-seal-pulse', { r: [30, 60], opacity: [0.8, 0], duration: 480, ease: 'out(2)' }, 3160);
+  // beat 3 — end-to-end CLP: pdf lands, spine traces, gate ticks
+  tl.add('#ln-pdf', pop, 3300)
+    .add(edges[3], { draw: '0 1', duration: 600, ease: 'inOutSine' }, 3400)
+    .add('#lineage-svg .ln-edge', { strokeWidth: [2, 3.2, 2], duration: 640, ease: 'inOutSine' }, 3650)
+    .add('#ln-gate', { opacity: [0, 1], duration: 320 }, 3850);
+  // beat 4 — sovereign teleport into the quarantine lane
+  tl.add(box, { draw: '0 1', duration: 600, ease: 'inOutSine' }, 4050)
+    .add(quarLabels, { opacity: [0, 1], duration: 300 }, 4120)
+    .add(quar[0], { draw: '0 1', duration: 700, ease: 'inOutSine' }, 4200)
+    .add(quarItems[0], { opacity: [0, 1], translateY: [-10, 0], duration: 460, ease: 'outBack(1.6)' }, 4720)
+    .add(quar[1], { draw: '0 1', duration: 300, ease: 'inOutSine' }, 4780)
+    .add(quarItems.slice(1), { opacity: [0, 1], delay: stagger(150), duration: 360 }, 4820)
+    .add(quar[2], { draw: '0 1', duration: 300, ease: 'inOutSine' }, 4980);
+}
+
+/* Restore the lineage DAG to its full readable state (Calm Motion / teardown).
+   The scene hides downstream nodes with utils.set (untracked), so revert() alone
+   won't bring them back — clear the inline styles so the SVG attribute defaults
+   (opacity 1, full-length strokes) render the complete graph. */
+function restoreLineage() {
+  const svg = $('#lineage-svg');
+  if (!svg) return;
+  $$('*', svg).forEach((el) => {
+    el.style.opacity = '';
+    el.style.transform = '';
+    el.style.strokeDashoffset = '';
+    el.style.strokeDasharray = '';
+    el.style.strokeWidth = '';
+  });
+}
+
+/* --------------------------------------------------------------------------
    3f. TERMINAL CINEMA — typed commands, staggered output, blinking caret,
    count-up numbers; one workflow per scroll beat.  Fully procedural so
    reverse scroll un-types deterministically.
@@ -557,6 +634,7 @@ function initMotion() {
   initTrigraphChapter();
   initDialChapter();
   initGovernanceChapter();
+  initLineageChapter();
   initTerminalChapter();
 }
 
@@ -570,6 +648,7 @@ function teardownMotion() {
   revealObserver?.disconnect();
   revealObserver = null;
   restoreTerminal();
+  restoreLineage();
   $$('.reveal-item').forEach((el) => { el.style.opacity = ''; el.style.transform = ''; });
   $$('.chapter.js-scrub').forEach((c) => {
     c.classList.remove('js-scrub');

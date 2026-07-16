@@ -626,6 +626,103 @@
     <div class="chapter-track" style="height:380vh" aria-hidden="true"></div>
   </section>
 
+  <section class="chapter chapter--dark" id="lineage" data-visual="lineage" data-beats="5">
+    <div class="chapter-pin">
+      <div class="chapter-stage">
+        
+  <svg id="lineage-svg" viewBox="0 0 760 560" role="img" aria-label="A provenance graph flowing from sessions to cards to graph to book to PDF, sealed by HMAC, with a sensitive session teleported into an isolated quarantine lane">
+    <defs>
+      <marker id="ln-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#A8BFA8"/></marker>
+      <marker id="ln-ahr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#B94B2A"/></marker>
+    </defs>
+
+    <!-- main provenance spine -->
+    <path class="ln-edge" d="M128 150 L211 150" stroke="#A8BFA8" stroke-width="2" fill="none" marker-end="url(#ln-ah)"/>
+    <path class="ln-edge" d="M289 150 L361 150" stroke="#A8BFA8" stroke-width="2" fill="none" marker-end="url(#ln-ah)"/>
+    <path class="ln-edge" d="M439 150 L511 150" stroke="#A8BFA8" stroke-width="2" fill="none" marker-end="url(#ln-ah)"/>
+    <path class="ln-edge" d="M550 170 L550 225 L430 225 L430 263" stroke="#A8BFA8" stroke-width="2" fill="none" marker-end="url(#ln-ah)"/>
+
+    <!-- sessions cluster -->
+    <g id="ln-sessions" class="ln-node">
+      <circle cx="88" cy="130" r="12" fill="#26382D" stroke="#EBCD9C" stroke-width="1.5"/>
+      <circle cx="112" cy="152" r="12" fill="#26382D" stroke="#EBCD9C" stroke-width="1.5"/>
+      <circle cx="86" cy="172" r="12" fill="#26382D" stroke="#EBCD9C" stroke-width="1.5"/>
+      <text x="98" y="202" text-anchor="middle" font-size="12" fill="#A8BFA8" class="svg-mono">sessions</text>
+    </g>
+    <g id="ln-cards" class="ln-node"><rect x="211" y="130" width="78" height="40" rx="7" fill="#171F19" stroke="#EBCD9C" stroke-width="1.6"/><text x="250" y="155" text-anchor="middle" font-size="13" fill="#D1CDC7" class="svg-mono">cards</text></g>
+    <g id="ln-graph" class="ln-node"><rect x="361" y="130" width="78" height="40" rx="7" fill="#171F19" stroke="#EBCD9C" stroke-width="1.6"/><text x="400" y="155" text-anchor="middle" font-size="13" fill="#D1CDC7" class="svg-mono">graph</text></g>
+    <g id="ln-book" class="ln-node"><rect x="511" y="130" width="78" height="40" rx="7" fill="#171F19" stroke="#EBCD9C" stroke-width="1.6"/><text x="550" y="155" text-anchor="middle" font-size="13" fill="#D1CDC7" class="svg-mono">book</text></g>
+    <g id="ln-pdf" class="ln-node"><rect x="391" y="263" width="78" height="40" rx="7" fill="#171F19" stroke="#EBCD9C" stroke-width="1.6"/><text x="430" y="288" text-anchor="middle" font-size="13" fill="#D1CDC7" class="svg-mono">pdf</text></g>
+
+    <!-- HMAC seal stamped beside the book -->
+    <g id="ln-seal" transform="translate(680 150)">
+      <g class="ln-seal-anim">
+        <circle class="ln-seal-outer" r="30" fill="none" stroke="#B94B2A" stroke-width="2.5"/>
+        <circle class="ln-seal-inner" r="23" fill="none" stroke="#B94B2A" stroke-width="1" stroke-dasharray="5 4"/>
+        <path class="ln-seal-check" d="M-10 1 L-3 8 L12 -9" fill="none" stroke="#B94B2A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+      <circle class="ln-seal-pulse" r="30" fill="none" stroke="#B94B2A" stroke-width="2" opacity="0"/>
+      <text y="50" text-anchor="middle" font-size="10.5" fill="#B94B2A" class="svg-mono">HMAC</text>
+    </g>
+
+    <text id="ln-gate" x="726" y="300" text-anchor="end" font-size="11" fill="#A8BFA8" class="svg-mono">leak-gate: CLEAN</text>
+
+    <!-- quarantine lane -->
+    <g id="ln-quarantine">
+      <rect class="ln-quar-box" x="34" y="360" width="692" height="168" rx="12" fill="none" stroke="#B94B2A" stroke-width="1.5" stroke-dasharray="8 6"/>
+      <text x="52" y="388" font-size="11.5" fill="#B94B2A" letter-spacing="2" class="svg-mono">QUARANTINE WORKSPACE · sovereign teleport</text>
+      <path class="ln-teleport-path" d="M95 182 C95 320, 150 320, 150 434" stroke="#B94B2A" stroke-width="2" fill="none" stroke-dasharray="4 5" marker-end="url(#ln-ahr)"/>
+      <path class="ln-quar-edge" d="M168 449 L215 449" stroke="#B94B2A" stroke-width="1.6" fill="none" marker-end="url(#ln-ahr)"/>
+      <path class="ln-quar-edge" d="M285 449 L350 449" stroke="#B94B2A" stroke-width="1.6" fill="none" marker-end="url(#ln-ahr)"/>
+      <g id="ln-teleport" class="ln-quar-item">
+        <circle cx="150" cy="449" r="13" fill="#241410" stroke="#B94B2A" stroke-width="1.5"/>
+        <text x="150" y="486" text-anchor="middle" font-size="11.5" fill="#E0B9A9" class="svg-mono">cv · jpmc</text>
+      </g>
+      <g class="ln-quar-item"><rect x="215" y="430" width="70" height="38" rx="7" fill="#241410" stroke="#B94B2A" stroke-width="1.3"/><text x="250" y="454" text-anchor="middle" font-size="12" fill="#E0B9A9" class="svg-mono">card</text></g>
+      <g class="ln-quar-item"><rect x="350" y="430" width="86" height="38" rx="7" fill="#241410" stroke="#B94B2A" stroke-width="1.3"/><text x="393" y="454" text-anchor="middle" font-size="11" fill="#E0B9A9" class="svg-mono">vectors</text></g>
+      <text x="470" y="454" font-size="11" fill="#8C847A" class="svg-mono">moved · journalled · reversible</text>
+    </g>
+  </svg>
+      </div>
+      <aside class="chapter-rail">
+        <div class="chapter-head">
+          <div class="section-kicker">Architecture Chapter 04</div>
+          <h2 class="section-headline">The Lineage Mesh: Every Artifact Traceable to Its Source</h2>
+          <p class="chapter-sub">The same directed graph the runtime records is the one you can see: session to card to graph to book to PDF, each edge cited, sealed, and reversible — the marketing diagram is the real lineage, not an illustration.</p>
+        </div>
+        <ol class="chapter-steps">
+        <li class="step active" data-step="0">
+          <h4>Session → Card</h4>
+          <p>Every raw session becomes a cited card. The first edge of the provenance graph is drawn deterministically — no model guesswork, byte-for-byte reproducible.</p>
+        </li>
+
+        <li class="step" data-step="1">
+          <h4>Card → Graph</h4>
+          <p>Cards derive into Source → Concept triples: the knowledge graph, where every node traces back to the exact session that produced it.</p>
+        </li>
+
+        <li class="step" data-step="2">
+          <h4>Graph → Book, Sealed</h4>
+          <p>Synthesis assembles the book from the graph, and the HMAC-SHA256 seal stamps the manifest — binding inputs to outputs so the chain cannot be forged.</p>
+        </li>
+
+        <li class="step" data-step="3">
+          <h4>End-to-End CLP</h4>
+          <p>The Complete Lineage Protocol links every downstream artifact — PDF, section, individual claim — back to its upstream prompt and model, with a clean leak gate on every deliverable.</p>
+        </li>
+
+        <li class="step" data-step="4">
+          <h4>Sovereign Teleport</h4>
+          <p>Sensitive sessions lift out of the mesh into an isolated workspace — provenance and vectors intact — moved, never deleted, and quarantined from every shared artifact.</p>
+        </li>
+        </ol>
+        
+        <div class="chapter-dots" aria-hidden="true"><span class="chapter-dot active" data-dot="0"></span><span class="chapter-dot" data-dot="1"></span><span class="chapter-dot" data-dot="2"></span><span class="chapter-dot" data-dot="3"></span><span class="chapter-dot" data-dot="4"></span></div>
+      </aside>
+    </div>
+    <div class="chapter-track" style="height:460vh" aria-hidden="true"></div>
+  </section>
+
   <section class="chapter chapter--terminal" id="terminal" data-visual="terminal" data-beats="3">
     <div class="chapter-pin">
       <div class="chapter-stage chapter-stage--terminal">
@@ -1118,6 +1215,6 @@
     <button class="neuro-btn" id="toggle-motion" title="Toggle Calm Motion mode">Calm Motion</button>
   </aside>
 
-  <script type="module" src="./app.js?v=ee7edcb080"></script>
+  <script type="module" src="./app.js?v=ef8f3d89a2"></script>
 </body>
 </html>

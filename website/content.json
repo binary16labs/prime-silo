@@ -332,6 +332,37 @@
       ]
     },
     {
+      "id": "lineage",
+      "type": "explode-chapter",
+      "visual": "lineage",
+      "theme": "dark",
+      "kicker": "Architecture Chapter 04",
+      "headline": "The Lineage Mesh: Every Artifact Traceable to Its Source",
+      "sub": "The same directed graph the runtime records is the one you can see: session to card to graph to book to PDF, each edge cited, sealed, and reversible — the marketing diagram is the real lineage, not an illustration.",
+      "steps": [
+        {
+          "label": "Session → Card",
+          "body": "Every raw session becomes a cited card. The first edge of the provenance graph is drawn deterministically — no model guesswork, byte-for-byte reproducible."
+        },
+        {
+          "label": "Card → Graph",
+          "body": "Cards derive into Source → Concept triples: the knowledge graph, where every node traces back to the exact session that produced it."
+        },
+        {
+          "label": "Graph → Book, Sealed",
+          "body": "Synthesis assembles the book from the graph, and the HMAC-SHA256 seal stamps the manifest — binding inputs to outputs so the chain cannot be forged."
+        },
+        {
+          "label": "End-to-End CLP",
+          "body": "The Complete Lineage Protocol links every downstream artifact — PDF, section, individual claim — back to its upstream prompt and model, with a clean leak gate on every deliverable."
+        },
+        {
+          "label": "Sovereign Teleport",
+          "body": "Sensitive sessions lift out of the mesh into an isolated workspace — provenance and vectors intact — moved, never deleted, and quarantined from every shared artifact."
+        }
+      ]
+    },
+    {
       "id": "features",
       "type": "feature-grid",
       "kicker": "Production Capabilities",

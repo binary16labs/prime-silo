@@ -289,6 +289,68 @@ function governanceSvg() {
   </svg>`;
 }
 
+// 3f. LINEAGE MESH DAG — provenance graph assembles session->card->graph->book->pdf,
+// HMAC seal stamps, then a sensitive session teleports into a quarantine lane.
+// Topology mirrors scratch/longview_run/dashboard/lineage.mjs (the real DAG).
+function lineageDagSvg() {
+  const node = (id, x, y, w, label, extra = '') =>
+    `<g id="${id}" class="ln-node"><rect x="${x}" y="${y}" width="${w}" height="40" rx="7" fill="#171F19" stroke="#EBCD9C" stroke-width="1.6"${extra}/><text x="${x + w / 2}" y="${y + 25}" text-anchor="middle" font-size="13" fill="#D1CDC7" class="svg-mono">${label}</text></g>`;
+  return `
+  <svg id="lineage-svg" viewBox="0 0 760 560" role="img" aria-label="A provenance graph flowing from sessions to cards to graph to book to PDF, sealed by HMAC, with a sensitive session teleported into an isolated quarantine lane">
+    <defs>
+      <marker id="ln-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#A8BFA8"/></marker>
+      <marker id="ln-ahr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#B94B2A"/></marker>
+    </defs>
+
+    <!-- main provenance spine -->
+    <path class="ln-edge" d="M128 150 L211 150" stroke="#A8BFA8" stroke-width="2" fill="none" marker-end="url(#ln-ah)"/>
+    <path class="ln-edge" d="M289 150 L361 150" stroke="#A8BFA8" stroke-width="2" fill="none" marker-end="url(#ln-ah)"/>
+    <path class="ln-edge" d="M439 150 L511 150" stroke="#A8BFA8" stroke-width="2" fill="none" marker-end="url(#ln-ah)"/>
+    <path class="ln-edge" d="M550 170 L550 225 L430 225 L430 263" stroke="#A8BFA8" stroke-width="2" fill="none" marker-end="url(#ln-ah)"/>
+
+    <!-- sessions cluster -->
+    <g id="ln-sessions" class="ln-node">
+      <circle cx="88" cy="130" r="12" fill="#26382D" stroke="#EBCD9C" stroke-width="1.5"/>
+      <circle cx="112" cy="152" r="12" fill="#26382D" stroke="#EBCD9C" stroke-width="1.5"/>
+      <circle cx="86" cy="172" r="12" fill="#26382D" stroke="#EBCD9C" stroke-width="1.5"/>
+      <text x="98" y="202" text-anchor="middle" font-size="12" fill="#A8BFA8" class="svg-mono">sessions</text>
+    </g>
+    ${node('ln-cards', 211, 130, 78, 'cards')}
+    ${node('ln-graph', 361, 130, 78, 'graph')}
+    ${node('ln-book', 511, 130, 78, 'book')}
+    ${node('ln-pdf', 391, 263, 78, 'pdf')}
+
+    <!-- HMAC seal stamped beside the book -->
+    <g id="ln-seal" transform="translate(680 150)">
+      <g class="ln-seal-anim">
+        <circle class="ln-seal-outer" r="30" fill="none" stroke="#B94B2A" stroke-width="2.5"/>
+        <circle class="ln-seal-inner" r="23" fill="none" stroke="#B94B2A" stroke-width="1" stroke-dasharray="5 4"/>
+        <path class="ln-seal-check" d="M-10 1 L-3 8 L12 -9" fill="none" stroke="#B94B2A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+      <circle class="ln-seal-pulse" r="30" fill="none" stroke="#B94B2A" stroke-width="2" opacity="0"/>
+      <text y="50" text-anchor="middle" font-size="10.5" fill="#B94B2A" class="svg-mono">HMAC</text>
+    </g>
+
+    <text id="ln-gate" x="726" y="300" text-anchor="end" font-size="11" fill="#A8BFA8" class="svg-mono">leak-gate: CLEAN</text>
+
+    <!-- quarantine lane -->
+    <g id="ln-quarantine">
+      <rect class="ln-quar-box" x="34" y="360" width="692" height="168" rx="12" fill="none" stroke="#B94B2A" stroke-width="1.5" stroke-dasharray="8 6"/>
+      <text x="52" y="388" font-size="11.5" fill="#B94B2A" letter-spacing="2" class="svg-mono">QUARANTINE WORKSPACE · sovereign teleport</text>
+      <path class="ln-teleport-path" d="M95 182 C95 320, 150 320, 150 434" stroke="#B94B2A" stroke-width="2" fill="none" stroke-dasharray="4 5" marker-end="url(#ln-ahr)"/>
+      <path class="ln-quar-edge" d="M168 449 L215 449" stroke="#B94B2A" stroke-width="1.6" fill="none" marker-end="url(#ln-ahr)"/>
+      <path class="ln-quar-edge" d="M285 449 L350 449" stroke="#B94B2A" stroke-width="1.6" fill="none" marker-end="url(#ln-ahr)"/>
+      <g id="ln-teleport" class="ln-quar-item">
+        <circle cx="150" cy="449" r="13" fill="#241410" stroke="#B94B2A" stroke-width="1.5"/>
+        <text x="150" y="486" text-anchor="middle" font-size="11.5" fill="#E0B9A9" class="svg-mono">cv · jpmc</text>
+      </g>
+      <g class="ln-quar-item"><rect x="215" y="430" width="70" height="38" rx="7" fill="#241410" stroke="#B94B2A" stroke-width="1.3"/><text x="250" y="454" text-anchor="middle" font-size="12" fill="#E0B9A9" class="svg-mono">card</text></g>
+      <g class="ln-quar-item"><rect x="350" y="430" width="86" height="38" rx="7" fill="#241410" stroke="#B94B2A" stroke-width="1.3"/><text x="393" y="454" text-anchor="middle" font-size="11" fill="#E0B9A9" class="svg-mono">vectors</text></g>
+      <text x="470" y="454" font-size="11" fill="#8C847A" class="svg-mono">moved · journalled · reversible</text>
+    </g>
+  </svg>`;
+}
+
 // ---------------------------------------------------------------------------
 // 4. Chapter chassis
 // ---------------------------------------------------------------------------
@@ -440,6 +502,21 @@ const governanceChapterHtml = chapterShell({
   stageHtml: governanceSvg(),
   trackVh: 380,
   beats: gov.steps.length + 1
+});
+
+// Lineage-mesh DAG chapter (additive — sits alongside the governance seal)
+const lin = byId.lineage;
+const lineageChapterHtml = !lin ? '' : chapterShell({
+  id: 'lineage',
+  theme: 'dark',
+  visual: 'lineage',
+  kicker: lin.kicker,
+  headline: lin.headline,
+  sub: lin.sub,
+  steps: lin.steps,
+  stageHtml: lineageDagSvg(),
+  trackVh: 460,
+  beats: lin.steps.length
 });
 
 // Terminal cinema (interactiveTerminal data)
@@ -690,6 +767,7 @@ const mainHtml = [
   enablersSectionHtml,
   longviewChapterHtml,
   governanceChapterHtml,
+  lineageChapterHtml,
   terminalSectionHtml,
   problemSectionHtml,
   manifestoSectionHtml,
@@ -737,6 +815,7 @@ const asserts = [
   [template.includes('id="dial-svg"'), 'dial SVG present'],
   [template.includes('id="trigraph-svg"'), 'trigraph SVG present'],
   [template.includes('id="governance-svg"'), 'governance SVG present'],
+  [template.includes('id="lineage-svg"'), 'lineage DAG SVG present'],
   [template.includes('class="terminal-window"'), 'terminal window present'],
   [!template.includes('{{'), 'no unresolved template markers']
 ];
