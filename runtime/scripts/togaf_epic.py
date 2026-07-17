@@ -369,7 +369,24 @@ CHAPTER_MAP = [  # (match keywords in narrative section header) -> diagram keys 
 ]
 
 
+def _sanitize_narrative(md: str) -> str:
+    """Local-model output hygiene before weaving.
+
+    1. Swarm-authored ```mermaid fences become ```text listings — the swarm was
+       told not to fabricate diagrams (gemma does anyway) and 2/3 were invalid;
+       the AUTHORITATIVE diagrams are the generated ones. Keeping the sketch as
+       a listing preserves the content without poisoning the render gate.
+    2. Balance code fences: an odd fence count desyncs every downstream parser
+       (this is exactly what made the PDF converter see 5 of 13 blocks).
+    """
+    md = re.sub(r"^```mermaid\s*$", "```text\n%% swarm sketch (not rendered; see generated diagrams)", md, flags=re.M)
+    if len(re.findall(r"^```", md, flags=re.M)) % 2 == 1:
+        md += "\n```\n"
+    return md
+
+
 def weave(narrative_md: str, D: dict, word_floor: int) -> tuple[str, list]:
+    narrative_md = _sanitize_narrative(narrative_md)
     sections = re.split(r"^## ", narrative_md, flags=re.M)
     used, gates = set(), []
     out = []
@@ -380,14 +397,27 @@ def weave(narrative_md: str, D: dict, word_floor: int) -> tuple[str, list]:
         words = len(body.split())
         low = header.lower()
         inject = []
+        mapped = False
         for keys, dkeys in CHAPTER_MAP:
             if any(k in low for k in keys):
                 inject = [k for k in dkeys if k not in used]
                 used.update(inject)
+                mapped = True
                 break
-        gate_ok = words >= word_floor
-        gates.append({"chapter": header[:70], "words": words, "floor": word_floor, "ok": gate_ok})
-        flag = "" if gate_ok else f"\n> ⚠ QUALITY GATE: chapter below word floor ({words} < {word_floor}).\n"
+        # Per-chapter fence balance: if this chapter's body leaves a code block
+        # open, close it BEFORE we append injected diagrams — otherwise the
+        # next ```mermaid line is consumed as a closing fence and the diagram
+        # silently becomes code-block content (observed: 1 of 10 swallowed).
+        if len(re.findall(r"^```", body, flags=re.M)) % 2 == 1:
+            body += "\n```\n"
+        # Gate only the mapped architecture chapters — gating every stray ##
+        # subheading a local model emits produces noise, not governance.
+        flag = ""
+        if mapped:
+            gate_ok = words >= word_floor
+            gates.append({"chapter": header[:70], "words": words, "floor": word_floor, "ok": gate_ok})
+            if not gate_ok:
+                flag = f"\n> ⚠ QUALITY GATE: chapter below word floor ({words} < {word_floor}).\n"
         out.append("## " + header + "\n" + flag + body
                    + "".join("\n" + D[k] for k in inject))
     for k, v in D.items():  # any diagram not claimed by a chapter still ships
@@ -648,6 +678,18 @@ def main() -> int:
     hw = probe_hardware()
     if ARGS.bench:
         hw["bench"] = bench_rigs()
+    else:
+        # Reuse the most recent measured bench (clearly timestamped) so a
+        # rebuild doesn't re-burn LLM time; --bench refreshes it.
+        hist = out.parent / "togaf_epic_evidence" / "history"
+        for d in sorted(hist.iterdir(), reverse=True) if hist.exists() else []:
+            hwf = d / "hardware.json"
+            if hwf.exists():
+                prev = json.loads(hwf.read_text(encoding="utf-8"))
+                if prev.get("bench"):
+                    hw["bench"] = prev["bench"]
+                    _emit(f"Reusing measured bench from {d.name} (pass --bench to refresh)")
+                    break
     models = harvest_models()
     deps = harvest_deps()
     schema = harvest_graph_schema()

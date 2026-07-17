@@ -152,9 +152,13 @@ const print = spawnSync(browser, [
   `--print-to-pdf=${pdfPath}`, "--no-pdf-header-footer", fileUrl
 ], { encoding: "utf8", timeout: 180000 });
 
-const ok = fs.existsSync(pdfPath) && fs.statSync(pdfPath).size > 10000;
+const printed = fs.existsSync(pdfPath) && fs.statSync(pdfPath).size > 10000;
+// ok = the GATE verdict, not just "a pdf exists": every mermaid block must
+// have rendered as a real, non-error SVG.
+const ok = printed && errCount === 0 && svgCount >= mermaidCount;
 const result = {
   ok,
+  printed,
   pdf: pdfPath,
   pdf_bytes: ok ? fs.statSync(pdfPath).size : 0,
   html: htmlPath,
@@ -164,5 +168,4 @@ const result = {
   browser: path.basename(browser)
 };
 console.log(JSON.stringify(result));
-// Gate: every mermaid block must have rendered to a real, non-error SVG.
-process.exit(ok && svgCount >= mermaidCount - errCount && errCount === 0 ? 0 : 1);
+process.exit(ok ? 0 : 1);
