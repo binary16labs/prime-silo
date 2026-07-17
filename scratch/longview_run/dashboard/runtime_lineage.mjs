@@ -153,6 +153,30 @@ export function deriveRuntimeLineage() {
       e.status = "stale";
     }
   }
+  // CLI builds (togaf_epic.py etc.) emit the same AER stream but have no
+  // RunRecord — synthesize register entries for them so the register shows
+  // every document build, not only swarm runs.
+  const runIds = new Set(executions.map((e) => e.run_id));
+  for (const [rid, aer] of Object.entries(aerByRun)) {
+    if (runIds.has(rid) || rid.startsWith("run-")) continue;
+    const started = aer.steps.length ? aer.steps[0].t : "";
+    executions.unshift({
+      run_id: rid,
+      manifest_id: "(cli)",
+      manifest_name: "togaf_epic CLI build",
+      workspace: "sessions_v1",
+      model: "deterministic + evidence",
+      status: aer.status === "completed" ? "completed" : (Date.now() - Date.parse(aer.at) > 3600e3 ? "stale" : aer.status || "running"),
+      started_at: aer.at,
+      duration_ms: null,
+      errors: [],
+      artifacts: [],
+      node_states: {},
+      record_path: "governance.log"
+    });
+  }
+  executions.sort((a, b) => String(b.started_at || "").localeCompare(String(a.started_at || "")));
+
   const current = executions.find((e) => e.status === "running") || null;
   const dag = current && manifests[current.manifest_id] ? manifests[current.manifest_id] : null;
   if (current && current.started_at) {

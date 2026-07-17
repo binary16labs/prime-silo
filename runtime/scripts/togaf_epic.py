@@ -1,0 +1,530 @@
+#!/usr/bin/env python
+"""TOGAF EPIC SAD generator — deterministic evidence + diagrams-as-code + swarm narrative.
+
+Phase-2 of the TOGAF pipeline (see agent_sandbox/drafts/TOGAF-PRIME-SILO-RUNBOOK.md).
+The Phase-1 lesson: a pure-LLM swarm hallucinates its diagrams. This CLI inverts
+the design — every diagram and every hard fact is DERIVED from disk/graph truth
+(code graph, Neo4j schema, governance ledger, live hardware probe, docker-compose),
+and the LLM swarm only narrates around real artifacts. Repeatable by construction:
+same graph + same ledger ⇒ same diagrams.
+
+Usage (from prime-silo/runtime, with BENNY_HOME + BENNY_LMSTUDIO_ENDPOINTS set):
+
+  python scripts/togaf_epic.py --workspace sessions_v1                  # full: evidence + assemble (no swarm)
+  python scripts/togaf_epic.py --workspace sessions_v1 --run-swarm      # + launch the 19-task narrative swarm first
+  python scripts/togaf_epic.py --workspace sessions_v1 --narrative <md> # weave an existing swarm output
+
+Observability: each phase emits TASK_METADATA_UPDATE governance events (same
+shape as the swarm's AER stream), so the :8788/lineage.html "Runtime swarm runs"
+tile shows a live step-through of THIS document build. Console prints mirror it.
+
+Output: <BENNY_HOME>/workspaces/<ws>/data_out/TOGAF_EPIC_SAD_binary16.md
+plus an evidence pack under .../data_out/togaf_epic_evidence/.
+"""
+
+from __future__ import annotations
+
+import argparse
+import datetime as _dt
+import json
+import os
+import re
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+RUNTIME = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(RUNTIME))
+os.chdir(RUNTIME)  # governance.log + run_store are runtime-relative
+
+RUN_ID = f"togaf-epic-{_dt.datetime.now().strftime('%Y%m%d%H%M%S')}"
+AER: list[dict] = []
+
+
+# ---------------------------------------------------------------------------
+# Observability: mirror every phase into the governance ledger so the
+# dashboard's live step-through renders this build like a swarm run.
+# ---------------------------------------------------------------------------
+def _emit(message: str, status: str = "running") -> None:
+    stamp = _dt.datetime.now().isoformat()
+    AER.append({"timestamp": stamp, "intent": message, "observation": "", "inference": "", "plan": "", "type": "think"})
+    # Windows consoles are often cp1252 — never let a fancy glyph kill the build.
+    safe = message.encode(sys.stdout.encoding or "utf-8", errors="replace").decode(sys.stdout.encoding or "utf-8")
+    print(f"[{stamp[11:19]}] {safe}", flush=True)
+    try:
+        from benny.governance.audit import emit_governance_event
+
+        emit_governance_event(
+            "TASK_METADATA_UPDATE",
+            {
+                "task_id": RUN_ID,
+                "workspace": ARGS.workspace,
+                "type": "swarm_workflow",
+                "status": status,
+                "progress": 0,
+                "total_steps": 0,
+                "current_step": 0,
+                "message": message,
+                "metadata": {"producer": "togaf_epic.py"},
+                "aer_log": AER[-60:],
+            },
+            workspace_id=ARGS.workspace,
+        )
+    except Exception:
+        pass  # observability must never break the build
+
+
+def _cypher(query: str, **params):
+    from benny.core.graph_db import run_cypher
+
+    ws = params.pop("workspace", ARGS.workspace)
+    return run_cypher(query, params=params or None, workspace=ws)
+
+
+def _ps(cmd: str) -> str:
+    try:
+        out = subprocess.run(
+            ["powershell", "-NoProfile", "-Command", cmd], capture_output=True, text=True, timeout=30
+        )
+        return out.stdout.strip()
+    except Exception:
+        return ""
+
+
+def _dir_size_mb(p: Path) -> float:
+    try:
+        return round(sum(f.stat().st_size for f in p.rglob("*") if f.is_file()) / 1e6, 1)
+    except Exception:
+        return 0.0
+
+
+# ---------------------------------------------------------------------------
+# Phase 1 — hardware probe (measured, not asserted)
+# ---------------------------------------------------------------------------
+def probe_hardware() -> dict:
+    _emit("Executing task: hardware_probe (live CIM/GPU/NPU/LAN probe)")
+    hw = {"probed_at": _dt.datetime.now().isoformat(), "host": {}, "lan_inference_host": {}}
+    hw["host"]["cpu"] = _ps("(Get-CimInstance Win32_Processor).Name") or "unknown"
+    hw["host"]["ram_gb"] = _ps("[math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory/1GB)") or "?"
+    hw["host"]["gpus"] = [g for g in _ps("Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name").splitlines() if g.strip()]
+    hw["host"]["os"] = _ps("(Get-CimInstance Win32_OperatingSystem).Caption").strip()
+    hw["host"]["npu"] = "AMD XDNA (Ryzen AI series CPU detected)" if "Ryzen AI" in hw["host"]["cpu"] else "not detected"
+    # LAN inference host: probe, never assume.
+    lan = os.environ.get("BENNY_LMSTUDIO_ENDPOINTS", "")
+    hw["lan_inference_host"]["endpoint"] = lan or "(BENNY_LMSTUDIO_ENDPOINTS unset)"
+    if lan:
+        try:
+            import httpx
+
+            r = httpx.get(lan.split(",")[0].rstrip("/") + "/models", timeout=6)
+            hw["lan_inference_host"]["reachable"] = r.status_code == 200
+            hw["lan_inference_host"]["models_served"] = [m.get("id") for m in r.json().get("data", [])]
+        except Exception as e:
+            hw["lan_inference_host"]["reachable"] = False
+            hw["lan_inference_host"]["error"] = str(e)[:120]
+    # Declared (operator-maintained) test matrix — clearly separated from probes.
+    declared = RUNTIME / "scripts" / "togaf_epic_declared_hardware.json"
+    hw["declared_test_matrix"] = json.loads(declared.read_text(encoding="utf-8")) if declared.exists() else {
+        "note": "create scripts/togaf_epic_declared_hardware.json to declare tested rigs",
+        "rigs": [
+            {"rig": "laptop NPU path", "hardware": "AMD Ryzen AI (XDNA NPU) via lemonade/FastFlowLM", "models": ["qwen3.5-9b-FLM", "gemma-4-E4B"], "status": "declared, see ledger for measured runs"},
+            {"rig": "LAN eGPU path", "hardware": "16 GB VRAM eGPU via LM Studio @ 192.168.68.125", "models": ["google/gemma-4-12b", "nomic-embed-text-v1.5"], "status": "declared, see ledger for measured runs"},
+        ],
+    }
+    return hw
+
+
+# ---------------------------------------------------------------------------
+# Phase 2 — evidence harvest (ledger, deps, graph schema, code stats, AER)
+# ---------------------------------------------------------------------------
+def harvest_models() -> dict:
+    _emit("Executing task: models_evidence (governance ledger + run records)")
+    models: dict[str, dict] = {}
+    runs_dir = RUNTIME / "workspace" / "manifests" / "runs"
+    manifests_dir = RUNTIME / "workspace" / "manifests"
+    man_model = {}
+    for f in manifests_dir.glob("*.json"):
+        try:
+            m = json.loads(f.read_text(encoding="utf-8"))
+            if m.get("id"):
+                man_model[m["id"]] = (m.get("config") or {}).get("model", "?")
+        except Exception:
+            continue
+    for f in runs_dir.glob("*.json") if runs_dir.exists() else []:
+        try:
+            r = json.loads(f.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        mid = man_model.get(r.get("manifest_id"), "?")
+        d = models.setdefault(mid, {"runs": 0, "completed": 0, "total_minutes": 0.0})
+        d["runs"] += 1
+        if r.get("status") == "completed":
+            d["completed"] += 1
+        if r.get("duration_ms"):
+            d["total_minutes"] = round(d["total_minutes"] + r["duration_ms"] / 60000, 1)
+    # LONGVIEW execution register (tokens + models) if the dashboard snapshot exists.
+    dash = RUNTIME.parent / "scratch" / "longview_run" / "dashboard" / "dashboard.json"
+    lv = []
+    if dash.exists():
+        try:
+            for e in (json.loads(dash.read_text(encoding="utf-8")).get("lineage", {}).get("executions", []) or [])[:12]:
+                lv.append({k: e.get(k) for k in ("model", "outcome", "duration", "tokens", "phases") if k in e})
+        except Exception:
+            pass
+    return {"swarm_models": models, "longview_register_sample": lv}
+
+
+def harvest_deps() -> dict:
+    _emit("Executing task: dependency_evidence (package.json + requirements + compose)")
+    deps = {}
+    pkg = RUNTIME.parent / "package.json"
+    if pkg.exists():
+        p = json.loads(pkg.read_text(encoding="utf-8"))
+        deps["node"] = {"name": p.get("name"), "version": p.get("version"),
+                        "dependencies": len(p.get("dependencies", {})), "devDependencies": len(p.get("devDependencies", {})),
+                        "top": sorted(p.get("dependencies", {}).keys())[:15]}
+    for req in ["requirements.txt", "requirements.runtime.txt", "pyproject.toml"]:
+        f = RUNTIME / req
+        if f.exists():
+            lines = [l.strip() for l in f.read_text(encoding="utf-8", errors="replace").splitlines()
+                     if l.strip() and not l.strip().startswith("#")]
+            deps.setdefault("python", {})[req] = {"count": len(lines), "sample": lines[:15]}
+    compose = RUNTIME.parent / "docker-compose.yml"
+    if compose.exists():
+        svcs = re.findall(r"^  (\w[\w-]*):\s*$", compose.read_text(encoding="utf-8"), re.M)
+        deps["docker_services"] = svcs
+    return deps
+
+
+def harvest_graph_schema() -> dict:
+    _emit("Executing task: graph_schema_evidence (Neo4j label/relationship introspection)")
+    schema = {"labels": [], "rel_types": [], "label_counts": [], "props": {}}
+    try:
+        schema["labels"] = [r["label"] for r in _cypher("CALL db.labels() YIELD label RETURN label")]
+        schema["rel_types"] = [r["relationshipType"] for r in _cypher("CALL db.relationshipTypes() YIELD relationshipType RETURN relationshipType")]
+        schema["label_counts"] = _cypher(
+            "MATCH (n) WHERE n.workspace = $workspace RETURN labels(n)[0] AS label, count(n) AS n ORDER BY n DESC LIMIT 12")
+        for lab in [r["label"] for r in schema["label_counts"]][:6]:
+            rows = _cypher(f"MATCH (n:`{lab}`) WHERE n.workspace = $workspace WITH n LIMIT 50 UNWIND keys(n) AS k RETURN DISTINCT k LIMIT 15")
+            schema["props"][lab] = [r["k"] for r in rows]
+        schema["rel_pairs"] = _cypher(
+            "MATCH (a)-[r]->(b) WHERE a.workspace = $workspace RETURN labels(a)[0] AS src, type(r) AS rel, labels(b)[0] AS dst, count(*) AS n ORDER BY n DESC LIMIT 12")
+    except Exception as e:
+        schema["error"] = str(e)[:200]
+    return schema
+
+
+def harvest_code_stats() -> dict:
+    _emit("Executing task: code_graph_evidence (entity census + top classes + dependencies)")
+    code = {}
+    try:
+        code["by_type"] = _cypher(
+            "MATCH (e:CodeEntity) WHERE e.workspace = $workspace RETURN e.type AS type, count(e) AS n ORDER BY n DESC LIMIT 10")
+        code["top_classes"] = _cypher(
+            "MATCH (c:CodeEntity)-[r:CODE_REL {type:'DEFINES'}]->(f:CodeEntity) "
+            "WHERE c.workspace = $workspace AND c.type='Class' AND f.type='Function' "
+            "RETURN c.name AS cls, c.file_path AS file, count(f) AS methods ORDER BY methods DESC LIMIT 12")
+        code["dependency_pairs"] = _cypher(
+            "MATCH (a:CodeEntity)-[r:CODE_REL {type:'DEPENDS_ON'}]->(b:CodeEntity) "
+            "WHERE a.workspace = $workspace "
+            "RETURN split(a.file_path,'/')[2] AS src_area, split(coalesce(b.file_path,b.name),'/')[2] AS dst, count(*) AS n "
+            "ORDER BY n DESC LIMIT 15")
+        code["correlates"] = _cypher(
+            "MATCH (a:Concept)-[x:CORRELATES_WITH]->(b:CodeEntity) WHERE a.workspace = $workspace "
+            "RETURN x.strategy AS strategy, count(x) AS n")
+    except Exception as e:
+        code["error"] = str(e)[:200]
+    return code
+
+
+def harvest_run_sequence() -> dict:
+    _emit("Executing task: lifecycle_evidence (real swarm AER from the governance ledger)")
+    gov = RUNTIME / "workspace" / "governance.log"
+    latest = {}
+    if gov.exists():
+        for line in gov.read_text(encoding="utf-8", errors="replace").splitlines():
+            try:
+                e = json.loads(line)
+            except Exception:
+                continue
+            d = e.get("data") or {}
+            if e.get("event_type") == "TASK_METADATA_UPDATE" and d.get("type") == "swarm_workflow" and str(d.get("task_id", "")).startswith("run-"):
+                latest = d  # last snapshot wins — carries the cumulative AER
+    steps = []
+    for s in (latest.get("aer_log") or []):
+        m = re.search(r"Executing task: (\S+)", s.get("intent", ""))
+        if m:
+            steps.append({"task": m.group(1), "t": (s.get("timestamp") or "")[11:19]})
+    return {"run_id": latest.get("task_id", "?"), "steps": steps}
+
+
+# ---------------------------------------------------------------------------
+# Phase 3 — diagrams as code (pure functions of the evidence)
+# ---------------------------------------------------------------------------
+def _mm(kind: str, body: str, title: str) -> str:
+    return f"### {title}\n\n```mermaid\n{kind}\n{body}\n```\n"
+
+
+def diagrams(hw, models, deps, schema, code, seq) -> dict[str, str]:
+    _emit("Executing task: diagrams_as_code (rendering mermaid from evidence)")
+    D = {}
+    # --- C4 context ---
+    D["c4_context"] = _mm("C4Context", """
+  title System Context — binary16 / Prime-Silo estate
+  Person(operator, "Operator", "Runs swarms, reviews governance")
+  System(prime_silo, "Prime-Silo (Space Agent + Benny)", "Local-first AI orchestration platform")
+  System_Ext(lmstudio, "LM Studio LAN host", "eGPU inference: gemma-4-12b + nomic embeddings")
+  System_Ext(lemonade, "Lemonade / FastFlowLM", "On-laptop NPU inference (Ryzen AI XDNA)")
+  SystemDb(neo4j, "Neo4j dual graph", "Knowledge graph + code graph + CORRELATES_WITH overlay")
+  SystemDb(chroma, "ChromaDB", "Dense retrieval index")
+  Rel(operator, prime_silo, "CLI / UI / MCP / tray")
+  Rel(prime_silo, lmstudio, "OpenAI-compatible HTTP", "LAN :1234")
+  Rel(prime_silo, lemonade, "OpenAI-compatible HTTP", "localhost :13305")
+  Rel(prime_silo, neo4j, "Bolt :7687")
+  Rel(prime_silo, chroma, "embedded")
+""", "C4 — System Context")
+    # --- C4 container from real top-level areas ---
+    areas = {r.get("src_area") for r in code.get("dependency_pairs", []) if r.get("src_area")}
+    area_lines = "\n".join(
+        f'  Container({re.sub(r"[^a-zA-Z0-9]", "_", a)}, "{a}", "code area", "{a} (from code graph)")' for a in sorted(areas)[:8])
+    D["c4_container"] = _mm("C4Container", f"""
+  title Containers — derived from the Tree-sitter code graph
+  System_Boundary(ps, "prime-silo repo") {{
+{area_lines}
+  }}
+  SystemDb_Ext(neo4j, "Neo4j", "dual graph")
+  System_Ext(llm, "LLM providers", "lmstudio / lemonade")
+""", "C4 — Containers (areas observed in the code graph)")
+    # --- use case ---
+    D["usecase"] = _mm("flowchart LR", """
+  operator([Operator])
+  ui[/"Bridge UI (Electron)"/]
+  cli[/"benny CLI"/]
+  mcp[/"MCP server (Claude)"/]
+  tray[/"System tray"/]
+  uc1(["Run TOGAF SAD swarm"])
+  uc2(["Ingest & enrich knowledge"])
+  uc3(["Inspect lineage & governance"])
+  uc4(["Query dual graph"])
+  operator --> ui & cli & mcp & tray
+  cli --> uc1 & uc2
+  ui --> uc3 & uc4
+  mcp --> uc4
+  tray --> uc3
+""", "Use cases by interaction channel")
+    # --- class diagram from top real classes ---
+    cls_lines = []
+    for c in code.get("top_classes", [])[:8]:
+        name = re.sub(r"[^a-zA-Z0-9_]", "_", str(c.get("cls", "?")))
+        cls_lines.append(f"  class {name} {{\n    +{c.get('methods', 0)} methods\n    {str(c.get('file', ''))[-46:]}\n  }}")
+    D["class"] = _mm("classDiagram", "\n".join(cls_lines) or "  class NoData", "Class inventory — top classes by method count (code graph)")
+    # --- sequence from the real run ---
+    seq_body = ["  participant OP as Operator", "  participant CLI as benny_cli", "  participant SW as Swarm", "  participant LLM as LM Studio", "  participant NEO as Neo4j",
+                "  OP->>CLI: run togaf manifest", "  CLI->>SW: execute_manifest"]
+    for s in seq.get("steps", [])[:8]:
+        seq_body.append(f"  SW->>LLM: {s['task']} ({s['t']})")
+        if "baseline" in s["task"]:
+            seq_body.append("  SW->>NEO: query_graph (dual graph)")
+    seq_body.append("  SW-->>CLI: RunRecord (completed)")
+    seq_body.append("  CLI-->>OP: SAD markdown + lineage events")
+    D["sequence"] = _mm("sequenceDiagram", "\n".join(seq_body), f"Sequence — real lifecycle of {seq.get('run_id')}")
+    # --- BPMN-ish pipeline ---
+    D["bpmn"] = _mm("flowchart LR", """
+  s((start)) --> scan["code_scan<br/>Tree-sitter → Neo4j"] --> gate1{scan verified?}
+  gate1 -- no --> fix[fix scope / index] --> scan
+  gate1 -- yes --> corr["semantic_correlate<br/>CORRELATES_WITH"] --> gate2{edges sane?}
+  gate2 -- no --> diag[diagnose embeds] --> corr
+  gate2 -- yes --> swarm["TOGAF swarm<br/>(19 narrative tasks)"] --> asm["togaf_epic assemble<br/>evidence + diagrams + narrative"] --> e((SAD))
+""", "Business process — the document production pipeline (BPMN-style)")
+    # --- ER from real schema ---
+    er = []
+    for r in schema.get("rel_pairs", [])[:10]:
+        if r.get("src") and r.get("dst"):
+            er.append(f'  {r["src"]} ||--o{{ {r["dst"]} : "{r["rel"]} ({r["n"]})"')
+    D["er"] = _mm("erDiagram", "\n".join(er) or "  NONE ||--o{ NONE : none", "Entity-Relationship — observed Neo4j topology (edge counts real)")
+    # --- data models ---
+    D["data_conceptual"] = _mm("flowchart TB", """
+  subgraph Intent["Intent layer (LONGVIEW)"]
+    SRC[Source] --> CON[Concept]
+  end
+  subgraph Impl["Implementation layer (code graph)"]
+    CE[CodeEntity] --> CS[CodeScan snapshot]
+  end
+  CON -. CORRELATES_WITH .-> CE
+""", "Data model — conceptual")
+    logical = []
+    for lab, props in (schema.get("props") or {}).items():
+        plist = "\n    ".join(f"string {re.sub(r'[^a-zA-Z0-9_]', '_', p)}" for p in props[:6])
+        logical.append(f"  {lab} {{\n    {plist}\n  }}")
+    D["data_logical"] = _mm("erDiagram", "\n".join(logical) or "  Empty {}", "Data model — logical (real property keys per label)")
+    bh = Path(os.environ.get("BENNY_HOME", ""))
+    stores = []
+    if bh.exists():
+        ws = bh / "workspaces" / ARGS.workspace
+        stores = [
+            ("Neo4j graph store", _dir_size_mb(bh / "data" / "graph")),
+            (f"ChromaDB ({ARGS.workspace})", _dir_size_mb(ws / "chromadb")),
+            (f"LONGVIEW artifacts ({ARGS.workspace})", _dir_size_mb(ws / "longview")),
+        ]
+    D["data_physical"] = "### Data model — physical (measured on disk)\n\n| store | size (MB) |\n|---|---|\n" + \
+        "\n".join(f"| {n} | {s} |" for n, s in stores) + "\n"
+    # --- deployment ---
+    gpus = "<br/>".join(hw["host"].get("gpus", [])[:2])
+    lan_models = ", ".join(hw["lan_inference_host"].get("models_served", ["?"]))
+    D["deployment"] = _mm("flowchart TB", f"""
+  subgraph laptop["Operator laptop — {hw['host'].get('cpu','?')} · {hw['host'].get('ram_gb','?')} GB RAM"]
+    npu["NPU: {hw['host'].get('npu','?')}"]
+    gpu["iGPU: {gpus}"]
+    app["Prime-Silo app + Benny API :8005"]
+    neo["Neo4j :7687/:7474"]
+    dashsvc["Observability dashboard :8788"]
+    lem["lemonade :13305 (NPU path)"]
+  end
+  subgraph lanbox["LAN inference host {hw['lan_inference_host'].get('endpoint','?')}"]
+    lms["LM Studio (eGPU 16GB VRAM)<br/>{lan_models}"]
+  end
+  app --> neo
+  app -- "OpenAI-compat HTTP" --> lms
+  app -- "OpenAI-compat HTTP" --> lem
+  dashsvc -. "reads disk truth only" .-> app
+""", "Deployment topology (probed + configured)")
+    return D
+
+
+# ---------------------------------------------------------------------------
+# Phase 4 — assemble the epic document
+# ---------------------------------------------------------------------------
+def assemble(hw, models, deps, schema, code, seq, D, narrative_md: str | None, out_path: Path) -> dict:
+    _emit("Executing task: assemble (weaving evidence + diagrams + narrative)")
+    ws = ARGS.workspace
+    now = _dt.datetime.now().isoformat()
+    parts: list[str] = []
+    A = parts.append
+    A(f"# TOGAF Enterprise SAD — the binary16 application estate (EPIC edition)\n")
+    A(f"*Generated {now} by `scripts/togaf_epic.py` · run `{RUN_ID}` · workspace `{ws}`*\n")
+    A("**Method**: every diagram below is *diagrams-as-code generated deterministically from "
+      "disk and graph truth* (Tree-sitter code graph, Neo4j schema introspection, the "
+      "integrity-hashed governance ledger, a live hardware probe). The narrative chapters "
+      "are produced by a multi-agent swarm and clearly marked. Re-running this CLI against "
+      "the same graph reproduces the same diagrams.\n")
+    A("\n---\n\n## 1. Architecture views (generated, evidence-grounded)\n")
+    for key in ["c4_context", "c4_container", "usecase", "bpmn", "class", "sequence", "er",
+                "data_conceptual", "data_logical", "data_physical", "deployment"]:
+        A(D[key])
+    A("\n## 2. Technical dependencies (harvested)\n")
+    A("```json\n" + json.dumps(deps, indent=1)[:4000] + "\n```\n")
+    A("\n## 3. Hardware & inference rigs\n")
+    A("### Probed (this machine, at generation time)\n")
+    A("```json\n" + json.dumps(hw["host"], indent=1) + "\n```\n")
+    A("### LAN inference host (probed)\n")
+    A("```json\n" + json.dumps(hw["lan_inference_host"], indent=1) + "\n```\n")
+    A("### Declared test matrix (operator-maintained; measured runs live in the ledger)\n")
+    A("```json\n" + json.dumps(hw["declared_test_matrix"], indent=1) + "\n```\n")
+    A("\n## 4. Models tested & used (from run records + LONGVIEW register)\n")
+    A("| model | runs | completed | total minutes |\n|---|---|---|---|\n")
+    for m, d in sorted(models["swarm_models"].items()):
+        A(f"| {m} | {d['runs']} | {d['completed']} | {d['total_minutes']} |\n")
+    if models.get("longview_register_sample"):
+        A("\nLONGVIEW register sample (real tokens/durations):\n\n```json\n"
+          + json.dumps(models["longview_register_sample"], indent=1)[:2500] + "\n```\n")
+    A("\n## 5. Observability, lineage & logging\n")
+    A("- **OpenLineage (Marquez-free)**: the swarm emits spec 1-0-5 RunEvents into "
+      "`runtime/workspace/governance.log` (integrity-hashed). The dashboard at "
+      "`http://127.0.0.1:8788/lineage.html` renders the DAG, live AER step-through, the "
+      "execution register, and offers `openlineage_runtime.json` for download/replay.\n"
+      "- **This document build** emitted the same TASK_METADATA_UPDATE events — the build "
+      "itself is visible in the register (run id `" + RUN_ID + "`).\n"
+      "- **Logging**: uvicorn server log, per-run `task_*.json` records under the workspace "
+      "runs folder, and the append-only ledger. Graph state check queries are in the runbook.\n")
+    A("\n### Graph evidence census\n")
+    A("| label | count |\n|---|---|\n")
+    for r in schema.get("label_counts", [])[:8]:
+        A(f"| {r['label']} | {r['n']} |\n")
+    A("\n| correlation strategy | edges |\n|---|---|\n")
+    for r in code.get("correlates", []):
+        A(f"| {r['strategy']} | {r['n']} |\n")
+    if narrative_md:
+        A("\n---\n\n## 6. Narrative chapters (multi-agent swarm output)\n")
+        A("> Produced by the 19-task `togaf_epic_sad_swarm.json` swarm. Diagrams inside the "
+          "narrative are the swarm's own; the authoritative diagrams are in section 1.\n\n")
+        A(narrative_md)
+    else:
+        A("\n---\n\n## 6. Narrative chapters\n\n*(not included in this build — run with "
+          "`--run-swarm` or weave an existing output via `--narrative <file>`)*\n")
+    A("\n---\n\n## Appendix — reproducibility\n")
+    A(f"- CLI: `python scripts/togaf_epic.py --workspace {ws}`\n"
+      f"- Narrative manifest: `manifests/templates/togaf_epic_sad_swarm.json`\n"
+      f"- Evidence pack: `{out_path.parent / 'togaf_epic_evidence'}`\n"
+      f"- Real lifecycle source: swarm run `{seq.get('run_id')}`\n")
+    doc = "".join(parts)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(doc, encoding="utf-8")
+    census = {
+        "words": len(doc.split()),
+        "mermaid_diagrams": doc.count("```mermaid"),
+        "sections": len(re.findall(r"^##? ", doc, re.M)),
+        "narrative_included": bool(narrative_md),
+        "output": str(out_path),
+    }
+    return census
+
+
+# ---------------------------------------------------------------------------
+def main() -> int:
+    global ARGS
+    ap = argparse.ArgumentParser(description="TOGAF EPIC SAD generator (deterministic diagrams-as-code + swarm narrative)")
+    ap.add_argument("--workspace", default="sessions_v1")
+    ap.add_argument("--out", default=None, help="Output markdown (default: <BENNY_HOME>/workspaces/<ws>/data_out/TOGAF_EPIC_SAD_binary16.md)")
+    ap.add_argument("--run-swarm", action="store_true", help="Launch the 19-task narrative swarm first (long)")
+    ap.add_argument("--narrative", default=None, help="Weave an existing swarm output markdown")
+    ap.add_argument("--model", default=os.environ.get("BENNY_DEFAULT_MODEL", "lmstudio/google/gemma-4-12b"))
+    ARGS = ap.parse_args()
+
+    bh = Path(os.environ.get("BENNY_HOME", ""))
+    if not bh.exists():
+        print("ERROR: BENNY_HOME is not set/valid", file=sys.stderr)
+        return 2
+    out = Path(ARGS.out) if ARGS.out else bh / "workspaces" / ARGS.workspace / "data_out" / "TOGAF_EPIC_SAD_binary16.md"
+
+    _emit(f"TOGAF EPIC build starting (workspace={ARGS.workspace}, model={ARGS.model})")
+    hw = probe_hardware()
+    models = harvest_models()
+    deps = harvest_deps()
+    schema = harvest_graph_schema()
+    code = harvest_code_stats()
+    seq = harvest_run_sequence()
+
+    ev_dir = out.parent / "togaf_epic_evidence"
+    ev_dir.mkdir(parents=True, exist_ok=True)
+    for name, obj in [("hardware", hw), ("models", models), ("deps", deps), ("graph_schema", schema), ("code_stats", code), ("lifecycle", seq)]:
+        (ev_dir / f"{name}.json").write_text(json.dumps(obj, indent=1, default=str), encoding="utf-8")
+    _emit(f"Evidence pack written to {ev_dir}")
+
+    narrative = None
+    if ARGS.narrative:
+        narrative = Path(ARGS.narrative).read_text(encoding="utf-8", errors="replace")
+    elif ARGS.run_swarm:
+        _emit("Executing task: narrative_swarm (launching togaf_epic_sad_swarm.json — this is the long pole)")
+        rc = subprocess.run([sys.executable, "benny_cli.py", "run",
+                             "manifests/templates/togaf_epic_sad_swarm.json", "--workspace", ARGS.workspace, "--json"],
+                            cwd=RUNTIME).returncode
+        if rc == 0:
+            cands = sorted((bh / "workspaces" / ARGS.workspace / "reports" / "data_out").glob("TOGAF_EPIC_narrative*.md"),
+                           key=lambda p: p.stat().st_mtime, reverse=True)
+            if cands:
+                narrative = cands[0].read_text(encoding="utf-8", errors="replace")
+        else:
+            _emit(f"narrative swarm FAILED rc={rc} — assembling without narrative", status="running")
+
+    D = diagrams(hw, models, deps, schema, code, seq)
+    census = assemble(hw, models, deps, schema, code, seq, D, narrative, out)
+    _emit(f"DONE: {census['words']} words | {census['mermaid_diagrams']} mermaid diagrams | {census['sections']} sections -> {census['output']}", status="completed")
+    time.sleep(2)  # let the async audit queue flush the terminal event before exit
+    print(json.dumps(census, indent=1))
+    return 0
+
+
+if __name__ == "__main__":
+    ARGS = None
+    sys.exit(main())

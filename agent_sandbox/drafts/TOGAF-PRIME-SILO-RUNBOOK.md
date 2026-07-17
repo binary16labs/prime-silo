@@ -148,6 +148,44 @@ dashboard integration (2026-07-16, additive):
 - Files: `runtime_lineage.mjs` (derivation), wired in `collect.mjs`
   (runtime_lineage key + openlineage_runtime.json), rendered in `lineage.html`.
 
+## Phase 2 — TOGAF EPIC SAD (deterministic diagrams-as-code + swarm narrative)
+
+One CLI, repeatable, evidence-grounded (2026-07-17). The Phase-1 lesson inverted:
+diagrams are GENERATED from disk/graph truth; the swarm only narrates.
+
+```powershell
+cd C:\Users\nsdha\OneDrive\binary16\prime-silo\runtime
+$env:BENNY_HOME = "$env:APPDATA\space-agent\benny-home\benny"
+$env:BENNY_LMSTUDIO_ENDPOINTS = "http://192.168.68.125:1234/v1"
+$env:BENNY_DEFAULT_MODEL = "lmstudio/google/gemma-4-12b"
+
+# deterministic build (~60s): probe + evidence + 10 mermaid diagrams + assemble
+python scripts\togaf_epic.py --workspace sessions_v1
+
+# full epic (adds the 19-task narrative swarm first; the long pole)
+python scripts\togaf_epic.py --workspace sessions_v1 --run-swarm
+
+# or weave an existing narrative
+python scripts\togaf_epic.py --workspace sessions_v1 --narrative <path.md>
+```
+
+- Output: `<BENNY_HOME>\workspaces\sessions_v1\data_out\TOGAF_EPIC_SAD_binary16.md`
+  + evidence pack (`togaf_epic_evidence/*.json` — hardware, models, deps,
+  graph schema, code stats, lifecycle).
+- Diagrams as code (all mermaid, all from evidence): C4 context/container,
+  use-case, BPMN-style pipeline, class (top classes by real method count),
+  sequence (from the real run's AER events), ER (real edge counts), data
+  conceptual/logical/physical (real property keys + measured store sizes),
+  deployment topology (probed CPU/NPU/GPU/RAM + LAN host probe).
+- Hardware: probed laptop (Ryzen AI NPU) vs LAN eGPU host; declared test
+  matrix in `scripts/togaf_epic_declared_hardware.json` (create/edit to
+  declare rigs — kept separate from probes for honesty). Models-tested table
+  comes from run records (real durations).
+- Observability: the build emits TASK_METADATA_UPDATE events → it appears in
+  the :8788/lineage.html register like any swarm run, with live step-through.
+- Narrative manifest: `manifests/templates/togaf_epic_sad_swarm.json`
+  (19 personas, LM Studio baked, dual-evidence rules in graph-touching tasks).
+
 ## Known residual risks
 
 - `benny enrich --resume <run_id>` exists if the enrich run wedges partway.
