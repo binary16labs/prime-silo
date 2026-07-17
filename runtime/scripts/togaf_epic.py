@@ -260,6 +260,143 @@ def harvest_run_sequence() -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Phase 2b — measured NPU vs eGPU bench (--bench; fixed prompts, like-for-like)
+# ---------------------------------------------------------------------------
+BENCH_PROMPTS = [
+    "Summarize the TOGAF ADM phases in exactly three sentences.",
+    "List five risks of running LLM inference on consumer hardware.",
+    "Explain the difference between a logical and a physical data model.",
+]
+
+
+def bench_rigs() -> dict:
+    _emit("Executing task: bench (fixed prompt set vs each rig — measured, like-for-like)")
+    import httpx
+
+    rigs = []
+    lan = os.environ.get("BENNY_LMSTUDIO_ENDPOINTS", "").split(",")[0].rstrip("/")
+    if lan:
+        rigs.append({"rig": "eGPU/LAN (LM Studio)", "base": lan, "model": "google/gemma-4-12b"})
+    rigs.append({"rig": "NPU/local (lemonade)", "base": "http://localhost:13305/api/v1", "model": "default"})
+    results = []
+    for r in rigs:
+        runs = []
+        for p in BENCH_PROMPTS:
+            t0 = time.time()
+            try:
+                resp = httpx.post(r["base"] + "/chat/completions",
+                                  json={"model": r["model"], "messages": [{"role": "user", "content": p}], "max_tokens": 200},
+                                  timeout=180)
+                wall = round(time.time() - t0, 2)
+                u = (resp.json().get("usage") or {}) if resp.status_code == 200 else {}
+                ct = u.get("completion_tokens") or 0
+                runs.append({"ok": resp.status_code == 200, "wall_s": wall, "completion_tokens": ct,
+                             "tok_per_s": round(ct / wall, 1) if ct and wall else None})
+            except Exception as e:
+                runs.append({"ok": False, "error": str(e)[:100], "wall_s": round(time.time() - t0, 2)})
+        ok = [x for x in runs if x.get("ok") and x.get("tok_per_s")]
+        results.append({**{k: r[k] for k in ("rig", "base", "model")}, "runs": runs,
+                        "median_tok_per_s": sorted(x["tok_per_s"] for x in ok)[len(ok) // 2] if ok else None})
+    return {"prompts": BENCH_PROMPTS, "measured_at": _dt.datetime.now().isoformat(), "results": results}
+
+
+def derive_min_hw(hw: dict, schema: dict) -> str:
+    """Minimum hardware DERIVED with the arithmetic shown, never asserted."""
+    return (
+        "### Minimum hardware requirements (derived — arithmetic shown)\n\n"
+        "| component | requirement | derivation |\n|---|---|---|\n"
+        "| Inference VRAM/RAM | ~10 GB | gemma-4-12b @ Q4 ≈ 12B × 0.55 B/param ≈ 6.6 GB weights "
+        "+ ~2 GB KV cache @ 8k ctx + ~1 GB runtime overhead |\n"
+        "| Embedding model | +0.3 GB | nomic-embed-text v1.5 (137M params, F16) |\n"
+        "| System RAM | 16 GB min, 32 GB recommended | Neo4j heap (2–4 GB) + Chroma + Electron app "
+        f"+ OS; this rig has {hw['host'].get('ram_gb','?')} GB |\n"
+        "| Disk | ~15 GB | measured stores (section: data model physical) + models + runtime bundle |\n"
+        "| NPU path | Ryzen AI XDNA (or skip) | lemonade/FLM serves 4–9B quantized models on NPU; "
+        "12B-class narrative models need the eGPU/LAN path |\n\n"
+        "*Assumptions are stated inline; measured store sizes and the probed rig are elsewhere in "
+        "this document. Re-derive by editing the arithmetic, not the conclusion.*\n"
+    )
+
+
+def archive_and_delta(ev_dir: Path) -> str:
+    """Keep evidence history per run; render a real build-over-build delta chapter."""
+    hist = ev_dir / "history"
+    hist.mkdir(exist_ok=True)
+    prior = sorted([d for d in hist.iterdir() if d.is_dir()], reverse=True)
+    cur = {f.stem: json.loads(f.read_text(encoding="utf-8")) for f in ev_dir.glob("*.json")}
+    snap = hist / RUN_ID
+    snap.mkdir(exist_ok=True)
+    for f in ev_dir.glob("*.json"):
+        (snap / f.name).write_text(f.read_text(encoding="utf-8"), encoding="utf-8")
+    if not prior:
+        return "### Build-over-build delta\n\n*First archived build — deltas start next run.*\n"
+    prev_dir = prior[0]
+    prev = {f.stem: json.loads(f.read_text(encoding="utf-8")) for f in prev_dir.glob("*.json")}
+    lines = [f"### Build-over-build delta (vs `{prev_dir.name}`)\n", "| metric | previous | current | Δ |", "|---|---|---|---|"]
+    def _cnt(pack, path_, default=0):
+        cur_ = pack
+        for k in path_:
+            cur_ = (cur_ or {}).get(k, {}) if isinstance(cur_, dict) else default
+        return cur_ if isinstance(cur_, (int, float)) else default
+    pairs = [
+        ("graph labels", lambda p: len((p.get("graph_schema") or {}).get("labels", []))),
+        ("relationship types", lambda p: len((p.get("graph_schema") or {}).get("rel_types", []))),
+        ("code entity types", lambda p: len((p.get("code_stats") or {}).get("by_type", []))),
+        ("node dependencies", lambda p: _cnt(p, ("deps", "node", "dependencies"))),
+        ("docker services", lambda p: len((p.get("deps") or {}).get("docker_services", []))),
+    ]
+    for name, fn in pairs:
+        a, b = fn(prev), fn(cur)
+        lines.append(f"| {name} | {a} | {b} | {b - a:+d} |")
+    for r in (cur.get("graph_schema") or {}).get("label_counts", [])[:6]:
+        pv = next((x["n"] for x in (prev.get("graph_schema") or {}).get("label_counts", []) if x["label"] == r["label"]), 0)
+        lines.append(f"| nodes: {r['label']} | {pv} | {r['n']} | {r['n'] - pv:+d} |")
+    return "\n".join(lines) + "\n"
+
+
+# ---------------------------------------------------------------------------
+# Narrative weaving + quality gates: split the swarm output into chapters and
+# interleave each with its authoritative diagrams.
+# ---------------------------------------------------------------------------
+CHAPTER_MAP = [  # (match keywords in narrative section header) -> diagram keys to inject
+    (("use case", "usecases", "actor", "channel"), ["usecase"]),
+    (("business process", "bpmn"), ["bpmn"]),
+    (("c4", "context", "container"), ["c4_context", "c4_container"]),
+    (("behavioural", "sequence", "uml"), ["sequence"]),
+    (("data architecture", "data model", "data_tier"), ["er", "data_conceptual", "data_logical", "data_physical"]),
+    (("class", "code design"), ["class"]),
+    (("deployment", "topolog"), ["deployment"]),
+]
+
+
+def weave(narrative_md: str, D: dict, word_floor: int) -> tuple[str, list]:
+    sections = re.split(r"^## ", narrative_md, flags=re.M)
+    used, gates = set(), []
+    out = []
+    for sec in sections:
+        if not sec.strip():
+            continue
+        header, _, body = sec.partition("\n")
+        words = len(body.split())
+        low = header.lower()
+        inject = []
+        for keys, dkeys in CHAPTER_MAP:
+            if any(k in low for k in keys):
+                inject = [k for k in dkeys if k not in used]
+                used.update(inject)
+                break
+        gate_ok = words >= word_floor
+        gates.append({"chapter": header[:70], "words": words, "floor": word_floor, "ok": gate_ok})
+        flag = "" if gate_ok else f"\n> ⚠ QUALITY GATE: chapter below word floor ({words} < {word_floor}).\n"
+        out.append("## " + header + "\n" + flag + body
+                   + "".join("\n" + D[k] for k in inject))
+    for k, v in D.items():  # any diagram not claimed by a chapter still ships
+        if k not in used:
+            out.append("\n## Additional architecture view\n\n" + v)
+    return "\n".join(out), gates
+
+
+# ---------------------------------------------------------------------------
 # Phase 3 — diagrams as code (pure functions of the evidence)
 # ---------------------------------------------------------------------------
 def _mm(kind: str, body: str, title: str) -> str:
@@ -408,10 +545,18 @@ def assemble(hw, models, deps, schema, code, seq, D, narrative_md: str | None, o
       "integrity-hashed governance ledger, a live hardware probe). The narrative chapters "
       "are produced by a multi-agent swarm and clearly marked. Re-running this CLI against "
       "the same graph reproduces the same diagrams.\n")
-    A("\n---\n\n## 1. Architecture views (generated, evidence-grounded)\n")
-    for key in ["c4_context", "c4_container", "usecase", "bpmn", "class", "sequence", "er",
-                "data_conceptual", "data_logical", "data_physical", "deployment"]:
-        A(D[key])
+    gates = []
+    if narrative_md:
+        # Per-chapter weaving: swarm prose interleaved with its authoritative
+        # diagrams, each chapter checked against the word floor.
+        A("\n---\n\n## 1. Architecture chapters (swarm narrative × generated diagrams)\n")
+        woven, gates = weave(narrative_md, D, ARGS.word_floor)
+        A(woven)
+    else:
+        A("\n---\n\n## 1. Architecture views (generated, evidence-grounded)\n")
+        for key in ["c4_context", "c4_container", "usecase", "bpmn", "class", "sequence", "er",
+                    "data_conceptual", "data_logical", "data_physical", "deployment"]:
+            A(D[key])
     A("\n## 2. Technical dependencies (harvested)\n")
     A("```json\n" + json.dumps(deps, indent=1)[:4000] + "\n```\n")
     A("\n## 3. Hardware & inference rigs\n")
@@ -421,6 +566,14 @@ def assemble(hw, models, deps, schema, code, seq, D, narrative_md: str | None, o
     A("```json\n" + json.dumps(hw["lan_inference_host"], indent=1) + "\n```\n")
     A("### Declared test matrix (operator-maintained; measured runs live in the ledger)\n")
     A("```json\n" + json.dumps(hw["declared_test_matrix"], indent=1) + "\n```\n")
+    if hw.get("bench"):
+        A("### Measured NPU vs eGPU bench (fixed prompt set, this build)\n")
+        A("| rig | model | median tok/s | runs ok |\n|---|---|---|---|\n")
+        for r in hw["bench"]["results"]:
+            okn = sum(1 for x in r["runs"] if x.get("ok"))
+            A(f"| {r['rig']} | {r['model']} | {r['median_tok_per_s'] or '—'} | {okn}/{len(r['runs'])} |\n")
+        A("\nRaw bench data in the evidence pack (`hardware.json`).\n")
+    A(derive_min_hw(hw, schema))
     A("\n## 4. Models tested & used (from run records + LONGVIEW register)\n")
     A("| model | runs | completed | total minutes |\n|---|---|---|---|\n")
     for m, d in sorted(models["swarm_models"].items()):
@@ -444,14 +597,14 @@ def assemble(hw, models, deps, schema, code, seq, D, narrative_md: str | None, o
     A("\n| correlation strategy | edges |\n|---|---|\n")
     for r in code.get("correlates", []):
         A(f"| {r['strategy']} | {r['n']} |\n")
-    if narrative_md:
-        A("\n---\n\n## 6. Narrative chapters (multi-agent swarm output)\n")
-        A("> Produced by the 19-task `togaf_epic_sad_swarm.json` swarm. Diagrams inside the "
-          "narrative are the swarm's own; the authoritative diagrams are in section 1.\n\n")
-        A(narrative_md)
-    else:
-        A("\n---\n\n## 6. Narrative chapters\n\n*(not included in this build — run with "
-          "`--run-swarm` or weave an existing output via `--narrative <file>`)*\n")
+    A("\n" + ARGS._delta_chapter)
+    if gates:
+        A("\n### Chapter quality gates\n\n| chapter | words | floor | status |\n|---|---|---|---|\n")
+        for g in gates:
+            A(f"| {g['chapter']} | {g['words']} | {g['floor']} | {'✓' if g['ok'] else '⚠ BELOW FLOOR'} |\n")
+    if not narrative_md:
+        A("\n---\n\n*(narrative chapters not included — run with `--run-swarm` or weave an "
+          "existing output via `--narrative <file>`)*\n")
     A("\n---\n\n## Appendix — reproducibility\n")
     A(f"- CLI: `python scripts/togaf_epic.py --workspace {ws}`\n"
       f"- Narrative manifest: `manifests/templates/togaf_epic_sad_swarm.json`\n"
@@ -465,6 +618,7 @@ def assemble(hw, models, deps, schema, code, seq, D, narrative_md: str | None, o
         "mermaid_diagrams": doc.count("```mermaid"),
         "sections": len(re.findall(r"^##? ", doc, re.M)),
         "narrative_included": bool(narrative_md),
+        "chapter_gates_failed": sum(1 for g in gates if not g["ok"]),
         "output": str(out_path),
     }
     return census
@@ -479,6 +633,9 @@ def main() -> int:
     ap.add_argument("--run-swarm", action="store_true", help="Launch the 19-task narrative swarm first (long)")
     ap.add_argument("--narrative", default=None, help="Weave an existing swarm output markdown")
     ap.add_argument("--model", default=os.environ.get("BENNY_DEFAULT_MODEL", "lmstudio/google/gemma-4-12b"))
+    ap.add_argument("--bench", action="store_true", help="Measure NPU vs eGPU rigs with a fixed prompt set (adds LLM load)")
+    ap.add_argument("--no-pdf", dest="pdf", action="store_false", default=True, help="Skip the rendered-diagram PDF")
+    ap.add_argument("--word-floor", dest="word_floor", type=int, default=250, help="Per-chapter narrative quality floor")
     ARGS = ap.parse_args()
 
     bh = Path(os.environ.get("BENNY_HOME", ""))
@@ -489,6 +646,8 @@ def main() -> int:
 
     _emit(f"TOGAF EPIC build starting (workspace={ARGS.workspace}, model={ARGS.model})")
     hw = probe_hardware()
+    if ARGS.bench:
+        hw["bench"] = bench_rigs()
     models = harvest_models()
     deps = harvest_deps()
     schema = harvest_graph_schema()
@@ -500,6 +659,8 @@ def main() -> int:
     for name, obj in [("hardware", hw), ("models", models), ("deps", deps), ("graph_schema", schema), ("code_stats", code), ("lifecycle", seq)]:
         (ev_dir / f"{name}.json").write_text(json.dumps(obj, indent=1, default=str), encoding="utf-8")
     _emit(f"Evidence pack written to {ev_dir}")
+    _emit("Executing task: delta (build-over-build evidence comparison)")
+    ARGS._delta_chapter = archive_and_delta(ev_dir)
 
     narrative = None
     if ARGS.narrative:
@@ -519,7 +680,25 @@ def main() -> int:
 
     D = diagrams(hw, models, deps, schema, code, seq)
     census = assemble(hw, models, deps, schema, code, seq, D, narrative, out)
-    _emit(f"DONE: {census['words']} words | {census['mermaid_diagrams']} mermaid diagrams | {census['sections']} sections -> {census['output']}", status="completed")
+
+    if ARGS.pdf:
+        _emit("Executing task: pdf (headless print with REALIZED mermaid diagrams + SVG gate)")
+        pdf_path = str(out).replace(".md", ".pdf")
+        r = subprocess.run(["node", str(RUNTIME / "scripts" / "togaf_epic_pdf.mjs"), str(out), pdf_path],
+                           capture_output=True, text=True, timeout=300)
+        try:
+            census["pdf"] = json.loads(r.stdout.strip().splitlines()[-1])
+        except Exception:
+            census["pdf"] = {"ok": False, "error": (r.stderr or r.stdout)[-200:]}
+        if not census["pdf"].get("ok") or r.returncode != 0:
+            _emit(f"PDF GATE FAILED: {json.dumps(census['pdf'])[:160]}", status="failed")
+            print(json.dumps(census, indent=1))
+            return 1
+
+    _emit(f"DONE: {census['words']} words | {census['mermaid_diagrams']} mermaid diagrams | "
+          f"{census['sections']} sections | gates_failed={census['chapter_gates_failed']} | "
+          f"pdf={'ok ' + str(census.get('pdf', {}).get('svg_rendered')) + ' svgs' if ARGS.pdf else 'skipped'} "
+          f"-> {census['output']}", status="completed")
     time.sleep(2)  # let the async audit queue flush the terminal event before exit
     print(json.dumps(census, indent=1))
     return 0

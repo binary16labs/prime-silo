@@ -159,8 +159,18 @@ $env:BENNY_HOME = "$env:APPDATA\space-agent\benny-home\benny"
 $env:BENNY_LMSTUDIO_ENDPOINTS = "http://192.168.68.125:1234/v1"
 $env:BENNY_DEFAULT_MODEL = "lmstudio/google/gemma-4-12b"
 
-# deterministic build (~60s): probe + evidence + 10 mermaid diagrams + assemble
+# deterministic build (~90s): probe + evidence + 10 mermaid diagrams + assemble
+# + PDF with REALIZED diagrams (headless Edge + vendored mermaid; SVG gate:
+# every diagram must render or the build exits 1). --no-pdf to skip.
 python scripts\togaf_epic.py --workspace sessions_v1
+
+# v2 extras: --bench (measured NPU vs eGPU, fixed prompt set — adds LLM load),
+# --word-floor 250 (per-chapter narrative quality gate). Build-over-build
+# delta chapter is automatic (evidence archived per run under
+# togaf_epic_evidence/history/). Pipeline contract: manifests/templates/
+# togaf_epic_v2_pipeline.json. Outputs: .md + .html + .pdf side by side.
+# When the narrative swarm output exists, chapters are WOVEN: each swarm
+# chapter interleaved with its authoritative diagrams + gate table.
 
 # full epic (adds the 19-task narrative swarm first; the long pole)
 python scripts\togaf_epic.py --workspace sessions_v1 --run-swarm

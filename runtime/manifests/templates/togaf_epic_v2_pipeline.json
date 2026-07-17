@@ -1,0 +1,39 @@
+{
+  "schema_version": "togaf-epic-pipeline/2.0",
+  "id": "togaf-epic-v2-pipeline",
+  "name": "TOGAF EPIC SAD v2 - full pipeline contract (executed by scripts/togaf_epic.py)",
+  "description": "Declarative contract for the Phase-2+ EPIC SAD build. This manifest is the governed record of WHAT the pipeline does and its quality gates; scripts/togaf_epic.py is the deterministic executor (benny run executes only the narrative half via togaf_epic_sad_swarm.json). Doctrine: diagrams are NEVER produced by an LLM - they are pure functions of graph/disk truth; the swarm narrates around them.",
+  "executor": "python scripts/togaf_epic.py --workspace ${workspace} [--run-swarm] [--bench] [--word-floor N]",
+  "variables": {
+    "workspace": "sessions_v1",
+    "model": "lmstudio/google/gemma-4-12b",
+    "output_md": "data_out/TOGAF_EPIC_SAD_binary16.md",
+    "output_pdf": "data_out/TOGAF_EPIC_SAD_binary16.pdf",
+    "word_floor_per_chapter": 250,
+    "narrative_manifest": "manifests/templates/togaf_epic_sad_swarm.json"
+  },
+  "phases": [
+    { "id": "hardware_probe", "kind": "deterministic", "evidence": "hardware.json", "detail": "CIM CPU/RAM/GPU + Ryzen AI NPU detect + LAN inference host probe (reachability + served models). Declared rig matrix kept in scripts/togaf_epic_declared_hardware.json, separate from probes." },
+    { "id": "bench", "kind": "measured", "optional": true, "flag": "--bench", "detail": "Fixed 3-prompt set fired at each rig (LM Studio eGPU LAN + lemonade NPU local); wall time, completion tokens, median tok/s. Like-for-like, raw data in evidence pack." },
+    { "id": "models_evidence", "kind": "deterministic", "evidence": "models.json", "detail": "Models-tested table from run records + LONGVIEW execution register (real durations/tokens)." },
+    { "id": "dependency_evidence", "kind": "deterministic", "evidence": "deps.json", "detail": "package.json, requirements*, docker-compose services." },
+    { "id": "graph_schema_evidence", "kind": "deterministic", "evidence": "graph_schema.json", "detail": "Neo4j label/relationship introspection + per-label property keys + real edge-pair counts." },
+    { "id": "code_graph_evidence", "kind": "deterministic", "evidence": "code_stats.json", "detail": "CodeEntity census, top classes by DEFINES method count, DEPENDS_ON area pairs, CORRELATES_WITH strategy split." },
+    { "id": "lifecycle_evidence", "kind": "deterministic", "evidence": "lifecycle.json", "detail": "Real swarm AER events from the governance ledger drive the sequence diagram." },
+    { "id": "delta", "kind": "deterministic", "detail": "Evidence pack archived per run under togaf_epic_evidence/history/<run>; build-over-build delta chapter (label counts, deps, services) computed against the previous archive." },
+    { "id": "diagrams_as_code", "kind": "deterministic", "detail": "10+ mermaid diagrams generated from evidence: C4 context/container, use-case per channel, BPMN-style pipeline, class (real method counts), sequence (real run), ER (real edge counts), data conceptual/logical/physical (real property keys + measured store sizes), deployment topology (probed rigs)." },
+    { "id": "narrative_swarm", "kind": "agentic", "optional": true, "flag": "--run-swarm", "manifest": "${narrative_manifest}", "detail": "19-persona enterprise narrative (use cases, BPMN prose, C4 prose, behavioural UML prose, data architecture, NFR, security, devsecops, deployment, observability, gap/transition, ADRs)." },
+    { "id": "weave_and_gate", "kind": "deterministic", "detail": "Narrative split into chapters; each chapter interleaved with its authoritative diagrams (CHAPTER_MAP); per-chapter word floor (${word_floor_per_chapter}) enforced and reported in a gates table. Unclaimed diagrams still ship." },
+    { "id": "min_hardware", "kind": "derived", "detail": "Minimum hardware requirements DERIVED with the arithmetic shown (model bytes/param + KV cache + measured stores), never asserted." },
+    { "id": "assemble", "kind": "deterministic", "detail": "Epic markdown: evidence + diagrams + woven narrative + observability/lineage/logging + hardware + models + delta + gates + reproducibility appendix. Honest census (words, diagrams, sections, gate failures)." },
+    { "id": "pdf_render", "kind": "deterministic", "gate": true, "detail": "scripts/togaf_epic_pdf.mjs: md -> HTML (tables + mermaid via vendored scripts/vendor/mermaid.min.js) -> headless Edge/Chrome print. VALIDATION GATE: dump-dom counts rendered SVGs; every mermaid block must render as a real non-error SVG or the build FAILS (exit 1). Output: ${output_pdf} with diagrams REALIZED, not code." }
+  ],
+  "observability": {
+    "events": "Every phase emits TASK_METADATA_UPDATE (swarm_workflow shape) to runtime/workspace/governance.log; the build appears in the :8788/lineage.html register with live AER step-through.",
+    "openlineage": "Swarm half emits OpenLineage 1-0-5 RunEvents; openlineage_runtime.json downloadable from the dashboard."
+  },
+  "metadata": {
+    "phase1_lessons_applied": ["no LLM-fabricated diagrams", "LM Studio model pinned", "dual-evidence baseline", "silent-failure gates made loud", "flush audit queue before exit"],
+    "created": "2026-07-17"
+  }
+}
