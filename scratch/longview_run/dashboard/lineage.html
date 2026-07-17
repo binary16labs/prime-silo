@@ -118,6 +118,7 @@
       <button id="rt-dl" style="padding:3px 10px">⬇ OpenLineage (runtime)</button>
     </div>
     <div class="sub">Marquez-free OpenLineage from the governance ledger (<code>runtime/workspace/governance.log</code>, integrity-hashed) + run records (<code>runtime/workspace/manifests/runs/</code>). Live run shows elapsed + per-task states. <b>Operational hints:</b> launch = <code>python benny_cli.py run manifests/templates/togaf_sad_prime_silo.json --json</code> from <code>runtime/</code> with BENNY_HOME + BENNY_LMSTUDIO_ENDPOINTS set · console prints each wave · LM Studio token stream = ground truth for "is it generating" · output lands in <code>&lt;BENNY_HOME&gt;/workspaces/sessions_v1/data_out/</code>.</div>
+    <div id="rt-progress"></div>
     <div id="rt-current"></div>
     <div id="rt-tasks"></div>
     <div id="rt-aer" style="max-height:260px;overflow:auto;margin-top:10px"></div>
@@ -342,6 +343,29 @@ function renderExecs(d){
 
 function renderRuntime(d){
   const rt=d.runtime_lineage||{};
+  // v3 recursive build: completed vs planned + earned ETA (measured EMA)
+  const p=rt.v3_progress;
+  if(p){
+    const stallNote=p.stalled?' <span class="badge failed">STALLED >15m</span>':'';
+    const eta=p.eta_iso?`${p.eta_human} (≈ ${new Date(p.eta_iso).toLocaleTimeString()})`:p.eta_human;
+    $('rt-progress').innerHTML=
+      `<div style="border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:10px;background:var(--panel2)">
+        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <b>TOGAF EPIC v3 build · completed vs planned</b>
+          <span>${p.sections_written}/${p.sections_est_total} sections · ${p.pct}%${stallNote}</span>
+        </div>
+        <div style="height:10px;border-radius:6px;background:var(--line);margin:8px 0;overflow:hidden">
+          <div style="height:100%;width:${p.pct}%;background:linear-gradient(90deg,var(--accent),var(--accent2))"></div>
+        </div>
+        <div class="sub">
+          chapters planned ${p.chapters_planned}/${p.chapters_total} · planned sections ${p.sections_planned}
+          (est. total ${p.sections_est_total}) · gates OK ${p.gates_ok}/${p.sections_written}
+          · measured pace <b>${p.ema_sec_per_item??'—'}s/item</b> (EMA of real deltas)
+          · <b>ETA ${eta}</b>
+        </div>
+        <div class="sub">now: <code>${esc(p.current||'—')}</code> · last event ${esc(String(p.last_event_at||'—').replace('T',' ').slice(0,19))}</div>
+      </div>`;
+  } else { $('rt-progress').innerHTML=''; }
   const badge=s=>{const c=s==='completed'?'clean':(s==='running'?'partial':(s==='failed'?'failed':'partial'));return `<span class="badge ${c}">${esc(s||'?')}</span>`;};
   // current run banner
   let cur='';

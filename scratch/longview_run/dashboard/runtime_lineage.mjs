@@ -212,7 +212,57 @@ export function deriveRuntimeLineage() {
   // pass — deterministic file, rendered verbatim).
   const enrichment = readJSON(path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")), "enrichment_stats.json"), null);
 
+  // --- v3 recursive-build progress + earned ETA (disk truth only) ----------
+  // Planned = chapter plans in the state file (+ estimate for unplanned
+  // chapters); completed = written sections; speed = deltas between
+  // consecutive plan/write AER timestamps (EMA, LONGVIEW eta.mjs doctrine);
+  // ETA = remaining items × measured EMA. Never blocks the audit data.
+  let v3_progress = null;
+  try {
+    const statePath = "C:/Users/nsdha/AppData/Roaming/space-agent/benny-home/benny/workspaces/sessions_v1/data_out/togaf_epic_v3_state.json";
+    if (fs.existsSync(statePath)) {
+      const st = JSON.parse(fs.readFileSync(statePath, "utf8"));
+      const keys = Object.keys(st.sections || {});
+      const plans = keys.filter((k) => k.startsWith("plan::"));
+      const written = keys.filter((k) => !k.startsWith("plan::"));
+      const gatesOk = written.filter((k) => st.sections[k].gate && st.sections[k].gate.ok).length;
+      const TOTAL_CHAPTERS = 7; // TOGAF_SKELETON in togaf_epic_v3.py
+      const plannedSections = plans.reduce((n, k) => n + ((st.sections[k] || []).length || 0), 0);
+      const avgPerChapter = plans.length ? plannedSections / plans.length : 7;
+      const estTotal = Math.round(plannedSections + (TOTAL_CHAPTERS - plans.length) * avgPerChapter);
+      const v3aer = Object.entries(aerByRun)
+        .filter(([k]) => k.startsWith("togaf-epic-v3"))
+        .sort((a, b) => String(b[1].at).localeCompare(String(a[1].at)))[0];
+      let ema = null, lastAt = null, currentSection = null;
+      if (v3aer) {
+        const items = v3aer[1].steps.filter((s) => /Executing task: (write|plan_index)/.test(s.intent));
+        currentSection = items.length ? items[items.length - 1].intent.replace("Executing task: ", "") : null;
+        const secs = items.map((s) => { const [h, m, x] = s.t.split(":").map(Number); return h * 3600 + m * 60 + x; });
+        for (let i = 1; i < secs.length; i++) {
+          let d = secs[i] - secs[i - 1];
+          if (d < 0) d += 86400; // midnight wrap
+          if (d > 5 && d < 3600) ema = ema === null ? d : 0.3 * d + 0.7 * ema;
+        }
+        lastAt = v3aer[1].at;
+      }
+      const remaining = Math.max(0, estTotal - written.length) + Math.max(0, TOTAL_CHAPTERS - plans.length);
+      const etaMs = ema && remaining ? remaining * ema * 1000 : null;
+      v3_progress = {
+        chapters_planned: plans.length, chapters_total: TOTAL_CHAPTERS,
+        sections_written: written.length, sections_planned: plannedSections,
+        sections_est_total: estTotal, gates_ok: gatesOk,
+        pct: estTotal ? Math.min(100, Math.round((written.length / estTotal) * 100)) : 0,
+        ema_sec_per_item: ema ? Math.round(ema) : null,
+        current: currentSection, last_event_at: lastAt,
+        eta_iso: etaMs ? new Date(Date.now() + etaMs).toISOString() : null,
+        eta_human: etaMs ? `${Math.floor(etaMs / 3600000)}h ${Math.round((etaMs % 3600000) / 60000)}m` : "measuring…",
+        stalled: lastAt ? Date.now() - Date.parse(lastAt) > 15 * 60 * 1000 : false
+      };
+    }
+  } catch { /* best-effort; audit data below is never blocked by progress */ }
+
   return {
+    v3_progress,
     enrichment,
     executions: executions.slice(0, 40),
     enrich_runs: Object.values(enrichRuns).slice(-20),
