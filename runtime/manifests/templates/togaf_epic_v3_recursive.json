@@ -1,0 +1,33 @@
+{
+  "schema_version": "togaf-epic-pipeline/3.0",
+  "id": "togaf-epic-v3-recursive",
+  "name": "TOGAF EPIC v3 - recursive index-planned, reference-grounded SAD",
+  "description": "Contract for the v3 depth layer executed by scripts/togaf_epic_v3.py. Stands on the v2 pipeline (evidence pack, diagrams-as-code, PDF SVG gate) and adds: a TOGAF-prescribed skeleton as a deterministic floor, recursive per-chapter index planning, per-section grounded writing with mandatory citations, an ICONIX robustness model with per-object catalogs, and a resumable state file.",
+  "executor": "python scripts/togaf_epic_v3.py --workspace ${workspace} [--max-leaves N] [--resume] [--word-floor N]",
+  "variables": {
+    "workspace": "sessions_v1",
+    "model": "lmstudio/google/gemma-4-12b",
+    "output_md": "data_out/TOGAF_EPIC_V3_SAD_binary16.md",
+    "word_floor_per_section": 220
+  },
+  "doctrine": [
+    "The TOGAF skeleton (7 chapters, prescribed artifacts per chapter) is the FLOOR - the planner extends it, never removes from it.",
+    "Recursive planning: document index -> chapter index -> leaf sections; each leaf is its own gated LLM call.",
+    "Frameworks are prescribed per chapter and enforced per section: SWOT, PESTEL, 5W1H.",
+    "Every section writes against a citable evidence bundle and MUST cite [EV-*] labels inline and end with a References block; the gate rejects otherwise, with one named-failure retry.",
+    "Robustness model is deterministic: every significant code-graph object classified Boundary/Control/Entity by path heuristics, each object gets a catalog ID (B-nn/C-nn/E-nn) and its own index row; diagram edges are real DEPENDS_ON pairs.",
+    "Resumable: state file per output dir; --resume skips written sections; --max-leaves bounds a build.",
+    "Same observability as v2: AER events per plan/write/assemble phase, visible at :8788."
+  ],
+  "chapters": [
+    {"id": "scope", "frameworks": ["5W1H"]},
+    {"id": "business", "frameworks": ["SWOT", "PESTEL"]},
+    {"id": "data", "frameworks": ["5W1H"]},
+    {"id": "application", "frameworks": ["SWOT"], "extra": "robustness model + per-object catalogs live here"},
+    {"id": "technology", "frameworks": ["PESTEL"]},
+    {"id": "observability", "frameworks": ["5W1H"]},
+    {"id": "gap", "frameworks": ["SWOT"]}
+  ],
+  "honest_costs": "At the measured 3.8 tok/s (eGPU/LAN gemma-4-12b), a full ~50-section build is an overnight run (~4-6h). Use --max-leaves for bounded builds and --resume to continue; sections already written are never re-paid.",
+  "metadata": {"created": "2026-07-17", "predecessors": ["togaf_epic_v2_pipeline.json", "togaf_epic_sad_swarm.json"]}
+}

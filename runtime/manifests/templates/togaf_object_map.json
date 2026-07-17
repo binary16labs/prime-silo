@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "id": "togaf-object-map",
+  "description": "Governed categorization map for the TOGAF EPIC robustness/n-tier model. Part deterministic (tier + category patterns), part curated (explicit overrides). The build classifies map-first, heuristics-fallback, and emits a DRIFT REPORT every run: objects whose heuristic disagrees with an override, new high-degree objects not yet mapped (proposed additions), and mapped objects that vanished from the graph. Update this file deliberately - drift is surfaced, never silently absorbed.",
+  "tiers": {
+    "presentation": {
+      "title": "Presentation tier - UI / Reports / data_out",
+      "patterns": ["/app/", "/frontend/", "/pages/", "/ui/", "reports", "data_out", "website", "dashboard", "kg3d", "agentamp", "tray"]
+    },
+    "services": {
+      "title": "Services tier - APIs / CLI / engines",
+      "patterns": ["/api/", "/core/", "/graph/", "/synthesis/", "/governance/", "/pypes/", "/live/", "benny_cli", "/commands/", "/scripts/", "/mcp/", "/server/", "executor", "swarm", "router"]
+    },
+    "data": {
+      "title": "Data tier - graphs / RAG / DB / files / manifests / logs",
+      "patterns": ["persistence", "store", "chromadb", "graph_db", "schema", "/manifests/", "lineage", "/logs/", "workspace", "record", "ledger", "audit"]
+    }
+  },
+  "category_overrides": {
+    "benny_cli": {"category": "boundary", "tier": "services", "note": "CLI is an interface even though it lives in services paths"},
+    "graph_db": {"category": "entity", "tier": "data", "sink": "SINK-NEO4J"},
+    "run_store": {"category": "entity", "tier": "data", "sink": "SINK-MANIFESTS"}
+  },
+  "data_sinks": [
+    {
+      "id": "SINK-NEO4J",
+      "name": "Neo4j dual graph",
+      "structure_template": "Property graph. Knowledge side: (:Source)-[:SOURCED_FROM]-(:Concept)-[:RELATES_TO]-(:Concept). Code side: (:CodeEntity {snapshot_id})-[:CODE_REL {type}]-(:CodeEntity), (:CodeScan) registry. Bridge: (:Concept)-[:CORRELATES_WITH {strategy, confidence}]-(:CodeEntity), (:CodeEntity)-[:REPRESENTS]-(:Concept). Workspace scoping via node property, snapshot_id as the removal valve.",
+      "mechanics": "Bolt :7687 via benny/core/graph_db.py run_cypher (workspace auto-injection); write batching via CALL IN TRANSACTIONS; indexes: concept_unique(name,workspace), code_entity_merge(id,workspace,snapshot_id), code_entity_snap(snapshot_id) - the missing-index lesson cost 300x write speed.",
+      "probe": "label_counts"
+    },
+    {
+      "id": "SINK-CHROMA",
+      "name": "ChromaDB dense index",
+      "structure_template": "Per-workspace collection of chunked documents; 768-dim nomic embeddings; chunk metadata carries source path + span. Embedding input truncated to ~1200 chars (local embedder 512-token batch limit); full chunk text stored as document.",
+      "mechanics": "Embedded sqlite (workspaces/<ws>/chromadb/chroma.sqlite3); get_knowledge_collection centralizes the embedding function (768 Local vs 384 ONNX split was a historical corruption source).",
+      "probe": "chroma_size"
+    },
+    {
+      "id": "SINK-FILES",
+      "name": "Workspace file stores",
+      "structure_template": "data_in/ (staging -> promote), data_out/ (deliverables + evidence packs + <name>.meta.json sidecars), reports/, runs/<run_id>/task_*.json (write-once, sha256-stamped), longview/ (cards/evidence/windows/rollups).",
+      "mechanics": "BENNY_HOME-rooted, path-traversal guarded (get_workspace_path); run records immutable by convention (never modify run history).",
+      "probe": "workspace_files"
+    },
+    {
+      "id": "SINK-MANIFESTS",
+      "name": "Manifest + run-record store",
+      "structure_template": "runtime/workspace/manifests/<id>.json (SwarmManifest as authored, ${var} tokens resolved at load) + runs/<run_id>.json (RunRecord: status, node_states, artifacts, duration).",
+      "mechanics": "REPO-relative (benny/persistence/run_store.py anchors on the package dir, NOT BENNY_HOME - known gotcha); save_manifest before execution so runs always reference a resolvable manifest id.",
+      "probe": "manifest_counts"
+    },
+    {
+      "id": "SINK-LINEAGE",
+      "name": "Governance ledger (OpenLineage)",
+      "structure_template": "Append-only JSONL; every event integrity-hashed (_integrity_hash). LINEAGE_* events carry spec 1-0-5 RunEvents (workflow START/COMPLETE/FAIL, tool executions with parent-run facets); TASK_METADATA_UPDATE carries the swarm AER stream (the dashboard's live step-through).",
+      "mechanics": "benny/governance/audit.py async queue (flush before process exit or the terminal event is lost - measured); runtime/workspace/governance.log; harvested Marquez-free by dashboard/runtime_lineage.mjs.",
+      "probe": "ledger_stats"
+    },
+    {
+      "id": "SINK-LOGS",
+      "name": "Service logs",
+      "structure_template": "Per-service append logs: uvicorn API log, neo4j.log, benny-home logs/ (api/ui/neo4j), dashboard collector output.",
+      "mechanics": "Plain text, rotation manual; first diagnostic stop for wedges (the 'neo4j.bat is not recognized' smoking gun lived here).",
+      "probe": "log_sizes"
+    }
+  ]
+}
