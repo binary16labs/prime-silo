@@ -641,7 +641,81 @@ function initMotion() {
   initDialChapter();
   initGovernanceChapter();
   initLineageChapter();
+  initForgeChapter();
   initTerminalChapter();
+}
+
+/* Document Forge chapter (05) — sources → evidence → recursive index →
+   gated leaves + earned ETA → realized document → Marquez-free grouping. */
+function initForgeChapter() {
+  const section = $('#forge');
+  if (!section) return;
+  section.classList.add('js-scrub');
+
+  const lanes = $$('#forge-svg .fg-lane').map((p) => createDrawable(p)[0]);
+  const branches = $$('#forge-svg .fg-branch, #forge-svg .fg-twig').map((p) => createDrawable(p)[0]);
+  const ship = createDrawable('#fg-ship')[0];
+  const arc = createDrawable('#fg-arc')[0];
+  [...lanes, ...branches, ship, arc].forEach((d) => utils.set(d, { draw: '0 0' }));
+
+  const srcs = $$('#forge-svg .fg-src');
+  const leaves = $$('#forge-svg .fg-leaf');
+  const rows = $$('#forge-svg .fg-row');
+  const chips = $$('#forge-svg .fg-chip rect');
+  utils.set([$('#fg-evidence'), $('#fg-tree'), $('#fg-gauge'), $('#fg-doc'), $('#fg-register')], { opacity: 0 });
+  utils.set(srcs, { opacity: 0 });
+
+  const railSync = makeRailSync(section, 6);
+  const tl = scrubTimeline(section, railSync);
+  const pop = { opacity: [0, 1], translateY: [14, 0], duration: 480, ease: 'out(3)' };
+
+  // beat 0 — five sources, one truth
+  tl.add(srcs, { opacity: [0, 1], translateX: [-18, 0], delay: stagger(110), duration: 520,
+                 ease: createSpring({ stiffness: 130, damping: 13 }) }, 200);
+  // beat 1 — evidence, not vibes
+  tl.add(lanes, { draw: '0 1', delay: stagger(90), duration: 520, ease: 'inOutSine' }, 1100)
+    .add('#fg-evidence', { opacity: [0, 1], scale: [0.6, 1], duration: 520,
+                           ease: createSpring({ stiffness: 120, damping: 11 }) }, 1500)
+    .add('#fg-ev-count', { textContent: [0, 33967], modifier: utils.round(0), duration: 800 }, 1650);
+  // beat 2 — the index plans itself
+  tl.add('#fg-tree', { opacity: [0, 1], duration: 200 }, 2300)
+    .add(branches, { draw: '0 1', delay: stagger(55), duration: 380, ease: 'inOutSine' }, 2350)
+    .add(leaves, { scale: [0, 1], delay: stagger(60), duration: 360, ease: 'outBack(1.8)' }, 2650);
+  // beat 3 — leaf-node governance drives the ETA
+  tl.add('#fg-gauge', pop, 3300)
+    .add(arc, { draw: '0 1', duration: 900, ease: 'inOutSine' }, 3450)
+    .add('#fg-gates', { textContent: [0, 49], modifier: utils.round(0), duration: 900 }, 3450)
+    .add(leaves, { fill: ['#1E2D24', '#9CAF88'], delay: stagger(70), duration: 240 }, 3500);
+  // beat 4 — the epic lands
+  tl.add(ship, { draw: '0 1', duration: 520, ease: 'inOutSine' }, 4400)
+    .add('#fg-doc', pop, 4700)
+    .add('#forge-svg .fg-thumb', { opacity: [0, 1], scale: [0.7, 1], delay: stagger(70), duration: 320, ease: 'out(3)' }, 4850)
+    .add('#fg-words', { textContent: [0, 21111], modifier: utils.round(0), duration: 900 }, 4950)
+    .add('#fg-pdfseal', { scale: [0, 1.18], duration: 260, ease: 'in(2)' }, 5500)
+    .add('#fg-pdfseal', { scale: 1, duration: 420, ease: 'outElastic(1, 0.5)' }, 5760);
+  // beat 5 — lineage without Marquez, grouped your way
+  tl.add('#fg-register', pop, 6000);
+  const groupX = { output: [120, 250, 380, 120, 250, 380], commit: [250, 120, 380, 380, 120, 250], workspace: [380, 380, 120, 250, 250, 120] };
+  ['output', 'commit', 'workspace'].forEach((mode, mi) => {
+    const t0 = 6250 + mi * 620;
+    tl.add(chips, { stroke: (el, i) => (i === mi ? '#B85D3D' : '#26382D'), duration: 180 }, t0);
+    rows.forEach((row, ri) => {
+      const y = 408 + (ri % 2) * 20;
+      tl.add(row, { translateX: groupX[mode][ri] - (120 + (ri % 3) * 130), duration: 420, ease: 'inOutQuad' }, t0 + 60 + ri * 30);
+    });
+  });
+}
+
+function restoreForge() {
+  $$('#forge-svg .fg-lane, #forge-svg .fg-branch, #forge-svg .fg-twig, #fg-ship, #fg-arc').forEach((p) => {
+    p.style.strokeDashoffset = ''; p.style.strokeDasharray = '';
+    p.removeAttribute('stroke-dashoffset'); p.removeAttribute('stroke-dasharray');
+  });
+  $$('#forge-svg .fg-src, #fg-evidence, #fg-tree, #fg-gauge, #fg-doc, #fg-register, #forge-svg .fg-leaf, #forge-svg .fg-thumb, #fg-pdfseal, #forge-svg .fg-row')
+    .forEach((el) => { el.style.opacity = ''; el.style.transform = ''; el.style.fill = ''; });
+  const ev = $('#fg-ev-count'); if (ev) ev.textContent = '33967 links';
+  const g = $('#fg-gates'); if (g) g.textContent = '49/49';
+  const w = $('#fg-words'); if (w) w.textContent = '21111';
 }
 
 function teardownMotion() {
@@ -655,6 +729,7 @@ function teardownMotion() {
   revealObserver = null;
   restoreTerminal();
   restoreLineage();
+  restoreForge();
   $$('.reveal-item').forEach((el) => { el.style.opacity = ''; el.style.transform = ''; });
   $$('.chapter.js-scrub').forEach((c) => {
     c.classList.remove('js-scrub');

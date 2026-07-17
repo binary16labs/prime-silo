@@ -363,6 +363,41 @@
       ]
     },
     {
+      "id": "forge",
+      "type": "explode-chapter",
+      "visual": "forge",
+      "theme": "dark",
+      "kicker": "Architecture Chapter 05 - new in v{{site.version}}",
+      "headline": "The Document Forge: 21,000 Grounded Words From One Command",
+      "sub": "The TOGAF EPIC pipeline turns everything the estate knows - memory graphs, RAG indexes, code graphs, raw data, the code itself - into an enterprise architecture document where every diagram is generated from graph truth, every section cites its evidence, and every leaf node is gated before it ships. Repeatable, observable, and honest about its own ETA.",
+      "steps": [
+        {
+          "label": "Five sources, one truth",
+          "body": "Memory graph, RAG index, Tree-Sitter code graph, raw workspace data, and the source code itself light up as evidence lanes. Nothing in the document exists that did not flow from one of them."
+        },
+        {
+          "label": "Evidence, not vibes",
+          "body": "Every lane converges into a citable evidence pack: 23,080 concepts, 33,402 code entities, 33,967 correlations - each with a label the writer must cite inline."
+        },
+        {
+          "label": "The index plans itself",
+          "body": "A TOGAF-prescribed skeleton is the floor; a recursive planner expands each chapter into sub-sections and leaf nodes. Prescribed artifacts can be extended, never dropped."
+        },
+        {
+          "label": "Leaf-node governance drives the ETA",
+          "body": "Each leaf is written against its evidence bundle and gated: word floor, inline citations, references block. Measured pace per leaf feeds an earned ETA - predicted completion landed within six minutes of reality."
+        },
+        {
+          "label": "The epic lands, realized",
+          "body": "21,111 words, 49 sections, 11 diagrams rendered to real SVG in the PDF - zero gate failures. Markdown, HTML and print PDF from the same build, byte-for-byte repeatable."
+        },
+        {
+          "label": "Lineage without Marquez, grouped your way",
+          "body": "The runtime emits real OpenLineage events straight to an integrity-hashed ledger - no lineage server to run. Group the execution register by output produced, by commit, or by workspace: you define the lineage view your process needs."
+        }
+      ]
+    },
+    {
       "id": "features",
       "type": "feature-grid",
       "kicker": "Production Capabilities",
@@ -442,6 +477,16 @@
           "name": "Sovereign Memory Teleport",
           "blurb": "Label and relocate sensitive sessions into an isolated workspace — files, graph nodes, and vectors together — journalled, reversible, and leak-gated.",
           "tag": "governance"
+        },
+        {
+          "name": "Marquez-Free OpenLineage",
+          "blurb": "Spec-compliant OpenLineage RunEvents written to an integrity-hashed governance ledger and rendered live - progress, earned ETA, execution register groupable by output, commit, or workspace. No lineage server required.",
+          "tag": "governance"
+        },
+        {
+          "name": "TOGAF EPIC Document Forge",
+          "blurb": "One CLI builds an enterprise SAD from the dual graph: diagrams-as-code from graph truth, recursive index planning, per-section citation gates, robustness catalogs, and a PDF with every diagram realized.",
+          "tag": "new"
         }
       ]
     },
