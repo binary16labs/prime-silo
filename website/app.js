@@ -671,11 +671,11 @@ function initForgeChapter() {
 
   // beat 0 — five sources, one truth
   tl.add(srcs, { opacity: [0, 1], translateX: [-18, 0], delay: stagger(110), duration: 520,
-                 ease: createSpring({ stiffness: 130, damping: 13 }) }, 200);
+                 ease: spring({ stiffness: 130, damping: 13 }) }, 200);
   // beat 1 — evidence, not vibes
   tl.add(lanes, { draw: '0 1', delay: stagger(90), duration: 520, ease: 'inOutSine' }, 1100)
     .add('#fg-evidence', { opacity: [0, 1], scale: [0.6, 1], duration: 520,
-                           ease: createSpring({ stiffness: 120, damping: 11 }) }, 1500)
+                           ease: spring({ stiffness: 120, damping: 11 }) }, 1500)
     .add('#fg-ev-count', { textContent: [0, 33967], modifier: utils.round(0), duration: 800 }, 1650);
   // beat 2 — the index plans itself
   tl.add('#fg-tree', { opacity: [0, 1], duration: 200 }, 2300)
