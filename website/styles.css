@@ -802,6 +802,21 @@ body {
   /* forge set-piece is portrait (400x660) — give it more of the mobile pin
      budget than landscape stages so its type stays legible */
   #forge .chapter-stage > svg { max-height: 56svh; }
+}
+
+/* Forge SVG animation contract: position lives on .fg-anchor (attribute
+   transform, NEVER animated); anime writes CSS transforms only to the inner
+   groups. Without this split, a CSS translate REPLACES the positioning
+   attribute and elements teleport to the SVG origin (the top-left-corner
+   fragments bug). transform-box makes scale/translate act around each
+   element's own box, not the viewport origin. */
+#forge-svg .fg-src, #forge-svg .fg-leaf, #forge-svg .fg-thumb, #forge-svg .fg-row,
+#forge-svg #fg-evidence, #forge-svg #fg-pdfseal, #forge-svg #fg-gauge, #forge-svg #fg-doc {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@media (max-width: 820px) {
   .footer-side { align-items: flex-start; }
   /* perf: no glass blur at mobile widths */
   .chapter *, .navbar { backdrop-filter: none !important; }

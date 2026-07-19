@@ -536,11 +536,11 @@ function forgeSvg() {
     ['src', 'SOURCE', 352, 'M-12 -9h24v18h-24zM-12 -3h24M-7 2l4 4l-4 4']
   ];
   const srcNodes = srcs.map(([id, label, x]) => `
-    <g id="fg-src-${id}" class="fg-src" transform="translate(${x} 44)">
+    <g class="fg-anchor" transform="translate(${x} 44)"><g id="fg-src-${id}" class="fg-src">
       <rect x="-32" y="-22" width="64" height="44" rx="8" fill="#1E2D24" stroke="#9CAF88" stroke-width="1.4"/>
       <path d="${srcs.find(s2 => s2[0] === id)[3]}" fill="none" stroke="#EAE5D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 -4)"/>
       <text y="17" text-anchor="middle" font-size="8.5" fill="#9CAF88" font-family="Outfit,sans-serif" letter-spacing="0.5">${label}</text>
-    </g>`).join('');
+    </g></g>`).join('');
   const lanes = srcs.map(([id, , x]) => `
     <path id="fg-lane-${id}" class="fg-lane" d="M${x} 68 C ${x} 100, ${200 + (x - 200) * 0.2} 108, 200 128" fill="none" stroke="#C5B38E" stroke-width="1.8" opacity="0.85"/>`).join('');
   const chapters = [[96, 288], [200, 288], [304, 288]];
@@ -561,30 +561,30 @@ function forgeSvg() {
   // Register slots: 2 columns x 3 rows; rows regroup by permuting slots.
   const slots = [0, 1, 2, 3, 4, 5].map((i) => [112 + (i % 2) * 176, 576 + Math.floor(i / 2) * 24]);
   const registerRows = [0, 1, 2, 3, 4, 5].map((i) => `
-      <g class="fg-row" data-row="${i}" transform="translate(${slots[i][0]} ${slots[i][1]})">
+      <g class="fg-anchor" transform="translate(${slots[i][0]} ${slots[i][1]})"><g class="fg-row" data-row="${i}">
         <rect x="-78" y="-9" width="156" height="18" rx="4" fill="#1E2D24" stroke="#26382D"/>
         <circle cx="-66" cy="0" r="4" fill="${['#B85D3D', '#9CAF88', '#C5B38E'][i % 3]}"/>
         <text x="-56" y="3" font-size="8.5" fill="#8a97ab" font-family="Courier Prime,monospace">${['sad-epic', 'enrich', 'book-arcs'][i % 3]} · ${['c'+(4900+i*7).toString(16), 'ws:sessions', 'out:pdf'][i % 3]}</text>
-      </g>`).join('');
+      </g></g>`).join('');
   return `
   <svg id="forge-svg" viewBox="0 0 400 660" role="img" aria-label="The document forge: five evidence sources converge into a recursive index whose gated leaf nodes assemble the TOGAF EPIC document, with earned ETA and Marquez-free lineage grouping.">
     <g id="fg-sources">${srcNodes}</g>
     <g id="fg-lanes">${lanes}</g>
-    <g id="fg-evidence" transform="translate(200 158)">
+    <g class="fg-anchor" transform="translate(200 158)"><g id="fg-evidence">
       <path d="M0 -30l27 15v30l-27 15l-27-15v-30z" fill="#26382D" stroke="#B85D3D" stroke-width="2"/>
       <text y="-4" text-anchor="middle" font-size="9" fill="#EAE5D9" font-family="Outfit,sans-serif" letter-spacing="1">EVIDENCE</text>
       <text id="fg-ev-count" y="10" text-anchor="middle" font-size="8.5" fill="#C5B38E" font-family="Courier Prime,monospace" data-num="33967">33967</text>
-    </g>
+    </g></g>
     ${treeHtml}
-    <g id="fg-gauge" transform="translate(104 432)">
+    <g class="fg-anchor" transform="translate(104 432)"><g id="fg-gauge">
       <rect x="-80" y="-54" width="160" height="108" rx="12" fill="#16221B" stroke="#26382D"/>
       <text y="-36" text-anchor="middle" font-size="8.5" fill="#9CAF88" font-family="Outfit,sans-serif" letter-spacing="1">LEAF GOVERNANCE</text>
       <path id="fg-arc" d="M-48 28 A 54 54 0 1 1 48 28" fill="none" stroke="#B85D3D" stroke-width="5" stroke-linecap="round"/>
       <text id="fg-gates" y="2" text-anchor="middle" font-size="18" fill="#EAE5D9" font-family="Courier Prime,monospace" data-num="49">49/49</text>
       <text y="17" text-anchor="middle" font-size="8" fill="#8a97ab" font-family="Outfit,sans-serif">gates passed</text>
       <text id="fg-eta" y="40" text-anchor="middle" font-size="9" fill="#C5B38E" font-family="Courier Prime,monospace">87s/leaf · ETA ±6m</text>
-    </g>
-    <g id="fg-doc" transform="translate(300 432)">
+    </g></g>
+    <g class="fg-anchor" transform="translate(300 432)"><g id="fg-doc">
       <rect x="-48" y="-58" width="96" height="116" rx="7" fill="#EAE5D9" stroke="#C5B38E" stroke-width="1.6"/>
       <rect class="fg-thumb" x="-36" y="-46" width="32" height="22" rx="3" fill="#26382D"/>
       <rect class="fg-thumb" x="4" y="-46" width="32" height="22" rx="3" fill="#9CAF88"/>
@@ -593,11 +593,11 @@ function forgeSvg() {
       <rect class="fg-thumb" x="-36" y="6" width="52" height="7" rx="2.5" fill="#C5B38E"/>
       <text id="fg-words" y="34" text-anchor="middle" font-size="13" fill="#1A241E" font-family="Courier Prime,monospace" data-num="21111">21111</text>
       <text y="46" text-anchor="middle" font-size="7.5" fill="#5b6779" font-family="Outfit,sans-serif">grounded words</text>
-      <g id="fg-pdfseal" transform="translate(32 -50)">
+      <g class="fg-anchor" transform="translate(32 -50)"><g id="fg-pdfseal">
         <circle r="13" fill="#B85D3D"/>
         <text y="3" text-anchor="middle" font-size="8" fill="#F5F2EB" font-family="Outfit,sans-serif" font-weight="700">PDF</text>
-      </g>
-    </g>
+      </g></g>
+    </g></g>
     <path id="fg-ship" d="M226 344 C 258 360, 268 366, 282 372" fill="none" stroke="#B85D3D" stroke-width="2"/>
     <g id="fg-register">
       <text x="200" y="516" text-anchor="middle" font-size="9.5" fill="#9CAF88" font-family="Outfit,sans-serif" letter-spacing="1.5">OPENLINEAGE — NO MARQUEZ</text>
