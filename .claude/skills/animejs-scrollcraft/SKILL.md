@@ -171,6 +171,18 @@ section), NOT by swapping out `governanceSvg()`. Keep every shipped set-piece; g
 5. Emulate `prefers-reduced-motion` → page fully readable, no motion.
 6. Resize during a pinned chapter (narrow→wide→narrow) → no stuck stages, no dead zones.
 
+## 6a2. Import-surface rule (learned 2026-07-17, forge chapter)
+
+**app.js imports a SPECIFIC alias set** — currently `{ animate, createTimeline, onScroll,
+stagger, createDrawable, spring, splitText, utils, clamp }`. A new scene MUST use exactly
+these names: this file's §1 lists the bundle's exports (`createSpring`, `text`, …) but
+app.js binds `spring`/`splitText` aliases instead. Using `createSpring()` in a scene threw
+a ReferenceError mid-init that (a) left the set-piece invisible (utils.set hides had
+already run) and (b) killed every chapter initialized AFTER it in initMotion(). Before
+writing a scene, read app.js's import line and use only what it binds — or extend the
+import deliberately. A scene init throw is silent on a cached console: verify with a fresh
+reload + onlyErrors console read.
+
 ## 6b. Teardown-restore rule + environment gotchas (learned 2026-07-16, DAG anchor)
 
 - **SVG `marker-end` ignores `stroke-dashoffset`.** For an edge you reveal with
