@@ -183,6 +183,24 @@ writing a scene, read app.js's import line and use only what it binds — or ext
 import deliberately. A scene init throw is silent on a cached console: verify with a fresh
 reload + onlyErrors console read.
 
+## 6a3. SVG anchor pattern — NEVER animate a group that carries its own position
+(learned 2026-07-17, forge top-left-fragments bug)
+
+anime writes **CSS transforms**, and CSS transform REPLACES the SVG `transform`
+attribute (it's the same property; the attribute is just a low-priority
+presentation hint). Any `<g transform="translate(x y)">` that a scene animates
+with translateX/translateY/scale **teleports to the SVG origin** on the first
+animated frame — visible as clipped fragments in the top-left corner mid-scrub.
+
+Rule: position on an OUTER anchor group (`<g class="fg-anchor" transform=
+"translate(x y)">`, never targeted by any animation); the scene's target is an
+INNER group carrying no positioning. Add `transform-box: fill-box;
+transform-origin: center` for the animated targets so scales bloom in place.
+
+Verify with the displacement simulation (no scrub needed): set
+`el.style.transform='translateY(14px) scale(0.8)'` on every animated target and
+assert its boundingRect moved <40px from rest — a teleport reads as hundreds of px.
+
 ## 6b. Teardown-restore rule + environment gotchas (learned 2026-07-16, DAG anchor)
 
 - **SVG `marker-end` ignores `stroke-dashoffset`.** For an edge you reveal with
