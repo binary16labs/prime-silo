@@ -693,15 +693,18 @@ function initForgeChapter() {
     .add('#fg-words', { textContent: [0, 21111], modifier: utils.round(0), duration: 900 }, 4950)
     .add('#fg-pdfseal', { scale: [0, 1.18], duration: 260, ease: 'in(2)' }, 5500)
     .add('#fg-pdfseal', { scale: 1, duration: 420, ease: 'outElastic(1, 0.5)' }, 5760);
-  // beat 5 — lineage without Marquez, grouped your way
+  // beat 5 — lineage without Marquez, grouped your way (2×3 slot grid;
+  // each mode is a permutation of slot assignments — rows physically regroup)
   tl.add('#fg-register', pop, 6000);
-  const groupX = { output: [120, 250, 380, 120, 250, 380], commit: [250, 120, 380, 380, 120, 250], workspace: [380, 380, 120, 250, 250, 120] };
+  const slots = [0, 1, 2, 3, 4, 5].map((i) => [112 + (i % 2) * 176, 576 + Math.floor(i / 2) * 24]);
+  const orders = { output: [0, 3, 1, 4, 2, 5], commit: [1, 0, 3, 2, 5, 4], workspace: [2, 5, 0, 3, 1, 4] };
   ['output', 'commit', 'workspace'].forEach((mode, mi) => {
     const t0 = 6250 + mi * 620;
     tl.add(chips, { stroke: (el, i) => (i === mi ? '#B85D3D' : '#26382D'), duration: 180 }, t0);
     rows.forEach((row, ri) => {
-      const y = 408 + (ri % 2) * 20;
-      tl.add(row, { translateX: groupX[mode][ri] - (120 + (ri % 3) * 130), duration: 420, ease: 'inOutQuad' }, t0 + 60 + ri * 30);
+      const slot = slots[orders[mode].indexOf(ri)];
+      tl.add(row, { translateX: slot[0] - slots[ri][0], translateY: slot[1] - slots[ri][1],
+                    duration: 420, ease: 'inOutQuad' }, t0 + 60 + ri * 30);
     });
   });
 }

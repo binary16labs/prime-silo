@@ -393,7 +393,8 @@ body {
   flex-direction: column;
   justify-content: center;
   gap: 1.75rem;
-  height: min(92vh, 860px);
+  /* svh, never bare vh — iOS URL-bar resize clipped the window bottom */
+  height: min(92svh, 860px);
   width: 100%;
 }
 
@@ -408,7 +409,13 @@ body {
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 30px 70px rgba(0, 0, 0, 0.5);
+  /* never taller than the pin budget minus the head — the window used to run
+     off the bottom of shorter viewports ("does not render complete") */
+  display: flex;
+  flex-direction: column;
+  max-height: calc(92svh - 12rem);
 }
+.terminal-window .terminal-body { overflow-y: auto; flex: 1 1 auto; }
 
 .terminal-titlebar {
   background: #191E1B;
@@ -791,6 +798,10 @@ body {
   .chapter-dots { display: flex; justify-content: center; margin-top: 0.35rem; }
   .dial-readout { position: relative; top: auto; left: auto; transform: none; width: 100%; margin-top: 0.75rem; }
   .chapter-stage--terminal { max-height: 58svh; }
+  .terminal-window { max-height: calc(58svh - 5rem); }
+  /* forge set-piece is portrait (400x660) — give it more of the mobile pin
+     budget than landscape stages so its type stays legible */
+  #forge .chapter-stage > svg { max-height: 56svh; }
   .footer-side { align-items: flex-start; }
   /* perf: no glass blur at mobile widths */
   .chapter *, .navbar { backdrop-filter: none !important; }

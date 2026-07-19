@@ -369,7 +369,7 @@
       "theme": "dark",
       "kicker": "Architecture Chapter 05 - new in v{{site.version}}",
       "headline": "The Document Forge: 21,000 Grounded Words From One Command",
-      "sub": "The TOGAF EPIC pipeline turns everything the estate knows - memory graphs, RAG indexes, code graphs, raw data, the code itself - into an enterprise architecture document where every diagram is generated from graph truth, every section cites its evidence, and every leaf node is gated before it ships. Repeatable, observable, and honest about its own ETA.",
+      "sub": "One CLI turns everything the estate knows - memory graphs, RAG indexes, code graphs, raw data, the code itself - into an enterprise architecture document: every diagram generated from graph truth, every section cited and gated, with an earned ETA that tells you the truth.",
       "steps": [
         {
           "label": "Five sources, one truth",

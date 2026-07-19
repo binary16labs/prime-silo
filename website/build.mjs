@@ -525,85 +525,87 @@ const lineageChapterHtml = !lin ? '' : chapterShell({
 // Document Forge chapter (additive — chapter 05, new in v1.16.4)
 // Portrait-safe viewBox; every element visible by default (no-JS complete).
 function forgeSvg() {
+  // PORTRAIT-SAFE composition (skill rule): contained within ~92vw x 58svh on
+  // phones without cropping; desktop scales the same column. Fonts sized for
+  // the 400-unit viewBox so labels survive a 0.6x mobile scale.
   const srcs = [
-    ['mem', 'MEMORY GRAPH', 62, 'M-6 0a6 6 0 1 1 12 0a6 6 0 1 1-12 0M-16 -10a4 4 0 1 1 8 0a4 4 0 1 1-8 0M8 -12a4 4 0 1 1 8 0a4 4 0 1 1-8 0M-14 12a4 4 0 1 1 8 0a4 4 0 1 1-8 0'],
-    ['rag', 'RAG INDEX', 134, 'M-16 -10h32v6h-32zM-16 -2h32v6h-32zM-16 6h32v6h-32z'],
-    ['code', 'CODE GRAPH', 206, 'M-14 -8l-8 8l8 8M14 -8l8 8l-8 8M4 -14l-8 28'],
-    ['raw', 'RAW DATA', 278, 'M-12 -14h18l6 6v22h-24zM6 -14v6h6'],
-    ['src', 'SOURCE CODE', 350, 'M-16 -12h32v24h-32zM-16 -4h32M-10 2l6 5l-6 5']
+    ['mem', 'MEMORY', 48, 'M-5 0a5 5 0 1 1 10 0a5 5 0 1 1-10 0M-13 -8a3.4 3.4 0 1 1 6.8 0a3.4 3.4 0 1 1-6.8 0M7 -9a3.4 3.4 0 1 1 6.8 0a3.4 3.4 0 1 1-6.8 0'],
+    ['rag', 'RAG', 124, 'M-12 -8h24v5h-24zM-12 -1h24v5h-24zM-12 6h24v5h-24z'],
+    ['code', 'CODE GRAPH', 200, 'M-11 -7l-6 7l6 7M11 -7l6 7l-6 7M3 -11l-6 22'],
+    ['raw', 'RAW DATA', 276, 'M-9 -11h14l5 5v17h-19zM5 -11v5h5'],
+    ['src', 'SOURCE', 352, 'M-12 -9h24v18h-24zM-12 -3h24M-7 2l4 4l-4 4']
   ];
-  const srcNodes = srcs.map(([id, label, y, icon]) => `
-    <g id="fg-src-${id}" class="fg-src" transform="translate(70 ${y})">
-      <rect x="-34" y="-24" width="68" height="48" rx="9" fill="#1E2D24" stroke="#9CAF88" stroke-width="1.4"/>
-      <path d="${icon}" fill="none" stroke="#EAE5D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 -3)"/>
-      <text y="19" text-anchor="middle" font-size="7.5" fill="#9CAF88" font-family="Outfit,sans-serif" letter-spacing="1">${label}</text>
+  const srcNodes = srcs.map(([id, label, x]) => `
+    <g id="fg-src-${id}" class="fg-src" transform="translate(${x} 44)">
+      <rect x="-32" y="-22" width="64" height="44" rx="8" fill="#1E2D24" stroke="#9CAF88" stroke-width="1.4"/>
+      <path d="${srcs.find(s2 => s2[0] === id)[3]}" fill="none" stroke="#EAE5D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 -4)"/>
+      <text y="17" text-anchor="middle" font-size="8.5" fill="#9CAF88" font-family="Outfit,sans-serif" letter-spacing="0.5">${label}</text>
     </g>`).join('');
-  const lanes = srcs.map(([id, , y]) => `
-    <path id="fg-lane-${id}" class="fg-lane" d="M106 ${y} C 160 ${y}, 170 ${206 + (y - 206) * 0.12}, 218 206" fill="none" stroke="#C5B38E" stroke-width="1.8" opacity="0.85"/>`).join('');
-  // Index tree: root -> 3 chapter nodes -> 9 leaves
-  const chapters = [[318, 120], [318, 206], [318, 292]];
+  const lanes = srcs.map(([id, , x]) => `
+    <path id="fg-lane-${id}" class="fg-lane" d="M${x} 68 C ${x} 100, ${200 + (x - 200) * 0.2} 108, 200 128" fill="none" stroke="#C5B38E" stroke-width="1.8" opacity="0.85"/>`).join('');
+  const chapters = [[96, 288], [200, 288], [304, 288]];
   const leaves = [];
-  chapters.forEach(([cx, cy], ci) => {
-    for (let li = 0; li < 3; li++) leaves.push([378, cy - 22 + li * 22, ci]);
-  });
+  chapters.forEach(([cx], ci) => { for (let li = 0; li < 3; li++) leaves.push([cx - 26 + li * 26, 332, ci]); });
   const treeHtml = `
     <g id="fg-tree">
-      <circle id="fg-root" cx="252" cy="206" r="15" fill="#26382D" stroke="#9CAF88" stroke-width="1.6"/>
-      <text x="252" y="209.5" text-anchor="middle" font-size="8" fill="#EAE5D9" font-family="Courier Prime,monospace">SAD</text>
+      <circle id="fg-root" cx="200" cy="232" r="16" fill="#26382D" stroke="#9CAF88" stroke-width="1.6"/>
+      <text x="200" y="236" text-anchor="middle" font-size="9" fill="#EAE5D9" font-family="Courier Prime,monospace">SAD</text>
       ${chapters.map(([x, y], i) => `
-        <path class="fg-branch" d="M266 206 C 288 206, 290 ${y}, ${x - 13} ${y}" fill="none" stroke="#9CAF88" stroke-width="1.5"/>
-        <circle class="fg-chapter" cx="${x}" cy="${y}" r="10" fill="#26382D" stroke="#C5B38E" stroke-width="1.4"/>
-        <text x="${x}" y="${y + 3}" text-anchor="middle" font-size="7" fill="#EAE5D9" font-family="Courier Prime,monospace">C${i + 1}</text>`).join('')}
+        <path class="fg-branch" d="M200 248 C 200 262, ${x} 264, ${x} ${y - 11}" fill="none" stroke="#9CAF88" stroke-width="1.5"/>
+        <circle class="fg-chapter" cx="${x}" cy="${y}" r="11" fill="#26382D" stroke="#C5B38E" stroke-width="1.4"/>
+        <text x="${x}" y="${y + 3.5}" text-anchor="middle" font-size="8" fill="#EAE5D9" font-family="Courier Prime,monospace">C${i + 1}</text>`).join('')}
       ${leaves.map(([x, y, ci]) => `
-        <path class="fg-twig" d="M${chapters[ci][0] + 10} ${chapters[ci][1]} C ${x - 28} ${y}, ${x - 22} ${y}, ${x - 7} ${y}" fill="none" stroke="#5b6779" stroke-width="1"/>
-        <rect class="fg-leaf" x="${x - 6}" y="${y - 6}" width="12" height="12" rx="2.5" fill="#1E2D24" stroke="#9CAF88" stroke-width="1.2"/>`).join('')}
+        <path class="fg-twig" d="M${chapters[ci][0]} ${chapters[ci][1] + 11} C ${chapters[ci][0]} ${y - 12}, ${x} ${y - 16}, ${x} ${y - 7}" fill="none" stroke="#5b6779" stroke-width="1"/>
+        <rect class="fg-leaf" x="${x - 6.5}" y="${y - 6.5}" width="13" height="13" rx="3" fill="#1E2D24" stroke="#9CAF88" stroke-width="1.2"/>`).join('')}
     </g>`;
+  // Register slots: 2 columns x 3 rows; rows regroup by permuting slots.
+  const slots = [0, 1, 2, 3, 4, 5].map((i) => [112 + (i % 2) * 176, 576 + Math.floor(i / 2) * 24]);
   const registerRows = [0, 1, 2, 3, 4, 5].map((i) => `
-      <g class="fg-row" data-row="${i}" transform="translate(${120 + (i % 3) * 130} ${408 + Math.floor(i / 3) * 20})">
-        <rect x="-56" y="-8" width="112" height="15" rx="3.5" fill="#1E2D24" stroke="#26382D"/>
-        <circle cx="-45" cy="-0.5" r="3.6" fill="${['#B85D3D', '#9CAF88', '#C5B38E'][i % 3]}"/>
-        <text x="-35" y="2.5" font-size="7" fill="#8a97ab" font-family="Courier Prime,monospace">${['sad · epic', 'enrich · corr', 'book · arcs'][i % 3]} · ${['out', 'commit', 'ws'][Math.floor(i / 2)]}</text>
+      <g class="fg-row" data-row="${i}" transform="translate(${slots[i][0]} ${slots[i][1]})">
+        <rect x="-78" y="-9" width="156" height="18" rx="4" fill="#1E2D24" stroke="#26382D"/>
+        <circle cx="-66" cy="0" r="4" fill="${['#B85D3D', '#9CAF88', '#C5B38E'][i % 3]}"/>
+        <text x="-56" y="3" font-size="8.5" fill="#8a97ab" font-family="Courier Prime,monospace">${['sad-epic', 'enrich', 'book-arcs'][i % 3]} · ${['c'+(4900+i*7).toString(16), 'ws:sessions', 'out:pdf'][i % 3]}</text>
       </g>`).join('');
   return `
-  <svg id="forge-svg" viewBox="0 0 720 470" role="img" aria-label="The document forge: five evidence sources converge into a recursive index whose gated leaf nodes assemble the TOGAF EPIC document, with earned ETA and Marquez-free lineage grouping.">
+  <svg id="forge-svg" viewBox="0 0 400 660" role="img" aria-label="The document forge: five evidence sources converge into a recursive index whose gated leaf nodes assemble the TOGAF EPIC document, with earned ETA and Marquez-free lineage grouping.">
     <g id="fg-sources">${srcNodes}</g>
     <g id="fg-lanes">${lanes}</g>
-    <g id="fg-evidence" transform="translate(218 206)">
-      <path d="M0 -30l26 15v30l-26 15l-26-15v-30z" fill="#26382D" stroke="#B85D3D" stroke-width="2"/>
-      <text y="-4" text-anchor="middle" font-size="8" fill="#EAE5D9" font-family="Outfit,sans-serif" letter-spacing="1">EVIDENCE</text>
-      <text id="fg-ev-count" y="10" text-anchor="middle" font-size="7.5" fill="#C5B38E" font-family="Courier Prime,monospace" data-num="33967">33967 links</text>
+    <g id="fg-evidence" transform="translate(200 158)">
+      <path d="M0 -30l27 15v30l-27 15l-27-15v-30z" fill="#26382D" stroke="#B85D3D" stroke-width="2"/>
+      <text y="-4" text-anchor="middle" font-size="9" fill="#EAE5D9" font-family="Outfit,sans-serif" letter-spacing="1">EVIDENCE</text>
+      <text id="fg-ev-count" y="10" text-anchor="middle" font-size="8.5" fill="#C5B38E" font-family="Courier Prime,monospace" data-num="33967">33967</text>
     </g>
     ${treeHtml}
-    <g id="fg-gauge" transform="translate(560 120)">
-      <rect x="-76" y="-52" width="152" height="104" rx="12" fill="#16221B" stroke="#26382D"/>
-      <text y="-34" text-anchor="middle" font-size="8" fill="#9CAF88" font-family="Outfit,sans-serif" letter-spacing="1.5">LEAF GOVERNANCE</text>
-      <path id="fg-arc" d="M-46 26 A 52 52 0 1 1 46 26" fill="none" stroke="#B85D3D" stroke-width="5" stroke-linecap="round"/>
-      <text id="fg-gates" y="2" text-anchor="middle" font-size="17" fill="#EAE5D9" font-family="Courier Prime,monospace" data-num="49">49/49</text>
-      <text y="16" text-anchor="middle" font-size="7" fill="#8a97ab" font-family="Outfit,sans-serif">gates passed</text>
-      <text id="fg-eta" y="38" text-anchor="middle" font-size="8.5" fill="#C5B38E" font-family="Courier Prime,monospace">87s/leaf · ETA ±6 min</text>
+    <g id="fg-gauge" transform="translate(104 432)">
+      <rect x="-80" y="-54" width="160" height="108" rx="12" fill="#16221B" stroke="#26382D"/>
+      <text y="-36" text-anchor="middle" font-size="8.5" fill="#9CAF88" font-family="Outfit,sans-serif" letter-spacing="1">LEAF GOVERNANCE</text>
+      <path id="fg-arc" d="M-48 28 A 54 54 0 1 1 48 28" fill="none" stroke="#B85D3D" stroke-width="5" stroke-linecap="round"/>
+      <text id="fg-gates" y="2" text-anchor="middle" font-size="18" fill="#EAE5D9" font-family="Courier Prime,monospace" data-num="49">49/49</text>
+      <text y="17" text-anchor="middle" font-size="8" fill="#8a97ab" font-family="Outfit,sans-serif">gates passed</text>
+      <text id="fg-eta" y="40" text-anchor="middle" font-size="9" fill="#C5B38E" font-family="Courier Prime,monospace">87s/leaf · ETA ±6m</text>
     </g>
-    <g id="fg-doc" transform="translate(560 300)">
-      <rect x="-46" y="-58" width="92" height="116" rx="7" fill="#EAE5D9" stroke="#C5B38E" stroke-width="1.6"/>
-      <rect class="fg-thumb" x="-34" y="-46" width="30" height="22" rx="3" fill="#26382D"/>
-      <rect class="fg-thumb" x="2" y="-46" width="30" height="22" rx="3" fill="#9CAF88"/>
-      <rect class="fg-thumb" x="-34" y="-18" width="66" height="7" rx="2.5" fill="#C5B38E"/>
-      <rect class="fg-thumb" x="-34" y="-6" width="66" height="7" rx="2.5" fill="#C5B38E"/>
-      <rect class="fg-thumb" x="-34" y="6" width="48" height="7" rx="2.5" fill="#C5B38E"/>
-      <text id="fg-words" y="32" text-anchor="middle" font-size="12" fill="#1A241E" font-family="Courier Prime,monospace" data-num="21111">21111</text>
-      <text y="44" text-anchor="middle" font-size="7" fill="#5b6779" font-family="Outfit,sans-serif">grounded words</text>
-      <g id="fg-pdfseal" transform="translate(30 -50)">
+    <g id="fg-doc" transform="translate(300 432)">
+      <rect x="-48" y="-58" width="96" height="116" rx="7" fill="#EAE5D9" stroke="#C5B38E" stroke-width="1.6"/>
+      <rect class="fg-thumb" x="-36" y="-46" width="32" height="22" rx="3" fill="#26382D"/>
+      <rect class="fg-thumb" x="4" y="-46" width="32" height="22" rx="3" fill="#9CAF88"/>
+      <rect class="fg-thumb" x="-36" y="-18" width="72" height="7" rx="2.5" fill="#C5B38E"/>
+      <rect class="fg-thumb" x="-36" y="-6" width="72" height="7" rx="2.5" fill="#C5B38E"/>
+      <rect class="fg-thumb" x="-36" y="6" width="52" height="7" rx="2.5" fill="#C5B38E"/>
+      <text id="fg-words" y="34" text-anchor="middle" font-size="13" fill="#1A241E" font-family="Courier Prime,monospace" data-num="21111">21111</text>
+      <text y="46" text-anchor="middle" font-size="7.5" fill="#5b6779" font-family="Outfit,sans-serif">grounded words</text>
+      <g id="fg-pdfseal" transform="translate(32 -50)">
         <circle r="13" fill="#B85D3D"/>
-        <text y="3" text-anchor="middle" font-size="7.5" fill="#F5F2EB" font-family="Outfit,sans-serif" font-weight="700">PDF</text>
+        <text y="3" text-anchor="middle" font-size="8" fill="#F5F2EB" font-family="Outfit,sans-serif" font-weight="700">PDF</text>
       </g>
     </g>
-    <path id="fg-ship" d="M392 206 C 460 206, 470 240, 508 268" fill="none" stroke="#B85D3D" stroke-width="2"/>
+    <path id="fg-ship" d="M226 344 C 258 360, 268 366, 282 372" fill="none" stroke="#B85D3D" stroke-width="2"/>
     <g id="fg-register">
-      <text x="120" y="388" font-size="8.5" fill="#9CAF88" font-family="Outfit,sans-serif" letter-spacing="1.5">OPENLINEAGE REGISTER — NO MARQUEZ</text>
-      <g id="fg-chips" transform="translate(480 384)">
+      <text x="200" y="516" text-anchor="middle" font-size="9.5" fill="#9CAF88" font-family="Outfit,sans-serif" letter-spacing="1.5">OPENLINEAGE — NO MARQUEZ</text>
+      <g id="fg-chips" transform="translate(74 536)">
         ${['output', 'commit', 'workspace'].map((c, i) => `
-        <g class="fg-chip" data-chip="${c}" transform="translate(${i * 78} 0)">
-          <rect x="-2" y="-10" width="70" height="16" rx="8" fill="#1E2D24" stroke="#26382D"/>
-          <text x="33" y="2" text-anchor="middle" font-size="7.5" fill="#8a97ab" font-family="Outfit,sans-serif">group: ${c}</text>
+        <g class="fg-chip" data-chip="${c}" transform="translate(${i * 88} 0)">
+          <rect x="-2" y="-11" width="80" height="19" rx="9.5" fill="#1E2D24" stroke="#26382D"/>
+          <text x="38" y="3" text-anchor="middle" font-size="8.5" fill="#8a97ab" font-family="Outfit,sans-serif">${c}</text>
         </g>`).join('')}
       </g>
       ${registerRows}
