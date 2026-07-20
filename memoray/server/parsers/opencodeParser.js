@@ -5,6 +5,7 @@ const crypto = require("crypto");
 
 // Load central configuration contract
 const { config, dataDir } = require("../lib/config");
+const store = require("../lib/entity_store");
 
 const home = os.homedir();
 
@@ -59,6 +60,7 @@ function saveEntity(entity, overwrite = false) {
   const file = path.join(ENTITIES_DIR, `${entity.id}.json`);
   if (!overwrite && fs.existsSync(file)) return;
   fs.writeFileSync(file, JSON.stringify(entity, null, 2));
+  store.recordTouched(entity.id);
 }
 
 function hash(str) {
@@ -276,6 +278,7 @@ async function syncOpencode() {
   const index = loadIndex();
   const lastSync = index.opencode_last_sync_timestamp || 0;
   const newSyncTime = Date.now();
+  const startTouched = store.touchedCount();
   let totalNodes = 0;
 
   for (const storageDir of OPENCODE_STORAGE_DIRS) {
@@ -348,8 +351,10 @@ async function syncOpencode() {
     }
   }
 
-  index.opencode_last_sync_timestamp = newSyncTime;
-  saveIndex(index);
+  if (store.touchedCount() > startTouched) {
+    index.opencode_last_sync_timestamp = newSyncTime;
+    saveIndex(index);
+  }
   console.log(`[Opencode Sync] Complete. Parsed ${totalNodes} new/updated nodes.`);
 }
 

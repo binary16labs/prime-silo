@@ -70,8 +70,20 @@ async function performSync() {
     await syncAntigravity();
     await syncOpencode();
     await syncOpenNotebook();
-    store.invalidate();
-    console.log("[Server] Delta sync completed successfully.");
+    // Patch only the entities the parsers actually wrote into the warm store,
+    // instead of invalidating it and forcing the next request to re-read all
+    // 80k+ entity files. When nothing changed, the cache is left untouched.
+    const touched = store.drainTouched();
+    if (touched.length === 0) {
+      console.log("[Server] Delta sync: no changes, cache kept warm.");
+    } else if (store.applyDelta(touched)) {
+      console.log(`[Server] Delta sync: patched ${touched.length} entities into warm store.`);
+    } else {
+      console.log(
+        `[Server] Delta sync: ${touched.length} entities changed; cache cold, ` +
+          "next request builds it."
+      );
+    }
   } catch (e) {
     console.error("[Server] Delta sync failed:", e);
   } finally {

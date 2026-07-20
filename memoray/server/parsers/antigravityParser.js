@@ -6,6 +6,7 @@ const crypto = require("crypto");
 
 // Load central configuration contract
 const { config, dataDir } = require("../lib/config");
+const store = require("../lib/entity_store");
 
 function getAntigravityDirs() {
   if (process.env.MEM0RAY_ANTIGRAVITY_DIR) {
@@ -36,6 +37,7 @@ function saveEntity(entity, overwrite = false) {
   const file = path.join(ENTITIES_DIR, `${entity.id}.json`);
   if (!overwrite && fs.existsSync(file)) return;
   fs.writeFileSync(file, JSON.stringify(entity, null, 2));
+  store.recordTouched(entity.id);
 }
 
 function hash(str) {
@@ -268,6 +270,7 @@ async function syncAntigravity() {
   console.log("[Antigravity Sync] Starting...");
   const index = loadIndex();
   const newSyncTime = Date.now();
+  const startTouched = store.touchedCount();
   let totalNodes = 0,
     totalArtifacts = 0;
 
@@ -383,8 +386,10 @@ async function syncAntigravity() {
     }
   }
 
-  index.antigravity_last_sync_timestamp = newSyncTime;
-  saveIndex(index);
+  if (store.touchedCount() > startTouched) {
+    index.antigravity_last_sync_timestamp = newSyncTime;
+    saveIndex(index);
+  }
   console.log(`[Antigravity Sync] Done. ${totalNodes} nodes, ${totalArtifacts} artifacts.`);
 }
 

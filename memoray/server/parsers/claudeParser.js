@@ -6,6 +6,7 @@ const crypto = require("crypto");
 
 // Load central configuration contract
 const { config, dataDir } = require("../lib/config");
+const store = require("../lib/entity_store");
 
 function getClaudeSessionsDir() {
   return config.CLAUDE_SESSIONS_DIR || path.join(os.homedir(), ".claude", "sessions");
@@ -46,6 +47,7 @@ function saveEntity(entity, overwrite = false) {
   const file = path.join(ENTITIES_DIR, `${entity.id}.json`);
   if (!overwrite && fs.existsSync(file)) return;
   fs.writeFileSync(file, JSON.stringify(entity, null, 2));
+  store.recordTouched(entity.id);
 }
 
 function hash(str) {
@@ -350,6 +352,7 @@ async function syncClaude() {
   console.log("[Claude Sync] Starting...");
   const index = loadIndex();
   const newSyncTime = Date.now();
+  const startTouched = store.touchedCount();
   let totalNodes = 0;
 
   for (const baseDir of getClaudeBaseDirs()) {
@@ -430,8 +433,13 @@ async function syncClaude() {
     }
   }
 
-  index.claude_last_sync_timestamp = newSyncTime;
-  saveIndex(index);
+  // Only persist the index (bumping its mtime, which invalidates the warm
+  // store) when this sync actually wrote something. A no-op sync leaves the
+  // index — and therefore the cache — untouched.
+  if (store.touchedCount() > startTouched) {
+    index.claude_last_sync_timestamp = newSyncTime;
+    saveIndex(index);
+  }
   console.log(`[Delta Sync] Complete. Parsed ${totalNodes} new/updated nodes.`);
 }
 

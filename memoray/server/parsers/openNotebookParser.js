@@ -4,6 +4,7 @@ const crypto = require("crypto");
 
 // Load central configuration contract
 const { config, dataDir } = require("../lib/config");
+const store = require("../lib/entity_store");
 
 // open-notebook stores everything in SurrealDB, reachable only through its
 // FastAPI REST API — so unlike the Claude/Antigravity/opencode parsers (which
@@ -46,6 +47,7 @@ function saveEntity(entity, overwrite = false) {
   const file = path.join(ENTITIES_DIR, `${entity.id}.json`);
   if (!overwrite && fs.existsSync(file)) return;
   fs.writeFileSync(file, JSON.stringify(entity, null, 2));
+  store.recordTouched(entity.id);
 }
 
 function hash(str) {
@@ -88,14 +90,14 @@ async function syncOpenNotebook() {
   console.log("[OpenNotebook Sync] Starting...");
   const index = loadIndex();
   const newSyncTime = Date.now();
+  const startTouched = store.touchedCount();
   let totalNodes = 0;
 
   const notebooks = await getJSON(`${API_BASE}/api/notebooks`);
   if (!Array.isArray(notebooks)) {
-    // Service down or unreachable — skip quietly, leave existing entities intact.
+    // Service down or unreachable — skip quietly, leave existing entities
+    // intact. Nothing was written, so the index (and warm cache) stay put.
     console.log("[OpenNotebook Sync] API unreachable, skipping.");
-    index.open_notebook_last_sync_timestamp = newSyncTime;
-    saveIndex(index);
     return;
   }
 
@@ -196,8 +198,10 @@ async function syncOpenNotebook() {
     }
   }
 
-  index.open_notebook_last_sync_timestamp = newSyncTime;
-  saveIndex(index);
+  if (store.touchedCount() > startTouched) {
+    index.open_notebook_last_sync_timestamp = newSyncTime;
+    saveIndex(index);
+  }
   console.log(
     `[OpenNotebook Sync] Complete. ${notebooks.length} notebook(s), ${totalNodes} source/note nodes.`
   );

@@ -18,6 +18,26 @@ const INDEX_FILE = path.join(DATA_DIR, "index.json");
 
 let cache = null; // { indexMtimeMs, entities: Map<id, entity>, index }
 
+// Ids the parsers have written during the in-flight sync. The store patches
+// only these into the warm cache instead of invalidating and re-reading every
+// entity file (at 80k+ files that full rebuild took seconds and fired on each
+// 30s background sync — the felt Bridge stall).
+const _touched = new Set();
+
+function recordTouched(id) {
+  if (id) _touched.add(id);
+}
+
+function touchedCount() {
+  return _touched.size;
+}
+
+function drainTouched() {
+  const ids = [..._touched];
+  _touched.clear();
+  return ids;
+}
+
 function getIndexMtimeMs() {
   try {
     return fs.statSync(INDEX_FILE).mtimeMs;
@@ -32,6 +52,7 @@ function load() {
     return cache;
   }
 
+  const t0 = Date.now();
   const entities = new Map();
   if (fs.existsSync(ENTITIES_DIR)) {
     for (const file of fs.readdirSync(ENTITIES_DIR)) {
@@ -52,8 +73,44 @@ function load() {
     /* missing or corrupted index — serve empty */
   }
 
-  cache = { indexMtimeMs: mtime, entities, index };
+  // Anchor to the mtime AFTER the (multi-second) build, not the one captured at
+  // entry. If the index was rewritten mid-build — e.g. a second memoray process
+  // sharing this data dir, or an in-process sync — anchoring to the stale entry
+  // mtime would immediately re-stale the fresh cache and thrash into another
+  // full rebuild on the very next request. The at-most-30s staleness this
+  // absorbs self-heals on the next sync (applyDelta) or index change.
+  cache = { indexMtimeMs: getIndexMtimeMs(), entities, index };
+  console.log(`[Store] Full rebuild: ${entities.size} entities in ${Date.now() - t0}ms`);
   return cache;
+}
+
+// Patch just the touched ids into the warm cache (upsert, or delete if the
+// file vanished), then re-anchor to the current index mtime so a subsequent
+// load() treats the cache as fresh instead of full-rebuilding. No-op when the
+// cache has not been built yet — the next lazy load() reads everything from
+// disk, which the parsers have already written.
+function applyDelta(ids) {
+  if (!cache) return false;
+  for (const id of ids) {
+    const file = path.join(ENTITIES_DIR, `${id}.json`);
+    try {
+      if (fs.existsSync(file)) {
+        const entity = JSON.parse(fs.readFileSync(file, "utf-8"));
+        if (entity && entity.id) cache.entities.set(entity.id, entity);
+      } else {
+        cache.entities.delete(id);
+      }
+    } catch {
+      /* skip corrupted entity file — leave prior value in place */
+    }
+  }
+  try {
+    cache.index = JSON.parse(fs.readFileSync(INDEX_FILE, "utf-8"));
+  } catch {
+    /* keep prior index on read failure */
+  }
+  cache.indexMtimeMs = getIndexMtimeMs();
+  return true;
 }
 
 function invalidate() {
@@ -73,4 +130,15 @@ function knownFilePaths() {
   return known;
 }
 
-module.exports = { load, invalidate, knownFilePaths, DATA_DIR, ENTITIES_DIR, INDEX_FILE };
+module.exports = {
+  load,
+  invalidate,
+  applyDelta,
+  recordTouched,
+  touchedCount,
+  drainTouched,
+  knownFilePaths,
+  DATA_DIR,
+  ENTITIES_DIR,
+  INDEX_FILE
+};
