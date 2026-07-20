@@ -77,6 +77,10 @@ async function performSync() {
     if (touched.length === 0) {
       console.log("[Server] Delta sync: no changes, cache kept warm.");
     } else if (store.applyDelta(touched)) {
+      // Persist just the changed entities to the append-only delta log so a
+      // restart hydrates the exact last state; compact when the log grows.
+      store.appendDelta(touched);
+      store.maybeCompactSnapshot();
       console.log(`[Server] Delta sync: patched ${touched.length} entities into warm store.`);
     } else {
       console.log(
@@ -1599,6 +1603,12 @@ function startServer(portOverride = null) {
       openBrowser(`http://localhost:${portToUse}`);
     }
 
+    // Warm the store from the persisted snapshot (one gzip read + small replay)
+    // before the first request, so views never pay the 80k-file cold read. On
+    // the very first run there is no snapshot — hydrate() returns null and the
+    // first data request builds + persists the base lazily.
+    store.hydrate();
+
     await performSync();
 
     // Background sync every 30 seconds
@@ -1613,11 +1623,36 @@ function stopServer() {
       clearInterval(syncInterval);
       syncInterval = null;
     }
+    // Flush the current warm state to the base snapshot so the next boot
+    // hydrates the exact last state with an empty delta log.
+    store.writeSnapshot();
     serverInstance.close();
     serverInstance = null;
     console.log("[Server] Mem0Ray stopped.");
   }
 }
+
+// Best-effort snapshot flush on process termination (Ctrl-C / supervisor stop),
+// so a graceful shutdown always leaves a fresh base for the next boot.
+let _flushed = false;
+function flushSnapshotOnce() {
+  if (_flushed) return;
+  _flushed = true;
+  try {
+    store.writeSnapshot();
+  } catch {
+    /* best-effort */
+  }
+}
+process.once("SIGINT", () => {
+  flushSnapshotOnce();
+  process.exit(0);
+});
+process.once("SIGTERM", () => {
+  flushSnapshotOnce();
+  process.exit(0);
+});
+process.once("beforeExit", flushSnapshotOnce);
 
 // Export for tray or other programmatic usage
 module.exports = { app, startServer, stopServer, openBrowser, PORT };
