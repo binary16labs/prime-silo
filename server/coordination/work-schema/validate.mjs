@@ -44,7 +44,7 @@ export function validateContract(text, { id, repoRoot, knownIds }) {
   if (fm.id !== id) errors.push(`${id}: frontmatter id '${fm.id}' != filename`);
   if (!fs.existsSync(path.join(repoRoot, "delivery", "epics", `${fm.epic}.md`)))
     errors.push(`${id}: epic '${fm.epic}' has no delivery/epics file`);
-  if (!["M1", "M2"].includes(fm.milestone)) errors.push(`${id}: milestone '${fm.milestone}'`);
+  if (!["M1", "M2", "M3"].includes(fm.milestone)) errors.push(`${id}: milestone '${fm.milestone}'`);
   if (!fm.okr) errors.push(`${id}: okr missing`);
   if (!["agent-ok", "human-signed"].includes(fm.authority))
     errors.push(`${id}: authority '${fm.authority}'`);
