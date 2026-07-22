@@ -9,6 +9,8 @@
 - **KR1.2** 9 dev+knowledge task types run offline end-to-end with judge acceptance (gates `a2/a3/a5`).
 - **KR1.3** A frontier agent delegates work mid-session and receives honest results incl. honest failures (gate `a4`).
 - **KR1.4** Sovereignty gradient live: zero-capable-hardware user still gets full data sovereignty (gate `a6`).
+- **KR1.5** A **house-method QLoRA model**, trained on the code + LONGVIEW corpus, **measurably beats its base**
+  on a held-out method/agent eval and **drives the offload path** — currently UNTRAINED (gates `t3`/`t4`, EP-T/M3).
 
 ## O2 — One coordinated, deterministic delivery system  *(P2, P3, P9)*
 - **KR2.1** 3+ agents (Claude, Antigravity, Benny) share one ledger; zero double-claims across 20-race test (gate `b0`).

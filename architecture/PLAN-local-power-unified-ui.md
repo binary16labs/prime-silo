@@ -1,6 +1,6 @@
 # PLAN: Local AI Power + Unified Prime-Silo UI
 
-> **Status:** Approved plan, not yet started (rev 5, 2026-07-05: added Workstream G — DAG-native workflow core; Workstream R — reverse-engineer app → TOGAF SAD → modular services; §0.5 goal tree + delivery governance; Workstream Q — security/SRE/quality pipeline; §10 memory & skills updates; rev 5 rebuilds Workstream E from the live-site design review — honest positioning, claims registry, brief→mocks→contract delivery; rev 6 adds §1.5 agent roster — Antigravity + Claude execution model with author≠verifier rule, plugin/skill dual-form, MCP-driven demo capture; rev 7 adds §9.5 Workstream F — six product features in wave one + Milestone 2 committed; rev 8 adds §3.5 Workstream W — declarative work contracts + deterministic next-item delivery engine, sustainability accounting in F5, frontier-consultation checkpoints; rev 9 adds §1.6 NFR register, A6 sovereignty gradient for low-power hardware, F7 backup/restore, sealed exports (M2-3 expanded), M2-5 compliance dossier, MCP-registry publishing, capability-profile rule; rev 10 grounds the plan in the LONGVIEW card-corpus review — path/encoding lint in Q2, evidence-seeded judge calibration in A0, A7 card schema v2; rev 11 ships the **`delivery/` execution directory** — OKRs→epics→milestones→BDD/TDD task contracts + kanban board, W0's canonical backlog is `delivery/tasks/`, Antigravity protocol renders to `delivery/AGENTS.md`, standing backend approval for B/G/Q/W, sequential author≠verifier provision, Q0 rescoped to the full 57-occurrence credential inventory; rev 12 integrates Antigravity/Gemini review — W2 worktree mechanics, verifier-audit CI gate, blocker-triage self-healing loop, semantic offload cache, VCR tapes for hermetic CI, C7 cognitive profiles, F8 sovereignty shield, F2 test-drive, M2-6 memory mesh, M2-7 drift radar)
+> **Status:** Approved plan, not yet started (rev 5, 2026-07-05: added Workstream G — DAG-native workflow core; Workstream R — reverse-engineer app → TOGAF SAD → modular services; §0.5 goal tree + delivery governance; Workstream Q — security/SRE/quality pipeline; §10 memory & skills updates; rev 5 rebuilds Workstream E from the live-site design review — honest positioning, claims registry, brief→mocks→contract delivery; rev 6 adds §1.5 agent roster — Antigravity + Claude execution model with author≠verifier rule, plugin/skill dual-form, MCP-driven demo capture; rev 7 adds §9.5 Workstream F — six product features in wave one + Milestone 2 committed; rev 8 adds §3.5 Workstream W — declarative work contracts + deterministic next-item delivery engine, sustainability accounting in F5, frontier-consultation checkpoints; rev 9 adds §1.6 NFR register, A6 sovereignty gradient for low-power hardware, F7 backup/restore, sealed exports (M2-3 expanded), M2-5 compliance dossier, MCP-registry publishing, capability-profile rule; rev 10 grounds the plan in the LONGVIEW card-corpus review — path/encoding lint in Q2, evidence-seeded judge calibration in A0, A7 card schema v2; rev 11 ships the **`delivery/` execution directory** — OKRs→epics→milestones→BDD/TDD task contracts + kanban board, W0's canonical backlog is `delivery/tasks/`, Antigravity protocol renders to `delivery/AGENTS.md`, standing backend approval for B/G/Q/W, sequential author≠verifier provision, Q0 rescoped to the full 57-occurrence credential inventory; rev 12 integrates Antigravity/Gemini review — W2 worktree mechanics, verifier-audit CI gate, blocker-triage self-healing loop, semantic offload cache, VCR tapes for hermetic CI, C7 cognitive profiles, F8 sovereignty shield, F2 test-drive, M2-6 memory mesh, M2-7 drift radar; **rev 13 (2026-07-21) adds §2.5 Workstream T** — a house-method QLoRA model trained on the code + LONGVIEW corpus (EP-T → M3, KR1.5, tasks T0–T4): a hybrid that fine-tunes *method + agent behaviour* and keeps *facts* in RAG, not from-scratch pretraining; trainer = T480 + Razer Core X eGPU + Radeon RX 9060 XT 16GB (RDNA4/gfx1200), ROCm-on-Windows + Unsloth)
 > **Audience:** Implementing agents (Haiku/Sonnet class). Read the whole Execution Protocol before touching any file.
 > **Owner decisions already made (do not re-litigate):**
 > 1. UI scope = **new Prime-Silo shell** hosting existing modules; user-facing rename now, internal identifiers later behind aliases.
@@ -196,6 +196,74 @@ These are properties, not phases. Each has an owner-gate (the phase whose gate m
 - **Gate `a8.py`:** with a mock provider whose catalog lists model B first while model A is loaded, default-role resolution returns A (loaded-model preference); a run using model A never emits a request for model B unless the manifest maps it (affinity test); a stalled mock ingest call fails in ≤ the configured timeout, not hours; a killed-and-restarted ingest of a 10-card fixture processes exactly the unfinished remainder.
 
 ---
+
+## 2.5 Workstream T — House-method model (train on code + LONGVIEW)
+
+**Goal (P1, P9):** a local model that has internalized not just *the code* but *how we got there* —
+the reasoning, decisions, and working method behind the estate — so it can support development,
+investigations, and task execution. **Honest scope split (the design decision):** fine-tuning distils
+**method + voice + agent tool-use** (verify-before-commit, dry-run-first, additive design, ADR/card
+structure, how we drive tools); it does **not** store facts reliably. **Facts stay in RAG**
+(S16/memo-ray/LONGVIEW), retrieved at inference. This is a **QLoRA** fine-tune (4-bit, ~7–8B base),
+**not** from-scratch pretraining and **not** cramming facts into weights. The tuned model becomes a
+**candidate engine behind Benny's router** and drives the ADR-004 offload path — **additive**, never a
+replacement for the current engine. Contracts live in `delivery/tasks/T0..T4.md` (EP-T → M3, KR1.5);
+design source `~/.claude/plans/mellow-tinkering-swan.md`. **Trainer hardware:** Lenovo T480 + Razer
+Core X eGPU (TB3) + Sapphire Pulse Radeon **RX 9060 XT 16GB (RDNA4 / gfx1200)**, Windows host,
+ROCm-on-Windows + Unsloth (WSL2-ROCm fallback). Benny is the serving/agent tier, **not** a trainer.
+
+### T0 — Prove the trainer end-to-end  *(depends on: nothing — DO THIS FIRST for T; make-or-break)*
+- **Files:** `scripts/train/smoke/`, new `scripts/gates/t0.py`, `docs/train/T0-trainer-evidence.md`.
+- **What:** ROCm-on-Windows enumerates gfx1200 on the eGPU (`rocm-smi`/`hipInfo`); Unsloth installs;
+  a ~30-step 4-bit QLoRA runs on a 7B toy dataset with loss recorded and a reloadable adapter saved.
+  The least-proven link in the stack (RDNA4 in a TB3 eGPU under Windows ROCm) — prove it before any
+  data investment. Fallback ladder: WSL2-ROCm → cloud-train/serve-local → smaller base.
+- **Gate `t0.py`:** asserts gfx1200/~16GB reported and a smoke-run artifact (adapter + step count +
+  decreasing loss) exists; exits non-zero `gpu_absent` when no compute device reports gfx1200.
+
+### T1 — Clone the Benny home to the trainer  *(depends on: nothing)*
+- **Files:** `scripts/train/clone_home/`, new `scripts/gates/t1.mjs`, `docs/train/T1-clone-provenance.md`.
+- **What:** carry a full `PRIME_SILO_HOME` clone (code + RAG stores + LONGVIEW cards/KG + runtime) to
+  the T480 so it builds data, trains, and serves RAG locally — no hard LAN dependency. Windows→Windows,
+  so no store-format conversion; the real risk is absolute-path assumptions in the home. Snapshot with
+  recorded provenance (source commit/timestamp) + a refresh procedure — no silent drift.
+- **Gate `t1.mjs`:** the home resolver points at the clone and a known key reads back from each store
+  (S16 doc+vector, a memo-ray session, LONGVIEW cards) with no call back to the desktop.
+
+### T2 — Data pipeline: instruction + trajectory dataset  *(depends on: nothing — builds from the corpus)*
+- **Files:** `scripts/train/build_dataset.mjs` + `lib/` + `tests/` + `dataset/`, `scripts/gates/t2.mjs`,
+  `docs/train/T2-dataset-card.md`. **Reuse** `scripts/longview/` (`store/walk/card_triples/retrieve/record`).
+- **What:** fine-tune quality is ~90% data, and the corpus is *already structured*. Emit two SFT streams:
+  **Stream A** method/voice `(instruction → house-style response)` from LONGVIEW cards + ADRs + synthesis;
+  **Stream B** agent trajectories `(state + goal → next tool call)` from Benny/offload/Claude tool-use
+  traces. Carve a held-out eval set **before** training; hand-audit a ~200-row gold set. **Privacy: run
+  `scripts/longview/lib/leak_gate.mjs` over every row** — job-application/CV context never enters training.
+- **Gate `t2.mjs`:** both streams schema-valid; a seeded CV/job row is excluded; leak gate reports 0
+  personal-context hits; the held-out split is disjoint from train.
+
+### T3 — First QLoRA run + honest base-vs-tuned eval  *(depends on: T0, T2)*
+- **Files:** `scripts/train/qlora/`, `scripts/train/eval/`, `scripts/gates/t3.py`, `docs/train/T3-eval-report.md`.
+- **What:** QLoRA (rank 16, lr 2e-4, packed ~16k ctx) on Stream A+B over the T0-proven trainer; base =
+  Qwen2.5-Coder-7B-Instruct or Qwen3-8B (pick per T0 smoke + eval fit — installed inference builds inform
+  the choice, but training pulls **HF safetensors**). **Define the rubric before training.** Eval base vs
+  tuned on held-out method tasks + tool-call correctness with **RAG disabled**, so the number reflects the
+  fine-tune's own contribution. Merge adapter → GGUF. A tuned model that does **not** beat base is an
+  honest, logged result — never tune the rubric to pass.
+- **Gate `t3.py`:** an eval report records the base-vs-tuned delta per category and a merged GGUF loads;
+  green only if tuned ≥ base on the rubric. This is KR1.5's primary instrument.
+
+### T4 — Wire tuned model behind Benny's router + offload  *(depends on: T3)*
+- **Files:** `runtime/benny/router/` + `tests/router/`, `scripts/gates/t4.py`, `docs/train/T4-integration.md`.
+- **What:** register the tuned GGUF as an **additive candidate** in Benny's multi-endpoint router (current
+  engine stays default; unhealthy tuned endpoint falls back, never hard-fails) and drive one real ADR-004
+  offload task with RAG grounding, no regression vs the current engine. Reuses A0's proven offload path.
+- **Gate `t4.py`:** router config shows the tuned engine additive (not default); one trivial offload task
+  completes through the judge gate on the tuned engine with an honest ledger entry. Closes KR1.5 with T3.
+
+**Exit (VISION-CHECK):** which KRs moved (KR1.5, and KR1.2/1.3 if the tuned engine improves offload),
+the measured base-vs-tuned delta (no unmeasured "trained on how we got there" claims), one honest line
+on drift. (T5 — DPO on verify-before-commit preference pairs / larger base / delta-refresh — is optional,
+deferred.)
 
 ## 3. Workstream B — Shared coordination ledger (three agents, one truth)
 
@@ -594,6 +662,7 @@ C0 ─┬─ C1 ─ C2 ─┬─ C4 ─ C6 (needs B3, G2-UI)
     └─ C3 ──────┤
     └─ C5       └─ D1 ─ D2 ─ D3 (D3 prefers G3)
 E0 (brief/claims now) ─ E1 (mocks; screenshots need C2) ─ E2 (build+ship)
+T0 (prove trainer) + T2 (dataset) ─ T3 (QLoRA + eval) ─ T4 (behind Benny router) ; T1 clone-home (parallel)
 ```
 
 - [ ] A0 verify real offload path  - [ ] A1 windowing helper  - [ ] A2 dev pack  - [ ] A3 knowledge pack  - [ ] A4 agent-support  - [ ] A5 offline assurance  - [ ] A6 sovereignty gradient  - [ ] A7 card schema v2 (after v2 run completes)  - [ ] A8 model-routing hygiene (hotfix-class)
@@ -607,5 +676,6 @@ E0 (brief/claims now) ─ E1 (mocks; screenshots need C2) ─ E2 (build+ship)
 - [ ] C0 design system  - [ ] C1 layout contract  - [ ] C2 shell  - [ ] C3 login  - [ ] C4 de-brand  - [ ] C5 mascot  - [ ] C7 cognitive profiles  - [ ] C6 parity flip
 - [ ] D1 Studio spec  - [ ] D2 sources+chat  - [ ] D3 outputs
 - [ ] E0 design brief + claims registry  - [ ] E1 three mocks + owner pick  - [ ] E2 build + ship
+- [ ] T0 prove trainer (ROCm/eGPU + QLoRA smoke)  - [ ] T1 clone Benny home  - [ ] T2 data pipeline (method + agent streams)  - [ ] T3 QLoRA + honest eval  - [ ] T4 wire behind Benny router + offload
 
 **First sessions (zero dependencies):** **Q0 (security remediation — do this one first of all; it fixes live vulnerabilities)**, A0 (verify offload), B0 (ledger spec), C0 (design system), G0 (run-event spec). A0+G0 are both runtime/Python but touch disjoint files; they can be one agent's back-to-back sessions or two agents with the offload runner/orchestrator boundary respected.

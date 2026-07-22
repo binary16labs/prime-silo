@@ -9,6 +9,7 @@
 - B1 — coordination server API + SSE  *(dep B0 DONE — entered READY 2026-07-07)*
 - Q1 — reproducible supply chain  *(dep Q0 DONE — entered READY 2026-07-07)*
 - E0 — website design brief + claims registry  *(zero-dep — entered READY 2026-07-07; human-signed)*
+- T0 — prove ROCm trainer on T480 eGPU  *(zero-dep — entered READY 2026-07-21; human-signed — owner drives hardware; EP-T/M3)*
 
 ## CLAIMED (agent · date)
 
@@ -41,4 +42,5 @@ E1 E2 ·
 F1 F2 F3 F4 F5 F6 F7 F8 ·
 Q2 Q3 ·
 R0 R1 R2 R3 ·
-M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8
+M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 ·
+T1 T2 T3 T4  (EP-T/M3 — deps on T0; authored 2026-07-21)
