@@ -9,14 +9,15 @@
 - B1 — coordination server API + SSE  *(dep B0 DONE — entered READY 2026-07-07)*
 - Q1 — reproducible supply chain  *(dep Q0 DONE — entered READY 2026-07-07)*
 - E0 — website design brief + claims registry  *(zero-dep — entered READY 2026-07-07; human-signed)*
+- T2 — instruction+trajectory dataset (Stream A method/voice + Stream B agent tool-use) *(zero-dep — entered READY 2026-07-23; T0+T1 DONE so the trainer can build data locally off the T1 clone. Privacy: every row through scripts/longview/lib/leak_gate.mjs — no CV/job-application content in training. Gate scripts/gates/t2.mjs.)*
 
 ## CLAIMED (agent · date)
 
 ## VERIFY (awaiting non-author verification)
-- T1 — clone Benny home to trainer · author claude (T480) · main · ready-for-verify 2026-07-23 *(human-signed; benny-home 725,659 files / ~30.28 GB runs off external D: — C: too small; memo-ray copied to canonical .mem0ray\data. `node scripts/gates/t1.mjs` GREEN: Node+Python resolvers agree on D:\benny-home, 61 cards / 278 sessions / 572 vectors read LOCAL, no desktop network. Gotchas: Store-python virtualizes %APPDATA% (use PRIME_SILO_HOME env), isolated node on User PATH. See docs/train/T1-clone-provenance.md + LOG. VERIFY ON THE T480 with D: plugged in.)*
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 *(budget amended 300→1100 by owner directive — flagship scope, see LOG)*
 
 ## DONE (id · verified-by · date)
+- T1 — clone Benny home to trainer · verified-by claude-t1-verifier · 2026-07-23 *(reproduced GREEN from a clean session on the T480: `node scripts/gates/t1.mjs` — Node+Python resolvers both resolve D:\benny-home (via persisted prime-silo-config.json, no env set), and independent cross-checks matched the gate exactly (61 cards, 572 chroma vectors, 80,554 memo-ray entities / 278 sessions), all read LOCAL, zero remote-host env → no desktop/LAN dependency. benny-home runs off external D: (C: too small); memo-ray on canonical .mem0ray. Non-blocking caveats: full Neo4j/server boot deferred (repo .env still hardcodes old C:\ paths, outside T1 allowlist); provenance records timestamp + file/byte counts, not per-store cryptographic checksums. Re-verify needs D: attached.)*
 - T0 — prove RDNA4 eGPU QLoRA trainer · verified-by claude-t0-verifier · 2026-07-23 *(reproduced GREEN on the T480 gfx1200 eGPU from a fresh session: author artifacts moved to *.author-bak, smoke regenerated in trainer venv, gate re-run — gfx1200 / 15.9 GiB, steps=30, loss 2.2888→1.4939 decreasing, reloadable adapter, exit 0. Honest caveat: smoke used Llama-3.2-1B eager path per owner verifier instruction, not the BDD's Qwen2.5-Coder-7B — RDNA4 4-bit QLoRA capability is proven; base model is a smoke fixture. Unblocks T3's T0-dep; T3 still needs T2.)*
 - C1 — adaptive layout contract · verified-by claude-sonnet-verifier · 2026-07-12 *(merged to main 2026-07-12 @ 1c0a19e; MANUAL 3-res screenshot deferred to post-merge preview — orchestrator; follow-up candidate: resizable-splits + localStorage persistence, prose-only in contract, never codified as a scenario)*
 - C5 — mascot micro-states · verified-by claude-haiku-verifier · 2026-07-12 *(merged to main 2026-07-12 @ 77a3edd; open follow-up: one-line initMascotState() wire in onscreen_agent/panel.html — outside C5 allowlist)*
@@ -44,4 +45,4 @@ F1 F2 F3 F4 F5 F6 F7 F8 ·
 Q2 Q3 ·
 R0 R1 R2 R3 ·
 M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 ·
-T2 T3 T4  (EP-T/M3 — authored 2026-07-21)
+T3 T4  (EP-T/M3 — deps on T2 (T3) / T3 (T4); authored 2026-07-21)
