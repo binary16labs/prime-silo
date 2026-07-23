@@ -9,12 +9,12 @@
 - B1 — coordination server API + SSE  *(dep B0 DONE — entered READY 2026-07-07)*
 - Q1 — reproducible supply chain  *(dep Q0 DONE — entered READY 2026-07-07)*
 - E0 — website design brief + claims registry  *(zero-dep — entered READY 2026-07-07; human-signed)*
-- T0 — prove ROCm trainer on T480 eGPU  *(zero-dep — entered READY 2026-07-21; human-signed — owner drives hardware; EP-T/M3)*
 
 ## CLAIMED (agent · date)
 
 ## VERIFY (awaiting non-author verification)
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 *(budget amended 300→1100 by owner directive — flagship scope, see LOG)*
+- T0 — prove RDNA4 eGPU QLoRA trainer · author claude (T480) · main @ 02bcd3a · ready-for-verify 2026-07-22 *(human-signed; gate GREEN on hardware both eager+Unsloth paths. VERIFY ON THE T480 from a fresh session — needs the gfx1200 eGPU + smoke regen, git-ignored artifacts)*
 
 ## DONE (id · verified-by · date)
 - C1 — adaptive layout contract · verified-by claude-sonnet-verifier · 2026-07-12 *(merged to main 2026-07-12 @ 1c0a19e; MANUAL 3-res screenshot deferred to post-merge preview — orchestrator; follow-up candidate: resizable-splits + localStorage persistence, prose-only in contract, never codified as a scenario)*
