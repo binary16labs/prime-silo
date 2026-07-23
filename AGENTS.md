@@ -139,6 +139,10 @@ Test docs:
 - `/tests/agent_llm_performance/AGENTS.md`
 - `/tests/browser_component_harness/AGENTS.md`
 
+Website docs:
+
+- `/website/AGENTS.md`
+
 ## Programming Guide
 
 These rules apply across the codebase:
@@ -180,6 +184,7 @@ These rules apply across the codebase:
 - **one clean LLM call at a time to the LM host during a longview/ingest run — never fire a concurrent health/diagnostic probe while the map or ingest is in flight, and never abort a queued request.** A second concurrent or aborted request wedges the LM Studio engine → `Engine protocol predict request failed: fetch failed` (HTTP 400) on every subsequent predict, even though `/v1/models` still reports `loaded` and embeddings still answer; recovery is to eject + reload the model on the host (there is no HTTP unload). Any latency measured while a probe competed with the run is inflated — discard it. Run diagnostics only between runs with the runner stopped.
 - on a reasoning model (gemma-4-12b) turn reasoning OFF for longview extraction calls — it burns ~78% of every call on a preamble that adds nothing to a reading task. The prompt cannot suppress it and `enable_thinking:false`/`thinking:false`/`reasoning_effort:"low"` are ignored; the working control is the request param `reasoning_effort:"none"` (LM Studio honors it, on/off only), wired as `LONGVIEW_REASONING_EFFORT` and env-gated. Verified ~4× faster (160s/window → 42s) with no quality loss
 - an LM engine wedge (`Engine protocol predict request failed: fetch failed`, 400 on every predict until the model is reloaded) occurs spontaneously under sustained load, independent of reasoning on/off — the longview map now halts on it (`isEngineWedge`), leaves the failed window uncached so resume retries it, and exits non-zero so the build stops before graph/enrich; recovery is reload-the-model + rerun. Diagnose the root cause from LM Studio's own logs (OOM/KV-cache → lower ctx or GPU layers; GPU error → host-side; a poison input re-crashes the same session)
+- LM-host hardware profile (2026-07-09): the LAN LM Studio at `192.168.68.125:1234` runs on an **AMD Radeon RX 9060 XT 16 GB (RDNA4)** in a **Razer Core X eGPU over Thunderbolt** on a Lenovo T480. The recurring `channel error` / engine wedge is **driver/runtime instability on this new-gen AMD + eGPU stack, NOT a VRAM ceiling** (16 GB fits a 12B fine) and NOT a longview config problem — context-size and reasoning tuning do not fix it. Stability levers that apply here: LM Studio **ROCm concurrency = 1**, **disable experimental KV-cache share**, and the map's inter-window cooldown (`LONGVIEW_WINDOW_PAUSE_MS`, ~2000). **Vulkan** is the stable AMD runtime but **will not load a 12B** (large-model Vulkan limit) — Vulkan needs a ≤8B model, so the durable fallback is a 7–8B instruct model (Qwen2.5-7B / Llama-3.1-8B) on Vulkan. When supporting the operator on a wedge: do NOT keep blindly reloading; check the runtime (ROCm vs Vulkan), and prefer the Vulkan+smaller-model path if ROCm keeps crashing.
 - longview map-window sizing on a reasoning model is a completeness/throughput tradeoff: full 24k-char windows on gemma-4-12b overran the 200s `LONGVIEW_LLM_TIMEOUT_MS` and were amputated (`aborted due to timeout`); `LONGVIEW_WINDOW_CHARS=12000` + `LONGVIEW_LLM_TIMEOUT_MS=420000` eliminated the timeouts at the cost of more (per-call-reasoning-taxed) calls per session. Distinguish `aborted due to timeout` (shrink window / raise timeout) from `Engine protocol predict request failed` (engine wedge, reload the model). Map the full corpus once, then `longview run --delta` to top up — do not cut scope to go faster
 
 ## Top-Level Structure
