@@ -58,6 +58,9 @@ runtime/runs/
 # Delivery worktrees (git worktree add .worktrees/<id>) — local-only sandboxes,
 # never committed (a stray add here could commit an entire worktree tree).
 /.worktrees/
+# Unsloth QLoRA compiled-kernel cache (Workstream T) — regenerated per training
+# run on the trainer box, machine-local, never committed.
+/unsloth_compiled_cache/
 
 # local scratch: launchers with absolute paths + build logs + session names (repo AGENTS.md §172)
 scratch/
