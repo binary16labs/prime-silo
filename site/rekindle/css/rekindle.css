@@ -1,0 +1,815 @@
+/* ═══════════════════════════════════════════════════════════════════
+   ReKindle — E-Ink Optimized Stylesheet
+   System 7 aesthetic · No animations · High contrast · Big targets
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Reset & E-Ink Base ─────────────────────────────────────────── */
+*, *::before, *::after {
+  transition: none !important;
+  animation: none !important;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg:           #ffffff;
+  --text:         #000000;
+  --border:       2px solid #000000;
+  --shadow:       4px 4px 0px #000000;
+  --stripe:       repeating-linear-gradient(0deg, transparent, transparent 2px, #000 3px, #000 4px);
+  --radius:       0px;
+  --gap:          12px;
+  --bar-h:        40px;
+  --touch-min:    44px;
+  --font-ui:      "Geneva", "Verdana", "Helvetica Neue", sans-serif;
+  --font-mono:    "Courier New", "Courier", monospace;
+  --font-read:    "Georgia", "Times New Roman", serif;
+  --accent:       #000000;
+  --accent-text:  #ffffff;
+  --muted:        #888888;
+  --surface:      #f4f4f4;
+}
+
+/* Manual dark mode only — activated by .dark on <html>, never by
+   prefers-color-scheme (auto-dark ghosts badly on e-ink). */
+html.dark {
+  --bg:          #000000;
+  --text:        #ffffff;
+  --border:      2px solid #ffffff;
+  --shadow:      4px 4px 0px #444444;
+  --stripe:      repeating-linear-gradient(0deg, transparent, transparent 2px, #fff 3px, #fff 4px);
+  --accent:      #ffffff;
+  --accent-text: #000000;
+  --muted:       #777777;
+  --surface:     #1a1a1a;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text);
+  background: #e5e5e5;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+/* ── Window Frame ───────────────────────────────────────────────── */
+.window {
+  background: var(--bg);
+  border: var(--border);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 800px;
+  min-height: 100vh;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* ── Title Bar ──────────────────────────────────────────────────── */
+.title-bar {
+  height: var(--bar-h);
+  border-bottom: var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  padding: 0 10px;
+  position: relative;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.title-stripes {
+  position: absolute;
+  inset: 4px;
+  background-image: var(--stripe);
+  z-index: 0;
+}
+
+.title-text {
+  background: var(--bg);
+  padding: 0 15px;
+  font-weight: bold;
+  font-size: 14px;
+  z-index: 1;
+  white-space: nowrap;
+}
+
+.title-bar .btn-back {
+  position: absolute;
+  left: 8px;
+  z-index: 2;
+  background: var(--bg);
+  border: var(--border);
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 2px 10px;
+  min-width: var(--touch-min);
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.title-bar .btn-action {
+  position: absolute;
+  right: 8px;
+  z-index: 2;
+  background: var(--bg);
+  border: var(--border);
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 2px 10px;
+  min-width: var(--touch-min);
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Connection Indicator ───────────────────────────────────────── */
+.conn-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid var(--text);
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.conn-dot.online  { background: var(--text); }
+.conn-dot.offline { background: transparent; }
+
+/* ── Content Area ───────────────────────────────────────────────── */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--gap);
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── App Grid (Home Dashboard) ──────────────────────────────────── */
+.app-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--gap);
+  padding: var(--gap);
+}
+
+.app-tile {
+  border: var(--border);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 8px;
+  min-height: 110px;
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--text);
+}
+
+.app-tile:active {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.app-tile .icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+  line-height: 1;
+}
+
+.app-tile .label {
+  font-size: 12px;
+  font-weight: bold;
+  text-align: center;
+  word-break: break-word;
+}
+
+/* ── File List ──────────────────────────────────────────────────── */
+.file-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px var(--gap);
+  border-bottom: 1px solid var(--text);
+  cursor: pointer;
+  min-height: var(--touch-min);
+}
+
+.file-item:active {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.file-item .file-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  width: 28px;
+  text-align: center;
+}
+
+.file-item .file-name {
+  flex: 1;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-item .file-meta {
+  font-size: 11px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.file-item .resume-badge {
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--text);
+  padding: 1px 5px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ── Toolbar ────────────────────────────────────────────────────── */
+.toolbar {
+  display: flex;
+  gap: 6px;
+  padding: 6px var(--gap);
+  border-bottom: var(--border);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.toolbar .btn,
+.btn {
+  border: var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: bold;
+  padding: 4px 12px;
+  min-height: 32px;
+  min-width: var(--touch-min);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.btn:active,
+.toolbar .btn:active {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.btn.active {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.toolbar .spacer { flex: 1; }
+
+/* ── Tabs ───────────────────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  border-bottom: var(--border);
+}
+
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 10px 8px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  border-right: 1px solid var(--text);
+  min-height: var(--touch-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tab:last-child { border-right: none; }
+
+.tab.active {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+/* ── Chat ───────────────────────────────────────────────────────── */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--gap);
+  -webkit-overflow-scrolling: touch;
+}
+
+.chat-bubble {
+  border: var(--border);
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  max-width: 85%;
+  font-size: 14px;
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+
+.chat-bubble.user {
+  margin-left: auto;
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.chat-bubble.assistant {
+  margin-right: auto;
+  background: var(--bg);
+}
+
+.chat-input-bar {
+  display: flex;
+  border-top: var(--border);
+  flex-shrink: 0;
+}
+
+.chat-input-bar input,
+.chat-input-bar textarea {
+  flex: 1;
+  border: none;
+  padding: 12px;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  outline: none;
+  background: var(--bg);
+  color: var(--text);
+  resize: none;
+}
+
+.chat-input-bar .btn-send {
+  border: none;
+  border-left: var(--border);
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: bold;
+  font-size: 15px;
+  padding: 12px 20px;
+  cursor: pointer;
+  min-width: var(--touch-min);
+}
+
+/* ── Chat: RAG Source Citations ─────────────────────────────────── */
+.chat-sources {
+  margin-top: 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.chat-source-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  margin-top: 4px;
+  border: 1px solid var(--text);
+  background: var(--surface);
+  cursor: pointer;
+  min-height: 36px;
+  font-size: 13px;
+  text-decoration: none;
+  color: var(--text);
+}
+
+.chat-source-item:active {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.chat-source-relevance {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: bold;
+  flex-shrink: 0;
+  min-width: 36px;
+  text-align: right;
+}
+
+.chat-source-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Chat: Document Context Banner ─────────────────────────────── */
+.chat-doc-banner {
+  padding: 8px var(--gap);
+  border-bottom: 1px solid var(--text);
+  font-size: 13px;
+  font-weight: bold;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chat-doc-banner .doc-dismiss {
+  margin-left: auto;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 2px 6px;
+  border: 1px solid var(--text);
+  background: var(--bg);
+  min-width: 30px;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Terminal / Log Viewer ──────────────────────────────────────── */
+.terminal-output {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--gap);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+  background: var(--bg);
+  -webkit-overflow-scrolling: touch;
+}
+
+.log-line { margin: 0; padding: 1px 0; }
+.log-line.info    { }
+.log-line.success { font-weight: bold; }
+.log-line.warn    { border-left: 4px solid var(--text); padding-left: 8px; }
+.log-line.error   { background: var(--accent); color: var(--accent-text); padding: 2px 4px; }
+
+/* ── Editor ─────────────────────────────────────────────────────── */
+.editor-textarea {
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: var(--gap);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.preview-area {
+  padding: var(--gap);
+  font-family: var(--font-read);
+  font-size: 15px;
+  line-height: 1.8;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.preview-area h1, .preview-area h2, .preview-area h3,
+.preview-area h4, .preview-area h5, .preview-area h6 {
+  font-family: var(--font-ui);
+  border-bottom: 1px solid var(--text);
+  padding-bottom: 4px;
+  margin-top: 1.5em;
+}
+
+.preview-area pre {
+  border: var(--border);
+  padding: 10px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: var(--surface);
+}
+
+.preview-area code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: var(--surface);
+  padding: 1px 4px;
+}
+
+.preview-area blockquote {
+  border-left: 4px solid var(--text);
+  margin-left: 0;
+  padding-left: 14px;
+  color: var(--muted);
+}
+
+.preview-area img {
+  max-width: 100%;
+  height: auto;
+  image-rendering: auto;
+}
+
+.preview-area table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.preview-area th, .preview-area td {
+  border: 1px solid var(--text);
+  padding: 6px 10px;
+  text-align: left;
+  font-size: 13px;
+}
+
+.preview-area th {
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: bold;
+}
+
+/* ── Reader ─────────────────────────────────────────────────────── */
+.reader-viewport {
+  flex: 1;
+  overflow: hidden;
+  padding: 20px var(--gap);
+  font-family: var(--font-read);
+  font-size: 16px;
+  line-height: 1.9;
+  position: relative;
+}
+
+.reader-viewport.pdf-viewport {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.reader-viewport.pdf-viewport canvas {
+  max-width: 100%;
+  height: auto;
+  border-bottom: 1px solid var(--muted);
+}
+
+/* ── Reader: Tap Zones ──────────────────────────────────────────── */
+.tap-zone-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.tap-zone-overlay.active {
+  pointer-events: auto;
+}
+
+.tap-zone {
+  pointer-events: auto;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tap-zone-prev {
+  width: 33.33%;
+}
+
+.tap-zone-center {
+  width: 33.34%;
+}
+
+.tap-zone-next {
+  width: 33.33%;
+}
+
+/* Visual feedback on tap (brief flash) */
+.tap-zone.tapped {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* ── Reader: Paginated Content ──────────────────────────────────── */
+.reader-page-container {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Reader: Offline Banner ─────────────────────────────────────── */
+.offline-banner {
+  background: var(--accent);
+  color: var(--accent-text);
+  padding: 6px var(--gap);
+  font-size: 12px;
+  font-weight: bold;
+  text-align: center;
+  border-bottom: var(--border);
+}
+
+/* ── E-Ink Refresh Flash ────────────────────────────────────────── */
+.eink-refresh-flash {
+  position: fixed;
+  inset: 0;
+  background: #000000;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* ── Settings ───────────────────────────────────────────────────── */
+.settings-group {
+  border: var(--border);
+  margin-bottom: var(--gap);
+}
+
+.settings-group-title {
+  background: var(--accent);
+  color: var(--accent-text);
+  padding: 8px 12px;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-top: 1px solid var(--text);
+  min-height: var(--touch-min);
+  gap: 10px;
+}
+
+.settings-row:first-child { border-top: none; }
+
+.settings-row label {
+  font-size: 14px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.settings-row input[type="text"],
+.settings-row input[type="url"],
+.settings-row input[type="number"],
+.settings-row select {
+  flex: 1;
+  border: var(--border);
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: var(--bg);
+  color: var(--text);
+  max-width: 320px;
+}
+
+/* ── Collapsible Advanced Section ───────────────────────────────── */
+.settings-group.collapsed .settings-row {
+  display: none;
+}
+
+.settings-group .collapse-toggle {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: bold;
+  font-size: 13px;
+  font-family: var(--font-ui);
+  border-top: 1px solid var(--text);
+  min-height: var(--touch-min);
+  text-align: left;
+}
+
+.settings-group .collapse-toggle .arrow {
+  display: inline-block;
+  font-size: 12px;
+}
+
+.settings-group.collapsed .collapse-toggle .arrow {
+  transform: rotate(0deg);
+}
+
+.settings-group:not(.collapsed) .collapse-toggle .arrow {
+  transform: rotate(90deg);
+}
+
+/* ── Status Bar ─────────────────────────────────────────────────── */
+.status-bar {
+  border-top: var(--border);
+  padding: 4px var(--gap);
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface);
+  flex-shrink: 0;
+  min-height: 24px;
+}
+
+.status-bar .status-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.status-bar .status-btn {
+  border: 1px solid var(--text);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: bold;
+  padding: 2px 8px;
+  cursor: pointer;
+  min-height: 20px;
+  min-width: 32px;
+}
+
+.status-bar .status-btn:active {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+/* ── Loading / Empty States ─────────────────────────────────────── */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.loading-indicator {
+  text-align: center;
+  padding: 20px;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+/* ── Breadcrumb ─────────────────────────────────────────────────── */
+.breadcrumb {
+  padding: 8px var(--gap);
+  font-size: 12px;
+  border-bottom: 1px solid var(--text);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.breadcrumb a {
+  color: var(--text);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.breadcrumb span { color: var(--muted); margin: 0 4px; }
+
+/* ── Responsive ─────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .app-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .window {
+    box-shadow: none;
+    border-left: none;
+    border-right: none;
+  }
+}
+
+@media (min-width: 801px) {
+  body { padding: 0; }
+  .window {
+    min-height: 100vh;
+    box-shadow: none;
+    border-top: none;
+    border-bottom: none;
+  }
+}

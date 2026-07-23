@@ -287,3 +287,76 @@ async def delete_file(filename: str, workspace: str = "default", subdir: str = "
         raise
     except Exception as e:
         raise HTTPException(500, f"Delete failed: {str(e)}")
+
+
+class PdfExtractRequest(BaseModel):
+    path: str
+    workspace: str = "default"
+    pages: list = None  # None = all pages
+
+
+@router.post("/pdf-extract")
+async def pdf_extract(request: PdfExtractRequest):
+    """Extract text from a PDF file, returning page-by-page text content.
+
+    Used by the ReKindle e-ink reader as a server-side fallback when the
+    client browser cannot render PDFs via pdf.js (e.g. legacy Kindle WebKit).
+    """
+    workspace_path = get_workspace_path(request.workspace)
+    file_path = None
+
+    # Resolve file path: check data_in, data_out, and workspace root
+    for subdir in ["data_in", "data_out", ""]:
+        candidate = workspace_path / subdir / request.path if subdir else workspace_path / request.path
+        if candidate.exists() and candidate.is_file():
+            file_path = candidate
+            break
+
+    if not file_path:
+        raise HTTPException(404, f"PDF not found: {request.path}")
+
+    if not file_path.suffix.lower() == ".pdf":
+        raise HTTPException(400, f"Not a PDF file: {request.path}")
+
+    try:
+        import fitz  # PyMuPDF
+
+        doc = fitz.open(str(file_path))
+        title = doc.metadata.get("title", "") or file_path.stem
+        pages = []
+
+        page_indices = (
+            [p - 1 for p in request.pages if 0 < p <= len(doc)]
+            if request.pages
+            else range(len(doc))
+        )
+
+        for idx in page_indices:
+            page = doc[idx]
+            text = page.get_text("text")
+            pages.append({"page": idx + 1, "text": text.strip()})
+
+        doc.close()
+
+        return {
+            "title": title,
+            "total_pages": len(doc) if hasattr(doc, "__len__") else len(pages),
+            "pages": pages,
+        }
+    except ImportError:
+        # Fallback: try pdfminer.six if available
+        try:
+            from pdfminer.high_level import extract_text
+
+            text = extract_text(str(file_path))
+            return {
+                "title": file_path.stem,
+                "total_pages": 1,
+                "pages": [{"page": 1, "text": text.strip()}],
+            }
+        except ImportError:
+            raise HTTPException(
+                501,
+                "PDF extraction requires PyMuPDF (pip install pymupdf) or "
+                "pdfminer.six (pip install pdfminer.six)",
+            )

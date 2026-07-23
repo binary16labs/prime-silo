@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Reader · ReKindle</title>
+  <link rel="stylesheet" href="css/rekindle.css">
+  <!-- Vendored: no CDN — LAN has no internet -->
+  <script src="vendor/marked.min.js"></script>
+  <script src="vendor/pdf.min.js"></script>
+</head>
+<body>
+
+<div class="window">
+  <!-- Title Bar -->
+  <div class="title-bar">
+    <button class="btn-back" onclick="goBack()">◀</button>
+    <div class="title-stripes"></div>
+    <span class="title-text" id="titleText">Reader</span>
+    <button class="btn-action" id="editBtn" onclick="openInEditor()" style="display:none;" title="Edit">✎</button>
+  </div>
+
+  <!-- Offline Banner (hidden by default) -->
+  <div class="offline-banner" id="offlineBanner" style="display:none;">
+    ⚠ Offline — showing cached copy
+  </div>
+
+  <!-- Reader Toolbar (collapsible via center tap zone) -->
+  <div class="toolbar" id="readerToolbar" style="display:none;">
+    <button class="btn" id="prevBtn" onclick="goToPrevPage()">◀ Prev</button>
+    <span id="pageInfo" style="font-size:13px; font-weight:bold; padding:0 8px;">—</span>
+    <button class="btn" id="nextBtn" onclick="goToNextPage()">Next ▶</button>
+    <div class="spacer"></div>
+    <button class="btn" id="fontDown" onclick="changeFontSize(-1)">A−</button>
+    <button class="btn" id="fontUp" onclick="changeFontSize(1)">A+</button>
+    <button class="btn" id="askBennyBtn" onclick="askBenny()" title="Ask Benny about this document">🤖 Ask</button>
+    <button class="btn" onclick="bridge.utils.refreshScreen()" title="Refresh screen">⟳</button>
+  </div>
+
+  <!-- Content Viewport -->
+  <div class="reader-viewport" id="viewport">
+    <div class="loading-indicator" id="loading">Opening document...</div>
+
+    <!-- Tap Zone Overlay -->
+    <div class="tap-zone-overlay active" id="tapOverlay">
+      <div class="tap-zone tap-zone-prev" id="tapPrev"></div>
+      <div class="tap-zone tap-zone-center" id="tapCenter"></div>
+      <div class="tap-zone tap-zone-next" id="tapNext"></div>
+    </div>
+  </div>
+
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <span id="statusText">—</span>
+    <span id="statusMeta"></span>
+  </div>
+</div>
+
+<script type="module">
+  import { bridge } from './space-bridge.js';
+
+  // Expose bridge on window for onclick handlers
+  window.bridge = bridge;
+
+  const params   = new URLSearchParams(location.search);
+  const filePath = params.get('file') || '';
+  const fileType = params.get('type') || detectType(filePath);
+
+  let fontSize = 16;
+  let currentPage = 1;
+  let totalPages = 0;
+  let pdfDoc = null;
+  let textPages = [];  // For paginated markdown/text
+  let toolbarVisible = true;
+  let isFromCache = false;
+
+  function detectType(path) {
+    const ext = bridge.utils.fileExtension(path);
+    if (ext === 'epub') return 'epub';
+    if (ext === 'pdf')  return 'pdf';
+    if (['md', 'markdown'].includes(ext)) return 'markdown';
+    return 'text';
+  }
+
+  // ── Navigation ─────────────────────────────────────
+  window.goBack = function() {
+    if (document.referrer && document.referrer.includes('rekindle')) {
+      history.back();
+    } else {
+      location.href = 'files.html';
+    }
+  };
+
+  window.openInEditor = function() {
+    location.href = `editor.html?file=${encodeURIComponent(filePath)}`;
+  };
+
+  window.askBenny = function() {
+    location.href = `chat.html?doc=${encodeURIComponent(filePath)}&workspace=default`;
+  };
+
+  window.changeFontSize = function(delta) {
+    fontSize = Math.max(10, Math.min(28, fontSize + delta));
+    document.getElementById('viewport').style.fontSize = fontSize + 'px';
+    if (fileType !== 'pdf') {
+      // Re-paginate on font size change
+      repaginateText();
+    }
+  };
+
+  // ── Page Navigation (unified for PDF + text) ───────
+  window.goToPrevPage = function() {
+    if (currentPage > 1) {
+      currentPage--;
+      renderCurrentPage();
+    }
+  };
+
+  window.goToNextPage = function() {
+    if (currentPage < totalPages) {
+      currentPage++;
+      renderCurrentPage();
+    }
+  };
+
+  function renderCurrentPage() {
+    if (fileType === 'pdf') {
+      renderPdfPage();
+    } else {
+      renderTextPage();
+    }
+    updatePageInfo();
+    // Persist reading position
+    bridge.readingPosition.save(filePath, currentPage, totalPages);
+  }
+
+  function updatePageInfo() {
+    document.getElementById('pageInfo').textContent = `${currentPage} / ${totalPages}`;
+  }
+
+  // ── Tap Zones ──────────────────────────────────────
+  const tapPrev   = document.getElementById('tapPrev');
+  const tapCenter = document.getElementById('tapCenter');
+  const tapNext   = document.getElementById('tapNext');
+
+  function flashTap(el) {
+    el.classList.add('tapped');
+    setTimeout(() => el.classList.remove('tapped'), 100);
+  }
+
+  tapPrev.addEventListener('click', (e) => {
+    e.preventDefault();
+    flashTap(tapPrev);
+    goToPrevPage();
+  });
+
+  tapNext.addEventListener('click', (e) => {
+    e.preventDefault();
+    flashTap(tapNext);
+    goToNextPage();
+  });
+
+  tapCenter.addEventListener('click', (e) => {
+    e.preventDefault();
+    toggleToolbar();
+  });
+
+  function toggleToolbar() {
+    const toolbar = document.getElementById('readerToolbar');
+    toolbarVisible = !toolbarVisible;
+    toolbar.style.display = toolbarVisible ? 'flex' : 'none';
+  }
+
+  // ── PDF Rendering ──────────────────────────────────
+  async function renderPdfPage() {
+    if (!pdfDoc) return;
+    const page = await pdfDoc.getPage(currentPage);
+    const vp = document.getElementById('viewport');
+    const canvas = document.getElementById('pdfCanvas');
+
+    // Scale to fit viewport width
+    const containerWidth = vp.clientWidth - 4;
+    const unscaledViewport = page.getViewport({ scale: 1 });
+    const scale = containerWidth / unscaledViewport.width;
+    const viewport = page.getViewport({ scale });
+
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    await page.render({ canvasContext: ctx, viewport }).promise;
+  }
+
+  // ── Text/Markdown Pagination ───────────────────────
+  // Split rendered content into viewport-sized pages.
+  // Strategy: render all content into a hidden container, then
+  // slice into pages by measuring element positions vs viewport height.
+
+  let fullContent = '';   // Raw text/markdown content
+  let renderedHTML = '';  // Rendered HTML for markdown
+
+  function paginateContent() {
+    const vp = document.getElementById('viewport');
+    const vpHeight = vp.clientHeight - 40; // Leave margin for page breathing room
+
+    // Create a measurement container
+    const measurer = document.createElement('div');
+    measurer.className = 'preview-area';
+    measurer.style.cssText = `
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: ${vp.clientWidth - 24}px;
+      visibility: hidden;
+      font-size: ${fontSize}px;
+      padding: 0;
+    `;
+
+    if (fileType === 'markdown') {
+      measurer.innerHTML = renderedHTML;
+    } else {
+      measurer.innerHTML = `<pre style="white-space:pre-wrap; font-family:var(--font-mono); font-size:${fontSize}px; padding:0; margin:0; border:none;">${escapeHtml(fullContent)}</pre>`;
+    }
+
+    vp.appendChild(measurer);
+
+    // Walk through child elements and split into pages
+    textPages = [];
+    let pageStart = 0;
+    const allNodes = measurer.childNodes;
+
+    if (allNodes.length === 0) {
+      textPages = [measurer.innerHTML || '<div class="empty-state">Empty document</div>'];
+      measurer.remove();
+      return;
+    }
+
+    // For simple content, use line-based pagination
+    const totalHeight = measurer.scrollHeight;
+    if (totalHeight <= vpHeight) {
+      textPages = [measurer.innerHTML];
+      measurer.remove();
+      return;
+    }
+
+    // Split by paragraphs/blocks — collect top-level elements
+    const blocks = [];
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = measurer.innerHTML;
+    for (const child of tempDiv.children) {
+      blocks.push({
+        html: child.outerHTML,
+        height: 0,
+      });
+    }
+
+    // If no block-level children (e.g. plain text pre), fall back to character chunking
+    if (blocks.length === 0) {
+      // Character-based pagination for plain text
+      const charsPerPage = Math.floor(vpHeight / (fontSize * 1.9)) * Math.floor((vp.clientWidth - 24) / (fontSize * 0.6));
+      for (let i = 0; i < fullContent.length; i += charsPerPage) {
+        const chunk = fullContent.slice(i, i + charsPerPage);
+        textPages.push(`<pre style="white-space:pre-wrap; font-family:var(--font-mono); font-size:${fontSize}px; padding:0; margin:0; border:none;">${escapeHtml(chunk)}</pre>`);
+      }
+      measurer.remove();
+      return;
+    }
+
+    // Measure each block's height
+    const measureBlock = document.createElement('div');
+    measureBlock.className = 'preview-area';
+    measureBlock.style.cssText = measurer.style.cssText;
+    vp.appendChild(measureBlock);
+
+    for (const block of blocks) {
+      measureBlock.innerHTML = block.html;
+      block.height = measureBlock.scrollHeight;
+    }
+    measureBlock.remove();
+
+    // Group blocks into pages
+    let currentPageHTML = '';
+    let currentHeight = 0;
+
+    for (const block of blocks) {
+      if (currentHeight + block.height > vpHeight && currentPageHTML) {
+        textPages.push(currentPageHTML);
+        currentPageHTML = block.html;
+        currentHeight = block.height;
+      } else {
+        currentPageHTML += block.html;
+        currentHeight += block.height;
+      }
+    }
+    if (currentPageHTML) {
+      textPages.push(currentPageHTML);
+    }
+
+    measurer.remove();
+  }
+
+  function repaginateText() {
+    if (fileType === 'pdf') return;
+    const savedPage = currentPage;
+    paginateContent();
+    totalPages = textPages.length;
+    currentPage = Math.min(savedPage, totalPages);
+    if (currentPage < 1) currentPage = 1;
+    renderTextPage();
+    updatePageInfo();
+    bridge.readingPosition.save(filePath, currentPage, totalPages);
+  }
+
+  function renderTextPage() {
+    const vp = document.getElementById('viewport');
+    // Clear existing content but keep tap overlay
+    const overlay = document.getElementById('tapOverlay');
+    vp.innerHTML = '';
+    vp.appendChild(overlay);
+
+    if (textPages.length === 0) return;
+
+    const pageContainer = document.createElement('div');
+    pageContainer.className = 'preview-area';
+    pageContainer.innerHTML = textPages[currentPage - 1] || '';
+    pageContainer.style.fontSize = fontSize + 'px';
+    vp.appendChild(pageContainer);
+  }
+
+  // ── Load Document ───────────────────────────────────
+  async function loadDocument() {
+    const loading  = document.getElementById('loading');
+    const vp       = document.getElementById('viewport');
+    const title    = document.getElementById('titleText');
+    const toolbar  = document.getElementById('readerToolbar');
+    const editBtn  = document.getElementById('editBtn');
+    const status   = document.getElementById('statusText');
+    const meta     = document.getElementById('statusMeta');
+
+    const fileName = filePath.split('/').pop() || 'Untitled';
+    title.textContent = fileName;
+
+    if (!filePath) {
+      loading.textContent = 'No file specified. Open a file from the Files app.';
+      status.textContent = 'No file';
+      return;
+    }
+
+    // Show toolbar
+    toolbar.style.display = 'flex';
+
+    try {
+      if (fileType === 'pdf') {
+        await loadPdf(vp, loading, toolbar, status, meta);
+      } else if (fileType === 'markdown' || fileType === 'text') {
+        await loadText(vp, loading, status, meta, editBtn);
+      } else if (fileType === 'epub') {
+        await loadEpubFallback(vp, loading, status, meta);
+      }
+    } catch (err) {
+      // Try cache fallback
+      const cached = bridge.cache.get('reader_' + filePath);
+      if (cached) {
+        isFromCache = true;
+        document.getElementById('offlineBanner').style.display = 'block';
+        fullContent = cached;
+        if (fileType === 'markdown' && typeof marked !== 'undefined') {
+          renderedHTML = marked.parse(fullContent);
+        }
+        loading.style.display = 'none';
+        toolbar.style.display = 'flex';
+        editBtn.style.display = 'flex';
+        paginateContent();
+        totalPages = textPages.length;
+        restorePosition();
+        renderCurrentPage();
+        status.textContent = filePath + ' (cached)';
+        meta.textContent = bridge.utils.formatBytes(cached.length);
+      } else {
+        loading.textContent = 'Error: ' + (err.message || 'Could not load document');
+        status.textContent = 'Error';
+      }
+    }
+  }
+
+  // ── Restore Reading Position ────────────────────────
+  function restorePosition() {
+    const saved = bridge.readingPosition.get(filePath);
+    if (saved && saved.page > 0 && saved.page <= totalPages) {
+      currentPage = saved.page;
+    } else {
+      currentPage = 1;
+    }
+  }
+
+  // ── PDF Loading ─────────────────────────────────────
+  async function loadPdf(vp, loading, toolbar, status, meta) {
+    if (typeof pdfjsLib !== 'undefined') {
+      try {
+        // Vendored worker — no CDN
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdf.worker.min.js';
+
+        // Fetch PDF binary via Space Agent file API
+        const cfg = bridge.config.load();
+        const url = cfg.spaceUrl + '/api/file_read';
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ path: filePath, encoding: 'base64' }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const binary = atob(data.content || '');
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+          pdfDoc = await pdfjsLib.getDocument({ data: bytes }).promise;
+          totalPages = pdfDoc.numPages;
+
+          loading.style.display = 'none';
+          vp.classList.add('pdf-viewport');
+
+          // Keep tap overlay, add canvas
+          const overlay = document.getElementById('tapOverlay');
+          vp.innerHTML = '';
+          vp.appendChild(overlay);
+          const canvas = document.createElement('canvas');
+          canvas.id = 'pdfCanvas';
+          vp.appendChild(canvas);
+
+          restorePosition();
+          renderPdfPage();
+          updatePageInfo();
+          status.textContent = filePath;
+          meta.textContent = totalPages + ' pages';
+          return;
+        }
+      } catch (e) {
+        console.warn('pdf.js failed, falling back to server extraction:', e);
+      }
+    }
+
+    // Fallback: server-side text extraction via Benny
+    try {
+      const result = await bridge.workspaceFiles.pdfExtract(filePath);
+      loading.style.display = 'none';
+
+      const pages = result.pages || [];
+      fullContent = pages.map(p => `── Page ${p.page} ──\n\n${p.text}`).join('\n\n');
+      renderedHTML = '';
+
+      // Paginate extracted text
+      paginateContent();
+      totalPages = textPages.length;
+      restorePosition();
+      renderCurrentPage();
+      status.textContent = filePath;
+      meta.textContent = pages.length + ' pages (text)';
+    } catch (err2) {
+      loading.textContent = 'Could not render PDF. Error: ' + err2.message;
+    }
+  }
+
+  // ── Markdown/Text Loading ───────────────────────────
+  async function loadText(vp, loading, status, meta, editBtn) {
+    const result = await bridge.files.read(filePath);
+    fullContent = result.content || result.text || (typeof result === 'string' ? result : '');
+
+    loading.style.display = 'none';
+    editBtn.style.display = 'flex';
+
+    // Render markdown
+    if (fileType === 'markdown' && typeof marked !== 'undefined') {
+      renderedHTML = marked.parse(fullContent);
+    } else {
+      renderedHTML = '';
+    }
+
+    // Paginate
+    paginateContent();
+    totalPages = textPages.length;
+    restorePosition();
+    renderCurrentPage();
+
+    status.textContent = filePath;
+    meta.textContent = bridge.utils.formatBytes(fullContent.length);
+
+    // Cache for offline
+    bridge.cache.set('reader_' + filePath, fullContent);
+  }
+
+  // ── EPUB Fallback (text-only for e-ink) ─────────────
+  async function loadEpubFallback(vp, loading, status, meta) {
+    loading.textContent = 'EPUB support requires epub.js. For now, try converting to PDF or Markdown.';
+    status.textContent = 'EPUB (limited)';
+    meta.textContent = '';
+  }
+
+  function escapeHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  // ── Init ─────────────────────────────────────────────
+  loadDocument();
+</script>
+
+</body>
+</html>

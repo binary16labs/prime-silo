@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Logs · ReKindle</title>
+  <link rel="stylesheet" href="css/rekindle.css">
+</head>
+<body>
+
+<div class="window">
+  <!-- Title Bar -->
+  <div class="title-bar">
+    <button class="btn-back" onclick="location.href='index.html'">◀</button>
+    <div class="title-stripes"></div>
+    <span class="title-text">System Logs<span class="conn-dot" id="connDot"></span></span>
+  </div>
+
+  <!-- Source Tabs -->
+  <div class="tabs" id="sourceTabs">
+    <div class="tab active" data-source="benny" onclick="switchSource('benny')">Benny</div>
+    <div class="tab" data-source="space" onclick="switchSource('space')">Space Agent</div>
+    <div class="tab" data-source="longview" onclick="switchSource('longview')">Longview</div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <button class="btn" id="pauseBtn" onclick="togglePause()">⏸ Pause</button>
+    <button class="btn" onclick="clearLog()">✕ Clear</button>
+    <div class="spacer"></div>
+    <button class="btn" onclick="downloadLog()">↓ Save</button>
+    <button class="btn" onclick="bridge.utils.refreshScreen()" title="Refresh screen">⟳</button>
+  </div>
+
+  <!-- Terminal Output -->
+  <div class="terminal-output" id="terminal"></div>
+
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <span id="statusText">Connecting...</span>
+    <span id="lineCount">0 lines</span>
+  </div>
+</div>
+
+<script type="module">
+  import { bridge } from './space-bridge.js';
+
+  // Expose bridge on window for onclick handlers
+  window.bridge = bridge;
+
+  const terminal  = document.getElementById('terminal');
+  const dot       = document.getElementById('connDot');
+  const status    = document.getElementById('statusText');
+  const lineCount = document.getElementById('lineCount');
+  const pauseBtn  = document.getElementById('pauseBtn');
+
+  let currentSource = 'benny';
+  let connection = null;
+  let isPaused = false;
+  let lines = [];
+  let totalLines = 0;
+  const MAX_LINES = 500;
+
+  // ── Source Switching ────────────────────────────────
+  window.switchSource = function(source) {
+    currentSource = source;
+
+    // Update tab UI
+    document.querySelectorAll('.tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.source === source);
+    });
+
+    // Reconnect
+    clearLog();
+    connectToLogs();
+  };
+
+  // ── Connect via SSE ─────────────────────────────────
+  function connectToLogs() {
+    if (connection) connection.close();
+
+    dot.className = 'conn-dot offline';
+    status.textContent = 'Connecting to ' + currentSource + '...';
+
+    connection = bridge.logs.connect(
+      { source: currentSource, lines: 100 },
+      (line, severity) => {
+        if (isPaused) return;
+        addLine(line, severity);
+      }
+    );
+
+    // Check connection state
+    setTimeout(() => {
+      if (connection && connection.readyState === 1) {
+        dot.className = 'conn-dot online';
+        status.textContent = 'Connected · ' + currentSource;
+      }
+    }, 1000);
+  }
+
+  // ── Add Log Line ────────────────────────────────────
+  function addLine(text, severity = 'info') {
+    totalLines++;
+
+    // Create line element
+    const el = document.createElement('div');
+    el.className = 'log-line ' + classifySeverity(text, severity);
+
+    // Timestamp prefix
+    const now = new Date();
+    const ts = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    el.textContent = ts + '  ' + text;
+
+    terminal.appendChild(el);
+    lines.push({ text, severity, ts });
+
+    // Trim old lines
+    while (terminal.children.length > MAX_LINES) {
+      terminal.removeChild(terminal.firstChild);
+      lines.shift();
+    }
+
+    // Auto-scroll to bottom
+    terminal.scrollTop = terminal.scrollHeight;
+    lineCount.textContent = totalLines + ' lines';
+  }
+
+  function classifySeverity(text, hint) {
+    if (hint === 'error' || /\b(error|exception|traceback|fatal)\b/i.test(text)) return 'error';
+    if (hint === 'warn' || /\b(warn|warning|⚠)\b/i.test(text)) return 'warn';
+    if (hint === 'success' || /\b(✓|success|completed|ok)\b/i.test(text)) return 'success';
+    return 'info';
+  }
+
+  // ── Pause / Resume ──────────────────────────────────
+  window.togglePause = function() {
+    isPaused = !isPaused;
+    pauseBtn.textContent = isPaused ? '▶ Resume' : '⏸ Pause';
+    pauseBtn.classList.toggle('active', isPaused);
+    status.textContent = isPaused
+      ? 'Paused · ' + currentSource
+      : 'Connected · ' + currentSource;
+  };
+
+  // ── Clear ───────────────────────────────────────────
+  window.clearLog = function() {
+    terminal.innerHTML = '';
+    lines = [];
+    totalLines = 0;
+    lineCount.textContent = '0 lines';
+  };
+
+  // ── Download ────────────────────────────────────────
+  window.downloadLog = function() {
+    const content = lines.map(l => l.ts + '  ' + l.text).join('\n');
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${currentSource}-logs-${new Date().toISOString().slice(0,10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // ── Init ─────────────────────────────────────────────
+  connectToLogs();
+</script>
+
+</body>
+</html>

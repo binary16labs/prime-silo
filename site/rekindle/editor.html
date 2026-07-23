@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Editor · ReKindle</title>
+  <link rel="stylesheet" href="css/rekindle.css">
+  <!-- marked.js for Markdown preview (vendored for offline LAN) -->
+  <script src="vendor/marked.min.js"></script>
+  <style>
+    .editor-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+    .editor-textarea,
+    .preview-area {
+      flex: 1;
+      overflow-y: auto;
+    }
+    .hidden { display: none !important; }
+    .dirty-indicator {
+      color: var(--text);
+      font-weight: bold;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="window">
+  <!-- Title Bar -->
+  <div class="title-bar">
+    <button class="btn-back" onclick="goBack()">◀</button>
+    <div class="title-stripes"></div>
+    <span class="title-text">
+      <span id="fileName">Editor</span>
+      <span class="dirty-indicator" id="dirtyDot" style="display:none;">●</span>
+    </span>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <button class="btn active" id="btnEdit" onclick="setMode('edit')">✎ Edit</button>
+    <button class="btn" id="btnPreview" onclick="setMode('preview')">👁 Preview</button>
+    <div class="spacer"></div>
+    <button class="btn" id="btnSave" onclick="saveFile()" title="Save">💾 Save</button>
+  </div>
+
+  <!-- Editor / Preview Area -->
+  <div class="editor-wrap">
+    <textarea class="editor-textarea" id="editor"
+      spellcheck="false" autocorrect="off" autocapitalize="off"
+      placeholder="Start writing..."></textarea>
+    <div class="preview-area hidden" id="preview"></div>
+  </div>
+
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <span id="statusText">Ready</span>
+    <div class="status-actions">
+      <span id="statusMeta"></span>
+      <button class="status-btn" onclick="bridge.utils.refreshScreen()" title="Refresh screen">⟳</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { bridge } from './space-bridge.js';
+  window.bridge = bridge;
+
+  const params   = new URLSearchParams(location.search);
+  const filePath = params.get('file') || '';
+  const readOnly = params.get('readonly') === 'true';
+
+  const editor   = document.getElementById('editor');
+  const preview  = document.getElementById('preview');
+  const btnEdit  = document.getElementById('btnEdit');
+  const btnPrev  = document.getElementById('btnPreview');
+  const nameEl   = document.getElementById('fileName');
+  const dirtyDot = document.getElementById('dirtyDot');
+  const status   = document.getElementById('statusText');
+  const meta     = document.getElementById('statusMeta');
+
+  let originalContent = '';
+  let currentMode = 'edit';
+  let isDirty = false;
+  let autoSaveTimer = null;
+
+  // ── Mode Toggle ─────────────────────────────────────
+  window.setMode = function(mode) {
+    currentMode = mode;
+
+    if (mode === 'edit') {
+      editor.classList.remove('hidden');
+      preview.classList.add('hidden');
+      btnEdit.classList.add('active');
+      btnPrev.classList.remove('active');
+    } else {
+      editor.classList.add('hidden');
+      preview.classList.remove('hidden');
+      btnPrev.classList.add('active');
+      btnEdit.classList.remove('active');
+
+      // Render markdown preview
+      const content = editor.value;
+      const ext = bridge.utils.fileExtension(filePath);
+      if (['md', 'markdown'].includes(ext) && typeof marked !== 'undefined') {
+        preview.innerHTML = marked.parse(content);
+      } else {
+        preview.innerHTML = `<pre style="white-space:pre-wrap;">${escapeHtml(content)}</pre>`;
+      }
+    }
+  };
+
+  // ── Save ────────────────────────────────────────────
+  window.saveFile = async function() {
+    if (!filePath) {
+      status.textContent = 'No file path — cannot save';
+      return;
+    }
+
+    status.textContent = 'Saving...';
+    try {
+      await bridge.files.write(filePath, editor.value);
+      originalContent = editor.value;
+      isDirty = false;
+      dirtyDot.style.display = 'none';
+      status.textContent = 'Saved ✓';
+      bridge.cache.set('editor_' + filePath, editor.value);
+    } catch (err) {
+      status.textContent = 'Save failed: ' + (err.message || 'Unknown error');
+    }
+  };
+
+  window.goBack = function() {
+    if (isDirty) {
+      if (!confirm('You have unsaved changes. Leave anyway?')) return;
+    }
+    if (document.referrer && document.referrer.includes('rekindle')) {
+      history.back();
+    } else {
+      location.href = 'files.html';
+    }
+  };
+
+  // ── Dirty tracking ──────────────────────────────────
+  editor.addEventListener('input', () => {
+    isDirty = editor.value !== originalContent;
+    dirtyDot.style.display = isDirty ? 'inline' : 'none';
+    updateMeta();
+
+    // Auto-save draft to localStorage every 5 seconds of inactivity
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(() => {
+      if (filePath && isDirty) {
+        bridge.cache.set('editor_draft_' + filePath, editor.value);
+      }
+    }, 5000);
+  });
+
+  function updateMeta() {
+    const lines = editor.value.split('\n').length;
+    const chars = editor.value.length;
+    meta.textContent = `${lines} lines · ${bridge.utils.formatBytes(chars)}`;
+  }
+
+  // ── Load File ───────────────────────────────────────
+  async function loadFile() {
+    const fileName = filePath.split('/').pop() || 'New Document';
+    nameEl.textContent = fileName;
+
+    if (!filePath) {
+      editor.value = '';
+      status.textContent = 'New document';
+      updateMeta();
+      return;
+    }
+
+    status.textContent = 'Loading...';
+
+    // Check for a draft in localStorage first
+    const draft = bridge.cache.get('editor_draft_' + filePath, 86400000); // 24h
+
+    try {
+      const result = await bridge.files.read(filePath);
+      const content = result.content || result.text || (typeof result === 'string' ? result : '');
+
+      if (draft && draft !== content) {
+        // There's a newer draft — ask user
+        if (confirm('A local draft was found that differs from the saved file. Restore the draft?')) {
+          editor.value = draft;
+          isDirty = true;
+          dirtyDot.style.display = 'inline';
+        } else {
+          editor.value = content;
+          bridge.cache.remove('editor_draft_' + filePath);
+        }
+      } else {
+        editor.value = content;
+      }
+
+      originalContent = content;
+      status.textContent = filePath;
+      bridge.cache.set('editor_' + filePath, content);
+    } catch (err) {
+      // Offline fallback: try cached content
+      const cached = bridge.cache.get('editor_' + filePath);
+      if (cached) {
+        editor.value = cached;
+        originalContent = cached;
+        status.textContent = filePath + ' (cached)';
+      } else if (draft) {
+        editor.value = draft;
+        status.textContent = filePath + ' (draft only)';
+      } else {
+        status.textContent = 'Error: ' + (err.message || 'Could not load file');
+      }
+    }
+
+    if (readOnly) {
+      editor.readOnly = true;
+      document.getElementById('btnSave').style.display = 'none';
+      setMode('preview');
+    }
+
+    updateMeta();
+  }
+
+  // ── Keyboard shortcut: Ctrl+S ───────────────────────
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault();
+      saveFile();
+    }
+  });
+
+  function escapeHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  // ── Init ─────────────────────────────────────────────
+  loadFile();
+</script>
+
+</body>
+</html>

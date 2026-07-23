@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ReKindle · Space Agent</title>
+  <link rel="stylesheet" href="css/rekindle.css">
+</head>
+<body>
+
+<div class="window" id="app">
+  <!-- Title Bar -->
+  <div class="title-bar">
+    <div class="title-stripes"></div>
+    <span class="title-text">ReKindle<span class="conn-dot" id="connDot" title="Checking..."></span></span>
+    <button class="btn-action" onclick="location.href='settings.html'" title="Settings">⚙</button>
+  </div>
+
+  <!-- App Grid -->
+  <div class="content">
+    <div class="app-grid" id="appGrid">
+
+      <a href="files.html" class="app-tile">
+        <span class="icon">📁</span>
+        <span class="label">Files</span>
+      </a>
+
+      <a href="reader.html" class="app-tile">
+        <span class="icon">📖</span>
+        <span class="label">Reader</span>
+      </a>
+
+      <a href="editor.html" class="app-tile">
+        <span class="icon">📝</span>
+        <span class="label">Editor</span>
+      </a>
+
+      <a href="chat.html" class="app-tile">
+        <span class="icon">🤖</span>
+        <span class="label">Benny AI</span>
+      </a>
+
+      <a href="terminal.html" class="app-tile">
+        <span class="icon">🖥️</span>
+        <span class="label">Logs</span>
+      </a>
+
+      <a href="settings.html" class="app-tile">
+        <span class="icon">⚙️</span>
+        <span class="label">Settings</span>
+      </a>
+
+    </div>
+  </div>
+
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <span id="statusText">Connecting...</span>
+    <div class="status-actions">
+      <span id="statusUser"></span>
+      <button class="status-btn" onclick="checkConnection()" title="Reconnect">↻</button>
+      <button class="status-btn" onclick="bridge.utils.refreshScreen()" title="Refresh screen (clear ghosting)">⟳</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { bridge } from './space-bridge.js';
+
+  // Expose bridge on window so onclick handlers work
+  window.bridge = bridge;
+
+  const dot  = document.getElementById('connDot');
+  const text = document.getElementById('statusText');
+  const user = document.getElementById('statusUser');
+
+  window.checkConnection = async function() {
+    text.textContent = 'Checking...';
+    dot.className = 'conn-dot';
+
+    try {
+      const { space, benny } = await bridge.health.checkAll();
+
+      if (space && benny) {
+        dot.className = 'conn-dot online';
+        dot.title = 'Connected';
+        text.textContent = 'Space Agent ● Benny';
+      } else if (space) {
+        dot.className = 'conn-dot online';
+        dot.title = 'Space Agent only';
+        text.textContent = 'Space Agent ● (Benny offline)';
+      } else if (benny) {
+        dot.className = 'conn-dot online';
+        dot.title = 'Benny only';
+        text.textContent = '(Space Agent offline) ● Benny';
+      } else {
+        dot.className = 'conn-dot offline';
+        dot.title = 'Disconnected';
+        text.textContent = 'Offline — check Settings';
+      }
+
+      // Try to get user info
+      if (space) {
+        try {
+          const info = await bridge.auth.check();
+          if (info && info.authenticated !== false && info.username) {
+            user.textContent = info.username;
+          }
+        } catch { /* not authenticated */ }
+      }
+    } catch {
+      dot.className = 'conn-dot offline';
+      dot.title = 'Disconnected';
+      text.textContent = 'Offline';
+    }
+  };
+
+  // Check once on load — no 30s polling (needless repaints on e-ink)
+  checkConnection();
+</script>
+
+</body>
+</html>

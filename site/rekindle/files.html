@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Files · ReKindle</title>
+  <link rel="stylesheet" href="css/rekindle.css">
+</head>
+<body>
+
+<div class="window">
+  <!-- Title Bar -->
+  <div class="title-bar">
+    <button class="btn-back" onclick="location.href='index.html'">◀</button>
+    <div class="title-stripes"></div>
+    <span class="title-text">Files</span>
+  </div>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb" id="breadcrumb">
+    <a onclick="navigate('~/')">Home</a>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <button class="btn" onclick="refresh()" title="Refresh">↻ Refresh</button>
+    <div class="spacer"></div>
+    <button class="btn" onclick="toggleSort()" id="sortBtn" title="Sort">A→Z</button>
+  </div>
+
+  <!-- File List -->
+  <div class="content" id="fileContent">
+    <div class="loading-indicator" id="loading">Loading files...</div>
+    <ul class="file-list" id="fileList" style="display:none;"></ul>
+    <div class="empty-state" id="emptyState" style="display:none;">No files found</div>
+  </div>
+
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <span id="statusText">—</span>
+    <div class="status-actions">
+      <span id="itemCount"></span>
+      <button class="status-btn" onclick="bridge.utils.refreshScreen()" title="Refresh screen">⟳</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { bridge } from './space-bridge.js';
+
+  // Expose bridge on window for onclick handlers
+  window.bridge = bridge;
+
+  let currentPath = '~/';
+  let sortAsc = true;
+  let fileEntries = [];
+
+  // ── Navigation ───────────────────────────────────────
+  window.navigate = function(path) {
+    currentPath = path;
+    loadFiles();
+  };
+
+  window.refresh = function() {
+    loadFiles();
+  };
+
+  window.toggleSort = function() {
+    sortAsc = !sortAsc;
+    document.getElementById('sortBtn').textContent = sortAsc ? 'A→Z' : 'Z→A';
+    renderList();
+  };
+
+  // ── Open file based on type ──────────────────────────
+  function openFile(entry) {
+    const ext = bridge.utils.fileExtension(entry.name || entry.path || '');
+    const path = entry.path || currentPath + entry.name;
+
+    if (['md', 'txt', 'json', 'yaml', 'yml', 'js', 'py', 'html', 'css'].includes(ext)) {
+      // Open readable text formats in the reader for e-ink paging
+      if (['md', 'txt'].includes(ext)) {
+        location.href = `reader.html?file=${encodeURIComponent(path)}&type=${ext === 'md' ? 'markdown' : 'text'}`;
+      } else {
+        location.href = `editor.html?file=${encodeURIComponent(path)}`;
+      }
+    } else if (['epub'].includes(ext)) {
+      location.href = `reader.html?file=${encodeURIComponent(path)}&type=epub`;
+    } else if (['pdf'].includes(ext)) {
+      location.href = `reader.html?file=${encodeURIComponent(path)}&type=pdf`;
+    } else {
+      // Try to open in editor as plain text
+      location.href = `editor.html?file=${encodeURIComponent(path)}`;
+    }
+  }
+
+  // ── Load & Render ────────────────────────────────────
+  async function loadFiles() {
+    const loading = document.getElementById('loading');
+    const list    = document.getElementById('fileList');
+    const empty   = document.getElementById('emptyState');
+    const status  = document.getElementById('statusText');
+    const count   = document.getElementById('itemCount');
+
+    loading.style.display = 'block';
+    list.style.display    = 'none';
+    empty.style.display   = 'none';
+    status.textContent    = 'Loading...';
+
+    updateBreadcrumb();
+
+    try {
+      const result = await bridge.files.list(currentPath);
+      fileEntries = Array.isArray(result) ? result : (result.files || result.entries || []);
+      status.textContent = currentPath;
+      renderList();
+    } catch (err) {
+      loading.style.display = 'none';
+      empty.style.display   = 'block';
+      empty.textContent     = 'Error: ' + (err.message || 'Could not load files');
+      status.textContent    = 'Error';
+      count.textContent     = '';
+
+      // Try to show cached version
+      const cached = bridge.cache.get('files_' + currentPath);
+      if (cached) {
+        fileEntries = cached;
+        empty.textContent += ' (showing cached)';
+        renderList();
+      }
+    }
+  }
+
+  function renderList() {
+    const loading = document.getElementById('loading');
+    const list    = document.getElementById('fileList');
+    const empty   = document.getElementById('emptyState');
+    const count   = document.getElementById('itemCount');
+
+    loading.style.display = 'none';
+
+    // Sort: directories first, then by name
+    const sorted = [...fileEntries].sort((a, b) => {
+      const aDir = a.isDir || a.is_dir || false;
+      const bDir = b.isDir || b.is_dir || false;
+      if (aDir !== bDir) return bDir - aDir;
+      const aName = (a.name || a.path || '').toLowerCase();
+      const bName = (b.name || b.path || '').toLowerCase();
+      return sortAsc ? aName.localeCompare(bName) : bName.localeCompare(aName);
+    });
+
+    if (sorted.length === 0) {
+      list.style.display  = 'none';
+      empty.style.display = 'block';
+      empty.textContent   = 'No files found';
+      count.textContent   = '0 items';
+      return;
+    }
+
+    // Cache for offline use
+    bridge.cache.set('files_' + currentPath, sorted);
+
+    // Get saved reading positions for resume badges
+    const positions = bridge.readingPosition.getAll();
+
+    list.innerHTML = '';
+    list.style.display  = 'block';
+    empty.style.display = 'none';
+    count.textContent   = sorted.length + ' item' + (sorted.length !== 1 ? 's' : '');
+
+    for (const entry of sorted) {
+      const isDir = entry.isDir || entry.is_dir || false;
+      const name  = entry.name || entry.path || '?';
+      const size  = entry.size != null ? bridge.utils.formatBytes(entry.size) : '';
+      const icon  = bridge.utils.fileIcon(name, isDir);
+      const path  = entry.path || currentPath + name;
+
+      // Check for saved reading position
+      const pos = positions[path];
+      const resumeBadge = (pos && pos.page > 1)
+        ? `<span class="resume-badge">▸ p.${pos.page}</span>`
+        : '';
+
+      const li = document.createElement('li');
+      li.className = 'file-item';
+      li.innerHTML = `
+        <span class="file-icon">${icon}</span>
+        <span class="file-name">${escapeHtml(name)}</span>
+        ${resumeBadge}
+        <span class="file-meta">${size}</span>
+      `;
+
+      li.addEventListener('click', () => {
+        if (isDir) {
+          const dirPath = currentPath.endsWith('/') ? currentPath : currentPath + '/';
+          navigate(dirPath + name + '/');
+        } else {
+          openFile(entry);
+        }
+      });
+
+      list.appendChild(li);
+    }
+  }
+
+  function updateBreadcrumb() {
+    const bc = document.getElementById('breadcrumb');
+    const parts = currentPath.replace(/^~\/?/, '').split('/').filter(Boolean);
+
+    let html = '<a onclick="navigate(\'~/\')">Home</a>';
+    let accumulated = '~/';
+    for (const part of parts) {
+      accumulated += part + '/';
+      const p = accumulated;
+      html += `<span>›</span><a onclick="navigate('${escapeAttr(p)}')">${escapeHtml(part)}</a>`;
+    }
+    bc.innerHTML = html;
+  }
+
+  function escapeHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function escapeAttr(s) {
+    return s.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  }
+
+  // ── Init ─────────────────────────────────────────────
+  // Check URL params for a starting path
+  const params = new URLSearchParams(location.search);
+  if (params.get('path')) currentPath = params.get('path');
+
+  loadFiles();
+</script>
+
+</body>
+</html>

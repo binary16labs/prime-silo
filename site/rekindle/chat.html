@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Benny AI · ReKindle</title>
+  <link rel="stylesheet" href="css/rekindle.css">
+  <!-- Vendored: no CDN — LAN has no internet -->
+  <script src="vendor/marked.min.js"></script>
+</head>
+<body>
+
+<div class="window">
+  <!-- Title Bar -->
+  <div class="title-bar">
+    <button class="btn-back" onclick="location.href='index.html'">◀</button>
+    <div class="title-stripes"></div>
+    <span class="title-text">Benny AI<span class="conn-dot" id="connDot"></span></span>
+    <button class="btn-action" onclick="clearChat()" title="Clear">✕</button>
+  </div>
+
+  <!-- Document Context Banner (visible when ?doc= is set) -->
+  <div class="chat-doc-banner" id="docBanner" style="display:none;">
+    <span>📄</span>
+    <span id="docBannerName">Document</span>
+    <button class="doc-dismiss" onclick="dismissDocContext()" title="Remove document context">✕</button>
+  </div>
+
+  <!-- Chat Messages -->
+  <div class="chat-messages" id="chatMessages">
+    <div class="chat-bubble assistant">
+      Hello! I'm <strong>Benny</strong>, your AI assistant. Ask me anything about your workspace, documents, or any topic you'd like to explore.
+    </div>
+  </div>
+
+  <!-- Input Bar -->
+  <div class="chat-input-bar">
+    <input type="text" id="chatInput" placeholder="Ask Benny..."
+      autocomplete="off" autocorrect="off" autocapitalize="sentences">
+    <button class="btn-send" id="sendBtn" onclick="sendMessage()">→</button>
+  </div>
+
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <span id="statusText">Ready</span>
+    <div class="status-actions">
+      <span id="statusMeta"></span>
+      <button class="status-btn" onclick="bridge.utils.refreshScreen()" title="Refresh screen">⟳</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { bridge } from './space-bridge.js';
+
+  // Expose bridge on window for onclick handlers
+  window.bridge = bridge;
+
+  const messages   = document.getElementById('chatMessages');
+  const input      = document.getElementById('chatInput');
+  const sendBtn    = document.getElementById('sendBtn');
+  const dot        = document.getElementById('connDot');
+  const status     = document.getElementById('statusText');
+  const meta       = document.getElementById('statusMeta');
+
+  let isThinking = false;
+  let chatHistory = [];
+
+  // ── Document Context (from reader "Ask Benny") ─────
+  const params = new URLSearchParams(location.search);
+  let docContext = params.get('doc') || '';
+  let docWorkspace = params.get('workspace') || 'default';
+
+  if (docContext) {
+    const banner = document.getElementById('docBanner');
+    const bannerName = document.getElementById('docBannerName');
+    banner.style.display = 'flex';
+    const docFileName = docContext.split('/').pop() || docContext;
+    bannerName.textContent = `Asking about: ${docFileName}`;
+  }
+
+  window.dismissDocContext = function() {
+    docContext = '';
+    document.getElementById('docBanner').style.display = 'none';
+  };
+
+  // ── Check Benny Connection ──────────────────────────
+  async function checkBenny() {
+    const alive = await bridge.health.bennyAlive();
+    dot.className = 'conn-dot ' + (alive ? 'online' : 'offline');
+    dot.title = alive ? 'Benny online' : 'Benny offline';
+    return alive;
+  }
+  checkBenny();
+
+  // ── Send Message ────────────────────────────────────
+  window.sendMessage = async function() {
+    const text = input.value.trim();
+    if (!text || isThinking) return;
+
+    // Add user bubble
+    addBubble('user', text);
+    chatHistory.push({ role: 'user', content: text });
+    input.value = '';
+    input.focus();
+
+    // Show thinking state (static text, no animation — e-ink friendly)
+    isThinking = true;
+    sendBtn.textContent = '…';
+    status.textContent = 'Thinking...';
+    const thinkingEl = addBubble('assistant', '● ● ●');
+
+    try {
+      const opts = {};
+      if (docContext) {
+        opts.docContext = docContext;
+        opts.workspace = docWorkspace;
+      }
+      const result = await bridge.chat.send(text, opts);
+
+      // Remove thinking bubble
+      thinkingEl.remove();
+
+      // Extract response
+      const reply = result.message || result.response || result.content || JSON.stringify(result);
+
+      const replyBubble = addBubble('assistant', reply, true);
+      chatHistory.push({ role: 'assistant', content: reply });
+
+      // Render RAG sources as tappable citations
+      if (result.sources && result.sources.length > 0) {
+        const sourcesEl = renderSources(result.sources);
+        replyBubble.after(sourcesEl);
+        meta.textContent = result.sources.length + ' source' + (result.sources.length !== 1 ? 's' : '');
+      } else {
+        meta.textContent = '';
+      }
+
+      status.textContent = 'Ready';
+    } catch (err) {
+      thinkingEl.remove();
+      addBubble('assistant', '⚠ Error: ' + (err.message || 'Could not reach Benny. Check Settings.'));
+      status.textContent = 'Error';
+      meta.textContent = '';
+    }
+
+    isThinking = false;
+    sendBtn.textContent = '→';
+
+    // Save history to localStorage
+    saveChatHistory();
+  };
+
+  // ── Render RAG Sources ─────────────────────────────
+  function renderSources(sources) {
+    const list = document.createElement('ul');
+    list.className = 'chat-sources';
+
+    for (const s of sources) {
+      const sourceName = s.source || s.file || s.path || s.title || 'Unknown';
+      const displayName = sourceName.split('/').pop() || sourceName;
+      const relevance = s.relevance != null ? Math.round(s.relevance * 100) : (s.score != null ? Math.round(s.score * 100) : null);
+
+      const li = document.createElement('li');
+      const link = document.createElement('a');
+      link.className = 'chat-source-item';
+      link.href = `reader.html?file=${encodeURIComponent(sourceName)}`;
+
+      link.innerHTML = `
+        <span>📄</span>
+        <span class="chat-source-name" title="${escapeAttr(sourceName)}">${escapeHtml(displayName)}</span>
+        ${relevance != null ? `<span class="chat-source-relevance">${relevance}%</span>` : ''}
+      `;
+
+      li.appendChild(link);
+      list.appendChild(li);
+    }
+
+    return list;
+  }
+
+  // ── Clear Chat ──────────────────────────────────────
+  window.clearChat = function() {
+    if (chatHistory.length > 0 && !confirm('Clear chat history?')) return;
+    chatHistory = [];
+    messages.innerHTML = `
+      <div class="chat-bubble assistant">
+        Hello! I'm <strong>Benny</strong>, your AI assistant. Ask me anything about your workspace, documents, or any topic you'd like to explore.
+      </div>
+    `;
+    saveChatHistory();
+    status.textContent = 'Chat cleared';
+    meta.textContent = '';
+  };
+
+  // ── Bubble Helpers ──────────────────────────────────
+  function addBubble(role, content, isMarkdown = false) {
+    const bubble = document.createElement('div');
+    bubble.className = `chat-bubble ${role}`;
+
+    if (isMarkdown && typeof marked !== 'undefined' && role === 'assistant') {
+      bubble.innerHTML = marked.parse(content);
+      // Make links open externally
+      bubble.querySelectorAll('a').forEach(a => {
+        a.target = '_blank';
+        a.rel = 'noopener';
+      });
+    } else {
+      bubble.textContent = content;
+    }
+
+    messages.appendChild(bubble);
+    messages.scrollTop = messages.scrollHeight;
+    return bubble;
+  }
+
+  // ── Persistence ─────────────────────────────────────
+  function saveChatHistory() {
+    try {
+      // Keep only last 50 messages to avoid localStorage bloat
+      const trimmed = chatHistory.slice(-50);
+      localStorage.setItem('rekindle_chat_history', JSON.stringify(trimmed));
+    } catch { /* quota */ }
+  }
+
+  function loadChatHistory() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('rekindle_chat_history') || '[]');
+      if (saved.length > 0) {
+        // Clear the default welcome bubble
+        messages.innerHTML = '';
+        for (const msg of saved) {
+          addBubble(msg.role, msg.content, msg.role === 'assistant');
+        }
+        chatHistory = saved;
+      }
+    } catch { /* corrupt */ }
+  }
+
+  // ── Utility ─────────────────────────────────────────
+  function escapeHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function escapeAttr(s) {
+    return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // ── Keyboard: Enter to send ─────────────────────────
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  // ── Init ─────────────────────────────────────────────
+  loadChatHistory();
+  input.focus();
+</script>
+
+</body>
+</html>

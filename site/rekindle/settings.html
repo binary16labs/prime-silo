@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Settings · ReKindle</title>
+  <link rel="stylesheet" href="css/rekindle.css">
+</head>
+<body>
+
+<div class="window">
+  <!-- Title Bar -->
+  <div class="title-bar">
+    <button class="btn-back" onclick="location.href='index.html'">◀</button>
+    <div class="title-stripes"></div>
+    <span class="title-text">Settings</span>
+  </div>
+
+  <div class="content">
+
+    <!-- Connection Settings -->
+    <div class="settings-group">
+      <div class="settings-group-title">Connection</div>
+      <div class="settings-row">
+        <label for="spaceUrl">Space Agent URL</label>
+        <input type="url" id="spaceUrl" placeholder="(same origin)" title="Leave blank for same-origin. Set to http://192.168.x.x:PORT for cross-origin.">
+      </div>
+      <div class="settings-row" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+        <div style="font-size: 12px; color: var(--muted);">
+          Benny API is proxied through Space Agent at <code>/api/runtime/*</code>. No direct Benny URL or API key needed.
+        </div>
+      </div>
+    </div>
+
+    <!-- Connection Test -->
+    <div class="settings-group">
+      <div class="settings-group-title">Test Connection</div>
+      <div class="settings-row" style="flex-direction: column; align-items: stretch; gap: 8px;">
+        <button class="btn" onclick="testConnection()" style="width: 100;">🔌 Test Connection</button>
+        <div id="testResults" style="font-family: var(--font-mono); font-size: 12px; padding: 4px 0;">
+          Press "Test Connection" to check both servers.
+        </div>
+      </div>
+    </div>
+
+    <!-- Display Settings -->
+    <div class="settings-group">
+      <div class="settings-group-title">Display</div>
+      <div class="settings-row">
+        <label for="fontSize">Font Size</label>
+        <select id="fontSize">
+          <option value="14">14px — Small</option>
+          <option value="16" selected>16px — Normal</option>
+          <option value="18">18px — Large</option>
+          <option value="20">20px — Extra Large</option>
+          <option value="24">24px — Huge</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Data Management -->
+    <div class="settings-group">
+      <div class="settings-group-title">Data</div>
+      <div class="settings-row">
+        <label>Cached Files</label>
+        <button class="btn" onclick="clearCache()">Clear Cache</button>
+      </div>
+      <div class="settings-row">
+        <label>Chat History</label>
+        <button class="btn" onclick="clearChatHistory()">Clear Chat</button>
+      </div>
+      <div class="settings-row">
+        <label>Reading Positions</label>
+        <button class="btn" onclick="clearPositions()">Clear Positions</button>
+      </div>
+      <div class="settings-row">
+        <label>All Local Data</label>
+        <button class="btn" onclick="resetAll()">Reset Everything</button>
+      </div>
+    </div>
+
+    <!-- Advanced: Direct Connection Override (collapsed by default) -->
+    <div class="settings-group collapsed" id="advancedGroup">
+      <div class="settings-group-title">Advanced</div>
+      <button class="collapse-toggle" onclick="toggleAdvanced()">
+        <span class="arrow">▶</span>
+        Direct Benny Connection Override
+      </button>
+      <div class="settings-row" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+        <div style="font-size: 12px; color: var(--muted);">
+          ⚠ Only use for direct Benny access without the Space Agent proxy. Not recommended — exposes the API key on-device.
+        </div>
+      </div>
+      <div class="settings-row">
+        <label for="bennyDirectUrl">Benny Direct URL</label>
+        <input type="url" id="bennyDirectUrl" placeholder="(disabled)">
+      </div>
+      <div class="settings-row">
+        <label for="bennyDirectKey">Benny API Key</label>
+        <input type="text" id="bennyDirectKey" placeholder="(disabled)">
+      </div>
+    </div>
+
+    <!-- About -->
+    <div class="settings-group">
+      <div class="settings-group-title">About</div>
+      <div class="settings-row" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+        <div style="font-size: 14px;"><strong>ReKindle × Space Agent</strong></div>
+        <div style="font-size: 12px; color: var(--muted);">
+          Self-hosted e-ink interface for Space Agent &amp; Benny AI.
+          <br>Based on <a href="https://github.com/ReKindleOS/ReKindle" target="_blank" style="color: var(--text);">ReKindleOS/ReKindle</a> (MIT License).
+        </div>
+      </div>
+    </div>
+
+    <!-- Save Button -->
+    <div style="padding: 12px 0;">
+      <button class="btn" onclick="saveSettings()" style="width: 100%; font-size: 16px; padding: 12px;">
+        💾 Save Settings
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <span id="statusText">—</span>
+    <div class="status-actions">
+      <button class="status-btn" onclick="bridge.utils.refreshScreen()" title="Refresh screen">⟳</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { bridge } from './space-bridge.js';
+
+  // Expose bridge on window for onclick handlers
+  window.bridge = bridge;
+
+  const spaceUrl       = document.getElementById('spaceUrl');
+  const bennyDirectUrl = document.getElementById('bennyDirectUrl');
+  const bennyDirectKey = document.getElementById('bennyDirectKey');
+  const fontSize       = document.getElementById('fontSize');
+  const status         = document.getElementById('statusText');
+
+  // ── Toggle Advanced Section ────────────────────────
+  window.toggleAdvanced = function() {
+    const group = document.getElementById('advancedGroup');
+    group.classList.toggle('collapsed');
+  };
+
+  // ── Load Settings ───────────────────────────────────
+  function loadSettings() {
+    const cfg = bridge.config.load();
+    spaceUrl.value = cfg.spaceUrl || '';
+    bennyDirectUrl.value = cfg.bennyDirectUrl || '';
+    bennyDirectKey.value = cfg.bennyDirectKey || '';
+
+    // Display settings
+    const display = JSON.parse(localStorage.getItem('rekindle_display') || '{}');
+    if (display.fontSize) fontSize.value = display.fontSize;
+
+    status.textContent = 'Settings loaded';
+  }
+
+  // ── Save Settings ───────────────────────────────────
+  window.saveSettings = function() {
+    const cfg = {
+      spaceUrl: spaceUrl.value.replace(/\/+$/, ''),
+    };
+
+    // Only save advanced direct fields if they're actually set
+    const directUrl = bennyDirectUrl.value.replace(/\/+$/, '');
+    const directKey = bennyDirectKey.value;
+    if (directUrl) cfg.bennyDirectUrl = directUrl;
+    if (directKey) cfg.bennyDirectKey = directKey;
+
+    bridge.config.save(cfg);
+
+    localStorage.setItem('rekindle_display', JSON.stringify({
+      fontSize: fontSize.value,
+    }));
+
+    // Apply font size globally
+    document.documentElement.style.fontSize = fontSize.value + 'px';
+
+    status.textContent = 'Settings saved ✓';
+  };
+
+  // ── Test Connection ─────────────────────────────────
+  window.testConnection = async function() {
+    const results = document.getElementById('testResults');
+    results.textContent = 'Testing...';
+
+    // Save current values temporarily
+    saveSettings();
+
+    let output = '';
+
+    // Test Space Agent
+    try {
+      const spaceOk = await bridge.health.spaceAlive();
+      output += spaceOk
+        ? '✓ Space Agent — connected\n'
+        : '✗ Space Agent — unreachable\n';
+    } catch (e) {
+      output += '✗ Space Agent — error: ' + e.message + '\n';
+    }
+
+    // Test Benny (via /api/runtime/ proxy)
+    try {
+      const bennyOk = await bridge.health.bennyAlive();
+      output += bennyOk
+        ? '✓ Benny API (via proxy) — connected\n'
+        : '✗ Benny API (via proxy) — unreachable\n';
+    } catch (e) {
+      output += '✗ Benny API — error: ' + e.message + '\n';
+    }
+
+    // Test auth (if Space Agent is up)
+    try {
+      const auth = await bridge.auth.check();
+      if (auth && auth.authenticated !== false) {
+        output += '✓ Authenticated as: ' + (auth.username || 'unknown') + '\n';
+      } else {
+        output += '⚠ Not authenticated (login required)\n';
+      }
+    } catch {
+      output += '⚠ Auth check skipped\n';
+    }
+
+    results.textContent = output;
+    status.textContent = 'Test complete';
+  };
+
+  // ── Data Management ─────────────────────────────────
+  window.clearCache = function() {
+    bridge.cache.clear();
+    status.textContent = 'Cache cleared ✓';
+  };
+
+  window.clearChatHistory = function() {
+    localStorage.removeItem('rekindle_chat_history');
+    status.textContent = 'Chat history cleared ✓';
+  };
+
+  window.clearPositions = function() {
+    localStorage.removeItem('rk_reading_positions');
+    status.textContent = 'Reading positions cleared ✓';
+  };
+
+  window.resetAll = function() {
+    if (!confirm('This will remove all local ReKindle data including settings, cache, and chat history. Continue?')) return;
+
+    // Remove all rekindle-related localStorage keys
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('rekindle_') || key.startsWith('rk_cache_') || key.startsWith('rk_reading_'))) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+
+    status.textContent = 'All data cleared ✓';
+    loadSettings();
+  };
+
+  // ── Init ─────────────────────────────────────────────
+  loadSettings();
+</script>
+
+</body>
+</html>

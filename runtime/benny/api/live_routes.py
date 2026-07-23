@@ -327,3 +327,124 @@ async def bust_cache(workspace: str, source_id: str):
 async def get_connectors():
     """List all registered connector IDs."""
     return {"connectors": list_connectors()}
+
+
+# =============================================================================
+# LOG STREAMING (ReKindle Terminal Viewer)
+# =============================================================================
+
+# Resolve log file paths for each source
+_LOG_SOURCES: Dict[str, Optional[Path]] = {}
+
+
+def _resolve_log_path(source: str) -> Optional[Path]:
+    """Resolve the log file path for a given source name."""
+    import os
+
+    if source in _LOG_SOURCES:
+        return _LOG_SOURCES[source]
+
+    repo_root = Path(__file__).resolve().parent.parent.parent.parent
+
+    candidates: Dict[str, list] = {
+        "benny": [
+            Path(os.environ.get("BENNY_LOG_FILE", "")) if os.environ.get("BENNY_LOG_FILE") else None,
+            repo_root / "logs" / "benny.log",
+            repo_root / ".benny_home" / "logs" / "benny.log",
+        ],
+        "space": [
+            Path(os.environ.get("SPACE_LOG_FILE", "")) if os.environ.get("SPACE_LOG_FILE") else None,
+            repo_root / "logs" / "space.log",
+            repo_root / "logs" / "server.log",
+        ],
+        "longview": [
+            Path(os.environ.get("LONGVIEW_LOG_FILE", "")) if os.environ.get("LONGVIEW_LOG_FILE") else None,
+            repo_root / "logs" / "longview.log",
+        ],
+    }
+
+    for candidate in candidates.get(source, []):
+        if candidate and candidate.exists():
+            _LOG_SOURCES[source] = candidate
+            return candidate
+
+    _LOG_SOURCES[source] = None
+    return None
+
+
+def _classify_severity(line: str) -> str:
+    """Classify a log line's severity for the terminal UI."""
+    lower = line.lower()
+    if any(w in lower for w in ("error", "exception", "traceback", "fatal", "critical")):
+        return "error"
+    if any(w in lower for w in ("warn", "warning")):
+        return "warn"
+    if any(w in lower for w in ("✓", "success", "completed", "ok", "done", "ready")):
+        return "success"
+    return "info"
+
+
+@router.get("/live/logs")
+async def stream_logs(
+    source: str = Query(default="benny", regex="^(benny|space|longview)$"),
+    lines: int = Query(default=100, ge=1, le=1000),
+):
+    """
+    SSE stream of log lines for the ReKindle terminal viewer.
+
+    Sources: benny | space | longview
+    Streams the last `lines` from the log file, then tails for new content.
+    Falls back to a synthetic status stream if no log file is found.
+    """
+    log_path = _resolve_log_path(source)
+
+    async def event_stream():
+        if log_path and log_path.exists():
+            # Read tail of existing file
+            try:
+                with open(log_path, "r", encoding="utf-8", errors="replace") as f:
+                    all_lines = f.readlines()
+                    tail = all_lines[-lines:]
+                    for line in tail:
+                        text = line.rstrip("\n\r")
+                        severity = _classify_severity(text)
+                        data = json.dumps({"line": text, "severity": severity})
+                        yield f"data: {data}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'line': f'Error reading log: {e}', 'severity': 'error'})}\n\n"
+
+            # Tail for new lines
+            last_size = log_path.stat().st_size if log_path.exists() else 0
+            while True:
+                await asyncio.sleep(1)
+                try:
+                    if not log_path.exists():
+                        continue
+                    current_size = log_path.stat().st_size
+                    if current_size > last_size:
+                        with open(log_path, "r", encoding="utf-8", errors="replace") as f:
+                            f.seek(last_size)
+                            new_content = f.read()
+                            for line in new_content.splitlines():
+                                text = line.strip()
+                                if text:
+                                    severity = _classify_severity(text)
+                                    data = json.dumps({"line": text, "severity": severity})
+                                    yield f"data: {data}\n\n"
+                        last_size = current_size
+                    elif current_size < last_size:
+                        # File was truncated / rotated
+                        last_size = 0
+                    else:
+                        # Heartbeat
+                        yield "event: heartbeat\ndata: {}\n\n"
+                except Exception:
+                    yield "event: heartbeat\ndata: {}\n\n"
+        else:
+            # No log file found — stream a synthetic status message
+            yield f"data: {json.dumps({'line': f'No log file found for source: {source}. Set {source.upper()}_LOG_FILE env var or create logs/{source}.log', 'severity': 'warn'})}\n\n"
+            while True:
+                await asyncio.sleep(10)
+                yield "event: heartbeat\ndata: {}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")

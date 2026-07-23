@@ -1,4 +1,6 @@
 import { URL } from "node:url";
+import { createReadStream, existsSync, statSync } from "node:fs";
+import path from "node:path";
 
 import {
   createRequestContext,
@@ -433,6 +435,42 @@ function createRequestHandler(options) {
           watchdog
         });
         return;
+      }
+
+      // ── ReKindle e-ink interface ──────────────────────────────────
+      // Serve site/rekindle/ static files at /reader/* (public, no auth)
+      if (requestUrl.pathname.startsWith("/reader")) {
+        const rekindleRoot = path.join(projectRoot, "site", "rekindle");
+        let relativePath = requestUrl.pathname.replace(/^\/reader\/?/, "") || "index.html";
+        // Prevent path traversal
+        relativePath = path.normalize(relativePath).replace(/^(\.\.([\/\\]))+/, "");
+        const filePath = path.join(rekindleRoot, relativePath);
+
+        if (filePath.startsWith(rekindleRoot) && existsSync(filePath)) {
+          const stat = statSync(filePath);
+          if (stat.isFile()) {
+            const ext = path.extname(filePath).toLowerCase();
+            const mimeTypes = {
+              ".html": "text/html; charset=utf-8",
+              ".css": "text/css; charset=utf-8",
+              ".js": "application/javascript; charset=utf-8",
+              ".json": "application/json; charset=utf-8",
+              ".png": "image/png",
+              ".svg": "image/svg+xml",
+              ".ico": "image/x-icon",
+              ".woff": "font/woff",
+              ".woff2": "font/woff2",
+            };
+            res.writeHead(200, {
+              "Content-Type": mimeTypes[ext] || "application/octet-stream",
+              "Content-Length": stat.size,
+              "Cache-Control": "no-store",
+            });
+            createReadStream(filePath).pipe(res);
+            return;
+          }
+        }
+        // Fall through to page handler for 404
       }
 
       await handlePageRequest(res, requestUrl, {
