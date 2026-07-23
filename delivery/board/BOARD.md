@@ -11,6 +11,7 @@
 - E0 — website design brief + claims registry  *(zero-dep — entered READY 2026-07-07; human-signed)*
 
 ## CLAIMED (agent · date)
+- T1 — clone Benny home to trainer · claude-desktop (on the T480's behalf) · 2026-07-23 *(human-signed. Desktop assembles the clone source on F: — benny-home snapshot done (30.28 GB), memo-ray ~/.mem0ray/data being added; T480 sets PRIME_SILO_HOME + verifies every store reads local. See LOG.)*
 
 ## VERIFY (awaiting non-author verification)
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 *(budget amended 300→1100 by owner directive — flagship scope, see LOG)*
@@ -43,4 +44,4 @@ F1 F2 F3 F4 F5 F6 F7 F8 ·
 Q2 Q3 ·
 R0 R1 R2 R3 ·
 M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 ·
-T1 T2 T3 T4  (EP-T/M3 — deps on T0; authored 2026-07-21)
+T2 T3 T4  (EP-T/M3 — authored 2026-07-21; T0 DONE 2026-07-23)
