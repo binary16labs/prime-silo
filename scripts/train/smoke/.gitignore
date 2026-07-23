@@ -3,3 +3,5 @@
 # docs/train/T0-trainer-evidence.md.
 out/
 out_unsloth/
+# Verifier moves author artifacts aside to *.author-bak — never track those either.
+*.author-bak/
