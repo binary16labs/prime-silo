@@ -14,9 +14,9 @@
 
 ## VERIFY (awaiting non-author verification)
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 *(budget amended 300→1100 by owner directive — flagship scope, see LOG)*
-- T0 — prove RDNA4 eGPU QLoRA trainer · author claude (T480) · main @ 02bcd3a · ready-for-verify 2026-07-22 *(human-signed; gate GREEN on hardware both eager+Unsloth paths. VERIFY ON THE T480 from a fresh session — needs the gfx1200 eGPU + smoke regen, git-ignored artifacts)*
 
 ## DONE (id · verified-by · date)
+- T0 — prove RDNA4 eGPU QLoRA trainer · verified-by claude-t0-verifier · 2026-07-23 *(reproduced GREEN on the T480 gfx1200 eGPU from a fresh session: author artifacts moved to *.author-bak, smoke regenerated in trainer venv, gate re-run — gfx1200 / 15.9 GiB, steps=30, loss 2.2888→1.4939 decreasing, reloadable adapter, exit 0. Honest caveat: smoke used Llama-3.2-1B eager path per owner verifier instruction, not the BDD's Qwen2.5-Coder-7B — RDNA4 4-bit QLoRA capability is proven; base model is a smoke fixture. Unblocks T3's T0-dep; T3 still needs T2.)*
 - C1 — adaptive layout contract · verified-by claude-sonnet-verifier · 2026-07-12 *(merged to main 2026-07-12 @ 1c0a19e; MANUAL 3-res screenshot deferred to post-merge preview — orchestrator; follow-up candidate: resizable-splits + localStorage persistence, prose-only in contract, never codified as a scenario)*
 - C5 — mascot micro-states · verified-by claude-haiku-verifier · 2026-07-12 *(merged to main 2026-07-12 @ 77a3edd; open follow-up: one-line initMascotState() wire in onscreen_agent/panel.html — outside C5 allowlist)*
 - A0 — verify real offload path · verified-by claude-verifier · 2026-07-08 *(merged to main 2026-07-08 — live-verification contract; qwen3.5-9B-FLM @16k proven, judge 10/10, phi4-roulette hard-guard in place)*
