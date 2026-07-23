@@ -9,9 +9,9 @@
 - B1 — coordination server API + SSE  *(dep B0 DONE — entered READY 2026-07-07)*
 - Q1 — reproducible supply chain  *(dep Q0 DONE — entered READY 2026-07-07)*
 - E0 — website design brief + claims registry  *(zero-dep — entered READY 2026-07-07; human-signed)*
-- T3 — first QLoRA run + base-vs-tuned eval *(deps T0+T2 DONE — entered READY 2026-07-23; needs the T0-proven eGPU trainer + the T2 dataset; base-vs-tuned with RAG disabled; gate scripts/gates/t3.py — KR1.5's primary instrument)*
 
 ## CLAIMED (agent · date)
+- T3 — first QLoRA run + base-vs-tuned eval · author claude · in-place @ main · 2026-07-23 *(owner-directed pickup; deps T0+T2 DONE; gfx1200 eGPU confirmed live 15.92 GiB; base = Qwen2.5-Coder-7B-Instruct, QLoRA r16 lr2e-4, eval = held-out NLL + tool-name match with RAG disabled)*
 
 ## VERIFY (awaiting non-author verification)
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 *(budget amended 300→1100 by owner directive — flagship scope, see LOG)*
