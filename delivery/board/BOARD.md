@@ -9,9 +9,9 @@
 - B1 — coordination server API + SSE  *(dep B0 DONE — entered READY 2026-07-07)*
 - Q1 — reproducible supply chain  *(dep Q0 DONE — entered READY 2026-07-07)*
 - E0 — website design brief + claims registry  *(zero-dep — entered READY 2026-07-07; human-signed)*
-- T2 — instruction+trajectory dataset (Stream A method/voice + Stream B agent tool-use) *(zero-dep — entered READY 2026-07-23; T0+T1 DONE so the trainer can build data locally off the T1 clone. Privacy: every row through scripts/longview/lib/leak_gate.mjs — no CV/job-application content in training. Gate scripts/gates/t2.mjs.)*
 
 ## CLAIMED (agent · date)
+- T2 — instruction+trajectory dataset · claude (T480) · 2026-07-23 *(authoring the SFT dataset pipeline off the T1 clone: Stream A method/voice (LONGVIEW cards + ADRs), Stream B agent tool-use (memo-ray traces), every row leak-gated, disjoint held-out split. sandbox=worktree per contract → branch feat/T2.)*
 
 ## VERIFY (awaiting non-author verification)
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 *(budget amended 300→1100 by owner directive — flagship scope, see LOG)*
