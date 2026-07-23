@@ -210,7 +210,8 @@ structure, how we drive tools); it does **not** store facts reliably. **Facts st
 replacement for the current engine. Contracts live in `delivery/tasks/T0..T4.md` (EP-T → M3, KR1.5);
 design source `~/.claude/plans/mellow-tinkering-swan.md`. **Trainer hardware:** Lenovo T480 + Razer
 Core X eGPU (TB3) + Sapphire Pulse Radeon **RX 9060 XT 16GB (RDNA4 / gfx1200)**, Windows host,
-ROCm-on-Windows + Unsloth (WSL2-ROCm fallback). Benny is the serving/agent tier, **not** a trainer.
+ROCm-on-Windows + Unsloth (RDNA4 needs **ROCm 7.0.2+**, verified on the T480 at ROCm 7.13; WSL2-ROCm
+fallback). Benny is the serving/agent tier, **not** a trainer.
 
 ### T0 — Prove the trainer end-to-end  *(depends on: nothing — DO THIS FIRST for T; make-or-break)*
 - **Files:** `scripts/train/smoke/`, new `scripts/gates/t0.py`, `docs/train/T0-trainer-evidence.md`.
