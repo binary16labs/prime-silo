@@ -1,0 +1,3 @@
+# Generated eval artifacts — regenerate with run_eval.py. base.json / tuned.json land here.
+out/
+__pycache__/

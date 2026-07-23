@@ -1,0 +1,5 @@
+# Generated training artifacts — regenerate with train_qlora.py / merge_gguf.py.
+# Adapters, merged weights, GGUFs, trainer checkpoints, result/manifest JSON.
+out/
+*.author-bak/
+__pycache__/
