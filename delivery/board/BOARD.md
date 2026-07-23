@@ -11,9 +11,9 @@
 - E0 — website design brief + claims registry  *(zero-dep — entered READY 2026-07-07; human-signed)*
 
 ## CLAIMED (agent · date)
-- T1 — clone Benny home to trainer · claude-desktop (on the T480's behalf) · 2026-07-23 *(human-signed. Desktop assembles the clone source on F: — benny-home snapshot done (30.28 GB), memo-ray ~/.mem0ray/data being added; T480 sets PRIME_SILO_HOME + verifies every store reads local. See LOG.)*
 
 ## VERIFY (awaiting non-author verification)
+- T1 — clone Benny home to trainer · author claude (T480) · main · ready-for-verify 2026-07-23 *(human-signed; benny-home 725,659 files / ~30.28 GB runs off external D: — C: too small; memo-ray copied to canonical .mem0ray\data. `node scripts/gates/t1.mjs` GREEN: Node+Python resolvers agree on D:\benny-home, 61 cards / 278 sessions / 572 vectors read LOCAL, no desktop network. Gotchas: Store-python virtualizes %APPDATA% (use PRIME_SILO_HOME env), isolated node on User PATH. See docs/train/T1-clone-provenance.md + LOG. VERIFY ON THE T480 with D: plugged in.)*
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 *(budget amended 300→1100 by owner directive — flagship scope, see LOG)*
 
 ## DONE (id · verified-by · date)
