@@ -1,0 +1,5 @@
+# Generated smoke-run artifacts (adapters, tokenizer, trainer checkpoints, loss json).
+# Regenerate locally with run_smoke.py / run_smoke_vanilla.py; evidence is captured in
+# docs/train/T0-trainer-evidence.md.
+out/
+out_unsloth/
