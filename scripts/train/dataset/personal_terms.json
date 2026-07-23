@@ -1,0 +1,20 @@
+{
+  "_comment": "GENERIC personal/job-application context markers for the T2 leak gate. These are CATEGORY words only — never the operator's real name, employers, or CV content (which must not live in the repo). A card/trace/row that hits any of these is treated as personal context and excluded from training. Augmented at build time by any sids in <PRIME_SILO_HOME>/longview/quarantine.json (not committed).",
+  "terms": [
+    "curriculum vitae",
+    "cover letter",
+    "job application",
+    "dear hiring",
+    "hiring manager",
+    "salary expectation",
+    "notice period",
+    "references available",
+    "career objective",
+    "employment history",
+    "linkedin.com/in",
+    "recruiter",
+    "job offer",
+    "cv"
+  ],
+  "sids": []
+}

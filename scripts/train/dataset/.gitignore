@@ -1,0 +1,7 @@
+# Generated SFT rows carry REAL internal session traces (local paths, usernames,
+# session ids). By the sovereignty design they stay LOCAL — never pushed to the
+# remote. Regenerate with `node scripts/train/build_dataset.mjs`; the gate
+# (scripts/gates/t2.mjs) builds them if missing. personal_terms.json is the only
+# committed data file here (generic category markers, no private data).
+*.jsonl
+manifest.json

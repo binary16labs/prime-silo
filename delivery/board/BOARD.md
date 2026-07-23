@@ -11,9 +11,9 @@
 - E0 — website design brief + claims registry  *(zero-dep — entered READY 2026-07-07; human-signed)*
 
 ## CLAIMED (agent · date)
-- T2 — instruction+trajectory dataset · claude (T480) · 2026-07-23 *(authoring the SFT dataset pipeline off the T1 clone: Stream A method/voice (LONGVIEW cards + ADRs), Stream B agent tool-use (memo-ray traces), every row leak-gated, disjoint held-out split. sandbox=worktree per contract → branch feat/T2.)*
 
 ## VERIFY (awaiting non-author verification)
+- T2 — instruction+trajectory dataset · author claude (T480) · main · ready-for-verify 2026-07-23 *(node scripts/gates/t2.mjs GREEN: Stream A 63 method/voice (cards+ADRs) + Stream B 500 agent tool-use (498/500 real trajectory state), 15% disjoint held-out, leak-gate 0 hits — 3 personal rows excluded + seeded-CV unit test. 4/4 unit tests. Generated rows git-ignored (real session traces, local by design); gate builds-if-missing so the single verify cmd works on the trainer. DEVIATION: worked in-place on main, not the contract's worktree (matches T0/T1 flow). See docs/train/T2-dataset-card.md. VERIFY ON THE T480 with the T1 clone (D:) attached.)*
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 *(budget amended 300→1100 by owner directive — flagship scope, see LOG)*
 
 ## DONE (id · verified-by · date)
