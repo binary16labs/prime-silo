@@ -34,11 +34,27 @@ export function cardToPairs(card) {
     if (s["What happened"]) responseParts.push(`What happened: ${clip(s["What happened"], 900)}`);
     if (s["Threads and signals"]) responseParts.push(`Threads and signals: ${clip(s["Threads and signals"], 600)}`);
   }
+  // Deterministic per-card template pick (FNV-1a over the card id) so the model learns the
+  // method/voice, not a single fixed instruction phrase (55/56 rows sharing one template
+  // taught template-matching). Same card always gets the same phrasing => rebuilds are stable
+  // and the hash-based train/eval split stays consistent.
+  const topic = clip(firstLine(primary), 160);
+  const templates = [
+    `In the Prime-Silo estate, how did we approach this task and what was the method: "${topic}"?`,
+    `Walk me through how this was handled in our estate, in our usual working style: "${topic}"`,
+    `What was our approach and reasoning for: "${topic}"?`,
+    `Describe the method and key decisions behind this piece of work: "${topic}"`,
+  ];
+  let h = 0x811c9dc5;
+  for (const ch of String(card.id)) {
+    h ^= ch.charCodeAt(0);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
   return [
     {
       stream: "A",
       id: `A-card-${card.id}`,
-      instruction: `In the Prime-Silo estate, how did we approach this task and what was the method: "${clip(firstLine(primary), 160)}"?`,
+      instruction: templates[h % templates.length],
       response: responseParts.join("\n\n"),
       source: { type: "card", id: card.id, sid: card.sid || undefined },
     },
@@ -77,15 +93,23 @@ export function traceToRows(entityMap, { detector = () => false, getEntity, maxR
   for (const e of entityMap.values()) {
     if (e.type !== "Tool Call") continue;
     if (rows.length >= maxRows) break;
-    const parsed = safeJSON(e.content) || {};
-    const name = e.metadata?.toolName || parsed.name;
-    if (!name) {
+    // Two source formats: Antigravity stores {name, args}; Claude stores {name, input}.
+    // If the content doesn't parse (truncated JSON etc.) the args are unrecoverable — exclude
+    // the row rather than emit a degenerate `{name, args:{}}` target the model would learn.
+    const parsed = safeJSON(e.content);
+    const name = e.metadata?.toolName || parsed?.name;
+    if (!name || !parsed) {
       excluded.unparsed++;
       continue;
     }
-    const args = parsed.args && typeof parsed.args === "object" ? parsed.args : {};
-    // goal: this step's own summary/action, else nearest ancestor User Input.
-    let goal = unquote(args.toolSummary || args.toolAction || "");
+    const rawArgs = parsed.args ?? parsed.input;
+    const args = rawArgs && typeof rawArgs === "object" ? rawArgs : {};
+    // goal: this step's own summary/action/description (key casing varies by agent),
+    // else nearest ancestor User Input.
+    let goal = unquote(
+      args.toolSummary || args.ToolSummary || args.toolAction || args.ToolAction ||
+      args.description || args.Description || ""
+    );
     // Single bounded ancestor walk builds the state chain AND the session anchor
     // (topmost ancestor reached) — no separate deep traversal (that was O(depth)
     // disk reads per row and dominated build time).

@@ -72,3 +72,26 @@ leak-gate 0 hits.
   follow-up before T3 trains on this.
 - **Refresh** — re-run `build_dataset.mjs` after a T1 clone refresh; the split is
   stable (hash-based) so held-out membership is reproducible across rebuilds.
+
+## v2 refresh (2026-07-23, owner-directed during T3)
+
+T3's pre-training validation audit found and fixed three data defects, then rebuilt:
+
+1. **Empty-args bug (63% of Stream B)** — Claude-format trace entities store the call as
+   `{name, input}`; the extractor only read `parsed.args`, flattening every Claude row to
+   `{"name": X, "args": {}}`. Fixed (`args ?? input`); unparseable content is now excluded
+   (`excluded.unparsed`) instead of emitted as a degenerate empty-args target.
+2. **Degenerate goals** — the same rows fell back to `goal: "invoke X"`; Claude's
+   `input.description` is now used (plus case-tolerant toolSummary/toolAction/description).
+3. **Stream A template lock** — 55/56 rows shared one instruction phrase; now 4 phrasings
+   picked deterministically per card (FNV-1a on card id — rebuilds stable, split unchanged).
+
+Caps raised to use more of the corpus: `T2_TRACE_MAX_ENTITIES` 6000 -> 40000,
+`T2_TRACE_MAX_ROWS` 500 -> 2500 (80,555 entities available).
+
+**v2 counts:** A 56+7 (excl 0) | B 2098+402 (excl 37 unparsed/personal) | total 2563 |
+leak-gate 0 hits (14 terms / 0 sids) | split disjoint | gate GREEN.
+**v2 quality:** empty-args 63% -> 0.1% (3 legitimately no-arg calls), exact-duplicate
+targets 55% -> 2.7%, median target 35 -> 270 chars, unique tools 39 -> 54,
+agents Claude 1252 / Antigravity 846. Residual: 27% of goals fall back to "invoke X"
+(no summary/User-Input in the 4-ancestor window) — naturalistic, state chain retained.

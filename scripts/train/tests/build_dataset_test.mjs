@@ -20,7 +20,10 @@ test("Stream A: one card -> a well-formed method/voice pair", () => {
   assert.equal(pairs.length, 1);
   const v = validateRowA(pairs[0]);
   assert.ok(v.ok, v.errors.join("; "));
-  assert.match(pairs[0].instruction, /how did we approach/i);
+  // Instruction phrasing is picked deterministically per card from a small template set
+  // (anti-template-lock); every template embeds the card's own topic line.
+  assert.match(pairs[0].instruction, /Fix the pypes plan command for local LLMs/);
+  assert.equal(cardToPairs(card)[0].instruction, pairs[0].instruction); // deterministic
   assert.match(pairs[0].response, /pypes plan/i); // real house text, not fabricated
   assert.equal(pairs[0].source.type, "card");
 });
@@ -77,4 +80,45 @@ test("a clean row survives the same filter", () => {
   assert.equal(detect("Refactor the offload router and add a health check"), false);
   // 'cv' must not false-positive inside ordinary words.
   assert.equal(detect("the canvas element renders the graph"), false);
+});
+
+test("traceToRows: Claude-format tool call ({name, input}) keeps its real args and takes goal from input.description", () => {
+  const entityMap = new Map([
+    [
+      "c1",
+      {
+        id: "c1",
+        type: "Tool Call",
+        agent: "Claude",
+        content: JSON.stringify({
+          name: "Bash",
+          input: { command: "git log --oneline -3", description: "Verify push landed" },
+        }),
+        metadata: { toolName: "Bash" },
+      },
+    ],
+  ]);
+  const { rows } = traceToRows(entityMap, {});
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].tool_call.name, "Bash");
+  assert.equal(rows[0].tool_call.args.command, "git log --oneline -3"); // input key recovered
+  assert.match(rows[0].goal, /verify push landed/i); // description used as goal
+});
+
+test("traceToRows: unparseable tool-call content is excluded, never emitted as an empty-args row", () => {
+  const entityMap = new Map([
+    [
+      "x1",
+      {
+        id: "x1",
+        type: "Tool Call",
+        agent: "Antigravity",
+        content: '{ "name": "replace_file_content", "args": { "truncated...',
+        metadata: { toolName: "replace_file_content" },
+      },
+    ],
+  ]);
+  const { rows, excluded } = traceToRows(entityMap, {});
+  assert.equal(rows.length, 0, "degenerate empty-args target must not be trained on");
+  assert.equal(excluded.unparsed, 1);
 });
