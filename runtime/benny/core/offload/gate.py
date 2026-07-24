@@ -137,30 +137,39 @@ async def run_judge(manifest: OffloadManifest, artifact: str, judge_model: str) 
         '{"score": <float 0..1>, "rationale": "<one sentence>", '
         '"unmet": ["<criterion ids not satisfied>"]}'
     )
-    # extra_body: force a JSON envelope (Lemonade honors response_format on the
-    # local instruct models — measured 2026-06-29) and ask thinking-capable recipes
-    # to skip chain-of-thought. Both are harmless if a server ignores them.
-    extra = {
+    # extra_body: force a JSON envelope (Lemonade honors response_format:json_object on the
+    # local instruct models — measured 2026-06-29) and ask thinking-capable recipes to skip
+    # chain-of-thought. Provider-agnostic: LM Studio (T4 serving path) REJECTS
+    # response_format:json_object with HTTP 400 (it requires json_schema/text), so on the
+    # retry we drop response_format and rely on the "Return only JSON" system prompt plus
+    # last-JSON extraction — which both providers honor. chat_template_kwargs is harmless
+    # if a server ignores it. (measured against LM Studio 2026-07-24, T4.)
+    extra_full = {
         "response_format": {"type": "json_object"},
         "chat_template_kwargs": {"enable_thinking": False},
     }
+    extra_lean = {"chat_template_kwargs": {"enable_thinking": False}}
     raw = ""
     data = None
-    # one retry: small local judges intermittently emit unparseable output
-    for attempt in range(2):
+    last_exc = None
+    # attempt 0: lemonade-optimal; attempt 1: LM Studio-safe (no response_format)
+    for body in (extra_full, extra_lean):
         try:
             raw = await executor.generate(
                 prompt,
                 system="Return only JSON.",
                 temperature=0.0,
                 max_tokens=800,
-                extra_body=extra,
+                extra_body=body,
             )
         except Exception as exc:
-            return {"score": None, "rationale": f"judge error: {exc}", "available": True}
+            last_exc = exc
+            continue
         data = _extract_last_json(raw)
         if data is not None and "score" in data:
             break
+    if (data is None or "score" not in data) and last_exc is not None and not raw:
+        return {"score": None, "rationale": f"judge error: {last_exc}", "available": True}
     if data is None or "score" not in data:
         return {
             "score": None,

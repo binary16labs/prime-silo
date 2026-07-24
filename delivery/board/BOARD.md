@@ -11,9 +11,9 @@
 - E0 — website design brief + claims registry  *(zero-dep — entered READY 2026-07-07; human-signed)*
 
 ## CLAIMED (agent · date)
-- T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main · 2026-07-24 *(owner-directed pickup; dep T3 DONE; additive router candidate over core/models.py + local_executor resolver hook, current default unchanged; serves the v3 GGUF via llama-server; gate scripts/gates/t4.py structural+live. Deviation: in-place on main not the contract worktree — EP-T precedent + OneDrive worktree footgun)*
 
 ## VERIFY (awaiting non-author verification)
+- T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 *(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)*
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 *(budget amended 300→1100 by owner directive — flagship scope, see LOG)*
 
 ## DONE (id · verified-by · date)
