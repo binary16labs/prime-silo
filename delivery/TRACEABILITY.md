@@ -11,7 +11,7 @@
 | O1 | KR1.3 | EP-A | M1 | A4 |
 | O1 | KR1.4 | EP-A | M1 | A6 |
 | O1 | knowledge-quality | EP-A | M2 | A7 |
-| O1 | KR1.5 | EP-T | M3 | T0 T1 T2 T3 T4 |
+| O1 | KR1.5 | EP-T | M3 | T0 T1 T2 T3 T4 T5 |
 | O2 | KR2.1 | EP-B | M1 | B0 B1 B2 B3 |
 | O2 | KR2.2 | EP-G | M1 | G0 G1 G2 |
 | O2 | KR2.3 | EP-W | M1 | W0 W1 W2 W3 |
