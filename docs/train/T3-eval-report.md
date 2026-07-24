@@ -1,5 +1,17 @@
 # T3 — First QLoRA run + honest base-vs-tuned eval (KR1.5 evidence)
 
+> **v3 addendum (2026-07-24, owner-directed data growth — DATA-PLAN-v3):** retrained on the
+> 7,042-row v3 dataset (A 1,741+301 from six new house sources, B 4,201+799 full-corpus
+> sweep). On the new 1,102-row held-out split, RAG disabled, same frozen rubric:
+> **base agg_nll 2.6195 → tuned 1.1253 (−57.0%)**; A_nll −38.3% (v2: −9.2%), B_nll −70.5%,
+> tool-name match 0.170 → 0.263. **All pre-registered criteria passed** (A ≤ −25%,
+> B ≤ −50%, tool-match no regress — criteria were recorded in DATA-PLAN-v3 before the
+> run). Honest conclusion: the data levers worked — the A-stream gap was data scarcity,
+> not a method ceiling; DPO (T5, authored) is the next rung by choice, not necessity.
+> Train: 7,683 examples (A ×2 oversample), 2 epochs, 330.8 min, loss 3.18 → ~1.08.
+> The v3 GGUF supersedes v2 at the same path (`D:\t3-merge\gguf_gguf\`). The v2 numbers
+> below stand as the verified T3 gate result; v3 is the current best artifact.
+
 **Status:** tuned model beats base on the frozen rubric with RAG disabled. Date: 2026-07-24.
 Author: claude (T3, claimed 2026-07-23). Verifier: re-run `python scripts/gates/t3.py`.
 
