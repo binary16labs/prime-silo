@@ -1,0 +1,3 @@
+# Generated DPO artifacts — regenerate with build_prefs.py / train_dpo.py / merge.
+out/
+__pycache__/
