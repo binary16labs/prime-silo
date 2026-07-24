@@ -21,7 +21,10 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 OUT = Path(os.environ.get("T3_QLORA_DIR", HERE / "out"))
 ADAPTER_DIR = OUT / "adapter"
-GGUF_DIR = OUT / "gguf"
+# GGUF_DIR can live on a roomier drive: the fp16 base download + 16-bit merged weights + f16
+# GGUF (~30 GB peak for a 7B) all land here. Keep it on ONE drive so the peak can't half-spill.
+# The adapter (small) and merge_manifest.json (tiny, read by the gate) stay under OUT.
+GGUF_DIR = Path(os.environ.get("T3_GGUF_DIR", OUT / "gguf"))
 QUANT = os.environ.get("T3_GGUF_QUANT", "q4_k_m")
 LLAMA_CPP = Path(os.environ.get("LLAMA_CPP_DIR", Path.home() / ".unsloth" / "llama.cpp"))
 LLAMA_SERVER = LLAMA_CPP / "build" / "bin" / "Release" / "llama-server.exe"
@@ -83,9 +86,11 @@ def main() -> int:
     print(f"[merge] exporting GGUF ({QUANT}) via {LLAMA_CPP} ...")
     model.save_pretrained_gguf(str(GGUF_DIR), tokenizer, quantization_method=QUANT)
 
-    ggufs = sorted(GGUF_DIR.glob("*.gguf"))
+    # Unsloth's save_pretrained_gguf writes into "<dir>_gguf" (suffix appended), not <dir>.
+    sibling = GGUF_DIR.parent / (GGUF_DIR.name + "_gguf")
+    ggufs = sorted(GGUF_DIR.glob("*.gguf")) + sorted(sibling.glob("*.gguf"))
     if not ggufs:
-        raise SystemExit(f"[merge] no .gguf produced in {GGUF_DIR}")
+        raise SystemExit(f"[merge] no .gguf produced in {GGUF_DIR} or {sibling}")
     # prefer the quantized artifact if multiple (f16 + quant) were written
     quant_hits = [g for g in ggufs if QUANT.replace("_", "").lower() in g.name.replace("_", "").lower()]
     gguf_path = quant_hits[0] if quant_hits else ggufs[-1]

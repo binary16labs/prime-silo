@@ -11,10 +11,10 @@
 - E0 — website design brief + claims registry  *(zero-dep — entered READY 2026-07-07; human-signed)*
 
 ## CLAIMED (agent · date)
-- T3 — first QLoRA run + base-vs-tuned eval · author claude · in-place @ main · 2026-07-23 *(owner-directed pickup; deps T0+T2 DONE; gfx1200 eGPU confirmed live 15.92 GiB; base = Qwen2.5-Coder-7B-Instruct, QLoRA r16 lr2e-4, eval = held-out NLL + tool-name match with RAG disabled)*
 
 ## VERIFY (awaiting non-author verification)
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 *(budget amended 300→1100 by owner directive — flagship scope, see LOG)*
+- T3 — first QLoRA run + base-vs-tuned eval · author claude · in-place @ main · 2026-07-24 *(GATE GREEN: tuned agg_nll 0.8678 vs base 2.3153 (−62.5%) on the 409-row held-out split, RAG disabled, rubric frozen pre-training; q4_k_m GGUF 4.47GB loads in llama-server (D:\t3-merge\gguf_gguf\). Trained on dataset v2 after owner-directed data-defect fixes (63% empty-args bug); v1 result superseded, correction on record in docs/train/T3-eval-report.md. Verifier: python scripts/gates/t3.py on the trainer with eGPU + D: attached)*
 
 ## DONE (id · verified-by · date)
 - T2 — instruction+trajectory dataset · verified-by claude-t2-verifier · 2026-07-23 *(reproduced GREEN: deleted the author's dataset, `node scripts/gates/t2.mjs` rebuilt it fresh from the corpus and validated — A 63 + B 500, split disjoint, leak-gate 0 hits, deterministic same result. Independent checks: 4/4 unit tests; NEGATIVE test — injected a "curriculum vitae" row → gate went RED (leak fires, not vacuously green); own disjoint check overlap=0 both streams. Rows verified present-but-git-ignored. Non-blocking caveats: hand-audited ~200-row gold subset still open before T3; bounded trace slice (6000/500, env-tunable); author worked in-place on main not the contract worktree; same-session author-verify (fresh separate agent could re-verify). Unblocks T3 (now has T0+T2).)*
