@@ -84,9 +84,22 @@ export function adrToPairs(adr) {
 // For each Tool Call entity, walk up to `maxAncestors` parents (present in the
 // loaded slice) for state, derive the goal from the step's own toolSummary/action
 // or the nearest User Input, and emit the tool call as the target.
-export function traceToRows(entityMap, { detector = () => false, getEntity, maxRows = Number(process.env.T2_TRACE_MAX_ROWS) || 500, maxAncestors = 4 } = {}) {
+export function traceToRows(
+  entityMap,
+  {
+    detector = () => false,
+    getEntity,
+    maxRows = Number(process.env.T2_TRACE_MAX_ROWS) || 500,
+    maxAncestors = Number(process.env.T2_TRACE_MAX_ANCESTORS) || 8,
+    // Lever 2: no single tool may dominate the stream (Bash was 30% in v2).
+    maxToolShare = Number(process.env.T2_TRACE_MAX_TOOL_SHARE) || 0.2,
+  } = {}
+) {
   const rows = [];
-  const excluded = { personal: 0, unparsed: 0 };
+  const excluded = { personal: 0, unparsed: 0, dedup: 0, tool_capped: 0 };
+  const maxPerTool = Math.max(1, Math.ceil(maxRows * maxToolShare));
+  const perTool = new Map();
+  const seenTargets = new Set(); // near-dup collapse: tool + normalized args
   // Resolve ancestors from the slice first, then on-demand from disk (an entity's
   // filename is its id), so trajectory context is reconstructed. Cached loader.
   const resolve = (id) => (entityMap.has(id) ? entityMap.get(id) : getEntity ? getEntity(id) : null);
@@ -125,10 +138,27 @@ export function traceToRows(entityMap, { detector = () => false, getEntity, maxR
       sid = cur.id;
       const c = clip(firstLine(cur.content) || cur.metadata?.toolName || "", 180);
       if (c) chain.unshift(`${cur.type}: ${c}`);
+      // goal fallbacks by proximity: User Input states the ask; a Thought's first
+      // line usually states intent (Lever 2 — cuts the "invoke X" residual).
       if (!goal && cur.type === "User Input") goal = clip(firstLine(cur.content), 200);
+      if (!goal && cur.type === "Thought") goal = clip(firstLine(cur.content), 200);
     }
     if (!goal) goal = `invoke ${name}`;
     const state = chain.length ? chain.join("\n") : `Session start (agent ${e.agent || "unknown"}); no prior step in the loaded window.`;
+
+    // Near-dup collapse: same tool + same args modulo paths/hex/numbers teaches nothing new.
+    const norm = JSON.stringify(args).toLowerCase().replace(/[a-f0-9]{8,}/g, "#").replace(/\d+/g, "#");
+    const dupKey = `${name}|${norm}`;
+    if (seenTargets.has(dupKey)) {
+      excluded.dedup++;
+      continue;
+    }
+    // Per-tool share cap (applied in corpus order — deterministic).
+    if ((perTool.get(name) || 0) >= maxPerTool) {
+      excluded.tool_capped++;
+      continue;
+    }
+
     const row = {
       stream: "B",
       id: `B-trace-${e.id}`,
@@ -137,12 +167,17 @@ export function traceToRows(entityMap, { detector = () => false, getEntity, maxR
       tool_call: { name, args },
       source: { type: "trace", id: e.id, sid, agent: e.agent },
     };
+    // Lever 3: tag result-conditioned rows (state carries a prior Tool Result) so the
+    // chain share is measurable; stays stream B, same schema, extra provenance only.
+    if (state.includes("Tool Result:")) row.source.variant = "chain";
     // Privacy: drop the row if any of its text carries personal/job context.
     const flat = `${state}\n${goal}\n${JSON.stringify(row.tool_call)}\n${row.source.sid}`;
     if (detector(flat)) {
       excluded.personal++;
       continue;
     }
+    seenTargets.add(dupKey);
+    perTool.set(name, (perTool.get(name) || 0) + 1);
     rows.push(row);
   }
   return { rows, excluded };

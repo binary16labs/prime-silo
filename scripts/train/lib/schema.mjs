@@ -24,7 +24,8 @@ export function validateRowA(row) {
   if (row?.stream !== "A") errors.push("stream must be 'A'");
   if (!isNonEmptyStr(row?.instruction)) errors.push("instruction required");
   if (!isNonEmptyStr(row?.response)) errors.push("response required");
-  if (!["card", "adr"].includes(row?.source?.type)) errors.push("source.type must be card|adr");
+  if (!["card", "adr", "jsoncard", "log", "contract", "doc", "prose", "thought"].includes(row?.source?.type))
+    errors.push("source.type must be card|adr|jsoncard|log|contract|doc|prose|thought");
   return { ok: errors.length === 0, errors };
 }
 

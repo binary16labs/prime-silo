@@ -14,6 +14,23 @@ import { fileURLToPath } from "node:url";
 
 import { readCards, readADRs, readTraceEntities, makeEntityLoader } from "./lib/corpus.mjs";
 import { buildStreamA, traceToRows } from "./lib/streams.mjs";
+import {
+  readJsonCards,
+  readQuarantinedSids,
+  readLogEntries,
+  readContracts,
+  readMethodDocs,
+  readProse,
+  readThoughts,
+} from "./lib/corpus_v3.mjs";
+import {
+  jsonCardToPairs,
+  logToPairs,
+  contractToPairs,
+  docToPairs,
+  proseToPairs,
+  thoughtToPairs,
+} from "./lib/streams_v3.mjs";
 import { splitRows } from "./lib/split.mjs";
 import { validateRow } from "./lib/schema.mjs";
 import { loadTerms, makeDetector, scanForLeaks } from "./lib/privacy.mjs";
@@ -37,13 +54,48 @@ function main() {
   const memDir = (process.env.MEMORAY_DATA_DIR || "").trim() || path.join(os.homedir(), ".mem0ray", "data");
   fs.mkdirSync(OUT, { recursive: true });
 
+  // sessions_v1: the big LONGVIEW workspace (376 JSON cards + curated prose) — v3 Lever 1.
+  const sessionsWs = (process.env.T2_SESSIONS_WS || "").trim() ||
+    "D:\\benny-home\\benny\\workspaces\\sessions_v1";
+  const sessionsLongview = path.join(sessionsWs, "longview");
+  const sessionsDataOut = path.join(sessionsWs, "data_out");
+
   const spec = loadTerms({ home: home.root });
+  // Structural privacy: quarantined sids from the sessions workspace join the leak-gate
+  // sid list (previously term-matching only, sids: 0).
+  for (const sid of readQuarantinedSids(sessionsLongview))
+    if (!spec.sids.includes(sid)) spec.sids.push(sid);
   const detector = makeDetector(spec);
 
-  // Stream A — method/voice from cards + ADRs.
+  // Stream A — method/voice from cards + ADRs (T2 core) + v3 sources (DATA-PLAN-v3 L1).
   const cards = readCards(home.bennyHome);
   const adrs = readADRs(ROOT);
   const a = buildStreamA(cards, adrs, { detector });
+
+  const v3Counts = {};
+  const addA = (label, pairs) => {
+    let kept = 0;
+    for (const p of pairs) {
+      const flat = `${p.instruction}\n${p.response}\n${p.source.sid || ""}`;
+      if (detector(flat)) {
+        a.excluded.personal++;
+        continue;
+      }
+      a.rows.push(p);
+      kept++;
+    }
+    v3Counts[label] = kept;
+  };
+  addA("jsoncards", readJsonCards(sessionsLongview).flatMap(jsonCardToPairs));
+  addA("log", readLogEntries(ROOT).flatMap(logToPairs));
+  addA("contracts", readContracts(ROOT).flatMap(contractToPairs));
+  addA("docs", readMethodDocs(ROOT).flatMap(docToPairs));
+  addA("prose", readProse(sessionsDataOut).flatMap(proseToPairs));
+  const thoughtMax = Number(process.env.T2_THOUGHT_MAX_ROWS) || 500;
+  addA(
+    "thoughts",
+    readThoughts(memDir).flatMap(thoughtToPairs).slice(0, thoughtMax)
+  );
 
   // Stream B — agent tool-use trajectories from memo-ray traces.
   const entities = readTraceEntities(memDir);
@@ -81,6 +133,8 @@ function main() {
       home: home.root,
       cards: cards.length,
       adrs: adrs.length,
+      sessions_ws: sessionsWs,
+      a_v3: v3Counts,
       trace_entities_loaded: entities.size,
       memo_ray: memDir,
     },
@@ -91,6 +145,9 @@ function main() {
         eval: splitB.eval.length,
         excluded_personal: b.excluded.personal,
         excluded_unparsed: b.excluded.unparsed,
+        excluded_dedup: b.excluded.dedup,
+        excluded_tool_capped: b.excluded.tool_capped,
+        chain_rows: b.rows.filter((r) => r.source.variant === "chain").length,
       },
     },
     eval_pct: splitA.evalPct,

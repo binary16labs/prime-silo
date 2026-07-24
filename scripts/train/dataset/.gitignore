@@ -5,3 +5,4 @@
 # committed data file here (generic category markers, no private data).
 *.jsonl
 manifest.json
+gold_sample.jsonl

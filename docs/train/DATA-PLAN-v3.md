@@ -15,17 +15,31 @@ LLM paraphrases (voice contamination); template variety yes, generated content n
 
 ## Lever 1 — Grow Stream A from method-dense sources we already have (highest impact)
 
-Current A = 61 LONGVIEW cards + 2 ADRs. Untapped, all already written in house voice:
+Current A = 61 LONGVIEW cards + 2 ADRs. Untapped, all already written in house voice
+(corpus surveyed 2026-07-24 — `sessions_v1` is the motherlode T2 never read):
 
 | source | est. pairs | shape |
 |---|---|---|
+| **`D:\...\workspaces\sessions_v1\longview\cards` — 376 JSON cards** (intent/applications/capabilities/decisions; T2 only read the 61 markdown cards in the live home) | ~330 after quarantine filter | new `readJsonCards` → same pair shape as `cardToPairs` |
+| `sessions_v1\data_out` curated prose: **34 dossiers** (What-it-is/Trajectory sections) + **7 book chapters** + discovery loops + reviews | ~120–180 | sectioned md → (topic prompt → house prose), chunked ≤1600 chars |
 | `delivery/board/LOG.md` (103 entries, the densest method text in the estate: root-cause notes, honest deviations, verify-before-merge discipline) | ~80 | "How did we handle X / what did we log and why" → the entry's own narrative |
 | `delivery/tasks/*.md` (66 contracts: Goal + TDD plan + BDD scenarios) | ~120 | "How do we structure/gate a piece of work like X" → Goal+TDD sections; "Write the acceptance scenario for X" → gherkin |
 | `architecture/*.md` (16 docs: ADR-001..004, OPERATING_MANUAL, SPEC-work-contracts, SPEC-run-events, TECH_DEBT, REVIEW-*) | ~60 | extend `adrToPairs` to all sectioned method docs |
-| LONGVIEW book/dossiers/themes/arcs under `D:\benny-home` (house-voice long-form prose) | ~100–200 | section → (topic prompt → house prose) pairs, chunked ≤1600 chars |
 | memo-ray **Thought** entities (~18,000 est.; the literal in-flight reasoning voice) | ~300–500 after filters | (preceding state → next thought) pairs; filter: ≥120 chars, has a decision verb, dedupe near-identical |
 
-**Target: A train 56 → 500–800 rows; A eval 7 → 70–120** (the 7-row eval is statistically
+**Rollups verdict** (`sessions_v1\longview\rollups`: capabilities/projects/operator/sids
+JSON maps): inventory-shaped **facts** → excluded from training by the method-vs-facts
+design split. Used instead to (a) stratify the gold-audit sample and (b) report per-project
+balance in the builder stats. `windows/` (4,273) are intermediates the cards already
+distill — skipped as redundant/noisier.
+
+**Privacy hardening that this source demands:** `sessions_v1\longview\quarantine.json`
+lists the teleported (privacy-quarantined) sids. The new readers must (a) drop any
+card/window whose sid is quarantined and (b) **feed those sids into the leak-gate sid
+list** — today the gate runs term-matching only (`sids: 0`); this makes quarantine
+exclusion structural, not lexical.
+
+**Target: A train 56 → 700–1000 rows; A eval 7 → 100–150** (the 7-row eval is statistically
 noisy — this fixes the instrument too). Instruction phrasing: extend the deterministic
 FNV-1a template picker; per-source template families.
 
