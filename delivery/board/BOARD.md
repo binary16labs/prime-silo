@@ -9,10 +9,10 @@
 - B1 — coordination server API + SSE  *(dep B0 DONE — entered READY 2026-07-07)*
 - Q1 — reproducible supply chain  *(dep Q0 DONE — entered READY 2026-07-07)*
 - E0 — website design brief + claims registry  *(zero-dep — entered READY 2026-07-07; human-signed)*
-- L7 — single-winner loop claim + compaction budget  *(deps L0+B0 DONE — entered READY 2026-07-25)*
 - L8 — bi-temporal projectors + time-travel query  *(deps L0+L4 DONE — entered READY 2026-07-25)*
 
 ## CLAIMED (agent · date)
+- L7 — single-winner loop claim + compaction budget · claude-opus · 2026-07-25 *(owner approved L5+L7 2026-07-25; branch task/L7; deps L0+B0 DONE)*
 
 ## VERIFY (awaiting non-author verification)
 - L5 — unified execution register (executions.jsonl) · author claude-opus · branch task/L5 @ 263f5c2 · 2026-07-25 *(GATE GREEN: `node scripts/gates/l5.mjs` 4/4 — four logs (G0 run, train JSON, LONGVIEW ledger, coordination event) fold to one schema each with config tag+metrics+lineage+source_log; cross-machine compare returns cost/quality delta (R16); rebuildable projection (delete + re-fold byte-identical via DETERMINISTIC source-derived exec_ids, no random ulids); deterministic backfill. JSONL not DB (DuckDB deferred). Allowlist-clean (exec_register.mjs, tests/exec_register/, gates/l5.mjs); ~110 non-test lines < budget 600. Verifier: fresh identity re-runs gate from clean task/L5, NEGATIVE probes — a mutation using random exec_ids → RED rebuildable-identity; a missing required field is detectable; then merge --no-ff task/L5. agent-ok. Unblocks L6.)*
