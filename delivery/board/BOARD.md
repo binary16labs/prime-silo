@@ -11,9 +11,9 @@
 - E0 — website design brief + claims registry  *(zero-dep — entered READY 2026-07-07; human-signed)*
 
 ## CLAIMED (agent · date)
-- L0 — knowledge event log (KEL) spec + validator · claude-opus · 2026-07-25 *(human-signed: owner authorized execution 2026-07-25 ("go for it"); branch task/L0; EP-L flywheel wave-1 spine root)*
 
 ## VERIFY (awaiting non-author verification)
+- L0 — knowledge event log (KEL) spec + validator · author claude-opus · branch task/L0 @ 7ed6431 · 2026-07-25 *(GATE GREEN: `node scripts/gates/l0.mjs` 7/7 — correction-never-mutates (append-only + fold-as-of-past), chain betrays edited line (1-based successor), bi-temporal valid/txn queries, out-of-version replay via up-converter, write-failure degrades not raises (G0 rule). Reuses B0 ledger chain/fold + G0 non-blocking doctrine. Allowlist-clean (SPEC-knowledge-eventlog.md, kel-event.schema.json, kel.mjs, tests/kel/, gates/l0.mjs); ~290 non-test lines < budget 500. Verifier: fresh non-author identity re-runs the gate from a clean checkout of task/L0, plus NEGATIVE checks — tamper a middle line → RED chain-break at right line; drop a required field → RED; then merge --no-ff task/L0. human-signed: owner authorized execution 2026-07-25.)*
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 *(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)*
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 *(budget amended 300→1100 by owner directive — flagship scope, see LOG)*
 
