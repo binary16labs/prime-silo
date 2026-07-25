@@ -13,9 +13,9 @@
 - L3 — backup/replication  *(dep L1 DONE — entered READY 2026-07-25; human-signed)*
 
 ## CLAIMED (agent · date)
-- L2 — inbound poison gate · claude-opus · 2026-07-25 *(owner approved L2/L3/L4 2026-07-25; branch task/L2; dep L1 DONE)*
 
 ## VERIFY (awaiting non-author verification)
+- L2 — inbound poison gate · author claude-opus · branch task/L2 @ 1b757fb · 2026-07-25 *(GATE GREEN: `node scripts/gates/l2.mjs` 5/5 — hash-mismatch refused, injected control-record (forged `prev`+control `type`) rejected + ledgered, genuine session admissible, malformed record (no sid) rejected, admit() stamps index poison_gate=pass. Symmetric to the outbound leak gate; reads the L1 CAS layout. Allowlist-clean (poison_gate.mjs, tests/poison/, gates/l2.mjs); ~90 non-test lines < budget 300. Verifier: fresh identity re-runs gate from clean task/L2, NEGATIVE probes — a genuine JSON session (no `prev`) must PASS (guard not over-broad); a mutation skipping the hash check → RED; then merge --no-ff task/L2. agent-ok.)*
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 *(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)*
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 *(budget amended 300→1100 by owner directive — flagship scope, see LOG)*
 
