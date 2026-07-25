@@ -19,6 +19,18 @@ you skip a week of Windows-ROCm debugging. **Read the two absolutes first.**
    run invalidates an earlier number, the correction goes on the record
    (docs/train/T3-eval-report.md v1→v2 precedent). Tuned-worse is a valid, logged result.
 
+## Liveness — NEVER trust a tqdm log for a long GPU job
+
+The eGPU **wedges transiently** (TB3/RDNA4): a step hangs, the process stays alive but blocked,
+working set collapses to ~MB, and the tqdm log freezes looking exactly like "slow". A DPO run
+sat wedged at step 8/38 for 6 h this way. **Prove liveness, don't infer it:**
+- log mtime vs now (`stat -c %y <log>`) — hours stale on a minutes-long job = wedged;
+- two CPU-time snapshots ~90 s apart (`Get-CimInstance Win32_Process ... UserModeTime+KernelModeTime`)
+  — a live job burns CPU seconds, a wedged one doesn't;
+- advancing artifacts (trainer/checkpoint-*, *_result.json, adapter files).
+Recover: `Stop-Process -Id <pid> -Force` (PowerShell; use `$procId`, `$id:` is a parse error) →
+device-matmul health check → relaunch with a lower `max_length` (memory pressure wedges gfx1200).
+
 ## Environment (measured, don't rediscover)
 
 - GPU: RX 9060 XT **gfx1200**, 15.92 GiB, Razer Core X TB3, native-Windows ROCm.
@@ -87,6 +99,28 @@ median target length and duplicate-rate are the tells). Stream A sources are in
 builder + red-first test + schema source.type + leak-gate wiring in build_dataset.mjs.
 Rollups/KG = RAG material, never training rows.
 
+## T4 — serving behind the router (LM Studio + eGPU)
+
+Additive candidate: `runtime/benny/router/tuned_engine.py` registers `house/…` in MODEL_REGISTRY
++ wraps `resolve_executor` (default engine unchanged, reversible). Serve the GGUF via LM Studio
+on the eGPU (copy into `~/.lmstudio/models/<pub>/<repo>-GGUF/`, `lms load <modelKey> --gpu max
+--identifier <id>`; `lms import` hangs headless). Gate `scripts/gates/t4.py` = structural
+(litellm-free) + live offload through the ADR-004 `run_task`. Gotchas: LM Studio 400s
+`response_format:json_object` (fixed provider-agnostically in `offload/gate.py::run_judge`); use a
+FAST non-reasoning judge (gemma-3-4b), different family from the executor (anti-collusion); never
+run the live gate during a training run. See [[lmstudio-egpu-serving]].
+
+## T5 — DPO (preference tuning)
+
+Self-generated hard negatives: `scripts/train/dpo/build_prefs.py` asks the SERVED SFT model
+(LM Studio) for greedy answers on TRAIN-split prompts; where wrong vs the corpus reference, emit
+`(chosen=reference, rejected=SFT-answer)`. **Filter to method signal** — keep tool-selection
+errors + voice-drift; DROP arg-value mismatches (that's memorising RAG facts, against the doctrine).
+`train_dpo.py`: `PatchDPOTrainer()` first, load the SFT adapter as policy, `ref_model=None`,
+beta 0.1, lr 5e-6 (≪ SFT's 2e-4), 1 epoch, max_length ≤1024. SFT baseline eval = reuse the last
+SFT tuned.json (same adapter+split, deterministic). Gate `scripts/gates/t5.py`: GREEN iff
+`dpo.agg_nll ≤ sft.agg_nll` + merged GGUF loads. DPO-not-beating-SFT is a valid logged result.
+
 ## Verification protocol (author≠verifier)
 
 Log as `claude-tN-verifier`. Reproduce, don't trust: re-run the NLL instrument fresh
@@ -96,10 +130,11 @@ seeded CV row → t2 RED), own llama-server /health smoke, then gate re-run. Mov
 VERIFY→DONE on the board + LOG with caveats stated (same-session verify is a named
 caveat, precedent T2/T3).
 
-## Current board state (2026-07-24)
+## Current board state (2026-07-25)
 
-T0/T1/T2/T3 DONE+verified. KR1.5 evidence: tuned Qwen2.5-Coder-7B **−62.5% agg NLL vs
-base** (2.3153→0.8678, RAG off); GGUF `D:\t3-merge\gguf_gguf\qwen2.5-coder-7b-instruct.Q4_K_M.gguf`.
-**T4 READY** (wire GGUF behind Benny router, additive, gate t4.py). Data-v3 rebuild in
-flight; pre-registered criteria: A_nll delta ≤ −25% (was −9.2%) with B ≤ −50%, else the
-conclusion is T5/DPO. Owner still owes the 200-row gold hand-audit (human-signed).
+T0/T1/T2/T3 DONE+verified. **T3 v3** (data-plan-v3, all pre-registered criteria passed):
+tuned Qwen2.5-Coder-7B **−57% agg NLL vs base** (2.6195→1.1253, A −38.3%, RAG off);
+GGUF `D:\t3-merge\gguf_gguf\…Q4_K_M.gguf`, also in LM Studio as `qwen2.5-coder-tuned`.
+**T4 DONE (in VERIFY)** — tuned wired behind the router, live ADR-004 offload passed, judge 1.0.
+**T5 (DPO) in progress** — 303 method pairs, first run wedged (relaunched, max_len 1024).
+Owner still owes the 200-row gold hand-audit (human-signed). KR1.5 closes on T5 verify.
