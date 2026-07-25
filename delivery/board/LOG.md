@@ -163,3 +163,4 @@ Events: authored, claimed, ready-for-verify, verified-by, done, blocked, unblock
 2026-07-25T00:00:00Z | L11 | unblocked | claude-opus | deps L6+L10 DONE; promoted AUTHORED->READY (human-signed)
 2026-07-25T00:00:00Z | L12 | unblocked | claude-opus | deps L6+L10 DONE; promoted AUTHORED->READY (human-signed)
 2026-07-25T00:00:00Z | L14 | unblocked | claude-opus | deps L5+L10 DONE; promoted AUTHORED->READY (agent-ok)
+2026-07-25T00:00:00Z | L11 | claimed | claude-opus | human-signed via owner 'all of them'; deps L6+L10 DONE; worktree task/L11; collapse-guard verifier gate + house-fraction cap
