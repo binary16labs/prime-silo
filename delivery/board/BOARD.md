@@ -13,6 +13,7 @@
 ## CLAIMED (agent · date)
 
 ## VERIFY (awaiting non-author verification)
+- T5 — DPO on the SFT adapter · author claude-opus · in-place @ main · 2026-07-25 *(GATE GREEN: 303 self-generated method hard-negatives (117 wrong-tool-selection + 186 voice-drift; dropped 446 args_mismatch as fact-cramming); DPO beats SFT on the frozen instrument but MARGINALLY — agg_nll 1.1253->1.1218 (+0.3%), tool-match 0.263->0.260. Honest: SFT v3 already captured most signal; DPO ranking gains (margins 0->4.47) dont show in NLL. Merged q4_k_m GGUF loads (llama-server). Hardware finding: DPO on 7B needs VRAM-checkpointing+max_seq512 to fit the 16GB host (unsloth host-offload ckpt swap-thrashed at 9.4GB pagefile). Verifier: python scripts/gates/t5.py)*
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 *(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)*
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 *(budget amended 300→1100 by owner directive — flagship scope, see LOG)*
 
@@ -47,4 +48,3 @@ F1 F2 F3 F4 F5 F6 F7 F8 ·
 Q2 Q3 ·
 R0 R1 R2 R3 ·
 M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 ·
-T5  (EP-T/M3 — DPO on the SFT adapter, self-generated hard negatives; dep verified DONE 2026-07-24 so ready-eligible — owner may promote to READY once the v3 result lands)
