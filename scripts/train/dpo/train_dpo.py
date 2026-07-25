@@ -61,11 +61,18 @@ def main() -> int:
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=str(SFT_ADAPTER), max_seq_length=MAX_SEQ, load_in_4bit=True, dtype=None,
     )
+    # DPO doubles sequences (chosen+rejected). Unsloth's "unsloth" checkpointing offloads
+    # activations to HOST RAM — on this 16 GB box that exhausted RAM and swap-thrashed a run
+    # to a crawl near the end (pagefile peaked 9.4 GB). Use standard checkpointing (True) which
+    # keeps activations in VRAM (~11 GB free after the 4-bit model) — trade spare VRAM for the
+    # scarce host RAM. Override with T5_GRAD_CKPT.
+    grad_ckpt = os.environ.get("T5_GRAD_CKPT", "true")
+    grad_ckpt = True if grad_ckpt.lower() == "true" else grad_ckpt
     model = FastLanguageModel.get_peft_model(
         model, r=16, lora_alpha=16, lora_dropout=0, bias="none",
         target_modules=["q_proj", "k_proj", "v_proj", "o_proj",
                         "gate_proj", "up_proj", "down_proj"],
-        use_gradient_checkpointing="unsloth", random_state=SEED,
+        use_gradient_checkpointing=grad_ckpt, random_state=SEED,
     )
     eos = tokenizer.eos_token or ""
 
@@ -74,7 +81,15 @@ def main() -> int:
             [{"role": "user", "content": user}], tokenize=False, add_generation_prompt=True
         )
 
-    rows = [json.loads(l) for l in open(PREFS, encoding="utf-8") if l.strip()]
+    # Design-aligned filtering (method in weights, facts in RAG): keep tool-SELECTION errors
+    # (wrong tool name) and VOICE drift — both teach method. DROP args_mismatch (right tool,
+    # different arg values): preferring the reference's exact args = memorising session facts,
+    # which fights the RAG design and won't generalise. Override with T5_PREF_REASONS.
+    keep = set((os.environ.get("T5_PREF_REASONS") or "tool_mismatch,voice_drift").split(","))
+    all_rows = [json.loads(l) for l in open(PREFS, encoding="utf-8") if l.strip()]
+    rows = [p for p in all_rows if p.get("reason") in keep]
+    if not rows:
+        raise SystemExit(f"[dpo] no pairs after reason filter {keep} (of {len(all_rows)})")
     ds = Dataset.from_list([
         {"prompt": fmt_prompt(p["prompt"]),
          "chosen": p["chosen"] + eos,
@@ -83,7 +98,8 @@ def main() -> int:
     ])
     n_a = sum(1 for p in rows if p.get("stream") == "A")
     n_b = sum(1 for p in rows if p.get("stream") == "B")
-    print(f"[dpo] pairs: A={n_a} B={n_b} total={len(rows)} | beta={BETA} lr={LR} epochs={EPOCHS}")
+    print(f"[dpo] pairs: A={n_a} B={n_b} total={len(rows)}/{len(all_rows)} "
+          f"(reasons kept: {sorted(keep)}) | beta={BETA} lr={LR} epochs={EPOCHS}")
 
     trainer = DPOTrainer(
         model=model,
@@ -110,7 +126,8 @@ def main() -> int:
 
     (OUT / "dpo_result.json").write_text(json.dumps({
         "sft_adapter": str(SFT_ADAPTER),
-        "pairs": {"A": n_a, "B": n_b, "total": len(rows)},
+        "pairs": {"A": n_a, "B": n_b, "total": len(rows), "available": len(all_rows),
+                  "reasons_kept": sorted(keep)},
         "hparams": {"beta": BETA, "lr": LR, "epochs": EPOCHS, "batch": BATCH,
                     "grad_accum": GRAD_ACCUM, "max_seq": MAX_SEQ, "seed": SEED,
                     "schedule": "cosine"},
