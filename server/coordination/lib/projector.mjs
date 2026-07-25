@@ -56,10 +56,13 @@ export const NON_PROJECTED_TYPES = new Set(["cursor_advanced"]);
 // --- rebuild-from-log: the replay guarantee (R32). Deterministic: delete + re-fold is identical. --
 // `asOfValidTime` / `asOfTxnTime` slice the bi-temporal axes (undefined = now/all). By default only
 // knowledge events are projected; pass `types` to opt into an explicit allowlist instead.
-export function rebuild(logFile, { asOfValidTime, asOfTxnTime, converters = {}, sink = cardSink, types } = {}) {
+// `eventFilter` is an ADDITIVE governance hook (L9): a pure `(evt) => boolean` applied before the
+// fold so a projector can drop e.g. teleported/quarantined sids at every bi-temporal point (R4/R31).
+// Default undefined = no filtering, so the L8 default path is unchanged (R36 additivity).
+export function rebuild(logFile, { asOfValidTime, asOfTxnTime, converters = {}, sink = cardSink, types, eventFilter } = {}) {
   const { events } = readKelEvents(logFile);
-  const knowledge = events.filter((e) =>
-    types ? types.includes(e.type) : !NON_PROJECTED_TYPES.has(e.type)
+  const knowledge = events.filter(
+    (e) => (types ? types.includes(e.type) : !NON_PROJECTED_TYPES.has(e.type)) && (!eventFilter || eventFilter(e))
   );
   const proj = foldProjection(knowledge, { asOfValidTime, asOfTxnTime, converters });
   return sink(proj);
