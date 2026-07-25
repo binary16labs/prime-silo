@@ -26,6 +26,29 @@ D:\flywheel-staging\eventlog\<yyyy>\<mm>\events-<hlc-day-bucket>.jsonl   # appen
 The library operates on a given log-file path; the caller resolves the date/HLC bucket. When the B1
 server is up it is the single appender (as with B0); direct appends assume a single writer per file.
 
+## Staging store (L1) — CAS + index + manifest
+
+Raw sessions from every machine stage on the portable drive in a **full hybrid** layout (steer 2),
+three ideas composed — reference impl `server/coordination/lib/staging.mjs`:
+
+```
+D:\flywheel-staging\
+├── blobs\sha256\<hh>\<hash>            content-addressed; identity = hash, so the same session synced
+│                                       from two machines de-dups to one blob (R20)
+├── index\<machine>\<yyyy-mm-dd>\<sid>.json   human-navigable pointer record into the blobs (R19):
+│                                       machine, process/agent, project, task_context, sid, blobs[],
+│                                       authorship, links{cards,concepts}, poison_gate (L2), schema_version
+└── manifests\<machine>.json            self-describing — hardware, hlc_node_id, blobs/index/kel roots —
+                                        so the drive attaches to any machine with NO per-machine config (R18)
+```
+
+`stageSession` writes the blob (de-dup), the index record, and emits a **`session_staged` KEL event**
+(reusing L0) whose `subject.content_hash` binds the event to the blob — so the session is admissible to
+synthesis later. `openStaging` resolves the roots + inventories staged sessions from the manifest alone
+(plug-and-play). Everything is pure filesystem: local-first, offline-capable, no machine need be online
+(R20/R21). The **inbound poison gate (L2)** validates a staged session before admission (`poison_gate`
+starts `pending`); **durability/replication (L3)** and the **delta cursors (L4)** build on this layout.
+
 ## Envelope (`kel-event.schema.json`)
 
 Every event carries the **bi-temporal + provenance** envelope. Required: `id` (ULID), `schema_version`
