@@ -201,10 +201,15 @@ and any cloud dependency (local-first remains a hard constraint).
 
 ## 7. Acceptance criteria for THIS requirements doc (definition of ready for design)
 
-- [ ] Owner has reviewed and each R# is **accepted / amended / rejected**.
-- [ ] The 8 open questions each have an owner steer (or are explicitly deferred to design).
+- [ ] Owner has reviewed and each R# (**R1–R37** original + **R38–R45** reviewer addendum, §9) is
+  **accepted / amended / rejected**.
+- [ ] The **11** open questions each have an owner steer (or are explicitly deferred to design) —
+  the original 8 (§6) plus the 3 added in §9.3 (semantic conflict, schema evolution, loop liveness).
 - [ ] Priority/phasing agreed: which requirements are **wave 1** (likely: R17–R21 staging + R8–R11
   delta + R12–R16 execution tagging — the substrate) vs later (R22–R30 full loop automation).
+- [ ] The §9.5 phasing steer is confirmed: **Tier 1 (R38–R41) slotted into wave 1** (R40/R41 with
+  staging; R38 tagging + R39 record-served in wave 1, their gates in wave 3); Tier 2 R42/R43 wave 1,
+  R44/R45 wave 3.
 - [ ] Confirm the "stage raw to the portable drive now" decision (R17) — proceed as a wave-1 quick win?
 
 ## 8. Suggested phasing (owner to confirm — not binding)
@@ -216,6 +221,95 @@ and any cloud dependency (local-first remains a hard constraint).
    privacy-honoring history.
 3. **Wave 3 — the closed loop + agent loops:** R22–R30; the measured flywheel + the compound-value
    dashboard (R26).
+
+---
+
+## 9. Reviewer addendum — gaps (additive; nothing above is amended)
+
+**Author of addendum:** claude-opus (reviewer), 2026-07-25. Added under the additive doctrine —
+these extend §4/§5/§6, they do not mutate any prior R#. Owner to accept / amend / reject each,
+same as R1–R37. Rationale: the substrate (waves 1–2) reads complete; these gaps are almost all in
+**the loop** (wave 3) — the part that makes this *self-learning* rather than a bigger pipeline, and
+therefore where the sharp safety/correctness risks live.
+
+### 9.1 Tier 1 — must-add (correctness/safety holes)
+
+- **R38. Self-training contamination / model-collapse guard.** The training signal SHALL carry
+  **authorship provenance** (human / frontier-model / house-model), and the loop SHALL bound the
+  house-model's *own* outputs as a fraction of any training turn. A house-authored session SHALL
+  become a training row only after passing a verifier gate (frozen rubric or frontier sign-off) —
+  the loop trains on *validated* method, never raw self-output. Without this, the flywheel
+  (sessions→train→model→sessions) drifts into distillation-of-self and collapses. Extends R24/R25.
+- **R39. Human-signed model promotion + rollback.** Promotion of model N+1 to the served position
+  behind the router SHALL require a **human signature** (per the human-signed-stops doctrine); it
+  SHALL NOT auto-swap on a passing number alone. The system SHALL support **pinning and rollback**
+  of the served model (record what N+1 replaced and how to revert). Extends R23/R36.
+- **R40. Input integrity / poison gate on staged raw.** The leak gate (R31) is *outbound* privacy
+  only. Staged raw sessions arriving from many machines SHALL pass an **inbound integrity/validation
+  gate** (a trust boundary symmetric to the leak gate) before synthesis or training, so a corrupted
+  or injected session on one machine cannot flow into the corpus. Extends R17/R20/R31.
+- **R41. Durability of the portable substrate.** R17 makes **D:** the single point of truth;
+  append-only ≠ backed up. The staging + knowledge substrate SHALL be **backed up / replicated**
+  with periodic **integrity checks (checksums) and a restore drill**, so single-drive failure does
+  not lose the corpus. Extends R17/R21 (backup is a copy, not a cloud dependency — stays local-first).
+
+### 9.2 Tier 2 — should-add
+
+- **R42. Storage growth / compaction budget.** Append-only + bi-temporal + never-delete on a finite
+  drive SHALL have a stated **storage budget, archival, and compaction policy** (compaction itself
+  additive/journalled), so growth and drive capacity do not collide silently. Extends R5–R7.
+- **R43. Exactly-once cross-machine work claiming.** Concurrent machines SHALL claim loop/board work
+  under an **exactly-once (single-winner) protocol**; two machines SHALL NOT train/merge against the
+  substrate simultaneously. (Promotes Open Q5's claim-race from a design choice to a requirement —
+  it is a corruption-avoidance property, not a nicety.) Extends R29.
+- **R44. Promotion decision function (multi-metric).** "N+1 ≥ N" (R23) SHALL be defined as an
+  explicit **dominance/decision rule** over the metric vector (eval NLL, agent pass-rate, cost,
+  latency), specifying the outcome when metrics trade off (Pareto case) — so "better" is decided by
+  rule, not relitigated per turn. Extends R23/R30/R37.
+- **R45. Eval-set evolution vs. frozen comparability.** The held-out instrument SHALL support
+  **additive growth** (new held-out slices added without invalidating the historical cross-turn
+  series), reconciling "frozen for honesty" (R24) with saturation as capability rises. Extends R23/R24.
+
+### 9.3 Additional open questions for the design session
+
+9. **Semantic conflict resolution.** R11 resolves *ordering* via valid-time, but not two machines
+   deriving *contradictory* facts at the same valid-time. How is truth adjudicated (last-writer,
+   confidence, human review, keep-both-and-flag)?
+10. **Schema evolution across bi-temporal history.** R32 requires replay; evolving the
+    card/graph/dataset schema over time makes old records un-replayable without versioned migration.
+    How do schemas evolve additively while preserving replayability? (Relates to Open Q8 backfill.)
+11. **Loop-level liveness.** Beyond per-run observability (R35), how is a *stalled agent loop*
+    detected and alerted — not merely logged — given "a tqdm line ≠ alive" and the eGPU's transient
+    wedging? (Dead-man switch / resource+thermal abort that fails clean rather than wedging the box.)
+
+### 9.4 Delivery note — build the flywheel by dogfooding the flywheel
+
+Per owner steer, deliver this item using the **house model as much as possible** and stage these
+sessions as training material — but note this *is* the self-training loop from turn one, so **R38 is
+the guard that makes it safe**, not optional overhead. Suggested split (fits the existing board +
+`author≠verifier`): house model (LM Studio/eGPU, `house-trainer`/`longview-pipeline`) carries the
+high-volume specified work (synthesis phases, dataset/delta builds); frontier sessions carry
+requirements/design/gate-writing/**verification**. Capture every session with authorship tags (R38);
+frontier *corrections* of house output are the highest-value method-in-weights signal (R25); only
+frontier-verified house sessions enter training (R38+R44). Track the **fraction of delivery work the
+house model carries per loop turn** as an explicit optimization target (R30) — that number rising
+*while* held-out eval holds or improves is the real proof of compounding (R26), not corpus size.
+
+### 9.5 Phasing note (extends §8; owner to confirm)
+
+The four **Tier 1** requirements are **wave-1 substrate concerns**, not wave-3 loop polish — they
+guard the substrate the moment raw is staged and the first house-authored session appears, so they
+should land alongside R17–R21 / R8–R11 / R12–R16:
+
+- **R40** (inbound poison gate) and **R41** (drive durability/backup) — land **with** the staging
+  substrate (R17–R21); staging without an integrity boundary or a backup is a wave-1 hole.
+- **R38** (authorship provenance in the signal) — the *tagging* is wave-1 (capture provenance at
+  staging/execution time, alongside R12–R16); the *fraction cap + verifier gate* activate in wave 3
+  when the loop closes.
+- **R39** (human-signed promotion + rollback) — wave-1 to the extent of **recording** what is served
+  and how to revert; the promotion *gate* itself is exercised in wave 3.
+
+Tier 2 (R42–R45) tracks its natural wave: R42/R43 with wave-1 substrate, R44/R45 with wave-3 loop.
 
 ---
 
