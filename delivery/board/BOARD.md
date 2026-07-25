@@ -13,9 +13,9 @@
 - L8 — bi-temporal projectors + time-travel query  *(deps L0+L4 DONE — entered READY 2026-07-25)*
 
 ## CLAIMED (agent · date)
-- L5 — unified execution register (executions.jsonl) · claude-opus · 2026-07-25 *(owner approved L5+L7 2026-07-25; branch task/L5; deps L0+L4 DONE)*
 
 ## VERIFY (awaiting non-author verification)
+- L5 — unified execution register (executions.jsonl) · author claude-opus · branch task/L5 @ 263f5c2 · 2026-07-25 *(GATE GREEN: `node scripts/gates/l5.mjs` 4/4 — four logs (G0 run, train JSON, LONGVIEW ledger, coordination event) fold to one schema each with config tag+metrics+lineage+source_log; cross-machine compare returns cost/quality delta (R16); rebuildable projection (delete + re-fold byte-identical via DETERMINISTIC source-derived exec_ids, no random ulids); deterministic backfill. JSONL not DB (DuckDB deferred). Allowlist-clean (exec_register.mjs, tests/exec_register/, gates/l5.mjs); ~110 non-test lines < budget 600. Verifier: fresh identity re-runs gate from clean task/L5, NEGATIVE probes — a mutation using random exec_ids → RED rebuildable-identity; a missing required field is detectable; then merge --no-ff task/L5. agent-ok. Unblocks L6.)*
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 *(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)*
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 *(budget amended 300→1100 by owner directive — flagship scope, see LOG)*
 
