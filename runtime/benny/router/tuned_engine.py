@@ -201,3 +201,20 @@ def _port_from(base_url: str) -> int:
         return int(base_url.split(":")[2].split("/")[0])
     except Exception:
         return 8080
+
+
+# --- L12: served id reflects human-signed promotions (additive, R36) -------- #
+def served_engine_id(pointer_path: Optional[str] = None, default: Optional[str] = None) -> str:
+    """Who is currently served: the model named by a human-signed promotion pointer (L12), else the
+    default engine. With no pointer this returns the default unchanged — the router keeps its existing
+    behaviour until a promotion is signed. The served position only ever moves by human signature
+    (promotion.py enforces the sign gate); this is the read side the router consults."""
+    default = default or os.environ.get("BENNY_DEFAULT_MODEL") or "qwen3_5_9b"
+    path = pointer_path or os.environ.get("BENNY_SERVED_POINTER")
+    if not path:
+        return default
+    from .promotion import read_served
+
+    rec = read_served(path)
+    served = rec.get("served") if rec else None
+    return served or default
