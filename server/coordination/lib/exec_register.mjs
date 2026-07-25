@@ -6,6 +6,10 @@
 // byte-identical. JSONL not a DB (SOLUTION §4.4); DuckDB is a measure-first fallback, not here. R12–R16.
 import crypto from "node:crypto";
 import fs from "node:fs";
+import { requireAuthorship } from "./authorship.mjs";
+
+// L6: surface authorship enforcement through the register (R38 tagging half).
+export { AUTHORSHIP, validateAuthorship, requireAuthorship } from "./authorship.mjs";
 
 export const REGISTER_SCHEMA_VERSION = "1.0.0";
 const detId = (s) => crypto.createHash("sha256").update(s).digest("hex").slice(0, 16);
@@ -81,8 +85,16 @@ export function projectRegister({ g0Runs = [], trainJsons = [], longviewLedger =
   return recs;
 }
 
-export function buildRegister(registerPath, sources) {
+// `strict` (L6): reject any record that is not provenance-tagged — used where records must be
+// training-eligible (the R38 collapse-guard needs a known origin). Default off keeps backfill of
+// historical/coordination sources (authorship unknown) working.
+export function buildRegister(registerPath, sources, { strict = false } = {}) {
   const recs = projectRegister(sources);
+  if (strict)
+    for (const r of recs) {
+      const v = requireAuthorship(r);
+      if (!v.ok) throw new Error(`register record ${r.exec_id} (${r.source_log}): ${v.reason}`);
+    }
   fs.writeFileSync(registerPath, recs.map((r) => JSON.stringify(r)).join("\n") + "\n");
   return recs;
 }
