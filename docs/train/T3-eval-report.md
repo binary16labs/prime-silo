@@ -15,6 +15,10 @@
 **Status:** tuned model beats base on the frozen rubric with RAG disabled. Date: 2026-07-24.
 Author: claude (T3, claimed 2026-07-23). Verifier: re-run `python scripts/gates/t3.py`.
 
+> **Reading the numbers:** NLL = how "surprised" the model is by the correct answer — **lower
+> is better**. "−57%" means the NLL *dropped* 57% (the model **improved**); the minus is the
+> direction of the score change, not a negative result.
+
 ## Headline (the KR1.5 number)
 
 On the T2 held-out split (A=7 method rows, B=402 trajectory rows — disjoint from train by

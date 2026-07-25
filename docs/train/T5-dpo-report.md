@@ -3,6 +3,10 @@
 **Status:** GATE GREEN — DPO ≥ SFT on the frozen instrument, but the margin is small.
 Date: 2026-07-25. Author: claude-opus. Verify: `python scripts/gates/t5.py`.
 
+> **Reading the numbers:** NLL = the model's "surprise" at the correct answer — **lower is
+> better**. A "−0.3%" means the NLL dropped 0.3% (a small improvement); the minus sign is the
+> direction of the score change, not a negative result.
+
 ## Headline (honest)
 
 On the T2 v3 held-out split (A=7, B=402), RAG disabled, same frozen rubric as T3

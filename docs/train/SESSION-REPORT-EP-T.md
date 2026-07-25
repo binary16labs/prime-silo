@@ -4,6 +4,10 @@
 Sapphire Pulse RX 9060 XT 16 GB (RDNA4 / gfx1200), native-Windows ROCm + Unsloth.
 **Outcome:** EP-T epic (T0–T5) complete and independently verified; **OKR KR1.5 closed**.
 
+> **Reading the numbers:** the score is **NLL** (how "surprised" the model is by the correct
+> answer) — **lower is better**. A percentage like "−57%" means the NLL *dropped* by 57%, i.e. the
+> model **improved** by that much. Negative = better here; it is never a "negative result".
+
 ## Scope delivered this session
 
 Picked up after T0/T1/T2 were done, and carried Workstream T to completion:
