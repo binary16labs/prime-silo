@@ -9,9 +9,8 @@
 - B1 — coordination server API + SSE  *(dep B0 DONE — entered READY 2026-07-07)*
 - Q1 — reproducible supply chain  *(dep Q0 DONE — entered READY 2026-07-07)*
 - E0 — website design brief + claims registry  *(zero-dep — entered READY 2026-07-07; human-signed)*
-- L3 — backup/replication  *(dep L1 DONE — entered READY 2026-07-25; human-signed)*
-
 ## CLAIMED (agent · date)
+- L3 — durability (replicate + verify + restore drill) · claude-opus · 2026-07-25 *(human-signed: owner approved L2/L3/L4 2026-07-25 = the signature; branch task/L3; dep L1 DONE)*
 
 ## VERIFY (awaiting non-author verification)
 - L4 — delta engine (per-content-hash cursors) · author claude-opus · branch task/L4 @ fbb2aaa · 2026-07-25 *(GATE GREEN: `node scripts/gates/l4.mjs` 5/5 — unchanged content skipped, duplicated run converges to exactly one cursor (same outputs), interrupted run resumes only not-yet-done inputs, out-of-order arrival resolves by HLC valid-time, config/commit change invalidates the cursor. Cursors are cursor_advanced KEL events (reuses L0 kel.mjs). Allowlist-clean (delta.mjs, tests/delta/, gates/l4.mjs); ~75 non-test lines < budget 450. Verifier: fresh identity re-runs gate from clean task/L4, NEGATIVE probes — a changed content_hash reprocesses; a mutation ignoring the done-cursor → RED idempotence; then merge --no-ff task/L4. agent-ok.)*
