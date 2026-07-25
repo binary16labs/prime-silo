@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "KEL event envelope",
+  "description": "Knowledge event log envelope (L0/EP-L). Bi-temporal + provenance + schema-versioned. `prev` (the chain hash) is added by the appender and is NOT part of the caller-supplied envelope. Unknown fields are permitted (additive doctrine, G0 rule); missing required fields are rejected.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "id",
+    "schema_version",
+    "type",
+    "valid_time",
+    "txn_time",
+    "time_confidence",
+    "hlc",
+    "machine",
+    "authorship",
+    "sid",
+    "subject"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "type": {
+      "type": "string",
+      "enum": [
+        "session_staged",
+        "card_asserted",
+        "entity_asserted",
+        "edge_asserted",
+        "concept_merged",
+        "dataset_row_derived",
+        "model_recorded",
+        "execution_recorded",
+        "cursor_advanced",
+        "conflict_flagged",
+        "tombstoned",
+        "schema_migrated"
+      ]
+    },
+    "valid_time": { "type": "string", "minLength": 1 },
+    "txn_time": { "type": "string", "minLength": 1 },
+    "time_confidence": { "type": "string", "enum": ["known", "inferred"] },
+    "hlc": { "type": "string", "minLength": 1 },
+    "machine": { "type": "string", "minLength": 1 },
+    "authorship": { "type": "string", "enum": ["human", "frontier", "house"] },
+    "sid": { "type": "string", "minLength": 1 },
+    "subject": { "type": "object" },
+    "payload": { "type": "object" },
+    "supersedes": { "type": "array" },
+    "prev": { "type": "string", "minLength": 1 }
+  }
+}
