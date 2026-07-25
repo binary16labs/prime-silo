@@ -136,3 +136,4 @@ Events: authored, claimed, ready-for-verify, verified-by, done, blocked, unblock
 2026-07-25T14:55:00Z | L7 | promoted | claude-opus | deps L0+B0 both DONE -> L7 entered READY (bottom). agent-ok.
 2026-07-25T14:55:00Z | L8 | promoted | claude-opus | deps L0+L4 both DONE -> L8 entered READY (bottom, wave-2 projectors). agent-ok.
 2026-07-25T15:10:00Z | L5 | claimed | claude-opus | Owner approved L5+L7 (2026-07-25). Taking unified execution register (executions.jsonl projection) on branch task/L5 off main; deps L0+L4 DONE. Author=claude-opus; fresh non-author identity will verify.
+2026-07-25T15:15:00Z | L7 | note | claude-opus | FIX: the L5-claim edit (b17dd3b) accidentally dropped the L7 READY line (w0 caught it: L7 appears 0 times). L7 restored to READY. Authoring defect on my part; corrected on the record. Lesson: do not pipe a gate through tail when using its exit code as a chain guard.

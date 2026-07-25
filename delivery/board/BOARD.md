@@ -9,6 +9,7 @@
 - B1 — coordination server API + SSE  *(dep B0 DONE — entered READY 2026-07-07)*
 - Q1 — reproducible supply chain  *(dep Q0 DONE — entered READY 2026-07-07)*
 - E0 — website design brief + claims registry  *(zero-dep — entered READY 2026-07-07; human-signed)*
+- L7 — single-winner loop claim + compaction budget  *(deps L0+B0 DONE — entered READY 2026-07-25)*
 - L8 — bi-temporal projectors + time-travel query  *(deps L0+L4 DONE — entered READY 2026-07-25)*
 
 ## CLAIMED (agent · date)
