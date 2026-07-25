@@ -199,18 +199,58 @@ and any cloud dependency (local-first remains a hard constraint).
 8. **Backfill:** how to bi-temporally backfill the existing corpus (sessions_v1 etc.) without
    fabricating valid-times we don't have.
 
+### 6.1 Owner steers — RESOLVED 2026-07-25 (binding for the design session)
+
+All 11 open questions (§6 items 1–8 + §9.3 items 9–11) now have an owner decision. The design
+session implements these; where a steer says "hybrid" the design session specs the composition.
+
+1. **Bi-temporal storage → event-log-as-truth.** An append-only event log is the single source of
+   truth; Neo4j / Chroma / memo-ray are **rebuildable projections** off it. (Purest fit for the
+   additive + R32 replay doctrine.)
+2. **Staging format on D: → full hybrid.** A content-addressed blob store provides storage +
+   de-dup (hash = identity), with a **human-navigable machine/date index tree layered over it** and
+   a self-describing per-machine manifest. All three ideas combined.
+3. **Delta watermark → per-content-hash.** Finest grain; unchanged content never reprocessed.
+   Cursors live in the event log / execution register.
+4. **Execution register → unified schema, backfilled.** One queryable execution store; train-result
+   JSONs + delivery LOG + LONGVIEW ledger + lineage **projected in and backfilled** for immediate
+   R16 cross-machine comparability.
+5. **Loop trigger → hybrid file-watch + cron backstop.** File-watch on D: staging triggers reactively;
+   a scheduled cron **sweep** is the backstop. Both gated by the B0/B1 **single-winner claim** for
+   cross-machine mutual exclusion (R43).
+6. **Compound-value metric → the triad, shown together.** Held-out eval delta is the **honest anchor**;
+   agent task pass-rate and cost/task ride alongside. The flywheel dashboard (R26) presents all three
+   over time rather than collapsing to one gameable composite.
+7. **Multi-machine clock → hybrid logical clocks (HLC).** Skew-tolerant causal ordering + human-
+   meaningful wall time.
+8. **Backfill → real-where-known, else inferred.** Use the session's real timestamp for valid-time
+   where it exists; otherwise valid-time = transaction-time, **tagged inferred/low-confidence** (never
+   fabricate precision). Requires a confidence flag on records.
+9. **Semantic conflict → keep-both-and-flag.** Record both versions, mark the conflict, surface to a
+   verifier/human; **never auto-pick** a winner. Additive, zero data loss.
+10. **Schema evolution → additive-default + versioned converters.** Additive-only by default (add
+    optional, never rename/remove); versioned up-converters for the rare breaking change so old
+    records stay replayable. Every record schema-version tagged.
+11. **Loop liveness → full hybrid.** Artifact / CPU-time / mtime **watchdog** (not log lines) +
+    **external supervisor** heartbeat cross-check + **dead-man clean abort** with alert. Catches both
+    slow-but-working and the eGPU hard-wedge — encodes the [[verify-gpu-job-liveness]] lesson.
+
 ## 7. Acceptance criteria for THIS requirements doc (definition of ready for design)
 
-- [ ] Owner has reviewed and each R# (**R1–R37** original + **R38–R45** reviewer addendum, §9) is
-  **accepted / amended / rejected**.
-- [ ] The **11** open questions each have an owner steer (or are explicitly deferred to design) —
-  the original 8 (§6) plus the 3 added in §9.3 (semantic conflict, schema evolution, loop liveness).
-- [ ] Priority/phasing agreed: which requirements are **wave 1** (likely: R17–R21 staging + R8–R11
-  delta + R12–R16 execution tagging — the substrate) vs later (R22–R30 full loop automation).
-- [ ] The §9.5 phasing steer is confirmed: **Tier 1 (R38–R41) slotted into wave 1** (R40/R41 with
+- [x] Owner has reviewed and each R# (**R1–R37** original + **R38–R45** reviewer addendum, §9) is
+  **accepted** — accepted as a set on 2026-07-25 to proceed to design; any per-R# amendment can be
+  raised during design.
+- [x] The **11** open questions each have an owner steer — **RESOLVED, see §6.1** (2026-07-25).
+- [x] Priority/phasing agreed: **wave 1** = R17–R21 staging + R8–R11 delta + R12–R16 execution
+  tagging (the substrate); loop automation R22–R30 in wave 3 (see §8 + §9.5).
+- [x] The §9.5 phasing steer is confirmed: **Tier 1 (R38–R41) slotted into wave 1** (R40/R41 with
   staging; R38 tagging + R39 record-served in wave 1, their gates in wave 3); Tier 2 R42/R43 wave 1,
   R44/R45 wave 3.
-- [ ] Confirm the "stage raw to the portable drive now" decision (R17) — proceed as a wave-1 quick win?
+- [x] "Stage raw to the portable drive now" (R17) — **confirmed as a wave-1 quick win.**
+
+> **Definition of ready: MET (2026-07-25).** All R# accepted, all 11 open questions steered (§6.1),
+> phasing confirmed. This doc is **ready for the design session** — hand off via
+> [`SOLUTION-longview-self-learning.md`](SOLUTION-longview-self-learning.md).
 
 ## 8. Suggested phasing (owner to confirm — not binding)
 

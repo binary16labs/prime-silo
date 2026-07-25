@@ -2,7 +2,8 @@
 
 **Status:** NOT STARTED — this is the **design-session mandate / handoff**, authored by the
 requirements session so the design session has a defined starting point and definition-of-done.
-The design session fills §3–§7 below; do not treat the empty sections as decisions already made.
+§2 and §3 are now resolved (owner steers, 2026-07-25); the design session authors §4–§6 (architecture,
+schema/DDL, task breakdown). Do not treat the §4–§6 stubs as decisions already made.
 
 **Companion (read first, authoritative):**
 [`REQUIREMENTS-longview-self-learning.md`](REQUIREMENTS-longview-self-learning.md) — R1–R45 + the
@@ -34,29 +35,30 @@ Per requirements §7, design is "ready" once the owner has:
 - given a steer on each of the **11 open questions** (§6 + §9.3), or explicitly deferred it here;
 - confirmed the §9.5 phasing (Tier 1 → wave 1) and the R17 "stage raw to D: now" quick win.
 
-**Status of that gate at handoff:** the requirements doc is still `DRAFT for owner review` — the R#
-sign-offs and open-question steers are **not yet recorded**. The design session should either work
-against confirmed steers, or, where it must proceed, record its assumption explicitly and flag it
-back for owner confirmation (do not silently decide an open question).
+**Status of that gate: MET (2026-07-25).** The requirements owner has **accepted R1–R45 as a set**,
+**steered all 11 open questions** (recorded in requirements §6.1), and **confirmed the phasing**
+(Tier 1 → wave 1) and the R17 quick win. The design session proceeds against confirmed steers — the
+decisions in §3 below are binding inputs, not assumptions. Any per-R# amendment surfaced during
+design goes back to the owner.
 
 ## 3. Decisions to make (the 11 open questions — design fills these)
 
-The design session resolves these; each becomes a design choice traced to its open question. _(Leave
-the owner steer inline once given; otherwise mark **ASSUMED** and flag.)_
+**All 11 steered by the owner on 2026-07-25** (authoritative record in requirements §6.1). These are
+binding design inputs; the design session specs the composition where a steer says "hybrid."
 
-| # | Question (short) | Steer / decision | Traces |
-|---|------------------|------------------|--------|
-| 1 | Bi-temporal storage: temporal columns vs event-sourced projection | _TBD_ | R1–R4 |
-| 2 | Staging format on D: (blob+manifest vs dir-per-machine-per-day; memo-ray reconciliation) | _TBD_ | R17–R20 |
-| 3 | Delta watermark granularity + cursor location | _TBD_ | R8 |
-| 4 | Execution-register: unify vs federate (train JSONs + LOG + LONGVIEW ledger + lineage) | _TBD_ | R12–R16 |
-| 5 | Loop trigger/orchestration + cross-machine claim (single-winner) | _TBD_ | R28, R43 |
-| 6 | Compound-value headline metric | _TBD_ | R26 |
-| 7 | Multi-machine identity + clock skew (logical vs wall) | _TBD_ | R11 |
-| 8 | Bi-temporal backfill of existing corpus without fabricating valid-times | _TBD_ | R2, R3 |
-| 9 | Semantic conflict resolution (contradictory facts, same valid-time) | _TBD_ | R11 |
-| 10 | Schema evolution across bi-temporal history (replayability) | _TBD_ | R32 |
-| 11 | Loop-level liveness / dead-man switch + resource-thermal abort | _TBD_ | R35 |
+| # | Question (short) | Owner steer (binding) | Traces |
+|---|------------------|------------------------|--------|
+| 1 | Bi-temporal storage | **Event-log-as-truth**; Neo4j/Chroma/memo-ray are rebuildable projections | R1–R4 |
+| 2 | Staging format on D: | **Full hybrid** — CAS blob store (de-dup) + human-navigable machine/date index + per-machine manifest | R17–R20 |
+| 3 | Delta watermark granularity | **Per-content-hash**; cursors in the event log / register | R8 |
+| 4 | Execution-register | **Unified schema, backfilled** from train JSONs + LOG + LONGVIEW ledger + lineage | R12–R16 |
+| 5 | Loop trigger + cross-machine claim | **Hybrid** file-watch + cron backstop; both under the B0/B1 single-winner claim | R28, R43 |
+| 6 | Compound-value metric | **Triad shown together** — eval delta (anchor) + agent pass-rate + cost/task; no single composite | R26 |
+| 7 | Multi-machine clock | **Hybrid logical clocks (HLC)** | R11 |
+| 8 | Bi-temporal backfill | **Real timestamp where known, else valid-time = txn-time tagged inferred**; never fabricate | R2, R3 |
+| 9 | Semantic conflict resolution | **Keep-both-and-flag**; surface to verifier/human, never auto-pick | R11 |
+| 10 | Schema evolution | **Additive-default + versioned up-converters**; every record schema-version tagged | R32 |
+| 11 | Loop-level liveness | **Full hybrid** — artifact/CPU watchdog + external supervisor + dead-man clean abort | R35 |
 
 ## 4. Architecture — _design session authors_
 _(Reuse, do not rebuild, the foundation in requirements §2: LONGVIEW ADR-005 pipeline; memo-ray /
@@ -89,5 +91,5 @@ so R38's guard is in force from the first house-authored session, not deferred.
 
 ---
 
-*Handoff ends. The design session owns §3–§6; §1/§2/§7/§8 are the mandate it works within. When
-design is drafted, flip Status to `draft` and record the design author.*
+*Handoff ends. The design session owns §4–§6 (§2/§3 are resolved owner steers); §1/§7/§8 are the
+mandate it works within. When design is drafted, flip Status to `draft` and record the design author.*
