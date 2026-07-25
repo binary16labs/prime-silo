@@ -174,3 +174,4 @@ Events: authored, claimed, ready-for-verify, verified-by, done, blocked, unblock
 2026-07-25T00:00:00Z | L13 | unblocked | claude-opus | dep L12 DONE; promoted AUTHORED->READY (human-signed)
 2026-07-25T00:00:00Z | L13 | note | claude-opus | fix: removed L13 from AUTHORED (was duplicated in READY+AUTHORED, w0 caught it after a swallowed-exit push @ 76e8d44); board now consistent
 2026-07-25T00:00:00Z | L13 | claimed | claude-opus | human-signed via owner 'all of them'; dep L12 DONE; worktree task/L13; promotion decision rule + additive eval growth
+2026-07-25T00:00:00Z | L13 | ready-for-verify | claude-opus | branch task/L13 @ d1a9a52; gate l13 GREEN 5/5; promotion_rule.mjs (dominance + eval-anchored Pareto, deterministic) + additive eval slices; decides the verdict L12 signs
