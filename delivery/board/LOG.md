@@ -169,3 +169,6 @@ Events: authored, claimed, ready-for-verify, verified-by, done, blocked, unblock
 2026-07-25T00:00:00Z | L11 | done | claude-opus | merged --no-ff @ 19bf16c; post-merge l11+w0 GREEN
 2026-07-25T00:00:00Z | L12 | claimed | claude-opus | human-signed via owner 'all of them'; deps L6+L10 DONE; worktree task/L12; human-signed promotion + rollback (python/router)
 2026-07-25T00:00:00Z | L12 | ready-for-verify | claude-opus | branch task/L12 @ eac3118; gate l12 GREEN 7/7; promotion.py + additive tuned_engine served_engine_id; human-signed swap + rollback; router suite 12/12 no regression (needs pytest+httpx+tiktoken)
+2026-07-25T00:00:00Z | L12 | verified-by | claude-l12-verifier | gate GREEN 7/7 + T4 regression 12/12 from clean task/L12; human-signed swap + rollback; tuned_engine additive; 17 negative-probe assertions; mutation RED-then-GREEN; 296 insertions allowlist-clean
+2026-07-25T00:00:00Z | L12 | done | claude-opus | merged --no-ff @ 587c620; post-merge w0 GREEN
+2026-07-25T00:00:00Z | L13 | unblocked | claude-opus | dep L12 DONE; promoted AUTHORED->READY (human-signed)
