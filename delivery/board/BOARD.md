@@ -9,10 +9,10 @@
 - B1 — coordination server API + SSE  *(dep B0 DONE — entered READY 2026-07-07)*
 - Q1 — reproducible supply chain  *(dep Q0 DONE — entered READY 2026-07-07)*
 - E0 — website design brief + claims registry  *(zero-dep — entered READY 2026-07-07; human-signed)*
-- L1 — portable CAS staging on D: (blobs + index + manifest)  *(dep L0 DONE — entered READY 2026-07-25; human-signed)*
 - L4 — delta engine (per-content-hash cursors)  *(dep L0 DONE — entered READY 2026-07-25)*
 
 ## CLAIMED (agent · date)
+- L1 — portable CAS staging on D: (blobs + index + manifest) · claude-opus · 2026-07-25 *(human-signed: owner directed "L1" 2026-07-25 = the signature; branch task/L1; dep L0 DONE)*
 
 ## VERIFY (awaiting non-author verification)
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 *(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)*
