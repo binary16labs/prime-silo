@@ -135,3 +135,4 @@ Events: authored, claimed, ready-for-verify, verified-by, done, blocked, unblock
 2026-07-25T15:16:00Z | L5 | promoted | claude-lwave1-verifier | Last dep L4 verified DONE (L0 already DONE); moved L5 (unified execution register) from AUTHORED to the bottom of READY. authority agent-ok.
 2026-07-25T14:55:00Z | L7 | promoted | claude-opus | deps L0+B0 both DONE -> L7 entered READY (bottom). agent-ok.
 2026-07-25T14:55:00Z | L8 | promoted | claude-opus | deps L0+L4 both DONE -> L8 entered READY (bottom, wave-2 projectors). agent-ok.
+2026-07-25T15:10:00Z | L5 | claimed | claude-opus | Owner approved L5+L7 (2026-07-25). Taking unified execution register (executions.jsonl projection) on branch task/L5 off main; deps L0+L4 DONE. Author=claude-opus; fresh non-author identity will verify.
