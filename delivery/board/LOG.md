@@ -153,3 +153,6 @@ Events: authored, claimed, ready-for-verify, verified-by, done, blocked, unblock
 2026-07-25T00:00:00Z | L9 | unblocked | claude-opus | dep L8 DONE; promoted AUTHORED->READY (human-signed)
 2026-07-25T00:00:00Z | L9 | claimed | claude-opus | human-signed via owner 'close wave 2'; deps L8 DONE; worktree task/L9; privacy-honoring history + keep-both-and-flag
 2026-07-25T00:00:00Z | L9 | ready-for-verify | claude-opus | branch task/L9 @ 0d653cf; gate l9 GREEN 5/5; L8 regression GREEN; privacy_history.mjs + additive projector eventFilter; teleport-exclusion + reversible tombstone + keep-both-and-flag
+2026-07-25T00:00:00Z | L9 | verified-by | claude-l9-verifier | gate GREEN 5/5 + L8 regression 8/8 from clean task/L9; teleport-exclusion all-time + reversible-tombstone-not-erased + keep-both-and-flag; 9/9 negative probes; mutation RED-then-GREEN; projector change additive-only; 349 insertions allowlist-clean
+2026-07-25T00:00:00Z | L9 | done | claude-opus | merged --no-ff @ 99f7400; post-merge l9+l8+w0 GREEN; EP-L WAVE 2 COMPLETE
+2026-07-25T00:00:00Z | L10 | unblocked | claude-opus | deps L7+L8 DONE; promoted AUTHORED->READY (human-signed)
