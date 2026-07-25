@@ -9,10 +9,10 @@
 - B1 — coordination server API + SSE  *(dep B0 DONE — entered READY 2026-07-07)*
 - Q1 — reproducible supply chain  *(dep Q0 DONE — entered READY 2026-07-07)*
 - E0 — website design brief + claims registry  *(zero-dep — entered READY 2026-07-07; human-signed)*
-- L4 — delta engine (per-content-hash cursors)  *(dep L0 DONE — entered READY 2026-07-25)*
 - L3 — backup/replication  *(dep L1 DONE — entered READY 2026-07-25; human-signed)*
 
 ## CLAIMED (agent · date)
+- L4 — delta engine (per-content-hash cursors) · claude-opus · 2026-07-25 *(owner approved L2/L3/L4 2026-07-25; branch task/L4; dep L0 DONE)*
 
 ## VERIFY (awaiting non-author verification)
 - L2 — inbound poison gate · author claude-opus · branch task/L2 @ 1b757fb · 2026-07-25 *(GATE GREEN: `node scripts/gates/l2.mjs` 5/5 — hash-mismatch refused, injected control-record (forged `prev`+control `type`) rejected + ledgered, genuine session admissible, malformed record (no sid) rejected, admit() stamps index poison_gate=pass. Symmetric to the outbound leak gate; reads the L1 CAS layout. Allowlist-clean (poison_gate.mjs, tests/poison/, gates/l2.mjs); ~90 non-test lines < budget 300. Verifier: fresh identity re-runs gate from clean task/L2, NEGATIVE probes — a genuine JSON session (no `prev`) must PASS (guard not over-broad); a mutation skipping the hash check → RED; then merge --no-ff task/L2. agent-ok.)*
