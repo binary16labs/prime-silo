@@ -1,0 +1,11 @@
+model	loaded	device	gpu_layers	gen_ok	latency_s	note
+qwen2.5-coder-tuned	yes	unknown	-	yes	1.5s	GiB
+google/gemma-3-4b	yes	unknown	-	yes	8.6s	GiB
+qwen/qwen3.5-9b	yes	unknown	-	yes	1.2s	GiB
+deepseek/deepseek-r1-0528-qwen3-8b	yes	unknown	-	yes	0.9s	GiB
+google/gemma-4-12b	yes	unknown	-	yes	22.5s	GiB
+google/gemma-4-12b-qat	yes	unknown	-	yes	20.0s	GiB
+openai/gpt-oss-20b	yes	unknown	-	yes	2.9s	GiB
+google/gemma-4-26b-a4b-qat	yes	unknown	-	yes	12.7s	GiB
+nomic-ai/text-embedding-nomic-embed-text-v1.5	yes	GPU	-	yes	-	embedding
+cstr/text-embedding-nomic-embed-text-v1.5	yes	GPU	-	NO	-	embedding
