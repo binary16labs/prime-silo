@@ -177,3 +177,4 @@ Events: authored, claimed, ready-for-verify, verified-by, done, blocked, unblock
 2026-07-25T00:00:00Z | L13 | ready-for-verify | claude-opus | branch task/L13 @ d1a9a52; gate l13 GREEN 5/5; promotion_rule.mjs (dominance + eval-anchored Pareto, deterministic) + additive eval slices; decides the verdict L12 signs
 2026-07-25T00:00:00Z | L13 | verified-by | claude-l13-verifier | gate GREEN 5/5 from clean task/L13; dominance + eval-anchored Pareto (deterministic) + additive eval growth (history frozen); 14 negative-probe assertions; mutation RED-then-GREEN; 208 insertions all-new allowlist-clean
 2026-07-25T00:00:00Z | L13 | done | claude-opus | merged --no-ff @ 319c843; post-merge l13+w0 GREEN
+2026-07-25T00:00:00Z | L14 | claimed | claude-opus | agent-ok; deps L5+L10 DONE; worktree task/L14; compound-value triad dashboard (closes EP-L)
