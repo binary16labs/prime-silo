@@ -141,6 +141,28 @@ test("Scenario: a change reprojects incrementally (only affected records, via L4
   assert.deepEqual(store, { cardA: { text: "alpha" }, cardB: { text: "beta-2" }, cardC: { text: "gamma" } });
 });
 
+test("corpus reconstruction REJECTS a tampered watermark (integrity is enforced, not decorative)", () => {
+  const f = logfile();
+  assertCard(f, "cardA", { text: "alpha" }, { vt: D.t0, tt: D.t0 });
+  const watermark = computeWatermark(f, { asOfValidTime: D.t1, asOfTxnTime: D.t1 });
+
+  // flip one hex char of the committed content hash → reconstruction must throw, never silently pass.
+  const tampered = watermark.slice(0, -1) + (watermark.endsWith("0") ? "1" : "0");
+  assert.throws(
+    () => reconstructCorpus(f, { config: { knowledge_watermark: tampered } }),
+    /mismatch/,
+    "a tampered watermark must be rejected"
+  );
+  // a missing watermark is also refused, not treated as 'reconstruct everything'.
+  assert.throws(
+    () => reconstructCorpus(f, { config: {} }),
+    /knowledge_watermark/,
+    "a missing watermark must be rejected"
+  );
+  // the genuine watermark still reconstructs cleanly (guard is not over-broad).
+  assert.equal(reconstructCorpus(f, { config: { knowledge_watermark: watermark } }).verified, true);
+});
+
 test("projection-sink interface is plug-and-play (cards reference; graph adapter conforms)", () => {
   const f = logfile();
   assertCard(f, "cardA", { text: "alpha", concepts: ["x"] }, { vt: D.t0 });
