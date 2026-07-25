@@ -167,3 +167,4 @@ Events: authored, claimed, ready-for-verify, verified-by, done, blocked, unblock
 2026-07-25T00:00:00Z | L11 | ready-for-verify | claude-opus | branch task/L11 @ 7d9e897; gate l11 GREEN 7/7; authorship_cap.mjs + additive build_dataset guard; verifier-gate + house-fraction cap; T2 regression GREEN
 2026-07-25T00:00:00Z | L11 | verified-by | claude-l11-verifier | gate GREEN 7/7 + T2 regression 12/12 from clean task/L11; verifier-gate + house-fraction cap; leak gate not weakened; 4 negative probes; mutation RED-then-GREEN; 208 insertions allowlist-clean
 2026-07-25T00:00:00Z | L11 | done | claude-opus | merged --no-ff @ 19bf16c; post-merge l11+w0 GREEN
+2026-07-25T00:00:00Z | L12 | claimed | claude-opus | human-signed via owner 'all of them'; deps L6+L10 DONE; worktree task/L12; human-signed promotion + rollback (python/router)
