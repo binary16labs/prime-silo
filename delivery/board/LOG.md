@@ -157,3 +157,4 @@ Events: authored, claimed, ready-for-verify, verified-by, done, blocked, unblock
 2026-07-25T00:00:00Z | L9 | done | claude-opus | merged --no-ff @ 99f7400; post-merge l9+l8+w0 GREEN; EP-L WAVE 2 COMPLETE
 2026-07-25T00:00:00Z | L10 | unblocked | claude-opus | deps L7+L8 DONE; promoted AUTHORED->READY (human-signed)
 2026-07-25T00:00:00Z | L10 | claimed | claude-opus | human-signed via owner 'start wave 3'; deps L7+L8 DONE; worktree task/L10; flywheel-daemon trigger + liveness watchdog
+2026-07-25T00:00:00Z | L10 | ready-for-verify | claude-opus | branch task/L10 @ 3e0d8ef; gate l10 GREEN 5/5; flywheel_daemon.mjs + liveness.mjs; reactive+cron under L7 claim + resource-not-log wedge detection + clean dead-man abort
