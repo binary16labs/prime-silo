@@ -34,6 +34,7 @@ import {
 import { splitRows } from "./lib/split.mjs";
 import { validateRow } from "./lib/schema.mjs";
 import { loadTerms, makeDetector, scanForLeaks } from "./lib/privacy.mjs";
+import { guardHouseRows } from "./lib/authorship_cap.mjs";
 
 const require = createRequire(import.meta.url);
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -47,6 +48,18 @@ const OUT = path.resolve(arg("--out", path.join(ROOT, "scripts", "train", "datas
 
 function writeJSONL(file, rows) {
   fs.writeFileSync(file, rows.map((r) => JSON.stringify(r)).join("\n") + (rows.length ? "\n" : ""), "utf8");
+}
+
+// L11: recorded verifier passes (frozen-rubric or frontier sign-off) — an optional {sids:[...]} file
+// pointed to by T2_HOUSE_VERIFIER_PASSES. Absent = no house session is pre-verified (empty set).
+function readVerifierPasses() {
+  const p = (process.env.T2_HOUSE_VERIFIER_PASSES || "").trim();
+  if (!p || !fs.existsSync(p)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(p, "utf8")).sids || [];
+  } catch {
+    return [];
+  }
 }
 
 function main() {
@@ -101,6 +114,17 @@ function main() {
   const entities = readTraceEntities(memDir);
   const b = traceToRows(entities, { detector, getEntity: makeEntityLoader(memDir) });
 
+  // L11 model-collapse guard (R38): house-authored sessions train only after a verifier pass, and
+  // house-origin rows are fraction-capped per turn — so dogfooding (§8) never distils self-output.
+  // Untagged rows default to non-house (the owner corpus), so this is a no-op until L6-tagged house
+  // dogfood rows arrive. Verifier passes: an optional {sids:[...]} file; cap: a per-turn fraction.
+  const verifiedSids = new Set(readVerifierPasses());
+  const capFraction = process.env.T2_HOUSE_CAP_FRACTION != null ? Number(process.env.T2_HOUSE_CAP_FRACTION) : 0.5;
+  const guardA = guardHouseRows(a.rows, { verifiedSids, capFraction });
+  const guardB = guardHouseRows(b.rows, { verifiedSids, capFraction });
+  a.rows = guardA.kept;
+  b.rows = guardB.kept;
+
   // Validate every row up front — a malformed row is a builder bug, not output.
   for (const r of [...a.rows, ...b.rows]) {
     const v = validateRow(r);
@@ -152,6 +176,12 @@ function main() {
     },
     eval_pct: splitA.evalPct,
     privacy: { terms: spec.terms.length, sids: spec.sids.length, leak_findings: leaks.length },
+    collapse_guard: {
+      cap_fraction: capFraction,
+      verifier_passes: verifiedSids.size,
+      excluded_unverified_house: guardA.excluded_unverified + guardB.excluded_unverified,
+      capped_house: guardA.capped + guardB.capped,
+    },
     total_rows: a.rows.length + b.rows.length,
   };
   fs.writeFileSync(path.join(OUT, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n", "utf8");
