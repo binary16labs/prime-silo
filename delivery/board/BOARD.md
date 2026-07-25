@@ -10,6 +10,9 @@
 - Q1 — reproducible supply chain  *(dep Q0 DONE — entered READY 2026-07-07)*
 - E0 — website design brief + claims registry  *(zero-dep — entered READY 2026-07-07; human-signed)*
 - L5 — unified execution register (executions.jsonl)  *(dep L4 DONE — entered READY 2026-07-25)*
+- L7 — single-winner loop claim + compaction budget  *(deps L0+B0 DONE — entered READY 2026-07-25)*
+- L8 — bi-temporal projectors + time-travel query  *(deps L0+L4 DONE — entered READY 2026-07-25)*
+
 ## CLAIMED (agent · date)
 
 ## VERIFY (awaiting non-author verification)
@@ -53,4 +56,4 @@ F1 F2 F3 F4 F5 F6 F7 F8 ·
 Q2 Q3 ·
 R0 R1 R2 R3 ·
 M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 ·
-L6 L7 L8 L9 L10 L11 L12 L13 L14 ·
+L6 L9 L10 L11 L12 L13 L14 ·
