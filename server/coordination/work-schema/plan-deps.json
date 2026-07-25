@@ -1,5 +1,5 @@
 {
-  "$comment": "Machine-readable form of plan section 12's dependency graph (+ hotfix tasks A8/A9 added by later plan revs; + EP-T/M3 house-model workstream T0-T4 added 2026-07-21 from design plan mellow-tinkering-swan.md, formalized as \u00c2\u00a72.5 Workstream T in PLAN-local-power-unified-ui.md rev 13; + EP-L/M4 LONGVIEW flywheel wave-1 substrate L0-L7 added 2026-07-25 from design doc architecture/SOLUTION-longview-self-learning.md \u00a76, the plan source for this workstream). The W0 gate asserts delivery/tasks/ mirrors this exactly. Update only with a plan rev.",
+  "$comment": "Machine-readable form of plan section 12's dependency graph (+ hotfix tasks A8/A9 added by later plan revs; + EP-T/M3 house-model workstream T0-T4 added 2026-07-21 from design plan mellow-tinkering-swan.md, formalized as \u00c2\u00a72.5 Workstream T in PLAN-local-power-unified-ui.md rev 13; + EP-L/M4 LONGVIEW flywheel wave-1 substrate L0-L7 added 2026-07-25 from design doc architecture/SOLUTION-longview-self-learning.md \u00a76, the plan source for this workstream; + EP-L/M5 wave-2 bi-temporal projectors L8-L9 added 2026-07-25 from the same \u00a76/\u00a77-wave-2). The W0 gate asserts delivery/tasks/ mirrors this exactly. Update only with a plan rev.",
   "A0": [],
   "A1": [
     "A0"
@@ -238,5 +238,12 @@
   "L7": [
     "L0",
     "B0"
+  ],
+  "L8": [
+    "L0",
+    "L4"
+  ],
+  "L9": [
+    "L8"
   ]
 }

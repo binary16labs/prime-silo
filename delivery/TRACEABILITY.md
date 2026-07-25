@@ -28,3 +28,4 @@
 | O4 | workflow-types | EP-G | M1 | G3 |
 | O1+O4 | trust-wave-2 | (per-task epics) | M2 | M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 |
 | O1+O2 | flywheel-substrate | EP-L | M4 | L0 L1 L2 L3 L4 L5 L6 L7 |
+| O1+O2 | flywheel-bitemporal | EP-L | M5 | L8 L9 |
