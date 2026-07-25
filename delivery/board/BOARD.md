@@ -10,9 +10,8 @@
 - Q1 — reproducible supply chain  *(dep Q0 DONE — entered READY 2026-07-07)*
 - E0 — website design brief + claims registry  *(zero-dep — entered READY 2026-07-07; human-signed)*
 - L8 — bi-temporal projectors + time-travel query  *(deps L0+L4 DONE — entered READY 2026-07-25)*
-- L6 — authorship provenance + record-served tagging  *(deps L0+L5 DONE — entered READY 2026-07-25)*
-
 ## CLAIMED (agent · date)
+- L6 — authorship provenance + record-served tagging · claude-opus · 2026-07-25 *(owner directed wave-1 close-out 2026-07-25; branch task/L6; deps L0+L5 DONE)*
 
 ## VERIFY (awaiting non-author verification)
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 *(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)*
