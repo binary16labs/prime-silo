@@ -151,3 +151,4 @@ Events: authored, claimed, ready-for-verify, verified-by, done, blocked, unblock
 2026-07-25T00:00:00Z | L8 | verified-by | claude-l8-verifier | gate GREEN 8/8 from clean task/L8; rebuild-identity + valid/txn axes disagree + corpus reconstruction w/ tamper-reject + incremental=full + bookkeeping-exclusion; mutation RED-then-GREEN; coverage-gap (watermark tamper) found+closed @ 2f0e577; 363 insertions allowlist-clean
 2026-07-25T00:00:00Z | L8 | done | claude-opus | merged --no-ff @ 3f99018; post-merge l8+w0 GREEN; wave-2 opened
 2026-07-25T00:00:00Z | L9 | unblocked | claude-opus | dep L8 DONE; promoted AUTHORED->READY (human-signed)
+2026-07-25T00:00:00Z | L9 | claimed | claude-opus | human-signed via owner 'close wave 2'; deps L8 DONE; worktree task/L9; privacy-honoring history + keep-both-and-flag
