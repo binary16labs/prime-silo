@@ -334,11 +334,13 @@ function pipInstall(pythonExe, requirements, siteDir) {
   const reqFile = path.join(siteDir, "..", "requirements.runtime.txt");
   fs.writeFileSync(reqFile, requirements.join("\n") + "\n", "utf8");
   execFileSync(pythonExe, ["-m", "pip", "install", "--upgrade", "pip"], { stdio: "inherit" });
-  execFileSync(
-    pythonExe,
-    ["-m", "pip", "install", "--no-input", "--target", siteDir, "-r", reqFile],
-    { stdio: "inherit" }
-  );
+  // Q1: constrain the bundled subset to the versions resolved in runtime/requirements.lock, so the
+  // shipped site/ is a function of the repo rather than of whatever pip resolves on build day. The
+  // lock is a superset of this subset; if it is absent we fall back to the bare install.
+  const lockFile = path.join(DEFAULT_PROJECT_ROOT, "runtime", "requirements.lock");
+  const installArgs = ["-m", "pip", "install", "--no-input", "--target", siteDir, "-r", reqFile];
+  if (fs.existsSync(lockFile)) installArgs.push("-c", lockFile);
+  execFileSync(pythonExe, installArgs, { stdio: "inherit" });
 }
 
 function copyBennySource(projectRoot, bennyDir) {
