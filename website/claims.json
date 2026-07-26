@@ -1,0 +1,9 @@
+{
+  "_contract": "TRUTH REGISTRY (E0). Every numeric or comparative claim on the public site (website/index.html, website/concept.md) MUST appear here with a claim/source/verified_date, or scripts/gates/e0.mjs --scan fails. Invalidated numbers (e.g. the token-economics 98% / 92.9% reduction — the v2 harness is blocked, they are NOT validated) are REMOVED from the site, never reworded into the registry. E2 registers the verified claims and strips the rest.",
+  "schema": {
+    "claim": "the exact string as it appears in copy, e.g. \"31.4%\"",
+    "source": "how it was measured — a script, ledger, run id, or artifact path",
+    "verified_date": "ISO date the number was last confirmed against its source"
+  },
+  "claims": []
+}
