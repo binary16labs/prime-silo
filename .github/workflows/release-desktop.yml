@@ -344,6 +344,28 @@ jobs:
               });
             }
 
+      # Q1: a CycloneDX Software Bill of Materials (npm + pip) attached to every release, so each
+      # shipped artifact set carries an auditable dependency inventory. The pip SBOM is generated from
+      # the hash-pinned runtime/requirements.lock (truth), not a live resolve.
+      - name: Generate + attach CycloneDX SBOMs (npm + pip)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
+        run: |
+          mkdir -p sbom
+          # npm SBOMs — root tooling + server runtime deps.
+          npx --yes @cyclonedx/cyclonedx-npm@latest --output-format JSON --output-file sbom/sbom-npm-root.cdx.json || echo "npm root SBOM skipped"
+          (cd server && npx --yes @cyclonedx/cyclonedx-npm@latest --output-format JSON --output-file ../sbom/sbom-npm-server.cdx.json) || echo "npm server SBOM skipped"
+          # pip SBOM — from the hash-pinned lock.
+          python -m pip install --quiet cyclonedx-bom
+          cyclonedx-py requirements runtime/requirements.lock -o sbom/sbom-pip.cdx.json \
+            || python -m cyclonedx_py requirements runtime/requirements.lock -o sbom/sbom-pip.cdx.json \
+            || echo "pip SBOM skipped"
+          shopt -s nullglob
+          files=(sbom/*.cdx.json)
+          if [ ${#files[@]} -gt 0 ]; then gh release upload "$RELEASE_TAG" "${files[@]}" --clobber; fi
+
       - name: Upload release artifacts
         shell: bash
         env:

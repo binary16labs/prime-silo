@@ -44,8 +44,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install Ruff + Black
-        run: pip install "ruff>=0.8.0" "black>=24.0.0"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+      # Q1: install lint tooling PINNED to the hash-verified lock (requirements.lock is truth),
+      # replacing the previous ad-hoc unpinned install. The lock constrains ruff/black (and their
+      # deps) to the exact resolved versions the rest of the build uses.
+      - name: Install Ruff + Black (pinned by requirements.lock)
+        run: uv pip install --system -c requirements.lock ruff black
       - name: Ruff (lint)
         run: ruff check benny
       - name: Black (check)

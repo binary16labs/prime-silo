@@ -1,0 +1,49 @@
+# Q1 — reproducible supply chain: dependency updates are scheduled, grouped, and reviewable.
+# Weekly (not "whenever"), grouped into one PR per ecosystem so upgrades land as a reviewed set
+# rather than a drip of noise. Each new dependency still owes a one-line justification in its PR.
+# Direct deps state intent (>=); the lock (runtime/requirements.lock) states truth — dependabot bumps
+# the intent, and the lock is regenerated (`uv pip compile --generate-hashes`) in the same PR.
+version: 2
+updates:
+  # Python runtime (fastapi/litellm/langchain/… + dev tooling ruff/black/pytest).
+  - package-ecosystem: "pip"
+    directory: "/runtime"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      python-runtime:
+        patterns: ["*"]
+
+  # Node server dependencies.
+  - package-ecosystem: "npm"
+    directory: "/server"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      node-server:
+        patterns: ["*"]
+
+  # Root Node tooling / packaging.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      node-root:
+        patterns: ["*"]
+
+  # GitHub Actions used by the workflows themselves.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      github-actions:
+        patterns: ["*"]
