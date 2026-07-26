@@ -191,3 +191,4 @@ Events: authored, claimed, ready-for-verify, verified-by, done, blocked, unblock
 2026-07-25T00:00:00Z | Q1 | done | claude-opus | merged --no-ff @ 2ff2dc2; post-merge q1+w0 GREEN
 2026-07-25T00:00:00Z | E0 | claimed | claude-opus | human-signed; owner 'complete the items ready' + author-and-hand-back; zero-dep; worktree task/E0; website design brief + claims registry (armed gate)
 2026-07-25T00:00:00Z | E0 | note | claude-opus | AUTHORED @ task/E0 a2caa3e (draft brief + claims.json + armed e0 gate); gate RED on Owner-Approved:PENDING by design, --scan flags 10 live claims incl invalidated 92.9%; awaiting owner copy review + sign-off (human-signed)
+2026-07-25T00:00:00Z | E0 | ready-for-verify | claude-opus | branch task/E0 @ 2068bdb; owner signed off (darkhorse 2026-07-26); gate e0 GREEN (brief locked + claims schema + checker armed); --scan flags 10 live unregistered claims incl invalidated 92.9%
