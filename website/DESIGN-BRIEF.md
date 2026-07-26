@@ -4,10 +4,10 @@
 > structure, and design constraints. E1 builds three mocks from it verbatim; E2 builds the page.
 > Every numeric/comparative claim is governed by `website/claims.json` and `scripts/gates/e0.mjs`.
 >
-> **Status:** DRAFT — authored by claude-opus 2026-07-25, **awaiting owner review + sign-off.**
-> The copy below is a proposal; the owner edits freely, then signs.
+> **Status:** APPROVED — authored by claude-opus 2026-07-25, **signed off by the owner (darkhorse)
+> 2026-07-26.** Copy + claims policy locked. E1 builds three mocks from this verbatim.
 
-Owner-Approved: PENDING
+Owner-Approved: darkhorse 2026-07-26
 <!-- Owner: replace PENDING with your sign-off (e.g. `Owner-Approved: darkhorse 2026-07-26`) to lock
      the brief. Keep this on its own line, starting exactly with `Owner-Approved:` (no bold/quote).
      The e0 gate stays RED until this line carries a real value. -->
