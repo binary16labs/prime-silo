@@ -179,3 +179,5 @@ Events: authored, claimed, ready-for-verify, verified-by, done, blocked, unblock
 2026-07-25T00:00:00Z | L13 | done | claude-opus | merged --no-ff @ 319c843; post-merge l13+w0 GREEN
 2026-07-25T00:00:00Z | L14 | claimed | claude-opus | agent-ok; deps L5+L10 DONE; worktree task/L14; compound-value triad dashboard (closes EP-L)
 2026-07-25T00:00:00Z | L14 | ready-for-verify | claude-opus | branch task/L14 @ e01ef39; gate l14 GREEN 6/6; triad_dashboard.mjs (three series no composite) + flywheel.html; honest-negative flagged + auditable + deterministic; reuses L5 readRegister
+2026-07-25T00:00:00Z | L14 | verified-by | claude-l14-verifier | gate GREEN 6/6 from clean task/L14; three series no composite + honest-negative flagged + auditable + deterministic; 19 negative-probe assertions; mutation RED-then-GREEN; 274 insertions all-new allowlist-clean
+2026-07-25T00:00:00Z | L14 | done | claude-opus | merged --no-ff @ 162d909; post-merge l14+w0 GREEN; EP-L COMPLETE (L0-L14 all waves)
