@@ -1,5 +1,8 @@
 import http from "node:http";
+import path from "node:path";
 
+import { createBus } from "./coordination/lib/bus.mjs";
+import { createCoordinationApi } from "./coordination/http_api.mjs";
 import {
   API_DIR,
   APP_DIR,
@@ -241,20 +244,33 @@ async function createAgentServer(overrides = {}) {
     port: configuredPort,
     projectRoot
   });
+  // B1: the coordination ledger served live over /api/coord/*. Mounted AHEAD of the generic
+  // file-routed handler because those endpoints are nested (/tasks/:id/events) and the repo router
+  // only matches flat /api/<segment> paths. One bus, one appender (the server when up).
+  const coordDir = overrides.coordDir || path.join(projectRoot, "coordination");
+  const coordinationBus = overrides.coordinationBus || createBus();
+  const coordinationApi =
+    overrides.coordinationApi || createCoordinationApi({ coordDir, bus: coordinationBus });
+
   const server = http.createServer((req, res) => {
-    Promise.resolve(requestHandler(req, res)).catch((error) => {
-      console.error("Request handling failed.");
-      console.error(error);
+    Promise.resolve(coordinationApi.tryHandle(req, res))
+      .then((handled) => {
+        if (handled) return undefined;
+        return requestHandler(req, res);
+      })
+      .catch((error) => {
+        console.error("Request handling failed.");
+        console.error(error);
 
-      if (res.headersSent) {
-        res.destroy(error);
-        return;
-      }
+        if (res.headersSent) {
+          res.destroy(error);
+          return;
+        }
 
-      sendJson(res, 500, {
-        error: "Internal server error"
+        sendJson(res, 500, {
+          error: "Internal server error"
+        });
       });
-    });
   });
 
   const runtime = {
