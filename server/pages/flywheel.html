@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flywheel — compound-value triad</title>
+  <style>
+    :root { color-scheme: light dark; --bg:#0b0e14; --fg:#e6e6e6; --muted:#8a94a6; --line:#232a36; --warn:#e0a03a; }
+    body { margin:0; font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; background:var(--bg); color:var(--fg); }
+    header { padding:20px 24px; border-bottom:1px solid var(--line); }
+    h1 { margin:0 0 4px; font-size:18px; }
+    .sub { color:var(--muted); font-size:12px; }
+    main { padding:24px; }
+    /* the triad is THREE series shown together — never one composite score (steer 6 / R26). */
+    .legend { display:flex; gap:16px; margin:0 0 16px; flex-wrap:wrap; }
+    .legend span { padding:2px 8px; border:1px solid var(--line); border-radius:4px; color:var(--muted); }
+    table.triad { border-collapse:collapse; width:100%; max-width:900px; }
+    table.triad th, table.triad td { text-align:left; padding:6px 12px; border-bottom:1px solid var(--line); }
+    table.triad th { color:var(--muted); font-weight:600; }
+    table.triad td.eval { font-weight:600; }
+    tr.regressed { background:rgba(224,160,58,.08); }        /* honest negative: shown, not hidden (R24) */
+    .flag { color:var(--warn); font-size:12px; }
+    td.prov { color:var(--muted); font-size:12px; cursor:help; } /* hover shows the exec_ids it summarizes (auditable, R33) */
+    .empty { color:var(--muted); }
+    footer { padding:16px 24px; color:var(--muted); font-size:12px; border-top:1px solid var(--line); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Flywheel — compound-value triad</h1>
+    <div class="sub">held-out eval &#916; (honest anchor) &#183; agent pass-rate &#183; cost / task — per loop turn, never a single composite</div>
+  </header>
+  <main>
+    <div class="legend">
+      <span>eval &#916; = the anchor (lower eval_nll is better; &#916; &#8804; 0 improves)</span>
+      <span>agent pass-rate</span>
+      <span>cost / task</span>
+      <span>&#9888; regression = shown &amp; flagged, not hidden</span>
+    </div>
+    <!-- Server-rendered: server/coordination/lib/triad_dashboard.mjs renderTriadHtml(triadFromRegister(executions.jsonl))
+         is a pure function of the L5 register — the mount is replaced with that table.triad. -->
+    <div id="triad-mount"><p class="empty">No register loaded — populated from executions.jsonl by triad_dashboard.renderTriadHtml.</p></div>
+  </main>
+  <footer>
+    The dashboard SHOWS the triad; it does not decide (L13) or promote (L12). Every point traces to the
+    executions.jsonl records it summarizes. A non-improving turn is displayed and flagged, never omitted.
+  </footer>
+</body>
+</html>
