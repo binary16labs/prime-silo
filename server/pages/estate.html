@@ -124,12 +124,27 @@
     </div>
   </div>
 
-  <div class="sectlabel"><span class="eyebrow">Machines &amp; drives</span><span class="ln"></span><span class="mono" style="font-size:11px;color:var(--muted)" id="updated">from the estate log</span></div>
+  <!-- N3 tie-ins: the delivery board lane + the LONGVIEW pipeline dial — one governance surface -->
+  <div class="lane" style="display:grid;grid-template-columns:1fr 1fr;gap:20px" id="tieins">
+    <div>
+      <h2>Delivery board</h2>
+      <div id="board-lane" class="mono" style="font-size:12px;color:var(--ink-2)">reading board…</div>
+    </div>
+    <div>
+      <h2>LONGVIEW pipeline</h2>
+      <div style="display:flex;align-items:center;gap:14px">
+        <svg width="70" height="70" viewBox="0 0 70 70" aria-hidden="true"><circle cx="35" cy="35" r="29" fill="none" stroke="var(--line-2)" stroke-width="6"/><circle id="dial-arc" cx="35" cy="35" r="29" fill="none" stroke="var(--sage)" stroke-width="6" stroke-linecap="round" stroke-dasharray="0 182" transform="rotate(-90 35 35)"/></svg>
+        <div class="mono" style="font-size:12px;color:var(--ink-2)" id="longview-label">no active run</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sectlabel"><span class="eyebrow">Machines &amp; drives</span><span class="ln"></span><span class="mono" style="font-size:11px;color:var(--muted)" id="updated">from the estate log · click a machine to drill down</span></div>
   <div class="grid" id="grid">
     <div class="card"><div class="stripe ok"></div><div class="body"><div class="khint">loading</div><div class="ttl">reading estate…</div></div></div>
   </div>
 
-  <footer>Estate Console · EP-N/N2 · every number from the estate log + disk — no hidden state</footer>
+  <footer>Estate Console · EP-N/N3 · every number from the estate log + board + disk — no hidden state</footer>
 </div>
 
 <script type="module">
@@ -157,7 +172,7 @@
     for(const [name,m] of Object.entries(machines)){
       const st=stats[name]||{usable:0,quar:0};
       cards.push({tone:st.quar?'watch':'ok',kh:'MACHINE · '+(m.role||'').toUpperCase(),ttl:name,big:st.usable,unit:'usable sessions',
-        rows:[['role',m.role||'—'],['quarantined',st.quar]]});
+        machine:name,rows:[['role',m.role||'—'],['quarantined',st.quar]]});
     }
     for(const [key,d] of Object.entries(drives)){
       const tone=d.verdict==='CORRUPT'?'crit':d.verdict==='DRIFT'?'watch':'ok';
@@ -167,10 +182,13 @@
     const grid=$('grid'); grid.innerHTML='';
     for(const c of cards){
       const el=document.createElement('div'); el.className='card'+(calm?'':' settle');
+      const drill=c.machine?`<button class="drill" data-machine="${c.machine}" aria-expanded="false" style="margin-top:4px;background:none;border:none;color:var(--rust);font-family:var(--mono);font-size:11px;cursor:pointer;padding:4px 0;text-align:left">▸ drill down · explain</button><div class="lineage-timeline" data-machine="${c.machine}" hidden style="border-top:1px dashed var(--line-2);margin-top:4px;padding-top:8px;font-family:var(--mono);font-size:11px;color:var(--ink-2)"></div>`:'';
       el.innerHTML=`<div class="stripe ${c.tone}"></div><div class="body">
         <div class="khint">${c.kh}</div><div class="ttl">${c.ttl}</div>
         <div class="metric"><span class="big">${c.big}</span><span class="unit">${c.unit}</span></div>
-        ${c.rows.map(r=>`<div class="mono" style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink-2)"><span style="color:var(--muted)">${r[0]}</span><span>${r[1]}</span></div>`).join('')}</div>`;
+        ${c.rows.map(r=>`<div class="mono" style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink-2)"><span style="color:var(--muted)">${r[0]}</span><span>${r[1]}</span></div>`).join('')}${drill}</div>`;
+      const btn=el.querySelector('.drill');
+      if(btn) btn.addEventListener('click',()=>drillMachine(btn));
       grid.appendChild(el);
     }
     // cascade verdicts from drive data (F/D)
@@ -182,6 +200,47 @@
     }
   }
 
+  // drill-down: fetch the machine's provenance timeline (quarantine shows as a count only,
+  // never its content — the API enforces this; the UI just renders what it is handed).
+  async function drillMachine(btn){
+    const m=btn.getAttribute('data-machine');
+    const drawer=btn.parentElement.querySelector(`.lineage-timeline[data-machine="${m}"]`);
+    const open=drawer.hasAttribute('hidden');
+    btn.setAttribute('aria-expanded',open?'true':'false');
+    if(!open){ drawer.setAttribute('hidden',''); return; }
+    drawer.removeAttribute('hidden'); drawer.textContent='…';
+    try{
+      const d=await (await fetch('/api/estate/drill/'+encodeURIComponent(m))).json();
+      const rows=(d.timeline||[]).map(t=>`<div style="padding:3px 0;border-bottom:1px solid var(--line)"><span style="color:var(--muted)">session</span> ${t.project||'—'}</div>`).join('');
+      drawer.innerHTML=`${rows||'<span style="color:var(--muted)">no sessions</span>'}`+
+        (d.quarantined?`<div style="padding:5px 0;color:var(--watch)">⚠ ${d.quarantined} quarantined · withheld (job/CV)</div>`:'');
+    }catch(e){ drawer.textContent='drill unavailable'; }
+  }
+
+  async function renderBoard(){
+    try{
+      const b=await (await fetch('/api/estate/board')).json();
+      const top=(b.ready?.top||[]).map(t=>`<div style="padding:2px 0"><span style="color:var(--rust)">${t.id}</span> ${t.title}</div>`).join('');
+      $('board-lane').innerHTML=`<div style="display:flex;gap:14px;margin-bottom:6px">
+        <span>READY <b>${b.ready?.count??0}</b></span><span>CLAIMED <b>${b.claimed?.count??0}</b></span>
+        <span>VERIFY <b>${b.verify?.count??0}</b></span><span>DONE <b>${b.done?.count??0}</b></span></div>${top||'<span style="color:var(--muted)">nothing ready</span>'}`;
+    }catch(e){ $('board-lane').textContent='board unavailable'; }
+  }
+
+  async function renderLongview(){
+    try{
+      const lv=await (await fetch('/api/estate/longview')).json();
+      const arc=$('dial-arc'); const C=2*Math.PI*29;
+      if(lv.present && typeof lv.fraction==='number'){
+        arc.setAttribute('stroke-dasharray',`${(lv.fraction*C).toFixed(1)} ${C.toFixed(1)}`);
+        $('longview-label').textContent=`${lv.phase||'running'} · ${Math.round(lv.fraction*100)}%`;
+      }else{
+        arc.setAttribute('stroke-dasharray',`0 ${C.toFixed(1)}`);
+        $('longview-label').textContent='no active run';
+      }
+    }catch(e){ $('longview-label').textContent='—'; }
+  }
+
   async function refresh(){
     try{
       const est=await (await fetch('/api/estate')).json();
@@ -190,6 +249,7 @@
       $('updated').textContent='updated '+new Date().toLocaleTimeString();
       renderCards(est);
     }catch(e){ $('summary').textContent='estate unavailable'; }
+    renderBoard(); renderLongview();
   }
 
   function connect(){
