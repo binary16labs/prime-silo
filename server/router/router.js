@@ -443,7 +443,7 @@ function createRequestHandler(options) {
         const rekindleRoot = path.join(projectRoot, "site", "rekindle");
         let relativePath = requestUrl.pathname.replace(/^\/reader\/?/, "") || "index.html";
         // Prevent path traversal
-        relativePath = path.normalize(relativePath).replace(/^(\.\.([\/\\]))+/, "");
+        relativePath = path.normalize(relativePath).replace(/^(\.\.([/\\]))+/, "");
         const filePath = path.join(rekindleRoot, relativePath);
 
         if (filePath.startsWith(rekindleRoot) && existsSync(filePath)) {

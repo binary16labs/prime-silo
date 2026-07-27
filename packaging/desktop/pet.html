@@ -4,192 +4,77 @@
     <meta charset="utf-8" />
     <title>Benny</title>
     <style>
-      html,
-      body {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        height: 100%;
+      :root {
+        --ps-font-mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
+        --ps-accent: #c4a882;
+        --ps-accent-glow: #d8bc96;
+        --ps-border-dim: rgba(232, 217, 191, 0.12);
+        --ps-text: #ece6d8;
+        --ps-text-dim: rgba(236, 230, 216, 0.6);
+      }
+      html, body {
+        margin: 0; padding: 0;
+        width: 100%; height: 100%;
         background: transparent;
         overflow: hidden;
-        -webkit-user-select: none;
-        user-select: none;
-        font-family:
-          system-ui,
-          -apple-system,
-          "Segoe UI",
-          sans-serif;
+        -webkit-user-select: none; user-select: none;
+        font-family: system-ui, -apple-system, sans-serif;
       }
-      /* The whole stage is draggable so you can fling Benny anywhere on screen. */
       .stage {
         position: relative;
-        width: 100%;
-        height: 100%;
+        width: 100%; height: 100%;
         display: flex;
         align-items: center;
         justify-content: center;
         -webkit-app-region: drag;
         cursor: grab;
       }
-      .stage:active {
-        cursor: grabbing;
+      .stage:active { cursor: grabbing; }
+      navi-key { display: block; width: 100%; height: 100%; }
+      .navi-key-container {
+        position: absolute !important;
+        inset: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        pointer-events: none;
       }
-      .dog {
-        width: 150px;
-        height: 150px;
-        filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35));
-        animation: benny-bob 4s ease-in-out infinite;
-      }
-      @keyframes benny-bob {
-        0%,
-        100% {
-          transform: translateY(0);
-        }
-        50% {
-          transform: translateY(-7px);
-        }
-      }
-
-      /* Controls are no-drag so clicks register; they fade in on hover. */
-      .ctl {
+      /* SVG interactive, NOT draggable — mouse events reach arcs */
+      .navi-key-svg { -webkit-app-region: no-drag; }
+      /* Close button */
+      .ctl-close {
         position: absolute;
-        -webkit-app-region: no-drag;
-        border: none;
+        top: 14px; right: 14px;
+        width: 26px; height: 26px;
+        background: rgba(30, 20, 12, 0.82);
+        color: #fff;
+        border: none; border-radius: 50%;
+        font-size: 16px; line-height: 26px;
+        display: flex; align-items: center; justify-content: center;
         cursor: pointer;
-        padding: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
         opacity: 0;
-        transition:
-          opacity 140ms ease,
-          transform 140ms ease;
-        border-radius: 50%;
+        transition: opacity 140ms ease;
+        -webkit-app-region: no-drag;
+        z-index: 10001;
       }
-      .stage:hover .ctl {
-        opacity: 1;
-      }
-      .chat {
-        right: 14px;
-        bottom: 16px;
-        width: 38px;
-        height: 38px;
-        background: #b97a38;
-        color: #fff;
-        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
-      }
-      .chat:hover {
-        transform: scale(1.08);
-      }
-      .close {
-        right: 16px;
-        top: 14px;
-        width: 24px;
-        height: 24px;
-        background: rgba(40, 32, 26, 0.78);
-        color: #fff;
-        font-size: 15px;
-        line-height: 1;
-      }
-      .close:hover {
-        background: rgba(40, 32, 26, 0.95);
-      }
-      .chat svg {
-        width: 20px;
-        height: 20px;
-      }
+      .stage:hover .ctl-close { opacity: 1; }
+      .ctl-close:hover { background: rgba(30,20,12,0.96); transform: scale(1.1); }
     </style>
+    <link rel="stylesheet" href="../../app/L0/_all/mod/_core/visual/navi/navi-key.css" />
   </head>
   <body>
-    <div class="stage" id="stage" title="Drag me. Tap the paw to chat.">
-      <!-- German Shepherd Benny — mirrors _core/visual/res/chat/overlay/dog_no_bg.svg -->
-      <svg class="dog" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" aria-label="Benny">
-        <defs>
-          <linearGradient id="t" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#D79A52" />
-            <stop offset="1" stop-color="#B97A38" />
-          </linearGradient>
-          <linearGradient id="k" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#3A322C" />
-            <stop offset="1" stop-color="#241E1A" />
-          </linearGradient>
-          <linearGradient id="c" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#EBCD9C" />
-            <stop offset="1" stop-color="#D8B074" />
-          </linearGradient>
-        </defs>
-        <g stroke="#241E1A" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
-          <path d="M192 176c28 4 40-16 32-34-7-16-28-14-32 2-3 12 4 18 12 16" fill="url(#k)" />
-          <path d="M82 150c-10 22-12 46-3 60 6 10 96 10 102 0 9-14 7-38-3-60z" fill="url(#t)" />
-          <path
-            d="M82 150c-6 13-9 27-7 40 30 10 80 10 110 0 2-13-1-27-7-40-18 12-78 12-96 0z"
-            fill="url(#k)"
-            stroke="none"
-          />
-          <path
-            d="M110 150c-4 22-4 44 0 58 6 7 30 7 36 0 4-14 4-36 0-58z"
-            fill="url(#c)"
-            stroke="none"
-          />
-          <path d="M92 196c-2 8-2 16 0 18 4 3 16 3 19 0 2-4 2-12 0-20z" fill="url(#t)" />
-          <path d="M145 194c-3 8-3 16-1 20 3 3 15 3 19 0 2-2 2-10 0-18z" fill="url(#t)" />
-          <ellipse cx="101" cy="214" rx="12" ry="7" fill="url(#c)" />
-          <ellipse cx="155" cy="214" rx="12" ry="7" fill="url(#c)" />
-          <path d="M78 64 58 12c24 0 40 14 48 38z" fill="url(#t)" />
-          <path d="M178 64l20-52c-24 0-40 14-48 38z" fill="url(#t)" />
-          <path d="M80 56 66 22c14 1 24 9 30 23z" fill="url(#k)" stroke="none" />
-          <path d="M176 56l14-34c-14 1-24 9-30 23z" fill="url(#k)" stroke="none" />
-          <path
-            d="M128 48c-38 0-60 26-60 58 0 30 26 52 60 52s60-22 60-52c0-32-22-58-60-58z"
-            fill="url(#t)"
-          />
-          <path
-            d="M128 86c-15 0-22 10-24 26-2 18 10 38 24 38s26-20 24-38c-2-16-9-26-24-26z"
-            fill="url(#k)"
-          />
-        </g>
-        <g fill="#1C1714">
-          <ellipse cx="104" cy="98" rx="7.5" ry="9" />
-          <ellipse cx="152" cy="98" rx="7.5" ry="9" />
-        </g>
-        <circle cx="101.5" cy="95" r="2.3" fill="#fff" />
-        <circle cx="149.5" cy="95" r="2.3" fill="#fff" />
-        <ellipse cx="104" cy="84" rx="5" ry="3.5" fill="#E0A95E" />
-        <ellipse cx="152" cy="84" rx="5" ry="3.5" fill="#E0A95E" />
-        <ellipse cx="128" cy="120" rx="11" ry="8" fill="#120E0C" />
-        <path
-          d="M128 128v8m0 0c-6 0-11-3-13-8m13 8c6 0 11-3 13-8"
-          fill="none"
-          stroke="#0E0A08"
-          stroke-width="4"
-          stroke-linecap="round"
-        />
-        <path d="M124 136h8c0 6-2 10-4 10s-4-4-4-10z" fill="#E58A86" />
-      </svg>
-
-      <button class="ctl chat" id="chat" title="Open Prime-Silo" aria-label="Open cockpit">
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path
-            d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 9 9 0 0 1-3.9-.9L3 21l1.4-4.2A8.4 8.4 0 0 1 3.5 11.5 8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5z"
-          />
-        </svg>
-      </button>
-      <button class="ctl close" id="close" title="Hide Benny" aria-label="Hide">&times;</button>
+    <div class="stage" id="stage">
+      <navi-key id="naviKey"></navi-key>
+      <button class="ctl-close" id="closeBtn" title="Hide Benny" aria-label="Hide">&times;</button>
     </div>
 
+    <script src="../../app/L0/_all/mod/_prime_silo/widgets/vendor/animejs/anime.min.js"></script>
+    <script src="../../app/L0/_all/mod/_core/visual/navi/navi-key.js"></script>
     <script>
-      document.getElementById("chat").addEventListener("click", function (e) {
+      document.getElementById('naviKey').addEventListener('nav-action', function(e) {
         e.stopPropagation();
-        window.benny && window.benny.openCockpit && window.benny.openCockpit();
+        window.benny && window.benny.openCockpit && window.benny.openCockpit(e.detail.action);
       });
-      document.getElementById("close").addEventListener("click", function (e) {
+      document.getElementById('closeBtn').addEventListener('click', function(e) {
         e.stopPropagation();
         window.benny && window.benny.hide && window.benny.hide();
       });

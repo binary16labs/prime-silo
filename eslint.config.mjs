@@ -49,7 +49,8 @@ export default [
       // Under app/ we lint only the project's own _prime_silo modules; the
       // vendored upstream space-agent framework (all of it under _core) is not
       // linted. ESLint lints every non-ignored file, so this must be explicit.
-      "app/L0/_all/mod/_core/**"
+      "app/L0/_all/mod/_core/**",
+      ".worktrees/**"
     ]
   },
   {

@@ -2300,9 +2300,23 @@ async function startDesktop() {
     isPetVisible: () => isDesktopPetVisible(),
     togglePet: () =>
       toggleDesktopPet({
-        onOpenCockpit: () => {
+        onOpenCockpit: (action) => {
           showMainWindow();
           createWindow();
+          if (mainWindow && action) {
+            const js = `
+              if ('${action}' === 'chats') {
+                document.body.classList.toggle('v2-chat-open');
+              } else {
+                document.body.classList.remove('v2-chat-open');
+                const bridge = document.querySelector('[x-data="bridge()"]');
+                if (bridge && bridge.__x) {
+                  bridge.__x.$data.setMode('${action}');
+                }
+              }
+            `;
+            mainWindow.webContents.executeJavaScript(js).catch(e => console.error(e));
+          }
         }
       }),
     runtime: {

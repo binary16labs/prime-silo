@@ -1,0 +1,185 @@
+/* 
+  navi-key.css — V2 Benny Prime-Silo Zen Earth Console
+  Calm, subtle, earth-tone aesthetic matching canonical Prime-Silo design tokens.
+  Sage/Moss, Golden Taupe, Terracotta Coral, Warm Sand. Zero neon glow.
+  ADHD/Dyslexia-friendly: crisp clarity, calm contrast, generous tap targets.
+*/
+
+/* ── Container ─────────────────────────────────────────────────── */
+.navi-key-container {
+  position: fixed;
+  bottom: 30px;
+  left: 30px;
+  width: 340px;
+  height: 340px;
+  z-index: 10000;
+  pointer-events: none;          /* transparent to clicks in empty space */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--ps-font-mono, ui-monospace, 'Cascadia Code', Consolas, monospace);
+  user-select: none;
+}
+
+.navi-key-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: auto;          /* SVG shapes are clickable */
+  filter: drop-shadow(0 6px 20px rgba(0, 0, 0, 0.45));
+}
+
+/* ── Ambient Aura Core ────────────────────────────────────────── */
+.navi-key-nebula {
+  pointer-events: none;
+  animation: aura-breathe 9s ease-in-out infinite alternate;
+}
+
+@keyframes aura-breathe {
+  0% { transform: scale(0.96); opacity: 0.6; }
+  100% { transform: scale(1.04); opacity: 1; }
+}
+
+/* ── Scan ring — outer subtle animation ────────────────────────── */
+.navi-key-scan-ring {
+  fill: none;
+  stroke: rgba(196, 168, 130, 0.25);
+  stroke-width: 1px;
+  stroke-dasharray: 8 8;
+  animation: navi-spin 26s linear infinite;
+  pointer-events: none; /* decorative only */
+}
+
+/* Counter-rotating orbit ring */
+.navi-key-orbit-ring {
+  fill: none;
+  stroke: rgba(156, 175, 136, 0.2);
+  stroke-width: 1px;
+  stroke-dasharray: 4 12;
+  animation: navi-spin-reverse 34s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes navi-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes navi-spin-reverse {
+  from { transform: rotate(360deg); }
+  to   { transform: rotate(0deg); }
+}
+
+/* ── Blueprint & Earthy Rings ──────────────────────────────────── */
+.navi-key-ring {
+  fill: none;
+  stroke: rgba(232, 217, 191, 0.12);
+  stroke-width: 1px;
+  stroke-dasharray: 4 4;
+  pointer-events: none; /* decorative only */
+}
+.navi-key-ring--inner {
+  stroke: rgba(196, 168, 130, 0.25);
+  stroke-dasharray: none;
+  stroke-width: 1px;
+}
+
+/* ── Subtle Nodes ──────────────────────────────────────────────── */
+.navi-key-stars {
+  pointer-events: none;
+  animation: node-pulse 5s ease-in-out infinite alternate;
+}
+
+@keyframes node-pulse {
+  0% { opacity: 0.25; }
+  100% { opacity: 0.6; }
+}
+
+/* ── Dot Matrix ────────────────────────────────────────────────── */
+.navi-key-dot {
+  /* Colour is set inline per symbol; opacity breathes via anime.js */
+  opacity: 0.35;
+  transition: opacity 0.3s ease;
+  pointer-events: none; /* dots are display-only, never clickable */
+}
+
+/* ── Radial Arcs ───────────────────────────────────────────────── */
+.navi-key-arc {
+  fill: none;
+  /* stroke and stroke-opacity are set inline per arc */
+  stroke-width: 26px;
+  stroke-linecap: round;
+  cursor: pointer;
+  pointer-events: all; /* catch events on the whole arc band */
+}
+
+/* Arc groups — all events enabled so hover fires even on gaps between arcs */
+.navi-key-arc-group {
+  pointer-events: all;
+  cursor: pointer;
+}
+
+/* ── Labels ────────────────────────────────────────────────────── */
+.navi-key-label {
+  /* colour is set inline per arc; anime.js handles opacity/transform */
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  pointer-events: none; /* labels are display-only */
+  opacity: 0;
+  /* Dyslexia-friendly: clear uppercase short labels, generous letter-spacing */
+}
+
+/* ── Core hit area ─────────────────────────────────────────────── */
+.navi-key-core-hit {
+  fill: transparent;
+  cursor: pointer;
+  pointer-events: all; /* Must explicitly catch events even with transparent fill */
+}
+
+/* ── Hint state (first hover — outer zone) ─────────────────────── */
+.navi-key-container.hinted .navi-key-scan-ring {
+  stroke-opacity: 0.45;
+  animation: navi-spin 12s linear infinite;
+}
+
+/* ── Expanded state ────────────────────────────────────────────── */
+.navi-key-container.expanded .navi-key-scan-ring {
+  stroke-opacity: 0.65;
+  animation: navi-spin 10s linear infinite;
+}
+
+.navi-key-container.expanded .navi-key-ring {
+  stroke-opacity: 0.35;
+}
+
+/* ── Sleeping state (contracted compact matrix only) ───────────── */
+.navi-key-container.is-sleeping .navi-key-scan-ring,
+.navi-key-container.is-sleeping .navi-key-orbit-ring,
+.navi-key-container.is-sleeping .navi-key-ring {
+  stroke-opacity: 0.06 !important;
+  animation-play-state: paused;
+}
+
+.navi-key-container.is-sleeping .navi-key-nebula {
+  opacity: 0.25 !important;
+}
+
+/* ── Legacy Benny floating agent suppression in V2 mode ───────── */
+body.v2-ui-active:not(.v2-chat-open) .onscreen-agent-root {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateX(100px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+body.v2-ui-active.v2-chat-open .onscreen-agent-root {
+  opacity: 1 !important;
+  pointer-events: all !important;
+  transform: translateX(0);
+  transition: opacity 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+              transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}

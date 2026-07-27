@@ -17,7 +17,7 @@
     <!-- Run observability widgets — render unstyled without these. -->
     <link
       rel="stylesheet"
-      href="/mod/_prime_silo/widgets/run/lineage_timeline/lineage_timeline.css"
+      href="/mod/_core/visual/timeline/lineage-timeline.css"
     />
     <link
       rel="stylesheet"
@@ -28,6 +28,10 @@
       href="/mod/_prime_silo/widgets/run/drilldown_table/drilldown_table.css"
     />
     <link rel="stylesheet" href="/mod/_prime_silo/bridge/bridge.css?v=8" />
+    <link rel="stylesheet" href="/mod/_core/visual/navi/navi-key.css" />
+    <script src="/mod/_prime_silo/widgets/vendor/animejs/anime.min.js"></script>
+    <script type="module" src="/mod/_core/visual/timeline/lineage-timeline.js"></script>
+    <script type="module" src="/mod/_core/visual/navi/navi-key.js"></script>
     <script type="module" src="/mod/_prime_silo/bridge/bridge.js"></script>
   </head>
   <body>
@@ -82,6 +86,17 @@
           </span>
           <button
             type="button"
+            class="ps-bridge__zen ps-bridge__v2btn"
+            :class="{ 'is-on': v2Layout }"
+            @click="v2Layout = !v2Layout"
+            :aria-pressed="v2Layout"
+            title="Toggle V2 UI layout"
+          >
+            <x-icon>science</x-icon>
+            <span x-text="v2Layout ? 'V1' : 'V2'"></span>
+          </button>
+          <button
+            type="button"
             class="ps-bridge__zen ps-bridge__splitbtn"
             x-show="wide"
             :class="{ 'is-on': splitView }"
@@ -95,12 +110,11 @@
           <button type="button" class="ps-bridge__zen" @click="toggleZen()" :aria-pressed="zen">
             <span x-text="zen ? 'exit zen' : 'zen'"></span>
           </button>
-        </div>
       </header>
 
-      <div class="ps-bridge__shell">
+      <div class="ps-bridge__shell" :class="{ 'is-v2': v2Layout }" x-init="$watch('v2Layout', v => document.body.classList.toggle('v2-ui-active', v)); document.body.classList.toggle('v2-ui-active', v2Layout)">
         <!-- Mode rail -->
-        <nav class="ps-bridge__rail" aria-label="Bridge modes">
+        <nav class="ps-bridge__rail" aria-label="Bridge modes" x-show="!v2Layout">
           <template x-for="m in modes" :key="m.id">
             <button
               type="button"
@@ -1256,6 +1270,55 @@
                 </div>
               </div>
 
+              <!-- V2 OBSERVABILITY & GOVERNANCE -->
+              <div class="ps-bridge__panel" x-show="mode === 'v2'">
+                <div class="ps-bridge__split">
+                  <aside class="ps-bridge__list" style="max-width: 280px; flex: 0 0 280px; padding-right: 16px;">
+                    <h3>V2 Governance</h3>
+                    <div class="ps-bridge__list-scroll" style="display: flex; flex-direction: column; gap: 16px; margin-top: 16px;">
+                       <div class="ps-bridge__panel-card" style="margin:0; padding: 12px; background: rgba(0,0,0,0.1); border-radius: 6px;">
+                         <h4 style="margin: 0 0 8px 0; font-size: 13px; opacity: 0.8;">Mesh Health</h4>
+                         <span class="ps-bridge__file-status is-ok" style="font-size: 12px;">All Systems Go</span>
+                       </div>
+                       <div class="ps-bridge__panel-card" style="margin:0; padding: 12px; background: rgba(0,0,0,0.1); border-radius: 6px;">
+                         <h4 style="margin: 0 0 8px 0; font-size: 13px; opacity: 0.8;">Policy Compliance</h4>
+                         <span class="ps-bridge__file-status is-ok" style="font-size: 12px;">100% (No Drift)</span>
+                       </div>
+                       <div class="ps-bridge__panel-card" style="margin:0; padding: 12px; background: rgba(0,0,0,0.1); border-radius: 6px;">
+                         <h4 style="margin: 0 0 8px 0; font-size: 13px; opacity: 0.8;">Token Budget</h4>
+                         <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin-bottom: 4px;">
+                           <div style="width: 45%; height: 100%; background: var(--ps-accent, #63a063);"></div>
+                         </div>
+                         <span class="ps-bridge__muted" style="font-size: 11px;">45% used</span>
+                       </div>
+                    </div>
+                  </aside>
+                  <div class="ps-bridge__runstage" style="padding: 0; display: flex; flex-direction: column;">
+                    <div class="ps-bridge__obs-head" style="padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                      <div class="ps-bridge__obs-title">
+                        <x-icon>timeline</x-icon><span>Lineage Trace</span>
+                        <span class="ps-bridge__muted" x-text="activeRunId ? ('run ' + activeRunId.slice(0, 12)) : 'no run selected'"></span>
+                      </div>
+                      <select class="ps-bridge__obs-pick" x-model="activeRunId" @change="observeRun(activeRunId).then(() => mountV2())">
+                        <option value="">latest…</option>
+                        <template x-for="r in runs" :key="(r.run_id || r.id)">
+                          <option :value="r.run_id || r.id" x-text="((r.run_id || r.id || '').slice(0, 16)) + ' · ' + (r.status || '')"></option>
+                        </template>
+                      </select>
+                    </div>
+                    <div class="ps-bridge__metrics" x-show="activeRunId" style="padding: 12px 16px;">
+                       <span class="ps-bridge__metric ps-bridge__metric--status" data-status="success">
+                         <x-icon>verified</x-icon><span>Lineage Verified</span>
+                       </span>
+                       <span class="ps-bridge__metric"><x-icon>policy</x-icon><span>Compliant Execution</span></span>
+                    </div>
+                    <div class="ps-bridge__graph ps-bridge__graph--tall" style="flex: 1; border: none; padding: 0;">
+                      <lineage-timeline id="v2-timeline" style="width: 100%; height: 100%; display: block; border-radius: 8px; overflow: hidden;"></lineage-timeline>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- AGENTS (model + provider routing — single config surface) -->
               <div class="ps-bridge__panel" x-show="mode === 'agents'">
                 <div class="ps-bridge__agents">
@@ -1452,7 +1515,36 @@
 
         <!-- Benny dock -->
         <aside class="ps-bridge__benny" aria-label="Benny">
-          <div class="ps-bridge__benny-head"><x-icon>auto_awesome</x-icon><span>Benny</span></div>
+          <div class="ps-bridge__benny-head">
+            <svg class="benny-anime-svg" viewBox="0 0 256 256" width="32" height="32" style="overflow: visible;">
+              <g stroke="currentColor" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" fill="none">
+                <path d="M192 176c28 4 40-16 32-34-7-16-28-14-32 2-3 12 4 18 12 16" />
+                <path d="M82 150c-10 22-12 46-3 60 6 10 96 10 102 0 9-14 7-38-3-60z" />
+                <path d="M82 150c-6 13-9 27-7 40 30 10 80 10 110 0 2-13-1-27-7-40-18 12-78 12-96 0z" />
+                <path d="M110 150c-4 22-4 44 0 58 6 7 30 7 36 0 4-14 4-36 0-58z" />
+                <path d="M92 196c-2 8-2 16 0 18 4 3 16 3 19 0 2-4 2-12 0-20z" />
+                <path d="M145 194c-3 8-3 16-1 20 3 3 15 3 19 0 2-2 2-10 0-18z" />
+                <ellipse cx="101" cy="214" rx="12" ry="7" />
+                <ellipse cx="155" cy="214" rx="12" ry="7" />
+                <path d="M78 64 58 12c24 0 40 14 48 38z" />
+                <path d="M178 64l20-52c-24 0-40 14-48 38z" />
+                <path d="M80 56 66 22c14 1 24 9 30 23z" />
+                <path d="M176 56l14-34c-14 1-24 9-30 23z" />
+                <path d="M128 48c-38 0-60 26-60 58 0 30 26 52 60 52s60-22 60-52c0-32-22-58-60-58z" />
+                <path d="M128 86c-15 0-22 10-24 26-2 18 10 38 24 38s26-20 24-38c-2-16-9-26-24-26z" />
+                <ellipse cx="104" cy="98" rx="7.5" ry="9"/>
+                <ellipse cx="152" cy="98" rx="7.5" ry="9"/>
+                <circle cx="101.5" cy="95" r="2.3" />
+                <circle cx="149.5" cy="95" r="2.3" />
+                <ellipse cx="104" cy="84" rx="5" ry="3.5" />
+                <ellipse cx="152" cy="84" rx="5" ry="3.5" />
+                <ellipse cx="128" cy="120" rx="11" ry="8" />
+                <path d="M128 128v8m0 0c-6 0-11-3-13-8m13 8c6 0 11-3 13-8" />
+                <path d="M124 136h8c0 6-2 10-4 10s-4-4-4-10z" />
+              </g>
+            </svg>
+            <span style="margin-left: 8px;">Benny</span>
+          </div>
           <div class="ps-bridge__benny-context">
             <x-icon>visibility</x-icon>
             <span x-text="bennyContextLine"></span>
@@ -1474,6 +1566,7 @@
             >User Guide ↗</a
           >
         </aside>
+        <navi-key x-show="v2Layout" @nav-action="if ($event.detail.action === 'chats') { document.body.classList.toggle('v2-chat-open'); } else { document.body.classList.remove('v2-chat-open'); setMode($event.detail.action); }"></navi-key>
       </div>
     </section>
   </body>

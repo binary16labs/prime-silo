@@ -10,7 +10,7 @@
 const path = require("node:path");
 const { BrowserWindow, ipcMain, screen } = require("electron");
 
-const PET_SIZE = 184;
+const PET_SIZE = 350;
 const PET_MARGIN = 24;
 
 let petWindow = null;
@@ -95,9 +95,9 @@ function toggleDesktopPet(deps = {}) {
 
 // Registered once at module load (the module is required a single time from
 // main.js). Using a module-level `petDeps` avoids stacking listeners on recreate.
-ipcMain.on("space-desktop:pet-open-cockpit", () => {
+ipcMain.on("space-desktop:pet-open-cockpit", (event, action) => {
   try {
-    petDeps.onOpenCockpit?.();
+    petDeps.onOpenCockpit?.(action);
   } catch {
     // ignore
   }

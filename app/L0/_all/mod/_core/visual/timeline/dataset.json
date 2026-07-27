@@ -1,0 +1,119 @@
+{
+  "sessionId": "run_space_988f3c62",
+  "timeRange": {
+    "start": 1785061000000,
+    "end": 1785061400000
+  },
+  "nodes": [
+    {
+      "id": "chat_user_1",
+      "swimlaneId": "chats",
+      "timestamp": 1785061010000,
+      "label": "User: build a lineage timeline",
+      "type": "human_chat",
+      "metadata": { "text": "build a lineage timeline for any data_out produced..." }
+    },
+    {
+      "id": "run_main",
+      "swimlaneId": "sessions",
+      "timestamp": 1785061015000,
+      "label": "Run: Space Agent Planner",
+      "type": "run_state",
+      "metadata": { "agent": "Space Agent v2.4", "state": "RUNNING" }
+    },
+    {
+      "id": "chat_agent_1",
+      "swimlaneId": "chats",
+      "timestamp": 1785061025000,
+      "label": "Agent: I'll review the URL",
+      "type": "agent_chat",
+      "metadata": { "text": "I'll take a look at the Dorot timeline..." }
+    },
+    {
+      "id": "inp_url",
+      "swimlaneId": "inputs",
+      "timestamp": 1785061035000,
+      "label": "URL Context: dorot.tali.org.il",
+      "type": "dataset_input",
+      "metadata": { "url": "https://dorot.tali.org.il/en/from:1106/to:2000" }
+    },
+    {
+      "id": "tool_read_url",
+      "swimlaneId": "tools",
+      "timestamp": 1785061045000,
+      "label": "Job: read_url_content",
+      "type": "job_tool",
+      "metadata": { "tool": "read_url_content", "duration_ms": 1024, "status": "success" }
+    },
+    {
+      "id": "log_url_fetch",
+      "swimlaneId": "logs",
+      "timestamp": 1785061046000,
+      "label": "Log: Fetched 37KB",
+      "type": "log_event",
+      "metadata": { "level": "info", "text": "Successfully fetched 37296 bytes from https://dorot..." }
+    },
+    {
+      "id": "out_md",
+      "swimlaneId": "outputs",
+      "timestamp": 1785061055000,
+      "label": "Dataset: content.md",
+      "type": "dataset_output",
+      "metadata": { "file": "steps/5/content.md", "bytes": 37296 }
+    },
+    {
+      "id": "run_subagent",
+      "swimlaneId": "sessions",
+      "timestamp": 1785061075000,
+      "label": "Run: Architecture Subagent",
+      "type": "run_state",
+      "metadata": { "parent": "run_main", "agent": "Architect Agent" }
+    },
+    {
+      "id": "tool_view_file",
+      "swimlaneId": "tools",
+      "timestamp": 1785061090000,
+      "label": "Job: view_file (AGENTS.md)",
+      "type": "job_tool",
+      "metadata": { "tool": "view_file", "path": "/app/AGENTS.md", "lines": 97 }
+    },
+    {
+      "id": "log_parse_rules",
+      "swimlaneId": "logs",
+      "timestamp": 1785061092000,
+      "label": "Log: Parsed Visual System Rules",
+      "type": "log_event",
+      "metadata": { "level": "debug", "text": "Found constraint: keep the baseline bubble markdown layout..." }
+    },
+    {
+      "id": "tool_write_plan",
+      "swimlaneId": "tools",
+      "timestamp": 1785061110000,
+      "label": "Job: write_to_file (Plan)",
+      "type": "job_tool",
+      "metadata": { "tool": "write_to_file", "bytes": 4890, "artifact": true }
+    },
+    {
+      "id": "out_plan",
+      "swimlaneId": "outputs",
+      "timestamp": 1785061115000,
+      "label": "Dataset: implementation_plan.md",
+      "type": "dataset_output",
+      "metadata": { "file": "implementation_plan.md", "user_facing": true }
+    }
+  ],
+  "edges": [
+    { "from": "chat_user_1", "to": "run_main" },
+    { "from": "run_main", "to": "chat_agent_1" },
+    { "from": "run_main", "to": "tool_read_url" },
+    { "from": "inp_url", "to": "tool_read_url" },
+    { "from": "tool_read_url", "to": "log_url_fetch" },
+    { "from": "tool_read_url", "to": "out_md" },
+    { "from": "run_main", "to": "run_subagent" },
+    { "from": "run_subagent", "to": "tool_view_file" },
+    { "from": "tool_view_file", "to": "log_parse_rules" },
+    { "from": "out_md", "to": "tool_write_plan" },
+    { "from": "tool_view_file", "to": "tool_write_plan" },
+    { "from": "tool_write_plan", "to": "out_plan" }
+  ]
+}

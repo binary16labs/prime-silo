@@ -24,7 +24,7 @@ async function main() {
 }
 
 function testModesAndChips() {
-  assert.equal(bridge.MODES.length, 8);
+  assert.equal(bridge.MODES.length, 9);
   const ids = bridge.MODES.map((m) => m.id);
   assert.deepEqual(ids, [
     "pulse",
@@ -34,6 +34,7 @@ function testModesAndChips() {
     "flows",
     "studio",
     "runs",
+    "v2",
     "agents"
   ]);
   // Every mode has chips, and each chip carries an instruction to dispatch.

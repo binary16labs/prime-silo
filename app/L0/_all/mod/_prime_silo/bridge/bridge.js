@@ -54,6 +54,7 @@ export const MODES = [
   { id: "flows", label: "Flows", icon: "alt_route" },
   { id: "studio", label: "Studio", icon: "science" },
   { id: "runs", label: "Runs", icon: "timeline" },
+  { id: "v2", label: "Governance V2", icon: "policy" },
   { id: "agents", label: "Agents", icon: "smart_toy" }
 ];
 
@@ -142,6 +143,16 @@ export const CHIPS = {
     {
       label: "Why did it fail?",
       instruction: "If the selected run failed, diagnose the likely cause from its lineage."
+    }
+  ],
+  v2: [
+    {
+      label: "Explain compliance",
+      instruction: "Explain the mesh health and token budget limits."
+    },
+    {
+      label: "Trace lineage",
+      instruction: "Trace the open lineage of this workflow execution."
     }
   ],
   agents: [
@@ -329,8 +340,8 @@ export function createBridgePage(options = {}) {
     mode: "pulse",
     zen: false,
     error: "",
+    v2Layout: true, // Show the new HUD layout by default
 
-    // shared
     // App-wide run activity (activity-store.js): one SSE/poll subscription
     // shared by every screen; drives the header activity chip.
     activity: { transport: "connecting", runs: [], running: 0, failures: 0 },
@@ -488,7 +499,22 @@ export function createBridgePage(options = {}) {
         this.activity = snap;
       });
       await this.setMode(initialMode);
+      this.initAnime();
       this._setupViewport();
+    },
+
+    initAnime() {
+      if (window.anime) {
+        window.anime({
+          targets: '.benny-anime-svg path, .benny-anime-svg ellipse, .benny-anime-svg circle',
+          strokeDashoffset: [window.anime.setDashoffset, 0],
+          easing: 'easeInOutSine',
+          duration: 1500,
+          delay: function(el, i) { return i * 150 },
+          direction: 'alternate',
+          loop: true
+        });
+      }
     },
 
     // Header activity chip → jump to the most relevant run in Runs mode:
@@ -615,6 +641,7 @@ export function createBridgePage(options = {}) {
           mode: this.mode,
           selection: this.selection,
           workspace: this.workspace,
+          v2Layout: this.v2Layout,
           lastRun: this.activeRunId || this.runsSummary.lastId || null,
           conformance: this.conformance.status || "",
           ...patch
@@ -651,10 +678,31 @@ export function createBridgePage(options = {}) {
           return this.mountStudio();
         case "runs":
           return this.mountRuns();
+        case "v2":
+          return this.mountV2();
         case "agents":
           return this.mountAgents();
         default:
           return undefined;
+      }
+    },
+
+    async mountV2() {
+      const v2Timeline = document.getElementById("v2-timeline");
+      if (v2Timeline && typeof v2Timeline.setData === "function") {
+         fetch("/mod/_core/visual/timeline/dataset.json")
+           .then(r => r.json())
+           .then(data => {
+             if (this.activeRunId) {
+               data.sessionId = this.activeRunId;
+               const root = data.nodes.find(n => n.id === "run_main");
+               if (root) {
+                 root.label = "Run: " + this.activeRunId.slice(0, 8);
+               }
+             }
+             v2Timeline.setData(data);
+           })
+           .catch(e => console.log("Mock V2 data not found", e));
       }
     },
 
@@ -2121,6 +2169,15 @@ export function createBridgePage(options = {}) {
           createReasoningTraceWidget(trace, { workspace: this.workspace, run_id: runId })
         );
       }
+      
+      const v2Timeline = document.getElementById("v2-timeline");
+      if (v2Timeline && typeof v2Timeline.setData === "function") {
+         fetch("/mod/_core/visual/timeline/dataset.json")
+           .then(r => r.json())
+           .then(data => v2Timeline.setData(data))
+           .catch(e => console.log("Mock V2 data not found", e));
+      }
+      
       this.mountDrilldown();
     },
 

@@ -20,7 +20,9 @@ Current sub-areas:
 - `forms/`: native dialog styling and helpers
 - `conversation/`: shared agent-thread rendering helpers
 - `surfaces/`: shared panel and card treatments
+- `timeline/`: reusable data lineage and execution timeline widget, sliding minimap window, bezier spline overlays, and demo harness
 - `res/`: canonical shared image assets for authenticated app surfaces
+
 
 ## Current Contracts
 
@@ -73,8 +75,12 @@ Conversation and surfaces:
 - `conversation/thread-view.js` also supports opt-in avatar run grouping through `config.groupConsecutiveAvatars`; when enabled, only the first consecutive rendered row for the same visible speaker should mount the real avatar and later rows in that run should keep the same bubble alignment with a non-visible spacer instead of re-rendering the icon or image
 - `conversation/agent-thread.css` owns the baseline bubble sizing, avatar spacer, and wrapping rules for shared threads; user bubbles must keep natural compact width for short drafts but still wrap long lines inside the bubble so chat scrollers do not widen or grow horizontal scrollbars, and execution narration should sit visually tight to its execution card instead of reading like a separate later reply; execute sections may use tighter local spacing than follow-up sections to preserve that coupling
 - `surfaces/cards.css` owns shared panel or card wrappers such as `space-panel`
+- `timeline/lineage-timeline.css` and `timeline/lineage-timeline.js` define the reusable `<lineage-timeline>` Custom Element
+- `<lineage-timeline>` implements 4 swimlanes (`sessions`, `inputs`, `tools`, `outputs`), a dual-handle sliding viewport minimap (`startPct`, `endPct`), SVG Bezier spline dependency edge highlights, search filtering, and node inspector drawer
+- `timeline/demo.html` serves as the visual harness demonstrating the lineage timeline widget with mock session execution data
 
 ## Visual System Rules
+
 
 - solve shared presentation problems here before cloning styles into feature modules
 - keep the overall direction calm, dark, and readable rather than loud or novelty-driven

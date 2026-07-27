@@ -3,6 +3,6 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("benny", {
-  openCockpit: () => ipcRenderer.send("space-desktop:pet-open-cockpit"),
+  openCockpit: (action) => ipcRenderer.send("space-desktop:pet-open-cockpit", action),
   hide: () => ipcRenderer.send("space-desktop:pet-hide")
 });
