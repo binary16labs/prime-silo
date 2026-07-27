@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { createBus } from "./coordination/lib/bus.mjs";
 import { createCoordinationApi } from "./coordination/http_api.mjs";
+import { createEstateApi } from "./coordination/lib/estate_api.mjs";
 import {
   API_DIR,
   APP_DIR,
@@ -251,11 +252,20 @@ async function createAgentServer(overrides = {}) {
   const coordinationBus = overrides.coordinationBus || createBus();
   const coordinationApi =
     overrides.coordinationApi || createCoordinationApi({ coordDir, bus: coordinationBus });
+  // EP-N: the estate model served live over /api/estate/*, mounted additively on the SAME bus
+  // (one in-process fan-out). Nested paths, so it also runs ahead of the flat generic router.
+  const estateApi =
+    overrides.estateApi ||
+    createEstateApi({
+      kelLog: overrides.estateKelLog || path.join(coordDir, "estate", "kel.jsonl"),
+      bus: coordinationBus
+    });
 
   const server = http.createServer((req, res) => {
     Promise.resolve(coordinationApi.tryHandle(req, res))
       .then((handled) => {
         if (handled) return undefined;
+        if (estateApi.tryHandle(req, res)) return undefined; // EP-N estate API (additive)
         return requestHandler(req, res);
       })
       .catch((error) => {
