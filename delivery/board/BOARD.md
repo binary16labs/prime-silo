@@ -7,9 +7,9 @@
 
 ## READY  (take from the top)
 ## CLAIMED (agent · date)
-- N0 — estate model + delta sync engine · claude-opus · 2026-07-27 *(EP-N/M7 · human-signed — owner signed build 2026-07-27; branch task/N0; merge awaits owner signature)*
 
 ## VERIFY (awaiting non-author verification)
+- N0 — estate model + delta sync engine · author claude-opus · branch task/N0 @ eb4b728 · 2026-07-27 *(GATE GREEN: node scripts/gates/n0.mjs — 4 BDD scenarios (overlap dedupes by content; delta-only re-sync writes nothing; changed content reprocesses; projection rebuilds byte-identical from the log) + reuse-contract check (casStore/processDelta/appendKelEvent). Reuses L1 CAS + L4 delta + L0 KEL, no new storage layer. Mutation-proven non-vacuous: dropping the drive->session attribution → overlap scenario RED → revert GREEN. 284 code lines < 550 budget, allowlist-clean. EP-N/M7 · human-signed — owner signed BUILD 2026-07-27; MERGE awaits owner signature. Verifier: re-run n0 gate from clean task/N0 + own dedup/delta/rebuild probes + a mutation.)*
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 *(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)*
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 *(budget amended 300→1100 by owner directive — flagship scope, see LOG)*
 
