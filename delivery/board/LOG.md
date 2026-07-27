@@ -199,3 +199,4 @@ Events: authored, claimed, ready-for-verify, verified-by, done, blocked, unblock
 2026-07-27T00:00:00Z | N0 | ready-for-verify | claude-opus | branch task/N0 @ eb4b728; gate n0 GREEN (4 BDD + reuse-contract); reuses L1 CAS + L4 delta + L0 KEL; mutation-proven (drive->session attribution RED-then-GREEN); 284 code lines < 550; allowlist-clean; human-signed MERGE awaits owner signature
 2026-07-27T00:00:00Z | N0 | done | claude-opus | merged --no-ff @ 5a797f4; owner signed build+merge, fresh-verify waived (author self-verified, caveat on record); post-merge n0+w0 GREEN; N1 promoted to READY
 2026-07-27T00:00:00Z | N1 | claimed | claude-opus | branch task/N1; estate probes — driveDrift/topology/liveness/sessionStats as pure functions over injected inputs
+2026-07-27T00:00:00Z | N1 | done | claude-opus | merged --no-ff; gate n1 GREEN 4/4; author self-verified (gate+mutation, owner autonomy on agent tasks); post-merge n1+w0 GREEN; N2 promoted to READY
