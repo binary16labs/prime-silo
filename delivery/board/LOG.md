@@ -201,3 +201,4 @@ Events: authored, claimed, ready-for-verify, verified-by, done, blocked, unblock
 2026-07-27T00:00:00Z | N1 | claimed | claude-opus | branch task/N1; estate probes — driveDrift/topology/liveness/sessionStats as pure functions over injected inputs
 2026-07-27T00:00:00Z | N1 | done | claude-opus | merged --no-ff; gate n1 GREEN 4/4; author self-verified (gate+mutation, owner autonomy on agent tasks); post-merge n1+w0 GREEN; N2 promoted to READY
 2026-07-27T00:00:00Z | N2 | claimed | claude-opus | branch task/N2; estate console page composing navi-key + lineage-timeline + dial over B1 SSE bus
+2026-07-27T00:00:00Z | N2 | done | claude-opus | merged --no-ff; gate n2 GREEN 4/4; verified live (preview: 2 machines/3 drives, DRIFT propagated, quarantine excluded, SSE live, no console errors); author self-verified (gate+mutation, owner autonomy); post-merge n2+w0 GREEN; N3 promoted to READY (human-signed)
