@@ -30,3 +30,4 @@
 | O1+O2 | flywheel-substrate | EP-L | M4 | L0 L1 L2 L3 L4 L5 L6 L7 |
 | O1+O2 | flywheel-bitemporal | EP-L | M5 | L8 L9 |
 | O1+O2 | flywheel-loop | EP-L | M6 | L10 L11 L12 L13 L14 |
+| O2 | estate-governance | EP-N | M7 | N0 N1 N2 N3 |

@@ -6,6 +6,7 @@
 > (bottom, owner may reorder) when their last dep is verified DONE. Gate: scripts/gates/w0.mjs.
 
 ## READY  (take from the top)
+- N0 — estate model + delta sync engine · EP-N/M7 · human-signed *(deps L1+L4 DONE — entered READY 2026-07-27; authored from architecture/SOLUTION-estate.md; awaits owner signature before merge)*
 ## CLAIMED (agent · date)
 
 ## VERIFY (awaiting non-author verification)
@@ -62,3 +63,4 @@ F1 F2 F3 F4 F5 F6 F7 F8 ·
 Q2 Q3 ·
 R0 R1 R2 R3 ·
 M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 ·
+N1 N2 N3 ·
