@@ -33,3 +33,17 @@ coherence), measured evidence (portable copy + F: backup dedupe to one blob per 
 drift verdicts from real fingerprints; console renders hub+satellite+cascade+live stats from the estate log
 alone), one honest sentence on residual drift. Privacy invariant held: quarantined job/CV sids never surface
 content or enter any dataset path (R31); additive — no default route breaks (R36).
+
+## VISION-CHECK (EP-N closed 2026-07-27)
+Built N0–N3, all gate-green + mutation-proven, `w0` green throughout. **KRs moved:** KR2.2 (the
+telemetry/lineage stream now extends to the physical estate — machines, drives, sessions rendered live
+from the estate log), KR2.4 (a governance surface making drift + verification observable). **Measured
+evidence:** identical content across the D: portable copy and the F: backup dedupes to one blob (N0
+delta-only, proven by the overlap scenario); drift verdicts computed from real fingerprints
+(INTACT/DRIFT/CORRUPT, N1); the console renders hub+satellite + the F→D→eGPU cascade + live per-machine
+stats from the estate log alone, verified live (N2), with the DRIFT verdict propagating to the cascade and
+the board/LONGVIEW folded into one surface (N3). **Privacy (R31) held:** quarantined job/CV sessions surface
+only a count, never their content — gate-enforced (N3 privacy mutation) and verified live (drill/asus →
+sessions:[]). **Additive (R36):** a new page + additive API mount; no default route changed. **Honest note
+on drift:** the four tasks were author-self-verified (owner waived the fresh-context verifier per task) — the
+author≠verifier caveat is on record for N0–N3; a later cross-session pass could independently re-derive.
