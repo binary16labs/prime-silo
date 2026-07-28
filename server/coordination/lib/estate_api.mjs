@@ -6,6 +6,7 @@
 import fs from "node:fs";
 import { readKelEvents } from "./kel.mjs";
 import { buildEstate } from "./estate.mjs";
+import { proposeSync, applySync } from "./estate_govern.mjs";
 
 const PREFIX = "/api/estate";
 const EMPTY = { machines: {}, drives: {}, sessions: {}, snapshots: {} };
@@ -93,12 +94,23 @@ export function longviewProgress(progressFile) {
   return { present: false, stages: null };
 }
 
+// Read + JSON-parse a POST body; resolves {} on empty/invalid (a governance route never 500s on shape).
+function readBody(req) {
+  return new Promise((resolve) => {
+    let raw = "";
+    req.on("data", (c) => (raw += c));
+    req.on("end", () => { try { resolve(raw ? JSON.parse(raw) : {}); } catch { resolve({}); } });
+  });
+}
+
 export function createEstateApi({
   kelLog = null,
   estateFile = null,
   boardFile = null,
   longviewProgressFile = null,
   bus,
+  syncSource = null,
+  stagingRoot = null,
   prefix = PREFIX
 } = {}) {
   function handle(req, res, rest) {
@@ -131,6 +143,30 @@ export function createEstateApi({
     if (req.method === "GET" && drill) {
       const est = loadEstate({ kelLog, estateFile });
       return sendJson(res, 200, drillMachine(est, decodeURIComponent(drill[1])));
+    }
+
+    // POST /api/estate/sync/propose — build an UNAPPROVED sync proposal from a drift delta (N5).
+    // Body: { delta:{clean,quarantined}, satellite, quarantine? }. Never moves data.
+    if (req.method === "POST" && rest === "/sync/propose") {
+      readBody(req).then((b) =>
+        sendJson(res, 200, proposeSync(b.delta || {}, { satellite: b.satellite ?? null, quarantine: b.quarantine || [] }))
+      );
+      return;
+    }
+
+    // POST /api/estate/sync/apply — apply an OWNER-APPROVED proposal (human-signed). Idempotent
+    // via N0 syncSource; emits a B1 approval event only when content actually moved.
+    if (req.method === "POST" && rest === "/sync/apply") {
+      if (typeof syncSource !== "function") return sendJson(res, 503, { error: "no syncSource configured" });
+      readBody(req).then((b) => {
+        try {
+          const r = applySync(b.proposal || {}, b.source || {}, { syncSource, bus, kelLog, stagingRoot });
+          sendJson(res, r.applied ? 200 : 403, r);
+        } catch (e) {
+          sendJson(res, 400, { error: String(e?.message || e) });
+        }
+      });
+      return;
     }
 
     return sendJson(res, 404, { error: `unknown estate route: ${req.method} ${rest}` });
