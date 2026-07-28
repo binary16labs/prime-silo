@@ -215,3 +215,4 @@ Events: authored, claimed, ready-for-verify, verified-by, done, blocked, unblock
 2026-07-28T14:12:38Z | N5 | verified-by | claude-haiku-verifier | gate green from clean checkout, both mutations re-derived (R31 + signature guard), merged --no-ff
 2026-07-28T14:16:02Z | N6 | claimed | claude-opus | next-cycle flywheel planner — worktree task/N6 (off main incl N5)
 2026-07-28T14:22:29Z | N6 | ready-for-verify | claude-opus | gate n6 GREEN 4/4 + mutation-proven; verified live (213 vs 188 cards -> rebuild, Stream A gap); branch task/N6 @ 1091000; verify: node scripts/gates/n6.mjs from clean checkout
+2026-07-28T17:53:57Z | N6 | verified-by | claude-haiku-verifier | gate green + mutation re-derived + merged --no-ff @ d957973; verifier hit session cap before bookkeeping, author claude-opus completed the board/LOG/worktree finalization (verdict+merge were the verifier)
