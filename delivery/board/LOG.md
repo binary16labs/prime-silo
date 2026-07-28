@@ -206,3 +206,4 @@ Events: authored, claimed, ready-for-verify, verified-by, done, blocked, unblock
 2026-07-27T00:00:00Z | N3 | done | claude-opus | merged --no-ff; gate n3 GREEN 4/4; privacy mutation-proven (drill quarantine leak RED-then-GREEN); verified live (real board fold + drill/asus withholds quarantine); owner signed, fresh-verify waived; post-merge n3+w0 GREEN. EP-N COMPLETE (N0-N3).
 2026-07-28T13:29:13Z | N4 | note | claude-opus | authored EP-N Phase 2 (M8 cockpit): N4-N7 contracts + M8 milestone + plan §7-11 + traceability + plan-deps + validate enum; N4 READY (deps N0,N1 DONE), N5-N7 AUTHORED
 2026-07-28T13:34:03Z | N4 | claimed | claude-opus | drift-delta engine — worktree task/N4
+2026-07-28T13:38:11Z | N4 | ready-for-verify | claude-opus | gate n4 GREEN 4/4 + mutation-proven (R31); branch task/N4 @ b30faaa; verify: node scripts/gates/n4.mjs from clean checkout
