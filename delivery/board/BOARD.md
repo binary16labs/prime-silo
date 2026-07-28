@@ -6,6 +6,10 @@
 > (bottom, owner may reorder) when their last dep is verified DONE. Gate: scripts/gates/w0.mjs.
 
 ## READY  (take from the top)
+- N6 — next-cycle flywheel planner (estate_plan.mjs) · EP-N cockpit · deps met (drift engine DONE) · agent-ok · entered READY 2026-07-28
+- N5 — approve-to-sync governance (estate_govern.mjs) · EP-N cockpit · deps met · HUMAN-SIGNED — moves data, awaits owner signature to build · entered READY 2026-07-28
+- N7 — live satellite discovery (estate_register.mjs) · EP-N cockpit · deps met · HUMAN-SIGNED — network surface, awaits owner signature to build · entered READY 2026-07-28
+
 ## CLAIMED (agent · date)
 
 ## VERIFY (awaiting non-author verification)
@@ -67,4 +71,3 @@ F1 F2 F3 F4 F5 F6 F7 F8 ·
 Q2 Q3 ·
 R0 R1 R2 R3 ·
 M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 ·
-N5 N6 N7 ·
