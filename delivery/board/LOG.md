@@ -205,3 +205,4 @@ Events: authored, claimed, ready-for-verify, verified-by, done, blocked, unblock
 2026-07-27T00:00:00Z | N3 | claimed | claude-opus | owner signed build (human-signed); branch task/N3; drill-down cards + board & LONGVIEW tie-in
 2026-07-27T00:00:00Z | N3 | done | claude-opus | merged --no-ff; gate n3 GREEN 4/4; privacy mutation-proven (drill quarantine leak RED-then-GREEN); verified live (real board fold + drill/asus withholds quarantine); owner signed, fresh-verify waived; post-merge n3+w0 GREEN. EP-N COMPLETE (N0-N3).
 2026-07-28T13:29:13Z | N4 | note | claude-opus | authored EP-N Phase 2 (M8 cockpit): N4-N7 contracts + M8 milestone + plan §7-11 + traceability + plan-deps + validate enum; N4 READY (deps N0,N1 DONE), N5-N7 AUTHORED
+2026-07-28T13:34:03Z | N4 | claimed | claude-opus | drift-delta engine — worktree task/N4
