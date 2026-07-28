@@ -219,3 +219,4 @@ Events: authored, claimed, ready-for-verify, verified-by, done, blocked, unblock
 2026-07-28T18:10:03Z | N7 | note | owner | HUMAN-SIGNED: owner authorized BUILD of N7 (live satellite discovery) via chat 2026-07-28 — opens a LAN network surface
 2026-07-28T18:10:03Z | N7 | claimed | claude-opus | live satellite discovery — worktree task/N7 (off main incl N4-N6)
 2026-07-28T18:14:36Z | N7 | ready-for-verify | claude-opus | gate n7 GREEN 4/4 + R31 mutation-proven; branch task/N7 @ 66d360e; verify: node scripts/gates/n7.mjs from clean checkout
+2026-07-28T14:00:00Z | N7 | verified-by | claude-haiku-verifier | gate green from clean checkout, R31 mutation re-derived, merged --no-ff — closes M8
