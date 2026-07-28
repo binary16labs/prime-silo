@@ -139,6 +139,18 @@
     </div>
   </div>
 
+  <!-- N6 next-cycle planner + N5 approve-to-sync governance (additive) -->
+  <div class="lane" style="display:grid;grid-template-columns:1fr 1fr;gap:20px" id="govern">
+    <div>
+      <h2>Next cycle</h2>
+      <div id="plan-lane" class="mono" style="font-size:12px;color:var(--ink-2)">projecting…</div>
+    </div>
+    <div>
+      <h2>Approve-to-sync</h2>
+      <div id="sync-lane" class="mono" style="font-size:12px;color:var(--ink-2)">no pending drift — a satellite registers over the LAN (N7) or is ingested, then a sync is proposed here for owner approval</div>
+    </div>
+  </div>
+
   <div class="sectlabel"><span class="eyebrow">Machines &amp; drives</span><span class="ln"></span><span class="mono" style="font-size:11px;color:var(--muted)" id="updated">from the estate log · click a machine to drill down</span></div>
   <div class="grid" id="grid">
     <div class="card"><div class="stripe ok"></div><div class="body"><div class="khint">loading</div><div class="ttl">reading estate…</div></div></div>
@@ -241,6 +253,18 @@
     }catch(e){ $('longview-label').textContent='—'; }
   }
 
+  async function renderPlan(){
+    try{
+      const p=await (await fetch('/api/estate/plan')).json();
+      const act={rebuild:'REBUILD dataset',map:'MAP new sessions',train:'train / hold'}[p.recommendedAction]||p.recommendedAction||'—';
+      $('plan-lane').innerHTML=`<div style="font-size:15px;color:var(--ink);font-weight:600">${act}</div>`+
+        `<div style="margin-top:6px">new cards since last build: <b>${p.newCardsSinceBuild??'—'}</b>`+
+        (p.projectedCards?` · pending sync → +${p.projectedCards} cards ~${p.projectedStreamARows} Stream-A rows`:'')+`</div>`+
+        `<div style="margin-top:6px;color:var(--muted)">${p.reason||''}</div>`+
+        (p.crossesRebuildThreshold?`<div style="margin-top:6px;color:var(--rust)">⚠ crosses the rebuild threshold</div>`:'');
+    }catch(e){ $('plan-lane').textContent='no projection'; }
+  }
+
   async function refresh(){
     try{
       const est=await (await fetch('/api/estate')).json();
@@ -249,7 +273,7 @@
       $('updated').textContent='updated '+new Date().toLocaleTimeString();
       renderCards(est);
     }catch(e){ $('summary').textContent='estate unavailable'; }
-    renderBoard(); renderLongview();
+    renderBoard(); renderLongview(); renderPlan();
   }
 
   function connect(){

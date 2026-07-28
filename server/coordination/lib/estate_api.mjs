@@ -7,6 +7,7 @@ import fs from "node:fs";
 import { readKelEvents } from "./kel.mjs";
 import { buildEstate } from "./estate.mjs";
 import { proposeSync, applySync } from "./estate_govern.mjs";
+import { planNextCycle, readPlanInputs } from "./estate_plan.mjs";
 
 const PREFIX = "/api/estate";
 const EMPTY = { machines: {}, drives: {}, sessions: {}, snapshots: {} };
@@ -111,6 +112,10 @@ export function createEstateApi({
   bus,
   syncSource = null,
   stagingRoot = null,
+  datasetManifestFile = null,
+  evalReportFile = null,
+  statusFile = null,
+  planThinRate = 0.25,
   prefix = PREFIX
 } = {}) {
   function handle(req, res, rest) {
@@ -125,6 +130,17 @@ export function createEstateApi({
       if (!bus) return sendJson(res, 503, { error: "no event bus configured" });
       bus.subscribe(res);
       return; // response stays open, owned by the bus
+    }
+
+    // GET /api/estate/plan — the next-cycle flywheel projection (N6): what's coming if the pending
+    // drift is synced+mapped, and whether the dataset crosses its rebuild threshold. Read-only; the
+    // same shape the :8788 flywheel banner uses. No live satellite drift until N7 → the dataset-drift
+    // projection (cardsNow vs the cards baked into the last build) is what it renders today.
+    if (req.method === "GET" && rest === "/plan") {
+      const { manifest, evalReport } = readPlanInputs({ manifestFile: datasetManifestFile, evalFile: evalReportFile });
+      let cardsNow = null;
+      try { if (statusFile && fs.existsSync(statusFile)) cardsNow = JSON.parse(fs.readFileSync(statusFile, "utf8")).cards_ok ?? null; } catch { /* absent → null */ }
+      return sendJson(res, 200, planNextCycle({ cleanCount: 0 }, manifest, evalReport, { cardsNow, thinRate: planThinRate }));
     }
 
     // GET /api/estate/board — the delivery board folded into a lane summary (N3 tie-in).
