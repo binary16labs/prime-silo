@@ -209,3 +209,5 @@ Events: authored, claimed, ready-for-verify, verified-by, done, blocked, unblock
 2026-07-28T13:38:11Z | N4 | ready-for-verify | claude-opus | gate n4 GREEN 4/4 + mutation-proven (R31); branch task/N4 @ b30faaa; verify: node scripts/gates/n4.mjs from clean checkout
 2026-07-28T13:46:05Z | N4 | verified-by | claude-haiku-verifier | gate GREEN 4/4 from clean checkout; scenarios mapped; allowlist clean (3 files: estate_drift.mjs + n4.mjs + tests); budget clean (71 code lines < 300); mutation re-derived (removed R31 `continue` → 2 privacy scenarios RED, edge-case privacy test RED → restored → GREEN 4/4); merged --no-ff to main @ 0615e36; post-merge w0 GREEN 6/6; N4 done
 2026-07-28T13:49:33Z | N6 | unblocked | claude-opus | drift engine DONE — N5 N6 N7 promoted AUTHORED->READY (N5,N7 human-signed)
+2026-07-28T14:03:19Z | N5 | note | owner | HUMAN-SIGNED: owner authorized BUILD of N5 (approve-to-sync) via chat 2026-07-28 — moves data into the corpus
+2026-07-28T14:03:19Z | N5 | claimed | claude-opus | approve-to-sync governance — worktree task/N5 (owner-signed build)
