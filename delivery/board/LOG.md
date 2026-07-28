@@ -213,3 +213,4 @@ Events: authored, claimed, ready-for-verify, verified-by, done, blocked, unblock
 2026-07-28T14:03:19Z | N5 | claimed | claude-opus | approve-to-sync governance — worktree task/N5 (owner-signed build)
 2026-07-28T14:09:45Z | N5 | ready-for-verify | claude-opus | gate n5 GREEN 4/4, doubly mutation-proven (R31 + signature guard); branch task/N5 @ bb6bee2; verify: node scripts/gates/n5.mjs from clean checkout
 2026-07-28T14:12:38Z | N5 | verified-by | claude-haiku-verifier | gate green from clean checkout, both mutations re-derived (R31 + signature guard), merged --no-ff
+2026-07-28T14:16:02Z | N6 | claimed | claude-opus | next-cycle flywheel planner — worktree task/N6 (off main incl N5)

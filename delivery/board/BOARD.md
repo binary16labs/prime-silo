@@ -6,10 +6,10 @@
 > (bottom, owner may reorder) when their last dep is verified DONE. Gate: scripts/gates/w0.mjs.
 
 ## READY  (take from the top)
-- N6 — next-cycle flywheel planner (estate_plan.mjs) · EP-N cockpit · deps met (drift engine DONE) · agent-ok · entered READY 2026-07-28
 - N7 — live satellite discovery (estate_register.mjs) · EP-N cockpit · deps met · HUMAN-SIGNED — network surface, awaits owner signature to build · entered READY 2026-07-28
 
 ## CLAIMED (agent · date)
+- N6 — next-cycle flywheel planner (estate_plan.mjs) · claude-opus · 2026-07-28
 
 ## VERIFY (awaiting non-author verification)
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 *(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)*
