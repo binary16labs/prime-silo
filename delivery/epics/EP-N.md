@@ -1,6 +1,6 @@
 # EP-N — The Estate (multi-machine session/backup governance)
 
-**Objective:** O2 (+ O1) · **Goals:** P2,P3,P9 · **Milestone:** M7
+**Objective:** O2 (+ O1) · **Goals:** P2,P3,P9 · **Milestone:** M7 (Phase 1 — observe), M8 (Phase 2 — govern)
 **Plan source:** `../../architecture/SOLUTION-estate.md` (design, authored 2026-07-27) tracing O2.KR2.2 /
 KR2.4 + O1.KR1.5. Builds on EP-L (`SOLUTION-longview-self-learning.md`) and B1.
 
@@ -34,7 +34,26 @@ drift verdicts from real fingerprints; console renders hub+satellite+cascade+liv
 alone), one honest sentence on residual drift. Privacy invariant held: quarantined job/CV sids never surface
 content or enter any dataset path (R31); additive — no default route breaks (R36).
 
-## VISION-CHECK (EP-N closed 2026-07-27)
+## Phase 2 → task contracts (M8) — the Governance Cockpit (reopened 2026-07-28)
+Phase 1 made the estate **observable**; Phase 2 makes it **governable and self-directing**. Plan source
+extended: `../../architecture/SOLUTION-estate.md` §7–§11. Owner directive: build the governance layer first,
+then the live transport ("both in sequence"). Reuses the Phase-1 engine (N0 CAS/sync, N1 probes, N2/N3 API+console).
+- [ ] `N4` — drift-delta engine (`estate_drift.mjs`): the actionable delta a satellite holds that the hub
+  corpus lacks, by content-hash, partitioned clean/quarantined; + execution drift (L5). Pure, gate-testable *(agent-ok)*
+- [ ] `N5` — approve-to-sync (`estate_govern.mjs` + API): a signed proposal with a privacy attestation;
+  idempotent apply via N0 `syncSource`; B1 approval event. No sync without an owner signature *(human-signed — moves data)*
+- [ ] `N6` — next-cycle flywheel planner (`estate_plan.mjs`): projects the approved drift into the next turn
+  (sessions→cards→Stream-A rows→rebuild threshold→action); the projection is shared with the :8788 flywheel *(agent-ok)*
+- [ ] `N7` — live satellite discovery (`estate_register.mjs` + route): a satellite starting prime-silo on the
+  LAN registers (heartbeat + fingerprint manifest push, LAN-auth), so drift updates live *(human-signed — network surface)*
+
+## Exit (M8)
+Gates `n4..n7` green + non-author verification. Proven: drift is the true content-hash delta (overlap excluded);
+a sync cannot execute unapproved and a quarantined sid is rejected (R31 at the sync boundary); approved sync is
+idempotent; the planner projection matches the flywheel's; a LAN-registering satellite updates the cockpit live.
+KRs: KR2.4 (governance action), KR1.5 (planned flywheel intake). VISION-CHECK on close.
+
+## VISION-CHECK (EP-N Phase 1 closed 2026-07-27)
 Built N0–N3, all gate-green + mutation-proven, `w0` green throughout. **KRs moved:** KR2.2 (the
 telemetry/lineage stream now extends to the physical estate — machines, drives, sessions rendered live
 from the estate log), KR2.4 (a governance surface making drift + verification observable). **Measured

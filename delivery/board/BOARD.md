@@ -6,6 +6,8 @@
 > (bottom, owner may reorder) when their last dep is verified DONE. Gate: scripts/gates/w0.mjs.
 
 ## READY  (take from the top)
+- N4 — drift-delta engine (estate_drift.mjs) · EP-N/M8 · deps N0,N1 DONE · authored claude-opus 2026-07-28 *(pure content-hash delta hub↔satellite; foundation for the governance cockpit — see tasks/N4.md)*
+
 ## CLAIMED (agent · date)
 
 ## VERIFY (awaiting non-author verification)
@@ -66,3 +68,4 @@ F1 F2 F3 F4 F5 F6 F7 F8 ·
 Q2 Q3 ·
 R0 R1 R2 R3 ·
 M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 ·
+N5 N6 N7 ·

@@ -86,3 +86,91 @@ dedupe to one blob per content (delta-only proven); drift verdicts computed from
 console renders hub+satellite, the cascade, and live per-machine session stats from the estate log alone.
 Which KRs moved: KR2.2 (telemetry/lineage stream extended to the physical estate), KR2.4 (governance
 surface). One honest sentence on residual drift.
+
+---
+
+# Phase 2 — The Governance Cockpit (M8, authored 2026-07-28)
+
+> Rev note: Phase 1 (M7, N0–N3) made the estate **observable**. Phase 2 makes it **governable and
+> self-directing** — the cockpit detects cross-machine drift, gates its sync behind human approval, and hands
+> the approved delta to the LONGVIEW flywheel as a planned next cycle. Owner directive 2026-07-28: build the
+> governance layer first, then the live transport ("both in sequence"); author to the board (EP-N reopened).
+
+## 7. The problem (Phase 2)
+Today the estate console is a **viewer**: it renders whatever estate KEL exists, and a satellite's sessions
+reach the hub only through a manual out-of-band ingest (the D:\asus_ingest copy). Three gaps remain before it
+is a control plane:
+1. **No drift signal between machines.** Nothing computes *what the satellite has that the hub's corpus does
+   not* — the actionable delta — so the owner can't see what a sync would bring.
+2. **No governed sync.** Moving a satellite's sessions into the training corpus is a privacy- and
+   trust-sensitive act (job/CV quarantine, R31); it must be a human-approved, delta-only, idempotent
+   operation, not an ambient copy.
+3. **The loop isn't closed to planning.** An approved sync should tell the owner *what's coming* — projected
+   cards → Stream-A rows → whether the dataset crosses its rebuild threshold — so the next flywheel turn is
+   planned, not discovered after the fact.
+
+## 8. Design (Phase 2)
+
+### 8.1 Drift-delta engine — `estate_drift.mjs` (N4)
+Pure functions over the estate model (reuses N0 CAS content-hashes + N1 `sessionStats`). For each satellite,
+`driftDelta(hubHashes, satelliteSessions, quarantine)` returns the **actionable delta**: sessions the
+satellite holds whose content-hash is absent from the hub corpus, partitioned into `clean` (mappable) and
+`quarantined` (job/CV — counted, never content). Deterministic, no fs/net — inputs injected — so it is
+gate-testable and reused by both the console and the planner. Also `executionDrift` for L5 register entries
+(what ran on the satellite that the hub hasn't recorded), same content-hash discipline.
+
+### 8.2 Approve-to-sync governance — `estate_govern.mjs` + API route (N5) *(human-signed — moves data)*
+The drift delta is presented as a **proposed sync**, not an action. `proposeSync(delta)` builds a signed
+proposal (clean sids + a privacy attestation that quarantined sids are excluded BEFORE the owner sees it);
+`applySync(proposal, syncSource)` stages only the approved clean delta into the hub via N0 `syncSource`
+(idempotent, delta-only, KEL-logged) and emits an approval event on the B1 bus. The gate proves: a proposal
+that includes a quarantined sid is rejected (RED); no sync executes without an `approved:true` signature;
+re-applying an approved proposal is a no-op (idempotence). Nothing is copied on load — approval is the trigger.
+
+### 8.3 Next-cycle flywheel planner — `estate_plan.mjs` (N6)
+From the pending + approved drift, `planNextCycle(delta, datasetManifest, evalReport)` projects the next
+flywheel turn: `+N clean sessions → ~M cards (minus thin-rate) → ~K Stream-A rows → dataset drift crosses the
+rebuild threshold? → recommended action (map | rebuild | train)`. This is the "knowing what's coming" surface
+— it renders on the cockpit AND feeds the :8788 flywheel's feedback banner, so the two dashboards share one
+projection. Read-only; references the dataset manifest + eval report, never mutates them.
+
+### 8.4 Live network discovery / transport — `estate_register.mjs` + register route (N7) *(human-signed — network surface)*
+When prime-silo starts on a satellite (ASUS) on the same network, it **registers** with the driver node
+(T480): a heartbeat + a session-fingerprint manifest (content-hashes only, never payload) pushed to a hub
+register endpoint (or over the B1 bus). The hub records last-seen + reachability and recomputes drift live,
+so a satellite coming online updates the cockpit without a manual ingest. Auth: a shared per-estate key
+(reuses the benny keystore); loopback/LAN-only; the manifest carries hashes + quarantine flags, so privacy
+holds on the wire. This is the piece that makes "just start prime-silo on the ASUS and it detects" literal.
+
+### 8.5 Console — `server/pages/estate.html` grows the cockpit (extended by N4–N7, additive)
+The existing console gains, additively: a **drift panel** (per satellite: clean/quarantined delta counts,
+glance→drill), an **approve-to-sync** affordance (owner-only, shows the proposal + privacy attestation, one
+signed action), a **next-cycle planner** card (the projection above), and **live node reachability** on the
+hub/satellite topology (last-seen, driver-node badge). Motion-is-meaning, theme-aware, works JS-disabled for
+the static counts; no default route changes (R36).
+
+## 9. Phases → contracts (M8)
+- `N4` estate_drift.mjs — drift-delta + execution-drift engine (pure, reuses N0 CAS + N1 stats) *(agent-ok)*
+- `N5` estate_govern.mjs + API — approve-to-sync: proposal, privacy attestation, idempotent apply via N0
+  syncSource, B1 approval event *(human-signed — moves data into the corpus)*
+- `N6` estate_plan.mjs — next-cycle flywheel planner; projection shared with the :8788 flywheel *(agent-ok)*
+- `N7` estate_register.mjs + register route — live satellite discovery/heartbeat/manifest push, LAN-auth
+  *(human-signed — opens a network surface)*
+
+## 10. Invariants (Phase 2)
+- **Privacy (R31):** quarantined sids are excluded from any proposal, never crossed the wire as content, and
+  the drift engine emits their count only — same discipline as N3, now enforced at the sync boundary.
+- **Human-signed sync (P-stops):** no data enters the corpus without an owner-approved, signed proposal; the
+  gate fails if a sync can execute unapproved.
+- **Delta-only / idempotent:** all sync goes through N0 `syncSource` (CAS + L4 cursors) — re-apply is a no-op.
+- **Additive (R36):** additive API routes + additive console panels; existing routes and the LONGVIEW
+  dashboards untouched.
+- **No LAN LM probe:** the cockpit reads the estate projection + manifests + SSE; it never calls the LM host.
+
+## 11. Exit (Phase 2 VISION-CHECK)
+All four gates (`scripts/gates/n4..n7`) green + non-author verification. Measured evidence: drift computed as
+the true content-hash delta (overlap excluded); a sync cannot execute without an owner signature and a
+quarantined sid is rejected (privacy gate); an approved sync is idempotent (re-apply no-op); the planner's
+projection matches the flywheel's; a satellite registering over the LAN updates the cockpit's drift live.
+KRs moved: KR2.4 (governance action, not just view), KR1.5 (the flywheel gains a planned intake). One honest
+sentence on residual drift.
