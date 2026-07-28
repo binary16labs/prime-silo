@@ -8,6 +8,7 @@ import { readKelEvents } from "./kel.mjs";
 import { buildEstate } from "./estate.mjs";
 import { proposeSync, applySync } from "./estate_govern.mjs";
 import { planNextCycle, readPlanInputs } from "./estate_plan.mjs";
+import { register as registerSatellite } from "./estate_register.mjs";
 
 const PREFIX = "/api/estate";
 const EMPTY = { machines: {}, drives: {}, sessions: {}, snapshots: {} };
@@ -116,8 +117,11 @@ export function createEstateApi({
   evalReportFile = null,
   statusFile = null,
   planThinRate = 0.25,
+  registerKey = null,
   prefix = PREFIX
 } = {}) {
+  // In-memory satellite reachability (last-seen + live drift), updated by POST /register (N7).
+  let satelliteState = { satellites: {} };
   function handle(req, res, rest) {
     // GET /api/estate — the whole estate model (machines, drives, sessions, snapshots) + a summary.
     if (req.method === "GET" && (rest === "/" || rest === "")) {
@@ -141,6 +145,29 @@ export function createEstateApi({
       let cardsNow = null;
       try { if (statusFile && fs.existsSync(statusFile)) cardsNow = JSON.parse(fs.readFileSync(statusFile, "utf8")).cards_ok ?? null; } catch { /* absent → null */ }
       return sendJson(res, 200, planNextCycle({ cleanCount: 0 }, manifest, evalReport, { cardsNow, thinRate: planThinRate }));
+    }
+
+    // POST /api/estate/register — a satellite starting on the LAN pushes a hashes-only fingerprint
+    // manifest (N7). Authenticate (shared key) + LAN-gate + R31-guard, record last-seen/reachability,
+    // recompute drift vs the hub's content-hashes, and publish a reachability event on the bus.
+    if (req.method === "POST" && rest === "/register") {
+      const remoteAddress = req.socket?.remoteAddress || "127.0.0.1";
+      readBody(req).then((b) => {
+        const est = loadEstate({ kelLog, estateFile });
+        const hubHashes = Object.keys(est.sessions || {});
+        const r = registerSatellite(satelliteState, b.manifest || {}, { key: b.key, expectedKey: registerKey, remoteAddress, hubHashes });
+        if (r.ok) {
+          satelliteState = r.state;
+          bus?.publish?.("estate", { kind: "estate.satellite.online", machine: (b.manifest || {}).machine, drift: r.drift, at: Date.now() });
+        }
+        sendJson(res, r.ok ? 200 : 401, r);
+      });
+      return;
+    }
+
+    // GET /api/estate/satellites — current live reachability + drift per satellite (N7).
+    if (req.method === "GET" && rest === "/satellites") {
+      return sendJson(res, 200, satelliteState.satellites || {});
     }
 
     // GET /api/estate/board — the delivery board folded into a lane summary (N3 tie-in).

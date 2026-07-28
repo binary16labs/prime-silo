@@ -265,6 +265,20 @@
     }catch(e){ $('plan-lane').textContent='no projection'; }
   }
 
+  async function renderSatellites(){
+    try{
+      const sats=await (await fetch('/api/estate/satellites')).json();
+      const names=Object.keys(sats||{});
+      if(!names.length) return; // keep the default 'no pending drift' copy until a satellite registers
+      $('sync-lane').innerHTML=names.map(n=>{
+        const s=sats[n]; const ago=Math.round((Date.now()-(s.lastSeen||0))/1000);
+        const d=s.drift||{};
+        return `<div><span style="color:var(--sage)">● live</span> <b>${n}</b> · seen ${ago}s ago · ${s.sessionCount??0} sessions`+
+          (d.cleanCount?` · <b>${d.cleanCount}</b> clean to sync${d.quarantined&&d.quarantined.count?` (+${d.quarantined.count} quarantined, held)`:''}`:' · in sync')+`</div>`;
+      }).join('');
+    }catch(e){ /* leave default copy */ }
+  }
+
   async function refresh(){
     try{
       const est=await (await fetch('/api/estate')).json();
@@ -273,7 +287,7 @@
       $('updated').textContent='updated '+new Date().toLocaleTimeString();
       renderCards(est);
     }catch(e){ $('summary').textContent='estate unavailable'; }
-    renderBoard(); renderLongview(); renderPlan();
+    renderBoard(); renderLongview(); renderPlan(); renderSatellites();
   }
 
   function connect(){
