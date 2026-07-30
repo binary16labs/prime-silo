@@ -35,11 +35,21 @@ function req(port, method, urlPath, body) {
   return new Promise((resolve, reject) => {
     const data = body == null ? null : JSON.stringify(body);
     const r = http.request(
-      { host: "127.0.0.1", port, method, path: urlPath, headers: data ? { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(data) } : {} },
+      {
+        host: "127.0.0.1",
+        port,
+        method,
+        path: urlPath,
+        headers: data
+          ? { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(data) }
+          : {}
+      },
       (res) => {
         let buf = "";
         res.on("data", (c) => (buf += c));
-        res.on("end", () => resolve({ status: res.statusCode, json: buf ? JSON.parse(buf) : null }));
+        res.on("end", () =>
+          resolve({ status: res.statusCode, json: buf ? JSON.parse(buf) : null })
+        );
       }
     );
     r.on("error", reject);
@@ -55,7 +65,7 @@ const event = (over = {}) => ({
   agent: "claude",
   task_id: "TASK-1",
   payload: {},
-  ...over,
+  ...over
 });
 
 // ---------------------------------------------------------------------------
@@ -69,11 +79,17 @@ test("Scenario: accepted appends are visible and broadcast within 2s", async () 
         res.on("data", (c) => {
           buf += c;
           const m = buf.match(/event: coord\ndata: (.+)\n\n/);
-          if (m) { r.destroy(); resolve(JSON.parse(m[1])); }
+          if (m) {
+            r.destroy();
+            resolve(JSON.parse(m[1]));
+          }
         });
       });
       r.on("error", reject);
-      setTimeout(() => { r.destroy(); reject(new Error("no SSE broadcast within 2s")); }, 2000);
+      setTimeout(() => {
+        r.destroy();
+        reject(new Error("no SSE broadcast within 2s"));
+      }, 2000);
     });
     await new Promise((r) => setTimeout(r, 100)); // let the subscription register
 
@@ -105,7 +121,12 @@ test("Scenario: invalid events never touch the ledger (422, byte-unchanged)", as
     const before = fs.existsSync(tasksFile) ? fs.readFileSync(tasksFile) : Buffer.alloc(0);
 
     // an event from an UNREGISTERED agent.
-    const bad = await req(port, "POST", "/api/coord/events", event({ agent: "kremlin", task_id: "EVIL" }));
+    const bad = await req(
+      port,
+      "POST",
+      "/api/coord/events",
+      event({ agent: "kremlin", task_id: "EVIL" })
+    );
     assert.equal(bad.status, 422);
     assert.match(bad.json.error, /kremlin/); // the validator's reason
 
@@ -119,13 +140,31 @@ test("Scenario: invalid events never touch the ledger (422, byte-unchanged)", as
 test("Scenario: per-task event history", async () => {
   const { port, server } = await boot();
   try {
-    await req(port, "POST", "/api/coord/events", event({ type: "task_created", task_id: "T", agent: "human" }));
-    await req(port, "POST", "/api/coord/events", event({ type: "task_claimed", task_id: "T", agent: "claude" }));
-    await req(port, "POST", "/api/coord/events", event({ type: "task_claimed", task_id: "OTHER", agent: "claude" }));
+    await req(
+      port,
+      "POST",
+      "/api/coord/events",
+      event({ type: "task_created", task_id: "T", agent: "human" })
+    );
+    await req(
+      port,
+      "POST",
+      "/api/coord/events",
+      event({ type: "task_claimed", task_id: "T", agent: "claude" })
+    );
+    await req(
+      port,
+      "POST",
+      "/api/coord/events",
+      event({ type: "task_claimed", task_id: "OTHER", agent: "claude" })
+    );
 
     const hist = await req(port, "GET", "/api/coord/tasks/T/events");
     assert.equal(hist.status, 200);
-    assert.deepEqual(hist.json.map((e) => e.type), ["task_created", "task_claimed"]);
+    assert.deepEqual(
+      hist.json.map((e) => e.type),
+      ["task_created", "task_claimed"]
+    );
     assert.ok(hist.json.every((e) => e.task_id === "T"));
   } finally {
     server.close();
@@ -135,8 +174,28 @@ test("Scenario: per-task event history", async () => {
 test("Scenario: knowledge query filters by topic", async () => {
   const { port, server } = await boot();
   try {
-    await req(port, "POST", "/api/coord/events", event({ type: "knowledge_added", task_id: "-", agent: "claude", payload: { topic: "egpu", note: "wedges transiently" } }));
-    await req(port, "POST", "/api/coord/events", event({ type: "knowledge_added", task_id: "-", agent: "benny", payload: { topic: "router", note: "additive" } }));
+    await req(
+      port,
+      "POST",
+      "/api/coord/events",
+      event({
+        type: "knowledge_added",
+        task_id: "-",
+        agent: "claude",
+        payload: { topic: "egpu", note: "wedges transiently" }
+      })
+    );
+    await req(
+      port,
+      "POST",
+      "/api/coord/events",
+      event({
+        type: "knowledge_added",
+        task_id: "-",
+        agent: "benny",
+        payload: { topic: "router", note: "additive" }
+      })
+    );
 
     const all = await req(port, "GET", "/api/coord/knowledge");
     assert.equal(all.json.length, 2);

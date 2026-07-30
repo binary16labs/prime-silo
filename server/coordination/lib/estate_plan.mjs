@@ -76,16 +76,30 @@ export function readPlanInputs({ manifestFile = null, evalFile = null } = {}) {
   let manifest = {};
   let evalReport = {};
   try {
-    if (manifestFile && fs.existsSync(manifestFile)) manifest = JSON.parse(fs.readFileSync(manifestFile, "utf8"));
-  } catch { /* absent/corrupt manifest → empty (planner degrades, never throws) */ }
+    if (manifestFile && fs.existsSync(manifestFile))
+      manifest = JSON.parse(fs.readFileSync(manifestFile, "utf8"));
+  } catch {
+    /* absent/corrupt manifest → empty (planner degrades, never throws) */
+  }
   try {
     if (evalFile && fs.existsSync(evalFile)) {
       const md = fs.readFileSync(evalFile, "utf8").replace(/−/g, "-");
-      const agg = md.match(/base agg_nll\s*([\d.]+)\s*(?:->|→)\s*tuned\s*([\d.]+)\s*\((-?[\d.]+)%\)/i);
+      const agg = md.match(
+        /base agg_nll\s*([\d.]+)\s*(?:->|→)\s*tuned\s*([\d.]+)\s*\((-?[\d.]+)%\)/i
+      );
       const a = md.match(/A_nll\s*(-?[\d.]+)%/i);
       const b = md.match(/B_nll\s*(-?[\d.]+)%/i);
-      if (agg) evalReport = { base_nll: +agg[1], tuned_nll: +agg[2], agg_pct: +agg[3], a_pct: a ? +a[1] : null, b_pct: b ? +b[1] : null };
+      if (agg)
+        evalReport = {
+          base_nll: +agg[1],
+          tuned_nll: +agg[2],
+          agg_pct: +agg[3],
+          a_pct: a ? +a[1] : null,
+          b_pct: b ? +b[1] : null
+        };
     }
-  } catch { /* absent/corrupt report → empty */ }
+  } catch {
+    /* absent/corrupt report → empty */
+  }
   return { manifest, evalReport };
 }

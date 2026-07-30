@@ -63,7 +63,14 @@ def _is_llm_connectivity_error(exc: BaseException) -> bool:
         blob = f"{type(e).__name__}: {e}".lower()
         if any(
             marker in blob
-            for marker in ("timeout", "timed out", "connect", "connection", "deadline", "unreachable")
+            for marker in (
+                "timeout",
+                "timed out",
+                "connect",
+                "connection",
+                "deadline",
+                "unreachable",
+            )
         ):
             return True
     return False

@@ -11,7 +11,7 @@ import {
   contractToPairs,
   docToPairs,
   proseToPairs,
-  thoughtToPairs,
+  thoughtToPairs
 } from "../lib/streams_v3.mjs";
 import { readJsonCards } from "../lib/corpus_v3.mjs";
 import { validateRowA } from "../lib/schema.mjs";
@@ -21,7 +21,11 @@ test("readJsonCards: loads sessions_v1-style JSON cards and drops quarantined si
   fs.mkdirSync(path.join(dir, "cards"));
   fs.writeFileSync(
     path.join(dir, "cards", "aaaa1111.json"),
-    JSON.stringify({ project: "prime-silo", intent: "Fix the router", decisions: ["kept it additive"] })
+    JSON.stringify({
+      project: "prime-silo",
+      intent: "Fix the router",
+      decisions: ["kept it additive"]
+    })
   );
   fs.writeFileSync(
     path.join(dir, "cards", "bbbb2222.json"),
@@ -40,7 +44,7 @@ test("jsonCardToPairs: intent/decisions -> valid Stream A pair", () => {
     intent: "Fix the pypes planner for local models",
     applications: ["benny"],
     capabilities: ["planning"],
-    decisions: ["strategy flag added", "auto picks incremental for local models"],
+    decisions: ["strategy flag added", "auto picks incremental for local models"]
   });
   assert.equal(p.length, 1);
   const v = validateRowA(p[0]);
@@ -56,15 +60,20 @@ test("logToPairs: a LOG line becomes a method pair; author/verify noise lines sk
     id: "A8",
     event: "authored",
     agent: "claude",
-    note:
-      "Root cause of overnight ingest loop (40/161 stuck): default-role model resolution falls through to lemonade catalog models[0] -> two engines evict each other per call; 4h client timeout hid each failure. Contract A8 authored (roulette kill, run affinity, 600s timeouts, per-card checkpoint).",
+    note: "Root cause of overnight ingest loop (40/161 stuck): default-role model resolution falls through to lemonade catalog models[0] -> two engines evict each other per call; 4h client timeout hid each failure. Contract A8 authored (roulette kill, run affinity, 600s timeouts, per-card checkpoint)."
   });
   assert.equal(good.length, 1);
   assert.ok(validateRowA(good[0]).ok);
   assert.equal(good[0].source.type, "log");
   assert.match(good[0].response, /root cause/i);
   // short/mechanical notes carry no method — skipped
-  const noise = logToPairs({ ts: "t", id: "B0", event: "claimed", agent: "claude", note: "topmost READY per protocol" });
+  const noise = logToPairs({
+    ts: "t",
+    id: "B0",
+    event: "claimed",
+    agent: "claude",
+    note: "topmost READY per protocol"
+  });
   assert.equal(noise.length, 0);
 });
 
@@ -88,7 +97,7 @@ test("contractToPairs: Goal + gherkin become two pairs", () => {
     "  Scenario: it works",
     "    Given a widget",
     "    Then it is measured",
-    "```",
+    "```"
   ].join("\n");
   const pairs = contractToPairs({ id: "X1", body: md });
   assert.equal(pairs.length, 2);
@@ -102,7 +111,7 @@ test("docToPairs + proseToPairs: sectioned markdown -> chunked pairs", () => {
   const doc = docToPairs({
     id: "OPERATING_MANUAL",
     title: "Operating manual",
-    sections: { "How we verify": "Author never verifies their own task. ".repeat(10) },
+    sections: { "How we verify": "Author never verifies their own task. ".repeat(10) }
   });
   assert.ok(doc.length >= 1);
   assert.equal(doc[0].source.type, "doc");
@@ -111,7 +120,7 @@ test("docToPairs + proseToPairs: sectioned markdown -> chunked pairs", () => {
   const prose = proseToPairs({
     id: "dossier-agent-os",
     title: "agent-os-dashboard",
-    sections: { Trajectory: "The project began with stabilizing the core UI. ".repeat(60) }, // ~2800 chars -> 2 chunks
+    sections: { Trajectory: "The project began with stabilizing the core UI. ".repeat(60) } // ~2800 chars -> 2 chunks
   });
   assert.ok(prose.length >= 2, "long sections must chunk (<=1600 chars each)");
   for (const p of prose) assert.ok(p.response.length <= 1700);
@@ -125,12 +134,18 @@ test("thoughtToPairs: filtered reasoning pair; short/decision-free thoughts skip
     agent: "Claude",
     content:
       "The gate failed because the eval report is missing agg_nll. I will re-run the eval harness first to regenerate the report, then re-run the gate — verifying the instrument before trusting the number.",
-    state: "Tool Result: gate RED reason=no_eval",
+    state: "Tool Result: gate RED reason=no_eval"
   });
   assert.equal(good.length, 1);
   assert.ok(validateRowA(good[0]).ok);
   assert.equal(good[0].source.type, "thought");
   assert.match(good[0].instruction, /gate RED/);
-  const short = thoughtToPairs({ id: "t2", sid: "s1", agent: "Claude", content: "ok, next.", state: "x" });
+  const short = thoughtToPairs({
+    id: "t2",
+    sid: "s1",
+    agent: "Claude",
+    content: "ok, next.",
+    state: "x"
+  });
   assert.equal(short.length, 0);
 });

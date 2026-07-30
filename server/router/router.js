@@ -459,12 +459,12 @@ function createRequestHandler(options) {
               ".svg": "image/svg+xml",
               ".ico": "image/x-icon",
               ".woff": "font/woff",
-              ".woff2": "font/woff2",
+              ".woff2": "font/woff2"
             };
             res.writeHead(200, {
               "Content-Type": mimeTypes[ext] || "application/octet-stream",
               "Content-Length": stat.size,
-              "Cache-Control": "no-store",
+              "Cache-Control": "no-store"
             });
             createReadStream(filePath).pipe(res);
             return;

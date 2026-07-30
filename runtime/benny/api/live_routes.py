@@ -348,17 +348,29 @@ def _resolve_log_path(source: str) -> Optional[Path]:
 
     candidates: Dict[str, list] = {
         "benny": [
-            Path(os.environ.get("BENNY_LOG_FILE", "")) if os.environ.get("BENNY_LOG_FILE") else None,
+            (
+                Path(os.environ.get("BENNY_LOG_FILE", ""))
+                if os.environ.get("BENNY_LOG_FILE")
+                else None
+            ),
             repo_root / "logs" / "benny.log",
             repo_root / ".benny_home" / "logs" / "benny.log",
         ],
         "space": [
-            Path(os.environ.get("SPACE_LOG_FILE", "")) if os.environ.get("SPACE_LOG_FILE") else None,
+            (
+                Path(os.environ.get("SPACE_LOG_FILE", ""))
+                if os.environ.get("SPACE_LOG_FILE")
+                else None
+            ),
             repo_root / "logs" / "space.log",
             repo_root / "logs" / "server.log",
         ],
         "longview": [
-            Path(os.environ.get("LONGVIEW_LOG_FILE", "")) if os.environ.get("LONGVIEW_LOG_FILE") else None,
+            (
+                Path(os.environ.get("LONGVIEW_LOG_FILE", ""))
+                if os.environ.get("LONGVIEW_LOG_FILE")
+                else None
+            ),
             repo_root / "logs" / "longview.log",
         ],
     }

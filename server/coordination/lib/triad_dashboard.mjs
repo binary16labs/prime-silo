@@ -34,7 +34,10 @@ export function buildTriad(records) {
   for (const t of [...byTurn.keys()].sort((a, b) => a - b)) {
     const rs = byTurn.get(t);
     const eval_nll = mean(rs.map(evalOf).filter((v) => v != null));
-    const agentPasses = rs.filter((r) => r.kind === "agent").map(agentPassOf).filter((v) => v != null);
+    const agentPasses = rs
+      .filter((r) => r.kind === "agent")
+      .map(agentPassOf)
+      .filter((v) => v != null);
     const agent_pass = mean(agentPasses);
     const cost_per_task = mean(rs.map((r) => r.metrics?.cost_est ?? 0));
     // eval delta vs the previous turn's eval; lower eval_nll is better, so delta ≤ 0 = improvement.
@@ -47,7 +50,7 @@ export function buildTriad(records) {
       agent_pass,
       cost_per_task,
       improved,
-      exec_ids: rs.map((r) => r.exec_id).sort(),
+      exec_ids: rs.map((r) => r.exec_id).sort()
     });
     if (eval_nll != null) prevEval = eval_nll;
   }
@@ -58,8 +61,8 @@ export function buildTriad(records) {
     series: {
       eval_delta: turns.map((t) => ({ turn: t.turn, value: t.eval_delta })),
       agent_pass: turns.map((t) => ({ turn: t.turn, value: t.agent_pass })),
-      cost_per_task: turns.map((t) => ({ turn: t.turn, value: t.cost_per_task })),
-    },
+      cost_per_task: turns.map((t) => ({ turn: t.turn, value: t.cost_per_task }))
+    }
   };
 }
 
@@ -67,15 +70,20 @@ export function triadFromRegister(registerPath) {
   return buildTriad(readRegister(registerPath));
 }
 
-const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
-const fmt = (v) => (v == null ? "—" : typeof v === "number" ? v.toFixed(4).replace(/\.?0+$/, "") : esc(v));
+const esc = (s) =>
+  String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+const fmt = (v) =>
+  v == null ? "—" : typeof v === "number" ? v.toFixed(4).replace(/\.?0+$/, "") : esc(v);
 
 // renderTriadHtml(triad) → a deterministic HTML fragment: three labelled series as one row per turn,
 // a regression flagged (not hidden), each row carrying its source exec_ids for drill-down (auditable).
 export function renderTriadHtml(triad) {
   const rows = triad.turns
     .map((t) => {
-      const flag = t.improved === false ? ' <span class="flag" title="eval regressed">⚠ regression</span>' : "";
+      const flag =
+        t.improved === false
+          ? ' <span class="flag" title="eval regressed">⚠ regression</span>'
+          : "";
       return (
         `<tr class="${t.improved === false ? "regressed" : ""}">` +
         `<td>${fmt(t.turn)}</td>` +

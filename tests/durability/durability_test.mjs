@@ -4,7 +4,11 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { replicate, integrityCheck, restoreFromReplica } from "../../server/coordination/lib/durability.mjs";
+import {
+  replicate,
+  integrityCheck,
+  restoreFromReplica
+} from "../../server/coordination/lib/durability.mjs";
 import { initManifest, stageSession, resolveBlob } from "../../server/coordination/lib/staging.mjs";
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), "dura-"));
@@ -14,11 +18,20 @@ function seedPrimary() {
   initManifest(primary, { machine: "t480", hardware: { gpu: "gfx1200" }, hlcNodeId: "mA" });
   // two sessions → two blobs + a ≥2-line KEL (so a line-0 tamper has a successor to betray it;
   // a single-line tamper is the documented last-line-undetectable limit, not a durability bug).
-  for (const [sid, content] of [["sess_1", "raw session bytes one"], ["sess_2", "raw session bytes two"]])
+  for (const [sid, content] of [
+    ["sess_1", "raw session bytes one"],
+    ["sess_2", "raw session bytes two"]
+  ])
     stageSession(primary, {
-      sid, machine: "t480", process: "claude-code", project: "prime-silo",
-      task_context: "EP-L/L3", valid_time: "2026-07-25T00:00:00Z", authorship: "house",
-      content, links: {}
+      sid,
+      machine: "t480",
+      process: "claude-code",
+      project: "prime-silo",
+      task_context: "EP-L/L3",
+      valid_time: "2026-07-25T00:00:00Z",
+      authorship: "house",
+      content,
+      links: {}
     });
   return primary;
 }
@@ -69,9 +82,13 @@ test("Scenario: restore works from the replica alone (matches pre-failure state)
   const replica = tmp();
   replicate(primary, replica);
 
-  const before = restoreFromReplica(primary).map((s) => `${s.sid}:${s.blobs[0]}`).sort();
+  const before = restoreFromReplica(primary)
+    .map((s) => `${s.sid}:${s.blobs[0]}`)
+    .sort();
   // primary now unavailable — rebuild from the replica alone
-  const restored = restoreFromReplica(replica).map((s) => `${s.sid}:${s.blobs[0]}`).sort();
+  const restored = restoreFromReplica(replica)
+    .map((s) => `${s.sid}:${s.blobs[0]}`)
+    .sort();
   assert.deepEqual(restored, before);
   assert.ok(restored.length >= 1);
 });
@@ -82,8 +99,13 @@ test("integrity: KEL chain break in the replica is reported", () => {
   replicate(primary, replica);
   // tamper a KEL log line in the replica
   const p = path.join(replica, "eventlog", "events.jsonl");
-  const lines = fs.readFileSync(p, "utf8").split("\n").filter((l) => l.trim());
-  const o = JSON.parse(lines[0]); o.machine = "evil"; lines[0] = JSON.stringify(o);
+  const lines = fs
+    .readFileSync(p, "utf8")
+    .split("\n")
+    .filter((l) => l.trim());
+  const o = JSON.parse(lines[0]);
+  o.machine = "evil";
+  lines[0] = JSON.stringify(o);
   fs.writeFileSync(p, lines.join("\n") + "\n");
   const chk = integrityCheck(replica);
   assert.equal(chk.ok, false);

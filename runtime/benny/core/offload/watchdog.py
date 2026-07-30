@@ -105,9 +105,7 @@ class Watchdog:
     periodically (e.g. every poll interval while waiting on a generation).
     """
 
-    def __init__(
-        self, clock: ClockFn = _default_clock, probe: Optional[ComputeProbeFn] = None
-    ):
+    def __init__(self, clock: ClockFn = _default_clock, probe: Optional[ComputeProbeFn] = None):
         self._clock = clock
         self._probe = probe or default_flm_compute_probe()
         self._last_token_ts = clock()

@@ -17,20 +17,20 @@ const rec = (exec_id, turn, kind, quality, cost_est = 0) => ({
   exec_id,
   kind,
   config: { turn, model_id: "house/m" },
-  metrics: { cost_est, quality },
+  metrics: { cost_est, quality }
 });
 
 // three turns: eval improves 1.30 -> 1.20 (turn2) then REGRESSES 1.20 -> 1.25 (turn3, honest negative).
 function fixture() {
   return [
-    rec("e1", 1, "train", { eval_nll: 1.30 }),
+    rec("e1", 1, "train", { eval_nll: 1.3 }),
     rec("a1", 1, "agent", { gate_pass: true }, 0.0),
     rec("a2", 1, "agent", { gate_pass: false }, 0.0),
-    rec("e2", 2, "train", { eval_nll: 1.20 }),
+    rec("e2", 2, "train", { eval_nll: 1.2 }),
     rec("a3", 2, "agent", { gate_pass: true }, 0.0),
     rec("a4", 2, "agent", { gate_pass: true }, 0.0),
     rec("e3", 3, "train", { eval_nll: 1.25 }), // eval got WORSE
-    rec("a5", 3, "agent", { gate_pass: true }, 0.0),
+    rec("a5", 3, "agent", { gate_pass: true }, 0.0)
   ];
 }
 
@@ -43,7 +43,8 @@ test("Scenario: the triad is shown together, not composited", () => {
   assert.ok(triad.series.cost_per_task, "cost_per_task series present");
   // ...and NO single collapsed composite score anywhere.
   assert.equal(triad.composite, undefined);
-  for (const t of triad.turns) assert.ok(!("composite" in t) && !("score" in t), "no composite per turn");
+  for (const t of triad.turns)
+    assert.ok(!("composite" in t) && !("score" in t), "no composite per turn");
   // the html renders three labelled series, not one number.
   const html = renderTriadHtml(triad);
   assert.match(html, /eval/i);
@@ -55,7 +56,10 @@ test("Scenario: the triad is shown together, not composited", () => {
 test("Scenario: a non-improving turn is not hidden", () => {
   const triad = buildTriad(fixture());
   // all three turns are present (none omitted).
-  assert.deepEqual(triad.turns.map((t) => t.turn), [1, 2, 3]);
+  assert.deepEqual(
+    triad.turns.map((t) => t.turn),
+    [1, 2, 3]
+  );
   // turn 3 regressed on eval — it is shown AND flagged, not dropped.
   const t3 = triad.turns.find((t) => t.turn === 3);
   assert.equal(t3.improved, false);
@@ -86,10 +90,18 @@ test("determinism: the view is a pure function of the register (same input → s
 test("triadFromRegister reads an executions.jsonl register (L5 data source)", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "triad-"));
   const p = path.join(dir, "executions.jsonl");
-  fs.writeFileSync(p, fixture().map((r) => JSON.stringify(r)).join("\n") + "\n");
+  fs.writeFileSync(
+    p,
+    fixture()
+      .map((r) => JSON.stringify(r))
+      .join("\n") + "\n"
+  );
   const triad = triadFromRegister(p);
-  assert.deepEqual(triad.turns.map((t) => t.turn), [1, 2, 3]);
-  assert.equal(triad.turns.find((t) => t.turn === 2).eval_nll, 1.20);
+  assert.deepEqual(
+    triad.turns.map((t) => t.turn),
+    [1, 2, 3]
+  );
+  assert.equal(triad.turns.find((t) => t.turn === 2).eval_nll, 1.2);
 });
 
 test("eval_delta is null for the first turn (no predecessor to compare)", () => {

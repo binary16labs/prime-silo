@@ -21,7 +21,9 @@ function looksLikeForgedControl(content) {
     return false; // opaque / non-JSON bytes are fine as data
   }
   return (
-    o && typeof o === "object" && !Array.isArray(o) &&
+    o &&
+    typeof o === "object" &&
+    !Array.isArray(o) &&
     Object.prototype.hasOwnProperty.call(o, "prev") &&
     typeof o.type === "string"
   );

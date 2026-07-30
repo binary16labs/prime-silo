@@ -2,12 +2,7 @@
 // Scenarios ↔ delivery/tasks/L11.md gherkin. Pure lib; no corpus/network. Run: node --test.
 import test from "node:test";
 import assert from "node:assert/strict";
-import {
-  HOUSE,
-  verifierGate,
-  applyAuthorshipCap,
-  guardHouseRows
-} from "../lib/authorship_cap.mjs";
+import { HOUSE, verifierGate, applyAuthorshipCap, guardHouseRows } from "../lib/authorship_cap.mjs";
 
 // row helper: authorship + a sid, like a built dataset row.
 const row = (id, authorship, sid) => ({ id, authorship, source: { sid } });
@@ -16,13 +11,19 @@ const row = (id, authorship, sid) => ({ id, authorship, source: { sid } });
 test("Scenario: unverified house output is not trained on", () => {
   const rows = [row("h1", HOUSE, "sessA"), row("hum1", "human", "sessH")];
   const { kept } = verifierGate(rows, { verifiedSids: new Set() }); // no passes recorded
-  assert.deepEqual(kept.map((r) => r.id), ["hum1"]); // the unverified house row contributes nothing
+  assert.deepEqual(
+    kept.map((r) => r.id),
+    ["hum1"]
+  ); // the unverified house row contributes nothing
 });
 
 test("Scenario: verified house method is admitted", () => {
   const rows = [row("h1", HOUSE, "sessA"), row("h2", HOUSE, "sessB")];
   const { kept } = verifierGate(rows, { verifiedSids: new Set(["sessA"]) }); // sessA passed the verifier
-  assert.deepEqual(kept.map((r) => r.id), ["h1"]); // only the verified house session is admitted
+  assert.deepEqual(
+    kept.map((r) => r.id),
+    ["h1"]
+  ); // only the verified house session is admitted
 });
 
 test("Scenario: house-origin rows are fraction-capped; human/frontier uncapped", () => {
@@ -38,7 +39,10 @@ test("Scenario: house-origin rows are fraction-capped; human/frontier uncapped",
   // all 6 human/frontier rows survive (never capped)...
   assert.equal(keptOther.length, 6);
   // ...and house is bounded to ≤ 30% of the final total.
-  assert.ok(keptHouse.length / kept.length <= 0.3 + 1e-9, `house fraction ${keptHouse.length}/${kept.length}`);
+  assert.ok(
+    keptHouse.length / kept.length <= 0.3 + 1e-9,
+    `house fraction ${keptHouse.length}/${kept.length}`
+  );
   assert.ok(keptHouse.length < 10, "house was actually down-sampled");
   assert.equal(capped, 10 - keptHouse.length);
 });

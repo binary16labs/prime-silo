@@ -307,7 +307,9 @@ async def pdf_extract(request: PdfExtractRequest):
 
     # Resolve file path: check data_in, data_out, and workspace root
     for subdir in ["data_in", "data_out", ""]:
-        candidate = workspace_path / subdir / request.path if subdir else workspace_path / request.path
+        candidate = (
+            workspace_path / subdir / request.path if subdir else workspace_path / request.path
+        )
         if candidate.exists() and candidate.is_file():
             file_path = candidate
             break

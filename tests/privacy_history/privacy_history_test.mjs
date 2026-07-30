@@ -35,8 +35,14 @@ function card(f, id, payload, { vt, tt = vt, sid, type = "card_asserted", hlc, m
   });
   assert.ok(r.ok, `append failed: ${r.reason}`);
 }
-const writeQuarantine = (p, sids) => fs.writeFileSync(p, JSON.stringify({ sids, updated: "2026-07-25T00:00:00Z" }));
-const D = { t0: "2026-01-01T00:00:00Z", t1: "2026-02-01T00:00:00Z", t2: "2026-03-01T00:00:00Z", t3: "2026-04-01T00:00:00Z" };
+const writeQuarantine = (p, sids) =>
+  fs.writeFileSync(p, JSON.stringify({ sids, updated: "2026-07-25T00:00:00Z" }));
+const D = {
+  t0: "2026-01-01T00:00:00Z",
+  t1: "2026-02-01T00:00:00Z",
+  t2: "2026-03-01T00:00:00Z",
+  t3: "2026-04-01T00:00:00Z"
+};
 
 // ---------------------------------------------------------------------------
 test("Scenario: a teleported sid stays excluded across all valid/txn time", () => {
@@ -66,7 +72,12 @@ test("Scenario: a privacy deletion is reversible, not erased (tombstone + journa
   assert.deepEqual(rebuild(f, { sink: cardSink }), { cardA: { text: "sensitive" } });
 
   const rawLinesBefore = fs.readFileSync(f, "utf8");
-  const del = privacyDelete(f, journal, { subjectId: "cardA", sid: "s1", reason: "gdpr-erasure", machine: "t480" });
+  const del = privacyDelete(f, journal, {
+    subjectId: "cardA",
+    sid: "s1",
+    reason: "gdpr-erasure",
+    machine: "t480"
+  });
   assert.ok(del.ok);
 
   // projection no longer shows it...
@@ -76,7 +87,11 @@ test("Scenario: a privacy deletion is reversible, not erased (tombstone + journa
   assert.ok(rawAfter.startsWith(rawLinesBefore), "original KEL lines must not be rewritten/erased");
   assert.ok(readKelEvents(f).ok, "chain intact after tombstone append");
   // ...and the deleted payload is journalled (restorable).
-  const journalled = fs.readFileSync(journal, "utf8").trim().split("\n").map((l) => JSON.parse(l));
+  const journalled = fs
+    .readFileSync(journal, "utf8")
+    .trim()
+    .split("\n")
+    .map((l) => JSON.parse(l));
   assert.equal(journalled.at(-1).subject_id, "cardA");
   assert.deepEqual(journalled.at(-1).payload, { text: "sensitive" });
 
@@ -93,8 +108,18 @@ test("Scenario: contradictory facts at the same valid_time are kept AND flagged 
   const review = path.join(dir, "review.jsonl");
   writeQuarantine(q, []);
   // two events assert contradictory facts about the SAME subject at the SAME valid_time.
-  card(f, "fact", { claim: "the sky is blue" }, { vt: D.t1, tt: D.t1, sid: "sA", hlc: `${D.t1}-0000-t480` });
-  card(f, "fact", { claim: "the sky is green" }, { vt: D.t1, tt: D.t2, sid: "sB", hlc: `${D.t2}-0000-t480` });
+  card(
+    f,
+    "fact",
+    { claim: "the sky is blue" },
+    { vt: D.t1, tt: D.t1, sid: "sA", hlc: `${D.t1}-0000-t480` }
+  );
+  card(
+    f,
+    "fact",
+    { claim: "the sky is green" },
+    { vt: D.t1, tt: D.t2, sid: "sB", hlc: `${D.t2}-0000-t480` }
+  );
 
   const { store, conflicts } = projectWithPrivacy(f, { quarantineFile: q, reviewLog: review });
 

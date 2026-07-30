@@ -32,13 +32,19 @@ export function readRunEvents(runEventsLog) {
 // Both trigger sources (fs-watch, cron) funnel through here, so the backstop can never double-run a
 // turn the reactive path already took. Returns { ok, ran, source, reason }. `runStage` is the actual
 // stage advance (a stage skill); the daemon calls it, it does not reimplement it.
-export function advanceTurn(coordDir, agent, { source = "fs-watch", runStage, ttlMs, runEventsLog, runId = `turn-${Date.now()}` } = {}) {
+export function advanceTurn(
+  coordDir,
+  agent,
+  { source = "fs-watch", runStage, ttlMs, runEventsLog, runId = `turn-${Date.now()}` } = {}
+) {
   const claim = claimLoopTurn(coordDir, agent, ttlMs != null ? { ttlMs } : {});
   if (!claim.ok) return { ok: false, ran: false, source, reason: claim.reason }; // someone else has the turn
   try {
-    if (runEventsLog) emitRunEvent(runEventsLog, { type: "run_started", run_id: runId, agent, source });
+    if (runEventsLog)
+      emitRunEvent(runEventsLog, { type: "run_started", run_id: runId, agent, source });
     if (runStage) runStage();
-    if (runEventsLog) emitRunEvent(runEventsLog, { type: "run_succeeded", run_id: runId, agent, source });
+    if (runEventsLog)
+      emitRunEvent(runEventsLog, { type: "run_succeeded", run_id: runId, agent, source });
     return { ok: true, ran: true, source, runId, takeover: claim.takeover };
   } finally {
     releaseLoopTurn(coordDir, agent, { source, run_id: runId }); // free the next winner, always
@@ -48,10 +54,15 @@ export function advanceTurn(coordDir, agent, { source = "fs-watch", runStage, tt
 // --- dead-man switch: abort a wedged turn CLEAN -----------------------------
 // Stops the job, releases the lease (so the next turn can proceed), emits an honest run_failed, and
 // raises an alert. The point is that a wedge NEVER leaves the box locked out of future turns.
-export function deadManAbort(coordDir, agent, { runEventsLog, runId, stopJob, alert, reason = "wedge" } = {}) {
+export function deadManAbort(
+  coordDir,
+  agent,
+  { runEventsLog, runId, stopJob, alert, reason = "wedge" } = {}
+) {
   const stopped = stopJob ? !!stopJob() : true; // stop the wedged job/subprocess tree
   const released = releaseLoopTurn(coordDir, agent, { reason: "dead-man-abort", run_id: runId });
-  if (runEventsLog) emitRunEvent(runEventsLog, { type: "run_failed", run_id: runId, agent, reason });
+  if (runEventsLog)
+    emitRunEvent(runEventsLog, { type: "run_failed", run_id: runId, agent, reason });
   const alerted = alert ? !!alert({ runId, reason, agent }) : true;
   return { aborted: true, stopped, leaseReleased: released.ok, alerted, reason };
 }
@@ -59,10 +70,20 @@ export function deadManAbort(coordDir, agent, { runEventsLog, runId, stopJob, al
 // --- supervise a running turn: watchdog + dead-man ---------------------------
 // `samples` (or `sampler()` producing them) are resource snapshots taken across the turn. If the
 // watchdog finds a wedge (resource-flat across the window — NOT log-based), fire the dead-man switch.
-export function superviseTurn(coordDir, agent, { samples, sampler, stallMs = 60_000, runEventsLog, runId, stopJob, alert } = {}) {
+export function superviseTurn(
+  coordDir,
+  agent,
+  { samples, sampler, stallMs = 60_000, runEventsLog, runId, stopJob, alert } = {}
+) {
   const series = samples ?? (sampler ? sampler() : []);
   const verdict = stalledAcross(series, { stallMs });
   if (!verdict.stalled) return { stalled: false, aborted: false };
-  const abort = deadManAbort(coordDir, agent, { runEventsLog, runId, stopJob, alert, reason: verdict.reason });
+  const abort = deadManAbort(coordDir, agent, {
+    runEventsLog,
+    runId,
+    stopJob,
+    alert,
+    reason: verdict.reason
+  });
   return { stalled: true, ...abort };
 }

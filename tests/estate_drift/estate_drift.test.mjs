@@ -27,11 +27,14 @@ test("Scenario: quarantined sessions are counted, never surfaced", () => {
   ];
   const d = driftDelta(hub, satellite, ["q2"]);
   assert.equal(d.quarantined.count, 2, "both quarantined sessions are counted");
-  assert.ok(!d.clean.includes("q") && !d.clean.includes("q2"), "no quarantined sid appears in clean");
+  assert.ok(
+    !d.clean.includes("q") && !d.clean.includes("q2"),
+    "no quarantined sid appears in clean"
+  );
   assert.deepEqual(d.clean, ["s3"], "only the clean, absent session is a sync candidate");
   // R31: the returned shape must not leak a quarantined sid or its content anywhere
   assert.equal(JSON.stringify(d).includes("hq"), false, "no quarantined content-hash surfaces");
-  assert.equal(JSON.stringify(d).includes("\"q\""), false, "no quarantined sid surfaces");
+  assert.equal(JSON.stringify(d).includes('"q"'), false, "no quarantined sid surfaces");
 });
 
 test("Scenario: execution drift by content-hash", () => {

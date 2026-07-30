@@ -23,7 +23,10 @@ test("Scenario: project the next turn from drift", () => {
 
 test("Scenario: recommend rebuild when the threshold is crossed", () => {
   // 210 cards now vs 188 baked into the last build -> 22 new since build >= 20 threshold
-  const p = planNextCycle({ cleanCount: 0 }, MANIFEST, EVAL, { cardsNow: 210, rebuildThreshold: 20 });
+  const p = planNextCycle({ cleanCount: 0 }, MANIFEST, EVAL, {
+    cardsNow: 210,
+    rebuildThreshold: 20
+  });
   assert.equal(p.newCardsSinceBuild, 22);
   assert.equal(p.crossesRebuildThreshold, true);
   assert.equal(p.recommendedAction, "rebuild");
@@ -31,15 +34,36 @@ test("Scenario: recommend rebuild when the threshold is crossed", () => {
 });
 
 test("Scenario: the projection is read-only and shareable", () => {
-  const p = planNextCycle({ cleanCount: 5 }, MANIFEST, EVAL, { thinRate: 0.2, cardsNow: 190, rebuildThreshold: 20 });
+  const p = planNextCycle({ cleanCount: 5 }, MANIFEST, EVAL, {
+    thinRate: 0.2,
+    cardsNow: 190,
+    rebuildThreshold: 20
+  });
   // shape matches the :8788 flywheel block's contract so both surfaces agree
-  for (const k of ["newSessions", "projectedCards", "projectedStreamARows", "cardsAtBuild", "newCardsSinceBuild", "crossesRebuildThreshold", "recommendedAction", "reason"]) {
+  for (const k of [
+    "newSessions",
+    "projectedCards",
+    "projectedStreamARows",
+    "cardsAtBuild",
+    "newCardsSinceBuild",
+    "crossesRebuildThreshold",
+    "recommendedAction",
+    "reason"
+  ]) {
     assert.ok(k in p, `projection carries ${k}`);
   }
   // pure/deterministic: same inputs -> same output, no side effects
-  const again = planNextCycle({ cleanCount: 5 }, MANIFEST, EVAL, { thinRate: 0.2, cardsNow: 190, rebuildThreshold: 20 });
+  const again = planNextCycle({ cleanCount: 5 }, MANIFEST, EVAL, {
+    thinRate: 0.2,
+    cardsNow: 190,
+    rebuildThreshold: 20
+  });
   assert.deepEqual(p, again);
-  assert.equal(p.recommendedAction, "map", "pending clean sessions but under threshold -> map, not rebuild");
+  assert.equal(
+    p.recommendedAction,
+    "map",
+    "pending clean sessions but under threshold -> map, not rebuild"
+  );
 });
 
 test("Scenario: additive route, default unchanged", async () => {
@@ -50,15 +74,36 @@ test("Scenario: additive route, default unchanged", async () => {
   // the new plan route is owned by the estate api (returns 200 with a projection or a null shape)
   const plan = await callRoute(api, "GET", "/api/estate/plan");
   assert.equal(plan.status, 200, "GET /api/estate/plan is owned and answers");
-  assert.ok("recommendedAction" in plan.body || plan.body.present === false, "plan returns a projection or an honest absent shape");
+  assert.ok(
+    "recommendedAction" in plan.body || plan.body.present === false,
+    "plan returns a projection or an honest absent shape"
+  );
 });
 
 function callRoute(api, method, path, body) {
   return new Promise((resolve) => {
     const chunks = body ? [Buffer.from(JSON.stringify(body))] : [];
-    const req = { method, url: path, on(ev, cb) { if (ev === "data") chunks.forEach((c) => cb(c)); if (ev === "end") cb(); return req; } };
-    let status = 0, raw = "";
-    const res = { writeHead(s) { status = s; return res; }, end(d) { raw = d || ""; resolve({ status, body: raw ? JSON.parse(raw) : null }); } };
+    const req = {
+      method,
+      url: path,
+      on(ev, cb) {
+        if (ev === "data") chunks.forEach((c) => cb(c));
+        if (ev === "end") cb();
+        return req;
+      }
+    };
+    let status = 0,
+      raw = "";
+    const res = {
+      writeHead(s) {
+        status = s;
+        return res;
+      },
+      end(d) {
+        raw = d || "";
+        resolve({ status, body: raw ? JSON.parse(raw) : null });
+      }
+    };
     if (!api.tryHandle(req, res)) resolve({ status: 0, body: null, owned: false });
   });
 }

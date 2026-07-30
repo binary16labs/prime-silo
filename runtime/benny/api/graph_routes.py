@@ -453,9 +453,7 @@ async def knowledge_graph(
     if conn["status"] != "connected":
         raise HTTPException(status_code=503, detail=f"Neo4j not available: {conn.get('error')}")
     try:
-        return get_knowledge_graph(
-            workspace, mode=mode, run_id=run_id, source_id=source_id
-        )
+        return get_knowledge_graph(workspace, mode=mode, run_id=run_id, source_id=source_id)
     except Exception as e:
         raise HTTPException(500, f"Failed to fetch knowledge graph: {str(e)}")
 

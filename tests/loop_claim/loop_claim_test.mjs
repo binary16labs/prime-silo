@@ -4,8 +4,16 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { claimLoopTurn, releaseLoopTurn, FLYWHEEL_TURN } from "../../server/coordination/lib/loop_claim.mjs";
-import { compactLog, reconstruct, checkStorageBudget } from "../../server/coordination/lib/compaction.mjs";
+import {
+  claimLoopTurn,
+  releaseLoopTurn,
+  FLYWHEEL_TURN
+} from "../../server/coordination/lib/loop_claim.mjs";
+import {
+  compactLog,
+  reconstruct,
+  checkStorageBudget
+} from "../../server/coordination/lib/compaction.mjs";
 import { initCoordination } from "../../server/coordination/lib/ledger.mjs";
 
 const coord = () => {
@@ -48,7 +56,13 @@ test("Scenario: compaction loses nothing (journalled, reconstructable)", () => {
   assert.equal(res.moved, 4);
   assert.equal(res.kept, 2);
   // active log now holds only the newest 2 lines
-  assert.equal(fs.readFileSync(logFile, "utf8").split("\n").filter((l) => l.trim()).length, 2);
+  assert.equal(
+    fs
+      .readFileSync(logFile, "utf8")
+      .split("\n")
+      .filter((l) => l.trim()).length,
+    2
+  );
   // replay journal + active reconstructs the full pre-compaction state, in order
   assert.deepEqual(reconstruct(journal, logFile), original);
 });

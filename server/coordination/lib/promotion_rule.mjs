@@ -11,7 +11,7 @@ const METRICS = [
   { key: "eval_nll", dir: -1 },
   { key: "agent_pass", dir: +1 },
   { key: "cost", dir: -1 },
-  { key: "latency_ms", dir: -1 },
+  { key: "latency_ms", dir: -1 }
 ];
 
 // per-metric comparison of candidate vs incumbent: +1 candidate better, -1 worse, 0 equal/absent.
@@ -78,7 +78,8 @@ export function crossTurnSeries(turnEvals) {
   const out = [];
   for (let i = 0; i < turnEvals.length; i++) {
     const cur = turnEvals[i];
-    const shared = i === 0 ? Object.keys(cur.slices || {}).sort() : sharedSlices(turnEvals[i - 1], cur);
+    const shared =
+      i === 0 ? Object.keys(cur.slices || {}).sort() : sharedSlices(turnEvals[i - 1], cur);
     out.push({ turn: cur.turn, shared, score: turnScore(cur, shared) });
   }
   return out;

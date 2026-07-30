@@ -18,8 +18,15 @@ const sha256Hex = (s) => crypto.createHash("sha256").update(s).digest("hex");
 // }
 // Reuses L1 casStore (dedup), L4 processDelta (delta-only), L0 appendKelEvent (truth).
 export function syncSource(kelLog, stagingRoot, source, { codeCommit = "", configHash = "" } = {}) {
-  const { machine, driveLabel, driveRole = "replica", machineRole = "satellite", sessions = [] } = source;
-  if (!machine || !driveLabel) throw new Error("syncSource: source.machine and source.driveLabel are required");
+  const {
+    machine,
+    driveLabel,
+    driveRole = "replica",
+    machineRole = "satellite",
+    sessions = []
+  } = source;
+  if (!machine || !driveLabel)
+    throw new Error("syncSource: source.machine and source.driveLabel are required");
 
   // 1. content-address every session (L1 CAS dedup)
   let stored = 0;
@@ -62,24 +69,27 @@ export function syncSource(kelLog, stagingRoot, source, { codeCommit = "", confi
   });
 
   // 3. drive manifest — fingerprint the drive; emit estate_drive ONLY when it changed
-  const fingerprint = "sha256:" + sha256Hex([machine, driveLabel, ...[...sessionHashes].sort()].join("|"));
-  const drive = processDelta(
-    kelLog,
-    [{ content_hash: fingerprint }],
-    {
-      stage: "estate-drive",
-      codeCommit,
-      configHash,
-      machine,
-      run: () => {
-        appendKelEvent(
-          kelLog,
-          estateDriveEvent({ machine, label: driveLabel, role: driveRole, fingerprint, sessionHashes })
-        );
-        return [fingerprint];
-      }
+  const fingerprint =
+    "sha256:" + sha256Hex([machine, driveLabel, ...[...sessionHashes].sort()].join("|"));
+  const drive = processDelta(kelLog, [{ content_hash: fingerprint }], {
+    stage: "estate-drive",
+    codeCommit,
+    configHash,
+    machine,
+    run: () => {
+      appendKelEvent(
+        kelLog,
+        estateDriveEvent({
+          machine,
+          label: driveLabel,
+          role: driveRole,
+          fingerprint,
+          sessionHashes
+        })
+      );
+      return [fingerprint];
     }
-  );
+  });
 
   // 4. machine registry — emit estate_machine only when the machine/role first appears or changes
   const machineFp = "sha256:" + sha256Hex(`${machine}|${machineRole}`);

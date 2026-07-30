@@ -117,7 +117,10 @@ export function stageSession(root, session) {
 export function openStaging(root) {
   const manifestsDir = path.join(root, ROOTS.manifests);
   const machines = fs.existsSync(manifestsDir)
-    ? fs.readdirSync(manifestsDir).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, ""))
+    ? fs
+        .readdirSync(manifestsDir)
+        .filter((f) => f.endsWith(".json"))
+        .map((f) => f.replace(/\.json$/, ""))
     : [];
   // roots come from a manifest when present, else the well-known defaults — either way, no env needed
   let roots = { ...ROOTS };
@@ -140,7 +143,8 @@ export function openStaging(root) {
         const dd = path.join(md, day);
         if (!fs.statSync(dd).isDirectory()) continue;
         for (const f of fs.readdirSync(dd))
-          if (f.endsWith(".json")) sessions.push(JSON.parse(fs.readFileSync(path.join(dd, f), "utf8")));
+          if (f.endsWith(".json"))
+            sessions.push(JSON.parse(fs.readFileSync(path.join(dd, f), "utf8")));
       }
     }
   }

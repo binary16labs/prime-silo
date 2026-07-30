@@ -25,7 +25,9 @@ export function topology(machines = [], reachability = {}) {
   const nodes = machines.map((m) => ({
     name: m.name,
     role: m.role,
-    reachable: Object.prototype.hasOwnProperty.call(reachability, m.name) ? !!reachability[m.name] : null
+    reachable: Object.prototype.hasOwnProperty.call(reachability, m.name)
+      ? !!reachability[m.name]
+      : null
   }));
   const hubs = nodes.filter((n) => n.role === "hub");
   const satellites = nodes.filter((n) => n.role === "satellite");

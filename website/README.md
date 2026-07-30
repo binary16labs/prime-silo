@@ -30,6 +30,7 @@ node website/build.mjs
 ## Open Graph Card (`og-image.png`)
 
 To regenerate `og-image.png` (1200×630 social share card):
+
 1. Open `website/og-card.html` in your browser at 1200×630 viewport resolution.
 2. Capture a screenshot and save as `website/og-image.png`.
 

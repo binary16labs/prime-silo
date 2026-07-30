@@ -25,7 +25,12 @@ import { processDelta } from "../../server/coordination/lib/delta.mjs";
 const logfile = () => path.join(fs.mkdtempSync(path.join(os.tmpdir(), "proj-")), "events.jsonl");
 
 // A card_asserted KEL event for `id`, true-at `vt`, recorded-at `tt`.
-function assertCard(f, id, payload, { vt, tt = vt, hlc, type = "card_asserted", machine = "t480" }) {
+function assertCard(
+  f,
+  id,
+  payload,
+  { vt, tt = vt, hlc, type = "card_asserted", machine = "t480" }
+) {
   const r = appendKelEvent(f, {
     id: `evt-${id}-${tt}`,
     schema_version: "1.0.0",
@@ -97,7 +102,11 @@ test("Scenario: reconstruct the exact corpus a model trained on (knowledge_water
 
   // A training run at txn_time t1 stamps its knowledge_watermark over the inputs it saw.
   const watermark = computeWatermark(f, { asOfValidTime: D.t1, asOfTxnTime: D.t1 });
-  const execRecord = { exec_id: "01J-train", kind: "train", config: { knowledge_watermark: watermark } };
+  const execRecord = {
+    exec_id: "01J-train",
+    kind: "train",
+    config: { knowledge_watermark: watermark }
+  };
 
   // Later events land AFTER the run — reconstruction must not include them.
   assertCard(f, "cardC", { text: "gamma" }, { vt: D.t2, tt: D.t2 });
@@ -125,20 +134,37 @@ test("Scenario: a change reprojects incrementally (only affected records, via L4
   const CFG = { stage: "project", codeCommit: "c1", configHash: "cfg1" };
   processDelta(f, [{ content_hash: "sess-cardA" }, { content_hash: "sess-cardC" }], CFG); // pre-mark A,C done
   const changed = [];
-  processDelta(f, [{ content_hash: "sess-cardA" }, { content_hash: "sess-cardB" }, { content_hash: "sess-cardC" }], {
-    ...CFG,
-    run: (i) => { changed.push(i.content_hash); return []; }
-  });
+  processDelta(
+    f,
+    [
+      { content_hash: "sess-cardA" },
+      { content_hash: "sess-cardB" },
+      { content_hash: "sess-cardC" }
+    ],
+    {
+      ...CFG,
+      run: (i) => {
+        changed.push(i.content_hash);
+        return [];
+      }
+    }
+  );
   assert.deepEqual(changed, ["sess-cardB"]); // only the changed session is reprocessed
 
   // reproject only the changed session's events onto the prior store.
   const { events } = readKelEvents(f);
-  const changedEvents = events.filter((e) => e.type === "card_asserted" && e.sid === "sess-cardB" && e.txn_time === D.t2);
+  const changedEvents = events.filter(
+    (e) => e.type === "card_asserted" && e.sid === "sess-cardB" && e.txn_time === D.t2
+  );
   const { store, touched } = reprojectIncremental(full0, changedEvents);
   assert.deepEqual(touched, ["cardB"]); // only cardB rebuilt, not the whole store
   // and the incremental result equals a full rebuild from the log.
   assert.deepEqual(store, rebuild(f, { sink: cardSink }));
-  assert.deepEqual(store, { cardA: { text: "alpha" }, cardB: { text: "beta-2" }, cardC: { text: "gamma" } });
+  assert.deepEqual(store, {
+    cardA: { text: "alpha" },
+    cardB: { text: "beta-2" },
+    cardC: { text: "gamma" }
+  });
 });
 
 test("corpus reconstruction REJECTS a tampered watermark (integrity is enforced, not decorative)", () => {

@@ -281,14 +281,7 @@
           "note": "Cross-project arcs lift book coverage from 31.4%"
         }
       ],
-      "dial": [
-        "Inventory",
-        "Extract",
-        "Map",
-        "Graph",
-        "Enrich",
-        "Deliver"
-      ],
+      "dial": ["Inventory", "Extract", "Map", "Graph", "Enrich", "Deliver"],
       "sub": "Every agent session you have ever run is raw material. LONGVIEW collates months of scattered history into one governed corpus, distils it with local models, and derives a cited knowledge graph — resume-safe across days, honest about every failure, live-metered with an earned ETA.",
       "builtOn": {
         "label": "Built on the enablers",
@@ -787,10 +780,7 @@
   "neuroAssist": {
     "label": "Neuro-Assist",
     "description": "Accessibility & Cognitive Comfort Dock",
-    "fonts": [
-      "OpenDyslexic",
-      "Lexend"
-    ],
+    "fonts": ["OpenDyslexic", "Lexend"],
     "bionic": true,
     "reducedMotionLabel": "Calm Motion Mode"
   }

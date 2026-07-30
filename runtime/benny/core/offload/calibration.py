@@ -47,9 +47,7 @@ _BASE_TASK: Dict[str, Any] = {
         },
     ],
     "executor": {"mode": "generate", "model": "calib/exec", "prompt": "n/a"},
-    "eval_plan": {
-        "judge": {"enabled": True, "model": "calib/judge", "pass_threshold": 0.8}
-    },
+    "eval_plan": {"judge": {"enabled": True, "model": "calib/judge", "pass_threshold": 0.8}},
 }
 
 
@@ -155,9 +153,7 @@ KNOWN_BAD: List[CalibrationFixture] = [
         id="bad-truncated-mid-function",
         label="bad",
         failure_class="truncated",
-        artifact=(
-            "def slugify(s):\n" "    s = s.strip().lower()\n" "    s = re.sub(r'[^a-z0"
-        ),
+        artifact=("def slugify(s):\n" "    s = s.strip().lower()\n" "    s = re.sub(r'[^a-z0"),
     ),
     CalibrationFixture(
         id="bad-path-mangled-output",

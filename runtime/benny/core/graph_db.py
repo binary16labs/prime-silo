@@ -161,38 +161,49 @@ def init_schema():
     """
     with write_session() as session:
         # Unique constraint on Concept name within a workspace
-        session.run("""
+        session.run(
+            """
             CREATE CONSTRAINT concept_unique IF NOT EXISTS
             FOR (c:Concept) REQUIRE (c.name, c.workspace) IS UNIQUE
-        """)
+        """
+        )
         # Unique constraint on Source name within a workspace
-        session.run("""
+        session.run(
+            """
             CREATE CONSTRAINT source_unique IF NOT EXISTS
             FOR (s:Source) REQUIRE (s.name, s.workspace) IS UNIQUE
-        """)
+        """
+        )
         # Unique constraint on SynthesisRun id
-        session.run("""
+        session.run(
+            """
             CREATE CONSTRAINT run_unique IF NOT EXISTS
             FOR (r:SynthesisRun) REQUIRE (r.run_id) IS UNIQUE
-        """)
+        """
+        )
         # Unique constraint on CodeScan id
-        session.run("""
+        session.run(
+            """
             CREATE CONSTRAINT code_scan_unique IF NOT EXISTS
             FOR (s:CodeScan) REQUIRE (s.scan_id) IS UNIQUE
-        """)
+        """
+        )
         # Index on workspace for faster filtering
         try:
-            session.run("""
+            session.run(
+                """
                 CREATE INDEX concept_workspace IF NOT EXISTS
                 FOR (c:Concept) ON (c.workspace)
-            """)
+            """
+            )
         except Exception:
             pass
 
         # Vector index — use detected dimensions or default to 768 (local models)
         dims = _detected_embedding_dims or 768
         try:
-            session.run(f"""
+            session.run(
+                f"""
                 CREATE VECTOR INDEX concept_embedding IF NOT EXISTS
                 FOR (c:Concept) ON (c.embedding)
                 OPTIONS {{
@@ -201,7 +212,8 @@ def init_schema():
                         `vector.similarity_function`: 'cosine'
                     }}
                 }}
-            """)
+            """
+            )
         except Exception:
             # Vector indexes may already exist or not be supported
             pass
@@ -613,7 +625,8 @@ def get_full_graph(
             where_clause += " AND (r.run_id = $run_id OR r.snapshot_id = $run_id)"
 
         edge_result = session.run(
-            f"{edge_match} {where_clause}" + """
+            f"{edge_match} {where_clause}"
+            + """
             RETURN elementId(a) AS source, a.name AS source_name,
                    elementId(b) AS target, b.name AS target_name,
                    type(r) AS type, r.predicate AS predicate, 
@@ -759,8 +772,7 @@ def get_knowledge_graph(
             "name": rec["name"],
             "labels": rec["labels"],
             "domain": rec.get("domain") or "",
-            "node_type": rec.get("node_type")
-            or (rec["labels"][0] if rec["labels"] else "Concept"),
+            "node_type": rec.get("node_type") or (rec["labels"][0] if rec["labels"] else "Concept"),
             "centrality": rec.get("centrality") or 0,
             # Enrichment fields (benny.graph.graph_enrichment): merge_count drives
             # node size in the view; category/community drive theme colouring.

@@ -4,11 +4,12 @@
 
   class DotMatrixEngine {
     constructor() {
-      this.canvas = document.createElement('canvas');
-      this.ctx = this.canvas.getContext('2d');
-      this.canvas.className = 'prime-silo-dot-canvas';
-      this.canvas.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:0;';
-      
+      this.canvas = document.createElement("canvas");
+      this.ctx = this.canvas.getContext("2d");
+      this.canvas.className = "prime-silo-dot-canvas";
+      this.canvas.style.cssText =
+        "position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:0;";
+
       document.body.appendChild(this.canvas);
 
       this.dots = [];
@@ -18,15 +19,15 @@
       this.targetMouseX = -1000;
       this.targetMouseY = -1000;
       this.time = 0;
-      this.reducedMotion = windowObject.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      this.reducedMotion = windowObject.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
       this.init();
     }
 
     init() {
       this.resize();
-      windowObject.addEventListener('resize', () => this.resize());
-      windowObject.addEventListener('mousemove', (e) => {
+      windowObject.addEventListener("resize", () => this.resize());
+      windowObject.addEventListener("mousemove", (e) => {
         this.targetMouseX = e.clientX;
         this.targetMouseY = e.clientY;
       });
@@ -86,10 +87,10 @@
         let color = `rgba(156, 175, 136, ${alpha})`; // Sage
 
         if (dist < maxDist) {
-          const factor = (1 - dist / maxDist);
-          targetRadius = dot.baseRadius + (factor * 3.5); // Spring expansion
-          alpha = 0.22 + (factor * 0.65);
-          
+          const factor = 1 - dist / maxDist;
+          targetRadius = dot.baseRadius + factor * 3.5; // Spring expansion
+          alpha = 0.22 + factor * 0.65;
+
           if (factor > 0.6) {
             color = `rgba(236, 230, 216, ${alpha})`; // Bone highlight
           } else {
@@ -98,8 +99,8 @@
         } else {
           // Ambient sinewave breathing
           const pulse = Math.sin(this.time * 1.5 + dot.phase * 3) * 0.3 + 0.3;
-          targetRadius = dot.baseRadius + (pulse * 0.4);
-          alpha = 0.18 + (pulse * 0.1);
+          targetRadius = dot.baseRadius + pulse * 0.4;
+          alpha = 0.18 + pulse * 0.1;
           color = `rgba(156, 175, 136, ${alpha})`;
         }
 
@@ -116,7 +117,7 @@
 
     drawStatic() {
       this.ctx.clearRect(0, 0, this.width, this.height);
-      this.ctx.fillStyle = 'rgba(156, 175, 136, 0.25)';
+      this.ctx.fillStyle = "rgba(156, 175, 136, 0.25)";
       for (let i = 0; i < this.dots.length; i++) {
         const dot = this.dots[i];
         this.ctx.beginPath();
@@ -126,9 +127,9 @@
     }
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => new DotMatrixEngine());
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => new DotMatrixEngine());
   } else {
     new DotMatrixEngine();
   }
-})(typeof window !== 'undefined' ? window : this);
+})(typeof window !== "undefined" ? window : this);

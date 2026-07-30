@@ -45,7 +45,11 @@ function canonical(v) {
   return v;
 }
 export function projectionHash(store) {
-  return crypto.createHash("sha256").update(JSON.stringify(canonical(store)), "utf8").digest("hex").slice(0, 32);
+  return crypto
+    .createHash("sha256")
+    .update(JSON.stringify(canonical(store)), "utf8")
+    .digest("hex")
+    .slice(0, 32);
 }
 
 // Bookkeeping event types that live in the KEL but are NOT knowledge — they fold into the delta
@@ -59,10 +63,15 @@ export const NON_PROJECTED_TYPES = new Set(["cursor_advanced"]);
 // `eventFilter` is an ADDITIVE governance hook (L9): a pure `(evt) => boolean` applied before the
 // fold so a projector can drop e.g. teleported/quarantined sids at every bi-temporal point (R4/R31).
 // Default undefined = no filtering, so the L8 default path is unchanged (R36 additivity).
-export function rebuild(logFile, { asOfValidTime, asOfTxnTime, converters = {}, sink = cardSink, types, eventFilter } = {}) {
+export function rebuild(
+  logFile,
+  { asOfValidTime, asOfTxnTime, converters = {}, sink = cardSink, types, eventFilter } = {}
+) {
   const { events } = readKelEvents(logFile);
   const knowledge = events.filter(
-    (e) => (types ? types.includes(e.type) : !NON_PROJECTED_TYPES.has(e.type)) && (!eventFilter || eventFilter(e))
+    (e) =>
+      (types ? types.includes(e.type) : !NON_PROJECTED_TYPES.has(e.type)) &&
+      (!eventFilter || eventFilter(e))
   );
   const proj = foldProjection(knowledge, { asOfValidTime, asOfTxnTime, converters });
   return sink(proj);

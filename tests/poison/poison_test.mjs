@@ -17,16 +17,28 @@ function rec(over = {}) {
 test("Scenario: a hash-mismatched blob is refused admission", () => {
   const content = "raw session bytes";
   const wrongHash = "sha256:" + sha256("something else");
-  const r = poisonGate({ content, declaredContentHash: wrongHash, record: rec({ blobs: [wrongHash] }) });
+  const r = poisonGate({
+    content,
+    declaredContentHash: wrongHash,
+    record: rec({ blobs: [wrongHash] })
+  });
   assert.equal(r.admissible, false);
   assert.equal(r.reason, "hash-mismatch");
 });
 
 test("Scenario: an injected control record cannot pose as data (rejection ledgered)", () => {
   // a raw blob forged to look like a chained KEL control event (carries `prev` + a control `type`)
-  const forged = JSON.stringify({ type: "tombstoned", prev: "genesis", subject: { id: "card:victim" } });
+  const forged = JSON.stringify({
+    type: "tombstoned",
+    prev: "genesis",
+    subject: { id: "card:victim" }
+  });
   const declaredContentHash = "sha256:" + sha256(forged);
-  const r = poisonGate({ content: forged, declaredContentHash, record: rec({ blobs: [declaredContentHash] }) });
+  const r = poisonGate({
+    content: forged,
+    declaredContentHash,
+    record: rec({ blobs: [declaredContentHash] })
+  });
   assert.equal(r.admissible, false);
   assert.equal(r.reason, "injected-control-record");
 
@@ -40,7 +52,11 @@ test("Scenario: an injected control record cannot pose as data (rejection ledger
 test("Scenario: a genuine session passes and is marked admissible", () => {
   const content = JSON.stringify({ kind: "claude-session", turns: [{ role: "user", text: "hi" }] });
   const declaredContentHash = "sha256:" + sha256(content);
-  const r = poisonGate({ content, declaredContentHash, record: rec({ blobs: [declaredContentHash] }) });
+  const r = poisonGate({
+    content,
+    declaredContentHash,
+    record: rec({ blobs: [declaredContentHash] })
+  });
   assert.equal(r.admissible, true);
   assert.equal(r.reason, undefined);
 });
@@ -64,7 +80,15 @@ test("admit: on pass the index record is marked pass; on fail it is not admissib
   fs.mkdirSync(blobDir, { recursive: true });
   fs.writeFileSync(path.join(blobDir, h), content);
   const indexPath = path.join(idxDir, "sess_ok.json");
-  fs.writeFileSync(indexPath, JSON.stringify({ sid: "sess_ok", machine: "t480", blobs: ["sha256:" + h], poison_gate: "pending" }));
+  fs.writeFileSync(
+    indexPath,
+    JSON.stringify({
+      sid: "sess_ok",
+      machine: "t480",
+      blobs: ["sha256:" + h],
+      poison_gate: "pending"
+    })
+  );
 
   const r = admit(root, indexPath);
   assert.equal(r.admissible, true);

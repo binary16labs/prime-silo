@@ -18,7 +18,12 @@ import { ulid, readKelEvents, foldProjection, CURRENT_SCHEMA_VERSION } from "./k
 
 // estate facts ride the L0 envelope's existing entity type (no schema enum change)
 export const ESTATE_KEL_TYPE = "entity_asserted";
-export const ESTATE_KINDS = Object.freeze({ machine: "machine", drive: "drive", session: "session", snapshot: "snapshot" });
+export const ESTATE_KINDS = Object.freeze({
+  machine: "machine",
+  drive: "drive",
+  session: "session",
+  snapshot: "snapshot"
+});
 
 // subject id schemes — session keys on CONTENT (sha256), never sid, so identical
 // content from different sids/machines/drives is a single subject (the dedup guarantee).
@@ -63,7 +68,13 @@ export function estateMachineEvent({ machine, role, payload = {} }) {
   });
 }
 
-export function estateSessionEvent({ machine, contentHash, sid, project = null, quarantined = false }) {
+export function estateSessionEvent({
+  machine,
+  contentHash,
+  sid,
+  project = null,
+  quarantined = false
+}) {
   return envelope({
     estateKind: ESTATE_KINDS.session,
     machine,
@@ -72,13 +83,30 @@ export function estateSessionEvent({ machine, contentHash, sid, project = null, 
   });
 }
 
-export function estateDriveEvent({ machine, label, role, fingerprint, sessionHashes, bytes = 0, verdict = "INTACT" }) {
+export function estateDriveEvent({
+  machine,
+  label,
+  role,
+  fingerprint,
+  sessionHashes,
+  bytes = 0,
+  verdict = "INTACT"
+}) {
   const hashes = [...new Set(sessionHashes)].sort();
   return envelope({
     estateKind: ESTATE_KINDS.drive,
     machine,
     subject: { kind: "drive", id: subjectId.drive(machine, label) },
-    payload: { machine, label, role, fingerprint, verdict, count: hashes.length, bytes, session_hashes: hashes }
+    payload: {
+      machine,
+      label,
+      role,
+      fingerprint,
+      verdict,
+      count: hashes.length,
+      bytes,
+      session_hashes: hashes
+    }
   });
 }
 
@@ -103,9 +131,34 @@ export function buildEstate(events, opts = {}) {
   for (const [id, { payload }] of proj) {
     if (!isEstateSubjectId(id)) continue; // ignore cursors / non-estate subjects
     if (id.startsWith("machine:")) machines[payload.machine] = { role: payload.role ?? null };
-    else if (id.startsWith("drive:")) drives[`${payload.machine}:${payload.label}`] = { machine: payload.machine, label: payload.label, role: payload.role ?? null, fingerprint: payload.fingerprint ?? null, verdict: payload.verdict ?? null, count: payload.count ?? 0, bytes: payload.bytes ?? 0, session_hashes: payload.session_hashes ?? [], sessions: [] };
-    else if (id.startsWith("session:")) sessions[payload.content_hash] = { sid: payload.sid ?? null, project: payload.project ?? null, quarantined: !!payload.quarantined, drives: [] };
-    else if (id.startsWith("snapshot:")) snapshots[`${payload.machine}:${payload.label}:${payload.date}`] = { machine: payload.machine, label: payload.label, date: payload.date, fingerprint: payload.fingerprint ?? null, count: payload.count ?? 0, bytes: payload.bytes ?? 0 };
+    else if (id.startsWith("drive:"))
+      drives[`${payload.machine}:${payload.label}`] = {
+        machine: payload.machine,
+        label: payload.label,
+        role: payload.role ?? null,
+        fingerprint: payload.fingerprint ?? null,
+        verdict: payload.verdict ?? null,
+        count: payload.count ?? 0,
+        bytes: payload.bytes ?? 0,
+        session_hashes: payload.session_hashes ?? [],
+        sessions: []
+      };
+    else if (id.startsWith("session:"))
+      sessions[payload.content_hash] = {
+        sid: payload.sid ?? null,
+        project: payload.project ?? null,
+        quarantined: !!payload.quarantined,
+        drives: []
+      };
+    else if (id.startsWith("snapshot:"))
+      snapshots[`${payload.machine}:${payload.label}:${payload.date}`] = {
+        machine: payload.machine,
+        label: payload.label,
+        date: payload.date,
+        fingerprint: payload.fingerprint ?? null,
+        count: payload.count ?? 0,
+        bytes: payload.bytes ?? 0
+      };
   }
   // invert drive.session_hashes -> session.drives (dedup: one session, many drives)
   for (const [driveKey, d] of Object.entries(drives)) {

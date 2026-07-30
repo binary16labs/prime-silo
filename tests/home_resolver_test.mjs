@@ -12,7 +12,11 @@ import path from "node:path";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const { resolveHome, ensureBennyKeystore, DEFAULT_HOME_DIRNAME } = require("../packaging/desktop/home_resolver.js");
+const {
+  resolveHome,
+  ensureBennyKeystore,
+  DEFAULT_HOME_DIRNAME
+} = require("../packaging/desktop/home_resolver.js");
 
 // Hermetic base: userData under a temp dir, empty env unless a case sets one.
 const tmpBase = fs.mkdtempSync(path.join(os.tmpdir(), "ps-home-resolver-"));

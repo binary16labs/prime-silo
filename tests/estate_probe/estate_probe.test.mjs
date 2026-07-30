@@ -2,20 +2,37 @@
 // named after it. Pure functions over injected inputs: no fs, no network, no hardware.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { driveDrift, topology, liveness, sessionStats } from "../../server/coordination/lib/estate_probe.mjs";
+import {
+  driveDrift,
+  topology,
+  liveness,
+  sessionStats
+} from "../../server/coordination/lib/estate_probe.mjs";
 
 test("Scenario: drive drift verdict", () => {
   // in-sync: snapshot matches its manifest and the live source
-  assert.equal(driveDrift({ manifestFingerprint: "fp1", snapshotFingerprint: "fp1", liveFingerprint: "fp1" }), "INTACT");
+  assert.equal(
+    driveDrift({ manifestFingerprint: "fp1", snapshotFingerprint: "fp1", liveFingerprint: "fp1" }),
+    "INTACT"
+  );
   // live has moved on → DRIFT
-  assert.equal(driveDrift({ manifestFingerprint: "fp1", snapshotFingerprint: "fp1", liveFingerprint: "fp2" }), "DRIFT");
+  assert.equal(
+    driveDrift({ manifestFingerprint: "fp1", snapshotFingerprint: "fp1", liveFingerprint: "fp2" }),
+    "DRIFT"
+  );
   // snapshot no longer matches its own manifest → CORRUPT (takes precedence over drift)
-  assert.equal(driveDrift({ manifestFingerprint: "fp1", snapshotFingerprint: "bad", liveFingerprint: "fp2" }), "CORRUPT");
+  assert.equal(
+    driveDrift({ manifestFingerprint: "fp1", snapshotFingerprint: "bad", liveFingerprint: "fp2" }),
+    "CORRUPT"
+  );
 });
 
 test("Scenario: hub and satellite topology", () => {
   const t = topology(
-    [{ name: "t480", role: "hub" }, { name: "asus", role: "satellite" }],
+    [
+      { name: "t480", role: "hub" },
+      { name: "asus", role: "satellite" }
+    ],
     { t480: true, asus: false }
   );
   assert.equal(t.hub, "t480", "exactly the trainer is the hub");

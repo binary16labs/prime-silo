@@ -33,7 +33,8 @@ function copyTree(src, dst) {
 // Replicate the whole substrate to a second local target (byte-identical).
 export function replicate(primaryRoot, replicaRoot) {
   let files = 0;
-  for (const sub of SUBTREES) files += copyTree(path.join(primaryRoot, sub), path.join(replicaRoot, sub));
+  for (const sub of SUBTREES)
+    files += copyTree(path.join(primaryRoot, sub), path.join(replicaRoot, sub));
   return { files, replicaRoot };
 }
 

@@ -37,9 +37,9 @@ _HOUSE_PREFIX = "house/"
 # :1234. The ``house/`` alias is a stable router-candidate id decoupled from LM Studio's
 # exact model string, so offload manifests and the router name the tuned engine the same
 # way regardless of which GGUF (v3, later DPO) is loaded.
-ENV_BASE_URL = "BENNY_TUNED_BASE_URL"      # LM Studio OpenAI base (default :1234/v1)
-ENV_MODEL = "BENNY_TUNED_MODEL"            # the model id LM Studio serves the tuned GGUF as
-ENV_GGUF = "BENNY_TUNED_GGUF"              # path to the served GGUF (provenance only)
+ENV_BASE_URL = "BENNY_TUNED_BASE_URL"  # LM Studio OpenAI base (default :1234/v1)
+ENV_MODEL = "BENNY_TUNED_MODEL"  # the model id LM Studio serves the tuned GGUF as
+ENV_GGUF = "BENNY_TUNED_GGUF"  # path to the served GGUF (provenance only)
 TUNED_PROVIDER = "lmstudio"
 DEFAULT_BASE_URL = "http://127.0.0.1:1234/v1"
 DEFAULT_MODEL_NAME = "qwen2.5-coder-7b-instruct-house-tuned"
@@ -61,7 +61,7 @@ def tuned_engine_config() -> Dict[str, object]:
         "provider": TUNED_PROVIDER,
         "cost_per_1k": 0.0,
         "use_for": ["house_method", "offline", "sdlc", "candidate", "tuned"],
-        "candidate": True,          # marks it opt-in, never a default
+        "candidate": True,  # marks it opt-in, never a default
         "gguf": os.environ.get(ENV_GGUF, ""),
     }
 
@@ -83,8 +83,11 @@ def register_tuned_model(registry: Optional[Dict] = None, providers: Optional[Di
     # (owner may repoint the eGPU LM Studio). Additive, non-destructive.
     providers.setdefault(
         TUNED_PROVIDER,
-        {"port": _port_from(tuned_base_url()), "base_url": tuned_base_url(),
-         "docs": "https://lmstudio.ai"},
+        {
+            "port": _port_from(tuned_base_url()),
+            "base_url": tuned_base_url(),
+            "docs": "https://lmstudio.ai",
+        },
     )
     registry[TUNED_ENGINE_ID] = tuned_engine_config()
     logger.info("router: registered additive candidate %s -> %s", TUNED_ENGINE_ID, tuned_base_url())
@@ -107,13 +110,11 @@ def register_tuned_executor(resolver_owner=None) -> Callable:
     def resolve_with_tuned(model_str: str):
         if model_str and model_str.lower().startswith(_HOUSE_PREFIX):
             # Served by LM Studio on the eGPU (OpenAI-compatible).
-            return OpenAICompatibleExecutor(
-                tuned_model_name(), TUNED_PROVIDER, tuned_base_url()
-            )
+            return OpenAICompatibleExecutor(tuned_model_name(), TUNED_PROVIDER, tuned_base_url())
         return original(model_str)
 
-    resolve_with_tuned._t4_wrapped = True          # type: ignore[attr-defined]
-    resolve_with_tuned._t4_original = original      # type: ignore[attr-defined]
+    resolve_with_tuned._t4_wrapped = True  # type: ignore[attr-defined]
+    resolve_with_tuned._t4_original = original  # type: ignore[attr-defined]
     resolver_owner.resolve_executor = resolve_with_tuned
     return resolve_with_tuned
 

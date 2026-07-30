@@ -29,9 +29,15 @@ export function driftDelta(hubHashes = [], satelliteSessions = [], quarantine = 
     const isQuarantined = s?.quarantined === true || q.has(sid);
     // Privacy first (R31): a quarantined session is counted and withheld — it can never
     // reach `clean`, even if it is absent from the hub and would otherwise be a candidate.
-    if (isQuarantined) { quarantinedCount++; continue; }
+    if (isQuarantined) {
+      quarantinedCount++;
+      continue;
+    }
     // Already in the hub corpus → not part of the delta (the overlap we exist to exclude).
-    if (hub.has(contentHash)) { overlap++; continue; }
+    if (hub.has(contentHash)) {
+      overlap++;
+      continue;
+    }
     clean.push(sid);
   }
 

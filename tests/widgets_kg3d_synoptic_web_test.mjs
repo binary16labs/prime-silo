@@ -380,7 +380,11 @@ async function testWidgetKnowledgeFallbackOnOntologyError() {
     return jsonResponse({ nodes: [], edges: [] });
   };
 
-  const handle = createSynopticWebWidget(host, { workspace: "longview" }, { runtimeClient: client });
+  const handle = createSynopticWebWidget(
+    host,
+    { workspace: "longview" },
+    { runtimeClient: client }
+  );
   await settle();
 
   assert.equal(host.dataset.widgetState, "ready");

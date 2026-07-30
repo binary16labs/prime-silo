@@ -15,7 +15,10 @@ const EMPTY = { machines: {}, drives: {}, sessions: {}, snapshots: {} };
 
 function sendJson(res, status, body) {
   const data = JSON.stringify(body);
-  res.writeHead(status, { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(data) });
+  res.writeHead(status, {
+    "Content-Type": "application/json",
+    "Content-Length": Buffer.byteLength(data)
+  });
   res.end(data);
 }
 
@@ -27,7 +30,8 @@ function loadEstate({ kelLog, estateFile }) {
       const r = readKelEvents(kelLog);
       if (r.ok) return buildEstate(r.events);
     }
-    if (estateFile && fs.existsSync(estateFile)) return JSON.parse(fs.readFileSync(estateFile, "utf8"));
+    if (estateFile && fs.existsSync(estateFile))
+      return JSON.parse(fs.readFileSync(estateFile, "utf8"));
   } catch {
     /* fall through to empty — a governance surface must render, not 500 */
   }
@@ -52,8 +56,14 @@ export function boardLanes(boardText = "") {
   let section = null;
   for (const line of boardText.split(/\r?\n/)) {
     const h = line.match(/^##\s+(READY|CLAIMED|VERIFY|DONE)\b/);
-    if (h) { section = h[1]; continue; }
-    if (h === null && /^##\s/.test(line)) { section = null; continue; } // left the tracked columns
+    if (h) {
+      section = h[1];
+      continue;
+    }
+    if (h === null && /^##\s/.test(line)) {
+      section = null;
+      continue;
+    } // left the tracked columns
     if (!section) continue;
     const m = line.match(/^-\s+([A-Z]\d+|M2-\d+)\s+—\s+([^·]+?)\s+·/);
     if (m) lanes[section].push({ id: m[1], title: m[2].trim() });
@@ -75,7 +85,10 @@ export function drillMachine(estate = {}, machine) {
   for (const [hash, s] of Object.entries(estate.sessions || {})) {
     const onMachine = (s.drives || []).some((d) => String(d).split(":")[0] === machine);
     if (!onMachine) continue;
-    if (s.quarantined) { quarantined++; continue; } // flag + count only; nothing identifying leaves
+    if (s.quarantined) {
+      quarantined++;
+      continue;
+    } // flag + count only; nothing identifying leaves
     sessions.push({ content_hash: hash, project: s.project ?? null });
     timeline.push({ kind: "session", ref: hash, project: s.project ?? null });
   }
@@ -101,7 +114,13 @@ function readBody(req) {
   return new Promise((resolve) => {
     let raw = "";
     req.on("data", (c) => (raw += c));
-    req.on("end", () => { try { resolve(raw ? JSON.parse(raw) : {}); } catch { resolve({}); } });
+    req.on("end", () => {
+      try {
+        resolve(raw ? JSON.parse(raw) : {});
+      } catch {
+        resolve({});
+      }
+    });
   });
 }
 
@@ -141,10 +160,22 @@ export function createEstateApi({
     // same shape the :8788 flywheel banner uses. No live satellite drift until N7 → the dataset-drift
     // projection (cardsNow vs the cards baked into the last build) is what it renders today.
     if (req.method === "GET" && rest === "/plan") {
-      const { manifest, evalReport } = readPlanInputs({ manifestFile: datasetManifestFile, evalFile: evalReportFile });
+      const { manifest, evalReport } = readPlanInputs({
+        manifestFile: datasetManifestFile,
+        evalFile: evalReportFile
+      });
       let cardsNow = null;
-      try { if (statusFile && fs.existsSync(statusFile)) cardsNow = JSON.parse(fs.readFileSync(statusFile, "utf8")).cards_ok ?? null; } catch { /* absent → null */ }
-      return sendJson(res, 200, planNextCycle({ cleanCount: 0 }, manifest, evalReport, { cardsNow, thinRate: planThinRate }));
+      try {
+        if (statusFile && fs.existsSync(statusFile))
+          cardsNow = JSON.parse(fs.readFileSync(statusFile, "utf8")).cards_ok ?? null;
+      } catch {
+        /* absent → null */
+      }
+      return sendJson(
+        res,
+        200,
+        planNextCycle({ cleanCount: 0 }, manifest, evalReport, { cardsNow, thinRate: planThinRate })
+      );
     }
 
     // POST /api/estate/register — a satellite starting on the LAN pushes a hashes-only fingerprint
@@ -155,10 +186,20 @@ export function createEstateApi({
       readBody(req).then((b) => {
         const est = loadEstate({ kelLog, estateFile });
         const hubHashes = Object.keys(est.sessions || {});
-        const r = registerSatellite(satelliteState, b.manifest || {}, { key: b.key, expectedKey: registerKey, remoteAddress, hubHashes });
+        const r = registerSatellite(satelliteState, b.manifest || {}, {
+          key: b.key,
+          expectedKey: registerKey,
+          remoteAddress,
+          hubHashes
+        });
         if (r.ok) {
           satelliteState = r.state;
-          bus?.publish?.("estate", { kind: "estate.satellite.online", machine: (b.manifest || {}).machine, drift: r.drift, at: Date.now() });
+          bus?.publish?.("estate", {
+            kind: "estate.satellite.online",
+            machine: (b.manifest || {}).machine,
+            drift: r.drift,
+            at: Date.now()
+          });
         }
         sendJson(res, r.ok ? 200 : 401, r);
       });
@@ -192,7 +233,14 @@ export function createEstateApi({
     // Body: { delta:{clean,quarantined}, satellite, quarantine? }. Never moves data.
     if (req.method === "POST" && rest === "/sync/propose") {
       readBody(req).then((b) =>
-        sendJson(res, 200, proposeSync(b.delta || {}, { satellite: b.satellite ?? null, quarantine: b.quarantine || [] }))
+        sendJson(
+          res,
+          200,
+          proposeSync(b.delta || {}, {
+            satellite: b.satellite ?? null,
+            quarantine: b.quarantine || []
+          })
+        )
       );
       return;
     }
@@ -200,10 +248,16 @@ export function createEstateApi({
     // POST /api/estate/sync/apply — apply an OWNER-APPROVED proposal (human-signed). Idempotent
     // via N0 syncSource; emits a B1 approval event only when content actually moved.
     if (req.method === "POST" && rest === "/sync/apply") {
-      if (typeof syncSource !== "function") return sendJson(res, 503, { error: "no syncSource configured" });
+      if (typeof syncSource !== "function")
+        return sendJson(res, 503, { error: "no syncSource configured" });
       readBody(req).then((b) => {
         try {
-          const r = applySync(b.proposal || {}, b.source || {}, { syncSource, bus, kelLog, stagingRoot });
+          const r = applySync(b.proposal || {}, b.source || {}, {
+            syncSource,
+            bus,
+            kelLog,
+            stagingRoot
+          });
           sendJson(res, r.applied ? 200 : 403, r);
         } catch (e) {
           sendJson(res, 400, { error: String(e?.message || e) });

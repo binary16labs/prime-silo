@@ -15,7 +15,10 @@ export function queryTxnTime(logFile, asOfTxnTime, { converters = {}, sink = car
 }
 
 // --- bi-temporal point query -------------------------------------------------
-export function queryAt(logFile, { asOfValidTime, asOfTxnTime, converters = {}, sink = cardSink } = {}) {
+export function queryAt(
+  logFile,
+  { asOfValidTime, asOfTxnTime, converters = {}, sink = cardSink } = {}
+) {
   return rebuild(logFile, { asOfValidTime, asOfTxnTime, converters, sink });
 }
 

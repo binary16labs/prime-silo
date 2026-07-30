@@ -8,7 +8,11 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { appendKelEvent } from "../../server/coordination/lib/kel.mjs";
-import { estateMachineEvent, estateDriveEvent, estateSessionEvent } from "../../server/coordination/lib/estate.mjs";
+import {
+  estateMachineEvent,
+  estateDriveEvent,
+  estateSessionEvent
+} from "../../server/coordination/lib/estate.mjs";
 import { createBus } from "../../server/coordination/lib/bus.mjs";
 import { createEstateApi } from "../../server/coordination/lib/estate_api.mjs";
 
@@ -18,7 +22,16 @@ function seedKel() {
   const kel = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "n2-")), "kel.jsonl");
   appendKelEvent(kel, estateMachineEvent({ machine: "t480", role: "hub" }));
   appendKelEvent(kel, estateSessionEvent({ machine: "t480", contentHash: "sha256:aa", sid: "s1" }));
-  appendKelEvent(kel, estateDriveEvent({ machine: "t480", label: "F", role: "source", fingerprint: "fp", sessionHashes: ["sha256:aa"] }));
+  appendKelEvent(
+    kel,
+    estateDriveEvent({
+      machine: "t480",
+      label: "F",
+      role: "source",
+      fingerprint: "fp",
+      sessionHashes: ["sha256:aa"]
+    })
+  );
   return kel;
 }
 function serve(api) {
@@ -27,12 +40,24 @@ function serve(api) {
     res.writeHead(404, { "Content-Type": "text/plain" });
     res.end("fallthrough");
   });
-  const close = () => new Promise((r) => { server.closeAllConnections?.(); server.close(() => r()); });
-  return new Promise((resolve) => server.listen(0, () => resolve({ server, port: server.address().port, close })));
+  const close = () =>
+    new Promise((r) => {
+      server.closeAllConnections?.();
+      server.close(() => r());
+    });
+  return new Promise((resolve) =>
+    server.listen(0, () => resolve({ server, port: server.address().port, close }))
+  );
 }
 const getJson = (port, p) =>
   new Promise((resolve, reject) => {
-    http.get({ port, path: p }, (res) => { let b = ""; res.on("data", (c) => (b += c)); res.on("end", () => resolve({ status: res.statusCode, body: b })); }).on("error", reject);
+    http
+      .get({ port, path: p }, (res) => {
+        let b = "";
+        res.on("data", (c) => (b += c));
+        res.on("end", () => resolve({ status: res.statusCode, body: b }));
+      })
+      .on("error", reject);
   });
 
 test("Scenario: estate model over the API", async () => {
@@ -47,7 +72,9 @@ test("Scenario: estate model over the API", async () => {
     assert.equal(est.machines.t480.role, "hub");
     assert.equal(est.summary.machines, 1);
     assert.equal(est.summary.sessions, 1);
-  } finally { await close(); }
+  } finally {
+    await close();
+  }
 });
 
 test("Scenario: live estate stream", async () => {
@@ -59,7 +86,9 @@ test("Scenario: live estate stream", async () => {
     const got = await new Promise((resolve, reject) => {
       req = http.get({ port, path: "/api/estate/stream" }, (res) => {
         res.setEncoding("utf8");
-        res.on("data", (chunk) => { if (chunk.includes("event: estate")) resolve(chunk); });
+        res.on("data", (chunk) => {
+          if (chunk.includes("event: estate")) resolve(chunk);
+        });
       });
       req.on("error", reject);
       pubT = setTimeout(() => bus.publish("estate", { kind: "sync", stored: 3 }), 150); // after subscribe
@@ -68,8 +97,13 @@ test("Scenario: live estate stream", async () => {
     assert.match(got, /event: estate/);
     assert.match(got, /"stored":3/);
   } finally {
-    clearTimeout(pubT); clearTimeout(failT);
-    try { req?.destroy(); } catch { /* ignore */ }
+    clearTimeout(pubT);
+    clearTimeout(failT);
+    try {
+      req?.destroy();
+    } catch {
+      /* ignore */
+    }
     await close();
   }
 });
@@ -77,7 +111,17 @@ test("Scenario: live estate stream", async () => {
 test("Scenario: additive mount preserves existing routes", () => {
   const api = createEstateApi({ kelLog: seedKel(), bus: createBus() });
   let touched = false;
-  const mockRes = { writeHead() { touched = true; }, end() { touched = true; }, write() { touched = true; } };
+  const mockRes = {
+    writeHead() {
+      touched = true;
+    },
+    end() {
+      touched = true;
+    },
+    write() {
+      touched = true;
+    }
+  };
   const handled = api.tryHandle({ method: "GET", url: "/api/config" }, mockRes);
   assert.equal(handled, false, "estate does not own /api/config");
   assert.equal(touched, false, "the response is untouched so the real handler serves it");
@@ -91,7 +135,8 @@ test("Scenario: page is complete without JS", () => {
   assert.match(html, /data-role="hub"[\s\S]*data-machine="t480"/, "hub node present in markup");
   assert.match(html, /data-role="satellite"/, "satellite node present in markup");
   assert.ok(/data-machine="asus"/.test(html), "ASUS satellite present");
-  for (const node of ["F: main", "D: runner", "eGPU"]) assert.ok(html.includes(node), `cascade node ${node} present`);
+  for (const node of ["F: main", "D: runner", "eGPU"])
+    assert.ok(html.includes(node), `cascade node ${node} present`);
   // the live wiring exists but the page does not depend on it for structure
   assert.ok(html.includes("/api/estate/stream"), "subscribes to the live stream");
 });

@@ -29,7 +29,10 @@ export function foldCursors(events) {
 }
 
 // Append a `done` cursor for one processed input.
-export function recordCursor(logFile, { stage, inputContentHash, codeCommit, configHash, machine = "t480", runId = null, outputs = [] }) {
+export function recordCursor(
+  logFile,
+  { stage, inputContentHash, codeCommit, configHash, machine = "t480", runId = null, outputs = [] }
+) {
   const now = new Date().toISOString();
   return appendKelEvent(logFile, {
     id: ulid(),
@@ -43,14 +46,26 @@ export function recordCursor(logFile, { stage, inputContentHash, codeCommit, con
     authorship: "house",
     sid: `cursor:${stage}`,
     subject: { kind: "cursor", id: cursorKey({ stage, inputContentHash, codeCommit, configHash }) },
-    payload: { stage, input_content_hash: inputContentHash, code_commit: codeCommit, config_hash: configHash, status: "done", outputs, run_id: runId }
+    payload: {
+      stage,
+      input_content_hash: inputContentHash,
+      code_commit: codeCommit,
+      config_hash: configHash,
+      status: "done",
+      outputs,
+      run_id: runId
+    }
   });
 }
 
 // Process a batch: run only inputs without a `done` cursor; record a cursor for each.
 // Idempotent (a second call skips everything) and resumable (an interrupted run redoes only the
 // not-yet-done inputs). `run(input)` returns the stage outputs; omit it for a dry inventory.
-export function processDelta(logFile, inputs, { stage, codeCommit, configHash, run, machine = "t480" }) {
+export function processDelta(
+  logFile,
+  inputs,
+  { stage, codeCommit, configHash, run, machine = "t480" }
+) {
   const { events } = readKelEvents(logFile);
   const done = foldCursors(events);
   const processed = [];
@@ -62,7 +77,14 @@ export function processDelta(logFile, inputs, { stage, codeCommit, configHash, r
       continue;
     }
     const outputs = run ? run(input) : [];
-    recordCursor(logFile, { stage, inputContentHash: input.content_hash, codeCommit, configHash, machine, outputs });
+    recordCursor(logFile, {
+      stage,
+      inputContentHash: input.content_hash,
+      codeCommit,
+      configHash,
+      machine,
+      outputs
+    });
     done.set(key, { status: "done", outputs }); // guard against a repeated hash within one batch
     processed.push(input.content_hash);
   }

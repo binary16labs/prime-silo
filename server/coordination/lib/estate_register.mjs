@@ -29,8 +29,11 @@ export function buildManifest(machine, sessions = [], quarantine = []) {
 export function isLanOrigin(addr = "") {
   const a = String(addr).replace(/^::ffff:/, "");
   return (
-    a === "127.0.0.1" || a === "::1" ||
-    /^10\./.test(a) || /^192\.168\./.test(a) || /^172\.(1[6-9]|2\d|3[01])\./.test(a)
+    a === "127.0.0.1" ||
+    a === "::1" ||
+    /^10\./.test(a) ||
+    /^192\.168\./.test(a) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(a)
   );
 }
 
@@ -40,13 +43,19 @@ export function isLanOrigin(addr = "") {
 // ctx = { key, expectedKey, remoteAddress, hubHashes, quarantine }
 export function register(hubState = {}, manifest = {}, ctx = {}) {
   const { key, expectedKey, remoteAddress = "127.0.0.1", hubHashes = [], quarantine = [] } = ctx;
-  if (!expectedKey || key !== expectedKey) return { ok: false, reason: "unauthenticated", state: hubState };
-  if (!isLanOrigin(remoteAddress)) return { ok: false, reason: "non-LAN origin refused", state: hubState };
+  if (!expectedKey || key !== expectedKey)
+    return { ok: false, reason: "unauthenticated", state: hubState };
+  if (!isLanOrigin(remoteAddress))
+    return { ok: false, reason: "non-LAN origin refused", state: hubState };
   // R31 at the boundary: a manifest must carry hashes + flags only — reject any smuggled payload.
   if ((manifest.sessions || []).some((s) => "content" in s || "text" in s))
     return { ok: false, reason: "manifest carried payload — rejected (R31)", state: hubState };
 
-  const satSessions = (manifest.sessions || []).map((s) => ({ sid: s.sid, contentHash: s.contentHash, quarantined: s.quarantined }));
+  const satSessions = (manifest.sessions || []).map((s) => ({
+    sid: s.sid,
+    contentHash: s.contentHash,
+    quarantined: s.quarantined
+  }));
   const drift = driftDelta(hubHashes, satSessions, quarantine); // reuse the N4 engine
   const state = {
     ...hubState,

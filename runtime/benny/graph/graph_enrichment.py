@@ -167,6 +167,7 @@ def _tick(sid: str, done: int, total: Optional[int] = None, note: Optional[str] 
     if _PROGRESS is not None:
         _PROGRESS.tick(sid, done, total, note)
 
+
 # Cosine thresholds. Merge is deliberately stricter than linking: merging deletes
 # a node, linking only adds an edge.
 MERGE_COSINE = 0.90
@@ -230,6 +231,7 @@ def classify_predicate(predicate: Optional[str]) -> str:
 
 # ── data loading ────────────────────────────────────────────────────────────
 
+
 def _fetch_doc_concepts(workspace: str) -> List[Dict[str, Any]]:
     """Document concepts only — those SOURCED_FROM a Source. Excludes the
     code-structure :Concept nodes (which hang off CodeEntity via REPRESENTS)."""
@@ -255,6 +257,7 @@ def _normed_matrix(vectors: List[Optional[List[float]]]) -> np.ndarray:
 
 
 # ── Stage 1: embeddings ──────────────────────────────────────────────────────
+
 
 async def stage_embeddings(
     workspace: str, concepts: List[Dict[str, Any]], dry_run: bool
@@ -305,6 +308,7 @@ async def stage_embeddings(
 
 
 # ── Stage 2: canonical merge ─────────────────────────────────────────────────
+
 
 def _union_find_groups(pairs: List[Tuple[int, int]], n: int) -> Dict[int, List[int]]:
     parent = list(range(n))
@@ -430,6 +434,7 @@ async def stage_merge(
 
 # ── Stage 3: cross-document similarity edges ─────────────────────────────────
 
+
 async def stage_similarity_links(workspace: str, dry_run: bool) -> Dict[str, Any]:
     """Add RELATES_TO{predicate:'semantically_similar'} edges between concepts in
     DIFFERENT documents above SIMILARITY_COSINE (top-k per concept). Reads
@@ -460,9 +465,7 @@ async def stage_similarity_links(workspace: str, dry_run: bool) -> Dict[str, Any
                 continue
             seen.add(key)
             a, b = key
-            batch.append(
-                {"a": have_emb[a]["id"], "b": have_emb[b]["id"], "sim": float(sims[a, b])}
-            )
+            batch.append({"a": have_emb[a]["id"], "b": have_emb[b]["id"], "sim": float(sims[a, b])})
 
     if dry_run:
         return {"links": len(batch)}
@@ -484,6 +487,7 @@ async def stage_similarity_links(workspace: str, dry_run: bool) -> Dict[str, Any
 
 
 # ── Stage 4: typed relation promotion ────────────────────────────────────────
+
 
 async def stage_rel_class(workspace: str, dry_run: bool) -> Dict[str, Any]:
     """Set r.rel_class on every RELATES_TO from its predicate. Scope by endpoint
@@ -516,6 +520,7 @@ async def stage_rel_class(workspace: str, dry_run: bool) -> Dict[str, Any]:
 
 # ── Stage 5: code↔docs correlation ───────────────────────────────────────────
 
+
 async def stage_correlation(workspace: str, threshold: float, dry_run: bool) -> Dict[str, Any]:
     if dry_run:
         return {"note": "would run safe + aggressive correlation (Concept↔CodeEntity)"}
@@ -525,6 +530,7 @@ async def stage_correlation(workspace: str, threshold: float, dry_run: bool) -> 
 
 
 # ── Stage 6: recluster + categorise ──────────────────────────────────────────
+
 
 async def stage_recluster(workspace: str, dry_run: bool) -> Dict[str, Any]:
     """Label-propagation over the KNOWLEDGE subgraph only — document concepts +
@@ -673,7 +679,9 @@ async def enrich_graph(
     progress = EnrichProgress(workspace, stages, dry_run)
     _PROGRESS = progress
 
-    async def _run_stage(sid: str, coro_factory, total: Optional[int] = None, note: Optional[str] = None):
+    async def _run_stage(
+        sid: str, coro_factory, total: Optional[int] = None, note: Optional[str] = None
+    ):
         progress.start(sid, total=total, note=note)
         try:
             res = await coro_factory()

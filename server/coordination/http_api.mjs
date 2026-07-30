@@ -13,14 +13,17 @@ import {
   appendEvent,
   loadAgents,
   initCoordination,
-  ulid,
+  ulid
 } from "./lib/ledger.mjs";
 
 const PREFIX = "/api/coord";
 
 function sendJson(res, status, body) {
   const data = JSON.stringify(body);
-  res.writeHead(status, { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(data) });
+  res.writeHead(status, {
+    "Content-Type": "application/json",
+    "Content-Length": Buffer.byteLength(data)
+  });
   res.end(data);
 }
 
@@ -57,13 +60,18 @@ export function createCoordinationApi({ coordDir, bus, prefix = PREFIX }) {
     if (req.method === "GET" && hist) {
       const id = decodeURIComponent(hist[1]);
       const { events } = readEvents(coordDir);
-      return sendJson(res, 200, events.filter((e) => e.task_id === id));
+      return sendJson(
+        res,
+        200,
+        events.filter((e) => e.task_id === id)
+      );
     }
 
     // POST /events — validated append. Invalid → 422 with the validator's reason, no write.
     if (req.method === "POST" && rest === "/events") {
       const body = await readJsonBody(req);
-      if (body === null || typeof body !== "object") return sendJson(res, 400, { error: "malformed JSON body" });
+      if (body === null || typeof body !== "object")
+        return sendJson(res, 400, { error: "malformed JSON body" });
       // fill server-owned fields if the caller omitted them; `prev` is always the appender's.
       const evt = { id: body.id || ulid(), ts: body.ts || new Date().toISOString(), ...body };
       delete evt.prev;
@@ -103,6 +111,6 @@ export function createCoordinationApi({ coordDir, bus, prefix = PREFIX }) {
       const rest = p.slice(prefix.length) || "/";
       await handle(req, res, rest, url);
       return true;
-    },
+    }
   };
 }

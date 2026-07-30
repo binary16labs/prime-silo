@@ -18,7 +18,13 @@ export function proposeSync(delta = {}, { satellite = null, quarantine = [] } = 
   const clean = raw.filter((sid) => !q.has(sid));
   const droppedHere = raw.length - clean.length;
   const quarantinedExcluded = (delta.quarantined?.count ?? 0) + droppedHere;
-  const id = "prop:" + crypto.createHash("sha256").update(JSON.stringify({ satellite, clean })).digest("hex").slice(0, 16);
+  const id =
+    "prop:" +
+    crypto
+      .createHash("sha256")
+      .update(JSON.stringify({ satellite, clean }))
+      .digest("hex")
+      .slice(0, 16);
   return {
     id,
     satellite,
@@ -47,12 +53,23 @@ export function signProposal(proposal, signature) {
 export function applySync(proposal = {}, source = {}, deps = {}) {
   const { syncSource, bus, kelLog = null, stagingRoot = null } = deps;
   if (!proposal.approved || !proposal.signature) {
-    return { applied: false, reason: "unapproved: no owner signature — nothing synced", synced: [], noop: true };
+    return {
+      applied: false,
+      reason: "unapproved: no owner signature — nothing synced",
+      synced: [],
+      noop: true
+    };
   }
-  if (typeof syncSource !== "function") throw new Error("applySync: a syncSource dependency is required");
+  if (typeof syncSource !== "function")
+    throw new Error("applySync: a syncSource dependency is required");
   const cleanSet = new Set(proposal.clean || []);
   const sessions = (source.sessions || []).filter((s) => cleanSet.has(s.sid));
-  const result = syncSource(kelLog, stagingRoot, { ...source, sessions }, { codeCommit: "", configHash: "" });
+  const result = syncSource(
+    kelLog,
+    stagingRoot,
+    { ...source, sessions },
+    { codeCommit: "", configHash: "" }
+  );
   const movedNew = result?.sessionsNew ?? sessions.length;
   let event = null;
   if (movedNew > 0) {
@@ -67,5 +84,11 @@ export function applySync(proposal = {}, source = {}, deps = {}) {
     };
     bus?.publish?.("estate", event);
   }
-  return { applied: true, synced: event ? sessions.map((s) => s.sid) : [], noop: !event, event, syncResult: result };
+  return {
+    applied: true,
+    synced: event ? sessions.map((s) => s.sid) : [],
+    noop: !event,
+    event,
+    syncResult: result
+  };
 }

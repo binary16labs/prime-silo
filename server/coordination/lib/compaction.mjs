@@ -6,7 +6,12 @@ import fs from "node:fs";
 import path from "node:path";
 
 const readLines = (f) =>
-  fs.existsSync(f) ? fs.readFileSync(f, "utf8").split("\n").filter((l) => l.trim() !== "") : [];
+  fs.existsSync(f)
+    ? fs
+        .readFileSync(f, "utf8")
+        .split("\n")
+        .filter((l) => l.trim() !== "")
+    : [];
 
 // Compact an append-only log: move all but the newest `keep` lines into the journal (append),
 // leaving the active log with the tail. Lossless — journalled, never deleted.

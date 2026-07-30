@@ -6,7 +6,11 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { boardLanes, drillMachine, longviewProgress } from "../../server/coordination/lib/estate_api.mjs";
+import {
+  boardLanes,
+  drillMachine,
+  longviewProgress
+} from "../../server/coordination/lib/estate_api.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
@@ -39,7 +43,12 @@ test("Scenario: drill-down never leaks quarantine", () => {
   const estate = {
     sessions: {
       "sha256:ok": { sid: "s1", project: "prime-silo", quarantined: false, drives: ["t480:D"] },
-      "sha256:cv": { sid: "applied-jpmc", project: "job-application", quarantined: true, drives: ["t480:D"] }
+      "sha256:cv": {
+        sid: "applied-jpmc",
+        project: "job-application",
+        quarantined: true,
+        drives: ["t480:D"]
+      }
     }
   };
   const payload = drillMachine(estate, "t480");

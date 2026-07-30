@@ -14,7 +14,10 @@ test("Stream A: one card -> a well-formed method/voice pair", () => {
     id: "longview_card_test",
     sid: "deadbeef",
     title: "Test card",
-    sections: { Intent: "Fix the pypes plan command for local LLMs", Applications: "- benny\n- pypes" },
+    sections: {
+      Intent: "Fix the pypes plan command for local LLMs",
+      Applications: "- benny\n- pypes"
+    }
   };
   const pairs = cardToPairs(card);
   assert.equal(pairs.length, 1);
@@ -37,11 +40,14 @@ test("Stream B: one tool-use trace -> a (state + goal -> next tool call) row", (
         id: "t1",
         type: "Tool Call",
         agent: "Claude",
-        content: JSON.stringify({ name: "view_file", args: { toolSummary: '"View the task log"' } }),
+        content: JSON.stringify({
+          name: "view_file",
+          args: { toolSummary: '"View the task log"' }
+        }),
         metadata: { toolName: "view_file" },
-        parent_id: "u1",
-      },
-    ],
+        parent_id: "u1"
+      }
+    ]
   ]);
   const { rows } = traceToRows(entityMap, {});
   assert.equal(rows.length, 1);
@@ -60,7 +66,9 @@ test("leak gate: a seeded CV/job row is rejected (build-time detector + file sca
     id: "longview_card_cv",
     sid: "cafe1234",
     title: "Draft cover letter",
-    sections: { Intent: "Write a cover letter and update my curriculum vitae for a job application" },
+    sections: {
+      Intent: "Write a cover letter and update my curriculum vitae for a job application"
+    }
   };
   const { rows, excluded } = buildStreamA([cvCard], [], { detector: detect });
   assert.equal(rows.length, 0, "CV-derived pair must be excluded at build time");
@@ -68,7 +76,16 @@ test("leak gate: a seeded CV/job row is rejected (build-time detector + file sca
 
   // And the authoritative file scan (the gate's mechanism) must flag it too.
   const tmp = path.join(os.tmpdir(), `t2_leak_${Date.now()}.jsonl`);
-  fs.writeFileSync(tmp, JSON.stringify({ stream: "A", id: "x", instruction: "help", response: "update my curriculum vitae", source: { type: "card", id: "y" } }) + "\n");
+  fs.writeFileSync(
+    tmp,
+    JSON.stringify({
+      stream: "A",
+      id: "x",
+      instruction: "help",
+      response: "update my curriculum vitae",
+      source: { type: "card", id: "y" }
+    }) + "\n"
+  );
   const leaks = scanForLeaks({ files: [tmp], terms: spec.terms, sids: spec.sids });
   fs.unlinkSync(tmp);
   assert.ok(leaks.length >= 1, "file scan must find the seeded CV term");
@@ -92,11 +109,11 @@ test("traceToRows: Claude-format tool call ({name, input}) keeps its real args a
         agent: "Claude",
         content: JSON.stringify({
           name: "Bash",
-          input: { command: "git log --oneline -3", description: "Verify push landed" },
+          input: { command: "git log --oneline -3", description: "Verify push landed" }
         }),
-        metadata: { toolName: "Bash" },
-      },
-    ],
+        metadata: { toolName: "Bash" }
+      }
+    ]
   ]);
   const { rows } = traceToRows(entityMap, {});
   assert.equal(rows.length, 1);
@@ -114,9 +131,9 @@ test("traceToRows: unparseable tool-call content is excluded, never emitted as a
         type: "Tool Call",
         agent: "Antigravity",
         content: '{ "name": "replace_file_content", "args": { "truncated...',
-        metadata: { toolName: "replace_file_content" },
-      },
-    ],
+        metadata: { toolName: "replace_file_content" }
+      }
+    ]
   ]);
   const { rows, excluded } = traceToRows(entityMap, {});
   assert.equal(rows.length, 0, "degenerate empty-args target must not be trained on");

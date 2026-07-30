@@ -41,7 +41,8 @@ const lineHash = (raw) =>
 function checkSchema(obj, schema) {
   if (schema.type === "object" && (typeof obj !== "object" || obj === null || Array.isArray(obj)))
     return "not an object";
-  for (const key of schema.required ?? []) if (!(key in obj)) return `missing required field '${key}'`;
+  for (const key of schema.required ?? [])
+    if (!(key in obj)) return `missing required field '${key}'`;
   for (const [key, val] of Object.entries(obj)) {
     const prop = schema.properties?.[key];
     if (!prop) {

@@ -21,12 +21,10 @@ import { EventEmitter } from "node:events";
 
 globalThis.window = globalThis.window || { location: { hash: "" } };
 
-const { subscribeActivity, _resetActivityStoreForTests } = await import(
-  "../app/L0/_all/mod/_prime_silo/runtime_client/activity-store.js"
-);
-const { initMascotState, deriveState, applyMascotState } = await import(
-  "../app/L0/_all/mod/_prime_silo/mascot_state/mascot-state.js"
-);
+const { subscribeActivity, _resetActivityStoreForTests } =
+  await import("../app/L0/_all/mod/_prime_silo/runtime_client/activity-store.js");
+const { initMascotState, deriveState, applyMascotState } =
+  await import("../app/L0/_all/mod/_prime_silo/mascot_state/mascot-state.js");
 
 // ── deriveState / applyMascotState: pure-logic unit checks ─────────────────
 {
@@ -81,9 +79,21 @@ const { initMascotState, deriveState, applyMascotState } = await import(
     if (String(url).includes("/workflows/events")) {
       return Promise.resolve(
         delayedSseResponse([
-          { text: frame({ type: "workflow_started", run_id: "r1", workspace: "w1", timestamp: "t1" }) },
           {
-            text: frame({ type: "workflow_completed", run_id: "r1", workspace: "w1", timestamp: "t2" }),
+            text: frame({
+              type: "workflow_started",
+              run_id: "r1",
+              workspace: "w1",
+              timestamp: "t1"
+            })
+          },
+          {
+            text: frame({
+              type: "workflow_completed",
+              run_id: "r1",
+              workspace: "w1",
+              timestamp: "t2"
+            }),
             delayMs: 60
           }
         ])

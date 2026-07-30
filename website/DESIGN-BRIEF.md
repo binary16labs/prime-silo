@@ -41,9 +41,9 @@ Owner-Approved: darkhorse 2026-07-26
    local run: a document goes in, an agent reads it, the tri-graph memory records it, an answer comes
    back — all on-device. One idea, shown once, well.
 3. **Three pillars** (progressive discovery, no numbers unless registered):
-   - *Local execution* — models run on your hardware; offload is opt-in and auditable.
-   - *Auditable memory* — a tri-graph (sources, concepts, sessions) you can inspect and teleport.
-   - *Deterministic governance* — every change signed, versioned, replayable.
+   - _Local execution_ — models run on your hardware; offload is opt-in and auditable.
+   - _Auditable memory_ — a tri-graph (sources, concepts, sessions) you can inspect and teleport.
+   - _Deterministic governance_ — every change signed, versioned, replayable.
 4. **Local vs. cloud** — an honest comparison. If it shows a bar/number, that number is registered in
    claims.json with a source, or it is qualitative only.
 5. **How it works** — the pipeline in three plain steps (capture → synthesize → serve), links to docs.
@@ -87,6 +87,6 @@ source). E0 locks the words + arms the honesty gate; it does not touch the live 
 
 ---
 
-*Handoff: the owner reviews §2–§5 copy, edits as desired, and replaces the `Owner-Approved: PENDING`
+_Handoff: the owner reviews §2–§5 copy, edits as desired, and replaces the `Owner-Approved: PENDING`
 line with a real sign-off. That flips the e0 gate's approval check green; the armed claims checker
-stays red against the live site until E2 cleans it.*
+stays red against the live site until E2 cleans it._

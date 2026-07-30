@@ -13,7 +13,14 @@
 //      is emitted; the projector NEVER auto-picks a winner. A correction at a LATER valid_time is not
 //      a conflict — it is a normal bi-temporal update.
 import fs from "node:fs";
-import { readKelEvents, appendKelEvent, foldProjection, applyConverters, ulid, CURRENT_SCHEMA_VERSION } from "./kel.mjs";
+import {
+  readKelEvents,
+  appendKelEvent,
+  foldProjection,
+  applyConverters,
+  ulid,
+  CURRENT_SCHEMA_VERSION
+} from "./kel.mjs";
 import { NON_PROJECTED_TYPES } from "./projector.mjs";
 
 // --- quarantine (teleport exclusion) ----------------------------------------
@@ -37,7 +44,11 @@ export function quarantineFilter(quarantineFile) {
 // --- reversible privacy deletion (tombstone + journal) ----------------------
 // Captures the subject's current payload, journals it, then appends a `tombstoned` event. The
 // original assertion line stays in the append-only log (nothing is erased) — the tombstone hides it.
-export function privacyDelete(logFile, journalFile, { subjectId, sid, reason = "privacy-deletion", machine = "t480", converters = {} }) {
+export function privacyDelete(
+  logFile,
+  journalFile,
+  { subjectId, sid, reason = "privacy-deletion", machine = "t480", converters = {} }
+) {
   const { events } = readKelEvents(logFile);
   const proj = foldProjection(
     events.filter((e) => !NON_PROJECTED_TYPES.has(e.type)),
@@ -49,7 +60,13 @@ export function privacyDelete(logFile, journalFile, { subjectId, sid, reason = "
   // journal first (so a crash after the tombstone still leaves the payload recoverable).
   fs.appendFileSync(
     journalFile,
-    JSON.stringify({ subject_id: subjectId, sid, payload: current.payload, reason, deleted_at: now }) + "\n"
+    JSON.stringify({
+      subject_id: subjectId,
+      sid,
+      payload: current.payload,
+      reason,
+      deleted_at: now
+    }) + "\n"
   );
   const r = appendKelEvent(logFile, {
     id: ulid(),
@@ -73,7 +90,12 @@ export function privacyDelete(logFile, journalFile, { subjectId, sid, reason = "
 export function restorePrivacyDeletion(logFile, journalFile, { subjectId, machine = "t480" }) {
   let entries;
   try {
-    entries = fs.readFileSync(journalFile, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
+    entries = fs
+      .readFileSync(journalFile, "utf8")
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .map((l) => JSON.parse(l));
   } catch {
     return { ok: false, reason: "no-journal" };
   }
@@ -141,8 +163,16 @@ export function projectWithPrivacy(
     const distinct = [...seen.values()];
 
     if (distinct.length >= 2) {
-      store[id] = { conflict: true, candidates: distinct, valid_time: new Date(maxVt).toISOString() };
-      const conflict = { subject_id: id, valid_time: new Date(maxVt).toISOString(), candidates: distinct };
+      store[id] = {
+        conflict: true,
+        candidates: distinct,
+        valid_time: new Date(maxVt).toISOString()
+      };
+      const conflict = {
+        subject_id: id,
+        valid_time: new Date(maxVt).toISOString(),
+        candidates: distinct
+      };
       conflicts.push(conflict);
       if (reviewLog) {
         const now = new Date().toISOString();

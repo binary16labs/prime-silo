@@ -21,8 +21,15 @@ test("Scenario: every capture carries authorship (staged session + execution rec
   const root = tmp();
   initManifest(root, { machine: "t480", hardware: {}, hlcNodeId: "mA" });
   const s = stageSession(root, {
-    sid: "sess_h", machine: "t480", process: "house-trainer", project: "prime-silo",
-    task_context: "EP-L/L6", valid_time: "2026-07-25T00:00:00Z", authorship: "house", content: "raw", links: {}
+    sid: "sess_h",
+    machine: "t480",
+    process: "house-trainer",
+    project: "prime-silo",
+    task_context: "EP-L/L6",
+    valid_time: "2026-07-25T00:00:00Z",
+    authorship: "house",
+    content: "raw",
+    links: {}
   });
   // the staged index record carries authorship
   assert.equal(JSON.parse(fs.readFileSync(s.indexPath, "utf8")).authorship, "house");
@@ -30,7 +37,16 @@ test("Scenario: every capture carries authorship (staged session + execution rec
   const kel = readKelEvents(path.join(root, "eventlog", "events.jsonl"));
   assert.equal(kel.events.find((e) => e.type === "session_staged").authorship, "house");
   // the execution record carries authorship
-  const rec = fromG0Run({ run_id: "r1", machine: "t480", kind: "offload", valid_time: "2026-07-25T00:00:00Z", txn_time: "2026-07-25T00:01:00Z", hlc: "h", authorship: "house", events: [] });
+  const rec = fromG0Run({
+    run_id: "r1",
+    machine: "t480",
+    kind: "offload",
+    valid_time: "2026-07-25T00:00:00Z",
+    txn_time: "2026-07-25T00:01:00Z",
+    hlc: "h",
+    authorship: "house",
+    events: []
+  });
   assert.equal(rec.authorship, "house");
 });
 
@@ -42,8 +58,19 @@ test("Scenario: an untagged record is refused", () => {
   // strict register build rejects an untagged record too
   const dir = tmp();
   assert.throws(() =>
-    buildRegister(path.join(dir, "executions.jsonl"),
-      { coordEvents: [{ id: "01J", type: "task_done", agent: "claude", ts: "2026-07-25T00:00:00Z", machine: "t480" }] },
+    buildRegister(
+      path.join(dir, "executions.jsonl"),
+      {
+        coordEvents: [
+          {
+            id: "01J",
+            type: "task_done",
+            agent: "claude",
+            ts: "2026-07-25T00:00:00Z",
+            machine: "t480"
+          }
+        ]
+      },
       { strict: true }
     )
   );
@@ -52,7 +79,10 @@ test("Scenario: an untagged record is refused", () => {
 test("Scenario: the served position is recorded with its predecessor", () => {
   const dir = tmp();
   const p = path.join(dir, "served.json");
-  const ptr = recordServed(p, { served: "house/qwen2.5-coder-tuned", replaces: "house/qwen2.5-coder-prev" });
+  const ptr = recordServed(p, {
+    served: "house/qwen2.5-coder-tuned",
+    replaces: "house/qwen2.5-coder-prev"
+  });
   assert.equal(ptr.served, "house/qwen2.5-coder-tuned");
   assert.equal(ptr.replaces, "house/qwen2.5-coder-prev");
   assert.equal(ptr.rollback_to, "house/qwen2.5-coder-prev"); // revert target recorded

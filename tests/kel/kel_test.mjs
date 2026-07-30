@@ -64,7 +64,10 @@ test("Scenario: the chain betrays an edited historical line", () => {
   appendKelEvent(f, evt({ id: "C" }));
 
   // tamper with the first historical line
-  const lines = fs.readFileSync(f, "utf8").split("\n").filter((l) => l.trim() !== "");
+  const lines = fs
+    .readFileSync(f, "utf8")
+    .split("\n")
+    .filter((l) => l.trim() !== "");
   const doctored = JSON.parse(lines[0]);
   doctored.machine = "evil-box";
   lines[0] = JSON.stringify(doctored);
@@ -81,25 +84,45 @@ test("Scenario: bi-temporal queries are answerable", () => {
   // true-from 2020, recorded 2021
   appendKelEvent(
     f,
-    evt({ id: "Ea", subject: { kind: "card", id: "card:Y" }, valid_time: "2020-01-01T00:00:00Z", txn_time: "2021-01-01T00:00:00Z" })
+    evt({
+      id: "Ea",
+      subject: { kind: "card", id: "card:Y" },
+      valid_time: "2020-01-01T00:00:00Z",
+      txn_time: "2021-01-01T00:00:00Z"
+    })
   );
   // corrected: true-from 2022, recorded 2023
   appendKelEvent(
     f,
-    evt({ id: "Eb", subject: { kind: "card", id: "card:Y" }, valid_time: "2022-01-01T00:00:00Z", txn_time: "2023-01-01T00:00:00Z" })
+    evt({
+      id: "Eb",
+      subject: { kind: "card", id: "card:Y" },
+      valid_time: "2022-01-01T00:00:00Z",
+      txn_time: "2023-01-01T00:00:00Z"
+    })
   );
   const { events } = readKelEvents(f);
 
   // what was TRUE at valid-time 2021 → only Ea (Eb's valid-time is 2022)
-  assert.equal(foldProjection(events, { asOfValidTime: "2021-06-01T00:00:00Z" }).get("card:Y").event.id, "Ea");
+  assert.equal(
+    foldProjection(events, { asOfValidTime: "2021-06-01T00:00:00Z" }).get("card:Y").event.id,
+    "Ea"
+  );
   // what did we KNOW at txn-time 2022 → only Ea (Eb recorded 2023)
-  assert.equal(foldProjection(events, { asOfTxnTime: "2022-06-01T00:00:00Z" }).get("card:Y").event.id, "Ea");
+  assert.equal(
+    foldProjection(events, { asOfTxnTime: "2022-06-01T00:00:00Z" }).get("card:Y").event.id,
+    "Ea"
+  );
   // now → the correction
   assert.equal(foldProjection(events).get("card:Y").event.id, "Eb");
 });
 
 test("Scenario: an out-of-version record still replays", () => {
-  const e = evt({ subject: { kind: "card", id: "card:Z" }, schema_version: "1.0.0", payload: { a: 1 } });
+  const e = evt({
+    subject: { kind: "card", id: "card:Z" },
+    schema_version: "1.0.0",
+    payload: { a: 1 }
+  });
   const converters = {
     "1.0.0->1.1.0": (x) => ({ ...x, payload: { ...x.payload, upconverted: true } })
   };

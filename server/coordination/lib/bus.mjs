@@ -14,7 +14,7 @@ export function createBus() {
       res.writeHead(200, {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
-        Connection: "keep-alive",
+        Connection: "keep-alive"
       });
       res.write(": connected\n\n"); // comment frame flushes headers + confirms the stream is live
       subscribers.add(res);
@@ -39,6 +39,6 @@ export function createBus() {
     },
     size() {
       return subscribers.size;
-    },
+    }
   };
 }

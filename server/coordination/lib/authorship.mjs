@@ -25,7 +25,10 @@ export function requireAuthorship(record) {
 // Record which model is served behind the router and what it replaced (the revert target).
 // Shape per SOLUTION §5.5; the human_signature + decision_rule are filled by the wave-3 promotion
 // gate (L12/L13) — here we only record served + predecessor so rollback is always possible.
-export function recordServed(pointerPath, { served, replaces = null, decisionVector = null, humanSignature = null, rollbackTo } = {}) {
+export function recordServed(
+  pointerPath,
+  { served, replaces = null, decisionVector = null, humanSignature = null, rollbackTo } = {}
+) {
   const now = new Date().toISOString();
   const ptr = {
     type: "model_promotion",

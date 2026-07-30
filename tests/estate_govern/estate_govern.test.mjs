@@ -3,7 +3,11 @@
 // gate is hermetic — no real fs/network. The additive-route scenario exercises estate_api.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { proposeSync, signProposal, applySync } from "../../server/coordination/lib/estate_govern.mjs";
+import {
+  proposeSync,
+  signProposal,
+  applySync
+} from "../../server/coordination/lib/estate_govern.mjs";
 import { createEstateApi } from "../../server/coordination/lib/estate_api.mjs";
 
 // A spy syncSource that mimics L4 idempotence: content seen once is not "new" again.
@@ -26,9 +30,16 @@ function makeBus() {
 test("Scenario: no sync without an owner signature", () => {
   const spy = makeSyncSpy();
   const bus = makeBus();
-  const proposal = proposeSync({ clean: ["s1", "s2"], quarantined: { count: 0 } }, { satellite: "asus" });
+  const proposal = proposeSync(
+    { clean: ["s1", "s2"], quarantined: { count: 0 } },
+    { satellite: "asus" }
+  );
   assert.equal(proposal.approved, false, "a fresh proposal is never auto-approved");
-  const r = applySync(proposal, { machine: "asus", driveLabel: "claude", sessions: [{ sid: "s1", content: "a" }] }, { syncSource: spy.fn, bus });
+  const r = applySync(
+    proposal,
+    { machine: "asus", driveLabel: "claude", sessions: [{ sid: "s1", content: "a" }] },
+    { syncSource: spy.fn, bus }
+  );
   assert.equal(r.applied, false, "an unapproved proposal moves nothing");
   assert.equal(spy.calls.length, 0, "syncSource is never invoked");
   assert.equal(bus.events.length, 0, "no approval event is emitted");
@@ -37,10 +48,25 @@ test("Scenario: no sync without an owner signature", () => {
 test("Scenario: approved sync stages only the clean delta, idempotently", () => {
   const spy = makeSyncSpy();
   const bus = makeBus();
-  const signed = signProposal(proposeSync({ clean: ["s1", "s2"], quarantined: { count: 0 } }, { satellite: "asus" }), "darkhorse 2026-07-28");
-  const source = { machine: "asus", driveLabel: "claude", sessions: [{ sid: "s1", content: "a" }, { sid: "s2", content: "b" }, { sid: "sX", content: "x" }] };
+  const signed = signProposal(
+    proposeSync({ clean: ["s1", "s2"], quarantined: { count: 0 } }, { satellite: "asus" }),
+    "darkhorse 2026-07-28"
+  );
+  const source = {
+    machine: "asus",
+    driveLabel: "claude",
+    sessions: [
+      { sid: "s1", content: "a" },
+      { sid: "s2", content: "b" },
+      { sid: "sX", content: "x" }
+    ]
+  };
   const r1 = applySync(signed, source, { syncSource: spy.fn, bus });
-  assert.deepEqual(spy.calls[0].sort(), ["s1", "s2"], "only the clean sids are staged (sX excluded)");
+  assert.deepEqual(
+    spy.calls[0].sort(),
+    ["s1", "s2"],
+    "only the clean sids are staged (sX excluded)"
+  );
   assert.equal(r1.syncResult.sessionsNew, 2, "first run stages both clean sessions");
   assert.equal(bus.events.length, 1, "exactly one approval event on a real sync");
   const r2 = applySync(signed, source, { syncSource: spy.fn, bus });
@@ -51,10 +77,17 @@ test("Scenario: approved sync stages only the clean delta, idempotently", () => 
 
 test("Scenario: a quarantined sid can never enter a proposal", () => {
   // even if the drift's clean list erroneously carried a quarantined sid, proposeSync drops it (R31 defense-in-depth)
-  const p = proposeSync({ clean: ["s1", "q"], quarantined: { count: 1 } }, { satellite: "asus", quarantine: ["q"] });
+  const p = proposeSync(
+    { clean: ["s1", "q"], quarantined: { count: 1 } },
+    { satellite: "asus", quarantine: ["q"] }
+  );
   assert.deepEqual(p.clean, ["s1"], "the quarantined sid is excluded from the proposal");
   assert.equal(p.privacy.attested, true, "the proposal carries a privacy attestation");
-  assert.equal(JSON.stringify(p).includes('"q"'), false, "no quarantined sid appears anywhere in the proposal");
+  assert.equal(
+    JSON.stringify(p).includes('"q"'),
+    false,
+    "no quarantined sid appears anywhere in the proposal"
+  );
   assert.ok(p.privacy.quarantinedExcluded >= 1, "the attestation counts the exclusion");
 });
 
@@ -65,7 +98,10 @@ test("Scenario: additive route, default unchanged", async () => {
   assert.equal(get.status, 200);
   assert.ok("summary" in get.body, "GET /api/estate still returns the estate + summary");
   // the new propose route is owned by the estate api
-  const prop = await callRoute(api, "POST", "/api/estate/sync/propose", { delta: { clean: ["s1"], quarantined: { count: 0 } }, satellite: "asus" });
+  const prop = await callRoute(api, "POST", "/api/estate/sync/propose", {
+    delta: { clean: ["s1"], quarantined: { count: 0 } },
+    satellite: "asus"
+  });
   assert.equal(prop.status, 200);
   assert.equal(prop.body.approved, false, "propose returns an unapproved proposal");
   assert.deepEqual(prop.body.clean, ["s1"]);
@@ -76,13 +112,25 @@ function callRoute(api, method, path, body) {
   return new Promise((resolve) => {
     const chunks = body ? [Buffer.from(JSON.stringify(body))] : [];
     const req = {
-      method, url: path,
-      on(ev, cb) { if (ev === "data") chunks.forEach((c) => cb(c)); if (ev === "end") cb(); return req; }
+      method,
+      url: path,
+      on(ev, cb) {
+        if (ev === "data") chunks.forEach((c) => cb(c));
+        if (ev === "end") cb();
+        return req;
+      }
     };
-    let status = 0, raw = "";
+    let status = 0,
+      raw = "";
     const res = {
-      writeHead(s) { status = s; return res; },
-      end(d) { raw = d || ""; resolve({ status, body: raw ? JSON.parse(raw) : null }); }
+      writeHead(s) {
+        status = s;
+        return res;
+      },
+      end(d) {
+        raw = d || "";
+        resolve({ status, body: raw ? JSON.parse(raw) : null });
+      }
     };
     const owned = api.tryHandle(req, res);
     if (!owned) resolve({ status: 0, body: null, owned: false });

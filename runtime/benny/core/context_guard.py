@@ -62,7 +62,9 @@ class ContextGuard:
             return text
 
         truncated = text[:limit]
-        marker = f"\n\n✂️ [TRUNCATED {len(text) - limit} chars of {source_hint} for context stability] ✂️"
+        marker = (
+            f"\n\n✂️ [TRUNCATED {len(text) - limit} chars of {source_hint} for context stability] ✂️"
+        )
         return truncated + marker
 
     @staticmethod

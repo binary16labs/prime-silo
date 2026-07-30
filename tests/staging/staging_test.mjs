@@ -63,7 +63,10 @@ test("Scenario: the drive attaches to any machine with no config", () => {
 test("Scenario: a staged session is self-describing", () => {
   const r = root();
   initManifest(r, { machine: "t480", hardware: { gpu: "gfx1200" }, hlcNodeId: "mA" });
-  const s = stageSession(r, session({ sid: "sess_D", process: "antigravity", task_context: "EP-L/L4" }));
+  const s = stageSession(
+    r,
+    session({ sid: "sess_D", process: "antigravity", task_context: "EP-L/L4" })
+  );
 
   const rec = JSON.parse(fs.readFileSync(s.indexPath, "utf8"));
   assert.equal(rec.machine, "t480");

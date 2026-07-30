@@ -154,9 +154,7 @@ async def get_embedding_async(
     text = (text or "")[:_EMBED_MAX_CHARS]
     # Dynamic provider cascade for failover
     preferred = ["lmstudio"] if os.environ.get("BENNY_LMSTUDIO_ENDPOINTS") else []
-    base_order = [provider] + [
-        p for p in ["lmstudio", "fastflowlm", "ollama"] if p != provider
-    ]
+    base_order = [provider] + [p for p in ["lmstudio", "fastflowlm", "ollama"] if p != provider]
     providers_to_try = preferred + [p for p in base_order if p not in preferred]
     client = _get_async_client()
 
@@ -211,9 +209,7 @@ def get_embedding_sync(
 
     text = (text or "")[:_EMBED_MAX_CHARS]
     preferred = ["lmstudio"] if os.environ.get("BENNY_LMSTUDIO_ENDPOINTS") else []
-    base_order = [provider] + [
-        p for p in ["lmstudio", "fastflowlm", "ollama"] if p != provider
-    ]
+    base_order = [provider] + [p for p in ["lmstudio", "fastflowlm", "ollama"] if p != provider]
     providers_to_try = preferred + [p for p in base_order if p not in preferred]
     client = _get_sync_client()
 

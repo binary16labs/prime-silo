@@ -1,28 +1,28 @@
-import fs from 'node:fs';
-import crypto from 'node:crypto';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import fs from "node:fs";
+import crypto from "node:crypto";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const ROOT_DIR = path.resolve(__dirname, '..');
-const PACKAGE_JSON_PATH = path.join(ROOT_DIR, 'package.json');
-const CONTENT_JSON_PATH = path.join(__dirname, 'content.json');
-const TEMPLATE_HTML_PATH = path.join(__dirname, 'template.html');
-const OUT_INDEX_HTML = path.join(__dirname, 'index.html');
-const OUT_SITEMAP = path.join(__dirname, 'sitemap.xml');
-const OUT_ROBOTS = path.join(__dirname, 'robots.txt');
+const ROOT_DIR = path.resolve(__dirname, "..");
+const PACKAGE_JSON_PATH = path.join(ROOT_DIR, "package.json");
+const CONTENT_JSON_PATH = path.join(__dirname, "content.json");
+const TEMPLATE_HTML_PATH = path.join(__dirname, "template.html");
+const OUT_INDEX_HTML = path.join(__dirname, "index.html");
+const OUT_SITEMAP = path.join(__dirname, "sitemap.xml");
+const OUT_ROBOTS = path.join(__dirname, "robots.txt");
 
 // ---------------------------------------------------------------------------
 // 1. Version + content + lints
 // ---------------------------------------------------------------------------
-const pkg = JSON.parse(fs.readFileSync(PACKAGE_JSON_PATH, 'utf-8'));
-const version = pkg.version || '0.0.0';
+const pkg = JSON.parse(fs.readFileSync(PACKAGE_JSON_PATH, "utf-8"));
+const version = pkg.version || "0.0.0";
 
-const rawContent = fs.readFileSync(CONTENT_JSON_PATH, 'utf-8');
+const rawContent = fs.readFileSync(CONTENT_JSON_PATH, "utf-8");
 
-const forbiddenPhrases = ['[[', '98%', '$2,363', '$34', 'token tax'];
+const forbiddenPhrases = ["[[", "98%", "$2,363", "$34", "token tax"];
 function lint(text, label) {
   for (const phrase of forbiddenPhrases) {
     if (text.toLowerCase().includes(phrase.toLowerCase())) {
@@ -35,7 +35,7 @@ function lint(text, label) {
     process.exit(1);
   }
 }
-lint(rawContent.replace(/"\@context"|"https?:[^"]*"/g, '""'), 'content.json');
+lint(rawContent.replace(/"\@context"|"https?:[^"]*"/g, '""'), "content.json");
 if (rawContent.includes('"/prime-silo/')) {
   console.error('BUILD ERROR: Root-absolute asset path "/prime-silo/" found.');
   process.exit(1);
@@ -79,11 +79,11 @@ const BENNY_PARTS = `
   </g>`;
 
 // Inline Benny (parts individually animatable — <use> shadow trees are not)
-function bennyInline(cls, caption = '') {
+function bennyInline(cls, caption = "") {
   return `
     <div class="mascot-container ${cls}">
       <svg class="benny-svg" viewBox="0 0 256 256" role="img" aria-label="Benny the German Shepherd mascot">${BENNY_PARTS}</svg>
-      ${caption ? `<div class="mascot-caption">${caption}</div>` : ''}
+      ${caption ? `<div class="mascot-caption">${caption}</div>` : ""}
     </div>`;
 }
 
@@ -93,11 +93,13 @@ function bennyInline(cls, caption = '') {
 
 // 3a. HERO SILO — stroke-drawn grain silo, assembles from ring segments on load
 function heroSiloSvg() {
-  const rings = [0, 1, 2, 3, 4, 5].map((i) => {
-    const y = 132 + i * 45;
-    const fill = i % 2 === 0 ? '#F3EFE6' : '#EDE7D9';
-    return `<g class="hs-ring"><rect x="66" y="${y}" width="208" height="45" fill="${fill}" stroke="#233026" stroke-width="2.5"/><line x1="66" y1="${y + 45}" x2="274" y2="${y + 45}" stroke="#233026" stroke-width="1" opacity="0.35"/></g>`;
-  }).join('\n');
+  const rings = [0, 1, 2, 3, 4, 5]
+    .map((i) => {
+      const y = 132 + i * 45;
+      const fill = i % 2 === 0 ? "#F3EFE6" : "#EDE7D9";
+      return `<g class="hs-ring"><rect x="66" y="${y}" width="208" height="45" fill="${fill}" stroke="#233026" stroke-width="2.5"/><line x1="66" y1="${y + 45}" x2="274" y2="${y + 45}" stroke="#233026" stroke-width="1" opacity="0.35"/></g>`;
+    })
+    .join("\n");
   return `
   <svg id="hero-silo" class="hero-silo" viewBox="0 0 340 470" role="img" aria-label="Prime-Silo grain silo assembling from ring segments">
     <g class="hs-legs" stroke="#233026" stroke-width="3" stroke-linecap="round">
@@ -138,10 +140,11 @@ function siloChapterSvg(layers) {
        <circle cx="0" cy="-16" r="5" fill="#B94B2A" stroke="none"/><circle cx="-18" cy="12" r="5" fill="#171F19"/><circle cx="18" cy="12" r="5" fill="#171F19"/>
      </g>`
   ];
-  const nums = ['L3', 'L2', 'L1', 'L0'];
-  const floors = layers.map((layer, i) => {
-    const y = 140 + i * 92;
-    return `
+  const nums = ["L3", "L2", "L1", "L0"];
+  const floors = layers
+    .map((layer, i) => {
+      const y = 140 + i * 92;
+      return `
     <g class="silo-floor" data-floor="${i}" transform="translate(216 ${y})">
       <g class="floor-anim">
         <rect x="0" y="0" width="328" height="78" rx="10" fill="#233026" stroke="#7F9A83" stroke-width="1.5"/>
@@ -151,12 +154,15 @@ function siloChapterSvg(layers) {
         <g transform="translate(290 39)">${glyphs[i]}</g>
       </g>
     </g>`;
-  }).join('\n');
+    })
+    .join("\n");
 
-  const labelLines = layers.map((_, i) => {
-    const y = 179 + i * 92;
-    return `<path class="floor-line" data-floor="${i}" d="M548 ${y} C 610 ${y}, 640 ${y}, 726 ${y}" stroke="#B94B2A" stroke-width="2" fill="none" stroke-dasharray="5 5"/>`;
-  }).join('\n');
+  const labelLines = layers
+    .map((_, i) => {
+      const y = 179 + i * 92;
+      return `<path class="floor-line" data-floor="${i}" d="M548 ${y} C 610 ${y}, 640 ${y}, 726 ${y}" stroke="#B94B2A" stroke-width="2" fill="none" stroke-dasharray="5 5"/>`;
+    })
+    .join("\n");
 
   return `
   <svg id="silo-open-svg" viewBox="0 0 760 560" role="img" aria-label="Cutaway of the Prime-Silo silo revealing four architecture floors">
@@ -188,11 +194,27 @@ function siloChapterSvg(layers) {
 // 3c. TRI-GRAPH — mesh explodes into 3 tinted clusters + CORRELATES_WITH edges
 function trigraphSvg() {
   function cluster(id, cx, cy, tint, label) {
-    const offs = [[0, 0, 12], [-36, -24, 8], [32, -28, 7], [-22, 30, 7], [36, 22, 8], [6, -48, 6]];
-    const nodes = offs.map(([x, y, r], i) =>
-      `<circle cx="${x}" cy="${y}" r="${r}" fill="${i === 0 ? tint : '#171F19'}" stroke="${tint}" stroke-width="1.8"/>`).join('');
-    const spokes = offs.slice(1).map(([x, y]) =>
-      `<line x1="0" y1="0" x2="${x}" y2="${y}" stroke="${tint}" stroke-width="1.2" opacity="0.6"/>`).join('');
+    const offs = [
+      [0, 0, 12],
+      [-36, -24, 8],
+      [32, -28, 7],
+      [-22, 30, 7],
+      [36, 22, 8],
+      [6, -48, 6]
+    ];
+    const nodes = offs
+      .map(
+        ([x, y, r], i) =>
+          `<circle cx="${x}" cy="${y}" r="${r}" fill="${i === 0 ? tint : "#171F19"}" stroke="${tint}" stroke-width="1.8"/>`
+      )
+      .join("");
+    const spokes = offs
+      .slice(1)
+      .map(
+        ([x, y]) =>
+          `<line x1="0" y1="0" x2="${x}" y2="${y}" stroke="${tint}" stroke-width="1.2" opacity="0.6"/>`
+      )
+      .join("");
     return `
     <g class="tg-cluster" id="${id}" transform="translate(${cx} ${cy})">
       <g class="cluster-anim">
@@ -212,24 +234,27 @@ function trigraphSvg() {
       <text class="tg-edge-label svg-mono" x="238" y="340" text-anchor="middle" font-size="10.5" fill="#D1CDC7" letter-spacing="1.5" transform="rotate(64 238 340)">CORRELATES_WITH</text>
       <text class="tg-edge-label svg-mono" x="520" y="352" text-anchor="middle" font-size="10.5" fill="#D1CDC7" letter-spacing="1.5" transform="rotate(-58 520 352)">CORRELATES_WITH</text>
     </g>
-    ${cluster('tg-docs', 190, 160, '#A8BFA8', 'DOCUMENTS')}
-    ${cluster('tg-code', 570, 180, '#D65D38', 'CODE · AST')}
-    ${cluster('tg-memory', 385, 430, '#C5B38E', 'MEMORY')}
+    ${cluster("tg-docs", 190, 160, "#A8BFA8", "DOCUMENTS")}
+    ${cluster("tg-code", 570, 180, "#D65D38", "CODE · AST")}
+    ${cluster("tg-memory", 385, 430, "#C5B38E", "MEMORY")}
   </svg>`;
 }
 
 // 3d. MEMO-RAY DIAL — 6-node circular workflow, sweeping arc, center readout
 function dialSvg(dialLabels) {
-  const CX = 320, CY = 320, R = 230;
-  const nodes = dialLabels.map((label, k) => {
-    const a = (-90 + k * 60) * Math.PI / 180;
-    const x = (CX + R * Math.cos(a)).toFixed(1);
-    const y = (CY + R * Math.sin(a)).toFixed(1);
-    // label placement radially outward
-    const lx = (CX + (R + 52) * Math.cos(a)).toFixed(1);
-    const ly = (CY + (R + 52) * Math.sin(a) + 4).toFixed(1);
-    const anchor = Math.cos(a) > 0.3 ? 'start' : Math.cos(a) < -0.3 ? 'end' : 'middle';
-    return `
+  const CX = 320,
+    CY = 320,
+    R = 230;
+  const nodes = dialLabels
+    .map((label, k) => {
+      const a = ((-90 + k * 60) * Math.PI) / 180;
+      const x = (CX + R * Math.cos(a)).toFixed(1);
+      const y = (CY + R * Math.sin(a)).toFixed(1);
+      // label placement radially outward
+      const lx = (CX + (R + 52) * Math.cos(a)).toFixed(1);
+      const ly = (CY + (R + 52) * Math.sin(a) + 4).toFixed(1);
+      const anchor = Math.cos(a) > 0.3 ? "start" : Math.cos(a) < -0.3 ? "end" : "middle";
+      return `
     <g class="dial-node" data-node="${k}" transform="translate(${x} ${y})">
       <g class="dial-node-anim">
         <circle r="27" fill="#FFFFFF" stroke="#233026" stroke-width="2.5"/>
@@ -237,11 +262,12 @@ function dialSvg(dialLabels) {
       </g>
       <text class="dial-node-label" x="${(lx - x).toFixed(1)}" y="${(ly - y).toFixed(1)}" text-anchor="${anchor}" font-size="14" fill="#59544E" letter-spacing="1.2" class="svg-mono">${label.toUpperCase()}</text>
     </g>`;
-  }).join('\n');
+    })
+    .join("\n");
   const ticks = Array.from({ length: 12 }, (_, k) => {
-    const a = (k * 30) * Math.PI / 180;
+    const a = (k * 30 * Math.PI) / 180;
     return `<line x1="${(CX + 210 * Math.cos(a)).toFixed(1)}" y1="${(CY + 210 * Math.sin(a)).toFixed(1)}" x2="${(CX + 220 * Math.cos(a)).toFixed(1)}" y2="${(CY + 220 * Math.sin(a)).toFixed(1)}" stroke="#C5B38E" stroke-width="2"/>`;
-  }).join('');
+  }).join("");
   return `
   <svg id="dial-svg" viewBox="0 0 640 640" role="img" aria-label="LONGVIEW workflow dial: inventory, extract, map, graph, enrich, deliver">
     <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="#E5E2DC" stroke-width="8"/>
@@ -253,10 +279,18 @@ function dialSvg(dialLabels) {
 
 // 3e. GOVERNANCE SEAL — seal splits into manifest / HMAC hash / lineage chain
 function governanceSvg() {
-  const chainNodes = [-120, -40, 40, 120].map((y, i) =>
-    `<circle cx="0" cy="${y}" r="15" fill="${i === 3 ? '#B94B2A' : '#171F19'}" stroke="#EBCD9C" stroke-width="2"/>`).join('');
-  const chainLinks = [-120, -40, 40].map((y) =>
-    `<path class="gov-link" d="M0 ${y + 15} L0 ${y + 65}" stroke="#EBCD9C" stroke-width="2.5" fill="none"/>`).join('');
+  const chainNodes = [-120, -40, 40, 120]
+    .map(
+      (y, i) =>
+        `<circle cx="0" cy="${y}" r="15" fill="${i === 3 ? "#B94B2A" : "#171F19"}" stroke="#EBCD9C" stroke-width="2"/>`
+    )
+    .join("");
+  const chainLinks = [-120, -40, 40]
+    .map(
+      (y) =>
+        `<path class="gov-link" d="M0 ${y + 15} L0 ${y + 65}" stroke="#EBCD9C" stroke-width="2.5" fill="none"/>`
+    )
+    .join("");
   return `
   <svg id="governance-svg" viewBox="0 0 760 540" role="img" aria-label="Governance seal splitting into a manifest, an HMAC signature and a lineage chain">
     <g id="gov-manifest" transform="translate(150 160)">
@@ -293,7 +327,7 @@ function governanceSvg() {
 // HMAC seal stamps, then a sensitive session teleports into a quarantine lane.
 // Topology mirrors scratch/longview_run/dashboard/lineage.mjs (the real DAG).
 function lineageDagSvg() {
-  const node = (id, x, y, w, label, extra = '') =>
+  const node = (id, x, y, w, label, extra = "") =>
     `<g id="${id}" class="ln-node"><rect x="${x}" y="${y}" width="${w}" height="40" rx="7" fill="#171F19" stroke="#EBCD9C" stroke-width="1.6"${extra}/><text x="${x + w / 2}" y="${y + 25}" text-anchor="middle" font-size="13" fill="#D1CDC7" class="svg-mono">${label}</text></g>`;
   return `
   <svg id="lineage-svg" viewBox="0 0 760 560" role="img" aria-label="A provenance graph flowing from sessions to cards to graph to book to PDF, sealed by HMAC, with a sensitive session teleported into an isolated quarantine lane">
@@ -315,10 +349,10 @@ function lineageDagSvg() {
       <circle cx="86" cy="172" r="12" fill="#26382D" stroke="#EBCD9C" stroke-width="1.5"/>
       <text x="98" y="202" text-anchor="middle" font-size="12" fill="#A8BFA8" class="svg-mono">sessions</text>
     </g>
-    ${node('ln-cards', 211, 130, 78, 'cards')}
-    ${node('ln-graph', 361, 130, 78, 'graph')}
-    ${node('ln-book', 511, 130, 78, 'book')}
-    ${node('ln-pdf', 391, 263, 78, 'pdf')}
+    ${node("ln-cards", 211, 130, 78, "cards")}
+    ${node("ln-graph", 361, 130, 78, "graph")}
+    ${node("ln-book", 511, 130, 78, "book")}
+    ${node("ln-pdf", 391, 263, 78, "pdf")}
 
     <!-- HMAC seal stamped beside the book -->
     <g id="ln-seal" transform="translate(680 150)">
@@ -357,14 +391,32 @@ function lineageDagSvg() {
 // ---------------------------------------------------------------------------
 // 4. Chapter chassis
 // ---------------------------------------------------------------------------
-function chapterShell({ id, theme, visual, kicker, headline, sub, steps, stageHtml, extraRailHtml = '', trackVh, beats }) {
-  const stepCards = steps.map((s, i) => `
-        <li class="step${i === 0 ? ' active' : ''}" data-step="${i}">
+function chapterShell({
+  id,
+  theme,
+  visual,
+  kicker,
+  headline,
+  sub,
+  steps,
+  stageHtml,
+  extraRailHtml = "",
+  trackVh,
+  beats
+}) {
+  const stepCards = steps
+    .map(
+      (s, i) => `
+        <li class="step${i === 0 ? " active" : ""}" data-step="${i}">
           <h4>${s.label}</h4>
           <p>${s.body}</p>
-        </li>`).join('\n');
-  const dots = Array.from({ length: beats }, (_, i) =>
-    `<span class="chapter-dot${i === 0 ? ' active' : ''}" data-dot="${i}"></span>`).join('');
+        </li>`
+    )
+    .join("\n");
+  const dots = Array.from(
+    { length: beats },
+    (_, i) => `<span class="chapter-dot${i === 0 ? " active" : ""}" data-dot="${i}"></span>`
+  ).join("");
   return `
   <section class="chapter chapter--${theme}" id="${id}" data-visual="${visual}" data-beats="${beats}">
     <div class="chapter-pin">
@@ -375,7 +427,7 @@ function chapterShell({ id, theme, visual, kicker, headline, sub, steps, stageHt
         <div class="chapter-head">
           <div class="section-kicker">${kicker}</div>
           <h2 class="section-headline">${headline}</h2>
-          ${sub ? `<p class="chapter-sub">${sub}</p>` : ''}
+          ${sub ? `<p class="chapter-sub">${sub}</p>` : ""}
         </div>
         <ol class="chapter-steps">${stepCards}
         </ol>
@@ -399,24 +451,24 @@ const heroSectionHtml = `
       <h1 class="section-headline hero-headline">${heroWords}</h1>
       <p class="section-sub">${hero.sub}</p>
       <div class="hero-actions">
-        ${hero.ctas.map((c) => `<a href="${c.href}" class="btn ${c.kind === 'primary' ? 'btn-primary' : 'btn-ghost'}">${c.label}</a>`).join('\n')}
+        ${hero.ctas.map((c) => `<a href="${c.href}" class="btn ${c.kind === "primary" ? "btn-primary" : "btn-ghost"}">${c.label}</a>`).join("\n")}
       </div>
       <div class="proof-chips">
-        ${hero.proofChips.map((chip) => `<span class="proof-chip">${chip}</span>`).join('\n')}
+        ${hero.proofChips.map((chip) => `<span class="proof-chip">${chip}</span>`).join("\n")}
       </div>
     </div>
     <div class="hero-visual">
       ${heroSiloSvg()}
-      ${bennyInline('benny-hero', 'Benny — your sovereign agent guide')}
+      ${bennyInline("benny-hero", "Benny — your sovereign agent guide")}
     </div>
   </header>`;
 
 // Inside-the-silo signature chapter (interactiveSilo data)
 const silo = content.interactiveSilo;
 const siloChapterHtml = chapterShell({
-  id: 'inside-the-silo',
-  theme: 'light',
-  visual: 'silo',
+  id: "inside-the-silo",
+  theme: "light",
+  visual: "silo",
   kicker: silo.kicker,
   headline: silo.headline,
   sub: silo.sub,
@@ -429,9 +481,9 @@ const siloChapterHtml = chapterShell({
 // Tri-graph chapter
 const tg = byId.trigraph;
 const trigraphChapterHtml = chapterShell({
-  id: 'trigraph',
-  theme: 'dark',
-  visual: 'trigraph',
+  id: "trigraph",
+  theme: "dark",
+  visual: "trigraph",
   kicker: tg.kicker,
   headline: tg.headline,
   steps: tg.steps,
@@ -443,46 +495,58 @@ const trigraphChapterHtml = chapterShell({
 // LONGVIEW dial chapter
 // Enablers — six load-bearing primitives, each with what it unlocks
 const ena = byId.enablers;
-const enablersSectionHtml = !ena ? '' : `
+const enablersSectionHtml = !ena
+  ? ""
+  : `
   <section class="enablers-section" id="enablers">
     <div class="section-inner">
       <div class="section-kicker">${ena.kicker}</div>
       <h2 class="section-headline">${ena.headline}</h2>
       <p class="section-sub enablers-intro">${ena.intro}</p>
       <div class="enablers-grid">
-        ${ena.items.map((e, i) => `
+        ${ena.items
+          .map(
+            (e, i) => `
         <article class="enabler-card reveal-item" data-enabler="${i}">
           <div class="enabler-num svg-mono">0${i + 1}</div>
           <h3>${e.name}</h3>
           <p>${e.body}</p>
           <p class="enabler-unlocks"><span class="unlock-arrow" aria-hidden="true">→</span> <strong>Unlocks:</strong> ${e.unlocks}</p>
-        </article>`).join('')}
+        </article>`
+          )
+          .join("")}
       </div>
     </div>
   </section>`;
 
 const lv = byId.longview;
-const builtOnHtml = !lv.builtOn ? '' : `
+const builtOnHtml = !lv.builtOn
+  ? ""
+  : `
         <div class="built-on">
           <span class="built-on-label svg-mono">${lv.builtOn.label}</span>
-          <div class="built-on-chips">${lv.builtOn.items.map((b) => `<a class="built-on-chip" href="#enablers">${b}</a>`).join('')}</div>
+          <div class="built-on-chips">${lv.builtOn.items.map((b) => `<a class="built-on-chip" href="#enablers">${b}</a>`).join("")}</div>
         </div>`;
 const dialReadout = `
   <div class="dial-readout">
     <div class="dial-step-kicker">Phase 01 / 0${lv.dial.length}</div>
     <div class="dial-step-name">${lv.steps[0].label}</div>
     <div class="dial-stats">
-      ${lv.proofStats.map((s) => `
+      ${lv.proofStats
+        .map(
+          (s) => `
       <div class="dial-stat">
         <span class="dial-num" data-target="${s.value}" data-decimals="${Number.isInteger(s.value) ? 0 : 1}">${s.value}</span><span class="dial-suffix">${s.suffix}</span>
         <em>${s.note}</em>
-      </div>`).join('')}
+      </div>`
+        )
+        .join("")}
     </div>
   </div>`;
 const longviewChapterHtml = chapterShell({
-  id: 'longview',
-  theme: 'cream',
-  visual: 'dial',
+  id: "longview",
+  theme: "cream",
+  visual: "dial",
   kicker: lv.kicker,
   headline: lv.headline,
   steps: lv.steps,
@@ -496,9 +560,9 @@ const longviewChapterHtml = chapterShell({
 // Governance chapter
 const gov = byId.governance;
 const governanceChapterHtml = chapterShell({
-  id: 'governance',
-  theme: 'dark',
-  visual: 'governance',
+  id: "governance",
+  theme: "dark",
+  visual: "governance",
   kicker: gov.kicker,
   headline: gov.headline,
   steps: gov.steps,
@@ -509,18 +573,20 @@ const governanceChapterHtml = chapterShell({
 
 // Lineage-mesh DAG chapter (additive — sits alongside the governance seal)
 const lin = byId.lineage;
-const lineageChapterHtml = !lin ? '' : chapterShell({
-  id: 'lineage',
-  theme: 'dark',
-  visual: 'lineage',
-  kicker: lin.kicker,
-  headline: lin.headline,
-  sub: lin.sub,
-  steps: lin.steps,
-  stageHtml: lineageDagSvg(),
-  trackVh: 460,
-  beats: lin.steps.length
-});
+const lineageChapterHtml = !lin
+  ? ""
+  : chapterShell({
+      id: "lineage",
+      theme: "dark",
+      visual: "lineage",
+      kicker: lin.kicker,
+      headline: lin.headline,
+      sub: lin.sub,
+      steps: lin.steps,
+      stageHtml: lineageDagSvg(),
+      trackVh: 460,
+      beats: lin.steps.length
+    });
 
 // Document Forge chapter (additive — chapter 05, new in v1.16.4)
 // Portrait-safe viewBox; every element visible by default (no-JS complete).
@@ -529,43 +595,74 @@ function forgeSvg() {
   // phones without cropping; desktop scales the same column. Fonts sized for
   // the 400-unit viewBox so labels survive a 0.6x mobile scale.
   const srcs = [
-    ['mem', 'MEMORY', 48, 'M-5 0a5 5 0 1 1 10 0a5 5 0 1 1-10 0M-13 -8a3.4 3.4 0 1 1 6.8 0a3.4 3.4 0 1 1-6.8 0M7 -9a3.4 3.4 0 1 1 6.8 0a3.4 3.4 0 1 1-6.8 0'],
-    ['rag', 'RAG', 124, 'M-12 -8h24v5h-24zM-12 -1h24v5h-24zM-12 6h24v5h-24z'],
-    ['code', 'CODE GRAPH', 200, 'M-11 -7l-6 7l6 7M11 -7l6 7l-6 7M3 -11l-6 22'],
-    ['raw', 'RAW DATA', 276, 'M-9 -11h14l5 5v17h-19zM5 -11v5h5'],
-    ['src', 'SOURCE', 352, 'M-12 -9h24v18h-24zM-12 -3h24M-7 2l4 4l-4 4']
+    [
+      "mem",
+      "MEMORY",
+      48,
+      "M-5 0a5 5 0 1 1 10 0a5 5 0 1 1-10 0M-13 -8a3.4 3.4 0 1 1 6.8 0a3.4 3.4 0 1 1-6.8 0M7 -9a3.4 3.4 0 1 1 6.8 0a3.4 3.4 0 1 1-6.8 0"
+    ],
+    ["rag", "RAG", 124, "M-12 -8h24v5h-24zM-12 -1h24v5h-24zM-12 6h24v5h-24z"],
+    ["code", "CODE GRAPH", 200, "M-11 -7l-6 7l6 7M11 -7l6 7l-6 7M3 -11l-6 22"],
+    ["raw", "RAW DATA", 276, "M-9 -11h14l5 5v17h-19zM5 -11v5h5"],
+    ["src", "SOURCE", 352, "M-12 -9h24v18h-24zM-12 -3h24M-7 2l4 4l-4 4"]
   ];
-  const srcNodes = srcs.map(([id, label, x]) => `
+  const srcNodes = srcs
+    .map(
+      ([id, label, x]) => `
     <g class="fg-anchor" transform="translate(${x} 44)"><g id="fg-src-${id}" class="fg-src">
       <rect x="-32" y="-22" width="64" height="44" rx="8" fill="#1E2D24" stroke="#9CAF88" stroke-width="1.4"/>
-      <path d="${srcs.find(s2 => s2[0] === id)[3]}" fill="none" stroke="#EAE5D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 -4)"/>
+      <path d="${srcs.find((s2) => s2[0] === id)[3]}" fill="none" stroke="#EAE5D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 -4)"/>
       <text y="17" text-anchor="middle" font-size="8.5" fill="#9CAF88" font-family="Outfit,sans-serif" letter-spacing="0.5">${label}</text>
-    </g></g>`).join('');
-  const lanes = srcs.map(([id, , x]) => `
-    <path id="fg-lane-${id}" class="fg-lane" d="M${x} 68 C ${x} 100, ${200 + (x - 200) * 0.2} 108, 200 128" fill="none" stroke="#C5B38E" stroke-width="1.8" opacity="0.85"/>`).join('');
-  const chapters = [[96, 288], [200, 288], [304, 288]];
+    </g></g>`
+    )
+    .join("");
+  const lanes = srcs
+    .map(
+      ([id, , x]) => `
+    <path id="fg-lane-${id}" class="fg-lane" d="M${x} 68 C ${x} 100, ${200 + (x - 200) * 0.2} 108, 200 128" fill="none" stroke="#C5B38E" stroke-width="1.8" opacity="0.85"/>`
+    )
+    .join("");
+  const chapters = [
+    [96, 288],
+    [200, 288],
+    [304, 288]
+  ];
   const leaves = [];
-  chapters.forEach(([cx], ci) => { for (let li = 0; li < 3; li++) leaves.push([cx - 26 + li * 26, 332, ci]); });
+  chapters.forEach(([cx], ci) => {
+    for (let li = 0; li < 3; li++) leaves.push([cx - 26 + li * 26, 332, ci]);
+  });
   const treeHtml = `
     <g id="fg-tree">
       <circle id="fg-root" cx="200" cy="232" r="16" fill="#26382D" stroke="#9CAF88" stroke-width="1.6"/>
       <text x="200" y="236" text-anchor="middle" font-size="9" fill="#EAE5D9" font-family="Courier Prime,monospace">SAD</text>
-      ${chapters.map(([x, y], i) => `
+      ${chapters
+        .map(
+          ([x, y], i) => `
         <path class="fg-branch" d="M200 248 C 200 262, ${x} 264, ${x} ${y - 11}" fill="none" stroke="#9CAF88" stroke-width="1.5"/>
         <circle class="fg-chapter" cx="${x}" cy="${y}" r="11" fill="#26382D" stroke="#C5B38E" stroke-width="1.4"/>
-        <text x="${x}" y="${y + 3.5}" text-anchor="middle" font-size="8" fill="#EAE5D9" font-family="Courier Prime,monospace">C${i + 1}</text>`).join('')}
-      ${leaves.map(([x, y, ci]) => `
+        <text x="${x}" y="${y + 3.5}" text-anchor="middle" font-size="8" fill="#EAE5D9" font-family="Courier Prime,monospace">C${i + 1}</text>`
+        )
+        .join("")}
+      ${leaves
+        .map(
+          ([x, y, ci]) => `
         <path class="fg-twig" d="M${chapters[ci][0]} ${chapters[ci][1] + 11} C ${chapters[ci][0]} ${y - 12}, ${x} ${y - 16}, ${x} ${y - 7}" fill="none" stroke="#5b6779" stroke-width="1"/>
-        <rect class="fg-leaf" x="${x - 6.5}" y="${y - 6.5}" width="13" height="13" rx="3" fill="#1E2D24" stroke="#9CAF88" stroke-width="1.2"/>`).join('')}
+        <rect class="fg-leaf" x="${x - 6.5}" y="${y - 6.5}" width="13" height="13" rx="3" fill="#1E2D24" stroke="#9CAF88" stroke-width="1.2"/>`
+        )
+        .join("")}
     </g>`;
   // Register slots: 2 columns x 3 rows; rows regroup by permuting slots.
   const slots = [0, 1, 2, 3, 4, 5].map((i) => [112 + (i % 2) * 176, 576 + Math.floor(i / 2) * 24]);
-  const registerRows = [0, 1, 2, 3, 4, 5].map((i) => `
+  const registerRows = [0, 1, 2, 3, 4, 5]
+    .map(
+      (i) => `
       <g class="fg-anchor" transform="translate(${slots[i][0]} ${slots[i][1]})"><g class="fg-row" data-row="${i}">
         <rect x="-78" y="-9" width="156" height="18" rx="4" fill="#1E2D24" stroke="#26382D"/>
-        <circle cx="-66" cy="0" r="4" fill="${['#B85D3D', '#9CAF88', '#C5B38E'][i % 3]}"/>
-        <text x="-56" y="3" font-size="8.5" fill="#8a97ab" font-family="Courier Prime,monospace">${['sad-epic', 'enrich', 'book-arcs'][i % 3]} · ${['c'+(4900+i*7).toString(16), 'ws:sessions', 'out:pdf'][i % 3]}</text>
-      </g></g>`).join('');
+        <circle cx="-66" cy="0" r="4" fill="${["#B85D3D", "#9CAF88", "#C5B38E"][i % 3]}"/>
+        <text x="-56" y="3" font-size="8.5" fill="#8a97ab" font-family="Courier Prime,monospace">${["sad-epic", "enrich", "book-arcs"][i % 3]} · ${["c" + (4900 + i * 7).toString(16), "ws:sessions", "out:pdf"][i % 3]}</text>
+      </g></g>`
+    )
+    .join("");
   return `
   <svg id="forge-svg" viewBox="0 0 400 660" role="img" aria-label="The document forge: five evidence sources converge into a recursive index whose gated leaf nodes assemble the TOGAF EPIC document, with earned ETA and Marquez-free lineage grouping.">
     <g id="fg-sources">${srcNodes}</g>
@@ -602,45 +699,55 @@ function forgeSvg() {
     <g id="fg-register">
       <text x="200" y="516" text-anchor="middle" font-size="9.5" fill="#9CAF88" font-family="Outfit,sans-serif" letter-spacing="1.5">OPENLINEAGE — NO MARQUEZ</text>
       <g id="fg-chips" transform="translate(74 536)">
-        ${['output', 'commit', 'workspace'].map((c, i) => `
+        ${["output", "commit", "workspace"]
+          .map(
+            (c, i) => `
         <g class="fg-chip" data-chip="${c}" transform="translate(${i * 88} 0)">
           <rect x="-2" y="-11" width="80" height="19" rx="9.5" fill="#1E2D24" stroke="#26382D"/>
           <text x="38" y="3" text-anchor="middle" font-size="8.5" fill="#8a97ab" font-family="Outfit,sans-serif">${c}</text>
-        </g>`).join('')}
+        </g>`
+          )
+          .join("")}
       </g>
       ${registerRows}
     </g>
   </svg>`;
 }
 const forge = byId.forge;
-const forgeChapterHtml = !forge ? '' : chapterShell({
-  id: 'forge',
-  theme: 'dark',
-  visual: 'forge',
-  kicker: forge.kicker,
-  headline: forge.headline,
-  sub: forge.sub,
-  steps: forge.steps,
-  stageHtml: forgeSvg(),
-  trackVh: 500,
-  beats: forge.steps.length
-});
+const forgeChapterHtml = !forge
+  ? ""
+  : chapterShell({
+      id: "forge",
+      theme: "dark",
+      visual: "forge",
+      kicker: forge.kicker,
+      headline: forge.headline,
+      sub: forge.sub,
+      steps: forge.steps,
+      stageHtml: forgeSvg(),
+      trackVh: 500,
+      beats: forge.steps.length
+    });
 
 // Terminal cinema (interactiveTerminal data)
 const term = content.interactiveTerminal;
 function wrapNumbers(line) {
   return line.replace(/(\d+(?:\.\d+)?)/g, (m) => `<span class="t-num" data-num="${m}">${m}</span>`);
 }
-const termBlocks = term.workflows.map((w, i) => `
+const termBlocks = term.workflows
+  .map(
+    (w, i) => `
       <div class="term-block" data-beat="${i}">
         <div class="term-line term-prompt">
           <span class="term-user">operator@prime-silo:~$</span>
           <span class="term-cmd" data-cmd="${w.command}">${w.command}</span><span class="term-caret" aria-hidden="true"></span>
         </div>
         <div class="term-out">
-          ${w.logs.map((l) => `<div class="term-log">${wrapNumbers(l)}</div>`).join('\n')}
+          ${w.logs.map((l) => `<div class="term-log">${wrapNumbers(l)}</div>`).join("\n")}
         </div>
-      </div>`).join('\n');
+      </div>`
+  )
+  .join("\n");
 const terminalSectionHtml = `
   <section class="chapter chapter--terminal" id="terminal" data-visual="terminal" data-beats="${term.workflows.length}">
     <div class="chapter-pin">
@@ -671,11 +778,15 @@ const problemSectionHtml = `
     <div class="section-kicker">${prob.kicker}</div>
     <h2 class="section-headline">${prob.headline}</h2>
     <div class="cards-grid reveal-group">
-      ${prob.cards.map((c) => `
+      ${prob.cards
+        .map(
+          (c) => `
       <div class="problem-card reveal-item">
         <h3>${c.title}</h3>
         <p>${c.body}</p>
-      </div>`).join('\n')}
+      </div>`
+        )
+        .join("\n")}
     </div>
   </section>`;
 
@@ -689,11 +800,11 @@ const manifestoSectionHtml = `
       <div class="manifesto-grid reveal-group">
         <div class="manifesto-box generated reveal-item">
           <h3>${man.left.label}</h3>
-          <ul>${man.left.items.map((i) => `<li>${i}</li>`).join('\n')}</ul>
+          <ul>${man.left.items.map((i) => `<li>${i}</li>`).join("\n")}</ul>
         </div>
         <div class="manifesto-box guaranteed reveal-item">
           <h3>${man.right.label}</h3>
-          <ul>${man.right.items.map((i) => `<li>${i}</li>`).join('\n')}</ul>
+          <ul>${man.right.items.map((i) => `<li>${i}</li>`).join("\n")}</ul>
         </div>
       </div>
       <p class="manifesto-outro">${man.outro}</p>
@@ -706,14 +817,18 @@ const featuresSectionHtml = `
     <div class="section-kicker">${feat.kicker}</div>
     <h2 class="section-headline">${feat.headline}</h2>
     <div class="features-grid reveal-group">
-      ${feat.features.map((f) => `
+      ${feat.features
+        .map(
+          (f) => `
       <div class="feature-item reveal-item">
         <div>
           <span class="feature-tag">${f.tag}</span>
           <h3 class="feature-name">${f.name}</h3>
           <p class="feature-blurb">${f.blurb}</p>
         </div>
-      </div>`).join('\n')}
+      </div>`
+        )
+        .join("\n")}
     </div>
   </section>`;
 
@@ -724,9 +839,13 @@ const compoundingSectionHtml = `
     <h2 class="section-headline">${comp.headline}</h2>
     <p class="section-sub compounding-body">${comp.body}</p>
     <div class="chain-visual reveal-group">
-      ${comp.chain.map((node, i, arr) => `
+      ${comp.chain
+        .map(
+          (node, i, arr) => `
       <div class="chain-node reveal-item"><strong>${node.label}</strong><span>${node.note}</span></div>
-      ${i < arr.length - 1 ? '<span class="chain-arrow reveal-item">→</span>' : ''}`).join('\n')}
+      ${i < arr.length - 1 ? '<span class="chain-arrow reveal-item">→</span>' : ""}`
+        )
+        .join("\n")}
     </div>
   </section>`;
 
@@ -738,14 +857,18 @@ const calculatorSectionHtml = `
     <div class="calc-disclaimer">${calc.disclaimer}</div>
     <div class="calculator-card reveal-item">
       <div class="calc-inputs">
-        ${calc.inputs.map((inp) => `
+        ${calc.inputs
+          .map(
+            (inp) => `
         <div class="input-group">
           <div class="input-header">
             <span>${inp.label}</span>
             <span class="input-value-display" id="val-${inp.key}">${inp.default}</span>
           </div>
           <input type="range" id="input-${inp.key}" data-calc-key="${inp.key}" min="${inp.min}" max="${inp.max}" step="${inp.step}" value="${inp.default}" />
-        </div>`).join('\n')}
+        </div>`
+          )
+          .join("\n")}
       </div>
       <div class="calc-results">
         <div>
@@ -777,11 +900,11 @@ const audiencesSectionHtml = `
     <div class="audiences-grid reveal-group">
       <div class="audience-card reveal-item">
         <h3>${aud.personal.headline}</h3>
-        <ul>${aud.personal.bullets.map((b) => `<li>${b}</li>`).join('\n')}</ul>
+        <ul>${aud.personal.bullets.map((b) => `<li>${b}</li>`).join("\n")}</ul>
       </div>
       <div class="audience-card reveal-item">
         <h3>${aud.institutional.headline}</h3>
-        <ul>${aud.institutional.bullets.map((b) => `<li>${b}</li>`).join('\n')}</ul>
+        <ul>${aud.institutional.bullets.map((b) => `<li>${b}</li>`).join("\n")}</ul>
       </div>
     </div>
   </section>`;
@@ -793,11 +916,15 @@ const roadmapSectionHtml = `
       <div class="section-kicker">${road.kicker}</div>
       <h2 class="section-headline">${road.headline}</h2>
       <div class="roadmap-grid reveal-group">
-        ${road.items.map((item) => `
+        ${road.items
+          .map(
+            (item) => `
         <div class="roadmap-item reveal-item">
           <h4>${item.name}</h4>
           <p>${item.blurb}</p>
-        </div>`).join('\n')}
+        </div>`
+          )
+          .join("\n")}
       </div>
     </div>
   </section>`;
@@ -808,11 +935,15 @@ const faqSectionHtml = `
     <div class="section-kicker">${faq.kicker}</div>
     <h2 class="section-headline">${faq.headline}</h2>
     <div class="faq-list reveal-group">
-      ${faq.items.map((i) => `
+      ${faq.items
+        .map(
+          (i) => `
       <div class="faq-item reveal-item">
         <h4>${i.q}</h4>
         <p>${i.a}</p>
-      </div>`).join('\n')}
+      </div>`
+        )
+        .join("\n")}
     </div>
   </section>`;
 
@@ -837,7 +968,7 @@ const footerSectionHtml = `
     </div>
     <div class="footer-side">
       <ul class="footer-links">
-        ${content.footer.links.map((l) => `<li><a href="${l.href}">${l.label}</a></li>`).join('\n')}
+        ${content.footer.links.map((l) => `<li><a href="${l.href}">${l.label}</a></li>`).join("\n")}
       </ul>
       <div class="mascot-container benny-footer">
         <svg class="benny-svg benny-svg--small" viewBox="0 0 256 256" aria-hidden="true"><use href="#benny-symbol" /></svg>
@@ -855,13 +986,15 @@ const footerSectionHtml = `
 const PRIMARY_COUNT = 4;
 const primaryLinks = content.nav.links.slice(0, PRIMARY_COUNT);
 const moreLinks = content.nav.links.slice(PRIMARY_COUNT);
-const navPrimaryHtml = primaryLinks.map((l) => `<li><a href="${l.href}">${l.label}</a></li>`).join('\n');
+const navPrimaryHtml = primaryLinks
+  .map((l) => `<li><a href="${l.href}">${l.label}</a></li>`)
+  .join("\n");
 const navMoreHtml = [
   // duplicated primary links: only shown at narrow widths (CSS)
   ...primaryLinks.map((l) => `<li class="nav-dup"><a href="${l.href}">${l.label}</a></li>`),
   ...moreLinks.map((l) => `<li><a href="${l.href}">${l.label}</a></li>`),
   `<li><a href="#faq">FAQ</a></li>`
-].join('\n');
+].join("\n");
 const navCtaHtml = `<a href="${content.nav.cta.href}" class="btn btn-primary nav-cta">${content.nav.cta.label}</a>`;
 
 // ---------------------------------------------------------------------------
@@ -886,15 +1019,15 @@ const mainHtml = [
   roadmapSectionHtml,
   faqSectionHtml,
   contactSectionHtml
-].join('\n');
+].join("\n");
 
-let template = fs.readFileSync(TEMPLATE_HTML_PATH, 'utf-8');
+let template = fs.readFileSync(TEMPLATE_HTML_PATH, "utf-8");
 content.seo.jsonLd.softwareVersion = version;
 
 const replacements = {
   metaTitle: content.seo.metaTitle,
   metaDescription: content.seo.metaDescription,
-  keywords: content.seo.keywords.join(', '),
+  keywords: content.seo.keywords.join(", "),
   ogTitle: content.seo.ogTitle,
   ogDescription: content.seo.ogDescription,
   ogImage: content.seo.ogImage,
@@ -915,17 +1048,17 @@ for (const [key, val] of Object.entries(replacements)) {
 const chapterCount = (template.match(/<section class="chapter /g) || []).length;
 const asserts = [
   [chapterCount >= 4, `>=4 chapter sections (got ${chapterCount})`],
-  [template.includes('class="chapter-pin"'), 'chapter-pin present'],
-  [template.includes('class="chapter-stage"'), 'chapter-stage present'],
-  [template.includes('class="chapter-rail"'), 'chapter-rail present'],
-  [template.includes('id="hero-silo"'), 'hero silo SVG present'],
-  [template.includes('id="silo-open-svg"'), 'silo chapter SVG present'],
-  [template.includes('id="dial-svg"'), 'dial SVG present'],
-  [template.includes('id="trigraph-svg"'), 'trigraph SVG present'],
-  [template.includes('id="governance-svg"'), 'governance SVG present'],
-  [template.includes('id="lineage-svg"'), 'lineage DAG SVG present'],
-  [template.includes('class="terminal-window"'), 'terminal window present'],
-  [!template.includes('{{'), 'no unresolved template markers']
+  [template.includes('class="chapter-pin"'), "chapter-pin present"],
+  [template.includes('class="chapter-stage"'), "chapter-stage present"],
+  [template.includes('class="chapter-rail"'), "chapter-rail present"],
+  [template.includes('id="hero-silo"'), "hero silo SVG present"],
+  [template.includes('id="silo-open-svg"'), "silo chapter SVG present"],
+  [template.includes('id="dial-svg"'), "dial SVG present"],
+  [template.includes('id="trigraph-svg"'), "trigraph SVG present"],
+  [template.includes('id="governance-svg"'), "governance SVG present"],
+  [template.includes('id="lineage-svg"'), "lineage DAG SVG present"],
+  [template.includes('class="terminal-window"'), "terminal window present"],
+  [!template.includes("{{"), "no unresolved template markers"]
 ];
 for (const [ok, label] of asserts) {
   if (!ok) {
@@ -934,34 +1067,43 @@ for (const [ok, label] of asserts) {
   }
 }
 // Lint final HTML too (skip legit external/anchor/mailto URLs)
-lint(template.replace(/(?:src|href)="(?:https?:|mailto:|#|\.\/)[^"]*"/g, ''), 'generated index.html');
+lint(
+  template.replace(/(?:src|href)="(?:https?:|mailto:|#|\.\/)[^"]*"/g, ""),
+  "generated index.html"
+);
 
 // Content-hashed asset URLs: bust browser/CDN caches whenever css/js change
 // (GitHub Pages + heuristic caching otherwise serves stale assets after deploys).
 const assetHash = (f) =>
-  crypto.createHash('sha256').update(fs.readFileSync(path.join(__dirname, f))).digest('hex').slice(0, 10);
+  crypto
+    .createHash("sha256")
+    .update(fs.readFileSync(path.join(__dirname, f)))
+    .digest("hex")
+    .slice(0, 10);
 template = template
-  .replace('href="./styles.css"', `href="./styles.css?v=${assetHash('styles.css')}"`)
-  .replace('src="./app.js"', `src="./app.js?v=${assetHash('app.js')}"`);
+  .replace('href="./styles.css"', `href="./styles.css?v=${assetHash("styles.css")}"`)
+  .replace('src="./app.js"', `src="./app.js?v=${assetHash("app.js")}"`);
 
 const GENERATED_BANNER = `<!-- GENERATED FILE — DO NOT EDIT DIRECTLY. EDIT website/content.json & website/template.html AND RUN node website/build.mjs -->\n`;
-fs.writeFileSync(OUT_INDEX_HTML, GENERATED_BANNER + template, 'utf-8');
+fs.writeFileSync(OUT_INDEX_HTML, GENERATED_BANNER + template, "utf-8");
 
 const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://binary16labs.github.io/prime-silo/</loc>
-    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
+    <lastmod>${new Date().toISOString().split("T")[0]}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
 </urlset>`;
-fs.writeFileSync(OUT_SITEMAP, sitemapXml, 'utf-8');
+fs.writeFileSync(OUT_SITEMAP, sitemapXml, "utf-8");
 
 const robotsTxt = `User-agent: *
 Allow: /
 
 Sitemap: https://binary16labs.github.io/prime-silo/sitemap.xml`;
-fs.writeFileSync(OUT_ROBOTS, robotsTxt, 'utf-8');
+fs.writeFileSync(OUT_ROBOTS, robotsTxt, "utf-8");
 
-console.log(`Build OK — index.html (${chapterCount} chapters), sitemap.xml, robots.txt · v${version}`);
+console.log(
+  `Build OK — index.html (${chapterCount} chapters), sitemap.xml, robots.txt · v${version}`
+);
