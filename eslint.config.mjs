@@ -44,6 +44,7 @@ export default [
       ".benny_home/**",
       "home/**",
       "site/**",
+      "workspace/**",
       "**/*.min.js",
       "**/vendor/**",
       // Under app/ we lint only the project's own _prime_silo modules; the

@@ -192,7 +192,7 @@
               <button
                 type="button"
                 class="prime-silo-arc-item"
-                @click="openRoute('/bridge'); isArcOpen = false; activeSub = null"
+                @click="openRoute('/_prime_silo/bridge'); isArcOpen = false; activeSub = null"
               >
                 <x-icon>grid_view</x-icon>
                 <span>Bridge</span>
@@ -202,7 +202,7 @@
                 <button
                   type="button"
                   class="prime-silo-arc-subitem"
-                  @click="openRoute('/bridge?mode=memory'); isArcOpen = false; activeSub = null"
+                  @click="openRoute('/_prime_silo/bridge?mode=memory'); isArcOpen = false; activeSub = null"
                 >
                   <x-icon>memory</x-icon>
                   <span>Memory Manager</span>
@@ -214,7 +214,7 @@
             <button
               type="button"
               class="prime-silo-arc-item"
-              @click="openRoute('/studio'); isArcOpen = false"
+              @click="openRoute('/_prime_silo/bridge?mode=studio'); isArcOpen = false"
             >
               <x-icon>code</x-icon>
               <span>Studio</span>
@@ -229,7 +229,7 @@
               <button
                 type="button"
                 class="prime-silo-arc-item"
-                @click="openRoute('/observe'); isArcOpen = false; activeSub = null"
+                @click="openRoute('/_prime_silo/bridge?mode=runs'); isArcOpen = false; activeSub = null"
               >
                 <x-icon>visibility</x-icon>
                 <span>Observe</span>
@@ -239,7 +239,7 @@
                 <button
                   type="button"
                   class="prime-silo-arc-subitem"
-                  @click="openRoute('/longview'); isArcOpen = false; activeSub = null"
+                  @click="openRoute('/_prime_silo/bridge?mode=runs&workspace=longview'); isArcOpen = false; activeSub = null"
                 >
                   <x-icon>analytics</x-icon>
                   <span>Longview</span>
@@ -247,7 +247,7 @@
                 <button
                   type="button"
                   class="prime-silo-arc-subitem"
-                  @click="openRoute('/flywheel'); isArcOpen = false; activeSub = null"
+                  @click="openRoute('/_prime_silo/bridge?mode=runs&workspace=flywheel'); isArcOpen = false; activeSub = null"
                 >
                   <x-icon>loop</x-icon>
                   <span>Flywheel</span>
@@ -264,7 +264,7 @@
               <button
                 type="button"
                 class="prime-silo-arc-item"
-                @click="openRoute('/governance'); isArcOpen = false; activeSub = null"
+                @click="openRoute('/_prime_silo/bridge?mode=v2'); isArcOpen = false; activeSub = null"
               >
                 <x-icon>account_tree</x-icon>
                 <span>Governance V2</span>
@@ -274,7 +274,7 @@
                 <button
                   type="button"
                   class="prime-silo-arc-subitem"
-                  @click="openRoute('/estate'); isArcOpen = false; activeSub = null"
+                  @click="openRoute('/_prime_silo/bridge?mode=v2&workspace=estate'); isArcOpen = false; activeSub = null"
                 >
                   <x-icon>domain</x-icon>
                   <span>Estate Console</span>

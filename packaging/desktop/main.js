@@ -2314,29 +2314,49 @@ async function startDesktop() {
                 document.body.classList.remove('v2-chat-open');
 
                 const modeRoutes = {
-                  studio: '#/_prime_silo/studio',
-                  longview: '#/_prime_silo/longview',
-                  flywheel: '#/_prime_silo/flywheel',
-                  estate: '#/_prime_silo/estate',
+                  pulse: '#/_prime_silo/bridge?mode=pulse',
+                  memory: '#/_prime_silo/bridge?mode=memory',
+                  documents: '#/_prime_silo/bridge?mode=documents',
+                  code: '#/_prime_silo/bridge?mode=code',
+                  flows: '#/_prime_silo/bridge?mode=flows',
+                  studio: '#/_prime_silo/bridge?mode=studio',
+                  runs: '#/_prime_silo/bridge?mode=runs',
+                  v2: '#/_prime_silo/bridge?mode=v2',
+                  agents: '#/_prime_silo/bridge?mode=agents',
+                  longview: '#/_prime_silo/bridge?mode=runs&workspace=longview',
+                  flywheel: '#/_prime_silo/bridge?mode=runs&workspace=flywheel',
+                  estate: '#/_prime_silo/bridge?mode=v2&workspace=estate',
                   governance: '#/_prime_silo/bridge?mode=v2',
                   setup: '#/_prime_silo/setup'
                 };
 
                 const targetRoute = modeRoutes[targetAction] || ('#/_prime_silo/bridge?mode=' + targetAction);
 
+                const modeMatch = targetRoute.match(/[?&]mode=([^&]+)/);
+                const targetMode = modeMatch ? modeMatch[1] : null;
+                const workspaceMatch = targetRoute.match(/[?&]workspace=([^&]+)/);
+                const targetWorkspace = workspaceMatch ? workspaceMatch[1] : null;
+
                 const bridgeEl = document.querySelector('[x-data="bridge()"]');
                 if (bridgeEl && window.Alpine && typeof window.Alpine.$data === 'function') {
                   try {
                     const data = window.Alpine.$data(bridgeEl);
-                    if (data && typeof data.setMode === 'function') {
-                      data.setMode(targetAction);
+                    if (data && typeof data.setMode === 'function' && targetMode) {
+                      if (targetWorkspace) {
+                        data.workspace = targetWorkspace;
+                      }
+                      data.setMode(targetMode);
                     }
                   } catch (err) {
                     console.warn('[desktop] Alpine setMode failed:', err);
                   }
                 }
 
-                window.location.hash = targetRoute;
+                if (window.space && window.space.router && typeof window.space.router.goTo === 'function') {
+                  window.space.router.goTo(targetRoute);
+                } else {
+                  window.location.hash = targetRoute;
+                }
               })();
             `;
             mainWindow.webContents

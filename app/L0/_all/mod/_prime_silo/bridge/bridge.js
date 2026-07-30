@@ -165,7 +165,7 @@ export const CHIPS = {
     {
       label: "Trace lineage at this step",
       instruction:
-        "Explain what happened at the current step-through position in the lineage timeline. Use the Bridge context for the step index and active run id."
+        "Explain what happened at the selected node or step-through position in the lineage timeline. Use the Bridge context for the selected node ID (or step index) and active run id."
     }
   ],
   agents: [
@@ -258,7 +258,7 @@ export function workflowToDag(wf) {
 }
 
 export function readQuery(hash) {
-  const out = { mode: "", id: "" };
+  const out = { mode: "", id: "", workspace: "" };
   try {
     const h =
       typeof hash === "string"
@@ -271,6 +271,7 @@ export function readQuery(hash) {
     const params = new URLSearchParams(h.slice(qi + 1));
     out.mode = params.get("mode") || "";
     out.id = params.get("id") || "";
+    out.workspace = params.get("workspace") || "";
   } catch {
     /* ignore */
   }
@@ -511,6 +512,7 @@ export function createBridgePage(options = {}) {
       this._ctx = injected.context || createBridgeContext({ agent: injected.agent });
       const q = readQuery();
       if (q.id) this.selection = { id: q.id };
+      if (q.workspace) this.workspace = q.workspace;
       const initialMode = isValidMode(q.mode) ? q.mode : await this.resolveDefaultMode();
       this.loadConformance();
       this.loadWorkspaces();
