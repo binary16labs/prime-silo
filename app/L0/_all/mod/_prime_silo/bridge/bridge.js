@@ -30,6 +30,7 @@ import {
 import { createOverviewCardsWidget } from "../widgets/memoray/overview_cards/index.js";
 import { createLineageGraphWidget } from "../widgets/memoray/lineage_graph/index.js";
 import { createCodeGraphCanvasWidget } from "../widgets/codegraph/canvas/index.js";
+import { makeAnimeOrbRenderer } from "../widgets/code_3d_v2/anime-orb-renderer.js";
 import { createSynopticWebWidget } from "../widgets/kg3d/synoptic_web/index.js";
 import { createDagCanvasWidget } from "../widgets/dag/canvas/index.js";
 import { createWorkflowDesignerWidget } from "../widgets/workflow_designer/index.js";
@@ -147,12 +148,24 @@ export const CHIPS = {
   ],
   v2: [
     {
-      label: "Explain compliance",
-      instruction: "Explain the mesh health and token budget limits."
+      label: "Explain this run",
+      instruction:
+        "Explain the active run or session in the Governance V2 view: its status, risk weight, error count, and what each step did. Use the Bridge context to get the active run id, then call sessionDetail or runs() to fetch the full lineage."
     },
     {
-      label: "Trace lineage",
-      instruction: "Trace the open lineage of this workflow execution."
+      label: "Why is risk weight high?",
+      instruction:
+        "Explain why the active run has a high risk weight in the Governance Navigator and what I should do to reduce it. Use the Bridge context for the risk weight and error count."
+    },
+    {
+      label: "Summarise the navigator",
+      instruction:
+        "Summarise what I'm seeing in the Governance Navigator: how many runs/sessions are visible, how many have failures, and what the current filter and sort settings mean for the view."
+    },
+    {
+      label: "Trace lineage at this step",
+      instruction:
+        "Explain what happened at the current step-through position in the lineage timeline. Use the Bridge context for the step index and active run id."
     }
   ],
   agents: [
@@ -469,6 +482,11 @@ export function createBridgePage(options = {}) {
     _obsTrace: null,
     _drillWidget: null,
 
+    // governance v2 (weighted metrics, recency, step-through focus)
+    govSort: "weight", // 'weight' | 'time' | 'duration' | 'errors'
+    govFilter: "all", // 'all' | 'failures' | 'compliant'
+    govStepIndex: 0,
+
     // agents (model + provider routing — single config surface)
     agentProviders: {}, // raw /llm/status
     agentConfig: null, // /llm/config (default_model, model_roles, resolved)
@@ -687,22 +705,345 @@ export function createBridgePage(options = {}) {
       }
     },
 
-    async mountV2() {
+    get sortedGovRuns() {
+      const rawRuns = (this.runs || []).map(r => ({ ...r, type: 'run' }));
+      const rawSessions = (this.sessions || []).map(s => ({
+        id: s.id,
+        run_id: s.id,
+        status: "completed",
+        started_at: s.created_at || s.timestamp || new Date().toISOString(),
+        duration_ms: s.duration || 0,
+        errors: [],
+        node_states: {},
+        type: 'session',
+        title: s.content || "Session"
+      }));
+
+      let raw = [...rawRuns, ...rawSessions];
+      
+      if (raw.length === 0) {
+        raw = [
+          { id: "run-cmr-v2-001", status: "completed", started_at: new Date(Date.now() - 300000).toISOString(), duration_ms: 14200, errors: [], node_states: { step1: "success", step2: "success", step3: "success" } },
+          { id: "run-cmr-v2-002", status: "failed", started_at: new Date(Date.now() - 1200000).toISOString(), duration_ms: 65400, errors: ["Step 2 assertion failed"], node_states: { step1: "success", step2: "failed" } },
+          { id: "run-cmr-v2-003", status: "completed", started_at: new Date(Date.now() - 3600000).toISOString(), duration_ms: 8100, errors: [], node_states: { step1: "success" } }
+        ];
+      }
+
+      const scored = raw.map(r => {
+        const states = r.node_states || {};
+        const stepIds = Object.keys(states);
+        const errCount = (r.errors ? r.errors.length : 0) + stepIds.filter(id => /fail|error/i.test(String(states[id]))).length;
+        let weight = 15;
+        if (errCount > 0) weight += errCount * 35;
+        if (r.status === "failed") weight += 30;
+        if (r.duration_ms > 40000) weight += 15;
+        return {
+          ...r,
+          riskWeight: Math.min(100, weight),
+          errCount,
+          formattedDuration: r.duration_ms ? (r.duration_ms / 1000).toFixed(1) + "s" : "N/A"
+        };
+      });
+
+      let filtered = scored;
+      if (this.govFilter === "failures") {
+        filtered = scored.filter(r => r.status === "failed" || r.errCount > 0);
+      } else if (this.govFilter === "compliant") {
+        filtered = scored.filter(r => r.status === "completed" && r.errCount === 0);
+      }
+
+      return filtered.sort((a, b) => {
+        if (this.govSort === "weight") return b.riskWeight - a.riskWeight;
+        if (this.govSort === "time") return Date.parse(b.started_at || 0) - Date.parse(a.started_at || 0);
+        if (this.govSort === "duration") return (b.duration_ms || 0) - (a.duration_ms || 0);
+        if (this.govSort === "errors") return b.errCount - a.errCount;
+        return 0;
+      });
+    },
+
+    selectGovRun(runId) {
+      this.activeRunId = runId;
+      this.govStepIndex = 0;
+
+      const sessionData = this.sessions.find(s => s.id === runId);
+      if (sessionData) {
+        this.activeSessionId = runId;
+      }
+
+      this._syncGovContext();
+      this.observeRun(runId).then(() => this.mountV2());
+    },
+
+    nextGovStep() {
       const v2Timeline = document.getElementById("v2-timeline");
-      if (v2Timeline && typeof v2Timeline.setData === "function") {
-         fetch("/mod/_core/visual/timeline/dataset.json")
-           .then(r => r.json())
-           .then(data => {
-             if (this.activeRunId) {
-               data.sessionId = this.activeRunId;
-               const root = data.nodes.find(n => n.id === "run_main");
-               if (root) {
-                 root.label = "Run: " + this.activeRunId.slice(0, 8);
-               }
-             }
-             v2Timeline.setData(data);
-           })
-           .catch(e => console.log("Mock V2 data not found", e));
+      if (v2Timeline && typeof v2Timeline.stepPlayback === "function") {
+        v2Timeline.stepPlayback(1);
+        this.govStepIndex = Math.max(0, v2Timeline.playbackIndex || 0);
+        this._syncGovContext();
+      }
+    },
+
+    prevGovStep() {
+      const v2Timeline = document.getElementById("v2-timeline");
+      if (v2Timeline && typeof v2Timeline.stepPlayback === "function") {
+        v2Timeline.stepPlayback(-1);
+        this.govStepIndex = Math.max(0, v2Timeline.playbackIndex || 0);
+        this._syncGovContext();
+      }
+    },
+
+    /**
+     * Compute the full Governance V2 snapshot and push it into bridge context.
+     * Called after every user interaction that changes the governance view state:
+     * selecting a run, navigating steps, changing filter/sort. This ensures that
+     * when the operator asks Benny a chip question, the context already reflects
+     * exactly what they see — active run, risk score, step cursor, filter, sidebar.
+     */
+    _syncGovContext() {
+      if (!this._ctx) return;
+
+      const runId = this.activeRunId;
+      const isSession = !!this.sessions.find(s => s.id === runId);
+      const scored = this.sortedGovRuns; // computed getter — already filtered + sorted
+
+      // Find the scored entry for the active run so we get risk metrics.
+      const active = runId ? scored.find(r => (r.run_id || r.id) === runId) : null;
+
+      // Build a summary of node_states for pipeline runs (from runDetail).
+      let nodeStatesSummary = null;
+      if (this.runDetail && this.runDetail.node_states) {
+        const states = this.runDetail.node_states;
+        const counts = {};
+        for (const v of Object.values(states)) {
+          const key = String(v).toLowerCase();
+          counts[key] = (counts[key] || 0) + 1;
+        }
+        nodeStatesSummary = Object.entries(counts)
+          .map(([k, n]) => `${n} ${k}`)
+          .join(", ");
+      }
+
+      // Step total from the timeline component (best-effort).
+      let stepTotal = null;
+      try {
+        const tl = typeof document !== "undefined" && document.getElementById("v2-timeline");
+        if (tl) stepTotal = tl.totalSteps ?? tl.nodeCount ?? null;
+      } catch { /* DOM not available in tests */ }
+
+      const totalVisible = scored.length;
+      const totalFailures = scored.filter(r => r.status === "failed" || r.errCount > 0).length;
+
+      this.syncContext({
+        pageContext: {
+          governance: {
+            // Active run / session
+            activeRunId:       runId || null,
+            activeType:        runId ? (isSession ? "session" : "run") : null,
+            activeStatus:      active?.status || null,
+            activeRiskWeight:  active?.riskWeight ?? null,
+            activeErrCount:    active?.errCount ?? null,
+            activeDuration:    active?.formattedDuration || null,
+            activeTitle:       active?.title || null,  // sessions have titles
+            // Step-through cursor
+            stepIndex:         this.govStepIndex,
+            stepTotal,
+            // Navigator state
+            filter:            this.govFilter,
+            sort:              this.govSort,
+            // Sidebar summary
+            summary: {
+              totalVisible,
+              totalFailures,
+              filter: this.govFilter,
+              sort:   this.govSort
+            },
+            // Per-step node_states (pipeline runs only)
+            nodeStatesSummary
+          }
+        }
+      });
+    },
+
+    /**
+     * Translate a memoray graph entity type to a lineage-timeline swimlane id.
+     * Session → sessions, User Input/Prompt/Thought/Message → chats,
+     * Tool Call/Result → tools, Artifact/File → outputs,
+     * anything else → logs.
+     */
+    _swimlaneFor(entityType) {
+      if (!entityType) return "logs";
+      const t = String(entityType).trim().toLowerCase();
+      if (t === "session" || t === "run" || t === "workflow") return "sessions";
+      if (
+        t.includes("user") || t.includes("input") || t.includes("prompt") ||
+        t === "thought" || t === "message" || t === "chat" || t === "conversation" ||
+        t === "assistant" || t === "query"
+      ) return "chats";
+      if (
+        t.includes("tool") || t === "job" || t === "action" || t === "step"
+      ) return "tools";
+      if (
+        t === "artifact" || t === "file" || t === "data out" || t === "output" || t === "document" || t === "commit"
+      ) return "outputs";
+      if (
+        t === "context" || t === "data in"
+      ) return "inputs";
+      return "logs";
+    },
+
+    /**
+     * Convert a memoray /api/graph/:id response ({nodes, links}) into the
+     * {sessionId, timeRange, nodes, edges} payload the <lineage-timeline>
+     * web component expects. Uses real entity timestamps and the actual
+     * parent→child links so the timeline renders the true session trace.
+     */
+    _graphToTimelineData(graph, sessionId) {
+      if (!graph || !Array.isArray(graph.nodes) || graph.nodes.length === 0) return null;
+
+      // Sort by real timestamp so timeline ordering is chronological.
+      const sorted = [...graph.nodes].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+      const nodes = sorted.map((n) => {
+        const swimlaneId = this._swimlaneFor(n.type);
+        let label = n.label || n.type || "Node";
+        if (swimlaneId === "chats" && n.content) {
+          const clean = String(n.content).replace(/<[^>]+>/g, "").trim();
+          if (clean) {
+            label = clean.length > 35 ? clean.substring(0, 35) + "..." : clean;
+          }
+        }
+        return {
+          id:          n.id,
+          swimlaneId,
+          timestamp:   n.timestamp || Date.now(),
+          label,
+          type:        n.type || "unknown",
+          metadata: {
+            agent:    n.agent || "",
+            content:  (n.content || "").substring(0, 500),
+            toolName: n.metadata?.toolName || "",
+            fileName: n.metadata?.fileName || "",
+            filePath: n.metadata?.filePath || "",
+            isVirtual: n.metadata?.isVirtual || false
+          }
+        };
+      });
+
+      // Translate parent→child links. The memoray graph uses { source, target }
+      // where source/target are entity id strings. The timeline uses { from, to }.
+      const nodeIds = new Set(nodes.map(n => n.id));
+      const edges = (graph.links || [])
+        .map(l => ({
+          from: typeof l.source === "object" ? l.source.id : l.source,
+          to:   typeof l.target === "object" ? l.target.id : l.target
+        }))
+        .filter(e => nodeIds.has(e.from) && nodeIds.has(e.to));
+
+      const timestamps = nodes.map(n => n.timestamp).filter(t => t > 0);
+      const start = timestamps.length ? Math.min(...timestamps) : Date.now();
+      const end   = timestamps.length ? Math.max(...timestamps) : start + 1000;
+
+      return {
+        sessionId,
+        timeRange: { start, end: start === end ? end + 1000 : end },
+        nodes,
+        edges
+      };
+    },
+
+    async mountV2() {
+      if (!this.runs || this.runs.length === 0) {
+        await this.loadRuns();
+      }
+      if (!this.sessions || this.sessions.length === 0) {
+        await this.loadSessions();
+      }
+
+      // Publish governance context to Benny now that runs + sessions are loaded.
+      // This fires once on mount so chip questions work even before the operator
+      // clicks a specific run.
+      this._syncGovContext();
+
+      const v2Timeline = document.getElementById("v2-timeline");
+      if (!v2Timeline || typeof v2Timeline.setData !== "function") return;
+
+
+      let data = null;
+
+      try {
+        if (this.activeRunId) {
+          // Check whether the selected item is a memoray session or a pipeline run.
+          const isSession = this.sessions.some(s => s.id === this.activeRunId);
+
+          if (isSession) {
+            // Fetch the real session graph from memoray.
+            // memorayFetch prepends /api/memoray, so pass the server path only.
+            const resp = await memorayFetch("/graph/" + this.activeRunId);
+            const graph = await readMemorayJson(resp);
+            data = this._graphToTimelineData(graph, this.activeRunId);
+          } else {
+            // Pipeline run — try the governance events endpoint.
+            const resp = await runtimeFetch(
+              `/governance/events?workspace=${encodeURIComponent(this.workspace || "default")}&run_id=${encodeURIComponent(this.activeRunId)}&limit=200`
+            );
+            const payload = await readRuntimeJson(resp);
+            const events = payload && Array.isArray(payload.events) ? payload.events : [];
+            if (events.length > 0) {
+              const nodes = events.map((ev, i) => {
+                const d = ev.data || {};
+                const details = d.details || {};
+                const skill = d.skill || details.skill || "";
+                let lane = "tools";
+                if (ev.event_type === "AGENT_AUTHORSHIP") lane = "chats";
+                else if (/read|view|fetch|context/i.test(skill)) lane = "inputs";
+                else if (/write|replace|create/i.test(skill)) lane = "outputs";
+                else if (/log|error|warn/i.test(ev.event_type)) lane = "logs";
+                return {
+                  id:         ev._integrity_hash || `evt_${i}`,
+                  swimlaneId: lane,
+                  timestamp:  ev.timestamp ? new Date(ev.timestamp).getTime() : Date.now() + i * 1000,
+                  label:      ev.event_type + (skill ? " — " + skill : ""),
+                  type:       ev.event_type || "event",
+                  metadata:   { skill, process: d.process || "", outcome: d.outcome || "" }
+                };
+              });
+              // Chain events sequentially since governance events are a flat log.
+              const edges = [];
+              for (let i = 0; i < nodes.length - 1; i++) {
+                edges.push({ from: nodes[i].id, to: nodes[i + 1].id });
+              }
+              const ts = nodes.map(n => n.timestamp);
+              const start = Math.min(...ts);
+              const end   = Math.max(...ts);
+              data = {
+                sessionId: this.activeRunId,
+                timeRange: { start, end: start === end ? end + 1000 : end },
+                nodes,
+                edges
+              };
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Gov V2: dynamic timeline data unavailable, falling back to mock.", err);
+      }
+
+      if (data) {
+        v2Timeline.setData(data);
+      } else {
+        // Fallback to the static demo dataset so the component never shows blank.
+        try {
+          const r = await fetch("/mod/_core/visual/timeline/dataset.json");
+          const mock = await r.json();
+          if (this.activeRunId) {
+            mock.sessionId = this.activeRunId;
+            const root = mock.nodes.find(n => n.id === "run_main");
+            if (root) root.label = "Run: " + this.activeRunId.slice(0, 8);
+          }
+          v2Timeline.setData(mock);
+        } catch (e) {
+          console.log("Mock V2 data not found", e);
+        }
       }
     },
 
@@ -899,8 +1240,26 @@ export function createBridgePage(options = {}) {
     selectSession(id) {
       this.activeSessionId = id;
       this.onNodeSelect(id, this.sessionTitle(id));
+      // Push the selected session's metadata into bridge context so Benny
+      // knows which session is in focus — not just its id — without having
+      // to re-fetch the full session list on every chip dispatch.
+      const sess = this.sessions.find((s) => s.id === id);
+      if (sess) {
+        this.syncContext({
+          pageContext: {
+            selectedSession: {
+              id: sess.id,
+              title: sess.content || "Untitled",
+              agent: sess.agent || null,
+              project: sess.metadata?.project || null,
+              timestamp: sess.timestamp || null
+            }
+          }
+        });
+      }
       this.mountSessionGraph(id);
     },
+
 
     sessionTitle(id) {
       const s = this.sessions.find((x) => x.id === id);
@@ -1543,7 +1902,7 @@ export function createBridgePage(options = {}) {
           },
           {
             renderer: this.code3d
-              ? this.makeThreeRenderer(this.codePhysics)
+              ? makeAnimeOrbRenderer({ onSelect: (id) => this.onNodeSelect(id) })
               : this.makeForceRenderer(this.codePhysics)
           }
         )
@@ -2168,14 +2527,6 @@ export function createBridgePage(options = {}) {
         this._runTrace = this.track(
           createReasoningTraceWidget(trace, { workspace: this.workspace, run_id: runId })
         );
-      }
-      
-      const v2Timeline = document.getElementById("v2-timeline");
-      if (v2Timeline && typeof v2Timeline.setData === "function") {
-         fetch("/mod/_core/visual/timeline/dataset.json")
-           .then(r => r.json())
-           .then(data => v2Timeline.setData(data))
-           .catch(e => console.log("Mock V2 data not found", e));
       }
       
       this.mountDrilldown();

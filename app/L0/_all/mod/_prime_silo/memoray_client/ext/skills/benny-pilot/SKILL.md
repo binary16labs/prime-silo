@@ -16,24 +16,25 @@ helpers
 - `readContext()` -> live `{ mode, selection, workspace, lastRun, conformance, route }`
 - `lifelog(limit?)` -> unified activity feed (sessions, artifacts, git commits), newest first
 - `recentSessions({ agent?, limit? })` -> `[{ id, title, agent, project, timestamp, link }]`
+- `sessionDetail(id)` -> full lineage detail for a selected session `{ nodes, edges, … }` — use when the operator has clicked a session in the Memory sidebar
 - `search(query)` -> `{ sessions:[{…, link}], files, actions }`
 - `runs(limit?)` -> `[{ runId, status, requirement, link }]`
 - `codeGraph(workspace?)` -> `{ nodes, edges }` of the Tree-Sitter code graph
 - `knowledgeStats(workspace?)` -> `{ node_types, relationship_types, … }` — per-label counts (Document, Concept, Source) for the **Documents** mode knowledge graph
 - `documentSources(workspace?)` -> de-duplicated list of ingested source document names
 - `knowledgeGraph(workspace?, { page?, pageSize?, showAll? })` -> `{ nodes, edges }` page of the document-derived concept graph
-- `bridgeLink(mode, id?)` -> deep link string back into a Bridge mode/selection
+- `bridgeLink(mode, id?)` -> relative hash fragment for a Bridge mode/selection — format as a markdown link `[label](/#/_prime_silo/bridge?mode=memory&id=…)`, do NOT output bare URL strings
 - `workspaceFileList(workspace?)` -> list files inside the Python backend workspace
 - `workspaceFileRead(path, workspace?)` -> preview/read the contents of a file in the workspace
 
 guidance
 
 - The dispatched prompt already carries the truth: read the `(Bridge context — …)` and `Live data:` lines you were given and answer from them. `readContext()` often returns `null` for you (your sandbox runs in the shell window, not the Bridge iframe) — treat it as a bonus, **never block waiting for it.**
+- **Selection is primary.** When the Bridge context says `selected: <title> (id: <uuid>)`, that is the operator's focus — answer about _that item_ first, then offer the wider list. Use the id to call `sessionDetail(id)`, `runs()`, etc.
 - **Never demand a selection.** "No node selected" is a normal, answerable state, not a blocker. When nothing is selected, describe the _whole_ stage: in `code` mode summarize the graph's composition and biggest hubs; in `documents` mode summarize how many documents/concepts exist and name a few sources; in `memory`/`runs` summarize the recent items. _Then offer_ to drill into a node — don't ask the user to pick one first.
-- When something _is_ selected, focus the answer on it (the selected code node, session, run, or concept) while keeping the surrounding context.
+- **Links must be clickable markdown.** `bridgeLink()` returns a relative hash fragment like `#/_prime_silo/bridge?mode=memory&id=…`. Always wrap it: `[Open in Bridge](/#/_prime_silo/bridge?mode=memory&id=…)`. Never output bare URL strings.
 - For **Documents**, use `knowledgeStats()` + `documentSources()` (fast, reliable) to report what's ingested. Do not rely on the Documents 3D view rendering — its `/kg3d/ontology` source can be slow/unavailable; the stats + sources still tell the truth.
-- ALWAYS cite a Bridge deep link (`link`, or `bridgeLink(mode, id)`) as a markdown link so the user can jump back to the exact view.
-- If you need to list or read files in the active workspace (e.g. paths beginning with `src/` in `code` mode), do NOT use standard `space.api.fileList` or `space.api.fileRead` since those point at the host space directories and will fail. Use `workspaceFileList()` and `workspaceFileRead()` instead.
+- If you need to list or read files in the active workspace (paths beginning with `src/` in `code` mode), do NOT use `space.api.fileList` / `space.api.fileRead` — those point at host space dirs and will fail. Use `workspaceFileList()` and `workspaceFileRead()` instead.
 - Lead with the answer, then offer the link. Summarize — never dump raw JSON.
 - This is read-only/observe-and-explain. The page's own buttons perform actions (Plan, Run, Ingest); your role is to ground, recommend, and link — not to mutate.
 
@@ -100,5 +101,79 @@ return {
   documents: stats?.node_types?.Document || stats?.node_types?.Source || 0,
   concepts: stats?.node_types?.Concept || 0,
   sources: sources.slice(0, 10)
+};
+```
+
+Explain the selected Memory session (or list recent sessions if none selected)
+
+```javascript
+const pilot = await import("/mod/_prime_silo/memoray_client/ext/skills/benny-pilot/benny-pilot.js");
+// The Live data line in the prompt already tells us the selected session id
+// and title. Use readContext() as a bonus — it may be null in the shell sandbox.
+const ctx = pilot.readContext();
+const selId = ctx?.selection?.id;
+if (selId) {
+  // An operator has clicked a specific session — fetch its full lineage.
+  const detail = await pilot.sessionDetail(selId);
+  const sessions = await pilot.recentSessions({ limit: 5 });
+  const meta = sessions.find((s) => s.id === selId) || {};
+  return {
+    selected: { id: selId, title: meta.title, agent: meta.agent, project: meta.project },
+    detail,                          // nodes, edges, artifacts recorded in this session
+    link: pilot.bridgeLink("memory", selId)
+  };
+}
+// Nothing selected — list recents and invite the operator to pick one.
+const sessions = await pilot.recentSessions({ limit: 10 });
+return sessions; // each carries a .link for the operator to click
+```
+
+Explain the Governance V2 view (active run/session, risk, steps, navigator state)
+
+```javascript
+const pilot = await import("/mod/_prime_silo/memoray_client/ext/skills/benny-pilot/benny-pilot.js");
+// The Live data line in the prompt already carries the full gov snapshot.
+// Use readContext() as a bonus — it may be null in the shell sandbox.
+const ctx = pilot.readContext();
+const pc = ctx?.pageContext;
+const gov = pc?.governance || {};
+
+const activeId = gov.activeRunId;
+if (!activeId) {
+  // No run selected — describe the navigator state and invite the operator to pick one.
+  const all = await pilot.runs(10);
+  return {
+    message: `Governance V2 Navigator: ${gov.summary?.totalVisible ?? all.length} items visible ` +
+      `(filter: ${gov.filter || "all"}, sort: ${gov.sort || "weight"}, ` +
+      `${gov.summary?.totalFailures ?? "?"} failures). No run selected — click one to focus.`,
+    runs: all
+  };
+}
+
+const isSession = gov.activeType === "session";
+let detail;
+if (isSession) {
+  // Fetch full session lineage from Memo-Ray.
+  detail = await pilot.sessionDetail(activeId);
+} else {
+  // Pipeline run — use runs() to find it.
+  const all = await pilot.runs(20);
+  detail = all.find((r) => r.runId === activeId) || null;
+}
+
+return {
+  activeId,
+  type:       gov.activeType,
+  status:     gov.activeStatus,
+  riskWeight: gov.activeRiskWeight,
+  errCount:   gov.activeErrCount,
+  duration:   gov.activeDuration,
+  title:      gov.activeTitle,
+  stepIndex:  gov.stepIndex,
+  stepTotal:  gov.stepTotal,
+  nodeStatesSummary: gov.nodeStatesSummary,
+  navigator: gov.summary,
+  detail,
+  link: pilot.bridgeLink("v2", activeId)
 };
 ```

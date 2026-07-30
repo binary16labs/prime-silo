@@ -375,7 +375,7 @@ def _seed_config(root: Path, profile: Profile) -> None:
 # There is deliberately NO repo-relative fallback: nothing may silently write
 # into a git checkout (that is how run debris ended up committed pre-Phase-0).
 
-_CONFIG_DIR_NAME = "Prime-Silo"
+_CONFIG_DIR_NAME = "space-agent"
 _CONFIG_FILENAME = "prime-silo-config.json"
 _DEFAULT_HOME_DIRNAME = "prime-silo-home"
 _LEGACY_BENNY_DIRNAME = "benny-home"
@@ -446,7 +446,9 @@ def resolve_home(env: dict | None = None) -> ResolvedHome:
             f"adopt the unified home to derive it from {root}."
         )
     elif source == "default" and legacy_default.is_dir():
-        benny_home, benny_source = legacy_default, "legacy-default"
+        nested_benny = legacy_default / "benny"
+        benny_home = nested_benny if (nested_benny / "workspaces").is_dir() else legacy_default
+        benny_source = "legacy-default"
         warnings.append(
             f"Benny home uses the pre-unification default ({benny_home}); "
             f"adopt the unified home to move it under {root}."

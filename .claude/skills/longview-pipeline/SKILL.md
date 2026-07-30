@@ -24,6 +24,12 @@ budget must clear its ~500-1000-tok preamble, e.g. `LONGVIEW_FRAGMENT_MAX_TOKENS
 comes back empty → blank cards; full org/model id required; `response_format` must be `json_schema|text`,
 never `json_object`). A wedged gemma engine returns HTTP 200 but zero tokens — reload the model on the
 LM host to reset it; embeddings on the same host still answering isolates it as generation-specific.
+**Don't confuse the two empty-content causes (bit us again 2026-07-27, twice):** a small-`max_tokens`
+probe (e.g. 16) on this reasoning model returns `content:""` + `finish_reason:"length"` because the
+preamble ate the whole budget — that is NOT a wedge. A real wedge = zero completion tokens / no bytes
+with a GENEROUS budget. Before declaring a wedge, re-probe with `reasoning_effort:"none"` OR
+`max_tokens≥600` and check `reasoning_content`; only zero-token-under-ample-budget is the engine wedge.
+Also: the 12B loads slowly on the eGPU (~35s, ~22 tok/s) — a slow first token is not a hang.
 
 **Graph build — two paths, same schema (Source/Concept/RELATES_TO/SOURCED_FROM):**
 - `model` = deep_synthesis: a second LLM pass re-extracts triples per card section. ~60-120s/card.

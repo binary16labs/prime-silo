@@ -1273,45 +1273,97 @@
               <!-- V2 OBSERVABILITY & GOVERNANCE -->
               <div class="ps-bridge__panel" x-show="mode === 'v2'">
                 <div class="ps-bridge__split">
-                  <aside class="ps-bridge__list" style="max-width: 280px; flex: 0 0 280px; padding-right: 16px;">
-                    <h3>V2 Governance</h3>
-                    <div class="ps-bridge__list-scroll" style="display: flex; flex-direction: column; gap: 16px; margin-top: 16px;">
-                       <div class="ps-bridge__panel-card" style="margin:0; padding: 12px; background: rgba(0,0,0,0.1); border-radius: 6px;">
-                         <h4 style="margin: 0 0 8px 0; font-size: 13px; opacity: 0.8;">Mesh Health</h4>
-                         <span class="ps-bridge__file-status is-ok" style="font-size: 12px;">All Systems Go</span>
-                       </div>
-                       <div class="ps-bridge__panel-card" style="margin:0; padding: 12px; background: rgba(0,0,0,0.1); border-radius: 6px;">
-                         <h4 style="margin: 0 0 8px 0; font-size: 13px; opacity: 0.8;">Policy Compliance</h4>
-                         <span class="ps-bridge__file-status is-ok" style="font-size: 12px;">100% (No Drift)</span>
-                       </div>
-                       <div class="ps-bridge__panel-card" style="margin:0; padding: 12px; background: rgba(0,0,0,0.1); border-radius: 6px;">
-                         <h4 style="margin: 0 0 8px 0; font-size: 13px; opacity: 0.8;">Token Budget</h4>
-                         <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin-bottom: 4px;">
-                           <div style="width: 45%; height: 100%; background: var(--ps-accent, #63a063);"></div>
-                         </div>
-                         <span class="ps-bridge__muted" style="font-size: 11px;">45% used</span>
-                       </div>
+                  <aside class="ps-bridge__list" style="max-width: 320px; flex: 0 0 320px; padding-right: 16px; border-right: 1px solid rgba(255,255,255,0.06);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                      <h3 style="margin:0; font-size: 14px; font-weight: 600;">Governance Navigator</h3>
+                      <span class="ps-bridge__file-status is-ok" style="font-size: 11px;">100% Compliant</span>
+                    </div>
+
+                    <!-- Sort & Filter Bar -->
+                    <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px;">
+                      <div style="display: flex; gap: 6px;">
+                        <select class="ps-bridge__obs-pick" x-model="govSort" @change="_syncGovContext()" style="flex: 1; font-size: 11px; padding: 4px 8px;">
+                          <option value="weight">Sort: Risk Weight</option>
+                          <option value="time">Sort: Recency (Time)</option>
+                          <option value="duration">Sort: Duration</option>
+                          <option value="errors">Sort: Errors</option>
+                        </select>
+                        <select class="ps-bridge__obs-pick" x-model="govFilter" @change="_syncGovContext()" style="flex: 1; font-size: 11px; padding: 4px 8px;">
+                          <option value="all">All Runs</option>
+                          <option value="failures">Failures Only</option>
+                          <option value="compliant">Compliant Only</option>
+                        </select>
+                      </div>
+                    </div>
+
+
+                    <!-- Weighted Session / Run List -->
+                    <div class="ps-bridge__list-scroll" style="display: flex; flex-direction: column; gap: 8px; max-height: calc(100vh - 280px); overflow-y: auto;">
+                      <template x-for="r in sortedGovRuns" :key="(r.run_id || r.id)">
+                        <div class="ps-bridge__panel-card"
+                             :style="activeRunId === (r.run_id || r.id) ? 'border: 1px solid var(--ps-accent, #63a063); background: rgba(99,160,99,0.12); margin:0; padding: 10px; border-radius: 6px; cursor: pointer;' : 'margin:0; padding: 10px; background: rgba(0,0,0,0.15); border-radius: 6px; cursor: pointer; border: 1px solid transparent;'"
+                             @click="selectGovRun(r.run_id || r.id)">
+                          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                            <span style="font-size: 12px; font-weight: 600;" x-text="(r.run_id || r.id || '').slice(0, 14)"></span>
+                            <span class="ps-bridge__file-status"
+                                  :class="r.status === 'completed' ? 'is-ok' : 'is-error'"
+                                  style="font-size: 10px;"
+                                  x-text="r.status || 'unknown'"></span>
+                          </div>
+                          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; opacity: 0.75;">
+                            <span>Duration: <strong x-text="r.formattedDuration"></strong></span>
+                            <span style="padding: 1px 6px; border-radius: 4px; font-weight: 600;"
+                                  :style="r.riskWeight > 40 ? 'background: rgba(220,70,70,0.25); color: #ff8888;' : 'background: rgba(99,160,99,0.2); color: #9feb9f;'"
+                                  x-text="'Weight: ' + r.riskWeight + '%'"></span>
+                          </div>
+                          <div x-show="r.errCount > 0" style="margin-top: 4px; font-size: 10px; color: #ff9999; display: flex; align-items: center; gap: 4px;">
+                            <x-icon style="font-size: 12px;">warning</x-icon>
+                            <span x-text="r.errCount + ' error(s) logged'"></span>
+                          </div>
+                        </div>
+                      </template>
+                    </div>
+
+                    <!-- V2 Vitals -->
+                    <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 8px;">
+                      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+                        <span class="ps-bridge__muted">Token Budget</span>
+                        <span>45% used</span>
+                      </div>
+                      <div style="width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
+                        <div style="width: 45%; height: 100%; background: var(--ps-accent, #63a063);"></div>
+                      </div>
                     </div>
                   </aside>
-                  <div class="ps-bridge__runstage" style="padding: 0; display: flex; flex-direction: column;">
-                    <div class="ps-bridge__obs-head" style="padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.05);">
-                      <div class="ps-bridge__obs-title">
-                        <x-icon>timeline</x-icon><span>Lineage Trace</span>
+
+                  <!-- Right Stage: Step-Through Lineage Trace -->
+                  <div class="ps-bridge__runstage" style="padding: 0; display: flex; flex-direction: column; flex: 1;">
+                    <div class="ps-bridge__obs-head" style="padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between;">
+                      <div class="ps-bridge__obs-title" style="display: flex; align-items: center; gap: 8px;">
+                        <x-icon>timeline</x-icon>
+                        <span style="font-weight: 600;">Lineage Step-Through</span>
                         <span class="ps-bridge__muted" x-text="activeRunId ? ('run ' + activeRunId.slice(0, 12)) : 'no run selected'"></span>
                       </div>
-                      <select class="ps-bridge__obs-pick" x-model="activeRunId" @change="observeRun(activeRunId).then(() => mountV2())">
-                        <option value="">latest…</option>
-                        <template x-for="r in runs" :key="(r.run_id || r.id)">
-                          <option :value="r.run_id || r.id" x-text="((r.run_id || r.id || '').slice(0, 16)) + ' · ' + (r.status || '')"></option>
-                        </template>
-                      </select>
+
+                      <!-- Step-Through Navigation Controls -->
+                      <div style="display: flex; align-items: center; gap: 8px;">
+                        <button type="button" class="ps-bridge__zen" @click="prevGovStep()" style="font-size: 11px; padding: 4px 10px; display: flex; align-items: center; gap: 4px;">
+                          <x-icon style="font-size: 14px;">chevron_left</x-icon> Prev Step
+                        </button>
+                        <span style="font-size: 11px; font-weight: 600; padding: 2px 8px; background: rgba(255,255,255,0.08); border-radius: 4px;" x-text="'Step ' + govStepIndex"></span>
+                        <button type="button" class="ps-bridge__zen" @click="nextGovStep()" style="font-size: 11px; padding: 4px 10px; display: flex; align-items: center; gap: 4px;">
+                          Next Step <x-icon style="font-size: 14px;">chevron_right</x-icon>
+                        </button>
+                      </div>
                     </div>
-                    <div class="ps-bridge__metrics" x-show="activeRunId" style="padding: 12px 16px;">
+
+                    <div class="ps-bridge__metrics" x-show="activeRunId" style="padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,0.04);">
                        <span class="ps-bridge__metric ps-bridge__metric--status" data-status="success">
                          <x-icon>verified</x-icon><span>Lineage Verified</span>
                        </span>
-                       <span class="ps-bridge__metric"><x-icon>policy</x-icon><span>Compliant Execution</span></span>
+                       <span class="ps-bridge__metric"><x-icon>policy</x-icon><span>Deterministic Policy Guard</span></span>
                     </div>
+
                     <div class="ps-bridge__graph ps-bridge__graph--tall" style="flex: 1; border: none; padding: 0;">
                       <lineage-timeline id="v2-timeline" style="width: 100%; height: 100%; display: block; border-radius: 8px; overflow: hidden;"></lineage-timeline>
                     </div>

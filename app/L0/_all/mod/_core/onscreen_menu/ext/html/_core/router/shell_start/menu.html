@@ -158,6 +158,46 @@
           <x-extension id="_core/onscreen_menu/bar_end" x-ref="barEnd"></x-extension>
         </div>
 
+        <div class="prime-silo-orb-wrapper" x-data="{ isArcOpen: false }" @click.outside="isArcOpen = false">
+          <button
+            type="button"
+            class="prime-silo-benny-orb"
+            aria-label="Toggle Prime-Silo Satellite Menu"
+            title="Prime-Silo Benny Arc Menu"
+            @click="isArcOpen = !isArcOpen"
+          >
+            <img src="/mod/_core/visual/res/chat/overlay/dog_head_256.svg" alt="Benny Mascot" class="prime-silo-benny-avatar" />
+          </button>
+
+          <div
+            class="prime-silo-arc-overlay"
+            x-cloak
+            x-show="isArcOpen"
+            x-transition.opacity.scale.origin.top.center.duration.200ms
+          >
+            <a href="/bridge" class="prime-silo-arc-item" @click="isArcOpen = false">
+              <x-icon>grid_view</x-icon>
+              <span>Bridge</span>
+            </a>
+            <a href="/studio" class="prime-silo-arc-item" @click="isArcOpen = false">
+              <x-icon>code</x-icon>
+              <span>Studio</span>
+            </a>
+            <a href="/observe" class="prime-silo-arc-item" @click="isArcOpen = false">
+              <x-icon>visibility</x-icon>
+              <span>Observe</span>
+            </a>
+            <a href="/setup" class="prime-silo-arc-item" @click="isArcOpen = false">
+              <x-icon>settings</x-icon>
+              <span>Setup</span>
+            </a>
+            <a href="/governance" class="prime-silo-arc-item" @click="isArcOpen = false">
+              <x-icon>account_tree</x-icon>
+              <span>Governance V2</span>
+            </a>
+          </div>
+        </div>
+
         <button
           type="button"
           class="space-topbar-button space-topbar-button--icon onscreen-menu-button"

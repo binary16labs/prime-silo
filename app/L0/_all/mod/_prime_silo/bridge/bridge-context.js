@@ -85,14 +85,46 @@ async function fetchModeData(currentState) {
       const sessions = await pilot.recentSessions({ limit: 5 });
       const arr = Array.isArray(sessions) ? sessions : [];
       if (!arr.length) return "Memory: no sessions found in Memo-Ray (Memo-Ray may be offline).";
+      const selId = currentState.selection && currentState.selection.id;
+      if (selId) {
+        // A session is selected — lead with it so Benny focuses on what the
+        // operator is actually looking at, not a random "latest" session.
+        const sel = arr.find((s) => s.id === selId) || arr[0];
+        const others = arr.filter((s) => s.id !== sel.id).slice(0, 3);
+        const othersTxt = others.length
+          ? ` Other visible sessions: ${others.map((s) => `"${s.title || "Untitled"}" (${s.agent || "—"})`).join("; ")}.`
+          : "";
+        return (
+          `Memory — selected session: "${sel.title || "Untitled"}" ` +
+          `(id: ${sel.id}, agent: ${sel.agent || "—"}` +
+          `${sel.project ? `, project: ${sel.project}` : ""}` +
+          `${sel.timestamp ? `, recorded: ${sel.timestamp}` : ""}).` +
+          othersTxt
+        );
+      }
+      // Nothing selected — describe the recent list and invite the operator to
+      // click a session in the sidebar.
       const s = arr[0];
-      return `Memory: ${arr.length} recent sessions. Latest: "${s.title || "Untitled"}" (agent: ${s.agent || "—"}${s.project ? `, project: ${s.project}` : ""}).`;
+      return `Memory: ${arr.length} recent sessions. Latest: "${s.title || "Untitled"}" (agent: ${s.agent || "—"}${s.project ? `, project: ${s.project}` : ""}). No session selected — click one in the sidebar to focus on it.`;
     }
 
     if (mode === "runs") {
       const allRuns = await pilot.runs(5);
       const arr = Array.isArray(allRuns) ? allRuns : [];
       if (!arr.length) return "Runs: no run history found yet.";
+      const selId = currentState.selection && currentState.selection.id;
+      if (selId) {
+        const sel = arr.find((r) => r.runId === selId) || arr[0];
+        const others = arr.filter((r) => r.runId !== sel.runId).slice(0, 3);
+        const othersTxt = others.length
+          ? ` Other runs visible: ${others.map((r) => `${String(r.runId || "").slice(0, 12)} (${r.status || "unknown"})`).join("; ")}.`
+          : "";
+        return (
+          `Runs — selected run: ${String(sel.runId || "").slice(0, 16)} (status: ${sel.status || "unknown"}` +
+          `${sel.requirement ? `, requirement: "${sel.requirement.slice(0, 80)}"` : ""}).` +
+          othersTxt
+        );
+      }
       const r = arr[0];
       return `Runs: ${arr.length} recent. Latest: ${String(r.runId || "").slice(0, 16)} (status: ${r.status || "unknown"}${r.requirement ? `, requirement: "${r.requirement.slice(0, 60)}"` : ""}).`;
     }
@@ -104,11 +136,63 @@ async function fetchModeData(currentState) {
       return `Pulse: ${arr.length} recent items. Latest: "${String(arr[0].content || "").slice(0, 80)}".`;
     }
 
+    if (mode === "v2") {
+      // Governance V2 — the page blends sessions + pipeline runs into one
+      // risk-scored, filtered, step-through view. Pull context from both.
+      const pc = currentState.pageContext || {};
+      const gov = pc.governance || {};
+
+      // 1. Active run / session
+      const activeId = gov.activeRunId || currentState.lastRun || null;
+      if (!activeId) {
+        const summary = gov.summary || {};
+        return (
+          `Governance V2: no run selected. ` +
+          `Showing ${summary.totalVisible ?? "?"} items ` +
+          `(filter: ${summary.filter || "all"}, sort: ${summary.sort || "weight"}).`
+        );
+      }
+
+      const type = gov.activeType || "unknown"; // 'session' | 'run' | 'unknown'
+      const status = gov.activeStatus || "unknown";
+      const riskWeight = gov.activeRiskWeight != null ? `${gov.activeRiskWeight}%` : "N/A";
+      const errCount = gov.activeErrCount != null ? gov.activeErrCount : "?";
+      const duration = gov.activeDuration || "N/A";
+      const stepIndex = gov.stepIndex != null ? gov.stepIndex : 0;
+      const stepTotal = gov.stepTotal != null ? gov.stepTotal : "?";
+      const filter = gov.filter || "all";
+      const sort = gov.sort || "weight";
+      const totalVisible = gov.summary?.totalVisible ?? "?";
+      const totalFailures = gov.summary?.totalFailures ?? "?";
+
+      let line = (
+        `Governance V2 — active ${type}: ${String(activeId).slice(0, 16)} ` +
+        `(status: ${status}, risk weight: ${riskWeight}, errors: ${errCount}, duration: ${duration}). ` +
+        `Step-through: step ${stepIndex} of ${stepTotal}. ` +
+        `Navigator: ${totalVisible} items visible (filter: ${filter}, sort: ${sort}, ${totalFailures} failures).`
+      );
+
+      // Append node_states summary if available (pipeline run detail).
+      if (gov.nodeStatesSummary) {
+        line += ` Steps: ${gov.nodeStatesSummary}.`;
+      }
+      return line;
+    }
+
+    // Page-specific extra context pushed by the Bridge page. When a mode-specific
+    // block above already returned, we never reach here; when no mode matched or
+    // pageContext supplements are set, use them as the live-data string.
+    if (currentState.pageContext) {
+      const extra = JSON.stringify(currentState.pageContext).slice(0, 400);
+      return `Page context: ${extra}`;
+    }
+
     return null;
   } catch {
     return null; // runtime down, wrong environment, skill not found — fail silently
   }
 }
+
 
 /** Deep link back into the Bridge for a given snapshot (mode + optional id). */
 export function bridgeDeepLink(state = {}) {
@@ -130,8 +214,13 @@ function selectionLabel(selection) {
  */
 export function describeContext(state = {}) {
   const parts = [`mode: ${state.mode || "pulse"}`];
-  const sel = selectionLabel(state.selection);
-  if (sel) parts.push(`selected: ${sel}`);
+  const label = selectionLabel(state.selection);
+  if (label) {
+    // Include the id alongside the label when available so Benny can look
+    // up the selected item directly without guessing.
+    const idSuffix = state.selection && state.selection.id ? ` (id: ${state.selection.id})` : "";
+    parts.push(`selected: ${label}${idSuffix}`);
+  }
   if (state.workspace) parts.push(`workspace: ${state.workspace}`);
   if (state.lastRun) parts.push(`last run: ${state.lastRun}`);
   if (state.conformance) parts.push(`conformance: ${state.conformance}`);
@@ -174,7 +263,12 @@ export function createBridgeContext(options = {}) {
     selection: null,
     workspace: "default",
     lastRun: null,
-    conformance: ""
+    conformance: "",
+    // Page-specific structured payload. Each Bridge page can call
+    // ctx.set({ pageContext: { … } }) to inject richer per-mode context
+    // (e.g. Memory pushes selected session metadata, Runs pushes run detail).
+    // fetchModeData appends it to the live-data string when present.
+    pageContext: null
   };
 
   function resolveAgent() {
