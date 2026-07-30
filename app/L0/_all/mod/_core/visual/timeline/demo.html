@@ -1,302 +1,315 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Data Lineage & Execution Timeline Widget Demo</title>
-  <link rel="stylesheet" href="../index.css">
-  <style>
-    body {
-      background-color: var(--bg-deep, #151816);
-      color: var(--text-primary, #e8ece9);
-      font-family: system-ui, -apple-system, sans-serif;
-      margin: 0;
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-    .demo-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .demo-title {
-      font-size: 1.4rem;
-      font-weight: 600;
-    }
-    .demo-subtitle {
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-    }
-  </style>
-</head>
-<body>
-  <div class="demo-header">
-    <div>
-      <div class="demo-title">Space Agent Execution Lineage (OpenLineage DAG)</div>
-      <div class="demo-subtitle">Step-through playback, chats, logs, task tracking, and complete provenance tracking.</div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Data Lineage & Execution Timeline Widget Demo</title>
+    <link rel="stylesheet" href="../index.css" />
+    <style>
+      body {
+        background-color: var(--bg-deep, #151816);
+        color: var(--text-primary, #e8ece9);
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+        margin: 0;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .demo-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .demo-title {
+        font-size: 1.4rem;
+        font-weight: 600;
+      }
+      .demo-subtitle {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="demo-header">
+      <div>
+        <div class="demo-title">Space Agent Execution Lineage (OpenLineage DAG)</div>
+        <div class="demo-subtitle">
+          Step-through playback, chats, logs, task tracking, and complete provenance tracking.
+        </div>
+      </div>
     </div>
-  </div>
 
-  <lineage-timeline id="lineage-widget"></lineage-timeline>
+    <lineage-timeline id="lineage-widget"></lineage-timeline>
 
-  <script type="module">
-    import { LineageTimeline } from './lineage-timeline.js';
+    <script type="module">
+      import { LineageTimeline } from "./lineage-timeline.js";
 
-    const widget = document.getElementById('lineage-widget');
+      const widget = document.getElementById("lineage-widget");
 
-    const baseTime = Date.now() - 400000;
+      const baseTime = Date.now() - 400000;
 
-    const samplePayload = {
-      sessionId: "run_space_988f3c62",
-      timeRange: {
-        start: baseTime,
-        end: baseTime + 400000
-      },
-      nodes: [
-        {
-          id: "chat_user_1",
-          swimlaneId: "chats",
-          timestamp: baseTime + 10000,
-          label: "User: build a lineage timeline",
-          type: "human_chat",
-          metadata: { text: "build a lineage timeline for any data_out produced..." }
+      const samplePayload = {
+        sessionId: "run_space_988f3c62",
+        timeRange: {
+          start: baseTime,
+          end: baseTime + 400000
         },
-        {
-          id: "run_main",
-          swimlaneId: "sessions",
-          timestamp: baseTime + 15000,
-          label: "Run: Space Agent Planner",
-          type: "run_state",
-          metadata: { agent: "Space Agent v2.4", state: "RUNNING" }
-        },
-        {
-          id: "chat_agent_1",
-          swimlaneId: "chats",
-          timestamp: baseTime + 25000,
-          label: "Agent: I'll review the URL",
-          type: "agent_chat",
-          metadata: { text: "I'll take a look at the Dorot timeline..." }
-        },
-        {
-          id: "inp_url",
-          swimlaneId: "inputs",
-          timestamp: baseTime + 35000,
-          label: "URL Context: dorot.tali.org.il",
-          type: "dataset_input",
-          metadata: { url: "https://dorot.tali.org.il/en/from:1106/to:2000" }
-        },
-        {
-          id: "tool_read_url",
-          swimlaneId: "tools",
-          timestamp: baseTime + 45000,
-          label: "Job: read_url_content",
-          type: "job_tool",
-          metadata: { tool: "read_url_content", duration_ms: 1024, status: "success" }
-        },
-        {
-          id: "log_url_fetch",
-          swimlaneId: "logs",
-          timestamp: baseTime + 46000,
-          label: "Log: Fetched 37KB",
-          type: "log_event",
-          metadata: { level: "info", text: "Successfully fetched 37296 bytes from https://dorot..." }
-        },
-        {
-          id: "out_md",
-          swimlaneId: "outputs",
-          timestamp: baseTime + 55000,
-          label: "Dataset: content.md",
-          type: "dataset_output",
-          metadata: { file: "steps/5/content.md", bytes: 37296 }
-        },
-        {
-          id: "run_subagent",
-          swimlaneId: "sessions",
-          timestamp: baseTime + 75000,
-          label: "Run: Architecture Subagent",
-          type: "run_state",
-          metadata: { parent: "run_main", agent: "Architect Agent" }
-        },
-        {
-          id: "tool_view_file",
-          swimlaneId: "tools",
-          timestamp: baseTime + 90000,
-          label: "Job: view_file (AGENTS.md)",
-          type: "job_tool",
-          metadata: { tool: "view_file", path: "/app/AGENTS.md", lines: 97 }
-        },
-        {
-          id: "log_parse_rules",
-          swimlaneId: "logs",
-          timestamp: baseTime + 92000,
-          label: "Log: Parsed Visual System Rules",
-          type: "log_event",
-          metadata: { level: "debug", text: "Found constraint: keep the baseline bubble markdown layout..." }
-        },
-        {
-          id: "tool_write_plan",
-          swimlaneId: "tools",
-          timestamp: baseTime + 110000,
-          label: "Job: write_to_file (Plan)",
-          type: "job_tool",
-          metadata: { tool: "write_to_file", bytes: 4890, artifact: true }
-        },
-        {
-          id: "out_plan",
-          swimlaneId: "outputs",
-          timestamp: baseTime + 115000,
-          label: "Dataset: implementation_plan.md",
-          type: "dataset_output",
-          metadata: { file: "implementation_plan.md", user_facing: true }
-        },
-        {
-          id: "chat_agent_2",
-          swimlaneId: "chats",
-          timestamp: baseTime + 125000,
-          label: "Agent: Review my plan",
-          type: "agent_chat",
-          metadata: { text: "I have published the full breakdown in implementation_plan.md." }
-        },
-        {
-          id: "chat_user_2",
-          swimlaneId: "chats",
-          timestamp: baseTime + 140000,
-          label: "User: looks good, execute",
-          type: "human_chat",
-          metadata: { text: "The user has automatically approved the artifact." }
-        },
-        // -- Task Log Generation --
-        {
-          id: "tool_write_task",
-          swimlaneId: "tools",
-          timestamp: baseTime + 150000,
-          label: "Job: write_to_file (task.md)",
-          type: "job_tool",
-          metadata: { tool: "write_to_file", bytes: 450, action: "Create execution task list" }
-        },
-        {
-          id: "out_task_log",
-          swimlaneId: "outputs",
-          timestamp: baseTime + 155000,
-          label: "Artifact: task.md",
-          type: "dataset_output",
-          metadata: { file: "task.md", status: "created", tasks_total: 5, tasks_completed: 0 }
-        },
-        // -- Implementation --
-        {
-          id: "tool_write_css",
-          swimlaneId: "tools",
-          timestamp: baseTime + 200000,
-          label: "Job: write_to_file (CSS)",
-          type: "job_tool",
-          metadata: { tool: "write_to_file", bytes: 5120 }
-        },
-        {
-          id: "log_css_save",
-          swimlaneId: "logs",
-          timestamp: baseTime + 205000,
-          label: "Log: Created lineage-timeline.css",
-          type: "log_event",
-          metadata: { level: "info", text: "Successfully saved css with openlineage lanes." }
-        },
-        {
-          id: "tool_write_js",
-          swimlaneId: "tools",
-          timestamp: baseTime + 240000,
-          label: "Job: write_to_file (JS)",
-          type: "job_tool",
-          metadata: { tool: "write_to_file", bytes: 9400 }
-        },
-        {
-          id: "out_widget",
-          swimlaneId: "outputs",
-          timestamp: baseTime + 280000,
-          label: "Dataset: lineage-timeline Web Component",
-          type: "dataset_output",
-          metadata: { component: "LineageTimeline", status: "ready" }
-        },
-        // -- Task Completion & Walkthrough --
-        {
-          id: "tool_update_task",
-          swimlaneId: "tools",
-          timestamp: baseTime + 300000,
-          label: "Job: replace_content (task.md)",
-          type: "job_tool",
-          metadata: { tool: "replace_file_content", bytes: 455, action: "Mark tasks completed" }
-        },
-        {
-          id: "log_task_complete",
-          swimlaneId: "logs",
-          timestamp: baseTime + 302000,
-          label: "Log: task.md Updated",
-          type: "log_event",
-          metadata: { level: "info", text: "Marked all 5 tasks as complete [x]." }
-        },
-        {
-          id: "tool_write_walkthrough",
-          swimlaneId: "tools",
-          timestamp: baseTime + 330000,
-          label: "Job: write_to_file (walkthrough.md)",
-          type: "job_tool",
-          metadata: { tool: "write_to_file", bytes: 1450, artifact: true }
-        },
-        {
-          id: "out_walkthrough",
-          swimlaneId: "outputs",
-          timestamp: baseTime + 335000,
-          label: "Artifact: walkthrough.md",
-          type: "dataset_output",
-          metadata: { file: "walkthrough.md", user_facing: true }
-        },
-        {
-          id: "chat_agent_3",
-          swimlaneId: "chats",
-          timestamp: baseTime + 350000,
-          label: "Agent: Walkthrough Ready",
-          type: "agent_chat",
-          metadata: { text: "The Phase 2 widget expansion is complete! I've updated the walkthrough.md artifact..." }
-        }
-      ],
-      edges: [
-        // DAG Causality
-        { from: "chat_user_1", to: "run_main" },
-        { from: "run_main", to: "chat_agent_1" },
-        { from: "run_main", to: "tool_read_url" },
-        { from: "inp_url", to: "tool_read_url" },
-        { from: "tool_read_url", to: "log_url_fetch" },
-        { from: "tool_read_url", to: "out_md" },
-        
-        { from: "run_main", to: "run_subagent" },
-        { from: "run_subagent", to: "tool_view_file" },
-        { from: "tool_view_file", to: "log_parse_rules" },
-        
-        { from: "out_md", to: "tool_write_plan" },
-        { from: "tool_view_file", to: "tool_write_plan" },
-        { from: "tool_write_plan", to: "out_plan" },
-        { from: "out_plan", to: "chat_agent_2" },
-        
-        { from: "chat_user_2", to: "tool_write_task" },
-        { from: "tool_write_task", to: "out_task_log" },
+        nodes: [
+          {
+            id: "chat_user_1",
+            swimlaneId: "chats",
+            timestamp: baseTime + 10000,
+            label: "User: build a lineage timeline",
+            type: "human_chat",
+            metadata: { text: "build a lineage timeline for any data_out produced..." }
+          },
+          {
+            id: "run_main",
+            swimlaneId: "sessions",
+            timestamp: baseTime + 15000,
+            label: "Run: Space Agent Planner",
+            type: "run_state",
+            metadata: { agent: "Space Agent v2.4", state: "RUNNING" }
+          },
+          {
+            id: "chat_agent_1",
+            swimlaneId: "chats",
+            timestamp: baseTime + 25000,
+            label: "Agent: I'll review the URL",
+            type: "agent_chat",
+            metadata: { text: "I'll take a look at the Dorot timeline..." }
+          },
+          {
+            id: "inp_url",
+            swimlaneId: "inputs",
+            timestamp: baseTime + 35000,
+            label: "URL Context: dorot.tali.org.il",
+            type: "dataset_input",
+            metadata: { url: "https://dorot.tali.org.il/en/from:1106/to:2000" }
+          },
+          {
+            id: "tool_read_url",
+            swimlaneId: "tools",
+            timestamp: baseTime + 45000,
+            label: "Job: read_url_content",
+            type: "job_tool",
+            metadata: { tool: "read_url_content", duration_ms: 1024, status: "success" }
+          },
+          {
+            id: "log_url_fetch",
+            swimlaneId: "logs",
+            timestamp: baseTime + 46000,
+            label: "Log: Fetched 37KB",
+            type: "log_event",
+            metadata: {
+              level: "info",
+              text: "Successfully fetched 37296 bytes from https://dorot..."
+            }
+          },
+          {
+            id: "out_md",
+            swimlaneId: "outputs",
+            timestamp: baseTime + 55000,
+            label: "Dataset: content.md",
+            type: "dataset_output",
+            metadata: { file: "steps/5/content.md", bytes: 37296 }
+          },
+          {
+            id: "run_subagent",
+            swimlaneId: "sessions",
+            timestamp: baseTime + 75000,
+            label: "Run: Architecture Subagent",
+            type: "run_state",
+            metadata: { parent: "run_main", agent: "Architect Agent" }
+          },
+          {
+            id: "tool_view_file",
+            swimlaneId: "tools",
+            timestamp: baseTime + 90000,
+            label: "Job: view_file (AGENTS.md)",
+            type: "job_tool",
+            metadata: { tool: "view_file", path: "/app/AGENTS.md", lines: 97 }
+          },
+          {
+            id: "log_parse_rules",
+            swimlaneId: "logs",
+            timestamp: baseTime + 92000,
+            label: "Log: Parsed Visual System Rules",
+            type: "log_event",
+            metadata: {
+              level: "debug",
+              text: "Found constraint: keep the baseline bubble markdown layout..."
+            }
+          },
+          {
+            id: "tool_write_plan",
+            swimlaneId: "tools",
+            timestamp: baseTime + 110000,
+            label: "Job: write_to_file (Plan)",
+            type: "job_tool",
+            metadata: { tool: "write_to_file", bytes: 4890, artifact: true }
+          },
+          {
+            id: "out_plan",
+            swimlaneId: "outputs",
+            timestamp: baseTime + 115000,
+            label: "Dataset: implementation_plan.md",
+            type: "dataset_output",
+            metadata: { file: "implementation_plan.md", user_facing: true }
+          },
+          {
+            id: "chat_agent_2",
+            swimlaneId: "chats",
+            timestamp: baseTime + 125000,
+            label: "Agent: Review my plan",
+            type: "agent_chat",
+            metadata: { text: "I have published the full breakdown in implementation_plan.md." }
+          },
+          {
+            id: "chat_user_2",
+            swimlaneId: "chats",
+            timestamp: baseTime + 140000,
+            label: "User: looks good, execute",
+            type: "human_chat",
+            metadata: { text: "The user has automatically approved the artifact." }
+          },
+          // -- Task Log Generation --
+          {
+            id: "tool_write_task",
+            swimlaneId: "tools",
+            timestamp: baseTime + 150000,
+            label: "Job: write_to_file (task.md)",
+            type: "job_tool",
+            metadata: { tool: "write_to_file", bytes: 450, action: "Create execution task list" }
+          },
+          {
+            id: "out_task_log",
+            swimlaneId: "outputs",
+            timestamp: baseTime + 155000,
+            label: "Artifact: task.md",
+            type: "dataset_output",
+            metadata: { file: "task.md", status: "created", tasks_total: 5, tasks_completed: 0 }
+          },
+          // -- Implementation --
+          {
+            id: "tool_write_css",
+            swimlaneId: "tools",
+            timestamp: baseTime + 200000,
+            label: "Job: write_to_file (CSS)",
+            type: "job_tool",
+            metadata: { tool: "write_to_file", bytes: 5120 }
+          },
+          {
+            id: "log_css_save",
+            swimlaneId: "logs",
+            timestamp: baseTime + 205000,
+            label: "Log: Created lineage-timeline.css",
+            type: "log_event",
+            metadata: { level: "info", text: "Successfully saved css with openlineage lanes." }
+          },
+          {
+            id: "tool_write_js",
+            swimlaneId: "tools",
+            timestamp: baseTime + 240000,
+            label: "Job: write_to_file (JS)",
+            type: "job_tool",
+            metadata: { tool: "write_to_file", bytes: 9400 }
+          },
+          {
+            id: "out_widget",
+            swimlaneId: "outputs",
+            timestamp: baseTime + 280000,
+            label: "Dataset: lineage-timeline Web Component",
+            type: "dataset_output",
+            metadata: { component: "LineageTimeline", status: "ready" }
+          },
+          // -- Task Completion & Walkthrough --
+          {
+            id: "tool_update_task",
+            swimlaneId: "tools",
+            timestamp: baseTime + 300000,
+            label: "Job: replace_content (task.md)",
+            type: "job_tool",
+            metadata: { tool: "replace_file_content", bytes: 455, action: "Mark tasks completed" }
+          },
+          {
+            id: "log_task_complete",
+            swimlaneId: "logs",
+            timestamp: baseTime + 302000,
+            label: "Log: task.md Updated",
+            type: "log_event",
+            metadata: { level: "info", text: "Marked all 5 tasks as complete [x]." }
+          },
+          {
+            id: "tool_write_walkthrough",
+            swimlaneId: "tools",
+            timestamp: baseTime + 330000,
+            label: "Job: write_to_file (walkthrough.md)",
+            type: "job_tool",
+            metadata: { tool: "write_to_file", bytes: 1450, artifact: true }
+          },
+          {
+            id: "out_walkthrough",
+            swimlaneId: "outputs",
+            timestamp: baseTime + 335000,
+            label: "Artifact: walkthrough.md",
+            type: "dataset_output",
+            metadata: { file: "walkthrough.md", user_facing: true }
+          },
+          {
+            id: "chat_agent_3",
+            swimlaneId: "chats",
+            timestamp: baseTime + 350000,
+            label: "Agent: Walkthrough Ready",
+            type: "agent_chat",
+            metadata: {
+              text: "The Phase 2 widget expansion is complete! I've updated the walkthrough.md artifact..."
+            }
+          }
+        ],
+        edges: [
+          // DAG Causality
+          { from: "chat_user_1", to: "run_main" },
+          { from: "run_main", to: "chat_agent_1" },
+          { from: "run_main", to: "tool_read_url" },
+          { from: "inp_url", to: "tool_read_url" },
+          { from: "tool_read_url", to: "log_url_fetch" },
+          { from: "tool_read_url", to: "out_md" },
 
-        { from: "out_task_log", to: "tool_write_css" },
-        { from: "out_task_log", to: "tool_write_js" },
-        { from: "tool_write_css", to: "log_css_save" },
-        
-        { from: "tool_write_css", to: "out_widget" },
-        { from: "tool_write_js", to: "out_widget" },
+          { from: "run_main", to: "run_subagent" },
+          { from: "run_subagent", to: "tool_view_file" },
+          { from: "tool_view_file", to: "log_parse_rules" },
 
-        { from: "out_widget", to: "tool_update_task" },
-        { from: "tool_update_task", to: "log_task_complete" },
+          { from: "out_md", to: "tool_write_plan" },
+          { from: "tool_view_file", to: "tool_write_plan" },
+          { from: "tool_write_plan", to: "out_plan" },
+          { from: "out_plan", to: "chat_agent_2" },
 
-        { from: "log_task_complete", to: "tool_write_walkthrough" },
-        { from: "tool_write_walkthrough", to: "out_walkthrough" },
-        { from: "out_walkthrough", to: "chat_agent_3" }
-      ]
-    };
+          { from: "chat_user_2", to: "tool_write_task" },
+          { from: "tool_write_task", to: "out_task_log" },
 
-    widget.setData(samplePayload);
-  </script>
-</body>
+          { from: "out_task_log", to: "tool_write_css" },
+          { from: "out_task_log", to: "tool_write_js" },
+          { from: "tool_write_css", to: "log_css_save" },
+
+          { from: "tool_write_css", to: "out_widget" },
+          { from: "tool_write_js", to: "out_widget" },
+
+          { from: "out_widget", to: "tool_update_task" },
+          { from: "tool_update_task", to: "log_task_complete" },
+
+          { from: "log_task_complete", to: "tool_write_walkthrough" },
+          { from: "tool_write_walkthrough", to: "out_walkthrough" },
+          { from: "out_walkthrough", to: "chat_agent_3" }
+        ]
+      };
+
+      widget.setData(samplePayload);
+    </script>
+  </body>
 </html>

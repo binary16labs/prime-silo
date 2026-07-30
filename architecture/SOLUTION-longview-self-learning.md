@@ -15,7 +15,7 @@ handed off as. Open for owner review of the design itself (the R#s and steers ar
 ## 1. Mandate (what this session produces)
 
 Per the owner instruction that requirements and design are separate sessions, the requirements doc
-states *what* and *why*; **this session states *how*** and breaks it into deliverable tasks. Produce:
+states _what_ and _why_; **this session states _how_** and breaks it into deliverable tasks. Produce:
 
 1. **Solution design** — the architecture that satisfies R1–R45 (bi-temporal + additive + delta
    substrate; execution register; portable staging; the closed measured loop; agent loops).
@@ -30,6 +30,7 @@ any cloud dependency — **local-first is a hard constraint**.
 ## 2. Definition of ready (gate BEFORE design proceeds)
 
 Per requirements §7, design is "ready" once the owner has:
+
 - accepted/amended/rejected each **R1–R45**;
 - given a steer on each of the **11 open questions** (§6 + §9.3), or explicitly deferred it here;
 - confirmed the §9.5 phasing (Tier 1 → wave 1) and the R17 "stage raw to D: now" quick win.
@@ -45,19 +46,19 @@ design goes back to the owner.
 **All 11 steered by the owner on 2026-07-25** (authoritative record in requirements §6.1). These are
 binding design inputs; the design session specs the composition where a steer says "hybrid."
 
-| # | Question (short) | Owner steer (binding) | Traces |
-|---|------------------|------------------------|--------|
-| 1 | Bi-temporal storage | **Event-log-as-truth**; Neo4j/Chroma/memo-ray are rebuildable projections | R1–R4 |
-| 2 | Staging format on D: | **Full hybrid** — CAS blob store (de-dup) + human-navigable machine/date index + per-machine manifest | R17–R20 |
-| 3 | Delta watermark granularity | **Per-content-hash**; cursors in the event log / register | R8 |
-| 4 | Execution-register | **Unified schema, backfilled** from train JSONs + LOG + LONGVIEW ledger + lineage | R12–R16 |
-| 5 | Loop trigger + cross-machine claim | **Hybrid** file-watch + cron backstop; both under the B0/B1 single-winner claim | R28, R43 |
-| 6 | Compound-value metric | **Triad shown together** — eval delta (anchor) + agent pass-rate + cost/task; no single composite | R26 |
-| 7 | Multi-machine clock | **Hybrid logical clocks (HLC)** | R11 |
-| 8 | Bi-temporal backfill | **Real timestamp where known, else valid-time = txn-time tagged inferred**; never fabricate | R2, R3 |
-| 9 | Semantic conflict resolution | **Keep-both-and-flag**; surface to verifier/human, never auto-pick | R11 |
-| 10 | Schema evolution | **Additive-default + versioned up-converters**; every record schema-version tagged | R32 |
-| 11 | Loop-level liveness | **Full hybrid** — artifact/CPU watchdog + external supervisor + dead-man clean abort | R35 |
+| #   | Question (short)                   | Owner steer (binding)                                                                                 | Traces   |
+| --- | ---------------------------------- | ----------------------------------------------------------------------------------------------------- | -------- |
+| 1   | Bi-temporal storage                | **Event-log-as-truth**; Neo4j/Chroma/memo-ray are rebuildable projections                             | R1–R4    |
+| 2   | Staging format on D:               | **Full hybrid** — CAS blob store (de-dup) + human-navigable machine/date index + per-machine manifest | R17–R20  |
+| 3   | Delta watermark granularity        | **Per-content-hash**; cursors in the event log / register                                             | R8       |
+| 4   | Execution-register                 | **Unified schema, backfilled** from train JSONs + LOG + LONGVIEW ledger + lineage                     | R12–R16  |
+| 5   | Loop trigger + cross-machine claim | **Hybrid** file-watch + cron backstop; both under the B0/B1 single-winner claim                       | R28, R43 |
+| 6   | Compound-value metric              | **Triad shown together** — eval delta (anchor) + agent pass-rate + cost/task; no single composite     | R26      |
+| 7   | Multi-machine clock                | **Hybrid logical clocks (HLC)**                                                                       | R11      |
+| 8   | Bi-temporal backfill               | **Real timestamp where known, else valid-time = txn-time tagged inferred**; never fabricate           | R2, R3   |
+| 9   | Semantic conflict resolution       | **Keep-both-and-flag**; surface to verifier/human, never auto-pick                                    | R11      |
+| 10  | Schema evolution                   | **Additive-default + versioned up-converters**; every record schema-version tagged                    | R32      |
+| 11  | Loop-level liveness                | **Full hybrid** — artifact/CPU watchdog + external supervisor + dead-man clean abort                  | R35      |
 
 ## 4. Architecture
 
@@ -97,7 +98,7 @@ in §4 is either that log, a **projection** off it, or a **guard** around it.
         every turn measured against the frozen instrument (R23) · triad dashboard (R26) · human-signed promotion (R39)
 ```
 
-### 4.1 Knowledge event log (KEL) — event-log-as-truth  · R1–R7, R11, R32, steers 1/7/8/10
+### 4.1 Knowledge event log (KEL) — event-log-as-truth · R1–R7, R11, R32, steers 1/7/8/10
 
 The KEL is the single source of truth; Neo4j, Chroma, memo-ray and cards are **rebuildable
 projections** (steer 1). It lives on **D:** so truth travels with the corpus (R21/R34) and is backed
@@ -124,9 +125,10 @@ consistent with teleport.
   the R32 replay guarantee and the R36 additivity escape hatch (a new projector is additive, never
   breaks the default path).
 
-### 4.2 Portable staging substrate on D: — full hybrid  · R17–R21, R40, R41
+### 4.2 Portable staging substrate on D: — full hybrid · R17–R21, R40, R41
 
 Per steer 2, three ideas composed, not chosen between:
+
 - **CAS blob store** `blobs/<algo>/<hh>/<hash>` — content-addressed, so identity = hash and the same
   session synced from two machines de-dups to one blob (R20); append-only (R5).
 - **Human-navigable index** `index/<machine>/<date>/<sid>.json` — thin pointer records (machine,
@@ -136,14 +138,14 @@ Per steer 2, three ideas composed, not chosen between:
   the pipeline resume with **no per-machine config** (R18); no machine need be online (R20), no
   LAN/desktop dependency, offline-capable (R21).
 
-**R40 inbound poison gate** — a trust boundary *symmetric to the outbound leak gate*: staged raw
+**R40 inbound poison gate** — a trust boundary _symmetric to the outbound leak gate_: staged raw
 passes an integrity/validation gate (schema-well-formed, hash matches content, size/shape sane, no
 injected control records) **before** it is admitted to synthesis or training, so a corrupt/injected
 session on one machine cannot flow into the corpus. **R41 durability** — staging + KEL are
 replicated to a second local target with periodic checksum integrity checks and a **restore drill**
 (a copy, not a cloud service — stays local-first).
 
-### 4.3 Delta engine — per-content-hash watermarks  · R8–R11, R32
+### 4.3 Delta engine — per-content-hash watermarks · R8–R11, R32
 
 Steer 3: the finest grain. A **cursor record** `(stage, input_content_hash, code_commit,
 config_hash) → done` lives in the KEL / execution register. A stage processes an input only if no
@@ -155,7 +157,7 @@ arrival across machines is tolerated because **valid-time (HLC) resolves true se
 projection, independent of arrival order (R11). Interrupted runs resume from the last durable cursor
 (R10, extends LONGVIEW `--delta` + phase isolation).
 
-### 4.4 Execution register — unified, backfilled  · R12–R16, R33, R37
+### 4.4 Execution register — unified, backfilled · R12–R16, R33, R37
 
 Steer 4: one queryable **execution store** — a **JSONL projection on D:** (`executions.jsonl`),
 folded exactly like every other log (§4.0 doctrine), rebuildable and therefore a projection not truth
@@ -175,12 +177,12 @@ enforcement (lineage joins fold in memory). JSONL keeps **one storage grain, one
 story** (the steer-10 converter registry — no parallel SQL migrations), stays human-readable and
 page-corruption-recoverable on D: (R41), and adds no database to a deliberately file-based repo
 (the §4 "reuse, don't rebuild" mandate). **DuckDB is the measure-first escape hatch, not the
-default:** only if R16 analytical-query latency at real corpus scale is *measured* too slow do we
+default:** only if R16 analytical-query latency at real corpus scale is _measured_ too slow do we
 materialize an index — and DuckDB reads the JSONL in place (`SELECT … FROM 'executions.jsonl'`), so
 the index is a near-free additive cache that never forks the storage format. Decided on a number,
 not upfront — the EP-T "ship on a number, not a claim" ethos.
 
-### 4.5 The closed loop + cross-machine orchestration  · R22–R30, R43, steers 5/6
+### 4.5 The closed loop + cross-machine orchestration · R22–R30, R43, steers 5/6
 
 A **`flywheel-daemon`** advances staged → synthesis → dataset → train → serve → agents → sessions
 (R22), each hand-off automatable and gated (R27 board contracts). Trigger is **hybrid** (steer 5):
@@ -195,9 +197,10 @@ rubrics stay frozen (R24). The **method-in-weights / facts-in-RAG** split is pre
 **triad shown together** (steer 6 — R26): held-out eval delta (honest anchor) + agent pass-rate +
 cost/task, over loop turns, on the existing ledger-sourced dashboard — never one gameable composite.
 
-### 4.6 Liveness & the loop's safety guards  · R35, R38, R39, R44, R45, steer 11
+### 4.6 Liveness & the loop's safety guards · R35, R38, R39, R44, R45, steer 11
 
-The loop is where *self-learning* lives, so the sharp guards live here:
+The loop is where _self-learning_ lives, so the sharp guards live here:
+
 - **Liveness — full hybrid** (steer 11, R35): the daemon runs a **watchdog** on artifacts / CPU-time
   / mtime (never log lines — encodes [[verify-gpu-job-liveness]] and the `house-trainer` wedge
   lesson), an **external supervisor** heartbeat cross-check (a second tiny process, or B1, watches
@@ -206,7 +209,7 @@ The loop is where *self-learning* lives, so the sharp guards live here:
 - **R38 model-collapse guard:** authorship is captured at staging/execution (wave 1, §4.1). At the
   dataset boundary (wave 3, extends `build_dataset.mjs`): a house-authored session becomes a training
   row **only after a verifier gate pass** (frozen rubric or frontier sign-off), and house-origin rows
-  are **fraction-capped** per training turn — the loop trains on *validated method*, never raw
+  are **fraction-capped** per training turn — the loop trains on _validated method_, never raw
   self-output (extends R24/R25; this is the guard that makes §8 dogfooding safe from turn one).
 - **R39 human-signed promotion + rollback:** wave 1 **records** the served-model pointer and what it
   replaced (a signed `served` record, §5.5); wave 3 the promotion **gate** requires a human signature
@@ -230,15 +233,15 @@ and capacity do not collide silently.
 
 ### 4.8 Requirement → component map
 
-| Component (§) | Satisfies |
-| --- | --- |
-| Knowledge event log (4.1) | R1–R7, R11, R32, R36; steers 1,7,8,10 |
-| Portable staging + poison gate + durability (4.2) | R17–R21, R40, R41; steer 2 |
-| Delta engine (4.3) | R8–R11 |
-| Execution register (4.4) | R12–R16, R33, R37; steer 4 |
-| Loop orchestration + claim (4.5) | R22–R30, R43; steers 5,6 |
-| Liveness + safety guards (4.6) | R35, R38, R39, R44, R45; steer 11 |
-| Cross-cutting privacy/additivity/compaction (4.7) | R4, R31, R33, R36, R42; steer 9 |
+| Component (§)                                     | Satisfies                             |
+| ------------------------------------------------- | ------------------------------------- |
+| Knowledge event log (4.1)                         | R1–R7, R11, R32, R36; steers 1,7,8,10 |
+| Portable staging + poison gate + durability (4.2) | R17–R21, R40, R41; steer 2            |
+| Delta engine (4.3)                                | R8–R11                                |
+| Execution register (4.4)                          | R12–R16, R33, R37; steer 4            |
+| Loop orchestration + claim (4.5)                  | R22–R30, R43; steers 5,6              |
+| Liveness + safety guards (4.6)                    | R35, R38, R39, R44, R45; steer 11     |
+| Cross-cutting privacy/additivity/compaction (4.7) | R4, R31, R33, R36, R42; steer 9       |
 
 ## 5. Schema / DDL
 
@@ -252,6 +255,7 @@ logs.
 ```
 D:\flywheel-staging\eventlog\<yyyy>\<mm>\events-<hlc-day-bucket>.jsonl   # append-only, chain-hashed
 ```
+
 ```jsonc
 {
   "id": "01J…",                    // ULID, event identity
@@ -270,6 +274,7 @@ D:\flywheel-staging\eventlog\<yyyy>\<mm>\events-<hlc-day-bucket>.jsonl   # appen
   "prev": "9f2c…"                   // sha256(previous raw line)[0..16]; "genesis" for first (B0 rule)
 }
 ```
+
 - **Event types:** `session_staged`, `card_asserted`, `entity_asserted`, `edge_asserted`,
   `concept_merged`, `dataset_row_derived`, `model_recorded`, `execution_recorded`, `cursor_advanced`
   (delta), `conflict_flagged` (steer 9), `tombstoned` (R6 privacy), `schema_migrated`. Unknown fields
@@ -277,7 +282,7 @@ D:\flywheel-staging\eventlog\<yyyy>\<mm>\events-<hlc-day-bucket>.jsonl   # appen
   absent from the CAS store (§5.2) — the R40/R7 integrity guard.
 - **Confidence flag** (`time_confidence`) is mandatory so backfill never fabricates precision (steer 8).
 
-### 5.2 CAS staging + index + manifest  · steer 2, R17–R20
+### 5.2 CAS staging + index + manifest · steer 2, R17–R20
 
 ```
 D:\flywheel-staging\
@@ -285,6 +290,7 @@ D:\flywheel-staging\
 ├── index\<machine>\<yyyy-mm-dd>\<sid>.json  # human-navigable pointer (below)
 └── manifests\<machine>.json                 # self-describing, plug-and-play (R18)
 ```
+
 ```jsonc
 // index/<machine>/<date>/<sid>.json  — thin pointer, R19 machine/process/context/knowledge aware
 { "sid": "sess_…", "machine": "t480", "process": "claude-code|antigravity|agent:<id>",
@@ -298,14 +304,22 @@ D:\flywheel-staging\
   "last_hlc": "…", "backup_target": "…", "schema_version": "1.0.0" }
 ```
 
-### 5.3 Delta cursor  · steer 3, R8–R10
+### 5.3 Delta cursor · steer 3, R8–R10
 
 A `cursor_advanced` KEL event (also folded into the register). Per-content-hash grain:
+
 ```jsonc
-{ "type": "cursor_advanced", "stage": "graph",
+{
+  "type": "cursor_advanced",
+  "stage": "graph",
   "key": { "input_content_hash": "sha256:…", "code_commit": "abc123", "config_hash": "sha256:…" },
-  "status": "done", "run_id": "…", "outputs": ["sha256:…"], "schema_version": "1.0.0" }
+  "status": "done",
+  "run_id": "…",
+  "outputs": ["sha256:…"],
+  "schema_version": "1.0.0"
+}
 ```
+
 A stage skips any input whose `(input_content_hash, code_commit, config_hash)` already has a `done`
 cursor (idempotent/resumable — R10); unchanged content is never reprocessed (R8).
 
@@ -315,6 +329,7 @@ Rebuildable projection folding G0 events + train JSONs + LONGVIEW ledger + B0 le
 (steer 4); backfilled once (R16). One record per execution, additive fields only (steer 10). Same
 envelope discipline as the other logs; `lineage` is inlined (folded from `artifact_*` events) rather
 than a separate table — it folds in memory, no join engine needed.
+
 ```jsonc
 { "exec_id": "01J…",                    // ULID
   "kind": "train",                      // ingest|synthesis|dataset|train|eval|merge|serve|offload|agent
@@ -335,28 +350,42 @@ than a separate table — it folds in memory, no join engine needed.
   "source_log": "train-json",           // which of the 4 logs this record folded from (provenance)
   "schema_version": "1.0.0" }
 ```
+
 - **R16 query** ("same task, model A on machine X vs model B on machine Y") = filter on
   `kind` + `machine` + `config.model_id`, compare `metrics`. Fold-and-filter in the dashboard at
   expected scale; **DuckDB `SELECT … FROM 'executions.jsonl'`** is the additive fallback if that fold
-  is *measured* too slow (§4.4) — no format change, the JSONL stays the store.
+  is _measured_ too slow (§4.4) — no format change, the JSONL stays the store.
 
-### 5.5 Served-model pointer + promotion record  · R39, R44
+### 5.5 Served-model pointer + promotion record · R39, R44
 
 ```jsonc
 // served-model pointer (signed) — R39 record-what-is-served + how to revert
-{ "type": "model_promotion", "served": "house/qwen2.5-coder-tuned", "replaces": "house/…-prev",
-  "decision_vector": { "eval_nll": 1.1218, "agent_pass": 0.86, "cost_per_task": 0.0, "latency_ms": 1900 },
-  "decision_rule": "dominates-or-pareto-with-eval-anchor",   // R44 explicit rule, not relitigated
-  "human_signature": "<owner-sig>", "rollback_to": "house/…-prev",   // pin+rollback
-  "valid_time": "…", "txn_time": "…", "schema_version": "1.0.0" }
+{
+  "type": "model_promotion",
+  "served": "house/qwen2.5-coder-tuned",
+  "replaces": "house/…-prev",
+  "decision_vector": {
+    "eval_nll": 1.1218,
+    "agent_pass": 0.86,
+    "cost_per_task": 0.0,
+    "latency_ms": 1900
+  },
+  "decision_rule": "dominates-or-pareto-with-eval-anchor", // R44 explicit rule, not relitigated
+  "human_signature": "<owner-sig>",
+  "rollback_to": "house/…-prev", // pin+rollback
+  "valid_time": "…",
+  "txn_time": "…",
+  "schema_version": "1.0.0"
+}
 ```
+
 Held-out instrument growth (R45): eval slices carry `added_in_turn`; the cross-turn series compares
 only slices present in both turns, so new slices extend without invalidating history.
 
 ### 5.6 Shared field specs
 
 - **HLC** (steer 7): `<wall-ISO>-<logical-counter-4hex>-<node_id>`; on receive, `wall = max(local,
-  remote, prev)`, bump logical on tie — standard HLC. Node id from `manifests/<machine>.json`.
+remote, prev)`, bump logical on tie — standard HLC. Node id from `manifests/<machine>.json`.
 - **schema_version** (steer 10): semver; a bump with a breaking change ships a
   `converters/<from>→<to>.mjs` applied at projection so old events stay replayable (R32).
 - **time_confidence** (steer 8): `known` uses the real timestamp; `inferred` sets
@@ -376,23 +405,23 @@ authoring time** — not deferred into L0 as first sketched, since 8 `M4` contra
 the gate on arrival; so L0's allowlist no longer carries `validate.mjs`. `node scripts/gates/w0.mjs` is
 GREEN with 74 contracts.)_
 
-| id | wave | title (goal in one line) | deps | authority | verify gate | Rs |
-| --- | --- | --- | --- | --- | --- | --- |
-| **L0** | 1 | **KEL spec + validator** — envelope schema, chain-hash, fold-to-state, converter registry; reuse B0 mechanics | — | human-signed | `node scripts/gates/l0.mjs` | R1–R7,R11,R32 |
-| **L1** | 1 | **CAS staging + manifest + index** on D: (blobs/index/manifests), de-dup, plug-and-play | L0 | human-signed | `node scripts/gates/l1.mjs` | R17–R21 |
-| **L2** | 1 | **Inbound poison gate** — integrity boundary symmetric to leak gate, at admission | L1 | agent-ok | `node scripts/gates/l2.mjs` | R40 |
-| **L3** | 1 | **Durability** — replicate staging+KEL, checksum integrity check + restore drill | L1 | human-signed | `node scripts/gates/l3.mjs` | R41 |
-| **L4** | 1 | **Delta engine** — per-content-hash cursors, idempotent/resumable, HLC ordering-tolerant | L0 | agent-ok | `node scripts/gates/l4.mjs` | R8–R11 |
-| **L5** | 1 | **Execution register** — unified `executions.jsonl` projection + backfill of the 4 logs (DuckDB fallback deferred, measure-first) | L0,L4 | agent-ok | `node scripts/gates/l5.mjs` | R12–R16,R33,R37 |
-| **L6** | 1 | **Authorship + record-served tagging** at capture time (human/frontier/house; served pointer) | L0,L5 | agent-ok | `node scripts/gates/l6.mjs` | R38(tag),R39(record) |
-| **L7** | 1 | **Single-winner loop claim + compaction budget** — reuse B0 `wx` lease for `flywheel-turn`; storage/compaction policy | L0,B0 | agent-ok | `node scripts/gates/l7.mjs` | R43,R42 |
-| **L8** | 2 | **Bi-temporal projectors** — rebuild Neo4j/Chroma/memo-ray/cards from KEL; time-travel query (valid/txn) | L0,L4 | agent-ok | `node scripts/gates/l8.mjs` | R1–R3,R7,R32 |
-| **L9** | 2 | **Privacy-honoring history** — leak/teleport filter + keep-both-and-flag conflict at projection, across all time | L8 | human-signed | `node scripts/gates/l9.mjs` | R4,R6,R31,steer9 |
-| **L10** | 3 | **flywheel-daemon** — file-watch + cron backstop; watchdog+supervisor+dead-man liveness | L7,L8 | human-signed | `node scripts/gates/l10.mjs` | R22,R28,R29,R35 |
-| **L11** | 3 | **Model-collapse guard** — verifier gate + house-fraction cap in `build_dataset.mjs` | L6,L10 | human-signed | `node scripts/gates/l11.mjs` | R38 |
-| **L12** | 3 | **Human-signed promotion + rollback** gate on the served position; pin/revert | L6,L10 | human-signed | `python scripts/gates/l12.py` | R39 |
-| **L13** | 3 | **Promotion decision function + eval additive growth** — dominance/Pareto rule; slice `added_in_turn` | L12 | human-signed | `node scripts/gates/l13.mjs` | R44,R45 |
-| **L14** | 3 | **Compound-value triad dashboard** — eval-delta + agent pass-rate + cost/task over turns | L5,L10 | agent-ok | `node scripts/gates/l14.mjs` | R23,R24,R26,R30 |
+| id      | wave | title (goal in one line)                                                                                                          | deps   | authority    | verify gate                   | Rs                   |
+| ------- | ---- | --------------------------------------------------------------------------------------------------------------------------------- | ------ | ------------ | ----------------------------- | -------------------- |
+| **L0**  | 1    | **KEL spec + validator** — envelope schema, chain-hash, fold-to-state, converter registry; reuse B0 mechanics                     | —      | human-signed | `node scripts/gates/l0.mjs`   | R1–R7,R11,R32        |
+| **L1**  | 1    | **CAS staging + manifest + index** on D: (blobs/index/manifests), de-dup, plug-and-play                                           | L0     | human-signed | `node scripts/gates/l1.mjs`   | R17–R21              |
+| **L2**  | 1    | **Inbound poison gate** — integrity boundary symmetric to leak gate, at admission                                                 | L1     | agent-ok     | `node scripts/gates/l2.mjs`   | R40                  |
+| **L3**  | 1    | **Durability** — replicate staging+KEL, checksum integrity check + restore drill                                                  | L1     | human-signed | `node scripts/gates/l3.mjs`   | R41                  |
+| **L4**  | 1    | **Delta engine** — per-content-hash cursors, idempotent/resumable, HLC ordering-tolerant                                          | L0     | agent-ok     | `node scripts/gates/l4.mjs`   | R8–R11               |
+| **L5**  | 1    | **Execution register** — unified `executions.jsonl` projection + backfill of the 4 logs (DuckDB fallback deferred, measure-first) | L0,L4  | agent-ok     | `node scripts/gates/l5.mjs`   | R12–R16,R33,R37      |
+| **L6**  | 1    | **Authorship + record-served tagging** at capture time (human/frontier/house; served pointer)                                     | L0,L5  | agent-ok     | `node scripts/gates/l6.mjs`   | R38(tag),R39(record) |
+| **L7**  | 1    | **Single-winner loop claim + compaction budget** — reuse B0 `wx` lease for `flywheel-turn`; storage/compaction policy             | L0,B0  | agent-ok     | `node scripts/gates/l7.mjs`   | R43,R42              |
+| **L8**  | 2    | **Bi-temporal projectors** — rebuild Neo4j/Chroma/memo-ray/cards from KEL; time-travel query (valid/txn)                          | L0,L4  | agent-ok     | `node scripts/gates/l8.mjs`   | R1–R3,R7,R32         |
+| **L9**  | 2    | **Privacy-honoring history** — leak/teleport filter + keep-both-and-flag conflict at projection, across all time                  | L8     | human-signed | `node scripts/gates/l9.mjs`   | R4,R6,R31,steer9     |
+| **L10** | 3    | **flywheel-daemon** — file-watch + cron backstop; watchdog+supervisor+dead-man liveness                                           | L7,L8  | human-signed | `node scripts/gates/l10.mjs`  | R22,R28,R29,R35      |
+| **L11** | 3    | **Model-collapse guard** — verifier gate + house-fraction cap in `build_dataset.mjs`                                              | L6,L10 | human-signed | `node scripts/gates/l11.mjs`  | R38                  |
+| **L12** | 3    | **Human-signed promotion + rollback** gate on the served position; pin/revert                                                     | L6,L10 | human-signed | `python scripts/gates/l12.py` | R39                  |
+| **L13** | 3    | **Promotion decision function + eval additive growth** — dominance/Pareto rule; slice `added_in_turn`                             | L12    | human-signed | `node scripts/gates/l13.mjs`  | R44,R45              |
+| **L14** | 3    | **Compound-value triad dashboard** — eval-delta + agent pass-rate + cost/task over turns                                          | L5,L10 | agent-ok     | `node scripts/gates/l14.mjs`  | R23,R24,R26,R30      |
 
 Dependency graph is acyclic: wave-1 spine `L0 → {L1,L4}`, `L1 → {L2,L3}`, `{L0,L4} → L5 → L6`,
 `{L0,B0} → L7`; wave-2 `{L0,L4} → L8 → L9`; wave-3 `{L7,L8} → L10 → {L11,L12} `, `L12 → L13`,
@@ -405,16 +434,22 @@ Dependency graph is acyclic: wave-1 spine `L0 → {L1,L4}`, `L1 → {L2,L3}`, `{
 id: L0
 epic: EP-L
 milestone: M4
-okr: O2.KR2.2            # extends the "one honest stream" instrument to knowledge truth
+okr: O2.KR2.2 # extends the "one honest stream" instrument to knowledge truth
 deps: []
-authority: human-signed  # the truth substrate's schema is a foundational, human-signed decision
-allowlist: [architecture/SPEC-knowledge-eventlog.md, server/coordination/schema/kel-event.schema.json,
-  server/coordination/lib/kel.mjs, tests/kel/, scripts/gates/l0.mjs]  # validate.mjs enum bump done at authoring time
+authority: human-signed # the truth substrate's schema is a foundational, human-signed decision
+allowlist: [
+    architecture/SPEC-knowledge-eventlog.md,
+    server/coordination/schema/kel-event.schema.json,
+    server/coordination/lib/kel.mjs,
+    tests/kel/,
+    scripts/gates/l0.mjs
+  ] # validate.mjs enum bump done at authoring time
 tools: [node]
 sandbox: worktree
 verify: node scripts/gates/l0.mjs
 budget: 400
 ```
+
 ```gherkin
 # L0 ## Acceptance
 Feature: the knowledge event log is truth; stores are projections
@@ -431,6 +466,7 @@ Feature: the knowledge event log is truth; stores are projections
     When the projector rebuilds
     Then the event is up-converted and projected without error
 ```
+
 ```yaml
 # delivery/tasks/L2.md
 id: L2
@@ -439,12 +475,19 @@ milestone: M4
 okr: O2.KR2.2
 deps: [L1]
 authority: agent-ok
-allowlist: [server/coordination/lib/poison_gate.mjs, scripts/longview/lib/leak_gate.mjs, tests/poison/, scripts/gates/l2.mjs]
+allowlist:
+  [
+    server/coordination/lib/poison_gate.mjs,
+    scripts/longview/lib/leak_gate.mjs,
+    tests/poison/,
+    scripts/gates/l2.mjs
+  ]
 tools: [node]
 sandbox: worktree
 verify: node scripts/gates/l2.mjs
 budget: 300
 ```
+
 ```gherkin
 # L2 ## Acceptance
 Feature: an inbound integrity boundary symmetric to the outbound leak gate
@@ -462,11 +505,11 @@ Feature: an inbound integrity boundary symmetric to the outbound leak gate
 
 1. **Wave 1 — substrate:** R17–R21 staging + R8–R11 delta + R12–R16 execution tagging, **plus the
    Tier-1 guards slotted here (§9.5):** R40 poison gate + R41 durability with staging; R38 authorship
-   *tagging* + R39 *record-served* at capture time; R42/R43 (storage/compaction, single-winner claim).
+   _tagging_ + R39 _record-served_ at capture time; R42/R43 (storage/compaction, single-winner claim).
 2. **Wave 2 — bi-temporal + additive knowledge:** R1–R7 over the substrate; time-travel; privacy-
    honoring history.
 3. **Wave 3 — closed loop + agent loops:** R22–R30; the R38 fraction-cap+verifier gate and R39
-   promotion gate *activate* here; R44/R45 (multi-metric promotion rule, additive eval growth); the
+   promotion gate _activate_ here; R44/R45 (multi-metric promotion rule, additive eval growth); the
    compound-value dashboard (R26).
 
 ## 8. Delivery doctrine (how this gets built — from requirements §9.4)
@@ -475,14 +518,14 @@ Dogfood the flywheel to build it: **house model carries the high-volume specifie
 phases, dataset/delta builds via `house-trainer`/`longview-pipeline`); **frontier sessions carry
 design, gate-writing, and verification**. Capture every session with authorship tags (R38); only
 frontier-verified house sessions enter training (R38+R44); track the house-carried fraction per loop
-turn as an explicit optimization target (R30). This delivery *is* wave-3 behavior exercised early —
+turn as an explicit optimization target (R30). This delivery _is_ wave-3 behavior exercised early —
 so R38's guard is in force from the first house-authored session, not deferred.
 
 ---
 
-*Design authored 2026-07-25 (claude-opus). §4–§6 are written against the §2/§3 owner steers and
+_Design authored 2026-07-25 (claude-opus). §4–§6 are written against the §2/§3 owner steers and
 trace to R1–R45; §1/§7/§8 are the mandate they work within. **Next steps:** owner review of the
 design itself; then author the wave-1 spine (L0→L1→{L2,L3,L4}→L5→L6, L7) as full
 `delivery/tasks/L*.md` contracts + `EP-L.md` epic + `TRACEABILITY.md` row + `plan-deps.json` /
 w0-milestone additive bump, and stage this design session as house/frontier-tagged training material
-per §8. Two contracts (L0, L2) are drafted inline in §6 to seed that authoring.*
+per §8. Two contracts (L0, L2) are drafted inline in §6 to seed that authoring._

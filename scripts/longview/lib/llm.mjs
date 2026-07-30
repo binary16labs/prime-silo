@@ -29,9 +29,7 @@ export async function chat({ system, user, maxTokens, json = false, temperature 
     // JSON-extraction calls: response_format is provider-sensitive (LM Studio
     // 400s on json_object). config.JSON_MODE picks a compatible type; the caller's
     // parser recovers the object from the text regardless. "off" omits it entirely.
-    ...(json && config.JSON_MODE !== "off"
-      ? { response_format: { type: config.JSON_MODE } }
-      : {})
+    ...(json && config.JSON_MODE !== "off" ? { response_format: { type: config.JSON_MODE } } : {})
   };
   const res = await fetch(`${config.LLM_BASE_URL}/chat/completions`, {
     method: "POST",

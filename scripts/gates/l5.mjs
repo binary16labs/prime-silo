@@ -22,6 +22,8 @@ if (t.status !== 0) {
   process.exit(1);
 }
 
-console.log("[l5] register: four-log fold + cross-machine compare + rebuildable projection verified");
+console.log(
+  "[l5] register: four-log fold + cross-machine compare + rebuildable projection verified"
+);
 console.log("[l5] GATE GREEN");
 process.exit(0);

@@ -6,6 +6,7 @@
 Design-system contract (ADHD/Dyslexia rules as lint), adaptive layout killing squashed graphs, new shell behind flag, login retheme, user-facing de-brand, mascot micro-states, WCAG 2.2 AA parity flip.
 
 ## Phases → task contracts
+
 - [x] `C0` — design tokens + type/disclosure/motion rules (Stockholm Chic interactive dot-matrix canvas, Zen earth-tone palette)
 - [ ] `C1` — layout contract (min-height:0 chain + PaneContract ResizeObserver)
 - [x] `C2` — shell (Bridge/Studio/Observe/Setup/Governance V2) via Benny Orb Arc Satellite menu
@@ -16,5 +17,6 @@ Design-system contract (ADHD/Dyslexia rules as lint), adaptive layout killing sq
 - [ ] `C6` — parity flip + WCAG 2.2 AA audit
 
 ## Exit
+
 All phase gates green, verified by non-author agent; close with a VISION-CHECK note (plan §0.5):
 which KRs moved, measured evidence, one honest sentence on drift.

@@ -20,15 +20,21 @@ for (const rel of [
   }
 }
 
-const t = spawnSync(process.execPath, ["--test", "tests/privacy_history/privacy_history_test.mjs"], {
-  cwd: ROOT,
-  stdio: "inherit"
-});
+const t = spawnSync(
+  process.execPath,
+  ["--test", "tests/privacy_history/privacy_history_test.mjs"],
+  {
+    cwd: ROOT,
+    stdio: "inherit"
+  }
+);
 if (t.status !== 0) {
   console.log("[l9] GATE FAILED (privacy / conflict scenarios)");
   process.exit(1);
 }
 
-console.log("[l9] privacy: teleport-exclusion across all time + reversible tombstone + keep-both-and-flag conflict verified");
+console.log(
+  "[l9] privacy: teleport-exclusion across all time + reversible tombstone + keep-both-and-flag conflict verified"
+);
 console.log("[l9] GATE GREEN");
 process.exit(0);

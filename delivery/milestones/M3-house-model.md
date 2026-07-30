@@ -11,4 +11,5 @@ brought online. Contracts authored at this checkpoint by Claude (frontier author
 existing router; RAG unchanged). Reuses EP-A's offload path (A0 DONE) at T4.
 
 **Exit:** same DoD pattern as M1/M2 — phase gates (`scripts/gates/t0..t4`) + non-author verification
-+ KR1.5 scored ≥0.7 by its eval instrument + boot-verified release.
+
+- KR1.5 scored ≥0.7 by its eval instrument + boot-verified release.

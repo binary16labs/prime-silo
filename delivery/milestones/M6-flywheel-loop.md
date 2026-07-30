@@ -4,7 +4,7 @@
 EP-L wave-3 — L10 flywheel-daemon (file-watch + cron trigger under the single-winner claim; full-hybrid
 liveness) · L11 model-collapse guard (verifier gate + house-fraction cap) · L12 human-signed promotion +
 rollback · L13 promotion decision function + additive eval growth · L14 compound-value triad dashboard.
-This is the part that makes the system *self-learning* rather than a bigger pipeline — where the sharp
+This is the part that makes the system _self-learning_ rather than a bigger pipeline — where the sharp
 safety/correctness guards live.
 
 **Trigger:** waves 1–2 (M4/M5) delivering — the substrate (KEL, staging, delta, register, tagging,

@@ -5,32 +5,46 @@
     <title>Benny</title>
     <style>
       :root {
-        --ps-font-mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
+        --ps-font-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
         --ps-accent: #c4a882;
         --ps-accent-glow: #d8bc96;
         --ps-border-dim: rgba(232, 217, 191, 0.12);
         --ps-text: #ece6d8;
         --ps-text-dim: rgba(236, 230, 216, 0.6);
       }
-      html, body {
-        margin: 0; padding: 0;
-        width: 100%; height: 100%;
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
         background: transparent;
         overflow: hidden;
-        -webkit-user-select: none; user-select: none;
-        font-family: system-ui, -apple-system, sans-serif;
+        -webkit-user-select: none;
+        user-select: none;
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
       }
       .stage {
         position: relative;
-        width: 100%; height: 100%;
+        width: 100%;
+        height: 100%;
         display: flex;
         align-items: center;
         justify-content: center;
         -webkit-app-region: drag;
         cursor: grab;
       }
-      .stage:active { cursor: grabbing; }
-      navi-key { display: block; width: 100%; height: 100%; }
+      .stage:active {
+        cursor: grabbing;
+      }
+      navi-key {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
       .navi-key-container {
         position: absolute !important;
         inset: 0 !important;
@@ -39,25 +53,38 @@
         pointer-events: none;
       }
       /* SVG interactive, NOT draggable — mouse events reach arcs */
-      .navi-key-svg { -webkit-app-region: no-drag; }
+      .navi-key-svg {
+        -webkit-app-region: no-drag;
+      }
       /* Close button */
       .ctl-close {
         position: absolute;
-        top: 14px; right: 14px;
-        width: 26px; height: 26px;
+        top: 14px;
+        right: 14px;
+        width: 26px;
+        height: 26px;
         background: rgba(30, 20, 12, 0.82);
         color: #fff;
-        border: none; border-radius: 50%;
-        font-size: 16px; line-height: 26px;
-        display: flex; align-items: center; justify-content: center;
+        border: none;
+        border-radius: 50%;
+        font-size: 16px;
+        line-height: 26px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         cursor: pointer;
         opacity: 0;
         transition: opacity 140ms ease;
         -webkit-app-region: no-drag;
         z-index: 10001;
       }
-      .stage:hover .ctl-close { opacity: 1; }
-      .ctl-close:hover { background: rgba(30,20,12,0.96); transform: scale(1.1); }
+      .stage:hover .ctl-close {
+        opacity: 1;
+      }
+      .ctl-close:hover {
+        background: rgba(30, 20, 12, 0.96);
+        transform: scale(1.1);
+      }
     </style>
     <link rel="stylesheet" href="../../app/L0/_all/mod/_core/visual/navi/navi-key.css" />
   </head>
@@ -70,11 +97,11 @@
     <script src="../../app/L0/_all/mod/_prime_silo/widgets/vendor/animejs/anime.min.js"></script>
     <script src="../../app/L0/_all/mod/_core/visual/navi/navi-key.js"></script>
     <script>
-      document.getElementById('naviKey').addEventListener('nav-action', function(e) {
+      document.getElementById("naviKey").addEventListener("nav-action", function (e) {
         e.stopPropagation();
         window.benny && window.benny.openCockpit && window.benny.openCockpit(e.detail.action);
       });
-      document.getElementById('closeBtn').addEventListener('click', function(e) {
+      document.getElementById("closeBtn").addEventListener("click", function (e) {
         e.stopPropagation();
         window.benny && window.benny.hide && window.benny.hide();
       });

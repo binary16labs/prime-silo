@@ -10,20 +10,20 @@ has the dense version.
 > so it can help with development the way an experienced teammate would, and run **on our own
 > hardware** instead of a paid cloud service.
 
-## The key idea: teach *method*, not *facts*
+## The key idea: teach _method_, not _facts_
 
 A useful distinction we stuck to throughout:
 
 - **Facts** = specific things ("this function lives in that file", "we chose Postgres on this
   date"). Facts change and are easy to look up.
-- **Method** = *how* we approach work ("verify before you commit", "dry-run first", "write the
+- **Method** = _how_ we approach work ("verify before you commit", "dry-run first", "write the
   test before the code", "here's how we structure a decision record").
 
 The design decision: **put method into the model's brain (training), and keep facts in a
 searchable library (RAG).** "RAG" (Retrieval-Augmented Generation) just means: when the model
 needs a fact, it looks it up in a database first, instead of trying to remember it. We
 deliberately did **not** cram facts into the model — a model that memorizes facts gets them
-wrong and out of date. So we trained it on *how we work* and let it look up *what is true*.
+wrong and out of date. So we trained it on _how we work_ and let it look up _what is true_.
 
 ## What "training a model" means here
 
@@ -32,7 +32,7 @@ We didn't build a model from scratch (that costs millions). We took an existing 
 
 - **Base model** = the off-the-shelf model, before we touch it.
 - **Fine-tuning** = nudging it with our own examples so it leans toward our style.
-- **QLoRA** = a *cheap* way to fine-tune. Instead of rewriting all 7 billion numbers in the
+- **QLoRA** = a _cheap_ way to fine-tune. Instead of rewriting all 7 billion numbers in the
   model (needs huge, expensive hardware), QLoRA freezes the model and trains a tiny "adapter"
   (~0.5% extra numbers) on top. The "Q" means it runs the big model in a compressed (4-bit)
   form so it fits on a normal graphics card. This is what let us train on a **laptop with an
@@ -52,12 +52,12 @@ a fixed test and **froze** it — no changing the goalposts later:
   held-out set, versus the base model. Higher probability = it learned our patterns. (The
   technical name is "NLL" — lower is better; think of it as "how surprised the model is by the
   right answer." Less surprised = better.)
-- Crucially, we turn **RAG off** during this test, so the score reflects what the *model itself*
+- Crucially, we turn **RAG off** during this test, so the score reflects what the _model itself_
   learned, not what it could look up.
 
 **The result:** the tuned model was **57% better** than the base model by this measure — a big,
-honest jump. Its grasp of our *tool use* improved most (−70%); its grasp of our *writing/method
-voice* improved solidly (−38%) once we fixed the data (see below).
+honest jump. Its grasp of our _tool use_ improved most (−70%); its grasp of our _writing/method
+voice_ improved solidly (−38%) once we fixed the data (see below).
 
 ## The data was the hard part (and where the biggest win came)
 
@@ -70,6 +70,7 @@ plans, architecture documents, and the model's own past reasoning. After the fix
 grasp of our method/voice improved **four-fold**.
 
 Two guardrails held the whole time:
+
 - **Privacy:** the operator does personal job-application work in the same environment. A
   "leak gate" scans every training example and **blocks any CV / cover-letter / job content** from
   entering the model. Zero leaks, verified repeatedly.
@@ -80,7 +81,7 @@ Two guardrails held the whole time:
 A trained model is useless sitting on a disk. We wired it into **Benny** (our AI runtime) as an
 **optional new engine** — "additive," meaning the existing default engine is untouched and the new
 one is just an extra choice that the system falls back away from if it's unhealthy. We then had it
-do a **real task** through our safety pipeline: it wrote a piece of code, a *different* AI model
+do a **real task** through our safety pipeline: it wrote a piece of code, a _different_ AI model
 acted as an independent **judge** and scored the result (it passed, top marks), and the whole thing
 was recorded honestly. That proves the model doesn't just score well on paper — it works in the
 real system, on the real hardware.
@@ -91,9 +92,9 @@ spoke a dialect one server understood and another didn't — which we found and 
 
 ## The final experiment: can we squeeze out more? (T5, DPO)
 
-After teaching the model *what good looks like* (that's the fine-tuning above), we tried a second
+After teaching the model _what good looks like_ (that's the fine-tuning above), we tried a second
 technique called **DPO** (Direct Preference Optimization). The idea: show the model **pairs** — a
-good answer and a worse one — and teach it to *prefer* the good one. Cleverly, the "worse" answers
+good answer and a worse one — and teach it to _prefer_ the good one. Cleverly, the "worse" answers
 weren't made up: they were the model's **own mistakes**, collected by asking it questions and
 catching where it got them wrong.
 
@@ -122,7 +123,7 @@ into automatic filters. It's a quality check that needs a human's judgment — e
 
 ---
 
-*Glossary:* **base model** = off-the-shelf AI; **fine-tune** = adjust it with your examples;
+_Glossary:_ **base model** = off-the-shelf AI; **fine-tune** = adjust it with your examples;
 **QLoRA** = cheap fine-tuning that fits on a normal GPU; **RAG** = look facts up in a database
 instead of memorizing; **held-out set** = examples kept secret from training, used to test fairly;
 **NLL** = the score (lower = better); **DPO** = teach the model to prefer good answers over bad;

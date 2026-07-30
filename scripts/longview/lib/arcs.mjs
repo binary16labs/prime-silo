@@ -70,9 +70,7 @@ export function threadIndex() {
     const project = card.project || inv.project || "unknown";
     // The card's own record of what this session DID — the beat's substance.
     const snippet =
-      (card.decisions || card.outcomes || card.intent || [])
-        .flat?.()
-        ?.slice?.(0, 1)?.[0] ||
+      (card.decisions || card.outcomes || card.intent || []).flat?.()?.slice?.(0, 1)?.[0] ||
       (Array.isArray(card.outcomes) ? card.outcomes[0] : card.intent) ||
       "";
     // Concepts and capabilities are both candidate threads (skills_observed are
@@ -84,7 +82,13 @@ export function threadIndex() {
       if (key.length < 4 || seen.has(key)) continue;
       seen.add(key);
       const th = threads.get(key) || { display: t, touchpoints: [] };
-      th.touchpoints.push({ sid: sid.slice(0, 8), project, month: monthOf(ts), ts, snippet: String(snippet).slice(0, 160) });
+      th.touchpoints.push({
+        sid: sid.slice(0, 8),
+        project,
+        month: monthOf(ts),
+        ts,
+        snippet: String(snippet).slice(0, 160)
+      });
       threads.set(key, th);
     }
   }
@@ -114,7 +118,14 @@ export function selectThreads(threads, limit) {
     // in >40% of sessions pushes background habits below distinctive spines.
     const ubiquityPenalty = fraction > 0.4 ? 0.5 : 1;
     const score = Math.sqrt(sids.size) * projects.size * Math.max(1, months.size) * ubiquityPenalty;
-    scored.push({ key, th, projects: [...projects], months: [...months].sort(), sids: [...sids], score });
+    scored.push({
+      key,
+      th,
+      projects: [...projects],
+      months: [...months].sort(),
+      sids: [...sids],
+      score
+    });
   }
   scored.sort((a, b) => b.score - a.score);
   // Two-axis diversity so the arc set tells DIFFERENT stories:
@@ -122,8 +133,21 @@ export function selectThreads(threads, limit) {
   //  2. token saturation: skip a thread that introduces no NEW significant word
   //     — this collapses the "file navigation / directory listing / file reading"
   //     family (distinct concepts, one narrative) once its words are spent.
-  const STOP = new Set(["with", "from", "this", "that", "into", "over", "based", "using", "system"]);
-  const sigTokens = (name) => norm(name).split(" ").filter((w) => w.length >= 4 && !STOP.has(w));
+  const STOP = new Set([
+    "with",
+    "from",
+    "this",
+    "that",
+    "into",
+    "over",
+    "based",
+    "using",
+    "system"
+  ]);
+  const sigTokens = (name) =>
+    norm(name)
+      .split(" ")
+      .filter((w) => w.length >= 4 && !STOP.has(w));
   const tokenUse = new Map(); // token → # picked threads using it
   const picked = [];
   for (const s of scored) {
@@ -180,7 +204,12 @@ async function narrateArc(sel) {
       json: true
     });
     const parsed = lastBalancedJson(res.content) ?? repairTruncatedJson(res.content);
-    appendLedger({ phase: "opus", artifact: `arc:${sel.key.slice(0, 24)}`, ms: Date.now() - started, ok: Boolean(parsed?.title) });
+    appendLedger({
+      phase: "opus",
+      artifact: `arc:${sel.key.slice(0, 24)}`,
+      ms: Date.now() - started,
+      ok: Boolean(parsed?.title)
+    });
     if (parsed?.title) {
       return {
         key: sel.key,
@@ -221,13 +250,17 @@ export async function buildArcs({ interrupted = () => false, limit = null } = {}
   console.log(`[opus] arcs: walking cards for cross-project threads…`);
   const threads = threadIndex();
   const selected = selectThreads(threads, n);
-  console.log(`[opus] arcs: ${threads.size} threads → ${selected.length} span the journey (≥2 sessions, ≥2 projects)`);
+  console.log(
+    `[opus] arcs: ${threads.size} threads → ${selected.length} span the journey (≥2 sessions, ≥2 projects)`
+  );
   const arcs = [];
   for (const sel of selected) {
     if (interrupted()) break;
     const arc = await narrateArc(sel);
     arcs.push(arc);
-    console.log(`[opus] arc: ${arc.title} — ${arc.projects.length} projects, ${arc.sids.length} sids`);
+    console.log(
+      `[opus] arc: ${arc.title} — ${arc.projects.length} projects, ${arc.sids.length} sids`
+    );
   }
   const out = { generated: new Date().toISOString(), model: config.LONGVIEW_MODEL, arcs };
   fs.mkdirSync(path.dirname(arcsPath), { recursive: true });
@@ -239,7 +272,9 @@ export async function buildArcs({ interrupted = () => false, limit = null } = {}
 // chapter's declared projects/motifs/title. Deterministic; each chapter gets
 // the ≤2 most-relevant arcs so a section prompt stays budget-safe.
 export function arcsForChapter(ch, arcs) {
-  const hay = norm([ch.title, ch.brief, (ch.projects || []).join(" "), (ch.motifs || []).join(" ")].join(" "));
+  const hay = norm(
+    [ch.title, ch.brief, (ch.projects || []).join(" "), (ch.motifs || []).join(" ")].join(" ")
+  );
   const scored = arcs
     .map((a) => {
       let score = 0;

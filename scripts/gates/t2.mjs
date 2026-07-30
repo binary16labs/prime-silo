@@ -16,7 +16,9 @@ import { validateRow } from "../train/lib/schema.mjs";
 import { loadTerms, scanForLeaks } from "../train/lib/privacy.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const DS = path.resolve(process.env.T2_DATASET_DIR || path.join(ROOT, "scripts", "train", "dataset"));
+const DS = path.resolve(
+  process.env.T2_DATASET_DIR || path.join(ROOT, "scripts", "train", "dataset")
+);
 
 // The generated rows carry real internal session traces and are git-ignored
 // (kept local by design). If they're absent, build them first from the local
@@ -25,7 +27,9 @@ const DS = path.resolve(process.env.T2_DATASET_DIR || path.join(ROOT, "scripts",
 if (!fs.existsSync(path.join(DS, "manifest.json"))) {
   console.log("[t2] dataset absent — building from the local corpus first…");
   try {
-    execFileSync(process.execPath, [path.join(ROOT, "scripts", "train", "build_dataset.mjs")], { stdio: "inherit" });
+    execFileSync(process.execPath, [path.join(ROOT, "scripts", "train", "build_dataset.mjs")], {
+      stdio: "inherit"
+    });
   } catch (e) {
     console.log(`[t2] reason=build_failed — ${e.message}`);
     console.log("[t2] GATE RED");
@@ -34,7 +38,7 @@ if (!fs.existsSync(path.join(DS, "manifest.json"))) {
 }
 const FILES = {
   A: ["stream_a.train.jsonl", "stream_a.eval.jsonl"],
-  B: ["stream_b.train.jsonl", "stream_b.eval.jsonl"],
+  B: ["stream_b.train.jsonl", "stream_b.eval.jsonl"]
 };
 
 function fail(reason, detail = "") {
@@ -43,18 +47,26 @@ function fail(reason, detail = "") {
   process.exit(1);
 }
 const readJSONL = (p) =>
-  fs.readFileSync(p, "utf8").split(/\r?\n/).filter((l) => l.trim()).map((l, i) => {
-    try {
-      return JSON.parse(l);
-    } catch (e) {
-      fail("bad_jsonl", `${path.basename(p)} line ${i + 1}: ${e.message}`);
-    }
-  });
+  fs
+    .readFileSync(p, "utf8")
+    .split(/\r?\n/)
+    .filter((l) => l.trim())
+    .map((l, i) => {
+      try {
+        return JSON.parse(l);
+      } catch (e) {
+        fail("bad_jsonl", `${path.basename(p)} line ${i + 1}: ${e.message}`);
+      }
+    });
 
-if (!fs.existsSync(path.join(DS, "manifest.json"))) fail("no_dataset", `run build_dataset.mjs first (${DS})`);
+if (!fs.existsSync(path.join(DS, "manifest.json")))
+  fail("no_dataset", `run build_dataset.mjs first (${DS})`);
 
 // Every file present, every row schema-valid; collect train/eval ids per stream.
-const idsByStream = { A: { train: new Set(), eval: new Set() }, B: { train: new Set(), eval: new Set() } };
+const idsByStream = {
+  A: { train: new Set(), eval: new Set() },
+  B: { train: new Set(), eval: new Set() }
+};
 let total = 0;
 const allFiles = [];
 for (const [stream, names] of Object.entries(FILES)) {
@@ -79,14 +91,18 @@ for (const [stream, names] of Object.entries(FILES)) {
 // Held-out must be disjoint from train (per stream).
 for (const s of ["A", "B"]) {
   const overlap = [...idsByStream[s].eval].filter((id) => idsByStream[s].train.has(id));
-  if (overlap.length) fail("split_not_disjoint", `stream ${s}: ${overlap.length} ids in both (e.g. ${overlap[0]})`);
+  if (overlap.length)
+    fail("split_not_disjoint", `stream ${s}: ${overlap.length} ids in both (e.g. ${overlap[0]})`);
 }
 
 // Authoritative leak scan over every emitted row.
 const spec = loadTerms();
 const leaks = scanForLeaks({ files: allFiles, terms: spec.terms, sids: spec.sids });
 if (leaks.length)
-  fail("leak", `${leaks.length} personal-context hits (e.g. ${leaks[0].file && path.basename(leaks[0].file)} [${leaks[0].term}])`);
+  fail(
+    "leak",
+    `${leaks.length} personal-context hits (e.g. ${leaks[0].file && path.basename(leaks[0].file)} [${leaks[0].term}])`
+  );
 
 console.log(
   `[t2] streams: A=${idsByStream.A.train.size}+${idsByStream.A.eval.size} B=${idsByStream.B.train.size}+${idsByStream.B.eval.size} | ` +
@@ -99,7 +115,7 @@ console.log(
       A_eval: idsByStream.A.eval.size,
       B_train: idsByStream.B.train.size,
       B_eval: idsByStream.B.eval.size,
-      leaks: leaks.length,
+      leaks: leaks.length
     })
 );
 console.log("[t2] GATE GREEN");

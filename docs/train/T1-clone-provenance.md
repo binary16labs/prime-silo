@@ -11,10 +11,10 @@ read a local clone of the Benny home — no LAN dependency during a run.
 
 ## Source snapshot (2026-07-23)
 
-| Store | Source (desktop-assembled) | Files | Size |
-|---|---|---|---|
-| Benny home (`benny/` + `customware/`) | external SSD `D:\benny-home` | 725,659 | 32,516,129,464 B (~30.28 GB) |
-| memo-ray | `D:\mem0ray-data` (desktop `~/.mem0ray/data`) | 80,555 | ~84.8 MB |
+| Store                                 | Source (desktop-assembled)                    | Files   | Size                         |
+| ------------------------------------- | --------------------------------------------- | ------- | ---------------------------- |
+| Benny home (`benny/` + `customware/`) | external SSD `D:\benny-home`                  | 725,659 | 32,516,129,464 B (~30.28 GB) |
+| memo-ray                              | `D:\mem0ray-data` (desktop `~/.mem0ray/data`) | 80,555  | ~84.8 MB                     |
 
 Transfer medium: external 1 TB SSD (labelled `1TB-SSD`), plugged into the T480 as
 drive **`D:`** (the desktop had it as `F:`; drive letters are per-machine).
@@ -31,6 +31,7 @@ documented fallback is used:
   stale `.memoray` sibling was left untouched, not recreated).
 
 Pointing the home (both mechanisms set, for robustness):
+
 1. `PRIME_SILO_HOME` + `MEMORAY_DATA_DIR` user env vars (`setx`) — visible to a fresh
    terminal and to both resolvers.
 2. `%APPDATA%\Prime-Silo\prime-silo-config.json` `{ "homeDir": "D:\\benny-home" }`

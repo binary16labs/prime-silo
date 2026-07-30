@@ -3,28 +3,30 @@
 **Status:** 🟢 GATE GREEN — author-complete, **ready-for-verify** (author = claude on
 the T480; verifier re-runs `node scripts/gates/t2.mjs`). Built: 2026-07-23.
 
-Fine-tune quality is ~90% data. T2 turns the *already-structured* corpus into training
+Fine-tune quality is ~90% data. T2 turns the _already-structured_ corpus into training
 data — no LLM, no network, no fine-tune (that's T3). Data only.
 
 ---
 
 ## Streams
 
-| Stream | Shape | Source | Rows (train + eval) |
-|---|---|---|---|
-| **A — method / voice** | `instruction → house-style response` | LONGVIEW cards + ADRs | **63** (56 + 7) |
-| **B — agent tool-use** | `state + goal → next tool call` | memo-ray tool-call traces | **500** (424 + 76) |
+| Stream                 | Shape                                | Source                    | Rows (train + eval) |
+| ---------------------- | ------------------------------------ | ------------------------- | ------------------- |
+| **A — method / voice** | `instruction → house-style response` | LONGVIEW cards + ADRs     | **63** (56 + 7)     |
+| **B — agent tool-use** | `state + goal → next tool call`      | memo-ray tool-call traces | **500** (424 + 76)  |
 
 **Total: 563 rows.** Held-out split: **15%** (`T2_EVAL_PCT`), assigned by a stable
 FNV-1a hash of each row id — deterministic and **disjoint from train by construction**.
 
 Row schemas (one authority: `scripts/train/lib/schema.mjs`):
+
 - Stream A: `{stream:"A", id, instruction, response, source:{type:"card"|"adr", id, sid?}}`
 - Stream B: `{stream:"B", id, state, goal, tool_call:{name, args}, source:{type:"trace", id, sid, agent}}`
 
 ## Source provenance
 
 Built off the verified **T1 clone** (`D:\benny-home`):
+
 - **61 LONGVIEW cards** (`benny/workspaces/longview/data_in/longview_card_*.md`) — both
   card templates handled (v1 `Intent/Applications/Decisions`, arc/v2
   `Overview/What happened/Threads and signals`). Responses are the cards' **real
@@ -39,6 +41,7 @@ Built off the verified **T1 clone** (`D:\benny-home`):
 
 The operator does job-application / CV work in the same session estate — that context
 must **never** enter training rows.
+
 - Every candidate row passes a build-time detector (`scripts/train/lib/privacy.mjs`)
   using **generic** category markers (`scripts/train/dataset/personal_terms.json`:
   cv/resume/cover-letter/job-application/… — never the operator's real private data),

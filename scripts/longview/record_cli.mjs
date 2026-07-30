@@ -21,7 +21,9 @@ const has = (n) => args.includes(`--${n}`);
 
 const scope = opt("scope");
 if (!scope) {
-  console.error("usage: record_cli.mjs --scope <card:sid|section:id|dossier:name|book|run> [--lineage-only|--record-only]");
+  console.error(
+    "usage: record_cli.mjs --scope <card:sid|section:id|dossier:name|book|run> [--lineage-only|--record-only]"
+  );
   process.exit(1);
 }
 
@@ -31,6 +33,8 @@ try {
   if (!has("lineage-only")) out.record = recordFor(scope);
   process.stdout.write(JSON.stringify(out));
 } catch (e) {
-  process.stdout.write(JSON.stringify({ scope, workspace: config.WORKSPACE, error: String(e.message || e) }));
+  process.stdout.write(
+    JSON.stringify({ scope, workspace: config.WORKSPACE, error: String(e.message || e) })
+  );
   process.exit(2);
 }

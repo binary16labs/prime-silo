@@ -137,14 +137,27 @@ function longviewLedger({ since = 0, workspace = WORKSPACE } = {}) {
   let entries = [];
   let total = 0;
   try {
-    const lines = fs.readFileSync(path.join(dir, "ledger.jsonl"), "utf8").split("\n").filter(Boolean);
+    const lines = fs
+      .readFileSync(path.join(dir, "ledger.jsonl"), "utf8")
+      .split("\n")
+      .filter(Boolean);
     total = lines.length;
     entries = lines.slice(Math.max(0, Number(since) || 0)).map((l) => {
-      try { return JSON.parse(l); } catch { return { raw: l }; }
+      try {
+        return JSON.parse(l);
+      } catch {
+        return { raw: l };
+      }
     });
-  } catch { /* no ledger yet */ }
+  } catch {
+    /* no ledger yet */
+  }
   let heartbeat = null;
-  try { heartbeat = JSON.parse(fs.readFileSync(path.join(dir, "status.json"), "utf8")); } catch { /* none */ }
+  try {
+    heartbeat = JSON.parse(fs.readFileSync(path.join(dir, "status.json"), "utf8"));
+  } catch {
+    /* none */
+  }
   return { workspace, since: Number(since) || 0, next: total, entries, heartbeat };
 }
 

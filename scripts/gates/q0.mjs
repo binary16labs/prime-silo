@@ -24,15 +24,18 @@ function run(cmd, args, opts = {}) {
     cwd: ROOT,
     shell: process.platform === "win32",
     encoding: "utf8",
-    ...opts,
+    ...opts
   });
 }
 
 // ── Scenario 1: dependency audit is clean ─────────────────────────────────────
 {
   const p = run("npm", ["audit", "--audit-level=moderate"]);
-  check("scenario 1: npm audit --audit-level=moderate exits 0", p.status === 0,
-    p.status === 0 ? "" : (p.stdout || p.stderr || "").trim().split("\n").slice(-4).join(" | "));
+  check(
+    "scenario 1: npm audit --audit-level=moderate exits 0",
+    p.status === 0,
+    p.status === 0 ? "" : (p.stdout || p.stderr || "").trim().split("\n").slice(-4).join(" | ")
+  );
 }
 
 // ── Scenario 2a: burned credential is gone (tracked files, minus historical) ──
@@ -43,9 +46,7 @@ function run(cmd, args, opts = {}) {
     .map((l) => l.trim())
     .filter((l) => l && !l.startsWith("#"));
   const allowed = (file) =>
-    allowlist.some((entry) =>
-      entry.endsWith("/") ? file.startsWith(entry) : file === entry,
-    );
+    allowlist.some((entry) => (entry.endsWith("/") ? file.startsWith(entry) : file === entry));
   const p = run("git", ["grep", "-l", BURNED, "--", "."]);
   // git grep exits 1 on zero matches — that is success for us.
   const hits = (p.stdout || "")
@@ -53,8 +54,11 @@ function run(cmd, args, opts = {}) {
     .map((l) => l.trim().replaceAll("\\", "/"))
     .filter(Boolean)
     .filter((f) => !allowed(f));
-  check("scenario 2a: burned credential absent outside historical allowlist", hits.length === 0,
-    hits.length ? `still in: ${hits.join(", ")}` : "");
+  check(
+    "scenario 2a: burned credential absent outside historical allowlist",
+    hits.length === 0,
+    hits.length ? `still in: ${hits.join(", ")}` : ""
+  );
 }
 
 // ── Scenario 2b: absence of a key fails fast, naming BENNY_API_KEY + keystore ─
@@ -63,7 +67,7 @@ function run(cmd, args, opts = {}) {
   // neither BENNY_API_KEY nor a per-install keystore is reachable.
   const probe = `
     const mod = await import(${JSON.stringify(
-      "file://" + path.join(ROOT, "server", "lib", "runtime_proxy.js").replaceAll("\\", "/"),
+      "file://" + path.join(ROOT, "server", "lib", "runtime_proxy.js").replaceAll("\\", "/")
     )});
     try {
       mod.resolveBennyApiKey({ env: {} });
@@ -76,27 +80,35 @@ function run(cmd, args, opts = {}) {
   const out = (p.stdout || "") + (p.stderr || "");
   const threw = out.includes("THREW:");
   const actionable = out.includes("BENNY_API_KEY") && /state[\\/]hmac-key/.test(out);
-  check("scenario 2b (node): missing key fails fast naming BENNY_API_KEY + keystore path",
-    threw && actionable, out.trim().split("\n")[0] || "no output");
+  check(
+    "scenario 2b (node): missing key fails fast naming BENNY_API_KEY + keystore path",
+    threw && actionable,
+    out.trim().split("\n")[0] || "no output"
+  );
 }
 {
   // Python consumers: pytest scenario tests (named after the contract scenarios).
   const p = run("python", ["-m", "pytest", "tests/api/test_q0_key_resolution.py", "-q"], {
-    cwd: path.join(ROOT, "runtime"),
+    cwd: path.join(ROOT, "runtime")
   });
-  check("scenario 2b (python): key-resolution fail-fast pytest green", p.status === 0,
-    p.status === 0 ? "" : (p.stdout || "").trim().split("\n").slice(-3).join(" | "));
+  check(
+    "scenario 2b (python): key-resolution fail-fast pytest green",
+    p.status === 0,
+    p.status === 0 ? "" : (p.stdout || "").trim().split("\n").slice(-3).join(" | ")
+  );
 }
 
 // ── Scenario 3: local development still boots (documented resolution path) ────
 {
   const envExample = path.join(ROOT, ".env.example");
   const text = fs.existsSync(envExample) ? fs.readFileSync(envExample, "utf8") : "";
-  check("scenario 3: .env.example documents BENNY_API_KEY and HOST",
-    text.includes("BENNY_API_KEY") && text.includes("HOST"));
+  check(
+    "scenario 3: .env.example documents BENNY_API_KEY and HOST",
+    text.includes("BENNY_API_KEY") && text.includes("HOST")
+  );
   const probe = `
     const mod = await import(${JSON.stringify(
-      "file://" + path.join(ROOT, "server", "lib", "runtime_proxy.js").replaceAll("\\", "/"),
+      "file://" + path.join(ROOT, "server", "lib", "runtime_proxy.js").replaceAll("\\", "/")
     )});
     const key = mod.resolveBennyApiKey({ env: { BENNY_API_KEY: "q0-fixture-key" } });
     console.log(key === "q0-fixture-key" ? "ENV-OK" : "ENV-BAD:" + key);
@@ -108,16 +120,26 @@ function run(cmd, args, opts = {}) {
 // ── Scenario 4: server is loopback by default ─────────────────────────────────
 {
   const p = run(process.execPath, ["tests/server_bind_default_test.mjs"], { shell: false });
-  check("scenario 4: bind-default unit test green (127.0.0.1 default, opt-in warning)",
-    p.status === 0, p.status === 0 ? "" : (p.stdout || p.stderr || "").trim().split("\n").slice(-3).join(" | "));
+  check(
+    "scenario 4: bind-default unit test green (127.0.0.1 default, opt-in warning)",
+    p.status === 0,
+    p.status === 0 ? "" : (p.stdout || p.stderr || "").trim().split("\n").slice(-3).join(" | ")
+  );
 }
 
 // ── Scenario 5: ADR-003 residual follow-up test ───────────────────────────────
 {
   const p = run(process.execPath, ["tests/adr003_same_origin_followup_test.mjs"], { shell: false });
-  check("scenario 5: ADR-003 same-origin follow-up test green", p.status === 0,
-    p.status === 0 ? "" : (p.stdout || p.stderr || "").trim().split("\n").slice(-3).join(" | "));
+  check(
+    "scenario 5: ADR-003 same-origin follow-up test green",
+    p.status === 0,
+    p.status === 0 ? "" : (p.stdout || p.stderr || "").trim().split("\n").slice(-3).join(" | ")
+  );
 }
 
-console.log(failures.length === 0 ? "[q0] GATE GREEN" : `[q0] GATE FAILED — ${failures.length} failing: ${failures.join("; ")}`);
+console.log(
+  failures.length === 0
+    ? "[q0] GATE GREEN"
+    : `[q0] GATE FAILED — ${failures.length} failing: ${failures.join("; ")}`
+);
 process.exit(failures.length === 0 ? 0 : 1);

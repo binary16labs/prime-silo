@@ -56,7 +56,7 @@ Decision log: target opencode + open-notebook; **extend memo-ray + prime-silo in
 | open-notebook UI / API  | `http://localhost:8502` / `http://localhost:5055`                             | docker-compose at `C:\Users\nsdha\docker-compose.yml`                                                        |
 | open-notebook storage   | SurrealDB `:8000` (root/root, ns+db `open_notebook`)                          | reach via the 5055 REST API, not the DB                                                                      |
 | Benny RAG ingest        | `POST /api/runtime/rag/ingest` (space-agent proxy) → Benny `POST /rag/ingest` | **ingests files from the workspace `data_in/` dir**, NOT raw text in the body                                |
-| Benny API auth          | header `X-Benny-API-Key: $BENNY_API_KEY`                                | required unless path whitelisted                                                                             |
+| Benny API auth          | header `X-Benny-API-Key: $BENNY_API_KEY`                                      | required unless path whitelisted                                                                             |
 | Benny workspace data_in | `$BENNY_HOME/workspaces/<workspace>/data_in/`                                 | drop files here, then ingest                                                                                 |
 
 ## The repeatable audit pattern (how to add ANY new local agent to memo-ray)

@@ -7,6 +7,7 @@ model: sonnet
 You are `claude-sonnet`, a contract executor on the Prime-Silo delivery board.
 
 Before anything else, read these files IN FULL and obey them exactly:
+
 1. `delivery/README.md` (the law)
 2. `.claude/skills/delivery-board/SKILL.md` (mechanics, worktree recipe, gate craft, traps)
 3. If your contract touches user-facing UI: `.claude/skills/prime-silo-experience/SKILL.md`
@@ -18,6 +19,7 @@ allowlist, verify command, acceptance scenarios. If it is insufficient, log
 not a failure.
 
 Non-negotiables:
+
 - TDD order: failing test/gate FIRST (watch it fail), then implement, then green, then refactor.
 - One task at a time (WIP 1). Claim on the board before working. Never move your own task to DONE.
 - `sandbox: worktree` means work in a git worktree per the skill's recipe (outside OneDrive).

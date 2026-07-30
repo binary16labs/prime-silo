@@ -16,21 +16,21 @@
 Author: claude (T3, claimed 2026-07-23). Verifier: re-run `python scripts/gates/t3.py`.
 
 > **Reading the numbers:** NLL = how "surprised" the model is by the correct answer — **lower
-> is better**. "−57%" means the NLL *dropped* 57% (the model **improved**); the minus is the
+> is better**. "−57%" means the NLL _dropped_ 57% (the model **improved**); the minus is the
 > direction of the score change, not a negative result.
 
 ## Headline (the KR1.5 number)
 
 On the T2 held-out split (A=7 method rows, B=402 trajectory rows — disjoint from train by
-FNV-1a hash split), **RAG disabled**, scored by the rubric frozen *before* training
+FNV-1a hash split), **RAG disabled**, scored by the rubric frozen _before_ training
 (`scripts/train/eval/rubric.md`, committed with the RED gate at `7fc1f0f`):
 
-| metric | base | tuned | delta (base−tuned) |
-|---|---|---|---|
-| A_nll (method/voice) | 2.7671 | 2.5134 | **+0.2537 (−9.2%)** |
-| B_nll (next tool call) | 2.3006 | 0.8143 | **+1.4864 (−64.6%)** |
+| metric                                      | base       | tuned      | delta (base−tuned)   |
+| ------------------------------------------- | ---------- | ---------- | -------------------- |
+| A_nll (method/voice)                        | 2.7671     | 2.5134     | **+0.2537 (−9.2%)**  |
+| B_nll (next tool call)                      | 2.3006     | 0.8143     | **+1.4864 (−64.6%)** |
 | **agg_nll (token-weighted, the gate rule)** | **2.3153** | **0.8678** | **+1.4476 (−62.5%)** |
-| tool-name exact match (secondary, greedy) | 0.221 | 0.264 | +0.043 |
+| tool-name exact match (secondary, greedy)   | 0.221      | 0.264      | +0.043               |
 
 GATE-GREEN rule: `tuned.agg_nll <= base.agg_nll` → **satisfied**. The tuned model assigns
 ~4.3× higher per-token probability (e^1.4476) to the house-style held-out completions.

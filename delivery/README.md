@@ -26,7 +26,7 @@ Every task traces up: `task → epic → milestone → OKR`. A task that cannot 
 5. **BDD scenarios are the acceptance criteria.** Every `Scenario:` in the contract must map to at least one automated test (or scripted check for infra tasks). Name tests after scenarios so the mapping is greppable.
 6. **Respect the allowlist.** Only create/modify files the contract lists (plus its tests). Needing another file = `blocked`, not improvisation. Never touch: `node_modules/`, `dist/`, `archive/`, `memoray/` (vendored), `L1/`, `L2/`, any live run workspace.
 7. **Verify before handoff.** Run the contract's `verify` command. It must exit 0. Then move the board line to VERIFY and log `ready-for-verify`. **You may not move your own task to DONE** — the independent verifier re-runs `verify` from a clean checkout and moves it to DONE with a `verified-by` log line (author ≠ verifier, no exceptions).
-   **Sequential-session provision:** when the other agent isn't running concurrently, verification is performed by a **fresh session with no shared context**: either the other harness run later (preferred — Claude↔Antigravity), or a clean-checkout subagent/new session of the same harness that (a) reads only the contract + this README, (b) did not author any of the diff, and (c) logs `verified-by` with a distinct identity (e.g. `claude-verifier`, `antigravity-verifier`). What makes verification independent is *fresh context + clean checkout + re-derived verdict*, not the brand of the model. Do not park work waiting for a human unless the contract is `human-signed`.
+   **Sequential-session provision:** when the other agent isn't running concurrently, verification is performed by a **fresh session with no shared context**: either the other harness run later (preferred — Claude↔Antigravity), or a clean-checkout subagent/new session of the same harness that (a) reads only the contract + this README, (b) did not author any of the diff, and (c) logs `verified-by` with a distinct identity (e.g. `claude-verifier`, `antigravity-verifier`). What makes verification independent is _fresh context + clean checkout + re-derived verdict_, not the brand of the model. Do not park work waiting for a human unless the contract is `human-signed`.
 8. **Log everything, invent nothing.** Every state change = one line in `board/LOG.md` (append-only, never edit history): `<ISO-ts> | <task-id> | <event> | <agent> | <note>`. Honest failures are logged as failures. "Should work" is not a state.
 9. **Two strikes → blocked.** Same failure twice = stop, log `blocked` with exact error + what you tried. Do not redesign around the contract.
 10. **Small diffs.** Respect the contract's `budget` (changed lines). Over budget = split request via `blocked`, not a big PR.
@@ -53,7 +53,7 @@ board live (plan B3 — scrum/kanban lanes). Until then, this file-based board i
 ## Standing approvals (owner-granted, plan rev 11)
 
 - **Backend edits for Workstreams B, G, Q, W** (`server/`, `runtime/`, `commands/`) are pre-approved
-  *within each contract's allowlist* — coordination, atomic leases, SSE, run-event streams, and security
+  _within each contract's allowlist_ — coordination, atomic leases, SSE, run-event streams, and security
   remediation are backend-owned by design (root `/AGENTS.md` justification satisfied). No per-PR pause needed.
 - **Canonical backlog location:** `delivery/tasks/` — the plan's earlier `backlog/` naming is superseded;
   never create a parallel backlog directory.

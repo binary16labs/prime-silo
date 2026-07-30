@@ -247,21 +247,31 @@ body.app-page-router {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, rgba(236, 230, 216, 0.25), rgba(156, 175, 136, 0.15));
+  background: radial-gradient(
+    circle at 35% 35%,
+    rgba(236, 230, 216, 0.25),
+    rgba(156, 175, 136, 0.15)
+  );
   border: 1px solid rgba(156, 175, 136, 0.4);
-  box-shadow: 0 0 12px rgba(156, 175, 136, 0.25), inset 0 0 8px rgba(236, 230, 216, 0.15);
+  box-shadow:
+    0 0 12px rgba(156, 175, 136, 0.25),
+    inset 0 0 8px rgba(236, 230, 216, 0.15);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+  transition:
+    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.25s ease;
   animation: benny-breathing 4s ease-in-out infinite;
 }
 
 .prime-silo-benny-orb:hover {
   transform: scale(1.12);
   border-color: rgba(236, 230, 216, 0.7);
-  box-shadow: 0 0 20px rgba(156, 175, 136, 0.45), 0 0 6px rgba(236, 230, 216, 0.3);
+  box-shadow:
+    0 0 20px rgba(156, 175, 136, 0.45),
+    0 0 6px rgba(236, 230, 216, 0.3);
 }
 
 .prime-silo-benny-avatar {
@@ -273,7 +283,8 @@ body.app-page-router {
 }
 
 @keyframes benny-breathing {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 10px rgba(156, 175, 136, 0.2);
     transform: scale(1);
   }
@@ -297,7 +308,9 @@ body.app-page-router {
   border-radius: 20px;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(236, 230, 216, 0.15);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(236, 230, 216, 0.15);
   z-index: 100;
   min-width: 180px;
 }
@@ -355,7 +368,9 @@ body.app-page-router {
   border-radius: 18px;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  box-shadow: 12px 12px 32px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(236, 230, 216, 0.1);
+  box-shadow:
+    12px 12px 32px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(236, 230, 216, 0.1);
   opacity: 0;
   visibility: hidden;
   transform: translateX(-10px);
@@ -368,4 +383,3 @@ body.app-page-router {
   visibility: visible;
   transform: translateX(0);
 }
-

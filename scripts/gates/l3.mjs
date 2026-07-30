@@ -8,10 +8,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
-const need = [
-  "server/coordination/lib/durability.mjs",
-  "docs/operations/FLYWHEEL-DURABILITY.md"
-];
+const need = ["server/coordination/lib/durability.mjs", "docs/operations/FLYWHEEL-DURABILITY.md"];
 for (const f of need) {
   if (!fs.existsSync(path.join(ROOT, f))) {
     console.error(`[l3] FAIL: required artifact missing: ${f}`);

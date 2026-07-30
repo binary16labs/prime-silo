@@ -13,11 +13,11 @@
   width: 340px;
   height: 340px;
   z-index: 10000;
-  pointer-events: none;          /* transparent to clicks in empty space */
+  pointer-events: none; /* transparent to clicks in empty space */
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--ps-font-mono, ui-monospace, 'Cascadia Code', Consolas, monospace);
+  font-family: var(--ps-font-mono, ui-monospace, "Cascadia Code", Consolas, monospace);
   user-select: none;
 }
 
@@ -25,7 +25,7 @@
   width: 100%;
   height: 100%;
   overflow: visible;
-  pointer-events: auto;          /* SVG shapes are clickable */
+  pointer-events: auto; /* SVG shapes are clickable */
   filter: drop-shadow(0 6px 20px rgba(0, 0, 0, 0.45));
 }
 
@@ -36,8 +36,14 @@
 }
 
 @keyframes aura-breathe {
-  0% { transform: scale(0.96); opacity: 0.6; }
-  100% { transform: scale(1.04); opacity: 1; }
+  0% {
+    transform: scale(0.96);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
 }
 
 /* ── Scan ring — outer subtle animation ────────────────────────── */
@@ -61,13 +67,21 @@
 }
 
 @keyframes navi-spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes navi-spin-reverse {
-  from { transform: rotate(360deg); }
-  to   { transform: rotate(0deg); }
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
 }
 
 /* ── Blueprint & Earthy Rings ──────────────────────────────────── */
@@ -91,8 +105,12 @@
 }
 
 @keyframes node-pulse {
-  0% { opacity: 0.25; }
-  100% { opacity: 0.6; }
+  0% {
+    opacity: 0.25;
+  }
+  100% {
+    opacity: 0.6;
+  }
 }
 
 /* ── Dot Matrix ────────────────────────────────────────────────── */
@@ -173,13 +191,16 @@ body.v2-ui-active:not(.v2-chat-open) .onscreen-agent-root {
   opacity: 0 !important;
   pointer-events: none !important;
   transform: translateX(100px);
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
 }
 
 body.v2-ui-active.v2-chat-open .onscreen-agent-root {
   opacity: 1 !important;
   pointer-events: all !important;
   transform: translateX(0);
-  transition: opacity 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
-              transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition:
+    opacity 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+    transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }

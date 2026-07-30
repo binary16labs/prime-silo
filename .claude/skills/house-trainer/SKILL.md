@@ -24,12 +24,13 @@ you skip a week of Windows-ROCm debugging. **Read the two absolutes first.**
 The eGPU **wedges transiently** (TB3/RDNA4): a step hangs, the process stays alive but blocked,
 working set collapses to ~MB, and the tqdm log freezes looking exactly like "slow". A DPO run
 sat wedged at step 8/38 for 6 h this way. **Prove liveness, don't infer it:**
+
 - log mtime vs now (`stat -c %y <log>`) — hours stale on a minutes-long job = wedged;
 - two CPU-time snapshots ~90 s apart (`Get-CimInstance Win32_Process ... UserModeTime+KernelModeTime`)
   — a live job burns CPU seconds, a wedged one doesn't;
 - advancing artifacts (trainer/checkpoint-*, *_result.json, adapter files).
-Recover: `Stop-Process -Id <pid> -Force` (PowerShell; use `$procId`, `$id:` is a parse error) →
-device-matmul health check → relaunch with a lower `max_length` (memory pressure wedges gfx1200).
+  Recover: `Stop-Process -Id <pid> -Force` (PowerShell; use `$procId`, `$id:` is a parse error) →
+  device-matmul health check → relaunch with a lower `max_length` (memory pressure wedges gfx1200).
 
 ## Environment (measured, don't rediscover)
 
@@ -102,13 +103,14 @@ Rollups/KG = RAG material, never training rows.
 ## T4 — serving behind the router (LM Studio + eGPU)
 
 Additive candidate: `runtime/benny/router/tuned_engine.py` registers `house/…` in MODEL_REGISTRY
-+ wraps `resolve_executor` (default engine unchanged, reversible). Serve the GGUF via LM Studio
-on the eGPU (copy into `~/.lmstudio/models/<pub>/<repo>-GGUF/`, `lms load <modelKey> --gpu max
+
+- wraps `resolve_executor` (default engine unchanged, reversible). Serve the GGUF via LM Studio
+  on the eGPU (copy into `~/.lmstudio/models/<pub>/<repo>-GGUF/`, `lms load <modelKey> --gpu max
 --identifier <id>`; `lms import` hangs headless). Gate `scripts/gates/t4.py` = structural
-(litellm-free) + live offload through the ADR-004 `run_task`. Gotchas: LM Studio 400s
-`response_format:json_object` (fixed provider-agnostically in `offload/gate.py::run_judge`); use a
-FAST non-reasoning judge (gemma-3-4b), different family from the executor (anti-collusion); never
-run the live gate during a training run. See [[lmstudio-egpu-serving]].
+  (litellm-free) + live offload through the ADR-004 `run_task`. Gotchas: LM Studio 400s
+  `response_format:json_object` (fixed provider-agnostically in `offload/gate.py::run_judge`); use a
+  FAST non-reasoning judge (gemma-3-4b), different family from the executor (anti-collusion); never
+  run the live gate during a training run. See [[lmstudio-egpu-serving]].
 
 ## T5 — DPO (preference tuning)
 

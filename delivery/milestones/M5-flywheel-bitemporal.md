@@ -3,7 +3,8 @@
 **Scope (committed, design source `architecture/SOLUTION-longview-self-learning.md` §7 wave 2):**
 EP-L wave-2 — L8 bi-temporal projectors (rebuild Neo4j/Chroma/memo-ray/cards from the KEL; time-travel
 query over valid-time and transaction-time) · L9 privacy-honoring history (leak-gate + teleport filter
-+ keep-both-and-flag conflict at projection, honored across all bi-temporal time).
+
+- keep-both-and-flag conflict at projection, honored across all bi-temporal time).
 
 **Trigger:** wave-1 substrate (M4) delivering — the KEL (L0) and delta engine (L4) are the projectors'
 inputs. Contracts authored at this checkpoint by Claude (frontier authoring); `authority: human-signed`

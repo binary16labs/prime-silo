@@ -1,10 +1,10 @@
 /**
  * Lineage & Execution Timeline Custom Element
- * 
+ *
  * Reusable execution & data_out lineage visualization widget with swimlanes,
  * dual-handle sliding viewport window, OpenLineage DAG traversal,
  * adaptive clustering, playback step-through, and detail inspection drawer.
- * 
+ *
  * Optimized with DOM reuse for buttery smooth scaling/panning,
  * and vertical collision avoidance for nodes in the same swimlane.
  */
@@ -15,9 +15,9 @@ export class LineageTimeline extends HTMLElement {
     this.data = null;
     this.viewport = { startPct: 0, endPct: 100 };
     this.selectedNodeId = null;
-    this.searchQuery = '';
+    this.searchQuery = "";
     this.highlightLineageOnly = false;
-    
+
     // Playback State
     this.playbackIndex = -1;
     this.isPlaying = false;
@@ -47,7 +47,7 @@ export class LineageTimeline extends HTMLElement {
     this.data = payload;
     this.viewport = { startPct: 0, endPct: 100 };
     this.selectedNodeId = null;
-    
+
     this.sortedNodes = [...this.data.nodes].sort((a, b) => a.timestamp - b.timestamp);
     this.playbackIndex = -1;
     this.stopPlayback();
@@ -131,51 +131,62 @@ export class LineageTimeline extends HTMLElement {
   }
 
   setupEventListeners() {
-    const searchInput = this.querySelector('#lineage-search');
+    const searchInput = this.querySelector("#lineage-search");
     if (searchInput) {
-      searchInput.addEventListener('input', (e) => {
+      searchInput.addEventListener("input", (e) => {
         this.searchQuery = e.target.value.toLowerCase();
         this.updateLayout();
       });
     }
 
-    const resetBtn = this.querySelector('#btn-reset-view');
+    const resetBtn = this.querySelector("#btn-reset-view");
     if (resetBtn) {
-      resetBtn.addEventListener('click', () => {
-        const viewportEl = this.querySelector('#timeline-viewport');
-        if (viewportEl) viewportEl.scrollTo({ top: 0, behavior: 'smooth' });
+      resetBtn.addEventListener("click", () => {
+        const viewportEl = this.querySelector("#timeline-viewport");
+        if (viewportEl) viewportEl.scrollTo({ top: 0, behavior: "smooth" });
         this.viewport = { startPct: 0, endPct: 100 };
         this.updateLayout();
       });
     }
 
-    const traceBtn = this.querySelector('#btn-lineage-trace');
+    const traceBtn = this.querySelector("#btn-lineage-trace");
     if (traceBtn) {
-      traceBtn.addEventListener('click', () => {
+      traceBtn.addEventListener("click", () => {
         this.highlightLineageOnly = !this.highlightLineageOnly;
-        traceBtn.classList.toggle('active', this.highlightLineageOnly);
+        traceBtn.classList.toggle("active", this.highlightLineageOnly);
         this.updateLayout();
       });
     }
 
-    const closeDrawerBtn = this.querySelector('#btn-close-drawer');
+    const closeDrawerBtn = this.querySelector("#btn-close-drawer");
     if (closeDrawerBtn) {
-      closeDrawerBtn.addEventListener('click', () => this.closeDrawer());
+      closeDrawerBtn.addEventListener("click", () => this.closeDrawer());
     }
 
     // Playback events
-    const playToggle = this.querySelector('#btn-play-toggle');
-    const playNext = this.querySelector('#btn-play-next');
-    const playPrev = this.querySelector('#btn-play-prev');
-    
-    if (playToggle) playToggle.addEventListener('click', () => this.isPlaying ? this.stopPlayback() : this.startPlayback());
-    if (playNext) playNext.addEventListener('click', () => { this.stopPlayback(); this.stepPlayback(1); });
-    if (playPrev) playPrev.addEventListener('click', () => { this.stopPlayback(); this.stepPlayback(-1); });
+    const playToggle = this.querySelector("#btn-play-toggle");
+    const playNext = this.querySelector("#btn-play-next");
+    const playPrev = this.querySelector("#btn-play-prev");
+
+    if (playToggle)
+      playToggle.addEventListener("click", () =>
+        this.isPlaying ? this.stopPlayback() : this.startPlayback()
+      );
+    if (playNext)
+      playNext.addEventListener("click", () => {
+        this.stopPlayback();
+        this.stepPlayback(1);
+      });
+    if (playPrev)
+      playPrev.addEventListener("click", () => {
+        this.stopPlayback();
+        this.stepPlayback(-1);
+      });
 
     // Native Viewport Scroll Event -> Sync Minimap & Culling
-    const viewportEl = this.querySelector('#timeline-viewport');
+    const viewportEl = this.querySelector("#timeline-viewport");
     if (viewportEl) {
-      viewportEl.addEventListener('scroll', () => {
+      viewportEl.addEventListener("scroll", () => {
         if (this.isProgrammaticScroll) return;
         this.syncMinimapFromViewportScroll();
         this.updateCulling();
@@ -183,13 +194,13 @@ export class LineageTimeline extends HTMLElement {
     }
 
     // Minimap dragging & resizing
-    const minimapTrack = this.querySelector('#minimap-track');
-    const minimapWindow = this.querySelector('#minimap-window');
-    const handleLeft = this.querySelector('#handle-left');
-    const handleRight = this.querySelector('#handle-right');
+    const minimapTrack = this.querySelector("#minimap-track");
+    const minimapWindow = this.querySelector("#minimap-window");
+    const handleLeft = this.querySelector("#handle-left");
+    const handleRight = this.querySelector("#handle-right");
 
     if (minimapWindow && minimapTrack) {
-      minimapWindow.addEventListener('mousedown', (e) => {
+      minimapWindow.addEventListener("mousedown", (e) => {
         if (e.target === handleLeft || e.target === handleRight) return;
         this.isDraggingWindow = true;
         this.dragStartX = e.clientX;
@@ -198,24 +209,26 @@ export class LineageTimeline extends HTMLElement {
       });
 
       if (handleLeft) {
-        handleLeft.addEventListener('mousedown', (e) => {
+        handleLeft.addEventListener("mousedown", (e) => {
           this.isResizingLeft = true;
           this.dragStartX = e.clientX;
           this.initialViewportPct = { ...this.viewport };
-          e.stopPropagation(); e.preventDefault();
+          e.stopPropagation();
+          e.preventDefault();
         });
       }
 
       if (handleRight) {
-        handleRight.addEventListener('mousedown', (e) => {
+        handleRight.addEventListener("mousedown", (e) => {
           this.isResizingRight = true;
           this.dragStartX = e.clientX;
           this.initialViewportPct = { ...this.viewport };
-          e.stopPropagation(); e.preventDefault();
+          e.stopPropagation();
+          e.preventDefault();
         });
       }
 
-      window.addEventListener('mousemove', (e) => {
+      window.addEventListener("mousemove", (e) => {
         if (!this.isDraggingWindow && !this.isResizingLeft && !this.isResizingRight) return;
         const rect = minimapTrack.getBoundingClientRect();
         if (!rect.width) return;
@@ -226,8 +239,14 @@ export class LineageTimeline extends HTMLElement {
           let newStartPct = this.initialViewportPct.startPct + deltaPct;
           let newEndPct = newStartPct + windowWidthPct;
 
-          if (newStartPct < 0) { newStartPct = 0; newEndPct = windowWidthPct; }
-          if (newEndPct > 100) { newEndPct = 100; newStartPct = 100 - windowWidthPct; }
+          if (newStartPct < 0) {
+            newStartPct = 0;
+            newEndPct = windowWidthPct;
+          }
+          if (newEndPct > 100) {
+            newEndPct = 100;
+            newStartPct = 100 - windowWidthPct;
+          }
 
           this.viewport.startPct = newStartPct;
           this.viewport.endPct = newEndPct;
@@ -246,20 +265,20 @@ export class LineageTimeline extends HTMLElement {
         this.scrollViewportFromMinimap();
       });
 
-      window.addEventListener('mouseup', () => {
+      window.addEventListener("mouseup", () => {
         this.isDraggingWindow = false;
         this.isResizingLeft = false;
         this.isResizingRight = false;
       });
-      
-      window.addEventListener('resize', () => {
+
+      window.addEventListener("resize", () => {
         if (this.data) this.updateLayout();
       });
     }
   }
 
   syncMinimapFromViewportScroll() {
-    const viewportEl = this.querySelector('#timeline-viewport');
+    const viewportEl = this.querySelector("#timeline-viewport");
     if (!viewportEl) return;
 
     const scrollHeight = viewportEl.scrollHeight;
@@ -276,7 +295,7 @@ export class LineageTimeline extends HTMLElement {
       this.viewport.endPct = Math.min(100, this.viewport.startPct + windowSizePct);
     }
 
-    const minimapWindow = this.querySelector('#minimap-window');
+    const minimapWindow = this.querySelector("#minimap-window");
     if (minimapWindow) {
       minimapWindow.style.left = `${this.viewport.startPct}%`;
       minimapWindow.style.width = `${Math.max(4, this.viewport.endPct - this.viewport.startPct)}%`;
@@ -284,7 +303,7 @@ export class LineageTimeline extends HTMLElement {
   }
 
   scrollViewportFromMinimap() {
-    const viewportEl = this.querySelector('#timeline-viewport');
+    const viewportEl = this.querySelector("#timeline-viewport");
     if (!viewportEl) return;
 
     const maxScroll = viewportEl.scrollHeight - viewportEl.clientHeight;
@@ -301,8 +320,8 @@ export class LineageTimeline extends HTMLElement {
   startPlayback() {
     if (!this.data || this.sortedNodes.length === 0) return;
     this.isPlaying = true;
-    const playToggle = this.querySelector('#btn-play-toggle');
-    if (playToggle) playToggle.textContent = '⏸️';
+    const playToggle = this.querySelector("#btn-play-toggle");
+    if (playToggle) playToggle.textContent = "⏸️";
 
     this.playInterval = setInterval(() => {
       this.stepPlayback(1);
@@ -311,14 +330,14 @@ export class LineageTimeline extends HTMLElement {
 
   stopPlayback() {
     this.isPlaying = false;
-    const playToggle = this.querySelector('#btn-play-toggle');
-    if (playToggle) playToggle.textContent = '▶️';
+    const playToggle = this.querySelector("#btn-play-toggle");
+    if (playToggle) playToggle.textContent = "▶️";
     if (this.playInterval) clearInterval(this.playInterval);
   }
 
   stepPlayback(direction) {
     if (!this.data || this.sortedNodes.length === 0) return;
-    
+
     let nextIdx = this.playbackIndex + direction;
     if (nextIdx >= this.sortedNodes.length) {
       this.stopPlayback();
@@ -330,10 +349,10 @@ export class LineageTimeline extends HTMLElement {
     const activeNode = this.sortedNodes[this.playbackIndex];
     const nodeCache = this.nodeElements.get(activeNode.id);
 
-    const viewportEl = this.querySelector('#timeline-viewport');
-    if (viewportEl && nodeCache && typeof nodeCache.absoluteY === 'number') {
-      const targetScroll = Math.max(0, nodeCache.absoluteY - (viewportEl.clientHeight / 2));
-      viewportEl.scrollTo({ top: targetScroll, behavior: 'smooth' });
+    const viewportEl = this.querySelector("#timeline-viewport");
+    if (viewportEl && nodeCache && typeof nodeCache.absoluteY === "number") {
+      const targetScroll = Math.max(0, nodeCache.absoluteY - viewportEl.clientHeight / 2);
+      viewportEl.scrollTo({ top: targetScroll, behavior: "smooth" });
     }
 
     this.selectNode(activeNode.id);
@@ -344,10 +363,10 @@ export class LineageTimeline extends HTMLElement {
     const connected = new Set([nodeId]);
     const edges = this.data.edges;
     let added = true;
-    
-    while(added) {
+
+    while (added) {
       added = false;
-      edges.forEach(e => {
+      edges.forEach((e) => {
         if (connected.has(e.from) && !connected.has(e.to)) {
           connected.add(e.to);
           added = true;
@@ -368,7 +387,7 @@ export class LineageTimeline extends HTMLElement {
   buildGraphElements() {
     if (!this.data) return;
 
-    const badge = this.querySelector('#lane-count-badge');
+    const badge = this.querySelector("#lane-count-badge");
     if (badge) badge.textContent = `${this.data.nodes.length} Items`;
 
     this.tracks = {
@@ -381,17 +400,17 @@ export class LineageTimeline extends HTMLElement {
     };
 
     // Clear tracks & SVG overlay
-    Object.values(this.tracks).forEach(t => t && (t.innerHTML = ''));
-    const svgOverlay = this.querySelector('#svg-edges');
-    if (svgOverlay) svgOverlay.innerHTML = '';
+    Object.values(this.tracks).forEach((t) => t && (t.innerHTML = ""));
+    const svgOverlay = this.querySelector("#svg-edges");
+    if (svgOverlay) svgOverlay.innerHTML = "";
 
     this.nodeElements.clear();
     this.edgeElements = [];
 
     // Group nodes by swimlane
     const lanesNodes = { sessions: [], chats: [], inputs: [], tools: [], outputs: [], logs: [] };
-    this.data.nodes.forEach(node => {
-      const lane = node.swimlaneId || 'tools';
+    this.data.nodes.forEach((node) => {
+      const lane = node.swimlaneId || "tools";
       if (lanesNodes[lane]) lanesNodes[lane].push(node);
     });
 
@@ -409,11 +428,11 @@ export class LineageTimeline extends HTMLElement {
     const MIN_STEP_PX = 54;
     let maxAbsoluteY = 0;
 
-    Object.keys(lanesNodes).forEach(lane => {
+    Object.keys(lanesNodes).forEach((lane) => {
       const nodesInLane = lanesNodes[lane].sort((a, b) => a.rank - b.rank);
       let lastY = 20;
 
-      nodesInLane.forEach(node => {
+      nodesInLane.forEach((node) => {
         let absY = node.rank * MIN_STEP_PX + 20;
         if (absY < lastY + MIN_STEP_PX) {
           absY = lastY + MIN_STEP_PX;
@@ -427,19 +446,26 @@ export class LineageTimeline extends HTMLElement {
     this.totalCanvasHeight = Math.max(600, maxAbsoluteY + 120);
 
     // Populate node cache metadata WITHOUT mounting DOM elements yet
-    this.data.nodes.forEach(node => {
-      this.nodeElements.set(node.id, { 
-        element: null, 
+    this.data.nodes.forEach((node) => {
+      this.nodeElements.set(node.id, {
+        element: null,
         nodeData: node,
         absoluteY: node.absoluteY
       });
     });
 
     // Pre-calculate Edge geometries
-    const laneOffsets = { sessions: 110, chats: 330, inputs: 550, tools: 770, outputs: 990, logs: 1210 };
+    const laneOffsets = {
+      sessions: 110,
+      chats: 330,
+      inputs: 550,
+      tools: 770,
+      outputs: 990,
+      logs: 1210
+    };
 
     if (this.data.edges) {
-      this.data.edges.forEach(edge => {
+      this.data.edges.forEach((edge) => {
         const sourceCache = this.nodeElements.get(edge.from);
         const targetCache = this.nodeElements.get(edge.to);
         if (!sourceCache || !targetCache) return;
@@ -464,25 +490,28 @@ export class LineageTimeline extends HTMLElement {
     }
 
     // Create Time Ruler Ticks along absolute canvas height
-    const ruler = this.querySelector('#time-ruler');
+    const ruler = this.querySelector("#time-ruler");
     if (ruler) {
-      ruler.innerHTML = '';
+      ruler.innerHTML = "";
       this.timeTicks = [];
       const numTicks = Math.max(6, Math.floor(this.totalCanvasHeight / 150));
       for (let i = 0; i <= numTicks; i++) {
         const tickY = (i / numTicks) * this.totalCanvasHeight;
-        const tickEl = document.createElement('div');
-        tickEl.className = 'lineage-time-tick';
+        const tickEl = document.createElement("div");
+        tickEl.className = "lineage-time-tick";
         tickEl.style.top = `${tickY}px`;
 
         let closestNode = this.sortedNodes[0];
         let minDiff = Infinity;
         for (const n of this.sortedNodes) {
           const diff = Math.abs(n.absoluteY - tickY);
-          if (diff < minDiff) { minDiff = diff; closestNode = n; }
+          if (diff < minDiff) {
+            minDiff = diff;
+            closestNode = n;
+          }
         }
         const timeVal = new Date(closestNode ? closestNode.timestamp : Date.now());
-        tickEl.textContent = timeVal.toTimeString().split(' ')[0];
+        tickEl.textContent = timeVal.toTimeString().split(" ")[0];
 
         ruler.appendChild(tickEl);
         this.timeTicks.push(tickEl);
@@ -494,23 +523,23 @@ export class LineageTimeline extends HTMLElement {
   }
 
   createNodeElement(nodeData) {
-    const nodeEl = document.createElement('div');
-    nodeEl.className = 'lineage-node';
+    const nodeEl = document.createElement("div");
+    nodeEl.className = "lineage-node";
     nodeEl.dataset.lane = String(nodeData.swimlaneId);
     nodeEl.dataset.nodeId = String(nodeData.id);
     nodeEl.style.top = `${nodeData.absoluteY}px`;
 
-    let icon = '📄';
-    if (nodeData.swimlaneId === 'sessions') icon = '🟣';
-    else if (nodeData.swimlaneId === 'chats') icon = '💬';
-    else if (nodeData.swimlaneId === 'inputs') icon = '🟢';
-    else if (nodeData.swimlaneId === 'tools') icon = '⚡';
-    else if (nodeData.swimlaneId === 'outputs') icon = '📦';
-    else if (nodeData.swimlaneId === 'logs') icon = '🖥️';
+    let icon = "📄";
+    if (nodeData.swimlaneId === "sessions") icon = "🟣";
+    else if (nodeData.swimlaneId === "chats") icon = "💬";
+    else if (nodeData.swimlaneId === "inputs") icon = "🟢";
+    else if (nodeData.swimlaneId === "tools") icon = "⚡";
+    else if (nodeData.swimlaneId === "outputs") icon = "📦";
+    else if (nodeData.swimlaneId === "logs") icon = "🖥️";
 
-    nodeEl.innerHTML = '<span>' + icon + '</span> <span>' + nodeData.label + '</span>';
+    nodeEl.innerHTML = "<span>" + icon + "</span> <span>" + nodeData.label + "</span>";
 
-    nodeEl.addEventListener('click', (e) => {
+    nodeEl.addEventListener("click", (e) => {
       e.stopPropagation();
       this.selectNode(nodeData.id);
     });
@@ -519,9 +548,9 @@ export class LineageTimeline extends HTMLElement {
   }
 
   applyCanvasHeights() {
-    const trackContainer = this.querySelector('#track-container');
-    const svgOverlay = this.querySelector('#svg-edges');
-    const ruler = this.querySelector('#time-ruler');
+    const trackContainer = this.querySelector("#track-container");
+    const svgOverlay = this.querySelector("#svg-edges");
+    const ruler = this.querySelector("#time-ruler");
 
     if (trackContainer) trackContainer.style.height = `${this.totalCanvasHeight}px`;
     if (svgOverlay) svgOverlay.style.height = `${this.totalCanvasHeight}px`;
@@ -544,7 +573,7 @@ export class LineageTimeline extends HTMLElement {
    * Unmounts offscreen elements to keep DOM light and rendering blazingly fast.
    */
   updateCulling() {
-    const viewportEl = this.querySelector('#timeline-viewport');
+    const viewportEl = this.querySelector("#timeline-viewport");
     if (!viewportEl) return;
 
     const scrollTop = viewportEl.scrollTop;
@@ -561,7 +590,11 @@ export class LineageTimeline extends HTMLElement {
       const { nodeData, absoluteY } = nodeCache;
 
       // Filter check
-      if (this.searchQuery && !nodeData.label.toLowerCase().includes(this.searchQuery) && !(nodeData.type && nodeData.type.toLowerCase().includes(this.searchQuery))) {
+      if (
+        this.searchQuery &&
+        !nodeData.label.toLowerCase().includes(this.searchQuery) &&
+        !(nodeData.type && nodeData.type.toLowerCase().includes(this.searchQuery))
+      ) {
         if (nodeCache.element) {
           nodeCache.element.remove();
           nodeCache.element = null;
@@ -569,7 +602,7 @@ export class LineageTimeline extends HTMLElement {
         return;
       }
 
-      const isVisible = absoluteY >= (scrollTop - buffer) && absoluteY <= (viewBottom + buffer);
+      const isVisible = absoluteY >= scrollTop - buffer && absoluteY <= viewBottom + buffer;
 
       if (isVisible) {
         // Mount DOM element lazily if not present
@@ -582,10 +615,13 @@ export class LineageTimeline extends HTMLElement {
         }
 
         if (nodeCache.element) {
-          nodeCache.element.style.display = 'flex';
-          nodeCache.element.classList.toggle('selected', nodeId === this.selectedNodeId);
-          nodeCache.element.classList.toggle('playback-active', this.playbackIndex >= 0 && this.sortedNodes[this.playbackIndex].id === nodeId);
-          nodeCache.element.style.opacity = (lineageSet && !lineageSet.has(nodeId)) ? '0.15' : '1';
+          nodeCache.element.style.display = "flex";
+          nodeCache.element.classList.toggle("selected", nodeId === this.selectedNodeId);
+          nodeCache.element.classList.toggle(
+            "playback-active",
+            this.playbackIndex >= 0 && this.sortedNodes[this.playbackIndex].id === nodeId
+          );
+          nodeCache.element.style.opacity = lineageSet && !lineageSet.has(nodeId) ? "0.15" : "1";
         }
       } else {
         // Unmount DOM element if out of buffer
@@ -597,25 +633,31 @@ export class LineageTimeline extends HTMLElement {
     });
 
     // 2. Virtual Edge Mounting / Unmounting
-    const svgOverlay = this.querySelector('#svg-edges');
-    this.edgeElements.forEach(edge => {
-      const isVisible = (edge.sourceY >= (scrollTop - buffer) && edge.sourceY <= (viewBottom + buffer)) ||
-                        (edge.targetY >= (scrollTop - buffer) && edge.targetY <= (viewBottom + buffer));
+    const svgOverlay = this.querySelector("#svg-edges");
+    this.edgeElements.forEach((edge) => {
+      const isVisible =
+        (edge.sourceY >= scrollTop - buffer && edge.sourceY <= viewBottom + buffer) ||
+        (edge.targetY >= scrollTop - buffer && edge.targetY <= viewBottom + buffer);
 
       if (isVisible && svgOverlay) {
         if (!edge.pathEl) {
-          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-          path.setAttribute('class', 'lineage-edge-path');
-          path.setAttribute('d', edge.pathD);
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          path.setAttribute("class", "lineage-edge-path");
+          path.setAttribute("d", edge.pathD);
           svgOverlay.appendChild(path);
           edge.pathEl = path;
         }
 
-        const isConnectedToSelected = this.selectedNodeId && (edge.fromId === this.selectedNodeId || edge.toId === this.selectedNodeId);
+        const isConnectedToSelected =
+          this.selectedNodeId &&
+          (edge.fromId === this.selectedNodeId || edge.toId === this.selectedNodeId);
         const inLineage = lineageSet && lineageSet.has(edge.fromId) && lineageSet.has(edge.toId);
 
-        edge.pathEl.classList.toggle('highlighted', Boolean(isConnectedToSelected || inLineage));
-        edge.pathEl.classList.toggle('dimmed', Boolean(this.selectedNodeId && !isConnectedToSelected && !inLineage));
+        edge.pathEl.classList.toggle("highlighted", Boolean(isConnectedToSelected || inLineage));
+        edge.pathEl.classList.toggle(
+          "dimmed",
+          Boolean(this.selectedNodeId && !isConnectedToSelected && !inLineage)
+        );
       } else {
         if (edge.pathEl) {
           edge.pathEl.remove();
@@ -625,53 +667,53 @@ export class LineageTimeline extends HTMLElement {
     });
 
     // 3. Update Playback Time Scrubber
-    const scrubber = this.querySelector('#time-scrubber');
+    const scrubber = this.querySelector("#time-scrubber");
     if (scrubber) {
       if (this.playbackIndex >= 0 && this.sortedNodes.length > 0) {
         const activeNode = this.sortedNodes[this.playbackIndex];
         const activeCache = this.nodeElements.get(activeNode.id);
-        if (activeCache && typeof activeCache.absoluteY === 'number') {
+        if (activeCache && typeof activeCache.absoluteY === "number") {
           scrubber.style.top = `${activeCache.absoluteY + 16}px`;
-          scrubber.classList.add('active');
+          scrubber.classList.add("active");
         } else {
-          scrubber.classList.remove('active');
+          scrubber.classList.remove("active");
         }
       } else {
-        scrubber.classList.remove('active');
+        scrubber.classList.remove("active");
       }
     }
   }
 
   selectNode(nodeId) {
     this.selectedNodeId = nodeId;
-    const node = this.data.nodes.find(n => n.id === nodeId);
-    
-    const idx = this.sortedNodes.findIndex(n => n.id === nodeId);
+    const node = this.data.nodes.find((n) => n.id === nodeId);
+
+    const idx = this.sortedNodes.findIndex((n) => n.id === nodeId);
     if (idx >= 0) this.playbackIndex = idx;
 
     if (node) this.openDrawer(node);
-    
+
     this.updateLayout();
   }
 
   openDrawer(node) {
-    const drawer = this.querySelector('#inspector-drawer');
-    const title = this.querySelector('#drawer-node-title');
-    const body = this.querySelector('#drawer-node-body');
+    const drawer = this.querySelector("#inspector-drawer");
+    const title = this.querySelector("#drawer-node-title");
+    const body = this.querySelector("#drawer-node-body");
 
     if (!drawer || !body) return;
 
     if (title) title.textContent = node.label;
 
     let timeStr = new Date(node.timestamp).toLocaleString();
-    let metadataRows = '';
+    let metadataRows = "";
 
     if (node.metadata) {
       Object.entries(node.metadata).forEach(([key, val]) => {
         metadataRows += `
           <div class="lineage-detail-row">
             <span class="lineage-detail-label">${key}</span>
-            <div class="lineage-detail-value">${typeof val === 'object' ? JSON.stringify(val, null, 2) : val}</div>
+            <div class="lineage-detail-value">${typeof val === "object" ? JSON.stringify(val, null, 2) : val}</div>
           </div>
         `;
       });
@@ -693,17 +735,17 @@ export class LineageTimeline extends HTMLElement {
       ${metadataRows}
     `;
 
-    drawer.classList.add('open');
+    drawer.classList.add("open");
   }
 
   closeDrawer() {
-    const drawer = this.querySelector('#inspector-drawer');
-    if (drawer) drawer.classList.remove('open');
+    const drawer = this.querySelector("#inspector-drawer");
+    if (drawer) drawer.classList.remove("open");
     this.selectedNodeId = null;
     this.updateLayout();
   }
 }
 
-if (!customElements.get('lineage-timeline')) {
-  customElements.define('lineage-timeline', LineageTimeline);
+if (!customElements.get("lineage-timeline")) {
+  customElements.define("lineage-timeline", LineageTimeline);
 }

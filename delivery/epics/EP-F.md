@@ -6,6 +6,7 @@
 Palette, garage, automation, attention, honest numbers, diffing, backups — all consuming existing infrastructure, never parallel mechanisms.
 
 ## Phases → task contracts
+
 - [ ] `F1` — command palette (Ctrl+K over verbs+nav+nouns)
 - [ ] `F2` — model garage (NPU/GPU/CPU benchmarks, wedge surface, scorecard, battery-aware, Test Drive vs golden calibration, live NPU/GPU/CPU telemetry — never-Task-Manager-again)
 - [ ] `F3` — watched folders + scheduler (signed types only)
@@ -16,5 +17,6 @@ Palette, garage, automation, attention, honest numbers, diffing, backups — all
 - [ ] `F8` — Sovereignty Shield (live socket-level air-gap indicator + egress audit)
 
 ## Exit
+
 All phase gates green, verified by non-author agent; close with a VISION-CHECK note (plan §0.5):
 which KRs moved, measured evidence, one honest sentence on drift.

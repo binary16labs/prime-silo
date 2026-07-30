@@ -51,10 +51,14 @@ const home = resolveHome();
 // persisted prime-silo-config.json homeDir (source "config") — both are valid; only
 // the unconfigured per-user "default" means the home was never repointed at the clone.
 if (home.source !== "env" && home.source !== "config")
-  fail("home_not_configured", `root source=${home.source} (expected env or config pointing at the clone)`);
+  fail(
+    "home_not_configured",
+    `root source=${home.source} (expected env or config pointing at the clone)`
+  );
 if (!fs.existsSync(home.bennyHome)) fail("benny_missing", home.bennyHome);
 if (!fs.existsSync(home.customwarePath)) fail("customware_missing", home.customwarePath);
-if (!isLocalFsPath(home.root)) fail("home_not_local", `root is not a local drive path: ${home.root}`);
+if (!isLocalFsPath(home.root))
+  fail("home_not_local", `root is not a local drive path: ${home.root}`);
 const outsideWarn = (home.warnings || []).filter((w) => /outside the declared home/i.test(w));
 if (outsideWarn.length) fail("stale_abs_path", outsideWarn.join(" | "));
 ok("home-resolver (node)", `root=${home.root} source=${home.source}; benny/ + customware/ exist`);
@@ -74,7 +78,10 @@ try {
       `from benny.portable.home import resolve_home\nprint(resolve_home().root)`
   );
 } catch (e) {
-  fail("python_resolver_failed", (e.stderr || e.message || "").toString().split(/\r?\n/).slice(-3).join(" "));
+  fail(
+    "python_resolver_failed",
+    (e.stderr || e.message || "").toString().split(/\r?\n/).slice(-3).join(" ")
+  );
 }
 if (path.resolve(pyRoot) !== path.resolve(home.root))
   fail("resolver_mismatch", `node=${home.root} python=${pyRoot}`);
@@ -85,10 +92,15 @@ const ws = path.join(home.bennyHome, "workspaces", "longview");
 const cardsDir = path.join(ws, "data_in");
 const chromaDir = path.join(ws, "chromadb");
 const chromaDb = path.join(chromaDir, "chroma.sqlite3");
-const memDir = (process.env.MEMORAY_DATA_DIR || "").trim() || path.join(os.homedir(), ".mem0ray", "data");
+const memDir =
+  (process.env.MEMORAY_DATA_DIR || "").trim() || path.join(os.homedir(), ".mem0ray", "data");
 
-for (const [name, p] of [["benny", home.bennyHome], ["memo-ray", memDir]])
-  if (!isLocalFsPath(p)) fail("remote_store", `${name} store is not a local path (no-network rule): ${p}`);
+for (const [name, p] of [
+  ["benny", home.bennyHome],
+  ["memo-ray", memDir]
+])
+  if (!isLocalFsPath(p))
+    fail("remote_store", `${name} store is not a local path (no-network rule): ${p}`);
 
 // ── Store: LONGVIEW cards ──────────────────────────────────────────────────────
 const cards = fs.existsSync(cardsDir)
@@ -111,11 +123,16 @@ try {
 const sessionKeys = Object.keys(idx.sessions || {});
 if (sessionKeys.length === 0) fail("no_mem0ray_sessions", "index.json has empty sessions");
 const entDir = path.join(memDir, "entities");
-const entFiles = fs.existsSync(entDir) ? fs.readdirSync(entDir).filter((f) => f.endsWith(".json")) : [];
+const entFiles = fs.existsSync(entDir)
+  ? fs.readdirSync(entDir).filter((f) => f.endsWith(".json"))
+  : [];
 if (entFiles.length === 0) fail("no_mem0ray_entities", entDir);
 const ent = JSON.parse(fs.readFileSync(path.join(entDir, entFiles[0]), "utf8"));
 if (!ent.id) fail("mem0ray_entity_unreadable", entFiles[0]);
-ok("store: memo-ray", `${sessionKeys.length} sessions, ${entFiles.length} entities; read ${ent.id.slice(0, 12)} (${ent.type})`);
+ok(
+  "store: memo-ray",
+  `${sessionKeys.length} sessions, ${entFiles.length} entities; read ${ent.id.slice(0, 12)} (${ent.type})`
+);
 
 // ── Store: S16 doc+vector (Chroma) — doc from sqlite + on-disk vector segment ──
 if (!fs.existsSync(chromaDb)) fail("no_vector_store", chromaDb);
@@ -135,12 +152,19 @@ try {
   );
   vec = JSON.parse(raw);
 } catch (e) {
-  fail("vector_store_unreadable", (e.stderr || e.message || "").toString().split(/\r?\n/).slice(-3).join(" "));
+  fail(
+    "vector_store_unreadable",
+    (e.stderr || e.message || "").toString().split(/\r?\n/).slice(-3).join(" ")
+  );
 }
 if (!vec || vec.embeddings < 1) fail("vector_store_empty", JSON.stringify(vec));
 if (!vec.doc_head) fail("vector_doc_missing", "no chroma:document row");
-if (!vec.vec_segment || vec.vec_bytes < 1) fail("vector_segment_missing", "no on-disk data_level0.bin");
-ok("store: S16 doc+vector (chroma)", `${vec.embeddings} vectors; doc id=${vec.doc_id} "${vec.doc_head.replace(/\s+/g, " ").trim()}"; vector segment ${(vec.vec_bytes / 1024).toFixed(0)} KB local`);
+if (!vec.vec_segment || vec.vec_bytes < 1)
+  fail("vector_segment_missing", "no on-disk data_level0.bin");
+ok(
+  "store: S16 doc+vector (chroma)",
+  `${vec.embeddings} vectors; doc id=${vec.doc_id} "${vec.doc_head.replace(/\s+/g, " ").trim()}"; vector segment ${(vec.vec_bytes / 1024).toFixed(0)} KB local`
+);
 
 console.log(
   "[t1] evidence " +
@@ -153,7 +177,7 @@ console.log(
       sessions: sessionKeys.length,
       entities: entFiles.length,
       vectors: vec.embeddings,
-      vector_bytes: vec.vec_bytes,
+      vector_bytes: vec.vec_bytes
     })
 );
 console.log("[t1] GATE GREEN");

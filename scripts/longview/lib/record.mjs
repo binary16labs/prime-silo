@@ -17,13 +17,20 @@ const readJson = (p) => {
 const sid8 = (id) => String(id).slice(0, 8);
 
 function caption(e) {
-  if (e.action === "run_config") return `Run pinned: commit ${e.git_commit}, model ${e.model}, ctx ${e.ctx_size}`;
-  if (e.phase === "map" && e.status === "ok") return `Mapped session ${sid8(e.session_id)} into a card (${e.retries ? "retry" : "clean"}, ${Math.round((e.ms || 0) / 1000)}s)`;
-  if (e.phase === "map" && e.status === "failed") return `Card for ${sid8(e.session_id)} failed the gate: ${(e.gate_errors || []).join("; ").slice(0, 120)}`;
-  if (e.phase === "review" && e.status === "ok") return `Reviewed ${sid8(e.session_id)} against the graph (${(e.related_concepts || []).length} cross-session concepts)`;
-  if (e.phase === "opus" && /^section:/.test(e.artifact || "")) return `${e.ok === false ? "Draft kept but gate-failed" : "Wrote"} book ${e.artifact} (${e.words || "?"} words, ${e.citations ?? "?"} citations)`;
-  if (e.phase === "opus" && e.artifact === "coverage") return `Book coverage: ${Math.round((e.citation_coverage || 0) * 100)}% of sessions cited`;
-  if (e.action === "phase_error") return `Phase ${e.phase} errored (isolated): ${String(e.error || "").slice(0, 100)}`;
+  if (e.action === "run_config")
+    return `Run pinned: commit ${e.git_commit}, model ${e.model}, ctx ${e.ctx_size}`;
+  if (e.phase === "map" && e.status === "ok")
+    return `Mapped session ${sid8(e.session_id)} into a card (${e.retries ? "retry" : "clean"}, ${Math.round((e.ms || 0) / 1000)}s)`;
+  if (e.phase === "map" && e.status === "failed")
+    return `Card for ${sid8(e.session_id)} failed the gate: ${(e.gate_errors || []).join("; ").slice(0, 120)}`;
+  if (e.phase === "review" && e.status === "ok")
+    return `Reviewed ${sid8(e.session_id)} against the graph (${(e.related_concepts || []).length} cross-session concepts)`;
+  if (e.phase === "opus" && /^section:/.test(e.artifact || ""))
+    return `${e.ok === false ? "Draft kept but gate-failed" : "Wrote"} book ${e.artifact} (${e.words || "?"} words, ${e.citations ?? "?"} citations)`;
+  if (e.phase === "opus" && e.artifact === "coverage")
+    return `Book coverage: ${Math.round((e.citation_coverage || 0) * 100)}% of sessions cited`;
+  if (e.action === "phase_error")
+    return `Phase ${e.phase} errored (isolated): ${String(e.error || "").slice(0, 100)}`;
   if (e.artifact) return `Produced ${e.artifact}${e.ok === false ? " (FAILED)" : ""}`;
   return `${e.phase || "step"}: ${e.status || e.action || "event"}`;
 }
@@ -47,7 +54,8 @@ export function recordFor(scope) {
   const match = (e) => {
     if (kind === "run") return true;
     if (kind === "card") return String(e.session_id || "").startsWith(ref);
-    if (kind === "review") return e.phase === "review" && String(e.session_id || "").startsWith(ref);
+    if (kind === "review")
+      return e.phase === "review" && String(e.session_id || "").startsWith(ref);
     if (kind === "section") return e.artifact === `section:${ref}`;
     if (kind === "book") return e.phase === "opus" || e.phase === "pdf";
     if (kind === "dossier") return String(e.artifact || "").startsWith(`dossier:${ref}`);
@@ -62,7 +70,11 @@ export function recordFor(scope) {
     ts: e.ts || null,
     ms: e.ms || null,
     tokens: (e.prompt_tokens || 0) + (e.completion_tokens || 0) || null,
-    nodeId: e.session_id ? `card:${sid8(e.session_id)}` : e.artifact ? `art:${e.artifact}` : `phase:${e.phase}`
+    nodeId: e.session_id
+      ? `card:${sid8(e.session_id)}`
+      : e.artifact
+        ? `art:${e.artifact}`
+        : `phase:${e.phase}`
   }));
   return { scope, workspace: config.WORKSPACE, actions };
 }
@@ -89,19 +101,37 @@ export function lineageFor(scope) {
     if (!f) return null;
     const sid = f.replace(/\.json$/, "");
     const card = readJson(path.join(dir, f)) || {};
-    const cardId = add(`card:${sid8(sid)}`, "Card", `${card.project || "card"} (${sid8(sid)})`, depth, {
-      meta: readJson(path.join(dir, `${sid}.meta.json`))
-    });
+    const cardId = add(
+      `card:${sid8(sid)}`,
+      "Card",
+      `${card.project || "card"} (${sid8(sid)})`,
+      depth,
+      {
+        meta: readJson(path.join(dir, `${sid}.meta.json`))
+      }
+    );
     const man = readJson(stateDir("windows", sid, "manifest.json"));
     if (man) {
-      const wId = add(`windows:${sid8(sid)}`, "Windows", `${man.windows.length} windows over ${man.step_count} steps`, depth + 1, man);
+      const wId = add(
+        `windows:${sid8(sid)}`,
+        "Windows",
+        `${man.windows.length} windows over ${man.step_count} steps`,
+        depth + 1,
+        man
+      );
       link(cardId, wId);
     }
     const entity = readJson(path.join(config.MEMORAY_DATA_DIR, "entities", `${sid}.json`));
-    const sesId = add(`session:${sid8(sid)}`, "Session", entity ? `${entity.agent}: ${(entity.content || "").slice(0, 60)}` : `session ${sid8(sid)}`, depth + 2, {
-      session_id: sid,
-      log_path: entity?.metadata?.filePath || null
-    });
+    const sesId = add(
+      `session:${sid8(sid)}`,
+      "Session",
+      entity ? `${entity.agent}: ${(entity.content || "").slice(0, 60)}` : `session ${sid8(sid)}`,
+      depth + 2,
+      {
+        session_id: sid,
+        log_path: entity?.metadata?.filePath || null
+      }
+    );
     link(cardId, sesId);
     return cardId;
   };
@@ -133,14 +163,20 @@ export function lineageFor(scope) {
       const c = cardLineage(sid, 2);
       if (c) link(rootId, c);
     }
-    for (const con of meta.cited_concepts || []) link(rootId, add(`concept:${con}`, "Concept", con, 1, {}));
+    for (const con of meta.cited_concepts || [])
+      link(rootId, add(`concept:${con}`, "Concept", con, 1, {}));
   } else if (kind === "dossier") {
     const p = workspaceDir("data_out", "dossiers", `${ref}.md`);
     const rootId = add(`dossier:${ref}`, "Dossier", ref, 0, readJson(p + ".meta.json") || {});
     const dir = stateDir("cards");
-    for (const f of (fs.existsSync(dir) ? fs.readdirSync(dir) : []).filter((x) => x.endsWith(".json") && !x.endsWith(".meta.json")).sort()) {
+    for (const f of (fs.existsSync(dir) ? fs.readdirSync(dir) : [])
+      .filter((x) => x.endsWith(".json") && !x.endsWith(".meta.json"))
+      .sort()) {
       const card = readJson(path.join(dir, f)) || {};
-      if (String(card.project || "").toLowerCase() === ref.replace(/_/g, " ").toLowerCase() || String(card.project || "").toLowerCase() === ref.toLowerCase()) {
+      if (
+        String(card.project || "").toLowerCase() === ref.replace(/_/g, " ").toLowerCase() ||
+        String(card.project || "").toLowerCase() === ref.toLowerCase()
+      ) {
         const c = cardLineage(f.slice(0, 8), 1);
         if (c) link(rootId, c);
       }
@@ -155,7 +191,8 @@ export function lineageFor(scope) {
       for (const ch of part.chapters || []) {
         const cId = add(`chapter:${ch.n}`, "Chapter", ch.title, 2, { reflection: !!ch.reflection });
         link(pId, cId);
-        for (const s of ch.sections || []) link(cId, add(`section:${s.id}`, "Section", s.title, 3, {}));
+        for (const s of ch.sections || [])
+          link(cId, add(`section:${s.id}`, "Section", s.title, 3, {}));
       }
     }
   }

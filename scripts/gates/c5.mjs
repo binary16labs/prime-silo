@@ -32,7 +32,16 @@ function check(name, ok, detail = "") {
   if (!ok) failures.push(name);
 }
 
-const CSS_PATH = path.join(ROOT, "app", "L0", "_all", "mod", "_core", "visual", "mascot-motion.css");
+const CSS_PATH = path.join(
+  ROOT,
+  "app",
+  "L0",
+  "_all",
+  "mod",
+  "_core",
+  "visual",
+  "mascot-motion.css"
+);
 const JS_PATH = path.join(
   ROOT,
   "app",
@@ -65,20 +74,14 @@ for (const state of keyframeNames) {
 
 // ── Scenario: each state selector actually applies an animation ────────────
 for (const state of keyframeNames) {
-  const re = new RegExp(
-    `\\[data-mascot-state="${state}"\\][^{]*\\{[^}]*animation\\s*:`,
-    "s"
-  );
+  const re = new RegExp(`\\[data-mascot-state="${state}"\\][^{]*\\{[^}]*animation\\s*:`, "s");
   check(`data-mascot-state="${state}" selector applies an animation`, re.test(css));
 }
 
 // ── Scenario: reduced motion is respected (hard gate, no exceptions) ───────
 const reducedMotionBlockRe = /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{([^]*?)\}\s*\}/;
 const reducedMotionMatch = css.match(reducedMotionBlockRe);
-check(
-  "prefers-reduced-motion: reduce block present",
-  Boolean(reducedMotionMatch)
-);
+check("prefers-reduced-motion: reduce block present", Boolean(reducedMotionMatch));
 check(
   "prefers-reduced-motion block forces animation: none !important",
   Boolean(reducedMotionMatch && /animation\s*:\s*none\s*!important/.test(reducedMotionMatch[1]))

@@ -395,9 +395,7 @@ export function createSynopticWebWidget(host, initialProps, options = {}) {
         else rest.push(n);
       }
       rest.sort((a, b) => (degree.get(String(b.id)) || 0) - (degree.get(String(a.id)) || 0));
-      keptNodes = sources.concat(
-        rest.slice(0, Math.max(0, ORPHAN_NODE_CEILING - sources.length))
-      );
+      keptNodes = sources.concat(rest.slice(0, Math.max(0, ORPHAN_NODE_CEILING - sources.length)));
     }
     const keptIds = new Set(keptNodes.map((n) => String(n.id)));
 

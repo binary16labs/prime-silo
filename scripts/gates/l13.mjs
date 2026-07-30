@@ -11,7 +11,10 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
-for (const rel of ["server/coordination/lib/promotion_rule.mjs", "scripts/train/eval/slices/slices.json"]) {
+for (const rel of [
+  "server/coordination/lib/promotion_rule.mjs",
+  "scripts/train/eval/slices/slices.json"
+]) {
   if (!fs.existsSync(path.join(ROOT, rel))) {
     console.error(`[l13] FAIL: required artifact missing: ${rel}`);
     process.exit(1);
@@ -27,6 +30,8 @@ if (t.status !== 0) {
   process.exit(1);
 }
 
-console.log("[l13] rule: dominance + eval-anchored Pareto (deterministic) + additive eval growth (history frozen) verified");
+console.log(
+  "[l13] rule: dominance + eval-anchored Pareto (deterministic) + additive eval growth (history frozen) verified"
+);
 console.log("[l13] GATE GREEN");
 process.exit(0);

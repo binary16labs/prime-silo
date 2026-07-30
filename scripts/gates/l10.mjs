@@ -21,15 +21,21 @@ for (const rel of [
   }
 }
 
-const t = spawnSync(process.execPath, ["--test", "tests/flywheel_daemon/flywheel_daemon_test.mjs"], {
-  cwd: ROOT,
-  stdio: "inherit"
-});
+const t = spawnSync(
+  process.execPath,
+  ["--test", "tests/flywheel_daemon/flywheel_daemon_test.mjs"],
+  {
+    cwd: ROOT,
+    stdio: "inherit"
+  }
+);
 if (t.status !== 0) {
   console.log("[l10] GATE FAILED (daemon / liveness scenarios)");
   process.exit(1);
 }
 
-console.log("[l10] daemon: reactive+cron trigger under L7 claim + resource-not-log wedge detection + clean dead-man abort verified");
+console.log(
+  "[l10] daemon: reactive+cron trigger under L7 claim + resource-not-log wedge detection + clean dead-man abort verified"
+);
 console.log("[l10] GATE GREEN");
 process.exit(0);

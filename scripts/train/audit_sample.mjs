@@ -24,7 +24,12 @@ const DATASET = path.join(HERE, "dataset");
 const OUT = path.resolve(arg("--out", path.join(DATASET, "gold_sample.jsonl")));
 
 const rows = [];
-for (const f of ["stream_a.train.jsonl", "stream_a.eval.jsonl", "stream_b.train.jsonl", "stream_b.eval.jsonl"]) {
+for (const f of [
+  "stream_a.train.jsonl",
+  "stream_a.eval.jsonl",
+  "stream_b.train.jsonl",
+  "stream_b.eval.jsonl"
+]) {
   const p = path.join(DATASET, f);
   if (!fs.existsSync(p)) continue;
   for (const line of fs.readFileSync(p, "utf8").split(/\r?\n/)) {

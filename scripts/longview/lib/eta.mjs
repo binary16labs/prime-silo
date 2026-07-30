@@ -19,7 +19,11 @@ function fmtDur(sec) {
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
   const r = s % 60;
-  return h ? `${h}h${String(m).padStart(2, "0")}m` : m ? `${m}m${String(r).padStart(2, "0")}s` : `${r}s`;
+  return h
+    ? `${h}h${String(m).padStart(2, "0")}m`
+    : m
+      ? `${m}m${String(r).padStart(2, "0")}s`
+      : `${r}s`;
 }
 
 export class Progress {
@@ -70,7 +74,9 @@ export class Progress {
     s.edges += edges;
     s.last_seconds = seconds || 0;
     if (seconds > 0) {
-      s.ema_seconds = s.ema_seconds ? EMA_ALPHA * seconds + (1 - EMA_ALPHA) * s.ema_seconds : seconds;
+      s.ema_seconds = s.ema_seconds
+        ? EMA_ALPHA * seconds + (1 - EMA_ALPHA) * s.ema_seconds
+        : seconds;
     }
     const remaining = Math.max(0, s.total - s.done);
     const etaSec = s.ema_seconds * remaining;

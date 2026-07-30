@@ -48,22 +48,37 @@ const VIOLATION_FLOOR = {
     "app/L0/_all/mod/_prime_silo/widgets/memoray/heatmap_radar/heatmap_radar.css": 16,
     "app/L0/_all/mod/_prime_silo/widgets/memoray/lineage_graph/lineage_graph.css": 5,
     "app/L0/_all/mod/_prime_silo/widgets/memoray/overview_cards/overview_cards.css": 9,
-    "app/L0/_all/mod/_prime_silo/widgets/three_renderer/renderer.css": 1,
+    "app/L0/_all/mod/_prime_silo/widgets/three_renderer/renderer.css": 1
   },
   justifyTotal: 0,
-  baseFontTotal: 0,
+  baseFontTotal: 0
 };
 
 const GOVERNED_DIRS = [
   path.join(ROOT, "app", "L0", "_all", "mod", "_prime_silo"),
-  path.join(ROOT, "app", "L0", "_all", "mod", "_core", "framework", "css"),
+  path.join(ROOT, "app", "L0", "_all", "mod", "_core", "framework", "css")
 ];
 
 const COLORS_CSS = path.join(
-  ROOT, "app", "L0", "_all", "mod", "_core", "framework", "css", "colors.css",
+  ROOT,
+  "app",
+  "L0",
+  "_all",
+  "mod",
+  "_core",
+  "framework",
+  "css",
+  "colors.css"
 );
 const VISUAL_INDEX_CSS = path.join(
-  ROOT, "app", "L0", "_all", "mod", "_core", "visual", "index.css",
+  ROOT,
+  "app",
+  "L0",
+  "_all",
+  "mod",
+  "_core",
+  "visual",
+  "index.css"
 );
 
 const failures = [];
@@ -128,9 +143,7 @@ for (const file of cssFiles) {
 check(
   "dyslexia rule: no text-align: justify in governed CSS",
   justifyViolations.length === 0,
-  justifyViolations.length
-    ? justifyViolations.map((v) => `${v.file}:${v.line}`).join(", ")
-    : "",
+  justifyViolations.length ? justifyViolations.map((v) => `${v.file}:${v.line}`).join(", ") : ""
 );
 
 // Base font below 16px: the *document base* (html/body/:root font-size),
@@ -150,17 +163,20 @@ for (const file of cssFiles) {
     if (!fsMatch) continue;
     const [, num, unit] = fsMatch;
     const px =
-      unit === "px" ? parseFloat(num)
-      : unit === "rem" || unit === "em" ? parseFloat(num) * 16
-      : unit === "%" ? (parseFloat(num) / 100) * 16
-      : NaN;
+      unit === "px"
+        ? parseFloat(num)
+        : unit === "rem" || unit === "em"
+          ? parseFloat(num) * 16
+          : unit === "%"
+            ? (parseFloat(num) / 100) * 16
+            : NaN;
     if (px < 16) baseFontViolations.push({ file: toRel(file), value: `${num}${unit}` });
   }
 }
 check(
   "dyslexia rule: no document base font-size below 16px",
   baseFontViolations.length === 0,
-  baseFontViolations.map((v) => `${v.file}: ${v.value}`).join(", "),
+  baseFontViolations.map((v) => `${v.file}: ${v.value}`).join(", ")
 );
 
 // ── Scenario: depth is restored via tokens ──────────────────────────────────
@@ -168,10 +184,7 @@ const visualIndexText = fs.existsSync(VISUAL_INDEX_CSS)
   ? stripComments(fs.readFileSync(VISUAL_INDEX_CSS, "utf8"))
   : "";
 const hasBannedShadowReset = /box-shadow\s*:\s*none\s*!important/i.test(visualIndexText);
-check(
-  "mod/_core/visual/index.css contains no box-shadow: none !important",
-  !hasBannedShadowReset,
-);
+check("mod/_core/visual/index.css contains no box-shadow: none !important", !hasBannedShadowReset);
 
 // framework css defines exactly 3 elevation tokens: --elevation-{1,2,3} (or
 // named low/medium/high) declared once each in the framework/css scope.
@@ -188,7 +201,7 @@ for (const file of frameworkFiles) {
 check(
   "framework css defines exactly 3 elevation tokens (--elevation-1/2/3)",
   elevationTokensFound.size === 3,
-  `found: ${[...elevationTokensFound].sort().join(",") || "none"}`,
+  `found: ${[...elevationTokensFound].sort().join(",") || "none"}`
 );
 
 // ── Scenario + ratchet: violations ratchet down, never up ──────────────────
@@ -202,44 +215,44 @@ const hexTotal = hexViolations.length;
 check(
   `hardcoded-color count at or below ratchet floor (floor=${floor.hexTotal})`,
   hexTotal <= floor.hexTotal,
-  `current=${hexTotal}`,
+  `current=${hexTotal}`
 );
 
 // Per-file: no file outside the floor's grandfathered set may introduce hex.
 const hexByFile = {};
 for (const v of hexViolations) hexByFile[v.file] = (hexByFile[v.file] || 0) + 1;
 const newOffenders = Object.keys(hexByFile).filter(
-  (f) => !Object.prototype.hasOwnProperty.call(floor.hexByFile || {}, f),
+  (f) => !Object.prototype.hasOwnProperty.call(floor.hexByFile || {}, f)
 );
 check(
   "no new files introduce hardcoded colors outside the grandfathered floor set",
   newOffenders.length === 0,
-  newOffenders.join(", "),
+  newOffenders.join(", ")
 );
 // And grandfathered files may not get worse, only better or unchanged.
 const worsenedOffenders = Object.keys(hexByFile).filter(
-  (f) => (floor.hexByFile || {})[f] !== undefined && hexByFile[f] > floor.hexByFile[f],
+  (f) => (floor.hexByFile || {})[f] !== undefined && hexByFile[f] > floor.hexByFile[f]
 );
 check(
   "no grandfathered file's hardcoded-color count increased",
   worsenedOffenders.length === 0,
-  worsenedOffenders.map((f) => `${f}: ${floor.hexByFile[f]} -> ${hexByFile[f]}`).join(", "),
+  worsenedOffenders.map((f) => `${f}: ${floor.hexByFile[f]} -> ${hexByFile[f]}`).join(", ")
 );
 
 check(
   `justify-violation count at or below ratchet floor (floor=${floor.justifyTotal})`,
   justifyViolations.length <= floor.justifyTotal,
-  `current=${justifyViolations.length}`,
+  `current=${justifyViolations.length}`
 );
 check(
   `base-font-violation count at or below ratchet floor (floor=${floor.baseFontTotal})`,
   baseFontViolations.length <= floor.baseFontTotal,
-  `current=${baseFontViolations.length}`,
+  `current=${baseFontViolations.length}`
 );
 
 console.log(
   failures.length === 0
     ? "[c0] GATE GREEN"
-    : `[c0] GATE FAILED — ${failures.length} failing: ${failures.join("; ")}`,
+    : `[c0] GATE FAILED — ${failures.length} failing: ${failures.join("; ")}`
 );
 process.exit(failures.length === 0 ? 0 : 1);

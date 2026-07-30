@@ -15,10 +15,10 @@ The RX 9060 XT (gfx1200 / RDNA4) in the Razer Core X eGPU over Thunderbolt-3 run
 real **30-step 4-bit QLoRA** under native-Windows ROCm, proven **two ways**, both
 passing `scripts/gates/t0.py` (exit 0):
 
-| Path | Kernels | Base | Loss (step 1 → 30) | Adapter | Gate |
-|---|---|---|---|---|---|
-| `run_smoke_vanilla.py` | transformers + peft + bitsandbytes, **eager** | llama-3.2-1b (bnb-4bit) | 2.2888 → 1.4959 | ✅ `adapter_model.safetensors` | 🟢 exit 0 |
-| `run_smoke.py` | **Unsloth + Triton** (fused) | Llama-3.2-1B-Instruct | 2.2208 → 1.4511 | ✅ 45 MB safetensors | 🟢 exit 0 |
+| Path                   | Kernels                                       | Base                    | Loss (step 1 → 30) | Adapter                        | Gate      |
+| ---------------------- | --------------------------------------------- | ----------------------- | ------------------ | ------------------------------ | --------- |
+| `run_smoke_vanilla.py` | transformers + peft + bitsandbytes, **eager** | llama-3.2-1b (bnb-4bit) | 2.2888 → 1.4959    | ✅ `adapter_model.safetensors` | 🟢 exit 0 |
+| `run_smoke.py`         | **Unsloth + Triton** (fused)                  | Llama-3.2-1B-Instruct   | 2.2208 → 1.4511    | ✅ 45 MB safetensors           | 🟢 exit 0 |
 
 Both loss curves decrease overall (first-quarter mean > last-quarter mean) on a tiny
 batch (bs 2 × grad-accum 2 = 4), which is the expected noisy-but-downward shape for a

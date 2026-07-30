@@ -23,7 +23,9 @@ function compileNeedles(terms = [], sids = []) {
   for (const t of terms) {
     const term = String(t).trim();
     if (!term) continue;
-    needles.push(term.length < 4 ? new RegExp(`\\b${escapeRe(term)}\\b`, "i") : new RegExp(escapeRe(term), "i"));
+    needles.push(
+      term.length < 4 ? new RegExp(`\\b${escapeRe(term)}\\b`, "i") : new RegExp(escapeRe(term), "i")
+    );
   }
   for (const s of sids) {
     const sid = String(s).trim();
@@ -47,11 +49,14 @@ export function loadTerms({ home = process.env.PRIME_SILO_HOME } = {}) {
   }
   // Sessions workspace quarantine (e.g. sessions_v1) — merged HERE so the builder and
   // the gate's authoritative scan see the identical sid list.
-  const sessionsWs = (process.env.T2_SESSIONS_WS || "").trim() ||
-    "D:\\benny-home\\benny\\workspaces\\sessions_v1";
+  const sessionsWs =
+    (process.env.T2_SESSIONS_WS || "").trim() || "D:\\benny-home\\benny\\workspaces\\sessions_v1";
   try {
-    const q = JSON.parse(fs.readFileSync(path.join(sessionsWs, "longview", "quarantine.json"), "utf8"));
-    for (const s of q.sids || q.quarantined || []) if (s && !sids.includes(String(s))) sids.push(String(s));
+    const q = JSON.parse(
+      fs.readFileSync(path.join(sessionsWs, "longview", "quarantine.json"), "utf8")
+    );
+    for (const s of q.sids || q.quarantined || [])
+      if (s && !sids.includes(String(s))) sids.push(String(s));
   } catch {
     /* workspace absent (e.g. D: unplugged) — structural card filter still applies */
   }

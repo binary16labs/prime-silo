@@ -39,11 +39,12 @@ full before any CSS — it is short and it is law.
 
 ## 3. Motion doctrine — "motion is meaning"
 
-C0 says: *no ambient motion; animation only as feedback to user action* (mascot micro-states are
+C0 says: _no ambient motion; animation only as feedback to user action_ (mascot micro-states are
 the sanctioned exception). This is NOT a ban on the animejs.com aesthetic — it is a targeting
 rule. The website proves the style; the app earns it at these moments:
 
 **Sanctioned kinetic moments (choreograph these fully):**
+
 1. **Threshold moments** — login load, first-run steps, section transitions the USER initiated.
    A step change is user action; a spring-staggered entrance of the next step IS feedback.
 2. **State becoming visible** — a run starting (DAG nodes light in sequence), ingestion
@@ -57,10 +58,12 @@ rule. The website proves the style; the app earns it at these moments:
 pulses on idle UI, anything that moves while the user is reading and nothing is happening.
 
 **Hard gates on every animation, no exceptions:**
+
 ```js
-const calm = matchMedia('(prefers-reduced-motion: reduce)').matches
-  || document.documentElement.dataset.profile === 'zen';   // C7 Zen = zero animation
-if (calm) return;  // final state must already be in the CSS — page complete with zero JS
+const calm =
+  matchMedia("(prefers-reduced-motion: reduce)").matches ||
+  document.documentElement.dataset.profile === "zen"; // C7 Zen = zero animation
+if (calm) return; // final state must already be in the CSS — page complete with zero JS
 ```
 
 **Vocabulary (same as the website — one motion language):** springs with slight overshoot

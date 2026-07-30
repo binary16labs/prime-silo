@@ -3,8 +3,9 @@
 **Scope (committed, design source `architecture/SOLUTION-longview-self-learning.md` §6 / §7 wave 1):**
 EP-L wave-1 substrate — L0 knowledge event log · L1 CAS staging + manifest · L2 inbound poison gate ·
 L3 durability + restore drill · L4 delta engine · L5 unified execution register (JSONL) · L6 authorship
-+ record-served tagging · L7 single-winner loop claim + compaction budget. Waves 2 (bi-temporal
-projectors L8–L9) and 3 (closed loop + guards L10–L14) are authored at their own checkpoints.
+
+- record-served tagging · L7 single-winner loop claim + compaction budget. Waves 2 (bi-temporal
+  projectors L8–L9) and 3 (closed loop + guards L10–L14) are authored at their own checkpoints.
 
 **Trigger:** owner accepted `REQUIREMENTS-longview-self-learning.md` R1–R45 + the 11 steers (§6.1) and
 the SOLUTION §4–§6 design as-is (2026-07-25). Contracts authored at this checkpoint by Claude

@@ -9,10 +9,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
-const need = [
-  "architecture/SPEC-knowledge-eventlog.md",
-  "server/coordination/lib/staging.mjs"
-];
+const need = ["architecture/SPEC-knowledge-eventlog.md", "server/coordination/lib/staging.mjs"];
 for (const f of need) {
   if (!fs.existsSync(path.join(ROOT, f))) {
     console.error(`[l1] FAIL: required artifact missing: ${f}`);

@@ -17,16 +17,18 @@ already exist** (Gemini's `navi-key` arc/dot-matrix + `lineage-timeline`, the an
 set-pieces).
 
 ## Phases → task contracts (M7)
+
 - [ ] `N0` — estate model (`estate.jsonl` projection) + delta sync engine: CAS-dedup overlap, L4 delta
-  cursors, KEL sync events; cascade F→D→eGPU is delta-only/idempotent *(human-signed — it moves data)*
+      cursors, KEL sync events; cascade F→D→eGPU is delta-only/idempotent _(human-signed — it moves data)_
 - [ ] `N1` — probes: machine reachability (hub/satellite topology), drive drift verdict (INTACT/DRIFT/
-  CORRUPT) from fingerprints, eGPU + host metrics (CPU-time liveness), per-machine session stats
+      CORRUPT) from fingerprints, eGPU + host metrics (CPU-time liveness), per-machine session stats
 - [ ] `N2` — estate console `server/pages/estate.html` composing navi-key + lineage-timeline + dial,
-  live over the B1 SSE bus; motion-is-meaning, theme-aware, complete with JS disabled
+      live over the B1 SSE bus; motion-is-meaning, theme-aware, complete with JS disabled
 - [ ] `N3` — interactive drill-down cards (glance→drill→explain) + delivery-board & LONGVIEW tie-in
-  *(human-signed — promotes the estate surface to the shared observability plane)*
+      _(human-signed — promotes the estate surface to the shared observability plane)_
 
 ## Exit
+
 All four phase gates green, verified by a non-author agent; close with a VISION-CHECK note (plan §0.5): which
 KRs moved (KR2.2 telemetry/lineage extended to the physical estate; KR2.4 governance surface; KR1.5 corpus
 coherence), measured evidence (portable copy + F: backup dedupe to one blob per content — delta-only proven;
@@ -35,25 +37,29 @@ alone), one honest sentence on residual drift. Privacy invariant held: quarantin
 content or enter any dataset path (R31); additive — no default route breaks (R36).
 
 ## Phase 2 → task contracts (M8) — the Governance Cockpit (reopened 2026-07-28)
+
 Phase 1 made the estate **observable**; Phase 2 makes it **governable and self-directing**. Plan source
 extended: `../../architecture/SOLUTION-estate.md` §7–§11. Owner directive: build the governance layer first,
 then the live transport ("both in sequence"). Reuses the Phase-1 engine (N0 CAS/sync, N1 probes, N2/N3 API+console).
+
 - [ ] `N4` — drift-delta engine (`estate_drift.mjs`): the actionable delta a satellite holds that the hub
-  corpus lacks, by content-hash, partitioned clean/quarantined; + execution drift (L5). Pure, gate-testable *(agent-ok)*
+      corpus lacks, by content-hash, partitioned clean/quarantined; + execution drift (L5). Pure, gate-testable _(agent-ok)_
 - [ ] `N5` — approve-to-sync (`estate_govern.mjs` + API): a signed proposal with a privacy attestation;
-  idempotent apply via N0 `syncSource`; B1 approval event. No sync without an owner signature *(human-signed — moves data)*
+      idempotent apply via N0 `syncSource`; B1 approval event. No sync without an owner signature _(human-signed — moves data)_
 - [ ] `N6` — next-cycle flywheel planner (`estate_plan.mjs`): projects the approved drift into the next turn
-  (sessions→cards→Stream-A rows→rebuild threshold→action); the projection is shared with the :8788 flywheel *(agent-ok)*
+      (sessions→cards→Stream-A rows→rebuild threshold→action); the projection is shared with the :8788 flywheel _(agent-ok)_
 - [ ] `N7` — live satellite discovery (`estate_register.mjs` + route): a satellite starting prime-silo on the
-  LAN registers (heartbeat + fingerprint manifest push, LAN-auth), so drift updates live *(human-signed — network surface)*
+      LAN registers (heartbeat + fingerprint manifest push, LAN-auth), so drift updates live _(human-signed — network surface)_
 
 ## Exit (M8)
+
 Gates `n4..n7` green + non-author verification. Proven: drift is the true content-hash delta (overlap excluded);
 a sync cannot execute unapproved and a quarantined sid is rejected (R31 at the sync boundary); approved sync is
 idempotent; the planner projection matches the flywheel's; a LAN-registering satellite updates the cockpit live.
 KRs: KR2.4 (governance action), KR1.5 (planned flywheel intake). VISION-CHECK on close.
 
 ## VISION-CHECK (EP-N Phase 1 closed 2026-07-27)
+
 Built N0–N3, all gate-green + mutation-proven, `w0` green throughout. **KRs moved:** KR2.2 (the
 telemetry/lineage stream now extends to the physical estate — machines, drives, sessions rendered live
 from the estate log), KR2.4 (a governance surface making drift + verification observable). **Measured

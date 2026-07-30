@@ -1,7 +1,7 @@
 # T3 eval rubric — FROZEN before training (no moving goalposts)
 
 > Committed with the RED gate, before any weights are updated. The QLoRA run does not
-> get to see this file change. If the tuned model does not beat base under *these* rules,
+> get to see this file change. If the tuned model does not beat base under _these_ rules,
 > that is an honest, logged result (T3 contract "Out of scope").
 
 ## What we measure
@@ -13,8 +13,8 @@ The held-out eval set is the **T2 held-out split**, disjoint from training by co
 - `scripts/train/dataset/stream_b.eval.jsonl` — **76 rows**, agent trajectory (state+goal → next tool call)
 
 **RAG is disabled.** The model sees only the prompt (instruction, or state+goal). No retrieval,
-no memo-ray, no LONGVIEW context is injected. The number therefore reflects the *fine-tune's own
-contribution* — internalized method + tool-use — not retrieval. This is the whole point of the
+no memo-ray, no LONGVIEW context is injected. The number therefore reflects the _fine-tune's own
+contribution_ — internalized method + tool-use — not retrieval. This is the whole point of the
 honest scope split (fine-tune = method/voice/tool-use; facts stay in RAG).
 
 ## Metrics

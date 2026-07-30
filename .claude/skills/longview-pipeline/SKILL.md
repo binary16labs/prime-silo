@@ -11,6 +11,7 @@ Pipeline: inventory → extract → map(walk) → (model **or** graph) → code 
 Code: `scripts/longview/`. Guide: `runtime/docs/operations/LONGVIEW_GUIDE.md`.
 
 **Governance & observability (v1.16.x) — all deterministic, ledger-sourced:**
+
 - **Memory teleport** (`memory.mjs` + `memory_graph.py`): label→resolve→teleport sensitive sessions (CV/job) to a quarantine workspace (moves files + Neo4j nodes + Chroma chunks, journalled, reversible via `restore`); `quarantine.json` filters teleported sids from inventory forever; `lib/leak_gate.mjs` gates deliverables. Graph Source names use the **8-char sid prefix**, not the 32-char card filename. UI: `:8788/memory.html`.
 - **Dashboard** (`scratch/longview_run/dashboard/`, `bash dash.sh` → `:8788`): Mission Control (`/`) + Lineage/governance (`/lineage.html`, OpenLineage DAG + artifact explorer + step-through reusing `lib/record.mjs` + execution register) + `/kindle.html` (ES5). Every number derives from `ledger.jsonl` + disk — no hidden state.
 - **Arc-driven opus** (`lib/arcs.mjs`): timeline-walked cross-project arcs feed sections; `draft → gate → critique → revise`. `LONGVIEW_OPUS_DIR=iterations/<name>` builds without clobbering a prior book.
@@ -32,6 +33,7 @@ with a GENEROUS budget. Before declaring a wedge, re-probe with `reasoning_effor
 Also: the 12B loads slowly on the eGPU (~35s, ~22 tok/s) — a slow first token is not a hang.
 
 **Graph build — two paths, same schema (Source/Concept/RELATES_TO/SOURCED_FROM):**
+
 - `model` = deep_synthesis: a second LLM pass re-extracts triples per card section. ~60-120s/card.
 - `graph` = **longview_v2, deterministic**: builds triples directly from the card's own
   `concepts[]`/`applications[]`/`capabilities[]`/`skills_observed[]` — no model call, **~0.4s/card**.
@@ -54,7 +56,7 @@ Also: the 12B loads slowly on the eGPU (~35s, ~22 tok/s) — a slow first token 
   discard it. This bit us live: the "gemma is slow / 56s probe / 1835s card" numbers were all self-
   inflicted concurrency, and killing a queued probe is what wedged the engine.
 - **Turn off reasoning on extraction calls (2026-07-09) — the 4× lever.** gemma-4-12b burns ~78% of
-  every call on a reasoning preamble that adds nothing to a *reading* task (verified: 640→0 reasoning
+  every call on a reasoning preamble that adds nothing to a _reading_ task (verified: 640→0 reasoning
   tokens, JSON still full/valid, 16-window card 160s/win → 42s/win). The prompt CANNOT suppress it and
   `enable_thinking:false` / `thinking:false` / `reasoning_effort:"low"` are ignored — the working
   control is the request param **`reasoning_effort:"none"`** (LM Studio honors it; it's on/off, not
@@ -63,7 +65,7 @@ Also: the 12B loads slowly on the eGPU (~35s, ~22 tok/s) — a slow first token 
 - **LM-host hardware = AMD RDNA4 eGPU (2026-07-09) — the wedge is a driver/runtime problem, not config.**
   The LAN LM Studio (`192.168.68.125:1234`) runs an **AMD RX 9060 XT 16 GB (RDNA4)** in a **Razer Core X
   eGPU over Thunderbolt** on a T480. The recurring `channel error` / `Engine protocol predict request
-  failed` wedge (~every 1 session under sustained load) is **RDNA4/ROCm + eGPU instability, NOT VRAM**
+failed` wedge (~every 1 session under sustained load) is **RDNA4/ROCm + eGPU instability, NOT VRAM**
   (16 GB fits a 12B) and NOT a longview setting — window-size, context, and reasoning tuning did NOT fix
   it (all tried). Levers: LM Studio **ROCm concurrency=1** + **disable experimental KV-cache share** +
   map cooldown `LONGVIEW_WINDOW_PAUSE_MS` (~2000ms between window calls). **Vulkan is the stable AMD
@@ -102,7 +104,7 @@ Also: the 12B loads slowly on the eGPU (~35s, ~22 tok/s) — a slow first token 
   evict each other per call → "No model loaded" both sides → the 2026-07-06 overnight loop.
   The fix: /rag/ingest pins run affinity from its `model` field; auto-detect prefers the
   currently-loaded model; roulette picks WARN. Belt-and-braces env pin: `BENNY_DEFAULT_MODEL=
-  lemonade/qwen3.5-9b-FLM`. Ingest client fails a batch after 30 min of task-record silence
+lemonade/qwen3.5-9b-FLM`. Ingest client fails a batch after 30 min of task-record silence
   (`LONGVIEW_INGEST_STALL_MS`) and reconciles per-file via `.benny/wiki/` evidence on failure —
   retries skip completed cards. Diagnosis pattern: read `runs/task_registry.json` think-log and
   `longview/ledger.jsonl`, check flm.exe PID changes; ledger `ts` is UTC, file mtimes local.

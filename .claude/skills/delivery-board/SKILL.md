@@ -31,11 +31,11 @@ read README → read BOARD → take TOPMOST READY item → claim (board edit + L
 
 ## 2. Model-tier routing (who takes what)
 
-| Tier | Takes | Never takes |
-|---|---|---|
-| **haiku** | Independent VERIFICATION of others' tasks (re-run gate from clean checkout, tick BDD scenarios, move VERIFY→DONE), mechanical single-surface contracts (grep-and-replace passes like C4 execution, LOG/board hygiene, running gates) | Contract authoring, anything with design judgment, multi-file architecture, writing new gates |
-| **sonnet** | Standard contracts: layout/CSS work (C1), SSE/API endpoints (B1), keyframe+binding work (C5), test suites, gate scripts from a spec, docs passes | Contract authoring/splitting, taste-defining UI (first impressions), cross-workstream tradeoffs |
-| **opus** | Design-taste flagships (C3 login/first-run, D1 Studio spec, E-workstream visual), contract authoring/splitting at plan checkpoints, anything touching >2 workstreams, unblocking a task two tiers failed | Bulk mechanical work (wasteful) |
+| Tier       | Takes                                                                                                                                                                                                                                | Never takes                                                                                     |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| **haiku**  | Independent VERIFICATION of others' tasks (re-run gate from clean checkout, tick BDD scenarios, move VERIFY→DONE), mechanical single-surface contracts (grep-and-replace passes like C4 execution, LOG/board hygiene, running gates) | Contract authoring, anything with design judgment, multi-file architecture, writing new gates   |
+| **sonnet** | Standard contracts: layout/CSS work (C1), SSE/API endpoints (B1), keyframe+binding work (C5), test suites, gate scripts from a spec, docs passes                                                                                     | Contract authoring/splitting, taste-defining UI (first impressions), cross-workstream tradeoffs |
+| **opus**   | Design-taste flagships (C3 login/first-run, D1 Studio spec, E-workstream visual), contract authoring/splitting at plan checkpoints, anything touching >2 workstreams, unblocking a task two tiers failed                             | Bulk mechanical work (wasteful)                                                                 |
 
 Verification is ALWAYS a different identity than the author — a fresh session/agent with no shared
 context, reading only the contract + README, from a clean checkout. Haiku is the default verifier;
@@ -61,6 +61,7 @@ actually requires the server; static-analysis gates should stay zero-dep).
 ## 4. Gate-script craft (scripts/gates/*.mjs)
 
 Study `scripts/gates/c0.mjs` and `w0.mjs` before writing one. House style:
+
 - Zero-dep Node ESM (`node:fs`, `node:path`, `node:child_process` only). Exit 0 = pass,
   non-zero = fail **naming the file and the rule violated** (a gate that fails silently is a defect).
 - Prefer static analysis (grep/parse the source) over spinning up servers. If a preview is

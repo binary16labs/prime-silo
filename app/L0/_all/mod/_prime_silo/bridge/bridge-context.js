@@ -165,12 +165,11 @@ async function fetchModeData(currentState) {
       const totalVisible = gov.summary?.totalVisible ?? "?";
       const totalFailures = gov.summary?.totalFailures ?? "?";
 
-      let line = (
+      let line =
         `Governance V2 — active ${type}: ${String(activeId).slice(0, 16)} ` +
         `(status: ${status}, risk weight: ${riskWeight}, errors: ${errCount}, duration: ${duration}). ` +
         `Step-through: step ${stepIndex} of ${stepTotal}. ` +
-        `Navigator: ${totalVisible} items visible (filter: ${filter}, sort: ${sort}, ${totalFailures} failures).`
-      );
+        `Navigator: ${totalVisible} items visible (filter: ${filter}, sort: ${sort}, ${totalFailures} failures).`;
 
       // Append node_states summary if available (pipeline run detail).
       if (gov.nodeStatesSummary) {
@@ -192,7 +191,6 @@ async function fetchModeData(currentState) {
     return null; // runtime down, wrong environment, skill not found — fail silently
   }
 }
-
 
 /** Deep link back into the Bridge for a given snapshot (mode + optional id). */
 export function bridgeDeepLink(state = {}) {

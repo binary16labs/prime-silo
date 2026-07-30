@@ -15,7 +15,9 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", ".
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), "utf8");
 const exists = (rel) => fs.existsSync(path.join(ROOT, rel));
 const fails = [];
-const check = (cond, msg) => { if (!cond) fails.push(msg); };
+const check = (cond, msg) => {
+  if (!cond) fails.push(msg);
+};
 
 // 1. The lock exists and is fully hash-pinned.
 check(exists("runtime/requirements.lock"), "runtime/requirements.lock is missing");
@@ -30,22 +32,37 @@ if (exists("runtime/requirements.lock")) {
     const m = b.match(/^([A-Za-z0-9._-]+)==/);
     if (m && !/--hash=sha256:/.test(b)) unpinned.push(m[1]);
   }
-  check(unpinned.length === 0, `pinned-but-unhashed requirements: ${unpinned.slice(0, 5).join(", ")}`);
-  check(/uv pip compile|pip-compile/.test(lock), "lock header does not record its pip-compile/uv provenance");
+  check(
+    unpinned.length === 0,
+    `pinned-but-unhashed requirements: ${unpinned.slice(0, 5).join(", ")}`
+  );
+  check(
+    /uv pip compile|pip-compile/.test(lock),
+    "lock header does not record its pip-compile/uv provenance"
+  );
 }
 
 // 2. Direct deps state intent (>=); both files committed.
 check(exists("runtime/requirements.txt"), "runtime/requirements.txt is missing");
 if (exists("runtime/requirements.txt")) {
-  check(/>=/.test(read("runtime/requirements.txt")), "requirements.txt direct deps should state intent with >=");
+  check(
+    />=/.test(read("runtime/requirements.txt")),
+    "requirements.txt direct deps should state intent with >="
+  );
 }
 
 // 3. CI installs from the lock, no ad-hoc unpinned tool install.
 check(exists(".github/workflows/lint.yml"), ".github/workflows/lint.yml is missing");
 if (exists(".github/workflows/lint.yml")) {
   const lint = read(".github/workflows/lint.yml");
-  check(/requirements\.lock/.test(lint), "lint.yml must install Python tooling from requirements.lock");
-  check(!/pip install ["']ruff>=/.test(lint), "lint.yml still has an ad-hoc unpinned `pip install \"ruff>=...\"`");
+  check(
+    /requirements\.lock/.test(lint),
+    "lint.yml must install Python tooling from requirements.lock"
+  );
+  check(
+    !/pip install ["']ruff>=/.test(lint),
+    'lint.yml still has an ad-hoc unpinned `pip install "ruff>=..."`'
+  );
 }
 
 // 4. Weekly grouped dependabot.
@@ -68,8 +85,10 @@ if (exists(".github/workflows/release-desktop.yml")) {
 // 6. Packaging installs constrained by the lock.
 check(exists("packaging/scripts/assemble-runtime-bundle.js"), "assemble-runtime-bundle.js missing");
 if (exists("packaging/scripts/assemble-runtime-bundle.js")) {
-  check(/requirements\.lock/.test(read("packaging/scripts/assemble-runtime-bundle.js")),
-    "packaging must reference runtime/requirements.lock (version constraint)");
+  check(
+    /requirements\.lock/.test(read("packaging/scripts/assemble-runtime-bundle.js")),
+    "packaging must reference runtime/requirements.lock (version constraint)"
+  );
 }
 
 if (fails.length) {
@@ -77,6 +96,8 @@ if (fails.length) {
   for (const f of fails) console.error("  - " + f);
   process.exit(1);
 }
-console.log("[q1] supply chain: hash-pinned lock + lock-based CI/packaging installs + weekly grouped dependabot + CycloneDX SBOMs — verified");
+console.log(
+  "[q1] supply chain: hash-pinned lock + lock-based CI/packaging installs + weekly grouped dependabot + CycloneDX SBOMs — verified"
+);
 console.log("[q1] GATE GREEN");
 process.exit(0);

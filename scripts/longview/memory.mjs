@@ -44,8 +44,7 @@ const TARGET = opt("to", opt("from", `${config.WORKSPACE}_private`));
 
 const registryPath = () => stateDir("labels.json");
 const quarantinePath = () => stateDir("quarantine.json");
-const targetRoot = (...p) =>
-  path.join(path.dirname(workspaceDir()), TARGET, ...p);
+const targetRoot = (...p) => path.join(path.dirname(workspaceDir()), TARGET, ...p);
 
 const readJSON = (p, d = null) => {
   try {
@@ -80,7 +79,8 @@ function matches(text, term) {
   const t = String(text).toLowerCase();
   const q = term.toLowerCase();
   // Short terms ("cv") on word boundaries only — "canvas" must not match.
-  if (q.length <= 3) return new RegExp(`\\b${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(t);
+  if (q.length <= 3)
+    return new RegExp(`\\b${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(t);
   return t.includes(q);
 }
 
@@ -95,7 +95,10 @@ function resolveLabel(label) {
   let spec;
   if (adhocTerms) {
     spec = {
-      match_projects: adhocTerms.split(",").map((s) => s.trim()).filter(Boolean),
+      match_projects: adhocTerms
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
       match_titles: true,
       match_card_text: flag("card-text"),
       explicit_sids: []
@@ -104,7 +107,9 @@ function resolveLabel(label) {
     const reg = loadRegistry();
     spec = reg[label];
     if (!spec) {
-      console.error(`[memory] no label '${label}' in ${registryPath()} (labels: ${Object.keys(reg).join(", ")})`);
+      console.error(
+        `[memory] no label '${label}' in ${registryPath()} (labels: ${Object.keys(reg).join(", ")})`
+      );
       process.exit(1);
     }
   }
@@ -118,8 +123,10 @@ function resolveLabel(label) {
   };
   for (const s of inventory) {
     for (const term of spec.match_projects || []) {
-      if (matches(s.project, term)) add(s.id, `project~"${term}"`, { project: s.project, title: s.title, agent: s.agent });
-      if (spec.match_titles && matches(s.title, term)) add(s.id, `title~"${term}"`, { project: s.project, title: s.title, agent: s.agent });
+      if (matches(s.project, term))
+        add(s.id, `project~"${term}"`, { project: s.project, title: s.title, agent: s.agent });
+      if (spec.match_titles && matches(s.title, term))
+        add(s.id, `title~"${term}"`, { project: s.project, title: s.title, agent: s.agent });
     }
   }
   // Cards can carry a better project name than inventory, and (opt-in) their
@@ -132,8 +139,10 @@ function resolveLabel(label) {
     const sid = f.replace(/\.json$/, "");
     const card = readJSON(path.join(cardsDir, f), {});
     for (const term of spec.match_projects || []) {
-      if (matches(card.project, term)) add(sid, `card.project~"${term}"`, { project: card.project });
-      if (spec.match_card_text && matches(JSON.stringify(card), term)) add(sid, `card.text~"${term}"`, { project: card.project });
+      if (matches(card.project, term))
+        add(sid, `card.project~"${term}"`, { project: card.project });
+      if (spec.match_card_text && matches(JSON.stringify(card), term))
+        add(sid, `card.text~"${term}"`, { project: card.project });
     }
   }
   for (const sid of spec.explicit_sids || []) add(sid, "explicit");
@@ -147,7 +156,12 @@ function resolveLabel(label) {
   // accepts full sids or 8-char prefixes.
   const only = opt("sids", null);
   if (only) {
-    const set = new Set(only.split(",").map((s) => s.trim()).filter(Boolean));
+    const set = new Set(
+      only
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    );
     list = list.filter((e) => set.has(e.sid) || set.has(e.sid.slice(0, 8)));
   }
   return { spec, sids: list };
@@ -189,15 +203,20 @@ function runGraphMover(sourceNames, action, dryRun) {
   const listPath = path.join(projectRoot, "scripts", "longview", `.mover_${Date.now()}.json`);
   fs.writeFileSync(listPath, JSON.stringify(sourceNames));
   try {
-    const py = "C:\\Users\\nsdha\\AppData\\Roaming\\space-agent\\runtime-bundle\\python\\python.exe";
+    const py =
+      "C:\\Users\\nsdha\\AppData\\Roaming\\space-agent\\runtime-bundle\\python\\python.exe";
     const r = spawnSync(
       fs.existsSync(py) ? py : "python",
       [
         path.join(projectRoot, "scripts", "longview", "memory_graph.py"),
-        "--workspace", config.WORKSPACE,
-        "--target", TARGET,
-        "--sources-file", listPath,
-        "--action", action,
+        "--workspace",
+        config.WORKSPACE,
+        "--target",
+        TARGET,
+        "--sources-file",
+        listPath,
+        "--action",
+        action,
         ...(dryRun ? ["--dry-run"] : []),
         "--json"
       ],
@@ -216,7 +235,12 @@ function runGraphMover(sourceNames, action, dryRun) {
     try {
       return JSON.parse(lastLine);
     } catch {
-      return { ok: false, errors: [`mover output unparseable: ${lastLine.slice(0, 200)} / ${(r.stderr || "").slice(-300)}`] };
+      return {
+        ok: false,
+        errors: [
+          `mover output unparseable: ${lastLine.slice(0, 200)} / ${(r.stderr || "").slice(-300)}`
+        ]
+      };
     }
   } finally {
     fs.unlinkSync(listPath);
@@ -238,7 +262,9 @@ if (cmd === "labels") {
   const reg = loadRegistry();
   console.log(`[memory] registry: ${registryPath()}`);
   for (const [name, spec] of Object.entries(reg))
-    console.log(`  ${name}: projects~[${(spec.match_projects || []).join(", ")}] titles=${!!spec.match_titles} card_text=${!!spec.match_card_text} pins=${(spec.explicit_sids || []).length}`);
+    console.log(
+      `  ${name}: projects~[${(spec.match_projects || []).join(", ")}] titles=${!!spec.match_titles} card_text=${!!spec.match_card_text} pins=${(spec.explicit_sids || []).length}`
+    );
 } else if (cmd === "projects") {
   const inventory = readJSON(stateDir("inventory.json"), []);
   const byProject = new Map();
@@ -254,10 +280,16 @@ if (cmd === "labels") {
     console.log(JSON.stringify({ label, sids, files }, null, 2));
   } else {
     const qN = sids.filter((e) => e.quarantined).length;
-    console.log(`[memory] label '${label}' → ${sids.length} sessions (${qN} already quarantined), ${files} files\n`);
+    console.log(
+      `[memory] label '${label}' → ${sids.length} sessions (${qN} already quarantined), ${files} files\n`
+    );
     for (const e of sids)
-      console.log(`  ${e.sid.slice(0, 8)}  ${e.quarantined ? "[QUARANTINED] " : ""}${(e.project || "?").padEnd(24).slice(0, 24)}  ${e.reasons.join(", ")}${e.title ? `  · ${String(e.title).slice(0, 50)}` : ""}`);
-    console.log(`\n  graph/vector blast radius: node memory_graph.py --dry-run (run 'teleport ${label} --dry-run')`);
+      console.log(
+        `  ${e.sid.slice(0, 8)}  ${e.quarantined ? "[QUARANTINED] " : ""}${(e.project || "?").padEnd(24).slice(0, 24)}  ${e.reasons.join(", ")}${e.title ? `  · ${String(e.title).slice(0, 50)}` : ""}`
+      );
+    console.log(
+      `\n  graph/vector blast radius: node memory_graph.py --dry-run (run 'teleport ${label} --dry-run')`
+    );
   }
 } else if (cmd === "teleport" || cmd === "restore") {
   const label = labelArg();
@@ -269,7 +301,9 @@ if (cmd === "labels") {
   const already = sids.filter((e) => e.quarantined);
   sids = restoring ? already : sids.filter((e) => !e.quarantined);
   if (!restoring && already.length)
-    console.log(`[memory] ${already.length} session(s) already quarantined — skipped: ${already.map((e) => e.sid.slice(0, 8)).join(", ")}`);
+    console.log(
+      `[memory] ${already.length} session(s) already quarantined — skipped: ${already.map((e) => e.sid.slice(0, 8)).join(", ")}`
+    );
   if (!sids.length) {
     console.log(
       restoring
@@ -278,7 +312,9 @@ if (cmd === "labels") {
     );
     process.exit(0);
   }
-  console.log(`[memory] ${cmd} '${label}': ${sids.length} sessions ${restoring ? "←" : "→"} ${TARGET}${dryRun ? " (DRY RUN)" : ""}`);
+  console.log(
+    `[memory] ${cmd} '${label}': ${sids.length} sessions ${restoring ? "←" : "→"} ${TARGET}${dryRun ? " (DRY RUN)" : ""}`
+  );
   let moved = 0;
   for (const e of sids) {
     // restore = same pairs, swapped direction.
@@ -293,7 +329,11 @@ if (cmd === "labels") {
       moved++;
     }
   }
-  if (!dryRun) updateQuarantine(sids.map((e) => e.sid), restoring ? "remove" : "add");
+  if (!dryRun)
+    updateQuarantine(
+      sids.map((e) => e.sid),
+      restoring ? "remove" : "add"
+    );
   console.log(`[memory] files: ${moved} ${dryRun ? "would move" : "moved"}`);
   if (!flag("files-only")) {
     // Ingested doc names use the 8-char sid prefix (graph-phase convention),
@@ -306,7 +346,9 @@ if (cmd === "labels") {
     if (!verdict.ok) process.exit(2);
   }
   if (!dryRun && !restoring)
-    console.log(`[memory] done. Aggregates are now stale — run 'regen', then re-run reduce/opus when ready.\n[memory] reversible any time: node scripts/longview/memory.mjs restore ${label} --from ${TARGET}`);
+    console.log(
+      `[memory] done. Aggregates are now stale — run 'regen', then re-run reduce/opus when ready.\n[memory] reversible any time: node scripts/longview/memory.mjs restore ${label} --from ${TARGET}`
+    );
 } else if (cmd === "gate") {
   const label = labelArg();
   const { spec, sids } = resolveLabel(label);
@@ -329,7 +371,13 @@ if (cmd === "labels") {
   try {
     const r = spawnSync(
       "node",
-      [path.join(projectRoot, "scripts", "longview", "lib", "leak_gate.mjs"), "--workspace", config.WORKSPACE, "--terms-file", termsFile],
+      [
+        path.join(projectRoot, "scripts", "longview", "lib", "leak_gate.mjs"),
+        "--workspace",
+        config.WORKSPACE,
+        "--terms-file",
+        termsFile
+      ],
       { encoding: "utf8", stdio: "inherit", env: process.env }
     );
     process.exit(r.status ?? 1);
@@ -338,12 +386,16 @@ if (cmd === "labels") {
   }
 } else if (cmd === "regen") {
   console.log("[memory] regenerating deterministic aggregates (model-phase rollups)…");
-  const r = spawnSync("node", [path.join(projectRoot, "scripts", "longview", "longview.mjs"), "run", "--phase", "model"], {
-    encoding: "utf8",
-    stdio: "inherit",
-    env: process.env,
-    timeout: 3600000
-  });
+  const r = spawnSync(
+    "node",
+    [path.join(projectRoot, "scripts", "longview", "longview.mjs"), "run", "--phase", "model"],
+    {
+      encoding: "utf8",
+      stdio: "inherit",
+      env: process.env,
+      timeout: 3600000
+    }
+  );
   console.log(
     r.status === 0
       ? "[memory] rollups rebuilt. THEMES/report/dossiers/book are STALE until you re-run: run --phase reduce (then opus, pdf)."
@@ -374,7 +426,8 @@ function restoreMoves(sid) {
         })
         .filter((e) => e && e.sid === sid && e.action === "teleport")
     : [];
-  if (entries.length) return entries.map((e) => [e.to, e.from]).filter(([src]) => fs.existsSync(src));
+  if (entries.length)
+    return entries.map((e) => [e.to, e.from]).filter(([src]) => fs.existsSync(src));
   // Deterministic mirror: same relative paths, target → source.
   const rel = [
     ["longview", "cards", `${sid}.json`],
@@ -384,5 +437,7 @@ function restoreMoves(sid) {
     ["data_out", "reviews", `${sid}.md`],
     ["longview", "windows", sid]
   ];
-  return rel.map((p) => [targetRoot(...p), workspaceDir(...p)]).filter(([src]) => fs.existsSync(src));
+  return rel
+    .map((p) => [targetRoot(...p), workspaceDir(...p)])
+    .filter(([src]) => fs.existsSync(src));
 }

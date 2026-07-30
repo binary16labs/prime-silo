@@ -24,6 +24,8 @@ if (t.status !== 0) {
   process.exit(1);
 }
 
-console.log("[l11] guard: verifier-gate (unverified house excluded) + per-turn house-fraction cap (human/frontier uncapped) verified");
+console.log(
+  "[l11] guard: verifier-gate (unverified house excluded) + per-turn house-fraction cap (human/frontier uncapped) verified"
+);
 console.log("[l11] GATE GREEN");
 process.exit(0);

@@ -15,9 +15,26 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const WIDGETS_DIR = path.join(ROOT, "app", "L0", "_all", "mod", "_prime_silo", "widgets");
 const PANE_CONTRACT_FILE = path.join(WIDGETS_DIR, "pane_contract.js");
-const BRIDGE_CSS = path.join(ROOT, "app", "L0", "_all", "mod", "_prime_silo", "bridge", "bridge.css");
+const BRIDGE_CSS = path.join(
+  ROOT,
+  "app",
+  "L0",
+  "_all",
+  "mod",
+  "_prime_silo",
+  "bridge",
+  "bridge.css"
+);
 const LAYOUT_CSS = path.join(
-  ROOT, "app", "L0", "_all", "mod", "_core", "framework", "css", "layout.css",
+  ROOT,
+  "app",
+  "L0",
+  "_all",
+  "mod",
+  "_core",
+  "framework",
+  "css",
+  "layout.css"
 );
 
 const failures = [];
@@ -63,14 +80,17 @@ for (const file of widgetJsFiles) {
 check(
   "zero reads of window.innerWidth / window.innerHeight in widget sources",
   windowSizeViolations.length === 0,
-  windowSizeViolations.join(", "),
+  windowSizeViolations.join(", ")
 );
 
 // `.width =`/`.height =` on a canvas, minus force_graph_2d's documented
 // fixed-chrome minimap exception, means the canvas won't track its pane.
 const CANVAS_DIM_RE = /\b(\w+)\.(width|height)\s*=\s*\d+\s*;/;
 const MINIMAP_EXCEPTION = {
-  "app/L0/_all/mod/_prime_silo/widgets/force_graph_2d/index.js": ["cv.width = 210;", "cv.height = 140;"],
+  "app/L0/_all/mod/_prime_silo/widgets/force_graph_2d/index.js": [
+    "cv.width = 210;",
+    "cv.height = 140;"
+  ]
 };
 const canvasDimViolations = [];
 for (const file of widgetJsFiles) {
@@ -88,15 +108,27 @@ for (const file of widgetJsFiles) {
 check(
   "no hardcoded canvas.width/canvas.height assignments outside the documented minimap exception",
   canvasDimViolations.length === 0,
-  canvasDimViolations.join(", "),
+  canvasDimViolations.join(", ")
 );
 
 // SVG widgets must let CSS override width/height:100% (viewBox scales to the
 // pane, not the "tiny graph" bug's fixed layout size); host needs a definite height.
 const SVG_WIDGETS = [
-  { css: path.join(WIDGETS_DIR, "kg3d", "synoptic_web", "synoptic_web.css"), host: ".prime-silo-kg", svg: ".prime-silo-kg__svg" },
-  { css: path.join(WIDGETS_DIR, "dag", "canvas", "canvas.css"), host: ".prime-silo-dag", svg: ".prime-silo-dag__svg" },
-  { css: path.join(WIDGETS_DIR, "codegraph", "canvas", "canvas.css"), host: ".prime-silo-cg", svg: ".prime-silo-cg__svg" },
+  {
+    css: path.join(WIDGETS_DIR, "kg3d", "synoptic_web", "synoptic_web.css"),
+    host: ".prime-silo-kg",
+    svg: ".prime-silo-kg__svg"
+  },
+  {
+    css: path.join(WIDGETS_DIR, "dag", "canvas", "canvas.css"),
+    host: ".prime-silo-dag",
+    svg: ".prime-silo-dag__svg"
+  },
+  {
+    css: path.join(WIDGETS_DIR, "codegraph", "canvas", "canvas.css"),
+    host: ".prime-silo-cg",
+    svg: ".prime-silo-cg__svg"
+  }
 ];
 function ruleBody(text, cls) {
   const m = text.match(new RegExp(`(?:^|\\s)${cls.replace(".", "\\.")}\\s*\\{([^}]*)\\}`, "s"));
@@ -109,13 +141,13 @@ for (const w of SVG_WIDGETS) {
   check(
     `${rel} → ${w.svg} sets width:100% and height:100% (viewBox scales to pane)`,
     !!svgBody && /width\s*:\s*100%/.test(svgBody) && /height\s*:\s*100%/.test(svgBody),
-    svgBody === null ? "rule not found" : "",
+    svgBody === null ? "rule not found" : ""
   );
   const hostBody = ruleBody(text, w.host);
   check(
     `${rel} → ${w.host} host resolves a definite height (height:100%)`,
     !!hostBody && /height\s*:\s*100%/.test(hostBody),
-    hostBody === null ? "rule not found" : "",
+    hostBody === null ? "rule not found" : ""
   );
 }
 
@@ -124,7 +156,7 @@ check("shared PaneContract helper exists (widgets/pane_contract.js)", paneContra
 if (paneContractExists) {
   check(
     "pane_contract.js exports createPaneContract(host, onResize, options)",
-    /export function createPaneContract\s*\(/.test(fs.readFileSync(PANE_CONTRACT_FILE, "utf8")),
+    /export function createPaneContract\s*\(/.test(fs.readFileSync(PANE_CONTRACT_FILE, "utf8"))
   );
 }
 for (const name of ["force_graph_2d", "three_renderer"]) {
@@ -132,7 +164,7 @@ for (const name of ["force_graph_2d", "three_renderer"]) {
   const text = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
   check(
     `${toRel(file)} imports the shared PaneContract helper`,
-    /from ["'].*pane_contract\.js["']/.test(text),
+    /from ["'].*pane_contract\.js["']/.test(text)
   );
 }
 
@@ -159,7 +191,7 @@ for (const file of [BRIDGE_CSS, LAYOUT_CSS].filter((f) => fs.existsSync(f))) {
 check(
   "no fixed px width/height on pane-ancestor selectors (floor=0)",
   paneChainViolations.length === 0,
-  paneChainViolations.join("; "),
+  paneChainViolations.join("; ")
 );
 
 // Accepts the literal value or the `var(--pane-container-type[, …])` indirection.
@@ -167,12 +199,12 @@ const CONTAINER_TYPE_RE = /container-type\s*:\s*(inline-size|var\(--pane-contain
 const layoutCssText = fs.existsSync(LAYOUT_CSS) ? fs.readFileSync(LAYOUT_CSS, "utf8") : "";
 check(
   "layout.css defines a pane container-query hook (--pane-container-type: inline-size)",
-  CONTAINER_TYPE_RE.test(layoutCssText),
+  CONTAINER_TYPE_RE.test(layoutCssText)
 );
 const bridgeCssText = fs.existsSync(BRIDGE_CSS) ? fs.readFileSync(BRIDGE_CSS, "utf8") : "";
 check(
   "bridge.css opts at least one real graph pane into container-query sizing",
-  CONTAINER_TYPE_RE.test(bridgeCssText),
+  CONTAINER_TYPE_RE.test(bridgeCssText)
 );
 manual(
   "load Bridge + a graph view (kg3d/codegraph/dag/force_graph_2d) at 1280x800, " +
@@ -180,12 +212,12 @@ manual(
     "client box at each — the static checks above verify the WIRING that makes " +
     "this true (SVG scale-to-100%, definite-height hosts, debounced PaneContract " +
     "resize on the canvas/WebGL widgets, a min-height:0/min-width:0 ancestor " +
-    "chain with zero px locks) but do not themselves render a page.",
+    "chain with zero px locks) but do not themselves render a page."
 );
 
 console.log(
   failures.length === 0
     ? "[c1] GATE GREEN"
-    : `[c1] GATE FAILED — ${failures.length} failing: ${failures.join("; ")}`,
+    : `[c1] GATE FAILED — ${failures.length} failing: ${failures.join("; ")}`
 );
 process.exit(failures.length === 0 ? 0 : 1);

@@ -111,7 +111,6 @@ App docs:
 - `/app/L0/_all/mod/_prime_silo/widgets/AGENTS.md`
 - `/app/L0/_all/mod/_prime_silo/widgets/code_3d_v2/AGENTS.md`
 
-
 Commands docs:
 
 - `/commands/AGENTS.md`

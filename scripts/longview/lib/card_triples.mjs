@@ -27,7 +27,9 @@ const STRATEGY = "structured-fragment";
 // They stay in the card markdown (vectors) for retrieval instead.
 
 function clean(x) {
-  return String(x == null ? "" : x).replace(/\s+/g, " ").trim();
+  return String(x == null ? "" : x)
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 // A node label must be a discrete entity, not a sentence. Reject empties, overlong
@@ -87,7 +89,8 @@ export function buildCardTriples(card, { sid } = {}) {
   // Project hub → discrete entities (the radiating spokes).
   for (const c of concepts) push(project, "Project", "INVOLVES", c, "Concept", "concepts");
   for (const a of apps) push(project, "Project", "USES", a, "Tool", "applications");
-  for (const cap of caps) push(project, "Project", "DEMONSTRATES", cap, "Capability", "capabilities");
+  for (const cap of caps)
+    push(project, "Project", "DEMONSTRATES", cap, "Capability", "capabilities");
   for (const s of skills) push(project, "Project", "APPLIES", s, "Skill", "skills_observed");
 
   // Intra-card concept web: star from the anchor (first, most-salient) concept.

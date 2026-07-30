@@ -68,8 +68,8 @@ Event `type`s: `session_staged`, `card_asserted`, `entity_asserted`, `edge_asser
 
 - **Corrections never mutate** (R3/R5): a correction is a **new event** with a new `txn_time` and a
   `supersedes` link; prior raw lines are never edited or deleted. History is fully recoverable (R7).
-- **Two time axes** (R2): fold with `valid_time ≤ T` to answer *"what was true at T"*; fold with
-  `txn_time ≤ T` to answer *"what did we know/record at T"* (including reconstructing the exact
+- **Two time axes** (R2): fold with `valid_time ≤ T` to answer _"what was true at T"_; fold with
+  `txn_time ≤ T` to answer _"what did we know/record at T"_ (including reconstructing the exact
   knowledge state that produced an artifact). Latest transaction-time wins per subject; a `tombstoned`
   event removes a subject from the projection (privacy deletions are moved/journalled, reversible — R6).
 - **Ordering-tolerant** (R11): events may arrive out of order across machines; the fold sorts by
@@ -86,7 +86,7 @@ is never rewritten — additivity holds.
 
 Readers re-derive the chain; an edited historical line breaks the `prev`-hash of its **successor**,
 reported by **1-based line number** (the successor's). Known limit (inherited from B0): an edit to the
-*last* line has no successor to betray it — the B1 server anchors the head hash when it is up.
+_last_ line has no successor to betray it — the B1 server anchors the head hash when it is up.
 
 ## Privacy (hard — R31/R4)
 

@@ -1,9 +1,3 @@
 {
-  "agents": [
-    "claude",
-    "antigravity",
-    "opencode",
-    "benny",
-    "human"
-  ]
+  "agents": ["claude", "antigravity", "opencode", "benny", "human"]
 }

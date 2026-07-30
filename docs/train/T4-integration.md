@@ -8,6 +8,7 @@ engine is unchanged. Date: 2026-07-24. Author: claude-opus. Verify: `python scri
 ## What was built (additive — no core edits to models.py/local_executor.py)
 
 `runtime/benny/router/tuned_engine.py`:
+
 - `register_tuned_model()` — adds one `MODEL_REGISTRY` candidate entry (`house/qwen2.5-coder-tuned`,
   flagged `candidate: True`) + ensures the `lmstudio` provider. **Never** touches
   `BENNY_DEFAULT_MODEL`; refuses to become the default.
@@ -44,7 +45,7 @@ Three models co-resident ≈ 14.6 GB on the 16 GB eGPU. Config (env, `docs`-driv
 **Structural (hermetic, runs anywhere — litellm-free):** additive registration proven on the
 real functions (default unchanged, candidate present, pre-existing entry not mutated); resolver
 additivity (`house/` resolves to an OpenAI-compatible executor, `lemonade/` still a
-`LemonadeExecutor`); unhealthy-tuned → fallback to default, and a *raising* health probe is
+`LemonadeExecutor`); unhealthy-tuned → fallback to default, and a _raising_ health probe is
 treated as unhealthy (no crash); router unit tests 5/5.
 
 **Live (LM Studio serving the tuned model):** the tuned engine executes a real generate task

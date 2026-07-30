@@ -7,11 +7,11 @@ CSS (`app/L0/_all/mod/_prime_silo/**/*.css` and
 
 ## Token files (single source of truth — extend, never hardcode)
 
-| File | Purpose |
-| --- | --- |
+| File                       | Purpose                                                                                         |
+| -------------------------- | ----------------------------------------------------------------------------------------------- |
 | `framework/css/colors.css` | Canonical earth-tone palette (ADR-004). All color must resolve through a `var(--*)` token here. |
-| `framework/css/layout.css` | Spacing scale, radius scale, pane gap, reading measure. |
-| `framework/css/type.css` | Type scale, line-height, letter-spacing, readable-font stub. |
+| `framework/css/layout.css` | Spacing scale, radius scale, pane gap, reading measure.                                         |
+| `framework/css/type.css`   | Type scale, line-height, letter-spacing, readable-font stub.                                    |
 
 These three are ported by the website (E0) — keep them portable (tokens
 only, no app-specific selectors) so both surfaces draw from one palette.
@@ -68,10 +68,10 @@ The global `box-shadow: none !important` reset that used to live in
 `mod/_core/visual/index.css` is gone (ADR-004). Depth is expressed through
 exactly **three** elevation tokens, defined in `colors.css`:
 
-| Token | Use |
-| --- | --- |
-| `--elevation-1` | Resting card / chip — subtle lift. |
-| `--elevation-2` | Popover / menu / topbar panel. |
+| Token           | Use                                 |
+| --------------- | ----------------------------------- |
+| `--elevation-1` | Resting card / chip — subtle lift.  |
+| `--elevation-2` | Popover / menu / topbar panel.      |
 | `--elevation-3` | Modal / dialog — the deepest layer. |
 
 Components should reference these tokens (e.g. a panel-shadow variable set

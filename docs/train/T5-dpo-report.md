@@ -12,12 +12,12 @@ Date: 2026-07-25. Author: claude-opus. Verify: `python scripts/gates/t5.py`.
 On the T2 v3 held-out split (A=7, B=402), RAG disabled, same frozen rubric as T3
 (`scripts/train/eval/rubric.md`):
 
-| metric | SFT (T3 v3) | DPO | delta | pct |
-|---|---|---|---|---|
-| A_nll (method/voice) | 2.0828 | 2.0725 | +0.0103 | **−0.5%** |
-| B_nll (tool calls) | 0.6661 | 0.6659 | +0.0002 | **−0.0%** |
-| **agg_nll (gate rule)** | **1.1253** | **1.1218** | +0.0035 | **−0.3%** |
-| tool-name match (secondary) | 0.263 | 0.260 | −0.003 | — |
+| metric                      | SFT (T3 v3) | DPO        | delta   | pct       |
+| --------------------------- | ----------- | ---------- | ------- | --------- |
+| A_nll (method/voice)        | 2.0828      | 2.0725     | +0.0103 | **−0.5%** |
+| B_nll (tool calls)          | 0.6661      | 0.6659     | +0.0002 | **−0.0%** |
+| **agg_nll (gate rule)**     | **1.1253**  | **1.1218** | +0.0035 | **−0.3%** |
+| tool-name match (secondary) | 0.263       | 0.260      | −0.003  | —         |
 
 **DPO passes the gate** (`dpo.agg_nll 1.1218 ≤ sft 1.1253`) but the improvement is
 **marginal (+0.3% agg NLL)**, and greedy tool-name match dipped slightly (within noise on
@@ -36,7 +36,7 @@ not tuned to flatter DPO.
   NLL drop. A pairwise win-rate eval would reflect DPO's benefit better; NLL is what the frozen
   rubric measures, so NLL is what the gate uses.
 - **Deliberate scope**: DPO trained on 303 **method** pairs only (117 wrong-tool-selection +
-  186 voice-drift), after dropping 446 `args_mismatch` pairs as fact-cramming (arg *values* are
+  186 voice-drift), after dropping 446 `args_mismatch` pairs as fact-cramming (arg _values_ are
   RAG facts, not method — training to prefer them would fight the Workstream T doctrine). This
   keeps DPO honest to "method in weights, facts in RAG," at the cost of a smaller, method-only
   signal.
@@ -58,7 +58,7 @@ not tuned to flatter DPO.
 DPO on a 7B is at the **16 GB host-RAM** edge of this trainer. Unsloth's default
 `use_gradient_checkpointing="unsloth"` offloads activations to **host RAM**; DPO doubles the
 sequences (chosen + rejected), so the pagefile peaked at **9.4 GB** and two runs swap-thrashed
-to a crawl near the end (the eGPU tested perfectly healthy throughout — this was *not* a GPU
+to a crawl near the end (the eGPU tested perfectly healthy throughout — this was _not_ a GPU
 wedge). Fix: `use_gradient_checkpointing=True` (activations in VRAM, ~11 GB free) + max_length
 512 → clean 12-min run, free RAM steady ~4.5 GB. SFT (T3, single sequences, host-offload
 checkpointing) fits; DPO needs the VRAM-checkpointing + short-sequence config on this box.

@@ -158,7 +158,11 @@
           <x-extension id="_core/onscreen_menu/bar_end" x-ref="barEnd"></x-extension>
         </div>
 
-        <div class="prime-silo-orb-wrapper" x-data="{ isArcOpen: false }" @click.outside="isArcOpen = false">
+        <div
+          class="prime-silo-orb-wrapper"
+          x-data="{ isArcOpen: false }"
+          @click.outside="isArcOpen = false"
+        >
           <button
             type="button"
             class="prime-silo-benny-orb"
@@ -166,7 +170,11 @@
             title="Prime-Silo Benny Arc Menu"
             @click="isArcOpen = !isArcOpen"
           >
-            <img src="/mod/_core/visual/res/chat/overlay/dog_head_256.svg" alt="Benny Mascot" class="prime-silo-benny-avatar" />
+            <img
+              src="/mod/_core/visual/res/chat/overlay/dog_head_256.svg"
+              alt="Benny Mascot"
+              class="prime-silo-benny-avatar"
+            />
           </button>
 
           <div
@@ -183,7 +191,11 @@
                 <x-icon class="arc-caret">chevron_right</x-icon>
               </a>
               <div class="prime-silo-arc-sub">
-                <a href="/bridge?mode=memory" class="prime-silo-arc-subitem" @click="isArcOpen = false">
+                <a
+                  href="/bridge?mode=memory"
+                  class="prime-silo-arc-subitem"
+                  @click="isArcOpen = false"
+                >
                   <x-icon>memory</x-icon>
                   <span>Memory Manager</span>
                 </a>

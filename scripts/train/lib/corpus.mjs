@@ -8,11 +8,16 @@ export function readCards(bennyHome, { workspace = "longview" } = {}) {
   const dir = path.join(bennyHome, "workspaces", workspace, "data_in");
   let files = [];
   try {
-    files = fs.readdirSync(dir).filter((f) => /^longview_card_.*\.md$/.test(f)).sort();
+    files = fs
+      .readdirSync(dir)
+      .filter((f) => /^longview_card_.*\.md$/.test(f))
+      .sort();
   } catch {
     return [];
   }
-  return files.map((f) => parseCard(f.replace(/\.md$/, ""), fs.readFileSync(path.join(dir, f), "utf8")));
+  return files.map((f) =>
+    parseCard(f.replace(/\.md$/, ""), fs.readFileSync(path.join(dir, f), "utf8"))
+  );
 }
 
 // Split a card into {id, sid, title, sections:{Intent, Applications, ...}}.
@@ -26,7 +31,13 @@ export function parseCard(id, text) {
     const name = p.slice(0, nl).trim();
     sections[name] = p.slice(nl + 1).trim();
   }
-  return { id, sid: sidM ? sidM[1] : null, title: titleM ? titleM[1].trim() : id, sections, raw: text };
+  return {
+    id,
+    sid: sidM ? sidM[1] : null,
+    title: titleM ? titleM[1].trim() : id,
+    sections,
+    raw: text
+  };
 }
 
 // --- ADRs (architecture/ADR-*.md) ----------------------------------------------
@@ -34,7 +45,10 @@ export function readADRs(repoRoot) {
   const dir = path.join(repoRoot, "architecture");
   let files = [];
   try {
-    files = fs.readdirSync(dir).filter((f) => /^ADR-.*\.md$/.test(f)).sort();
+    files = fs
+      .readdirSync(dir)
+      .filter((f) => /^ADR-.*\.md$/.test(f))
+      .sort();
   } catch {
     return [];
   }
@@ -46,7 +60,12 @@ export function readADRs(repoRoot) {
       const nl = p.indexOf("\n");
       sections[p.slice(0, nl).trim()] = p.slice(nl + 1).trim();
     }
-    return { id: f.replace(/\.md$/, ""), title: titleM ? titleM[1].trim() : f, sections, raw: text };
+    return {
+      id: f.replace(/\.md$/, ""),
+      title: titleM ? titleM[1].trim() : f,
+      sections,
+      raw: text
+    };
   });
 }
 
@@ -55,11 +74,18 @@ export function readADRs(repoRoot) {
 // (sorted by filename) into an id->entity map. Stream B reconstructs trajectories
 // from whatever context is present in the loaded slice. The cap is documented in
 // the dataset card and is env-tunable (T2_TRACE_MAX_ENTITIES).
-export function readTraceEntities(memDir, { maxEntities = Number(process.env.T2_TRACE_MAX_ENTITIES) || 6000 } = {}) {
+export function readTraceEntities(
+  memDir,
+  { maxEntities = Number(process.env.T2_TRACE_MAX_ENTITIES) || 6000 } = {}
+) {
   const dir = path.join(memDir, "entities");
   let files = [];
   try {
-    files = fs.readdirSync(dir).filter((f) => f.endsWith(".json")).sort().slice(0, maxEntities);
+    files = fs
+      .readdirSync(dir)
+      .filter((f) => f.endsWith(".json"))
+      .sort()
+      .slice(0, maxEntities);
   } catch {
     return new Map();
   }

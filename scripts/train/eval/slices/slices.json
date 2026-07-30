@@ -2,7 +2,15 @@
   "_doc": "Held-out eval slice registry (L13 / R45). Each slice carries added_in_turn — the loop turn at which it entered the instrument. Cross-turn comparison (server/coordination/lib/promotion_rule.mjs) uses ONLY slices present in both turns being compared, so adding a slice extends the instrument WITHOUT invalidating any historical turn's score (frozen-for-honesty). Slices are additive-only: never remove or renumber an existing slice; append new ones with a later added_in_turn.",
   "schema_version": "1.0.0",
   "slices": [
-    { "id": "method-voice", "added_in_turn": 1, "desc": "held-out method/voice pairs (T2 stream A eval split)" },
-    { "id": "tool-trajectory", "added_in_turn": 1, "desc": "held-out agent tool-use trajectories (T2 stream B eval split)" }
+    {
+      "id": "method-voice",
+      "added_in_turn": 1,
+      "desc": "held-out method/voice pairs (T2 stream A eval split)"
+    },
+    {
+      "id": "tool-trajectory",
+      "added_in_turn": 1,
+      "desc": "held-out agent tool-use trajectories (T2 stream B eval split)"
+    }
   ]
 }

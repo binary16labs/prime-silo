@@ -9,19 +9,19 @@
 
 YAML frontmatter — all fields required unless noted:
 
-| field | rule |
-| --- | --- |
-| `id` | equals the filename; `[A-Z]\d+` or `M2-\d+` |
-| `epic` | an existing `delivery/epics/EP-*.md` |
-| `milestone` | `M1` or `M2` |
-| `okr` | non-empty; the id must sit in exactly one `TRACEABILITY.md` row |
-| `deps` | task ids; must resolve; must equal `plan-deps.json` (the machine-readable plan §12) |
-| `authority` | `agent-ok` or `human-signed` |
-| `allowlist` | non-empty repo-relative paths; each path (or its top segment) must exist; no `..` |
-| `tools` | non-empty (node, python, pytest, preview, lemonade, mcp:\<name\>, …) — W2 preflights these |
-| `sandbox` | `worktree` (default; `.worktrees/<id>`, branch `feat/<id>`) or `in-place` |
-| `verify` | the gate command; a referenced `scripts/gates/*` file must exist or be in the item's own allowlist |
-| `budget` | max changed lines (excl. tests/lockfiles), positive int |
+| field       | rule                                                                                               |
+| ----------- | -------------------------------------------------------------------------------------------------- |
+| `id`        | equals the filename; `[A-Z]\d+` or `M2-\d+`                                                        |
+| `epic`      | an existing `delivery/epics/EP-*.md`                                                               |
+| `milestone` | `M1` or `M2`                                                                                       |
+| `okr`       | non-empty; the id must sit in exactly one `TRACEABILITY.md` row                                    |
+| `deps`      | task ids; must resolve; must equal `plan-deps.json` (the machine-readable plan §12)                |
+| `authority` | `agent-ok` or `human-signed`                                                                       |
+| `allowlist` | non-empty repo-relative paths; each path (or its top segment) must exist; no `..`                  |
+| `tools`     | non-empty (node, python, pytest, preview, lemonade, mcp:\<name\>, …) — W2 preflights these         |
+| `sandbox`   | `worktree` (default; `.worktrees/<id>`, branch `feat/<id>`) or `in-place`                          |
+| `verify`    | the gate command; a referenced `scripts/gates/*` file must exist or be in the item's own allowlist |
+| `budget`    | max changed lines (excl. tests/lockfiles), positive int                                            |
 
 Body sections: `## Goal` (2–3 sentences) · context pointers (**never inlined content** — file:line,
 plan §, memory names) · TDD plan · `## Acceptance` with at least one gherkin `Scenario:` (every

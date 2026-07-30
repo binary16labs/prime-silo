@@ -2,7 +2,7 @@
 
 **Why:** the T3 v2 result is lopsided. Stream B (tool trajectories, 2,098 rows) improved
 −64.6% NLL; Stream A (method/voice, **56 rows**) improved only −9.2%. The model is learning
-*how we drive tools* but barely touching *how we reason and write*. Every lever below is
+_how we drive tools_ but barely touching _how we reason and write_. Every lever below is
 ranked by expected impact on that gap. Rubric stays frozen (`scripts/train/eval/rubric.md`);
 every new source goes through the leak gate; **no CV/job-application content, ever**.
 
@@ -18,14 +18,14 @@ LLM paraphrases (voice contamination); template variety yes, generated content n
 Current A = 61 LONGVIEW cards + 2 ADRs. Untapped, all already written in house voice
 (corpus surveyed 2026-07-24 — `sessions_v1` is the motherlode T2 never read):
 
-| source | est. pairs | shape |
-|---|---|---|
-| **`D:\...\workspaces\sessions_v1\longview\cards` — 376 JSON cards** (intent/applications/capabilities/decisions; T2 only read the 61 markdown cards in the live home) | ~330 after quarantine filter | new `readJsonCards` → same pair shape as `cardToPairs` |
-| `sessions_v1\data_out` curated prose: **34 dossiers** (What-it-is/Trajectory sections) + **7 book chapters** + discovery loops + reviews | ~120–180 | sectioned md → (topic prompt → house prose), chunked ≤1600 chars |
-| `delivery/board/LOG.md` (103 entries, the densest method text in the estate: root-cause notes, honest deviations, verify-before-merge discipline) | ~80 | "How did we handle X / what did we log and why" → the entry's own narrative |
-| `delivery/tasks/*.md` (66 contracts: Goal + TDD plan + BDD scenarios) | ~120 | "How do we structure/gate a piece of work like X" → Goal+TDD sections; "Write the acceptance scenario for X" → gherkin |
-| `architecture/*.md` (16 docs: ADR-001..004, OPERATING_MANUAL, SPEC-work-contracts, SPEC-run-events, TECH_DEBT, REVIEW-*) | ~60 | extend `adrToPairs` to all sectioned method docs |
-| memo-ray **Thought** entities (~18,000 est.; the literal in-flight reasoning voice) | ~300–500 after filters | (preceding state → next thought) pairs; filter: ≥120 chars, has a decision verb, dedupe near-identical |
+| source                                                                                                                                                                | est. pairs                   | shape                                                                                                                  |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **`D:\...\workspaces\sessions_v1\longview\cards` — 376 JSON cards** (intent/applications/capabilities/decisions; T2 only read the 61 markdown cards in the live home) | ~330 after quarantine filter | new `readJsonCards` → same pair shape as `cardToPairs`                                                                 |
+| `sessions_v1\data_out` curated prose: **34 dossiers** (What-it-is/Trajectory sections) + **7 book chapters** + discovery loops + reviews                              | ~120–180                     | sectioned md → (topic prompt → house prose), chunked ≤1600 chars                                                       |
+| `delivery/board/LOG.md` (103 entries, the densest method text in the estate: root-cause notes, honest deviations, verify-before-merge discipline)                     | ~80                          | "How did we handle X / what did we log and why" → the entry's own narrative                                            |
+| `delivery/tasks/*.md` (66 contracts: Goal + TDD plan + BDD scenarios)                                                                                                 | ~120                         | "How do we structure/gate a piece of work like X" → Goal+TDD sections; "Write the acceptance scenario for X" → gherkin |
+| `architecture/*.md` (16 docs: ADR-001..004, OPERATING_MANUAL, SPEC-work-contracts, SPEC-run-events, TECH_DEBT, REVIEW-*)                                              | ~60                          | extend `adrToPairs` to all sectioned method docs                                                                       |
+| memo-ray **Thought** entities (~18,000 est.; the literal in-flight reasoning voice)                                                                                   | ~300–500 after filters       | (preceding state → next thought) pairs; filter: ≥120 chars, has a decision verb, dedupe near-identical                 |
 
 **Rollups verdict** (`sessions_v1\longview\rollups`: capabilities/projects/operator/sids
 JSON maps): inventory-shaped **facts** → excluded from training by the method-vs-facts
@@ -51,7 +51,7 @@ FNV-1a template picker; per-source template families.
    (task tools, MCP browser/preview tools, PowerShell) get real representation — T4's
    router cares about exactly these.
 3. **Goal-residual fix:** 27% of goals are the `invoke X` fallback. Widen the ancestor
-   walk `maxAncestors` 4→8 and also accept the nearest ancestor *Thought* first line as
+   walk `maxAncestors` 4→8 and also accept the nearest ancestor _Thought_ first line as
    goal (it usually states intent). Expect residual <10%; rows still degenerate after
    that stay excluded rather than kept.
 4. **Near-dup collapse:** same tool + normalized args (paths/hashes stripped) → keep first
@@ -62,7 +62,7 @@ FNV-1a template picker; per-source template families.
 ## Lever 3 — Trajectory depth (new capability, medium effort)
 
 Current B rows predict one next call from 4 ancestors. Add a **continuation variant**:
-state includes the prior Tool Call *and its Tool Result summary* → predict the following
+state includes the prior Tool Call _and its Tool Result summary_ → predict the following
 call. This teaches result-conditioned tool chaining (retry-on-error, read-then-edit,
 test-then-commit), which is the agent behaviour T4 actually serves. Emit as `stream: "B"`
 with `source.variant: "chain"`; cap at ~25% of B so single-step remains dominant.
@@ -90,13 +90,13 @@ with `source.variant: "chain"`; cap at ~25% of B so single-step remains dominant
 
 ## Sequencing & cost
 
-| step | wall time | blocking |
-|---|---|---|
-| L1+L2+L3 builder extensions + tests | agent work, ~1 session | — |
-| Rebuild + audits + leak gate | ~15 min | — |
-| L4 gold-subset hand-audit | owner, ~1h | human-signed |
+| step                                 | wall time               | blocking        |
+| ------------------------------------ | ----------------------- | --------------- |
+| L1+L2+L3 builder extensions + tests  | agent work, ~1 session  | —               |
+| Rebuild + audits + leak gate         | ~15 min                 | —               |
+| L4 gold-subset hand-audit            | owner, ~1h              | human-signed    |
 | Base re-eval → train v3 → tuned eval | ~0.5h + ~2.5h + ~1h GPU | GPU single-file |
-| Merge GGUF v3 (staged on D:) + gate | ~1h | after evals |
+| Merge GGUF v3 (staged on D:) + gate  | ~1h                     | after evals     |
 
 **Not doing (and why):** KG fact-recall rows (facts live in RAG by design); synthetic
 paraphrase augmentation (voice contamination); scraping anything outside the estate

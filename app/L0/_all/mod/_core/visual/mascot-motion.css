@@ -9,20 +9,40 @@
  */
 
 @keyframes benny-idle-breathe {
-  0%, 100% { transform: scale(1) rotate(0deg); }
-  50% { transform: scale(1.015) rotate(-0.6deg); }
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.015) rotate(-0.6deg);
+  }
 }
 
 @keyframes benny-listening-perk {
-  0% { transform: scale(1) rotate(0deg); }
-  35% { transform: scale(1.05) rotate(2deg); }
-  70% { transform: scale(1.02) rotate(-1deg); }
-  100% { transform: scale(1) rotate(0deg); }
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  35% {
+    transform: scale(1.05) rotate(2deg);
+  }
+  70% {
+    transform: scale(1.02) rotate(-1deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
 }
 
 @keyframes benny-processing-pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.035); opacity: 0.92; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.035);
+    opacity: 0.92;
+  }
 }
 
 /* Idle/processing loop quietly; listening is a single settle (not a loop —

@@ -5,15 +5,19 @@ You are given: the session's distilled card, the concepts it contributed to the 
 Write a concise Markdown review note (no more than ~400 words) with these sections:
 
 ## What this session contributed
+
 2–4 sentences: the concrete work, decisions, and outcomes — grounded in the card.
 
 ## How it connects to the wider work
+
 Bullet points tying this session's concepts to the related concepts/themes from other
 sessions (name them). Call out where it advanced, repeated, or reversed an earlier thread.
 
 ## Threads it opened or left
+
 Bullet points: unfinished work or questions this session raises for the corpus.
 
 Rules:
+
 - Ground every claim in the provided card, concepts, or related concepts. Do not invent.
 - Name the specific concepts/themes you are connecting to. Keep it tight and concrete.

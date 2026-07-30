@@ -271,7 +271,11 @@ function sectionGate(text, arcSids = []) {
   const words = text.split(/\s+/).filter(Boolean).length;
   const cites = (text.match(/\((sid|concept|doc):\s*[^)]+\)/g) || []).length;
   const citedSids = (text.match(/\(sid:\s*[a-z0-9]{6,}\s*\)/gi) || []).map((m) =>
-    m.replace(/.*sid:\s*/i, "").replace(/\s*\).*/, "").slice(0, 8).toLowerCase()
+    m
+      .replace(/.*sid:\s*/i, "")
+      .replace(/\s*\).*/, "")
+      .slice(0, 8)
+      .toLowerCase()
   );
   const arcSet = new Set(arcSids.map((s) => s.slice(0, 8).toLowerCase()));
   const hitsArc = arcSet.size ? citedSids.some((s) => arcSet.has(s)) : true;
@@ -280,7 +284,9 @@ function sectionGate(text, arcSids = []) {
   if (words > 1300) errs.push(`too long (${words} words; need 650-950)`);
   if (cites < 2) errs.push(`only ${cites} inline citation(s); need 2-5 like (sid: abc123)`);
   if (arcSet.size && !hitsArc)
-    errs.push(`cite at least one of this section's arc sids: ${[...arcSet].slice(0, 4).join(", ")}`);
+    errs.push(
+      `cite at least one of this section's arc sids: ${[...arcSet].slice(0, 4).join(", ")}`
+    );
   return { errs, words, cites, hitsArc };
 }
 
@@ -291,17 +297,25 @@ async function critiqueSection(arcList, draft) {
   try {
     const res = await chat({
       system: prompt("vampire_critique"),
-      user: [`## Assigned arcs\n${arcBriefs(arcList)}`, `## Draft\n${draft.slice(0, 5000)}`].join("\n\n"),
+      user: [`## Assigned arcs\n${arcBriefs(arcList)}`, `## Draft\n${draft.slice(0, 5000)}`].join(
+        "\n\n"
+      ),
       maxTokens: 500,
       temperature: 0.2,
       json: true
     });
     const v = lastBalancedJson(res.content) ?? repairTruncatedJson(res.content) ?? {};
-    const fixes = Array.isArray(v.fixes) ? v.fixes.filter((f) => typeof f === "string").slice(0, 4) : [];
+    const fixes = Array.isArray(v.fixes)
+      ? v.fixes.filter((f) => typeof f === "string").slice(0, 4)
+      : [];
     // Weak on any connective axis → surface it as a fix even if the model left fixes empty.
-    if (v.connects === false && !fixes.length) fixes.push("draw the actual cross-project connection the arc names — don't describe one project in isolation");
+    if (v.connects === false && !fixes.length)
+      fixes.push(
+        "draw the actual cross-project connection the arc names — don't describe one project in isolation"
+      );
     if (v.cites_arc_sids === false) fixes.push("cite at least one sid from the assigned arc beats");
-    if (v.invented === true) fixes.push("remove any project, sid, quote or number not in the evidence");
+    if (v.invented === true)
+      fixes.push("remove any project, sid, quote or number not in the evidence");
     return { fixes, connects: v.connects ?? null, invented: v.invented ?? null };
   } catch {
     return { fixes: [], connects: null };
@@ -328,7 +342,9 @@ export async function runOpus({ interrupted = () => false } = {}) {
     for (const ch of part.chapters || [])
       chapterArcs.set(ch.n, ch.reflection ? [] : arcsForChapter(ch, arcData.arcs || []));
   const sections = allSections(outline);
-  console.log(`[opus] ${sections.length} sections planned · ${arcData.arcs?.length || 0} arcs assigned across chapters`);
+  console.log(
+    `[opus] ${sections.length} sections planned · ${arcData.arcs?.length || 0} arcs assigned across chapters`
+  );
   let done = 0,
     failed = 0;
 
@@ -357,7 +373,8 @@ export async function runOpus({ interrupted = () => false } = {}) {
       // The assigned arcs — concrete cross-project connections + the real sids to
       // cite. This is the connective material the first book lacked.
       const arcContext = arcBriefs(arcList);
-      if (arcContext) evidence += `\n\n## Narrative arcs to connect (cite their sids)\n${arcContext}`;
+      if (arcContext)
+        evidence += `\n\n## Narrative arcs to connect (cite their sids)\n${arcContext}`;
       // Reflection sections are grounded in the post-graph session reviews —
       // the cross-session collation is what the interlude reflects on.
       if (s.reflection) {
@@ -421,7 +438,9 @@ export async function runOpus({ interrupted = () => false } = {}) {
           !best ||
           g.errs.length < bestGate.errs.length ||
           (g.errs.length === bestGate.errs.length && g.hitsArc && !bestGate.hitsArc) ||
-          (g.errs.length === bestGate.errs.length && g.hitsArc === bestGate.hitsArc && g.cites > bestGate.cites)
+          (g.errs.length === bestGate.errs.length &&
+            g.hitsArc === bestGate.hitsArc &&
+            g.cites > bestGate.cites)
         ) {
           best = text;
           bestGate = g;
@@ -449,8 +468,26 @@ export async function runOpus({ interrupted = () => false } = {}) {
             arcs: arcList.map((a) => a.title),
             arc_sids: arcSids,
             connects: critique.connects,
-            cited_sids: [...new Set((best.match(/\(sid:\s*[a-z0-9]{6,}\s*\)/gi) || []).map((m) => m.replace(/.*sid:\s*/i, "").replace(/\s*\).*/, "").slice(0, 8)))],
-            cited_concepts: [...new Set((best.match(/\(concept:\s*[^)]+\)/gi) || []).map((m) => m.replace(/.*concept:\s*/i, "").replace(/\s*\).*/, "").trim()))],
+            cited_sids: [
+              ...new Set(
+                (best.match(/\(sid:\s*[a-z0-9]{6,}\s*\)/gi) || []).map((m) =>
+                  m
+                    .replace(/.*sid:\s*/i, "")
+                    .replace(/\s*\).*/, "")
+                    .slice(0, 8)
+                )
+              )
+            ],
+            cited_concepts: [
+              ...new Set(
+                (best.match(/\(concept:\s*[^)]+\)/gi) || []).map((m) =>
+                  m
+                    .replace(/.*concept:\s*/i, "")
+                    .replace(/\s*\).*/, "")
+                    .trim()
+                )
+              )
+            ],
             tokens,
             gate: bestGate,
             model: config.LONGVIEW_MODEL,
@@ -519,7 +556,10 @@ function writeCoverage(outline, sections, words) {
   const book = readIf(opusDir("THE-AI-VAMPIRE.md"), 10000000);
   const sids = new Set(
     (book.match(/\(sid:\s*[a-z0-9]{6,}\s*\)/gi) || []).map((m) =>
-      m.replace(/.*sid:\s*/i, "").replace(/\s*\).*/, "").slice(0, 8)
+      m
+        .replace(/.*sid:\s*/i, "")
+        .replace(/\s*\).*/, "")
+        .slice(0, 8)
     )
   );
   let totalCards = 0;

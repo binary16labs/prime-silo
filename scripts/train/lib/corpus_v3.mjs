@@ -48,7 +48,9 @@ export function readLogEntries(rootDir) {
   if (!fs.existsSync(p)) return [];
   const out = [];
   for (const line of fs.readFileSync(p, "utf8").split(/\r?\n/)) {
-    const m = line.match(/^(\d{4}-\d{2}-\d{2}T[\d:]+Z)\s*\|\s*(\S+)\s*\|\s*(\S+)\s*\|\s*(\S+)\s*\|\s*(.+)$/);
+    const m = line.match(
+      /^(\d{4}-\d{2}-\d{2}T[\d:]+Z)\s*\|\s*(\S+)\s*\|\s*(\S+)\s*\|\s*(\S+)\s*\|\s*(.+)$/
+    );
     if (m) out.push({ ts: m[1], id: m[2], event: m[3], agent: m[4], note: m[5].trim() });
   }
   return out;
@@ -115,7 +117,10 @@ export function readProse(dataOutDir) {
 
 // memo-ray Thought entities with their nearest ancestor line as state.
 // Bounded sweep; caller filters via thoughtToPairs.
-export function readThoughts(memDir, { maxEntities = Number(process.env.T2_THOUGHT_MAX_ENTITIES) || 80555 } = {}) {
+export function readThoughts(
+  memDir,
+  { maxEntities = Number(process.env.T2_THOUGHT_MAX_ENTITIES) || 80555 } = {}
+) {
   const entDir = path.join(memDir, "entities");
   if (!fs.existsSync(entDir)) return [];
   const files = fs.readdirSync(entDir).slice(0, maxEntities);
@@ -138,8 +143,7 @@ export function readThoughts(memDir, { maxEntities = Number(process.env.T2_THOUG
     let state = "";
     if (e.parent_id) {
       const p = load(e.parent_id);
-      if (p?.content)
-        state = `${p.type}: ${String(p.content).split(/\r?\n/)[0].slice(0, 200)}`;
+      if (p?.content) state = `${p.type}: ${String(p.content).split(/\r?\n/)[0].slice(0, 200)}`;
     }
     out.push({ id: f, sid: e.parent_id || f, agent: e.agent, content: String(e.content), state });
   }

@@ -16,7 +16,7 @@
 
 ---
 
-> *"Stop gambling with probabilistic cloud wrappers. Start executing with deterministic institutional reasoning."*
+> _"Stop gambling with probabilistic cloud wrappers. Start executing with deterministic institutional reasoning."_
 
 **Prime-Silo** is an open-source typed execution substrate and **Agent OS harness** designed for organizations requiring data sovereignty, zero token tax, and verifiable lineage. It fuses two breakthrough architectures:
 
@@ -24,7 +24,9 @@
 - **[Space-Agent](https://github.com/agent0ai/space-agent)** — the adaptive shell (browser-resident agent runtime, modular puzzle-piece UI, Git-backed workspace versioning).
 
 ### 🏛️ Why Prime-Silo is Trending in 2026
+
 While traditional agent frameworks suffer from context bloat, cloud gatekeeper fees, and brittle custom code, Prime-Silo delivers:
+
 1. **Model Context Protocol (MCP) Native**: Universal tool connectivity ("USB-C for AI") without code fragmentation or custom wrappers.
 2. **Agent-to-Agent (A2A) Swarm Collaboration**: Built-in open communication standards for specialized agent swarms to discover and execute tasks autonomously.
 3. **Zero Token Tax Execution**: Deterministic Pypes transformation algebra runs locally, eliminating recursive cloud context dumps and saving up to 90% in token overhead.

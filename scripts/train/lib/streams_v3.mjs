@@ -7,7 +7,10 @@ const clip = (s, n) => {
   const t = String(s || "").trim();
   return t.length <= n ? t : t.slice(0, n - 1).trimEnd() + "…";
 };
-const firstLine = (s) => String(s || "").split(/\r?\n/).find((l) => l.trim()) || "";
+const firstLine = (s) =>
+  String(s || "")
+    .split(/\r?\n/)
+    .find((l) => l.trim()) || "";
 
 export function fnv(id) {
   let h = 0x811c9dc5;
@@ -29,7 +32,12 @@ export function jsonCardToPairs(card) {
   if (Array.isArray(card.applications) && card.applications.length)
     parts.push(`What we used: ${card.applications.slice(0, 10).join(", ")}`);
   if (Array.isArray(card.decisions) && card.decisions.length)
-    parts.push(`Decisions:\n- ${card.decisions.slice(0, 8).map((d) => clip(d, 300)).join("\n- ")}`);
+    parts.push(
+      `Decisions:\n- ${card.decisions
+        .slice(0, 8)
+        .map((d) => clip(d, 300))
+        .join("\n- ")}`
+    );
   if (parts.length < 2) return []; // intent alone teaches nothing
   return [
     {
@@ -39,11 +47,11 @@ export function jsonCardToPairs(card) {
         `In the Prime-Silo estate, how did we approach this task and what was the method: "${topic}"?`,
         `Walk me through how this was handled in our estate, in our usual working style: "${topic}"`,
         `What was our approach and reasoning for: "${topic}"?`,
-        `Describe the method and key decisions behind this piece of work: "${topic}"`,
+        `Describe the method and key decisions behind this piece of work: "${topic}"`
       ]),
       response: parts.join("\n\n"),
-      source: { type: "jsoncard", id: card.sid, sid: card.sid },
-    },
+      source: { type: "jsoncard", id: card.sid, sid: card.sid }
+    }
   ];
 }
 
@@ -60,11 +68,11 @@ export function logToPairs(entry) {
       instruction: pick(entry.ts + entry.id, [
         `From the delivery log: what happened on task ${entry.id} (${entry.event}), and how did we reason about it? Context: "${topic}"`,
         `Write the delivery-log note for task ${entry.id} (${entry.event}) covering: "${topic}" — in our house logging style.`,
-        `Explain, the way we log it on the board, how we handled this on ${entry.id}: "${topic}"`,
+        `Explain, the way we log it on the board, how we handled this on ${entry.id}: "${topic}"`
       ]),
       response: note,
-      source: { type: "log", id: `${entry.ts}-${entry.id}` },
-    },
+      source: { type: "log", id: `${entry.ts}-${entry.id}` }
+    }
   ];
 }
 
@@ -84,10 +92,10 @@ export function contractToPairs(contract) {
       id: `A-contract-${contract.id}`,
       instruction: pick(contract.id, [
         `How do we scope and gate a delivery task like "${clip(title, 120)}"? State the goal and the TDD plan in our contract style.`,
-        `Draft the Goal and TDD plan sections of the work contract "${clip(title, 120)}", the way we write them.`,
+        `Draft the Goal and TDD plan sections of the work contract "${clip(title, 120)}", the way we write them.`
       ]),
       response: resp.join("\n\n"),
-      source: { type: "contract", id: contract.id },
+      source: { type: "contract", id: contract.id }
     });
   }
   const gherkin = (contract.body.match(/```gherkin\r?\n([\s\S]*?)```/) || [])[1];
@@ -97,10 +105,10 @@ export function contractToPairs(contract) {
       id: `A-contract-${contract.id}-bdd`,
       instruction: pick(contract.id + "bdd", [
         `Write the acceptance (BDD) scenarios for the task "${clip(title, 120)}" in our gherkin style.`,
-        `Express the acceptance criteria of "${clip(title, 120)}" as gherkin scenarios, the way our contracts do.`,
+        `Express the acceptance criteria of "${clip(title, 120)}" as gherkin scenarios, the way our contracts do.`
       ]),
       response: gherkin.trim(),
-      source: { type: "contract", id: `${contract.id}-bdd` },
+      source: { type: "contract", id: `${contract.id}-bdd` }
     });
   }
   return pairs;
@@ -120,7 +128,9 @@ function chunk(text) {
   }
   if (buf.trim()) out.push(buf.trim());
   // hard-split any paragraph that alone exceeds the budget
-  return out.flatMap((c) => (c.length <= CHUNK ? [c] : c.match(new RegExp(`[\\s\\S]{1,${CHUNK}}`, "g")) || []));
+  return out.flatMap((c) =>
+    c.length <= CHUNK ? [c] : c.match(new RegExp(`[\\s\\S]{1,${CHUNK}}`, "g")) || []
+  );
 }
 
 function sectionedToPairs(item, type, templates) {
@@ -131,10 +141,13 @@ function sectionedToPairs(item, type, templates) {
       const suffix = i === 0 ? "" : `-${i + 1}`;
       pairs.push({
         stream: "A",
-        id: `A-${type}-${item.id}-${section.toLowerCase().replace(/[^a-z0-9]+/g, "_").slice(0, 40)}${suffix}`,
+        id: `A-${type}-${item.id}-${section
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "_")
+          .slice(0, 40)}${suffix}`,
         instruction: pick(item.id + section + i, templates(item.title, section, i)),
         response: c,
-        source: { type, id: `${item.id}#${section}${suffix}` },
+        source: { type, id: `${item.id}#${section}${suffix}` }
       });
     });
   }
@@ -144,20 +157,21 @@ function sectionedToPairs(item, type, templates) {
 export function docToPairs(doc) {
   return sectionedToPairs(doc, "doc", (title, section) => [
     `From our architecture docs — "${clip(title, 110)}", section "${clip(section, 80)}": explain it in our own words.`,
-    `What does "${clip(title, 110)}" say under "${clip(section, 80)}"? Write it the way the doc does.`,
+    `What does "${clip(title, 110)}" say under "${clip(section, 80)}"? Write it the way the doc does.`
   ]);
 }
 
 export function proseToPairs(item) {
   return sectionedToPairs(item, "prose", (title, section, i) => [
     `Write the "${clip(section, 80)}" narrative for ${clip(title, 110)} in our house long-form voice${i ? " (continued)" : ""}.`,
-    `Continue the estate's account of ${clip(title, 110)} — ${clip(section, 80)}${i ? `, part ${i + 1}` : ""}.`,
+    `Continue the estate's account of ${clip(title, 110)} — ${clip(section, 80)}${i ? `, part ${i + 1}` : ""}.`
   ]);
 }
 
 // --- memo-ray Thought entities: the literal in-flight reasoning voice --------------
 const THOUGHT_MIN = 120;
-const DECISION_RE = /\b(will|should|need to|because|instead|so that|first|then|verify|check|before|rather than)\b/i;
+const DECISION_RE =
+  /\b(will|should|need to|because|instead|so that|first|then|verify|check|before|rather than)\b/i;
 export function thoughtToPairs(t) {
   const content = String(t.content || "").trim();
   if (content.length < THOUGHT_MIN || !DECISION_RE.test(content)) return [];
@@ -168,10 +182,10 @@ export function thoughtToPairs(t) {
       id: `A-thought-${t.id}`,
       instruction: pick(t.id, [
         `You are working in the Prime-Silo estate. Given the state below, think through the next step out loud, the way we do.\n\nState:\n${clip(state, 400)}`,
-        `Given this situation in the estate, reason about what to do next in our working style.\n\nState:\n${clip(state, 400)}`,
+        `Given this situation in the estate, reason about what to do next in our working style.\n\nState:\n${clip(state, 400)}`
       ]),
       response: clip(content, 1600),
-      source: { type: "thought", id: t.id, sid: t.sid },
-    },
+      source: { type: "thought", id: t.id, sid: t.sid }
+    }
   ];
 }

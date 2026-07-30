@@ -22,6 +22,8 @@ if (t.status !== 0) {
   process.exit(1);
 }
 
-console.log("[l4] delta: per-content-hash cursors — skip/idempotent/resume/order-tolerant verified");
+console.log(
+  "[l4] delta: per-content-hash cursors — skip/idempotent/resume/order-tolerant verified"
+);
 console.log("[l4] GATE GREEN");
 process.exit(0);

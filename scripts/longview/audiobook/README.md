@@ -23,7 +23,7 @@ filenames (`p{part}c{chapter}s{section}.md`), so runs are reproducible.
 
 ## Voicebox facts (discovered from `%APPDATA%/sh.voicebox.app/voicebox.db`)
 
-- Profile to narrate with: **`Test`** — a *cloned* voice (`voice_type=cloned`),
+- Profile to narrate with: **`Test`** — a _cloned_ voice (`voice_type=cloned`),
   engine `qwen`, model `1.7B`. Change with `--profile` if you make a new voice.
 - `generation_settings`: `max_chunk_chars=800`, `crossfade_ms=50`,
   `normalize_audio=on`. Voicebox chunks long input internally and cross-fades the

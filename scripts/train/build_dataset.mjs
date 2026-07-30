@@ -21,7 +21,7 @@ import {
   readContracts,
   readMethodDocs,
   readProse,
-  readThoughts,
+  readThoughts
 } from "./lib/corpus_v3.mjs";
 import {
   jsonCardToPairs,
@@ -29,7 +29,7 @@ import {
   contractToPairs,
   docToPairs,
   proseToPairs,
-  thoughtToPairs,
+  thoughtToPairs
 } from "./lib/streams_v3.mjs";
 import { splitRows } from "./lib/split.mjs";
 import { validateRow } from "./lib/schema.mjs";
@@ -47,7 +47,11 @@ function arg(name, def) {
 const OUT = path.resolve(arg("--out", path.join(ROOT, "scripts", "train", "dataset")));
 
 function writeJSONL(file, rows) {
-  fs.writeFileSync(file, rows.map((r) => JSON.stringify(r)).join("\n") + (rows.length ? "\n" : ""), "utf8");
+  fs.writeFileSync(
+    file,
+    rows.map((r) => JSON.stringify(r)).join("\n") + (rows.length ? "\n" : ""),
+    "utf8"
+  );
 }
 
 // L11: recorded verifier passes (frozen-rubric or frontier sign-off) — an optional {sids:[...]} file
@@ -64,12 +68,13 @@ function readVerifierPasses() {
 
 function main() {
   const home = resolveHome();
-  const memDir = (process.env.MEMORAY_DATA_DIR || "").trim() || path.join(os.homedir(), ".mem0ray", "data");
+  const memDir =
+    (process.env.MEMORAY_DATA_DIR || "").trim() || path.join(os.homedir(), ".mem0ray", "data");
   fs.mkdirSync(OUT, { recursive: true });
 
   // sessions_v1: the big LONGVIEW workspace (376 JSON cards + curated prose) — v3 Lever 1.
-  const sessionsWs = (process.env.T2_SESSIONS_WS || "").trim() ||
-    "D:\\benny-home\\benny\\workspaces\\sessions_v1";
+  const sessionsWs =
+    (process.env.T2_SESSIONS_WS || "").trim() || "D:\\benny-home\\benny\\workspaces\\sessions_v1";
   const sessionsLongview = path.join(sessionsWs, "longview");
   const sessionsDataOut = path.join(sessionsWs, "data_out");
 
@@ -105,10 +110,7 @@ function main() {
   addA("docs", readMethodDocs(ROOT).flatMap(docToPairs));
   addA("prose", readProse(sessionsDataOut).flatMap(proseToPairs));
   const thoughtMax = Number(process.env.T2_THOUGHT_MAX_ROWS) || 500;
-  addA(
-    "thoughts",
-    readThoughts(memDir).flatMap(thoughtToPairs).slice(0, thoughtMax)
-  );
+  addA("thoughts", readThoughts(memDir).flatMap(thoughtToPairs).slice(0, thoughtMax));
 
   // Stream B — agent tool-use trajectories from memo-ray traces.
   const entities = readTraceEntities(memDir);
@@ -119,7 +121,8 @@ function main() {
   // Untagged rows default to non-house (the owner corpus), so this is a no-op until L6-tagged house
   // dogfood rows arrive. Verifier passes: an optional {sids:[...]} file; cap: a per-turn fraction.
   const verifiedSids = new Set(readVerifierPasses());
-  const capFraction = process.env.T2_HOUSE_CAP_FRACTION != null ? Number(process.env.T2_HOUSE_CAP_FRACTION) : 0.5;
+  const capFraction =
+    process.env.T2_HOUSE_CAP_FRACTION != null ? Number(process.env.T2_HOUSE_CAP_FRACTION) : 0.5;
   const guardA = guardHouseRows(a.rows, { verifiedSids, capFraction });
   const guardB = guardHouseRows(b.rows, { verifiedSids, capFraction });
   a.rows = guardA.kept;
@@ -139,7 +142,7 @@ function main() {
     "stream_a.train.jsonl": splitA.train,
     "stream_a.eval.jsonl": splitA.eval,
     "stream_b.train.jsonl": splitB.train,
-    "stream_b.eval.jsonl": splitB.eval,
+    "stream_b.eval.jsonl": splitB.eval
   };
   for (const [name, rows] of Object.entries(files)) writeJSONL(path.join(OUT, name), rows);
 
@@ -148,7 +151,7 @@ function main() {
   const leaks = scanForLeaks({
     files: Object.keys(files).map((f) => path.join(OUT, f)),
     terms: spec.terms,
-    sids: spec.sids,
+    sids: spec.sids
   });
 
   const manifest = {
@@ -160,10 +163,14 @@ function main() {
       sessions_ws: sessionsWs,
       a_v3: v3Counts,
       trace_entities_loaded: entities.size,
-      memo_ray: memDir,
+      memo_ray: memDir
     },
     streams: {
-      A: { train: splitA.train.length, eval: splitA.eval.length, excluded_personal: a.excluded.personal },
+      A: {
+        train: splitA.train.length,
+        eval: splitA.eval.length,
+        excluded_personal: a.excluded.personal
+      },
       B: {
         train: splitB.train.length,
         eval: splitB.eval.length,
@@ -171,8 +178,8 @@ function main() {
         excluded_unparsed: b.excluded.unparsed,
         excluded_dedup: b.excluded.dedup,
         excluded_tool_capped: b.excluded.tool_capped,
-        chain_rows: b.rows.filter((r) => r.source.variant === "chain").length,
-      },
+        chain_rows: b.rows.filter((r) => r.source.variant === "chain").length
+      }
     },
     eval_pct: splitA.evalPct,
     privacy: { terms: spec.terms.length, sids: spec.sids.length, leak_findings: leaks.length },
@@ -180,11 +187,15 @@ function main() {
       cap_fraction: capFraction,
       verifier_passes: verifiedSids.size,
       excluded_unverified_house: guardA.excluded_unverified + guardB.excluded_unverified,
-      capped_house: guardA.capped + guardB.capped,
+      capped_house: guardA.capped + guardB.capped
     },
-    total_rows: a.rows.length + b.rows.length,
+    total_rows: a.rows.length + b.rows.length
   };
-  fs.writeFileSync(path.join(OUT, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n", "utf8");
+  fs.writeFileSync(
+    path.join(OUT, "manifest.json"),
+    JSON.stringify(manifest, null, 2) + "\n",
+    "utf8"
+  );
 
   console.log(
     `[build_dataset] A: ${splitA.train.length}+${splitA.eval.length} (excl ${a.excluded.personal}) | ` +

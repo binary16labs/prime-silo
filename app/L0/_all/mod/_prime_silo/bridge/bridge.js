@@ -524,12 +524,14 @@ export function createBridgePage(options = {}) {
     initAnime() {
       if (window.anime) {
         window.anime({
-          targets: '.benny-anime-svg path, .benny-anime-svg ellipse, .benny-anime-svg circle',
+          targets: ".benny-anime-svg path, .benny-anime-svg ellipse, .benny-anime-svg circle",
           strokeDashoffset: [window.anime.setDashoffset, 0],
-          easing: 'easeInOutSine',
+          easing: "easeInOutSine",
           duration: 1500,
-          delay: function(el, i) { return i * 150 },
-          direction: 'alternate',
+          delay: function (el, i) {
+            return i * 150;
+          },
+          direction: "alternate",
           loop: true
         });
       }
@@ -706,8 +708,8 @@ export function createBridgePage(options = {}) {
     },
 
     get sortedGovRuns() {
-      const rawRuns = (this.runs || []).map(r => ({ ...r, type: 'run' }));
-      const rawSessions = (this.sessions || []).map(s => ({
+      const rawRuns = (this.runs || []).map((r) => ({ ...r, type: "run" }));
+      const rawSessions = (this.sessions || []).map((s) => ({
         id: s.id,
         run_id: s.id,
         status: "completed",
@@ -715,24 +717,47 @@ export function createBridgePage(options = {}) {
         duration_ms: s.duration || 0,
         errors: [],
         node_states: {},
-        type: 'session',
+        type: "session",
         title: s.content || "Session"
       }));
 
       let raw = [...rawRuns, ...rawSessions];
-      
+
       if (raw.length === 0) {
         raw = [
-          { id: "run-cmr-v2-001", status: "completed", started_at: new Date(Date.now() - 300000).toISOString(), duration_ms: 14200, errors: [], node_states: { step1: "success", step2: "success", step3: "success" } },
-          { id: "run-cmr-v2-002", status: "failed", started_at: new Date(Date.now() - 1200000).toISOString(), duration_ms: 65400, errors: ["Step 2 assertion failed"], node_states: { step1: "success", step2: "failed" } },
-          { id: "run-cmr-v2-003", status: "completed", started_at: new Date(Date.now() - 3600000).toISOString(), duration_ms: 8100, errors: [], node_states: { step1: "success" } }
+          {
+            id: "run-cmr-v2-001",
+            status: "completed",
+            started_at: new Date(Date.now() - 300000).toISOString(),
+            duration_ms: 14200,
+            errors: [],
+            node_states: { step1: "success", step2: "success", step3: "success" }
+          },
+          {
+            id: "run-cmr-v2-002",
+            status: "failed",
+            started_at: new Date(Date.now() - 1200000).toISOString(),
+            duration_ms: 65400,
+            errors: ["Step 2 assertion failed"],
+            node_states: { step1: "success", step2: "failed" }
+          },
+          {
+            id: "run-cmr-v2-003",
+            status: "completed",
+            started_at: new Date(Date.now() - 3600000).toISOString(),
+            duration_ms: 8100,
+            errors: [],
+            node_states: { step1: "success" }
+          }
         ];
       }
 
-      const scored = raw.map(r => {
+      const scored = raw.map((r) => {
         const states = r.node_states || {};
         const stepIds = Object.keys(states);
-        const errCount = (r.errors ? r.errors.length : 0) + stepIds.filter(id => /fail|error/i.test(String(states[id]))).length;
+        const errCount =
+          (r.errors ? r.errors.length : 0) +
+          stepIds.filter((id) => /fail|error/i.test(String(states[id]))).length;
         let weight = 15;
         if (errCount > 0) weight += errCount * 35;
         if (r.status === "failed") weight += 30;
@@ -747,14 +772,15 @@ export function createBridgePage(options = {}) {
 
       let filtered = scored;
       if (this.govFilter === "failures") {
-        filtered = scored.filter(r => r.status === "failed" || r.errCount > 0);
+        filtered = scored.filter((r) => r.status === "failed" || r.errCount > 0);
       } else if (this.govFilter === "compliant") {
-        filtered = scored.filter(r => r.status === "completed" && r.errCount === 0);
+        filtered = scored.filter((r) => r.status === "completed" && r.errCount === 0);
       }
 
       return filtered.sort((a, b) => {
         if (this.govSort === "weight") return b.riskWeight - a.riskWeight;
-        if (this.govSort === "time") return Date.parse(b.started_at || 0) - Date.parse(a.started_at || 0);
+        if (this.govSort === "time")
+          return Date.parse(b.started_at || 0) - Date.parse(a.started_at || 0);
         if (this.govSort === "duration") return (b.duration_ms || 0) - (a.duration_ms || 0);
         if (this.govSort === "errors") return b.errCount - a.errCount;
         return 0;
@@ -765,7 +791,7 @@ export function createBridgePage(options = {}) {
       this.activeRunId = runId;
       this.govStepIndex = 0;
 
-      const sessionData = this.sessions.find(s => s.id === runId);
+      const sessionData = this.sessions.find((s) => s.id === runId);
       if (sessionData) {
         this.activeSessionId = runId;
       }
@@ -803,11 +829,11 @@ export function createBridgePage(options = {}) {
       if (!this._ctx) return;
 
       const runId = this.activeRunId;
-      const isSession = !!this.sessions.find(s => s.id === runId);
+      const isSession = !!this.sessions.find((s) => s.id === runId);
       const scored = this.sortedGovRuns; // computed getter — already filtered + sorted
 
       // Find the scored entry for the active run so we get risk metrics.
-      const active = runId ? scored.find(r => (r.run_id || r.id) === runId) : null;
+      const active = runId ? scored.find((r) => (r.run_id || r.id) === runId) : null;
 
       // Build a summary of node_states for pipeline runs (from runDetail).
       let nodeStatesSummary = null;
@@ -828,34 +854,36 @@ export function createBridgePage(options = {}) {
       try {
         const tl = typeof document !== "undefined" && document.getElementById("v2-timeline");
         if (tl) stepTotal = tl.totalSteps ?? tl.nodeCount ?? null;
-      } catch { /* DOM not available in tests */ }
+      } catch {
+        /* DOM not available in tests */
+      }
 
       const totalVisible = scored.length;
-      const totalFailures = scored.filter(r => r.status === "failed" || r.errCount > 0).length;
+      const totalFailures = scored.filter((r) => r.status === "failed" || r.errCount > 0).length;
 
       this.syncContext({
         pageContext: {
           governance: {
             // Active run / session
-            activeRunId:       runId || null,
-            activeType:        runId ? (isSession ? "session" : "run") : null,
-            activeStatus:      active?.status || null,
-            activeRiskWeight:  active?.riskWeight ?? null,
-            activeErrCount:    active?.errCount ?? null,
-            activeDuration:    active?.formattedDuration || null,
-            activeTitle:       active?.title || null,  // sessions have titles
+            activeRunId: runId || null,
+            activeType: runId ? (isSession ? "session" : "run") : null,
+            activeStatus: active?.status || null,
+            activeRiskWeight: active?.riskWeight ?? null,
+            activeErrCount: active?.errCount ?? null,
+            activeDuration: active?.formattedDuration || null,
+            activeTitle: active?.title || null, // sessions have titles
             // Step-through cursor
-            stepIndex:         this.govStepIndex,
+            stepIndex: this.govStepIndex,
             stepTotal,
             // Navigator state
-            filter:            this.govFilter,
-            sort:              this.govSort,
+            filter: this.govFilter,
+            sort: this.govSort,
             // Sidebar summary
             summary: {
               totalVisible,
               totalFailures,
               filter: this.govFilter,
-              sort:   this.govSort
+              sort: this.govSort
             },
             // Per-step node_states (pipeline runs only)
             nodeStatesSummary
@@ -875,19 +903,28 @@ export function createBridgePage(options = {}) {
       const t = String(entityType).trim().toLowerCase();
       if (t === "session" || t === "run" || t === "workflow") return "sessions";
       if (
-        t.includes("user") || t.includes("input") || t.includes("prompt") ||
-        t === "thought" || t === "message" || t === "chat" || t === "conversation" ||
-        t === "assistant" || t === "query"
-      ) return "chats";
+        t.includes("user") ||
+        t.includes("input") ||
+        t.includes("prompt") ||
+        t === "thought" ||
+        t === "message" ||
+        t === "chat" ||
+        t === "conversation" ||
+        t === "assistant" ||
+        t === "query"
+      )
+        return "chats";
+      if (t.includes("tool") || t === "job" || t === "action" || t === "step") return "tools";
       if (
-        t.includes("tool") || t === "job" || t === "action" || t === "step"
-      ) return "tools";
-      if (
-        t === "artifact" || t === "file" || t === "data out" || t === "output" || t === "document" || t === "commit"
-      ) return "outputs";
-      if (
-        t === "context" || t === "data in"
-      ) return "inputs";
+        t === "artifact" ||
+        t === "file" ||
+        t === "data out" ||
+        t === "output" ||
+        t === "document" ||
+        t === "commit"
+      )
+        return "outputs";
+      if (t === "context" || t === "data in") return "inputs";
       return "logs";
     },
 
@@ -907,20 +944,22 @@ export function createBridgePage(options = {}) {
         const swimlaneId = this._swimlaneFor(n.type);
         let label = n.label || n.type || "Node";
         if (swimlaneId === "chats" && n.content) {
-          const clean = String(n.content).replace(/<[^>]+>/g, "").trim();
+          const clean = String(n.content)
+            .replace(/<[^>]+>/g, "")
+            .trim();
           if (clean) {
             label = clean.length > 35 ? clean.substring(0, 35) + "..." : clean;
           }
         }
         return {
-          id:          n.id,
+          id: n.id,
           swimlaneId,
-          timestamp:   n.timestamp || Date.now(),
+          timestamp: n.timestamp || Date.now(),
           label,
-          type:        n.type || "unknown",
+          type: n.type || "unknown",
           metadata: {
-            agent:    n.agent || "",
-            content:  (n.content || "").substring(0, 500),
+            agent: n.agent || "",
+            content: (n.content || "").substring(0, 500),
             toolName: n.metadata?.toolName || "",
             fileName: n.metadata?.fileName || "",
             filePath: n.metadata?.filePath || "",
@@ -931,17 +970,17 @@ export function createBridgePage(options = {}) {
 
       // Translate parent→child links. The memoray graph uses { source, target }
       // where source/target are entity id strings. The timeline uses { from, to }.
-      const nodeIds = new Set(nodes.map(n => n.id));
+      const nodeIds = new Set(nodes.map((n) => n.id));
       const edges = (graph.links || [])
-        .map(l => ({
+        .map((l) => ({
           from: typeof l.source === "object" ? l.source.id : l.source,
-          to:   typeof l.target === "object" ? l.target.id : l.target
+          to: typeof l.target === "object" ? l.target.id : l.target
         }))
-        .filter(e => nodeIds.has(e.from) && nodeIds.has(e.to));
+        .filter((e) => nodeIds.has(e.from) && nodeIds.has(e.to));
 
-      const timestamps = nodes.map(n => n.timestamp).filter(t => t > 0);
+      const timestamps = nodes.map((n) => n.timestamp).filter((t) => t > 0);
       const start = timestamps.length ? Math.min(...timestamps) : Date.now();
-      const end   = timestamps.length ? Math.max(...timestamps) : start + 1000;
+      const end = timestamps.length ? Math.max(...timestamps) : start + 1000;
 
       return {
         sessionId,
@@ -967,13 +1006,12 @@ export function createBridgePage(options = {}) {
       const v2Timeline = document.getElementById("v2-timeline");
       if (!v2Timeline || typeof v2Timeline.setData !== "function") return;
 
-
       let data = null;
 
       try {
         if (this.activeRunId) {
           // Check whether the selected item is a memoray session or a pipeline run.
-          const isSession = this.sessions.some(s => s.id === this.activeRunId);
+          const isSession = this.sessions.some((s) => s.id === this.activeRunId);
 
           if (isSession) {
             // Fetch the real session graph from memoray.
@@ -999,12 +1037,14 @@ export function createBridgePage(options = {}) {
                 else if (/write|replace|create/i.test(skill)) lane = "outputs";
                 else if (/log|error|warn/i.test(ev.event_type)) lane = "logs";
                 return {
-                  id:         ev._integrity_hash || `evt_${i}`,
+                  id: ev._integrity_hash || `evt_${i}`,
                   swimlaneId: lane,
-                  timestamp:  ev.timestamp ? new Date(ev.timestamp).getTime() : Date.now() + i * 1000,
-                  label:      ev.event_type + (skill ? " — " + skill : ""),
-                  type:       ev.event_type || "event",
-                  metadata:   { skill, process: d.process || "", outcome: d.outcome || "" }
+                  timestamp: ev.timestamp
+                    ? new Date(ev.timestamp).getTime()
+                    : Date.now() + i * 1000,
+                  label: ev.event_type + (skill ? " — " + skill : ""),
+                  type: ev.event_type || "event",
+                  metadata: { skill, process: d.process || "", outcome: d.outcome || "" }
                 };
               });
               // Chain events sequentially since governance events are a flat log.
@@ -1012,9 +1052,9 @@ export function createBridgePage(options = {}) {
               for (let i = 0; i < nodes.length - 1; i++) {
                 edges.push({ from: nodes[i].id, to: nodes[i + 1].id });
               }
-              const ts = nodes.map(n => n.timestamp);
+              const ts = nodes.map((n) => n.timestamp);
               const start = Math.min(...ts);
-              const end   = Math.max(...ts);
+              const end = Math.max(...ts);
               data = {
                 sessionId: this.activeRunId,
                 timeRange: { start, end: start === end ? end + 1000 : end },
@@ -1037,7 +1077,7 @@ export function createBridgePage(options = {}) {
           const mock = await r.json();
           if (this.activeRunId) {
             mock.sessionId = this.activeRunId;
-            const root = mock.nodes.find(n => n.id === "run_main");
+            const root = mock.nodes.find((n) => n.id === "run_main");
             if (root) root.label = "Run: " + this.activeRunId.slice(0, 8);
           }
           v2Timeline.setData(mock);
@@ -1259,7 +1299,6 @@ export function createBridgePage(options = {}) {
       }
       this.mountSessionGraph(id);
     },
-
 
     sessionTitle(id) {
       const s = this.sessions.find((x) => x.id === id);
@@ -2528,7 +2567,7 @@ export function createBridgePage(options = {}) {
           createReasoningTraceWidget(trace, { workspace: this.workspace, run_id: runId })
         );
       }
-      
+
       this.mountDrilldown();
     },
 

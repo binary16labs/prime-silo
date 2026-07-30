@@ -14,7 +14,10 @@ const defSid = (r) => r.source?.sid ?? r.sid;
 // --- verifier gate: unverified house output never becomes a training row -----
 // A row is admitted unless it is house-origin AND its session has no recorded verifier pass.
 // (human/frontier rows are always admitted here — this guard is contamination-only.)
-export function verifierGate(rows, { verifiedSids = new Set(), authorshipOf = defAuthorship, sidOf = defSid } = {}) {
+export function verifierGate(
+  rows,
+  { verifiedSids = new Set(), authorshipOf = defAuthorship, sidOf = defSid } = {}
+) {
   const kept = [];
   const excluded = [];
   for (const r of rows) {
@@ -29,7 +32,13 @@ export function verifierGate(rows, { verifiedSids = new Set(), authorshipOf = de
 // delete+rebuild is byte-identical (the register-rebuild discipline, applied to dataset assembly).
 function deterministicSample(rows, n, idOf) {
   return [...rows]
-    .map((r) => ({ r, k: crypto.createHash("sha256").update(String(idOf(r))).digest("hex") }))
+    .map((r) => ({
+      r,
+      k: crypto
+        .createHash("sha256")
+        .update(String(idOf(r)))
+        .digest("hex")
+    }))
     .sort((a, b) => (a.k < b.k ? -1 : a.k > b.k ? 1 : 0))
     .slice(0, n)
     .map((x) => x.r);
@@ -49,7 +58,10 @@ export function applyAuthorshipCap(
   if (maxHouseRows != null) cap = maxHouseRows;
   else if (capFraction != null)
     // house ≤ f·total, total = house + other ⇒ house ≤ f·other/(1−f)
-    cap = capFraction >= 1 ? house.length : Math.floor((capFraction * other.length) / (1 - capFraction));
+    cap =
+      capFraction >= 1
+        ? house.length
+        : Math.floor((capFraction * other.length) / (1 - capFraction));
   else return { kept: rows, capped: 0 };
 
   if (house.length <= cap) return { kept: rows, capped: 0 };

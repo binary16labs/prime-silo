@@ -11,7 +11,7 @@ log. None gave a live consumer (a TUI, the Bridge) one place to tail for
 progress + telemetry + lineage together, and the OpenLineage path could
 block the hot path if Marquez was down (the RAG-ingest wedge lesson — see
 `runtime/benny/governance/lineage.py` header comment). G0 makes the
-run-event stream the *one* contract: exactly one producer (the pypes
+run-event stream the _one_ contract: exactly one producer (the pypes
 orchestrator), append-only; every other consumer (lineage fold, OpenLineage
 adapter, future TUI/Bridge) reads the stream instead of each other.
 
@@ -52,7 +52,7 @@ Extra fields are permitted; missing required fields are rejected.
 ## Lineage is a fold, not a system
 
 `fold_lineage(events) -> {artifact_name: {produced_by, consumed_by}}` walks
-`artifact_produced`/`artifact_consumed` events only — the *only* lineage
+`artifact_produced`/`artifact_consumed` events only — the _only_ lineage
 derivation for the G0 stream, no second write path.
 `runtime/benny/governance/lineage.py` and `runtime/benny/pypes/lineage.py`
 (OpenLineage/Marquez) remain **optional tail-adapters**: a separate consumer

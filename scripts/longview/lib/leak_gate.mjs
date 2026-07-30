@@ -104,16 +104,19 @@ function walk(dir, out = []) {
 function collectDeliverables(workspaceDir) {
   const out = workspaceDir("data_out");
   const files = [];
-  for (const name of ["PORTFOLIO-REPORT.md", "PRD-WHAT-COMES-NEXT.md", "THEMES.md", "TIMELINE.md"]) {
+  for (const name of [
+    "PORTFOLIO-REPORT.md",
+    "PRD-WHAT-COMES-NEXT.md",
+    "THEMES.md",
+    "TIMELINE.md"
+  ]) {
     const p = path.join(out, name);
     if (fs.existsSync(p)) files.push(p);
   }
   const dossiers = path.join(out, "dossiers");
   files.push(
     ...walk(dossiers).filter(
-      (p) =>
-        p.endsWith(".md") &&
-        !p.startsWith(path.join(dossiers, "_private") + path.sep)
+      (p) => p.endsWith(".md") && !p.startsWith(path.join(dossiers, "_private") + path.sep)
     )
   );
   files.push(...walk(path.join(out, "skills"))); // any text file (binary skipped in scan)

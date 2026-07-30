@@ -18,15 +18,21 @@ for (const rel of ["server/coordination/lib/triad_dashboard.mjs", "server/pages/
   }
 }
 
-const t = spawnSync(process.execPath, ["--test", "tests/triad_dashboard/triad_dashboard_test.mjs"], {
-  cwd: ROOT,
-  stdio: "inherit"
-});
+const t = spawnSync(
+  process.execPath,
+  ["--test", "tests/triad_dashboard/triad_dashboard_test.mjs"],
+  {
+    cwd: ROOT,
+    stdio: "inherit"
+  }
+);
 if (t.status !== 0) {
   console.log("[l14] GATE FAILED (triad dashboard scenarios)");
   process.exit(1);
 }
 
-console.log("[l14] triad: three series (no composite) + honest-negative shown/flagged + auditable points + deterministic render verified");
+console.log(
+  "[l14] triad: three series (no composite) + honest-negative shown/flagged + auditable points + deterministic render verified"
+);
 console.log("[l14] GATE GREEN");
 process.exit(0);

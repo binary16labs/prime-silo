@@ -24,7 +24,11 @@ export function validateRowA(row) {
   if (row?.stream !== "A") errors.push("stream must be 'A'");
   if (!isNonEmptyStr(row?.instruction)) errors.push("instruction required");
   if (!isNonEmptyStr(row?.response)) errors.push("response required");
-  if (!["card", "adr", "jsoncard", "log", "contract", "doc", "prose", "thought"].includes(row?.source?.type))
+  if (
+    !["card", "adr", "jsoncard", "log", "contract", "doc", "prose", "thought"].includes(
+      row?.source?.type
+    )
+  )
     errors.push("source.type must be card|adr|jsoncard|log|contract|doc|prose|thought");
   return { ok: errors.length === 0, errors };
 }
@@ -56,7 +60,7 @@ export function rowText(row) {
     row.state,
     row.goal,
     row.tool_call ? JSON.stringify(row.tool_call) : "",
-    row.source ? `${row.source.type}:${row.source.id}` : "",
+    row.source ? `${row.source.type}:${row.source.id}` : ""
   ];
   return parts.filter(Boolean).join("\n");
 }

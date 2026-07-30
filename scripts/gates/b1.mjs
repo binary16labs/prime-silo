@@ -34,6 +34,8 @@ if (t.status !== 0) {
   process.exit(1);
 }
 
-console.log("[b1] coord API: folded state + per-task history + validated append (422 byte-unchanged) + live SSE broadcast + topic knowledge — verified");
+console.log(
+  "[b1] coord API: folded state + per-task history + validated append (422 byte-unchanged) + live SSE broadcast + topic knowledge — verified"
+);
 console.log("[b1] GATE GREEN");
 process.exit(0);

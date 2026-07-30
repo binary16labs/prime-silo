@@ -29,6 +29,8 @@ if (t.status !== 0) {
   process.exit(1);
 }
 
-console.log("[l8] projector: rebuild-from-log identity + valid/txn time-travel + corpus reconstruction + incremental reprojection verified");
+console.log(
+  "[l8] projector: rebuild-from-log identity + valid/txn time-travel + corpus reconstruction + incremental reprojection verified"
+);
 console.log("[l8] GATE GREEN");
 process.exit(0);

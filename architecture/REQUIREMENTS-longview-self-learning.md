@@ -1,8 +1,8 @@
 # Requirements — LONGVIEW → a self-learning system (the flywheel)
 
 **Status:** DRAFT for owner review. Requirements only — **solution design and tasks are for a
-separate session** (per owner instruction). Nothing here prescribes *how*; it states *what the
-system must do* and *why*, with numbered requirements (R#) the design session can trace to.
+separate session** (per owner instruction). Nothing here prescribes _how_; it states _what the
+system must do_ and _why_, with numbered requirements (R#) the design session can trace to.
 
 **Author:** claude-opus, 2026-07-25, at the close of EP-T (KR1.5). **Reviewer:** owner.
 
@@ -63,7 +63,7 @@ and any cloud dependency (local-first remains a hard constraint).
   — e.g. when the session ran, when a decision was made) and **transaction-time** (when the
   system recorded/derived it).
 - **R2.** The system SHALL answer both **"what was true at time T"** (valid-time) and **"what did
-  we *know*/record at time T"** (transaction-time), including reconstructing the exact knowledge
+  we _know_/record at time T"** (transaction-time), including reconstructing the exact knowledge
   state that produced any given artifact (e.g. the corpus a model was trained on).
 - **R3.** Corrections SHALL create **new versions** with new transaction-time, never mutate or
   erase prior versions (see Additive). A record's history SHALL be fully recoverable.
@@ -114,7 +114,7 @@ and any cloud dependency (local-first remains a hard constraint).
 - **R17.** Raw session data (Claude / Antigravity / agent traces, memo-ray entities) from **every
   machine** SHALL be **staged on the portable drive** in a **machine-tagged, content-addressed,
   append-only staging area** — the single point of truth for un-synthesized raw input.
-  *(Directly answers the owner's question: yes — stage raw to the portable drive now.)*
+  _(Directly answers the owner's question: yes — stage raw to the portable drive now.)_
 - **R18.** Staging SHALL be **self-describing**: a manifest lets the drive attach to any machine
   and the pipeline resume with no per-machine configuration — **plug-and-play**.
 - **R19.** Each staged session SHALL be **machine-aware, process-aware, context-aware, and
@@ -136,7 +136,7 @@ and any cloud dependency (local-first remains a hard constraint).
 - **R24.** The loop SHALL support **honest negative results** (a turn that doesn't improve is
   logged, not hidden; rubrics are frozen, never tuned to pass — the EP-T doctrine).
 - **R25.** The loop SHALL preserve the **method-in-weights / facts-in-RAG** split: synthesis feeds
-  *method/voice/tool-use* to training and *facts* to RAG; no fact-cramming.
+  _method/voice/tool-use_ to training and _facts_ to RAG; no fact-cramming.
 - **R26.** **Compound value SHALL be measurable end-to-end**: a dashboard view proving the flywheel
   (sessions↑ → knowledge coverage↑ → eval↑ → agent success↑ / cost↓) over time, not just
   per-component metrics.
@@ -188,7 +188,7 @@ and any cloud dependency (local-first remains a hard constraint).
    How to reconcile memo-ray's entity-per-file model with content-addressing + de-dup.
 3. **Delta watermark granularity:** per-session, per-entity, or per-content-hash? Where cursors live.
 4. **Execution-register schema:** unify the training result JSONs + delivery LOG + LONGVIEW ledger
-   + lineage into one queryable execution store, or federate them behind a view?
+   - lineage into one queryable execution store, or federate them behind a view?
 5. **Loop trigger/orchestration:** what schedules the loop (file-watch on staging? cron? the
    coordination server B1?) and how agents claim work across machines without collision (extends
    the B0/B1 coordination ledger + exactly-one-winner claim race).
@@ -238,14 +238,14 @@ session implements these; where a steer says "hybrid" the design session specs t
 ## 7. Acceptance criteria for THIS requirements doc (definition of ready for design)
 
 - [x] Owner has reviewed and each R# (**R1–R37** original + **R38–R45** reviewer addendum, §9) is
-  **accepted** — accepted as a set on 2026-07-25 to proceed to design; any per-R# amendment can be
-  raised during design.
+      **accepted** — accepted as a set on 2026-07-25 to proceed to design; any per-R# amendment can be
+      raised during design.
 - [x] The **11** open questions each have an owner steer — **RESOLVED, see §6.1** (2026-07-25).
 - [x] Priority/phasing agreed: **wave 1** = R17–R21 staging + R8–R11 delta + R12–R16 execution
-  tagging (the substrate); loop automation R22–R30 in wave 3 (see §8 + §9.5).
+      tagging (the substrate); loop automation R22–R30 in wave 3 (see §8 + §9.5).
 - [x] The §9.5 phasing steer is confirmed: **Tier 1 (R38–R41) slotted into wave 1** (R40/R41 with
-  staging; R38 tagging + R39 record-served in wave 1, their gates in wave 3); Tier 2 R42/R43 wave 1,
-  R44/R45 wave 3.
+      staging; R38 tagging + R39 record-served in wave 1, their gates in wave 3); Tier 2 R42/R43 wave 1,
+      R44/R45 wave 3.
 - [x] "Stage raw to the portable drive now" (R17) — **confirmed as a wave-1 quick win.**
 
 > **Definition of ready: MET (2026-07-25).** All R# accepted, all 11 open questions steered (§6.1),
@@ -269,22 +269,22 @@ session implements these; where a steer says "hybrid" the design session specs t
 **Author of addendum:** claude-opus (reviewer), 2026-07-25. Added under the additive doctrine —
 these extend §4/§5/§6, they do not mutate any prior R#. Owner to accept / amend / reject each,
 same as R1–R37. Rationale: the substrate (waves 1–2) reads complete; these gaps are almost all in
-**the loop** (wave 3) — the part that makes this *self-learning* rather than a bigger pipeline, and
+**the loop** (wave 3) — the part that makes this _self-learning_ rather than a bigger pipeline, and
 therefore where the sharp safety/correctness risks live.
 
 ### 9.1 Tier 1 — must-add (correctness/safety holes)
 
 - **R38. Self-training contamination / model-collapse guard.** The training signal SHALL carry
   **authorship provenance** (human / frontier-model / house-model), and the loop SHALL bound the
-  house-model's *own* outputs as a fraction of any training turn. A house-authored session SHALL
+  house-model's _own_ outputs as a fraction of any training turn. A house-authored session SHALL
   become a training row only after passing a verifier gate (frozen rubric or frontier sign-off) —
-  the loop trains on *validated* method, never raw self-output. Without this, the flywheel
+  the loop trains on _validated_ method, never raw self-output. Without this, the flywheel
   (sessions→train→model→sessions) drifts into distillation-of-self and collapses. Extends R24/R25.
 - **R39. Human-signed model promotion + rollback.** Promotion of model N+1 to the served position
   behind the router SHALL require a **human signature** (per the human-signed-stops doctrine); it
   SHALL NOT auto-swap on a passing number alone. The system SHALL support **pinning and rollback**
   of the served model (record what N+1 replaced and how to revert). Extends R23/R36.
-- **R40. Input integrity / poison gate on staged raw.** The leak gate (R31) is *outbound* privacy
+- **R40. Input integrity / poison gate on staged raw.** The leak gate (R31) is _outbound_ privacy
   only. Staged raw sessions arriving from many machines SHALL pass an **inbound integrity/validation
   gate** (a trust boundary symmetric to the leak gate) before synthesis or training, so a corrupted
   or injected session on one machine cannot flow into the corpus. Extends R17/R20/R31.
@@ -312,28 +312,28 @@ therefore where the sharp safety/correctness risks live.
 
 ### 9.3 Additional open questions for the design session
 
-9. **Semantic conflict resolution.** R11 resolves *ordering* via valid-time, but not two machines
-   deriving *contradictory* facts at the same valid-time. How is truth adjudicated (last-writer,
+9. **Semantic conflict resolution.** R11 resolves _ordering_ via valid-time, but not two machines
+   deriving _contradictory_ facts at the same valid-time. How is truth adjudicated (last-writer,
    confidence, human review, keep-both-and-flag)?
 10. **Schema evolution across bi-temporal history.** R32 requires replay; evolving the
     card/graph/dataset schema over time makes old records un-replayable without versioned migration.
     How do schemas evolve additively while preserving replayability? (Relates to Open Q8 backfill.)
-11. **Loop-level liveness.** Beyond per-run observability (R35), how is a *stalled agent loop*
+11. **Loop-level liveness.** Beyond per-run observability (R35), how is a _stalled agent loop_
     detected and alerted — not merely logged — given "a tqdm line ≠ alive" and the eGPU's transient
     wedging? (Dead-man switch / resource+thermal abort that fails clean rather than wedging the box.)
 
 ### 9.4 Delivery note — build the flywheel by dogfooding the flywheel
 
 Per owner steer, deliver this item using the **house model as much as possible** and stage these
-sessions as training material — but note this *is* the self-training loop from turn one, so **R38 is
+sessions as training material — but note this _is_ the self-training loop from turn one, so **R38 is
 the guard that makes it safe**, not optional overhead. Suggested split (fits the existing board +
 `author≠verifier`): house model (LM Studio/eGPU, `house-trainer`/`longview-pipeline`) carries the
 high-volume specified work (synthesis phases, dataset/delta builds); frontier sessions carry
 requirements/design/gate-writing/**verification**. Capture every session with authorship tags (R38);
-frontier *corrections* of house output are the highest-value method-in-weights signal (R25); only
+frontier _corrections_ of house output are the highest-value method-in-weights signal (R25); only
 frontier-verified house sessions enter training (R38+R44). Track the **fraction of delivery work the
 house model carries per loop turn** as an explicit optimization target (R30) — that number rising
-*while* held-out eval holds or improves is the real proof of compounding (R26), not corpus size.
+_while_ held-out eval holds or improves is the real proof of compounding (R26), not corpus size.
 
 ### 9.5 Phasing note (extends §8; owner to confirm)
 
@@ -343,16 +343,16 @@ should land alongside R17–R21 / R8–R11 / R12–R16:
 
 - **R40** (inbound poison gate) and **R41** (drive durability/backup) — land **with** the staging
   substrate (R17–R21); staging without an integrity boundary or a backup is a wave-1 hole.
-- **R38** (authorship provenance in the signal) — the *tagging* is wave-1 (capture provenance at
-  staging/execution time, alongside R12–R16); the *fraction cap + verifier gate* activate in wave 3
+- **R38** (authorship provenance in the signal) — the _tagging_ is wave-1 (capture provenance at
+  staging/execution time, alongside R12–R16); the _fraction cap + verifier gate_ activate in wave 3
   when the loop closes.
 - **R39** (human-signed promotion + rollback) — wave-1 to the extent of **recording** what is served
-  and how to revert; the promotion *gate* itself is exercised in wave 3.
+  and how to revert; the promotion _gate_ itself is exercised in wave 3.
 
 Tier 2 (R42–R45) tracks its natural wave: R42/R43 with wave-1 substrate, R44/R45 with wave-3 loop.
 
 ---
 
-*Ends. Design + task breakdown are deliberately excluded — hand this to the design session. The
+_Ends. Design + task breakdown are deliberately excluded — hand this to the design session. The
 existing skills (`longview-pipeline`, `house-trainer`, `delivery-board`, `phase-runner`) and this
-session's EP-T artifacts are the substrate that session should build on.*
+session's EP-T artifacts are the substrate that session should build on._

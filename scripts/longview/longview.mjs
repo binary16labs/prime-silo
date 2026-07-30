@@ -27,7 +27,15 @@ import { fileURLToPath } from "url";
 import { runOpus } from "./lib/opus.mjs";
 import { evidenceFor, graphCatalog, graphNeighbors } from "./lib/retrieve.mjs";
 import { mdToHtml, htmlToPdf } from "./lib/book_pdf.mjs";
-import { config, ensureWorkspace, workspaceDir, stateDir, projectRoot, envValue, subprocessEnv } from "./lib/config.mjs";
+import {
+  config,
+  ensureWorkspace,
+  workspaceDir,
+  stateDir,
+  projectRoot,
+  envValue,
+  subprocessEnv
+} from "./lib/config.mjs";
 import { taskStalled, reconcileIngested, isStallVerdict } from "./lib/ingest_state.mjs";
 import { syncStore, listSessions } from "./lib/store.mjs";
 import { buildEvidencePack } from "./lib/evidence.mjs";
@@ -145,9 +153,7 @@ async function runInventory() {
 // the teleported sessions straight back into this workspace.
 const quarantinedSids = () => {
   try {
-    return new Set(
-      JSON.parse(fs.readFileSync(stateDir("quarantine.json"), "utf8")).sids || []
-    );
+    return new Set(JSON.parse(fs.readFileSync(stateDir("quarantine.json"), "utf8")).sids || []);
   } catch {
     return new Set();
   }
@@ -158,7 +164,9 @@ const loadInventory = () => {
   if (!q.size) return inv;
   const kept = inv.filter((s) => !q.has(s.id));
   if (kept.length !== inv.length)
-    console.log(`[inventory] ${inv.length - kept.length} quarantined session(s) excluded (longview/quarantine.json)`);
+    console.log(
+      `[inventory] ${inv.length - kept.length} quarantined session(s) excluded (longview/quarantine.json)`
+    );
   return kept;
 };
 
@@ -271,30 +279,31 @@ async function assembleCard(item, fragments) {
   // The intent sentence is a nice-to-have (card body summary) and falls back to a
   // deterministic template below. On slow reasoning models it doubles per-session
   // latency, so LONGVIEW_INTENT_MAX_TOKENS=0 skips the call entirely.
-  if (config.INTENT_MAX_TOKENS > 0) try {
-    const highlights = [
-      `project: ${project}`,
-      decisions.length ? `decisions: ${decisions.join("; ")}` : "",
-      outcomes.length ? `outcomes: ${outcomes.join("; ")}` : "",
-      failures.length ? `failures: ${failures.join("; ")}` : ""
-    ]
-      .filter(Boolean)
-      .join("\n")
-      .slice(0, 2000);
-    const res = await chat({
-      system:
-        "You summarise one working session's intent in 1-3 plain-language sentences (what the operator was trying to achieve). Output the sentences only — no JSON, no preamble.",
-      user: highlights,
-      maxTokens: config.INTENT_MAX_TOKENS,
-      json: false,
-      temperature: 0.3
-    });
-    intent = (res.content || "").replace(/\s+/g, " ").trim();
-    intentTokens.prompt = res.prompt_tokens;
-    intentTokens.completion = res.completion_tokens;
-  } catch {
-    /* fall back below */
-  }
+  if (config.INTENT_MAX_TOKENS > 0)
+    try {
+      const highlights = [
+        `project: ${project}`,
+        decisions.length ? `decisions: ${decisions.join("; ")}` : "",
+        outcomes.length ? `outcomes: ${outcomes.join("; ")}` : "",
+        failures.length ? `failures: ${failures.join("; ")}` : ""
+      ]
+        .filter(Boolean)
+        .join("\n")
+        .slice(0, 2000);
+      const res = await chat({
+        system:
+          "You summarise one working session's intent in 1-3 plain-language sentences (what the operator was trying to achieve). Output the sentences only — no JSON, no preamble.",
+        user: highlights,
+        maxTokens: config.INTENT_MAX_TOKENS,
+        json: false,
+        temperature: 0.3
+      });
+      intent = (res.content || "").replace(/\s+/g, " ").trim();
+      intentTokens.prompt = res.prompt_tokens;
+      intentTokens.completion = res.completion_tokens;
+    } catch {
+      /* fall back below */
+    }
   if (intent.length < 20) {
     intent = `Work on ${project}: ${outcomes[0] || decisions[0] || "session activity"}`.slice(
       0,
@@ -910,7 +919,9 @@ async function graphUpsert(sourceFile, triples) {
 
 async function runGraph() {
   const cards = loadCards();
-  console.log(`[graph] v2 deterministic graph build over ${cards.length} cards (no deep_synthesis)`);
+  console.log(
+    `[graph] v2 deterministic graph build over ${cards.length} cards (no deep_synthesis)`
+  );
 
   // Render card markdown so vectors (semantic_search) stay available, same as model.
   for (const c of cards) {
@@ -943,7 +954,13 @@ async function runGraph() {
 
     if (stats.empty || !triples.length) {
       prog.record({ sid, seconds: (Date.now() - started) / 1000, status: "blank" });
-      appendLedger({ phase: "graph", action: "upsert", sid, ok: false, error: "blank card (no entities)" });
+      appendLedger({
+        phase: "graph",
+        action: "upsert",
+        sid,
+        ok: false,
+        error: "blank card (no entities)"
+      });
       console.log(`[graph] ${sid}: BLANK (no concepts/apps/caps/skills) — skipped`);
       continue;
     }
@@ -953,8 +970,21 @@ async function runGraph() {
     if (verdict.ok) {
       doneSet.add(sid);
       fs.writeFileSync(donePath, JSON.stringify([...doneSet], null, 2));
-      const ln = prog.record({ sid, seconds, status: "good", nodes: verdict.nodes, edges: verdict.edges });
-      appendLedger({ phase: "graph", action: "upsert", sid, ok: true, nodes: verdict.nodes, edges: verdict.edges });
+      const ln = prog.record({
+        sid,
+        seconds,
+        status: "good",
+        nodes: verdict.nodes,
+        edges: verdict.edges
+      });
+      appendLedger({
+        phase: "graph",
+        action: "upsert",
+        sid,
+        ok: true,
+        nodes: verdict.nodes,
+        edges: verdict.edges
+      });
       console.log(`[graph] ${sid}: +${verdict.nodes} nodes / ${verdict.edges} edges  ·  ${ln}`);
     } else {
       prog.record({ sid, seconds, status: "errored" });
@@ -985,14 +1015,24 @@ async function runGraph() {
           for (const n of batch) vSet.add(n);
           fs.writeFileSync(vPath, JSON.stringify([...vSet], null, 2));
         }
-        appendLedger({ phase: "graph", action: "ingest_vectors", files: batch.length, ok: verdict.ok, ...(verdict.error ? { error: verdict.error } : {}) });
-        console.log(`[graph] vectors batch ${Math.floor(i / 25) + 1}: ${verdict.ok ? "ok" : "FAILED (" + verdict.error + ")"}`);
+        appendLedger({
+          phase: "graph",
+          action: "ingest_vectors",
+          files: batch.length,
+          ok: verdict.ok,
+          ...(verdict.error ? { error: verdict.error } : {})
+        });
+        console.log(
+          `[graph] vectors batch ${Math.floor(i / 25) + 1}: ${verdict.ok ? "ok" : "FAILED (" + verdict.error + ")"}`
+        );
       }
     }
   }
 
   console.log(`[graph] done — ${prog.line()}`);
-  console.log(`[graph] next: run 'enrich' to merge duplicate concepts across cards into shared hubs`);
+  console.log(
+    `[graph] next: run 'enrich' to merge duplicate concepts across cards into shared hubs`
+  );
   writeStatus({ phase: "graph", cards_ok: cards.length, graph_done: doneSet.size });
 }
 
@@ -1308,9 +1348,7 @@ async function runEnrichGraph() {
   writeStatus({ phase: "enrich" });
   const started = Date.now();
   console.log("[enrich] benny enrich-graph (merge → cross-doc links → rel_class → themes)…");
-  console.log(
-    `[enrich] live stage detail: ${workspaceDir("longview", "enrich_progress.json")}`
-  );
+  console.log(`[enrich] live stage detail: ${workspaceDir("longview", "enrich_progress.json")}`);
   // Streamed (not spawnSync-buffered) so stage progress reaches the console —
   // and the dashboard — while the run is live instead of one blob at the end.
   const { ok, tail } = await new Promise((resolve) => {
@@ -1564,7 +1602,9 @@ async function runWeave({ loops = null, questionsPerLoop = null } = {}) {
     // doesn't exist yet (reduce writes it), so without this the question
     // generator has only the concept list to anchor on.
     const capsPath = stateDir("rollups", "capabilities.json");
-    const capsSlice = fs.existsSync(capsPath) ? fs.readFileSync(capsPath, "utf8").slice(0, 2500) : "";
+    const capsSlice = fs.existsSync(capsPath)
+      ? fs.readFileSync(capsPath, "utf8").slice(0, 2500)
+      : "";
     writeStatus({ phase: "weave", weave_loop: loop, weave_loops_total: nLoops });
     console.log(`[weave] loop ${loop}/${nLoops}: generating ${nQuestions} discovery questions…`);
     // Two attempts — local JSON mode sometimes wraps in prose or truncates.
@@ -1626,8 +1666,15 @@ async function runWeave({ loops = null, questionsPerLoop = null } = {}) {
         // An empty/near-empty reply must NOT hit disk: the existsSync resume
         // check above would then block the retry forever (four 0-byte notes
         // shipped this way on 2026-07-14).
-        appendLedger({ phase: "weave", artifact: `loop${loop}:note${i + 1}`, ok: false, error: `empty note (${noteText.length} chars)` });
-        console.log(`[weave] loop ${loop} note ${i + 1}/${qs.length}: EMPTY reply — skipped (will retry on re-run)`);
+        appendLedger({
+          phase: "weave",
+          artifact: `loop${loop}:note${i + 1}`,
+          ok: false,
+          error: `empty note (${noteText.length} chars)`
+        });
+        console.log(
+          `[weave] loop ${loop} note ${i + 1}/${qs.length}: EMPTY reply — skipped (will retry on re-run)`
+        );
         continue;
       }
       fs.writeFileSync(notePath, noteText);
@@ -1709,8 +1756,13 @@ function runSad() {
   }
   // Bundled runtime python carries the benny deps (fastapi/neo4j/litellm) with no
   // dev install; override via PRIME_SILO_RUNTIME_PY / PRIME_SILO_RUNTIME_BUNDLE.
-  const bundle = process.env.PRIME_SILO_RUNTIME_BUNDLE
-    || path.join(process.env.APPDATA || path.join(process.env.USERPROFILE || "", "AppData", "Roaming"), "space-agent", "runtime-bundle");
+  const bundle =
+    process.env.PRIME_SILO_RUNTIME_BUNDLE ||
+    path.join(
+      process.env.APPDATA || path.join(process.env.USERPROFILE || "", "AppData", "Roaming"),
+      "space-agent",
+      "runtime-bundle"
+    );
   const py = process.env.PRIME_SILO_RUNTIME_PY || path.join(bundle, "python", "python.exe");
   const env = {
     ...process.env,
@@ -1725,8 +1777,15 @@ function runSad() {
     const scan = path.join("scripts", "code_graph_scan.py");
     if (fs.existsSync(path.join(runtimeDir, scan))) {
       console.log(`[sad] refreshing code graph → runtime/${scan} --workspace ${config.WORKSPACE}`);
-      const cs = spawnSync(py, [scan, "--workspace", config.WORKSPACE], { cwd: runtimeDir, env, stdio: "inherit" });
-      if (cs.status !== 0) console.log(`[sad] WARN code_graph_scan exit=${cs.status} — robustness may be thin (Neo4j up? src present?)`);
+      const cs = spawnSync(py, [scan, "--workspace", config.WORKSPACE], {
+        cwd: runtimeDir,
+        env,
+        stdio: "inherit"
+      });
+      if (cs.status !== 0)
+        console.log(
+          `[sad] WARN code_graph_scan exit=${cs.status} — robustness may be thin (Neo4j up? src present?)`
+        );
     } else {
       console.log(`[sad] WARN ${scan} missing — robustness will be thin without a code graph`);
     }
@@ -1735,12 +1794,25 @@ function runSad() {
   const args = ["--workspace", config.WORKSPACE];
   if (flag("resume")) args.push("--resume");
   const r = spawnSync(py, [script, ...args], { cwd: runtimeDir, env, stdio: "inherit" });
-  appendLedger({ phase: "sad", flow: "togaf_epic_v3", exit: r.status ?? null, error: r.error ? String(r.error) : null });
+  appendLedger({
+    phase: "sad",
+    flow: "togaf_epic_v3",
+    exit: r.status ?? null,
+    error: r.error ? String(r.error) : null
+  });
   if (r.status === 0) {
-    console.log(`[sad] TOGAF_EPIC_V3_SAD_${config.WORKSPACE === "sessions_v1" ? "binary16" : config.WORKSPACE} written to data_out`);
-    writeStatus({ phase: "sad_done", flow: "togaf_epic_v3", sad: "data_out/TOGAF_EPIC_V3_SAD_binary16.pdf" });
+    console.log(
+      `[sad] TOGAF_EPIC_V3_SAD_${config.WORKSPACE === "sessions_v1" ? "binary16" : config.WORKSPACE} written to data_out`
+    );
+    writeStatus({
+      phase: "sad_done",
+      flow: "togaf_epic_v3",
+      sad: "data_out/TOGAF_EPIC_V3_SAD_binary16.pdf"
+    });
   } else {
-    console.log(`[sad] togaf_epic_v3 exit=${r.status} — it needs the LM host (gemma) + Neo4j; re-run 'longview sad' when the eGPU is free (e.g. after training).`);
+    console.log(
+      `[sad] togaf_epic_v3 exit=${r.status} — it needs the LM host (gemma) + Neo4j; re-run 'longview sad' when the eGPU is free (e.g. after training).`
+    );
     writeStatus({ phase: "sad_failed", flow: "togaf_epic_v3", exit: r.status ?? null });
   }
 }

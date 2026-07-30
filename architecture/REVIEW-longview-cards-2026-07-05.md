@@ -14,19 +14,19 @@ skills_observed, operator_traits, open_threads, proposed_next, evidence, concept
 
 ## Measured failure taxonomy (354 failures across cards)
 
-| Class | Count | Plan counter-measure |
-|---|---|---|
-| **Windows path / encoding** | **52** | **Q2 path/encoding lint + shared path utility (added rev 10 — was uncovered)** |
-| Service down / port / connection | 43 | F2 garage health, A6 honest `no_capable_model`, W2 tool preflight |
-| Timeout / hang / wedge | 29 | A0 watchdog |
-| Environment / install drift | 28 | Q1 lockfiles, W2 sandbox provisioning |
-| Model returned invalid JSON | 23 | A1 schema-validated windows + bounded retry |
-| Context / token limits | 19 | A1 windowing |
-| Permissions | 14 | W2 preflight |
-| Pre-existing test issues | 4 | Q2 CI running the full suite |
+| Class                            | Count  | Plan counter-measure                                                           |
+| -------------------------------- | ------ | ------------------------------------------------------------------------------ |
+| **Windows path / encoding**      | **52** | **Q2 path/encoding lint + shared path utility (added rev 10 — was uncovered)** |
+| Service down / port / connection | 43     | F2 garage health, A6 honest `no_capable_model`, W2 tool preflight              |
+| Timeout / hang / wedge           | 29     | A0 watchdog                                                                    |
+| Environment / install drift      | 28     | Q1 lockfiles, W2 sandbox provisioning                                          |
+| Model returned invalid JSON      | 23     | A1 schema-validated windows + bounded retry                                    |
+| Context / token limits           | 19     | A1 windowing                                                                   |
+| Permissions                      | 14     | W2 preflight                                                                   |
+| Pre-existing test issues         | 4      | Q2 CI running the full suite                                                   |
 
 **Use for A0:** the judge's known-bad calibration set must include: invalid/truncated JSON,
-path-mangled output, context-overflow truncation — these are the *measured* ways local-model work fails here.
+path-mangled output, context-overflow truncation — these are the _measured_ ways local-model work fails here.
 
 ## Measured operator profile (343 operator_traits)
 

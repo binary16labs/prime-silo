@@ -2315,7 +2315,7 @@ async function startDesktop() {
                 }
               }
             `;
-            mainWindow.webContents.executeJavaScript(js).catch(e => console.error(e));
+            mainWindow.webContents.executeJavaScript(js).catch((e) => console.error(e));
           }
         }
       }),

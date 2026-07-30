@@ -23,7 +23,6 @@ Current sub-areas:
 - `timeline/`: reusable data lineage and execution timeline widget, sliding minimap window, bezier spline overlays, and demo harness
 - `res/`: canonical shared image assets for authenticated app surfaces
 
-
 ## Current Contracts
 
 Canvas:
@@ -80,7 +79,6 @@ Conversation and surfaces:
 - `timeline/demo.html` serves as the visual harness demonstrating the lineage timeline widget with mock session execution data
 
 ## Visual System Rules
-
 
 - solve shared presentation problems here before cloning styles into feature modules
 - keep the overall direction calm, dark, and readable rather than loud or novelty-driven

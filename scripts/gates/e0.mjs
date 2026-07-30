@@ -41,7 +41,8 @@ export function extractClaims(text) {
 }
 export function registeredValues(registry) {
   const set = new Set();
-  for (const c of registry.claims || []) if (c && c.claim) set.add(String(c.claim).replace(/\s+/g, ""));
+  for (const c of registry.claims || [])
+    if (c && c.claim) set.add(String(c.claim).replace(/\s+/g, ""));
   return set;
 }
 // Returns the unregistered numeric claims found in the given files' visible text.
@@ -76,24 +77,35 @@ function runScan() {
     console.log("[e0:scan] no unregistered numeric claims in the public site — clean.");
     process.exit(0);
   }
-  console.error(`[e0:scan] ${violations.length} UNREGISTERED numeric claim(s) — every public claim must be in claims.json (claim/source/verified_date):`);
+  console.error(
+    `[e0:scan] ${violations.length} UNREGISTERED numeric claim(s) — every public claim must be in claims.json (claim/source/verified_date):`
+  );
   for (const v of violations) console.error(`  - ${v.claim}  (${v.file})`);
   process.exit(1);
 }
 
 function runGate() {
   const fails = [];
-  const check = (cond, msg) => { if (!cond) fails.push(msg); };
+  const check = (cond, msg) => {
+    if (!cond) fails.push(msg);
+  };
 
   // (a) brief exists + owner-approved.
   check(exists("website/DESIGN-BRIEF.md"), "website/DESIGN-BRIEF.md is missing");
   if (exists("website/DESIGN-BRIEF.md")) {
     const brief = read("website/DESIGN-BRIEF.md");
-    check(APPROVAL_RE.test(brief),
-      "DESIGN-BRIEF.md has no OWNER approval line — add `Owner-Approved: <your sign-off>` (replace PENDING). Human-signed: awaiting owner.");
-    check(/A local-first AI workbench\. Your documents, your models, your machine\./.test(brief),
-      "the brief must lock the hero copy verbatim");
-    check(/wireframe|page structure|section order/i.test(brief), "the brief must contain the page structure / wireframe order");
+    check(
+      APPROVAL_RE.test(brief),
+      "DESIGN-BRIEF.md has no OWNER approval line — add `Owner-Approved: <your sign-off>` (replace PENDING). Human-signed: awaiting owner."
+    );
+    check(
+      /A local-first AI workbench\. Your documents, your models, your machine\./.test(brief),
+      "the brief must lock the hero copy verbatim"
+    );
+    check(
+      /wireframe|page structure|section order/i.test(brief),
+      "the brief must contain the page structure / wireframe order"
+    );
     check(/constraint/i.test(brief), "the brief must contain checkable design constraints");
   }
 
@@ -104,17 +116,26 @@ function runGate() {
   if (registry && typeof registry === "object") {
     check(Array.isArray(registry.claims), "claims.json must have a `claims` array");
     for (const c of registry.claims || []) {
-      check(c && c.claim && c.source && c.verified_date,
-        `every registered claim needs claim/source/verified_date (offending: ${JSON.stringify(c).slice(0, 60)})`);
+      check(
+        c && c.claim && c.source && c.verified_date,
+        `every registered claim needs claim/source/verified_date (offending: ${JSON.stringify(c).slice(0, 60)})`
+      );
     }
   }
 
   // (b) the checker is ARMED — synthetic self-test, decoupled from the live-site state.
-  const armedFinds = extractClaims(stripToText('<p>up <b>42%</b> and <span style="width:80%">3x</span> faster</p>'));
-  check(armedFinds.includes("42%") && armedFinds.includes("3x"), "checker fails to extract prose numeric claims");
+  const armedFinds = extractClaims(
+    stripToText('<p>up <b>42%</b> and <span style="width:80%">3x</span> faster</p>')
+  );
+  check(
+    armedFinds.includes("42%") && armedFinds.includes("3x"),
+    "checker fails to extract prose numeric claims"
+  );
   check(!armedFinds.includes("80%"), "checker wrongly treats a CSS width as a claim");
   const flagged = scanUnregisteredText("<p>growth of 42%</p>", { claims: [] });
-  const passed = scanUnregisteredText("<p>growth of 42%</p>", { claims: [{ claim: "42%", source: "test", verified_date: "2026-07-25" }] });
+  const passed = scanUnregisteredText("<p>growth of 42%</p>", {
+    claims: [{ claim: "42%", source: "test", verified_date: "2026-07-25" }]
+  });
   check(flagged.length === 1, "checker does not flag an unregistered claim");
   check(passed.length === 0, "checker does not clear a registered claim");
 
@@ -123,7 +144,9 @@ function runGate() {
     for (const f of fails) console.error("  - " + f);
     process.exit(1);
   }
-  console.log("[e0] brief locked + owner-approved; claims.json schema-valid; claims checker armed (stays armed for E2)");
+  console.log(
+    "[e0] brief locked + owner-approved; claims.json schema-valid; claims checker armed (stays armed for E2)"
+  );
   console.log("[e0] GATE GREEN");
   process.exit(0);
 }
@@ -131,7 +154,9 @@ function runGate() {
 // helper for the self-test (scan arbitrary text, not a file)
 function scanUnregisteredText(text, registry) {
   const reg = registeredValues(registry);
-  return extractClaims(stripToText(text)).filter((c) => !reg.has(c)).map((claim) => ({ claim }));
+  return extractClaims(stripToText(text))
+    .filter((c) => !reg.has(c))
+    .map((claim) => ({ claim }));
 }
 
 if (process.argv.includes("--scan")) runScan();

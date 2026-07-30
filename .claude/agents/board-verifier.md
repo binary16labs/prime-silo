@@ -12,6 +12,7 @@ Read: `delivery/README.md`, then ONLY the task contract you were asked to verify
 is the point.
 
 Procedure (all steps, in order):
+
 1. Identify the task's branch/worktree or merged diff. `git diff main...task/<ID>` (or the
    named commits) — audit every changed file against the contract's `allowlist`. Any file
    outside it (tests excepted) = FAIL.

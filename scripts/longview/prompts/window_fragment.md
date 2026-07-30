@@ -19,5 +19,6 @@ Return ONLY a compact JSON object with these fields (every value an array of sho
 }
 
 Rules:
+
 - Ground every entry in this slice only. Keep entries terse and high-signal.
 - No markdown, no commentary — the JSON object only. Keep the whole object small.

@@ -22,7 +22,13 @@
   border-radius: 10px;
   overflow: hidden;
   color: var(--text-primary, #e8ece9);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   user-select: none;
   position: relative;
   width: 100%;
@@ -127,7 +133,9 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .lineage-btn:hover {
@@ -280,7 +288,10 @@
   stroke: rgba(255, 255, 255, 0.15);
   stroke-width: 1.5;
   stroke-dasharray: 4 2;
-  transition: stroke 0.2s ease, stroke-width 0.2s ease, opacity 0.2s ease;
+  transition:
+    stroke 0.2s ease,
+    stroke-width 0.2s ease,
+    opacity 0.2s ease;
 }
 
 .lineage-edge-path.highlighted {
@@ -307,7 +318,10 @@
   cursor: pointer;
   white-space: nowrap;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
   z-index: 15;
   letter-spacing: 0.01em;
 }
@@ -427,8 +441,14 @@
   border-radius: 2px;
 }
 
-.lineage-minimap-handle.left { left: 0; transform: translateX(-50%); }
-.lineage-minimap-handle.right { right: 0; transform: translateX(50%); }
+.lineage-minimap-handle.left {
+  left: 0;
+  transform: translateX(-50%);
+}
+.lineage-minimap-handle.right {
+  right: 0;
+  transform: translateX(50%);
+}
 
 /* Slide-out Floating Sticky Inspector Drawer */
 .lineage-inspector-drawer {

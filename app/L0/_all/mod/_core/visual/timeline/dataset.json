@@ -51,7 +51,10 @@
       "timestamp": 1785061046000,
       "label": "Log: Fetched 37KB",
       "type": "log_event",
-      "metadata": { "level": "info", "text": "Successfully fetched 37296 bytes from https://dorot..." }
+      "metadata": {
+        "level": "info",
+        "text": "Successfully fetched 37296 bytes from https://dorot..."
+      }
     },
     {
       "id": "out_md",
@@ -83,7 +86,10 @@
       "timestamp": 1785061092000,
       "label": "Log: Parsed Visual System Rules",
       "type": "log_event",
-      "metadata": { "level": "debug", "text": "Found constraint: keep the baseline bubble markdown layout..." }
+      "metadata": {
+        "level": "debug",
+        "text": "Found constraint: keep the baseline bubble markdown layout..."
+      }
     },
     {
       "id": "tool_write_plan",

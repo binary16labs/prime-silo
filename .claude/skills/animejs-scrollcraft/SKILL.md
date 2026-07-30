@@ -14,11 +14,24 @@ is the contract; deviations from the API here caused the last rebuild to fail.
 
 ```js
 import {
-  animate, createTimeline, createTimer, createSpring, createDrawable,
-  createMotionPath, morphTo, onScroll, stagger, svg, utils, text, eases,
-  TextSplitter, ScrollObserver
-} from './vendor/anime.esm.min.js';
+  animate,
+  createTimeline,
+  createTimer,
+  createSpring,
+  createDrawable,
+  createMotionPath,
+  morphTo,
+  onScroll,
+  stagger,
+  svg,
+  utils,
+  text,
+  eases,
+  TextSplitter,
+  ScrollObserver
+} from "./vendor/anime.esm.min.js";
 ```
+
 All of the above are REAL named exports (verified by import + export-map inspection).
 `svg` object = { createDrawable, createMotionPath, morphTo } equivalents; prefer the
 top-level named exports. v4 is TWO-ARGUMENT: `animate(targets, options)` — NEVER
@@ -28,17 +41,26 @@ top-level named exports. v4 is TWO-ARGUMENT: `animate(targets, options)` — NEV
 
 ```js
 // basic
-animate('.chip', { opacity: [0,1], translateY: [24,0], delay: stagger(60, { from: 'first' }),
-  duration: 700, ease: 'out(3)' });
+animate(".chip", {
+  opacity: [0, 1],
+  translateY: [24, 0],
+  delay: stagger(60, { from: "first" }),
+  duration: 700,
+  ease: "out(3)"
+});
 
 // spring
 animate(el, { scale: [0.6, 1], ease: createSpring({ stiffness: 120, damping: 12 }) });
 
 // timeline
-const tl = createTimeline({ defaults: { duration: 600, ease: 'inOutQuad' } });
-tl.add('#g-docs',  { translateX: -180, translateY: -60 })
-  .add('#g-code',  { translateX: 180,  translateY: -40 }, '<<')   // '<<' = with previous
-  .add('#g-links path', { strokeDashoffset: [utils.$('#g-links path')[0]?.getTotalLength?.()||300, 0] }, '+=200');
+const tl = createTimeline({ defaults: { duration: 600, ease: "inOutQuad" } });
+tl.add("#g-docs", { translateX: -180, translateY: -60 })
+  .add("#g-code", { translateX: 180, translateY: -40 }, "<<") // '<<' = with previous
+  .add(
+    "#g-links path",
+    { strokeDashoffset: [utils.$("#g-links path")[0]?.getTotalLength?.() || 300, 0] },
+    "+=200"
+  );
 
 // SCROLL-SCRUBBED timeline (the signature move) — verified option keys:
 // container, axis, enter, leave, sync, repeat, debug,
@@ -46,20 +68,20 @@ tl.add('#g-docs',  { translateX: -180, translateY: -60 })
 // onUpdate, onSyncComplete
 const tl2 = createTimeline({
   autoplay: onScroll({
-    target: sectionEl,          // element whose position drives progress
-    enter:  'bottom top',       // '<target-edge> <container-edge>' — when target bottom meets viewport top… (also accepts 'min max', numbers, 'center', '+=/-=' offsets)
-    leave:  'top bottom',
-    sync:   true,               // true = hard progress link (scrub); or an ease name string for smoothed scrub ('inOutQuad'); or 'play pause' method pair
+    target: sectionEl, // element whose position drives progress
+    enter: "bottom top", // '<target-edge> <container-edge>' — when target bottom meets viewport top… (also accepts 'min max', numbers, 'center', '+=/-=' offsets)
+    leave: "top bottom",
+    sync: true // true = hard progress link (scrub); or an ease name string for smoothed scrub ('inOutQuad'); or 'play pause' method pair
   })
 });
 
 // SVG line drawing
-const [line] = createDrawable('#seal-lineage path');   // returns proxies with a `draw` prop
-animate(line, { draw: '0 1', duration: 900, ease: 'inOutSine' });
+const [line] = createDrawable("#seal-lineage path"); // returns proxies with a `draw` prop
+animate(line, { draw: "0 1", duration: 900, ease: "inOutSine" });
 
 // text splitting (kinetic type)
-const split = text.split('.hero-headline', { words: { wrap: 'clip' } });
-animate(split.words, { y: ['1.2em', 0], opacity: [0,1], delay: stagger(40), ease: 'out(4)' });
+const split = text.split(".hero-headline", { words: { wrap: "clip" } });
+animate(split.words, { y: ["1.2em", 0], opacity: [0, 1], delay: stagger(40), ease: "out(4)" });
 
 // counter scrub
 animate(statEl, { textContent: [0, 248], modifier: utils.round(0), duration: 1200 });
@@ -71,6 +93,7 @@ CSS must default to the FINAL (assembled/exploded-readable) state so the page is
 
 **MOBILE-FIRST (the primary surface — most visitors arrive on phones).** Narrow layouts keep the
 FULL scrub experience; they re-choreograph, never degrade to static:
+
 - Sticky pinning stays on mobile (`position:sticky` works on iOS/Android). Chapter layout goes
   vertical: stage pinned at top (~62svh), the step rail becomes a bottom card strip — one card
   visible at a time, swapped per beat (translateX carousel), progress dots above it.
@@ -87,15 +110,19 @@ FULL scrub experience; they re-choreograph, never degrade to static:
 ## 3. The scrollytelling chassis (what was missing last time)
 
 Every explode chapter MUST be this shape — a tall scroller with a pinned stage:
+
 ```html
 <section class="chapter chapter--dark" id="trigraph" data-visual="trigraph">
-  <div class="chapter-pin">          <!-- position:sticky; top:0; height:100vh -->
-    <div class="chapter-stage"> …one big SVG set-piece… </div>
-    <aside class="chapter-rail"> …step cards, .active follows progress… </aside>
+  <div class="chapter-pin">
+    <!-- position:sticky; top:0; height:100vh -->
+    <div class="chapter-stage">…one big SVG set-piece…</div>
+    <aside class="chapter-rail">…step cards, .active follows progress…</aside>
   </div>
-  <div class="chapter-track" style="height:320vh"></div> <!-- scroll runway -->
+  <div class="chapter-track" style="height:320vh"></div>
+  <!-- scroll runway -->
 </section>
 ```
+
 One `createTimeline({ autoplay: onScroll({ target: section, enter:'top top', leave:'bottom bottom', sync:true }) })`
 per chapter; divide it into labeled beats (one per step card); drive `.chapter-rail .step.active`
 from timeline progress (`onUpdate` → index = floor(progress * steps)).
@@ -184,6 +211,7 @@ import deliberately. A scene init throw is silent on a cached console: verify wi
 reload + onlyErrors console read.
 
 ## 6a3. SVG anchor pattern — NEVER animate a group that carries its own position
+
 (learned 2026-07-17, forge top-left-fragments bug)
 
 anime writes **CSS transforms**, and CSS transform REPLACES the SVG `transform`
@@ -213,11 +241,11 @@ assert its boundingRect moved <40px from rest — a teleport reads as hundreds o
 - **utils.set hides are UNTRACKED — you MUST restore them on teardown.** A scene that
   hides nodes at rest with `utils.set(el, { opacity: 0 })` / `{ draw: '0 0' }` (so the
   set-piece assembles on scroll) will leave those nodes **invisible** after the runtime
-  **Calm Motion** toggle: `teardownMotion` only `revert()`s tracked *animations*, and a
+  **Calm Motion** toggle: `teardownMotion` only `revert()`s tracked _animations_, and a
   never-scrolled timeline has nothing to revert to. Fresh-load reduced-motion is fine
   (init is skipped, SVG attribute defaults show the full graph) — the bug is ONLY the
   mid-session toggle. Fix: write a `restoreX()` that clears inline `opacity/transform/
-  strokeDashoffset/strokeDasharray/strokeWidth` on the set-piece and CALL it in
+strokeDashoffset/strokeDasharray/strokeWidth` on the set-piece and CALL it in
   `teardownMotion` (like `restoreTerminal`/`restoreLineage`). Test it: toggle Calm Motion,
   assert every node opacity === 1 and edge `strokeDashoffset` === 0.
 - **anime's ScrollObserver does NOT react to synthetic scroll.** `window.scrollTo(...)` +

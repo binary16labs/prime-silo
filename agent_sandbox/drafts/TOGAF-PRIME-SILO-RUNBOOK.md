@@ -180,8 +180,8 @@ python scripts\togaf_epic.py --workspace sessions_v1 --narrative <path.md>
 ```
 
 - Output: `<BENNY_HOME>\workspaces\sessions_v1\data_out\TOGAF_EPIC_SAD_binary16.md`
-  + evidence pack (`togaf_epic_evidence/*.json` — hardware, models, deps,
-  graph schema, code stats, lifecycle).
+  - evidence pack (`togaf_epic_evidence/*.json` — hardware, models, deps,
+    graph schema, code stats, lifecycle).
 - Diagrams as code (all mermaid, all from evidence): C4 context/container,
   use-case, BPMN-style pipeline, class (top classes by real method count),
   sequence (from the real run's AER events), ER (real edge counts), data

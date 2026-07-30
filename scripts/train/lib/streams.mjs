@@ -4,8 +4,12 @@
 // memo-ray conversation tree.
 import { validateRowA, validateRowB } from "./schema.mjs";
 
-const clip = (s, n) => (String(s || "").length > n ? String(s).slice(0, n).trim() + " …" : String(s || "").trim());
-const firstLine = (s) => String(s || "").split(/\r?\n/).find((l) => l.trim()) || "";
+const clip = (s, n) =>
+  String(s || "").length > n ? String(s).slice(0, n).trim() + " …" : String(s || "").trim();
+const firstLine = (s) =>
+  String(s || "")
+    .split(/\r?\n/)
+    .find((l) => l.trim()) || "";
 const unquote = (s) => String(s || "").replace(/^["'\s]+|["'\s]+$/g, "");
 function safeJSON(s) {
   try {
@@ -28,11 +32,13 @@ export function cardToPairs(card) {
   if (intent) {
     responseParts.push(`Intent: ${intent.trim()}`);
     if (s.Applications) responseParts.push(`What we used: ${s.Applications.trim()}`);
-    if (s.Decisions && firstLine(s.Decisions)) responseParts.push(`Decisions: ${clip(s.Decisions, 800)}`);
+    if (s.Decisions && firstLine(s.Decisions))
+      responseParts.push(`Decisions: ${clip(s.Decisions, 800)}`);
   } else {
     responseParts.push(`Overview: ${overview.trim()}`);
     if (s["What happened"]) responseParts.push(`What happened: ${clip(s["What happened"], 900)}`);
-    if (s["Threads and signals"]) responseParts.push(`Threads and signals: ${clip(s["Threads and signals"], 600)}`);
+    if (s["Threads and signals"])
+      responseParts.push(`Threads and signals: ${clip(s["Threads and signals"], 600)}`);
   }
   // Deterministic per-card template pick (FNV-1a over the card id) so the model learns the
   // method/voice, not a single fixed instruction phrase (55/56 rows sharing one template
@@ -43,7 +49,7 @@ export function cardToPairs(card) {
     `In the Prime-Silo estate, how did we approach this task and what was the method: "${topic}"?`,
     `Walk me through how this was handled in our estate, in our usual working style: "${topic}"`,
     `What was our approach and reasoning for: "${topic}"?`,
-    `Describe the method and key decisions behind this piece of work: "${topic}"`,
+    `Describe the method and key decisions behind this piece of work: "${topic}"`
   ];
   let h = 0x811c9dc5;
   for (const ch of String(card.id)) {
@@ -56,8 +62,8 @@ export function cardToPairs(card) {
       id: `A-card-${card.id}`,
       instruction: templates[h % templates.length],
       response: responseParts.join("\n\n"),
-      source: { type: "card", id: card.id, sid: card.sid || undefined },
-    },
+      source: { type: "card", id: card.id, sid: card.sid || undefined }
+    }
   ];
 }
 
@@ -75,8 +81,8 @@ export function adrToPairs(adr) {
       id: `A-adr-${adr.id}`,
       instruction: `What is our architectural decision in "${clip(adr.title, 120)}", and what's the rationale?`,
       response: parts.join("\n\n") || clip(body, 1200),
-      source: { type: "adr", id: adr.id },
-    },
+      source: { type: "adr", id: adr.id }
+    }
   ];
 }
 
@@ -92,7 +98,7 @@ export function traceToRows(
     maxRows = Number(process.env.T2_TRACE_MAX_ROWS) || 500,
     maxAncestors = Number(process.env.T2_TRACE_MAX_ANCESTORS) || 8,
     // Lever 2: no single tool may dominate the stream (Bash was 30% in v2).
-    maxToolShare = Number(process.env.T2_TRACE_MAX_TOOL_SHARE) || 0.2,
+    maxToolShare = Number(process.env.T2_TRACE_MAX_TOOL_SHARE) || 0.2
   } = {}
 ) {
   const rows = [];
@@ -102,7 +108,8 @@ export function traceToRows(
   const seenTargets = new Set(); // near-dup collapse: tool + normalized args
   // Resolve ancestors from the slice first, then on-demand from disk (an entity's
   // filename is its id), so trajectory context is reconstructed. Cached loader.
-  const resolve = (id) => (entityMap.has(id) ? entityMap.get(id) : getEntity ? getEntity(id) : null);
+  const resolve = (id) =>
+    entityMap.has(id) ? entityMap.get(id) : getEntity ? getEntity(id) : null;
   for (const e of entityMap.values()) {
     if (e.type !== "Tool Call") continue;
     if (rows.length >= maxRows) break;
@@ -120,8 +127,13 @@ export function traceToRows(
     // goal: this step's own summary/action/description (key casing varies by agent),
     // else nearest ancestor User Input.
     let goal = unquote(
-      args.toolSummary || args.ToolSummary || args.toolAction || args.ToolAction ||
-      args.description || args.Description || ""
+      args.toolSummary ||
+        args.ToolSummary ||
+        args.toolAction ||
+        args.ToolAction ||
+        args.description ||
+        args.Description ||
+        ""
     );
     // Single bounded ancestor walk builds the state chain AND the session anchor
     // (topmost ancestor reached) — no separate deep traversal (that was O(depth)
@@ -144,10 +156,15 @@ export function traceToRows(
       if (!goal && cur.type === "Thought") goal = clip(firstLine(cur.content), 200);
     }
     if (!goal) goal = `invoke ${name}`;
-    const state = chain.length ? chain.join("\n") : `Session start (agent ${e.agent || "unknown"}); no prior step in the loaded window.`;
+    const state = chain.length
+      ? chain.join("\n")
+      : `Session start (agent ${e.agent || "unknown"}); no prior step in the loaded window.`;
 
     // Near-dup collapse: same tool + same args modulo paths/hex/numbers teaches nothing new.
-    const norm = JSON.stringify(args).toLowerCase().replace(/[a-f0-9]{8,}/g, "#").replace(/\d+/g, "#");
+    const norm = JSON.stringify(args)
+      .toLowerCase()
+      .replace(/[a-f0-9]{8,}/g, "#")
+      .replace(/\d+/g, "#");
     const dupKey = `${name}|${norm}`;
     if (seenTargets.has(dupKey)) {
       excluded.dedup++;
@@ -165,7 +182,7 @@ export function traceToRows(
       state,
       goal,
       tool_call: { name, args },
-      source: { type: "trace", id: e.id, sid, agent: e.agent },
+      source: { type: "trace", id: e.id, sid, agent: e.agent }
     };
     // Lever 3: tag result-conditioned rows (state carries a prior Tool Result) so the
     // chain share is measurable; stays stream B, same schema, extra provenance only.

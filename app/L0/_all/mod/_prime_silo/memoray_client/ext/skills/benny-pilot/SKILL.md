@@ -119,7 +119,7 @@ if (selId) {
   const meta = sessions.find((s) => s.id === selId) || {};
   return {
     selected: { id: selId, title: meta.title, agent: meta.agent, project: meta.project },
-    detail,                          // nodes, edges, artifacts recorded in this session
+    detail, // nodes, edges, artifacts recorded in this session
     link: pilot.bridgeLink("memory", selId)
   };
 }
@@ -143,7 +143,8 @@ if (!activeId) {
   // No run selected — describe the navigator state and invite the operator to pick one.
   const all = await pilot.runs(10);
   return {
-    message: `Governance V2 Navigator: ${gov.summary?.totalVisible ?? all.length} items visible ` +
+    message:
+      `Governance V2 Navigator: ${gov.summary?.totalVisible ?? all.length} items visible ` +
       `(filter: ${gov.filter || "all"}, sort: ${gov.sort || "weight"}, ` +
       `${gov.summary?.totalFailures ?? "?"} failures). No run selected — click one to focus.`,
     runs: all
@@ -163,14 +164,14 @@ if (isSession) {
 
 return {
   activeId,
-  type:       gov.activeType,
-  status:     gov.activeStatus,
+  type: gov.activeType,
+  status: gov.activeStatus,
   riskWeight: gov.activeRiskWeight,
-  errCount:   gov.activeErrCount,
-  duration:   gov.activeDuration,
-  title:      gov.activeTitle,
-  stepIndex:  gov.stepIndex,
-  stepTotal:  gov.stepTotal,
+  errCount: gov.activeErrCount,
+  duration: gov.activeDuration,
+  title: gov.activeTitle,
+  stepIndex: gov.stepIndex,
+  stepTotal: gov.stepTotal,
   nodeStatesSummary: gov.nodeStatesSummary,
   navigator: gov.summary,
   detail,
