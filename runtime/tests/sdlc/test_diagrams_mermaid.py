@@ -4,10 +4,9 @@ test_aos_f11_to_mermaid_emits_graph_td — output starts with 'graph TD'
 test_aos_f11_subgraph_per_wave         — one subgraph per wave
 """
 import uuid
-import pytest
 
-from benny.core.manifest import ManifestPlan, ManifestTask, ManifestEdge, SwarmManifest
-from benny.sdlc.diagrams import to_mermaid, populate_mermaid
+from benny.core.manifest import ManifestEdge, ManifestPlan, ManifestTask, SwarmManifest
+from benny.sdlc.diagrams import populate_mermaid, to_mermaid
 
 
 def _make_plan() -> ManifestPlan:

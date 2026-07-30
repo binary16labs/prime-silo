@@ -1,5 +1,7 @@
 import pytest
+
 from benny.graph.kg3d.ingest import create_ingest_proposal
+
 
 def test_create_ingest_proposal_logic():
     nodes_raw = [

@@ -1,9 +1,9 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock
+
 from benny.api.server import app
-from pathlib import Path
-import json
 
 client = TestClient(app)
 

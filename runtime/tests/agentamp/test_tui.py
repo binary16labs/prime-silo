@@ -10,7 +10,6 @@ Covers
 from __future__ import annotations
 
 import time
-from pathlib import Path
 
 import pytest
 
@@ -25,7 +24,6 @@ from benny.agentamp.tui import (
     run_line_mode,
     run_tui,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

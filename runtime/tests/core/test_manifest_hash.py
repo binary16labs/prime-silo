@@ -13,8 +13,6 @@ from __future__ import annotations
 
 import copy
 
-import pytest
-
 from benny.core.manifest import (
     ManifestPlan,
     ManifestTask,

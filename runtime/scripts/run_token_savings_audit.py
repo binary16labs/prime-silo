@@ -11,16 +11,15 @@ for aggregation by scripts/offload-report.mjs.
 
 import asyncio
 import json
-import os
 import sys
 from pathlib import Path
 
 # Add runtime to sys.path so benny modules can be imported
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from benny.core.offload import manifest as M
-from benny.core.offload import orchestrator as O
 from benny.core.offload import ledger as L
+from benny.core.offload import orchestrator as O
+
 
 def measure_use_case_1():
     print("==========================================================================")
@@ -53,7 +52,7 @@ def measure_use_case_1():
     mcp_chars = len(mcp_json_str)
     mcp_tokens_est = mcp_chars // 4
     
-    print(f"[Prime-Silo MCP Approach] Neo4j / AST Graph Symbol Query (execute_cypher):")
+    print("[Prime-Silo MCP Approach] Neo4j / AST Graph Symbol Query (execute_cypher):")
     print(f"  -> Returned Graph Payload: {mcp_chars:,} chars (~{mcp_tokens_est:,} tokens in planner context)")
     
     saved_chars = raw_chars - mcp_chars

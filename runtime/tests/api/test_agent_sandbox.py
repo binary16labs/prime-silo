@@ -21,8 +21,8 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from benny.api.agent_scope import AgentScopeMiddleware
 from benny.api.agent_sandbox_routes import router as agent_sandbox_router
+from benny.api.agent_scope import AgentScopeMiddleware
 from benny.api.widget_routes import router as widget_router
 from benny.core.workspace import (
     AGENT_SANDBOX_SUBDIRS,
@@ -31,7 +31,6 @@ from benny.core.workspace import (
     get_workspace_path,
     is_within_agent_sandbox,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

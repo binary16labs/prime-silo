@@ -18,13 +18,12 @@ import pytest
 
 from benny.agentamp.dsp import (
     DEFAULT_SPECTRUM_BINS,
+    DerivedData,
     DSPTransform,
     Envelope,
-    DerivedData,
     envelope_key,
     transform,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -119,7 +118,7 @@ def test_aamp_f6_spectrum_bin_count():
 
 def test_aamp_f6_spectrum_bins_in_range():
     """All spectrum bins are floats in [0, 1] (AAMP-F6)."""
-    stream = [_token_event(f"x" * 100)]
+    stream = [_token_event("x" * 100)]
     env = next(iter(transform(stream)))
     for b in env.derived.spectrum_bin:
         assert 0.0 <= b <= 1.0, f"bin value {b} out of range"
@@ -308,7 +307,6 @@ def test_dsp_transform_push_returns_envelope():
 
 def test_envelope_key_excludes_captured_at():
     """envelope_key must not include captured_at."""
-    from dataclasses import replace
     env = Envelope(
         source_event={"type": "token"},
         derived=DerivedData(

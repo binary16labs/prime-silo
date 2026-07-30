@@ -4,10 +4,10 @@ Uses the module-level singleton so this test reflects the real registry that
 ships with Benny, not a test-only stub.
 """
 import json
-import pytest
 
 from benny.core.artifact_store import _estimate_tokens
-from benny.core.disclosure import registry as global_registry, DisclosureRegistry
+from benny.core.disclosure import DisclosureRegistry
+from benny.core.disclosure import registry as global_registry
 
 
 def test_aos_nfr12_disclosure_budget():

@@ -1,9 +1,10 @@
-import pytest
-import os
 from unittest.mock import AsyncMock, patch
-from benny.mcp.server import mcp
+
 import httpx
-import json
+import pytest
+
+from benny.mcp.server import mcp
+
 
 @pytest.mark.asyncio
 async def test_plan_tool_registered():

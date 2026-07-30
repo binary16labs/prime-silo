@@ -1,7 +1,9 @@
-import pytest
 import json
 import os
-from benny.graph.kg3d.schema import Node, Edge, validate_node, aot_layer_for
+
+import pytest
+
+from benny.graph.kg3d.schema import Edge, Node, aot_layer_for, validate_node
 
 FIXTURE_PATH = "C:/Users/nsdha/OneDrive/code/benny/tests/fixtures/kg3d/ml_knowledge_graph_v1.json"
 

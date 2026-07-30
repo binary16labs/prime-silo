@@ -3,21 +3,29 @@ Test suite for Phase 4 — MCP Gateway, RBAC, Remix Servers, Credential Vault.
 Run with: python -m pytest tests/test_gateway.py -v
 """
 
-import pytest
-import time
-from unittest.mock import patch, MagicMock
-from pathlib import Path
+from unittest.mock import patch
 
+from benny.gateway.credential_vault import (
+    delete_credential,
+    get_credential,
+    list_credentials,
+    store_credential,
+)
 from benny.gateway.rbac import (
-    AgentRole, ToolOperation, ToolPermission, RBACPolicy,
-    check_permission, load_policy, save_policy, _rate_counters,
+    AgentRole,
+    RBACPolicy,
+    ToolOperation,
+    ToolPermission,
+    _rate_counters,
+    check_permission,
+    save_policy,
 )
 from benny.gateway.remix_server import (
-    RemixServerConfig, RemixServer, save_remix_config,
-    load_remix_config, list_remix_configs,
-)
-from benny.gateway.credential_vault import (
-    store_credential, get_credential, list_credentials, delete_credential,
+    RemixServer,
+    RemixServerConfig,
+    list_remix_configs,
+    load_remix_config,
+    save_remix_config,
 )
 
 

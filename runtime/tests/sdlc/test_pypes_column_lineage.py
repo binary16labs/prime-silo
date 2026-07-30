@@ -11,12 +11,8 @@ AOS-F24: Pypes silver/gold steps emit a column-level lineage block
 from __future__ import annotations
 
 import json
-from pathlib import Path
-
-import pytest
 
 from benny.pypes.lineage import emit_column_lineage
-
 
 # ---------------------------------------------------------------------------
 # AOS-F24 — column-level lineage block

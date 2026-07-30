@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import pytest
 
+from benny.agentamp.contracts import SkinLayout, SkinWindow
+from benny.agentamp.dsp import DerivedData, make_layout_envelope
 from benny.agentamp.layout import (
     SNAP_ZONES,
     LayoutResult,
@@ -18,9 +20,6 @@ from benny.agentamp.layout import (
     layout_event_envelope,
     resolve_snap,
 )
-from benny.agentamp.dsp import DerivedData, Envelope, make_layout_envelope
-from benny.agentamp.contracts import SkinLayout, SkinWindow
-
 
 # ---------------------------------------------------------------------------
 # AAMP-F20 — snap zones and viewport clamping

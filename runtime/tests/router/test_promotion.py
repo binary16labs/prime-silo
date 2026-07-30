@@ -4,8 +4,6 @@ Scenarios ↔ delivery/tasks/L12.md gherkin. No network, no served endpoint; a t
 
 import json
 
-import pytest
-
 from benny.router import promotion as pr
 from benny.router import tuned_engine as te
 

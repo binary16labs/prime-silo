@@ -22,12 +22,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import os
+
 import benny_cli  # noqa: E402  — reuse _render_manifest_vars / _load_manifest
 from benny.core.manifest import SwarmManifest  # noqa: E402
 from benny.core.models import call_model  # noqa: E402
 from benny.core.workspace import get_workspace_path  # noqa: E402
-
-import os
 
 # qwen3.5-9b-FLM generates ~6 tok/s on this laptop and serializes one request
 # at a time. Diagram-dense tasks need more room, so make the budget tunable.

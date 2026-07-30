@@ -1,5 +1,7 @@
-from typing import Protocol, runtime_checkable, Any, List
-from pypes.contracts.models import SourceModel, ValidationModel, OperationModel
+from typing import Any, List, Protocol, runtime_checkable
+
+from pypes.contracts.models import OperationModel, SourceModel, ValidationModel
+
 
 @runtime_checkable
 class ExecutionEngine(Protocol):

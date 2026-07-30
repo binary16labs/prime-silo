@@ -5,11 +5,11 @@ AOS-F9 — activate(tool_name) returns JSON Schema; lazy-loaded and cached
 AOS-F10 — examples(tool_name) returns Layer 3 only when explicitly called
 """
 import json
+
 import pytest
 
-from benny.core.disclosure import DisclosureRegistry
 from benny.core.artifact_store import _estimate_tokens
-
+from benny.core.disclosure import DisclosureRegistry
 
 # ---------------------------------------------------------------------------
 # Helpers

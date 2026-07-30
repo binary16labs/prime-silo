@@ -1,14 +1,16 @@
-import sys
-import os
-from datetime import datetime
-from typing import get_type_hints, Literal, Union, get_origin, get_args, List, Dict
 import enum
+import os
+import sys
+from datetime import datetime
+from typing import Dict, List, Literal, Union, get_args, get_origin, get_type_hints
+
 import pydantic
 
 # Add the project root to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from benny.graph.kg3d.schema import Node, Edge, Proposal, DeltaEvent, NodeCategory, EdgeKind
+from benny.graph.kg3d.schema import DeltaEvent, Edge, EdgeKind, Node, NodeCategory, Proposal
+
 
 def py_type_to_ts(py_type):
     if py_type == str:

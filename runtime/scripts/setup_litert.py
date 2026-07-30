@@ -1,7 +1,7 @@
-import os
-import sys
 import subprocess
+import sys
 from pathlib import Path
+
 
 def install_dependencies():
     print("Step 1: Installing MediaPipe and dependencies...")
@@ -39,7 +39,7 @@ def provide_model_instructions(model_dir):
     print("Please download the Gemma 4 E4B model for LiteRT here:")
     print("https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm")
     print("\nDownload the file: gemma-4-E4B-it.litertlm")
-    print(f"\nOnce downloaded, place the file in:")
+    print("\nOnce downloaded, place the file in:")
     print(f"  {model_dir.absolute()}")
     print("-" * 40)
 
@@ -54,9 +54,9 @@ def main():
     provide_model_instructions(model_dir)
     
     print("\nNext steps:")
-    print(f"1. Run: pip install mediapipe")
-    print(f"2. Download the model and place it in the litert directory.")
-    print(f"3. Start Benny and select 'LiteRT' as the provider.")
+    print("1. Run: pip install mediapipe")
+    print("2. Download the model and place it in the litert directory.")
+    print("3. Start Benny and select 'LiteRT' as the provider.")
 
 if __name__ == "__main__":
     main()

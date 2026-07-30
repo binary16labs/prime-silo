@@ -1,16 +1,16 @@
-import os
 import json
+import os
 import sys
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Any, Dict
 
 # Add project root to sys.path
 sys.path.append(os.getcwd())
 
-from tree_sitter import Language, Parser, Node
-import tree_sitter_python as tspython
 import tree_sitter_javascript as tsjavascript
+import tree_sitter_python as tspython
 import tree_sitter_typescript as ts_ts
+from tree_sitter import Language, Node, Parser
 
 # --- Language Setup ---
 LANGUAGES = {

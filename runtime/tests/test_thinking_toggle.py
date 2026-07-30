@@ -43,6 +43,7 @@ def test_call_llm_threads_workspace_to_call_model():
     """The synthesis call_llm wrapper must pass the workspace through so the
     thinking toggle can key off the right manifest."""
     import asyncio
+
     from benny.synthesis import engine
 
     captured = {}

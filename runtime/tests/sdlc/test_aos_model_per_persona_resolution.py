@@ -6,10 +6,9 @@ Resolution order (first non-empty wins):
   3. config.model
   4. AOS_DEFAULT_PERSONA_MODEL  (fallback — qwen3_5_9b)
 """
-import pytest
 from benny.core.manifest import ManifestConfig
 from benny.core.models import MODEL_REGISTRY, is_local_model
-from benny.sdlc.model_resolver import resolve_model, AOS_DEFAULT_PERSONA_MODEL
+from benny.sdlc.model_resolver import AOS_DEFAULT_PERSONA_MODEL, resolve_model
 
 
 def test_aos_model_per_persona_resolution():

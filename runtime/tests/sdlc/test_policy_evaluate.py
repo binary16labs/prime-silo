@@ -13,8 +13,7 @@ from __future__ import annotations
 
 import pytest
 
-from benny.governance.policy import PolicyDecision, PolicyEvaluator, PolicyDeniedError
-
+from benny.governance.policy import PolicyDecision, PolicyDeniedError, PolicyEvaluator
 
 # ---------------------------------------------------------------------------
 # Fixtures

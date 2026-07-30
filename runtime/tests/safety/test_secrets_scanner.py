@@ -11,7 +11,6 @@ import pytest
 
 from benny.governance.portability import secrets_scanner as scanner
 
-
 # Each tuple: (label, offending_line). Values are fake but match the known
 # prefix shape enforced by the providers in question.
 KNOWN_PREFIX_CASES = [

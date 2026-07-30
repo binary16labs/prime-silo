@@ -1,8 +1,10 @@
-import pytest
-import os
 import json
 from unittest.mock import patch
+
+import pytest
+
 from benny.core.models import call_model
+
 
 def reset_logger():
     """Reset the logger singleton to force re-initialization with new env vars."""

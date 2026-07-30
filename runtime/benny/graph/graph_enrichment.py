@@ -598,14 +598,14 @@ async def stage_recluster(workspace: str, dry_run: bool) -> Dict[str, Any]:
         )
 
     # Name the substantial communities and set category = community name (theme).
-    from ..synthesis.engine import name_community
-
     # Per-CALL deadline, not per-run: a wedged LLM host hangs each request
     # indefinitely (observed 2026-07-14: LM Studio answered /models but chat
     # completions never returned) — without this every name burns the full
     # transport timeout × retries and the whole stage looks frozen.
     import asyncio as _asyncio
     import os as _os
+
+    from ..synthesis.engine import name_community
 
     name_timeout = float(_os.environ.get("BENNY_COMMUNITY_NAME_TIMEOUT_S", "120"))
     timeouts = 0

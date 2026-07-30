@@ -4,10 +4,11 @@ path_for() must reject any SHA that would place the artifact outside the
 workspace artifacts root — e.g. via symlinks or crafted path components.
 """
 import os
-import pytest
 from pathlib import Path
 
-from benny.core.artifact_store import path_for, put, get
+import pytest
+
+from benny.core.artifact_store import get, path_for, put
 
 
 def test_aos_sec5_normal_sha_is_confined(tmp_path):

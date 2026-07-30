@@ -11,7 +11,6 @@ NFR5: A reference fixture of 20 sequential tasks completes without raising
       MemoryError through a 2-slot pool (mocked VRAM via env var).
 """
 
-import pytest
 
 from benny.sdlc.worker_pool import VramPool, WorkerPool, vram_available_mb  # noqa: F401
 

@@ -1,6 +1,14 @@
 from typing import List
+
+from pypes.contracts.models import (
+    EngineType,
+    ExecutionContract,
+    OperationModel,
+    SourceModel,
+    ValidationModel,
+)
 from pypes.meta.models import MetaModel
-from pypes.contracts.models import ExecutionContract, SourceModel, OperationModel, EngineType, ValidationModel
+
 
 class ContractGenerator:
     """Logic to derive technical execution contracts from design-first meta-models."""

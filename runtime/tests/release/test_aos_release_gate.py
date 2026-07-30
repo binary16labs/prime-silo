@@ -27,13 +27,10 @@ AOS-OBS2: structured logs carry component='aos'.
 
 from __future__ import annotations
 
-import hashlib
-import json
 import time
 from pathlib import Path
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # GATE-AOS-POLICY-1 — auto_approve_writes MUST be false
@@ -94,7 +91,7 @@ def test_gate_aos_ledger(tmp_path):
 
 def test_gate_aos_pbr(tmp_path):
     """GATE-AOS-PBR: PBR yields ≥ 80% token reduction on test fixture."""
-    from benny.core.artifact_store import DEFAULT_PBR_THRESHOLD_TOKENS, put
+    from benny.core.artifact_store import put
 
     # 8 KB fixture → well above threshold → stored by reference
     large_payload = "x " * 4096   # ≈ 8192 chars → ~2048 tokens
@@ -219,19 +216,6 @@ def test_gate_aos_cov_informational():
     """GATE-AOS-COV: AOS modules exist and are importable (coverage in CI)."""
     # In CI this test is complemented by --cov reporting.
     # Here we verify the key modules are importable without error.
-    import benny.governance.jsonld
-    import benny.governance.ledger
-    import benny.governance.policy
-    import benny.pypes.lineage
-    import benny.sdlc.bdd
-    import benny.sdlc.checkpoint
-    import benny.sdlc.contracts
-    import benny.sdlc.diagrams
-    import benny.sdlc.metrics
-    import benny.sdlc.requirements
-    import benny.sdlc.sandbox_runner
-    import benny.sdlc.togaf
-    import benny.sdlc.worker_pool
 
 
 # ---------------------------------------------------------------------------
@@ -327,7 +311,6 @@ def test_aos_obs2_logs_carry_component():
     """OBS2: AOS module loggers use the 'aos' component namespace."""
     import logging
 
-    from benny.sdlc import togaf, metrics
 
     # The loggers in AOS modules should be under 'benny.sdlc.*' or carry 'aos' context
     togaf_logger = logging.getLogger("benny.sdlc.togaf")

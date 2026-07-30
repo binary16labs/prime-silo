@@ -1,9 +1,9 @@
 
 import asyncio
-import sys
-import os
 import json
 import logging
+import os
+import sys
 from datetime import datetime
 
 # Set up logging to console
@@ -17,7 +17,7 @@ logger = logging.getLogger("SwarmCLI")
 sys.path.append(os.path.abspath(os.path.join(os.getcwd())))
 
 async def test_discovery_swarm(workspace, nexus_id, query):
-    logger.info(f"--- STARTING DISCOVERY SWARM CLI TEST ---")
+    logger.info("--- STARTING DISCOVERY SWARM CLI TEST ---")
     logger.info(f"Workspace: {workspace}")
     logger.info(f"Nexus ID: {nexus_id}")
     logger.info(f"Query: {query}")
@@ -59,7 +59,7 @@ async def test_discovery_swarm(workspace, nexus_id, query):
             "timestamp": start_time.isoformat()
         }
         
-        logger.info(f"--- AUDIT PREVIEW ---")
+        logger.info("--- AUDIT PREVIEW ---")
         logger.info(json.dumps(lineage_audit, indent=2))
         
     except Exception as e:

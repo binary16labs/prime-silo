@@ -21,6 +21,7 @@ and what past runs reference. Share the file -> share the workflow.
 from __future__ import annotations
 
 import sys
+
 if sys.platform == "win32":
     try:
         import msvcrt
@@ -42,7 +43,6 @@ from benny.core.manifest import (
     OutputSpec,
     SwarmManifest,
 )
-
 
 # =============================================================================
 # COMMANDS
@@ -280,6 +280,7 @@ async def cmd_req(args: argparse.Namespace) -> int:
     import os
     import re as _re
     from pathlib import Path as _Path
+
     from benny.sdlc.requirements import PrdValidationError, generate_prd
 
     requirement = args.requirement
@@ -1267,7 +1268,7 @@ async def cmd_enrich(args: argparse.Namespace) -> int:  # noqa: C901 — intenti
                 "## 7. Run Provenance",
                 "",
                 f"- Run folder: `{run_folder}`",
-                f"- Lineage (Marquez): http://localhost:3010",
+                "- Lineage (Marquez): http://localhost:3010",
                 f"- GDPR notice: `{run_folder / 'GDPR_notice.json'}`",
             ]
             if stats.get("_error"):
@@ -1846,11 +1847,16 @@ def build_parser() -> argparse.ArgumentParser:
 
 async def cmd_pageindex(args: argparse.Namespace) -> int:
     """PageIndex vectorless spine — build trees, run the full ingest, or show an outline."""
-    from benny.core.workspace import get_workspace_path
     from benny.core.extraction import extract_structured_text
     from benny.core.pageindex import abstract_outline
-    from benny.core.pageindex_builder import build_document_tree, enrich_summaries, persist_tree, load_tree
+    from benny.core.pageindex_builder import (
+        build_document_tree,
+        enrich_summaries,
+        load_tree,
+        persist_tree,
+    )
     from benny.core.pageindex_pipeline import run_pageindex_ingest
+    from benny.core.workspace import get_workspace_path
 
     ws = args.workspace
     sub = args.pageindex_cmd
@@ -1917,7 +1923,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # --tui / benny tui (AAMP-F7)
     if getattr(args, "tui", False) or args.cmd == "tui":
-        from benny.agentamp.tui import run_tui, _default_palette
+        from benny.agentamp.tui import _default_palette, run_tui
         ws = getattr(args, "workspace", "default")
         return run_tui(_default_palette(), workspace=ws)
 
@@ -2088,8 +2094,8 @@ def cmd_status(args: argparse.Namespace) -> int:
 
 
 def cmd_mcp(args: argparse.Namespace) -> int:
-    import subprocess
     import os
+    import subprocess
 
     # Implementation invokes python -m benny.mcp.server --stdio
     cmd = [sys.executable, "-m", "benny.mcp.server"]
@@ -2101,7 +2107,7 @@ def cmd_mcp(args: argparse.Namespace) -> int:
     env = os.environ.copy()
     env["BENNY_API_PORT"] = str(args.port)
 
-    print(f"[mcp] starting server (stdio transport)...")
+    print("[mcp] starting server (stdio transport)...")
     try:
         # MCP server typically communicates over stdin/stdout, so we 
         # replace the current process or use run. 
@@ -2118,8 +2124,10 @@ def cmd_mcp(args: argparse.Namespace) -> int:
 def cmd_doctor(args: argparse.Namespace) -> int:
     import asyncio
     import os
+
     from rich.console import Console
     from rich.table import Table
+
     from benny.ops.doctor import run_doctor
 
     console = Console()
@@ -2149,8 +2157,9 @@ def cmd_doctor(args: argparse.Namespace) -> int:
 
 
 def cmd_migrate(args: argparse.Namespace) -> int:
-    from benny.migrate.importer import MigrationEngine
     import os
+
+    from benny.migrate.importer import MigrationEngine
 
     source = Path(args.from_path)
     target = Path(args.to_home or os.environ.get("BENNY_HOME", ".")).absolute()

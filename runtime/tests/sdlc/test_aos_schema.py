@@ -4,19 +4,17 @@ AOS-F1 — SwarmManifest v1.0 payloads remain valid under the v1.1 schema
          and a v1.1 manifest round-trips without data loss.
 AOS-F2 — TogafPhase enum covers exactly ADM phases A–D with correct labels.
 """
-import pytest
-from benny.core.manifest import SwarmManifest, ManifestConfig
+from benny.core.manifest import ManifestConfig, SwarmManifest
 from benny.sdlc.contracts import (
-    TogafPhase,
-    QualityGate,
-    BddScenario,
     Adr,
     ArtifactRef,
+    BddScenario,
     DisclosureEntry,
     ProcessMetric,
+    QualityGate,
     SdlcConfig,
+    TogafPhase,
 )
-
 
 # ---------------------------------------------------------------------------
 # AOS-F1: backward compatibility + round-trip

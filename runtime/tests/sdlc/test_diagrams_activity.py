@@ -3,7 +3,6 @@
 test_aos_f13_activity_diagram_per_scenario — one @startuml block per scenario
   with :Given;  :When;  :Then; steps.
 """
-import pytest
 
 from benny.sdlc.contracts import BddScenario
 from benny.sdlc.diagrams import to_activity_diagram

@@ -97,7 +97,7 @@ def main() -> int:
         print(f"  [{mark}] ch{c['order']:02d}  {c['title']}{dur}")
 
     if args.plan or (not args.status and pending):
-        print(f"\nNext (feed each to the Voicebox MCP, in this order, then save the wav):")
+        print("\nNext (feed each to the Voicebox MCP, in this order, then save the wav):")
         for c in pending:
             print(f"  ch{c['order']:02d}  read {c['text_file']}  ->  save {c['audio_file']}  "
                   f"[{c['chars']} chars]")

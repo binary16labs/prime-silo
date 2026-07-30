@@ -1,11 +1,12 @@
-import pytest
-import yaml
 import json
 import os
-import time
 import subprocess
+import time
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
+import yaml
 
 # Load config
 CONFIG_PATH = Path("docs/requirements/release_gates.yaml")
@@ -57,8 +58,6 @@ def test_gate_g_sr1():
 
 def test_gate_g_lat():
     """G-LAT: Platform Planning Latency < 300ms"""
-    from benny.graph.manifest_runner import plan_from_requirement
-    import asyncio
     
     samples = GATE_CONFIG["G-LAT"]["samples"]
     warmup = GATE_CONFIG["G-LAT"]["warmup"]
@@ -97,8 +96,8 @@ def test_gate_g_sig(mock_verify):
     """G-SIG: Signature Integrity"""
     assert GATE_CONFIG["G-SIG"]["required"] is True
     # Verify core logic is in place
-    from benny.core.manifest_hash import sign_manifest, verify_signature
     from benny.core.manifest import SwarmManifest
+    from benny.core.manifest_hash import sign_manifest
     m = SwarmManifest(id="test", name="T")
     signed = sign_manifest(m)
     assert signed.signature is not None

@@ -1,13 +1,13 @@
-import json
-import uuid
+from unittest.mock import patch
+
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock
 
 from benny.api.server import app
 from benny.core.event_bus import event_bus
-from benny.core.manifest import ManifestPlan, ManifestTask, SwarmManifest, RunRecord, RunStatus
+from benny.core.manifest import ManifestPlan, ManifestTask, RunRecord, RunStatus, SwarmManifest
 from benny.core.manifest_hash import sign_manifest
+
 
 @pytest.fixture(scope="module")
 def client() -> TestClient:
@@ -57,7 +57,6 @@ def test_run_rejects_tampered_signature(client: TestClient) -> None:
 def test_run_in_background_error_path():
     # Test the internal _run_in_background function directly for coverage
     from benny.api.workflow_endpoints import _run_in_background
-    from benny.persistence import run_store
     
     m = SwarmManifest(id="m_fail", name="f")
     rid = "run_fail"

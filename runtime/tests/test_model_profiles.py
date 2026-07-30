@@ -11,7 +11,6 @@ Run with: python -m pytest tests/test_model_profiles.py -v
 
 from benny.core import model_profiles as mp
 
-
 # --- capability classification -------------------------------------------------
 
 def test_capability_capable_fragile_none():
@@ -78,7 +77,6 @@ def test_none_model_not_suppressed_by_default():
 
 def test_provider_profile_selection_changes_behaviour(tmp_path, monkeypatch):
     """Selecting the 'always-think' profile for a provider disables auto-suppress."""
-    import benny.core.workspace as ws
 
     monkeypatch.setattr(
         mp, "active_profile_name", lambda provider, workspace=None: "always-think"

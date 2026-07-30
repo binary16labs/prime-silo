@@ -12,12 +12,10 @@ AOS-F31: Process metrics are exposed in Phoenix via OTLP attributes on
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import pytest
 
 from benny.sdlc.metrics import ProcessMetric, phoenix_attrs, record
-
 
 # ---------------------------------------------------------------------------
 # AOS-F28 — metrics record persisted

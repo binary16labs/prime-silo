@@ -3,20 +3,17 @@
 Benny Audit Debug CLI - Command-line tool for investigating execution failures
 """
 
-import sys
-import json
 import argparse
+import json
+import sys
 from pathlib import Path
 from typing import Optional
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from benny.governance.execution_audit import (
-    retrieve_execution_audit,
-    get_failed_nodes,
-    generate_execution_report
-)
+from benny.governance.execution_audit import generate_execution_report, retrieve_execution_audit
+
 
 def print_header(title: str, width: int = 80):
     """Print a formatted header."""
@@ -42,7 +39,7 @@ def cmd_audit_summary(execution_id: str, workspace: str):
         print(f"Execution Phases: {', '.join(phases)}")
     
     if audit.get('first_error'):
-        print(f"\nFirst Error:")
+        print("\nFirst Error:")
         print(f"  Phase:   {audit['first_error'].get('phase', 'unknown')}")
         print(f"  Message: {audit['first_error'].get('message', 'unknown')}")
 
@@ -68,7 +65,7 @@ def cmd_failures(execution_id: str, workspace: str):
         
         stack_trace = error_data.get('error', {}).get('stack_trace', '')
         if stack_trace:
-            print(f"  Stack Trace:")
+            print("  Stack Trace:")
             for line in stack_trace.split('\n')[:10]:  # Show first 10 lines
                 print(f"    {line}")
             if len(stack_trace.split('\n')) > 10:

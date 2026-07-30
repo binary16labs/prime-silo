@@ -17,8 +17,8 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from benny.api.agent_scope import AgentScopeMiddleware
 from benny.api.agent_sandbox_routes import router as agent_sandbox_router
+from benny.api.agent_scope import AgentScopeMiddleware
 from benny.api.views_routes import router as views_router
 from benny.api.views_signing import (
     ViewSignature,
@@ -30,7 +30,6 @@ from benny.core.workspace import (
     get_agent_sandbox_path,
     get_pinned_views_path,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

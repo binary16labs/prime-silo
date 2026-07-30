@@ -16,13 +16,9 @@ from __future__ import annotations
 import hashlib
 import hmac as hmac_lib
 import json
-from pathlib import Path
-
-import pytest
 
 from benny.governance.ledger import (
     LedgerEntry,
-    LedgerRewindError,
     append_entry,
     get_head_hash,
     verify_chain,

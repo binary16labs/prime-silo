@@ -34,7 +34,6 @@ except Exception:
 
 
 async def run(workspace: str, use_llm: bool, show_outline: bool, do_triples: bool, do_graph: bool) -> int:
-    from benny.core.pageindex import abstract_outline, flatten_leaves
     from benny.core import pageindex_builder as pb
     from benny.core.pageindex_pipeline import run_pageindex_ingest
 

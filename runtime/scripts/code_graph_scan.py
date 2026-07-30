@@ -13,7 +13,10 @@ excluded there.
 
 Requires NEO4J_URI/USER/PASSWORD (defaults localhost:7687 neo4j/password) + BENNY_HOME.
 """
-import argparse, os, sys, uuid
+import argparse
+import os
+import sys
+import uuid
 
 
 def main() -> int:

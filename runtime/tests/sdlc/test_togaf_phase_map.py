@@ -10,11 +10,8 @@ TogafPhase.D (Technology Architecture).
 
 from __future__ import annotations
 
-import pytest
-
 from benny.sdlc.contracts import TogafPhase
 from benny.sdlc.togaf import map_waves_to_phases
-
 
 # ---------------------------------------------------------------------------
 # Basic mapping

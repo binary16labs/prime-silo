@@ -1,7 +1,10 @@
-import pytest
 import uuid
-from unittest.mock import patch, MagicMock
-from benny.governance.lineage import BennyLineageClient, PRODUCER
+from unittest.mock import patch
+
+import pytest
+
+from benny.governance.lineage import BennyLineageClient
+
 
 @pytest.fixture
 def lineage_client():

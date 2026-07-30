@@ -20,11 +20,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-import pytest
-
 from benny.sdlc.contracts import Adr, QualityGate, TogafPhase
 from benny.sdlc.togaf import emit_adr, map_waves_to_phases, run_quality_gate
-
 
 # ---------------------------------------------------------------------------
 # Helper

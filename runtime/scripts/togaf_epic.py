@@ -568,7 +568,7 @@ def assemble(hw, models, deps, schema, code, seq, D, narrative_md: str | None, o
     now = _dt.datetime.now().isoformat()
     parts: list[str] = []
     A = parts.append
-    A(f"# TOGAF Enterprise SAD — the binary16 application estate (EPIC edition)\n")
+    A("# TOGAF Enterprise SAD — the binary16 application estate (EPIC edition)\n")
     A(f"*Generated {now} by `scripts/togaf_epic.py` · run `{RUN_ID}` · workspace `{ws}`*\n")
     A("**Method**: every diagram below is *diagrams-as-code generated deterministically from "
       "disk and graph truth* (Tree-sitter code graph, Neo4j schema introspection, the "

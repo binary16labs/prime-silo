@@ -2,9 +2,8 @@
 
 test_aos_f12_to_plantuml_smoke — output is a valid @startuml...@enduml block
 """
-import pytest
 
-from benny.core.manifest import ManifestPlan, ManifestTask, ManifestEdge
+from benny.core.manifest import ManifestEdge, ManifestPlan, ManifestTask
 from benny.sdlc.diagrams import to_plantuml
 
 

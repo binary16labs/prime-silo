@@ -3,9 +3,9 @@ Test suite for Phase 1 — Adaptive RAG Pipeline.
 Run with: python -m pytest tests/test_adaptive_rag.py -v
 """
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-import asyncio
-from unittest.mock import patch, MagicMock, AsyncMock
 
 
 class TestSmartRouter:

@@ -13,12 +13,12 @@ import json
 
 import pytest
 
-from benny.core.offload import manifest as M
-from benny.core.offload import router as R
+from benny.core.offload import executor as E
 from benny.core.offload import gate as G
 from benny.core.offload import ledger as L
+from benny.core.offload import manifest as M
 from benny.core.offload import orchestrator as O
-from benny.core.offload import executor as E
+from benny.core.offload import router as R
 
 
 class _FakeExec:
@@ -407,7 +407,8 @@ def test_routes_result_and_ledger(offload_root):
 
 
 def test_routes_result_missing_raises():
-    import benny.api.offload_routes as RR
     from fastapi import HTTPException
+
+    import benny.api.offload_routes as RR
     with pytest.raises(HTTPException):
         asyncio.run(RR.result("default", "does-not-exist", full=False))

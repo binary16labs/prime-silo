@@ -4,11 +4,9 @@ Uses wall-clock time via time.perf_counter so the test is environment-sensitive.
 On any modern laptop/CI box this should pass with headroom to spare.
 """
 import time
-import pytest
 
-from benny.core.manifest import ManifestPlan, ManifestTask, ManifestEdge
+from benny.core.manifest import ManifestEdge, ManifestPlan, ManifestTask
 from benny.sdlc.diagrams import to_mermaid, to_plantuml
-
 
 _TASK_COUNT = 50
 _WAVES = 5

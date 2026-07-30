@@ -1,6 +1,8 @@
 from enum import Enum
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
+
 
 class NodeType(str, Enum):
     OLTP = "OLTP"

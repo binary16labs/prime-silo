@@ -7,12 +7,10 @@ logic that makes the DocModel deterministic, idempotent and traversal-safe
 ``scripts/docmodel_smoke.py`` against the bundled 3.11 runtime.
 """
 import json
-from pathlib import Path
 
 import pytest
 
 from benny.core import docmodel as D
-
 
 # --------------------------------------------------------------------------- #
 # hashing / ids — determinism (VIS-F4)

@@ -14,12 +14,12 @@ Four contracts (PBR-001 §5, Phase 3):
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import Any, List
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
+
 import pytest
 
 from benny.core import models as llm
-
 
 # ---- is_local_model --------------------------------------------------------
 

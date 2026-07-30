@@ -10,8 +10,6 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
 from benny.agentamp.contracts import SkinManifest, SkinSignature
 from benny.agentamp.signing import canonical_skin_payload, sign_skin_pack, verify_skin_pack
 

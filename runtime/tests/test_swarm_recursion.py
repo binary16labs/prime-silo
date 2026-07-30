@@ -1,8 +1,9 @@
+
 import pytest
-import asyncio
-from typing import Dict, Any
+
+from benny.core.state import PartialResult, TaskItem, create_swarm_state
 from benny.graph.swarm import expansion_monitor_node, planner_node
-from benny.core.state import create_swarm_state, TaskItem, PartialResult
+
 
 @pytest.mark.asyncio
 async def test_expansion_monitor_detects_signals():

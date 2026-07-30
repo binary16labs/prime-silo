@@ -5,21 +5,17 @@ AOS-F6 — auto-promote outputs above threshold; summary clamped to 200 chars
 AOS-F7 — artifact:// URI substitution resolved before tool execution
 """
 import json
+
 import pytest
-from pathlib import Path
 
 from benny.core.artifact_store import (
-    put,
-    get,
-    gc,
-    path_for,
-    maybe_promote,
-    resolve_uri,
     MAX_SUMMARY_CHARS,
-    DEFAULT_PBR_THRESHOLD_TOKENS,
+    gc,
+    get,
+    maybe_promote,
+    put,
+    resolve_uri,
 )
-from benny.sdlc.contracts import ArtifactRef
-
 
 # ---------------------------------------------------------------------------
 # AOS-F5: content-addressed put / get round-trip

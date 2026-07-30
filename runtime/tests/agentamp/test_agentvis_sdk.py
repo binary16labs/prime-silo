@@ -14,12 +14,15 @@ Covers
 
 from __future__ import annotations
 
-import re
 import threading
 import time
 
 import pytest
 
+from benny.agentamp.contracts import (
+    SkinManifest,
+    SkinPermissions,
+)
 from benny.agentamp.plugins import (
     PLUGIN_CSP,
     PLUGIN_SANDBOX_ATTRS,
@@ -34,11 +37,6 @@ from benny.agentamp.sandbox import (
     PluginPermissionsViolation,
     SandboxHost,
 )
-from benny.agentamp.contracts import (
-    SkinManifest,
-    SkinPermissions,
-)
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

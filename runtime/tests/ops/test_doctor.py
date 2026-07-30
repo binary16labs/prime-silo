@@ -1,9 +1,11 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
-import os
-from unittest.mock import patch, MagicMock
-from benny.ops.doctor import run_doctor, CheckResult
-from benny.api.server import app
 from fastapi.testclient import TestClient
+
+from benny.api.server import app
+from benny.ops.doctor import run_doctor
+
 
 @pytest.fixture
 def client():

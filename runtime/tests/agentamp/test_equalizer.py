@@ -34,7 +34,6 @@ from benny.governance.policy import (  # noqa: direct submodule import
     PolicyEvaluator,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

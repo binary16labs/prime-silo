@@ -1,6 +1,6 @@
-import pytest
 from benny.core.skill_registry import registry
 from benny.governance.permission_manifest import create_ephemeral_manifest, register_manifest
+
 
 def test_skill_registry_enforces_manifest():
     """Test that SkillRegistry blocks tools not in the manifest."""

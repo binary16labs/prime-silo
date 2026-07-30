@@ -9,12 +9,10 @@ Covers:
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import pytest
 
 from benny.agentamp.scaffold import scaffold_skin
-
 
 # ---------------------------------------------------------------------------
 # AAMP-F33: scaffold creates expected structure

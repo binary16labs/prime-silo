@@ -7,11 +7,11 @@ verification step, not here.
 """
 
 from benny.graph.graph_enrichment import (
-    classify_predicate,
+    _jaccard,
     _normalize_name,
     _token_set,
-    _jaccard,
     _union_find_groups,
+    classify_predicate,
 )
 
 

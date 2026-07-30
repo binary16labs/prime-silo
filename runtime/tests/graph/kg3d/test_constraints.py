@@ -1,7 +1,7 @@
-import pytest
-from benny.graph.kg3d.ontology import Graph
-from benny.graph.kg3d.schema import Node, Edge, NodeMetrics
 from benny.graph.kg3d.constraints import check_aot_coherence, validate_full_graph
+from benny.graph.kg3d.ontology import Graph
+from benny.graph.kg3d.schema import Edge, Node, NodeMetrics
+
 
 def test_aot_coherence_violation():
     # Node 1: Layer 1 (Abstract)

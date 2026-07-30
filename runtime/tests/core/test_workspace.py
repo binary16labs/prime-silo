@@ -1,18 +1,17 @@
+from unittest.mock import patch
+
 import pytest
-import os
-from pathlib import Path
-from unittest.mock import patch, MagicMock
+
 from benny.core.workspace import (
-    get_workspace_path, 
-    ensure_workspace_structure, 
-    load_manifest, 
-    save_manifest, 
-    update_manifest,
-    list_workspaces,
+    ensure_workspace_structure,
     get_workspace_files,
+    get_workspace_path,
+    list_workspaces,
+    load_manifest,
     smart_output,
-    WORKSPACE_ROOT
+    update_manifest,
 )
+
 
 @pytest.fixture
 def clean_workspace_root(tmp_path, monkeypatch):

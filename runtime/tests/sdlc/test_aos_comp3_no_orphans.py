@@ -10,13 +10,9 @@ artefact store; every prov:generated traces to an emitted artefact.
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
-import pytest
-
 from benny.governance.jsonld import check_no_orphans, emit_provenance
-
 
 # ---------------------------------------------------------------------------
 # Helpers

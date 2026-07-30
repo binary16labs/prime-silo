@@ -7,9 +7,8 @@ from __future__ import annotations
 
 import pytest
 
-from benny.sdlc.checkpoint import RunCheckpoint, load_checkpoint, resume_run, save_checkpoint
 from benny.core.manifest import ManifestPlan, ManifestTask, SwarmManifest, TaskStatus
-
+from benny.sdlc.checkpoint import RunCheckpoint, load_checkpoint, resume_run, save_checkpoint
 
 # ---------------------------------------------------------------------------
 # Fixtures

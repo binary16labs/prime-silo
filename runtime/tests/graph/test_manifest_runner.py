@@ -1,13 +1,15 @@
-import pytest
 import sys
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 # PREVENT PyO3/Tokenizers error by mocking swarm before it loads
 mock_swarm = MagicMock()
 sys.modules["benny.graph.swarm"] = mock_swarm
 
-from benny.graph.manifest_runner import plan_from_requirement, execute_manifest, _apply_delta
-from benny.core.manifest import SwarmManifest, RunStatus
+from benny.core.manifest import SwarmManifest
+from benny.graph.manifest_runner import _apply_delta, execute_manifest, plan_from_requirement
+
 
 @pytest.fixture
 def mock_planner():

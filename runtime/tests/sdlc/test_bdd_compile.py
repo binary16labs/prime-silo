@@ -10,7 +10,6 @@ F21: benny.sdlc.bdd.compile_to_pytest(feature_text) -> str
      stable slug transform).
 """
 
-import pytest
 
 from benny.sdlc.bdd import compile_to_pytest
 

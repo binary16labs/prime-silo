@@ -1,8 +1,7 @@
-import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
+
 from benny.sdk import BennyClient
-from benny.core.manifest import SwarmManifest, ManifestPlan, ManifestTask
-import httpx
+
 
 def test_client_plan_signs_on_request():
     """Requirement 4.3.5: assert client.plan returns a signed manifest."""

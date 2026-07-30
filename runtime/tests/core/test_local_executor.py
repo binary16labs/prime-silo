@@ -1,9 +1,11 @@
-import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import httpx
-import json
-from benny.core.local_executor import resolve_executor, LemonadeExecutor, OllamaExecutor
-from benny.core.models import call_model, OfflineRefusal
+import pytest
+
+from benny.core.local_executor import LemonadeExecutor, OllamaExecutor, resolve_executor
+from benny.core.models import OfflineRefusal, call_model
+
 
 @pytest.mark.asyncio
 async def test_resolve_executor_returns_none_for_cloud():

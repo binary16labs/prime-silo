@@ -13,11 +13,6 @@ AOS modules do not trigger it during their core logic.
 from __future__ import annotations
 
 import socket
-from pathlib import Path
-from unittest.mock import patch
-
-import pytest
-
 
 # ---------------------------------------------------------------------------
 # AOS-SEC2 — no unexpected egress in AOS core modules

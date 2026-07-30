@@ -1,7 +1,8 @@
+from typing import Any, Dict, List
+
 import polars as pl
-from typing import List, Any, Dict
-from pypes.core.engine import ExecutionEngine
-from pypes.contracts.models import SourceModel, OperationModel, ValidationModel
+from pypes.contracts.models import OperationModel, SourceModel, ValidationModel
+
 
 class PolarsEngine:
     """Polars-based high-performance execution engine."""

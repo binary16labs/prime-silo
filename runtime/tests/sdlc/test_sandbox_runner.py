@@ -13,13 +13,9 @@ AOS-NFR9: Soak: 10× consecutive successes (tested via 10 runs on smoke manifest
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
-import pytest
-
 from benny.sdlc.sandbox_runner import SandboxResult, run_multi_model, write_sandbox_report
-
 
 # ---------------------------------------------------------------------------
 # Helpers / fixtures

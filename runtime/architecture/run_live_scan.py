@@ -7,6 +7,7 @@ sys.path.append(os.getcwd())
 
 from benny.graph.code_analyzer import CodeGraphAnalyzer
 
+
 def run_live_scan():
     workspace_path = os.getcwd()
     analyzer = CodeGraphAnalyzer(workspace_path)

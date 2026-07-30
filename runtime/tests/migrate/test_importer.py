@@ -1,8 +1,7 @@
 import json
-import pytest
-from pathlib import Path
+
 from benny.migrate.importer import MigrationEngine
-from benny.core.manifest import SwarmManifest
+
 
 def test_path_rewriting(tmp_path):
     home = tmp_path / "home"

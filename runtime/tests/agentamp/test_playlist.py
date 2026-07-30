@@ -9,14 +9,10 @@ Covers
 from __future__ import annotations
 
 import json
-from io import BytesIO
-from typing import Any, Dict, List
+from typing import Any, Dict
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from benny.agentamp.playlist import PlaylistEntry, enqueue_manifest, get_playlist
-
 
 # ---------------------------------------------------------------------------
 # Helpers

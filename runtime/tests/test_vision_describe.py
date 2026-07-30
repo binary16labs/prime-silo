@@ -7,7 +7,6 @@ live multi-model loop is evaluated by scripts against real TOGAF diagrams.
 """
 from benny.core import vision_describe as V
 
-
 # --------------------------------------------------------------------------- #
 # classification
 # --------------------------------------------------------------------------- #

@@ -12,12 +12,9 @@ Run with:
 import asyncio
 from unittest.mock import AsyncMock, patch
 
-import pytest
-
-from benny.core.pageindex import flatten_leaves, tree_to_sections, validate_tree
 from benny.core import pageindex_builder as pb
 from benny.core import pageindex_pipeline as pp
-
+from benny.core.pageindex import flatten_leaves, tree_to_sections, validate_tree
 
 MD = """# User Guide
 

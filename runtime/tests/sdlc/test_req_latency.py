@@ -12,8 +12,6 @@ from __future__ import annotations
 import json
 import time
 
-import pytest
-
 from benny.sdlc.requirements import generate_prd
 
 _ITERATIONS = 20

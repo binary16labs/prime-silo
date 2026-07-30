@@ -10,9 +10,7 @@ Offline tests (no server, no LLM) run under the BENNY_OFFLINE gate. The live
 round-trip skips automatically when Lemonade is not reachable.
 """
 import asyncio
-import json
 import socket
-from unittest.mock import patch
 
 import pytest
 
@@ -23,7 +21,6 @@ from benny.core.local_executor import (
     _is_multimodal,
 )
 from benny.core.vision import to_data_uri, vision_message
-
 
 # --------------------------------------------------------------------------- #
 # helpers

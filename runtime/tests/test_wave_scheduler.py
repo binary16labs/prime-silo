@@ -4,14 +4,14 @@ Run with: python -m pytest tests/test_wave_scheduler.py -v
 """
 
 import pytest
+
 from benny.graph.wave_scheduler import (
+    CircularDependencyError,
+    assign_models,
     compute_waves,
     detect_conflicts,
-    resolve_conflicts,
     generate_ascii_dag,
-    assign_models,
-    CircularDependencyError,
-    FileConflict,
+    resolve_conflicts,
 )
 
 

@@ -1,7 +1,6 @@
 """T4 router unit tests — candidate registration is ADDITIVE, and an unhealthy tuned
 engine falls back rather than hard-failing. No network, no served endpoint."""
 
-import pytest
 
 from benny.router import tuned_engine as te
 

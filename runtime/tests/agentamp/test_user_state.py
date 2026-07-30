@@ -23,7 +23,6 @@ from benny.agentamp.user_state import (
     save_user_state,
 )
 
-
 # ---------------------------------------------------------------------------
 # AAMP-F18 — user state persists under $BENNY_HOME
 # ---------------------------------------------------------------------------

@@ -24,7 +24,6 @@ import pytest
 from benny.sdlc.contracts import QualityGate
 from benny.sdlc.togaf import (
     QualityGateError,
-    QualityGateResult,
     build_quality_gate_event,
     run_quality_gate,
 )

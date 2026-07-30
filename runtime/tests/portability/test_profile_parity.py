@@ -9,7 +9,6 @@ from pathlib import Path
 
 from benny.portable import home as home_mod
 
-
 SHARED_PATHS = (
     "bin",
     "config",

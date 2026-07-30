@@ -25,17 +25,14 @@ from __future__ import annotations
 
 import json
 import time
-import os
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from benny.api.agent_scope import AgentScopeMiddleware
-from benny.api.checkpoint_routes import sandbox_router, pinned_router
-from benny.api.views_signing import sign_view
+from benny.api.checkpoint_routes import pinned_router, sandbox_router
 from benny.core.workspace import get_checkpoint_draft_dir, get_checkpoint_pinned_dir
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

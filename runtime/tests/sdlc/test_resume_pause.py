@@ -7,11 +7,7 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
 from benny.sdlc.checkpoint import RunCheckpoint, load_checkpoint, write_pause
-from benny.core.manifest import ManifestPlan, ManifestTask, SwarmManifest, TaskStatus
-
 
 # ---------------------------------------------------------------------------
 # AOS-F15: pause_resume_across_hosts
@@ -82,7 +78,7 @@ def test_f15_pause_overwritten_by_second_call(tmp_path):
     """Calling write_pause twice must produce one file (idempotent overwrite)."""
     for i in range(2):
         ckpt = RunCheckpoint(
-            run_id=f"run-f15-idem",
+            run_id="run-f15-idem",
             completed_tasks=[f"task-{i}"],
         )
         write_pause("run-f15-idem", ckpt, tmp_path)

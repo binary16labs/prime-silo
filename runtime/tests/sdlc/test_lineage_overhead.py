@@ -15,12 +15,8 @@ from __future__ import annotations
 import hashlib
 import json
 import time
-from pathlib import Path
-
-import pytest
 
 from benny.governance.jsonld import emit_provenance
-
 
 # ---------------------------------------------------------------------------
 # AOS-F23 — JSON-LD sidecar per artifact

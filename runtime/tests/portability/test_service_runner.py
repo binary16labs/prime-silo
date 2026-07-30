@@ -13,7 +13,6 @@ from __future__ import annotations
 import socket
 import sys
 import threading
-import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -22,7 +21,6 @@ import pytest
 from benny.portable import home as home_mod
 from benny.portable import runner as runner_mod
 from benny.portable import services as services_mod
-
 
 # ---- fixtures --------------------------------------------------------------
 

@@ -11,7 +11,14 @@ Reproduce:  python scripts/vision_spike.py
 
 No third-party deps (PNG built with stdlib zlib) so it runs in any environment.
 """
-import argparse, base64, json, struct, zlib, urllib.request, urllib.error, sys
+import argparse
+import base64
+import json
+import struct
+import sys
+import urllib.error
+import urllib.request
+import zlib
 
 W, H = 300, 120
 BANDS = [(0, 0, 255), (255, 0, 0), (255, 255, 0)]  # unguessable: blue, red, yellow

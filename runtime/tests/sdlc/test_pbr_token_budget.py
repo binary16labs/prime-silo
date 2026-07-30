@@ -4,11 +4,8 @@ The fixture is a 5 000-char text (≈ 1 250 tokens). After PBR the context
 carries only the ArtifactRef dict (≈ 50 tokens).  Reduction must be ≥ 80 %.
 """
 import json
-import pytest
-from pathlib import Path
 
-from benny.core.artifact_store import put, maybe_promote, _estimate_tokens
-
+from benny.core.artifact_store import _estimate_tokens, maybe_promote
 
 FIXTURE_TEXT = "The quick brown fox jumps over the lazy dog. " * 112  # ~5 000 chars / ~1 250 tokens
 

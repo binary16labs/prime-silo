@@ -1,10 +1,17 @@
-import pytest
-import sys
 import json
-from typing import Iterator
-from unittest.mock import patch, MagicMock
-from benny.persistence.checkpointer import SQLiteCheckpointer, TimeTravelDebugger, get_checkpointer, PostgresCheckpointer
-from langgraph.checkpoint.base import Checkpoint, CheckpointMetadata
+import sys
+from unittest.mock import MagicMock, patch
+
+import pytest
+from langgraph.checkpoint.base import Checkpoint
+
+from benny.persistence.checkpointer import (
+    PostgresCheckpointer,
+    SQLiteCheckpointer,
+    TimeTravelDebugger,
+    get_checkpointer,
+)
+
 
 @pytest.fixture
 def sqlite_cp(tmp_path):

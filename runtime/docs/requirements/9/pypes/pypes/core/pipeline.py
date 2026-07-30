@@ -1,7 +1,9 @@
-from typing import Dict, Any, Type
-from pypes.contracts.models import ExecutionContract, EngineType
-from pypes.engines.polars_impl import PolarsEngine
+from typing import Any, Dict
+
+from pypes.contracts.models import EngineType, ExecutionContract
 from pypes.core.engine import ExecutionEngine
+from pypes.engines.polars_impl import PolarsEngine
+
 
 class PipelineOrchestrator:
     """The central orchestrator that binds contracts to stateless execution engines."""

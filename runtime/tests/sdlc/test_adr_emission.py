@@ -14,8 +14,6 @@ OBS4: phoenix_adr_attrs() and phoenix_quality_gate_attrs() return dicts
 
 from __future__ import annotations
 
-import pytest
-
 from benny.sdlc.contracts import Adr, QualityGate, TogafPhase
 from benny.sdlc.togaf import (
     build_adr_event,

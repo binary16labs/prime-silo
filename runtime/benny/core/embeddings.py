@@ -148,8 +148,8 @@ async def get_embedding_async(
     text: str, provider: str = "lemonade", model: str = "nomic-embed-text-v1-GGUF"
 ) -> List[float]:
     """Get embeddings via HTTP (Async). No Torch/Transformers required."""
-    from .models import LOCAL_PROVIDERS
     from .endpoints import resolve_endpoint
+    from .models import LOCAL_PROVIDERS
 
     text = (text or "")[:_EMBED_MAX_CHARS]
     # Dynamic provider cascade for failover
@@ -206,8 +206,8 @@ def get_embedding_sync(
     text: str, provider: str = "lemonade", model: str = "nomic-embed-text-v1-GGUF"
 ) -> List[float]:
     """Get embeddings via HTTP (Sync). Used by ChromaDB EmbeddingFunction."""
-    from .models import LOCAL_PROVIDERS
     from .endpoints import resolve_endpoint
+    from .models import LOCAL_PROVIDERS
 
     text = (text or "")[:_EMBED_MAX_CHARS]
     preferred = ["lmstudio"] if os.environ.get("BENNY_LMSTUDIO_ENDPOINTS") else []
