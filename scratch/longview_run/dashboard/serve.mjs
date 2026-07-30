@@ -9,7 +9,7 @@ import { spawn } from "child_process";
 
 // ── memory API (loopback ONLY — teleport moves data; never LAN-exposed) ─────
 const REPO = "C:/Users/nsdha/OneDrive/binary16/prime-silo";
-const WS_ROOT = "C:/Users/nsdha/AppData/Roaming/space-agent/benny-home/benny/workspaces";
+const WS_ROOT = `${(process.env.BENNY_HOME || "C:/Users/nsdha/AppData/Roaming/space-agent/benny-home/benny").replace(/\\/g, "/")}/workspaces`;
 const isLoopback = (req) =>
   ["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.socket.remoteAddress);
 

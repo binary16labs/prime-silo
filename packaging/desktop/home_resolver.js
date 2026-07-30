@@ -32,7 +32,7 @@ const path = require("node:path");
 const os = require("node:os");
 const { randomBytes } = require("node:crypto");
 
-const CONFIG_DIR_NAME = "Prime-Silo";
+const CONFIG_DIR_NAME = "space-agent";
 const CONFIG_FILENAME = "prime-silo-config.json";
 const DEFAULT_HOME_DIRNAME = "prime-silo-home";
 const CUSTOMWARE_SUBDIR = "customware";
@@ -150,7 +150,8 @@ function resolveHome(options = {}) {
         `adopt the unified home to derive it from ${root}.`
     );
   } else if (source === "default" && dirExists(legacyDefaultBenny)) {
-    bennyHome = legacyDefaultBenny;
+    const nestedBenny = path.join(legacyDefaultBenny, BENNY_SUBDIR);
+    bennyHome = dirExists(path.join(nestedBenny, "workspaces")) ? nestedBenny : legacyDefaultBenny;
     bennyHomeSource = "legacy-default";
     warnings.push(
       `Benny home uses the pre-unification default (${bennyHome}); ` +

@@ -219,7 +219,7 @@ export function deriveRuntimeLineage() {
   // ETA = remaining items × measured EMA. Never blocks the audit data.
   let v3_progress = null;
   try {
-    const statePath = "C:/Users/nsdha/AppData/Roaming/space-agent/benny-home/benny/workspaces/sessions_v1/data_out/togaf_epic_v3_state.json";
+    const statePath = `${(process.env.BENNY_HOME || "C:/Users/nsdha/AppData/Roaming/space-agent/benny-home/benny").replace(/\\/g, "/")}/workspaces/sessions_v1/data_out/togaf_epic_v3_state.json`;
     if (fs.existsSync(statePath)) {
       const st = JSON.parse(fs.readFileSync(statePath, "utf8"));
       const keys = Object.keys(st.sections || {});

@@ -1,286 +1,134 @@
-(function attachSpaceBackdrop(windowObject) {
-  const SPACE_BACKDROP_RUNTIME_KEY = "__spaceBackdropRuntime";
-  const SPACE_BACKDROP_TRAIL_SELECTOR = "[data-space-backdrop-trail]";
-  const SPACE_BACKDROP_TRAIL_PROFILE = Object.freeze({
-    delayMaxMs: 16000,
-    delayMinMs: 7000,
-    durationMaxMs: 1480,
-    durationMinMs: 960,
-    initialDelayMaxMs: 2200,
-    initialDelayMinMs: 280,
-    lengthMaxRem: 12.6,
-    lengthMinRem: 8.4,
-    travelMaxVmax: 72,
-    travelMinVmax: 38,
-    directionPools: Object.freeze([
-      Object.freeze({
-        angleMaxDeg: 34,
-        angleMinDeg: 16,
-        leftMax: 48,
-        leftMin: 6,
-        topMax: 44,
-        topMin: 4
-      }),
-      Object.freeze({
-        angleMaxDeg: 58,
-        angleMinDeg: 38,
-        leftMax: 34,
-        leftMin: 4,
-        topMax: 26,
-        topMin: 2
-      }),
-      Object.freeze({
-        angleMaxDeg: 166,
-        angleMinDeg: 144,
-        leftMax: 94,
-        leftMin: 52,
-        topMax: 50,
-        topMin: 6
-      }),
-      Object.freeze({
-        angleMaxDeg: 122,
-        angleMinDeg: 102,
-        leftMax: 96,
-        leftMin: 66,
-        topMax: 28,
-        topMin: 2
-      }),
-      Object.freeze({
-        angleMaxDeg: -14,
-        angleMinDeg: -34,
-        leftMax: 52,
-        leftMin: 8,
-        topMax: 92,
-        topMin: 42
-      }),
-      Object.freeze({
-        angleMaxDeg: 214,
-        angleMinDeg: 194,
-        leftMax: 92,
-        leftMin: 50,
-        topMax: 90,
-        topMin: 46
-      })
-    ])
-  });
+(function attachPrimeSiloDotMatrixBackdrop(windowObject) {
+  if (windowObject.__primeSiloDotMatrixLoaded) return;
+  windowObject.__primeSiloDotMatrixLoaded = true;
 
-  function addMediaChangeListener(mediaQuery, handler) {
-    if (typeof mediaQuery?.addEventListener === "function") {
-      mediaQuery.addEventListener("change", handler);
-      return () => mediaQuery.removeEventListener("change", handler);
+  class DotMatrixEngine {
+    constructor() {
+      this.canvas = document.createElement('canvas');
+      this.ctx = this.canvas.getContext('2d');
+      this.canvas.className = 'prime-silo-dot-canvas';
+      this.canvas.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:0;';
+      
+      document.body.appendChild(this.canvas);
+
+      this.dots = [];
+      this.gridSpacing = 28; // 28px grid spacing
+      this.mouseX = -1000;
+      this.mouseY = -1000;
+      this.targetMouseX = -1000;
+      this.targetMouseY = -1000;
+      this.time = 0;
+      this.reducedMotion = windowObject.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      this.init();
     }
 
-    if (typeof mediaQuery?.addListener === "function") {
-      mediaQuery.addListener(handler);
-      return () => mediaQuery.removeListener(handler);
-    }
-
-    return () => {};
-  }
-
-  function randomBetween(min, max) {
-    return min + Math.random() * (max - min);
-  }
-
-  function chooseRandom(list) {
-    return list[Math.floor(Math.random() * list.length)] || null;
-  }
-
-  function createSpaceBackdropRuntime(
-    root,
-    {
-      canvas = document.body,
-      motionQuery = windowObject.matchMedia("(prefers-reduced-motion: reduce)")
-    } = {}
-  ) {
-    if (!root || root[SPACE_BACKDROP_RUNTIME_KEY]) {
-      return root?.[SPACE_BACKDROP_RUNTIME_KEY] || null;
-    }
-
-    const trailEls = Array.from(root.querySelectorAll(SPACE_BACKDROP_TRAIL_SELECTOR));
-    const trailTimers = new WeakMap();
-    const trailAnimationEndHandlers = new Map();
-    let zoomFrame = 0;
-
-    const syncScale = () => {
-      zoomFrame = 0;
-
-      if (!canvas) {
-        return;
-      }
-
-      canvas.style.setProperty("--space-backdrop-scale", "1");
-    };
-
-    const requestScaleSync = () => {
-      if (zoomFrame) {
-        return;
-      }
-
-      zoomFrame = windowObject.requestAnimationFrame(syncScale);
-    };
-
-    const clearTrailTimer = (trailEl) => {
-      const timerId = trailTimers.get(trailEl);
-
-      if (!timerId) {
-        return;
-      }
-
-      windowObject.clearTimeout(timerId);
-      trailTimers.delete(trailEl);
-    };
-
-    const configureTrail = (trailEl) => {
-      const directionPool = chooseRandom(SPACE_BACKDROP_TRAIL_PROFILE.directionPools);
-
-      if (!directionPool) {
-        return;
-      }
-
-      const angleDeg = randomBetween(directionPool.angleMinDeg, directionPool.angleMaxDeg);
-      const travelVmax = randomBetween(
-        SPACE_BACKDROP_TRAIL_PROFILE.travelMinVmax,
-        SPACE_BACKDROP_TRAIL_PROFILE.travelMaxVmax
-      );
-      const angleRad = (angleDeg * Math.PI) / 180;
-      const distanceX = Math.cos(angleRad) * travelVmax;
-      const distanceY = Math.sin(angleRad) * travelVmax;
-
-      trailEl.style.top = `${randomBetween(directionPool.topMin, directionPool.topMax).toFixed(1)}%`;
-      trailEl.style.left = `${randomBetween(directionPool.leftMin, directionPool.leftMax).toFixed(1)}%`;
-      trailEl.style.setProperty("--space-trail-angle", `${angleDeg.toFixed(1)}deg`);
-      trailEl.style.setProperty("--space-trail-distance-x", `${distanceX.toFixed(2)}vmax`);
-      trailEl.style.setProperty("--space-trail-distance-y", `${distanceY.toFixed(2)}vmax`);
-      trailEl.style.setProperty(
-        "--space-trail-duration",
-        `${Math.round(randomBetween(SPACE_BACKDROP_TRAIL_PROFILE.durationMinMs, SPACE_BACKDROP_TRAIL_PROFILE.durationMaxMs))}ms`
-      );
-      trailEl.style.setProperty(
-        "--space-trail-length",
-        `${randomBetween(SPACE_BACKDROP_TRAIL_PROFILE.lengthMinRem, SPACE_BACKDROP_TRAIL_PROFILE.lengthMaxRem).toFixed(2)}rem`
-      );
-    };
-
-    const launchTrail = (trailEl) => {
-      if (!trailEl || motionQuery.matches) {
-        return;
-      }
-
-      clearTrailTimer(trailEl);
-      configureTrail(trailEl);
-      trailEl.classList.remove("is-active");
-      void trailEl.offsetWidth;
-      trailEl.classList.add("is-active");
-    };
-
-    const scheduleTrail = (
-      trailEl,
-      delayMinMs = SPACE_BACKDROP_TRAIL_PROFILE.delayMinMs,
-      delayMaxMs = SPACE_BACKDROP_TRAIL_PROFILE.delayMaxMs
-    ) => {
-      clearTrailTimer(trailEl);
-
-      if (!trailEl || motionQuery.matches) {
-        return;
-      }
-
-      const delayMs = Math.round(randomBetween(delayMinMs, delayMaxMs));
-      const timerId = windowObject.setTimeout(() => {
-        launchTrail(trailEl);
-      }, delayMs);
-
-      trailTimers.set(trailEl, timerId);
-    };
-
-    const stopTrails = () => {
-      trailEls.forEach((trailEl) => {
-        clearTrailTimer(trailEl);
-        trailEl.classList.remove("is-active");
+    init() {
+      this.resize();
+      windowObject.addEventListener('resize', () => this.resize());
+      windowObject.addEventListener('mousemove', (e) => {
+        this.targetMouseX = e.clientX;
+        this.targetMouseY = e.clientY;
       });
-    };
 
-    const startTrails = () => {
-      stopTrails();
-
-      if (motionQuery.matches) {
-        return;
+      if (!this.reducedMotion) {
+        requestAnimationFrame(() => this.loop());
+      } else {
+        this.drawStatic();
       }
+    }
 
-      trailEls.forEach((trailEl, index) => {
-        scheduleTrail(
-          trailEl,
-          SPACE_BACKDROP_TRAIL_PROFILE.initialDelayMinMs + index * 420,
-          SPACE_BACKDROP_TRAIL_PROFILE.initialDelayMaxMs + index * 980
-        );
-      });
-    };
+    resize() {
+      this.width = windowObject.innerWidth;
+      this.height = windowObject.innerHeight;
+      const dpr = windowObject.devicePixelRatio || 1;
+      this.canvas.width = this.width * dpr;
+      this.canvas.height = this.height * dpr;
+      this.ctx.scale(dpr, dpr);
 
-    const syncMotion = () => {
-      if (motionQuery.matches) {
-        stopTrails();
-        return;
+      this.cols = Math.ceil(this.width / this.gridSpacing) + 1;
+      this.rows = Math.ceil(this.height / this.gridSpacing) + 1;
+
+      this.dots = [];
+      for (let r = 0; r < this.rows; r++) {
+        for (let c = 0; c < this.cols; c++) {
+          this.dots.push({
+            x: c * this.gridSpacing,
+            y: r * this.gridSpacing,
+            baseRadius: 1.5,
+            radius: 1.5,
+            phase: Math.sin(c * 0.4 + r * 0.3)
+          });
+        }
       }
+    }
 
-      startTrails();
-    };
+    loop() {
+      this.time += 0.018;
 
-    const removeMotionChangeListener = addMediaChangeListener(motionQuery, syncMotion);
+      // Smooth mouse lerp
+      this.mouseX += (this.targetMouseX - this.mouseX) * 0.1;
+      this.mouseY += (this.targetMouseY - this.mouseY) * 0.1;
 
-    trailEls.forEach((trailEl) => {
-      const handleAnimationEnd = () => {
-        trailEl.classList.remove("is-active");
-        scheduleTrail(trailEl);
-      };
+      this.ctx.clearRect(0, 0, this.width, this.height);
 
-      trailAnimationEndHandlers.set(trailEl, handleAnimationEnd);
-      trailEl.addEventListener("animationend", handleAnimationEnd);
-    });
+      const maxDist = 150;
 
-    windowObject.addEventListener("resize", requestScaleSync, { passive: true });
-    windowObject.visualViewport?.addEventListener("resize", requestScaleSync, { passive: true });
-    windowObject.visualViewport?.addEventListener("scroll", requestScaleSync, { passive: true });
+      for (let i = 0; i < this.dots.length; i++) {
+        const dot = this.dots[i];
 
-    requestScaleSync();
-    syncMotion();
+        const dx = dot.x - this.mouseX;
+        const dy = dot.y - this.mouseY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
 
-    const runtime = {
-      destroy() {
-        if (zoomFrame) {
-          windowObject.cancelAnimationFrame(zoomFrame);
-          zoomFrame = 0;
+        let targetRadius = dot.baseRadius;
+        let alpha = 0.22;
+        let color = `rgba(156, 175, 136, ${alpha})`; // Sage
+
+        if (dist < maxDist) {
+          const factor = (1 - dist / maxDist);
+          targetRadius = dot.baseRadius + (factor * 3.5); // Spring expansion
+          alpha = 0.22 + (factor * 0.65);
+          
+          if (factor > 0.6) {
+            color = `rgba(236, 230, 216, ${alpha})`; // Bone highlight
+          } else {
+            color = `rgba(196, 168, 130, ${alpha})`; // Taupe transition
+          }
+        } else {
+          // Ambient sinewave breathing
+          const pulse = Math.sin(this.time * 1.5 + dot.phase * 3) * 0.3 + 0.3;
+          targetRadius = dot.baseRadius + (pulse * 0.4);
+          alpha = 0.18 + (pulse * 0.1);
+          color = `rgba(156, 175, 136, ${alpha})`;
         }
 
-        canvas?.style.removeProperty("--space-backdrop-scale");
-        windowObject.removeEventListener("resize", requestScaleSync);
-        windowObject.visualViewport?.removeEventListener("resize", requestScaleSync);
-        windowObject.visualViewport?.removeEventListener("scroll", requestScaleSync);
-        removeMotionChangeListener();
-        stopTrails();
+        dot.radius += (targetRadius - dot.radius) * 0.15;
 
-        trailEls.forEach((trailEl) => {
-          const handleAnimationEnd = trailAnimationEndHandlers.get(trailEl);
-
-          if (handleAnimationEnd) {
-            trailEl.removeEventListener("animationend", handleAnimationEnd);
-          }
-        });
-
-        trailAnimationEndHandlers.clear();
-        delete root[SPACE_BACKDROP_RUNTIME_KEY];
+        this.ctx.beginPath();
+        this.ctx.arc(dot.x, dot.y, dot.radius, 0, Math.PI * 2);
+        this.ctx.fillStyle = color;
+        this.ctx.fill();
       }
-    };
 
-    root[SPACE_BACKDROP_RUNTIME_KEY] = runtime;
-    return runtime;
+      requestAnimationFrame(() => this.loop());
+    }
+
+    drawStatic() {
+      this.ctx.clearRect(0, 0, this.width, this.height);
+      this.ctx.fillStyle = 'rgba(156, 175, 136, 0.25)';
+      for (let i = 0; i < this.dots.length; i++) {
+        const dot = this.dots[i];
+        this.ctx.beginPath();
+        this.ctx.arc(dot.x, dot.y, 1.5, 0, Math.PI * 2);
+        this.ctx.fill();
+      }
+    }
   }
 
-  windowObject.SpaceBackdrop = Object.freeze({
-    destroy(root = document.querySelector("[data-space-backdrop]")) {
-      root?.[SPACE_BACKDROP_RUNTIME_KEY]?.destroy?.();
-    },
-    install(root = document.querySelector("[data-space-backdrop]"), options) {
-      return createSpaceBackdropRuntime(root, options);
-    }
-  });
-})(window);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => new DotMatrixEngine());
+  } else {
+    new DotMatrixEngine();
+  }
+})(typeof window !== 'undefined' ? window : this);

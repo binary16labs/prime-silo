@@ -39,7 +39,8 @@ $destSrc = Join-Path $wsPath "src"
 
 # Exclusions: dev/build artifacts that must never enter the workspace copy.
 $excludeDirs = @("node_modules", ".venv", ".git", ".pytest_cache", ".benny_home",
-                 "workspace", "workspaces", "dist", "runtime-bundle", "home")
+                 "workspace", "workspaces", "dist", "runtime-bundle", "home",
+                 "train", "dataset", "out", ".worktrees", ".claude", ".agents", "__pycache__")
 
 # Cross-platform recursive copy that skips excluded directory NAMES during
 # traversal (so excluded trees are never copied). Replaces robocopy, which is

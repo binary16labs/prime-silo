@@ -70,6 +70,21 @@ export async function recentSessions({ agent, limit = 10 } = {}) {
   }));
 }
 
+/**
+ * Full lineage detail for a single session — the entities and relations
+ * recorded by Memo-Ray for that session. Use when the operator has selected
+ * a specific session in the Memory sidebar and you want to describe it.
+ * Returns null if the session is not found or Memo-Ray is offline.
+ */
+export async function sessionDetail(id) {
+  if (!id) return null;
+  try {
+    return await getJson(MEMORAY, `/sessions/${encodeURIComponent(id)}`);
+  } catch {
+    return null; // session not found or Memo-Ray offline — fail silently
+  }
+}
+
 /** Omnibar search across sessions, files, actions. Sessions carry a Bridge deep link. */
 export async function search(query) {
   if (!query || query.length < 2) return { sessions: [], files: [], actions: [] };
@@ -155,6 +170,7 @@ export default {
   readContext,
   lifelog,
   recentSessions,
+  sessionDetail,
   search,
   runs,
   codeGraph,

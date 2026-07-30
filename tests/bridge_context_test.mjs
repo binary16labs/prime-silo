@@ -40,6 +40,7 @@ function testDeepLink() {
 }
 
 function testDescribeContext() {
+  // Label without id — backward compatible: label still appears, no (id: …) suffix.
   const line = describeContext({
     mode: "code",
     selection: { label: "swarm.py" },
@@ -48,6 +49,16 @@ function testDescribeContext() {
   assert.match(line, /mode: code/);
   assert.match(line, /selected: swarm\.py/);
   assert.match(line, /workspace: c5_test/);
+  // No id on the selection object → no (id: …) suffix.
+  assert.ok(!line.includes("(id:"), "no id suffix when selection has no id");
+
+  // Label + id — the id suffix must be appended so Benny can resolve the item.
+  const lineWithId = describeContext({
+    mode: "memory",
+    selection: { id: "ses-abc123", label: "My test session" },
+    workspace: "default"
+  });
+  assert.match(lineWithId, /selected: My test session \(id: ses-abc123\)/);
 }
 
 function testComposePromptGroundsAndPointsAtSkill() {

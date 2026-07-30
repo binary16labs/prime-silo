@@ -232,3 +232,93 @@ body.app-page-router {
     max-width: calc(100vw - 16px);
   }
 }
+
+/* ── Prime-Silo Benny Orb & Arc Satellite Navigation ── */
+.prime-silo-orb-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 8px;
+}
+
+.prime-silo-benny-orb {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgba(236, 230, 216, 0.25), rgba(156, 175, 136, 0.15));
+  border: 1px solid rgba(156, 175, 136, 0.4);
+  box-shadow: 0 0 12px rgba(156, 175, 136, 0.25), inset 0 0 8px rgba(236, 230, 216, 0.15);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+  animation: benny-breathing 4s ease-in-out infinite;
+}
+
+.prime-silo-benny-orb:hover {
+  transform: scale(1.12);
+  border-color: rgba(236, 230, 216, 0.7);
+  box-shadow: 0 0 20px rgba(156, 175, 136, 0.45), 0 0 6px rgba(236, 230, 216, 0.3);
+}
+
+.prime-silo-benny-avatar {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+  pointer-events: none;
+}
+
+@keyframes benny-breathing {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(156, 175, 136, 0.2);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(196, 168, 130, 0.35);
+    transform: scale(1.04);
+  }
+}
+
+.prime-silo-arc-overlay {
+  position: absolute;
+  top: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  padding: 10px 16px;
+  background: rgba(14, 18, 16, 0.94);
+  border: 1px solid rgba(156, 175, 136, 0.35);
+  border-radius: 24px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(236, 230, 216, 0.15);
+  z-index: 100;
+}
+
+.prime-silo-arc-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 16px;
+  background: rgba(26, 29, 23, 0.6);
+  border: 1px solid rgba(156, 175, 136, 0.2);
+  color: #ece6d8;
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.prime-silo-arc-item:hover {
+  background: rgba(156, 175, 136, 0.2);
+  border-color: rgba(236, 230, 216, 0.5);
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+

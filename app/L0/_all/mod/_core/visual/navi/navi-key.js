@@ -15,6 +15,7 @@ class NaviKey extends HTMLElement {
     flows:     { arc: '#d8c3a5', glow: '#ece0cb', label: 'Flows'     }, // Warm Sandstone
     studio:    { arc: '#b88a74', glow: '#cc9e88', label: 'Studio'    }, // Soft Clay
     runs:      { arc: '#889c7d', glow: '#9fb394', label: 'Runs'      }, // Eucalyptus Sage
+    v2:        { arc: '#63a063', glow: '#7ebc7e', label: 'Gov V2'    }, // Emerald Sage
     agents:    { arc: '#788475', glow: '#8f9b8c', label: 'Agents'    }, // Warm Slate
     chats:     { arc: '#a68b6d', glow: '#bca183', label: 'Chat'      }, // Warm Umber
   };
@@ -236,6 +237,28 @@ class NaviKey extends HTMLElement {
       "00000000000000000000",
       "00000000000000000000",
       "00000000000000000000",
+      "00000000000000000000",
+      "00000000000000000000",
+      "00000000000000000000",
+      "00000000000000000000",
+    ],
+    v2: [
+      "00000000000000000000",
+      "00000000000000000000",
+      "0000CCCCCCCCCCCC0000",  // Shield Top (Governance V2 🛡️)
+      "000CDDDDDDDDDDDDC000",  // D = Emerald Sage
+      "000CDDDDDDDDDDDDC000",
+      "000CDDDDCCCCCCDDDC00",  // Audit Scale bar
+      "000CDDDD00CC00DDDC00",
+      "000CDDD000CC000DDC00",
+      "0000CDD000CC000DDC00",
+      "0000CDD000CC000DC000",
+      "00000CDD00CC00DC0000",
+      "000000CDDCCCCDC00000",  // Shield point
+      "0000000CDDDDDC000000",
+      "00000000CDDDC0000000",
+      "000000000CDC00000000",
+      "0000000000C000000000",
       "00000000000000000000",
       "00000000000000000000",
       "00000000000000000000",
@@ -607,6 +630,8 @@ class NaviKey extends HTMLElement {
           this.setPetState('memory');     // Brain 🧠
         } else if (target === 'agents') {
           this.setPetState('agents');     // Robot 🤖
+        } else if (target === 'v2') {
+          this.setPetState('v2');         // Governance V2 Shield 🛡️
         } else if (target === 'runs' || target === 'flows') {
           this.setPetState('running');    // Running dog
         } else if (target === 'pulse') {

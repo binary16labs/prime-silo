@@ -15,19 +15,22 @@ Browser-side home for the **typed widget registry** that ADR-001 collapses Studi
 ```
 widgets/
 ├── widget-registry.js
-├── kg3d/
-│   └── synoptic_web/      # widget id: kg3d.synoptic_web
+
 ├── codegraph/
 │   └── canvas/            # widget id: codegraph.canvas
 ├── dag/
 │   └── canvas/            # widget id: dag.canvas (deterministic_only)
+├── kg3d/
+│   └── synoptic_web/      # widget id: kg3d.synoptic_web
 ├── run/
 │   ├── drilldown_table/
 │   ├── frame_inspector/
 │   ├── lineage_timeline/
 │   └── reasoning_trace/
-└── text/
-    └── markdown/
+├── text/
+│   └── markdown/
+├── three_renderer/        # Drop-in 3D renderer for graph widgets
+└── code_3d_v2/            # AnimeOrb layered structural 3D renderer
 ```
 
 ## Authority gate

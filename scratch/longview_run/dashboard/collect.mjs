@@ -12,7 +12,9 @@ import { deriveLineage } from "./lineage.mjs";
 import { deriveRuntimeLineage } from "./runtime_lineage.mjs";
 
 const WS = process.env.LONGVIEW_WORKSPACE || "sessions_v1";
-const LV = `C:/Users/nsdha/AppData/Roaming/space-agent/benny-home/benny/workspaces/${WS}/longview`;
+// Honor BENNY_HOME (the corpus moved to D:); fall back to the legacy AppData home.
+const BH = (process.env.BENNY_HOME || "C:/Users/nsdha/AppData/Roaming/space-agent/benny-home/benny").replace(/\\/g, "/");
+const LV = `${BH}/workspaces/${WS}/longview`;
 const DASH = "C:/Users/nsdha/OneDrive/binary16/prime-silo/scratch/longview_run/dashboard";
 const cardsDir = path.join(LV, "cards");
 const winDir = path.join(LV, "windows");
@@ -552,6 +554,60 @@ const out = {
     graph_stats: graphStats,
     graph_history: graphHistory.slice(-60)
   },
+  // Live map run — the map's OWN status.json (authoritative for the active
+  // backlog run + its self-computed ETA). A staleness light distinguishes
+  // "working" from "wedged": the map rewrites status.json each session, so if
+  // updated_at goes quiet far longer than one session should take, flag it.
+  run_status: (() => {
+    // Liveness heartbeat: the newest window-fragment mtime is the HONEST signal
+    // (a fragment lands every ~90-150s while the map is alive). status.json only
+    // refreshes on session completion, so a long heavy session makes it look stale
+    // even though the map is fine — and a real wedge would ALSO freeze it. Take the
+    // max of (newest window mtime, status.json updated_at): heavy sessions advance
+    // the window clock, thin-session runs (no windows) advance the status clock.
+    let newestWindowMs = 0;
+    try {
+      for (const name of fs.readdirSync(winDir)) {
+        try { const m = fs.statSync(path.join(winDir, name)).mtimeMs; if (m > newestWindowMs) newestWindowMs = m; } catch { /* skip */ }
+      }
+    } catch { /* no windows dir yet */ }
+    const u = statusJson.updated_at ? Date.parse(statusJson.updated_at) : null;
+    // Honest heartbeat: the window-fragment clock ALONE. status.json.updated_at is
+    // refreshed on events that aren't card progress (phase writes, inventory), so
+    // max()'ing it in masked a mid-session engine hang as "ok" (seen on 754b514a,
+    // frozen 90 min while the dash read healthy). Fall back to status only when no
+    // windows exist yet (a thin-only pass writes no fragments but finishes instantly).
+    const heartbeatMs = newestWindowMs || (u || 0);
+    const quietSec = heartbeatMs ? Math.round((Date.now() - heartbeatMs) / 1000) : null;
+    // A window every ~2-3 min when healthy: >12min quiet = watch, >30min = wedge territory.
+    const health = quietSec == null ? "unknown"
+      : (statusJson.map_failed > 0 ? "error"
+      : quietSec > 1800 ? "stalled"
+      : quietSec > 720 ? "slow" : "ok");
+    return {
+      phase: statusJson.phase || null,
+      backlog_total: statusJson.backlog_total ?? null,
+      cards_ok: statusJson.cards_ok ?? null,        // map's ledger count (incl. later-quarantined)
+      usable_cards: doneFiles.length,               // ON-DISK truth (quarantined already removed)
+      quarantined_held: statusJson.cards_ok != null ? Math.max(0, statusJson.cards_ok - doneFiles.length) : null,
+      map_failed: statusJson.map_failed ?? null,
+      map_thin: statusJson.map_thin ?? null,
+      current_session: statusJson.current_session || null,
+      cards_per_hour: statusJson.cards_per_hour ?? null,
+      // The map's self-computed ETA goes NEGATIVE on a delta/recovery run (the
+      // static backlog plan reads "complete" while a few sessions re-map), which
+      // rendered a nonsense "-4.8h". Only surface a non-negative ETA; otherwise null.
+      eta_hours_remaining: (statusJson.eta_hours_remaining != null && statusJson.eta_hours_remaining >= 0)
+        ? statusJson.eta_hours_remaining : null,
+      eta_finish_iso: (statusJson.eta_hours_remaining != null && statusJson.eta_hours_remaining >= 0)
+        ? new Date(Date.now() + statusJson.eta_hours_remaining * 3600 * 1000).toISOString() : null,
+      updated_at: statusJson.updated_at || null,
+      last_window_iso: newestWindowMs ? new Date(newestWindowMs).toISOString() : null,
+      stale_seconds: quietSec,          // seconds since last heartbeat (window OR status)
+      status_age_seconds: u ? Math.round((Date.now() - u) / 1000) : null,
+      health
+    };
+  })(),
   run: {
     phase: statusJson.phase || "map",
     total_windows: totalWindows,
@@ -580,7 +636,68 @@ const out = {
   where,
   when: { by_month: [...byMonth.values()].sort((a, b) => a.month.localeCompare(b.month)) },
   composition: buckets,
-  recent_cards: processing.slice(-12).reverse()
+  recent_cards: processing.slice(-12).reverse(),
+  // ── FLYWHEEL — the full self-learning loop: sessions → cards → dataset →
+  // train → eval → serve → (feedback: data gap) → sessions. All read-only from
+  // on-disk artifacts (no LM calls). Closes LONGVIEW (cards) to EP-T (training).
+  flywheel: (() => {
+    const REPO = "C:/Users/nsdha/OneDrive/binary16/prime-silo";
+    const dsDir = path.join(REPO, "scripts", "train", "dataset");
+    const manifest = readJSON(path.join(dsDir, "manifest.json"), null);
+    // Eval numbers — parse the v3 addendum from the report (normalize U+2212 → '-').
+    let ev = {};
+    try {
+      const md = fs.readFileSync(path.join(REPO, "docs", "train", "T3-eval-report.md"), "utf8").replace(/\u2212/g, "-");
+      const agg = md.match(/base agg_nll\s*([\d.]+)\s*(?:->|→)\s*tuned\s*([\d.]+)\s*\((-?[\d.]+)%\)/i);
+      const a = md.match(/A_nll\s*(-?[\d.]+)%/i);
+      const b = md.match(/B_nll\s*(-?[\d.]+)%/i);
+      const tm = md.match(/tool-name(?:\s+exact)?\s+match\D*(\d+(?:\.\d+)?)\D+(\d+(?:\.\d+)?)/i);
+      if (agg) ev = {
+        base_nll: +agg[1], tuned_nll: +agg[2], agg_pct: +agg[3],
+        a_pct: a ? +a[1] : null, b_pct: b ? +b[1] : null,
+        tool_base: tm ? +tm[1] : null, tool_tuned: tm ? +tm[2] : null
+      };
+    } catch { /* report absent */ }
+    // Dataset staleness: cards present now vs cards baked into the last build.
+    const builtISO = manifest?.generated || null;
+    const builtMs = builtISO ? Date.parse(builtISO) : 0;
+    let newCards = 0;
+    if (builtMs) { for (const f of doneFiles) { try { if (fs.statSync(path.join(cardsDir, f)).mtimeMs > builtMs) newCards++; } catch { /* skip */ } } }
+    const REBUILD_AT = 20;
+    const dsHealth = !manifest ? "none" : newCards >= REBUILD_AT ? "rebuild" : newCards > 0 ? "drifting" : "fresh";
+    const artifact = (p) => { try { const s = fs.statSync(p); return { present: true, mtime: new Date(s.mtimeMs).toISOString() }; } catch { return { present: false, mtime: null }; } };
+    const sft = artifact("D:/t3-merge/gguf_gguf"), dpo = artifact("D:/t5-merge/gguf_gguf");
+    return {
+      stages: {
+        sessions: { count: statusJson.backlog_total ?? null, by_agent: statusJson.by_agent || null, machines: ["T480 (hub)", "ASUS (satellite)"] },
+        cards: { usable: doneFiles.length, backlog: statusJson.backlog_total ?? null, thin: statusJson.map_thin ?? null, new_since_build: newCards },
+        dataset: manifest ? {
+          built: builtISO, total_rows: manifest.total_rows,
+          stream_a: (manifest.streams?.A?.train || 0) + (manifest.streams?.A?.eval || 0),
+          stream_b: (manifest.streams?.B?.train || 0) + (manifest.streams?.B?.eval || 0),
+          cards_used: manifest.source?.a_v3?.jsoncards ?? null,
+          excluded_personal: (manifest.streams?.A?.excluded_personal || 0) + (manifest.streams?.B?.excluded_personal || 0),
+          leak_findings: manifest.privacy?.leak_findings ?? null, health: dsHealth
+        } : { health: "none" },
+        train: { sft, dpo, base: "Qwen2.5-Coder-7B" },
+        eval: ev,
+        serve: { model: "house/qwen2.5-coder-tuned", gguf_ready: sft.present }
+      },
+      // The self-correcting signal: which stage is behind + what the next turn should do.
+      feedback: {
+        data_gap: (ev.a_pct != null && ev.b_pct != null)
+          ? (ev.a_pct > ev.b_pct
+            ? `Stream A lags - A_nll ${ev.a_pct}% vs B_nll ${ev.b_pct}% (method data still scarce)`
+            : `Streams balanced - A ${ev.a_pct}% and B ${ev.b_pct}%`)
+          : null,
+        next_action: dsHealth === "rebuild" ? `${newCards} new cards -> rebuild dataset (T2) now`
+          : dsHealth === "drifting" ? `${newCards} new card(s) since last build - rebuild when ready`
+          : dsHealth === "fresh" ? "dataset current with the corpus"
+          : "no dataset built yet",
+        loop_health: dsHealth
+      }
+    };
+  })()
 };
 // Atomic write (tmp + rename) so the server never reads a half-written file.
 const outPath = path.join(DASH, "dashboard.json");
