@@ -1,0 +1,49 @@
+{
+  "schema_version": "togaf-epic-pipeline/5.0",
+  "id": "togaf-epic-v5-width",
+  "name": "TOGAF EPIC v5 - width-walked, per-section-retrieved SAD",
+  "description": "Contract for the v5 width layer executed by scripts/togaf_epic_v5.py. Stands on the v3 recursive pipeline (TOGAF skeleton floor, index planning, ICONIX robustness, citation gate, PDF SVG gate) and fixes the two structural causes of shallow output: (1) v3 gave every sub-section of a chapter the SAME chapter-level evidence bundle, so siblings paraphrased one fact-set - v5 shows the planner the real Neo4j schema and has it emit a read-only Cypher query per sub-section, so each section is written against its own retrieved slice; (2) v3 had seven fixed chapters and never enumerated the estate - v5 adds three chapters whose index is an inventory derived from disk and from the code graph itself (workflow contracts, modules resolved from CodeEntity paths, n-tier layers). Diagrams are rendered deterministically in code from each section's rows; the model selects a spec from a fixed vocabulary and never authors mermaid, because the PDF gate requires every mermaid block to render.",
+  "executor": "python scripts/togaf_epic_v5.py --workspace ${workspace} [--components N] [--max-leaves N] [--resume] [--word-floor N]",
+  "variables": {
+    "workspace": "sessions_v1",
+    "word_floor": 260,
+    "components": 18
+  },
+  "doctrine": [
+    "The TOGAF skeleton is a FLOOR: the planner may extend a chapter, never drop a prescribed artifact.",
+    "Width chapters are INVENTORIED, not planned - their index is a function of the estate, so the document cannot silently drift from what exists.",
+    "Planner-authored Cypher is UNTRUSTED input: single statement, must start with MATCH, must RETURN, no mutating keyword, LIMIT forced and clamped. A rejected or failing query degrades the section to chapter evidence and is recorded honestly in the gate table.",
+    "The model NEVER authors mermaid. Diagrams are rendered in code from the section's own rows, because togaf_epic_pdf.mjs gates on svg_rendered >= mermaid_blocks and one malformed diagram would fail the whole build.",
+    "Every section cites [EV-*] labels that actually exist in its own evidence bundle; invalid citations fail the gate.",
+    "A section that retrieved nothing says so rather than inventing detail."
+  ],
+  "chapters": [
+    { "id": "scope", "title": "Scope, Context and Stakeholders", "index": "planned" },
+    { "id": "business", "title": "Business Architecture", "index": "planned" },
+    { "id": "data", "title": "Data Architecture", "index": "planned" },
+    { "id": "application", "title": "Application Architecture", "index": "planned" },
+    { "id": "technology", "title": "Technology Architecture", "index": "planned" },
+    { "id": "observability", "title": "Observability, Lineage and Governance", "index": "planned" },
+    { "id": "gap", "title": "Gap Analysis, Risks and Transition", "index": "planned" },
+    { "id": "workflows", "title": "Workflow Architecture", "index": "inventoried from manifests/templates/*.json" },
+    { "id": "components", "title": "Component Architecture", "index": "inventoried from CodeEntity.file_path grouping" },
+    { "id": "layers", "title": "Layer Walk", "index": "inventoried from the ICONIX n-tier classification" }
+  ],
+  "gates": {
+    "per_section": "words >= word_floor AND >=1 citation AND a References block AND no invalid citation labels",
+    "pdf": "svg_rendered >= mermaid_blocks AND svg_errors == 0",
+    "reported": "a per-section table of words/citations/rows/diagram/query status is emitted into the document itself"
+  },
+  "outputs": {
+    "markdown": "${workspace}/data_out/TOGAF_EPIC_V5_SAD_binary16.md",
+    "pdf": "${workspace}/data_out/TOGAF_EPIC_V5_SAD_binary16.pdf",
+    "state": "${workspace}/data_out/togaf_epic_v5_state.json",
+    "evidence": "${workspace}/data_out/togaf_epic_evidence/"
+  },
+  "metadata": {
+    "stands_on": ["togaf_epic_v2_pipeline.json", "togaf_epic_v3_recursive.json"],
+    "supersedes_for_flywheel": "togaf_epic_v3_recursive.json",
+    "resumable": true,
+    "observability": "TASK_METADATA_UPDATE AER stream - live at :8788/lineage.html"
+  }
+}

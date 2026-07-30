@@ -175,6 +175,33 @@
           <!-- primary stage | secondary Observe pane (shown in split view) -->
           <div class="ps-bridge__panes" :class="{ 'is-split': splitActive }">
             <div class="ps-bridge__pane ps-bridge__pane--primary">
+              <!-- V3 -->
+              <div class="ps-bridge__panel" x-show="mode === 'v3'">
+                <div class="ps-bridge__v3-container" @wheel.prevent="if ($event.deltaY > 0) updateV3State(v3State + 1); else updateV3State(v3State - 1);">
+                  <div class="ps-bridge__v3-dot-matrix">
+                    <template x-for="dotIndex in v3Dots" :key="dotIndex">
+                      <div class="v3-dot" :class="{'is-active': dotIndex === v3State * 5}" @click="updateV3State(Math.floor(dotIndex/5))"></div>
+                    </template>
+                  </div>
+                  
+                  <div class="ps-bridge__v3-blueprint">
+                    <div class="v3-node v3-central">V3 CORE</div>
+                    
+                    <div class="v3-node v3-sub-node" data-x="-250" data-y="-150">Policy A</div>
+                    <div class="v3-node v3-sub-node" data-x="250" data-y="-150">Estate</div>
+                    <div class="v3-node v3-sub-node" data-x="-150" data-y="200">Rules</div>
+                    <div class="v3-node v3-sub-node" data-x="150" data-y="200">Agents</div>
+                    
+                    <div class="v3-details-panel">
+                      <h2 style="margin-top:0; color: var(--ps-accent-green);">Deep Dive</h2>
+                      <p>Progressive discovery reveals contextual data based on scroll and matrix position.</p>
+                    </div>
+                  </div>
+
+                  <div class="ps-bridge__v3-scroll-indicator">Scroll or Use Navi Keys</div>
+                </div>
+              </div>
+
               <!-- PULSE -->
               <div class="ps-bridge__panel" x-show="mode === 'pulse'">
                 <div class="ps-bridge__cards" x-ref="pulseCards"></div>

@@ -56,6 +56,7 @@ export const MODES = [
   { id: "studio", label: "Studio", icon: "science" },
   { id: "runs", label: "Runs", icon: "timeline" },
   { id: "v2", label: "Governance V2", icon: "policy" },
+  { id: "v3", label: "Governance V3", icon: "scatter_plot" },
   { id: "agents", label: "Agents", icon: "smart_toy" }
 ];
 
@@ -521,7 +522,106 @@ export function createBridgePage(options = {}) {
       });
       await this.setMode(initialMode);
       this.initAnime();
+      this.initV3();
       this._setupViewport();
+    },
+
+    v3State: 0,
+    v3Dots: Array.from({ length: 15 }, (_, i) => i),
+    
+    initV3() {
+      if (!window.anime) return;
+      this.$watch('mode', (m) => {
+        if (m === 'v3') {
+          this.$nextTick(() => {
+            window.anime({
+              targets: '.v3-dot',
+              scale: [0, 1],
+              opacity: [0, 1],
+              delay: window.anime.stagger(50, {grid: [5, 3], from: 'center'}),
+              easing: 'easeOutBack',
+              duration: 800
+            });
+            this.updateV3State(0, true);
+          });
+        }
+      });
+    },
+
+    updateV3State(newState, force = false) {
+      if (!window.anime) return;
+      if (newState < 0) newState = 0;
+      if (newState > 2) newState = 2;
+      if (this.v3State === newState && !force) return;
+      
+      this.v3State = newState;
+
+      if (newState === 0) {
+        window.anime({
+          targets: '.v3-sub-node',
+          translateX: 0,
+          translateY: 0,
+          scale: 0,
+          opacity: 0,
+          easing: 'easeInExpo',
+          duration: 600
+        });
+        window.anime({
+          targets: '.v3-central',
+          scale: 1,
+          opacity: 1,
+          duration: 800
+        });
+        window.anime({
+          targets: '.v3-details-panel',
+          opacity: 0,
+          scale: 0.9,
+          duration: 300
+        });
+      } else if (newState === 1) {
+        window.anime({
+          targets: '.v3-central',
+          scale: 0.5,
+          opacity: 0.5,
+          duration: 800,
+          easing: 'easeOutExpo'
+        });
+        
+        const subNodes = this.$el.querySelectorAll('.v3-sub-node');
+        subNodes.forEach((node, i) => {
+          window.anime({
+            targets: node,
+            translateX: node.getAttribute('data-x') || 0,
+            translateY: node.getAttribute('data-y') || 0,
+            scale: 1,
+            opacity: 1,
+            delay: i * 100,
+            easing: 'easeOutElastic(1, .6)',
+            duration: 1200
+          });
+        });
+        
+        window.anime({
+          targets: '.v3-details-panel',
+          opacity: 0,
+          scale: 0.9,
+          duration: 300
+        });
+      } else if (newState === 2) {
+        window.anime({
+          targets: '.v3-sub-node',
+          scale: 0.8,
+          opacity: 0.3,
+          duration: 800
+        });
+        window.anime({
+          targets: '.v3-details-panel',
+          opacity: 1,
+          scale: 1,
+          easing: 'easeOutExpo',
+          duration: 800
+        });
+      }
     },
 
     initAnime() {
