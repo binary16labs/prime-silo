@@ -285,40 +285,87 @@ body.app-page-router {
 
 .prime-silo-arc-overlay {
   position: absolute;
-  top: 48px;
+  top: 56px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 10px;
-  padding: 10px 16px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
   background: rgba(14, 18, 16, 0.94);
   border: 1px solid rgba(156, 175, 136, 0.35);
-  border-radius: 24px;
+  border-radius: 20px;
   backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(236, 230, 216, 0.15);
   z-index: 100;
+  min-width: 180px;
 }
 
-.prime-silo-arc-item {
+.prime-silo-arc-group {
+  position: relative;
+}
+
+.prime-silo-arc-item,
+.prime-silo-arc-subitem {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 16px;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
   background: rgba(26, 29, 23, 0.6);
-  border: 1px solid rgba(156, 175, 136, 0.2);
+  border: 1px solid rgba(156, 175, 136, 0.1);
   color: #ece6d8;
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   font-weight: 500;
   text-decoration: none;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
 }
 
-.prime-silo-arc-item:hover {
-  background: rgba(156, 175, 136, 0.2);
-  border-color: rgba(236, 230, 216, 0.5);
+.prime-silo-arc-item:hover,
+.prime-silo-arc-subitem:hover {
+  background: rgba(156, 175, 136, 0.15);
+  border-color: rgba(156, 175, 136, 0.3);
   color: #ffffff;
-  transform: translateY(-2px);
+}
+
+.arc-caret {
+  margin-left: auto;
+  font-size: 16px !important;
+  opacity: 0.4;
+  transition: opacity 0.2s;
+}
+
+.prime-silo-arc-item:hover .arc-caret {
+  opacity: 1;
+}
+
+.prime-silo-arc-sub {
+  position: absolute;
+  top: -8px;
+  left: calc(100% + 12px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(14, 18, 16, 0.96);
+  border: 1px solid rgba(156, 175, 136, 0.3);
+  border-radius: 18px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 12px 12px 32px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(236, 230, 216, 0.1);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-10px);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 101;
+}
+
+.prime-silo-arc-group:hover .prime-silo-arc-sub {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
 }
 

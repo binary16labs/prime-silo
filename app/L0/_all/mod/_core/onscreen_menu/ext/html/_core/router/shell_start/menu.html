@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="/mod/_core/onscreen_menu/onscreen-menu.css" />
+<link rel="stylesheet" href="/mod/_core/onscreen_menu/onscreen-menu.css?v=1.18.1" />
 
 <div
   x-data="{
@@ -175,25 +175,65 @@
             x-show="isArcOpen"
             x-transition.opacity.scale.origin.top.center.duration.200ms
           >
-            <a href="/bridge" class="prime-silo-arc-item" @click="isArcOpen = false">
-              <x-icon>grid_view</x-icon>
-              <span>Bridge</span>
-            </a>
+            <!-- Bridge -->
+            <div class="prime-silo-arc-group">
+              <a href="/bridge" class="prime-silo-arc-item" @click="isArcOpen = false">
+                <x-icon>grid_view</x-icon>
+                <span>Bridge</span>
+                <x-icon class="arc-caret">chevron_right</x-icon>
+              </a>
+              <div class="prime-silo-arc-sub">
+                <a href="/bridge?mode=memory" class="prime-silo-arc-subitem" @click="isArcOpen = false">
+                  <x-icon>memory</x-icon>
+                  <span>Memory Manager</span>
+                </a>
+              </div>
+            </div>
+
+            <!-- Studio -->
             <a href="/studio" class="prime-silo-arc-item" @click="isArcOpen = false">
               <x-icon>code</x-icon>
               <span>Studio</span>
             </a>
-            <a href="/observe" class="prime-silo-arc-item" @click="isArcOpen = false">
-              <x-icon>visibility</x-icon>
-              <span>Observe</span>
-            </a>
+
+            <!-- Observe -->
+            <div class="prime-silo-arc-group">
+              <a href="/observe" class="prime-silo-arc-item" @click="isArcOpen = false">
+                <x-icon>visibility</x-icon>
+                <span>Observe</span>
+                <x-icon class="arc-caret">chevron_right</x-icon>
+              </a>
+              <div class="prime-silo-arc-sub">
+                <a href="/longview" class="prime-silo-arc-subitem" @click="isArcOpen = false">
+                  <x-icon>analytics</x-icon>
+                  <span>Longview</span>
+                </a>
+                <a href="/flywheel" class="prime-silo-arc-subitem" @click="isArcOpen = false">
+                  <x-icon>loop</x-icon>
+                  <span>Flywheel</span>
+                </a>
+              </div>
+            </div>
+
+            <!-- Governance V2 -->
+            <div class="prime-silo-arc-group">
+              <a href="/governance" class="prime-silo-arc-item" @click="isArcOpen = false">
+                <x-icon>account_tree</x-icon>
+                <span>Governance V2</span>
+                <x-icon class="arc-caret">chevron_right</x-icon>
+              </a>
+              <div class="prime-silo-arc-sub">
+                <a href="/estate" class="prime-silo-arc-subitem" @click="isArcOpen = false">
+                  <x-icon>domain</x-icon>
+                  <span>Estate Console</span>
+                </a>
+              </div>
+            </div>
+
+            <!-- Setup -->
             <a href="/setup" class="prime-silo-arc-item" @click="isArcOpen = false">
               <x-icon>settings</x-icon>
               <span>Setup</span>
-            </a>
-            <a href="/governance" class="prime-silo-arc-item" @click="isArcOpen = false">
-              <x-icon>account_tree</x-icon>
-              <span>Governance V2</span>
             </a>
           </div>
         </div>
