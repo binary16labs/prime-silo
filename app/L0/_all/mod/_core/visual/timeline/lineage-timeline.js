@@ -686,7 +686,7 @@ export class LineageTimeline extends HTMLElement {
 
   selectNode(nodeId) {
     this.selectedNodeId = nodeId;
-    const node = this.data.nodes.find((n) => n.id === nodeId);
+    const node = this.data && this.data.nodes ? this.data.nodes.find((n) => n.id === nodeId) : null;
 
     const idx = this.sortedNodes.findIndex((n) => n.id === nodeId);
     if (idx >= 0) this.playbackIndex = idx;
@@ -694,6 +694,19 @@ export class LineageTimeline extends HTMLElement {
     if (node) this.openDrawer(node);
 
     this.updateLayout();
+
+    this.dispatchEvent(
+      new CustomEvent("node-selected", {
+        bubbles: true,
+        composed: true,
+        detail: {
+          nodeId,
+          node,
+          stepIndex: idx >= 0 ? idx : 0,
+          stepTotal: this.sortedNodes.length
+        }
+      })
+    );
   }
 
   openDrawer(node) {

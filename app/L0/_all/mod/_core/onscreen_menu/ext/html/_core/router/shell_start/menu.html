@@ -160,8 +160,8 @@
 
         <div
           class="prime-silo-orb-wrapper"
-          x-data="{ isArcOpen: false }"
-          @click.outside="isArcOpen = false"
+          x-data="{ isArcOpen: false, activeSub: null }"
+          @click.outside="isArcOpen = false; activeSub = null"
         >
           <button
             type="button"
@@ -184,69 +184,113 @@
             x-transition.opacity.scale.origin.top.center.duration.200ms
           >
             <!-- Bridge -->
-            <div class="prime-silo-arc-group">
-              <a href="/bridge" class="prime-silo-arc-item" @click="isArcOpen = false">
+            <div
+              class="prime-silo-arc-group"
+              @mouseenter="activeSub = 'bridge'"
+              @mouseleave="activeSub = null"
+            >
+              <button
+                type="button"
+                class="prime-silo-arc-item"
+                @click="openRoute('/bridge'); isArcOpen = false; activeSub = null"
+              >
                 <x-icon>grid_view</x-icon>
                 <span>Bridge</span>
                 <x-icon class="arc-caret">chevron_right</x-icon>
-              </a>
-              <div class="prime-silo-arc-sub">
-                <a
-                  href="/bridge?mode=memory"
+              </button>
+              <div class="prime-silo-arc-sub" :class="{ 'is-active': activeSub === 'bridge' }">
+                <button
+                  type="button"
                   class="prime-silo-arc-subitem"
-                  @click="isArcOpen = false"
+                  @click="openRoute('/bridge?mode=memory'); isArcOpen = false; activeSub = null"
                 >
                   <x-icon>memory</x-icon>
                   <span>Memory Manager</span>
-                </a>
+                </button>
               </div>
             </div>
 
             <!-- Studio -->
-            <a href="/studio" class="prime-silo-arc-item" @click="isArcOpen = false">
+            <button
+              type="button"
+              class="prime-silo-arc-item"
+              @click="openRoute('/studio'); isArcOpen = false"
+            >
               <x-icon>code</x-icon>
               <span>Studio</span>
-            </a>
+            </button>
 
             <!-- Observe -->
-            <div class="prime-silo-arc-group">
-              <a href="/observe" class="prime-silo-arc-item" @click="isArcOpen = false">
+            <div
+              class="prime-silo-arc-group"
+              @mouseenter="activeSub = 'observe'"
+              @mouseleave="activeSub = null"
+            >
+              <button
+                type="button"
+                class="prime-silo-arc-item"
+                @click="openRoute('/observe'); isArcOpen = false; activeSub = null"
+              >
                 <x-icon>visibility</x-icon>
                 <span>Observe</span>
                 <x-icon class="arc-caret">chevron_right</x-icon>
-              </a>
-              <div class="prime-silo-arc-sub">
-                <a href="/longview" class="prime-silo-arc-subitem" @click="isArcOpen = false">
+              </button>
+              <div class="prime-silo-arc-sub" :class="{ 'is-active': activeSub === 'observe' }">
+                <button
+                  type="button"
+                  class="prime-silo-arc-subitem"
+                  @click="openRoute('/longview'); isArcOpen = false; activeSub = null"
+                >
                   <x-icon>analytics</x-icon>
                   <span>Longview</span>
-                </a>
-                <a href="/flywheel" class="prime-silo-arc-subitem" @click="isArcOpen = false">
+                </button>
+                <button
+                  type="button"
+                  class="prime-silo-arc-subitem"
+                  @click="openRoute('/flywheel'); isArcOpen = false; activeSub = null"
+                >
                   <x-icon>loop</x-icon>
                   <span>Flywheel</span>
-                </a>
+                </button>
               </div>
             </div>
 
             <!-- Governance V2 -->
-            <div class="prime-silo-arc-group">
-              <a href="/governance" class="prime-silo-arc-item" @click="isArcOpen = false">
+            <div
+              class="prime-silo-arc-group"
+              @mouseenter="activeSub = 'governance'"
+              @mouseleave="activeSub = null"
+            >
+              <button
+                type="button"
+                class="prime-silo-arc-item"
+                @click="openRoute('/governance'); isArcOpen = false; activeSub = null"
+              >
                 <x-icon>account_tree</x-icon>
                 <span>Governance V2</span>
                 <x-icon class="arc-caret">chevron_right</x-icon>
-              </a>
-              <div class="prime-silo-arc-sub">
-                <a href="/estate" class="prime-silo-arc-subitem" @click="isArcOpen = false">
+              </button>
+              <div class="prime-silo-arc-sub" :class="{ 'is-active': activeSub === 'governance' }">
+                <button
+                  type="button"
+                  class="prime-silo-arc-subitem"
+                  @click="openRoute('/estate'); isArcOpen = false; activeSub = null"
+                >
                   <x-icon>domain</x-icon>
                   <span>Estate Console</span>
-                </a>
+                </button>
               </div>
             </div>
 
             <!-- Setup -->
-            <a href="/setup" class="prime-silo-arc-item" @click="isArcOpen = false">
+            <button
+              type="button"
+              class="prime-silo-arc-item"
+              @click="openRoute('/setup'); isArcOpen = false"
+            >
               <x-icon>settings</x-icon>
               <span>Setup</span>
-            </a>
+            </button>
           </div>
         </div>
 

@@ -486,6 +486,7 @@ export function createBridgePage(options = {}) {
     govSort: "weight", // 'weight' | 'time' | 'duration' | 'errors'
     govFilter: "all", // 'all' | 'failures' | 'compliant'
     govStepIndex: 0,
+    govSelectedNode: null,
 
     // agents (model + provider routing — single config surface)
     agentProviders: {}, // raw /llm/status
@@ -790,6 +791,7 @@ export function createBridgePage(options = {}) {
     selectGovRun(runId) {
       this.activeRunId = runId;
       this.govStepIndex = 0;
+      this.govSelectedNode = null;
 
       const sessionData = this.sessions.find((s) => s.id === runId);
       if (sessionData) {
@@ -872,9 +874,12 @@ export function createBridgePage(options = {}) {
             activeErrCount: active?.errCount ?? null,
             activeDuration: active?.formattedDuration || null,
             activeTitle: active?.title || null, // sessions have titles
-            // Step-through cursor
+            // Step-through cursor & node selection
             stepIndex: this.govStepIndex,
             stepTotal,
+            selectedNodeId: this.govSelectedNode?.id || null,
+            selectedNodeLabel: this.govSelectedNode?.label || null,
+            selectedNodeLane: this.govSelectedNode?.swimlaneId || null,
             // Navigator state
             filter: this.govFilter,
             sort: this.govSort,
@@ -1005,6 +1010,31 @@ export function createBridgePage(options = {}) {
 
       const v2Timeline = document.getElementById("v2-timeline");
       if (!v2Timeline || typeof v2Timeline.setData !== "function") return;
+
+      if (!v2Timeline._hasNodeSelectedListener) {
+        v2Timeline._hasNodeSelectedListener = true;
+        v2Timeline.addEventListener("node-selected", (e) => {
+          const detail = e.detail || {};
+          if (detail.stepIndex != null && detail.stepIndex >= 0) {
+            this.govStepIndex = detail.stepIndex;
+          }
+          if (detail.nodeId) {
+            this.govSelectedNode = {
+              id: detail.nodeId,
+              label: detail.node?.label || detail.nodeId,
+              swimlaneId: detail.node?.swimlaneId || null,
+              type: detail.node?.type || null
+            };
+            this.selection = {
+              id: detail.nodeId,
+              label: detail.node?.label || detail.nodeId,
+              type: "node",
+              mode: "v2"
+            };
+          }
+          this._syncGovContext();
+        });
+      }
 
       let data = null;
 

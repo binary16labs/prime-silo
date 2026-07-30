@@ -22,6 +22,7 @@ async function main() {
   testDescribeContext();
   testComposePromptGroundsAndPointsAtSkill();
   testComposePromptIncludesLiveData();
+  await testGovernanceV2SelectedNodeContext();
   testCreatePublishesSnapshot();
   await testDispatchRoutesToAgent();
   await testDispatchAgentUnavailable();
@@ -92,6 +93,40 @@ function testComposePromptIncludesLiveData() {
   // Without liveData the Live data line must be absent.
   const promptNoData = composePrompt("Explain this graph", { mode: "code", workspace: "ws" });
   assert.ok(!promptNoData.includes("Live data:"), "no Live data line when liveData is null");
+}
+
+async function testGovernanceV2SelectedNodeContext() {
+  const target = {};
+  const ctx = createBridgeContext({ globalTarget: target });
+  ctx.set({
+    mode: "v2",
+    selection: { id: "4ee3c166dcf0", label: "Read (L2/memoray/output)" },
+    pageContext: {
+      governance: {
+        activeRunId: "2ee29d33b4e4",
+        activeType: "session",
+        activeStatus: "completed",
+        activeRiskWeight: 12,
+        activeErrCount: 0,
+        activeDuration: "2m 21s",
+        stepIndex: 3,
+        stepTotal: 7,
+        selectedNodeId: "4ee3c166dcf0",
+        selectedNodeLabel: "Read (L2/memoray/output)",
+        selectedNodeLane: "outputs",
+        summary: { totalVisible: 10, totalFailures: 0 }
+      }
+    }
+  });
+
+  const liveData = await __testing.fetchModeData(ctx.snapshot());
+  const prompt = composePrompt("Explain this step", ctx.snapshot(), liveData);
+  assert.match(prompt, /Step-through: step 3 of 7/);
+  assert.match(
+    prompt,
+    /focused on node "Read \(L2\/memoray\/output\)" \(id: 4ee3c166dcf0, swimlane: outputs\)/
+  );
+  assert.match(prompt, /selected: Read \(L2\/memoray\/output\) \(id: 4ee3c166dcf0\)/);
 }
 
 function testCreatePublishesSnapshot() {

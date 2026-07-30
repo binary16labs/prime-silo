@@ -2305,17 +2305,43 @@ async function startDesktop() {
           createWindow();
           if (mainWindow && action) {
             const js = `
-              if ('${action}' === 'chats') {
-                document.body.classList.toggle('v2-chat-open');
-              } else {
-                document.body.classList.remove('v2-chat-open');
-                const bridge = document.querySelector('[x-data="bridge()"]');
-                if (bridge && bridge.__x) {
-                  bridge.__x.$data.setMode('${action}');
+              (function() {
+                const targetAction = '${action}';
+                if (targetAction === 'chats') {
+                  document.body.classList.toggle('v2-chat-open');
+                  return;
                 }
-              }
+                document.body.classList.remove('v2-chat-open');
+
+                const modeRoutes = {
+                  studio: '#/_prime_silo/studio',
+                  longview: '#/_prime_silo/longview',
+                  flywheel: '#/_prime_silo/flywheel',
+                  estate: '#/_prime_silo/estate',
+                  governance: '#/_prime_silo/bridge?mode=v2',
+                  setup: '#/_prime_silo/setup'
+                };
+
+                const targetRoute = modeRoutes[targetAction] || ('#/_prime_silo/bridge?mode=' + targetAction);
+
+                const bridgeEl = document.querySelector('[x-data="bridge()"]');
+                if (bridgeEl && window.Alpine && typeof window.Alpine.$data === 'function') {
+                  try {
+                    const data = window.Alpine.$data(bridgeEl);
+                    if (data && typeof data.setMode === 'function') {
+                      data.setMode(targetAction);
+                    }
+                  } catch (err) {
+                    console.warn('[desktop] Alpine setMode failed:', err);
+                  }
+                }
+
+                window.location.hash = targetRoute;
+              })();
             `;
-            mainWindow.webContents.executeJavaScript(js).catch((e) => console.error(e));
+            mainWindow.webContents
+              .executeJavaScript(js)
+              .catch((e) => console.error("[desktop] navigate error:", e));
           }
         }
       }),

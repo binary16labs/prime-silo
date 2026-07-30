@@ -32,9 +32,63 @@ const SKILL_IMPORT = "/mod/_prime_silo/memoray_client/ext/skills/benny-pilot/ben
  */
 async function fetchModeData(currentState) {
   try {
-    const pilot = await import(SKILL_IMPORT);
     const mode = currentState.mode || "pulse";
     const workspace = currentState.workspace || "default";
+
+    if (mode === "v2") {
+      // Governance V2 — the page blends sessions + pipeline runs into one
+      // risk-scored, filtered, step-through view. Pull context from both.
+      const pc = currentState.pageContext || {};
+      const gov = pc.governance || {};
+
+      // 1. Active run / session
+      const activeId = gov.activeRunId || currentState.lastRun || null;
+      if (!activeId) {
+        const summary = gov.summary || {};
+        return (
+          `Governance V2: no run selected. ` +
+          `Showing ${summary.totalVisible ?? "?"} items ` +
+          `(filter: ${summary.filter || "all"}, sort: ${summary.sort || "weight"}).`
+        );
+      }
+
+      const type = gov.activeType || "unknown"; // 'session' | 'run' | 'unknown'
+      const status = gov.activeStatus || "unknown";
+      const riskWeight = gov.activeRiskWeight != null ? `${gov.activeRiskWeight}%` : "N/A";
+      const errCount = gov.activeErrCount != null ? gov.activeErrCount : "?";
+      const duration = gov.activeDuration || "N/A";
+      const stepIndex = gov.stepIndex != null ? gov.stepIndex : 0;
+      const stepTotal = gov.stepTotal != null ? gov.stepTotal : "?";
+      const filter = gov.filter || "all";
+      const sort = gov.sort || "weight";
+      const totalVisible = gov.summary?.totalVisible ?? "?";
+      const totalFailures = gov.summary?.totalFailures ?? "?";
+
+      const selectedId =
+        gov.selectedNodeId || (currentState.selection && currentState.selection.id) || null;
+      const selectedLabel =
+        gov.selectedNodeLabel || (currentState.selection && currentState.selection.label) || null;
+      const selectedLane = gov.selectedNodeLane || null;
+
+      let line =
+        `Governance V2 — active ${type}: ${String(activeId).slice(0, 16)} ` +
+        `(status: ${status}, risk weight: ${riskWeight}, errors: ${errCount}, duration: ${duration}). ` +
+        `Step-through: step ${stepIndex} of ${stepTotal}`;
+
+      if (selectedId) {
+        line += `, focused on node "${selectedLabel || selectedId}" (id: ${selectedId}${selectedLane ? `, swimlane: ${selectedLane}` : ""})`;
+      }
+
+      line += `. Navigator: ${totalVisible} items visible (filter: ${filter}, sort: ${sort}, ${totalFailures} failures).`;
+
+      // Append node_states summary if available (pipeline run detail).
+      if (gov.nodeStatesSummary) {
+        line += ` Steps: ${gov.nodeStatesSummary}.`;
+      }
+      return line;
+    }
+
+    const pilot = await import(SKILL_IMPORT);
 
     if (mode === "code") {
       const graph = await pilot.codeGraph(workspace);
@@ -134,48 +188,6 @@ async function fetchModeData(currentState) {
       const arr = Array.isArray(feed) ? feed : [];
       if (!arr.length) return "Pulse: no recent activity in the lifelog.";
       return `Pulse: ${arr.length} recent items. Latest: "${String(arr[0].content || "").slice(0, 80)}".`;
-    }
-
-    if (mode === "v2") {
-      // Governance V2 — the page blends sessions + pipeline runs into one
-      // risk-scored, filtered, step-through view. Pull context from both.
-      const pc = currentState.pageContext || {};
-      const gov = pc.governance || {};
-
-      // 1. Active run / session
-      const activeId = gov.activeRunId || currentState.lastRun || null;
-      if (!activeId) {
-        const summary = gov.summary || {};
-        return (
-          `Governance V2: no run selected. ` +
-          `Showing ${summary.totalVisible ?? "?"} items ` +
-          `(filter: ${summary.filter || "all"}, sort: ${summary.sort || "weight"}).`
-        );
-      }
-
-      const type = gov.activeType || "unknown"; // 'session' | 'run' | 'unknown'
-      const status = gov.activeStatus || "unknown";
-      const riskWeight = gov.activeRiskWeight != null ? `${gov.activeRiskWeight}%` : "N/A";
-      const errCount = gov.activeErrCount != null ? gov.activeErrCount : "?";
-      const duration = gov.activeDuration || "N/A";
-      const stepIndex = gov.stepIndex != null ? gov.stepIndex : 0;
-      const stepTotal = gov.stepTotal != null ? gov.stepTotal : "?";
-      const filter = gov.filter || "all";
-      const sort = gov.sort || "weight";
-      const totalVisible = gov.summary?.totalVisible ?? "?";
-      const totalFailures = gov.summary?.totalFailures ?? "?";
-
-      let line =
-        `Governance V2 — active ${type}: ${String(activeId).slice(0, 16)} ` +
-        `(status: ${status}, risk weight: ${riskWeight}, errors: ${errCount}, duration: ${duration}). ` +
-        `Step-through: step ${stepIndex} of ${stepTotal}. ` +
-        `Navigator: ${totalVisible} items visible (filter: ${filter}, sort: ${sort}, ${totalFailures} failures).`;
-
-      // Append node_states summary if available (pipeline run detail).
-      if (gov.nodeStatesSummary) {
-        line += ` Steps: ${gov.nodeStatesSummary}.`;
-      }
-      return line;
     }
 
     // Page-specific extra context pushed by the Bridge page. When a mode-specific
@@ -339,4 +351,4 @@ export function createBridgeContext(options = {}) {
   };
 }
 
-export const __testing = { GLOBAL_KEY, ROUTE, SKILL_IMPORT };
+export const __testing = { GLOBAL_KEY, ROUTE, SKILL_IMPORT, fetchModeData };
