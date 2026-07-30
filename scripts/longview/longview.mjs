@@ -10,6 +10,7 @@
  *   node scripts/longview/longview.mjs map       [--limit N] [--force]
  *   node scripts/longview/longview.mjs model     [--no-graph]
  *   node scripts/longview/longview.mjs reduce    [--skip-book] [--only report,prd,...]
+ *   node scripts/longview/longview.mjs sad       (canonical TOGAF EPIC v3 SAD → runtime/scripts/togaf_epic_v3.py; needs LM host + Neo4j)
  *   node scripts/longview/longview.mjs all       [--limit N] [--no-graph] [--skip-book]
  *   node scripts/longview/longview.mjs delta     [--refresh] [--no-graph]
  *   node scripts/longview/longview.mjs status | report
@@ -1691,6 +1692,59 @@ function runPdfPhase() {
   writeStatus({ phase: "pdf_done", pdf: r.ok ? pdfPath : null });
 }
 
+// -------------------------------------------------------------------- sad
+// The CANONICAL TOGAF SAD flow for the flywheel is TOGAF EPIC v3:
+// runtime/scripts/togaf_epic_v3.py — recursive index-planned, reference-grounded
+// (deterministic diagrams-as-code from the code+knowledge graph + ICONIX
+// robustness + an evidence-cited recursive narrative → TOGAF_EPIC_V3_SAD_binary16.
+// It needs the LM host (gemma via BENNY_LMSTUDIO_ENDPOINTS) + Neo4j up. This phase
+// shells out to it so `longview sad` / `longview all` always drive that ONE flow —
+// do NOT reintroduce a parallel SAD generator (that was the confusion we removed).
+function runSad() {
+  const runtimeDir = path.join(projectRoot, "runtime");
+  const script = path.join("scripts", "togaf_epic_v3.py");
+  if (!fs.existsSync(path.join(runtimeDir, script))) {
+    console.log(`[sad] canonical flow missing: runtime/${script}`);
+    return;
+  }
+  // Bundled runtime python carries the benny deps (fastapi/neo4j/litellm) with no
+  // dev install; override via PRIME_SILO_RUNTIME_PY / PRIME_SILO_RUNTIME_BUNDLE.
+  const bundle = process.env.PRIME_SILO_RUNTIME_BUNDLE
+    || path.join(process.env.APPDATA || path.join(process.env.USERPROFILE || "", "AppData", "Roaming"), "space-agent", "runtime-bundle");
+  const py = process.env.PRIME_SILO_RUNTIME_PY || path.join(bundle, "python", "python.exe");
+  const env = {
+    ...process.env,
+    PYTHONPATH: [runtimeDir, path.join(bundle, "site")].filter(Boolean).join(path.delimiter),
+    BENNY_LMSTUDIO_ENDPOINTS: process.env.BENNY_LMSTUDIO_ENDPOINTS || "http://127.0.0.1:1234/v1"
+  };
+  // Prereq: refresh the CODE graph (CodeEntity+CODE_REL) so the ICONIX robustness
+  // section grounds on real code, not an empty graph. Pure Tree-sitter (CPU), and
+  // idempotent (clears the prior snapshot first → no duplicate-symbol poison).
+  // Skip with --no-code-scan (e.g. a --resume rebuild that only re-weaves prose).
+  if (!flag("no-code-scan")) {
+    const scan = path.join("scripts", "code_graph_scan.py");
+    if (fs.existsSync(path.join(runtimeDir, scan))) {
+      console.log(`[sad] refreshing code graph → runtime/${scan} --workspace ${config.WORKSPACE}`);
+      const cs = spawnSync(py, [scan, "--workspace", config.WORKSPACE], { cwd: runtimeDir, env, stdio: "inherit" });
+      if (cs.status !== 0) console.log(`[sad] WARN code_graph_scan exit=${cs.status} — robustness may be thin (Neo4j up? src present?)`);
+    } else {
+      console.log(`[sad] WARN ${scan} missing — robustness will be thin without a code graph`);
+    }
+  }
+  console.log(`[sad] canonical TOGAF EPIC v3 → runtime/${script} --workspace ${config.WORKSPACE}`);
+  const args = ["--workspace", config.WORKSPACE];
+  if (flag("resume")) args.push("--resume");
+  const r = spawnSync(py, [script, ...args], { cwd: runtimeDir, env, stdio: "inherit" });
+  appendLedger({ phase: "sad", flow: "togaf_epic_v3", exit: r.status ?? null, error: r.error ? String(r.error) : null });
+  if (r.status === 0) {
+    console.log(`[sad] TOGAF_EPIC_V3_SAD_${config.WORKSPACE === "sessions_v1" ? "binary16" : config.WORKSPACE} written to data_out`);
+    writeStatus({ phase: "sad_done", flow: "togaf_epic_v3", sad: "data_out/TOGAF_EPIC_V3_SAD_binary16.pdf" });
+  } else {
+    console.log(`[sad] togaf_epic_v3 exit=${r.status} — it needs the LM host (gemma) + Neo4j; re-run 'longview sad' when the eGPU is free (e.g. after training).`);
+    writeStatus({ phase: "sad_failed", flow: "togaf_epic_v3", exit: r.status ?? null });
+  }
+}
+
 // ------------------------------------------------------------ status/report
 function runStatus() {
   const s = readStatus();
@@ -1965,7 +2019,8 @@ const MUTATING_COMMANDS = new Set([
   "weave",
   "reduce",
   "opus",
-  "pdf"
+  "pdf",
+  "sad"
 ]);
 
 async function main() {
@@ -2034,12 +2089,16 @@ async function main() {
     case "pdf":
       runPdfPhase();
       break;
+    case "sad":
+      runSad();
+      break;
     case "all":
       await runInventory();
       runExtract();
       await runMap();
       if (!interrupted) await runModel();
       if (!interrupted) await runReduce();
+      if (!interrupted) runSad(); // grounded TOGAF SAD (deterministic, after dossiers)
       break;
     case "delta":
       await runDelta();
