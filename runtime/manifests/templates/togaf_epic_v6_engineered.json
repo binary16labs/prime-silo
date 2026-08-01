@@ -1,0 +1,55 @@
+{
+  "schema_version": "togaf-epic-pipeline/6.0",
+  "id": "togaf-epic-v6-engineered",
+  "name": "TOGAF EPIC v6 - engineered architecture document (full C4, complete robustness, workflow triad)",
+  "description": "Contract for scripts/togaf_epic_v6.py. Stands on v5 (per-section Cypher retrieval + width walk) and v3 (TOGAF skeleton + citation gate), and fixes what made v5 read as a collection rather than a document: a shared diagram engine with size budgeting and sharding; a complete C4 hierarchy L1-L4 with drill-down; ICONIX robustness over EVERY classified object instead of the top-90 sample; per-workflow BPMN + UML sequence + robustness built from each contract's REAL DAG (plan.tasks/edges/waves); and total component coverage. Diagrams are rendered deterministically in code - the model never authors mermaid - because the PDF gate requires every block to render AND to fit the printable box.",
+  "executor": "python scripts/togaf_epic_v6.py --workspace ${workspace} [--skeleton-only] [--components N] [--resume]",
+  "variables": {
+    "workspace": "sessions_v1",
+    "word_floor": 260,
+    "components": 0,
+    "usecases": 10
+  },
+  "doctrine": [
+    "The TOGAF skeleton is a FLOOR: the planner may extend a chapter, never drop a prescribed artifact.",
+    "Width chapters are INVENTORIED, not planned - the index is a function of the estate, so the document cannot drift from what exists.",
+    "Robustness covers EVERY Class/File entity. v3/v5 sampled the top 90 of 2,438 (3.7%) and drew 14 per category; a sample is not a model.",
+    "Workflow diagrams come from the contract's real topology (plan.tasks/edges/waves). Unordered sets (model rosters, agent lists) must NOT be given invented sequence edges - they are parallel and BPMN shows them that way.",
+    "The model NEVER authors mermaid. Code renders every diagram from a node/edge set through one budgeted renderer that shards past 34 nodes.",
+    "A diagram that overflows the printable box overlaps body text, so svg_over_tall == 0 is part of the PDF gate, not decoration.",
+    "Every classified object carries a stable catalog ID (B-nnn/C-nnn/E-nnn) used identically across diagrams, per-component views and catalogs, so an object is trackable between views.",
+    "A section that retrieved nothing says so rather than inventing detail."
+  ],
+  "chapters": [
+    { "id": "scope", "title": "Scope, Context and Stakeholders", "index": "planned" },
+    { "id": "business", "title": "Business Architecture", "index": "planned" },
+    { "id": "data", "title": "Data Architecture", "index": "planned" },
+    { "id": "application", "title": "Application Architecture", "index": "planned, carries the full robustness model + catalogs" },
+    { "id": "technology", "title": "Technology Architecture", "index": "planned" },
+    { "id": "observability", "title": "Observability, Lineage and Governance", "index": "planned" },
+    { "id": "gap", "title": "Gap Analysis, Risks and Transition", "index": "planned" },
+    { "id": "usecases", "title": "Use Case Architecture", "index": "inventoried from knowledge-graph capabilities" },
+    { "id": "c4", "title": "C4 Architecture Hierarchy", "index": "L1 context, L2 containers, L3 per container, L4 code" },
+    { "id": "workflows", "title": "Workflow Architecture", "index": "manifests/templates/*.json, each with BPMN + UML + robustness" },
+    { "id": "components", "title": "Component Architecture", "index": "every module from CodeEntity.file_path, each with C4 L4 + deps + robustness" },
+    { "id": "layers", "title": "Layer Walk", "index": "ICONIX n-tier over the complete catalog" }
+  ],
+  "gates": {
+    "per_section": "words >= word_floor AND >=1 citation AND a References block AND no invalid citation labels",
+    "pdf": "svg_rendered >= mermaid_blocks AND svg_errors == 0 AND svg_over_tall == 0",
+    "reported": "a per-section table of words/citations/rows/diagram/query status is emitted into the document itself"
+  },
+  "outputs": {
+    "markdown": "${workspace}/data_out/TOGAF_EPIC_V6_SAD_binary16.md",
+    "pdf": "${workspace}/data_out/TOGAF_EPIC_V6_SAD_binary16.pdf",
+    "state": "${workspace}/data_out/togaf_epic_v6_state.json",
+    "evidence": "${workspace}/data_out/togaf_epic_evidence/"
+  },
+  "metadata": {
+    "stands_on": ["togaf_epic_v3_recursive.json", "togaf_epic_v5_width.json"],
+    "supersedes_for_flywheel": "togaf_epic_v5_width.json",
+    "resumable": true,
+    "skeleton_mode": "--skeleton-only builds the complete deterministic spine (all diagrams, catalogs, C4 levels) with no LLM narrative, in about a minute",
+    "observability": "TASK_METADATA_UPDATE AER stream - live at :8788/lineage.html"
+  }
+}

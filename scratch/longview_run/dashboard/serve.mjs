@@ -13,6 +13,24 @@ const WS_ROOT = `${(process.env.BENNY_HOME || "C:/Users/nsdha/AppData/Roaming/sp
 const isLoopback = (req) =>
   ["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.socket.remoteAddress);
 
+// ── control plane (loopback ONLY — it can launch mutating builds) ──────────
+import { handleControl } from "./control.mjs";
+
+function controlApi(req, res, rawUrl) {
+  const [url, qs] = rawUrl.split("?");
+  const q = Object.fromEntries(new URLSearchParams(qs || ""));
+  const json = (code, obj) => {
+    res.writeHead(code, { "content-type": "application/json", "cache-control": "no-store" });
+    res.end(JSON.stringify(obj));
+  };
+  if (!isLoopback(req)) return json(403, { error: "control plane is loopback-only" });
+  try {
+    return handleControl(req, res, url, q, json, isLoopback);
+  } catch (e) {
+    return json(500, { error: String(e && e.message).slice(0, 400) });
+  }
+}
+
 function runMemory(workspace, cliArgs, cb) {
   const child = spawn("node", [path.join(REPO, "scripts", "longview", "memory.mjs"), ...cliArgs], {
     cwd: REPO,
@@ -131,6 +149,7 @@ const TYPES = { ".html": "text/html", ".json": "application/json", ".js": "text/
 
 http
   .createServer((req, res) => {
+    if ((req.url || "").startsWith("/api/control/")) return controlApi(req, res, req.url);
     if ((req.url || "").startsWith("/api/memory/")) return memoryApi(req, res, req.url);
     if ((req.url || "").startsWith("/api/lineage/")) return lineageApi(req, res, req.url);
     let p = decodeURIComponent((req.url || "/").split("?")[0]);

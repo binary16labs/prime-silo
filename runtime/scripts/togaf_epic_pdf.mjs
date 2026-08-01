@@ -91,8 +91,11 @@ function mdToHtml(md, title) {
   h2.chapter{font-size:15pt;page-break-before:always;border-bottom:1px solid #9aa7b5;padding-bottom:4pt;margin-top:0}
   h3{font-size:12.5pt;color:#26445e}
   pre{background:#f4f6f9;border:1px solid #dde3ec;border-radius:6px;padding:8px;font:8.5pt/1.4 Consolas,monospace;white-space:pre-wrap;word-break:break-word}
-  pre.mermaid{background:#fff;border:none;text-align:center;page-break-inside:avoid}
-  pre.mermaid svg{max-width:100%;height:auto}
+  /* A diagram taller than the printable box can never satisfy page-break-inside:avoid,
+     so Chrome overflows it and it collides with the following text. The fit pass below
+     scales every SVG into the box; these rules just stop the browser fighting it. */
+  pre.mermaid{background:#fff;border:none;text-align:center;page-break-inside:avoid;overflow:hidden;margin:6mm 0}
+  pre.mermaid svg{display:block;margin:0 auto;max-width:100% !important;height:auto}
   table{border-collapse:collapse;width:100%;font-size:9.5pt;page-break-inside:avoid}
   th,td{border:1px solid #c8d1dd;padding:4px 7px;text-align:left}
   th{background:#eef1f6}
@@ -108,6 +111,23 @@ ${out.join("\n")}
   mermaid.initialize({ startOnLoad: false, theme: "neutral", securityLevel: "loose" });
   (async () => {
     try { await mermaid.run({ querySelector: "pre.mermaid" }); } catch (e) { /* per-diagram errors leave the code visible */ }
+    // FIT PASS — the fix for diagrams overlapping body text in the PDF.
+    // Mermaid stamps its own inline max-width and an intrinsic height, so a tall
+    // diagram overflows the page box. Rescale each SVG from its viewBox into the
+    // printable area (180mm x 200mm at 96dpi) so avoid-break can always place it.
+    var MAX_W = 680, MAX_H = 756, fitted = 0, scaled = 0;
+    document.querySelectorAll("pre.mermaid svg").forEach(function (svg) {
+      var vb = svg.viewBox && svg.viewBox.baseVal;
+      if (!vb || !vb.width || !vb.height) return;
+      svg.removeAttribute("style");
+      svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+      var s = Math.min(MAX_W / vb.width, MAX_H / vb.height, 1);
+      var w = Math.round(vb.width * s), h = Math.round(vb.height * s);
+      svg.setAttribute("width", w); svg.setAttribute("height", h);
+      svg.style.width = w + "px"; svg.style.height = h + "px"; svg.style.maxWidth = "none";
+      fitted++; if (s < 1) scaled++;
+    });
+    document.body.setAttribute("data-fit", fitted + "/" + scaled);
     document.body.setAttribute("data-mermaid-done", "1");
   })();
 </script>
@@ -145,6 +165,15 @@ const dump = spawnSync(browser, [
 ], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 120000 });
 const svgCount = (dump.stdout.match(/<svg[^>]*aria-roledescription/g) || []).length;
 const errCount = (dump.stdout.match(/aria-roledescription="error"/g) || []).length;
+// fit telemetry: "<fitted>/<scaled-down>" — an unfitted diagram is one that can
+// still overflow the page box and collide with body text.
+const fitMatch = dump.stdout.match(/data-fit="(\d+)\/(\d+)"/);
+const fitted = fitMatch ? Number(fitMatch[1]) : 0;
+const fitScaled = fitMatch ? Number(fitMatch[2]) : 0;
+// Oversized diagrams are the overlap bug: measure any SVG still taller than the box.
+const overTall = (dump.stdout.match(/<svg[^>]*height="(\d+)"/g) || [])
+  .map((s) => Number((s.match(/height="(\d+)"/) || [])[1]))
+  .filter((h) => h > 760).length;
 
 // 2. PRINT to PDF (same virtual-time budget so diagrams are painted).
 const print = spawnSync(browser, [
@@ -155,10 +184,15 @@ const print = spawnSync(browser, [
 const printed = fs.existsSync(pdfPath) && fs.statSync(pdfPath).size > 10000;
 // ok = the GATE verdict, not just "a pdf exists": every mermaid block must
 // have rendered as a real, non-error SVG.
-const ok = printed && errCount === 0 && svgCount >= mermaidCount;
+// A diagram that overflows the printable box overlaps the body text, so the fit
+// pass is part of the gate, not decoration.
+const ok = printed && errCount === 0 && svgCount >= mermaidCount && overTall === 0;
 const result = {
   ok,
   printed,
+  svg_fitted: fitted,
+  svg_scaled_down: fitScaled,
+  svg_over_tall: overTall,
   pdf: pdfPath,
   pdf_bytes: ok ? fs.statSync(pdfPath).size : 0,
   html: htmlPath,

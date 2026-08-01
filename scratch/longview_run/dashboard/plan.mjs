@@ -15,7 +15,12 @@ import { walkSessionWindows } from "../../../scripts/longview/lib/walk.mjs";
 const WS = process.env.LONGVIEW_WORKSPACE || "sessions_v1";
 const WIN = Number(process.env.LONGVIEW_WINDOW_CHARS || 12000);
 const THIN = Number(process.env.LONGVIEW_THIN_CHARS || 200);
-const ROOT = `C:/Users/nsdha/AppData/Roaming/space-agent/benny-home/benny/workspaces/${WS}/longview`;
+// Honour BENNY_HOME like collect.mjs does — the corpus moved to D:. Hardcoding the
+// legacy AppData path made plan.mjs fail silently, so the dashboard kept serving
+// denominators from an older backlog (map read "265/185 · 118%", windows 4742/4020),
+// which reads as an inconsistent, untrustworthy console.
+const BH = (process.env.BENNY_HOME || "C:/Users/nsdha/AppData/Roaming/space-agent/benny-home/benny").replace(/\\/g, "/");
+const ROOT = `${BH}/workspaces/${WS}/longview`;
 const DASH_DIR = "C:/Users/nsdha/OneDrive/binary16/prime-silo/scratch/longview_run/dashboard";
 const OUT = path.join(DASH_DIR, "plan.json");
 

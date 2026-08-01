@@ -1,0 +1,236 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Control Plane — execution register, gates, signed launch</title>
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--panel2:#1c2230;--line:#2a3240;--ink:#e6edf3;--sub:#8b98a9;
+--faint:#4a5568;--accent:#58a6ff;--good:#3fb950;--warn:#d29922;--bad:#f85149;--mute:#6e7681}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif}
+header{padding:16px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+h1{margin:0;font-size:17px;letter-spacing:.2px}
+h3{margin:0 0 8px;font-size:14px}
+.sub{color:var(--sub);font-size:12px}
+.wrap{padding:18px 22px;display:grid;gap:16px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.grid2{display:grid;grid-template-columns:minmax(320px,1fr) minmax(320px,1.4fr);gap:16px}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+select,input,button{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 10px;font:inherit}
+button{cursor:pointer}
+button.go{background:#1f6feb;border-color:#1f6feb;font-weight:600}
+button.go:disabled{background:#21262d;border-color:var(--line);color:var(--mute);cursor:not-allowed}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{border:1px solid var(--line);padding:5px 8px;text-align:left;white-space:nowrap}
+th{background:var(--panel2);position:sticky;top:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.scroll{overflow:auto;max-height:520px;border:1px solid var(--line);border-radius:8px}
+.pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;border:1px solid}
+.ok{color:var(--good);border-color:#1c4a2a;background:#0f2417}
+.no{color:var(--bad);border-color:#5c1e1c;background:#25100f}
+.wa{color:var(--warn);border-color:#5c4a12;background:#241d08}
+.mu{color:var(--mute);border-color:var(--line)}
+.reason{color:var(--bad);font-size:12px;margin:2px 0 2px 14px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.bar{height:6px;background:var(--panel2);border-radius:4px;overflow:hidden;min-width:70px}
+.bar>i{display:block;height:100%;background:var(--accent)}
+code{background:var(--panel2);padding:1px 5px;border-radius:4px;font-size:12px}
+</style></head><body>
+<header>
+  <div><h1>Control Plane</h1><div class="sub">Execution Contract Register · evidence gates · human-signed launch</div></div>
+  <div class="row">
+    <span class="sub">workspace</span><select id="ws"><option>sessions_v1</option></select>
+    <button id="refresh">refresh</button>
+    <button id="rebuild">rebuild register</button>
+  </div>
+</header>
+<div class="wrap">
+
+  <div class="grid2">
+    <div class="tile">
+      <h3>Launch control</h3>
+      <div class="sub">Mutating runs require an operator identity and an explicit acknowledgement. Every launch is signed into a hash-chained, HMAC-backed ledger bound to this machine's device id. Gates are re-evaluated at request time — nothing is cached.</div>
+      <div id="contracts" style="margin-top:12px"></div>
+      <div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px">
+        <div class="row">
+          <span class="sub">operator</span><input id="op" placeholder="your identity" style="width:150px">
+          <label class="sub"><input type="checkbox" id="ack"> I authorise this run</label>
+        </div>
+        <div id="launchmsg" class="sub" style="margin-top:8px"></div>
+      </div>
+    </div>
+    <div class="tile">
+      <h3>Integrity &amp; environment</h3>
+      <div id="env"></div>
+      <h3 style="margin-top:14px">Signed launch ledger</h3>
+      <div class="scroll" style="max-height:210px"><table id="ledger"><thead><tr><th>#</th><th>when</th><th>operator</th><th>contract</th><th>hmac</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="tile">
+    <div class="row" style="justify-content:space-between">
+      <h3 style="margin:0">Execution lineage — pivot</h3>
+      <div class="row">
+        <span class="sub">rows</span><select id="dim1"></select>
+        <span class="sub">columns</span><select id="dim2"></select>
+        <span class="sub">measure</span><select id="meas"></select>
+        <span class="sub">filter</span><input id="q" placeholder="contract, type, id…" style="width:170px">
+      </div>
+    </div>
+    <div class="sub" style="margin:6px 0 10px">Every execution ever recorded, folded from the governance ledger, run records, OpenLineage streams and the contract catalog. Group by any two dimensions to find where work actually went — and where it ran with no governing contract.</div>
+    <div class="scroll"><table id="pivot"></table></div>
+  </div>
+
+  <div class="tile">
+    <div class="row" style="justify-content:space-between">
+      <h3 style="margin:0">Executions <span class="sub" id="cnt"></span></h3>
+      <div class="row"><span class="sub">sort</span><select id="sort">
+        <option value="started">newest</option><option value="duration_s">longest</option>
+        <option value="process_count">most processes</option><option value="failed_processes">most failures</option></select></div>
+    </div>
+    <div class="scroll"><table id="rows"><thead><tr>
+      <th>started</th><th>type</th><th>contract</th><th>binding</th><th>status</th>
+      <th class="num">procs</th><th class="num">failed</th><th class="num">dur</th><th>model</th><th>execution id</th>
+    </tr></thead><tbody></tbody></table></div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const DIMS={
+  type:e=>e.type, contract:e=>e.contract_file||'(no contract)',
+  binding:e=>(e.contract_binding||{}).method||'unbound', status:e=>e.status,
+  workspace:e=>e.workspace||'—', model:e=>e.model||'—', commit:e=>e.git_commit||'—',
+  day:e=>(e.started||'').slice(0,10)||'—', none:()=>'all'
+};
+const MEAS={
+  executions:{f:g=>g.length,label:'executions'},
+  processes:{f:g=>g.reduce((n,e)=>n+(e.process_count||0),0),label:'processes'},
+  failed:{f:g=>g.reduce((n,e)=>n+(e.failed_processes||0),0),label:'failed processes'},
+  duration:{f:g=>Math.round(g.reduce((n,e)=>n+(e.duration_s||0),0)),label:'total seconds'},
+  uncontracted:{f:g=>g.filter(e=>!e.contract_file).length,label:'runs with no contract'}
+};
+let REG=null, STATE=null;
+const fmtDur=s=>s==null?'—':s<60?s+'s':s<3600?Math.round(s/60)+'m':(s/3600).toFixed(1)+'h';
+const esc=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+function fillSelects(){
+  const opts=Object.keys(DIMS).map(k=>`<option value="${k}">${k}</option>`).join('');
+  $('dim1').innerHTML=opts; $('dim1').value='type';
+  $('dim2').innerHTML=opts; $('dim2').value='contract';
+  $('meas').innerHTML=Object.entries(MEAS).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('');
+}
+
+function filtered(){
+  const q=($('q').value||'').toLowerCase().trim();
+  let ex=(REG&&REG.executions)||[];
+  if(q) ex=ex.filter(e=>JSON.stringify([e.execution_id,e.type,e.contract_file,e.status,e.model]).toLowerCase().includes(q));
+  return ex;
+}
+
+function renderPivot(){
+  const d1=DIMS[$('dim1').value], d2=DIMS[$('dim2').value], m=MEAS[$('meas').value];
+  const ex=filtered();
+  const rows=[...new Set(ex.map(d1))].sort(), cols=[...new Set(ex.map(d2))].sort();
+  const cell=(r,c)=>ex.filter(e=>d1(e)===r&&d2(e)===c);
+  let max=0;
+  const grid=rows.map(r=>cols.map(c=>{const v=m.f(cell(r,c)); if(v>max)max=v; return v;}));
+  let h='<thead><tr><th>'+esc($('dim1').value)+' \\ '+esc($('dim2').value)+'</th>'+
+    cols.map(c=>`<th class="num">${esc(c)}</th>`).join('')+'<th class="num">total</th></tr></thead><tbody>';
+  rows.forEach((r,i)=>{
+    const tot=m.f(ex.filter(e=>d1(e)===r));
+    h+=`<tr><td>${esc(r)}</td>`+grid[i].map(v=>{
+      const pct=max?Math.round(100*v/max):0;
+      return `<td class="num">${v||''}${v?`<div class="bar"><i style="width:${pct}%"></i></div>`:''}</td>`;
+    }).join('')+`<td class="num"><b>${tot}</b></td></tr>`;
+  });
+  h+=`<tr><td><b>total</b></td>`+cols.map(c=>`<td class="num"><b>${m.f(ex.filter(e=>d2(e)===c))}</b></td>`).join('')+
+     `<td class="num"><b>${m.f(ex)}</b></td></tr></tbody>`;
+  $('pivot').innerHTML=h;
+}
+
+function renderRows(){
+  const ex=[...filtered()].sort((a,b)=>{
+    const k=$('sort').value;
+    return k==='started'?String(b.started||'').localeCompare(String(a.started||'')):(b[k]||0)-(a[k]||0);
+  });
+  $('cnt').textContent=`(${ex.length})`;
+  $('rows').querySelector('tbody').innerHTML=ex.slice(0,400).map(e=>{
+    const b=e.contract_binding||{};
+    const st=e.status==='completed'?'ok':e.status==='failed'?'no':e.status==='running'?'wa':'mu';
+    const conf=b.confidence?` ${b.confidence}`:'';
+    return `<tr><td>${esc((e.started||'').replace('T',' ').slice(0,16))}</td><td>${esc(e.type)}</td>
+      <td>${e.contract_file?esc(e.contract_file):'<span class="pill no">none</span>'}</td>
+      <td><span class="pill ${b.method==='unbound'?'no':b.confidence>=0.95?'ok':'wa'}">${esc(b.method||'—')}${conf}</span></td>
+      <td><span class="pill ${st}">${esc(e.status)}</span></td>
+      <td class="num">${e.process_count||0}</td><td class="num">${e.failed_processes||0}</td>
+      <td class="num">${fmtDur(e.duration_s)}</td><td>${esc((e.model||'—').split('/').pop())}</td>
+      <td><code>${esc(String(e.execution_id).slice(0,30))}</code></td></tr>`;
+  }).join('');
+}
+
+function renderControl(){
+  const s=STATE;
+  $('contracts').innerHTML=s.contracts.map(c=>{
+    const g=c.gate;
+    return `<div style="border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px">
+      <div class="row" style="justify-content:space-between">
+        <div><b>${esc(c.label)}</b> <span class="pill ${c.mutating?'wa':'mu'}">${c.mutating?'mutating':'read-only'}</span></div>
+        <div class="row">
+          <span class="pill ${g.allowed?'ok':'no'}">${g.allowed?'gate open':'gate closed'}</span>
+          <button class="go" data-id="${esc(c.id)}" ${g.allowed?'':'disabled'}>launch</button>
+        </div>
+      </div>
+      <div class="sub">produces <code>${esc(c.produces||'—')}</code></div>
+      ${g.reasons.map(r=>`<div class="reason">✕ ${esc(r)}</div>`).join('')}
+    </div>`;
+  }).join('');
+  $('contracts').querySelectorAll('button.go').forEach(b=>b.onclick=()=>doLaunch(b.dataset.id));
+  const t=(s.register.totals)||{};
+  $('env').innerHTML=`<table><tbody>
+    <tr><td>device id</td><td><code>${esc(s.device_id)}</code></td></tr>
+    <tr><td>HMAC key</td><td>${s.ledger.key_present?'<span class="pill ok">present</span>':'<span class="pill no">missing</span>'}</td></tr>
+    <tr><td>launch ledger</td><td>${s.ledger.entries} entries · ${s.ledger.ok?'<span class="pill ok">chain verified</span>':'<span class="pill no">BROKEN</span>'}</td></tr>
+    <tr><td>active builds</td><td>${s.active_builds.length?s.active_builds.map(b=>`${b.version} pid ${b.pid}`).join(', '):'<span class="sub">none</span>'}</td></tr>
+    <tr><td>executions</td><td>${t.executions||0} · ${t.processes||0} processes (${t.failed_processes||0} failed)</td></tr>
+    <tr><td>contract coverage</td><td>${t.bound_to_contract||0}/${t.executions||0} bound · <b>${(t.executions||0)-(t.bound_to_contract||0)}</b> ran with no contract</td></tr>
+    <tr><td>integrity</td><td>${t.integrity_hashed_events||0} hashed events · ${t.integrity_hashed_records||0} hashed records</td></tr>
+  </tbody></table>`;
+}
+
+async function loadLedger(){
+  const r=await fetch('/api/control/ledger?workspace='+$('ws').value).then(r=>r.json());
+  $('ledger').querySelector('tbody').innerHTML=(r.entries||[]).slice().reverse().map(e=>
+    `<tr><td>${e.seq}</td><td>${esc((e.ts||'').replace('T',' ').slice(0,16))}</td><td>${esc(e.operator)}</td>
+     <td>${esc(e.contract_id)}</td><td><code>${esc(String(e.hmac||'').slice(0,12))}</code></td></tr>`).join('')
+    ||'<tr><td colspan="5" class="sub">no launches signed yet</td></tr>';
+}
+
+async function doLaunch(id){
+  const op=$('op').value.trim(), ack=$('ack').checked;
+  const msg=$('launchmsg');
+  const r=await fetch('/api/control/launch?workspace='+$('ws').value,{method:'POST',
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({contract_id:id,operator:op,acknowledge:ack,intent:'launched from control plane'})});
+  const j=await r.json();
+  if(!r.ok){ msg.innerHTML=`<span class="pill no">refused</span> ${esc(j.error||'')}` +
+      (j.gate?j.gate.reasons.map(x=>`<div class="reason">✕ ${esc(x)}</div>`).join(''):''); return; }
+  msg.innerHTML=`<span class="pill ok">launched</span> pid ${j.run.pid} · signature #${j.signature.seq} ` +
+    `<code>${esc(String(j.signature.hmac||'').slice(0,12))}</code> by ${esc(j.signature.operator)}`;
+  $('ack').checked=false; setTimeout(refresh,1500);
+}
+
+async function refresh(){
+  const w=$('ws').value;
+  STATE=await fetch('/api/control/state?workspace='+w).then(r=>r.json());
+  renderControl();
+  try{ REG=await fetch('/api/control/register?workspace='+w).then(r=>r.json()); renderPivot(); renderRows(); }
+  catch{ }
+  loadLedger();
+}
+$('refresh').onclick=refresh;
+$('rebuild').onclick=async()=>{ $('rebuild').disabled=true;
+  await fetch('/api/control/rebuild?workspace='+$('ws').value,{method:'POST'});
+  $('rebuild').disabled=false; refresh(); };
+['dim1','dim2','meas'].forEach(k=>$(k).onchange=renderPivot);
+$('q').oninput=()=>{renderPivot();renderRows();};
+$('sort').onchange=renderRows;
+fillSelects(); refresh(); setInterval(refresh,20000);
+</script></body></html>

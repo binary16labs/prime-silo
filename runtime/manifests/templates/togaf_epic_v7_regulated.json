@@ -1,0 +1,70 @@
+{
+  "schema_version": "togaf-epic-pipeline/7.0",
+  "id": "togaf-epic-v7-regulated",
+  "name": "TOGAF EPIC v7 - regulated SAD (TOGAF ADM + BCBS 239 + PRA SS1/23)",
+  "description": "Contract for scripts/togaf_epic_v7.py. Stands on v6 (full C4 L1-L4, complete ICONIX robustness over every classified object, per-workflow BPMN/UML/robustness, total component coverage) and answers three regulatory findings: (1) fragmented lineage - v7 reads the single Execution Contract Register, which folds five evidence stores, instead of two OpenLineage files; (2) enrichment not evident as a manifest contract - v7 draws, per contract, the object architecture binding contract to declared tasks to executions to the datasets produced and consumed; (3) partial framework alignment - v7 adds the missing TOGAF ADM phases and maps BCBS 239 and PRA SS1/23 control by control, each with a status DERIVED from measured evidence. A control whose evidence is absent is reported NOT MET; an unbuilt probe is a declared gap, never an implied pass.",
+  "executor": "python scripts/togaf_epic_v7.py --workspace ${workspace} [--seed-from-v6] [--resume] [--skeleton-only]",
+  "variables": {
+    "workspace": "sessions_v1",
+    "word_floor": 260,
+    "components": 0,
+    "usecases": 10
+  },
+  "doctrine": [
+    "Control status is DERIVED from measured evidence, never asserted. Absent evidence is NOT MET.",
+    "Every execution binds to the contract that governed it, and the binding METHOD and CONFIDENCE are recorded so a derived binding is never mistaken for a declared one.",
+    "The register reads every rotated ledger segment. A reader that sees only part of its source destroys audit history silently.",
+    "Readiness targets are derived from the debt accounting, so a phase cannot read satisfied while work is outstanding.",
+    "The model never authors mermaid; code renders every diagram through one budgeted, sharding renderer.",
+    "A diagram that overflows the printable box overlaps body text, so svg_over_tall == 0 is part of the PDF gate.",
+    "Metric integrity is itself gated (scripts/gates/metric_integrity.mjs): reconciliation, falsifiability, cross-surface consistency, source coverage, path integrity, liveness, and non-empty scope."
+  ],
+  "frameworks": {
+    "TOGAF ADM": "Preliminary, A-H and Requirements Management, each with evidence and gap",
+    "BCBS 239": "Principles 1-11 (governance, data architecture, accuracy, completeness, timeliness, adaptability, reporting accuracy, comprehensiveness, clarity, frequency, distribution)",
+    "PRA SS1/23": "Principles 1-5 (model identification and tiering, governance, development/implementation/use, independent validation, model risk mitigants)"
+  },
+  "chapters": [
+    { "id": "scope", "title": "Scope, Context and Stakeholders", "index": "planned" },
+    { "id": "business", "title": "Business Architecture", "index": "planned" },
+    { "id": "data", "title": "Data Architecture", "index": "planned" },
+    { "id": "application", "title": "Application Architecture", "index": "planned + full robustness catalogs" },
+    { "id": "technology", "title": "Technology Architecture", "index": "planned" },
+    { "id": "observability", "title": "Observability, Lineage and Governance", "index": "planned" },
+    { "id": "gap", "title": "Gap Analysis, Risks and Transition", "index": "planned" },
+    { "id": "usecases", "title": "Use Case Architecture", "index": "knowledge-graph capabilities" },
+    { "id": "c4", "title": "C4 Architecture Hierarchy", "index": "L1 context, L2 containers, L3 per container, L4 code" },
+    { "id": "workflows", "title": "Workflow Architecture", "index": "manifest contracts, each with BPMN + UML + robustness" },
+    { "id": "components", "title": "Component Architecture", "index": "every module from CodeEntity.file_path" },
+    { "id": "layers", "title": "Layer Walk", "index": "ICONIX n-tier over the complete catalog" },
+    { "id": "lineage", "title": "Data Lineage and Data Elements", "index": "OpenLineage RunEvent streams" },
+    { "id": "dependencies", "title": "Dependency Architecture", "index": "software (declared + deployed closure) and hardware" },
+    { "id": "deployment", "title": "Deployment Topology", "index": "processes, ports, hosts" },
+    { "id": "storage", "title": "Storage Architecture", "index": "workspace directories by usage" },
+    { "id": "governance", "title": "Implementation Governance (TOGAF Phase G)", "index": "inventoried from the Execution Contract Register" },
+    { "id": "compliance", "title": "Regulatory Control Mapping", "index": "TOGAF ADM + BCBS 239 + SS1/23, control by control" }
+  ],
+  "gates": {
+    "per_section": "words >= word_floor AND >=1 valid citation AND a References block AND no invalid citation labels",
+    "pdf": "svg_rendered >= mermaid_blocks AND svg_errors == 0 AND svg_over_tall == 0",
+    "metric_integrity": "node scripts/gates/metric_integrity.mjs --workspace ${workspace} (exit 2 on any FAIL)",
+    "reported": "a per-section table of words/citations/rows/diagram/query status is emitted into the document itself"
+  },
+  "inputs": {
+    "execution_register": "${workspace}/longview/lineage/execution_register.json (node scripts/longview/lib/exec_register.mjs)",
+    "flywheel_state": "scratch/longview_run/dashboard/estate.mjs flywheelState()"
+  },
+  "outputs": {
+    "markdown": "${workspace}/data_out/TOGAF_EPIC_V7_SAD_binary16.md",
+    "pdf": "${workspace}/data_out/TOGAF_EPIC_V7_SAD_binary16.pdf",
+    "state": "${workspace}/data_out/togaf_epic_v7_state.json",
+    "evidence": "${workspace}/data_out/togaf_epic_evidence/"
+  },
+  "metadata": {
+    "stands_on": ["togaf_epic_v5_width.json", "togaf_epic_v6_engineered.json"],
+    "supersedes_for_flywheel": "togaf_epic_v6_engineered.json",
+    "resumable": true,
+    "seed_from_v6": "--seed-from-v6 reuses v6's completed sections (shared chapters share section keys), so only the new governance and compliance chapters cost generation time",
+    "observability": "TASK_METADATA_UPDATE AER stream - live at :8788/lineage.html and :8788/control.html"
+  }
+}

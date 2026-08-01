@@ -32,7 +32,9 @@
     "package:desktop:linux:all": "node packaging/scripts/linux-package.js --arch x64,arm64",
     "package:desktop:windows": "node packaging/scripts/windows-package.js",
     "package:desktop:windows:all": "node packaging/scripts/windows-package.js --arch x64,arm64",
-    "desktop:localtest": "node packaging/scripts/build-local-test.js"
+    "desktop:localtest": "node packaging/scripts/build-local-test.js",
+    "gate:metric-integrity": "node scripts/gates/metric_integrity.mjs",
+    "gate:w0": "node scripts/gates/w0.mjs"
   },
   "engines": {
     "node": ">=20"

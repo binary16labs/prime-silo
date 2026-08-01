@@ -16,6 +16,7 @@ const WS = process.env.LONGVIEW_WORKSPACE || "sessions_v1";
 const BH = (process.env.BENNY_HOME || "C:/Users/nsdha/AppData/Roaming/space-agent/benny-home/benny").replace(/\\/g, "/");
 const LV = `${BH}/workspaces/${WS}/longview`;
 const DASH = "C:/Users/nsdha/OneDrive/binary16/prime-silo/scratch/longview_run/dashboard";
+const REPO = "C:/Users/nsdha/OneDrive/binary16/prime-silo";
 const cardsDir = path.join(LV, "cards");
 const winDir = path.join(LV, "windows");
 
@@ -580,11 +581,49 @@ const out = {
     const heartbeatMs = newestWindowMs || (u || 0);
     const quietSec = heartbeatMs ? Math.round((Date.now() - heartbeatMs) / 1000) : null;
     // A window every ~2-3 min when healthy: >12min quiet = watch, >30min = wedge territory.
+    // COMPLETION IS NOT STALLING. A quiet window clock meant "stalled" after 30
+    // min even when the map had FINISHED and nothing was pending — the dashboard
+    // reported a healthy, idle estate as a hung app. Quiet only means stalled if
+    // work is actually outstanding.
+    const thin = statusJson.map_thin ?? 0;
+    const okCards = statusJson.cards_ok ?? doneFiles.length;
+    const pending = statusJson.backlog_total != null
+      ? Math.max(0, statusJson.backlog_total - okCards - thin) : null;
+    // What the ESTATE is doing right now, read from the ledger tail — no process
+    // spawn, no LM call, so this stays safe to run during a live map.
+    let activity = null;
+    try {
+      const dir = path.join(REPO, "runtime", "workspace");
+      const seg = path.join(dir, "governance.log");
+      const buf = fs.readFileSync(seg, "utf8");
+      const lines = buf.split("\n").filter(Boolean);
+      for (let i = lines.length - 1; i >= 0 && i > lines.length - 400; i--) {
+        let e; try { e = JSON.parse(lines[i]); } catch { continue; }
+        const d = e.data || {};
+        if (!d.task_id) continue;
+        activity = {
+          task_id: d.task_id, type: d.type || null, status: d.status || null,
+          message: String(d.message || "").slice(0, 160),
+          at: e.timestamp || null,
+          age_seconds: e.timestamp ? Math.round((Date.now() - Date.parse(e.timestamp)) / 1000) : null
+        };
+        break;
+      }
+    } catch { /* ledger optional */ }
+    const estateBusy = activity && activity.age_seconds != null && activity.age_seconds < 900
+      && activity.status !== "completed";
+
     const health = quietSec == null ? "unknown"
       : (statusJson.map_failed > 0 ? "error"
+      : (pending === 0 ? (estateBusy ? "busy" : "idle")
       : quietSec > 1800 ? "stalled"
-      : quietSec > 720 ? "slow" : "ok");
+      : quietSec > 720 ? "slow" : "ok"));
     return {
+      pending_sessions: pending,
+      pipeline_state: pending === 0
+        ? (estateBusy ? "complete — estate busy elsewhere" : "complete — nothing pending")
+        : (quietSec != null && quietSec > 1800 ? "stalled with work outstanding" : "running"),
+      estate_activity: activity,
       phase: statusJson.phase || null,
       backlog_total: statusJson.backlog_total ?? null,
       cards_ok: statusJson.cards_ok ?? null,        // map's ledger count (incl. later-quarantined)

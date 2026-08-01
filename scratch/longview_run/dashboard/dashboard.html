@@ -332,7 +332,8 @@ function render(d){
   const rb=document.getElementById('runbanner');
   if(rs && rs.updated_at){
     rb.style.display='';
-    const healthLabel={ok:'● working',slow:'● slow',stalled:'⚠ possibly stalled',error:'⚠ failures',unknown:'—'}[rs.health]||'—';
+    const healthLabel={ok:'● working',slow:'● slow',stalled:'⚠ possibly stalled',error:'⚠ failures',
+      idle:'✓ complete — nothing pending',busy:'● estate busy elsewhere',unknown:'—'}[rs.health]||'—';
     document.getElementById('rb-phase').textContent=rs.phase||'map';
     const hb=document.getElementById('rb-health');
     hb.textContent=healthLabel;
@@ -347,9 +348,14 @@ function render(d){
     const qh=rs.quarantined_held?` · +${rs.quarantined_held} quarantined (held out)`:'';
     document.getElementById('rb-sub').textContent=
       `${rs.usable_cards!=null?rs.usable_cards+' usable cards':''}${qh} · ${rs.map_thin??0} thin-skipped · session ${rs.current_session||'—'} · active ${ago} ago`+
-      (rs.health==='stalled'?' · >30 min with no new window — likely an eGPU/LM Studio wedge, check it':
+      (rs.health==='stalled'?' · >30 min with no new window AND work outstanding — likely an eGPU/LM Studio wedge, check it':
        rs.health==='slow'?' · >12 min quiet — probably mid heavy session, watching':
-       rs.health==='error'?' · the map reported failures — check the log':'');
+       rs.health==='error'?' · the map reported failures — check the log':
+       rs.health==='idle'?' · LONGVIEW has nothing pending — a quiet window clock here means DONE, not hung':
+       rs.health==='busy'&&rs.estate_activity
+         ? ' · '+(rs.estate_activity.message||rs.estate_activity.task_id)
+           +' ('+rs.estate_activity.age_seconds+'s ago)'
+       :'');
   } else { rb.style.display='none'; }
   // pipeline liveness pill — "running (phase)" only when state files are fresh
   const rl=document.getElementById('runlive');
