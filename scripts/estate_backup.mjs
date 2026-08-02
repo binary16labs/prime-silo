@@ -84,9 +84,11 @@ function* walk(root, only = null) {
   try { entries = fs.readdirSync(root, { withFileTypes: true }); } catch { return; }
   for (const e of entries) {
     const p = path.join(root, e.name);
-    if (only && !only.some((o) => e.name === o)) {
-      if (path.resolve(root) === path.resolve(root) && only.length) continue;
-    }
+    // `only` restricts the TOP level of a source (recursion passes null, so subtrees of a
+    // permitted entry are fully walked). The guard used to read
+    // `path.resolve(root) === path.resolve(root)` — a tautology that happened to behave
+    // correctly while looking like a meaningful comparison. Say what it does.
+    if (only && only.length && !only.includes(e.name)) continue;
     if (e.isDirectory()) yield* walk(p, null);
     else yield p;
   }
