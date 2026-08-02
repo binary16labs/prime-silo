@@ -91,6 +91,28 @@ export const LAUNCHABLE = {
     mutating: true,
     produces: "data_out/iterations/v2/THE-AI-VAMPIRE.{md,pdf} + COVERAGE.md"
   },
+  // Estate operations. Both were being run by hand — the backup as an ad-hoc script and
+  // the satellite pull as raw SMB copy — which is exactly the uncontracted-execution
+  // pattern the register exists to surface. Registering them makes the audited path the
+  // default path. Neither can move data without its own human-signed step.
+  "satellite-pull": {
+    label: "Satellite → hub session pull (proposal only; sync needs a signature)",
+    script: "scripts/estate_satellite_pull.mjs",
+    node: true,
+    argv: (w) => ["scripts/estate_satellite_pull.mjs", "--workspace", w],
+    mutating: false,          // the LAUNCHABLE form proposes; --sign is out-of-band by design
+    produces: "a signed sync proposal (drift delta vs the hub estate KEL)"
+  },
+  "estate-backup": {
+    label: "Estate backup — content-addressed copy to the shared workspace",
+    script: "scripts/estate_backup.mjs",
+    node: true,
+    // --plan, never --apply: the copy is a separate, deliberate operator act, and --apply
+    // is itself gated on the quarantine self-test passing.
+    argv: (w) => ["scripts/estate_backup.mjs", "--workspace", w, "--plan"],
+    mutating: false,
+    produces: "backup plan (eligible / quarantine-excluded / dedupe counts)"
+  },
   "metric-integrity-gate": {
     label: "Run the Metric Integrity Gate",
     script: "scripts/gates/metric_integrity.mjs",

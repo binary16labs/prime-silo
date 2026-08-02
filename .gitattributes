@@ -1,0 +1,19 @@
+# Line-ending policy.
+#
+# THE HASH-CHAINED LOGS MUST NEVER BE REWRITTEN BY GIT.
+# `core.autocrlf=true` on this machine converts LF -> CRLF on checkout. For an
+# append-only log whose tamper-evidence is `prev = sha256(previous raw line)`,
+# that conversion changes the bytes every hash was computed over, so EVERY line
+# after the first fails verification — the log reads CORRUPT while being
+# perfectly intact. Measured 2026-08-02 on coordination/estate/kel.jsonl:
+# 298 of 299 lines "chain-break", 0 breaks once the stray \r was stripped.
+#
+# It is invisible to `git status` (git normalizes back on the way in), and it
+# fails toward "the hub holds nothing", which would have made a satellite sync
+# re-stage the entire corpus as new. Pin these to LF everywhere.
+*.jsonl        -text
+*.ndjson       -text
+governance.log -text
+
+# Everything else: let git decide, but normalize text in the repo to LF.
+* text=auto eol=lf
