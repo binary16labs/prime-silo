@@ -1,0 +1,188 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Book build — grounding, pace and per-section cost</title>
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--panel2:#1c2230;--line:#2a3240;--ink:#e6edf3;--sub:#8b98a9;
+--accent:#58a6ff;--good:#3fb950;--warn:#d29922;--bad:#f85149;--mute:#6e7681;--violet:#a371f7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 -apple-system,Segoe UI,Roboto,sans-serif}
+header{padding:16px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+h1{margin:0;font-size:17px}h3{margin:0 0 8px;font-size:14px}
+.sub{color:var(--sub);font-size:12px}
+.wrap{padding:18px 22px;display:grid;gap:16px}
+/* min-width:0 — a grid item defaults to min-width:auto, so the nowrap sections table
+   forced its tile wider than the viewport and the whole PAGE scrolled sideways instead
+   of the table scrolling inside its own container (measured: body 1144px vs 458px). */
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
+.wrap>*{min-width:0}
+.g3{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;min-width:0}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{border:1px solid var(--line);padding:5px 8px;text-align:left;white-space:nowrap}
+th{background:var(--panel2);position:sticky;top:0}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+.scroll{overflow-x:auto;max-height:520px;overflow-y:auto;max-width:100%}
+.pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;border:1px solid}
+.ok{color:var(--good);border-color:#1c4a2a;background:#0f2417}
+.no{color:var(--bad);border-color:#5c1e1c;background:#25100f}
+.wa{color:var(--warn);border-color:#5c4a12;background:#241d08}
+.mu{color:var(--mute);border-color:var(--line)}
+.kpi{font-size:26px;font-weight:650;line-height:1.1}
+.note{font-size:11.5px;color:var(--sub);margin-top:6px}
+.bar{height:7px;background:var(--panel2);border-radius:4px;overflow:hidden;margin-top:8px}
+.bar>i{display:block;height:100%;background:var(--accent)}
+button,select{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 10px;font:inherit;cursor:pointer}
+code{background:var(--panel2);padding:1px 5px;border-radius:4px;font-size:12px}
+.spark{display:flex;align-items:flex-end;gap:2px;height:54px;margin-top:8px}
+.spark>i{flex:1;background:var(--accent);border-radius:1px 1px 0 0;min-height:2px}
+.spark>i.arc{background:var(--violet)}
+</style></head><body>
+<header>
+  <div><h1>Book build</h1><div class="sub">per-section grounding, cost and pace — every number read from the section <code>.meta.json</code> on disk</div></div>
+  <div>
+    <select id="iter"></select>
+    <a href="/control.html" style="color:var(--accent)">control plane →</a> &nbsp;
+    <button id="refresh">refresh</button>
+  </div>
+</header>
+<div class="wrap">
+
+  <!-- GROUNDING FIRST. A run once wrote 5 sections with zero retrieved evidence and
+       looked healthy throughout; this is the number that would have caught it. -->
+  <div class="g3">
+    <div class="tile"><div class="sub">grounded sections</div><div class="kpi" id="k-grounded">–</div>
+      <div class="note" id="k-grounded-note">sections whose evidence_sources is non-empty</div></div>
+    <div class="tile"><div class="sub">progress</div><div class="kpi" id="k-prog">–</div>
+      <div class="bar"><i id="k-bar" style="width:0%"></i></div>
+      <div class="note" id="k-prog-note"></div></div>
+    <div class="tile"><div class="sub">projected remaining</div><div class="kpi" id="k-eta">–</div>
+      <div class="note" id="k-eta-note">projected per class — arc and plain differ ~4×</div></div>
+    <div class="tile"><div class="sub">corpus coverage</div><div class="kpi" id="k-cov">–</div>
+      <div class="note" id="k-cov-note">distinct cards cited vs V1 baseline 22.6%</div></div>
+  </div>
+
+  <div class="tile">
+    <h3>Pace by class <span class="sub">— why a duration is what it is</span></h3>
+    <div id="pace"></div>
+    <div class="note">Arc-carrying sections retrieve more (topK 14 vs 10) and run an extra
+      critique&nbsp;→&nbsp;revise pass, so they cost ~4× a plain section. A single mean over both
+      classes mis-projects whichever class dominates the remainder, so the ETA is computed per class
+      and each mean shows its sample size.</div>
+    <div class="spark" id="spark"></div>
+    <div class="note"><span style="color:var(--violet)">violet</span> = arc section ·
+      <span style="color:var(--accent)">blue</span> = plain · bar height = seconds</div>
+  </div>
+
+  <div class="tile">
+    <h3>Sections</h3>
+    <div class="scroll">
+      <table id="tbl"><thead><tr>
+        <th>id</th><th>class</th><th>grounded</th><th class="num">sources</th><th class="num">sids</th>
+        <th class="num">cites</th><th>arc hit</th><th class="num">words</th>
+        <th class="num">prompt tok</th><th class="num">completion tok</th><th class="num">seconds</th>
+        <th class="num">gate errs</th><th>completed</th><th>arc</th>
+      </tr></thead><tbody></tbody></table>
+    </div>
+    <div class="note">Duration is the gap between consecutive completions; the first section has no
+      predecessor, so it reports <code>–</code> rather than an invented number.</div>
+  </div>
+
+</div>
+<script>
+var S = null;
+
+function pill(cls, txt){ return '<span class="pill '+cls+'">'+txt+'</span>'; }
+function hhmm(sec){
+  if (sec == null) return '–';
+  var h = Math.floor(sec/3600), m = Math.round((sec%3600)/60);
+  return h ? h+'h '+m+'m' : m+'m';
+}
+
+function render(){
+  if (!S) return;
+  var t = S.totals || {}, p = S.pace || {}, c = S.coverage || {};
+
+  // grounding
+  var gEl = document.getElementById('k-grounded');
+  if (t.ungrounded > 0) {
+    gEl.innerHTML = '<span style="color:var(--bad)">'+t.grounded+' / '+t.done+'</span>';
+    document.getElementById('k-grounded-note').innerHTML =
+      pill('no', t.ungrounded+' UNGROUNDED') + ' ' + (t.ungrounded_ids||[]).slice(0,6).join(', ') +
+      '<br>written from the chapter brief alone — no retrieved evidence';
+  } else if (t.done) {
+    gEl.innerHTML = '<span style="color:var(--good)">'+t.grounded+' / '+t.done+'</span>';
+    document.getElementById('k-grounded-note').innerHTML = pill('ok','all grounded') + ' every section cites retrieved cards';
+  } else { gEl.textContent = '–'; }
+
+  document.getElementById('k-prog').textContent = t.done + (t.planned ? ' / '+t.planned : '');
+  document.getElementById('k-bar').style.width = (t.percent||0)+'%';
+  document.getElementById('k-prog-note').textContent =
+    (t.percent!=null? t.percent+'% · ':'') + (t.words||0).toLocaleString()+' words · '+
+    (t.gate_errors? t.gate_errors+' gate errors' : 'no gate errors');
+
+  document.getElementById('k-eta').textContent = p.eta_seconds!=null ? hhmm(p.eta_seconds) : '–';
+  document.getElementById('k-eta-note').textContent =
+    (p.remaining_arc!=null ? p.remaining_arc+' arc + '+p.remaining_plain+' plain remaining' : '') +
+    (p.idle_seconds!=null ? ' · last section '+hhmm(p.idle_seconds)+' ago' : '');
+
+  document.getElementById('k-cov').textContent =
+    (c.percent!=null ? c.percent+'%' : '–');
+  document.getElementById('k-cov-note').innerHTML =
+    (c.distinct_cards_cited||0)+' of '+(c.cards_total||'?')+' cards · V1 baseline '+c.v1_baseline_percent+'% ' +
+    (c.percent!=null && c.percent > c.v1_baseline_percent ? pill('ok','ahead') : pill('mu','in progress'));
+
+  // pace
+  document.getElementById('pace').innerHTML =
+    '<table><tr><th>class</th><th class="num">mean seconds</th><th class="num">sample</th><th>why</th></tr>' +
+    '<tr><td>'+pill('mu','arc')+'</td><td class="num">'+(p.arc_mean_seconds!=null?p.arc_mean_seconds:'–')+
+      '</td><td class="num">'+p.arc_sample+'</td><td class="sub">topK 14 + critique → revise pass</td></tr>' +
+    '<tr><td>'+pill('mu','plain')+'</td><td class="num">'+(p.plain_mean_seconds!=null?p.plain_mean_seconds:'–')+
+      '</td><td class="num">'+p.plain_sample+'</td><td class="sub">topK 10, single draft</td></tr></table>';
+
+  // sparkline
+  var rows = S.sections || [];
+  var max = Math.max.apply(null, rows.map(function(r){return r.seconds||0;}).concat([1]));
+  document.getElementById('spark').innerHTML = rows.map(function(r){
+    return '<i class="'+(r.arc?'arc':'')+'" style="height:'+Math.round(((r.seconds||0)/max)*100)+'%" title="'+
+      r.id+' — '+(r.seconds||'?')+'s"></i>';
+  }).join('');
+
+  // table
+  document.getElementById('tbl').querySelector('tbody').innerHTML = rows.map(function(r){
+    return '<tr>'+
+      '<td>'+r.id+'</td>'+
+      '<td>'+pill(r.arc?'mu':'mu', r.arc?'arc':'plain')+'</td>'+
+      '<td>'+(r.grounded?pill('ok','yes'):pill('no','NO'))+'</td>'+
+      '<td class="num">'+r.evidence_sources+'</td>'+
+      '<td class="num">'+r.cited_sids+'</td>'+
+      '<td class="num">'+(r.cites!=null?r.cites:'–')+'</td>'+
+      '<td>'+(r.hits_arc===null?'–':(r.hits_arc?pill('ok','✓'):pill('wa','✗')))+'</td>'+
+      '<td class="num">'+(r.words!=null?r.words:'–')+'</td>'+
+      '<td class="num">'+(r.prompt_tokens!=null?r.prompt_tokens.toLocaleString():'–')+'</td>'+
+      '<td class="num">'+(r.completion_tokens!=null?r.completion_tokens.toLocaleString():'–')+'</td>'+
+      '<td class="num">'+(r.seconds!=null?r.seconds:'–')+'</td>'+
+      '<td class="num">'+(r.gate_errs?'<span style="color:var(--bad)">'+r.gate_errs+'</span>':'0')+'</td>'+
+      '<td class="sub">'+(r.ts?r.ts.slice(11,19):'–')+'</td>'+
+      '<td class="sub">'+(r.arcs&&r.arcs.length?r.arcs[0]:'')+'</td>'+
+    '</tr>';
+  }).join('');
+}
+
+function load(iter){
+  var q = iter ? '?iteration='+encodeURIComponent(iter) : '';
+  fetch('/api/build/state'+q).then(function(r){return r.json();}).then(function(d){
+    S = d;
+    var sel = document.getElementById('iter');
+    if (sel.options.length !== (d.iterations||[]).length) {
+      sel.innerHTML = (d.iterations||[]).map(function(n){
+        return '<option'+(n===d.iteration?' selected':'')+'>'+n+'</option>';
+      }).join('');
+    }
+    render();
+  }).catch(function(){ /* transient — the next poll retries */ });
+}
+
+document.getElementById('refresh').onclick = function(){ load(document.getElementById('iter').value); };
+document.getElementById('iter').onchange = function(){ load(this.value); };
+load();
+setInterval(function(){ load(document.getElementById('iter').value); }, 30000);
+</script>
+</body></html>

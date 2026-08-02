@@ -15,6 +15,22 @@ const isLoopback = (req) =>
 
 // ── control plane (loopback ONLY — it can launch mutating builds) ──────────
 import { handleControl } from "./control.mjs";
+import { buildState } from "./build.mjs";
+
+// Book-build observability. Read-only and derived entirely from the section .meta.json
+// files on disk, so it is safe to poll while a build is running.
+function buildApi(req, res, rawUrl) {
+  const [, qs] = rawUrl.split("?");
+  const q = Object.fromEntries(new URLSearchParams(qs || ""));
+  try {
+    const body = JSON.stringify(buildState(q.workspace || "sessions_v1", q.iteration || "v2"));
+    res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
+    res.end(body);
+  } catch (e) {
+    res.writeHead(500, { "content-type": "application/json" });
+    res.end(JSON.stringify({ error: String(e && e.message).slice(0, 400) }));
+  }
+}
 
 function controlApi(req, res, rawUrl) {
   const [url, qs] = rawUrl.split("?");
@@ -150,6 +166,7 @@ const TYPES = { ".html": "text/html", ".json": "application/json", ".js": "text/
 http
   .createServer((req, res) => {
     if ((req.url || "").startsWith("/api/control/")) return controlApi(req, res, req.url);
+    if ((req.url || "").startsWith("/api/build/")) return buildApi(req, res, req.url);
     if ((req.url || "").startsWith("/api/memory/")) return memoryApi(req, res, req.url);
     if ((req.url || "").startsWith("/api/lineage/")) return lineageApi(req, res, req.url);
     let p = decodeURIComponent((req.url || "/").split("?")[0]);
