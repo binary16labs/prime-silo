@@ -222,12 +222,39 @@ if (flag("--selftest")) {
 if (flag("--probe")) {
   const share = FROM ? probe(FROM) : { root: null, reachable: null, why: "no --from share configured" };
   const land = probe(LANDING);
+  // THE SATELLITE IS REACHABLE ONLY IF THE SATELLITE ANSWERS. The landing zone is
+  // hub-local storage on D: — it exists whether or not the ASUS has been powered on for
+  // a week. Folding it into reachability made the topology report a live satellite when
+  // all that existed was a stale local copy: precisely the flattering signal this whole
+  // exercise keeps turning up. Only `share` (the actual remote path) can prove liveness.
   const topo = topology(
     [{ name: "T480", role: "hub" }, { name: SATELLITE, role: "satellite" }],
-    { T480: true, [SATELLITE]: Boolean(share.reachable || land.reachable) }
+    { T480: true, [SATELLITE]: share.reachable === true }
   );
-  console.log(JSON.stringify({ satellite: SATELLITE, share, landing: land, topology: topo }, null, 1));
-  process.exit(land.reachable || share.reachable ? 0 : 3);
+  // Freshness of what we HOLD is a separate fact from whether the satellite is up.
+  const freshness = (() => {
+    let newest = 0, files = 0;
+    for (const { file } of sessionFiles(LANDING)) {
+      files++;
+      try { newest = Math.max(newest, fs.statSync(file).mtimeMs); } catch { /* ignore */ }
+    }
+    if (!files) return { transcripts: 0, newest: null, age_days: null };
+    return {
+      transcripts: files,
+      newest: new Date(newest).toISOString(),
+      age_days: Number(((Date.now() - newest) / 86400000).toFixed(1))
+    };
+  })();
+  console.log(JSON.stringify({
+    satellite: SATELLITE,
+    satellite_reachable: share.reachable === true,
+    share,
+    landing: { ...land, note: "hub-local storage — its presence says nothing about the satellite" },
+    landing_freshness: freshness,
+    topology: topo
+  }, null, 1));
+  // exit 0 only when the SATELLITE is reachable; 3 means "cannot pull right now"
+  process.exit(share.reachable === true ? 0 : 3);
 }
 
 if (flag("--fetch")) {
