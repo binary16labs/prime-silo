@@ -31,6 +31,7 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { fileURLToPath } from "url";
 
 import { driftDelta } from "../server/coordination/lib/estate_drift.mjs";
 import { proposeSync, signProposal, applySync } from "../server/coordination/lib/estate_govern.mjs";
@@ -64,24 +65,66 @@ function quarantinedSids() {
 /** A session file's sid is its basename. Quarantine matches on the sid itself and on the
  *  8-char prefix the graph uses — deliberately broad: a false exclusion costs one session,
  *  a false inclusion moves CV content into the training corpus. */
-/** Coarse identifier shape, used to prove the quarantine list can match this grain at all.
- *  "hex32" (memo-ray sid) and "uuid" (raw agent transcript) never intersect. */
+/** THE GRAIN BRIDGE. A raw agent transcript is named by UUID
+ *  (`fd57bd15-9142-491a-962d-1a16701a38c9.jsonl`); memo-ray keys the same session by that
+ *  UUID with the hyphens stripped (`fd57bd159142491a962d1a16701a38c9`). Verified against
+ *  the live quarantine list 2026-08-02: 4 of its 14 sids are hyphen-stripped UUIDv4s —
+ *  precisely the 4 ASUS job/CV sessions — and they round-trip back to valid v4 UUIDs
+ *  (correct version and variant nibbles). The other 10 are hub hash-sids, matching the
+ *  estate's own count of 10 quarantined.
+ *
+ *  Canonicalising both sides is what makes the quarantine APPLICABLE to this grain.
+ *  Without it the two namespaces never intersect and the filter matches nothing while
+ *  reporting a reassuring "0 withheld". */
+export function canonicalSid(sid) {
+  return String(sid).replace(/-/g, "").trim().toLowerCase();
+}
+
+/** Coarse shape of the CANONICAL id — the applicability guard compares these, so a
+ *  genuinely foreign scheme (a path, a slug, a base64 id) still refuses the sync. */
 function idShape(sid) {
-  const s = String(sid);
-  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)) return "uuid";
-  if (/^[0-9a-f]{32}$/i.test(s)) return "hex32";
-  if (/^[0-9a-f]{40,}$/i.test(s)) return "hex-long";
+  const s = canonicalSid(sid);
+  if (/^[0-9a-f]{32}$/.test(s)) return "hex32";
+  if (/^[0-9a-f]{40,}$/.test(s)) return "hex-long";
   return `other(${s.length})`;
 }
 
 function isQuarantined(sid, q) {
-  const s = String(sid).toLowerCase();
+  const s = canonicalSid(sid);
   for (const bad of q) {
-    const b = String(bad).toLowerCase();
+    const b = canonicalSid(bad);
     if (s === b) return true;
+    // 8-hex prefix: the form the knowledge graph uses for Source names. Deliberately
+    // broad — a false exclusion costs one session, a false inclusion leaks CV content.
     if (b.length >= 8 && s.startsWith(b.slice(0, 8))) return true;
   }
   return false;
+}
+
+/** POSITIVE CONTROL. "0 withheld" is what a WORKING filter reports when nothing is
+ *  quarantined — and exactly what a BROKEN one reports always. So prove the filter bites:
+ *  synthesise the filename a quarantined session WOULD have in this grain (sid re-hyphenated
+ *  to a UUID) and require that it is blocked, while an unrelated id passes. Mirrors
+ *  estate_backup.mjs --selftest, and gates --sign the same way. */
+function quarantineSelftest(q) {
+  if (!q.size) return { ok: false, why: "no quarantined sids configured — the filter is untested" };
+  const probes = [...q].map((sid) => {
+    const h = canonicalSid(sid);
+    // reconstitute the on-disk UUID form: 8-4-4-4-12
+    const uuid = h.length === 32 ? `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}` : h;
+    return { uuid, blocked: isQuarantined(uuid, q) };
+  });
+  const allBlocked = probes.every((p) => p.blocked);
+  const control = isQuarantined("00000000-0000-4000-8000-000000000000", q);
+  return {
+    ok: allBlocked && !control,
+    quarantined_sids: q.size,
+    uuid_forms_blocked: probes.filter((p) => p.blocked).length,
+    unrelated_uuid_allowed: !control,
+    why: !allBlocked ? "A QUARANTINED SID IN UUID FORM WAS NOT BLOCKED"
+      : control ? "filter blocks everything — too broad to be meaningful"
+      : "quarantined sids blocked in both hex32 and UUID form; unrelated ids pass"
+  };
 }
 
 // ── control 1: reachability is proven, not assumed ────────────────────────
@@ -155,7 +198,26 @@ function fetchFromShare(from, landing, q) {
 }
 
 // ── main ──────────────────────────────────────────────────────────────────
+// GUARDED: this module exports canonicalSid so tests can exercise the grain bridge, and a
+// module with top-level side effects RUNS when imported — importing it for one pure
+// function fired a whole proposal. Only execute the CLI when invoked directly.
+const invokedDirectly = (() => {
+  const entry = (process.argv[1] || "").replace(/\\/g, "/").toLowerCase();
+  const self = fileURLToPath(import.meta.url).replace(/\\/g, "/").toLowerCase();
+  return entry === self;
+})();
+
+if (!invokedDirectly) {
+  // imported as a library — expose the pure helpers, run nothing
+} else {
+
 const q = quarantinedSids();
+
+if (flag("--selftest")) {
+  const r = quarantineSelftest(q);
+  console.log(JSON.stringify(r, null, 1));
+  process.exit(r.ok ? 0 : 2);
+}
 
 if (flag("--probe")) {
   const share = FROM ? probe(FROM) : { root: null, reachable: null, why: "no --from share configured" };
@@ -220,19 +282,25 @@ if (!sig) {
   process.exit(0);
 }
 
-// ── control 3, enforced: the quarantine filter must be APPLICABLE ─────────
-// The quarantine list is keyed on memo-ray sids (32-hex). The landing zone may hold raw
-// agent transcripts keyed by UUID. Those namespaces do not intersect, so the filter
-// silently matches nothing and reports a reassuring "0 withheld" while protecting
-// nothing. An unprovable privacy control must block the sync, not decorate it.
+// ── control 3, enforced: the quarantine filter must be PROVEN, not present ─
+// Two independent conditions, because either alone can pass while protecting nothing:
+//   (a) the canonical id spaces must actually intersect — a foreign scheme means the
+//       filter has nothing to compare against;
+//   (b) the filter must demonstrably BITE on this grain (the positive control), since
+//       "0 withheld" is indistinguishable between a working and a dead filter.
 if (q.size > 0) {
   const shapes = new Set([...q].map(idShape));
   const covered = sat.sessions.some((s) => shapes.has(idShape(s.sid)));
   if (!covered) {
-    console.error(`REFUSING: the quarantine set (${q.size} sids) uses an identifier shape that`);
-    console.error(`matches NO session on ${SATELLITE} — the filter cannot have excluded anything.`);
-    console.error(`quarantine shapes: ${[...shapes].join(", ")} · satellite shape: ${idShape(sat.sessions[0]?.sid || "")}`);
-    console.error("Map the quarantine to this grain before syncing, or CV/job content can pass through.");
+    console.error(`REFUSING: the quarantine set (${q.size} sids) canonicalises to a shape that`);
+    console.error(`matches NO session on ${SATELLITE} — the filter has nothing to compare against.`);
+    console.error(`quarantine: ${[...shapes].join(", ")} · satellite: ${idShape(sat.sessions[0]?.sid || "")}`);
+    process.exit(5);
+  }
+  const st = quarantineSelftest(q);
+  if (!st.ok) {
+    console.error(`REFUSING: quarantine self-test failed — ${st.why}`);
+    console.error("CV/job content could pass through. Nothing synced.");
     process.exit(5);
   }
 }
@@ -258,3 +326,5 @@ console.log(`  blobs               ${result.syncResult.stored} stored · ${resul
 console.log(`  drive fingerprint   ${result.syncResult.fingerprint.slice(0, 22)}…`);
 console.log(`  KEL                 ${KEL}`);
 console.log(result.noop ? "  (re-apply of an already-synced proposal — a true no-op)" : "");
+
+} // end: invoked directly
