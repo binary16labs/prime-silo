@@ -4,6 +4,7 @@ import path from "node:path";
 import { createBus } from "./coordination/lib/bus.mjs";
 import { createCoordinationApi } from "./coordination/http_api.mjs";
 import { createEstateApi } from "./coordination/lib/estate_api.mjs";
+import { resolveRegisterKey } from "./coordination/lib/estate_register_key.mjs";
 import {
   API_DIR,
   APP_DIR,
@@ -254,11 +255,17 @@ async function createAgentServer(overrides = {}) {
     overrides.coordinationApi || createCoordinationApi({ coordDir, bus: coordinationBus });
   // EP-N: the estate model served live over /api/estate/*, mounted additively on the SAME bus
   // (one in-process fan-out). Nested paths, so it also runs ahead of the flat generic router.
+  // N7's register route ships with `expectedKey: null`, which makes register() refuse every
+  // satellite as "unauthenticated" — wired, but dead. Resolve the shared key so live
+  // discovery can work. Still fail-closed: no configured key resolves to null and the route
+  // keeps refusing everything, so the surface only opens once the owner runs
+  // `node scripts/estate_key.mjs --init`.
   const estateApi =
     overrides.estateApi ||
     createEstateApi({
       kelLog: overrides.estateKelLog || path.join(coordDir, "estate", "kel.jsonl"),
-      bus: coordinationBus
+      bus: coordinationBus,
+      registerKey: overrides.estateRegisterKey ?? resolveRegisterKey()
     });
 
   const server = http.createServer((req, res) => {
