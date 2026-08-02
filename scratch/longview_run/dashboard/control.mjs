@@ -47,6 +47,42 @@ export const LAUNCHABLE = {
     argv: (w) => ["scripts/longview/lib/exec_register.mjs", "--workspace", w],
     mutating: false,
     produces: "longview/lineage/execution_register.json"
+  },
+  // The LONGVIEW phases were being run by hand through ad-hoc shell scripts —
+  // which is precisely how uncontracted executions get created. Registering them
+  // here makes the governed path the EASY path.
+  "longview-inventory": {
+    label: "LONGVIEW — refresh session inventory (memo-ray sync)",
+    script: "scripts/longview/longview.mjs",
+    node: true,
+    argv: (w) => ["scripts/longview/longview.mjs", "run", "--phase", "inventory"],
+    env: (w) => ({ LONGVIEW_WORKSPACE: w }),
+    mutating: false,
+    produces: "longview/inventory.json"
+  },
+  "longview-map-delta": {
+    label: "LONGVIEW — map new/changed sessions (clears debt)",
+    script: "scripts/longview/longview.mjs",
+    node: true,
+    argv: (w) => ["scripts/longview/longview.mjs", "run", "--phase", "map", "--delta"],
+    env: (w) => ({
+      LONGVIEW_WORKSPACE: w,
+      // the hard-won map settings; defaults here so an operator cannot forget them
+      LONGVIEW_WINDOW_CHARS: "12000",
+      LONGVIEW_LLM_TIMEOUT_MS: "420000",
+      LONGVIEW_REASONING_EFFORT: "none",
+      LONGVIEW_WINDOW_PAUSE_MS: "2000"
+    }),
+    mutating: true,
+    produces: "longview/cards/*.json"
+  },
+  "metric-integrity-gate": {
+    label: "Run the Metric Integrity Gate",
+    script: "scripts/gates/metric_integrity.mjs",
+    node: true,
+    argv: (w) => ["scripts/gates/metric_integrity.mjs", "--workspace", w],
+    mutating: false,
+    produces: "(exit code 0 pass / 2 fail)"
   }
 };
 
@@ -247,7 +283,8 @@ export function launch(contractId, w, signed) {
     NEO4J_URI: process.env.NEO4J_URI || "bolt://localhost:7687",
     NEO4J_USER: process.env.NEO4J_USER || "neo4j",
     NEO4J_PASSWORD: process.env.NEO4J_PASSWORD || "password",
-    BENNY_LMSTUDIO_ENDPOINTS: process.env.BENNY_LMSTUDIO_ENDPOINTS || "http://127.0.0.1:1234/v1"
+    BENNY_LMSTUDIO_ENDPOINTS: process.env.BENNY_LMSTUDIO_ENDPOINTS || "http://127.0.0.1:1234/v1",
+    ...(typeof c.env === "function" ? c.env(w) : {})
   };
   const logPath = `${ws(w)}/longview/lineage/launch-${contractId}-${signed.seq}.log`;
   fs.mkdirSync(path.dirname(logPath), { recursive: true });
