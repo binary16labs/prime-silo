@@ -233,19 +233,29 @@ async function buildOutline(interrupted) {
         continue;
       }
       console.log(`[opus] sections for part ${part.n} ch ${ch.n}: ${ch.title}`);
-      const spec = await jsonCall(
-        `sections:p${part.n}c${ch.n}`,
-        prompt("vampire_chapter_sections"),
-        [
-          `## Book\n${JSON.stringify({ title: outline.title, metaphor: outline.metaphor, arc: outline.arc }).slice(0, 1500)}`,
-          `## Part ${part.n}: ${part.title} — ${part.theme}`,
-          `## Chapter (write sections for THIS one)\n${JSON.stringify({ part: part.n, chapter: ch.n, title: ch.title, brief: ch.brief, projects: ch.projects, motifs: ch.motifs })}`,
-          `## Evidence available\n${foundationDigest().slice(0, 3000)}`
-        ].join("\n\n"),
-        1400,
-        "sections",
-        3
-      );
+      // FAULT-ISOLATE THE PLANNING CALL, like the writing loop below already does. An
+      // unparseable reply was handled (the chapter regenerates on rerun) but a THROW
+      // escaped planOutline and killed the whole phase — which is exactly how the
+      // 2026-08-02 V2 build died at part 1 ch 2 after completing the entire outline.
+      // One chapter's planning failing must cost that chapter, not the run.
+      let spec = null;
+      try {
+        spec = await jsonCall(
+          `sections:p${part.n}c${ch.n}`,
+          prompt("vampire_chapter_sections"),
+          [
+            `## Book\n${JSON.stringify({ title: outline.title, metaphor: outline.metaphor, arc: outline.arc }).slice(0, 1500)}`,
+            `## Part ${part.n}: ${part.title} — ${part.theme}`,
+            `## Chapter (write sections for THIS one)\n${JSON.stringify({ part: part.n, chapter: ch.n, title: ch.title, brief: ch.brief, projects: ch.projects, motifs: ch.motifs })}`,
+            `## Evidence available\n${foundationDigest().slice(0, 3000)}`
+          ].join("\n\n"),
+          1400,
+          "sections",
+          3
+        );
+      } catch (e) {
+        console.log(`[opus] WARN sections for p${part.n}c${ch.n} FAILED — ${e.message} (rerun resumes here)`);
+      }
       if (spec?.sections?.length) {
         // Section ids become filenames — never let a missing id collide.
         ch.sections = spec.sections.map((s, i) => ({
@@ -269,8 +279,33 @@ async function buildOutline(interrupted) {
 // "actually connects across projects" (the critique call judges the rest).
 // Book-level coverage memory: which retrieval sources the book has already drawn
 // on. Feeds the novelty bias in evidenceForWithSources so later sections reach
-// parts of the corpus earlier ones did not. Reset per run.
+// parts of the corpus earlier ones did not.
+//
+// IT MUST SURVIVE A RESTART. This was in-memory and "reset per run", which is fine
+// only if runs never break. They do — and a resume is now the EXPECTED path, since
+// every already-written section is skipped. A blind restart re-pulls the same popular
+// sources the completed sections already used, which is precisely the failure mode V2
+// exists to fix (V1: 86 sections, 59 of 261 cards). Rebuilt from the per-section
+// .meta.json provenance we already write — no new state file, no new format.
 const SEEN_SOURCES = new Set();
+
+function loadSeenSources() {
+  const dir = opusDir("sections");
+  let files = [];
+  try { files = fs.readdirSync(dir); } catch { return 0; }
+  let restored = 0;
+  for (const f of files) {
+    if (!f.endsWith(".meta.json")) continue;
+    try {
+      const meta = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
+      for (const src of meta.evidence_sources || []) {
+        SEEN_SOURCES.add(String(src.source || "").slice(0, 40));
+        restored++;
+      }
+    } catch { /* a corrupt meta costs its own provenance, never the run */ }
+  }
+  return restored;
+}
 
 function sectionGate(text, arcSids = []) {
   const words = text.split(/\s+/).filter(Boolean).length;
@@ -350,6 +385,13 @@ export async function runOpus({ interrupted = () => false } = {}) {
   console.log(
     `[opus] ${sections.length} sections planned · ${arcData.arcs?.length || 0} arcs assigned across chapters`
   );
+  // Restore coverage memory from already-written sections so a resume keeps pushing into
+  // fresh corpus instead of re-drawing the popular sources the finished sections used.
+  if (process.env.LONGVIEW_OPUS_V2 === "1") {
+    const restored = loadSeenSources();
+    if (restored)
+      console.log(`[opus] coverage memory restored — ${SEEN_SOURCES.size} distinct sources from ${restored} prior citations`);
+  }
   let done = 0,
     failed = 0;
 

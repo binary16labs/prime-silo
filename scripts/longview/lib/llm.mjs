@@ -2,7 +2,60 @@
 // Verbose output is absorbed here — callers get parsed content + honest usage.
 import { config } from "./config.mjs";
 
-export async function chat({ system, user, maxTokens, json = false, temperature = 0.2 }) {
+// TRANSIENT ≠ TERMINAL. A single TCP blip used to kill a whole phase: on 2026-08-02 the
+// V2 book build died with "fetch failed" during section planning, ~15 min in, on a host
+// that probed perfectly healthy moments later. One retry would have saved the run.
+//
+// What is retried, and what is deliberately NOT:
+//   RETRY   transport faults (fetch failed / ECONNRESET / ECONNREFUSED / EPIPE / socket
+//           hang up) and 429 / 5xx — the request never reached a model, or the server
+//           asked us to come back.
+//   NEVER   4xx. That includes the LM Studio ENGINE WEDGE, which surfaces as a 400
+//           ("Engine protocol predict request failed"). The doctrine is halt-and-reload,
+//           not retry — hammering a wedged eGPU is how the 2026-07-09 loop happened.
+//   NEVER   timeouts (AbortError). Exceeding LLM_TIMEOUT_MS means the window is too big
+//           for the budget; a retry just pays the same cost twice and re-times out.
+//
+// Retries are strictly SEQUENTIAL with a backoff — never overlap requests on this host,
+// one concurrent call is what wedges RDNA4/ROCm.
+const RETRYABLE_CODES = new Set(["ECONNRESET", "ECONNREFUSED", "EPIPE", "ENOTFOUND", "EHOSTUNREACH", "ENETUNREACH"]);
+
+/** STATUS BEATS TEXT — always. An HTTP response means the request REACHED the server, so
+ *  the status code alone decides; the body must never be consulted. Learned from this
+ *  function's own negative control: the LM Studio engine wedge returns 400 with the body
+ *  "Engine protocol predict request failed: fetch failed", and a message-matching
+ *  classifier duly retried it 3 times — hammering a wedged eGPU, the one thing the
+ *  halt-don't-retry doctrine exists to prevent. Text matching is for status-LESS errors
+ *  only, where no response ever arrived. */
+function isRetryable(err) {
+  if (err?.name === "AbortError" || err?.name === "TimeoutError") return false; // timeout: not transient
+  if (typeof err?.httpStatus === "number")
+    return err.httpStatus === 429 || (err.httpStatus >= 500 && err.httpStatus < 600);
+  const code = err?.cause?.code || err?.code;
+  if (code && RETRYABLE_CODES.has(code)) return true;
+  return /fetch failed|socket hang up|network|ECONNRESET|terminated/i.test(String(err?.message || ""));
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+export async function chat(opts) {
+  const attempts = Math.max(1, Number(process.env.LONGVIEW_LLM_RETRIES ?? 3));
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await chatOnce(opts);
+    } catch (e) {
+      if (!isRetryable(e) || i === attempts - 1) throw e;
+      lastErr = e;
+      const backoff = 2000 * 2 ** i; // 2s, 4s, 8s — sequential, never concurrent
+      console.log(`[llm] transient (${e.message.slice(0, 80)}) — retry ${i + 1}/${attempts - 1} in ${backoff / 1000}s`);
+      await sleep(backoff);
+    }
+  }
+  throw lastErr;
+}
+
+async function chatOnce({ system, user, maxTokens, json = false, temperature = 0.2 }) {
   const started = Date.now();
   // Strip ONLY the leading provider segment (lmstudio/…, lemonade/…) — it selects
   // the endpoint, already resolved into config.LLM_BASE_URL. The rest is the id the
@@ -39,7 +92,9 @@ export async function chat({ system, user, maxTokens, json = false, temperature 
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`llm ${res.status} @ ${config.LLM_BASE_URL}: ${text.slice(0, 300)}`);
+    const err = new Error(`llm ${res.status} @ ${config.LLM_BASE_URL}: ${text.slice(0, 300)}`);
+    err.httpStatus = res.status; // lets the retry wrapper distinguish 5xx/429 from a wedge (400)
+    throw err;
   }
   const data = await res.json();
   // LM Studio's reasoning parser can divert the ENTIRE reply into
