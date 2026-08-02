@@ -45,6 +45,23 @@ try {
   MI3_STATE = m.flywheelState(WS);
 } catch { /* reported as INCONCLUSIVE by MI-3 */ }
 
+// Resolved up front for the same reason as MI3_STATE: every check() must stay synchronous.
+// null = endpoint unreachable (inconclusive); a number = chunks it served for THIS workspace.
+const MI8_BASE = process.env.BENNY_API_BASE || "http://127.0.0.1:8005";
+let MI8_STATE = null;
+try {
+  const res = await fetch(`${MI8_BASE}/api/rag/query`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Benny-API-Key": process.env.BENNY_API_KEY || "" },
+    body: JSON.stringify({ workspace: WS, query: "architecture decision", top_k: 3 }),
+    signal: AbortSignal.timeout(15000)
+  });
+  if (res.ok) {
+    const d = await res.json();
+    MI8_STATE = (Array.isArray(d) ? d : d.results || d.documents || []).length;
+  }
+} catch { /* stays null → INCONCLUSIVE, never a silent pass */ }
+
 const VALID = new Set(["PASS", "FAIL", "INCONCLUSIVE"]);
 const check = (id, title, fn) => {
   try {
@@ -200,6 +217,31 @@ check("MI-7", "Gates prove they inspected something", () => {
   if (!t.executions) return { status: "FAIL", detail: "register reports 0 executions — a control over an empty set is not a passing control" };
   return { status: "PASS", detail: `register covers ${t.executions} executions / ${t.processes} processes; ` +
            `${t.bound_to_contract} contract-bound` };
+});
+
+// ── MI-8 the retrieval substrate must actually serve THIS workspace ───────
+// Added after the gate passed 7/7 while the book builder wrote 5 sections with ZERO
+// retrieved evidence. The benny API on :8005 was running from the runtime bundle, homed at
+// %APPDATA%/space-agent/benny-home, which holds no sessions_v1 — so every /api/rag/query
+// returned 200 with `{"results":[],"message":"Knowledge base is empty"}` while a 16 MB
+// chroma store sat at D:/benny-home/benny/workspaces/sessions_v1/chromadb.
+//
+// Nothing failed. ragQuery treats an empty result as "no context" by design, and the opus
+// prompt falls back to "write only from the chapter brief" — so the run looked healthy,
+// logged cites (concept citations, not sids), and would have spent ~8 hours producing an
+// ungrounded book. MI-5 checks that CONTROLS honour BENNY_HOME; it never asked whether the
+// SERVER did. Same failure class, one layer down.
+check("MI-8", "The retrieval server serves the workspace its corpus lives in", () => {
+  const onDisk = fs.existsSync(`${wsDir}/chromadb`);
+  if (MI8_STATE == null)
+    return { status: "INCONCLUSIVE", detail: `retrieval endpoint ${MI8_BASE} unreachable — cannot confirm groundedness` };
+  if (!onDisk && MI8_STATE === 0)
+    return { status: "INCONCLUSIVE", detail: `no chroma store for ${WS} on disk and none served — nothing to reconcile` };
+  if (onDisk && MI8_STATE === 0)
+    return { status: "FAIL", detail:
+      `a chroma store EXISTS at ${wsDir}/chromadb but ${MI8_BASE} returns 0 results for '${WS}' — ` +
+      `the server is homed elsewhere. Anything generated now is ungrounded and will still look successful.` };
+  return { status: "PASS", detail: `${MI8_BASE} returned ${MI8_STATE} chunk(s) for '${WS}'; retrieval is grounded` };
 });
 
 // ── report ────────────────────────────────────────────────────────────────
