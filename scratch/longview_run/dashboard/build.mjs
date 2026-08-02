@@ -19,6 +19,7 @@
 
 import fs from "fs";
 import path from "path";
+import { spawnSync } from "child_process";
 
 const HOME = (process.env.BENNY_HOME || "D:/benny-home/benny").replace(/\\/g, "/");
 const wsDir = (w) => `${HOME}/workspaces/${w || "sessions_v1"}`;
@@ -66,6 +67,46 @@ function sectionRow(dir, file) {
 }
 
 const mean = (xs) => (xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : null);
+
+// ── is it actually running? ───────────────────────────────────────────────
+// ASK THE OS, DON'T INFER FROM A LOG. The house rule earned on the eGPU: a log line is
+// not proof of life — a wedged process keeps its last line forever and looks identical to
+// a slow one. So existence comes from the process table, and progress comes from the
+// artifacts. Memoized: a PowerShell spawn per dashboard poll is what made an earlier
+// endpoint take 17s.
+let _proc = { at: 0, rows: null };
+function opusProcesses() {
+  if (Date.now() - _proc.at < 10000 && _proc.rows) return _proc.rows;
+  let rows = [];
+  try {
+    const r = spawnSync("powershell", ["-NoProfile", "-Command",
+      "Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | " +
+      "Where-Object { $_.CommandLine -like '*longview.mjs*' -and $_.CommandLine -like '*opus*' } | " +
+      "Select-Object ProcessId,CreationDate,UserModeTime,KernelModeTime | ConvertTo-Json -Compress"],
+      { encoding: "utf8", timeout: 15000 });
+    const out = (r.stdout || "").trim();
+    if (out) {
+      const parsed = JSON.parse(out);
+      rows = (Array.isArray(parsed) ? parsed : [parsed]).map((p) => ({
+        pid: p.ProcessId,
+        cpu_seconds: Math.round(((p.UserModeTime || 0) + (p.KernelModeTime || 0)) / 1e7)
+      }));
+    }
+  } catch { /* probe failure is reported as unknown, never as "not running" */ }
+  _proc = { at: Date.now(), rows };
+  return rows;
+}
+
+/** The most recent signed launch for this contract — ties the running process back to the
+ *  human signature that authorised it, so the page shows WHO started what. */
+function lastLaunch(w, contractId = "book-opus-v2") {
+  try {
+    const lines = fs.readFileSync(`${wsDir(w)}/longview/lineage/launch_ledger.jsonl`, "utf8")
+      .split("\n").filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } })
+      .filter((e) => e && e.contract_id === contractId);
+    return lines.length ? lines[lines.length - 1] : null;
+  } catch { return null; }
+}
 
 export function buildState(w, iterName = "v2") {
   const all = iterations(w);
@@ -151,11 +192,39 @@ export function buildState(w, iterName = "v2") {
   } catch { /* absent */ }
   totals.distinct_sources = cited.size;
 
+  // RUN STATE. Completion is not stalling and absence is not failure — the two mistakes
+  // the collector already had to learn. A finished build has no process and that is
+  // correct; a running one with a long quiet gap is only "slow" relative to its OWN class
+  // mean, not a fixed wall clock.
+  const procs = opusProcesses();
+  const idle = rows.length ? Math.round((Date.now() - Date.parse(rows[rows.length - 1].ts)) / 1000) : null;
+  const expected = (remArc ?? 0) > 0 ? (arcMean ?? plainMean) : (plainMean ?? arcMean);
+  let state, why;
+  if (remaining === 0) { state = "complete"; why = "every planned section is written"; }
+  else if (!procs.length) { state = "not running"; why = "no opus process — the build is stopped, not finished"; }
+  else if (expected && idle != null && idle > expected * 2.5) { state = "slow"; why = `quiet ${idle}s vs ~${expected}s expected for the next section`; }
+  else { state = "running"; why = idle != null ? `last section ${idle}s ago` : "started, first section in flight"; }
+
+  const launch = lastLaunch(w);
+
   return {
     workspace: w,
     iteration: chosen.name,
     iterations: all.map((i) => i.name),
     dir: chosen.dir,
+    run: {
+      state,
+      why,
+      processes: procs,
+      pid: procs.length ? procs[0].pid : null,
+      cpu_seconds: procs.length ? procs[0].cpu_seconds : null,
+      idle_seconds: idle,
+      expected_seconds: expected,
+      launch: launch && {
+        seq: launch.seq, operator: launch.operator, ts: launch.ts,
+        intent: launch.intent, signed: launch.signed
+      }
+    },
     totals,
     pace: {
       arc_mean_seconds: arcMean,

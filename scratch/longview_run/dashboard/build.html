@@ -47,6 +47,18 @@ code{background:var(--panel2);padding:1px 5px;border-radius:4px;font-size:12px}
 
   <!-- GROUNDING FIRST. A run once wrote 5 sections with zero retrieved evidence and
        looked healthy throughout; this is the number that would have caught it. -->
+  <!-- RUN STATE. Asked of the OS process table, not inferred from a log line: a wedged
+       process keeps its last log line forever and reads identical to a slow one. -->
+  <div class="tile" id="runtile">
+    <h3>Run state</h3>
+    <div style="display:flex;gap:18px;align-items:baseline;flex-wrap:wrap">
+      <div class="kpi" id="r-state">–</div>
+      <div class="sub" id="r-why"></div>
+    </div>
+    <div class="note" id="r-detail"></div>
+    <div class="note" id="r-launch"></div>
+  </div>
+
   <div class="g3">
     <div class="tile"><div class="sub">grounded sections</div><div class="kpi" id="k-grounded">–</div>
       <div class="note" id="k-grounded-note">sections whose evidence_sources is non-empty</div></div>
@@ -98,7 +110,24 @@ function hhmm(sec){
 
 function render(){
   if (!S) return;
-  var t = S.totals || {}, p = S.pace || {}, c = S.coverage || {};
+  var t = S.totals || {}, p = S.pace || {}, c = S.coverage || {}, r = S.run || {};
+
+  // run state
+  var colour = r.state === 'running' ? 'var(--good)'
+             : r.state === 'complete' ? 'var(--accent)'
+             : r.state === 'slow' ? 'var(--warn)' : 'var(--bad)';
+  document.getElementById('r-state').innerHTML =
+    '<span style="color:'+colour+'">'+(r.state||'unknown').toUpperCase()+'</span>';
+  document.getElementById('r-why').textContent = r.why || '';
+  document.getElementById('r-detail').innerHTML = r.pid
+    ? 'pid <code>'+r.pid+'</code> · '+r.cpu_seconds+'s CPU · next section expected in ~'+
+      (r.expected_seconds||'?')+'s · quiet '+(r.idle_seconds!=null?r.idle_seconds+'s':'–')
+    : 'no opus process in the process table';
+  document.getElementById('r-launch').innerHTML = r.launch
+    ? 'launched by <b>'+r.launch.operator+'</b> · ledger #'+r.launch.seq+' '+
+      (r.launch.signed?pill('ok','signed'):pill('no','UNSIGNED'))+
+      '<br><span class="sub">'+(r.launch.intent||'')+'</span>'
+    : '<span class="sub">no signed launch found for this contract</span>';
 
   // grounding
   var gEl = document.getElementById('k-grounded');
