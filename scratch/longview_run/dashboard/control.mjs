@@ -76,6 +76,21 @@ export const LAUNCHABLE = {
     mutating: true,
     produces: "longview/cards/*.json"
   },
+  "book-opus-v2": {
+    label: "AI Vampire V2 — coverage-biased book build",
+    script: "scripts/longview/longview.mjs",
+    node: true,
+    argv: (w) => ["scripts/longview/longview.mjs", "run", "--phase", "opus"],
+    env: (w) => ({
+      LONGVIEW_WORKSPACE: w,
+      LONGVIEW_OPUS_V2: "1",                 // wider retrieval + novelty bias
+      LONGVIEW_OPUS_DIR: "iterations/v2",    // never clobber the V1 book
+      LONGVIEW_REASONING_EFFORT: "none",
+      LONGVIEW_LLM_TIMEOUT_MS: "420000"
+    }),
+    mutating: true,
+    produces: "data_out/iterations/v2/THE-AI-VAMPIRE.{md,pdf} + COVERAGE.md"
+  },
   "metric-integrity-gate": {
     label: "Run the Metric Integrity Gate",
     script: "scripts/gates/metric_integrity.mjs",

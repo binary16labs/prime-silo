@@ -83,8 +83,23 @@ export async function evidenceFor(query, opts = {}) {
 
 // Provenance-aware variant (Benny Record): returns WHICH sources fed the pack —
 // the previously-discarded edge that makes output lineage traceable.
-export async function evidenceForWithSources(query, { topK = 5, budget = 4500 } = {}) {
-  const chunks = await ragQuery(query, topK);
+export async function evidenceForWithSources(query, { topK = 5, budget = 4500, seen = null, novelty = 0 } = {}) {
+  // COVERAGE BIAS. Pure relevance ranking keeps returning the same popular
+  // sessions: the first book cited 59 of 261 cards (22.6%) even though every
+  // section retrieved its own evidence. When `seen` (a Set of already-cited
+  // source keys) is supplied, over-fetch and re-rank so unseen sources win ties,
+  // which spreads the book across the corpus instead of deepening the same well.
+  const want = seen && novelty > 0 ? Math.min(topK * 4, 40) : topK;
+  let chunks = await ragQuery(query, want);
+  if (seen && novelty > 0) {
+    const key = (c) => String(c.source || "").slice(0, 40);
+    chunks = chunks
+      .map((c, i) => ({ c, i, fresh: seen.has(key(c)) ? 0 : 1 }))
+      // rank = relevance order, minus a bonus for never-yet-cited sources
+      .sort((a, b) => (b.fresh * novelty - a.fresh * novelty) || (a.i - b.i))
+      .slice(0, topK)
+      .map((x) => x.c);
+  }
   const sources = [];
   let out = "";
   for (const c of chunks) {

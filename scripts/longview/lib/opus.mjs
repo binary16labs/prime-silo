@@ -267,6 +267,11 @@ async function buildOutline(interrupted) {
 // VALIDATED, not just requested. When the section carries assigned arcs, it must
 // also cite at least one of the arc's real sids — that is the mechanical half of
 // "actually connects across projects" (the critique call judges the rest).
+// Book-level coverage memory: which retrieval sources the book has already drawn
+// on. Feeds the novelty bias in evidenceForWithSources so later sections reach
+// parts of the corpus earlier ones did not. Reset per run.
+const SEEN_SOURCES = new Set();
+
 function sectionGate(text, arcSids = []) {
   const words = text.split(/\s+/).filter(Boolean).length;
   const cites = (text.match(/\((sid|concept|doc):\s*[^)]+\)/g) || []).length;
@@ -364,10 +369,17 @@ export async function runOpus({ interrupted = () => false } = {}) {
       const query = [s.query || `${ch.title} ${s.title}`, ...arcList.map((a) => a.thread)]
         .filter(Boolean)
         .join(" ");
+      // V2 (LONGVIEW_OPUS_V2=1): retrieve wider and prefer sources the book has
+      // not drawn on yet. V1 used topK 4-6 with a purely relevance-ranked pull,
+      // which is why 86 sections still only reached 59 of 261 cards.
+      const V2 = process.env.LONGVIEW_OPUS_V2 === "1";
       const ev = await evidenceForWithSources(query, {
-        topK: arcList.length ? 6 : 4,
-        budget: s.reflection ? 2400 : 3800
+        topK: V2 ? (arcList.length ? 14 : 10) : (arcList.length ? 6 : 4),
+        budget: s.reflection ? (V2 ? 3200 : 2400) : (V2 ? 5200 : 3800),
+        seen: V2 ? SEEN_SOURCES : null,
+        novelty: V2 ? 1 : 0
       });
+      if (V2) for (const src of ev.sources) SEEN_SOURCES.add(String(src.source || "").slice(0, 40));
       let evidence = ev.text;
       const evidenceSources = ev.sources;
       // The assigned arcs — concrete cross-project connections + the real sids to
