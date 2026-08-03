@@ -16,11 +16,12 @@
 
 ## CLAIMED (agent · date)
 
-- W4 — harden the enforcement W2 shipped · claude-opus · worktree task/W4 · 2026-08-03 _(topmost READY; taken while P0 verifies, since P1 is dependency-blocked until P0 is DONE — a rule W2 now machine-enforces rather than leaving to my discretion.)_
 
 
 
 ## VERIFY (awaiting non-author verification)
+
+- W4 — harden the enforcement W2 shipped · author claude-opus · branch task/W4 @ 5389c27 · 2026-08-03 _(gate w4 GREEN 13/13 + mutation-proven — imported-binding ban removed → gate fails naming "the guarantee is still hollow" → revert GREEN. Purity now checks STRUCTURE not text: comments/strings stripped, import DECLARATIONS removed before scanning, every impure binding banned in ANY form (you cannot alias what you cannot name), import(/require( banned, and ambient impurity (process., new Date, Date.now, Math.random, globalThis) banned — W2 checked for NONE of those. The gate replays BOTH original evasions (W2's aliased dynamic import, P0's aliased static import) and proves they now fail, AND proves a comment reading "spawnSync(" does not. DEFAULTS moved below the marker so the marker's claim is true rather than false-as-written. workVerify de-shelled (DEP0190). 227 non-test lines under budget 350. Regression: w1 + w2 re-run GREEN. ★ HONEST LIMIT stated in the docstring, not glossed: this is static analysis over stripped source, not an interpreter — a determined author can still defeat it via computed member access on a global. It raises evasion from minutes to deliberate. The contract explicitly permitted narrowing the claim rather than overstating it, and that is what this does. ★ MY OWN GATE COMMITTED THE VERY BUG IT FIXES while being written — its first draft flagged a comment reading `no shell: true`; fixed by having the gate strip comments with the module it gates.)_
 
 
 
