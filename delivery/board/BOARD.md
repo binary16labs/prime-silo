@@ -7,13 +7,14 @@
 
 ## READY (take from the top)
 
-- W2 — sandbox + tool provisioning (allowlist becomes enforcement) _(dep W1 DONE — entered READY 2026-08-03; makes `sandbox: worktree` machine-enforced for all 99 contracts, and gates EP-M per the owner's ordering decision)_
 - L16 — version the observability surface (out of scratch/) _(UNBLOCKED 2026-08-03 — contract amended per owner option (b): budget counts authored lines only, verbatim relocation exempt and gate-checked for byte-identity. Returned to READY unclaimed rather than held, to respect WIP limit 1 while W2 is worked.)_
 
 ## CLAIMED (agent · date)
 
 
 ## VERIFY (awaiting non-author verification)
+
+- W2 — sandbox + tool provisioning (allowlist becomes enforcement) · author claude-opus · branch task/W2 @ 831059d · 2026-08-03 _(gate w2 GREEN 13/13 + mutation-proven — allowlist enforcement removed → the allowlist scenarios go RED → revert GREEN. checkAllowlist/checkBudget/preflightTools are PURE over injected inputs; only provisionSandbox and defaultProbe touch the system, behind an explicit `=== IMPURE BELOW THIS LINE ===` marker the gate slices on. Refusals NAME the offender (file / line count). Wired into the loop: workNext provisions on claim and, on a missing declared tool, RELEASES THE LEASE and returns an honest blocked before work starts. workVerify enforces allowlist+budget BEFORE running the contract's gate. REGRESSION GUARD: w2 re-runs w1+b2 (and b1 transitively) — all GREEN. 267 non-test lines / 193 excl. the 74-line gate, UNDER the 400 budget. ★ OWNER DECISION NEEDED: this contract and SPEC-work-contracts.md:22 say `.worktrees/<id>` + `feat/<id>`, but every branch here is `task/*` and the delivery-board skill requires worktrees OUTSIDE the OneDrive tree — `.worktrees/` is inside it. Defaults follow practice; the spec layout is reachable via options and tested. Changing the spec is outside this allowlist. HONEST NOTE: W2 broke W1's concurrency scenario (workNext now provisions; that fixture is not a git repo). Fixed by disabling the ORTHOGONAL provisioning in that test — its assertion is unchanged — and adding two positive tests here, so coverage rises rather than falls. A verifier should check that judgement specifically.)_
 
 
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 _(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)_
