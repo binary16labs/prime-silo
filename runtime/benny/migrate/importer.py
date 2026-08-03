@@ -19,7 +19,7 @@ from ..core.manifest_hash import sign_manifest
 logger = logging.getLogger(__name__)
 
 # Pattern to capture Windows and POSIX absolute paths
-# e.g. C:\Users\foo\..., /home/user/...
+# e.g. a Windows drive path or a POSIX home directory
 # This is a broad heuristic; we target common patterns in Benny metadata.
 PATH_PATTERN = re.compile(r'([A-Za-z]:\\[^":<>|]*|/[^":<>|]+)')
 
