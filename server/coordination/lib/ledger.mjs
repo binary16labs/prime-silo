@@ -170,6 +170,12 @@ export function foldState(events) {
         t.state = "todo";
         t.agent = null;
         break;
+      // W1/D3 — verification as a validated ledger fact, not a payload convention. Additive:
+      // fires only on the new event type, so every pre-W1 fold is unchanged.
+      case "task_verified":
+        t.state = "verified";
+        t.verified_by = e.agent;
+        break;
     }
     tasks.set(e.task_id, t);
   }

@@ -1823,6 +1823,26 @@ def build_parser() -> argparse.ArgumentParser:
     p_note.add_argument("--topic", help="Topic key for filtering")
     p_note.add_argument("--text", help="Note body")
 
+    # work — deterministic delivery loop (W1); selector is pure, the lease is the arbiter
+    p_work = sub.add_parser("work", help="Delivery loop: next, verify, verified, blocked")
+    p_work.add_argument("--coord-dir", help="Coordination dir (default $PRIME_SILO_HOME/coordination)")
+    p_work.add_argument("--api", help="B1 API base URL (default $PRIME_SILO_API)")
+    p_work.add_argument("--json", action="store_true", help="Print the raw loop reply")
+    work_sub = p_work.add_subparsers(dest="work_cmd", required=True)
+    p_next = work_sub.add_parser("next", help="Claim and return exactly one ready item")
+    p_next.add_argument("--agent", default="claude", help="Registered agent id")
+    p_wverify = work_sub.add_parser("verify", help="Run a task's own verify command")
+    p_wverify.add_argument("task", help="Task id")
+    for verb, helptext, needs_reason in (
+        ("verified", "Record verification (refused if you are the author)", False),
+        ("blocked", "Report a task blocked, with a reason", True),
+    ):
+        p_v = work_sub.add_parser(verb, help=helptext)
+        p_v.add_argument("task", help="Task id")
+        p_v.add_argument("--agent", default="claude", help="Registered agent id")
+        if needs_reason:
+            p_v.add_argument("--reason", required=True, help="Why it is blocked")
+
     # tui — AgentAmp mini-mode (AAMP-001 Phase 4, AAMP-F7)
     p_tui = sub.add_parser("tui", help="Launch AgentAmp TUI mini-mode (alias for benny --tui)")
     p_tui.add_argument("--workspace", default="default", help="Active workspace")
@@ -2000,6 +2020,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.cmd == "coord":
         from benny.agentamp.coord import cmd_coord
         return cmd_coord(args)
+    if args.cmd == "work":
+        from benny.agentamp.work import cmd_work
+        return cmd_work(args)
 
     parser.print_help()
     return 1

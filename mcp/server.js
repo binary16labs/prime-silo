@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -196,6 +197,65 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             agent: { type: "string", description: "Your registered agent id (default: claude)" }
           },
           required: ["text"]
+        }
+      },
+      // --- W1: the delivery loop. Do not pick work by reading BOARD.md by hand — that is how a
+      // ready task sat unnoticed for nine days. work_next is the only correct way to take work.
+      {
+        name: "work_next",
+        description:
+          "Claim and return exactly ONE ready item — the deterministic next task. Selection is a " +
+          "pure function of board+ledger state (topological order, then human priority, then id) " +
+          "and the claim is arbitrated by an atomic lease, so two agents calling this concurrently " +
+          "never receive the same item. Returns null with a reason when nothing is available: " +
+          "'wip-limit' means you already hold something, 'none-ready' means nothing qualifies. " +
+          "Items awaiting an owner signature are REPORTED, never auto-claimed.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            agent: { type: "string", description: "Your registered agent id (default: claude)" }
+          }
+        }
+      },
+      {
+        name: "work_verify",
+        description:
+          "Run a task's own declared verify command and return its exit code. The exit code is the " +
+          "verdict; it is not interpreted for you.",
+        inputSchema: {
+          type: "object",
+          properties: { task_id: { type: "string", description: "Task id to verify" } },
+          required: ["task_id"]
+        }
+      },
+      {
+        name: "work_done",
+        description:
+          "Record verification of a task as a validated ledger event. REFUSED with " +
+          "'author-is-verifier' if you are the agent who claimed it — author and verifier must be " +
+          "different identities. This enforces distinct identities, not genuine independence.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            task_id: { type: "string", description: "Task id you verified" },
+            agent: { type: "string", description: "Your registered agent id (default: claude)" }
+          },
+          required: ["task_id"]
+        }
+      },
+      {
+        name: "work_blocked",
+        description:
+          "Report a task blocked with an honest reason. Use this on the second identical failure " +
+          "rather than attempting a third time or redesigning around the contract.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            task_id: { type: "string", description: "Task id that is blocked" },
+            reason: { type: "string", description: "Exact error and what you tried" },
+            agent: { type: "string", description: "Your registered agent id (default: claude)" }
+          },
+          required: ["task_id", "reason"]
         }
       }
     ]
@@ -412,6 +472,32 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         else {
           const verb = args.state === "done" ? coord.done : coord.progress;
           result = await verb(ctx, String(args.task_id), agent, { note: args?.text });
+        }
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          isError: result.ok === false
+        };
+      }
+
+      // --- W1: delivery loop (same implementation the `benny work` CLI drives) ---
+      case "work_next":
+      case "work_verify":
+      case "work_done":
+      case "work_blocked": {
+        const loop = await import("../server/coordination/lib/work_loop.mjs");
+        const coordc = await import("../runtime/benny/agentamp/coord_client.mjs");
+        // ESM has no __dirname; derive it from this module's URL.
+        const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+        const agent = args?.agent ?? "claude";
+        let result;
+        if (name === "work_verify") result = loop.workVerify(repoRoot, String(args.task_id));
+        else {
+          const ctx = await coordc.connect({});
+          if (name === "work_next") result = await loop.workNext(ctx, agent, repoRoot);
+          else if (name === "work_done")
+            result = await loop.recordVerified(ctx, String(args.task_id), agent);
+          else
+            result = await loop.workBlocked(ctx, String(args.task_id), agent, String(args.reason));
         }
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
