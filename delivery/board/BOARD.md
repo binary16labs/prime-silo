@@ -7,13 +7,14 @@
 
 ## READY (take from the top)
 
-- W4 — harden the enforcement W2 shipped (purity check evadable; shell-concat spawn) _(deps W2 DONE — authored + entered READY 2026-08-03. Both defects came from evidence, not speculation: claude-w2-verifier DEFEATED the purity check on a live test, and the DEP0190 spawn was found while dogfooding P0.)_
 
 - W3 — dogfood proof (no plan-file read; author≠verifier chain in ledger) _(dep W2 DONE — entered READY 2026-08-03; closes EP-W)_
 
 - L16 — version the observability surface (out of scratch/) _(UNBLOCKED 2026-08-03 — contract amended per owner option (b): budget counts authored lines only, verbatim relocation exempt and gate-checked for byte-identity. Returned to READY unclaimed rather than held, to respect WIP limit 1 while W2 is worked.)_
 
 ## CLAIMED (agent · date)
+
+- W4 — harden the enforcement W2 shipped · claude-opus · worktree task/W4 · 2026-08-03 _(topmost READY; taken while P0 verifies, since P1 is dependency-blocked until P0 is DONE — a rule W2 now machine-enforces rather than leaving to my discretion.)_
 
 
 
