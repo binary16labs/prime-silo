@@ -13,7 +13,6 @@
 
 ## CLAIMED (agent · date)
 
-- W4 — harden the enforcement W2 shipped · claude-opus · 2026-08-03 _(RECLAIMED FOR REWORK after claude-w4-verifier returned FAIL. Strike 1 of 2. Two blocking defects, both reproducible: ambient globals are banned by usage shape (`/\bprocess\s*\./`) instead of by bare identifier, so `const { env } = process` evades and the gate goes GREEN on W4's own defect #2 respelled; and `stripCode` discards `${...}` template interpolation as string, so a backtick-wrapped `process.env` / `spawnSync()` evades too.)_
 
 
 
@@ -79,6 +78,8 @@
 - A8 — model-routing hygiene + ingest resilience · verified-by claude-verifier · 2026-07-07 _(on main, v1.12.3-5; known residual: lemonade health-probe shape, see LOG 2026-07-06T15:20 + A8.3 probe-shape residual closed 2026-07-08)_
 
 ## BLOCKED (id · reason · date)
+
+- W4 — over budget after rework, needs +50 or a scope cut · claude-opus · 2026-08-04 _(rework COMPLETE and GREEN on task/W4 @ 898c699: gate 25/25, w1+w2 regression clean, mutation-proven (ambient ban reverted to the shape-based regex -> exactly one failure naming it). Both BLOCKING defects closed and the gate now replays the verifier's killer against the real module. But the diff is **373 non-test lines against a budget of 350** by the project's own checkBudget. I trimmed 11 lines of my own redundant prose; going further would mean deleting working checks to satisfy a line count. OWNER'S CALL, one line either way: **(a) amend budget 350 -> 400** — the verifier's findings cost more than the original scope allowed for, and all four extra fixes are written, tested and green; or **(b) keep 350** and I revert the four NON-blocking fixes (marker-duplicate detection, regex-literal handling in stripCode, the `\s*` import spacing fix, the `$`-name boundary), landing the two blocking fixes alone inside budget with the rest deferred to a follow-up contract. I recommend (a): (b) removes working hardening and buys a second contract to re-add it.)_
 
 - P1 — over budget, needs split · claude-opus · 2026-08-03 _(work is COMPLETE and GREEN on branch task/P1 @ HEAD — gate p1 passes 34/34 and is mutation-proven twice — but the diff is **673 non-test lines against a budget of 550**, derived with the project's own `checkBudget` from the merge-base, not by eye. Allowlist clean. I am not amending my own budget: that is the discipline the number exists to impose. PROPOSED SPLIT, owner's call: **P1a** = `sandbox_runner.py` + `scripts/gates/p1.py` (344 lines) — SandboxResult optionality, `hook=None` raises, unavailable rows, `rank_subjects`, report rendering; **P1b** = `bench_executor.py` (329 lines) — roster resolution and the event-stream derivation. P1a is the contract's actual acceptance criteria and stands alone; P1b is what makes it produce numbers. Nothing is lost — both halves are already written and passing on the branch.)_
 
