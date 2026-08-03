@@ -7,15 +7,13 @@
 
 ## READY (take from the top)
 
-- P1 — real executor hook for run_multi_model _(dep P0 DONE — entered READY 2026-08-03; the largest contract in EP-M and where the zeros end)_
-
-
 - W3 — dogfood proof (no plan-file read; author≠verifier chain in ledger) _(dep W2 DONE — entered READY 2026-08-03; closes EP-W)_
 
 - L16 — version the observability surface (out of scratch/) _(UNBLOCKED 2026-08-03 — contract amended per owner option (b): budget counts authored lines only, verbatim relocation exempt and gate-checked for byte-identity. Returned to READY unclaimed rather than held, to respect WIP limit 1 while W2 is worked.)_
 
 ## CLAIMED (agent · date)
 
+- P1 — real executor hook for run_multi_model · claude-opus · 2026-08-03 _(where the zeros end: `run_multi_model` carries eight agentic metrics and has never produced a real one, because `hook` defaults to `_dry_run_stub` returning 0.0 for every field. Budget 550, the largest in EP-M.)_
 
 
 
