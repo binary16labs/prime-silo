@@ -13,10 +13,11 @@
 
 ## CLAIMED (agent · date)
 
-- P0 — roster schema + validator (subjects, tiers, frozen rubric) · claude-opus · worktree task/P0 · 2026-08-03 _(owner directed 'start P0' — taken ahead of the topmost READY item W3; READY reordered to record that as the owner's priority rather than an agent skipping the queue. Opens EP-M.)_
 
 
 ## VERIFY (awaiting non-author verification)
+
+- P0 — roster schema + validator (subjects, tiers, frozen rubric) · author claude-opus · branch task/P0 @ HEAD · 2026-08-03 _(gate p0 GREEN 14/14 + mutation-proven — tier enforcement disabled → BOTH tier scenarios RED → revert GREEN. Validator is PURE (no fs/process/clock), so every rule is deterministically breakable. R5 tier eligibility, incl. a wildcard that must satisfy EVERY persona it expands to — otherwise the wildcard is a hole in the rule. R8 self-judging refused on model ID not label, because the same weights under a second label is exactly how it would slip through. R10 rubric frozen by content hash. A persona left unassigned is REJECTED rather than silently falling back to the registry default. All errors reported in one pass. The gate checks the shipped template validates against its own validator — a template failing its own rules teaches the wrong shape. 232 non-test lines / 169 excl. the 63-line gate, under budget 400. ★ DOGFOODED: W2's workVerify enforcement was run against this branch and passed allowlist + budget before the gate ran — the first contract checked by machinery rather than discipline. HONEST NOTE: rubricHash is FNV-1a, deliberately not cryptographic — it detects drift, it does not resist an adversary; the code says so.)_
 
 
 
