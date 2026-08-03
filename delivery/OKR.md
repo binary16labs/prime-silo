@@ -12,6 +12,10 @@
 - **KR1.4** Sovereignty gradient live: zero-capable-hardware user still gets full data sovereignty (gate `a6`).
 - **KR1.5** A **house-method QLoRA model**, trained on the code + LONGVIEW corpus, **measurably beats its base**
   on a held-out method/agent eval and **drives the offload path** — currently UNTRAINED (gates `t3`/`t4`, EP-T/M3).
+- **KR1.6** Two or more candidate engines are **ranked on the same instrument** over the estate's own
+  agent loop, every metric either measured or explicitly `unmeasured`; the incumbent is displaced only
+  on evidence (gates `p1/p4`). Added by plan rev 2026-08-03 — KR1.5 is closed and covers beating a
+  base, not comparing engines.
 
 ## O2 — One coordinated, deterministic delivery system _(P2, P3, P9)_
 

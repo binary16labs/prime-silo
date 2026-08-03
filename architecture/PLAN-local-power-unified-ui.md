@@ -697,6 +697,27 @@ The plan changes what agents can do; the agent-facing docs, skills, and persiste
 
 ---
 
+## 2.6 Workstream ML — Lineage closure (KR2.2, KR2.4) · plan rev 2026-08-03
+
+`architecture/REVIEW-delivery-lineage-2026-08-03.md` found three of four hops open between a delivery
+decision and the lineage DAG: the board is markdown rather than the B0 ledger; L5's `fromCoordEvent`
+mapper is dead code in production; and the dashboard's `lineage.mjs` has no coordination source at all.
+This is **not new scope** — KR2.2 already required "every run is one event stream = progress +
+telemetry + lineage", and KR2.4 asks for an audit "of board/LOG.md / ledger" that cannot be run while
+delivery verification lives in prose. Phases: **B4** board→ledger · **B5** register projection (wiring
+the existing mapper) · **L15** OpenLineage RunEvents + a coordination source in the DAG · **L16** move
+the dashboard out of never-committed `scratch/` into a versioned, gated path.
+
+## 2.7 Workstream M — Model plurality (KR1.6) · plan rev 2026-08-03
+
+Source: `architecture/SOLUTION-model-plurality.md`. EP-T closed KR1.5 (a house model beats its base),
+but the estate cannot rank *two* engines on its own agent loop: `run_multi_model` carries eight agentic
+metrics and has never produced a real one, because `hook` defaults to a stub returning zeros. Phases
+**P0–P4** build one instrument (a subject = a persona→model assignment plus serving topology; no
+composite score; `unmeasured` never rendered as `0.0`), and **P5** trains the first new base, E4B alone.
+Task ids are P-prefixed because M-prefixed ids are milestone-scoped (`M2-1`..`M2-8`). GRPO stays blocked
+by R15; Gemma-12B stays deferred pending P5.
+
 ## 11. Workstream H — Deferred (explicitly OUT of scope now)
 
 - Internal identifier rename (`space-desktop:` IPC, `node space` CLI, file names) — alias-first design sketched in a future ADR; do not attempt opportunistically.
@@ -728,6 +749,9 @@ C0 ─┬─ C1 ─ C2 ─┬─ C4 ─ C6 (needs B3, G2-UI)
     └─ C3 ──────┤
     └─ C5       └─ D1 ─ D2 ─ D3 (D3 prefers G3)
 E0 (brief/claims now) ─ E1 (mocks; screenshots need C2) ─ E2 (build+ship)
+B2+W1 ─ B4 ─ B5 ─ L15   (lineage closure: board→ledger→register→DAG) ; L16 standalone
+W2 ─ P0 ─ P1 ─┬─ P2 ─┬─ P4 ─ P5   (model plurality; P5 = E4B alone)
+              └─ P3 ─┘
 T0 (prove trainer) + T2 (dataset) ─ T3 (QLoRA + eval) ─ T4 (behind Benny router) ; T1 clone-home (parallel)
 ```
 
