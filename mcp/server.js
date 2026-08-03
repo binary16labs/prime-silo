@@ -143,6 +143,60 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           },
           required: ["task"]
         }
+      },
+      // --- B2: coordination surface. Same ledger the `benny coord` CLI speaks to; thin client of
+      // the B1 API when the server is up, direct-file via the B0 validator when it is not.
+      {
+        name: "coord_list",
+        description:
+          "List coordination tasks and their folded state (todo/claimed/done/blocked) plus the " +
+          "holding agent. Use before claiming so you do not collide with another agent.",
+        inputSchema: { type: "object", properties: {} }
+      },
+      {
+        name: "coord_claim",
+        description:
+          "Take a coordination task. Mutual exclusion is an atomic lease, so if another agent " +
+          "already holds it you get ok:false reason:already-claimed — identical whether or not " +
+          "the coordination server is running. Never work a task you did not successfully claim.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            task_id: { type: "string", description: "Task id to claim" },
+            agent: { type: "string", description: "Your registered agent id (default: claude)" }
+          },
+          required: ["task_id"]
+        }
+      },
+      {
+        name: "coord_report",
+        description:
+          "Report progress on, or completion of, a task you hold. state='done' also releases the " +
+          "lease so another agent may take the task next.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            task_id: { type: "string", description: "Task id you hold" },
+            state: { type: "string", enum: ["progress", "done"], description: "What happened" },
+            text: { type: "string", description: "Free-text detail for the event payload" },
+            agent: { type: "string", description: "Your registered agent id (default: claude)" }
+          },
+          required: ["task_id", "state"]
+        }
+      },
+      {
+        name: "coord_note",
+        description:
+          "Share a knowledge note with the other agents on the ledger, optionally under a topic.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            topic: { type: "string", description: "Topic key, for filtered retrieval" },
+            text: { type: "string", description: "The note body" },
+            agent: { type: "string", description: "Your registered agent id (default: claude)" }
+          },
+          required: ["text"]
+        }
       }
     ]
   };
@@ -340,6 +394,29 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             isError: true
           };
         }
+      }
+
+      // --- B2: coordination surface (shares one client with the `benny coord` CLI) ---
+      case "coord_list":
+      case "coord_claim":
+      case "coord_report":
+      case "coord_note": {
+        const coord = await import("../runtime/benny/agentamp/coord_client.mjs");
+        const ctx = await coord.connect({});
+        const agent = args?.agent ?? "claude";
+        let result;
+        if (name === "coord_list") result = { ok: true, mode: ctx.mode, tasks: await coord.list(ctx) };
+        else if (name === "coord_claim") result = await coord.claim(ctx, String(args.task_id), agent);
+        else if (name === "coord_note")
+          result = await coord.note(ctx, agent, { topic: args?.topic, text: String(args.text) });
+        else {
+          const verb = args.state === "done" ? coord.done : coord.progress;
+          result = await verb(ctx, String(args.task_id), agent, { note: args?.text });
+        }
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          isError: result.ok === false
+        };
       }
 
       default:

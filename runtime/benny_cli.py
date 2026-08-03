@@ -1801,6 +1801,28 @@ def build_parser() -> argparse.ArgumentParser:
     from benny.agentamp.cli import add_subparser as _agentamp_add_subparser
     _agentamp_add_subparser(sub)
 
+    # coord — coordination ledger surface (B2); thin client of the B1 API, file fallback offline
+    p_coord = sub.add_parser("coord", help="Coordination ledger: list, claim, report, share notes")
+    p_coord.add_argument("--coord-dir", help="Coordination dir (default $PRIME_SILO_HOME/coordination)")
+    p_coord.add_argument("--api", help="B1 API base URL (default $PRIME_SILO_API)")
+    p_coord.add_argument("--json", action="store_true", help="Print the raw client reply")
+    coord_sub = p_coord.add_subparsers(dest="coord_cmd", required=True)
+    coord_sub.add_parser("ls", help="List tasks and their folded state")
+    for verb, helptext in (
+        ("claim", "Take a task (atomic lease; already-claimed if held)"),
+        ("progress", "Report progress on a claimed task"),
+        ("done", "Finish a task and release its lease"),
+    ):
+        p_verb = coord_sub.add_parser(verb, help=helptext)
+        p_verb.add_argument("task", help="Task id")
+        p_verb.add_argument("--agent", default="claude", help="Registered agent id")
+        if verb != "claim":
+            p_verb.add_argument("--text", help="Free-text note for the event payload")
+    p_note = coord_sub.add_parser("note", help="Share a knowledge note with the other agents")
+    p_note.add_argument("--agent", default="claude", help="Registered agent id")
+    p_note.add_argument("--topic", help="Topic key for filtering")
+    p_note.add_argument("--text", help="Note body")
+
     # tui — AgentAmp mini-mode (AAMP-001 Phase 4, AAMP-F7)
     p_tui = sub.add_parser("tui", help="Launch AgentAmp TUI mini-mode (alias for benny --tui)")
     p_tui.add_argument("--workspace", default="default", help="Active workspace")
@@ -1975,6 +1997,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         return cmd_agentamp(args)
     if args.cmd == "pageindex":
         return asyncio.run(cmd_pageindex(args))
+    if args.cmd == "coord":
+        from benny.agentamp.coord import cmd_coord
+        return cmd_coord(args)
 
     parser.print_help()
     return 1
