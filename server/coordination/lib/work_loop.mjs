@@ -13,6 +13,8 @@ import { parseFrontmatter } from "../work-schema/validate.mjs";
 import { foldState, readEvents } from "./ledger.mjs";
 import { NO_ITEM, authorOf, selectNext } from "./work_select.mjs";
 import * as coord from "../../../runtime/benny/agentamp/coord_client.mjs";
+// W2 — the allowlist and budget stop being discipline and become machinery.
+import { checkAllowlist, checkBudget, provisionSandbox } from "./sandbox_provision.mjs";
 
 /** Every contract in delivery/tasks/, sorted — never trust readdir order (determinism hazard). */
 export function loadContracts(repoRoot) {
@@ -27,7 +29,12 @@ export function loadContracts(repoRoot) {
         id: f.replace(/\.md$/, ""),
         deps: Array.isArray(fm.deps) ? fm.deps : [],
         authority: fm.authority,
-        verify: fm.verify
+        verify: fm.verify,
+        // W2 needs these to enforce rather than merely record them.
+        allowlist: Array.isArray(fm.allowlist) ? fm.allowlist : [],
+        tools: Array.isArray(fm.tools) ? fm.tools : [],
+        sandbox: fm.sandbox ?? "worktree",
+        budget: parseInt(fm.budget, 10) || 0
       };
     });
 }
@@ -79,15 +86,27 @@ export function gather(ctx, repoRoot, { now = Date.now() } = {}) {
  * Return the ONE item this agent now holds, or null with a reason.
  * Walks selectNext's ordered candidates; `already-claimed` means another agent won that one.
  */
-export async function workNext(ctx, agent, repoRoot, { now = Date.now() } = {}) {
+export async function workNext(ctx, agent, repoRoot, opts = {}) {
+  const { now = Date.now() } = opts;
   const state = gather(ctx, repoRoot, { now });
   const sel = selectNext(state.contracts, { ...state, agent });
   if (!sel.item) return sel;
 
   for (const id of sel.candidates) {
     const got = await coord.claim(ctx, id, agent);
-    if (got.ok) return { ...sel, item: id, claimed: true, takeover: got.takeover };
-    // lost the race for this one — try the next candidate rather than failing the whole call
+    if (!got.ok) continue; // lost the race for this one — try the next candidate
+
+    // W2 — provision the declared sandbox and preflight declared tools. A missing tool is an honest
+    // `blocked` BEFORE work starts; the lease is released so the item does not sit stranded.
+    const contract = state.contracts.find((c) => c.id === id);
+    const provisioned = opts.provision === false
+      ? { ok: true, skipped: true }
+      : await provisionSandbox(id, contract, { repoRoot, ...(opts.sandboxOpts ?? {}) });
+    if (!provisioned.ok) {
+      coord.releaseLease(ctx.coordDir, id, agent);
+      return { ...sel, item: null, claimed: false, blocked: id, ...provisioned };
+    }
+    return { ...sel, item: id, claimed: true, takeover: got.takeover, sandbox: provisioned };
   }
   return { ...sel, item: null, reason: NO_ITEM.NONE_READY, claimed: false };
 }
@@ -117,10 +136,39 @@ export async function workBlocked(ctx, taskId, agent, reason) {
   return { ok: true, event };
 }
 
-/** Run the contract's own `verify` command. Its exit code is the verdict; we do not interpret it. */
-export function workVerify(repoRoot, taskId) {
+/** Parse `git diff --numstat <base>...HEAD` into the shape checkBudget/checkAllowlist expect. */
+export function readDiff(repoRoot, base = "main", run = spawnSync) {
+  const r = run("git", ["diff", "--numstat", `${base}...HEAD`], { cwd: repoRoot, encoding: "utf8" });
+  if (r.status !== 0) return { ok: false, reason: "diff-failed", numstat: [], files: [] };
+  const numstat = (r.stdout || "")
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map((line) => {
+      const [added, deleted, file] = line.split(/\t/);
+      return { file, added: parseInt(added, 10) || 0, deleted: parseInt(deleted, 10) || 0 };
+    });
+  return { ok: true, numstat, files: numstat.map((n) => n.file) };
+}
+
+/**
+ * Run the contract's own `verify` command — but only after the diff has been proven to respect the
+ * contract. W2: enforcement happens BEFORE the gate, because a green gate on an out-of-allowlist
+ * diff is exactly the failure mode the board has been trusting discipline to prevent.
+ */
+export function workVerify(repoRoot, taskId, opts = {}) {
   const contract = loadContracts(repoRoot).find((c) => c.id === taskId);
   if (!contract?.verify) return { ok: false, reason: "no-verify-command" };
+
+  if (opts.enforce !== false) {
+    const diff = opts.diff ?? readDiff(repoRoot, opts.base ?? "main");
+    if (diff.ok) {
+      const allow = checkAllowlist(diff.files, contract.allowlist);
+      if (!allow.ok) return { ok: false, reason: "allowlist-violation", ...allow };
+      const budget = checkBudget(diff.numstat, contract.budget);
+      if (!budget.ok) return { ok: false, reason: "over-budget", ...budget };
+    }
+  }
+
   const [cmd, ...args] = contract.verify.split(/\s+/);
   const r = spawnSync(cmd, args, { cwd: repoRoot, stdio: "inherit", shell: true });
   return { ok: r.status === 0, exitCode: r.status, command: contract.verify };
