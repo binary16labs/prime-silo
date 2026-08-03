@@ -16,10 +16,17 @@ owner to sign onto the board.
 not a governance gap: `parseFrontmatter()` in `server/coordination/work-schema/validate.mjs` read a
 YAML flow sequence only when `[` sat on the key's own line, so every allowlist prettier had wrapped
 onto the following line parsed as empty — and the `verify`-gate check, which consults that same
-allowlist, then failed for the same reason. One defect, 148 reported errors (98 × "allowlist empty",
-50 × "gate neither exists nor is in the allowlist"). **No contract was malformed.** The fix gathers
+allowlist, then failed for the same reason. One defect, **82 reported errors (57 × "allowlist empty",
+25 × "gate neither exists nor is in the allowlist")**. **No contract was malformed.** The fix gathers
 continuation lines until the brackets balance; `w0` now reports **GATE GREEN, 89 contracts
 validated**, with both negative-control scenarios still failing closed.
+
+Independently verified PASS by `claude-w0-verifier` (fresh context, clean checkout): RED→GREEN
+reproduced, root cause confirmed against A1/A2/W2/T4/B2, out-of-repo negative controls still flagging
+bad input, and the continuation-gather line mutation-tested RED-then-GREEN. The verifier also
+corrected this document: an earlier draft claimed 148/98/50, which was a stdout-grep artifact rather
+than a derived count — gate output prints each failure more than once. The figures above are the
+verifier's, cross-checked by grepping the contracts for a bare `^allowlist:$` (exactly 57 files).
 
 ---
 
