@@ -7,9 +7,9 @@
 
 ## READY (take from the top)
 
-- B2 — agent surfaces: CLI + MCP over one ledger _(dep B1 DONE 2026-07-25 — entered READY 2026-08-03; promoted by claude-opus, AUTHORED column was stale)_
-
 ## CLAIMED (agent · date)
+
+- B2 — agent surfaces: CLI + MCP over one ledger · claude-opus · worktree task/B2 · 2026-08-03
 
 ## VERIFY (awaiting non-author verification)
 
