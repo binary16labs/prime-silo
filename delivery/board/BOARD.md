@@ -7,18 +7,21 @@
 
 ## READY (take from the top)
 
+- W2 — sandbox + tool provisioning (allowlist becomes enforcement) _(dep W1 DONE — entered READY 2026-08-03; makes `sandbox: worktree` machine-enforced for all 99 contracts, and gates EP-M per the owner's ordering decision)_
+
 ## CLAIMED (agent · date)
 
 - L16 — version the observability surface (out of scratch/) · claude-opus · worktree task/L16 · 2026-08-03 _(deps [] — promoted AUTHORED→READY and claimed in the same commit; both events logged separately. First of the lineage workstream because it is independent of B4/B5/L15 and is what makes the surface rebuildable from the repo at all.)_
 
 ## VERIFY (awaiting non-author verification)
 
-- W1 — `work next`: deterministic selector + delivery loop · author claude-opus · branch task/W1 @ 16716a2 · 2026-08-03 _(gate w1 GREEN 11/11 + mutation-proven — lease arbitration removed from workNext → "concurrent pulls never collide" RED → revert GREEN. PURE selector (work_select.mjs: no clock, no randomness, no I/O; the gate greps Date.now/Math.random and fails if present) split from the impure loop (work_loop.mjs), because scenarios 1 and 2 demand opposite things and can only both hold as two functions. The atomic wx lease from B2 is the arbiter. D1 human-signed reported as awaitingSignature never auto-claimed; D2 conflicts[] surfaced and item skipped; D3 additive `task_verified` folded, author≠verifier via authorOf(); D4 wip-limit. REGRESSION GUARD: the w1 gate re-runs b0+b1+b2 and all pass, so the B0 schema change is genuinely additive. Concurrency test is HERMETIC (throwaway fixture repo) — pointed at the live board it would pass trivially whenever only one candidate existed. Budget amended 400→550 by owner directive: 539 non-test lines (458 excl. the 81-line gate). Allowlist-clean, 10 files. HONEST CAVEATS: (1) `benny work` was NOT run through the real CLI — no environment here has both pydantic and pytest; (2) the 4 MCP work tools are covered structurally by the gate, not by a live MCP session; (3) coord_client.mjs gained an exported append() — additive, but it modifies a B2-owned (DONE) file; (4) author≠verifier enforces DISTINCT IDENTITY STRINGS, not genuine independence — an author verifying under a second name still passes.)_
 
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 _(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)_
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 _(budget amended 300→1100 by owner directive — flagship scope, see LOG)_
 
 ## DONE (id · verified-by · date)
+
+- W1 — `work next`: deterministic selector + delivery loop · verified-by claude-w1-verifier-2 · 2026-08-03 _(INDEPENDENT, own detached worktree, main untouched: gate w1 11/11 GREEN exit 0 with the regression guard genuinely running b0 6/6 + b1 4/4 + b2 6/6 as real sub-runs, not stubs. D3 confirmed PURELY ADDITIVE — a single-line enum insertion; all seven original event types byte-identical. BOTH mutations fired precisely and reverted clean: bypassing lease arbitration reddened ONLY "concurrent pulls never collide"; removing the author guard reddened ONLY "author is never verifier". Determinism re-derived on the VERIFIER'S OWN full-tie fixture (3 contracts, equal depth, no priority) — 100/100 identical via the lexicographic tiebreak — then broken with injected Math.random. Purity traced by READING all 103 lines rather than trusting the gate's grep: no fs/process/network/module state; Date.parse over a canonically written ISO-8601 string is a function of injected input, not the wall clock. D1/D2/D4 re-probed with fresh fixtures, both conflict directions tested. Allowlist + budget re-derived independently: 539 non-test / 458 excl. the 81-line gate, matching the author's report EXACTLY, under the amended 550. NO defects in code, gate, or the author's LOG/board/commit reporting. Merged --no-ff; post-merge w0+w1+b1+b2 all GREEN. Unblocks W2. VERIFIER'S STANDING CAVEAT: the gate's grep-based purity check would miss a bare `new Date()` — weak in general, though nothing in this file exploits it.)_
 
 - B2 — agent surfaces: CLI + MCP over one ledger · verified-by claude-b2-verifier · 2026-08-03 _(INDEPENDENT, clean detached checkout at a4a339e, author's worktree untouched: gate b2 GREEN 6/6 exit 0 (exit code read on its own line, not through a pipe). All 6 scenarios mapped to real tests, extras confirmed as genuine assertions not decoration. MUTATION: acquireLease forced to ignore a live lease → 3/6 RED incl. BOTH contract scenarios → `git checkout --` → GREEN. Own negative probes (5/5, out-of-repo, importing coord_client.mjs): two contexts→already-claimed; server-up vs down give identical protocol answers; 'kremlin' refused in both modes; a refused claim leaves NO lease file; hash chain verifies after mixed direct-file appends. BOTH author caveats RESOLVED, not restated — the verifier drove the real cmd_coord() end to end (ls→claim→rival refusal→ls→done→ls→unregistered refusal, real subprocess calls to real node) and ran a LIVE MCP session spawning the real mcp/server.js over stdio: tools/list exposes all 4, each executed live, rival claim refused isError:true, lease + task_claimed/task_done lines confirmed real on disk, and the dynamic import from mcp/server.js resolves. Allowlist clean (6 files); 469 non-test / 407 excl. gate, under the owner-amended 500, independently re-derived rather than trusted. NO defects, no overreach, no vacuous test. Merged --no-ff; post-merge b2+w0 GREEN. Unblocks W1. SEPARATE PRE-EXISTING DEFECT flagged by the verifier — see LOG.)_
 
@@ -72,7 +75,7 @@ _(empty)_
 
 A1 A2 A3 A4 A5 A6 A7 ·
 B3 ·
-W2 W3 ·
+W3 ·
 G1 G2 G3 ·
 C2 C4 C6 C7 ·
 D1 D2 D3 ·
