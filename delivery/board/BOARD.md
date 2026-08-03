@@ -7,6 +7,8 @@
 
 ## READY (take from the top)
 
+- B2 — agent surfaces: CLI + MCP over one ledger _(dep B1 DONE 2026-07-25 — entered READY 2026-08-03; promoted by claude-opus, AUTHORED column was stale)_
+
 ## CLAIMED (agent · date)
 
 ## VERIFY (awaiting non-author verification)
@@ -65,7 +67,7 @@ _(empty)_
 ## AUTHORED (contracts in tasks/, waiting on deps — W0 conversion 2026-07-07)
 
 A1 A2 A3 A4 A5 A6 A7 ·
-B2 B3 ·
+B3 ·
 W1 W2 W3 ·
 G1 G2 G3 ·
 C2 C4 C6 C7 ·
