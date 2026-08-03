@@ -7,6 +7,9 @@
 
 ## READY (take from the top)
 
+- W3 — dogfood proof (no plan-file read; author≠verifier chain in ledger) _(dep W2 DONE — entered READY 2026-08-03; closes EP-W)_
+- P0 — roster schema + validator _(dep W2 DONE — entered READY 2026-08-03; opens EP-M per the owner's ordering decision)_
+
 - L16 — version the observability surface (out of scratch/) _(UNBLOCKED 2026-08-03 — contract amended per owner option (b): budget counts authored lines only, verbatim relocation exempt and gate-checked for byte-identity. Returned to READY unclaimed rather than held, to respect WIP limit 1 while W2 is worked.)_
 
 ## CLAIMED (agent · date)
@@ -14,13 +17,14 @@
 
 ## VERIFY (awaiting non-author verification)
 
-- W2 — sandbox + tool provisioning (allowlist becomes enforcement) · author claude-opus · branch task/W2 @ 831059d · 2026-08-03 _(gate w2 GREEN 13/13 + mutation-proven — allowlist enforcement removed → the allowlist scenarios go RED → revert GREEN. checkAllowlist/checkBudget/preflightTools are PURE over injected inputs; only provisionSandbox and defaultProbe touch the system, behind an explicit `=== IMPURE BELOW THIS LINE ===` marker the gate slices on. Refusals NAME the offender (file / line count). Wired into the loop: workNext provisions on claim and, on a missing declared tool, RELEASES THE LEASE and returns an honest blocked before work starts. workVerify enforces allowlist+budget BEFORE running the contract's gate. REGRESSION GUARD: w2 re-runs w1+b2 (and b1 transitively) — all GREEN. 267 non-test lines / 193 excl. the 74-line gate, UNDER the 400 budget. ★ OWNER DECISION NEEDED: this contract and SPEC-work-contracts.md:22 say `.worktrees/<id>` + `feat/<id>`, but every branch here is `task/*` and the delivery-board skill requires worktrees OUTSIDE the OneDrive tree — `.worktrees/` is inside it. Defaults follow practice; the spec layout is reachable via options and tested. Changing the spec is outside this allowlist. HONEST NOTE: W2 broke W1's concurrency scenario (workNext now provisions; that fixture is not a git repo). Fixed by disabling the ORTHOGONAL provisioning in that test — its assertion is unchanged — and adding two positive tests here, so coverage rises rather than falls. A verifier should check that judgement specifically.)_
 
 
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 _(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)_
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 _(budget amended 300→1100 by owner directive — flagship scope, see LOG)_
 
 ## DONE (id · verified-by · date)
+
+- W2 — sandbox + tool provisioning (allowlist becomes enforcement) · verified-by claude-w2-verifier · 2026-08-03 _(INDEPENDENT detached worktree @ 831059d; main untouched. Gate exit 0; regression guard confirmed REAL by reading the gate source — it spawnSyncs w1 and b2 as actual subprocesses, both printing full output (w1 11/11, b2 6/6, b1 4/4 transitively). THE JUDGEMENT CALL UPHELD: W1's assertion is byte-for-byte unchanged; `provision:false` skips only the provisionSandbox call while the coord.claim race — the thing that scenario tests — runs identically; the regression was real not invented (W1's fixture is a plain tmpdir, so unconditional provisioning collapses both results to null). The two replacement tests drive the REAL workNext against real on-disk fixtures, injecting only the git-touching leaf, and check real side effects incl. a lease file's ABSENCE. Verdict: coverage-preserving, not self-serving. THREE MUTATIONS each fired precisely and reverted byte-identical (checkAllowlist→2 allowlist tests RED; checkBudget→over-budget test RED; removing releaseLease→the release test RED). Allowlist+budget re-derived: 267/193 under 400, matching exactly. workVerify ordering proven LIVE — an out-of-allowlist diff is refused and the contract's gate never runs (sentinel file never written). ★ REAL DEFECT, non-blocking: the verifier DEFEATED the purity marker using aliased dynamic imports + property access; process.env reads and new Date() are not checked at all; and DEFAULTS.worktreeRoot reads process.env ABOVE the marker, contradicting its own stated claim. Follow-up hardening owed. Merged --no-ff; post-merge w0+w1+w2+b2 GREEN. Unblocks W3 and P0.)_
 
 - W1 — `work next`: deterministic selector + delivery loop · verified-by claude-w1-verifier-2 · 2026-08-03 _(INDEPENDENT, own detached worktree, main untouched: gate w1 11/11 GREEN exit 0 with the regression guard genuinely running b0 6/6 + b1 4/4 + b2 6/6 as real sub-runs, not stubs. D3 confirmed PURELY ADDITIVE — a single-line enum insertion; all seven original event types byte-identical. BOTH mutations fired precisely and reverted clean: bypassing lease arbitration reddened ONLY "concurrent pulls never collide"; removing the author guard reddened ONLY "author is never verifier". Determinism re-derived on the VERIFIER'S OWN full-tie fixture (3 contracts, equal depth, no priority) — 100/100 identical via the lexicographic tiebreak — then broken with injected Math.random. Purity traced by READING all 103 lines rather than trusting the gate's grep: no fs/process/network/module state; Date.parse over a canonically written ISO-8601 string is a function of injected input, not the wall clock. D1/D2/D4 re-probed with fresh fixtures, both conflict directions tested. Allowlist + budget re-derived independently: 539 non-test / 458 excl. the 81-line gate, matching the author's report EXACTLY, under the amended 550. NO defects in code, gate, or the author's LOG/board/commit reporting. Merged --no-ff; post-merge w0+w1+b1+b2 all GREEN. Unblocks W2. VERIFIER'S STANDING CAVEAT: the gate's grep-based purity check would miss a bare `new Date()` — weak in general, though nothing in this file exploits it.)_
 
@@ -76,7 +80,7 @@ _(empty)_
 
 A1 A2 A3 A4 A5 A6 A7 ·
 B3 ·
-W3 ·
+·
 G1 G2 G3 ·
 C2 C4 C6 C7 ·
 D1 D2 D3 ·
@@ -86,4 +90,4 @@ Q2 Q3 ·
 R0 R1 R2 R3 ·
 M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 ·
 B4 B5 · L15 ·
-P0 P1 P2 P3 P4 P5 ·
+P1 P2 P3 P4 P5 ·
