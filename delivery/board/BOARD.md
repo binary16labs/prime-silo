@@ -8,10 +8,10 @@
 ## READY (take from the top)
 
 - W2 — sandbox + tool provisioning (allowlist becomes enforcement) _(dep W1 DONE — entered READY 2026-08-03; makes `sandbox: worktree` machine-enforced for all 99 contracts, and gates EP-M per the owner's ordering decision)_
+- L16 — version the observability surface (out of scratch/) _(UNBLOCKED 2026-08-03 — contract amended per owner option (b): budget counts authored lines only, verbatim relocation exempt and gate-checked for byte-identity. Returned to READY unclaimed rather than held, to respect WIP limit 1 while W2 is worked.)_
 
 ## CLAIMED (agent · date)
 
-- L16 — version the observability surface (out of scratch/) · claude-opus · worktree task/L16 · 2026-08-03 _(deps [] — promoted AUTHORED→READY and claimed in the same commit; both events logged separately. First of the lineage workstream because it is independent of B4/B5/L15 and is what makes the surface rebuildable from the repo at all.)_
 
 ## VERIFY (awaiting non-author verification)
 
