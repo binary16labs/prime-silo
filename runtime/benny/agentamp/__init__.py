@@ -34,13 +34,18 @@ Public surface (Phase 6)
 Feature flag: ``aamp.enabled`` (AAMP-F32). Checked at CLI dispatch; not re-checked here.
 
 Imports are LAZY (PEP 562). Eagerly importing all eleven submodules made every
-consumer of *anything* in this package pay for the heaviest one: ``playlist``
-pulls ``..persistence.run_store``, which pulls litellm/langchain_core/langsmith/
-opentelemetry. That cost ``from benny.agentamp.coord import cmd_coord`` — the
-`benny coord` dispatch path, which needs none of it — **18.1s warm**, and far
-worse cold on an OneDrive-synced tree. Submodules now load on first attribute
-access, so the public surface is unchanged but nobody pays for what they do not
-touch. Keep it that way: do not add a module-level ``from .x import y`` here.
+consumer of *anything* in this package pay for the heaviest one. The chain is::
+
+    playlist -> ..persistence.run_store -> ..persistence.checkpointer
+             -> langgraph.checkpoint.base -> langchain_core / langsmith / opentelemetry
+
+That cost ``from benny.agentamp.coord import cmd_coord`` — the `benny coord`
+dispatch path, which needs none of it — **3.3-5.3s** on this OneDrive-synced
+tree, against **0.51s** after. CPU time is under 0.2s either way: the cost is
+I/O wait, so wall-clock varies a lot with sync state. Submodules now load on
+first attribute access, so the public surface is unchanged but nobody pays for
+what they do not touch. Keep it that way: do not add a module-level
+``from .x import y`` here.
 """
 
 from typing import TYPE_CHECKING

@@ -2,9 +2,11 @@
 
 Importing anything from this package used to drag in the whole LLM stack:
 ``__init__`` eagerly imported all eleven submodules, and ``playlist`` pulls
-``..persistence.run_store`` -> litellm / langchain_core / langsmith /
-opentelemetry. That cost ``from benny.agentamp.coord import cmd_coord`` 18.1s
-warm on a OneDrive-synced tree, which made `benny coord` unusable as a CLI.
+``..persistence.run_store`` -> ``..persistence.checkpointer`` ->
+``langgraph.checkpoint.base`` -> langchain_core / langsmith / opentelemetry.
+That cost ``from benny.agentamp.coord import cmd_coord`` 3.3-5.3s on this
+OneDrive-synced tree against 0.51s after, which made `benny coord` unusable
+as a CLI.
 
 These tests are the guard. The last one is the one that matters: it runs a
 FRESH interpreter, because by the time the suite reaches this file some other
