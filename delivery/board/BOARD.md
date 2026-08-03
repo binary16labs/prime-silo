@@ -8,11 +8,12 @@
 ## READY (take from the top)
 
 - W3 — dogfood proof (no plan-file read; author≠verifier chain in ledger) _(dep W2 DONE — entered READY 2026-08-03; closes EP-W)_
-- P0 — roster schema + validator _(dep W2 DONE — entered READY 2026-08-03; opens EP-M per the owner's ordering decision)_
 
 - L16 — version the observability surface (out of scratch/) _(UNBLOCKED 2026-08-03 — contract amended per owner option (b): budget counts authored lines only, verbatim relocation exempt and gate-checked for byte-identity. Returned to READY unclaimed rather than held, to respect WIP limit 1 while W2 is worked.)_
 
 ## CLAIMED (agent · date)
+
+- P0 — roster schema + validator (subjects, tiers, frozen rubric) · claude-opus · worktree task/P0 · 2026-08-03 _(owner directed 'start P0' — taken ahead of the topmost READY item W3; READY reordered to record that as the owner's priority rather than an agent skipping the queue. Opens EP-M.)_
 
 
 ## VERIFY (awaiting non-author verification)
