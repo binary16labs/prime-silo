@@ -125,15 +125,51 @@ Plus, beyond the contract's three: a `human-signed` item is **not** auto-claimed
 item makes exactly its dependents ready and no others (the contract's TDD step 3); and a board/ledger
 disagreement refuses rather than guesses (§5).
 
-## 9. Open questions before claiming
+## 9. Settled before claiming (owner-directed, 2026-08-03)
 
-1. **Does `work next` respect WIP limit 1?** The README sets it per agent. The selector should refuse
-   an agent already holding a live lease — otherwise the loop happily hands one agent five tasks.
-2. **What counts as an owner signature** for `human-signed`, once it is a ledger event rather than a
-   chat message? This decides §3's gate and is the owner's call.
-3. **Does the ledger already carry `verified-by` as an event type?** B0's enum is `task_created`,
-   `task_claimed`, `task_progress`, `task_done`, `task_blocked`, `task_released`, `knowledge_added` —
-   there is **no** `verified-by`. Scenario 3 therefore needs either a new event type (a schema change
-   in `server/coordination/schema/`, which is in W1's allowlist) or verification recorded in
-   `task_done`'s payload. This is a real gap in the contract and should be settled before claiming,
-   not improvised mid-task.
+### D1 — `work next` never auto-claims a `human-signed` item
+
+The selector excludes `authority: human-signed` from the selectable set entirely and reports those
+items separately as `awaiting-signature`.
+
+*Rationale:* every human-signed task on this board (L1, L3, L9–L13, N0, N3, N5, N7, E0) was signed in
+chat. There is no machine-readable signature today, so any rule that lets the loop take such an item
+converts an owner gate into an agent action. Defining a signature format is deferred to its own
+contract; until it exists, refusing is the only safe default.
+
+*Consequence, stated so it is not later mistaken for a bug:* when only human-signed items remain,
+`work next` returns nothing and says why. That is correct behaviour.
+
+### D2 — board vs ledger precedence
+
+**State** comes from the ledger. **Priority** comes from the board's READY order, which is the only
+human-edited ordering and has no ledger equivalent. **Disagreement is surfaced and the item skipped**
+— never silently resolved. The selector returns a `conflicts[]` alongside its choice.
+
+*Rationale:* silently preferring one source reproduces the failure that left B2 in AUTHORED for nine
+days with its dependency already satisfied — a staleness `w0` structurally cannot see, because it
+checks that each id appears exactly once across columns, never that the column is the right one.
+
+### D3 — verification becomes a first-class ledger event
+
+Add **`task_verified`** to the B0 event enum (`server/coordination/schema/event.schema.json`) and
+handle it in `foldState`. The addition is **additive**: every existing event still validates, and no
+stored line changes meaning.
+
+*Rejected alternative:* carry `verified_by` inside `task_done`'s payload. Cheaper — `payload` is an
+unconstrained object, so it needs no schema change — but that makes author≠verifier an enforcement
+against a **convention** rather than a validated field, and nothing would stop a `task_done` arriving
+with no verifier at all. The lineage review of 2026-08-03 already found that delivery decisions are
+not machine-queryable; recording verification as a typed, chained, validated event is the single
+cheapest step toward SS1/23-P4, and it is what makes scenario 3 enforceable rather than advisory.
+
+*Scope note for the verifier:* this modifies an artifact owned by **B0, which is DONE**.
+`server/coordination/` is inside W1's allowlist so it is in scope, but the change must be additive
+only and **B0's and B1's existing gates must still pass** — treat any regression there as a defect,
+not an acceptable cost.
+
+### D4 — WIP limit (carried over, now settled)
+
+`work next` refuses an agent that already holds a live lease, returning `wip-limit` rather than a
+second item. The README sets the limit at 1 per agent; without this the loop hands one agent five
+tasks and the limit becomes decorative.

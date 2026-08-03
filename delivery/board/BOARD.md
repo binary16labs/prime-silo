@@ -7,9 +7,9 @@
 
 ## READY (take from the top)
 
-- W1 — `work next`: deterministic selector + delivery loop _(deps W0+B2 both DONE — entered READY 2026-08-03; pre-claim design at architecture/SOLUTION-W1-work-next.md, incl. three gaps to settle before claiming)_
-
 ## CLAIMED (agent · date)
+
+- W1 — `work next`: deterministic selector + delivery loop · claude-opus · worktree task/W1 · 2026-08-03 _(three pre-claim gaps settled by owner directive — D1 human-signed items are never auto-claimed; D2 state from ledger, priority from board, disagreement surfaced not resolved; D3 add an additive `task_verified` event type so author≠verifier is enforced against a validated field rather than a payload convention. See architecture/SOLUTION-W1-work-next.md §9.)_
 
 ## VERIFY (awaiting non-author verification)
 
