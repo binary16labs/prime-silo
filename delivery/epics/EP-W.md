@@ -10,6 +10,7 @@ Work items as declarative contracts (this delivery/ directory is the seed); `wor
 - [ ] `W0` — contract format + validator + plan→backlog conversion (formalizes delivery/tasks)
 - [ ] `W1` — `work next` deterministic selector + delivery loop
 - [ ] `W2` — sandbox + tool provisioning (worktree, allowlist enforced, preflight)
+- [ ] `W4` — harden W2's enforcement: the purity check is evadable (proven by its verifier) and the verify spawn concatenates args
 - [ ] `W3` — dogfood proof (no plan-file read; author≠verifier chain in ledger)
 
 ## Exit

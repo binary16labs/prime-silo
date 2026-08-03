@@ -738,7 +738,8 @@ A0 ─ A1 ─┬─ A2 ─┬─ A5
          └─ A3 ─┴─ A4 (needs B1)
 A2+F2 ─ A6 (sovereignty gradient)
 B0 ─ B1 ─ B2 ─ B3 (needs C2)
-B0 ─ W0 ─ W1 (needs B2) ─ W2 ─ W3 (dogfoods a real C/F phase)
+B0 ─ W0 ─ W1 (needs B2) ─ W2 ─┬─ W3 (dogfoods a real C/F phase)
+                              └─ W4 (harden W2's enforcement)
 G0 ─┬─ G1
     └─ G2 ─ G3 (needs A2/A3; wizard needs C2)
 A1 ─ R0 ─ R1 ─ R2 ─ R3 (R2/R3 catalog entries need G3)

@@ -18,6 +18,7 @@
 | O2    | KR2.2               | EP-B             | M9        | B4 B5                                                |
 | O2    | KR2.2               | EP-L             | M9        | L15 L16                                              |
 | O2    | KR2.3               | EP-W             | M1        | W0 W1 W2 W3                                          |
+| O2    | KR2.3               | EP-W             | M9        | W4                                                   |
 | O2    | KR2.4               | EP-W             | M1        | (LOG/ledger audit — continuous, instrument not task) |
 | O3    | KR3.1               | EP-C             | M1        | C2 C3 C4 C6                                          |
 | O3    | KR3.2               | EP-C             | M1        | C1                                                   |
