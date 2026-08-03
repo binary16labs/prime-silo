@@ -9,6 +9,8 @@
 
 ## CLAIMED (agent · date)
 
+- L16 — version the observability surface (out of scratch/) · claude-opus · worktree task/L16 · 2026-08-03 _(deps [] — promoted AUTHORED→READY and claimed in the same commit; both events logged separately. First of the lineage workstream because it is independent of B4/B5/L15 and is what makes the surface rebuildable from the repo at all.)_
+
 ## VERIFY (awaiting non-author verification)
 
 - W1 — `work next`: deterministic selector + delivery loop · author claude-opus · branch task/W1 @ 16716a2 · 2026-08-03 _(gate w1 GREEN 11/11 + mutation-proven — lease arbitration removed from workNext → "concurrent pulls never collide" RED → revert GREEN. PURE selector (work_select.mjs: no clock, no randomness, no I/O; the gate greps Date.now/Math.random and fails if present) split from the impure loop (work_loop.mjs), because scenarios 1 and 2 demand opposite things and can only both hold as two functions. The atomic wx lease from B2 is the arbiter. D1 human-signed reported as awaitingSignature never auto-claimed; D2 conflicts[] surfaced and item skipped; D3 additive `task_verified` folded, author≠verifier via authorOf(); D4 wip-limit. REGRESSION GUARD: the w1 gate re-runs b0+b1+b2 and all pass, so the B0 schema change is genuinely additive. Concurrency test is HERMETIC (throwaway fixture repo) — pointed at the live board it would pass trivially whenever only one candidate existed. Budget amended 400→550 by owner directive: 539 non-test lines (458 excl. the 81-line gate). Allowlist-clean, 10 files. HONEST CAVEATS: (1) `benny work` was NOT run through the real CLI — no environment here has both pydantic and pytest; (2) the 4 MCP work tools are covered structurally by the gate, not by a live MCP session; (3) coord_client.mjs gained an exported append() — additive, but it modifies a B2-owned (DONE) file; (4) author≠verifier enforces DISTINCT IDENTITY STRINGS, not genuine independence — an author verifying under a second name still passes.)_
@@ -79,5 +81,5 @@ F1 F2 F3 F4 F5 F6 F7 F8 ·
 Q2 Q3 ·
 R0 R1 R2 R3 ·
 M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 ·
-B4 B5 · L15 L16 ·
+B4 B5 · L15 ·
 P0 P1 P2 P3 P4 P5 ·
