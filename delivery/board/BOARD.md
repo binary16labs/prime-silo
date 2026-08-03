@@ -7,6 +7,8 @@
 
 ## READY (take from the top)
 
+- P1 — real executor hook for run_multi_model _(dep P0 DONE — entered READY 2026-08-03; the largest contract in EP-M and where the zeros end)_
+
 
 - W3 — dogfood proof (no plan-file read; author≠verifier chain in ledger) _(dep W2 DONE — entered READY 2026-08-03; closes EP-W)_
 
@@ -20,7 +22,6 @@
 
 ## VERIFY (awaiting non-author verification)
 
-- P0 — roster schema + validator (subjects, tiers, frozen rubric) · author claude-opus · branch task/P0 @ HEAD · 2026-08-03 _(gate p0 GREEN 14/14 + mutation-proven — tier enforcement disabled → BOTH tier scenarios RED → revert GREEN. Validator is PURE (no fs/process/clock), so every rule is deterministically breakable. R5 tier eligibility, incl. a wildcard that must satisfy EVERY persona it expands to — otherwise the wildcard is a hole in the rule. R8 self-judging refused on model ID not label, because the same weights under a second label is exactly how it would slip through. R10 rubric frozen by content hash. A persona left unassigned is REJECTED rather than silently falling back to the registry default. All errors reported in one pass. The gate checks the shipped template validates against its own validator — a template failing its own rules teaches the wrong shape. 232 non-test lines / 169 excl. the 63-line gate, under budget 400. ★ DOGFOODED: W2's workVerify enforcement was run against this branch and passed allowlist + budget before the gate ran — the first contract checked by machinery rather than discipline. HONEST NOTE: rubricHash is FNV-1a, deliberately not cryptographic — it detects drift, it does not resist an adversary; the code says so.)_
 
 
 
@@ -28,6 +29,8 @@
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 _(budget amended 300→1100 by owner directive — flagship scope, see LOG)_
 
 ## DONE (id · verified-by · date)
+
+- P0 — roster schema + validator (subjects, tiers, frozen rubric) · verified-by claude-p0-verifier · 2026-08-03 _(INDEPENDENT worktree; gate 14/14 exit 0. THIRTEEN adversarial fixtures written out-of-repo against roster.mjs — every rule held: out-of-tier, judge relabelled with same id, wildcard tiered for only SOME expanded personas (named each missing persona), unassigned persona, unknown label/persona, duplicate label, rubric edited by one trailing newline. Both mutations precise RED, no collateral. TEMPLATE CHECK PROVED NON-CIRCULAR by breaking the shipped template → gate failed naming the exact tier violation. FNV-1a judged ADEQUATE-AS-SCOPED for R10 (detects a careless edit with certainty; 32-bit space is searchable by a motivated author, so the verifier must still read the rubric diff — the hash is a tripwire, not a substitute). Allowlist+budget re-derived: 232/169, exact. ★ TWO REAL DEFECTS, non-blocking: self-judging bypassable by CASE (exact-match id compare — real on Windows with GGUF-path ids), and judge.model has no type check (an array defeats === silently). ★ p0.mjs carries an INDEPENDENT COPY of the weak purity regex W2's verifier defeated — beaten here with a plain aliased static import. Merged --no-ff. Unblocks P1.)_
 
 - W2 — sandbox + tool provisioning (allowlist becomes enforcement) · verified-by claude-w2-verifier · 2026-08-03 _(INDEPENDENT detached worktree @ 831059d; main untouched. Gate exit 0; regression guard confirmed REAL by reading the gate source — it spawnSyncs w1 and b2 as actual subprocesses, both printing full output (w1 11/11, b2 6/6, b1 4/4 transitively). THE JUDGEMENT CALL UPHELD: W1's assertion is byte-for-byte unchanged; `provision:false` skips only the provisionSandbox call while the coord.claim race — the thing that scenario tests — runs identically; the regression was real not invented (W1's fixture is a plain tmpdir, so unconditional provisioning collapses both results to null). The two replacement tests drive the REAL workNext against real on-disk fixtures, injecting only the git-touching leaf, and check real side effects incl. a lease file's ABSENCE. Verdict: coverage-preserving, not self-serving. THREE MUTATIONS each fired precisely and reverted byte-identical (checkAllowlist→2 allowlist tests RED; checkBudget→over-budget test RED; removing releaseLease→the release test RED). Allowlist+budget re-derived: 267/193 under 400, matching exactly. workVerify ordering proven LIVE — an out-of-allowlist diff is refused and the contract's gate never runs (sentinel file never written). ★ REAL DEFECT, non-blocking: the verifier DEFEATED the purity marker using aliased dynamic imports + property access; process.env reads and new Date() are not checked at all; and DEFAULTS.worktreeRoot reads process.env ABOVE the marker, contradicting its own stated claim. Follow-up hardening owed. Merged --no-ff; post-merge w0+w1+w2+b2 GREEN. Unblocks W3 and P0.)_
 
@@ -95,4 +98,4 @@ Q2 Q3 ·
 R0 R1 R2 R3 ·
 M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 ·
 B4 B5 · L15 ·
-P1 P2 P3 P4 P5 ·
+P2 P3 P4 P5 ·
