@@ -7,16 +7,18 @@
 
 ## READY (take from the top)
 
+- W1 — `work next`: deterministic selector + delivery loop _(deps W0+B2 both DONE — entered READY 2026-08-03; pre-claim design at architecture/SOLUTION-W1-work-next.md, incl. three gaps to settle before claiming)_
+
 ## CLAIMED (agent · date)
 
 ## VERIFY (awaiting non-author verification)
-
-- B2 — agent surfaces: CLI + MCP over one ledger · author claude-opus · branch task/B2 @ a4a339e · 2026-08-03 _(gate b2 GREEN 6/6 + mutation-proven — live-lease guard removed → cross-surface already-claimed RED → revert GREEN. One shared client (coord_client.mjs); coord.py shells out to it so CLI and MCP cannot drift. Claim takes the atomic wx lease locally in BOTH modes, then appends via the server when up so the bus still broadcasts; a rejected append releases its lease. Python surface smoked live offline: claim ok, rival refused already-claimed rc=1, unregistered agent rejected by the B0 validator, done → state done. Budget amended 400→500 by owner directive: 469 non-test lines (407 excluding the 62-line gate). Allowlist-clean, 6 files. HONEST CAVEAT: full `python benny_cli.py coord` end-to-end was NOT run — this shell lacks the runtime venv (pydantic); the argparse wiring is covered structurally by the gate and by ast.parse, and coord.py itself was driven directly. Verifier should run it with the venv.)_
 
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 _(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)_
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 _(budget amended 300→1100 by owner directive — flagship scope, see LOG)_
 
 ## DONE (id · verified-by · date)
+
+- B2 — agent surfaces: CLI + MCP over one ledger · verified-by claude-b2-verifier · 2026-08-03 _(INDEPENDENT, clean detached checkout at a4a339e, author's worktree untouched: gate b2 GREEN 6/6 exit 0 (exit code read on its own line, not through a pipe). All 6 scenarios mapped to real tests, extras confirmed as genuine assertions not decoration. MUTATION: acquireLease forced to ignore a live lease → 3/6 RED incl. BOTH contract scenarios → `git checkout --` → GREEN. Own negative probes (5/5, out-of-repo, importing coord_client.mjs): two contexts→already-claimed; server-up vs down give identical protocol answers; 'kremlin' refused in both modes; a refused claim leaves NO lease file; hash chain verifies after mixed direct-file appends. BOTH author caveats RESOLVED, not restated — the verifier drove the real cmd_coord() end to end (ls→claim→rival refusal→ls→done→ls→unregistered refusal, real subprocess calls to real node) and ran a LIVE MCP session spawning the real mcp/server.js over stdio: tools/list exposes all 4, each executed live, rival claim refused isError:true, lease + task_claimed/task_done lines confirmed real on disk, and the dynamic import from mcp/server.js resolves. Allowlist clean (6 files); 469 non-test / 407 excl. gate, under the owner-amended 500, independently re-derived rather than trusted. NO defects, no overreach, no vacuous test. Merged --no-ff; post-merge b2+w0 GREEN. Unblocks W1. SEPARATE PRE-EXISTING DEFECT flagged by the verifier — see LOG.)_
 
 - N7 — live satellite discovery (estate_register.mjs) · verified-by claude-haiku-verifier · 2026-07-28 _(HUMAN-SIGNED, owner-signed via chat; gate n7 GREEN 4/4 from clean checkout; scenarios mapped; allowlist+budget clean (123<400); R31 mutation re-derived — payload-guard-removed RED then GREEN; additive POST /api/estate/register + GET /api/estate/satellites + estate.html live reachability; merged --no-ff. **CLOSES EP-N/M8 — the governance cockpit is complete.**)_
 - N6 — next-cycle flywheel planner (estate_plan.mjs) · verified-by claude-haiku-verifier · 2026-07-28 _(gate n6 GREEN 4/4 from clean checkout; scenarios mapped; allowlist+budget clean (149<300); mutation re-derived — threshold-never-crosses RED then GREEN; additive GET /api/estate/plan + estate.html Next-cycle panel; merged --no-ff @ d957973. NOTE: the fresh-context verifier independently re-derived the verdict and executed the --no-ff merge, then hit a session/quota cap before the board bookkeeping — the author (claude-opus) completed only the mechanical VERIFY→DONE move + worktree cleanup; the verdict + merge were the verifier's.)_
@@ -68,7 +70,7 @@ _(empty)_
 
 A1 A2 A3 A4 A5 A6 A7 ·
 B3 ·
-W1 W2 W3 ·
+W2 W3 ·
 G1 G2 G3 ·
 C2 C4 C6 C7 ·
 D1 D2 D3 ·
