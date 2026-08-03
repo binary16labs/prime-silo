@@ -1,0 +1,59 @@
+{
+  "schema_version": "1.0",
+  "kind": "model_roster",
+  "id": "roster-incumbent-vs-gemma",
+  "$comment": "P0/EP-M. A SUBJECT is a persona->model assignment plus serving topology, not a model — so a heterogeneous roster ranks as one unit and the incumbent is just another subject. Adding a model is an edit to this file, never code. The judge is declared separately and may not appear under test.",
+  "models": [
+    {
+      "label": "qwen-house-v3",
+      "id": "house/qwen2.5-coder-tuned",
+      "tier": ["planner", "architect", "implementer", "reviewer"],
+      "max_tokens": 4096,
+      "temperature": 0.2,
+      "serving": { "endpoint": "lmstudio", "quantisation": "q4_k_m", "context_length": 16384 }
+    },
+    {
+      "label": "gemma-e4b",
+      "id": "lemonade/Gemma-4-E4B-it-GGUF",
+      "tier": ["planner", "reviewer"],
+      "max_tokens": 4096,
+      "temperature": 0.2,
+      "serving": { "endpoint": "lemonade", "quantisation": "q4_k_m", "context_length": 8192 }
+    },
+    {
+      "label": "gemma-12b",
+      "id": "lemonade/gemma-4-12b",
+      "tier": ["architect", "implementer"],
+      "max_tokens": 4096,
+      "temperature": 0.2,
+      "serving": { "endpoint": "lemonade", "quantisation": "q4_k_m", "context_length": 16384 }
+    }
+  ],
+  "subjects": [
+    {
+      "label": "incumbent",
+      "$comment": "The engine currently behind the router. Not a baseline — just another subject.",
+      "assign": { "*": "qwen-house-v3" }
+    },
+    {
+      "label": "gemma-split",
+      "$comment": "Heterogeneous: 12B implements and architects, E4B plans and reviews. Ranked as ONE unit.",
+      "assign": {
+        "planner": "gemma-e4b",
+        "architect": "gemma-12b",
+        "implementer": "gemma-12b",
+        "reviewer": "gemma-e4b"
+      }
+    }
+  ],
+  "judge": {
+    "enabled": false,
+    "model": "lemonade/Gemma-4-26B-A4B-it-GGUF",
+    "max_tokens": 400,
+    "$comment": "Declared separately and absent from models[] — a model may not judge a run it competes in."
+  },
+  "rubric": "scripts/train/eval/rubric.md",
+  "rubric_hash": null,
+  "primary_metric": "tool_selection_accuracy",
+  "repeats": 3
+}
