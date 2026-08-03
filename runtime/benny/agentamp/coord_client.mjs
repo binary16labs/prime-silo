@@ -112,7 +112,9 @@ export function releaseLease(dir, taskId, agent) {
 }
 
 // --- append: server when it is up, disk when it is not ---------------------
-async function append(ctx, partial) {
+// Exported for W1's delivery loop, which appends task_verified — a type this module has no verb
+// for. Additive: no behaviour change, no existing caller affected.
+export async function append(ctx, partial) {
   const evt = { id: ulid(), ts: new Date().toISOString(), payload: {}, ...partial };
   if (ctx.mode === "server") {
     const r = await fetch(`${ctx.baseUrl}/api/coord/events`, {

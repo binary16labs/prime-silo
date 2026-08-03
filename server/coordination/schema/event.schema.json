@@ -24,6 +24,7 @@
         "task_done",
         "task_blocked",
         "task_released",
+        "task_verified",
         "knowledge_added"
       ]
     },
