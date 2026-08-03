@@ -20,14 +20,24 @@ export function parseFrontmatter(text) {
   const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!m) return null;
   const fm = {};
-  for (const line of m[1].split(/\r?\n/)) {
-    const kv = line.match(/^(\w+):\s*(.*)$/);
+  const lines = m[1].split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const kv = lines[i].match(/^(\w+):\s*(.*)$/);
     if (!kv) continue;
-    let [, key, raw] = kv;
+    const key = kv[1];
+    let raw = kv[2];
     let val;
+    // A flow sequence may open on the key's own line or on the line below it,
+    // and may wrap over several lines (prettier wraps long allowlists). Gather
+    // lines until the brackets balance, else a wrapped list reads as empty.
+    if (raw === "" && /^\s*\[/.test(lines[i + 1] ?? "")) raw = lines[++i].trim();
     if (raw.startsWith("[")) {
-      const inner = raw.slice(1, raw.indexOf("]"));
-      val = inner.trim() === "" ? [] : inner.split(",").map((s) => s.trim());
+      while (!raw.includes("]") && i + 1 < lines.length) raw += " " + lines[++i].trim();
+      val = raw
+        .slice(1, raw.indexOf("]"))
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
     } else {
       val = raw.replace(/\s+#.*$/, "").trim();
     }
