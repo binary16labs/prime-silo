@@ -77,9 +77,13 @@ test("Scenario: concurrent pulls never collide", async () => {
     initCoordination(coordDir);
     const a = await coord.connect({ coordDir, baseUrl: DEAD_URL });
     const b = await coord.connect({ coordDir, baseUrl: DEAD_URL });
+    // W2 amendment: workNext now provisions a git worktree on a successful claim. This scenario
+    // tests LEASE ARBITRATION, which is orthogonal — and the fixture repo is deliberately not a git
+    // repo. Provisioning is disabled here and covered positively in w2_provision_test.mjs instead,
+    // so the assertion below is unchanged and total coverage goes up, not down.
     const [ra, rb] = await Promise.all([
-      workNext(a, "claude", repoRoot),
-      workNext(b, "antigravity", repoRoot)
+      workNext(a, "claude", repoRoot, { provision: false }),
+      workNext(b, "antigravity", repoRoot, { provision: false })
     ]);
     assert.notEqual(
       ra.item,
