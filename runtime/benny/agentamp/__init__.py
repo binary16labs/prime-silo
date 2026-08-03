@@ -32,81 +32,189 @@ Public surface (Phase 6)
                apply_layout(), layout_event_envelope()
 
 Feature flag: ``aamp.enabled`` (AAMP-F32). Checked at CLI dispatch; not re-checked here.
+
+Imports are LAZY (PEP 562). Eagerly importing all eleven submodules made every
+consumer of *anything* in this package pay for the heaviest one. The chain is::
+
+    playlist -> ..persistence.run_store -> ..persistence.checkpointer
+             -> langgraph.checkpoint.base -> langchain_core / langsmith / opentelemetry
+
+That cost ``from benny.agentamp.coord import cmd_coord`` — the `benny coord`
+dispatch path, which needs none of it — **3.3-5.3s** on this OneDrive-synced
+tree, against **0.51s** after. CPU time is under 0.2s either way: the cost is
+I/O wait, so wall-clock varies a lot with sync state. Submodules now load on
+first attribute access, so the public surface is unchanged but nobody pays for
+what they do not touch. Keep it that way: do not add a module-level
+``from .x import y`` here.
 """
 
-from .contracts import (
-    SkinCliPalette,
-    SkinGlyphs,
-    SkinLayout,
-    SkinManifest,
-    SkinMinimode,
-    SkinPermissions,
-    SkinPlugin,
-    SkinShader,
-    SkinSignature,
-    SkinSound,
-    SkinSprite,
-    SkinTokens,
-    SkinWindow,
-)
-from .dsp import (
-    DEFAULT_SPECTRUM_BINS,
-    DerivedData,
-    DSPTransform,
-    Envelope,
-    envelope_key,
-    make_layout_envelope,
-    transform,
-)
-from .equalizer import (
-    EQ_ALLOWED_PATHS,
-    EqKnob,
-    EqLock,
-    EqManifest,
-    EqPathNotAllowed,
-    EqWriteResult,
-    apply_eq_write,
-    validate_knob_path,
-)
-from .layout import (
-    SNAP_ZONES,
-    LayoutResult,
-    apply_layout,
-    clamp_window,
-    layout_event_envelope,
-    resolve_snap,
-)
-from .playlist import PlaylistEntry, enqueue_manifest, get_playlist
-from .plugins import (
-    PLUGIN_CSP,
-    PLUGIN_SANDBOX_ATTRS,
-    PLUGIN_WATCHDOG_TIMEOUT_S,
-    PluginManifest,
-    PluginPermissions,
-    filter_events,
-    validate_permissions_subset,
-)
-from .sandbox import (
-    MountedPlugin,
-    PluginPermissionsViolation,
-    SandboxHost,
-)
-from .scaffold import scaffold_skin
-from .signing import sign_skin_pack, verify_skin_pack
-from .skin import (
-    SkinPathEscape,
-    SkinSignatureInvalid,
-    SkinSignatureMissing,
-    load,
-)
-from .user_state import (
-    CockpitUserState,
-    CockpitWindowPosition,
-    export_cockpit,
-    import_cockpit,
-    load_user_state,
-    save_user_state,
-)
+from typing import TYPE_CHECKING
+
+# Public name -> the submodule that defines it. Adding an export means adding it
+# here AND to __all__; the test in tests/agentamp/test_lazy_imports.py asserts the
+# two agree, so a mismatch fails rather than silently producing an AttributeError.
+_EXPORTS = {
+    # Phase 1 — contracts
+    "SkinCliPalette": "contracts",
+    "SkinGlyphs": "contracts",
+    "SkinLayout": "contracts",
+    "SkinManifest": "contracts",
+    "SkinMinimode": "contracts",
+    "SkinPermissions": "contracts",
+    "SkinPlugin": "contracts",
+    "SkinShader": "contracts",
+    "SkinSignature": "contracts",
+    "SkinSound": "contracts",
+    "SkinSprite": "contracts",
+    "SkinTokens": "contracts",
+    "SkinWindow": "contracts",
+    # Phase 1 — skin / signing / scaffold
+    "SkinPathEscape": "skin",
+    "SkinSignatureInvalid": "skin",
+    "SkinSignatureMissing": "skin",
+    "load": "skin",
+    "sign_skin_pack": "signing",
+    "verify_skin_pack": "signing",
+    "scaffold_skin": "scaffold",
+    # Phase 2 — plugins / sandbox
+    "PLUGIN_CSP": "plugins",
+    "PLUGIN_SANDBOX_ATTRS": "plugins",
+    "PLUGIN_WATCHDOG_TIMEOUT_S": "plugins",
+    "PluginManifest": "plugins",
+    "PluginPermissions": "plugins",
+    "filter_events": "plugins",
+    "validate_permissions_subset": "plugins",
+    "MountedPlugin": "sandbox",
+    "PluginPermissionsViolation": "sandbox",
+    "SandboxHost": "sandbox",
+    # Phase 3 — DSP-A
+    "DEFAULT_SPECTRUM_BINS": "dsp",
+    "DerivedData": "dsp",
+    "DSPTransform": "dsp",
+    "Envelope": "dsp",
+    "envelope_key": "dsp",
+    "make_layout_envelope": "dsp",
+    "transform": "dsp",
+    # Phase 5 — equalizer
+    "EQ_ALLOWED_PATHS": "equalizer",
+    "EqKnob": "equalizer",
+    "EqLock": "equalizer",
+    "EqManifest": "equalizer",
+    "EqPathNotAllowed": "equalizer",
+    "EqWriteResult": "equalizer",
+    "apply_eq_write": "equalizer",
+    "validate_knob_path": "equalizer",
+    # Phase 6 — playlist (the heavy one: pulls ..persistence -> litellm/langchain)
+    "PlaylistEntry": "playlist",
+    "enqueue_manifest": "playlist",
+    "get_playlist": "playlist",
+    # Phase 6 — user state
+    "CockpitUserState": "user_state",
+    "CockpitWindowPosition": "user_state",
+    "export_cockpit": "user_state",
+    "import_cockpit": "user_state",
+    "load_user_state": "user_state",
+    "save_user_state": "user_state",
+    # Phase 6 — layout DSL
+    "SNAP_ZONES": "layout",
+    "LayoutResult": "layout",
+    "apply_layout": "layout",
+    "clamp_window": "layout",
+    "layout_event_envelope": "layout",
+    "resolve_snap": "layout",
+}
+
+
+def __getattr__(name: str):
+    """Resolve a public name by importing only the submodule that defines it."""
+    module_name = _EXPORTS.get(name)
+    if module_name is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    from importlib import import_module
+
+    value = getattr(import_module(f".{module_name}", __name__), name)
+    globals()[name] = value  # cache: later lookups skip __getattr__ entirely
+    return value
+
+
+def __dir__():
+    return sorted(__all__)
+
+
+if TYPE_CHECKING:  # static analysis and IDEs still see the real symbols
+    from .contracts import (
+        SkinCliPalette,
+        SkinGlyphs,
+        SkinLayout,
+        SkinManifest,
+        SkinMinimode,
+        SkinPermissions,
+        SkinPlugin,
+        SkinShader,
+        SkinSignature,
+        SkinSound,
+        SkinSprite,
+        SkinTokens,
+        SkinWindow,
+    )
+    from .dsp import (
+        DEFAULT_SPECTRUM_BINS,
+        DerivedData,
+        DSPTransform,
+        Envelope,
+        envelope_key,
+        make_layout_envelope,
+        transform,
+    )
+    from .equalizer import (
+        EQ_ALLOWED_PATHS,
+        EqKnob,
+        EqLock,
+        EqManifest,
+        EqPathNotAllowed,
+        EqWriteResult,
+        apply_eq_write,
+        validate_knob_path,
+    )
+    from .layout import (
+        SNAP_ZONES,
+        LayoutResult,
+        apply_layout,
+        clamp_window,
+        layout_event_envelope,
+        resolve_snap,
+    )
+    from .playlist import PlaylistEntry, enqueue_manifest, get_playlist
+    from .plugins import (
+        PLUGIN_CSP,
+        PLUGIN_SANDBOX_ATTRS,
+        PLUGIN_WATCHDOG_TIMEOUT_S,
+        PluginManifest,
+        PluginPermissions,
+        filter_events,
+        validate_permissions_subset,
+    )
+    from .sandbox import (
+        MountedPlugin,
+        PluginPermissionsViolation,
+        SandboxHost,
+    )
+    from .scaffold import scaffold_skin
+    from .signing import sign_skin_pack, verify_skin_pack
+    from .skin import (
+        SkinPathEscape,
+        SkinSignatureInvalid,
+        SkinSignatureMissing,
+        load,
+    )
+    from .user_state import (
+        CockpitUserState,
+        CockpitWindowPosition,
+        export_cockpit,
+        import_cockpit,
+        load_user_state,
+        save_user_state,
+    )
 
 __all__ = [
     # Phase 1 — contracts
