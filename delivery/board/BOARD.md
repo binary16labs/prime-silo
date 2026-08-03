@@ -13,13 +13,12 @@
 
 ## CLAIMED (agent · date)
 
-- P1 — real executor hook for run_multi_model · claude-opus · 2026-08-03 _(where the zeros end: `run_multi_model` carries eight agentic metrics and has never produced a real one, because `hook` defaults to `_dry_run_stub` returning 0.0 for every field. Budget 550, the largest in EP-M.)_
+- W4 — harden the enforcement W2 shipped · claude-opus · 2026-08-03 _(RECLAIMED FOR REWORK after claude-w4-verifier returned FAIL. Strike 1 of 2. Two blocking defects, both reproducible: ambient globals are banned by usage shape (`/\bprocess\s*\./`) instead of by bare identifier, so `const { env } = process` evades and the gate goes GREEN on W4's own defect #2 respelled; and `stripCode` discards `${...}` template interpolation as string, so a backtick-wrapped `process.env` / `spawnSync()` evades too.)_
 
 
 
 ## VERIFY (awaiting non-author verification)
 
-- W4 — harden the enforcement W2 shipped · author claude-opus · branch task/W4 @ 5389c27 · 2026-08-03 _(gate w4 GREEN 13/13 + mutation-proven — imported-binding ban removed → gate fails naming "the guarantee is still hollow" → revert GREEN. Purity now checks STRUCTURE not text: comments/strings stripped, import DECLARATIONS removed before scanning, every impure binding banned in ANY form (you cannot alias what you cannot name), import(/require( banned, and ambient impurity (process., new Date, Date.now, Math.random, globalThis) banned — W2 checked for NONE of those. The gate replays BOTH original evasions (W2's aliased dynamic import, P0's aliased static import) and proves they now fail, AND proves a comment reading "spawnSync(" does not. DEFAULTS moved below the marker so the marker's claim is true rather than false-as-written. workVerify de-shelled (DEP0190). 227 non-test lines under budget 350. Regression: w1 + w2 re-run GREEN. ★ HONEST LIMIT stated in the docstring, not glossed: this is static analysis over stripped source, not an interpreter — a determined author can still defeat it via computed member access on a global. It raises evasion from minutes to deliberate. The contract explicitly permitted narrowing the claim rather than overstating it, and that is what this does. ★ MY OWN GATE COMMITTED THE VERY BUG IT FIXES while being written — its first draft flagged a comment reading `no shell: true`; fixed by having the gate strip comments with the module it gates.)_
 
 
 
@@ -80,6 +79,8 @@
 - A8 — model-routing hygiene + ingest resilience · verified-by claude-verifier · 2026-07-07 _(on main, v1.12.3-5; known residual: lemonade health-probe shape, see LOG 2026-07-06T15:20 + A8.3 probe-shape residual closed 2026-07-08)_
 
 ## BLOCKED (id · reason · date)
+
+- P1 — over budget, needs split · claude-opus · 2026-08-03 _(work is COMPLETE and GREEN on branch task/P1 @ HEAD — gate p1 passes 34/34 and is mutation-proven twice — but the diff is **673 non-test lines against a budget of 550**, derived with the project's own `checkBudget` from the merge-base, not by eye. Allowlist clean. I am not amending my own budget: that is the discipline the number exists to impose. PROPOSED SPLIT, owner's call: **P1a** = `sandbox_runner.py` + `scripts/gates/p1.py` (344 lines) — SandboxResult optionality, `hook=None` raises, unavailable rows, `rank_subjects`, report rendering; **P1b** = `bench_executor.py` (329 lines) — roster resolution and the event-stream derivation. P1a is the contract's actual acceptance criteria and stands alone; P1b is what makes it produce numbers. Nothing is lost — both halves are already written and passing on the branch.)_
 
 _(empty)_
 
