@@ -11,9 +11,10 @@
 
 - L16 — version the observability surface (out of scratch/) _(UNBLOCKED 2026-08-03 — contract amended per owner option (b): budget counts authored lines only, verbatim relocation exempt and gate-checked for byte-identity. Returned to READY unclaimed rather than held, to respect WIP limit 1 while W2 is worked.)_
 
-- P3 — ledger, lineage, serialisation, wedge detection _(RETURNED TO READY 2026-08-04: the parallel agent building it was terminated by a session limit having written only a 36-line conftest. Nothing of substance exists, so it is honest to release the claim rather than leave it looking worked. Uncommitted conftest left in the worktree.)_
 
 ## CLAIMED (agent · date)
+
+- P3 — ledger, lineage, serialisation, wedge detection · claude-opus · 2026-08-04 _(retaken by the author directly after the delegated build was killed by a session limit. Critical path to training: P4 needs P2 and P3.)_
 
 
 
@@ -24,6 +25,8 @@
 
 
 ## VERIFY (awaiting non-author verification)
+
+- W4 — harden the enforcement W2 shipped · author claude-opus · branch task/W4 @ HEAD · 2026-08-04 _(FOURTH SUBMISSION, budget amended 400→450 per owner. 421/450, allowlist clean. Gate GREEN: 12 verifier kills replayed against the REAL module and all refused, 6 benign forms accepted, 34 tests, w1+w2 regression clean. Both of verifier 3's blocking defects closed — `.constructor`/`__proto__` banned as member names (computed or not), and the gate's verdict is one predicate (ok AND unchecked empty AND marker found) so the sibling-helper smuggle now fails a named kill instead of passing under "marker claim true". Plus new.target, class fields and import-attribute keys. ★ SETUP: run `npm ci` in the worktree (~45s) for acorn; the gate fails loudly if it is missing and never falls back to text matching.)_
 
 - P2 — one scale: fold the planner rubric into the record · author claude-opus · branch task/P2 @ HEAD · 2026-08-04 _(gate p2 GREEN, 16 acceptance tests + in-gate behavioural probes, FOUR mutations all killed by NAMED checks. 323/350 — inside budget without trimming. R21 additivity proven STRUCTURALLY: runtime/benny/pypes/ is byte-untouched since the merge-base, which is a stronger guarantee than re-running one sampled output and holds without pydantic. THE DELIVERABLE IS THE REFUSAL: validate_record rejects a composite at ANY depth, and rank_records refuses a pile whose records declare different primary metrics or different rubric hashes. ★ P1's distinction is defended in BOTH directions here — unmeasured stays null AND a genuine 0.0 stays 0.0 — with a mutation proving the second, which is precisely the blindness the P6 verifier found in P6's gate.)_
 
@@ -96,7 +99,6 @@
 
 ## BLOCKED (id · reason · date)
 
-- W4 — over budget after the verifier-mandated fixes · claude-opus · 2026-08-04 _(work COMPLETE and GREEN on task/W4: gate 12 kills replayed against the real module + 6 benign forms accepted, 34 tests, w1+w2 regression clean, mutation-proven on both new defences. But the diff is **421 non-test lines against 400**. Both blocking defects from verifier 3 are closed: `.constructor`/`__proto__` banned as member names (computed or not), and the gate's verdict is now one predicate — ok AND nothing unchecked AND a marker actually found — so a sibling-helper smuggle fails instead of passing under "marker claim true". Also fixed: new.target refused and mislabelled, class fields, import-attribute keys. I trimmed 21 lines of narrative that duplicates the LOG; going further means cutting the honest-limits list or a real check, which is what three verifiers asked me to keep. 400 is YOUR number (amended from 350), so I am not amending it. ★ ASK: **400 → 450**. The entire overrun is verifier-mandated: the reflective-reach ban, the verdict predicate, three false-positive fixes, and their replays in the gate.)_
 
 
 
