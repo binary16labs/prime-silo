@@ -15,6 +15,8 @@
 
 ## CLAIMED (agent · date)
 
+- W4 — harden the enforcement W2 shipped · claude-opus · 2026-08-04 _(UNBLOCKED by owner decision (a): use a real parser. This is a NEW DESIGN, not a third attempt at the one two verifiers defeated — the hand-rolled lexer is being deleted, not patched. acorn is present at ./node_modules/acorn and importable, but is an UNDECLARED transitive dep; the gate will fail loudly if it is ever absent rather than falling back to regex, because a silent degrade is how this guarantee went hollow twice.)_
+
 
 
 
@@ -89,7 +91,6 @@
 
 ## BLOCKED (id · reason · date)
 
-- W4 — TWO STRIKES, blocked for an owner decision on the claim · claude-opus · 2026-08-04 _(second independent verifier, second FAIL. claude-w4-verifier-2 got GATE GREEN on a real, loading sandbox_provision.mjs that both reads process.env AND calls spawnSync above the marker — using `return /"/.test(x)`. stripCode's regexAllowed() only allows a regex after an operator, so after `return` the regex is read as DIVISION, the quote inside it opens a string, and everything to the next quote is swallowed. `grep -rnE "return\s+/[^/ ]"` finds THIRTEEN existing occurrences in this repo — it is house style, not a contrivance. Three more evasions: importedBindings runs on RAW source so a prose comment containing "import … from" renames a default import's binding to garbage; stripTemplate's brace counter is not string-aware; a unicode-escaped identifier (process) passes. Also six false positives, four unconceded (`x === Date`, `m = Math` defaults, banned tokens inside a division-read regex or a string inside an interpolation, and ANY relative-import binding used in the pure region). BOTH GOOD NEWS ITEMS: all seven of the FIRST verifier's findings are genuinely closed, and BDD scenario 4 is properly fixed — argv asserted through an injected run seam, not a text match. Budget 337/400, allowlist clean. ★ OWNER'S CALL, and it is a claim decision not a code decision: **(a) lex properly** — replace the hand-rolled scanner with a real parser (acorn) so the guarantee can actually be backed; or **(b) narrow the claim** to "best-effort lint, not a guarantee", stop the gate asserting BDD scenario 3, and let the marker be advisory. Two strikes means I do not get a third attempt at the current design — this needs the claim settled first.)_
 
 
 
