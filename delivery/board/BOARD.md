@@ -11,11 +11,12 @@
 
 - L16 — version the observability surface (out of scratch/) _(UNBLOCKED 2026-08-03 — contract amended per owner option (b): budget counts authored lines only, verbatim relocation exempt and gate-checked for byte-identity. Returned to READY unclaimed rather than held, to respect WIP limit 1 while W2 is worked.)_
 
-- P3 — ledger + lineage emission, serialised execution, wedge detection by liveness _(dep P1 DONE — entered READY 2026-08-04. Owns the eGPU host lock: subjects run strictly in sequence and liveness is judged by CPU-time and artifact mtime, never by a log line. Independent of P2, so the two can run in parallel.)_
 
-- P2 — fold the planner rubric into the navigation record; one scale, no composite _(deps P1 + P6 both DONE — entered READY 2026-08-04. Makes the two tool metrics derivable by supplying the frozen rubric they are scored against. Independent of P3.)_
 
 ## CLAIMED (agent · date)
+
+- P2 — one scale: fold the planner rubric into the record · claude-opus · 2026-08-04 _(authoring block + navigation block on one record, no composite. Worked in PARALLEL with P3 by owner request.)_
+- P3 — ledger, lineage, serialisation, wedge detection · claude-p3-author · 2026-08-04 _(a bench not in the ledger did not happen. Worked in PARALLEL with P2. ★ ALLOWLIST OVERLAP: both contracts list runtime/benny/sdlc/, so P3 confines itself to NEW files there and P2 owns edits to existing ones — recorded so the merge is clean rather than discovered as a conflict.)_
 
 
 
