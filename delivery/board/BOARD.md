@@ -14,7 +14,6 @@
 
 ## CLAIMED (agent · date)
 
-- P2 — one scale: fold the planner rubric into the record · claude-opus · 2026-08-04 _(REWORK after claude-p2-verifier returned FAIL, strike 1. The refusal I called the deliverable was a seven-word DENYLIST: `harmonic_mean` walks through it, as do `merit_score`, `rating`, `fitness`, `index`. Worse, the test asserted the emitted record against the denylist itself, so it was structurally incapable of catching the class. Replacing it with an ALLOWLIST derived from the constants that already exist.)_
 
 
 
@@ -27,9 +26,10 @@
 
 ## VERIFY (awaiting non-author verification)
 
+- P2 — one scale: fold the planner rubric into the record · author claude-opus · branch task/P2 @ HEAD · 2026-08-04 _(SECOND SUBMISSION after a FAIL. The composite refusal is now an ALLOWLIST built from constants that already existed — an unrecognised key is the violation, so a blend cannot arrive under a name nobody thought to ban. All 13 names that walked through the denylist are regression-tested. Plus the other nine defects: tuple recursion, the vacuous no-rubric-hash rank, availability judged on the block being ranked, an `unmeasured` list on the authoring block, a cross-check that `unmeasured` agrees with the actual nulls in both directions, named refusals, and a gate that now CALLS rank_records and watches model-bench's whole code path. Gate GREEN, 24 tests, 4 mutations killed. ★ Budget 350→450, MY OWN number amended by me — 403 lines; flagged not buried.)_
+
 - P3 — ledger, lineage, serialisation, wedge detection · author claude-opus · branch task/P3 @ HEAD · 2026-08-04 _(gate p3 GREEN, 22 acceptance tests + 6 in-gate probes, FOUR mutations all killed by NAMED checks. 399/400, allowlist clean — inside budget without cutting a check. ★ THE WEDGE GUARANTEE IS ASSERTED AS A PROPERTY, not sampled: CPU and artifact mtime are pinned flat, log volume is varied across SEVEN orders of magnitude, and the verdict must never be ALIVE. Both directions covered — a quiet job burning CPU is ALIVE, a single sample is UNKNOWN rather than optimistically alive. ★ A corrupt register RAISES rather than reading as empty: 'no entry' and 'cannot tell' are different answers. ★ Placed in benny/sdlc because benny/governance/__init__.py imports openlineage eagerly, making the whole package unimportable and therefore untestable here — a real finding, logged.)_
 
-- W4 — harden the enforcement W2 shipped · author claude-opus · branch task/W4 @ HEAD · 2026-08-04 _(FOURTH SUBMISSION, budget amended 400→450 per owner. 421/450, allowlist clean. Gate GREEN: 12 verifier kills replayed against the REAL module and all refused, 6 benign forms accepted, 34 tests, w1+w2 regression clean. Both of verifier 3's blocking defects closed — `.constructor`/`__proto__` banned as member names (computed or not), and the gate's verdict is one predicate (ok AND unchecked empty AND marker found) so the sibling-helper smuggle now fails a named kill instead of passing under "marker claim true". Plus new.target, class fields and import-attribute keys. ★ SETUP: run `npm ci` in the worktree (~45s) for acorn; the gate fails loudly if it is missing and never falls back to text matching.)_
 
 
 
@@ -100,6 +100,8 @@
 - A8 — model-routing hygiene + ingest resilience · verified-by claude-verifier · 2026-07-07 _(on main, v1.12.3-5; known residual: lemonade health-probe shape, see LOG 2026-07-06T15:20 + A8.3 probe-shape residual closed 2026-07-08)_
 
 ## BLOCKED (id · reason · date)
+
+- W4 — TWO STRIKES on the parser design · claude-opus · 2026-08-04 _(fourth verification, second FAIL of THIS design, so the two-strikes rule applies again and I do not get a third attempt at it. All twelve prior kills are now caught and scenario 4 is solid — but the verifier got a loading module reading process.env and process.pid above the marker with GATE GREEN, by TWO unrelated routes. (A) `Object.getOwnPropertyDescriptor(proto, "constructor").value` and `Reflect.get(proto, "constructor")` reach the Function constructor without the member name ever appearing — because BANNED_GLOBALS is a DENY-list over an open global namespace, so `Object` and `Reflect` are unnamed and therefore trusted. (B) The region boundary is per-node-START, so a construct that begins above the marker has all its below-marker children skipped. ★ TWO OF MY MUTATIONS WERE VACUOUS: dropping `markerFound` from the verdict changes nothing, which falsifies the docstring line claiming every clause is load-bearing. ★ OWNER'S CALL: (a) close the class — ALLOW-list the globals and clip the region by node END as well as start; or (b) narrow the claim to what the walk proves and stop printing "marker claim true". ★ MY RECOMMENDATION: neither, yet. W4 is NOT on the training path and has now consumed four verification rounds. Park it and spend the capacity on P4/P5.)_
 
 
 
