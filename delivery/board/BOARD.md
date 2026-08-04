@@ -15,7 +15,6 @@
 
 ## CLAIMED (agent · date)
 
-- P2 — one scale: fold the planner rubric into the record · claude-opus · 2026-08-04 _(authoring block + navigation block on one record, no composite. Worked in PARALLEL with P3 by owner request.)_
 - P3 — ledger, lineage, serialisation, wedge detection · claude-p3-author · 2026-08-04 _(a bench not in the ledger did not happen. Worked in PARALLEL with P2. ★ ALLOWLIST OVERLAP: both contracts list runtime/benny/sdlc/, so P3 confines itself to NEW files there and P2 owns edits to existing ones — recorded so the merge is clean rather than discovered as a conflict.)_
 
 
@@ -25,6 +24,8 @@
 
 
 ## VERIFY (awaiting non-author verification)
+
+- P2 — one scale: fold the planner rubric into the record · author claude-opus · branch task/P2 @ HEAD · 2026-08-04 _(gate p2 GREEN, 16 acceptance tests + in-gate behavioural probes, FOUR mutations all killed by NAMED checks. 323/350 — inside budget without trimming. R21 additivity proven STRUCTURALLY: runtime/benny/pypes/ is byte-untouched since the merge-base, which is a stronger guarantee than re-running one sampled output and holds without pydantic. THE DELIVERABLE IS THE REFUSAL: validate_record rejects a composite at ANY depth, and rank_records refuses a pile whose records declare different primary metrics or different rubric hashes. ★ P1's distinction is defended in BOTH directions here — unmeasured stays null AND a genuine 0.0 stays 0.0 — with a mutation proving the second, which is precisely the blindness the P6 verifier found in P6's gate.)_
 
 - W4 — harden the enforcement W2 shipped · author claude-opus · branch task/W4 @ HEAD · 2026-08-04 _(THIRD SUBMISSION, NEW DESIGN under owner option (a): parser-backed, hand-rolled lexer DELETED. Gate GREEN, 29 tests, w1+w2 regression clean, 358/400, allowlist clean. The gate replays ALL NINE kills from all three verifiers AGAINST THE REAL MODULE and each is refused, including the one that beat submission two — `return /"/.test(e)` blinding the scanner while a process.env read and a spawnSync call sat above the marker. Previously-conceded reflective reach (Function, eval, computed global access, import.meta) is now CAUGHT, not conceded. False positives verifier 2 found are fixed: `x === Date`, `m = Math` defaults, and relative-import bindings — the last now REPORTED as `unchecked` rather than banned, since this checker does not follow them. ★ SETUP: the gate needs `npm ci` in the worktree (~45s) for acorn; it fails loudly with that instruction and NEVER falls back to text matching. ★ acorn is a TRANSITIVE dep via espree/eslint, undeclared — package.json is outside this allowlist, so declaring it is an owner amendment I have not made.)_
 
