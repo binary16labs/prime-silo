@@ -11,11 +11,12 @@
 
 - L16 — version the observability surface (out of scratch/) _(UNBLOCKED 2026-08-03 — contract amended per owner option (b): budget counts authored lines only, verbatim relocation exempt and gate-checked for byte-identity. Returned to READY unclaimed rather than held, to respect WIP limit 1 while W2 is worked.)_
 
-
+- P3 — ledger, lineage, serialisation, wedge detection _(RETURNED TO READY 2026-08-04: the parallel agent building it was terminated by a session limit having written only a 36-line conftest. Nothing of substance exists, so it is honest to release the claim rather than leave it looking worked. Uncommitted conftest left in the worktree.)_
 
 ## CLAIMED (agent · date)
 
-- P3 — ledger, lineage, serialisation, wedge detection · claude-p3-author · 2026-08-04 _(a bench not in the ledger did not happen. Worked in PARALLEL with P2. ★ ALLOWLIST OVERLAP: both contracts list runtime/benny/sdlc/, so P3 confines itself to NEW files there and P2 owns edits to existing ones — recorded so the merge is clean rather than discovered as a conflict.)_
+- W4 — harden the enforcement W2 shipped · claude-opus · 2026-08-04 _(REWORK after claude-w4-verifier-3 returned FAIL — strike 1 of the NEW parser design, which gets its own count. Two blocking defects, both reproduced end-to-end with GATE GREEN: the docstring claims `constructor.constructor` is closed and it is NOT — `({}).constructor.constructor("return process")()` names no banned identifier and was accepted; and the gate DISCARDS the `unchecked` list, so a sibling helper doing the impure work passes silently.)_
+
 
 
 
@@ -27,7 +28,6 @@
 
 - P2 — one scale: fold the planner rubric into the record · author claude-opus · branch task/P2 @ HEAD · 2026-08-04 _(gate p2 GREEN, 16 acceptance tests + in-gate behavioural probes, FOUR mutations all killed by NAMED checks. 323/350 — inside budget without trimming. R21 additivity proven STRUCTURALLY: runtime/benny/pypes/ is byte-untouched since the merge-base, which is a stronger guarantee than re-running one sampled output and holds without pydantic. THE DELIVERABLE IS THE REFUSAL: validate_record rejects a composite at ANY depth, and rank_records refuses a pile whose records declare different primary metrics or different rubric hashes. ★ P1's distinction is defended in BOTH directions here — unmeasured stays null AND a genuine 0.0 stays 0.0 — with a mutation proving the second, which is precisely the blindness the P6 verifier found in P6's gate.)_
 
-- W4 — harden the enforcement W2 shipped · author claude-opus · branch task/W4 @ HEAD · 2026-08-04 _(THIRD SUBMISSION, NEW DESIGN under owner option (a): parser-backed, hand-rolled lexer DELETED. Gate GREEN, 29 tests, w1+w2 regression clean, 358/400, allowlist clean. The gate replays ALL NINE kills from all three verifiers AGAINST THE REAL MODULE and each is refused, including the one that beat submission two — `return /"/.test(e)` blinding the scanner while a process.env read and a spawnSync call sat above the marker. Previously-conceded reflective reach (Function, eval, computed global access, import.meta) is now CAUGHT, not conceded. False positives verifier 2 found are fixed: `x === Date`, `m = Math` defaults, and relative-import bindings — the last now REPORTED as `unchecked` rather than banned, since this checker does not follow them. ★ SETUP: the gate needs `npm ci` in the worktree (~45s) for acorn; it fails loudly with that instruction and NEVER falls back to text matching. ★ acorn is a TRANSITIVE dep via espree/eslint, undeclared — package.json is outside this allowlist, so declaring it is an owner amendment I have not made.)_
 
 
 
