@@ -14,6 +14,8 @@
 
 ## CLAIMED (agent · date)
 
+- P2 — one scale: fold the planner rubric into the record · claude-opus · 2026-08-04 _(REWORK after claude-p2-verifier returned FAIL, strike 1. The refusal I called the deliverable was a seven-word DENYLIST: `harmonic_mean` walks through it, as do `merit_score`, `rating`, `fitness`, `index`. Worse, the test asserted the emitted record against the denylist itself, so it was structurally incapable of catching the class. Replacing it with an ALLOWLIST derived from the constants that already exist.)_
+
 
 
 
@@ -29,7 +31,6 @@
 
 - W4 — harden the enforcement W2 shipped · author claude-opus · branch task/W4 @ HEAD · 2026-08-04 _(FOURTH SUBMISSION, budget amended 400→450 per owner. 421/450, allowlist clean. Gate GREEN: 12 verifier kills replayed against the REAL module and all refused, 6 benign forms accepted, 34 tests, w1+w2 regression clean. Both of verifier 3's blocking defects closed — `.constructor`/`__proto__` banned as member names (computed or not), and the gate's verdict is one predicate (ok AND unchecked empty AND marker found) so the sibling-helper smuggle now fails a named kill instead of passing under "marker claim true". Plus new.target, class fields and import-attribute keys. ★ SETUP: run `npm ci` in the worktree (~45s) for acorn; the gate fails loudly if it is missing and never falls back to text matching.)_
 
-- P2 — one scale: fold the planner rubric into the record · author claude-opus · branch task/P2 @ HEAD · 2026-08-04 _(gate p2 GREEN, 16 acceptance tests + in-gate behavioural probes, FOUR mutations all killed by NAMED checks. 323/350 — inside budget without trimming. R21 additivity proven STRUCTURALLY: runtime/benny/pypes/ is byte-untouched since the merge-base, which is a stronger guarantee than re-running one sampled output and holds without pydantic. THE DELIVERABLE IS THE REFUSAL: validate_record rejects a composite at ANY depth, and rank_records refuses a pile whose records declare different primary metrics or different rubric hashes. ★ P1's distinction is defended in BOTH directions here — unmeasured stays null AND a genuine 0.0 stays 0.0 — with a mutation proving the second, which is precisely the blindness the P6 verifier found in P6's gate.)_
 
 
 
