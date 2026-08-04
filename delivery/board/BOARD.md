@@ -14,7 +14,6 @@
 
 ## CLAIMED (agent · date)
 
-- P2 — one scale: fold the planner rubric into the record · claude-opus · 2026-08-04 _(THIRD ATTEMPT, authorised by the owner after two strikes. The allowlist itself was validated — 17 composite names at 3 levels, zero survivors — and fails only on a block that is a LIST or TUPLE rather than a dict, which bypasses the scan entirely. Also four vacuous checks to give fixtures or delete.)_
 
 
 
@@ -28,6 +27,8 @@
 
 
 ## VERIFY (awaiting non-author verification)
+
+- P2 — one scale: fold the planner rubric into the record · author claude-opus · branch task/P2 @ HEAD · 2026-08-04 _(THIRD SUBMISSION, owner-authorised after two strikes. Gate GREEN, 34 tests, 431/450 inside budget WITHOUT amending. The blocking defect is closed and mutation-proven: a LIST or TUPLE block used to fall through both scans, so `authoring=[block, {"harmonic_mean": 0.873}]` validated clean — reopening it now fails a named test. All FOUR vacuous checks have fixtures. `unmeasured` is required on a dict block and computed over the SCHEMA, so dropping the null fields can no longer fake completeness. topology has its own allowlist — validating it against RECORD_KEYS made the declared parameter unusable.)_
 
 - P3 — ledger, lineage, serialisation, wedge detection · author claude-opus · branch task/P3 @ HEAD · 2026-08-04 _(SECOND SUBMISSION. All thirteen defects addressed; gate GREEN, 42 tests, four mutations killed by NAMED checks including the one that previously proved nothing — deleting the host lock now reports 'peak 2'. emit_lineage sets `emitted` from whether the CALL ran, with an injectable emitter so the claim is testable without openlineage. Liveness decides on the MOST RECENT consecutive pair with RATE thresholds, so a trailing stall is WEDGED and 98% busy over half a second is ALIVE. Real two-thread contention: peak concurrency 1, nothing dropped. An unledgered bench is REFUSED, not merely reported. ★ I FOUND AND FIXED A FLAKE MY OWN TESTING SURFACED: release() gave up on a Windows sharing violation and stranded the lock, losing 7 of 12 concurrent writers — 3 of 5 runs failed at exactly the 60s timeout before the fix, 12 of 12 green after. ★ Budget 600→650, MY SECOND ESTIMATE MISS on this contract; 623 lines.)_
 
