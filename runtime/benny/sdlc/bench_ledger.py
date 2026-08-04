@@ -13,12 +13,10 @@ Four guarantees, one module:
      that was dead. `log_lines` is carried in the sample purely so it can be shown to have no
      influence — `classify_liveness` cannot return ALIVE on log evidence at any volume.
 
-Placement note: this lives in `benny.sdlc` rather than `benny.governance` for one blunt reason —
-`benny/governance/__init__.py` imports `openlineage` eagerly, so the whole package is unimportable
-wherever that dependency is absent, which includes this estate's ambient interpreter. A governance
-module that cannot be imported cannot be tested, and an untestable ledger is not a ledger. The
-lineage emitter below is therefore imported lazily and degrades to a recorded no-op. (Same defect
-class as `benny.pypes`; both deserve a contract of their own.)
+Placement: `benny.sdlc`, not `benny.governance` — that package's `__init__` imports `openlineage`
+eagerly, so it is unimportable, and therefore untestable, wherever that dependency is absent. An
+untestable ledger is not a ledger. The lineage emitter is imported lazily and reports whether it
+actually emitted. (Same defect class as `benny.pypes`; both deserve their own contract.)
 
 Design: architecture/SOLUTION-model-plurality.md §4.4. Contract: delivery/tasks/P3.md
 """
@@ -99,11 +97,9 @@ def register_entry(
 
 
 def read_register(path: Path) -> List[Dict[str, Any]]:
-    """Read the register. A MISSING file is empty; a CORRUPT one raises.
-
-    Those are different answers and only one is safe to act on: treating an unreadable ledger as
-    empty would let a bench claim to be unledgered when in truth we cannot tell.
-    """
+    """Read the register. A MISSING file is empty; a CORRUPT one raises — those are different
+    answers, and treating an unreadable ledger as empty would let a bench look unledgered when in
+    truth we cannot tell."""
     p = Path(path)
     if not p.exists():
         return []
