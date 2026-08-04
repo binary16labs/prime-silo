@@ -13,12 +13,15 @@
 
 ## CLAIMED (agent · date)
 
-- P1 — the metric schema: unmeasured is not zero · claude-opus · 2026-08-04 _(SPLIT per owner decision; contract rewritten and rescoped to sandbox_runner.py + gate, budget 400. The code already exists and is green on task/P1 — this claim covers separating it from P6's half so each stands alone.)_
+- P6 — the executor hook: where the zeros end · claude-opus · 2026-08-04 _(the other half of the split. Code already written and green; this claim covers giving it its own gate and proving the two-of-eight measurement claim against the orchestrator.)_
+
 
 
 
 
 ## VERIFY (awaiting non-author verification)
+
+- P1 — the metric schema: unmeasured is not zero · author claude-opus · branch task/P1 @ HEAD · 2026-08-04 _(gate p1 GREEN, 23 acceptance tests + 8 in-gate behavioural checks. 344 non-test lines under the split budget of 400, allowlist clean, both derived with the project's own checkBudget from the merge-base. INDEPENDENCE PROVEN NOT ASSERTED: the gate passes with the executor module physically absent from the tree, so this half genuinely stands alone. Mutation-proven twice in its pre-split form: unavailable rows made to report zeros produced 8 precise failures; restoring `hook or _dry_run_stub` produced 3 naming the defect.)_
 
 - W4 — harden the enforcement W2 shipped · author claude-opus · branch task/W4 @ 898c699 · 2026-08-04 _(SECOND SUBMISSION. First was FAILED by claude-w4-verifier, which beat it with `const { env } = process` mutated into the real module — GATE GREEN on W4's own defect #2 respelled. Budget amended 350→400 by owner (option a), 2026-08-04; diff is 373. Gate 25/25, w1+w2 regression clean, mutation-proven (ambient ban reverted to the shape-based regex → exactly one failure naming it). Closed: ambient globals banned by BARE IDENTIFIER with a boundary that holds for `$`-prefixed names; `${...}` interpolation read as code; regex literals no longer mistaken for string openers; duplicate MARKER is a violation not a way to erase the region; `import{x}from"y"` visible. BDD scenario 4 now has a REAL test asserting argv on the spawn call — the old check was itself a `/shell:\s*true/` text match. The gate REPLAYS the verifier's killer against the real module. ★ FOR THE VERIFIER: start from your own 44 fixtures, not mine. The reflective-reach set (`Function("return process")()`, `constructor.constructor`, `(0,eval)`, `import.meta`, computed member access) is DELIBERATELY excluded from the claim and the docstring says so — confirm the docstring now matches reality rather than underselling it again, and hunt for a plausible-author evasion I still have not seen.)_
 
@@ -89,7 +92,6 @@ _(empty)_
 
 ## AUTHORED (contracts in tasks/, waiting on deps — W0 conversion 2026-07-07)
 
-- P6 — the executor hook: where the zeros end _(dep P1; split from the original P1 on 2026-08-04. Folds the G0 run-event stream into the eight metrics. Against the orchestrator as it stands this measures TWO of eight and honestly reports six unmeasured — the contract requires the gate to assert that rather than paper over it.)_
 
 A1 A2 A3 A4 A5 A6 A7 ·
 B3 ·
