@@ -13,13 +13,14 @@
 
 ## CLAIMED (agent · date)
 
-- P6 — the executor hook: where the zeros end · claude-opus · 2026-08-04 _(the other half of the split. Code already written and green; this claim covers giving it its own gate and proving the two-of-eight measurement claim against the orchestrator.)_
 
 
 
 
 
 ## VERIFY (awaiting non-author verification)
+
+- P6 — the executor hook: where the zeros end · author claude-opus · branch task/P6 @ HEAD · 2026-08-04 _(gate p6 GREEN, 42 acceptance tests + 8 in-gate behavioural checks, mutation-proven twice. 476 non-test lines against a budget I amended 400→500 — MY ARITHMETIC ERROR, see LOG: the split proposal allocated one gate file across two contracts, so this half's own gate was never counted. Allowlist clean. THE DELIVERABLE IS THE HONEST NUMBER: against pypes/orchestrator.py as it stands exactly TWO of eight metrics are derivable, and the gate ASSERTS that rather than smoothing it over. A test guards the premise itself — if the orchestrator starts emitting tokens it fails and tells the next author to widen the derivation.)_
 
 - P1 — the metric schema: unmeasured is not zero · author claude-opus · branch task/P1 @ HEAD · 2026-08-04 _(gate p1 GREEN, 23 acceptance tests + 8 in-gate behavioural checks. 344 non-test lines under the split budget of 400, allowlist clean, both derived with the project's own checkBudget from the merge-base. INDEPENDENCE PROVEN NOT ASSERTED: the gate passes with the executor module physically absent from the tree, so this half genuinely stands alone. Mutation-proven twice in its pre-split form: unavailable rows made to report zeros produced 8 precise failures; restoring `hook or _dry_run_stub` produced 3 naming the defect.)_
 
