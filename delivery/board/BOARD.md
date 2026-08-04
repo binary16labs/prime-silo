@@ -15,7 +15,6 @@
 
 ## CLAIMED (agent · date)
 
-- W4 — harden the enforcement W2 shipped · claude-opus · 2026-08-04 _(REWORK after claude-w4-verifier-3 returned FAIL — strike 1 of the NEW parser design, which gets its own count. Two blocking defects, both reproduced end-to-end with GATE GREEN: the docstring claims `constructor.constructor` is closed and it is NOT — `({}).constructor.constructor("return process")()` names no banned identifier and was accepted; and the gate DISCARDS the `unchecked` list, so a sibling helper doing the impure work passes silently.)_
 
 
 
@@ -96,6 +95,8 @@
 - A8 — model-routing hygiene + ingest resilience · verified-by claude-verifier · 2026-07-07 _(on main, v1.12.3-5; known residual: lemonade health-probe shape, see LOG 2026-07-06T15:20 + A8.3 probe-shape residual closed 2026-07-08)_
 
 ## BLOCKED (id · reason · date)
+
+- W4 — over budget after the verifier-mandated fixes · claude-opus · 2026-08-04 _(work COMPLETE and GREEN on task/W4: gate 12 kills replayed against the real module + 6 benign forms accepted, 34 tests, w1+w2 regression clean, mutation-proven on both new defences. But the diff is **421 non-test lines against 400**. Both blocking defects from verifier 3 are closed: `.constructor`/`__proto__` banned as member names (computed or not), and the gate's verdict is now one predicate — ok AND nothing unchecked AND a marker actually found — so a sibling-helper smuggle fails instead of passing under "marker claim true". Also fixed: new.target refused and mislabelled, class fields, import-attribute keys. I trimmed 21 lines of narrative that duplicates the LOG; going further means cutting the honest-limits list or a real check, which is what three verifiers asked me to keep. 400 is YOUR number (amended from 350), so I am not amending it. ★ ASK: **400 → 450**. The entire overrun is verifier-mandated: the reflective-reach ban, the verdict predicate, three false-positive fixes, and their replays in the gate.)_
 
 
 
