@@ -8,10 +8,9 @@ Four guarantees, one module:
      the same weights are DIFFERENT subjects and the record must be able to prove which one ran.
   3. **Serialisation (R12).** The eGPU is single-tenant, so subjects run strictly in sequence under
      a host lock, and a subject that throws releases it.
-  4. **Liveness (R12).** A wedged endpoint is detected by CPU-time and artifact mtime, **never by a
-     log line**. This estate has already read an advancing tqdm line as proof of life for a job
-     that was dead. `log_lines` is carried in the sample purely so it can be shown to have no
-     influence — `classify_liveness` cannot return ALIVE on log evidence at any volume.
+  4. **Liveness (R12).** Wedge detection uses CPU-time and artifact mtime, **never a log line** —
+     this estate once read an advancing tqdm line as proof of life for a dead job. `log_lines` is
+     carried only so it can be shown to have no influence at any volume.
 
 Placement: `benny.sdlc`, not `benny.governance` — that package's `__init__` imports `openlineage`
 eagerly, so it is unimportable, and therefore untestable, wherever that dependency is absent. An
@@ -162,12 +161,9 @@ def _default_owner_alive(pid: int) -> bool:
 
 
 class HostLock:
-    """Exclusive host lock via atomic O_EXCL create — the same primitive the coordination ledger
-    uses for task leases, for the same reason: it is atomic on every filesystem that matters.
-
-    A lock whose owning process is gone is RECLAIMED rather than honoured, because a crashed bench
-    must not wedge the estate until someone notices.
-    """
+    """Exclusive host lock via atomic O_EXCL create — the primitive the coordination ledger uses
+    for task leases. A lock whose owner is gone is RECLAIMED, not honoured: a crashed bench must
+    not wedge the estate until someone notices."""
 
     def __init__(self, lock_dir: Path, owner_alive: Callable[[int], bool] = _default_owner_alive):
         self.path = Path(lock_dir) / "bench.lock"
