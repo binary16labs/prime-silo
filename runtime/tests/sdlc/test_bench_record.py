@@ -390,3 +390,115 @@ def test_records_with_no_primary_metric_are_a_named_refusal():
     with pytest.raises(ValueError) as exc:
         rank_records(recs)
     assert "nothing to rank" in str(exc.value)
+
+
+# ---------------------------------------------------------------------------
+# Second review (LOG 2026-08-04T19:00Z) — the blocking defect and the vacuous checks
+# ---------------------------------------------------------------------------
+
+
+def test_a_block_that_is_a_LIST_or_TUPLE_cannot_bypass_the_allowlist():
+    """THE FAIL. A non-dict block fell through both scans — the record-level scan skips the block
+    keys, and the block scan required a dict — so nothing looked at it at all. model-bench runs N
+    trials per subject, so the obvious next change makes `authoring` a list of trial blocks."""
+    for smuggled in (
+        [authoring_block(TRIAL), {"harmonic_mean": 0.873, "weighted_composite": 0.91}],
+        ({"overall_score": 0.9},),
+    ):
+        rec = build_record(
+            "s", authoring=smuggled, navigation=navigation_block(_nav(tool_efficiency=0.5)),
+            rubric_hash="h", primary_metric="navigation.tool_efficiency",
+        )
+        ok, errors = validate_record(rec)
+        assert not ok, f"{type(smuggled).__name__} block validated clean"
+        assert any("not an object" in e for e in errors), errors
+
+
+def test_a_non_dict_block_is_not_counted_as_scored():
+    rec = build_record(
+        "s", authoring=[{"harmonic_mean": 0.9}], navigation=navigation_block(_nav(tool_efficiency=0.5)),
+        rubric_hash="h", primary_metric="navigation.tool_efficiency",
+    )
+    assert rec["scored_on"] == ["navigation"]
+
+
+# --- the four checks that no fixture exercised ------------------------------
+
+
+def test_a_record_with_the_wrong_kind_is_refused():
+    rec = build_record("s", authoring=authoring_block(TRIAL), navigation=navigation_block(_nav()),
+                       rubric_hash="h", primary_metric="authoring.has_required_ops")
+    ok, errors = validate_record({**rec, "kind": "something_else/1"})
+    assert not ok and any("kind" in e for e in errors), errors
+
+
+def test_a_record_with_both_blocks_but_no_rubric_hash_is_refused():
+    """Every previous fixture that omitted the hash also tripped the block check, so flipping this
+    check changed nothing."""
+    rec = build_record("s", authoring=authoring_block(TRIAL), navigation=navigation_block(_nav()),
+                       rubric_hash="h", primary_metric="authoring.has_required_ops")
+    ok, errors = validate_record({**rec, "rubric_hash": ""})
+    assert not ok and any("rubric_hash" in e for e in errors), errors
+
+
+def test_a_boolean_metric_cannot_be_ranked():
+    """The numeric guard's `isinstance(value, bool)` half was never exercised — the non-numeric
+    test used a string, and bool is a subclass of int."""
+    rec = build_record("s", authoring=None, navigation=navigation_block(_nav(tool_efficiency=0.5)),
+                       rubric_hash="h", primary_metric="navigation.tool_efficiency")
+    rec["navigation"]["tool_efficiency"] = True
+    with pytest.raises(ValueError) as exc:
+        rank_records([rec])
+    assert "cannot be ranked" in str(exc.value)
+
+
+def test_ranking_by_a_block_the_record_did_not_score_is_a_named_refusal():
+    """_resolve_metric's None-block branch had no fixture."""
+    rec = build_record("s", authoring=None, navigation=navigation_block(_nav(tool_efficiency=0.5)),
+                       rubric_hash="h", primary_metric="navigation.tool_efficiency")
+    rec["primary_metric"] = "authoring.has_required_ops"
+    with pytest.raises(ValueError) as exc:
+        rank_records([rec])
+    assert "did not score" in str(exc.value)
+
+
+# --- the unmeasured invariant is no longer opt-in ---------------------------
+
+
+def test_a_block_with_no_unmeasured_list_is_refused():
+    rec = build_record("s", authoring=authoring_block(TRIAL), navigation=navigation_block(_nav()),
+                       rubric_hash="h", primary_metric="authoring.has_required_ops")
+    stripped = {k: v for k, v in rec["navigation"].items() if k != "unmeasured"}
+    ok, errors = validate_record({**rec, "navigation": stripped})
+    assert not ok and any("unmeasured" in e for e in errors), errors
+
+
+def test_dropping_the_null_fields_cannot_fake_completeness():
+    """`actual` counted only fields PRESENT in the block, so removing the nulls and declaring
+    `unmeasured: []` validated — while the honest inverse was refused."""
+    rec = build_record("s", authoring=None, navigation=navigation_block(_nav(tool_efficiency=0.5)),
+                       rubric_hash="h", primary_metric="navigation.tool_efficiency")
+    thin = {k: v for k, v in rec["navigation"].items() if v is not None or k == "unmeasured"}
+    thin["unmeasured"] = []
+    ok, errors = validate_record({**rec, "navigation": thin})
+    assert not ok and any("unmeasured" in e for e in errors), errors
+
+
+def test_a_real_topology_dict_can_actually_be_carried():
+    """`topology` was validated against RECORD_KEYS, so no real topology dict was accepted and the
+    declared parameter was unusable."""
+    rec = build_record(
+        "s", authoring=authoring_block(TRIAL), navigation=navigation_block(_nav()),
+        rubric_hash="h", primary_metric="authoring.has_required_ops",
+        topology={"endpoint": "http://localhost:1234", "quantisation": "q4_k_m"},
+    )
+    ok, errors = validate_record(rec)
+    assert ok, errors
+    bad = validate_record({**rec, "topology": {"harmonic_mean": 0.9}})
+    assert not bad[0], "a composite inside topology was accepted"
+
+
+def test_build_record_with_a_None_primary_metric_is_a_named_refusal():
+    with pytest.raises(ValueError):
+        build_record("s", authoring=authoring_block(TRIAL), navigation=navigation_block(_nav()),
+                     rubric_hash="h", primary_metric=None)

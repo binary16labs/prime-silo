@@ -53,6 +53,10 @@ AUTHORING_KEYS = frozenset({"source", "unmeasured", *_AUTHORING_SCORES, *_AUTHOR
 NAVIGATION_KEYS = frozenset(
     {"source", "status", "unavailable_reason", "run_id", "unmeasured", *METRIC_FIELDS}
 )
+#: Serving topology. Validated against ITS OWN schema — it was previously scanned against
+#: RECORD_KEYS, which is a category error: no real topology dict could be carried at all, so the
+#: declared `topology` parameter was unusable.
+TOPOLOGY_KEYS = frozenset({"endpoint", "quantisation", "context_length", "model_id"})
 RECORD_KEYS = frozenset(
     {
         "kind", "subject", "authoring", "navigation", "scored_on",
@@ -102,6 +106,8 @@ def navigation_block(result: SandboxResult) -> Dict[str, Any]:
 
 def _resolve_metric(record: Dict[str, Any], primary_metric: str) -> Any:
     """`block.field` -> the value, raising if the path does not exist on this record."""
+    if not isinstance(primary_metric, str) or not primary_metric:
+        raise ValueError("primary_metric must be a '<block>.<field>' string naming what to rank by")
     block_name, _, field = primary_metric.partition(".")
     if not block_name or not field:
         raise ValueError(
@@ -139,7 +145,7 @@ def build_record(
         "subject": subject,
         "authoring": authoring,
         "navigation": navigation,
-        "scored_on": [n for n, b in (("authoring", authoring), ("navigation", navigation)) if b],
+        "scored_on": [n for n, b in (("authoring", authoring), ("navigation", navigation)) if isinstance(b, dict)],
         "rubric_hash": rubric_hash,
         "roster_hash": roster_hash,
         "topology": topology,
@@ -180,12 +186,26 @@ def validate_record(record: Dict[str, Any]) -> Tuple[bool, List[str]]:
 
     # The refusal. Every key must be one the schema declares; anything else is how a composite
     # arrives wearing a name nobody thought to ban.
-    unknown = [(k, "record") for k in _unknown_keys(
-        {k: v for k, v in record.items() if k not in ("authoring", "navigation")}, RECORD_KEYS, "")]
+    top_level = {k: v for k, v in record.items() if k not in ("authoring", "navigation", "topology")}
+    unknown = [(k, "record") for k in _unknown_keys(top_level, RECORD_KEYS, "")]
+    if isinstance(record.get("topology"), dict):
+        unknown += [(k, "topology") for k in _unknown_keys(record["topology"], TOPOLOGY_KEYS, "topology.")]
     for name, allowed in (("authoring", AUTHORING_KEYS), ("navigation", NAVIGATION_KEYS)):
         block = record.get(name)
-        if isinstance(block, dict):
-            unknown += [(k, name) for k in _unknown_keys(block, allowed, f"{name}.")]
+        if block is None:
+            continue  # explicitly not scored on this surface, which is legal
+        if not isinstance(block, dict):
+            # A LIST or TUPLE block used to fall through both scans: the record-level scan skips
+            # the block keys and the block scan required a dict, so nothing looked at it at all
+            # and `authoring=[real_block, {"harmonic_mean": 0.873}]` validated clean. Not exotic —
+            # model-bench runs N trials per subject, so the obvious next change to this module
+            # makes `authoring` a list, and at that moment the refusal is off rather than degraded.
+            errors.append(
+                f"the {name} block is a {type(block).__name__}, not an object — a non-object block "
+                "is scanned by nothing, so the allowlist cannot see what it carries"
+            )
+            continue
+        unknown += [(k, name) for k in _unknown_keys(block, allowed, f"{name}.")]
     for key, where in unknown:
         errors.append(
             f"{key} is not a field the {where} schema declares. A record may only carry known "
@@ -199,9 +219,17 @@ def validate_record(record: Dict[str, Any]) -> Tuple[bool, List[str]]:
     # or list a field it had in fact measured, and still validate.
     for name, fields in (("authoring", _AUTHORING_SCORES + _AUTHORING_TOP), ("navigation", METRIC_FIELDS)):
         block = record.get(name)
-        if not isinstance(block, dict) or "unmeasured" not in block:
+        if not isinstance(block, dict):
             continue
-        actual = sorted(f for f in fields if f in block and block[f] is None)
+        if "unmeasured" not in block:
+            errors.append(
+                f"the {name} block carries no `unmeasured` list — the invariant was opt-in, so a "
+                "block holding nulls while claiming completeness validated clean"
+            )
+            continue
+        # Computed over the SCHEMA, not over present keys: dropping the null fields and declaring
+        # `unmeasured: []` previously validated, while the honest inverse was refused.
+        actual = sorted(f for f in fields if block.get(f) is None)
         if sorted(block["unmeasured"]) != actual:
             errors.append(
                 f"{name}.unmeasured says {sorted(block['unmeasured'])} but the nulls are {actual} — "
