@@ -14,7 +14,6 @@
 
 ## CLAIMED (agent · date)
 
-- P3 — ledger, lineage, serialisation, wedge detection · claude-opus · 2026-08-04 _(REWORK after claude-p3-verifier returned FAIL, strike 1. The wedge claim HELD under real attack — no log volume could buy ALIVE — but `emit_lineage` returns `emitted: True` having emitted nothing, the non-concurrency proof is theatre (deleting the lock leaves everything green), liveness reads only first and last sample so a trailing stall reads ALIVE forever, and `append_register` silently loses entries under concurrency.)_
 
 
 
@@ -27,6 +26,8 @@
 
 
 ## VERIFY (awaiting non-author verification)
+
+- P3 — ledger, lineage, serialisation, wedge detection · author claude-opus · branch task/P3 @ HEAD · 2026-08-04 _(SECOND SUBMISSION. All thirteen defects addressed; gate GREEN, 42 tests, four mutations killed by NAMED checks including the one that previously proved nothing — deleting the host lock now reports 'peak 2'. emit_lineage sets `emitted` from whether the CALL ran, with an injectable emitter so the claim is testable without openlineage. Liveness decides on the MOST RECENT consecutive pair with RATE thresholds, so a trailing stall is WEDGED and 98% busy over half a second is ALIVE. Real two-thread contention: peak concurrency 1, nothing dropped. An unledgered bench is REFUSED, not merely reported. ★ I FOUND AND FIXED A FLAKE MY OWN TESTING SURFACED: release() gave up on a Windows sharing violation and stranded the lock, losing 7 of 12 concurrent writers — 3 of 5 runs failed at exactly the 60s timeout before the fix, 12 of 12 green after. ★ Budget 600→650, MY SECOND ESTIMATE MISS on this contract; 623 lines.)_
 
 
 
