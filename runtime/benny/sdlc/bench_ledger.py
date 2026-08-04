@@ -79,6 +79,21 @@ def topology_fingerprint(topology: Dict[str, Any]) -> str:
     return "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16]
 
 
+def _retry_on_sharing_violation(action: Callable[[], Any], *, what: str) -> None:
+    """Windows raises WinError 32 when a contender has the file open for its staleness read.
+    Giving up here strands a lock or loses a write, so retry briefly. Used by both the register
+    replace and the lock unlink, which had the same loop twice."""
+    for attempt in range(_LOCK_ATTEMPTS):
+        try:
+            action()
+            return
+        except PermissionError:
+            if attempt == _LOCK_ATTEMPTS - 1:
+                log.error("bench: %s still blocked after %d attempts", what, _LOCK_ATTEMPTS)
+                raise
+            time.sleep(0.02)
+
+
 # ---------------------------------------------------------------------------
 # The execution register (R9)
 # ---------------------------------------------------------------------------
@@ -150,14 +165,7 @@ def append_register(path: Path, entry: Dict[str, Any], *, timeout: float = 60.0)
         entries.append(entry)
         tmp = p.with_suffix(f"{p.suffix}.{os.getpid()}.{threading.get_ident()}.tmp")
         tmp.write_text(json.dumps(entries, indent=2), encoding="utf-8")
-        for attempt in range(_LOCK_ATTEMPTS):
-            try:
-                os.replace(tmp, p)
-                break
-            except PermissionError:
-                if attempt == _LOCK_ATTEMPTS - 1:
-                    raise
-                time.sleep(0.02)
+        _retry_on_sharing_violation(lambda: os.replace(tmp, p), what="register replace")
     finally:
         lock.release()
     return entry
@@ -308,18 +316,13 @@ class HostLock:
             # waiting contender until their timeout (3 of 5 runs, at exactly 60s).
             mine = True
         if mine:
-            # Windows raises WinError 32 if a contender has the file open for its staleness read.
-            # An unlink that gives up here strands the lock and every waiter times out — measured
-            # at 7 of 12 writers lost. Retry, and never let this escape.
-            for attempt in range(_LOCK_ATTEMPTS):
-                try:
-                    self.path.unlink(missing_ok=True)
-                    break
-                except PermissionError:
-                    if attempt == _LOCK_ATTEMPTS - 1:
-                        log.error("bench: could not release the host lock at %s", self.path)
-                        break
-                    time.sleep(0.02)
+            # Measured: a give-up here stranded the lock and lost 7 of 12 concurrent writers.
+            try:
+                _retry_on_sharing_violation(
+                    lambda: self.path.unlink(missing_ok=True), what="host lock release"
+                )
+            except PermissionError:
+                pass  # release must never raise; the stale check will reclaim it
         self._token = None
 
     def __enter__(self) -> "HostLock":
