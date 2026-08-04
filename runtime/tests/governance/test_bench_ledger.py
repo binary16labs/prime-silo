@@ -23,6 +23,10 @@ import pytest
 
 from benny.sdlc.bench_ledger import (
     ALIVE,
+    UnledgeredBench,
+    acquire_blocking,
+    emit_lineage,
+    require_ledgered,
     UNKNOWN,
     WEDGED,
     HostLock,
@@ -129,9 +133,11 @@ def test_context_length_and_endpoint_both_change_the_fingerprint():
 # ---------------------------------------------------------------------------
 
 
-def test_two_subjects_never_execute_concurrently(tmp_path):
-    """Scenario: two subjects never execute concurrently. The counter would exceed 1 the instant
-    an overlap occurred, so this fails loudly rather than by timing luck."""
+def test_the_loop_visits_subjects_one_at_a_time(tmp_path):
+    """NOTE: this proves almost nothing alone, and the previous docstring claiming otherwise was
+    wrong. A verifier deleted the host lock entirely and this still passed — the loop is sequential
+    by construction, so the counter merely restates that Python runs a for-loop one iteration at a
+    time. The REAL proof is the threaded contention test further down."""
     inflight = {"now": 0, "max": 0}
 
     def body(subject):

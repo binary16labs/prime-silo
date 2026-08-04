@@ -92,40 +92,73 @@ if (!r.order_stable) fail("the topology fingerprint depends on dict ordering —
 if (!r.refused_blank_run_id) fail("a register entry with a blank run_id was accepted");
 if (!r.unledgered_is_false) fail("an empty register reported a bench as ledgered");
 
-// 6. Serialisation, driven through the REAL run_serialised rather than asserted about.
+// 6. Serialisation, proven by REAL CONTENTION. The previous version used an in-flight counter
+//    inside a sequential loop, which a verifier showed proves nothing: deleting the host lock
+//    entirely left every check green. Two threads now contend for one lock_dir.
 const serial = py(`
-import json, tempfile
-from benny.sdlc.bench_ledger import run_serialised, HostLock, LockHeld
-inflight = {"now": 0, "max": 0}
+import json, tempfile, threading, time
+from benny.sdlc.bench_ledger import run_serialised, HostLock, LockHeld, emit_lineage, require_ledgered, UnledgeredBench, read_register, append_register, register_entry
+peak = {"now": 0, "max": 0}
+guard = threading.Lock()
 def body(s):
-    inflight["now"] += 1
-    inflight["max"] = max(inflight["max"], inflight["now"])
-    inflight["now"] -= 1
+    with guard:
+        peak["now"] += 1; peak["max"] = max(peak["max"], peak["now"])
+    time.sleep(0.12)
+    with guard:
+        peak["now"] -= 1
     if s == "boom":
         raise RuntimeError("endpoint refused")
     return s
+out = {}
 with tempfile.TemporaryDirectory() as d:
-    out = run_serialised(["a", "boom", "c"], body, lock_dir=d)
-    # the lock must be free after a failing subject, or every later bench blocks forever
+    def run(tag): out[tag] = run_serialised([tag + "1", tag + "2"], body, lock_dir=d)
+    ths = [threading.Thread(target=run, args=(t,)) for t in ("A", "B")]
+    [t.start() for t in ths]; [t.join() for t in ths]
+    dropped = [v for v in out["A"] + out["B"] if isinstance(v, Exception)]
+    seq = run_serialised(["a", "boom", "c"], body, lock_dir=d)
     try:
         with HostLock(d):
             free_after_failure = True
     except LockHeld:
         free_after_failure = False
+
+# the lineage claim: emitted must come from the CALL, never from an import succeeding
+calls = []
+emitted = emit_lineage({"run_id": "r1"}, emitter=lambda: (
+    lambda rid, e: calls.append(rid), lambda rid, e: calls.append(rid)))
+def _boom(rid, e): raise RuntimeError("sink down")
+failing = emit_lineage({"run_id": "r1"}, emitter=lambda: (_boom, _boom))
+
+# scenario 1 must REFUSE, not merely report
+try:
+    require_ledgered([], "run-1"); refused_unledgered = False
+except UnledgeredBench:
+    refused_unledgered = True
+
 print(json.dumps({
-  "max_inflight": inflight["max"],
-  "order": [x if isinstance(x, str) else "ERR" for x in out],
+  "peak": peak["max"], "dropped": len(dropped),
+  "order": [x if isinstance(x, str) else "ERR" for x in seq],
   "free_after_failure": free_after_failure,
+  "emitted": emitted["emitted"], "emit_calls": len(calls),
+  "failing_sink_reported_emitted": failing["emitted"],
+  "refused_unledgered": refused_unledgered,
 }))
 `);
-if (serial.status !== 0) fail(`the serialisation probe did not run:\n${serial.stderr.trim()}`);
-const s = JSON.parse(serial.stdout.trim().split(/\r?\n/).pop());
-if (s.max_inflight !== 1) fail(`two subjects were in flight at once (max ${s.max_inflight}) — the eGPU is single-tenant`);
+if (serial.status !== 0) fail(`the serialisation probe did not run: ${serial.stderr.trim()}`);
+const s = JSON.parse(serial.stdout.slice(serial.stdout.lastIndexOf("{")));
+if (s.peak !== 1) fail(`two subjects genuinely overlapped under contention (peak ${s.peak})`);
+if (s.dropped !== 0) fail(`${s.dropped} contended subject(s) were DROPPED instead of queued`);
 if (JSON.stringify(s.order) !== JSON.stringify(["a", "ERR", "c"]))
   fail(`a failing subject aborted the run: ${JSON.stringify(s.order)}`);
-if (!s.free_after_failure) fail("a failing subject stranded the host lock — every later bench would block");
+if (!s.free_after_failure) fail("a failing subject stranded the host lock");
+if (!s.emitted || s.emit_calls !== 2)
+  fail("emit_lineage did not actually call the RunEvent emitters it claims to");
+if (s.failing_sink_reported_emitted)
+  fail("a failing lineage sink was reported as emitted — `emitted` must come from the call");
+if (!s.refused_unledgered)
+  fail("an unledgered bench was not REFUSED — scenario 1's Then clause says it fails");
 
-const t = spawnSync(PY, ["-m", "pytest", "tests/governance/test_bench_ledger.py", "-q"], {
+const t = spawnSync(PY, ["-m", "pytest", "tests/governance/", "-q"], {
   cwd: RUNTIME,
   stdio: "inherit"
 });
@@ -139,9 +172,10 @@ const p1 = spawnSync(PY, ["scripts/gates/p1.py"], { cwd: ROOT, stdio: "inherit" 
 if (p1.status !== 0) fail("scripts/gates/p1.py regressed");
 
 console.log(
-  "[p3] log volume can never buy ALIVE (7 magnitudes, all WEDGED) while CPU and artifact progress " +
-    "both can; single sample and missing evidence are UNKNOWN; quantisations fingerprint apart; " +
-    "subjects strictly serialised and the lock survives a failing subject — verified"
+  "[p3] log volume can never buy ALIVE (7 magnitudes) while CPU and artifact progress both can; " +
+    "a trailing stall is WEDGED not latched-ALIVE; thresholds are rates; real two-thread " +
+    "contention shows peak concurrency 1 with nothing dropped; emit_lineage reports emitted only " +
+    "when it called; an unledgered bench is REFUSED — verified"
 );
 console.log("[p3] GATE GREEN");
 process.exit(0);
