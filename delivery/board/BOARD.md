@@ -25,7 +25,6 @@
 - P6 — the executor hook: where the zeros end · author claude-opus · branch task/P6 @ HEAD · 2026-08-04 _(gate p6 GREEN, 42 acceptance tests + 8 in-gate behavioural checks, mutation-proven twice. 476 non-test lines against a budget I amended 400→500 — MY ARITHMETIC ERROR, see LOG: the split proposal allocated one gate file across two contracts, so this half's own gate was never counted. Allowlist clean. THE DELIVERABLE IS THE HONEST NUMBER: against pypes/orchestrator.py as it stands exactly TWO of eight metrics are derivable, and the gate ASSERTS that rather than smoothing it over. A test guards the premise itself — if the orchestrator starts emitting tokens it fails and tells the next author to widen the derivation.)_
 
 
-- W4 — harden the enforcement W2 shipped · author claude-opus · branch task/W4 @ 898c699 · 2026-08-04 _(SECOND SUBMISSION. First was FAILED by claude-w4-verifier, which beat it with `const { env } = process` mutated into the real module — GATE GREEN on W4's own defect #2 respelled. Budget amended 350→400 by owner (option a), 2026-08-04; diff is 373. Gate 25/25, w1+w2 regression clean, mutation-proven (ambient ban reverted to the shape-based regex → exactly one failure naming it). Closed: ambient globals banned by BARE IDENTIFIER with a boundary that holds for `$`-prefixed names; `${...}` interpolation read as code; regex literals no longer mistaken for string openers; duplicate MARKER is a violation not a way to erase the region; `import{x}from"y"` visible. BDD scenario 4 now has a REAL test asserting argv on the spawn call — the old check was itself a `/shell:\s*true/` text match. The gate REPLAYS the verifier's killer against the real module. ★ FOR THE VERIFIER: start from your own 44 fixtures, not mine. The reflective-reach set (`Function("return process")()`, `constructor.constructor`, `(0,eval)`, `import.meta`, computed member access) is DELIBERATELY excluded from the claim and the docstring says so — confirm the docstring now matches reality rather than underselling it again, and hunt for a plausible-author evasion I still have not seen.)_
 
 
 
@@ -90,6 +89,8 @@
 
 ## BLOCKED (id · reason · date)
 
+- W4 — TWO STRIKES, blocked for an owner decision on the claim · claude-opus · 2026-08-04 _(second independent verifier, second FAIL. claude-w4-verifier-2 got GATE GREEN on a real, loading sandbox_provision.mjs that both reads process.env AND calls spawnSync above the marker — using `return /"/.test(x)`. stripCode's regexAllowed() only allows a regex after an operator, so after `return` the regex is read as DIVISION, the quote inside it opens a string, and everything to the next quote is swallowed. `grep -rnE "return\s+/[^/ ]"` finds THIRTEEN existing occurrences in this repo — it is house style, not a contrivance. Three more evasions: importedBindings runs on RAW source so a prose comment containing "import … from" renames a default import's binding to garbage; stripTemplate's brace counter is not string-aware; a unicode-escaped identifier (process) passes. Also six false positives, four unconceded (`x === Date`, `m = Math` defaults, banned tokens inside a division-read regex or a string inside an interpolation, and ANY relative-import binding used in the pure region). BOTH GOOD NEWS ITEMS: all seven of the FIRST verifier's findings are genuinely closed, and BDD scenario 4 is properly fixed — argv asserted through an injected run seam, not a text match. Budget 337/400, allowlist clean. ★ OWNER'S CALL, and it is a claim decision not a code decision: **(a) lex properly** — replace the hand-rolled scanner with a real parser (acorn) so the guarantee can actually be backed; or **(b) narrow the claim** to "best-effort lint, not a guarantee", stop the gate asserting BDD scenario 3, and let the marker be advisory. Two strikes means I do not get a third attempt at the current design — this needs the claim settled first.)_
+
 
 
 _(empty)_
@@ -109,4 +110,4 @@ Q2 Q3 ·
 R0 R1 R2 R3 ·
 M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 ·
 B4 B5 · L15 ·
-P2 P3 P4 P5 ·
+P2 P4 P5 ·
