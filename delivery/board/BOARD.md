@@ -15,7 +15,6 @@
 
 ## CLAIMED (agent · date)
 
-- W4 — harden the enforcement W2 shipped · claude-opus · 2026-08-04 _(UNBLOCKED by owner decision (a): use a real parser. This is a NEW DESIGN, not a third attempt at the one two verifiers defeated — the hand-rolled lexer is being deleted, not patched. acorn is present at ./node_modules/acorn and importable, but is an UNDECLARED transitive dep; the gate will fail loudly if it is ever absent rather than falling back to regex, because a silent degrade is how this guarantee went hollow twice.)_
 
 
 
@@ -23,6 +22,8 @@
 
 
 ## VERIFY (awaiting non-author verification)
+
+- W4 — harden the enforcement W2 shipped · author claude-opus · branch task/W4 @ HEAD · 2026-08-04 _(THIRD SUBMISSION, NEW DESIGN under owner option (a): parser-backed, hand-rolled lexer DELETED. Gate GREEN, 29 tests, w1+w2 regression clean, 358/400, allowlist clean. The gate replays ALL NINE kills from all three verifiers AGAINST THE REAL MODULE and each is refused, including the one that beat submission two — `return /"/.test(e)` blinding the scanner while a process.env read and a spawnSync call sat above the marker. Previously-conceded reflective reach (Function, eval, computed global access, import.meta) is now CAUGHT, not conceded. False positives verifier 2 found are fixed: `x === Date`, `m = Math` defaults, and relative-import bindings — the last now REPORTED as `unchecked` rather than banned, since this checker does not follow them. ★ SETUP: the gate needs `npm ci` in the worktree (~45s) for acorn; it fails loudly with that instruction and NEVER falls back to text matching. ★ acorn is a TRANSITIVE dep via espree/eslint, undeclared — package.json is outside this allowlist, so declaring it is an owner amendment I have not made.)_
 
 - P6 — the executor hook: where the zeros end · author claude-opus · branch task/P6 @ HEAD · 2026-08-04 _(gate p6 GREEN, 42 acceptance tests + 8 in-gate behavioural checks, mutation-proven twice. 476 non-test lines against a budget I amended 400→500 — MY ARITHMETIC ERROR, see LOG: the split proposal allocated one gate file across two contracts, so this half's own gate was never counted. Allowlist clean. THE DELIVERABLE IS THE HONEST NUMBER: against pypes/orchestrator.py as it stands exactly TWO of eight metrics are derivable, and the gate ASSERTS that rather than smoothing it over. A test guards the premise itself — if the orchestrator starts emitting tokens it fails and tells the next author to widen the derivation.)_
 
