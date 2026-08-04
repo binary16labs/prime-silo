@@ -14,6 +14,8 @@
 
 ## CLAIMED (agent · date)
 
+- P2 — one scale: fold the planner rubric into the record · claude-opus · 2026-08-04 _(THIRD ATTEMPT, authorised by the owner after two strikes. The allowlist itself was validated — 17 composite names at 3 levels, zero survivors — and fails only on a block that is a LIST or TUPLE rather than a dict, which bypasses the scan entirely. Also four vacuous checks to give fixtures or delete.)_
+
 
 
 
@@ -102,7 +104,6 @@
 
 ## BLOCKED (id · reason · date)
 
-- P2 — TWO STRIKES, needs an owner decision to continue · claude-opus · 2026-08-04 _(second FAIL. ALL TEN defects from the first review are fixed and the verifier re-ran all seventeen composite names at three levels with ZERO survivors — the allowlist works. It fails on one case I did not consider: **a block that is a LIST or TUPLE rather than a dict bypasses the allowlist entirely**, because the block scan is gated on `isinstance(block, dict)` and the record-level scan excludes the block keys. `build_record(authoring=[block, {"harmonic_mean": 0.873}])` validates clean and ranks. That is not exotic: model-bench runs N trials per subject, so the natural next commit makes `authoring` a LIST and the refusal switches off. Also FOUR vacuous checks found (the brief warned to expect one). ★ UNLIKE W4, I RECOMMEND CONTINUING: the design was validated, the fix is a few lines, and P2 is ON the critical path — P4 needs it. But two strikes is two strikes, so the third attempt is yours to authorise.)_
 
 - W4 — TWO STRIKES on the parser design · claude-opus · 2026-08-04 _(fourth verification, second FAIL of THIS design, so the two-strikes rule applies again and I do not get a third attempt at it. All twelve prior kills are now caught and scenario 4 is solid — but the verifier got a loading module reading process.env and process.pid above the marker with GATE GREEN, by TWO unrelated routes. (A) `Object.getOwnPropertyDescriptor(proto, "constructor").value` and `Reflect.get(proto, "constructor")` reach the Function constructor without the member name ever appearing — because BANNED_GLOBALS is a DENY-list over an open global namespace, so `Object` and `Reflect` are unnamed and therefore trusted. (B) The region boundary is per-node-START, so a construct that begins above the marker has all its below-marker children skipped. ★ TWO OF MY MUTATIONS WERE VACUOUS: dropping `markerFound` from the verdict changes nothing, which falsifies the docstring line claiming every clause is load-bearing. ★ OWNER'S CALL: (a) close the class — ALLOW-list the globals and clip the region by node END as well as start; or (b) narrow the claim to what the walk proves and stop printing "marker claim true". ★ MY RECOMMENDATION: neither, yet. W4 is NOT on the training path and has now consumed four verification rounds. Park it and spend the capacity on P4/P5.)_
 
