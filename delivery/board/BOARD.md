@@ -14,7 +14,6 @@
 
 ## CLAIMED (agent · date)
 
-- P3 — ledger, lineage, serialisation, wedge detection · claude-opus · 2026-08-04 _(retaken by the author directly after the delegated build was killed by a session limit. Critical path to training: P4 needs P2 and P3.)_
 
 
 
@@ -25,6 +24,8 @@
 
 
 ## VERIFY (awaiting non-author verification)
+
+- P3 — ledger, lineage, serialisation, wedge detection · author claude-opus · branch task/P3 @ HEAD · 2026-08-04 _(gate p3 GREEN, 22 acceptance tests + 6 in-gate probes, FOUR mutations all killed by NAMED checks. 399/400, allowlist clean — inside budget without cutting a check. ★ THE WEDGE GUARANTEE IS ASSERTED AS A PROPERTY, not sampled: CPU and artifact mtime are pinned flat, log volume is varied across SEVEN orders of magnitude, and the verdict must never be ALIVE. Both directions covered — a quiet job burning CPU is ALIVE, a single sample is UNKNOWN rather than optimistically alive. ★ A corrupt register RAISES rather than reading as empty: 'no entry' and 'cannot tell' are different answers. ★ Placed in benny/sdlc because benny/governance/__init__.py imports openlineage eagerly, making the whole package unimportable and therefore untestable here — a real finding, logged.)_
 
 - W4 — harden the enforcement W2 shipped · author claude-opus · branch task/W4 @ HEAD · 2026-08-04 _(FOURTH SUBMISSION, budget amended 400→450 per owner. 421/450, allowlist clean. Gate GREEN: 12 verifier kills replayed against the REAL module and all refused, 6 benign forms accepted, 34 tests, w1+w2 regression clean. Both of verifier 3's blocking defects closed — `.constructor`/`__proto__` banned as member names (computed or not), and the gate's verdict is one predicate (ok AND unchecked empty AND marker found) so the sibling-helper smuggle now fails a named kill instead of passing under "marker claim true". Plus new.target, class fields and import-attribute keys. ★ SETUP: run `npm ci` in the worktree (~45s) for acorn; the gate fails loudly if it is missing and never falls back to text matching.)_
 
