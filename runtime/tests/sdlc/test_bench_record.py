@@ -1,6 +1,6 @@
 """P2 — one record, two blocks, no composite.
 
-Red tests. They fail until `benny/pypes/bench_record.py` exists.
+Red tests. They fail until `benny/sdlc/bench_record.py` exists.
 
 `pypes model-bench` scores manifest AUTHORING; `run_multi_model` scores agentic NAVIGATION. Two
 scales with no comparability between them. P2 lands both on one record — and refuses to invent the
@@ -18,8 +18,10 @@ from __future__ import annotations
 import pytest
 
 from benny.sdlc.bench_record import (
+    AUTHORING_KEYS,
     BENCH_RECORD_KIND,
-    FORBIDDEN_KEY_PATTERN,
+    NAVIGATION_KEYS,
+    RECORD_KEYS,
     authoring_block,
     build_record,
     navigation_block,
@@ -109,7 +111,9 @@ def test_a_block_may_be_explicitly_not_scored_but_not_silently_absent():
 # ---------------------------------------------------------------------------
 
 
-def test_no_composite_or_weighted_field_is_emitted():
+def test_every_emitted_key_is_one_the_schema_declares():
+    """The previous version of this test asserted the record against the denylist itself, so it
+    could only ever catch names already on the list. This asserts against the SCHEMA."""
     rec = build_record(
         "s",
         authoring=authoring_block(TRIAL),
@@ -117,17 +121,34 @@ def test_no_composite_or_weighted_field_is_emitted():
         rubric_hash="h",
         primary_metric="navigation.tool_selection_accuracy",
     )
+    assert set(rec) <= RECORD_KEYS, set(rec) - RECORD_KEYS
+    assert set(rec["authoring"]) <= AUTHORING_KEYS, set(rec["authoring"]) - AUTHORING_KEYS
+    assert set(rec["navigation"]) <= NAVIGATION_KEYS, set(rec["navigation"]) - NAVIGATION_KEYS
 
-    def keys(obj, prefix=""):
-        out = []
-        if isinstance(obj, dict):
-            for k, v in obj.items():
-                out.append(f"{prefix}{k}")
-                out.extend(keys(v, f"{prefix}{k}."))
-        return out
 
-    offenders = [k for k in keys(rec) if FORBIDDEN_KEY_PATTERN.search(k.split(".")[-1])]
-    assert offenders == [], offenders
+def test_the_names_that_walked_through_the_denylist_are_now_refused():
+    """Every one of these was ACCEPTED by the seven-word denylist. `harmonic_mean` is the textbook
+    way to combine two normalised scales; `model_rating` is the obvious name, not an exotic one."""
+    rec = build_record(
+        "s", authoring=authoring_block(TRIAL), navigation=navigation_block(_nav()),
+        rubric_hash="h", primary_metric="authoring.has_required_ops",
+    )
+    for name in ("harmonic_mean", "merit_score", "model_rating", "rating", "index", "points",
+                 "score", "grade", "rollup", "merit", "fitness", "unified_scale", "z_score"):
+        ok, errors = validate_record({**rec, name: 0.86})
+        assert not ok, f"{name} was accepted"
+        assert any(name in e for e in errors), errors
+
+
+def test_a_composite_inside_a_tuple_is_refused():
+    """_forbidden_keys recursed into lists but not tuples, and validation runs before any JSON
+    round-trip could normalise one away."""
+    rec = build_record(
+        "s", authoring=authoring_block(TRIAL), navigation=navigation_block(_nav()),
+        rubric_hash="h", primary_metric="authoring.has_required_ops",
+    )
+    ok, errors = validate_record({**rec, "roster_hash": ({"harmonic_mean": 0.9},)})
+    assert not ok, errors
 
 
 def test_a_record_carrying_a_composite_is_rejected_by_the_validator():
@@ -275,11 +296,10 @@ def test_the_authoring_block_projects_the_trial_without_inventing_fields():
     assert block["wall_seconds"] == 12.5
     assert block["total_tokens"] == 4210
     assert block["quality_score"] == 7.5
-    # Nothing that was not in the trial appears in the block, apart from the source marker.
-    assert set(block) <= {
-        "has_required_ops", "step_count", "parse_ok", "wall_seconds",
-        "total_tokens", "cost_usd", "quality_score", "status", "model", "source",
-    }
+    # Nothing that was not in the trial appears in the block, apart from the source marker and the
+    # unmeasured list — and that list is exactly the schema, so it cannot smuggle a field in.
+    assert set(block) <= AUTHORING_KEYS
+    assert block["unmeasured"] == [], "every field in this trial was present"
 
 
 def test_a_trial_missing_a_score_yields_none_not_zero():
@@ -287,3 +307,86 @@ def test_a_trial_missing_a_score_yields_none_not_zero():
     block = authoring_block(thin)
     assert block["has_required_ops"] is None
     assert block["quality_score"] is None
+
+
+# ---------------------------------------------------------------------------
+# Defects found by claude-p2-verifier (LOG 2026-08-04T17:30Z) — regression tests
+# ---------------------------------------------------------------------------
+
+
+def test_records_declaring_no_rubric_hash_at_all_cannot_rank():
+    """`{None}` is a set of size one, so the "same rubric hash" guard passed happily for records
+    that declared NO instrument — R10 satisfied vacuously by the absence of a rubric."""
+    recs = [
+        build_record("a", authoring=None, navigation=navigation_block(_nav(tool_efficiency=0.5)),
+                     rubric_hash="h", primary_metric="navigation.tool_efficiency"),
+        build_record("b", authoring=None, navigation=navigation_block(_nav(tool_efficiency=0.6)),
+                     rubric_hash="h", primary_metric="navigation.tool_efficiency"),
+    ]
+    for r in recs:
+        r["rubric_hash"] = None
+    with pytest.raises(ValueError) as exc:
+        rank_records(recs)
+    assert "rubric" in str(exc.value).lower()
+
+
+def test_availability_is_judged_on_the_block_being_ranked():
+    """Ranking by an AUTHORING metric must not drop a subject because its NAVIGATION sandbox was
+    down — the exclusion was hardwired to navigation regardless of what was being ranked."""
+    down_nav = navigation_block(
+        SandboxResult(model="a", status="unavailable", unavailable_reason="endpoint refused")
+    )
+    recs = [
+        build_record("a", authoring=authoring_block(TRIAL), navigation=down_nav,
+                     rubric_hash="h", primary_metric="authoring.has_required_ops"),
+        build_record("b", authoring=authoring_block({**TRIAL, "auto_scores": {"has_required_ops": 0.2}}),
+                     navigation=navigation_block(_nav()),
+                     rubric_hash="h", primary_metric="authoring.has_required_ops"),
+    ]
+    out = rank_records(recs)
+    assert [r["subject"] for r in out["ranked"]] == ["a", "b"], out["excluded"]
+    assert out["excluded"] == []
+
+
+def test_a_block_lying_about_its_own_unmeasured_list_is_refused():
+    """The record's central invariant, previously assumed rather than checked: a block could claim
+    everything was measured while carrying nulls, and validate."""
+    rec = build_record("s", authoring=authoring_block(TRIAL),
+                       navigation=navigation_block(_nav(tool_efficiency=0.5)),
+                       rubric_hash="h", primary_metric="navigation.tool_efficiency")
+    understated = {**rec["navigation"], "unmeasured": []}
+    ok, errors = validate_record({**rec, "navigation": understated})
+    assert not ok and any("unmeasured" in e for e in errors), errors
+
+    overstated = {**rec["navigation"], "unmeasured": sorted(METRIC_FIELDS)}
+    ok, errors = validate_record({**rec, "navigation": overstated})
+    assert not ok and any("unmeasured" in e for e in errors), errors
+
+
+def test_the_authoring_block_carries_its_own_unmeasured_list():
+    """The record was asymmetric on its central invariant — navigation carried the list, authoring
+    did not, so `has_required_ops=0.0` and `parse_ok=None` were distinguishable only by a
+    null-check, the very inference the list exists to make unnecessary."""
+    thin = authoring_block({"model": "m", "status": "OK", "auto_scores": {}})
+    assert "quality_score" in thin["unmeasured"]
+    assert "has_required_ops" in thin["unmeasured"]
+    scored = authoring_block({**TRIAL, "auto_scores": {**TRIAL["auto_scores"], "has_required_ops": 0.0}})
+    assert "has_required_ops" not in scored["unmeasured"], "a genuine zero is measured"
+
+
+def test_ranking_a_non_numeric_metric_is_a_named_refusal_not_a_bare_TypeError():
+    recs = [build_record("a", authoring=None, navigation=navigation_block(_nav()),
+                         rubric_hash="h", primary_metric="navigation.tool_efficiency")]
+    recs[0]["navigation"]["tool_efficiency"] = "high"
+    with pytest.raises(ValueError) as exc:
+        rank_records(recs)
+    assert "cannot be ranked" in str(exc.value)
+
+
+def test_records_with_no_primary_metric_are_a_named_refusal():
+    recs = [build_record("a", authoring=None, navigation=navigation_block(_nav(tool_efficiency=0.5)),
+                         rubric_hash="h", primary_metric="navigation.tool_efficiency")]
+    recs[0]["primary_metric"] = None
+    with pytest.raises(ValueError) as exc:
+        rank_records(recs)
+    assert "nothing to rank" in str(exc.value)

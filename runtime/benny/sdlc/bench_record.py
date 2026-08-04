@@ -35,16 +35,30 @@ from .sandbox_runner import METRIC_FIELDS, SandboxResult
 
 BENCH_RECORD_KIND = "bench_record/1"
 
-#: Any field name matching this is a composite by another name. Checked at every depth, because a
-#: blend hidden one level down still ends up being the number people quote.
-FORBIDDEN_KEY_PATTERN = re.compile(
-    r"composite|weighted|overall|combined|aggregate_score|total_score|blend", re.IGNORECASE
-)
-
 #: The authoring fields projected from a model_compare trial. A projection, not a rewrite — this
 #: module never recomputes a score that `model_compare` already produced.
 _AUTHORING_SCORES = ("has_required_ops", "step_count", "parse_ok")
 _AUTHORING_TOP = ("wall_seconds", "total_tokens", "cost_usd", "quality_score", "status", "model")
+
+# --- The refusal, as an ALLOWLIST -------------------------------------------
+# The first version of this was a denylist of seven stems: composite|weighted|overall|... Its own
+# verifier walked `harmonic_mean` straight through it — the textbook way to combine two normalised
+# scales — along with `merit_score`, `rating`, `fitness` and `index`. Worse, the test asserted the
+# emitted record against that same pattern, so it could only ever catch names already on the list.
+#
+# A denylist requires guessing every name a composite might wear. An allowlist requires only knowing
+# the schema, which this module already does. An unrecognised key is now the violation, so a blend
+# cannot arrive under a name nobody thought to ban.
+AUTHORING_KEYS = frozenset({"source", "unmeasured", *_AUTHORING_SCORES, *_AUTHORING_TOP})
+NAVIGATION_KEYS = frozenset(
+    {"source", "status", "unavailable_reason", "run_id", "unmeasured", *METRIC_FIELDS}
+)
+RECORD_KEYS = frozenset(
+    {
+        "kind", "subject", "authoring", "navigation", "scored_on",
+        "rubric_hash", "roster_hash", "topology", "primary_metric",
+    }
+)
 
 
 def authoring_block(trial: Dict[str, Any]) -> Dict[str, Any]:
@@ -62,6 +76,11 @@ def authoring_block(trial: Dict[str, Any]) -> Dict[str, Any]:
         block[key] = scores.get(key)
     for key in _AUTHORING_TOP:
         block[key] = trial.get(key)
+    # Carried here for the same reason the navigation block carries it: so a consumer that ignores
+    # nulls cannot mistake the record for complete. Its absence made the record asymmetric on its
+    # own central invariant — `has_required_ops=0.0` and `parse_ok=None` were distinguishable only
+    # by the null-check this list exists to make unnecessary.
+    block["unmeasured"] = sorted(k for k in _AUTHORING_SCORES + _AUTHORING_TOP if block[k] is None)
     return block
 
 
@@ -130,16 +149,18 @@ def build_record(
     return record
 
 
-def _forbidden_keys(obj: Any, prefix: str = "") -> List[str]:
+def _unknown_keys(obj: Any, allowed: frozenset, prefix: str) -> List[str]:
+    """Keys not in `allowed`, at every depth. Recurses through dicts, lists AND tuples — the
+    previous version handled the first two, and a dict inside a tuple walked through."""
     found: List[str] = []
     if isinstance(obj, dict):
         for key, value in obj.items():
-            if FORBIDDEN_KEY_PATTERN.search(str(key)):
+            if key not in allowed:
                 found.append(f"{prefix}{key}")
-            found.extend(_forbidden_keys(value, f"{prefix}{key}."))
-    elif isinstance(obj, list):
+            found.extend(_unknown_keys(value, allowed, f"{prefix}{key}."))
+    elif isinstance(obj, (list, tuple)):
         for i, value in enumerate(obj):
-            found.extend(_forbidden_keys(value, f"{prefix}{i}."))
+            found.extend(_unknown_keys(value, allowed, f"{prefix}{i}."))
     return found
 
 
@@ -156,11 +177,36 @@ def validate_record(record: Dict[str, Any]) -> Tuple[bool, List[str]]:
             )
     if not record.get("rubric_hash"):
         errors.append("rubric_hash is required — an unfrozen rubric makes the numbers unrankable (R10)")
-    for key in _forbidden_keys(record):
+
+    # The refusal. Every key must be one the schema declares; anything else is how a composite
+    # arrives wearing a name nobody thought to ban.
+    unknown = [(k, "record") for k in _unknown_keys(
+        {k: v for k, v in record.items() if k not in ("authoring", "navigation")}, RECORD_KEYS, "")]
+    for name, allowed in (("authoring", AUTHORING_KEYS), ("navigation", NAVIGATION_KEYS)):
+        block = record.get(name)
+        if isinstance(block, dict):
+            unknown += [(k, name) for k in _unknown_keys(block, allowed, f"{name}.")]
+    for key, where in unknown:
         errors.append(
-            f"{key} looks like a composite score, which this record refuses to carry (design D3): "
-            "a weighted blend invented at design time is an unfrozen rubric wearing a number"
+            f"{key} is not a field the {where} schema declares. A record may only carry known "
+            "fields — an unrecognised key is how a composite score arrives under a name nobody "
+            "thought to ban, and a weighted blend invented at design time is an unfrozen rubric "
+            "wearing a number (design D3)"
         )
+
+    # The record's central invariant, checked rather than assumed: `unmeasured` must agree with the
+    # actual nulls. Previously a block could claim everything was measured while carrying nulls,
+    # or list a field it had in fact measured, and still validate.
+    for name, fields in (("authoring", _AUTHORING_SCORES + _AUTHORING_TOP), ("navigation", METRIC_FIELDS)):
+        block = record.get(name)
+        if not isinstance(block, dict) or "unmeasured" not in block:
+            continue
+        actual = sorted(f for f in fields if f in block and block[f] is None)
+        if sorted(block["unmeasured"]) != actual:
+            errors.append(
+                f"{name}.unmeasured says {sorted(block['unmeasured'])} but the nulls are {actual} — "
+                "the list and the values must agree or neither can be trusted"
+            )
     return (not errors, errors)
 
 
@@ -179,24 +225,36 @@ def rank_records(
     metrics = {r.get("primary_metric") for r in records}
     if len(metrics) != 1:
         raise ValueError(f"records declare different primary metrics {sorted(map(str, metrics))} — not comparable")
+    primary_metric = records[0].get("primary_metric")
+    if not primary_metric:
+        raise ValueError("records declare no primary metric — there is nothing to rank them by")
+
     hashes = {r.get("rubric_hash") for r in records}
     if len(hashes) != 1:
         raise ValueError(
             f"records carry different rubric hashes {sorted(map(str, hashes))} — the instrument "
             "changed between them, so a post-hoc rubric edit has invalidated the comparison (R10)"
         )
+    # `{None}` is a set of size one, so the check above passed happily for records that declared NO
+    # instrument at all — the R10 guarantee satisfied vacuously by the absence of a rubric.
+    if not records[0].get("rubric_hash"):
+        raise ValueError("records carry no rubric hash — an undeclared instrument cannot freeze a comparison (R10)")
 
-    primary_metric = records[0]["primary_metric"]
+    block_name = primary_metric.split(".", 1)[0]
     ranked: List[Dict[str, Any]] = []
     excluded: List[Tuple[str, str]] = []
     for record in records:
-        nav = record.get("navigation") or {}
-        if nav.get("status") == "unavailable":
+        # Availability is judged on the block being RANKED, not always on navigation. Hardwiring it
+        # dropped a subject from an authoring ranking because an unrelated sandbox was down.
+        block = record.get(block_name) or {}
+        if block.get("status") == "unavailable":
             excluded.append((record["subject"], "unavailable"))
             continue
         value = _resolve_metric(record, primary_metric)
         if value is None:
             excluded.append((record["subject"], "unmeasured"))
+        elif not isinstance(value, (int, float)) or isinstance(value, bool):
+            raise ValueError(f"{record['subject']}'s {primary_metric} is {value!r}, which cannot be ranked")
         else:
             ranked.append(record)
 

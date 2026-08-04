@@ -7,9 +7,11 @@
 // wearing a number, and once it exists it is the number people quote.
 //
 // The "existing callers are byte-identical" scenario is checked STRUCTURALLY rather than by
-// re-running the tool: the gate proves `runtime/benny/pypes/` is untouched since the merge-base.
-// That is a stronger guarantee than comparing one sampled output, and it holds without pydantic,
-// which the ambient interpreter lacks.
+// re-running the tool: the gate proves model-bench's whole code path is untouched since the
+// merge-base. Stronger than comparing one sampled output, and it holds without pydantic.
+//
+// The refusal is an ALLOWLIST. The first version was a denylist of seven stems and its verifier
+// walked `harmonic_mean` through it — a denylist needs every name guessed in advance.
 //
 // Contract: delivery/tasks/P2.md
 import { spawnSync } from "node:child_process";
@@ -36,12 +38,15 @@ for (const rel of ["runtime/benny/sdlc/bench_record.py", "runtime/tests/sdlc/tes
 //    branch cut before an intervening merge systematically overstates.
 const base = git("merge-base", "main", "HEAD").stdout.trim();
 if (!base) fail("could not determine the merge-base against main");
-const touched = git("diff", "--name-only", `${base}..HEAD`, "--", "runtime/benny/pypes/")
+// model-bench's code path leaves pypes/ — model_compare imports from benny/graph/. Watching only
+// pypes/ was sound today and unsound as a durable gate.
+const MODEL_BENCH_PATHS = ["runtime/benny/pypes/", "runtime/benny/graph/"];
+const touched = git("diff", "--name-only", `${base}..HEAD`, "--", ...MODEL_BENCH_PATHS)
   .stdout.split(/\r?\n/)
   .filter(Boolean);
 if (touched.length)
   fail(
-    `runtime/benny/pypes/ was modified (${touched.join(", ")}) — P2 must be additive, and ` +
+    `model-bench's code path was modified (${touched.join(", ")}) — P2 must be additive, and ` +
       "model-bench's existing output must be byte-identical for current callers"
   );
 
@@ -56,12 +61,24 @@ rec = build_record("s", authoring=authoring_block(trial),
                    navigation=navigation_block(SandboxResult(model="s", tool_selection_accuracy=0.9, total_cost=0.0)),
                    rubric_hash="h", primary_metric="navigation.tool_selection_accuracy")
 ok, errors = validate_record(rec)
-missing = [b for b in ("authoring", "navigation") if b not in rec]
+missing_ok, _me = validate_record({k: v for k, v in rec.items() if k != "navigation"})
+ranked = rank_records([rec])
+try:
+    two = [dict(rec), dict(rec)]
+    for x in two: x["rubric_hash"] = None
+    rank_records(two); unhashed_ranked = True
+except ValueError:
+    unhashed_ranked = False
+survivors = [n for n in ("harmonic_mean", "merit_score", "rating", "fitness", "index")
+             if validate_record({**rec, n: 0.9})[0]]
 poisoned_ok, _ = validate_record({**rec, "composite_score": 0.9})
 nested_ok, _ = validate_record({**rec, "authoring": {**rec["authoring"], "weighted_mean": 0.5}})
 nav = rec["navigation"]
 print(json.dumps({
-  "ok": ok, "errors": errors, "missing": missing,
+  "ok": ok, "errors": errors,
+  "missing_block_refused": not missing_ok,
+  "ranked_one": [x["subject"] for x in ranked["ranked"]],
+  "unhashed_ranked": unhashed_ranked, "survivors": survivors,
   "scored_on": rec["scored_on"],
   "composite_rejected": not poisoned_ok,
   "nested_composite_rejected": not nested_ok,
@@ -73,7 +90,10 @@ if (probe.status !== 0) fail(`the record probe did not run:\n${probe.stderr.trim
 const r = JSON.parse(probe.stdout.trim().split(/\r?\n/).pop());
 
 if (!r.ok) fail(`a freshly built record does not validate: ${r.errors.join("; ")}`);
-if (r.missing.length) fail(`record is missing block(s): ${r.missing.join(", ")}`);
+if (!r.missing_block_refused) fail("validate_record accepted a record missing a block");
+if (JSON.stringify(r.ranked_one) !== JSON.stringify(["s"])) fail("rank_records did not rank a valid record");
+if (r.unhashed_ranked) fail("two records declaring NO rubric hash ranked together — R10 satisfied vacuously");
+if (r.survivors.length) fail(`composites accepted by name: ${r.survivors.join(", ")} — the refusal is a denylist again`);
 if (r.scored_on.length !== 2) fail(`scored_on should name both surfaces, got ${JSON.stringify(r.scored_on)}`);
 if (!r.composite_rejected) fail("a record carrying composite_score was ACCEPTED — the refusal is hollow");
 if (!r.nested_composite_rejected)
@@ -85,10 +105,12 @@ if (!r.unmeasured_stayed_none) fail("an unmeasured metric did not survive onto t
 if (!r.genuine_zero_kept)
   fail("a genuine 0.0 was recorded as unmeasured — the converse error, and just as wrong");
 
-// 4. No composite anywhere in the module's own source, as a second and independent line.
+// 4. The refusal must remain an ALLOWLIST. A denylist requires guessing every name a composite
+//    might wear, and `harmonic_mean` was not on the list — that is what failed this contract.
 const src = fs.readFileSync(path.join(RUNTIME, "benny/sdlc/bench_record.py"), "utf8");
-for (const m of src.matchAll(/^\s*(?:block|record)\[["'](\w*(?:composite|weighted|overall)\w*)["']\]/gim))
-  fail(`bench_record.py assigns a composite-looking field: ${m[1]}`);
+for (const constant of ["AUTHORING_KEYS", "NAVIGATION_KEYS", "RECORD_KEYS"])
+  if (!src.includes(`${constant} = frozenset`))
+    fail(`${constant} is gone — the refusal has reverted to guessing composite names`);
 
 const t = spawnSync(process.env.PYTHON ?? "python", ["-m", "pytest", "tests/sdlc/test_bench_record.py", "-q"], {
   cwd: RUNTIME,
@@ -106,9 +128,9 @@ for (const g of ["scripts/gates/p1.py", "scripts/gates/p6.py"]) {
 }
 
 console.log(
-  "[p2] one record with two blocks; composite refused at top level and nested; pypes/ untouched " +
-    "since the merge-base so existing callers are byte-identical; unmeasured and genuine-zero both " +
-    "survive serialisation — verified"
+  "[p2] two blocks on one record; the refusal is an allowlist so an unknown key is a violation " +
+    "whatever it is named; ranking refuses an undeclared rubric; model-bench's code path untouched " +
+    "since the merge-base; unmeasured and genuine-zero both survive serialisation — verified"
 );
 console.log("[p2] GATE GREEN");
 process.exit(0);
