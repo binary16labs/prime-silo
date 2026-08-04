@@ -54,38 +54,85 @@ log = logging.getLogger(__name__)  # AOS-OBS2: under benny.sdlc.* hierarchy
 # ---------------------------------------------------------------------------
 
 
+#: The eight AOS-F30 metric fields, in report order. Single source of truth —
+#: `bench_executor` derives exactly these, and `rank_subjects` ranks by one of them.
+METRIC_FIELDS = (
+    "tool_selection_accuracy",
+    "tool_efficiency",
+    "context_efficiency",
+    "iteration_latency_ms_p95",
+    "loop_count_p95",
+    "constraint_adherence",
+    "total_cost",
+    "total_tokens",
+)
+
+#: Sentinel asking for the zeroed stub deliberately (P1/R2, design D4).
+DRY_RUN = "dry-run"
+
+
 @dataclass
 class SandboxResult:
     """Per-model metrics produced by the sandbox runner (AOS-F30).
 
+    **Every metric is ``Optional`` and defaults to ``None`` (P1/R3).** ``None``
+    means *not measured*; it is not a zero, is rendered as ``unmeasured``, and is
+    excluded from ranking. This is the whole point of P1: the previous shape made
+    an underived metric indistinguishable from a real zero, so eight fields that
+    had never once been measured read as eight legitimate scores.
+
     Fields
     ------
-    model:                    LLM model identifier.
+    model:                    Subject label (design D2) or LLM model identifier.
     tool_selection_accuracy:  Fraction [0,1] of correct tool choices.
-    tool_efficiency:          tools_used / minimum_required [0,1].
-    context_efficiency:       unique_tokens / total_tokens [0,1].
+    tool_efficiency:          minimum_required / tools_used [0,1].
+    context_efficiency:       unique_tokens / prompt_tokens [0,1].
     iteration_latency_ms_p95: p95 iteration wall-time in milliseconds.
-    loop_count_p95:           p95 number of agentic loops.
+    loop_count_p95:           p95 number of agentic loops (attempts per node).
     constraint_adherence:     1.0 = no schema drift [0,1].
     total_cost:               Estimated USD cost of the run.
     total_tokens:             Total tokens consumed (prompt + completion).
     captured_at:              ISO-8601 UTC timestamp.
+    status:                   ``ok`` | ``unavailable`` | ``dry-run``.
+    unavailable_reason:       Why the subject could not be run, when unavailable.
+    run_id:                   Run whose event stream these metrics were folded from.
     """
 
     model: str
-    tool_selection_accuracy: float
-    tool_efficiency: float
-    context_efficiency: float
-    iteration_latency_ms_p95: float
-    loop_count_p95: int
-    constraint_adherence: float
-    total_cost: float
-    total_tokens: int
+    tool_selection_accuracy: Optional[float] = None
+    tool_efficiency: Optional[float] = None
+    context_efficiency: Optional[float] = None
+    iteration_latency_ms_p95: Optional[float] = None
+    loop_count_p95: Optional[int] = None
+    constraint_adherence: Optional[float] = None
+    total_cost: Optional[float] = None
+    total_tokens: Optional[int] = None
     captured_at: str = field(default="")
+    status: str = "ok"
+    unavailable_reason: Optional[str] = None
+    run_id: Optional[str] = None
 
     def __post_init__(self) -> None:
         if not self.captured_at:
             self.captured_at = datetime.now(timezone.utc).isoformat()
+
+    @property
+    def unmeasured(self) -> tuple[str, ...]:
+        """Metric names this run could not derive. Empty tuple = fully measured."""
+        return tuple(f for f in METRIC_FIELDS if getattr(self, f) is None)
+
+    @property
+    def measured(self) -> tuple[str, ...]:
+        return tuple(f for f in METRIC_FIELDS if getattr(self, f) is not None)
+
+
+def unavailable_result(model: str, reason: str) -> SandboxResult:
+    """A subject that could not be run at all. NOT a zeroed row.
+
+    Zeros here would rank the subject last *on merit* — as though it had been
+    measured and performed terribly — instead of excluding it as unmeasured.
+    """
+    return SandboxResult(model=model, status="unavailable", unavailable_reason=reason)
 
 
 # ---------------------------------------------------------------------------
@@ -94,7 +141,13 @@ class SandboxResult:
 
 
 def _dry_run_stub(model: str, manifest_path: Path, workspace: Path) -> SandboxResult:
-    """Dry-run stub that returns a zeroed SandboxResult (no LLM invocation)."""
+    """Dry-run stub: a zeroed SandboxResult, no LLM invoked.
+
+    Kept (design D4) but now reachable ONLY by asking for it by name, and tagged
+    ``status="dry-run"`` so no report can present it as a measurement. Note the
+    ``constraint_adherence=1.0`` below: for years this stub awarded a *perfect*
+    adherence score to a run that never happened.
+    """
     return SandboxResult(
         model=model,
         tool_selection_accuracy=0.0,
@@ -105,7 +158,26 @@ def _dry_run_stub(model: str, manifest_path: Path, workspace: Path) -> SandboxRe
         constraint_adherence=1.0,
         total_cost=0.0,
         total_tokens=0,
+        status=DRY_RUN,
     )
+
+
+def _select_runner(hook: Any) -> _ModelHook:
+    """Resolve the ``hook`` argument to a callable, or refuse loudly (R2, D4)."""
+    if hook is None:
+        raise ValueError(
+            "run_multi_model(hook=...) is required. Passing None used to select "
+            "_dry_run_stub silently, which returns 0.0 for every metric — "
+            "indistinguishable in the report from a real run that scored zero, "
+            "which is how eight metrics went years without ever being measured. "
+            f"Pass a real hook (see benny.sdlc.bench_executor.make_bench_hook), or "
+            f"hook={DRY_RUN!r} to ask for the zeroed stub deliberately."
+        )
+    if hook == DRY_RUN:
+        return _dry_run_stub
+    if not callable(hook):
+        raise TypeError(f"hook must be callable or {DRY_RUN!r}, got {type(hook).__name__}")
+    return hook
 
 
 # ---------------------------------------------------------------------------
@@ -120,7 +192,7 @@ def run_multi_model(
     *,
     models: List[str],
     workspace: Path,
-    hook: Optional[_ModelHook] = None,
+    hook: Any = None,
 ) -> List[SandboxResult]:
     """Execute *manifest_path* against each model and return per-model results.
 
@@ -129,41 +201,70 @@ def run_multi_model(
     manifest_path:
         Path to the SDLC manifest JSON file.
     models:
-        List of model identifiers to run against (e.g. ``["lm_a", "lm_b"]``).
+        Subject labels to run (design D2 — a subject is a persona→model
+        assignment, and "one model everywhere" is the degenerate case).
     workspace:
         Workspace root directory.
     hook:
-        Optional callable ``(model, manifest_path, workspace) → SandboxResult``.
-        Defaults to a dry-run stub when ``None``.
+        **Required.** A callable ``(subject, manifest_path, workspace) →
+        SandboxResult``, or the string ``"dry-run"`` to select the zeroed stub
+        deliberately. ``None`` raises — see :func:`_select_runner`.
 
     Returns
     -------
     list[SandboxResult]
-        One result per model, in the same order as *models*.
+        One result per subject, in the same order as *models*. A subject that
+        could not be run yields an ``unavailable`` row and does **not** abort the
+        others.
     """
-    runner = hook or _dry_run_stub
+    runner = _select_runner(hook)
     results: List[SandboxResult] = []
 
     for model in models:
-        log.debug("aos: sandbox running model %s against %s", model, manifest_path.name)
+        log.debug("aos: sandbox running model %s against %s", model, Path(manifest_path).name)
         try:
             result = runner(model, Path(manifest_path), Path(workspace))
-        except Exception as exc:  # pragma: no cover — defensive
-            log.warning("aos: sandbox run failed for model %s: %s", model, exc)
-            result = SandboxResult(
-                model=model,
-                tool_selection_accuracy=0.0,
-                tool_efficiency=0.0,
-                context_efficiency=0.0,
-                iteration_latency_ms_p95=0.0,
-                loop_count_p95=0,
-                constraint_adherence=0.0,
-                total_cost=0.0,
-                total_tokens=0,
-            )
+        except Exception as exc:
+            # One unreachable subject must not take the comparison down with it.
+            # The row is `unavailable` with a reason — never a zeroed row, which
+            # would read as "measured, and terrible".
+            log.warning("aos: sandbox run unavailable for subject %s: %s", model, exc)
+            result = unavailable_result(model, f"{type(exc).__name__}: {exc}")
         results.append(result)
 
     return results
+
+
+def rank_subjects(
+    results: List[SandboxResult],
+    *,
+    primary_metric: str,
+    higher_is_better: bool = True,
+) -> dict[str, Any]:
+    """Rank subjects by one declared metric, excluding anything unmeasured (D3).
+
+    There is deliberately **no composite score**: a weighted blend invented at
+    design time is an unfrozen rubric wearing a number. Ranking declares its
+    primary metric up front and reports what it had to leave out, so a thin
+    comparison cannot masquerade as a complete one.
+
+    Returns ``{"ranked": [...], "excluded": [(model, why), ...], "primary_metric": str}``.
+    """
+    if primary_metric not in METRIC_FIELDS:
+        raise ValueError(f"unknown primary_metric {primary_metric!r}; expected one of {METRIC_FIELDS}")
+
+    ranked: List[SandboxResult] = []
+    excluded: List[tuple] = []
+    for r in results:
+        if r.status == "unavailable":
+            excluded.append((r.model, "unavailable"))
+        elif getattr(r, primary_metric) is None:
+            excluded.append((r.model, "unmeasured"))
+        else:
+            ranked.append(r)
+
+    ranked.sort(key=lambda r: (-getattr(r, primary_metric) if higher_is_better else getattr(r, primary_metric), r.model))
+    return {"ranked": ranked, "excluded": excluded, "primary_metric": primary_metric}
 
 
 # ---------------------------------------------------------------------------
@@ -215,24 +316,34 @@ def write_sandbox_report(
     ]
 
     # Table header
-    cols = [
-        "model",
-        "tool_selection_accuracy",
-        "tool_efficiency",
-        "context_efficiency",
-        "iteration_latency_ms_p95",
-        "loop_count_p95",
-        "constraint_adherence",
-        "total_cost",
-        "total_tokens",
-    ]
-    lines.append("| " + " | ".join(cols) + " |")
-    lines.append("| " + " | ".join(["---"] * len(cols)) + " |")
+    cols = ["model", *METRIC_FIELDS]
+    lines.append("| " + " | ".join(["status", *cols]) + " |")
+    lines.append("| " + " | ".join(["---"] * (len(cols) + 1)) + " |")
 
     for r in results:
         row = asdict(r)
-        cells = [str(row.get(c, "—")) for c in cols]
-        lines.append("| " + " | ".join(cells) + " |")
+        # `None` renders as `unmeasured`, never as blank and never as 0. A blank
+        # cell reads as an oversight; a zero reads as a result. It was neither.
+        cells = [str(row.get(c)) if row.get(c) is not None else "unmeasured" for c in cols]
+        lines.append("| " + " | ".join([r.status, *cells]) + " |")
+
+    unavailable = [r for r in results if r.status == "unavailable"]
+    if unavailable:
+        lines += ["", "## Unavailable subjects", ""]
+        lines += [f"- `{r.model}` — {r.unavailable_reason}" for r in unavailable]
+
+    gaps = {f for r in results for f in r.unmeasured if r.status != "unavailable"}
+    if gaps:
+        lines += [
+            "",
+            "## Unmeasured",
+            "",
+            "These metrics could not be derived from the run-event stream and are "
+            "reported as `unmeasured`. They are excluded from ranking. An unmeasured "
+            "metric is **not** a zero:",
+            "",
+            *[f"- `{f}`" for f in sorted(gaps)],
+        ]
 
     lines += ["", "---", ""]
 
