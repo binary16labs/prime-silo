@@ -13,6 +13,8 @@
 
 ## CLAIMED (agent · date)
 
+- P1 — the metric schema: unmeasured is not zero · claude-opus · 2026-08-04 _(SPLIT per owner decision; contract rewritten and rescoped to sandbox_runner.py + gate, budget 400. The code already exists and is green on task/P1 — this claim covers separating it from P6's half so each stands alone.)_
+
 
 
 
@@ -82,11 +84,12 @@
 ## BLOCKED (id · reason · date)
 
 
-- P1 — over budget, needs split · claude-opus · 2026-08-03 _(work is COMPLETE and GREEN on branch task/P1 @ HEAD — gate p1 passes 34/34 and is mutation-proven twice — but the diff is **673 non-test lines against a budget of 550**, derived with the project's own `checkBudget` from the merge-base, not by eye. Allowlist clean. I am not amending my own budget: that is the discipline the number exists to impose. PROPOSED SPLIT, owner's call: **P1a** = `sandbox_runner.py` + `scripts/gates/p1.py` (344 lines) — SandboxResult optionality, `hook=None` raises, unavailable rows, `rank_subjects`, report rendering; **P1b** = `bench_executor.py` (329 lines) — roster resolution and the event-stream derivation. P1a is the contract's actual acceptance criteria and stands alone; P1b is what makes it produce numbers. Nothing is lost — both halves are already written and passing on the branch.)_
 
 _(empty)_
 
 ## AUTHORED (contracts in tasks/, waiting on deps — W0 conversion 2026-07-07)
+
+- P6 — the executor hook: where the zeros end _(dep P1; split from the original P1 on 2026-08-04. Folds the G0 run-event stream into the eight metrics. Against the orchestrator as it stands this measures TWO of eight and honestly reports six unmeasured — the contract requires the gate to assert that rather than paper over it.)_
 
 A1 A2 A3 A4 A5 A6 A7 ·
 B3 ·

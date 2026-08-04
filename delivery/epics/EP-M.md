@@ -15,7 +15,12 @@ Task ids are `P0`-`P5`, not `M0`-`M5`: M-prefixed ids are milestone-scoped by co
 ## Phases → task contracts
 
 - [ ] `P0` — roster schema + validator; rubric-hash freeze; self-judge rejection
-- [ ] `P1` — real executor hook for `run_multi_model`; `unmeasured` distinct from `0.0`
+- [ ] `P1` — the metric schema: `unmeasured` structurally distinct from `0.0`; `hook=None` raises
+- [ ] `P6` — the executor hook: subject → run → G0 event stream folded into the eight fields
+      _(P1 was split in two on 2026-08-04 by owner decision — the original measured 673 lines
+      against a budget of 550. P6 is numbered out of sequence because contract ids must match
+      `[A-Z]\d+`; `P1a`/`P1b` are not valid ids. Order is set by deps, not by number: P2 now
+      depends on both.)_
 - [ ] `P2` — fold the planner rubric into the navigation record; one scale, no composite
 - [ ] `P3` — ledger + lineage emission, serialised execution, wedge detection by liveness
 - [ ] `P4` — two-model live bench, non-author verified (closes the epic)
