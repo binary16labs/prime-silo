@@ -14,6 +14,8 @@
 
 ## CLAIMED (agent · date)
 
+- P4 — two-model live bench, non-author verified · claude-opus-4-8 · 2026-08-05 _(deps P2+P3 went DONE via owner-signed waiver today; owner assigned P4 to me. Live run: incumbent qwen2.5-coder-tuned vs candidate google/gemma-4-e4b, both serving on LM Studio localhost:1234 (eGPU restored). Report contract — allowlist docs/bench/ + scripts/gates/p4.py, budget 250. Will produce a real two-subject result folded through P2 records + P3 ledger, then author p4.py. NOTE: P4 itself still needs independent non-author verification to close EP-M.)_
+
 
 
 
@@ -131,4 +133,4 @@ Q2 Q3 ·
 R0 R1 R2 R3 ·
 M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 ·
 B4 B5 · L15 ·
-P4 P5 ·
+P5 ·
