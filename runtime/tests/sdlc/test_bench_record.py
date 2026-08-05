@@ -498,6 +498,37 @@ def test_a_real_topology_dict_can_actually_be_carried():
     assert not bad[0], "a composite inside topology was accepted"
 
 
+def test_a_topology_that_is_not_an_object_is_refused():
+    """THE CLASS. The block-non-dict fix was written for authoring and navigation and NOT for
+    topology: topology was excluded from the record scan and its own scan only ran once it was
+    already a dict, so a composite rode straight in as `topology=[{...}]`. Two of three containers
+    guarded, the third — the newest — missed. The closed schema refuses all three identically, so
+    this can no longer be forgotten for one field at a time."""
+    rec = build_record(
+        "s", authoring=authoring_block(TRIAL), navigation=navigation_block(_nav()),
+        rubric_hash="h", primary_metric="authoring.has_required_ops",
+    )
+    for smuggled in (
+        [{"harmonic_mean": 0.9}],                 # a list, exactly the block-block hole one field over
+        ({"weighted_composite": 0.91},),          # a tuple, the shape that walked the earlier recursion
+        "endpoint=whatever",                      # a bare scalar is not a topology object either
+    ):
+        ok, errors = validate_record({**rec, "topology": smuggled})
+        assert not ok, f"topology={smuggled!r} validated clean"
+        assert any("topology" in e for e in errors), errors
+
+
+def test_a_composite_nested_under_a_known_topology_key_is_refused():
+    """`endpoint` is a declared topology key, but its VALUE must be a scalar — a dict there is a
+    structure where a scalar is declared, the same hiding place one level deeper."""
+    rec = build_record(
+        "s", authoring=authoring_block(TRIAL), navigation=navigation_block(_nav()),
+        rubric_hash="h", primary_metric="authoring.has_required_ops",
+    )
+    ok, errors = validate_record({**rec, "topology": {"endpoint": {"weighted": 0.9}}})
+    assert not ok and any("topology.endpoint" in e for e in errors), errors
+
+
 def test_build_record_with_a_None_primary_metric_is_a_named_refusal():
     with pytest.raises(ValueError):
         build_record("s", authoring=authoring_block(TRIAL), navigation=navigation_block(_nav()),

@@ -73,6 +73,16 @@ survivors = [n for n in ("harmonic_mean", "merit_score", "rating", "fitness", "i
              if validate_record({**rec, n: 0.9})[0]]
 poisoned_ok, _ = validate_record({**rec, "composite_score": 0.9})
 nested_ok, _ = validate_record({**rec, "authoring": {**rec["authoring"], "weighted_mean": 0.5}})
+# The class the last fix missed: the composite hides in the ONE container field that still had a
+# denylist's blind spot. A closed schema refuses all three sub-objects (authoring/navigation/
+# topology) identically, so a non-dict topology cannot be the field nobody remembered to guard.
+topo_shapes = [
+    {**rec, "topology": [{"harmonic_mean": 0.9}]},        # list
+    {**rec, "topology": ({"weighted_composite": 0.91},)},  # tuple
+    {**rec, "topology": "endpoint=whatever"},              # bare scalar
+    {**rec, "topology": {"endpoint": {"weighted": 0.9}}},  # dict where a scalar is declared
+]
+topo_nondict_all_refused = all(not validate_record(s)[0] for s in topo_shapes)
 nav = rec["navigation"]
 print(json.dumps({
   "ok": ok, "errors": errors,
@@ -82,6 +92,7 @@ print(json.dumps({
   "scored_on": rec["scored_on"],
   "composite_rejected": not poisoned_ok,
   "nested_composite_rejected": not nested_ok,
+  "topo_nondict_all_refused": topo_nondict_all_refused,
   "genuine_zero_kept": nav["total_cost"] == 0.0 and "total_cost" not in nav["unmeasured"],
   "unmeasured_stayed_none": nav["total_tokens"] is None and "total_tokens" in nav["unmeasured"],
 }))
@@ -98,6 +109,11 @@ if (r.scored_on.length !== 2) fail(`scored_on should name both surfaces, got ${J
 if (!r.composite_rejected) fail("a record carrying composite_score was ACCEPTED — the refusal is hollow");
 if (!r.nested_composite_rejected)
   fail("a composite hidden inside a block was ACCEPTED — the check must apply at every depth");
+if (!r.topo_nondict_all_refused)
+  fail(
+    "a composite hidden in a non-dict topology was ACCEPTED — the allowlist was wired for the " +
+      "authoring and navigation blocks and not for topology, the exact class the closed schema removes"
+  );
 
 // 3. P1's guarantee must survive serialisation, in BOTH directions. Testing only one direction is
 //    how P6's gate ended up blind to a real zero collapsing into a gap.

@@ -155,24 +155,75 @@ def build_record(
     return record
 
 
-def _unknown_keys(obj: Any, allowed: frozenset, prefix: str) -> List[str]:
-    """Keys not in `allowed`, at every depth. Recurses through dicts, lists AND tuples — the
-    previous version handled the first two, and a dict inside a tuple walked through."""
-    found: List[str] = []
-    if isinstance(obj, dict):
-        for key, value in obj.items():
-            if key not in allowed:
-                found.append(f"{prefix}{key}")
-            found.extend(_unknown_keys(value, allowed, f"{prefix}{key}."))
-    elif isinstance(obj, (list, tuple)):
-        for i, value in enumerate(obj):
-            found.extend(_unknown_keys(value, allowed, f"{prefix}{i}."))
-    return found
+#: The record fields that are themselves closed objects (or null). Everything else in the record is
+#: a scalar or a list of scalars. These three are the ONLY fields with sub-structure, and they are
+#: refused through one shared path — `_refuse_object` — so no single container field can be given an
+#: allowlist while another is quietly left with a denylist's blind spot. That asymmetry is the whole
+#: history of this validator: the guard was added for authoring and navigation and forgotten for
+#: topology, and a composite rode in as `topology=[{"weighted": 0.9}]` through the one gap left.
+_SUBOBJECTS = (
+    ("authoring", AUTHORING_KEYS),
+    ("navigation", NAVIGATION_KEYS),
+    ("topology", TOPOLOGY_KEYS),
+)
+
+
+def _contains_object(value: Any) -> bool:
+    """True if a dict appears anywhere in `value`, walking through lists and tuples.
+
+    One walker, so 'a scalar field may not hold a structure' is enforced for every container shape
+    at once. A dict nested where a scalar is declared is exactly where an unnamed composite hides —
+    first it was a dict in a list, then a dict in a tuple; enumerating shapes is how the last one is
+    always the one missed."""
+    if isinstance(value, dict):
+        return True
+    if isinstance(value, (list, tuple)):
+        return any(_contains_object(v) for v in value)
+    return False
+
+
+def _refuse_object(obj: Any, keyset: frozenset, where: str, errors: List[str]) -> None:
+    """`obj` must be a closed object over `keyset`: a dict whose every key is declared and whose
+    every value is free of nested objects. A non-dict is refused outright — otherwise it is scanned
+    by nothing, which is precisely how a list/tuple block, and later a non-dict topology, walked
+    past the allowlist."""
+    if not isinstance(obj, dict):
+        errors.append(
+            f"the {where} is a {type(obj).__name__}, not an object — a non-object is scanned by "
+            "nothing, so the allowlist cannot see what it carries, and a composite rides in as a "
+            "list, a tuple or a bare value"
+        )
+        return
+    for key, value in obj.items():
+        if key not in keyset:
+            errors.append(
+                f"{where}.{key} is not a field the {where} schema declares. A record may only "
+                "carry known fields — an unrecognised key is how a composite score arrives under a "
+                "name nobody thought to ban, and a weighted blend invented at design time is an "
+                "unfrozen rubric wearing a number (design D3)"
+            )
+        if _contains_object(value):
+            errors.append(
+                f"{where}.{key} holds a nested object — a declared field carries a scalar or a list "
+                "of scalars, never a structure, because a structure is where an unnamed composite "
+                "hides"
+            )
 
 
 def validate_record(record: Dict[str, Any]) -> Tuple[bool, List[str]]:
-    """Fail-closed validation. Returns ``(ok, errors)``."""
+    """Fail-closed validation against ONE closed schema. Returns ``(ok, errors)``.
+
+    Every value travels a single path: the record is a closed object over ``RECORD_KEYS``; three of
+    its fields (``authoring``, ``navigation``, ``topology``) are themselves closed objects or null,
+    each refused by the same ``_refuse_object``; every other field carries a scalar or a list of
+    scalars and is refused if it hides a nested object. No field has a bespoke branch, because a
+    bespoke branch is what kept getting forgotten — the allowlist was wired for the authoring and
+    navigation blocks and not for topology, so a composite hid in the one container still guarded by
+    a denylist's blind spot."""
     errors: List[str] = []
+    if not isinstance(record, dict):
+        return (False, ["a bench record must be an object"])
+
     if record.get("kind") != BENCH_RECORD_KIND:
         errors.append(f"kind must be {BENCH_RECORD_KIND!r}")
     for block in ("authoring", "navigation"):
@@ -184,35 +235,30 @@ def validate_record(record: Dict[str, Any]) -> Tuple[bool, List[str]]:
     if not record.get("rubric_hash"):
         errors.append("rubric_hash is required — an unfrozen rubric makes the numbers unrankable (R10)")
 
-    # The refusal. Every key must be one the schema declares; anything else is how a composite
-    # arrives wearing a name nobody thought to ban.
-    top_level = {k: v for k, v in record.items() if k not in ("authoring", "navigation", "topology")}
-    unknown = [(k, "record") for k in _unknown_keys(top_level, RECORD_KEYS, "")]
-    if isinstance(record.get("topology"), dict):
-        unknown += [(k, "topology") for k in _unknown_keys(record["topology"], TOPOLOGY_KEYS, "topology.")]
-    for name, allowed in (("authoring", AUTHORING_KEYS), ("navigation", NAVIGATION_KEYS)):
-        block = record.get(name)
-        if block is None:
-            continue  # explicitly not scored on this surface, which is legal
-        if not isinstance(block, dict):
-            # A LIST or TUPLE block used to fall through both scans: the record-level scan skips
-            # the block keys and the block scan required a dict, so nothing looked at it at all
-            # and `authoring=[real_block, {"harmonic_mean": 0.873}]` validated clean. Not exotic —
-            # model-bench runs N trials per subject, so the obvious next change to this module
-            # makes `authoring` a list, and at that moment the refusal is off rather than degraded.
+    # The closed schema, one path. Top-level keys must be declared; the three sub-objects are
+    # delegated to `_refuse_object`; every other field is refused if it hides a nested object.
+    subobject_names = {name for name, _ in _SUBOBJECTS}
+    for key, value in record.items():
+        if key not in RECORD_KEYS:
             errors.append(
-                f"the {name} block is a {type(block).__name__}, not an object — a non-object block "
-                "is scanned by nothing, so the allowlist cannot see what it carries"
+                f"{key} is not a field the record schema declares. A record may only carry known "
+                "fields — an unrecognised key is how a composite score arrives under a name nobody "
+                "thought to ban, and a weighted blend invented at design time is an unfrozen rubric "
+                "wearing a number (design D3)"
             )
             continue
-        unknown += [(k, name) for k in _unknown_keys(block, allowed, f"{name}.")]
-    for key, where in unknown:
-        errors.append(
-            f"{key} is not a field the {where} schema declares. A record may only carry known "
-            "fields — an unrecognised key is how a composite score arrives under a name nobody "
-            "thought to ban, and a weighted blend invented at design time is an unfrozen rubric "
-            "wearing a number (design D3)"
-        )
+        if key in subobject_names:
+            continue  # checked below against its own keyset
+        if _contains_object(value):
+            errors.append(
+                f"{key} holds a nested object — a declared field carries a scalar or a list of "
+                "scalars, never a structure, because a structure is where an unnamed composite hides"
+            )
+    for name, keyset in _SUBOBJECTS:
+        block = record.get(name)
+        if block is None:
+            continue  # explicitly not scored, or no topology declared — both legal
+        _refuse_object(block, keyset, name, errors)
 
     # The record's central invariant, checked rather than assumed: `unmeasured` must agree with the
     # actual nulls. Previously a block could claim everything was measured while carrying nulls,
