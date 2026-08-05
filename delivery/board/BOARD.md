@@ -14,7 +14,6 @@
 
 ## CLAIMED (agent · date)
 
-- P4 — two-model live bench, non-author verified · claude-opus-4-8 · 2026-08-05 _(deps P2+P3 went DONE via owner-signed waiver today; owner assigned P4 to me. Live run: incumbent qwen2.5-coder-tuned vs candidate google/gemma-4-e4b, both serving on LM Studio localhost:1234 (eGPU restored). Report contract — allowlist docs/bench/ + scripts/gates/p4.py, budget 250. Will produce a real two-subject result folded through P2 records + P3 ledger, then author p4.py. NOTE: P4 itself still needs independent non-author verification to close EP-M.)_
 
 
 
@@ -29,6 +28,8 @@
 
 
 ## VERIFY (awaiting non-author verification)
+
+- P4 — two-model bench, AUTHORING surface (owner-signed amendment) · author claude-opus-4-8 · branch task/P4 @ a5bc8af · 2026-08-05 _(REAL pypes model-bench: incumbent house-tuned qwen2.5-coder vs google/gemma-4-e4b on LM Studio/eGPU. Incumbent wins 14.5s/1808tok/$0.0008 vs 54.2s/2274tok/$0.003 (~3.7x faster, ~4x cheaper); quality tied 0.143, rubric-quality fields unmeasured (no judge). ★ AMENDMENT: the navigation instrument (tool_selection_accuracy) has no agentic manifest on today's orchestrator — swarm template emits ZERO G0 node events, data pipelines don't exercise tool selection; derive_metrics needs node_progress.detail.tool + a tool rubric, nothing produces them (echoes P6's 2-of-8). Owner signed P4 onto the authoring surface; navigation recorded unavailable-with-reason for both, and the gate REFUSES a report hiding the gap behind a silently-empty block (proven RED on that mutation). Full benny stack provisioned into C:\Users\nsdha\.benny-venv so the bench ran locally. p4.py dep-free, GREEN on the real report; RED on hidden-gap / nav-not-unavailable / empty-bench. Deliverable ~130 lines gate < 250. VERIFY IS INDEPENDENT, NOT WAIVED — P4 is the proof that closes EP-M. Verifier: python scripts/gates/p4.py from clean task/P4.)_
 
 
 
@@ -133,4 +134,4 @@ Q2 Q3 ·
 R0 R1 R2 R3 ·
 M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 ·
 B4 B5 · L15 ·
-P5 ·
+P5 · P7(nav-instrument: agentic bench manifest + tool rubric wired to the G0 stream — spun off from P4 amendment; NEEDS CONTRACT) ·
