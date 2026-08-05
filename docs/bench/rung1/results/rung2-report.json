@@ -1,0 +1,181 @@
+{
+  "bench_id": "rung2-longview-window-fragment-widened",
+  "surface": "longview.window_fragment (real map primitive, widened)",
+  "n_cards": 10,
+  "sample": "sample-rung2.json",
+  "rubric_hash": "sha256:314224c055ae2bda",
+  "rubric": {
+    "surface": "longview.window_fragment",
+    "sample": "sample-rung2.json",
+    "n_cards": 10,
+    "window_chars": 12000,
+    "primary": "authoring.wall_seconds",
+    "quality_floor": 0.7,
+    "quality_composite": [
+      "valid_json",
+      "keys_present",
+      "within_bounds",
+      "coverage"
+    ],
+    "prompt": "scripts/longview/prompts/window_fragment.md",
+    "non_circular": "quality scored on schema+coverage, NOT against the 12B's stored gold card",
+    "rank_unit": "mean wall_seconds per card"
+  },
+  "primary_metric": "authoring.wall_seconds",
+  "higher_is_better": false,
+  "quality_floor": 0.7,
+  "ranking": [
+    "google/gemma-4-e4b",
+    "google/gemma-4-12b"
+  ],
+  "excluded": [],
+  "fastest": "google/gemma-4-e4b",
+  "fastest_meets_quality_floor": true,
+  "quality_detail": {
+    "google/gemma-4-12b": {
+      "role": "baseline",
+      "n_cards": 10,
+      "quality_score": 0.9558,
+      "coverage": 0.8861,
+      "valid_json": 1,
+      "keys_present": 0.9923,
+      "within_bounds": 0.9449,
+      "mean_wall_per_card": 244.0678,
+      "total_wall_seconds": 2440.678,
+      "wall_min": 124.465,
+      "wall_max": 429.95,
+      "quality_min": 0.9279,
+      "quality_max": 1,
+      "cards_meeting_floor": 10,
+      "meets_floor": true
+    },
+    "google/gemma-4-e4b": {
+      "role": "candidate",
+      "n_cards": 10,
+      "quality_score": 0.9015,
+      "coverage": 0.8458,
+      "valid_json": 0.9667,
+      "keys_present": 0.9385,
+      "within_bounds": 0.8551,
+      "mean_wall_per_card": 52.8833,
+      "total_wall_seconds": 528.833,
+      "wall_min": 25.451,
+      "wall_max": 95.631,
+      "quality_min": 0.5673,
+      "quality_max": 0.9808,
+      "cards_meeting_floor": 9,
+      "meets_floor": true
+    }
+  },
+  "records": [
+    {
+      "kind": "bench_record/1",
+      "subject": "google/gemma-4-12b",
+      "authoring": {
+        "source": "pypes.model-bench",
+        "has_required_ops": null,
+        "step_count": null,
+        "parse_ok": null,
+        "wall_seconds": 244.0678,
+        "total_tokens": 66708,
+        "cost_usd": null,
+        "quality_score": 0.9558,
+        "status": "OK",
+        "model": "google/gemma-4-12b",
+        "unmeasured": [
+          "cost_usd",
+          "has_required_ops",
+          "parse_ok",
+          "step_count"
+        ]
+      },
+      "navigation": {
+        "source": "sdlc.run_multi_model",
+        "tool_selection_accuracy": null,
+        "tool_efficiency": null,
+        "context_efficiency": null,
+        "iteration_latency_ms_p95": null,
+        "loop_count_p95": null,
+        "constraint_adherence": null,
+        "total_cost": null,
+        "total_tokens": null,
+        "status": "unavailable",
+        "unavailable_reason": "navigation instrument (tool_selection_accuracy) has no agentic manifest on today's orchestrator \u2014 see the P4 amendment; Rung 2 measures the authoring/generation surface",
+        "run_id": "rung2-google_gemma_4_12b",
+        "unmeasured": [
+          "constraint_adherence",
+          "context_efficiency",
+          "iteration_latency_ms_p95",
+          "loop_count_p95",
+          "tool_efficiency",
+          "tool_selection_accuracy",
+          "total_cost",
+          "total_tokens"
+        ]
+      },
+      "scored_on": [
+        "authoring",
+        "navigation"
+      ],
+      "rubric_hash": "sha256:314224c055ae2bda",
+      "roster_hash": null,
+      "topology": null,
+      "primary_metric": "authoring.wall_seconds"
+    },
+    {
+      "kind": "bench_record/1",
+      "subject": "google/gemma-4-e4b",
+      "authoring": {
+        "source": "pypes.model-bench",
+        "has_required_ops": null,
+        "step_count": null,
+        "parse_ok": null,
+        "wall_seconds": 52.8833,
+        "total_tokens": 67080,
+        "cost_usd": null,
+        "quality_score": 0.9015,
+        "status": "OK",
+        "model": "google/gemma-4-e4b",
+        "unmeasured": [
+          "cost_usd",
+          "has_required_ops",
+          "parse_ok",
+          "step_count"
+        ]
+      },
+      "navigation": {
+        "source": "sdlc.run_multi_model",
+        "tool_selection_accuracy": null,
+        "tool_efficiency": null,
+        "context_efficiency": null,
+        "iteration_latency_ms_p95": null,
+        "loop_count_p95": null,
+        "constraint_adherence": null,
+        "total_cost": null,
+        "total_tokens": null,
+        "status": "unavailable",
+        "unavailable_reason": "navigation instrument (tool_selection_accuracy) has no agentic manifest on today's orchestrator \u2014 see the P4 amendment; Rung 2 measures the authoring/generation surface",
+        "run_id": "rung2-google_gemma_4_e4b",
+        "unmeasured": [
+          "constraint_adherence",
+          "context_efficiency",
+          "iteration_latency_ms_p95",
+          "loop_count_p95",
+          "tool_efficiency",
+          "tool_selection_accuracy",
+          "total_cost",
+          "total_tokens"
+        ]
+      },
+      "scored_on": [
+        "authoring",
+        "navigation"
+      ],
+      "rubric_hash": "sha256:314224c055ae2bda",
+      "roster_hash": null,
+      "topology": null,
+      "primary_metric": "authoring.wall_seconds"
+    }
+  ],
+  "register_path": "docs\\bench\\rung1\\results\\rung2_execution_register.json"
+}

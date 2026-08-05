@@ -1,0 +1,87 @@
+{
+  "sids": [
+    "01fddf5a91be2956e8dfc6f21b54cc55",
+    "29d4925128e9157ab783f1e56a5d31ef",
+    "703994aace8ebd4fc4f290d8fe96db10",
+    "2671945083ab401565b817baaf9926c1",
+    "1227b897cc01a1c60cdb2708487c6b33",
+    "15028c4b5e24cf0df0ae090778e7a4eb",
+    "1873617db0f4188fa961c0ca70c4ca36",
+    "47f4dca7ec858a8722873cd8959c980f",
+    "ac22557a508c87f8b096228c8928e01c",
+    "56dbe0403a5a5a4b1c186ce8eb28adbb"
+  ],
+  "why": "deterministic spread: substantive (dec>=2,out>=2,fail>=1), <=3 windows, <=2 per project, sorted by sid; rung-1 sid nested | forced rung-1 sid (prime-silo/Claude) at head for continuity + only cross-agent point",
+  "detail": [
+    {
+      "sid": "01fddf5a91be2956e8dfc6f21b54cc55",
+      "project": "prime-silo",
+      "agent": "Claude",
+      "windows": 2,
+      "steps": 27
+    },
+    {
+      "sid": "29d4925128e9157ab783f1e56a5d31ef",
+      "project": "Agent OS Dashboard",
+      "agent": "Antigravity",
+      "windows": 3,
+      "steps": 54
+    },
+    {
+      "sid": "703994aace8ebd4fc4f290d8fe96db10",
+      "project": "agent-os-dashboard",
+      "agent": "Antigravity",
+      "windows": 3,
+      "steps": 52
+    },
+    {
+      "sid": "2671945083ab401565b817baaf9926c1",
+      "project": "antigravity",
+      "agent": "Antigravity",
+      "windows": 3,
+      "steps": 149
+    },
+    {
+      "sid": "1227b897cc01a1c60cdb2708487c6b33",
+      "project": "Benny",
+      "agent": "Antigravity",
+      "windows": 2,
+      "steps": 8
+    },
+    {
+      "sid": "15028c4b5e24cf0df0ae090778e7a4eb",
+      "project": "Benny",
+      "agent": "Antigravity",
+      "windows": 1,
+      "steps": 6
+    },
+    {
+      "sid": "1873617db0f4188fa961c0ca70c4ca36",
+      "project": "Benny Studio",
+      "agent": "Antigravity",
+      "windows": 1,
+      "steps": 6
+    },
+    {
+      "sid": "47f4dca7ec858a8722873cd8959c980f",
+      "project": "Benny Studio / Synoptic Web",
+      "agent": "Antigravity",
+      "windows": 1,
+      "steps": 6
+    },
+    {
+      "sid": "ac22557a508c87f8b096228c8928e01c",
+      "project": "GraphScan (c3_teest)",
+      "agent": "Antigravity",
+      "windows": 1,
+      "steps": 4
+    },
+    {
+      "sid": "56dbe0403a5a5a4b1c186ce8eb28adbb",
+      "project": "optimus",
+      "agent": "Antigravity",
+      "windows": 1,
+      "steps": 15
+    }
+  ]
+}
