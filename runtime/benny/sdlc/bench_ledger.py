@@ -44,8 +44,12 @@ UNKNOWN = "unknown"
 #: Fraction of elapsed wall time the process must be on-CPU to count as working. A RATE, not an
 #: absolute: an absolute floor judges a one-second window and a one-day window identically.
 CPU_RATE_FLOOR = 0.01
-#: Artifact mtime must move by at least this to count as progress.
-MTIME_FLOOR_SECONDS = 1.0
+#: Artifact mtime must ADVANCE by at least this fraction of elapsed wall time. A RATE, exactly like
+#: CPU. The previous version left this one an ABSOLUTE 1.0s floor while the docstring claimed both
+#: were rates, so an artifact touched once early in a 24-hour window read ALIVE for the whole day.
+#: Both signals now pass through the same `_advancing` helper, so neither can be a rate while the
+#: other is left absolute — the class, not the instance.
+MTIME_RATE_FLOOR = 0.01
 
 
 # ---------------------------------------------------------------------------
@@ -196,17 +200,29 @@ def _default_lineage_emitter():
     return track_workflow_start, track_workflow_complete
 
 
-def emit_lineage(entry: Dict[str, Any], *, emitter: Optional[Callable[[], Any]] = None) -> Dict[str, Any]:
+def emit_lineage(
+    entry: Dict[str, Any],
+    *,
+    workspace: str,
+    emitter: Optional[Callable[[], Any]] = None,
+) -> Dict[str, Any]:
     """Emit an OpenLineage RunEvent for a bench, through the existing governance path.
 
-    The previous version IMPORTED a symbol and never called it, then returned ``emitted: True``.
-    Where `openlineage` is absent the import failed and it reported False, which is exactly why it
-    looked correct — but on any machine with the dependency installed it claimed a successful emit
-    having emitted nothing. `emitted` is now set from whether the CALL ran, never from whether an
-    import succeeded, and a sink that is present but failing reports False with its reason.
+    Two prior failures are closed here at once:
 
-    `emitter` is injectable so the claim is testable on an interpreter without `openlineage` — the
-    contract requires that a RunEvent is emitted per bench, not that this file can import.
+    * The FIRST version imported a symbol and never called it, returning ``emitted: True``. `emitted`
+      now comes only from whether the CALLS ran.
+    * The SECOND version DID call, but with `start(run_id, entry)` — a two-argument call into
+      `track_workflow_start(workflow_id, workflow_name, workspace, inputs=None, outputs=None)`. It
+      could never emit; the blanket except swallowed the TypeError, so the default path failed closed
+      while only an injected two-argument double ever returned True. Making the emitter injectable had
+      made the claim testable and the real path untested — a vacuous check on top of the finding it
+      was meant to close.
+
+    The call now matches the REAL governance signatures exactly (verified in the tests against the
+    parameter lists parsed from `governance/lineage.py` itself, so the tested arity is the production
+    arity). `workspace` is required, because a lineage event with no workspace is not a governed run.
+    A present-but-failing sink reports ``emitted: False`` with its reason.
     """
     try:
         start, complete = (emitter or _default_lineage_emitter)()
@@ -215,9 +231,20 @@ def emit_lineage(entry: Dict[str, Any], *, emitter: Optional[Callable[[], Any]] 
         return {"emitted": False, "reason": f"{type(exc).__name__}: {exc}"}
 
     run_id = entry.get("run_id")
+    workflow_name = f"bench/{entry.get('subject')}"
+    inputs = [fp] if (fp := entry.get("topology_fingerprint")) else []
+    nodes = [entry.get("subject")] if entry.get("subject") else []
+    duration_ms = int(_num(entry.get("execution_time_ms")) or 0)
     try:
-        start(run_id, entry)
-        complete(run_id, entry)
+        start(run_id, workflow_name, workspace, inputs=inputs, outputs=[])
+        complete(
+            run_id,
+            workflow_name,
+            workspace,
+            nodes_executed=nodes,
+            execution_time_ms=duration_ms,
+            status="completed",
+        )
     except Exception as exc:
         log.warning("bench: lineage emit failed for %s: %s", run_id, exc)
         return {"emitted": False, "reason": f"{type(exc).__name__}: {exc}"}
@@ -245,6 +272,28 @@ def _default_owner_alive(pid: int) -> bool:
         return True
     except (OSError, ValueError, TypeError):
         return False
+
+
+def _read_lock_owner(path: Path) -> Optional[Dict[str, Any]]:
+    """The lock file's owner record, or None if it is absent or cannot be read as one.
+
+    Retries the Windows sharing-violation window (WinError 32) so a contender's in-flight write is
+    not mistaken for an unreadable lock. Returns None — meaning UNKNOWN, keep out — rather than a
+    guess, so a caller never treats 'I could not read it' as 'it is mine' or 'it is gone'."""
+    for attempt in range(_LOCK_ATTEMPTS):
+        try:
+            owner = json.loads(path.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            return None
+        except PermissionError:
+            if attempt == _LOCK_ATTEMPTS - 1:
+                return None
+            time.sleep(0.02)
+            continue
+        except Exception:
+            return None
+        return owner if isinstance(owner, dict) else None
+    return None
 
 
 class HostLock:
@@ -293,37 +342,52 @@ class HostLock:
         or not JSON was stolen from an owner that might well be alive — including the 0-byte window
         a contender saw mid-acquire. Unreadable now means UNKNOWN, and unknown means keep out.
         """
-        try:
-            owner = json.loads(self.path.read_text(encoding="utf-8"))
-        except Exception:
-            return False
-        if not isinstance(owner, dict) or "pid" not in owner:
+        owner = _read_lock_owner(self.path)
+        if owner is None:
+            return False  # unreadable or gone mid-read -> UNKNOWN -> keep out, never steal
+        if owner.get("released") is True:
+            return True   # the holder released but could not delete its file; safe to reclaim
+        if "pid" not in owner:
             return False
         return not self._owner_alive(owner.get("pid"))
 
     def release(self) -> None:
-        """Release only a lock THIS instance holds. Previously any object pointing at the path
-        could unlink someone else's lock, and a third party could then acquire while the real
-        owner still believed it held the host."""
-        if self._token is None:
-            return  # we never held it, so it is not ours to free
+        """Release only a lock we can PROVE is ours.
+
+        `_token` proves we ACQUIRED, not that we STILL hold: a lock reclaimed as stale under us and
+        re-acquired by another process carries a different token. So we read the file and unlink
+        ONLY when the on-disk token equals ours — on any other outcome (gone, unreadable, or a
+        different token) we do not touch it. The previous version assumed `mine = True` on a read
+        failure and a concurrent run reproduced the theft: A reclaimed-as-stale, B acquires, A's
+        release deletes B's lock. A transient read failure is now handled by RETRY inside
+        `_read_lock_owner`, not by guessing ownership.
+
+        If we cannot delete our own lock (a stuck Windows handle), we write a `released` tombstone so
+        the stale check reclaims it — never leaving a live-pid lock that would strand the host, which
+        is what the old 'the stale check will reclaim it' comment falsely promised for a live owner.
+        """
+        token, self._token = self._token, None
+        if token is None:
+            return  # we never held it
+        owner = _read_lock_owner(self.path)
+        if owner is None or owner.get("token") != token:
+            return  # already gone, unreadable, or reclaimed-and-reacquired by another — not ours
         try:
-            owner = json.loads(self.path.read_text(encoding="utf-8"))
-            mine = owner.get("token") == self._token
-        except Exception:
-            # A transient read failure must NOT strand the lock. `_token` is set only on a
-            # successful acquire, so we do hold it; refusing to unlink here livelocked every
-            # waiting contender until their timeout (3 of 5 runs, at exactly 60s).
-            mine = True
-        if mine:
-            # Measured: a give-up here stranded the lock and lost 7 of 12 concurrent writers.
-            try:
-                _retry_on_sharing_violation(
-                    lambda: self.path.unlink(missing_ok=True), what="host lock release"
-                )
-            except PermissionError:
-                pass  # release must never raise; the stale check will reclaim it
-        self._token = None
+            _retry_on_sharing_violation(
+                lambda: self.path.unlink(missing_ok=True), what="host lock release"
+            )
+            return
+        except PermissionError:
+            pass
+        # Could not unlink our own lock. Do NOT leave a live-pid lock behind; tombstone it so the
+        # next acquirer reclaims it rather than blocking on a pid that is alive but finished.
+        try:
+            _retry_on_sharing_violation(
+                lambda: self.path.write_text(json.dumps({"released": True}), encoding="utf-8"),
+                what="host lock tombstone",
+            )
+        except PermissionError:
+            log.error("bench: could not release or tombstone the host lock at %s", self.path)
 
     def __enter__(self) -> "HostLock":
         return self.acquire()
@@ -388,6 +452,56 @@ def run_serialised(
     return results
 
 
+def governed_bench(
+    subjects: Sequence[str],
+    body: Callable[[str], Any],
+    *,
+    lock_dir: Path,
+    register_path: Path,
+    workspace: str,
+    rubric_hash: str,
+    topology_of: Callable[[str], Dict[str, Any]],
+    roster_hash: Optional[str] = None,
+    emitter: Optional[Callable[[], Any]] = None,
+    owner_alive: Callable[[int], bool] = _default_owner_alive,
+    timeout: float = 300.0,
+) -> List[Dict[str, Any]]:
+    """Run each subject as a GOVERNED bench, composing the four guarantees into one call.
+
+    This is the answer to "nothing is wired": the primitives — serialisation under the host lock,
+    the execution register, the ledger refusal, the lineage event — are not left as unconnected
+    parts for a later phase to discover. A live bench (P4) calls exactly this; the parts are proven
+    to compose in `test_governed_bench_*`.
+
+    `body(subject) -> (run_id, metrics)` runs the actual bench. `topology_of(subject) -> dict` names
+    the serving engine. Each subject, in sequence: its result is ledgered, the write is read back and
+    REFUSED if the entry is not there (R9 — a bench not in the ledger did not happen), then a lineage
+    RunEvent is emitted. A subject whose body raises yields an error record and does not stop the
+    others. Returns one dict per subject: {subject, run_id, entry, lineage, error}.
+    """
+
+    def one(subject: str) -> Dict[str, Any]:
+        run_id, metrics = body(subject)
+        entry = register_entry(
+            subject=subject, run_id=run_id, topology=topology_of(subject),
+            rubric_hash=rubric_hash, metrics=metrics, roster_hash=roster_hash,
+        )
+        append_register(register_path, entry, timeout=timeout)
+        require_ledgered(read_register(register_path), run_id)  # we wrote it or it did not happen
+        lineage = emit_lineage(entry, workspace=workspace, emitter=emitter)
+        return {"subject": subject, "run_id": run_id, "entry": entry, "lineage": lineage, "error": None}
+
+    raw = run_serialised(subjects, one, lock_dir=lock_dir, owner_alive=owner_alive, timeout=timeout)
+    results: List[Dict[str, Any]] = []
+    for subject, r in zip(subjects, raw):
+        if isinstance(r, Exception):
+            results.append({"subject": subject, "run_id": None, "entry": None,
+                            "lineage": {"emitted": False, "reason": str(r)}, "error": str(r)})
+        else:
+            results.append(r)
+    return results
+
+
 # ---------------------------------------------------------------------------
 # Liveness — resource evidence only (R12)
 # ---------------------------------------------------------------------------
@@ -399,6 +513,16 @@ def _num(value: Any) -> Optional[float]:
         return None
     f = float(value)
     return None if f != f else f  # NaN != NaN
+
+
+def _advancing(prev: float, last: float, elapsed: float, floor: float) -> bool:
+    """True when a counter advanced by at least `floor` FRACTION of the elapsed wall time.
+
+    A rate, applied identically to CPU seconds and artifact mtime. This is the single choke point
+    that stops one signal being a rate while its twin is left an absolute delta — the exact defect
+    that survived the last review in the signal I did not convert. `elapsed` is guaranteed positive
+    by the caller, so this never divides by zero."""
+    return (last - prev) / elapsed >= floor
 
 
 def classify_liveness(samples: Sequence[Dict[str, Any]]) -> str:
@@ -437,6 +561,9 @@ def classify_liveness(samples: Sequence[Dict[str, Any]]) -> str:
     if cpu_prev is None or cpu_last is None or mt_prev is None or mt_last is None:
         return UNKNOWN  # no resource evidence at all. Not alive — we simply cannot see.
 
-    cpu_busy = (cpu_last - cpu_prev) / elapsed >= CPU_RATE_FLOOR
-    artifacts_moved = (mt_last - mt_prev) >= MTIME_FLOOR_SECONDS
+    # ONE rate helper for BOTH signals. Progress means advancing by at least a floor FRACTION of the
+    # elapsed wall time, never an absolute delta — there is no path here on which one signal is a
+    # rate and the other is not.
+    cpu_busy = _advancing(cpu_prev, cpu_last, elapsed, CPU_RATE_FLOOR)
+    artifacts_moved = _advancing(mt_prev, mt_last, elapsed, MTIME_RATE_FLOOR)
     return ALIVE if (cpu_busy or artifacts_moved) else WEDGED

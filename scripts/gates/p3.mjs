@@ -44,6 +44,13 @@ io_only = classify_liveness([
     {"t": 0, "cpu_seconds": 7.0, "artifact_mtime": 1.0, "log_lines": 0},
     {"t": 60, "cpu_seconds": 7.0, "artifact_mtime": 99.0, "log_lines": 0},
 ])
+# mtime must be a RATE, not an absolute floor: an artifact that advanced 2 seconds across a whole
+# day, with CPU flat, is a long-dead job that wrote once early — WEDGED under a rate, but ALIVE
+# under the absolute 1.0s floor that survived the last review.
+mtime_trap = classify_liveness([
+    {"t": 0, "cpu_seconds": 7.0, "artifact_mtime": 500.0, "log_lines": 0},
+    {"t": 86400, "cpu_seconds": 7.0, "artifact_mtime": 502.0, "log_lines": 0},
+])
 one = classify_liveness([{"t": 0, "cpu_seconds": 7.0, "artifact_mtime": 1.0, "log_lines": 5}])
 blind = classify_liveness([{"t": 0, "log_lines": 1}, {"t": 60, "log_lines": 900}])
 
@@ -58,7 +65,7 @@ except ValueError:
     refused_blank_run_id = True
 
 print(json.dumps({
-  "log_only": log_only, "cpu_only": cpu_only, "io_only": io_only,
+  "log_only": log_only, "cpu_only": cpu_only, "io_only": io_only, "mtime_trap": mtime_trap,
   "one_sample": one, "blind": blind,
   "quant_differs": q4 != q8, "order_stable": q4 == reordered,
   "refused_blank_run_id": refused_blank_run_id,
@@ -79,6 +86,11 @@ if (!r.log_only.every((v) => v === r.WEDGED))
 //    must not be killed, or the guarantee is useless in the other direction.
 if (r.cpu_only !== r.ALIVE) fail(`advancing CPU must read ALIVE, got ${r.cpu_only}`);
 if (r.io_only !== r.ALIVE) fail(`advancing artifact mtime must read ALIVE, got ${r.io_only}`);
+if (r.mtime_trap !== r.WEDGED)
+  fail(
+    `2 seconds of mtime advance across a day read ${r.mtime_trap}, not WEDGED — the mtime signal ` +
+      "is still an ABSOLUTE floor while the docstring claims both signals are rates"
+  );
 
 // 3. Absence of evidence is not evidence of life.
 if (r.one_sample !== r.UNKNOWN) fail(`a single sample must be UNKNOWN, got ${r.one_sample}`);
@@ -122,12 +134,33 @@ with tempfile.TemporaryDirectory() as d:
     except LockHeld:
         free_after_failure = False
 
-# the lineage claim: emitted must come from the CALL, never from an import succeeding
-calls = []
-emitted = emit_lineage({"run_id": "r1"}, emitter=lambda: (
-    lambda rid, e: calls.append(rid), lambda rid, e: calls.append(rid)))
-def _boom(rid, e): raise RuntimeError("sink down")
-failing = emit_lineage({"run_id": "r1"}, emitter=lambda: (_boom, _boom))
+# the lineage claim: emitted comes from the CALL on the REAL governance signature, parsed straight
+# from governance/lineage.py so the gate's doubles cannot drift from production the way the injected
+# two-argument double did. A recorder binds each call against the real signature, so a regression to
+# start(run_id, entry) makes the bind — and this gate — fail.
+import ast, inspect
+def _sig(name):
+    tree = ast.parse(open("benny/governance/lineage.py", encoding="utf-8").read())
+    for n in ast.walk(tree):
+        if isinstance(n, ast.FunctionDef) and n.name == name:
+            a = n.args; req = len(a.args) - len(a.defaults)
+            return inspect.Signature([
+                inspect.Parameter(x.arg, inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                                  default=(inspect.Parameter.empty if i < req else None))
+                for i, x in enumerate(a.args)])
+    raise SystemExit(f"signature for {name} not found")
+def _rec(name, sink):
+    s = _sig(name)
+    def r(*args, **kw):
+        b = s.bind(*args, **kw); b.apply_defaults(); sink.append(dict(b.arguments)); return "x"
+    return r
+started, completed = [], []
+emitted = emit_lineage({"run_id": "r1", "subject": "s", "topology_fingerprint": "sha256:z"},
+                       workspace="ws",
+                       emitter=lambda: (_rec("track_workflow_start", started), _rec("track_workflow_complete", completed)))
+def _boom(*a, **k): raise RuntimeError("sink down")
+failing = emit_lineage({"run_id": "r1", "subject": "s"}, workspace="ws", emitter=lambda: (_boom, _boom))
+default_path = emit_lineage({"run_id": "r1", "subject": "s"}, workspace="ws")  # no openlineage -> must fail closed
 
 # scenario 1 must REFUSE, not merely report
 try:
@@ -139,8 +172,12 @@ print(json.dumps({
   "peak": peak["max"], "dropped": len(dropped),
   "order": [x if isinstance(x, str) else "ERR" for x in seq],
   "free_after_failure": free_after_failure,
-  "emitted": emitted["emitted"], "emit_calls": len(calls),
+  "emitted": emitted["emitted"],
+  "emit_started_id": started[0]["workflow_id"] if started else None,
+  "emit_workspace": started[0]["workspace"] if started else None,
+  "emit_completed_id": completed[0]["workflow_id"] if completed else None,
   "failing_sink_reported_emitted": failing["emitted"],
+  "default_path_emitted": default_path["emitted"],
   "refused_unledgered": refused_unledgered,
 }))
 `);
@@ -151,10 +188,15 @@ if (s.dropped !== 0) fail(`${s.dropped} contended subject(s) were DROPPED instea
 if (JSON.stringify(s.order) !== JSON.stringify(["a", "ERR", "c"]))
   fail(`a failing subject aborted the run: ${JSON.stringify(s.order)}`);
 if (!s.free_after_failure) fail("a failing subject stranded the host lock");
-if (!s.emitted || s.emit_calls !== 2)
-  fail("emit_lineage did not actually call the RunEvent emitters it claims to");
+if (!s.emitted || s.emit_started_id !== "r1" || s.emit_completed_id !== "r1" || s.emit_workspace !== "ws")
+  fail(
+    "emit_lineage did not call the REAL governance signature — start/complete must receive " +
+      "(workflow_id, workflow_name, workspace, ...), the arity the shipped start(run_id, entry) could never satisfy"
+  );
 if (s.failing_sink_reported_emitted)
   fail("a failing lineage sink was reported as emitted — `emitted` must come from the call");
+if (s.default_path_emitted)
+  fail("the default lineage path claimed emitted where openlineage is absent — it must fail closed");
 if (!s.refused_unledgered)
   fail("an unledgered bench was not REFUSED — scenario 1's Then clause says it fails");
 
