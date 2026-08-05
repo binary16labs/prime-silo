@@ -83,6 +83,14 @@ topo_shapes = [
     {**rec, "topology": {"endpoint": {"weighted": 0.9}}},  # dict where a scalar is declared
 ]
 topo_nondict_all_refused = all(not validate_record(s)[0] for s in topo_shapes)
+# The class the verifier named: container TYPES were a denylist of dict/list/tuple. Fail closed on
+# shape instead — a frozenset, a MappingProxyType or any object that is not a scalar is refused,
+# so a composite cannot ride in inside a container nobody thought to enumerate.
+import types as _types
+class _Comp:
+    harmonic_mean = 0.9
+exotic = [frozenset({("harmonic_mean", 0.9)}), _types.MappingProxyType({"weighted": 0.9}), _Comp(), {1, 2, 3}]
+exotic_all_refused = all(not validate_record({**rec, "roster_hash": v})[0] for v in exotic)
 nav = rec["navigation"]
 print(json.dumps({
   "ok": ok, "errors": errors,
@@ -93,6 +101,7 @@ print(json.dumps({
   "composite_rejected": not poisoned_ok,
   "nested_composite_rejected": not nested_ok,
   "topo_nondict_all_refused": topo_nondict_all_refused,
+  "exotic_all_refused": exotic_all_refused,
   "genuine_zero_kept": nav["total_cost"] == 0.0 and "total_cost" not in nav["unmeasured"],
   "unmeasured_stayed_none": nav["total_tokens"] is None and "total_tokens" in nav["unmeasured"],
 }))
@@ -113,6 +122,11 @@ if (!r.topo_nondict_all_refused)
   fail(
     "a composite hidden in a non-dict topology was ACCEPTED — the allowlist was wired for the " +
       "authoring and navigation blocks and not for topology, the exact class the closed schema removes"
+  );
+if (!r.exotic_all_refused)
+  fail(
+    "a composite carried in a frozenset / MappingProxyType / dataclass / set was ACCEPTED — the " +
+      "container TYPES were still a denylist; the schema must fail closed on value shape"
   );
 
 // 3. P1's guarantee must survive serialisation, in BOTH directions. Testing only one direction is

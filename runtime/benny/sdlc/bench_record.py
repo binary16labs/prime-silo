@@ -168,17 +168,26 @@ _SUBOBJECTS = (
 )
 
 
-def _contains_object(value: Any) -> bool:
-    """True if a dict appears anywhere in `value`, walking through lists and tuples.
+#: A scalar leaf: what a declared field is permitted to carry. `bool` is listed for intent even
+#: though it is an `int` subclass. Anything NOT on this list — a dict, a set, a frozenset, a
+#: MappingProxyType, a dataclass, any object with a `__dict__` — is not a scalar and is refused.
+_SCALAR_TYPES = (str, int, float, bool, type(None))
 
-    One walker, so 'a scalar field may not hold a structure' is enforced for every container shape
-    at once. A dict nested where a scalar is declared is exactly where an unnamed composite hides —
-    first it was a dict in a list, then a dict in a tuple; enumerating shapes is how the last one is
-    always the one missed."""
-    if isinstance(value, dict):
+
+def _is_scalar_tree(value: Any) -> bool:
+    """True only if `value` is a scalar or a (possibly nested) list/tuple of scalars.
+
+    This fails CLOSED, which is the whole point. The previous walker asked the wrong question —
+    'does this CONTAIN a dict?' — and returned False for every container it did not enumerate, so a
+    composite could ride in as a frozenset, a MappingProxyType or a dataclass under an allowed key
+    and never be looked at. The key NAMES were an allowlist while the container TYPES were still a
+    denylist of the three shapes someone happened to think of. This asks the inverse: a value passes
+    only if every leaf is a known scalar type. A container type nobody enumerated is refused by
+    default rather than waved through."""
+    if isinstance(value, _SCALAR_TYPES):
         return True
     if isinstance(value, (list, tuple)):
-        return any(_contains_object(v) for v in value)
+        return all(_is_scalar_tree(v) for v in value)
     return False
 
 
@@ -202,11 +211,11 @@ def _refuse_object(obj: Any, keyset: frozenset, where: str, errors: List[str]) -
                 "name nobody thought to ban, and a weighted blend invented at design time is an "
                 "unfrozen rubric wearing a number (design D3)"
             )
-        if _contains_object(value):
+        if not _is_scalar_tree(value):
             errors.append(
-                f"{where}.{key} holds a nested object — a declared field carries a scalar or a list "
-                "of scalars, never a structure, because a structure is where an unnamed composite "
-                "hides"
+                f"{where}.{key} holds a {type(value).__name__}, not a scalar — a declared field "
+                "carries a scalar or a list of scalars, never a structure, because a structure is "
+                "where an unnamed composite hides"
             )
 
 
@@ -249,10 +258,11 @@ def validate_record(record: Dict[str, Any]) -> Tuple[bool, List[str]]:
             continue
         if key in subobject_names:
             continue  # checked below against its own keyset
-        if _contains_object(value):
+        if not _is_scalar_tree(value):
             errors.append(
-                f"{key} holds a nested object — a declared field carries a scalar or a list of "
-                "scalars, never a structure, because a structure is where an unnamed composite hides"
+                f"{key} holds a {type(value).__name__}, not a scalar — a declared field carries a "
+                "scalar or a list of scalars, never a structure, because a structure is where an "
+                "unnamed composite hides"
             )
     for name, keyset in _SUBOBJECTS:
         block = record.get(name)
@@ -271,6 +281,14 @@ def validate_record(record: Dict[str, Any]) -> Tuple[bool, List[str]]:
             errors.append(
                 f"the {name} block carries no `unmeasured` list — the invariant was opt-in, so a "
                 "block holding nulls while claiming completeness validated clean"
+            )
+            continue
+        if not isinstance(block["unmeasured"], (list, tuple)):
+            # A named refusal, not a bare TypeError out of `sorted(None)` two lines down. A caller
+            # that hands us `unmeasured: null` gets told what is wrong, not a stack trace.
+            errors.append(
+                f"the {name} block's `unmeasured` is a {type(block['unmeasured']).__name__}, not a "
+                "list — the invariant is a list of the fields that were not measured"
             )
             continue
         # Computed over the SCHEMA, not over present keys: dropping the null fields and declaring

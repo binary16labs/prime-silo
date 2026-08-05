@@ -533,3 +533,98 @@ def test_build_record_with_a_None_primary_metric_is_a_named_refusal():
     with pytest.raises(ValueError):
         build_record("s", authoring=authoring_block(TRIAL), navigation=navigation_block(_nav()),
                      rubric_hash="h", primary_metric=None)
+
+
+# ---------------------------------------------------------------------------
+# Third review (LOG 2026-08-04T22:30Z) — the CLASS the verifier named, and the
+# five uncovered items. The verifier's words: "the key names are an allowlist,
+# but the CONTAINER TYPES are still a denylist" — dict/list/tuple were
+# enumerated and everything else waved through. The fix is to fail closed on
+# value SHAPE, not to enumerate one more container.
+# ---------------------------------------------------------------------------
+
+import types  # noqa: E402
+from dataclasses import dataclass  # noqa: E402
+
+
+@dataclass
+class _Composite:
+    harmonic_mean: float = 0.9
+
+
+def test_a_composite_in_a_container_type_nobody_enumerated_is_refused():
+    """THE CLASS. A frozenset, a MappingProxyType, a dataclass and a bare object with __dict__ were
+    all uninspected because the walker asked 'does this contain a dict?' and returned False for any
+    container it did not list. A scalar field must be a scalar; anything else is refused by shape,
+    so a container type nobody thought of cannot ride in under an allowed key."""
+    rec = build_record(
+        "s", authoring=authoring_block(TRIAL), navigation=navigation_block(_nav()),
+        rubric_hash="h", primary_metric="authoring.has_required_ops",
+    )
+    exotic = [
+        frozenset({("harmonic_mean", 0.9)}),
+        types.MappingProxyType({"weighted": 0.9}),
+        _Composite(),
+        {1, 2, 3},                       # a plain set
+    ]
+    # under a scalar field
+    for value in exotic:
+        ok, errors = validate_record({**rec, "roster_hash": value})
+        assert not ok, f"{type(value).__name__} under a scalar field validated clean"
+        assert any("roster_hash" in e for e in errors), errors
+    # and under a KNOWN key inside a block
+    for value in exotic:
+        poisoned = {**rec["authoring"], "quality_score": value}
+        ok, errors = validate_record({**rec, "authoring": poisoned})
+        assert not ok, f"{type(value).__name__} under a block key validated clean"
+        assert any("quality_score" in e for e in errors), errors
+
+
+def test_a_list_of_pure_scalars_is_still_allowed():
+    """The fail-closed rule must not become fail-everything: scored_on and unmeasured are lists of
+    strings and must pass."""
+    rec = build_record(
+        "s", authoring=authoring_block(TRIAL), navigation=navigation_block(_nav()),
+        rubric_hash="h", primary_metric="authoring.has_required_ops",
+    )
+    ok, errors = validate_record(rec)
+    assert ok, errors
+    assert rec["scored_on"] == ["authoring", "navigation"]
+
+
+def test_an_unmeasured_that_is_not_a_list_is_a_named_refusal_not_a_TypeError():
+    """`sorted(None)` two lines down was a bare TypeError; a caller handing us `unmeasured: null`
+    should be told what is wrong."""
+    rec = build_record("s", authoring=authoring_block(TRIAL), navigation=navigation_block(_nav()),
+                       rubric_hash="h", primary_metric="authoring.has_required_ops")
+    broken = {**rec["navigation"], "unmeasured": None}
+    ok, errors = validate_record({**rec, "navigation": broken})
+    assert not ok and any("unmeasured" in e for e in errors), errors
+
+
+def test_ranking_with_higher_is_better_false_flips_the_order():
+    """`higher_is_better` was a public ranking knob with ZERO coverage — its whole effect could be
+    deleted with the suite green."""
+    recs = [
+        build_record("a", authoring=None, navigation=navigation_block(_nav(tool_efficiency=0.3)),
+                     rubric_hash="h", primary_metric="navigation.tool_efficiency"),
+        build_record("b", authoring=None, navigation=navigation_block(_nav(tool_efficiency=0.9)),
+                     rubric_hash="h", primary_metric="navigation.tool_efficiency"),
+    ]
+    assert [r["subject"] for r in rank_records(recs, higher_is_better=True)["ranked"]] == ["b", "a"]
+    assert [r["subject"] for r in rank_records(recs, higher_is_better=False)["ranked"]] == ["a", "b"]
+
+
+def test_ranking_an_empty_pile_is_an_empty_result_not_a_crash():
+    out = rank_records([])
+    assert out == {"ranked": [], "excluded": [], "primary_metric": None}
+
+
+def test_the_subject_tiebreak_is_pinned_so_ranking_is_deterministic():
+    """Equal metric values must break to a stable order, or two runs of the same pile disagree."""
+    recs = [
+        build_record(s, authoring=None, navigation=navigation_block(_nav(tool_efficiency=0.5)),
+                     rubric_hash="h", primary_metric="navigation.tool_efficiency")
+        for s in ("charlie", "alice", "bob")
+    ]
+    assert [r["subject"] for r in rank_records(recs)["ranked"]] == ["alice", "bob", "charlie"]
