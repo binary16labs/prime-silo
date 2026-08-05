@@ -1,0 +1,6 @@
+# Raw per-model bench summaries carry session-derived fragment TEXT (the model's extraction of
+# the operator's session) — reproducible by re-running rung1_bench.mjs, never committed. Only the
+# folded report (metrics + scores, no session content) and the execution register are tracked.
+*.json
+!rung1-report.json
+!execution_register.json

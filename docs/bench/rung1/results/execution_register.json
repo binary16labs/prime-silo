@@ -1,0 +1,40 @@
+[
+  {
+    "kind": "bench_execution/1",
+    "subject": "google/gemma-4-12b",
+    "run_id": "rung1-google_gemma_4_12b",
+    "topology": {
+      "endpoint": "http://localhost:1234/v1",
+      "quantisation": "q4_k_m",
+      "model_id": "google/gemma-4-12b"
+    },
+    "topology_fingerprint": "sha256:eb3e2e1b51133c81",
+    "rubric_hash": "sha256:0dfe651ea3d3b13e",
+    "roster_hash": null,
+    "metrics": {
+      "wall_seconds": 257.567,
+      "total_tokens": 5999,
+      "quality_score": 0.9279
+    },
+    "recorded_at": "2026-08-05T16:48:02.202097+00:00"
+  },
+  {
+    "kind": "bench_execution/1",
+    "subject": "google/gemma-4-e4b",
+    "run_id": "rung1-google_gemma_4_e4b",
+    "topology": {
+      "endpoint": "http://localhost:1234/v1",
+      "quantisation": "q4_k_m",
+      "model_id": "google/gemma-4-e4b"
+    },
+    "topology_fingerprint": "sha256:06fc33fcefe72beb",
+    "rubric_hash": "sha256:0dfe651ea3d3b13e",
+    "roster_hash": null,
+    "metrics": {
+      "wall_seconds": 51.394,
+      "total_tokens": 6196,
+      "quality_score": 0.9591
+    },
+    "recorded_at": "2026-08-05T16:48:02.223067+00:00"
+  }
+]
