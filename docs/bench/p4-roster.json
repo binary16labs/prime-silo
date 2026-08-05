@@ -3,7 +3,7 @@
   "kind": "model_roster",
   "id": "p4-incumbent-vs-e4b",
   "models": [
-    { "label": "qwen-house-v3", "id": "house/qwen2.5-coder-tuned", "tier": ["planner", "architect", "implementer", "reviewer"], "max_tokens": 4096, "temperature": 0.2 },
+    { "label": "qwen-house-v3", "id": "lmstudio/qwen2.5-coder-tuned", "tier": ["planner", "architect", "implementer", "reviewer"], "max_tokens": 4096, "temperature": 0.2 },
     { "label": "gemma-e4b", "id": "lmstudio/google/gemma-4-e4b", "tier": ["planner", "architect", "implementer", "reviewer"], "max_tokens": 4096, "temperature": 0.2 }
   ],
   "subjects": [

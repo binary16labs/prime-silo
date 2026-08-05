@@ -1,0 +1,121 @@
+{
+  "bench_id": "p4-incumbent-vs-e4b",
+  "surface": "authoring (owner-signed amendment; navigation instrument gap)",
+  "rubric_hash": "sha256:431f8c268670915d",
+  "primary_metric": "authoring.wall_seconds",
+  "higher_is_better": false,
+  "ranking": [
+    "incumbent",
+    "gemma-e4b"
+  ],
+  "excluded": [],
+  "records": [
+    {
+      "kind": "bench_record/1",
+      "subject": "incumbent",
+      "authoring": {
+        "source": "pypes.model-bench",
+        "has_required_ops": null,
+        "step_count": null,
+        "parse_ok": null,
+        "wall_seconds": 14.5359,
+        "total_tokens": 1808,
+        "cost_usd": 0.000808,
+        "quality_score": 0.143,
+        "status": "OK",
+        "model": "incumbent",
+        "unmeasured": [
+          "has_required_ops",
+          "parse_ok",
+          "step_count"
+        ]
+      },
+      "navigation": {
+        "source": "sdlc.run_multi_model",
+        "tool_selection_accuracy": null,
+        "tool_efficiency": null,
+        "context_efficiency": null,
+        "iteration_latency_ms_p95": null,
+        "loop_count_p95": null,
+        "constraint_adherence": null,
+        "total_cost": null,
+        "total_tokens": null,
+        "status": "unavailable",
+        "unavailable_reason": "navigation instrument (tool_selection_accuracy) has no agentic manifest on today's orchestrator \u2014 see the P4 amendment",
+        "run_id": "p4-incumbent",
+        "unmeasured": [
+          "constraint_adherence",
+          "context_efficiency",
+          "iteration_latency_ms_p95",
+          "loop_count_p95",
+          "tool_efficiency",
+          "tool_selection_accuracy",
+          "total_cost",
+          "total_tokens"
+        ]
+      },
+      "scored_on": [
+        "authoring",
+        "navigation"
+      ],
+      "rubric_hash": "sha256:431f8c268670915d",
+      "roster_hash": null,
+      "topology": null,
+      "primary_metric": "authoring.wall_seconds"
+    },
+    {
+      "kind": "bench_record/1",
+      "subject": "gemma-e4b",
+      "authoring": {
+        "source": "pypes.model-bench",
+        "has_required_ops": null,
+        "step_count": null,
+        "parse_ok": null,
+        "wall_seconds": 54.2303,
+        "total_tokens": 2274,
+        "cost_usd": 0.003013,
+        "quality_score": 0.143,
+        "status": "OK",
+        "model": "gemma-e4b",
+        "unmeasured": [
+          "has_required_ops",
+          "parse_ok",
+          "step_count"
+        ]
+      },
+      "navigation": {
+        "source": "sdlc.run_multi_model",
+        "tool_selection_accuracy": null,
+        "tool_efficiency": null,
+        "context_efficiency": null,
+        "iteration_latency_ms_p95": null,
+        "loop_count_p95": null,
+        "constraint_adherence": null,
+        "total_cost": null,
+        "total_tokens": null,
+        "status": "unavailable",
+        "unavailable_reason": "navigation instrument (tool_selection_accuracy) has no agentic manifest on today's orchestrator \u2014 see the P4 amendment",
+        "run_id": "p4-gemma-e4b",
+        "unmeasured": [
+          "constraint_adherence",
+          "context_efficiency",
+          "iteration_latency_ms_p95",
+          "loop_count_p95",
+          "tool_efficiency",
+          "tool_selection_accuracy",
+          "total_cost",
+          "total_tokens"
+        ]
+      },
+      "scored_on": [
+        "authoring",
+        "navigation"
+      ],
+      "rubric_hash": "sha256:431f8c268670915d",
+      "roster_hash": null,
+      "topology": null,
+      "primary_metric": "authoring.wall_seconds"
+    }
+  ],
+  "register_path": "docs\\bench\\results\\execution_register.json"
+}

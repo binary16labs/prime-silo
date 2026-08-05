@@ -1,0 +1,40 @@
+[
+  {
+    "kind": "bench_execution/1",
+    "subject": "incumbent",
+    "run_id": "p4-incumbent",
+    "topology": {
+      "endpoint": "http://localhost:1234/v1",
+      "quantisation": "q4_k_m",
+      "model_id": "lmstudio/qwen2.5-coder-tuned"
+    },
+    "topology_fingerprint": "sha256:8aea9b4a3b818c60",
+    "rubric_hash": "sha256:431f8c268670915d",
+    "roster_hash": null,
+    "metrics": {
+      "wall_seconds": 14.5359,
+      "total_tokens": 1808,
+      "cost_usd": 0.000808
+    },
+    "recorded_at": "2026-08-05T15:47:02.298457+00:00"
+  },
+  {
+    "kind": "bench_execution/1",
+    "subject": "gemma-e4b",
+    "run_id": "p4-gemma-e4b",
+    "topology": {
+      "endpoint": "http://localhost:1234/v1",
+      "quantisation": "q4_k_m",
+      "model_id": "lmstudio/google/gemma-4-e4b"
+    },
+    "topology_fingerprint": "sha256:330eff227b5f049f",
+    "rubric_hash": "sha256:431f8c268670915d",
+    "roster_hash": null,
+    "metrics": {
+      "wall_seconds": 54.2303,
+      "total_tokens": 2274,
+      "cost_usd": 0.003013
+    },
+    "recorded_at": "2026-08-05T15:47:02.298457+00:00"
+  }
+]

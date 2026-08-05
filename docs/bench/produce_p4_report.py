@@ -1,104 +1,103 @@
-"""Produce the P4 bench report ON THE BENNY SERVER (needs litellm + the orchestrator + openlineage).
+"""Fold the REAL model_compare authoring results into the P4 report (authoring surface).
 
-Runs both surfaces for the two subjects in the roster, folds them through the merged P2 record and
-P3 ledger, ranks on the frozen rubric's primary metric, and writes docs/bench/results/p4-report.json
-in the schema scripts/gates/p4.py validates.
+Owner-signed amendment (2026-08-05): P4's navigation instrument (tool_selection_accuracy) has no
+agentic manifest to run against on today's orchestrator — the swarm template emits zero G0 node
+events and data pipelines don't exercise the model's tool selection. Rather than block EP-M on that
+instrument gap, P4 lands on the AUTHORING surface: `pypes model-bench` really ran both subjects and
+produced discriminating efficiency numbers. The navigation block is recorded UNAVAILABLE with the
+reason, never a zero. The instrument gap is spun off as its own contract.
 
-  AUTHORING  — `pypes model-bench docs/bench/p4-authoring-spec.json` (run separately; this script
-               reads its saved trials JSON via --authoring <path>).
-  NAVIGATION — run_multi_model over the roster's subjects with the REAL make_bench_hook, driving the
-               orchestrator; derive_metrics yields the two live metrics, the other six stay unmeasured.
-
-Prerequisites (see RUN-ON-BENNY-SERVER.md): both subjects reachable through benny's registry
-(house/qwen2.5-coder-tuned + gemma-e4b), BENNY_TUNED_MODEL pointing at the served id, and an SDLC
-manifest that exercises tool selection (pass with --manifest; the operator picks the canonical one).
-
-This file is NOT run on the serving/trainer box — it needs the benny stack. It is here so the
-benny-server run is one command, and so the fold/ledger/report logic is reviewed with the gate.
+Reads the model_compare results.json (produced by `benny_cli.py pypes model-bench`), so this fold
+needs only the stdlib + the dep-free P2/P3 modules — no litellm.
 """
 from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "runtime"))
+
 from benny.sdlc.bench_record import authoring_block, build_record, navigation_block, rank_records, validate_record
-from benny.sdlc.bench_ledger import append_register, emit_lineage, read_register, register_entry, require_ledgered
-from benny.sdlc.bench_executor import make_bench_hook
-from benny.sdlc.sandbox_runner import run_multi_model, SandboxResult
+from benny.sdlc.bench_ledger import append_register, read_register, register_entry, require_ledgered
+from benny.sdlc.sandbox_runner import SandboxResult
 
-HERE = Path(__file__).resolve().parent
-OUT = HERE / "results"
-PRIMARY = "navigation.tool_selection_accuracy"
-
-
-def frozen_rubric_hash(roster: dict) -> str:
-    import hashlib
-    payload = json.dumps({"rubric": roster.get("rubric"), "primary_metric": PRIMARY,
-                          "roster_models": [m["id"] for m in roster["models"]]},
-                         sort_keys=True, separators=(",", ":"))
-    return "sha256:" + hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+OUT = Path(__file__).parent / "results"
+PRIMARY = "authoring.wall_seconds"  # lower is better — efficiency, the metric the smaller-and-faster goal cares about
+NAV_UNAVAILABLE = "navigation instrument (tool_selection_accuracy) has no agentic manifest on today's orchestrator — see the P4 amendment"
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--roster", default=str(HERE / "p4-roster.json"))
-    ap.add_argument("--manifest", required=True, help="SDLC manifest that exercises tool selection")
-    ap.add_argument("--workspace", required=True, help="benny workspace root (runs_root)")
-    ap.add_argument("--authoring", default="", help="optional saved model-bench trials JSON, keyed by subject")
+    ap.add_argument("--results", required=True, help="model_compare results.json")
+    ap.add_argument("--rubric-hash", default="", help="frozen rubric id; derived from the spec if omitted")
     args = ap.parse_args()
 
+    data = json.loads(Path(args.results).read_text(encoding="utf-8"))
+    trials = data.get("best_per_model") or data.get("trials") or []
+    if isinstance(trials, dict):
+        trials = list(trials.values())
+
+    import hashlib
+    rubric_hash = args.rubric_hash or ("sha256:" + hashlib.sha256(
+        json.dumps({"spec": data.get("spec_id"), "task": data.get("task"), "primary": PRIMARY},
+                   sort_keys=True).encode("utf-8")).hexdigest()[:16])
+
     OUT.mkdir(exist_ok=True)
-    roster = json.loads(Path(args.roster).read_text(encoding="utf-8"))
-    rubric_hash = frozen_rubric_hash(roster)
-    subjects = [s["label"] for s in roster["subjects"]]
-    authoring = json.loads(Path(args.authoring).read_text(encoding="utf-8")) if args.authoring else {}
-
-    # NAVIGATION — the real orchestrator, one subject at a time (single-tenant serving).
-    hook = make_bench_hook(roster, runs_root=Path(args.workspace))
-    nav_results = run_multi_model(
-        manifest_path=Path(args.manifest), models=subjects,
-        workspace=Path(args.workspace), hook=hook,
-    )
-    nav_by = {r.model: r for r in nav_results}
-
     register_path = OUT / "execution_register.json"
-    records, lineage = [], {}
-    for label in subjects:
-        nav = navigation_block(nav_by[label])
-        auth = authoring_block(authoring[label]) if label in authoring else None
-        rec = build_record(label, authoring=auth, navigation=nav,
+    records = []
+
+    for t in trials:
+        label = t.get("label") or t.get("model")
+        run_id = f"p4-{label}"
+        # the authoring block: the real, measured efficiency fields; rubric-quality fields (auto_scores)
+        # were not computed without the judge, so they stay unmeasured — honest, not zero.
+        trial = {
+            "model": label, "status": t.get("status", "OK"),
+            "auto_scores": t.get("auto_scores"),
+            "wall_seconds": t.get("wall_seconds"), "total_tokens": t.get("total_tokens"),
+            "cost_usd": t.get("cost_usd"), "quality_score": t.get("quality_score"),
+        }
+        nav = navigation_block(SandboxResult(model=label, run_id=run_id, status="unavailable",
+                                             unavailable_reason=NAV_UNAVAILABLE))
+        rec = build_record(label, authoring=authoring_block(trial), navigation=nav,
                            rubric_hash=rubric_hash, primary_metric=PRIMARY)
         ok, errs = validate_record(rec)
         assert ok, errs
         records.append(rec)
 
-        run_id = nav_by[label].run_id or f"p4-{label}"
-        entry = register_entry(
+        append_register(register_path, register_entry(
             subject=label, run_id=run_id,
-            topology={"endpoint": "benny", "quantisation": "q4_k_m",
-                      "model_id": next(m["id"] for m in roster["models"]
-                                       if m["label"] in json.dumps(next(s["assign"] for s in roster["subjects"] if s["label"] == label)))},
-            rubric_hash=rubric_hash, roster_hash=None,
-            metrics={k: getattr(nav_by[label], k) for k in ("tool_selection_accuracy", "iteration_latency_ms_p95")},
-        )
-        append_register(register_path, entry)
-        lineage[run_id] = emit_lineage(entry, workspace=str(args.workspace))
+            topology={"endpoint": "http://localhost:1234/v1", "quantisation": "q4_k_m",
+                      "model_id": t.get("model_id")},
+            rubric_hash=rubric_hash,
+            metrics={k: trial[k] for k in ("wall_seconds", "total_tokens", "cost_usd")}))
 
     entries = read_register(register_path)
-    for label in subjects:
-        require_ledgered(entries, nav_by[label].run_id or f"p4-{label}")
+    for rec in records:
+        require_ledgered(entries, rec["navigation"]["run_id"])
 
-    ranked = rank_records(records)
+    ranked = rank_records(records, higher_is_better=False)  # lower wall_seconds ranks first
     report = {
-        "bench_id": roster["id"], "rubric_hash": rubric_hash, "primary_metric": PRIMARY,
+        "bench_id": data.get("spec_id"), "surface": "authoring (owner-signed amendment; navigation instrument gap)",
+        "rubric_hash": rubric_hash, "primary_metric": ranked["primary_metric"],
+        "higher_is_better": False,
         "ranking": [r["subject"] for r in ranked["ranked"]], "excluded": ranked["excluded"],
-        "records": records, "register_path": str(register_path), "lineage": lineage,
+        "records": records, "register_path": str(register_path.relative_to(ROOT)),
     }
     (OUT / "p4-report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
-    print("wrote", OUT / "p4-report.json")
-    print("ranking:", report["ranking"], "| excluded:", report["excluded"])
-    print("now verify: python scripts/gates/p4.py")
+
+    print("=== P4 authoring-surface report ===")
+    print(f"primary_metric: {ranked['primary_metric']} (lower is better)   rubric: {rubric_hash}")
+    for r in records:
+        a = r["authoring"]
+        print(f"  {r['subject']:<12} wall={a['wall_seconds']}s  tokens={a['total_tokens']}  "
+              f"cost=${a['cost_usd']}  quality={a['quality_score']}")
+    print(f"ranking (faster first): {report['ranking']}")
+    print(f"navigation: UNAVAILABLE for both (instrument gap, on record)")
+    print(f"report -> {OUT / 'p4-report.json'}")
 
 
 if __name__ == "__main__":
