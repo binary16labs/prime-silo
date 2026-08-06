@@ -28,9 +28,15 @@ if (!MODEL) {
   console.error("usage: node rung2_bench.mjs <model-id>");
   process.exit(2);
 }
-const SAMPLE = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "sample-rung2.json"), "utf8")
-);
+// Default sample is the 10-card rung-2 set; override with a path (e.g. the held-out P5 eval set,
+// scripts/train/dataset/longview_distill/eval-p5.json) so the trained model is measured on cards it
+// never saw. Accepts either {sids:[...]} or a bare array.
+const SAMPLE_ARG = process.argv[3];
+const samplePath = SAMPLE_ARG
+  ? (path.isAbsolute(SAMPLE_ARG) ? SAMPLE_ARG : path.resolve(REPO, SAMPLE_ARG))
+  : path.join(__dirname, "sample-rung2.json");
+const _sampleRaw = JSON.parse(fs.readFileSync(samplePath, "utf8"));
+const SAMPLE = Array.isArray(_sampleRaw) ? { sids: _sampleRaw } : _sampleRaw;
 const SYSTEM = fs.readFileSync(
   path.join(REPO, "scripts", "longview", "prompts", "window_fragment.md"), "utf8"
 );

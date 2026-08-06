@@ -29,13 +29,20 @@ def _tool_call_json(row):
 
 
 def build_messages(row):
-    """Return (user_content, assistant_content) for a Stream A or B row."""
+    """Return (user_content, assistant_content) for a Stream A, B or L row."""
     stream = row.get("stream")
     if stream == "A":
         return row["instruction"], row["response"]
     if stream == "B":
         user = _STREAM_B_USER.format(state=row["state"], goal=row["goal"])
         return user, _tool_call_json(row)
+    if stream == "L":
+        # LONGVIEW distillation (P5) — UNLIKE A/B this is a PROMPTED extraction task: the
+        # window_fragment instruction defines the output schema, so it must be present (the ladder
+        # bench serves it too). Gemma's chat template folds a system role into the first user turn
+        # anyway, so we fold it here — template-agnostic and consistent with how LM Studio renders
+        # {system,user} at serve time. Target is the 12B teacher's fragment.
+        return f"{row['system']}\n\n--- SLICE ---\n{row['user']}", row["response"]
     raise ValueError(f"unknown stream {stream!r} in row {row.get('id')!r}")
 
 
