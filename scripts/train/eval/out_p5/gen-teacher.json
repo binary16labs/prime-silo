@@ -1,0 +1,8 @@
+{
+  "model": "google/gemma-4-12b (stored teacher)",
+  "windows": 14,
+  "quality_score": 0.9315,
+  "coverage": 0.7976,
+  "valid_json": 1.0,
+  "mean_sec_per_window": 91.19
+}

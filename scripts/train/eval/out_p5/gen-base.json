@@ -1,0 +1,13 @@
+{
+  "model": "base google/gemma-4-e4b",
+  "mode": "base",
+  "adapter": null,
+  "windows": 14,
+  "quality_score": 0.8535,
+  "coverage": 0.7381,
+  "valid_json": 0.9286,
+  "keys_present": 0.9286,
+  "within_bounds": 0.8187,
+  "mean_sec_per_window": 92.34,
+  "total_sec": 1292.8
+}
