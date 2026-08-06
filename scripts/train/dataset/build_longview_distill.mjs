@@ -142,10 +142,41 @@ if (excludedSessions.length) {
   for (const e of excludedSessions) console.log(`    ${e.sid} — ${e.where} term=${e.term}`);
 }
 
+// HELD-OUT EVAL ROWS — same (window -> 12B fragment) shape and same per-session gate as training, for
+// the NLL base-vs-tuned score (the GGUF-free primary signal). These cards were EXCLUDED from training.
+const evalRows = [];
+let evalSkipped = 0;
+for (const sid of [...evalSids].sort()) {
+  let windows;
+  try { ({ windows } = walkSessionWindows({ id: sid }, { inputChars: WINDOW_CHARS })); } catch { evalSkipped++; continue; }
+  const sessionRows = [];
+  for (const w of windows) {
+    const fragPath = path.join(WINDOWS, sid, `w${WINDOW_CHARS}_${w.index}.json`);
+    if (!fs.existsSync(fragPath)) { evalSkipped++; continue; }
+    let frag;
+    try { frag = JSON.parse(fs.readFileSync(fragPath, "utf8")); } catch { evalSkipped++; continue; }
+    sessionRows.push({ stream: "L", id: `L-${sid}-w${w.index}`, system: SYSTEM,
+                       user: w.text, response: JSON.stringify(frag), source: sid });
+  }
+  if (!sessionRows.length) continue;
+  const respHit = scanStr(sessionRows.map((r) => r.response).join("\n"), TERMS)[0];
+  const inputHit = scanStr(sessionRows.map((r) => r.user.replace(/\r?\n/g, " ")).join("\n"), STRONG_TERMS)[0];
+  if (respHit || inputHit) continue;  // same fail-closed gate as training
+  evalRows.push(...sessionRows);
+}
+const evalPath = path.join(OUT, "longview_distill.eval.jsonl");
+fs.writeFileSync(evalPath, evalRows.map((r) => JSON.stringify(r)).join("\n") + (evalRows.length ? "\n" : ""));
+const evalBackstop = [
+  ...scanStr(evalRows.map((r) => r.response).join("\n"), TERMS),
+  ...scanStr(evalRows.map((r) => r.user.replace(/\r?\n/g, " ")).join("\n"), STRONG_TERMS),
+];
+if (evalBackstop.length) { console.error(`[distill] EVAL BACKSTOP TRIPPED — ${evalBackstop.length}; aborting`); fs.unlinkSync(evalPath); process.exit(1); }
+
 // eval sample manifest (held-out sids the ladder will bench the trained model on)
 const evalManifest = {
   sids: [...evalSids].sort(),
   n: evalSids.size,
+  eval_rows: evalRows.length,
   why: `held-out P5 eval: sha256-lowest ${argEvalN} of ${allSids.length} non-quarantined cards, EXCLUDED from training`,
 };
 fs.writeFileSync(path.join(OUT, "eval-p5.json"), JSON.stringify(evalManifest, null, 2));

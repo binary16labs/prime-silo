@@ -27,5 +27,6 @@
     "fb6da8907c8bd5dcf7c585bb577f98e0"
   ],
   "n": 25,
+  "eval_rows": 387,
   "why": "held-out P5 eval: sha256-lowest 25 of 256 non-quarantined cards, EXCLUDED from training"
 }
