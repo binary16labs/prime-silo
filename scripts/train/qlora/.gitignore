@@ -3,6 +3,8 @@
 out/
 out_p5/
 out_p5_4096/
+out_ta/
+out_ta_smoke/
 unsloth_compiled_cache/
 *.author-bak/
 __pycache__/
