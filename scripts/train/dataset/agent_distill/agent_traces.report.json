@@ -3,6 +3,8 @@
   "quarantined": 22,
   "sessions_train": 258,
   "sessions_eval": 25,
+  "secret_keys_loaded": 1,
+  "rows_secret_redacted": 65,
   "excluded_by_gate": [
     {
       "sid": "1de6ef531e31b95af7dbd16e9e131293",

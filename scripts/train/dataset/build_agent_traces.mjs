@@ -26,6 +26,8 @@ const LV = path.join(REPO, "scripts", "longview", "lib");
 const imp = (f) => import(pathToFileURL(path.join(LV, f)).href);
 const { readIndex, readTimeline } = await imp("store.mjs");
 const { scanForLeaks } = await imp("leak_gate.mjs");
+const { loadSecrets, redactText, scanSecretPatterns } =
+  await import(pathToFileURL(path.join(__dirname, "secrets_scrub.mjs")).href);
 
 const WORKDIR = "D:/benny-home/benny/workspaces/sessions_v1/longview";
 const QUARANTINE = path.join(WORKDIR, "quarantine.json");
@@ -51,6 +53,10 @@ const SYSTEM =
 
 // --- corpus + guards (mirror build_longview_distill.mjs) -------------------
 const quarantined = new Set((JSON.parse(fs.readFileSync(QUARANTINE, "utf8")).sids) || []);
+// Secret VALUES from .env (in-memory only; never written to any row/log/file). Tool transcripts
+// carry file-reads/command-output, so .env values can land in a row's context — the personal-data
+// gate does NOT catch these. We redact known values and fail-closed on unknown secret-shaped tokens.
+const SECRETS = loadSecrets(path.join(REPO, ".env"));
 const personalTerms = JSON.parse(fs.readFileSync(path.join(__dirname, "personal_terms.json"), "utf8"));
 const TERMS = Array.isArray(personalTerms) ? personalTerms : (personalTerms.terms || []);
 // Same rationale as P5: the session that BUILT the leak gate trips its own 'cv' example rule.
@@ -166,6 +172,7 @@ function harvestSession(sid) {
 }
 
 // --- emit train + eval with the per-session gate ---------------------------
+let REDACTED_ROWS = 0; // rows where a known .env secret value was scrubbed
 function buildSplit(sids) {
   const rows = [];
   const excluded = []; // {sid, where, term}
@@ -174,6 +181,18 @@ function buildSplit(sids) {
     const { rows: sessionRows, skipped: sk } = harvestSession(sid);
     skipped += sk;
     if (!sessionRows.length) continue;
+    // SECRETS: redact known .env values everywhere; fail-closed on unknown secret-shaped tokens.
+    let secretPattern = null;
+    for (const r of sessionRows) {
+      const ru = redactText(r.user, SECRETS); const rr = redactText(r.response, SECRETS);
+      r.user = ru.text; r.response = rr.text;
+      if (ru.hits + rr.hits) REDACTED_ROWS++;
+      secretPattern = secretPattern || scanSecretPatterns(r.user + "\n" + r.response)[0];
+    }
+    if (secretPattern) {
+      excluded.push({ sid, where: `secret(${secretPattern.kind})`, term: secretPattern.excerpt });
+      continue; // drop the WHOLE session — an unredactable secret survived
+    }
     const respHit = scanStr(sessionRows.map((r) => r.response).join("\n"), TERMS)[0];
     const inputHit = scanStr(sessionRows.map((r) => r.user.replace(/\r?\n/g, " ")).join("\n"), STRONG_TERMS)[0];
     if (respHit || inputHit) {
@@ -193,6 +212,21 @@ const evalPath = path.join(OUT, "agent_traces.eval.jsonl");
 const write = (p, rows) => fs.writeFileSync(p, rows.map((r) => JSON.stringify(r)).join("\n") + (rows.length ? "\n" : ""));
 write(trainPath, train.rows);
 write(evalPath, evalOut.rows);
+
+// SECRETS FAIL-CLOSED BACKSTOP — assert NO known .env secret value survived redaction anywhere.
+let secretSurvivors = 0;
+for (const { rows } of [train, evalOut]) {
+  for (const r of rows) {
+    for (const { value } of SECRETS) {
+      if (value && (r.user.includes(value) || r.response.includes(value))) secretSurvivors++;
+    }
+  }
+}
+if (secretSurvivors) {
+  console.error(`[agent-traces] SECRET BACKSTOP TRIPPED — ${secretSurvivors} row(s) still contain a raw .env value; aborting`);
+  fs.unlinkSync(trainPath); fs.unlinkSync(evalPath);
+  process.exit(1);
+}
 
 // FAIL-CLOSED BACKSTOP — re-scan emitted rows with the SAME split policy; assert 0.
 const backstop = [];
@@ -217,6 +251,7 @@ const report = {
   sessions_indexed: allSids.length + quarantined.size,
   quarantined: quarantined.size,
   sessions_train: trainSids.length, sessions_eval: evalSids.size,
+  secret_keys_loaded: SECRETS.length, rows_secret_redacted: REDACTED_ROWS,
   excluded_by_gate: [...train.excluded, ...evalOut.excluded],
   train_pairs: train.rows.length, eval_pairs: evalOut.rows.length,
   train_tool_hist: toolHist(train.rows),
