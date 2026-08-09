@@ -1,0 +1,138 @@
+{
+  "sessions_indexed": 305,
+  "quarantined": 22,
+  "sessions_train": 258,
+  "sessions_eval": 25,
+  "excluded_by_gate": [
+    {
+      "sid": "1de6ef531e31b95af7dbd16e9e131293",
+      "where": "input(strong)",
+      "term": "bd1d4a916fc3d600ed1773ef855b473d"
+    },
+    {
+      "sid": "3c48268d3bb0c98d7228ab68b8db66c3",
+      "where": "input(strong)",
+      "term": "bd1d4a916fc3d600ed1773ef855b473d"
+    },
+    {
+      "sid": "687d938cd15a8ba5a79b4b46fc689a2a",
+      "where": "input(strong)",
+      "term": "bd1d4a916fc3d600ed1773ef855b473d"
+    },
+    {
+      "sid": "68e8feda785f4fd0455d2f2c0c057a95",
+      "where": "input(strong)",
+      "term": "bd1d4a916fc3d600ed1773ef855b473d"
+    },
+    {
+      "sid": "a286eac949e9d89a1d4dd176180be119",
+      "where": "input(strong)",
+      "term": "d99fe788bf62368420f2d09f95274d99"
+    },
+    {
+      "sid": "b7f2d867b5504ca7870ddd84e210d6fe",
+      "where": "response(full)",
+      "term": "cv"
+    },
+    {
+      "sid": "bd9c00a7c2c7f9aa912d2d5b2b1531a8",
+      "where": "input(strong)",
+      "term": "bd1d4a916fc3d600ed1773ef855b473d"
+    },
+    {
+      "sid": "d18fd4640b1080d458c8a6e8afc0b689",
+      "where": "input(strong)",
+      "term": "bd1d4a916fc3d600ed1773ef855b473d"
+    },
+    {
+      "sid": "f2d1addffa6b213ed887a39ef92d436d",
+      "where": "response(full)",
+      "term": "cv"
+    },
+    {
+      "sid": "f30d019349c75f744c7fd27ef775f492",
+      "where": "response(full)",
+      "term": "cv"
+    },
+    {
+      "sid": "0ab3412ce74d1c975f379d166c09579b",
+      "where": "input(strong)",
+      "term": "bd1d4a916fc3d600ed1773ef855b473d"
+    },
+    {
+      "sid": "15678f7778debd7f22f50673de225b81",
+      "where": "response(full)",
+      "term": "cv"
+    }
+  ],
+  "train_pairs": 14269,
+  "eval_pairs": 1997,
+  "train_tool_hist": {
+    "Bash": 3474,
+    "view_file": 2422,
+    "Read": 1496,
+    "run_command": 1434,
+    "grep_search": 956,
+    "list_dir": 863,
+    "write_to_file": 469,
+    "command_status": 402,
+    "PowerShell": 392,
+    "replace_file_content": 379,
+    "Grep": 273,
+    "manage_task": 265,
+    "TaskUpdate": 222,
+    "multi_replace_file_content": 214,
+    "schedule": 209,
+    "Glob": 137,
+    "TaskCreate": 134,
+    "mcp__Claude_Preview__preview_eval": 69,
+    "AskUserQuestion": 46,
+    "ToolSearch": 41,
+    "TodoWrite": 38,
+    "read_url_content": 27,
+    "mcp__ccd_session__mark_chapter": 26,
+    "mcp__Claude_Browser__javascript_tool": 26,
+    "Agent": 23,
+    "search_web": 21,
+    "mcp__Claude_Preview__preview_screenshot": 16,
+    "mcp__Claude_Browser__computer": 13,
+    "mcp__Claude_Preview__preview_start": 12,
+    "Skill": 12,
+    "browser_subagent": 11,
+    "ExitPlanMode": 10,
+    "SendUserFile": 10,
+    "mcp__ccd_session__spawn_task": 9,
+    "bash": 9,
+    "send_command_input": 8,
+    "mcp__prime-silo-nexus__get_graph_stats": 8,
+    "mcp__Claude_Browser__navigate": 8,
+    "mcp__prime-silo-nexus__execute_cypher": 7,
+    "mcp__Claude_Preview__preview_console_logs": 7,
+    "Monitor": 7,
+    "mcp__visualize__show_widget": 6,
+    "mcp__visualize__read_me": 4,
+    "mcp__prime-silo-nexus__offload_exec": 4,
+    "TaskStop": 4,
+    "glob": 4,
+    "webfetch": 4,
+    "mcp__Claude_Browser__preview_start": 4,
+    "mcp__Claude_Browser__resize_window": 4,
+    "mcp__Claude_Preview__preview_stop": 4,
+    "mcp__Claude_Preview__preview_resize": 3,
+    "list": 3,
+    "mcp__Claude_Browser__read_console_messages": 3,
+    "mcp__Claude_Preview__preview_logs": 3,
+    "ask_question": 2,
+    "generate_image": 2,
+    "send_message": 1,
+    "WebFetch": 1,
+    "mcp__ccd_session__dismiss_task": 1,
+    "ask_permission": 1,
+    "SendMessage": 1,
+    "mcp__Claude_Browser__find": 1,
+    "mcp__Claude_Browser__read_page": 1,
+    "mcp__Claude_Preview__preview_snapshot": 1,
+    "mcp__Claude_Preview__preview_click": 1,
+    "mcp__cowork__present_files": 1
+  }
+}
