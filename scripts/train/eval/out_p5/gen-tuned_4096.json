@@ -1,0 +1,13 @@
+{
+  "model": "tuned google/gemma-4-e4b",
+  "mode": "tuned",
+  "adapter": "C:\\Users\\nsdha\\OneDrive\\binary16\\prime-silo\\scripts\\train\\qlora\\out_p5_4096\\adapter",
+  "windows": 14,
+  "quality_score": 0.9335,
+  "coverage": 0.8274,
+  "valid_json": 1.0,
+  "keys_present": 1.0,
+  "within_bounds": 0.9066,
+  "mean_sec_per_window": 82.7,
+  "total_sec": 1157.8
+}
