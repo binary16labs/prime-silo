@@ -43,6 +43,13 @@ def build_messages(row):
         # anyway, so we fold it here — template-agnostic and consistent with how LM Studio renders
         # {system,user} at serve time. Target is the 12B teacher's fragment.
         return f"{row['system']}\n\n--- SLICE ---\n{row['user']}", row["response"]
+    if stream == "T":
+        # EP-A tool-use distillation — like L, a PROMPTED task: the system prompt defines the
+        # agent's job + the {"name","input"} response contract, and user is the transcript so far.
+        # Fold system into the user turn (template-agnostic; consistent with L and with how the
+        # agent is served). Target is the next tool call the corpus actually made — in EITHER
+        # dialect (Claude Code or Antigravity); both are kept on purpose.
+        return f"{row['system']}\n\n--- TRANSCRIPT ---\n{row['user']}", row["response"]
     raise ValueError(f"unknown stream {stream!r} in row {row.get('id')!r}")
 
 
