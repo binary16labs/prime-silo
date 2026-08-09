@@ -13,6 +13,13 @@ allowlist + system prompt over ONE set of weights, not separate models. Follows 
 - **Base model: both, race on the ladder.** Train an adapter on `qwen2.5-coder-7b` (code + tool-call
   strength, already tuned here) AND `gemma-4-e4b` (P5 speed class); the eval ladder picks the winner,
   exactly as E4B-vs-12B was decided.
+- **Keep BOTH tool dialects — do NOT normalize (owner, 2026-08-09).** The store holds Claude Code
+  (`Read/Bash/Edit`) AND Antigravity (`view_file/run_command/replace_file_content`) sessions because
+  BOTH agents are genuinely used to run prime-silo. That is the reality; a model fluent in both has a
+  rounded, deployable grasp of the actual toolchains it will meet. So the tool surface is the **UNION**
+  of the two dialects, not a collapse. The model learns which dialect fits from context (a `view_file`
+  result reads differently from a `Read` result) and from the runtime-exposed toolset; the harvester
+  preserves both verbatim.
 
 ## The data (grounded in the real store)
 
@@ -53,11 +60,13 @@ Rows git-ignored. Never weaken `personal_terms.json` to make a build pass. See
 ## Build order
 
 1. **Trajectory harvester** (`build_agent_traces.mjs`) — clone stage: emit stream-`T` tool-use pairs
-   + held-out split + privacy gate. ← _this step_
-2. Outcome tagging + **teacher-polish** of weak trajectories.
-3. Tool-surface schema (JSON tool defs the model emits against) + `format.py` stream `T`.
+   + held-out split + privacy gate. ✅ DONE (commit c2a7c3c). Preserves both dialects verbatim.
+2. **Tool-surface schema = UNION of both dialects** (JSON tool defs the model emits against; Claude
+   Code + Antigravity tools side by side, NO collapse) + `format.py` stream `T`.
+3. Outcome tagging + **teacher-polish** of weak trajectories.
 4. Dual-base QLoRA (qwen-coder + e4b), reusing the P5 trainer.
 5. **Ladder eval**: next-tool-call trajectory match + held-out task-completion gate; ladder picks base.
+   Match is dialect-aware — scored against the dialect the session actually used.
 
 ## Non-circular eval
 
