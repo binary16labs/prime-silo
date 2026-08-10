@@ -1,0 +1,11 @@
+{
+  "mode": "tuned",
+  "base_model": "unsloth/gemma-4-E4B-it-unsloth-bnb-4bit",
+  "adapter": "C:/Users/nsdha/OneDrive/binary16/prime-silo/scripts/train/qlora/out_ta/adapter",
+  "eval_file": "C:\\Users\\nsdha\\OneDrive\\binary16\\prime-silo\\scripts\\train\\dataset\\agent_distill\\agent_traces.eval.jsonl",
+  "pad": 2048,
+  "rows_scored": 1997,
+  "completion_tokens": 247956,
+  "truncated": 595,
+  "agg_nll": 0.745324
+}
