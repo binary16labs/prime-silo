@@ -1,0 +1,10 @@
+{
+  "model": "gemma-4-e4b-agent",
+  "rows": 200,
+  "errors": 0,
+  "valid_json": 0.455,
+  "name_match": 0.275,
+  "arg_recall": 0.27,
+  "quality": 0.3333,
+  "mean_sec": 20.17
+}

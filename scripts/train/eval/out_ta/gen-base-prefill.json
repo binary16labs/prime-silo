@@ -1,0 +1,10 @@
+{
+  "model": "google/gemma-4-e4b",
+  "rows": 200,
+  "errors": 0,
+  "valid_json": 0.9,
+  "name_match": 0.37,
+  "arg_recall": 0.0803,
+  "quality": 0.4501,
+  "mean_sec": 14.73
+}
