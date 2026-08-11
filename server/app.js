@@ -4,6 +4,7 @@ import path from "node:path";
 import { createBus } from "./coordination/lib/bus.mjs";
 import { createCoordinationApi } from "./coordination/http_api.mjs";
 import { createEstateApi } from "./coordination/lib/estate_api.mjs";
+import { createAgentApi } from "./api/agent_api.mjs";
 import { resolveRegisterKey } from "./coordination/lib/estate_register_key.mjs";
 import {
   API_DIR,
@@ -267,13 +268,18 @@ async function createAgentServer(overrides = {}) {
       bus: coordinationBus,
       registerKey: overrides.estateRegisterKey ?? resolveRegisterKey()
     });
+  // EP-A: the tuned tool-use agent served over /api/agent/* (SSE step stream). The Bridge UI wraps
+  // this same runAgent the CLI uses — one harness. Nested paths, so mounted ahead of the flat router.
+  // Sandbox root = projectRoot; shell exec stays off unless the host sets PRIME_SILO_AGENT_EXEC=1.
+  const agentApi = overrides.agentApi || createAgentApi({ projectRoot });
 
   const server = http.createServer((req, res) => {
     Promise.resolve(coordinationApi.tryHandle(req, res))
       .then((handled) => {
         if (handled) return undefined;
         if (estateApi.tryHandle(req, res)) return undefined; // EP-N estate API (additive)
-        return requestHandler(req, res);
+        return Promise.resolve(agentApi.tryHandle(req, res)).then((agentHandled) => // EP-A agent API
+          agentHandled ? undefined : requestHandler(req, res));
       })
       .catch((error) => {
         console.error("Request handling failed.");
