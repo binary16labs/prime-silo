@@ -169,6 +169,28 @@ export const CHIPS = {
         "Explain what happened at the selected node or step-through position in the lineage timeline. Use the Bridge context for the selected node ID (or step index) and active run id."
     }
   ],
+  v3: [
+    {
+      label: "What is the V3 core?",
+      instruction:
+        "Explain what the Governance V3 core node represents and how the Policy, Estate, Rules and Agents branches relate to it. Use the Bridge context for the current V3 state (0 = core, 1 = branches exploded, 2 = details)."
+    },
+    {
+      label: "Explain this branch",
+      instruction:
+        "Explain the governance branch currently focused in the Governance V3 blueprint (Policy, Estate, Rules or Agents): what it governs, where its data comes from, and what would make it fail. Use the Bridge context for the active branch and workspace."
+    },
+    {
+      label: "Policy vs rules — what differs?",
+      instruction:
+        "Explain the difference between the Policy and Rules branches in Governance V3 for this workspace, and which one decides whether a run is allowed to proceed."
+    },
+    {
+      label: "Estate health from here",
+      instruction:
+        "Summarise estate health as the Governance V3 Estate branch sees it: which machines and workspaces are registered, what is stale, and what needs attention. Use the Bridge context for the active workspace."
+    }
+  ],
   agents: [
     {
       label: "Which model runs synthesis?",

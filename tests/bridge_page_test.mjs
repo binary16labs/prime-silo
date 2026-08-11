@@ -24,7 +24,7 @@ async function main() {
 }
 
 function testModesAndChips() {
-  assert.equal(bridge.MODES.length, 9);
+  assert.equal(bridge.MODES.length, 10);
   const ids = bridge.MODES.map((m) => m.id);
   assert.deepEqual(ids, [
     "pulse",
@@ -35,6 +35,7 @@ function testModesAndChips() {
     "studio",
     "runs",
     "v2",
+    "v3",
     "agents"
   ]);
   // Every mode has chips, and each chip carries an instruction to dispatch.
@@ -48,12 +49,19 @@ function testModesAndChips() {
 }
 
 function testReadQuery() {
+  // readQuery also carries `workspace` (deep-link into a specific workspace).
   assert.deepEqual(bridge.readQuery("#/_prime_silo/bridge?mode=code&id=n1"), {
     mode: "code",
-    id: "n1"
+    id: "n1",
+    workspace: ""
   });
-  assert.deepEqual(bridge.readQuery("#/_prime_silo/bridge"), { mode: "", id: "" });
-  assert.deepEqual(bridge.readQuery(""), { mode: "", id: "" });
+  assert.deepEqual(bridge.readQuery("#/_prime_silo/bridge?mode=runs&workspace=sessions_v1"), {
+    mode: "runs",
+    id: "",
+    workspace: "sessions_v1"
+  });
+  assert.deepEqual(bridge.readQuery("#/_prime_silo/bridge"), { mode: "", id: "", workspace: "" });
+  assert.deepEqual(bridge.readQuery(""), { mode: "", id: "", workspace: "" });
 }
 
 function testIsValidMode() {

@@ -12,6 +12,11 @@ import { fileURLToPath } from "node:url";
 
 import { execute } from "../commands/bridge.js";
 
+// Hermetic: the command's runtimeRequest resolves BENNY_API_KEY before it calls fetch (and THROWS
+// if none is set, which the stubbed fetch below can't reach). Give it a dummy so the test exercises
+// the request-building path deterministically, independent of the host's key state.
+process.env.BENNY_API_KEY = process.env.BENNY_API_KEY || "test-key";
+
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 function captureConsole() {

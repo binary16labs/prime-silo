@@ -165,6 +165,10 @@ async function testRescanWorkspace() {
 async function testIngestPushesWorkspace() {
   const page = makePage();
   page.workspace = "c5_test";
+  // Ingest only sends the files the operator ticked — an empty selection would make the
+  // backend glob EVERYTHING, so the UI guards against it. Select one to exercise the POST.
+  page.files = [{ name: "a.md" }, { name: "b.md" }];
+  page.selectedFiles = ["a.md"];
   let captured = null;
   globalThis.fetch = async (url, init) => {
     const u = String(url);
@@ -180,7 +184,7 @@ async function testIngestPushesWorkspace() {
     return jsonResponse({ workspace: "c5_test", data_in: [], total: 0 });
   };
   await page.ingest();
-  assert.deepEqual(captured, { workspace: "c5_test" });
+  assert.deepEqual(captured, { workspace: "c5_test", deep_synthesis: true, files: ["a.md"] });
   assert.match(page.ingestNote, /ingest_42/i);
   assert.equal(page.ingesting, false);
 }
