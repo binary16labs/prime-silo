@@ -5,6 +5,7 @@ import { createBus } from "./coordination/lib/bus.mjs";
 import { createCoordinationApi } from "./coordination/http_api.mjs";
 import { createEstateApi } from "./coordination/lib/estate_api.mjs";
 import { createAgentApi } from "./api/agent_api.mjs";
+import { createWorkflowsApi } from "./api/workflows_api.mjs";
 import { resolveRegisterKey } from "./coordination/lib/estate_register_key.mjs";
 import {
   API_DIR,
@@ -272,14 +273,24 @@ async function createAgentServer(overrides = {}) {
   // this same runAgent the CLI uses — one harness. Nested paths, so mounted ahead of the flat router.
   // Sandbox root = projectRoot; shell exec stays off unless the host sets PRIME_SILO_AGENT_EXEC=1.
   const agentApi = overrides.agentApi || createAgentApi({ projectRoot });
+  // EP-A/W: the workflow registry over /api/workflows/* — one read-only surface answering "what
+  // workflows exist and what is the latest of each" (TOGAF SAD, the book, ladder, distillation).
+  // Reads the same scripts/workflows/registry.mjs the CLI uses, so console and terminal agree.
+  const workflowsApi = overrides.workflowsApi || createWorkflowsApi({ projectRoot });
+  // Nested-path APIs, tried in order ahead of the flat file-routed handler.
+  const nestedApis = [agentApi, workflowsApi];
 
   const server = http.createServer((req, res) => {
     Promise.resolve(coordinationApi.tryHandle(req, res))
       .then((handled) => {
         if (handled) return undefined;
         if (estateApi.tryHandle(req, res)) return undefined; // EP-N estate API (additive)
-        return Promise.resolve(agentApi.tryHandle(req, res)).then((agentHandled) => // EP-A agent API
-          agentHandled ? undefined : requestHandler(req, res));
+        return (async () => {
+          for (const api of nestedApis) {
+            if (await api.tryHandle(req, res)) return undefined; // EP-A agent + workflow registry
+          }
+          return requestHandler(req, res);
+        })();
       })
       .catch((error) => {
         console.error("Request handling failed.");

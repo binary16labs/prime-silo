@@ -1,0 +1,51 @@
+<html>
+  <head>
+    <!-- Canonical earth-tone palette (single source of truth) — Mission never defines its own colour. -->
+    <link rel="stylesheet" href="/mod/_core/framework/css/colors.css?v=1" />
+    <link rel="stylesheet" href="/mod/_prime_silo/mission/mission.css" />
+  </head>
+  <body>
+    <!-- Mission — one place for every workflow + the agent.
+         Reads /api/workflows (registry: what exists, what is latest) and /api/agent (the tuned
+         tool-use policy over the SAME runAgent the CLI uses). Additive module: it does not touch
+         the Bridge shell, so it can land while the unified-UI work is in flight. -->
+    <div class="ms-root" id="ms-root">
+      <div class="ms-head">
+        <h1 class="ms-title">Mission</h1>
+        <span class="ms-sub">every workflow, and what the latest of each one is</span>
+      </div>
+      <div class="ms-ws" id="ms-workspace">loading workspace…</div>
+
+      <div class="ms-tabs" role="tablist">
+        <button class="ms-tab" role="tab" aria-selected="true" data-panel="workflows">Workflows</button>
+        <button class="ms-tab" role="tab" aria-selected="false" data-panel="agent">Agent</button>
+        <button class="ms-tab" role="tab" aria-selected="false" data-panel="dashboards">Dashboards</button>
+      </div>
+
+      <section class="ms-panel" id="ms-panel-workflows" role="tabpanel">
+        <div class="ms-grid" id="ms-workflows">loading workflows…</div>
+      </section>
+
+      <section class="ms-panel" id="ms-panel-agent" role="tabpanel" hidden>
+        <div class="ms-form">
+          <input class="ms-input" id="ms-task" type="text"
+                 placeholder="e.g. list the gate scripts and read c0.mjs" />
+          <select class="ms-select" id="ms-role" aria-label="agent role">
+            <option value="analyst">analyst (read-only)</option>
+            <option value="developer">developer</option>
+          </select>
+          <button class="ms-run" id="ms-run" type="button">Run</button>
+        </div>
+        <div class="ms-status" id="ms-status">checking the local model host…</div>
+        <div class="ms-steps" id="ms-steps"></div>
+      </section>
+
+      <section class="ms-panel" id="ms-panel-dashboards" role="tabpanel" hidden>
+        <div class="ms-dash-note" id="ms-dash-note"></div>
+        <div class="ms-grid" id="ms-dashboards">loading dashboards…</div>
+      </section>
+    </div>
+
+    <script type="module" src="/mod/_prime_silo/mission/mission.js"></script>
+  </body>
+</html>

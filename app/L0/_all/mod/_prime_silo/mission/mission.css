@@ -1,0 +1,193 @@
+/* Mission — the single console for workflows + the agent.
+   Governed CSS (C0): colour ONLY via --color-* tokens (no hex literals live here), base font >= 16px,
+   no text-align: justify. Earth-tone palette comes from /mod/_core/framework/css/colors.css. */
+
+.ms-root {
+  font-size: 1rem;
+  color: var(--color-text-primary);
+  background: var(--color-canvas);
+  min-height: 100vh;
+  padding: 1.5rem 1.75rem 3rem;
+  box-sizing: border-box;
+}
+
+.ms-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.25rem;
+}
+.ms-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.ms-sub {
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+}
+.ms-ws {
+  color: var(--color-text-tertiary);
+  font-size: 0.85rem;
+  margin-bottom: 1.25rem;
+  word-break: break-all;
+}
+
+/* tabs */
+.ms-tabs {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--color-border-soft);
+  margin-bottom: 1.25rem;
+}
+.ms-tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+  font-family: inherit;
+  padding: 0.6rem 0.9rem;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.ms-tab:hover { color: var(--color-text-primary); }
+.ms-tab[aria-selected="true"] {
+  color: var(--color-accent-primary);
+  border-bottom-color: var(--color-accent-primary);
+  font-weight: 600;
+}
+.ms-panel[hidden] { display: none; }
+
+/* workflow cards */
+.ms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
+  gap: 1rem;
+}
+.ms-card {
+  background: var(--color-surface-1);
+  border: 1px solid var(--color-border-soft);
+  border-radius: 0.6rem;
+  padding: 1rem 1.1rem;
+}
+.ms-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.ms-card h3 { font-size: 1.05rem; margin: 0 0 0.15rem; }
+.ms-kind {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-tertiary);
+}
+.ms-latest {
+  margin: 0.6rem 0 0.35rem;
+  font-size: 1rem;
+  color: var(--color-accent-primary);
+  font-weight: 600;
+  word-break: break-word;
+}
+.ms-meta { font-size: 0.85rem; color: var(--color-text-secondary); }
+.ms-none { color: var(--color-status-warning); }
+.ms-produces {
+  margin-top: 0.6rem;
+  font-size: 0.85rem;
+  color: var(--color-text-tertiary);
+}
+.ms-versions {
+  margin-top: 0.75rem;
+  border-top: 1px solid var(--color-border-soft);
+  padding-top: 0.6rem;
+}
+.ms-ver {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+  padding: 0.2rem 0;
+  color: var(--color-text-secondary);
+}
+.ms-ver-latest { color: var(--color-text-primary); font-weight: 600; }
+.ms-toggle {
+  appearance: none;
+  border: 1px solid var(--color-border-soft);
+  background: var(--color-surface-2);
+  color: var(--color-text-secondary);
+  border-radius: 0.35rem;
+  font-size: 0.85rem;
+  font-family: inherit;
+  padding: 0.25rem 0.6rem;
+  cursor: pointer;
+  margin-top: 0.75rem;
+}
+.ms-toggle:hover { color: var(--color-text-primary); border-color: var(--color-border-strong); }
+
+/* agent runner */
+.ms-form { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin-bottom: 1rem; }
+.ms-input {
+  flex: 1 1 22rem;
+  font-size: 1rem;
+  font-family: inherit;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.4rem;
+  border: 1px solid var(--color-border-soft);
+  background: var(--color-surface-1);
+  color: var(--color-text-primary);
+}
+.ms-input:focus { outline: 2px solid var(--color-accent-primary); outline-offset: 1px; }
+.ms-select {
+  font-size: 1rem;
+  font-family: inherit;
+  padding: 0.6rem 0.5rem;
+  border-radius: 0.4rem;
+  border: 1px solid var(--color-border-soft);
+  background: var(--color-surface-1);
+  color: var(--color-text-primary);
+}
+.ms-run {
+  appearance: none;
+  border: 0;
+  border-radius: 0.4rem;
+  background: var(--color-accent-primary);
+  color: var(--color-accent-ink);
+  font-size: 1rem;
+  font-family: inherit;
+  font-weight: 600;
+  padding: 0.6rem 1.2rem;
+  cursor: pointer;
+}
+.ms-run:disabled { opacity: 0.6; cursor: default; }
+.ms-status { font-size: 0.9rem; color: var(--color-text-secondary); margin-bottom: 0.75rem; }
+
+.ms-steps { display: flex; flex-direction: column; gap: 0.6rem; }
+.ms-step {
+  background: var(--color-surface-1);
+  border: 1px solid var(--color-border-soft);
+  border-left: 3px solid var(--color-accent-primary);
+  border-radius: 0.4rem;
+  padding: 0.6rem 0.8rem;
+}
+.ms-step-err { border-left-color: var(--color-status-danger); }
+.ms-step-head { font-size: 0.9rem; color: var(--color-text-secondary); margin-bottom: 0.3rem; }
+.ms-tool { color: var(--color-text-primary); font-weight: 600; }
+.ms-step pre {
+  margin: 0;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--color-text-secondary);
+  max-height: 12rem;
+  overflow: auto;
+}
+
+/* dashboards */
+.ms-dash-note { color: var(--color-text-secondary); font-size: 0.9rem; margin-bottom: 1rem; }
+.ms-dash-link { color: var(--color-accent-primary); text-decoration: none; font-weight: 600; }
+.ms-dash-link:hover { text-decoration: underline; }
+.ms-missing { color: var(--color-status-warning); font-size: 0.85rem; }
