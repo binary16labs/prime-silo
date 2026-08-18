@@ -322,7 +322,7 @@ function sectionGate(text, arcSids = []) {
   const errs = [];
   if (words < 400) errs.push(`too short (${words} words; need 650-950)`);
   if (words > 1300) errs.push(`too long (${words} words; need 650-950)`);
-  if (cites < 2) errs.push(`only ${cites} inline citation(s); need 2-5 like (sid: abc123)`);
+  if (cites < 4) errs.push(`only ${cites} inline citation(s); need 5-9 distinct like (sid: abc123)`);
   if (arcSet.size && !hitsArc)
     errs.push(
       `cite at least one of this section's arc sids: ${[...arcSet].slice(0, 4).join(", ")}`
@@ -421,8 +421,16 @@ export async function runOpus({ interrupted = () => false } = {}) {
         seen: V2 ? SEEN_SOURCES : null,
         novelty: V2 ? 1 : 0
       });
+      // Lever 2: surface which retrieved sources are NEW to the book (not yet cited)
+      // so the section prompt steers citations into fresh corpus, not the same wells.
+      // Compute BEFORE marking them seen this section.
+      const novelKeys = (ev.sources || [])
+        .map((s) => String(s.source || "").slice(0, 40))
+        .filter((k) => k && !SEEN_SOURCES.has(k));
       if (V2) for (const src of ev.sources) SEEN_SOURCES.add(String(src.source || "").slice(0, 40));
       let evidence = ev.text;
+      if (V2 && novelKeys.length)
+        evidence += `\n\n## [NEW] sources — not yet used elsewhere in the book (prefer citing these)\n${[...new Set(novelKeys)].slice(0, 12).join(", ")}`;
       const evidenceSources = ev.sources;
       // The assigned arcs — concrete cross-project connections + the real sids to
       // cite. This is the connective material the first book lacked.

@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LONGVIEW · Flywheel</title>
+<style>
+  :root{--bg:#0e1417;--panel:#141b1f;--panel2:#101619;--line:#243036;--ink:#e8f0ee;
+    --dim:#a9b8b4;--faint:#6b7c78;--accent:#38e1c4;--accent2:#5aa9ff;--warn:#ffb454;--bad:#ff6b6b;--good:#57d38c}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif}
+  .wrap{max-width:1180px;margin:0 auto;padding:18px}
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .brand b{font-size:17px;letter-spacing:.4px}.brand small{color:var(--faint);margin-left:8px}
+  a.pill,.pill{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);
+    border-radius:20px;padding:5px 11px;font-size:12px;color:var(--dim);text-decoration:none}
+  .dotlive{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)}
+  /* feedback banner */
+  .fb{display:flex;align-items:center;gap:16px;border:1px solid var(--line);border-radius:14px;padding:14px 18px;margin-bottom:18px;background:var(--panel2)}
+  .fb .light{width:15px;height:15px;border-radius:50%;flex:none}
+  .lh-fresh{background:var(--good);box-shadow:0 0 10px var(--good)}
+  .lh-drifting{background:var(--warn);box-shadow:0 0 10px var(--warn)}
+  .lh-rebuild{background:var(--bad);box-shadow:0 0 12px var(--bad);animation:pulse 1.4s infinite}
+  .lh-none{background:var(--faint)}
+  @keyframes pulse{50%{opacity:.4}}
+  .fb .fb-main{flex:1;min-width:0}
+  .fb .fb-t{font-size:13.5px;font-weight:700}
+  .fb .fb-s{font-size:12px;color:var(--dim);margin-top:3px}
+  .fb .fb-act{font-size:12.5px;font-weight:650;color:var(--accent);white-space:nowrap}
+  /* loop track */
+  .loop{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;position:relative}
+  .stage{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:13px 13px 12px;cursor:pointer;
+    transition:border-color .2s,transform .2s;display:flex;flex-direction:column;min-height:150px}
+  .stage:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .stage .st-ic{font-size:19px}
+  .stage .st-k{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--faint);margin-top:6px}
+  .stage .st-big{font-size:25px;font-weight:780;font-variant-numeric:tabular-nums;line-height:1.1;margin-top:2px}
+  .stage .st-unit{font-size:11px;color:var(--dim)}
+  .stage .st-metric{margin-top:auto;font-size:11.5px;color:var(--accent2);font-variant-numeric:tabular-nums;padding-top:8px}
+  .stage .st-fresh{font-size:10px;color:var(--faint);margin-top:3px}
+  .stage.arrow-after::after{content:"→";position:absolute;color:var(--faint);font-size:16px;margin-left:-9px;
+    align-self:center;pointer-events:none}
+  /* feedback return arrow */
+  .return{margin-top:12px;border-top:1px dashed var(--line);padding-top:12px;display:flex;align-items:center;gap:10px;
+    font-size:12px;color:var(--dim)}
+  .return b{color:var(--warn)}
+  .return .curl{color:var(--faint);font-size:15px}
+  /* drill drawer */
+  .drawer{margin-top:14px;background:var(--panel2);border:1px solid var(--line);border-radius:13px;padding:0;overflow:hidden;
+    max-height:0;transition:max-height .3s ease}
+  .drawer.open{max-height:520px}
+  .drawer .inner{padding:16px 18px}
+  .drawer h4{margin:0 0 10px;font-size:13px;color:var(--accent)}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:5px 16px;font-size:12.5px}
+  .kv .k{color:var(--faint)}.kv .v{color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
+  .bar{height:7px;border-radius:5px;background:var(--line);overflow:hidden;margin-top:4px}
+  .bar>span{display:block;height:100%;background:var(--accent)}
+  .foot{color:var(--faint);font-size:11px;margin-top:16px;text-align:center}
+  @media(max-width:900px){.loop{grid-template-columns:repeat(2,1fr)}.stage.arrow-after::after{display:none}}
+</style>
+<script src="dash-nav.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand"><b>LONGVIEW</b><small>Flywheel · self-learning loop</small></div>
+    <div>
+      <a class="pill" href="/">← Mission Control</a>
+      <a class="pill" href="/lineage.html">🕸 lineage</a>
+      <span class="pill"><span class="dotlive"></span><span id="stamp">live</span></span>
+    </div>
+  </div>
+
+  <!-- FEEDBACK VERDICT -->
+  <div class="fb" id="fb">
+    <span class="light lh-none" id="fb-light"></span>
+    <div class="fb-main">
+      <div class="fb-t" id="fb-gap">—</div>
+      <div class="fb-s" id="fb-loop">—</div>
+    </div>
+    <div class="fb-act" id="fb-act">—</div>
+  </div>
+
+  <!-- THE LOOP -->
+  <div class="loop" id="loop"></div>
+
+  <div class="return" id="return"></div>
+
+  <!-- DRILL DRAWER -->
+  <div class="drawer" id="drawer"><div class="inner" id="drawer-inner"></div></div>
+
+  <div class="foot" id="foot">reading dashboard.json · read-only, no LM-host calls · refreshes every 20s</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const pct=v=>v==null?'—':(v>0?'+':'')+v+'%';
+const nf=n=>n==null?'—':n.toLocaleString();
+const ago=iso=>{if(!iso)return'—';const s=(Date.now()-new Date(iso))/1000;const d=Math.floor(s/86400),h=Math.floor(s%86400/3600);return d?`${d}d ${h}h ago`:h?`${h}h ago`:`${Math.floor(s/60)}m ago`;};
+let DATA=null, openStage=null;
+
+// stage definitions — icon, title, and how to read each from flywheel.stages.
+// Built by a hoisted function (not a top-level const) so render() can never race it.
+function stageDefs(){ return [
+  {id:'sessions',ic:'🗂',title:'Sessions',big:s=>nf(s.count),unit:'in corpus',
+    metric:s=>s.by_agent?`Claude ${s.by_agent.Claude} · Antigravity ${s.by_agent.Antigravity}`:'',
+    fresh:s=>(s.machines||[]).join(' · ')},
+  {id:'cards',ic:'🃏',title:'Cards',big:c=>nf(c.usable),unit:c=>`/ ${nf(c.backlog)} usable`,
+    metric:c=>c.new_since_build!=null?`+${c.new_since_build} new since last build`:'',
+    fresh:c=>`${nf(c.thin)} thin-skipped`},
+  {id:'dataset',ic:'📚',title:'Dataset',big:d=>nf(d.total_rows),unit:'rows',
+    metric:d=>d.stream_a!=null?`A ${nf(d.stream_a)} · B ${nf(d.stream_b)}`:'',
+    fresh:d=>d.built?`built ${ago(d.built)}`:'not built'},
+  {id:'train',ic:'⚙️',title:'Train',big:t=>t.base||'—',unit:'QLoRA base',
+    metric:t=>`${t.sft&&t.sft.present?'SFT ✓':'SFT —'}  ${t.dpo&&t.dpo.present?'DPO ✓':'DPO —'}`,
+    fresh:t=>t.sft&&t.sft.mtime?`adapter ${ago(t.sft.mtime)}`:''},
+  {id:'eval',ic:'📊',title:'Eval',big:e=>e.agg_pct!=null?pct(e.agg_pct):'—',unit:'agg NLL',
+    metric:e=>e.a_pct!=null?`A ${pct(e.a_pct)} · B ${pct(e.b_pct)}`:'',
+    fresh:e=>e.tool_tuned!=null?`tool-match ${e.tool_base}→${e.tool_tuned}`:''},
+  {id:'serve',ic:'🚀',title:'Serve',big:s=>s.gguf_ready?'ready':'—',unit:'router candidate',
+    metric:s=>s.model||'',fresh:()=>'LM Studio · eGPU'},
+];}
+
+function render(d){
+  DATA=d;
+  const f=d.flywheel; if(!f){$('foot').textContent='no flywheel data in dashboard.json';return;}
+  $('stamp').textContent='updated '+new Date(d.generated).toLocaleTimeString();
+  // feedback banner
+  const fb=f.feedback||{};
+  $('fb-light').className='light lh-'+(fb.loop_health||'none');
+  $('fb-gap').textContent=fb.data_gap||'—';
+  const lh={fresh:'Loop healthy — dataset current with the corpus',drifting:'Loop drifting — new cards not yet in the dataset',
+    rebuild:'Action needed — enough new cards to justify a rebuild',none:'No dataset built yet'}[fb.loop_health]||'';
+  $('fb-loop').textContent=lh;
+  $('fb-act').textContent=fb.next_action||'';
+  // loop stages
+  const loop=$('loop');loop.innerHTML='';
+  const STAGES=stageDefs();
+  STAGES.forEach((S,i)=>{
+    const st=f.stages[S.id]||{};
+    const el=document.createElement('div');
+    el.className='stage'+(i<STAGES.length-1?' arrow-after':'')+(openStage===S.id?' sel':'');
+    el.innerHTML=`<div class="st-ic">${S.ic}</div><div class="st-k">${S.title}</div>`+
+      `<div class="st-big">${S.big(st)}</div><div class="st-unit">${typeof S.unit==='function'?S.unit(st):S.unit}</div>`+
+      `<div class="st-metric">${S.metric(st)||''}</div><div class="st-fresh">${S.fresh(st)||''}</div>`;
+    el.onclick=()=>{openStage=(openStage===S.id?null:S.id);renderDrawer(f);render(DATA);};
+    loop.appendChild(el);
+  });
+  // return arrow
+  $('return').innerHTML=`<span class="curl">↻ feedback</span> <span>the eval measures where the model is weak; that verdict decides which sessions to map next — closing the loop back to <b>Sessions</b>.</span>`;
+  renderDrawer(f);
+}
+
+function renderDrawer(f){
+  const dr=$('drawer'),inner=$('drawer-inner');
+  if(!openStage){dr.classList.remove('open');return;}
+  const st=f.stages[openStage]||{};
+  let html='';
+  if(openStage==='dataset'){
+    const total=(st.stream_a||0)+(st.stream_b||0);
+    html=`<h4>📚 Dataset v3 — leak-gated, method in weights / facts in RAG</h4>
+      <div class="kv">
+        <div class="k">Total rows</div><div class="v">${nf(st.total_rows)}</div>
+        <div class="k">Stream A (method/voice)</div><div class="v">${nf(st.stream_a)}</div>
+        <div class="k">Stream B (tool trajectories)</div><div class="v">${nf(st.stream_b)}</div>
+        <div class="k">Cards baked in</div><div class="v">${nf(st.cards_used)}</div>
+        <div class="k">Excluded (personal/CV)</div><div class="v">${nf(st.excluded_personal)}</div>
+        <div class="k">Leak-gate findings</div><div class="v">${st.leak_findings} ${st.leak_findings===0?'✓':'⚠'}</div>
+      </div>
+      <div class="bar" style="margin-top:12px"><span style="width:${total?Math.round(100*st.stream_a/total):0}%"></span></div>
+      <div class="st-fresh" style="margin-top:5px">A is ${total?Math.round(100*st.stream_a/total):0}% of rows — the scarce, high-value method stream</div>`;
+  } else if(openStage==='eval'){
+    const e=st;
+    html=`<h4>📊 Base vs tuned — the feedback signal (lower NLL = better)</h4>
+      <div class="kv">
+        <div class="k">agg NLL</div><div class="v">${e.base_nll} → ${e.tuned_nll} (${pct(e.agg_pct)})</div>
+        <div class="k">A_nll (method/voice)</div><div class="v">${pct(e.a_pct)}</div>
+        <div class="k">B_nll (next tool call)</div><div class="v">${pct(e.b_pct)}</div>
+        <div class="k">tool-name match</div><div class="v">${e.tool_base??'—'} → ${e.tool_tuned??'—'}</div>
+      </div>
+      <div class="st-fresh" style="margin-top:10px">${e.a_pct>e.b_pct?'A improved less than B → method data is the bottleneck → map more corpus.':'Streams balanced.'}</div>`;
+  } else if(openStage==='cards'){
+    html=`<h4>🃏 Cards — the LONGVIEW output that feeds Stream A</h4>
+      <div class="kv">
+        <div class="k">Usable on disk</div><div class="v">${nf(st.usable)}</div>
+        <div class="k">Backlog</div><div class="v">${nf(st.backlog)}</div>
+        <div class="k">Thin-skipped</div><div class="v">${nf(st.thin)}</div>
+        <div class="k">New since last build</div><div class="v">${nf(st.new_since_build)}</div>
+      </div>
+      <div class="st-fresh" style="margin-top:10px">New cards accrue Stream-A rows for the next dataset build. Quarantined (job/CV) cards are held out and never counted here.</div>`;
+  } else if(openStage==='sessions'){
+    html=`<h4>🗂 Sessions — the raw corpus across the estate</h4>
+      <div class="kv">
+        <div class="k">Mappable backlog</div><div class="v">${nf(st.count)}</div>
+        <div class="k">Claude</div><div class="v">${nf((st.by_agent||{}).Claude)}</div>
+        <div class="k">Antigravity</div><div class="v">${nf((st.by_agent||{}).Antigravity)}</div>
+        <div class="k">Machines</div><div class="v">${(st.machines||[]).join(', ')}</div>
+      </div>`;
+  } else if(openStage==='train'){
+    html=`<h4>⚙️ Training — house-method QLoRA</h4>
+      <div class="kv">
+        <div class="k">Base model</div><div class="v">${st.base||'—'}</div>
+        <div class="k">SFT adapter</div><div class="v">${st.sft&&st.sft.present?'present · '+ago(st.sft.mtime):'—'}</div>
+        <div class="k">DPO adapter</div><div class="v">${st.dpo&&st.dpo.present?'present · '+ago(st.dpo.mtime):'—'}</div>
+      </div>
+      <div class="st-fresh" style="margin-top:10px">Retrain sequence: rebuild → T2 gate → base eval on new split → train → tuned eval → merge on D:.</div>`;
+  } else if(openStage==='serve'){
+    html=`<h4>🚀 Serve — additive router candidate</h4>
+      <div class="kv">
+        <div class="k">Model id</div><div class="v">${st.model||'—'}</div>
+        <div class="k">GGUF</div><div class="v">${st.gguf_ready?'ready ✓':'—'}</div>
+        <div class="k">Host</div><div class="v">LM Studio · eGPU</div>
+      </div>`;
+  }
+  inner.innerHTML=html;dr.classList.add('open');
+}
+
+async function tick(){
+  try{const d=await (await fetch(DASH.url('/api/dashboard'),{cache:'no-store'})).json();render(d);}
+  catch(e){$('foot').textContent='waiting for dashboard.json …';}
+}
+tick();setInterval(tick,20000);
+</script>
+</body>
+</html>

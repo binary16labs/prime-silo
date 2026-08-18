@@ -29,7 +29,46 @@ function loadDotEnv() {
 }
 
 const dotenv = loadDotEnv();
-const env = (k, fallback) => process.env[k] || dotenv[k] || fallback;
+
+// Estate host profile (config/estate-hosts.json): named per-machine endpoints,
+// selected by ESTATE_HOST (env/.env) or the file's "active". It supplies the
+// host-location keys (benny/LM/embedder/neo4j/workspace) so switching machines
+// is one setting, not a hand-edit of every endpoint. Precedence: an explicit
+// process.env var wins, then the profile, then .env, then the hardcoded default
+// — the profile overriding .env is what makes ESTATE_HOST=asus actually move the
+// run. The default "t480" profile mirrors the current .env, so nothing changes
+// until you switch. neo4j_data_dir MUST stay local (see the file's $rules).
+function loadHostProfile() {
+  try {
+    const cfg = JSON.parse(
+      fs.readFileSync(path.join(projectRoot, "config", "estate-hosts.json"), "utf8")
+    );
+    const name = process.env.ESTATE_HOST || dotenv.ESTATE_HOST || cfg.active;
+    const h = cfg.hosts && cfg.hosts[name];
+    if (!h) return {};
+    // Expand %VAR% (Windows) so a profile can be portable across machines with
+    // different usernames, e.g. workspace_root "%USERPROFILE%/OneDrive/…".
+    const expand = (v) => v.replace(/%([^%]+)%/g, (_, n) => process.env[n] || `%${n}%`);
+    const clean = (v) =>
+      typeof v === "string" && v && !v.startsWith("REPLACE") ? expand(v) : undefined;
+    return {
+      _name: name,
+      BENNY_API_HOST: clean(h.benny_api_host),
+      BENNY_API_PORT: clean(h.benny_api_port),
+      BENNY_LMSTUDIO_ENDPOINTS: clean(h.lm_endpoint),
+      BENNY_EMBED_BASE_URL: clean(h.embed_base),
+      BENNY_EMBED_MODEL: clean(h.embed_model),
+      NEO4J_URI: clean(h.neo4j_uri),
+      NEO4J_DATA_DIR: clean(h.neo4j_data_dir),
+      BENNY_HOME: clean(h.workspace_root)
+    };
+  } catch {
+    return {};
+  }
+}
+const hostProfile = loadHostProfile();
+export const ESTATE_HOST = hostProfile._name || "";
+const env = (k, fallback) => process.env[k] || hostProfile[k] || dotenv[k] || fallback;
 
 // Resolved env value (process.env → .env), "" when unset. Exported so callers
 // (runManifest's manifest-vs-env precedence) see .env-only overrides too, not
@@ -50,11 +89,16 @@ export const subprocessEnv = (extra = {}) => ({ ...dotenv, ...process.env, ...ex
 // benny/portable/home.py. Phase D ingests through the runtime's API, so the
 // workspace MUST live under the runtime's home, not a repo-relative one.
 let bennyHome;
+// The estate host profile's workspace_root feeds BENNY_HOME here too (below an
+// explicit process.env override, above .env), so ESTATE_HOST=asus points the
+// workspace at the shared OneDrive path — not just the LM/benny endpoints.
+const homeEnv = { ...dotenv, ...process.env };
+if (hostProfile.BENNY_HOME && !process.env.BENNY_HOME) homeEnv.BENNY_HOME = hostProfile.BENNY_HOME;
 try {
   const { resolveHome } = require(
     path.join(projectRoot, "packaging", "desktop", "home_resolver.js")
   );
-  bennyHome = resolveHome({ env: { ...dotenv, ...process.env } }).bennyHome;
+  bennyHome = resolveHome({ env: homeEnv }).bennyHome;
 } catch {
   bennyHome = env("BENNY_HOME", ".benny_home");
 }
@@ -100,6 +144,17 @@ export const config = {
   // manifest default (applied in runManifest) → literal. Dynamic so provider/model
   // profiles and eval sweeps swap it without editing the manifest.
   LONGVIEW_MODEL: env("LONGVIEW_MODEL", "") || env("BENNY_DEFAULT_MODEL", "") || "qwen3.5-9b-FLM",
+  // Embedding model + endpoint the model/enrich phases depend on (benny embeds
+  // through this). Exposed so the pipeline can PREFLIGHT it — a missing embedder
+  // is why an ingest silently fails "Embedding provider unreachable". EMBED_BASE
+  // defaults to the same OpenAI-compatible pool as generation (LM Studio serves
+  // the embedder alongside the chat model); override for a separate embed host.
+  EMBED_MODEL: env("BENNY_EMBED_MODEL", ""),
+  EMBED_BASE:
+    env("BENNY_EMBED_BASE_URL", "") ||
+    env("LONGVIEW_LLM_BASE_URL", "") ||
+    env("BENNY_LMSTUDIO_ENDPOINTS", "").split(",")[0].trim().replace(/\/+$/, "") ||
+    env("LEMONADE_BASE_URL", "http://127.0.0.1:13305/api/v1"),
   // response_format.type for JSON-extraction calls. LM Studio rejects
   // "json_object" (accepts only "json_schema"|"text") and the fragment parser
   // (lastBalancedJson/repairTruncatedJson) already recovers JSON from free text
@@ -157,6 +212,10 @@ export const config = {
   // Raise LONGVIEW_EVIDENCE_BUDGET only after raising the FLM ctx_size.
   EVIDENCE_BUDGET_CHARS: Number(env("LONGVIEW_EVIDENCE_BUDGET", 7500)),
   CARD_MAX_TOKENS: Number(env("LONGVIEW_CARD_MAX_TOKENS", 1200)),
+  // Hard cap on assembled card size (chars, JSON.stringify). Guards the ingest
+  // model ctx on the 4k-ctx FLM profile; raise on a 16k-ctx house model so large
+  // sessions produce a card instead of failing the gate. gate.mjs enforces it.
+  CARD_MAX_CHARS: Number(env("LONGVIEW_CARD_MAX_CHARS", 8000)),
   // Graph-walk extraction: chunk the FULL session timeline into windows this many
   // chars wide (fits qwen3.5's 4096-ctx with room for the small fragment output),
   // extract a tiny fragment per window (bounded output — never near the ~415-token

@@ -50,6 +50,50 @@ Phases are **isolated** (v1.10.1): one that throws is ledgered as a
 `phase_error` entry and skipped; the rest of the run continues. A missing
 deliverable always has a ledger entry saying why.
 
+## Release pipeline (the repeatable per-release process)
+
+`scripts/longview/pipeline.mjs` ties the whole regulator-mandated chain into one
+resume-safe, tag-stamped command — it does **not** reimplement any phase, it
+sequences the existing subcommands in dependency order:
+
+1. **LONGVIEW synthesis on the proven agent** — `inventory → extract → map → model → graph`
+2. **update the code graph** — `code` (Tree-Sitter → `CodeEntity`/`CODE_REL`)
+3. **update the correlation** — `enrich` (merge → `CORRELATES_WITH` → themes)
+4. **run the latest SAD** — `sad` (canonical TOGAF EPIC v3)
+5. **the _AI Vampire_ book** — `reduce → opus → pdf`
+
+The agent is **env-pinned**: the pipeline resolves `LONGVIEW_MODEL` exactly as the
+phases do and **refuses to start until you confirm the resolved id** is the proven
+agent. Pin the proven model once in `.env` and every phase in the run uses it.
+
+```powershell
+cd prime-silo
+node scripts/longview/pipeline.mjs --dry-run   # print plan + resolved config, run nothing
+node scripts/longview/pipeline.mjs             # full run, latest git tag, interactive confirm
+node scripts/longview/pipeline.mjs --yes       # non-interactive (agent already vetted)
+npm run longview:pipeline -- --dry-run         # same, via the npm alias
+```
+
+It **starts from the latest release tag** (`git describe --tags`; override with
+`--tag`), preflights the LM host (hard gate) and Benny/Neo4j (warn), and writes a
+per-release audit record to `<workspace>/longview/pipeline/<tag>__<ts>.json`
+(agent, commit, per-phase status/duration, deliverable paths). Resume from a
+failed phase with `--from <phase> --tag <tag>`.
+
+| Flag                                   | Effect                                                           |
+| -------------------------------------- | ---------------------------------------------------------------- |
+| `--tag <t>`                            | stamp a specific release (default: latest tag)                   |
+| `--only a,b` / `--from p` / `--skip a` | select / resume / drop phases                                    |
+| `--no-book` / `--no-sad`               | drop the book (reduce/opus/pdf) or the SAD                       |
+| `--dry-run`                            | resolve the plan + config, execute nothing                       |
+| `--yes`                                | skip the interactive proven-agent confirm (required for non-TTY) |
+| `--continue-on-error`                  | keep going past a failed phase (default: stop)                   |
+| `--force`                              | proceed even if the LM host preflight probe fails                |
+
+Because the `code` and `sad` phases scan the **live working tree** (not the tag's
+commit), the pipeline warns when `HEAD` is not at the tag or the tree is dirty —
+check out the release tag first for a clean per-release artifact.
+
 ## Graph ingestion (deep synthesis)
 
 `deep_synthesis: true` in the manifest is what turns card docs into

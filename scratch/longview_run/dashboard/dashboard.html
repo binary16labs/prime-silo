@@ -141,6 +141,7 @@
   .runbanner .rb-v.accent{color:var(--accent)}
   @media(max-width:820px){.runbanner{flex-wrap:wrap;gap:10px 16px}.runbanner .rb-main{flex-basis:100%}}
 </style>
+<script src="dash-nav.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -334,12 +335,16 @@ function render(d){
   const rb=document.getElementById('runbanner');
   if(rs && rs.updated_at){
     rb.style.display='';
-    const healthLabel={ok:'● working',slow:'● slow',stalled:'⚠ possibly stalled',error:'⚠ failures',
+    const pl=d.pipeline_live||{};
+    let healthLabel={ok:'● working',slow:'● slow',stalled:'⚠ possibly stalled',error:'⚠ failures',
       idle:'✓ complete — nothing pending',busy:'● estate busy elsewhere',unknown:'—'}[rs.health]||'—';
-    document.getElementById('rb-phase').textContent=rs.phase||'map';
+    // A live pipeline heartbeat spans ALL phases and wins over the map-centric
+    // health — so enrich/sad/opus read as "running (phase)", not "busy elsewhere".
+    if(pl.running){ healthLabel='● running: '+(pl.current_phase||'?')+(pl.phase_index?` (${pl.phase_index}/${(pl.plan||[]).length})`:''); }
+    document.getElementById('rb-phase').textContent=pl.running?(pl.current_phase||rs.phase||'—'):(rs.phase||'map');
     const hb=document.getElementById('rb-health');
     hb.textContent=healthLabel;
-    document.getElementById('rb-light').className='rb-light rb-'+(rs.health||'unknown');
+    document.getElementById('rb-light').className='rb-light rb-'+(pl.running?'ok':(rs.health||'unknown'));
     const done=rs.usable_cards!=null?rs.usable_cards:(rs.cards_ok!=null?rs.cards_ok:'—'), tot=rs.backlog_total!=null?rs.backlog_total:'—';
     document.getElementById('rb-cards').textContent=`${done} / ${tot}`;
     document.getElementById('rb-rate').textContent=rs.cards_per_hour!=null?`${rs.cards_per_hour}/h`:'—';
@@ -359,10 +364,13 @@ function render(d){
            +' ('+rs.estate_activity.age_seconds+'s ago)'
        :'');
   } else { rb.style.display='none'; }
-  // pipeline liveness pill — "running (phase)" only when state files are fresh
+  // pipeline liveness pill — driven by the live.json heartbeat (spans all phases)
   const rl=document.getElementById('runlive');
-  rl.textContent=d.pipeline_live?`pipeline: running (${(d.phases||{}).current||'?'})`:'pipeline: idle';
-  rl.style.color=d.pipeline_live?'var(--accent)':'var(--faint)';
+  const plp=d.pipeline_live||{};
+  rl.textContent=plp.running
+    ? `pipeline: running (${plp.current_phase||'?'}${plp.phase_index?` · ${plp.phase_index}/${(plp.plan||[]).length}`:''})`
+    : (plp.status==='complete'?'pipeline: complete':plp.status&&String(plp.status).startsWith('failed')?'pipeline: '+plp.status:'pipeline: idle');
+  rl.style.color=plp.running?'var(--accent)':'var(--faint)';
 
   // ontology
   const o=d.ontology;
@@ -574,7 +582,7 @@ function render(d){
 
 async function tick(){
   try{
-    const r=await fetch('dashboard.json?_='+Date.now());
+    const r=await fetch(DASH.url('/api/dashboard'));
     if(!r.ok)throw 0; render(await r.json());
     document.getElementById('live').textContent='live';
   }catch(e){ document.getElementById('live').textContent='stale'; }

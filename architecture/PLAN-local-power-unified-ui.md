@@ -713,10 +713,17 @@ the dashboard out of never-committed `scratch/` into a versioned, gated path.
 Source: `architecture/SOLUTION-model-plurality.md`. EP-T closed KR1.5 (a house model beats its base),
 but the estate cannot rank *two* engines on its own agent loop: `run_multi_model` carries eight agentic
 metrics and has never produced a real one, because `hook` defaults to a stub returning zeros. Phases
-**P0–P4** build one instrument (a subject = a persona→model assignment plus serving topology; no
+**P0–P4** and **P6** build one instrument (a subject = a persona→model assignment plus serving topology; no
 composite score; `unmeasured` never rendered as `0.0`), and **P5** trains the first new base, E4B alone.
 Task ids are P-prefixed because M-prefixed ids are milestone-scoped (`M2-1`..`M2-8`). GRPO stays blocked
 by R15; Gemma-12B stays deferred pending P5.
+
+**Split, 2026-08-04 (owner decision):** the original P1 measured 673 changed lines against a budget of
+550. It is now **P1** (the metric schema — `unmeasured` structurally distinct from `0.0`, `hook=None`
+raises, unavailable rows carry a reason) and **P6** (the executor hook — a subject driven through the
+manifest, the run-event stream folded into the eight fields). P6 is numbered out of sequence because
+contract ids must match `[A-Z]\d+` and `P1a`/`P1b` are invalid; ordering is carried by deps. P2 now
+depends on both.
 
 ## 11. Workstream H — Deferred (explicitly OUT of scope now)
 
@@ -751,7 +758,7 @@ C0 ─┬─ C1 ─ C2 ─┬─ C4 ─ C6 (needs B3, G2-UI)
     └─ C5       └─ D1 ─ D2 ─ D3 (D3 prefers G3)
 E0 (brief/claims now) ─ E1 (mocks; screenshots need C2) ─ E2 (build+ship)
 B2+W1 ─ B4 ─ B5 ─ L15   (lineage closure: board→ledger→register→DAG) ; L16 standalone
-W2 ─ P0 ─ P1 ─┬─ P2 ─┬─ P4 ─ P5   (model plurality; P5 = E4B alone)
+W2 ─ P0 ─ P1 ─ P6 ─┬─ P2 ─┬─ P4 ─ P5   (model plurality; P5 = E4B alone)
               └─ P3 ─┘
 T0 (prove trainer) + T2 (dataset) ─ T3 (QLoRA + eval) ─ T4 (behind Benny router) ; T1 clone-home (parallel)
 ```

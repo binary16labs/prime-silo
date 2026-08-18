@@ -1,0 +1,36 @@
+{
+  "$comment": "Estate host profiles — where prime-silo's services live, selectable per machine. Pick one with ESTATE_HOST=<name> (or the 'active' field). config.mjs uses the chosen profile's values as DEFAULTS; an explicit env var (BENNY_API_HOST, BENNY_LMSTUDIO_ENDPOINTS, NEO4J_URI, BENNY_HOME, LONGVIEW_WORKSPACE, BENNY_EMBED_*) always wins. This is the 'configurable as in the estate' seam: move compute between the T480 and the ASUS by changing ESTATE_HOST, not by hand-editing endpoints.",
+  "$rules": [
+    "workspace_root (cards/data_out/ledger) MAY live on OneDrive so every machine shares one corpus (OneDrive = primary/SoR).",
+    "neo4j_data_dir MUST stay LOCAL per machine — a live graph DB on OneDrive sync corrupts. The graph rebuilds deterministically from the shared cards (model→graph), so nothing is lost by keeping it local.",
+    "portable F: snapshots stay passive backups (estate_backup.mjs), not the operational store."
+  ],
+  "active": "t480",
+  "hosts": {
+    "t480": {
+      "role": "hub",
+      "benny_api_host": "127.0.0.1",
+      "benny_api_port": "8005",
+      "lm_endpoint": "http://192.168.68.125:1234/v1",
+      "embed_base": "http://192.168.68.125:1234/v1",
+      "embed_model": "nomic-ai/text-embedding-nomic-embed-text-v1.5",
+      "neo4j_uri": "bolt://localhost:7687",
+      "workspace_root": "D:/benny-home/benny",
+      "neo4j_data_dir": "D:/benny-home/benny/data/graph",
+      "note": "16 GB RAM — tight when LM Studio (gemma+embedder) + Neo4j + benny run together; prefer offloading heavy runs to the ASUS."
+    },
+    "asus": {
+      "role": "satellite / compute — runs prime-silo (pipeline + benny + Neo4j)",
+      "benny_api_host": "127.0.0.1",
+      "benny_api_port": "8005",
+      "lm_endpoint": "http://192.168.68.125:1234/v1",
+      "embed_base": "http://192.168.68.125:1234/v1",
+      "embed_model": "nomic-ai/text-embedding-nomic-embed-text-v1.5",
+      "neo4j_uri": "bolt://localhost:7687",
+      "workspace_root": "%USERPROFILE%/OneDrive/binary16/estate-workspace/benny",
+      "neo4j_data_dir": "%LOCALAPPDATA%/prime-silo/neo4j-data",
+      "bind_host": "0.0.0.0",
+      "note": "The pipeline + benny + Neo4j run HERE. LM Studio + the nomic embedder stay on the T480, so lm_endpoint/embed_base point at the T480 (192.168.68.125:1234). Workspace comes from the shared OneDrive; Neo4j data stays LOCAL (neo4j_data_dir). bind_host 0.0.0.0 exposes benny to the LAN so the T480 hub can monitor/remote-control it. neo4j_data_dir defaults to %LOCALAPPDATA% (always local, always present); override with NEO4J_DATA_DIR to reuse a pre-built graph."
+    }
+  }
+}

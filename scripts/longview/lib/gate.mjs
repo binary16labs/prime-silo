@@ -1,6 +1,8 @@
 // Deterministic card gate (ADR-005 §4). Card acceptance is checkable without a
 // judge: schema + bounds + grounding. Errors are returned so a single retry can
 // quote them back to the model.
+import { config } from "./config.mjs";
+
 const STRING_LISTS = [
   "applications",
   "capabilities",
@@ -41,7 +43,11 @@ export function validateCard(card, { sessionId, agent }) {
     errors.push("evidence: cite at least one artifact/input from the pack");
   }
   const size = JSON.stringify(card).length;
-  if (size > 8000) errors.push(`card too large (${size} chars > 8000)`);
+  // Cap guards the ingest model's context on the smallest profile (4k-ctx FLM).
+  // On a 16k-ctx house model raise LONGVIEW_CARD_MAX_CHARS so large sessions card
+  // instead of failing. Default stays conservative for the small profile.
+  const maxChars = config.CARD_MAX_CHARS;
+  if (size > maxChars) errors.push(`card too large (${size} chars > ${maxChars})`);
 
   if (errors.length === 0) {
     // Stamp identity server-side — never trust the model with keys.

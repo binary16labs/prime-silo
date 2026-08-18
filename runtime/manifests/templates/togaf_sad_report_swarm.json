@@ -6,9 +6,9 @@
   "workspace": "${workspace}",
   "variables": {
     "workspace": "default",
-    "topic": "prime-silo Application Architecture & Runtime Environment",
+    "topic": "The binary16 application estate (LONGVIEW synthesis)",
     "model": "lemonade/qwen3.5-9b-FLM",
-    "output_file": "data_out/TOGAF_SAD_prime_silo.md",
+    "output_file": "data_out/TOGAF_SAD_binary16.md",
     "word_count_target": 3500
   },
   "config": {

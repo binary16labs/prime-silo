@@ -16,10 +16,14 @@
 // nothing in the LONGVIEW lineage path is touched.
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 
 // The runtime tree is repo-relative (benny/persistence/run_store.py anchors on
 // the package dir, NOT $BENNY_HOME — a known gotcha, see the TOGAF runbook).
-const RUNTIME_WS = "C:/Users/nsdha/OneDrive/binary16/prime-silo/runtime/workspace";
+// Location-relative so it follows the repo wherever it lives (F: transfer drive,
+// OneDrive, …): this file is <repo>/scratch/longview_run/dashboard/runtime_lineage.mjs.
+const _DASH_DIR = path.dirname(fileURLToPath(import.meta.url));
+const RUNTIME_WS = path.resolve(_DASH_DIR, "..", "..", "..", "runtime", "workspace");
 
 const readJSON = (p, d) => {
   try {
@@ -119,6 +123,7 @@ export function deriveRuntimeLineage() {
       aerByRun[ev.data.task_id] = {
         message: ev.data.message || "",
         status: ev.data.status || "",
+        workspace: ev.workspace || ev.data.workspace || null,
         at: ev.timestamp,
         steps: (ev.data.aer_log || []).map((s) => ({
           t: (s.timestamp || "").slice(11, 19),
@@ -157,20 +162,28 @@ export function deriveRuntimeLineage() {
   // RunRecord — synthesize register entries for them so the register shows
   // every document build, not only swarm runs.
   const runIds = new Set(executions.map((e) => e.run_id));
+  const _bhArt = (process.env.BENNY_HOME || "C:/Users/nsdha/AppData/Roaming/space-agent/benny-home/benny").replace(/\\/g, "/");
   for (const [rid, aer] of Object.entries(aerByRun)) {
     if (runIds.has(rid) || rid.startsWith("run-")) continue;
-    const started = aer.steps.length ? aer.steps[0].t : "";
+    const ws = aer.workspace || process.env.LONGVIEW_WORKSPACE || "sessions_v1";
+    // togaf_epic CLI builds write TOGAF_EPIC_V7_SAD_binary16.* into the workspace's
+    // data_out — surface the real artifact paths so the register shows WHERE it lands.
+    const arts = [];
+    for (const ext of ["pdf", "md", "html"]) {
+      const p = `${_bhArt}/workspaces/${ws}/data_out/TOGAF_EPIC_V7_SAD_binary16.${ext}`;
+      if (fs.existsSync(p)) arts.push(p);
+    }
     executions.unshift({
       run_id: rid,
       manifest_id: "(cli)",
       manifest_name: "togaf_epic CLI build",
-      workspace: "sessions_v1",
+      workspace: ws,
       model: "deterministic + evidence",
       status: aer.status === "completed" ? "completed" : (Date.now() - Date.parse(aer.at) > 3600e3 ? "stale" : aer.status || "running"),
       started_at: aer.at,
       duration_ms: null,
       errors: [],
-      artifacts: [],
+      artifacts: arts,
       node_states: {},
       record_path: "governance.log"
     });
@@ -219,44 +232,78 @@ export function deriveRuntimeLineage() {
   // ETA = remaining items × measured EMA. Never blocks the audit data.
   let v3_progress = null;
   try {
-    const statePath = `${(process.env.BENNY_HOME || "C:/Users/nsdha/AppData/Roaming/space-agent/benny-home/benny").replace(/\\/g, "/")}/workspaces/sessions_v1/data_out/togaf_epic_v3_state.json`;
-    if (fs.existsSync(statePath)) {
-      const st = JSON.parse(fs.readFileSync(statePath, "utf8"));
-      const keys = Object.keys(st.sections || {});
+    const _bh = (process.env.BENNY_HOME || "C:/Users/nsdha/AppData/Roaming/space-agent/benny-home/benny").replace(/\\/g, "/");
+    const _ws = process.env.LONGVIEW_WORKSPACE || "sessions_v1";
+    // Prefer the v7 state (the current EPIC-v7 build), fall back to v3, in the active workspace.
+    const statePath = [
+      `${_bh}/workspaces/${_ws}/data_out/togaf_epic_v7_state.json`,
+      `${_bh}/workspaces/${_ws}/data_out/togaf_epic_v3_state.json`
+    ].find((p) => fs.existsSync(p));
+    if (statePath) {
+      // State CONTENT is often locked mid-write (rewritten after every section),
+      // so progress is derived from the AER stream (governance.log — append-only,
+      // always readable). The state file is used only for MTIME (liveness) + a
+      // best-effort plan/gate count via a short retry that never throws.
+      const dataOut = path.dirname(statePath);
+      const stateMtimeMs = (() => { try { return fs.statSync(statePath).mtimeMs; } catch { return 0; } })();
+      const ageMs = stateMtimeMs ? Date.now() - stateMtimeMs : Infinity;
+      const live = ageMs < 5 * 60 * 1000; // touched within 5 min = actively building
+      let st = null;
+      for (let a = 0; a < 6 && !st; a++) { try { st = JSON.parse(fs.readFileSync(statePath, "utf8")); } catch { /* locked */ } }
+      const keys = st ? Object.keys(st.sections || {}) : [];
       const plans = keys.filter((k) => k.startsWith("plan::"));
-      const written = keys.filter((k) => !k.startsWith("plan::"));
-      const gatesOk = written.filter((k) => st.sections[k].gate && st.sections[k].gate.ok).length;
-      const TOTAL_CHAPTERS = 7; // TOGAF_SKELETON in togaf_epic_v3.py
       const plannedSections = plans.reduce((n, k) => n + ((st.sections[k] || []).length || 0), 0);
-      const avgPerChapter = plans.length ? plannedSections / plans.length : 7;
-      const estTotal = Math.round(plannedSections + (TOTAL_CHAPTERS - plans.length) * avgPerChapter);
+      const writtenState = keys.filter((k) => !k.startsWith("plan::"));
+      const gatesOk = writtenState.filter((k) => st.sections[k].gate && st.sections[k].gate.ok).length;
+
+      // AER-derived truth (robust): count write sections, current, per-chapter, rate.
       const v3aer = Object.entries(aerByRun)
-        .filter(([k]) => k.startsWith("togaf-epic-v3"))
+        .filter(([k]) => k.startsWith("togaf-epic"))
         .sort((a, b) => String(b[1].at).localeCompare(String(a[1].at)))[0];
-      let ema = null, lastAt = null, currentSection = null;
+      let ema = null, currentSection = null, writtenAer = 0;
+      const chapters = {};
       if (v3aer) {
-        const items = v3aer[1].steps.filter((s) => /Executing task: (write|plan_index)/.test(s.intent));
-        currentSection = items.length ? items[items.length - 1].intent.replace("Executing task: ", "") : null;
-        const secs = items.map((s) => { const [h, m, x] = s.t.split(":").map(Number); return h * 3600 + m * 60 + x; });
-        for (let i = 1; i < secs.length; i++) {
-          let d = secs[i] - secs[i - 1];
-          if (d < 0) d += 86400; // midnight wrap
-          if (d > 5 && d < 3600) ema = ema === null ? d : 0.3 * d + 0.7 * ema;
-        }
-        lastAt = v3aer[1].at;
+        const writes = v3aer[1].steps.filter((s) => /Executing task: write/.test(s.intent));
+        writtenAer = writes.length;
+        currentSection = writes.length ? writes[writes.length - 1].intent.replace("Executing task: ", "") : null;
+        for (const s of writes) { const m = /\[([a-z0-9_-]+)\//i.exec(s.intent); if (m) chapters[m[1]] = (chapters[m[1]] || 0) + 1; }
+        const secs = writes.map((s) => { const [h, mm, x] = s.t.split(":").map(Number); return h * 3600 + mm * 60 + x; });
+        for (let i = 1; i < secs.length; i++) { let d = secs[i] - secs[i - 1]; if (d < 0) d += 86400; if (d > 5 && d < 3600) ema = ema === null ? d : 0.3 * d + 0.7 * ema; }
       }
-      const remaining = Math.max(0, estTotal - written.length) + Math.max(0, TOTAL_CHAPTERS - plans.length);
-      const etaMs = ema && remaining ? remaining * ema * 1000 : null;
+      const written = Math.max(writtenState.length, writtenAer);
+      // Per-chapter counts: prefer the state's real section keys (the AER aer_log is
+      // truncated to recent steps, so its chapter tally lags); fall back to AER.
+      if (writtenState.length) {
+        for (const k of Object.keys(chapters)) delete chapters[k];
+        for (const k of writtenState) { const c = String(k).split(/::|\//)[0]; chapters[c] = (chapters[c] || 0) + 1; }
+        // Section keys keep insertion order → the LAST one is the true current section
+        // (more reliable than the AER, whose aer_log is truncated to recent steps).
+        currentSection = String(writtenState[writtenState.length - 1]).replace(/::/g, " / ");
+      }
+      // Total is a FLOOR: the plan lists under-count per-item chapters (components/
+      // workflows enumerate more sections than pre-planned), so it never drops below
+      // what's already written. Flagged est_approx so the UI can show "~".
+      const estTotal = Math.max(plannedSections, written);
+      const estApprox = written >= plannedSections;
+      const remaining = Math.max(0, estTotal - written);
+      // Completion signal: the assembled SAD .md was (re)written at/after the last
+      // state write — the deterministic "build finished" marker, independent of liveness.
+      const sadFresh = (() => { try { return fs.statSync(`${dataOut}/TOGAF_EPIC_V7_SAD_binary16.md`).mtimeMs >= stateMtimeMs - 1000; } catch { return false; } })();
+      const done = sadFresh && stateMtimeMs > 0;
+      const etaMs = !done && ema && remaining > 0 ? remaining * ema * 1000 : null;
       v3_progress = {
-        chapters_planned: plans.length, chapters_total: TOTAL_CHAPTERS,
-        sections_written: written.length, sections_planned: plannedSections,
+        state: done ? "done" : live ? "writing" : (stateMtimeMs ? "idle" : "unknown"),
+        live, done, est_approx: estApprox,
+        chapters_planned: plans.length, chapters,
+        sections_written: written, sections_planned: plannedSections,
         sections_est_total: estTotal, gates_ok: gatesOk,
-        pct: estTotal ? Math.min(100, Math.round((written.length / estTotal) * 100)) : 0,
+        pct: done ? 100 : (estTotal ? Math.min(98, Math.round((written / estTotal) * 100)) : 0),
         ema_sec_per_item: ema ? Math.round(ema) : null,
-        current: currentSection, last_event_at: lastAt,
+        current: currentSection,
+        state_age_seconds: Number.isFinite(ageMs) ? Math.round(ageMs / 1000) : null,
         eta_iso: etaMs ? new Date(Date.now() + etaMs).toISOString() : null,
-        eta_human: etaMs ? `${Math.floor(etaMs / 3600000)}h ${Math.round((etaMs % 3600000) / 60000)}m` : "measuring…",
-        stalled: lastAt ? Date.now() - Date.parse(lastAt) > 15 * 60 * 1000 : false
+        eta_human: done ? "done" : (etaMs ? `${Math.floor(etaMs / 3600000)}h ${Math.round((etaMs % 3600000) / 60000)}m` : (live ? "finalizing…" : "—")),
+        stalled: !done && !live && Number.isFinite(ageMs) && ageMs > 15 * 60 * 1000
       };
     }
   } catch { /* best-effort; audit data below is never blocked by progress */ }

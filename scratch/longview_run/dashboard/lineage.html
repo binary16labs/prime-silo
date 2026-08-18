@@ -63,6 +63,7 @@
   .step-fact{font-family:ui-monospace,monospace;font-size:10.5px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;max-height:150px;overflow:auto;white-space:pre-wrap;color:var(--dim)}
   pre.ol{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:10px;max-height:180px;overflow:auto;white-space:pre-wrap;margin-top:6px}
 </style>
+<script src="dash-nav.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -351,19 +352,19 @@ function renderRuntime(d){
     $('rt-progress').innerHTML=
       `<div style="border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:10px;background:var(--panel2)">
         <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
-          <b>TOGAF EPIC v3 build · completed vs planned</b>
-          <span>${p.sections_written}/${p.sections_est_total} sections · ${p.pct}%${stallNote}</span>
+          <b>TOGAF EPIC v7 SAD build</b> <span class="badge ${p.done?'clean':(p.live?'partial':'failed')}">${esc(p.state||'?')}</span>
+          <span>${p.sections_written}/${p.est_approx?'~':''}${p.sections_est_total} sections · ${p.pct}%${stallNote}</span>
         </div>
         <div style="height:10px;border-radius:6px;background:var(--line);margin:8px 0;overflow:hidden">
           <div style="height:100%;width:${p.pct}%;background:linear-gradient(90deg,var(--accent),var(--accent2))"></div>
         </div>
         <div class="sub">
-          chapters planned ${p.chapters_planned}/${p.chapters_total} · planned sections ${p.sections_planned}
-          (est. total ${p.sections_est_total}) · gates OK ${p.gates_ok}/${p.sections_written}
-          · measured pace <b>${p.ema_sec_per_item??'—'}s/item</b> (EMA of real deltas)
-          · <b>ETA ${eta}</b>
+          chapters ${p.chapters_planned} planned · ${Object.entries(p.chapters||{}).map(([k,v])=>`${esc(k)} ${v}`).join(' · ')||'—'}
         </div>
-        <div class="sub">now: <code>${esc(p.current||'—')}</code> · last event ${esc(String(p.last_event_at||'—').replace('T',' ').slice(0,19))}</div>
+        <div class="sub">
+          gates OK ${p.gates_ok}/${p.sections_written} · pace <b>${p.ema_sec_per_item??'—'}s/section</b> (measured EMA) · <b>ETA ${eta}</b>${p.est_approx?' <span class="sub">(total is a floor — per-item chapters expand)</span>':''}
+        </div>
+        <div class="sub">now: <code>${esc(p.current||'—')}</code> · updated ${p.state_age_seconds!=null?p.state_age_seconds+'s ago':'—'}</div>
       </div>`;
   } else { $('rt-progress').innerHTML=''; }
   const badge=s=>{const c=s==='completed'?'clean':(s==='running'?'partial':(s==='failed'?'failed':'partial'));return `<span class="badge ${c}">${esc(s||'?')}</span>`;};
@@ -418,7 +419,7 @@ function renderRuntime(d){
     html='<table><tr><th>started</th><th>manifest</th><th>run</th><th>workspace</th><th>model</th><th>status</th><th>duration</th><th>artifacts / errors</th></tr>'
       +ex.map(e=>{
         const dur=e.duration_ms?(e.duration_ms/60000).toFixed(1)+' min':(e.status==='running'?'…':'—');
-        const tail=e.errors&&e.errors.length?`<span style="color:var(--bad)">${esc(String(e.errors[0]).slice(0,80))}</span>`:esc((e.artifacts||[]).join(', ').slice(0,80)||'—');
+        const tail=e.errors&&e.errors.length?`<span style="color:var(--bad)">${esc(String(e.errors[0]).slice(0,120))}</span>`:((e.artifacts||[]).length?`<div class="mono" style="font-size:10px;white-space:normal;word-break:break-all">${e.artifacts.map(a=>esc(a)).join('<br>')}</div>`:'<span class="sub">—</span>');
         return `<tr><td>${esc((e.started_at||'').replace('T',' ').slice(0,19))}</td><td>${esc(e.manifest_name)}</td><td class="mono">${esc(e.run_id)}</td><td>${esc(e.workspace)}</td><td>${esc(String(e.model).split('/').pop())}</td><td>${badge(e.status)}</td><td>${dur}</td><td>${tail}</td></tr>`;
       }).join('')+'</table>';
   } else {
@@ -429,7 +430,7 @@ function renderRuntime(d){
 
 async function tick(){
   try{
-    const d=await (await fetch('dashboard.json?_='+Date.now())).json();
+    const d=await (await fetch(DASH.url('/api/dashboard'))).json();
     DAG=d;
     $('stamp').textContent='updated '+new Date(d.generated).toLocaleTimeString();
     $('events').textContent=(d.lineage.event_count||0)+' ledger events';

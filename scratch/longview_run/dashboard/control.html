@@ -33,6 +33,7 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 .bar>i{display:block;height:100%;background:var(--accent)}
 code{background:var(--panel2);padding:1px 5px;border-radius:4px;font-size:12px}
 </style></head><body>
+<script src="dash-nav.js"></script>
 <header>
   <div><h1>Control Plane</h1><div class="sub">Execution Contract Register · evidence gates · human-signed launch</div></div>
   <div class="row">
@@ -232,5 +233,6 @@ $('rebuild').onclick=async()=>{ $('rebuild').disabled=true;
 ['dim1','dim2','meas'].forEach(k=>$(k).onchange=renderPivot);
 $('q').oninput=()=>{renderPivot();renderRows();};
 $('sort').onchange=renderRows;
+if(window.DASH&&DASH.ws()){var _w=$('ws');if(![].some.call(_w.options,function(o){return o.value===DASH.ws()||o.text===DASH.ws();}))_w.add(new Option(DASH.ws(),DASH.ws()));_w.value=DASH.ws();}
 fillSelects(); refresh(); setInterval(refresh,20000);
 </script></body></html>

@@ -35,7 +35,8 @@
     "desktop:localtest": "node packaging/scripts/build-local-test.js",
     "gate:metric-integrity": "node scripts/gates/metric_integrity.mjs",
     "gate:w0": "node scripts/gates/w0.mjs",
-    "estate": "node scripts/estate.mjs"
+    "estate": "node scripts/estate.mjs",
+    "longview:pipeline": "node scripts/longview/pipeline.mjs"
   },
   "engines": {
     "node": ">=20"

@@ -30,6 +30,7 @@ canvas{display:block;width:100%;height:360px}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--sub);margin-top:6px}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
 </style></head><body>
+<script src="dash-nav.js"></script>
 <header>
   <div><h1>Flywheel &amp; Estate</h1><div class="sub">LONGVIEW debt · phase readiness · hub ↔ satellite memory · backup cascade — tagged to TOGAF ADM, BCBS&nbsp;239 and PRA SS1/23</div></div>
   <div><a href="/control.html" style="color:var(--accent)">control plane →</a> &nbsp; <button id="refresh">refresh</button></div>
@@ -212,7 +213,7 @@ function draw(){
 }
 
 async function load(){
-  FW=await fetch('/api/control/flywheel?workspace=sessions_v1').then(r=>r.json());
+  FW=await fetch('/api/control/flywheel?workspace='+encodeURIComponent((window.DASH&&DASH.ws())||'sessions_v1')).then(r=>r.json());
   render();
 }
 $('refresh').onclick=load;

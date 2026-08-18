@@ -28,6 +28,7 @@
   .kv .k{font-size:12px;text-transform:uppercase;color:#555}
   #err{color:#000;font-weight:bold}
 </style>
+<script src="dash-nav.js"></script>
 </head>
 <body>
 <h1>LONGVIEW</h1>
@@ -67,7 +68,7 @@ function render(d){
   document.getElementById("pipe").innerHTML=rows;
 }
 var xhr=new XMLHttpRequest();
-xhr.open("GET","dashboard.json?_="+new Date().getTime(),true);
+xhr.open("GET",DASH.url('/api/dashboard'),true);
 xhr.onreadystatechange=function(){
   if(xhr.readyState===4){
     if(xhr.status===200){

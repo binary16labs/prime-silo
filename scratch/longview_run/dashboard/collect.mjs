@@ -8,15 +8,24 @@
 // alongside a live map — pure fs reads, output goes to the dashboard dir only.
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 import { deriveLineage } from "./lineage.mjs";
 import { deriveRuntimeLineage } from "./runtime_lineage.mjs";
 
-const WS = process.env.LONGVIEW_WORKSPACE || "sessions_v1";
+// CLI: --workspace <ws> (else LONGVIEW_WORKSPACE), --stdout (print JSON + skip the
+// shared DASH side-writes so an on-demand foreign-workspace build never clobbers the
+// active workspace's files), --iteration <id> (force which book iteration is active).
+const _argv = process.argv.slice(2);
+const _argOf = (k) => { const i = _argv.indexOf(k); return i >= 0 ? _argv[i + 1] : null; };
+const STDOUT = _argv.includes("--stdout");
+const ITER = _argOf("--iteration");
+const WS = _argOf("--workspace") || process.env.LONGVIEW_WORKSPACE || "sessions_v1";
 // Honor BENNY_HOME (the corpus moved to D:); fall back to the legacy AppData home.
 const BH = (process.env.BENNY_HOME || "C:/Users/nsdha/AppData/Roaming/space-agent/benny-home/benny").replace(/\\/g, "/");
 const LV = `${BH}/workspaces/${WS}/longview`;
-const DASH = "C:/Users/nsdha/OneDrive/binary16/prime-silo/scratch/longview_run/dashboard";
-const REPO = "C:/Users/nsdha/OneDrive/binary16/prime-silo";
+// Location-relative: this file lives in <repo>/scratch/longview_run/dashboard.
+const DASH = path.dirname(fileURLToPath(import.meta.url));
+const REPO = path.resolve(DASH, "..", "..", "..");
 const cardsDir = path.join(LV, "cards");
 const winDir = path.join(LV, "windows");
 
@@ -40,7 +49,9 @@ const windowsOnDisk = (sid) => {
 };
 const pctl = (a, p) => (a.length ? [...a].sort((x, y) => x - y)[Math.floor((a.length - 1) * p)] : 0);
 
-const plan = readJSON(path.join(DASH, "plan.json"));
+// Prefer a per-workspace plan (plan.<ws>.json) so foreign-workspace builds use the
+// right window/session denominators; fall back to the shared plan.json.
+const plan = readJSON(path.join(DASH, `plan.${WS}.json`)) || readJSON(path.join(DASH, "plan.json"));
 if (!plan) {
   console.error("[collect] no plan.json — run plan.mjs first");
   process.exit(1);
@@ -131,7 +142,7 @@ const enrichState = {
 async function fetchGraphStats() {
   try {
     const ac = new AbortController();
-    const t = setTimeout(() => ac.abort(), 3000);
+    const t = setTimeout(() => ac.abort(), 8000); // Neo4j is slow under scan load; give stats room
     const r = await fetch(`http://127.0.0.1:8005/api/graph/stats?workspace=${WS}`, { signal: ac.signal });
     clearTimeout(t);
     if (!r.ok) return null;
@@ -142,8 +153,10 @@ async function fetchGraphStats() {
 }
 const graphStats = await fetchGraphStats();
 // Rolling growth history so the dashboard can chart the graph growing/merging.
+// graph_history.json is a per-active-workspace series in DASH; in --stdout mode we
+// neither read nor write it (a foreign-workspace poll would corrupt the chart).
 const histPath = path.join(DASH, "graph_history.json");
-let graphHistory = readJSON(histPath, []);
+let graphHistory = STDOUT ? [] : readJSON(histPath, []);
 if (graphStats) {
   const last = graphHistory[graphHistory.length - 1];
   const point = {
@@ -156,7 +169,7 @@ if (graphStats) {
   if (changed) graphHistory.push(point);
   else last.ts_latest = point.ts; // record freshness without bloating the series
   if (graphHistory.length > 300) graphHistory = graphHistory.slice(-300);
-  fs.writeFileSync(histPath, JSON.stringify(graphHistory));
+  if (!STDOUT) fs.writeFileSync(histPath, JSON.stringify(graphHistory));
 }
 
 // --- done cards on disk (authoritative) + aggregate their content
@@ -300,7 +313,7 @@ const art = {
 };
 // Expected totals so every phase reads "done OF total", not a bare count.
 const manifest = readJSON(
-  path.join("C:/Users/nsdha/OneDrive/binary16/prime-silo/runtime/manifests/templates/longview_synthesis.json"),
+  path.join(REPO, "runtime", "manifests", "templates", "longview_synthesis.json"),
   {}
 );
 const weavePhase = ((manifest.plan || {}).phases || []).find((p) => p.id === "weave") || {};
@@ -374,6 +387,8 @@ function discoverBooks() {
   return books.sort((a, b) => b.mtime - a.mtime);
 }
 const books = discoverBooks();
+// --iteration forces which book drives the opus phase/denominator; else newest.
+if (ITER) { const _i = books.findIndex((b) => b.id === ITER); if (_i > 0) books.unshift(books.splice(_i, 1)[0]); }
 const activeBook = books[0] || null; // most-recently-written = the live iteration
 const plannedSections = activeBook?.planned ?? null;
 const sectionFiles = activeBook?.written ?? 0;
@@ -390,7 +405,9 @@ const phaseDefs = [
   { id: "extract", makes: "evidence packs", done: evidenceCount > 0, n: evidenceCount, total: inventoryNow, unit: "packs" },
   { id: "map", makes: "session cards", done: doneFiles.length >= activeCards, n: doneFiles.length, total: activeCards, unit: "cards" },
   { id: "graph", makes: "knowledge graph", done: graphState.cards_ok >= doneFiles.length && doneFiles.length > 0, n: graphState.cards_ok, total: doneFiles.length, unit: "cards → graph" },
+  { id: "code", makes: "code graph (Tree-Sitter)", done: !!(graphStats && graphStats.node_types && graphStats.node_types.CodeEntity > 0), n: (graphStats && graphStats.node_types && graphStats.node_types.CodeEntity) || null, total: null, unit: "code entities" },
   { id: "enrich", makes: "merged concepts + themes", done: !!enrichDone, n: null, total: null, unit: "" },
+  { id: "sad", makes: "TOGAF EPIC v7 SAD", done: fs.existsSync(path.join(dataOut, "TOGAF_EPIC_V7_SAD_binary16.pdf")), n: null, total: null, unit: "" },
   { id: "model", makes: "rollups (timeline/operator)", done: rollupsDone, n: Math.min(rollupCount, ROLLUP_SET), total: ROLLUP_SET, unit: "rollups" },
   { id: "review", makes: "per-session reviews", done: art.reviews >= doneFiles.length && art.reviews > 0, n: art.reviews, total: doneFiles.length, unit: "reviews" },
   { id: "weave", makes: "discovery notes", done: countFiles(path.join(dataOut, "discovery"), ".md") >= weaveTotal, n: countFiles(path.join(dataOut, "discovery"), ".md"), total: weaveTotal, unit: "notes" },
@@ -436,21 +453,75 @@ const freshMs = (p) => {
     return Infinity;
   }
 };
-const pipelineLive =
-  Math.min(
-    freshMs(path.join(LV, "ledger.jsonl")),
-    freshMs(path.join(LV, "progress.json")),
-    freshMs(path.join(LV, "enrich_progress.json"))
-  ) < 180000;
+// Live pipeline heartbeat (pipeline.mjs writes longview/pipeline/live.json each
+// phase + every ~5s). This is the ONLY signal that spans the whole pipeline —
+// the map-phase files below go stale during enrich/sad/opus, which is why the
+// dashboard used to read "nothing running" for the ~10h downstream tail.
+// A run mid-long-blocking-phase (e.g. sad's ~1-2h code-graph scan) can't refresh its
+// heartbeat, so updated_at goes stale even though the run is alive — which made the
+// dashboard read "idle". Trust the recorded pid: if the pipeline process is alive,
+// the run IS running (just quiet). process.kill(pid, 0) throws ESRCH if gone, EPERM
+// if alive-but-not-ours.
+const pidAlive = (pid) => {
+  if (!pid) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (e) {
+    return !!(e && e.code === "EPERM");
+  }
+};
+const liveHb = readJSON(path.join(LV, "pipeline", "live.json"), null);
+const pipelineLive = (() => {
+  if (liveHb && liveHb.updated_at) {
+    const ageSec = Math.round((Date.now() - Date.parse(liveHb.updated_at)) / 1000);
+    const procAlive = pidAlive(liveHb.pid);
+    return {
+      running: liveHb.status === "running" && (ageSec < 180 || procAlive),
+      blocking: liveHb.status === "running" && ageSec >= 180 && procAlive, // alive but in a long silent step
+      proc_alive: procAlive,
+      status: liveHb.status,
+      current_phase: liveHb.current_phase,
+      phase_index: liveHb.phase_index,
+      plan: liveHb.plan || [],
+      phases: liveHb.phases || [],
+      tag: liveHb.tag,
+      pid: liveHb.pid,
+      started_at: liveHb.started_at,
+      phase_started_at: liveHb.phase_started_at,
+      updated_at: liveHb.updated_at,
+      age_seconds: ageSec
+    };
+  }
+  // Fallback for legacy runs with no heartbeat: map-phase file freshness.
+  const fresh =
+    Math.min(
+      freshMs(path.join(LV, "ledger.jsonl")),
+      freshMs(path.join(LV, "progress.json")),
+      freshMs(path.join(LV, "enrich_progress.json"))
+    ) < 180000;
+  return { running: fresh, status: fresh ? "running" : null, current_phase: null, plan: [], phases: [] };
+})();
+
+// Reflect the live pipeline phase on the rail even during a long silent step:
+// statusJson.phase tracks the MAP run, not the pipeline phase, so sad/opus never lit
+// up as "active". If the run is live, mark its current pipeline phase active.
+// The current phase is executing NOW — mark it active even if a prior run left its
+// artifact on disk (a re-run's SAD/book pdf makes "done" fire from stale output).
+if (pipelineLive.running && pipelineLive.current_phase) {
+  for (const ph of pipeline) if (ph.id === pipelineLive.current_phase) ph.status = "active";
+}
 
 // --- ontology: named themes + type mix, refreshed when the graph changes.
 // Aggregated from the lean knowledge endpoint (local API, code-free).
-const prevDash = readJSON(path.join(DASH, "dashboard.json"), {});
+const prevDash = STDOUT ? {} : readJSON(path.join(DASH, "dashboard.json"), {});
 let ontology = prevDash.ontology || null;
 const graphChanged =
   graphStats &&
   JSON.stringify((prevDash.phases || {}).graph_stats || {}) !== JSON.stringify(graphStats);
-if (graphStats && (graphChanged || !ontology)) {
+// Skip the heavy knowledge/ontology query while a phase is mid-blocking-write (the
+// code-graph scan): it competes with the run for Neo4j and just times out anyway.
+if (graphStats && (graphChanged || !ontology) && !pipelineLive.blocking) {
   try {
     const ac = new AbortController();
     const t = setTimeout(() => ac.abort(), 8000);
@@ -521,8 +592,9 @@ try {
   const olDir = path.join(LV, "lineage");
   fs.mkdirSync(olDir, { recursive: true });
   fs.writeFileSync(path.join(olDir, "openlineage.json"), JSON.stringify(lineage.openlineage, null, 2));
-  // Also expose it for the dashboard's download link (same-origin).
-  fs.writeFileSync(path.join(DASH, "openlineage.json"), JSON.stringify(lineage.openlineage, null, 2));
+  // Also expose it for the dashboard's download link (same-origin) — but not in
+  // --stdout mode, where it would clobber the active workspace's file.
+  if (!STDOUT) fs.writeFileSync(path.join(DASH, "openlineage.json"), JSON.stringify(lineage.openlineage, null, 2));
 } catch {
   /* best-effort */
 }
@@ -533,7 +605,7 @@ let runtimeLineage = { executions: [], openlineage: [], event_count: 0, current:
 try {
   runtimeLineage = deriveRuntimeLineage();
   fs.writeFileSync(path.join(LV, "lineage", "openlineage_runtime.json"), JSON.stringify(runtimeLineage.openlineage, null, 2));
-  fs.writeFileSync(path.join(DASH, "openlineage_runtime.json"), JSON.stringify(runtimeLineage.openlineage, null, 2));
+  if (!STDOUT) fs.writeFileSync(path.join(DASH, "openlineage_runtime.json"), JSON.stringify(runtimeLineage.openlineage, null, 2));
 } catch {
   /* best-effort */
 }
@@ -680,7 +752,6 @@ const out = {
   // train → eval → serve → (feedback: data gap) → sessions. All read-only from
   // on-disk artifacts (no LM calls). Closes LONGVIEW (cards) to EP-T (training).
   flywheel: (() => {
-    const REPO = "C:/Users/nsdha/OneDrive/binary16/prime-silo";
     const dsDir = path.join(REPO, "scripts", "train", "dataset");
     const manifest = readJSON(path.join(dsDir, "manifest.json"), null);
     // Eval numbers — parse the v3 addendum from the report (normalize U+2212 → '-').
@@ -738,10 +809,15 @@ const out = {
     };
   })()
 };
-// Atomic write (tmp + rename) so the server never reads a half-written file.
-const outPath = path.join(DASH, "dashboard.json");
-fs.writeFileSync(outPath + ".tmp", JSON.stringify(out, null, 2));
-fs.renameSync(outPath + ".tmp", outPath);
-console.log(
-  `[collect] ${out.run.pct_work}% work · ${doneWindows}/${totalWindows} windows · ${doneFiles.length} cards · ETA ${Math.round(etaSec / 3600)}h · rate ${out.run.rate_s_per_window}s/win → dashboard.json`
-);
+if (STDOUT) {
+  // On-demand build for the server API — emit JSON, touch no shared files.
+  process.stdout.write(JSON.stringify(out));
+} else {
+  // Atomic write (tmp + rename) so the server never reads a half-written file.
+  const outPath = path.join(DASH, "dashboard.json");
+  fs.writeFileSync(outPath + ".tmp", JSON.stringify(out, null, 2));
+  fs.renameSync(outPath + ".tmp", outPath);
+  console.log(
+    `[collect] ${out.run.pct_work}% work · ${doneWindows}/${totalWindows} windows · ${doneFiles.length} cards · ETA ${Math.round(etaSec / 3600)}h · rate ${out.run.rate_s_per_window}s/win → dashboard.json`
+  );
+}

@@ -9,8 +9,9 @@
  *   node scripts/longview/longview.mjs extract   [--limit N] [--force]
  *   node scripts/longview/longview.mjs map       [--limit N] [--force]
  *   node scripts/longview/longview.mjs model     [--no-graph]
+ *   node scripts/longview/longview.mjs privacy   [--gate|--enforce|--report] (content-level CV/PII gate; before model/graph)
  *   node scripts/longview/longview.mjs reduce    [--skip-book] [--only report,prd,...]
- *   node scripts/longview/longview.mjs sad       (canonical TOGAF EPIC v3 SAD → runtime/scripts/togaf_epic_v3.py; needs LM host + Neo4j)
+ *   node scripts/longview/longview.mjs sad       (canonical TOGAF EPIC v7 SAD → runtime/scripts/togaf_epic_v7.py; needs LM host + Neo4j)
  *   node scripts/longview/longview.mjs all       [--limit N] [--no-graph] [--skip-book]
  *   node scripts/longview/longview.mjs delta     [--refresh] [--no-graph]
  *   node scripts/longview/longview.mjs status | report
@@ -1740,16 +1741,16 @@ function runPdfPhase() {
 }
 
 // -------------------------------------------------------------------- sad
-// The CANONICAL TOGAF SAD flow for the flywheel is TOGAF EPIC v3:
-// runtime/scripts/togaf_epic_v3.py — recursive index-planned, reference-grounded
+// The CANONICAL TOGAF SAD flow for the flywheel is TOGAF EPIC v7:
+// runtime/scripts/togaf_epic_v7.py — recursive index-planned, reference-grounded
 // (deterministic diagrams-as-code from the code+knowledge graph + ICONIX
-// robustness + an evidence-cited recursive narrative → TOGAF_EPIC_V3_SAD_binary16.
+// robustness + an evidence-cited recursive narrative → TOGAF_EPIC_V7_SAD_binary16.
 // It needs the LM host (gemma via BENNY_LMSTUDIO_ENDPOINTS) + Neo4j up. This phase
 // shells out to it so `longview sad` / `longview all` always drive that ONE flow —
 // do NOT reintroduce a parallel SAD generator (that was the confusion we removed).
 function runSad() {
   const runtimeDir = path.join(projectRoot, "runtime");
-  const script = path.join("scripts", "togaf_epic_v3.py");
+  const script = path.join("scripts", "togaf_epic_v7.py");
   if (!fs.existsSync(path.join(runtimeDir, script))) {
     console.log(`[sad] canonical flow missing: runtime/${script}`);
     return;
@@ -1790,30 +1791,30 @@ function runSad() {
       console.log(`[sad] WARN ${scan} missing — robustness will be thin without a code graph`);
     }
   }
-  console.log(`[sad] canonical TOGAF EPIC v3 → runtime/${script} --workspace ${config.WORKSPACE}`);
+  console.log(`[sad] canonical TOGAF EPIC v7 → runtime/${script} --workspace ${config.WORKSPACE}`);
   const args = ["--workspace", config.WORKSPACE];
   if (flag("resume")) args.push("--resume");
   const r = spawnSync(py, [script, ...args], { cwd: runtimeDir, env, stdio: "inherit" });
   appendLedger({
     phase: "sad",
-    flow: "togaf_epic_v3",
+    flow: "togaf_epic_v7",
     exit: r.status ?? null,
     error: r.error ? String(r.error) : null
   });
   if (r.status === 0) {
     console.log(
-      `[sad] TOGAF_EPIC_V3_SAD_${config.WORKSPACE === "sessions_v1" ? "binary16" : config.WORKSPACE} written to data_out`
+      `[sad] TOGAF_EPIC_V7_SAD_${config.WORKSPACE === "sessions_v1" ? "binary16" : config.WORKSPACE} written to data_out`
     );
     writeStatus({
       phase: "sad_done",
-      flow: "togaf_epic_v3",
-      sad: "data_out/TOGAF_EPIC_V3_SAD_binary16.pdf"
+      flow: "togaf_epic_v7",
+      sad: "data_out/TOGAF_EPIC_V7_SAD_binary16.pdf"
     });
   } else {
     console.log(
-      `[sad] togaf_epic_v3 exit=${r.status} — it needs the LM host (gemma) + Neo4j; re-run 'longview sad' when the eGPU is free (e.g. after training).`
+      `[sad] togaf_epic_v7 exit=${r.status} — it needs the LM host (gemma) + Neo4j; re-run 'longview sad' when the eGPU is free (e.g. after training).`
     );
-    writeStatus({ phase: "sad_failed", flow: "togaf_epic_v3", exit: r.status ?? null });
+    writeStatus({ phase: "sad_failed", flow: "togaf_epic_v7", exit: r.status ?? null });
   }
 }
 
@@ -2111,6 +2112,15 @@ async function main() {
     case "map":
       await runMap();
       break;
+    case "privacy": {
+      // Content-level privacy pre-validation (privacy_gate.mjs) — runs between
+      // map and model/graph so personal/CV/PII cards never reach the graph, the
+      // vectors, the SAD or the book. Forward mode flags (--gate/--enforce/--report).
+      const gate = path.join(__dirname, "privacy_gate.mjs");
+      const r = spawnSync(process.execPath, [gate, ...args.slice(1)], { stdio: "inherit" });
+      process.exitCode = r.status ?? 0;
+      break;
+    }
     case "model":
       await runModel();
       break;

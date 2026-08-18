@@ -38,10 +38,24 @@ def main() -> int:
         return 2
 
     # Idempotent: drop the prior code graph for this workspace so robustness never
-    # double-counts across snapshots.
+    # double-counts across snapshots. Two bugs fixed here:
+    #   1. The Cypher used $ws but the call passed workspace=... (the 3rd positional
+    #      run_cypher arg, NOT a query param) → "Expected parameter(s): ws", so the
+    #      clear silently no-op'd and every re-scan LAYERED onto the old graph.
+    #   2. A single DETACH DELETE of ~1.9M nodes exceeds Neo4j's
+    #      dbms.memory.transaction.total.max — so delete in bounded batches.
     try:
-        run_cypher("MATCH (e:CodeEntity {workspace:$ws}) DETACH DELETE e", workspace=args.workspace)
-        print(f"[code-scan] cleared prior CodeEntity for {args.workspace}", flush=True)
+        deleted = 0
+        while True:
+            r = run_cypher(
+                "MATCH (e:CodeEntity {workspace:$ws}) WITH e LIMIT 20000 "
+                "DETACH DELETE e RETURN count(e) AS n",
+                {"ws": args.workspace}, workspace=args.workspace)
+            n = (r[0].get("n") if r else 0) or 0
+            deleted += n
+            if n == 0:
+                break
+        print(f"[code-scan] cleared {deleted} prior CodeEntity for {args.workspace}", flush=True)
     except Exception as exc:  # noqa: BLE001
         print(f"[code-scan] WARN could not clear prior snapshot: {exc}", flush=True)
 
@@ -53,7 +67,7 @@ def main() -> int:
 
     counts = run_cypher(
         "MATCH (e:CodeEntity {workspace:$ws}) RETURN e.type AS type, count(*) AS n ORDER BY n DESC",
-        workspace=args.workspace) or []
+        {"ws": args.workspace}, workspace=args.workspace) or []
     print(f"[code-scan] DONE snapshot={snap}", flush=True)
     for r in counts:
         print(f"    {r.get('type')}: {r.get('n')}", flush=True)
