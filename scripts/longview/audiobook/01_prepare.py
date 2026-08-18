@@ -42,6 +42,7 @@ COMBINED_MD = BOOK_DIR / "THE-AI-VAMPIRE.md"
 
 BUILD = HERE / "build"
 CHAPTERS_OUT = BUILD / "chapters"
+PARAS_OUT = BUILD / "paras"
 MANIFEST_OUT = BUILD / "manifest.json"
 
 BOOK_TITLE = "The AI Vampire"
@@ -151,9 +152,13 @@ def clean_line(line: str) -> str:
 
 _FENCE = re.compile(r"```.*?```", re.DOTALL)
 
+# A body paragraph shorter than this is folded into the previous one so the
+# per-paragraph TTS never emits a one-clause fragment with a gap around it.
+MIN_PARA_CHARS = 90
 
-def clean_section(md: str) -> str:
-    """Clean a whole section file into narratable prose with paragraph breaks."""
+
+def clean_section_paras(md: str) -> list[str]:
+    """Clean a whole section file into a list of narratable paragraphs."""
     md = _FENCE.sub("", md)  # drop fenced code blocks entirely
     out_paras: list[str] = []
     cur: list[str] = []
@@ -168,8 +173,27 @@ def clean_section(md: str) -> str:
             cur.append(c)
     if cur:
         out_paras.append(" ".join(cur).strip())
-    paras = [p for p in (_repair_punctuation(p) for p in out_paras) if p]
-    return "\n\n".join(paras)
+    return [p for p in (_repair_punctuation(p) for p in out_paras) if p]
+
+
+def clean_section(md: str) -> str:
+    """Backward-compatible: the section's paragraphs joined for a chapter file."""
+    return "\n\n".join(clean_section_paras(md))
+
+
+def merge_short(paras: list[str], min_chars: int = MIN_PARA_CHARS) -> list[str]:
+    """Fold too-short paragraphs into the previous one (keeps TTS units whole)."""
+    merged: list[str] = []
+    for p in paras:
+        if merged and len(p) < min_chars:
+            merged[-1] = (merged[-1].rstrip() + " " + p).strip()
+        else:
+            merged.append(p)
+    # if the very first paragraph is itself tiny, pull the second up into it
+    if len(merged) >= 2 and len(merged[0]) < min_chars:
+        merged[0] = (merged[0].rstrip() + " " + merged[1]).strip()
+        del merged[1]
+    return merged
 
 
 # ---------------------------------------------------------------- titles
@@ -233,38 +257,60 @@ def main() -> int:
     manifest = {
         "book_title": BOOK_TITLE,
         "source": str(BOOK_DIR),
+        "granularity": "paragraph",
         "chapter_count": len(chapters),
+        "paragraph_count": 0,
         "chapters": [],
     }
 
     seen_parts: set[int] = set()
+    total_paras = 0
     for order, chap in enumerate(sorted(chapters), start=1):
         info = chapters[chap]
         part = info["part"]
         ch_title = chapter_titles.get(chap, f"Chapter {chap}")
 
-        spoken: list[str] = []
+        # ---- build the ordered list of spoken PARAGRAPHS for this chapter ----
+        # each entry: (kind, text). announcements are their own units; section
+        # bodies are split into real paragraphs and short ones folded in.
+        units: list[tuple[str, str]] = []
 
-        # announce the part at its first chapter
         if part not in seen_parts:
             seen_parts.add(part)
             p_title, p_tag = part_titles.get(part, (f"Part {part}", ""))
-            spoken.append(f"Part {part}. {p_title}.")
+            units.append(("announce", f"Part {part}. {p_title}."))
             if p_tag:
-                spoken.append(p_tag if p_tag.endswith((".", "!", "?")) else p_tag + ".")
+                units.append(("announce", p_tag if p_tag.endswith((".", "!", "?")) else p_tag + "."))
+        units.append(("announce", f"Chapter {chap}. {ch_title}."))
 
-        # announce the chapter
-        spoken.append(f"Chapter {chap}. {ch_title}.")
-
+        body_paras: list[str] = []
         for _sec, path in sorted(info["sections"], key=lambda t: t[0]):
-            body = clean_section(path.read_text(encoding="utf-8", errors="replace"))
-            if body:
-                spoken.append(body)
+            body_paras.extend(clean_section_paras(path.read_text(encoding="utf-8", errors="replace")))
+        for p in merge_short(body_paras):
+            units.append(("body", p))
 
-        text = "\n\n".join(spoken).strip() + "\n"
+        # ---- write per-paragraph text files + the chapter reference file ----
+        ch_dir = PARAS_OUT / f"ch{order:02d}"
+        ch_dir.mkdir(parents=True, exist_ok=True)
+        para_records: list[dict] = []
+        for pidx, (kind, ptext) in enumerate(units, start=1):
+            pid = f"ch{order:02d}_p{pidx:03d}"
+            ptxt_rel = f"paras/ch{order:02d}/p{pidx:03d}.txt"
+            (BUILD / ptxt_rel).write_text(ptext.strip() + "\n", encoding="utf-8")
+            para_records.append({
+                "id": pid,
+                "kind": kind,
+                "order": pidx,
+                "text_file": ptxt_rel,
+                "audio_file": f"audio/ch{order:02d}/p{pidx:03d}.wav",
+                "chars": len(ptext),
+            })
+        total_paras += len(para_records)
 
+        # chapter reference text (whole chapter, human-readable / debugging)
         fname = f"ch{order:02d}.txt"
-        (CHAPTERS_OUT / fname).write_text(text, encoding="utf-8")
+        (CHAPTERS_OUT / fname).write_text(
+            "\n\n".join(t for _k, t in units).strip() + "\n", encoding="utf-8")
 
         manifest["chapters"].append({
             "order": order,
@@ -272,20 +318,22 @@ def main() -> int:
             "part": part,
             "title": ch_title,
             "text_file": f"chapters/{fname}",
-            "audio_file": f"audio/ch{order:02d}.wav",
-            "chars": len(text),
+            "chapter_audio": f"audio/ch{order:02d}.wav",
+            "chars": sum(p["chars"] for p in para_records),
             "sections": len(info["sections"]),
+            "paragraphs": para_records,
             "status": "pending",
         })
 
+    manifest["paragraph_count"] = total_paras
     MANIFEST_OUT.parent.mkdir(parents=True, exist_ok=True)
     MANIFEST_OUT.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
 
     total = sum(c["chars"] for c in manifest["chapters"])
-    print(f"Prepared {len(manifest['chapters'])} chapters -> {CHAPTERS_OUT}")
+    print(f"Prepared {len(manifest['chapters'])} chapters / {total_paras} paragraphs -> {PARAS_OUT}")
     for c in manifest["chapters"]:
         print(f"  ch{c['order']:02d}  P{c['part']} Ch{c['chapter']:>2}  "
-              f"{c['chars']:>6} chars  {c['title']}")
+              f"{len(c['paragraphs']):>3} paras  {c['chars']:>6} chars  {c['title']}")
     print(f"Total narratable text: {total:,} chars  (~{total/900:.0f} min @ ~150 wpm)")
     print(f"Manifest: {MANIFEST_OUT}")
     return 0

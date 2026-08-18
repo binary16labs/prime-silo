@@ -1,0 +1,3 @@
+# Audiobook pipeline — optional deps (the core prime-silo runtime does NOT need these).
+# Stage 3 (03_stitch.py) encodes the final MP3 with LAME. Pure pip wheel, no ffmpeg.
+lameenc>=1.7.0

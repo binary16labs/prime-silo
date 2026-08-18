@@ -1,99 +1,98 @@
 # The AI Vampire — Audiobook Workflow (Prime-Silo)
 
-Deterministic pipeline that turns `data_out/opus/THE-AI-VAMPIRE.md` into a single
-narrated audiobook WAV, one chapter at a time, via **Voicebox** (local TTS,
-`voicebox.sh`) and stitches the chapters back together in fixed order.
+Deterministic pipeline that turns the LONGVIEW book (`THE-AI-VAMPIRE.md`) into a
+single narrated audiobook **MP3**, synthesized **one paragraph at a time** via
+**Voicebox** (local Kokoro TTS) and stitched back together in fixed order.
 
 ```
-01_prepare.py     markdown  ->  clean, '#'-free per-chapter text + manifest.json
-02_synthesize.py  driver/tracker for the Voicebox MCP step (the TTS itself)
-03_stitch.py      per-chapter WAVs  ->  one audiobook WAV + chapter cue sheet
-build/            all generated artifacts live here
+01_prepare.py               markdown  ->  clean per-PARAGRAPH text + manifest.json
+02_synthesize_paragraphs.py one Kokoro call per paragraph  ->  audio/chNN/pPPP.wav
+03_stitch.py                paragraph WAVs  ->  one audiobook MP3 + chapter cue sheet
+build/                      all generated artifacts live here
 ```
 
-Everything except the actual speech synthesis is pure Python stdlib — no ffmpeg,
-no third-party packages. Ordering is derived only from the source section
-filenames (`p{part}c{chapter}s{section}.md`), so runs are reproducible.
+Assembly is pure Python stdlib (`wave`); only the final MP3 encode uses
+`lameenc` (a pip wheel — **no ffmpeg**). Ordering is derived only from the source
+section filenames (`p{part}c{chapter}s{section}.md`), so runs are reproducible.
+
+## Why paragraph-at-a-time
+
+- **Robust + resumable** at paragraph granularity: a failed or interrupted run
+  re-does only the missing paragraphs, never a whole chapter.
+- Voicebox never has to internally chunk-and-crossfade a 25k-char chapter, so
+  prosody stays even and there are no mid-chapter seams.
 
 ## Source
 
-- Book: `../data_out/opus/THE-AI-VAMPIRE.md` (14 chapters, 4 parts, 72 sections)
-- The pipeline reads the pre-split `../data_out/opus/sections/*.md` for clean text
-  and the combined `.md` only for the authoritative chapter/part titles.
+- Book dir defaults to `../data_out/opus`; point it at any LONGVIEW book with
+  `LONGVIEW_BOOK_DIR` (e.g. an `iterations/<name>` build).
+- The pipeline reads the pre-split `sections/*.md` for clean text and the
+  combined `THE-AI-VAMPIRE.md` only for the authoritative chapter/part titles.
 
-## Voicebox facts (discovered from `%APPDATA%/sh.voicebox.app/voicebox.db`)
+## Prerequisites
 
-- Profile to narrate with: **`Test`** — a _cloned_ voice (`voice_type=cloned`),
-  engine `qwen`, model `1.7B`. Change with `--profile` if you make a new voice.
-- `generation_settings`: `max_chunk_chars=800`, `crossfade_ms=50`,
-  `normalize_audio=on`. Voicebox chunks long input internally and cross-fades the
-  chunks, so passing a whole ~15k-char chapter in one call is fine.
-- Voicebox is a **GUI + MCP-server** app — there is no CLI. Automation happens
-  through its MCP `generate`/`speak` tool, called from a session where the
-  Voicebox MCP is connected (see step 2).
+```
+pip install -r requirements.txt          # lameenc (MP3 encoder)
+```
+
+Voicebox running with its backend on `127.0.0.1:17493` and a **Kokoro** profile:
+
+```
+cd voicebox && backend/venv/Scripts/python -m backend.main --host 127.0.0.1 --port 17493
+```
 
 ## How to run
 
-### 1. Prepare (done — re-run anytime the source changes)
+### 1. Prepare
 
 ```
 python 01_prepare.py
 ```
 
-Writes `build/chapters/ch01.txt … ch14.txt` (audiobook-clean: no `#`, no TOC, no
+Writes `build/paras/chNN/pPPP.txt` (audiobook-clean: no `#`, no TOC, no
 `(sid: …)` / `(concept: …)` / `[longview_card_…]` citations, no inline code or
-LaTeX gibberish; each chapter and part is announced by voice) and
-`build/manifest.json` (the ordered chapter list that stages 2 and 3 both obey).
+LaTeX; each Part/Chapter announced by voice; sub-90-char fragments folded into
+their neighbour) and `build/manifest.json` — the ordered chapter→paragraph list
+that stages 2 and 3 both obey (`granularity: "paragraph"`).
 
-### 2. Synthesize with Voicebox (one chapter at a time)
-
-Make sure Voicebox is running with its **MCP server enabled** and connected to
-the session doing this step. Then, for each chapter **in manifest order**:
-
-1. `read build/chapters/chNN.txt`
-2. call the Voicebox MCP generate tool: `text = <that file>`, `profile = "Test"`
-3. save the returned audio to `build/audio/chNN.wav` (same NN)
-
-Track progress at any time (idempotent — only missing chapters remain):
+### 2. Synthesize (Kokoro, one paragraph at a time)
 
 ```
-python 02_synthesize.py --status     # OK / -- per chapter, with durations
-python 02_synthesize.py --plan       # ordered work list of what's still pending
-python 02_synthesize.py --json       # same, machine-readable (text_file -> audio_out)
+python 02_synthesize_paragraphs.py                 # all pending paragraphs
+python 02_synthesize_paragraphs.py --only-chapter 1
+python 02_synthesize_paragraphs.py --limit 5       # smoke test
+python 02_synthesize_paragraphs.py --status        # per-chapter done/total
+python 02_synthesize_paragraphs.py --profile <id>  # override kokoro profile
 ```
 
-> If the Voicebox MCP ever rejects a chapter as too long, the section files
-> (`../data_out/opus/sections/`) let you drop to section-level granularity and
-> concatenate sections into `chNN.wav` first — but chapter-level is the intended
-> path and Voicebox's internal chunking handles full chapters.
+Idempotent + resumable: a paragraph whose wav already exists is skipped.
+Kokoro runs ≈ 0.25–0.35× real-time on CPU. `VOICEBOX_URL` and
+`VOICEBOX_KOKORO_PROFILE` (default `Audiobook-Narrator`) are env-overridable.
 
-### 3. Stitch into the audiobook
-
-```
-python 03_stitch.py                  # 1.2 s gap between chapters (default)
-python 03_stitch.py --silence-ms 800
-python 03_stitch.py --allow-missing  # preview with only the chapters done so far
-```
-
-Writes `build/THE-AI-VAMPIRE.wav` (chapters concatenated in manifest order with
-silence gaps) and `build/chapters.cue.txt` (start timestamp per chapter). All
-chapter WAVs must share one format (channels/width/rate) — they will, coming from
-one profile+engine; a mismatch is reported instead of silently corrupting output.
-
-### Optional: WAV → MP3 / M4B
-
-The deliverable is a WAV so the pipeline stays dependency-free. To compress or
-make a chaptered `.m4b`, install ffmpeg and, e.g.:
+### 3. Stitch into the audiobook MP3
 
 ```
-ffmpeg -i build/THE-AI-VAMPIRE.wav -b:a 128k build/THE-AI-VAMPIRE.mp3
+python 03_stitch.py                         # -> build/THE-AI-VAMPIRE.mp3 (96 kbps)
+python 03_stitch.py --bitrate 128
+python 03_stitch.py --para-gap-ms 300 --chapter-gap-ms 1400
+python 03_stitch.py --keep-wav              # also write the lossless WAV
+python 03_stitch.py --allow-missing         # stitch only paragraphs present
 ```
 
-(The cue sheet has the chapter offsets for building m4b chapter metadata.)
+Streams paragraphs → chapter (350 ms gap) → book (1200 ms gap) straight into the
+LAME encoder, so memory stays flat even for a 6+ hour book. Writes
+`build/THE-AI-VAMPIRE.mp3` and `build/chapters.cue.txt` (start timestamp per
+chapter, for navigation / m4b metadata). All paragraph WAVs must share one format
+(channels/width/rate) — they will, coming from one profile+engine; a mismatch is
+reported instead of silently corrupting output.
 
 ## Determinism guarantees
 
 - Chapter order = numeric sort of section filenames → identical every run.
-- Fixed output names (`chNN.txt`, `chNN.wav`) → re-runs overwrite, never reorder.
+- Fixed output names (`chNN/pPPP.txt`, `chNN/pPPP.wav`) → re-runs overwrite, never reorder.
 - Stitch order = `manifest.json` order, not directory listing order.
 - No timestamps or randomness enter the text or the assembly.
+
+> The older whole-chapter driver (`02_run_kokoro.py`) and the MCP-path tracker
+> (`02_synthesize.py`) are kept for reference, but the paragraph pipeline above is
+> the intended path.
