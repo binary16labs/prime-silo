@@ -42,11 +42,11 @@
     "node": ">=20"
   },
   "devDependencies": {
-    "@eslint/js": "^9.0.0",
-    "eslint": "^9.0.0",
-    "eslint-config-prettier": "^9.1.0",
-    "globals": "^15.0.0",
-    "prettier": "^3.3.0"
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.8.1",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.11.0",
+    "prettier": "^3.9.6"
   },
   "build": {
     "appId": "com.spaceagent.desktop",
@@ -139,8 +139,8 @@
     "purpose": "Thin mobile-compatible server bridge for fetch proxying and local infrastructure."
   },
   "dependencies": {
-    "archiver": "^7.0.1",
-    "electron-updater": "^6.8.3",
-    "isomorphic-git": "^1.37.4"
+    "archiver": "^8.0.0",
+    "electron-updater": "^6.8.9",
+    "isomorphic-git": "^1.41.7"
   }
 }
