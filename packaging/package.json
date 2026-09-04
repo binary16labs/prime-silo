@@ -1,7 +1,7 @@
 {
   "name": "@space-agent/packaging",
   "private": true,
-  "description": "Native desktop packaging toolchain for Space Agent.",
+  "description": "Native desktop packaging toolchain for Prime-Silo.",
   "dependencies": {
     "electron": "^35.1.4",
     "electron-builder": "^26.0.12"

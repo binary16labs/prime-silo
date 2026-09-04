@@ -10,7 +10,7 @@
 // or the friendly wrapper that also installs deps:
 //   ./scripts/build-local-test.ps1
 //
-// Output: dist/desktop/windows/win-unpacked/Space Agent.exe
+// Output: dist/desktop/windows/win-unpacked/Prime-Silo.exe
 
 const path = require("node:path");
 const fs = require("node:fs");
@@ -73,7 +73,7 @@ async function main() {
     "desktop",
     "windows",
     "win-unpacked",
-    "Space Agent.exe"
+    "Prime-Silo.exe"
   );
   if (fs.existsSync(exePath)) {
     console.log(checklist(exePath));

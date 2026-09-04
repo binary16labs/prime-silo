@@ -2,7 +2,7 @@ const fs = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
 
-const DESKTOP_UPDATER_CACHE_DIRNAMES = Object.freeze(["space-agent-updater", "agent-one-updater"]);
+const DESKTOP_UPDATER_CACHE_DIRNAMES = Object.freeze(["prime-silo-updater", "space-agent-updater", "agent-one-updater"]);
 const DESKTOP_UPDATER_INSTALL_MARKER_FILENAME = "desktop-updater-install.json";
 const DESKTOP_UPDATER_PENDING_DIRNAME = "pending";
 

@@ -612,7 +612,7 @@ async function runDesktopPackaging(platformKey, argv = process.argv.slice(2)) {
     console.warn("Warning: Failed to bootstrap self-workspace before packaging.");
   }
 
-  console.log(`Packaging Space Agent for ${platformSpec.label}...`);
+  console.log(`Packaging Prime-Silo for ${platformSpec.label}...`);
 
   // Airtight backstop: electron-builder has been observed to ABANDON a large-app
   // build — the process exits 0 after the file walk without ever running the

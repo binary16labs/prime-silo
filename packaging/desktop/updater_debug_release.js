@@ -76,7 +76,7 @@ function resolveDesktopWindowsReleaseAssetArch(value = "") {
 }
 
 function resolveDesktopWindowsReleaseAssetFileName({ version = "", arch = process.arch } = {}) {
-  return `Space-Agent-${normalizeDesktopReleaseAssetVersion(version)}-windows-${normalizeDesktopWindowsReleaseArch(arch)}.exe`;
+  return `Prime-Silo-${normalizeDesktopReleaseAssetVersion(version)}-windows-${normalizeDesktopWindowsReleaseArch(arch)}.exe`;
 }
 
 function getDesktopWindowsReleaseFiles(updateInfo = {}) {

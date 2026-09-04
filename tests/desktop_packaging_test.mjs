@@ -221,14 +221,14 @@ test("packaged desktop updater keeps canonical Windows release asset naming stab
       version: "0.52.0",
       arch: "x64"
     }),
-    "Space-Agent-0.52-windows-x64.exe"
+    "Prime-Silo-0.52-windows-x64.exe"
   );
   assert.equal(
     resolveDesktopWindowsReleaseAssetFileName({
       version: "0.52.0",
       arch: "arm64"
     }),
-    "Space-Agent-0.52-windows-arm64.exe"
+    "Prime-Silo-0.52-windows-arm64.exe"
   );
 });
 
@@ -237,7 +237,7 @@ test("packaged desktop updater detects Windows metadata that is missing the curr
     version: "0.52.0",
     files: [
       {
-        url: "Space-Agent-0.52-windows-arm64.exe",
+        url: "Prime-Silo-0.52-windows-arm64.exe",
         sha512: "abc123",
         size: "1"
       }
@@ -247,12 +247,12 @@ test("packaged desktop updater detects Windows metadata that is missing the curr
   assert.equal(findDesktopWindowsReleaseFile(armOnlyInfo, "x64"), null);
   assert.equal(
     findDesktopWindowsReleaseFile(armOnlyInfo, "arm64")?.url,
-    "Space-Agent-0.52-windows-arm64.exe"
+    "Prime-Silo-0.52-windows-arm64.exe"
   );
   assert.deepEqual(resolveDesktopWindowsReleaseArchFallback(armOnlyInfo, "x64"), {
-    actualFiles: ["Space-Agent-0.52-windows-arm64.exe"],
+    actualFiles: ["Prime-Silo-0.52-windows-arm64.exe"],
     expectedArch: "x64",
-    expectedFileName: "Space-Agent-0.52-windows-x64.exe"
+    expectedFileName: "Prime-Silo-0.52-windows-x64.exe"
   });
   assert.equal(resolveDesktopWindowsReleaseArchFallback(armOnlyInfo, "arm64"), null);
   assert.equal(
@@ -261,12 +261,12 @@ test("packaged desktop updater detects Windows metadata that is missing the curr
         version: "0.52.0",
         files: [
           {
-            url: "Space-Agent-0.52-windows-arm64.exe",
+            url: "Prime-Silo-0.52-windows-arm64.exe",
             sha512: "abc123",
             size: "1"
           },
           {
-            url: "Space-Agent-0.52-windows-x64.exe",
+            url: "Prime-Silo-0.52-windows-x64.exe",
             sha512: "def456",
             size: "2"
           }
@@ -291,13 +291,13 @@ test("packaged desktop debug reinstall stages same-version and downgrade release
       ? [
           "version: 0.48.0",
           "files:",
-          "  - url: Space Agent 0.48 windows x64.exe",
+          "  - url: Prime-Silo 0.48 windows x64.exe",
           "    sha512: def456"
         ].join("\n")
       : [
           "version: 0.49.0",
           "files:",
-          "  - url: Space Agent 0.49 windows x64.exe",
+          "  - url: Prime-Silo 0.49 windows x64.exe",
           "    sha512: abc123"
         ].join("\n");
   };
@@ -327,7 +327,7 @@ test("packaged desktop debug reinstall stages same-version and downgrade release
   );
   assert.equal(
     sameVersionStage.provider.resolveFiles(sameVersionStage.info)[0].url.href,
-    "https://github.com/agent0ai/space-agent/releases/download/v0.49/Space-Agent-0.49-windows-x64.exe"
+    "https://github.com/agent0ai/space-agent/releases/download/v0.49/Prime-Silo-0.49-windows-x64.exe"
   );
   assert.equal(downgradeStage.comparison, -1);
   assert.equal(downgradeStage.tag, "v0.48");
@@ -344,6 +344,7 @@ test("packaged desktop updater cache roots cover current and legacy rebrand dire
       isPackaged: true
     }),
     [
+      path.join("/Users/alessandro/AppData/Local", "prime-silo-updater"),
       path.join("/Users/alessandro/AppData/Local", "space-agent-updater"),
       path.join("/Users/alessandro/AppData/Local", "agent-one-updater")
     ]
@@ -378,7 +379,7 @@ test("packaged desktop updater cleanup keeps cached blockmaps but removes stale 
     recursive: true
   });
   await fs.writeFile(
-    path.join(currentPendingPath, "Space-Agent-0.48-windows-x64.exe"),
+    path.join(currentPendingPath, "Prime-Silo-0.48-windows-x64.exe"),
     "installer\n",
     "utf8"
   );

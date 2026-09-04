@@ -2,11 +2,11 @@
   "name": "space-agent",
   "version": "1.22.1",
   "private": true,
-  "description": "Browser-first AI agent with a thin Node.js server.",
+  "description": "Prime-Silo — governed cognitive mesh: Benny runtime, knowledge graph and memory.",
   "author": "Jan Tomasek",
   "repository": {
     "type": "git",
-    "url": "https://github.com/agent0ai/space-agent.git"
+    "url": "https://github.com/binary16labs/prime-silo.git"
   },
   "main": "packaging/desktop/main.js",
   "scripts": {
@@ -49,13 +49,13 @@
     "prettier": "^3.3.0"
   },
   "build": {
-    "appId": "com.spaceagent.desktop",
-    "productName": "Space Agent",
+    "appId": "com.binary16labs.primesilo",
+    "productName": "Prime-Silo",
     "npmRebuild": false,
     "publish": {
       "provider": "github",
-      "owner": "agent0ai",
-      "repo": "space-agent",
+      "owner": "binary16labs",
+      "repo": "prime-silo",
       "releaseType": "release"
     },
     "files": [
@@ -128,7 +128,7 @@
       ]
     },
     "nsis": {
-      "guid": "13ef3698-bac3-5a21-9715-28c760e1102e",
+      "guid": "3326350c-2b36-5af3-8381-884d747b320f",
       "include": "packaging/platforms/windows/installer.nsh",
       "createDesktopShortcut": "always"
     }
