@@ -3,7 +3,12 @@ const os = require("node:os");
 const path = require("node:path");
 
 const DESKTOP_RUNTIME_STATE_MARKERS = Object.freeze([["customware"], ["server", "data"]]);
-const DESKTOP_LEGACY_USER_DATA_DIRNAMES = Object.freeze(["Space Agent", "space-agent", "Agent One", "agent-one"]);
+const DESKTOP_LEGACY_USER_DATA_DIRNAMES = Object.freeze([
+  "Space Agent",
+  "space-agent",
+  "Agent One",
+  "agent-one"
+]);
 
 function hasDesktopRuntimeState(rootPath) {
   const normalizedRootPath = String(rootPath || "").trim();
