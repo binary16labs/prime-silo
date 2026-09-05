@@ -31,7 +31,7 @@ window.govPage = function govPage() {
     settled: [],
     counts: { open: 0, signed: 0, declined: 0 },
     chain: { ok: true, badLine: null },
-    ledger: { file: "", root: "", source: "" },
+    ledger: { file: "", root: "", source: "", exists: true },
     shown: "", // which card has its evidence disclosed
     note: "",
     noteFor: "",
@@ -67,6 +67,10 @@ window.govPage = function govPage() {
     bennyLine() {
       if (this.state === "loading") return "Let me fetch what is waiting on you.";
       if (this.chain.ok === false) return "I stopped — this ledger has been altered.";
+      // A ledger that is not there is not an empty queue. Saying "nothing is waiting on you"
+      // when we simply failed to find the record would be the most dangerous sentence on this
+      // screen, so the missing case gets its own words.
+      if (this.ledger.exists === false) return "I could not find a governance ledger to read.";
       const n = this.open.length;
       if (n === 0) return "Nothing is waiting on you right now.";
       if (n === 1) return "One thing is waiting on your decision.";

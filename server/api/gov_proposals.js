@@ -10,7 +10,7 @@ import { loadGovernance } from "../coordination/lib/governance.mjs";
 import { governanceLogPath } from "../lib/estate_store.js";
 
 export async function get() {
-  const { file, root, source } = governanceLogPath();
+  const { file, root, source, exists } = governanceLogPath();
   const gov = loadGovernance(file);
 
   const shape = (p) => ({
@@ -32,7 +32,7 @@ export async function get() {
     status: 200,
     body: {
       // where the evidence came from — the operator can always check the source
-      ledger: { file, root, source },
+      ledger: { file, root, source, exists },
       chain: { ok: gov.ok !== false, badLine: gov.badLine ?? null, reason: gov.reason ?? null },
       open: gov.open.map(shape),
       settled: [...gov.signed, ...gov.declined]

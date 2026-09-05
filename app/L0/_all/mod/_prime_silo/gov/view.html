@@ -1,5 +1,12 @@
 <html>
   <head>
+    <!-- DESIGN-SYSTEM.md names these as the source of spacing, radius, measure and type, but
+         nothing in the shell loads them (framework/css/index.css imports only google-icons).
+         Colours arrive via colors.css; without these two, every var(--space-*) and
+         var(--font-size-*) is undefined and silently computes to 0/inherited. Linked here so
+         this surface actually obeys the contract it is written against. -->
+    <link rel="stylesheet" href="/mod/_core/framework/css/layout.css" />
+    <link rel="stylesheet" href="/mod/_core/framework/css/type.css" />
     <link rel="stylesheet" href="/mod/_prime_silo/gov/gov.css" />
     <script type="module" src="/mod/_prime_silo/gov/gov.js"></script>
   </head>
@@ -82,8 +89,24 @@
         </template>
       </ul>
 
+      <!-- No ledger is NOT an empty queue. Reporting the second as the first is the most
+           dangerous sentence this screen could say, so it gets its own state. -->
+      <div
+        class="prime-silo-gov__alarm"
+        x-show="state === 'ready' && ledger.exists === false"
+        x-cloak
+      >
+        <strong>No governance ledger found</strong> at <span x-text="ledger.file"></span>. This is
+        not an empty queue — it is a missing record. Set <code>ESTATE_STORE</code> to the estate
+        store, then reload.
+      </div>
+
       <!-- Empty states offer the next thing, not documentation. -->
-      <div class="prime-silo-gov__empty" x-show="state === 'ready' && !open.length" x-cloak>
+      <div
+        class="prime-silo-gov__empty"
+        x-show="state === 'ready' && ledger.exists !== false && !open.length"
+        x-cloak
+      >
         <p>Nothing is waiting on you.</p>
         <p>
           I raise a proposal here whenever I find work worth doing — with why it matters, what it

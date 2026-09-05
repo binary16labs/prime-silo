@@ -17,17 +17,36 @@ export function resolveEstateStore() {
   const fromEnv = String(process.env[ESTATE_STORE_ENV] || "").trim();
   if (fromEnv) return { root: fromEnv, source: "env" };
 
-  // Sibling of the configured Benny home — the store belongs with the data, not the code.
+  // Without an explicit setting, try the plausible places and PREFER ONE THAT EXISTS. Guessing
+  // a path that happens to be empty is worse than guessing wrong loudly: an absent ledger reads
+  // as an empty queue, and "nothing to approve" is the most dangerous thing a governance screen
+  // can say when it is not true.
   const bennyHome = String(process.env.BENNY_HOME || "").trim();
-  if (bennyHome)
-    return { root: path.join(path.dirname(bennyHome), "estate-store"), source: "benny-home" };
+  const candidates = [];
+  if (bennyHome) {
+    candidates.push({
+      root: path.join(path.dirname(bennyHome), "estate-store"),
+      source: "benny-home"
+    });
+    const { root: drive } = path.parse(path.resolve(bennyHome));
+    if (drive)
+      candidates.push({ root: path.join(drive, "estate-store"), source: "benny-home-drive" });
+  }
+  candidates.push({ root: path.join(process.cwd(), "estate-store"), source: "cwd-fallback" });
 
-  return { root: path.join(process.cwd(), "estate-store"), source: "cwd-fallback" };
+  for (const c of candidates) {
+    if (fs.existsSync(path.join(c.root, "eventlog")))
+      return { ...c, source: `${c.source} (found)` };
+  }
+  return candidates[0];
 }
 
 export function governanceLogPath() {
   const { root, source } = resolveEstateStore();
-  return { file: path.join(root, "eventlog", "governance.jsonl"), root, source };
+  const file = path.join(root, "eventlog", "governance.jsonl");
+  // Whether the ledger is actually there is part of the answer, not an implementation detail:
+  // a surface that cannot tell "no proposals" from "no ledger" will report the second as the first.
+  return { file, root, source, exists: fs.existsSync(file) };
 }
 
 export function ensureParent(file) {
