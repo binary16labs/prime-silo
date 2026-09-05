@@ -14,6 +14,7 @@ import {
   buildEvidencePack,
   renderPack
 } from "../server/coordination/lib/evidence.mjs";
+import { collectRuns } from "../server/coordination/lib/runs.mjs";
 
 const argv = process.argv.slice(2);
 const arg = (n, d) => {
@@ -30,7 +31,21 @@ if (ledgers.length === 0) {
   process.exit(2);
 }
 
-const pack = buildEvidencePack(ledgers);
+// The run inventory is what turns "unauthorised runs" from an assertion into a count. Both
+// sources are execution evidence that already exists on disk; --no-runs falls back to the
+// unmeasured state rather than pretending an empty list means zero runs.
+const repo = path.resolve(new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
+const runs = argv.includes("--no-runs")
+  ? null
+  : collectRuns({
+      runRecordsDir: arg("runs-dir", path.join(repo, "runtime", "workspace", "manifests", "runs")),
+      openLineagePath: arg(
+        "lineage",
+        path.join(repo, "scratch", "longview_run", "dashboard", "openlineage.json")
+      )
+    });
+
+const pack = buildEvidencePack(ledgers, { runs, governanceEpoch: arg("epoch", null) });
 
 if (argv.includes("--json")) {
   console.log(JSON.stringify(pack, null, 2));

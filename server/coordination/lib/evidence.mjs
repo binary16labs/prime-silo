@@ -21,6 +21,7 @@ import { readKelEvents } from "./kel.mjs";
 import { buildGovernance, isAuthorised, GOVERNANCE_TYPES } from "./governance.mjs";
 import { buildArtifacts, duplicateSpend, transferAvoided, ARTIFACT_TYPES } from "./artifacts.mjs";
 import { buildHealth, outages, HEARTBEAT_TYPES } from "./heartbeat.mjs";
+import { governanceEpochFrom, partitionRuns } from "./runs.mjs";
 
 // Read every ledger under a root and verify each chain SEPARATELY. Chains are per-file, so
 // one broken log must not invalidate — or be hidden by — the others.
@@ -48,7 +49,10 @@ export function collectLedgers(root, { dirs = ["eventlog", "collected"] } = {}) 
 const MEASURABLE = "measured";
 const UNMEASURABLE = "not measurable";
 
-export function buildEvidencePack(ledgers = [], { now = new Date(), runs = null } = {}) {
+export function buildEvidencePack(
+  ledgers = [],
+  { now = new Date(), runs = null, governanceEpoch = null } = {}
+) {
   const all = ledgers.flatMap((l) => (l.ok ? l.events : []));
   const byType = all.reduce((acc, e) => ((acc[e.type] = (acc[e.type] || 0) + 1), acc), {});
 
@@ -57,10 +61,16 @@ export function buildEvidencePack(ledgers = [], { now = new Date(), runs = null 
   const health = buildHealth(all);
 
   // --- defect 1: unauthorised runs -------------------------------------------------
-  // Computable only against a list of runs. Without one we can still report the weaker
-  // but still useful fact: how many proposals executed without a human signature.
-  const unauthorised = runs
-    ? runs.filter((r) => !r.proposal_id || !isAuthorised(all, r.proposal_id))
+  // Measurable once a run inventory is supplied — but only fairly against the control's
+  // effective date. Every run in this estate predates the governance layer, because signing
+  // did not exist until it was built; failing a July run for lacking a September mechanism
+  // would produce a wall of red that teaches an operator to ignore the gauge. So the epoch
+  // splits the population, and BOTH halves are reported: pre-control runs are visible and
+  // excluded from the defect, in-scope runs must carry a human signature.
+  const epoch = governanceEpochFrom(all, governanceEpoch);
+  const split = runs ? partitionRuns(runs, epoch) : null;
+  const unauthorised = split
+    ? split.inScope.filter((r) => !r.proposal_id || !isAuthorised(all, r.proposal_id))
     : null;
 
   // --- defect 4: broken chains -----------------------------------------------------
@@ -75,7 +85,11 @@ export function buildEvidencePack(ledgers = [], { now = new Date(), runs = null 
       state: runs ? MEASURABLE : UNMEASURABLE,
       count: runs ? unauthorised.length : null,
       note: runs
-        ? unauthorised.map((r) => r.run_id).join(", ") || "every run traces to a human signature"
+        ? `${split.inScope.length} in scope since ${epoch || "n/a"}, ` +
+          `${split.preControl.length} pre-control (excluded, not defects)` +
+          (unauthorised.length
+            ? ` — unauthorised: ${unauthorised.map((r) => r.run_id).join(", ")}`
+            : " — all in-scope runs carry a human signature")
         : "no run inventory supplied — pass { runs } to measure. Proposals signed: " +
           `${gov.signed.length} of ${gov.proposals.length}`
     },
@@ -113,6 +127,13 @@ export function buildEvidencePack(ledgers = [], { now = new Date(), runs = null 
       events: l.events.length
     })),
     totals: { events: all.length, by_type: byType, ledgers: ledgers.length },
+    control: {
+      governance_epoch: epoch,
+      runs_total: runs ? runs.length : null,
+      runs_in_scope: split ? split.inScope.length : null,
+      runs_pre_control: split ? split.preControl.length : null,
+      runs_undated: split ? split.undated.length : null
+    },
     governance: {
       proposals: gov.proposals.length,
       signed: gov.signed.length,
@@ -178,6 +199,30 @@ export function renderPack(pack) {
     L.push(`| ${d.id} | ${d.principle} | ${d.state} | ${d.count ?? "—"} | ${d.note} |`);
   }
   L.push(``);
+  if (pack.control?.governance_epoch || pack.control?.runs_total != null) {
+    L.push(`## Control scope`);
+    L.push(``);
+    L.push(
+      `Governance came into force at **${pack.control.governance_epoch || "not yet — no proposals recorded"}**.`
+    );
+    if (pack.control.runs_total != null) {
+      L.push(``);
+      L.push(
+        `${pack.control.runs_total} runs known · **${pack.control.runs_in_scope} in scope** · ` +
+          `${pack.control.runs_pre_control} pre-control` +
+          (pack.control.runs_undated
+            ? ` · ${pack.control.runs_undated} undated (treated as in scope)`
+            : "")
+      );
+      L.push(``);
+      L.push(
+        `Pre-control runs are reported, not failed: a run cannot be signed by a mechanism that ` +
+          `did not exist when it executed. They are excluded from the defect count and shown here so ` +
+          `the exclusion is visible rather than silent.`
+      );
+    }
+    L.push(``);
+  }
   L.push(`## Chain integrity`);
   L.push(``);
   for (const l of pack.ledgers) {
