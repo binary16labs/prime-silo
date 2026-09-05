@@ -320,6 +320,62 @@ export function outages(events = [], { now = new Date(), thresholdMs = 0 } = {})
     .sort((a, b) => b.downMs - a.downMs);
 }
 
+// --- merging across nodes -------------------------------------------------------------
+
+// Each node owns its own log because the KEL is a hash chain; concatenating two of them
+// would break every `prev` link from the join onward. So merging is a READ-side fold and
+// never a write: the files stay separate and verifiable, and only the VIEW is combined.
+//
+// Order comes from the HLC, which is what it exists for. Wall clocks on three machines
+// disagree; `2026-09-05T13:44:19.853Z-0000-optimus` sorts lexicographically into a causally
+// sensible sequence without anyone trusting anyone else's clock.
+//
+// Integrity is reported per source rather than folded away. A merged board that silently
+// includes a tampered log is worse than no board — you would be reading a lie with extra
+// confidence — so a broken chain is surfaced and its events are excluded by default.
+export function mergeHeartbeatEvents(sources = [], { includeBroken = false } = {}) {
+  const integrity = sources.map((s) => ({
+    machine: s.machine,
+    ok: s.ok !== false,
+    badLine: s.badLine ?? null,
+    count: (s.events || []).length
+  }));
+  const usable = sources.filter((s) => includeBroken || s.ok !== false);
+  const events = usable
+    .flatMap((s) => s.events || [])
+    .sort(
+      (a, b) =>
+        String(a.hlc || "").localeCompare(String(b.hlc || "")) ||
+        String(a.id).localeCompare(String(b.id))
+    );
+  return { events, integrity, anyBroken: integrity.some((i) => !i.ok) };
+}
+
+// The estate board: health across every node, plus whether each node's heartbeat is still
+// running. Both halves are needed — a service can be "up" in a log that stopped updating
+// yesterday, and that is not the same claim as "up now".
+export function estateBoard(
+  sources = [],
+  states = {},
+  { now = new Date(), maxAgeMs = 900000 } = {}
+) {
+  const { events, integrity, anyBroken } = mergeHeartbeatEvents(sources);
+  const nodes = integrity.map((i) => {
+    const st = states[i.machine] || {};
+    const fresh = isHeartbeatStale(st, { now, maxAgeMs });
+    return {
+      machine: i.machine,
+      chainOk: i.ok,
+      events: i.count,
+      last_run: st.last_run ?? null,
+      stale: fresh.stale,
+      ageMs: fresh.ageMs,
+      reason: fresh.reason
+    };
+  });
+  return { health: buildHealth(events), outages: outages(events, { now }), nodes, anyBroken };
+}
+
 // Who watches the watchman. A heartbeat that has STOPPED RUNNING looks exactly like an
 // estate with nothing wrong: no transitions, no outages, a clean board. That is the original
 // failure in a new costume, so the runner records when it last completed a sweep and this

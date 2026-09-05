@@ -246,6 +246,69 @@ test("a heartbeat that has stopped running is not mistaken for good news", async
   assert.equal(isHeartbeatStale({}, { now }).reason, "never run");
 });
 
+test("merging orders by HLC across nodes, without touching the files", async () => {
+  // Each node owns its own chain, so merging is a read-side fold. Order comes from the HLC
+  // because three machines' wall clocks disagree and none of them has to be trusted.
+  const { mergeHeartbeatEvents } = await import("../server/coordination/lib/heartbeat.mjs");
+  const ev = (hlc, id) => ({
+    id,
+    hlc,
+    type: "service_transitioned",
+    subject: { id: "service:x:y" }
+  });
+  const merged = mergeHeartbeatEvents([
+    { machine: "t480", events: [ev("2026-09-05T10:00:00.000Z-0000-t480", "b")], ok: true },
+    { machine: "optimus", events: [ev("2026-09-05T09:00:00.000Z-0000-optimus", "a")], ok: true }
+  ]);
+  assert.deepEqual(
+    merged.events.map((e) => e.id),
+    ["a", "b"],
+    "the earlier HLC sorts first regardless of which source it came from"
+  );
+  assert.equal(merged.anyBroken, false);
+});
+
+test("a log that fails its chain check is excluded and reported, not folded in", async () => {
+  // A merged board that silently includes a tampered log is worse than no board — it is a
+  // lie delivered with extra confidence.
+  const { mergeHeartbeatEvents } = await import("../server/coordination/lib/heartbeat.mjs");
+  const ev = (id) => ({
+    id,
+    hlc: `2026-09-05T10:00:00.000Z-0000-x`,
+    subject: { id: "service:x:y" }
+  });
+  const merged = mergeHeartbeatEvents([
+    { machine: "good", events: [ev("keep")], ok: true },
+    { machine: "tampered", events: [ev("drop")], ok: false, badLine: 4 }
+  ]);
+  assert.deepEqual(
+    merged.events.map((e) => e.id),
+    ["keep"]
+  );
+  assert.equal(merged.anyBroken, true);
+  assert.equal(merged.integrity.find((i) => i.machine === "tampered").badLine, 4);
+});
+
+test("a node we cannot collect reads as unknown, never as healthy", async () => {
+  // The failure this subsystem exists to prevent, in its subtlest form: a node that drops
+  // out of the report entirely looks exactly like a node with nothing wrong.
+  const { estateBoard } = await import("../server/coordination/lib/heartbeat.mjs");
+  const now = new Date("2026-09-05T12:00:00.000Z");
+  const board = estateBoard(
+    [
+      { machine: "t480", events: [], ok: true },
+      { machine: "optimus", events: [], ok: true } // collected, but never swept
+    ],
+    { t480: { last_run: "2026-09-05T11:58:00.000Z" } },
+    { now }
+  );
+  const t480 = board.nodes.find((n) => n.machine === "t480");
+  const optimus = board.nodes.find((n) => n.machine === "optimus");
+  assert.equal(t480.stale, false);
+  assert.equal(optimus.stale, true, "no state file means no news, which is not good news");
+  assert.equal(optimus.reason, "never run");
+});
+
 test("heartbeat events form a valid KEL chain", () => {
   const log = logIn();
   const t0 = new Date().toISOString();
