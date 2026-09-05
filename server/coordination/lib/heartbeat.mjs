@@ -320,6 +320,22 @@ export function outages(events = [], { now = new Date(), thresholdMs = 0 } = {})
     .sort((a, b) => b.downMs - a.downMs);
 }
 
+// Who watches the watchman. A heartbeat that has STOPPED RUNNING looks exactly like an
+// estate with nothing wrong: no transitions, no outages, a clean board. That is the original
+// failure in a new costume, so the runner records when it last completed a sweep and this
+// answers whether that record is still believable. If the heartbeat is stale, every other
+// number on this page is stale too and should be read as unknown rather than healthy.
+export function isHeartbeatStale({ last_run } = {}, { now = new Date(), maxAgeMs = 900000 } = {}) {
+  if (!last_run) return { stale: true, ageMs: null, reason: "never run" };
+  const age =
+    (now instanceof Date ? now.getTime() : new Date(now).getTime()) - new Date(last_run).getTime();
+  return {
+    stale: age > maxAgeMs,
+    ageMs: age,
+    reason: age > maxAgeMs ? "sweeps have stopped" : null
+  };
+}
+
 // The gauge the Gov arc publishes: the longest current silence. On 2026-09-04 this would
 // have read ~12 hours instead of nothing at all.
 export function longestSilence(events = [], { now = new Date() } = {}) {

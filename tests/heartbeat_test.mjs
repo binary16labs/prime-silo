@@ -226,6 +226,26 @@ test("loopback services are never probed across the estate", async () => {
   );
 });
 
+test("a heartbeat that has stopped running is not mistaken for good news", async () => {
+  // The original failure in a new costume: if the sweeps stop, there are no transitions, no
+  // outages and a clean board — identical to a perfectly healthy estate. The liveness stamp
+  // is what separates "nothing is wrong" from "nobody has looked since 09:14".
+  const { isHeartbeatStale } = await import("../server/coordination/lib/heartbeat.mjs");
+  const now = new Date("2026-09-05T12:00:00.000Z");
+
+  const fresh = isHeartbeatStale({ last_run: "2026-09-05T11:56:00.000Z" }, { now });
+  assert.equal(fresh.stale, false);
+
+  const stopped = isHeartbeatStale({ last_run: "2026-09-05T00:00:00.000Z" }, { now });
+  assert.equal(stopped.stale, true);
+  assert.equal(stopped.reason, "sweeps have stopped");
+  assert.equal(stopped.ageMs, 12 * 3600 * 1000);
+
+  // never having run at all is the worst case, not the best one
+  assert.equal(isHeartbeatStale({}, { now }).stale, true);
+  assert.equal(isHeartbeatStale({}, { now }).reason, "never run");
+});
+
 test("heartbeat events form a valid KEL chain", () => {
   const log = logIn();
   const t0 = new Date().toISOString();
