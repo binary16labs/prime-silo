@@ -41,7 +41,9 @@
         "artifact_acquired",
         "artifact_verified",
         "artifact_placed",
-        "artifact_evicted"
+        "artifact_evicted",
+        "node_observed",
+        "service_transitioned"
       ]
     },
     "valid_time": { "type": "string", "minLength": 1 },
