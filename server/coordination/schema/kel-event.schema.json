@@ -37,7 +37,11 @@
         "schema_migrated",
         "proposal_raised",
         "proposal_signed",
-        "proposal_declined"
+        "proposal_declined",
+        "artifact_acquired",
+        "artifact_verified",
+        "artifact_placed",
+        "artifact_evicted"
       ]
     },
     "valid_time": { "type": "string", "minLength": 1 },
