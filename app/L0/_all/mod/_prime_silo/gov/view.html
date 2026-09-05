@@ -1,0 +1,116 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="/mod/_prime_silo/gov/gov.css" />
+    <script type="module" src="/mod/_prime_silo/gov/gov.js"></script>
+  </head>
+  <body>
+    <section class="prime-silo-gov" x-data="govPage()" x-init="init()" x-cloak>
+      <header>
+        <p class="prime-silo-gov__eyebrow">Review zone · authorisation</p>
+        <h1 class="prime-silo-gov__title">Gov</h1>
+        <p class="prime-silo-gov__benny" x-text="bennyLine()"></p>
+        <p class="prime-silo-gov__ledger" x-show="ledger.file" x-cloak>
+          Reading <span x-text="ledger.file"></span>
+        </p>
+      </header>
+
+      <!-- A ledger that no longer verifies is a story, not a record. Say so and stop. -->
+      <div class="prime-silo-gov__alarm" x-show="chain.ok === false" x-cloak>
+        <strong>This ledger's chain does not verify</strong> — the break is at line
+        <span x-text="chain.badLine"></span>. Nothing below can be treated as evidence, and signing
+        is disabled until it is resolved.
+      </div>
+
+      <p x-show="state === 'loading'" x-cloak>Reading the ledger…</p>
+      <p x-show="state === 'error'" class="prime-silo-gov__alarm" x-cloak x-text="error"></p>
+
+      <!-- The queue. One card per decision; the primary action is Sign. -->
+      <ul class="prime-silo-gov__list" x-show="state === 'ready' && open.length" x-cloak>
+        <template x-for="p in open" :key="p.id">
+          <li class="prime-silo-gov__card" :data-settling="settling === p.id">
+            <div class="prime-silo-gov__card-head">
+              <h2 class="prime-silo-gov__card-title" x-text="p.title"></h2>
+              <span class="prime-silo-gov__domain" x-text="p.domain"></span>
+            </div>
+
+            <p class="prime-silo-gov__why" x-text="p.rationale"></p>
+
+            <p class="prime-silo-gov__facts">
+              <span class="prime-silo-gov__fact" x-show="p.cost">
+                <strong>cost</strong> <span x-text="p.cost"></span>
+              </span>
+              <span class="prime-silo-gov__fact" x-show="p.reversible !== null">
+                <strong>reversible</strong>
+                <span x-text="p.reversible ? 'yes' : 'NO — this cannot be undone'"></span>
+              </span>
+              <span class="prime-silo-gov__fact" x-show="p.raised_by">
+                <strong>raised by</strong> <span x-text="p.raised_by"></span>
+              </span>
+            </p>
+
+            <button
+              type="button"
+              class="prime-silo-gov__disclose"
+              x-show="p.evidence.length"
+              @click="toggle(p.id)"
+              x-text="shown === p.id ? 'Hide evidence' : 'Evidence ▸'"
+            ></button>
+            <ul class="prime-silo-gov__evidence" x-show="shown === p.id" x-cloak>
+              <template x-for="e in p.evidence" :key="e"><li x-text="e"></li></template>
+            </ul>
+
+            <div class="prime-silo-gov__actions">
+              <button
+                type="button"
+                class="prime-silo-gov__btn prime-silo-gov__btn--primary"
+                :disabled="busy || chain.ok === false"
+                @click="decide(p.id, 'sign')"
+              >
+                Sign
+              </button>
+              <button
+                type="button"
+                class="prime-silo-gov__btn"
+                :disabled="busy || chain.ok === false"
+                @click="decide(p.id, 'decline')"
+              >
+                Decline
+              </button>
+              <span class="prime-silo-gov__note" x-show="noteFor === p.id" x-text="note"></span>
+            </div>
+          </li>
+        </template>
+      </ul>
+
+      <!-- Empty states offer the next thing, not documentation. -->
+      <div class="prime-silo-gov__empty" x-show="state === 'ready' && !open.length" x-cloak>
+        <p>Nothing is waiting on you.</p>
+        <p>
+          I raise a proposal here whenever I find work worth doing — with why it matters, what it
+          rests on, and whether it can be undone. You decide; I never sign for you.
+        </p>
+      </div>
+
+      <!-- The record of decisions already made. Declines are kept: a register that only showed
+           approvals would imply everything proposed was accepted. -->
+      <section x-show="settled.length" x-cloak>
+        <p class="prime-silo-gov__eyebrow">Already decided</p>
+        <ul class="prime-silo-gov__settled">
+          <template x-for="p in settled" :key="p.id">
+            <li>
+              <span
+                :class="p.state === 'signed'
+                  ? 'prime-silo-gov__verdict--signed'
+                  : 'prime-silo-gov__verdict--declined'"
+                x-text="p.state === 'signed' ? 'signed' : 'declined'"
+              ></span>
+              <span x-text="p.title"></span>
+              <span x-text="'by ' + (p.signature?.signer || '—')"></span>
+              <span x-text="p.signature?.at || ''"></span>
+            </li>
+          </template>
+        </ul>
+      </section>
+    </section>
+  </body>
+</html>

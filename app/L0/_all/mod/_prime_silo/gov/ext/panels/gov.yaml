@@ -1,0 +1,6 @@
+name: Gov
+path: _prime_silo/gov
+description: The signing queue — what Benny has proposed, what it rests on, and the decisions you have already made.
+icon: approval
+# The canonical Gov arc colour from navi-key.js, so the panel matches its arc on the ring.
+color: "#63a063"

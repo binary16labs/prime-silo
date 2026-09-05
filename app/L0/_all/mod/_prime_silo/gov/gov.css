@@ -1,0 +1,262 @@
+/* Gov — the signing queue (SS1/23 Principle 2).
+ *
+ * Governed CSS (C0): every colour resolves through a token in colors.css; spacing, radius and
+ * type come from layout.css / type.css. No hex lives here — the gate fails the commit if it does.
+ *
+ * The view has exactly ONE primary action: Sign. Decline sits beside it deliberately quiet —
+ * it is a real decision, not a destructive one, so it gets weight without accent. Evidence is
+ * disclosure rather than a third competing button.
+ *
+ * Nothing here animates on its own. The only motion is the card settling after YOU rule on it,
+ * and that is gated on prefers-reduced-motion.
+ */
+
+.prime-silo-gov {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-6);
+  font-family: var(--font-stack-active);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-body);
+  color: var(--color-text-primary);
+  background: var(--color-canvas);
+  min-height: 100%;
+}
+
+.prime-silo-gov__eyebrow {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-caps);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-tertiary);
+}
+
+.prime-silo-gov__title {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-tight);
+}
+
+/* Benny speaks in the first person, short and warm. */
+.prime-silo-gov__benny {
+  margin: var(--space-2) 0 0;
+  max-width: var(--measure-max);
+  color: var(--color-text-secondary);
+}
+
+.prime-silo-gov__ledger {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  word-break: break-all;
+}
+
+/* A ledger whose chain no longer verifies is not evidence; say so loudly and stop. */
+.prime-silo-gov__alarm {
+  border: 1px solid var(--color-status-danger);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  color: var(--color-status-danger);
+  background: var(--color-surface-1);
+}
+
+.prime-silo-gov__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.prime-silo-gov__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--elevation-1);
+}
+
+.prime-silo-gov__card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.prime-silo-gov__card-title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-tight);
+}
+
+.prime-silo-gov__domain {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-tight);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-caps);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--color-accent-primary);
+  background: var(--color-accent-primary-soft);
+  white-space: nowrap;
+}
+
+.prime-silo-gov__why {
+  margin: 0;
+  max-width: var(--measure-max);
+  color: var(--color-text-secondary);
+}
+
+/* Why, evidence, cost and reversibility all sit ABOVE the buttons on purpose: the decision
+ * comes before the control, never after it. */
+.prime-silo-gov__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+.prime-silo-gov__fact strong {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.prime-silo-gov__evidence {
+  margin: 0;
+  padding: 0 0 0 var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  max-width: var(--measure-max);
+}
+
+.prime-silo-gov__actions {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.prime-silo-gov__btn {
+  font: inherit;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-tight);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-strong);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+/* The one primary action in this view. */
+.prime-silo-gov__btn--primary {
+  background: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-ink);
+  font-weight: 600;
+}
+
+.prime-silo-gov__btn:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+.prime-silo-gov__btn--primary:hover:not(:disabled) {
+  background: var(--color-accent-primary-strong);
+}
+
+.prime-silo-gov__btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Focus is never suppressed (C0). */
+.prime-silo-gov__btn:focus-visible,
+.prime-silo-gov__disclose:focus-visible {
+  outline: 2px solid var(--color-focus-border);
+  outline-offset: 2px;
+}
+
+.prime-silo-gov__disclose {
+  font: inherit;
+  font-size: var(--font-size-sm);
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+
+.prime-silo-gov__note {
+  font-size: var(--font-size-sm);
+  color: var(--color-accent-primary);
+}
+
+/* Empty state teaches by doing rather than explaining. */
+.prime-silo-gov__empty {
+  padding: var(--space-6);
+  border: 1px dashed var(--color-border-soft);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-secondary);
+  max-width: var(--measure-max);
+}
+
+.prime-silo-gov__settled {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+.prime-silo-gov__settled li {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--color-border-soft);
+}
+
+.prime-silo-gov__verdict--signed {
+  color: var(--color-status-success);
+}
+
+.prime-silo-gov__verdict--declined {
+  color: var(--color-accent-secondary);
+}
+
+/* Motion: feedback to a user action only. The resting state is complete without it, so a
+ * reduced-motion visitor loses nothing but the transition. */
+@media (prefers-reduced-motion: no-preference) {
+  .prime-silo-gov__card {
+    transition:
+      opacity 0.45s ease,
+      border-color 0.2s ease;
+  }
+}
+
+.prime-silo-gov__card[data-settling="true"] {
+  opacity: 0.45;
+}
+
+/* Panes get narrow; this is a pane, not a page. */
+@container (max-width: 560px) {
+  .prime-silo-gov {
+    padding: var(--space-4);
+  }
+  .prime-silo-gov__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
