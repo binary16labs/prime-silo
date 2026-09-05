@@ -34,7 +34,10 @@
         "cursor_advanced",
         "conflict_flagged",
         "tombstoned",
-        "schema_migrated"
+        "schema_migrated",
+        "proposal_raised",
+        "proposal_signed",
+        "proposal_declined"
       ]
     },
     "valid_time": { "type": "string", "minLength": 1 },

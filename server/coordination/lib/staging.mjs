@@ -10,6 +10,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { pipeline } from "node:stream/promises";
 import { ulid, appendKelEvent } from "./kel.mjs";
 
 export const STAGING_SCHEMA_VERSION = "1.0.0";
@@ -57,6 +58,86 @@ export function casStore(root, content) {
   fs.mkdirSync(path.dirname(p), { recursive: true });
   fs.writeFileSync(p, buf);
   return { hash, path: p, deduped: false };
+}
+
+// --- the de-dup question on its own, answered without reading the object. This is what
+//     makes "download once" cheap: the second machine's request costs a stat(), not a
+//     transfer. Kept separate from casStore so callers can decide BEFORE fetching. ---
+export function hasBlob(root, hash) {
+  return fs.existsSync(blobPath(root, normaliseHash(hash)));
+}
+
+// hashes arrive as either "<hex>" or "sha256:<hex>" depending on whether they came from a
+// blob path or a KEL subject.content_hash; accept both rather than making callers care.
+function normaliseHash(hash) {
+  return String(hash || "").replace(/^sha256:/, "");
+}
+
+// --- streaming CAS (artifact ledger). casStore buffers the whole object to hash it, which
+//     is right for a session transcript and wrong for a 598 MB runtime bundle on a 16 GB
+//     laptop that is also running Neo4j and a model server — the buffer competes with the
+//     exact workloads the estate exists to run.
+//
+//     Hash and write in one pass to a temp file, then rename into place. The rename is
+//     atomic within a volume, so a partial or interrupted write can never be observed as a
+//     valid blob: readers see the object or they see nothing. Integrity is checked BEFORE
+//     the rename, so a corrupt or substituted download never enters the store at all. ---
+export async function casStoreStream(
+  root,
+  readable,
+  { expectedHash = null, expectedSize = null } = {}
+) {
+  const tmpDir = path.join(root, ROOTS.blobs, "tmp");
+  fs.mkdirSync(tmpDir, { recursive: true });
+  const tmp = path.join(tmpDir, `${ulid()}.part`);
+  const hasher = crypto.createHash("sha256");
+  let bytes = 0;
+
+  const discard = () => {
+    try {
+      fs.unlinkSync(tmp);
+    } catch {
+      /* already gone */
+    }
+  };
+
+  try {
+    await pipeline(
+      readable,
+      async function* (source) {
+        for await (const chunk of source) {
+          hasher.update(chunk);
+          bytes += chunk.length;
+          yield chunk;
+        }
+      },
+      fs.createWriteStream(tmp)
+    );
+  } catch (e) {
+    discard();
+    throw e;
+  }
+
+  const hash = hasher.digest("hex");
+  const want = normaliseHash(expectedHash);
+
+  if (want && want !== hash) {
+    discard();
+    throw new Error(`casStoreStream: hash mismatch — expected ${want}, got ${hash}`);
+  }
+  if (expectedSize != null && Number(expectedSize) !== bytes) {
+    discard();
+    throw new Error(`casStoreStream: size mismatch — expected ${expectedSize}, got ${bytes}`);
+  }
+
+  const dest = blobPath(root, hash);
+  if (fs.existsSync(dest)) {
+    discard(); // identical bytes already held — the second acquisition writes nothing
+    return { hash, path: dest, deduped: true, bytes };
+  }
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.renameSync(tmp, dest);
+  return { hash, path: dest, deduped: false, bytes };
 }
 
 // --- stage one session: blob + human-navigable index record + a session_staged KEL event ---
