@@ -127,34 +127,51 @@ const board = estateBoard(sources, states);
 const age = (ms) =>
   ms == null ? "never" : ms < 90000 ? `${Math.round(ms / 1000)}s` : `${Math.round(ms / 60000)}m`;
 
-console.log("\nESTATE BOARD  " + new Date().toISOString());
-console.log("-".repeat(66));
+// Built as text rather than printed directly, so a scheduled run can persist the board.
+// A collector whose only output is stdout leaves nothing behind when nobody is watching —
+// which is the same "no evidence" problem the heartbeat itself exists to solve.
+const out = [];
+const say = (line = "") => out.push(line);
 
-console.log("nodes");
+say("ESTATE BOARD  " + new Date().toISOString());
+say("-".repeat(66));
+say("nodes");
 for (const n of board.nodes) {
   const flag = !n.chainOk ? "CHAIN BROKEN" : n.stale ? `STALE (${n.reason})` : "watching";
-  console.log(
+  say(
     `  ${n.machine.padEnd(16)} ${flag.padEnd(22)} last sweep ${age(n.ageMs)} ago  ${n.events} events`
   );
 }
 
-console.log("\nservices");
+say("");
+say("services");
 const svc = board.health.filter((h) => h.service);
 for (const h of svc.sort((a, b) => a.key.localeCompare(b.key))) {
-  console.log(
+  say(
     `  ${h.key.padEnd(28)} ${(h.up ? "up" : "DOWN").padEnd(6)} since ${h.since}  (via ${h.observed_by || "?"})`
   );
 }
 
-console.log("");
+say("");
 if (board.anyBroken)
-  console.log("!! a log failed its chain check — its events are EXCLUDED from this board");
-console.log(
+  say("!! a log failed its chain check — its events are EXCLUDED from this board");
+say(
   board.outages.length === 0
     ? "no outages"
     : `OUTAGES: ${board.outages.map((o) => `${o.key} for ${age(o.downMs)}`).join(", ")}`
 );
 // A stale node is not good news; it is no news. Exit non-zero so a caller can react.
 const blind = board.nodes.filter((n) => n.stale || !n.chainOk);
-if (blind.length) console.log(`blind spots: ${blind.map((n) => n.machine).join(", ")}`);
+if (blind.length) say(`blind spots: ${blind.map((n) => n.machine).join(", ")}`);
+
+const text = out.join("\n") + "\n";
+if (!argv.includes("--quiet")) console.log("\n" + text);
+
+const outFile = arg("out", null);
+if (outFile) {
+  fs.mkdirSync(path.dirname(outFile), { recursive: true });
+  fs.writeFileSync(outFile, text);
+  if (!argv.includes("--quiet")) console.log(`written to ${outFile}`);
+}
+
 process.exit(board.outages.length || blind.length ? 1 : 0);
