@@ -73,15 +73,73 @@ class AdaptiveRAGState(TypedDict):
 # =============================================================================
 
 
+# Greetings and pleasantries are the only things a workspace with its own documents should
+# ever answer from model memory. Kept deliberately tiny and literal: anything that is not
+# obviously social gets retrieved, because the two mistakes are not equally costly.
+_SOCIAL = frozenset(
+    {
+        "hi", "hey", "hello", "yo", "sup", "thanks", "thank you", "ta", "cheers",
+        "ok", "okay", "cool", "nice", "great", "bye", "goodbye", "good morning",
+        "good afternoon", "good evening", "good night", "how are you",
+        "how are you?", "who are you", "who are you?", "what can you do",
+        "what can you do?", "help", "ping", "test",
+    }
+)
+
+
+def _is_social(query: str) -> bool:
+    q = " ".join((query or "").strip().lower().split()).strip("!.,?")
+    return q in _SOCIAL or (len(q) <= 3 and q.isalpha())
+
+
+def _workspace_has_documents(workspace: str) -> bool:
+    """Does this workspace hold anything of its own to answer from?
+
+    Cheap and defensive: a count on the vector collection, then the PageIndex trees. Any
+    failure answers False, because the guard below must never be the reason a query fails —
+    it only decides whether to prefer the workspace's own material over the model's memory.
+    """
+    try:
+        client = get_chromadb_client(workspace)
+        if get_knowledge_collection(client).count() > 0:
+            return True
+    except Exception:
+        pass
+    try:
+        from .pageindex_builder import list_trees
+
+        return bool(list_trees(workspace))
+    except Exception:
+        return False
+
+
 async def smart_router(state: AdaptiveRAGState) -> dict:
-    """Classify the query into no_retrieval, single_step, or multi_hop."""
+    """Classify the query into no_retrieval, single_step, multi_hop or structured.
+
+    A model's classification is advisory here, not final. `no_retrieval` is the one route
+    that never opens the workspace and never gets grounded — check_hallucination is skipped
+    because there are no documents to check against — so a question answered there arrives
+    unverifiable by construction. Asked "can an agent sign its own work", a question this
+    estate answers with a hard rule, the router picked no_retrieval and returned a generic
+    essay on digital signatures: fluent, confident, and contradicting the manual sitting in
+    the workspace.
+
+    So the choice is overridden deterministically when the workspace has material of its
+    own. The two errors are not symmetric — retrieving for a greeting wastes one lookup,
+    while skipping retrieval on a domain question yields a wrong answer that nothing checks —
+    and the override is recorded in the explanation and the trace rather than applied quietly.
+    """
     logger.info("--- NODE: smart_router ---")
 
     system_prompt = """You are a smart router for a RAG pipeline.
 Your goal is to classify a user query into one of three routes based on its complexity:
 
-1. `no_retrieval`: Simple factual questions or greetings that can be answered from your internal knowledge.
-   Example: "What is the capital of France?", "Hi", "Define GDP".
+1. `no_retrieval`: ONLY greetings and pleasantries — "Hi", "thanks", "who are you".
+   Do NOT use this for questions, even ones that look like general knowledge. This workspace
+   holds its own documents, and a plain-sounding question ("can an agent sign its own work?",
+   "what is a proposal?") is usually asking what THESE documents say, not what the words mean
+   in general. Answering such a question from memory produces a fluent answer that quietly
+   contradicts the material. When in doubt, retrieve.
 2. `single_step`: Questions requiring a simple document lookup but not complex relational reasoning.
    Example: "What does the Frolov report say about AI?", "Who is the CEO of Company X?".
 3. `multi_hop`: Questions requiring cross-document reasoning, entity relationships, or causal chains.
@@ -119,10 +177,28 @@ Respond ONLY with a JSON object: {"route": "no_retrieval" | "single_step" | "mul
         logger.warning(f"Router fell back to single_step ({e}). Raw: {response!r}")
         explanation = f"Defaulted to single_step (router LLM unavailable: {e})"
 
+    # The backstop. Prompt wording alone would not carry this: the model is being asked to
+    # know that a plain-sounding question is domain-specific, which is exactly what it cannot
+    # know from the question alone.
+    trace_entry = "smart_router"
+    if route == "no_retrieval" and not _is_social(state["query"]):
+        if _workspace_has_documents(state["workspace"]):
+            logger.info(
+                "Router said no_retrieval for a non-social query in a workspace with its own "
+                "documents; retrieving instead."
+            )
+            route = "single_step"
+            explanation = (
+                f"{explanation} — overridden to single_step: this workspace has its own "
+                f"documents, and an unretrieved answer here would be ungrounded by "
+                f"construction (no_retrieval skips the hallucination check)."
+            )
+            trace_entry = "smart_router:no_retrieval-overridden"
+
     return {
         "route": route,
         "route_explanation": explanation,
-        "execution_trace": state.get("execution_trace", []) + ["smart_router"],
+        "execution_trace": state.get("execution_trace", []) + [trace_entry],
     }
 
 
