@@ -15,6 +15,7 @@ import {
   renderPack
 } from "../server/coordination/lib/evidence.mjs";
 import { collectRuns } from "../server/coordination/lib/runs.mjs";
+import { sweepEstate, reconcile } from "../server/coordination/lib/inventory.mjs";
 
 const argv = process.argv.slice(2);
 const arg = (n, d) => {
@@ -45,7 +46,24 @@ const runs = argv.includes("--no-runs")
       )
     });
 
-const pack = buildEvidencePack(ledgers, { runs, governanceEpoch: arg("epoch", null) });
+// The inventory is what turns orphan-artifact and unrecorded-action from assertions into
+// counts. It walks the disk, so it is opt-out (--no-sweep) rather than opt-in: a pack that
+// silently skipped the look would report both defects unmeasurable on a machine that could
+// have measured them. --include extends the sweep beyond the store's own roots.
+const inventory = argv.includes("--no-sweep")
+  ? null
+  : reconcile(
+      sweepEstate(ROOT, {
+        include: argv.reduce((a, v, i) => (argv[i - 1] === "--include" ? [...a, v] : a), [])
+      }),
+      ledgers.flatMap((l) => (l.ok ? l.events : []))
+    );
+
+const pack = buildEvidencePack(ledgers, {
+  runs,
+  inventory,
+  governanceEpoch: arg("epoch", null)
+});
 
 if (argv.includes("--json")) {
   console.log(JSON.stringify(pack, null, 2));
@@ -57,4 +75,4 @@ if (argv.includes("--json")) {
   console.log(`\nwritten to ${OUT}`);
 }
 
-process.exit(pack.verdict.complete ? 0 : 1);
+process.exit(pack.verdict.substantiated ? 0 : 1);
