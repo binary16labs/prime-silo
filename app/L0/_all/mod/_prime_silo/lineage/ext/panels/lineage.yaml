@@ -1,0 +1,8 @@
+name: Lineage
+path: _prime_silo/lineage
+description: Total lineage — every subject the estate has recorded, its history step by step, and an honest measure of what is not recorded at all.
+icon: account_tree
+# The Gov arc colour, deliberately shared. Lineage is the evidence side of the same arc that
+# Gov decides on, and the ring has ten fixed arcs in navi-key.js — adding an eleventh reflows
+# the whole ring, which is a navigation change to make on purpose, not as a side effect here.
+color: "#63a063"

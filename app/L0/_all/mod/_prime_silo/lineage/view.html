@@ -1,0 +1,260 @@
+<html>
+  <head>
+    <!-- Same reason as the Gov arc: DESIGN-SYSTEM.md names these as the source of spacing,
+         measure and type, but the shell's index.css imports only google-icons, so every
+         var(--space-*) / var(--font-size-*) is undefined unless the view links them itself. -->
+    <link rel="stylesheet" href="/mod/_core/framework/css/layout.css" />
+    <link rel="stylesheet" href="/mod/_core/framework/css/type.css" />
+    <link rel="stylesheet" href="/mod/_prime_silo/lineage/lineage.css" />
+    <script type="module" src="/mod/_prime_silo/lineage/lineage.js"></script>
+  </head>
+  <body>
+    <section class="prime-silo-lin" x-data="lineagePage()" x-init="init()" x-cloak>
+      <header>
+        <p class="prime-silo-lin__eyebrow">Evidence · lineage</p>
+        <h1 class="prime-silo-lin__title">Lineage</h1>
+        <p class="prime-silo-lin__benny" x-text="bennyLine()"></p>
+        <p class="prime-silo-lin__store" x-show="store.root" x-cloak>
+          Reading <span x-text="store.root"></span>
+          <span x-text="'(' + store.source + ')'"></span>
+        </p>
+      </header>
+
+      <p x-show="state === 'loading'" x-cloak>Folding the ledgers…</p>
+      <p x-show="state === 'error'" class="prime-silo-lin__alarm" x-cloak x-text="error"></p>
+
+      <!-- A missing store folds to zero subjects and zero broken chains, which would render
+           as a perfect score for a system recording nothing at all. Its own state. -->
+      <div class="prime-silo-lin__alarm" x-show="state === 'ready' && !store.exists" x-cloak>
+        <strong>No estate store found</strong> at <span x-text="store.root"></span>. Every figure
+        below would be zero out of zero — that is an absent record, not a clean one. Set
+        <code>ESTATE_STORE</code> and reload.
+      </div>
+
+      <!-- Chains are per-ledger, so a break names its ledger and its line, and quarantines
+           only that ledger's subjects. -->
+      <div class="prime-silo-lin__alarm" x-show="state === 'ready' && broken.length" x-cloak>
+        <strong x-text="broken.length + ' ledger(s) no longer verify'"></strong> — their subjects
+        are shown but never counted as evidence.
+        <ul>
+          <template x-for="b in broken" :key="b.name">
+            <li>
+              <span x-text="b.name"></span> — <span x-text="b.reason"></span> at line
+              <span x-text="b.badLine"></span>
+            </li>
+          </template>
+        </ul>
+      </div>
+
+      <!-- The four figures that answer "how much of this can you actually prove?" -->
+      <ul class="prime-silo-lin__figures" x-show="state === 'ready'" x-cloak>
+        <li class="prime-silo-lin__figure">
+          <span class="prime-silo-lin__figure-label">Ledgers verified</span>
+          <span
+            class="prime-silo-lin__figure-value"
+            x-text="c.ledgers.verified + ' / ' + c.ledgers.total"
+          ></span>
+          <span class="prime-silo-lin__figure-note">each chain checked on its own</span>
+        </li>
+        <li class="prime-silo-lin__figure">
+          <span class="prime-silo-lin__figure-label">Subjects attested</span>
+          <span
+            class="prime-silo-lin__figure-value"
+            x-text="c.subjects.attested + ' / ' + c.subjects.total"
+          ></span>
+          <span
+            class="prime-silo-lin__figure-note"
+            x-text="c.subjects.quarantined + ' quarantined'"
+          ></span>
+        </li>
+        <li class="prime-silo-lin__figure" :data-gap="c.provenance.linked === 0">
+          <span class="prime-silo-lin__figure-label">Origin recorded</span>
+          <span
+            class="prime-silo-lin__figure-value"
+            x-text="c.provenance.linked + ' / ' + c.subjects.attested"
+          ></span>
+          <!-- Zero here is the honest headline: integrity without genealogy. -->
+          <span class="prime-silo-lin__figure-note">
+            the rest declare no upstream — unknown, not original
+          </span>
+        </li>
+        <li class="prime-silo-lin__figure" data-gap="true">
+          <span class="prime-silo-lin__figure-label">Ledger vs world</span>
+          <span class="prime-silo-lin__figure-value prime-silo-lin__figure-value--words">
+            not measurable
+          </span>
+          <span class="prime-silo-lin__figure-note" x-text="c.completeness.why"></span>
+        </li>
+      </ul>
+
+      <div class="prime-silo-lin__panes" x-show="state === 'ready' && subjects.length" x-cloak>
+        <!-- LEFT: every subject the estate has written down. -->
+        <div class="prime-silo-lin__list-pane">
+          <div class="prime-silo-lin__filters" role="group" aria-label="Filter by kind">
+            <template x-for="k in kinds" :key="k">
+              <button
+                type="button"
+                class="prime-silo-lin__chip"
+                :aria-pressed="kind === k"
+                :data-on="kind === k"
+                @click="kind = kind === k ? '' : k"
+                x-text="k + ' (' + (c.kinds[k] || 0) + ')'"
+              ></button>
+            </template>
+          </div>
+
+          <ul class="prime-silo-lin__subjects">
+            <template x-for="s in visible()" :key="s.sid">
+              <li>
+                <!-- The name is spelled out rather than left to the nested spans: the
+                     accessibility tree reported these buttons unnamed, and a row whose label
+                     is the full sid is more use to a screen reader than the elided one. -->
+                <button
+                  type="button"
+                  class="prime-silo-lin__subject"
+                  :data-on="sid === s.sid"
+                  :data-quarantined="s.quarantined"
+                  :aria-label="s.kind + ' ' + s.sid + ', ' + s.events + ' events'"
+                  :aria-current="sid === s.sid"
+                  @click="open(s.sid)"
+                >
+                  <span class="prime-silo-lin__kind" x-text="s.kind"></span>
+                  <span class="prime-silo-lin__sid" x-text="short(s.sid)"></span>
+                  <span class="prime-silo-lin__meta">
+                    <span x-text="s.events + (s.events === 1 ? ' event' : ' events')"></span>
+                    <span x-text="s.machines.join(' · ')"></span>
+                    <!-- A human touch on a subject is the SS1/23 question; mark it. -->
+                    <span x-show="s.authorship.human" class="prime-silo-lin__signed">human</span>
+                  </span>
+                </button>
+              </li>
+            </template>
+          </ul>
+        </div>
+
+        <!-- RIGHT: the trail — one subject, step by step through its own history. -->
+        <div class="prime-silo-lin__trail-pane" aria-live="polite">
+          <p class="prime-silo-lin__hint" x-show="!trail" x-cloak>
+            Pick a subject to walk its history one event at a time.
+          </p>
+
+          <template x-if="trail">
+            <div>
+              <div class="prime-silo-lin__trail-head">
+                <p class="prime-silo-lin__eyebrow" x-text="trail.kind"></p>
+                <h2 class="prime-silo-lin__trail-title" x-text="trail.sid"></h2>
+                <p class="prime-silo-lin__facts">
+                  <span
+                    ><strong>ledgers</strong> <span x-text="trail.ledgers.join(', ')"></span
+                  ></span>
+                  <span
+                    ><strong>machines</strong> <span x-text="trail.machines.join(', ')"></span
+                  ></span>
+                  <span
+                    ><strong>authorship</strong>
+                    <span x-text="authorshipLine(trail.authorship)"></span
+                  ></span>
+                </p>
+                <p class="prime-silo-lin__alarm" x-show="trail.quarantined" x-cloak>
+                  This subject comes from a ledger that does not verify. Read it as a claim, not as
+                  evidence.
+                </p>
+              </div>
+
+              <!-- Step-through. Keyboard works because the buttons are buttons. -->
+              <div class="prime-silo-lin__scrub">
+                <button
+                  type="button"
+                  class="prime-silo-lin__btn"
+                  :disabled="step <= 1"
+                  @click="go(step - 1)"
+                >
+                  ◂ Prev
+                </button>
+                <span
+                  class="prime-silo-lin__step-count"
+                  x-text="'Step ' + step + ' of ' + trail.steps.length"
+                ></span>
+                <button
+                  type="button"
+                  class="prime-silo-lin__btn"
+                  :disabled="step >= trail.steps.length"
+                  @click="go(step + 1)"
+                >
+                  Next ▸
+                </button>
+              </div>
+
+              <ol class="prime-silo-lin__ticks">
+                <template x-for="s in trail.steps" :key="s.id">
+                  <li>
+                    <button
+                      type="button"
+                      class="prime-silo-lin__tick"
+                      :data-on="s.n === step"
+                      :data-authorship="s.authorship"
+                      @click="go(s.n)"
+                      :aria-label="'Step ' + s.n + ': ' + s.type"
+                      :title="s.type + ' — ' + s.txn_time"
+                    ></button>
+                  </li>
+                </template>
+              </ol>
+
+              <template x-if="current()">
+                <article class="prime-silo-lin__event" :data-step="step">
+                  <h3 class="prime-silo-lin__event-type" x-text="current().type"></h3>
+                  <p class="prime-silo-lin__facts">
+                    <span><strong>machine</strong> <span x-text="current().machine"></span></span>
+                    <span
+                      ><strong>authorship</strong> <span x-text="current().authorship"></span
+                    ></span>
+                    <span><strong>ledger</strong> <span x-text="current().ledger"></span></span>
+                  </p>
+                  <!-- Both times, always. valid_time is when it was true; txn_time is when we
+                       learned it, and time_confidence says whether the first was measured or
+                       inferred. Showing one without the other invites a false precision. -->
+                  <p class="prime-silo-lin__facts">
+                    <span><strong>valid</strong> <span x-text="current().valid_time"></span></span>
+                    <span><strong>recorded</strong> <span x-text="current().txn_time"></span></span>
+                    <span
+                      ><strong>confidence</strong> <span x-text="current().time_confidence"></span
+                    ></span>
+                  </p>
+
+                  <p class="prime-silo-lin__eyebrow">What this event recorded</p>
+                  <pre class="prime-silo-lin__json" x-text="pretty(current().payload)"></pre>
+
+                  <p class="prime-silo-lin__eyebrow">Projection after this step</p>
+                  <pre class="prime-silo-lin__json" x-text="pretty(current().projection)"></pre>
+                  <p class="prime-silo-lin__caveat">
+                    The projector is last-write-wins per subject, not an accumulation — earlier
+                    facts are absent here, never retracted. The event above is the full record.
+                  </p>
+
+                  <p class="prime-silo-lin__caveat" x-show="!current().parents.length" x-cloak>
+                    This event declares no upstream subject, so the trail stops here. That is a gap
+                    in the record, not proof the subject had no origin.
+                  </p>
+                </article>
+              </template>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- Nothing recorded is not the same as nothing happening. -->
+      <div
+        class="prime-silo-lin__empty"
+        x-show="state === 'ready' && store.exists && !subjects.length"
+        x-cloak
+      >
+        <p>No subjects are recorded yet.</p>
+        <p>
+          The store is there and its chains verify — there is simply nothing in it. This says
+          nothing about what the estate has been doing, only about what it has written down.
+        </p>
+      </div>
+    </section>
+  </body>
+</html>
