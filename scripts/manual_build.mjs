@@ -280,8 +280,20 @@ for (const f of manual.features) {
   byArcForIndex.get(f.arc).push(f);
 }
 
+// Every body LEADS with its most informative sentence, because the builder's deterministic
+// summary is literally _first_sentence(text) and that summary is all the outline shows. The
+// first pass opened each body with its own label ("Raise a proposal — Gov arc."), so every
+// summary in the outline was a restatement of its title and the selector had nothing to choose
+// on. The title already carries the name; the body's job is to say something the title does not.
 const px = [];
-px.push(`# ${manual.title}`, "", manual.subtitle, "");
+px.push(`# ${manual.title}`, "");
+// Not the subtitle: it contains "refuses to do", which made this node the strongest lexical
+// match for every refusal question in the manual — an overview node winning queries about
+// specifics is how outline routing fails quietly.
+px.push(
+  `A manual for operating the Prime-Silo estate, organised by arc, feature and workflow.`,
+  ""
+);
 px.push(`## Doctrine`, "", "The rules every other section obeys.", "");
 manual.doctrine.forEach((d, i) => {
   px.push(`### Rule ${i + 1}`, "", d, "");
@@ -292,13 +304,20 @@ for (const a of manual.arcs) {
   px.push(`## ${a.name} arc`, "");
   px.push(`The ${a.name} arc exists to ${a.role.toLowerCase()}. It renders at #/${a.surface}.`, "");
   for (const f of fs_) {
-    px.push(`### ${f.name}`, "");
-    px.push(`${f.name} (${a.name} arc). ${f.purpose} How to use it: ${f.how.join(" ")}`, "");
+    // The alias vocabulary goes in the HEADING, because the outline the section-selector
+    // reads is titles plus summaries and nothing else. Aliases sitting in the body were
+    // invisible to it: asked which section covers the "artifact CLI", it picked "Where a
+    // thing came from" and "Run register", because no line in the index connected that
+    // phrase to "Download once, place anywhere". This is what an index is for — a real
+    // manual's index says "artifact CLI, see Download once". Only the machine-read
+    // document carries it; the human manual and the tour page keep the clean name.
+    px.push(`### ${f.name}${f.aliases?.length ? ` — ${f.aliases.join(", ")}` : ""}`, "");
+    px.push(`${f.purpose} How to use it: ${f.how.join(" ")} (${f.name}, ${a.name} arc)`, "");
     f.invariants.forEach((inv, i) => {
       // One leaf per invariant: the finest unit anyone actually asks a question about.
       px.push(`#### ${f.name} refusal ${i + 1}`, "");
       px.push(
-        `${f.name} — ${a.name} arc. ${inv}` +
+        `${inv} This is a refusal of ${f.name}, on the ${a.name} arc.` +
           (f.aliases?.length ? ` (${f.aliases.join(", ")})` : ""),
         ""
       );

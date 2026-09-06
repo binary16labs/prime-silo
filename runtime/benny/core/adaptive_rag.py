@@ -270,17 +270,73 @@ async def retrieve_structured(state: AdaptiveRAGState) -> dict:
     except Exception as e:
         logger.warning(f"Structured node-selection failed ({e}); using top sections.")
 
-    # Resolve selected (source, node_id) → leaf text. Fall back to first leaves.
-    from .pageindex import flatten_leaves
+    # Resolve selected (source, node_id) → text.
+    #
+    # A SELECTED BRANCH MEANS ITS SUBTREE, NOT NOTHING. Asked "which section covers X",
+    # a model names the section — "0.0.5.0", the feature — not the individual leaf
+    # beneath it. Matching only against leaves made every such answer resolve to
+    # nothing, and the empty result then fell through to "first three leaves of the
+    # document", which is an arbitrary slice of the front matter. The pipeline reported
+    # three documents retrieved and three graded relevant while holding none of the
+    # content asked for. Branch ids now expand to the leaves under them.
+    from .pageindex import flatten_leaves, iter_nodes
 
+    #
+    # THE SOURCE LABEL IS A HINT; THE node_id IS THE KEY. The selector echoes back whatever
+    # name it saw, and what it sees in the outline is the root node's TITLE — which for
+    # "PRIME-SILO-MANUAL-PAGEINDEX.md" renders as "PRIME-SILO-MANUAL-PAGEINDEX". Keying
+    # strictly on (source, node_id) therefore missed every id over one absent extension, and
+    # the miss was indistinguishable from the model choosing badly. Match the source
+    # leniently, and fall back to the node_id alone when only one document is loaded.
     documents: List[RetrievedDocument] = []
-    leaf_index = {
-        (name, leaf.get("node_id")): leaf
+    node_index = {
+        (name, node.get("node_id")): node
         for name, tree in trees.items()
-        for leaf in flatten_leaves(tree)
+        for node in iter_nodes(tree)
     }
-    chosen = [leaf_index[key] for key in selected if key in leaf_index]
-    if not chosen:
+
+    def _resolve(src: str, nid: str):
+        exact = node_index.get((src, nid))
+        if exact is not None:
+            return exact
+        s = (src or "").strip().lower()
+        for (name, node_id), node in node_index.items():
+            if node_id != nid:
+                continue
+            n = name.lower()
+            # "MANUAL" ~ "MANUAL.md" ~ "manual.md"; a stem match is enough to identify a
+            # document, and an id that exists in only one tree is unambiguous anyway.
+            if n == s or n.startswith(s) or s.startswith(n.rsplit(".", 1)[0]):
+                return node
+        candidates = [n for (nm, n_id), n in node_index.items() if n_id == nid]
+        return candidates[0] if len(candidates) == 1 else None
+
+    chosen: List[dict] = []
+    seen_ids: set = set()
+    for key in selected:
+        node = _resolve(key[0], key[1])
+        if node is None:
+            continue
+        # A leaf carries its own text; a branch stands for everything under it.
+        picked = [node] if not node.get("children") else flatten_leaves(node)
+        for leaf in picked:
+            nid = leaf.get("node_id")
+            if nid in seen_ids or not (leaf.get("text") or "").strip():
+                continue
+            seen_ids.add(nid)
+            chosen.append(leaf)
+    chosen = chosen[:12]  # a selected branch can be large; cap what reaches the prompt
+
+    selection_failed = not chosen
+    if selection_failed:
+        # Nothing the selector named could be resolved. Answering from the first few
+        # leaves is a guess, not a retrieval, so it is still done (an answer beats a
+        # blank) but it is recorded in the trace instead of passing for a hit.
+        logger.warning(
+            "Structured selection resolved to nothing (selected=%r); "
+            "falling back to leading sections — treat this as unrouted.",
+            selected,
+        )
         for name, tree in trees.items():
             chosen.extend(flatten_leaves(tree)[:3])
         chosen = chosen[:6]
@@ -296,7 +352,8 @@ async def retrieve_structured(state: AdaptiveRAGState) -> dict:
 
     return {
         "documents": documents,
-        "execution_trace": state.get("execution_trace", []) + ["retrieve_structured"],
+        "execution_trace": state.get("execution_trace", [])
+        + ["retrieve_structured" + (":unresolved-fallback" if selection_failed else "")],
     }
 
 
