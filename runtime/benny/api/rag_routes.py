@@ -116,7 +116,14 @@ class AdaptiveRAGRequest(BaseModel):
     query: str
     workspace: str = "default"
     model: str = "Qwen3-8B-Hybrid"
-    max_retries: int = 3
+    # 0, not 3. self_check grades every answer now, and after_hallucination_check only
+    # rewrites while retries remain — so a non-zero default here silently restores the
+    # re-retrieval loop that ran for minutes on a local model and dropped the caller's
+    # connection. Detection is cheap and on; correction is expensive and opt-in.
+    max_retries: int = 0
+    # Off means an ungrounded answer is returned unlabelled. Available for latency-critical
+    # callers, but it should be a decision someone made rather than the default.
+    self_check: bool = True
 
 
 class AdaptiveRAGResponse(BaseModel):
@@ -1587,10 +1594,17 @@ async def adaptive_rag_query(request: AdaptiveRAGRequest, response: Response):
             workspace=request.workspace,
             model=request.model,
             max_retries=request.max_retries,
+            self_check=request.self_check,
         )
 
         # Set the strategy header
         response.headers["X-RAG-Strategy"] = result.get("route", "single_step")
+        # Groundedness travels in a header too, so a caller that only reads headers (or a
+        # proxy that logs them) cannot end up treating an ungrounded answer as a plain 200.
+        grounded = result.get("hallucination_check")
+        response.headers["X-RAG-Grounded"] = (
+            "unchecked" if grounded is None else ("true" if grounded else "false")
+        )
 
         return AdaptiveRAGResponse(
             answer=result.get("generation"),

@@ -639,18 +639,30 @@ def after_rewrite(
 # =============================================================================
 
 
-def build_adaptive_rag_graph(self_check: bool = False) -> StateGraph:
+def build_adaptive_rag_graph(self_check: bool = True) -> StateGraph:
     """Build the Adaptive RAG LangGraph.
 
-    self_check=False (default) builds the LEAN pipeline:
-        router → retrieve → grade → generate → END   (3 LLM calls)
-    This is what works on a single local model in one synchronous request.
-    The full self-correcting variant (post-generation hallucination + answer-
-    quality grading with query-rewrite loops) adds 3+ more sequential calls and
-    can loop several times — fine for fast cloud models, but on a local 12B
-    reasoning model it runs for minutes and the caller's connection drops
-    ("fetch failed"). Enable it explicitly (self_check=True + max_retries>0)
-    only when the backing model is fast enough.
+    self_check=True (default) grades the answer after generating it:
+        router → retrieve → grade → generate → hallucination → quality → END
+
+    It was previously off, and the reason was sound but too broad. Two separable
+    things live under this flag: the CHECK, which costs one call and tells you
+    whether the answer is grounded in the retrieved documents, and the REWRITE
+    LOOP it triggers, which re-retrieves and re-generates and is what ran for
+    minutes on a local model until the caller's connection dropped.
+
+    Only the loop is expensive, and the loop is already governed by max_retries
+    (default 0): after_hallucination_check only rewrites while retries remain,
+    so the default configuration detects and reports without ever looping. The
+    cost is two extra calls; the thing bought is that an ungrounded answer
+    arrives labelled `hallucination_check: false` instead of arriving as a fact.
+
+    That trade is worth making because the failure it catches is not theoretical:
+    asked about a section it could not retrieve, this pipeline produced a
+    block-quoted passage of an operating manual that does not exist, and nothing
+    downstream could tell that from a real quotation. Pass self_check=False for
+    latency-critical paths where an unverified answer is acceptable — but that
+    should be a decision someone made, not the default.
     """
     graph = StateGraph(AdaptiveRAGState)
 
@@ -735,9 +747,14 @@ async def run_adaptive_rag(
     workspace: str = "default",
     model: Optional[str] = None,
     max_retries: int = 0,
-    self_check: bool = False,
+    self_check: bool = True,
 ) -> AdaptiveRAGState:
-    """Execute the Adaptive RAG pipeline (lean by default; see build graph)."""
+    """Execute the Adaptive RAG pipeline.
+
+    Grading is on and the rewrite loop is off (max_retries=0): the answer is
+    checked against its sources and labelled, without the re-retrieval cycle
+    that made the full self-correcting variant unusable on a local model.
+    """
     # Honour local-first routing: when the caller doesn't pin a model, resolve
     # the workspace's configured chat model (Agents screen / manifest) instead
     # of a hardcoded default that may not be loaded on this machine.
