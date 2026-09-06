@@ -28,6 +28,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { ulid, CURRENT_SCHEMA_VERSION, appendKelEvent } from "./kel.mjs";
 import { blobPath, hasBlob, casStoreStream } from "./staging.mjs";
+import { provenance, withProvenance } from "./provenance.mjs";
 
 export const ARTIFACT_TYPES = Object.freeze({
   acquired: "artifact_acquired",
@@ -81,7 +82,13 @@ export function artifactAcquiredEvent({
   deduped = false,
   fetched = true,
   authorship = "human",
-  valid_time = null
+  valid_time = null,
+  // `causedBy` is the proposal that authorised this download — the edge that turns "an
+  // installer appeared in the store" into "you approved fetching it". `derivedFrom` is for
+  // the subject this artifact came out of, such as a release or manifest we already track.
+  // `source_uri` stays a URI, not an edge: an external URL is not a subject in this estate.
+  derivedFrom = [],
+  causedBy = null
 }) {
   if (!hash) throw new Error("artifactAcquiredEvent: hash is required");
   if (!machine) throw new Error("artifactAcquiredEvent: machine is required");
@@ -94,15 +101,18 @@ export function artifactAcquiredEvent({
     // `deduped` and `fetched` are both recorded because the interesting distinction is
     // between them: deduped-and-fetched is transfer we wasted, deduped-and-not-fetched is
     // transfer we avoided. Without both flags the waste gauge cannot tell them apart.
-    payload: {
-      source_uri: sourceUri,
-      size,
-      label,
-      media_type: mediaType,
-      publisher,
-      deduped,
-      fetched
-    }
+    payload: withProvenance(
+      {
+        source_uri: sourceUri,
+        size,
+        label,
+        media_type: mediaType,
+        publisher,
+        deduped,
+        fetched
+      },
+      provenance({ derivedFrom, causedBy, subject: subjectId.artifact(hash) })
+    )
   });
 }
 
@@ -134,7 +144,12 @@ export function artifactPlacedEvent({
   path: at,
   purpose = "",
   authorship = "house",
-  valid_time = null
+  valid_time = null,
+  // The decision that put this copy on this machine. Placement is where an artifact stops
+  // being stored and starts being installed somewhere, so it is the point an auditor most
+  // wants a signature behind — "who said this machine should have this?".
+  derivedFrom = [],
+  causedBy = null
 }) {
   if (!hash) throw new Error("artifactPlacedEvent: hash is required");
   if (!machine) throw new Error("artifactPlacedEvent: machine is required");
@@ -148,7 +163,10 @@ export function artifactPlacedEvent({
     machine,
     authorship,
     valid_time,
-    payload: { path: at, purpose }
+    payload: withProvenance(
+      { path: at, purpose },
+      provenance({ derivedFrom, causedBy, subject: subjectId.artifact(hash) })
+    )
   });
 }
 
@@ -158,7 +176,11 @@ export function artifactEvictedEvent({
   path: at,
   reason = "",
   authorship = "house",
-  valid_time = null
+  valid_time = null,
+  // Retiring a copy is as much a decision as making one; if a proposal authorised the
+  // eviction, that edge belongs in the record too.
+  derivedFrom = [],
+  causedBy = null
 }) {
   if (!hash) throw new Error("artifactEvictedEvent: hash is required");
   if (!machine) throw new Error("artifactEvictedEvent: machine is required");
@@ -168,7 +190,10 @@ export function artifactEvictedEvent({
     machine,
     authorship,
     valid_time,
-    payload: { path: at, reason }
+    payload: withProvenance(
+      { path: at, reason },
+      provenance({ derivedFrom, causedBy, subject: subjectId.artifact(hash) })
+    )
   });
 }
 
@@ -189,7 +214,12 @@ export async function acquireArtifact(
     expectedSize = null,
     machine,
     authorship = "human",
-    open
+    open,
+    // Threaded through to BOTH acquisition paths below. A builder that accepts provenance
+    // while its orchestrator drops it is the same defect as a gauge reading a flag nobody
+    // writes: the field exists, the edge never appears, and the coverage figure lies quietly.
+    derivedFrom = [],
+    causedBy = null
   }
 ) {
   if (!machine) throw new Error("acquireArtifact: machine is required");
@@ -208,7 +238,9 @@ export async function acquireArtifact(
       publisher,
       deduped: true,
       fetched: false, // the source was never opened — this is the saving, not the waste
-      authorship
+      authorship,
+      derivedFrom,
+      causedBy
     });
     appendKelEvent(logFile, evt);
     return {
@@ -238,7 +270,9 @@ export async function acquireArtifact(
     publisher,
     deduped: stored.deduped,
     fetched: true, // we opened the source; if deduped is also true those bytes were wasted
-    authorship
+    authorship,
+    derivedFrom,
+    causedBy
   });
   appendKelEvent(logFile, acquired);
 
@@ -269,7 +303,15 @@ export async function acquireArtifact(
 export async function placeArtifact(
   root,
   logFile,
-  { hash, machine, path: target, purpose = "", overwrite = false }
+  {
+    hash,
+    machine,
+    path: target,
+    purpose = "",
+    overwrite = false,
+    derivedFrom = [],
+    causedBy = null
+  }
 ) {
   if (!machine) throw new Error("placeArtifact: machine is required");
   if (!target) throw new Error("placeArtifact: path is required");
@@ -277,7 +319,16 @@ export async function placeArtifact(
   if (!fs.existsSync(src)) throw new Error(`placeArtifact: blob not held — ${bare(hash)}`);
 
   if (fs.existsSync(target) && !overwrite) {
-    const evt = artifactPlacedEvent({ hash, machine, path: target, purpose });
+    // Already there still records the placement, and still records what authorised it: the
+    // claim "this machine holds this, on your say-so" is true whether or not we copied today.
+    const evt = artifactPlacedEvent({
+      hash,
+      machine,
+      path: target,
+      purpose,
+      derivedFrom,
+      causedBy
+    });
     appendKelEvent(logFile, evt);
     return { placed: false, alreadyThere: true, path: target, event: evt };
   }
@@ -289,20 +340,24 @@ export async function placeArtifact(
   const parent = path.dirname(target);
   if (!fs.existsSync(parent)) fs.mkdirSync(parent, { recursive: true });
   await fs.promises.copyFile(src, target);
-  const evt = artifactPlacedEvent({ hash, machine, path: target, purpose });
+  const evt = artifactPlacedEvent({ hash, machine, path: target, purpose, derivedFrom, causedBy });
   appendKelEvent(logFile, evt);
   return { placed: true, alreadyThere: false, path: target, event: evt };
 }
 
 // Remove a local copy. The blob is untouched by design — see the header.
-export function evictPlacement(root, logFile, { hash, machine, path: target, reason = "" }) {
+export function evictPlacement(
+  root,
+  logFile,
+  { hash, machine, path: target, reason = "", derivedFrom = [], causedBy = null }
+) {
   if (!machine) throw new Error("evictPlacement: machine is required");
   let removed = false;
   if (target && fs.existsSync(target)) {
     fs.rmSync(target, { force: true });
     removed = true;
   }
-  const evt = artifactEvictedEvent({ hash, machine, path: target, reason });
+  const evt = artifactEvictedEvent({ hash, machine, path: target, reason, derivedFrom, causedBy });
   appendKelEvent(logFile, evt);
   return { removed, blobRetained: fs.existsSync(blobPath(root, bare(hash))), event: evt };
 }

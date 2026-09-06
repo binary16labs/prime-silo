@@ -23,6 +23,7 @@
 // appends them, so nothing here touches the filesystem and every function is testable
 // without a log.
 import { ulid, readKelEvents, CURRENT_SCHEMA_VERSION } from "./kel.mjs";
+import { provenance, withProvenance } from "./provenance.mjs";
 
 export const GOVERNANCE_TYPES = Object.freeze({
   raised: "proposal_raised",
@@ -77,7 +78,13 @@ export function proposalRaisedEvent({
   cost = null,
   reversible = null,
   authorship = "frontier",
-  valid_time = null
+  valid_time = null,
+  // Where this proposal came from. `derivedFrom` are the subjects whose state prompted it
+  // — the failing service, the artifact, the node that went quiet. `causedBy` is an earlier
+  // decision this one follows from. Both are subject ids; the human-readable version of the
+  // same thing belongs in `rationale` and `evidence`, which is why those stay untouched.
+  derivedFrom = [],
+  causedBy = null
 }) {
   if (!proposalId) throw new Error("proposalRaisedEvent: proposalId is required");
   if (!machine) throw new Error("proposalRaisedEvent: machine is required");
@@ -90,7 +97,10 @@ export function proposalRaisedEvent({
     machine,
     proposalId,
     valid_time,
-    payload: { title, rationale, evidence, domain, cost, reversible }
+    payload: withProvenance(
+      { title, rationale, evidence, domain, cost, reversible },
+      provenance({ derivedFrom, causedBy, subject: subjectId.proposal(proposalId) })
+    )
   });
 }
 
