@@ -1,0 +1,1360 @@
+{
+  "generated_from": "manual/manual.json",
+  "triples": [
+    {
+      "s": "arc:gov",
+      "p": "IS_A",
+      "o": "Arc"
+    },
+    {
+      "s": "arc:gov",
+      "p": "NAMED",
+      "o": "Gov"
+    },
+    {
+      "s": "arc:gov",
+      "p": "HAS_ROLE",
+      "o": "Decide"
+    },
+    {
+      "s": "arc:gov",
+      "p": "RENDERS_AT",
+      "o": "#/_prime_silo/gov"
+    },
+    {
+      "s": "arc:lineage",
+      "p": "IS_A",
+      "o": "Arc"
+    },
+    {
+      "s": "arc:lineage",
+      "p": "NAMED",
+      "o": "Lineage"
+    },
+    {
+      "s": "arc:lineage",
+      "p": "HAS_ROLE",
+      "o": "Prove"
+    },
+    {
+      "s": "arc:lineage",
+      "p": "RENDERS_AT",
+      "o": "#/_prime_silo/lineage"
+    },
+    {
+      "s": "arc:mission",
+      "p": "IS_A",
+      "o": "Arc"
+    },
+    {
+      "s": "arc:mission",
+      "p": "NAMED",
+      "o": "Mission Control"
+    },
+    {
+      "s": "arc:mission",
+      "p": "HAS_ROLE",
+      "o": "Watch"
+    },
+    {
+      "s": "arc:mission",
+      "p": "RENDERS_AT",
+      "o": "#/_prime_silo/mission_control"
+    },
+    {
+      "s": "arc:memory",
+      "p": "IS_A",
+      "o": "Arc"
+    },
+    {
+      "s": "arc:memory",
+      "p": "NAMED",
+      "o": "Memory"
+    },
+    {
+      "s": "arc:memory",
+      "p": "HAS_ROLE",
+      "o": "Recall"
+    },
+    {
+      "s": "arc:memory",
+      "p": "RENDERS_AT",
+      "o": "#/_prime_silo/memory"
+    },
+    {
+      "s": "arc:lifelog",
+      "p": "IS_A",
+      "o": "Arc"
+    },
+    {
+      "s": "arc:lifelog",
+      "p": "NAMED",
+      "o": "Lifelog"
+    },
+    {
+      "s": "arc:lifelog",
+      "p": "HAS_ROLE",
+      "o": "Recall"
+    },
+    {
+      "s": "arc:lifelog",
+      "p": "RENDERS_AT",
+      "o": "#/_prime_silo/lifelog"
+    },
+    {
+      "s": "arc:step",
+      "p": "IS_A",
+      "o": "Arc"
+    },
+    {
+      "s": "arc:step",
+      "p": "NAMED",
+      "o": "Step-Through"
+    },
+    {
+      "s": "arc:step",
+      "p": "HAS_ROLE",
+      "o": "Replay"
+    },
+    {
+      "s": "arc:step",
+      "p": "RENDERS_AT",
+      "o": "#/_prime_silo/step_through"
+    },
+    {
+      "s": "arc:agent",
+      "p": "IS_A",
+      "o": "Arc"
+    },
+    {
+      "s": "arc:agent",
+      "p": "NAMED",
+      "o": "Agent"
+    },
+    {
+      "s": "arc:agent",
+      "p": "HAS_ROLE",
+      "o": "Ask"
+    },
+    {
+      "s": "arc:agent",
+      "p": "RENDERS_AT",
+      "o": "#/agent"
+    },
+    {
+      "s": "arc:files",
+      "p": "IS_A",
+      "o": "Arc"
+    },
+    {
+      "s": "arc:files",
+      "p": "NAMED",
+      "o": "Files"
+    },
+    {
+      "s": "arc:files",
+      "p": "HAS_ROLE",
+      "o": "Hold"
+    },
+    {
+      "s": "arc:files",
+      "p": "RENDERS_AT",
+      "o": "#/file_explorer"
+    },
+    {
+      "s": "arc:llm",
+      "p": "IS_A",
+      "o": "Arc"
+    },
+    {
+      "s": "arc:llm",
+      "p": "NAMED",
+      "o": "Local LLM"
+    },
+    {
+      "s": "arc:llm",
+      "p": "HAS_ROLE",
+      "o": "Think"
+    },
+    {
+      "s": "arc:llm",
+      "p": "RENDERS_AT",
+      "o": "#/huggingface"
+    },
+    {
+      "s": "feature:kel",
+      "p": "IS_A",
+      "o": "Feature"
+    },
+    {
+      "s": "feature:kel",
+      "p": "NAMED",
+      "o": "The event ledger"
+    },
+    {
+      "s": "feature:kel",
+      "p": "ON_ARC",
+      "o": "arc:lineage"
+    },
+    {
+      "s": "feature:kel",
+      "p": "PURPOSE",
+      "o": "Every fact the estate knows is an append-only, hash-chained event with two timestamps and an author."
+    },
+    {
+      "s": "feature:kel",
+      "p": "REFUSES",
+      "o": "authorship is exactly human | frontier | house — nothing else is valid."
+    },
+    {
+      "s": "feature:kel",
+      "p": "REFUSES",
+      "o": "valid_time is when a thing was true; txn_time is when we learned it; time_confidence says which of those was measured."
+    },
+    {
+      "s": "feature:kel",
+      "p": "REFUSES",
+      "o": "A broken chain quarantines its own ledger and no others."
+    },
+    {
+      "s": "feature:kel",
+      "p": "IMPLEMENTED_IN",
+      "o": "server/coordination/lib/kel.mjs"
+    },
+    {
+      "s": "feature:kel",
+      "p": "IMPLEMENTED_IN",
+      "o": "server/coordination/schema/kel-event.schema.json"
+    },
+    {
+      "s": "feature:kel",
+      "p": "TAGGED",
+      "o": "ledger"
+    },
+    {
+      "s": "feature:kel",
+      "p": "TAGGED",
+      "o": "ss1-23"
+    },
+    {
+      "s": "feature:kel",
+      "p": "TAGGED",
+      "o": "foundation"
+    },
+    {
+      "s": "feature:gov-raise",
+      "p": "IS_A",
+      "o": "Feature"
+    },
+    {
+      "s": "feature:gov-raise",
+      "p": "NAMED",
+      "o": "Raise a proposal"
+    },
+    {
+      "s": "feature:gov-raise",
+      "p": "ON_ARC",
+      "o": "arc:gov"
+    },
+    {
+      "s": "feature:gov-raise",
+      "p": "PURPOSE",
+      "o": "Put work forward for a decision. This is where every causal chain in the estate begins."
+    },
+    {
+      "s": "feature:gov-raise",
+      "p": "REFUSES",
+      "o": "authorship is hard-coded frontier: a request is a program, never a person. Who asked is kept separately as requested_by."
+    },
+    {
+      "s": "feature:gov-raise",
+      "p": "REFUSES",
+      "o": "A proposal without a rationale is refused — the signer decides on the why, not the title."
+    },
+    {
+      "s": "feature:gov-raise",
+      "p": "REFUSES",
+      "o": "derivedFrom must be subject ids, never prose; a reason is not a reference."
+    },
+    {
+      "s": "feature:gov-raise",
+      "p": "IMPLEMENTED_IN",
+      "o": "server/api/gov_raise.js"
+    },
+    {
+      "s": "feature:gov-raise",
+      "p": "IMPLEMENTED_IN",
+      "o": "server/coordination/lib/governance.mjs"
+    },
+    {
+      "s": "feature:gov-raise",
+      "p": "EXPOSES",
+      "o": "POST /api/gov_raise"
+    },
+    {
+      "s": "feature:gov-raise",
+      "p": "TAGGED",
+      "o": "governance"
+    },
+    {
+      "s": "feature:gov-raise",
+      "p": "TAGGED",
+      "o": "ss1-23"
+    },
+    {
+      "s": "feature:gov-sign",
+      "p": "IS_A",
+      "o": "Feature"
+    },
+    {
+      "s": "feature:gov-sign",
+      "p": "NAMED",
+      "o": "Sign or decline"
+    },
+    {
+      "s": "feature:gov-sign",
+      "p": "ON_ARC",
+      "o": "arc:gov"
+    },
+    {
+      "s": "feature:gov-sign",
+      "p": "PURPOSE",
+      "o": "The one place authorisation is granted in the whole estate."
+    },
+    {
+      "s": "feature:gov-sign",
+      "p": "REFUSES",
+      "o": "The client cannot choose the signer — identity comes from the session, and a signer in the request body is ignored."
+    },
+    {
+      "s": "feature:gov-sign",
+      "p": "REFUSES",
+      "o": "Only a human signs: authorship is hard-coded, not a parameter."
+    },
+    {
+      "s": "feature:gov-sign",
+      "p": "REFUSES",
+      "o": "Declines are kept. A register of approvals only would imply everything proposed was accepted."
+    },
+    {
+      "s": "feature:gov-sign",
+      "p": "REFUSES",
+      "o": "Signing is refused onto a ledger whose chain does not verify."
+    },
+    {
+      "s": "feature:gov-sign",
+      "p": "IMPLEMENTED_IN",
+      "o": "server/api/gov_sign.js"
+    },
+    {
+      "s": "feature:gov-sign",
+      "p": "IMPLEMENTED_IN",
+      "o": "app/L0/_all/mod/_prime_silo/gov/view.html"
+    },
+    {
+      "s": "feature:gov-sign",
+      "p": "EXPOSES",
+      "o": "GET /api/gov_proposals"
+    },
+    {
+      "s": "feature:gov-sign",
+      "p": "EXPOSES",
+      "o": "POST /api/gov_sign"
+    },
+    {
+      "s": "feature:gov-sign",
+      "p": "TAGGED",
+      "o": "governance"
+    },
+    {
+      "s": "feature:gov-sign",
+      "p": "TAGGED",
+      "o": "ss1-23"
+    },
+    {
+      "s": "feature:gov-sign",
+      "p": "TAGGED",
+      "o": "interface"
+    },
+    {
+      "s": "feature:lineage",
+      "p": "IS_A",
+      "o": "Feature"
+    },
+    {
+      "s": "feature:lineage",
+      "p": "NAMED",
+      "o": "Total lineage"
+    },
+    {
+      "s": "feature:lineage",
+      "p": "ON_ARC",
+      "o": "arc:lineage"
+    },
+    {
+      "s": "feature:lineage",
+      "p": "PURPOSE",
+      "o": "Every subject the estate has recorded, folded from every ledger, with an honest measure of what is missing."
+    },
+    {
+      "s": "feature:lineage",
+      "p": "REFUSES",
+      "o": "A subject from a failing ledger is shown but never counted as evidence."
+    },
+    {
+      "s": "feature:lineage",
+      "p": "REFUSES",
+      "o": "Edges exist only where an event declares derived_from or caused_by. Nothing is inferred."
+    },
+    {
+      "s": "feature:lineage",
+      "p": "REFUSES",
+      "o": "Ledger-to-world completeness is NOT MEASURABLE without an inventory sweep, and says so."
+    },
+    {
+      "s": "feature:lineage",
+      "p": "IMPLEMENTED_IN",
+      "o": "server/coordination/lib/lineage.mjs"
+    },
+    {
+      "s": "feature:lineage",
+      "p": "IMPLEMENTED_IN",
+      "o": "app/L0/_all/mod/_prime_silo/lineage/view.html"
+    },
+    {
+      "s": "feature:lineage",
+      "p": "EXPOSES",
+      "o": "GET /api/lineage_index"
+    },
+    {
+      "s": "feature:lineage",
+      "p": "EXPOSES",
+      "o": "GET /api/lineage_trail"
+    },
+    {
+      "s": "feature:lineage",
+      "p": "TAGGED",
+      "o": "lineage"
+    },
+    {
+      "s": "feature:lineage",
+      "p": "TAGGED",
+      "o": "ss1-23"
+    },
+    {
+      "s": "feature:lineage",
+      "p": "TAGGED",
+      "o": "interface"
+    },
+    {
+      "s": "feature:time-travel",
+      "p": "IS_A",
+      "o": "Feature"
+    },
+    {
+      "s": "feature:time-travel",
+      "p": "NAMED",
+      "o": "Step through a subject's history"
+    },
+    {
+      "s": "feature:time-travel",
+      "p": "ON_ARC",
+      "o": "arc:lineage"
+    },
+    {
+      "s": "feature:time-travel",
+      "p": "PURPOSE",
+      "o": "Replay any subject one event at a time, seeing what the system believed at each step."
+    },
+    {
+      "s": "feature:time-travel",
+      "p": "REFUSES",
+      "o": "The projection at each step is computed with the system's own projector, so a replay can never drift from live state."
+    },
+    {
+      "s": "feature:time-travel",
+      "p": "REFUSES",
+      "o": "That projector is last-write-wins per subject, not accumulating — the field is called projection, not state, and the page says so."
+    },
+    {
+      "s": "feature:time-travel",
+      "p": "REFUSES",
+      "o": "The event's own payload is always shown in full and is never lossy."
+    },
+    {
+      "s": "feature:time-travel",
+      "p": "IMPLEMENTED_IN",
+      "o": "server/api/lineage_trail.js"
+    },
+    {
+      "s": "feature:time-travel",
+      "p": "IMPLEMENTED_IN",
+      "o": "app/L0/_all/mod/_prime_silo/lineage/lineage.js"
+    },
+    {
+      "s": "feature:time-travel",
+      "p": "EXPOSES",
+      "o": "GET /api/lineage_trail"
+    },
+    {
+      "s": "feature:time-travel",
+      "p": "TAGGED",
+      "o": "lineage"
+    },
+    {
+      "s": "feature:time-travel",
+      "p": "TAGGED",
+      "o": "replay"
+    },
+    {
+      "s": "feature:time-travel",
+      "p": "TAGGED",
+      "o": "interface"
+    },
+    {
+      "s": "feature:artifact-once",
+      "p": "IS_A",
+      "o": "Feature"
+    },
+    {
+      "s": "feature:artifact-once",
+      "p": "NAMED",
+      "o": "Download once, place anywhere"
+    },
+    {
+      "s": "feature:artifact-once",
+      "p": "ON_ARC",
+      "o": "arc:files"
+    },
+    {
+      "s": "feature:artifact-once",
+      "p": "PURPOSE",
+      "o": "One content-addressed copy of a file for the whole estate, placed on any machine that needs it."
+    },
+    {
+      "s": "feature:artifact-once",
+      "p": "REFUSES",
+      "o": "With expected-hash and the blob already held, the source is never opened — that is the saving, not de-dup after the fact."
+    },
+    {
+      "s": "feature:artifact-once",
+      "p": "REFUSES",
+      "o": "A --caused-by naming a proposal must name one a human actually signed; unsigned, declined or missing is refused."
+    },
+    {
+      "s": "feature:artifact-once",
+      "p": "REFUSES",
+      "o": "Omitting --caused-by stays legal and is recorded honestly as unprovenanced. Forcing it would teach you to type a plausible id."
+    },
+    {
+      "s": "feature:artifact-once",
+      "p": "REFUSES",
+      "o": "Eviction retires a placement and never the blob: reclaiming space must not destroy the only copy."
+    },
+    {
+      "s": "feature:artifact-once",
+      "p": "IMPLEMENTED_IN",
+      "o": "scripts/artifact.mjs"
+    },
+    {
+      "s": "feature:artifact-once",
+      "p": "IMPLEMENTED_IN",
+      "o": "server/coordination/lib/artifacts.mjs"
+    },
+    {
+      "s": "feature:artifact-once",
+      "p": "RUN_BY",
+      "o": "scripts/artifact.mjs"
+    },
+    {
+      "s": "feature:artifact-once",
+      "p": "TAGGED",
+      "o": "artifacts"
+    },
+    {
+      "s": "feature:artifact-once",
+      "p": "TAGGED",
+      "o": "nas"
+    },
+    {
+      "s": "feature:artifact-once",
+      "p": "TAGGED",
+      "o": "governance"
+    },
+    {
+      "s": "feature:provenance",
+      "p": "IS_A",
+      "o": "Feature"
+    },
+    {
+      "s": "feature:provenance",
+      "p": "NAMED",
+      "o": "Where a thing came from"
+    },
+    {
+      "s": "feature:provenance",
+      "p": "ON_ARC",
+      "o": "arc:lineage"
+    },
+    {
+      "s": "feature:provenance",
+      "p": "PURPOSE",
+      "o": "Two payload fields carry the estate's whole genealogy: derived_from and caused_by."
+    },
+    {
+      "s": "feature:provenance",
+      "p": "REFUSES",
+      "o": "An edge must be a subject id, never prose — a reason written as a reference becomes a dangling parent forever."
+    },
+    {
+      "s": "feature:provenance",
+      "p": "REFUSES",
+      "o": "Nothing is its own ancestor."
+    },
+    {
+      "s": "feature:provenance",
+      "p": "REFUSES",
+      "o": "Absent is not empty: with no provenance the keys are omitted, because [] would assert 'derived from nothing'."
+    },
+    {
+      "s": "feature:provenance",
+      "p": "IMPLEMENTED_IN",
+      "o": "server/coordination/lib/provenance.mjs"
+    },
+    {
+      "s": "feature:provenance",
+      "p": "TAGGED",
+      "o": "lineage"
+    },
+    {
+      "s": "feature:provenance",
+      "p": "TAGGED",
+      "o": "ss1-23"
+    },
+    {
+      "s": "feature:heartbeat",
+      "p": "IS_A",
+      "o": "Feature"
+    },
+    {
+      "s": "feature:heartbeat",
+      "p": "NAMED",
+      "o": "Estate heartbeat"
+    },
+    {
+      "s": "feature:heartbeat",
+      "p": "ON_ARC",
+      "o": "arc:mission"
+    },
+    {
+      "s": "feature:heartbeat",
+      "p": "PURPOSE",
+      "o": "Know which machines and services are alive, and notice silence rather than assuming health."
+    },
+    {
+      "s": "feature:heartbeat",
+      "p": "REFUSES",
+      "o": "The ledger records transitions, not observations — an unchanged service writes nothing."
+    },
+    {
+      "s": "feature:heartbeat",
+      "p": "REFUSES",
+      "o": "A stale node is not good news, it is no news: it is carried as a blind spot, never dropped from the board."
+    },
+    {
+      "s": "feature:heartbeat",
+      "p": "REFUSES",
+      "o": "A failed pull must not make a node vanish — absence reading as health is the failure this exists to catch."
+    },
+    {
+      "s": "feature:heartbeat",
+      "p": "IMPLEMENTED_IN",
+      "o": "server/coordination/lib/heartbeat.mjs"
+    },
+    {
+      "s": "feature:heartbeat",
+      "p": "IMPLEMENTED_IN",
+      "o": "scripts/heartbeat_estate.mjs"
+    },
+    {
+      "s": "feature:heartbeat",
+      "p": "RUN_BY",
+      "o": "scripts/heartbeat_run.mjs"
+    },
+    {
+      "s": "feature:heartbeat",
+      "p": "RUN_BY",
+      "o": "scripts/heartbeat_estate.mjs"
+    },
+    {
+      "s": "feature:heartbeat",
+      "p": "TAGGED",
+      "o": "estate"
+    },
+    {
+      "s": "feature:heartbeat",
+      "p": "TAGGED",
+      "o": "health"
+    },
+    {
+      "s": "feature:inventory",
+      "p": "IS_A",
+      "o": "Feature"
+    },
+    {
+      "s": "feature:inventory",
+      "p": "NAMED",
+      "o": "Inventory sweep"
+    },
+    {
+      "s": "feature:inventory",
+      "p": "ON_ARC",
+      "o": "arc:mission"
+    },
+    {
+      "s": "feature:inventory",
+      "p": "PURPOSE",
+      "o": "Look at the disk and hold the ledger to it — the outside view that makes two defects measurable."
+    },
+    {
+      "s": "feature:inventory",
+      "p": "REFUSES",
+      "o": "Reconciliation is by PATH, not machine: a placement is judged only if its path was actually walked."
+    },
+    {
+      "s": "feature:inventory",
+      "p": "REFUSES",
+      "o": "An unreachable path is UNSEEN — neither present nor missing, and folded into neither verdict."
+    },
+    {
+      "s": "feature:inventory",
+      "p": "REFUSES",
+      "o": "The scope travels with the result: '0 orphans' means nothing without the boundary it was measured in."
+    },
+    {
+      "s": "feature:inventory",
+      "p": "REFUSES",
+      "o": "It refuses to reconcile against a ledger that does not verify."
+    },
+    {
+      "s": "feature:inventory",
+      "p": "IMPLEMENTED_IN",
+      "o": "server/coordination/lib/inventory.mjs"
+    },
+    {
+      "s": "feature:inventory",
+      "p": "IMPLEMENTED_IN",
+      "o": "scripts/inventory_sweep.mjs"
+    },
+    {
+      "s": "feature:inventory",
+      "p": "RUN_BY",
+      "o": "scripts/inventory_sweep.mjs"
+    },
+    {
+      "s": "feature:inventory",
+      "p": "TAGGED",
+      "o": "ss1-23"
+    },
+    {
+      "s": "feature:inventory",
+      "p": "TAGGED",
+      "o": "estate"
+    },
+    {
+      "s": "feature:runs",
+      "p": "IS_A",
+      "o": "Feature"
+    },
+    {
+      "s": "feature:runs",
+      "p": "NAMED",
+      "o": "Run register"
+    },
+    {
+      "s": "feature:runs",
+      "p": "ON_ARC",
+      "o": "arc:mission"
+    },
+    {
+      "s": "feature:runs",
+      "p": "PURPOSE",
+      "o": "Record every execution, authorised or not, so unauthorised ones can be found."
+    },
+    {
+      "s": "feature:runs",
+      "p": "REFUSES",
+      "o": "A system that will not record an unauthorised run cannot detect one — proposal_id is recorded as claimed, including null."
+    },
+    {
+      "s": "feature:runs",
+      "p": "REFUSES",
+      "o": "Verification happens at read time, never at write time."
+    },
+    {
+      "s": "feature:runs",
+      "p": "REFUSES",
+      "o": "Outcome carries what actually happened; a register of successes only answers a different question."
+    },
+    {
+      "s": "feature:runs",
+      "p": "IMPLEMENTED_IN",
+      "o": "server/coordination/lib/runs.mjs"
+    },
+    {
+      "s": "feature:runs",
+      "p": "TAGGED",
+      "o": "ss1-23"
+    },
+    {
+      "s": "feature:runs",
+      "p": "TAGGED",
+      "o": "governance"
+    },
+    {
+      "s": "feature:evidence-pack",
+      "p": "IS_A",
+      "o": "Feature"
+    },
+    {
+      "s": "feature:evidence-pack",
+      "p": "NAMED",
+      "o": "Evidence pack"
+    },
+    {
+      "s": "feature:evidence-pack",
+      "p": "ON_ARC",
+      "o": "arc:mission"
+    },
+    {
+      "s": "feature:evidence-pack",
+      "p": "PURPOSE",
+      "o": "One document a reviewer can read without a tour of the codebase, including what cannot be proved."
+    },
+    {
+      "s": "feature:evidence-pack",
+      "p": "REFUSES",
+      "o": "Three states per defect: clean, defects found, or NOT MEASURABLE. The third never masquerades as the first."
+    },
+    {
+      "s": "feature:evidence-pack",
+      "p": "REFUSES",
+      "o": "A gauge with an empty population is named as vacuous — 0 of 0 and 0 of 200 are the same digit and different assurances."
+    },
+    {
+      "s": "feature:evidence-pack",
+      "p": "REFUSES",
+      "o": "Pre-control runs are excluded and shown, because a run cannot be signed by a mechanism that did not exist when it ran."
+    },
+    {
+      "s": "feature:evidence-pack",
+      "p": "IMPLEMENTED_IN",
+      "o": "server/coordination/lib/evidence.mjs"
+    },
+    {
+      "s": "feature:evidence-pack",
+      "p": "IMPLEMENTED_IN",
+      "o": "scripts/evidence_pack.mjs"
+    },
+    {
+      "s": "feature:evidence-pack",
+      "p": "RUN_BY",
+      "o": "scripts/evidence_pack.mjs"
+    },
+    {
+      "s": "feature:evidence-pack",
+      "p": "TAGGED",
+      "o": "ss1-23"
+    },
+    {
+      "s": "feature:evidence-pack",
+      "p": "TAGGED",
+      "o": "audit"
+    },
+    {
+      "s": "feature:benny",
+      "p": "IS_A",
+      "o": "Feature"
+    },
+    {
+      "s": "feature:benny",
+      "p": "NAMED",
+      "o": "Agent Benny"
+    },
+    {
+      "s": "feature:benny",
+      "p": "ON_ARC",
+      "o": "arc:agent"
+    },
+    {
+      "s": "feature:benny",
+      "p": "PURPOSE",
+      "o": "The guide who lives in the app: answers in the first person, raises proposals, and never signs."
+    },
+    {
+      "s": "feature:benny",
+      "p": "REFUSES",
+      "o": "Benny narrates in the first person, short and warm, and never uses marketing voice inside the product."
+    },
+    {
+      "s": "feature:benny",
+      "p": "REFUSES",
+      "o": "He may propose and may never authorise (ADR-001)."
+    },
+    {
+      "s": "feature:benny",
+      "p": "REFUSES",
+      "o": "Motion is feedback to what you did; his idle micro-states are the only sanctioned loop."
+    },
+    {
+      "s": "feature:benny",
+      "p": "IMPLEMENTED_IN",
+      "o": "app/L0/_all/mod/_prime_silo/gov/gov.js"
+    },
+    {
+      "s": "feature:benny",
+      "p": "TAGGED",
+      "o": "agent"
+    },
+    {
+      "s": "feature:benny",
+      "p": "TAGGED",
+      "o": "interface"
+    },
+    {
+      "s": "feature:arcs",
+      "p": "IS_A",
+      "o": "Feature"
+    },
+    {
+      "s": "feature:arcs",
+      "p": "NAMED",
+      "o": "Arc navigation"
+    },
+    {
+      "s": "feature:arcs",
+      "p": "ON_ARC",
+      "o": "arc:agent"
+    },
+    {
+      "s": "feature:arcs",
+      "p": "PURPOSE",
+      "o": "The ring of arcs is the estate's map: each arc is a job, not a menu category."
+    },
+    {
+      "s": "feature:arcs",
+      "p": "REFUSES",
+      "o": "One primary action per view, rust-accented; everything secondary sits behind a consistent More disclosure."
+    },
+    {
+      "s": "feature:arcs",
+      "p": "REFUSES",
+      "o": "No ambient motion — animation is feedback to a user action only."
+    },
+    {
+      "s": "feature:arcs",
+      "p": "REFUSES",
+      "o": "Every surface must be readable at 375px and in reduced-motion."
+    },
+    {
+      "s": "feature:arcs",
+      "p": "IMPLEMENTED_IN",
+      "o": "app/L0/_all/mod/_core/visual/navi/navi-key.js"
+    },
+    {
+      "s": "feature:arcs",
+      "p": "TAGGED",
+      "o": "interface"
+    },
+    {
+      "s": "workflow:onboard-application",
+      "p": "IS_A",
+      "o": "Workflow"
+    },
+    {
+      "s": "workflow:onboard-application",
+      "p": "NAMED",
+      "o": "Onboard an application"
+    },
+    {
+      "s": "workflow:onboard-application",
+      "p": "PURPOSE",
+      "o": "Bring a new application into the estate so it is authorised, stored once, placed everywhere, and remembered."
+    },
+    {
+      "s": "workflow:onboard-application:step:1",
+      "p": "IS_A",
+      "o": "WorkflowStep"
+    },
+    {
+      "s": "workflow:onboard-application:step:1",
+      "p": "STEP_OF",
+      "o": "workflow:onboard-application"
+    },
+    {
+      "s": "workflow:onboard-application:step:1",
+      "p": "POSITION",
+      "o": "1"
+    },
+    {
+      "s": "workflow:onboard-application:step:1",
+      "p": "NAMED",
+      "o": "Propose"
+    },
+    {
+      "s": "workflow:onboard-application:step:1",
+      "p": "PERFORMED_BY",
+      "o": "agent or you"
+    },
+    {
+      "s": "workflow:onboard-application:step:1",
+      "p": "COMMAND",
+      "o": "node scripts/app_onboard.mjs propose --app <id> --title <name> --source <url> --rationale <why>"
+    },
+    {
+      "s": "workflow:onboard-application:step:1",
+      "p": "GATED_BY",
+      "o": "Nothing is downloaded or installed at this step."
+    },
+    {
+      "s": "workflow:onboard-application:step:1",
+      "p": "PRECEDES",
+      "o": "workflow:onboard-application:step:2"
+    },
+    {
+      "s": "workflow:onboard-application:step:2",
+      "p": "IS_A",
+      "o": "WorkflowStep"
+    },
+    {
+      "s": "workflow:onboard-application:step:2",
+      "p": "STEP_OF",
+      "o": "workflow:onboard-application"
+    },
+    {
+      "s": "workflow:onboard-application:step:2",
+      "p": "POSITION",
+      "o": "2"
+    },
+    {
+      "s": "workflow:onboard-application:step:2",
+      "p": "NAMED",
+      "o": "Decide"
+    },
+    {
+      "s": "workflow:onboard-application:step:2",
+      "p": "PERFORMED_BY",
+      "o": "you, and only you"
+    },
+    {
+      "s": "workflow:onboard-application:step:2",
+      "p": "GATED_BY",
+      "o": "The workflow refuses to continue while the proposal is open or declined."
+    },
+    {
+      "s": "workflow:onboard-application:step:2",
+      "p": "PRECEDES",
+      "o": "workflow:onboard-application:step:3"
+    },
+    {
+      "s": "workflow:onboard-application:step:3",
+      "p": "IS_A",
+      "o": "WorkflowStep"
+    },
+    {
+      "s": "workflow:onboard-application:step:3",
+      "p": "STEP_OF",
+      "o": "workflow:onboard-application"
+    },
+    {
+      "s": "workflow:onboard-application:step:3",
+      "p": "POSITION",
+      "o": "3"
+    },
+    {
+      "s": "workflow:onboard-application:step:3",
+      "p": "NAMED",
+      "o": "Acquire"
+    },
+    {
+      "s": "workflow:onboard-application:step:3",
+      "p": "PERFORMED_BY",
+      "o": "estate"
+    },
+    {
+      "s": "workflow:onboard-application:step:3",
+      "p": "COMMAND",
+      "o": "node scripts/app_onboard.mjs acquire --app <id>"
+    },
+    {
+      "s": "workflow:onboard-application:step:3",
+      "p": "GATED_BY",
+      "o": "If the hash is already held the source is never opened."
+    },
+    {
+      "s": "workflow:onboard-application:step:3",
+      "p": "PRECEDES",
+      "o": "workflow:onboard-application:step:4"
+    },
+    {
+      "s": "workflow:onboard-application:step:4",
+      "p": "IS_A",
+      "o": "WorkflowStep"
+    },
+    {
+      "s": "workflow:onboard-application:step:4",
+      "p": "STEP_OF",
+      "o": "workflow:onboard-application"
+    },
+    {
+      "s": "workflow:onboard-application:step:4",
+      "p": "POSITION",
+      "o": "4"
+    },
+    {
+      "s": "workflow:onboard-application:step:4",
+      "p": "NAMED",
+      "o": "Place"
+    },
+    {
+      "s": "workflow:onboard-application:step:4",
+      "p": "PERFORMED_BY",
+      "o": "estate"
+    },
+    {
+      "s": "workflow:onboard-application:step:4",
+      "p": "COMMAND",
+      "o": "node scripts/app_onboard.mjs place --app <id> --at <path>"
+    },
+    {
+      "s": "workflow:onboard-application:step:4",
+      "p": "GATED_BY",
+      "o": "Each placement records the same signed proposal as its cause."
+    },
+    {
+      "s": "workflow:onboard-application:step:4",
+      "p": "PRECEDES",
+      "o": "workflow:onboard-application:step:5"
+    },
+    {
+      "s": "workflow:onboard-application:step:5",
+      "p": "IS_A",
+      "o": "WorkflowStep"
+    },
+    {
+      "s": "workflow:onboard-application:step:5",
+      "p": "STEP_OF",
+      "o": "workflow:onboard-application"
+    },
+    {
+      "s": "workflow:onboard-application:step:5",
+      "p": "POSITION",
+      "o": "5"
+    },
+    {
+      "s": "workflow:onboard-application:step:5",
+      "p": "NAMED",
+      "o": "Remember"
+    },
+    {
+      "s": "workflow:onboard-application:step:5",
+      "p": "PERFORMED_BY",
+      "o": "estate"
+    },
+    {
+      "s": "workflow:onboard-application:step:5",
+      "p": "COMMAND",
+      "o": "node scripts/manual_build.mjs"
+    },
+    {
+      "s": "workflow:onboard-application:step:5",
+      "p": "GATED_BY",
+      "o": "The build fails if the new entry references a file or surface that does not exist."
+    },
+    {
+      "s": "workflow:onboard-application:step:5",
+      "p": "PRECEDES",
+      "o": "workflow:onboard-application:step:6"
+    },
+    {
+      "s": "workflow:onboard-application:step:6",
+      "p": "IS_A",
+      "o": "WorkflowStep"
+    },
+    {
+      "s": "workflow:onboard-application:step:6",
+      "p": "STEP_OF",
+      "o": "workflow:onboard-application"
+    },
+    {
+      "s": "workflow:onboard-application:step:6",
+      "p": "POSITION",
+      "o": "6"
+    },
+    {
+      "s": "workflow:onboard-application:step:6",
+      "p": "NAMED",
+      "o": "Prove"
+    },
+    {
+      "s": "workflow:onboard-application:step:6",
+      "p": "PERFORMED_BY",
+      "o": "estate"
+    },
+    {
+      "s": "workflow:onboard-application:step:6",
+      "p": "COMMAND",
+      "o": "node scripts/evidence_pack.mjs"
+    },
+    {
+      "s": "workflow:onboard-application:step:6",
+      "p": "GATED_BY",
+      "o": "Exit 0 only if every defect is measured, zero and non-vacuous."
+    },
+    {
+      "s": "workflow:prove-the-estate",
+      "p": "IS_A",
+      "o": "Workflow"
+    },
+    {
+      "s": "workflow:prove-the-estate",
+      "p": "NAMED",
+      "o": "Prove the estate"
+    },
+    {
+      "s": "workflow:prove-the-estate",
+      "p": "PURPOSE",
+      "o": "Produce, from cold, the evidence that the estate is governed."
+    },
+    {
+      "s": "workflow:prove-the-estate:step:1",
+      "p": "IS_A",
+      "o": "WorkflowStep"
+    },
+    {
+      "s": "workflow:prove-the-estate:step:1",
+      "p": "STEP_OF",
+      "o": "workflow:prove-the-estate"
+    },
+    {
+      "s": "workflow:prove-the-estate:step:1",
+      "p": "POSITION",
+      "o": "1"
+    },
+    {
+      "s": "workflow:prove-the-estate:step:1",
+      "p": "NAMED",
+      "o": "Sweep"
+    },
+    {
+      "s": "workflow:prove-the-estate:step:1",
+      "p": "PERFORMED_BY",
+      "o": "estate"
+    },
+    {
+      "s": "workflow:prove-the-estate:step:1",
+      "p": "COMMAND",
+      "o": "node scripts/inventory_sweep.mjs --record"
+    },
+    {
+      "s": "workflow:prove-the-estate:step:1",
+      "p": "PRECEDES",
+      "o": "workflow:prove-the-estate:step:2"
+    },
+    {
+      "s": "workflow:prove-the-estate:step:2",
+      "p": "IS_A",
+      "o": "WorkflowStep"
+    },
+    {
+      "s": "workflow:prove-the-estate:step:2",
+      "p": "STEP_OF",
+      "o": "workflow:prove-the-estate"
+    },
+    {
+      "s": "workflow:prove-the-estate:step:2",
+      "p": "POSITION",
+      "o": "2"
+    },
+    {
+      "s": "workflow:prove-the-estate:step:2",
+      "p": "NAMED",
+      "o": "Board"
+    },
+    {
+      "s": "workflow:prove-the-estate:step:2",
+      "p": "PERFORMED_BY",
+      "o": "estate"
+    },
+    {
+      "s": "workflow:prove-the-estate:step:2",
+      "p": "COMMAND",
+      "o": "node scripts/heartbeat_estate.mjs --run-proposal collector-schedule"
+    },
+    {
+      "s": "workflow:prove-the-estate:step:2",
+      "p": "PRECEDES",
+      "o": "workflow:prove-the-estate:step:3"
+    },
+    {
+      "s": "workflow:prove-the-estate:step:3",
+      "p": "IS_A",
+      "o": "WorkflowStep"
+    },
+    {
+      "s": "workflow:prove-the-estate:step:3",
+      "p": "STEP_OF",
+      "o": "workflow:prove-the-estate"
+    },
+    {
+      "s": "workflow:prove-the-estate:step:3",
+      "p": "POSITION",
+      "o": "3"
+    },
+    {
+      "s": "workflow:prove-the-estate:step:3",
+      "p": "NAMED",
+      "o": "Pack"
+    },
+    {
+      "s": "workflow:prove-the-estate:step:3",
+      "p": "PERFORMED_BY",
+      "o": "estate"
+    },
+    {
+      "s": "workflow:prove-the-estate:step:3",
+      "p": "COMMAND",
+      "o": "node scripts/evidence_pack.mjs"
+    },
+    {
+      "s": "workflow:prove-the-estate:step:3",
+      "p": "PRECEDES",
+      "o": "workflow:prove-the-estate:step:4"
+    },
+    {
+      "s": "workflow:prove-the-estate:step:4",
+      "p": "IS_A",
+      "o": "WorkflowStep"
+    },
+    {
+      "s": "workflow:prove-the-estate:step:4",
+      "p": "STEP_OF",
+      "o": "workflow:prove-the-estate"
+    },
+    {
+      "s": "workflow:prove-the-estate:step:4",
+      "p": "POSITION",
+      "o": "4"
+    },
+    {
+      "s": "workflow:prove-the-estate:step:4",
+      "p": "NAMED",
+      "o": "Read"
+    },
+    {
+      "s": "workflow:prove-the-estate:step:4",
+      "p": "PERFORMED_BY",
+      "o": "you"
+    }
+  ]
+}
