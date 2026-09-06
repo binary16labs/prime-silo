@@ -194,7 +194,7 @@ for (const f of manual.features) {
     `${f.name} (${arcName} arc). ${f.purpose} ` +
     `How to use it: ${f.how.join(" ")}` +
     (f.api?.length ? ` API: ${f.api.join(", ")}.` : "") +
-    (f.aliases?.length ? ` Also called: ${f.aliases.join(", ")}.` : "");
+    (f.aliases?.length ? ` (${f.aliases.join(", ")})` : "");
   chunks.push({
     id: `manual:feature:${f.id}:use`,
     hash: stableId(use),
@@ -209,9 +209,14 @@ for (const f of manual.features) {
   // The words a person would actually type, carried into every chunk of this feature. A
   // correct chunk that shares no vocabulary with the question is unreachable, and no amount of
   // finer splitting fixes that — the split was already right when this was still failing.
-  const alias = f.aliases?.length ? ` Also called: ${f.aliases.join(", ")}.` : "";
+  // No shared framing in the embedded text. "X (Y arc) refuses to do this:" opened all 42
+  // invariant chunks identically, so it contributed the same similarity to every one of them
+  // and could not discriminate between any two — pure ballast competing with the words that
+  // actually differ. The feature name and arc DO differ per chunk, so they stay; the fact that
+  // this chunk is an invariant moves to `kind`, which is metadata's job.
+  const alias = f.aliases?.length ? ` (${f.aliases.join(", ")})` : "";
   f.invariants.forEach((inv, i) => {
-    const text = `${f.name} (${arcName} arc) refuses to do this: ${inv}${alias}`;
+    const text = `${f.name} — ${arcName} arc. ${inv}${alias}`;
     chunks.push({
       id: `manual:feature:${f.id}:refuses:${i + 1}`,
       hash: stableId(text),
@@ -293,8 +298,8 @@ for (const a of manual.arcs) {
       // One leaf per invariant: the finest unit anyone actually asks a question about.
       px.push(`#### ${f.name} refusal ${i + 1}`, "");
       px.push(
-        `${f.name} (${a.name} arc) refuses to do this: ${inv}` +
-          (f.aliases?.length ? ` Also called: ${f.aliases.join(", ")}.` : ""),
+        `${f.name} — ${a.name} arc. ${inv}` +
+          (f.aliases?.length ? ` (${f.aliases.join(", ")})` : ""),
         ""
       );
     });

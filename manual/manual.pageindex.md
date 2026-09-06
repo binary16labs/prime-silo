@@ -32,15 +32,15 @@ Raise a proposal (Gov arc). Put work forward for a decision. This is where every
 
 #### Raise a proposal refusal 1
 
-Raise a proposal (Gov arc) refuses to do this: authorship is hard-coded frontier: a request is a program, never a person. Who asked is kept separately as requested_by. Also called: propose, proposal, raise.
+Raise a proposal — Gov arc. authorship is hard-coded frontier: a request is a program, never a person. Who asked is kept separately as requested_by. (propose, proposal, raise)
 
 #### Raise a proposal refusal 2
 
-Raise a proposal (Gov arc) refuses to do this: A proposal without a rationale is refused — the signer decides on the why, not the title. Also called: propose, proposal, raise.
+Raise a proposal — Gov arc. A proposal without a rationale is refused — the signer decides on the why, not the title. (propose, proposal, raise)
 
 #### Raise a proposal refusal 3
 
-Raise a proposal (Gov arc) refuses to do this: derivedFrom must be subject ids, never prose; a reason is not a reference. Also called: propose, proposal, raise.
+Raise a proposal — Gov arc. derivedFrom must be subject ids, never prose; a reason is not a reference. (propose, proposal, raise)
 
 ### Sign or decline
 
@@ -48,19 +48,19 @@ Sign or decline (Gov arc). The one place authorisation is granted in the whole e
 
 #### Sign or decline refusal 1
 
-Sign or decline (Gov arc) refuses to do this: The client cannot choose the signer — identity comes from the session, and a signer in the request body is ignored. Also called: signature, authorise, approve, sign off, Gov arc.
+Sign or decline — Gov arc. The client cannot choose the signer — identity comes from the session, and a signer in the request body is ignored. (signature, authorise, approve, sign off, Gov arc)
 
 #### Sign or decline refusal 2
 
-Sign or decline (Gov arc) refuses to do this: Only a human signs: authorship is hard-coded, not a parameter. Also called: signature, authorise, approve, sign off, Gov arc.
+Sign or decline — Gov arc. Only a human signs: authorship is hard-coded, not a parameter. (signature, authorise, approve, sign off, Gov arc)
 
 #### Sign or decline refusal 3
 
-Sign or decline (Gov arc) refuses to do this: Declines are kept. A register of approvals only would imply everything proposed was accepted. Also called: signature, authorise, approve, sign off, Gov arc.
+Sign or decline — Gov arc. Declines are kept. A register of approvals only would imply everything proposed was accepted. (signature, authorise, approve, sign off, Gov arc)
 
 #### Sign or decline refusal 4
 
-Sign or decline (Gov arc) refuses to do this: Signing is refused onto a ledger whose chain does not verify. Also called: signature, authorise, approve, sign off, Gov arc.
+Sign or decline — Gov arc. Signing is refused onto a ledger whose chain does not verify. (signature, authorise, approve, sign off, Gov arc)
 
 ## Lineage arc
 
@@ -72,15 +72,15 @@ The event ledger (Lineage arc). Every fact the estate knows is an append-only, h
 
 #### The event ledger refusal 1
 
-The event ledger (Lineage arc) refuses to do this: authorship is exactly human | frontier | house — nothing else is valid. Also called: KEL, event log, eventlog, ledger, hash chain.
+The event ledger — Lineage arc. authorship is exactly human | frontier | house — nothing else is valid. (KEL, event log, eventlog, ledger, hash chain)
 
 #### The event ledger refusal 2
 
-The event ledger (Lineage arc) refuses to do this: valid_time is when a thing was true; txn_time is when we learned it; time_confidence says which of those was measured. Also called: KEL, event log, eventlog, ledger, hash chain.
+The event ledger — Lineage arc. valid_time is when a thing was true; txn_time is when we learned it; time_confidence says which of those was measured. (KEL, event log, eventlog, ledger, hash chain)
 
 #### The event ledger refusal 3
 
-The event ledger (Lineage arc) refuses to do this: A broken chain quarantines its own ledger and no others. Also called: KEL, event log, eventlog, ledger, hash chain.
+The event ledger — Lineage arc. A broken chain quarantines its own ledger and no others. (KEL, event log, eventlog, ledger, hash chain)
 
 ### Total lineage
 
@@ -88,15 +88,15 @@ Total lineage (Lineage arc). Every subject the estate has recorded, folded from 
 
 #### Total lineage refusal 1
 
-Total lineage (Lineage arc) refuses to do this: A subject from a failing ledger is shown but never counted as evidence. Also called: provenance, audit trail, where did this come from.
+Total lineage — Lineage arc. A subject from a failing ledger is shown but never counted as evidence. (provenance, audit trail, where did this come from)
 
 #### Total lineage refusal 2
 
-Total lineage (Lineage arc) refuses to do this: Edges exist only where an event declares derived_from or caused_by. Nothing is inferred. Also called: provenance, audit trail, where did this come from.
+Total lineage — Lineage arc. Edges exist only where an event declares derived_from or caused_by. Nothing is inferred. (provenance, audit trail, where did this come from)
 
 #### Total lineage refusal 3
 
-Total lineage (Lineage arc) refuses to do this: Ledger-to-world completeness is NOT MEASURABLE without an inventory sweep, and says so. Also called: provenance, audit trail, where did this come from.
+Total lineage — Lineage arc. Ledger-to-world completeness is NOT MEASURABLE without an inventory sweep, and says so. (provenance, audit trail, where did this come from)
 
 ### Step through a subject's history
 
@@ -104,15 +104,15 @@ Step through a subject's history (Lineage arc). Replay any subject one event at 
 
 #### Step through a subject's history refusal 1
 
-Step through a subject's history (Lineage arc) refuses to do this: The projection at each step is computed with the system's own projector, so a replay can never drift from live state. Also called: replay, step through, history, time travel.
+Step through a subject's history — Lineage arc. The projection at each step is computed with the system's own projector, so a replay can never drift from live state. (replay, step through, history, time travel)
 
 #### Step through a subject's history refusal 2
 
-Step through a subject's history (Lineage arc) refuses to do this: That projector is last-write-wins per subject, not accumulating — the field is called projection, not state, and the page says so. Also called: replay, step through, history, time travel.
+Step through a subject's history — Lineage arc. That projector is last-write-wins per subject, not accumulating — the field is called projection, not state, and the page says so. (replay, step through, history, time travel)
 
 #### Step through a subject's history refusal 3
 
-Step through a subject's history (Lineage arc) refuses to do this: The event's own payload is always shown in full and is never lossy. Also called: replay, step through, history, time travel.
+Step through a subject's history — Lineage arc. The event's own payload is always shown in full and is never lossy. (replay, step through, history, time travel)
 
 ### Where a thing came from
 
@@ -120,15 +120,15 @@ Where a thing came from (Lineage arc). Two payload fields carry the estate's who
 
 #### Where a thing came from refusal 1
 
-Where a thing came from (Lineage arc) refuses to do this: An edge must be a subject id, never prose — a reason written as a reference becomes a dangling parent forever. Also called: derived_from, caused_by, origin.
+Where a thing came from — Lineage arc. An edge must be a subject id, never prose — a reason written as a reference becomes a dangling parent forever. (derived_from, caused_by, origin)
 
 #### Where a thing came from refusal 2
 
-Where a thing came from (Lineage arc) refuses to do this: Nothing is its own ancestor. Also called: derived_from, caused_by, origin.
+Where a thing came from — Lineage arc. Nothing is its own ancestor. (derived_from, caused_by, origin)
 
 #### Where a thing came from refusal 3
 
-Where a thing came from (Lineage arc) refuses to do this: Absent is not empty: with no provenance the keys are omitted, because [] would assert 'derived from nothing'. Also called: derived_from, caused_by, origin.
+Where a thing came from — Lineage arc. Absent is not empty: with no provenance the keys are omitted, because [] would assert 'derived from nothing'. (derived_from, caused_by, origin)
 
 ## Mission Control arc
 
@@ -140,15 +140,15 @@ Estate heartbeat (Mission Control arc). Know which machines and services are ali
 
 #### Estate heartbeat refusal 1
 
-Estate heartbeat (Mission Control arc) refuses to do this: The ledger records transitions, not observations — an unchanged service writes nothing. Also called: health, uptime, estate board, node down.
+Estate heartbeat — Mission Control arc. The ledger records transitions, not observations — an unchanged service writes nothing. (health, uptime, estate board, node down)
 
 #### Estate heartbeat refusal 2
 
-Estate heartbeat (Mission Control arc) refuses to do this: A stale node is not good news, it is no news: it is carried as a blind spot, never dropped from the board. Also called: health, uptime, estate board, node down.
+Estate heartbeat — Mission Control arc. A stale node is not good news, it is no news: it is carried as a blind spot, never dropped from the board. (health, uptime, estate board, node down)
 
 #### Estate heartbeat refusal 3
 
-Estate heartbeat (Mission Control arc) refuses to do this: A failed pull must not make a node vanish — absence reading as health is the failure this exists to catch. Also called: health, uptime, estate board, node down.
+Estate heartbeat — Mission Control arc. A failed pull must not make a node vanish — absence reading as health is the failure this exists to catch. (health, uptime, estate board, node down)
 
 ### Inventory sweep
 
@@ -156,19 +156,19 @@ Inventory sweep (Mission Control arc). Look at the disk and hold the ledger to i
 
 #### Inventory sweep refusal 1
 
-Inventory sweep (Mission Control arc) refuses to do this: Reconciliation is by PATH, not machine: a placement is judged only if its path was actually walked. Also called: sweep, reconcile, orphan, scripts/inventory_sweep.mjs.
+Inventory sweep — Mission Control arc. Reconciliation is by PATH, not machine: a placement is judged only if its path was actually walked. (sweep, reconcile, orphan, scripts/inventory_sweep.mjs)
 
 #### Inventory sweep refusal 2
 
-Inventory sweep (Mission Control arc) refuses to do this: An unreachable path is UNSEEN — neither present nor missing, and folded into neither verdict. Also called: sweep, reconcile, orphan, scripts/inventory_sweep.mjs.
+Inventory sweep — Mission Control arc. An unreachable path is UNSEEN — neither present nor missing, and folded into neither verdict. (sweep, reconcile, orphan, scripts/inventory_sweep.mjs)
 
 #### Inventory sweep refusal 3
 
-Inventory sweep (Mission Control arc) refuses to do this: The scope travels with the result: '0 orphans' means nothing without the boundary it was measured in. Also called: sweep, reconcile, orphan, scripts/inventory_sweep.mjs.
+Inventory sweep — Mission Control arc. The scope travels with the result: '0 orphans' means nothing without the boundary it was measured in. (sweep, reconcile, orphan, scripts/inventory_sweep.mjs)
 
 #### Inventory sweep refusal 4
 
-Inventory sweep (Mission Control arc) refuses to do this: It refuses to reconcile against a ledger that does not verify. Also called: sweep, reconcile, orphan, scripts/inventory_sweep.mjs.
+Inventory sweep — Mission Control arc. It refuses to reconcile against a ledger that does not verify. (sweep, reconcile, orphan, scripts/inventory_sweep.mjs)
 
 ### Run register
 
@@ -176,15 +176,15 @@ Run register (Mission Control arc). Record every execution, authorised or not, s
 
 #### Run register refusal 1
 
-Run register (Mission Control arc) refuses to do this: A system that will not record an unauthorised run cannot detect one — proposal_id is recorded as claimed, including null. Also called: run register, execution, unauthorised run.
+Run register — Mission Control arc. A system that will not record an unauthorised run cannot detect one — proposal_id is recorded as claimed, including null. (run register, execution, unauthorised run)
 
 #### Run register refusal 2
 
-Run register (Mission Control arc) refuses to do this: Verification happens at read time, never at write time. Also called: run register, execution, unauthorised run.
+Run register — Mission Control arc. Verification happens at read time, never at write time. (run register, execution, unauthorised run)
 
 #### Run register refusal 3
 
-Run register (Mission Control arc) refuses to do this: Outcome carries what actually happened; a register of successes only answers a different question. Also called: run register, execution, unauthorised run.
+Run register — Mission Control arc. Outcome carries what actually happened; a register of successes only answers a different question. (run register, execution, unauthorised run)
 
 ### Evidence pack
 
@@ -192,15 +192,15 @@ Evidence pack (Mission Control arc). One document a reviewer can read without a 
 
 #### Evidence pack refusal 1
 
-Evidence pack (Mission Control arc) refuses to do this: Three states per defect: clean, defects found, or NOT MEASURABLE. The third never masquerades as the first. Also called: audit, evidence, closure defect, scripts/evidence_pack.mjs.
+Evidence pack — Mission Control arc. Three states per defect: clean, defects found, or NOT MEASURABLE. The third never masquerades as the first. (audit, evidence, closure defect, scripts/evidence_pack.mjs)
 
 #### Evidence pack refusal 2
 
-Evidence pack (Mission Control arc) refuses to do this: A gauge with an empty population is named as vacuous — 0 of 0 and 0 of 200 are the same digit and different assurances. Also called: audit, evidence, closure defect, scripts/evidence_pack.mjs.
+Evidence pack — Mission Control arc. A gauge with an empty population is named as vacuous — 0 of 0 and 0 of 200 are the same digit and different assurances. (audit, evidence, closure defect, scripts/evidence_pack.mjs)
 
 #### Evidence pack refusal 3
 
-Evidence pack (Mission Control arc) refuses to do this: Pre-control runs are excluded and shown, because a run cannot be signed by a mechanism that did not exist when it ran. Also called: audit, evidence, closure defect, scripts/evidence_pack.mjs.
+Evidence pack — Mission Control arc. Pre-control runs are excluded and shown, because a run cannot be signed by a mechanism that did not exist when it ran. (audit, evidence, closure defect, scripts/evidence_pack.mjs)
 
 ## Agent arc
 
@@ -212,15 +212,15 @@ Agent Benny (Agent arc). The guide who lives in the app: answers in the first pe
 
 #### Agent Benny refusal 1
 
-Agent Benny (Agent arc) refuses to do this: Benny narrates in the first person, short and warm, and never uses marketing voice inside the product. Also called: agent, assistant, dog, mascot.
+Agent Benny — Agent arc. Benny narrates in the first person, short and warm, and never uses marketing voice inside the product. (agent, assistant, dog, mascot)
 
 #### Agent Benny refusal 2
 
-Agent Benny (Agent arc) refuses to do this: He may propose and may never authorise (ADR-001). Also called: agent, assistant, dog, mascot.
+Agent Benny — Agent arc. He may propose and may never authorise (ADR-001). (agent, assistant, dog, mascot)
 
 #### Agent Benny refusal 3
 
-Agent Benny (Agent arc) refuses to do this: Motion is feedback to what you did; his idle micro-states are the only sanctioned loop. Also called: agent, assistant, dog, mascot.
+Agent Benny — Agent arc. Motion is feedback to what you did; his idle micro-states are the only sanctioned loop. (agent, assistant, dog, mascot)
 
 ### Arc navigation
 
@@ -228,15 +228,15 @@ Arc navigation (Agent arc). The ring of arcs is the estate's map: each arc is a 
 
 #### Arc navigation refusal 1
 
-Arc navigation (Agent arc) refuses to do this: One primary action per view, rust-accented; everything secondary sits behind a consistent More disclosure. Also called: navigation, ring, navi-key, panels.
+Arc navigation — Agent arc. One primary action per view, rust-accented; everything secondary sits behind a consistent More disclosure. (navigation, ring, navi-key, panels)
 
 #### Arc navigation refusal 2
 
-Arc navigation (Agent arc) refuses to do this: No ambient motion — animation is feedback to a user action only. Also called: navigation, ring, navi-key, panels.
+Arc navigation — Agent arc. No ambient motion — animation is feedback to a user action only. (navigation, ring, navi-key, panels)
 
 #### Arc navigation refusal 3
 
-Arc navigation (Agent arc) refuses to do this: Every surface must be readable at 375px and in reduced-motion. Also called: navigation, ring, navi-key, panels.
+Arc navigation — Agent arc. Every surface must be readable at 375px and in reduced-motion. (navigation, ring, navi-key, panels)
 
 ## Files arc
 
@@ -248,19 +248,19 @@ Download once, place anywhere (Files arc). One content-addressed copy of a file 
 
 #### Download once, place anywhere refusal 1
 
-Download once, place anywhere (Files arc) refuses to do this: With expected-hash and the blob already held, the source is never opened — that is the saving, not de-dup after the fact. Also called: artifact CLI, scripts/artifact.mjs, acquire, place, evict, download, installer, NAS.
+Download once, place anywhere — Files arc. With expected-hash and the blob already held, the source is never opened — that is the saving, not de-dup after the fact. (artifact CLI, scripts/artifact.mjs, acquire, place, evict, download, installer, NAS)
 
 #### Download once, place anywhere refusal 2
 
-Download once, place anywhere (Files arc) refuses to do this: A --caused-by naming a proposal must name one a human actually signed; unsigned, declined or missing is refused. Also called: artifact CLI, scripts/artifact.mjs, acquire, place, evict, download, installer, NAS.
+Download once, place anywhere — Files arc. A --caused-by naming a proposal must name one a human actually signed; unsigned, declined or missing is refused. (artifact CLI, scripts/artifact.mjs, acquire, place, evict, download, installer, NAS)
 
 #### Download once, place anywhere refusal 3
 
-Download once, place anywhere (Files arc) refuses to do this: Omitting --caused-by stays legal and is recorded honestly as unprovenanced. Forcing it would teach you to type a plausible id. Also called: artifact CLI, scripts/artifact.mjs, acquire, place, evict, download, installer, NAS.
+Download once, place anywhere — Files arc. Omitting --caused-by stays legal and is recorded honestly as unprovenanced. Forcing it would teach you to type a plausible id. (artifact CLI, scripts/artifact.mjs, acquire, place, evict, download, installer, NAS)
 
 #### Download once, place anywhere refusal 4
 
-Download once, place anywhere (Files arc) refuses to do this: Eviction retires a placement and never the blob: reclaiming space must not destroy the only copy. Also called: artifact CLI, scripts/artifact.mjs, acquire, place, evict, download, installer, NAS.
+Download once, place anywhere — Files arc. Eviction retires a placement and never the blob: reclaiming space must not destroy the only copy. (artifact CLI, scripts/artifact.mjs, acquire, place, evict, download, installer, NAS)
 
 ## Workflow: Onboard an application
 
