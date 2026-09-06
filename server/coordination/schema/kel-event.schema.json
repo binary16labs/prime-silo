@@ -43,7 +43,8 @@
         "artifact_placed",
         "artifact_evicted",
         "node_observed",
-        "service_transitioned"
+        "service_transitioned",
+        "sweep_recorded"
       ]
     },
     "valid_time": { "type": "string", "minLength": 1 },

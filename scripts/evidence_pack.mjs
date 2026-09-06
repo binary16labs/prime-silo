@@ -39,6 +39,9 @@ const repo = path.resolve(new URL("..", import.meta.url).pathname.replace(/^\/([
 const runs = argv.includes("--no-runs")
   ? null
   : collectRuns({
+      // Runs recorded in the ledger carry an authorising proposal by construction; the two
+      // file sources predate governance and carry none. All three are one population.
+      events: ledgers.flatMap((l) => (l.ok ? l.events : [])),
       runRecordsDir: arg("runs-dir", path.join(repo, "runtime", "workspace", "manifests", "runs")),
       openLineagePath: arg(
         "lineage",

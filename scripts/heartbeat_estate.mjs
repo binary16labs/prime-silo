@@ -13,11 +13,19 @@
 // Usage:
 //   node scripts/heartbeat_estate.mjs                       # local only
 //   node scripts/heartbeat_estate.mjs --pull optimus=nsdha@100.85.245.86:C:/estate-store
+//   node scripts/heartbeat_estate.mjs --run-proposal collector-schedule   # record the run
+//
+// --run-proposal names the proposal that authorises this collection. The scheduled task was
+// itself proposed and signed, so each firing is a governed execution, and recording it is what
+// gives the unauthorised-run gauge a population that grows on its own rather than one that
+// only moves when someone runs a command by hand.
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { readKelEvents } from "../server/coordination/lib/kel.mjs";
 import { estateBoard } from "../server/coordination/lib/heartbeat.mjs";
+import { runRecordedEvent } from "../server/coordination/lib/runs.mjs";
+import { appendKelEvent, ulid } from "../server/coordination/lib/kel.mjs";
 
 const argv = process.argv.slice(2);
 const arg = (name, fallback) => {
@@ -172,6 +180,31 @@ if (outFile) {
   fs.mkdirSync(path.dirname(outFile), { recursive: true });
   fs.writeFileSync(outFile, text);
   if (!argv.includes("--quiet")) console.log(`written to ${outFile}`);
+}
+
+// The run is recorded before the exit code is decided, and its outcome carries what the
+// collection actually found. A run register that only held successes would answer "did it
+// run?" with "did it run WELL?", and those are different questions — the second one hides
+// exactly the executions an auditor came to look at.
+const runProposal = arg("run-proposal", null);
+if (runProposal !== null || argv.includes("--record-run")) {
+  const machine = String(process.env.COMPUTERNAME || "unknown").toLowerCase();
+  const evt = runRecordedEvent({
+    runId: ulid(),
+    machine,
+    task: "heartbeat collect (estate board)",
+    kind: "estate",
+    proposalId: runProposal,
+    outcome: board.outages.length || blind.length ? "degraded" : "ok",
+    detail: {
+      nodes: board.nodes.length,
+      outages: board.outages.length,
+      blind_spots: blind.map((n) => n.machine)
+    }
+  });
+  const res = appendKelEvent(path.join(ROOT, "eventlog", "runs.jsonl"), evt);
+  if (!argv.includes("--quiet"))
+    console.log(res.ok ? `recorded ${evt.subject.id}` : `run not recorded: ${res.reason}`);
 }
 
 process.exit(board.outages.length || blind.length ? 1 : 0);

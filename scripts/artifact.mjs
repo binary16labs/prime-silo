@@ -46,6 +46,8 @@ import {
 import { readKelEvents } from "../server/coordination/lib/kel.mjs";
 import { isAuthorised, loadGovernance } from "../server/coordination/lib/governance.mjs";
 import { isSubjectId } from "../server/coordination/lib/provenance.mjs";
+import { runRecordedEvent } from "../server/coordination/lib/runs.mjs";
+import { appendKelEvent, ulid } from "../server/coordination/lib/kel.mjs";
 
 const argv = process.argv.slice(2);
 const cmd = argv[0];
@@ -61,6 +63,7 @@ const has = (name) => argv.includes(`--${name}`);
 const ROOT = arg("root", process.env.ESTATE_STORE || "F:/estate-store");
 const LOG = path.join(ROOT, "eventlog", "artifacts.jsonl");
 const GOV = path.join(ROOT, "eventlog", "governance.jsonl");
+const RUNS = path.join(ROOT, "eventlog", "runs.jsonl");
 const MACHINE = String(process.env.COMPUTERNAME || os.hostname() || "unknown").toLowerCase();
 const JSON_OUT = has("json");
 const QUIET = has("quiet");
@@ -75,6 +78,31 @@ const die = (msg, code = 2) => {
 const emit = (obj) => {
   if (JSON_OUT) console.log(JSON.stringify(obj, null, 2));
 };
+
+// Every command here is an execution of estate machinery, so each one is recorded as a run.
+// That is what gives the unauthorised-run gauge a population: without runs to check, "0
+// unauthorised" is a statement about an empty set. The proposal is recorded AS CLAIMED — the
+// citation was already verified signed by resolveProvenance(), but the check that matters to
+// the evidence pack is the one it performs itself at read time.
+function recordRun(task, causedBy, outcome, detail = {}) {
+  const proposalId = causedBy && causedBy.startsWith("proposal:") ? causedBy.slice(9) : null;
+  const evt = runRecordedEvent({
+    runId: ulid(),
+    machine: MACHINE,
+    task: `artifact ${task}`,
+    kind: "estate",
+    proposalId,
+    outcome,
+    detail
+  });
+  const res = appendKelEvent(RUNS, evt);
+  if (!res.ok)
+    console.error(`warning: the action succeeded but the run was not recorded (${res.reason})`);
+  else
+    say(
+      `  run ${evt.subject.id}${proposalId ? ` under proposal:${proposalId}` : " (unauthorised)"}`
+    );
+}
 
 function usage() {
   console.log(
@@ -173,6 +201,7 @@ async function acquire() {
     causedBy
   });
 
+  recordRun("acquire", causedBy, "ok", { hash: res.hash, bytes: res.bytes, fetched: res.fetched });
   if (res.deduped && !res.fetched)
     say(`already held — source never opened, ${mb(expectedSizeRaw || 0)} not transferred`);
   else say(`stored ${mb(res.bytes)}`);
@@ -196,6 +225,7 @@ async function place() {
     causedBy
   });
 
+  recordRun("place", causedBy, "ok", { hash, at, already_there: res.alreadyThere });
   say(res.alreadyThere ? `already at ${at} — placement recorded` : `placed at ${at}`);
   emit({ ...res, event: undefined });
 }
@@ -216,6 +246,7 @@ function evict() {
 
   // The blob surviving is the point, not a detail: reclaiming space on one machine must never
   // be able to destroy the only copy of something.
+  recordRun("evict", causedBy, "ok", { hash, at, removed: res.removed });
   say(res.removed ? `removed ${at}` : `nothing at ${at} — placement retired anyway`);
   say(`  blob retained: ${res.blobRetained}`);
   emit(res);

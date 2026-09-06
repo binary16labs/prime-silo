@@ -126,6 +126,18 @@ export function reconcile(inventory, events = []) {
   const seen = (p) => walked.some((r) => isUnder(p, r));
 
   // --- blobs -------------------------------------------------------------------------
+  //
+  // "Accounted for" means SOME event references these bytes, not specifically an acquisition.
+  // The first sweep to run with --record proved why: it stored its own snapshot in the CAS and
+  // then reported that snapshot as an orphan, because nothing had acquired it — the audit
+  // contaminating the thing it audits. The `sweep_recorded` event names the hash and accounts
+  // for it perfectly well. So any reference anywhere in the ledger counts, which is both the
+  // literal definition of the defect and robust against the next writer that puts bytes in the
+  // store by some other route.
+  const referencedHashes = new Set();
+  for (const e of events) {
+    for (const m of JSON.stringify(e).matchAll(/\b[0-9a-f]{64}\b/g)) referencedHashes.add(m[0]);
+  }
   const acquiredHashes = new Set(
     artifactEvents
       .filter((e) => e.type === ARTIFACT_TYPES.acquired)
@@ -134,9 +146,10 @@ export function reconcile(inventory, events = []) {
   );
   const heldHashes = new Set(inventory.blobs.map((b) => bare(b.hash)));
 
-  const orphanBlobs = inventory.blobs.filter((b) => !acquiredHashes.has(bare(b.hash)));
-  // A blob the ledger says we acquired that is not on disk. Only meaningful if the blob root
-  // was actually walked — otherwise we simply did not look.
+  const orphanBlobs = inventory.blobs.filter((b) => !referencedHashes.has(bare(b.hash)));
+  // Missing blobs stay keyed on ACQUISITION, not on any reference: the claim being tested is
+  // "we hold these bytes", and only an acquisition makes that claim. An event that merely
+  // mentions a hash promises nothing about the store holding it.
   const blobsWalked = inventory.scope.roots.some((r) => r.kind === "blobs" && r.exists);
   const missingBlobs = blobsWalked
     ? [...acquiredHashes].filter((h) => !heldHashes.has(h)).map((hash) => ({ hash }))

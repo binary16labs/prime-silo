@@ -15,8 +15,91 @@
 // defects, and IN-SCOPE runs — those at or after the epoch — must carry a human signature or
 // they are. Hiding the pre-control population would be as dishonest as failing them; both
 // halves are surfaced.
+//
+// One more asymmetry, and it is the opposite of the one the artifact CLI enforces. That
+// command REFUSES to cite a proposal nobody signed, because a citation of authority which
+// was never granted is a false claim. A RUN RECORD IS NOT A CITATION — it is an observation
+// that something executed. So the writer below records `proposal_id` exactly as claimed and
+// refuses nothing:
+//
+//   A SYSTEM THAT WILL NOT RECORD AN UNAUTHORISED RUN CANNOT DETECT ONE.
+//
+// Validating authority at write time would guarantee that every run in the ledger passes the
+// check, and the gauge would report zero for ever while meaning nothing. Verification belongs
+// in the read — buildEvidencePack resolves each claimed proposal through isAuthorised() — so
+// a run that cites an unsigned or non-existent proposal is faithfully recorded and then
+// correctly counted as a defect.
 import fs from "node:fs";
 import path from "node:path";
+import { ulid, CURRENT_SCHEMA_VERSION } from "./kel.mjs";
+import { provenance, withProvenance } from "./provenance.mjs";
+import { subjectId as govSubjectId } from "./governance.mjs";
+
+// `execution_recorded` was already reserved in the envelope vocabulary for the L5 execution
+// register, and nothing had ever written it. A run record IS that, so it reuses the reserved
+// name rather than adding a second word for one concept to a controlled vocabulary.
+export const RUN_TYPES = Object.freeze({ recorded: "execution_recorded" });
+
+export const subjectId = Object.freeze({ run: (id) => `run:${id}` });
+
+// Record that something executed, under whatever authority it claims. `proposalId` may be
+// null — an unauthorised run is a real event and must be recordable, or see the header.
+export function runRecordedEvent({
+  runId,
+  machine,
+  task,
+  proposalId = null,
+  outcome = "ok",
+  kind = "estate",
+  at = null,
+  detail = {}
+}) {
+  if (!runId) throw new Error("runRecordedEvent: runId is required");
+  if (!machine) throw new Error("runRecordedEvent: machine is required");
+  if (!task) throw new Error("runRecordedEvent: task is required — an unnamed run is not evidence");
+  const now = new Date().toISOString();
+  const sid = subjectId.run(runId);
+  return {
+    id: ulid(),
+    schema_version: CURRENT_SCHEMA_VERSION,
+    type: RUN_TYPES.recorded,
+    valid_time: at || now,
+    txn_time: now,
+    time_confidence: at ? "known" : "inferred",
+    hlc: `${now}-0000-${machine}`,
+    machine,
+    authorship: "house", // machinery reporting what it did; judgement was the signature
+    sid,
+    subject: { kind: "run", id: sid },
+    payload: withProvenance(
+      { task, kind, outcome, proposal_id: proposalId, ...detail },
+      // The causal edge is the claim "this ran because of that decision", which is true (or
+      // false) independently of whether the decision was ever signed. Authorisation is
+      // checked at read time; causation is recorded here.
+      provenance({ causedBy: proposalId ? govSubjectId.proposal(proposalId) : null, subject: sid })
+    )
+  };
+}
+
+// Runs recorded in the ledger itself. Unlike the two file sources these carry an authorising
+// proposal by construction, which is what lets the gauge have anything to measure.
+export function fromKel(events = []) {
+  const out = [];
+  for (const e of events) {
+    if (e?.type !== RUN_TYPES.recorded) continue;
+    const p = e.payload || {};
+    out.push({
+      run_id: String(e.subject?.id || "").replace(/^run:/, ""),
+      at: e.valid_time || null,
+      kind: p.kind || "estate",
+      source: "eventlog",
+      workspace: p.workspace ?? null,
+      status: p.outcome ?? null,
+      proposal_id: p.proposal_id ?? null
+    });
+  }
+  return out;
+}
 
 // Benny swarm executions: one JSON per run, already write-once on disk.
 export function fromRunRecords(dir) {
@@ -70,10 +153,11 @@ export function fromOpenLineage(file) {
   return [...seen.values()];
 }
 
-export function collectRuns({ runRecordsDir = null, openLineagePath = null } = {}) {
+export function collectRuns({ runRecordsDir = null, openLineagePath = null, events = [] } = {}) {
   return [
     ...(runRecordsDir ? fromRunRecords(runRecordsDir) : []),
-    ...(openLineagePath ? fromOpenLineage(openLineagePath) : [])
+    ...(openLineagePath ? fromOpenLineage(openLineagePath) : []),
+    ...fromKel(events)
   ].sort((a, b) => String(a.at || "").localeCompare(String(b.at || "")));
 }
 
