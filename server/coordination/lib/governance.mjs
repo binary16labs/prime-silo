@@ -156,17 +156,31 @@ export function buildGovernance(events = []) {
     const id = proposalIdOf(evt);
     if (!id) continue;
     switch (evt.type) {
-      case GOVERNANCE_TYPES.raised:
+      case GOVERNANCE_TYPES.raised: {
+        const existing = proposals.get(id);
+        // A raise for a proposal that has already been ruled on must NOT reset it. Rebuilding
+        // the record here would clear `signature` and set state back to "open", which reads as
+        // "this still needs your decision" for something you already decided — while
+        // isAuthorised(), which scans the raw events, would go on reporting it authorised. The
+        // two would disagree, and the visible one would be the wrong one: you would sign a
+        // second time for work already approved. A settled proposal is therefore terminal
+        // against re-raising, exactly as it is against a second signature.
+        if (existing && existing.state !== "open") {
+          existing.reraised = (existing.reraised || 0) + 1;
+          existing.reraised_at = evt.valid_time;
+          break;
+        }
         proposals.set(id, {
           id,
           state: "open",
-          raised_at: evt.valid_time,
+          raised_at: existing?.raised_at ?? evt.valid_time, // first raising is when it was raised
           raised_by: evt.authorship,
           machine: evt.machine,
           ...evt.payload,
           signature: null
         });
         break;
+      }
       case GOVERNANCE_TYPES.signed: {
         const p = proposals.get(id);
         if (!p) break; // a signature for an unknown proposal is not an authorisation
