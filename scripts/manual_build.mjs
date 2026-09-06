@@ -178,23 +178,51 @@ fs.writeFileSync(mdPath, md.join("\n") + "\n");
 
 // 2. retrievable chunks. One chunk per feature and per workflow step, each self-contained —
 // a chunk that only makes sense beside its neighbour retrieves badly and answers worse.
+// One chunk per idea, not one per feature. The previous grain packed purpose, usage and every
+// invariant into a single paragraph, so its embedding averaged several topics — good recall,
+// blurry precision, and "what does the artifact CLI refuse to do" ranked the wrong feature
+// first. An invariant is the thing people actually ask about ("can an agent sign?"), so it
+// gets to be its own unit.
+//
+// Every chunk still carries its feature and arc in its own text. A chunk that reads correctly
+// only when you already know which section it came from is the failure this whole file has
+// been fighting; splitting finer makes that MORE important, not less.
 const chunks = [];
 for (const f of manual.features) {
-  const text =
-    `${f.name} (${arcById[f.arc]?.name ?? f.arc} arc). ${f.purpose} ` +
-    `How to use it: ${f.how.join(" ")} ` +
-    `What it refuses to do: ${f.invariants.join(" ")}` +
-    (f.api?.length ? ` API: ${f.api.join(", ")}.` : "");
+  const arcName = arcById[f.arc]?.name ?? f.arc;
+  const use =
+    `${f.name} (${arcName} arc). ${f.purpose} ` +
+    `How to use it: ${f.how.join(" ")}` +
+    (f.api?.length ? ` API: ${f.api.join(", ")}.` : "") +
+    (f.aliases?.length ? ` Also called: ${f.aliases.join(", ")}.` : "");
   chunks.push({
-    id: `manual:feature:${f.id}`,
-    hash: stableId(text),
-    kind: "feature",
+    id: `manual:feature:${f.id}:use`,
+    hash: stableId(use),
+    kind: "feature-use",
     title: f.name,
     arc: f.arc,
     surface: f.surface ?? arcById[f.arc]?.surface ?? null,
     tags: f.tags ?? [],
     source: f.evidence,
-    text
+    text: use
+  });
+  // The words a person would actually type, carried into every chunk of this feature. A
+  // correct chunk that shares no vocabulary with the question is unreachable, and no amount of
+  // finer splitting fixes that — the split was already right when this was still failing.
+  const alias = f.aliases?.length ? ` Also called: ${f.aliases.join(", ")}.` : "";
+  f.invariants.forEach((inv, i) => {
+    const text = `${f.name} (${arcName} arc) refuses to do this: ${inv}${alias}`;
+    chunks.push({
+      id: `manual:feature:${f.id}:refuses:${i + 1}`,
+      hash: stableId(text),
+      kind: "invariant",
+      title: `${f.name} — refusal ${i + 1}`,
+      arc: f.arc,
+      surface: f.surface ?? arcById[f.arc]?.surface ?? null,
+      tags: [...(f.tags ?? []), "invariant"],
+      source: f.evidence,
+      text
+    });
   });
 }
 for (const w of manual.workflows)
@@ -226,6 +254,64 @@ fs.writeFileSync(
 const ragMd = ["Prime-Silo Operating Manual — retrieval text.", ""];
 for (const c of chunks) ragMd.push(`${c.title}. ${c.text}`, "");
 fs.writeFileSync(path.join(OUT, "manual.rag.md"), ragMd.join("\n"));
+
+// 3b. The PageIndex document (PIX-001 / ADR-002).
+//
+// Benny's newer ingest is vectorless: build_tree_from_markdown turns HEADINGS INTO THE TREE,
+// deterministically and with no LLM, then writes (:Document)-[:HAS_SECTION]->(:Section)… to
+// Neo4j and fans triple extraction over the leaves. Most documents need a model to guess at
+// their structure. This one does not have to guess: manual.json already IS the hierarchy —
+// manual, arc, feature, invariant — so the heading levels are emitted to mirror it exactly and
+// the tree Benny builds is the tree we meant, byte for byte, offline.
+//
+// That is what makes the agent situation-aware rather than merely well-read: the outline
+// (titles and summaries, no bodies) is a small map it can read first to decide which section
+// to open, and every triple it later extracts is anchored to a node_id rather than to a
+// filename. The finest heading is one invariant, so "what may an agent never do?" resolves to
+// a Section, not to a paragraph that happens to mention it.
+const byArcForIndex = new Map(manual.arcs.map((a) => [a.id, []]));
+for (const f of manual.features) {
+  if (!byArcForIndex.has(f.arc)) byArcForIndex.set(f.arc, []);
+  byArcForIndex.get(f.arc).push(f);
+}
+
+const px = [];
+px.push(`# ${manual.title}`, "", manual.subtitle, "");
+px.push(`## Doctrine`, "", "The rules every other section obeys.", "");
+manual.doctrine.forEach((d, i) => {
+  px.push(`### Rule ${i + 1}`, "", d, "");
+});
+for (const a of manual.arcs) {
+  const fs_ = byArcForIndex.get(a.id) ?? [];
+  if (!fs_.length) continue;
+  px.push(`## ${a.name} arc`, "");
+  px.push(`The ${a.name} arc exists to ${a.role.toLowerCase()}. It renders at #/${a.surface}.`, "");
+  for (const f of fs_) {
+    px.push(`### ${f.name}`, "");
+    px.push(`${f.name} (${a.name} arc). ${f.purpose} How to use it: ${f.how.join(" ")}`, "");
+    f.invariants.forEach((inv, i) => {
+      // One leaf per invariant: the finest unit anyone actually asks a question about.
+      px.push(`#### ${f.name} refusal ${i + 1}`, "");
+      px.push(
+        `${f.name} (${a.name} arc) refuses to do this: ${inv}` +
+          (f.aliases?.length ? ` Also called: ${f.aliases.join(", ")}.` : ""),
+        ""
+      );
+    });
+  }
+}
+for (const w of manual.workflows) {
+  px.push(`## Workflow: ${w.name}`, "", w.purpose, "");
+  for (const s of w.steps) {
+    px.push(`### ${w.name} step ${s.n}: ${s.name}`, "");
+    px.push(
+      `${w.name}, step ${s.n} of ${w.steps.length}: ${s.name}. Performed by ${s.actor}. ` +
+        `${s.does}${s.command ? ` Command: ${s.command}.` : ""}${s.gate ? ` Gate: ${s.gate}` : ""}`,
+      ""
+    );
+  }
+}
+fs.writeFileSync(path.join(OUT, "manual.pageindex.md"), px.join("\n"));
 
 // 3. graph facts. Triples rather than prose, so the agent can traverse "what is on the Gov
 // arc", "what enforces this invariant", "what comes after step 2" without re-reading anything.

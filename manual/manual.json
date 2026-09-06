@@ -51,7 +51,13 @@
       "colour": "#889c7d",
       "role": "Replay"
     },
-    { "id": "agent", "name": "Agent", "surface": "agent", "colour": "#94bcff", "role": "Ask" },
+    {
+      "id": "agent",
+      "name": "Agent",
+      "surface": "agent",
+      "colour": "#94bcff",
+      "role": "Ask"
+    },
     {
       "id": "files",
       "name": "Files",
@@ -87,7 +93,8 @@
         "server/coordination/lib/kel.mjs",
         "server/coordination/schema/kel-event.schema.json"
       ],
-      "tags": ["ledger", "ss1-23", "foundation"]
+      "tags": ["ledger", "ss1-23", "foundation"],
+      "aliases": ["KEL", "event log", "eventlog", "ledger", "hash chain"]
     },
     {
       "id": "gov-raise",
@@ -106,7 +113,8 @@
       ],
       "api": ["POST /api/gov_raise"],
       "evidence": ["server/api/gov_raise.js", "server/coordination/lib/governance.mjs"],
-      "tags": ["governance", "ss1-23"]
+      "tags": ["governance", "ss1-23"],
+      "aliases": ["propose", "proposal", "raise"]
     },
     {
       "id": "gov-sign",
@@ -127,7 +135,8 @@
       "surface": "_prime_silo/gov",
       "api": ["GET /api/gov_proposals", "POST /api/gov_sign"],
       "evidence": ["server/api/gov_sign.js", "app/L0/_all/mod/_prime_silo/gov/view.html"],
-      "tags": ["governance", "ss1-23", "interface"]
+      "tags": ["governance", "ss1-23", "interface"],
+      "aliases": ["signature", "authorise", "approve", "sign off", "Gov arc"]
     },
     {
       "id": "lineage",
@@ -150,7 +159,8 @@
         "server/coordination/lib/lineage.mjs",
         "app/L0/_all/mod/_prime_silo/lineage/view.html"
       ],
-      "tags": ["lineage", "ss1-23", "interface"]
+      "tags": ["lineage", "ss1-23", "interface"],
+      "aliases": ["provenance", "audit trail", "where did this come from"]
     },
     {
       "id": "time-travel",
@@ -170,7 +180,8 @@
       "surface": "_prime_silo/lineage",
       "api": ["GET /api/lineage_trail"],
       "evidence": ["server/api/lineage_trail.js", "app/L0/_all/mod/_prime_silo/lineage/lineage.js"],
-      "tags": ["lineage", "replay", "interface"]
+      "tags": ["lineage", "replay", "interface"],
+      "aliases": ["replay", "step through", "history", "time travel"]
     },
     {
       "id": "artifact-once",
@@ -191,7 +202,17 @@
       ],
       "commands": ["scripts/artifact.mjs"],
       "evidence": ["scripts/artifact.mjs", "server/coordination/lib/artifacts.mjs"],
-      "tags": ["artifacts", "nas", "governance"]
+      "tags": ["artifacts", "nas", "governance"],
+      "aliases": [
+        "artifact CLI",
+        "scripts/artifact.mjs",
+        "acquire",
+        "place",
+        "evict",
+        "download",
+        "installer",
+        "NAS"
+      ]
     },
     {
       "id": "provenance",
@@ -209,7 +230,8 @@
         "Absent is not empty: with no provenance the keys are omitted, because [] would assert 'derived from nothing'."
       ],
       "evidence": ["server/coordination/lib/provenance.mjs"],
-      "tags": ["lineage", "ss1-23"]
+      "tags": ["lineage", "ss1-23"],
+      "aliases": ["derived_from", "caused_by", "origin"]
     },
     {
       "id": "heartbeat",
@@ -228,7 +250,8 @@
       ],
       "commands": ["scripts/heartbeat_run.mjs", "scripts/heartbeat_estate.mjs"],
       "evidence": ["server/coordination/lib/heartbeat.mjs", "scripts/heartbeat_estate.mjs"],
-      "tags": ["estate", "health"]
+      "tags": ["estate", "health"],
+      "aliases": ["health", "uptime", "estate board", "node down"]
     },
     {
       "id": "inventory",
@@ -248,7 +271,8 @@
       ],
       "commands": ["scripts/inventory_sweep.mjs"],
       "evidence": ["server/coordination/lib/inventory.mjs", "scripts/inventory_sweep.mjs"],
-      "tags": ["ss1-23", "estate"]
+      "tags": ["ss1-23", "estate"],
+      "aliases": ["sweep", "reconcile", "orphan", "scripts/inventory_sweep.mjs"]
     },
     {
       "id": "runs",
@@ -266,7 +290,8 @@
         "Outcome carries what actually happened; a register of successes only answers a different question."
       ],
       "evidence": ["server/coordination/lib/runs.mjs"],
-      "tags": ["ss1-23", "governance"]
+      "tags": ["ss1-23", "governance"],
+      "aliases": ["run register", "execution", "unauthorised run"]
     },
     {
       "id": "evidence-pack",
@@ -285,7 +310,8 @@
       ],
       "commands": ["scripts/evidence_pack.mjs"],
       "evidence": ["server/coordination/lib/evidence.mjs", "scripts/evidence_pack.mjs"],
-      "tags": ["ss1-23", "audit"]
+      "tags": ["ss1-23", "audit"],
+      "aliases": ["audit", "evidence", "closure defect", "scripts/evidence_pack.mjs"]
     },
     {
       "id": "benny",
@@ -304,7 +330,8 @@
       ],
       "surface": "agent",
       "evidence": ["app/L0/_all/mod/_prime_silo/gov/gov.js"],
-      "tags": ["agent", "interface"]
+      "tags": ["agent", "interface"],
+      "aliases": ["agent", "assistant", "dog", "mascot"]
     },
     {
       "id": "arcs",
@@ -322,7 +349,8 @@
         "Every surface must be readable at 375px and in reduced-motion."
       ],
       "evidence": ["app/L0/_all/mod/_core/visual/navi/navi-key.js"],
-      "tags": ["interface"]
+      "tags": ["interface"],
+      "aliases": ["navigation", "ring", "navi-key", "panels"]
     }
   ],
   "workflows": [

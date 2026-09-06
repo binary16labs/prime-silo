@@ -133,6 +133,58 @@ try {
   console.error(`graph upsert failed: ${e.message}`);
 }
 
+// The document HIERARCHY (PIX-001 / ADR-002) — Benny's vectorless path. build_tree_from_markdown
+// turns headings into a tree with no LLM, writes (:Document)-[:HAS_SECTION]->(:Section)… to
+// Neo4j, and anchors everything to a node_id rather than a filename. manual.pageindex.md is
+// emitted with heading levels that mirror manual.json exactly, so the tree Benny builds is the
+// tree we meant — the structure is not inferred, it is transcribed.
+//
+// This is what gives the agent state awareness rather than just recall: the outline is a small
+// map it reads first to decide which section to open, and the finest section is a single
+// invariant.
+//
+// extract_triples is OFF deliberately. That step asks a model to invent triples from each leaf,
+// and we already hold exact ones derived from the manifest. Letting it run would put a second,
+// guessed account of the same facts into the same graph, and nothing downstream could tell
+// which of the two to believe.
+let indexOk = false;
+const pxName = "PRIME-SILO-MANUAL-PAGEINDEX.md";
+{
+  const bh = (process.env.BENNY_HOME || "F:/benny-home/app").replace(/\\/g, "/");
+  const di = path.join(bh, "workspaces", WORKSPACE, "data_in");
+  if (fs.existsSync(di)) {
+    fs.copyFileSync(path.join(repo, "manual", "manual.pageindex.md"), path.join(di, pxName));
+    try {
+      const res = await fetch(`${API}/rag/pageindex/ingest`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          workspace: WORKSPACE,
+          files: [pxName],
+          use_llm_summaries: false, // deterministic first-sentence summaries; offline-reproducible
+          write_graph: true,
+          extract_triples: false // see above — we already have exact triples
+        }),
+        signal: AbortSignal.timeout(600000)
+      });
+      const body = await res.json().catch(() => null);
+      if (res.ok) {
+        indexOk = true;
+        say(
+          `hierarchy: ${body?.total_sections ?? "?"} sections written as ` +
+            `(:Document)-[:HAS_SECTION]->(:Section) for ${body?.documents ?? "?"} document(s)`
+        );
+      } else {
+        console.error(`pageindex ingest failed (HTTP ${res.status}): ${body?.detail ?? "?"}`);
+      }
+    } catch (e) {
+      console.error(`pageindex ingest failed: ${e.message}`);
+    }
+  } else {
+    console.error(`no data_in for workspace '${WORKSPACE}' — hierarchy NOT written`);
+  }
+}
+
 // Retrieval. The ingest route takes files from the workspace's own data_in, not raw chunks,
 // so the manual document is copied there and ingested by name. deep_synthesis is OFF on
 // purpose: the triples above were derived deterministically from the manifest, and letting an
@@ -201,11 +253,12 @@ say(
 // load — the first checked only the graph, the second reported the failure and then printed
 // "Loaded" underneath it because switching process.exit to exitCode let execution fall through.
 // The success line now lives in the else branch, where it cannot be reached by accident.
-if (!graphOk || !ragOk) {
+if (!graphOk || !ragOk || !indexOk) {
   console.error(
-    `\nPARTLY LOADED — graph ${graphOk ? "ok" : "FAILED"}, retrieval ${ragOk ? "ok" : "FAILED"}.\n` +
-      `  The agent can traverse what loaded and cannot retrieve what did not. Do not assume it\n` +
-      `  knows the manual until this reports both.`
+    `\nPARTLY LOADED — facts ${graphOk ? "ok" : "FAILED"}, ` +
+      `hierarchy ${indexOk ? "ok" : "FAILED"}, retrieval ${ragOk ? "ok" : "FAILED"}.\n` +
+      `  The agent can use what loaded and cannot use what did not. Do not assume it knows the\n` +
+      `  manual until this reports all three.`
   );
   process.exitCode = 1;
 } else {
