@@ -218,6 +218,15 @@ fs.writeFileSync(
   chunks.map((c) => JSON.stringify(c)).join("\n") + "\n"
 );
 
+// The same chunks as a document the ingester will chunk the way we intended. Feeding it the
+// headed manual instead produced retrieval hits that were literally the string "**What it
+// refuses to do**" — five times, with no content: the splitter cut on structure and handed
+// back the labels. So this file has no sub-headings and no lists. Each feature is ONE dense
+// paragraph carrying its own context, which is the unit we want returned in the first place.
+const ragMd = ["Prime-Silo Operating Manual — retrieval text.", ""];
+for (const c of chunks) ragMd.push(`${c.title}. ${c.text}`, "");
+fs.writeFileSync(path.join(OUT, "manual.rag.md"), ragMd.join("\n"));
+
 // 3. graph facts. Triples rather than prose, so the agent can traverse "what is on the Gov
 // arc", "what enforces this invariant", "what comes after step 2" without re-reading anything.
 const triples = [];

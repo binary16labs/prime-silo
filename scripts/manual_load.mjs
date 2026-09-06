@@ -140,7 +140,10 @@ try {
 let ragOk = false;
 const bennyHome = (process.env.BENNY_HOME || "F:/benny-home/app").replace(/\\/g, "/");
 const dataIn = path.join(bennyHome, "workspaces", WORKSPACE, "data_in");
-const mdSource = path.join(repo, "manual", "OPERATING-MANUAL.md");
+// The RETRIEVAL document, not the human one. OPERATING-MANUAL.md is written for a reader and
+// its headings become their own useless chunks when a splitter meets it; manual.rag.md carries
+// the same facts as self-contained paragraphs, which is the unit we want returned.
+const mdSource = path.join(repo, "manual", "manual.rag.md");
 const docName = "PRIME-SILO-OPERATING-MANUAL.md";
 
 if (!fs.existsSync(dataIn)) {
@@ -161,7 +164,10 @@ if (!fs.existsSync(dataIn)) {
         use_docling: false,
         force_reingest: true
       }),
-      signal: AbortSignal.timeout(180000)
+      // Embedding a document is minutes of work, not seconds, and Benny serves it on the
+      // request thread — the whole API stops answering while it runs. Twenty minutes is the
+      // wait, not an expectation.
+      signal: AbortSignal.timeout(Number(arg("timeout-ms", "1200000")))
     });
     const body = await res.json().catch(() => null);
     if (res.ok) {
@@ -171,7 +177,17 @@ if (!fs.existsSync(dataIn)) {
       console.error(`ingest failed (HTTP ${res.status}): ${body?.detail ?? "no detail"}`);
     }
   } catch (e) {
-    console.error(`ingest failed: ${e.message}`);
+    // A client timeout is NOT a server failure: the ingest goes on running and may well
+    // succeed after we stop listening. Reporting "failed" here would be the same lie in the
+    // other direction — claiming something did not happen when we simply stopped watching.
+    const gaveUp = /abort|timeout/i.test(e.message);
+    console.error(
+      gaveUp
+        ? `stopped waiting for the ingest after ${arg("timeout-ms", "1200000")}ms — it is probably\n` +
+            `  STILL RUNNING on the server (Benny blocks while embedding). This run cannot confirm\n` +
+            `  it either way; re-run once /api/rag/query answers, and believe that rather than this.`
+        : `ingest failed: ${e.message}`
+    );
   }
 }
 say(
@@ -181,6 +197,10 @@ say(
 // Both halves must land. An earlier version checked only the graph and printed "Loaded" while
 // retrieval had failed on an unreachable embedding host — the exact thing this file's header
 // forbids, committed by the file itself. Partial success is reported as partial.
+// Both halves must land. Two earlier versions of this block each claimed success on a partial
+// load — the first checked only the graph, the second reported the failure and then printed
+// "Loaded" underneath it because switching process.exit to exitCode let execution fall through.
+// The success line now lives in the else branch, where it cannot be reached by accident.
 if (!graphOk || !ragOk) {
   console.error(
     `\nPARTLY LOADED — graph ${graphOk ? "ok" : "FAILED"}, retrieval ${ragOk ? "ok" : "FAILED"}.\n` +
@@ -188,5 +208,6 @@ if (!graphOk || !ragOk) {
       `  knows the manual until this reports both.`
   );
   process.exitCode = 1;
+} else {
+  say(`\nLoaded. Ask Benny "how do I onboard an application?" and he answers from the manual.`);
 }
-say(`\nLoaded. Ask Benny "how do I onboard an application?" and he answers from the manual.`);
