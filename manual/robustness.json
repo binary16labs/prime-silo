@@ -1,0 +1,1117 @@
+{
+  "version": "1.0.0",
+  "title": "Estate robustness diagrams",
+  "subtitle": "Boundary, control and entity for every process that was actually run",
+  "doctrine": "ICONIX robustness analysis has real rules, not stylistic ones: an actor may touch only a boundary, an entity may be touched only by a control, and boundaries never talk to each other or reach a store directly. A diagram that breaks them is not untidy — it describes a design where a screen writes to a ledger, or a person reaches past the interface. Those rules are enforced here, so drawing the wrong architecture fails the build.",
+  "stereotypes": {
+    "boundary": "What an actor touches: an arc, an HTTP route, a command.",
+    "control": "The verb — a fold, a gate, a check, a projection. Holds no state.",
+    "entity": "What persists: a ledger, a store, an index, a recorded subject."
+  },
+  "diagrams": [
+    {
+      "id": "R-01",
+      "flow": "F-01",
+      "objects": [
+        {
+          "id": "owner",
+          "type": "actor",
+          "name": "You (owner)",
+          "actor": "human"
+        },
+        {
+          "id": "govArc",
+          "type": "boundary",
+          "name": "Gov arc",
+          "surface": "_prime_silo/gov"
+        },
+        {
+          "id": "proposalsApi",
+          "type": "boundary",
+          "name": "GET /api/gov_proposals",
+          "endpoint": "gov_proposals"
+        },
+        {
+          "id": "signApi",
+          "type": "boundary",
+          "name": "POST /api/gov_sign",
+          "endpoint": "gov_sign"
+        },
+        {
+          "id": "verifyChain",
+          "type": "control",
+          "name": "Verify the hash chain"
+        },
+        {
+          "id": "foldGov",
+          "type": "control",
+          "name": "Fold events into proposals"
+        },
+        {
+          "id": "resolveSigner",
+          "type": "control",
+          "name": "Take the signer from the session"
+        },
+        {
+          "id": "appendSigned",
+          "type": "control",
+          "name": "Append the signature, authorship hard-coded human"
+        },
+        {
+          "id": "govLedger",
+          "type": "entity",
+          "name": "governance.jsonl"
+        },
+        {
+          "id": "proposal",
+          "type": "entity",
+          "name": "Proposal subject"
+        },
+        {
+          "id": "requestQueue",
+          "type": "control",
+          "name": "Request the queue"
+        }
+      ],
+      "edges": [
+        {
+          "from": "owner",
+          "to": "govArc",
+          "label": "opens the queue"
+        },
+        {
+          "from": "proposalsApi",
+          "to": "verifyChain",
+          "label": ""
+        },
+        {
+          "from": "verifyChain",
+          "to": "govLedger",
+          "label": "reads raw lines"
+        },
+        {
+          "from": "verifyChain",
+          "to": "foldGov",
+          "label": "only if intact"
+        },
+        {
+          "from": "foldGov",
+          "to": "proposal",
+          "label": "projects"
+        },
+        {
+          "from": "govArc",
+          "to": "owner",
+          "label": "shows why, cost, reversibility BEFORE the buttons"
+        },
+        {
+          "from": "owner",
+          "to": "signApi",
+          "label": "signs or declines"
+        },
+        {
+          "from": "signApi",
+          "to": "resolveSigner",
+          "label": ""
+        },
+        {
+          "from": "resolveSigner",
+          "to": "appendSigned",
+          "label": "identity never from the request"
+        },
+        {
+          "from": "appendSigned",
+          "to": "govLedger",
+          "label": "appends"
+        },
+        {
+          "from": "govArc",
+          "to": "requestQueue",
+          "label": ""
+        },
+        {
+          "from": "requestQueue",
+          "to": "proposalsApi",
+          "label": ""
+        }
+      ]
+    },
+    {
+      "id": "R-02",
+      "flow": "F-02",
+      "objects": [
+        {
+          "id": "benny",
+          "type": "actor",
+          "name": "Benny",
+          "actor": "frontier"
+        },
+        {
+          "id": "raiseApi",
+          "type": "boundary",
+          "name": "POST /api/gov_raise",
+          "endpoint": "gov_raise"
+        },
+        {
+          "id": "validate",
+          "type": "control",
+          "name": "Require a rationale; reject prose edges"
+        },
+        {
+          "id": "idempotence",
+          "type": "control",
+          "name": "Identical re-raise writes nothing"
+        },
+        {
+          "id": "terminalGuard",
+          "type": "control",
+          "name": "A settled proposal cannot be re-raised"
+        },
+        {
+          "id": "appendRaised",
+          "type": "control",
+          "name": "Append raised, authorship hard-coded frontier"
+        },
+        {
+          "id": "govLedger",
+          "type": "entity",
+          "name": "governance.jsonl"
+        },
+        {
+          "id": "proposal",
+          "type": "entity",
+          "name": "Proposal subject"
+        }
+      ],
+      "edges": [
+        {
+          "from": "benny",
+          "to": "raiseApi",
+          "label": "proposes"
+        },
+        {
+          "from": "raiseApi",
+          "to": "validate",
+          "label": ""
+        },
+        {
+          "from": "validate",
+          "to": "idempotence",
+          "label": ""
+        },
+        {
+          "from": "idempotence",
+          "to": "proposal",
+          "label": "compares against the fold"
+        },
+        {
+          "from": "idempotence",
+          "to": "terminalGuard",
+          "label": ""
+        },
+        {
+          "from": "terminalGuard",
+          "to": "appendRaised",
+          "label": "only if open or new"
+        },
+        {
+          "from": "appendRaised",
+          "to": "govLedger",
+          "label": "appends"
+        },
+        {
+          "from": "raiseApi",
+          "to": "benny",
+          "label": "201, or a refusal with the reason"
+        }
+      ]
+    },
+    {
+      "id": "R-03",
+      "flow": "F-03",
+      "objects": [
+        {
+          "id": "owner",
+          "type": "actor",
+          "name": "You (owner)",
+          "actor": "human"
+        },
+        {
+          "id": "onboardCli",
+          "type": "boundary",
+          "name": "app_onboard.mjs",
+          "command": "scripts/app_onboard.mjs"
+        },
+        {
+          "id": "govArc",
+          "type": "boundary",
+          "name": "Gov arc",
+          "surface": "_prime_silo/gov"
+        },
+        {
+          "id": "requireSig",
+          "type": "control",
+          "name": "Require a human signature — no --force"
+        },
+        {
+          "id": "acquire",
+          "type": "control",
+          "name": "Acquire once, citing the signature"
+        },
+        {
+          "id": "place",
+          "type": "control",
+          "name": "Place per machine, recording the cause"
+        },
+        {
+          "id": "recordRun",
+          "type": "control",
+          "name": "Record the execution"
+        },
+        {
+          "id": "govLedger",
+          "type": "entity",
+          "name": "governance.jsonl"
+        },
+        {
+          "id": "blobStore",
+          "type": "entity",
+          "name": "Content-addressed blob store"
+        },
+        {
+          "id": "artLedger",
+          "type": "entity",
+          "name": "artifacts.jsonl"
+        },
+        {
+          "id": "runsLedger",
+          "type": "entity",
+          "name": "runs.jsonl"
+        },
+        {
+          "id": "appRecord",
+          "type": "entity",
+          "name": "manual/apps/<id>.json"
+        },
+        {
+          "id": "recordApp",
+          "type": "control",
+          "name": "Record the application"
+        },
+        {
+          "id": "manualCli",
+          "type": "boundary",
+          "name": "manual_build.mjs",
+          "command": "scripts/manual_build.mjs"
+        },
+        {
+          "id": "rebuild",
+          "type": "control",
+          "name": "Rebuild so the agent knows it exists"
+        }
+      ],
+      "edges": [
+        {
+          "from": "owner",
+          "to": "onboardCli",
+          "label": "propose / acquire / place"
+        },
+        {
+          "from": "onboardCli",
+          "to": "requireSig",
+          "label": ""
+        },
+        {
+          "from": "requireSig",
+          "to": "govLedger",
+          "label": "resolves the proposal"
+        },
+        {
+          "from": "owner",
+          "to": "govArc",
+          "label": "decides"
+        },
+        {
+          "from": "govArc",
+          "to": "requireSig",
+          "label": "the signature it produced"
+        },
+        {
+          "from": "requireSig",
+          "to": "acquire",
+          "label": "only when signed"
+        },
+        {
+          "from": "acquire",
+          "to": "blobStore",
+          "label": "stores once"
+        },
+        {
+          "from": "acquire",
+          "to": "artLedger",
+          "label": "records acquisition"
+        },
+        {
+          "from": "acquire",
+          "to": "place",
+          "label": ""
+        },
+        {
+          "from": "place",
+          "to": "artLedger",
+          "label": "records a placement per node"
+        },
+        {
+          "from": "place",
+          "to": "recordRun",
+          "label": ""
+        },
+        {
+          "from": "recordRun",
+          "to": "runsLedger",
+          "label": ""
+        },
+        {
+          "from": "onboardCli",
+          "to": "recordApp",
+          "label": ""
+        },
+        {
+          "from": "recordApp",
+          "to": "appRecord",
+          "label": ""
+        },
+        {
+          "from": "owner",
+          "to": "manualCli",
+          "label": "remember"
+        },
+        {
+          "from": "manualCli",
+          "to": "rebuild",
+          "label": ""
+        },
+        {
+          "from": "rebuild",
+          "to": "appRecord",
+          "label": "reads the onboarded app"
+        }
+      ]
+    },
+    {
+      "id": "R-04",
+      "flow": "F-04",
+      "objects": [
+        {
+          "id": "owner",
+          "type": "actor",
+          "name": "You (owner)",
+          "actor": "human"
+        },
+        {
+          "id": "publisher",
+          "type": "actor",
+          "name": "Publisher",
+          "actor": "external"
+        },
+        {
+          "id": "artifactCli",
+          "type": "boundary",
+          "name": "artifact.mjs",
+          "command": "scripts/artifact.mjs"
+        },
+        {
+          "id": "verifyCitation",
+          "type": "control",
+          "name": "A cited proposal must be human-signed"
+        },
+        {
+          "id": "holdCheck",
+          "type": "control",
+          "name": "Ask before opening the source"
+        },
+        {
+          "id": "streamHash",
+          "type": "control",
+          "name": "Hash while writing; verify before rename"
+        },
+        {
+          "id": "recordRun",
+          "type": "control",
+          "name": "Record the execution, authorised or not"
+        },
+        {
+          "id": "govLedger",
+          "type": "entity",
+          "name": "governance.jsonl"
+        },
+        {
+          "id": "blobStore",
+          "type": "entity",
+          "name": "Content-addressed blob store"
+        },
+        {
+          "id": "artLedger",
+          "type": "entity",
+          "name": "artifacts.jsonl"
+        },
+        {
+          "id": "runsLedger",
+          "type": "entity",
+          "name": "runs.jsonl"
+        },
+        {
+          "id": "filesArc",
+          "type": "boundary",
+          "name": "Files",
+          "surface": "file_explorer"
+        }
+      ],
+      "edges": [
+        {
+          "from": "owner",
+          "to": "artifactCli",
+          "label": "acquire --caused-by"
+        },
+        {
+          "from": "artifactCli",
+          "to": "verifyCitation",
+          "label": ""
+        },
+        {
+          "from": "verifyCitation",
+          "to": "govLedger",
+          "label": "resolves the signature"
+        },
+        {
+          "from": "verifyCitation",
+          "to": "holdCheck",
+          "label": ""
+        },
+        {
+          "from": "holdCheck",
+          "to": "blobStore",
+          "label": "do we already hold this hash?"
+        },
+        {
+          "from": "holdCheck",
+          "to": "streamHash",
+          "label": "only when not held"
+        },
+        {
+          "from": "publisher",
+          "to": "artifactCli",
+          "label": "serves the bytes"
+        },
+        {
+          "from": "streamHash",
+          "to": "blobStore",
+          "label": "atomic rename after verifying"
+        },
+        {
+          "from": "streamHash",
+          "to": "artLedger",
+          "label": "acquisition + verification"
+        },
+        {
+          "from": "holdCheck",
+          "to": "recordRun",
+          "label": ""
+        },
+        {
+          "from": "recordRun",
+          "to": "runsLedger",
+          "label": ""
+        },
+        {
+          "from": "filesArc",
+          "to": "holdCheck",
+          "label": "browse what is held and where"
+        }
+      ]
+    },
+    {
+      "id": "R-05",
+      "flow": "F-05",
+      "objects": [
+        {
+          "id": "owner",
+          "type": "actor",
+          "name": "You (owner)",
+          "actor": "human"
+        },
+        {
+          "id": "lineageArc",
+          "type": "boundary",
+          "name": "Lineage arc",
+          "surface": "_prime_silo/lineage"
+        },
+        {
+          "id": "indexApi",
+          "type": "boundary",
+          "name": "GET /api/lineage_index",
+          "endpoint": "lineage_index"
+        },
+        {
+          "id": "trailApi",
+          "type": "boundary",
+          "name": "GET /api/lineage_trail",
+          "endpoint": "lineage_trail"
+        },
+        {
+          "id": "verifyEach",
+          "type": "control",
+          "name": "Verify each chain separately"
+        },
+        {
+          "id": "foldSubjects",
+          "type": "control",
+          "name": "Fold every ledger by subject id"
+        },
+        {
+          "id": "coverage",
+          "type": "control",
+          "name": "Measure what is attested and what is not"
+        },
+        {
+          "id": "project",
+          "type": "control",
+          "name": "Fold each prefix with the system's own projector"
+        },
+        {
+          "id": "ledgers",
+          "type": "entity",
+          "name": "Every ledger under the store"
+        },
+        {
+          "id": "subject",
+          "type": "entity",
+          "name": "Subject and its trail"
+        },
+        {
+          "id": "requestIndex",
+          "type": "control",
+          "name": "Request the index"
+        },
+        {
+          "id": "stepArc",
+          "type": "boundary",
+          "name": "Step-Through",
+          "surface": "_prime_silo/step_through"
+        },
+        {
+          "id": "ttArc",
+          "type": "boundary",
+          "name": "Time Travel",
+          "surface": "time_travel"
+        }
+      ],
+      "edges": [
+        {
+          "from": "owner",
+          "to": "lineageArc",
+          "label": "opens"
+        },
+        {
+          "from": "indexApi",
+          "to": "verifyEach",
+          "label": ""
+        },
+        {
+          "from": "verifyEach",
+          "to": "ledgers",
+          "label": "reads, chain by chain"
+        },
+        {
+          "from": "verifyEach",
+          "to": "foldSubjects",
+          "label": "quarantines a failing ledger"
+        },
+        {
+          "from": "foldSubjects",
+          "to": "subject",
+          "label": "indexes by sid"
+        },
+        {
+          "from": "foldSubjects",
+          "to": "coverage",
+          "label": ""
+        },
+        {
+          "from": "lineageArc",
+          "to": "owner",
+          "label": "coverage first, rows second"
+        },
+        {
+          "from": "owner",
+          "to": "trailApi",
+          "label": "picks a subject"
+        },
+        {
+          "from": "trailApi",
+          "to": "project",
+          "label": ""
+        },
+        {
+          "from": "project",
+          "to": "subject",
+          "label": "reads the ordered events"
+        },
+        {
+          "from": "lineageArc",
+          "to": "requestIndex",
+          "label": ""
+        },
+        {
+          "from": "requestIndex",
+          "to": "indexApi",
+          "label": ""
+        },
+        {
+          "from": "stepArc",
+          "to": "project",
+          "label": "the same trail, one action at a time"
+        },
+        {
+          "from": "ttArc",
+          "to": "project",
+          "label": "undo a recorded change"
+        }
+      ]
+    },
+    {
+      "id": "R-06",
+      "flow": "F-06",
+      "objects": [
+        {
+          "id": "owner",
+          "type": "actor",
+          "name": "You (owner)",
+          "actor": "human"
+        },
+        {
+          "id": "sweepCli",
+          "type": "boundary",
+          "name": "inventory_sweep.mjs",
+          "command": "scripts/inventory_sweep.mjs"
+        },
+        {
+          "id": "packCli",
+          "type": "boundary",
+          "name": "evidence_pack.mjs",
+          "command": "scripts/evidence_pack.mjs"
+        },
+        {
+          "id": "observe",
+          "type": "control",
+          "name": "Walk the roots; observe, do not judge"
+        },
+        {
+          "id": "reconcile",
+          "type": "control",
+          "name": "Reconcile by path; unseen is neither"
+        },
+        {
+          "id": "measure",
+          "type": "control",
+          "name": "Measure each defect over a stated population"
+        },
+        {
+          "id": "verdict",
+          "type": "control",
+          "name": "Refuse to call vacuous or unmeasured clean"
+        },
+        {
+          "id": "disk",
+          "type": "entity",
+          "name": "The filesystem as observed"
+        },
+        {
+          "id": "ledgers",
+          "type": "entity",
+          "name": "Every ledger under the store"
+        },
+        {
+          "id": "snapshot",
+          "type": "entity",
+          "name": "Sweep snapshot in the CAS"
+        },
+        {
+          "id": "pack",
+          "type": "entity",
+          "name": "evidence-pack.md"
+        },
+        {
+          "id": "manifestsArc",
+          "type": "boundary",
+          "name": "Manifests",
+          "surface": "_prime_silo/manifest_explorer"
+        }
+      ],
+      "edges": [
+        {
+          "from": "owner",
+          "to": "sweepCli",
+          "label": "runs the sweep"
+        },
+        {
+          "from": "sweepCli",
+          "to": "observe",
+          "label": ""
+        },
+        {
+          "from": "observe",
+          "to": "disk",
+          "label": "walks"
+        },
+        {
+          "from": "observe",
+          "to": "reconcile",
+          "label": ""
+        },
+        {
+          "from": "reconcile",
+          "to": "ledgers",
+          "label": "compares claims"
+        },
+        {
+          "from": "reconcile",
+          "to": "snapshot",
+          "label": "stores the observation it judged"
+        },
+        {
+          "from": "owner",
+          "to": "packCli",
+          "label": "generates the pack"
+        },
+        {
+          "from": "packCli",
+          "to": "measure",
+          "label": ""
+        },
+        {
+          "from": "measure",
+          "to": "ledgers",
+          "label": ""
+        },
+        {
+          "from": "measure",
+          "to": "verdict",
+          "label": ""
+        },
+        {
+          "from": "verdict",
+          "to": "pack",
+          "label": "writes the verdict and its populations"
+        },
+        {
+          "from": "packCli",
+          "to": "owner",
+          "label": "exit 0 only when substantiated"
+        },
+        {
+          "from": "manifestsArc",
+          "to": "measure",
+          "label": "inspect the signed manifests behind runs"
+        }
+      ]
+    },
+    {
+      "id": "R-07",
+      "flow": "F-07",
+      "objects": [
+        {
+          "id": "estate",
+          "type": "actor",
+          "name": "The estate (scheduler)",
+          "actor": "house"
+        },
+        {
+          "id": "node",
+          "type": "actor",
+          "name": "Another node",
+          "actor": "external"
+        },
+        {
+          "id": "sweepCmd",
+          "type": "boundary",
+          "name": "heartbeat_run.mjs",
+          "command": "scripts/heartbeat_run.mjs"
+        },
+        {
+          "id": "collectCmd",
+          "type": "boundary",
+          "name": "heartbeat_estate.mjs",
+          "command": "scripts/heartbeat_estate.mjs"
+        },
+        {
+          "id": "missionArc",
+          "type": "boundary",
+          "name": "Mission Control",
+          "surface": "_prime_silo/mission_control"
+        },
+        {
+          "id": "probe",
+          "type": "control",
+          "name": "Probe services"
+        },
+        {
+          "id": "transitionOnly",
+          "type": "control",
+          "name": "Record transitions, not observations"
+        },
+        {
+          "id": "merge",
+          "type": "control",
+          "name": "Fold per-node logs without joining chains"
+        },
+        {
+          "id": "blindSpot",
+          "type": "control",
+          "name": "Carry a stale node instead of dropping it"
+        },
+        {
+          "id": "nodeLog",
+          "type": "entity",
+          "name": "heartbeat-<node>.jsonl"
+        },
+        {
+          "id": "board",
+          "type": "entity",
+          "name": "Estate board"
+        },
+        {
+          "id": "bridgeArc",
+          "type": "boundary",
+          "name": "Bridge",
+          "surface": "_prime_silo/bridge"
+        }
+      ],
+      "edges": [
+        {
+          "from": "estate",
+          "to": "sweepCmd",
+          "label": "every 5 minutes"
+        },
+        {
+          "from": "sweepCmd",
+          "to": "probe",
+          "label": ""
+        },
+        {
+          "from": "probe",
+          "to": "transitionOnly",
+          "label": ""
+        },
+        {
+          "from": "transitionOnly",
+          "to": "nodeLog",
+          "label": "appends only on change"
+        },
+        {
+          "from": "estate",
+          "to": "collectCmd",
+          "label": "every 15 minutes"
+        },
+        {
+          "from": "node",
+          "to": "collectCmd",
+          "label": "serves its own log over SSH"
+        },
+        {
+          "from": "collectCmd",
+          "to": "merge",
+          "label": ""
+        },
+        {
+          "from": "merge",
+          "to": "nodeLog",
+          "label": "verifies each chain alone"
+        },
+        {
+          "from": "merge",
+          "to": "blindSpot",
+          "label": ""
+        },
+        {
+          "from": "blindSpot",
+          "to": "board",
+          "label": "silence is carried, never dropped"
+        },
+        {
+          "from": "missionArc",
+          "to": "merge",
+          "label": "reads the folded view"
+        },
+        {
+          "from": "bridgeArc",
+          "to": "merge",
+          "label": "the same folded view, across the mesh"
+        }
+      ]
+    },
+    {
+      "id": "R-08",
+      "flow": "F-08",
+      "objects": [
+        {
+          "id": "owner",
+          "type": "actor",
+          "name": "You (owner)",
+          "actor": "human"
+        },
+        {
+          "id": "buildCli",
+          "type": "boundary",
+          "name": "manual_build.mjs",
+          "command": "scripts/manual_build.mjs"
+        },
+        {
+          "id": "loadCli",
+          "type": "boundary",
+          "name": "manual_load.mjs",
+          "command": "scripts/manual_load.mjs"
+        },
+        {
+          "id": "agentArc",
+          "type": "boundary",
+          "name": "Agent arc",
+          "surface": "agent"
+        },
+        {
+          "id": "resolveRefs",
+          "type": "control",
+          "name": "Resolve every file, panel, route and command"
+        },
+        {
+          "id": "chunk",
+          "type": "control",
+          "name": "Split one chunk per invariant"
+        },
+        {
+          "id": "route",
+          "type": "control",
+          "name": "Route the question; never answer a domain question from memory"
+        },
+        {
+          "id": "ground",
+          "type": "control",
+          "name": "Grade the answer against its sources"
+        },
+        {
+          "id": "manifest",
+          "type": "entity",
+          "name": "manual/manual.json"
+        },
+        {
+          "id": "graph",
+          "type": "entity",
+          "name": "Knowledge graph"
+        },
+        {
+          "id": "vectors",
+          "type": "entity",
+          "name": "Retrieval index"
+        },
+        {
+          "id": "tree",
+          "type": "entity",
+          "name": "PageIndex section tree"
+        },
+        {
+          "id": "llmArc",
+          "type": "boundary",
+          "name": "Local LLM",
+          "surface": "huggingface"
+        }
+      ],
+      "edges": [
+        {
+          "from": "owner",
+          "to": "buildCli",
+          "label": "builds the manual"
+        },
+        {
+          "from": "buildCli",
+          "to": "resolveRefs",
+          "label": ""
+        },
+        {
+          "from": "resolveRefs",
+          "to": "manifest",
+          "label": "reads the single source"
+        },
+        {
+          "from": "resolveRefs",
+          "to": "chunk",
+          "label": "only if everything resolves"
+        },
+        {
+          "from": "owner",
+          "to": "loadCli",
+          "label": "loads it"
+        },
+        {
+          "from": "loadCli",
+          "to": "chunk",
+          "label": ""
+        },
+        {
+          "from": "chunk",
+          "to": "graph",
+          "label": "deterministic triples"
+        },
+        {
+          "from": "chunk",
+          "to": "vectors",
+          "label": "self-contained chunks"
+        },
+        {
+          "from": "chunk",
+          "to": "tree",
+          "label": "headings become sections"
+        },
+        {
+          "from": "owner",
+          "to": "agentArc",
+          "label": "asks"
+        },
+        {
+          "from": "agentArc",
+          "to": "route",
+          "label": ""
+        },
+        {
+          "from": "route",
+          "to": "tree",
+          "label": "reads the outline first"
+        },
+        {
+          "from": "route",
+          "to": "vectors",
+          "label": "retrieves"
+        },
+        {
+          "from": "route",
+          "to": "ground",
+          "label": ""
+        },
+        {
+          "from": "ground",
+          "to": "agentArc",
+          "label": "answer, labelled grounded or not"
+        },
+        {
+          "from": "route",
+          "to": "llmArc",
+          "label": "calls the served model"
+        },
+        {
+          "from": "ground",
+          "to": "llmArc",
+          "label": "grades with the same model"
+        }
+      ]
+    }
+  ]
+}
