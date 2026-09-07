@@ -16,6 +16,13 @@
 // That puts this page outside the estate's colour tokens on purpose rather than by neglect: it
 // is not part of the C0 palette because it is not rendering on a colour display.
 //
+// IT IS NOT ANONYMOUS, AND THAT IS A REAL CONSTRAINT. This route authenticates like every
+// other API route: no `allowAnonymous`, deliberately, because these are the estate's governance
+// figures and the server can be bound to the LAN. So on an installation with a password set,
+// the device has to carry a session — a Kindle's browser can hold a cookie, but it cannot be
+// expected to complete the app's challenge login. Read the board there by logging in once on
+// the device, or not at all; the answer is never to open the route up.
+//
 // A STALE PAGE IS THE REAL HAZARD HERE. A Kindle will happily display this for six hours after
 // the estate stopped reporting. The reading time is stated in words at the top of the page, the
 // document refreshes itself on a slow timer, and the age of the last event is printed rather
