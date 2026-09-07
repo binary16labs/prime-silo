@@ -1,0 +1,344 @@
+{
+  "version": "1.0.0",
+  "title": "Estate use cases",
+  "subtitle": "What people and machinery actually do here, and which surface each act happens on",
+  "actor_note": "Actors are the estate's own authorship enum (R38) — human, frontier, house — plus external for another node. The estate already records who caused every event in exactly these terms, so a use case naming a different cast of actors would be describing a different system.",
+  "actors": [
+    {
+      "id": "human",
+      "name": "You (the owner)",
+      "note": "The only actor who may sign. Everything consequential terminates in a decision here."
+    },
+    {
+      "id": "frontier",
+      "name": "Benny (the agent)",
+      "note": "May propose and may never authorise (ADR-001). Reads, drafts, raises."
+    },
+    {
+      "id": "house",
+      "name": "The estate (deterministic machinery)",
+      "note": "Scheduled tasks, folds, sweeps and gates. Emits facts; exercises no judgement."
+    },
+    {
+      "id": "external",
+      "name": "Another node",
+      "note": "optimus, homeassistant, or a publisher we fetch from. Reachable, not trusted."
+    }
+  ],
+  "verification_note": "`exercised` means this flow was run end to end against the live estate and its result observed. `declared` means it is taken from the surface's own registered description and has NOT been run. The difference is recorded because a use-case map that reads uniformly confident about both is the same lie as a gauge reporting zero from an empty population.",
+  "use_cases": [
+    {
+      "id": "UC-01",
+      "name": "Authorise a piece of work",
+      "actor": "human",
+      "goal": "Turn a proposal into an authorisation the rest of the estate can cite.",
+      "trigger": "Something is waiting in the signing queue.",
+      "preconditions": ["The governance ledger's hash chain verifies."],
+      "surfaces": ["_prime_silo/gov"],
+      "endpoints": ["gov_proposals", "gov_sign"],
+      "flow": [
+        "Open the Gov arc. Each card shows why, what it rests on, what it costs and whether it reverses — before any button.",
+        "Read the evidence disclosure if the decision turns on it.",
+        "Sign, or decline with a reason."
+      ],
+      "outcome": "A proposal_signed event with authorship human and your identity from the session.",
+      "refuses": [
+        "The client cannot choose the signer.",
+        "Signing onto a ledger whose chain does not verify is refused."
+      ],
+      "verified": "exercised"
+    },
+    {
+      "id": "UC-02",
+      "name": "Raise work for a decision",
+      "actor": "frontier",
+      "goal": "Put a finding forward without acting on it.",
+      "trigger": "The agent, or a script, finds work worth doing.",
+      "preconditions": ["The governance chain verifies."],
+      "surfaces": [],
+      "endpoints": ["gov_raise"],
+      "commands": [],
+      "flow": [
+        "POST /api/gov_raise with a proposalId, title, rationale and any derivedFrom subjects.",
+        "The proposal appears in the Gov queue and nothing else happens.",
+        "An identical re-raise writes nothing; a changed one refreshes in place."
+      ],
+      "outcome": "A proposal_raised event with authorship frontier, awaiting a human.",
+      "refuses": [
+        "A proposal without a rationale is refused.",
+        "A settled proposal cannot be re-raised.",
+        "derivedFrom must be subject ids, never prose."
+      ],
+      "gap": "There is no screen for this. Raising is reachable only from a command line or an agent — see the sitemap's routes-with-no-panel.",
+      "verified": "exercised"
+    },
+    {
+      "id": "UC-03",
+      "name": "Prove where a thing came from",
+      "actor": "human",
+      "goal": "Answer 'who caused this, and on whose authority' for any subject in the estate.",
+      "trigger": "A reviewer asks, or something looks wrong.",
+      "preconditions": ["An estate store exists and its ledgers verify."],
+      "surfaces": ["_prime_silo/lineage"],
+      "endpoints": ["lineage_index", "lineage_trail"],
+      "flow": [
+        "Open the Lineage arc. Coverage is shown before the rows, on purpose.",
+        "Filter by kind and pick the subject.",
+        "Read its parents, its machines, and the authorship split."
+      ],
+      "outcome": "The subject's full recorded history, with what is NOT recorded stated plainly.",
+      "refuses": [
+        "A subject from a failing ledger is shown but never counted as evidence.",
+        "Edges are declared, never inferred.",
+        "Ledger-to-world completeness reports NOT MEASURABLE without a sweep."
+      ],
+      "verified": "exercised"
+    },
+    {
+      "id": "UC-04",
+      "name": "Replay what happened, step by step",
+      "actor": "human",
+      "goal": "Walk an execution one event at a time and see what the system believed at each point.",
+      "trigger": "Understanding an outcome after the fact.",
+      "preconditions": ["The subject has more than one recorded event."],
+      "surfaces": ["_prime_silo/lineage", "_prime_silo/step_through", "time_travel"],
+      "endpoints": ["lineage_trail"],
+      "flow": [
+        "Select the subject; the trail opens on the most recent event.",
+        "Prev / Next, or the arrow keys, walk the history.",
+        "The tick rail colours each event by who caused it."
+      ],
+      "outcome": "The event's own payload plus the projection the system would have returned then.",
+      "refuses": [
+        "The projector is last-write-wins, so the field is called projection, not state — earlier facts are absent, never retracted."
+      ],
+      "verified": "exercised"
+    },
+    {
+      "id": "UC-05",
+      "name": "Onboard an application",
+      "actor": "human",
+      "goal": "Bring new software into the estate so it is authorised, stored once, placed everywhere and remembered.",
+      "trigger": "You want an application on one or more machines.",
+      "preconditions": ["The estate store is reachable."],
+      "surfaces": ["_prime_silo/gov"],
+      "commands": ["scripts/app_onboard.mjs", "scripts/manual_build.mjs"],
+      "flow": [
+        "propose — writes a proposal and stops. Nothing is fetched.",
+        "decide — you sign in the Gov arc. There is no way to skip this.",
+        "acquire — fetches once into the content-addressed store, citing the signature.",
+        "place — materialises a copy per machine, each recording the same cause.",
+        "remember — rebuild the manual so the agent knows the application exists."
+      ],
+      "outcome": "An installed application whose entire path is provable from the ledger.",
+      "refuses": [
+        "acquire and place refuse while the proposal is open, declined or absent.",
+        "There is no --force."
+      ],
+      "verified": "exercised"
+    },
+    {
+      "id": "UC-06",
+      "name": "Download once, use everywhere",
+      "actor": "human",
+      "goal": "Stop paying for the same file twice across machines.",
+      "trigger": "A release, installer or model is needed on more than one node.",
+      "preconditions": ["The publisher gives a hash, or you accept fetching once to learn it."],
+      "surfaces": ["file_explorer"],
+      "commands": ["scripts/artifact.mjs"],
+      "flow": [
+        "acquire with --expected-hash; if the blob is held the source is never opened.",
+        "place it on each machine that needs it.",
+        "ls shows what is held and where every copy lives.",
+        "evict retires a copy; the blob survives."
+      ],
+      "outcome": "One stored copy, many recorded placements, and a transfer-avoided figure that is real.",
+      "refuses": [
+        "A --caused-by naming a proposal must name one a human actually signed.",
+        "Eviction never destroys the blob."
+      ],
+      "verified": "exercised"
+    },
+    {
+      "id": "UC-07",
+      "name": "Notice that a machine has gone quiet",
+      "actor": "house",
+      "goal": "Know which nodes and services are alive without assuming silence means health.",
+      "trigger": "The scheduled sweep, every five minutes; the collector, every fifteen.",
+      "preconditions": ["Each node writes its own chained log."],
+      "surfaces": ["_prime_silo/mission_control", "_prime_silo/bridge"],
+      "commands": ["scripts/heartbeat_run.mjs", "scripts/heartbeat_estate.mjs"],
+      "flow": [
+        "Each node sweeps its own services and records only transitions.",
+        "The collector pulls the remote logs and folds one board.",
+        "A node that stopped reporting is carried as a blind spot."
+      ],
+      "outcome": "A board that distinguishes 'down' from 'not heard from'.",
+      "refuses": [
+        "Chains are never concatenated.",
+        "A failed pull must not make a node vanish from the board."
+      ],
+      "verified": "exercised"
+    },
+    {
+      "id": "UC-08",
+      "name": "Hand a reviewer the evidence",
+      "actor": "human",
+      "goal": "Produce, from cold, a document that shows whether the estate is governed — including what cannot be shown.",
+      "trigger": "An audit, or your own periodic check.",
+      "preconditions": ["Ledgers exist; a sweep can reach the store."],
+      "surfaces": ["_prime_silo/manifest_explorer"],
+      "commands": ["scripts/evidence_pack.mjs", "scripts/inventory_sweep.mjs"],
+      "flow": [
+        "Run the sweep to reconcile disk against ledger.",
+        "Generate the pack; read the verdict before the table.",
+        "Check the 'Of' column: a count means nothing without its population."
+      ],
+      "outcome": "One document a reviewer can read without a tour of the codebase.",
+      "refuses": [
+        "NOT MEASURABLE never masquerades as clean.",
+        "A gauge with an empty population is named as vacuous.",
+        "Exit 0 only when every defect is measured, zero and non-empty."
+      ],
+      "verified": "exercised"
+    },
+    {
+      "id": "UC-09",
+      "name": "Ask the estate a question about itself",
+      "actor": "human",
+      "goal": "Get an answer from the operating manual rather than from the model's general knowledge.",
+      "trigger": "You do not remember how something works.",
+      "preconditions": [
+        "The manual has been built and loaded; an embedding model and a chat model are served."
+      ],
+      "surfaces": ["agent", "huggingface"],
+      "commands": ["scripts/manual_build.mjs", "scripts/manual_load.mjs"],
+      "flow": [
+        "Build the manual from manual.json; the build fails rather than describe something absent.",
+        "Load it: graph triples for traversal, chunks for retrieval, a PageIndex tree for navigation.",
+        "Ask. Answers are graded for groundedness and labelled."
+      ],
+      "outcome": "An answer traceable to a section of the manual, or an honest 'I do not know'.",
+      "refuses": [
+        "A partial load is reported as partial, never as success.",
+        "Ungrounded answers come back flagged, not silently."
+      ],
+      "verified": "exercised"
+    },
+    {
+      "id": "UC-10",
+      "name": "Recall what was done in a past session",
+      "actor": "human",
+      "goal": "Find the work, the reasoning and the artefacts of an earlier session.",
+      "trigger": "Picking up something started days or weeks ago.",
+      "preconditions": ["The memory graph has scanned the relevant agent activity."],
+      "surfaces": [
+        "_prime_silo/memory",
+        "_prime_silo/lifelog",
+        "_prime_silo/session_graph",
+        "_prime_silo/setup"
+      ],
+      "flow": [
+        "Configure where the memory graph scans (Memory Setup).",
+        "Search or browse sessions in Memory; the Lifelog gives the same span as a timeline of commits and agent actions.",
+        "Open one session in the Session Graph to walk its recursive inputs and outputs."
+      ],
+      "outcome": "The session, its lineage, and what it produced.",
+      "verified": "declared"
+    },
+    {
+      "id": "UC-11",
+      "name": "See how the pipeline produced an output",
+      "actor": "human",
+      "goal": "Inspect the model calls, gate verdicts and retrievals behind a generated artefact.",
+      "trigger": "An output looks wrong, or needs defending.",
+      "preconditions": ["The run was recorded."],
+      "surfaces": ["_prime_silo/benny_record"],
+      "flow": [
+        "Open Benny Record and select the output.",
+        "Replay the production path: every model call, gate verdict and retrieval."
+      ],
+      "outcome": "The chain of steps that produced the artefact.",
+      "verified": "declared"
+    },
+    {
+      "id": "UC-12",
+      "name": "Inspect a signed manifest",
+      "actor": "human",
+      "goal": "Read what a deterministic-zone manifest will do before it runs.",
+      "trigger": "Reviewing planned work an agent has drafted.",
+      "preconditions": ["The manifest is registered."],
+      "surfaces": ["_prime_silo/manifest_explorer"],
+      "flow": [
+        "Open Manifests and pick the registered manifest.",
+        "Read it as a DAG rather than as JSON."
+      ],
+      "outcome": "An understanding of the planned execution, before authorising it.",
+      "verified": "declared"
+    },
+    {
+      "id": "UC-13",
+      "name": "Watch the whole mesh at once",
+      "actor": "human",
+      "goal": "See memory, documents, code, flows and runs in one place.",
+      "trigger": "Starting a session, or checking on long-running work.",
+      "preconditions": ["The runtime is reachable."],
+      "surfaces": ["_prime_silo/bridge", "_prime_silo/mission_control"],
+      "flow": [
+        "Open Mission Control for the ecosystem rollup, resources and capabilities.",
+        "Open Bridge for the cognitive mesh across memory, documents, code, flows and runs."
+      ],
+      "outcome": "Current state without opening five screens.",
+      "verified": "declared"
+    },
+    {
+      "id": "UC-14",
+      "name": "Hold and edit the estate's own files",
+      "actor": "human",
+      "goal": "Browse and change app files without leaving the estate.",
+      "trigger": "A configuration or content change.",
+      "preconditions": ["You are signed in."],
+      "surfaces": ["file_explorer"],
+      "flow": ["Open Files, navigate to the file, edit it."],
+      "outcome": "The file is changed.",
+      "verified": "declared"
+    },
+    {
+      "id": "UC-15",
+      "name": "Serve and test a local model",
+      "actor": "human",
+      "goal": "Run a model on this machine rather than sending work elsewhere.",
+      "trigger": "Needing generation or embeddings locally.",
+      "preconditions": ["A model is present on disk."],
+      "surfaces": ["huggingface"],
+      "flow": ["Open Local LLM.", "Load a model and test it with WebGPU or Hugging Face."],
+      "outcome": "A model serving locally, which the rest of the estate can use.",
+      "verified": "declared"
+    },
+    {
+      "id": "UC-16",
+      "name": "Undo a change to the estate's own configuration",
+      "actor": "human",
+      "goal": "Roll back settings, spaces or custom development changes.",
+      "trigger": "A change made things worse.",
+      "preconditions": ["The prior state was captured."],
+      "surfaces": ["time_travel"],
+      "flow": ["Open Time Travel and select what to undo."],
+      "outcome": "The earlier configuration is restored.",
+      "verified": "declared"
+    },
+    {
+      "id": "UC-17",
+      "name": "Manage the operator account",
+      "actor": "human",
+      "goal": "Keep the identity that signs things correct and secured.",
+      "trigger": "A name or password change.",
+      "preconditions": ["You are signed in."],
+      "surfaces": ["user"],
+      "flow": ["Open User and update your name or password."],
+      "outcome": "The identity the signing path reads from the session is current.",
+      "note": "This matters more than it looks: gov_sign takes the signer from the session, so this surface defines who the ledger will name.",
+      "verified": "declared"
+    }
+  ]
+}

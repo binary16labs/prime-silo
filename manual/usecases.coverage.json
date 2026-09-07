@@ -1,0 +1,151 @@
+{
+  "generated_from": "scripts/usecases_build.mjs",
+  "use_cases": 17,
+  "surfaces": 16,
+  "exercised": 9,
+  "declared": 8,
+  "gaps": [
+    {
+      "id": "UC-02",
+      "gap": "There is no screen for this. Raising is reachable only from a command line or an agent — see the sitemap's routes-with-no-panel."
+    }
+  ],
+  "coverage": [
+    {
+      "route": "_prime_silo/gov",
+      "zone": "Decide",
+      "name": "Gov",
+      "use_cases": [
+        "UC-01",
+        "UC-05"
+      ]
+    },
+    {
+      "route": "_prime_silo/benny_record",
+      "zone": "Prove",
+      "name": "Benny Record",
+      "use_cases": [
+        "UC-11"
+      ]
+    },
+    {
+      "route": "_prime_silo/lineage",
+      "zone": "Prove",
+      "name": "Lineage",
+      "use_cases": [
+        "UC-03",
+        "UC-04"
+      ]
+    },
+    {
+      "route": "_prime_silo/manifest_explorer",
+      "zone": "Prove",
+      "name": "Manifests",
+      "use_cases": [
+        "UC-08",
+        "UC-12"
+      ]
+    },
+    {
+      "route": "_prime_silo/bridge",
+      "zone": "Watch",
+      "name": "Bridge",
+      "use_cases": [
+        "UC-07",
+        "UC-13"
+      ]
+    },
+    {
+      "route": "_prime_silo/mission_control",
+      "zone": "Watch",
+      "name": "Mission Control",
+      "use_cases": [
+        "UC-07",
+        "UC-13"
+      ]
+    },
+    {
+      "route": "_prime_silo/lifelog",
+      "zone": "Recall",
+      "name": "Lifelog",
+      "use_cases": [
+        "UC-10"
+      ]
+    },
+    {
+      "route": "_prime_silo/memory",
+      "zone": "Recall",
+      "name": "Memory",
+      "use_cases": [
+        "UC-10"
+      ]
+    },
+    {
+      "route": "_prime_silo/setup",
+      "zone": "Recall",
+      "name": "Memory Setup",
+      "use_cases": [
+        "UC-10"
+      ]
+    },
+    {
+      "route": "_prime_silo/session_graph",
+      "zone": "Recall",
+      "name": "Session Graph",
+      "use_cases": [
+        "UC-10"
+      ]
+    },
+    {
+      "route": "_prime_silo/step_through",
+      "zone": "Replay",
+      "name": "Step-Through",
+      "use_cases": [
+        "UC-04"
+      ]
+    },
+    {
+      "route": "time_travel",
+      "zone": "Replay",
+      "name": "Time Travel",
+      "use_cases": [
+        "UC-04",
+        "UC-16"
+      ]
+    },
+    {
+      "route": "agent",
+      "zone": "Ask",
+      "name": "Agent",
+      "use_cases": [
+        "UC-09"
+      ]
+    },
+    {
+      "route": "file_explorer",
+      "zone": "Hold",
+      "name": "Files",
+      "use_cases": [
+        "UC-06",
+        "UC-14"
+      ]
+    },
+    {
+      "route": "huggingface",
+      "zone": "Think",
+      "name": "Local LLM",
+      "use_cases": [
+        "UC-09",
+        "UC-15"
+      ]
+    },
+    {
+      "route": "user",
+      "zone": "Operate",
+      "name": "User",
+      "use_cases": [
+        "UC-17"
+      ]
+    }
+  ]
+}

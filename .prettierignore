@@ -37,3 +37,5 @@ scripts/train/qlora/out_*/
 scripts/train/eval/out_*/
 manual/SITEMAP.md
 manual/sitemap.json
+manual/USE-CASES.md
+manual/usecases.coverage.json
