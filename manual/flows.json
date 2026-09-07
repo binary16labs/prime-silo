@@ -1,0 +1,507 @@
+{
+  "version": "1.0.0",
+  "title": "Estate process flows",
+  "subtitle": "How each governed act actually proceeds — including every way it stops",
+  "doctrine": "A flow that models only the happy path documents a system nobody has. What distinguishes this estate is what it refuses, so refusals are steps here, not footnotes: each one is a real branch with a real terminal, and the build fails if a branch leads nowhere or nothing leads to it.",
+  "flows": [
+    {
+      "id": "F-01",
+      "name": "Authorise a piece of work",
+      "use_cases": ["UC-01"],
+      "start": "queue",
+      "steps": [
+        {
+          "id": "queue",
+          "actor": "house",
+          "action": "Fold the governance ledger and verify its hash chain.",
+          "endpoint": "gov_proposals",
+          "decision": [
+            { "when": "the chain does not verify", "go": "halt-chain" },
+            { "when": "no ledger file exists", "go": "halt-missing" },
+            { "when": "the chain verifies", "go": "review" }
+          ]
+        },
+        {
+          "id": "halt-chain",
+          "terminal": "Signing is disabled and the break is named by line. Nothing below is evidence."
+        },
+        {
+          "id": "halt-missing",
+          "terminal": "Reported as a missing record, never as an empty queue — the most dangerous sentence this screen could say."
+        },
+        {
+          "id": "review",
+          "actor": "human",
+          "action": "Read why, what it rests on, what it costs, whether it reverses — all shown before any button.",
+          "surface": "_prime_silo/gov",
+          "decision": [
+            { "when": "you sign", "go": "sign" },
+            { "when": "you decline", "go": "decline" },
+            { "when": "you leave it", "go": "open" }
+          ]
+        },
+        { "id": "open", "terminal": "The proposal stays open. Nothing is authorised." },
+        {
+          "id": "sign",
+          "actor": "house",
+          "action": "Append proposal_signed with authorship human and the signer taken from the session, never from the request.",
+          "endpoint": "gov_sign",
+          "next": "authorised"
+        },
+        {
+          "id": "decline",
+          "actor": "house",
+          "action": "Append proposal_declined. Declines are kept: a register of approvals only would imply everything proposed was accepted.",
+          "endpoint": "gov_sign",
+          "next": "settled"
+        },
+        {
+          "id": "authorised",
+          "terminal": "isAuthorised() now answers true for this proposal, and actions may cite it."
+        },
+        { "id": "settled", "terminal": "The decision is recorded and is terminal." }
+      ]
+    },
+    {
+      "id": "F-02",
+      "name": "Raise work for a decision",
+      "use_cases": ["UC-02"],
+      "start": "submit",
+      "steps": [
+        {
+          "id": "submit",
+          "actor": "frontier",
+          "action": "POST a proposalId, title, rationale and any derivedFrom subjects.",
+          "endpoint": "gov_raise",
+          "decision": [
+            { "when": "no rationale", "go": "reject-why" },
+            { "when": "derivedFrom is prose, not a subject id", "go": "reject-edge" },
+            { "when": "the chain does not verify", "go": "reject-chain" },
+            { "when": "well formed", "go": "existing" }
+          ]
+        },
+        {
+          "id": "reject-why",
+          "terminal": "400. A signer decides on the why, and 'the agent suggested it' is not a why."
+        },
+        {
+          "id": "reject-edge",
+          "terminal": "400 at the door, rather than a dangling parent in the lineage graph forever."
+        },
+        {
+          "id": "reject-chain",
+          "terminal": "409. Never append onto a record known to be altered."
+        },
+        {
+          "id": "existing",
+          "actor": "house",
+          "action": "Look the proposal up in the fold.",
+          "decision": [
+            { "when": "already signed or declined", "go": "reject-settled" },
+            { "when": "open, and the content is identical", "go": "unchanged" },
+            { "when": "open, and the content changed", "go": "refresh" },
+            { "when": "new", "go": "append" }
+          ]
+        },
+        {
+          "id": "reject-settled",
+          "terminal": "409. Re-raising a decision already made is how a queue starts asking for the same signature twice."
+        },
+        {
+          "id": "unchanged",
+          "terminal": "Nothing is written. Silence is the correct response to 'still true'."
+        },
+        {
+          "id": "refresh",
+          "actor": "house",
+          "action": "Append a new raised event; the fold collapses it to one queue item.",
+          "next": "queued"
+        },
+        {
+          "id": "append",
+          "actor": "house",
+          "action": "Append proposal_raised with authorship frontier, hard-coded — a request is a program, never a person.",
+          "next": "queued"
+        },
+        { "id": "queued", "terminal": "It waits in the Gov arc. Nothing else has happened." }
+      ]
+    },
+    {
+      "id": "F-03",
+      "name": "Onboard an application",
+      "use_cases": ["UC-05"],
+      "start": "propose",
+      "steps": [
+        {
+          "id": "propose",
+          "actor": "frontier",
+          "action": "Raise a proposal naming the application, its source, cost and reversibility.",
+          "command": "scripts/app_onboard.mjs",
+          "next": "gate"
+        },
+        {
+          "id": "gate",
+          "actor": "human",
+          "action": "Decide in the Gov arc. This is the only step that can unblock the rest.",
+          "surface": "_prime_silo/gov",
+          "decision": [
+            { "when": "signed", "go": "acquire" },
+            { "when": "open or declined", "go": "blocked" }
+          ]
+        },
+        {
+          "id": "blocked",
+          "terminal": "acquire and place refuse and say why. There is deliberately no --force: a step that can be skipped under pressure is not a control."
+        },
+        {
+          "id": "acquire",
+          "actor": "house",
+          "action": "Resolve the signature, then fetch once into the content-addressed store citing it.",
+          "decision": [
+            { "when": "the hash is already held", "go": "dedup" },
+            { "when": "not held", "go": "fetch" }
+          ]
+        },
+        {
+          "id": "dedup",
+          "actor": "house",
+          "action": "The source is never opened. This is the saving, not de-dup after the fact.",
+          "next": "place"
+        },
+        {
+          "id": "fetch",
+          "actor": "house",
+          "action": "Stream, hash and verify before admitting the bytes; record the acquisition and a run.",
+          "next": "place"
+        },
+        {
+          "id": "place",
+          "actor": "house",
+          "action": "Materialise a copy per machine, each placement recording the same signed proposal as its cause.",
+          "next": "remember"
+        },
+        {
+          "id": "remember",
+          "actor": "house",
+          "action": "Rebuild the manual so the application becomes a feature the agent knows about.",
+          "command": "scripts/manual_build.mjs",
+          "next": "prove"
+        },
+        {
+          "id": "prove",
+          "actor": "house",
+          "action": "Sweep and generate the evidence pack; the artifact, its placements and its runs all carry the signature.",
+          "command": "scripts/evidence_pack.mjs",
+          "next": "done"
+        },
+        {
+          "id": "done",
+          "terminal": "Installed software whose entire path — who asked, who agreed, what was fetched, where it went — is provable from the ledger."
+        }
+      ]
+    },
+    {
+      "id": "F-04",
+      "name": "Acquire an artifact once",
+      "use_cases": ["UC-06"],
+      "start": "cite",
+      "steps": [
+        {
+          "id": "cite",
+          "actor": "human",
+          "action": "Name the source, and optionally the proposal that authorises the fetch.",
+          "command": "scripts/artifact.mjs",
+          "decision": [
+            { "when": "--caused-by names a proposal", "go": "verify" },
+            { "when": "no --caused-by", "go": "unprovenanced" }
+          ]
+        },
+        {
+          "id": "verify",
+          "actor": "house",
+          "action": "Resolve the proposal against the governance ledger.",
+          "decision": [
+            { "when": "signed by a human", "go": "held" },
+            { "when": "missing, open or declined", "go": "refuse-cite" }
+          ]
+        },
+        {
+          "id": "refuse-cite",
+          "terminal": "Refused. Citing an unsigned proposal records the shape of an authorisation nobody gave, and afterwards it is indistinguishable from a real one."
+        },
+        {
+          "id": "unprovenanced",
+          "actor": "house",
+          "action": "Allowed, and said out loud: this will be recorded with no authorisation and counted unprovenanced. Forcing a citation here would teach the operator to type a plausible id.",
+          "next": "held"
+        },
+        {
+          "id": "held",
+          "actor": "house",
+          "action": "Ask whether the store already holds this hash — before opening anything.",
+          "decision": [
+            { "when": "held", "go": "skip" },
+            { "when": "not held", "go": "stream" }
+          ]
+        },
+        {
+          "id": "skip",
+          "terminal": "The source is never opened. Recorded as deduped and not fetched — transfer avoided, not transfer wasted."
+        },
+        {
+          "id": "stream",
+          "actor": "house",
+          "action": "Hash and write in one pass at constant memory; verify before the atomic rename.",
+          "decision": [
+            { "when": "hash or size mismatch", "go": "reject-bytes" },
+            { "when": "verified", "go": "stored" }
+          ]
+        },
+        {
+          "id": "reject-bytes",
+          "terminal": "The bytes never enter the store. Integrity is checked before admission, not after."
+        },
+        {
+          "id": "stored",
+          "terminal": "One copy held, an acquisition event, a verification event and a run — placeable on any machine without fetching again."
+        }
+      ]
+    },
+    {
+      "id": "F-05",
+      "name": "Prove and replay a subject",
+      "use_cases": ["UC-03", "UC-04"],
+      "start": "fold",
+      "steps": [
+        {
+          "id": "fold",
+          "actor": "house",
+          "action": "Read every ledger under the store and verify each chain SEPARATELY — they cannot be concatenated.",
+          "endpoint": "lineage_index",
+          "decision": [
+            { "when": "the store is absent", "go": "no-store" },
+            { "when": "some ledger fails", "go": "quarantine" },
+            { "when": "all verify", "go": "browse" }
+          ]
+        },
+        {
+          "id": "no-store",
+          "terminal": "Reported as an absent record. Zero out of zero is not a clean score."
+        },
+        {
+          "id": "quarantine",
+          "actor": "house",
+          "action": "Subjects from the failing ledger are still shown — hiding them would lose the fact that they exist — but never counted as evidence.",
+          "next": "browse"
+        },
+        {
+          "id": "browse",
+          "actor": "human",
+          "action": "Read coverage first, then pick a subject.",
+          "surface": "_prime_silo/lineage",
+          "next": "trail"
+        },
+        {
+          "id": "trail",
+          "actor": "house",
+          "action": "Order the subject's events by transaction time then HLC, and fold each prefix with the system's own projector.",
+          "endpoint": "lineage_trail",
+          "next": "step"
+        },
+        {
+          "id": "step",
+          "actor": "human",
+          "action": "Walk the trail. The event's own payload is complete; the projection beside it is last-write-wins and says so.",
+          "surface": "_prime_silo/lineage",
+          "decision": [
+            { "when": "the event declares no upstream", "go": "unprovenanced-end" },
+            { "when": "it declares a parent", "go": "walk-up" }
+          ]
+        },
+        {
+          "id": "unprovenanced-end",
+          "terminal": "The trail stops. That is a gap in the record, not proof the subject had no origin."
+        },
+        {
+          "id": "walk-up",
+          "terminal": "Follow the declared parent and repeat, until the chain reaches a decision someone signed."
+        }
+      ]
+    },
+    {
+      "id": "F-06",
+      "name": "Prove the estate to a reviewer",
+      "use_cases": ["UC-08"],
+      "start": "sweep",
+      "steps": [
+        {
+          "id": "sweep",
+          "actor": "house",
+          "action": "Walk the store's roots and any --include paths; observe, do not judge.",
+          "command": "scripts/inventory_sweep.mjs",
+          "decision": [
+            { "when": "a ledger does not verify", "go": "refuse-reconcile" },
+            { "when": "ledgers verify", "go": "reconcile" }
+          ]
+        },
+        {
+          "id": "refuse-reconcile",
+          "terminal": "Refused. Numbers checked against a record we know has been altered would look authoritative and mean nothing."
+        },
+        {
+          "id": "reconcile",
+          "actor": "house",
+          "action": "Compare disk against ledger BY PATH — a placement is judged only if its path was actually walked.",
+          "decision": [
+            { "when": "a claimed path was not walked", "go": "unseen" },
+            { "when": "walked", "go": "verdict" }
+          ]
+        },
+        {
+          "id": "unseen",
+          "actor": "house",
+          "action": "Counted as unseen — neither present nor missing — and folded into neither defect. Marking it missing would manufacture a defect out of not looking.",
+          "next": "verdict"
+        },
+        {
+          "id": "verdict",
+          "actor": "house",
+          "action": "Build the pack: each defect measured, with the population it was measured over.",
+          "command": "scripts/evidence_pack.mjs",
+          "decision": [
+            { "when": "a defect cannot be measured", "go": "not-measurable" },
+            { "when": "measured zero over an empty population", "go": "vacuous" },
+            { "when": "measured, zero, non-empty", "go": "substantiated" },
+            { "when": "defects found", "go": "defects" }
+          ]
+        },
+        {
+          "id": "not-measurable",
+          "terminal": "Reported as NOT MEASURABLE and never as clean. Exit 1."
+        },
+        {
+          "id": "vacuous",
+          "terminal": "Named as a gauge with nothing to measure. 0 of 0 and 0 of 200 are the same digit and different assurances. Exit 1."
+        },
+        {
+          "id": "defects",
+          "terminal": "Named individually, with the runs or objects at fault. Exit 1."
+        },
+        {
+          "id": "substantiated",
+          "terminal": "The only unqualified pass: every defect measured, zero, and with something under it. Exit 0."
+        }
+      ]
+    },
+    {
+      "id": "F-07",
+      "name": "Keep the estate's health honest",
+      "use_cases": ["UC-07"],
+      "start": "probe",
+      "steps": [
+        {
+          "id": "probe",
+          "actor": "house",
+          "action": "Each node probes its own services on a schedule.",
+          "command": "scripts/heartbeat_run.mjs",
+          "decision": [
+            { "when": "state is unchanged", "go": "silent" },
+            { "when": "state changed", "go": "transition" }
+          ]
+        },
+        {
+          "id": "silent",
+          "terminal": "Nothing is written. The ledger records transitions, not observations."
+        },
+        {
+          "id": "transition",
+          "actor": "house",
+          "action": "Append service_transitioned with from, to and the observer.",
+          "next": "collect"
+        },
+        {
+          "id": "collect",
+          "actor": "house",
+          "action": "The collector pulls each node's own chained log and folds one board, citing the proposal that authorises the schedule.",
+          "command": "scripts/heartbeat_estate.mjs",
+          "decision": [
+            { "when": "a pull fails or a node is stale", "go": "blind" },
+            { "when": "all nodes reporting", "go": "board" }
+          ]
+        },
+        {
+          "id": "blind",
+          "terminal": "Carried as a blind spot, never dropped. A failed pull must not make a node vanish — absence reading as health is the failure this exists to catch."
+        },
+        { "id": "board", "terminal": "One view of the estate, with outages named and ages shown." }
+      ]
+    },
+    {
+      "id": "F-08",
+      "name": "Answer from the manual rather than from memory",
+      "use_cases": ["UC-09"],
+      "start": "build",
+      "steps": [
+        {
+          "id": "build",
+          "actor": "house",
+          "action": "Generate the manual from manual.json, resolving every file, panel, endpoint and command it names.",
+          "command": "scripts/manual_build.mjs",
+          "decision": [
+            { "when": "a reference does not resolve", "go": "drifted" },
+            { "when": "all resolve", "go": "load" }
+          ]
+        },
+        {
+          "id": "drifted",
+          "terminal": "Nothing is written. The manual cannot describe something that is not there."
+        },
+        {
+          "id": "load",
+          "actor": "house",
+          "action": "Push triples to the graph, a PageIndex tree for navigation, and chunks for retrieval.",
+          "command": "scripts/manual_load.mjs",
+          "decision": [
+            { "when": "any of the three fails", "go": "partial" },
+            { "when": "all three land", "go": "ask" }
+          ]
+        },
+        {
+          "id": "partial",
+          "terminal": "Reported as PARTLY LOADED with which half failed. An agent answering confidently from a manual it never received is worse than one that says it does not know."
+        },
+        {
+          "id": "ask",
+          "actor": "human",
+          "action": "Ask a question.",
+          "surface": "agent",
+          "decision": [
+            { "when": "a greeting", "go": "social" },
+            { "when": "anything else, and the workspace has documents", "go": "retrieve" }
+          ]
+        },
+        {
+          "id": "social",
+          "terminal": "Answered directly without retrieval, and marked unchecked — there are no documents to be grounded in."
+        },
+        {
+          "id": "retrieve",
+          "actor": "house",
+          "action": "Retrieve, grade the documents, generate, then grade the answer against its sources.",
+          "decision": [
+            { "when": "grounded", "go": "answered" },
+            { "when": "not grounded", "go": "flagged" }
+          ]
+        },
+        {
+          "id": "flagged",
+          "terminal": "Returned with hallucination_check false and X-RAG-Grounded: false. The answer is not withheld; it is labelled."
+        },
+        {
+          "id": "answered",
+          "terminal": "An answer traceable to a section of the manual, grounded and marked as such."
+        }
+      ]
+    }
+  ]
+}
