@@ -1,0 +1,383 @@
+{
+  "generated_from": "scripts/sitemap_build.mjs",
+  "counts": {
+    "surfaces": 16,
+    "routes": 51,
+    "commands": 21,
+    "unreached_routes": 39
+  },
+  "zones": [
+    {
+      "zone": "Decide",
+      "surfaces": [
+        {
+          "name": "Gov",
+          "route": "_prime_silo/gov",
+          "description": "The signing queue — what Benny has proposed, what it rests on, and the decisions you have already made.",
+          "icon": "approval",
+          "colour": "#63a063",
+          "dir": "app/L0/_all/mod/_prime_silo/gov",
+          "hasView": true,
+          "endpoints": [
+            "gov_proposals",
+            "gov_sign"
+          ]
+        }
+      ]
+    },
+    {
+      "zone": "Prove",
+      "surfaces": [
+        {
+          "name": "Benny Record",
+          "route": "_prime_silo/benny_record",
+          "description": "Replay how the pipeline produced any output — every model call, gate verdict, retrieval and ingest, step by step — with a token meter, gate chips, a model/ctx/commit badge, a live telemetry tail, and a lineage map that follows the current step.",
+          "icon": "fiber_manual_record",
+          "colour": "#c4a882",
+          "dir": "app/L0/_all/mod/_prime_silo/benny_record",
+          "hasView": true,
+          "endpoints": [
+            "longview_ledger",
+            "longview_record"
+          ]
+        },
+        {
+          "name": "Lineage",
+          "route": "_prime_silo/lineage",
+          "description": "Total lineage — every subject the estate has recorded, its history step by step, and an honest measure of what is not recorded at all.",
+          "icon": "account_tree",
+          "colour": "#63a063",
+          "dir": "app/L0/_all/mod/_prime_silo/lineage",
+          "hasView": true,
+          "endpoints": [
+            "lineage_index",
+            "lineage_trail"
+          ]
+        },
+        {
+          "name": "Manifests",
+          "route": "_prime_silo/manifest_explorer",
+          "description": "Deterministic-zone manifest registry — inspect signed swarm manifests as DAGs.",
+          "icon": "schema",
+          "colour": "#c4a882",
+          "dir": "app/L0/_all/mod/_prime_silo/manifest_explorer",
+          "hasView": true,
+          "endpoints": []
+        }
+      ]
+    },
+    {
+      "zone": "Watch",
+      "surfaces": [
+        {
+          "name": "Bridge",
+          "route": "_prime_silo/bridge",
+          "description": "Mission control for the whole cognitive mesh — memory, documents, code, flows and runs on one page, with Benny in the dock.",
+          "icon": "hub",
+          "colour": "#c4a882",
+          "dir": "app/L0/_all/mod/_prime_silo/bridge",
+          "hasView": true,
+          "endpoints": [
+            "config_defaults",
+            "integration_audit",
+            "longview_run",
+            "longview_status",
+            "longview_stop",
+            "runtime",
+            "workflows_run"
+          ]
+        },
+        {
+          "name": "Mission Control",
+          "route": "_prime_silo/mission_control",
+          "description": "The Command Center — live ecosystem rollup, system resources and capabilities, the file-memory heatmap, activity radar, and an omnibar across sessions, files, and actions.",
+          "icon": "dashboard",
+          "colour": "#8b9c8b",
+          "dir": "app/L0/_all/mod/_prime_silo/mission_control",
+          "hasView": true,
+          "endpoints": []
+        }
+      ]
+    },
+    {
+      "zone": "Recall",
+      "surfaces": [
+        {
+          "name": "Lifelog",
+          "route": "_prime_silo/lifelog",
+          "description": "A unified timeline of git commits and agent actions across all workspaces, with an activity radar that filters the feed by day.",
+          "icon": "timeline",
+          "colour": "#9caf88",
+          "dir": "app/L0/_all/mod/_prime_silo/lifelog",
+          "hasView": true,
+          "endpoints": []
+        },
+        {
+          "name": "Memory",
+          "route": "_prime_silo/memory",
+          "description": "The memory graph — your Claude + Antigravity agent sessions X-rayed into an explorable lineage map.",
+          "icon": "bubble_chart",
+          "colour": "#9caf88",
+          "dir": "app/L0/_all/mod/_prime_silo/memory",
+          "hasView": true,
+          "endpoints": [
+            "integration_audit"
+          ]
+        },
+        {
+          "name": "Memory Setup",
+          "route": "_prime_silo/setup",
+          "description": "Configure where the memory graph scans for agent activity — Claude, Antigravity, Gemini, and opencode log and config paths — with auto-detect status.",
+          "icon": "tune",
+          "colour": "#b8a898",
+          "dir": "app/L0/_all/mod/_prime_silo/setup",
+          "hasView": true,
+          "endpoints": []
+        },
+        {
+          "name": "Session Graph",
+          "route": "_prime_silo/session_graph",
+          "description": "A full-canvas lineage explorer — pick a session and walk its recursive graph of inputs, thoughts, tool calls, and touched files.",
+          "icon": "account_tree",
+          "colour": "#8a9aa4",
+          "dir": "app/L0/_all/mod/_prime_silo/session_graph",
+          "hasView": true,
+          "endpoints": []
+        }
+      ]
+    },
+    {
+      "zone": "Replay",
+      "surfaces": [
+        {
+          "name": "Step-Through",
+          "route": "_prime_silo/step_through",
+          "description": "Replay a session one action at a time — what happened, why, and the change it made — with playback, narration, and a lineage map that follows the current step.",
+          "icon": "smart_display",
+          "colour": "#c4a882",
+          "dir": "app/L0/_all/mod/_prime_silo/step_through",
+          "hasView": true,
+          "endpoints": []
+        },
+        {
+          "name": "Time Travel",
+          "route": "time_travel",
+          "description": "Undo settings, spaces, and custom development changes.",
+          "icon": "history",
+          "colour": "#79edd8",
+          "dir": "app/L0/_all/mod/_core/time_travel",
+          "hasView": true,
+          "endpoints": []
+        }
+      ]
+    },
+    {
+      "zone": "Ask",
+      "surfaces": [
+        {
+          "name": "Agent",
+          "route": "agent",
+          "description": "Basic information and personal prompt tuning for the browser agent.",
+          "icon": "smart_toy",
+          "colour": "#94bcff",
+          "dir": "app/L0/_all/mod/_core/agent",
+          "hasView": true,
+          "endpoints": []
+        }
+      ]
+    },
+    {
+      "zone": "Hold",
+      "surfaces": [
+        {
+          "name": "Files",
+          "route": "file_explorer",
+          "description": "Browse and edit app files.",
+          "icon": "folder_open",
+          "colour": "#8bd7ff",
+          "dir": "app/L0/_all/mod/_core/file_explorer",
+          "hasView": true,
+          "endpoints": []
+        }
+      ]
+    },
+    {
+      "zone": "Think",
+      "surfaces": [
+        {
+          "name": "Local LLM",
+          "route": "huggingface",
+          "description": "Load and test local LLMs with WebGPU and Hugging Face.",
+          "icon": "hub",
+          "colour": "#7de3c9",
+          "dir": "app/L0/_all/mod/_core/huggingface",
+          "hasView": true,
+          "endpoints": []
+        }
+      ]
+    },
+    {
+      "zone": "Operate",
+      "surfaces": [
+        {
+          "name": "User",
+          "route": "user",
+          "description": "Update your full name and sign-in password.",
+          "icon": "manage_accounts",
+          "colour": "#ffd08a",
+          "dir": "app/L0/_all/mod/_core/user",
+          "hasView": true,
+          "endpoints": []
+        }
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "command": "node scripts/app_onboard.mjs",
+      "file": "scripts/app_onboard.mjs",
+      "summary": ""
+    },
+    {
+      "command": "node scripts/artifact.mjs",
+      "file": "scripts/artifact.mjs",
+      "summary": ""
+    },
+    {
+      "command": "node scripts/audit-integrations.mjs",
+      "file": "scripts/audit-integrations.mjs",
+      "summary": ""
+    },
+    {
+      "command": "node scripts/audit-registry.mjs",
+      "file": "scripts/audit-registry.mjs",
+      "summary": ""
+    },
+    {
+      "command": "node scripts/configure-open-notebook-models.mjs",
+      "file": "scripts/configure-open-notebook-models.mjs",
+      "summary": ""
+    },
+    {
+      "command": "node scripts/estate.mjs",
+      "file": "scripts/estate.mjs",
+      "summary": ""
+    },
+    {
+      "command": "node scripts/estate_backup.mjs",
+      "file": "scripts/estate_backup.mjs",
+      "summary": "shared workspace, with the quarantine boundary enforced at the copy edge."
+    },
+    {
+      "command": "node scripts/estate_key.mjs",
+      "file": "scripts/estate_key.mjs",
+      "summary": "POST /api/estate/register."
+    },
+    {
+      "command": "node scripts/estate_satellite_agent.mjs",
+      "file": "scripts/estate_satellite_agent.mjs",
+      "summary": "hub so \"just start prime-silo and it detects\" becomes literal."
+    },
+    {
+      "command": "node scripts/estate_satellite_pull.mjs",
+      "file": "scripts/estate_satellite_pull.mjs",
+      "summary": ""
+    },
+    {
+      "command": "node scripts/evidence_pack.mjs",
+      "file": "scripts/evidence_pack.mjs",
+      "summary": ""
+    },
+    {
+      "command": "node scripts/heartbeat_estate.mjs",
+      "file": "scripts/heartbeat_estate.mjs",
+      "summary": ""
+    },
+    {
+      "command": "node scripts/heartbeat_run.mjs",
+      "file": "scripts/heartbeat_run.mjs",
+      "summary": "most of the time."
+    },
+    {
+      "command": "node scripts/inventory_sweep.mjs",
+      "file": "scripts/inventory_sweep.mjs",
+      "summary": ""
+    },
+    {
+      "command": "node scripts/manual_build.mjs",
+      "file": "scripts/manual_build.mjs",
+      "summary": ""
+    },
+    {
+      "command": "node scripts/manual_load.mjs",
+      "file": "scripts/manual_load.mjs",
+      "summary": ""
+    },
+    {
+      "command": "node scripts/offload-report.mjs",
+      "file": "scripts/offload-report.mjs",
+      "summary": ""
+    },
+    {
+      "command": "node scripts/offload-runner.mjs",
+      "file": "scripts/offload-runner.mjs",
+      "summary": "($BENNY_HOME/state/hmac-key) -> fail fast. No shipped default remains."
+    },
+    {
+      "command": "node scripts/openstudio-notebook-bridge.mjs",
+      "file": "scripts/openstudio-notebook-bridge.mjs",
+      "summary": ""
+    },
+    {
+      "command": "node scripts/run-workflows.mjs",
+      "file": "scripts/run-workflows.mjs",
+      "summary": "($BENNY_HOME/state/hmac-key) -> fail fast. No shipped default remains."
+    },
+    {
+      "command": "node scripts/sitemap_build.mjs",
+      "file": "scripts/sitemap_build.mjs",
+      "summary": ""
+    }
+  ],
+  "routes_without_a_panel": [
+    "agent_api",
+    "cloud_share_clone",
+    "cloud_share_create",
+    "cloud_share_download",
+    "cloud_share_info",
+    "debug_path_index",
+    "extensions_load",
+    "file_copy",
+    "file_delete",
+    "file_info",
+    "file_list",
+    "file_move",
+    "file_paths",
+    "file_read",
+    "file_write",
+    "folder_download",
+    "git_history_diff",
+    "git_history_list",
+    "git_history_preview",
+    "git_history_revert",
+    "git_history_rollback",
+    "gov_raise",
+    "guest_create",
+    "health",
+    "home",
+    "login",
+    "login_challenge",
+    "login_check",
+    "module_info",
+    "module_install",
+    "module_list",
+    "module_remove",
+    "password_change",
+    "password_generate",
+    "space_import",
+    "user_crypto_bootstrap",
+    "user_crypto_session_key",
+    "user_self_info",
+    "workflows_api"
+  ]
+}

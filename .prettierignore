@@ -35,3 +35,5 @@ manual/manual.triples.json
 # that wrote it.
 scripts/train/qlora/out_*/
 scripts/train/eval/out_*/
+manual/SITEMAP.md
+manual/sitemap.json
