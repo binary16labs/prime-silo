@@ -110,6 +110,30 @@ Arc navigation — refusal 2. Arc navigation — Agent arc. No ambient motion �
 
 Arc navigation — refusal 3. Arc navigation — Agent arc. Every surface must be readable at 375px and in reduced-motion. (navigation, ring, navi-key, panels)
 
+The estate on a wall. The estate on a wall (The Deck arc). One glanceable surface answering four questions at once — what is waiting on you, what is proven, which machines are reporting, and what ran without authorisation — sized for a projector, a monitor, or a phone. How to use it: Open it inside the app at #/_prime_silo/deck, or full screen at /deck for a projector or a spare monitor. Every figure is folded from the ledgers in one request, so the four tiles are always the same moment of the estate. Three tiers pick themselves from the width of the surface: wall, column and pocket. Nothing is configured. Room mode hides machine names, proposal titles and store paths for a screen other people can see. (deck, HUD, HUD deck, wall, holodeck, dashboard on the wall, projector view)
+
+The estate on a wall — refusal 1. The estate on a wall — The Deck arc. Absence is a state, not a zero — a deck that cannot see the ledgers says 'not reporting' instead of showing green. (deck, HUD, HUD deck, wall, holodeck, dashboard on the wall, projector view)
+
+The estate on a wall — refusal 2. The estate on a wall — The Deck arc. A count is always shown with the population it came from: 2/113, never 2. (deck, HUD, HUD deck, wall, holodeck, dashboard on the wall, projector view)
+
+The estate on a wall — refusal 3. The estate on a wall — The Deck arc. Motion is feedback to a real change in the numbers; nothing on the deck moves on a timer. (deck, HUD, HUD deck, wall, holodeck, dashboard on the wall, projector view)
+
+Talking to the deck. Talking to the deck (The Deck arc). Ask the estate a question out loud from across the room, and hear the answer back — navigate, query and raise a proposal, but never sign one. How to use it: Hold the talk button while you speak and release to send; the deck never listens on its own. Benny transcribes what was said, the router decides what it meant, and the deck goes to that surface. The reply appears as text first and is then spoken through Voicebox, so a silent mouth costs you nothing but the sound. Start Benny on :8005 to be heard and Voicebox on :17493 to be answered aloud; the deck reports which of the two is missing. (voice, speech, talk to the estate, push to talk, STT, TTS, Voicebox, spoken commands)
+
+Talking to the deck — refusal 1. Talking to the deck — The Deck arc. The voice router has no branch that can sign. A spoken 'sign it' is refused and the queue is opened instead. (voice, speech, talk to the estate, push to talk, STT, TTS, Voicebox, spoken commands)
+
+Talking to the deck — refusal 2. Talking to the deck — The Deck arc. The microphone is push-to-talk. There is no always-listening mode and no wake word. (voice, speech, talk to the estate, push to talk, STT, TTS, Voicebox, spoken commands)
+
+Talking to the deck — refusal 3. Talking to the deck — The Deck arc. Hearing and speaking are separate capabilities: with Voicebox down the microphone still works and replies stay in text. (voice, speech, talk to the estate, push to talk, STT, TTS, Voicebox, spoken commands)
+
+The estate on paper. The estate on paper (The Deck arc). The same board rendered as a finished page with no script, no stylesheet request and nothing to hydrate — for a Kindle, an e-ink frame, or any browser too old or too limited for the app. How to use it: Point the device at /api/deck_kindle and bookmark it; add ?room=1 to hide names and titles. It renders from the deck's own fold, so the paper board and the wall cannot disagree. The page refreshes itself every five minutes and prints the time it was read. (Kindle, e-ink, paper, no-JS, static board, Kindle tier)
+
+The estate on paper — refusal 1. The estate on paper — The Deck arc. No script tag, no external stylesheet, no image — the tier exists for devices where those fail. (Kindle, e-ink, paper, no-JS, static board, Kindle tier)
+
+The estate on paper — refusal 2. The estate on paper — The Deck arc. State is carried by words and by inversion, never by colour, because e-ink has none. (Kindle, e-ink, paper, no-JS, static board, Kindle tier)
+
+The estate on paper — refusal 3. The estate on paper — The Deck arc. The reading time is always on the page: an old picture that says how old it is is still evidence. (Kindle, e-ink, paper, no-JS, static board, Kindle tier)
+
 Onboard an application — Propose. Onboard an application, step 1 of 6: Propose. Performed by agent or you. Raise a proposal naming the application, why it is wanted, what it costs and whether it reverses. Command: node scripts/app_onboard.mjs propose --app <id> --title <name> --source <url> --rationale <why>. Gate: Nothing is downloaded or installed at this step.
 
 Onboard an application — Decide. Onboard an application, step 2 of 6: Decide. Performed by you, and only you. Open the Gov arc and sign or decline. This is the authorisation the rest of the workflow cites. Gate: The workflow refuses to continue while the proposal is open or declined.

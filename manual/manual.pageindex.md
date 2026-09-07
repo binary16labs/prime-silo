@@ -262,6 +262,58 @@ Omitting --caused-by stays legal and is recorded honestly as unprovenanced. Forc
 
 Eviction retires a placement and never the blob: reclaiming space must not destroy the only copy. This is a refusal of Download once, place anywhere, on the Files arc. (artifact CLI, scripts/artifact.mjs, acquire, place, evict, download, installer, NAS)
 
+## The Deck arc
+
+The The Deck arc exists to watch. It renders at #/_prime_silo/deck.
+
+### The estate on a wall — deck, HUD, HUD deck, wall, holodeck, dashboard on the wall, projector view
+
+One glanceable surface answering four questions at once — what is waiting on you, what is proven, which machines are reporting, and what ran without authorisation — sized for a projector, a monitor, or a phone. How to use it: Open it inside the app at #/_prime_silo/deck, or full screen at /deck for a projector or a spare monitor. Every figure is folded from the ledgers in one request, so the four tiles are always the same moment of the estate. Three tiers pick themselves from the width of the surface: wall, column and pocket. Nothing is configured. Room mode hides machine names, proposal titles and store paths for a screen other people can see. (The estate on a wall, The Deck arc)
+
+#### The estate on a wall refusal 1
+
+Absence is a state, not a zero — a deck that cannot see the ledgers says 'not reporting' instead of showing green. This is a refusal of The estate on a wall, on the The Deck arc. (deck, HUD, HUD deck, wall, holodeck, dashboard on the wall, projector view)
+
+#### The estate on a wall refusal 2
+
+A count is always shown with the population it came from: 2/113, never 2. This is a refusal of The estate on a wall, on the The Deck arc. (deck, HUD, HUD deck, wall, holodeck, dashboard on the wall, projector view)
+
+#### The estate on a wall refusal 3
+
+Motion is feedback to a real change in the numbers; nothing on the deck moves on a timer. This is a refusal of The estate on a wall, on the The Deck arc. (deck, HUD, HUD deck, wall, holodeck, dashboard on the wall, projector view)
+
+### Talking to the deck — voice, speech, talk to the estate, push to talk, STT, TTS, Voicebox, spoken commands
+
+Ask the estate a question out loud from across the room, and hear the answer back — navigate, query and raise a proposal, but never sign one. How to use it: Hold the talk button while you speak and release to send; the deck never listens on its own. Benny transcribes what was said, the router decides what it meant, and the deck goes to that surface. The reply appears as text first and is then spoken through Voicebox, so a silent mouth costs you nothing but the sound. Start Benny on :8005 to be heard and Voicebox on :17493 to be answered aloud; the deck reports which of the two is missing. (Talking to the deck, The Deck arc)
+
+#### Talking to the deck refusal 1
+
+The voice router has no branch that can sign. A spoken 'sign it' is refused and the queue is opened instead. This is a refusal of Talking to the deck, on the The Deck arc. (voice, speech, talk to the estate, push to talk, STT, TTS, Voicebox, spoken commands)
+
+#### Talking to the deck refusal 2
+
+The microphone is push-to-talk. There is no always-listening mode and no wake word. This is a refusal of Talking to the deck, on the The Deck arc. (voice, speech, talk to the estate, push to talk, STT, TTS, Voicebox, spoken commands)
+
+#### Talking to the deck refusal 3
+
+Hearing and speaking are separate capabilities: with Voicebox down the microphone still works and replies stay in text. This is a refusal of Talking to the deck, on the The Deck arc. (voice, speech, talk to the estate, push to talk, STT, TTS, Voicebox, spoken commands)
+
+### The estate on paper — Kindle, e-ink, paper, no-JS, static board, Kindle tier
+
+The same board rendered as a finished page with no script, no stylesheet request and nothing to hydrate — for a Kindle, an e-ink frame, or any browser too old or too limited for the app. How to use it: Point the device at /api/deck_kindle and bookmark it; add ?room=1 to hide names and titles. It renders from the deck's own fold, so the paper board and the wall cannot disagree. The page refreshes itself every five minutes and prints the time it was read. (The estate on paper, The Deck arc)
+
+#### The estate on paper refusal 1
+
+No script tag, no external stylesheet, no image — the tier exists for devices where those fail. This is a refusal of The estate on paper, on the The Deck arc. (Kindle, e-ink, paper, no-JS, static board, Kindle tier)
+
+#### The estate on paper refusal 2
+
+State is carried by words and by inversion, never by colour, because e-ink has none. This is a refusal of The estate on paper, on the The Deck arc. (Kindle, e-ink, paper, no-JS, static board, Kindle tier)
+
+#### The estate on paper refusal 3
+
+The reading time is always on the page: an old picture that says how old it is is still evidence. This is a refusal of The estate on paper, on the The Deck arc. (Kindle, e-ink, paper, no-JS, static board, Kindle tier)
+
 ## Workflow: Onboard an application
 
 Bring a new application into the estate so it is authorised, stored once, placed everywhere, and remembered.

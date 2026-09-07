@@ -42,7 +42,7 @@ window.deckPage = function deckPage() {
     listening: false,
     heard: "",
     said: "",
-    voice: { available: false, note: "checking for a voice…" },
+    voice: { available: false, speaks: false, note: "checking for a voice…" },
     idleTimer: null,
 
     async init() {
@@ -145,16 +145,47 @@ window.deckPage = function deckPage() {
       return s ? s[0].toUpperCase() + "…" : "node";
     },
 
+    // Hearing and speaking are separate capabilities and the button belongs to hearing. Gating
+    // the microphone on Voicebox — which is what this did — disabled the whole interaction
+    // whenever the mouth was down, while the note beside it promised "replies will be text
+    // only". The note was right; the gate was wrong.
     async checkVoice() {
       try {
         const res = await fetch("/api/deck_voice");
         const v = await res.json();
         this.voice = {
-          available: Boolean(v.hear && v.speak),
+          available: Boolean(v.hear),
+          speaks: Boolean(v.speak),
           note: v.note || ""
         };
       } catch {
-        this.voice = { available: false, note: "no voice service reachable" };
+        this.voice = { available: false, speaks: false, note: "no voice service reachable" };
+      }
+    },
+
+    // Speaking is best-effort by design. The answer is already on the wall in text before a
+    // single byte of audio is asked for, so a mute Voicebox costs the operator nothing but the
+    // sound — and when it cannot speak it says why, in the same place it would have spoken.
+    async speak(text) {
+      if (!text || !this.voice.speaks) return;
+      try {
+        const res = await fetch("/api/deck_speak", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ text })
+        });
+        const kind = res.headers.get("content-type") || "";
+        if (!kind.startsWith("audio/")) {
+          const why = await res.json().catch(() => null);
+          this.voice = { ...this.voice, note: why?.reason || "the voice did not answer" };
+          return;
+        }
+        const url = URL.createObjectURL(await res.blob());
+        const el = new Audio(url);
+        el.onended = () => URL.revokeObjectURL(url);
+        await el.play();
+      } catch (e) {
+        this.voice = { ...this.voice, note: `voice failed: ${e.message}` };
       }
     },
 
@@ -199,6 +230,9 @@ window.deckPage = function deckPage() {
         this.said = out.said || "";
         if (out.navigate) location.hash = `#/${out.navigate}`;
         await this.refresh();
+        // Text first, then sound. Order matters: the reply must be readable even if the
+        // speaking step throws, and a wall is read before it is heard.
+        this.speak(this.said);
       } catch (e) {
         this.said = `voice failed: ${e.message}`;
       } finally {

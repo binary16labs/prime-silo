@@ -2,9 +2,9 @@
   "generated_from": "scripts/sitemap_build.mjs",
   "counts": {
     "surfaces": 17,
-    "routes": 53,
+    "routes": 55,
     "commands": 24,
-    "unreached_routes": 39
+    "unreached_routes": 40
   },
   "zones": [
     {
@@ -96,6 +96,7 @@
           "dir": "app/L0/_all/mod/_prime_silo/deck",
           "hasView": true,
           "endpoints": [
+            "deck_speak",
             "deck_state",
             "deck_voice"
           ]
@@ -374,6 +375,7 @@
     "cloud_share_download",
     "cloud_share_info",
     "debug_path_index",
+    "deck_kindle",
     "extensions_load",
     "file_copy",
     "file_delete",

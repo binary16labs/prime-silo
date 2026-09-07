@@ -182,6 +182,26 @@
       "o": "#/huggingface"
     },
     {
+      "s": "arc:deck",
+      "p": "IS_A",
+      "o": "Arc"
+    },
+    {
+      "s": "arc:deck",
+      "p": "NAMED",
+      "o": "The Deck"
+    },
+    {
+      "s": "arc:deck",
+      "p": "HAS_ROLE",
+      "o": "Watch"
+    },
+    {
+      "s": "arc:deck",
+      "p": "RENDERS_AT",
+      "o": "#/_prime_silo/deck"
+    },
+    {
       "s": "feature:kel",
       "p": "IS_A",
       "o": "Feature"
@@ -965,6 +985,221 @@
       "s": "feature:arcs",
       "p": "TAGGED",
       "o": "interface"
+    },
+    {
+      "s": "feature:deck",
+      "p": "IS_A",
+      "o": "Feature"
+    },
+    {
+      "s": "feature:deck",
+      "p": "NAMED",
+      "o": "The estate on a wall"
+    },
+    {
+      "s": "feature:deck",
+      "p": "ON_ARC",
+      "o": "arc:deck"
+    },
+    {
+      "s": "feature:deck",
+      "p": "PURPOSE",
+      "o": "One glanceable surface answering four questions at once — what is waiting on you, what is proven, which machines are reporting, and what ran without authorisation — sized for a projector, a monitor, or a phone."
+    },
+    {
+      "s": "feature:deck",
+      "p": "REFUSES",
+      "o": "Absence is a state, not a zero — a deck that cannot see the ledgers says 'not reporting' instead of showing green."
+    },
+    {
+      "s": "feature:deck",
+      "p": "REFUSES",
+      "o": "A count is always shown with the population it came from: 2/113, never 2."
+    },
+    {
+      "s": "feature:deck",
+      "p": "REFUSES",
+      "o": "Motion is feedback to a real change in the numbers; nothing on the deck moves on a timer."
+    },
+    {
+      "s": "feature:deck",
+      "p": "IMPLEMENTED_IN",
+      "o": "server/api/deck_state.js"
+    },
+    {
+      "s": "feature:deck",
+      "p": "IMPLEMENTED_IN",
+      "o": "app/L0/_all/mod/_prime_silo/deck/deck.js"
+    },
+    {
+      "s": "feature:deck",
+      "p": "IMPLEMENTED_IN",
+      "o": "server/pages/deck.html"
+    },
+    {
+      "s": "feature:deck",
+      "p": "TAGGED",
+      "o": "deck"
+    },
+    {
+      "s": "feature:deck",
+      "p": "TAGGED",
+      "o": "hud"
+    },
+    {
+      "s": "feature:deck",
+      "p": "TAGGED",
+      "o": "watch"
+    },
+    {
+      "s": "feature:deck",
+      "p": "TAGGED",
+      "o": "projector"
+    },
+    {
+      "s": "feature:deck_voice",
+      "p": "IS_A",
+      "o": "Feature"
+    },
+    {
+      "s": "feature:deck_voice",
+      "p": "NAMED",
+      "o": "Talking to the deck"
+    },
+    {
+      "s": "feature:deck_voice",
+      "p": "ON_ARC",
+      "o": "arc:deck"
+    },
+    {
+      "s": "feature:deck_voice",
+      "p": "PURPOSE",
+      "o": "Ask the estate a question out loud from across the room, and hear the answer back — navigate, query and raise a proposal, but never sign one."
+    },
+    {
+      "s": "feature:deck_voice",
+      "p": "REFUSES",
+      "o": "The voice router has no branch that can sign. A spoken 'sign it' is refused and the queue is opened instead."
+    },
+    {
+      "s": "feature:deck_voice",
+      "p": "REFUSES",
+      "o": "The microphone is push-to-talk. There is no always-listening mode and no wake word."
+    },
+    {
+      "s": "feature:deck_voice",
+      "p": "REFUSES",
+      "o": "Hearing and speaking are separate capabilities: with Voicebox down the microphone still works and replies stay in text."
+    },
+    {
+      "s": "feature:deck_voice",
+      "p": "IMPLEMENTED_IN",
+      "o": "server/lib/deck_intents.js"
+    },
+    {
+      "s": "feature:deck_voice",
+      "p": "IMPLEMENTED_IN",
+      "o": "server/api/deck_voice.js"
+    },
+    {
+      "s": "feature:deck_voice",
+      "p": "IMPLEMENTED_IN",
+      "o": "server/api/deck_speak.js"
+    },
+    {
+      "s": "feature:deck_voice",
+      "p": "IMPLEMENTED_IN",
+      "o": "tests/deck_intents_test.mjs"
+    },
+    {
+      "s": "feature:deck_voice",
+      "p": "TAGGED",
+      "o": "voice"
+    },
+    {
+      "s": "feature:deck_voice",
+      "p": "TAGGED",
+      "o": "stt"
+    },
+    {
+      "s": "feature:deck_voice",
+      "p": "TAGGED",
+      "o": "tts"
+    },
+    {
+      "s": "feature:deck_voice",
+      "p": "TAGGED",
+      "o": "deck"
+    },
+    {
+      "s": "feature:deck_voice",
+      "p": "TAGGED",
+      "o": "governance"
+    },
+    {
+      "s": "feature:deck_kindle",
+      "p": "IS_A",
+      "o": "Feature"
+    },
+    {
+      "s": "feature:deck_kindle",
+      "p": "NAMED",
+      "o": "The estate on paper"
+    },
+    {
+      "s": "feature:deck_kindle",
+      "p": "ON_ARC",
+      "o": "arc:deck"
+    },
+    {
+      "s": "feature:deck_kindle",
+      "p": "PURPOSE",
+      "o": "The same board rendered as a finished page with no script, no stylesheet request and nothing to hydrate — for a Kindle, an e-ink frame, or any browser too old or too limited for the app."
+    },
+    {
+      "s": "feature:deck_kindle",
+      "p": "REFUSES",
+      "o": "No script tag, no external stylesheet, no image — the tier exists for devices where those fail."
+    },
+    {
+      "s": "feature:deck_kindle",
+      "p": "REFUSES",
+      "o": "State is carried by words and by inversion, never by colour, because e-ink has none."
+    },
+    {
+      "s": "feature:deck_kindle",
+      "p": "REFUSES",
+      "o": "The reading time is always on the page: an old picture that says how old it is is still evidence."
+    },
+    {
+      "s": "feature:deck_kindle",
+      "p": "IMPLEMENTED_IN",
+      "o": "server/api/deck_kindle.js"
+    },
+    {
+      "s": "feature:deck_kindle",
+      "p": "IMPLEMENTED_IN",
+      "o": "tests/deck_kindle_test.mjs"
+    },
+    {
+      "s": "feature:deck_kindle",
+      "p": "TAGGED",
+      "o": "deck"
+    },
+    {
+      "s": "feature:deck_kindle",
+      "p": "TAGGED",
+      "o": "kindle"
+    },
+    {
+      "s": "feature:deck_kindle",
+      "p": "TAGGED",
+      "o": "e-ink"
+    },
+    {
+      "s": "feature:deck_kindle",
+      "p": "TAGGED",
+      "o": "offline"
     },
     {
       "s": "workflow:onboard-application",

@@ -5,7 +5,7 @@ Every surface the estate presents, grouped by the job it does. Generated from th
 view and endpoint, and every registered panel appears here. The build fails rather than
 show a map that has drifted.
 
-17 surfaces · 53 API routes · 24 commands
+17 surfaces · 55 API routes · 24 commands
 
 ## Decide
 
@@ -55,7 +55,7 @@ Source: `app/L0/_all/mod/_prime_silo/bridge`
 
 The estate on a wall — one glanceable surface for what is waiting, what is proven, which machines are reporting, and what ran without authorisation.
 
-Calls: `/api/deck_state` · `/api/deck_voice`
+Calls: `/api/deck_speak` · `/api/deck_state` · `/api/deck_voice`
 
 Source: `app/L0/_all/mod/_prime_silo/deck`
 
@@ -179,6 +179,7 @@ Listed because an endpoint nobody can reach from the UI is a fact worth knowing,
 - `/api/cloud_share_download`
 - `/api/cloud_share_info`
 - `/api/debug_path_index`
+- `/api/deck_kindle`
 - `/api/extensions_load`
 - `/api/file_copy`
 - `/api/file_delete`

@@ -88,6 +88,7 @@ th{font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;color:var(--in
 <a href="#arc-mission">Mission Control <span class="role">· Watch</span></a>
 <a href="#arc-agent">Agent <span class="role">· Ask</span></a>
 <a href="#arc-files">Files <span class="role">· Hold</span></a>
+<a href="#arc-deck">The Deck <span class="role">· Watch</span></a>
 <h2 style="margin-top:1.4rem">Workflows</h2>
 <a href="#wf-onboard-application">Onboard an application</a>
 <a href="#wf-prove-the-estate">Prove the estate</a>
@@ -112,6 +113,7 @@ th{font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;color:var(--in
 <tr><td>Agent</td><td>Ask</td><td><code>#/agent</code></td></tr>
 <tr><td>Files</td><td>Hold</td><td><code>#/file_explorer</code></td></tr>
 <tr><td>Local LLM</td><td>Think</td><td><code>#/huggingface</code></td></tr>
+<tr><td>The Deck</td><td>Watch</td><td><code>#/_prime_silo/deck</code></td></tr>
 </tbody></table>
 <h2 id="arc-gov">Gov</h2>
 <p class="arc-role">Decide · <code>#/_prime_silo/gov</code></p>
@@ -296,6 +298,49 @@ th{font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;color:var(--in
 <li>Eviction retires a placement and never the blob: reclaiming space must not destroy the only copy.</li>
 </ul>
 <p class="src">scripts/artifact.mjs  ·  server/coordination/lib/artifacts.mjs</p>
+<h2 id="arc-deck">The Deck</h2>
+<p class="arc-role">Watch · <code>#/_prime_silo/deck</code></p>
+<h3 id="f-deck">The estate on a wall</h3>
+<p class="purpose">One glanceable surface answering four questions at once — what is waiting on you, what is proven, which machines are reporting, and what ran without authorisation — sized for a projector, a monitor, or a phone.</p>
+<p class="lab">How</p><ul>
+<li>Open it inside the app at #/_prime_silo/deck, or full screen at /deck for a projector or a spare monitor.</li>
+<li>Every figure is folded from the ledgers in one request, so the four tiles are always the same moment of the estate.</li>
+<li>Three tiers pick themselves from the width of the surface: wall, column and pocket. Nothing is configured.</li>
+<li>Room mode hides machine names, proposal titles and store paths for a screen other people can see.</li>
+</ul>
+<p class="lab">What it refuses to do</p><ul class="refuses">
+<li>Absence is a state, not a zero — a deck that cannot see the ledgers says 'not reporting' instead of showing green.</li>
+<li>A count is always shown with the population it came from: 2/113, never 2.</li>
+<li>Motion is feedback to a real change in the numbers; nothing on the deck moves on a timer.</li>
+</ul>
+<p class="src">server/api/deck_state.js  ·  app/L0/_all/mod/_prime_silo/deck/deck.js  ·  server/pages/deck.html</p>
+<h3 id="f-deck-voice">Talking to the deck</h3>
+<p class="purpose">Ask the estate a question out loud from across the room, and hear the answer back — navigate, query and raise a proposal, but never sign one.</p>
+<p class="lab">How</p><ul>
+<li>Hold the talk button while you speak and release to send; the deck never listens on its own.</li>
+<li>Benny transcribes what was said, the router decides what it meant, and the deck goes to that surface.</li>
+<li>The reply appears as text first and is then spoken through Voicebox, so a silent mouth costs you nothing but the sound.</li>
+<li>Start Benny on :8005 to be heard and Voicebox on :17493 to be answered aloud; the deck reports which of the two is missing.</li>
+</ul>
+<p class="lab">What it refuses to do</p><ul class="refuses">
+<li>The voice router has no branch that can sign. A spoken 'sign it' is refused and the queue is opened instead.</li>
+<li>The microphone is push-to-talk. There is no always-listening mode and no wake word.</li>
+<li>Hearing and speaking are separate capabilities: with Voicebox down the microphone still works and replies stay in text.</li>
+</ul>
+<p class="src">server/lib/deck_intents.js  ·  server/api/deck_voice.js  ·  server/api/deck_speak.js  ·  tests/deck_intents_test.mjs</p>
+<h3 id="f-deck-kindle">The estate on paper</h3>
+<p class="purpose">The same board rendered as a finished page with no script, no stylesheet request and nothing to hydrate — for a Kindle, an e-ink frame, or any browser too old or too limited for the app.</p>
+<p class="lab">How</p><ul>
+<li>Point the device at /api/deck_kindle and bookmark it; add ?room=1 to hide names and titles.</li>
+<li>It renders from the deck's own fold, so the paper board and the wall cannot disagree.</li>
+<li>The page refreshes itself every five minutes and prints the time it was read.</li>
+</ul>
+<p class="lab">What it refuses to do</p><ul class="refuses">
+<li>No script tag, no external stylesheet, no image — the tier exists for devices where those fail.</li>
+<li>State is carried by words and by inversion, never by colour, because e-ink has none.</li>
+<li>The reading time is always on the page: an old picture that says how old it is is still evidence.</li>
+</ul>
+<p class="src">server/api/deck_kindle.js  ·  tests/deck_kindle_test.mjs</p>
 <h2 id="wf-onboard-application">Onboard an application</h2>
 <p class="purpose">Bring a new application into the estate so it is authorised, stored once, placed everywhere, and remembered.</p>
 <div class="step"><div class="step-n">1</div><div>
@@ -366,5 +411,5 @@ th{font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;color:var(--in
 <div class="step-body"><p>Check the verdict names any vacuous gauge and any unseen scope before you believe it.</p>
 <p><code>#/_prime_silo/lineage</code></p>
 </div></div>
-<p class="foot">Generated from <code>manual/manual.json</code> by <code>scripts/manual_build.mjs</code>. Every file, panel, endpoint and command named on this page is resolved against the repository at build time — the build fails rather than describe something that is not there. 13 features · 2 workflows · 65 retrievable chunks · 271 graph facts.</p>
+<p class="foot">Generated from <code>manual/manual.json</code> by <code>scripts/manual_build.mjs</code>. Every file, panel, endpoint and command named on this page is resolved against the repository at build time — the build fails rather than describe something that is not there. 16 features · 2 workflows · 77 retrievable chunks · 318 graph facts.</p>
 </main></div>
