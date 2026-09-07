@@ -1,8 +1,8 @@
 {
   "generated_from": "scripts/usecases_build.mjs",
-  "use_cases": 17,
-  "surfaces": 16,
-  "exercised": 9,
+  "use_cases": 18,
+  "surfaces": 17,
+  "exercised": 10,
   "declared": 8,
   "gaps": [
     {
@@ -53,6 +53,14 @@
       "use_cases": [
         "UC-07",
         "UC-13"
+      ]
+    },
+    {
+      "route": "_prime_silo/deck",
+      "zone": "Watch",
+      "name": "Deck",
+      "use_cases": [
+        "UC-18"
       ]
     },
     {

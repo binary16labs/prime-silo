@@ -42,7 +42,7 @@ const say = (...m) => {
 const ZONES = {
   Decide: ["_prime_silo/gov"],
   Prove: ["_prime_silo/lineage", "_prime_silo/benny_record", "_prime_silo/manifest_explorer"],
-  Watch: ["_prime_silo/mission_control", "_prime_silo/bridge"],
+  Watch: ["_prime_silo/mission_control", "_prime_silo/bridge", "_prime_silo/deck"],
   Recall: [
     "_prime_silo/memory",
     "_prime_silo/lifelog",

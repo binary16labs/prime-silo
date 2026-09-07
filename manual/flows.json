@@ -16,9 +16,18 @@
           "action": "Fold the governance ledger and verify its hash chain.",
           "endpoint": "gov_proposals",
           "decision": [
-            { "when": "the chain does not verify", "go": "halt-chain" },
-            { "when": "no ledger file exists", "go": "halt-missing" },
-            { "when": "the chain verifies", "go": "review" }
+            {
+              "when": "the chain does not verify",
+              "go": "halt-chain"
+            },
+            {
+              "when": "no ledger file exists",
+              "go": "halt-missing"
+            },
+            {
+              "when": "the chain verifies",
+              "go": "review"
+            }
           ]
         },
         {
@@ -35,12 +44,24 @@
           "action": "Read why, what it rests on, what it costs, whether it reverses — all shown before any button.",
           "surface": "_prime_silo/gov",
           "decision": [
-            { "when": "you sign", "go": "sign" },
-            { "when": "you decline", "go": "decline" },
-            { "when": "you leave it", "go": "open" }
+            {
+              "when": "you sign",
+              "go": "sign"
+            },
+            {
+              "when": "you decline",
+              "go": "decline"
+            },
+            {
+              "when": "you leave it",
+              "go": "open"
+            }
           ]
         },
-        { "id": "open", "terminal": "The proposal stays open. Nothing is authorised." },
+        {
+          "id": "open",
+          "terminal": "The proposal stays open. Nothing is authorised."
+        },
         {
           "id": "sign",
           "actor": "house",
@@ -59,7 +80,10 @@
           "id": "authorised",
           "terminal": "isAuthorised() now answers true for this proposal, and actions may cite it."
         },
-        { "id": "settled", "terminal": "The decision is recorded and is terminal." }
+        {
+          "id": "settled",
+          "terminal": "The decision is recorded and is terminal."
+        }
       ]
     },
     {
@@ -74,10 +98,22 @@
           "action": "POST a proposalId, title, rationale and any derivedFrom subjects.",
           "endpoint": "gov_raise",
           "decision": [
-            { "when": "no rationale", "go": "reject-why" },
-            { "when": "derivedFrom is prose, not a subject id", "go": "reject-edge" },
-            { "when": "the chain does not verify", "go": "reject-chain" },
-            { "when": "well formed", "go": "existing" }
+            {
+              "when": "no rationale",
+              "go": "reject-why"
+            },
+            {
+              "when": "derivedFrom is prose, not a subject id",
+              "go": "reject-edge"
+            },
+            {
+              "when": "the chain does not verify",
+              "go": "reject-chain"
+            },
+            {
+              "when": "well formed",
+              "go": "existing"
+            }
           ]
         },
         {
@@ -97,10 +133,22 @@
           "actor": "house",
           "action": "Look the proposal up in the fold.",
           "decision": [
-            { "when": "already signed or declined", "go": "reject-settled" },
-            { "when": "open, and the content is identical", "go": "unchanged" },
-            { "when": "open, and the content changed", "go": "refresh" },
-            { "when": "new", "go": "append" }
+            {
+              "when": "already signed or declined",
+              "go": "reject-settled"
+            },
+            {
+              "when": "open, and the content is identical",
+              "go": "unchanged"
+            },
+            {
+              "when": "open, and the content changed",
+              "go": "refresh"
+            },
+            {
+              "when": "new",
+              "go": "append"
+            }
           ]
         },
         {
@@ -123,7 +171,10 @@
           "action": "Append proposal_raised with authorship frontier, hard-coded — a request is a program, never a person.",
           "next": "queued"
         },
-        { "id": "queued", "terminal": "It waits in the Gov arc. Nothing else has happened." }
+        {
+          "id": "queued",
+          "terminal": "It waits in the Gov arc. Nothing else has happened."
+        }
       ]
     },
     {
@@ -145,8 +196,14 @@
           "action": "Decide in the Gov arc. This is the only step that can unblock the rest.",
           "surface": "_prime_silo/gov",
           "decision": [
-            { "when": "signed", "go": "acquire" },
-            { "when": "open or declined", "go": "blocked" }
+            {
+              "when": "signed",
+              "go": "acquire"
+            },
+            {
+              "when": "open or declined",
+              "go": "blocked"
+            }
           ]
         },
         {
@@ -158,8 +215,14 @@
           "actor": "house",
           "action": "Resolve the signature, then fetch once into the content-addressed store citing it.",
           "decision": [
-            { "when": "the hash is already held", "go": "dedup" },
-            { "when": "not held", "go": "fetch" }
+            {
+              "when": "the hash is already held",
+              "go": "dedup"
+            },
+            {
+              "when": "not held",
+              "go": "fetch"
+            }
           ]
         },
         {
@@ -212,8 +275,14 @@
           "action": "Name the source, and optionally the proposal that authorises the fetch.",
           "command": "scripts/artifact.mjs",
           "decision": [
-            { "when": "--caused-by names a proposal", "go": "verify" },
-            { "when": "no --caused-by", "go": "unprovenanced" }
+            {
+              "when": "--caused-by names a proposal",
+              "go": "verify"
+            },
+            {
+              "when": "no --caused-by",
+              "go": "unprovenanced"
+            }
           ]
         },
         {
@@ -221,8 +290,14 @@
           "actor": "house",
           "action": "Resolve the proposal against the governance ledger.",
           "decision": [
-            { "when": "signed by a human", "go": "held" },
-            { "when": "missing, open or declined", "go": "refuse-cite" }
+            {
+              "when": "signed by a human",
+              "go": "held"
+            },
+            {
+              "when": "missing, open or declined",
+              "go": "refuse-cite"
+            }
           ]
         },
         {
@@ -240,8 +315,14 @@
           "actor": "house",
           "action": "Ask whether the store already holds this hash — before opening anything.",
           "decision": [
-            { "when": "held", "go": "skip" },
-            { "when": "not held", "go": "stream" }
+            {
+              "when": "held",
+              "go": "skip"
+            },
+            {
+              "when": "not held",
+              "go": "stream"
+            }
           ]
         },
         {
@@ -253,8 +334,14 @@
           "actor": "house",
           "action": "Hash and write in one pass at constant memory; verify before the atomic rename.",
           "decision": [
-            { "when": "hash or size mismatch", "go": "reject-bytes" },
-            { "when": "verified", "go": "stored" }
+            {
+              "when": "hash or size mismatch",
+              "go": "reject-bytes"
+            },
+            {
+              "when": "verified",
+              "go": "stored"
+            }
           ]
         },
         {
@@ -279,9 +366,18 @@
           "action": "Read every ledger under the store and verify each chain SEPARATELY — they cannot be concatenated.",
           "endpoint": "lineage_index",
           "decision": [
-            { "when": "the store is absent", "go": "no-store" },
-            { "when": "some ledger fails", "go": "quarantine" },
-            { "when": "all verify", "go": "browse" }
+            {
+              "when": "the store is absent",
+              "go": "no-store"
+            },
+            {
+              "when": "some ledger fails",
+              "go": "quarantine"
+            },
+            {
+              "when": "all verify",
+              "go": "browse"
+            }
           ]
         },
         {
@@ -314,8 +410,14 @@
           "action": "Walk the trail. The event's own payload is complete; the projection beside it is last-write-wins and says so.",
           "surface": "_prime_silo/lineage",
           "decision": [
-            { "when": "the event declares no upstream", "go": "unprovenanced-end" },
-            { "when": "it declares a parent", "go": "walk-up" }
+            {
+              "when": "the event declares no upstream",
+              "go": "unprovenanced-end"
+            },
+            {
+              "when": "it declares a parent",
+              "go": "walk-up"
+            }
           ]
         },
         {
@@ -340,8 +442,14 @@
           "action": "Walk the store's roots and any --include paths; observe, do not judge.",
           "command": "scripts/inventory_sweep.mjs",
           "decision": [
-            { "when": "a ledger does not verify", "go": "refuse-reconcile" },
-            { "when": "ledgers verify", "go": "reconcile" }
+            {
+              "when": "a ledger does not verify",
+              "go": "refuse-reconcile"
+            },
+            {
+              "when": "ledgers verify",
+              "go": "reconcile"
+            }
           ]
         },
         {
@@ -353,8 +461,14 @@
           "actor": "house",
           "action": "Compare disk against ledger BY PATH — a placement is judged only if its path was actually walked.",
           "decision": [
-            { "when": "a claimed path was not walked", "go": "unseen" },
-            { "when": "walked", "go": "verdict" }
+            {
+              "when": "a claimed path was not walked",
+              "go": "unseen"
+            },
+            {
+              "when": "walked",
+              "go": "verdict"
+            }
           ]
         },
         {
@@ -369,10 +483,22 @@
           "action": "Build the pack: each defect measured, with the population it was measured over.",
           "command": "scripts/evidence_pack.mjs",
           "decision": [
-            { "when": "a defect cannot be measured", "go": "not-measurable" },
-            { "when": "measured zero over an empty population", "go": "vacuous" },
-            { "when": "measured, zero, non-empty", "go": "substantiated" },
-            { "when": "defects found", "go": "defects" }
+            {
+              "when": "a defect cannot be measured",
+              "go": "not-measurable"
+            },
+            {
+              "when": "measured zero over an empty population",
+              "go": "vacuous"
+            },
+            {
+              "when": "measured, zero, non-empty",
+              "go": "substantiated"
+            },
+            {
+              "when": "defects found",
+              "go": "defects"
+            }
           ]
         },
         {
@@ -405,8 +531,14 @@
           "action": "Each node probes its own services on a schedule.",
           "command": "scripts/heartbeat_run.mjs",
           "decision": [
-            { "when": "state is unchanged", "go": "silent" },
-            { "when": "state changed", "go": "transition" }
+            {
+              "when": "state is unchanged",
+              "go": "silent"
+            },
+            {
+              "when": "state changed",
+              "go": "transition"
+            }
           ]
         },
         {
@@ -425,15 +557,24 @@
           "action": "The collector pulls each node's own chained log and folds one board, citing the proposal that authorises the schedule.",
           "command": "scripts/heartbeat_estate.mjs",
           "decision": [
-            { "when": "a pull fails or a node is stale", "go": "blind" },
-            { "when": "all nodes reporting", "go": "board" }
+            {
+              "when": "a pull fails or a node is stale",
+              "go": "blind"
+            },
+            {
+              "when": "all nodes reporting",
+              "go": "board"
+            }
           ]
         },
         {
           "id": "blind",
           "terminal": "Carried as a blind spot, never dropped. A failed pull must not make a node vanish — absence reading as health is the failure this exists to catch."
         },
-        { "id": "board", "terminal": "One view of the estate, with outages named and ages shown." }
+        {
+          "id": "board",
+          "terminal": "One view of the estate, with outages named and ages shown."
+        }
       ]
     },
     {
@@ -448,8 +589,14 @@
           "action": "Generate the manual from manual.json, resolving every file, panel, endpoint and command it names.",
           "command": "scripts/manual_build.mjs",
           "decision": [
-            { "when": "a reference does not resolve", "go": "drifted" },
-            { "when": "all resolve", "go": "load" }
+            {
+              "when": "a reference does not resolve",
+              "go": "drifted"
+            },
+            {
+              "when": "all resolve",
+              "go": "load"
+            }
           ]
         },
         {
@@ -462,8 +609,14 @@
           "action": "Push triples to the graph, a PageIndex tree for navigation, and chunks for retrieval.",
           "command": "scripts/manual_load.mjs",
           "decision": [
-            { "when": "any of the three fails", "go": "partial" },
-            { "when": "all three land", "go": "ask" }
+            {
+              "when": "any of the three fails",
+              "go": "partial"
+            },
+            {
+              "when": "all three land",
+              "go": "ask"
+            }
           ]
         },
         {
@@ -476,8 +629,14 @@
           "action": "Ask a question.",
           "surface": "agent",
           "decision": [
-            { "when": "a greeting", "go": "social" },
-            { "when": "anything else, and the workspace has documents", "go": "retrieve" }
+            {
+              "when": "a greeting",
+              "go": "social"
+            },
+            {
+              "when": "anything else, and the workspace has documents",
+              "go": "retrieve"
+            }
           ]
         },
         {
@@ -489,8 +648,14 @@
           "actor": "house",
           "action": "Retrieve, grade the documents, generate, then grade the answer against its sources.",
           "decision": [
-            { "when": "grounded", "go": "answered" },
-            { "when": "not grounded", "go": "flagged" }
+            {
+              "when": "grounded",
+              "go": "answered"
+            },
+            {
+              "when": "not grounded",
+              "go": "flagged"
+            }
           ]
         },
         {
@@ -500,6 +665,132 @@
         {
           "id": "answered",
           "terminal": "An answer traceable to a section of the manual, grounded and marked as such."
+        }
+      ]
+    },
+    {
+      "id": "F-09",
+      "name": "Read the estate from across the room",
+      "use_cases": ["UC-18"],
+      "start": "open",
+      "steps": [
+        {
+          "id": "open",
+          "actor": "human",
+          "action": "Open the deck — an arc in the app, or /deck full screen on a wall.",
+          "surface": "_prime_silo/deck",
+          "next": "fold"
+        },
+        {
+          "id": "fold",
+          "actor": "house",
+          "action": "Fold every ledger once into a single answer, so the wall cannot disagree with itself.",
+          "endpoint": "deck_state",
+          "decision": [
+            {
+              "when": "no store, or the ledgers cannot be read",
+              "go": "notreporting"
+            },
+            {
+              "when": "ledgers readable",
+              "go": "draw"
+            }
+          ]
+        },
+        {
+          "id": "notreporting",
+          "terminal": "The deck says 'not reporting' and shows nothing else. A wall of green built from a missing store is the failure this estate exists to prevent."
+        },
+        {
+          "id": "draw",
+          "actor": "house",
+          "action": "Draw four figures, each with the population it was measured over, redacted while room mode is on.",
+          "decision": [
+            {
+              "when": "a figure changed since the last read",
+              "go": "animate"
+            },
+            {
+              "when": "nothing changed",
+              "go": "waiting"
+            }
+          ]
+        },
+        {
+          "id": "still",
+          "terminal": "Nothing moves. A surface that animates constantly becomes wallpaper and stops being read."
+        },
+        {
+          "id": "animate",
+          "actor": "house",
+          "action": "Only the tile whose number actually changed settles, once.",
+          "next": "waiting"
+        },
+        {
+          "id": "speak",
+          "actor": "human",
+          "action": "Hold the key and speak.",
+          "surface": "_prime_silo/deck",
+          "next": "hear"
+        },
+        {
+          "id": "hear",
+          "actor": "house",
+          "action": "Transcribe, then route the intent.",
+          "endpoint": "deck_voice",
+          "decision": [
+            {
+              "when": "asked to sign, approve or authorise",
+              "go": "refuse"
+            },
+            {
+              "when": "navigate or ask",
+              "go": "act"
+            },
+            {
+              "when": "raise a proposal",
+              "go": "raise"
+            },
+            {
+              "when": "not understood",
+              "go": "unknown"
+            }
+          ]
+        },
+        {
+          "id": "refuse",
+          "terminal": "The signing queue is opened and nothing is signed. A spoken instruction is not an authenticated act, and a room contains other voices."
+        },
+        {
+          "id": "act",
+          "terminal": "The deck moves to the surface asked for, or answers from the ledger."
+        },
+        {
+          "id": "raise",
+          "terminal": "A proposal is raised with frontier authorship — it asks for a decision and takes none."
+        },
+        {
+          "id": "unknown",
+          "terminal": "It says what it heard and what it can do, rather than guessing at a consequential verb."
+        },
+        {
+          "id": "waiting",
+          "actor": "house",
+          "action": "Sit still and watch. This is where the deck spends almost all of its life.",
+          "decision": [
+            {
+              "when": "you hold the talk key",
+              "go": "speak"
+            },
+            {
+              "when": "the estate moves again",
+              "go": "fold"
+            },
+            {
+              "when": "nothing happens",
+              "go": "still"
+            }
+          ]
         }
       ]
     }

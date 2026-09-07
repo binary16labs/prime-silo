@@ -4,7 +4,7 @@ _How each governed act actually proceeds — including every way it stops_
 
 A flow that models only the happy path documents a system nobody has. What distinguishes this estate is what it refuses, so refusals are steps here, not footnotes: each one is a real branch with a real terminal, and the build fails if a branch leads nowhere or nothing leads to it.
 
-8 flows · 70 steps · 33 terminals, of which 14 are refusals or halts
+9 flows · 83 steps · 39 terminals, of which 15 are refusals or halts
 
 ## F-01 · Authorise a piece of work
 
@@ -300,3 +300,54 @@ flowchart TD
 | `retrieve` | house | Retrieve, grade the documents, generate, then grade the answer against its sources. | grounded → answered; not grounded → flagged |
 | `flagged` | — | **Returned with hallucination_check false and X-RAG-Grounded: false. The answer is not withheld; it is labelled.** | _ends here_ |
 | `answered` | — | **An answer traceable to a section of the manual, grounded and marked as such.** | _ends here_ |
+
+## F-09 · Read the estate from across the room
+
+Use cases: UC-18
+
+```mermaid
+flowchart TD
+  open["human: Open the deck — an arc in the app, or /deck full screen on a wa…"]
+  fold["house: Fold every ledger once into a single answer, so the wall cannot…"]
+  notreporting(["The deck says 'not reporting' and shows nothing else. A wall of…"])
+  draw["house: Draw four figures, each with the population it was measured ove…"]
+  still(["Nothing moves. A surface that animates constantly becomes wallp…"])
+  animate["house: Only the tile whose number actually changed settles, once."]
+  speak["human: Hold the key and speak."]
+  hear["house: Transcribe, then route the intent."]
+  refuse(["The signing queue is opened and nothing is signed. A spoken ins…"])
+  act(["The deck moves to the surface asked for, or answers from the le…"])
+  raise(["A proposal is raised with frontier authorship — it asks for a d…"])
+  unknown(["It says what it heard and what it can do, rather than guessing …"])
+  waiting["house: Sit still and watch. This is where the deck spends almost all o…"]
+  open --> fold
+  fold -- "no store, or the ledgers cannot be read" --> notreporting
+  fold -- "ledgers readable" --> draw
+  draw -- "a figure changed since the last read" --> animate
+  draw -- "nothing changed" --> waiting
+  animate --> waiting
+  speak --> hear
+  hear -- "asked to sign, approve or authorise" --> refuse
+  hear -- "navigate or ask" --> act
+  hear -- "raise a proposal" --> raise
+  hear -- "not understood" --> unknown
+  waiting -- "you hold the talk key" --> speak
+  waiting -- "the estate moves again" --> fold
+  waiting -- "nothing happens" --> still
+```
+
+| Step | Actor | What happens | Then |
+| --- | --- | --- | --- |
+| `open` | human | Open the deck — an arc in the app, or /deck full screen on a wall. | fold |
+| `fold` | house | Fold every ledger once into a single answer, so the wall cannot disagree with itself. | no store, or the ledgers cannot be read → notreporting; ledgers readable → draw |
+| `notreporting` | — | **The deck says 'not reporting' and shows nothing else. A wall of green built from a missing store is the failure this estate exists to prevent.** | _ends here_ |
+| `draw` | house | Draw four figures, each with the population it was measured over, redacted while room mode is on. | a figure changed since the last read → animate; nothing changed → waiting |
+| `still` | — | **Nothing moves. A surface that animates constantly becomes wallpaper and stops being read.** | _ends here_ |
+| `animate` | house | Only the tile whose number actually changed settles, once. | waiting |
+| `speak` | human | Hold the key and speak. | hear |
+| `hear` | house | Transcribe, then route the intent. | asked to sign, approve or authorise → refuse; navigate or ask → act; raise a proposal → raise; not understood → unknown |
+| `refuse` | — | **The signing queue is opened and nothing is signed. A spoken instruction is not an authenticated act, and a room contains other voices.** | _ends here_ |
+| `act` | — | **The deck moves to the surface asked for, or answers from the ledger.** | _ends here_ |
+| `raise` | — | **A proposal is raised with frontier authorship — it asks for a decision and takes none.** | _ends here_ |
+| `unknown` | — | **It says what it heard and what it can do, rather than guessing at a consequential verb.** | _ends here_ |
+| `waiting` | house | Sit still and watch. This is where the deck spends almost all of its life. | you hold the talk key → speak; the estate moves again → fold; nothing happens → still |

@@ -5,7 +5,7 @@ Every surface the estate presents, grouped by the job it does. Generated from th
 view and endpoint, and every registered panel appears here. The build fails rather than
 show a map that has drifted.
 
-16 surfaces · 51 API routes · 21 commands
+17 surfaces · 53 API routes · 24 commands
 
 ## Decide
 
@@ -50,6 +50,14 @@ Mission control for the whole cognitive mesh — memory, documents, code, flows 
 Calls: `/api/config_defaults` · `/api/integration_audit` · `/api/longview_run` · `/api/longview_status` · `/api/longview_stop` · `/api/runtime` · `/api/workflows_run`
 
 Source: `app/L0/_all/mod/_prime_silo/bridge`
+
+### Deck — `#/_prime_silo/deck`
+
+The estate on a wall — one glanceable surface for what is waiting, what is proven, which machines are reporting, and what ran without authorisation.
+
+Calls: `/api/deck_state` · `/api/deck_voice`
+
+Source: `app/L0/_all/mod/_prime_silo/deck`
 
 ### Mission Control — `#/_prime_silo/mission_control`
 
@@ -146,6 +154,7 @@ Parts of the estate with no panel — run these directly.
 - `node scripts/estate_satellite_agent.mjs` — hub so "just start prime-silo and it detects" becomes literal.
 - `node scripts/estate_satellite_pull.mjs` — 
 - `node scripts/evidence_pack.mjs` — 
+- `node scripts/flows_build.mjs` — 
 - `node scripts/heartbeat_estate.mjs` — 
 - `node scripts/heartbeat_run.mjs` — most of the time.
 - `node scripts/inventory_sweep.mjs` — 
@@ -154,8 +163,10 @@ Parts of the estate with no panel — run these directly.
 - `node scripts/offload-report.mjs` — 
 - `node scripts/offload-runner.mjs` — ($BENNY_HOME/state/hmac-key) -> fail fast. No shipped default remains.
 - `node scripts/openstudio-notebook-bridge.mjs` — 
+- `node scripts/robustness_build.mjs` — 
 - `node scripts/run-workflows.mjs` — ($BENNY_HOME/state/hmac-key) -> fail fast. No shipped default remains.
 - `node scripts/sitemap_build.mjs` — 
+- `node scripts/usecases_build.mjs` — 
 
 ## Routes with no panel
 

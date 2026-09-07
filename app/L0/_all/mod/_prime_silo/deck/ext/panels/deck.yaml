@@ -1,0 +1,7 @@
+name: Deck
+path: _prime_silo/deck
+description: The estate on a wall — one glanceable surface for what is waiting, what is proven, which machines are reporting, and what ran without authorisation.
+icon: dashboard
+# The Gov arc colour, shared deliberately with Gov and Lineage: the deck's headline figure is
+# what is waiting on a person, and it belongs to the same arc that decides and proves.
+color: "#63a063"

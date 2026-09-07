@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Deck — Prime-Silo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#14150f" />
+    <!--
+      The projector target. The same deck as the in-app arc, served without the shell so the
+      surface IS the window: the tier queries key on the container, and inside a panel that
+      container is about a thousand pixels wide, which is why the wall tier can never fire
+      there. Full screen on a 4K panel or a projector, it does.
+
+      No colours are declared here. The estate's tokens are loaded instead, so this page cannot
+      drift from the app's palette and cannot add to the hardcoded-colour count the C0 gate
+      ratchets down. Everything visual lives in deck.css, shared with the arc.
+    -->
+    <link rel="stylesheet" href="/mod/_core/framework/css/colors.css" />
+    <link rel="stylesheet" href="/mod/_core/framework/css/layout.css" />
+    <link rel="stylesheet" href="/mod/_core/framework/css/type.css" />
+    <link rel="stylesheet" href="/mod/_prime_silo/deck/deck.css" />
+    <style>
+      /* Only what a standalone window needs and a panel does not. */
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: var(--color-canvas);
+      }
+      body {
+        /* The deck is the whole window here, so it becomes the query container. */
+        display: flex;
+      }
+      .deck {
+        flex: 1 1 auto;
+      }
+      [x-cloak] {
+        display: none !important;
+      }
+    </style>
+    <!-- Order matters and is not cosmetic. deck.js defines window.deckPage; Alpine evaluates
+         x-data the moment it starts. Loaded as a module it would run AFTER the deferred Alpine
+         and every binding would evaluate against nothing — which is exactly what happened:
+         "listening is not defined", "voice is not defined", and a page showing only its title.
+         deck.js has no imports, so a classic deferred script is correct here, and deferred
+         scripts run in document order. -->
+    <script defer src="/mod/_prime_silo/deck/deck.js"></script>
+    <script defer src="/mod/_core/framework/js/alpine.min.js"></script>
+  </head>
+  <body>
+    <section
+      class="deck"
+      x-data="deckPage()"
+      x-init="init()"
+      x-cloak
+      :data-mode="mode"
+      :data-room="room"
+    >
+      <header class="deck__bar">
+        <span class="deck__badge" :data-state="health()" x-text="health()"></span>
+        <h1 class="deck__title">Estate</h1>
+        <span class="deck__mode" x-text="mode"></span>
+        <span class="deck__spacer"></span>
+        <button
+          type="button"
+          class="deck__toggle"
+          :aria-pressed="room"
+          @click="room = !room"
+          title="Hide names, titles and paths — for a projected surface"
+        >
+          <span x-text="room ? 'Room mode ON' : 'Room mode off'"></span>
+        </button>
+        <span class="deck__age" x-show="!blind" x-cloak x-text="pulseLine()"></span>
+      </header>
+
+      <div class="deck__blind" x-show="blind" x-cloak>
+        <strong>Not reporting</strong>
+        <p x-text="reason"></p>
+      </div>
+
+      <div class="deck__grid" x-show="!blind" x-cloak>
+        <article class="deck__tile deck__tile--decide" :data-alert="s.decide.waiting > 0">
+          <p class="deck__label">Decide</p>
+          <p class="deck__figure" x-text="s.decide.waiting"></p>
+          <p class="deck__unit">waiting on you</p>
+          <p class="deck__detail" x-show="s.decide.oldest && !room" x-cloak>
+            <span x-text="s.decide.oldest?.title"></span>
+          </p>
+          <p class="deck__detail deck__detail--redacted" x-show="s.decide.oldest && room" x-cloak>
+            title hidden in room mode
+          </p>
+          <p class="deck__detail" x-show="!s.decide.oldest" x-cloak>
+            <span x-text="s.decide.signed"></span> signed · nothing outstanding
+          </p>
+        </article>
+
+        <article class="deck__tile" :data-alert="s.prove.broken.length > 0">
+          <p class="deck__label">Prove</p>
+          <p class="deck__figure">
+            <span x-text="s.prove.origin_recorded"></span
+            ><span class="deck__of">/<span x-text="s.prove.subjects"></span></span>
+          </p>
+          <p class="deck__unit">origin recorded</p>
+          <p class="deck__detail">
+            <span x-text="s.prove.ledgers"></span>/<span x-text="s.prove.ledgers_total"></span>
+            ledgers verify · world <span x-text="s.prove.world"></span>
+          </p>
+        </article>
+
+        <article class="deck__tile" :data-alert="anyBlind()">
+          <p class="deck__label">Watch</p>
+          <p class="deck__figure" x-text="upCount() + '/' + s.watch.nodes.length"></p>
+          <p class="deck__unit">nodes reporting</p>
+          <ul class="deck__nodes">
+            <template x-for="n in s.watch.nodes" :key="n.machine">
+              <li :data-blind="n.blind" :data-up="n.up">
+                <span x-text="room ? maskMachine(n.machine) : n.machine"></span>
+                <span class="deck__nodestate" x-text="n.blind ? 'not heard from' : 'up'"></span>
+              </li>
+            </template>
+          </ul>
+        </article>
+
+        <article class="deck__tile" :data-alert="s.run.unauthorised > 0">
+          <p class="deck__label">Run</p>
+          <p class="deck__figure">
+            <span x-text="s.run.unauthorised"></span
+            ><span class="deck__of">/<span x-text="s.run.in_scope"></span></span>
+          </p>
+          <p class="deck__unit">unauthorised</p>
+          <p class="deck__detail">a count without its population is not a measurement</p>
+        </article>
+      </div>
+
+      <div class="deck__voice" x-show="!blind" x-cloak>
+        <button
+          type="button"
+          class="deck__ptt"
+          :data-listening="listening"
+          @pointerdown="startTalk()"
+          @pointerup="stopTalk()"
+          @pointerleave="stopTalk()"
+          :disabled="!voice.available"
+        >
+          <span x-text="listening ? 'Listening — release to send' : 'Hold to speak'"></span>
+        </button>
+        <p class="deck__voicenote" x-text="voice.note"></p>
+        <p class="deck__heard" x-show="heard" x-cloak>
+          <span class="deck__label">Heard</span> <span x-text="heard"></span>
+        </p>
+        <p class="deck__said" x-show="said" x-cloak x-text="said"></p>
+      </div>
+
+      <p class="deck__foot">
+        Voice can navigate, ask and raise. It can never sign — a signature is a deliberate act at a
+        keyboard, taken from an authenticated session.
+      </p>
+    </section>
+  </body>
+</html>

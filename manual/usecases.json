@@ -339,6 +339,30 @@
       "outcome": "The identity the signing path reads from the session is current.",
       "note": "This matters more than it looks: gov_sign takes the signer from the session, so this surface defines who the ledger will name.",
       "verified": "declared"
+    },
+    {
+      "id": "UC-18",
+      "name": "Read the estate from across the room",
+      "actor": "human",
+      "goal": "Know the state of the estate at a glance, from a projector or a spare monitor, without operating anything.",
+      "trigger": "Walking past, sitting down, or wanting to know whether anything needs you.",
+      "preconditions": ["The estate store is readable."],
+      "surfaces": ["_prime_silo/deck"],
+      "endpoints": ["deck_state", "deck_voice"],
+      "flow": [
+        "Open the deck — in the app as an arc, or full screen at /deck for a wall.",
+        "Four figures: what is waiting on you, how much lineage has an origin, which nodes are reporting, how many runs ran unauthorised.",
+        "It sits still until the estate moves; only the tile whose number changed animates.",
+        "Hold to speak to navigate, ask, or raise a proposal."
+      ],
+      "outcome": "The estate's state understood without touching anything, and a way in when something needs you.",
+      "refuses": [
+        "Voice cannot sign. There is no branch in the intent router that could, because a spoken instruction is not an authenticated act and a room contains other voices.",
+        "Room mode is ON by default: machine names, proposal titles and store paths are hidden until you reveal them, because the surface is often projected.",
+        "A deck that cannot read the ledgers reports 'not reporting' rather than a wall of zeroes."
+      ],
+      "aliases": ["HUD", "deck", "wall", "projector", "holodeck"],
+      "verified": "exercised"
     }
   ]
 }

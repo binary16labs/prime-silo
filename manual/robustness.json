@@ -1112,6 +1112,159 @@
           "label": "grades with the same model"
         }
       ]
+    },
+    {
+      "id": "R-09",
+      "flow": "F-09",
+      "objects": [
+        {
+          "id": "owner",
+          "type": "actor",
+          "name": "You (owner)",
+          "actor": "human"
+        },
+        {
+          "id": "room",
+          "type": "actor",
+          "name": "Anyone else in the room",
+          "actor": "external"
+        },
+        {
+          "id": "deckArc",
+          "type": "boundary",
+          "name": "Deck (arc and /deck wall)",
+          "surface": "_prime_silo/deck"
+        },
+        {
+          "id": "stateApi",
+          "type": "boundary",
+          "name": "GET /api/deck_state",
+          "endpoint": "deck_state"
+        },
+        {
+          "id": "voiceApi",
+          "type": "boundary",
+          "name": "POST /api/deck_voice",
+          "endpoint": "deck_voice"
+        },
+        {
+          "id": "foldOnce",
+          "type": "control",
+          "name": "Fold every ledger into one answer"
+        },
+        {
+          "id": "redact",
+          "type": "control",
+          "name": "Room mode: hide names, titles and paths"
+        },
+        {
+          "id": "diff",
+          "type": "control",
+          "name": "Move only the tile whose figure changed"
+        },
+        {
+          "id": "transcribe",
+          "type": "control",
+          "name": "Transcribe what was said"
+        },
+        {
+          "id": "intent",
+          "type": "control",
+          "name": "Route the intent — with no path to a signature"
+        },
+        {
+          "id": "ledgers",
+          "type": "entity",
+          "name": "Every ledger under the store"
+        },
+        {
+          "id": "proposal",
+          "type": "entity",
+          "name": "Proposal subject"
+        },
+        {
+          "id": "requestState",
+          "type": "control",
+          "name": "Request the estate's state"
+        }
+      ],
+      "edges": [
+        {
+          "from": "owner",
+          "to": "deckArc",
+          "label": "glances, or engages"
+        },
+        {
+          "from": "stateApi",
+          "to": "foldOnce",
+          "label": ""
+        },
+        {
+          "from": "foldOnce",
+          "to": "ledgers",
+          "label": "reads once, so the wall cannot disagree with itself"
+        },
+        {
+          "from": "foldOnce",
+          "to": "redact",
+          "label": ""
+        },
+        {
+          "from": "redact",
+          "to": "deckArc",
+          "label": "what is safe to project"
+        },
+        {
+          "from": "foldOnce",
+          "to": "diff",
+          "label": ""
+        },
+        {
+          "from": "diff",
+          "to": "deckArc",
+          "label": "motion only on a real change"
+        },
+        {
+          "from": "room",
+          "to": "deckArc",
+          "label": "can read the wall, and can speak"
+        },
+        {
+          "from": "owner",
+          "to": "voiceApi",
+          "label": "holds the key and speaks"
+        },
+        {
+          "from": "voiceApi",
+          "to": "transcribe",
+          "label": ""
+        },
+        {
+          "from": "transcribe",
+          "to": "intent",
+          "label": ""
+        },
+        {
+          "from": "intent",
+          "to": "proposal",
+          "label": "may raise — never sign"
+        },
+        {
+          "from": "intent",
+          "to": "deckArc",
+          "label": "navigates or answers"
+        },
+        {
+          "from": "deckArc",
+          "to": "requestState",
+          "label": ""
+        },
+        {
+          "from": "requestState",
+          "to": "stateApi",
+          "label": ""
+        }
+      ]
     }
   ]
 }

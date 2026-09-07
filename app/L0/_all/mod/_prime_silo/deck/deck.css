@@ -1,0 +1,317 @@
+/* HUD deck — the estate on a wall.
+ *
+ * Governed CSS (C0): every colour resolves through a token in colors.css. No hex here.
+ *
+ * TIERS, NOT ONE RESPONSIVE PAGE. A projector at 4K and a Kindle browser are different
+ * products wearing the same data, and pretending otherwise makes the big one worse. The tiers
+ * are: wall (>=1800px — figures sized to be read across a room), deck (desktop and ultrawide),
+ * column (portrait and tablet), pocket (phone). The Kindle is served a separate static board
+ * entirely; it is not this file's problem, because e-ink cannot do any of what follows.
+ *
+ * MOTION IS THE ESTATE'S, NOT A TIMER'S. C0 forbids ambient motion and that is a gift here: a
+ * wall that animates constantly becomes wallpaper and stops being read. This surface is still
+ * until something actually transitions — a proposal lands, a node changes state — and then the
+ * tile that changed is the only thing that moves.
+ */
+
+.deck {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-6);
+  min-height: 100%;
+  background: var(--color-canvas);
+  color: var(--color-text-primary);
+  font-family: var(--font-stack-active);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-body);
+  container-type: inline-size;
+}
+
+/* --- bar ------------------------------------------------------------------------------- */
+
+.deck__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.deck__title {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-tight);
+}
+
+.deck__badge {
+  font-size: var(--font-size-sm);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-caps);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-secondary);
+}
+.deck__badge[data-state="attention"] {
+  color: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+  background: var(--color-accent-primary-soft);
+}
+.deck__badge[data-state="blind"] {
+  color: var(--color-status-danger);
+  border-color: var(--color-status-danger);
+}
+.deck__badge[data-state="steady"] {
+  color: var(--color-status-success);
+  border-color: var(--color-status-success);
+}
+
+.deck__mode,
+.deck__age {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-caps);
+}
+.deck__spacer {
+  flex: 1 1 auto;
+}
+
+.deck__toggle {
+  font: inherit;
+  font-size: var(--font-size-sm);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-soft);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.deck__toggle[aria-pressed="true"] {
+  color: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+}
+
+/* --- blind ----------------------------------------------------------------------------- */
+
+.deck__blind {
+  border: 1px solid var(--color-status-danger);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  color: var(--color-status-danger);
+  background: var(--color-surface-1);
+  max-width: var(--measure-max);
+}
+.deck__blind p {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-secondary);
+}
+
+/* --- tiles ----------------------------------------------------------------------------- */
+
+.deck__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--space-4);
+}
+
+.deck__tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-soft);
+  background: var(--color-surface-raised);
+  box-shadow: var(--elevation-1);
+  min-width: 0;
+}
+
+/* One accent, on the one thing that can ask something of a person. */
+.deck__tile--decide[data-alert="true"] {
+  border-color: var(--color-accent-primary);
+  box-shadow: var(--elevation-2);
+}
+.deck__tile[data-alert="true"] {
+  border-color: var(--color-status-danger);
+}
+
+.deck__label {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-caps);
+  color: var(--color-text-tertiary);
+}
+
+.deck__figure {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-tight);
+  font-variant-numeric: tabular-nums;
+}
+.deck__of {
+  color: var(--color-text-tertiary);
+}
+
+.deck__unit {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.deck__detail {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  max-width: var(--measure-max);
+}
+.deck__detail--redacted {
+  font-style: italic;
+}
+
+.deck__nodes {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+}
+.deck__nodes li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--color-text-secondary);
+}
+.deck__nodestate {
+  color: var(--color-status-success);
+}
+.deck__nodes li[data-blind="true"] .deck__nodestate {
+  color: var(--color-status-danger);
+}
+
+/* --- voice ----------------------------------------------------------------------------- */
+
+.deck__voice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+
+.deck__ptt {
+  font: inherit;
+  font-size: var(--font-size-base);
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-strong);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.deck__ptt[data-listening="true"] {
+  background: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-ink);
+}
+.deck__ptt:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.deck__ptt:focus-visible,
+.deck__toggle:focus-visible {
+  outline: 2px solid var(--color-focus-border);
+  outline-offset: 2px;
+}
+
+.deck__voicenote,
+.deck__heard,
+.deck__said,
+.deck__foot {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  max-width: var(--measure-max);
+}
+.deck__said {
+  color: var(--color-text-secondary);
+}
+
+.deck__foot {
+  margin-top: auto;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-soft);
+}
+
+/* --- tiers ------------------------------------------------------------------------------ */
+
+/* WALL. A projector or a 4K panel read from across a room: fewer, larger figures. Everything
+ * that needs squinting is removed rather than shrunk. */
+@container (min-width: 1800px) {
+  .deck {
+    padding: var(--space-6) var(--space-6) var(--space-5);
+    gap: var(--space-6);
+  }
+  .deck__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-5);
+  }
+  .deck__figure {
+    font-size: calc(var(--font-size-xl) * 2.6);
+  }
+  .deck__title {
+    font-size: calc(var(--font-size-xl) * 1.4);
+  }
+  .deck__unit {
+    font-size: var(--font-size-lg);
+  }
+  .deck__detail {
+    font-size: var(--font-size-base);
+  }
+}
+
+/* COLUMN. Portrait monitors and tablets: one tile per row, reading order top to bottom. */
+@container (max-width: 900px) {
+  .deck__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* POCKET. A phone in a hand, at arm's length. */
+@container (max-width: 560px) {
+  .deck {
+    padding: var(--space-4);
+    gap: var(--space-4);
+  }
+  .deck__figure {
+    font-size: var(--font-size-lg);
+  }
+  .deck__ptt {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* Motion: only the tile that changed, only when the estate changed it. Nothing loops. */
+@media (prefers-reduced-motion: no-preference) {
+  .deck__tile {
+    transition:
+      border-color 0.35s ease,
+      box-shadow 0.35s ease;
+  }
+  .deck__tile[data-changed="true"] {
+    animation: deck-landed 0.7s ease-out;
+  }
+}
+
+@keyframes deck-landed {
+  0% {
+    transform: translateY(var(--space-2));
+    opacity: 0.55;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}

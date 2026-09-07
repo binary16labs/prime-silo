@@ -15,7 +15,7 @@ ICONIX robustness analysis has real rules, not stylistic ones: an actor may touc
 
 Anything else is a design defect the notation exists to reveal, and fails this build.
 
-8 diagrams · 25 boundaries · 36 controls · 25 entities
+9 diagrams · 28 boundaries · 42 controls · 27 entities
 
 ## R-01 · Authorise a piece of work
 
@@ -329,3 +329,45 @@ flowchart LR
 **Control** — Resolve every file, panel, route and command · Split one chunk per invariant · Route the question; never answer a domain question from memory · Grade the answer against its sources
 
 **Entity** — manual/manual.json · Knowledge graph · Retrieval index · PageIndex section tree
+
+## R-09 · Read the estate from across the room
+
+Flow F-09 · use cases UC-18
+
+```mermaid
+flowchart LR
+  owner(("You (owner)"))
+  room(("Anyone else in the room"))
+  deckArc["Deck (arc and /deck wall)"]
+  stateApi["GET /api/deck_state"]
+  voiceApi["POST /api/deck_voice"]
+  foldOnce(["Fold every ledger into one answer"])
+  redact(["Room mode: hide names, titles and paths"])
+  diff(["Move only the tile whose figure changed"])
+  transcribe(["Transcribe what was said"])
+  intent(["Route the intent — with no path to a signature"])
+  ledgers[("Every ledger under the store")]
+  proposal[("Proposal subject")]
+  requestState(["Request the estate's state"])
+  owner -- "glances, or engages" --> deckArc
+  stateApi --> foldOnce
+  foldOnce -- "reads once, so the wall cannot disagree with itself" --> ledgers
+  foldOnce --> redact
+  redact -- "what is safe to project" --> deckArc
+  foldOnce --> diff
+  diff -- "motion only on a real change" --> deckArc
+  room -- "can read the wall, and can speak" --> deckArc
+  owner -- "holds the key and speaks" --> voiceApi
+  voiceApi --> transcribe
+  transcribe --> intent
+  intent -- "may raise — never sign" --> proposal
+  intent -- "navigates or answers" --> deckArc
+  deckArc --> requestState
+  requestState --> stateApi
+```
+
+**Boundary** — Deck (arc and /deck wall) · GET /api/deck_state · POST /api/deck_voice
+
+**Control** — Fold every ledger into one answer · Room mode: hide names, titles and paths · Move only the tile whose figure changed · Transcribe what was said · Route the intent — with no path to a signature · Request the estate's state
+
+**Entity** — Every ledger under the store · Proposal subject

@@ -2,8 +2,8 @@
 
 _What people and machinery actually do here, and which surface each act happens on_
 
-17 use cases · 16 surfaces, all covered · 
-9 exercised, 8 declared
+18 use cases · 17 surfaces, all covered · 
+10 exercised, 8 declared
 
 ## Actors
 
@@ -418,6 +418,35 @@ Actors are the estate's own authorship enum (R38) — human, frontier, house —
 
 > This matters more than it looks: gov_sign takes the signer from the session, so this surface defines who the ledger will name.
 
+## UC-18 · Read the estate from across the room
+
+**Actor** You (the owner) · **exercised**
+
+**Goal** Know the state of the estate at a glance, from a projector or a spare monitor, without operating anything.
+
+**Trigger** Walking past, sitting down, or wanting to know whether anything needs you.
+
+**Precondition** The estate store is readable.
+
+**Surfaces** Deck (`#/_prime_silo/deck`)
+
+**Endpoints** `/api/deck_state` · `/api/deck_voice`
+
+**Flow**
+
+1. Open the deck — in the app as an arc, or full screen at /deck for a wall.
+2. Four figures: what is waiting on you, how much lineage has an origin, which nodes are reporting, how many runs ran unauthorised.
+3. It sits still until the estate moves; only the tile whose number changed animates.
+4. Hold to speak to navigate, ask, or raise a proposal.
+
+**Outcome** The estate's state understood without touching anything, and a way in when something needs you.
+
+**What it refuses to do**
+
+- Voice cannot sign. There is no branch in the intent router that could, because a spoken instruction is not an authenticated act and a room contains other voices.
+- Room mode is ON by default: machine names, proposal titles and store paths are hidden until you reveal them, because the surface is often projected.
+- A deck that cannot read the ledgers reports 'not reporting' rather than a wall of zeroes.
+
 ## Coverage
 
 | Zone | Surface | Use cases |
@@ -427,6 +456,7 @@ Actors are the estate's own authorship enum (R38) — human, frontier, house —
 | Prove | Lineage | UC-03, UC-04 |
 | Prove | Manifests | UC-08, UC-12 |
 | Watch | Bridge | UC-07, UC-13 |
+| Watch | Deck | UC-18 |
 | Watch | Mission Control | UC-07, UC-13 |
 | Recall | Lifelog | UC-10 |
 | Recall | Memory | UC-10 |

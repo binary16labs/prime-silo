@@ -1,9 +1,9 @@
 {
   "generated_from": "scripts/sitemap_build.mjs",
   "counts": {
-    "surfaces": 16,
-    "routes": 51,
-    "commands": 21,
+    "surfaces": 17,
+    "routes": 53,
+    "commands": 24,
     "unreached_routes": 39
   },
   "zones": [
@@ -85,6 +85,19 @@
             "longview_stop",
             "runtime",
             "workflows_run"
+          ]
+        },
+        {
+          "name": "Deck",
+          "route": "_prime_silo/deck",
+          "description": "The estate on a wall — one glanceable surface for what is waiting, what is proven, which machines are reporting, and what ran without authorisation.",
+          "icon": "dashboard",
+          "colour": "#63a063",
+          "dir": "app/L0/_all/mod/_prime_silo/deck",
+          "hasView": true,
+          "endpoints": [
+            "deck_state",
+            "deck_voice"
           ]
         },
         {
@@ -289,6 +302,11 @@
       "summary": ""
     },
     {
+      "command": "node scripts/flows_build.mjs",
+      "file": "scripts/flows_build.mjs",
+      "summary": ""
+    },
+    {
       "command": "node scripts/heartbeat_estate.mjs",
       "file": "scripts/heartbeat_estate.mjs",
       "summary": ""
@@ -329,6 +347,11 @@
       "summary": ""
     },
     {
+      "command": "node scripts/robustness_build.mjs",
+      "file": "scripts/robustness_build.mjs",
+      "summary": ""
+    },
+    {
       "command": "node scripts/run-workflows.mjs",
       "file": "scripts/run-workflows.mjs",
       "summary": "($BENNY_HOME/state/hmac-key) -> fail fast. No shipped default remains."
@@ -336,6 +359,11 @@
     {
       "command": "node scripts/sitemap_build.mjs",
       "file": "scripts/sitemap_build.mjs",
+      "summary": ""
+    },
+    {
+      "command": "node scripts/usecases_build.mjs",
+      "file": "scripts/usecases_build.mjs",
       "summary": ""
     }
   ],
