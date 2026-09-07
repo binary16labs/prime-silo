@@ -4,10 +4,7 @@
   "rubric_hash": "sha256:431f8c268670915d",
   "primary_metric": "authoring.wall_seconds",
   "higher_is_better": false,
-  "ranking": [
-    "incumbent",
-    "gemma-e4b"
-  ],
+  "ranking": ["incumbent", "gemma-e4b"],
   "excluded": [],
   "records": [
     {
@@ -24,11 +21,7 @@
         "quality_score": 0.143,
         "status": "OK",
         "model": "incumbent",
-        "unmeasured": [
-          "has_required_ops",
-          "parse_ok",
-          "step_count"
-        ]
+        "unmeasured": ["has_required_ops", "parse_ok", "step_count"]
       },
       "navigation": {
         "source": "sdlc.run_multi_model",
@@ -54,10 +47,7 @@
           "total_tokens"
         ]
       },
-      "scored_on": [
-        "authoring",
-        "navigation"
-      ],
+      "scored_on": ["authoring", "navigation"],
       "rubric_hash": "sha256:431f8c268670915d",
       "roster_hash": null,
       "topology": null,
@@ -77,11 +67,7 @@
         "quality_score": 0.143,
         "status": "OK",
         "model": "gemma-e4b",
-        "unmeasured": [
-          "has_required_ops",
-          "parse_ok",
-          "step_count"
-        ]
+        "unmeasured": ["has_required_ops", "parse_ok", "step_count"]
       },
       "navigation": {
         "source": "sdlc.run_multi_model",
@@ -107,10 +93,7 @@
           "total_tokens"
         ]
       },
-      "scored_on": [
-        "authoring",
-        "navigation"
-      ],
+      "scored_on": ["authoring", "navigation"],
       "rubric_hash": "sha256:431f8c268670915d",
       "roster_hash": null,
       "topology": null,

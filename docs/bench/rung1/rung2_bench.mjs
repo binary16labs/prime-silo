@@ -33,12 +33,15 @@ if (!MODEL) {
 // never saw. Accepts either {sids:[...]} or a bare array.
 const SAMPLE_ARG = process.argv[3];
 const samplePath = SAMPLE_ARG
-  ? (path.isAbsolute(SAMPLE_ARG) ? SAMPLE_ARG : path.resolve(REPO, SAMPLE_ARG))
+  ? path.isAbsolute(SAMPLE_ARG)
+    ? SAMPLE_ARG
+    : path.resolve(REPO, SAMPLE_ARG)
   : path.join(__dirname, "sample-rung2.json");
 const _sampleRaw = JSON.parse(fs.readFileSync(samplePath, "utf8"));
 const SAMPLE = Array.isArray(_sampleRaw) ? { sids: _sampleRaw } : _sampleRaw;
 const SYSTEM = fs.readFileSync(
-  path.join(REPO, "scripts", "longview", "prompts", "window_fragment.md"), "utf8"
+  path.join(REPO, "scripts", "longview", "prompts", "window_fragment.md"),
+  "utf8"
 );
 const WINDOW_CHARS = Number(process.env.LONGVIEW_WINDOW_CHARS || 12000);
 
@@ -49,21 +52,31 @@ async function benchOneSid(sid) {
   const started = Date.now();
   for (const w of windows) {
     const res = await chat({
-      system: SYSTEM, user: w.text, maxTokens: config.FRAGMENT_MAX_TOKENS, json: true, temperature: 0.2,
+      system: SYSTEM,
+      user: w.text,
+      maxTokens: config.FRAGMENT_MAX_TOKENS,
+      json: true,
+      temperature: 0.2
     });
     const frag = parseFragment(res.content, repairTruncatedJson);
     const score = scoreFragment(frag);
     perWindow.push({
-      index: w.index, ms: res.ms,
-      prompt_tokens: res.prompt_tokens, completion_tokens: res.completion_tokens,
-      usage_estimated: res.usage_estimated, score, fragment: frag,
+      index: w.index,
+      ms: res.ms,
+      prompt_tokens: res.prompt_tokens,
+      completion_tokens: res.completion_tokens,
+      usage_estimated: res.usage_estimated,
+      score,
+      fragment: frag
     });
   }
   const wall_ms = Date.now() - started;
   const n = perWindow.length;
   const mean = (f) => perWindow.reduce((a, x) => a + f(x), 0) / n;
   return {
-    sid, windows: n, step_count: stepCount,
+    sid,
+    windows: n,
+    step_count: stepCount,
     wall_seconds: +(wall_ms / 1000).toFixed(4),
     prompt_tokens: perWindow.reduce((a, x) => a + x.prompt_tokens, 0),
     completion_tokens: perWindow.reduce((a, x) => a + x.completion_tokens, 0),
@@ -72,7 +85,7 @@ async function benchOneSid(sid) {
     keys_present: +mean((x) => x.score.keys_present).toFixed(4),
     within_bounds: +mean((x) => x.score.within_bounds).toFixed(4),
     coverage: +mean((x) => x.score.coverage).toFixed(4),
-    per_window: perWindow,
+    per_window: perWindow
   };
 }
 
@@ -83,16 +96,20 @@ async function main() {
   for (const sid of SAMPLE.sids) {
     const r = await benchOneSid(sid);
     perSid.push(r);
-    console.log(`[rung2]  ${sid}: ${r.windows}win ${r.wall_seconds}s q=${r.quality_score} cov=${r.coverage}`);
+    console.log(
+      `[rung2]  ${sid}: ${r.windows}win ${r.wall_seconds}s q=${r.quality_score} cov=${r.coverage}`
+    );
   }
   const n = perSid.length;
   const meanCard = (f) => +(perSid.reduce((a, x) => a + f(x), 0) / n).toFixed(4);
   const summary = {
-    model: MODEL, sample: "sample-rung2.json", n_cards: n,
+    model: MODEL,
+    sample: "sample-rung2.json",
+    n_cards: n,
     window_chars: WINDOW_CHARS,
     total_windows: perSid.reduce((a, x) => a + x.windows, 0),
     // Per-CARD means — the unit the ladder ranks on (a card is one LONGVIEW artifact).
-    wall_seconds: meanCard((x) => x.wall_seconds),      // mean wall per card
+    wall_seconds: meanCard((x) => x.wall_seconds), // mean wall per card
     total_wall_seconds: +perSid.reduce((a, x) => a + x.wall_seconds, 0).toFixed(4),
     quality_score: meanCard((x) => x.quality_score),
     valid_json: meanCard((x) => x.valid_json),
@@ -101,7 +118,7 @@ async function main() {
     coverage: meanCard((x) => x.coverage),
     prompt_tokens: perSid.reduce((a, x) => a + x.prompt_tokens, 0),
     completion_tokens: perSid.reduce((a, x) => a + x.completion_tokens, 0),
-    per_sid: perSid,
+    per_sid: perSid
   };
   const outDir = path.join(__dirname, "results");
   fs.mkdirSync(outDir, { recursive: true });
@@ -115,4 +132,7 @@ async function main() {
   );
 }
 
-main().catch((e) => { console.error(`[rung2] FAILED: ${e.message}`); process.exit(1); });
+main().catch((e) => {
+  console.error(`[rung2] FAILED: ${e.message}`);
+  process.exit(1);
+});

@@ -254,7 +254,9 @@ async function buildOutline(interrupted) {
           3
         );
       } catch (e) {
-        console.log(`[opus] WARN sections for p${part.n}c${ch.n} FAILED — ${e.message} (rerun resumes here)`);
+        console.log(
+          `[opus] WARN sections for p${part.n}c${ch.n} FAILED — ${e.message} (rerun resumes here)`
+        );
       }
       if (spec?.sections?.length) {
         // Section ids become filenames — never let a missing id collide.
@@ -292,7 +294,11 @@ const SEEN_SOURCES = new Set();
 function loadSeenSources() {
   const dir = opusDir("sections");
   let files = [];
-  try { files = fs.readdirSync(dir); } catch { return 0; }
+  try {
+    files = fs.readdirSync(dir);
+  } catch {
+    return 0;
+  }
   let restored = 0;
   for (const f of files) {
     if (!f.endsWith(".meta.json")) continue;
@@ -302,7 +308,9 @@ function loadSeenSources() {
         SEEN_SOURCES.add(String(src.source || "").slice(0, 40));
         restored++;
       }
-    } catch { /* a corrupt meta costs its own provenance, never the run */ }
+    } catch {
+      /* a corrupt meta costs its own provenance, never the run */
+    }
   }
   return restored;
 }
@@ -322,7 +330,8 @@ function sectionGate(text, arcSids = []) {
   const errs = [];
   if (words < 400) errs.push(`too short (${words} words; need 650-950)`);
   if (words > 1300) errs.push(`too long (${words} words; need 650-950)`);
-  if (cites < 4) errs.push(`only ${cites} inline citation(s); need 5-9 distinct like (sid: abc123)`);
+  if (cites < 4)
+    errs.push(`only ${cites} inline citation(s); need 5-9 distinct like (sid: abc123)`);
   if (arcSet.size && !hitsArc)
     errs.push(
       `cite at least one of this section's arc sids: ${[...arcSet].slice(0, 4).join(", ")}`
@@ -390,7 +399,9 @@ export async function runOpus({ interrupted = () => false } = {}) {
   if (process.env.LONGVIEW_OPUS_V2 === "1") {
     const restored = loadSeenSources();
     if (restored)
-      console.log(`[opus] coverage memory restored — ${SEEN_SOURCES.size} distinct sources from ${restored} prior citations`);
+      console.log(
+        `[opus] coverage memory restored — ${SEEN_SOURCES.size} distinct sources from ${restored} prior citations`
+      );
   }
   let done = 0,
     failed = 0;
@@ -416,8 +427,8 @@ export async function runOpus({ interrupted = () => false } = {}) {
       // which is why 86 sections still only reached 59 of 261 cards.
       const V2 = process.env.LONGVIEW_OPUS_V2 === "1";
       const ev = await evidenceForWithSources(query, {
-        topK: V2 ? (arcList.length ? 14 : 10) : (arcList.length ? 6 : 4),
-        budget: s.reflection ? (V2 ? 3200 : 2400) : (V2 ? 5200 : 3800),
+        topK: V2 ? (arcList.length ? 14 : 10) : arcList.length ? 6 : 4,
+        budget: s.reflection ? (V2 ? 3200 : 2400) : V2 ? 5200 : 3800,
         seen: V2 ? SEEN_SOURCES : null,
         novelty: V2 ? 1 : 0
       });

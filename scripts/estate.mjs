@@ -35,7 +35,10 @@ const u = (p) => "file:///" + p.replace(/\\/g, "/");
 const argv = process.argv.slice(2);
 const cmd = argv[0] || "help";
 const flag = (k) => argv.includes(k);
-const opt = (k, d = null) => { const i = argv.indexOf(k); return i > 0 && argv[i + 1] ? argv[i + 1] : d; };
+const opt = (k, d = null) => {
+  const i = argv.indexOf(k);
+  return i > 0 && argv[i + 1] ? argv[i + 1] : d;
+};
 const WS = opt("--workspace", process.env.LONGVIEW_WORKSPACE || "sessions_v1");
 const JSONOUT = flag("--json");
 
@@ -46,7 +49,10 @@ const out = (human, data) => {
   else human();
 };
 const pad = (s, n) => String(s == null ? "" : s).padEnd(n);
-const die = (msg, code = 1) => { console.error(`estate: ${msg}`); process.exit(code); };
+const die = (msg, code = 1) => {
+  console.error(`estate: ${msg}`);
+  process.exit(code);
+};
 
 // The control plane core — the SAME module the HTTP API uses.
 const control = await import(u(path.join(DASH, "control.mjs")));
@@ -55,19 +61,31 @@ const estate = await import(u(path.join(DASH, "estate.mjs")));
 // ---------------------------------------------------------------------------
 async function cmdStatus() {
   const fw = estate.flywheelState(WS);
-  const d = fw.debt, r = fw.readiness, e = fw.estate;
+  const d = fw.debt,
+    r = fw.readiness,
+    e = fw.estate;
   out(() => {
     console.log(`\nEstate status — workspace ${WS}\n`);
     console.log(`  LONGVIEW debt      ${d.debt}  (${d.verdict})`);
-    console.log(`    carded ${d.carded} · quarantined ${d.quarantined} · thin ${d.skipped_thin} · debt ${d.debt}`);
+    console.log(
+      `    carded ${d.carded} · quarantined ${d.quarantined} · thin ${d.skipped_thin} · debt ${d.debt}`
+    );
     console.log(`    accounted ${d.accounted}/${d.inventory} · coverage ${d.coverage_pct}%`);
-    if (d.debt > 0) console.log(`    clears with: estate run longview-map-delta --operator <you> --yes`);
+    if (d.debt > 0)
+      console.log(`    clears with: estate run longview-map-delta --operator <you> --yes`);
     console.log(`\n  Flywheel           ${r.turning ? "TURNING" : "NOT TURNING"}`);
-    for (const p of r.phases) console.log(`    ${pad(p.id, 12)} ${pad(p.state, 10)} ${p.have}/${p.need}`);
+    for (const p of r.phases)
+      console.log(`    ${pad(p.id, 12)} ${pad(p.state, 10)} ${p.have}/${p.need}`);
     console.log(`\n  Estate`);
-    console.log(`    hub        ${e.hub.name} · drives ${e.hub.drives.map((x) => x.drive + (x.present ? "+" : "-")).join("")}`);
-    console.log(`    satellite  ${e.satellite.name} · ${e.satellite.lag_verdict} · last pull ${e.satellite.last_pull ? e.satellite.last_pull.age_days + "d" : "never"}`);
-    console.log(`    backup     ${e.backup.verdict} · ${e.backup.latest ? e.backup.latest.name : "none"}`);
+    console.log(
+      `    hub        ${e.hub.name} · drives ${e.hub.drives.map((x) => x.drive + (x.present ? "+" : "-")).join("")}`
+    );
+    console.log(
+      `    satellite  ${e.satellite.name} · ${e.satellite.lag_verdict} · last pull ${e.satellite.last_pull ? e.satellite.last_pull.age_days + "d" : "never"}`
+    );
+    console.log(
+      `    backup     ${e.backup.verdict} · ${e.backup.latest ? e.backup.latest.name : "none"}`
+    );
     if (fw.blockers.length) {
       console.log(`\n  Blockers`);
       for (const b of fw.blockers) console.log(`    - ${b}`);
@@ -79,13 +97,21 @@ async function cmdStatus() {
 async function cmdContracts() {
   const rows = Object.entries(control.LAUNCHABLE).map(([id, c]) => {
     const gate = control.gateFor(id, WS);
-    return { id, label: c.label, mutating: Boolean(c.mutating), produces: c.produces,
-             allowed: gate.allowed, reasons: gate.reasons };
+    return {
+      id,
+      label: c.label,
+      mutating: Boolean(c.mutating),
+      produces: c.produces,
+      allowed: gate.allowed,
+      reasons: gate.reasons
+    };
   });
   out(() => {
     console.log(`\nLaunchable contracts — workspace ${WS}\n`);
     for (const r of rows) {
-      console.log(`  ${r.allowed ? "OPEN  " : "CLOSED"} ${pad(r.id, 26)} ${r.mutating ? "[mutating]" : "[read-only]"}  ${r.label}`);
+      console.log(
+        `  ${r.allowed ? "OPEN  " : "CLOSED"} ${pad(r.id, 26)} ${r.mutating ? "[mutating]" : "[read-only]"}  ${r.label}`
+      );
       for (const x of r.reasons) console.log(`           x ${x}`);
     }
     console.log(`\n  run:  node scripts/estate.mjs run <id> --operator <you> --yes\n`);
@@ -101,8 +127,7 @@ async function cmdRun() {
   if (c.mutating) {
     if (!operator || operator.trim().length < 2)
       die("a mutating run requires --operator <name> (recorded in the signed launch ledger)");
-    if (!flag("--yes"))
-      die("a mutating run requires explicit --yes (this is the human signature)");
+    if (!flag("--yes")) die("a mutating run requires explicit --yes (this is the human signature)");
   }
   const gate = control.gateFor(id, WS);
   if (!gate.allowed) {
@@ -111,32 +136,48 @@ async function cmdRun() {
     process.exit(2);
   }
   const signed = control.signLaunch(WS, {
-    operator: operator || "system", contract_id: id, argv: c.argv(WS),
+    operator: operator || "system",
+    contract_id: id,
+    argv: c.argv(WS),
     intent: opt("--intent", c.label),
     gate_snapshot: { allowed: true, checked_at: new Date().toISOString(), evidence: gate.evidence }
   });
   const run = control.launch(id, WS, signed);
-  out(() => {
-    console.log(`\n  launched  ${id}`);
-    console.log(`  pid       ${run.pid}`);
-    console.log(`  signature #${signed.seq} ${String(signed.hmac || "").slice(0, 16)} by ${signed.operator}`);
-    console.log(`  device    ${signed.device_id}`);
-    console.log(`  log       ${run.log}`);
-    console.log(`\n  follow:   node scripts/estate.mjs logs ${id}\n`);
-  }, { launched: true, run, signature: signed });
+  out(
+    () => {
+      console.log(`\n  launched  ${id}`);
+      console.log(`  pid       ${run.pid}`);
+      console.log(
+        `  signature #${signed.seq} ${String(signed.hmac || "").slice(0, 16)} by ${signed.operator}`
+      );
+      console.log(`  device    ${signed.device_id}`);
+      console.log(`  log       ${run.log}`);
+      console.log(`\n  follow:   node scripts/estate.mjs logs ${id}\n`);
+    },
+    { launched: true, run, signature: signed }
+  );
 }
 
 async function cmdLogs() {
   const id = argv[1];
-  const dir = path.join(process.env.BENNY_HOME.replace(/\\/g, "/"), "workspaces", WS, "longview", "lineage");
+  const dir = path.join(
+    process.env.BENNY_HOME.replace(/\\/g, "/"),
+    "workspaces",
+    WS,
+    "longview",
+    "lineage"
+  );
   let files = [];
   try {
-    files = fs.readdirSync(dir).filter((f) => f.startsWith("launch-") && f.endsWith(".log"))
+    files = fs
+      .readdirSync(dir)
+      .filter((f) => f.startsWith("launch-") && f.endsWith(".log"))
       .filter((f) => !id || f.includes(id))
       .map((f) => ({ f, m: fs.statSync(path.join(dir, f)).mtimeMs }))
       .sort((a, b) => b.m - a.m);
-  } catch { }
-  if (!files.length) die("no launch logs found (has anything been launched through the governed path?)");
+  } catch {}
+  if (!files.length)
+    die("no launch logs found (has anything been launched through the governed path?)");
   const p = path.join(dir, files[0].f);
   const txt = fs.readFileSync(p, "utf8").split("\n");
   console.log(`\n  ${p}  (${txt.length} lines)\n`);
@@ -145,26 +186,44 @@ async function cmdLogs() {
 
 async function cmdRegister() {
   if (flag("--rebuild")) {
-    const r = spawnSync("node", [path.join(REPO, "scripts", "longview", "lib", "exec_register.mjs"),
-      "--workspace", WS], { cwd: REPO, encoding: "utf8", env: process.env, timeout: 600000 });
+    const r = spawnSync(
+      "node",
+      [path.join(REPO, "scripts", "longview", "lib", "exec_register.mjs"), "--workspace", WS],
+      { cwd: REPO, encoding: "utf8", env: process.env, timeout: 600000 }
+    );
     console.log((r.stdout || r.stderr || "").trim());
     return;
   }
-  const p = path.join(process.env.BENNY_HOME.replace(/\\/g, "/"), "workspaces", WS,
-    "longview", "lineage", "execution_register.json");
+  const p = path.join(
+    process.env.BENNY_HOME.replace(/\\/g, "/"),
+    "workspaces",
+    WS,
+    "longview",
+    "lineage",
+    "execution_register.json"
+  );
   let reg;
-  try { reg = JSON.parse(fs.readFileSync(p, "utf8")); }
-  catch { die("register not built — run: estate register --rebuild"); }
+  try {
+    reg = JSON.parse(fs.readFileSync(p, "utf8"));
+  } catch {
+    die("register not built — run: estate register --rebuild");
+  }
   const t = reg.totals;
   out(() => {
     console.log(`\nExecution Contract Register — workspace ${WS}`);
     console.log(`  generated  ${reg.generated_at}`);
-    console.log(`  executions ${t.executions}  (${t.bound_to_contract} contract-bound, ` +
-                `${t.executions - t.bound_to_contract} UNCONTRACTED)`);
+    console.log(
+      `  executions ${t.executions}  (${t.bound_to_contract} contract-bound, ` +
+        `${t.executions - t.bound_to_contract} UNCONTRACTED)`
+    );
     console.log(`  processes  ${t.processes} (${t.failed_processes} failed)`);
     console.log(`  datasets   ${t.datasets} · contracts ${reg.sources.contracts}`);
-    console.log(`  ledger     ${reg.sources.governance_log.segments} segments, ${reg.sources.governance_log.lines} lines`);
-    console.log(`  integrity  ${t.integrity_hashed_events} hashed events, ${t.integrity_hashed_records} hashed records`);
+    console.log(
+      `  ledger     ${reg.sources.governance_log.segments} segments, ${reg.sources.governance_log.lines} lines`
+    );
+    console.log(
+      `  integrity  ${t.integrity_hashed_events} hashed events, ${t.integrity_hashed_records} hashed records`
+    );
     console.log(`  by type    ${JSON.stringify(t.by_type)}`);
     console.log(`  binding    ${JSON.stringify(t.binding_methods)}\n`);
   }, reg.totals);
@@ -172,39 +231,74 @@ async function cmdRegister() {
 
 async function cmdLedger() {
   const v = control.verifyLedger(WS);
-  const p = path.join(process.env.BENNY_HOME.replace(/\\/g, "/"), "workspaces", WS,
-    "longview", "lineage", "launch_ledger.jsonl");
+  const p = path.join(
+    process.env.BENNY_HOME.replace(/\\/g, "/"),
+    "workspaces",
+    WS,
+    "longview",
+    "lineage",
+    "launch_ledger.jsonl"
+  );
   let entries = [];
   try {
-    entries = fs.readFileSync(p, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
-  } catch { }
-  out(() => {
-    console.log(`\nSigned launch ledger — ${v.entries} entries · chain ${v.ok ? "VERIFIED" : "BROKEN"} · key ${v.key_present ? "present" : "MISSING"}`);
-    for (const e of entries.slice(-15)) {
-      console.log(`  #${pad(e.seq, 4)} ${pad((e.ts || "").replace("T", " ").slice(0, 16), 17)} ` +
-                  `${pad(e.operator, 12)} ${pad(e.contract_id, 26)} ${String(e.hmac || "").slice(0, 12)}`);
-    }
-    if (!v.ok) for (const b of v.broken) console.log(`  BROKEN seq ${b.seq}: ${b.why}`);
-    console.log();
-  }, { verification: v, entries });
+    entries = fs
+      .readFileSync(p, "utf8")
+      .split("\n")
+      .filter(Boolean)
+      .map((l) => JSON.parse(l));
+  } catch {}
+  out(
+    () => {
+      console.log(
+        `\nSigned launch ledger — ${v.entries} entries · chain ${v.ok ? "VERIFIED" : "BROKEN"} · key ${v.key_present ? "present" : "MISSING"}`
+      );
+      for (const e of entries.slice(-15)) {
+        console.log(
+          `  #${pad(e.seq, 4)} ${pad((e.ts || "").replace("T", " ").slice(0, 16), 17)} ` +
+            `${pad(e.operator, 12)} ${pad(e.contract_id, 26)} ${String(e.hmac || "").slice(0, 12)}`
+        );
+      }
+      if (!v.ok) for (const b of v.broken) console.log(`  BROKEN seq ${b.seq}: ${b.why}`);
+      console.log();
+    },
+    { verification: v, entries }
+  );
 }
 
 async function cmdGates() {
   const gates = [
-    ["metric-integrity", ["node", [path.join(REPO, "scripts", "gates", "metric_integrity.mjs"), "--workspace", WS]]],
+    [
+      "metric-integrity",
+      ["node", [path.join(REPO, "scripts", "gates", "metric_integrity.mjs"), "--workspace", WS]]
+    ],
     ["w0-board", ["node", [path.join(REPO, "scripts", "gates", "w0.mjs")]]]
   ];
   const results = [];
   for (const [name, [bin, args]] of gates) {
-    const r = spawnSync(bin, args, { cwd: REPO, encoding: "utf8", env: process.env, timeout: 600000 });
-    results.push({ gate: name, exit: r.status, ok: r.status === 0,
-                   output: String(r.stdout || "").trim().split("\n").slice(-3).join(" | ") });
+    const r = spawnSync(bin, args, {
+      cwd: REPO,
+      encoding: "utf8",
+      env: process.env,
+      timeout: 600000
+    });
+    results.push({
+      gate: name,
+      exit: r.status,
+      ok: r.status === 0,
+      output: String(r.stdout || "")
+        .trim()
+        .split("\n")
+        .slice(-3)
+        .join(" | ")
+    });
   }
   out(() => {
     console.log(`\nGates — workspace ${WS}\n`);
-    for (const r of results) console.log(`  [${r.ok ? "PASS" : "FAIL"}] ${pad(r.gate, 18)} exit=${r.exit}`);
+    for (const r of results)
+      console.log(`  [${r.ok ? "PASS" : "FAIL"}] ${pad(r.gate, 18)} exit=${r.exit}`);
     const bad = results.filter((r) => !r.ok);
-    if (bad.length) console.log(`\n  ${bad.length} gate(s) failing — see: node scripts/gates/<name>\n`);
+    if (bad.length)
+      console.log(`\n  ${bad.length} gate(s) failing — see: node scripts/gates/<name>\n`);
     else console.log();
   }, results);
   process.exit(results.some((r) => !r.ok) ? 2 : 0);
@@ -236,9 +330,19 @@ HTTP parity — the API calls these same functions:
 `);
 }
 
-const table = { status: cmdStatus, contracts: cmdContracts, run: cmdRun, logs: cmdLogs,
-                register: cmdRegister, ledger: cmdLedger, gates: cmdGates,
-                help: async () => cmdHelp() };
+const table = {
+  status: cmdStatus,
+  contracts: cmdContracts,
+  run: cmdRun,
+  logs: cmdLogs,
+  register: cmdRegister,
+  ledger: cmdLedger,
+  gates: cmdGates,
+  help: async () => cmdHelp()
+};
 const fn = table[cmd];
-if (!fn) { cmdHelp(); process.exit(1); }
+if (!fn) {
+  cmdHelp();
+  process.exit(1);
+}
 await fn();

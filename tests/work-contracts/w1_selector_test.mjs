@@ -122,7 +122,10 @@ test("verifying a task nobody claimed is refused, not silently accepted", async 
 
 // --- D1: human-signed is reported, never selected ---------------------------
 test("D1: a human-signed item is never auto-claimed", () => {
-  const onlyHuman = selectNext([{ id: "H0", deps: [], authority: "human-signed" }], base({ ledger: {} }));
+  const onlyHuman = selectNext(
+    [{ id: "H0", deps: [], authority: "human-signed" }],
+    base({ ledger: {} })
+  );
   assert.equal(onlyHuman.item, null);
   assert.equal(onlyHuman.reason, NO_ITEM.NONE_READY);
   assert.deepEqual(onlyHuman.awaitingSignature, ["H0"]);
@@ -161,7 +164,10 @@ test("completing an item makes exactly its dependents ready", () => {
 });
 
 test("a verified dep counts as satisfied (task_verified folds to a terminal state)", () => {
-  const r = selectNext(CONTRACTS, base({ ledger: { A0: { state: "verified" }, B0: { state: "done" } } }));
+  const r = selectNext(
+    CONTRACTS,
+    base({ ledger: { A0: { state: "verified" }, B0: { state: "done" } } })
+  );
   assert.ok(r.candidates.includes("A1"));
 });
 

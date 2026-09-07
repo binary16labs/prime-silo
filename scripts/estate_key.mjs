@@ -13,7 +13,11 @@
 //   node scripts/estate_key.mjs --status
 //   node scripts/estate_key.mjs --init
 //   node scripts/estate_key.mjs --init --force     # rotate (re-key EVERY satellite)
-import { initRegisterKey, resolveRegisterKey, keyPath } from "../server/coordination/lib/estate_register_key.mjs";
+import {
+  initRegisterKey,
+  resolveRegisterKey,
+  keyPath
+} from "../server/coordination/lib/estate_register_key.mjs";
 
 const argv = process.argv.slice(2);
 const flag = (k) => argv.includes(k);
@@ -42,7 +46,9 @@ const key = resolveRegisterKey();
 console.log(`estate registration key`);
 console.log(`  path       ${p}`);
 console.log(`  configured ${key ? "yes" : "NO"}`);
-console.log(`  source     ${process.env.ESTATE_REGISTER_KEY ? "ESTATE_REGISTER_KEY (env)" : key ? "keystore file" : "(none)"}`);
+console.log(
+  `  source     ${process.env.ESTATE_REGISTER_KEY ? "ESTATE_REGISTER_KEY (env)" : key ? "keystore file" : "(none)"}`
+);
 console.log(
   key
     ? "\nregister route is ARMED — satellites holding this key can announce themselves."

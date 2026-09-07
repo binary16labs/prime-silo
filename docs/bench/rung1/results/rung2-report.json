@@ -11,12 +11,7 @@
     "window_chars": 12000,
     "primary": "authoring.wall_seconds",
     "quality_floor": 0.7,
-    "quality_composite": [
-      "valid_json",
-      "keys_present",
-      "within_bounds",
-      "coverage"
-    ],
+    "quality_composite": ["valid_json", "keys_present", "within_bounds", "coverage"],
     "prompt": "scripts/longview/prompts/window_fragment.md",
     "non_circular": "quality scored on schema+coverage, NOT against the 12B's stored gold card",
     "rank_unit": "mean wall_seconds per card"
@@ -24,10 +19,7 @@
   "primary_metric": "authoring.wall_seconds",
   "higher_is_better": false,
   "quality_floor": 0.7,
-  "ranking": [
-    "google/gemma-4-e4b",
-    "google/gemma-4-12b"
-  ],
+  "ranking": ["google/gemma-4-e4b", "google/gemma-4-12b"],
   "excluded": [],
   "fastest": "google/gemma-4-e4b",
   "fastest_meets_quality_floor": true,
@@ -82,12 +74,7 @@
         "quality_score": 0.9558,
         "status": "OK",
         "model": "google/gemma-4-12b",
-        "unmeasured": [
-          "cost_usd",
-          "has_required_ops",
-          "parse_ok",
-          "step_count"
-        ]
+        "unmeasured": ["cost_usd", "has_required_ops", "parse_ok", "step_count"]
       },
       "navigation": {
         "source": "sdlc.run_multi_model",
@@ -113,10 +100,7 @@
           "total_tokens"
         ]
       },
-      "scored_on": [
-        "authoring",
-        "navigation"
-      ],
+      "scored_on": ["authoring", "navigation"],
       "rubric_hash": "sha256:314224c055ae2bda",
       "roster_hash": null,
       "topology": null,
@@ -136,12 +120,7 @@
         "quality_score": 0.9015,
         "status": "OK",
         "model": "google/gemma-4-e4b",
-        "unmeasured": [
-          "cost_usd",
-          "has_required_ops",
-          "parse_ok",
-          "step_count"
-        ]
+        "unmeasured": ["cost_usd", "has_required_ops", "parse_ok", "step_count"]
       },
       "navigation": {
         "source": "sdlc.run_multi_model",
@@ -167,10 +146,7 @@
           "total_tokens"
         ]
       },
-      "scored_on": [
-        "authoring",
-        "navigation"
-      ],
+      "scored_on": ["authoring", "navigation"],
       "rubric_hash": "sha256:314224c055ae2bda",
       "roster_hash": null,
       "topology": null,

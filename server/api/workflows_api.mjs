@@ -18,19 +18,26 @@ const PREFIX = "/api/workflows";
 // this is the sprawl a single entry point is meant to tame.
 const DASHBOARDS = [
   ["dashboard.html", "Mission Control", "pipeline lineage rail, graph stats, enrich panes"],
-  ["lineage.html", "Lineage & governance", "OpenLineage DAG, artifact explorer, execution register"],
+  [
+    "lineage.html",
+    "Lineage & governance",
+    "OpenLineage DAG, artifact explorer, execution register"
+  ],
   ["control.html", "Run control", "launch/monitor LONGVIEW phases"],
   ["build.html", "Build", "build/verification view"],
   ["estate.html", "Estate", "multi-machine sessions + backups (EP-N)"],
   ["flywheel.html", "Flywheel", "self-learning loop state (EP-L)"],
   ["memory.html", "Memory & teleport", "search + quarantine sessions (privacy)"],
   ["kindle.html", "Kindle reader", "ES5 book reader"],
-  ["togaf_epic_preview.html", "TOGAF preview", "SAD preview"],
+  ["togaf_epic_preview.html", "TOGAF preview", "SAD preview"]
 ];
 
 function sendJson(res, status, body) {
   const data = JSON.stringify(body);
-  res.writeHead(status, { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(data) });
+  res.writeHead(status, {
+    "Content-Type": "application/json",
+    "Content-Length": Buffer.byteLength(data)
+  });
   res.end(data);
 }
 
@@ -44,7 +51,9 @@ export function createWorkflowsApi({ projectRoot, prefix = PREFIX } = {}) {
     // and so a discovery error can be reported as JSON rather than crashing the mount.
     let discoverWorkflows;
     try {
-      ({ discoverWorkflows } = await import(new URL("../../scripts/workflows/registry.mjs", import.meta.url).href));
+      ({ discoverWorkflows } = await import(
+        new URL("../../scripts/workflows/registry.mjs", import.meta.url).href
+      ));
     } catch (e) {
       return sendJson(res, 500, { error: `registry unavailable: ${e.message}` });
     }
@@ -55,22 +64,31 @@ export function createWorkflowsApi({ projectRoot, prefix = PREFIX } = {}) {
         root: dir,
         serve: "bash scratch/longview_run/dashboard/dash.sh  → http://localhost:8788",
         dashboards: DASHBOARDS.map(([file, label, purpose]) => ({
-          file, label, purpose,
+          file,
+          label,
+          purpose,
           url: `http://localhost:8788/${file === "dashboard.html" ? "" : file}`,
-          present: fs.existsSync(path.join(dir, file)),
-        })),
+          present: fs.existsSync(path.join(dir, file))
+        }))
       });
     }
 
     let reg;
-    try { reg = discoverWorkflows({ repoRoot }); }
-    catch (e) { return sendJson(res, 500, { error: `discovery failed: ${e.message}` }); }
+    try {
+      reg = discoverWorkflows({ repoRoot });
+    } catch (e) {
+      return sendJson(res, 500, { error: `discovery failed: ${e.message}` });
+    }
 
     if (rest === "/" || rest === "") return sendJson(res, 200, reg);
 
     const id = decodeURIComponent(rest.replace(/^\//, ""));
     const type = reg.types.find((t) => t.id === id);
-    if (!type) return sendJson(res, 404, { error: `unknown workflow type: ${id}`, known: reg.types.map((t) => t.id) });
+    if (!type)
+      return sendJson(res, 404, {
+        error: `unknown workflow type: ${id}`,
+        known: reg.types.map((t) => t.id)
+      });
     return sendJson(res, 200, { workspace: reg.workspace, generated: reg.generated, ...type });
   }
 
@@ -81,6 +99,6 @@ export function createWorkflowsApi({ projectRoot, prefix = PREFIX } = {}) {
       if (p !== prefix && !p.startsWith(prefix + "/")) return false;
       await handle(req, res, p.slice(prefix.length) || "/");
       return true;
-    },
+    }
   };
 }

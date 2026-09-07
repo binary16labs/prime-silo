@@ -70,27 +70,27 @@ unversioned artifact** — it cannot be rebuilt from the repo, and no gate prote
 
 ## 3. Regulator mapping (PRA SS1/23, against the estate's own control table)
 
-| Control | Claimed | Actual, on this evidence |
-|---|---|---|
-| **P2** — governance & lifecycle accountability | MET | Holds for *mutating runs* (HMAC ledger, operator identity, device binding). Does **not** extend to delivery decisions, which are markdown + git. |
-| **P3** — development, implementation and use; high-fidelity audit trail | MET | Overstated. Git history and `LOG.md` are a genuine and unusually honest trail, but they are prose, not machine-queryable lineage, and absent from the DAG. |
-| **P4** — independent model validation | PARTIAL | Confirmed PARTIAL. Author≠verifier lives in `LOG.md` prose and is unenforced; W1 §6 proposes mechanizing it, and even then it enforces distinct identity strings, not independence. |
-| **P1** — model identification and risk tiering | PARTIAL | Unchanged by this review. |
+| Control                                                                 | Claimed | Actual, on this evidence                                                                                                                                                            |
+| ----------------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **P2** — governance & lifecycle accountability                          | MET     | Holds for _mutating runs_ (HMAC ledger, operator identity, device binding). Does **not** extend to delivery decisions, which are markdown + git.                                    |
+| **P3** — development, implementation and use; high-fidelity audit trail | MET     | Overstated. Git history and `LOG.md` are a genuine and unusually honest trail, but they are prose, not machine-queryable lineage, and absent from the DAG.                          |
+| **P4** — independent model validation                                   | PARTIAL | Confirmed PARTIAL. Author≠verifier lives in `LOG.md` prose and is unenforced; W1 §6 proposes mechanizing it, and even then it enforces distinct identity strings, not independence. |
+| **P1** — model identification and risk tiering                          | PARTIAL | Unchanged by this review.                                                                                                                                                           |
 
-The estate's own standard, written into `REQUIREMENTS-trained-model-workflows.md` R9, is *"a
-benchmark whose result is not in the ledger did not happen."* Applied consistently, the same sentence
+The estate's own standard, written into `REQUIREMENTS-trained-model-workflows.md` R9, is _"a
+benchmark whose result is not in the ledger did not happen."_ Applied consistently, the same sentence
 convicts the delivery workflow.
 
 ## 4. Proposed work — wiring, in dependency order
 
 None of this is new machinery; it connects parts that already exist and are already verified.
 
-| id | What | Depends on | Note |
-|---|---|---|---|
-| `B4` | Delivery board → B0 ledger. Board transitions emit ledger events; BOARD.md becomes a *projection* of the ledger rather than the source. | B2 | B2's explicitly deferred follow-up. Closes hop 1. Everything else is blocked on it. |
-| `B5` | Wire `fromCoordEvent` into a live register projection — on append via the B1 bus, plus a `benny coord register --rebuild` for backfill. | B4, L5 | Closes hop 2. The mapper exists; this is a caller and a write path. |
-| `L15` | Emit OpenLineage RunEvents for the delivery lifecycle and add a coordination source to `lineage.mjs`, so claims/verifications/merges appear as a DAG. | B5 | Closes hop 3. |
-| `L16` | Move the dashboard out of `scratch/` into a versioned path with a gate. | — | Independent; closes §2. Do first if the surface is to be shown to anyone. |
+| id    | What                                                                                                                                                  | Depends on | Note                                                                                |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------- |
+| `B4`  | Delivery board → B0 ledger. Board transitions emit ledger events; BOARD.md becomes a _projection_ of the ledger rather than the source.               | B2         | B2's explicitly deferred follow-up. Closes hop 1. Everything else is blocked on it. |
+| `B5`  | Wire `fromCoordEvent` into a live register projection — on append via the B1 bus, plus a `benny coord register --rebuild` for backfill.               | B4, L5     | Closes hop 2. The mapper exists; this is a caller and a write path.                 |
+| `L15` | Emit OpenLineage RunEvents for the delivery lifecycle and add a coordination source to `lineage.mjs`, so claims/verifications/merges appear as a DAG. | B5         | Closes hop 3.                                                                       |
+| `L16` | Move the dashboard out of `scratch/` into a versioned path with a gate.                                                                               | —          | Independent; closes §2. Do first if the surface is to be shown to anyone.           |
 
 **Backfill matters for the regulator claim.** `fromCoordEvent` uses a deterministic `exec_id`
 (`detId("coord:"+e.id)`), so a rebuild is idempotent and the historical board can be projected in
@@ -102,8 +102,8 @@ does not have to be lost to close these hops.
 1. **`server/coordination/` is in W1's allowlist.** B5 and W1 would collide; ordering is required,
    not optional.
 2. **B2 is mid-verification** by an independent verifier operating on these exact files.
-3. **Scope enters through the plan.** `plan-deps.json` mirrors plan §12 and updates *only with a plan
-   rev* (`SPEC-work-contracts.md`), so `PLAN-local-power-unified-ui.md` needs a revision adding B4/B5
+3. **Scope enters through the plan.** `plan-deps.json` mirrors plan §12 and updates _only with a plan
+   rev_ (`SPEC-work-contracts.md`), so `PLAN-local-power-unified-ui.md` needs a revision adding B4/B5
    and L15/L16 before any of these contracts can pass `w0`.
 
 ## 6. What is true today, stated plainly

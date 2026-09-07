@@ -7,8 +7,18 @@
 // The 12-field fragment contract from scripts/longview/prompts/window_fragment.md.
 // `project` is a string; the rest are arrays of 0-4 short strings.
 export const ARRAY_FIELDS = [
-  "decisions", "outcomes", "failures", "capabilities", "applications", "artifacts",
-  "concepts", "skills_observed", "operator_traits", "open_threads", "proposed_next", "evidence",
+  "decisions",
+  "outcomes",
+  "failures",
+  "capabilities",
+  "applications",
+  "artifacts",
+  "concepts",
+  "skills_observed",
+  "operator_traits",
+  "open_threads",
+  "proposed_next",
+  "evidence"
 ];
 export const ALL_FIELDS = ["project", ...ARRAY_FIELDS];
 
@@ -22,7 +32,11 @@ export function parseFragment(text, repair) {
     const start = text.indexOf("{");
     const end = text.lastIndexOf("}");
     if (start >= 0 && end > start) {
-      try { return JSON.parse(text.slice(start, end + 1)); } catch { /* fall through */ }
+      try {
+        return JSON.parse(text.slice(start, end + 1));
+      } catch {
+        /* fall through */
+      }
     }
     return repair ? repair(text) : null;
   }
@@ -35,8 +49,10 @@ export function scoreFragment(frag) {
   const valid_json = 1;
   const present = ALL_FIELDS.filter((k) => k in frag).length;
   const keys_present = present / ALL_FIELDS.length;
-  let boundOk = 0, boundTot = 0;
-  boundTot += 1; boundOk += typeof (frag.project ?? "") === "string" ? 1 : 0;
+  let boundOk = 0,
+    boundTot = 0;
+  boundTot += 1;
+  boundOk += typeof (frag.project ?? "") === "string" ? 1 : 0;
   for (const k of ARRAY_FIELDS) {
     boundTot += 1;
     const v = frag[k];

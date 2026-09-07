@@ -168,8 +168,11 @@ KNOWN_BAD: List[CalibrationFixture] = [
             # line matches the absolute-path scanner's \b[A-Za-z]:[\\/] rule. Concatenation
             # reproduces the identical runtime string, so the fixture is unchanged. Keeps
             # the SR-1 ratchet honest without exempting the scanner itself.
-            "    out_path = 'C:" "\\\\Users\\\\/mixed\\\\output/dir\\\\/c:" "/nested:path.txt'\n"
-            "    with open(out_path, 'w') as f:" "\n"
+            "    out_path = 'C:"
+            "\\\\Users\\\\/mixed\\\\output/dir\\\\/c:"
+            "/nested:path.txt'\n"
+            "    with open(out_path, 'w') as f:"
+            "\n"
             "        f.write(s)\n"
             "    return s.replace(' ', '-')\n"
         ),

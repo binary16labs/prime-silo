@@ -53,8 +53,18 @@ const WINDOW_CHARS = Number(process.env.LONGVIEW_WINDOW_CHARS || 12000);
 // The 12-field fragment contract from window_fragment.md. `project` is a string; the
 // rest are arrays of 0-4 short strings.
 const ARRAY_FIELDS = [
-  "decisions", "outcomes", "failures", "capabilities", "applications", "artifacts",
-  "concepts", "skills_observed", "operator_traits", "open_threads", "proposed_next", "evidence",
+  "decisions",
+  "outcomes",
+  "failures",
+  "capabilities",
+  "applications",
+  "artifacts",
+  "concepts",
+  "skills_observed",
+  "operator_traits",
+  "open_threads",
+  "proposed_next",
+  "evidence"
 ];
 const ALL_FIELDS = ["project", ...ARRAY_FIELDS];
 
@@ -66,7 +76,11 @@ function parseFragment(text) {
     const start = text.indexOf("{");
     const end = text.lastIndexOf("}");
     if (start >= 0 && end > start) {
-      try { return JSON.parse(text.slice(start, end + 1)); } catch { /* fall through */ }
+      try {
+        return JSON.parse(text.slice(start, end + 1));
+      } catch {
+        /* fall through */
+      }
     }
     return repairTruncatedJson(text);
   }
@@ -84,9 +98,11 @@ function scoreFragment(frag) {
   const keys_present = present / ALL_FIELDS.length;
   // within_bounds — every array field is an array of <=4 strings; project is a string.
   // A field that overflows the 0-4 bound or is the wrong type is a schema violation.
-  let boundOk = 0, boundTot = 0;
+  let boundOk = 0,
+    boundTot = 0;
   const projOk = typeof (frag.project ?? "") === "string" ? 1 : 0;
-  boundTot += 1; boundOk += projOk;
+  boundTot += 1;
+  boundOk += projOk;
   for (const k of ARRAY_FIELDS) {
     boundTot += 1;
     const v = frag[k];
@@ -124,7 +140,7 @@ async function main() {
       user: w.text,
       maxTokens: config.FRAGMENT_MAX_TOKENS,
       json: true,
-      temperature: 0.2,
+      temperature: 0.2
     });
     const frag = parseFragment(res.content);
     const score = scoreFragment(frag);
@@ -135,7 +151,7 @@ async function main() {
       completion_tokens: res.completion_tokens,
       usage_estimated: res.usage_estimated,
       score,
-      fragment: frag,
+      fragment: frag
     });
     console.log(
       `[rung1]  window ${w.index}: ${res.ms}ms  q=${score.quality.toFixed(3)}  ` +
@@ -160,7 +176,7 @@ async function main() {
     keys_present: +mean((x) => x.score.keys_present).toFixed(4),
     within_bounds: +mean((x) => x.score.within_bounds).toFixed(4),
     coverage: +mean((x) => x.score.coverage).toFixed(4),
-    per_window: perWindow,
+    per_window: perWindow
   };
 
   const outDir = path.join(__dirname, "results");

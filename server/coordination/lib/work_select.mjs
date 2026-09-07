@@ -77,12 +77,12 @@ export function selectNext(contracts, opts) {
   }
 
   const depth = depths(contracts);
-  const rank = (id) => (priority.indexOf(id) === -1 ? Number.MAX_SAFE_INTEGER : priority.indexOf(id));
+  const rank = (id) =>
+    priority.indexOf(id) === -1 ? Number.MAX_SAFE_INTEGER : priority.indexOf(id);
   // Total order: topological, then human priority, then id. The third key is what makes this a
   // function rather than a coin toss between two items that tie on the first two.
   ready.sort(
-    (a, b) =>
-      depth.get(a.id) - depth.get(b.id) || rank(a.id) - rank(b.id) || (a.id < b.id ? -1 : 1)
+    (a, b) => depth.get(a.id) - depth.get(b.id) || rank(a.id) - rank(b.id) || (a.id < b.id ? -1 : 1)
   );
 
   return {

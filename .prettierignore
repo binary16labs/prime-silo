@@ -28,3 +28,10 @@ manual/manual.rag.md
 manual/manual.pageindex.md
 manual/manual.rag.jsonl
 manual/manual.triples.json
+
+# QLoRA training outputs and eval dumps — model checkpoints, tokenizers and generated
+# result files. Machine-written artifacts of a training run, not source: formatting them
+# achieves nothing, and a tokenizer.json is a data file whose shape belongs to the library
+# that wrote it.
+scripts/train/qlora/out_*/
+scripts/train/eval/out_*/

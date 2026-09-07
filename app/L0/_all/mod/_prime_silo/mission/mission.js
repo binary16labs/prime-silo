@@ -18,7 +18,8 @@ const day = (ts) => (ts ? String(ts).slice(0, 10) : "—");
 // ---- tabs -----------------------------------------------------------------
 for (const tab of document.querySelectorAll(".ms-tab")) {
   tab.addEventListener("click", () => {
-    for (const t of document.querySelectorAll(".ms-tab")) t.setAttribute("aria-selected", String(t === tab));
+    for (const t of document.querySelectorAll(".ms-tab"))
+      t.setAttribute("aria-selected", String(t === tab));
     for (const p of document.querySelectorAll(".ms-panel")) p.hidden = true;
     $(`ms-panel-${tab.dataset.panel}`).hidden = false;
   });
@@ -47,9 +48,14 @@ function workflowCard(t) {
     card.appendChild(el("div", "ms-latest ms-none", "no artifacts found"));
   } else {
     card.appendChild(el("div", "ms-latest", `latest: ${t.latest.label || t.latest.version}`));
-    const meta = [day(t.latest.generated), t.latest.workspace && `in ${t.latest.workspace}`,
-                  t.latest.model && `model ${t.latest.model}`,
-                  `${t.count} version${t.count === 1 ? "" : "s"}`].filter(Boolean).join(" · ");
+    const meta = [
+      day(t.latest.generated),
+      t.latest.workspace && `in ${t.latest.workspace}`,
+      t.latest.model && `model ${t.latest.model}`,
+      `${t.count} version${t.count === 1 ? "" : "s"}`
+    ]
+      .filter(Boolean)
+      .join(" · ");
     card.appendChild(el("div", "ms-meta", meta));
   }
   card.appendChild(el("div", "ms-produces", t.produces));
@@ -77,7 +83,9 @@ async function loadWorkflows() {
     const scanned = (reg.workspaces || []).filter((w) => w.scanned).map((w) => w.name);
     $("ms-workspace").textContent =
       `scanned ${scanned.length} workspace(s): ${scanned.join(", ") || "none"}` +
-      (reg.private_excluded ? `  ·  ${reg.private_excluded} private workspace(s) excluded by design` : "");
+      (reg.private_excluded
+        ? `  ·  ${reg.private_excluded} private workspace(s) excluded by design`
+        : "");
     host.textContent = "";
     for (const t of reg.types) host.appendChild(workflowCard(t));
   } catch (e) {
@@ -101,7 +109,13 @@ async function loadDashboards() {
       link.rel = "noreferrer";
       card.appendChild(link);
       card.appendChild(el("div", "ms-produces", x.purpose));
-      card.appendChild(el("div", x.present ? "ms-meta" : "ms-missing", x.present ? x.file : `${x.file} — not found`));
+      card.appendChild(
+        el(
+          "div",
+          x.present ? "ms-meta" : "ms-missing",
+          x.present ? x.file : `${x.file} — not found`
+        )
+      );
       host.appendChild(card);
     }
   } catch (e) {
@@ -150,7 +164,7 @@ async function runAgent() {
     const res = await fetch("/api/agent/run", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ task, role: $("ms-role").value, steps: 12 }),
+      body: JSON.stringify({ task, role: $("ms-role").value, steps: 12 })
     });
     if (!res.ok || !res.body) {
       const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
@@ -187,7 +201,9 @@ async function runAgent() {
 }
 
 $("ms-run").addEventListener("click", runAgent);
-$("ms-task").addEventListener("keydown", (e) => { if (e.key === "Enter") runAgent(); });
+$("ms-task").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") runAgent();
+});
 
 loadWorkflows();
 loadDashboards();

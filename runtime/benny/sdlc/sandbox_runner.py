@@ -251,7 +251,9 @@ def rank_subjects(
     Returns ``{"ranked": [...], "excluded": [(model, why), ...], "primary_metric": str}``.
     """
     if primary_metric not in METRIC_FIELDS:
-        raise ValueError(f"unknown primary_metric {primary_metric!r}; expected one of {METRIC_FIELDS}")
+        raise ValueError(
+            f"unknown primary_metric {primary_metric!r}; expected one of {METRIC_FIELDS}"
+        )
 
     ranked: List[SandboxResult] = []
     excluded: List[tuple] = []
@@ -263,7 +265,12 @@ def rank_subjects(
         else:
             ranked.append(r)
 
-    ranked.sort(key=lambda r: (-getattr(r, primary_metric) if higher_is_better else getattr(r, primary_metric), r.model))
+    ranked.sort(
+        key=lambda r: (
+            -getattr(r, primary_metric) if higher_is_better else getattr(r, primary_metric),
+            r.model,
+        )
+    )
     return {"ranked": ranked, "excluded": excluded, "primary_metric": primary_metric}
 
 

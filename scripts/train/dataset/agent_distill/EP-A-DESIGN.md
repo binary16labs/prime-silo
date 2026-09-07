@@ -26,14 +26,14 @@ allowlist + system prompt over ONE set of weights, not separate models. Follows 
 Source = the memo-ray entity store (`~/.mem0ray/data`, read via `scripts/longview/lib/store.mjs`
 `readTimeline`). 302 sessions indexed. Each session is a tree of typed nodes:
 
-| node type     | role in a training pair                                     |
-| ------------- | ---------------------------------------------------------- |
-| `User Input`  | task / turn context                                        |
-| `Thought`     | assistant reasoning (context; a reasoning target later)    |
-| `Message`     | assistant prose (context)                                  |
-| `Tool Call`   | **the action to learn** — content is `{"name","input"}`    |
-| `Tool Result` | tool output (context for the next action)                  |
-| `Artifact`    | produced file (context / coding target)                    |
+| node type     | role in a training pair                                 |
+| ------------- | ------------------------------------------------------- |
+| `User Input`  | task / turn context                                     |
+| `Thought`     | assistant reasoning (context; a reasoning target later) |
+| `Message`     | assistant prose (context)                               |
+| `Tool Call`   | **the action to learn** — content is `{"name","input"}` |
+| `Tool Result` | tool output (context for the next action)               |
+| `Artifact`    | produced file (context / coding target)                 |
 
 **Tool-use pair:** `(rendered context up to a Tool Call) → (that Tool Call's JSON)`. Stream `T`.
 **Coding pair (phase 2):** `(task + repo context) → (Edit/Write diff that passed a gate)`. Stream `C`.
@@ -60,7 +60,7 @@ Rows git-ignored. Never weaken `personal_terms.json` to make a build pass. See
 ## Build order
 
 1. **Trajectory harvester** (`build_agent_traces.mjs`) — clone stage: emit stream-`T` tool-use pairs
-   + held-out split + privacy gate. ✅ DONE (commit c2a7c3c). Preserves both dialects verbatim.
+   - held-out split + privacy gate. ✅ DONE (commit c2a7c3c). Preserves both dialects verbatim.
 2. **Tool-surface schema = UNION of both dialects** (JSON tool defs the model emits against; Claude
    Code + Antigravity tools side by side, NO collapse) + `format.py` stream `T`.
 3. Outcome tagging + **teacher-polish** of weak trajectories.

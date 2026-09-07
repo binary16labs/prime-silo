@@ -11,38 +11,9 @@
 
 - L16 — version the observability surface (out of scratch/) _(UNBLOCKED 2026-08-03 — contract amended per owner option (b): budget counts authored lines only, verbatim relocation exempt and gate-checked for byte-identity. Returned to READY unclaimed rather than held, to respect WIP limit 1 while W2 is worked.)_
 
-
 ## CLAIMED (agent · date)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 ## VERIFY (awaiting non-author verification)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 _(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)_
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 _(budget amended 300→1100 by owner directive — flagship scope, see LOG)_
@@ -108,19 +79,11 @@
 
 ## BLOCKED (id · reason · date)
 
-
-
-
 - W4 — TWO STRIKES on the parser design · claude-opus · 2026-08-04 _(fourth verification, second FAIL of THIS design, so the two-strikes rule applies again and I do not get a third attempt at it. All twelve prior kills are now caught and scenario 4 is solid — but the verifier got a loading module reading process.env and process.pid above the marker with GATE GREEN, by TWO unrelated routes. (A) `Object.getOwnPropertyDescriptor(proto, "constructor").value` and `Reflect.get(proto, "constructor")` reach the Function constructor without the member name ever appearing — because BANNED_GLOBALS is a DENY-list over an open global namespace, so `Object` and `Reflect` are unnamed and therefore trusted. (B) The region boundary is per-node-START, so a construct that begins above the marker has all its below-marker children skipped. ★ TWO OF MY MUTATIONS WERE VACUOUS: dropping `markerFound` from the verdict changes nothing, which falsifies the docstring line claiming every clause is load-bearing. ★ OWNER'S CALL: (a) close the class — ALLOW-list the globals and clip the region by node END as well as start; or (b) narrow the claim to what the walk proves and stop printing "marker claim true". ★ MY RECOMMENDATION: neither, yet. W4 is NOT on the training path and has now consumed four verification rounds. Park it and spend the capacity on P4/P5.)_
-
-
-
-
 
 _(empty)_
 
 ## AUTHORED (contracts in tasks/, waiting on deps — W0 conversion 2026-07-07)
-
 
 A1 A2 A3 A4 A5 A6 A7 ·
 B3 ·

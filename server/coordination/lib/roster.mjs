@@ -61,7 +61,8 @@ export function validateRoster(roster, opts = {}) {
     if (!m?.id) push(`model '${m?.label}' has no id`);
     const tier = Array.isArray(m?.tier) ? m.tier : [];
     if (tier.length === 0) push(`model '${m?.label}' declares no tier[]`);
-    for (const t of tier) if (!PERSONAS.includes(t)) push(`model '${m.label}' has unknown tier '${t}'`);
+    for (const t of tier)
+      if (!PERSONAS.includes(t)) push(`model '${m.label}' has unknown tier '${t}'`);
   }
 
   // R8 — a model may not judge a run it is competing in. Checked on id, not label, because the same
@@ -84,8 +85,7 @@ export function validateRoster(roster, opts = {}) {
       // R5 — a model is only eligible for the personas its tier[] declares. The wildcard must
       // satisfy every persona it will actually be expanded to, or it is a hole in the rule.
       const tier = byLabel.get(label).tier ?? [];
-      const targets =
-        persona === WILDCARD ? PERSONAS.filter((p) => p !== "judge") : [persona];
+      const targets = persona === WILDCARD ? PERSONAS.filter((p) => p !== "judge") : [persona];
       for (const t of targets)
         if (!tier.includes(t))
           push(`subject '${s.label}': model '${label}' is not tiered for '${t}'`);
@@ -97,7 +97,8 @@ export function validateRoster(roster, opts = {}) {
       if (label === null) push(`subject '${s.label}' leaves '${persona}' unassigned`);
   }
 
-  if (roster?.primary_metric == null) push("primary_metric is not declared — ranking would be ad hoc");
+  if (roster?.primary_metric == null)
+    push("primary_metric is not declared — ranking would be ad hoc");
 
   // R10 — the rubric is frozen before the run; a mismatch invalidates the results.
   if (opts.rubricText != null) {

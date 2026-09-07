@@ -18,7 +18,14 @@ import { config } from "./config.mjs";
 //
 // Retries are strictly SEQUENTIAL with a backoff — never overlap requests on this host,
 // one concurrent call is what wedges RDNA4/ROCm.
-const RETRYABLE_CODES = new Set(["ECONNRESET", "ECONNREFUSED", "EPIPE", "ENOTFOUND", "EHOSTUNREACH", "ENETUNREACH"]);
+const RETRYABLE_CODES = new Set([
+  "ECONNRESET",
+  "ECONNREFUSED",
+  "EPIPE",
+  "ENOTFOUND",
+  "EHOSTUNREACH",
+  "ENETUNREACH"
+]);
 
 /** STATUS BEATS TEXT — always. An HTTP response means the request REACHED the server, so
  *  the status code alone decides; the body must never be consulted. Learned from this
@@ -33,7 +40,9 @@ function isRetryable(err) {
     return err.httpStatus === 429 || (err.httpStatus >= 500 && err.httpStatus < 600);
   const code = err?.cause?.code || err?.code;
   if (code && RETRYABLE_CODES.has(code)) return true;
-  return /fetch failed|socket hang up|network|ECONNRESET|terminated/i.test(String(err?.message || ""));
+  return /fetch failed|socket hang up|network|ECONNRESET|terminated/i.test(
+    String(err?.message || "")
+  );
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -48,7 +57,9 @@ export async function chat(opts) {
       if (!isRetryable(e) || i === attempts - 1) throw e;
       lastErr = e;
       const backoff = 2000 * 2 ** i; // 2s, 4s, 8s — sequential, never concurrent
-      console.log(`[llm] transient (${e.message.slice(0, 80)}) — retry ${i + 1}/${attempts - 1} in ${backoff / 1000}s`);
+      console.log(
+        `[llm] transient (${e.message.slice(0, 80)}) — retry ${i + 1}/${attempts - 1} in ${backoff / 1000}s`
+      );
       await sleep(backoff);
     }
   }

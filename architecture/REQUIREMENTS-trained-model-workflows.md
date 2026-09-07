@@ -45,18 +45,18 @@ training pipeline is built and verified; the evaluation surface is where the gap
 
 Verified present in the repository at the time of writing:
 
-| Capability | Where |
-|---|---|
-| Tree-Sitter AST code graph, dual-graph + `CORRELATES_WITH` overlay | `runtime/benny/graph/code_analyzer.py` (470 ln), `runtime/benny/api/graph_routes.py`, `architecture/run_raw_ast_extraction.py` |
-| Six-wave SDLC state machine (Vision→Business→InfoSys→Technology→Implement→Review) | `runtime/manifests/templates/sdlc_pipeline_v2.json` |
-| HMAC checkpoints, atomic write, pause/resume, time+iteration budgets | `runtime/benny/sdlc/checkpoint.py` (261 ln) |
-| Gherkin BDD gate | `runtime/benny/sdlc/bdd.py` (190 ln) |
-| Per-persona model resolution (task → persona map → config → registry default) | `runtime/benny/sdlc/model_resolver.py` |
-| Multi-model planner bench (rubric-scored, judge-capable) | `runtime/manifests/templates/model_comparison_planner.json` + `benny pypes model-bench` |
-| Multi-model SDLC sandbox API + 8 agentic metrics | `runtime/benny/sdlc/sandbox_runner.py` (AOS-F29/F30) |
-| House QLoRA + DPO trainer, frozen rubric, gates `t0`–`t5` | `scripts/train/{qlora,dpo,eval}/`, `scripts/gates/t*.py` |
-| Work-contract format incl. `sandbox: worktree` | `architecture/SPEC-work-contracts.md:22`, 87 task files |
-| OpenLineage DAG + execution register + hash-chained HMAC ledger | dashboard `:8788/lineage.html`, `runtime/benny/governance/` |
+| Capability                                                                        | Where                                                                                                                          |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Tree-Sitter AST code graph, dual-graph + `CORRELATES_WITH` overlay                | `runtime/benny/graph/code_analyzer.py` (470 ln), `runtime/benny/api/graph_routes.py`, `architecture/run_raw_ast_extraction.py` |
+| Six-wave SDLC state machine (Vision→Business→InfoSys→Technology→Implement→Review) | `runtime/manifests/templates/sdlc_pipeline_v2.json`                                                                            |
+| HMAC checkpoints, atomic write, pause/resume, time+iteration budgets              | `runtime/benny/sdlc/checkpoint.py` (261 ln)                                                                                    |
+| Gherkin BDD gate                                                                  | `runtime/benny/sdlc/bdd.py` (190 ln)                                                                                           |
+| Per-persona model resolution (task → persona map → config → registry default)     | `runtime/benny/sdlc/model_resolver.py`                                                                                         |
+| Multi-model planner bench (rubric-scored, judge-capable)                          | `runtime/manifests/templates/model_comparison_planner.json` + `benny pypes model-bench`                                        |
+| Multi-model SDLC sandbox API + 8 agentic metrics                                  | `runtime/benny/sdlc/sandbox_runner.py` (AOS-F29/F30)                                                                           |
+| House QLoRA + DPO trainer, frozen rubric, gates `t0`–`t5`                         | `scripts/train/{qlora,dpo,eval}/`, `scripts/gates/t*.py`                                                                       |
+| Work-contract format incl. `sandbox: worktree`                                    | `architecture/SPEC-work-contracts.md:22`, 87 task files                                                                        |
+| OpenLineage DAG + execution register + hash-chained HMAC ledger                   | dashboard `:8788/lineage.html`, `runtime/benny/governance/`                                                                    |
 
 **Hardware reality (a hard constraint, not a footnote):** one Razer Core X eGPU (RX 9060 XT 16 GB,
 RDNA4/gfx1200) on the T480, **single-tenant** — a concurrent request wedges ROCm. Serving is LM
@@ -87,7 +87,7 @@ contracts that declare `sandbox: worktree`, so the cost is shared, not carried b
 There are three ways to compare models today and no two of them produce comparable numbers.
 
 - **Path A — `pypes model-bench`.** `model_comparison_planner.json` (`kind:
-  pypes_model_comparison`, `task: "plan"`) runs a real four-model roster — `qwen3-tk-4b`,
+pypes_model_comparison`, `task: "plan"`) runs a real four-model roster — `qwen3-tk-4b`,
   `lemonade/Gemma-4-E4B-it-GGUF`, `DeepSeek-Qwen3-8B`, `qwen3.5-9b` — against a rubric of
   `rubric_required_ops` / `min_steps` / `min_gold_steps`, with an optional
   `Gemma-4-26B-A4B` judge (currently `enabled: false`). This works, and it already contains
@@ -205,7 +205,7 @@ hashes. A single "Gemma house model" result covering both SHALL be rejected.
 **R17.1 — sequencing (owner decision, 2026-08-03).** The harness (EP-M) lands **before** any Gemma
 training run, and the first trained subject SHALL be **E4B alone**. 12B is deferred until E4B has a
 measured result on the EP-M instrument. Rationale: E4B is the cheap probe of the one question that
-governs the 12B spend — *does a Gemma base beat Qwen2.5-Coder-7B on the house corpus?* — at roughly
+governs the 12B spend — _does a Gemma base beat Qwen2.5-Coder-7B on the house corpus?_ — at roughly
 100 min train + 1 h eval, and without the 16 GB checkpointing constraints that killed two T5 runs.
 A negative E4B result cancels the 12B run; a positive one justifies it with evidence. Committing GPU
 time to both bases before the harness can compare them would produce two numbers that cannot be
@@ -254,13 +254,13 @@ Not "the code exists" — a measured number, per the house instrument:
 **Epic `EP-M` — Model plurality: evaluate, benchmark, promote.**
 Objective O1 · Milestone TBD by owner · KR assignment TBD by owner.
 
-| Task | Contract |
-|---|---|
-| `M0` | Roster schema + validator; rubric-hash freeze; self-judge rejection (R4–R8, R10). Red-first gate `scripts/gates/m0.mjs`. |
+| Task | Contract                                                                                                                      |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `M0` | Roster schema + validator; rubric-hash freeze; self-judge rejection (R4–R8, R10). Red-first gate `scripts/gates/m0.mjs`.      |
 | `M1` | Real executor hook for `run_multi_model`; all eight metrics observed; `unmeasured` distinct from `0.0` (R1–R3). Gate `m1.py`. |
-| `M2` | Unify Path A rubric into the Path B report so authoring and navigation land on one scale (R1). Gate `m2.mjs`. |
-| `M3` | Ledger + lineage emission, serialisation, wedge detection by liveness evidence (R9, R12). Gate `m3.mjs`. |
-| `M4` | Two-model live bench (incumbent vs one candidate), non-author verified (§7). Gate `m4.py`. |
+| `M2` | Unify Path A rubric into the Path B report so authoring and navigation land on one scale (R1). Gate `m2.mjs`.                 |
+| `M3` | Ledger + lineage emission, serialisation, wedge detection by liveness evidence (R9, R12). Gate `m3.mjs`.                      |
+| `M4` | Two-model live bench (incumbent vs one candidate), non-author verified (§7). Gate `m4.py`.                                    |
 
 | `M5` | First new base: **E4B alone**, trained on the existing proven SFT method, gated on the full R16 sequence and measured on the M1–M4 instrument (R17, R17.1). Gate `m5.py`. |
 
@@ -270,7 +270,7 @@ per `SPEC-work-contracts.md:22`; under W2 that becomes machine-enforced (changed
 diff ≤ budget, declared tools preflighted) rather than honoured by discipline. W2 itself is unblocked
 now that `w0` is green — its own dependency is `W1`.
 
-**M5 is not blocked by R15.** R15 gates replacing the *second-stage algorithm* (DPO → GRPO). Training
+**M5 is not blocked by R15.** R15 gates replacing the _second-stage algorithm_ (DPO → GRPO). Training
 a new base with the existing, proven SFT method is not that substitution, so E4B may proceed on
 evidence from M4 without a data-depth control arm. **GRPO remains blocked** by R15 regardless of
 which base is in use, and no GRPO task is proposed here.
@@ -281,16 +281,16 @@ which base is in use, and no GRPO task is proposed here.
 
 Kept on the record so the reasoning is auditable.
 
-| Draft claim | Correction |
-|---|---|
-| A two-stage SFT→**GRPO** pipeline is deployed. | No GRPO code exists anywhere in the estate. The built and verified pipeline is SFT→**DPO** (`scripts/train/dpo/`). GRPO is a proposal, and R15 gates it. |
-| GRPO breaks the SFT "imitation ceiling." | Untested here, and the estate's own measurement points the other way: DPO gained +0.3% while data depth gained ≈4×. Presented as established fact, this would not survive verification. |
-| A **Codebase-Memory MCP** provides SQLite-WAL storage, 66–158 languages, 99% token reduction, and a 6-strategy call-graph cascade at 0.95/0.55 confidence. | Not this system. Benny's MCP server exposes four tools — `plan_workflow`, `run_workflow`, `stream_events`, `get_run` — and no graph-navigation tools. The code graph is **Neo4j**, not in-memory SQLite. Those figures belong to a third-party product and must not be cited as prime-silo's. |
-| Every agentic task **is** provisioned with an isolated Git worktree. | Specified (`SPEC-work-contracts.md:22`, `.worktrees/<id>`, branch `feat/<id>`) and declared in 87 contracts, but **not implemented** — provisioning is `W2` under `EP-W`, unbuilt. |
-| Mutation testing probes agent-generated tests. | No mutation-testing tool is present in `runtime/`. |
-| Diff-analysis against allowlists is an active gate. | Two corrections. (a) The gate's own status: `w0` was RED for a **validator parser defect**, now fixed — see the board note above. The widely-repeated claim that "contracts A0–C4 have empty allowlists and reference gates that do not exist" is **false**; those contracts are well-formed and each lists its own gate in its allowlist, exactly as `SPEC-work-contracts.md:23` permits. This document previously repeated that claim from a stale note and was wrong to. (b) Enforcement: even with `w0` green, allowlists are validated at authoring time but not enforced against a working tree — that is `W2`, unbuilt. |
-| 26,457 `CodeEntity` nodes / 13,938 `Concept` nodes. | **Unverified** — Neo4j rejected authentication from the authoring session. A nearby recorded figure is 26,652 `CORRELATES_WITH` edges, which is a different quantity; do not merge them. Re-measure before this number reaches a board. |
-| PRA SS1/23: P2 and P3 MET, P1/P4/P5 PARTIAL. | Directionally consistent with the v7 SAD (17/26 controls MET) and retained. P4 remains PARTIAL for the stated reason — author≠verifier is enforced by convention on the board, not organisationally. |
+| Draft claim                                                                                                                                                | Correction                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| A two-stage SFT→**GRPO** pipeline is deployed.                                                                                                             | No GRPO code exists anywhere in the estate. The built and verified pipeline is SFT→**DPO** (`scripts/train/dpo/`). GRPO is a proposal, and R15 gates it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| GRPO breaks the SFT "imitation ceiling."                                                                                                                   | Untested here, and the estate's own measurement points the other way: DPO gained +0.3% while data depth gained ≈4×. Presented as established fact, this would not survive verification.                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| A **Codebase-Memory MCP** provides SQLite-WAL storage, 66–158 languages, 99% token reduction, and a 6-strategy call-graph cascade at 0.95/0.55 confidence. | Not this system. Benny's MCP server exposes four tools — `plan_workflow`, `run_workflow`, `stream_events`, `get_run` — and no graph-navigation tools. The code graph is **Neo4j**, not in-memory SQLite. Those figures belong to a third-party product and must not be cited as prime-silo's.                                                                                                                                                                                                                                                                                                                                  |
+| Every agentic task **is** provisioned with an isolated Git worktree.                                                                                       | Specified (`SPEC-work-contracts.md:22`, `.worktrees/<id>`, branch `feat/<id>`) and declared in 87 contracts, but **not implemented** — provisioning is `W2` under `EP-W`, unbuilt.                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Mutation testing probes agent-generated tests.                                                                                                             | No mutation-testing tool is present in `runtime/`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Diff-analysis against allowlists is an active gate.                                                                                                        | Two corrections. (a) The gate's own status: `w0` was RED for a **validator parser defect**, now fixed — see the board note above. The widely-repeated claim that "contracts A0–C4 have empty allowlists and reference gates that do not exist" is **false**; those contracts are well-formed and each lists its own gate in its allowlist, exactly as `SPEC-work-contracts.md:23` permits. This document previously repeated that claim from a stale note and was wrong to. (b) Enforcement: even with `w0` green, allowlists are validated at authoring time but not enforced against a working tree — that is `W2`, unbuilt. |
+| 26,457 `CodeEntity` nodes / 13,938 `Concept` nodes.                                                                                                        | **Unverified** — Neo4j rejected authentication from the authoring session. A nearby recorded figure is 26,652 `CORRELATES_WITH` edges, which is a different quantity; do not merge them. Re-measure before this number reaches a board.                                                                                                                                                                                                                                                                                                                                                                                        |
+| PRA SS1/23: P2 and P3 MET, P1/P4/P5 PARTIAL.                                                                                                               | Directionally consistent with the v7 SAD (17/26 controls MET) and retained. P4 remains PARTIAL for the stated reason — author≠verifier is enforced by convention on the board, not organisationally.                                                                                                                                                                                                                                                                                                                                                                                                                           |
 
 ---
 

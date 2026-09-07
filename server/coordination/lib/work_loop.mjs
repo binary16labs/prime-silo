@@ -79,7 +79,14 @@ export function gather(ctx, repoRoot, { now = Date.now() } = {}) {
   const { events } = readEvents(ctx.coordDir);
   const ledger = Object.fromEntries(foldState(events));
   const { board, priority } = readBoard(repoRoot);
-  return { contracts: loadContracts(repoRoot), ledger, board, priority, leases: readLeases(ctx.coordDir), now };
+  return {
+    contracts: loadContracts(repoRoot),
+    ledger,
+    board,
+    priority,
+    leases: readLeases(ctx.coordDir),
+    now
+  };
 }
 
 /**
@@ -99,9 +106,10 @@ export async function workNext(ctx, agent, repoRoot, opts = {}) {
     // W2 — provision the declared sandbox and preflight declared tools. A missing tool is an honest
     // `blocked` BEFORE work starts; the lease is released so the item does not sit stranded.
     const contract = state.contracts.find((c) => c.id === id);
-    const provisioned = opts.provision === false
-      ? { ok: true, skipped: true }
-      : await provisionSandbox(id, contract, { repoRoot, ...(opts.sandboxOpts ?? {}) });
+    const provisioned =
+      opts.provision === false
+        ? { ok: true, skipped: true }
+        : await provisionSandbox(id, contract, { repoRoot, ...(opts.sandboxOpts ?? {}) });
     if (!provisioned.ok) {
       coord.releaseLease(ctx.coordDir, id, agent);
       return { ...sel, item: null, claimed: false, blocked: id, ...provisioned };
@@ -138,7 +146,10 @@ export async function workBlocked(ctx, taskId, agent, reason) {
 
 /** Parse `git diff --numstat <base>...HEAD` into the shape checkBudget/checkAllowlist expect. */
 export function readDiff(repoRoot, base = "main", run = spawnSync) {
-  const r = run("git", ["diff", "--numstat", `${base}...HEAD`], { cwd: repoRoot, encoding: "utf8" });
+  const r = run("git", ["diff", "--numstat", `${base}...HEAD`], {
+    cwd: repoRoot,
+    encoding: "utf8"
+  });
   if (r.status !== 0) return { ok: false, reason: "diff-failed", numstat: [], files: [] };
   const numstat = (r.stdout || "")
     .split(/\r?\n/)

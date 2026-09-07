@@ -43,8 +43,7 @@ class SQLiteCheckpointer(BaseCheckpointSaver):
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
 
         with self._get_connection() as conn:
-            conn.execute(
-                """
+            conn.execute("""
                 CREATE TABLE IF NOT EXISTS checkpoints (
                     thread_id TEXT NOT NULL,
                     checkpoint_id TEXT NOT NULL,
@@ -54,18 +53,14 @@ class SQLiteCheckpointer(BaseCheckpointSaver):
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     PRIMARY KEY (thread_id, checkpoint_id)
                 )
-            """
-            )
+            """)
 
-            conn.execute(
-                """
+            conn.execute("""
                 CREATE INDEX IF NOT EXISTS idx_checkpoints_thread 
                 ON checkpoints(thread_id, created_at DESC)
-            """
-            )
+            """)
 
-            conn.execute(
-                """
+            conn.execute("""
                 CREATE TABLE IF NOT EXISTS writes (
                     thread_id TEXT NOT NULL,
                     checkpoint_id TEXT NOT NULL,
@@ -74,8 +69,7 @@ class SQLiteCheckpointer(BaseCheckpointSaver):
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     PRIMARY KEY (thread_id, checkpoint_id, channel)
                 )
-            """
-            )
+            """)
             conn.commit()
 
     @contextmanager
@@ -247,8 +241,7 @@ class PostgresCheckpointer(BaseCheckpointSaver):
         """Create tables if they don't exist"""
         with self._get_pool().connection() as conn:
             with conn.cursor() as cur:
-                cur.execute(
-                    """
+                cur.execute("""
                     CREATE TABLE IF NOT EXISTS benny_checkpoints (
                         thread_id TEXT NOT NULL,
                         checkpoint_id TEXT NOT NULL,
@@ -258,18 +251,14 @@ class PostgresCheckpointer(BaseCheckpointSaver):
                         created_at TIMESTAMPTZ DEFAULT NOW(),
                         PRIMARY KEY (thread_id, checkpoint_id)
                     )
-                """
-                )
+                """)
 
-                cur.execute(
-                    """
+                cur.execute("""
                     CREATE INDEX IF NOT EXISTS idx_benny_checkpoints_thread 
                     ON benny_checkpoints(thread_id, created_at DESC)
-                """
-                )
+                """)
 
-                cur.execute(
-                    """
+                cur.execute("""
                     CREATE TABLE IF NOT EXISTS benny_writes (
                         thread_id TEXT NOT NULL,
                         checkpoint_id TEXT NOT NULL,
@@ -278,8 +267,7 @@ class PostgresCheckpointer(BaseCheckpointSaver):
                         created_at TIMESTAMPTZ DEFAULT NOW(),
                         PRIMARY KEY (thread_id, checkpoint_id, channel)
                     )
-                """
-                )
+                """)
             conn.commit()
 
     def get_tuple(self, config: Dict[str, Any]) -> Optional[tuple]:

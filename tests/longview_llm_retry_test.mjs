@@ -27,7 +27,12 @@ const srv = http.createServer((req, res) => {
     res.end("overloaded");
   } else {
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ choices: [{ message: { content: "OK" } }], usage: { prompt_tokens: 1, completion_tokens: 1 } }));
+    res.end(
+      JSON.stringify({
+        choices: [{ message: { content: "OK" } }],
+        usage: { prompt_tokens: 1, completion_tokens: 1 }
+      })
+    );
   }
 });
 
@@ -40,7 +45,13 @@ process.env.LONGVIEW_LLM_RETRIES = "3";
 process.env.LONGVIEW_LLM_TIMEOUT_MS = "5000";
 const { chat } = await import("../scripts/longview/lib/llm.mjs");
 
-const call = async () => { try { return await chat({ user: "hi", maxTokens: 10 }); } catch (e) { return e; } };
+const call = async () => {
+  try {
+    return await chat({ user: "hi", maxTokens: 10 });
+  } catch (e) {
+    return e;
+  }
+};
 
 test("the engine wedge (400) is never retried", async () => {
   mode = "wedge";

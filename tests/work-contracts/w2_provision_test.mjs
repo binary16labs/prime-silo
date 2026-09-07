@@ -46,10 +46,14 @@ test("Scenario: missing tools block before work starts", async () => {
   assert.deepEqual(r.missing, ["definitely-not-installed"]);
 
   // and provisioning refuses outright rather than creating a sandbox it cannot use
-  const p = await provisionSandbox("X1", { sandbox: "worktree", tools: ["ghost"] }, {
-    probe: () => false,
-    run: () => assert.fail("git must not be touched when a declared tool is missing")
-  });
+  const p = await provisionSandbox(
+    "X1",
+    { sandbox: "worktree", tools: ["ghost"] },
+    {
+      probe: () => false,
+      run: () => assert.fail("git must not be touched when a declared tool is missing")
+    }
+  );
   assert.equal(p.ok, false);
   assert.equal(p.reason, "tool-unavailable");
   assert.match(p.reason + p.missing.join(), /ghost|tool-unavailable/);
@@ -81,15 +85,19 @@ test("tests and lockfiles are excluded from the budget", () => {
 // --- provisioning ----------------------------------------------------------
 test("worktree provisioning issues the declared git command and reports path + branch", async () => {
   const calls = [];
-  const r = await provisionSandbox("W9", { sandbox: "worktree", tools: [] }, {
-    repoRoot: "/repo",
-    worktreeRoot: "/wt",
-    probe: () => true,
-    run: (args, cwd) => {
-      calls.push({ args, cwd });
-      return { status: 0, stderr: "" };
+  const r = await provisionSandbox(
+    "W9",
+    { sandbox: "worktree", tools: [] },
+    {
+      repoRoot: "/repo",
+      worktreeRoot: "/wt",
+      probe: () => true,
+      run: (args, cwd) => {
+        calls.push({ args, cwd });
+        return { status: 0, stderr: "" };
+      }
     }
-  });
+  );
   assert.equal(r.ok, true);
   assert.equal(r.branch, "task/W9");
   assert.deepEqual(calls[0].args.slice(0, 2), ["worktree", "add"]);
@@ -97,33 +105,45 @@ test("worktree provisioning issues the declared git command and reports path + b
 });
 
 test("the spec's .worktrees/feat layout is reachable without being hard-coded", async () => {
-  const r = await provisionSandbox("W9", { sandbox: "worktree", tools: [] }, {
-    repoRoot: "/repo",
-    worktreeRoot: "/repo/.worktrees",
-    branchPrefix: "feat/",
-    probe: () => true,
-    run: () => ({ status: 0, stderr: "" })
-  });
+  const r = await provisionSandbox(
+    "W9",
+    { sandbox: "worktree", tools: [] },
+    {
+      repoRoot: "/repo",
+      worktreeRoot: "/repo/.worktrees",
+      branchPrefix: "feat/",
+      probe: () => true,
+      run: () => ({ status: 0, stderr: "" })
+    }
+  );
   assert.equal(r.branch, "feat/W9");
 });
 
 test("in-place provisions nothing, by design", async () => {
-  const r = await provisionSandbox("W9", { sandbox: "in-place", tools: [] }, {
-    repoRoot: "/repo",
-    probe: () => true,
-    run: () => assert.fail("in-place must not create a worktree")
-  });
+  const r = await provisionSandbox(
+    "W9",
+    { sandbox: "in-place", tools: [] },
+    {
+      repoRoot: "/repo",
+      probe: () => true,
+      run: () => assert.fail("in-place must not create a worktree")
+    }
+  );
   assert.equal(r.ok, true);
   assert.equal(r.branch, null);
 });
 
 test("a failed worktree add is reported honestly, not swallowed", async () => {
-  const r = await provisionSandbox("W9", { sandbox: "worktree", tools: [] }, {
-    repoRoot: "/repo",
-    worktreeRoot: "/wt",
-    probe: () => true,
-    run: () => ({ status: 128, stderr: "fatal: branch already exists" })
-  });
+  const r = await provisionSandbox(
+    "W9",
+    { sandbox: "worktree", tools: [] },
+    {
+      repoRoot: "/repo",
+      worktreeRoot: "/wt",
+      probe: () => true,
+      run: () => ({ status: 128, stderr: "fatal: branch already exists" })
+    }
+  );
   assert.equal(r.ok, false);
   assert.equal(r.reason, "worktree-failed");
   assert.match(r.detail, /already exists/);
@@ -145,7 +165,10 @@ test("workNext provisions the sandbox on a successful claim", async () => {
     path.join(repoRoot, "delivery", "tasks", "Z0.md"),
     "---\nid: Z0\ndeps: []\nauthority: agent-ok\ntools: [node]\nsandbox: worktree\nverify: node scripts/gates/z0.mjs\nbudget: 100\n---\n"
   );
-  fs.writeFileSync(path.join(repoRoot, "delivery", "board", "BOARD.md"), "## READY\n\n- Z0 — z\n\n## DONE\n");
+  fs.writeFileSync(
+    path.join(repoRoot, "delivery", "board", "BOARD.md"),
+    "## READY\n\n- Z0 — z\n\n## DONE\n"
+  );
   const coordDir = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "w2-c-")), "coordination");
   initCoordination(coordDir);
   const ctx = await coord.connect({ coordDir, baseUrl: "http://127.0.0.1:1" });
@@ -164,7 +187,11 @@ test("workNext provisions the sandbox on a successful claim", async () => {
   assert.equal(r.item, "Z0");
   assert.equal(r.sandbox.ok, true);
   assert.equal(r.sandbox.branch, "task/Z0");
-  assert.deepEqual(calls[0].slice(0, 2), ["worktree", "add"], "a claim must provision, not just lease");
+  assert.deepEqual(
+    calls[0].slice(0, 2),
+    ["worktree", "add"],
+    "a claim must provision, not just lease"
+  );
 });
 
 test("a missing declared tool blocks the claim AND releases the lease", async () => {
@@ -182,7 +209,10 @@ test("a missing declared tool blocks the claim AND releases the lease", async ()
     path.join(repoRoot, "delivery", "tasks", "Z1.md"),
     "---\nid: Z1\ndeps: []\nauthority: agent-ok\ntools: [ghosttool]\nsandbox: worktree\nverify: node x.mjs\nbudget: 100\n---\n"
   );
-  fs.writeFileSync(path.join(repoRoot, "delivery", "board", "BOARD.md"), "## READY\n\n- Z1 — z\n\n## DONE\n");
+  fs.writeFileSync(
+    path.join(repoRoot, "delivery", "board", "BOARD.md"),
+    "## READY\n\n- Z1 — z\n\n## DONE\n"
+  );
   const coordDir = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "w2-c2-")), "coordination");
   initCoordination(coordDir);
   const ctx = await coord.connect({ coordDir, baseUrl: "http://127.0.0.1:1" });

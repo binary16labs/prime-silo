@@ -29,7 +29,10 @@ const git = (...args) => spawnSync("git", args, { cwd: ROOT, encoding: "utf8" })
 const py = (code) =>
   spawnSync(process.env.PYTHON ?? "python", ["-c", code], { cwd: RUNTIME, encoding: "utf8" });
 
-for (const rel of ["runtime/benny/sdlc/bench_record.py", "runtime/tests/sdlc/test_bench_record.py"]) {
+for (const rel of [
+  "runtime/benny/sdlc/bench_record.py",
+  "runtime/tests/sdlc/test_bench_record.py"
+]) {
   if (!fs.existsSync(path.join(ROOT, rel))) fail(`required artifact missing: ${rel}`);
 }
 
@@ -111,11 +114,16 @@ const r = JSON.parse(probe.stdout.trim().split(/\r?\n/).pop());
 
 if (!r.ok) fail(`a freshly built record does not validate: ${r.errors.join("; ")}`);
 if (!r.missing_block_refused) fail("validate_record accepted a record missing a block");
-if (JSON.stringify(r.ranked_one) !== JSON.stringify(["s"])) fail("rank_records did not rank a valid record");
-if (r.unhashed_ranked) fail("two records declaring NO rubric hash ranked together — R10 satisfied vacuously");
-if (r.survivors.length) fail(`composites accepted by name: ${r.survivors.join(", ")} — the refusal is a denylist again`);
-if (r.scored_on.length !== 2) fail(`scored_on should name both surfaces, got ${JSON.stringify(r.scored_on)}`);
-if (!r.composite_rejected) fail("a record carrying composite_score was ACCEPTED — the refusal is hollow");
+if (JSON.stringify(r.ranked_one) !== JSON.stringify(["s"]))
+  fail("rank_records did not rank a valid record");
+if (r.unhashed_ranked)
+  fail("two records declaring NO rubric hash ranked together — R10 satisfied vacuously");
+if (r.survivors.length)
+  fail(`composites accepted by name: ${r.survivors.join(", ")} — the refusal is a denylist again`);
+if (r.scored_on.length !== 2)
+  fail(`scored_on should name both surfaces, got ${JSON.stringify(r.scored_on)}`);
+if (!r.composite_rejected)
+  fail("a record carrying composite_score was ACCEPTED — the refusal is hollow");
 if (!r.nested_composite_rejected)
   fail("a composite hidden inside a block was ACCEPTED — the check must apply at every depth");
 if (!r.topo_nondict_all_refused)
@@ -142,10 +150,14 @@ for (const constant of ["AUTHORING_KEYS", "NAVIGATION_KEYS", "RECORD_KEYS"])
   if (!src.includes(`${constant} = frozenset`))
     fail(`${constant} is gone — the refusal has reverted to guessing composite names`);
 
-const t = spawnSync(process.env.PYTHON ?? "python", ["-m", "pytest", "tests/sdlc/test_bench_record.py", "-q"], {
-  cwd: RUNTIME,
-  stdio: "inherit"
-});
+const t = spawnSync(
+  process.env.PYTHON ?? "python",
+  ["-m", "pytest", "tests/sdlc/test_bench_record.py", "-q"],
+  {
+    cwd: RUNTIME,
+    stdio: "inherit"
+  }
+);
 if (t.status !== 0) {
   console.log("[p2] GATE FAILED (acceptance tests)");
   process.exit(1);

@@ -31,15 +31,24 @@ function parseArgs(argv) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (!args.task) {
-    console.error('usage: node scripts/agent/cli.mjs "task" [--role analyst|developer] [--exec] [--model id] [--root dir] [--steps N] [--json]');
+    console.error(
+      'usage: node scripts/agent/cli.mjs "task" [--role analyst|developer] [--exec] [--model id] [--root dir] [--steps N] [--json]'
+    );
     process.exit(2);
   }
-  const emit = args.json ? null : (r) => {
-    const arg = JSON.stringify(r.call.input);
-    console.log(`\n  ▸ step ${r.step}: ${r.call.name} ${arg.length > 120 ? arg.slice(0, 120) + "…" : arg}`);
-    console.log("    " + String(r.result).split("\n").slice(0, 8).join("\n    "));
-  };
-  if (!args.json) console.log(`\n■ task: ${args.task}\n■ role: ${args.role}${args.allowExec ? " (exec)" : ""}  model: ${args.model || "gemma-4-e4b-agent"}`);
+  const emit = args.json
+    ? null
+    : (r) => {
+        const arg = JSON.stringify(r.call.input);
+        console.log(
+          `\n  ▸ step ${r.step}: ${r.call.name} ${arg.length > 120 ? arg.slice(0, 120) + "…" : arg}`
+        );
+        console.log("    " + String(r.result).split("\n").slice(0, 8).join("\n    "));
+      };
+  if (!args.json)
+    console.log(
+      `\n■ task: ${args.task}\n■ role: ${args.role}${args.allowExec ? " (exec)" : ""}  model: ${args.model || "gemma-4-e4b-agent"}`
+    );
 
   const out = await runAgent({ ...args, onStep: emit });
 
@@ -47,10 +56,17 @@ async function main() {
     console.log(JSON.stringify(out, null, 2));
   } else {
     console.log(`\n${"─".repeat(50)}`);
-    console.log(out.finished ? `✓ finished in ${out.steps.length} steps` : `⚠ stopped after ${out.steps.length} steps (no finish)`);
+    console.log(
+      out.finished
+        ? `✓ finished in ${out.steps.length} steps`
+        : `⚠ stopped after ${out.steps.length} steps (no finish)`
+    );
     if (out.answer) console.log(`\nanswer: ${out.answer}`);
   }
   process.exit(0);
 }
 
-main().catch((e) => { console.error("agent error:", e.message); process.exit(1); });
+main().catch((e) => {
+  console.error("agent error:", e.message);
+  process.exit(1);
+});

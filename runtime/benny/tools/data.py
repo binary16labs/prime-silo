@@ -58,10 +58,6 @@ async def extract_pdf_text(pdf_path: str, workspace: str = "default") -> str:
         if not text_parts:
             # Try OCR
             import io
-            import sys
-
-            import pytesseract
-            from PIL import Image
 
             # Locate the tesseract binary without hard-coding an absolute path
             # (SR-1). Prefer an explicit override, then whatever is on PATH; if
@@ -70,6 +66,9 @@ async def extract_pdf_text(pdf_path: str, workspace: str = "default") -> str:
             # only worked on one machine's layout anyway.
             import os
             import shutil
+
+            import pytesseract
+            from PIL import Image
 
             tess_cmd = os.environ.get("TESSERACT_CMD") or shutil.which("tesseract")
             if tess_cmd:

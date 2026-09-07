@@ -35,13 +35,17 @@ async function chatPrefill({ baseUrl, model, system, user, maxTokens = 200, time
     messages: [
       { role: "system", content: system },
       { role: "user", content: user },
-      { role: "assistant", content: PREFILL },
+      { role: "assistant", content: PREFILL }
     ],
-    temperature: 0, max_tokens: maxTokens, stream: false,
+    temperature: 0,
+    max_tokens: maxTokens,
+    stream: false
   };
   const res = await fetch(`${baseUrl.replace(/\/+$/, "")}/chat/completions`, {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body), signal: AbortSignal.timeout(timeoutMs),
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(timeoutMs)
   });
   if (!res.ok) throw new Error(`llm ${res.status} @ ${baseUrl}`);
   const data = await res.json();
@@ -54,7 +58,9 @@ function parseCall(text) {
     try {
       const o = typeof cand === "string" ? JSON.parse(cand) : cand;
       if (o && typeof o === "object" && o.name) return o;
-    } catch { /* next */ }
+    } catch {
+      /* next */
+    }
   }
   return null;
 }
@@ -75,9 +81,14 @@ const renderCall = (c) => `[Tool Call ${c.name}] ${JSON.stringify(c.input || {})
  */
 export async function runAgent(opts) {
   const {
-    task, model = "gemma-4-e4b-agent", role = "analyst",
-    root = process.cwd(), allowExec = false, maxSteps = 12,
-    baseUrl = "http://localhost:1234/v1", onStep = null,
+    task,
+    model = "gemma-4-e4b-agent",
+    role = "analyst",
+    root = process.cwd(),
+    allowExec = false,
+    maxSteps = 12,
+    baseUrl = "http://localhost:1234/v1",
+    onStep = null
   } = opts;
   if (!task) throw new Error("runAgent: task required");
 
@@ -88,11 +99,12 @@ export async function runAgent(opts) {
   const rootListing = runTool({ name: "list_dir", input: { path: "." } }, ctx).result;
   const lines = [
     `[User Input] ${task}`,
-    `[Tool Result] working directory ${ctx.root} contains:\n${rootListing}`,
+    `[Tool Result] working directory ${ctx.root} contains:\n${rootListing}`
   ];
   const steps = [];
   const seen = new Map(); // repeat-guard: identical call signature -> count
-  let finished = false, answer = null;
+  let finished = false,
+    answer = null;
 
   for (let step = 1; step <= maxSteps && !finished; step++) {
     let raw;
@@ -103,7 +115,8 @@ export async function runAgent(opts) {
       break;
     }
     const call = parseCall(raw);
-    if (!call) { // couldn't parse — record and stop rather than spin
+    if (!call) {
+      // couldn't parse — record and stop rather than spin
       steps.push({ step, error: "unparseable model output", raw: raw.slice(0, 200) });
       break;
     }
@@ -112,7 +125,11 @@ export async function runAgent(opts) {
     const sig = `${call.name}:${JSON.stringify(call.input || {})}`;
     seen.set(sig, (seen.get(sig) || 0) + 1);
     if (seen.get(sig) > 2) {
-      steps.push({ step, error: "repeat-loop: same call 3x", call: { name: call.name, input: call.input } });
+      steps.push({
+        step,
+        error: "repeat-loop: same call 3x",
+        call: { name: call.name, input: call.input }
+      });
       break;
     }
     const { result, canon, finished: fin } = runTool(call, ctx);
@@ -120,7 +137,10 @@ export async function runAgent(opts) {
     const rec = { step, call: { name: canon || call.name, input: call.input || {} }, result };
     steps.push(rec);
     if (onStep) onStep(rec);
-    if (fin) { finished = true; answer = result.replace(/^__FINISH__\s*/, ""); }
+    if (fin) {
+      finished = true;
+      answer = result.replace(/^__FINISH__\s*/, "");
+    }
   }
 
   return { finished, answer, steps, transcript: lines.join("\n") };

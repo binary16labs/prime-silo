@@ -29,7 +29,7 @@ B0 DONE ─→ B1 DONE ─→ B2 AUTHORED ─→ W1 AUTHORED ─→ W2 AUTHORED 
   ledger. Its dependency B1 is DONE, so **B2 is ready to pick up now**.
 - **W1** — deterministic `work next` selector + delivery loop. Blocked only by B2.
 - **W2** — the sandbox provisioning the owner asked for: `git worktree add .worktrees/<id> -b
-  feat/<id>`, `work verify` enforcing changed-files ⊆ allowlist and diff ≤ budget, and tool preflight
+feat/<id>`, `work verify` enforcing changed-files ⊆ allowlist and diff ≤ budget, and tool preflight
   emitting an honest `blocked`.
 
 **Board hygiene note (observation, not a fix):** the `AUTHORED` column is stale. It is defined as
@@ -41,14 +41,14 @@ unsigned**. Nothing registers until the owner takes it.
 
 ## 3. Decisions taken in this design
 
-| # | Decision | Rationale |
-|---|---|---|
-| D1 | The unit under test is a **subject**, not a model: a named persona→model assignment plus serving topology. | R6 wants heterogeneous rosters (E4B reviewer + 12B implementer) rankable as one unit. Making "one model everywhere" just a degenerate subject removes the special case, and makes the incumbent a subject too. |
-| D2 | `run_multi_model`'s existing `models: List[str]` parameter carries **subject labels**; the hook resolves label → assignment from the roster. | Satisfies R6 with **zero signature change**, honouring R21 (additive) and preserving AOS-NFR9/R23. |
-| D3 | **No composite score.** Results are a metric vector; ranking is by a primary metric declared in the frozen rubric. | A weighted composite invented at design time is an unfrozen rubric wearing a number. The estate's discipline (EP-T) is to freeze the instrument before seeing results. |
-| D4 | `_dry_run_stub` stays, but becomes **explicitly selectable only** (`hook="dry-run"`); `hook=None` raises. | R2. Today `None` silently yields zeros — the defect that left this harness unmeasured. Fail loudly instead. |
-| D5 | Metrics are sourced from the **existing run-event stream** (G0, DONE) and the execution register, not from bespoke instrumentation. | Reuse over rebuild; also the only way R9's ledger requirement is satisfiable by construction. |
-| D6 | Every model call goes through `call_model()`. | `runtime/CLAUDE.md` rule 1 — it is how offline mode, logging and lineage fire. A bench that bypasses it produces unlineaged numbers. |
+| #   | Decision                                                                                                                                     | Rationale                                                                                                                                                                                                      |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | The unit under test is a **subject**, not a model: a named persona→model assignment plus serving topology.                                   | R6 wants heterogeneous rosters (E4B reviewer + 12B implementer) rankable as one unit. Making "one model everywhere" just a degenerate subject removes the special case, and makes the incumbent a subject too. |
+| D2  | `run_multi_model`'s existing `models: List[str]` parameter carries **subject labels**; the hook resolves label → assignment from the roster. | Satisfies R6 with **zero signature change**, honouring R21 (additive) and preserving AOS-NFR9/R23.                                                                                                             |
+| D3  | **No composite score.** Results are a metric vector; ranking is by a primary metric declared in the frozen rubric.                           | A weighted composite invented at design time is an unfrozen rubric wearing a number. The estate's discipline (EP-T) is to freeze the instrument before seeing results.                                         |
+| D4  | `_dry_run_stub` stays, but becomes **explicitly selectable only** (`hook="dry-run"`); `hook=None` raises.                                    | R2. Today `None` silently yields zeros — the defect that left this harness unmeasured. Fail loudly instead.                                                                                                    |
+| D5  | Metrics are sourced from the **existing run-event stream** (G0, DONE) and the execution register, not from bespoke instrumentation.          | Reuse over rebuild; also the only way R9's ledger requirement is satisfiable by construction.                                                                                                                  |
+| D6  | Every model call goes through `call_model()`.                                                                                                | `runtime/CLAUDE.md` rule 1 — it is how offline mode, logging and lineage fire. A bench that bypasses it produces unlineaged numbers.                                                                           |
 
 ## 4. Architecture
 
@@ -80,14 +80,14 @@ Per subject it: resolves the assignment → builds a `ManifestConfig` with `mode
 executes the SDLC manifest through the normal swarm path → collects the run's events → derives the
 eight fields:
 
-| `SandboxResult` field | Source |
-|---|---|
-| `tool_selection_accuracy` | chosen tool vs the rubric's expected op per step (reuses Path A's `rubric_required_ops`) |
-| `tool_efficiency` | `tools_used / rubric_min_steps` |
-| `context_efficiency` | unique / total prompt tokens, from `call_model()` accounting |
-| `iteration_latency_ms_p95`, `loop_count_p95` | run-event stream (G0 spec) |
-| `constraint_adherence` | 1 − (contract-gate rejections / gate evaluations), from the checkpoint path |
-| `total_cost`, `total_tokens` | execution register entry for the run |
+| `SandboxResult` field                        | Source                                                                                   |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `tool_selection_accuracy`                    | chosen tool vs the rubric's expected op per step (reuses Path A's `rubric_required_ops`) |
+| `tool_efficiency`                            | `tools_used / rubric_min_steps`                                                          |
+| `context_efficiency`                         | unique / total prompt tokens, from `call_model()` accounting                             |
+| `iteration_latency_ms_p95`, `loop_count_p95` | run-event stream (G0 spec)                                                               |
+| `constraint_adherence`                       | 1 − (contract-gate rejections / gate evaluations), from the checkpoint path              |
+| `total_cost`, `total_tokens`                 | execution register entry for the run                                                     |
 
 **R3 is a schema change, not a convention.** Each field becomes `float \| None`; `None` renders as
 `unmeasured` in the report and is excluded from ranking. A metric that cannot be derived must be
@@ -122,15 +122,15 @@ result on the frozen rubric, a non-author verifier, and an owner signature.
 
 ### 4.6 Requirement → component map
 
-| Component | Requirements |
-|---|---|
-| `model_roster/1` + validator | R4, R5, R6, R7, R8 |
-| `bench_executor.py` | R1, R2, R3, R6, R13 |
-| `SandboxResult` → optional fields | R3, R22 |
-| Bench record (authoring + navigation blocks) | R1 |
-| Hashing, topology capture, ledger, host lock | R9, R10, R11, R12 |
-| Router candidate path (existing T4) | R13, R14 |
-| EP-T sequence, unchanged | R15, R16, R17, R17.1, R18, R19 |
+| Component                                    | Requirements                   |
+| -------------------------------------------- | ------------------------------ |
+| `model_roster/1` + validator                 | R4, R5, R6, R7, R8             |
+| `bench_executor.py`                          | R1, R2, R3, R6, R13            |
+| `SandboxResult` → optional fields            | R3, R22                        |
+| Bench record (authoring + navigation blocks) | R1                             |
+| Hashing, topology capture, ledger, host lock | R9, R10, R11, R12              |
+| Router candidate path (existing T4)          | R13, R14                       |
+| EP-T sequence, unchanged                     | R15, R16, R17, R17.1, R18, R19 |
 
 ## 5. Schema
 
@@ -142,13 +142,39 @@ result on the frozen rubric, a non-author verifier, and an owner signature.
   "kind": "model_roster",
   "id": "roster-incumbent-vs-gemma",
   "models": [
-    { "label": "qwen-house-v3", "id": "house/qwen2.5-coder-tuned", "tier": ["planner","architect","implementer","reviewer"], "max_tokens": 4096, "temperature": 0.2 },
-    { "label": "gemma-e4b",     "id": "lemonade/Gemma-4-E4B-it-GGUF", "tier": ["reviewer","judge"],      "max_tokens": 4096, "temperature": 0.2 },
-    { "label": "gemma-12b",     "id": "lemonade/gemma-4-12b",         "tier": ["implementer","architect"], "max_tokens": 4096, "temperature": 0.2 }
+    {
+      "label": "qwen-house-v3",
+      "id": "house/qwen2.5-coder-tuned",
+      "tier": ["planner", "architect", "implementer", "reviewer"],
+      "max_tokens": 4096,
+      "temperature": 0.2
+    },
+    {
+      "label": "gemma-e4b",
+      "id": "lemonade/Gemma-4-E4B-it-GGUF",
+      "tier": ["reviewer", "judge"],
+      "max_tokens": 4096,
+      "temperature": 0.2
+    },
+    {
+      "label": "gemma-12b",
+      "id": "lemonade/gemma-4-12b",
+      "tier": ["implementer", "architect"],
+      "max_tokens": 4096,
+      "temperature": 0.2
+    }
   ],
   "subjects": [
-    { "label": "incumbent",   "assign": { "*": "qwen-house-v3" } },
-    { "label": "gemma-split", "assign": { "implementer": "gemma-12b", "architect": "gemma-12b", "reviewer": "gemma-e4b", "planner": "qwen-house-v3" } }
+    { "label": "incumbent", "assign": { "*": "qwen-house-v3" } },
+    {
+      "label": "gemma-split",
+      "assign": {
+        "implementer": "gemma-12b",
+        "architect": "gemma-12b",
+        "reviewer": "gemma-e4b",
+        "planner": "qwen-house-v3"
+      }
+    }
   ],
   "judge": { "enabled": false, "model": "lemonade/Gemma-4-26B-A4B-it-GGUF", "max_tokens": 400 },
   "rubric": "scripts/train/eval/rubric.md",
@@ -163,15 +189,26 @@ result on the frozen rubric, a non-author verifier, and an owner signature.
 
 ```json
 {
-  "bench_id": "…", "subject": "gemma-split", "repeat": 1,
-  "roster_hash": "sha256:…", "rubric_hash": "sha256:…", "code_commit": "…",
+  "bench_id": "…",
+  "subject": "gemma-split",
+  "repeat": 1,
+  "roster_hash": "sha256:…",
+  "rubric_hash": "sha256:…",
+  "code_commit": "…",
   "serving": { "endpoint": "…", "quantisation": "q4_k_m", "context_length": 16384 },
-  "navigation": { "tool_selection_accuracy": 0.71, "tool_efficiency": 0.62,
-                  "context_efficiency": null, "iteration_latency_ms_p95": 4180.0,
-                  "loop_count_p95": 7, "constraint_adherence": 0.94,
-                  "total_cost": 0.0, "total_tokens": 184203 },
+  "navigation": {
+    "tool_selection_accuracy": 0.71,
+    "tool_efficiency": 0.62,
+    "context_efficiency": null,
+    "iteration_latency_ms_p95": 4180.0,
+    "loop_count_p95": 7,
+    "constraint_adherence": 0.94,
+    "total_cost": 0.0,
+    "total_tokens": 184203
+  },
   "authoring": { "required_ops_satisfied": true, "steps": 9, "gold_steps": 4, "judge": null },
-  "status": "measured", "captured_at": "2026-…"
+  "status": "measured",
+  "captured_at": "2026-…"
 }
 ```
 
@@ -183,17 +220,17 @@ with `reason` when not `measured` (R7).
 Frontmatter below is complete except `okr` and `milestone`, which are **owner-assigned** and which
 `w0` will reject if empty. `deps` for M0 encodes the §2 chain.
 
-| id | deps | allowlist (abridged) | verify | budget |
-|---|---|---|---|---|
-| `M0` | `[W2]` | `runtime/manifests/templates/model_roster*.json`, `server/coordination/…/roster-schema/`, `tests/roster/`, `scripts/gates/m0.mjs` | `node scripts/gates/m0.mjs` | 400 |
-| `M1` | `[M0]` | `runtime/benny/sdlc/bench_executor.py`, `runtime/benny/sdlc/sandbox_runner.py`, `runtime/tests/sdlc/`, `scripts/gates/m1.py` | `python scripts/gates/m1.py` | 500 |
-| `M2` | `[M1]` | `runtime/benny/sdlc/sandbox_runner.py`, `runtime/benny/pypes/`, `runtime/tests/sdlc/`, `scripts/gates/m2.mjs` | `node scripts/gates/m2.mjs` | 350 |
-| `M3` | `[M1]` | `runtime/benny/governance/`, `runtime/benny/sdlc/bench_executor.py`, `runtime/tests/governance/`, `scripts/gates/m3.mjs` | `node scripts/gates/m3.mjs` | 400 |
-| `M4` | `[M2, M3]` | `docs/bench/M4-report.md`, `scripts/gates/m4.py` | `python scripts/gates/m4.py` | 250 |
-| `M5` | `[M4]` | `scripts/train/`, `docs/train/M5-e4b-report.md`, `scripts/gates/m5.py` | `python scripts/gates/m5.py` | 450 |
+| id   | deps       | allowlist (abridged)                                                                                                              | verify                       | budget |
+| ---- | ---------- | --------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | ------ |
+| `M0` | `[W2]`     | `runtime/manifests/templates/model_roster*.json`, `server/coordination/…/roster-schema/`, `tests/roster/`, `scripts/gates/m0.mjs` | `node scripts/gates/m0.mjs`  | 400    |
+| `M1` | `[M0]`     | `runtime/benny/sdlc/bench_executor.py`, `runtime/benny/sdlc/sandbox_runner.py`, `runtime/tests/sdlc/`, `scripts/gates/m1.py`      | `python scripts/gates/m1.py` | 500    |
+| `M2` | `[M1]`     | `runtime/benny/sdlc/sandbox_runner.py`, `runtime/benny/pypes/`, `runtime/tests/sdlc/`, `scripts/gates/m2.mjs`                     | `node scripts/gates/m2.mjs`  | 350    |
+| `M3` | `[M1]`     | `runtime/benny/governance/`, `runtime/benny/sdlc/bench_executor.py`, `runtime/tests/governance/`, `scripts/gates/m3.mjs`          | `node scripts/gates/m3.mjs`  | 400    |
+| `M4` | `[M2, M3]` | `docs/bench/M4-report.md`, `scripts/gates/m4.py`                                                                                  | `python scripts/gates/m4.py` | 250    |
+| `M5` | `[M4]`     | `scripts/train/`, `docs/train/M5-e4b-report.md`, `scripts/gates/m5.py`                                                            | `python scripts/gates/m5.py` | 450    |
 
 All carry `authority: agent-ok`, `sandbox: worktree`, `tools: [node, python, lemonade]` (M5 adds the
-trainer). **M4 is the contract that closes the epic**, and it is deliberately a *report* contract: its
+trainer). **M4 is the contract that closes the epic**, and it is deliberately a _report_ contract: its
 budget buys evidence, not code.
 
 ### Red-first scenarios each gate must fail on before it passes

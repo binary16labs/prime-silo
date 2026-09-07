@@ -36,14 +36,20 @@ test("a UUID and its hyphen-stripped sid canonicalise to the same id", () => {
 
 test("a quarantined memo-ray sid blocks the matching UUID transcript", () => {
   const q = new Set(["fd57bd159142491a962d1a16701a38c9"]);
-  assert.equal(matches("fd57bd15-9142-491a-962d-1a16701a38c9", q), true,
-    "the UUID form of a quarantined session MUST be blocked");
+  assert.equal(
+    matches("fd57bd15-9142-491a-962d-1a16701a38c9", q),
+    true,
+    "the UUID form of a quarantined session MUST be blocked"
+  );
 });
 
 test("an unrelated UUID is not blocked", () => {
   const q = new Set(["fd57bd159142491a962d1a16701a38c9"]);
-  assert.equal(matches("00000000-0000-4000-8000-000000000000", q), false,
-    "a filter that blocks everything protects nothing meaningful");
+  assert.equal(
+    matches("00000000-0000-4000-8000-000000000000", q),
+    false,
+    "a filter that blocks everything protects nothing meaningful"
+  );
 });
 
 test("the 8-hex graph prefix form also blocks", () => {

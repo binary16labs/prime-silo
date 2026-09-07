@@ -26,8 +26,9 @@ const LV = path.join(REPO, "scripts", "longview", "lib");
 const imp = (f) => import(pathToFileURL(path.join(LV, f)).href);
 const { readIndex, readTimeline } = await imp("store.mjs");
 const { scanForLeaks } = await imp("leak_gate.mjs");
-const { loadSecrets, redactText, scanSecretPatterns } =
-  await import(pathToFileURL(path.join(__dirname, "secrets_scrub.mjs")).href);
+const { loadSecrets, redactText, scanSecretPatterns } = await import(
+  pathToFileURL(path.join(__dirname, "secrets_scrub.mjs")).href
+);
 
 const WORKDIR = "D:/benny-home/benny/workspaces/sessions_v1/longview";
 const QUARANTINE = path.join(WORKDIR, "quarantine.json");
@@ -49,16 +50,18 @@ fs.mkdirSync(OUT, { recursive: true });
 const SYSTEM =
   "You are a coding + analysis agent operating over a code repository and a knowledge store. " +
   "Given the task and the transcript so far, decide the single next tool call. " +
-  "Respond with ONLY a JSON object {\"name\": <tool>, \"input\": {...}} — no prose.";
+  'Respond with ONLY a JSON object {"name": <tool>, "input": {...}} — no prose.';
 
 // --- corpus + guards (mirror build_longview_distill.mjs) -------------------
-const quarantined = new Set((JSON.parse(fs.readFileSync(QUARANTINE, "utf8")).sids) || []);
+const quarantined = new Set(JSON.parse(fs.readFileSync(QUARANTINE, "utf8")).sids || []);
 // Secret VALUES from .env (in-memory only; never written to any row/log/file). Tool transcripts
 // carry file-reads/command-output, so .env values can land in a row's context — the personal-data
 // gate does NOT catch these. We redact known values and fail-closed on unknown secret-shaped tokens.
 const SECRETS = loadSecrets(path.join(REPO, ".env"));
-const personalTerms = JSON.parse(fs.readFileSync(path.join(__dirname, "personal_terms.json"), "utf8"));
-const TERMS = Array.isArray(personalTerms) ? personalTerms : (personalTerms.terms || []);
+const personalTerms = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "personal_terms.json"), "utf8")
+);
+const TERMS = Array.isArray(personalTerms) ? personalTerms : personalTerms.terms || [];
 // Same rationale as P5: the session that BUILT the leak gate trips its own 'cv' example rule.
 const TRAIN_EXCLUDE = new Set(["3fb5c68f2a348add7ef200438b475e55"]);
 
@@ -69,8 +72,12 @@ const allSids = (readIndex().sessions || [])
 
 // Deterministic held-out eval: lowest-N by sha256(sid) — stable, corpus-order-independent.
 const byHash = [...allSids].sort((a, b) =>
-  crypto.createHash("sha256").update(a).digest("hex").localeCompare(
-    crypto.createHash("sha256").update(b).digest("hex")));
+  crypto
+    .createHash("sha256")
+    .update(a)
+    .digest("hex")
+    .localeCompare(crypto.createHash("sha256").update(b).digest("hex"))
+);
 const evalSids = new Set(byHash.slice(0, EVAL_N));
 const trainSids = allSids.filter((sid) => !evalSids.has(sid));
 
@@ -106,7 +113,13 @@ function tailContext(lines) {
 }
 
 // Antigravity narration fields carried inside args — not real tool arguments.
-const NARRATION_KEYS = new Set(["toolAction", "toolSummary", "toolName", "Blocking", "SafeToAutoRun"]);
+const NARRATION_KEYS = new Set([
+  "toolAction",
+  "toolSummary",
+  "toolName",
+  "Blocking",
+  "SafeToAutoRun"
+]);
 
 // Antigravity double-encodes arg values as quoted JSON strings ("\"f:\\optimus\\README.md\"").
 // Unwrap one layer so the taught action is clean.
@@ -114,7 +127,11 @@ function unwrapValue(v) {
   if (typeof v !== "string") return v;
   const t = v.trim();
   if (t.length >= 2 && t[0] === '"' && t[t.length - 1] === '"') {
-    try { return JSON.parse(t); } catch { /* leave as-is */ }
+    try {
+      return JSON.parse(t);
+    } catch {
+      /* leave as-is */
+    }
   }
   return v;
 }
@@ -145,13 +162,18 @@ function toolCallAction(e) {
   if (!name || input === undefined) return null;
   // Drop pairs that recovered NO arguments from a non-empty body — teaching an argless call
   // for a tool that clearly took arguments is worse than nothing.
-  if (raw.length > 40 && input && typeof input === "object" && !Object.keys(input).length) return null;
+  if (raw.length > 40 && input && typeof input === "object" && !Object.keys(input).length)
+    return null;
   return JSON.stringify({ name, input });
 }
 
 function harvestSession(sid) {
   let tl;
-  try { tl = readTimeline(sid, MAX_NODES); } catch { return { rows: [], skipped: 1 }; }
+  try {
+    tl = readTimeline(sid, MAX_NODES);
+  } catch {
+    return { rows: [], skipped: 1 };
+  }
   const steps = tl.filter((e) => e.type !== "Session");
   const rows = [];
   const ctxLines = [];
@@ -161,8 +183,12 @@ function harvestSession(sid) {
       const action = toolCallAction(e);
       if (action && ctxLines.length) {
         rows.push({
-          stream: "T", id: `T-${sid.slice(0, 8)}-${idx++}`,
-          system: SYSTEM, user: tailContext(ctxLines), response: action, source: sid,
+          stream: "T",
+          id: `T-${sid.slice(0, 8)}-${idx++}`,
+          system: SYSTEM,
+          user: tailContext(ctxLines),
+          response: action,
+          source: sid
         });
       }
     }
@@ -184,8 +210,10 @@ function buildSplit(sids) {
     // SECRETS: redact known .env values everywhere; fail-closed on unknown secret-shaped tokens.
     let secretPattern = null;
     for (const r of sessionRows) {
-      const ru = redactText(r.user, SECRETS); const rr = redactText(r.response, SECRETS);
-      r.user = ru.text; r.response = rr.text;
+      const ru = redactText(r.user, SECRETS);
+      const rr = redactText(r.response, SECRETS);
+      r.user = ru.text;
+      r.response = rr.text;
       if (ru.hits + rr.hits) REDACTED_ROWS++;
       secretPattern = secretPattern || scanSecretPatterns(r.user + "\n" + r.response)[0];
     }
@@ -194,9 +222,16 @@ function buildSplit(sids) {
       continue; // drop the WHOLE session — an unredactable secret survived
     }
     const respHit = scanStr(sessionRows.map((r) => r.response).join("\n"), TERMS)[0];
-    const inputHit = scanStr(sessionRows.map((r) => r.user.replace(/\r?\n/g, " ")).join("\n"), STRONG_TERMS)[0];
+    const inputHit = scanStr(
+      sessionRows.map((r) => r.user.replace(/\r?\n/g, " ")).join("\n"),
+      STRONG_TERMS
+    )[0];
     if (respHit || inputHit) {
-      excluded.push({ sid, where: respHit ? "response(full)" : "input(strong)", term: (respHit || inputHit).term });
+      excluded.push({
+        sid,
+        where: respHit ? "response(full)" : "input(strong)",
+        term: (respHit || inputHit).term
+      });
       continue; // drop the WHOLE session
     }
     rows.push(...sessionRows);
@@ -209,7 +244,8 @@ const evalOut = buildSplit([...evalSids].sort());
 
 const trainPath = path.join(OUT, "agent_traces.train.jsonl");
 const evalPath = path.join(OUT, "agent_traces.eval.jsonl");
-const write = (p, rows) => fs.writeFileSync(p, rows.map((r) => JSON.stringify(r)).join("\n") + (rows.length ? "\n" : ""));
+const write = (p, rows) =>
+  fs.writeFileSync(p, rows.map((r) => JSON.stringify(r)).join("\n") + (rows.length ? "\n" : ""));
 write(trainPath, train.rows);
 write(evalPath, evalOut.rows);
 
@@ -223,8 +259,11 @@ for (const { rows } of [train, evalOut]) {
   }
 }
 if (secretSurvivors) {
-  console.error(`[agent-traces] SECRET BACKSTOP TRIPPED — ${secretSurvivors} row(s) still contain a raw .env value; aborting`);
-  fs.unlinkSync(trainPath); fs.unlinkSync(evalPath);
+  console.error(
+    `[agent-traces] SECRET BACKSTOP TRIPPED — ${secretSurvivors} row(s) still contain a raw .env value; aborting`
+  );
+  fs.unlinkSync(trainPath);
+  fs.unlinkSync(evalPath);
   process.exit(1);
 }
 
@@ -232,33 +271,60 @@ if (secretSurvivors) {
 const backstop = [];
 for (const { rows } of [train, evalOut]) {
   backstop.push(...scanStr(rows.map((r) => r.response).join("\n"), TERMS));
-  backstop.push(...scanStr(rows.map((r) => r.user.replace(/\r?\n/g, " ")).join("\n"), STRONG_TERMS));
+  backstop.push(
+    ...scanStr(rows.map((r) => r.user.replace(/\r?\n/g, " ")).join("\n"), STRONG_TERMS)
+  );
 }
 if (backstop.length) {
-  console.error(`[agent-traces] BACKSTOP TRIPPED — ${backstop.length} finding(s) survived the session filter; aborting`);
-  for (const f of backstop.slice(0, 10)) console.error("  ", `term=${f.term} :: ${String(f.excerpt).slice(0, 90)}`);
-  fs.unlinkSync(trainPath); fs.unlinkSync(evalPath);
+  console.error(
+    `[agent-traces] BACKSTOP TRIPPED — ${backstop.length} finding(s) survived the session filter; aborting`
+  );
+  for (const f of backstop.slice(0, 10))
+    console.error("  ", `term=${f.term} :: ${String(f.excerpt).slice(0, 90)}`);
+  fs.unlinkSync(trainPath);
+  fs.unlinkSync(evalPath);
   process.exit(1);
 }
 
 // --- audit report ----------------------------------------------------------
 const toolHist = (rows) => {
   const h = {};
-  for (const r of rows) { try { const n = JSON.parse(r.response).name; h[n] = (h[n] || 0) + 1; } catch { /**/ } }
+  for (const r of rows) {
+    try {
+      const n = JSON.parse(r.response).name;
+      h[n] = (h[n] || 0) + 1;
+    } catch {
+      /**/
+    }
+  }
   return Object.fromEntries(Object.entries(h).sort((a, b) => b[1] - a[1]));
 };
 const report = {
   sessions_indexed: allSids.length + quarantined.size,
   quarantined: quarantined.size,
-  sessions_train: trainSids.length, sessions_eval: evalSids.size,
-  secret_keys_loaded: SECRETS.length, rows_secret_redacted: REDACTED_ROWS,
+  sessions_train: trainSids.length,
+  sessions_eval: evalSids.size,
+  secret_keys_loaded: SECRETS.length,
+  rows_secret_redacted: REDACTED_ROWS,
   excluded_by_gate: [...train.excluded, ...evalOut.excluded],
-  train_pairs: train.rows.length, eval_pairs: evalOut.rows.length,
-  train_tool_hist: toolHist(train.rows),
+  train_pairs: train.rows.length,
+  eval_pairs: evalOut.rows.length,
+  train_tool_hist: toolHist(train.rows)
 };
 fs.writeFileSync(path.join(OUT, "agent_traces.report.json"), JSON.stringify(report, null, 2));
-console.log(`[agent-traces] sessions: ${trainSids.length} train / ${evalSids.size} eval (${quarantined.size} quarantined)`);
+console.log(
+  `[agent-traces] sessions: ${trainSids.length} train / ${evalSids.size} eval (${quarantined.size} quarantined)`
+);
 console.log(`[agent-traces] gate excluded ${report.excluded_by_gate.length} session(s)`);
-for (const e of report.excluded_by_gate.slice(0, 12)) console.log(`    ${e.sid.slice(0, 8)} — ${e.where} term=${e.term}`);
-console.log(`[agent-traces] pairs: ${train.rows.length} train / ${evalOut.rows.length} eval -> ${trainPath}`);
-console.log(`[agent-traces] top tools:`, Object.entries(report.train_tool_hist).slice(0, 12).map(([k, v]) => `${k}:${v}`).join("  "));
+for (const e of report.excluded_by_gate.slice(0, 12))
+  console.log(`    ${e.sid.slice(0, 8)} — ${e.where} term=${e.term}`);
+console.log(
+  `[agent-traces] pairs: ${train.rows.length} train / ${evalOut.rows.length} eval -> ${trainPath}`
+);
+console.log(
+  `[agent-traces] top tools:`,
+  Object.entries(report.train_tool_hist)
+    .slice(0, 12)
+    .map(([k, v]) => `${k}:${v}`)
+    .join("  ")
+);

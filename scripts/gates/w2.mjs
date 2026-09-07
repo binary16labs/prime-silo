@@ -40,15 +40,19 @@ for (const fn of ["checkAllowlist", "checkBudget", "preflightTools", "provisionS
 // is not. The file declares its own boundary and this asserts the boundary is real — process calls
 // (as opposed to the module-level import) must all sit below the marker.
 const MARKER = "=== IMPURE BELOW THIS LINE ===";
-if (!lib.includes(MARKER)) fail(`sandbox_provision.mjs must declare its purity boundary: ${MARKER}`);
+if (!lib.includes(MARKER))
+  fail(`sandbox_provision.mjs must declare its purity boundary: ${MARKER}`);
 const pureSlice = lib.slice(0, lib.indexOf(MARKER));
 if (/\b(spawnSync|execSync|execFileSync|spawn)\s*\(/.test(pureSlice))
-  fail("a process call appears above the purity marker — the allowlist/budget/tool checks must be pure");
+  fail(
+    "a process call appears above the purity marker — the allowlist/budget/tool checks must be pure"
+  );
 if (/\bfs\.\w+\(/.test(pureSlice)) fail("a filesystem call appears above the purity marker");
 
 // Wired into the delivery loop, not merely available.
 const loop = read("server/coordination/lib/work_loop.mjs");
-if (!/sandbox_provision/.test(loop)) fail("work_loop.mjs does not use the provisioner (W2 unwired)");
+if (!/sandbox_provision/.test(loop))
+  fail("work_loop.mjs does not use the provisioner (W2 unwired)");
 
 const t = spawnSync(process.execPath, ["--test", "tests/work-contracts/w2_provision_test.mjs"], {
   cwd: ROOT,

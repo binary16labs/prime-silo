@@ -15,7 +15,10 @@ const DEFAULT_BASE_URL = "http://localhost:1234/v1"; // LOCAL only — never the
 
 function sendJson(res, status, body) {
   const data = JSON.stringify(body);
-  res.writeHead(status, { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(data) });
+  res.writeHead(status, {
+    "Content-Type": "application/json",
+    "Content-Length": Buffer.byteLength(data)
+  });
   res.end(data);
 }
 
@@ -23,12 +26,24 @@ function readJsonBody(req) {
   return new Promise((resolve) => {
     let buf = "";
     req.on("data", (c) => (buf += c));
-    req.on("end", () => { if (!buf) return resolve({}); try { resolve(JSON.parse(buf)); } catch { resolve(null); } });
+    req.on("end", () => {
+      if (!buf) return resolve({});
+      try {
+        resolve(JSON.parse(buf));
+      } catch {
+        resolve(null);
+      }
+    });
     req.on("error", () => resolve(null));
   });
 }
 
-export function createAgentApi({ projectRoot, prefix = PREFIX, model = DEFAULT_MODEL, baseUrl = DEFAULT_BASE_URL } = {}) {
+export function createAgentApi({
+  projectRoot,
+  prefix = PREFIX,
+  model = DEFAULT_MODEL,
+  baseUrl = DEFAULT_BASE_URL
+} = {}) {
   const root = projectRoot || process.cwd();
   const execEnabled = process.env.PRIME_SILO_AGENT_EXEC === "1";
 
@@ -39,43 +54,83 @@ export function createAgentApi({ projectRoot, prefix = PREFIX, model = DEFAULT_M
         const r = await fetch(`${baseUrl}/models`, { signal: AbortSignal.timeout(4000) });
         const d = await r.json();
         const models = (d?.data || []).map((m) => m.id);
-        return sendJson(res, 200, { ok: true, baseUrl, models, exec_enabled: execEnabled, default_model: model });
+        return sendJson(res, 200, {
+          ok: true,
+          baseUrl,
+          models,
+          exec_enabled: execEnabled,
+          default_model: model
+        });
       } catch {
-        return sendJson(res, 200, { ok: false, baseUrl, models: [], exec_enabled: execEnabled, error: "no model server on localhost:1234" });
+        return sendJson(res, 200, {
+          ok: false,
+          baseUrl,
+          models: [],
+          exec_enabled: execEnabled,
+          error: "no model server on localhost:1234"
+        });
       }
     }
 
     // POST /run — run the agent loop, STREAMING each step as SSE (steps are ~seconds each).
     if (req.method === "POST" && rest === "/run") {
       const body = await readJsonBody(req);
-      if (body === null || typeof body !== "object") return sendJson(res, 400, { error: "malformed JSON body" });
-      if (!body.task || typeof body.task !== "string") return sendJson(res, 422, { error: "task (string) required" });
+      if (body === null || typeof body !== "object")
+        return sendJson(res, 400, { error: "malformed JSON body" });
+      if (!body.task || typeof body.task !== "string")
+        return sendJson(res, 422, { error: "task (string) required" });
 
       const role = body.role === "developer" ? "developer" : "analyst";
       const wantsExec = body.exec === true;
       if (wantsExec && !execEnabled) {
-        return sendJson(res, 403, { error: "shell execution disabled; set PRIME_SILO_AGENT_EXEC=1 on the host to enable" });
+        return sendJson(res, 403, {
+          error: "shell execution disabled; set PRIME_SILO_AGENT_EXEC=1 on the host to enable"
+        });
       }
       // Import the SAME runtime the CLI uses (in-process — no second harness).
-      const { runAgent } = await import(new URL("../../scripts/agent/runtime.mjs", import.meta.url).href);
+      const { runAgent } = await import(
+        new URL("../../scripts/agent/runtime.mjs", import.meta.url).href
+      );
 
-      res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
+      res.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive"
+      });
       const send = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
-      send("start", { task: body.task, role, model: body.model || model, exec: wantsExec && execEnabled });
+      send("start", {
+        task: body.task,
+        role,
+        model: body.model || model,
+        exec: wantsExec && execEnabled
+      });
 
       let aborted = false;
-      req.on("close", () => { aborted = true; });
+      req.on("close", () => {
+        aborted = true;
+      });
       try {
         const out = await runAgent({
-          task: body.task, role, model: body.model || model, baseUrl,
+          task: body.task,
+          role,
+          model: body.model || model,
+          baseUrl,
           root, // ALWAYS the server root — client cannot override
           allowExec: wantsExec && execEnabled,
           maxSteps: Math.min(Number(body.steps) || 12, 24),
-          onStep: (r) => { if (!aborted) send("step", r); },
+          onStep: (r) => {
+            if (!aborted) send("step", r);
+          }
         });
-        if (!aborted) { send("done", out); res.end(); }
+        if (!aborted) {
+          send("done", out);
+          res.end();
+        }
       } catch (e) {
-        if (!aborted) { send("error", { error: e.message }); res.end(); }
+        if (!aborted) {
+          send("error", { error: e.message });
+          res.end();
+        }
       }
       return;
     }
@@ -91,6 +146,6 @@ export function createAgentApi({ projectRoot, prefix = PREFIX, model = DEFAULT_M
       const rest = p.slice(prefix.length) || "/";
       await handle(req, res, rest);
       return true;
-    },
+    }
   };
 }

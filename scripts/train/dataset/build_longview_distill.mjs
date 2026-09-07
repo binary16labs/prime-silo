@@ -33,20 +33,29 @@ const WORKDIR = "D:/benny-home/benny/workspaces/sessions_v1/longview";
 const CARDS = path.join(WORKDIR, "cards");
 const WINDOWS = path.join(WORKDIR, "windows");
 const QUARANTINE = path.join(WORKDIR, "quarantine.json");
-const SYSTEM = fs.readFileSync(path.join(REPO, "scripts", "longview", "prompts", "window_fragment.md"), "utf8");
+const SYSTEM = fs.readFileSync(
+  path.join(REPO, "scripts", "longview", "prompts", "window_fragment.md"),
+  "utf8"
+);
 const WINDOW_CHARS = 12000;
 process.env.MEMORAY_DATA_DIR = process.env.MEMORAY_DATA_DIR || "C:/Users/nsdha/.mem0ray/data";
 
-const argEvalN = Number((process.argv.find((a) => a.startsWith("--eval-n=")) || "").split("=")[1]) ||
-  (process.argv.includes("--eval-n") ? Number(process.argv[process.argv.indexOf("--eval-n") + 1]) : 0) || 25;
+const argEvalN =
+  Number((process.argv.find((a) => a.startsWith("--eval-n=")) || "").split("=")[1]) ||
+  (process.argv.includes("--eval-n")
+    ? Number(process.argv[process.argv.indexOf("--eval-n") + 1])
+    : 0) ||
+  25;
 
 const OUT = path.join(__dirname, "longview_distill"); // git-ignored dir
 fs.mkdirSync(OUT, { recursive: true });
 
 // --- corpus + guards -------------------------------------------------------
-const quarantined = new Set((JSON.parse(fs.readFileSync(QUARANTINE, "utf8")).sids) || []);
-const personalTerms = JSON.parse(fs.readFileSync(path.join(__dirname, "personal_terms.json"), "utf8"));
-const TERMS = Array.isArray(personalTerms) ? personalTerms : (personalTerms.terms || []);
+const quarantined = new Set(JSON.parse(fs.readFileSync(QUARANTINE, "utf8")).sids || []);
+const personalTerms = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "personal_terms.json"), "utf8")
+);
+const TERMS = Array.isArray(personalTerms) ? personalTerms : personalTerms.terms || [];
 
 // Train-exclude denylist: NOT personal (so not quarantined) but trips the leak-gate backstop on a
 // literal example string. 3fb5c68f is the very session that BUILT leak_gate.mjs — its fragment
@@ -54,7 +63,8 @@ const TERMS = Array.isArray(personalTerms) ? personalTerms : (personalTerms.term
 // from training to keep the fail-closed gate clean; losing one meta-card is negligible.
 const TRAIN_EXCLUDE = new Set(["3fb5c68f2a348add7ef200438b475e55"]);
 
-const allSids = fs.readdirSync(CARDS)
+const allSids = fs
+  .readdirSync(CARDS)
   .filter((f) => f.endsWith(".json") && !f.endsWith(".meta.json"))
   .map((f) => f.slice(0, -5))
   .filter((sid) => !quarantined.has(sid))
@@ -65,8 +75,12 @@ const allSids = fs.readdirSync(CARDS)
 // Deterministic held-out eval: hash each sid, take the lowest-N by hash — stable, unbiased, and
 // independent of corpus order.
 const byHash = [...allSids].sort((a, b) =>
-  crypto.createHash("sha256").update(a).digest("hex").localeCompare(
-    crypto.createHash("sha256").update(b).digest("hex")));
+  crypto
+    .createHash("sha256")
+    .update(a)
+    .digest("hex")
+    .localeCompare(crypto.createHash("sha256").update(b).digest("hex"))
+);
 const evalSids = new Set(byHash.slice(0, argEvalN));
 const trainSids = allSids.filter((sid) => !evalSids.has(sid));
 
@@ -99,46 +113,78 @@ for (const sid of trainSids) {
   let windows;
   try {
     ({ windows } = walkSessionWindows({ id: sid }, { inputChars: WINDOW_CHARS }));
-  } catch { skipped++; continue; }
+  } catch {
+    skipped++;
+    continue;
+  }
   const sessionRows = [];
   for (const w of windows) {
     const fragPath = path.join(WINDOWS, sid, `w${WINDOW_CHARS}_${w.index}.json`);
-    if (!fs.existsSync(fragPath)) { skipped++; continue; }
+    if (!fs.existsSync(fragPath)) {
+      skipped++;
+      continue;
+    }
     let frag;
-    try { frag = JSON.parse(fs.readFileSync(fragPath, "utf8")); } catch { skipped++; continue; }
-    sessionRows.push({ stream: "L", id: `L-${sid}-w${w.index}`, system: SYSTEM,
-                       user: w.text, response: JSON.stringify(frag), source: sid });
+    try {
+      frag = JSON.parse(fs.readFileSync(fragPath, "utf8"));
+    } catch {
+      skipped++;
+      continue;
+    }
+    sessionRows.push({
+      stream: "L",
+      id: `L-${sid}-w${w.index}`,
+      system: SYSTEM,
+      user: w.text,
+      response: JSON.stringify(frag),
+      source: sid
+    });
   }
   if (!sessionRows.length) continue;
   // Per-session gate: response with the full net, input with strong terms only.
   const respHit = scanStr(sessionRows.map((r) => r.response).join("\n"), TERMS)[0];
-  const inputHit = scanStr(sessionRows.map((r) => r.user.replace(/\r?\n/g, " ")).join("\n"), STRONG_TERMS)[0];
+  const inputHit = scanStr(
+    sessionRows.map((r) => r.user.replace(/\r?\n/g, " ")).join("\n"),
+    STRONG_TERMS
+  )[0];
   if (respHit || inputHit) {
     const h = respHit || inputHit;
-    excludedSessions.push({ sid, where: respHit ? "response(full)" : "input(strong)", term: h.term });
+    excludedSessions.push({
+      sid,
+      where: respHit ? "response(full)" : "input(strong)",
+      term: h.term
+    });
     continue; // drop the WHOLE session
   }
   rows.push(...sessionRows);
 }
 
 const trainPath = path.join(OUT, "longview_distill.train.jsonl");
-fs.writeFileSync(trainPath, rows.map((r) => JSON.stringify(r)).join("\n") + (rows.length ? "\n" : ""));
+fs.writeFileSync(
+  trainPath,
+  rows.map((r) => JSON.stringify(r)).join("\n") + (rows.length ? "\n" : "")
+);
 
 // FAIL-CLOSED BACKSTOP — re-scan the emitted rows with the SAME split policy; assert 0. (Scanning
 // the interleaved file with the full net would wrongly re-trip on benign input 'cv', so the backstop
 // mirrors the split: response-concatenation full-net, input-concatenation strong-net.)
 const backstop = [
   ...scanStr(rows.map((r) => r.response).join("\n"), TERMS),
-  ...scanStr(rows.map((r) => r.user.replace(/\r?\n/g, " ")).join("\n"), STRONG_TERMS),
+  ...scanStr(rows.map((r) => r.user.replace(/\r?\n/g, " ")).join("\n"), STRONG_TERMS)
 ];
 if (backstop.length) {
-  console.error(`[distill] BACKSTOP TRIPPED — ${backstop.length} finding(s) survived the session filter; aborting`);
-  for (const f of backstop.slice(0, 10)) console.error("  ", `term=${f.term} :: ${String(f.excerpt).slice(0, 90)}`);
+  console.error(
+    `[distill] BACKSTOP TRIPPED — ${backstop.length} finding(s) survived the session filter; aborting`
+  );
+  for (const f of backstop.slice(0, 10))
+    console.error("  ", `term=${f.term} :: ${String(f.excerpt).slice(0, 90)}`);
   fs.unlinkSync(trainPath);
   process.exit(1);
 }
 if (excludedSessions.length) {
-  console.log(`[distill] session filter excluded ${excludedSessions.length} session(s) (terminology in output / strong term in input):`);
+  console.log(
+    `[distill] session filter excluded ${excludedSessions.length} session(s) (terminology in output / strong term in input):`
+  );
   for (const e of excludedSessions) console.log(`    ${e.sid} — ${e.where} term=${e.term}`);
 }
 
@@ -148,36 +194,65 @@ const evalRows = [];
 let evalSkipped = 0;
 for (const sid of [...evalSids].sort()) {
   let windows;
-  try { ({ windows } = walkSessionWindows({ id: sid }, { inputChars: WINDOW_CHARS })); } catch { evalSkipped++; continue; }
+  try {
+    ({ windows } = walkSessionWindows({ id: sid }, { inputChars: WINDOW_CHARS }));
+  } catch {
+    evalSkipped++;
+    continue;
+  }
   const sessionRows = [];
   for (const w of windows) {
     const fragPath = path.join(WINDOWS, sid, `w${WINDOW_CHARS}_${w.index}.json`);
-    if (!fs.existsSync(fragPath)) { evalSkipped++; continue; }
+    if (!fs.existsSync(fragPath)) {
+      evalSkipped++;
+      continue;
+    }
     let frag;
-    try { frag = JSON.parse(fs.readFileSync(fragPath, "utf8")); } catch { evalSkipped++; continue; }
-    sessionRows.push({ stream: "L", id: `L-${sid}-w${w.index}`, system: SYSTEM,
-                       user: w.text, response: JSON.stringify(frag), source: sid });
+    try {
+      frag = JSON.parse(fs.readFileSync(fragPath, "utf8"));
+    } catch {
+      evalSkipped++;
+      continue;
+    }
+    sessionRows.push({
+      stream: "L",
+      id: `L-${sid}-w${w.index}`,
+      system: SYSTEM,
+      user: w.text,
+      response: JSON.stringify(frag),
+      source: sid
+    });
   }
   if (!sessionRows.length) continue;
   const respHit = scanStr(sessionRows.map((r) => r.response).join("\n"), TERMS)[0];
-  const inputHit = scanStr(sessionRows.map((r) => r.user.replace(/\r?\n/g, " ")).join("\n"), STRONG_TERMS)[0];
-  if (respHit || inputHit) continue;  // same fail-closed gate as training
+  const inputHit = scanStr(
+    sessionRows.map((r) => r.user.replace(/\r?\n/g, " ")).join("\n"),
+    STRONG_TERMS
+  )[0];
+  if (respHit || inputHit) continue; // same fail-closed gate as training
   evalRows.push(...sessionRows);
 }
 const evalPath = path.join(OUT, "longview_distill.eval.jsonl");
-fs.writeFileSync(evalPath, evalRows.map((r) => JSON.stringify(r)).join("\n") + (evalRows.length ? "\n" : ""));
+fs.writeFileSync(
+  evalPath,
+  evalRows.map((r) => JSON.stringify(r)).join("\n") + (evalRows.length ? "\n" : "")
+);
 const evalBackstop = [
   ...scanStr(evalRows.map((r) => r.response).join("\n"), TERMS),
-  ...scanStr(evalRows.map((r) => r.user.replace(/\r?\n/g, " ")).join("\n"), STRONG_TERMS),
+  ...scanStr(evalRows.map((r) => r.user.replace(/\r?\n/g, " ")).join("\n"), STRONG_TERMS)
 ];
-if (evalBackstop.length) { console.error(`[distill] EVAL BACKSTOP TRIPPED — ${evalBackstop.length}; aborting`); fs.unlinkSync(evalPath); process.exit(1); }
+if (evalBackstop.length) {
+  console.error(`[distill] EVAL BACKSTOP TRIPPED — ${evalBackstop.length}; aborting`);
+  fs.unlinkSync(evalPath);
+  process.exit(1);
+}
 
 // eval sample manifest (held-out sids the ladder will bench the trained model on)
 const evalManifest = {
   sids: [...evalSids].sort(),
   n: evalSids.size,
   eval_rows: evalRows.length,
-  why: `held-out P5 eval: sha256-lowest ${argEvalN} of ${allSids.length} non-quarantined cards, EXCLUDED from training`,
+  why: `held-out P5 eval: sha256-lowest ${argEvalN} of ${allSids.length} non-quarantined cards, EXCLUDED from training`
 };
 fs.writeFileSync(path.join(OUT, "eval-p5.json"), JSON.stringify(evalManifest, null, 2));
 
@@ -198,12 +273,14 @@ const manifest = {
   windows_skipped: skipped,
   leak_gate: "PASS (response-hard/input-strong; backstop 0 findings)",
   gate_excluded_sessions: excludedSessions,
-  files: { train: "longview_distill.train.jsonl", eval: "eval-p5.json" },
+  files: { train: "longview_distill.train.jsonl", eval: "eval-p5.json" }
 };
 fs.writeFileSync(path.join(OUT, "manifest.json"), JSON.stringify(manifest, null, 2));
 
 console.log("=== P5 LONGVIEW distillation dataset ===");
-console.log(`corpus non-quarantined: ${allSids.length}  (quarantined excluded: ${quarantined.size})`);
+console.log(
+  `corpus non-quarantined: ${allSids.length}  (quarantined excluded: ${quarantined.size})`
+);
 console.log(`held-out eval cards: ${evalSids.size}   train cards: ${trainSids.length}`);
 console.log(`train rows (window->fragment): ${rows.length}   windows skipped: ${skipped}`);
 console.log(`leak gate: PASS (0 findings)`);

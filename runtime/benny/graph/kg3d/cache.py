@@ -20,15 +20,13 @@ def init_cache():
     """Initializes the SQLite cache database (idempotent)."""
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(CACHE_FILE) as conn:
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS metrics_cache (
                 graph_hash TEXT PRIMARY KEY,
                 metrics_json TEXT,
                 computed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        """
-        )
+        """)
 
 
 def get_cached_metrics(graph: Graph) -> Optional[Dict[str, NodeMetrics]]:

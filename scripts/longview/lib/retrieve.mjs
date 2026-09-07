@@ -83,7 +83,10 @@ export async function evidenceFor(query, opts = {}) {
 
 // Provenance-aware variant (Benny Record): returns WHICH sources fed the pack —
 // the previously-discarded edge that makes output lineage traceable.
-export async function evidenceForWithSources(query, { topK = 5, budget = 4500, seen = null, novelty = 0 } = {}) {
+export async function evidenceForWithSources(
+  query,
+  { topK = 5, budget = 4500, seen = null, novelty = 0 } = {}
+) {
   // COVERAGE BIAS. Pure relevance ranking keeps returning the same popular
   // sessions: the first book cited 59 of 261 cards (22.6%) even though every
   // section retrieved its own evidence. When `seen` (a Set of already-cited
@@ -96,7 +99,7 @@ export async function evidenceForWithSources(query, { topK = 5, budget = 4500, s
     chunks = chunks
       .map((c, i) => ({ c, i, fresh: seen.has(key(c)) ? 0 : 1 }))
       // rank = relevance order, minus a bonus for never-yet-cited sources
-      .sort((a, b) => (b.fresh * novelty - a.fresh * novelty) || (a.i - b.i))
+      .sort((a, b) => b.fresh * novelty - a.fresh * novelty || a.i - b.i)
       .slice(0, topK)
       .map((x) => x.c);
   }

@@ -111,12 +111,20 @@ export async function provisionSandbox(taskId, contract, opts = {}) {
   if (sandbox === "in-place") return { ok: true, sandbox, path: repoRoot, branch: null };
 
   const worktreeRoot =
-    opts.worktreeRoot ?? DEFAULTS.worktreeRoot ?? path.join(path.dirname(repoRoot), ".ps-worktrees");
+    opts.worktreeRoot ??
+    DEFAULTS.worktreeRoot ??
+    path.join(path.dirname(repoRoot), ".ps-worktrees");
   const dir = path.join(worktreeRoot, taskId);
   const branch = `${branchPrefix}${taskId}`;
   const r = run(["worktree", "add", dir, "-b", branch, opts.base ?? "main"], repoRoot);
   if (r.status !== 0)
-    return { ok: false, reason: "worktree-failed", detail: (r.stderr || "").trim(), path: dir, branch };
+    return {
+      ok: false,
+      reason: "worktree-failed",
+      detail: (r.stderr || "").trim(),
+      path: dir,
+      branch
+    };
   return { ok: true, sandbox, path: dir, branch };
 }
 
@@ -127,7 +135,9 @@ export function releaseSandbox(taskId, opts = {}) {
     run = (args, cwd) => spawnSync("git", args, { cwd, encoding: "utf8" })
   } = opts;
   const worktreeRoot =
-    opts.worktreeRoot ?? DEFAULTS.worktreeRoot ?? path.join(path.dirname(repoRoot), ".ps-worktrees");
+    opts.worktreeRoot ??
+    DEFAULTS.worktreeRoot ??
+    path.join(path.dirname(repoRoot), ".ps-worktrees");
   const r = run(["worktree", "remove", path.join(worktreeRoot, taskId)], repoRoot);
   return { ok: r.status === 0, detail: (r.stderr || "").trim() };
 }

@@ -36,17 +36,28 @@ import os from "os";
 
 const argv = process.argv.slice(2);
 const flag = (k) => argv.includes(k);
-const opt = (k, d = null) => { const i = argv.indexOf(k); return i > 0 && argv[i + 1] ? argv[i + 1] : d; };
+const opt = (k, d = null) => {
+  const i = argv.indexOf(k);
+  return i > 0 && argv[i + 1] ? argv[i + 1] : d;
+};
 
 const WS = opt("--workspace", process.env.LONGVIEW_WORKSPACE || "sessions_v1");
 const HOME = (process.env.BENNY_HOME || "D:/benny-home/benny").replace(/\\/g, "/");
-const SHARE = (opt("--share", process.env.ESTATE_SHARE ||
-  path.join(os.homedir(), "OneDrive", "estate-backup"))).replace(/\\/g, "/");
+const SHARE = opt(
+  "--share",
+  process.env.ESTATE_SHARE || path.join(os.homedir(), "OneDrive", "estate-backup")
+).replace(/\\/g, "/");
 const MACHINE = process.env.ESTATE_MACHINE || os.hostname();
 const wsDir = `${HOME}/workspaces/${WS}`;
 
 const sha256 = (buf) => crypto.createHash("sha256").update(buf).digest("hex");
-const readJSON = (p, d = null) => { try { return JSON.parse(fs.readFileSync(p, "utf8")); } catch { return d; } };
+const readJSON = (p, d = null) => {
+  try {
+    return JSON.parse(fs.readFileSync(p, "utf8"));
+  } catch {
+    return d;
+  }
+};
 
 // ── the quarantine boundary ───────────────────────────────────────────────
 function quarantinedSids() {
@@ -69,19 +80,34 @@ export function isQuarantined(filePath, quarantined) {
 
 // ── sources: RAW sessions + tool data ─────────────────────────────────────
 function sources() {
-  const memoray = (process.env.MEMORAY_DATA_DIR || path.join(os.homedir(), ".mem0ray", "data"))
-    .replace(/\\/g, "/");
+  const memoray = (
+    process.env.MEMORAY_DATA_DIR || path.join(os.homedir(), ".mem0ray", "data")
+  ).replace(/\\/g, "/");
   return [
     { id: "memoray", origin: MACHINE, kind: "raw sessions (hub)", root: memoray },
-    { id: "asus_ingest", origin: "ASUS", kind: "raw sessions (satellite pull)", root: "D:/asus_ingest" },
-    { id: "longview_state", origin: MACHINE, kind: "tool data: cards, ledger, inventory",
-      root: `${wsDir}/longview`, only: ["cards", "inventory.json", "ledger.jsonl", "quarantine.json", "labels.json", "lineage"] }
+    {
+      id: "asus_ingest",
+      origin: "ASUS",
+      kind: "raw sessions (satellite pull)",
+      root: "D:/asus_ingest"
+    },
+    {
+      id: "longview_state",
+      origin: MACHINE,
+      kind: "tool data: cards, ledger, inventory",
+      root: `${wsDir}/longview`,
+      only: ["cards", "inventory.json", "ledger.jsonl", "quarantine.json", "labels.json", "lineage"]
+    }
   ];
 }
 
 function* walk(root, only = null) {
   let entries = [];
-  try { entries = fs.readdirSync(root, { withFileTypes: true }); } catch { return; }
+  try {
+    entries = fs.readdirSync(root, { withFileTypes: true });
+  } catch {
+    return;
+  }
   for (const e of entries) {
     const p = path.join(root, e.name);
     // `only` restricts the TOP level of a source (recursion passes null, so subtrees of a
@@ -100,23 +126,47 @@ function plan() {
   const stats = { scanned: 0, eligible: 0, quarantined_excluded: 0, bytes: 0, deduped: 0 };
   const seenHash = new Set();
   for (const s of sources()) {
-    if (!fs.existsSync(s.root)) { items.push({ source: s.id, missing: true }); continue; }
+    if (!fs.existsSync(s.root)) {
+      items.push({ source: s.id, missing: true });
+      continue;
+    }
     for (const f of walk(s.root, s.only)) {
       stats.scanned++;
       let buf;
-      try { buf = fs.readFileSync(f); } catch { continue; }
+      try {
+        buf = fs.readFileSync(f);
+      } catch {
+        continue;
+      }
       const rel = path.relative(s.root, f).replace(/\\/g, "/");
       const q = isQuarantined(f, quarantined);
       const h = sha256(buf);
       const dup = seenHash.has(h);
       if (!dup) seenHash.add(h);
-      if (q) { stats.quarantined_excluded++; }
-      else { stats.eligible++; if (!dup) stats.bytes += buf.length; else stats.deduped++; }
+      if (q) {
+        stats.quarantined_excluded++;
+      } else {
+        stats.eligible++;
+        if (!dup) stats.bytes += buf.length;
+        else stats.deduped++;
+      }
       items.push({
-        source: s.id, origin: s.origin, rel, sha256: h, bytes: buf.length,
-        mtime: (() => { try { return new Date(fs.statSync(f).mtimeMs).toISOString(); } catch { return null; } })(),
+        source: s.id,
+        origin: s.origin,
+        rel,
+        sha256: h,
+        bytes: buf.length,
+        mtime: (() => {
+          try {
+            return new Date(fs.statSync(f).mtimeMs).toISOString();
+          } catch {
+            return null;
+          }
+        })(),
         // METADATA IS RECORDED FOR EVERYTHING; CONTENT ONLY FOR ALLOWED ITEMS.
-        quarantined: q, content_copied: !q, deduped: dup
+        quarantined: q,
+        content_copied: !q,
+        deduped: dup
       });
     }
   }
@@ -127,11 +177,15 @@ function plan() {
 function apply(p) {
   const blobs = path.join(SHARE, "blobs");
   fs.mkdirSync(blobs, { recursive: true });
-  let written = 0, skipped = 0;
+  let written = 0,
+    skipped = 0;
   for (const it of p.items) {
-    if (it.missing || it.quarantined) continue;          // the boundary
+    if (it.missing || it.quarantined) continue; // the boundary
     const dest = path.join(blobs, it.sha256.slice(0, 2), it.sha256);
-    if (fs.existsSync(dest)) { skipped++; continue; }     // content-addressed dedupe
+    if (fs.existsSync(dest)) {
+      skipped++;
+      continue;
+    } // content-addressed dedupe
     const src = sourcePath(it);
     if (!src) continue;
     fs.mkdirSync(path.dirname(dest), { recursive: true });
@@ -141,20 +195,26 @@ function apply(p) {
   const manifest = {
     schema: "prime-silo/estate-backup/1.0",
     created_at: new Date().toISOString(),
-    machine: MACHINE, workspace: WS, share: SHARE,
+    machine: MACHINE,
+    workspace: WS,
+    share: SHARE,
     cascade: "F: (immutable) -> D: (runner) -> share (distribution)",
-    note: "The share is a DISTRIBUTION layer, not the system of record: it is sync-backed, " +
-          "so deletions propagate. F: remains the immutable tier.",
+    note:
+      "The share is a DISTRIBUTION layer, not the system of record: it is sync-backed, " +
+      "so deletions propagate. F: remains the immutable tier.",
     privacy: {
       quarantined_sids: p.quarantined_count,
       quarantined_items_excluded: p.stats.quarantined_excluded,
       policy: "quarantined sessions are counted, never named and never copied"
     },
     stats: { ...p.stats, blobs_written: written, blobs_already_present: skipped },
-    items: p.items.map((i) => i.missing ? i : ({ ...i, rel: i.quarantined ? "(withheld)" : i.rel }))
+    items: p.items.map((i) => (i.missing ? i : { ...i, rel: i.quarantined ? "(withheld)" : i.rel }))
   };
-  fs.writeFileSync(path.join(SHARE, `manifest-${MACHINE}-${WS}.json`),
-    JSON.stringify(manifest, null, 1), "utf8");
+  fs.writeFileSync(
+    path.join(SHARE, `manifest-${MACHINE}-${WS}.json`),
+    JSON.stringify(manifest, null, 1),
+    "utf8"
+  );
   return manifest;
 }
 
@@ -168,10 +228,20 @@ function sourcePath(it) {
 // ── verify: re-hash the share, report drift ───────────────────────────────
 function verify() {
   const manifests = (() => {
-    try { return fs.readdirSync(SHARE).filter((f) => f.startsWith("manifest-") && f.endsWith(".json")); }
-    catch { return []; }
+    try {
+      return fs.readdirSync(SHARE).filter((f) => f.startsWith("manifest-") && f.endsWith(".json"));
+    } catch {
+      return [];
+    }
   })();
-  const out = { share: SHARE, manifests: manifests.length, checked: 0, intact: 0, drift: [], missing: [] };
+  const out = {
+    share: SHARE,
+    manifests: manifests.length,
+    checked: 0,
+    intact: 0,
+    drift: [],
+    missing: []
+  };
   for (const m of manifests) {
     const man = readJSON(path.join(SHARE, m));
     if (!man) continue;
@@ -179,14 +249,23 @@ function verify() {
       if (it.missing || it.quarantined) continue;
       const blob = path.join(SHARE, "blobs", it.sha256.slice(0, 2), it.sha256);
       out.checked++;
-      if (!fs.existsSync(blob)) { out.missing.push(it.sha256.slice(0, 12)); continue; }
+      if (!fs.existsSync(blob)) {
+        out.missing.push(it.sha256.slice(0, 12));
+        continue;
+      }
       const actual = sha256(fs.readFileSync(blob));
       if (actual === it.sha256) out.intact++;
       else out.drift.push({ expected: it.sha256.slice(0, 12), actual: actual.slice(0, 12) });
     }
   }
-  out.verdict = out.checked === 0 ? "EMPTY"
-    : out.drift.length ? "CORRUPT" : out.missing.length ? "DRIFT" : "INTACT";
+  out.verdict =
+    out.checked === 0
+      ? "EMPTY"
+      : out.drift.length
+        ? "CORRUPT"
+        : out.missing.length
+          ? "DRIFT"
+          : "INTACT";
   return out;
 }
 
@@ -203,8 +282,11 @@ function selftest() {
     quarantined_sids: q.size,
     seeded_path_blocked: blocked,
     unrelated_path_allowed: !control,
-    why: blocked ? (control ? "filter blocks everything — too broad" : "filter blocks quarantined, allows others")
-                 : "FILTER FAILED TO BLOCK A KNOWN QUARANTINED SID"
+    why: blocked
+      ? control
+        ? "filter blocks everything — too broad"
+        : "filter blocks quarantined, allows others"
+      : "FILTER FAILED TO BLOCK A KNOWN QUARANTINED SID"
   };
 }
 
@@ -216,26 +298,39 @@ if (flag("--selftest")) {
 }
 if (flag("--verify")) {
   const r = verify();
-  console.log(`share ${r.share}\n  manifests ${r.manifests} · checked ${r.checked} · intact ${r.intact}` +
-              `\n  drift ${r.drift.length} · missing ${r.missing.length}\n  verdict ${r.verdict}`);
+  console.log(
+    `share ${r.share}\n  manifests ${r.manifests} · checked ${r.checked} · intact ${r.intact}` +
+      `\n  drift ${r.drift.length} · missing ${r.missing.length}\n  verdict ${r.verdict}`
+  );
   process.exit(r.verdict === "CORRUPT" ? 2 : 0);
 }
 const p = plan();
 if (flag("--apply")) {
   const st = selftest();
-  if (!st.ok) { console.error("refusing to copy: quarantine filter self-test failed —", st.why); process.exit(2); }
+  if (!st.ok) {
+    console.error("refusing to copy: quarantine filter self-test failed —", st.why);
+    process.exit(2);
+  }
   const man = apply(p);
   console.log(`estate backup -> ${SHARE}`);
-  console.log(`  scanned ${man.stats.scanned} · eligible ${man.stats.eligible} · ` +
-              `quarantine-excluded ${man.stats.quarantined_excluded}`);
-  console.log(`  blobs written ${man.stats.blobs_written} · already present ${man.stats.blobs_already_present} ` +
-              `· deduped ${man.stats.deduped}`);
+  console.log(
+    `  scanned ${man.stats.scanned} · eligible ${man.stats.eligible} · ` +
+      `quarantine-excluded ${man.stats.quarantined_excluded}`
+  );
+  console.log(
+    `  blobs written ${man.stats.blobs_written} · already present ${man.stats.blobs_already_present} ` +
+      `· deduped ${man.stats.deduped}`
+  );
   console.log(`  manifest manifest-${MACHINE}-${WS}.json`);
 } else {
   console.log(`PLAN (no writes) — share ${SHARE}`);
   console.log(`  scanned ${p.stats.scanned} files`);
-  console.log(`  eligible to copy      ${p.stats.eligible}  (${(p.stats.bytes / 1e6).toFixed(1)} MB unique)`);
-  console.log(`  quarantine-excluded   ${p.stats.quarantined_excluded}  (from ${p.quarantined_count} sids — counted, never named)`);
+  console.log(
+    `  eligible to copy      ${p.stats.eligible}  (${(p.stats.bytes / 1e6).toFixed(1)} MB unique)`
+  );
+  console.log(
+    `  quarantine-excluded   ${p.stats.quarantined_excluded}  (from ${p.quarantined_count} sids — counted, never named)`
+  );
   console.log(`  content-dedupe hits   ${p.stats.deduped}`);
   console.log(`\n  apply with: node scripts/estate_backup.mjs --apply`);
 }

@@ -28,7 +28,6 @@ Design: architecture/SOLUTION-model-plurality.md §4.3, decision D3. Contract: d
 
 from __future__ import annotations
 
-import re
 from typing import Any, Dict, List, Optional, Tuple
 
 from .sandbox_runner import METRIC_FIELDS, SandboxResult
@@ -59,8 +58,15 @@ NAVIGATION_KEYS = frozenset(
 TOPOLOGY_KEYS = frozenset({"endpoint", "quantisation", "context_length", "model_id"})
 RECORD_KEYS = frozenset(
     {
-        "kind", "subject", "authoring", "navigation", "scored_on",
-        "rubric_hash", "roster_hash", "topology", "primary_metric",
+        "kind",
+        "subject",
+        "authoring",
+        "navigation",
+        "scored_on",
+        "rubric_hash",
+        "roster_hash",
+        "topology",
+        "primary_metric",
     }
 )
 
@@ -118,9 +124,13 @@ def _resolve_metric(record: Dict[str, Any], primary_metric: str) -> Any:
         raise ValueError(f"unknown block {block_name!r} in primary_metric {primary_metric!r}")
     block = record.get(block_name)
     if block is None:
-        raise ValueError(f"primary_metric {primary_metric!r} names a block this record did not score")
+        raise ValueError(
+            f"primary_metric {primary_metric!r} names a block this record did not score"
+        )
     if field not in block:
-        raise ValueError(f"primary_metric {primary_metric!r} names a field that block does not carry")
+        raise ValueError(
+            f"primary_metric {primary_metric!r} names a field that block does not carry"
+        )
     return block[field]
 
 
@@ -145,7 +155,11 @@ def build_record(
         "subject": subject,
         "authoring": authoring,
         "navigation": navigation,
-        "scored_on": [n for n, b in (("authoring", authoring), ("navigation", navigation)) if isinstance(b, dict)],
+        "scored_on": [
+            n
+            for n, b in (("authoring", authoring), ("navigation", navigation))
+            if isinstance(b, dict)
+        ],
         "rubric_hash": rubric_hash,
         "roster_hash": roster_hash,
         "topology": topology,
@@ -242,7 +256,9 @@ def validate_record(record: Dict[str, Any]) -> Tuple[bool, List[str]]:
                 "a record's clothes; set it to null explicitly if that surface was not scored"
             )
     if not record.get("rubric_hash"):
-        errors.append("rubric_hash is required — an unfrozen rubric makes the numbers unrankable (R10)")
+        errors.append(
+            "rubric_hash is required — an unfrozen rubric makes the numbers unrankable (R10)"
+        )
 
     # The closed schema, one path. Top-level keys must be declared; the three sub-objects are
     # delegated to `_refuse_object`; every other field is refused if it hides a nested object.
@@ -273,7 +289,10 @@ def validate_record(record: Dict[str, Any]) -> Tuple[bool, List[str]]:
     # The record's central invariant, checked rather than assumed: `unmeasured` must agree with the
     # actual nulls. Previously a block could claim everything was measured while carrying nulls,
     # or list a field it had in fact measured, and still validate.
-    for name, fields in (("authoring", _AUTHORING_SCORES + _AUTHORING_TOP), ("navigation", METRIC_FIELDS)):
+    for name, fields in (
+        ("authoring", _AUTHORING_SCORES + _AUTHORING_TOP),
+        ("navigation", METRIC_FIELDS),
+    ):
         block = record.get(name)
         if not isinstance(block, dict):
             continue
@@ -302,9 +321,7 @@ def validate_record(record: Dict[str, Any]) -> Tuple[bool, List[str]]:
     return (not errors, errors)
 
 
-def rank_records(
-    records: List[Dict[str, Any]], *, higher_is_better: bool = True
-) -> Dict[str, Any]:
+def rank_records(records: List[Dict[str, Any]], *, higher_is_better: bool = True) -> Dict[str, Any]:
     """Rank records by the primary metric they all declare, excluding what was not measured.
 
     Refuses a mixed pile: every record must declare the SAME primary metric and the SAME rubric
@@ -316,7 +333,9 @@ def rank_records(
 
     metrics = {r.get("primary_metric") for r in records}
     if len(metrics) != 1:
-        raise ValueError(f"records declare different primary metrics {sorted(map(str, metrics))} — not comparable")
+        raise ValueError(
+            f"records declare different primary metrics {sorted(map(str, metrics))} — not comparable"
+        )
     primary_metric = records[0].get("primary_metric")
     if not primary_metric:
         raise ValueError("records declare no primary metric — there is nothing to rank them by")
@@ -330,7 +349,9 @@ def rank_records(
     # `{None}` is a set of size one, so the check above passed happily for records that declared NO
     # instrument at all — the R10 guarantee satisfied vacuously by the absence of a rubric.
     if not records[0].get("rubric_hash"):
-        raise ValueError("records carry no rubric hash — an undeclared instrument cannot freeze a comparison (R10)")
+        raise ValueError(
+            "records carry no rubric hash — an undeclared instrument cannot freeze a comparison (R10)"
+        )
 
     block_name = primary_metric.split(".", 1)[0]
     ranked: List[Dict[str, Any]] = []
@@ -346,13 +367,19 @@ def rank_records(
         if value is None:
             excluded.append((record["subject"], "unmeasured"))
         elif not isinstance(value, (int, float)) or isinstance(value, bool):
-            raise ValueError(f"{record['subject']}'s {primary_metric} is {value!r}, which cannot be ranked")
+            raise ValueError(
+                f"{record['subject']}'s {primary_metric} is {value!r}, which cannot be ranked"
+            )
         else:
             ranked.append(record)
 
     ranked.sort(
         key=lambda r: (
-            -_resolve_metric(r, primary_metric) if higher_is_better else _resolve_metric(r, primary_metric),
+            (
+                -_resolve_metric(r, primary_metric)
+                if higher_is_better
+                else _resolve_metric(r, primary_metric)
+            ),
             r["subject"],
         )
     )

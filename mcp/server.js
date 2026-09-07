@@ -465,8 +465,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const ctx = await coord.connect({});
         const agent = args?.agent ?? "claude";
         let result;
-        if (name === "coord_list") result = { ok: true, mode: ctx.mode, tasks: await coord.list(ctx) };
-        else if (name === "coord_claim") result = await coord.claim(ctx, String(args.task_id), agent);
+        if (name === "coord_list")
+          result = { ok: true, mode: ctx.mode, tasks: await coord.list(ctx) };
+        else if (name === "coord_claim")
+          result = await coord.claim(ctx, String(args.task_id), agent);
         else if (name === "coord_note")
           result = await coord.note(ctx, agent, { topic: args?.topic, text: String(args.text) });
         else {

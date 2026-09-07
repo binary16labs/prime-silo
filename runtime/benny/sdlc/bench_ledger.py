@@ -327,8 +327,11 @@ class HostLock:
                 continue
             with os.fdopen(fd, "w", encoding="utf-8") as fh:
                 json.dump(
-                    {"pid": os.getpid(), "token": token,
-                     "acquired_at": datetime.now(timezone.utc).isoformat()},
+                    {
+                        "pid": os.getpid(),
+                        "token": token,
+                        "acquired_at": datetime.now(timezone.utc).isoformat(),
+                    },
                     fh,
                 )
             self._token = token
@@ -346,7 +349,7 @@ class HostLock:
         if owner is None:
             return False  # unreadable or gone mid-read -> UNKNOWN -> keep out, never steal
         if owner.get("released") is True:
-            return True   # the holder released but could not delete its file; safe to reclaim
+            return True  # the holder released but could not delete its file; safe to reclaim
         if "pid" not in owner:
             return False
         return not self._owner_alive(owner.get("pid"))
@@ -483,20 +486,37 @@ def governed_bench(
     def one(subject: str) -> Dict[str, Any]:
         run_id, metrics = body(subject)
         entry = register_entry(
-            subject=subject, run_id=run_id, topology=topology_of(subject),
-            rubric_hash=rubric_hash, metrics=metrics, roster_hash=roster_hash,
+            subject=subject,
+            run_id=run_id,
+            topology=topology_of(subject),
+            rubric_hash=rubric_hash,
+            metrics=metrics,
+            roster_hash=roster_hash,
         )
         append_register(register_path, entry, timeout=timeout)
         require_ledgered(read_register(register_path), run_id)  # we wrote it or it did not happen
         lineage = emit_lineage(entry, workspace=workspace, emitter=emitter)
-        return {"subject": subject, "run_id": run_id, "entry": entry, "lineage": lineage, "error": None}
+        return {
+            "subject": subject,
+            "run_id": run_id,
+            "entry": entry,
+            "lineage": lineage,
+            "error": None,
+        }
 
     raw = run_serialised(subjects, one, lock_dir=lock_dir, owner_alive=owner_alive, timeout=timeout)
     results: List[Dict[str, Any]] = []
     for subject, r in zip(subjects, raw):
         if isinstance(r, Exception):
-            results.append({"subject": subject, "run_id": None, "entry": None,
-                            "lineage": {"emitted": False, "reason": str(r)}, "error": str(r)})
+            results.append(
+                {
+                    "subject": subject,
+                    "run_id": None,
+                    "entry": None,
+                    "lineage": {"emitted": False, "reason": str(r)},
+                    "error": str(r),
+                }
+            )
         else:
             results.append(r)
     return results

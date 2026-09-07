@@ -13,14 +13,21 @@ import fs from "node:fs";
 export function loadSecrets(envPath) {
   const out = [];
   let raw;
-  try { raw = fs.readFileSync(envPath, "utf8"); } catch { return out; }
+  try {
+    raw = fs.readFileSync(envPath, "utf8");
+  } catch {
+    return out;
+  }
   const SECRET_KEY = /(KEY|SECRET|TOKEN|PASSWORD|HMAC|CREDENTIAL|PRIVATE)/i;
   for (const line of raw.split(/\r?\n/)) {
     const s = line.trim();
     if (!s || s.startsWith("#") || !s.includes("=")) continue;
     const eq = s.indexOf("=");
     const name = s.slice(0, eq).trim();
-    let value = s.slice(eq + 1).trim().replace(/^["']|["']$/g, "");
+    let value = s
+      .slice(eq + 1)
+      .trim()
+      .replace(/^["']|["']$/g, "");
     if (!SECRET_KEY.test(name)) continue;
     if (value.length < 12) continue; // PORT-like short config is not a secret
     out.push({ name, value });
@@ -36,7 +43,10 @@ export function redactText(text, secrets) {
   for (const { name, value } of secrets) {
     if (!value) continue;
     let idx = t.indexOf(value);
-    while (idx !== -1) { hits++; idx = t.indexOf(value, idx + 1); }
+    while (idx !== -1) {
+      hits++;
+      idx = t.indexOf(value, idx + 1);
+    }
     if (hits) t = t.split(value).join(`<REDACTED:${name}>`);
   }
   return { text: t, hits };
@@ -51,7 +61,7 @@ const PATTERNS = [
   ["aws-akid", /\bAKIA[0-9A-Z]{16}\b/],
   ["slack", /\bxox[baprs]-[A-Za-z0-9-]{10,}\b/],
   ["pem", /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/],
-  ["bearer", /\bBearer\s+[A-Za-z0-9._-]{20,}\b/],
+  ["bearer", /\bBearer\s+[A-Za-z0-9._-]{20,}\b/]
 ];
 export function scanSecretPatterns(text) {
   const found = [];

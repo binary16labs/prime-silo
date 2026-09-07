@@ -45,12 +45,12 @@ not the selector) and scenario 2 would be untestable.
 
 An item is ready when **all** hold:
 
-| Condition | Source |
-|---|---|
-| every `deps` id is DONE | ledger fold (B0 `foldState`), not the board |
-| no live lease | `<coordDir>/leases/<id>.json` absent or expired |
-| authority satisfied | `agent-ok` → selectable; `human-signed` → requires a recorded owner signature |
-| the contract itself validates | `server/coordination/work-schema/validate.mjs` |
+| Condition                     | Source                                                                        |
+| ----------------------------- | ----------------------------------------------------------------------------- |
+| every `deps` id is DONE       | ledger fold (B0 `foldState`), not the board                                   |
+| no live lease                 | `<coordDir>/leases/<id>.json` absent or expired                               |
+| authority satisfied           | `agent-ok` → selectable; `human-signed` → requires a recorded owner signature |
+| the contract itself validates | `server/coordination/work-schema/validate.mjs`                                |
 
 **Governance risk to gate hard:** if `human-signed` is not enforced here, `work next` will hand agents
 owner-gated work automatically. Every human-signed task on this board (L1, L3, L9–L13, N0, N3, N5, N7,
@@ -102,7 +102,7 @@ provenance tagging, which is adjacent but not the same as per-task author≠veri
 first and extend it if it fits; a second authorship module would be the kind of parallel system B1's
 verifier explicitly checked for and rejected.
 
-Honest limit worth stating in the contract's handoff: this enforces *distinct identity strings*, not
+Honest limit worth stating in the contract's handoff: this enforces _distinct identity strings_, not
 genuine independence. An author who verifies under a second name passes. Mechanizing identity is worth
 doing; claiming it guarantees independent verification would be overreach.
 
@@ -115,11 +115,11 @@ alongside the other B/L libs, not inside either surface.
 
 ## 8. Scenario → test map
 
-| Scenario | Test | Non-vacuity mutation |
-|---|---|---|
-| the selector is a function | `selectNext` over a fixed fixture, 100 trials, deep-equal | inject `Math.random` into the tiebreak → RED |
-| concurrent pulls never collide | two `workNext` callers, 20 rounds, assert disjoint | make `workNext` skip the lease attempt → RED |
-| author is never verifier | done event with verifier == author | remove the identity check → RED |
+| Scenario                       | Test                                                      | Non-vacuity mutation                         |
+| ------------------------------ | --------------------------------------------------------- | -------------------------------------------- |
+| the selector is a function     | `selectNext` over a fixed fixture, 100 trials, deep-equal | inject `Math.random` into the tiebreak → RED |
+| concurrent pulls never collide | two `workNext` callers, 20 rounds, assert disjoint        | make `workNext` skip the lease attempt → RED |
+| author is never verifier       | done event with verifier == author                        | remove the identity check → RED              |
 
 Plus, beyond the contract's three: a `human-signed` item is **not** auto-claimed (§3); completing an
 item makes exactly its dependents ready and no others (the contract's TDD step 3); and a board/ledger
@@ -132,12 +132,12 @@ disagreement refuses rather than guesses (§5).
 The selector excludes `authority: human-signed` from the selectable set entirely and reports those
 items separately as `awaiting-signature`.
 
-*Rationale:* every human-signed task on this board (L1, L3, L9–L13, N0, N3, N5, N7, E0) was signed in
+_Rationale:_ every human-signed task on this board (L1, L3, L9–L13, N0, N3, N5, N7, E0) was signed in
 chat. There is no machine-readable signature today, so any rule that lets the loop take such an item
 converts an owner gate into an agent action. Defining a signature format is deferred to its own
 contract; until it exists, refusing is the only safe default.
 
-*Consequence, stated so it is not later mistaken for a bug:* when only human-signed items remain,
+_Consequence, stated so it is not later mistaken for a bug:_ when only human-signed items remain,
 `work next` returns nothing and says why. That is correct behaviour.
 
 ### D2 — board vs ledger precedence
@@ -146,7 +146,7 @@ contract; until it exists, refusing is the only safe default.
 human-edited ordering and has no ledger equivalent. **Disagreement is surfaced and the item skipped**
 — never silently resolved. The selector returns a `conflicts[]` alongside its choice.
 
-*Rationale:* silently preferring one source reproduces the failure that left B2 in AUTHORED for nine
+_Rationale:_ silently preferring one source reproduces the failure that left B2 in AUTHORED for nine
 days with its dependency already satisfied — a staleness `w0` structurally cannot see, because it
 checks that each id appears exactly once across columns, never that the column is the right one.
 
@@ -156,14 +156,14 @@ Add **`task_verified`** to the B0 event enum (`server/coordination/schema/event.
 handle it in `foldState`. The addition is **additive**: every existing event still validates, and no
 stored line changes meaning.
 
-*Rejected alternative:* carry `verified_by` inside `task_done`'s payload. Cheaper — `payload` is an
+_Rejected alternative:_ carry `verified_by` inside `task_done`'s payload. Cheaper — `payload` is an
 unconstrained object, so it needs no schema change — but that makes author≠verifier an enforcement
 against a **convention** rather than a validated field, and nothing would stop a `task_done` arriving
 with no verifier at all. The lineage review of 2026-08-03 already found that delivery decisions are
 not machine-queryable; recording verification as a typed, chained, validated event is the single
 cheapest step toward SS1/23-P4, and it is what makes scenario 3 enforceable rather than advisory.
 
-*Scope note for the verifier:* this modifies an artifact owned by **B0, which is DONE**.
+_Scope note for the verifier:_ this modifies an artifact owned by **B0, which is DONE**.
 `server/coordination/` is inside W1's allowlist so it is in scope, but the change must be additive
 only and **B0's and B1's existing gates must still pass** — treat any regression there as a defect,
 not an acceptable cost.

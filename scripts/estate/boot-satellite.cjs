@@ -61,7 +61,9 @@ let neo4jDataDir = expand(
 try {
   fs.mkdirSync(neo4jDataDir, { recursive: true }); // configured path must be a real LOCAL disk
 } catch {
-  console.warn(`[satellite] neo4j_data_dir '${neo4jDataDir}' unusable — falling back to ${LOCAL_NEO4J}`);
+  console.warn(
+    `[satellite] neo4j_data_dir '${neo4jDataDir}' unusable — falling back to ${LOCAL_NEO4J}`
+  );
   neo4jDataDir = LOCAL_NEO4J;
   fs.mkdirSync(neo4jDataDir, { recursive: true });
 }

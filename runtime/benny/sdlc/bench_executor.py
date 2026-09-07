@@ -82,9 +82,7 @@ def resolve_assignment(roster: Dict[str, Any], subject_label: str) -> Dict[str, 
     dropped persona is a subject that is not the subject you named.
     """
     models = {m.get("label"): m for m in roster.get("models", [])}
-    subject = next(
-        (s for s in roster.get("subjects", []) if s.get("label") == subject_label), None
-    )
+    subject = next((s for s in roster.get("subjects", []) if s.get("label") == subject_label), None)
     if subject is None:
         raise KeyError(f"subject {subject_label!r} is not in the roster")
 
@@ -183,9 +181,7 @@ def derive_metrics(
     progress = [e for e in events if e.get("event") == "node_progress"]
 
     # --- latency: the one thing the stream carries today -------------------
-    durations = [
-        e["duration_ms"] for e in (*finished, *failed) if e.get("duration_ms") is not None
-    ]
+    durations = [e["duration_ms"] for e in (*finished, *failed) if e.get("duration_ms") is not None]
     if durations:
         metrics["iteration_latency_ms_p95"] = float(percentile(durations))
 
@@ -236,9 +232,7 @@ def derive_metrics(
         observed = {
             e["node_id"]: e["detail"]["tool"]
             for e in progress
-            if e.get("node_id")
-            and isinstance(e.get("detail"), dict)
-            and e["detail"].get("tool")
+            if e.get("node_id") and isinstance(e.get("detail"), dict) and e["detail"].get("tool")
         }
         expected: Dict[str, str] = dict(rubric.get("expected_ops") or {})
         judged = {n: t for n, t in observed.items() if n in expected}
@@ -321,7 +315,9 @@ def make_bench_hook(
         if result.unmeasured:
             log.info(
                 "bench: subject %s measured %d/%d metrics; unmeasured: %s",
-                subject_label, len(result.measured), len(METRIC_FIELDS),
+                subject_label,
+                len(result.measured),
+                len(METRIC_FIELDS),
                 ", ".join(result.unmeasured),
             )
         return result

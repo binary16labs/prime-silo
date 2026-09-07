@@ -29,7 +29,12 @@ const ok = () => ({
 // --- Scenario 1 -------------------------------------------------------------
 test("Scenario: an out-of-tier assignment is rejected", () => {
   const r = ok();
-  r.subjects = [{ label: "s", assign: { implementer: "small", planner: "big", architect: "big", reviewer: "big" } }];
+  r.subjects = [
+    {
+      label: "s",
+      assign: { implementer: "small", planner: "big", architect: "big", reviewer: "big" }
+    }
+  ];
   const v = validateRoster(r);
   assert.equal(v.ok, false);
   assert.ok(
@@ -81,7 +86,10 @@ test("a subject leaving a persona unassigned is rejected, not silently defaulted
   r.subjects = [{ label: "s", assign: { implementer: "big" } }];
   const v = validateRoster(r);
   assert.equal(v.ok, false);
-  assert.ok(v.errors.some((e) => /unassigned/.test(e)), "a hole would fall back to the registry default");
+  assert.ok(
+    v.errors.some((e) => /unassigned/.test(e)),
+    "a hole would fall back to the registry default"
+  );
 });
 
 // --- rubric freeze (R10) ---------------------------------------------------

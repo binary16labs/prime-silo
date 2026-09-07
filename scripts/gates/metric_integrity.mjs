@@ -29,21 +29,34 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
+const arg = (k, d) => {
+  const i = process.argv.indexOf(k);
+  return i > 0 ? process.argv[i + 1] : d;
+};
 const WS = arg("--workspace", process.env.LONGVIEW_WORKSPACE || "sessions_v1");
 const HOME = (process.env.BENNY_HOME || "D:/benny-home/benny").replace(/\\/g, "/");
 const wsDir = `${HOME}/workspaces/${WS}`;
-const readJSON = (p, d = null) => { try { return JSON.parse(fs.readFileSync(p, "utf8")); } catch { return d; } };
+const readJSON = (p, d = null) => {
+  try {
+    return JSON.parse(fs.readFileSync(p, "utf8"));
+  } catch {
+    return d;
+  }
+};
 const ageMin = (ms) => Math.round((Date.now() - ms) / 60000);
 
 const results = [];
 // Resolved once, up front, so every check below stays synchronous (see `check`).
 let MI3_STATE = null;
 try {
-  const m = await import("file:///" + path.join(REPO, "scratch", "longview_run", "dashboard", "estate.mjs")
-    .replace(/\\/g, "/"));
+  const m = await import(
+    "file:///" +
+      path.join(REPO, "scratch", "longview_run", "dashboard", "estate.mjs").replace(/\\/g, "/")
+  );
   MI3_STATE = m.flywheelState(WS);
-} catch { /* reported as INCONCLUSIVE by MI-3 */ }
+} catch {
+  /* reported as INCONCLUSIVE by MI-3 */
+}
 
 // Resolved up front for the same reason as MI3_STATE: every check() must stay synchronous.
 // null = endpoint unreachable (inconclusive); a number = chunks it served for THIS workspace.
@@ -52,7 +65,10 @@ let MI8_STATE = null;
 try {
   const res = await fetch(`${MI8_BASE}/api/rag/query`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "X-Benny-API-Key": process.env.BENNY_API_KEY || "" },
+    headers: {
+      "Content-Type": "application/json",
+      "X-Benny-API-Key": process.env.BENNY_API_KEY || ""
+    },
     body: JSON.stringify({ workspace: WS, query: "architecture decision", top_k: 3 }),
     signal: AbortSignal.timeout(15000)
   });
@@ -60,7 +76,9 @@ try {
     const d = await res.json();
     MI8_STATE = (Array.isArray(d) ? d : d.results || d.documents || []).length;
   }
-} catch { /* stays null → INCONCLUSIVE, never a silent pass */ }
+} catch {
+  /* stays null → INCONCLUSIVE, never a silent pass */
+}
 
 const VALID = new Set(["PASS", "FAIL", "INCONCLUSIVE"]);
 const check = (id, title, fn) => {
@@ -70,18 +88,32 @@ const check = (id, title, fn) => {
     // first version of this gate counted that as a PASS — the exact failure mode
     // this gate exists to catch, inside the gate itself.
     if (r && typeof r.then === "function") {
-      results.push({ id, title, status: "FAIL",
-                     detail: "check returned a Promise — asynchronous checks are not supported and must not be scored" });
+      results.push({
+        id,
+        title,
+        status: "FAIL",
+        detail:
+          "check returned a Promise — asynchronous checks are not supported and must not be scored"
+      });
       return;
     }
     if (!r || !VALID.has(r.status)) {
-      results.push({ id, title, status: "FAIL",
-                     detail: `check produced no valid status (${r && r.status}) — an unresolved check is not a pass` });
+      results.push({
+        id,
+        title,
+        status: "FAIL",
+        detail: `check produced no valid status (${r && r.status}) — an unresolved check is not a pass`
+      });
       return;
     }
     results.push({ id, title, ...r });
   } catch (e) {
-    results.push({ id, title, status: "INCONCLUSIVE", detail: String(e && e.message).slice(0, 200) });
+    results.push({
+      id,
+      title,
+      status: "INCONCLUSIVE",
+      detail: String(e && e.message).slice(0, 200)
+    });
   }
 };
 
@@ -89,18 +121,31 @@ const check = (id, title, fn) => {
 check("MI-1", "Debt accounting reconciles to inventory", () => {
   const L = `${wsDir}/longview`;
   const inv = readJSON(`${L}/inventory.json`, []);
-  if (!Array.isArray(inv) || !inv.length) return { status: "INCONCLUSIVE", detail: "inventory unreadable" };
-  const quarantined = new Set((readJSON(`${L}/quarantine.json`, { sids: [] }).sids) || []);
-  const cards = new Set(fs.readdirSync(`${L}/cards`)
-    .filter((f) => f.endsWith(".json") && !f.endsWith(".meta.json")).map((f) => f.replace(/\.json$/, "")));
+  if (!Array.isArray(inv) || !inv.length)
+    return { status: "INCONCLUSIVE", detail: "inventory unreadable" };
+  const quarantined = new Set(readJSON(`${L}/quarantine.json`, { sids: [] }).sids || []);
+  const cards = new Set(
+    fs
+      .readdirSync(`${L}/cards`)
+      .filter((f) => f.endsWith(".json") && !f.endsWith(".meta.json"))
+      .map((f) => f.replace(/\.json$/, ""))
+  );
   const verdicts = new Map();
   for (const line of fs.readFileSync(`${L}/ledger.jsonl`, "utf8").split("\n")) {
     if (!line.trim()) continue;
-    let e; try { e = JSON.parse(line); } catch { continue; }
+    let e;
+    try {
+      e = JSON.parse(line);
+    } catch {
+      continue;
+    }
     const id = e.session_id || e.sid || e.id;
     if (id && (e.status || e.verdict)) verdicts.set(id, e.status || e.verdict);
   }
-  let carded = 0, quar = 0, thin = 0, debt = 0;
+  let carded = 0,
+    quar = 0,
+    thin = 0,
+    debt = 0;
   for (const e of inv) {
     const sid = e.id || e.session_id || e.sid;
     if (!sid) continue;
@@ -119,7 +164,10 @@ check("MI-1", "Debt accounting reconciles to inventory", () => {
 
 // ── MI-2 falsifiability ───────────────────────────────────────────────────
 check("MI-2", "Readiness targets are derived, not tuned to pass", () => {
-  const src = fs.readFileSync(path.join(REPO, "scratch", "longview_run", "dashboard", "estate.mjs"), "utf8");
+  const src = fs.readFileSync(
+    path.join(REPO, "scratch", "longview_run", "dashboard", "estate.mjs"),
+    "utf8"
+  );
   // A literal offset in a readiness target is the signature of a tuned metric.
   const tuned = /need:\s*Math\.max\(\s*\d+\s*,\s*\w+\s*-\s*\d+\s*\)/.test(src);
   const derived = /const eligible = Math\.max\(1, d\.carded \+ d\.debt\)/.test(src);
@@ -127,8 +175,9 @@ check("MI-2", "Readiness targets are derived, not tuned to pass", () => {
     status: !tuned && derived ? "PASS" : "FAIL",
     detail: tuned
       ? "a readiness target uses a hardcoded numeric offset — it cannot fail"
-      : derived ? "map target derived from carded + debt (satisfied iff debt == 0)"
-                : "could not confirm the map target is derived from the debt accounting"
+      : derived
+        ? "map target derived from carded + debt (satisfied iff debt == 0)"
+        : "could not confirm the map target is derived from the debt accounting"
   };
 });
 
@@ -145,24 +194,32 @@ check("MI-3", "Readiness and debt cannot disagree", () => {
   const consistent = zero === (map.state === "satisfied") && zero === Boolean(fw.readiness.turning);
   return {
     status: consistent ? "PASS" : "FAIL",
-    detail: `debt=${fw.debt.debt} · map=${map.state} (${map.have}/${map.need}) · turning=${fw.readiness.turning}` +
-            (consistent ? "" : " — surfaces disagree about the same fact")
+    detail:
+      `debt=${fw.debt.debt} · map=${map.state} (${map.have}/${map.need}) · turning=${fw.readiness.turning}` +
+      (consistent ? "" : " — surfaces disagree about the same fact")
   };
 });
 
 // ── MI-4 source coverage (rotation blindness) ─────────────────────────────
 check("MI-4", "Readers cover every segment of their source", () => {
   const dir = path.join(REPO, "runtime", "workspace");
-  const onDisk = fs.readdirSync(dir)
+  const onDisk = fs
+    .readdirSync(dir)
     .filter((f) => f === "governance.log" || /^governance\.log\.\d+$/.test(f)).length;
   const reg = readJSON(`${wsDir}/longview/lineage/execution_register.json`);
   if (!reg) return { status: "INCONCLUSIVE", detail: "execution register not built" };
   const read = ((reg.sources || {}).governance_log || {}).segments;
-  if (read == null) return { status: "FAIL", detail: "register does not report how many ledger segments it read — rotation loss would be invisible" };
+  if (read == null)
+    return {
+      status: "FAIL",
+      detail:
+        "register does not report how many ledger segments it read — rotation loss would be invisible"
+    };
   return {
     status: read >= onDisk ? "PASS" : "FAIL",
-    detail: `register read ${read} of ${onDisk} ledger segments on disk` +
-            (read < onDisk ? " — rotated history is being silently dropped" : "")
+    detail:
+      `register read ${read} of ${onDisk} ledger segments on disk` +
+      (read < onDisk ? " — rotated history is being silently dropped" : "")
   };
 });
 
@@ -187,8 +244,9 @@ check("MI-5", "No control hardcodes a home path while BENNY_HOME is set", () => 
   }
   return {
     status: bad.length === 0 ? "PASS" : "FAIL",
-    detail: bad.length ? `hardcoded home, ignores BENNY_HOME: ${bad.join(", ")}` :
-      `${suspects.length} control paths checked; all honour BENNY_HOME or use no literal`
+    detail: bad.length
+      ? `hardcoded home, ignores BENNY_HOME: ${bad.join(", ")}`
+      : `${suspects.length} control paths checked; all honour BENNY_HOME or use no literal`
   };
 });
 
@@ -203,9 +261,12 @@ check("MI-6", "Live surfaces are actually live", () => {
   const stale = age > 5;
   return {
     status: stale ? "FAIL" : declaresState ? "PASS" : "FAIL",
-    detail: `dashboard.json is ${age} min old` +
+    detail:
+      `dashboard.json is ${age} min old` +
       (stale ? " — presented as live but frozen (is the collector running?)" : "") +
-      (declaresState ? `; pipeline_state="${rs.pipeline_state}"` : "; no pipeline_state field — completion is indistinguishable from stalling")
+      (declaresState
+        ? `; pipeline_state="${rs.pipeline_state}"`
+        : "; no pipeline_state field — completion is indistinguishable from stalling")
   };
 });
 
@@ -214,9 +275,17 @@ check("MI-7", "Gates prove they inspected something", () => {
   const reg = readJSON(`${wsDir}/longview/lineage/execution_register.json`);
   if (!reg) return { status: "INCONCLUSIVE", detail: "register absent" };
   const t = reg.totals || {};
-  if (!t.executions) return { status: "FAIL", detail: "register reports 0 executions — a control over an empty set is not a passing control" };
-  return { status: "PASS", detail: `register covers ${t.executions} executions / ${t.processes} processes; ` +
-           `${t.bound_to_contract} contract-bound` };
+  if (!t.executions)
+    return {
+      status: "FAIL",
+      detail: "register reports 0 executions — a control over an empty set is not a passing control"
+    };
+  return {
+    status: "PASS",
+    detail:
+      `register covers ${t.executions} executions / ${t.processes} processes; ` +
+      `${t.bound_to_contract} contract-bound`
+  };
 });
 
 // ── MI-8 the retrieval substrate must actually serve THIS workspace ───────
@@ -234,21 +303,39 @@ check("MI-7", "Gates prove they inspected something", () => {
 check("MI-8", "The retrieval server serves the workspace its corpus lives in", () => {
   const onDisk = fs.existsSync(`${wsDir}/chromadb`);
   if (MI8_STATE == null)
-    return { status: "INCONCLUSIVE", detail: `retrieval endpoint ${MI8_BASE} unreachable — cannot confirm groundedness` };
+    return {
+      status: "INCONCLUSIVE",
+      detail: `retrieval endpoint ${MI8_BASE} unreachable — cannot confirm groundedness`
+    };
   if (!onDisk && MI8_STATE === 0)
-    return { status: "INCONCLUSIVE", detail: `no chroma store for ${WS} on disk and none served — nothing to reconcile` };
+    return {
+      status: "INCONCLUSIVE",
+      detail: `no chroma store for ${WS} on disk and none served — nothing to reconcile`
+    };
   if (onDisk && MI8_STATE === 0)
-    return { status: "FAIL", detail:
-      `a chroma store EXISTS at ${wsDir}/chromadb but ${MI8_BASE} returns 0 results for '${WS}' — ` +
-      `the server is homed elsewhere. Anything generated now is ungrounded and will still look successful.` };
-  return { status: "PASS", detail: `${MI8_BASE} returned ${MI8_STATE} chunk(s) for '${WS}'; retrieval is grounded` };
+    return {
+      status: "FAIL",
+      detail:
+        `a chroma store EXISTS at ${wsDir}/chromadb but ${MI8_BASE} returns 0 results for '${WS}' — ` +
+        `the server is homed elsewhere. Anything generated now is ungrounded and will still look successful.`
+    };
+  return {
+    status: "PASS",
+    detail: `${MI8_BASE} returned ${MI8_STATE} chunk(s) for '${WS}'; retrieval is grounded`
+  };
 });
 
 // ── report ────────────────────────────────────────────────────────────────
 const fail = results.filter((r) => r.status === "FAIL");
 const inconc = results.filter((r) => r.status === "INCONCLUSIVE");
 if (process.argv.includes("--json")) {
-  console.log(JSON.stringify({ workspace: WS, results, failed: fail.length, inconclusive: inconc.length }, null, 1));
+  console.log(
+    JSON.stringify(
+      { workspace: WS, results, failed: fail.length, inconclusive: inconc.length },
+      null,
+      1
+    )
+  );
 } else {
   console.log(`Metric Integrity Gate — workspace ${WS}\n`);
   for (const r of results) {
@@ -256,7 +343,12 @@ if (process.argv.includes("--json")) {
     console.log(`  [${mark}] ${r.id}  ${r.title}`);
     console.log(`          ${r.detail}`);
   }
-  console.log(`\n  ${results.length - fail.length - inconc.length} pass · ${fail.length} fail · ${inconc.length} inconclusive`);
-  if (fail.length) console.log("\n  A failing metric-integrity check means a governance number may be flattering the estate.");
+  console.log(
+    `\n  ${results.length - fail.length - inconc.length} pass · ${fail.length} fail · ${inconc.length} inconclusive`
+  );
+  if (fail.length)
+    console.log(
+      "\n  A failing metric-integrity check means a governance number may be flattering the estate."
+    );
 }
 process.exit(fail.length ? 2 : 0);

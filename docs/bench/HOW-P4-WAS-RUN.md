@@ -9,10 +9,10 @@ A real two-model bench, incumbent (`house/qwen2.5-coder-tuned`, house-tuned 7B) 
 Result (frozen rubric `sha256:431f8c268670915d`, primary metric `authoring.wall_seconds`, lower is
 better):
 
-| subject | wall | tokens | cost | quality |
-|---|---|---|---|---|
-| **incumbent** | **14.54s** | 1,808 | $0.0008 | 0.143 |
-| gemma-e4b | 54.23s | 2,274 | $0.003 | 0.143 |
+| subject       | wall       | tokens | cost    | quality |
+| ------------- | ---------- | ------ | ------- | ------- |
+| **incumbent** | **14.54s** | 1,808  | $0.0008 | 0.143   |
+| gemma-e4b     | 54.23s     | 2,274  | $0.003  | 0.143   |
 
 **Incumbent wins** — ~3.7× faster, ~4× cheaper. Quality tied (`quality_score` 0.143 both); the
 rubric-quality fields (`has_required_ops`, `step_count`, `parse_ok`) were not computed without the

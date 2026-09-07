@@ -13,7 +13,11 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { resolveRegisterKey, initRegisterKey, keyPath } from "../server/coordination/lib/estate_register_key.mjs";
+import {
+  resolveRegisterKey,
+  initRegisterKey,
+  keyPath
+} from "../server/coordination/lib/estate_register_key.mjs";
 import { register } from "../server/coordination/lib/estate_register.mjs";
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "estate-key-"));
@@ -29,21 +33,33 @@ test("no key configured resolves to null (fail closed)", () => {
 
 test("a blank or whitespace-only key file resolves to null, never an empty string", () => {
   write("   \n");
-  assert.equal(resolveRegisterKey({ home: tmp, env: {} }), null,
-    'an empty expectedKey would authenticate any client sending ""');
+  assert.equal(
+    resolveRegisterKey({ home: tmp, env: {} }),
+    null,
+    'an empty expectedKey would authenticate any client sending ""'
+  );
 });
 
 test("an unconfigured hub refuses every registration", () => {
-  const r = register({}, { machine: "ASUS", sessions: [] }, {
-    key: "anything", expectedKey: resolveRegisterKey({ home: tmp, env: {} }), remoteAddress: "192.168.1.9"
-  });
+  const r = register(
+    {},
+    { machine: "ASUS", sessions: [] },
+    {
+      key: "anything",
+      expectedKey: resolveRegisterKey({ home: tmp, env: {} }),
+      remoteAddress: "192.168.1.9"
+    }
+  );
   assert.equal(r.ok, false);
   assert.equal(r.reason, "unauthenticated");
 });
 
 test("env beats the keystore file", () => {
   write("from-file\n");
-  assert.equal(resolveRegisterKey({ home: tmp, env: { ESTATE_REGISTER_KEY: "from-env" } }), "from-env");
+  assert.equal(
+    resolveRegisterKey({ home: tmp, env: { ESTATE_REGISTER_KEY: "from-env" } }),
+    "from-env"
+  );
 });
 
 test("a real key round-trips and then authenticates", () => {
@@ -53,9 +69,15 @@ test("a real key round-trips and then authenticates", () => {
   const key = resolveRegisterKey({ home: tmp, env: {} });
   assert.equal(typeof key, "string");
   assert.equal(key.length, 64, "32 random bytes, hex-encoded");
-  const reg = register({}, { machine: "ASUS", sessions: [] }, {
-    key, expectedKey: key, remoteAddress: "192.168.1.9"
-  });
+  const reg = register(
+    {},
+    { machine: "ASUS", sessions: [] },
+    {
+      key,
+      expectedKey: key,
+      remoteAddress: "192.168.1.9"
+    }
+  );
   assert.equal(reg.ok, true);
 });
 

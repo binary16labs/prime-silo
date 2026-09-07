@@ -45,7 +45,11 @@ export function resolveRegisterKey({ home, env = process.env } = {}) {
 export function initRegisterKey({ home, force = false } = {}) {
   const p = keyPath(home);
   if (fs.existsSync(p) && !force)
-    return { ok: false, path: p, reason: "a key already exists — pass force to rotate (every satellite must be re-keyed)" };
+    return {
+      ok: false,
+      path: p,
+      reason: "a key already exists — pass force to rotate (every satellite must be re-keyed)"
+    };
   fs.mkdirSync(path.dirname(p), { recursive: true });
   const key = crypto.randomBytes(32).toString("hex");
   fs.writeFileSync(p, key + "\n", { encoding: "utf8", mode: 0o600 });

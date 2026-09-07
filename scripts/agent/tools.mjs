@@ -16,7 +16,9 @@ const MAX_OUT = 4000; // chars of tool output fed back per step
 
 const cap = (s) => {
   s = String(s ?? "");
-  return s.length > MAX_OUT ? s.slice(0, MAX_OUT) + `\n…[+${s.length - MAX_OUT} chars truncated]` : s;
+  return s.length > MAX_OUT
+    ? s.slice(0, MAX_OUT) + `\n…[+${s.length - MAX_OUT} chars truncated]`
+    : s;
 };
 
 // Resolve a model-supplied path safely inside root. The model emits absolute paths: sometimes the
@@ -26,7 +28,8 @@ const cap = (s) => {
 // Case-insensitive on Windows (drive letter + path casing); the model often emits lowercase `c:\…`
 // while process.cwd() is `C:\…`, so a case-sensitive compare wrongly rejects in-root paths.
 const norm = (p) => (process.platform === "win32" ? p.toLowerCase() : p);
-const inside = (root, abs) => norm(abs) === norm(root) || norm(abs).startsWith(norm(root) + path.sep);
+const inside = (root, abs) =>
+  norm(abs) === norm(root) || norm(abs).startsWith(norm(root) + path.sep);
 function safePath(root, p) {
   if (!p) return null;
   root = path.resolve(root);
@@ -53,57 +56,82 @@ const TOOLS = {
   read_file: {
     roles: ["analyst", "developer"],
     run(input, { root }) {
-      const p = safePath(root, firstArg(input, ["file_path", "AbsolutePath", "path", "TargetFile"]));
+      const p = safePath(
+        root,
+        firstArg(input, ["file_path", "AbsolutePath", "path", "TargetFile"])
+      );
       if (!p) return "ERROR: path missing or outside workspace root";
       if (!fs.existsSync(p)) return `ERROR: no such file: ${p}`;
       if (fs.statSync(p).isDirectory()) return `ERROR: is a directory (use list_dir): ${p}`;
       const lines = fs.readFileSync(p, "utf8").split(/\r?\n/);
       const start = Number(firstArg(input, ["StartLine", "offset"]) || 1);
-      const end = Number(firstArg(input, ["EndLine", "limit"]) || Math.min(lines.length, start + 199));
+      const end = Number(
+        firstArg(input, ["EndLine", "limit"]) || Math.min(lines.length, start + 199)
+      );
       const slice = lines.slice(Math.max(0, start - 1), end);
       return cap(slice.map((l, i) => `${start + i}\t${l}`).join("\n"));
-    },
+    }
   },
   list_dir: {
     roles: ["analyst", "developer"],
     run(input, { root }) {
       const p = safePath(root, firstArg(input, ["DirectoryPath", "path"]) || ".");
       if (!p || !fs.existsSync(p)) return `ERROR: no such directory: ${p}`;
-      const entries = fs.readdirSync(p, { withFileTypes: true })
-        .map((e) => (e.isDirectory() ? e.name + "/" : e.name)).sort();
+      const entries = fs
+        .readdirSync(p, { withFileTypes: true })
+        .map((e) => (e.isDirectory() ? e.name + "/" : e.name))
+        .sort();
       return cap(entries.join("\n") || "(empty)");
-    },
+    }
   },
   grep: {
     roles: ["analyst", "developer"],
     run(input, { root }) {
       const pattern = firstArg(input, ["pattern", "Query", "query"]);
       if (!pattern) return "ERROR: pattern missing";
-      const where = safePath(root, firstArg(input, ["path", "SearchPath", "Includes"]) || ".") || root;
+      const where =
+        safePath(root, firstArg(input, ["path", "SearchPath", "Includes"]) || ".") || root;
       if (!where || !fs.existsSync(where)) return `ERROR: no such path: ${where}`;
       let re;
-      try { re = new RegExp(String(pattern), "i"); }
-      catch { re = new RegExp(String(pattern).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"); }
+      try {
+        re = new RegExp(String(pattern), "i");
+      } catch {
+        re = new RegExp(String(pattern).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+      }
       const SKIP = new Set(["node_modules", ".git", "out", "out_ta", "out_p5", "dist", "site"]);
       const hits = [];
       const walk = (dir) => {
         if (hits.length >= 40) return;
-        let ents; try { ents = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+        let ents;
+        try {
+          ents = fs.readdirSync(dir, { withFileTypes: true });
+        } catch {
+          return;
+        }
         for (const e of ents) {
           if (hits.length >= 40) break;
           const fp = path.join(dir, e.name);
-          if (e.isDirectory()) { if (!SKIP.has(e.name) && !e.name.startsWith(".")) walk(fp); continue; }
+          if (e.isDirectory()) {
+            if (!SKIP.has(e.name) && !e.name.startsWith(".")) walk(fp);
+            continue;
+          }
           if (/\.(png|jpg|jpeg|gif|pdf|zip|gguf|safetensors|bin|lock)$/i.test(e.name)) continue;
-          let txt; try { txt = fs.readFileSync(fp, "utf8"); } catch { continue; }
+          let txt;
+          try {
+            txt = fs.readFileSync(fp, "utf8");
+          } catch {
+            continue;
+          }
           txt.split(/\r?\n/).forEach((line, i) => {
-            if (hits.length < 40 && re.test(line)) hits.push(`${path.relative(root, fp)}:${i + 1}: ${line.trim().slice(0, 160)}`);
+            if (hits.length < 40 && re.test(line))
+              hits.push(`${path.relative(root, fp)}:${i + 1}: ${line.trim().slice(0, 160)}`);
           });
         }
       };
       const stat = fs.statSync(where);
       stat.isDirectory() ? walk(where) : walk(path.dirname(where));
       return cap(hits.join("\n") || "(no matches)");
-    },
+    }
   },
   // ---- shell execution (developer only, opt-in) ----
   bash: {
@@ -113,28 +141,44 @@ const TOOLS = {
       const cmd = firstArg(input, ["command", "CommandLine"]);
       if (!cmd) return "ERROR: command missing";
       if (/192\.168\.68\.125|:1234/.test(cmd)) return "ERROR: refused — LAN LM host is off-limits";
-      const r = spawnSync(cmd, { cwd: root, shell: true, encoding: "utf8", timeout: 30000,
-        maxBuffer: 4 * 1024 * 1024 });
+      const r = spawnSync(cmd, {
+        cwd: root,
+        shell: true,
+        encoding: "utf8",
+        timeout: 30000,
+        maxBuffer: 4 * 1024 * 1024
+      });
       const out = (r.stdout || "") + (r.stderr ? `\n[stderr]\n${r.stderr}` : "");
       return cap(out || `(exit ${r.status})`);
-    },
+    }
   },
   // ---- terminal / control ----
   finish: {
     roles: ["analyst", "developer"],
     run(input) {
       return `__FINISH__ ${firstArg(input, ["answer", "summary", "text"]) || "done"}`;
-    },
-  },
+    }
+  }
 };
 
 // Dialect aliases -> canonical tool (both vocabularies the model was trained on).
 const ALIASES = {
-  view_file: "read_file", read: "read_file", cat: "read_file",
-  run_command: "bash", powershell: "bash", shell: "bash",
-  grep_search: "grep", search: "grep", ripgrep: "grep",
-  list: "list_dir", ls: "list_dir", dir: "list_dir",
-  done: "finish", stop: "finish", answer: "finish", final_answer: "finish",
+  view_file: "read_file",
+  read: "read_file",
+  cat: "read_file",
+  run_command: "bash",
+  powershell: "bash",
+  shell: "bash",
+  grep_search: "grep",
+  search: "grep",
+  ripgrep: "grep",
+  list: "list_dir",
+  ls: "list_dir",
+  dir: "list_dir",
+  done: "finish",
+  stop: "finish",
+  answer: "finish",
+  final_answer: "finish"
 };
 
 export function resolveTool(name) {
@@ -144,20 +188,30 @@ export function resolveTool(name) {
 }
 
 export function toolNamesForRole(role) {
-  return Object.entries(TOOLS).filter(([, t]) => t.roles.includes(role)).map(([n]) => n);
+  return Object.entries(TOOLS)
+    .filter(([, t]) => t.roles.includes(role))
+    .map(([n]) => n);
 }
 
 // Execute a {name,input} call under a role. Returns { ok, result, canon, finished }.
 export function runTool(call, ctx) {
   const resolved = resolveTool(call?.name);
-  if (!resolved) return { ok: false, result: `ERROR: unknown tool "${call?.name}"`, finished: false };
+  if (!resolved)
+    return { ok: false, result: `ERROR: unknown tool "${call?.name}"`, finished: false };
   const { canon, tool } = resolved;
   if (!tool.roles.includes(ctx.role)) {
-    return { ok: false, result: `ERROR: tool "${canon}" not allowed for role "${ctx.role}"`, finished: false };
+    return {
+      ok: false,
+      result: `ERROR: tool "${canon}" not allowed for role "${ctx.role}"`,
+      finished: false
+    };
   }
   let result;
-  try { result = tool.run(call.input || {}, ctx); }
-  catch (e) { result = `ERROR: ${e.message}`; }
+  try {
+    result = tool.run(call.input || {}, ctx);
+  } catch (e) {
+    result = `ERROR: ${e.message}`;
+  }
   const finished = typeof result === "string" && result.startsWith("__FINISH__");
   return { ok: !String(result).startsWith("ERROR:"), result, canon, finished };
 }

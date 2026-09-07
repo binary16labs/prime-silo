@@ -34,7 +34,10 @@ import { resolveRegisterKey } from "../server/coordination/lib/estate_register_k
 
 const argv = process.argv.slice(2);
 const flag = (k) => argv.includes(k);
-const opt = (k, d = null) => { const i = argv.indexOf(k); return i >= 0 && argv[i + 1] ? argv[i + 1] : d; };
+const opt = (k, d = null) => {
+  const i = argv.indexOf(k);
+  return i >= 0 && argv[i + 1] ? argv[i + 1] : d;
+};
 
 const MACHINE = opt("--machine", process.env.ESTATE_MACHINE || os.hostname());
 const HUB = opt("--hub", process.env.ESTATE_HUB || null);
@@ -43,7 +46,13 @@ const HOME = (process.env.BENNY_HOME || path.join(os.homedir(), ".benny")).repla
 const WS = opt("--workspace", process.env.LONGVIEW_WORKSPACE || "sessions_v1");
 
 const sha256 = (buf) => crypto.createHash("sha256").update(buf).digest("hex");
-const readJSON = (p, d = null) => { try { return JSON.parse(fs.readFileSync(p, "utf8")); } catch { return d; } };
+const readJSON = (p, d = null) => {
+  try {
+    return JSON.parse(fs.readFileSync(p, "utf8"));
+  } catch {
+    return d;
+  }
+};
 
 const canonicalSid = (s) => String(s).replace(/-/g, "").trim().toLowerCase();
 
@@ -57,16 +66,30 @@ function sessionRoots() {
   roots.push(path.join(os.homedir(), ".claude", "projects"));
   roots.push(path.join(os.homedir(), ".mem0ray", "data", "projects"));
   roots.push(path.join(os.homedir(), ".mem0ray", "data"));
-  return roots.filter((r) => { try { return fs.statSync(r).isDirectory(); } catch { return false; } });
+  return roots.filter((r) => {
+    try {
+      return fs.statSync(r).isDirectory();
+    } catch {
+      return false;
+    }
+  });
 }
 
 function* transcripts(root) {
   let dirs = [];
-  try { dirs = fs.readdirSync(root, { withFileTypes: true }); } catch { return; }
+  try {
+    dirs = fs.readdirSync(root, { withFileTypes: true });
+  } catch {
+    return;
+  }
   for (const d of dirs) {
     if (d.isDirectory()) {
       let files = [];
-      try { files = fs.readdirSync(path.join(root, d.name)); } catch { continue; }
+      try {
+        files = fs.readdirSync(path.join(root, d.name));
+      } catch {
+        continue;
+      }
       for (const f of files) if (f.endsWith(".jsonl")) yield path.join(root, d.name, f);
     } else if (d.name.endsWith(".jsonl")) yield path.join(root, d.name);
   }
@@ -90,8 +113,13 @@ function localSessions() {
       if (seen.has(canon)) continue;
       seen.add(canon);
       let buf;
-      try { buf = fs.readFileSync(file); } catch { continue; }
-      const quarantined = q.has(canon) || [...q].some((b) => b.length >= 8 && canon.startsWith(b.slice(0, 8)));
+      try {
+        buf = fs.readFileSync(file);
+      } catch {
+        continue;
+      }
+      const quarantined =
+        q.has(canon) || [...q].some((b) => b.length >= 8 && canon.startsWith(b.slice(0, 8)));
       out.push({ sid, contentHash: `sha256:${sha256(buf)}`, quarantined });
       // buf goes out of scope here — content never reaches the caller
     }
@@ -104,7 +132,9 @@ async function reachable(url, ms = 1500) {
   try {
     const res = await fetch(`${url}/api/estate/satellites`, { signal: AbortSignal.timeout(ms) });
     return res.ok;
-  } catch { return false; }
+  } catch {
+    return false;
+  }
 }
 
 /** Scan the local /24 for a hub. Bounded and opt-in: this is the owner's own LAN, but a
@@ -114,13 +144,16 @@ async function discover() {
   const bases = new Set();
   for (const list of Object.values(nets))
     for (const ni of list || [])
-      if (ni.family === "IPv4" && !ni.internal) bases.add(ni.address.split(".").slice(0, 3).join("."));
+      if (ni.family === "IPv4" && !ni.internal)
+        bases.add(ni.address.split(".").slice(0, 3).join("."));
   for (const base of bases) {
     process.stderr.write(`[discover] sweeping ${base}.0/24 on port ${PORT}…\n`);
     const candidates = Array.from({ length: 254 }, (_, i) => `http://${base}.${i + 1}:${PORT}`);
     for (let i = 0; i < candidates.length; i += 32) {
       const batch = candidates.slice(i, i + 32);
-      const hits = await Promise.all(batch.map(async (u) => ((await reachable(u, 900)) ? u : null)));
+      const hits = await Promise.all(
+        batch.map(async (u) => ((await reachable(u, 900)) ? u : null))
+      );
       const found = hits.find(Boolean);
       if (found) return found;
     }
@@ -153,8 +186,12 @@ for (const s of manifest.sessions || [])
 
 console.log(`satellite ${MACHINE}`);
 console.log(`  sessions found      ${manifest.sessions.length}`);
-console.log(`  quarantine-flagged  ${quarantined}  (flagged for the hub's exclusion; content never sent)`);
-console.log(`  payload             content-hashes + flags only (${JSON.stringify(manifest.sessions[0] || {}).length} bytes/session)`);
+console.log(
+  `  quarantine-flagged  ${quarantined}  (flagged for the hub's exclusion; content never sent)`
+);
+console.log(
+  `  payload             content-hashes + flags only (${JSON.stringify(manifest.sessions[0] || {}).length} bytes/session)`
+);
 
 if (flag("--dry-run")) {
   console.log("\n--dry-run: nothing sent. Sample entry:");
@@ -176,7 +213,9 @@ if (!(await reachable(hub))) {
 const key = resolveRegisterKey();
 if (!key) {
   console.error("\nno registration key. On the HUB run: node scripts/estate_key.mjs --init");
-  console.error("then copy the key to this machine as ESTATE_REGISTER_KEY (or into its state dir).");
+  console.error(
+    "then copy the key to this machine as ESTATE_REGISTER_KEY (or into its state dir)."
+  );
   process.exit(4);
 }
 
@@ -187,7 +226,9 @@ async function announce() {
     return false;
   }
   const d = r.body.drift || {};
-  console.log(`registered with ${hub} — hub sees ${d.cleanCount ?? "?"} new, ${d.overlap ?? "?"} already held, ${d.quarantined?.count ?? 0} quarantined (withheld)`);
+  console.log(
+    `registered with ${hub} — hub sees ${d.cleanCount ?? "?"} new, ${d.overlap ?? "?"} already held, ${d.quarantined?.count ?? 0} quarantined (withheld)`
+  );
   return true;
 }
 
@@ -196,4 +237,6 @@ if (!flag("--watch")) process.exit(ok ? 0 : 5);
 
 const every = Number(opt("--interval", 300)) * 1000;
 console.log(`heartbeat every ${every / 1000}s — ctrl-c to stop`);
-setInterval(() => { announce().catch((e) => console.error("heartbeat failed:", e.message)); }, every);
+setInterval(() => {
+  announce().catch((e) => console.error("heartbeat failed:", e.message));
+}, every);

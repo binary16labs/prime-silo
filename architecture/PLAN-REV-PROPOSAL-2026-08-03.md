@@ -1,7 +1,7 @@
 # Plan revision proposal — lineage closure (workstream ML) + model plurality (workstream M)
 
 **Status:** PROPOSAL for owner signature. **Nothing here is applied.** `plan-deps.json` mirrors plan
-§12 and updates *only with a plan rev*, so this document is the rev — to be reviewed, signed, and
+§12 and updates _only with a plan rev_, so this document is the rev — to be reviewed, signed, and
 then applied **atomically** (see §5, which is the part most likely to break the board if ignored).
 
 **Author:** claude-opus, 2026-08-03. **Blocks:** EP-M (M0–M5) and the lineage contracts, neither of
@@ -17,24 +17,24 @@ The lineage work is **not new scope**. It is an existing, unmet key result:
 > it identically (gates `g0`/`g1`/`g2`).
 
 `REVIEW-delivery-lineage-2026-08-03.md` established that delivery decisions never reach the
-execution register or the OpenLineage DAG. That is KR2.2 failing for the *delivery* stream
+execution register or the OpenLineage DAG. That is KR2.2 failing for the _delivery_ stream
 specifically. So B4/B5/L15/L16 need **no new KR** — they close one already on the board.
 
 **KR2.4** — "100% of DONE tasks were verified by a non-author agent (audit of `board/LOG.md` /
-ledger)" — is the second beneficiary. It says *audit of the ledger*, but delivery verification lives
+ledger)" — is the second beneficiary. It says _audit of the ledger_, but delivery verification lives
 in markdown prose today, so the audit it calls for cannot actually be run. W1's `task_verified`
 (D3, in VERIFY now) makes the fact typed; B4 puts it in the ledger where KR2.4 expects it.
 
 Model plurality is different: **KR1.5 is closed** and was specifically "a house-method QLoRA
-measurably beats its base". Ranking *two* models on the agent loop is not that claim, so EP-M does
+measurably beats its base". Ranking _two_ models on the agent loop is not that claim, so EP-M does
 need a new KR.
 
 ## 2. Proposed OKR changes
 
-| Change | Text | Rationale |
-|---|---|---|
-| **New KR1.6** under O1 | "Two or more candidate engines are ranked on the same instrument over the estate's own agent loop, with every metric either measured or explicitly `unmeasured`; the incumbent is displaced only on evidence." | KR1.5 is closed and does not cover comparison. Without this, EP-M has no chain and `w0` rejects it — `okr` must resolve to exactly one `TRACEABILITY.md` row. |
-| **No change** to KR2.2 / KR2.4 | — | The lineage contracts close them as written. Adding a KR here would hide the fact that an existing one has been unmet. |
+| Change                         | Text                                                                                                                                                                                                           | Rationale                                                                                                                                                     |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **New KR1.6** under O1         | "Two or more candidate engines are ranked on the same instrument over the estate's own agent loop, with every metric either measured or explicitly `unmeasured`; the incumbent is displaced only on evidence." | KR1.5 is closed and does not cover comparison. Without this, EP-M has no chain and `w0` rejects it — `okr` must resolve to exactly one `TRACEABILITY.md` row. |
+| **No change** to KR2.2 / KR2.4 | —                                                                                                                                                                                                              | The lineage contracts close them as written. Adding a KR here would hide the fact that an existing one has been unmet.                                        |
 
 ## 3. Proposed workstreams
 
@@ -42,12 +42,12 @@ need a new KR.
 
 Wiring, not new machinery. Ordered by the hop they close.
 
-| id | Epic | What | deps |
-|---|---|---|---|
-| `B4` | EP-B | Delivery board → B0 ledger. Board transitions emit ledger events; `BOARD.md` becomes a projection. B2's explicitly deferred follow-up. | `[B2, W1]` |
-| `B5` | EP-B | Wire L5's `fromCoordEvent` into a live register projection (on-append via the B1 bus) plus `--rebuild` backfill. | `[B4]` |
-| `L15` | EP-L | Emit OpenLineage RunEvents for the delivery lifecycle; add a coordination source to `dashboard/lineage.mjs`. | `[B5]` |
-| `L16` | EP-L | Move the dashboard out of `scratch/` (never-commit) into a versioned path with a gate. | `[]` |
+| id    | Epic | What                                                                                                                                   | deps       |
+| ----- | ---- | -------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| `B4`  | EP-B | Delivery board → B0 ledger. Board transitions emit ledger events; `BOARD.md` becomes a projection. B2's explicitly deferred follow-up. | `[B2, W1]` |
+| `B5`  | EP-B | Wire L5's `fromCoordEvent` into a live register projection (on-append via the B1 bus) plus `--rebuild` backfill.                       | `[B4]`     |
+| `L15` | EP-L | Emit OpenLineage RunEvents for the delivery lifecycle; add a coordination source to `dashboard/lineage.mjs`.                           | `[B5]`     |
+| `L16` | EP-L | Move the dashboard out of `scratch/` (never-commit) into a versioned path with a gate.                                                 | `[]`       |
 
 `L16` is independent and should go **first** if the surface is ever shown to anyone — today the
 observability surface a regulator would be shown cannot be rebuilt from the repo.
@@ -76,7 +76,7 @@ in `server/coordination/work-schema/validate.mjs` is hard-coded `M1..M8`, so **`
 `w0` enforces three couplings simultaneously:
 
 - every `plan-deps.json` phase has a contract in `delivery/tasks/`;
-- every contract is a plan phase (*"scope enters via plan revs"*);
+- every contract is a plan phase (_"scope enters via plan revs"_);
 - each contract's `deps` **equals** its `plan-deps.json` entry;
 
 plus: every task id appears exactly once across board columns, and exactly once in

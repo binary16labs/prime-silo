@@ -21,7 +21,10 @@ const fail = (msg) => {
 };
 const py = (code) => spawnSync(PY, ["-c", code], { cwd: RUNTIME, encoding: "utf8" });
 
-for (const rel of ["runtime/benny/sdlc/bench_ledger.py", "runtime/tests/governance/test_bench_ledger.py"]) {
+for (const rel of [
+  "runtime/benny/sdlc/bench_ledger.py",
+  "runtime/tests/governance/test_bench_ledger.py"
+]) {
   if (!fs.existsSync(path.join(ROOT, rel))) fail(`required artifact missing: ${rel}`);
 }
 
@@ -97,8 +100,10 @@ if (r.one_sample !== r.UNKNOWN) fail(`a single sample must be UNKNOWN, got ${r.o
 if (r.blind !== r.UNKNOWN) fail(`missing resource fields must be UNKNOWN, got ${r.blind}`);
 
 // 4. R11 — the record can prove WHICH engine ran.
-if (!r.quant_differs) fail("q4_k_m and q8_0 fingerprint the same — the record cannot prove which ran");
-if (!r.order_stable) fail("the topology fingerprint depends on dict ordering — it is not a fingerprint");
+if (!r.quant_differs)
+  fail("q4_k_m and q8_0 fingerprint the same — the record cannot prove which ran");
+if (!r.order_stable)
+  fail("the topology fingerprint depends on dict ordering — it is not a fingerprint");
 
 // 5. R9 — an entry that cannot be traced is refused, and an unledgered bench reads as unledgered.
 if (!r.refused_blank_run_id) fail("a register entry with a blank run_id was accepted");
@@ -188,7 +193,12 @@ if (s.dropped !== 0) fail(`${s.dropped} contended subject(s) were DROPPED instea
 if (JSON.stringify(s.order) !== JSON.stringify(["a", "ERR", "c"]))
   fail(`a failing subject aborted the run: ${JSON.stringify(s.order)}`);
 if (!s.free_after_failure) fail("a failing subject stranded the host lock");
-if (!s.emitted || s.emit_started_id !== "r1" || s.emit_completed_id !== "r1" || s.emit_workspace !== "ws")
+if (
+  !s.emitted ||
+  s.emit_started_id !== "r1" ||
+  s.emit_completed_id !== "r1" ||
+  s.emit_workspace !== "ws"
+)
   fail(
     "emit_lineage did not call the REAL governance signature — start/complete must receive " +
       "(workflow_id, workflow_name, workspace, ...), the arity the shipped start(run_id, entry) could never satisfy"
@@ -196,7 +206,9 @@ if (!s.emitted || s.emit_started_id !== "r1" || s.emit_completed_id !== "r1" || 
 if (s.failing_sink_reported_emitted)
   fail("a failing lineage sink was reported as emitted — `emitted` must come from the call");
 if (s.default_path_emitted)
-  fail("the default lineage path claimed emitted where openlineage is absent — it must fail closed");
+  fail(
+    "the default lineage path claimed emitted where openlineage is absent — it must fail closed"
+  );
 if (!s.refused_unledgered)
   fail("an unledgered bench was not REFUSED — scenario 1's Then clause says it fails");
 
