@@ -1,0 +1,126 @@
+<html>
+  <head>
+    <!-- Same reason as the Gov, Lineage and Deck arcs: the shell's index.css imports only
+         google-icons, so every var(--space-*) / var(--font-size-*) is undefined unless the
+         view links these itself. -->
+    <link rel="stylesheet" href="/mod/_core/framework/css/layout.css" />
+    <link rel="stylesheet" href="/mod/_core/framework/css/type.css" />
+    <link rel="stylesheet" href="/mod/_prime_silo/release/release.css" />
+    <script type="module" src="/mod/_prime_silo/release/release.js"></script>
+  </head>
+  <body>
+    <section class="rel" x-data="releasePage()" x-init="init()" x-cloak>
+      <header class="rel__head">
+        <h1 class="rel__title">Release</h1>
+        <span class="rel__badge" :data-state="s.health?.state || 'unknown'" x-text="verdict()"></span>
+        <span class="rel__age" x-show="s.reachable" x-cloak x-text="ageLine()"></span>
+      </header>
+
+      <!-- Unreachable is not healthy. A rate-limited or offline check must never render as a
+           clean bill: the whole point of this surface is that a silent update path is the
+           failure it is looking for. -->
+      <div class="rel__blind" x-show="!loading && !s.reachable" x-cloak>
+        <strong>Cannot tell</strong>
+        <p x-text="s.reason || 'the release could not be checked'"></p>
+      </div>
+
+      <p class="rel__loading" x-show="loading" x-cloak>Reading the published release…</p>
+
+      <template x-if="s.reachable && s.health">
+        <div class="rel__body">
+          <!-- Coverage: one row per platform the release actually builds for. -->
+          <div class="rel__grid">
+            <template x-for="c in s.health.coverage" :key="c.platform">
+              <article class="rel__plat" :data-state="c.state">
+                <p class="rel__platname" x-text="c.platform"></p>
+                <p class="rel__platstate" x-text="c.state"></p>
+                <p class="rel__arches">
+                  <span>feed lists</span> <b x-text="c.listed.join(', ') || 'nothing'"></b>
+                  <span>· published</span> <b x-text="c.published.join(', ') || 'nothing'"></b>
+                </p>
+                <template x-for="g in c.gaps" :key="g.arch">
+                  <p class="rel__gap" :data-severity="g.severity">
+                    <b x-text="g.arch"></b>
+                    <span x-text="g.severity === 'stranded'
+                      ? 'is offered an installer for the wrong architecture — nothing rescues it'
+                      : 'is missing from the feed; the app downloads the right file itself'"></span>
+                  </p>
+                </template>
+                <p class="rel__ok" x-show="!c.gaps.length" x-cloak>every architecture is listed</p>
+              </article>
+            </template>
+          </div>
+
+          <!-- The publish gate. Both halves are always shown, met or not: an operator told only
+               "not armed" would install a credential to fix what is really a missing signature. -->
+          <section class="rel__gate">
+            <h2 class="rel__gatetitle">Publishing</h2>
+            <template x-for="t in s.health.unpublished" :key="t">
+              <div class="rel__tag">
+                <p class="rel__tagname">
+                  <b x-text="t"></b> is tagged but was never published
+                </p>
+                <ol class="rel__steps">
+                  <li :data-met="proposalFor(t) !== null">
+                    <span x-text="proposalFor(t) ? 'Proposed' : 'Not proposed'"></span>
+                    <button
+                      type="button"
+                      class="rel__act"
+                      x-show="!proposalFor(t)"
+                      @click="raise(t)"
+                      :disabled="busy"
+                    >
+                      Raise it
+                    </button>
+                  </li>
+                  <li :data-met="proposalFor(t)?.state === 'signed'">
+                    <span
+                      x-text="proposalFor(t)?.state === 'signed'
+                        ? 'Signed by a person'
+                        : 'Waiting for a human signature'"
+                    ></span>
+                    <!-- Deliberately a link, not a button. Nothing on this page signs. -->
+                    <a
+                      class="rel__link"
+                      x-show="proposalFor(t) && proposalFor(t).state !== 'signed'"
+                      href="#/_prime_silo/gov"
+                      >Open the Gov arc</a
+                    >
+                  </li>
+                  <li :data-met="s.publish?.armed">
+                    <span
+                      x-text="s.publish?.armed
+                        ? 'This machine holds a publishing credential'
+                        : 'No publishing credential on this machine'"
+                    ></span>
+                    <code class="rel__cmd" x-show="!s.publish?.armed"
+                      >node scripts/release_raise.mjs arm &lt; token.txt</code
+                    >
+                  </li>
+                </ol>
+                <button
+                  type="button"
+                  class="rel__publish"
+                  x-show="canPublish(t)"
+                  @click="publish(t)"
+                  :disabled="busy"
+                  x-text="busy ? 'Dispatching…' : 'Publish ' + t"
+                ></button>
+              </div>
+            </template>
+            <p class="rel__none" x-show="!s.health.unpublished.length" x-cloak>
+              Every tag inside the last <span x-text="s.health.unpublished_window"></span> releases
+              has a release behind it.
+            </p>
+            <p class="rel__said" x-show="said" x-cloak x-text="said"></p>
+          </section>
+        </div>
+      </template>
+
+      <p class="rel__foot">
+        Nothing here signs. Publishing asks the governance ledger whether a person already
+        decided, and refuses when nobody did.
+      </p>
+    </section>
+  </body>
+</html>

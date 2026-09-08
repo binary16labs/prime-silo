@@ -9,6 +9,9 @@ release
 # The unanchored `release` rule above is for build output, but it also swallows
 # source dirs that happen to be named release — carve those back in.
 !runtime/tests/release/
+# The Release arc — a panel, not build output. Same carve-out, same reason: the rule
+# above is unanchored and cannot tell a directory called release from a release.
+!app/L0/_all/mod/_prime_silo/release/
 /app/L1/
 /app/L2/
 

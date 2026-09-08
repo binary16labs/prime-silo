@@ -89,6 +89,7 @@ th{font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;color:var(--in
 <a href="#arc-agent">Agent <span class="role">· Ask</span></a>
 <a href="#arc-files">Files <span class="role">· Hold</span></a>
 <a href="#arc-deck">The Deck <span class="role">· Watch</span></a>
+<a href="#arc-release">Release <span class="role">· Decide</span></a>
 <h2 style="margin-top:1.4rem">Workflows</h2>
 <a href="#wf-onboard-application">Onboard an application</a>
 <a href="#wf-prove-the-estate">Prove the estate</a>
@@ -114,6 +115,7 @@ th{font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;color:var(--in
 <tr><td>Files</td><td>Hold</td><td><code>#/file_explorer</code></td></tr>
 <tr><td>Local LLM</td><td>Think</td><td><code>#/huggingface</code></td></tr>
 <tr><td>The Deck</td><td>Watch</td><td><code>#/_prime_silo/deck</code></td></tr>
+<tr><td>Release</td><td>Decide</td><td><code>#/_prime_silo/release</code></td></tr>
 </tbody></table>
 <h2 id="arc-gov">Gov</h2>
 <p class="arc-role">Decide · <code>#/_prime_silo/gov</code></p>
@@ -341,6 +343,25 @@ th{font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;color:var(--in
 <li>The reading time is always on the page: an old picture that says how old it is is still evidence.</li>
 </ul>
 <p class="src">server/api/deck_kindle.js  ·  tests/deck_kindle_test.mjs</p>
+<h2 id="arc-release">Release</h2>
+<p class="arc-role">Decide · <code>#/_prime_silo/release</code></p>
+<h3 id="f-release">Publishing a release</h3>
+<p class="purpose">The estate publishes its own releases: it shows whether the update feed actually covers every architecture, and dispatches the build only when a person has signed for it.</p>
+<p class="lab">How</p><ul>
+<li>Open the Release arc to see the latest published release and, per platform, which architectures the feed lists against which are actually published.</li>
+<li>A tag with no release behind it is named there — that state is invisible on GitHub, because the release simply is not there.</li>
+<li>Raise, sign, publish: the arc raises the proposal, you sign it in the Gov arc, and only then does the publish button appear.</li>
+<li>The same three steps from a terminal: node scripts/release_raise.mjs status | raise --tag vX.Y.Z | publish --tag vX.Y.Z</li>
+<li>Publishing needs a GitHub token with actions:write, supplied once via stdin: node scripts/release_raise.mjs arm &lt; token.txt</li>
+</ul>
+<p class="lab">What it refuses to do</p><ul class="refuses">
+<li>Publishing refuses without a human signature — unlike local machinery it may not run unauthorised and be counted afterwards.</li>
+<li>A missing architecture is graded by platform: mitigated on Windows, where the app downloads the right installer itself, and stranded on macOS and Linux, where nothing rescues it.</li>
+<li>A feed nobody could read is reported as unknown, never as covered.</li>
+<li>The dispatch is recorded as a run against the proposal that authorised it, including when GitHub refuses it.</li>
+<li>The token is never printed, never sent to the browser, and never read from a command-line argument.</li>
+</ul>
+<p class="src">server/coordination/lib/releases.mjs  ·  server/coordination/lib/release_token.mjs  ·  server/api/release_state.js  ·  server/api/release_publish.js  ·  scripts/release_raise.mjs  ·  tests/releases_test.mjs</p>
 <h2 id="wf-onboard-application">Onboard an application</h2>
 <p class="purpose">Bring a new application into the estate so it is authorised, stored once, placed everywhere, and remembered.</p>
 <div class="step"><div class="step-n">1</div><div>
@@ -411,5 +432,5 @@ th{font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;color:var(--in
 <div class="step-body"><p>Check the verdict names any vacuous gauge and any unseen scope before you believe it.</p>
 <p><code>#/_prime_silo/lineage</code></p>
 </div></div>
-<p class="foot">Generated from <code>manual/manual.json</code> by <code>scripts/manual_build.mjs</code>. Every file, panel, endpoint and command named on this page is resolved against the repository at build time — the build fails rather than describe something that is not there. 16 features · 2 workflows · 77 retrievable chunks · 318 graph facts.</p>
+<p class="foot">Generated from <code>manual/manual.json</code> by <code>scripts/manual_build.mjs</code>. Every file, panel, endpoint and command named on this page is resolved against the repository at build time — the build fails rather than describe something that is not there. 17 features · 2 workflows · 83 retrievable chunks · 341 graph facts.</p>
 </main></div>

@@ -134,6 +134,18 @@ The estate on paper — refusal 2. The estate on paper — The Deck arc. State i
 
 The estate on paper — refusal 3. The estate on paper — The Deck arc. The reading time is always on the page: an old picture that says how old it is is still evidence. (Kindle, e-ink, paper, no-JS, static board, Kindle tier)
 
+Publishing a release. Publishing a release (Release arc). The estate publishes its own releases: it shows whether the update feed actually covers every architecture, and dispatches the build only when a person has signed for it. How to use it: Open the Release arc to see the latest published release and, per platform, which architectures the feed lists against which are actually published. A tag with no release behind it is named there — that state is invisible on GitHub, because the release simply is not there. Raise, sign, publish: the arc raises the proposal, you sign it in the Gov arc, and only then does the publish button appear. The same three steps from a terminal: node scripts/release_raise.mjs status | raise --tag vX.Y.Z | publish --tag vX.Y.Z Publishing needs a GitHub token with actions:write, supplied once via stdin: node scripts/release_raise.mjs arm < token.txt (release, publish, updater feed, auto-update, cut a release, ship a version, workflow dispatch)
+
+Publishing a release — refusal 1. Publishing a release — Release arc. Publishing refuses without a human signature — unlike local machinery it may not run unauthorised and be counted afterwards. (release, publish, updater feed, auto-update, cut a release, ship a version, workflow dispatch)
+
+Publishing a release — refusal 2. Publishing a release — Release arc. A missing architecture is graded by platform: mitigated on Windows, where the app downloads the right installer itself, and stranded on macOS and Linux, where nothing rescues it. (release, publish, updater feed, auto-update, cut a release, ship a version, workflow dispatch)
+
+Publishing a release — refusal 3. Publishing a release — Release arc. A feed nobody could read is reported as unknown, never as covered. (release, publish, updater feed, auto-update, cut a release, ship a version, workflow dispatch)
+
+Publishing a release — refusal 4. Publishing a release — Release arc. The dispatch is recorded as a run against the proposal that authorised it, including when GitHub refuses it. (release, publish, updater feed, auto-update, cut a release, ship a version, workflow dispatch)
+
+Publishing a release — refusal 5. Publishing a release — Release arc. The token is never printed, never sent to the browser, and never read from a command-line argument. (release, publish, updater feed, auto-update, cut a release, ship a version, workflow dispatch)
+
 Onboard an application — Propose. Onboard an application, step 1 of 6: Propose. Performed by agent or you. Raise a proposal naming the application, why it is wanted, what it costs and whether it reverses. Command: node scripts/app_onboard.mjs propose --app <id> --title <name> --source <url> --rationale <why>. Gate: Nothing is downloaded or installed at this step.
 
 Onboard an application — Decide. Onboard an application, step 2 of 6: Decide. Performed by you, and only you. Open the Gov arc and sign or decline. This is the authorisation the rest of the workflow cites. Gate: The workflow refuses to continue while the proposal is open or declined.

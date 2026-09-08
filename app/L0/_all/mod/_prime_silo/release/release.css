@@ -1,0 +1,286 @@
+/* Release — what the estate published, and the decision publishing needs.
+ *
+ * Governed CSS (C0): every colour resolves through a token in colors.css; spacing, radius and
+ * type come from layout.css / type.css. No hex lives here — the gate fails the commit if it does.
+ *
+ * The severity vocabulary is the point of this sheet. "stranded" and "mitigated" are the same
+ * shape of defect with very different consequences, so they must not read the same: stranded
+ * carries the danger token and a solid rule, mitigated is drawn as a warning that has already
+ * been caught. Grading them alike is exactly the mistake the fold behind this page had to have
+ * corrected, and the styling would have hidden it just as effectively as the code did.
+ *
+ * Nothing animates on its own. The only state change is one you asked for.
+ */
+
+.rel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-6);
+  font-family: var(--font-stack-active);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-body);
+  color: var(--color-text-primary);
+  background: var(--color-canvas);
+  min-height: 100%;
+}
+
+[x-cloak] {
+  display: none !important;
+}
+
+.rel__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--color-border-soft);
+  padding-bottom: var(--space-3);
+}
+
+.rel__title {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-tight);
+}
+
+.rel__badge {
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-caps);
+  font-size: var(--font-size-sm);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-secondary);
+}
+
+.rel__badge[data-state="covered"] {
+  border-color: var(--color-status-success);
+  color: var(--color-status-success);
+}
+
+.rel__badge[data-state="degraded"],
+.rel__badge[data-state="partial"] {
+  border-color: var(--color-status-warning);
+  color: var(--color-status-warning);
+}
+
+.rel__badge[data-state="stranded"],
+.rel__badge[data-state="none"] {
+  border-color: var(--color-status-danger);
+  color: var(--color-status-danger);
+}
+
+.rel__age,
+.rel__loading,
+.rel__none,
+.rel__foot {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+  margin: 0;
+  max-width: var(--measure-max);
+}
+
+.rel__foot {
+  border-top: 1px solid var(--color-border-soft);
+  padding-top: var(--space-3);
+  margin-top: auto;
+}
+
+.rel__blind {
+  border: 1px solid var(--color-status-danger);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  background: var(--color-surface-1);
+}
+
+.rel__blind strong {
+  display: block;
+  margin-bottom: var(--space-2);
+}
+
+.rel__blind p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  max-width: var(--measure-max);
+}
+
+.rel__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.rel__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--space-4);
+}
+
+.rel__plat {
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  background: var(--color-surface-1);
+  box-shadow: var(--elevation-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.rel__platname {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-caps);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+.rel__platstate {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-tight);
+}
+
+.rel__plat[data-state="covered"] .rel__platstate {
+  color: var(--color-status-success);
+}
+
+.rel__plat[data-state="gap"] .rel__platstate,
+.rel__plat[data-state="unknown"] .rel__platstate {
+  color: var(--color-status-warning);
+}
+
+.rel__arches,
+.rel__ok {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.rel__gap {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--color-status-warning);
+  background: var(--color-surface-raised);
+  color: var(--color-text-secondary);
+}
+
+/* The one that actually breaks someone's machine. It does not share a colour with the one
+   the app already recovers from. */
+.rel__gap[data-severity="stranded"] {
+  border-left-color: var(--color-status-danger);
+  color: var(--color-text-primary);
+}
+
+.rel__gate {
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background: var(--color-surface-1);
+  box-shadow: var(--elevation-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.rel__gatetitle {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-tight);
+}
+
+.rel__tag {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  border-top: 1px solid var(--color-border-soft);
+  padding-top: var(--space-4);
+}
+
+.rel__tagname {
+  margin: 0;
+}
+
+.rel__steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.rel__steps li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  padding-left: var(--space-4);
+  border-left: 3px solid var(--color-border-strong);
+}
+
+.rel__steps li[data-met="true"] {
+  border-left-color: var(--color-status-success);
+  color: var(--color-text-primary);
+}
+
+.rel__cmd {
+  font-size: var(--font-size-sm);
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  color: var(--color-text-primary);
+}
+
+.rel__act,
+.rel__publish {
+  font: inherit;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  padding: var(--space-1) var(--space-3);
+}
+
+/* One primary action on the view, and it is the only one with outward effect. */
+.rel__publish {
+  align-self: flex-start;
+  background: var(--color-accent-primary);
+  color: var(--color-accent-ink);
+  border-color: var(--color-accent-primary);
+  padding: var(--space-2) var(--space-5);
+  font-size: var(--font-size-base);
+}
+
+.rel__act:disabled,
+.rel__publish:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.rel__act:focus-visible,
+.rel__publish:focus-visible,
+.rel__link:focus-visible {
+  outline: 2px solid var(--color-focus-border);
+  outline-offset: 2px;
+}
+
+.rel__link {
+  color: var(--color-accent-primary);
+  font-size: var(--font-size-sm);
+}
+
+.rel__said {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  border-left: 3px solid var(--color-accent-primary);
+  padding-left: var(--space-3);
+  max-width: var(--measure-max);
+}

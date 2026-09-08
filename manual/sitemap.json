@@ -1,10 +1,10 @@
 {
   "generated_from": "scripts/sitemap_build.mjs",
   "counts": {
-    "surfaces": 17,
-    "routes": 55,
-    "commands": 24,
-    "unreached_routes": 40
+    "surfaces": 18,
+    "routes": 57,
+    "commands": 25,
+    "unreached_routes": 39
   },
   "zones": [
     {
@@ -21,6 +21,20 @@
           "endpoints": [
             "gov_proposals",
             "gov_sign"
+          ]
+        },
+        {
+          "name": "Release",
+          "route": "_prime_silo/release",
+          "description": "What the estate has published and whether anyone can install it — feed coverage per platform, and the signed decision that publishing requires.",
+          "icon": "publish",
+          "colour": "#63a063",
+          "dir": "app/L0/_all/mod/_prime_silo/release",
+          "hasView": true,
+          "endpoints": [
+            "gov_raise",
+            "release_publish",
+            "release_state"
           ]
         }
       ]
@@ -250,87 +264,87 @@
     {
       "command": "node scripts/app_onboard.mjs",
       "file": "scripts/app_onboard.mjs",
-      "summary": ""
+      "summary": "Onboard an application — the governed path from \"I want this\" to \"the estate can prove it\"."
     },
     {
       "command": "node scripts/artifact.mjs",
       "file": "scripts/artifact.mjs",
-      "summary": ""
+      "summary": "Artifact CLI — download once, place anywhere, and record who said so."
     },
     {
       "command": "node scripts/audit-integrations.mjs",
       "file": "scripts/audit-integrations.mjs",
-      "summary": ""
+      "summary": "Phase M1 — headless integration conformance audit (and manifest signer)."
     },
     {
       "command": "node scripts/audit-registry.mjs",
       "file": "scripts/audit-registry.mjs",
-      "summary": ""
+      "summary": "Conformance audit (and signer) for the decentralized app registry."
     },
     {
       "command": "node scripts/configure-open-notebook-models.mjs",
       "file": "scripts/configure-open-notebook-models.mjs",
-      "summary": ""
+      "summary": "Configure open-notebook's model roles from openstudio-models.config.json."
     },
     {
       "command": "node scripts/estate.mjs",
       "file": "scripts/estate.mjs",
-      "summary": ""
+      "summary": "estate — the operator CLI for the governed estate."
     },
     {
       "command": "node scripts/estate_backup.mjs",
       "file": "scripts/estate_backup.mjs",
-      "summary": "shared workspace, with the quarantine boundary enforced at the copy edge."
+      "summary": "estate_backup — content-addressed backup of RAW session and tool data to a"
     },
     {
       "command": "node scripts/estate_key.mjs",
       "file": "scripts/estate_key.mjs",
-      "summary": "POST /api/estate/register."
+      "summary": "estate registration key — generate / inspect the shared per-estate secret that gates"
     },
     {
       "command": "node scripts/estate_satellite_agent.mjs",
       "file": "scripts/estate_satellite_agent.mjs",
-      "summary": "hub so \"just start prime-silo and it detects\" becomes literal."
+      "summary": "estate satellite agent — RUNS ON THE SATELLITE (the ASUS). Announces the machine to the"
     },
     {
       "command": "node scripts/estate_satellite_pull.mjs",
       "file": "scripts/estate_satellite_pull.mjs",
-      "summary": ""
+      "summary": "satellite-pull — the governed satellite -> hub session pull."
     },
     {
       "command": "node scripts/evidence_pack.mjs",
       "file": "scripts/evidence_pack.mjs",
-      "summary": ""
+      "summary": "Generate the estate evidence pack."
     },
     {
       "command": "node scripts/flows_build.mjs",
       "file": "scripts/flows_build.mjs",
-      "summary": ""
+      "summary": "Process flows — a graph, checked as a graph."
     },
     {
       "command": "node scripts/heartbeat_estate.mjs",
       "file": "scripts/heartbeat_estate.mjs",
-      "summary": ""
+      "summary": "The estate board — every node's heartbeat, folded into one view."
     },
     {
       "command": "node scripts/heartbeat_run.mjs",
       "file": "scripts/heartbeat_run.mjs",
-      "summary": "most of the time."
+      "summary": "One heartbeat sweep. Designed to be run on a schedule and to do nothing interesting"
     },
     {
       "command": "node scripts/inventory_sweep.mjs",
       "file": "scripts/inventory_sweep.mjs",
-      "summary": ""
+      "summary": "Estate inventory sweep — look at the world, then hold the ledger to it."
     },
     {
       "command": "node scripts/manual_build.mjs",
       "file": "scripts/manual_build.mjs",
-      "summary": ""
+      "summary": "Operating manual — one source, three consumptions, none of them hand-maintained."
     },
     {
       "command": "node scripts/manual_load.mjs",
       "file": "scripts/manual_load.mjs",
-      "summary": ""
+      "summary": "Load the operating manual into the agent's memory — graph facts and retrievable chunks."
     },
     {
       "command": "node scripts/offload-report.mjs",
@@ -340,32 +354,37 @@
     {
       "command": "node scripts/offload-runner.mjs",
       "file": "scripts/offload-runner.mjs",
-      "summary": "($BENNY_HOME/state/hmac-key) -> fail fast. No shipped default remains."
+      "summary": "Q0: single resolution path — env BENNY_API_KEY -> per-install keystore"
     },
     {
       "command": "node scripts/openstudio-notebook-bridge.mjs",
       "file": "scripts/openstudio-notebook-bridge.mjs",
-      "summary": ""
+      "summary": "Open-Studio bridge (Phase 2b): open-notebook sources -> Benny RAG."
+    },
+    {
+      "command": "node scripts/release_raise.mjs",
+      "file": "scripts/release_raise.mjs",
+      "summary": "Publish a release through the estate instead of through a browser — raise, sign, dispatch, record."
     },
     {
       "command": "node scripts/robustness_build.mjs",
       "file": "scripts/robustness_build.mjs",
-      "summary": ""
+      "summary": "Robustness diagrams — ICONIX, with the method's own rules enforced."
     },
     {
       "command": "node scripts/run-workflows.mjs",
       "file": "scripts/run-workflows.mjs",
-      "summary": "($BENNY_HOME/state/hmac-key) -> fail fast. No shipped default remains."
+      "summary": "Q0: single resolution path — env BENNY_API_KEY -> per-install keystore"
     },
     {
       "command": "node scripts/sitemap_build.mjs",
       "file": "scripts/sitemap_build.mjs",
-      "summary": ""
+      "summary": "Estate sitemap — derived from the code, checked in both directions."
     },
     {
       "command": "node scripts/usecases_build.mjs",
       "file": "scripts/usecases_build.mjs",
-      "summary": ""
+      "summary": "Use cases — checked against the sitemap, in both directions."
     }
   ],
   "routes_without_a_panel": [
@@ -391,7 +410,6 @@
     "git_history_preview",
     "git_history_revert",
     "git_history_rollback",
-    "gov_raise",
     "guest_create",
     "health",
     "home",

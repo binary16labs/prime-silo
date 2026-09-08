@@ -23,6 +23,7 @@ _What the estate does, how to work it, and what each part refuses to do_
 | Files | Hold | `#/file_explorer` |
 | Local LLM | Think | `#/huggingface` |
 | The Deck | Watch | `#/_prime_silo/deck` |
+| Release | Decide | `#/_prime_silo/release` |
 
 ## Features
 
@@ -327,6 +328,28 @@ Source: `server/lib/deck_intents.js`, `server/api/deck_voice.js`, `server/api/de
 - The reading time is always on the page: an old picture that says how old it is is still evidence.
 
 Source: `server/api/deck_kindle.js`, `tests/deck_kindle_test.mjs`
+
+### Publishing a release
+
+**Release arc** — The estate publishes its own releases: it shows whether the update feed actually covers every architecture, and dispatches the build only when a person has signed for it.
+
+**How**
+
+- Open the Release arc to see the latest published release and, per platform, which architectures the feed lists against which are actually published.
+- A tag with no release behind it is named there — that state is invisible on GitHub, because the release simply is not there.
+- Raise, sign, publish: the arc raises the proposal, you sign it in the Gov arc, and only then does the publish button appear.
+- The same three steps from a terminal: node scripts/release_raise.mjs status | raise --tag vX.Y.Z | publish --tag vX.Y.Z
+- Publishing needs a GitHub token with actions:write, supplied once via stdin: node scripts/release_raise.mjs arm < token.txt
+
+**What it refuses to do**
+
+- Publishing refuses without a human signature — unlike local machinery it may not run unauthorised and be counted afterwards.
+- A missing architecture is graded by platform: mitigated on Windows, where the app downloads the right installer itself, and stranded on macOS and Linux, where nothing rescues it.
+- A feed nobody could read is reported as unknown, never as covered.
+- The dispatch is recorded as a run against the proposal that authorised it, including when GitHub refuses it.
+- The token is never printed, never sent to the browser, and never read from a command-line argument.
+
+Source: `server/coordination/lib/releases.mjs`, `server/coordination/lib/release_token.mjs`, `server/api/release_state.js`, `server/api/release_publish.js`, `scripts/release_raise.mjs`, `tests/releases_test.mjs`
 
 ## Workflows
 

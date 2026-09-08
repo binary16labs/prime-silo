@@ -1,9 +1,9 @@
 {
   "generated_from": "scripts/usecases_build.mjs",
-  "use_cases": 18,
-  "surfaces": 17,
+  "use_cases": 19,
+  "surfaces": 18,
   "exercised": 10,
-  "declared": 8,
+  "declared": 9,
   "gaps": [
     {
       "id": "UC-02",
@@ -17,7 +17,16 @@
       "name": "Gov",
       "use_cases": [
         "UC-01",
-        "UC-05"
+        "UC-05",
+        "UC-19"
+      ]
+    },
+    {
+      "route": "_prime_silo/release",
+      "zone": "Decide",
+      "name": "Release",
+      "use_cases": [
+        "UC-19"
       ]
     },
     {

@@ -2,8 +2,8 @@
 
 _What people and machinery actually do here, and which surface each act happens on_
 
-18 use cases · 17 surfaces, all covered · 
-10 exercised, 8 declared
+19 use cases · 18 surfaces, all covered · 
+10 exercised, 9 declared
 
 ## Actors
 
@@ -447,11 +447,47 @@ Actors are the estate's own authorship enum (R38) — human, frontier, house —
 - Room mode is ON by default: machine names, proposal titles and store paths are hidden until you reveal them, because the surface is often projected.
 - A deck that cannot read the ledgers reports 'not reporting' rather than a wall of zeroes.
 
+## UC-19 · Publish a release the estate can account for
+
+**Actor** You (the owner) · **declared**
+
+**Goal** Get installers to the people running this software, with a signed decision behind the act and a record of who made it.
+
+**Trigger** A version is tagged but no release exists, or the published feed does not cover every architecture.
+
+**Precondition** The governance ledger's hash chain verifies.
+
+**Precondition** The tag is pushed to the remote.
+
+**Precondition** A GitHub credential with actions:write is on this machine.
+
+**Surfaces** Release (`#/_prime_silo/release`) · Gov (`#/_prime_silo/gov`)
+
+**Endpoints** `/api/release_state` · `/api/gov_raise` · `/api/release_publish`
+
+**Flow**
+
+1. Open the Release arc. It shows the latest published release and, per platform, which architectures the feed lists against which are actually published.
+2. A tag with no release behind it is named — that state does not appear on GitHub at all.
+3. Raise it. The proposal is frontier-authored: it asks, it does not authorise.
+4. Sign it in the Gov arc, as any other decision.
+5. Return and publish. The dispatch is recorded as a run against the proposal that authorised it.
+
+**Outcome** A workflow dispatch, and an execution_recorded event citing the signed proposal — whether GitHub accepted the dispatch or refused it.
+
+**What it refuses to do**
+
+- Publishing without a human signature, even when the credential is present.
+- Publishing on the authority of a ledger whose chain does not verify.
+- Nothing on the Release arc signs; the signature is taken in the Gov arc.
+- The credential is never read from a command-line argument and never sent to the browser.
+
 ## Coverage
 
 | Zone | Surface | Use cases |
 | --- | --- | --- |
-| Decide | Gov | UC-01, UC-05 |
+| Decide | Gov | UC-01, UC-05, UC-19 |
+| Decide | Release | UC-19 |
 | Prove | Benny Record | UC-11 |
 | Prove | Lineage | UC-03, UC-04 |
 | Prove | Manifests | UC-08, UC-12 |

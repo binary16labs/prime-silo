@@ -40,7 +40,11 @@ const say = (...m) => {
 // human judgement about a surface, not a fact derivable from it. Every panel must map to one,
 // and an unmapped panel fails the build rather than being silently filed under "other".
 const ZONES = {
-  Decide: ["_prime_silo/gov"],
+  // Release sits in Decide rather than Watch even though most of the page is status. What the
+  // surface exists FOR is the one action on it, and that action is gated on a human signature;
+  // filing it under Watch would say the estate's job there is to observe a publication rather
+  // than to authorise one.
+  Decide: ["_prime_silo/gov", "_prime_silo/release"],
   Prove: ["_prime_silo/lineage", "_prime_silo/benny_record", "_prime_silo/manifest_explorer"],
   Watch: ["_prime_silo/mission_control", "_prime_silo/bridge", "_prime_silo/deck"],
   Recall: [
@@ -103,12 +107,22 @@ const scripts = fs
   .filter((f) => f.endsWith(".mjs"))
   .map((f) => {
     const text = read(path.join(repo, "scripts", f));
-    // Second comment line is the one-liner every estate script carries under its title.
-    const lines = text.split("\n").filter((l) => l.startsWith("//"));
+    // The FIRST comment line is the title every estate script carries under its shebang.
+    //
+    // This used to take the second one, on the theory that a summary sat beneath the title. It
+    // does not: the estate's house style puts a bare `//` there, so almost every command in
+    // this map had an empty summary — and the two that did not showed a fragment from the
+    // middle of a sentence, which is worse than blank because it reads like a description. A
+    // map whose captions are empty is a map nobody consults.
+    const lines = text
+      .split("\n")
+      .filter((l) => l.startsWith("//"))
+      .map((l) => l.replace(/^\/\/\s?/, "").trim())
+      .filter(Boolean);
     return {
       command: `node scripts/${f}`,
       file: `scripts/${f}`,
-      summary: (lines[1] || lines[0] || "").replace(/^\/\/\s?/, "").trim()
+      summary: lines[0] || ""
     };
   });
 

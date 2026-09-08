@@ -5,7 +5,7 @@ Every surface the estate presents, grouped by the job it does. Generated from th
 view and endpoint, and every registered panel appears here. The build fails rather than
 show a map that has drifted.
 
-17 surfaces · 55 API routes · 24 commands
+18 surfaces · 57 API routes · 25 commands
 
 ## Decide
 
@@ -16,6 +16,14 @@ The signing queue — what Benny has proposed, what it rests on, and the decisio
 Calls: `/api/gov_proposals` · `/api/gov_sign`
 
 Source: `app/L0/_all/mod/_prime_silo/gov`
+
+### Release — `#/_prime_silo/release`
+
+What the estate has published and whether anyone can install it — feed coverage per platform, and the signed decision that publishing requires.
+
+Calls: `/api/gov_raise` · `/api/release_publish` · `/api/release_state`
+
+Source: `app/L0/_all/mod/_prime_silo/release`
 
 ## Prove
 
@@ -143,30 +151,31 @@ Source: `app/L0/_all/mod/_core/user`
 
 Parts of the estate with no panel — run these directly.
 
-- `node scripts/app_onboard.mjs` — 
-- `node scripts/artifact.mjs` — 
-- `node scripts/audit-integrations.mjs` — 
-- `node scripts/audit-registry.mjs` — 
-- `node scripts/configure-open-notebook-models.mjs` — 
-- `node scripts/estate.mjs` — 
-- `node scripts/estate_backup.mjs` — shared workspace, with the quarantine boundary enforced at the copy edge.
-- `node scripts/estate_key.mjs` — POST /api/estate/register.
-- `node scripts/estate_satellite_agent.mjs` — hub so "just start prime-silo and it detects" becomes literal.
-- `node scripts/estate_satellite_pull.mjs` — 
-- `node scripts/evidence_pack.mjs` — 
-- `node scripts/flows_build.mjs` — 
-- `node scripts/heartbeat_estate.mjs` — 
-- `node scripts/heartbeat_run.mjs` — most of the time.
-- `node scripts/inventory_sweep.mjs` — 
-- `node scripts/manual_build.mjs` — 
-- `node scripts/manual_load.mjs` — 
+- `node scripts/app_onboard.mjs` — Onboard an application — the governed path from "I want this" to "the estate can prove it".
+- `node scripts/artifact.mjs` — Artifact CLI — download once, place anywhere, and record who said so.
+- `node scripts/audit-integrations.mjs` — Phase M1 — headless integration conformance audit (and manifest signer).
+- `node scripts/audit-registry.mjs` — Conformance audit (and signer) for the decentralized app registry.
+- `node scripts/configure-open-notebook-models.mjs` — Configure open-notebook's model roles from openstudio-models.config.json.
+- `node scripts/estate.mjs` — estate — the operator CLI for the governed estate.
+- `node scripts/estate_backup.mjs` — estate_backup — content-addressed backup of RAW session and tool data to a
+- `node scripts/estate_key.mjs` — estate registration key — generate / inspect the shared per-estate secret that gates
+- `node scripts/estate_satellite_agent.mjs` — estate satellite agent — RUNS ON THE SATELLITE (the ASUS). Announces the machine to the
+- `node scripts/estate_satellite_pull.mjs` — satellite-pull — the governed satellite -> hub session pull.
+- `node scripts/evidence_pack.mjs` — Generate the estate evidence pack.
+- `node scripts/flows_build.mjs` — Process flows — a graph, checked as a graph.
+- `node scripts/heartbeat_estate.mjs` — The estate board — every node's heartbeat, folded into one view.
+- `node scripts/heartbeat_run.mjs` — One heartbeat sweep. Designed to be run on a schedule and to do nothing interesting
+- `node scripts/inventory_sweep.mjs` — Estate inventory sweep — look at the world, then hold the ledger to it.
+- `node scripts/manual_build.mjs` — Operating manual — one source, three consumptions, none of them hand-maintained.
+- `node scripts/manual_load.mjs` — Load the operating manual into the agent's memory — graph facts and retrievable chunks.
 - `node scripts/offload-report.mjs` — 
-- `node scripts/offload-runner.mjs` — ($BENNY_HOME/state/hmac-key) -> fail fast. No shipped default remains.
-- `node scripts/openstudio-notebook-bridge.mjs` — 
-- `node scripts/robustness_build.mjs` — 
-- `node scripts/run-workflows.mjs` — ($BENNY_HOME/state/hmac-key) -> fail fast. No shipped default remains.
-- `node scripts/sitemap_build.mjs` — 
-- `node scripts/usecases_build.mjs` — 
+- `node scripts/offload-runner.mjs` — Q0: single resolution path — env BENNY_API_KEY -> per-install keystore
+- `node scripts/openstudio-notebook-bridge.mjs` — Open-Studio bridge (Phase 2b): open-notebook sources -> Benny RAG.
+- `node scripts/release_raise.mjs` — Publish a release through the estate instead of through a browser — raise, sign, dispatch, record.
+- `node scripts/robustness_build.mjs` — Robustness diagrams — ICONIX, with the method's own rules enforced.
+- `node scripts/run-workflows.mjs` — Q0: single resolution path — env BENNY_API_KEY -> per-install keystore
+- `node scripts/sitemap_build.mjs` — Estate sitemap — derived from the code, checked in both directions.
+- `node scripts/usecases_build.mjs` — Use cases — checked against the sitemap, in both directions.
 
 ## Routes with no panel
 
@@ -195,7 +204,6 @@ Listed because an endpoint nobody can reach from the UI is a fact worth knowing,
 - `/api/git_history_preview`
 - `/api/git_history_revert`
 - `/api/git_history_rollback`
-- `/api/gov_raise`
 - `/api/guest_create`
 - `/api/health`
 - `/api/home`

@@ -1,0 +1,7 @@
+name: Release
+path: _prime_silo/release
+description: What the estate has published and whether anyone can install it — feed coverage per platform, and the signed decision that publishing requires.
+icon: publish
+# The Gov arc colour. Publishing is a decision surface before it is a status one: the only
+# action here is gated on a human signature, and it belongs to the arc that holds signatures.
+color: "#63a063"

@@ -202,6 +202,26 @@
       "o": "#/_prime_silo/deck"
     },
     {
+      "s": "arc:release",
+      "p": "IS_A",
+      "o": "Arc"
+    },
+    {
+      "s": "arc:release",
+      "p": "NAMED",
+      "o": "Release"
+    },
+    {
+      "s": "arc:release",
+      "p": "HAS_ROLE",
+      "o": "Decide"
+    },
+    {
+      "s": "arc:release",
+      "p": "RENDERS_AT",
+      "o": "#/_prime_silo/release"
+    },
+    {
       "s": "feature:kel",
       "p": "IS_A",
       "o": "Feature"
@@ -1200,6 +1220,101 @@
       "s": "feature:deck_kindle",
       "p": "TAGGED",
       "o": "offline"
+    },
+    {
+      "s": "feature:release",
+      "p": "IS_A",
+      "o": "Feature"
+    },
+    {
+      "s": "feature:release",
+      "p": "NAMED",
+      "o": "Publishing a release"
+    },
+    {
+      "s": "feature:release",
+      "p": "ON_ARC",
+      "o": "arc:release"
+    },
+    {
+      "s": "feature:release",
+      "p": "PURPOSE",
+      "o": "The estate publishes its own releases: it shows whether the update feed actually covers every architecture, and dispatches the build only when a person has signed for it."
+    },
+    {
+      "s": "feature:release",
+      "p": "REFUSES",
+      "o": "Publishing refuses without a human signature — unlike local machinery it may not run unauthorised and be counted afterwards."
+    },
+    {
+      "s": "feature:release",
+      "p": "REFUSES",
+      "o": "A missing architecture is graded by platform: mitigated on Windows, where the app downloads the right installer itself, and stranded on macOS and Linux, where nothing rescues it."
+    },
+    {
+      "s": "feature:release",
+      "p": "REFUSES",
+      "o": "A feed nobody could read is reported as unknown, never as covered."
+    },
+    {
+      "s": "feature:release",
+      "p": "REFUSES",
+      "o": "The dispatch is recorded as a run against the proposal that authorised it, including when GitHub refuses it."
+    },
+    {
+      "s": "feature:release",
+      "p": "REFUSES",
+      "o": "The token is never printed, never sent to the browser, and never read from a command-line argument."
+    },
+    {
+      "s": "feature:release",
+      "p": "IMPLEMENTED_IN",
+      "o": "server/coordination/lib/releases.mjs"
+    },
+    {
+      "s": "feature:release",
+      "p": "IMPLEMENTED_IN",
+      "o": "server/coordination/lib/release_token.mjs"
+    },
+    {
+      "s": "feature:release",
+      "p": "IMPLEMENTED_IN",
+      "o": "server/api/release_state.js"
+    },
+    {
+      "s": "feature:release",
+      "p": "IMPLEMENTED_IN",
+      "o": "server/api/release_publish.js"
+    },
+    {
+      "s": "feature:release",
+      "p": "IMPLEMENTED_IN",
+      "o": "scripts/release_raise.mjs"
+    },
+    {
+      "s": "feature:release",
+      "p": "IMPLEMENTED_IN",
+      "o": "tests/releases_test.mjs"
+    },
+    {
+      "s": "feature:release",
+      "p": "TAGGED",
+      "o": "release"
+    },
+    {
+      "s": "feature:release",
+      "p": "TAGGED",
+      "o": "publishing"
+    },
+    {
+      "s": "feature:release",
+      "p": "TAGGED",
+      "o": "updates"
+    },
+    {
+      "s": "feature:release",
+      "p": "TAGGED",
+      "o": "governance"
     },
     {
       "s": "workflow:onboard-application",

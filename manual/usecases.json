@@ -363,6 +363,35 @@
       ],
       "aliases": ["HUD", "deck", "wall", "projector", "holodeck"],
       "verified": "exercised"
+    },
+    {
+      "id": "UC-19",
+      "name": "Publish a release the estate can account for",
+      "actor": "human",
+      "goal": "Get installers to the people running this software, with a signed decision behind the act and a record of who made it.",
+      "trigger": "A version is tagged but no release exists, or the published feed does not cover every architecture.",
+      "preconditions": [
+        "The governance ledger's hash chain verifies.",
+        "The tag is pushed to the remote.",
+        "A GitHub credential with actions:write is on this machine."
+      ],
+      "surfaces": ["_prime_silo/release", "_prime_silo/gov"],
+      "endpoints": ["release_state", "gov_raise", "release_publish"],
+      "flow": [
+        "Open the Release arc. It shows the latest published release and, per platform, which architectures the feed lists against which are actually published.",
+        "A tag with no release behind it is named — that state does not appear on GitHub at all.",
+        "Raise it. The proposal is frontier-authored: it asks, it does not authorise.",
+        "Sign it in the Gov arc, as any other decision.",
+        "Return and publish. The dispatch is recorded as a run against the proposal that authorised it."
+      ],
+      "outcome": "A workflow dispatch, and an execution_recorded event citing the signed proposal — whether GitHub accepted the dispatch or refused it.",
+      "refuses": [
+        "Publishing without a human signature, even when the credential is present.",
+        "Publishing on the authority of a ledger whose chain does not verify.",
+        "Nothing on the Release arc signs; the signature is taken in the Gov arc.",
+        "The credential is never read from a command-line argument and never sent to the browser."
+      ],
+      "verified": "declared"
     }
   ]
 }
