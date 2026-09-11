@@ -105,7 +105,20 @@ export function proposalRaisedEvent({
 }
 
 // --- sign: the authorisation. authorship is NOT a parameter, by design (see header). ---
-export function proposalSignedEvent({ proposalId, machine, signer, note = "", valid_time = null }) {
+// How a signer was identified ("session", "single-user-app:os-account", …) travels with the
+// signature, because a name alone cannot say whether it came from a login or from the OS. Absent,
+// not empty: a builder called without a source (tests, backfills) omits the key rather than
+// asserting "" — an empty string would claim the question was answered.
+const sourceOf = (signerSource) => (signerSource ? { signer_source: signerSource } : {});
+
+export function proposalSignedEvent({
+  proposalId,
+  machine,
+  signer,
+  note = "",
+  valid_time = null,
+  signerSource = null
+}) {
   if (!proposalId) throw new Error("proposalSignedEvent: proposalId is required");
   if (!machine) throw new Error("proposalSignedEvent: machine is required");
   if (!signer)
@@ -118,7 +131,7 @@ export function proposalSignedEvent({ proposalId, machine, signer, note = "", va
     machine,
     proposalId,
     valid_time,
-    payload: { signer, note }
+    payload: { signer, note, ...sourceOf(signerSource) }
   });
 }
 
@@ -130,7 +143,8 @@ export function proposalDeclinedEvent({
   machine,
   signer,
   reason = "",
-  valid_time = null
+  valid_time = null,
+  signerSource = null
 }) {
   if (!proposalId) throw new Error("proposalDeclinedEvent: proposalId is required");
   if (!machine) throw new Error("proposalDeclinedEvent: machine is required");
@@ -141,7 +155,7 @@ export function proposalDeclinedEvent({
     machine,
     proposalId,
     valid_time,
-    payload: { signer, reason }
+    payload: { signer, reason, ...sourceOf(signerSource) }
   });
 }
 

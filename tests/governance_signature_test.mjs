@@ -153,3 +153,71 @@ test("an unattributed signature is refused outright", () => {
     /signer is required/
   );
 });
+
+// --- who is recorded as the signer --------------------------------------------------------------
+// The desktop app runs in single-user mode, where every request resolves to an implicit principal
+// named "user". release-1-24-1 was signed through it and the ledger says signer "user" — a slot,
+// not a person. These pin the rule that replaced it, each paired with the failure it prevents.
+
+const singleUser = { user: { isAuthenticated: true, source: "single-user-app", username: "user" } };
+
+test("the single-user placeholder is never recorded as the signer", async () => {
+  const { resolveSigner } = await import("../server/api/gov_sign.js");
+  const r = resolveSigner(singleUser, { osAccount: () => "nsdha" });
+  assert.equal(r.signer, "nsdha");
+  assert.equal(r.source, "single-user-app:os-account");
+  // the paired negative: the old behaviour, which this must never return again
+  assert.notEqual(r.signer, "user");
+});
+
+test("a real session keeps its own username", async () => {
+  const { resolveSigner } = await import("../server/api/gov_sign.js");
+  const r = resolveSigner(
+    { user: { isAuthenticated: true, source: "session", username: "alice" } },
+    { osAccount: () => "nsdha" }
+  );
+  assert.deepEqual(r, { signer: "alice", source: "session" });
+});
+
+test("nothing in the request body can choose the signer", async () => {
+  // The whole point of resolving on the server. A body naming someone must change nothing.
+  const { resolveSigner } = await import("../server/api/gov_sign.js");
+  const r = resolveSigner(
+    { ...singleUser, body: { signer: "someone-else", proposalId: "p12" } },
+    { osAccount: () => "nsdha" }
+  );
+  assert.equal(r.signer, "nsdha");
+});
+
+test("an unreadable OS account refuses rather than falling back to the placeholder", async () => {
+  const { resolveSigner } = await import("../server/api/gov_sign.js");
+  const r = resolveSigner(singleUser, {
+    osAccount: () => {
+      throw new Error("no account");
+    }
+  });
+  // An empty signer is what gov_sign turns into a 403. "user" here would be an unattributed
+  // signature wearing a name tag.
+  assert.equal(r.signer, "");
+});
+
+test("how the signer was identified travels with the signature — and is omitted when unknown", () => {
+  const withSource = proposalSignedEvent({
+    proposalId: "p13",
+    machine: "t480",
+    signer: "nsdha",
+    signerSource: "single-user-app:os-account"
+  });
+  assert.equal(withSource.payload.signer_source, "single-user-app:os-account");
+  // Absent is not empty: no source, no key — never signer_source: "".
+  assert.equal("signer_source" in sign("p14").payload, false);
+
+  const declined = proposalDeclinedEvent({
+    proposalId: "p15",
+    machine: "t480",
+    signer: "nsdha",
+    reason: "not now",
+    signerSource: "session"
+  });
+  assert.equal(declined.payload.signer_source, "session");
+});
