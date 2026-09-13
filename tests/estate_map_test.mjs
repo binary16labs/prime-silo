@@ -64,7 +64,8 @@ test("Scenario: a sweep with a failing collector still publishes, and says which
 
   const apps = event.payload.collectors.find((c) => c.kind === "apps");
   assert.equal(apps.status, "errored");
-  assert.match(apps.error, /reg query denied/u);
+  assert.equal(apps.error_code, "UNKNOWN");
+  assert.ok(!JSON.stringify(event).includes("reg query denied"), "no error text is ever published");
   assert.equal(event.payload.collectors.find((c) => c.kind === "files").status, "ok");
 
   const log = readKelEvents(mapLogFile(estate, "t480"));
@@ -247,7 +248,195 @@ test("an error that quotes a quarantined path is withheld everywhere, keeping it
   });
   const out = await allOutput(db, estate, sweep, "optimus");
   assert.ok(!out.includes("cv-2026"), "error text leaked the quarantined path");
-  assert.match(sweep.collectors[0].error, /withheld.*\(EPERM\)/u);
+  assert.ok(!out.includes("operation not permitted"), "error text of any kind must not be stored");
+  assert.equal(sweep.collectors[0].error_code, "EPERM");
+});
+
+// --- verifier-2 findings (claude-s0-verifier-2): the classes, not the instances ----------------
+
+test("no encoding of a path inside an error reaches any output, and a bad code is not kept", async () => {
+  const thrown = [
+    Object.assign(new Error("open 'C:\\Users\\x\\Documents\\cv-2026.docx'"), { code: "EPERM" }),
+    new Error(`stat failed ${JSON.stringify("C:\\Users\\x\\Documents\\cv-2026.docx")}`),
+    new Error("fetch file:///C:/Users/x/My%20Documents/cv-2026.docx"),
+    Object.assign(new Error("x"), { code: "C:/Users/x/cv-2026.docx" }),
+    Object.assign(new Error("wrapped"), { cause: new Error("C:/Users/x/cv-2026.docx") }),
+    { path: "C:/Users/x/cv-2026.docx" },
+    "C:\\Users\\x\\cv-2026.docx"
+  ];
+  for (const err of thrown) {
+    const { db, estate } = setup();
+    const boom = {
+      name: "boom",
+      kind: "files",
+      volumes: ["C:"],
+      async *collect() {
+        throw err;
+      }
+    };
+    const sweep = await runSweep({
+      db,
+      machine: "vm",
+      collectors: [boom],
+      scope: ["C:"],
+      quarantine: [/^C:\/Users\/x\/Documents\//iu]
+    });
+    const out = await allOutput(db, estate, sweep, "vm");
+    assert.ok(
+      !out.toLowerCase().includes("cv-2026"),
+      `leaked via ${JSON.stringify(String(err?.message ?? err))}`
+    );
+    assert.match(sweep.collectors[0].error_code, /^(EPERM|UNKNOWN)$/u);
+  }
+});
+
+test("one normaliser: trailing slashes, ./, .., repeated separators, doubled backslashes and NFD all match", async () => {
+  const cases = [
+    { root: "D:/Private/", path: "cv/interview.mp4" },
+    { root: "D:/Private", path: "./cv/interview.mp4" },
+    { root: "D:/Private/other/..", path: "cv//interview.mp4" },
+    { root: "D:\\\\Private", path: "cv\\\\interview.mp4" },
+    // NFD path (e + combining acute) against an NFC rule; only the NFC rule is given for this
+    // case, so a missing normalize("NFC") cannot hide behind the broader "private/cv" rule.
+    { root: "D:/Private", path: "cve\u0301s/interview.mp4", rule: "private/cvés" }
+  ];
+  for (const c of cases) {
+    const { db, estate } = setup();
+    const media = {
+      name: "m",
+      kind: "media",
+      async *collect() {
+        yield { root: c.root, path: c.path, title: "secret title", size: 5 };
+      }
+    };
+    const sweep = await runSweep({
+      db,
+      machine: "vm",
+      collectors: [media],
+      scope: [],
+      quarantine: [c.rule ?? "private/cv"]
+    });
+    const out = await allOutput(db, estate, sweep, "vm");
+    for (const leak of ["interview", "secret title"])
+      assert.ok(!out.includes(leak), `${JSON.stringify(c)} leaked ${leak}`);
+  }
+});
+
+test("every free-text field is tested: app name, publisher, version, and a collector-supplied category", async () => {
+  const { db, estate } = setup();
+  const apps = {
+    name: "a",
+    kind: "apps",
+    async *collect() {
+      yield { name: "Resume Wizard", publisher: "C:/Users/x/cv-2026.docx", version: "1" };
+    }
+  };
+  const f = files("C:", [{ path: "C:/data/a.bin", size: 1, category: "C:/Users/x/cv-2026.docx" }]);
+  const sweep = await runSweep({
+    db,
+    machine: "vm",
+    collectors: [apps, f],
+    scope: ["C:"],
+    quarantine: ["cv-2026"]
+  });
+  const out = await allOutput(db, estate, sweep, "vm");
+  for (const leak of ["cv-2026", "Resume Wizard"]) assert.ok(!out.includes(leak), `leaked ${leak}`);
+  assert.equal(db.prepare("SELECT private FROM apps").get().private, 1);
+});
+
+test("collector names and volumes cannot carry data: bad names and quarantined volumes are refused before any write", async () => {
+  const { db } = setup();
+  const bad = files("C:", [{ path: "C:/a", size: 1 }]);
+  bad.name = "C:/Users/x/cv-2026.docx";
+  await assert.rejects(
+    runSweep({ db, machine: "vm", collectors: [bad], scope: ["C:"] }),
+    (e) => !String(e.message).includes("cv-2026")
+  );
+  await assert.rejects(
+    runSweep({
+      db,
+      machine: "vm",
+      collectors: [],
+      scope: ["C:/Users/x/cv-2026"],
+      quarantine: ["cv-2026"]
+    }),
+    (e) => !String(e.message).includes("cv-2026")
+  );
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM sweeps").get().n, 0);
+});
+
+test("bookkeeping the gate did not check: hash case, errored sweep id, digest fields, snapshot record, counts, header, absolute media, subject", async () => {
+  const { db, estate } = setup();
+  // path hash is case-insensitive: two spellings of one Windows path are one row
+  await runSweep({
+    db,
+    machine: "t480",
+    collectors: [
+      files("F:", [
+        { path: "F:/A.bin", size: 1 },
+        { path: "F:/a.bin", size: 1 }
+      ])
+    ],
+    scope: ["F:"]
+  });
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM files").get().n, 1);
+  // an errored re-sweep records its own sweep id and reports zero rows
+  const dying = {
+    name: "flaky",
+    kind: "files",
+    volumes: ["F:"],
+    async *collect() {
+      yield { path: "F:/b", size: 1 };
+      throw new Error("x");
+    }
+  };
+  const errored = await runSweep({ db, machine: "t480", collectors: [dying], scope: ["F:"] });
+  assert.equal(
+    db.prepare("SELECT sweep_id FROM volumes WHERE volume = 'F:'").get().sweep_id,
+    errored.id
+  );
+  assert.equal(errored.collectors[0].rows, 0);
+  // digest covers category and app version
+  const d = async (collectors) =>
+    (await runSweep({ db: setup().db, machine: "t480", collectors, scope: ["F:"] })).digest;
+  assert.notEqual(
+    await d([files("F:", [{ path: "F:/a.bin", size: 1, category: "models" }])]),
+    await d([files("F:", [{ path: "F:/a.bin", size: 1, category: "video" }])])
+  );
+  const app = (version) => ({
+    name: "w",
+    kind: "apps",
+    async *collect() {
+      yield { name: "Node.js", version };
+    }
+  });
+  assert.notEqual(await d([app("22")]), await d([app("24")]));
+  // counts, snapshot record, header collectors, absolute media path, subject id
+  const media = {
+    name: "m",
+    kind: "media",
+    async *collect() {
+      yield { root: "F:/media", path: "D:/elsewhere/x.mkv", size: 2 };
+      yield { root: "F:/media", path: "y.mkv", size: 3 };
+    }
+  };
+  const sweep = await runSweep({ db, machine: "t480", collectors: [media], scope: [] });
+  assert.equal(sweep.counts.media, 2);
+  const { snapshot, event } = await publishSweep({ db, sweep, estateRoot: estate });
+  assert.equal(
+    db.prepare("SELECT snapshot FROM sweeps WHERE id = ?").get(sweep.id).snapshot,
+    `sha256:${snapshot.hash}`
+  );
+  const { header, rows } = await readSnapshot(snapshot.path);
+  assert.deepEqual(
+    header.collectors.map((c) => c.name),
+    ["m"]
+  );
+  assert.ok(
+    rows.some((r) => r.path === "D:/elsewhere/x.mkv"),
+    "an absolute media path must not be joined to its root"
+  );
+  assert.equal(event.subject.id, `sweep:t480:map:${sweep.finishedAt}`);
 });
 
 test("app locations and media roots obey the rules; a relative media path under a private root is private", async () => {
@@ -394,4 +583,26 @@ test("a volume whose very first sweep errors is recorded as errored", async () =
     db.prepare("SELECT status FROM volumes WHERE volume = 'E:'").get()?.status,
     "errored"
   );
+});
+
+test("a quarantined media title alone makes the row private", async () => {
+  const { db, estate } = setup();
+  const media = {
+    name: "jellyfin",
+    kind: "media",
+    async *collect() {
+      yield { root: "F:/media/Home", path: "clip-0042.mp4", title: "Acme job interview", size: 7 };
+    }
+  };
+  const sweep = await runSweep({
+    db,
+    machine: "t480",
+    collectors: [media],
+    scope: [],
+    quarantine: ["job interview"]
+  });
+  const out = await allOutput(db, estate, sweep, "t480");
+  for (const leak of ["Acme job interview", "clip-0042"])
+    assert.ok(!out.includes(leak), `leaked ${leak}`);
+  assert.equal(db.prepare("SELECT private FROM media").get().private, 1);
 });
