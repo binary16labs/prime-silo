@@ -11,9 +11,9 @@
 
 - L16 — version the observability surface (out of scratch/) _(UNBLOCKED 2026-08-03 — contract amended per owner option (b): budget counts authored lines only, verbatim relocation exempt and gate-checked for byte-identity. Returned to READY unclaimed rather than held, to respect WIP limit 1 while W2 is worked.)_
 
-- S0 — estate map model: node index, collector interface, snapshot to CAS _(EP-S/M10 authored 2026-09-13 from architecture/SOLUTION-estate-map.md; no deps — entered READY at the bottom, owner may reorder)_
-
 ## CLAIMED (agent · date)
+
+- S0 — estate map model: node index, collector interface, snapshot to CAS · claude-opus-5 · 2026-09-13 _(owner directive "yes start S0"; worktree task/S0)_
 
 ## VERIFY (awaiting non-author verification)
 
