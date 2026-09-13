@@ -128,17 +128,14 @@ export function isQuarantined(texts, rules = []) {
 // Only plain strings and genuine same-realm RegExps are rules. An object, a subclass with its own
 // test(), or a RegExp from another realm would silently match nothing, so all are refused, as is a
 // string rule that folds to nothing or to a bare separator (it would match everything).
-function assertRules(rules) {
-  if (!Array.isArray(rules)) throw new TypeError("quarantine must be a list of rules");
-  for (const r of rules) {
-    const isRegExp = r instanceof RegExp && Object.getPrototypeOf(r) === RegExp.prototype;
-    if (!(typeof r === "string" || isRegExp))
-      throw new TypeError("quarantine rules must be strings or RegExps");
-    // a rule made only of dots, separators, spaces or "?" (".", "...", "/./", "\\?\") names nothing
-    const degenerate = (x) => /^[\s./\\?]*$/u.test(x);
-    if (typeof r === "string" && (degenerate(r) || [...spellingsOf(r)].some(degenerate)))
-      throw new TypeError("quarantine rule is empty or a bare separator");
-  }
+function ruleProblem(r) {
+  const isRegExp = r instanceof RegExp && Object.getPrototypeOf(r) === RegExp.prototype;
+  if (!(typeof r === "string" || isRegExp)) return "quarantine rules must be strings or RegExps";
+  // a rule made only of dots, separators, spaces or "?" (".", "...", "/./", "\\?\") names nothing
+  const degenerate = (x) => /^[\s./\\?]*$/u.test(x);
+  if (typeof r === "string" && (degenerate(r) || [...spellingsOf(r)].some(degenerate)))
+    return "quarantine rule is empty or a bare separator";
+  return null;
 }
 
 // Public roots are absolute canonical paths the owner chose to expose by name. Roots that are
@@ -260,21 +257,23 @@ export async function runSweep({
   quarantine = [],
   now = () => Date.now()
 }) {
-  // Configuration faults are refused before anything is written; their messages name no data.
-  assertRules(quarantine);
+  // Every configuration fault is collected first; the index is then cleaned with the VALID part of
+  // the policy, and only then is the sweep refused. A refused sweep can never keep rows that the
+  // valid rules and roots already make private. Refusal messages name no data.
+  if (!Array.isArray(quarantine)) throw new TypeError("quarantine must be a list of rules");
+  const problems = quarantine.map(ruleProblem).filter(Boolean);
+  quarantine = quarantine.filter((r) => !ruleProblem(r));
   const { valid: roots, invalid } = publicRootsOf(publicRoots, quarantine);
-  if (invalid) {
-    rescrub(db, roots, quarantine);
-    throw new TypeError("public root must be an absolute path matching no rule");
-  }
+  if (invalid) problems.push("public root must be an absolute path matching no rule");
   for (const c of collectors) {
     if (!COLLECTOR_NAME.test(String(c?.name)) || isQuarantined(c.name, quarantine))
-      throw new TypeError("collector name must be a plain identifier matching no rule");
-    if (!KINDS.has(c.kind)) throw new TypeError("collector kind must be files, apps or media");
+      problems.push("collector name must be a plain identifier matching no rule");
+    if (!KINDS.has(c?.kind)) problems.push("collector kind must be files, apps or media");
   }
   if (scope.some((v) => typeof v !== "string" || !v.trim() || isQuarantined(v, quarantine)))
-    throw new TypeError("scope contains an empty or quarantined volume");
+    problems.push("scope contains an empty or quarantined volume");
   rescrub(db, roots, quarantine);
+  if (problems.length) throw new TypeError(problems[0]);
 
   const sweepId = ulid();
   const startedAt = new Date(now()).toISOString();
@@ -340,7 +339,8 @@ export async function runSweep({
             const category = categorize(p);
             counts.files++;
             counts.bytes += size ?? 0;
-            if (underRoot(p, roots) && !isQuarantined(raw, quarantine)) {
+            // judged on BOTH the collected text and the canonical text that is stored
+            if (underRoot(p, roots) && !isQuarantined([raw, p], quarantine)) {
               putFile.run(volume, p.toLowerCase(), p, category, size, num(row.mtimeMs), sweepId);
               counts.listed_files++;
             } else tally(category, size);
@@ -367,7 +367,7 @@ export async function runSweep({
             counts.media++;
             const listed =
               underRoot(full, roots) &&
-              !isQuarantined(rawFull, quarantine) &&
+              !isQuarantined([rawFull, full], quarantine) &&
               !isQuarantined(title, quarantine);
             if (listed) {
               putMedia.run(c.name, full.toLowerCase(), full, title, size, sweepId);

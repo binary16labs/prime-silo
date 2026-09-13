@@ -1014,3 +1014,115 @@ test("combined folds, and a RegExp that needs the raw collected text", async () 
     []
   );
 });
+
+// --- verifier-6 findings (claude-s0-verifier-6) -----------------------------------------------------
+
+test("a RegExp spanning a canonicalised part AND a folded character matches the stored canonical path", async () => {
+  const cases = [
+    ["F:/nas//Wei\u00df/secretw1.pdf", /nas\/Wei\u00df/u, "secretw1"],
+    ["\\\\?\\F:\\nas\\Stra\u00dfe\\secretw2.pdf", /^F:\/nas\/Stra\u00dfe/u, "secretw2"],
+    ["F:/nas/\u0130stanbul/./secretw3.pdf", /\u0130stanbul\/secretw3/u, "secretw3"],
+    ["F:/nas/x/../Wei\u00df/secretw4.pdf", /nas\/Wei\u00df/u, "secretw4"],
+    ["F:/nas/\uFB01nance//secretw5.pdf", /\uFB01nance\/secretw5/u, "secretw5"]
+  ];
+  for (const [p, rule, needle] of cases) {
+    const ctx = setup();
+    const policy = { scope: ["F:"], publicRoots: ["F:/nas"], quarantine: [rule] };
+    const f = files("F:", [{ path: p, size: 1 }]);
+    await runSweep({ db: ctx.db, machine: "vm", collectors: [f], ...policy });
+    // twice with the same policy: the unchanged fingerprint must not let a second sweep list it
+    const again = await runSweep({ db: ctx.db, machine: "vm", collectors: [f], ...policy });
+    assert.ok(!(await allOutput(ctx, again)).includes(needle), `${p} with ${rule} leaked`);
+  }
+  const ctx = setup();
+  const m = media([{ root: "F:/media/", path: "./Wei\u00df/secretm1.mp4", title: "t", size: 1 }]);
+  const sweep = await runSweep({
+    db: ctx.db,
+    machine: "vm",
+    collectors: [m],
+    scope: [],
+    publicRoots: ["F:/media"],
+    quarantine: [/media\/Wei\u00df/u]
+  });
+  assert.ok(!(await allOutput(ctx, sweep)).includes("secretm1"));
+});
+
+test("a global RegExp rule hides every matching row, not every other one", async () => {
+  const rows = ["a", "b", "c", "d"].map((d) => ({ path: `F:/nas/${d}/\uFB01le`, size: 1 }));
+  assert.deepEqual(await listedUnder("F:/nas", rows, /\/\uFB01le$/gu), []);
+});
+
+test("a later rule on a stored app location removes the app, even if the apps collector fails", async () => {
+  const ctx = setup();
+  let fail = false;
+  const a = {
+    name: "a",
+    kind: "apps",
+    async *collect() {
+      if (fail) throw new Error("x");
+      yield { name: "Harmless", version: "1", location: "F:/nas/apps/jobhunt/tool" };
+    }
+  };
+  await runSweep({
+    db: ctx.db,
+    machine: "vm",
+    collectors: [a],
+    scope: [],
+    publicRoots: ["F:/nas"]
+  });
+  assert.equal(
+    ctx.db.prepare("SELECT location FROM apps").get().location,
+    "F:/nas/apps/jobhunt/tool"
+  );
+  fail = true;
+  const later = await runSweep({
+    db: ctx.db,
+    machine: "vm",
+    collectors: [a],
+    scope: [],
+    publicRoots: ["F:/nas"],
+    quarantine: ["jobhunt"]
+  });
+  const out = await allOutput(ctx, later);
+  assert.ok(!out.includes("Harmless") && !out.includes("jobhunt/tool"));
+});
+
+test("every refused configuration still cleans the index with the valid part of the policy first", async () => {
+  const refusals = [
+    { collectors: [{ ...files("F:", []), name: "cvfiles" }] },
+    { scope: ["F:/cv-volume"] },
+    { quarantine: ["cv", "..."] },
+    { collectors: [{ ...files("F:", []), kind: "bogus" }] }
+  ];
+  for (const bad of refusals) {
+    const ctx = setup();
+    const f = files("F:", [{ path: "F:/nas/cv-2026.pdf", size: 1 }]);
+    await runSweep({
+      db: ctx.db,
+      machine: "vm",
+      collectors: [f],
+      scope: ["F:"],
+      publicRoots: ["F:/nas"]
+    });
+    await assert.rejects(
+      runSweep({
+        db: ctx.db,
+        machine: "vm",
+        collectors: [],
+        scope: [],
+        publicRoots: ["F:/nas"],
+        quarantine: ["cv"],
+        ...bad
+      }),
+      TypeError
+    );
+    const out = [ctx.dbPath, `${ctx.dbPath}-wal`]
+      .filter((x) => fs.existsSync(x))
+      .map((x) => fs.readFileSync(x).toString("utf8"))
+      .join("");
+    assert.ok(
+      ctx.db.prepare("SELECT COUNT(*) AS n FROM files").get().n === 0 && !out.includes("cv-2026"),
+      `refusal ${JSON.stringify(Object.keys(bad))} kept a row the valid rule hides`
+    );
+  }
+});
