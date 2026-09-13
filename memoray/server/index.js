@@ -15,6 +15,7 @@ const { syncClaude, getActiveSessions } = require("./parsers/claudeParser");
 const { syncAntigravity } = require("./parsers/antigravityParser");
 const { syncOpencode } = require("./parsers/opencodeParser");
 const { syncOpenNotebook } = require("./parsers/openNotebookParser");
+const { syncNasItinerary } = require("./parsers/nasItineraryParser");
 const store = require("./lib/entity_store");
 
 const app = express();
@@ -70,6 +71,7 @@ async function performSync() {
     await syncAntigravity();
     await syncOpencode();
     await syncOpenNotebook();
+    await syncNasItinerary();
     // Patch only the entities the parsers actually wrote into the warm store,
     // instead of invalidating it and forcing the next request to re-read all
     // 80k+ entity files. When nothing changed, the cache is left untouched.

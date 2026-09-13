@@ -98,6 +98,35 @@ export function appendKelEvent(logFile, evt, { logger = console } = {}) {
   }
 }
 
+// --- batch append: one read of the tail, one write. appendKelEvent re-reads the whole log per
+//     event, which is fine for a heartbeat and quadratic for a first scan of a large share.
+//     All events are validated before anything is written, so a bad event cannot leave half a
+//     batch chained into the log. ---
+export function appendKelEvents(logFile, events = [], { logger = console } = {}) {
+  for (const evt of events) {
+    const v = validateKelEvent(evt);
+    if (!v.ok) return { ok: false, reason: v.reason, written: 0 };
+  }
+  if (events.length === 0) return { ok: true, written: 0 };
+  try {
+    const lines = rawLines(logFile);
+    let prev = lines.length === 0 ? "genesis" : lineHash(lines.at(-1));
+    const out = [];
+    for (const evt of events) {
+      const line = JSON.stringify({ ...evt, prev });
+      out.push(line);
+      prev = lineHash(line);
+    }
+    fs.mkdirSync(path.dirname(logFile), { recursive: true });
+    fs.appendFileSync(logFile, out.join("\n") + "\n");
+    return { ok: true, written: out.length };
+  } catch (e) {
+    if (typeof logger.warn === "function")
+      logger.warn(`[kel] batch append degraded (${e.code || e.message}); nothing written`);
+    return { ok: false, degraded: true, reason: e.code || e.message, written: 0 };
+  }
+}
+
 // --- read + verify the tamper-evident chain. badLine is 1-based: the line whose
 //     prev-hash no longer matches its predecessor (i.e. the successor of an edit). ---
 export function readKelEvents(logFile) {
