@@ -45,11 +45,35 @@ export function categorize(p) {
   return "other";
 }
 
+// Rules are strings (case-insensitive substring of the normalised path) or RegExps. A RegExp with
+// the g or y flag carries lastIndex between calls, so reusing it row after row silently skips the
+// next match: the S0 verifier reproduced a quarantined path leaking exactly that way. Rules are
+// therefore evaluated on a stateless copy, never on the caller's object.
+const statelessRules = new WeakMap();
+function stateless(r) {
+  if (!r.global && !r.sticky) return r;
+  if (!statelessRules.has(r))
+    statelessRules.set(r, new RegExp(r.source, r.flags.replace(/[gy]/gu, "")));
+  return statelessRules.get(r);
+}
+
 export function isQuarantined(p, rules = []) {
-  const s = normPath(p).toLowerCase();
+  const n = normPath(p);
+  const s = n.toLowerCase();
   return rules.some((r) =>
-    r instanceof RegExp ? r.test(normPath(p)) : s.includes(String(r).toLowerCase())
+    r instanceof RegExp ? stateless(r).test(n) : s.includes(normPath(String(r)).toLowerCase())
   );
+}
+
+// Error text crosses every boundary a path does (index, snapshot, event), and filesystem errors
+// quote the path they failed on (EPERM: open '<path to a CV>'). A message that trips a rule is
+// withheld; its error code still says what kind of failure it was.
+function safeError(e, quarantine) {
+  const message = String(e?.message || e);
+  const code = e?.code ? ` (${e.code})` : "";
+  return isQuarantined(message, quarantine)
+    ? `error message withheld: it matched a quarantine rule${code}`
+    : message;
 }
 
 // --- the local index ------------------------------------------------------------------------
@@ -157,20 +181,31 @@ export async function runSweep({
             counts.files++;
             counts.bytes += Number(row.size) || 0;
           } else if (c.kind === "apps") {
+            const location =
+              row.location && !isQuarantined(row.location, quarantine)
+                ? normPath(row.location)
+                : null;
             putApp.run(
               String(row.name),
               String(row.version || ""),
               c.name,
               row.publisher ?? null,
-              row.location ?? null,
+              location,
               sweepId
             );
             digest.update(`a|${row.name}|${row.version || ""}|${c.name}\n`);
             counts.apps++;
           } else if (c.kind === "media") {
-            const r = redact(row.path, quarantine);
+            // Rules see the full location (root + path): a relative path under a quarantined root
+            // is private even though the path alone matches nothing.
+            const root = normPath(row.root);
+            const rel = normPath(row.path);
+            const absolute = /^([a-z]:|\/)/iu.test(rel);
+            const r = redact(absolute || !root ? rel : `${root}/${rel}`, quarantine);
+            const rootPrivate = isQuarantined(root, quarantine);
+            const rootKey = rootPrivate ? `private:${sha256(root.toLowerCase())}` : root;
             putMedia.run(
-              String(row.root),
+              rootKey,
               r.path_hash,
               r.path,
               r.private ? null : (row.title ?? null),
@@ -178,7 +213,7 @@ export async function runSweep({
               r.private,
               sweepId
             );
-            digest.update(`m|${row.root}|${r.path_hash}\n`);
+            digest.update(`m|${rootKey}|${r.path_hash}|${row.size ?? ""}\n`);
             counts.media++;
           } else {
             throw new Error(`unknown collector kind '${c.kind}'`);
@@ -197,12 +232,12 @@ export async function runSweep({
       } catch (e) {
         db.exec("ROLLBACK");
         result.status = "errored";
-        result.error = String(e?.message || e);
+        result.error = safeError(e, quarantine);
         result.rows = 0;
         if (c.kind === "files")
           db.prepare(
             `INSERT INTO volumes (volume, collector, status, sweep_id, swept_at) VALUES (?, ?, 'errored', ?, ?)
-             ON CONFLICT(volume) DO UPDATE SET status = 'errored'`
+             ON CONFLICT(volume) DO UPDATE SET status = 'errored', sweep_id = excluded.sweep_id`
           ).run(volume, c.name, sweepId, new Date(now()).toISOString());
       }
       results.push(result);
