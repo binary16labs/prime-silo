@@ -462,6 +462,11 @@ test("unusable rules, public roots, collector names and scope volumes are refuse
   const bad = [
     [{ quarantine: [""] }, /empty or a bare separator/u],
     [{ quarantine: ["."] }, /empty or a bare separator/u],
+    [{ quarantine: ["..."] }, /empty or a bare separator/u],
+    [{ quarantine: [". ."] }, /empty or a bare separator/u],
+    [{ quarantine: ["/./"] }, /empty or a bare separator/u],
+    [{ quarantine: ["\\\\?\\"] }, /empty or a bare separator/u],
+    [{ quarantine: ["\\\\.\\"] }, /empty or a bare separator/u],
     [{ quarantine: ["\\"] }, /empty or a bare separator/u],
     [{ quarantine: [{ source: "cv" }] }, /strings or RegExps/u],
     [{ quarantine: [new Sub("cv")] }, /strings or RegExps/u],
@@ -788,4 +793,224 @@ test("a title-only rule added later removes an already listed media row, even wi
     quarantine: ["interview"]
   });
   assert.ok(!(await allOutput(ctx, later)).includes("Acme interview"));
+});
+
+// --- verifier-5 findings (claude-s0-verifier-5) -----------------------------------------------------
+
+test("a string rule found literally in stored free text always matches, whatever path-like characters it holds", async () => {
+  const appCases = [
+    [{ name: "Scout", publisher: "https://recruit.example/jobs" }, "https://recruit.example"],
+    [{ name: "Job//Hunter", version: "1" }, "job//hunter"],
+    [{ name: "Tool", version: "C:/../cv" }, "C:/../cv"],
+    [{ name: "Job\\\\Hunter", version: "1" }, "job\\\\hunter"]
+  ];
+  for (const [row, rule] of appCases) {
+    const ctx = setup();
+    await runSweep({
+      db: ctx.db,
+      machine: "vm",
+      collectors: [apps([row])],
+      scope: [],
+      publicRoots: ["F:/nas"],
+      quarantine: [rule]
+    });
+    assert.equal(
+      ctx.db.prepare("SELECT COUNT(*) AS n FROM apps").get().n,
+      0,
+      `${JSON.stringify(row)} vs ${rule}`
+    );
+  }
+  const ctx = setup();
+  await runSweep({
+    db: ctx.db,
+    machine: "vm",
+    collectors: [media([{ root: "F:/media", path: "a.mp4", title: "cv/./draft final", size: 1 }])],
+    scope: [],
+    publicRoots: ["F:/media"],
+    quarantine: ["cv/./draft"]
+  });
+  assert.equal(ctx.db.prepare("SELECT COUNT(*) AS n FROM media").get().n, 0);
+});
+
+test("an accented title (precomposed) is still matched by the unaccented rule", async () => {
+  const ctx = setup();
+  await runSweep({
+    db: ctx.db,
+    machine: "vm",
+    collectors: [
+      media([{ root: "F:/media", path: "a.mp4", title: "R\u00e9sum\u00e9 2026", size: 1 }])
+    ],
+    scope: [],
+    publicRoots: ["F:/media"],
+    quarantine: ["resume"]
+  });
+  assert.equal(ctx.db.prepare("SELECT COUNT(*) AS n FROM media").get().n, 0);
+});
+
+test("changing a string rule to the RegExp with the same text is a policy change, even if the collector fails", async () => {
+  const ctx = setup();
+  let fail = false;
+  const f = {
+    name: "f",
+    kind: "files",
+    volumes: ["F:"],
+    async *collect() {
+      if (fail) throw new Error("x");
+      yield { path: "F:/nas/acvb/report.pdf", size: 1 };
+    }
+  };
+  await runSweep({
+    db: ctx.db,
+    machine: "vm",
+    collectors: [f],
+    scope: ["F:"],
+    publicRoots: ["F:/nas"],
+    quarantine: ["/cv/"]
+  });
+  assert.equal(
+    ctx.db.prepare("SELECT COUNT(*) AS n FROM files").get().n,
+    1,
+    "string rule '/cv/' does not match acvb"
+  );
+  fail = true;
+  const later = await runSweep({
+    db: ctx.db,
+    machine: "vm",
+    collectors: [f],
+    scope: ["F:"],
+    publicRoots: ["F:/nas"],
+    quarantine: [/cv/]
+  });
+  assert.ok(!(await allOutput(ctx, later)).includes("acvb"));
+});
+
+test("removing or narrowing a root while every collector fails still removes files, media and app locations", async () => {
+  const ctx = setup();
+  let fail = false;
+  const boom = (kind, name, rows) => ({
+    name,
+    kind,
+    volumes: ["F:"],
+    async *collect() {
+      if (fail) throw new Error("x");
+      for (const r of rows) yield r;
+    }
+  });
+  const collectors = [
+    boom("files", "f", [{ path: "F:/nas/private/a.pdf", size: 1 }]),
+    boom("media", "m", [{ root: "F:/nas/private", path: "b.mp4", size: 1 }]),
+    boom("apps", "a", [{ name: "Tool", version: "1", location: "F:/nas/private/tool" }])
+  ];
+  await runSweep({ db: ctx.db, machine: "vm", collectors, scope: ["F:"], publicRoots: ["F:/nas"] });
+  fail = true;
+  const later = await runSweep({
+    db: ctx.db,
+    machine: "vm",
+    collectors,
+    scope: ["F:"],
+    publicRoots: ["F:/nas/public"]
+  });
+  const out = await allOutput(ctx, later);
+  for (const leak of ["a.pdf", "b.mp4", "private/tool"])
+    assert.ok(!out.includes(leak), `leaked ${leak}`);
+  assert.equal(
+    ctx.db.prepare("SELECT name FROM apps").get()?.name,
+    "Tool",
+    "the app identity itself is not path-private"
+  );
+});
+
+test("a rule added against a public root is refused, but only after the index is cleaned", async () => {
+  const ctx = setup();
+  const f = files("F:", [{ path: "F:/nas/cv-archive/a.pdf", size: 1 }]);
+  await runSweep({
+    db: ctx.db,
+    machine: "vm",
+    collectors: [f],
+    scope: ["F:"],
+    publicRoots: ["F:/nas/cv-archive"]
+  });
+  await assert.rejects(
+    runSweep({
+      db: ctx.db,
+      machine: "vm",
+      collectors: [f],
+      scope: ["F:"],
+      publicRoots: ["F:/nas/cv-archive"],
+      quarantine: ["cv"]
+    }),
+    /matching no rule/u
+  );
+  assert.equal(ctx.db.prepare("SELECT COUNT(*) AS n FROM files").get().n, 0);
+});
+
+test("an absolute media path outside its public root is never joined under the root", async () => {
+  const ctx = setup();
+  await runSweep({
+    db: ctx.db,
+    machine: "vm",
+    collectors: [media([{ root: "F:/media", path: "C:/Users/x/secret.mp4", title: "t", size: 1 }])],
+    scope: [],
+    publicRoots: ["F:/media"]
+  });
+  assert.equal(ctx.db.prepare("SELECT COUNT(*) AS n FROM media").get().n, 0);
+});
+
+test("totals categories come from the path, never from a collector-supplied category", async () => {
+  const { ctx, out } = await sweepAndDump({
+    collectors: [
+      files("C:", [{ path: "C:/Users/x/a.pdf", size: 1, category: "C:/Users/x/cv-2026" }])
+    ],
+    publicRoots: ["F:/nas"]
+  });
+  assert.equal(ctx.db.prepare("SELECT category FROM totals").get().category, "documents");
+  assert.ok(!out.includes("cv-2026"));
+});
+
+test("a leading ../ in a string rule still matches the folder it names", async () => {
+  assert.deepEqual(
+    await listedUnder(
+      "C:/Users",
+      [{ path: "C:/Users/x/Documents/cv.docx", size: 1 }],
+      "..\\Documents\\cv"
+    ),
+    []
+  );
+});
+
+test("a UNC path cannot climb from one server to another", async () => {
+  assert.equal(canonPath("//evil/../srv/x"), "//evil/srv/x");
+  assert.equal(canonPath("\\\\srv\\share\\..\\..\\x"), "//srv/share/x");
+  const ctx = setup();
+  await runSweep({
+    db: ctx.db,
+    machine: "vm",
+    collectors: [
+      files("//srv/share", [{ path: "//evil/../srv/share/secret.pdf", size: 1 }], "unc")
+    ],
+    scope: ["//srv/share"],
+    publicRoots: ["//srv/share"]
+  });
+  assert.equal(ctx.db.prepare("SELECT COUNT(*) AS n FROM files").get().n, 0);
+});
+
+test("combined folds, and a RegExp that needs the raw collected text", async () => {
+  // fullwidth J (NFKC) + accent + trailing dot + doubled separator in one value and one rule
+  assert.deepEqual(
+    await listedUnder(
+      "C:/Users",
+      [{ path: "C:/Users/x/\uFF2A\u00f6b.//cv.docx", size: 1 }],
+      "j\u00f6b.//cv"
+    ),
+    []
+  );
+  // raw only: folding turns ß into ss, so a RegExp written with ß needs the text as collected
+  assert.deepEqual(
+    await listedUnder(
+      "C:/Users",
+      [{ path: "C:/Users/x/Stra\u00dfe/cv.docx", size: 1 }],
+      /stra\u00dfe/u
+    ),
+    []
+  );
 });

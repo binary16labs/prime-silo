@@ -22,7 +22,7 @@ if (t.status !== 0) {
 }
 
 console.log(
-  "[s0] estate map: per-collector status + scope travel with the sweep, quarantined paths hashed before any write (R31), snapshot in CAS named by sweep_recorded — green"
+  "[s0] estate map: per-collector status + scope travel with the sweep, names only under public roots, totals otherwise, rules judged on stored text (R31), snapshot in CAS named by sweep_recorded — green"
 );
 console.log("[s0] GATE GREEN");
 process.exit(0);

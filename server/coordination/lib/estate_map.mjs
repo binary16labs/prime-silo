@@ -42,7 +42,8 @@ export function canonPath(p) {
   const out = [];
   for (const seg of s.split("/")) {
     if (seg === "" || seg === ".") continue;
-    const atRoot = out.length === 0 || /^[a-z]:$/iu.test(out.at(-1));
+    // a drive letter, and a UNC server + share, are roots ".." cannot climb above
+    const atRoot = unc ? out.length <= 2 : out.length === 0 || /^[a-z]:$/iu.test(out.at(-1));
     if (seg === ".." && atRoot && (rooted || out.length)) continue;
     if (seg === ".." && !atRoot && out.at(-1) !== "..") out.pop();
     else out.push(seg);
@@ -66,9 +67,7 @@ export function categorize(p) {
   return "other";
 }
 
-// Matching spellings of a text. Characters are folded (compatibility forms, case beyond ASCII,
-// invisible characters, slash direction) but nothing that could carry a rule's term is removed:
-// no path resolution happens here, so "CV Builder/.." still contains "cv".
+// Character folding: compatibility forms, case beyond ASCII, invisible characters, slash direction.
 const fold = (s) =>
   String(s)
     .normalize("NFKC")
@@ -77,12 +76,24 @@ const fold = (s) =>
     .replace(/i\u0307/gu, "i")
     .replace(/ß/gu, "ss")
     .replace(/ς/gu, "σ")
-    .replace(/\\/gu, "/")
-    .replace(/[. ]+(?=\/|$)/gu, ""); // Win32 ignores trailing dots and spaces in a path segment
+    .replace(/\\/gu, "/");
 
-// A string RULE may be written as any path spelling ("..\x\Documents", "\\?\C:\...", "./a/./b"),
-// so it is canonicalised before folding. Resolving a rule cannot delete anything from a value.
-const ruleForm = (r) => fold(canonPath(r)).replace(/^(\.\.\/)+/u, "");
+// SPELLINGS ARE ONLY EVER ADDED, NEVER SUBSTITUTED. Five verifiers each found a transformation
+// that removed the text a rule was written for (on the value side, then on the rule side). So a
+// value or a rule is represented by a SET of spellings that always includes the folded original,
+// and a match between any value spelling and any rule spelling counts. Adding a spelling can only
+// hide more; it can never remove a match.
+const spellingsOf = (s) => {
+  const f = fold(s);
+  return new Set([
+    f,
+    fold(canonPath(s)), // "..\x\Documents", "\\?\C:\..", "./a/./b" as the path they name
+    f.replace(/[. ]+(?=\/|$)/gu, ""), // Win32 ignores trailing dots and spaces in a segment
+    f.normalize("NFD").replace(/\p{M}/gu, "") // accents removed: "resumé" also reads "resume"
+  ]);
+};
+const ruleForms = (r) =>
+  [...spellingsOf(r)].filter((x) => !["", "/", "//", ".", ".."].includes(x.trim()));
 
 // A RegExp rule runs on a stateless, case-insensitive copy (g/y carry lastIndex between rows;
 // Windows names are case-insensitive, so a case-sensitive rule would silently miss).
@@ -102,15 +113,15 @@ export function isQuarantined(texts, rules = []) {
   if (!values.length || !rules.length) return false;
   const spellings = new Set();
   for (const v of values)
-    for (const s of [String(v), fold(v)]) {
+    for (const s of [String(v), ...spellingsOf(v)]) {
       const w = s.replace(/\//gu, "\\");
       for (const x of [s, `${s}/`, w, `${w}\\`]) spellings.add(x);
     }
-  const folded = values.map((v) => `${fold(v)}/`);
+  const lowered = [...spellings].map((s) => s.toLowerCase().replace(/\\/gu, "/"));
   return rules.some((r) =>
     r instanceof RegExp
       ? [...spellings].some((s) => stateless(r).test(s))
-      : folded.some((f) => f.includes(ruleForm(r)))
+      : ruleForms(r).some((form) => lowered.some((s) => s.includes(form)))
   );
 }
 
@@ -123,20 +134,27 @@ function assertRules(rules) {
     const isRegExp = r instanceof RegExp && Object.getPrototypeOf(r) === RegExp.prototype;
     if (!(typeof r === "string" || isRegExp))
       throw new TypeError("quarantine rules must be strings or RegExps");
-    if (typeof r === "string" && ["", "/", "//"].includes(ruleForm(r).trim()))
+    // a rule made only of dots, separators, spaces or "?" (".", "...", "/./", "\\?\") names nothing
+    const degenerate = (x) => /^[\s./\\?]*$/u.test(x);
+    if (typeof r === "string" && (degenerate(r) || [...spellingsOf(r)].some(degenerate)))
       throw new TypeError("quarantine rule is empty or a bare separator");
   }
 }
 
-// Public roots are absolute canonical paths the owner chose to expose by name.
+// Public roots are absolute canonical paths the owner chose to expose by name. Roots that are
+// invalid or now match a rule are reported separately: the caller cleans the index with only the
+// valid roots BEFORE refusing the sweep, so a rule added against a root still removes its rows.
 function publicRootsOf(roots, rules) {
   if (!Array.isArray(roots)) throw new TypeError("publicRoots must be a list of paths");
-  return roots.map((r) => {
+  const valid = [];
+  let invalid = 0;
+  for (const r of roots) {
     const c = typeof r === "string" ? canonPath(r) : "";
-    if (!/^([a-z]:|\/)/iu.test(c) || isQuarantined(c, rules))
-      throw new TypeError("public root must be an absolute path matching no rule");
-    return c.toLowerCase().replace(/\/+$/u, "");
-  });
+    if (/^([a-z]:|\/)/iu.test(c) && !isQuarantined(c, rules))
+      valid.push(c.toLowerCase().replace(/\/+$/u, ""));
+    else invalid++;
+  }
+  return { valid, invalid };
 }
 const underRoot = (canon, roots) => {
   const lower = canon.toLowerCase();
@@ -203,7 +221,10 @@ export function openMap(dbPath) {
 // removed if no longer public, before anything else happens. A later rule can therefore never be
 // defeated by an earlier sweep, even if the collector that listed the row fails this time.
 function rescrub(db, roots, rules) {
-  const spec = rules.map((r) => (r instanceof RegExp ? `/${r.source}/${r.flags}` : r));
+  // Unambiguous encoding: the string rule "/cv/" and the RegExp /cv/ must not fingerprint alike.
+  const spec = rules.map((r) =>
+    r instanceof RegExp ? { re: r.source, flags: r.flags } : { s: r }
+  );
   const policy = sha256(JSON.stringify([roots, spec]));
   if (db.prepare("SELECT value FROM meta WHERE key = 'policy'").get()?.value === policy) return;
   const gone = (p) => !underRoot(p, roots) || isQuarantined(p, rules);
@@ -241,7 +262,11 @@ export async function runSweep({
 }) {
   // Configuration faults are refused before anything is written; their messages name no data.
   assertRules(quarantine);
-  const roots = publicRootsOf(publicRoots, quarantine);
+  const { valid: roots, invalid } = publicRootsOf(publicRoots, quarantine);
+  if (invalid) {
+    rescrub(db, roots, quarantine);
+    throw new TypeError("public root must be an absolute path matching no rule");
+  }
   for (const c of collectors) {
     if (!COLLECTOR_NAME.test(String(c?.name)) || isQuarantined(c.name, quarantine))
       throw new TypeError("collector name must be a plain identifier matching no rule");
@@ -315,7 +340,7 @@ export async function runSweep({
             const category = categorize(p);
             counts.files++;
             counts.bytes += size ?? 0;
-            if (underRoot(p, roots) && !isQuarantined([p, raw], quarantine)) {
+            if (underRoot(p, roots) && !isQuarantined(raw, quarantine)) {
               putFile.run(volume, p.toLowerCase(), p, category, size, num(row.mtimeMs), sweepId);
               counts.listed_files++;
             } else tally(category, size);
@@ -342,7 +367,7 @@ export async function runSweep({
             counts.media++;
             const listed =
               underRoot(full, roots) &&
-              !isQuarantined([full, rawFull], quarantine) &&
+              !isQuarantined(rawFull, quarantine) &&
               !isQuarantined(title, quarantine);
             if (listed) {
               putMedia.run(c.name, full.toLowerCase(), full, title, size, sweepId);
