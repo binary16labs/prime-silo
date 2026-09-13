@@ -55,10 +55,35 @@ const gb = (n) => {
   return `${Math.max(1, Math.round(v / 1024))} KB`;
 };
 
+// Mirrors PRIVATE_CATEGORIES in server/coordination/lib/nas_catalog.mjs (this file is CommonJS and
+// ships inside the packaged Memo-Ray, so it cannot import the ESM catalog module).
+const PRIVATE_CATEGORIES = ["documents"];
+const topOf = (rel) => String(rel || "").split("/")[0];
+function isPrivate(evt) {
+  const p = evt.payload || {};
+  return [p.category, topOf(p.nas_path), topOf(p.from_path), topOf(p.to_path)].some((c) =>
+    PRIVATE_CATEGORIES.includes(c)
+  );
+}
+
 function describe(evt) {
   const p = evt.payload || {};
-  const file = p.nas_path || p.path || "(unknown path)";
   const from = p.origin_machine ? ` from ${p.origin_machine}` : "";
+  // A private document is described by what happened and how big it was — never by its name,
+  // its path, or the reason someone typed, which is often the most personal part.
+  if (isPrivate(evt) && evt.type !== "sweep_recorded") {
+    switch (evt.type) {
+      case "artifact_placed":
+        if (p.change === "moved") return "Moved a document within documents";
+        if (p.change === "changed") return `Updated a document (${gb(p.size)})`;
+        return `Added a document (${gb(p.size)})${from}`;
+      case "artifact_evicted":
+        return p.change === "removed" ? `Removed a document (${gb(p.size)})` : null;
+      default:
+        return null;
+    }
+  }
+  const file = p.nas_path || p.path || "(unknown path)";
   const why = p.purpose && !String(p.purpose).startsWith("nas:") ? ` — ${p.purpose}` : "";
   switch (evt.type) {
     case "artifact_placed":
@@ -110,6 +135,7 @@ function itineraryEntities(events) {
     const session = sessions.get(sessionId);
     session.timestamp = Math.max(session.timestamp, ts);
     const p = evt.payload || {};
+    const hidden = isPrivate(evt);
     const entity = {
       id: md5(`nas-event:${evt.id}`),
       type: evt.type === "sweep_recorded" ? "Thought" : "Artifact",
@@ -120,14 +146,14 @@ function itineraryEntities(events) {
         kelEventId: evt.id,
         kelType: evt.type,
         change: p.change || null,
-        fileName: p.nas_path ? p.nas_path.split("/").pop() : null,
-        filePath: p.path || null,
-        nasPath: p.nas_path || null,
+        fileName: hidden ? null : p.nas_path ? p.nas_path.split("/").pop() : null,
+        filePath: hidden ? null : p.path || null,
+        nasPath: hidden ? null : p.nas_path || null,
         category: p.category || null,
         size: p.size ?? null,
         contentHash: evt.subject?.content_hash || null,
         originMachine: p.origin_machine || null,
-        originPath: p.origin_path || null
+        originPath: hidden ? null : p.origin_path || null
       },
       parent_id: sessionId,
       children_ids: []

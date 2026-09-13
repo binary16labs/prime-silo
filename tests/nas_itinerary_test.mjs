@@ -77,3 +77,47 @@ test("incremental read resumes at the cursor and stops at a tampered line", asyn
   assert.equal(tampered.broken.line, 3, "the line after an edit no longer chains");
   assert.equal(tampered.events.length, 2);
 });
+
+test("documents never reach the itinerary by name, path or reason", async () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), "nas-docs-"));
+  const share = path.join(base, "nas");
+  const estate = path.join(base, "estate");
+  fs.mkdirSync(path.join(share, "documents", "jobs"), { recursive: true });
+  fs.mkdirSync(path.join(share, ".receipts"), { recursive: true });
+  fs.writeFileSync(
+    path.join(share, "documents", "jobs", "Jane-CV-Acme-2026.docx"),
+    "cv".repeat(4000)
+  );
+  fs.writeFileSync(
+    path.join(share, ".receipts", "d.json"),
+    JSON.stringify({
+      dest: "documents/jobs/Jane-CV-Acme-2026.docx",
+      origin_machine: "optimus",
+      origin_path: "C:\Users\nsdha\Documents\Jane-CV-Acme-2026.docx",
+      reason: "application to Acme"
+    })
+  );
+  const scan = () => scanNas({ root: share, estateRoot: estate, machine: "t480", settleMs: 0 });
+  await scan();
+  fs.renameSync(
+    path.join(share, "documents", "jobs", "Jane-CV-Acme-2026.docx"),
+    path.join(share, "documents", "jobs", "cv-final.docx")
+  );
+  await scan();
+  fs.rmSync(path.join(share, "documents", "jobs", "cv-final.docx"));
+  await scan();
+
+  const { events } = readNewEvents(fs.readFileSync(nasLogFile(estate, "t480"), "utf8"));
+  const { children } = itineraryEntities(events);
+  const everything = JSON.stringify(children);
+  // secrets chosen so they cannot occur by chance inside ULIDs or hex hashes
+  for (const secret of ["Jane", "Jane-CV", "cv-final", "Acme", "jobs/", "Documents"])
+    assert.ok(!everything.includes(secret), `itinerary leaked "${secret}": ${everything}`);
+  const lines = children.map((c) => c.content);
+  assert.ok(
+    lines.some((l) => /^Added a document \(\d+ KB\) from optimus$/u.test(l)),
+    lines.join("\n")
+  );
+  assert.ok(lines.includes("Moved a document within documents"));
+  assert.ok(lines.some((l) => l.startsWith("Removed a document")));
+});

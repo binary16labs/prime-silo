@@ -29,7 +29,18 @@ import { DatabaseSync } from "node:sqlite";
 import { ulid, CURRENT_SCHEMA_VERSION, appendKelEvents } from "./kel.mjs";
 import { artifactAcquiredEvent, artifactPlacedEvent, artifactEvictedEvent } from "./artifacts.mjs";
 
-export const NAS_CATEGORIES = Object.freeze(["models", "images", "downloads", "datasets"]);
+export const NAS_CATEGORIES = Object.freeze([
+  "documents",
+  "models",
+  "images",
+  "downloads",
+  "datasets"
+]);
+// Categories whose names and paths are personal. The catalog on the owning machine keeps full paths
+// (you cannot manage files you cannot find), but anything that leaves it as a narrative — the
+// Memo-Ray itinerary — carries only counts and sizes. Documents include CVs and job material,
+// which must never reach a dataset (R31), and Memo-Ray sessions are a LONGVIEW source.
+export const PRIVATE_CATEGORIES = Object.freeze(["documents"]);
 export const RECEIPTS_DIR = ".receipts";
 
 // Files still being written must not be hashed: a half-copied 30 GB model would be recorded,
