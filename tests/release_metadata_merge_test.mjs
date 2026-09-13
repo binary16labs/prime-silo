@@ -172,3 +172,21 @@ test("Windows installer names carry the arch, so native arm64 and x64 builds can
   fs.rmSync(root, { recursive: true, force: true });
   fs.rmSync(upload, { recursive: true, force: true });
 });
+
+test("each Linux feed is built from its own arch only, under either electron-builder name", () => {
+  // v1.24.3 built all six targets and failed to publish with "Expected exactly one
+  // metadata-latest-linux.yml file for linux, found 2": the x64 spec's stem also matched the
+  // arm64 job's metadata-latest-linux-arm64.yml.
+  for (const armName of ["metadata-latest-linux-arm64.yml", "metadata-latest-linux.yml"]) {
+    const root = stage({
+      "linux-x64/metadata-latest-linux.yml": feed("1.24.3", "Prime-Silo-1.24.3.AppImage", 1),
+      [`linux-arm64/${armName}`]: feed("1.24.3", "Prime-Silo-1.24.3-arm64.AppImage", 2)
+    });
+    run(root);
+    const x64 = fs.readFileSync(path.join(root, "metadata-latest-linux.yml"), "utf8");
+    const arm = fs.readFileSync(path.join(root, "metadata-latest-linux-arm64.yml"), "utf8");
+    assert.ok(!x64.includes("arm64"), armName + " leaked into the x64 feed: " + x64);
+    assert.ok(arm.includes("Prime-Silo-1.24.3-arm64.AppImage"), armName + ": " + arm);
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});

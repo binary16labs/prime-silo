@@ -4,11 +4,27 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { listFiles, mergeMetadataFiles } = require("./release-metadata");
 
+// Linux publishes one feed per arch, so each Linux spec reads only its own arch's build
+// directory. Without that, the x64 spec's stem "metadata-latest-linux" also matched the arm64
+// job's "metadata-latest-linux-arm64.yml", and every release failed with "Expected exactly one
+// metadata-latest-linux.yml file for linux, found 2".
 const CANONICAL_METADATA_SPECS = [
   { fileName: "metadata-latest-windows.yml", platform: "windows", merge: true },
   { fileName: "metadata-latest-mac.yml", platform: "macos", merge: true },
-  { fileName: "metadata-latest-linux.yml", platform: "linux", merge: false },
-  { fileName: "metadata-latest-linux-arm64.yml", platform: "linux", merge: false }
+  {
+    fileName: "metadata-latest-linux.yml",
+    stem: "metadata-latest-linux",
+    platform: "linux",
+    arch: "x64",
+    merge: false
+  },
+  {
+    fileName: "metadata-latest-linux-arm64.yml",
+    stem: "metadata-latest-linux",
+    platform: "linux",
+    arch: "arm64",
+    merge: false
+  }
 ];
 
 function toPosixPath(value) {
@@ -31,11 +47,14 @@ function archOfPath(rootDir, filePath, platform) {
 // two-arch platform could contribute one file, "merge" a single input, and publish a feed
 // describing one architecture — which is what shipped for three releases.
 function collectMetadataFiles(rootDir, files, spec) {
-  const stem = spec.fileName.replace(/\.yml$/u, "");
+  const stem = spec.stem || spec.fileName.replace(/\.yml$/u, "");
   const namePattern = new RegExp("^" + stem + "(-(x64|arm64))?\\.yml$", "u");
   return files
     .filter((filePath) => namePattern.test(path.basename(filePath)))
-    .filter((filePath) => archOfPath(rootDir, filePath, spec.platform))
+    .filter((filePath) => {
+      const arch = archOfPath(rootDir, filePath, spec.platform);
+      return Boolean(arch) && (!spec.arch || arch === spec.arch);
+    })
     .sort((a, b) => {
       // x64 first: serializeUpdateMetadata takes the top-level `path`/`sha512` from files[0],
       // and electron-updater falls back to the FIRST entry when it cannot match an arch
