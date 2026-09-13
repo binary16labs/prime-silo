@@ -11,6 +11,8 @@
 
 - L16 — version the observability surface (out of scratch/) _(UNBLOCKED 2026-08-03 — contract amended per owner option (b): budget counts authored lines only, verbatim relocation exempt and gate-checked for byte-identity. Returned to READY unclaimed rather than held, to respect WIP limit 1 while W2 is worked.)_
 
+- S0 — estate map model: node index, collector interface, snapshot to CAS _(EP-S/M10 authored 2026-09-13 from architecture/SOLUTION-estate-map.md; no deps — entered READY at the bottom, owner may reorder)_
+
 ## CLAIMED (agent · date)
 
 ## VERIFY (awaiting non-author verification)
@@ -97,4 +99,5 @@ Q2 Q3 ·
 R0 R1 R2 R3 ·
 M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 ·
 B4 B5 · L15 ·
+S1 S2 S3 S4 S5 S6 S7 S8 ·
 P5 · P7(nav-instrument: agentic bench manifest + tool rubric wired to the G0 stream — spun off from P4 amendment; NEEDS CONTRACT) ·
