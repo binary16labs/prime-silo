@@ -1,9 +1,6 @@
 const fs = require("node:fs");
 const fsPromises = require("node:fs/promises");
-const { createHash } = require("node:crypto");
 const path = require("node:path");
-const { Readable, Transform } = require("node:stream");
-const { pipeline } = require("node:stream/promises");
 const { pathToFileURL } = require("node:url");
 const { app, BrowserWindow, WebContentsView, ipcMain, net, webFrameMain } = require("electron");
 const {
@@ -32,6 +29,11 @@ const {
   writeDesktopUpdaterInstallMarker
 } = require("./updater_artifacts");
 const { resolveDesktopUpdaterLogPath } = require("./updater_install_options");
+const {
+  createDesktopUpdaterPersistentLog,
+  describeDesktopUpdateError,
+  downloadDesktopUpdateAssetToFile
+} = require("./updater_download");
 const {
   resolveDesktopDebugReleaseAssetUrl,
   resolveDesktopDebugReleaseTag,
@@ -1284,6 +1286,14 @@ function logDesktopUpdateEvent(message, { level = "log", error = null } = {}) {
     console[level](line);
   });
 
+  // The console of a packaged Windows app goes nowhere, so every updater event also lands in
+  // desktop-updater.log; otherwise a failed update leaves no trace of why.
+  getDesktopUpdaterPersistentLog().append(
+    level,
+    message,
+    error ? { error: describeDesktopUpdateError(error) } : null
+  );
+
   queueDesktopRendererLog(level, lines);
   flushDesktopRendererLogs();
 
@@ -1313,7 +1323,13 @@ function reportDesktopUpdateFailure(message, error) {
     state: "error",
     message: formattedError.summary,
     progress: null,
-    version: ""
+    version: "",
+    lastFailure: {
+      at: new Date().toISOString(),
+      context: message,
+      summary: formattedError.summary,
+      logPath: resolveDesktopUpdaterLogPathForCurrentRun()
+    }
   });
   clearUpdateStatusSoon(15000);
 
@@ -1339,32 +1355,70 @@ function loadDesktopAutoUpdater() {
   return desktopAutoUpdater;
 }
 
-async function appendDesktopUpdaterPersistentLog(logPath, message, details = null) {
-  const resolvedLogPath = String(logPath || "").trim();
-  const normalizedMessage = String(message || "").trim();
+let desktopUpdaterPersistentLog = null;
 
-  if (!resolvedLogPath || !normalizedMessage) {
-    return;
+function getDesktopUpdaterPersistentLog() {
+  const logPath = resolveDesktopUpdaterLogPathForCurrentRun();
+  if (!desktopUpdaterPersistentLog || desktopUpdaterPersistentLog.logPath !== logPath) {
+    desktopUpdaterPersistentLog = createDesktopUpdaterPersistentLog(logPath);
   }
+  return desktopUpdaterPersistentLog;
+}
 
-  const lines = [`${new Date().toISOString()} [space-desktop/updater] ${normalizedMessage}`];
+async function appendDesktopUpdaterPersistentLog(logPath, message, details = null) {
+  const log =
+    String(logPath || "").trim() === getDesktopUpdaterPersistentLog().logPath
+      ? getDesktopUpdaterPersistentLog()
+      : createDesktopUpdaterPersistentLog(logPath);
+  await log.append("log", message, details);
+}
 
-  if (details && typeof details === "object") {
-    try {
-      lines.push(JSON.stringify(details));
-    } catch {
-      // Keep logging best effort only.
-    }
+function createDesktopUpdaterLogger() {
+  const forward = (level) => (message) => {
+    console[level === "info" ? "log" : level](message);
+    getDesktopUpdaterPersistentLog().append(`electron-updater ${level}`, String(message || ""));
+  };
+
+  return {
+    info: forward("info"),
+    warn: forward("warn"),
+    error: forward("error"),
+    debug: () => {}
+  };
+}
+
+async function describeDesktopUpdaterEnvironment(autoUpdater) {
+  const environment = {
+    currentVersion: app.getVersion(),
+    platform: process.platform,
+    arch: process.arch,
+    execPath: process.execPath,
+    userDataPath: app.getPath("userData")
+  };
+
+  try {
+    const publishConfig = await autoUpdater.configOnDisk.value;
+    environment.feed = {
+      provider: publishConfig?.provider,
+      owner: publishConfig?.owner,
+      repo: publishConfig?.repo,
+      channel: publishConfig?.channel,
+      updaterCacheDirName: publishConfig?.updaterCacheDirName
+    };
+  } catch (error) {
+    environment.feedError = describeDesktopUpdateError(error);
   }
 
   try {
-    await fsPromises.mkdir(path.dirname(resolvedLogPath), {
-      recursive: true
-    });
-    await fsPromises.appendFile(resolvedLogPath, `${lines.join("\n")}\n`, "utf8");
-  } catch {
-    // Persistent updater logging must never block launch or install handoff.
+    const helper = await autoUpdater.getOrCreateDownloadHelper();
+    environment.pendingDir = helper.cacheDirForPendingUpdate;
+    const stats = await fsPromises.statfs(path.dirname(helper.cacheDirForPendingUpdate));
+    environment.cacheVolumeFreeBytes = Number(stats.bavail) * Number(stats.bsize);
+  } catch (error) {
+    environment.cacheDirError = describeDesktopUpdateError(error);
   }
+
+  return environment;
 }
 
 function resolveDesktopUpdaterLogPathForCurrentRun() {
@@ -1408,68 +1462,6 @@ async function fetchDesktopUpdateMetadataText(metadataUrl) {
   }
 
   return await response.text();
-}
-
-async function downloadDesktopUpdateAssetToFile(assetUrl, destinationPath, { onProgress } = {}) {
-  const response = await fetch(assetUrl, {
-    headers: {
-      accept: "application/octet-stream, */*"
-    }
-  });
-
-  if (!response.ok || !response.body) {
-    throw new Error(
-      `Could not download desktop update asset ${assetUrl} (${response.status} ${response.statusText || "Unknown"}).`
-    );
-  }
-
-  const totalBytes = Number(response.headers.get("content-length")) || 0;
-  const destinationDir = path.dirname(destinationPath);
-  const temporaryPath = path.join(destinationDir, `temp-${path.basename(destinationPath)}`);
-  const hash = createHash("sha512");
-  let downloadedBytes = 0;
-
-  await fsPromises.mkdir(destinationDir, {
-    recursive: true
-  });
-  await fsPromises.rm(temporaryPath, {
-    force: true
-  });
-  await fsPromises.rm(destinationPath, {
-    force: true
-  });
-
-  const hashAndProgress = new Transform({
-    transform(chunk, _encoding, callback) {
-      hash.update(chunk);
-      downloadedBytes += chunk.length;
-      onProgress?.({
-        downloadedBytes,
-        totalBytes,
-        progress: totalBytes > 0 ? downloadedBytes / totalBytes : null
-      });
-      callback(null, chunk);
-    }
-  });
-
-  try {
-    await pipeline(
-      Readable.fromWeb(response.body),
-      hashAndProgress,
-      fs.createWriteStream(temporaryPath)
-    );
-    await fsPromises.rename(temporaryPath, destinationPath);
-  } catch (error) {
-    await fsPromises.rm(temporaryPath, {
-      force: true
-    });
-    throw error;
-  }
-
-  return {
-    sha512: hash.digest("base64"),
-    size: downloadedBytes
-  };
 }
 
 async function downloadDesktopWindowsUpdateWithArchFallback(autoUpdater) {
@@ -1523,6 +1515,17 @@ async function downloadDesktopWindowsUpdateWithArchFallback(autoUpdater) {
   });
 
   const downloadedFile = await downloadDesktopUpdateAssetToFile(installerUrl, destinationPath, {
+    async onAttemptFailed({ attempt, attempts, error, willRetry }) {
+      logDesktopUpdateEvent(
+        willRetry
+          ? `Update download attempt ${attempt} of ${attempts} failed; retrying.`
+          : `Update download attempt ${attempt} of ${attempts} failed; giving up.`,
+        { level: willRetry ? "warn" : "error", error }
+      );
+      if (willRetry) {
+        setDesktopUpdateStatus(`Download interrupted, retrying (${attempt + 1}/${attempts})...`, "indeterminate");
+      }
+    },
     onProgress({ progress }) {
       if (!Number.isFinite(progress)) {
         return;
@@ -1576,6 +1579,8 @@ async function downloadDesktopWindowsUpdateWithArchFallback(autoUpdater) {
       expectedArch: fallback.expectedArch,
       expectedFileName: fallback.expectedFileName,
       installerUrl,
+      finalUrl: downloadedFile.finalUrl,
+      attempt: downloadedFile.attempt,
       sha512: downloadedFile.sha512,
       size: downloadedFile.size,
       targetVersion: normalizedUpdateInfo.version || ""
@@ -1743,6 +1748,11 @@ async function checkForDesktopUpdates({ userInitiated = false } = {}) {
 
   desktopUpdateCheckPromise = (async () => {
     try {
+      getDesktopUpdaterPersistentLog().append(
+        "log",
+        userInitiated ? "Update check requested by the user." : "Automatic update check starting.",
+        await describeDesktopUpdaterEnvironment(autoUpdater)
+      );
       const result = await autoUpdater.checkForUpdates();
       const version = formatDesktopDisplayVersion(result?.updateInfo?.version);
 
@@ -1929,7 +1939,7 @@ function configureDesktopAutoUpdate() {
   autoUpdater.autoInstallOnAppQuit = false;
   autoUpdater.disableWebInstaller = true;
   autoUpdater.disableDifferentialDownload = true;
-  autoUpdater.logger = console;
+  autoUpdater.logger = createDesktopUpdaterLogger();
 
   autoUpdater.on("checking-for-update", () => {
     logDesktopUpdateEvent("Checking GitHub Releases for a desktop update...");
