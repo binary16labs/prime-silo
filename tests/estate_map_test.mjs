@@ -606,3 +606,395 @@ test("a quarantined media title alone makes the row private", async () => {
     assert.ok(!out.includes(leak), `leaked ${leak}`);
   assert.equal(db.prepare("SELECT private FROM media").get().private, 1);
 });
+
+// --- verifier-3 findings (claude-s0-verifier-3) ---------------------------------------------------
+
+test("RegExp rules written with Windows backslashes match, including anchors and lookbehind", async () => {
+  const rules = [
+    /\\Documents\\Applications\\/iu,
+    /^C:\\Users\\x\\Documents\\/iu,
+    /(?<=Documents\\Applications\\)cv/u
+  ];
+  for (const rule of rules) {
+    const { db, estate } = setup();
+    const f = files("C:", [
+      { path: "C:\\Users\\x\\Documents\\Applications\\cv-2026.docx", size: 1 }
+    ]);
+    const apps = {
+      name: "a",
+      kind: "apps",
+      async *collect() {
+        yield {
+          name: "CV Builder",
+          version: "3",
+          location: "C:\\Users\\x\\Documents\\Applications\\cv-builder"
+        };
+      }
+    };
+    const media = {
+      name: "m",
+      kind: "media",
+      async *collect() {
+        yield {
+          root: "C:\\Users\\x\\Documents\\Applications",
+          path: "cv-talk.mp4",
+          title: "Talk",
+          size: 1
+        };
+      }
+    };
+    const sweep = await runSweep({
+      db,
+      machine: "vm",
+      collectors: [f, apps, media],
+      scope: ["C:"],
+      quarantine: [rule]
+    });
+    const out = await allOutput(db, estate, sweep, "vm");
+    // The lookbehind rule targets cv* items inside the folder, not the folder itself, so only the
+    // two rules that cover the folder must also hide its name.
+    const needles = ["cv-2026", "CV Builder", "cv-talk"];
+    if (!rule.source.startsWith("(?<=")) needles.push("Applications");
+    for (const leak of needles) assert.ok(!out.includes(leak), `${rule} leaked ${leak}`);
+  }
+});
+
+test("Win32 namespace prefixes (\\\\?\\ and \\\\.\\) name the same path and cannot dodge a rule", async () => {
+  const cases = [
+    {
+      path: "\\\\?\\UNC\\nas\\home\\HR\\cv-2026.docx",
+      rule: "\\\\nas\\home\\HR\\",
+      volume: "//nas/home"
+    },
+    {
+      path: "\\\\?\\C:\\Users\\x\\Documents\\cv-2026.docx",
+      rule: /^c:\/users\/x\/documents\//iu,
+      volume: "C:"
+    },
+    {
+      path: "\\\\.\\C:\\Users\\x\\Documents\\cv-2026.docx",
+      rule: /^c:\/users\/x\/documents\//iu,
+      volume: "C:"
+    }
+  ];
+  for (const c of cases) {
+    const { db, estate } = setup();
+    const f = {
+      name: "f",
+      kind: "files",
+      volumes: [c.volume],
+      async *collect() {
+        yield { path: c.path, size: 1 };
+      }
+    };
+    const sweep = await runSweep({
+      db,
+      machine: "vm",
+      collectors: [f],
+      scope: [c.volume],
+      quarantine: [c.rule]
+    });
+    const out = await allOutput(db, estate, sweep, "vm");
+    assert.ok(!out.includes("cv-2026"), `${c.path} leaked`);
+  }
+});
+
+test("a UNC path keeps its // root so an anchored UNC rule still matches", async () => {
+  const { db, estate } = setup();
+  const f = {
+    name: "f",
+    kind: "files",
+    volumes: ["//server/share"],
+    async *collect() {
+      yield { path: "\\\\server\\share\\HR\\offer-letter.pdf", size: 1 };
+      yield { path: "\\\\server\\share\\public\\menu.pdf", size: 1 };
+    }
+  };
+  const sweep = await runSweep({
+    db,
+    machine: "vm",
+    collectors: [f],
+    scope: ["//server/share"],
+    quarantine: [/^\/\/server\/share\/hr\//iu]
+  });
+  assert.ok(!(await allOutput(db, estate, sweep, "vm")).includes("offer-letter"));
+  assert.equal(
+    db.prepare("SELECT path FROM files WHERE private = 0").get().path,
+    "//server/share/public/menu.pdf",
+    "the stored UNC path keeps its // root"
+  );
+});
+
+test("the media matcher sees the original spelling of root + path, not only the canonical join", async () => {
+  const { db, estate } = setup();
+  const media = {
+    name: "m",
+    kind: "media",
+    async *collect() {
+      yield { root: "D:\\Private", path: "cv\\\\talk.mp4", title: "Talk", size: 1 };
+    }
+  };
+  const sweep = await runSweep({
+    db,
+    machine: "vm",
+    collectors: [media],
+    scope: [],
+    quarantine: [/cv\/\/talk/iu]
+  });
+  assert.ok(!(await allOutput(db, estate, sweep, "vm")).includes("talk.mp4"));
+});
+
+test("a RegExp rule sees the canonical path, so ./ and doubled separators cannot dodge it", async () => {
+  const { db, estate } = setup();
+  const f = files("C:", [{ path: "C:\\Users\\x\\.\\Documents\\\\cv.docx", size: 1 }]);
+  const sweep = await runSweep({
+    db,
+    machine: "vm",
+    collectors: [f],
+    scope: ["C:"],
+    quarantine: [/^C:\/Users\/x\/Documents\/cv/u]
+  });
+  assert.ok(!(await allOutput(db, estate, sweep, "vm")).includes("cv.docx"));
+});
+
+test("a quarantined app version alone privatises the app; private apps keep distinct rows, versionless", async () => {
+  const { db, estate } = setup();
+  const apps = {
+    name: "a",
+    kind: "apps",
+    async *collect() {
+      yield { name: "Tool", version: "cv-2026-edition" };
+      yield { name: "Secret", version: "1", publisher: "cv-2026 corp" };
+      yield { name: "Secret", version: "2", publisher: "cv-2026 corp" };
+    }
+  };
+  const sweep = await runSweep({
+    db,
+    machine: "vm",
+    collectors: [apps],
+    scope: [],
+    quarantine: ["cv-2026"]
+  });
+  const out = await allOutput(db, estate, sweep, "vm");
+  for (const leak of ["cv-2026", "Secret", "Tool"])
+    assert.ok(!out.includes(leak), `leaked ${leak}`);
+  const rows = db.prepare("SELECT name, version, private FROM apps").all();
+  assert.equal(rows.length, 3, "private apps of different versions must not collapse into one row");
+  assert.ok(rows.every((r) => r.private === 1 && r.version === ""));
+});
+
+test("empty, '.' and bare-separator rules are refused; absent optional fields are never 'matched'", async () => {
+  for (const rule of ["", ".", "/", "\\"]) {
+    const { db } = setup();
+    // no scope, so only the rule check itself can refuse this sweep
+    await assert.rejects(
+      runSweep({ db, machine: "vm", collectors: [], scope: [], quarantine: [rule] }),
+      /quarantine rule is empty or a bare separator/u
+    );
+    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM sweeps").get().n, 0);
+  }
+  const { db } = setup();
+  const apps = {
+    name: "a",
+    kind: "apps",
+    async *collect() {
+      yield { name: "Node.js", version: "24" };
+    }
+  };
+  await runSweep({ db, machine: "vm", collectors: [apps], scope: [], quarantine: [/^$/u] });
+  assert.deepEqual(
+    { ...db.prepare("SELECT name, publisher, private FROM apps").get() },
+    { name: "Node.js", publisher: null, private: 0 }
+  );
+});
+
+test("numeric fields are stored as numbers or null, never as collector-supplied text", async () => {
+  const { db } = setup();
+  const f = files("F:", [
+    { path: "F:/a.bin", size: 5, mtimeMs: 1700000000000 },
+    { path: "F:/b.bin", size: 6, mtimeMs: "C:/Users/x/cv-2026.docx" }
+  ]);
+  const media = {
+    name: "m",
+    kind: "media",
+    async *collect() {
+      yield { root: "F:/m", path: "x.mkv", size: 42 };
+      yield { root: "F:/m", path: "y.mkv", size: "C:/Users/x/cv-2026.docx" };
+    }
+  };
+  await runSweep({ db, machine: "vm", collectors: [f, media], scope: ["F:"] });
+  assert.deepEqual(
+    db
+      .prepare("SELECT path, mtime_ms FROM files ORDER BY path")
+      .all()
+      .map((r) => ({ ...r })),
+    [
+      { path: "F:/a.bin", mtime_ms: 1700000000000 },
+      { path: "F:/b.bin", mtime_ms: null }
+    ]
+  );
+  assert.deepEqual(
+    db
+      .prepare("SELECT path, size FROM media ORDER BY path")
+      .all()
+      .map((r) => ({ ...r })),
+    [
+      { path: "F:/m/x.mkv", size: 42 },
+      { path: "F:/m/y.mkv", size: null }
+    ]
+  );
+});
+
+// --- round 3 self-review: every spelling an operator or a filesystem can produce ---------------
+
+async function leaksFor(pathValue, rule, needle = "cv-2026") {
+  const { db, estate } = setup();
+  const f = {
+    name: "f",
+    kind: "files",
+    volumes: ["C:"],
+    async *collect() {
+      yield { path: pathValue, size: 1 };
+    }
+  };
+  const sweep = await runSweep({
+    db,
+    machine: "vm",
+    collectors: [f],
+    scope: ["C:"],
+    quarantine: [rule]
+  });
+  return (await allOutput(db, estate, sweep, "vm")).includes(needle);
+}
+
+test("string rules match across Unicode compatibility, case folding and invisible characters", async () => {
+  const cases = [
+    ["C:/Users/x/STRASSE/cv-2026.docx", "straße"],
+    ["C:/Users/x/Straße/cv-2026.docx", "STRASSE"],
+    ["C:/Users/x/İş Başvuru/cv-2026.docx", "iş başvuru"],
+    ["C:/Users/x/Doc\u200Buments/cv-2026.docx", "x/documents/"],
+    ["C:\uFF0FUsers\uFF0Fx\uFF0FDocuments\uFF0Fcv-2026.docx", "x/documents/"]
+  ];
+  for (const [p, rule] of cases) assert.equal(await leaksFor(p, rule), false, `${p} vs ${rule}`);
+  assert.equal(await leaksFor("\uFF23\uFF36-2026.docx", "cv-2026", "\uFF23\uFF36-2026"), false);
+});
+
+test(".. cannot climb above a drive or root, and a leading .. in a string rule still matches", async () => {
+  assert.equal(
+    await leaksFor(
+      "C:\\Users\\x\\Documents\\..\\..\\..\\..\\Documents\\cv-2026.docx",
+      "C:/Documents/"
+    ),
+    false
+  );
+  assert.equal(
+    await leaksFor("C:/../../Users/x/Documents/cv-2026.docx", "C:/Users/x/Documents"),
+    false
+  );
+  assert.equal(await leaksFor("C:\\Users\\x\\Documents\\cv-2026.docx", "..\\Documents"), false);
+  assert.equal(
+    await leaksFor("C:cv-2026.docx", "C:/cv"),
+    false,
+    "a drive-relative path is matched as rooted"
+  );
+});
+
+test("RegExp rules: case-insensitive, $-anchored, and written against the original doubled separator", async () => {
+  assert.equal(
+    await leaksFor("c:\\users\\x\\documents\\cv-2026.docx", /^C:\/Users\/x\/Documents/u),
+    false
+  );
+  assert.equal(await leaksFor("C:\\Users\\x\\Documents\\cv-2026.docx", /cv-2026\.docx$/u), false);
+  assert.equal(
+    await leaksFor("C:\\Users\\x\\Documents\\\\cv-2026.docx", /Documents\/\/cv/iu),
+    false
+  );
+});
+
+test("non-text row fields fail the collector instead of being stringified into the map", async () => {
+  const shifty = () => {
+    let i = 0;
+    return { toString: () => (i++ ? "C:/Users/x/cv-2026.docx" : "C:/public") };
+  };
+  for (const bad of [
+    ["C:/Users/x/Documents", "cv-2026.docx"],
+    shifty(),
+    new URL("file:///C:/Users/x/cv-2026.docx")
+  ]) {
+    const { db, estate } = setup();
+    const f = {
+      name: "f",
+      kind: "files",
+      volumes: ["C:"],
+      async *collect() {
+        yield { path: bad, size: 1 };
+      }
+    };
+    const apps = {
+      name: "a",
+      kind: "apps",
+      async *collect() {
+        yield { name: "ok", location: shifty() };
+      }
+    };
+    const sweep = await runSweep({
+      db,
+      machine: "vm",
+      collectors: [f, apps],
+      scope: ["C:"],
+      quarantine: ["cv-2026"]
+    });
+    assert.deepEqual(
+      sweep.collectors.map((c) => c.status),
+      ["errored", "errored"]
+    );
+    assert.ok(!(await allOutput(db, estate, sweep, "vm")).includes("cv-2026"));
+  }
+});
+
+test("a collector name or an error code that matches a rule is refused or replaced", async () => {
+  const { db, estate } = setup();
+  const named = files("C:", [{ path: "C:/a", size: 1 }]);
+  named.name = "cv-2026";
+  await assert.rejects(
+    runSweep({ db, machine: "vm", collectors: [named], scope: ["C:"], quarantine: ["cv-2026"] }),
+    TypeError
+  );
+  const boom = {
+    name: "boom",
+    kind: "files",
+    volumes: ["C:"],
+    async *collect() {
+      throw Object.assign(new Error("x"), { code: "CV_2026" });
+    }
+  };
+  const sweep = await runSweep({
+    db,
+    machine: "vm",
+    collectors: [boom],
+    scope: ["C:"],
+    quarantine: ["cv_2026"]
+  });
+  assert.equal(sweep.collectors[0].error_code, "UNKNOWN");
+  assert.ok(!(await allOutput(db, estate, sweep, "vm")).includes("CV_2026"));
+});
+
+test("stored paths are NFC, so one file spelled NFD and NFC is one row", async () => {
+  const { db } = setup();
+  const nfd = "F:/music/Beyonce\u0301/halo.mp3";
+  const nfc = "F:/music/Beyonc\u00e9/halo.mp3";
+  await runSweep({
+    db,
+    machine: "vm",
+    collectors: [
+      files("F:", [
+        { path: nfd, size: 1 },
+        { path: nfc, size: 1 }
+      ])
+    ],
+    scope: ["F:"]
+  });
+  const rows = db.prepare("SELECT path FROM files").all();
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].path, nfc);
+});

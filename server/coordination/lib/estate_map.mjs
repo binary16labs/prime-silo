@@ -1,28 +1,15 @@
 // Estate map (S0) — what one node holds, in one local index, published as evidence.
 // Plan: architecture/SOLUTION-estate-map.md §1, §3, §7 · Contract: delivery/tasks/S0.md
 //
-// Every Prime-Silo node maps its own machine: files, applications, media. This module is the
-// shape all of that lands in, and the one place two boundaries are decided so no collector has
-// to remember them:
-//
-//   SCOPE. A sweep records exactly the volumes it walked and, per collector, whether it
-//   succeeded. "0 files" from a collector that crashed and "0 files" from an empty volume are
-//   different facts; a reader must be able to tell them apart (the inventory.mjs doctrine).
-//
-//   PRIVACY (R31). Two verifiers found leaks by attacking instances: a RegExp flag, error text,
-//   a trailing slash, an encoded path. So privacy is decided by three choke points, not by
-//   remembering each field:
-//     1. canonPath — ONE normaliser for every path and every string rule (NFC, slashes, "." and
-//        "..", repeated separators). A rule and a path cannot disagree about spelling.
-//     2. every free-text field of a row is tested; one match makes the whole row private.
-//     3. no error TEXT is ever stored or published — only a validated error code. There is
-//        nothing left to redact, so no encoding of a path inside a message can slip through.
-//   Collector names must be plain identifiers and a quarantined volume is refused outright,
-//   so the strings the sweep itself writes carry no user data either.
-//
-// Collectors are plain objects: { name, kind: "files"|"apps"|"media", volumes?, collect(ctx) },
-// where collect returns an (async) iterable of rows. The MFT adapters (S1) and the application
-// collector (S2) plug in here; nothing below knows how rows were found.
+// Every node maps its own machine (files, apps, media) into this shape. Two boundaries live here:
+//   SCOPE. A sweep records exactly the volumes walked and each collector's status, so a crashed
+//   collector's "0 files" is never mistaken for an empty volume (the inventory.mjs doctrine).
+//   PRIVACY (R31). Three verifiers broke earlier versions by spelling, so privacy is three
+//   choke points: (1) isQuarantined, one matcher trying every spelling of a value (over-hiding
+//   beats a silent miss); (2) every free-text field of a row is tested, one match privatises the
+//   row; (3) no error text is ever stored, only a validated code. Collector names, codes and
+//   scope volumes matching a rule are refused or replaced.
+// Collectors: { name, kind: "files"|"apps"|"media", volumes?, collect(ctx) -> iterable of rows }.
 import crypto from "node:crypto";
 import path from "node:path";
 import fs from "node:fs";
@@ -38,24 +25,39 @@ const COLLECTOR_NAME = /^[a-z][a-z0-9._-]{0,63}$/iu;
 const ERROR_CODE = /^[A-Z][A-Z0-9_]{1,31}$/u;
 const sha256 = (s) => crypto.createHash("sha256").update(s).digest("hex");
 
-// --- 1. the one normaliser ----------------------------------------------------------------------
-
+// Storage form: NFC, forward slashes, no "." or repeated separators, ".." resolved and never
+// above a root, Win32 namespace prefixes (\\?\C:\, \\?\UNC\server) removed.
 export function canonPath(p) {
   const s = String(p ?? "")
     .normalize("NFC")
-    .replace(/\\/gu, "/");
+    .replace(/\\/gu, "/")
+    .replace(/^\/\/[?.]\/UNC\//iu, "//")
+    .replace(/^\/\/[?.]\/(?=[a-z]:)/iu, "");
   const unc = s.startsWith("//");
   const rooted = s.startsWith("/");
   const out = [];
   for (const seg of s.split("/")) {
     if (seg === "" || seg === ".") continue;
-    if (seg === ".." && out.length && out.at(-1) !== ".." && !/^[a-z]:$/iu.test(out.at(-1)))
-      out.pop();
+    const atRoot = out.length === 0 || /^[a-z]:$/iu.test(out.at(-1));
+    if (seg === ".." && atRoot && (rooted || out.length)) continue;
+    if (seg === ".." && !atRoot && out.at(-1) !== "..") out.pop();
     else out.push(seg);
   }
   return (unc ? "//" : rooted ? "/" : "") + out.join("/");
 }
 
+// Matching form only (never stored): compatibility-folded, zero-width stripped, case-folded
+// beyond ASCII, and a drive-relative "C:x" treated as rooted.
+const fold = (s) =>
+  canonPath(
+    String(s ?? "")
+      .normalize("NFKC")
+      .replace(/[\u200B-\u200D\u2060\uFEFF]/gu, "")
+  )
+    .replace(/^([a-z]:)(?!\/)/iu, "$1/")
+    .toLowerCase()
+    .replace(/i\u0307/gu, "i")
+    .replace(/ß/gu, "ss");
 // --- categories: coarse on purpose. The treemap and the storage policy group by these. ---
 const EXT_CATEGORY = [
   ["documents", /\.(pdf|docx?|xlsx?|pptx?|odt|ods|rtf|txt|md|csv|epub)$/iu],
@@ -73,34 +75,47 @@ export function categorize(p) {
   return "other";
 }
 
-// Rules are strings (case-insensitive substring of the canonical form) or RegExps (tested against
-// the canonical form). A RegExp with g or y carries lastIndex between calls, so it is evaluated
-// on a stateless copy, never on the caller's object.
+// A RegExp is evaluated on a stateless copy (g/y carry lastIndex between rows) that is also
+// case-insensitive: Windows paths are, so a case-sensitive rule would silently miss.
 const statelessRules = new WeakMap();
 function stateless(r) {
-  if (!r.global && !r.sticky) return r;
-  if (!statelessRules.has(r))
-    statelessRules.set(r, new RegExp(r.source, r.flags.replace(/[gy]/gu, "")));
+  if (!statelessRules.has(r)) {
+    const flags = r.flags.replace(/[gyi]/gu, "") + "i";
+    statelessRules.set(r, new RegExp(r.source, flags));
+  }
   return statelessRules.get(r);
 }
 
 export function isQuarantined(value, rules = []) {
   if (value === null || value === undefined || value === "") return false;
-  const n = canonPath(value);
-  const lower = n.toLowerCase();
+  const c = canonPath(value);
+  const f = fold(value);
+  // Every spelling an operator might have written a rule against, as a file and as a folder.
+  const spellings = [c, f, String(value), String(value).replace(/\\/gu, "/")].flatMap((s) => {
+    const w = s.replace(/\//gu, "\\");
+    return [s, `${s}/`, w, `${w}\\`];
+  });
   return rules.some((r) =>
-    r instanceof RegExp ? stateless(r).test(n) : lower.includes(canonPath(r).toLowerCase())
+    r instanceof RegExp
+      ? spellings.some((s) => stateless(r).test(s))
+      : `${f}/`.includes(fold(r).replace(/^(\.\.\/)+/u, ""))
   );
 }
 
-// --- 3. errors are codes, never text --------------------------------------------------------
-
-export function errorCode(e) {
-  const code = e && typeof e === "object" ? e.code : null;
-  return typeof code === "string" && ERROR_CODE.test(code) ? code : "UNKNOWN";
+// A rule whose canonical form is empty or a bare separator matches everything: refused as a
+// configuration fault rather than silently hiding (or, spelled differently, exposing) the estate.
+function assertRules(rules) {
+  for (const r of rules)
+    if (!(r instanceof RegExp) && ["", "/", "//"].includes(fold(r)))
+      throw new TypeError("quarantine rule is empty or a bare separator");
 }
 
-// --- the local index ------------------------------------------------------------------------
+// --- 3. errors are codes, never text --------------------------------------------------------
+export function errorCode(e, rules = []) {
+  const code = e && typeof e === "object" ? e.code : null;
+  const ok = typeof code === "string" && ERROR_CODE.test(code) && !isQuarantined(code, rules);
+  return ok ? code : "UNKNOWN";
+}
 
 export function openMap(dbPath) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
@@ -135,52 +150,65 @@ export function openMap(dbPath) {
 
 const hashOf = (value) => sha256(canonPath(value).toLowerCase());
 
-// --- 2. whole-row redaction, one function per kind -----------------------------------------
+// Free text from a collector must be text: an object's toString can say anything, even something
+// different on each call. Anything else fails the collector (recorded as an error code only).
+function txt(x) {
+  if (x === null || x === undefined || x === "") return null;
+  if (typeof x === "string" || typeof x === "number") return String(x);
+  throw new TypeError("collector row field is not text");
+}
 
+// --- 2. whole-row redaction, one function per kind: the RAW text goes to the matcher -------
 function fileRow(row, rules) {
-  const p = canonPath(row.path);
-  const priv = isQuarantined(p, rules) || isQuarantined(row.category, rules);
+  const raw = txt(row.path) ?? "";
+  const p = canonPath(raw);
+  const priv = isQuarantined(raw, rules);
   const category = CATEGORIES.includes(row.category) ? row.category : categorize(p);
   return { path: priv ? null : p, path_hash: hashOf(p), category, private: priv ? 1 : 0 };
 }
 
 function appRow(row, rules) {
-  const fields = [row.name, row.version, row.publisher, row.location];
-  if (fields.some((f) => isQuarantined(f, rules)))
+  const [name, version, publisher, location] = [
+    row.name,
+    row.version,
+    row.publisher,
+    row.location
+  ].map(txt);
+  if ([name, version, publisher, location].some((f) => isQuarantined(f, rules)))
     return {
-      name: `private:${hashOf(row.name)}`,
+      name: `private:${sha256(`${canonPath(name).toLowerCase()}|${version ?? ""}`)}`,
       version: "",
       publisher: null,
       location: null,
       private: 1
     };
   return {
-    name: String(row.name ?? ""),
-    version: String(row.version ?? ""),
-    publisher: row.publisher ?? null,
-    location: row.location ? canonPath(row.location) : null,
+    name: name ?? "",
+    version: version ?? "",
+    publisher,
+    location: location && canonPath(location),
     private: 0
   };
 }
 
 function mediaRow(row, rules) {
-  // Rules see the full location (root + path): a relative path under a quarantined root is
-  // private even though the path alone matches nothing.
-  const root = canonPath(row.root);
-  const rel = canonPath(row.path);
-  const full = /^([a-z]:|\/)/iu.test(rel) || !root ? rel : canonPath(`${root}/${rel}`);
-  const rootPrivate = isQuarantined(root, rules);
-  const priv = rootPrivate || isQuarantined(full, rules) || isQuarantined(row.title, rules);
+  // Rules see the full location: a relative path under a quarantined root is private too.
+  const [rootRaw, relRaw, title] = [row.root, row.path, row.title].map(txt);
+  const root = canonPath(rootRaw);
+  const rel = canonPath(relRaw);
+  const joined = /^([a-z]:|\/)/iu.test(rel) || !root;
+  const full = joined ? rel : canonPath(`${root}/${rel}`);
+  const rawFull = joined ? relRaw : `${rootRaw}/${relRaw}`;
+  const rootPrivate = isQuarantined(rootRaw, rules);
+  const priv = rootPrivate || isQuarantined(rawFull, rules) || isQuarantined(title, rules);
   return {
     root: rootPrivate ? `private:${hashOf(root)}` : root,
     path_hash: hashOf(full),
     path: priv ? null : full,
-    title: priv ? null : (row.title ?? null),
+    title: priv ? null : title,
     private: priv ? 1 : 0
   };
 }
-
-// --- the sweep ---------------------------------------------------------------------------
 
 export async function runSweep({
   db,
@@ -191,13 +219,15 @@ export async function runSweep({
   now = () => Date.now()
 }) {
   // Configuration faults are refused before anything is written, and their messages name no data.
+  assertRules(quarantine);
   for (const c of collectors) {
-    if (!COLLECTOR_NAME.test(String(c?.name)))
-      throw new TypeError("collector name must be a plain identifier");
+    if (!COLLECTOR_NAME.test(String(c?.name)) || isQuarantined(c.name, quarantine))
+      throw new TypeError("collector name must be a plain identifier matching no rule");
     if (!KINDS.has(c.kind)) throw new TypeError("collector kind must be files, apps or media");
   }
   if (scope.some((v) => typeof v !== "string" || !v || isQuarantined(v, quarantine)))
     throw new TypeError("scope contains an empty or quarantined volume");
+  const num = (x) => (Number.isFinite(Number(x)) && x !== null && x !== "" ? Number(x) : null);
 
   const sweepId = ulid();
   const startedAt = new Date(now()).toISOString();
@@ -247,7 +277,7 @@ export async function runSweep({
               r.path,
               r.category,
               size,
-              row.mtimeMs ?? null,
+              num(row.mtimeMs),
               r.private,
               sweepId
             );
@@ -261,15 +291,7 @@ export async function runSweep({
             counts.apps++;
           } else {
             const m = mediaRow(row, quarantine);
-            putMedia.run(
-              m.root,
-              m.path_hash,
-              m.path,
-              m.title,
-              row.size ?? null,
-              m.private,
-              sweepId
-            );
+            putMedia.run(m.root, m.path_hash, m.path, m.title, num(row.size), m.private, sweepId);
             digest.update(`m|${m.root}|${m.path_hash}|${size}\n`);
             counts.media++;
           }
@@ -287,7 +309,7 @@ export async function runSweep({
       } catch (e) {
         db.exec("ROLLBACK");
         result.status = "errored";
-        result.error_code = errorCode(e);
+        result.error_code = errorCode(e, quarantine);
         result.rows = 0;
         if (c.kind === "files")
           db.prepare(
@@ -317,7 +339,6 @@ export async function runSweep({
 }
 
 // --- publish: the rows of this sweep as a gzipped NDJSON blob in CAS, and one event naming it ---
-
 function* snapshotLines(db, sweep) {
   yield JSON.stringify({
     schema: SNAPSHOT_SCHEMA,
