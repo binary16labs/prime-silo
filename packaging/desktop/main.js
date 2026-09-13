@@ -1523,7 +1523,10 @@ async function downloadDesktopWindowsUpdateWithArchFallback(autoUpdater) {
         { level: willRetry ? "warn" : "error", error }
       );
       if (willRetry) {
-        setDesktopUpdateStatus(`Download interrupted, retrying (${attempt + 1}/${attempts})...`, "indeterminate");
+        setDesktopUpdateStatus(
+          `Download interrupted, retrying (${attempt + 1}/${attempts})...`,
+          "indeterminate"
+        );
       }
     },
     onProgress({ progress }) {
@@ -1806,6 +1809,8 @@ async function downloadDesktopUpdate() {
     };
   }
 
+  const retryableVersion = desktopUpdateState.version || "";
+
   desktopUpdateDownloadPromise = (async () => {
     try {
       const windowsArchFallbackResult =
@@ -1822,6 +1827,14 @@ async function downloadDesktopUpdate() {
       };
     } catch (error) {
       const formattedError = reportDesktopUpdateFailure("Desktop update download failed.", error);
+      // The update is still available; only this download failed. Leaving the state at "error"
+      // hid the button and made downloadDesktopUpdate() refuse every retry until a relaunch.
+      setDesktopUpdateState({
+        state: "update-available",
+        message: formattedError.summary,
+        progress: null,
+        version: retryableVersion
+      });
       return {
         ok: false,
         reason: "error",

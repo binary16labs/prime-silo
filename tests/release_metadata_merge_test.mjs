@@ -131,3 +131,44 @@ test("raw electron-builder names without an arch token do not trip the guard", (
   assert.ok(feedText.includes("Prime-Silo Setup 1.24.0-arm64.exe"));
   fs.rmSync(root, { recursive: true, force: true });
 });
+
+test("Windows installer names carry the arch, so native arm64 and x64 builds cannot collide", () => {
+  // v1.24.2 failed to publish at this guard: with no nsis.artifactName both runners build their
+  // native arch and emit "Prime-Silo Setup <version>.exe", so the merge collapsed them into one
+  // entry. The name must differ per arch and still match the "*Setup*.exe" upload filter.
+  const pkg = JSON.parse(fs.readFileSync(path.join(REPO, "package.json"), "utf8"));
+  const template = String(pkg.build?.nsis?.artifactName || "");
+  const render = (arch) =>
+    template
+      .replace("${productName}", pkg.build.productName)
+      .replace("${version}", "1.24.3")
+      .replace("${arch}", arch)
+      .replace("${ext}", "exe");
+  assert.ok(template.includes("${arch}"), "nsis.artifactName must include ${arch}: " + template);
+  assert.notEqual(render("x64"), render("arm64"));
+  for (const name of [render("x64"), render("arm64")]) {
+    assert.match(name, /Setup.*\.exe$/u, name + " would be skipped by release-asset-filters.yaml");
+    assert.doesNotMatch(name, / /u, "spaces are rewritten to dashes in the feed url: " + name);
+  }
+
+  // End to end through merge + stage with those names: the published feed lists both arches.
+  const root = stage({
+    [`windows-x64/${render("x64")}`]: "x".repeat(10),
+    [`windows-arm64/${render("arm64")}`]: "a".repeat(20),
+    "windows-x64/metadata-latest-windows.yml": feed("1.24.3", render("x64"), 10),
+    "windows-arm64/metadata-latest-windows.yml": feed("1.24.3", render("arm64"), 20)
+  });
+  run(root);
+  const upload = path.join(root, "..", path.basename(root) + "-upload");
+  execFileSync(
+    process.execPath,
+    [path.join(REPO, "packaging", "scripts", "release-assets-stage.js"), root, upload, "1.24.3"],
+    { encoding: "utf8" }
+  );
+  const published = fs.readFileSync(path.join(upload, "metadata-latest-windows.yml"), "utf8");
+  assert.ok(published.includes("Prime-Silo-1.24.3-windows-x64.exe"), published);
+  assert.ok(published.includes("Prime-Silo-1.24.3-windows-arm64.exe"), published);
+  assert.match(published, /^path: Prime-Silo-1\.24\.3-windows-x64\.exe$/mu);
+  fs.rmSync(root, { recursive: true, force: true });
+  fs.rmSync(upload, { recursive: true, force: true });
+});

@@ -1101,9 +1101,31 @@
           let noteExpandable = false;
           let showFailureNote = false;
 
+          const lastFailure =
+            state.lastFailure && typeof state.lastFailure === "object" ? state.lastFailure : null;
+          const downloadFailed =
+            statusKey === "update-available" &&
+            Boolean(message) &&
+            message === String(lastFailure?.summary || "").trim() &&
+            /download/iu.test(String(lastFailure?.context || ""));
+
           if (statusKey === "update-available") {
-            buttonLabel = version ? "Update to " + version : "Update Now";
-            message = "";
+            buttonLabel = downloadFailed
+              ? version
+                ? "Retry update to " + version
+                : "Retry update"
+              : version
+                ? "Update to " + version
+                : "Update Now";
+            if (downloadFailed) {
+              noteExpandable = true;
+              showFailureNote = true;
+              if (lastFailure?.logPath) {
+                message += " (details: " + lastFailure.logPath + ")";
+              }
+            } else {
+              message = "";
+            }
             showButton = true;
           } else if (statusKey === "downloading") {
             buttonLabel = Number.isFinite(progressValue)
@@ -1135,7 +1157,10 @@
           renderDesktopUpdateNote(
             showFailureNote ? message : "",
             noteExpandable
-              ? { expandable: true, summaryText: "Could not check updates" }
+              ? {
+                  expandable: true,
+                  summaryText: downloadFailed ? "Update download failed" : "Could not check updates"
+                }
               : { expandable: false }
           );
         }
@@ -1203,7 +1228,14 @@
               });
 
               const result = await desktopApi.downloadUpdate();
-              if (result && result.ok === false && result.message) {
+              // A failed download is reported through space-desktop:update-status, which keeps
+              // the button as a retry. Only fall back to a local error when no status arrived.
+              if (
+                result &&
+                result.ok === false &&
+                result.message &&
+                currentUpdateState.state === "downloading"
+              ) {
                 applyUpdateState({
                   ...currentUpdateState,
                   state: result.reason || "error",

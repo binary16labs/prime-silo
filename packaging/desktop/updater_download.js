@@ -63,7 +63,10 @@ function describeDesktopUpdateError(error) {
   return described;
 }
 
-function createDesktopUpdaterPersistentLog(logPath, { maxBytes = DESKTOP_UPDATER_LOG_MAX_BYTES } = {}) {
+function createDesktopUpdaterPersistentLog(
+  logPath,
+  { maxBytes = DESKTOP_UPDATER_LOG_MAX_BYTES } = {}
+) {
   const resolvedLogPath = String(logPath || "").trim();
   let writeChain = Promise.resolve();
 
