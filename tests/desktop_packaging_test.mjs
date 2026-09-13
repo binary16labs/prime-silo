@@ -190,8 +190,20 @@ test("packaged desktop debug reinstall normalizes release versions and tags", ()
   assert.equal(normalizeDesktopDebugReleaseVersion("", "0.49.0"), "0.49");
   assert.equal(normalizeDesktopDebugReleaseVersion("v0.48.0"), "0.48");
   assert.equal(normalizeDesktopDebugReleaseVersion("0.48.2"), "0.48.2");
-  assert.equal(resolveDesktopDebugReleaseTag("", "0.49.0"), "v0.49");
-  assert.equal(resolveDesktopDebugReleaseTag("0.48", "0.49.0"), "v0.48");
+  // Tags keep the full version; only asset names drop the trailing ".0". The ASUS failed to
+  // update to 1.24.0 because the installer was requested from .../download/v1.24/ (404).
+  assert.equal(resolveDesktopDebugReleaseTag("", "0.49.0"), "v0.49.0");
+  assert.equal(resolveDesktopDebugReleaseTag("0.48", "0.49.0"), "v0.48.0");
+  assert.equal(resolveDesktopDebugReleaseTag("1.24.0"), "v1.24.0");
+  assert.equal(resolveDesktopDebugReleaseTag("1.24.4"), "v1.24.4");
+  assert.equal(
+    resolveDesktopDebugReleaseAssetUrl({
+      publishConfig: { provider: "github", owner: "binary16labs", repo: "prime-silo" },
+      tag: resolveDesktopDebugReleaseTag("1.24.0"),
+      fileName: resolveDesktopWindowsReleaseAssetFileName({ version: "1.24.0", arch: "x64" })
+    }),
+    "https://github.com/binary16labs/prime-silo/releases/download/v1.24.0/Prime-Silo-1.24-windows-x64.exe"
+  );
 });
 
 test("packaged desktop debug reinstall resolves platform metadata files", () => {
@@ -287,7 +299,7 @@ test("packaged desktop debug reinstall stages same-version and downgrade release
   const fetchCalls = [];
   const fetchText = async (url) => {
     fetchCalls.push(url);
-    return url.includes("/v0.48/")
+    return url.includes("/v0.48.0/")
       ? [
           "version: 0.48.0",
           "files:",
@@ -316,24 +328,24 @@ test("packaged desktop debug reinstall stages same-version and downgrade release
   });
 
   assert.equal(sameVersionStage.comparison, 0);
-  assert.equal(sameVersionStage.tag, "v0.49");
+  assert.equal(sameVersionStage.tag, "v0.49.0");
   assert.equal(
     sameVersionStage.metadataUrl,
     resolveDesktopDebugReleaseAssetUrl({
       publishConfig,
-      tag: "v0.49",
+      tag: "v0.49.0",
       fileName: WINDOWS_RELEASE_METADATA_FILE
     })
   );
   assert.equal(
     sameVersionStage.provider.resolveFiles(sameVersionStage.info)[0].url.href,
-    "https://github.com/agent0ai/space-agent/releases/download/v0.49/Prime-Silo-0.49-windows-x64.exe"
+    "https://github.com/agent0ai/space-agent/releases/download/v0.49.0/Prime-Silo-0.49-windows-x64.exe"
   );
   assert.equal(downgradeStage.comparison, -1);
-  assert.equal(downgradeStage.tag, "v0.48");
+  assert.equal(downgradeStage.tag, "v0.48.0");
   assert.deepEqual(fetchCalls, [
-    "https://github.com/agent0ai/space-agent/releases/download/v0.49/metadata-latest-windows.yml",
-    "https://github.com/agent0ai/space-agent/releases/download/v0.48/metadata-latest-windows.yml"
+    "https://github.com/agent0ai/space-agent/releases/download/v0.49.0/metadata-latest-windows.yml",
+    "https://github.com/agent0ai/space-agent/releases/download/v0.48.0/metadata-latest-windows.yml"
   ]);
 });
 

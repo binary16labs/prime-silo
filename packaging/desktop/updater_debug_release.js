@@ -152,8 +152,13 @@ function normalizeDesktopDebugReleaseVersion(requestedVersion, currentVersion = 
   return parsedVersion.version;
 }
 
+// Release TAGS keep the full version (v1.24.0) even though release ASSET names drop a trailing
+// ".0" (Prime-Silo-1.24-windows-x64.exe). Using the asset form for the tag produced
+// .../download/v1.24/... — a 404 — so every Windows x64 update to an X.Y.0 release failed.
 function resolveDesktopDebugReleaseTag(requestedVersion, currentVersion = "") {
-  return `v${normalizeDesktopDebugReleaseVersion(requestedVersion, currentVersion)}`;
+  return `v${resolveDesktopDebugComparisonVersion(
+    normalizeDesktopDebugReleaseVersion(requestedVersion, currentVersion)
+  )}`;
 }
 
 function resolveDesktopDebugComparisonVersion(version) {

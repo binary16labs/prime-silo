@@ -1477,7 +1477,10 @@ async function downloadDesktopWindowsUpdateWithArchFallback(autoUpdater) {
   }
 
   const publishConfig = await autoUpdater.configOnDisk.value;
-  const tag = resolveDesktopDebugReleaseTag(updateInfo?.version || "");
+  // Prefer the tag electron-updater actually found the feed under; derive one only as a fallback.
+  const tag =
+    String(updateInfo?.tag || "").trim() ||
+    resolveDesktopDebugReleaseTag(updateInfo?.version || "");
   const installerUrl = resolveDesktopDebugReleaseAssetUrl({
     publishConfig,
     tag,
