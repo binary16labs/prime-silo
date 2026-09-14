@@ -50,7 +50,18 @@ async function time(adapter, volume) {
     const seconds = Number(process.hrtime.bigint() - started) / 1e9;
     return { adapter: adapter.name, volume, ok: true, seconds: +seconds.toFixed(2), files };
   } catch (e) {
-    return { adapter: adapter.name, volume, ok: false, errorCode: e?.code || "FAILED", files };
+    // a failed adapter is reported with its time, rows seen and skip counts, never selected
+    const seconds = +(Number(process.hrtime.bigint() - started) / 1e9).toFixed(2);
+    const errorCode = e?.code || "FAILED";
+    return {
+      adapter: adapter.name,
+      volume,
+      ok: false,
+      errorCode,
+      seconds,
+      files,
+      skipped: e?.detail
+    };
   }
 }
 
@@ -61,7 +72,9 @@ for (const volume of volumes)
     const r = await time(adapter, volume);
     results.push(r);
     process.stderr.write(
-      r.ok ? `${r.files} files in ${r.seconds}s\n` : `not run (${r.errorCode})\n`
+      r.ok
+        ? `${r.files} files in ${r.seconds}s\n`
+        : `FAILED ${r.errorCode} after ${r.files} files, ${r.seconds}s ${JSON.stringify(r.skipped ?? {})}\n`
     );
   }
 
