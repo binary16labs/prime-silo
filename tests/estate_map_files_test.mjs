@@ -1,6 +1,7 @@
 // S1 — file collectors. Each Scenario in delivery/tasks/S1.md maps to a test here.
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import fsp from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -10,12 +11,18 @@ import {
   wiztreeAdapter,
   walkerAdapter,
   fileCollectors,
+  decidedCollectors,
+  defaultEsPath,
   recommend,
   isExcluded,
+  filetimeToMs,
   parseEverythingLine,
-  parseJournalCsv
+  parseJournalCsv,
+  run
 } from "../server/coordination/lib/estate_map_files.mjs";
 import { openMap, runSweep } from "../server/coordination/lib/estate_map.mjs";
+
+const EPOCH_TICKS = 116444736000000000n;
 
 // One real tree, and the CSV that Everything and WizTree would export for it.
 function fixtureVolume() {
@@ -35,12 +42,12 @@ function fixtureVolume() {
   }
   const all = Object.keys(files).map((rel) => {
     const full = path.join(vol, ...rel.split("/"));
-    const st = fs.statSync(full);
-    return { full, size: st.size, mtime: new Date(Math.floor(st.mtimeMs / 1000) * 1000) };
+    const st = fs.statSync(full, { bigint: true });
+    return { full, size: Number(st.size), ns: st.mtimeNs };
   });
-  const everythingCsv = all
-    .map((f) => `"${f.full}",${f.size},${f.mtime.toISOString().replace(/\.\d{3}Z$/u, "Z")}`)
-    .join("\r\n");
+  // FILETIME ticks exactly as NTFS stores them (100 ns), so sub-millisecond digits are present
+  const everythingCsv =
+    "\uFEFF" + all.map((f) => `"${f.full}",${f.size},${f.ns / 100n + EPOCH_TICKS}`).join("\r\n");
   const pad = (n) => String(n).padStart(2, "0");
   const wizDate = (d) =>
     `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
@@ -49,15 +56,18 @@ function fixtureVolume() {
     "File Name,Size,Allocated,Modified,Attributes,Files,Folders",
     `"${vol}\\",100,4096,${wizDate(new Date())},16,6,3`,
     `"${path.join(vol, "sub")}\\",10,4096,${wizDate(new Date())},16,1,0`,
-    ...all.map((f) => `"${f.full}",${f.size},4096,${wizDate(f.mtime)},32,0,0`)
+    ...all.map(
+      (f) => `"${f.full}",${f.size},4096,${wizDate(new Date(Number(f.ns / 1000000n)))},32,0,0`
+    )
   ].join("\r\n");
   return { vol, everythingCsv, wiztreeCsv };
 }
 
-// A fake executable runner: writes the fixture to the file the adapter asked for.
+// A fake executable runner: writes the fixture to the file the adapter asked for, and records calls.
 const fakeExec =
-  (csv, { code = 0, count = "6" } = {}) =>
+  (csv, { code = 0, count = "6", calls = [] } = {}) =>
   async (cmd, args) => {
+    calls.push(args);
     if (args.includes("-get-result-count")) return { code, stdout: count };
     const exportArg = args.indexOf("-export-csv");
     const wizExport = args.find((a) => a.startsWith("/export="));
@@ -69,29 +79,27 @@ const fakeExec =
 const collect = async (adapter, volume) => {
   const rows = [];
   for await (const r of adapter.list(volume)) rows.push(r);
-  return rows;
+  return rows.sort((a, b) => a.path.localeCompare(b.path));
 };
-const shape = (rows) =>
-  rows
-    .map((r) => ({
-      path: r.path.toLowerCase(),
-      size: r.size,
-      mtimeS: Math.floor(r.mtimeMs / 1000)
-    }))
-    .sort((a, b) => a.path.localeCompare(b.path));
 
 test("Scenario: every adapter produces the same rows for the same tree", async () => {
   const { vol, everythingCsv, wiztreeCsv } = fixtureVolume();
-  const es = everythingAdapter({ esPath: "es.exe", exec: fakeExec(everythingCsv) });
+  const calls = [];
+  const es = everythingAdapter({ esPath: "es.exe", exec: fakeExec(everythingCsv, { calls }) });
   const wiz = wiztreeAdapter({ wiztreePath: process.execPath, exec: fakeExec(wiztreeCsv) });
-  const walked = shape(await collect(walkerAdapter(), vol));
+  const walked = await collect(walkerAdapter(), vol);
   assert.equal(walked.length, 3, "Windows\\, $Recycle.Bin and pagefile.sys are excluded");
-  assert.ok(
-    walked.some((r) => r.path.endsWith("addams family, the\\game (beta) [a1].gen")),
-    "a comma in a name survives"
+  assert.ok(walked.some((r) => r.path.endsWith("Addams Family, The\\game (Beta) [a1].gen")));
+  assert.ok(walked.every((r) => Number.isInteger(r.mtimeMs)));
+  // exact: same path spelling, size and millisecond mtime (a BOM on the export is not part of a path)
+  assert.deepEqual(await collect(es, vol), walked);
+  assert.ok(calls.at(-1).includes(`${vol}\\`), "the volume root is passed with its separator");
+  // WizTree's export only has whole local seconds: paths and sizes exact, mtime to the second
+  const wizRows = await collect(wiz, vol);
+  assert.deepEqual(
+    wizRows.map((r) => [r.path, r.size, Math.floor(r.mtimeMs / 1000)]),
+    walked.map((r) => [r.path, r.size, Math.floor(r.mtimeMs / 1000)])
   );
-  assert.deepEqual(shape(await collect(es, vol)), walked);
-  assert.deepEqual(shape(await collect(wiz, vol)), walked);
 });
 
 test("Scenario: no MFT tool installed still maps the volume, and the adapter is recorded", async () => {
@@ -112,40 +120,65 @@ test("Scenario: no MFT tool installed still maps the volume, and the adapter is 
   assert.equal(sweep.counts.files, 3);
 });
 
-test("Scenario: the benchmark reports a losing adapter honestly", () => {
+test("Scenario: the benchmark reports a losing adapter honestly, and its sweep uses that decision", async () => {
   const decision = recommend([
     { adapter: "everything", volume: "F:", ok: true, seconds: 40, files: 10 },
     { adapter: "walker", volume: "F:", ok: true, seconds: 25, files: 10 },
-    { adapter: "wiztree", volume: "F:", ok: false, errorCode: "UNAVAILABLE" }
+    { adapter: "wiztree", volume: "F:", ok: false, errorCode: "UNAVAILABLE" },
+    { adapter: "everything", volume: "C:", ok: true, seconds: 0, files: 1 },
+    { adapter: "walker", volume: "C:", ok: true, seconds: 3, files: 1 }
   ]);
-  assert.equal(decision[0].chosen, "walker", "a slower adapter is never selected");
+  const f = decision.find((d) => d.volume === "F:");
+  assert.equal(f.chosen, "walker", "a slower adapter is never selected");
   assert.deepEqual(
-    decision[0].all.filter((r) => r.ok).map((r) => [r.adapter, r.seconds]),
+    f.all.map((r) => [r.adapter, r.ok, r.seconds ?? r.errorCode]),
     [
-      ["everything", 40],
-      ["walker", 25]
+      ["everything", true, 40],
+      ["walker", true, 25],
+      ["wiztree", false, "UNAVAILABLE"]
     ],
-    "both times are shown"
+    "every adapter is shown, including the loser and the one that did not run"
   );
-  assert.equal(decision[0].speedupOverWalker, 1);
+  assert.equal(f.speedupOverWalker, 1);
+  assert.equal(
+    decision.find((d) => d.volume === "C:").speedupOverWalker,
+    300,
+    "a 0 s time is not NaN"
+  );
+
+  const adapters = [everythingAdapter({ esPath: "es.exe", exec: fakeExec("") }), walkerAdapter()];
+  assert.deepEqual(
+    decidedCollectors(decision, adapters).map((c) => [c.name, c.volumes]),
+    [
+      ["files-walker", ["F:"]],
+      ["files-everything", ["C:"]]
+    ]
+  );
 });
 
 test("selection prefers Everything, then WizTree, per volume, and a stopped Everything fails with a code", async () => {
   const { vol, everythingCsv } = fixtureVolume();
-  const up = everythingAdapter({ esPath: "es.exe", exec: fakeExec(everythingCsv) });
+  const calls = [];
+  const up = everythingAdapter({ esPath: "es.exe", exec: fakeExec(everythingCsv, { calls }) });
   const emptyIndex = everythingAdapter({
     esPath: "es.exe",
     exec: fakeExec(everythingCsv, { count: "0" })
   });
+  const throwing = { name: "broken", available: () => Promise.reject(new Error("x")), list() {} };
   const wiz = wiztreeAdapter({ wiztreePath: process.execPath, exec: fakeExec("") });
   assert.deepEqual(
     (await fileCollectors([vol], [up, wiz, walkerAdapter()])).map((c) => c.name),
     ["files-everything"]
   );
   assert.deepEqual(
-    (await fileCollectors([vol], [emptyIndex, wiz, walkerAdapter()])).map((c) => c.name),
+    calls[0],
+    ["-get-result-count", "-path", `${vol}\\`, "file:"],
+    "a path with spaces stays one argument"
+  );
+  assert.deepEqual(
+    (await fileCollectors([vol], [throwing, emptyIndex, wiz, walkerAdapter()])).map((c) => c.name),
     ["files-wiztree"],
-    "a volume Everything has not indexed falls through"
+    "a throwing adapter and a volume Everything has not indexed both fall through"
   );
 
   const stopped = everythingAdapter({
@@ -171,60 +204,178 @@ test("exclusions: identical for every adapter, never descend into an excluded fo
   assert.equal(isExcluded("C:", "C:\\Windows\\System32\\x.dll"), true);
   assert.equal(isExcluded("C:", "C:\\Windows"), true);
   assert.equal(isExcluded("C:", "C:\\pagefile.sys"), true);
-  assert.equal(
-    isExcluded("C:", "C:\\Users\\x\\Windows\\notes.txt"),
-    false,
-    "only at the volume root"
-  );
+  assert.equal(isExcluded("C:", "C:\\Users\\x\\Windows\\notes.txt"), false, "only at the root");
   assert.equal(isExcluded("C:", "C:\\Users\\x\\pagefile.sys"), false);
   assert.equal(isExcluded("C:", "C:\\WindowsApps\\a.exe"), false);
   assert.equal(isExcluded("F:", "C:\\Windows\\x"), false, "another volume is never judged");
-  assert.equal(
-    isExcluded("D:\\mnt\\vol\\", "D:\\mnt\\vol\\Windows\\x"),
-    true,
-    "a folder-mounted volume"
-  );
+  assert.equal(isExcluded("D:\\mnt\\vol\\", "D:\\mnt\\vol\\Windows\\x"), true, "folder volume");
   assert.equal(isExcluded("D:\\mnt\\vol", "D:/mnt/vol/pagefile.sys"), true, "either slash");
-  assert.equal(
-    isExcluded("D:\\mnt\\v", "D:\\mnt\\vXWindows\\y"),
-    false,
-    "a volume is a whole segment"
-  );
+  assert.equal(isExcluded("D:\\mnt\\v", "D:\\mnt\\vXWindows\\y"), false, "a volume is a segment");
 });
 
-test("the walker never follows a junction (no loops, no double counting)", async (t) => {
+// A filesystem double: marks chosen directories as reparse points or unreadable.
+function fsDouble({ reparse = {}, unreadable = [] }) {
+  return {
+    async readdir(dir, opts) {
+      if (unreadable.some((u) => path.resolve(u) === path.resolve(dir)))
+        throw Object.assign(new Error("denied"), { code: "EACCES" });
+      const entries = await fsp.readdir(dir, opts);
+      return entries.map((e) => {
+        const kind = reparse[path.join(dir, e.name)];
+        return kind ? Object.assign(Object.create(e), { isSymbolicLink: () => true }) : e;
+      });
+    },
+    async readlink(p) {
+      if (reparse[p] === "cloud") throw Object.assign(new Error("not a link"), { code: "EINVAL" });
+      return reparse[p] === "junction" ? "C:\\elsewhere" : fsp.readlink(p);
+    },
+    stat: (p) => fsp.stat(p)
+  };
+}
+
+test("the walker walks cloud-file folders (OneDrive), never follows links or junctions, and survives an unreadable folder", async () => {
   const { vol } = fixtureVolume();
+  // named to be pushed last, so it is walked FIRST: a walk that stops there would lose everything else
+  fs.mkdirSync(path.join(vol, "zz-denied"));
+  fs.writeFileSync(path.join(vol, "zz-denied", "hidden.txt"), "h");
+  const baseline = (await collect(walkerAdapter(), vol)).length;
+  const fsApi = fsDouble({
+    reparse: {
+      [path.join(vol, "sub")]: "cloud",
+      [path.join(vol, "Addams Family, The")]: "junction"
+    },
+    unreadable: [path.join(vol, "zz-denied")]
+  });
+  const rows = await collect(walkerAdapter({ fsApi }), vol);
+  assert.ok(
+    rows.some((r) => r.path.endsWith("sub\\b.bin")),
+    "a cloud folder is a real directory"
+  );
+  assert.ok(!rows.some((r) => r.path.includes("Addams")), "a junction is not followed");
+  assert.ok(
+    rows.some((r) => r.path.endsWith("a.txt")),
+    "the rest of the walk continues"
+  );
+  assert.equal(
+    rows.length,
+    baseline - 2,
+    "only the junction's file and the unreadable folder's file are missing"
+  );
+
   try {
     fs.symlinkSync(vol, path.join(vol, "loop"), "junction");
-  } catch {
-    t.skip("junctions unavailable here");
-    return;
+    assert.equal(
+      (await collect(walkerAdapter(), vol)).length,
+      baseline,
+      "a real junction loop is not walked"
+    );
+  } catch (e) {
+    if (e.code !== "EPERM") throw e;
   }
-  const rows = await collect(walkerAdapter(), vol);
-  assert.equal(rows.length, 3);
 });
 
-test("Everything CSV lines and journal changes parse exactly", () => {
-  assert.deepEqual(parseEverythingLine('"F:\\a, b\\c.gen",1048576,2000-10-29T04:00:00Z'), {
+test("Everything parsing: FILETIME to exact milliseconds, commas in names, empty size, junk", () => {
+  assert.equal(filetimeToMs("134338232178686205"), 1789349617868);
+  assert.equal(filetimeToMs(""), null);
+  assert.deepEqual(parseEverythingLine('"F:\\a, b\\c.gen",1048576,134338232178686205'), {
     path: "F:\\a, b\\c.gen",
     size: 1048576,
-    mtimeMs: Date.parse("2000-10-29T04:00:00Z")
+    mtimeMs: 1789349617868
   });
+  assert.deepEqual(parseEverythingLine('"F:\\x",,'), { path: "F:\\x", size: null, mtimeMs: null });
   assert.equal(parseEverythingLine("garbage"), null);
-  const changes = parseJournalCsv(
-    [
-      "Journal ID,Change ID,Date Changed,Action,Filename,New Filename",
-      '134338007805309122,3165,13/09/2026 20:20:36,"File Create","F:\\nas\\datasets\\probe.txt",""',
-      '134338007805309122,3675,13/09/2026 20:20:38,"File Rename","F:\\nas\\datasets\\probe.txt","probe-renamed.txt"',
-      '134338007805309122,4184,13/09/2026 20:20:40,"File Delete","F:\\nas\\datasets\\probe-renamed.txt",""'
-    ].join("\r\n")
+});
+
+test("journal: closed range, UTF-8 export, only this volume, excluded paths dropped, position returned", async () => {
+  const csv = [
+    "Journal ID,Change ID,Date Changed,Action,Filename,New Filename",
+    '7,3165,13/09/2026 20:20:36,"File Create","F:\\nas\\Ü日 a.txt",""',
+    '7,3675,13/09/2026 20:20:38,"File Rename","F:\\nas\\Ü日 a.txt","b.txt"',
+    '7,3700,13/09/2026 20:20:39,"File Create","F:\\nasty\\x.txt",""',
+    '7,3701,13/09/2026 20:20:39,"File Create","C:\\Users\\x\\y.txt",""',
+    '7,3702,13/09/2026 20:20:39,"File Create","F:\\nas\\$Recycle.Bin\\z",""'
+  ].join("\r\n");
+  const calls = [];
+  const es = everythingAdapter({
+    esPath: "es.exe",
+    exec: async (cmd, args) => {
+      calls.push(args);
+      if (args[0] === "-get-journal-pos") return { code: 0, stdout: "7 4000\r\n" };
+      fs.writeFileSync(args[args.indexOf("-export-csv") + 1], csv, "utf8");
+      return { code: 0, stdout: "" };
+    }
+  });
+  const { changes, position } = await es.changesSince(
+    { journalId: "7", changeId: 3000 },
+    "F:\\nas"
   );
+  assert.deepEqual(calls[1].slice(0, 6), [
+    "-from-journal-pos",
+    "7",
+    "3000",
+    "-to-journal-pos",
+    "7",
+    "4000"
+  ]);
+  assert.deepEqual(position, { journalId: "7", changeId: 4000 });
   assert.deepEqual(
-    changes.map((c) => [c.changeId, c.action, c.newName]),
+    changes.map((c) => [c.changeId, c.action, c.path, c.newName]),
     [
-      [3165, "File Create", null],
-      [3675, "File Rename", "probe-renamed.txt"],
-      [4184, "File Delete", null]
+      [3165, "File Create", "F:\\nas\\Ü日 a.txt", null],
+      [3675, "File Rename", "F:\\nas\\Ü日 a.txt", "b.txt"]
     ]
   );
+  assert.equal(parseJournalCsv(csv).length, 5);
+
+  const exportFails = everythingAdapter({
+    esPath: "es.exe",
+    exec: async (cmd, args) =>
+      args[0] === "-get-journal-pos" ? { code: 0, stdout: "7 9" } : { code: 2, stdout: "" }
+  });
+  await assert.rejects(exportFails.changesSince({ journalId: "7", changeId: 1 }, "F:"), {
+    code: "ES_JOURNAL_UNAVAILABLE"
+  });
+  const down = everythingAdapter({ esPath: "es.exe", exec: async () => ({ code: 8, stdout: "" }) });
+  assert.equal(await down.journalPosition(), null);
+  await assert.rejects(down.changesSince({ journalId: "7", changeId: 1 }, "F:"), {
+    code: "ES_JOURNAL_UNAVAILABLE"
+  });
+});
+
+// Real Everything on this machine, when it is installed and indexing the temp volume; skipped otherwise.
+test("real Everything: same rows as the walker, and a real journal change set that terminates", async (t) => {
+  // a short timeout: a journal query that never ends must fail this test, not hang the gate
+  const es = everythingAdapter({
+    esPath: defaultEsPath(),
+    exec: (cmd, args) => run(cmd, args, { timeoutMs: 15_000 })
+  });
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "s1real-"));
+  try {
+    if ((await es.journalPosition()) === null) return t.skip("Everything is not running here");
+    const from = await es.journalPosition();
+    fs.writeFileSync(path.join(dir, "Ü日 a,b.txt"), "1234");
+    fs.renameSync(path.join(dir, "Ü日 a,b.txt"), path.join(dir, "r é.txt"));
+    fs.mkdirSync(path.join(dir, "d"));
+    fs.writeFileSync(path.join(dir, "d", "keep.bin"), "12");
+    let listed = [];
+    for (let i = 0; i < 40 && listed.length !== 2; i++) {
+      await new Promise((r) => setTimeout(r, 250));
+      if (await es.available(dir)) listed = await collect(es, dir);
+    }
+    assert.deepEqual(listed, await collect(walkerAdapter(), dir), "exact rows, millisecond mtimes");
+
+    const started = Date.now();
+    const { changes } = await es.changesSince(from, dir);
+    assert.ok(Date.now() - started < 10_000, "the journal query returns");
+    assert.ok(
+      changes.some((c) => c.path.endsWith("Ü日 a,b.txt") && c.newName === "r é.txt"),
+      "UTF-8 intact"
+    );
+    assert.ok(
+      changes.every((c) => c.path.toLowerCase().startsWith(dir.toLowerCase())),
+      "only this volume"
+    );
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });

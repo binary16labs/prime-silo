@@ -8,7 +8,7 @@
 //        [--sweep] [--public-roots F:/nas,F:/media] [--out bench.json]
 //
 // --sweep additionally runs the full S0 runSweep (index + totals) into a temporary database with the
-// fastest adapter, because the plan's "map completes" includes indexing, not only enumeration.
+// adapter each volume chose (decision.chosen), because the plan's "map completes" includes indexing, not only enumeration.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -17,7 +17,7 @@ import {
   wiztreeAdapter,
   walkerAdapter,
   recommend,
-  fileCollectors
+  decidedCollectors
 } from "../server/coordination/lib/estate_map_files.mjs";
 import { openMap, runSweep } from "../server/coordination/lib/estate_map.mjs";
 
@@ -89,10 +89,7 @@ const report = {
 if (argv.includes("--sweep")) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "estate-map-bench-"));
   const db = openMap(path.join(dir, "bench.db"));
-  const collectors = await fileCollectors(
-    volumes,
-    adapters.filter((a) => a.name !== "walker" || decision.some((d) => d.chosen === "walker"))
-  );
+  const collectors = decidedCollectors(decision, adapters);
   const started = process.hrtime.bigint();
   const sweep = await runSweep({
     db,
