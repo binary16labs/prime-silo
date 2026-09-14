@@ -4,8 +4,8 @@
 // Three adapters yield the SAME rows ({ path, size, mtimeMs }); S0 records which one ran as the collector
 // name. everything: es.exe -export-csv from Everything's live MFT index (1.1M files on t480 F: in ~7 s).
 // wiztree: WizTree MFT CSV export (whole local seconds only, so its mtimeMs is coarser). walker: a plain
-// directory walk that needs nothing installed. everything and walker give floored whole-ms mtimes, so
-// size+mtime reuse (§2) survives a volume switching adapter. Exclusions are applied here, once, for all.
+// directory walk that needs nothing installed. everything and walker give exact floored whole-ms mtimes,
+// so size+mtime reuse (§2) survives a volume switching adapter. Exclusions are applied here, once, for all.
 // Privacy is decided by S0 (names only under public roots): collectors never log or return paths.
 import fs from "node:fs";
 import fsp from "node:fs/promises";
@@ -40,10 +40,13 @@ const volumeRootArg = (volume) => `${String(volume).replace(/[\\/]+$/u, "")}\\`;
 
 // --- parsers (pure) -----------------------------------------------------------------------------
 
+// Floor division for BigInt (plain / truncates toward zero, which is wrong before 1970).
+const floorDiv = (a, b) => (a < 0n ? -((-a + b - 1n) / b) : a / b);
+
 // Windows FILETIME (100 ns ticks since 1601) -> whole Unix milliseconds, exact (BigInt).
 export function filetimeToMs(ticks) {
   if (!/^\d+$/u.test(ticks)) return null;
-  return Number((BigInt(ticks) - 116444736000000000n) / 10000n);
+  return Number(floorDiv(BigInt(ticks) - 116444736000000000n, 10000n));
 }
 
 // es.exe -csv with -size-format 1 (bytes) -date-format 2 (FILETIME):
@@ -96,51 +99,49 @@ export function defaultEsPath() {
   );
 }
 
-// Runs a command and resolves { code, stdout }. Never rejects: an absent executable is code -1.
+// Runs a command and resolves { code, stdout }. Never rejects: an absent executable is code -1,
+// and a command still running at the timeout is killed and resolves code -1.
 export function run(cmd, args, { timeoutMs = 600_000 } = {}) {
   return new Promise((resolve) => {
     let stdout = "";
-    let child;
-    try {
-      child = spawn(cmd, args, { windowsHide: true });
-    } catch {
-      return resolve({ code: -1, stdout: "" });
-    }
-    const timer = setTimeout(() => child.kill(), timeoutMs);
+    const done = (code) => {
+      clearTimeout(timer);
+      resolve({ code, stdout });
+    };
+    const child = spawn(cmd, args, { windowsHide: true });
+    const timer = setTimeout(() => {
+      child.kill();
+      done(-1);
+    }, timeoutMs);
     child.stdout?.on("data", (d) => (stdout += d));
-    child.on("error", () => {
-      clearTimeout(timer);
-      resolve({ code: -1, stdout });
-    });
-    child.on("close", (code) => {
-      clearTimeout(timer);
-      resolve({ code: code ?? -1, stdout });
-    });
+    child.on("error", () => done(-1));
+    child.on("close", (code) => done(code ?? -1));
   });
 }
 
 const failure = (code) => Object.assign(new Error("file adapter failed"), { code });
 
 async function* readLines(file, parse, volume) {
-  const rl = readline.createInterface({
-    input: fs.createReadStream(file, { encoding: "utf8" }),
-    crlfDelay: Infinity
-  });
-  for await (const line of rl) {
+  const input = fs.createReadStream(file, { encoding: "utf8" });
+  for await (const line of readline.createInterface({ input, crlfDelay: Infinity })) {
     const row = parse(line.replace(/^\uFEFF/u, ""));
     if (row && !isExcluded(volume, row.path)) yield row;
   }
 }
 
-async function tempFile(tag) {
+async function withTempFile(tag, use) {
   const dir = await fsp.mkdtemp(path.join(os.tmpdir(), `estate-map-${tag}-`));
-  return {
-    file: path.join(dir, "export.csv"),
-    cleanup: () => fsp.rm(dir, { recursive: true, force: true })
-  };
+  try {
+    return await use(path.join(dir, "export.csv"));
+  } finally {
+    await fsp.rm(dir, { recursive: true, force: true });
+  }
 }
 
 // --- adapters ------------------------------------------------------------------------------------
+
+const ES_LIST = ["file:", "-size", "-date-modified", "-size-format", "1", "-date-format", "2"];
+const JOURNAL_TIMEOUT_MS = 60_000;
 
 export function everythingAdapter({ esPath = defaultEsPath(), exec = run } = {}) {
   const position = async () => {
@@ -155,56 +156,49 @@ export function everythingAdapter({ esPath = defaultEsPath(), exec = run } = {})
       return r.code === 0 && Number(r.stdout.trim()) > 0;
     },
     async *list(volume) {
-      const t = await tempFile("es");
+      const dir = await fsp.mkdtemp(path.join(os.tmpdir(), "estate-map-es-"));
       try {
+        const file = path.join(dir, "export.csv");
         const args = [
           "-path",
           volumeRootArg(volume),
-          "file:",
-          "-size",
-          "-date-modified",
-          "-size-format",
-          "1",
-          "-date-format",
-          "2",
+          ...ES_LIST,
           "-export-csv",
-          t.file,
+          file,
           "-no-header"
         ];
         const r = await exec(esPath, args);
         if (r.code !== 0) throw failure(r.code === 8 ? "ES_UNAVAILABLE" : "ES_FAILED");
-        yield* readLines(t.file, parseEverythingLine, volume);
+        yield* readLines(file, parseEverythingLine, volume);
       } finally {
-        await t.cleanup();
+        await fsp.rm(dir, { recursive: true, force: true });
       }
     },
     journalPosition: position,
-    // Changes in [from, now) on this volume, plus the position to resume from. es never exits on an
-    // open-ended journal query, ignores -path in journal mode, and writes the console code page to a
-    // pipe — so the range is closed, the volume is filtered here, and the CSV is exported as UTF-8.
+    // Changes in [from, now) on this volume + the resume position. es hangs on an open-ended range or a
+    // start older than it retains (~30 min on t480), ignores -path here and pipes the console code page,
+    // so fetch the retained journal [0, now) as UTF-8 and decide here. Lost changes: ES_JOURNAL_GAP;
+    // Everything re-indexed: ES_JOURNAL_RESET. Both mean the volume must be listed again.
     async changesSince(from, volume) {
       const to = await position();
       if (!to) throw failure("ES_JOURNAL_UNAVAILABLE");
-      const t = await tempFile("journal");
-      try {
-        const r = await exec(esPath, [
-          "-from-journal-pos",
-          from.journalId,
-          String(from.changeId),
-          "-to-journal-pos",
-          to.journalId,
-          String(to.changeId),
-          "-export-csv",
-          t.file
-        ]);
-        if (r.code !== 0 || !fs.existsSync(t.file)) throw failure("ES_JOURNAL_UNAVAILABLE");
-        const changes = parseJournalCsv(await fsp.readFile(t.file, "utf8")).filter(
-          (c) => relativeTo(volume, c.path) !== null && !isExcluded(volume, c.path)
-        );
-        return { changes, position: to };
-      } finally {
-        await t.cleanup();
-      }
+      if (String(from.journalId) !== to.journalId) throw failure("ES_JOURNAL_RESET");
+      const all = await withTempFile("journal", async (file) => {
+        const range = ["-from-journal-pos", to.journalId, "0", "-to-journal-pos", to.journalId];
+        const args = [...range, String(to.changeId), "-export-csv", file];
+        const r = await exec(esPath, args, { timeoutMs: JOURNAL_TIMEOUT_MS });
+        if (r.code !== 0 || !fs.existsSync(file)) throw failure("ES_JOURNAL_UNAVAILABLE");
+        return parseJournalCsv(await fsp.readFile(file, "utf8"));
+      });
+      const oldest = all.length ? Math.min(...all.map((c) => c.changeId)) : to.changeId;
+      if (from.changeId < oldest || from.changeId > to.changeId) throw failure("ES_JOURNAL_GAP");
+      const changes = all.filter(
+        (c) =>
+          c.changeId >= from.changeId &&
+          relativeTo(volume, c.path) !== null &&
+          !isExcluded(volume, c.path)
+      );
+      return { changes, position: to };
     }
   };
 }
@@ -219,24 +213,24 @@ export function wiztreeAdapter({
       return fs.existsSync(wiztreePath);
     },
     async *list(volume) {
-      const t = await tempFile("wiztree");
+      const dir = await fsp.mkdtemp(path.join(os.tmpdir(), "estate-map-wiztree-"));
       try {
-        const r = await exec(wiztreePath, [
-          volumeRootArg(volume),
-          `/export=${t.file}`,
-          "/admin=0",
-          "/exportfiles=1",
-          "/exportfolders=0"
-        ]);
-        if (r.code !== 0 || !fs.existsSync(t.file)) throw failure("WIZTREE_FAILED");
-        yield* readLines(t.file, parseWizTreeLine, volume);
+        const file = path.join(dir, "export.csv");
+        const flags = ["/admin=0", "/exportfiles=1", "/exportfolders=0"];
+        const r = await exec(wiztreePath, [volumeRootArg(volume), `/export=${file}`, ...flags]);
+        if (r.code !== 0 || !fs.existsSync(file)) throw failure("WIZTREE_FAILED");
+        yield* readLines(file, parseWizTreeLine, volume);
       } finally {
-        await t.cleanup();
+        await fsp.rm(dir, { recursive: true, force: true });
       }
     }
   };
 }
 
+// Node reports every reparse point as a symlink. Links/junctions (readlink works) are never followed.
+// Other reparse directories are walked only on the scanned device and when not a volume root (OneDrive:
+// yes; volume mount points, including loops back to this volume: no). Non-link reparse files (dedup)
+// are listed; file symlinks and app execution aliases (stat fails) are not.
 export function walkerAdapter({ fsApi = fsp } = {}) {
   return {
     name: "walker",
@@ -244,7 +238,9 @@ export function walkerAdapter({ fsApi = fsp } = {}) {
       return true;
     },
     async *list(volume) {
-      const stack = [volumeRootArg(volume)];
+      const rootArg = volumeRootArg(volume);
+      const root = await fsApi.stat(path.parse(path.resolve(rootArg)).root, { bigint: true });
+      const stack = [rootArg];
       while (stack.length) {
         const dir = stack.pop();
         let entries;
@@ -258,23 +254,28 @@ export function walkerAdapter({ fsApi = fsp } = {}) {
           if (isExcluded(volume, full)) continue;
           let st;
           try {
-            // Node reports every reparse point as a symlink. Links and junctions (readlink works)
-            // are never followed; others, such as OneDrive cloud folders, are real directories.
+            const reparse = e.isSymbolicLink();
             if (
-              e.isSymbolicLink() &&
+              reparse &&
               (await fsApi.readlink(full).then(
                 () => true,
                 () => false
               ))
             )
               continue;
-            st = await fsApi.stat(full);
+            st = await fsApi.stat(full, { bigint: true });
+            if (reparse && st.isDirectory() && (st.dev !== root.dev || st.ino === root.ino))
+              continue;
           } catch {
             continue; // vanished or locked between readdir and stat
           }
           if (st.isDirectory()) stack.push(full);
           else if (st.isFile())
-            yield { path: full, size: st.size, mtimeMs: Math.floor(st.mtimeMs) };
+            yield {
+              path: full,
+              size: Number(st.size),
+              mtimeMs: Number(floorDiv(st.mtimeNs, 1000000n))
+            };
         }
       }
     }
@@ -319,8 +320,8 @@ export async function fileCollectors(
 export function decidedCollectors(decision, adapters) {
   return collectorsFor(
     decision
-      .filter((d) => d.chosen)
       .map((d) => [d.volume, adapters.find((a) => a.name === d.chosen)])
+      .filter(([, adapter]) => adapter)
   );
 }
 

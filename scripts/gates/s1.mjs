@@ -22,7 +22,7 @@ if (t.status !== 0) {
 }
 
 console.log(
-  "[s1] file collectors: everything / wiztree / walker produce identical rows after one set of exclusions, per-volume selection recorded as the collector name, benchmark never selects a slower adapter — green"
+  "[s1] adapters give identical rows; walker fallback recorded; bench never picks a slower one"
 );
 console.log("[s1] GATE GREEN");
 process.exit(0);

@@ -5,6 +5,7 @@ import fsp from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { spawnSync } from "node:child_process";
 
 import {
   everythingAdapter,
@@ -126,8 +127,10 @@ test("Scenario: the benchmark reports a losing adapter honestly, and its sweep u
     { adapter: "walker", volume: "F:", ok: true, seconds: 25, files: 10 },
     { adapter: "wiztree", volume: "F:", ok: false, errorCode: "UNAVAILABLE" },
     { adapter: "everything", volume: "C:", ok: true, seconds: 0, files: 1 },
-    { adapter: "walker", volume: "C:", ok: true, seconds: 3, files: 1 }
+    { adapter: "walker", volume: "C:", ok: true, seconds: 3, files: 1 },
+    { adapter: "everything", volume: "D:", ok: false, errorCode: "ES_FAILED" }
   ]);
+  assert.equal(decision.find((d) => d.volume === "D:").chosen, null, "nothing finished on D:");
   const f = decision.find((d) => d.volume === "F:");
   assert.equal(f.chosen, "walker", "a slower adapter is never selected");
   assert.deepEqual(
@@ -152,7 +155,8 @@ test("Scenario: the benchmark reports a losing adapter honestly, and its sweep u
     [
       ["files-walker", ["F:"]],
       ["files-everything", ["C:"]]
-    ]
+    ],
+    "a volume where nothing finished gets no collector"
   );
 });
 
@@ -204,6 +208,9 @@ test("exclusions: identical for every adapter, never descend into an excluded fo
   assert.equal(isExcluded("C:", "C:\\Windows\\System32\\x.dll"), true);
   assert.equal(isExcluded("C:", "C:\\Windows"), true);
   assert.equal(isExcluded("C:", "C:\\pagefile.sys"), true);
+  assert.equal(isExcluded("C:", "C:\\hiberfil.sys"), true);
+  assert.equal(isExcluded("C:", "C:\\System Volume Information\\tracking.log"), true);
+  assert.equal(isExcluded("C:", "C:\\$WinREAgent\\x"), true);
   assert.equal(isExcluded("C:", "C:\\Users\\x\\Windows\\notes.txt"), false, "only at the root");
   assert.equal(isExcluded("C:", "C:\\Users\\x\\pagefile.sys"), false);
   assert.equal(isExcluded("C:", "C:\\WindowsApps\\a.exe"), false);
@@ -229,7 +236,7 @@ function fsDouble({ reparse = {}, unreadable = [] }) {
       if (reparse[p] === "cloud") throw Object.assign(new Error("not a link"), { code: "EINVAL" });
       return reparse[p] === "junction" ? "C:\\elsewhere" : fsp.readlink(p);
     },
-    stat: (p) => fsp.stat(p)
+    stat: (p, opts) => fsp.stat(p, opts)
   };
 }
 
@@ -274,8 +281,114 @@ test("the walker walks cloud-file folders (OneDrive), never follows links or jun
   }
 });
 
+test("the walker never walks a volume mount point (this volume again, or another), a non-file, or a file it cannot stat", async () => {
+  const { vol } = fixtureVolume();
+  const rootSt = await fsp.stat(path.parse(vol).root, { bigint: true });
+  const base = fsDouble({});
+  const fsApi = {
+    ...base,
+    async readdir(dir, opts) {
+      return (await base.readdir(dir, opts)).map((e) =>
+        ["sub", "Addams Family, The"].includes(e.name)
+          ? Object.assign(Object.create(e), { isSymbolicLink: () => true })
+          : e
+      );
+    },
+    readlink: () => Promise.reject(Object.assign(new Error("mount point"), { code: "EINVAL" })),
+    async stat(p, opts) {
+      const st = await fsp.stat(p, opts);
+      if (p.endsWith("sub")) return rootSt; // mount point back to this volume's root: a loop
+      if (p.endsWith("The")) return { ...st, dev: st.dev + 1n, isDirectory: () => true }; // another volume
+      if (p.endsWith("a.txt")) return { ...st, isFile: () => false, isDirectory: () => false };
+      if (p.endsWith("pagefile.sys")) throw new Error("never asked: excluded");
+      return st;
+    }
+  };
+  assert.deepEqual(
+    (await collect(walkerAdapter({ fsApi }), vol)).map((r) => path.relative(vol, r.path)),
+    [],
+    "only a.txt (not a file here), sub (loop) and the other volume remain, and none is listed"
+  );
+
+  const dedup = {
+    ...base,
+    async readdir(dir, opts) {
+      return (await base.readdir(dir, opts)).map((e) =>
+        e.name === "a.txt" ? Object.assign(Object.create(e), { isSymbolicLink: () => true }) : e
+      );
+    },
+    readlink: () => Promise.reject(Object.assign(new Error("dedup"), { code: "EINVAL" }))
+  };
+  assert.equal(
+    (await collect(walkerAdapter({ fsApi: dedup }), vol)).length,
+    3,
+    "a non-link reparse FILE (deduplicated) is a real file and is listed, as Everything lists it"
+  );
+
+  const locked = {
+    ...base,
+    stat: (p, opts) =>
+      p.endsWith("a.txt") ? Promise.reject(new Error("EBUSY")) : fsp.stat(p, opts)
+  };
+  assert.equal(
+    (await collect(walkerAdapter({ fsApi: locked }), vol)).length,
+    2,
+    "a locked file is skipped, the walk goes on"
+  );
+
+  // a real volume mount point to this volume (no admin needed), when the OS allows creating one
+  const guid = /\\\\\?\\Volume\{[0-9a-f-]+\}\\/iu.exec(
+    spawnSync("mountvol", [path.parse(vol).root, "/L"], { encoding: "utf8" }).stdout ?? ""
+  )?.[0];
+  const mount = path.join(vol, "volj");
+  if (guid && spawnSync("cmd", ["/c", "mklink", "/J", mount, guid]).status === 0) {
+    try {
+      assert.equal(
+        (await collect(walkerAdapter(), vol)).length,
+        3,
+        "the mount point is not walked"
+      );
+    } finally {
+      fs.rmdirSync(mount); // removes only the reparse point, never the volume behind it
+    }
+  }
+});
+
+test("the walker's mtime is the exact floored millisecond, even at .9999 ms", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "s1mtime-"));
+  const file = path.join(dir, "edge.txt");
+  fs.writeFileSync(file, "x");
+  fs.utimesSync(file, 1754403200.9999999, 1754403200.9999999);
+  const ns = fs.statSync(file, { bigint: true }).mtimeNs;
+  const [row] = await collect(walkerAdapter(), dir);
+  assert.equal(row.mtimeMs, Number(ns / 1000000n));
+  assert.equal(row.mtimeMs, filetimeToMs(String(ns / 100n + EPOCH_TICKS)), "same as Everything");
+});
+
+test("run() kills a command that outlives its timeout, and an absent executable is code -1", async () => {
+  const started = Date.now();
+  const r = await run(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { timeoutMs: 300 });
+  assert.equal(r.code, -1);
+  assert.ok(Date.now() - started < 5000);
+  assert.equal((await run("no-such-executable-s1", [])).code, -1);
+});
+
+test("WizTree: a failing export is an error, not an empty volume", async () => {
+  const { vol, wiztreeCsv } = fixtureVolume();
+  const wiz = wiztreeAdapter({ wiztreePath: process.execPath, exec: fakeExec(wiztreeCsv) });
+  const failing = async (cmd, args) => ({ ...(await fakeExec(wiztreeCsv)(cmd, args)), code: 1 });
+  assert.equal((await collect(wiz, vol)).length, 3);
+  await assert.rejects(
+    collect(wiztreeAdapter({ wiztreePath: process.execPath, exec: failing }), vol),
+    { code: "WIZTREE_FAILED" }
+  );
+});
+
 test("Everything parsing: FILETIME to exact milliseconds, commas in names, empty size, junk", () => {
   assert.equal(filetimeToMs("134338232178686205"), 1789349617868);
+  assert.equal(filetimeToMs("134338232178689999"), 1789349617868, "no float rounding up");
+  assert.equal(filetimeToMs("114088768001234568"), -235596799877, "floored before 1970");
+  assert.equal(filetimeToMs("116444736000000000"), 0);
   assert.equal(filetimeToMs(""), null);
   assert.deepEqual(parseEverythingLine('"F:\\a, b\\c.gen",1048576,134338232178686205'), {
     path: "F:\\a, b\\c.gen",
@@ -286,9 +399,10 @@ test("Everything parsing: FILETIME to exact milliseconds, commas in names, empty
   assert.equal(parseEverythingLine("garbage"), null);
 });
 
-test("journal: closed range, UTF-8 export, only this volume, excluded paths dropped, position returned", async () => {
+test("journal: whole retained range, UTF-8 export, from the stored position, only this volume, gaps and resets refused", async () => {
   const csv = [
     "Journal ID,Change ID,Date Changed,Action,Filename,New Filename",
+    '7,2990,13/09/2026 20:20:30,"File Create","F:\\nas\\before.txt",""',
     '7,3165,13/09/2026 20:20:36,"File Create","F:\\nas\\Ü日 a.txt",""',
     '7,3675,13/09/2026 20:20:38,"File Rename","F:\\nas\\Ü日 a.txt","b.txt"',
     '7,3700,13/09/2026 20:20:39,"File Create","F:\\nasty\\x.txt",""',
@@ -298,8 +412,8 @@ test("journal: closed range, UTF-8 export, only this volume, excluded paths drop
   const calls = [];
   const es = everythingAdapter({
     esPath: "es.exe",
-    exec: async (cmd, args) => {
-      calls.push(args);
+    exec: async (cmd, args, opts) => {
+      calls.push([args, opts]);
       if (args[0] === "-get-journal-pos") return { code: 0, stdout: "7 4000\r\n" };
       fs.writeFileSync(args[args.indexOf("-export-csv") + 1], csv, "utf8");
       return { code: 0, stdout: "" };
@@ -309,14 +423,15 @@ test("journal: closed range, UTF-8 export, only this volume, excluded paths drop
     { journalId: "7", changeId: 3000 },
     "F:\\nas"
   );
-  assert.deepEqual(calls[1].slice(0, 6), [
+  assert.deepEqual(calls[1][0].slice(0, 6), [
     "-from-journal-pos",
     "7",
-    "3000",
+    "0",
     "-to-journal-pos",
     "7",
     "4000"
   ]);
+  assert.ok(calls[1][1]?.timeoutMs <= 60_000, "the journal query has a short timeout");
   assert.deepEqual(position, { journalId: "7", changeId: 4000 });
   assert.deepEqual(
     changes.map((c) => [c.changeId, c.action, c.path, c.newName]),
@@ -325,7 +440,26 @@ test("journal: closed range, UTF-8 export, only this volume, excluded paths drop
       [3675, "File Rename", "F:\\nas\\Ü日 a.txt", "b.txt"]
     ]
   );
-  assert.equal(parseJournalCsv(csv).length, 5);
+  assert.equal(parseJournalCsv(csv).length, 6);
+  assert.deepEqual(
+    (await es.changesSince({ journalId: "7", changeId: 3165 }, "F:\\nas")).changes.map(
+      (c) => c.changeId
+    ),
+    [3165, 3675],
+    "the stored position itself is the first change returned (inclusive)"
+  );
+  assert.deepEqual((await es.changesSince(position, "F:\\nas")).changes, [], "nothing twice");
+  for (const [from, code] of [
+    [{ journalId: "7", changeId: 2989 }, "ES_JOURNAL_GAP"],
+    [{ journalId: "7", changeId: 4001 }, "ES_JOURNAL_GAP"],
+    [{ journalId: "8", changeId: 3000 }, "ES_JOURNAL_RESET"]
+  ])
+    await assert.rejects(es.changesSince(from, "F:\\nas"), { code }, JSON.stringify(from));
+  assert.deepEqual(
+    (await es.changesSince({ journalId: "7", changeId: 2990 }, "F:\\nas")).changes.length,
+    3,
+    "the oldest retained change is not a gap"
+  );
 
   const exportFails = everythingAdapter({
     esPath: "es.exe",
@@ -365,8 +499,29 @@ test("real Everything: same rows as the walker, and a real journal change set th
     assert.deepEqual(listed, await collect(walkerAdapter(), dir), "exact rows, millisecond mtimes");
 
     const started = Date.now();
-    const { changes } = await es.changesSince(from, dir);
+    const { changes, position } = await es.changesSince(from, dir);
     assert.ok(Date.now() - started < 10_000, "the journal query returns");
+    await assert.rejects(
+      es.changesSince({ ...from, changeId: 1 }, dir),
+      {
+        code: "ES_JOURNAL_GAP"
+      },
+      "a position older than the retained journal returns an error instead of hanging"
+    );
+    fs.writeFileSync(path.join(dir, "later.txt"), "x");
+    let next = { changes: [] };
+    for (let i = 0; i < 40 && !next.changes.some((c) => c.path.endsWith("later.txt")); i++) {
+      await new Promise((r) => setTimeout(r, 250));
+      next = await es.changesSince(position, dir);
+    }
+    assert.ok(
+      next.changes.some((c) => c.path.endsWith("later.txt")),
+      "the next call sees new changes"
+    );
+    assert.ok(
+      !next.changes.some((c) => c.path.endsWith("Ü日 a,b.txt")),
+      "and not the old ones again"
+    );
     assert.ok(
       changes.some((c) => c.path.endsWith("Ü日 a,b.txt") && c.newName === "r é.txt"),
       "UTF-8 intact"
