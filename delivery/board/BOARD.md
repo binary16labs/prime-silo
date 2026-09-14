@@ -13,6 +13,8 @@
 
 ## CLAIMED (agent · date)
 
+- S1 — file collectors: MFT-fast adapters, walker fallback, benchmark · claude-opus-5 · 2026-09-14 _(HUMAN-SIGNED by owner via chat: "install Everything on both" + "use Everything 1.5 beta for the journal" + "start S1 once S0 passes"; worktree task/S1)_
+
 
 ## VERIFY (awaiting non-author verification)
 
@@ -100,5 +102,5 @@ Q2 Q3 ·
 R0 R1 R2 R3 ·
 M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 ·
 B4 B5 · L15 ·
-S1 S2 S3 S4 S5 S6 S7 S8 ·
+S2 S3 S4 S5 S6 S7 S8 ·
 P5 · P7(nav-instrument: agentic bench manifest + tool rubric wired to the G0 stream — spun off from P4 amendment; NEEDS CONTRACT) ·
