@@ -92,9 +92,9 @@ const report = {
       volume: d.volume,
       speedupOverWalker: d.speedupOverWalker,
       met:
-        d.speedupOverWalker === null
-          ? "not measured (walker not run)"
-          : d.speedupOverWalker >= SPEEDUP_WORTH_IT
+        d.speedupOverWalker !== null
+          ? d.speedupOverWalker >= SPEEDUP_WORTH_IT
+          : `not measured (walker ${d.all.find((r) => r.adapter === "walker")?.errorCode ?? "not run"})`
     }))
   }
 };

@@ -182,16 +182,22 @@ test("Scenario: every adapter produces the same rows for the same tree", async (
 
 test("links are excluded and non-link reparse files are listed, identically by every adapter", async (t) => {
   const { vol } = fixtureVolume(t);
-  fs.writeFileSync(path.join(vol, "office.dll"), "linked");
+  fs.writeFileSync(path.join(vol, "office.dll"), ""); // a link has no data stream: size 0
   fs.writeFileSync(path.join(vol, "dedup.vhdx"), "chunked");
+  fs.writeFileSync(path.join(vol, "empty-cloud.txt"), ""); // a size-0 reparse file that is not a link
+  fs.writeFileSync(path.join(vol, "empty.txt"), ""); // an ordinary empty file: never a reparse point
   const rows = await collect(walkerAdapter(), vol);
-  const reparse = { "office.dll": { link: true }, "dedup.vhdx": { link: false } };
+  const reparse = {
+    "office.dll": { link: true },
+    "dedup.vhdx": { link: false },
+    "empty-cloud.txt": { link: false }
+  };
   const { api, reparseTag } = fsDouble({ reparse });
   const walked = await collect(walkerAdapter({ fsApi: api, reparseTag }), vol);
   assert.deepEqual(
     walked.map((r) => path.basename(r.path)),
     rows.map((r) => path.basename(r.path)).filter((n) => n !== "office.dll"),
-    "walker: the link is dropped, the deduplicated file is listed"
+    "walker: the link is dropped, the deduplicated and empty cloud files are listed"
   );
 
   const line = (name, attrs) => {
@@ -200,19 +206,26 @@ test("links are excluded and non-link reparse files are listed, identically by e
   };
   const names = rows.map((r) => path.relative(vol, r.path));
   const csv = names
-    .map((n) => line(n, ["office.dll", "dedup.vhdx"].includes(n) ? 1056 : 32))
-    .concat(`"${path.join(vol, "vanished.dll")}",1056,1,${EPOCH_TICKS}`)
+    .map((n) => line(n, ["office.dll", "dedup.vhdx", "empty-cloud.txt"].includes(n) ? 1056 : 32))
+    .concat(`"${path.join(vol, "vanished.dll")}",1056,0,${EPOCH_TICKS}`)
     .join("\r\n");
+  const asked = [];
   const readlink = async (p) => {
+    asked.push(path.basename(p));
     if (p.endsWith("office.dll")) return "C:\\target.dll";
     throw errno(p.endsWith("vanished.dll") ? "ENOENT" : "EINVAL");
   };
   const es = everythingAdapter({ esPath: "es.exe", exec: fakeExec(csv), readlink });
   assert.deepEqual(await collect(es, vol), walked, "Everything: same rows as the walker");
+  assert.deepEqual(
+    asked.sort(),
+    ["empty-cloud.txt", "office.dll", "vanished.dll"],
+    "only size-0 reparse rows are asked: a file with data (dedup, OneDrive) or without the reparse attribute is never a link"
+  );
 
   const wizCsv = [
     "File Name,Size,Allocated,Modified,Attributes,Files,Folders",
-    `"${path.join(vol, "office.dll")}",6,0,2026/09/14 01:00:00,1056,0,0`,
+    `"${path.join(vol, "office.dll")}",0,0,2026/09/14 01:00:00,1056,0,0`,
     `"${path.join(vol, "a.txt")}",5,4096,2026/09/14 01:00:00,32,0,0`
   ].join("\r\n");
   const wiz = wiztreeAdapter({ wiztreePath: process.execPath, exec: fakeExec(wizCsv), readlink });
