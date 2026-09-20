@@ -21,6 +21,14 @@ import { spawn } from "node:child_process";
 // case-insensitively, with either slash.
 const EXCLUDED_DIRS = ["windows", "$recycle.bin", "system volume information", "$winreagent"];
 const EXCLUDED_ROOT_FILES = ["pagefile.sys", "hiberfil.sys", "swapfile.sys", "dumpstack.log.tmp"];
+// OS objects rather than files: app execution aliases in the Store's staging folder and Docker's
+// sockets. No account can read them (EACCES/EPERM), so they would otherwise fail every volume that
+// holds them (owner decision 2026-09-20, after 66 such entries made t480 C: permanently incomplete).
+const EXCLUDED_PATHS = [
+  "appdata/local/microsoft/windowsapps.tmp",
+  "appdata/local/docker/run",
+  "appdata/local/docker-secrets-engine"
+];
 
 const slashKey = (s) => String(s).replace(/\\/gu, "/").toLowerCase();
 
@@ -36,6 +44,7 @@ export function isExcluded(volume, filePath) {
   if (rel === null) return false;
   // the excluded folder itself is excluded too, so the walker never descends into it
   if (EXCLUDED_DIRS.includes(rel.split("/")[0])) return true;
+  if (EXCLUDED_PATHS.some((p) => `/${rel}/`.includes(`/${p}/`))) return true;
   return !rel.includes("/") && EXCLUDED_ROOT_FILES.includes(rel);
 }
 
@@ -140,27 +149,39 @@ export function run(cmd, args, { timeoutMs = 600_000 } = {}) {
 const failure = (code, detail) =>
   Object.assign(new Error("file adapter failed"), { code }, detail ? { detail } : {});
 
-// A reparse file is a link when readlink resolves it. One that vanished since the export is dropped;
-// one readlink cannot judge (not a link, or unreadable) is kept, as the index lists it.
-async function isLink(file, readlink) {
+// What a reparse point is, judged by readlink: "link" (resolved: symlink, junction, app execution
+// alias), "file" (EINVAL: not a link, e.g. deduplicated or a cloud file), "gone" (ENOENT: deleted
+// since the export) or "unknown" (anything else, e.g. EACCES) \u2014 which nobody may guess at.
+async function judgeReparse(file, readlink) {
   try {
     await readlink(file);
-    return true;
+    return "link";
   } catch (e) {
-    return e?.code === "ENOENT";
+    if (e?.code === "EINVAL") return "file";
+    return e?.code === "ENOENT" ? "gone" : "unknown";
   }
 }
 
-async function* readLines(file, parse, volume, readlink) {
+async function* readLines(file, parse, volume, readlink, code) {
   const input = fs.createReadStream(file, { encoding: "utf8" });
+  let unknown = 0;
   for await (const line of readline.createInterface({ input, crlfDelay: Infinity })) {
     const row = parse(line.replace(/^\uFEFF/u, ""));
     if (!row || isExcluded(volume, row.path)) continue;
     // a link (symlink, junction, app execution alias) has no data stream, so its size is 0; only those
     // rows are asked (8,420 of 1.0M reparse rows on t480 C:, which are mostly OneDrive cloud files)
-    if (row.reparse && row.size === 0 && (await isLink(row.path, readlink))) continue;
+    if (row.reparse && row.size === 0) {
+      const kind = await judgeReparse(row.path, readlink);
+      if (kind !== "file") {
+        // an entry this node may not read is a gap, exactly as it is for the walker: never listed as
+        // a file, never passed over in silence (t480: 62 app aliases in WindowsApps.tmp are EACCES)
+        if (kind === "unknown") unknown++;
+        continue;
+      }
+    }
     yield { path: row.path, size: row.size, mtimeMs: row.mtimeMs };
   }
+  if (unknown > 0) throw failure(code, { unidentifiedReparse: unknown });
 }
 
 async function withTempFile(tag, use) {
@@ -203,7 +224,7 @@ export function everythingAdapter({
         const tail = ["-date-format", "2", "-export-csv", file, "-no-header"];
         const r = await exec(esPath, ["-path", volumeRootArg(volume), ...ES_LIST, ...tail]);
         if (r.code !== 0) throw failure(r.code === 8 ? "ES_UNAVAILABLE" : "ES_FAILED");
-        yield* readLines(file, parseEverythingLine, volume, readlink);
+        yield* readLines(file, parseEverythingLine, volume, readlink, "ES_INCOMPLETE");
       } finally {
         await fsp.rm(dir, { recursive: true, force: true });
       }
@@ -255,7 +276,7 @@ export function wiztreeAdapter({
         const flags = ["/admin=0", "/exportfiles=1", "/exportfolders=0"];
         const r = await exec(wiztreePath, [volumeRootArg(volume), `/export=${file}`, ...flags]);
         if (r.code !== 0 || !fs.existsSync(file)) throw failure("WIZTREE_FAILED");
-        yield* readLines(file, parseWizTreeLine, volume, readlink);
+        yield* readLines(file, parseWizTreeLine, volume, readlink, "WIZTREE_INCOMPLETE");
       } finally {
         await fsp.rm(dir, { recursive: true, force: true });
       }
@@ -302,7 +323,11 @@ export function walkerAdapter({ fsApi = fsp, reparseTag = fsutilReparseTag } = {
           const full = path.join(dir, e.name);
           if (isExcluded(volume, full)) continue;
           const reparse = e.isSymbolicLink();
-          if (reparse && (await isLink(full, fsApi.readlink))) continue;
+          if (reparse) {
+            const kind = await judgeReparse(full, fsApi.readlink);
+            if (kind === "unknown") skipped.files++; // may not be read: a gap, never a silent drop
+            if (kind !== "file") continue;
+          }
           let st;
           try {
             st = await fsApi.stat(full, { bigint: true });

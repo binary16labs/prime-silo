@@ -147,7 +147,7 @@ function fsDouble({ reparse = {}, unreadable = [], statFails = {} } = {}) {
       },
       async readlink(p) {
         if (kindOf(p)?.link) return "C:\\elsewhere";
-        throw errno("EINVAL");
+        throw errno(kindOf(p)?.readlinkError ?? "EINVAL");
       },
       async stat(p, opts) {
         const code = statFails[path.basename(p)];
@@ -234,6 +234,58 @@ test("links are excluded and non-link reparse files are listed, identically by e
     ["a.txt"],
     "WizTree: the link is dropped too"
   );
+});
+
+test("an export row this node may not read is a gap, never a file (D16)", async (t) => {
+  const { vol } = fixtureVolume(t);
+  fs.writeFileSync(path.join(vol, "alias.exe"), ""); // an app execution alias: size 0, reparse, EACCES
+  const line = (name, attrs) => {
+    const st = fs.statSync(path.join(vol, name), { bigint: true });
+    return `"${path.join(vol, name)}",${attrs},${st.size},${st.mtimeNs / 100n + EPOCH_TICKS}`;
+  };
+  const names = (await collect(walkerAdapter(), vol)).map((r) => path.relative(vol, r.path));
+  const csv = names.map((n) => line(n, n === "alias.exe" ? 1056 : 32)).join("\r\n");
+  const denied = async (p) => {
+    throw errno(p.endsWith("alias.exe") ? "EACCES" : "EINVAL");
+  };
+  const es = everythingAdapter({ esPath: "es.exe", exec: fakeExec(csv), readlink: denied });
+  await assert.rejects(
+    collect(es, vol),
+    (e) => {
+      assert.equal(e.code, "ES_INCOMPLETE");
+      assert.deepEqual(e.detail, { unidentifiedReparse: 1 });
+      assert.ok(!String(e.message).includes("alias"), "no path in the error");
+      return true;
+    },
+    "Everything refuses the volume, exactly as the walker refuses an entry it cannot stat"
+  );
+
+  const wiz = wiztreeAdapter({
+    wiztreePath: process.execPath,
+    exec: fakeExec(
+      [
+        "File Name,Size,Allocated,Modified,Attributes,Files,Folders",
+        `"${path.join(vol, "alias.exe")}",0,0,2026/09/14 01:00:00,1056,0,0`
+      ].join("\r\n")
+    ),
+    readlink: denied
+  });
+  await assert.rejects(collect(wiz, vol), { code: "WIZTREE_INCOMPLETE" });
+
+  // S0: the volume is errored with that code, and no row of the refused listing is published
+  const db = tempMap(t);
+  const sweep = await runSweep({
+    db,
+    machine: "vm",
+    collectors: await fileCollectors([vol], [es]),
+    scope: [vol],
+    publicRoots: [vol]
+  });
+  assert.deepEqual(
+    [sweep.collectors[0].status, sweep.collectors[0].error_code],
+    ["errored", "ES_INCOMPLETE"]
+  );
+  assert.equal(db.prepare("SELECT COUNT(*) n FROM files").get().n, 0, "no partial rows are kept");
 });
 
 test("Scenario: no MFT tool installed still maps the volume, and the adapter is recorded", async (t) => {
@@ -522,6 +574,19 @@ test("exclusions: identical for every adapter, never descend into an excluded fo
   assert.equal(isExcluded("D:\\mnt\\vol\\", "D:\\mnt\\vol\\Windows\\x"), true, "folder volume");
   assert.equal(isExcluded("D:\\mnt\\vol", "D:/mnt/vol/pagefile.sys"), true, "either slash");
   assert.equal(isExcluded("D:\\mnt\\v", "D:\\mnt\\vXWindows\\y"), false, "a volume is a segment");
+  // OS objects no account can read, excluded by name so they never fail a whole volume
+  const user = "C:\\Users\\x\\AppData\\Local";
+  assert.equal(isExcluded("C:", `${user}\\Microsoft\\WindowsApps.tmp\\Paint\\paint.exe`), true);
+  assert.equal(isExcluded("C:", `${user}\\Microsoft\\WindowsApps.tmp`), true);
+  assert.equal(isExcluded("C:", `${user}\\Microsoft\\WindowsApps\\python.exe`), false, "not .tmp");
+  assert.equal(isExcluded("C:", `${user}\\Docker\\run\\docker.sock`), true);
+  assert.equal(isExcluded("C:", `${user}\\docker-secrets-engine\\x`), true);
+  assert.equal(
+    isExcluded("C:", `${user}\\Docker\\runtimes\\x.exe`),
+    false,
+    "not the socket folder"
+  );
+  assert.equal(isExcluded("C:", `${user}\\Docker\\config.json`), false);
 });
 
 test("the walker's mtime is the exact floored millisecond, even at .9999 ms", async (t) => {
@@ -784,4 +849,87 @@ test("real Everything: same rows as the walker, and a real journal that terminat
     !next.changes.some((c) => c.path.endsWith("Ü日 a,b.txt")),
     "and not the old ones again"
   );
+});
+
+test("the walker counts a reparse entry it may not read, and never walks or lists it (D16)", async (t) => {
+  const { vol } = fixtureVolume(t);
+  for (const [name, detail] of [
+    ["a.txt", { directories: 0, files: 1, reparse: 0 }],
+    ["sub", { directories: 0, files: 1, reparse: 0 }]
+  ]) {
+    const { api, reparseTag } = fsDouble({ reparse: { [name]: { readlinkError: "EACCES" } } });
+    const rows = [];
+    await assert.rejects(
+      (async () => {
+        for await (const r of walkerAdapter({ fsApi: api, reparseTag }).list(vol)) rows.push(r);
+      })(),
+      (e) => {
+        assert.equal(e.code, "WALK_INCOMPLETE");
+        assert.deepEqual(e.detail, detail, name);
+        return true;
+      }
+    );
+    assert.ok(!rows.some((r) => r.path.includes(name)), `${name} is neither listed nor walked`);
+  }
+});
+
+test("every export leaves no temporary directory behind, and a journal export that failed is not read", async (t) => {
+  const { vol, everythingCsv } = fixtureVolume(t);
+  const temps = () => fs.readdirSync(os.tmpdir()).filter((n) => n.startsWith("estate-map-"));
+  const before = temps().length;
+  await collect(everythingAdapter({ esPath: "es.exe", exec: fakeExec(everythingCsv) }), vol);
+  const failing = everythingAdapter({
+    esPath: "es.exe",
+    exec: async (cmd, args) => ({ ...(await fakeExec(everythingCsv)(cmd, args)), code: 2 })
+  });
+  await assert.rejects(collect(failing, vol), { code: "ES_FAILED" });
+
+  // es exits non-zero but has already written a file: the export is not trusted
+  const halfWritten = everythingAdapter({
+    esPath: "es.exe",
+    exec: async (cmd, args) => {
+      if (args[0] === "-get-journal-pos") return { code: 0, stdout: "7 9" };
+      fs.writeFileSync(args[args.indexOf("-export-csv") + 1], '7,8,d,"File Create","F:\\\\x",""');
+      return { code: 2, stdout: "" };
+    }
+  });
+  await assert.rejects(halfWritten.changesSince({ journalId: "7", changeId: 8 }, "F:"), {
+    code: "ES_JOURNAL_UNAVAILABLE"
+  });
+  await halfWritten.journalPosition();
+  assert.equal(temps().length, before, "no estate-map-* directory is left in the temp folder");
+});
+
+test("the benchmark reports an incomplete adapter as failed, never as a mapped volume", async (t) => {
+  const { vol } = fixtureVolume(t);
+  const gone = path.join(vol, "no-such-folder"); // the walker cannot read this volume root at all
+  const out = path.join(tempDir(t, "s1bench-"), "bench.json");
+  const env = { ...process.env, ESTATE_ES: path.join(vol, "no-es.exe") };
+  const r = spawnSync(
+    process.execPath,
+    [
+      "scripts/estate_map_bench.mjs",
+      "--volumes",
+      gone,
+      "--adapters",
+      "everything,walker",
+      "--sweep",
+      "--out",
+      out
+    ],
+    { cwd: ROOT, encoding: "utf8", env }
+  );
+  assert.equal(r.status, 0, r.stderr);
+  const report = JSON.parse(fs.readFileSync(out, "utf8"));
+  assert.deepEqual(
+    report.results.map((x) => [x.adapter, x.ok, x.errorCode]),
+    [
+      ["everything", false, "UNAVAILABLE"],
+      ["walker", false, "WALK_INCOMPLETE"]
+    ]
+  );
+  assert.equal(report.decision[0].chosen, null, "nothing completed, so nothing is chosen");
+  assert.deepEqual(report.sweep.collectors, [], "no collector runs for a volume nothing can map");
+  assert.equal(report.sweep.files, 0);
+  assert.match(String(report.criteria.speedup_worth_install[0].met), /WALK_INCOMPLETE/u);
 });
