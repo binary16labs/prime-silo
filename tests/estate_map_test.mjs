@@ -1126,3 +1126,341 @@ test("every refused configuration still cleans the index with the valid part of 
     );
   }
 });
+
+// --- S9: published numbers describe only what was stored -----------------------------------------
+
+// a collector that yields rows and then fails, of any kind
+const failing = (kind, rows, extra = {}) => ({
+  name: `failing-${kind}`,
+  kind,
+  async *collect() {
+    for (const r of rows) yield r;
+    throw Object.assign(new Error("half way"), { code: "WALK_INCOMPLETE" });
+  },
+  ...extra
+});
+
+test("S9 Scenario: a collector that fails mid-listing contributes nothing", async () => {
+  const ctx = setup();
+  const good = files("F:", [{ path: "F:/nas/keep.pdf", size: 7 }]);
+  const first = await runSweep({
+    db: ctx.db,
+    machine: "vm",
+    collectors: [good],
+    scope: ["F:"],
+    publicRoots: ["F:/nas"]
+  });
+  assert.equal(first.counts.files, 1);
+  const before = ctx.db.prepare("SELECT volume, path FROM files ORDER BY path").all();
+
+  const sweep = await runSweep({
+    db: ctx.db,
+    machine: "vm",
+    collectors: [
+      failing("files", [{ path: "F:/nas/ghost.pdf", size: 3 }], { volumes: ["F:"] }),
+      failing("apps", [{ name: "Ghost", version: "1" }]),
+      failing("media", [{ root: "F:/media", path: "ghost.mkv", title: "Ghost", size: 9 }])
+    ],
+    scope: ["F:"],
+    publicRoots: ["F:/nas", "F:/media"]
+  });
+  assert.deepEqual(
+    sweep.counts,
+    { files: 0, bytes: 0, listed_files: 0, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+    "nothing a rolled-back collector saw is counted"
+  );
+  assert.deepEqual(
+    sweep.collectors.map((c) => [c.status, c.error_code, c.rows]),
+    [
+      ["errored", "WALK_INCOMPLETE", 0],
+      ["errored", "WALK_INCOMPLETE", 0],
+      ["errored", "WALK_INCOMPLETE", 0]
+    ]
+  );
+  assert.deepEqual(ctx.db.prepare("SELECT volume, path FROM files ORDER BY path").all(), before);
+  const { snapshot } = await publishSweep({ db: ctx.db, sweep, estateRoot: ctx.estate });
+  const { rows } = await readSnapshot(snapshot.path);
+  assert.ok(
+    !JSON.stringify(rows).includes("ghost"),
+    "no row of the failed collectors is published"
+  );
+  assert.equal(
+    ctx.db.prepare("SELECT status FROM volumes WHERE volume = 'F:'").get().status,
+    "errored"
+  );
+});
+
+test("S9 Scenario: a sweep that both succeeds and fails counts only the successful collector", async () => {
+  const ctx = setup();
+  const sweep = await runSweep({
+    db: ctx.db,
+    machine: "vm",
+    collectors: [
+      files("F:", [
+        { path: "F:/nas/a.pdf", size: 5 },
+        { path: "D:/private/b.pdf", size: 6 }
+      ]),
+      failing("files", [{ path: "C:/nas/ghost.pdf", size: 100 }], { volumes: ["C:"] })
+    ],
+    scope: ["F:", "C:"],
+    publicRoots: ["F:/nas"]
+  });
+  assert.deepEqual(
+    [sweep.counts.files, sweep.counts.bytes, sweep.counts.listed_files],
+    [2, 11, 1],
+    "the successful collector's rows, and no others"
+  );
+  const totals = ctx.db
+    .prepare("SELECT volume, items FROM totals")
+    .all()
+    .map((r) => [r.volume, r.items]);
+  assert.deepEqual(totals, [["F:", 1]], "the failed collector wrote no totals");
+});
+
+test("S9 Scenario: the stored key is judged like every other spelling", async () => {
+  for (const [name, rule] of [
+    // each rule matches the STORED KEY but not the stored path: ẞ lowercases to ß, İ to i + a
+    // combining dot, neither of which these rules see in the path itself
+    ["GROẞ", /groß/],
+    ["İstanbul", /i̇stanbul/],
+    ["İstanbul", /i\u0307stanbul/u]
+  ]) {
+    const ctx = setup();
+    const sweep = await runSweep({
+      db: ctx.db,
+      machine: "vm",
+      collectors: [
+        files("F:", [{ path: `F:/nas/${name}/secret.pdf`, size: 1 }]),
+        media([{ root: "F:/nas", path: `${name}/secret.mkv`, title: "ok", size: 1 }])
+      ],
+      scope: ["F:"],
+      publicRoots: ["F:/nas"],
+      quarantine: [rule]
+    });
+    assert.equal(sweep.counts.listed_files, 0, `${name} vs ${rule}`);
+    assert.equal(sweep.counts.listed_media, 0, `${name} vs ${rule} (media)`);
+    assert.equal(ctx.db.prepare("SELECT COUNT(*) AS n FROM files").get().n, 0);
+    assert.equal(ctx.db.prepare("SELECT COUNT(*) AS n FROM media").get().n, 0);
+    const out = await allOutput(ctx, sweep);
+    assert.ok(!out.toLowerCase().includes("secret."), `${name}: the key leaked the name`);
+  }
+});
+
+test("S9 Scenario: a rule added later removes a row whose stored key it matches", async () => {
+  const ctx = setup();
+  const collector = files("F:", [{ path: "F:/nas/GROẞ/secret.pdf", size: 1 }]);
+  await runSweep({
+    db: ctx.db,
+    machine: "vm",
+    collectors: [collector],
+    scope: ["F:"],
+    publicRoots: ["F:/nas"]
+  });
+  assert.equal(ctx.db.prepare("SELECT COUNT(*) AS n FROM files").get().n, 1);
+  await assert.rejects(
+    runSweep({
+      db: ctx.db,
+      machine: "vm",
+      collectors: [collector],
+      scope: ["F:"],
+      publicRoots: ["F:/nas"],
+      quarantine: ["groß"],
+      // a shape fault: the sweep is refused, but the index must still be cleaned first
+      ...{ scope: "F:" }
+    }),
+    TypeError
+  );
+  assert.equal(
+    ctx.db.prepare("SELECT COUNT(*) AS n FROM files").get().n,
+    0,
+    "rescrub judged the key"
+  );
+
+  // a rule only the stored key can satisfy: the path spells ẞ, the key spells ß
+  for (const kind of ["files", "media"]) {
+    const c2 = setup();
+    const row =
+      kind === "files"
+        ? files("F:", [{ path: "F:/nas/GROẞ/secret.pdf", size: 1 }])
+        : media([{ root: "F:/nas", path: "GROẞ/secret.mkv", title: "ok", size: 1 }]);
+    await runSweep({
+      db: c2.db,
+      machine: "vm",
+      collectors: [row],
+      scope: ["F:"],
+      publicRoots: ["F:/nas"]
+    });
+    assert.equal(c2.db.prepare(`SELECT COUNT(*) AS n FROM ${kind}`).get().n, 1, kind);
+    await runSweep({
+      db: c2.db,
+      machine: "vm",
+      // the collector fails, so only a rescrub can remove the row
+      collectors: [
+        {
+          name: "late",
+          kind,
+          volumes: ["F:"],
+          async *collect() {
+            throw new Error("no");
+          }
+        }
+      ],
+      scope: ["F:"],
+      publicRoots: ["F:/nas"],
+      quarantine: [/groß/]
+    });
+    assert.equal(
+      c2.db.prepare(`SELECT COUNT(*) AS n FROM ${kind}`).get().n,
+      0,
+      `${kind}: rescrub judged the stored key`
+    );
+  }
+});
+
+test("S9 Scenario: a refused configuration of any shape still leaves a clean index", async () => {
+  for (const [bad, remaining] of [
+    [{ scope: "F:" }, 0],
+    [{ publicRoots: "F:/nas" }, 0],
+    [{ collectors: null }, 0],
+    [{ collectors: [null] }, 0],
+    // the rules themselves are the malformed part: no valid rule survives, so there is nothing to
+    // clean with and the row stays (the refusal still names no data)
+    [{ quarantine: "cv" }, 1],
+    // ... but the roots are still usable, so a malformed rule list must not stop the cleaning a
+    // narrowed root demands
+    [{ quarantine: "cv", publicRoots: ["F:/elsewhere"] }, 0]
+  ]) {
+    const ctx = setup();
+    await runSweep({
+      db: ctx.db,
+      machine: "vm",
+      collectors: [files("F:", [{ path: "F:/nas/cv-2026.pdf", size: 1 }])],
+      scope: ["F:"],
+      publicRoots: ["F:/nas"]
+    });
+    assert.equal(ctx.db.prepare("SELECT COUNT(*) AS n FROM files").get().n, 1);
+    await assert.rejects(
+      runSweep({
+        db: ctx.db,
+        machine: "vm",
+        collectors: [],
+        scope: [],
+        publicRoots: ["F:/nas"],
+        quarantine: ["cv"],
+        ...bad
+      }),
+      // the refusal must be the contract's own, not a crash that happens to be a TypeError
+      (e) => {
+        assert.ok(e instanceof TypeError, JSON.stringify(Object.keys(bad)));
+        assert.match(e.message, /must be a (list|plain identifier)|^collector kind/u, e.message);
+        return true;
+      }
+    );
+    assert.equal(
+      ctx.db.prepare("SELECT COUNT(*) AS n FROM files").get().n,
+      remaining,
+      `refusal ${JSON.stringify(Object.keys(bad))}: wrong rows left behind`
+    );
+  }
+});
+
+test("S9 Scenario: the snapshot is this sweep only", async () => {
+  const ctx = setup();
+  const one = files("F:", [{ path: "F:/nas/old.pdf", size: 1 }]);
+  await runSweep({
+    db: ctx.db,
+    machine: "vm",
+    collectors: [one],
+    scope: ["F:"],
+    publicRoots: ["F:/nas"]
+  });
+  const second = await runSweep({
+    db: ctx.db,
+    machine: "vm",
+    collectors: [files("D:", [{ path: "D:/nas/new.pdf", size: 2 }], "other-files")],
+    scope: ["D:"],
+    publicRoots: ["F:/nas", "D:/nas"]
+  });
+  const { snapshot } = await publishSweep({ db: ctx.db, sweep: second, estateRoot: ctx.estate });
+  const { rows } = await readSnapshot(snapshot.path);
+  const paths = rows.filter((r) => r.t === "file").map((r) => r.path);
+  assert.deepEqual(
+    paths,
+    ["D:/nas/new.pdf"],
+    "the earlier sweep's rows are still indexed, not published"
+  );
+  assert.equal(ctx.db.prepare("SELECT COUNT(*) AS n FROM files").get().n, 2);
+});
+
+test("S9: the gaps S0's verifier left untested — fingerprint flags, app location spellings, drive-letter root", async () => {
+  // a policy that differs only in a RegExp flag is a different policy
+  const ctx = setup();
+  const collector = files("F:", [{ path: "F:/nas/secret1q.pdf", size: 1 }]);
+  const sweep = () => ({
+    db: ctx.db,
+    machine: "vm",
+    collectors: [collector],
+    scope: ["F:"],
+    publicRoots: ["F:/nas"]
+  });
+  await runSweep({ ...sweep(), quarantine: [/secret\p{Nd}/] });
+  assert.equal(
+    ctx.db.prepare("SELECT COUNT(*) AS n FROM files").get().n,
+    1,
+    "without the u flag the rule is the literal text p{Nd} and matches nothing"
+  );
+  await runSweep({
+    ...sweep(),
+    collectors: [
+      {
+        name: "fixture-files",
+        kind: "files",
+        volumes: ["F:"],
+        async *collect() {
+          throw new Error("no");
+        }
+      }
+    ],
+    quarantine: [/secret\p{Nd}/u]
+  });
+  assert.equal(
+    ctx.db.prepare("SELECT COUNT(*) AS n FROM files").get().n,
+    0,
+    "the same source with different flags is a policy change, even with a failing collector"
+  );
+
+  // an app location is judged on its canonical and trailing-separator spellings
+  for (const [location, rule] of [
+    ["\\\\?\\D:\\ßcvq\\tool", /^D:\/ßcvq/u],
+    ["D:/Apps/CVQ", /\/cvq\//u],
+    ["D:/Apps/CVQ/", "cvq"]
+  ]) {
+    const c2 = setup();
+    const s2 = await runSweep({
+      db: c2.db,
+      machine: "vm",
+      collectors: [apps([{ name: "Tool", version: "1", location }])],
+      scope: [],
+      publicRoots: ["D:/"],
+      quarantine: [rule]
+    });
+    assert.equal(s2.counts.listed_apps, 0, `${location} vs ${rule}`);
+    assert.equal(c2.db.prepare("SELECT COUNT(*) AS n FROM apps").get().n, 0);
+  }
+
+  // a drive letter is a root ".." cannot climb above
+  assert.equal(canonPath("C:/../F:/nas/x.pdf"), "C:/F:/nas/x.pdf");
+  const c3 = setup();
+  const s3 = await runSweep({
+    db: c3.db,
+    machine: "vm",
+    collectors: [files("F:", [{ path: "C:/../F:/nas/secretdq.pdf", size: 1 }])],
+    scope: ["F:"],
+    publicRoots: ["F:/nas"]
+  });
+  assert.equal(
+    s3.counts.listed_files,
+    0,
+    "it is not F:/nas/secretdq.pdf and is never listed as it"
+  );
+});

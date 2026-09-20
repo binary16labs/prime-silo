@@ -224,14 +224,15 @@ function rescrub(db, roots, rules) {
   );
   const policy = sha256(JSON.stringify([roots, spec]));
   if (db.prepare("SELECT value FROM meta WHERE key = 'policy'").get()?.value === policy) return;
-  const gone = (p) => !underRoot(p, roots) || isQuarantined(p, rules);
+  const gone = (p, key) => !underRoot(p, roots) || isQuarantined([p, key], rules);
   db.exec("BEGIN");
   const delFile = db.prepare("DELETE FROM files WHERE volume = ? AND path_key = ?");
   for (const r of db.prepare("SELECT volume, path_key, path FROM files").all())
-    if (gone(r.path)) delFile.run(r.volume, r.path_key);
+    if (gone(r.path, r.path_key)) delFile.run(r.volume, r.path_key);
   const delMedia = db.prepare("DELETE FROM media WHERE collector = ? AND path_key = ?");
   for (const r of db.prepare("SELECT collector, path_key, path, title FROM media").all())
-    if (gone(r.path) || isQuarantined(r.title, rules)) delMedia.run(r.collector, r.path_key);
+    if (gone(r.path, r.path_key) || isQuarantined(r.title, rules))
+      delMedia.run(r.collector, r.path_key);
   const key = "WHERE name = ? AND version = ? AND source = ?";
   for (const r of db.prepare("SELECT name, version, source, publisher, location FROM apps").all()) {
     if (isQuarantined([r.name, r.version, r.publisher, r.location], rules))
@@ -260,13 +261,25 @@ export async function runSweep({
   // Every configuration fault is collected first; the index is then cleaned with the VALID part of
   // the policy, and only then is the sweep refused. A refused sweep can never keep rows that the
   // valid rules and roots already make private. Refusal messages name no data.
-  if (!Array.isArray(quarantine)) throw new TypeError("quarantine must be a list of rules");
-  const problems = quarantine.map(ruleProblem).filter(Boolean);
+  // A fault in the SHAPE of the configuration is a problem like any other: collected, not thrown, so
+  // that the index is still cleaned with whatever part of the policy is usable.
+  const problems = [];
+  const list = (v, what) => {
+    if (Array.isArray(v)) return v;
+    problems.push(what);
+    return [];
+  };
+  quarantine = list(quarantine, "quarantine must be a list of rules");
+  problems.push(...quarantine.map(ruleProblem).filter(Boolean));
   quarantine = quarantine.filter((r) => !ruleProblem(r));
-  const { valid: roots, invalid } = publicRootsOf(publicRoots, quarantine);
+  const { valid: roots, invalid } = publicRootsOf(
+    list(publicRoots, "publicRoots must be a list of paths"),
+    quarantine
+  );
   if (invalid) problems.push("public root must be an absolute path matching no rule");
-  for (const c of collectors) {
-    if (!COLLECTOR_NAME.test(String(c?.name)) || isQuarantined(c.name, quarantine))
+  scope = list(scope, "scope must be a list of volumes");
+  for (const c of list(collectors, "collectors must be a list")) {
+    if (!COLLECTOR_NAME.test(String(c?.name)) || isQuarantined(c?.name, quarantine))
       problems.push("collector name must be a plain identifier matching no rule");
     if (!KINDS.has(c?.kind)) problems.push("collector kind must be files, apps or media");
   }
@@ -320,6 +333,17 @@ export async function runSweep({
     const volumes = c.kind === "files" ? (c.volumes || []).filter((v) => inScope.has(v)) : [""];
     for (const volume of volumes) {
       const result = { name: c.name, kind: c.kind, volume: volume || null, status: "ok", rows: 0 };
+      // Counted here, merged into the sweep's counts only if this collector commits: a sweep never
+      // reports rows it rolled back (S9; with S1's walker an incomplete C: walk is ~2.2M of them).
+      const seen = {
+        files: 0,
+        bytes: 0,
+        listed_files: 0,
+        apps: 0,
+        listed_apps: 0,
+        media: 0,
+        listed_media: 0
+      };
       const totals = new Map(); // category -> { items, bytes } for everything not listed by name
       const tally = (category, bytes) => {
         const t = totals.get(category) ?? { items: 0, bytes: 0 };
@@ -337,17 +361,19 @@ export async function runSweep({
             const raw = txt(row.path) ?? "";
             const p = canonPath(raw);
             const category = categorize(p);
-            counts.files++;
-            counts.bytes += size ?? 0;
-            // judged on BOTH the collected text and the canonical text that is stored
-            if (underRoot(p, roots) && !isQuarantined([raw, p], quarantine)) {
-              putFile.run(volume, p.toLowerCase(), p, category, size, num(row.mtimeMs), sweepId);
-              counts.listed_files++;
+            seen.files++;
+            seen.bytes += size ?? 0;
+            // judged on EVERY text that is stored: the collected spelling, the canonical path and
+            // the lowercase key (İ and ẞ lower to text a rule can match but the path cannot)
+            const fileKey = p.toLowerCase();
+            if (underRoot(p, roots) && !isQuarantined([raw, p, fileKey], quarantine)) {
+              putFile.run(volume, fileKey, p, category, size, num(row.mtimeMs), sweepId);
+              seen.listed_files++;
             } else tally(category, size);
           } else if (c.kind === "apps") {
             const fields = [row.name, row.version, row.publisher, row.location].map(txt);
             const [name, version, publisher, location] = fields;
-            counts.apps++;
+            seen.apps++;
             const loc = location && canonPath(location);
             // An app installed somewhere a rule covers is itself private, not just its location.
             if (!name || isQuarantined([name, version, publisher, loc, location], quarantine)) {
@@ -355,7 +381,7 @@ export async function runSweep({
             } else {
               const public_ = loc && underRoot(loc, roots);
               putApp.run(name, version ?? "", c.name, publisher, public_ ? loc : null, sweepId);
-              counts.listed_apps++;
+              seen.listed_apps++;
             }
           } else {
             const [rootRaw, relRaw, title] = [row.root, row.path, row.title].map(txt);
@@ -364,14 +390,15 @@ export async function runSweep({
             const full = absolute ? rel : canonPath(`${rootRaw}/${relRaw}`);
             const rawFull = absolute ? relRaw : `${rootRaw}/${relRaw}`;
             const category = categorize(full);
-            counts.media++;
+            seen.media++;
+            const mediaKey = full.toLowerCase();
             const listed =
               underRoot(full, roots) &&
-              !isQuarantined([rawFull, full], quarantine) &&
+              !isQuarantined([rawFull, full, mediaKey], quarantine) &&
               !isQuarantined(title, quarantine);
             if (listed) {
-              putMedia.run(c.name, full.toLowerCase(), full, title, size, sweepId);
-              counts.listed_media++;
+              putMedia.run(c.name, mediaKey, full, title, size, sweepId);
+              seen.listed_media++;
             } else tally(category, size);
           }
           result.rows++;
@@ -398,6 +425,7 @@ export async function runSweep({
           );
         }
         db.exec("COMMIT");
+        for (const k of Object.keys(counts)) counts[k] += seen[k];
       } catch (e) {
         db.exec("ROLLBACK");
         result.status = "errored";
