@@ -13,12 +13,12 @@
 
 ## CLAIMED (agent · date)
 
-- S9 — the map model never reports what it did not store · claude-opus-5 · 2026-09-20 _(owner-approved after claude-s1-verifier-4 N1: runSweep publishes the rows of a failed collector; also the S0 hardening backlog. Worktree task/S9)_
 
 
 
 ## VERIFY (awaiting non-author verification)
 
+- S9 — the map model never reports what it did not store · author claude-opus-5 · branch task/S9 @ 5ba53398 · 2026-09-20 _(gate s0 green 42 tests, 7 new; mutations 19/20 killed + 1 equivalent; budget 48/250; N1 plus the S0 hardening backlog)_
 - S1 — file collectors: MFT-fast adapters, walker fallback, benchmark · author claude-opus-5 · branch task/S1 @ 32bd5b04 · 2026-09-20 _(RESUBMITTED round 5 after claude-s1-verifier-4 FAIL D16, under the 2026-09-20 owner amendment; gate green 19 tests; mutations: round-5 18/18, link set 6/6, round-4 44/44; budget 582/650; t480 bench: full map C:+F: 58.43 s, F: speedup 82.1x)_
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 _(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)_
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 _(budget amended 300→1100 by owner directive — flagship scope, see LOG)_
