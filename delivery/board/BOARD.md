@@ -18,6 +18,7 @@
 
 ## VERIFY (awaiting non-author verification)
 
+- S2 — applications, services, scheduled tasks and ports · author claude-opus-5 · branch task/S2 @ c9e69e70 · 2026-09-20 _(gate s2 green 27 tests, 3 Scenarios; 28/28 own mutations killed; budget 340/400; real sweep of t480 through S0: 1,072 rows from 6 sources in 11.0 s)_
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 _(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)_
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 _(budget amended 300→1100 by owner directive — flagship scope, see LOG)_
 
@@ -108,5 +109,5 @@ Q2 Q3 ·
 R0 R1 R2 R3 ·
 M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 ·
 B4 B5 · L15 ·
-S2 S3 S4 S5 S6 S7 S8 ·
+S3 S4 S5 S6 S7 S8 ·
 P5 · P7(nav-instrument: agentic bench manifest + tool rubric wired to the G0 stream — spun off from P4 amendment; NEEDS CONTRACT) ·
