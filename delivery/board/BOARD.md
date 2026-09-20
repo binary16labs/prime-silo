@@ -13,6 +13,8 @@
 
 ## CLAIMED (agent · date)
 
+- S9 — the map model never reports what it did not store · claude-opus-5 · 2026-09-20 _(owner-approved after claude-s1-verifier-4 N1: runSweep publishes the rows of a failed collector; also the S0 hardening backlog. Worktree task/S9)_
+
 
 
 ## VERIFY (awaiting non-author verification)
