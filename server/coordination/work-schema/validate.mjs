@@ -137,7 +137,10 @@ function boardIds(boardText) {
     }
     if (!section || section === "BACKLOG") continue;
     if (section === "AUTHORED") {
-      for (const tok of line.split(/[\s·]+/)) if (ID_RE.test(tok)) ids.push(tok);
+      // An id in a parenthetical is prose about another item ("wired to the G0 stream"), not an
+      // entry: counting it put G0 and P4 on the board twice each while each appeared exactly once.
+      for (const tok of line.replace(/\([^)]*\)/g, " ").split(/[\s·]+/))
+        if (ID_RE.test(tok)) ids.push(tok);
     } else {
       const b = line.match(/^- ([A-Z]\d+|M2-\d+)\b/);
       if (b) ids.push(b[1]);
