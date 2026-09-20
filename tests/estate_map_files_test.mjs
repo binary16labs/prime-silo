@@ -875,9 +875,20 @@ test("the walker counts a reparse entry it may not read, and never walks or list
 
 test("every export leaves no temporary directory behind, and a journal export that failed is not read", async (t) => {
   const { vol, everythingCsv } = fixtureVolume(t);
-  const temps = () => fs.readdirSync(os.tmpdir()).filter((n) => n.startsWith("estate-map-"));
-  const before = temps().length;
+  // the adapters' temp directories go somewhere only this test writes to, so a concurrent process
+  // cannot fail the census and the census cannot miss a leak of ours (S10, F3)
+  const own = tempDir(t, "s1own-");
+  const saved = { TEMP: process.env.TEMP, TMP: process.env.TMP, TMPDIR: process.env.TMPDIR };
+  process.env.TEMP = process.env.TMP = process.env.TMPDIR = own;
+  t.after(() => {
+    for (const [k, v] of Object.entries(saved))
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+  });
+  assert.equal(os.tmpdir(), own, "the adapters write their exports here");
+  const temps = () => fs.readdirSync(own);
   await collect(everythingAdapter({ esPath: "es.exe", exec: fakeExec(everythingCsv) }), vol);
+  assert.deepEqual(temps(), [], "a successful export removes its directory");
   const failing = everythingAdapter({
     esPath: "es.exe",
     exec: async (cmd, args) => ({ ...(await fakeExec(everythingCsv)(cmd, args)), code: 2 })
@@ -897,7 +908,76 @@ test("every export leaves no temporary directory behind, and a journal export th
     code: "ES_JOURNAL_UNAVAILABLE"
   });
   await halfWritten.journalPosition();
-  assert.equal(temps().length, before, "no estate-map-* directory is left in the temp folder");
+  assert.deepEqual(temps(), [], "no directory is left behind by a successful or a failed export");
+});
+
+test("Scenario: an OS-object exclusion applies inside a user profile only", async (t) => {
+  const vol = tempDir(t, "s1prof-");
+  const under = (...parts) => path.join(vol, ...parts);
+  const write = (p) => {
+    fs.mkdirSync(path.dirname(p), { recursive: true });
+    fs.writeFileSync(p, "x");
+    return p;
+  };
+  // the same folder names, once where they are not a profile and once inside a real profile
+  const loose = write(under("AppData", "Local", "Docker", "run", "compose.yaml"));
+  const inProfile = write(
+    under("Users", "nsdha", "AppData", "Local", "Docker", "run", "docker.sock")
+  );
+  write(under("Users", "nsdha", "AppData", "Local", "Microsoft", "WindowsApps.tmp", "paint.exe"));
+  write(under("Users", "nsdha", "AppData", "Local", "Docker", "config.json"));
+  const listed = (await collect(walkerAdapter(), vol)).map((r) => r.path);
+  assert.ok(listed.includes(loose), "a readable file outside any profile is listed");
+  assert.ok(!listed.includes(inProfile), "the same path inside a profile stays excluded");
+  assert.ok(
+    listed.some((p) => p.endsWith("config.json")),
+    "only the named folders are excluded"
+  );
+  assert.equal(listed.length, 2);
+
+  const local = "C:\\Users\\nsdha\\AppData\\Local";
+  assert.equal(isExcluded("C:", `${local}\\Docker\\run\\docker.sock`), true, "the real case");
+  assert.equal(isExcluded("C:", `${local}\\Microsoft\\WindowsApps.tmp\\x.exe`), true);
+  assert.equal(isExcluded("C:", `${local}\\docker-secrets-engine\\x`), true);
+  assert.equal(isExcluded("C:", "F:\\backup\\AppData\\Local\\Docker\\run\\compose.yaml"), false);
+  assert.equal(isExcluded("C:", `${local}\\Docker\\runner\\x`), false, "a segment, not a prefix");
+  assert.equal(isExcluded("C:", "C:\\Users\\AppData\\Local\\Docker\\run\\x"), false, "no profile");
+  // a volume scoped inside the profile answers the same way
+  assert.equal(isExcluded("C:\\Users\\nsdha", `${local}\\Docker\\run\\docker.sock`), true);
+});
+
+test("Scenario: a row with no size is judged, never assumed", async (t) => {
+  const { vol } = fixtureVolume(t);
+  const row = (name, attrs, size) => `"${path.join(vol, name)}",${attrs},${size},${EPOCH_TICKS}`;
+  const csv = [row("link.dll", 1056, ""), row("plain.txt", 32, ""), row("a.txt", 32, 5)].join(
+    "\r\n"
+  );
+  const es = (readlink) => everythingAdapter({ esPath: "es.exe", exec: fakeExec(csv), readlink });
+
+  assert.deepEqual(
+    (
+      await collect(
+        es(async () => "C:\\target"),
+        vol
+      )
+    ).map((r) => path.basename(r.path)),
+    ["a.txt", "plain.txt"],
+    "a reparse row with no size is a link and is dropped; a plain row is listed"
+  );
+  await assert.rejects(
+    collect(
+      es(async () => {
+        throw errno("EACCES");
+      }),
+      vol
+    ),
+    (e) => {
+      assert.equal(e.code, "ES_INCOMPLETE");
+      assert.deepEqual(e.detail, { unidentifiedReparse: 1 });
+      return true;
+    },
+    "a reparse row with no size that cannot be read fails the volume"
+  );
 });
 
 test("the benchmark reports an incomplete adapter as failed, never as a mapped volume", async (t) => {
