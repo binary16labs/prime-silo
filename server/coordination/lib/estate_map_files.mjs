@@ -24,11 +24,10 @@ const EXCLUDED_ROOT_FILES = ["pagefile.sys", "hiberfil.sys", "swapfile.sys", "du
 // OS objects rather than files: app execution aliases in the Store's staging folder and Docker's
 // sockets. No account can read them (EACCES/EPERM), so they would otherwise fail every volume that
 // holds them (owner decision 2026-09-20, after 66 such entries made t480 C: permanently incomplete).
-const EXCLUDED_PATHS = [
-  "appdata/local/microsoft/windowsapps.tmp",
-  "appdata/local/docker/run",
-  "appdata/local/docker-secrets-engine"
-];
+// Anchored to a user profile: the same folder names elsewhere name ordinary files, and an exclusion
+// must hide only what it was written for (S10, after claude-s1-verifier-5's F1).
+const EXCLUDED_PROFILE_PATHS =
+  /\/users\/[^/]+\/appdata\/local\/(microsoft\/windowsapps\.tmp|docker\/run|docker-secrets-engine)(\/|$)/u;
 
 const slashKey = (s) => String(s).replace(/\\/gu, "/").toLowerCase();
 
@@ -44,7 +43,8 @@ export function isExcluded(volume, filePath) {
   if (rel === null) return false;
   // the excluded folder itself is excluded too, so the walker never descends into it
   if (EXCLUDED_DIRS.includes(rel.split("/")[0])) return true;
-  if (EXCLUDED_PATHS.some((p) => `/${rel}/`.includes(`/${p}/`))) return true;
+  // judged on the whole path, so a volume scoped inside a profile gives the same answer
+  if (EXCLUDED_PROFILE_PATHS.test(slashKey(filePath))) return true;
   return !rel.includes("/") && EXCLUDED_ROOT_FILES.includes(rel);
 }
 
@@ -168,9 +168,10 @@ async function* readLines(file, parse, volume, readlink, code) {
   for await (const line of readline.createInterface({ input, crlfDelay: Infinity })) {
     const row = parse(line.replace(/^\uFEFF/u, ""));
     if (!row || isExcluded(volume, row.path)) continue;
-    // a link (symlink, junction, app execution alias) has no data stream, so its size is 0; only those
-    // rows are asked (8,420 of 1.0M reparse rows on t480 C:, which are mostly OneDrive cloud files)
-    if (row.reparse && row.size === 0) {
+    // a link (symlink, junction, app execution alias) has no data stream, so its size is 0 — or empty
+    // in the export, which is unknown and never assumed to be data (S10, F2). Only those rows are
+    // asked: 8,420 of 1.0M reparse rows on t480 C:, which are mostly OneDrive cloud files.
+    if (row.reparse && !row.size) {
       const kind = await judgeReparse(row.path, readlink);
       if (kind !== "file") {
         // an entry this node may not read is a gap, exactly as it is for the walker: never listed as
