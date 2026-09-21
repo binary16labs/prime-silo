@@ -82,9 +82,47 @@ function disambiguate(rows) {
 
 // --- winget -------------------------------------------------------------------------------------
 
+// A character's width in terminal columns. winget pads its columns by DISPLAY width, so a CJK,
+// Hangul or full-width character fills two of them while a combining mark fills none. Measuring in
+// UTF-16 code units instead ends a wide name's column early and refuses the row, which cost a node
+// with any such application its ENTIRE winget inventory, every sweep (S11, after S2's N1).
+const WIDE = /^[\u1100-\u115f\u2e80-\u303e\u3041-\u33ff\u3400-\u4dbf\u4e00-\u9fff\ua000-\ua4cf\uac00-\ud7a3\uf900-\ufaff\ufe10-\ufe19\ufe30-\ufe6f\uff00-\uff60\uffe0-\uffe6]$|^[\u{20000}-\u{3fffd}]$/u;
+const ZERO = /^\p{Mn}$|^\p{Me}$|^\p{Cf}$/u;
+const charWidth = (ch) => (ZERO.test(ch) ? 0 : WIDE.test(ch) ? 2 : 1);
+export const displayWidth = (s) => [...String(s)].reduce((w, ch) => w + charWidth(ch), 0);
+
+// Cuts one fixed-width line at the header's display columns, or returns null when it cannot be cut
+// there: a value that overflowed its column (the column before a boundary is not blank), a
+// double-width character straddling a boundary, or a line too short to reach the Version column.
+// All three mean the row's fields cannot be trusted, and an untrustworthy row is never a guess.
+function cutColumns(line, at) {
+  const chars = [...line];
+  const startAt = new Map();
+  let w = 0;
+  for (const [i, ch] of chars.entries()) {
+    startAt.set(w, i);
+    w += charWidth(ch);
+  }
+  startAt.set(w, chars.length);
+  if (w <= at[2]) return null; // a notice or a wrapped fragment, never an application
+  const cells = [];
+  for (const [i, col] of at.entries()) {
+    if (col >= w) {
+      cells.push("");
+      continue;
+    }
+    const from = startAt.get(col);
+    if (from === undefined || (col > 0 && chars[from - 1] !== " ")) return null;
+    const next = at[i + 1];
+    const to = next === undefined ? chars.length : (startAt.get(next) ?? chars.length);
+    cells.push(chars.slice(from, to).join("").trim());
+  }
+  return cells;
+}
+
 // `winget list` is fixed-width: column starts come from the header, and every value is left-aligned
 // at one. A value too long for its column pushes into the next, which would silently report the
-// wrong version — so a row whose column boundary is not blank is malformed and fails the source.
+// wrong version, so a row that cannot be cut at those columns is malformed and fails the source.
 export function parseWingetList(text) {
   const lines = text.split(/\r?\n/u).filter((l) => !/^[\s\u0008\-\\|/]*$/u.test(l));
   const h = lines.findIndex(
@@ -92,6 +130,7 @@ export function parseWingetList(text) {
   );
   if (h < 0) throw failure("WINGET_NO_HEADER");
   const head = lines[h];
+  // the header is ASCII, so its code-unit offsets are also its display columns
   const at = ["Name", "Id", "Version", "Available", "Source"]
     .map((c) => head.indexOf(c))
     .filter((i) => i >= 0)
@@ -99,14 +138,13 @@ export function parseWingetList(text) {
   const rows = [];
   let malformed = 0;
   for (const line of lines.slice(h + 1)) {
-    if (at.some((o) => o > 0 && line.length > o && line[o - 1] !== " ")) {
+    const cells = cutColumns(line, at);
+    if (cells === null) {
       malformed++;
       continue;
     }
-    const cut = (i) => line.slice(at[i], at[i + 1] ?? line.length).trim();
-    const name = cut(0);
     // the Id is winget's own identity for the entry, and tells two same-named rows apart
-    if (name !== "") rows.push({ name, id: cut(1), version: cut(2) });
+    if (cells[0] !== "") rows.push({ name: cells[0], id: cells[1], version: cells[2] });
   }
   if (malformed > 0) throw failure("WINGET_MALFORMED", { rows: malformed });
   return rows;
@@ -149,15 +187,21 @@ export const APP_SOURCES = {
   registry: {
     script: emit(
       `Get-ItemProperty @('${REG_KEYS.join("','")}')`,
-      "DisplayName,DisplayVersion,Publisher,InstallLocation,SystemComponent,ReleaseType,ParentKeyName"
+      "DisplayName,DisplayVersion,Publisher,InstallLocation,SystemComponent,ReleaseType," +
+        // the key an entry lives under is the registry's own identity for it: without it, one
+        // product installed in two hives under one display name and version folds away in silence
+        "ParentKeyName,@{n='Key';e={$_.PSPath -replace '^.*::',''}}"
     ),
     rows: (data) =>
-      data.filter(isApplication).map((r) => ({
-        name: txt(r.DisplayName),
-        version: txt(r.DisplayVersion) ?? "",
-        publisher: txt(r.Publisher),
-        location: txt(r.InstallLocation)
-      }))
+      disambiguate(
+        data.filter(isApplication).map((r) => ({
+          name: txt(r.DisplayName),
+          id: txt(r.Key),
+          version: txt(r.DisplayVersion) ?? "",
+          publisher: txt(r.Publisher),
+          location: txt(r.InstallLocation)
+        }))
+      )
   },
   winget: {
     text: true,

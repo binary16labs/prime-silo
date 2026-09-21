@@ -1,4 +1,4 @@
-// S2 — application, service, task and port collectors.
+// S2 — application, service, task and port collectors, hardened by S11 (display width, registry identity).
 // Every Scenario in delivery/tasks/S2.md maps to a test here, plus the integrity rules the sources
 // share: a source that cannot answer fails loudly and alone, and is never a shorter list.
 import assert from "node:assert/strict";
@@ -12,6 +12,7 @@ import {
   APP_SOURCES,
   appCollectors,
   capture,
+  displayWidth,
   isLoopback,
   normalizeName,
   parseWingetList,
@@ -108,6 +109,61 @@ test("columns are followed, not assumed: a narrower table reads the same", () =>
   ]);
 });
 
+// winget pads by DISPLAY width, so a faithful fixture must too: a CJK name fills two columns per
+// character. cell() is how winget itself lays a cell out, and is deliberately not the parser's code.
+const cell = (s, width) => s + " ".repeat(Math.max(0, width - displayWidth(s)));
+
+test("a double-width application name is read, not refused", () => {
+  const head = cell("Name", 25) + cell("Id", 25) + cell("Version", 15) + "Source";
+  const jp = cell("日本語アプリ", 25) + cell("Vendor.JpApp", 25) + cell("2.0.0", 15) + "winget";
+  const ko = cell("한글 프로그램", 25) + cell("Vendor.KoApp", 25) + cell("1.2.3", 15) + "winget";
+  const ascii = cell("Plain App", 25) + cell("Vendor.Plain", 25) + cell("9.9", 15) + "winget";
+  // an astral character is ONE character of width 1. Two of them, with an Id that all but fills its
+  // column: counting each surrogate pair as two columns shifts the Id cell past its own padding and
+  // truncates it, which trim() cannot hide.
+  const emoji =
+    cell("Focus \u{1F642}\u{1F680} App", 25) + cell("Vendor.VeryLongPackageId", 25) + cell("4.5", 15) + "winget";
+  assert.equal(displayWidth(jp), displayWidth(ascii), "the fixture pads by display width, as winget does");
+  assert.notEqual(jp.length, ascii.length, "and the code-unit lengths differ, which is the whole bug");
+  assert.notEqual(emoji.length, displayWidth(emoji), "the emoji row is a surrogate pair too");
+
+  assert.deepEqual(parseWingetList([head, "-".repeat(70), jp, ko, emoji, ascii].join("\r\n")), [
+    { name: "日本語アプリ", id: "Vendor.JpApp", version: "2.0.0" },
+    { name: "한글 프로그램", id: "Vendor.KoApp", version: "1.2.3" },
+    { name: "Focus \u{1F642}\u{1F680} App", id: "Vendor.VeryLongPackageId", version: "4.5" },
+    { name: "Plain App", id: "Vendor.Plain", version: "9.9" }
+  ]);
+});
+
+test("a column is measured in the widths winget actually uses", () => {
+  assert.equal(displayWidth("Plain"), 5);
+  assert.equal(displayWidth("日本語"), 6, "each CJK character fills two columns");
+  assert.equal(displayWidth("ﾊﾝｶｸ"), 4, "half-width katakana fills one");
+  assert.equal(displayWidth("e\u0301"), 1, "a combining mark fills none");
+  assert.equal(displayWidth("🙂"), 1, "an astral pair is one character, not two");
+});
+
+test("a double-width character straddling a column boundary is malformed", () => {
+  // the name is 24 columns of ASCII plus one CJK character, so the character starts at column 24
+  // and ends at 26: there is no character beginning at the Id column and the row cannot be cut
+  const head = cell("Name", 25) + cell("Id", 25) + cell("Version", 15) + "Source";
+  const straddle = "A".repeat(24) + "語" + cell("Vendor.X", 25) + cell("1.0", 15) + "winget";
+  assert.throws(
+    () => parseWingetList([head, "-".repeat(70), straddle].join("\r\n")),
+    (e) => e.code === "WINGET_MALFORMED" && e.detail.rows === 1
+  );
+});
+
+test("a line too short to reach the Version column is not an application", () => {
+  const head = cell("Name", 25) + cell("Id", 25) + cell("Version", 15) + "Source";
+  const good = cell("Plain App", 25) + cell("Vendor.Plain", 25) + cell("9.9", 15) + "winget";
+  // a trailing notice from a future winget must fail loudly, never become an app with no version
+  assert.throws(
+    () => parseWingetList([head, "-".repeat(70), good, "1 package has an update"].join("\r\n")),
+    (e) => e.code === "WINGET_MALFORMED" && e.detail.rows === 1
+  );
+});
+
 test("winget output with no header is a failure, not an empty list", () => {
   assert.throws(() => parseWingetList("a progress spinner and nothing else\n"), (e) => e.code === "WINGET_NO_HEADER");
 });
@@ -130,6 +186,26 @@ test("registry components and patches are not applications", () => {
   assert.deepEqual(rows, [
     { name: "Prime-Silo 1.24.5", version: "1.24.5", publisher: "binary16", location: "C:\\ps" }
   ]);
+});
+
+test("one product installed in two hives stays two rows", () => {
+  // S0 keys on (name, version, source) and the registry is the one source with no identity of its
+  // own, so without the key these two 32/64-bit installs fold into one and one of them vanishes
+  const key = (k) => `HKEY_LOCAL_MACHINE\\SOFTWARE\\${k}\\Microsoft\\Windows\\CurrentVersion\\Uninstall`;
+  const rows = APP_SOURCES.registry.rows([
+    { DisplayName: "Acme Tool", DisplayVersion: "3.1", Key: `${key("")}\\{acme-64}` },
+    { DisplayName: "Acme Tool", DisplayVersion: "3.1", Key: `${key("WOW6432Node")}\\{acme-32}` },
+    { DisplayName: "Prime-Silo 1.24.5", DisplayVersion: "1.24.5", Key: `${key("")}\\{p-s}` }
+  ]);
+  assert.equal(new Set(rows.map((r) => `${r.name}|${r.version}`)).size, 3, "no two rows share S0's key");
+  assert.equal(rows[2].name, "Prime-Silo 1.24.5", "the entry that collides with nothing keeps its clean name");
+  assert.ok(rows[0].name.endsWith("{acme-64}]") && rows[1].name.endsWith("{acme-32}]"), rows[0].name);
+  assert.deepEqual(Object.keys(rows[0]), ["name", "version", "publisher", "location"]);
+  assert.equal(
+    reconcile(rows.map((r) => ({ ...r, source: "registry" }))).length,
+    2,
+    "and the two installs are still one product"
+  );
 });
 
 test("a service carries its run state, display name and image path", () => {
@@ -352,6 +428,26 @@ test("a source is read as UTF-8, whatever the console code page would have done"
     collectorNamed("registry", { exec: fakeExec({ registry: json([{ DisplayName: "Müller Röntgen 日本", DisplayVersion: "1" }]) }) })
   );
   assert.equal(rows[0].name, "Müller Röntgen 日本");
+});
+
+test("a source asks for every field its parser reads", () => {
+  // the PowerShell scripts are the largest integrity surface in the library and nothing else tests
+  // them: a field dropped from a Select-Object would silently empty that column for every row
+  for (const [name, source] of Object.entries(APP_SOURCES)) {
+    // winget's rows() reads a row THIS file parsed, not a PowerShell object, so only the JSON
+    // sources have a Select-Object to check their fields against
+    const reads = source.text
+      ? []
+      : new Set([...String(source.rows).matchAll(/\br\.([A-Za-z]\w*)/gu)].map((m) => m[1]));
+    for (const field of reads)
+      // as a selected name of its own, not as a substring of another one ("Key" in "ParentKeyName")
+      assert.match(
+        source.script,
+        new RegExp(`(^|[,\\s(])${field}\\b|n='${field}'`, "u"),
+        `${name} reads r.${field} but never asks for it`
+      );
+    assert.match(source.script, /Out-File -LiteralPath \$out -Encoding utf8/u, `${name} must write UTF-8 to $out`);
+  }
 });
 
 test("every collector is shaped for the S0 model", () => {
