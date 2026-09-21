@@ -221,8 +221,9 @@ export function createEstateApi({
       return sendJson(res, 200, foldEstateMap(satelliteState.maps || [], { maxAgeMs: mapMaxAgeMs }));
     }
 
-    // GET /api/estate/map/:machine — that machine's volumes and biggest categories. A machine the
-    // hub has never heard from is 404, not an empty map: absence of a push is not absence of files.
+    // GET /api/estate/map/:machine — that machine's volumes and what it WITHHELD (not its biggest
+    // categories: S0 only tallies rows it did NOT list). A machine the hub has never heard from is
+    // 404, not an empty map: absence of a push is not absence of files.
     const mapMachine = rest.match(/^\/map\/([^/]+)$/u);
     if (req.method === "GET" && mapMachine) {
       const fold = foldEstateMap(satelliteState.maps || [], { maxAgeMs: mapMaxAgeMs });
