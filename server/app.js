@@ -1,9 +1,14 @@
+import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 
 import { createBus } from "./coordination/lib/bus.mjs";
 import { createCoordinationApi } from "./coordination/http_api.mjs";
 import { createEstateApi } from "./coordination/lib/estate_api.mjs";
+import {
+  DEFAULT_MAP_MAX_AGE_MS,
+  readQuarantinePolicy
+} from "./coordination/lib/estate_map_fold.mjs";
 import { createAgentApi } from "./api/agent_api.mjs";
 import { createWorkflowsApi } from "./api/workflows_api.mjs";
 import { resolveRegisterKey } from "./coordination/lib/estate_register_key.mjs";
@@ -267,7 +272,15 @@ async function createAgentServer(overrides = {}) {
     createEstateApi({
       kelLog: overrides.estateKelLog || path.join(coordDir, "estate", "kel.jsonl"),
       bus: coordinationBus,
-      registerKey: overrides.estateRegisterKey ?? resolveRegisterKey()
+      registerKey: overrides.estateRegisterKey ?? resolveRegisterKey(),
+      // R31 for the estate map (S3): the rules a node's volume names are judged against. Read here
+      // rather than defaulted in the library, because a library that invents an empty policy is a
+      // guard that is never on. No policy file means no policy, and the hub then refuses maps.
+      quarantine: overrides.estateQuarantine ??
+        readQuarantinePolicy(path.join(coordDir, "estate", "quarantine.json"), {
+          readFile: (f) => fs.readFileSync(f, "utf8")
+        }),
+      mapMaxAgeMs: overrides.estateMapMaxAgeMs ?? DEFAULT_MAP_MAX_AGE_MS
     });
   // EP-A: the tuned tool-use agent served over /api/agent/* (SSE step stream). The Bridge UI wraps
   // this same runAgent the CLI uses — one harness. Nested paths, so mounted ahead of the flat router.
