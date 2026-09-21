@@ -36,4 +36,4 @@
 | O1+O2 | flywheel-loop       | EP-L             | M6        | L10 L11 L12 L13 L14                                  |
 | O2    | estate-governance   | EP-N             | M7        | N0 N1 N2 N3                                          |
 | O2+O1 | estate-cockpit      | EP-N             | M8        | N4 N5 N6 N7                                          |
-| O2    | estate-map          | EP-S             | M10       | S0 S1 S2 S3 S4 S5 S6 S7 S8 S9 S10 S11 S12                        |
+| O2    | estate-map          | EP-S             | M10       | S0 S1 S2 S3 S4 S5 S6 S7 S8 S9 S10 S11 S12 S13                        |
