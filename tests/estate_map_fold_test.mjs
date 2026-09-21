@@ -268,11 +268,15 @@ test("the payload is built by enumerating fields, so a new sweep field cannot st
 
 // --- the per-machine view ---------------------------------------------------------------------------
 
-test("a machine view ranks its biggest categories", () => {
+test("the category breakdown is named for what it actually counts: what was withheld", () => {
+  // S0 tallies a category ONLY for a row it did NOT list (outside the public roots, or matching a
+  // quarantine rule). Serving that as "top categories" would put a real number under a wrong name.
   const fold = foldEstateMap([push("t480", T(12))], { now: Date.parse(T(12)) });
   const view = machineView(fold, "t480", { topCategories: 1 });
-  assert.equal(view.categories.length, 1);
-  assert.deepEqual(view.categories[0], { category: "media", items: 400, bytes: 900 });
+  assert.ok(!("categories" in view), "there is no unqualified category list to misread");
+  assert.equal(view.withheld.items, 1300, "every withheld row is counted");
+  assert.equal(view.withheld.categories.length, 1, "ranked, so the biggest is first");
+  assert.deepEqual(view.withheld.categories[0], { category: "media", items: 400, bytes: 900 });
   assert.deepEqual(Object.keys(view.volumes), ["C:\\", "F:\\"]);
 });
 
@@ -322,7 +326,7 @@ test("a pushed map is served at /api/estate/map and per machine", async (t) => {
   const machine = await call(port, "/api/estate/map/t480");
   assert.equal(machine.status, 200);
   assert.equal(machine.body.volumes["F:\\"].rows, 1_117_036);
-  assert.equal(machine.body.categories[0].category, "media");
+  assert.equal(machine.body.withheld.categories[0].category, "media");
 
   const missing = await call(port, "/api/estate/map/optimus");
   assert.equal(missing.status, 404, "a machine that never pushed is not an empty machine");

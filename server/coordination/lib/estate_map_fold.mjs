@@ -246,9 +246,17 @@ function mergeVolumes(machine, push, fresh) {
   }
 }
 
-// machineView(fold, machine) — one machine's volumes and its biggest categories, for
+// machineView(fold, machine) — one machine's volumes and what it WITHHELD, for
 // GET /api/estate/map/:machine. Returns null when the hub has never heard from it: a machine the
 // hub cannot name is not an empty machine.
+//
+// The category breakdown is named `withheld` and not "top categories", because that is what S0's
+// totals table holds: runSweep tallies a category ONLY for a row it did not list (outside the
+// public roots, or matching a quarantine rule). Serving it as the machine's biggest categories
+// would have told the owner "your biggest category is code" while meaning "the biggest category of
+// what we hid from you" — a real number under a wrong name, which is worse than no number. A full
+// breakdown of what IS listed needs S0 to record listed-row totals; that is estate_map.mjs's
+// allowlist, not this contract's, and is carried forward.
 export function machineView(fold = {}, machine, { topCategories = 10 } = {}) {
   const m = fold.machines?.[machine];
   if (!m) return null;
@@ -268,8 +276,14 @@ export function machineView(fold = {}, machine, { topCategories = 10 } = {}) {
     counts: m.counts,
     snapshot: m.snapshot,
     volumes: m.volumes,
-    categories: [...byCategory.values()]
-      .sort((a, b) => b.bytes - a.bytes || b.items - a.items || a.category.localeCompare(b.category))
-      .slice(0, topCategories)
+    withheld: {
+      // counts.files minus counts.listed_files is the same number from the other side
+      items: [...byCategory.values()].reduce((n, c) => n + c.items, 0),
+      categories: [...byCategory.values()]
+        .sort(
+          (a, b) => b.bytes - a.bytes || b.items - a.items || a.category.localeCompare(b.category)
+        )
+        .slice(0, topCategories)
+    }
   };
 }
