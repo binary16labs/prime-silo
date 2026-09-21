@@ -44,7 +44,9 @@ export function isLanOrigin(addr = "") {
 // ctx = { key, expectedKey, remoteAddress, hubHashes, quarantine }
 export function register(hubState = {}, manifest = {}, ctx = {}) {
   const { key, expectedKey, remoteAddress = "127.0.0.1", hubHashes = [], quarantine = [] } = ctx;
-  if (!expectedKey || key !== expectedKey)
+  // typed, not just compared: with a loose comparison an array key ["secret"] authenticates, and
+  // a caller who controls the JSON body controls the type (claude-s3-verifier's D6)
+  if (typeof expectedKey !== "string" || !expectedKey || typeof key !== "string" || key !== expectedKey)
     return { ok: false, reason: "unauthenticated", state: hubState };
   if (!isLanOrigin(remoteAddress))
     return { ok: false, reason: "non-LAN origin refused", state: hubState };

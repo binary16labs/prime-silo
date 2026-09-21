@@ -40,8 +40,31 @@ const COUNT_KEYS = [
   "listed_media"
 ];
 // A volume name is a path, and the only one allowed through: it names WHERE a sweep ran, which the
-// hub cannot report without. It is bounded and judged against the hub's own rules below.
-const VOLUME_MAX = 260;
+// hub cannot report without. Bounding its LENGTH is not enough — "F:\\clients\\Acme\\contract.pdf" is
+// 30 characters, and with only a length check it was accepted and served back verbatim
+// (claude-s3-verifier's D1). So it is constrained to the SHAPE of a volume:
+//   a drive root (F:\\) or a UNC share (\\\\host\\share), optionally with up to two segments for a
+//   mount point (F:\\mnt\\vol), no segment that looks like a file, and no character that belongs to a
+//   path only when somebody is hiding something in it.
+// This narrows the channel; it does not close it, because a folder-mounted volume and a folder are
+// the same shape. What it guarantees is that a FILE path cannot pass and that depth is bounded.
+// The hub's quarantine rules are the second layer, and they must be wired for that layer to exist.
+const VOLUME_MAX = 120;
+const VOLUME_DEPTH = 2;
+// control characters, NUL, percent-encoding and the fullwidth/alternate separators that let a path
+// wear a different face than the one the guard reads
+const VOLUME_UNSAFE = /[\u0000-\u001f\u007f%\u2044\u2215\u29f5\uff0f\uff3c]/u;
+const VOLUME_ROOT = /^(?:[a-z]:|\\\\[^\\/:*?"<>|]{1,63}\\[^\\/:*?"<>|]{1,63})$/iu;
+const VOLUME_SEGMENT = /^[^\\/:*?"<>|][^\\/:*?"<>|]{0,63}$/u;
+// a volume is not a file: a trailing extension is the clearest signal that this is neither a drive
+// nor a mount point but something somebody wanted the hub to store
+const VOLUME_LOOKS_LIKE_A_FILE = /\.[a-z0-9]{1,8}$/iu;
+// bounded arrays: 50,000 scope entries of 260 characters travelled as one 13 MB payload
+const MAX_SCOPE = 64;
+const MAX_COLLECTORS = 256;
+const MAX_TOTALS = 1024;
+// a sweep cannot have finished in the future; a little clock skew between nodes is normal
+const FUTURE_SKEW_MS = 5 * 60_000;
 
 const isCount = (v) => Number.isInteger(v) && v >= 0;
 const text = (v) => (typeof v === "string" ? v : null);
@@ -58,13 +81,23 @@ function quarantined(value, rules) {
 const volumeProblem = (v, rules) => {
   const s = text(v);
   if (s === null || s === "" || s.length > VOLUME_MAX) return "volume name";
+  if (VOLUME_UNSAFE.test(s)) return "volume name";
+  const parts = s.replace(/\\+$/u, "").split("\\");
+  // a UNC root is "\\\\host\\share", which splits into four parts with two empty leading ones
+  const rootParts = s.startsWith("\\\\") ? 4 : 1;
+  const root = parts.slice(0, rootParts).join("\\");
+  const rest = parts.slice(rootParts);
+  if (!VOLUME_ROOT.test(root)) return "volume name";
+  if (rest.length > VOLUME_DEPTH) return "volume name";
+  if (rest.some((seg) => !VOLUME_SEGMENT.test(seg))) return "volume name";
+  if (rest.length && VOLUME_LOOKS_LIKE_A_FILE.test(rest[rest.length - 1])) return "volume name";
   if (quarantined(s, rules)) return "quarantined volume";
   return null;
 };
 
 // mapPayloadProblem(payload, rules) — null when the payload may cross the wire, otherwise the
 // reason it may not. Names the FIELD, never the value: a rejection message is not a side channel.
-export function mapPayloadProblem(payload, rules = []) {
+export function mapPayloadProblem(payload, rules = [], { now = Date.now() } = {}) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) return "map must be an object";
   const allowed = new Set([
     ...Object.keys(SCALAR),
@@ -82,14 +115,22 @@ export function mapPayloadProblem(payload, rules = []) {
     }
     if (!re.test(String(payload[key] ?? ""))) return `map field ${key} is not well formed`;
   }
+  // A sweep that finished in the future would win the fold for EVER and never go stale, and every
+  // real sweep after it would be silently discarded as older (claude-s3-verifier's D3). It is the
+  // one bogus value that is also well formed, so the shape check above cannot catch it.
+  const finished = Date.parse(payload.finished_at);
+  if (!Number.isFinite(finished)) return "map field finished_at is not well formed";
+  if (finished > now + FUTURE_SKEW_MS) return "map finished in the future";
 
   if (!Array.isArray(payload.scope)) return "map scope must be a list";
+  if (payload.scope.length > MAX_SCOPE) return "map scope is too long";
   for (const v of payload.scope) {
     const bad = volumeProblem(v, rules);
     if (bad) return `map scope contains a ${bad}`;
   }
 
   if (!Array.isArray(payload.collectors)) return "map collectors must be a list";
+  if (payload.collectors.length > MAX_COLLECTORS) return "map collectors is too long";
   for (const c of payload.collectors) {
     if (!c || typeof c !== "object" || Array.isArray(c)) return "map collector must be an object";
     for (const key of Object.keys(c))
@@ -114,6 +155,7 @@ export function mapPayloadProblem(payload, rules = []) {
 
   if (payload.totals !== undefined) {
     if (!Array.isArray(payload.totals)) return "map totals must be a list";
+    if (payload.totals.length > MAX_TOTALS) return "map totals is too long";
     for (const t of payload.totals) {
       if (!t || typeof t !== "object" || Array.isArray(t)) return "map total must be an object";
       for (const key of Object.keys(t))

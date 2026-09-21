@@ -161,6 +161,113 @@ test("a volume name is bounded, so a path cannot hide in one", () => {
   assert.match(mapPayloadProblem(notText), /scope contains a volume name/u);
 });
 
+test("a volume must look like a volume, not merely be short", () => {
+  // claude-s3-verifier's D1: with only a length rule, a REAL file path is 45 characters and was
+  // accepted and served back verbatim. Bounding length is not bounding meaning.
+  const refused = [
+    "F:\\clients\\Acme\\contract-final-signed.pdf",
+    "\\\\NAS\\private$\\hr\\payroll-2026.xlsx",
+    "MEMO: acquisition price 4.2m GBP and the buyer walked away",
+    "F:\\a\\b\\c",
+    "F:\\notes.txt",
+    "F:\\a\u0000b",
+    "F:\\a\nb",
+    "data:text/plain;base64,SGVsbG8=",
+    "F:\uff3csecret",
+    "F:\\a%5Cb",
+    "\\\\?\\C:\\x",
+    // characters Windows forbids in a path segment, which is how a segment stops being a name
+    "F:\\a:b",
+    "F:\\a|b",
+    "F:\\a*b",
+    'F:\\a"b',
+    "F:\\a<b",
+    "F:\\\\x"
+  ];
+  for (const v of refused)
+    assert.match(
+      mapPayloadProblem(push("t480", T(12), { scope: [v] })) ?? "",
+      /scope contains a volume name/u,
+      `must not be called a volume: ${JSON.stringify(v)}`
+    );
+  // and what a volume really is still passes
+  for (const v of ["F:\\", "F:", "F:\\mnt\\vol", "\\\\NAS\\backups", "\\\\NAS\\backups\\vol"])
+    assert.equal(mapPayloadProblem(push("t480", T(12), { scope: [v] })), null, v);
+  // the overall length still binds independently of the shape: two segments that are each legal
+  // can still add up to more than a volume name has any business being
+  const longButLegal = `F:\\${"a".repeat(60)}\\${"b".repeat(60)}`;
+  assert.equal(longButLegal.length, 124);
+  assert.match(
+    mapPayloadProblem(push("t480", T(12), { scope: [longButLegal] })) ?? "",
+    /scope contains a volume name/u
+  );
+});
+
+test("the volume rule binds collectors and totals, not just scope", () => {
+  const viaCollector = push("t480", T(12), {
+    collectors: [
+      { name: "walker", kind: "files", volume: "\\\\NAS\\private$\\hr\\payroll.xlsx", status: "ok", rows: 1 }
+    ]
+  });
+  assert.match(mapPayloadProblem(viaCollector), /collector names a volume name/u);
+  const viaTotal = push("t480", T(12), {
+    totals: [
+      { kind: "files", collector: "walker", volume: "F:\\clients\\Acme\\contract.pdf", category: "docs", items: 1, bytes: 2 }
+    ]
+  });
+  assert.match(mapPayloadProblem(viaTotal), /total names a volume name/u);
+});
+
+test("a sweep cannot have finished in the future", () => {
+  // D3: a future timestamp wins the fold for ever, never goes stale, and silently discards every
+  // real sweep that follows. It is the one bogus value that is also well formed.
+  const now = Date.parse(T(12));
+  for (const at of ["2099-01-01T00:00:00.000Z", T(13)])
+    assert.equal(
+      mapPayloadProblem(push("t480", at), [], { now }),
+      "map finished in the future",
+      at
+    );
+  assert.equal(mapPayloadProblem(push("t480", T(12)), [], { now }), null, "now is fine");
+  // well formed to the regex, meaningless as a time: the shape check cannot catch this one either
+  assert.equal(
+    mapPayloadProblem(push("t480", "9999-99-99T99:99:99Z"), [], { now }),
+    "map field finished_at is not well formed"
+  );
+  assert.equal(
+    mapPayloadProblem(push("t480", new Date(now + 60_000).toISOString()), [], { now }),
+    null,
+    "and a minute of clock skew between nodes is normal"
+  );
+});
+
+test("a payload cannot be made arbitrarily large", () => {
+  // 50,000 scope entries of 260 characters travelled as one 13 MB payload and were accepted
+  assert.equal(
+    mapPayloadProblem(push("t480", T(12), { scope: Array(50_000).fill("F:\\") })),
+    "map scope is too long"
+  );
+  assert.equal(
+    mapPayloadProblem(
+      push("t480", T(12), {
+        collectors: Array(10_000).fill({ name: "w", kind: "files", volume: "F:\\", status: "ok", rows: 1 })
+      })
+    ),
+    "map collectors is too long"
+  );
+});
+
+test("the shared key must be a string, not merely equal to one", () => {
+  // D6: under a loose comparison ["secret"] == "secret", and a caller controls the JSON types
+  const manifest = { machine: "t480", map: push("t480", T(12)) };
+  for (const key of [["k"], { toString: () => "k" }, 0, null, undefined])
+    assert.equal(
+      register({ maps: [] }, manifest, ctx({ key })).ok,
+      false,
+      `a ${typeof key} key must not authenticate`
+    );
+});
+
 test("a rejection names the field, never the value", () => {
   const bad = push("t480", T(12));
   bad.secrets = "C:\\Users\\nsdha\\Documents\\cv.docx";
@@ -253,7 +360,11 @@ test("the payload is built by enumerating fields, so a new sweep field cannot st
     id: "01M31Y102Z4631D8992T33C1FW",
     finishedAt: T(12),
     scope: ["C:\\"],
-    collectors: [{ name: "everything", kind: "files", volume: "C:\\", status: "ok", rows: 3, note: "x" }],
+    collectors: [
+      { name: "everything", kind: "files", volume: "C:\\", status: "ok", rows: 3, note: "x" },
+      // a collector that knows a file path and no volume: the payload must not reach for it
+      { name: "walker", kind: "files", status: "ok", rows: 1, path: "C:\\Users\\nsdha\\cv.docx" }
+    ],
     counts: { files: 3, bytes: 4, listed_files: 3, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
     digest: "e".repeat(64),
     // a field somebody adds to the sweep later; it must NOT appear on the wire
@@ -262,6 +373,8 @@ test("the payload is built by enumerating fields, so a new sweep field cannot st
   const payload = buildMapPayload(sweep, { snapshot: `sha256:${"f".repeat(64)}` });
   assert.ok(!("workspacePath" in payload));
   assert.ok(!("note" in payload.collectors[0]));
+  assert.equal(payload.collectors[1].volume, null, "a collector's file path is not its volume");
+  assert.ok(!JSON.stringify(payload).includes("cv.docx"), "and it is nowhere else either");
   assert.equal(mapPayloadProblem(payload), null, "and what it does build passes the guard");
   assert.equal(payload.counts.listed_media, 0, "every count is present, defaulting to 0");
 });
