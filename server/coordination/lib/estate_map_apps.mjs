@@ -82,11 +82,15 @@ function disambiguate(rows) {
 
 // --- winget -------------------------------------------------------------------------------------
 
-// A character's width in terminal columns, which is how winget fills its fixed-width ones:
-// East Asian Width W or F is two columns, everything else is one, counted per CODE POINT.
-// That rule was measured against real winget output by claude-s11-verifier (Han, Hangul and U+FF1A
-// pad as 2; Cyrillic, U+00AE and U+2013 as 1), and it is the whole rule — a combining mark, a
-// variation selector and a ZWJ each occupy one column here, not zero.
+// How wide winget thinks a name is, which is how it fills its fixed-width columns. The rule is
+// NOT per code point: `UTF8ColumnWidth` in winget's AppInstallerStrings.cpp normalises to NFC,
+// walks GRAPHEME CLUSTERS with an ICU UBRK_CHARACTER iterator, and adds 2 or 1 per CLUSTER from
+// the East Asian Width of that cluster's FIRST code point.
+//
+// The unit is the whole point. Per code point, "e"+U+0301 measures 2 where winget prints 1, an
+// emoji ZWJ sequence measures 5 where winget prints 2, and a Devanagari or Tamil syllable measures
+// one column per mark — which refused five real msstore rows in Hindi, Bengali, Tamil, Malayalam
+// and Sinhala (S12, claude-s12-verifier's D1, who read winget's source rather than inferring it).
 //
 // The ranges below are GENERATED from the Unicode Character Database's own EastAsianWidth.txt
 // (Unicode 17.0.0, matching this Node's ICU), never hand-listed: S11 hand-wrote them, shipped an
@@ -130,15 +134,19 @@ export function isWideCodePoint(cp) {
   return false;
 }
 
-const charWidth = (ch) => (isWideCodePoint(ch.codePointAt(0)) ? 2 : 1);
-export const displayWidth = (s) => [...String(s)].reduce((w, ch) => w + charWidth(ch), 0);
+const GRAPHEMES = new Intl.Segmenter("en", { granularity: "grapheme" });
+const clusters = (s) => [...GRAPHEMES.segment(String(s))].map((g) => g.segment);
+// NFC is applied to the CLUSTER, not the line: winget normalises before measuring, but the bytes
+// it printed are the originals, so the cut has to stay on the string as it arrived.
+const charWidth = (cluster) => (isWideCodePoint(cluster.normalize("NFC").codePointAt(0)) ? 2 : 1);
+export const displayWidth = (s) => clusters(s).reduce((w, c) => w + charWidth(c), 0);
 
 // Cuts one fixed-width line at the header's display columns, or returns null when it cannot be cut
 // there: a value that overflowed its column (the column before a boundary is not blank), a
 // double-width character straddling a boundary, or a line too short to reach the Version column.
 // All three mean the row's fields cannot be trusted, and an untrustworthy row is never a guess.
 function cutColumns(line, at) {
-  const chars = [...line];
+  const chars = clusters(line); // the unit winget padded in, so the columns land where it put them
   const startAt = new Map();
   let w = 0;
   for (const [i, ch] of chars.entries()) {

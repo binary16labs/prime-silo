@@ -123,8 +123,11 @@ test("a double-width application name is read, not refused", () => {
   // " App" is 4, so 13 spaces fill the 25-column Name cell. Padding a fixture with the function
   // under test is what made S11's emoji test agree with a table that was wrong (S12, verifier N2).
   const emoji = "Focus \u{1F642} App" + " ".repeat(13) + cell("Vendor.VeryLongPackageId", 25) + cell("4.5", 15) + "winget";
-  assert.equal(displayWidth(jp), displayWidth(ascii), "the fixture pads by display width, as winget does");
-  assert.notEqual(jp.length, ascii.length, "and the code-unit lengths differ, which is the whole bug");
+  // NOT asserted: displayWidth(jp) === displayWidth(ascii). cell() pads USING displayWidth, so that
+  // comparison holds for any width table whatsoever and proves nothing (verifier D4). The rows that
+  // carry weight are the real captures below; these constructed ones only check that a padded table
+  // is cut where its header says.
+  assert.notEqual(jp.length, ascii.length, "the code-unit lengths differ, which is the whole bug");
   assert.equal(displayWidth(emoji.slice(0, emoji.indexOf("Vendor"))), 25, "the Name cell really is 25 columns wide");
 
   assert.deepEqual(parseWingetList([head, "-".repeat(70), jp, ko, emoji, ascii].join("\r\n")), [
@@ -136,18 +139,30 @@ test("a double-width application name is read, not refused", () => {
 });
 
 test("a column is measured in the widths winget actually uses", () => {
-  // EAW W or F is two columns, everything else is one, per code point — the rule claude-s11-verifier
-  // measured against real winget output. S11 asserted the opposite for three of these and was wrong.
+  // winget's UTF8ColumnWidth normalises to NFC and walks GRAPHEME CLUSTERS, adding 2 or 1 per
+  // cluster from the East Asian Width of its FIRST code point. The unit is the cluster, not the
+  // code point — S12 first shipped the latter and refused five real msstore rows for it.
   assert.equal(displayWidth("Plain"), 5);
   assert.equal(displayWidth("\u65e5\u672c\u8a9e"), 6, "each CJK character fills two columns");
   assert.equal(displayWidth("\uff9e\uff8a\uff9d\uff76\uff78"), 5, "half-width katakana fills one");
   assert.equal(displayWidth("\u{1F642}"), 2, "an emoji is EAW Wide and winget pads it as two");
-  assert.equal(displayWidth("\ufe0f"), 1, "a variation selector is not zero-width to winget");
-  assert.equal(displayWidth("\u200d"), 1, "nor is a zero-width joiner");
-  assert.equal(displayWidth("e\u0301"), 2, "nor is a combining mark: two code points, two columns");
-  // a NARROW astral character: one character of one column. Counting its surrogate pair as two
-  // characters would make this 2 and shift every field after it.
-  assert.equal(displayWidth("\u{1D400}"), 1, "a narrow astral character is one column");
+  assert.equal(displayWidth("Cafe\u0301"), 4, "a combining mark joins its base: one cluster, one column");
+  assert.equal(displayWidth("\u2764\ufe0f"), 1, "a variation selector does not widen its cluster");
+  // a mark with no base is a cluster of its own, and winget gives every cluster at least one column
+  assert.equal(displayWidth("\u0301"), 1, "a lone combining mark still occupies a column");
+  assert.equal(displayWidth("\ufe0f"), 1, "and so does a lone variation selector");
+  assert.equal(
+    displayWidth("\u{1F469}\u200d\u{1F4BB}"),
+    2,
+    "a ZWJ sequence is ONE cluster, measured by its first code point"
+  );
+  assert.equal(displayWidth("\u{1F44D}\u{1F3FD}"), 2, "and so is a skin-tone modifier");
+  assert.equal(displayWidth("\u0928\u093f"), 1, "a Devanagari syllable is one cluster, one column");
+  assert.equal(
+    displayWidth("\u4e00\u0301"),
+    2,
+    "a cluster takes the width of its FIRST code point: a wide base with a narrow mark is still 2"
+  );
 });
 
 test("the width table is the standard's, not a hand-written opinion", () => {
@@ -183,6 +198,50 @@ test("a real winget export is read, columns and all", () => {
     { name: "CeVIO AI Voice Package - \u5f26\u5dfb\u30de\u30ad(\u65e5\u672c\u8a9e)", id: "AHS.TsurumakiMakiJPN", version: "2.0.0" },
     { name: "Google \u65e5\u672c\u8a9e\u5165\u529b", id: "Google.JapaneseIME", version: "3.34.6260.0" }
   ]);
+});
+
+test("the real rows this parser once refused are read", () => {
+  // Captured verbatim from `winget search` on this machine on 2026-09-21: Hindi, Bengali, Tamil,
+  // Malayalam and Sinhala msstore titles. claude-s12-verifier found S12's first, per-code-point
+  // rule threw WINGET_MALFORMED on every one of them. They are fixtures now so it cannot recur.
+  const CAPTURED = [
+    {
+      script: "Sinhala",
+      text: "Name               Id           Version Source\r\n------------------------------------------------\r\n\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0db4\u0dd9\u0daf\u0dd9\u0dc3\u0dd2 \u0d85\u0dad\u0dca\u0daf\u0dd0\u0d9a\u0dd3\u0db8\u0dca \u0d87\u0dc3\u0dd4\u0dbb\u0dd4\u0db8 9NVF9QSLGTL0 Unknown msstore",
+      name: "\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0db4\u0dd9\u0daf\u0dd9\u0dc3\u0dd2 \u0d85\u0dad\u0dca\u0daf\u0dd0\u0d9a\u0dd3\u0db8\u0dca \u0d87\u0dc3\u0dd4\u0dbb\u0dd4\u0db8",
+      id: "9NVF9QSLGTL0"
+    },
+    {
+      script: "Tamil",
+      text: "Name                Id           Version Source\r\n-------------------------------------------------\r\n\u0ba4\u0bae\u0bbf\u0bb4\u0bcd \u0b89\u0bb3\u0bcd\u0bb3\u0bc2\u0bb0\u0bcd \u0b85\u0ba9\u0bc1\u0baa\u0bb5\u0bae\u0bcd \u0ba4\u0bca\u0b95\u0bc1\u0baa\u0bcd\u0baa\u0bc1 9PDZB1WT1B34 Unknown msstore",
+      name: "\u0ba4\u0bae\u0bbf\u0bb4\u0bcd \u0b89\u0bb3\u0bcd\u0bb3\u0bc2\u0bb0\u0bcd \u0b85\u0ba9\u0bc1\u0baa\u0bb5\u0bae\u0bcd \u0ba4\u0bca\u0b95\u0bc1\u0baa\u0bcd\u0baa\u0bc1",
+      id: "9PDZB1WT1B34"
+    },
+    {
+      script: "Malayalam",
+      text: "Name             Id           Version Source\r\n----------------------------------------------\r\n\u0d2e\u0d32\u0d2f\u0d3e\u0d33\u0d02 \u0d32\u0d4b\u0d15\u0d4d\u0d15\u0d32\u0d4d\u200d \u0d05\u0d28\u0d41\u0d2d\u0d35\u0d02 \u0d2a\u0d3e\u0d2f\u0d4d\u0d15\u0d4d\u0d15\u0d4d 9NWDTV8FFV7L Unknown msstore",
+      name: "\u0d2e\u0d32\u0d2f\u0d3e\u0d33\u0d02 \u0d32\u0d4b\u0d15\u0d4d\u0d15\u0d32\u0d4d\u200d \u0d05\u0d28\u0d41\u0d2d\u0d35\u0d02 \u0d2a\u0d3e\u0d2f\u0d4d\u0d15\u0d4d\u0d15\u0d4d",
+      id: "9NWDTV8FFV7L"
+    },
+    {
+      script: "Hindi",
+      text: "Name                           Id           Version Source\r\n------------------------------------------------------------\r\n\u0939\u093f\u0902\u0926\u0940 \u091f\u093e\u0907\u092a\u093f\u0902\u0917 \u091f\u0947\u0938\u094d\u091f - Hindi Typing Test 9MVKLP2L8KC1 Unknown msstore",
+      name: "\u0939\u093f\u0902\u0926\u0940 \u091f\u093e\u0907\u092a\u093f\u0902\u0917 \u091f\u0947\u0938\u094d\u091f - Hindi Typing Test",
+      id: "9MVKLP2L8KC1"
+    },
+    {
+      script: "Bengali",
+      text: "Name                    Id           Version Source\r\n-----------------------------------------------------\r\n\u09ac\u09be\u0982\u09b2\u09be (\u09ac\u09be\u0982\u09b2\u09be\u09a6\u09c7\u09b6) \u09b8\u09cd\u09a5\u09be\u09a8\u09c0\u09df \u0985\u09ad\u09bf\u099c\u09cd\u099e\u09a4\u09be\u09b0 \u09b8\u09ae\u09cd\u09ad\u09be\u09b0 9PH7TKVXGGM8 Unknown msstore",
+      name: "\u09ac\u09be\u0982\u09b2\u09be (\u09ac\u09be\u0982\u09b2\u09be\u09a6\u09c7\u09b6) \u09b8\u09cd\u09a5\u09be\u09a8\u09c0\u09df \u0985\u09ad\u09bf\u099c\u09cd\u099e\u09a4\u09be\u09b0 \u09b8\u09ae\u09cd\u09ad\u09be\u09b0",
+      id: "9PH7TKVXGGM8"
+    }
+  ];
+  for (const capture of CAPTURED) {
+    const rows = parseWingetList(capture.text);
+    assert.ok(rows.length >= 1, `${capture.script}: at least one row`);
+    assert.equal(rows[0].name, capture.name, `${capture.script}: the name is read whole`);
+    assert.equal(rows[0].id, capture.id, `${capture.script}: and the id lands in its column`);
+  }
 });
 
 test("a double-width character straddling a column boundary is malformed", () => {
