@@ -32,7 +32,7 @@ import crypto from "crypto";
 import { DatabaseSync } from "node:sqlite";
 import { buildManifest } from "../server/coordination/lib/estate_register.mjs";
 import { resolveRegisterKey } from "../server/coordination/lib/estate_register_key.mjs";
-import { buildMapPayload, mapPayloadProblem } from "../server/coordination/lib/estate_map_fold.mjs";
+import { buildMapPayload, withMap } from "../server/coordination/lib/estate_map_fold.mjs";
 
 const argv = process.argv.slice(2);
 const flag = (k) => argv.includes(k);
@@ -275,17 +275,10 @@ if (!key) {
 
 async function announce() {
   const manifest = buildManifest(MACHINE, localSessions().sessions, []);
-  const map = latestMapPush();
-  if (map) {
-    const problem = mapPayloadProblem(map);
-    if (problem) {
-      // the same guard the hub applies, applied here first: refuse to send rather than be refused
-      console.error(`ABORT: map payload refused at this edge — ${problem}`);
-      return false;
-    }
-    manifest.map = map;
-  }
-  const r = await register(hub, key, manifest);
+  const { manifest: outbound, problem } = withMap(manifest, latestMapPush());
+  const map = outbound.map ?? null;
+  if (problem) console.error(`map NOT pushed — ${problem}; registering sessions anyway`);
+  const r = await register(hub, key, outbound);
   if (!r.ok) {
     console.error(`register REFUSED (${r.status}): ${r.body?.reason || "unknown"}`);
     return false;

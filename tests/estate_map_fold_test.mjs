@@ -13,6 +13,7 @@ import {
   machineView,
   mapPayloadProblem,
   parseQuarantinePolicy,
+  withMap,
   readQuarantinePolicy
 } from "../server/coordination/lib/estate_map_fold.mjs";
 import { register } from "../server/coordination/lib/estate_register.mjs";
@@ -304,6 +305,48 @@ test("a volume must look like a volume, not merely be short", () => {
     "\\\\NAS\\private$",
     "\\\\NAS\\backups\\vol"
   ])
+    assert.equal(mapPayloadProblem(push("t480", T(12), { scope: [v] })), null, v);
+});
+
+test("a map a node cannot send does not cost it its sessions", () => {
+  // F3: the agent used to abort its WHOLE announce when its own map was refused, so a bad payload
+  // took the session manifest down with it — the opposite of the rule the hub keeps on its side.
+  // The decision lives in the library now, because a decision inside a script with top-level side
+  // effects can only be asserted about as text, and text assertions are what this contract's
+  // findings were all made of.
+  const manifest = { machine: "t480", at: 1, sessions: [{ sid: "s1", contentHash: "h" }] };
+  const bad = push("t480", T(12), { scope: ["F:\\clients\\Acme\\contract.pdf"] });
+  const refused = withMap(manifest, bad);
+  assert.equal(refused.manifest, manifest, "the manifest is untouched");
+  assert.ok(!("map" in refused.manifest), "no map rides along");
+  assert.equal(refused.manifest.sessions.length, 1, "and the sessions are still there to register");
+  assert.match(refused.problem, /volume name/u, "with the reason reported");
+
+  const good = withMap(manifest, push("t480", T(12)));
+  assert.equal(good.problem, null);
+  assert.deepEqual(good.manifest.sessions, manifest.sessions);
+  assert.ok(good.manifest.map, "a sendable map is attached");
+
+  const none = withMap(manifest, null);
+  assert.equal(none.problem, null, "no map at all is not a problem");
+  assert.equal(none.manifest, manifest);
+
+  // and the node judges with the hub's rules when it is given them
+  assert.match(withMap(manifest, push("t480", T(12)), [/^F:/u]).problem ?? "", /quarantined/u);
+});
+
+test("the segment allowlist admits the characters it names, and only those", () => {
+  // F2 of the third verification: /iu/ folds U+017F to s and U+212A to k, so a rule whose comment
+  // said "ASCII only" took two characters that are not. No path could hide in them, but they would
+  // give one volume two keys, and a hub rule written as the string "users" would miss one of them.
+  for (const v of ["F:\\u\u017Fers", "F:\\\u212Aelvin", "F:\\\u017F", "\\\\NA\u017F\\backups"])
+    assert.match(
+      mapPayloadProblem(push("t480", T(12), { scope: [v] })) ?? "",
+      /volume name/u,
+      `must not be admitted: ${JSON.stringify(v)}`
+    );
+  // the ASCII spellings they fold to are of course fine
+  for (const v of ["F:\\users", "F:\\Kelvin", "\\\\NAS\\backups"])
     assert.equal(mapPayloadProblem(push("t480", T(12), { scope: [v] })), null, v);
 });
 
