@@ -23,6 +23,17 @@ if (!/mapPayloadProblem/u.test(agent)) {
   process.exit(1);
 }
 
+// The PRODUCT wiring, not the tests' wiring. The tests build the estate API directly and pass a
+// policy, so they cannot see that server/app.js passed none — which is how the quarantine guard
+// shipped as dead code (claude-s3-verifier's D2). This assertion is the only thing that looks.
+const appJs = fs.readFileSync(path.join(ROOT, "server/app.js"), "utf8");
+const wiring = appJs.slice(appJs.indexOf("createEstateApi({"));
+for (const option of ["quarantine:", "mapMaxAgeMs:"])
+  if (!wiring.slice(0, wiring.indexOf("})")).includes(option)) {
+    console.error(`[s3] FAIL: server/app.js builds the estate API without ${option}`);
+    process.exit(1);
+  }
+
 const t = spawnSync(process.execPath, ["--test", "tests/estate_map_fold_test.mjs"], {
   cwd: ROOT,
   stdio: "inherit"

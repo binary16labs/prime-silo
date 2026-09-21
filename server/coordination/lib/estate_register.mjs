@@ -43,7 +43,7 @@ export function isLanOrigin(addr = "") {
 // state (never mutates hubState) or a rejection { ok:false, reason, state:<unchanged> }.
 // ctx = { key, expectedKey, remoteAddress, hubHashes, quarantine }
 export function register(hubState = {}, manifest = {}, ctx = {}) {
-  const { key, expectedKey, remoteAddress = "127.0.0.1", hubHashes = [], quarantine = [] } = ctx;
+  const { key, expectedKey, remoteAddress = "127.0.0.1", hubHashes = [], quarantine } = ctx;
   // typed, not just compared: with a loose comparison an array key ["secret"] authenticates, and
   // a caller who controls the JSON body controls the type (claude-s3-verifier's D6)
   if (typeof expectedKey !== "string" || !expectedKey || typeof key !== "string" || key !== expectedKey)
@@ -57,6 +57,12 @@ export function register(hubState = {}, manifest = {}, ctx = {}) {
   // in estate_map_fold.mjs — counts, statuses, category labels, volume names and hashes only — and
   // against the HUB's own quarantine rules, so a node cannot name a volume the hub calls private.
   // A refused map refuses the WHOLE push: a payload we do not understand records nothing at all.
+  // FAIL CLOSED. A hub that has not been told what is private accepts no estate map. An explicit
+  // empty list IS a policy; an absent one is not. Wiring the rules was not enough on its own — a
+  // forgotten policy file would put the guard back to inert in silence, which is exactly how it
+  // shipped the first time (claude-s3-verifier's D2). Session registration is untouched.
+  if (manifest.map !== undefined && !Array.isArray(quarantine))
+    return { ok: false, reason: "hub has no quarantine policy — map refused (R31)", state: hubState };
   const mapProblem = manifest.map === undefined ? null : mapPayloadProblem(manifest.map, quarantine);
   if (mapProblem) return { ok: false, reason: `${mapProblem} (R31)`, state: hubState };
   if (manifest.map && manifest.map.machine !== manifest.machine)
@@ -67,7 +73,7 @@ export function register(hubState = {}, manifest = {}, ctx = {}) {
     contentHash: s.contentHash,
     quarantined: s.quarantined
   }));
-  const drift = driftDelta(hubHashes, satSessions, quarantine); // reuse the N4 engine
+  const drift = driftDelta(hubHashes, satSessions, quarantine ?? []); // reuse the N4 engine
   const state = {
     ...hubState,
     satellites: {

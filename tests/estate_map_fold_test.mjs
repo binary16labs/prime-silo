@@ -119,6 +119,9 @@ const ctx = (over = {}) => ({
   expectedKey: "k",
   remoteAddress: "192.168.0.108",
   hubHashes: [],
+  // an EXPLICIT empty policy: the hub has been told what is private and the answer is "nothing".
+  // Leaving this out is a hub with no policy at all, which refuses maps — see the test below.
+  quarantine: [],
   ...over
 });
 
@@ -159,6 +162,32 @@ test("a volume name is bounded, so a path cannot hide in one", () => {
   assert.match(mapPayloadProblem(empty), /scope contains a volume name/u);
   const notText = push("t480", T(12), { scope: [{ path: "C:\\secret" }] });
   assert.match(mapPayloadProblem(notText), /scope contains a volume name/u);
+});
+
+test("a hub with no privacy policy accepts no map", () => {
+  // D2: the rules were never wired in the product, so every quarantine branch was dead code while
+  // the comment claimed otherwise. Wiring alone would not hold — a forgotten policy file puts the
+  // guard straight back to inert. So no policy means no map. An empty list IS a policy.
+  const manifest = { machine: "t480", sessions: [], map: push("t480", T(12)) };
+  for (const quarantine of [undefined, null, "cv", { rules: [] }]) {
+    const r = register({ satellites: {}, maps: [] }, manifest, ctx({ quarantine }));
+    assert.equal(r.ok, false, `a ${typeof quarantine} policy is not a policy`);
+    assert.match(r.reason, /no quarantine policy/u);
+    assert.deepEqual(r.state.maps, [], "and nothing is recorded");
+  }
+  assert.equal(register({ maps: [] }, manifest, ctx({ quarantine: [] })).ok, true, "an empty list is");
+});
+
+test("a hub with no policy still registers sessions", () => {
+  // N7 is untouched by the map's stricter rule: a hub that cannot accept a map is not a hub that
+  // has stopped working.
+  const r = register(
+    { satellites: {}, maps: [] },
+    { machine: "t480", sessions: [{ sid: "s1", contentHash: "h" }] },
+    ctx({ quarantine: undefined })
+  );
+  assert.equal(r.ok, true);
+  assert.equal(r.state.satellites.t480.sessionCount, 1);
 });
 
 test("a volume must look like a volume, not merely be short", () => {
@@ -424,7 +453,7 @@ const call = (port, path, body) =>
   });
 
 test("a pushed map is served at /api/estate/map and per machine", async (t) => {
-  const port = await serve(t, { registerKey: "k", mapMaxAgeMs: 30 * 60_000 });
+  const port = await serve(t, { registerKey: "k", quarantine: [], mapMaxAgeMs: 30 * 60_000 });
   const pushed = await call(port, "/api/estate/register", {
     key: "k",
     manifest: { machine: "t480", map: push("t480", new Date().toISOString()) }
