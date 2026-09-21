@@ -14,6 +14,7 @@ import {
   capture,
   displayWidth,
   isLoopback,
+  isWideCodePoint,
   normalizeName,
   parseWingetList,
   reconcile,
@@ -118,29 +119,70 @@ test("a double-width application name is read, not refused", () => {
   const jp = cell("日本語アプリ", 25) + cell("Vendor.JpApp", 25) + cell("2.0.0", 15) + "winget";
   const ko = cell("한글 프로그램", 25) + cell("Vendor.KoApp", 25) + cell("1.2.3", 15) + "winget";
   const ascii = cell("Plain App", 25) + cell("Vendor.Plain", 25) + cell("9.9", 15) + "winget";
-  // an astral character is ONE character of width 1. Two of them, with an Id that all but fills its
-  // column: counting each surrogate pair as two columns shifts the Id cell past its own padding and
-  // truncates it, which trim() cannot hide.
-  const emoji =
-    cell("Focus \u{1F642}\u{1F680} App", 25) + cell("Vendor.VeryLongPackageId", 25) + cell("4.5", 15) + "winget";
+  // Padded by HAND to the EAW rule, never by displayWidth: "Focus " is 6 columns, the emoji is 2,
+  // " App" is 4, so 13 spaces fill the 25-column Name cell. Padding a fixture with the function
+  // under test is what made S11's emoji test agree with a table that was wrong (S12, verifier N2).
+  const emoji = "Focus \u{1F642} App" + " ".repeat(13) + cell("Vendor.VeryLongPackageId", 25) + cell("4.5", 15) + "winget";
   assert.equal(displayWidth(jp), displayWidth(ascii), "the fixture pads by display width, as winget does");
   assert.notEqual(jp.length, ascii.length, "and the code-unit lengths differ, which is the whole bug");
-  assert.notEqual(emoji.length, displayWidth(emoji), "the emoji row is a surrogate pair too");
+  assert.equal(displayWidth(emoji.slice(0, emoji.indexOf("Vendor"))), 25, "the Name cell really is 25 columns wide");
 
   assert.deepEqual(parseWingetList([head, "-".repeat(70), jp, ko, emoji, ascii].join("\r\n")), [
     { name: "日本語アプリ", id: "Vendor.JpApp", version: "2.0.0" },
     { name: "한글 프로그램", id: "Vendor.KoApp", version: "1.2.3" },
-    { name: "Focus \u{1F642}\u{1F680} App", id: "Vendor.VeryLongPackageId", version: "4.5" },
+    { name: "Focus \u{1F642} App", id: "Vendor.VeryLongPackageId", version: "4.5" },
     { name: "Plain App", id: "Vendor.Plain", version: "9.9" }
   ]);
 });
 
 test("a column is measured in the widths winget actually uses", () => {
+  // EAW W or F is two columns, everything else is one, per code point — the rule claude-s11-verifier
+  // measured against real winget output. S11 asserted the opposite for three of these and was wrong.
   assert.equal(displayWidth("Plain"), 5);
-  assert.equal(displayWidth("日本語"), 6, "each CJK character fills two columns");
-  assert.equal(displayWidth("ﾊﾝｶｸ"), 4, "half-width katakana fills one");
-  assert.equal(displayWidth("e\u0301"), 1, "a combining mark fills none");
-  assert.equal(displayWidth("🙂"), 1, "an astral pair is one character, not two");
+  assert.equal(displayWidth("\u65e5\u672c\u8a9e"), 6, "each CJK character fills two columns");
+  assert.equal(displayWidth("\uff9e\uff8a\uff9d\uff76\uff78"), 5, "half-width katakana fills one");
+  assert.equal(displayWidth("\u{1F642}"), 2, "an emoji is EAW Wide and winget pads it as two");
+  assert.equal(displayWidth("\ufe0f"), 1, "a variation selector is not zero-width to winget");
+  assert.equal(displayWidth("\u200d"), 1, "nor is a zero-width joiner");
+  assert.equal(displayWidth("e\u0301"), 2, "nor is a combining mark: two code points, two columns");
+  // a NARROW astral character: one character of one column. Counting its surrogate pair as two
+  // characters would make this 2 and shift every field after it.
+  assert.equal(displayWidth("\u{1D400}"), 1, "a narrow astral character is one column");
+});
+
+test("the width table is the standard's, not a hand-written opinion", () => {
+  // the blocks a reviewer of S11 proposed by eye. Hangul Jamo Extended-A is W; Extended-B is N,
+  // so adding both by hand — as suggested — would have shipped a new wrong answer.
+  assert.equal(isWideCodePoint(0xa960), true, "Hangul Jamo Extended-A is Wide");
+  assert.equal(isWideCodePoint(0xd7b0), false, "Hangul Jamo Extended-B is Narrow");
+  assert.equal(isWideCodePoint(0x17000), true, "Tangut is Wide");
+  assert.equal(isWideCodePoint(0x1f680), true, "so is the rocket");
+  assert.equal(isWideCodePoint(0x20000), true, "and the CJK ideographs on plane 2");
+  assert.equal(isWideCodePoint(0x3fffd), true, "up to the last code point of the last range");
+  assert.equal(isWideCodePoint(0xa97c), true, "a range's final code point is inside it, not past it");
+  for (const cp of [0x41, 0x430, 0xae, 0x2013, 0xff61])
+    assert.equal(isWideCodePoint(cp), false, `U+${cp.toString(16)} is not wide`);
+});
+
+test("a real winget export is read, columns and all", () => {
+  // Captured verbatim from `winget search --query <japanese>` on this machine on 2026-09-21. It is
+  // real winget padding, not ours: if the width rule is wrong these rows do not line up and the
+  // source fails. This is the fixture S11 should have had.
+  const CAPTURED = [
+    "Name                                      Id                   Version     Source",
+    "-----------------------------------------------------------------------------------",
+    "\u65e5\u672c\u8a9e \u30ed\u30fc\u30ab\u30eb \u30a8\u30af\u30b9\u30da\u30ea\u30a8\u30f3\u30b9 \u30d1\u30c3\u30af   9N1W692FV4S1         Unknown     msstore",
+    "CeVIO AI Voice Package - \u5f26\u5dfb\u30de\u30ad(\u65e5\u672c\u8a9e) AHS.TsurumakiMakiJPN 2.0.0       winget",
+    "Google \u65e5\u672c\u8a9e\u5165\u529b                         Google.JapaneseIME   3.34.6260.0 winget"
+  ].join("\r\n");
+  const head = CAPTURED.split("\r\n")[0];
+  for (const row of CAPTURED.split("\r\n").slice(2))
+    assert.ok(displayWidth(row) >= displayWidth(head) - 2, "every captured row fills the header's columns");
+  assert.deepEqual(parseWingetList(CAPTURED), [
+    { name: "\u65e5\u672c\u8a9e \u30ed\u30fc\u30ab\u30eb \u30a8\u30af\u30b9\u30da\u30ea\u30a8\u30f3\u30b9 \u30d1\u30c3\u30af", id: "9N1W692FV4S1", version: "Unknown" },
+    { name: "CeVIO AI Voice Package - \u5f26\u5dfb\u30de\u30ad(\u65e5\u672c\u8a9e)", id: "AHS.TsurumakiMakiJPN", version: "2.0.0" },
+    { name: "Google \u65e5\u672c\u8a9e\u5165\u529b", id: "Google.JapaneseIME", version: "3.34.6260.0" }
+  ]);
 });
 
 test("a double-width character straddling a column boundary is malformed", () => {

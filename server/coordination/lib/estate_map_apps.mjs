@@ -82,13 +82,55 @@ function disambiguate(rows) {
 
 // --- winget -------------------------------------------------------------------------------------
 
-// A character's width in terminal columns. winget pads its columns by DISPLAY width, so a CJK,
-// Hangul or full-width character fills two of them while a combining mark fills none. Measuring in
-// UTF-16 code units instead ends a wide name's column early and refuses the row, which cost a node
-// with any such application its ENTIRE winget inventory, every sweep (S11, after S2's N1).
-const WIDE = /^[\u1100-\u115f\u2e80-\u303e\u3041-\u33ff\u3400-\u4dbf\u4e00-\u9fff\ua000-\ua4cf\uac00-\ud7a3\uf900-\ufaff\ufe10-\ufe19\ufe30-\ufe6f\uff00-\uff60\uffe0-\uffe6]$|^[\u{20000}-\u{3fffd}]$/u;
-const ZERO = /^\p{Mn}$|^\p{Me}$|^\p{Cf}$/u;
-const charWidth = (ch) => (ZERO.test(ch) ? 0 : WIDE.test(ch) ? 2 : 1);
+// A character's width in terminal columns, which is how winget fills its fixed-width ones:
+// East Asian Width W or F is two columns, everything else is one, counted per CODE POINT.
+// That rule was measured against real winget output by claude-s11-verifier (Han, Hangul and U+FF1A
+// pad as 2; Cyrillic, U+00AE and U+2013 as 1), and it is the whole rule — a combining mark, a
+// variation selector and a ZWJ each occupy one column here, not zero.
+//
+// The ranges below are GENERATED from the Unicode Character Database's own EastAsianWidth.txt
+// (Unicode 17.0.0, matching this Node's ICU), never hand-listed: S11 hand-wrote them, shipped an
+// emoji as narrow when the standard has said W since Unicode 9, and a reviewer reading the same
+// list proposed adding Hangul Jamo Extended-B, which the standard classes N. A hand-kept table
+// drifts silently and is only ever corrected one missing block at a time (S12).
+//
+// Encoding: space-separated "<gap>.<span>" pairs in base 36, gap measured from the previous
+// range's last code point, span being the range's length. 293 declared ranges merge to 123.
+const EAW_WIDE =
+  "3cw.2n 3i2.1 d.1 5a.3 3.0 2.0 eh.1 l.1 q.7 g.b 17.0 a.5 3.0 d.0 8.1 h.1 5.1 8.0 5.0 l.0 7.1 " +
+  "1.0 4.0 2.0 7.0 4.1 s.0 z.0 1.0 4.2 1.0 1p.2 o.0 e.0 nv.1 1f.0 4.0 mi.p 1.2g c.5x q.26 2.2d " +
+  "2.2u 5.16 1.2l 1.2d 9.1b 1.13 8.mkc 3.1i wp.s hv.8mb 6l8.e7 ls.9 m.y 1.i 1.3 45.2n 3j.6 m49.4 " +
+  "b.6 9.5p1 15.v 2p.36 6pp.3 1.6 1.1 1.82 f.0 t.2 2.0 e.3 8.az 6bo.2e 9.m 5n1.0 5m.0 5a.0 2.9 " +
+  "2t.2 d.17 4.8 7.1 e.5 4a.w c.8 1.1x 1.l c.16 4.4 c.g 3.0 3.1y 1.0 1.56 2.1q d.3 1.n i.0 q.1 " +
+  "d.0 2e.2c 1c.1x 6.0 3.2 2.3 3.3 b.1 7.8 6b.b 4.0 7v.1a 1.9 1.54 34.c 3.a 3.1k 1.0 4.f 2.b 4.9 " +
+  "zr.1ekd 2.1ekd ";
+
+// Decoded once, as a flat [lo, hi, lo, hi, …] for a binary search.
+const WIDE_RANGES = (() => {
+  const out = [];
+  let at = -1;
+  for (const pair of EAW_WIDE.trim().split(" ")) {
+    const dot = pair.indexOf(".");
+    const lo = at + parseInt(pair.slice(0, dot), 36) + 1;
+    at = lo + parseInt(pair.slice(dot + 1), 36);
+    out.push(lo, at);
+  }
+  return out;
+})();
+
+export function isWideCodePoint(cp) {
+  let lo = 0;
+  let hi = WIDE_RANGES.length / 2 - 1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (cp < WIDE_RANGES[mid * 2]) hi = mid - 1;
+    else if (cp > WIDE_RANGES[mid * 2 + 1]) lo = mid + 1;
+    else return true;
+  }
+  return false;
+}
+
+const charWidth = (ch) => (isWideCodePoint(ch.codePointAt(0)) ? 2 : 1);
 export const displayWidth = (s) => [...String(s)].reduce((w, ch) => w + charWidth(ch), 0);
 
 // Cuts one fixed-width line at the header's display columns, or returns null when it cannot be cut
