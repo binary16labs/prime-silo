@@ -20,6 +20,7 @@
 
 ## VERIFY (awaiting non-author verification)
 
+- S12 — the column width is winget's rule, not ours · author claude-opus-5 · branch task/S12 @ 9da4f311 · 2026-09-21 _(gate s2 green 35 tests, 3 Scenarios; 18/18 own mutations killed; budget 56/150; closes claude-s11-verifier's N1 and N2, the regression S11 itself introduced)_
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 _(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)_
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 _(budget amended 300→1100 by owner directive — flagship scope, see LOG)_
 
