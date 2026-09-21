@@ -29,8 +29,10 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import crypto from "crypto";
+import { DatabaseSync } from "node:sqlite";
 import { buildManifest } from "../server/coordination/lib/estate_register.mjs";
 import { resolveRegisterKey } from "../server/coordination/lib/estate_register_key.mjs";
+import { buildMapPayload, mapPayloadProblem } from "../server/coordination/lib/estate_map_fold.mjs";
 
 const argv = process.argv.slice(2);
 const flag = (k) => argv.includes(k);
@@ -161,6 +163,58 @@ async function discover() {
   return null;
 }
 
+// ── the estate map (S3) ───────────────────────────────────────────────────
+// This node's LATEST sweep, read read-only from its own map index — the row S0 wrote when the
+// sweep committed, so a push can never claim a sweep that did not happen. Counts, statuses,
+// category labels, volume names and hashes only. The payload is judged by the very guard the hub
+// judges it with, HERE, at the outbound edge: a bad payload fails on this machine rather than
+// travelling and being refused, which is the R31 assertion the session manifest already does.
+const MAP_DB = opt("--map-db", path.join(HOME, "estate", `estate-map-${MACHINE}.db`));
+
+function latestMapPush() {
+  if (!fs.existsSync(MAP_DB)) return null;
+  let conn = null;
+  try {
+    conn = new DatabaseSync(MAP_DB, { readOnly: true });
+    const sweep = conn
+      .prepare(
+        "SELECT id, machine, finished_at, scope, collectors, counts, digest, snapshot FROM sweeps" +
+          " WHERE finished_at IS NOT NULL ORDER BY finished_at DESC, id DESC LIMIT 1"
+      )
+      .get();
+    if (!sweep) return null;
+    const totals = conn
+      .prepare(
+        "SELECT kind, collector, volume, category, items, bytes FROM totals WHERE sweep_id = ?"
+      )
+      .all(sweep.id)
+      .map((r) => ({ ...r }));
+    const json = (v, d) => {
+      try {
+        return JSON.parse(v);
+      } catch {
+        return d;
+      }
+    };
+    return buildMapPayload(
+      {
+        machine: sweep.machine,
+        id: sweep.id,
+        finishedAt: sweep.finished_at,
+        scope: json(sweep.scope, []),
+        collectors: json(sweep.collectors, []),
+        counts: json(sweep.counts, {}),
+        digest: sweep.digest
+      },
+      { snapshot: sweep.snapshot, totals }
+    );
+  } catch {
+    return null; // an unreadable index sends no map; it never sends a guessed one
+  } finally {
+    conn?.close();
+  }
+}
+
 // ── register ──────────────────────────────────────────────────────────────
 async function register(hub, key, manifest) {
   const res = await fetch(`${hub}/api/estate/register`, {
@@ -220,7 +274,18 @@ if (!key) {
 }
 
 async function announce() {
-  const r = await register(hub, key, buildManifest(MACHINE, localSessions().sessions, []));
+  const manifest = buildManifest(MACHINE, localSessions().sessions, []);
+  const map = latestMapPush();
+  if (map) {
+    const problem = mapPayloadProblem(map);
+    if (problem) {
+      // the same guard the hub applies, applied here first: refuse to send rather than be refused
+      console.error(`ABORT: map payload refused at this edge — ${problem}`);
+      return false;
+    }
+    manifest.map = map;
+  }
+  const r = await register(hub, key, manifest);
   if (!r.ok) {
     console.error(`register REFUSED (${r.status}): ${r.body?.reason || "unknown"}`);
     return false;
@@ -228,6 +293,11 @@ async function announce() {
   const d = r.body.drift || {};
   console.log(
     `registered with ${hub} — hub sees ${d.cleanCount ?? "?"} new, ${d.overlap ?? "?"} already held, ${d.quarantined?.count ?? 0} quarantined (withheld)`
+  );
+  console.log(
+    map
+      ? `  map pushed          sweep ${map.sweep_id} of ${map.finished_at}: ${map.scope.length} volumes, ${map.counts.listed_files} files, ${map.counts.listed_apps} apps (counts + hashes only)`
+      : `  map                 none pushed (no sweep recorded in ${MAP_DB})`
   );
   return true;
 }

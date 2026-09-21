@@ -6,6 +6,7 @@
 // Spec: architecture/SOLUTION-estate.md §8.4. Privacy (R31): only hashes cross the wire.
 import crypto from "node:crypto";
 import { driftDelta } from "./estate_drift.mjs";
+import { mapPayloadProblem } from "./estate_map_fold.mjs";
 
 const hash = (s) => "sha256:" + crypto.createHash("sha256").update(String(s)).digest("hex");
 
@@ -50,6 +51,14 @@ export function register(hubState = {}, manifest = {}, ctx = {}) {
   // R31 at the boundary: a manifest must carry hashes + flags only — reject any smuggled payload.
   if ((manifest.sessions || []).some((s) => "content" in s || "text" in s))
     return { ok: false, reason: "manifest carried payload — rejected (R31)", state: hubState };
+  // The estate map rides the same authenticated, LAN-gated push (S3). It is judged by an ALLOWLIST
+  // in estate_map_fold.mjs — counts, statuses, category labels, volume names and hashes only — and
+  // against the HUB's own quarantine rules, so a node cannot name a volume the hub calls private.
+  // A refused map refuses the WHOLE push: a payload we do not understand records nothing at all.
+  const mapProblem = manifest.map === undefined ? null : mapPayloadProblem(manifest.map, quarantine);
+  if (mapProblem) return { ok: false, reason: `${mapProblem} (R31)`, state: hubState };
+  if (manifest.map && manifest.map.machine !== manifest.machine)
+    return { ok: false, reason: "map is for another machine", state: hubState };
 
   const satSessions = (manifest.sessions || []).map((s) => ({
     sid: s.sid,
@@ -67,7 +76,12 @@ export function register(hubState = {}, manifest = {}, ctx = {}) {
         sessionCount: satSessions.length,
         drift
       }
-    }
+    },
+    // Pushes are KEPT, not replaced: the fold decides which sweep wins, so a late older push can
+    // never silently become the machine's map just by arriving last.
+    maps: manifest.map
+      ? [...(hubState.maps || []), manifest.map]
+      : hubState.maps || []
   };
   return { ok: true, state, drift };
 }

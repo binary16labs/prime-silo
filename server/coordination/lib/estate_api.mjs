@@ -9,6 +9,7 @@ import { buildEstate } from "./estate.mjs";
 import { proposeSync, applySync } from "./estate_govern.mjs";
 import { planNextCycle, readPlanInputs } from "./estate_plan.mjs";
 import { register as registerSatellite } from "./estate_register.mjs";
+import { foldEstateMap, machineView } from "./estate_map_fold.mjs";
 
 const PREFIX = "/api/estate";
 const EMPTY = { machines: {}, drives: {}, sessions: {}, snapshots: {} };
@@ -137,10 +138,12 @@ export function createEstateApi({
   statusFile = null,
   planThinRate = 0.25,
   registerKey = null,
+  quarantine = [],
+  mapMaxAgeMs = 1_800_000,
   prefix = PREFIX
 } = {}) {
   // In-memory satellite reachability (last-seen + live drift), updated by POST /register (N7).
-  let satelliteState = { satellites: {} };
+  let satelliteState = { satellites: {}, maps: [] };
   function handle(req, res, rest) {
     // GET /api/estate — the whole estate model (machines, drives, sessions, snapshots) + a summary.
     if (req.method === "GET" && (rest === "/" || rest === "")) {
@@ -190,7 +193,8 @@ export function createEstateApi({
           key: b.key,
           expectedKey: registerKey,
           remoteAddress,
-          hubHashes
+          hubHashes,
+          quarantine
         });
         if (r.ok) {
           satelliteState = r.state;
@@ -209,6 +213,23 @@ export function createEstateApi({
     // GET /api/estate/satellites — current live reachability + drift per satellite (N7).
     if (req.method === "GET" && rest === "/satellites") {
       return sendJson(res, 200, satelliteState.satellites || {});
+    }
+
+    // GET /api/estate/map — every node's latest sweep folded into one estate map (S3). A machine
+    // that has stopped pushing is stale SINCE a time, with its last map intact, never empty (§7).
+    if (req.method === "GET" && rest === "/map") {
+      return sendJson(res, 200, foldEstateMap(satelliteState.maps || [], { maxAgeMs: mapMaxAgeMs }));
+    }
+
+    // GET /api/estate/map/:machine — that machine's volumes and biggest categories. A machine the
+    // hub has never heard from is 404, not an empty map: absence of a push is not absence of files.
+    const mapMachine = rest.match(/^\/map\/([^/]+)$/u);
+    if (req.method === "GET" && mapMachine) {
+      const fold = foldEstateMap(satelliteState.maps || [], { maxAgeMs: mapMaxAgeMs });
+      const view = machineView(fold, decodeURIComponent(mapMachine[1]));
+      return view
+        ? sendJson(res, 200, view)
+        : sendJson(res, 404, { error: "no map pushed for that machine" });
     }
 
     // GET /api/estate/board — the delivery board folded into a lane summary (N3 tie-in).
