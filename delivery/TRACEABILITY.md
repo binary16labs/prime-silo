@@ -12,7 +12,7 @@
 | O1    | KR1.4               | EP-A             | M1        | A6                                                   |
 | O1    | knowledge-quality   | EP-A             | M2        | A7                                                   |
 | O1    | KR1.5               | EP-T             | M3        | T0 T1 T2 T3 T4 T5                                    |
-| O1    | KR1.6               | EP-M             | M9        | P0 P1 P2 P3 P4 P5 P6                                 |
+| O1    | KR1.6               | EP-M             | M9        | P0 P1 P2 P3 P4 P5 P6 P7                                |
 | O2    | KR2.1               | EP-B             | M1        | B0 B1 B2 B3                                          |
 | O2    | KR2.2               | EP-G             | M1        | G0 G1 G2                                             |
 | O2    | KR2.2               | EP-B             | M9        | B4 B5                                                |
@@ -36,4 +36,4 @@
 | O1+O2 | flywheel-loop       | EP-L             | M6        | L10 L11 L12 L13 L14                                  |
 | O2    | estate-governance   | EP-N             | M7        | N0 N1 N2 N3                                          |
 | O2+O1 | estate-cockpit      | EP-N             | M8        | N4 N5 N6 N7                                          |
-| O2    | estate-map          | EP-S             | M10       | S0 S1 S2 S3 S4 S5 S6 S7 S8 S9 S10                           |
+| O2    | estate-map          | EP-S             | M10       | S0 S1 S2 S3 S4 S5 S6 S7 S8 S9 S10 S11                         |
