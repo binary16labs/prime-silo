@@ -51,14 +51,27 @@ const COUNT_KEYS = [
 // The hub's quarantine rules are the second layer, and they must be wired for that layer to exist.
 const VOLUME_MAX = 120;
 const VOLUME_DEPTH = 2;
-// control characters, NUL, percent-encoding and the fullwidth/alternate separators that let a path
-// wear a different face than the one the guard reads
-const VOLUME_UNSAFE = /[\u0000-\u001f\u007f%\u2044\u2215\u29f5\uff0f\uff3c]/u;
-const VOLUME_ROOT = /^(?:[a-z]:|\\\\[^\\/:*?"<>|]{1,63}\\[^\\/:*?"<>|]{1,63})$/iu;
-const VOLUME_SEGMENT = /^[^\\/:*?"<>|][^\\/:*?"<>|]{0,63}$/u;
-// a volume is not a file: a trailing extension is the clearest signal that this is neither a drive
-// nor a mount point but something somebody wanted the hub to store
-const VOLUME_LOOKS_LIKE_A_FILE = /\.[a-z0-9]{1,8}$/iu;
+// A drive letter, or a UNC host and share. Both are ALLOWLISTED character by character for the same
+// reason the segments below are.
+const VOLUME_ROOT = /^(?:[a-z]:|\\\\[a-z0-9][a-z0-9._-]{0,62}\\[a-z0-9][a-z0-9 _$-]{0,62})$/iu;
+// WHAT A SEGMENT MAY CONTAIN, as an allowlist. The first attempt denied the characters that looked
+// dangerous and asked whether the last segment "looked like a file". Neither could hold
+// (claude-s3-verifier-2's E1): a trailing space or dot made "contract.pdf " a different string and
+// the same file to Windows; an extension over eight characters missed; a file name in a
+// non-final segment was never examined; and U+2216, U+FE68 and U+29F9 carried a whole multi-level
+// path inside one "legal" segment. A denylist of disguises loses to the next disguise.
+//
+// So: letters, digits, space, underscore and hyphen, starting and ending with a letter or digit.
+// No dot, so no extension can be formed at all; no trailing space or dot, so no two spellings of
+// one name; no non-ASCII, so no homoglyph separator.
+const VOLUME_SEGMENT = /^[a-z0-9](?:[a-z0-9 _-]{0,62}[a-z0-9])?$/iu;
+
+// WHAT THIS GUARANTEES, exactly — the last version's comment claimed more than its code did, which
+// is the same fault as the one it was fixing. A path to a FILE cannot pass: a file name needs a dot
+// or a character this allowlist excludes, and depth is capped at two segments below the root.
+// WHAT IT DOES NOT GUARANTEE: a folder-mounted volume and an ordinary folder are the same shape, so
+// "F:\\Users\\id_rsa" is still a well-formed volume name and only the hub's quarantine rules can
+// refuse it. That is why the map fails closed without a policy.
 // bounded arrays: 50,000 scope entries of 260 characters travelled as one 13 MB payload
 const MAX_SCOPE = 64;
 const MAX_COLLECTORS = 256;
@@ -81,7 +94,6 @@ function quarantined(value, rules) {
 const volumeProblem = (v, rules) => {
   const s = text(v);
   if (s === null || s === "" || s.length > VOLUME_MAX) return "volume name";
-  if (VOLUME_UNSAFE.test(s)) return "volume name";
   const parts = s.replace(/\\+$/u, "").split("\\");
   // a UNC root is "\\\\host\\share", which splits into four parts with two empty leading ones
   const rootParts = s.startsWith("\\\\") ? 4 : 1;
@@ -89,8 +101,8 @@ const volumeProblem = (v, rules) => {
   const rest = parts.slice(rootParts);
   if (!VOLUME_ROOT.test(root)) return "volume name";
   if (rest.length > VOLUME_DEPTH) return "volume name";
+  // EVERY segment, not just the last: a file name in the middle of a path is still a file name
   if (rest.some((seg) => !VOLUME_SEGMENT.test(seg))) return "volume name";
-  if (rest.length && VOLUME_LOOKS_LIKE_A_FILE.test(rest[rest.length - 1])) return "volume name";
   if (quarantined(s, rules)) return "quarantined volume";
   return null;
 };
@@ -328,4 +340,49 @@ export function machineView(fold = {}, machine, { topCategories = 10 } = {}) {
         .slice(0, topCategories)
     }
   };
+}
+
+// How long a node may go quiet before the estate map calls it stale (plan §7: a node that stops
+// pushing is shown "stale since T", never empty). Thirty minutes is six missed pushes at the
+// satellite agent's default five-minute heartbeat. Named here so a test can assert the VALUE, not
+// merely that some value was passed (claude-s3-verifier-2's W13).
+export const DEFAULT_MAP_MAX_AGE_MS = 30 * 60 * 1000;
+
+// parseQuarantinePolicy(raw) — the hub's R31 rules from the text of coordination/estate/
+// quarantine.json: { "rules": ["cv", "curriculum vitae", "/payroll/i"] }. A string matches as a
+// case-insensitive substring; "/…/flags" is read as a regular expression.
+//
+// Returns null for anything it cannot use, INCLUDING malformed JSON and a "rules" that is not a
+// list. null is not an empty policy: a hub with null refuses maps, so a privacy file with a typo
+// closes the surface instead of quietly widening it. It lives here rather than in app.js so that a
+// test can reach it — in app.js it was reachable only by the gate reading the file as text, and a
+// mutation making a malformed policy become an EMPTY one survived (W10).
+export function parseQuarantinePolicy(raw) {
+  try {
+    const rules = JSON.parse(raw).rules;
+    if (!Array.isArray(rules)) return null;
+    return rules.map((rule) => {
+      const re = /^\/(.*)\/([a-z]*)$/u.exec(String(rule));
+      return re ? new RegExp(re[1], re[2].includes("u") ? re[2] : `${re[2]}u`) : String(rule);
+    });
+  } catch {
+    return null;
+  }
+}
+
+// readQuarantinePolicy(file, io) — the hub's policy, read from disk and parsed. Returns null for
+// absent, unreadable or unusable, and WARNS for the last two: a policy file that cannot be used
+// closes the map surface, and silence there looks exactly like a hub that was never given a policy.
+// It lives here, with its io injected, so that the warning is a tested behaviour rather than a line
+// a gate can only look at (claude-s3-verifier-2's W-series).
+export function readQuarantinePolicy(file, { readFile, warn = console.error } = {}) {
+  let raw;
+  try {
+    raw = readFile(file);
+  } catch {
+    return null; // absent: no policy, so no map — and nothing to warn about
+  }
+  const rules = parseQuarantinePolicy(raw);
+  if (rules === null) warn(`[estate] ${file} is not a usable quarantine policy — estate maps refused`);
+  return rules;
 }

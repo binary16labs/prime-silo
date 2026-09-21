@@ -27,12 +27,25 @@ if (!/mapPayloadProblem/u.test(agent)) {
 // policy, so they cannot see that server/app.js passed none — which is how the quarantine guard
 // shipped as dead code (claude-s3-verifier's D2). This assertion is the only thing that looks.
 const appJs = fs.readFileSync(path.join(ROOT, "server/app.js"), "utf8");
-const wiring = appJs.slice(appJs.indexOf("createEstateApi({"));
+// bounded by the call's own closing line, not by the first "})" — the options are multi-line
+const from = appJs.indexOf("createEstateApi({");
+const wiring = appJs.slice(from, appJs.indexOf("\n    })", from));
 for (const option of ["quarantine:", "mapMaxAgeMs:"])
-  if (!wiring.slice(0, wiring.indexOf("})")).includes(option)) {
+  if (!wiring.includes(option)) {
     console.error(`[s3] FAIL: server/app.js builds the estate API without ${option}`);
     process.exit(1);
   }
+// The reader itself lives in the library with its io injected, so its warning is tested there;
+// what the gate checks here is that the product calls it at all.
+
+// and that the value it passes is the POLICY READER, not some other thing that happens to be an
+// array — `quarantine: [] || readQuarantinePolicy(…)` passes the check above and is a hub with an
+// empty policy, which is the inert state D2 was about. This is a textual check because booting the
+// whole server inside a unit gate is not proportionate; the reader's own behaviour is tested.
+if (!/quarantine:\s*overrides\.\w+\s*\?\?\s*readQuarantinePolicy\(/su.test(wiring)) {
+  console.error("[s3] FAIL: server/app.js does not pass its quarantine policy from the reader");
+  process.exit(1);
+}
 
 const t = spawnSync(process.execPath, ["--test", "tests/estate_map_fold_test.mjs"], {
   cwd: ROOT,

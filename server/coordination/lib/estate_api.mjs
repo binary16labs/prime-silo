@@ -9,7 +9,7 @@ import { buildEstate } from "./estate.mjs";
 import { proposeSync, applySync } from "./estate_govern.mjs";
 import { planNextCycle, readPlanInputs } from "./estate_plan.mjs";
 import { register as registerSatellite } from "./estate_register.mjs";
-import { foldEstateMap, machineView } from "./estate_map_fold.mjs";
+import { DEFAULT_MAP_MAX_AGE_MS, foldEstateMap, machineView } from "./estate_map_fold.mjs";
 
 const PREFIX = "/api/estate";
 const EMPTY = { machines: {}, drives: {}, sessions: {}, snapshots: {} };
@@ -138,8 +138,10 @@ export function createEstateApi({
   statusFile = null,
   planThinRate = 0.25,
   registerKey = null,
-  quarantine = [],
-  mapMaxAgeMs = 1_800_000,
+  // NOT [] — a library that invents an empty policy is a guard that is never on. null means the
+  // hub has not been told what is private, and a hub that has not been told refuses maps (W9).
+  quarantine = null,
+  mapMaxAgeMs = DEFAULT_MAP_MAX_AGE_MS,
   prefix = PREFIX
 } = {}) {
   // In-memory satellite reachability (last-seen + live drift), updated by POST /register (N7).

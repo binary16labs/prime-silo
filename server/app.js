@@ -5,6 +5,10 @@ import path from "node:path";
 import { createBus } from "./coordination/lib/bus.mjs";
 import { createCoordinationApi } from "./coordination/http_api.mjs";
 import { createEstateApi } from "./coordination/lib/estate_api.mjs";
+import {
+  DEFAULT_MAP_MAX_AGE_MS,
+  readQuarantinePolicy
+} from "./coordination/lib/estate_map_fold.mjs";
 import { createAgentApi } from "./api/agent_api.mjs";
 import { createWorkflowsApi } from "./api/workflows_api.mjs";
 import { resolveRegisterKey } from "./coordination/lib/estate_register_key.mjs";
@@ -31,43 +35,6 @@ import { JobRunner } from "./jobs/job_runner.js";
 import { createLocalMutationSync } from "./runtime/request_mutations.js";
 import { sendJson } from "./router/responses.js";
 import { createRequestHandler } from "./router/router.js";
-
-// How long a node may go quiet before the estate map calls it stale (plan section 7: a node that
-// stops pushing is shown "stale since T", never empty). Thirty minutes is six missed pushes at the
-// satellite agent's default five-minute heartbeat.
-const ESTATE_MAP_MAX_AGE_MS = 30 * 60 * 1000;
-
-// The hub's R31 quarantine rules for the estate map (S3), from coordination/estate/quarantine.json:
-//   { "rules": ["cv", "curriculum vitae", "/payroll/i"] }
-// A string matches as a case-insensitive substring; "/.../flags" is read as a regular expression.
-// Returns null when there is NO policy, which is not the same as a policy with no rules: a hub
-// without one refuses estate-map pushes rather than accepting volume names it cannot judge. Read
-// here rather than defaulted in the library, because a library that invents an empty policy is a
-// guard that is never on (claude-s3-verifier's D2).
-function readQuarantinePolicy(coordDir) {
-  const file = path.join(coordDir, "estate", "quarantine.json");
-  let raw;
-  try {
-    raw = fs.readFileSync(file, "utf8");
-  } catch {
-    return null; // absent: no policy
-  }
-  // Present but unreadable is a configuration fault, not an empty policy. It is reported loudly and
-  // treated as NO policy, so the map surface closes while the rest of the hub keeps serving: a
-  // malformed privacy file must never silently widen what may be pushed, and must not take the UI
-  // down with it either.
-  try {
-    const rules = JSON.parse(raw).rules;
-    if (!Array.isArray(rules)) throw new Error('"rules" must be a list');
-    return rules.map((rule) => {
-      const re = /^\/(.*)\/([a-z]*)$/u.exec(String(rule));
-      return re ? new RegExp(re[1], re[2].includes("u") ? re[2] : `${re[2]}u`) : String(rule);
-    });
-  } catch (e) {
-    console.error(`[estate] ${file} is not a usable quarantine policy (${e.message}) — maps refused`);
-    return null;
-  }
-}
 
 function resolveBrowserHost(host) {
   if (host === "0.0.0.0" || host === "::" || host === "[::]") {
@@ -309,8 +276,11 @@ async function createAgentServer(overrides = {}) {
       // R31 for the estate map (S3): the rules a node's volume names are judged against. Read here
       // rather than defaulted in the library, because a library that invents an empty policy is a
       // guard that is never on. No policy file means no policy, and the hub then refuses maps.
-      quarantine: overrides.estateQuarantine ?? readQuarantinePolicy(coordDir),
-      mapMaxAgeMs: overrides.estateMapMaxAgeMs ?? ESTATE_MAP_MAX_AGE_MS
+      quarantine: overrides.estateQuarantine ??
+        readQuarantinePolicy(path.join(coordDir, "estate", "quarantine.json"), {
+          readFile: (f) => fs.readFileSync(f, "utf8")
+        }),
+      mapMaxAgeMs: overrides.estateMapMaxAgeMs ?? DEFAULT_MAP_MAX_AGE_MS
     });
   // EP-A: the tuned tool-use agent served over /api/agent/* (SSE step stream). The Bridge UI wraps
   // this same runAgent the CLI uses — one harness. Nested paths, so mounted ahead of the flat router.

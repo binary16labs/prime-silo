@@ -6,11 +6,14 @@ import http from "node:http";
 import test from "node:test";
 
 import {
+  DEFAULT_MAP_MAX_AGE_MS,
   buildMapPayload,
   foldEstateMap,
   isNewer,
   machineView,
-  mapPayloadProblem
+  mapPayloadProblem,
+  parseQuarantinePolicy,
+  readQuarantinePolicy
 } from "../server/coordination/lib/estate_map_fold.mjs";
 import { register } from "../server/coordination/lib/estate_register.mjs";
 import { createEstateApi } from "../server/coordination/lib/estate_api.mjs";
@@ -178,6 +181,58 @@ test("a hub with no privacy policy accepts no map", () => {
   assert.equal(register({ maps: [] }, manifest, ctx({ quarantine: [] })).ok, true, "an empty list is");
 });
 
+test("an unusable policy file is no policy, never an empty one", () => {
+  // W10: a mutation turning a malformed policy into an EMPTY policy survived, because the parsing
+  // lived in app.js where only the gate could reach it as text. It lives in the library now.
+  for (const raw of ["{", "", "null", "[]", '{"rules": "cv"}', '{"rules": null}', '{"other": []}'])
+    assert.equal(parseQuarantinePolicy(raw), null, JSON.stringify(raw));
+  assert.deepEqual(parseQuarantinePolicy('{"rules": []}'), [], "an empty list IS a policy");
+  const rules = parseQuarantinePolicy('{"rules": ["cv", "/payroll/i"]}');
+  assert.equal(rules[0], "cv");
+  assert.ok(rules[1] instanceof RegExp);
+  assert.equal(rules[1].test("PAYROLL"), true, "and a /…/i rule is a real case-insensitive regexp");
+});
+
+test("a policy file that cannot be used says so out loud", () => {
+  // The map surface closes either way, but silence would look exactly like a hub that was never
+  // given a policy and the operator would have no way to tell the two apart. A gate assertion over
+  // app.js's text could never prove this — a mutation keeping the log line and disabling its branch
+  // survives any such check — so the reader lives in the library with its io injected.
+  const said = [];
+  const io = (text) => ({ readFile: () => text, warn: (m) => said.push(m) });
+
+  assert.deepEqual(readQuarantinePolicy("q.json", io('{"rules": ["cv"]}')), ["cv"]);
+  assert.deepEqual(said, [], "a usable policy says nothing");
+
+  assert.equal(readQuarantinePolicy("q.json", io("{ not json")), null);
+  assert.equal(said.length, 1, "an unusable one warns");
+  assert.match(said[0], /q\.json/u);
+  assert.match(said[0], /maps refused/u);
+
+  said.length = 0;
+  const absent = readQuarantinePolicy("q.json", {
+    readFile: () => {
+      throw new Error("ENOENT");
+    },
+    warn: (m) => said.push(m)
+  });
+  assert.equal(absent, null, "an absent policy is also no policy");
+  assert.deepEqual(said, [], "but it is not an error worth shouting about");
+});
+
+test("the library brings no policy of its own, and one named staleness threshold", async (t) => {
+  // W9: if createEstateApi defaulted quarantine to [] the fail-closed rule would quietly vanish.
+  const port = await serve(t, { registerKey: "k" });
+  const pushed = await call(port, "/api/estate/register", {
+    key: "k",
+    manifest: { machine: "t480", map: push("t480", new Date().toISOString()) }
+  });
+  assert.equal(pushed.status, 401, "an API built without a policy refuses maps");
+  assert.match(pushed.body.reason, /no quarantine policy/u);
+  // W13: the threshold the plan's only S3 criterion rests on was a literal nobody asserted
+  assert.equal(DEFAULT_MAP_MAX_AGE_MS, 30 * 60 * 1000);
+});
+
 test("a hub with no policy still registers sessions", () => {
   // N7 is untouched by the map's stricter rule: a hub that cannot accept a map is not a hub that
   // has stopped working.
@@ -191,44 +246,76 @@ test("a hub with no policy still registers sessions", () => {
 });
 
 test("a volume must look like a volume, not merely be short", () => {
-  // claude-s3-verifier's D1: with only a length rule, a REAL file path is 45 characters and was
-  // accepted and served back verbatim. Bounding length is not bounding meaning.
-  const refused = [
-    "F:\\clients\\Acme\\contract-final-signed.pdf",
-    "\\\\NAS\\private$\\hr\\payroll-2026.xlsx",
-    "MEMO: acquisition price 4.2m GBP and the buyer walked away",
-    "F:\\a\\b\\c",
-    "F:\\notes.txt",
-    "F:\\a\u0000b",
-    "F:\\a\nb",
-    "data:text/plain;base64,SGVsbG8=",
-    "F:\uff3csecret",
-    "F:\\a%5Cb",
-    "\\\\?\\C:\\x",
-    // characters Windows forbids in a path segment, which is how a segment stops being a name
-    "F:\\a:b",
-    "F:\\a|b",
-    "F:\\a*b",
-    'F:\\a"b',
-    "F:\\a<b",
-    "F:\\\\x"
-  ];
-  for (const v of refused)
+  // Two verifiers found this guard claiming more than it did. D1: with only a length rule, a real
+  // 45-character file path was accepted and served back. E1: with a denylist plus a "looks like a
+  // file" test on the LAST segment, a single trailing space made "contract.pdf " a different string
+  // and the same file to Windows. A denylist of disguises loses to the next disguise, so segments
+  // are now allowlisted and every segment is judged.
+  const refused = {
+    "a real file path": "F:\\clients\\Acme\\contract-final-signed.pdf",
+    "the same path with a trailing space": "F:\\clients\\contract-final-signed.pdf ",
+    "a trailing dot": "F:\\clients\\contract-final-signed.pdf.",
+    "a trailing non-breaking space": "F:\\clients\\contract-final-signed.pdf\u00a0",
+    "an extension longer than eight": "F:\\clients\\notes.longextension",
+    "a file name in a middle segment": "F:\\salary-2026.docx\\q1",
+    "a real file on a real server": "\\\\fs01\\hr\\2026\\salaries-2026.xlsx ",
+    "U+2216 carrying a path inside a segment": "F:\\clients\u2216Acme\u2216contract.pdf",
+    "U+FE68 the same way": "F:\\clients\ufe68Acme",
+    "U+29F9 the same way": "F:\\clients\u29f9Acme",
+    "prose": "MEMO: acquisition price 4.2m GBP and the buyer walked away",
+    "three segments deep": "F:\\a\\b\\c",
+    "a NUL": "F:\\a\u0000b",
+    "a newline": "F:\\a\nb",
+    "a data URI": "data:text/plain;base64,SGVsbG8=",
+    "a fullwidth separator": "F:\uff3csecret",
+    "percent-encoding": "F:\\a%5Cb",
+    "a \\\\?\\ prefix": "\\\\?\\C:\\x",
+    "a \\\\?\\UNC prefix": "\\\\?\\UNC\\fs01\\hr",
+    "forward slashes": "F:/clients/Acme",
+    "a dot anywhere in a segment": "F:\\vol.1",
+    "a leading space": "F: leading",
+    // no dot at all, so only the segment's own shape can refuse these
+    "a trailing space on a plain name": "F:\\Backup Drive ",
+    "a trailing dot on a plain name": "F:\\Backup Drive.",
+    "a UNC host with a space": "\\\\NA S\\backups",
+    "a UNC host carrying a separator": "\\\\NAS\u2216evil\\backups",
+    "a UNC host of dots": "\\\\..\\backups",
+    "a 65-character segment": `F:\\${"a".repeat(65)}`,
+    "two legal segments over the length bound": `F:\\${"a".repeat(60)}\\${"b".repeat(60)}`,
+    "an empty segment": "F:\\\\x",
+    "something that is not text": { path: "C:\\secret" },
+    "nothing at all": ""
+  };
+  for (const [what, value] of Object.entries(refused))
     assert.match(
-      mapPayloadProblem(push("t480", T(12), { scope: [v] })) ?? "",
+      mapPayloadProblem(push("t480", T(12), { scope: [value] })) ?? "",
       /scope contains a volume name/u,
-      `must not be called a volume: ${JSON.stringify(v)}`
+      `must not be called a volume: ${what}`
     );
-  // and what a volume really is still passes
-  for (const v of ["F:\\", "F:", "F:\\mnt\\vol", "\\\\NAS\\backups", "\\\\NAS\\backups\\vol"])
+
+  // and every spelling a real volume on this estate actually takes
+  for (const v of [
+    "F:\\",
+    "F:",
+    "F:\\mnt\\vol",
+    "F:\\Backup Drive",
+    "F:\\data_store-2",
+    "\\\\NAS\\backups",
+    "\\\\NAS\\private$",
+    "\\\\NAS\\backups\\vol"
+  ])
     assert.equal(mapPayloadProblem(push("t480", T(12), { scope: [v] })), null, v);
-  // the overall length still binds independently of the shape: two segments that are each legal
-  // can still add up to more than a volume name has any business being
-  const longButLegal = `F:\\${"a".repeat(60)}\\${"b".repeat(60)}`;
-  assert.equal(longButLegal.length, 124);
+});
+
+test("what the volume rule does NOT promise is written down", () => {
+  // A folder-mounted volume and an ordinary folder are the same shape, so this name is well formed
+  // and only the hub's quarantine rules can refuse it. The comment says so; this pins it, so nobody
+  // later reads the guard as broader than it is — which is the fault both FAILs were about.
+  assert.equal(mapPayloadProblem(push("t480", T(12), { scope: ["F:\\Users\\id_rsa"] })), null);
   assert.match(
-    mapPayloadProblem(push("t480", T(12), { scope: [longButLegal] })) ?? "",
-    /scope contains a volume name/u
+    mapPayloadProblem(push("t480", T(12), { scope: ["F:\\Users\\id_rsa"] }), [/id_rsa/u]) ?? "",
+    /quarantined volume/u,
+    "the policy is the layer that refuses it, which is why the map fails closed without one"
   );
 });
 
