@@ -1,0 +1,134 @@
+<html>
+  <head>
+    <!-- Same reason as the Release, Gov and Lineage arcs: the shell's index.css imports only
+         google-icons, so every var(--space-*) / var(--font-size-*) is undefined unless the view
+         links these itself. A view that loads without its stylesheet is a blank page, and a blank
+         page and an empty estate look identical — which is the one thing this panel must not do. -->
+    <link rel="stylesheet" href="/mod/_core/framework/css/layout.css" />
+    <link rel="stylesheet" href="/mod/_core/framework/css/type.css" />
+    <link rel="stylesheet" href="/mod/_prime_silo/estate_map/estate_map.css" />
+    <script type="module" src="/mod/_prime_silo/estate_map/estate_map.js"></script>
+  </head>
+  <body>
+    <section class="em" x-data="estateMapPage()" x-init="init()" x-cloak>
+      <header class="em__head">
+        <h1 class="em__title">Estate Map</h1>
+        <span class="em__age" x-show="v.reachable" x-cloak
+          x-text="`${v.machines.length} node${v.machines.length === 1 ? '' : 's'} reporting`"></span>
+      </header>
+
+      <!-- Unreachable is not empty. The hub not answering says nothing about what the estate holds,
+           and rendering zero machines here would be a claim this page cannot support. -->
+      <div class="em__blind" x-show="!loading && !v.reachable" x-cloak>
+        <strong>Cannot tell</strong>
+        <p x-text="v.reason || 'the estate map could not be read'"></p>
+      </div>
+
+      <p class="em__loading" x-show="loading" x-cloak>Reading the estate map…</p>
+
+      <template x-if="!loading && v.reachable">
+        <div class="em__body">
+          <nav class="em__tabs">
+            <template x-for="t in ['estate', 'storage', 'applications']" :key="t">
+              <button class="em__tab" :data-on="tab === t" @click="tab = t; $nextTick(() => layout())" x-text="t"></button>
+            </template>
+          </nav>
+
+          <!-- ESTATE: one card per node, stale ones included and labelled. -->
+          <div class="em__cards" x-show="tab === 'estate'" x-cloak>
+            <template x-for="m in v.machines" :key="m.machine">
+              <article class="em__card" :data-stale="m.stale">
+                <header class="em__cardhead">
+                  <h2 class="em__machine" x-text="m.machine"></h2>
+                  <span class="em__state" :data-stale="m.stale" x-text="m.stale ? 'stale' : 'live'"></span>
+                </header>
+                <p class="em__when" x-text="machineLine(m)"></p>
+
+                <dl class="em__counts">
+                  <div><dt>files</dt><dd x-text="(m.counts.listed_files ?? 0).toLocaleString()"></dd></div>
+                  <div><dt>size</dt><dd x-text="bytes(m.counts.bytes ?? 0)"></dd></div>
+                  <div><dt>apps</dt><dd x-text="(m.counts.listed_apps ?? 0).toLocaleString()"></dd></div>
+                </dl>
+
+                <!-- What the node did NOT publish. A count with nothing behind it is not evidence,
+                     so the number is shown rather than folded silently into the totals. -->
+                <p class="em__withheld" x-show="m.withheld > 0" x-cloak
+                  x-text="`${m.withheld.toLocaleString()} files withheld by this node's privacy rules`"></p>
+
+                <ul class="em__vols">
+                  <template x-for="vol in m.volumes" :key="vol.volume">
+                    <li class="em__vol" :data-state="vol.status">
+                      <b x-text="vol.volume"></b>
+                      <span x-text="`${vol.rows.toLocaleString()} files`"></span>
+                      <span class="em__volwhen" x-text="`${vol.collector ?? 'unknown'} · ${ageOf(vol)}`"></span>
+                      <span class="em__volerr" x-show="vol.errorCode" x-cloak x-text="vol.errorCode"></span>
+                    </li>
+                  </template>
+                </ul>
+              </article>
+            </template>
+          </div>
+
+          <!-- STORAGE: the treemap, and beside it whatever could not be sized. -->
+          <div class="em__storage" x-show="tab === 'storage'" x-cloak>
+            <p class="em__note">
+              Sizes are derived: the map reports bytes per machine and files per volume, so each
+              volume is shown its share of its machine's bytes.
+            </p>
+            <div class="em__map">
+              <template x-for="r in rects" :key="r.key">
+                <div class="em__rect" :style="`left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px`">
+                  <span class="em__rectname" x-text="r.volume"></span>
+                  <span class="em__rectsize" x-text="bytes(r.value)"></span>
+                  <span class="em__rectmachine" x-text="r.machine"></span>
+                </div>
+              </template>
+            </div>
+            <ul class="em__unsized" x-show="(v.storage?.unsized || []).length" x-cloak>
+              <template x-for="u in v.storage.unsized" :key="u.key">
+                <li x-text="`${u.machine} ${u.volume} — ${u.rows.toLocaleString()} files, no size reported`"></li>
+              </template>
+            </ul>
+          </div>
+
+          <!-- APPLICATIONS: the matrix, drifted rows first. -->
+          <div class="em__apps" x-show="tab === 'applications'" x-cloak>
+            <!-- A node that pushed no applications is named here rather than rendered as blank
+                 cells, because a blank cell reads as "does not have it". -->
+            <p class="em__note" x-show="v.applications.notPushed.length" x-cloak
+              x-text="`No application list pushed by: ${v.applications.notPushed.join(', ')}. Their columns are empty because they have not said, not because they hold nothing.`"></p>
+
+            <p class="em__drift" x-show="v.drift.length" x-cloak
+              x-text="`${v.drift.length} product${v.drift.length === 1 ? '' : 's'} at different versions across the estate`"></p>
+
+            <table class="em__matrix" x-show="v.applications.rows.length" x-cloak>
+              <thead>
+                <tr>
+                  <th>product</th>
+                  <template x-for="m in v.applications.pushed" :key="m"><th x-text="m"></th></template>
+                  <th>seen by</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="row in v.applications.rows" :key="row.product">
+                  <tr :data-drifted="row.drifted">
+                    <td x-text="row.product"></td>
+                    <template x-for="m in v.applications.pushed" :key="m">
+                      <td :data-missing="!row.byMachine[m]"
+                        x-text="(row.byMachine[m] || []).join(' / ') || '—'"></td>
+                    </template>
+                    <td class="em__sources" x-text="row.sources.join(', ')"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+
+            <p class="em__empty" x-show="!v.applications.rows.length" x-cloak>
+              No node has pushed an application list yet.
+            </p>
+          </div>
+        </div>
+      </template>
+    </section>
+  </body>
+</html>

@@ -1,0 +1,294 @@
+/* Estate Map — what the nodes said about themselves.
+ *
+ * Governed CSS (C0): every colour resolves through a token in colors.css; spacing, radius and type
+ * come from layout.css / type.css. No hex lives here.
+ *
+ * THE VOCABULARY IS THE POINT. "stale" and "live" are not decoration: a stale card carries real
+ * data that is simply old, so it must read as dimmed-but-present, never as absent or as an error.
+ * An errored volume is the opposite — it means this machine's map is INCOMPLETE — so it takes the
+ * danger token, the one thing on the card that should stop the eye. Grading them alike would hide
+ * exactly the distinction the fold behind this page had to fight for.
+ *
+ * Nothing animates on its own. The only state change is one you asked for.
+ */
+
+.em {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-6);
+  font-family: var(--font-stack-active);
+  color: var(--color-text-primary);
+}
+
+.em__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.em__title {
+  font-size: var(--font-size-6);
+  margin: 0;
+}
+
+.em__age,
+.em__note,
+.em__volwhen {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-2);
+}
+
+.em__loading {
+  color: var(--color-text-tertiary);
+}
+
+/* Cannot tell. Not an empty estate, and styled so it cannot be mistaken for one. */
+.em__blind {
+  border: 1px solid var(--color-status-danger);
+  border-radius: var(--radius-3);
+  padding: var(--space-4);
+  background: var(--color-surface-1);
+}
+
+.em__blind strong {
+  color: var(--color-status-danger);
+}
+
+.em__tabs {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.em__tab {
+  background: var(--color-surface-1);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-2);
+  color: var(--color-text-secondary);
+  padding: var(--space-2) var(--space-4);
+  font-family: inherit;
+  font-size: var(--font-size-2);
+  text-transform: capitalize;
+  cursor: pointer;
+}
+
+.em__tab[data-on="true"] {
+  background: var(--color-accent-primary-soft);
+  border-color: var(--color-accent-primary);
+  color: var(--color-text-primary);
+}
+
+/* --- machine cards ------------------------------------------------------------------------- */
+
+.em__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: var(--space-4);
+}
+
+.em__card {
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-3);
+  background: var(--color-surface-1);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Dimmed, not hidden: the data is real, it is simply old. */
+.em__card[data-stale="true"] {
+  border-style: dashed;
+  border-color: var(--color-border-strong);
+}
+
+.em__cardhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.em__machine {
+  margin: 0;
+  font-size: var(--font-size-4);
+}
+
+.em__state {
+  font-size: var(--font-size-1);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-1);
+  background: var(--color-accent-primary-soft);
+  color: var(--color-status-success);
+}
+
+.em__state[data-stale="true"] {
+  background: var(--color-surface-2);
+  color: var(--color-status-warning);
+}
+
+.em__when {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-2);
+}
+
+.em__counts {
+  display: flex;
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.em__counts dt {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-1);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.em__counts dd {
+  margin: 0;
+  font-size: var(--font-size-3);
+}
+
+.em__withheld {
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-1);
+}
+
+.em__vols {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.em__vol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: baseline;
+  font-size: var(--font-size-2);
+  border-top: 1px solid var(--color-border-soft);
+  padding-top: var(--space-2);
+}
+
+/* An incomplete map is the loudest thing on the card. */
+.em__vol[data-state="errored"] {
+  border-top-color: var(--color-status-danger);
+}
+
+.em__volerr {
+  color: var(--color-status-danger);
+  font-size: var(--font-size-1);
+  letter-spacing: 0.04em;
+}
+
+/* --- storage ------------------------------------------------------------------------------- */
+
+.em__storage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.em__map {
+  position: relative;
+  width: 100%;
+  height: 26rem;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-3);
+  overflow: hidden;
+  background: var(--color-canvas-deep);
+}
+
+.em__rect {
+  position: absolute;
+  border: 1px solid var(--color-canvas);
+  background: var(--color-accent-primary-soft);
+  padding: var(--space-2);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--font-size-1);
+}
+
+.em__rectname {
+  color: var(--color-text-primary);
+}
+
+.em__rectsize {
+  color: var(--color-text-secondary);
+}
+
+.em__rectmachine {
+  color: var(--color-text-tertiary);
+}
+
+.em__unsized {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-2);
+}
+
+/* --- applications ---------------------------------------------------------------------------- */
+
+.em__apps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  overflow-x: auto;
+}
+
+.em__drift {
+  margin: 0;
+  color: var(--color-status-warning);
+  font-size: var(--font-size-2);
+}
+
+.em__matrix {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--font-size-2);
+}
+
+.em__matrix th,
+.em__matrix td {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border-soft);
+  white-space: nowrap;
+}
+
+.em__matrix th {
+  color: var(--color-text-tertiary);
+  font-weight: 400;
+  text-transform: uppercase;
+  font-size: var(--font-size-1);
+  letter-spacing: 0.06em;
+}
+
+/* Drift is the question this tab exists to answer, so it is the thing that is marked. */
+.em__matrix tr[data-drifted="true"] td {
+  color: var(--color-status-warning);
+}
+
+.em__matrix td[data-missing="true"] {
+  color: var(--color-text-tertiary);
+}
+
+.em__sources {
+  color: var(--color-text-tertiary);
+}
+
+.em__empty {
+  color: var(--color-text-tertiary);
+}
