@@ -14,6 +14,13 @@ import { ageLabel, byteLabel, estateView, storageRects } from "/mod/_prime_silo/
 const REFRESH_MS = 60_000;
 
 window.estateMapPage = function estateMapPage() {
+  // The component root, captured in init() and kept OUT of the reactive data. $el is resolved from
+  // whichever element's expression is running, so layout() called from a tab button measured the
+  // BUTTON, found no .em__map, and set rects to [] — clicking the open Storage tab wiped the
+  // treemap while the reconciliation line beneath it still described the map that was no longer
+  // there. One place owns the component scope now.
+  let root = null;
+
   return {
     v: { reachable: false, empty: false, machines: [] },
     loading: true,
@@ -27,6 +34,7 @@ window.estateMapPage = function estateMapPage() {
       // legend: the panel telling two different stories about the same bytes.
       //
       // Registered BEFORE the first await: a $watch set up after one does not fire.
+      root = this.$el;
       this.$watch("tab", () => this.$nextTick(() => this.layout()));
       window.addEventListener("resize", () => this.layout());
       await this.refresh();
@@ -48,13 +56,21 @@ window.estateMapPage = function estateMapPage() {
     },
 
     layout() {
-      // queried from the component root rather than through $refs: the map lives inside an x-if
-      // template, and a ref created in a template's scope is not on the component's $refs. It read
-      // as undefined, which measured zero, which drew an empty map beside a full legend.
-      const box = this.$el?.querySelector(".em__map")?.getBoundingClientRect?.();
+      // queried from the captured root rather than through $refs or $el: the map lives inside an
+      // x-if template, so a ref created in that template's scope is not on the component's $refs,
+      // and $el is whatever element's expression is currently running. Both read as undefined,
+      // which measured zero, which drew an empty map beside a full legend.
+      const el = root?.querySelector(".em__map");
+      const box = el?.getBoundingClientRect?.();
       const w = Math.max(0, Math.floor(box?.width ?? 0));
       const h = Math.max(0, Math.floor(box?.height ?? 0));
-      this.rects = w && h ? storageRects(this.v.storage, { x: 0, y: 0, w, h }) : [];
+      // A FAILED MEASUREMENT IS NOT AN EMPTY ESTATE, which is this panel's whole thesis applied to
+      // itself. Clicking the Storage tab while it was already open used to call this from the tab
+      // button's scope, where the map element is not reachable — and the old line turned that into
+      // rects = [], wiping the picture while the reconciliation beneath it still described it. Now
+      // the map keeps what it last drew until something can actually be measured.
+      if (!w || !h) return;
+      this.rects = storageRects(this.v.storage, { x: 0, y: 0, w, h });
     },
 
     bytes: byteLabel,

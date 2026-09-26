@@ -505,7 +505,15 @@ register(
 const BOX = { width: 640, height: 400 };
 
 async function renderPanel(fold, { status = 200, malformed = false } = {}) {
-  const dom = new JSDOM(fs.readFileSync(path.join(PANEL, "view.html"), "utf8"), {
+  // THE PANEL'S OWN STYLESHEET GOES IN. jsdom fetches nothing, so a <link> is inert and the
+  // document would have no rules at all — which is how seven one-line CSS mutations hid guards under
+  // a green gate. The file is inlined rather than linked, and the shell's x-cloak rule with it,
+  // because that rule is what hides the panel until Alpine has run: if Alpine fails, everything is
+  // hidden and every test fails loudly instead of quietly passing on a blank page.
+  const shell =
+    `<style>${fs.readFileSync(path.join(PANEL, "estate_map.css"), "utf8")}</style>` +
+    "<style>[x-cloak]{display:none !important}</style>";
+  const dom = new JSDOM(fs.readFileSync(path.join(PANEL, "view.html"), "utf8").replace("</head>", `${shell}</head>`), {
     url: "http://localhost/",
     runScripts: "dangerously",
     pretendToBeVisual: true
@@ -580,7 +588,35 @@ async function openTab(window, name) {
 
 // What a person would actually read: x-show hides by setting display:none, and an element that is
 // present but hidden has not reached the owner's eyes.
-function visibleText(root) {
+// WHAT A PERSON WOULD ACTUALLY READ. The first version of this walker looked only at inline
+// style.display, and the document it walked had no stylesheet in it at all — jsdom fetches nothing
+// by default, so `document.styleSheets.length` was 0. claude-s4-verifier-2 then hid seven different
+// guards with one CSS line each, including `.em__card[data-stale="true"] { display: none }` — the
+// stale node gone under a header still reading "3 nodes reporting", which is the exact defect that
+// failed the first submission — and the gate stayed green at 33/33.
+//
+// So the panel's REAL stylesheet is now in the document (see renderPanel), and visibility is judged
+// by computed style: display, visibility, opacity, the hidden attribute, a collapsed font, and being
+// parked off-screen. jsdom has no layout engine, so it cannot tell you a box is covered by another
+// or scrolled out of view — but it does cascade author CSS for these properties, which is what the
+// question "did this guard reach the owner's eyes" actually turns on.
+function hiddenBy(el, win) {
+  if (el.hasAttribute("hidden")) return "the hidden attribute";
+  const cs = win.getComputedStyle(el);
+  if (cs.display === "none") return "display:none";
+  if (cs.visibility === "hidden" || cs.visibility === "collapse") return `visibility:${cs.visibility}`;
+  if (cs.opacity !== "" && Number(cs.opacity) === 0) return "opacity:0";
+  if (/^0(px)?$/u.test(cs.fontSize ?? "")) return "font-size:0";
+  // parked off-screen: the classic way to keep an element "present" and unreadable
+  for (const side of ["left", "top"]) {
+    const v = Number.parseFloat(cs[side] ?? "");
+    if (Number.isFinite(v) && v <= -1000) return `${side}:${cs[side]}`;
+  }
+  if (/^0(px)?$/u.test(cs.width ?? "") && /^0(px)?$/u.test(cs.height ?? "")) return "a 0x0 box";
+  return null;
+}
+
+function visibleText(root, win) {
   const out = [];
   const walk = (el) => {
     if (el.nodeType === 3) {
@@ -589,17 +625,22 @@ function visibleText(root) {
       return;
     }
     if (el.nodeType !== 1) return;
-    if (el.style?.display === "none" || el.hasAttribute?.("x-cloak") === undefined) {
-      /* fall through: x-cloak is a CSS concern, display is the one that hides */
-    }
-    if (el.style?.display === "none") return;
+    if (hiddenBy(el, win)) return;
     for (const child of el.childNodes) walk(child);
   };
   walk(root);
   return out.join(" ");
 }
 
-const visible = (win) => visibleText(win.document.body).replace(/\s+/gu, " ");
+// Is this element on screen, and are all its ancestors? A guard inside a hidden parent has not
+// reached anybody.
+function isVisible(el, win) {
+  for (let node = el; node && node.nodeType === 1; node = node.parentElement)
+    if (hiddenBy(node, win)) return false;
+  return true;
+}
+
+const visible = (win) => visibleText(win.document.body, win).replace(/\s+/gu, " ");
 
 test("RENDERED: a node that went quiet is still on the screen, labelled and counted", async () => {
   const { window } = await renderPanel({
@@ -727,4 +768,159 @@ test("RENDERED: media says what each node swept, and does not read as no media",
   const text = visible(window);
   assert.match(text, /25 of 40 published/u);
   assert.match(text, /has not swept media/u, "the node that never looked says so");
+});
+
+// The three above are pure-function tests; the ones below are about what survives contact with the
+// markup, the stylesheet and a mouse.
+
+test("RENDERED: the panel's own stylesheet is in the document under test", async () => {
+  // If this ever fails, every visibility assertion in this file silently becomes an assertion about
+  // an unstyled document — which is precisely how seven CSS one-liners hid guards under a green gate.
+  const { window } = await renderPanel({ at: NOW, machines: { t480: machine({}) } });
+  assert.ok(window.document.styleSheets.length > 0, "no stylesheet loaded: the visibility tests would be vacuous");
+  const rules = [...window.document.styleSheets].flatMap((sheet) => [...sheet.cssRules].map((r) => r.cssText));
+  assert.ok(rules.some((r) => r.includes(".em__card")), "the panel's own rules are the ones loaded");
+});
+
+test("RENDERED: clicking the tab you are already on does not wipe the map", async () => {
+  // layout() used to be called from the tab button's own expression scope, where $el is the BUTTON.
+  // It found no .em__map, measured zero, and set rects to [] — so a second click on the open Storage
+  // tab left an empty box while the line beneath it still said how many bytes were drawn. The panel
+  // contradicting itself about the same bytes is the one thing this surface must never do.
+  const { window } = await renderPanel({
+    at: NOW,
+    machines: {
+      t480: machine({
+        counts: { files: 300, bytes: 4000, listed_files: 300, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+        volumes: {
+          "C:\\": { collector: "everything", status: "ok", rows: 200, at: T(10) },
+          "F:\\": { collector: "everything", status: "ok", rows: 100, at: T(10) }
+        }
+      })
+    }
+  });
+  await openTab(window, "storage");
+  await until(() => window.document.querySelectorAll(".em__rect").length >= 3);
+  const drawn = window.document.querySelectorAll(".em__rect").length;
+
+  const storage = [...window.document.querySelectorAll(".em__tab")].find((t) => t.textContent.trim() === "storage");
+  storage.click();
+  storage.click();
+  await new Promise((r) => setTimeout(r, 30));
+  assert.equal(
+    window.document.querySelectorAll(".em__rect").length,
+    drawn,
+    "the map is still drawn after clicking the tab it is already on"
+  );
+});
+
+test("RENDERED: a drifted product is flagged where the owner can see it", async () => {
+  // Scenario 2 says the row must be FLAGGED. The flag is an attribute the stylesheet colours, so a
+  // pure-function test that checks row.drifted proves nothing about the screen.
+  const { window } = await renderPanel({
+    at: NOW,
+    machines: {
+      t480: machine({ apps: [{ name: "Prime-Silo", version: "1.24.5", source: "registry" }] }),
+      optimus: machine({ apps: [{ name: "Prime-Silo", version: "1.24.4", source: "winget" }] })
+    }
+  });
+  await openTab(window, "applications");
+  const rows = [...window.document.querySelectorAll(".em__matrix tbody tr")];
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].dataset.drifted, "true", "the drifted row carries its flag in the rendered DOM");
+  assert.ok(isVisible(rows[0], window), "and the row itself is on screen");
+  const drift = window.document.querySelector(".em__drift");
+  assert.ok(drift && isVisible(drift, window), "and the count of drifted products is visible too");
+  assert.match(drift.textContent, /1 product at different versions/u);
+});
+
+test("RENDERED: a volume too small to draw is named on screen, not just in the data", async () => {
+  const { window } = await renderPanel({
+    at: NOW,
+    machines: {
+      t480: machine({
+        counts: { files: 1_000_001, bytes: 4000, listed_files: 1_000_001, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+        volumes: {
+          "C:\\": { collector: "everything", status: "ok", rows: 1_000_000, at: T(10) },
+          "Z:\\": { collector: "everything", status: "ok", rows: 1, at: T(10) }
+        }
+      })
+    }
+  });
+  await openTab(window, "storage");
+  await until(() => window.document.querySelectorAll(".em__rect").length >= 2);
+  const text = visible(window);
+  assert.match(text, /Z:\\/u, "the sliver that cannot be drawn is named");
+  assert.match(text, /too small to draw/u, "and the panel says why it is not in the picture");
+});
+
+test("RENDERED: the not-pushed notice is on screen, not merely in the document", async () => {
+  const { window } = await renderPanel({
+    at: NOW,
+    machines: {
+      t480: machine({ apps: [{ name: "Prime-Silo", version: "1.24.5", source: "registry" }] }),
+      pi: machine({})
+    }
+  });
+  await openTab(window, "applications");
+  const notice = [...window.document.querySelectorAll(".em__note")].find((p) => /No application list/u.test(p.textContent));
+  assert.ok(notice, "the notice exists");
+  assert.ok(isVisible(notice, window), "and nothing — attribute or stylesheet — is hiding it");
+});
+
+test("RENDERED: what a node withheld, and what the estate could not account for, are both on screen", async () => {
+  const { window } = await renderPanel({
+    at: NOW,
+    machines: {
+      t480: machine({
+        counts: { files: 100, bytes: 4000, listed_files: 60, apps: 0, listed_apps: 0, media: 0, listed_media: 0 }
+      }),
+      optimus: machine({
+        counts: { files: 7, bytes: 2000, listed_files: 7, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+        volumes: {}
+      })
+    }
+  });
+  const card = [...window.document.querySelectorAll(".em__withheld")].find((p) => /40 files withheld/u.test(p.textContent));
+  assert.ok(card && isVisible(card, window), "the withheld count is visible on the card");
+  await openTab(window, "storage");
+  const recon = window.document.querySelector(".em__recon");
+  assert.ok(recon && isVisible(recon, window), "the reconciliation is visible");
+  assert.match(visible(window), /no volume to draw/u, "and the node whose bytes cannot be drawn is named");
+});
+
+test("RENDERED: a layout that cannot measure anything keeps what is on screen", async () => {
+  // The bug behind C1 was not the tab button; it was that a failed measurement was turned into
+  // "there is nothing to draw". This asserts the class rather than the instance: whatever goes wrong
+  // with the element lookup, the map that is already drawn survives it.
+  const { window } = await renderPanel({
+    at: NOW,
+    machines: {
+      t480: machine({
+        counts: { files: 300, bytes: 4000, listed_files: 300, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+        volumes: {
+          "C:\\": { collector: "everything", status: "ok", rows: 200, at: T(10) },
+          "F:\\": { collector: "everything", status: "ok", rows: 100, at: T(10) }
+        }
+      })
+    }
+  });
+  await openTab(window, "storage");
+  await until(() => window.document.querySelectorAll(".em__rect").length >= 3);
+  const drawn = window.document.querySelectorAll(".em__rect").length;
+
+  // measure nothing at all, the way a lookup from the wrong scope does
+  const real = window.Element.prototype.getBoundingClientRect;
+  window.Element.prototype.getBoundingClientRect = () => ({ width: 0, height: 0, x: 0, y: 0, top: 0, left: 0, right: 0, bottom: 0 });
+  try {
+    window.Alpine.$data(window.document.querySelector(".em")).layout();
+    await new Promise((r) => setTimeout(r, 20));
+    assert.equal(
+      window.document.querySelectorAll(".em__rect").length,
+      drawn,
+      "the map is still there after a layout that could measure nothing"
+    );
+  } finally {
+    window.Element.prototype.getBoundingClientRect = real;
+  }
 });

@@ -39,7 +39,7 @@
         <div class="em__body">
           <nav class="em__tabs">
             <template x-for="t in ['estate', 'storage', 'applications', 'media']" :key="t">
-              <button class="em__tab" :data-on="tab === t" @click="tab = t; $nextTick(() => layout())" x-text="t"></button>
+              <button class="em__tab" :data-on="tab === t" @click="tab = t" x-text="t"></button>
             </template>
           </nav>
 
@@ -61,8 +61,10 @@
 
                 <!-- What the node did NOT publish. A count with nothing behind it is not evidence,
                      so the number is shown rather than folded silently into the totals. -->
-                <p class="em__withheld" x-show="m.withheld > 0" x-cloak
-                  x-text="`${n(m.withheld)} files withheld by this node's privacy rules`"></p>
+                <template x-if="m.withheld > 0">
+                  <p class="em__withheld"
+                    x-text="`${n(m.withheld)} files withheld by this node's privacy rules`"></p>
+                </template>
 
                 <ul class="em__vols">
                   <template x-for="vol in m.volumes" :key="vol.volume">
@@ -70,7 +72,9 @@
                       <b x-text="vol.volume"></b>
                       <span x-text="`${n(vol.rows)} files`"></span>
                       <span class="em__volwhen" x-text="`${vol.collector ?? 'unknown'} · ${ageOf(vol)}`"></span>
-                      <span class="em__volerr" x-show="vol.errorCode" x-cloak x-text="vol.errorCode"></span>
+                      <template x-if="vol.errorCode">
+                        <span class="em__volerr" x-text="vol.errorCode"></span>
+                      </template>
                     </li>
                   </template>
                 </ul>
@@ -92,9 +96,13 @@
                   :style="`left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px`">
                   <span class="em__rectname" x-text="r.level === 'machine' ? r.machine : r.volume"></span>
                   <span class="em__rectsize" x-text="rectSize(r)"></span>
-                  <span class="em__rectfloor" x-show="r.level === 'volume' && r.withheldBytes" x-cloak
-                    x-text="floorLine(r)"></span>
-                  <span class="em__recterr" x-show="r.errorCode" x-cloak x-text="r.errorCode"></span>
+                  <template x-if="r.level === 'volume' && r.withheldBytes">
+                    <span class="em__rectfloor"
+                      x-text="floorLine(r)"></span>
+                  </template>
+                  <template x-if="r.errorCode">
+                    <span class="em__recterr" x-text="r.errorCode"></span>
+                  </template>
                 </div>
               </template>
             </div>
@@ -103,63 +111,79 @@
             <p class="em__recon">
               <span x-text="`${bytes(v.storage.bytes.reported)} reported by the nodes`"></span>
               <span x-text="`${bytes(v.storage.bytes.drawn)} drawn`"></span>
-              <span class="em__reconmiss" x-show="v.storage.bytes.missing > 0" x-cloak
-                x-text="`${bytes(v.storage.bytes.missing)} on nodes with no volume to draw`"></span>
-              <span x-show="v.storage.withheldBytes > 0" x-cloak
-                x-text="`at least ${bytes(v.storage.withheldBytes)} withheld by node policy`"></span>
+              <template x-if="v.storage.bytes.missing > 0">
+                <span class="em__reconmiss"
+                  x-text="`${bytes(v.storage.bytes.missing)} on nodes with no volume to draw`"></span>
+              </template>
+              <template x-if="v.storage.withheldBytes > 0">
+                <span
+                  x-text="`at least ${bytes(v.storage.withheldBytes)} withheld by node policy`"></span>
+              </template>
             </p>
 
-            <ul class="em__unsized" x-show="v.storage.unaccounted.length" x-cloak>
-              <template x-for="u in v.storage.unaccounted" :key="u.key">
-                <li :data-state="u.status" x-text="unaccountedLine(u)"></li>
-              </template>
-            </ul>
+            <template x-if="v.storage.unaccounted.length">
+              <ul class="em__unsized">
+                <template x-for="u in v.storage.unaccounted" :key="u.key">
+                  <li :data-state="u.status" x-text="unaccountedLine(u)"></li>
+                </template>
+              </ul>
+            </template>
 
             <!-- A rectangle too small to see is listed rather than counted invisibly. -->
-            <ul class="em__unsized" x-show="invisible().length" x-cloak>
-              <template x-for="r in invisible()" :key="`tiny:${r.key}`">
-                <li x-text="`${r.machine} ${r.volume} — ${n(r.files)} files, too small to draw at this size`"></li>
-              </template>
-            </ul>
+            <template x-if="invisible().length">
+              <ul class="em__unsized">
+                <template x-for="r in invisible()" :key="`tiny:${r.key}`">
+                  <li x-text="`${r.machine} ${r.volume} — ${n(r.files)} files, too small to draw at this size`"></li>
+                </template>
+              </ul>
+            </template>
           </div></template>
 
           <!-- APPLICATIONS: the matrix, drifted rows first. -->
           <template x-if="tab === 'applications'"><div class="em__apps">
             <!-- A node that pushed no applications is named here rather than rendered as blank
                  cells, because a blank cell reads as "does not have it". -->
-            <p class="em__note" x-show="v.applications.notPushed.length" x-cloak
-              x-text="`No application list pushed by: ${v.applications.notPushed.join(', ')}. Their columns are empty because they have not said, not because they hold nothing.`"></p>
+            <template x-if="v.applications.notPushed.length">
+              <p class="em__note"
+                x-text="`No application list pushed by: ${v.applications.notPushed.join(', ')}. Their columns are empty because they have not said, not because they hold nothing.`"></p>
+            </template>
 
-            <p class="em__drift" x-show="v.drift.length" x-cloak
-              x-text="`${v.drift.length} product${v.drift.length === 1 ? '' : 's'} at different versions across the estate`"></p>
+            <template x-if="v.drift.length">
+              <p class="em__drift"
+                x-text="`${v.drift.length} product${v.drift.length === 1 ? '' : 's'} at different versions across the estate`"></p>
+            </template>
 
-            <table class="em__matrix" x-show="v.applications.rows.length" x-cloak>
-              <thead>
-                <tr>
-                  <th>product</th>
-                  <template x-for="m in v.applications.pushed" :key="m">
-                    <th x-text="m"></th>
-                  </template>
-                  <th>seen by</th>
-                </tr>
-              </thead>
-              <tbody>
-                <template x-for="row in v.applications.rows" :key="row.product">
-                  <tr :data-drifted="row.drifted">
-                    <td x-text="row.product"></td>
+            <template x-if="v.applications.rows.length">
+              <table class="em__matrix">
+                <thead>
+                  <tr>
+                    <th>product</th>
                     <template x-for="m in v.applications.pushed" :key="m">
-                      <td :data-missing="!row.byMachine[m]"
-                        x-text="(row.byMachine[m] || []).join(' / ') || '—'"></td>
+                      <th x-text="m"></th>
                     </template>
-                    <td class="em__sources" x-text="row.sources.join(', ')"></td>
+                    <th>seen by</th>
                   </tr>
-                </template>
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  <template x-for="row in v.applications.rows" :key="row.product">
+                    <tr :data-drifted="row.drifted">
+                      <td x-text="row.product"></td>
+                      <template x-for="m in v.applications.pushed" :key="m">
+                        <td :data-missing="!row.byMachine[m]"
+                          x-text="(row.byMachine[m] || []).join(' / ') || '—'"></td>
+                      </template>
+                      <td class="em__sources" x-text="row.sources.join(', ')"></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </template>
 
-            <p class="em__empty" x-show="!v.applications.rows.length" x-cloak>
-              No node has pushed an application list yet.
-            </p>
+            <template x-if="!v.applications.rows.length">
+              <p class="em__empty">
+                No node has pushed an application list yet.
+              </p>
+            </template>
           </div></template>
 
           <!-- MEDIA: how much each node found, how much it published, and the categories behind what
@@ -174,16 +198,22 @@
                 <li class="em__mediarow" :data-stale="m.stale" :data-swept="m.swept">
                   <b x-text="m.machine"></b>
                   <span x-text="mediaLine(m)"></span>
-                  <span class="em__volwhen" x-show="m.withheld > 0" x-cloak
-                    x-text="`${n(m.withheld)} withheld`"></span>
-                  <span class="em__sources" x-show="m.categories.length" x-cloak
-                    x-text="m.categories.map((c) => `${c.category} ${n(c.items)}`).join(' · ')"></span>
+                  <template x-if="m.withheld > 0">
+                    <span class="em__volwhen"
+                      x-text="`${n(m.withheld)} withheld`"></span>
+                  </template>
+                  <template x-if="m.categories.length">
+                    <span class="em__sources"
+                      x-text="m.categories.map((c) => `${c.category} ${n(c.items)}`).join(' · ')"></span>
+                  </template>
                 </li>
               </template>
             </ul>
-            <p class="em__empty" x-show="!v.media.swept.length" x-cloak>
-              No node has swept media yet, so this estate cannot say what media it holds.
-            </p>
+            <template x-if="!v.media.swept.length">
+              <p class="em__empty">
+                No node has swept media yet, so this estate cannot say what media it holds.
+              </p>
+            </template>
           </div></template>
         </div>
       </template>
