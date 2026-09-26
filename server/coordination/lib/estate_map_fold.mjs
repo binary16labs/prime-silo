@@ -245,13 +245,16 @@ export function isNewer(candidate, held) {
 // foldEstateMap(pushes, opts) — the estate map: the latest sweep per machine, and within it the
 // latest listing per volume. A machine that has stopped pushing keeps everything it last said and
 // is marked stale SINCE a time (§7: a node that stops pushing is never shown empty).
-// The default IS the shared constant, not a second spelling of thirty minutes. It used to be a
-// literal 1_800_000 here, which meant a caller that passed DEFAULT_MAP_MAX_AGE_MS and a caller that
-// passed nothing behaved identically while LOOKING different — so the S3 gate had to assert that
-// server/app.js passed the constant, an assertion about source text rather than about behaviour,
-// and that class of assertion is what S13 exists to remove. With one constant there is nothing left
-// to assert: omitting the option and passing it are the same thirty minutes, and the gate measures
-// the staleness the hub actually serves.
+// The default IS the shared constant, not a second spelling of thirty minutes. It was a literal
+// 1_800_000 here, which is a duplicate of a named value fifty lines below and reads as though the
+// two could differ.
+//
+// THE STRONGER CLAIM THIS COMMENT USED TO MAKE WAS WRONG, and it is corrected here rather than only
+// in the log, because a comment wider than its code is exactly this epic's recurring defect: it
+// said the duplicate literal was WHY the S3 gate had to assert that server/app.js passed the
+// constant. It was not. estate_api.mjs already defaulted to DEFAULT_MAP_MAX_AGE_MS before any of
+// this, so app.js's option was redundant either way and the gate's assertion had another reason.
+// The de-duplication is still worth having; the causal story attached to it was not measured.
 export function foldEstateMap(
   pushes = [],
   { now = Date.now(), maxAgeMs = DEFAULT_MAP_MAX_AGE_MS } = {}

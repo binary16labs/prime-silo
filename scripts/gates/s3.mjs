@@ -27,9 +27,10 @@
 // having verified anything is the exact fault this contract was written to end.
 import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
+import net from "node:net";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 import { buildManifest } from "../../server/coordination/lib/estate_register.mjs";
 
@@ -61,39 +62,90 @@ if (!/withMap\(/u.test(agent) || attachesMapItself) {
   process.exit(1);
 }
 
-// --- the hub, booted the way production boots it -------------------------------------------------
+// --- the hub, booted with nothing passed to it ---------------------------------------------------
 //
-// ROUND THREE, AND THE REASON IT IS DIFFERENT FROM ROUND TWO. Booting the product removed the stub
-// oracle and replaced it with a smaller one: claude-s13-verifier-3 found FIVE edits that keep this
-// gate green while leaving a production-shaped hub inert, every one of them keyed on an argument
-// ONLY THE GATE EVER PASSED. `overrides.estateRegisterKey ? reader(...) : []` was the sharpest:
-// grep the repo and that override appears in exactly two places, this gate and the option it reads,
-// so the expression literally said "be honest if and only if the s3 gate is booting me". The same
-// trick worked on a coordDir spelled `s3-gate-*`, on `runtimeParamOverrides` being passed at all,
-// and on process.argv[1] pointing into scripts/gates.
+// ROUND FOUR. Three designs have now been defeated the same way, and the third time it happened the
+// defeat was aimed at the fix for the second: an expression that asks "am I being audited?" and
+// answers honestly when it is. The signal it reads has got smaller each round — first the gate's
+// stubbed collaborators, then `estateRegisterKey`, then `coordDir` — but the shape never changed.
 //
-// THE RULE THAT FALLS OUT OF THAT, and the one this section is built on: A DISTINGUISHER IS ONLY
-// USEFUL TO AN ATTACKER IF KEYING OFF IT LEAVES PRODUCTION WORKING. So the gate turns only knobs
-// that production turns too:
-//   - no estateRegisterKey override: the key is written into a BENNY_HOME keystore and resolved by
-//     the product's own resolveRegisterKey(), exactly as on the owner's machines;
-//   - no runtimeParamOverrides: PORT, HOST and SINGLE_USER_APP arrive through the environment;
-//   - the coordination dir is named `coordination`, under a neutrally-named temp dir;
-//   - the boot happens in a CHILD PROCESS whose entry script is not a gate, which also means each
-//     world starts with fresh module state — an expression that is honest for the first N boots and
-//     inert afterwards has nowhere to hide;
-//   - one override remains, `coordDir`, and it is the one the product's own callers pass. An
-//     expression that goes inert when coordDir is supplied would take the test suite with it.
-// What no gate can remove is that SOMETHING differs from production; what it can do is make every
-// difference one that production also exhibits. That is the claim here, and it is bounded — see
-// WHAT THIS DOES NOT PROVE at the end.
+// claude-s13-verifier-4 measured what the previous comment here merely asserted. That comment said
+// coordDir "is the one the product's own callers pass" and that an expression going inert without it
+// "would take the test suite with it". Both halves were false: `coordDir` was passed by EXACTLY ONE
+// caller in the whole repository — this gate — and the suite passed 35/35 with the product inert.
+// It was the new estateRegisterKey, and I had written the sentence that made it look safe.
+//
+// SO THIS GATE NOW PASSES NOTHING. It spawns `node server/server.js`, which is what the owner's
+// machine runs, with no overrides of any kind. The coordination directory is therefore the product's
+// own default, `<projectRoot>/coordination` — the REAL one, whose quarantine policy this gate writes
+// and removes, and whose kel.jsonl it restores byte-identically afterwards. The key is resolved by
+// the product from a keystore that `benny init` would have written. Nothing named PSILO_ anything
+// exists, no entry script is generated, and no environment variable is set to a value production
+// never uses: the port is a real free port rather than 0, and ESTATE_REGISTER_KEY is left ABSENT
+// rather than set to the empty string, which was itself a signal the previous round armed.
+//
+// What is left to key on is the product's own configuration. An expression that goes inert on any of
+// it goes inert on the owner's machine.
 
 
 const KEY = "0123456789abcdef0123456789abcdef";
+const ESTATE = path.join(ROOT, "coordination", "estate");
+const QJSON = path.join(ESTATE, "quarantine.json");
+const KEL = path.join(ESTATE, "kel.jsonl");
 
-const sweep = (machine, volume, ageMs) => ({
+// The gate writes into the REAL coordination directory, so it takes a copy of everything it can
+// disturb and puts it back byte for byte. A gate that leaves the owner's estate state altered has
+// bought its evidence with the thing it was protecting.
+const read = (f) => (fs.existsSync(f) ? fs.readFileSync(f) : null);
+const put = (f, v) => (v === null ? fs.rmSync(f, { force: true }) : fs.writeFileSync(f, v));
+const SNAPSHOT = { q: read(QJSON), kel: read(KEL) };
+const restoreEstate = () => {
+  put(QJSON, SNAPSHOT.q);
+  put(KEL, SNAPSHOT.kel);
+};
+
+// A real port, not 0: production is configured with a port, and a gate that passes 0 hands the
+// product a value it only ever sees under test.
+const freePort = () =>
+  new Promise((resolve, reject) => {
+    const probe = net.createServer();
+    probe.on("error", reject);
+    probe.listen(0, "127.0.0.1", () => {
+      const { port } = probe.address();
+      probe.close(() => resolve(port));
+    });
+  });
+
+async function boot(home, port) {
+  const env = { ...process.env, BENNY_HOME: home, PORT: String(port), HOST: "127.0.0.1", SINGLE_USER_APP: "true" };
+  // absent, not empty: an empty ESTATE_REGISTER_KEY is a state the owner's machine never has
+  delete env.ESTATE_REGISTER_KEY;
+  const child = spawn(process.execPath, [path.join(ROOT, "server", "server.js")], {
+    cwd: ROOT,
+    env,
+    stdio: ["ignore", "pipe", "pipe"]
+  });
+  let out = "";
+  child.stdout.on("data", (b) => (out += b));
+  child.stderr.on("data", (b) => (out += b));
+  await new Promise((resolve, reject) => {
+    const deadline = Date.now() + 90_000;
+    const tick = setInterval(() => {
+      if (/listening at/u.test(out)) {
+        clearInterval(tick);
+        resolve();
+      } else if (child.exitCode !== null || Date.now() > deadline) {
+        clearInterval(tick);
+        reject(new Error(`the hub did not serve:\n${out.slice(0, 1200)}`));
+      }
+    }, 120);
+  });
+  return { child, port };
+}
+
+const sweep = (machine, volume, ageMs, tag) => ({
   machine,
-  sweep_id: `01M31Y102Z4631D8992T33C1F${machine.slice(-1).toUpperCase()}`,
+  sweep_id: `01M31Y102Z4631D8992T33C1F${tag}`,
   finished_at: new Date(Date.now() - ageMs).toISOString(),
   scope: [volume],
   collectors: [{ name: "everything", kind: "files", volume, status: "ok", rows: 3 }],
@@ -113,72 +165,10 @@ const sweep = (machine, volume, ageMs) => ({
   snapshot: `sha256:${"b".repeat(64)}`
 });
 
-// A world: a keystore holding the shared key, a coordination dir that either holds a quarantine
-// policy or does not, and a neutral entry script. Removed on the way out — a verifier counted
-// %TEMP% before and after this gate, and it must keep leaking nothing.
-function makeWorld(rules, base = os.tmpdir()) {
-  fs.mkdirSync(base, { recursive: true });
-  const dir = fs.mkdtempSync(path.join(base, "psilo-"));
-  fs.mkdirSync(path.join(dir, "home", "state"), { recursive: true });
-  fs.writeFileSync(path.join(dir, "home", "state", "estate-register-key"), `${KEY}\n`);
-  fs.mkdirSync(path.join(dir, "coordination", "estate"), { recursive: true });
-  if (rules !== undefined)
-    fs.writeFileSync(
-      path.join(dir, "coordination", "estate", "quarantine.json"),
-      JSON.stringify({ rules })
-    );
-  fs.writeFileSync(
-    path.join(dir, "serve.mjs"),
-    [
-      `import { createAgentServer } from ${JSON.stringify(pathToFileURL(path.join(ROOT, "server/app.js")).href)};`,
-      `const app = await createAgentServer({ coordDir: process.env.PSILO_COORD_DIR });`,
-      `await new Promise((r) => app.server.listen(0, "127.0.0.1", r));`,
-      `console.log("PORT=" + app.server.address().port);`
-    ].join("\n")
-  );
-  return dir;
-}
-
-async function serve(dir) {
-  const child = spawn(process.execPath, [path.join(dir, "serve.mjs")], {
-    cwd: ROOT,
-    env: {
-      ...process.env,
-      BENNY_HOME: path.join(dir, "home"),
-      BENNY_API_KEY: "f".repeat(64),
-      BENNY_AGENT_API_KEY: "e".repeat(64),
-      PSILO_COORD_DIR: path.join(dir, "coordination"),
-      // the satellite's env path is left EMPTY on purpose: the key must come from the keystore, the
-      // way it does on the owner's machines
-      ESTATE_REGISTER_KEY: "",
-      PORT: "0",
-      HOST: "127.0.0.1",
-      SINGLE_USER_APP: "true"
-    },
-    stdio: ["ignore", "pipe", "pipe"]
-  });
-  let out = "";
-  child.stdout.on("data", (b) => (out += b));
-  child.stderr.on("data", (b) => (out += b));
-  const port = await new Promise((resolve, reject) => {
-    const deadline = Date.now() + 60_000;
-    const tick = setInterval(() => {
-      const m = out.match(/PORT=(\d+)/u);
-      if (m) {
-        clearInterval(tick);
-        resolve(Number(m[1]));
-      } else if (child.exitCode !== null || Date.now() > deadline) {
-        clearInterval(tick);
-        reject(new Error(`the hub did not serve:\n${out.slice(0, 800)}`));
-      }
-    }, 100);
-  });
-  return { child, port };
-}
-
-const push = async (port, machine, volume, ageMs) => {
+let tag = 0;
+const push = async (port, machine, volume, ageMs = 30_000) => {
   const manifest = buildManifest(machine, [], []);
-  manifest.map = sweep(machine, volume, ageMs);
+  manifest.map = sweep(machine, volume, ageMs, String.fromCharCode(65 + (tag++ % 26)));
   const res = await fetch(`http://127.0.0.1:${port}/api/estate/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -188,68 +178,93 @@ const push = async (port, machine, volume, ageMs) => {
   return { accepted: res.status >= 200 && res.status < 300, status: res.status, reason: body.reason ?? null };
 };
 
-const fold = async (port) =>
+const fold = (port) =>
   fetch(`http://127.0.0.1:${port}/api/estate/map`)
     .then((r) => r.json())
     .catch(() => null);
 
-// One boot per POLICY rather than per push: the policy is what a world is, and eight boots would
-// make this gate slow enough that someone would want to weaken it.
-async function inWorld(rules, body, base) {
-  const dir = makeWorld(rules, base);
-  let served = null;
+// One world: a policy on disk (or none), a hub booted over the product's own coordination directory,
+// and whatever pushes the world needs. The BENNY_HOME keystore is the only temporary thing, and it
+// is removed; the estate is put back byte for byte.
+async function inWorld(rules, body) {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "psilo-home-"));
+  let booted = null;
   try {
-    served = await serve(dir);
-    return await body(served.port);
+    fs.mkdirSync(path.join(home, "state"), { recursive: true });
+    fs.writeFileSync(path.join(home, "state", "estate-register-key"), `${KEY}\n`);
+    // the per-install keystore `benny init` writes, so nothing reaches the product by environment
+    // that a real install would not already have on disk
+    fs.writeFileSync(path.join(home, "state", "hmac-key"), `${"7a".repeat(32)}\n`);
+    fs.mkdirSync(ESTATE, { recursive: true });
+    put(QJSON, rules === undefined ? null : Buffer.from(JSON.stringify({ rules })));
+    booted = await boot(home, await freePort());
+    return await body(booted.port);
   } finally {
-    if (served) served.child.kill();
-    fs.rmSync(dir, { recursive: true, force: true });
+    // Wait for the child to actually go before deleting its home: Windows refuses to remove a
+    // directory a living process still holds, and a gate that leaves debris behind on the paths it
+    // takes when something FAILS is a gate that litters exactly when someone is debugging it.
+    if (booted) {
+      booted.child.kill();
+      await new Promise((resolve) => {
+        if (booted.child.exitCode !== null || booted.child.signalCode !== null) return resolve();
+        const done = setTimeout(resolve, 5_000);
+        booted.child.once("exit", () => {
+          clearTimeout(done);
+          resolve();
+        });
+      });
+    }
+    restoreEstate();
+    fs.rmSync(home, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
   }
 }
 
 const MINUTE = 60_000;
 
-// THE WORLDS DO NOT ALL LIVE IN THE SAME KIND OF PLACE, and that is deliberate. Two mutations kept
-// this gate green by being honest ONLY when the coordination dir sat under the OS temp dir — one in
-// the quarantine expression and one in the reader's io — which would leave a hub serving the
-// owner's REAL coordination directory with an empty policy. Both die as soon as any world lives
-// somewhere else, so the policy world, the one whose rules must actually be enforced, is booted
-// outside the temp dir.
-const NOT_TEMP = path.join(os.homedir(), ".prime-silo-gate-worlds");
+// How many times the policy is consulted before the gate stops looking. A guard that is honest for
+// the first two consultations and empty afterwards passed the previous round, because no world it
+// booted needed the policy more than twice — fresh module state per world had closed "honest for the
+// first N BOOTS" and opened "honest for the first N REQUESTS".
+const DECAY_PROBES = 12;
 
 let worlds;
 try {
   worlds = {
     // fail closed: no policy file is not an empty policy, and a hub with no policy refuses maps
     noPolicy: await inWorld(undefined, async (port) => ({
-      push: await push(port, "t480", "F:\\Backup Drive", 30_000),
+      push: await push(port, "t480", "F:\\Backup Drive"),
       fold: await fold(port)
     })),
-    // A REAL POLICY, AND A FIXTURE THAT CANNOT BE SATISFIED BY LUCK. Two rules, and the volumes
-    // exercise both of them: a gate whose policy was a single rule was defeated by `policy.slice(0, 1)`
-    // — green here, and `F:\Payroll 2026` waved through on the owner's machine.
-    policy: await inWorld(["cv", "payroll"], async (port) => ({
-      quarantined: await push(port, "t480", "F:\\Payroll 2026", 30_000),
-      otherRule: await push(port, "t480", "F:\\CV drafts", 30_000),
-      clean: await push(port, "t480", "F:\\Backup Drive", 30_000),
-      // three ages in one fold: fresh, past the threshold, and long past it. The third is not
-      // redundant — `ageMs > maxAgeMs && ageMs < maxAgeMs * 10` passes a two-age check and tells the
-      // owner that a node silent for six hours is fine.
-      quiet: await push(port, "optimus", "F:\\Backup Drive", 45 * MINUTE),
-      silent: await push(port, "pi", "F:\\Backup Drive", 6 * 60 * MINUTE),
-      fold: await fold(port)
-    }), NOT_TEMP),
-    // the regex form parseQuarantinePolicy exists to support: a gate that only ever tried plain
-    // strings was defeated by `policy.filter((r) => typeof r === "string")`
+    // Two rules, a volume that matches the SECOND one, and a clean volume that must get through —
+    // without that last one a hub refusing every map would pass a gate that only checked refusals.
+    policy: await inWorld(["cv", "payroll"], async (port) => {
+      const first = await push(port, "t480", "F:\\Payroll 2026");
+      const otherRule = await push(port, "t480", "F:\\CV drafts");
+      const clean = await push(port, "t480", "F:\\Backup Drive");
+      // the same refusal, again, after the guard has been consulted many times
+      const late = [];
+      for (let i = 0; i < DECAY_PROBES; i++) late.push(await push(port, "t480", "F:\\Payroll 2026"));
+      return {
+        first,
+        otherRule,
+        clean,
+        late,
+        quiet: await push(port, "optimus", "F:\\Backup Drive", 45 * MINUTE),
+        silent: await push(port, "pi", "F:\\Backup Drive", 6 * 60 * MINUTE),
+        fold: await fold(port)
+      };
+    }),
+    // the regex form parseQuarantinePolicy exists to support
     regex: await inWorld(["/payroll/iu"], async (port) => ({
-      quarantined: await push(port, "t480", "F:\\PAYROLL 2026", 30_000)
+      quarantined: await push(port, "t480", "F:\\PAYROLL 2026")
     }))
   };
 } catch (e) {
+  restoreEstate();
   // Only blame the dependency tree when the dependency tree is actually missing: a product error
   // that merely CARRIES this code made an earlier version print the mklink advice and misdiagnose
-  // itself. It still exited non-zero, but a gate that names the wrong cause sends the next person
-  // to the wrong place.
+  // itself. It still exited non-zero, but a gate that names the wrong cause sends the next person to
+  // the wrong place.
   const missingTree = !fs.existsSync(path.join(ROOT, "node_modules"));
   if (missingTree && (e?.code === "ERR_MODULE_NOT_FOUND" || /Cannot find package/u.test(String(e.message)))) {
     console.error(
@@ -278,10 +293,10 @@ if (worlds.noPolicy.push.accepted)
       `folded ${machines(worlds.noPolicy.fold).length} machine(s) — the hub is inert: it has no ` +
       "policy and does not know it"
   );
-if (worlds.policy.quarantined.accepted)
+if (worlds.policy.first.accepted)
   fail(
     'under ["cv", "payroll"] the booted hub ACCEPTED a map whose scope names F:\\Payroll 2026 ' +
-      `(${worlds.policy.quarantined.status}) — the policy reaches the hub but is not enforced`
+      `(${worlds.policy.first.status}) — the policy reaches the hub but is not enforced`
   );
 if (worlds.policy.otherRule.accepted)
   fail(
@@ -298,6 +313,13 @@ if (!worlds.policy.clean.accepted)
     'under ["cv", "payroll"] the booted hub REFUSED a map of an unquarantined volume ' +
       `(${worlds.policy.clean.status}: ${worlds.policy.clean.reason}) — a hub that refuses every map ` +
       "is not a hub, and a gate that only checked refusals would call that success"
+  );
+const decayed = worlds.policy.late.findIndex((r) => r.accepted);
+if (decayed >= 0)
+  fail(
+    `the quarantine guard stopped working after ${decayed + 3} consultations: F:\\Payroll 2026 was ` +
+      "refused at first and ACCEPTED later in the same process. A hub that guards the first few " +
+      "pushes of its life and waves the rest through is the worst of both — it looks enforced"
   );
 if (!machines(worlds.policy.fold).includes("t480"))
   fail("the booted hub accepted the map and then served a fold without the machine in it");
@@ -317,27 +339,41 @@ for (const [name, label] of [
 }
 
 
-// WHAT THIS DOES NOT PROVE, stated because every earlier version of this gate claimed more than it
-// checked and that is the fault this contract was written to end:
+// WHAT THIS DOES NOT PROVE. Four rounds of this contract have turned on one thing: a comment here
+// claiming more than the code does. The previous version of this block invited a verifier to find a
+// signal the gate emits that production never emits, and called any such signal a defect in this
+// section. claude-s13-verifier-4 found six, so the invitation stands and the list below is what is
+// left after removing them.
+//   - WHAT IS STILL KEYABLE. This gate passes the product nothing, so what remains is the product's
+//     own configuration: BENNY_HOME is a temp directory, its keystore holds fixture values, the
+//     machine names and volume names are fixtures, and the map arrives by fetch rather than from the
+//     satellite agent. An expression keyed on any of those is keyed on something the owner's machine
+//     also has — a real BENNY_HOME, a real key, real machine names — so it cannot distinguish this
+//     boot from that one without also going inert there. That is the claim, and it is the claim to
+//     attack: if a future verifier finds a signal here that production never produces, that is a
+//     defect in this section and not a limitation of booting.
+//   - A GUARD THAT DECAYS AFTER MORE CONSULTATIONS THAN THIS GATE MAKES. The policy is exercised
+//     DECAY_PROBES times after it has already refused and accepted, so a guard honest for the first
+//     two, three or eleven consultations dies here. One honest for the first fifty does not, and no
+//     finite probe closes that — the bound is stated rather than implied, and the number is one line
+//     to raise.
 //   - THE SATELLITE'S SIDE OF THE WIRE. The hub oracle cannot see it. The withMap check above is
-//     textual and therefore weaker, and it forbids THREE SPELLINGS rather than the idea: a verifier
-//     attached a map under a computed key, `Object.assign(outbound, { ["ma" + "p"]: ... })`, and the
-//     gate stayed green. Closing that means driving the agent end to end, which is a contract of its
-//     own; until then this is a known hole and is written down as one rather than described as a
-//     guarantee.
+//     textual and forbids THREE SPELLINGS rather than the idea: a verifier attached a map under a
+//     computed key, `Object.assign(outbound, { ["ma" + "p"]: ... })`, and the gate stayed green.
+//     Closing it means driving the agent end to end, which is a contract of its own; until then it
+//     is a known hole rather than a guarantee.
 //   - AN AMBIENT SWITCH THAT IS DORMANT HERE. `quarantine: process.env.WHATEVER ? [] : reader(...)`
-//     is measured, not argued: with the variable unset the product is genuinely correct (the hub
-//     fail-closes and enforces the policy) and this gate is green, which is the right verdict; with
-//     it set the hub goes inert and this gate goes RED and says so. What no gate running on THIS
-//     machine can see is a switch armed on another one. That is deliberately not patched: an earlier
-//     version tried to exclude ambient switches structurally by shadowing `process`, and that
-//     shadowing was itself the fingerprint four bypasses used.
-//   - THAT NOTHING AT ALL DISTINGUISHES THIS BOOT FROM PRODUCTION. Something always will: the
-//     coordination dir is a temp path, the entry script is generated, the machine names are
-//     fixtures. What is claimed is narrower and testable — every knob this gate turns is one
-//     production turns too, so an expression that goes inert when it sees one of them goes inert in
-//     production as well. If a future verifier finds a signal here that production never produces,
-//     that is a defect in this section and not a limitation of booting.
+//     is measured, not argued: unset, the product is genuinely correct and this gate is green, which
+//     is the right verdict; set, the hub goes inert and this gate goes RED and says so. What no gate
+//     running on THIS machine can see is a switch armed on another one. An earlier round tried to
+//     exclude ambient switches structurally by shadowing `process`, and that shadowing was itself
+//     the fingerprint four bypasses used.
+//   - THAT THE PRODUCT IS CORRECT FOR CALLERS WHO PASS coordDir. It no longer does, and neither does
+//     anything else in the tree: the only caller that ever passed it was this gate. A mutation that
+//     reads the policy from projectRoot/coordination is therefore invisible here AND harmless on the
+//     owner's machine — measured on a zero-override boot, not assumed — but it would break an
+//     embedder who overrode coordDir. That is a latent break, not an inert hub, and it is written
+//     down rather than counted as a kill.
 const t = spawnSync(process.execPath, ["--test", "tests/estate_map_fold_test.mjs"], {
   cwd: ROOT,
   stdio: "inherit"
