@@ -1,0 +1,36 @@
+{
+  "$comment": "Content-level privacy pre-validation for LONGVIEW (privacy_gate.mjs). Case-insensitive regex tested against each session's CARD fields + raw EVIDENCE text. 'eject' = high-precision personal/CV/job-seeking/PII markers → the session is quarantined before the model/graph phase (nothing personal reaches Neo4j, the vectors, the SAD or the book). 'review' = weaker signals → reported as warnings, never auto-ejected (avoids false positives on legitimate technical content that mentions 'cv'/'salary' in passing). Tune here — no code change; re-run the gate.",
+  "$note_resume": "Do NOT add a bare 'resume' pattern — this technical corpus is saturated with 'resume-safe'/'resume the run'. The CV document only matches reliably when ACCENTED (résumé) or via 'curriculum vitae'/'my cv'/'cover letter'/cv-path. American un-accented 'resume' is indistinguishable from the verb, so it is intentionally NOT an eject signal.",
+  "eject": [
+    "curriculum vitae",
+    "\\bmy cv\\b",
+    "tailor(ed|ing)? (my |the )?cv",
+    "review (my |the )?cv\\b",
+    "(résumé|resumé|résume)",
+    "documents[\\\\/]cv[\\\\/]",
+    "find me (some |a )?jobs?",
+    "indeed\\.com",
+    "job (application|search|hunt|posting)",
+    "\\bjob spec(ification)?\\b",
+    "hiring manager",
+    "salary (expectation|requirement|range|history)",
+    "national insurance (number|no\\b)",
+    "passport (number|no\\b)",
+    "date of birth",
+    "\\bd\\.o\\.b\\.",
+    "export all of my (stored )?memories"
+  ],
+  "review": [
+    "\\bcv\\b",
+    "\\bsalary\\b",
+    "\\brecruiter\\b",
+    "linkedin",
+    "personal (email|address|phone|mobile)",
+    "cover(ing)? letter",
+    "job description",
+    "enterprise architect (role|position|vacancy)",
+    "t\\.?\\s*rowe price",
+    "ftse russell",
+    "a friend has asked"
+  ]
+}
