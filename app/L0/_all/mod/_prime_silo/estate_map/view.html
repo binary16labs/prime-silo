@@ -1,5 +1,8 @@
 <html>
   <head>
+    <!-- This file is full of ·, — and …, and a view served without a charset is served as the
+         browser's guess. -->
+    <meta charset="utf-8" />
     <!-- Same reason as the Release, Gov and Lineage arcs: the shell's index.css imports only
          google-icons, so every var(--space-*) / var(--font-size-*) is undefined unless the view
          links these itself. A view that loads without its stylesheet is a blank page, and a blank
@@ -13,29 +16,35 @@
     <section class="em" x-data="estateMapPage()" x-init="init()" x-cloak>
       <header class="em__head">
         <h1 class="em__title">Estate Map</h1>
-        <span class="em__age" x-show="v.reachable" x-cloak
-          x-text="`${v.machines.length} node${v.machines.length === 1 ? '' : 's'} reporting`"></span>
+        <template x-if="v.reachable && !v.empty"><span class="em__age" x-text="reportingLine()"></span></template>
       </header>
 
       <!-- Unreachable is not empty. The hub not answering says nothing about what the estate holds,
            and rendering zero machines here would be a claim this page cannot support. -->
-      <div class="em__blind" x-show="!loading && !v.reachable" x-cloak>
+      <template x-if="!loading && !v.reachable"><div class="em__blind">
         <strong>Cannot tell</strong>
         <p x-text="v.reason || 'the estate map could not be read'"></p>
-      </div>
+      </div></template>
 
-      <p class="em__loading" x-show="loading" x-cloak>Reading the estate map…</p>
+      <!-- Reachable and holding nothing is its own answer, and it is the state a fail-closed hub is
+           in before any policy exists. Saying so beats blank space that reads as a broken page. -->
+      <template x-if="!loading && v.reachable && v.empty"><div class="em__nothing">
+        <strong>No node has pushed a map yet</strong>
+        <p x-text="v.emptyReason"></p>
+      </div></template>
 
-      <template x-if="!loading && v.reachable">
+      <template x-if="loading"><p class="em__loading">Reading the estate map…</p></template>
+
+      <template x-if="!loading && v.reachable && !v.empty">
         <div class="em__body">
           <nav class="em__tabs">
-            <template x-for="t in ['estate', 'storage', 'applications']" :key="t">
+            <template x-for="t in ['estate', 'storage', 'applications', 'media']" :key="t">
               <button class="em__tab" :data-on="tab === t" @click="tab = t; $nextTick(() => layout())" x-text="t"></button>
             </template>
           </nav>
 
           <!-- ESTATE: one card per node, stale ones included and labelled. -->
-          <div class="em__cards" x-show="tab === 'estate'" x-cloak>
+          <template x-if="tab === 'estate'"><div class="em__cards">
             <template x-for="m in v.machines" :key="m.machine">
               <article class="em__card" :data-stale="m.stale">
                 <header class="em__cardhead">
@@ -45,21 +54,21 @@
                 <p class="em__when" x-text="machineLine(m)"></p>
 
                 <dl class="em__counts">
-                  <div><dt>files</dt><dd x-text="(m.counts.listed_files ?? 0).toLocaleString()"></dd></div>
+                  <div><dt>files</dt><dd x-text="n(m.counts.listed_files)"></dd></div>
                   <div><dt>size</dt><dd x-text="bytes(m.counts.bytes ?? 0)"></dd></div>
-                  <div><dt>apps</dt><dd x-text="(m.counts.listed_apps ?? 0).toLocaleString()"></dd></div>
+                  <div><dt>apps</dt><dd x-text="n(m.counts.listed_apps)"></dd></div>
                 </dl>
 
                 <!-- What the node did NOT publish. A count with nothing behind it is not evidence,
                      so the number is shown rather than folded silently into the totals. -->
                 <p class="em__withheld" x-show="m.withheld > 0" x-cloak
-                  x-text="`${m.withheld.toLocaleString()} files withheld by this node's privacy rules`"></p>
+                  x-text="`${n(m.withheld)} files withheld by this node's privacy rules`"></p>
 
                 <ul class="em__vols">
                   <template x-for="vol in m.volumes" :key="vol.volume">
                     <li class="em__vol" :data-state="vol.status">
                       <b x-text="vol.volume"></b>
-                      <span x-text="`${vol.rows.toLocaleString()} files`"></span>
+                      <span x-text="`${n(vol.rows)} files`"></span>
                       <span class="em__volwhen" x-text="`${vol.collector ?? 'unknown'} · ${ageOf(vol)}`"></span>
                       <span class="em__volerr" x-show="vol.errorCode" x-cloak x-text="vol.errorCode"></span>
                     </li>
@@ -67,32 +76,55 @@
                 </ul>
               </article>
             </template>
-          </div>
+          </div></template>
 
-          <!-- STORAGE: the treemap, and beside it whatever could not be sized. -->
-          <div class="em__storage" x-show="tab === 'storage'" x-cloak>
+          <!-- STORAGE: two units in one picture, said out loud, and a reconciliation the owner can
+               check by subtraction. -->
+          <template x-if="tab === 'storage'"><div class="em__storage">
             <p class="em__note">
-              Sizes are derived: the map reports bytes per machine and files per volume, so each
-              volume is shown its share of its machine's bytes.
+              Machines are sized by the bytes they reported. The volumes inside a machine are sized
+              by <b>file count</b>, not bytes: the map carries bytes per machine and files per
+              volume, and no per-volume byte figure crosses the wire. Nothing here is estimated.
             </p>
             <div class="em__map">
-              <template x-for="r in rects" :key="r.key">
-                <div class="em__rect" :style="`left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px`">
-                  <span class="em__rectname" x-text="r.volume"></span>
-                  <span class="em__rectsize" x-text="bytes(r.value)"></span>
-                  <span class="em__rectmachine" x-text="r.machine"></span>
+              <template x-for="r in drawn()" :key="r.key">
+                <div class="em__rect" :data-level="r.level" :data-stale="r.stale"
+                  :style="`left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px`">
+                  <span class="em__rectname" x-text="r.level === 'machine' ? r.machine : r.volume"></span>
+                  <span class="em__rectsize" x-text="rectSize(r)"></span>
+                  <span class="em__rectfloor" x-show="r.level === 'volume' && r.withheldBytes" x-cloak
+                    x-text="floorLine(r)"></span>
+                  <span class="em__recterr" x-show="r.errorCode" x-cloak x-text="r.errorCode"></span>
                 </div>
               </template>
             </div>
-            <ul class="em__unsized" x-show="(v.storage?.unsized || []).length" x-cloak>
-              <template x-for="u in v.storage.unsized" :key="u.key">
-                <li x-text="`${u.machine} ${u.volume} — ${u.rows.toLocaleString()} files, no size reported`"></li>
+
+            <!-- EVERY BYTE IS EITHER IN THE PICTURE OR NAMED BELOW IT. -->
+            <p class="em__recon">
+              <span x-text="`${bytes(v.storage.bytes.reported)} reported by the nodes`"></span>
+              <span x-text="`${bytes(v.storage.bytes.drawn)} drawn`"></span>
+              <span class="em__reconmiss" x-show="v.storage.bytes.missing > 0" x-cloak
+                x-text="`${bytes(v.storage.bytes.missing)} on nodes with no volume to draw`"></span>
+              <span x-show="v.storage.withheldBytes > 0" x-cloak
+                x-text="`at least ${bytes(v.storage.withheldBytes)} withheld by node policy`"></span>
+            </p>
+
+            <ul class="em__unsized" x-show="v.storage.unaccounted.length" x-cloak>
+              <template x-for="u in v.storage.unaccounted" :key="u.key">
+                <li :data-state="u.status" x-text="unaccountedLine(u)"></li>
               </template>
             </ul>
-          </div>
+
+            <!-- A rectangle too small to see is listed rather than counted invisibly. -->
+            <ul class="em__unsized" x-show="invisible().length" x-cloak>
+              <template x-for="r in invisible()" :key="`tiny:${r.key}`">
+                <li x-text="`${r.machine} ${r.volume} — ${n(r.files)} files, too small to draw at this size`"></li>
+              </template>
+            </ul>
+          </div></template>
 
           <!-- APPLICATIONS: the matrix, drifted rows first. -->
-          <div class="em__apps" x-show="tab === 'applications'" x-cloak>
+          <template x-if="tab === 'applications'"><div class="em__apps">
             <!-- A node that pushed no applications is named here rather than rendered as blank
                  cells, because a blank cell reads as "does not have it". -->
             <p class="em__note" x-show="v.applications.notPushed.length" x-cloak
@@ -105,7 +137,9 @@
               <thead>
                 <tr>
                   <th>product</th>
-                  <template x-for="m in v.applications.pushed" :key="m"><th x-text="m"></th></template>
+                  <template x-for="m in v.applications.pushed" :key="m">
+                    <th x-text="m"></th>
+                  </template>
                   <th>seen by</th>
                 </tr>
               </thead>
@@ -126,7 +160,31 @@
             <p class="em__empty" x-show="!v.applications.rows.length" x-cloak>
               No node has pushed an application list yet.
             </p>
-          </div>
+          </div></template>
+
+          <!-- MEDIA: how much each node found, how much it published, and the categories behind what
+               it held back. A node that has not swept media says so rather than reading as zero. -->
+          <template x-if="tab === 'media'"><div class="em__media">
+            <p class="em__note">
+              Per-root media listings are S5's work. What the map carries today is how much media
+              each node found and how much of it it published.
+            </p>
+            <ul class="em__medialist">
+              <template x-for="m in v.media.machines" :key="m.machine">
+                <li class="em__mediarow" :data-stale="m.stale" :data-swept="m.swept">
+                  <b x-text="m.machine"></b>
+                  <span x-text="mediaLine(m)"></span>
+                  <span class="em__volwhen" x-show="m.withheld > 0" x-cloak
+                    x-text="`${n(m.withheld)} withheld`"></span>
+                  <span class="em__sources" x-show="m.categories.length" x-cloak
+                    x-text="m.categories.map((c) => `${c.category} ${n(c.items)}`).join(' · ')"></span>
+                </li>
+              </template>
+            </ul>
+            <p class="em__empty" x-show="!v.media.swept.length" x-cloak>
+              No node has swept media yet, so this estate cannot say what media it holds.
+            </p>
+          </div></template>
         </div>
       </template>
     </section>

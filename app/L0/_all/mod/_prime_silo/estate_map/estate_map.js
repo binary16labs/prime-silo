@@ -9,13 +9,13 @@
 // REFRESH IS SLOW ON PURPOSE. The answer behind this page changes when a node finishes a sweep and
 // pushes, which is minutes apart at best. Polling harder would imply the page is live when it is a
 // fold of pushes, and the age line would start contradicting the refresh rate.
-import { ageLabel, byteLabel, estateView, treemap } from "/mod/_prime_silo/estate_map/fold_view.js";
+import { ageLabel, byteLabel, estateView, storageRects } from "/mod/_prime_silo/estate_map/fold_view.js";
 
 const REFRESH_MS = 60_000;
 
 window.estateMapPage = function estateMapPage() {
   return {
-    v: { reachable: false, machines: [] },
+    v: { reachable: false, empty: false, machines: [] },
     loading: true,
     tab: "estate",
     rects: [],
@@ -54,16 +54,37 @@ window.estateMapPage = function estateMapPage() {
       const box = this.$el?.querySelector(".em__map")?.getBoundingClientRect?.();
       const w = Math.max(0, Math.floor(box?.width ?? 0));
       const h = Math.max(0, Math.floor(box?.height ?? 0));
-      this.rects = w && h ? treemap(this.v.storage?.items ?? [], { x: 0, y: 0, w, h }) : [];
+      this.rects = w && h ? storageRects(this.v.storage, { x: 0, y: 0, w, h }) : [];
     },
 
     bytes: byteLabel,
+
+    n(x) {
+      return (Number(x) || 0).toLocaleString();
+    },
+
+    // What is actually drawn, so the legend and the map cannot disagree: a volume the layout could
+    // not give a visible rectangle is named instead of counted silently.
+    drawn() {
+      return this.rects.filter((r) => !r.tooSmall);
+    },
+
+    invisible() {
+      return this.rects.filter((r) => r.tooSmall);
+    },
 
     // "stale since 10:00" — the whole point of §7. A machine is never rendered as empty because it
     // went quiet, and the card says WHEN it went quiet rather than how long ago in the abstract.
     machineLine(m) {
       if (m.stale) return `stale since ${this.clock(m.since)} · ${m.ageLabel} ago`;
       return `swept ${m.ageLabel} ago`;
+    },
+
+    // "N nodes reporting" is a true sentence that reads as a false one when every node is quiet.
+    reportingLine() {
+      const n = this.v.machines.length;
+      const noun = `${n} node${n === 1 ? "" : "s"}`;
+      return this.v.allStale ? `${noun}, all of them stale` : `${noun} reporting`;
     },
 
     // a volume the newest sweep did not cover keeps its own age, so the card cannot imply that
@@ -80,10 +101,25 @@ window.estateMapPage = function estateMapPage() {
         : d.toLocaleString(undefined, { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" });
     },
 
-    driftLine(row) {
-      return Object.entries(row.byMachine)
-        .map(([machine, versions]) => `${machine} ${versions.join(" / ")}`)
-        .join(" · ");
+    // A rectangle says what unit it is in. The machine level is bytes, which the nodes reported;
+    // the volume level is files, because per-volume bytes are not on the wire at all.
+    rectSize(r) {
+      return r.level === "machine" ? this.bytes(r.value) : `${this.n(r.files)} files`;
+    },
+
+    // The floor under a volume's real size: the bytes a node said it was withholding. A floor,
+    // never the volume's size.
+    floorLine(v) {
+      return v.withheldBytes ? `at least ${this.bytes(v.withheldBytes)} withheld` : "";
+    },
+
+    unaccountedLine(u) {
+      return [`${u.machine} ${u.volume}`, u.why, u.errorCode].filter(Boolean).join(" — ");
+    },
+
+    mediaLine(m) {
+      if (!m.swept) return "has not swept media";
+      return `${this.n(m.listed)} of ${this.n(m.found)} published`;
     }
   };
 };

@@ -292,3 +292,112 @@
 .em__empty {
   color: var(--color-text-tertiary);
 }
+
+/* --- reachable and holding nothing ---------------------------------------------------------- */
+
+/* Not an error and not a blank page: the hub answered and has nothing yet. Bordered like the blind
+ * state so it reads as a real answer, but in the soft border rather than the danger one — being
+ * empty is a fact about the estate, not a fault in the panel. */
+.em__nothing {
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-3);
+  padding: var(--space-4);
+  background: var(--color-surface-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.em__nothing p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-2);
+}
+
+/* --- storage: two nested levels, two units -------------------------------------------------- */
+
+/* The machine rectangle is the container and reads as one; the volumes sit inside it. Sizing them
+ * alike would hide that they are measured in different units. */
+.em__rect[data-level="machine"] {
+  background: var(--color-surface-2);
+  border-color: var(--color-border-strong);
+  /* The machine's name and the bytes it reported share ONE line, so the volumes inset below them
+   * cannot cover the only authoritative byte figure on this tab. */
+  flex-direction: row;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.em__rect[data-level="volume"] {
+  background: var(--color-accent-primary-soft);
+}
+
+/* A quiet node's bytes are real but old, so the rectangle dims rather than disappearing — the same
+ * vocabulary the cards use. */
+.em__rect[data-stale="true"] {
+  border-style: dashed;
+  opacity: 0.72;
+}
+
+.em__rectfloor {
+  color: var(--color-text-tertiary);
+}
+
+.em__recterr {
+  color: var(--color-status-danger);
+  letter-spacing: 0.04em;
+}
+
+/* The subtraction the owner can check: reported, drawn, and whatever is neither. */
+.em__recon {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-2);
+}
+
+.em__reconmiss {
+  color: var(--color-status-warning);
+}
+
+.em__unsized li[data-state="errored"] {
+  color: var(--color-status-danger);
+}
+
+/* --- media ---------------------------------------------------------------------------------- */
+
+.em__media {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.em__medialist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.em__mediarow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: baseline;
+  font-size: var(--font-size-2);
+  border-top: 1px solid var(--color-border-soft);
+  padding-top: var(--space-2);
+}
+
+/* A node that has not swept media is dimmed and says so; it is not a node with no media. */
+.em__mediarow[data-swept="false"] {
+  color: var(--color-text-tertiary);
+}
+
+.em__mediarow[data-stale="true"] b {
+  color: var(--color-status-warning);
+}
