@@ -1,10 +1,38 @@
 #!/usr/bin/env node
 // Gate S3 — nodes push their map, the hub folds one estate map.
+//
+// THIS GATE BOOTS THE PRODUCT, and that is the whole point of S13. Three earlier versions of this
+// check asked server/app.js's SOURCE TEXT what the product does. The first two matched strings; the
+// third lifted the options object out of the file and ran it with its collaborators stubbed. All
+// three were defeated, the last one seven separate times by claude-s13-verifier-2, and every bypass
+// ended the same way: gate green, hub accepting a map with no quarantine policy on disk — the inert
+// state the whole R31 wiring exists to prevent.
+//
+// Those are not bugs in three implementations. They are two properties of the approach:
+//   (i)  AN EXPRESSION RUN WITH STUBS CAN SEE THE STUBS. Every stub is a distinguisher. `typeof
+//        process` never throws however thoroughly process is shadowed; coordDir was a sentinel
+//        string the product never sees; the bus was null. So the expression could consult the real
+//        reader under audit and hand the product an empty policy in production. Removing that
+//        oracle means making the stub environment indistinguishable from a real one, which IS
+//        booting the server.
+//   (ii) THE LIFTED TEXT IS NOT PROVABLY THE CODE THAT RUNS. The gate matched an identifier;
+//        JavaScript dispatches a value. `const build = createEstateApi` plus a never-taken decoy
+//        call satisfied every textual rule while a different call was the live one. Deciding which
+//        call really runs IS running it.
+//
+// So the product assertion is now the only kind that cannot be talked around: boot the real hub on
+// a real loopback socket, push a real map, and ask what the hub DID with it. It is also shorter than
+// the machinery it replaces. What it costs is node_modules — and when they are missing this gate
+// FAILS AND SAYS SO rather than skipping the check, because a gate that reports green without
+// having verified anything is the exact fault this contract was written to end.
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { createAgentServer } from "../../server/app.js";
+import { buildManifest } from "../../server/coordination/lib/estate_register.mjs";
 import { DEFAULT_MAP_MAX_AGE_MS } from "../../server/coordination/lib/estate_map_fold.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -20,6 +48,10 @@ for (const f of [
 // The satellite agent is the outbound edge, and it must reach the wire through withMap() — which
 // judges the payload AND keeps the sessions when the map cannot go. What withMap does is tested;
 // this only checks the agent goes through it rather than composing the manifest itself.
+//
+// THIS ONE IS STILL A TEXTUAL CHECK, and the comment says so rather than implying otherwise: it is
+// weaker evidence than the boot below, and it survives here only because the hub oracle cannot see
+// the satellite's side of the wire at all. If the agent is ever driven end to end, delete it.
 const agent = fs.readFileSync(path.join(ROOT, "scripts/estate_satellite_agent.mjs"), "utf8");
 // Any syntax that puts a map onto a manifest without withMap's verdict: an assignment, a bracket
 // assignment, or an object literal carrying a map key. The agent may call withMap and then ignore
@@ -31,123 +63,155 @@ if (!/withMap\(/u.test(agent) || attachesMapItself) {
   process.exit(1);
 }
 
-// The PRODUCT wiring, not the tests' wiring. The tests build the estate API directly and pass a
-// policy, so they cannot see that server/app.js passed none — which is how the quarantine guard
-// shipped as dead code (claude-s3-verifier's D2). This assertion is the only thing that looks.
-// THE PRODUCT'S OWN EXPRESSION, EVALUATED — not matched. Two earlier versions of this check read
-// server/app.js and looked for strings in it; the second was defeated by appending "?? []" to the
-// quarantine expression: green gate, hub with an empty policy, which is the inert state the D2
-// amendment exists to prevent (claude-s3-verifier-3's F1, its X20 mutation). That was the third
-// time in this contract that an assertion claimed more than it checked.
-//
-// So the options object server/app.js passes to createEstateApi is lifted out and RUN, with the
-// identifiers it closes over replaced by stubs. The policy reader's stub returns a sentinel, so the
-// gate can see what the product actually does with the reader's answer rather than that it merely
-// mentions it. What this does NOT do is boot the server: it proves the expression, not the socket.
-// The socket is proven by the tests, which drive the real API, and by S3's real-machine run.
-// Comments are not code. The first version of this lifted the FIRST occurrence of
-// "createEstateApi({" in the file, so a decoy above the real call satisfied it — and the decoy did
-// not even have to run: a commented-out block scored green while the real call handed the hub an
-// empty policy (claude-s13-verifier's G1, W2). Strings are left alone: a "createEstateApi({" inside
-// one would be indistinguishable from the real thing, so the count below refuses that too.
-function withoutComments(src) {
-  return src.replace(/\/\*[\s\S]*?\*\//gu, " ").replace(/(^|[^:])\/\/[^\n]*/gu, "$1");
+// --- the hub, booted ---------------------------------------------------------------------------
+
+const KEY = "s3-gate-key";
+
+const sweep = (volume, finishedAt) => ({
+  machine: "t480",
+  sweep_id: "01M31Y102Z4631D8992T33C1FW",
+  finished_at: finishedAt,
+  scope: [volume],
+  collectors: [{ name: "everything", kind: "files", volume, status: "ok", rows: 3 }],
+  counts: {
+    files: 3,
+    bytes: 300,
+    listed_files: 3,
+    apps: 0,
+    listed_apps: 0,
+    media: 0,
+    listed_media: 0
+  },
+  totals: [
+    { kind: "files", collector: "everything", volume, category: "code", items: 3, bytes: 300 }
+  ],
+  digest: "a".repeat(64),
+  snapshot: `sha256:${"b".repeat(64)}`
+});
+
+// One world: a coordination dir that either holds a quarantine policy or does not, a real hub booted
+// over it, one map pushed, and the folded map read back. The dir is removed on the way out — this
+// gate leaked nothing into %TEMP% before (a verifier counted the entries) and must not start now.
+async function hubGiven({ policy, volume = "F:\\Backup Drive", ageMs = 30_000 }) {
+  const coordDir = fs.mkdtempSync(path.join(os.tmpdir(), "s3-gate-"));
+  let server = null;
+  try {
+    fs.mkdirSync(path.join(coordDir, "estate"), { recursive: true });
+    if (policy !== undefined)
+      fs.writeFileSync(
+        path.join(coordDir, "estate", "quarantine.json"),
+        JSON.stringify({ rules: policy })
+      );
+    // PORT 0 and an explicit loopback listen: the gate must never open a LAN socket, whatever the
+    // machine's HOST happens to be set to.
+    const runtime = await createAgentServer({
+      coordDir,
+      estateRegisterKey: KEY,
+      runtimeParamOverrides: { PORT: "0", SINGLE_USER_APP: "true" }
+    });
+    server = runtime.server;
+    await new Promise((r) => server.listen(0, "127.0.0.1", r));
+    const port = server.address().port;
+    const manifest = buildManifest("t480", [], []);
+    manifest.map = sweep(volume, new Date(Date.now() - ageMs).toISOString());
+    const res = await fetch(`http://127.0.0.1:${port}/api/estate/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: KEY, manifest })
+    });
+    const body = await res.json().catch(() => ({}));
+    const fold = await fetch(`http://127.0.0.1:${port}/api/estate/map`)
+      .then((r) => r.json())
+      .catch(() => null);
+    const held = fold?.machines?.t480 ?? null;
+    return {
+      accepted: res.status >= 200 && res.status < 300,
+      status: res.status,
+      reason: body.reason ?? null,
+      machines: Object.keys(fold?.machines ?? {}),
+      stale: held?.stale ?? null
+    };
+  } finally {
+    if (server) await new Promise((r) => server.close(r));
+    fs.rmSync(coordDir, { recursive: true, force: true });
+  }
 }
 
-// The product's estate-API options, EVALUATED. What this can and cannot prove is set out at the
-// bottom of this comment, because three earlier versions of this check described themselves as
-// stronger than they were and that is the fault this whole contract exists to stop repeating.
-function productEstateOptions({ policy, override }) {
-  const raw = fs.readFileSync(path.join(ROOT, "server/app.js"), "utf8");
-  const src = withoutComments(raw);
-
-  // (a) EXACTLY ONE call. Two is a decoy, zero is not a product.
-  const calls = src.split("createEstateApi(").length - 1;
-  if (calls !== 1)
-    throw new Error(`server/app.js builds the estate API ${calls} times; it must do so exactly once`);
-
-  // (b) The policy reader may be IMPORTED under its own name and nothing else. A const, let, var
-  // or function declaration rebinds the identifier this gate stubs, so the stub would measure a
-  // function the product no longer calls; and "readQuarantinePolicy as somethingElse" renames the
-  // import away, leaving the call site resolving to the stub here and to nothing in the product
-  // (claude-s13-verifier's G2, both costumes).
-  const rebound =
-    /(?:\b(?:const|let|var|function)\s+readQuarantinePolicy\b)|(?:\bas\s+readQuarantinePolicy\b)|(?:\breadQuarantinePolicy\s+as\b)/u;
-  if (rebound.test(src))
-    throw new Error("server/app.js rebinds readQuarantinePolicy; the gate could not see past it");
-
-  const open = src.indexOf("createEstateApi(");
-  const close = src.indexOf("\n    })", open);
-  if (close < 0) throw new Error("server/app.js does not build the estate API");
-  const literal = src.slice(open + "createEstateApi(".length, close + "\n    }".length);
-
-  // (c) The expression is run with every free identifier it may reach for supplied as a parameter —
-  // INCLUDING process and globalThis, shadowed to undefined, so an ambient switch throws rather
-  // than quietly deciding the policy (G3).
-  let readerCalls = 0;
-  const make = new Function(
-    "overrides",
-    "path",
-    "fs",
-    "coordDir",
-    "coordinationBus",
-    "readQuarantinePolicy",
-    "resolveRegisterKey",
-    "DEFAULT_MAP_MAX_AGE_MS",
-    "process",
-    "globalThis",
-    `return ${literal};`
-  );
-  const options = make(
-    override,
-    path,
-    fs,
-    "/coord",
-    null,
-    (...args) => {
-      readerCalls++;
-      return typeof policy === "function" ? policy(...args) : policy;
-    },
-    () => "key",
-    DEFAULT_MAP_MAX_AGE_MS,
-    undefined,
-    undefined
-  );
-  // (d) and it must have CONSULTED the reader, exactly once. An expression that ignores it is one
-  // that decided the policy on its own.
-  if (readerCalls !== 1)
-    throw new Error(`server/app.js consulted its policy reader ${readerCalls} times, not once`);
-  return options;
+let worlds;
+try {
+  worlds = {
+    // fail closed: no policy file is not an empty policy, and a hub with no policy refuses maps
+    noPolicy: await hubGiven({ policy: undefined }),
+    // a real policy, and a volume its rules name
+    quarantined: await hubGiven({ policy: ["payroll"], volume: "F:\\Payroll 2026" }),
+    // the same policy and a volume it does not name: this one must get through, or a hub that
+    // refuses every map would pass a gate that only checked refusals
+    clean: await hubGiven({ policy: ["payroll"] }),
+    // older than the shared threshold: the fold must call it stale rather than drop it or call it
+    // fresh. This is what replaces asserting the threshold was passed — the fold's own default is
+    // now that same named constant, so passing it and omitting it are the same behaviour, and
+    // behaviour is what this gate measures.
+    quiet: await hubGiven({ policy: ["payroll"], ageMs: DEFAULT_MAP_MAX_AGE_MS + 15 * 60_000 })
+  };
+} catch (e) {
+  if (e?.code === "ERR_MODULE_NOT_FOUND") {
+    console.error(
+      `[s3] FAIL: the hub could not be booted — ${String(e.message).split("\n")[0]}\n` +
+        "[s3] This gate proves the product by RUNNING it, so it needs the dependency tree. In a\n" +
+        "[s3] fresh worktree, junction the repo's node_modules in:\n" +
+        `[s3]   cmd /c mklink /J "${path.join(ROOT, "node_modules")}" "<repo>\\node_modules"\n` +
+        "[s3] It does NOT skip the check and report green."
+    );
+    process.exit(1);
+  }
+  throw e;
 }
 
-// WHAT THIS PROVES: that the single estate-API call in server/app.js, run with its collaborators
-// stubbed, hands the hub the policy its reader returned and the shared staleness threshold — and
-// that the reader is neither rebound nor bypassed. WHAT IT DOES NOT PROVE: that the server boots,
-// or that the route behaves. Those are the tests' job and S3's real-machine run. Booting the
-// product here was tried and dropped: it needs node_modules, which a fresh worktree does not have
-// (the import itself fails there; a verifier who wants the stronger check can junction
-// node_modules into the worktree, which is what claude-s13-verifier did).
-
-
-// With no policy on disk the reader returns null, and null is what the hub must be given: an empty
-// list would be a policy, and a hub with a policy accepts maps.
-const noPolicy = productEstateOptions({ policy: null, override: {} });
-if (noPolicy.quarantine !== null) {
-  console.error(
-    `[s3] FAIL: with no policy on disk the product hands the hub ${JSON.stringify(noPolicy.quarantine)}, not null — the hub would be inert`
-  );
+const fail = (msg) => {
+  console.error(`[s3] FAIL: ${msg}`);
   process.exit(1);
-}
-const realPolicy = productEstateOptions({ policy: ["payroll"], override: {} });
-if (!Array.isArray(realPolicy.quarantine) || realPolicy.quarantine[0] !== "payroll") {
-  console.error("[s3] FAIL: the product does not hand the hub the policy its reader returned");
-  process.exit(1);
-}
-if (noPolicy.mapMaxAgeMs !== DEFAULT_MAP_MAX_AGE_MS) {
-  console.error("[s3] FAIL: the product does not pass the staleness threshold");
-  process.exit(1);
-}
+};
 
+if (worlds.noPolicy.accepted)
+  fail(
+    `with no quarantine.json on disk the booted hub ACCEPTED a map (${worlds.noPolicy.status}) and ` +
+      `folded ${worlds.noPolicy.machines.length} machine(s) — the hub is inert: it has no policy ` +
+      "and does not know it"
+  );
+if (worlds.quarantined.accepted)
+  fail(
+    'under the policy ["payroll"] the booted hub ACCEPTED a map whose scope names F:\\Payroll 2026 ' +
+      `(${worlds.quarantined.status}) — the policy reaches the hub but is not enforced`
+  );
+if (!worlds.clean.accepted)
+  fail(
+    'under the policy ["payroll"] the booted hub REFUSED a map of an unquarantined volume ' +
+      `(${worlds.clean.status}: ${worlds.clean.reason}) — a hub that refuses every map is not a hub`
+  );
+if (!worlds.clean.machines.includes("t480"))
+  fail("the booted hub accepted the map and then served a fold without the machine in it");
+if (worlds.clean.stale !== false)
+  fail("a map pushed thirty seconds ago is served as stale — the staleness threshold is too small");
+if (worlds.quiet.stale !== true)
+  fail(
+    `a map older than the shared threshold (${DEFAULT_MAP_MAX_AGE_MS} ms) is not served as stale — ` +
+      "a node that stopped pushing would read as current"
+  );
+if (!worlds.quiet.machines.includes("t480"))
+  fail("a stale node is missing from the fold — §7: a quiet node is stale, never absent");
+
+// WHAT THIS DOES NOT PROVE, stated because every earlier version of this gate claimed more than it
+// checked and that is the fault this contract was written to end:
+//   - THE SATELLITE'S SIDE OF THE WIRE. The hub oracle cannot see it; the textual withMap check
+//     above is the only thing that looks, and it is weaker.
+//   - AN AMBIENT SWITCH THAT IS DORMANT HERE. `quarantine: process.env.WHATEVER ? [] : reader(...)`
+//     is measured, not argued: with the variable unset the product is genuinely correct (the hub
+//     fail-closes and enforces the policy) and this gate is green, which is the right verdict; with
+//     it set the hub goes inert and this gate goes RED and says so. What no gate running on THIS
+//     machine can see is a switch armed on another one. That is deliberately not patched: the
+//     previous version tried to exclude ambient switches structurally by shadowing `process`, and
+//     that shadowing was itself the fingerprint four of claude-s13-verifier-2's seven bypasses used.
+//     A declared limit beats a rule that manufactures the oracle it was meant to remove.
 const t = spawnSync(process.execPath, ["--test", "tests/estate_map_fold_test.mjs"], {
   cwd: ROOT,
   stdio: "inherit"
@@ -157,6 +221,9 @@ if (t.status !== 0) {
   process.exit(1);
 }
 
+console.log(
+  "[s3] the booted hub refuses a map with no policy, enforces the policy it has, folds the rest, and calls a quiet node stale"
+);
 console.log(
   "[s3] the node pushes and the hub folds; a quiet node is stale, not empty; only counts and hashes cross"
 );

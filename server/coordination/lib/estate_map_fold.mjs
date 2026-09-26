@@ -245,7 +245,17 @@ export function isNewer(candidate, held) {
 // foldEstateMap(pushes, opts) — the estate map: the latest sweep per machine, and within it the
 // latest listing per volume. A machine that has stopped pushing keeps everything it last said and
 // is marked stale SINCE a time (§7: a node that stops pushing is never shown empty).
-export function foldEstateMap(pushes = [], { now = Date.now(), maxAgeMs = 1_800_000 } = {}) {
+// The default IS the shared constant, not a second spelling of thirty minutes. It used to be a
+// literal 1_800_000 here, which meant a caller that passed DEFAULT_MAP_MAX_AGE_MS and a caller that
+// passed nothing behaved identically while LOOKING different — so the S3 gate had to assert that
+// server/app.js passed the constant, an assertion about source text rather than about behaviour,
+// and that class of assertion is what S13 exists to remove. With one constant there is nothing left
+// to assert: omitting the option and passing it are the same thirty minutes, and the gate measures
+// the staleness the hub actually serves.
+export function foldEstateMap(
+  pushes = [],
+  { now = Date.now(), maxAgeMs = DEFAULT_MAP_MAX_AGE_MS } = {}
+) {
   const machines = {};
   for (const push of pushes) {
     if (!push?.machine) continue;
