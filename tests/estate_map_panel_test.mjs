@@ -18,6 +18,7 @@ import {
   normalizeProduct,
   storageView,
   storageRects,
+  reconcile,
   mediaView,
   treemap,
   versionDrift
@@ -274,8 +275,6 @@ test("no volume is ever labelled with bytes the node did not send", () => {
   for (const v of m.volumes)
     assert.ok(!("value" in v) || v.value === undefined, `${v.volume} must not carry a byte size`);
   assert.equal(view.bytes.reported, 3000);
-  assert.equal(view.bytes.drawn, 3000, "every reported byte is inside a drawn machine");
-  assert.equal(view.bytes.missing, 0);
 });
 
 test("bytes on a node with no volume to draw are named, never dropped", () => {
@@ -293,13 +292,14 @@ test("bytes on a node with no volume to draw are named, never dropped", () => {
     }
   };
   const view = storageView(fold, { now: NOW });
-  assert.equal(view.bytes.reported, 6000);
-  // DRAWN MEANS DRAWN. This used to say 4000 — counting only machines with volumes — while the map
-  // drew a block for optimus too, so the largest thing on screen was described underneath as bytes
-  // that could not be drawn. The test pinned the contradiction rather than catching it.
-  assert.equal(view.bytes.drawn, 6000, "every machine that reported bytes gets a block");
-  assert.equal(view.bytes.unsplit, 2000, "and the one with nothing inside it is counted as such");
-  assert.equal(view.bytes.missing, 0);
+  assert.equal(view.bytes.reported, 6000, "the fold's own figure, and the only one storageView owns");
+  // AND THE REST IS COUNTED OFF THE RECTANGLES. reconcile() is given a box big enough to draw both,
+  // so the node with no volumes is drawn as a bare block and counted as unsplit rather than lost.
+  const r = reconcile(view, storageRects(view, { x: 0, y: 0, w: 800, h: 400 }));
+  assert.equal(r.drawn, 6000, "every block the layout drew");
+  assert.equal(r.unsplit, 2000, "and the one with nothing inside it is named as such");
+  assert.equal(r.missing, 0);
+  assert.equal(r.tooSmall, 0);
   const named = view.unaccounted.filter((u) => u.machine === "optimus");
   assert.equal(named.length, 1, "the node is named rather than absent");
   assert.match(named[0].why, /no volume/u);
@@ -506,7 +506,19 @@ register(
   )} + s.slice(5), c) : next(s, c); }`
 );
 
+// The box the harness reports. A browser gives this panel something much wider — the real map box
+// measured about 932x416, 2.24:1 — and the area test used to run at ONE shape, so a distortion
+// conditioned on the aspect ratio shipped green: at 2.24:1 one block filled the map labelled with a
+// file count formatted as bytes while the two largest nodes vanished. Layouts are checked at several
+// shapes now, this one included.
 const BOX = { width: 640, height: 400 };
+const REAL_BOXES = [
+  { w: 932, h: 416 },
+  { w: 640, h: 400 },
+  { w: 1400, h: 300 },
+  { w: 300, h: 900 },
+  { w: 120, h: 90 }
+];
 
 async function renderPanel(fold, { status = 200, malformed = false } = {}) {
   // THE PANEL'S OWN STYLESHEET GOES IN. jsdom fetches nothing, so a <link> is inert and the
@@ -515,7 +527,7 @@ async function renderPanel(fold, { status = 200, malformed = false } = {}) {
   // because that rule is what hides the panel until Alpine has run: if Alpine fails, everything is
   // hidden and every test fails loudly instead of quietly passing on a blank page.
   const shell =
-    `<style>${flattenConditionals(fs.readFileSync(path.join(PANEL, "estate_map.css"), "utf8"))}</style>` +
+    `<style>${fs.readFileSync(path.join(PANEL, "estate_map.css"), "utf8")}</style>` +
     "<style>[x-cloak]{display:none !important}</style>";
   const dom = new JSDOM(fs.readFileSync(path.join(PANEL, "view.html"), "utf8").replace("</head>", `${shell}</head>`), {
     url: "http://localhost/",
@@ -531,8 +543,9 @@ async function renderPanel(fold, { status = 200, malformed = false } = {}) {
 
   const saved = { window: globalThis.window, fetch: globalThis.fetch, setInterval: globalThis.setInterval };
   globalThis.window = window;
+  let fetches = 0;
   globalThis.fetch = async () => ({
-    ok: status >= 200 && status < 300,
+    ok: (fetches++, status >= 200 && status < 300),
     status,
     json: async () => {
       if (malformed) throw new SyntaxError("Unexpected token < in JSON");
@@ -548,11 +561,15 @@ async function renderPanel(fold, { status = 200, malformed = false } = {}) {
     void mod;
     window.eval(fs.readFileSync(path.join(FRAMEWORK, "alpine.min.js"), "utf8"));
     // Alpine starts on DOMContentLoaded, which jsdom has already fired by now
-    // The vendored bundle auto-starts when it is evaluated and never sets a flag anyone can read, so
-    // the old `started !== true` guard fired start() a second time on every render — two init()s and
-    // two fetches per test. Whether the tree was walked is the question, and the component root
-    // answers it.
-    if (!window.document.querySelector(".em")?._x_dataStack) window.Alpine.start();
+    // THE BUNDLE AUTO-STARTS, ASYNCHRONOUSLY. Checking for the component's data stack immediately
+    // after evaluating it is too early — it is always absent, so the old guard called start() again
+    // on EVERY render: two init()s and two fetches per test, and a warning per render that nobody
+    // read. Wait for the auto-start to walk the tree, and only start it by hand if it never does.
+    try {
+      await until(() => window.document.querySelector(".em")?._x_dataStack, { timeout: 1000, step: 5 });
+    } catch {
+      window.Alpine.start();
+    }
     // Wait for the panel to have ANSWERED rather than for an arbitrary number of milliseconds:
     // init() awaits a fetch, and a test that gave up early would be asserting against "Reading the
     // estate map…" and reporting a missing notice that is merely a notice that has not arrived.
@@ -560,7 +577,25 @@ async function renderPanel(fold, { status = 200, malformed = false } = {}) {
     // a fetch, and a test that gave up early would assert against "Reading the estate map…" and
     // report a missing notice that had simply not arrived. The states are x-if, so the loading line
     // is REMOVED rather than hidden when it is over.
-    await until(() => !window.document.querySelector(".em__loading"));
+    // POSITIVE EVIDENCE, not the absence of something. `!document.querySelector(".em__loading")` is
+    // satisfied instantly when Alpine never starts at all, because the loading line is itself inside
+    // an x-if — the harness would then resolve on an empty page and every test would assert against
+    // it. What is waited for is the component existing, having answered, and having rendered the
+    // state that answer implies.
+    await until(() => {
+      const el = window.document.querySelector(".em");
+      if (!el?._x_dataStack) return false;
+      const data = window.Alpine.$data(el);
+      if (data.loading) return false;
+      return Boolean(
+        window.document.querySelector(".em__body") ||
+          window.document.querySelector(".em__blind") ||
+          window.document.querySelector(".em__nothing")
+      );
+    });
+    await flush(window);
+    if (fetches !== 1)
+      throw new Error(`the panel fetched ${fetches} times for one render — Alpine started twice`);
   } finally {
     globalThis.window = saved.window;
     globalThis.fetch = saved.fetch;
@@ -584,6 +619,11 @@ async function until(fn, { timeout = 2000, step = 5 } = {}) {
 
 // Click a tab by its name and wait for that tab's own section to be the visible one, so a test can
 // never assert against the tab it was leaving.
+// Wait for Alpine to flush its queued effects. Not a sleep: if the scheduler is wedged this never
+// resolves and until()'s deadline reports it.
+const flush = (window) =>
+  new Promise((resolve) => window.Alpine.nextTick(() => window.Alpine.nextTick(resolve)));
+
 async function openTab(window, name) {
   const tabs = [...window.document.querySelectorAll(".em__tab")];
   const tab = tabs.find((t) => t.textContent.trim() === name);
@@ -592,6 +632,9 @@ async function openTab(window, name) {
   // the panes are x-if, so the new one has to EXIST before anything is asserted about it
   const pane = { estate: ".em__cards", storage: ".em__storage", applications: ".em__apps", media: ".em__media" }[name];
   await until(() => tab.dataset.on === "true" && window.document.querySelector(pane));
+  // and let Alpine flush what the pane's own layout queued, using its scheduler rather than a sleep:
+  // the rectangles appear one tick before the line that describes them
+  await flush(window);
 }
 
 // What a person would actually read: x-show hides by setting display:none, and an element that is
@@ -608,30 +651,85 @@ async function openTab(window, name) {
 // parked off-screen. jsdom has no layout engine, so it cannot tell you a box is covered by another
 // or scrolled out of view — but it does cascade author CSS for these properties, which is what the
 // question "did this guard reach the owner's eyes" actually turns on.
-// jsdom's getComputedStyle does NOT apply rules inside @media or @supports — measured: the same
-// declaration computes `none` at the top level and `flex` inside `@media (min-width: 1px)`. So a
-// guard could be hidden by wrapping one line in a conditional group that every browser honours and
-// this renderer ignores, with the gate green. The groups are unwrapped before the stylesheet goes
-// in: a rule that applies at SOME width is a rule that can hide a guard, and this panel has no
-// responsive hiding of its own for it to distort.
-function flattenConditionals(css) {
-  let out = css;
-  for (;;) {
-    const at = out.search(/@(?:media|supports|container|layer)[^{]*\{/u);
-    if (at < 0) return out;
-    const open = out.indexOf("{", at);
-    let depth = 0;
-    let end = -1;
-    for (let i = open; i < out.length; i++) {
-      if (out[i] === "{") depth++;
-      else if (out[i] === "}" && --depth === 0) {
-        end = i;
-        break;
-      }
+// --- the choke point ------------------------------------------------------------------------------
+//
+// THREE ROUNDS WERE SPENT ENUMERATING WAYS TO HIDE A GUARD, and each round a verifier found more:
+// @media, then @scope, then scaleX(0), clip-path:circle(0), filter:opacity(0), content-visibility,
+// font:0/0 a, -webkit-text-fill-color, letter-spacing:-1em, the clip:rect(0,0,0,0) idiom. Seventeen
+// survived at once. Enumeration is the wrong shape: the attacker picks the spelling and CSS has more
+// spellings than anyone can list, and the renderer I check against (jsdom) implements only some of
+// them — so a rule it ignores hides a guard in Chrome under a green gate.
+//
+// SO THE CHECK IS INVERTED. Rather than asking "does this rendered element look hidden", which is
+// unbounded, this asks of the panel's OWN STYLESHEET: does it contain anything that could remove
+// content from the screen? The panel is ours, it is 410 lines, and it has no legitimate need to hide
+// anything — the states that come and go are x-if, not CSS. So the answer must be no, and the list
+// below is a list of VALUES this stylesheet may not carry rather than a list of tricks.
+//
+// It reads the source text, so it does not depend on which CSS a test renderer implements, and it
+// refuses at-rules outright rather than trying to flatten them — the flattener it replaces counted
+// braces without knowing about strings, so one `content: "{"` made it silently return the stylesheet
+// unflattened and reopened everything.
+const AT_RULE = /(^|\s)@[a-z-]+/iu;
+
+const FORBIDDEN = [
+  // property, test on the value, why
+  ["display", (v) => v === "none", "display:none removes an element from the page"],
+  ["visibility", (v) => v !== "visible", "visibility hides an element that still occupies space"],
+  ["opacity", (v) => Number.parseFloat(v) < 0.5, "a nearly transparent element is an unreadable one"],
+  ["transform", () => true, "transform can scale or translate content out of sight"],
+  ["clip", () => true, "the clip:rect(0,0,0,0) idiom hides content"],
+  ["clip-path", () => true, "clip-path can clip content away entirely"],
+  ["filter", () => true, "filter:opacity(0) hides content"],
+  ["content-visibility", () => true, "content-visibility:hidden skips rendering"],
+  ["pointer-events", () => true, "pointer-events is not this panel's business"],
+  ["height", (v) => /^0(px|%|rem|em)?$/u.test(v), "a zero height collapses content away"],
+  ["max-height", (v) => /^0(px|%|rem|em)?$/u.test(v), "a zero max-height collapses content away"],
+  ["width", (v) => /^0(px|%|rem|em)?$/u.test(v), "a zero width collapses content away"],
+  ["max-width", (v) => /^0(px|%|rem|em)?$/u.test(v), "a zero max-width collapses content away"],
+  ["font-size", (v) => /^0|^0\.0*[0-9]*(px|rem|em)/u.test(v), "an unreadably small font is a hidden one"],
+  ["font", () => true, "the font shorthand carries font-size, e.g. the font:0/0 a idiom"],
+  ["letter-spacing", (v) => v.startsWith("-"), "negative letter-spacing collapses text"],
+  ["text-indent", (v) => v.startsWith("-"), "negative text-indent pushes text off the line"],
+  ["color", (v) => v === "transparent" || /rgba\([^)]*,\s*0\s*\)/u.test(v), "transparent text is hidden text"],
+  ["-webkit-text-fill-color", () => true, "text-fill-color can make text transparent"],
+  ["position", (v) => v === "fixed" || v === "sticky", "fixed and sticky can park content off-screen"],
+  ["top", (v) => offscreen(v), "an offset this large puts content outside the viewport"],
+  ["left", (v) => offscreen(v), "an offset this large puts content outside the viewport"],
+  ["right", (v) => offscreen(v), "an offset this large puts content outside the viewport"],
+  ["bottom", (v) => offscreen(v), "an offset this large puts content outside the viewport"]
+];
+
+function offscreen(value) {
+  const n = Number.parseFloat(value);
+  if (!Number.isFinite(n)) return false;
+  if (/vh|vw$/u.test(value)) return Math.abs(n) >= 100;
+  return Math.abs(n) >= 1000;
+}
+
+// Every declaration in the sheet, with comments and strings removed so a `{` or a `;` inside either
+// cannot confuse the split. Returns a list of complaints; an empty list is the only acceptable one.
+function stylesheetProblems(css) {
+  const out = [];
+  const stripped = css
+    .replace(/\/\*[\s\S]*?\*\//gu, " ")
+    .replace(/"(?:[^"\\]|\\.)*"/gu, '""')
+    .replace(/'(?:[^'\\]|\\.)*'/gu, "''");
+  if (AT_RULE.test(stripped))
+    out.push(`the panel stylesheet contains an at-rule (${stripped.match(AT_RULE)[0].trim()}): a rule that applies only sometimes is a rule that can hide a guard sometimes`);
+  for (const block of stripped.split("}")) {
+    const body = block.slice(block.indexOf("{") + 1);
+    if (!block.includes("{")) continue;
+    for (const decl of body.split(";")) {
+      const at = decl.indexOf(":");
+      if (at < 0) continue;
+      const prop = decl.slice(0, at).trim().toLowerCase();
+      const value = decl.slice(at + 1).trim().toLowerCase().replace(/\s*!important$/u, "");
+      for (const [name, bad, why] of FORBIDDEN)
+        if (prop === name && bad(value)) out.push(`${prop}: ${value} — ${why}`);
     }
-    if (end < 0) return out;
-    out = out.slice(0, at) + out.slice(open + 1, end) + out.slice(end + 1);
   }
+  return out;
 }
 
 function hiddenBy(el, win) {
@@ -803,7 +901,7 @@ test("RENDERED: the storage tab draws machines in bytes and volumes in files, an
   const drawnRects = data.rects.filter((r) => r.level === "machine" && !r.tooSmall);
   assert.equal(
     drawnRects.reduce((sum, r) => sum + r.value, 0),
-    data.v.storage.bytes.drawn,
+    data.recon.drawn,
     "the bytes the line calls drawn are exactly the bytes the machine rectangles carry"
   );
   for (const r of window.document.querySelectorAll(".em__rect"))
@@ -1083,4 +1181,229 @@ test("RENDERED: a quiet node's column in the matrix says it is quiet", async () 
   assert.match(optimus.textContent, /stale/u, "and the column says so, so 1.24.4 reads as its LAST known version");
   const cell = [...window.document.querySelectorAll(".em__matrix tbody td")].find((td) => td.dataset.stale === "true");
   assert.ok(cell && isVisible(cell, window), "the cells under it carry the same mark");
+});
+
+// --- the apparatus is pinned by its own tests -----------------------------------------------------
+//
+// claude-s4-verifier-4's E5: blinding hiddenBy(), deleting the stylesheet check and making until()
+// return quietly on timeout each shipped GREEN. Every guard this file adds to the panel was itself
+// unguarded — B4's class applied to the thing built to answer B4. These tests fail if the machinery
+// stops working, so the machinery cannot be removed silently.
+
+test("the panel's stylesheet carries nothing that could hide a guard", () => {
+  const problems = stylesheetProblems(fs.readFileSync(path.join(PANEL, "estate_map.css"), "utf8"));
+  assert.deepEqual(problems, [], `the panel stylesheet may not hide anything: ${problems.join(" | ")}`);
+});
+
+test("the stylesheet check refuses every way of hiding that has been used against this panel", () => {
+  // Each of these was written by a verifier, survived a green gate, and was measured hiding its
+  // guard in Chrome. They are cases of the check now, so it cannot quietly stop catching them.
+  const attacks = [
+    '@scope (.em) { .em__card[data-stale="true"] { display: none } }',
+    "@layer hide { @scope (.em) { .em__recon { display: none } } }",
+    "@media (min-width: 1px) { .em__withheld { display: none } }",
+    "@supports (display: grid) { .em__recon { display: none } }",
+    "@container (min-width: 1px) { .em__drift { display: none } }",
+    ".em__recon { height: 0; overflow: hidden }",
+    ".em__drift { transform: scaleX(0) }",
+    ".em__drift { transform: scale3d(0, 0, 1) }",
+    ".em__blind { clip-path: circle(0) }",
+    ".em__blind { clip: rect(0, 0, 0, 0) }",
+    ".em__nothing { filter: opacity(0) }",
+    ".em__nothing { content-visibility: hidden }",
+    ".em__card { transform: translateY(5000px) }",
+    ".em__withheld { font-size: 0.01px }",
+    ".em__withheld { font: 0/0 a }",
+    ".em__note { -webkit-text-fill-color: transparent }",
+    ".em__note { color: transparent }",
+    ".em__note { color: rgba(255, 255, 255, 0) }",
+    ".em__note { letter-spacing: -1em }",
+    ".em__note { text-indent: -100px }",
+    ".em__unsized { position: fixed; top: 200vh }",
+    ".em__unsized { width: 0; overflow: hidden }",
+    ".em__matrix { opacity: 0.004 }",
+    '.em__rect[data-level="volume"] { width: 0 !important; height: 0 !important }'
+  ];
+  const real = fs.readFileSync(path.join(PANEL, "estate_map.css"), "utf8");
+  for (const attack of attacks) {
+    const problems = stylesheetProblems(`${real}
+${attack}
+`);
+    assert.ok(problems.length > 0, `not caught: ${attack}`);
+  }
+  // and a comment or a string containing a brace must not blind it — the flattener it replaces
+  // counted braces without knowing about strings, and one `content: "{"` made it fail open
+  assert.ok(
+    stylesheetProblems(`${real}
+.em::before { content: "{" }
+.em__card { display: none }
+`).length > 0,
+    "a brace inside a string must not stop the check"
+  );
+});
+
+test("the visibility walker actually detects the things it claims to", async () => {
+  const { JSDOM } = await import("jsdom");
+  const cases = [
+    ["display", "display: none"],
+    ["visibility", "visibility: hidden"],
+    ["opacity", "opacity: 0"],
+    ["font-size", "font-size: 0"],
+    ["off-screen", "position: absolute; left: -99999px"],
+    ["below the fold", "position: fixed; top: 20000px"],
+    ["clipped", "max-height: 0"]
+  ];
+  for (const [name, rule] of cases) {
+    const dom = new JSDOM(`<p id="t" style="${rule}">x</p>`);
+    assert.ok(hiddenBy(dom.window.document.getElementById("t"), dom.window), `${name} went unnoticed`);
+  }
+  const plain = new JSDOM(`<p id="t">x</p>`);
+  assert.equal(hiddenBy(plain.window.document.getElementById("t"), plain.window), null, "a plain element is visible");
+});
+
+test("until() fails when the condition never comes true", async () => {
+  await assert.rejects(() => until(() => false, { timeout: 60, step: 10 }), /never reached/u);
+});
+
+test("machine areas stay proportional at every box shape, not just the harness's", () => {
+  // The rendered test above lays out at ONE box, which is what let a distortion keyed on the aspect
+  // ratio through. This one runs the real layout at five shapes, including the one a browser gives
+  // the panel, and at several estate sizes.
+  const sizes = [
+    { a: 1_400_000_000_000, b: 640_000_000_000, c: 2_000_000_000_000 },
+    { a: 4_000_000_000_000, b: 4_000_000_000, c: 40_000_000_000 },
+    { a: 1, b: 1, c: 1 }
+  ];
+  for (const bytes of sizes) {
+    const view = {
+      machines: Object.entries(bytes).map(([machine, value]) => ({
+        key: machine,
+        machine,
+        value,
+        files: 1,
+        volumes: [{ key: `${machine}:C`, machine, volume: "C:\\", files: 1 }]
+      }))
+    };
+    for (const box of REAL_BOXES) {
+      const blocks = storageRects(view, { x: 0, y: 0, ...box }).filter((r) => r.level === "machine");
+      const drawn = blocks.filter((r) => !r.tooSmall);
+      const area = drawn.reduce((s, r) => s + r.w * r.h, 0);
+      const total = drawn.reduce((s, r) => s + r.value, 0);
+      for (const r of drawn) {
+        const share = (r.w * r.h) / area;
+        const truth = r.value / total;
+        assert.ok(
+          Math.abs(share - truth) < 0.03,
+          `at ${box.w}x${box.h} ${r.machine} takes ${(share * 100).toFixed(1)}% of the drawn area for ${(truth * 100).toFixed(1)}% of the drawn bytes`
+        );
+      }
+      // and whatever the layout could not draw is marked, never silently absent
+      const marked = blocks.filter((r) => r.tooSmall).length;
+      assert.equal(
+        blocks.length,
+        drawn.length + marked,
+        `at ${box.w}x${box.h} a block is neither drawn nor marked too small`
+      );
+    }
+  }
+});
+
+test("the reconciliation closes at every box shape, including one where blocks vanish", () => {
+  // Two machines at a 1000:1 ratio is enough for the smaller block to fall under a pixel — an
+  // ordinary pairing here. The line must then say so rather than counting it as drawn.
+  const view = {
+    machines: [
+      { key: "whale", machine: "whale", value: 4_000_000_000_000, files: 1, volumes: [] },
+      { key: "mouse", machine: "mouse", value: 4_000_000_000, files: 1, volumes: [] }
+    ]
+  };
+  for (const box of REAL_BOXES) {
+    const rects = storageRects(view, { x: 0, y: 0, ...box });
+    const r = reconcile(view, rects);
+    assert.equal(
+      r.reported,
+      r.drawn + r.tooSmall + r.missing,
+      `at ${box.w}x${box.h} the subtraction does not close: ${JSON.stringify(r)}`
+    );
+    const visible = rects.filter((x) => x.level === "machine" && !x.tooSmall);
+    assert.equal(
+      visible.reduce((s, x) => s + x.value, 0),
+      r.drawn,
+      `at ${box.w}x${box.h} "drawn" is not what the rectangles carry`
+    );
+  }
+});
+
+test("a fifty-node estate does not claim to have drawn what it could not", () => {
+  // Measured by a verifier on the real panel: one block on the map, the line reading "3.6 TB drawn",
+  // and 98 "too small to draw" entries printed directly beneath it.
+  // 3.5 TB beside forty-nine nodes holding a megabyte each: their share of the map is a fraction of
+  // one pixel, so they cannot be drawn however the layout squarifies them.
+  const machines = [{ key: "big", machine: "big", value: 3_500_000_000_000, files: 1, volumes: [] }];
+  for (let i = 1; i <= 49; i++)
+    machines.push({ key: `n${i}`, machine: `n${i}`, value: 1_000_000, files: 1, volumes: [] });
+  const view = { machines };
+  const rects = storageRects(view, { x: 0, y: 0, w: 932, h: 416 });
+  const r = reconcile(view, rects);
+  assert.equal(r.reported, r.drawn + r.tooSmall + r.missing, "the subtraction closes");
+  const shown = rects.filter((x) => x.level === "machine" && !x.tooSmall);
+  assert.equal(shown.reduce((s, x) => s + x.value, 0), r.drawn);
+  assert.ok(r.tooSmall > 0, "the blocks the map could not show are counted as such, not as drawn");
+});
+
+test("a byte count the map cannot read is named, not silently treated as zero", () => {
+  for (const bad of [-500, Number.NaN, "lots", null, undefined, Infinity]) {
+    const fold = {
+      machines: {
+        t480: machine({
+          counts: { files: 1, bytes: bad, listed_files: 1, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+          volumes: { "C:\\": { collector: "everything", status: "ok", rows: 1, at: T(10) } }
+        })
+      }
+    };
+    const view = storageView(fold, { now: NOW });
+    assert.equal(view.bytes.reported, 0, `${String(bad)} must not become a reported byte count`);
+    const named = view.unaccounted.find((u) => /cannot read/u.test(u.why));
+    assert.ok(named, `${String(bad)} bytes went unnamed`);
+    const r = reconcile(view, storageRects(view, { x: 0, y: 0, w: 640, h: 400 }));
+    assert.equal(r.reported, r.drawn + r.tooSmall + r.missing, `the subtraction must still close for ${String(bad)}`);
+  }
+});
+
+test("a volume really named — keeps its name", () => {
+  const fold = {
+    machines: {
+      t480: machine({
+        counts: { files: 0, bytes: 10, listed_files: 0, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+        volumes: { "—": { collector: "everything", status: "ok", rows: 0, at: T(10) } }
+      })
+    }
+  };
+  const entry = storageView(fold, { now: NOW }).unaccounted.find((u) => u.volume === "—");
+  assert.ok(entry, "the volume is named, not folded into the machine");
+});
+
+test("the treemap tiles its box exactly, whatever shape the box is", () => {
+  // A layout that used HALF the box kept every proportion intact and survived every other test:
+  // areas were still in the right ratio to each other, labels still right, the subtraction still
+  // closed. What it broke is the claim the tab makes by drawing at all — that this rectangle IS the
+  // estate. The squarifier's own invariant is that the blocks tile the box, so that is asserted.
+  const view = {
+    machines: [
+      { key: "a", machine: "a", value: 5, files: 1, volumes: [] },
+      { key: "b", machine: "b", value: 3, files: 1, volumes: [] },
+      { key: "c", machine: "c", value: 2, files: 1, volumes: [] }
+    ]
+  };
+  for (const box of REAL_BOXES) {
+    const blocks = storageRects(view, { x: 0, y: 0, ...box }).filter((r) => r.level === "machine");
+    const covered = blocks.reduce((s, r) => s + r.w * r.h, 0);
+    assert.ok(
+      Math.abs(covered - box.w * box.h) < box.w * box.h * 0.01,
+      `at ${box.w}x${box.h} the blocks cover ${Math.round((covered / (box.w * box.h)) * 100)}% of the map`
+    );
+    // and they start at the box's origin rather than being stacked somewhere inside it
+    assert.ok(blocks.every((r) => r.x >= 0 && r.y >= 0 && r.x + r.w <= box.w + 1 && r.y + r.h <= box.h + 1));
+    assert.ok(blocks.some((r) => r.x === 0 && r.y === 0), "the layout starts in the corner of its box");
+  }
 });

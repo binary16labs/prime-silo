@@ -13,7 +13,10 @@
     <script type="module" src="/mod/_prime_silo/estate_map/estate_map.js"></script>
   </head>
   <body>
-    <section class="em" x-data="estateMapPage()" x-init="init()" x-cloak>
+    <!-- No x-init: Alpine calls init() on the data object itself, and having both meant the panel
+         fetched TWICE on every load, registered two $watch handlers, two resize listeners and
+         two refresh intervals. A verifier found it by counting fetches in the harness. -->
+    <section class="em" x-data="estateMapPage()" x-cloak>
       <header class="em__head">
         <h1 class="em__title">Estate Map</h1>
         <template x-if="v.reachable && !v.empty"><span class="em__age" x-text="reportingLine()"></span></template>
@@ -109,19 +112,22 @@
 
             <!-- EVERY BYTE IS EITHER IN THE PICTURE OR NAMED BELOW IT. -->
             <p class="em__recon">
-              <span x-text="`${bytes(v.storage.bytes.reported)} reported by the nodes`"></span>
-              <span x-text="`${bytes(v.storage.bytes.drawn)} drawn`"></span>
-              <template x-if="v.storage.bytes.unsplit > 0">
+              <span x-text="`${bytes(recon.reported)} reported by the nodes`"></span>
+              <span x-text="`${bytes(recon.drawn)} drawn`"></span>
+              <template x-if="recon.tooSmall > 0">
                 <span class="em__reconmiss"
-                  x-text="`${bytes(v.storage.bytes.unsplit)} drawn as a whole machine, with no volume inside it`"></span>
+                  x-text="`${bytes(recon.tooSmall)} on blocks too small to see at this size`"></span>
               </template>
-              <template x-if="v.storage.bytes.missing > 0">
+              <template x-if="recon.unsplit > 0">
                 <span class="em__reconmiss"
-                  x-text="`${bytes(v.storage.bytes.missing)} the map could not place at all`"></span>
+                  x-text="`${bytes(recon.unsplit)} drawn as a whole machine, with no volume inside it`"></span>
+              </template>
+              <template x-if="recon.missing > 0">
+                <span class="em__reconmiss"
+                  x-text="`${bytes(recon.missing)} the map could not place at all`"></span>
               </template>
               <template x-if="v.storage.withheldBytes > 0">
-                <span
-                  x-text="`at least ${bytes(v.storage.withheldBytes)} withheld by node policy`"></span>
+                <span x-text="`at least ${bytes(v.storage.withheldBytes)} withheld by node policy`"></span>
               </template>
             </p>
 

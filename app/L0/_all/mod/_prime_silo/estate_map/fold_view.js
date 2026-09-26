@@ -180,7 +180,13 @@ export function storageView(fold = {}, { now = Date.now() } = {}) {
   const machines = [];
   const unaccounted = [];
   for (const [machine, m] of Object.entries(fold.machines ?? {})) {
-    const reported = Number(m.counts?.bytes) || 0;
+    // A node can send a byte count that is not a number, or is negative, or nothing at all. Coercing
+    // it makes the problem vanish — Number(null) is 0, and a node that said nothing then reads as a
+    // node that said zero — while carrying it makes "reported" a figure that cannot be reconciled.
+    // So only an actual, finite, non-negative number counts, and anything else is NAMED.
+    const raw = m.counts?.bytes;
+    const readable = typeof raw === "number" && Number.isFinite(raw) && raw >= 0;
+    const reported = readable ? raw : 0;
     const withheld = byVolume(m.totals);
     const volumes = Object.entries(m.volumes ?? {}).map(([volume, v]) => ({
       key: `${machine}:${volume}`,
@@ -199,11 +205,24 @@ export function storageView(fold = {}, { now = Date.now() } = {}) {
     for (const v of volumes)
       if (v.files <= 0) unaccounted.push({ ...v, why: "the node listed no files on this volume" });
     const drawable = volumes.filter((v) => v.files > 0);
+    if (!readable)
+      unaccounted.push({
+        key: `${machine}:!bytes`,
+        machine,
+        volume: "",
+        files: 0,
+        status: "unknown",
+        errorCode: null,
+        withheldBytes: 0,
+        categories: [],
+        stale: m.stale === true,
+        why: `this node reported ${JSON.stringify(m.counts?.bytes)} bytes, which the map cannot read`
+      });
     if (!drawable.length && reported > 0)
       unaccounted.push({
         key: `${machine}:`,
         machine,
-        volume: "—",
+        volume: "",
         files: 0,
         status: "unknown",
         errorCode: null,
@@ -228,23 +247,12 @@ export function storageView(fold = {}, { now = Date.now() } = {}) {
   // machine rectangle or named in `unaccounted`, and the figures are on screen so the owner can
   // check the subtraction. A machine's 2 TB went missing from this tab before with no total to
   // check it against.
-  //
-  // `drawn` MEANS WHAT THE MAP DRAWS, which it did not before: it counted only machines with
-  // volumes, while the treemap drew a rectangle for every machine that reported bytes. A node with
-  // 2 TB and no folded volume was therefore the LARGEST BLOCK ON SCREEN and was simultaneously
-  // described underneath as bytes that could not be drawn. Two true sentences that contradict each
-  // other are worse than one missing number, and a test of mine had pinned it.
-  const reported = machines.reduce((s, x) => s + x.value, 0);
-  const drawn = machines.filter((x) => x.value > 0).reduce((s, x) => s + x.value, 0);
-  // drawn as a machine block, but with nothing inside it: the node said how much it holds and never
-  // said where
-  const unsplit = machines
-    .filter((x) => x.value > 0 && !x.volumes.length)
-    .reduce((s, x) => s + x.value, 0);
   return {
     machines,
     unaccounted: unaccounted.sort((a, b) => a.key.localeCompare(b.key)),
-    bytes: { reported, drawn, unsplit, missing: Math.max(0, reported - drawn) },
+    // Only what the fold says. Everything the PICTURE says is reconcile()'s, below, because this
+    // function has never seen the box and cannot know which blocks the layout could draw.
+    bytes: { reported: machines.reduce((s, x) => s + x.value, 0) },
     withheldBytes: machines.reduce((s, x) => s + x.withheldBytes, 0)
   };
 }
@@ -276,6 +284,33 @@ function byVolume(totals = []) {
 //
 // A rectangle under a pixel is not visible, and counting it in the legend while the map does not
 // show it is the same lie in a smaller place — so it is marked tooSmall and listed instead.
+// THE LINE UNDER THE MAP IS DERIVED FROM THE MAP. It used to be derived from the fold, which meant
+// it described a picture that had not been laid out yet: on two machines at a 1000:1 byte ratio the
+// smaller block falls under a pixel, the view refuses to draw it, and the line still counted it as
+// drawn. On a fifty-node fold that was one rectangle on screen above a line claiming every byte was
+// drawn, with 98 "too small to draw" entries printed directly beneath it.
+//
+// So the only figure that comes from the fold is what the nodes REPORTED. Everything else is counted
+// off the rectangles that exist: drawn, too small to see, drawn-but-unsplit, and whatever is left.
+export function reconcile(view, rects = []) {
+  const reported = (view?.machines ?? []).reduce((s, m) => s + (Number(m.value) || 0), 0);
+  const blocks = rects.filter((r) => r.level === "machine");
+  const sum = (list) => list.reduce((s, r) => s + (Number(r.value) || 0), 0);
+  const visible = blocks.filter((r) => !r.tooSmall);
+  const drawn = sum(visible);
+  const tooSmall = sum(blocks.filter((r) => r.tooSmall));
+  const unsplit = sum(visible.filter((r) => !(r.volumes ?? []).length));
+  return {
+    reported,
+    drawn,
+    tooSmall,
+    unsplit,
+    // bytes that reached neither the picture nor the too-small list: the residue the owner is owed
+    // an explanation for, and the reason this is a subtraction rather than a total
+    missing: Math.max(0, reported - drawn - tooSmall)
+  };
+}
+
 export function storageRects(view, box) {
   const rects = [];
   for (const m of treemap(view?.machines ?? [], box)) {

@@ -9,7 +9,13 @@
 // REFRESH IS SLOW ON PURPOSE. The answer behind this page changes when a node finishes a sweep and
 // pushes, which is minutes apart at best. Polling harder would imply the page is live when it is a
 // fold of pushes, and the age line would start contradicting the refresh rate.
-import { ageLabel, byteLabel, estateView, storageRects } from "/mod/_prime_silo/estate_map/fold_view.js";
+import {
+  ageLabel,
+  byteLabel,
+  estateView,
+  reconcile,
+  storageRects
+} from "/mod/_prime_silo/estate_map/fold_view.js";
 
 const REFRESH_MS = 60_000;
 
@@ -26,6 +32,7 @@ window.estateMapPage = function estateMapPage() {
     loading: true,
     tab: "estate",
     rects: [],
+    recon: { reported: 0, drawn: 0, tooSmall: 0, unsplit: 0, missing: 0 },
 
     async init() {
       // The treemap is laid out against the element's REAL width, so it must be recomputed
@@ -71,6 +78,9 @@ window.estateMapPage = function estateMapPage() {
       // the map keeps what it last drew until something can actually be measured.
       if (!w || !h) return;
       this.rects = storageRects(this.v.storage, { x: 0, y: 0, w, h });
+      // counted off the rectangles that now exist, so the line under the map cannot describe a
+      // picture the layout did not draw
+      this.recon = reconcile(this.v.storage, this.rects);
     },
 
     bytes: byteLabel,
@@ -140,7 +150,9 @@ window.estateMapPage = function estateMapPage() {
     unaccountedLine(u) {
       // a machine-level entry has no volume to name, and "optimus — — this node reported…" reads
       // like a missing word rather than a missing volume
-      const what = u.volume && u.volume !== "—" ? `${u.machine} ${u.volume}` : u.machine;
+      // a volume really named "—" is still a volume, so it is quoted rather than dropped; only an
+      // entry with no volume at all names the machine alone
+      const what = u.volume ? `${u.machine} ${JSON.stringify(u.volume)}` : u.machine;
       return [what, u.why, u.errorCode].filter(Boolean).join(" — ");
     },
 
