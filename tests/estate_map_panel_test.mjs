@@ -294,8 +294,12 @@ test("bytes on a node with no volume to draw are named, never dropped", () => {
   };
   const view = storageView(fold, { now: NOW });
   assert.equal(view.bytes.reported, 6000);
-  assert.equal(view.bytes.drawn, 4000);
-  assert.equal(view.bytes.missing, 2000, "the tab can be reconciled by subtraction on screen");
+  // DRAWN MEANS DRAWN. This used to say 4000 — counting only machines with volumes — while the map
+  // drew a block for optimus too, so the largest thing on screen was described underneath as bytes
+  // that could not be drawn. The test pinned the contradiction rather than catching it.
+  assert.equal(view.bytes.drawn, 6000, "every machine that reported bytes gets a block");
+  assert.equal(view.bytes.unsplit, 2000, "and the one with nothing inside it is counted as such");
+  assert.equal(view.bytes.missing, 0);
   const named = view.unaccounted.filter((u) => u.machine === "optimus");
   assert.equal(named.length, 1, "the node is named rather than absent");
   assert.match(named[0].why, /no volume/u);
@@ -511,7 +515,7 @@ async function renderPanel(fold, { status = 200, malformed = false } = {}) {
   // because that rule is what hides the panel until Alpine has run: if Alpine fails, everything is
   // hidden and every test fails loudly instead of quietly passing on a blank page.
   const shell =
-    `<style>${fs.readFileSync(path.join(PANEL, "estate_map.css"), "utf8")}</style>` +
+    `<style>${flattenConditionals(fs.readFileSync(path.join(PANEL, "estate_map.css"), "utf8"))}</style>` +
     "<style>[x-cloak]{display:none !important}</style>";
   const dom = new JSDOM(fs.readFileSync(path.join(PANEL, "view.html"), "utf8").replace("</head>", `${shell}</head>`), {
     url: "http://localhost/",
@@ -544,7 +548,11 @@ async function renderPanel(fold, { status = 200, malformed = false } = {}) {
     void mod;
     window.eval(fs.readFileSync(path.join(FRAMEWORK, "alpine.min.js"), "utf8"));
     // Alpine starts on DOMContentLoaded, which jsdom has already fired by now
-    if (window.Alpine?.started !== true) window.Alpine.start();
+    // The vendored bundle auto-starts when it is evaluated and never sets a flag anyone can read, so
+    // the old `started !== true` guard fired start() a second time on every render — two init()s and
+    // two fetches per test. Whether the tree was walked is the question, and the component root
+    // answers it.
+    if (!window.document.querySelector(".em")?._x_dataStack) window.Alpine.start();
     // Wait for the panel to have ANSWERED rather than for an arbitrary number of milliseconds:
     // init() awaits a fetch, and a test that gave up early would be asserting against "Reading the
     // estate map…" and reporting a missing notice that is merely a notice that has not arrived.
@@ -600,6 +608,32 @@ async function openTab(window, name) {
 // parked off-screen. jsdom has no layout engine, so it cannot tell you a box is covered by another
 // or scrolled out of view — but it does cascade author CSS for these properties, which is what the
 // question "did this guard reach the owner's eyes" actually turns on.
+// jsdom's getComputedStyle does NOT apply rules inside @media or @supports — measured: the same
+// declaration computes `none` at the top level and `flex` inside `@media (min-width: 1px)`. So a
+// guard could be hidden by wrapping one line in a conditional group that every browser honours and
+// this renderer ignores, with the gate green. The groups are unwrapped before the stylesheet goes
+// in: a rule that applies at SOME width is a rule that can hide a guard, and this panel has no
+// responsive hiding of its own for it to distort.
+function flattenConditionals(css) {
+  let out = css;
+  for (;;) {
+    const at = out.search(/@(?:media|supports|container|layer)[^{]*\{/u);
+    if (at < 0) return out;
+    const open = out.indexOf("{", at);
+    let depth = 0;
+    let end = -1;
+    for (let i = open; i < out.length; i++) {
+      if (out[i] === "{") depth++;
+      else if (out[i] === "}" && --depth === 0) {
+        end = i;
+        break;
+      }
+    }
+    if (end < 0) return out;
+    out = out.slice(0, at) + out.slice(open + 1, end) + out.slice(end + 1);
+  }
+}
+
 function hiddenBy(el, win) {
   if (el.hasAttribute("hidden")) return "the hidden attribute";
   const cs = win.getComputedStyle(el);
@@ -607,12 +641,29 @@ function hiddenBy(el, win) {
   if (cs.visibility === "hidden" || cs.visibility === "collapse") return `visibility:${cs.visibility}`;
   if (cs.opacity !== "" && Number(cs.opacity) === 0) return "opacity:0";
   if (/^0(px)?$/u.test(cs.fontSize ?? "")) return "font-size:0";
-  // parked off-screen: the classic way to keep an element "present" and unreadable
-  for (const side of ["left", "top"]) {
-    const v = Number.parseFloat(cs[side] ?? "");
-    if (Number.isFinite(v) && v <= -1000) return `${side}:${cs[side]}`;
+  // Parked out of sight. The first version of this looked only for large NEGATIVE left/top, so an
+  // element pushed DOWNWARD past the viewport — `position: fixed; top: 200vh` — counted as visible,
+  // and the empty-hub notice went back to being a blank page with the gate green.
+  //
+  // MEASURED AGAINST THE VIEWPORT, not against a number I picked. `top: 200vh` computes to a plain
+  // "1536px" in jsdom, so a rule of thumb like "over 5000px is off-screen" let the empty-hub notice
+  // be parked below the fold with the gate green. Anything at or past the viewport edge is out of
+  // sight whatever unit it was written in.
+  const edge = { left: win.innerWidth, right: win.innerWidth, top: win.innerHeight, bottom: win.innerHeight };
+  for (const side of ["left", "top", "right", "bottom"]) {
+    const raw = cs[side] ?? "";
+    const v = Number.parseFloat(raw);
+    if (!Number.isFinite(v)) continue;
+    if (v <= -1000) return `${side}:${raw}`;
+    if (v >= (edge[side] || 768)) return `${side}:${raw} (past the viewport)`;
   }
   if (/^0(px)?$/u.test(cs.width ?? "") && /^0(px)?$/u.test(cs.height ?? "")) return "a 0x0 box";
+  // collapsed by a clipped box rather than by display
+  if (/^0(px)?$/u.test(cs.maxHeight ?? "") || /^0(px)?$/u.test(cs.maxWidth ?? "")) return "a clipped box";
+  if (/inset\(\s*100%/u.test(cs.clipPath ?? "")) return `clip-path:${cs.clipPath}`;
+  if (/scale\(\s*0\s*[,)]/u.test(cs.transform ?? "")) return `transform:${cs.transform}`;
+  if (/^-?\d{4,}px$/u.test(cs.textIndent ?? "")) return `text-indent:${cs.textIndent}`;
+  if (cs.color === "transparent" || /rgba\(.*,\s*0\s*\)/u.test(cs.color ?? "")) return "transparent text";
   return null;
 }
 
@@ -745,7 +796,18 @@ test("RENDERED: the storage tab draws machines in bytes and volumes in files, an
   await until(() => window.document.querySelectorAll(".em__rect").length >= 3);
   assert.match(text, /files/u, "volumes are labelled in files");
   assert.match(text, /reported by the nodes/u, "the reconciliation is on screen");
-  assert.match(text, /no volume to draw/u, "and the node whose bytes cannot be drawn is named");
+  assert.match(text, /no volume inside it/u, "and the node drawn as a bare block is described as one");
+  // THE LINE AND THE PICTURE MUST AGREE. Whatever the wording, the bytes called drawn are the bytes
+  // the rectangles carry — that is the invariant the previous version of this tab broke.
+  const data = window.Alpine.$data(window.document.querySelector(".em"));
+  const drawnRects = data.rects.filter((r) => r.level === "machine" && !r.tooSmall);
+  assert.equal(
+    drawnRects.reduce((sum, r) => sum + r.value, 0),
+    data.v.storage.bytes.drawn,
+    "the bytes the line calls drawn are exactly the bytes the machine rectangles carry"
+  );
+  for (const r of window.document.querySelectorAll(".em__rect"))
+    assert.ok(isVisible(r, window), "a rectangle the map counts must be one the owner can see");
   for (const r of window.document.querySelectorAll('.em__rect[data-level="volume"]'))
     assert.doesNotMatch(
       r.textContent,
@@ -886,7 +948,7 @@ test("RENDERED: what a node withheld, and what the estate could not account for,
   await openTab(window, "storage");
   const recon = window.document.querySelector(".em__recon");
   assert.ok(recon && isVisible(recon, window), "the reconciliation is visible");
-  assert.match(visible(window), /no volume to draw/u, "and the node whose bytes cannot be drawn is named");
+  assert.match(visible(window), /no volume inside it/u, "and the node drawn as a bare block is described as one");
 });
 
 test("RENDERED: a layout that cannot measure anything keeps what is on screen", async () => {
@@ -923,4 +985,102 @@ test("RENDERED: a layout that cannot measure anything keeps what is on screen", 
   } finally {
     window.Element.prototype.getBoundingClientRect = real;
   }
+});
+
+test("RENDERED: machine rectangle AREAS are proportional to the bytes each node reported", async () => {
+  // SCENARIO 3, first clause, which had no test at all until claude-s4-verifier-3 pointed at it —
+  // and the test that was supposed to carry the Scenario fed three abstract keys to the bare
+  // squarifier and never touched a fold, a machine or the panel. Four mutations that destroy this
+  // shipped GREEN: sizing machines by file count, equal rectangles, sqrt(bytes), and labelling the
+  // machine block in files. The first is B1 all over again one level up — the treemap inventing a
+  // number — and on the verifier's fold it made a node holding half the estate's bytes VANISH.
+  const B = { t480: 1_400_000_000_000, optimus: 640_000_000_000, pi: 2_000_000_000_000 };
+  const { window } = await renderPanel({
+    at: NOW,
+    machines: {
+      t480: machine({
+        counts: { files: 3_000_000, bytes: B.t480, listed_files: 3_000_000, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+        volumes: { "C:\\": { collector: "everything", status: "ok", rows: 3_000_000, at: T(10) } }
+      }),
+      optimus: machine({
+        counts: { files: 10, bytes: B.optimus, listed_files: 10, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+        volumes: { "C:\\": { collector: "everything", status: "ok", rows: 10, at: T(10) } }
+      }),
+      // the node with the MOST bytes and the FEWEST files: sizing by file count would shrink it to
+      // nothing, which is exactly what the owner would not notice
+      pi: machine({
+        counts: { files: 1, bytes: B.pi, listed_files: 1, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+        volumes: { "/": { collector: "walker", status: "ok", rows: 1, at: T(10) } }
+      })
+    }
+  });
+  await openTab(window, "storage");
+  await until(() => window.document.querySelectorAll('.em__rect[data-level="machine"]').length >= 3);
+
+  const data = window.Alpine.$data(window.document.querySelector(".em"));
+  const blocks = data.rects.filter((r) => r.level === "machine");
+  assert.equal(blocks.length, 3, "every node that reported bytes has a block");
+  const area = (r) => r.w * r.h;
+  const total = blocks.reduce((s, r) => s + area(r), 0);
+  const reported = Object.values(B).reduce((s, b) => s + b, 0);
+  for (const r of blocks) {
+    const share = area(r) / total;
+    const truth = B[r.machine] / reported;
+    assert.ok(
+      Math.abs(share - truth) < 0.02,
+      `${r.machine} takes ${(share * 100).toFixed(1)}% of the map for ${(truth * 100).toFixed(1)}% of the bytes`
+    );
+  }
+  // pi is the largest thing on screen because it holds the most bytes, whatever its file count says
+  const biggest = blocks.slice().sort((a, b) => area(b) - area(a))[0];
+  assert.equal(biggest.machine, "pi", "the node holding the most bytes is the biggest block");
+  // and the block is labelled in bytes the node actually sent
+  const pi = [...window.document.querySelectorAll('.em__rect[data-level="machine"]')].find((el) =>
+    el.textContent.includes("pi")
+  );
+  assert.match(pi.textContent, /1\.8 TB/u, "labelled with the bytes reported, not a file count");
+});
+
+test("RENDERED: a machine block too small to draw is named, like any other lost bytes", async () => {
+  const { window } = await renderPanel({
+    at: NOW,
+    machines: {
+      whale: machine({
+        counts: { files: 10, bytes: 900_000_000_000_000, listed_files: 10, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+        volumes: { "C:\\": { collector: "everything", status: "ok", rows: 10, at: T(10) } }
+      }),
+      // a rounding error beside the whale: its block cannot reach a pixel, and bytes the map counts
+      // but cannot show are the same lie as a volume nobody can see, one level up
+      mouse: machine({
+        counts: { files: 1, bytes: 1000, listed_files: 1, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+        volumes: { "D:\\": { collector: "everything", status: "ok", rows: 1, at: T(10) } }
+      })
+    }
+  });
+  await openTab(window, "storage");
+  await until(() => window.document.querySelectorAll(".em__rect").length >= 2);
+  assert.match(visible(window), /mouse — .*too small to draw/u, "the block nobody can see is named");
+});
+
+test("RENDERED: a quiet node's column in the matrix says it is quiet", async () => {
+  const { window } = await renderPanel({
+    at: NOW,
+    machines: {
+      t480: machine({ apps: [{ name: "Prime-Silo", version: "1.24.5", source: "registry" }] }),
+      optimus: machine({
+        stale: true,
+        since: T(10),
+        ageMs: 3_600_000,
+        apps: [{ name: "Prime-Silo", version: "1.24.4", source: "winget" }]
+      })
+    }
+  });
+  await openTab(window, "applications");
+  const headers = [...window.document.querySelectorAll(".em__matrix thead th")];
+  const optimus = headers.find((h) => h.textContent.includes("optimus"));
+  assert.ok(optimus, "the quiet node still has a column — it is not dropped");
+  assert.equal(optimus.dataset.stale, "true");
+  assert.match(optimus.textContent, /stale/u, "and the column says so, so 1.24.4 reads as its LAST known version");
+  const cell = [...window.document.querySelectorAll(".em__matrix tbody td")].find((td) => td.dataset.stale === "true");
+  assert.ok(cell && isVisible(cell, window), "the cells under it carry the same mark");
 });

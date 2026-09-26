@@ -111,9 +111,13 @@
             <p class="em__recon">
               <span x-text="`${bytes(v.storage.bytes.reported)} reported by the nodes`"></span>
               <span x-text="`${bytes(v.storage.bytes.drawn)} drawn`"></span>
+              <template x-if="v.storage.bytes.unsplit > 0">
+                <span class="em__reconmiss"
+                  x-text="`${bytes(v.storage.bytes.unsplit)} drawn as a whole machine, with no volume inside it`"></span>
+              </template>
               <template x-if="v.storage.bytes.missing > 0">
                 <span class="em__reconmiss"
-                  x-text="`${bytes(v.storage.bytes.missing)} on nodes with no volume to draw`"></span>
+                  x-text="`${bytes(v.storage.bytes.missing)} the map could not place at all`"></span>
               </template>
               <template x-if="v.storage.withheldBytes > 0">
                 <span
@@ -133,7 +137,7 @@
             <template x-if="invisible().length">
               <ul class="em__unsized">
                 <template x-for="r in invisible()" :key="`tiny:${r.key}`">
-                  <li x-text="`${r.machine} ${r.volume} — ${n(r.files)} files, too small to draw at this size`"></li>
+                  <li x-text="tooSmallLine(r)"></li>
                 </template>
               </ul>
             </template>
@@ -159,7 +163,10 @@
                   <tr>
                     <th>product</th>
                     <template x-for="m in v.applications.pushed" :key="m">
-                      <th x-text="m"></th>
+                      <!-- a quiet node's column says so: its versions are the last it said, which is not the
+                           same claim as the version it runs now -->
+                      <th :data-stale="v.applications.stale[m]"
+                        x-text="v.applications.stale[m] ? `${m} (stale)` : m"></th>
                     </template>
                     <th>seen by</th>
                   </tr>
@@ -169,7 +176,7 @@
                     <tr :data-drifted="row.drifted">
                       <td x-text="row.product"></td>
                       <template x-for="m in v.applications.pushed" :key="m">
-                        <td :data-missing="!row.byMachine[m]"
+                        <td :data-missing="!row.byMachine[m]" :data-stale="v.applications.stale[m]"
                           x-text="(row.byMachine[m] || []).join(' / ') || '—'"></td>
                       </template>
                       <td class="em__sources" x-text="row.sources.join(', ')"></td>

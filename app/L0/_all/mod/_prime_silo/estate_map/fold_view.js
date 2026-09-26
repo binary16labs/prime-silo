@@ -228,12 +228,23 @@ export function storageView(fold = {}, { now = Date.now() } = {}) {
   // machine rectangle or named in `unaccounted`, and the figures are on screen so the owner can
   // check the subtraction. A machine's 2 TB went missing from this tab before with no total to
   // check it against.
+  //
+  // `drawn` MEANS WHAT THE MAP DRAWS, which it did not before: it counted only machines with
+  // volumes, while the treemap drew a rectangle for every machine that reported bytes. A node with
+  // 2 TB and no folded volume was therefore the LARGEST BLOCK ON SCREEN and was simultaneously
+  // described underneath as bytes that could not be drawn. Two true sentences that contradict each
+  // other are worse than one missing number, and a test of mine had pinned it.
   const reported = machines.reduce((s, x) => s + x.value, 0);
-  const drawn = machines.filter((x) => x.volumes.length).reduce((s, x) => s + x.value, 0);
+  const drawn = machines.filter((x) => x.value > 0).reduce((s, x) => s + x.value, 0);
+  // drawn as a machine block, but with nothing inside it: the node said how much it holds and never
+  // said where
+  const unsplit = machines
+    .filter((x) => x.value > 0 && !x.volumes.length)
+    .reduce((s, x) => s + x.value, 0);
   return {
     machines,
     unaccounted: unaccounted.sort((a, b) => a.key.localeCompare(b.key)),
-    bytes: { reported, drawn, missing: Math.max(0, reported - drawn) },
+    bytes: { reported, drawn, unsplit, missing: Math.max(0, reported - drawn) },
     withheldBytes: machines.reduce((s, x) => s + x.withheldBytes, 0)
   };
 }
@@ -268,6 +279,13 @@ function byVolume(totals = []) {
 export function storageRects(view, box) {
   const rects = [];
   for (const m of treemap(view?.machines ?? [], box)) {
+    // A machine block too small to see is counted in the total like any other and shows nothing —
+    // the same lie as an invisible volume, one level up, and worth more bytes.
+    if (m.w < 1 || m.h < 1) {
+      rects.push({ ...m, level: "machine", tooSmall: true });
+      for (const v of m.volumes ?? []) rects.push({ ...v, level: "volume", tooSmall: true });
+      continue;
+    }
     rects.push({ ...m, level: "machine" });
     // The machine's own header — its name AND the bytes it reported — has to stay readable, so the
     // volumes are inset below it rather than over it. Drawn over, the one authoritative byte figure
@@ -369,7 +387,11 @@ export function applicationMatrix(fold = {}, { only = null } = {}) {
     })
     .sort((a, b) => Number(b.drifted) - Number(a.drifted) || a.product.localeCompare(b.product));
 
-  return { machines, pushed, notPushed, rows };
+  // WHICH OF THESE COLUMNS IS A QUIET NODE. A stale machine's version is its LAST KNOWN version, and
+  // drawn identically to a live one it turns "these two disagree" into a claim the fold cannot make:
+  // the disagreement may have been resolved days ago and the node simply stopped saying so.
+  const stale = Object.fromEntries(machines.map((m) => [m, fold.machines[m]?.stale === true]));
+  return { machines, pushed, notPushed, rows, stale };
 }
 
 // "Prime-Silo 1.24.5" from the registry is "Prime-Silo" in winget — the same fold S2's reconcile

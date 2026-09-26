@@ -129,8 +129,19 @@ window.estateMapPage = function estateMapPage() {
       return v.withheldBytes ? `at least ${this.bytes(v.withheldBytes)} withheld` : "";
     },
 
+    // A block too small to see is named whatever level it is: a machine's whole reported size can
+    // fall below a pixel beside a much larger one, and that is more bytes to lose than a volume.
+    tooSmallLine(r) {
+      return r.level === "machine"
+        ? `${r.machine} — ${this.bytes(r.value)}, too small to draw at this size`
+        : `${r.machine} ${r.volume} — ${this.n(r.files)} files, too small to draw at this size`;
+    },
+
     unaccountedLine(u) {
-      return [`${u.machine} ${u.volume}`, u.why, u.errorCode].filter(Boolean).join(" — ");
+      // a machine-level entry has no volume to name, and "optimus — — this node reported…" reads
+      // like a missing word rather than a missing volume
+      const what = u.volume && u.volume !== "—" ? `${u.machine} ${u.volume}` : u.machine;
+      return [what, u.why, u.errorCode].filter(Boolean).join(" — ");
     },
 
     mediaLine(m) {

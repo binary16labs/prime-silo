@@ -401,3 +401,10 @@
 .em__mediarow[data-stale="true"] b {
   color: var(--color-status-warning);
 }
+
+/* A quiet node's column in the matrix. The versions under it are the last it said, so they read as
+ * the historical claims they are rather than as today's state. */
+.em__matrix th[data-stale="true"],
+.em__matrix td[data-stale="true"] {
+  color: var(--color-status-warning);
+}
