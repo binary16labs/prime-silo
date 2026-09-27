@@ -53,7 +53,8 @@ const VOLUME_MAX = 120;
 const VOLUME_DEPTH = 2;
 // A drive letter, or a UNC host and share. Both are ALLOWLISTED character by character for the same
 // reason the segments below are.
-const VOLUME_ROOT = /^(?:[a-z]:|\\\\[a-z0-9][a-z0-9._-]{0,62}\\[a-z0-9][a-z0-9 _$-]{0,62})$/iu;
+const VOLUME_ROOT =
+  /^(?:[A-Za-z]:|\\\\[A-Za-z0-9][A-Za-z0-9._-]{0,62}\\[A-Za-z0-9][A-Za-z0-9 _$-]{0,62})$/u;
 // WHAT A SEGMENT MAY CONTAIN, as an allowlist. The first attempt denied the characters that looked
 // dangerous and asked whether the last segment "looked like a file". Neither could hold
 // (claude-s3-verifier-2's E1): a trailing space or dot made "contract.pdf " a different string and
@@ -61,10 +62,16 @@ const VOLUME_ROOT = /^(?:[a-z]:|\\\\[a-z0-9][a-z0-9._-]{0,62}\\[a-z0-9][a-z0-9 _
 // non-final segment was never examined; and U+2216, U+FE68 and U+29F9 carried a whole multi-level
 // path inside one "legal" segment. A denylist of disguises loses to the next disguise.
 //
-// So: letters, digits, space, underscore and hyphen, starting and ending with a letter or digit.
-// No dot, so no extension can be formed at all; no trailing space or dot, so no two spellings of
-// one name; no non-ASCII, so no homoglyph separator.
-const VOLUME_SEGMENT = /^[a-z0-9](?:[a-z0-9 _-]{0,62}[a-z0-9])?$/iu;
+// So: ASCII letters, digits, space, underscore and hyphen, starting and ending with a letter or
+// digit. No dot, so no extension can be formed at all; no trailing space or dot, so no two
+// spellings of one name; no non-ASCII, so no homoglyph separator.
+//
+// Written A-Za-z rather than a-z with the `i` flag, because under Unicode case folding `i` admits
+// U+017F (long s) as `s` and U+212A (kelvin sign) as `k` — so the rule said "ASCII only" and took
+// two characters that are not (claude-s3-verifier-3's F2). No path could hide in them, but
+// "F:\uſers" and "F:\users" would be two keys for one volume, and a hub rule written as the
+// string "users" would miss the first.
+const VOLUME_SEGMENT = /^[A-Za-z0-9](?:[A-Za-z0-9 _-]{0,62}[A-Za-z0-9])?$/u;
 
 // WHAT THIS GUARANTEES, exactly — the last version's comment claimed more than its code did, which
 // is the same fault as the one it was fixing. A path to a FILE cannot pass: a file name needs a dot
@@ -238,7 +245,20 @@ export function isNewer(candidate, held) {
 // foldEstateMap(pushes, opts) — the estate map: the latest sweep per machine, and within it the
 // latest listing per volume. A machine that has stopped pushing keeps everything it last said and
 // is marked stale SINCE a time (§7: a node that stops pushing is never shown empty).
-export function foldEstateMap(pushes = [], { now = Date.now(), maxAgeMs = 1_800_000 } = {}) {
+// The default IS the shared constant, not a second spelling of thirty minutes. It was a literal
+// 1_800_000 here, which is a duplicate of a named value fifty lines below and reads as though the
+// two could differ.
+//
+// THE STRONGER CLAIM THIS COMMENT USED TO MAKE WAS WRONG, and it is corrected here rather than only
+// in the log, because a comment wider than its code is exactly this epic's recurring defect: it
+// said the duplicate literal was WHY the S3 gate had to assert that server/app.js passed the
+// constant. It was not. estate_api.mjs already defaulted to DEFAULT_MAP_MAX_AGE_MS before any of
+// this, so app.js's option was redundant either way and the gate's assertion had another reason.
+// The de-duplication is still worth having; the causal story attached to it was not measured.
+export function foldEstateMap(
+  pushes = [],
+  { now = Date.now(), maxAgeMs = DEFAULT_MAP_MAX_AGE_MS } = {}
+) {
   const machines = {};
   for (const push of pushes) {
     if (!push?.machine) continue;
@@ -385,4 +405,19 @@ export function readQuarantinePolicy(file, { readFile, warn = console.error } = 
   const rules = parseQuarantinePolicy(raw);
   if (rules === null) warn(`[estate] ${file} is not a usable quarantine policy — estate maps refused`);
   return rules;
+}
+
+// withMap(manifest, map) — attach a map to an outbound manifest only if it may be sent, and say
+// why when it may not. The node applies the hub's own guard before the wire, so a bad payload fails
+// on the machine that built it; but a map that cannot be sent must not cost the node its SESSION
+// registration, which is what aborting the whole announce did (claude-s3-verifier-3's F3). The hub
+// keeps exactly this rule on its side — a refused map never stops N7 — so the node mirrors it.
+//
+// The decision lives here rather than in the agent script because a decision inside a script with
+// top-level side effects can only be asserted about as text, and text assertions are what this
+// contract's three findings were made of.
+export function withMap(manifest, map, rules = []) {
+  if (!map) return { manifest, problem: null };
+  const problem = mapPayloadProblem(map, rules);
+  return problem ? { manifest, problem } : { manifest: { ...manifest, map }, problem: null };
 }
