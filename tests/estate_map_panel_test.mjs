@@ -513,12 +513,20 @@ register(
 // file count formatted as bytes while the two largest nodes vanished. Layouts are checked at several
 // shapes now, this one included.
 const BOX = { width: 640, height: 400 };
+// Measured, not guessed: at a 1920-wide window the panel's map box is 1856px, and at 1200 it is
+// 1136. The old list topped out at 1400 and the seeded generator at 1660, so the box an ordinary
+// 1080p screen actually produces was outside EVERY layout any test performed — and a distortion
+// keyed on `box.w > 1700` drew "t480 1.1 MB" for a node holding 1.4 TB with the gate green. Seeding
+// had replaced "aim between five points" with "aim outside one box".
 const REAL_BOXES = [
+  { w: 1856, h: 416 },
+  { w: 1136, h: 416 },
   { w: 932, h: 416 },
   { w: 640, h: 400 },
   { w: 1400, h: 300 },
   { w: 300, h: 900 },
-  { w: 120, h: 90 }
+  { w: 120, h: 90 },
+  { w: 3776, h: 900 }
 ];
 
 // FIVE FIXED SHAPES IS A LIST, AND A LIST IS SOMETHING TO AIM BETWEEN. A distortion keyed on a 3:1
@@ -769,14 +777,42 @@ function stylesheetProblems(css) {
   } catch (e) {
     return [`the panel stylesheet does not parse: ${e.message}`];
   }
-  walk(ast, (node) => {
-    if (node.type === "Atrule")
-      problems.push(`@${node.name}: a rule that applies only sometimes can hide a guard sometimes`);
-    if (node.type !== "Declaration") return;
-    const decl = `${node.property.toLowerCase()}: ${generate(node.value).trim().toLowerCase()}`;
-    if (node.important) problems.push(`${decl} !important — the panel has no need to beat anything`);
-    else if (!APPROVED_DECLARATIONS.has(decl))
-      problems.push(`the panel stylesheet says "${decl}", which is not in its approved inventory`);
+  // WHERE a declaration is made, for the two properties where that is the whole question. The
+  // inventory asks whether the panel may SAY a thing, never whether it may say it HERE — so
+  // `.em__cards { height: 26rem; overflow: hidden }`, both strings verbatim in the inventory, clipped
+  // ten of fourteen machine cards out of a container nobody can scroll, under a header still reading
+  // "14 nodes reporting". Keying the whole inventory on selectors would make every CSS edit a
+  // two-place change; keying only the properties that CLIP is small and bounded, and clipping is the
+  // only way an approved declaration removes content from reach.
+  //
+  // `.em__map` is the one element allowed to clip, because it is a fixed-size canvas whose overflow
+  // is the treemap's own business. `.em__rect` may clip its label inside its own block. Nothing else
+  // may, at all.
+  const MAY_CLIP = new Set([".em__map", ".em__rect"]);
+  const CLIPPING = new Set(["height", "max-height", "min-height", "overflow", "overflow-y", "overflow-x"]);
+  let selector = "";
+  walk(ast, {
+    enter(node) {
+      if (node.type === "Rule") selector = generate(node.prelude).trim().toLowerCase();
+      if (node.type === "Atrule")
+        problems.push(`@${node.name}: a rule that applies only sometimes can hide a guard sometimes`);
+      if (node.type !== "Declaration") return;
+      const prop = node.property.toLowerCase();
+      const decl = `${prop}: ${generate(node.value).trim().toLowerCase()}`;
+      if (node.important) {
+        problems.push(`${decl} !important — the panel has no need to beat anything`);
+        return;
+      }
+      if (!APPROVED_DECLARATIONS.has(decl)) {
+        problems.push(`the panel stylesheet says "${decl}", which is not in its approved inventory`);
+        return;
+      }
+      if (CLIPPING.has(prop) && !MAY_CLIP.has(selector) && !/^overflow(-x)?: (auto|visible)$/u.test(decl))
+        problems.push(
+          `"${decl}" on ${selector}: only ${[...MAY_CLIP].join(" and ")} may clip, and everything else ` +
+            "clipped this way puts content out of the owner's reach with no way to scroll to it"
+        );
+    }
   });
   return problems;
 }
@@ -1287,7 +1323,14 @@ test("the stylesheet check refuses every way of hiding that has been used agains
     ".em__note { line-height: 0; overflow: hidden; max-height: 1px }",
     ".em__note { position: absolute; inset: auto auto auto 5000px }",
     ".em__note { zoom: 0 }",
-    ".em__card { opacity: 0.49999 }"
+    ".em__card { opacity: 0.49999 }",
+    // AN APPROVED DECLARATION, IN AN APPROVED PLACE, that only the at-rule and !important refusals
+    // can catch. Without these two the table never exercised either refusal — every other attack
+    // also carries something the inventory rejects, so deleting them both shipped green.
+    "@media (min-width: 1px) { .em__map { height: 26rem } }",
+    ".em__map { height: 26rem !important }",
+    // and the clipping rule needs its own case that the inventory alone would wave through
+    ".em__cards { height: 26rem; overflow: hidden }"
   ];
   const real = fs.readFileSync(path.join(PANEL, "estate_map.css"), "utf8");
   // COUNTED, so that gutting the loop's assertion is not silent: a verifier replaced the assert with
@@ -1301,7 +1344,7 @@ ${attack}
     else assert.fail(`not caught: ${attack}`);
   }
   assert.equal(caught, attacks.length, "every attack in the table must be refused");
-  assert.ok(attacks.length >= 37, "the table must still hold every attack that has been used here");
+  assert.ok(attacks.length >= 40, "the table must still hold every attack that has been used here");
   // a brace inside a string is a parser's problem, not a splitter's, and the parser has it
   assert.ok(
     stylesheetProblems(`${real}
@@ -1487,11 +1530,14 @@ test("machine areas stay proportional at shapes and sizes nobody chose", () => {
   // 200 layouts from a seeded generator. A distortion conditioned on an aspect ratio, a machine
   // count or a call number has nowhere to hide between them, and a failure reports its seed so it
   // can be replayed exactly.
+  // The ranges reach past any screen the owner is likely to have — a 4K window gives the panel about
+  // 3776px — and the round count is high enough that a distortion keyed on a call counter has to
+  // survive hundreds of layouts. Neither bound is unbounded, and the limits block says so.
   const rand = seeded(20260927);
-  for (let round = 0; round < 200; round++) {
-    const w = 60 + Math.floor(rand() * 1600);
-    const h = 60 + Math.floor(rand() * 1000);
-    const count = 1 + Math.floor(rand() * 12);
+  for (let round = 0; round < 500; round++) {
+    const w = 60 + Math.floor(rand() * 4000);
+    const h = 60 + Math.floor(rand() * 2200);
+    const count = 1 + Math.floor(rand() * 24);
     const machines = [];
     for (let i = 0; i < count; i++)
       machines.push({
