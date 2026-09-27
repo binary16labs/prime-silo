@@ -26,6 +26,7 @@
 // FAILS AND SAYS SO rather than skipping the check, because a gate that reports green without
 // having verified anything is the exact fault this contract was written to end.
 import { spawn, spawnSync } from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
@@ -104,28 +105,95 @@ const put = (f, v) => (v === null ? fs.rmSync(f, { force: true }) : fs.writeFile
 // when the same mutations were run one at a time, and a gate that fails a CORRECT product is its own
 // defect. The lock makes the collision loud instead of confusing. It does not, and cannot, stop a
 // hub that is already serving this directory — see WHAT THIS DOES NOT PROVE.
-const LOCK = path.join(ROOT, "coordination", "estate", ".s3-gate.lock");
-function takeLock() {
-  fs.mkdirSync(path.dirname(LOCK), { recursive: true });
-  try {
-    fs.writeFileSync(LOCK, String(process.pid) + " " + new Date().toISOString(), { flag: "wx" });
-  } catch (e) {
-    if (e.code !== "EEXIST") throw e;
+// NOT A FILE, BECAUSE A FILE IS A NAME TO SCAN FOR. Round six put the lock inside the estate
+// directory, where `exists(lock) ? reader() : []` read it straight off the disk the guard was already
+// reading. Moving it to the OS temp directory did NOT close that — a product can list temp and look
+// for a name beginning `psilo-s3-gate-`, and the mutation that does exactly that still passed. So the
+// mutual exclusion is now a LISTENING SOCKET on a port derived from the coordination path: two runs
+// cannot bind it at once, and it leaves nothing on disk to find.
+//
+// What must stay on disk is the RESTORE NOTE below, because a run killed outright runs no handler and
+// the next run needs a fixed place to look. That it exists at all, while a run is in flight, is a
+// signal — and the block at the bottom says so rather than claiming otherwise.
+const LOCK_PORT = 20000 + (crypto.createHash("sha256").update(ROOT).digest().readUInt16BE(0) % 20000);
+let lockServer = null;
+
+async function takeLock() {
+  lockServer = net.createServer();
+  const ok = await new Promise((resolve) => {
+    lockServer.once("error", () => resolve(false));
+    lockServer.listen(LOCK_PORT, "127.0.0.1", () => resolve(true));
+  });
+  if (!ok) {
     console.error(
       [
-        "[s3] FAIL: another run of this gate holds " + LOCK + " (" + fs.readFileSync(LOCK, "utf8").trim() + ").",
+        `[s3] FAIL: another run of this gate holds 127.0.0.1:${LOCK_PORT}.`,
         "[s3] This gate writes the real coordination directory, so two at once would each see the",
-        "[s3] other's worlds. Wait for it, or delete the lock if you are sure it is stale."
+        "[s3] other's worlds. Wait for it to finish."
       ].join(String.fromCharCode(10))
     );
     process.exit(1);
   }
+  lockServer.unref();
+  // A run that died without clearing its note left the estate mid-flight; put it back before this
+  // run records what IT is about to displace.
+  recoverEstate();
 }
 
-const dropLock = () => fs.rmSync(LOCK, { force: true });
+const dropLock = () => {
+  fs.rmSync(SIDECAR, { force: true });
+  if (lockServer) lockServer.close();
+};
+
+const SIDECAR = path.join(
+  os.tmpdir(),
+  `psilo-estate-restore-${crypto.createHash("sha256").update(ROOT).digest("hex").slice(0, 12)}.json`
+);
+
+// WHAT NO HANDLER CAN COVER, RECOVERED INSTEAD OF PREVENTED. A hard kill runs nothing, so a run cut
+// down mid-world leaves the gate's own policy sitting in the owner's real coordination directory and
+// the owner's file only in the dead process's memory. Before touching anything, the gate writes what
+// it is about to displace beside the lock; a later run that finds a stale lock puts it back. A gate
+// that cannot prevent the damage should at least be able to undo it.
+function rememberEstate() {
+  fs.writeFileSync(
+    SIDECAR,
+    JSON.stringify({
+      q: SNAPSHOT.q === null ? null : SNAPSHOT.q.toString("base64"),
+      qAt: SNAPSHOT.qAt?.mtimeMs ?? null,
+      kel: SNAPSHOT.kel === null ? null : SNAPSHOT.kel.toString("base64"),
+      kelAt: SNAPSHOT.kelAt?.mtimeMs ?? null,
+      dirAt: SNAPSHOT.dirAt?.mtimeMs ?? null
+    })
+  );
+}
+
+function recoverEstate() {
+  if (!fs.existsSync(SIDECAR)) return;
+  let saved;
+  try {
+    saved = JSON.parse(fs.readFileSync(SIDECAR, "utf8"));
+  } catch {
+    return;
+  }
+  console.error(`[s3] a previous run was interrupted; putting the estate back from ${SIDECAR}`);
+  put(QJSON, saved.q === null ? null : Buffer.from(saved.q, "base64"));
+  put(KEL, saved.kel === null ? null : Buffer.from(saved.kel, "base64"));
+  if (saved.qAt && fs.existsSync(QJSON)) age(QJSON, saved.qAt);
+  if (saved.kelAt && fs.existsSync(KEL)) age(KEL, saved.kelAt);
+  if (saved.dirAt && fs.existsSync(ESTATE)) age(ESTATE, saved.dirAt);
+  fs.rmSync(SIDECAR, { force: true });
+}
 
 const stamp = (f) => (fs.existsSync(f) ? fs.statSync(f) : null);
-const SNAPSHOT = { q: read(QJSON), kel: read(KEL), qAt: stamp(QJSON), kelAt: stamp(KEL), dirAt: stamp(ESTATE) };
+// CAPTURED AFTER RECOVERY, NOT AT IMPORT. Taking the snapshot when this module loads means a run
+// that follows an interrupted one snapshots the WRECKAGE — and then faithfully restores it over the
+// repair at the end. The order is: take the lock, put back whatever the dead run displaced, and only
+// then record what this run is about to displace.
+let SNAPSHOT = { q: null, kel: null, qAt: null, kelAt: null, dirAt: null };
+const captureEstate = () => {
+  SNAPSHOT = { q: read(QJSON), kel: read(KEL), qAt: stamp(QJSON), kelAt: stamp(KEL), dirAt: stamp(ESTATE) };
+};
 // Bytes AND timestamps. Restoring only the content left the owner's quarantine.json dated NOW —
 // destroying the very stat field this gate's own file-age defence depends on, on the one file the
 // owner most needs to be able to reason about.
@@ -248,32 +316,40 @@ async function boot(home, port, shape, dir) {
   return { child, port: served, tree: spec.tree === true };
 }
 
-const sweep = (machine, volume, ageMs, tag) => ({
+// THE PAYLOAD IS NOT A FIXTURE EITHER. A digest of sixty-four `a`s and a sweep_id beginning
+// `01M31Y102Z` are values only this gate sends, and they are the same in all three shapes — so an
+// expression keyed on one has all three hubs wrong together and the agreement check stays silent.
+// Every push now carries its own random digest, snapshot, sweep id and counts.
+const ULID = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+const randomUlid = () =>
+  Array.from({ length: 26 }, () => ULID[Math.floor(Math.random() * ULID.length)]).join("");
+const randomSha = () => crypto.randomBytes(32).toString("hex");
+
+const sweep = (machine, volume, ageMs, rows = 2 + Math.floor(Math.random() * 40)) => ({
   machine,
-  sweep_id: `01M31Y102Z4631D8992T33C1F${tag}`,
+  sweep_id: randomUlid(),
   finished_at: new Date(Date.now() - ageMs).toISOString(),
   scope: [volume],
-  collectors: [{ name: "everything", kind: "files", volume, status: "ok", rows: 3 }],
+  collectors: [{ name: "everything", kind: "files", volume, status: "ok", rows }],
   counts: {
-    files: 3,
-    bytes: 300,
-    listed_files: 3,
+    files: rows,
+    bytes: rows * 100,
+    listed_files: rows,
     apps: 0,
     listed_apps: 0,
     media: 0,
     listed_media: 0
   },
   totals: [
-    { kind: "files", collector: "everything", volume, category: "code", items: 3, bytes: 300 }
+    { kind: "files", collector: "everything", volume, category: "code", items: rows, bytes: rows * 100 }
   ],
-  digest: "a".repeat(64),
-  snapshot: `sha256:${"b".repeat(64)}`
+  digest: randomSha(),
+  snapshot: `sha256:${randomSha()}`
 });
 
-let tag = 0;
 const push = async (port, machine, volume, ageMs = 30_000) => {
   const manifest = buildManifest(machine, [], []);
-  manifest.map = sweep(machine, volume, ageMs, String.fromCharCode(65 + (tag++ % 26)));
+  manifest.map = sweep(machine, volume, ageMs);
   const res = await fetch(`http://127.0.0.1:${port}/api/estate/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -295,7 +371,11 @@ const fold = (port) =>
 // while the owner's is months old, so `Date.now() - statSync(qjson).mtimeMs < 120000 ? reader() : []`
 // was honest here and inert on the owner's machine - the half of the question a no-policy probe can
 // never see, because there the file is absent either way. The timestamps are pushed back thirty days.
-const BACKDATE_MS = 97 * 24 * 60 * 60 * 1000;
+// JITTERED, because the number itself was the signal. Round six moved from 30 days to 97 on the
+// reasoning that "exactly thirty days" was recognisable — but roundness was never the point,
+// EXACTNESS was, and `mtime within 2h of exactly 97 days` walked past the gate just as `exactly 30`
+// had. Every run picks a different age, so there is no constant to key on.
+const BACKDATE_MS = (180 + Math.random() * 900) * 24 * 60 * 60 * 1000;
 const writePolicy = (rules) => {
   put(QJSON, rules === undefined ? null : Buffer.from(JSON.stringify({ rules })));
   const at = Date.now() - BACKDATE_MS;
@@ -391,7 +471,26 @@ const MINUTE = 60_000;
 const DECAY_PROBES = 30;
 
 takeLock();
-process.on("exit", dropLock);
+captureEstate();
+rememberEstate();
+// THE ESTATE IS PUT BACK BEFORE THE LOCK IS DROPPED, and both happen on the way out of any exit —
+// including a signal. The previous order dropped the lock on process exit, AFTER the last restore,
+// so deleting it re-stamped the estate directory and every run left it dated now: 365.000 days old
+// before, 0.000 after. And an interrupted run left the gate's synthetic policy in the owner's real
+// coordination directory with the owner's own file only in the dead process's memory.
+const leave = () => {
+  try {
+    restoreEstate();
+  } finally {
+    dropLock();
+  }
+};
+process.on("exit", leave);
+for (const signal of ["SIGINT", "SIGTERM", "SIGHUP", "SIGBREAK"])
+  process.on(signal, () => {
+    leave();
+    process.exit(130);
+  });
 
 let worlds;
 try {
@@ -542,15 +641,18 @@ for (const [world, probes] of [
 // the code does, so this list is written from measurements, and the previous five versions of it were
 // each wrong in the same way. The standard stands: a signal this gate emits that the estate's own
 // boots do not is a defect in this section.
-//   - THREE SHAPES ARE THE THREE THE ESTATE IMPLEMENTS — the packaged desktop's in-process options,
-//     the CLI's environment, and the clustered primary that forks workers under WORKERS>1. Requiring
+//   - THREE SHAPES ARE THE THREE THAT HAVE BEEN FOUND — the packaged desktop's in-process options,
+//     the CLI's environment, and the clustered primary that forks workers under WORKERS>1. Calling
+//     that "the three the estate implements" was an existential claim about the product, and it is
+//     the same sentence that said "both" the round before a verifier found the third. Requiring
 //     all three to agree kills anything keyed on a difference between them. What it cannot see is a
 //     signal COMMON to all three: each is a child of this gate, from this worktree, with a temp
 //     BENNY_HOME holding fixture keys, pushed to by fetch rather than by the satellite agent, and
 //     with no owner .env beside it.
-//   - ctime. THE ONE CHANNEL NO AVAILABLE API CAN CLOSE. The policy file is now 97 days old in
-//     mtime, atime and birthtime (PowerShell sets CreationTime, which fs.utimesSync cannot), and the
-//     age is deliberately not a round number because "exactly thirty days" was itself a signal. But
+//   - ctime. THE ONE CHANNEL NO AVAILABLE API CAN CLOSE. The policy file is aged in mtime, atime and
+//     birthtime (PowerShell sets CreationTime, which fs.utimesSync cannot) by a DIFFERENT number of
+//     days every run — an earlier version used exactly 97 on the reasoning that 30 had been
+//     recognisable because it was round, when what was recognisable was that it was EXACT. But
 //     Windows updates ctime on any metadata change and offers no way to set it, so a guard reading
 //     "be honest only if this policy file was changed in the last N minutes" is honest here and
 //     inert on a machine whose policy has sat untouched. Measured: mtime 97.000 d, birthtime
@@ -559,6 +661,11 @@ for (const [world, probes] of [
 //     empties after 2 reads dies, after 8 dies, after 40 reads of its `length` survives 30 pushes,
 //     because the product does not consult it once per push. Raising DECAY_PROBES moves the line and
 //     never removes it.
+//   - A HARD KILL, WHICH IS RECOVERED RATHER THAN PREVENTED. Ctrl-C is handled: the estate goes back
+//     and the lock is dropped. A kill that runs no handler cannot be, so before touching anything
+//     this gate writes what it is about to displace beside its lock, and the next run puts it back
+//     and says so. What that costs is a window in which the owner's coordination directory holds
+//     this gate's policy — which is why it must not be run against a directory a hub is serving.
 //   - A HUB ALREADY SERVING THIS COORDINATION DIRECTORY. The gate writes and removes the real
 //     quarantine.json, so it must not be run while the owner's hub is up on the same directory: it
 //     would briefly change that hub's policy. A lock stops two copies of the GATE colliding; nothing
