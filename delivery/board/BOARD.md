@@ -13,6 +13,8 @@
 
 - P7 — the navigation instrument: an agentic manifest the stream can score _(contract authored 2026-09-21; deps P4 and P6 both DONE so it enters READY at the bottom — owner may reorder)_
 
+- S5 — integrity: duplicates, sole copies, coverage, verification _(UNBLOCKED — deps S1 and S3 have both been DONE since the map landed; it was overlooked in AUTHORED while S13/S15 were worked. Enters READY at the bottom per the board's own rule, owner may reorder. Its verifier step needs the real NAS catalog, and the live-fold work still needs coordination/estate/quarantine.json, which is still absent.)_
+
 ## CLAIMED (agent · date)
 
 
@@ -124,5 +126,5 @@ Q2 Q3 ·
 R0 R1 R2 R3 ·
 M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 ·
 B4 B5 · L15 ·
-S14 S5 S6 S7 S8 ·
+S14 S6 S7 S8 ·
 P5 ·
