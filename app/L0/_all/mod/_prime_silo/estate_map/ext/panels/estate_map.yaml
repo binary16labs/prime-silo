@@ -1,0 +1,7 @@
+name: Estate Map
+path: _prime_silo/estate_map
+description: What the estate actually holds — every node's volumes and files, which software each one runs, and where the versions have drifted apart. Folded from what the nodes pushed; a node that has gone quiet is shown stale, never empty.
+icon: map
+# The estate arc's colour. This is an observation surface: it reports what the nodes said and
+# offers no button that changes anything. Moving bytes is S7's executor and needs a signature.
+color: "#8a9aa4"

@@ -1,0 +1,235 @@
+<html>
+  <head>
+    <!-- This file is full of ·, — and …, and a view served without a charset is served as the
+         browser's guess. -->
+    <meta charset="utf-8" />
+    <!-- Same reason as the Release, Gov and Lineage arcs: the shell's index.css imports only
+         google-icons, so every var(--space-*) / var(--font-size-*) is undefined unless the view
+         links these itself. A view that loads without its stylesheet is a blank page, and a blank
+         page and an empty estate look identical — which is the one thing this panel must not do. -->
+    <link rel="stylesheet" href="/mod/_core/framework/css/layout.css" />
+    <link rel="stylesheet" href="/mod/_core/framework/css/type.css" />
+    <link rel="stylesheet" href="/mod/_prime_silo/estate_map/estate_map.css" />
+    <script type="module" src="/mod/_prime_silo/estate_map/estate_map.js"></script>
+  </head>
+  <body>
+    <!-- No x-init: Alpine calls init() on the data object itself, and having both meant the panel
+         fetched TWICE on every load, registered two $watch handlers, two resize listeners and
+         two refresh intervals. A verifier found it by counting fetches in the harness. -->
+    <section class="em" x-data="estateMapPage()" x-cloak>
+      <header class="em__head">
+        <h1 class="em__title">Estate Map</h1>
+        <template x-if="v.reachable && !v.empty"><span class="em__age" x-text="reportingLine()"></span></template>
+      </header>
+
+      <!-- Unreachable is not empty. The hub not answering says nothing about what the estate holds,
+           and rendering zero machines here would be a claim this page cannot support. -->
+      <template x-if="!loading && !v.reachable"><div class="em__blind">
+        <strong>Cannot tell</strong>
+        <p x-text="v.reason || 'the estate map could not be read'"></p>
+      </div></template>
+
+      <!-- Reachable and holding nothing is its own answer, and it is the state a fail-closed hub is
+           in before any policy exists. Saying so beats blank space that reads as a broken page. -->
+      <template x-if="!loading && v.reachable && v.empty"><div class="em__nothing">
+        <strong>No node has pushed a map yet</strong>
+        <p x-text="v.emptyReason"></p>
+      </div></template>
+
+      <template x-if="loading"><p class="em__loading">Reading the estate map…</p></template>
+
+      <template x-if="!loading && v.reachable && !v.empty">
+        <div class="em__body">
+          <nav class="em__tabs">
+            <template x-for="t in ['estate', 'storage', 'applications', 'media']" :key="t">
+              <button class="em__tab" :data-on="tab === t" @click="tab = t" x-text="t"></button>
+            </template>
+          </nav>
+
+          <!-- ESTATE: one card per node, stale ones included and labelled. -->
+          <template x-if="tab === 'estate'"><div class="em__cards">
+            <template x-for="m in v.machines" :key="m.machine">
+              <article class="em__card" :data-stale="m.stale">
+                <header class="em__cardhead">
+                  <h2 class="em__machine" x-text="m.machine"></h2>
+                  <span class="em__state" :data-stale="m.stale" x-text="m.stale ? 'stale' : 'live'"></span>
+                </header>
+                <p class="em__when" x-text="machineLine(m)"></p>
+
+                <dl class="em__counts">
+                  <div><dt>files</dt><dd x-text="n(m.counts.listed_files)"></dd></div>
+                  <div><dt>size</dt><dd x-text="bytes(m.counts.bytes ?? 0)"></dd></div>
+                  <div><dt>apps</dt><dd x-text="n(m.counts.listed_apps)"></dd></div>
+                </dl>
+
+                <!-- What the node did NOT publish. A count with nothing behind it is not evidence,
+                     so the number is shown rather than folded silently into the totals. -->
+                <template x-if="m.withheld > 0">
+                  <p class="em__withheld"
+                    x-text="`${n(m.withheld)} files withheld by this node's privacy rules`"></p>
+                </template>
+
+                <ul class="em__vols">
+                  <template x-for="vol in m.volumes" :key="vol.volume">
+                    <li class="em__vol" :data-state="vol.status">
+                      <b x-text="vol.volume"></b>
+                      <span x-text="`${n(vol.rows)} files`"></span>
+                      <span class="em__volwhen" x-text="`${vol.collector ?? 'unknown'} · ${ageOf(vol)}`"></span>
+                      <template x-if="vol.errorCode">
+                        <span class="em__volerr" x-text="vol.errorCode"></span>
+                      </template>
+                    </li>
+                  </template>
+                </ul>
+              </article>
+            </template>
+          </div></template>
+
+          <!-- STORAGE: two units in one picture, said out loud, and a reconciliation the owner can
+               check by subtraction. -->
+          <template x-if="tab === 'storage'"><div class="em__storage">
+            <p class="em__note">
+              Machines are sized by the bytes they reported. The volumes inside a machine are sized
+              by <b>file count</b>, not bytes: the map carries bytes per machine and files per
+              volume, and no per-volume byte figure crosses the wire. Nothing here is estimated.
+            </p>
+            <div class="em__map">
+              <template x-for="r in drawn()" :key="r.key">
+                <div class="em__rect" :data-level="r.level" :data-stale="r.stale"
+                  :style="`left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px`">
+                  <span class="em__rectname" x-text="r.level === 'machine' ? r.machine : r.volume"></span>
+                  <span class="em__rectsize" x-text="rectSize(r)"></span>
+                  <template x-if="r.level === 'volume' && r.withheldBytes">
+                    <span class="em__rectfloor"
+                      x-text="floorLine(r)"></span>
+                  </template>
+                  <template x-if="r.errorCode">
+                    <span class="em__recterr" x-text="r.errorCode"></span>
+                  </template>
+                </div>
+              </template>
+            </div>
+
+            <!-- EVERY BYTE IS EITHER IN THE PICTURE OR NAMED BELOW IT. -->
+            <p class="em__recon">
+              <span x-text="`${bytes(recon.reported)} reported by the nodes`"></span>
+              <span x-text="`${bytes(recon.drawn)} drawn`"></span>
+              <template x-if="recon.tooSmall > 0">
+                <span class="em__reconmiss"
+                  x-text="`${bytes(recon.tooSmall)} on blocks too small to see at this size`"></span>
+              </template>
+              <template x-if="recon.unsplit > 0">
+                <span class="em__reconmiss"
+                  x-text="`${bytes(recon.unsplit)} drawn as a whole machine, with no volume inside it`"></span>
+              </template>
+              <template x-if="recon.missing > 0">
+                <span class="em__reconmiss"
+                  x-text="`${bytes(recon.missing)} the map could not place at all`"></span>
+              </template>
+              <template x-if="v.storage.withheldBytes > 0">
+                <span x-text="`at least ${bytes(v.storage.withheldBytes)} withheld by node policy`"></span>
+              </template>
+            </p>
+
+            <template x-if="v.storage.unaccounted.length">
+              <ul class="em__unsized">
+                <template x-for="u in v.storage.unaccounted" :key="u.key">
+                  <li :data-state="u.status" x-text="unaccountedLine(u)"></li>
+                </template>
+              </ul>
+            </template>
+
+            <!-- A rectangle too small to see is listed rather than counted invisibly. -->
+            <template x-if="invisible().length">
+              <ul class="em__unsized">
+                <template x-for="r in invisible()" :key="`tiny:${r.key}`">
+                  <li x-text="tooSmallLine(r)"></li>
+                </template>
+              </ul>
+            </template>
+          </div></template>
+
+          <!-- APPLICATIONS: the matrix, drifted rows first. -->
+          <template x-if="tab === 'applications'"><div class="em__apps">
+            <!-- A node that pushed no applications is named here rather than rendered as blank
+                 cells, because a blank cell reads as "does not have it". -->
+            <template x-if="v.applications.notPushed.length">
+              <p class="em__note"
+                x-text="`No application list pushed by: ${v.applications.notPushed.join(', ')}. Their columns are empty because they have not said, not because they hold nothing.`"></p>
+            </template>
+
+            <template x-if="v.drift.length">
+              <p class="em__drift"
+                x-text="`${v.drift.length} product${v.drift.length === 1 ? '' : 's'} at different versions across the estate`"></p>
+            </template>
+
+            <template x-if="v.applications.rows.length">
+              <table class="em__matrix">
+                <thead>
+                  <tr>
+                    <th>product</th>
+                    <template x-for="m in v.applications.pushed" :key="m">
+                      <!-- a quiet node's column says so: its versions are the last it said, which is not the
+                           same claim as the version it runs now -->
+                      <th :data-stale="v.applications.stale[m]"
+                        x-text="v.applications.stale[m] ? `${m} (stale)` : m"></th>
+                    </template>
+                    <th>seen by</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="row in v.applications.rows" :key="row.product">
+                    <tr :data-drifted="row.drifted">
+                      <td x-text="row.product"></td>
+                      <template x-for="m in v.applications.pushed" :key="m">
+                        <td :data-missing="!row.byMachine[m]" :data-stale="v.applications.stale[m]"
+                          x-text="(row.byMachine[m] || []).join(' / ') || '—'"></td>
+                      </template>
+                      <td class="em__sources" x-text="row.sources.join(', ')"></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </template>
+
+            <template x-if="!v.applications.rows.length">
+              <p class="em__empty">
+                No node has pushed an application list yet.
+              </p>
+            </template>
+          </div></template>
+
+          <!-- MEDIA: how much each node found, how much it published, and the categories behind what
+               it held back. A node that has not swept media says so rather than reading as zero. -->
+          <template x-if="tab === 'media'"><div class="em__media">
+            <p class="em__note">
+              Per-root media listings are S5's work. What the map carries today is how much media
+              each node found and how much of it it published.
+            </p>
+            <ul class="em__medialist">
+              <template x-for="m in v.media.machines" :key="m.machine">
+                <li class="em__mediarow" :data-stale="m.stale" :data-swept="m.swept">
+                  <b x-text="m.machine"></b>
+                  <span x-text="mediaLine(m)"></span>
+                  <template x-if="m.withheld > 0">
+                    <span class="em__volwhen"
+                      x-text="`${n(m.withheld)} withheld`"></span>
+                  </template>
+                  <template x-if="m.categories.length">
+                    <span class="em__sources"
+                      x-text="m.categories.map((c) => `${c.category} ${n(c.items)}`).join(' · ')"></span>
+                  </template>
+                </li>
+              </template>
+            </ul>
+            <template x-if="!v.media.swept.length">
+              <p class="em__empty">
+                No node has swept media yet, so this estate cannot say what media it holds.
+              </p>
+            </template>
+          </div></template>
+        </div>
+      </template>
+    </section>
+  </body>
+</html>
