@@ -793,9 +793,8 @@ function stylesheetProblems(css) {
   // claimed it was, one round after the same mistake was made about at-rules. `.em__card { position:
   // absolute }` is a single approved declaration with no clipping property, and it stacks every card
   // at one point with only the last readable, measured on a fourteen-node fold under a header still
-  // reading "14 nodes reporting". So `position` is held to the same rule. What is still uncovered —
-  // stacking by other means, an overlay, the framework stylesheets, anything the markup or JS does —
-  // is declared at the end of this file rather than implied away here.
+  // reading "14 nodes reporting". So `position` is held to the same rule. What is still uncovered is
+  // written out under WHAT THIS FILE DOES NOT COVER at the end of this file.
   const MAY_CLIP = new Set([".em__map", ".em__rect"]);
   const CLIPPING = new Set([
     "height",
@@ -913,8 +912,15 @@ test("RENDERED: a node that went quiet is still on the screen, labelled and coun
   const header = window.document.querySelector(".em__age");
   assert.ok(header && isVisible(header, window), "the header is on screen");
   assert.match(header.textContent, /^2 nodes reporting$/u, "it counts the machines the fold holds");
-  const badges = [...window.document.querySelectorAll(".em__state")].map((b) => b.textContent.trim());
-  assert.deepEqual(badges.sort(), ["live", "stale"], "and each card says which it is");
+  // BOUND TO THE CARD IT SITS ON, not sorted into a set: sorting proves two badges exist with the
+  // right words on them and says nothing about which machine is which, so swapping them passes.
+  const badgeOf = (name) =>
+    [...window.document.querySelectorAll(".em__card")]
+      .find((card) => card.querySelector(".em__machine")?.textContent.trim() === name)
+      ?.querySelector(".em__state")
+      ?.textContent.trim();
+  assert.equal(badgeOf("t480"), "live", "the live node's own card says live");
+  assert.equal(badgeOf("optimus"), "stale", "and the quiet node's own card says stale");
   assert.equal(
     window.document.querySelectorAll(".em__card").length,
     2,
@@ -1645,3 +1651,31 @@ test("RENDERED: an estate where every node is quiet does not say it is reporting
   const badges = [...window.document.querySelectorAll(".em__state")].map((b) => b.textContent.trim());
   assert.deepEqual(badges, ["stale", "stale"], "and no card claims to be live");
 });
+
+// --- WHAT THIS FILE DOES NOT COVER ------------------------------------------------------------------
+//
+// Written here because a comment above points at it, and because the previous version of that comment
+// pointed at a declaration that did not exist — a claim wider than its code, inside the sentence that
+// was deleting a claim wider than its code. This is the list, in the place the reader is sent to.
+//
+//   - NO LAYOUT ENGINE. jsdom computes styles but lays nothing out, so nothing here sees one box
+//     covering another, a colour, a contrast ratio, a scroll position, or a font that fails to load.
+//     The contract's Handoff screenshot carries those.
+//   - STACKING AND DISPLACEMENT BY MEANS OTHER THAN `position`. That one is refused because it was
+//     measured stacking fourteen cards at a point. The inventory happens to exclude `z-index`,
+//     `order`, `flex`, `float`, `transform` and negative margins today, so they are refused as
+//     unapproved declarations rather than by any rule that understands them — add one of those to the
+//     inventory for a legitimate reason and nothing here will notice what else it can do. MEASURED
+//     examples that survive today: `.em__cards { display: flex }` puts fourteen cards in one 2747px
+//     row (degraded, still reachable by scrolling), and seven stacked approved `opacity: 0.72`
+//     declarations multiply to an effective 0.139 on a badge — a ghost, but present.
+//   - AN OVERLAY. An approved `content` on a pseudo-element, or anything drawn over the panel by the
+//     shell around it, is outside this file entirely.
+//   - THE FRAMEWORK STYLESHEETS. `view.html` links `layout.css` and `type.css`; only the panel's own
+//     sheet is inventoried, so a rule reaching this panel from either of those is unchecked.
+//   - THE MARKUP AND THE COMPONENT. An inline `style`, a `hidden` attribute, a class applied
+//     conditionally, or a notice moved inside an element that never renders — the stylesheet check
+//     cannot see any of it. The render tests catch the cases they were written for and no others.
+//   - A LIVE FOLD. Every fold in this file is one this file authored. The hub is fail-closed and
+//     `coordination/estate/quarantine.json` does not exist, so nothing here has been measured against
+//     real estate data.
