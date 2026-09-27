@@ -43,6 +43,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
+    "css-tree": "^3.2.1",
     "eslint": "^9.0.0",
     "eslint-config-prettier": "^9.1.0",
     "globals": "^15.0.0",

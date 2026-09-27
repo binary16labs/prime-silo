@@ -493,6 +493,7 @@ test("no colour is written into the panel's stylesheet by hand", () => {
 // the treemap lay out at all. Sizes, overlap, colour, contrast and anything else a pixel decides are
 // outside this file and belong to the screenshot the contract's Handoff still demands.
 import { JSDOM } from "jsdom";
+import { generate, parse, walk } from "css-tree";
 import { register } from "node:module";
 import { pathToFileURL } from "node:url";
 
@@ -520,7 +521,19 @@ const REAL_BOXES = [
   { w: 120, h: 90 }
 ];
 
-async function renderPanel(fold, { status = 200, malformed = false } = {}) {
+// FIVE FIXED SHAPES IS A LIST, AND A LIST IS SOMETHING TO AIM BETWEEN. A distortion keyed on a 3:1
+// box shipped green against them, and at 1263x416 — an ordinary window — the tab drew "t480 1.1 MB"
+// for a node holding 1.4 TB. So the layout is also checked at shapes and estate sizes drawn from a
+// seeded generator: reproducible when it fails, and not a set anyone can tune around.
+function seeded(seed) {
+  let s = seed >>> 0;
+  return () => {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return s / 4294967296;
+  };
+}
+
+async function renderPanel(fold, { status = 200, malformed = false, fetchTwice = false } = {}) {
   // THE PANEL'S OWN STYLESHEET GOES IN. jsdom fetches nothing, so a <link> is inert and the
   // document would have no rules at all — which is how seven one-line CSS mutations hid guards under
   // a green gate. The file is inlined rather than linked, and the shell's x-cloak rule with it,
@@ -594,6 +607,8 @@ async function renderPanel(fold, { status = 200, malformed = false } = {}) {
       );
     });
     await flush(window);
+    // fetchTwice is how the test above proves this assertion can fail; nothing else sets it
+    if (fetchTwice) await globalThis.fetch("/api/estate/map");
     if (fetches !== 1)
       throw new Error(`the panel fetched ${fetches} times for one render — Alpine started twice`);
   } finally {
@@ -653,83 +668,117 @@ async function openTab(window, name) {
 // question "did this guard reach the owner's eyes" actually turns on.
 // --- the choke point ------------------------------------------------------------------------------
 //
-// THREE ROUNDS WERE SPENT ENUMERATING WAYS TO HIDE A GUARD, and each round a verifier found more:
-// @media, then @scope, then scaleX(0), clip-path:circle(0), filter:opacity(0), content-visibility,
-// font:0/0 a, -webkit-text-fill-color, letter-spacing:-1em, the clip:rect(0,0,0,0) idiom. Seventeen
-// survived at once. Enumeration is the wrong shape: the attacker picks the spelling and CSS has more
-// spellings than anyone can list, and the renderer I check against (jsdom) implements only some of
-// them — so a rule it ignores hides a guard in Chrome under a green gate.
+// FOUR ROUNDS WERE SPENT ENUMERATING WAYS TO HIDE A GUARD and each round a verifier found more.
+// Round five inverted the question — ask the panel's own stylesheet what it says, rather than ask a
+// rendered element how it looks — which was the right move implemented the wrong way: a hand-rolled
+// `split("}")` and exact-string property matching. That is still an enumeration, of SPELLINGS instead
+// of tricks, and thirteen more one-liners walked past it. Native CSS nesting was the flagship —
+// `.em__card{&[data-stale="true"]{display:none}}` has no at-rule and the splitter never sees a
+// property called `display` — with `display:var(--nope,none)`, a `di; play` escape, the standalone
+// `scale`/`translate` properties, `margin-left:-9999px` and `inset` past the viewport behind it.
 //
-// SO THE CHECK IS INVERTED. Rather than asking "does this rendered element look hidden", which is
-// unbounded, this asks of the panel's OWN STYLESHEET: does it contain anything that could remove
-// content from the screen? The panel is ours, it is 410 lines, and it has no legitimate need to hide
-// anything — the states that come and go are x-if, not CSS. So the answer must be no, and the list
-// below is a list of VALUES this stylesheet may not carry rather than a list of tricks.
+// SO THE SHEET IS PARSED, NOT SCANNED, and judged against an INVENTORY rather than a denylist. css-tree
+// walks every rule including nested ones, unescapes nothing but hands back the declaration as written,
+// and the question asked of each declaration is not "is this dangerous?" — which requires me to know
+// every dangerous spelling — but "is this one of the things this panel has been approved to say?"
+// A novel spelling is by construction not in the inventory. An at-rule is refused outright, because a
+// rule that applies only sometimes can hide a guard sometimes. `!important` likewise: the panel has
+// none, and it exists to beat something else.
 //
-// It reads the source text, so it does not depend on which CSS a test renderer implements, and it
-// refuses at-rules outright rather than trying to flatten them — the flattener it replaces counted
-// braces without knowing about strings, so one `content: "{"` made it silently return the stylesheet
-// unflattened and reopened everything.
-const AT_RULE = /(^|\s)@[a-z-]+/iu;
+// The cost is that a legitimate CSS change fails until it is added below, deliberately, in a diff a
+// reviewer sees. For a stylesheet whose job is to not hide things, that is the right cost.
+const APPROVED_DECLARATIONS = new Set([
+  "align-items: baseline",
+  "align-items: center",
+  "background: var(--color-accent-primary-soft)",
+  "background: var(--color-canvas-deep)",
+  "background: var(--color-surface-1)",
+  "background: var(--color-surface-2)",
+  "border-bottom: 1px solid var(--color-border-soft)",
+  "border-collapse: collapse",
+  "border-color: var(--color-accent-primary)",
+  "border-color: var(--color-border-strong)",
+  "border-radius: var(--radius-1)",
+  "border-radius: var(--radius-2)",
+  "border-radius: var(--radius-3)",
+  "border-style: dashed",
+  "border-top-color: var(--color-status-danger)",
+  "border-top: 1px solid var(--color-border-soft)",
+  "border: 1px solid var(--color-border-soft)",
+  "border: 1px solid var(--color-border-strong)",
+  "border: 1px solid var(--color-canvas)",
+  "border: 1px solid var(--color-status-danger)",
+  "color: var(--color-status-danger)",
+  "color: var(--color-status-success)",
+  "color: var(--color-status-warning)",
+  "color: var(--color-text-primary)",
+  "color: var(--color-text-secondary)",
+  "color: var(--color-text-tertiary)",
+  "cursor: pointer",
+  "display: flex",
+  "display: grid",
+  "flex-direction: column",
+  "flex-direction: row",
+  "flex-wrap: wrap",
+  "font-family: inherit",
+  "font-family: var(--font-stack-active)",
+  "font-size: var(--font-size-1)",
+  "font-size: var(--font-size-2)",
+  "font-size: var(--font-size-3)",
+  "font-size: var(--font-size-4)",
+  "font-size: var(--font-size-6)",
+  "font-weight: 400",
+  "gap: var(--space-1)",
+  "gap: var(--space-2)",
+  "gap: var(--space-3)",
+  "gap: var(--space-4)",
+  "gap: var(--space-5)",
+  "grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr))",
+  "height: 26rem",
+  "justify-content: space-between",
+  "letter-spacing: 0.04em",
+  "letter-spacing: 0.06em",
+  "letter-spacing: 0.08em",
+  "list-style: none",
+  "margin: 0",
+  "opacity: 0.72",
+  "overflow-x: auto",
+  "overflow: hidden",
+  "padding-top: var(--space-2)",
+  "padding: 0",
+  "padding: var(--space-1) var(--space-2)",
+  "padding: var(--space-2)",
+  "padding: var(--space-2) var(--space-3)",
+  "padding: var(--space-2) var(--space-4)",
+  "padding: var(--space-4)",
+  "padding: var(--space-6)",
+  "position: absolute",
+  "position: relative",
+  "text-align: left",
+  "text-transform: capitalize",
+  "text-transform: uppercase",
+  "white-space: nowrap",
+  "width: 100%"
+]);
 
-const FORBIDDEN = [
-  // property, test on the value, why
-  ["display", (v) => v === "none", "display:none removes an element from the page"],
-  ["visibility", (v) => v !== "visible", "visibility hides an element that still occupies space"],
-  ["opacity", (v) => Number.parseFloat(v) < 0.5, "a nearly transparent element is an unreadable one"],
-  ["transform", () => true, "transform can scale or translate content out of sight"],
-  ["clip", () => true, "the clip:rect(0,0,0,0) idiom hides content"],
-  ["clip-path", () => true, "clip-path can clip content away entirely"],
-  ["filter", () => true, "filter:opacity(0) hides content"],
-  ["content-visibility", () => true, "content-visibility:hidden skips rendering"],
-  ["pointer-events", () => true, "pointer-events is not this panel's business"],
-  ["height", (v) => /^0(px|%|rem|em)?$/u.test(v), "a zero height collapses content away"],
-  ["max-height", (v) => /^0(px|%|rem|em)?$/u.test(v), "a zero max-height collapses content away"],
-  ["width", (v) => /^0(px|%|rem|em)?$/u.test(v), "a zero width collapses content away"],
-  ["max-width", (v) => /^0(px|%|rem|em)?$/u.test(v), "a zero max-width collapses content away"],
-  ["font-size", (v) => /^0|^0\.0*[0-9]*(px|rem|em)/u.test(v), "an unreadably small font is a hidden one"],
-  ["font", () => true, "the font shorthand carries font-size, e.g. the font:0/0 a idiom"],
-  ["letter-spacing", (v) => v.startsWith("-"), "negative letter-spacing collapses text"],
-  ["text-indent", (v) => v.startsWith("-"), "negative text-indent pushes text off the line"],
-  ["color", (v) => v === "transparent" || /rgba\([^)]*,\s*0\s*\)/u.test(v), "transparent text is hidden text"],
-  ["-webkit-text-fill-color", () => true, "text-fill-color can make text transparent"],
-  ["position", (v) => v === "fixed" || v === "sticky", "fixed and sticky can park content off-screen"],
-  ["top", (v) => offscreen(v), "an offset this large puts content outside the viewport"],
-  ["left", (v) => offscreen(v), "an offset this large puts content outside the viewport"],
-  ["right", (v) => offscreen(v), "an offset this large puts content outside the viewport"],
-  ["bottom", (v) => offscreen(v), "an offset this large puts content outside the viewport"]
-];
-
-function offscreen(value) {
-  const n = Number.parseFloat(value);
-  if (!Number.isFinite(n)) return false;
-  if (/vh|vw$/u.test(value)) return Math.abs(n) >= 100;
-  return Math.abs(n) >= 1000;
-}
-
-// Every declaration in the sheet, with comments and strings removed so a `{` or a `;` inside either
-// cannot confuse the split. Returns a list of complaints; an empty list is the only acceptable one.
 function stylesheetProblems(css) {
-  const out = [];
-  const stripped = css
-    .replace(/\/\*[\s\S]*?\*\//gu, " ")
-    .replace(/"(?:[^"\\]|\\.)*"/gu, '""')
-    .replace(/'(?:[^'\\]|\\.)*'/gu, "''");
-  if (AT_RULE.test(stripped))
-    out.push(`the panel stylesheet contains an at-rule (${stripped.match(AT_RULE)[0].trim()}): a rule that applies only sometimes is a rule that can hide a guard sometimes`);
-  for (const block of stripped.split("}")) {
-    const body = block.slice(block.indexOf("{") + 1);
-    if (!block.includes("{")) continue;
-    for (const decl of body.split(";")) {
-      const at = decl.indexOf(":");
-      if (at < 0) continue;
-      const prop = decl.slice(0, at).trim().toLowerCase();
-      const value = decl.slice(at + 1).trim().toLowerCase().replace(/\s*!important$/u, "");
-      for (const [name, bad, why] of FORBIDDEN)
-        if (prop === name && bad(value)) out.push(`${prop}: ${value} — ${why}`);
-    }
+  const problems = [];
+  let ast;
+  try {
+    ast = parse(css, { parseValue: false, parseAtrulePrelude: false, onParseError: (e) => problems.push(`the panel stylesheet does not parse: ${e.message}`) });
+  } catch (e) {
+    return [`the panel stylesheet does not parse: ${e.message}`];
   }
-  return out;
+  walk(ast, (node) => {
+    if (node.type === "Atrule")
+      problems.push(`@${node.name}: a rule that applies only sometimes can hide a guard sometimes`);
+    if (node.type !== "Declaration") return;
+    const decl = `${node.property.toLowerCase()}: ${generate(node.value).trim().toLowerCase()}`;
+    if (node.important) problems.push(`${decl} !important — the panel has no need to beat anything`);
+    else if (!APPROVED_DECLARATIONS.has(decl))
+      problems.push(`the panel stylesheet says "${decl}", which is not in its approved inventory`);
+  });
+  return problems;
 }
 
 function hiddenBy(el, win) {
@@ -1197,7 +1246,9 @@ test("the panel's stylesheet carries nothing that could hide a guard", () => {
 
 test("the stylesheet check refuses every way of hiding that has been used against this panel", () => {
   // Each of these was written by a verifier, survived a green gate, and was measured hiding its
-  // guard in Chrome. They are cases of the check now, so it cannot quietly stop catching them.
+  // guard in Chrome. They are cases of the check now, so it cannot quietly stop catching them. The
+  // last thirteen are why the check parses the sheet instead of scanning it: none of them contains a
+  // property the previous string matcher could see.
   const attacks = [
     '@scope (.em) { .em__card[data-stale="true"] { display: none } }',
     "@layer hide { @scope (.em) { .em__recon { display: none } } }",
@@ -1222,17 +1273,36 @@ test("the stylesheet check refuses every way of hiding that has been used agains
     ".em__unsized { position: fixed; top: 200vh }",
     ".em__unsized { width: 0; overflow: hidden }",
     ".em__matrix { opacity: 0.004 }",
-    '.em__rect[data-level="volume"] { width: 0 !important; height: 0 !important }'
+    '.em__rect[data-level="volume"] { width: 0 !important; height: 0 !important }',
+    // the thirteen that beat the string matcher
+    '.em__card { &[data-stale="true"] { display: none } }',
+    ".em { & .em__recon { display: none } }",
+    ":root { --h: none } .em__card { display: var(--h) }",
+    ".em__card { display: var(--nope, none) }",
+    `.em__card { di${String.fromCharCode(92)}73 play: none }`,
+    ".em__card { scale: 0 }",
+    ".em__card { translate: 0 5000px }",
+    ".em__note { margin-left: -9999px }",
+    ".em__note { font-size: .0001px }",
+    ".em__note { line-height: 0; overflow: hidden; max-height: 1px }",
+    ".em__note { position: absolute; inset: auto auto auto 5000px }",
+    ".em__note { zoom: 0 }",
+    ".em__card { opacity: 0.49999 }"
   ];
   const real = fs.readFileSync(path.join(PANEL, "estate_map.css"), "utf8");
+  // COUNTED, so that gutting the loop's assertion is not silent: a verifier replaced the assert with
+  // a void and the gate stayed green. The count is what the table is for.
+  let caught = 0;
   for (const attack of attacks) {
     const problems = stylesheetProblems(`${real}
 ${attack}
 `);
-    assert.ok(problems.length > 0, `not caught: ${attack}`);
+    if (problems.length > 0) caught++;
+    else assert.fail(`not caught: ${attack}`);
   }
-  // and a comment or a string containing a brace must not blind it — the flattener it replaces
-  // counted braces without knowing about strings, and one `content: "{"` made it fail open
+  assert.equal(caught, attacks.length, "every attack in the table must be refused");
+  assert.ok(attacks.length >= 37, "the table must still hold every attack that has been used here");
+  // a brace inside a string is a parser's problem, not a splitter's, and the parser has it
   assert.ok(
     stylesheetProblems(`${real}
 .em::before { content: "{" }
@@ -1240,6 +1310,9 @@ ${attack}
 `).length > 0,
     "a brace inside a string must not stop the check"
   );
+  // and the check is not vacuous in the other direction: the real sheet passes, and a declaration
+  // the panel legitimately makes is accepted when it is in the inventory
+  assert.deepEqual(stylesheetProblems(real), []);
 });
 
 test("the visibility walker actually detects the things it claims to", async () => {
@@ -1288,10 +1361,12 @@ test("machine areas stay proportional at every box shape, not just the harness's
       const blocks = storageRects(view, { x: 0, y: 0, ...box }).filter((r) => r.level === "machine");
       const drawn = blocks.filter((r) => !r.tooSmall);
       const area = drawn.reduce((s, r) => s + r.w * r.h, 0);
-      const total = drawn.reduce((s, r) => s + r.value, 0);
+      // again: the shares are judged against the FOLD's bytes, never against the block's own
+      const truthOf = (m) => bytes[m];
+      const total = drawn.reduce((s, r) => s + truthOf(r.machine), 0);
       for (const r of drawn) {
         const share = (r.w * r.h) / area;
-        const truth = r.value / total;
+        const truth = truthOf(r.machine) / total;
         assert.ok(
           Math.abs(share - truth) < 0.03,
           `at ${box.w}x${box.h} ${r.machine} takes ${(share * 100).toFixed(1)}% of the drawn area for ${(truth * 100).toFixed(1)}% of the drawn bytes`
@@ -1406,4 +1481,77 @@ test("the treemap tiles its box exactly, whatever shape the box is", () => {
     assert.ok(blocks.every((r) => r.x >= 0 && r.y >= 0 && r.x + r.w <= box.w + 1 && r.y + r.h <= box.h + 1));
     assert.ok(blocks.some((r) => r.x === 0 && r.y === 0), "the layout starts in the corner of its box");
   }
+});
+
+test("machine areas stay proportional at shapes and sizes nobody chose", () => {
+  // 200 layouts from a seeded generator. A distortion conditioned on an aspect ratio, a machine
+  // count or a call number has nowhere to hide between them, and a failure reports its seed so it
+  // can be replayed exactly.
+  const rand = seeded(20260927);
+  for (let round = 0; round < 200; round++) {
+    const w = 60 + Math.floor(rand() * 1600);
+    const h = 60 + Math.floor(rand() * 1000);
+    const count = 1 + Math.floor(rand() * 12);
+    const machines = [];
+    for (let i = 0; i < count; i++)
+      machines.push({
+        key: `m${i}`,
+        machine: `m${i}`,
+        value: Math.max(1, Math.floor(rand() * 4_000_000_000_000)),
+        files: Math.max(1, Math.floor(rand() * 5_000_000)),
+        volumes: []
+      });
+    const view = { machines };
+    const blocks = storageRects(view, { x: 0, y: 0, w, h }).filter((r) => r.level === "machine");
+    const drawn = blocks.filter((r) => !r.tooSmall);
+    const area = drawn.reduce((s, r) => s + r.w * r.h, 0);
+    // THE TRUTH COMES FROM THE FOLD, NOT FROM THE RECTANGLE. Reading `r.value` back off the block
+    // and calling it the answer is the self-reference this whole epic keeps producing: a layout that
+    // rewrites the values it was given then agrees with itself perfectly, and two mutations that did
+    // exactly that passed this test before it was written this way.
+    const reported = new Map(machines.map((m) => [m.machine, m.value]));
+    const bytes = drawn.reduce((s, r) => s + reported.get(r.machine), 0);
+    const where = `seed round ${round} at ${w}x${h} with ${count} machines`;
+    assert.equal(blocks.length, count, `${where}: a machine is missing from the layout entirely`);
+    for (const r of drawn) {
+      const share = (r.w * r.h) / area;
+      const truth = reported.get(r.machine) / bytes;
+      assert.ok(
+        Math.abs(share - truth) < 0.05,
+        `${where}: ${r.machine} takes ${(share * 100).toFixed(1)}% of the drawn area for ${(truth * 100).toFixed(1)}% of the drawn bytes`
+      );
+    }
+    const r = reconcile(view, storageRects(view, { x: 0, y: 0, w, h }));
+    assert.equal(r.reported, r.drawn + r.tooSmall + r.missing, `${where}: the subtraction does not close`);
+  }
+});
+
+test("the apparatus cannot be blinded without the gate noticing", async () => {
+  // claude-s4-verifier-5's advisory: blinding isVisible(), disabling the one-fetch assertion and
+  // gutting the attack table each still shipped green. Every one of those is a guard on a guard, and
+  // an unguarded guard is how this panel got here. Each is now exercised directly.
+  const { JSDOM } = await import("jsdom");
+
+  // isVisible must judge ancestors, not merely exist
+  const dom = new JSDOM('<div style="display:none"><p id="child">x</p></div><p id="loose">y</p>');
+  assert.equal(isVisible(dom.window.document.getElementById("child"), dom.window), false, "a hidden ancestor hides its children");
+  assert.equal(isVisible(dom.window.document.getElementById("loose"), dom.window), true);
+
+  // the attack table must actually be non-empty and must actually be checked
+  assert.ok(
+    stylesheetProblems(".em__card { display: none }").length > 0,
+    "the checker must refuse a bare hide"
+  );
+  assert.deepEqual(
+    stylesheetProblems(fs.readFileSync(path.join(PANEL, "estate_map.css"), "utf8")),
+    [],
+    "and must accept the panel's real stylesheet, or every other assertion here is vacuous"
+  );
+
+  // the fetch counter must be able to fail: a render that fetches twice is refused
+  await assert.rejects(
+    () => renderPanel({ at: NOW, machines: {} }, { fetchTwice: true }),
+    /fetched 2 times/u,
+    "the one-fetch assertion must fire when a render fetches twice"
+  );
 });
