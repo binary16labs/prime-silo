@@ -129,7 +129,8 @@ async function takeLock() {
       [
         `[s3] FAIL: another run of this gate holds 127.0.0.1:${LOCK_PORT}.`,
         "[s3] This gate writes the real coordination directory, so two at once would each see the",
-        "[s3] other's worlds. Wait for it to finish."
+        "[s3] other's worlds. Wait for it to finish, or if you are certain nothing is running,",
+        `[s3] find what holds 127.0.0.1:${LOCK_PORT} — the port is derived from this worktree's path.`
       ].join(String.fromCharCode(10))
     );
     process.exit(1);
@@ -470,7 +471,7 @@ const MINUTE = 60_000;
 // That residual is named in WHAT THIS DOES NOT PROVE rather than papered over with a bigger number.
 const DECAY_PROBES = 30;
 
-takeLock();
+await takeLock();
 captureEstate();
 rememberEstate();
 // THE ESTATE IS PUT BACK BEFORE THE LOCK IS DROPPED, and both happen on the way out of any exit —
@@ -655,16 +656,26 @@ for (const [world, probes] of [
 //     recognisable because it was round, when what was recognisable was that it was EXACT. But
 //     Windows updates ctime on any metadata change and offers no way to set it, so a guard reading
 //     "be honest only if this policy file was changed in the last N minutes" is honest here and
-//     inert on a machine whose policy has sat untouched. Measured: mtime 97.000 d, birthtime
-//     97.000 d, ctime 0.000 d. The opposite polarity — inert when the file is fresh — IS caught.
+//     inert on a machine whose policy has sat untouched. Measured on a run of this gate: the policy
+//     file's mtime and birthtime match the jittered age it was given, to three decimal places, and
+//     its ctime is 0.000 d — no API sets ctime. The figures are not quoted as constants here because
+//     the age is now different every run, which is the point of the entry above. The opposite
+//     polarity — inert when the file is FRESH — IS caught.
 //   - A GUARD THAT DECAYS ON A COUNTER THIS GATE'S TRAFFIC DOES NOT EXHAUST. Measured: a policy that
 //     empties after 2 reads dies, after 8 dies, after 40 reads of its `length` survives 30 pushes,
 //     because the product does not consult it once per push. Raising DECAY_PROBES moves the line and
 //     never removes it.
+//   - THE PORT AND THE RESTORE NOTE'S NAME ARE COMPUTABLE, NOT MERELY DISCOVERABLE. Both are pure
+//     functions of the project root, which the product holds as coordDir's parent — so where round
+//     six's lock file had to be LISTED for, these can be derived from a path the product already
+//     knows. A verifier computed both from the path alone and matched what this gate printed. No
+//     exploit of it has been demonstrated, and the note exists only while a run is in flight, but a
+//     signal that can be calculated is a weaker place to stand than one that cannot.
 //   - A HARD KILL, WHICH IS RECOVERED RATHER THAN PREVENTED. Ctrl-C is handled: the estate goes back
 //     and the lock is dropped. A kill that runs no handler cannot be, so before touching anything
-//     this gate writes what it is about to displace beside its lock, and the next run puts it back
-//     and says so. What that costs is a window in which the owner's coordination directory holds
+//     this gate writes what it is about to displace into a restore note in the OS temp directory —
+//     "beside its lock" until the lock became a socket and stopped being anywhere — and the next run
+//     finds that note, puts the estate back and says so. What that costs is a window in which the owner's coordination directory holds
 //     this gate's policy — which is why it must not be run against a directory a hub is serving.
 //   - A HUB ALREADY SERVING THIS COORDINATION DIRECTORY. The gate writes and removes the real
 //     quarantine.json, so it must not be run while the owner's hub is up on the same directory: it
