@@ -788,8 +788,26 @@ function stylesheetProblems(css) {
   // `.em__map` is the one element allowed to clip, because it is a fixed-size canvas whose overflow
   // is the treemap's own business. `.em__rect` may clip its label inside its own block. Nothing else
   // may, at all.
+  //
+  // AND CLIPPING IS NOT THE ONLY WAY AN APPROVED DECLARATION PUTS CONTENT OUT OF REACH — this comment
+  // claimed it was, one round after the same mistake was made about at-rules. `.em__card { position:
+  // absolute }` is a single approved declaration with no clipping property, and it stacks every card
+  // at one point with only the last readable, measured on a fourteen-node fold under a header still
+  // reading "14 nodes reporting". So `position` is held to the same rule. What is still uncovered —
+  // stacking by other means, an overlay, the framework stylesheets, anything the markup or JS does —
+  // is declared at the end of this file rather than implied away here.
   const MAY_CLIP = new Set([".em__map", ".em__rect"]);
-  const CLIPPING = new Set(["height", "max-height", "min-height", "overflow", "overflow-y", "overflow-x"]);
+  const CLIPPING = new Set([
+    "height",
+    "max-height",
+    "min-height",
+    "overflow",
+    "overflow-y",
+    "overflow-x",
+    // not a clip, but the same outcome: one approved declaration that puts thirteen cards under the
+    // fourteenth
+    "position"
+  ]);
   let selector = "";
   walk(ast, {
     enter(node) {
@@ -888,6 +906,15 @@ test("RENDERED: a node that went quiet is still on the screen, labelled and coun
   assert.match(text, /optimus/u, "the stale node is drawn — this is the mutation that shipped green");
   assert.match(text, /t480/u);
   assert.match(text, /stale since/u, "and it says WHEN it went quiet");
+  // THE SENTENCE THE OWNER READS FIRST. Every earlier defect in this panel was damning because of
+  // what the header said while the cards were wrong — "3 nodes reporting" over two cards, "14 nodes
+  // reporting" over four — and the header itself was asserted nowhere, so hard-coding it shipped
+  // green. It is counted here, against the fold.
+  const header = window.document.querySelector(".em__age");
+  assert.ok(header && isVisible(header, window), "the header is on screen");
+  assert.match(header.textContent, /^2 nodes reporting$/u, "it counts the machines the fold holds");
+  const badges = [...window.document.querySelectorAll(".em__state")].map((b) => b.textContent.trim());
+  assert.deepEqual(badges.sort(), ["live", "stale"], "and each card says which it is");
   assert.equal(
     window.document.querySelectorAll(".em__card").length,
     2,
@@ -1600,4 +1627,21 @@ test("the apparatus cannot be blinded without the gate noticing", async () => {
     /fetched 2 times/u,
     "the one-fetch assertion must fire when a render fetches twice"
   );
+});
+
+test("RENDERED: an estate where every node is quiet does not say it is reporting", async () => {
+  // reportingLine() has the judgement; nothing asserted it reaches the page. Making it ignore
+  // allStale — so a wholly silent estate reads as reporting — shipped green.
+  const { window } = await renderPanel({
+    at: NOW,
+    machines: {
+      t480: machine({ stale: true, since: T(10), ageMs: 3_600_000 }),
+      optimus: machine({ stale: true, since: T(10), ageMs: 3_600_000 })
+    }
+  });
+  const header = window.document.querySelector(".em__age");
+  assert.ok(header && isVisible(header, window));
+  assert.match(header.textContent, /2 nodes, all of them stale/u);
+  const badges = [...window.document.querySelectorAll(".em__state")].map((b) => b.textContent.trim());
+  assert.deepEqual(badges, ["stale", "stale"], "and no card claims to be live");
 });
