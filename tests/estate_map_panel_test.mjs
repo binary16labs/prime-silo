@@ -1669,8 +1669,11 @@ test("RENDERED: an estate where every node is quiet does not say it is reporting
 //     examples that survive today: `.em__cards { display: flex }` puts fourteen cards in one 2747px
 //     row (degraded, still reachable by scrolling), and seven stacked approved `opacity: 0.72`
 //     declarations multiply to an effective 0.139 on a badge — a ghost, but present.
-//   - AN OVERLAY. An approved `content` on a pseudo-element, or anything drawn over the panel by the
-//     shell around it, is outside this file entirely.
+//   - AN OVERLAY DRAWN BY THE SHELL AROUND THIS PANEL, which is outside this file entirely. NOT a
+//     pseudo-element from the panel's own sheet: `content` is not in the inventory, so
+//     `.em__card::before { content: "x" }` is refused today — an earlier wording of this bullet named
+//     that as a hole and it is shut. It reopens the moment `content` is approved for some legitimate
+//     reason, which is the previous bullet's warning applied to this one.
 //   - THE FRAMEWORK STYLESHEETS. `view.html` links `layout.css` and `type.css`; only the panel's own
 //     sheet is inventoried, so a rule reaching this panel from either of those is unchecked.
 //   - THE MARKUP AND THE COMPONENT. An inline `style`, a `hidden` attribute, a class applied
