@@ -788,8 +788,25 @@ function stylesheetProblems(css) {
   // `.em__map` is the one element allowed to clip, because it is a fixed-size canvas whose overflow
   // is the treemap's own business. `.em__rect` may clip its label inside its own block. Nothing else
   // may, at all.
+  //
+  // AND CLIPPING IS NOT THE ONLY WAY AN APPROVED DECLARATION PUTS CONTENT OUT OF REACH — this comment
+  // claimed it was, one round after the same mistake was made about at-rules. `.em__card { position:
+  // absolute }` is a single approved declaration with no clipping property, and it stacks every card
+  // at one point with only the last readable, measured on a fourteen-node fold under a header still
+  // reading "14 nodes reporting". So `position` is held to the same rule. What is still uncovered is
+  // written out under WHAT THIS FILE DOES NOT COVER at the end of this file.
   const MAY_CLIP = new Set([".em__map", ".em__rect"]);
-  const CLIPPING = new Set(["height", "max-height", "min-height", "overflow", "overflow-y", "overflow-x"]);
+  const CLIPPING = new Set([
+    "height",
+    "max-height",
+    "min-height",
+    "overflow",
+    "overflow-y",
+    "overflow-x",
+    // not a clip, but the same outcome: one approved declaration that puts thirteen cards under the
+    // fourteenth
+    "position"
+  ]);
   let selector = "";
   walk(ast, {
     enter(node) {
@@ -888,6 +905,22 @@ test("RENDERED: a node that went quiet is still on the screen, labelled and coun
   assert.match(text, /optimus/u, "the stale node is drawn — this is the mutation that shipped green");
   assert.match(text, /t480/u);
   assert.match(text, /stale since/u, "and it says WHEN it went quiet");
+  // THE SENTENCE THE OWNER READS FIRST. Every earlier defect in this panel was damning because of
+  // what the header said while the cards were wrong — "3 nodes reporting" over two cards, "14 nodes
+  // reporting" over four — and the header itself was asserted nowhere, so hard-coding it shipped
+  // green. It is counted here, against the fold.
+  const header = window.document.querySelector(".em__age");
+  assert.ok(header && isVisible(header, window), "the header is on screen");
+  assert.match(header.textContent, /^2 nodes reporting$/u, "it counts the machines the fold holds");
+  // BOUND TO THE CARD IT SITS ON, not sorted into a set: sorting proves two badges exist with the
+  // right words on them and says nothing about which machine is which, so swapping them passes.
+  const badgeOf = (name) =>
+    [...window.document.querySelectorAll(".em__card")]
+      .find((card) => card.querySelector(".em__machine")?.textContent.trim() === name)
+      ?.querySelector(".em__state")
+      ?.textContent.trim();
+  assert.equal(badgeOf("t480"), "live", "the live node's own card says live");
+  assert.equal(badgeOf("optimus"), "stale", "and the quiet node's own card says stale");
   assert.equal(
     window.document.querySelectorAll(".em__card").length,
     2,
@@ -1601,3 +1634,48 @@ test("the apparatus cannot be blinded without the gate noticing", async () => {
     "the one-fetch assertion must fire when a render fetches twice"
   );
 });
+
+test("RENDERED: an estate where every node is quiet does not say it is reporting", async () => {
+  // reportingLine() has the judgement; nothing asserted it reaches the page. Making it ignore
+  // allStale — so a wholly silent estate reads as reporting — shipped green.
+  const { window } = await renderPanel({
+    at: NOW,
+    machines: {
+      t480: machine({ stale: true, since: T(10), ageMs: 3_600_000 }),
+      optimus: machine({ stale: true, since: T(10), ageMs: 3_600_000 })
+    }
+  });
+  const header = window.document.querySelector(".em__age");
+  assert.ok(header && isVisible(header, window));
+  assert.match(header.textContent, /2 nodes, all of them stale/u);
+  const badges = [...window.document.querySelectorAll(".em__state")].map((b) => b.textContent.trim());
+  assert.deepEqual(badges, ["stale", "stale"], "and no card claims to be live");
+});
+
+// --- WHAT THIS FILE DOES NOT COVER ------------------------------------------------------------------
+//
+// Written here because a comment above points at it, and because the previous version of that comment
+// pointed at a declaration that did not exist — a claim wider than its code, inside the sentence that
+// was deleting a claim wider than its code. This is the list, in the place the reader is sent to.
+//
+//   - NO LAYOUT ENGINE. jsdom computes styles but lays nothing out, so nothing here sees one box
+//     covering another, a colour, a contrast ratio, a scroll position, or a font that fails to load.
+//     The contract's Handoff screenshot carries those.
+//   - STACKING AND DISPLACEMENT BY MEANS OTHER THAN `position`. That one is refused because it was
+//     measured stacking fourteen cards at a point. The inventory happens to exclude `z-index`,
+//     `order`, `flex`, `float`, `transform` and negative margins today, so they are refused as
+//     unapproved declarations rather than by any rule that understands them — add one of those to the
+//     inventory for a legitimate reason and nothing here will notice what else it can do. MEASURED
+//     examples that survive today: `.em__cards { display: flex }` puts fourteen cards in one 2747px
+//     row (degraded, still reachable by scrolling), and seven stacked approved `opacity: 0.72`
+//     declarations multiply to an effective 0.139 on a badge — a ghost, but present.
+//   - AN OVERLAY. An approved `content` on a pseudo-element, or anything drawn over the panel by the
+//     shell around it, is outside this file entirely.
+//   - THE FRAMEWORK STYLESHEETS. `view.html` links `layout.css` and `type.css`; only the panel's own
+//     sheet is inventoried, so a rule reaching this panel from either of those is unchecked.
+//   - THE MARKUP AND THE COMPONENT. An inline `style`, a `hidden` attribute, a class applied
+//     conditionally, or a notice moved inside an element that never renders — the stylesheet check
+//     cannot see any of it. The render tests catch the cases they were written for and no others.
+//   - A LIVE FOLD. Every fold in this file is one this file authored. The hub is fail-closed and
+//     `coordination/estate/quarantine.json` does not exist, so nothing here has been measured against
+//     real estate data.
