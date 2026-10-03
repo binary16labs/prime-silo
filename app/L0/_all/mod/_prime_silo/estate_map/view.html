@@ -31,7 +31,11 @@
         <template x-if="sw.can"><div class="em__roots">
           <span x-text="'Sweep ' + (sw.machine || 'this machine') + ':'"></span>
           <template x-for="r in sw.roots" :key="r">
-            <button class="em__sweepbtn" @click="sweep(r)" x-text="r"></button>
+            <button class="em__sweepbtn" @click="sweep([r])" x-text="r"></button>
+          </template>
+          <!-- one sweep of every drive, so the machine's totals cover all of them (S20) -->
+          <template x-if="sw.roots.length > 1">
+            <button class="em__sweepbtn" @click="sweep(sw.roots)">All</button>
           </template>
         </div></template>
         <template x-for="u in sw.unusable" :key="u"><p class="em__sweepwhy" x-text="u"></p></template>
@@ -58,7 +62,7 @@
       <template x-if="!loading && v.reachable && !v.empty">
         <div class="em__body">
           <nav class="em__tabs">
-            <template x-for="t in ['estate', 'storage', 'applications', 'media']" :key="t">
+            <template x-for="t in ['estate', 'storage', 'applications', 'media', 'backups']" :key="t">
               <button class="em__tab" :data-on="tab === t" @click="tab = t" x-text="t"></button>
             </template>
           </nav>
@@ -80,10 +84,12 @@
                 </dl>
 
                 <!-- What the node did NOT publish. A count with nothing behind it is not evidence,
-                     so the number is shown rather than folded silently into the totals. -->
+                     so the number is shown rather than folded silently into the totals. It said
+                     "withheld by this node's privacy rules", which is not why: a file is listed by name
+                     only under a folder named for listing, and none is (seen on the owner's map, S20). -->
                 <template x-if="m.withheld > 0">
                   <p class="em__withheld"
-                    x-text="`${n(m.withheld)} files withheld by this node's privacy rules`"></p>
+                    x-text="`${n(m.withheld)} files counted by category, not listed by name`"></p>
                 </template>
 
                 <ul class="em__vols">
@@ -244,6 +250,37 @@
                 No node has swept media yet, so this estate cannot say what media it holds.
               </p>
             </template>
+          </div></template>
+
+          <!-- BACKUPS (S20): what each drive on this machine holds that F: does not. Report only —
+               nothing is copied or deleted, and a file counts as on F: only by full hash. -->
+          <template x-if="tab === 'backups'"><div class="em__media em__backups">
+            <template x-if="cmp.why"><p class="em__sweepwhy" x-text="cmp.why"></p></template>
+            <template x-if="cmp.running"><p class="em__sweeprun" x-text="cmp.running"></p></template>
+            <template x-if="compareError"><p class="em__sweepwhy" x-text="compareError"></p></template>
+            <ul class="em__medialist">
+              <template x-for="d in cmp.drives" :key="d.drive">
+                <li class="em__mediarow">
+                  <b x-text="d.drive"></b>
+                  <span x-text="d.line"></span>
+                  <template x-if="cmp.can">
+                    <button class="em__sweepbtn" @click="compare(d.drive)" x-text="`Compare with ${cmp.to}`"></button>
+                  </template>
+                  <template x-if="d.csv">
+                    <a class="em__sweepbtn" :href="d.csv" download>Download the list</a>
+                  </template>
+                  <template x-if="d.folders.length">
+                    <table class="em__matrix">
+                      <tbody>
+                        <template x-for="f in d.folders" :key="f.folder">
+                          <tr><td x-text="f.folder"></td><td x-text="f.line"></td></tr>
+                        </template>
+                      </tbody>
+                    </table>
+                  </template>
+                </li>
+              </template>
+            </ul>
           </div></template>
         </div>
       </template>

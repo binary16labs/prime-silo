@@ -462,7 +462,7 @@ test("the panel reads the map from the estate map API, and talks to nothing but 
   const fetched = [...js.matchAll(/fetch\(\s*[`"']([^`"']+)/gu)].map((m) => m[1]);
   assert.ok(fetched.includes("/api/estate/map"), "it reads the map");
   for (const url of fetched)
-    assert.match(url, /^\/api\/estate\/(map|sweep)$/u, `${url} is neither the map nor Sweep`);
+    assert.match(url, /^\/api\/estate\/(map|sweep|compare)$/u, `${url} is not the map, Sweep or a comparison`);
 });
 
 test("no colour is written into the panel's stylesheet by hand", () => {
@@ -543,10 +543,12 @@ function seeded(seed) {
 
 // What GET /api/estate/sweep answers in a render, unless a test says otherwise (S17).
 const SWEEP_READY = { machine: "T480", roots: ["C:", "F:"], policy: true, running: null, last: null };
+// What GET /api/estate/compare answers in a render, unless a test says otherwise (S20).
+const COMPARE_READY = { roots: ["C:", "F:", "G:"], to: "F:", policy: true, running: null, results: { "C:": null, "G:": null } };
 
 async function renderPanel(
   fold,
-  { status = 200, malformed = false, fetchTwice = false, sweep = SWEEP_READY, posted = [] } = {}
+  { status = 200, malformed = false, fetchTwice = false, sweep = SWEEP_READY, compare = COMPARE_READY, posted = [] } = {}
 ) {
   // THE PANEL'S OWN STYLESHEET GOES IN. jsdom fetches nothing, so a <link> is inert and the
   // document would have no rules at all — which is how seven one-line CSS mutations hid guards under
@@ -579,6 +581,10 @@ async function renderPanel(
     if (String(url).startsWith("/api/estate/sweep")) {
       if (init.method === "POST") posted.push(JSON.parse(init.body));
       return { ok: true, status: init.method === "POST" ? 202 : 200, json: async () => sweep };
+    }
+    if (String(url).startsWith("/api/estate/compare")) {
+      if (init.method === "POST") posted.push(JSON.parse(init.body));
+      return { ok: true, status: init.method === "POST" ? 202 : 200, json: async () => compare };
     }
     return {
       ok: (fetches++, status >= 200 && status < 300),
@@ -669,7 +675,13 @@ async function openTab(window, name) {
   if (!tab) throw new Error(`no ${name} tab: the panel offers ${tabs.map((t) => t.textContent.trim()).join(", ")}`);
   tab.click();
   // the panes are x-if, so the new one has to EXIST before anything is asserted about it
-  const pane = { estate: ".em__cards", storage: ".em__storage", applications: ".em__apps", media: ".em__media" }[name];
+  const pane = {
+    estate: ".em__cards",
+    storage: ".em__storage",
+    applications: ".em__apps",
+    media: ".em__media:not(.em__backups)",
+    backups: ".em__backups"
+  }[name];
   await until(() => tab.dataset.on === "true" && window.document.querySelector(pane));
   // and let Alpine flush what the pane's own layout queued, using its scheduler rather than a sleep:
   // the rectangles appear one tick before the line that describes them
@@ -967,7 +979,7 @@ test("RENDERED: what a node withheld is on its card", async () => {
       })
     }
   });
-  assert.match(visible(window), /40 files withheld/u);
+  assert.match(visible(window), /40 files counted by category, not listed by name/u);
 });
 
 test("RENDERED: an incomplete sweep says so where the owner is looking", async () => {
@@ -1010,7 +1022,7 @@ test("RENDERED: an empty estate offers Sweep for this machine's drives, and pres
   // The empty estate is exactly when the owner needs the button, so it must be on THAT screen.
   const { window } = await renderPanel({ at: NOW, machines: {} });
   const buttons = [...window.document.querySelectorAll(".em__sweepbtn")];
-  assert.deepEqual(buttons.map((b) => b.textContent.trim()), ["C:", "F:"]);
+  assert.deepEqual(buttons.map((b) => b.textContent.trim()), ["C:", "F:", "All"]);
   assert.match(visible(window), /Sweep T480:/u);
   // the click happens after the render, so it gets a recording fetch of its own. The sweep it starts
   // has already finished by the time the panel looks — a small root does — so the panel must re-read
@@ -1043,6 +1055,56 @@ test("RENDERED: a root the map could never carry is named with its reason, and n
   assert.equal(none.document.querySelectorAll(".em__sweepbtn").length, 0);
   assert.doesNotMatch(visible(none.window), /Sweep T480:/u, "no label introducing buttons that are not there");
   assert.match(visible(none.window), /offers no volume the map can carry/u);
+});
+
+// --- S20: Backups, on the screen --------------------------------------------------------------------
+
+test("RENDERED: the Backups tab names each drive against F:, and pressing Compare asks for that pair", async () => {
+  const { window } = await renderPanel({ at: NOW, machines: { t480: machine({}) } });
+  await openTab(window, "backups");
+  const rows = [...window.document.querySelectorAll(".em__backups .em__mediarow")];
+  assert.deepEqual(rows.map((r) => r.querySelector("b").textContent), ["C:", "G:"], "every root but F: itself");
+  assert.match(visible(window), /G: Not compared yet\./u);
+  const posted = [];
+  const saved = globalThis.fetch;
+  globalThis.fetch = async (url, init = {}) => {
+    if (init.method === "POST") posted.push({ url, body: JSON.parse(init.body) });
+    return { ok: true, status: init.method === "POST" ? 202 : 200, json: async () => COMPARE_READY };
+  };
+  try {
+    [...rows[1].querySelectorAll("button")].find((b) => /Compare with F:/u.test(b.textContent)).click();
+    await until(() => posted.length > 0);
+  } finally {
+    globalThis.fetch = saved;
+  }
+  assert.deepEqual(posted, [{ url: "/api/estate/compare", body: { from: "G:", to: "F:" } }]);
+});
+
+test("RENDERED: a finished comparison says what is only on the drive, its folders, and offers the list", async () => {
+  const t = () => ({ files: 0, bytes: 0 });
+  const done = {
+    ok: true,
+    at: new Date().toISOString(),
+    drive: { files: 150, bytes: 5_000_000 },
+    onlyHere: { files: 120, bytes: 4_000_000 },
+    onTarget: { files: 30, bytes: 1_000_000 },
+    unconfirmed: t(),
+    unreadable: t(),
+    privateCounted: { files: 2, bytes: 10 },
+    folders: [{ folder: "G:\\Photos\\2019", files: 100, bytes: 3_500_000 }],
+    listed: 118
+  };
+  const { window } = await renderPanel(
+    { at: NOW, machines: { t480: machine({}) } },
+    { compare: { ...COMPARE_READY, results: { "C:": null, "G:": done } } }
+  );
+  await openTab(window, "backups");
+  const text = visible(window);
+  assert.match(text, /Only on G:: 120 files, 3\.8 MB, 2 of them private and not listed\./u);
+  assert.match(text, /Already on F:, by full hash: 30\./u);
+  assert.match(text, /G:\\Photos\\2019 100 files · 3\.3 MB/u);
+  const link = window.document.querySelector(".em__backups a[download]");
+  assert.equal(link.getAttribute("href"), "/api/estate/compare.csv?from=G%3A&to=F%3A");
 });
 
 test("RENDERED: a page left open keeps the sweep's age current, as the map card does", async () => {
@@ -1246,7 +1308,7 @@ test("RENDERED: what a node withheld, and what the estate could not account for,
       })
     }
   });
-  const card = [...window.document.querySelectorAll(".em__withheld")].find((p) => /40 files withheld/u.test(p.textContent));
+  const card = [...window.document.querySelectorAll(".em__withheld")].find((p) => /40 files counted by category/u.test(p.textContent));
   assert.ok(card && isVisible(card, window), "the withheld count is visible on the card");
   await openTab(window, "storage");
   const recon = window.document.querySelector(".em__recon");

@@ -10,6 +10,8 @@ import { proposeSync, applySync } from "./estate_govern.mjs";
 import { planNextCycle, readPlanInputs } from "./estate_plan.mjs";
 import { acceptMap, register as registerSatellite } from "./estate_register.mjs";
 import { createSweeper, latestLocalPush } from "./estate_map_producer.mjs";
+import { createComparer, listRoot } from "./estate_compare.mjs";
+import path from "node:path";
 import {
   DEFAULT_MAP_MAX_AGE_MS,
   foldEstateMap,
@@ -196,6 +198,17 @@ export function createEstateApi({
     }
     return { roots, unusable };
   };
+  // S20: a backup drive against F:, on this machine. Results hold file names, so every compare route
+  // answers this machine only, and they are kept beside its own map, in BENNY_HOME.
+  const comparer =
+    producer &&
+    createComparer({
+      dir: path.join(path.dirname(producer.dbPath), "compare"),
+      rules: Array.isArray(quarantine) ? quarantine : [],
+      list: producer.list ?? listRoot
+    });
+  const local = (req) =>
+    ["127.0.0.1", "::1"].includes(String(req.socket?.remoteAddress ?? "").replace(/^::ffff:/u, ""));
   function handle(req, res, rest) {
     // GET /api/estate — the whole estate model (machines, drives, sessions, snapshots) + a summary.
     if (req.method === "GET" && (rest === "/" || rest === "")) {
@@ -316,6 +329,42 @@ export function createEstateApi({
           return sendJson(res, 400, { error: "volumes must be roots this machine offers", roots });
         const r = await sweeper.start(volumes);
         sendJson(res, r.started ? 202 : 409, r.started ? { since: r.since } : { error: "a sweep is running", since: r.since });
+      });
+      return;
+    }
+
+    // GET /api/estate/compare?to=F: — the roots, the comparison running, and the latest result of each
+    // root against `to` (S20). POST { from, to } starts one. GET /compare.csv?from&to is the list of
+    // files only on `from`. All three answer this machine only: the results name files.
+    if (rest === "/compare" || rest === "/compare.csv") {
+      if (!local(req)) return sendJson(res, 403, { error: "comparisons are only shown on this machine" });
+      if (!comparer) return sendJson(res, 503, { error: "this hub has no producer configured" });
+      const q = new URL(req.url, "http://localhost").searchParams;
+      const roots = producer.roots();
+      if (req.method === "GET" && rest === "/compare") {
+        const to = q.get("to") || (roots.includes("F:") ? "F:" : null);
+        const results = Object.fromEntries(
+          roots.filter((r) => r !== to).map((r) => [r, to ? comparer.latest(r, to) : null])
+        );
+        return sendJson(res, 200, { roots, to, policy: Array.isArray(quarantine), running: comparer.status(), results });
+      }
+      if (req.method === "GET") {
+        const csv = comparer.csvPath(q.get("from") ?? "", q.get("to") ?? "");
+        if (!fs.existsSync(csv)) return sendJson(res, 404, { error: "no comparison of that pair" });
+        res.writeHead(200, {
+          "Content-Type": "text/csv; charset=utf-8",
+          "Content-Disposition": `attachment; filename="${path.basename(csv)}"`
+        });
+        return void fs.createReadStream(csv).pipe(res);
+      }
+      if (req.method !== "POST") return sendJson(res, 405, { error: "GET or POST" });
+      if (!Array.isArray(quarantine))
+        return sendJson(res, 412, { error: "no quarantine policy — a comparison would list private files (R31)" });
+      readBody(req).then((b) => {
+        if (!roots.includes(b.from) || !roots.includes(b.to) || b.from === b.to)
+          return sendJson(res, 400, { error: "from and to must be two different roots this machine offers", roots });
+        const r = comparer.start(b.from, b.to);
+        sendJson(res, r.started ? 202 : 409, r.started ? { since: r.since } : { error: "a comparison is running", since: r.since });
       });
       return;
     }
