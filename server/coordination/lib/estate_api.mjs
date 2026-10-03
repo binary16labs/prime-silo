@@ -350,7 +350,7 @@ export function createEstateApi({
       }
       if (req.method === "GET") {
         const csv = comparer.csvPath(q.get("from") ?? "", q.get("to") ?? "");
-        if (!fs.existsSync(csv)) return sendJson(res, 404, { error: "no comparison of that pair" });
+        if (!csv || !fs.existsSync(csv)) return sendJson(res, 404, { error: "no comparison of the drives there now" });
         res.writeHead(200, {
           "Content-Type": "text/csv; charset=utf-8",
           "Content-Disposition": `attachment; filename="${path.basename(csv)}"`
@@ -363,7 +363,15 @@ export function createEstateApi({
       readBody(req).then((b) => {
         if (!roots.includes(b.from) || !roots.includes(b.to) || b.from === b.to)
           return sendJson(res, 400, { error: "from and to must be two different roots this machine offers", roots });
+        // one inside the other would list the same files on both sides (claude-s20-verifier)
+        const key = (r) => {
+          const k = path.resolve(`${r}${path.sep}`);
+          return (k.endsWith(path.sep) ? k : k + path.sep).toLowerCase(); // F:\x is not inside F:\xy
+        };
+        if (key(b.from).startsWith(key(b.to)) || key(b.to).startsWith(key(b.from)))
+          return sendJson(res, 400, { error: "the two roots overlap: one is inside the other" });
         const r = comparer.start(b.from, b.to);
+        if (!r.started && r.reason) return sendJson(res, 400, { error: r.reason });
         sendJson(res, r.started ? 202 : 409, r.started ? { since: r.since } : { error: "a comparison is running", since: r.since });
       });
       return;

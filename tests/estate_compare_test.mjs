@@ -212,6 +212,84 @@ test("comparisons name files, so every compare route answers this machine only",
     assert.equal(await answer(method, url, "192.168.68.125"), 403, `${method} ${url}`);
 });
 
+// --- claude-s20-verifier's FAIL ---------------------------------------------------------------------
+
+test("a different drive at the same letter is not shown the last drive's result", async () => {
+  // Backup drives take the next free letter. Here the "letter" is a folder path: drive A is the
+  // folder that is there first, drive B a new folder created at the same path.
+  const parent = tmp();
+  const letter = path.join(parent, "G");
+  const target = tmp();
+  fs.mkdirSync(letter);
+  write(letter, "a.txt", "drive A");
+  const c = createComparer({ dir: tmp(), rules: [], list });
+  await c.start(letter, target).done;
+  assert.equal(c.latest(letter, target).onlyHere.files, 1, "drive A was compared");
+
+  fs.renameSync(letter, path.join(parent, "A-unplugged"));
+  fs.mkdirSync(letter); // drive B, same letter, never compared
+  write(letter, "b.txt", "drive B");
+  assert.equal(c.latest(letter, target), null, "drive B reads 'not compared yet', not drive A's result");
+  assert.ok(!fs.existsSync(c.csvPath(letter, target)), "and offers no list of drive A's files");
+
+  fs.rmSync(letter, { recursive: true });
+  fs.renameSync(path.join(parent, "A-unplugged"), letter); // drive A comes back
+  assert.equal(c.latest(letter, target).onlyHere.files, 1, "and its own result comes back with it");
+});
+
+test("a file is never its own copy", async () => {
+  // what overlapping roots, or a second letter for F:, produce: one file listed on both sides
+  const root = tmp();
+  const f = write(root, "only.txt", "the only copy");
+  const both = async function* () {
+    yield { path: f, size: fs.statSync(f).size };
+  };
+  const r = await compareRoots({ from: "G:", to: "F:", list: both });
+  assert.equal(r.onTarget.files, 0);
+  assert.equal(r.onlyHere.files, 1);
+});
+
+test("roots that overlap are refused; roots that merely share a prefix are not", async () => {
+  const parent = tmp();
+  const inner = path.join(parent, "x");
+  const sibling = path.join(parent, "xy");
+  fs.mkdirSync(inner);
+  fs.mkdirSync(sibling);
+  const h = await hub({ roots: [parent, inner, sibling] });
+  try {
+    assert.equal((await h.call("/compare", { from: inner, to: parent })).status, 400);
+    assert.equal((await h.call("/compare", { from: parent, to: inner })).status, 400);
+    assert.equal((await h.call("/compare", { from: inner, to: sibling })).status, 202);
+  } finally {
+    await h.close();
+  }
+});
+
+test("a failed run leaves no list to download", async () => {
+  const { drive, target } = twoRoots();
+  write(drive, "a.txt", "x");
+  let fail = false;
+  const flaky = async function* (root) {
+    if (fail) throw new Error("the drive went away");
+    yield* list(root);
+  };
+  const c = createComparer({ dir: tmp(), rules: [], list: flaky });
+  await c.start(drive, target).done;
+  assert.ok(fs.existsSync(c.csvPath(drive, target)));
+  fail = true;
+  await c.start(drive, target).done;
+  assert.equal(c.latest(drive, target).ok, false);
+  assert.ok(!fs.existsSync(c.csvPath(drive, target)), "the old list described a different run");
+});
+
+test("files that could not be read or confirmed are named in the list, with why", async () => {
+  const { drive, target } = twoRoots();
+  write(drive, "x.txt", "same");
+  write(target, "y.txt", "same");
+  const r = await compareRoots({ from: drive, to: target, list, hashers: { fullHash: async () => Promise.reject(new Error("EBUSY")) } });
+  assert.match(onlyCsv(r), /x\.txt",4,unconfirmed/u);
+});
+
 test("one comparison at a time", async () => {
   let release;
   const hold = new Promise((r) => (release = r));
@@ -219,8 +297,10 @@ test("one comparison at a time", async () => {
     await hold;
   };
   const c = createComparer({ dir: tmp(), rules: [], list: slow });
-  const a = c.start("G:", "F:");
-  const b = c.start("H:", "F:");
+  // roots that exist: a result belongs to the drive itself, so an unreadable root starts nothing
+  const [g, h, f] = [tmp(), tmp(), tmp()];
+  const a = c.start(g, f);
+  const b = c.start(h, f);
   assert.equal(a.started, true);
   assert.deepEqual(b, { started: false, since: a.since });
   release();

@@ -255,6 +255,15 @@
           <!-- BACKUPS (S20): what each drive on this machine holds that F: does not. Report only —
                nothing is copied or deleted, and a file counts as on F: only by full hash. -->
           <template x-if="tab === 'backups'"><div class="em__media em__backups">
+            <!-- What a comparison does not see, said where the owner decides — silently skipped, it
+                 would read as "nothing there" (claude-s20-verifier). -->
+            <p class="em__note">
+              Not compared: folders named Windows, $Recycle.Bin, System Volume Information or
+              $WinREAgent at the top of a drive. A drive is listed through Everything where it is
+              indexed, so compare again after copying. The downloaded list names every file to copy,
+              and every file that could not be read or confirmed, so check those before retiring a
+              drive.
+            </p>
             <template x-if="cmp.why"><p class="em__sweepwhy" x-text="cmp.why"></p></template>
             <template x-if="cmp.running"><p class="em__sweeprun" x-text="cmp.running"></p></template>
             <template x-if="compareError"><p class="em__sweepwhy" x-text="compareError"></p></template>

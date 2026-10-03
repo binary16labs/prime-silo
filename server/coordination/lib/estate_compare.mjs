@@ -74,9 +74,10 @@ export async function compareRoots({
   to,
   list,
   rules = [],
-  hashers = { partialHash, fullHash },
+  hashers: given = {},
   onProgress = () => {}
 }) {
+  const hashers = { partialHash, fullHash, identity: fileIdentity, ...given };
   const progress = (phase, done, total) => onProgress({ phase, done, total });
   progress("listing the target", 0, 0);
   const bySize = new Map();
@@ -99,11 +100,15 @@ export async function compareRoots({
     folders: []
   };
   const listed = (file) => !isQuarantined([file, canonPath(file), canonPath(file).toLowerCase()], rules);
-  const onlyHere = (file, size) => {
-    add(result.onlyHere, size);
-    if (listed(file)) result.only.push({ path: file, size });
+  // Every file the owner must act on is NAMED with why: drive-only to copy, and the unreadable and
+  // unconfirmed ones to check before the drive is retired — counted but unnamed, they were invisible
+  // (claude-s20-verifier). A private path is counted and named nowhere, whatever its status.
+  const note = (bucket, status, file, size) => {
+    add(result[bucket], size);
+    if (listed(file)) result.only.push({ path: file, size, status });
     else add(result.privateCounted, size);
   };
+  const onlyHere = (file, size) => note("onlyHere", "only on the drive", file, size);
 
   // cheap pass: size, then partial hash; what survives it is a candidate for the full pass. The
   // target's files of a size are hashed ONCE and grouped by partial hash, so a drive file is looked
@@ -142,7 +147,7 @@ export async function compareRoots({
     try {
       mine = await hashers.partialHash(f.path, f.size);
     } catch {
-      add(result.unreadable, f.size); // cannot be read: neither "copied" nor "only here"
+      note("unreadable", "unreadable", f.path, f.size); // neither "copied" nor "only here"
       continue;
     }
     const matches = (await targetsLike(f.size)).get(mine) ?? [];
@@ -160,8 +165,13 @@ export async function compareRoots({
     progress("confirming by full hash", i, candidates.length);
     try {
       const mine = await fullOf(c.path);
+      const me = hashers.identity(c.path);
       let found = false;
       for (const t of c.matches) {
+        // A FILE IS NOT ITS OWN COPY. Roots that overlap — a folder of F: compared with F:, or a
+        // letter that is F: under another name — list the same file on both sides, and it matched
+        // itself: 3 of 3 "on target", two with no other copy (claude-s20-verifier).
+        if (me !== null && hashers.identity(t) === me) continue;
         try {
           if ((await fullOf(t)) === mine) {
             found = true;
@@ -174,12 +184,13 @@ export async function compareRoots({
       if (found) add(result.onTarget, c.size);
       else onlyHere(c.path, c.size);
     } catch {
-      add(result.unconfirmed, c.size);
+      note("unconfirmed", "unconfirmed", c.path, c.size);
     }
   }
 
   const byFolder = new Map();
   for (const f of result.only) {
+    if (f.status !== "only on the drive") continue;
     const k = folderOf(from, f.path);
     const t = byFolder.get(k) ?? { folder: k, files: 0, bytes: 0 };
     add(t, f.size);
@@ -190,16 +201,37 @@ export async function compareRoots({
   return result;
 }
 
-// The drive-only list as CSV, for the owner to copy from. Quoted, because a path may hold a comma.
-export const onlyCsv = (result) =>
-  ["path,bytes", ...result.only.map((f) => `"${f.path.replaceAll('"', '""')}",${f.size}`)].join("\r\n") + "\r\n";
+// What a file IS, not what it is called: volume serial and file ID. Null when it cannot be read.
+export function fileIdentity(file) {
+  try {
+    const s = fs.statSync(file, { bigint: true });
+    return `${s.dev}-${s.ino}`;
+  } catch {
+    return null;
+  }
+}
 
-// One comparison at a time, keeping the latest result per drive pair on disk with when it was taken.
-// A drive that has since been unplugged keeps its last result, dated — never treated as coverage.
+// Every file the owner must act on, with why. Quoted, because a path may hold a comma.
+export const onlyCsv = (result) =>
+  [
+    "path,bytes,status",
+    ...result.only.map((f) => `"${f.path.replaceAll('"', '""')}",${f.size},${f.status}`)
+  ].join("\r\n") + "\r\n";
+
+// One comparison at a time, keeping the latest result for each PAIR OF DRIVES on disk, dated.
+//
+// KEYED BY THE DRIVE, NOT ITS LETTER. Backup drives take the next free letter, so the first version,
+// keyed by letter, showed drive B at G: the result of drive A — "Only on G: 0 files … already on F:" —
+// before a byte of B had been read (claude-s20-verifier). A result now belongs to the identity of
+// each root (volume serial and the root's file ID) and is shown only while that same drive is there.
+// Drive A's result comes back when drive A does; a drive never compared reads "not compared yet".
 export function createComparer({ dir, rules, list, now = Date.now }) {
   let running = null;
-  const file = (from, to, ext) =>
-    path.join(dir, `${`${from}__${to}`.replace(/[^A-Za-z0-9_-]+/gu, "_")}.${ext}`);
+  const file = (from, to, ext) => {
+    const [a, b] = [fileIdentity(from), fileIdentity(to)];
+    if (!a || !b) return null;
+    return path.join(dir, `${`${from}__${a}__${to}__${b}`.replace(/[^A-Za-z0-9_-]+/gu, "_")}.${ext}`);
+  };
   const latest = (from, to) => {
     try {
       return JSON.parse(fs.readFileSync(file(from, to, "json"), "utf8"));
@@ -213,21 +245,24 @@ export function createComparer({ dir, rules, list, now = Date.now }) {
     csvPath: (from, to) => file(from, to, "csv"),
     start(from, to) {
       if (running) return { started: false, since: running.since };
+      const [json, csv] = [file(from, to, "json"), file(from, to, "csv")];
+      if (!json) return { started: false, since: null, reason: "a root cannot be read" };
       running = { from, to, since: new Date(now()).toISOString(), phase: "starting", done: 0, total: 0 };
       const mine = running;
       const done = (async () => {
         let summary;
+        fs.mkdirSync(dir, { recursive: true });
         try {
           const r = await compareRoots({ from, to, list, rules, onProgress: (p) => Object.assign(mine, p) });
-          fs.mkdirSync(dir, { recursive: true });
-          fs.writeFileSync(file(from, to, "csv"), onlyCsv(r));
+          fs.writeFileSync(csv, onlyCsv(r));
           const { only, ...rest } = r;
           summary = { ...rest, ok: true, at: new Date(now()).toISOString(), listed: only.length };
         } catch (e) {
+          // a failed run leaves no list to download: the last one described a different run
+          fs.rmSync(csv, { force: true });
           summary = { from, to, ok: false, at: new Date(now()).toISOString(), reason: String(e?.message || e) };
         }
-        fs.mkdirSync(dir, { recursive: true });
-        fs.writeFileSync(file(from, to, "json"), JSON.stringify(summary));
+        fs.writeFileSync(json, JSON.stringify(summary));
         running = null;
       })();
       return { started: true, since: mine.since, done };
