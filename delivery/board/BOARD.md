@@ -7,8 +7,6 @@
 
 ## READY (take from the top)
 
-- S5 — integrity of what the estate already records: coverage, sole copies, bit rot _(SPLIT 2026-10-03 on the owner's answer 'Split it': the first version asked for duplicates across machines from the folded map, which nothing collects — S17's sweeps name no file and the wire carries counts only. Now: coverage and sole copies from the artifact ledger, re-hash verification. Budget 500 to 300. Cross-machine duplicates moved to S19, after S18 lets the owner name folders. Measured: the ledger at F:estate-storeeventlog holds 2 artifacts with 3 placements on t480 and optimus; the NAS catalog has run 868 scans and holds 0 files.)_
-
 - W3 — dogfood proof (no plan-file read; author≠verifier chain in ledger) _(dep W2 DONE — entered READY 2026-08-03; closes EP-W)_
 
 - L16 — version the observability surface (out of scratch/) _(UNBLOCKED 2026-08-03 — contract amended per owner option (b): budget counts authored lines only, verbatim relocation exempt and gate-checked for byte-identity. Returned to READY unclaimed rather than held, to respect WIP limit 1 while W2 is worked.)_
@@ -18,6 +16,8 @@
 - S14 — the map carries which software each node runs _(UNBLOCKED — its only dep, S13, went DONE inside the S15 merge (54f5cfc8). Enters READY at the bottom per the board's promotion rule; owner may reorder.)_
 
 ## CLAIMED (agent · date)
+
+- S20 — what is on this backup drive that is not already on F: · claude-opus-5 · 2026-10-03 _(authored, placed first and claimed on the owner's 'go ahead with the backup drive contract', after looking at their first real map. Single machine, report only, budget 450. Review bar per the owner's reset: one gate run and one independent check.)_
 
 
 
@@ -112,6 +112,10 @@
 
 ## BLOCKED (id · reason · date)
 
+- S5 · PARKED, superseded by S20 on the owner's re-plan · 2026-10-03
+- S18 · PARKED, superseded by S20 on the owner's re-plan (S20 names what it lists for its own comparison) · 2026-10-03
+- S19 · PARKED, superseded by S20 on the owner's re-plan (the backup use case is single-machine; nothing new crosses the wire) · 2026-10-03
+
 - W4 — TWO STRIKES on the parser design · claude-opus · 2026-08-04 _(fourth verification, second FAIL of THIS design, so the two-strikes rule applies again and I do not get a third attempt at it. All twelve prior kills are now caught and scenario 4 is solid — but the verifier got a loading module reading process.env and process.pid above the marker with GATE GREEN, by TWO unrelated routes. (A) `Object.getOwnPropertyDescriptor(proto, "constructor").value` and `Reflect.get(proto, "constructor")` reach the Function constructor without the member name ever appearing — because BANNED_GLOBALS is a DENY-list over an open global namespace, so `Object` and `Reflect` are unnamed and therefore trusted. (B) The region boundary is per-node-START, so a construct that begins above the marker has all its below-marker children skipped. ★ TWO OF MY MUTATIONS WERE VACUOUS: dropping `markerFound` from the verdict changes nothing, which falsifies the docstring line claiming every clause is load-bearing. ★ OWNER'S CALL: (a) close the class — ALLOW-list the globals and clip the region by node END as well as start; or (b) narrow the claim to what the walk proves and stop printing "marker claim true". ★ MY RECOMMENDATION: neither, yet. W4 is NOT on the training path and has now consumed four verification rounds. Park it and spend the capacity on P4/P5.)_
 
 _(empty)_
@@ -130,5 +134,5 @@ Q2 Q3 ·
 R0 R1 R2 R3 ·
 M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 ·
 B4 B5 · L15 ·
-S6 S7 S8 S18 S19 ·
+S6 S7 S8 ·
 P5 ·
