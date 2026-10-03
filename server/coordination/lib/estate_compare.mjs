@@ -211,6 +211,10 @@ export function fileIdentity(file) {
   }
 }
 
+// A ROOT's identity. A bare letter is the drive's root, not Windows' "current folder on that drive",
+// which is what Node makes of "C:" — it named the hub's own working folder (claude-s20-verifier).
+export const rootIdentity = (root) => fileIdentity(/^[A-Za-z]:$/u.test(root) ? `${root}\\` : root);
+
 // Every file the owner must act on, with why. Quoted, because a path may hold a comma.
 export const onlyCsv = (result) =>
   [
@@ -228,7 +232,7 @@ export const onlyCsv = (result) =>
 export function createComparer({ dir, rules, list, now = Date.now }) {
   let running = null;
   const file = (from, to, ext) => {
-    const [a, b] = [fileIdentity(from), fileIdentity(to)];
+    const [a, b] = [rootIdentity(from), rootIdentity(to)];
     if (!a || !b) return null;
     return path.join(dir, `${`${from}__${a}__${to}__${b}`.replace(/[^A-Za-z0-9_-]+/gu, "_")}.${ext}`);
   };

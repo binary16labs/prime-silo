@@ -8,7 +8,15 @@ import path from "node:path";
 import { PassThrough } from "node:stream";
 import test from "node:test";
 
-import { compareRoots, createComparer, fullHash, onlyCsv, partialHash } from "../server/coordination/lib/estate_compare.mjs";
+import {
+  compareRoots,
+  createComparer,
+  fileIdentity,
+  fullHash,
+  onlyCsv,
+  partialHash,
+  rootIdentity
+} from "../server/coordination/lib/estate_compare.mjs";
 import { createEstateApi } from "../server/coordination/lib/estate_api.mjs";
 import { walkerAdapter } from "../server/coordination/lib/estate_map_files.mjs";
 
@@ -235,6 +243,12 @@ test("a different drive at the same letter is not shown the last drive's result"
   fs.rmSync(letter, { recursive: true });
   fs.renameSync(path.join(parent, "A-unplugged"), letter); // drive A comes back
   assert.equal(c.latest(letter, target).onlyHere.files, 1, "and its own result comes back with it");
+});
+
+test("a bare drive letter is the drive's root, not the current folder on that drive", () => {
+  const drive = path.parse(process.cwd()).root.slice(0, 2); // e.g. "C:"
+  assert.equal(rootIdentity(drive), fileIdentity(`${drive}${path.sep}`));
+  assert.notEqual(rootIdentity(drive), fileIdentity(process.cwd()), "not the folder this process runs in");
 });
 
 test("a file is never its own copy", async () => {
