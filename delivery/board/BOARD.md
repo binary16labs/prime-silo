@@ -15,6 +15,8 @@
 
 - S5 — integrity: duplicates, sole copies, coverage, verification _(UNBLOCKED — deps S1 and S3 have both been DONE since the map landed; it was overlooked in AUTHORED while S13/S15 were worked. Enters READY at the bottom per the board's own rule, owner may reorder. Its verifier step needs the real NAS catalog, and the live-fold work still needs coordination/estate/quarantine.json, which is still absent.)_
 
+- S14 — the map carries which software each node runs _(UNBLOCKED — its only dep, S13, went DONE inside the S15 merge (54f5cfc8). Enters READY at the bottom per the board's promotion rule; owner may reorder.)_
+
 ## CLAIMED (agent · date)
 
 
@@ -126,5 +128,5 @@ Q2 Q3 ·
 R0 R1 R2 R3 ·
 M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 ·
 B4 B5 · L15 ·
-S14 S6 S7 S8 ·
+S6 S7 S8 ·
 P5 ·

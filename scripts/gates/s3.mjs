@@ -154,8 +154,9 @@ const SIDECAR = path.join(
 // WHAT NO HANDLER CAN COVER, RECOVERED INSTEAD OF PREVENTED. A hard kill runs nothing, so a run cut
 // down mid-world leaves the gate's own policy sitting in the owner's real coordination directory and
 // the owner's file only in the dead process's memory. Before touching anything, the gate writes what
-// it is about to displace beside the lock; a later run that finds a stale lock puts it back. A gate
-// that cannot prevent the damage should at least be able to undo it.
+// it is about to displace to SIDECAR, and takeLock() puts it back on the next run. The trigger is
+// that the note EXISTS — not a stale lock, of which there can be none: the lock is a bound socket and
+// dies with its holder. A gate that cannot prevent the damage should at least be able to undo it.
 function rememberEstate() {
   fs.writeFileSync(
     SIDECAR,
