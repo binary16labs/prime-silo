@@ -1,0 +1,23 @@
+{
+  "_comment": [
+    "The estate's privacy policy (R31), created 2026-10-03 at the owner's instruction. Any path that",
+    "matches a rule is reduced to a hash and a category before it leaves the node, so it is never",
+    "listed by name anywhere in the map. A plain string matches as a case-insensitive SUBSTRING of the",
+    "path; \"/.../flags\" is a regular expression. Too broad a rule withholds more, never leaks more.",
+    "If this file is absent or malformed, the hub refuses EVERY map. Edit it; never delete it to turn",
+    "it off. The hub reads it when it starts, so restart Prime-Silo after changing it."
+  ],
+  "rules": [
+    "curriculum vitae",
+    "/(^|[^a-z])cv([^a-z]|$)/i",
+    "cover letter",
+    "job application",
+    "/\\bp(45|60)\\b/i",
+    "payslip",
+    "/payroll/i",
+    "national insurance",
+    "tax return",
+    "bank statement",
+    "passport"
+  ]
+}

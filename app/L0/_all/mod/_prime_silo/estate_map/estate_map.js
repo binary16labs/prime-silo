@@ -52,7 +52,9 @@ window.estateMapPage = function estateMapPage() {
       this.$watch("tab", () => this.$nextTick(() => this.layout()));
       window.addEventListener("resize", () => this.layout());
       await Promise.all([this.refresh(), this.refreshSweep()]);
-      setInterval(() => this.refresh(), REFRESH_MS);
+      // The sweep line is re-read with the map. It used to be read once, so a page left open said
+      // "finished moments ago" an hour later, beside a card that had moved on to "swept 1 hour ago".
+      setInterval(() => Promise.all([this.refresh(), this.refreshSweep()]), REFRESH_MS);
     },
 
     async refreshSweep() {

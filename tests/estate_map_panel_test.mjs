@@ -574,6 +574,7 @@ async function renderPanel(
   // a POST is recorded in `posted`. Only MAP fetches are counted, because the count is how this
   // harness proves Alpine started once — a second endpoint must not be able to hide a second start.
   let fetches = 0;
+  const intervals = [];
   globalThis.fetch = async (url, init = {}) => {
     if (String(url).startsWith("/api/estate/sweep")) {
       if (init.method === "POST") posted.push(JSON.parse(init.body));
@@ -588,9 +589,9 @@ async function renderPanel(
       }
     };
   };
-  // the panel's own slow refresh is not what these tests measure, and a live interval would hold the
-  // test runner open
-  globalThis.setInterval = () => 0;
+  // the panel's own slow refresh is not what most of these tests measure, and a live interval would
+  // hold the test runner open — so it is captured, not run, and a test can fire it by hand
+  globalThis.setInterval = (fn) => (intervals.push(fn), 0);
   try {
     // the real component, loaded once per process and re-registered on each window
     const mod = await import(pathToFileURL(path.join(PANEL, "estate_map.js")).href + `?r=${renders++}`);
@@ -639,7 +640,7 @@ async function renderPanel(
     globalThis.fetch = saved.fetch;
     globalThis.setInterval = saved.setInterval;
   }
-  return { window, document: window.document, dom };
+  return { window, document: window.document, dom, intervals };
 }
 
 let renders = 0;
@@ -1042,6 +1043,27 @@ test("RENDERED: a root the map could never carry is named with its reason, and n
   assert.equal(none.document.querySelectorAll(".em__sweepbtn").length, 0);
   assert.doesNotMatch(visible(none.window), /Sweep T480:/u, "no label introducing buttons that are not there");
   assert.match(visible(none.window), /offers no volume the map can carry/u);
+});
+
+test("RENDERED: a page left open keeps the sweep's age current, as the map card does", async () => {
+  // Found on the owner's own screen: an hour after a sweep the line still said "finished moments
+  // ago", read once at load, while the card beside it had refreshed to "swept 1 hour ago".
+  const at = new Date(Date.now() - 75 * 60_000).toISOString();
+  const swept = { ...SWEEP_READY, last: { ok: true, at: new Date().toISOString(), volumes: ["C:"], files: 9 } };
+  const { window, intervals } = await renderPanel({ at: NOW, machines: {} }, { sweep: swept });
+  assert.match(visible(window), /finished moments ago/u);
+  const saved = globalThis.fetch;
+  globalThis.fetch = async (url) => ({
+    ok: true,
+    status: 200,
+    json: async () => (url === "/api/estate/map" ? { at: NOW, machines: {} } : { ...swept, last: { ...swept.last, at } })
+  });
+  try {
+    for (const tick of intervals) await tick();
+    await until(() => /finished 1 hour ago/u.test(visible(window)));
+  } finally {
+    globalThis.fetch = saved;
+  }
 });
 
 test("RENDERED: with no policy the panel says why it cannot sweep, and offers no button", async () => {
