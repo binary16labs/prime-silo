@@ -7,6 +7,8 @@
 
 ## READY (take from the top)
 
+- S17 — the map gets a producer: Sweep in the panel, one acceptance path, stale means unheard _(AUTHORED 2026-10-03 and placed FIRST on the owner's answer 'Author S17, put it first'. authority: human-signed — it widens the hub's surface with a new POST route, as S3 did — so it is NOT claimable until the owner signs the contract's terms, budget 380 especially (I had quoted ~250 before reading the code). Dep S13 DONE.)_
+
 - W3 — dogfood proof (no plan-file read; author≠verifier chain in ledger) _(dep W2 DONE — entered READY 2026-08-03; closes EP-W)_
 
 - L16 — version the observability surface (out of scratch/) _(UNBLOCKED 2026-08-03 — contract amended per owner option (b): budget counts authored lines only, verbatim relocation exempt and gate-checked for byte-identity. Returned to READY unclaimed rather than held, to respect WIP limit 1 while W2 is worked.)_
