@@ -143,6 +143,44 @@ test("with no policy the hub folds none of its own sweeps and starts none", asyn
   }
 });
 
+test("on boot the hub folds what this machine last swept", async () => {
+  const dir = home();
+  const first = await hub({ dir });
+  await first.call("/sweep", { volumes: ["C:"] });
+  await first.settled();
+  await first.close();
+  const h = await hub({ dir });
+  try {
+    const m = (await h.call("/map")).body.machines[MACHINE];
+    assert.ok(m, "a restarted hub shows its own last sweep without being asked to sweep again");
+    assert.deepEqual(m.scope, ["C:"]);
+  } finally {
+    await h.close();
+  }
+});
+
+test("a hub that keeps running keeps hearing itself, so it never goes stale to itself", async (t) => {
+  const dir = home();
+  const first = await hub({ dir });
+  await first.call("/sweep", { volumes: ["C:"] });
+  await first.settled();
+  await first.close();
+  t.mock.timers.enable({ apis: ["setInterval", "Date"], now: Date.now() });
+  const api = createEstateApi({
+    quarantine: [],
+    producer: { machine: MACHINE, dbPath: mapDbPath(dir, MACHINE), roots: () => ["C:"], collectors: fakeFiles() }
+  });
+  const map = () =>
+    new Promise((resolve) => {
+      const res = { writeHead: () => res, end: (b) => resolve(JSON.parse(b)) };
+      api.tryHandle({ method: "GET", url: "/api/estate/map" }, res);
+    });
+  t.mock.timers.tick(DEFAULT_MAP_MAX_AGE_MS + 10 * 60_000);
+  const m = (await map()).machines[MACHINE];
+  assert.equal(m.stale, false, "forty minutes on, its own heartbeat has kept it heard");
+  assert.ok(m.ageMs > DEFAULT_MAP_MAX_AGE_MS, "while its sweep is still reported as old");
+});
+
 // --- Scenario: a heartbeat keeps a node live --------------------------------------------------------
 
 test("a node heard two minutes ago is live however old its sweep is", () => {
