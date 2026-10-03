@@ -19,12 +19,12 @@
 
 ## CLAIMED (agent · date)
 
-- S17 — the map gets a producer · claude-opus-5 · 2026-10-03 _(SIGNED by the owner as written — budget 380, stale fix included. Worktree C:/Users/nsdha/.ps-worktrees/S17 on task/S17.)_
-
 
 
 
 ## VERIFY (awaiting non-author verification)
+
+- S17 — the map gets a producer · author claude-opus-5 · branch task/S17 @ 688441e0 · 2026-10-03 _(Sweep in the panel; the hub's own map enters through acceptMap, the satellites' one path; POST /api/estate/sweep loopback-only, 412 with no policy, 409 while running, roots limited to what the machine offers; a sweep is PUBLISHED because a map cannot travel without its CAS snapshot; stale now means UNHEARD. s17 GATE GREEN (s3 44 tests in three boot shapes + s4 58). 12 of 12 author-run killing mutations caught, control green, files restored byte-identical. 574/89 of the amended 580. Declared: clustered hubs keep a map per worker (since S3); the sweep root's psilo-s17- prefix; a quiet node proved by clock, not live. Verified in a real browser against the worktree: shows 'Sweeping is off' for the owner's no-policy state, roots C: F:, POST 412.)_
 
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 _(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)_
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 _(budget amended 300→1100 by owner directive — flagship scope, see LOG)_
