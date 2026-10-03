@@ -113,6 +113,8 @@ const volumeProblem = (v, rules) => {
   if (quarantined(s, rules)) return "quarantined volume";
   return null;
 };
+// the same judgement, for a hub deciding what it may OFFER to sweep before it sweeps it (S17)
+export const volumeNameProblem = (v, rules = []) => volumeProblem(v, rules);
 
 // mapPayloadProblem(payload, rules) — null when the payload may cross the wire, otherwise the
 // reason it may not. Names the FIELD, never the value: a rejection message is not a side channel.
@@ -245,6 +247,13 @@ export function isNewer(candidate, held) {
 // foldEstateMap(pushes, opts) — the estate map: the latest sweep per machine, and within it the
 // latest listing per volume. A machine that has stopped pushing keeps everything it last said and
 // is marked stale SINCE a time (§7: a node that stops pushing is never shown empty).
+//
+// STALE MEANS UNHEARD, NOT OLD (S17). This used to key on when the SWEEP finished, while the panel
+// said the node "has gone quiet" and the threshold was chosen as "six missed pushes" — but a
+// heartbeat re-sends the same sweep, so a node pushing faithfully read stale thirty minutes after
+// it swept, and a walker sweep of F: takes longer than that. Staleness now keys on heard_at, which
+// only acceptMap writes; a push without one (a fixture, never the wire) is taken as heard when it
+// finished. The sweep's age is still reported, as ageMs, and is never called staleness.
 // The default IS the shared constant, not a second spelling of thirty minutes. It was a literal
 // 1_800_000 here, which is a duplicate of a named value fifty lines below and reads as though the
 // two could differ.
@@ -260,8 +269,12 @@ export function foldEstateMap(
   { now = Date.now(), maxAgeMs = DEFAULT_MAP_MAX_AGE_MS } = {}
 ) {
   const machines = {};
+  const heard = {}; // machine -> { ms, at }: the last time the hub HEARD it, from any of its pushes
   for (const push of pushes) {
     if (!push?.machine) continue;
+    const at = push.heard_at ?? push.finished_at;
+    const ms = Date.parse(at ?? "") || 0;
+    if (ms > (heard[push.machine]?.ms ?? -1)) heard[push.machine] = { ms, at };
     const held = machines[push.machine];
     if (!isNewer(push, held?.latest)) {
       // An older sweep never overwrites a newer one — but a volume the newer sweep did not cover
@@ -284,12 +297,14 @@ export function foldEstateMap(
   const out = {};
   for (const [name, m] of Object.entries(machines)) {
     const ageMs = now - (Date.parse(m.at ?? "") || 0);
+    const quiet = now - heard[name].ms > maxAgeMs;
     out[name] = {
       sweep_id: m.sweep_id,
       at: m.at,
       ageMs,
-      stale: ageMs > maxAgeMs,
-      since: ageMs > maxAgeMs ? m.at : null,
+      heard_at: heard[name].at,
+      stale: quiet,
+      since: quiet ? heard[name].at : null,
       counts: m.counts,
       digest: m.digest,
       snapshot: m.snapshot,

@@ -1,23 +1,27 @@
 // Estate Map — the panel. Every judgement lives in fold_view.js, which is tested without a DOM;
 // this file fetches, holds state and hands the view a shape to draw.
 //
-// IT READS THE FOLD AND NOTHING ELSE. §5 of the plan gives this surface one source, /api/estate/map,
-// and one job: show what the nodes said. There is no button here that changes anything — moving
-// bytes is S7's executor and needs a signature, and a page that could both show and act would make
-// the signature a formality performed by whoever had the tab open.
+// IT READS THE FOLD, AND ITS ONE BUTTON MOVES NOTHING. §5 of the plan gives the map one source,
+// /api/estate/map, and this surface one job: show what the nodes said. Sweep (S17) asks THIS machine
+// to read its own disks and write its own map files (index, snapshot, map log); it changes no file the owner keeps. Moving bytes
+// is S7's executor and needs a signature, and a page that could both show and act on the estate
+// would make that signature a formality performed by whoever had the tab open.
 //
 // REFRESH IS SLOW ON PURPOSE. The answer behind this page changes when a node finishes a sweep and
 // pushes, which is minutes apart at best. Polling harder would imply the page is live when it is a
-// fold of pushes, and the age line would start contradicting the refresh rate.
+// fold of pushes, and the age line would start contradicting the refresh rate. The one exception is
+// a sweep THIS page started: it is watched every few seconds until it ends, then the map is re-read.
 import {
   ageLabel,
   byteLabel,
   estateView,
   reconcile,
-  storageRects
+  storageRects,
+  sweepView
 } from "/mod/_prime_silo/estate_map/fold_view.js";
 
 const REFRESH_MS = 60_000;
+const SWEEP_WATCH_MS = 3_000;
 
 window.estateMapPage = function estateMapPage() {
   // The component root, captured in init() and kept OUT of the reactive data. $el is resolved from
@@ -26,9 +30,12 @@ window.estateMapPage = function estateMapPage() {
   // treemap while the reconciliation line beneath it still described the map that was no longer
   // there. One place owns the component scope now.
   let root = null;
+  let watching = null;
 
   return {
     v: { reachable: false, empty: false, machines: [] },
+    sw: sweepView(null),
+    sweepError: "",
     loading: true,
     tab: "estate",
     rects: [],
@@ -44,8 +51,40 @@ window.estateMapPage = function estateMapPage() {
       root = this.$el;
       this.$watch("tab", () => this.$nextTick(() => this.layout()));
       window.addEventListener("resize", () => this.layout());
-      await this.refresh();
+      await Promise.all([this.refresh(), this.refreshSweep()]);
       setInterval(() => this.refresh(), REFRESH_MS);
+    },
+
+    async refreshSweep() {
+      try {
+        this.sw = sweepView(await (await fetch("/api/estate/sweep")).json());
+      } catch {
+        this.sw = sweepView(null);
+      }
+      clearTimeout(watching);
+      if (this.sw.running)
+        watching = setTimeout(async () => {
+          await this.refreshSweep();
+          if (!this.sw.running) await this.refresh();
+        }, SWEEP_WATCH_MS);
+    },
+
+    async sweep(volume) {
+      this.sweepError = "";
+      try {
+        const res = await fetch("/api/estate/sweep", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ volumes: [volume] })
+        });
+        if (!res.ok) this.sweepError = (await res.json().catch(() => ({}))).error || `the hub answered ${res.status}`;
+      } catch (e) {
+        this.sweepError = `the hub did not answer: ${e.message}`;
+      }
+      await this.refreshSweep();
+      // a sweep small enough to finish before that read is never "watched", so the map that changed
+      // would otherwise wait for the slow refresh (claude-s17-verifier)
+      if (!this.sw.running) await this.refresh();
     },
 
     async refresh() {
@@ -102,7 +141,8 @@ window.estateMapPage = function estateMapPage() {
     // "stale since 10:00" — the whole point of §7. A machine is never rendered as empty because it
     // went quiet, and the card says WHEN it went quiet rather than how long ago in the abstract.
     machineLine(m) {
-      if (m.stale) return `stale since ${this.clock(m.since)} · ${m.ageLabel} ago`;
+      // since is when the hub last HEARD from it (S17); the age is the sweep's, and says so
+      if (m.stale) return `stale since ${this.clock(m.since)} · swept ${m.ageLabel} ago`;
       return `swept ${m.ageLabel} ago`;
     },
 

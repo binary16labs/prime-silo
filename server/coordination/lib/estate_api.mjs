@@ -8,8 +8,14 @@ import { readKelEvents } from "./kel.mjs";
 import { buildEstate } from "./estate.mjs";
 import { proposeSync, applySync } from "./estate_govern.mjs";
 import { planNextCycle, readPlanInputs } from "./estate_plan.mjs";
-import { register as registerSatellite } from "./estate_register.mjs";
-import { DEFAULT_MAP_MAX_AGE_MS, foldEstateMap, machineView } from "./estate_map_fold.mjs";
+import { acceptMap, register as registerSatellite } from "./estate_register.mjs";
+import { createSweeper, latestLocalPush } from "./estate_map_producer.mjs";
+import {
+  DEFAULT_MAP_MAX_AGE_MS,
+  foldEstateMap,
+  machineView,
+  volumeNameProblem
+} from "./estate_map_fold.mjs";
 
 const PREFIX = "/api/estate";
 const EMPTY = { machines: {}, drives: {}, sessions: {}, snapshots: {} };
@@ -111,13 +117,17 @@ export function longviewProgress(progressFile) {
 }
 
 // Read + JSON-parse a POST body; resolves {} on empty/invalid (a governance route never 500s on shape).
+// "Invalid" includes valid JSON that is not an object: a body of `null` used to resolve null, and
+// the first property read on it threw inside the promise and took the whole hub down — through
+// /register from the LAN, and through /sweep from any page a browser had open (claude-s17-verifier).
 function readBody(req) {
   return new Promise((resolve) => {
     let raw = "";
     req.on("data", (c) => (raw += c));
     req.on("end", () => {
       try {
-        resolve(raw ? JSON.parse(raw) : {});
+        const b = raw ? JSON.parse(raw) : {};
+        resolve(b !== null && typeof b === "object" && !Array.isArray(b) ? b : {});
       } catch {
         resolve({});
       }
@@ -142,10 +152,50 @@ export function createEstateApi({
   // hub has not been told what is private, and a hub that has not been told refuses maps (W9).
   quarantine = null,
   mapMaxAgeMs = DEFAULT_MAP_MAX_AGE_MS,
+  // S17: this machine's own map — { machine, dbPath, roots: () => [...], collectors? }, or null
+  producer = null,
   prefix = PREFIX
 } = {}) {
   // In-memory satellite reachability (last-seen + live drift), updated by POST /register (N7).
+  // PER PROCESS: a clustered hub's workers each build their own (server/runtime/cluster.js passes
+  // no estateApi), so under WORKERS>1 a push lands in one worker's map. True since S3; declared.
   let satelliteState = { satellites: {}, maps: [] };
+  // The hub's own sweeps enter through acceptMap like any satellite's, so no policy means no map
+  // here too. On boot the hub folds what it last swept, and re-hears it every five minutes for as
+  // long as it runs — the in-process twin of the agent's heartbeat. That keeps it live only while its
+  // LATEST sweep is accepted: if that one is refused, nothing is re-heard, and the last map that was
+  // accepted goes stale thirty minutes on while the Sweep section says why the newer one was refused.
+  const own = (push) => {
+    if (!push) return { ok: false, reason: "this machine has not finished a sweep" };
+    const r = acceptMap(satelliteState, push, { machine: producer.machine, quarantine });
+    if (r.ok) satelliteState = r.state;
+    return r;
+  };
+  const sweeper =
+    producer &&
+    createSweeper({
+      dbPath: producer.dbPath,
+      machine: producer.machine,
+      quarantine,
+      collectors: producer.collectors,
+      onFinished: own
+    });
+  if (producer) {
+    own(latestLocalPush(producer.dbPath));
+    setInterval(() => own(latestLocalPush(producer.dbPath)), 5 * 60_000).unref();
+  }
+  // What this machine offers, split by whether the map could ever carry it: a root the volume rule or
+  // the policy refuses is named with its reason, never offered as a button whose sweep would fail.
+  const offered = () => {
+    const roots = [];
+    const unusable = [];
+    for (const r of producer.roots()) {
+      const reason = volumeNameProblem(r, Array.isArray(quarantine) ? quarantine : []);
+      if (reason) unusable.push({ root: r, reason });
+      else roots.push(r);
+    }
+    return { roots, unusable };
+  };
   function handle(req, res, rest) {
     // GET /api/estate — the whole estate model (machines, drives, sessions, snapshots) + a summary.
     if (req.method === "GET" && (rest === "/" || rest === "")) {
@@ -233,6 +283,41 @@ export function createEstateApi({
       return view
         ? sendJson(res, 200, view)
         : sendJson(res, 404, { error: "no map pushed for that machine" });
+    }
+
+    // GET /api/estate/sweep — what this machine can sweep, and what its sweeper is doing (S17).
+    if (req.method === "GET" && rest === "/sweep") {
+      if (!sweeper) return sendJson(res, 503, { error: "this hub has no producer configured" });
+      return sendJson(res, 200, {
+        machine: producer.machine,
+        ...offered(),
+        policy: Array.isArray(quarantine),
+        ...sweeper.status()
+      });
+    }
+
+    // POST /api/estate/sweep { volumes } — sweep this machine (S17). LOOPBACK ONLY: a sweep reads
+    // every file on a disk, and on a hub bound to the LAN anyone who could reach it could otherwise
+    // make it do that. It moves nothing — it reads the disks and writes this node's own map files under BENNY_HOME/estate — and
+    // with no policy it does not start, because the hub would refuse the map it produced.
+    if (req.method === "POST" && rest === "/sweep") {
+      const from = String(req.socket?.remoteAddress ?? "").replace(/^::ffff:/u, "");
+      if (from !== "127.0.0.1" && from !== "::1")
+        return sendJson(res, 403, { error: "a sweep can only be started from this machine" });
+      if (!sweeper) return sendJson(res, 503, { error: "this hub has no producer configured" });
+      if (!Array.isArray(quarantine))
+        return sendJson(res, 412, {
+          error: "no quarantine policy — the hub would refuse the map, so no sweep is started (R31)"
+        });
+      readBody(req).then(async (b) => {
+        const { roots } = offered();
+        const volumes = Array.isArray(b.volumes) ? b.volumes : [];
+        if (!volumes.length || volumes.some((v) => !roots.includes(v)))
+          return sendJson(res, 400, { error: "volumes must be roots this machine offers", roots });
+        const r = await sweeper.start(volumes);
+        sendJson(res, r.started ? 202 : 409, r.started ? { since: r.since } : { error: "a sweep is running", since: r.since });
+      });
+      return;
     }
 
     // GET /api/estate/board — the delivery board folded into a lane summary (N3 tie-in).

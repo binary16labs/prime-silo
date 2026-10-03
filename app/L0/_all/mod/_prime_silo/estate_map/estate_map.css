@@ -408,3 +408,41 @@
 .em__matrix td[data-stale="true"] {
   color: var(--color-status-warning);
 }
+
+/* --- sweep (S17): every declaration below is one the stylesheet already used ------------------ */
+
+.em__sweep {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.em__roots {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.em__sweepbtn {
+  background: var(--color-surface-1);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-2);
+  color: var(--color-text-secondary);
+  padding: var(--space-2) var(--space-4);
+  font-family: inherit;
+  font-size: var(--font-size-2);
+  cursor: pointer;
+}
+
+.em__sweepwhy {
+  margin: 0;
+  color: var(--color-status-warning);
+  font-size: var(--font-size-2);
+}
+
+.em__sweeprun,
+.em__sweeplast {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-2);
+}

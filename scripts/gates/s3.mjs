@@ -34,6 +34,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { buildManifest } from "../../server/coordination/lib/estate_register.mjs";
+import { createSweeper, mapDbPath } from "../../server/coordination/lib/estate_map_producer.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 for (const f of [
@@ -261,12 +262,18 @@ const SHAPES = {
   })
 };
 
-async function boot(home, port, shape, dir) {
+async function boot(home, port, shape, dir, extraEnv = {}) {
   const spec = SHAPES[shape](home, port);
   const env = { ...process.env, ...spec.env };
   // absent, not empty: an empty ESTATE_REGISTER_KEY is a state the owner's machine never has, and a
   // shape that does not configure a port must not inherit one
   delete env.ESTATE_REGISTER_KEY;
+  // ESTATE_SWEEP_ROOTS reaches a hub ONLY in the world that needs a root offered (S17). Set in this
+  // process, it reached every boot AND the unit tests, so a guard honest only while it was set
+  // passed everything here and was off on the owner's machine, where it is unset
+  // (claude-s17-verifier). Every other boot runs as the owner's machine does: without it.
+  delete env.ESTATE_SWEEP_ROOTS;
+  Object.assign(env, extraEnv);
   if (!spec.env.PORT) {
     delete env.PORT;
     delete env.HOST;
@@ -366,6 +373,24 @@ const fold = (port) =>
     .then((r) => r.json())
     .catch(() => null);
 
+// S17: THE HUB'S OWN SWEEP, pressed the way the panel presses it. What it sweeps is a real folder
+// made for this run, at a drive root because the volume rule allows two segments below one and the
+// OS temp directory is deeper than that, and offered to every shape through ESTATE_SWEEP_ROOTS —
+// the knob an owner sets to add a root. Its name is random but its prefix is not; see the limits.
+const HOSTNAME = os.hostname();
+const DRIVE = path.parse(os.tmpdir()).root;
+const SWEEP_ROOT = path.join(DRIVE, `psilo-s17-${crypto.randomBytes(6).toString("hex")}`);
+const sweepNow = async (port) => {
+  const url = `http://127.0.0.1:${port}/api/estate/sweep`;
+  const res = await fetch(url, { method: "POST", body: JSON.stringify({ volumes: [SWEEP_ROOT] }) });
+  for (let i = 0; res.status === 202 && i < 600; i++) {
+    const s = await fetch(url).then((r) => r.json()).catch(() => null);
+    if (s && !s.running) return { status: 202, last: s.last, accepted: s.last?.ok === true };
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  return { status: res.status, last: null, accepted: false };
+};
+
 // One world: a policy on disk (or none), a hub booted over the product's own coordination directory,
 // and whatever pushes the world needs. The BENNY_HOME keystore is the only temporary thing, and it
 // is removed; the estate is put back byte for byte.
@@ -412,7 +437,7 @@ function age(file, atMs) {
   );
 }
 
-async function inShape(shape, rules, body) {
+async function inShape(shape, rules, body, { env = {}, seed = null } = {}) {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "psilo-home-"));
   let booted = null;
   try {
@@ -423,7 +448,8 @@ async function inShape(shape, rules, body) {
     fs.writeFileSync(path.join(home, "state", "hmac-key"), `${"7a".repeat(32)}\n`);
     fs.mkdirSync(ESTATE, { recursive: true });
     writePolicy(rules);
-    booted = await boot(home, await freePort(), shape, home);
+    if (seed) await seed(home);
+    booted = await boot(home, await freePort(), shape, home, env);
     return await body(booted.port);
   } finally {
     // Wait for the child to actually go before deleting its home: Windows refuses to remove a
@@ -453,9 +479,9 @@ async function inShape(shape, rules, body) {
 // option the one passes, an environment variable the other sets, the entry that runs — is honest in
 // one and inert in the other, and a disagreement is a failure. Neither shape is treated as the real
 // one, because guessing which is real is how the last two rounds were lost.
-async function inWorld(rules, body) {
+async function inWorld(rules, body, opts) {
   const out = {};
-  for (const shape of Object.keys(SHAPES)) out[shape] = await inShape(shape, rules, body);
+  for (const shape of Object.keys(SHAPES)) out[shape] = await inShape(shape, rules, body, opts);
   return out;
 }
 
@@ -475,6 +501,11 @@ const DECAY_PROBES = 30;
 await takeLock();
 captureEstate();
 rememberEstate();
+// a hard-killed run's sweep root is this gate's own debris, and only this gate makes that shape
+for (const d of fs.readdirSync(DRIVE))
+  if (/^psilo-s17-[0-9a-f]{12}$/u.test(d)) fs.rmSync(path.join(DRIVE, d), { recursive: true, force: true });
+fs.mkdirSync(SWEEP_ROOT);
+for (let i = 0; i < 4; i++) fs.writeFileSync(path.join(SWEEP_ROOT, `note-${i}.txt`), "x".repeat(10 * (i + 1)));
 // THE ESTATE IS PUT BACK BEFORE THE LOCK IS DROPPED, and both happen on the way out of any exit —
 // including a signal. The previous order dropped the lock on process exit, AFTER the last restore,
 // so deleting it re-stamped the estate directory and every run left it dated now: 365.000 days old
@@ -484,6 +515,7 @@ const leave = () => {
   try {
     restoreEstate();
   } finally {
+    fs.rmSync(SWEEP_ROOT, { recursive: true, force: true });
     dropLock();
   }
 };
@@ -494,23 +526,52 @@ for (const signal of ["SIGINT", "SIGTERM", "SIGHUP", "SIGBREAK"])
     process.exit(130);
   });
 
+// THE RULES ARE NOT FIXTURES EITHER (claude-s17-verifier). "cv" and "payroll" were the same every run,
+// so a guard honest only when the policy contained "payroll" passed. Two random words per run, from
+// the letters g to z, so that no hex in a sweep root, digest or snapshot can contain one.
+const word = () => Array.from({ length: 8 }, () => "ghijklmnopqrstuvwxyz"[crypto.randomInt(20)]).join("");
+const [R1, R2] = [word(), word()];
+const RULES = [R1, R2];
+const HIT2 = `F:\\${R2[0].toUpperCase()}${R2.slice(1)} 2026`;
+const HIT1 = `F:\\${R1[0].toUpperCase()}${R1.slice(1)} drafts`;
+
+// A finished sweep already on disk, as the owner's machine has after its first Sweep, so that a hub
+// folding its own map without a policy is SEEN doing it — booted with no root offered and no
+// ESTATE_SWEEP_ROOTS, which is the owner's default (claude-s17-verifier reproduced exactly that).
+const seedSweep = async (home) => {
+  const s = createSweeper({ dbPath: mapDbPath(home, HOSTNAME), machine: HOSTNAME, quarantine: [] });
+  await (await s.start([SWEEP_ROOT])).done;
+  if (!s.status().last?.ok) throw new Error(`the seed sweep failed: ${s.status().last?.reason}`);
+};
+
 let worlds;
 try {
   worlds = {
     // fail closed: no policy file is not an empty policy, and a hub with no policy refuses maps
-    noPolicy: await inWorld(undefined, async (port) => ({
-      push: await push(port, "t480", "F:\\Backup Drive"),
-      fold: await fold(port)
-    })),
+    noPolicy: await inWorld(
+      undefined,
+      async (port) => ({
+        push: await push(port, "t480", "F:\\Backup Drive"),
+        sweep: await sweepNow(port),
+        fold: await fold(port)
+      }),
+      { seed: seedSweep }
+    ),
+    // S17: the hub sweeps itself and its own map arrives through the satellites' acceptance
+    own: await inWorld(
+      RULES,
+      async (port) => ({ sweep: await sweepNow(port), fold: await fold(port) }),
+      { env: { ESTATE_SWEEP_ROOTS: SWEEP_ROOT } }
+    ),
     // Two rules, a volume that matches the SECOND one, and a clean volume that must get through —
     // without that last one a hub refusing every map would pass a gate that only checked refusals.
-    policy: await inWorld(["cv", "payroll"], async (port) => {
-      const first = await push(port, "t480", "F:\\Payroll 2026");
-      const otherRule = await push(port, "t480", "F:\\CV drafts");
+    policy: await inWorld(RULES, async (port) => {
+      const first = await push(port, "t480", HIT2);
+      const otherRule = await push(port, "t480", HIT1);
       const clean = await push(port, "t480", "F:\\Backup Drive");
       // the same refusal, again, after the guard has been consulted many times
       const late = [];
-      for (let i = 0; i < DECAY_PROBES; i++) late.push(await push(port, "t480", "F:\\Payroll 2026"));
+      for (let i = 0; i < DECAY_PROBES; i++) late.push(await push(port, "t480", HIT2));
       return {
         first,
         otherRule,
@@ -522,8 +583,8 @@ try {
       };
     }),
     // the regex form parseQuarantinePolicy exists to support
-    regex: await inWorld(["/payroll/iu"], async (port) => ({
-      quarantined: await push(port, "t480", "F:\\PAYROLL 2026")
+    regex: await inWorld([`/${R2}/iu`], async (port) => ({
+      quarantined: await push(port, "t480", HIT2.toUpperCase())
     }))
   };
 } catch (e) {
@@ -570,22 +631,22 @@ for (const shape of Object.keys(SHAPES)) {
     );
   if (policy.first.accepted)
     fail(
-      `under ["cv", "payroll"] the hub ${where} ACCEPTED a map whose scope names F:\Payroll 2026 ` +
+      `under ${JSON.stringify(RULES)} the hub ${where} ACCEPTED a map whose scope names ${HIT2} ` +
         `(${policy.first.status}) — the policy reaches the hub but is not enforced`
     );
   if (policy.otherRule.accepted)
     fail(
-      `under ["cv", "payroll"] the hub ${where} ACCEPTED F:\CV drafts — only the FIRST rule is ` +
+      `under ${JSON.stringify(RULES)} the hub ${where} ACCEPTED ${HIT1} — only the FIRST rule is ` +
         "being enforced, so every rule after the first is decoration"
     );
   if (regex.quarantined.accepted)
     fail(
-      `under ["/payroll/iu"] the hub ${where} ACCEPTED F:\PAYROLL 2026 — a rule in regex form, ` +
+      `under ["/${R2}/iu"] the hub ${where} ACCEPTED ${HIT2.toUpperCase()} — a rule in regex form, ` +
         "which parseQuarantinePolicy exists to support, is not being enforced"
     );
   if (!policy.clean.accepted)
     fail(
-      `under ["cv", "payroll"] the hub ${where} REFUSED a map of an unquarantined volume ` +
+      `under ${JSON.stringify(RULES)} the hub ${where} REFUSED a map of an unquarantined volume ` +
         `(${policy.clean.status}: ${policy.clean.reason}) — a hub that refuses every map is not a ` +
         "hub, and a gate that only checked refusals would call that success"
     );
@@ -593,7 +654,7 @@ for (const shape of Object.keys(SHAPES)) {
   if (decayed >= 0)
     fail(
       `the quarantine guard ${where} stopped working after ${decayed + 3} consultations: ` +
-        "F:\Payroll 2026 was refused at first and ACCEPTED later in the same process. A hub that " +
+        `${HIT2} was refused at first and ACCEPTED later in the same process. A hub that ` +
         "guards the first few pushes of its life and waves the rest through is the worst of both — " +
         "it looks enforced"
     );
@@ -601,25 +662,53 @@ for (const shape of Object.keys(SHAPES)) {
     fail(`the hub ${where} accepted the map and then served a fold without the machine in it`);
   if (held(policy.fold, "t480")?.stale !== false)
     fail(`a map pushed thirty seconds ago is served as stale ${where} — the threshold is too small`);
-  for (const [name, label] of [
-    ["optimus", "past the threshold"],
-    ["pi", "silent for six hours"]
+  // STALE MEANS UNHEARD (S17). Both of these were pushed seconds ago, so both are live however old
+  // their sweeps are, and the sweeps' ages are still reported. Before S17 this asserted the opposite —
+  // an old sweep pushed now was "a quiet node" — which is the defect S17 fixed. A node that has truly
+  // gone quiet cannot be produced live without waiting thirty minutes, so that half is proved with an
+  // injected clock in tests/estate_map_producer_test.mjs, which this gate runs.
+  for (const [name, label, ageMs] of [
+    ["optimus", "whose sweep is 45 minutes old", 45 * MINUTE],
+    ["pi", "whose sweep is six hours old", 6 * 60 * MINUTE]
   ]) {
-    if (!machines(policy.fold).includes(name))
-      fail(`a node ${label} is missing from the fold ${where} — §7: a quiet node is stale, never absent`);
-    if (held(policy.fold, name)?.stale !== true)
+    const m = held(policy.fold, name);
+    if (!m) fail(`a node ${label} is missing from the fold ${where} — §7: never absent`);
+    if (m.stale !== false)
       fail(
-        `a node ${label} is not served as stale ${where} — it would read as current, which is the ` +
-          "one thing §7 exists to prevent"
+        `a node ${label}, pushed seconds ago, is served as stale ${where} — staleness is keyed on ` +
+          "the sweep's age again rather than on when the hub last heard the node (S17)"
       );
+    if (!(m.ageMs >= ageMs)) fail(`a node ${label} reports a sweep ${m.ageMs} ms old ${where}`);
   }
+
+  // S17: Sweep. With no policy it must not start; under one, this machine must reach the map.
+  const own = worlds.own[shape];
+  if (noPolicy.sweep.status !== 412)
+    fail(
+      `with no quarantine.json the hub ${where} answered ${noPolicy.sweep.status} to Sweep — it must ` +
+        "refuse to start a sweep whose map it would refuse"
+    );
+  if (machines(noPolicy.fold).includes(HOSTNAME))
+    fail(
+      `with no quarantine.json the hub ${where} folded its OWN finished sweep from disk — its map ` +
+        "entered without the acceptance every satellite's must pass"
+    );
+  if (!own.sweep.accepted)
+    fail(
+      `under a policy, Sweep ${where} did not put this machine in the map: ${own.sweep.status} ` +
+        `${own.sweep.last?.reason ?? "it never finished"}`
+    );
+  const mine = held(own.fold, HOSTNAME);
+  if (mine?.scope?.[0] !== SWEEP_ROOT || mine.stale !== false || !mine.heard_at)
+    fail(`Sweep ${where} finished but the fold does not hold ${HOSTNAME}, live and heard, over ${SWEEP_ROOT}`);
 }
 
 // AND THE TWO SHAPES MUST AGREE, which is the assertion that makes the pair worth booting: an
 // expression honest in one shape and inert in the other fails above, but one that merely BEHAVES
 // differently — a policy read in one boot and not the other — would otherwise pass both halves.
 for (const [world, probes] of [
-  ["noPolicy", ["push"]],
+  ["noPolicy", ["push", "sweep"]],
+  ["own", ["sweep"]],
   ["policy", ["first", "otherRule", "clean"]],
   ["regex", ["quarantined"]]
 ])
@@ -689,20 +778,44 @@ for (const [world, probes] of [
 //     coordDir — nothing in the tree does any more, so a mutation reading the policy from
 //     projectRoot/coordination is invisible here and harmless on the owner's machine. Measured on a
 //     zero-override boot; a latent break for an embedder, not an inert hub.
-const t = spawnSync(process.execPath, ["--test", "tests/estate_map_fold_test.mjs"], {
-  cwd: ROOT,
-  stdio: "inherit"
-});
+//   - A NODE THAT HAS GONE QUIET IS NOT PRODUCED HERE (S17). Stale now means unheard for thirty
+//     minutes, and a live gate cannot wait that long; it proves only the other half, that a node it
+//     just heard is live whatever its sweep's age. The quiet half is proved with an injected clock
+//     in tests/estate_map_producer_test.mjs.
+//   - ESTATE_SWEEP_ROOTS IS SET IN ONE WORLD (S17). The `own` world must offer a root, so a guard
+//     honest only while that variable is set behaves there. It used to be set for the whole gate,
+//     which blinded every boot and the unit tests to exactly that guard: four keyed on it stayed
+//     green (claude-s17-verifier). Now the no-policy world boots without it, over a finished sweep
+//     already on disk, and the unit tests run without it — the owner's default in both.
+//   - THE SWEEP ROOT'S NAME HAS A FIXED PREFIX (S17). Its suffix is random, but `psilo-s17-` at a
+//     drive root is a shape only this gate makes. Measured by claude-s17-verifier: a guard keyed on it
+//     dies in the unit tests, which offer roots without it; the gate's own world alone would not.
+//   - A CLUSTERED HUB KEEPS A MAP PER WORKER. Every worker builds its own estate API
+//     (server/runtime/cluster.js passes none), so under WORKERS>1 a satellite's push lands in one
+//     worker's map and a read served by another misses it. The hub's OWN map converges, because
+//     every worker folds the shared sweep database on boot and every five minutes; but a Sweep
+//     refused by another worker's lock answers 409 with no start time. The clustered shape passes
+//     here because Windows hands this gate's connections to one worker — 20 of 20 fresh-connection
+//     reads agreed in a probe — which hides the split rather than disproving it. Read from the code;
+//     true since S3, and not fixed by S17.
+// the tests run as the owner's machine does, without ESTATE_SWEEP_ROOTS, whatever this shell has
+const testEnv = { ...process.env };
+delete testEnv.ESTATE_SWEEP_ROOTS;
+const t = spawnSync(
+  process.execPath,
+  ["--test", "tests/estate_map_fold_test.mjs", "tests/estate_map_producer_test.mjs"],
+  { cwd: ROOT, env: testEnv, stdio: "inherit" }
+);
 if (t.status !== 0) {
   console.log("[s3] GATE FAILED (scenarios)");
   process.exit(1);
 }
 
 console.log(
-  "[s3] booted three ways — CLI, desktop and clustered — the hub refuses a map with no policy, enforces the policy it has, folds the rest, and calls a quiet node stale"
+  "[s3] booted three ways — CLI, desktop and clustered — the hub refuses a map with no policy, enforces the policy it has, folds the rest, keeps a node it just heard live whatever its sweep's age, and sweeps itself only under a policy"
 );
 console.log(
-  "[s3] the node pushes and the hub folds; a quiet node is stale, not empty; only counts and hashes cross"
+  "[s3] the node pushes and the hub folds; stale means unheard (the quiet half proved by clock in tests/estate_map_producer_test.mjs, which this gate ran); only counts and hashes cross"
 );
 console.log("[s3] GATE GREEN");
 process.exit(0);

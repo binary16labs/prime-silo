@@ -455,6 +455,41 @@ export function versionDrift(matrix) {
   return (matrix?.rows ?? []).filter((r) => r.drifted);
 }
 
+// --- the producer (S17) ---------------------------------------------------------------------------
+
+// What the Sweep control can honestly offer, from GET /api/estate/sweep. A hub that cannot sweep
+// says WHY in words the owner can act on, rather than showing a button that would fail or hiding the
+// control and leaving them to wonder where it went. A sweep the hub refused is reported as refused,
+// never as a map the owner should expect to see.
+export function sweepView(s, { now = Date.now() } = {}) {
+  const since = (iso) => `${ageLabel(now - (Date.parse(iso ?? "") || NaN))} ago`;
+  const last = !s?.last
+    ? null
+    : s.last.ok
+      ? `Last sweep of ${s.last.volumes.join(", ")} finished ${since(s.last.at)}: ${Number(s.last.files).toLocaleString()} files`
+      : `Last sweep of ${s.last.volumes.join(", ")} did not reach the map: ${s.last.reason}`;
+  // a root the map could never carry is named with its reason, not offered as a button
+  const unusable = (s?.unusable ?? []).map((u) => `${u.root} cannot be swept: ${u.reason}`);
+  const off = (why) => ({ can: false, why, machine: s?.machine ?? null, roots: [], unusable, running: null, last });
+  if (!s || typeof s !== "object") return off("The hub did not say whether this machine can sweep.");
+  if (s.error) return off(`This machine cannot sweep: ${s.error}.`);
+  if (s.policy !== true)
+    return off(
+      "Sweeping is off: there is no quarantine policy at coordination/estate/quarantine.json, so " +
+        "the hub would refuse the map a sweep produced."
+    );
+  if (!(s.roots ?? []).length) return off("This machine offers no volume the map can carry.");
+  return {
+    can: !s.running,
+    why: null,
+    machine: s.machine ?? null,
+    roots: s.roots,
+    unusable,
+    running: s.running ? `Sweeping ${s.running.volumes.join(", ")} — started ${since(s.running.since)}` : null,
+    last
+  };
+}
+
 // --- the whole page -------------------------------------------------------------------------------
 
 // One call, so the view has no logic of its own. `reachable` is false when the hub did not answer,

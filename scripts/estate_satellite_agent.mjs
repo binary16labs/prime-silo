@@ -29,10 +29,15 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import crypto from "crypto";
-import { DatabaseSync } from "node:sqlite";
+import { fileURLToPath } from "url";
 import { buildManifest } from "../server/coordination/lib/estate_register.mjs";
 import { resolveRegisterKey } from "../server/coordination/lib/estate_register_key.mjs";
-import { buildMapPayload, withMap } from "../server/coordination/lib/estate_map_fold.mjs";
+import { readQuarantinePolicy, withMap } from "../server/coordination/lib/estate_map_fold.mjs";
+import {
+  createSweeper,
+  latestLocalPush,
+  mapDbPath
+} from "../server/coordination/lib/estate_map_producer.mjs";
 
 const argv = process.argv.slice(2);
 const flag = (k) => argv.includes(k);
@@ -169,51 +174,9 @@ async function discover() {
 // category labels, volume names and hashes only. The payload is judged by the very guard the hub
 // judges it with, HERE, at the outbound edge: a bad payload fails on this machine rather than
 // travelling and being refused, which is the R31 assertion the session manifest already does.
-const MAP_DB = opt("--map-db", path.join(HOME, "estate", `estate-map-${MACHINE}.db`));
-
-function latestMapPush() {
-  if (!fs.existsSync(MAP_DB)) return null;
-  let conn = null;
-  try {
-    conn = new DatabaseSync(MAP_DB, { readOnly: true });
-    const sweep = conn
-      .prepare(
-        "SELECT id, machine, finished_at, scope, collectors, counts, digest, snapshot FROM sweeps" +
-          " WHERE finished_at IS NOT NULL ORDER BY finished_at DESC, id DESC LIMIT 1"
-      )
-      .get();
-    if (!sweep) return null;
-    const totals = conn
-      .prepare(
-        "SELECT kind, collector, volume, category, items, bytes FROM totals WHERE sweep_id = ?"
-      )
-      .all(sweep.id)
-      .map((r) => ({ ...r }));
-    const json = (v, d) => {
-      try {
-        return JSON.parse(v);
-      } catch {
-        return d;
-      }
-    };
-    return buildMapPayload(
-      {
-        machine: sweep.machine,
-        id: sweep.id,
-        finishedAt: sweep.finished_at,
-        scope: json(sweep.scope, []),
-        collectors: json(sweep.collectors, []),
-        counts: json(sweep.counts, {}),
-        digest: sweep.digest
-      },
-      { snapshot: sweep.snapshot, totals }
-    );
-  } catch {
-    return null; // an unreadable index sends no map; it never sends a guessed one
-  } finally {
-    conn?.close();
-  }
-}
+// Read through the producer's one reader (S17), so the hub and this agent read it the same way.
+const MAP_DB = opt("--map-db", mapDbPath(HOME, MACHINE));
+const latestMapPush = () => latestLocalPush(MAP_DB);
 
 // ── register ──────────────────────────────────────────────────────────────
 async function register(hub, key, manifest) {
@@ -293,6 +256,31 @@ async function announce() {
       : `  map                 none pushed (no sweep recorded in ${MAP_DB})`
   );
   return true;
+}
+
+// --sweep --volumes C:,F: — sweep this machine before the first push (S17), so a satellite produces
+// its own map rather than re-sending whatever an earlier run left. Same sweeper, database and lock
+// as the hub's Sweep button. Nothing is swept without this checkout's policy: the hub would refuse
+// the map, and the index would hold what no rule had been asked about.
+if (flag("--sweep")) {
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+  const rules = readQuarantinePolicy(path.join(root, "coordination", "estate", "quarantine.json"), {
+    readFile: (f) => fs.readFileSync(f, "utf8")
+  });
+  const volumes = String(opt("--volumes", "")).split(",").map((s) => s.trim()).filter(Boolean);
+  if (!Array.isArray(rules) || !volumes.length) {
+    console.error(`\nno sweep: ${volumes.length ? "this checkout has no quarantine policy" : "name them with --volumes C:,F:"}`);
+    process.exit(6);
+  }
+  const s = createSweeper({ dbPath: MAP_DB, machine: MACHINE, quarantine: rules });
+  const r = await s.start(volumes);
+  if (!r.started) {
+    console.error(`\na sweep of this machine is already running${r.since ? ` since ${r.since}` : ""}`);
+    process.exit(6);
+  }
+  await r.done;
+  const last = s.status().last;
+  console.log(`  sweep               ${volumes.join(", ")}: ${last.ok ? `${last.files} files` : `FAILED — ${last.reason}`}`);
 }
 
 const ok = await announce();

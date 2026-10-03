@@ -455,14 +455,14 @@ test("the panel registers itself and links what it needs", () => {
     assert.ok(fs.existsSync(path.join(PANEL, f)), `${f} exists`);
 });
 
-test("the panel reads only the estate map API", () => {
+test("the panel reads the map from the estate map API, and talks to nothing but it and Sweep", () => {
   // §5: the panel renders the fold and nothing else. A fetch to any other endpoint would make this
-  // surface depend on something the contract did not give it.
+  // surface depend on something the contract did not give it. S17 gave it exactly one more: Sweep.
   const js = fs.readFileSync(path.join(PANEL, "estate_map.js"), "utf8");
   const fetched = [...js.matchAll(/fetch\(\s*[`"']([^`"']+)/gu)].map((m) => m[1]);
-  assert.ok(fetched.length > 0, "it does fetch something");
+  assert.ok(fetched.includes("/api/estate/map"), "it reads the map");
   for (const url of fetched)
-    assert.match(url, /^\/api\/estate\/map/u, `${url} is not the estate map API`);
+    assert.match(url, /^\/api\/estate\/(map|sweep)$/u, `${url} is neither the map nor Sweep`);
 });
 
 test("no colour is written into the panel's stylesheet by hand", () => {
@@ -541,7 +541,13 @@ function seeded(seed) {
   };
 }
 
-async function renderPanel(fold, { status = 200, malformed = false, fetchTwice = false } = {}) {
+// What GET /api/estate/sweep answers in a render, unless a test says otherwise (S17).
+const SWEEP_READY = { machine: "T480", roots: ["C:", "F:"], policy: true, running: null, last: null };
+
+async function renderPanel(
+  fold,
+  { status = 200, malformed = false, fetchTwice = false, sweep = SWEEP_READY, posted = [] } = {}
+) {
   // THE PANEL'S OWN STYLESHEET GOES IN. jsdom fetches nothing, so a <link> is inert and the
   // document would have no rules at all — which is how seven one-line CSS mutations hid guards under
   // a green gate. The file is inlined rather than linked, and the shell's x-cloak rule with it,
@@ -564,15 +570,24 @@ async function renderPanel(fold, { status = 200, malformed = false, fetchTwice =
 
   const saved = { window: globalThis.window, fetch: globalThis.fetch, setInterval: globalThis.setInterval };
   globalThis.window = window;
+  // Routed by URL since S17: the map answers as the test says, the sweep status as `sweep` says, and
+  // a POST is recorded in `posted`. Only MAP fetches are counted, because the count is how this
+  // harness proves Alpine started once — a second endpoint must not be able to hide a second start.
   let fetches = 0;
-  globalThis.fetch = async () => ({
-    ok: (fetches++, status >= 200 && status < 300),
-    status,
-    json: async () => {
-      if (malformed) throw new SyntaxError("Unexpected token < in JSON");
-      return fold;
+  globalThis.fetch = async (url, init = {}) => {
+    if (String(url).startsWith("/api/estate/sweep")) {
+      if (init.method === "POST") posted.push(JSON.parse(init.body));
+      return { ok: true, status: init.method === "POST" ? 202 : 200, json: async () => sweep };
     }
-  });
+    return {
+      ok: (fetches++, status >= 200 && status < 300),
+      status,
+      json: async () => {
+        if (malformed) throw new SyntaxError("Unexpected token < in JSON");
+        return fold;
+      }
+    };
+  };
   // the panel's own slow refresh is not what these tests measure, and a live interval would hold the
   // test runner open
   globalThis.setInterval = () => 0;
@@ -986,6 +1001,56 @@ test("RENDERED: a hub that answered and holds nothing is not a blank page", asyn
   const text = visible(window);
   assert.match(text, /No node has pushed a map yet/u);
   assert.match(text, /quarantine/u, "and it names the fail-closed reason — the state this estate is in");
+});
+
+// --- S17: Sweep, on the screen ---------------------------------------------------------------------
+
+test("RENDERED: an empty estate offers Sweep for this machine's drives, and pressing one sweeps it", async () => {
+  // The empty estate is exactly when the owner needs the button, so it must be on THAT screen.
+  const { window } = await renderPanel({ at: NOW, machines: {} });
+  const buttons = [...window.document.querySelectorAll(".em__sweepbtn")];
+  assert.deepEqual(buttons.map((b) => b.textContent.trim()), ["C:", "F:"]);
+  assert.match(visible(window), /Sweep T480:/u);
+  // the click happens after the render, so it gets a recording fetch of its own. The sweep it starts
+  // has already finished by the time the panel looks — a small root does — so the panel must re-read
+  // the MAP itself rather than wait a minute for the slow refresh (claude-s17-verifier).
+  const posted = [];
+  const read = [];
+  const saved = globalThis.fetch;
+  globalThis.fetch = async (url, init = {}) => {
+    if (init.method === "POST") posted.push({ url, body: JSON.parse(init.body) });
+    else read.push(url);
+    const body = url === "/api/estate/map" ? { at: NOW, machines: {} } : SWEEP_READY;
+    return { ok: true, status: init.method === "POST" ? 202 : 200, json: async () => body };
+  };
+  try {
+    buttons[1].click();
+    await until(() => read.includes("/api/estate/map"));
+  } finally {
+    globalThis.fetch = saved;
+  }
+  assert.deepEqual(posted, [{ url: "/api/estate/sweep", body: { volumes: ["F:"] } }]);
+  assert.deepEqual(read, ["/api/estate/sweep", "/api/estate/map"], "status, then the map that changed");
+});
+
+test("RENDERED: a root the map could never carry is named with its reason, and no roots means no button", async () => {
+  const unusable = [{ root: "F:\\a\\b\\c", reason: "volume name" }];
+  const some = await renderPanel({ at: NOW, machines: {} }, { sweep: { ...SWEEP_READY, roots: ["C:"], unusable } });
+  assert.deepEqual([...some.document.querySelectorAll(".em__sweepbtn")].map((b) => b.textContent.trim()), ["C:"]);
+  assert.match(visible(some.window), /F:\\a\\b\\c cannot be swept: volume name/u);
+  const none = await renderPanel({ at: NOW, machines: {} }, { sweep: { ...SWEEP_READY, roots: [], unusable } });
+  assert.equal(none.document.querySelectorAll(".em__sweepbtn").length, 0);
+  assert.doesNotMatch(visible(none.window), /Sweep T480:/u, "no label introducing buttons that are not there");
+  assert.match(visible(none.window), /offers no volume the map can carry/u);
+});
+
+test("RENDERED: with no policy the panel says why it cannot sweep, and offers no button", async () => {
+  const { window } = await renderPanel(
+    { at: NOW, machines: {} },
+    { sweep: { machine: "T480", roots: ["C:"], policy: false, running: null, last: null } }
+  );
+  assert.equal(window.document.querySelectorAll(".em__sweepbtn").length, 0, "no button that would fail");
+  assert.match(visible(window), /Sweeping is off: there is no quarantine policy at coordination\/estate\/quarantine\.json/u);
 });
 
 test("RENDERED: the storage tab draws machines in bytes and volumes in files, and reconciles", async () => {
