@@ -22,6 +22,22 @@
         <template x-if="v.reachable && !v.empty"><span class="em__age" x-text="reportingLine()"></span></template>
       </header>
 
+      <!-- S17: Sweep. Shown in every reachable state, because an empty estate is exactly when the owner
+           needs it. It reads this machine's disks and writes only its own map files; it moves nothing.
+           When it cannot run it says why, rather than offering a button that would fail. -->
+      <template x-if="!loading && v.reachable"><div class="em__sweep">
+        <template x-if="sw.why"><p class="em__sweepwhy" x-text="sw.why"></p></template>
+        <template x-if="sw.running"><p class="em__sweeprun" x-text="sw.running"></p></template>
+        <template x-if="sw.can"><div class="em__roots">
+          <span x-text="'Sweep ' + (sw.machine || 'this machine') + ':'"></span>
+          <template x-for="r in sw.roots" :key="r">
+            <button class="em__sweepbtn" @click="sweep(r)" x-text="r"></button>
+          </template>
+        </div></template>
+        <template x-if="sweepError"><p class="em__sweepwhy" x-text="sweepError"></p></template>
+        <template x-if="sw.last"><p class="em__sweeplast" x-text="sw.last"></p></template>
+      </div></template>
+
       <!-- Unreachable is not empty. The hub not answering says nothing about what the estate holds,
            and rendering zero machines here would be a claim this page cannot support. -->
       <template x-if="!loading && !v.reachable"><div class="em__blind">

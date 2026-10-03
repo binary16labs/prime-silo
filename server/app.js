@@ -1,10 +1,12 @@
 import fs from "node:fs";
 import http from "node:http";
+import os from "node:os";
 import path from "node:path";
 
 import { createBus } from "./coordination/lib/bus.mjs";
 import { createCoordinationApi } from "./coordination/http_api.mjs";
 import { createEstateApi } from "./coordination/lib/estate_api.mjs";
+import { mapDbPath, sweepRoots } from "./coordination/lib/estate_map_producer.mjs";
 import {
   DEFAULT_MAP_MAX_AGE_MS,
   readQuarantinePolicy
@@ -280,7 +282,22 @@ async function createAgentServer(overrides = {}) {
         readQuarantinePolicy(path.join(coordDir, "estate", "quarantine.json"), {
           readFile: (f) => fs.readFileSync(f, "utf8")
         }),
-      mapMaxAgeMs: overrides.estateMapMaxAgeMs ?? DEFAULT_MAP_MAX_AGE_MS
+      mapMaxAgeMs: overrides.estateMapMaxAgeMs ?? DEFAULT_MAP_MAX_AGE_MS,
+      // S17: this machine's own map. Its index lives in BENNY_HOME beside the node's other state,
+      // where the satellite agent reads it too; a hub with no BENNY_HOME has nowhere to keep one.
+      producer: process.env.BENNY_HOME
+        ? {
+            machine: os.hostname(),
+            dbPath: mapDbPath(process.env.BENNY_HOME, os.hostname()),
+            roots: () =>
+              sweepRoots({
+                configured: String(process.env.ESTATE_SWEEP_ROOTS || "")
+                  .split(/[;,]/u)
+                  .map((s) => s.trim())
+                  .filter(Boolean)
+              })
+          }
+        : null
     });
   // EP-A: the tuned tool-use agent served over /api/agent/* (SSE step stream). The Bridge UI wraps
   // this same runAgent the CLI uses — one harness. Nested paths, so mounted ahead of the flat router.

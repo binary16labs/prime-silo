@@ -61,12 +61,12 @@ export function register(hubState = {}, manifest = {}, ctx = {}) {
   // empty list IS a policy; an absent one is not. Wiring the rules was not enough on its own — a
   // forgotten policy file would put the guard back to inert in silence, which is exactly how it
   // shipped the first time (claude-s3-verifier's D2). Session registration is untouched.
-  if (manifest.map !== undefined && !Array.isArray(quarantine))
-    return { ok: false, reason: "hub has no quarantine policy — map refused (R31)", state: hubState };
-  const mapProblem = manifest.map === undefined ? null : mapPayloadProblem(manifest.map, quarantine);
-  if (mapProblem) return { ok: false, reason: `${mapProblem} (R31)`, state: hubState };
-  if (manifest.map && manifest.map.machine !== manifest.machine)
-    return { ok: false, reason: "map is for another machine", state: hubState };
+  let mapped = hubState;
+  if (manifest.map !== undefined) {
+    const r = acceptMap(hubState, manifest.map, { machine: manifest.machine, quarantine });
+    if (!r.ok) return r;
+    mapped = r.state;
+  }
 
   const satSessions = (manifest.sessions || []).map((s) => ({
     sid: s.sid,
@@ -75,7 +75,7 @@ export function register(hubState = {}, manifest = {}, ctx = {}) {
   }));
   const drift = driftDelta(hubHashes, satSessions, quarantine ?? []); // reuse the N4 engine
   const state = {
-    ...hubState,
+    ...mapped,
     satellites: {
       ...(hubState.satellites || {}),
       [manifest.machine]: {
@@ -84,12 +84,39 @@ export function register(hubState = {}, manifest = {}, ctx = {}) {
         sessionCount: satSessions.length,
         drift
       }
-    },
-    // Pushes are KEPT, not replaced: the fold decides which sweep wins, so a late older push can
-    // never silently become the machine's map just by arriving last.
-    maps: manifest.map
-      ? [...(hubState.maps || []), manifest.map]
-      : hubState.maps || []
+    }
   };
   return { ok: true, state, drift };
+}
+
+// acceptMap(hubState, map, { machine, quarantine, now }) — THE ONE WAY A MAP ENTERS THE HUB (S17).
+// A satellite's push (register, above) and the hub's own sweep (estate_map_producer.mjs) both come
+// through here, so neither can skip the policy refusal, the payload allowlist or the machine match.
+// Pure: a NEW state, or { ok:false, reason, state:<unchanged> }.
+export function acceptMap(hubState = {}, map, { machine, quarantine, now = Date.now() } = {}) {
+  if (!Array.isArray(quarantine))
+    return { ok: false, reason: "hub has no quarantine policy — map refused (R31)", state: hubState };
+  const problem = mapPayloadProblem(map, quarantine, { now });
+  if (problem) return { ok: false, reason: `${problem} (R31)`, state: hubState };
+  if (map.machine !== machine)
+    return { ok: false, reason: "map is for another machine", state: hubState };
+  // Pushes are KEPT, not replaced: the fold decides which sweep wins, so a late older push can never
+  // silently become the machine's map just by arriving last. What the hub adds is WHEN IT HEARD the
+  // sweep, because stale means unheard, not old (S17). A re-push of a sweep already held refreshes
+  // that time rather than storing a copy, so a heartbeat keeps a node live and costs nothing — and
+  // "already held" is the same id, finish time AND digest, so a push that merely reuses an id is kept
+  // beside the first for the fold to judge, never swapped in for it by arriving last.
+  // heard_at cannot arrive on the wire: the allowlist above refuses any field it does not name.
+  const maps = hubState.maps || [];
+  const heard = { ...map, heard_at: new Date(now).toISOString() };
+  const same = (m) =>
+    m.machine === map.machine &&
+    m.sweep_id === map.sweep_id &&
+    m.finished_at === map.finished_at &&
+    m.digest === map.digest;
+  const i = maps.findIndex(same);
+  return {
+    ok: true,
+    state: { ...hubState, maps: i < 0 ? [...maps, heard] : maps.map((m, j) => (j === i ? heard : m)) }
+  };
 }
