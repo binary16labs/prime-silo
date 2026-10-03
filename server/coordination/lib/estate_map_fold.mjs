@@ -113,6 +113,8 @@ const volumeProblem = (v, rules) => {
   if (quarantined(s, rules)) return "quarantined volume";
   return null;
 };
+// the same judgement, for a hub deciding what it may OFFER to sweep before it sweeps it (S17)
+export const volumeNameProblem = (v, rules = []) => volumeProblem(v, rules);
 
 // mapPayloadProblem(payload, rules) — null when the payload may cross the wire, otherwise the
 // reason it may not. Names the FIELD, never the value: a rejection message is not a side channel.

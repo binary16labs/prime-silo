@@ -82,6 +82,9 @@ window.estateMapPage = function estateMapPage() {
         this.sweepError = `the hub did not answer: ${e.message}`;
       }
       await this.refreshSweep();
+      // a sweep small enough to finish before that read is never "watched", so the map that changed
+      // would otherwise wait for the slow refresh (claude-s17-verifier)
+      if (!this.sw.running) await this.refresh();
     },
 
     async refresh() {

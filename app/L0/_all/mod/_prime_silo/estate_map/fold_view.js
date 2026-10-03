@@ -468,7 +468,9 @@ export function sweepView(s, { now = Date.now() } = {}) {
     : s.last.ok
       ? `Last sweep of ${s.last.volumes.join(", ")} finished ${since(s.last.at)}: ${Number(s.last.files).toLocaleString()} files`
       : `Last sweep of ${s.last.volumes.join(", ")} did not reach the map: ${s.last.reason}`;
-  const off = (why) => ({ can: false, why, machine: s?.machine ?? null, roots: [], running: null, last });
+  // a root the map could never carry is named with its reason, not offered as a button
+  const unusable = (s?.unusable ?? []).map((u) => `${u.root} cannot be swept: ${u.reason}`);
+  const off = (why) => ({ can: false, why, machine: s?.machine ?? null, roots: [], unusable, running: null, last });
   if (!s || typeof s !== "object") return off("The hub did not say whether this machine can sweep.");
   if (s.error) return off(`This machine cannot sweep: ${s.error}.`);
   if (s.policy !== true)
@@ -476,11 +478,13 @@ export function sweepView(s, { now = Date.now() } = {}) {
       "Sweeping is off: there is no quarantine policy at coordination/estate/quarantine.json, so " +
         "the hub would refuse the map a sweep produced."
     );
+  if (!(s.roots ?? []).length) return off("This machine offers no volume the map can carry.");
   return {
     can: !s.running,
     why: null,
     machine: s.machine ?? null,
-    roots: s.roots ?? [],
+    roots: s.roots,
+    unusable,
     running: s.running ? `Sweeping ${s.running.volumes.join(", ")} — started ${since(s.running.since)}` : null,
     last
   };

@@ -1011,20 +1011,37 @@ test("RENDERED: an empty estate offers Sweep for this machine's drives, and pres
   const buttons = [...window.document.querySelectorAll(".em__sweepbtn")];
   assert.deepEqual(buttons.map((b) => b.textContent.trim()), ["C:", "F:"]);
   assert.match(visible(window), /Sweep T480:/u);
-  // the click happens after the render, so it gets a recording fetch of its own
+  // the click happens after the render, so it gets a recording fetch of its own. The sweep it starts
+  // has already finished by the time the panel looks — a small root does — so the panel must re-read
+  // the MAP itself rather than wait a minute for the slow refresh (claude-s17-verifier).
   const posted = [];
+  const read = [];
   const saved = globalThis.fetch;
   globalThis.fetch = async (url, init = {}) => {
     if (init.method === "POST") posted.push({ url, body: JSON.parse(init.body) });
-    return { ok: true, status: init.method === "POST" ? 202 : 200, json: async () => SWEEP_READY };
+    else read.push(url);
+    const body = url === "/api/estate/map" ? { at: NOW, machines: {} } : SWEEP_READY;
+    return { ok: true, status: init.method === "POST" ? 202 : 200, json: async () => body };
   };
   try {
     buttons[1].click();
-    await until(() => posted.length > 0);
+    await until(() => read.includes("/api/estate/map"));
   } finally {
     globalThis.fetch = saved;
   }
   assert.deepEqual(posted, [{ url: "/api/estate/sweep", body: { volumes: ["F:"] } }]);
+  assert.deepEqual(read, ["/api/estate/sweep", "/api/estate/map"], "status, then the map that changed");
+});
+
+test("RENDERED: a root the map could never carry is named with its reason, and no roots means no button", async () => {
+  const unusable = [{ root: "F:\\a\\b\\c", reason: "volume name" }];
+  const some = await renderPanel({ at: NOW, machines: {} }, { sweep: { ...SWEEP_READY, roots: ["C:"], unusable } });
+  assert.deepEqual([...some.document.querySelectorAll(".em__sweepbtn")].map((b) => b.textContent.trim()), ["C:"]);
+  assert.match(visible(some.window), /F:\\a\\b\\c cannot be swept: volume name/u);
+  const none = await renderPanel({ at: NOW, machines: {} }, { sweep: { ...SWEEP_READY, roots: [], unusable } });
+  assert.equal(none.document.querySelectorAll(".em__sweepbtn").length, 0);
+  assert.doesNotMatch(visible(none.window), /Sweep T480:/u, "no label introducing buttons that are not there");
+  assert.match(visible(none.window), /offers no volume the map can carry/u);
 });
 
 test("RENDERED: with no policy the panel says why it cannot sweep, and offers no button", async () => {

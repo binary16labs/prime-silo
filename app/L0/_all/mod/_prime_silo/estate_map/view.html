@@ -34,6 +34,7 @@
             <button class="em__sweepbtn" @click="sweep(r)" x-text="r"></button>
           </template>
         </div></template>
+        <template x-for="u in sw.unusable" :key="u"><p class="em__sweepwhy" x-text="u"></p></template>
         <template x-if="sweepError"><p class="em__sweepwhy" x-text="sweepError"></p></template>
         <template x-if="sw.last"><p class="em__sweeplast" x-text="sw.last"></p></template>
       </div></template>

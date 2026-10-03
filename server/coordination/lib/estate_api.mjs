@@ -10,7 +10,12 @@ import { proposeSync, applySync } from "./estate_govern.mjs";
 import { planNextCycle, readPlanInputs } from "./estate_plan.mjs";
 import { acceptMap, register as registerSatellite } from "./estate_register.mjs";
 import { createSweeper, latestLocalPush } from "./estate_map_producer.mjs";
-import { DEFAULT_MAP_MAX_AGE_MS, foldEstateMap, machineView } from "./estate_map_fold.mjs";
+import {
+  DEFAULT_MAP_MAX_AGE_MS,
+  foldEstateMap,
+  machineView,
+  volumeNameProblem
+} from "./estate_map_fold.mjs";
 
 const PREFIX = "/api/estate";
 const EMPTY = { machines: {}, drives: {}, sessions: {}, snapshots: {} };
@@ -112,13 +117,17 @@ export function longviewProgress(progressFile) {
 }
 
 // Read + JSON-parse a POST body; resolves {} on empty/invalid (a governance route never 500s on shape).
+// "Invalid" includes valid JSON that is not an object: a body of `null` used to resolve null, and
+// the first property read on it threw inside the promise and took the whole hub down — through
+// /register from the LAN, and through /sweep from any page a browser had open (claude-s17-verifier).
 function readBody(req) {
   return new Promise((resolve) => {
     let raw = "";
     req.on("data", (c) => (raw += c));
     req.on("end", () => {
       try {
-        resolve(raw ? JSON.parse(raw) : {});
+        const b = raw ? JSON.parse(raw) : {};
+        resolve(b !== null && typeof b === "object" && !Array.isArray(b) ? b : {});
       } catch {
         resolve({});
       }
@@ -153,7 +162,9 @@ export function createEstateApi({
   let satelliteState = { satellites: {}, maps: [] };
   // The hub's own sweeps enter through acceptMap like any satellite's, so no policy means no map
   // here too. On boot the hub folds what it last swept, and re-hears it every five minutes for as
-  // long as it runs — the in-process twin of the agent's heartbeat — so it is never stale to itself.
+  // long as it runs — the in-process twin of the agent's heartbeat. That keeps it live only while its
+  // LATEST sweep is accepted: if that one is refused, nothing is re-heard, and the last map that was
+  // accepted goes stale thirty minutes on while the Sweep section says why the newer one was refused.
   const own = (push) => {
     if (!push) return { ok: false, reason: "this machine has not finished a sweep" };
     const r = acceptMap(satelliteState, push, { machine: producer.machine, quarantine });
@@ -173,6 +184,18 @@ export function createEstateApi({
     own(latestLocalPush(producer.dbPath));
     setInterval(() => own(latestLocalPush(producer.dbPath)), 5 * 60_000).unref();
   }
+  // What this machine offers, split by whether the map could ever carry it: a root the volume rule or
+  // the policy refuses is named with its reason, never offered as a button whose sweep would fail.
+  const offered = () => {
+    const roots = [];
+    const unusable = [];
+    for (const r of producer.roots()) {
+      const reason = volumeNameProblem(r, Array.isArray(quarantine) ? quarantine : []);
+      if (reason) unusable.push({ root: r, reason });
+      else roots.push(r);
+    }
+    return { roots, unusable };
+  };
   function handle(req, res, rest) {
     // GET /api/estate — the whole estate model (machines, drives, sessions, snapshots) + a summary.
     if (req.method === "GET" && (rest === "/" || rest === "")) {
@@ -267,7 +290,7 @@ export function createEstateApi({
       if (!sweeper) return sendJson(res, 503, { error: "this hub has no producer configured" });
       return sendJson(res, 200, {
         machine: producer.machine,
-        roots: producer.roots(),
+        ...offered(),
         policy: Array.isArray(quarantine),
         ...sweeper.status()
       });
@@ -287,7 +310,7 @@ export function createEstateApi({
           error: "no quarantine policy — the hub would refuse the map, so no sweep is started (R31)"
         });
       readBody(req).then(async (b) => {
-        const roots = producer.roots();
+        const { roots } = offered();
         const volumes = Array.isArray(b.volumes) ? b.volumes : [];
         if (!volumes.length || volumes.some((v) => !roots.includes(v)))
           return sendJson(res, 400, { error: "volumes must be roots this machine offers", roots });

@@ -1,6 +1,7 @@
 // S17 — the map gets a producer. Every Scenario in delivery/tasks/S17.md maps to a test here, and
 // each is driven through the hub's real routes rather than by calling the pieces it is made of.
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import http from "node:http";
 import os from "node:os";
@@ -15,7 +16,15 @@ import { acceptMap } from "../server/coordination/lib/estate_register.mjs";
 import { sweepView } from "../app/L0/_all/mod/_prime_silo/estate_map/fold_view.js";
 
 const MACHINE = "T480";
-const home = () => fs.mkdtempSync(path.join(os.tmpdir(), "s17-home-"));
+// every temp home is removed at the end: one run used to leave a dozen behind (claude-s17-verifier)
+const homes = [];
+const home = () => homes[homes.push(fs.mkdtempSync(path.join(os.tmpdir(), "s17-home-"))) - 1];
+test.after(() => {
+  for (const d of homes) fs.rmSync(d, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+});
+// rules that differ every run, so no guard can be honest only for the words a fixture always uses
+const word = () => Array.from({ length: 8 }, () => "ghijklmnopqrstuvwxyz"[crypto.randomInt(20)]).join("");
+const RULES = [word(), word()];
 
 // A collector that lists what the test says, and can be held open so a sweep is still RUNNING
 // while the test looks at the hub.
@@ -33,7 +42,7 @@ function fakeFiles({ files = 3, hold = null } = {}) {
   ];
 }
 
-async function hub({ quarantine = ["cv", "payroll"], roots = ["C:", "F:"], collectors = fakeFiles(), dir = home() } = {}) {
+async function hub({ quarantine = RULES, roots = ["C:", "F:"], collectors = fakeFiles(), dir = home() } = {}) {
   const api = createEstateApi({
     quarantine,
     producer: { machine: MACHINE, dbPath: mapDbPath(dir, MACHINE), roots: () => roots, collectors }
@@ -43,8 +52,9 @@ async function hub({ quarantine = ["cv", "payroll"], roots = ["C:", "F:"], colle
   });
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   const base = `http://127.0.0.1:${server.address().port}/api/estate`;
-  const call = async (p, body) => {
-    const res = await fetch(base + p, body ? { method: "POST", body: JSON.stringify(body) } : {});
+  const call = async (p, body, { raw } = {}) => {
+    const sent = raw ?? (body ? JSON.stringify(body) : null);
+    const res = await fetch(base + p, sent !== null ? { method: "POST", body: sent } : {});
     return { status: res.status, body: await res.json() };
   };
   const settled = async () => {
@@ -80,16 +90,50 @@ test("a sweep pressed on the hub puts this machine in the map", async () => {
 });
 
 test("the hub's own sweep is judged by the satellites' acceptance, not waved through", async () => {
-  // A volume name three segments deep is not a volume (S3's allowlist). runSweep does not judge
-  // names; mapPayloadProblem does, inside acceptMap. So if this is refused, the local sweep went
-  // through the same function a satellite's push does.
-  const h = await hub({ roots: ["F:\\a\\b\\c"] });
+  // A map may name at most 64 volumes (S3's allowlist bounds every array). Nothing on the way to
+  // the sweep counts them; mapPayloadProblem does, inside acceptMap. So if this is refused, the local
+  // sweep went through the same function a satellite's push does — not merely a policy check.
+  const roots = Array.from({ length: 65 }, (_, i) => `C:\\v${i}`);
+  const h = await hub({ roots });
   try {
-    assert.equal((await h.call("/sweep", { volumes: ["F:\\a\\b\\c"] })).status, 202);
+    assert.equal((await h.call("/sweep", { volumes: roots })).status, 202);
     const done = await h.settled();
     assert.equal(done.last.ok, false, "a map the wire would refuse is refused from the hub too");
-    assert.match(done.last.reason, /volume name \(R31\)/u);
+    assert.match(done.last.reason, /map scope is too long \(R31\)/u);
     assert.deepEqual(Object.keys((await h.call("/map")).body.machines), []);
+  } finally {
+    await h.close();
+  }
+});
+
+test("a root the map could never carry is named with its reason, not offered", async () => {
+  const deep = "F:\\a\\b\\c"; // three segments below the drive: not a volume name
+  const quarantined = `F:\\${RULES[0]}`; // a root the policy itself refuses
+  const h = await hub({ roots: ["C:", deep, quarantined] });
+  try {
+    const s = (await h.call("/sweep")).body;
+    assert.deepEqual(s.roots, ["C:"]);
+    assert.deepEqual(s.unusable, [
+      { root: deep, reason: "volume name" },
+      { root: quarantined, reason: "quarantined volume" }
+    ]);
+    assert.equal((await h.call("/sweep", { volumes: [deep] })).status, 400, "and it cannot be swept");
+    assert.deepEqual(sweepView(s).unusable, [`${deep} cannot be swept: volume name`, `${quarantined} cannot be swept: quarantined volume`]);
+    assert.equal(sweepView({ ...s, roots: [] }).can, false, "with nothing usable there is no button");
+    assert.match(sweepView({ ...s, roots: [] }).why, /offers no volume the map can carry/u);
+  } finally {
+    await h.close();
+  }
+});
+
+test("a body that is not an object is refused, and the hub is still up", async () => {
+  const h = await hub();
+  try {
+    for (const raw of ["null", "[]", "7", '"C:"', "{"]) {
+      const r = await h.call("/sweep", null, { raw });
+      assert.equal(r.status, 400, raw);
+    }
+    assert.equal((await h.call("/map")).status, 200, "the hub answered after every one of them");
   } finally {
     await h.close();
   }
@@ -175,10 +219,14 @@ test("a hub that keeps running keeps hearing itself, so it never goes stale to i
       const res = { writeHead: () => res, end: (b) => resolve(JSON.parse(b)) };
       api.tryHandle({ method: "GET", url: "/api/estate/map" }, res);
     });
-  t.mock.timers.tick(DEFAULT_MAP_MAX_AGE_MS + 10 * 60_000);
-  const m = (await map()).machines[MACHINE];
-  assert.equal(m.stale, false, "forty minutes on, its own heartbeat has kept it heard");
-  assert.ok(m.ageMs > DEFAULT_MAP_MAX_AGE_MS, "while its sweep is still reported as old");
+  // Looked at just past the threshold and then every half hour: a heartbeat slower than the stale
+  // threshold left the 40-minute look of the first version green (claude-s17-verifier).
+  for (const minutes of [31, 61, 91, 121]) {
+    t.mock.timers.tick((minutes === 31 ? 31 : 30) * 60_000);
+    const m = (await map()).machines[MACHINE];
+    assert.equal(m.stale, false, `${minutes} minutes on, its own heartbeat has kept it heard`);
+    assert.ok(m.ageMs >= minutes * 60_000, "while its sweep is still reported as old");
+  }
 });
 
 // --- Scenario: a heartbeat keeps a node live --------------------------------------------------------
@@ -212,6 +260,12 @@ test("a node heard two minutes ago is live however old its sweep is", () => {
   const quiet = foldEstateMap(again.state.maps, { now: later }).machines.optimus;
   assert.equal(quiet.stale, true);
   assert.equal(quiet.since, new Date(now).toISOString());
+
+  // "already held" is the same id, finish time AND digest: a push reusing an id with other content is
+  // kept beside the first for the fold to judge, never swapped in by arriving last
+  const imposter = acceptMap(again.state, { ...push, digest: "c".repeat(64) }, { machine: "optimus", quarantine: [], now });
+  assert.equal(imposter.state.maps.length, 2);
+  assert.equal(imposter.state.maps[0].digest, "a".repeat(64), "the first is untouched");
 });
 
 // --- Scenario: the hub stays responsive and single-flight -------------------------------------------
@@ -263,12 +317,21 @@ test("a sweep requested from the LAN is refused and nothing runs", async () => {
   });
   // The route reads the caller's address off req.socket, exactly as it does for a real request; a
   // LAN address cannot be produced from this machine's loopback, so the request object carries one.
+  // It also carries every header a caller controls claiming loopback, because a check that trusted
+  // one of them passed the first version of this test, which sent no headers (claude-s17-verifier).
   const answer = (remoteAddress) =>
     new Promise((resolve) => {
       const req = Object.assign(new PassThrough(), {
         method: "POST",
         url: "/api/estate/sweep",
-        socket: { remoteAddress }
+        socket: { remoteAddress },
+        headers: {
+          host: "127.0.0.1",
+          origin: "http://127.0.0.1",
+          "x-forwarded-for": "127.0.0.1",
+          "x-real-ip": "127.0.0.1",
+          forwarded: "for=127.0.0.1"
+        }
       });
       const res = {
         writeHead: (status) => ((res.status = status), res),
@@ -283,6 +346,13 @@ test("a sweep requested from the LAN is refused and nothing runs", async () => {
   }
   // the same request from this machine is let through — the refusal is about WHERE, not what
   assert.equal((await answer("::ffff:127.0.0.1")).status, 202);
+  // and that sweep is waited for, so its database is closed before the temp home is removed
+  const status = () =>
+    new Promise((resolve) => {
+      const res = { writeHead: () => res, end: (b) => resolve(JSON.parse(b)) };
+      api.tryHandle({ method: "GET", url: "/api/estate/sweep" }, res);
+    });
+  while ((await status()).running) await new Promise((r) => setTimeout(r, 10));
 });
 
 // --- the panel's words ------------------------------------------------------------------------------
