@@ -490,6 +490,50 @@ export function sweepView(s, { now = Date.now() } = {}) {
   };
 }
 
+// --- backups (S20) --------------------------------------------------------------------------------
+
+// One row per root this machine offers, against the target (F:): its last comparison in words, the
+// folders that hold what is only on that root, and where to download the list. Nothing is called a
+// copy unless a full hash said so, a root never compared says so, and a failed one says why.
+export function compareView(s, { now = Date.now() } = {}) {
+  const ago = (iso) => `${ageLabel(now - (Date.parse(iso ?? "") || NaN))} ago`;
+  const n = (x) => (Number(x) || 0).toLocaleString();
+  const off = (why) => ({ can: false, why, to: s?.to ?? null, drives: [], running: null });
+  if (!s || typeof s !== "object") return off("The hub did not say whether this machine can compare.");
+  if (s.error) return off(`This machine cannot compare: ${s.error}.`);
+  if (s.policy !== true)
+    return off("Comparing is off: there is no quarantine policy, so private files could be listed.");
+  if (!s.to) return off("There is no F: on this machine to compare against.");
+  const line = (drive, r) => {
+    if (!r) return "Not compared yet.";
+    if (!r.ok) return `The last comparison failed: ${r.reason}`;
+    const priv = r.privateCounted.files ? `, ${n(r.privateCounted.files)} of them private and not listed` : "";
+    const unsure = r.unconfirmed.files ? ` ${n(r.unconfirmed.files)} unconfirmed.` : "";
+    const unread = r.unreadable.files ? ` ${n(r.unreadable.files)} could not be read.` : "";
+    return (
+      `Compared ${ago(r.at)}: ${n(r.drive.files)} files, ${bytes(r.drive.bytes)}. ` +
+      `Only on ${drive}: ${n(r.onlyHere.files)} files, ${bytes(r.onlyHere.bytes)}${priv}. ` +
+      `Already on ${s.to}, by full hash: ${n(r.onTarget.files)}.${unsure}${unread}`
+    );
+  };
+  const drives = Object.entries(s.results ?? {}).map(([drive, r]) => ({
+    drive,
+    line: line(drive, r),
+    folders: r?.ok ? r.folders.map((f) => ({ folder: f.folder, line: `${n(f.files)} files · ${bytes(f.bytes)}` })) : [],
+    csv: r?.ok && r.listed ? `/api/estate/compare.csv?from=${encodeURIComponent(drive)}&to=${encodeURIComponent(s.to)}` : null
+  }));
+  const r = s.running;
+  return {
+    can: !r && drives.length > 0,
+    why: drives.length ? null : `Plug in a backup drive: it will appear here, to compare with ${s.to}.`,
+    to: s.to,
+    drives,
+    running: r
+      ? `Comparing ${r.from} with ${r.to}: ${r.phase}${r.total ? ` (${n(r.done)} of ${n(r.total)})` : ""}, started ${ago(r.since)}`
+      : null
+  };
+}
+
 // --- the whole page -------------------------------------------------------------------------------
 
 // One call, so the view has no logic of its own. `reachable` is false when the hub did not answer,

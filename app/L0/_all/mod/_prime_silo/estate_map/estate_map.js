@@ -17,7 +17,8 @@ import {
   estateView,
   reconcile,
   storageRects,
-  sweepView
+  sweepView,
+  compareView
 } from "/mod/_prime_silo/estate_map/fold_view.js";
 
 const REFRESH_MS = 60_000;
@@ -31,11 +32,14 @@ window.estateMapPage = function estateMapPage() {
   // there. One place owns the component scope now.
   let root = null;
   let watching = null;
+  let comparing = null;
 
   return {
     v: { reachable: false, empty: false, machines: [] },
     sw: sweepView(null),
     sweepError: "",
+    cmp: compareView(null),
+    compareError: "",
     loading: true,
     tab: "estate",
     rects: [],
@@ -51,10 +55,38 @@ window.estateMapPage = function estateMapPage() {
       root = this.$el;
       this.$watch("tab", () => this.$nextTick(() => this.layout()));
       window.addEventListener("resize", () => this.layout());
-      await Promise.all([this.refresh(), this.refreshSweep()]);
+      const everything = () => Promise.all([this.refresh(), this.refreshSweep(), this.refreshCompare()]);
+      await everything();
       // The sweep line is re-read with the map. It used to be read once, so a page left open said
       // "finished moments ago" an hour later, beside a card that had moved on to "swept 1 hour ago".
-      setInterval(() => Promise.all([this.refresh(), this.refreshSweep()]), REFRESH_MS);
+      setInterval(everything, REFRESH_MS);
+    },
+
+    // S20: a comparison runs for minutes on a large drive, so one THIS page started is watched until
+    // it ends, the way a sweep is.
+    async refreshCompare() {
+      try {
+        this.cmp = compareView(await (await fetch("/api/estate/compare")).json());
+      } catch {
+        this.cmp = compareView(null);
+      }
+      clearTimeout(comparing);
+      if (this.cmp.running) comparing = setTimeout(() => this.refreshCompare(), SWEEP_WATCH_MS);
+    },
+
+    async compare(from) {
+      this.compareError = "";
+      try {
+        const res = await fetch("/api/estate/compare", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ from, to: this.cmp.to })
+        });
+        if (!res.ok) this.compareError = (await res.json().catch(() => ({}))).error || `the hub answered ${res.status}`;
+      } catch (e) {
+        this.compareError = `the hub did not answer: ${e.message}`;
+      }
+      await this.refreshCompare();
     },
 
     async refreshSweep() {
@@ -71,13 +103,15 @@ window.estateMapPage = function estateMapPage() {
         }, SWEEP_WATCH_MS);
     },
 
-    async sweep(volume) {
+    // volumes is a list: one drive, or all of them — a single-drive sweep replaces the machine's
+    // totals with that drive's alone, so "All" is how the owner gets one picture of the machine
+    async sweep(volumes) {
       this.sweepError = "";
       try {
         const res = await fetch("/api/estate/sweep", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ volumes: [volume] })
+          body: JSON.stringify({ volumes })
         });
         if (!res.ok) this.sweepError = (await res.json().catch(() => ({}))).error || `the hub answered ${res.status}`;
       } catch (e) {
