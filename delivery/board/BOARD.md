@@ -7,13 +7,13 @@
 
 ## READY (take from the top)
 
+- S5 — integrity of what the estate already records: coverage, sole copies, bit rot _(SPLIT 2026-10-03 on the owner's answer 'Split it': the first version asked for duplicates across machines from the folded map, which nothing collects — S17's sweeps name no file and the wire carries counts only. Now: coverage and sole copies from the artifact ledger, re-hash verification. Budget 500 to 300. Cross-machine duplicates moved to S19, after S18 lets the owner name folders. Measured: the ledger at F:estate-storeeventlog holds 2 artifacts with 3 placements on t480 and optimus; the NAS catalog has run 868 scans and holds 0 files.)_
+
 - W3 — dogfood proof (no plan-file read; author≠verifier chain in ledger) _(dep W2 DONE — entered READY 2026-08-03; closes EP-W)_
 
 - L16 — version the observability surface (out of scratch/) _(UNBLOCKED 2026-08-03 — contract amended per owner option (b): budget counts authored lines only, verbatim relocation exempt and gate-checked for byte-identity. Returned to READY unclaimed rather than held, to respect WIP limit 1 while W2 is worked.)_
 
 - P7 — the navigation instrument: an agentic manifest the stream can score _(contract authored 2026-09-21; deps P4 and P6 both DONE so it enters READY at the bottom — owner may reorder)_
-
-- S5 — integrity of what the estate already records: coverage, sole copies, bit rot _(SPLIT 2026-10-03 on the owner's answer 'Split it': the first version asked for duplicates across machines from the folded map, which nothing collects — S17's sweeps name no file and the wire carries counts only. Now: coverage and sole copies from the artifact ledger, re-hash verification. Budget 500 to 300. Cross-machine duplicates moved to S19, after S18 lets the owner name folders. Measured: the ledger at F:estate-storeeventlog holds 2 artifacts with 3 placements on t480 and optimus; the NAS catalog has run 868 scans and holds 0 files.)_
 
 - S14 — the map carries which software each node runs _(UNBLOCKED — its only dep, S13, went DONE inside the S15 merge (54f5cfc8). Enters READY at the bottom per the board's promotion rule; owner may reorder.)_
 
