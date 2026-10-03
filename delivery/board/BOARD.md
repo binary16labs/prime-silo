@@ -13,7 +13,7 @@
 
 - P7 — the navigation instrument: an agentic manifest the stream can score _(contract authored 2026-09-21; deps P4 and P6 both DONE so it enters READY at the bottom — owner may reorder)_
 
-- S5 — integrity: duplicates, sole copies, coverage, verification _(UNBLOCKED — deps S1 and S3 have both been DONE since the map landed; it was overlooked in AUTHORED while S13/S15 were worked. Enters READY at the bottom per the board's own rule, owner may reorder. Its verifier step needs the real NAS catalog, and the live-fold work still needs coordination/estate/quarantine.json, which is still absent.)_
+- S5 — integrity of what the estate already records: coverage, sole copies, bit rot _(SPLIT 2026-10-03 on the owner's answer 'Split it': the first version asked for duplicates across machines from the folded map, which nothing collects — S17's sweeps name no file and the wire carries counts only. Now: coverage and sole copies from the artifact ledger, re-hash verification. Budget 500 to 300. Cross-machine duplicates moved to S19, after S18 lets the owner name folders. Measured: the ledger at F:estate-storeeventlog holds 2 artifacts with 3 placements on t480 and optimus; the NAS catalog has run 868 scans and holds 0 files.)_
 
 - S14 — the map carries which software each node runs _(UNBLOCKED — its only dep, S13, went DONE inside the S15 merge (54f5cfc8). Enters READY at the bottom per the board's promotion rule; owner may reorder.)_
 
@@ -130,5 +130,5 @@ Q2 Q3 ·
 R0 R1 R2 R3 ·
 M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 ·
 B4 B5 · L15 ·
-S6 S7 S8 ·
+S6 S7 S8 S18 S19 ·
 P5 ·
