@@ -18,7 +18,8 @@ import {
   reconcile,
   storageRects,
   sweepView,
-  compareView
+  compareView,
+  libraryView
 } from "/mod/_prime_silo/estate_map/fold_view.js";
 
 const REFRESH_MS = 60_000;
@@ -33,6 +34,7 @@ window.estateMapPage = function estateMapPage() {
   let root = null;
   let watching = null;
   let comparing = null;
+  let cataloguing = null;
 
   return {
     v: { reachable: false, empty: false, machines: [] },
@@ -40,6 +42,8 @@ window.estateMapPage = function estateMapPage() {
     sweepError: "",
     cmp: compareView(null),
     compareError: "",
+    lib: libraryView(null),
+    libraryError: "",
     loading: true,
     tab: "estate",
     rects: [],
@@ -55,7 +59,8 @@ window.estateMapPage = function estateMapPage() {
       root = this.$el;
       this.$watch("tab", () => this.$nextTick(() => this.layout()));
       window.addEventListener("resize", () => this.layout());
-      const everything = () => Promise.all([this.refresh(), this.refreshSweep(), this.refreshCompare()]);
+      const everything = () =>
+        Promise.all([this.refresh(), this.refreshSweep(), this.refreshCompare(), this.refreshLibrary()]);
       await everything();
       // The sweep line is re-read with the map. It used to be read once, so a page left open said
       // "finished moments ago" an hour later, beside a card that had moved on to "swept 1 hour ago".
@@ -74,19 +79,44 @@ window.estateMapPage = function estateMapPage() {
       if (this.cmp.running) comparing = setTimeout(() => this.refreshCompare(), SWEEP_WATCH_MS);
     },
 
-    async compare(from) {
-      this.compareError = "";
+    // S21: a catalogue pass runs for hours, so the page watches it while it is open, as it does a sweep.
+    async refreshLibrary() {
       try {
-        const res = await fetch("/api/estate/compare", {
+        this.lib = libraryView(await (await fetch("/api/estate/library")).json());
+      } catch {
+        this.lib = libraryView(null);
+      }
+      clearTimeout(cataloguing);
+      if (this.lib.running) cataloguing = setTimeout(() => this.refreshLibrary(), SWEEP_WATCH_MS);
+    },
+
+    // A POST to the library or a Stop; an error answer is shown beside the button that was pressed.
+    async ask(url, body, errorKey, after) {
+      this[errorKey] = "";
+      try {
+        const res = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ from, to: this.cmp.to })
+          body: JSON.stringify(body)
         });
-        if (!res.ok) this.compareError = (await res.json().catch(() => ({}))).error || `the hub answered ${res.status}`;
+        if (!res.ok) this[errorKey] = (await res.json().catch(() => ({}))).error || `the hub answered ${res.status}`;
       } catch (e) {
-        this.compareError = `the hub did not answer: ${e.message}`;
+        this[errorKey] = `the hub did not answer: ${e.message}`;
       }
-      await this.refreshCompare();
+      await after();
+    },
+    catalogueRoot(root) {
+      return this.ask("/api/estate/library", { root }, "libraryError", () => this.refreshLibrary());
+    },
+    stopLibrary() {
+      return this.ask("/api/estate/library/stop", {}, "libraryError", () => this.refreshLibrary());
+    },
+    stopCompare() {
+      return this.ask("/api/estate/compare/stop", {}, "compareError", () => this.refreshCompare());
+    },
+
+    compare(from) {
+      return this.ask("/api/estate/compare", { from, to: this.cmp.to }, "compareError", () => this.refreshCompare());
     },
 
     async refreshSweep() {

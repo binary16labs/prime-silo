@@ -510,10 +510,11 @@ export function compareView(s, { now = Date.now() } = {}) {
     const priv = r.privateCounted.files ? `, ${n(r.privateCounted.files)} of them private and not listed` : "";
     const unsure = r.unconfirmed.files ? ` ${n(r.unconfirmed.files)} unconfirmed.` : "";
     const unread = r.unreadable.files ? ` ${n(r.unreadable.files)} could not be read.` : "";
+    const against = r.catalogueAt ? ` Against the catalogue of ${s.to} from ${ago(r.catalogueAt)}.` : "";
     return (
       `Compared ${ago(r.at)}: ${n(r.drive.files)} files, ${bytes(r.drive.bytes)}. ` +
       `Only on ${drive}: ${n(r.onlyHere.files)} files, ${bytes(r.onlyHere.bytes)}${priv}. ` +
-      `Already on ${s.to}, by full hash: ${n(r.onTarget.files)}.${unsure}${unread}`
+      `Already on ${s.to}, by full hash: ${n(r.onTarget.files)}.${unsure}${unread}${against}`
     );
   };
   const drives = Object.entries(s.results ?? {}).map(([drive, r]) => ({
@@ -531,6 +532,55 @@ export function compareView(s, { now = Date.now() } = {}) {
     running: r
       ? `Comparing ${r.from} with ${r.to}: ${r.phase}${r.total ? ` (${n(r.done)} of ${n(r.total)})` : ""}, started ${ago(r.since)}`
       : null
+  };
+}
+
+// --- library (S21) --------------------------------------------------------------------------------
+
+// F:'s catalogue in words: the last pass, the one running (with a Stop), what kinds of file it holds,
+// and its duplicates. A stopped pass says that Catalogue resumes it; a private copy is counted only.
+export function libraryView(s, { now = Date.now() } = {}) {
+  const ago = (iso) => `${ageLabel(now - (Date.parse(iso ?? "") || NaN))} ago`;
+  const n = (x) => (Number(x) || 0).toLocaleString();
+  const off = (why) => ({ can: false, why, root: null, line: null, running: null, kinds: [], dups: null, top: [], csv: null });
+  if (!s || typeof s !== "object") return off("The hub did not say whether this machine can catalogue.");
+  if (s.error) return off(`This machine cannot catalogue: ${s.error}.`);
+  if (s.policy !== true)
+    return off("Cataloguing is off: there is no quarantine policy, so private files could be listed.");
+  if (!(s.roots ?? []).includes("F:")) return off("There is no F: on this machine to catalogue.");
+  const c = s.catalogues?.["F:"] ?? null;
+  const p = c?.last;
+  const failed = s.last?.root === "F:" && s.last.failed ? ` The last pass failed: ${s.last.failed}` : "";
+  const line =
+    (!c
+      ? "Never catalogued."
+      : p?.finished_at
+        ? `Catalogued ${ago(p.finished_at)}: ${n(c.files)} files, ${bytes(c.bytes)}.`
+        : `${p?.stopped_at ? `Stopped ${ago(p.stopped_at)}` : "Not finished"} after ${n(p?.seen)} files: ` +
+          `Catalogue again resumes where it stopped.${c.finishedAt ? ` Last finished ${ago(c.finishedAt)}.` : ""}`) + failed;
+  const r = s.running;
+  const eta =
+    r?.estimate && r.rate > 0
+      ? `, about ${ageLabel(((r.estimate - r.seen) / r.rate) * 1000)} left`
+      : ", no estimate until a pass has finished";
+  const d = c?.duplicates;
+  return {
+    can: !r,
+    why: null,
+    root: "F:",
+    line,
+    running: r
+      ? `Cataloguing ${r.root}: ${n(r.seen)} files read, ${n(r.hashed)} hashed (${bytes(r.bytes_hashed)}), ` +
+        `${Math.round(r.rate || 0)} files/s${eta}. Started ${ago(r.since)}.`
+      : null,
+    kinds: (c?.kinds ?? []).map((k) => ({ kind: k.kind, line: `${n(k.files)} files · ${bytes(k.bytes)}` })),
+    dups: d
+      ? `${n(d.sets)} sets of duplicates, ${bytes(d.wasted)} that one copy each would free` +
+        `${d.private ? `, ${n(d.private)} private copies counted and not listed` : ""}` +
+        `${c.finishedAt ? "" : " (of the files catalogued so far)"}.`
+      : null,
+    top: (d?.top ?? []).map((t) => ({ key: t.sha256, title: `${n(t.copies)} copies · ${bytes(t.size)} each`, paths: t.paths })),
+    csv: d?.sets ? "/api/estate/library.csv?root=F%3A" : null
   };
 }
 

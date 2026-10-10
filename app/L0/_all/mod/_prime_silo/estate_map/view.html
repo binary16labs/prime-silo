@@ -62,7 +62,7 @@
       <template x-if="!loading && v.reachable && !v.empty">
         <div class="em__body">
           <nav class="em__tabs">
-            <template x-for="t in ['estate', 'storage', 'applications', 'media', 'backups']" :key="t">
+            <template x-for="t in ['estate', 'storage', 'applications', 'media', 'library', 'backups']" :key="t">
               <button class="em__tab" :data-on="tab === t" @click="tab = t" x-text="t"></button>
             </template>
           </nav>
@@ -252,6 +252,45 @@
             </template>
           </div></template>
 
+          <!-- LIBRARY (S21): F:'s catalogue, read once in folder order, and its duplicates. Report only:
+               nothing is moved or deleted. A private copy is counted, never named. -->
+          <template x-if="tab === 'library'"><div class="em__library">
+            <template x-if="lib.why"><p class="em__sweepwhy" x-text="lib.why"></p></template>
+            <template x-if="lib.root"><p class="em__mediarow">
+              <b x-text="lib.root"></b>
+              <span x-text="lib.line"></span>
+              <template x-if="lib.can">
+                <button class="em__sweepbtn" @click="catalogueRoot(lib.root)" x-text="`Catalogue ${lib.root}`"></button>
+              </template>
+            </p></template>
+            <template x-if="lib.running"><p class="em__sweeprun">
+              <span x-text="lib.running"></span>
+              <button class="em__sweepbtn" @click="stopLibrary()">Stop</button>
+            </p></template>
+            <template x-if="libraryError"><p class="em__sweepwhy" x-text="libraryError"></p></template>
+            <template x-if="lib.kinds.length">
+              <table class="em__matrix">
+                <tbody>
+                  <template x-for="k in lib.kinds" :key="k.kind">
+                    <tr><td x-text="k.kind"></td><td x-text="k.line"></td></tr>
+                  </template>
+                </tbody>
+              </table>
+            </template>
+            <template x-if="lib.dups"><p class="em__note">
+              <span x-text="lib.dups"></span>
+              <template x-if="lib.csv"><a class="em__sweepbtn" :href="lib.csv" download>Download every duplicate</a></template>
+            </p></template>
+            <ul class="em__medialist">
+              <template x-for="t in lib.top" :key="t.key">
+                <li class="em__mediarow">
+                  <b x-text="t.title"></b>
+                  <template x-for="p in t.paths" :key="p"><span x-text="p"></span></template>
+                </li>
+              </template>
+            </ul>
+          </div></template>
+
           <!-- BACKUPS (S20): what each drive on this machine holds that F: does not. Report only —
                nothing is copied or deleted, and a file counts as on F: only by full hash. -->
           <template x-if="tab === 'backups'"><div class="em__media em__backups">
@@ -265,7 +304,10 @@
               drive.
             </p>
             <template x-if="cmp.why"><p class="em__sweepwhy" x-text="cmp.why"></p></template>
-            <template x-if="cmp.running"><p class="em__sweeprun" x-text="cmp.running"></p></template>
+            <template x-if="cmp.running"><p class="em__sweeprun">
+              <span x-text="cmp.running"></span>
+              <button class="em__sweepbtn" @click="stopCompare()">Stop</button>
+            </p></template>
             <template x-if="compareError"><p class="em__sweepwhy" x-text="compareError"></p></template>
             <ul class="em__medialist">
               <template x-for="d in cmp.drives" :key="d.drive">
