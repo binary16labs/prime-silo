@@ -17,12 +17,12 @@
 
 ## CLAIMED (agent · date)
 
-- S21 — the librarian: a catalogue of F: that every question is asked of · claude-opus-5 · 2026-10-10 _(worktree C:/Users/nsdha/.ps-worktrees/S21 on task/S21 from main @ 68f8ee6e)_
 
 
 
 ## VERIFY (awaiting non-author verification)
 
+- S21 — the librarian: a catalogue of F: that every question is asked of · author claude-opus-5 · branch task/S21 @ 39e6ea11 · 2026-10-10 _(One catalogue per drive (drive identity, relative paths), read once in folder order, committed in batches: a stopped or crashed pass resumes without re-reading; only a finished pass removes rows; rows under an unreadable folder kept; an unreadable root throws. Duplicates and backups-vs-F: are catalogue queries; a backup compare reads only the drive and a hash match counts only while the F: file keeps its catalogued size+mtime. Library tab (Catalogue F:, progress, Stop, kinds, duplicates, CSV); Stop for comparisons. History per the owner: summary event per batch, per-file events only after a finished pass, none for private paths. s21 GATE GREEN (library 16, compare 22, nas 7+3, then s20 -> s17 -> s3+s4; panel 67). Author mutations 29/29 (3 survivors closed: a redundant SQL guard removed, two test gaps). Budget 658 of 680 non-test (owner-amended from 600), 19 removed, allowlist only. Real F: smoke: 3,000 files at 46 files/s / 55 MB/s (a large-file stretch, so the 70 files/s small-file criterion is NOT yet shown), resume re-read 0 files in 0.6 s. Known pre-existing flake, not S21's: s3 failed once on a 3 ms age difference, green on reruns. Worktree base is b6643de3 (the claim commit), not 68f8ee6e as the claim LOG line says.)_
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 _(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)_
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 _(budget amended 300→1100 by owner directive — flagship scope, see LOG)_
 
