@@ -7,6 +7,8 @@
 
 ## READY (take from the top)
 
+- S21 — the librarian: a catalogue of F: that every question is asked of _(signed by the owner as written 2026-10-10, budget 600; placed first per the owner's 10-03 directive "first thing is to be a librarian of the files and the store"; dep S20 DONE)_
+
 - W3 — dogfood proof (no plan-file read; author≠verifier chain in ledger) _(dep W2 DONE — entered READY 2026-08-03; closes EP-W)_
 
 - L16 — version the observability surface (out of scratch/) _(UNBLOCKED 2026-08-03 — contract amended per owner option (b): budget counts authored lines only, verbatim relocation exempt and gate-checked for byte-identity. Returned to READY unclaimed rather than held, to respect WIP limit 1 while W2 is worked.)_
