@@ -17,8 +17,8 @@ back. A drive is retired by a certificate the owner signs once nothing on it wou
 
 ## Phases → task contracts (M11)
 
-- [ ] `U0` — drive registry: every drive by identity (Windows serial + root ID, Linux UUID), label, medium, capacity, last seen; attach/detach events _(agent-ok)_
-- [ ] `U1` — every node catalogues its own drives with the S21–S23 librarian (Everything on Windows, the walker on the Pi), started from its own UI or a pulled hub request _(human-signed — reads every disk on every machine)_
+- [ ] `U0` — drive registry: every drive by identity (Windows serial + root ID, Linux UUID), label, medium, capacity, last seen; attach/detach events; on the Windows system drive, the user's data roots (Downloads first) instead of the drive _(agent-ok)_
+- [ ] `U1` — every node catalogues its user data and data drives with the S21–S23 librarian: on Windows only the user's folders (Downloads first) and OneDrive, never the OS, Program Files or AppData (owner direction 2026-10-11); data drives whole; Everything on Windows, the walker on the Pi _(human-signed — reads user data on every machine)_
 - [ ] `U2` — digests cross the wire: sizes, fingerprints, counts and opaque folder fingerprints, a CAS snapshot then deltas over N7; the hub folds the estate content index; no name ever crosses _(human-signed — network surface)_
 - [ ] `U3` — cross-drive levels: the hub turns sizes shared across drives into fingerprint requests that nodes pull, compute locally and keep _(agent-ok)_
 - [ ] `U4` — copies and risk: copies on distinct fresh physical drives, sole copies, coverage by folder, stale copies; replaces S5 and S19 _(agent-ok)_

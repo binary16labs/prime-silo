@@ -79,7 +79,21 @@ same row. This is the estate's answer to "which drives do I have, and when did I
 
 ## 5. Every node catalogues its own drives (U1)
 
-The S21–S23 librarian runs on each node over the drives that node offers: Everything on Windows,
+**Owner direction, 2026-10-11 (amends this section as signed):** "when looking at the windows
+machine only look for where the user data is; do not carry the overhead of the operating system;
+the downloads folder is a very good place to start". On a Windows **system drive** only the user's
+data roots are catalogued:
+- the known folders, resolved where they really are (U0): **Downloads first**, then Documents,
+  Desktop, Pictures, Videos and Music;
+- the OneDrive root;
+- any profile folder the owner adds.
+
+`C:\Windows`, Program Files, ProgramData and AppData are never read. Measured on the T480's C::
+2,261,759 files and 494 GB in all, of which 184 GB is OS and app overhead, and the owner's known
+folders are 5,719 files and 136 GB. **Data drives** (no Windows: F:, backup drives) are catalogued
+whole, subject to S23's scope rules.
+
+The S21–S23 librarian runs on each node over the drives and user roots that node offers: Everything on Windows,
 the walker on the Pi. It is started from that node's own Library tab, or by a hub request the node
 pulls. S23's scope rules apply everywhere: rebuildable, tiny and junk files are catalogued but not
 read, and online-only cloud files are never read. On the Pi the identity comes from the filesystem
