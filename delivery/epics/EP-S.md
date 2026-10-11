@@ -21,9 +21,9 @@ the vocabulary the estate already folds (`sweep_recorded`, `artifact_*`).
 - [ ] `S2` — applications, services, scheduled tasks, listening ports collector _(agent-ok)_
 - [ ] `S3` — node push + hub fold + `/api/estate/map` over the N7 register _(human-signed — network surface)_
 - [ ] `S4` — Estate Map panel in the Prime-Silo UI _(agent-ok)_
-- [ ] `S5` — integrity: cross-machine duplicates, sole copies, backup coverage, verification sweeps _(agent-ok)_
-- [ ] `S6` — storage policy + centralisation planner that raises proposals only _(agent-ok)_
-- [ ] `S7` — governed executor: signed move → copy, verify, place, evict _(human-signed — moves data)_
+- [ ] ~~`S5`~~ _(superseded by EP-U U4, 2026-10-11)_ — integrity: cross-machine duplicates, sole copies, backup coverage, verification sweeps _(agent-ok)_
+- [ ] ~~`S6`~~ _(superseded by EP-U U5, 2026-10-11)_ — storage policy + centralisation planner that raises proposals only _(agent-ok)_
+- [ ] ~~`S7`~~ _(re-scoped as EP-U U6, 2026-10-11)_ — governed executor: signed move → copy, verify, place, evict _(human-signed — moves data)_
 - [ ] `S8` — retire the 2026-09-13 tactical scripts behind an elevation broker _(human-signed — elevation path)_
 
 ## Exit
