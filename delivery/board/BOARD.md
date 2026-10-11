@@ -113,9 +113,9 @@
 
 ## BLOCKED (id · reason · date)
 
-- S5 · PARKED, superseded by S20 on the owner's re-plan · 2026-10-03; SUPERSEDED by EP-U U4 · 2026-10-11
+- S5 · PARKED, superseded by S20 on the owner's re-plan · 2026-10-03; SUPERSEDED by EP-U U6 · 2026-10-11
 - S18 · PARKED, superseded by S20 on the owner's re-plan (S20 names what it lists for its own comparison) · 2026-10-03; SUPERSEDED by EP-U (no names cross the wire) · 2026-10-11
-- S19 · PARKED, superseded by S20 on the owner's re-plan (the backup use case is single-machine; nothing new crosses the wire) · 2026-10-03; SUPERSEDED by EP-U U2–U4 · 2026-10-11
+- S19 · PARKED, superseded by S20 on the owner's re-plan (the backup use case is single-machine; nothing new crosses the wire) · 2026-10-03; SUPERSEDED by EP-U U4–U6 · 2026-10-11
 
 - W4 — TWO STRIKES on the parser design · claude-opus · 2026-08-04 _(fourth verification, second FAIL of THIS design, so the two-strikes rule applies again and I do not get a third attempt at it. All twelve prior kills are now caught and scenario 4 is solid — but the verifier got a loading module reading process.env and process.pid above the marker with GATE GREEN, by TWO unrelated routes. (A) `Object.getOwnPropertyDescriptor(proto, "constructor").value` and `Reflect.get(proto, "constructor")` reach the Function constructor without the member name ever appearing — because BANNED_GLOBALS is a DENY-list over an open global namespace, so `Object` and `Reflect` are unnamed and therefore trusted. (B) The region boundary is per-node-START, so a construct that begins above the marker has all its below-marker children skipped. ★ TWO OF MY MUTATIONS WERE VACUOUS: dropping `markerFound` from the verdict changes nothing, which falsifies the docstring line claiming every clause is load-bearing. ★ OWNER'S CALL: (a) close the class — ALLOW-list the globals and clip the region by node END as well as start; or (b) narrow the claim to what the walk proves and stop printing "marker claim true". ★ MY RECOMMENDATION: neither, yet. W4 is NOT on the training path and has now consumed four verification rounds. Park it and spend the capacity on P4/P5.)_
 
@@ -136,5 +136,6 @@ R0 R1 R2 R3 ·
 M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 ·
 B4 B5 · L15 ·
 S8 · S22 (signed 2026-10-10, waits on S21) · S23 (signed 2026-10-11, waits on S21, S22) · S24 (signed 2026-10-11, waits on S23) ·
-EP-U (signed 2026-10-11; S6 superseded by U5, S7 re-scoped as U6): U0 (signed 2026-10-11, waits on S21) · U1–U8 to be authored ·
+EP-U (signed 2026-10-11; S6 superseded by U7, S7 re-scoped as U8): U0 (signed 2026-10-11, waits on S21) · U1 (signed 2026-10-11, waits on U0, S23) · U2–U10 to be authored ·
+EP-K (signed 2026-10-11; K0 capacity report first; K0–K6 to be authored) ·
 P5 ·

@@ -10,8 +10,9 @@ Prime-Silo manage the store. Drives come and go, an unattached drive is never co
 duplicates are reported, not deleted. Owner direction 2026-10-11: "think … when we go to index all
 the machines and disks and consolidate the data how that can be handled".
 
-**The one idea:** every drive is catalogued where it is attached. Only sizes, fingerprints and
-counts cross the wire, never a name. The hub knows every copy of every piece of content and plans by
+**The one idea:** every drive is catalogued where it is attached. Every node writes only its own
+signed log, and the estate ledger is all of them, kept aligned by comparing heads (§16). Only sizes,
+fingerprints and counts enter the ledger, never a name. The hub knows every copy of every piece of content and plans by
 content. The node that owns the bytes resolves content to files and copies, verified by reading
 back. A drive is retired by a certificate the owner signs once nothing on it would be lost.
 
@@ -19,13 +20,15 @@ back. A drive is retired by a certificate the owner signs once nothing on it wou
 
 - [ ] `U0` — drive registry: every drive by identity (Windows serial + root ID, Linux UUID), label, medium, capacity, last seen; attach/detach events; on the Windows system drive, the user's data roots (Downloads first) instead of the drive _(agent-ok)_
 - [ ] `U1` — every node catalogues its user data and data drives with the S21–S23 librarian: on Windows only the user's folders (Downloads first) and OneDrive, never the OS, Program Files or AppData (owner direction 2026-10-11); data drives whole; Everything on Windows, the walker on the Pi _(human-signed — reads user data on every machine)_
-- [ ] `U2` — digests cross the wire: sizes, fingerprints, counts and opaque folder fingerprints, a CAS snapshot then deltas over N7; the hub folds the estate content index; no name ever crosses _(human-signed — network surface)_
-- [ ] `U3` — cross-drive levels: the hub turns sizes shared across drives into fingerprint requests that nodes pull, compute locally and keep _(agent-ok)_
-- [ ] `U4` — copies and risk: copies on distinct fresh physical drives, sole copies, coverage by folder, stale copies; replaces S5 and S19 _(agent-ok)_
-- [ ] `U5` — storage policy and planner: owner-edited policy (target layout, minimum copies, never-move), proposals only through N5; replaces S6 _(agent-ok — proposes, never executes)_
-- [ ] `U6` — the signed copy: stream-fingerprint, write, read back, verify; never overwrite, never touch the source; place into the target catalogue with provenance; re-scopes S7 _(human-signed — writes data)_
-- [ ] `U7` — retiring a drive: eligibility when everything on it has the minimum copies elsewhere; a signed `drive_retired` certificate; the product never wipes _(agent-ok — report + signed event)_
-- [ ] `U8` — optional: identical copies on the target moved to a holding folder the owner empties _(human-signed — moves data; owner question 5)_
+- [ ] `U2` — the replicated estate ledger: one signed log per node, alignment by comparing heads and sending only missing lines, byte-exact append, the same folded state on every replica (proved by a state fingerprint), forks and tampering refused; per-node keys replace the shared N7 key _(human-signed — network surface, signing keys)_
+- [ ] `U3` — node roles and the Pi: `ESTATE_NODE_ROLE` main / replica / satellite (T480 main, ASUS replica, Pi replica); signed planned and forced handover of the main role; a Prime-Silo replica on the always-on Pi as a **Home Assistant add-on** that updates itself to the main node's version and syncs its ledger from a main or replica; satellites keep only their own log _(human-signed — installs a node on the Pi)_
+- [ ] `U4` — catalogue summaries into the ledger: sizes, fingerprints, counts and opaque folder fingerprints as events (snapshot in CAS, then deltas); the estate content index folded on every replica; no name ever written _(human-signed — data leaves the machine)_
+- [ ] `U5` — cross-drive levels: sizes shared across drives become fingerprint requests (events addressed to the nodes that lack them), computed locally and kept _(agent-ok)_
+- [ ] `U6` — copies and risk: copies on distinct fresh physical drives, sole copies, coverage by folder, stale copies; replaces S5 and S19 _(agent-ok)_
+- [ ] `U7` — storage policy and planner: owner-edited policy (target layout, minimum copies, never-move) and **store roles** (a primary data store and its replica stores, toggled in the UI); proposals only through N5, including "bring replica store X up to date"; replaces S6 _(agent-ok — proposes, never executes)_
+- [ ] `U8` — the signed copy: stream-fingerprint, write, read back, verify; never overwrite, never touch the source; place into the target catalogue with provenance; re-scopes S7 _(human-signed — writes data)_
+- [ ] `U9` — retiring a drive: eligibility when everything on it has the minimum copies elsewhere; a signed `drive_retired` certificate; the product never wipes _(agent-ok — report + signed event)_
+- [ ] `U10` — optional: identical copies on the target moved to a holding folder the owner empties _(human-signed — moves data; owner question 5)_
 
 ## Exit
 
