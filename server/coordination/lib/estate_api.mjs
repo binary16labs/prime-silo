@@ -11,7 +11,7 @@ import { planNextCycle, readPlanInputs } from "./estate_plan.mjs";
 import { acceptMap, register as registerSatellite } from "./estate_register.mjs";
 import { createSweeper, latestLocalPush } from "./estate_map_producer.mjs";
 import { createComparer, listRoot } from "./estate_compare.mjs";
-import { createLibrarian, duplicatesCsv } from "./library.mjs";
+import { createLibrarian } from "./library.mjs";
 import path from "node:path";
 import {
   DEFAULT_MAP_MAX_AGE_MS,
@@ -200,11 +200,15 @@ export function createEstateApi({
     return { roots, unusable };
   };
   // S21: the librarian's catalogues live in the estate store, beside the drive they describe
-  // (owner, 2026-10-10); the store folder is skipped when the drive catalogued holds it.
+  // (owner, 2026-10-10). The WHOLE store is skipped when the drive catalogued holds it — its event
+  // logs and catalogues are not the owner's files (claude-s21-verifier: skipping only <store>/library
+  // made 25 store files rows, and the source of every re-hash in a rescan).
+  const store = producer?.estateStore ?? (process.env.ESTATE_STORE || "F:/estate-store");
   const librarian =
     producer &&
     createLibrarian({
-      dir: producer.libraryDir ?? path.join(process.env.ESTATE_STORE || "F:/estate-store", "library"),
+      dir: path.join(store, "library"),
+      skip: [store],
       rules: Array.isArray(quarantine) ? quarantine : []
     });
   // S20: a backup drive against F:, on this machine. Results hold file names, so every compare route
@@ -359,13 +363,15 @@ export function createEstateApi({
       if (req.method === "GET" && rest === "/library.csv") {
         const root = new URL(req.url, "http://localhost").searchParams.get("root");
         if (!roots.includes(root) || !Array.isArray(quarantine)) return sendJson(res, 404, { error: "no catalogue of that root" });
-        const sets = librarian.sets(root);
-        if (!sets) return sendJson(res, 404, { error: "no catalogue of that root" });
+        if (!librarian.state(root)) return sendJson(res, 404, { error: "no catalogue of that root" });
+        // written by the librarian's worker, never built on this thread (claude-s21-verifier: 92 s)
+        const csv = librarian.csvPath(root);
+        if (!csv) return sendJson(res, 202, { error: "the duplicates are still being worked out: try again in a minute" });
         res.writeHead(200, {
           "Content-Type": "text/csv; charset=utf-8",
           "Content-Disposition": `attachment; filename="duplicates-${root.replace(/[^A-Za-z0-9]+/gu, "")}.csv"`
         });
-        return void res.end(duplicatesCsv(sets));
+        return void fs.createReadStream(csv).pipe(res);
       }
       if (req.method !== "POST") return sendJson(res, 405, { error: "GET or POST" });
       if (rest === "/library/stop" || rest === "/compare/stop") {

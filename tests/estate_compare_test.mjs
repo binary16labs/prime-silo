@@ -144,7 +144,7 @@ async function hub({ quarantine = ["passport"], roots }) {
   const home = tmp();
   const api = createEstateApi({
     quarantine,
-    producer: { machine: "T480", dbPath: path.join(home, "estate", "estate-map-T480.db"), roots: () => roots, list, libraryDir: tmp() }
+    producer: { machine: "T480", dbPath: path.join(home, "estate", "estate-map-T480.db"), roots: () => roots, list, estateStore: tmp() }
   });
   const server = http.createServer((req, res) => {
     if (!api.tryHandle(req, res)) res.writeHead(404).end();
@@ -208,7 +208,7 @@ test("comparisons name files, so every compare route answers this machine only",
   const home = tmp();
   const api = createEstateApi({
     quarantine: [],
-    producer: { machine: "T480", dbPath: path.join(home, "estate", "x.db"), roots: () => [drive, target], list, libraryDir: tmp() }
+    producer: { machine: "T480", dbPath: path.join(home, "estate", "x.db"), roots: () => [drive, target], list, estateStore: tmp() }
   });
   const answer = (method, url, remoteAddress) =>
     new Promise((resolve) => {

@@ -1184,6 +1184,20 @@ test("RENDERED: a finished catalogue shows its kinds, its duplicates and the lis
   assert.equal(window.document.querySelector(".em__library a[download]").getAttribute("href"), "/api/estate/library.csv?root=F%3A");
 });
 
+test("RENDERED: while the hub works the duplicates out, the tab says so and offers no stale list", async () => {
+  const at = new Date().toISOString();
+  // the last answer under the same rules is shown, but its list describes an older pass
+  const older = { sets: 2, wasted: 3_000, private: 0, top: [] };
+  const cat = { last: { finished_at: at, seen: 9 }, finishedAt: at, files: 9, bytes: 9, kinds: [], duplicates: older, computing: true };
+  const { window } = await renderPanel(
+    { at: NOW, machines: { t480: machine({}) } },
+    { library: { ...LIBRARY_READY, catalogues: { ...LIBRARY_READY.catalogues, "F:": cat } } }
+  );
+  await openTab(window, "library");
+  assert.match(visible(window), /2 sets of duplicates, 2\.9 KB that one copy each would free\. Working out the duplicates of the latest pass…/u);
+  assert.equal(window.document.querySelector(".em__library a[download]"), null);
+});
+
 test("RENDERED: a stopped pass says Catalogue resumes it", async () => {
   const cat = { last: { stopped_at: new Date().toISOString(), seen: 1234 }, finishedAt: null, files: 1200, bytes: 1, kinds: [], duplicates: { sets: 0, wasted: 0, private: 0, top: [] } };
   const { window } = await renderPanel(

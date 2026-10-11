@@ -574,13 +574,16 @@ export function libraryView(s, { now = Date.now() } = {}) {
         `${Math.round(r.rate || 0)} files/s${eta}. Started ${ago(r.since)}.`
       : null,
     kinds: (c?.kinds ?? []).map((k) => ({ kind: k.kind, line: `${n(k.files)} files · ${bytes(k.bytes)}` })),
-    dups: d
-      ? `${n(d.sets)} sets of duplicates, ${bytes(d.wasted)} that one copy each would free` +
-        `${d.private ? `, ${n(d.private)} private copies counted and not listed` : ""}` +
-        `${c.finishedAt ? "" : " (of the files catalogued so far)"}.`
-      : null,
+    // The hub works the duplicates out off its own thread after each pass (claude-s21-verifier: 90 s on
+    // the real F:); until then it says so, beside the last answer if it has one under the same rules.
+    dups:
+      (d
+        ? `${n(d.sets)} sets of duplicates, ${bytes(d.wasted)} that one copy each would free` +
+          `${d.private ? `, ${n(d.private)} private copies counted and not listed` : ""}` +
+          `${c.finishedAt ? "" : " (of the files catalogued so far)"}.`
+        : "") + (c?.computing ? `${d ? " " : ""}Working out the duplicates of the latest pass…` : "") || null,
     top: (d?.top ?? []).map((t) => ({ key: t.sha256, title: `${n(t.copies)} copies · ${bytes(t.size)} each`, paths: t.paths })),
-    csv: d?.sets ? "/api/estate/library.csv?root=F%3A" : null
+    csv: d?.sets && !c.computing ? "/api/estate/library.csv?root=F%3A" : null
   };
 }
 

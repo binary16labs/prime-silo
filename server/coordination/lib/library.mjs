@@ -21,6 +21,7 @@ import fsp from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { Worker, isMainThread, parentPort, workerData } from "node:worker_threads";
 import { appendKelEvents, ulid, CURRENT_SCHEMA_VERSION } from "./kel.mjs";
 import { artifactPlacedEvent, artifactEvictedEvent } from "./artifacts.mjs";
 import { hashFile } from "./nas_catalog.mjs";
@@ -62,15 +63,15 @@ export function openLibrary(dbPath) {
     PRAGMA journal_mode = WAL;
     CREATE TABLE IF NOT EXISTS files (
       path TEXT PRIMARY KEY, size INTEGER NOT NULL, mtime_ms INTEGER NOT NULL, sha256 TEXT NOT NULL,
-      kind TEXT NOT NULL, first_seen TEXT NOT NULL, last_seen TEXT NOT NULL, pass TEXT NOT NULL);
+      kind TEXT NOT NULL, first_seen TEXT NOT NULL, last_seen TEXT NOT NULL, run TEXT NOT NULL);
     CREATE INDEX IF NOT EXISTS files_sha256 ON files (sha256);
     CREATE INDEX IF NOT EXISTS files_size ON files (size);
     CREATE TABLE IF NOT EXISTS passes (
       id TEXT PRIMARY KEY, started_at TEXT NOT NULL, finished_at TEXT, stopped_at TEXT,
       seen INTEGER NOT NULL DEFAULT 0, hashed INTEGER NOT NULL DEFAULT 0,
       bytes_hashed INTEGER NOT NULL DEFAULT 0, pending INTEGER NOT NULL DEFAULT 0,
-      unreadable INTEGER NOT NULL DEFAULT 0, removed INTEGER NOT NULL DEFAULT 0,
-      digest TEXT NOT NULL DEFAULT '');
+      unreadable INTEGER NOT NULL DEFAULT 0, unreadable_dirs INTEGER NOT NULL DEFAULT 0,
+      removed INTEGER NOT NULL DEFAULT 0, digest TEXT NOT NULL DEFAULT '');
   `);
   return db;
 }
@@ -147,15 +148,36 @@ export async function catalogue({
       pass = { id: ulid(now()), hashed: 0, bytes_hashed: 0, digest: "" };
       db.prepare("INSERT INTO passes (id, started_at) VALUES (?, ?)").run(pass.id, iso());
     }
+    // EVERY RUN MARKS WHAT IT REACHES WITH ITS OWN ID, not the pass's. Every run walks the whole
+    // drive (committed files cost a stat, not a read), so the run that finishes has reached every
+    // file still there, and whatever it did not mark has gone. Marked with the pass id, rows a
+    // stopped run had reached looked reached to the run that finished, and a file moved or deleted
+    // between the two stayed in the catalogue for ever (claude-s21-verifier).
+    const run = ulid(now());
     const known = db.prepare("SELECT size, mtime_ms, sha256, first_seen FROM files WHERE path = ?");
-    const touch = db.prepare("UPDATE files SET pass = ?, last_seen = ? WHERE path = ?");
-    const keepUnder = db.prepare("UPDATE files SET pass = ? WHERE substr(path, 1, length(?) + 1) = ? || '/'");
+    const touch = db.prepare("UPDATE files SET run = ?, last_seen = ? WHERE path = ?");
+    const keepUnder = db.prepare("UPDATE files SET run = ? WHERE substr(path, 1, length(?) + 1) = ? || '/'");
     const upsert = db.prepare(`
-      INSERT INTO files (path, size, mtime_ms, sha256, kind, first_seen, last_seen, pass) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO files (path, size, mtime_ms, sha256, kind, first_seen, last_seen, run) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(path) DO UPDATE SET size = excluded.size, mtime_ms = excluded.mtime_ms,
-        sha256 = excluded.sha256, kind = excluded.kind, last_seen = excluded.last_seen, pass = excluded.pass`);
-    const c = { seen: 0, hashed: pass.hashed, bytes_hashed: pass.bytes_hashed, pending: 0, unreadable: 0 };
-    const estimate = db.prepare("SELECT COUNT(*) AS n FROM files").get().n || null;
+        sha256 = excluded.sha256, kind = excluded.kind, last_seen = excluded.last_seen, run = excluded.run`);
+    const c = { seen: 0, hashed: pass.hashed, bytes_hashed: pass.bytes_hashed, pending: 0, unreadable: 0, unreadable_dirs: 0 };
+    // the last finished pass's count, if there is one: rows committed so far are not the drive
+    const estimate = db.prepare("SELECT seen FROM passes WHERE finished_at IS NOT NULL ORDER BY finished_at DESC LIMIT 1").get()?.seen ?? null;
+    // THE DRIVE MUST STAY THE DRIVE. Unplugged mid-pass, the walk met nothing more and "finished"
+    // with 2 of 9 files (claude-s21-verifier); swapped for another drive at the same letter, it
+    // would catalogue that one into this one. Its identity is checked before every commit, on any
+    // read that fails, and before finishing; if it has changed, the open batch is undone, what was
+    // committed is kept, and the pass stays unfinished for Catalogue to resume.
+    const identity = rootIdentity(root);
+    const stillThere = () => rootIdentity(root) === identity;
+    const guard = () => {
+      if (identity && stillThere()) return;
+      if (open) db.exec("ROLLBACK");
+      open = false;
+      db.prepare("UPDATE passes SET stopped_at = ? WHERE id = ?").run(iso(), pass.id);
+      throw new Error(`${root} went away during the pass: what was committed is kept, and Catalogue again resumes`);
+    };
     const since = now();
     let digest = pass.digest;
     let events = [];
@@ -174,6 +196,7 @@ export async function catalogue({
     // next pass re-derives the same rows and the log already holds them.
     const commit = (phase) => {
       if (!open) return;
+      guard();
       const h = crypto.createHash("sha256").update(digest);
       for (const r of rows) h.update(`${r}\n`);
       digest = h.digest("hex");
@@ -184,8 +207,8 @@ export async function catalogue({
         throw new Error(`library event log append failed: ${appended.reason}`);
       }
       db.prepare(
-        "UPDATE passes SET seen = ?, hashed = ?, bytes_hashed = ?, pending = ?, unreadable = ?, digest = ? WHERE id = ?"
-      ).run(c.seen, c.hashed, c.bytes_hashed, c.pending, c.unreadable, digest, pass.id);
+        "UPDATE passes SET seen = ?, hashed = ?, bytes_hashed = ?, pending = ?, unreadable = ?, unreadable_dirs = ?, digest = ? WHERE id = ?"
+      ).run(c.seen, c.hashed, c.bytes_hashed, c.pending, c.unreadable, c.unreadable_dirs, digest, pass.id);
       db.exec("COMMIT");
       open = false;
       events = [];
@@ -198,9 +221,10 @@ export async function catalogue({
     const unreadableDirs = [];
     // every row under a folder that could not be read stays: unread is not gone
     const keepUnreadable = () => {
-      for (const d of unreadableDirs.splice(0)) keepUnder.run(pass.id, relOf(d), relOf(d));
+      if (unreadableDirs.length) guard(); // a drive that has gone makes every folder unreadable
+      for (const d of unreadableDirs.splice(0)) keepUnder.run(run, relOf(d), relOf(d));
     };
-    for await (const f of walk(root, { skip: skipSet, unreadable: (d) => unreadableDirs.push(d) })) {
+    for await (const f of walk(root, { skip: skipSet, unreadable: (d) => (c.unreadable_dirs++, unreadableDirs.push(d)) })) {
       if (signal?.aborted) break;
       begin();
       keepUnreadable();
@@ -210,20 +234,22 @@ export async function catalogue({
       const st = await fsp.stat(f.full).catch(() => null);
       const mtime = st ? Math.floor(st.mtimeMs) : 0;
       if (st && before && before.size === st.size && before.mtime_ms === mtime) {
-        touch.run(pass.id, iso(), rel); // unchanged, or committed before a stop: never read twice
+        touch.run(run, iso(), rel); // unchanged, or committed before a stop: never read twice
       } else if (!st || PARTIAL_NAME.test(f.name) || now() - mtime < SETTLE_MS) {
+        if (!st) guard();
         c.pending++;
-        if (before) touch.run(pass.id, iso(), rel);
+        if (before) touch.run(run, iso(), rel);
       } else {
         const sha = await Promise.resolve(f.full).then(hash).catch(() => null);
         if (sha === null) {
+          guard();
           c.unreadable++;
-          if (before) touch.run(pass.id, iso(), rel);
+          if (before) touch.run(run, iso(), rel);
           continue;
         }
         c.hashed++;
         c.bytes_hashed += st.size;
-        upsert.run(rel, st.size, mtime, sha, kindOf(f.name), before?.first_seen ?? iso(), iso(), pass.id);
+        upsert.run(rel, st.size, mtime, sha, kindOf(f.name), before?.first_seen ?? iso(), iso(), run);
         rows.push(`${rel}\0${sha}\0${st.size}`);
         if (baseline && !isPrivate(evtPath(rel)) && before?.sha256 !== sha) {
           if (before) events.push(evicted(rel, before.sha256, "replaced by new content"));
@@ -239,10 +265,12 @@ export async function catalogue({
       commit("stopped");
       return { stopped: true, pass: pass.id, ...c };
     }
-    // Only a finished walk removes: every row it did not reach this pass has gone from the drive.
-    const gone = db.prepare("SELECT path, sha256 FROM files WHERE pass != ?").all(pass.id);
+    // Only a finished walk, by the drive it started on, removes: what this run did not reach has gone.
+    // The removal sits in the open batch, and commit() checks the drive before it commits, so a drive
+    // that went away after the last file undoes the removal too.
+    const gone = db.prepare("SELECT path, sha256 FROM files WHERE run != ?").all(run);
     for (const g of gone) if (baseline && !isPrivate(evtPath(g.path))) events.push(evicted(g.path, g.sha256, "removed"));
-    db.prepare("DELETE FROM files WHERE pass != ?").run(pass.id);
+    db.prepare("DELETE FROM files WHERE run != ?").run(run);
     db.prepare("UPDATE passes SET finished_at = ?, stopped_at = NULL, removed = ? WHERE id = ?").run(iso(), gone.length, pass.id);
     commit("finished");
     return { finished: true, pass: pass.id, removed: gone.length, ...c };
@@ -289,21 +317,46 @@ export const duplicatesCsv = (sets) =>
     "\r\n"
   ) + "\r\n";
 
-// What the panel shows for one drive: the last pass, totals by kind, and the duplicates of the
-// catalogue as it stands. No names except duplicate paths the rules allow.
-export function libraryState(dbPath, root, rules = [], { top = 10 } = {}) {
+// The last pass and when one last finished: one row each, cheap enough for any request.
+function passOf(dbPath) {
   const db = readOnly(dbPath);
   if (!db) return null;
-  const last = db.prepare("SELECT * FROM passes ORDER BY started_at DESC LIMIT 1").get() ?? null;
-  const finishedAt = db.prepare("SELECT MAX(finished_at) AS at FROM passes").get().at ?? null;
+  try {
+    const last = db.prepare("SELECT * FROM passes ORDER BY started_at DESC LIMIT 1").get() ?? null;
+    return { last: last && { ...last }, finishedAt: db.prepare("SELECT MAX(finished_at) AS at FROM passes").get().at ?? null };
+  } finally {
+    db.close();
+  }
+}
+
+// Which rules a summary was made under. A summary made under other rules is never shown: a name it
+// lists may be one the owner has since made private.
+export const policyKey = (rules) =>
+  crypto
+    .createHash("sha256")
+    .update(rules.map((r) => (r instanceof RegExp ? `re:${r.source}/${r.flags}` : `s:${r}`)).join("\n"))
+    .digest("hex");
+
+// What the panel shows for one drive: the last pass, totals by kind, and the duplicates of the
+// catalogue as it stands. No names except duplicate paths the rules allow. On the real F: (1.1M
+// rows, 237,510 duplicate sets) this takes about 90 s, so the hub never calls it on its own thread:
+// see createLibrarian.
+export function libraryState(dbPath, root, rules = [], opts = {}) {
+  return summaryOf(dbPath, root, rules, opts)?.state ?? null;
+}
+
+function summaryOf(dbPath, root, rules = [], { top = 10 } = {}) {
+  const db = readOnly(dbPath);
+  if (!db) return null;
+  const { last, finishedAt } = passOf(dbPath);
   const kinds = db
     .prepare("SELECT kind, COUNT(*) AS files, SUM(size) AS bytes FROM files GROUP BY kind ORDER BY bytes DESC")
     .all()
     .map((k) => ({ ...k }));
   const sets = duplicateSets(dbPath, root, rules, db); // closes db
   const sum = (list, f) => list.reduce((n, x) => n + f(x), 0);
-  return {
-    last: last && { ...last },
+  const state = {
+    last,
     finishedAt,
     kinds,
     files: sum(kinds, (k) => k.files),
@@ -316,6 +369,19 @@ export function libraryState(dbPath, root, rules = [], { top = 10 } = {}) {
       top: sets.filter((s) => s.paths.length).slice(0, top)
     }
   };
+  return { state, csv: duplicatesCsv(sets) };
+}
+
+// The worker: one summary and its CSV, written beside the catalogue, then renamed into place so a
+// download never reads half a file.
+if (!isMainThread && workerData?.librarySummary) {
+  const { dbPath, root, rules, key, out } = workerData.librarySummary;
+  const { state, csv } = summaryOf(dbPath, root, rules);
+  fs.writeFileSync(`${out.csv}.tmp`, csv);
+  fs.renameSync(`${out.csv}.tmp`, out.csv);
+  fs.writeFileSync(`${out.json}.tmp`, JSON.stringify({ key, state }));
+  fs.renameSync(`${out.json}.tmp`, out.json);
+  parentPort.postMessage("done");
 }
 
 // What a comparison asks: is there any file this size, and where are the files with these bytes.
@@ -339,22 +405,59 @@ export function catalogueLookup(dbPath, root) {
   };
 }
 
-// One pass at a time per hub, stoppable. The store folder is skipped when it lives on the drive.
-export function createLibrarian({ dir, rules = [], hash = hashFile }) {
+// One pass at a time per hub, stoppable. `skip` is the estate store's folder: when it lives on the
+// drive catalogued, its own files are never rows (the hub once skipped only <store>/library).
+//
+// THE SUMMARY IS NEVER WORKED OUT ON THE HUB'S THREAD. It reads the whole catalogue and judges every
+// duplicate path against the rules (claude-s21-verifier measured 94 s on the real F:, the CSV 92 s
+// more), and either one froze every request to the hub. A worker makes both once per pass and policy
+// and writes them beside the catalogue; until it has, the page is told the duplicates are being
+// worked out, beside the last summary made under the same rules if there is one.
+export function createLibrarian({ dir, skip = [], rules = [], hash = hashFile }) {
   let running = null;
   let last = null;
   let ctl = null;
-  const cache = new Map();
+  const policy = policyKey(rules);
+  const working = new Set();
+  const files = (db) => ({ json: `${db}.summary.json`, csv: `${db}.duplicates.csv` });
+  const keyOf = (pass) => `${JSON.stringify(pass)}|${policy}`;
+  const saved = (db) => {
+    try {
+      return JSON.parse(fs.readFileSync(files(db).json, "utf8"));
+    } catch {
+      return null;
+    }
+  };
+  const workOut = (db, root, key) => {
+    if (working.has(db) || running?.root === root) return; // a running pass changes it every batch
+    working.add(db);
+    const w = new Worker(new URL(import.meta.url), { workerData: { librarySummary: { dbPath: db, root, rules, key, out: files(db) } } });
+    w.on("error", () => {});
+    w.on("exit", () => working.delete(db));
+  };
+  const current = (root) => {
+    const db = libraryPath(dir, root);
+    const pass = db && passOf(db);
+    if (!pass) return null;
+    const key = keyOf(pass);
+    const had = saved(db);
+    if (had?.key !== key) workOut(db, root, key);
+    return { db, pass, key, had };
+  };
   return {
     status: () => ({ running: running && { ...running }, last }),
     lookup: (root) => catalogueLookup(libraryPath(dir, root), root),
-    sets: (root) => duplicateSets(libraryPath(dir, root), root, rules),
-    // The duplicate query reads the whole catalogue, so its answer is kept until a pass ends;
-    // mid-pass the page shows the last answer beside the progress line.
     state(root) {
-      const db = libraryPath(dir, root);
-      if (db && !cache.has(db)) cache.set(db, libraryState(db, root, rules));
-      return db ? cache.get(db) : null;
+      const c = current(root);
+      if (!c) return null;
+      if (c.had?.key === c.key) return c.had.state;
+      const same = c.had?.key.endsWith(`|${policy}`) ? c.had.state : null;
+      return { ...(same ?? { kinds: [], files: 0, bytes: 0, duplicates: null }), ...c.pass, computing: true };
+    },
+    // the duplicates CSV, only once it describes this pass under these rules
+    csvPath(root) {
+      const c = current(root);
+      return c?.had?.key === c?.key && fs.existsSync(files(c.db).csv) ? files(c.db).csv : null;
     },
     start(root) {
       if (running) return { started: false, since: running.since };
@@ -363,12 +466,11 @@ export function createLibrarian({ dir, rules = [], hash = hashFile }) {
       ctl = new AbortController();
       running = { root, since: new Date().toISOString(), phase: "starting", seen: 0, hashed: 0 };
       const mine = running;
-      const done = catalogue({ root, dbPath, skip: [dir], rules, hash, signal: ctl.signal, onProgress: (p) => Object.assign(mine, p) })
+      const done = catalogue({ root, dbPath, skip: [dir, ...skip], rules, hash, signal: ctl.signal, onProgress: (p) => Object.assign(mine, p) })
         .catch((e) => ({ failed: String(e?.message || e) }))
         .then((r) => {
           last = { root, at: new Date().toISOString(), ...r };
           running = null;
-          cache.clear();
           return r;
         });
       return { started: true, since: mine.since, done };
