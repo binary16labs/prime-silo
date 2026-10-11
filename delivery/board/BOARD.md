@@ -137,5 +137,5 @@ M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 ·
 B4 B5 · L15 ·
 S8 · S22 (signed 2026-10-10, waits on S21) · S23 (signed 2026-10-11, waits on S21, S22) · S24 (signed 2026-10-11, waits on S23) ·
 EP-U (signed 2026-10-11; S6 superseded by U7, S7 re-scoped as U8): U0 (signed 2026-10-11, waits on S21) · U1 (signed 2026-10-11, waits on U0, S23) · U2–U10 to be authored ·
-EP-K (signed 2026-10-11; K0 capacity report first; K0–K6 to be authored) ·
+EP-K (signed 2026-10-11): K0 (signed 2026-10-11, waits on U1) · K1–K6 to be authored ·
 P5 ·
