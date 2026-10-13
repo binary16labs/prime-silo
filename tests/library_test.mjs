@@ -696,3 +696,60 @@ test("while a new summary is worked out, the last one is shown whole: its count 
   assert.equal(during.last.id, first.last.id, "the date shown is the pass the counts came from");
   assert.equal(during.files, first.files);
 });
+
+// --- claude-s21-verifier-3's FAIL (round 3) ----------------------------------------------------------
+
+test("D7: a list removed between the check and the download is a 202, never a crash", async () => {
+  const root = tree();
+  write(root, "Backup/a-again.jpg", "photo a");
+  const h = await hub({ roots: [root] });
+  const real = fs.createReadStream;
+  try {
+    await h.call("/library", { root });
+    for (let i = 0; i < 400; i++) {
+      const s = JSON.parse((await h.call("/library")).text);
+      if (!s.running && s.catalogues[root] && !s.catalogues[root].computing) break;
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    // another hub's worker removes the list at the worst moment: after the check, before the open
+    fs.createReadStream = (f, ...a) => (fs.rmSync(f, { force: true }), real(f, ...a));
+    const res = await h.call(`/library.csv?root=${encodeURIComponent(root)}`);
+    assert.equal(res.status, 202, "try again, not a dead hub");
+  } finally {
+    fs.createReadStream = real;
+    await h.close();
+  }
+});
+
+test("D7: hubs with different rules on one store never remove each other's lists", async () => {
+  const root = tree();
+  write(root, "Jobs/a-private-copy.jpg", "photo a");
+  const store = tmp();
+  const dir = path.join(store, "library");
+  const strict = createLibrarian({ dir, skip: [store], rules: [/jobs/iu] });
+  await strict.start(root).done;
+  await waitState(strict, root);
+  const strictList = strict.csvPath(root);
+  assert.ok(strictList);
+  const lax = createLibrarian({ dir, skip: [store], rules: [] });
+  await waitState(lax, root);
+  assert.ok(fs.existsSync(strictList), "the lax hub's worker left the strict hub's list alone");
+  assert.doesNotMatch(fs.readFileSync(strictList, "utf8"), /a-private-copy/u);
+});
+
+test("an old list under the same rules is removed once the new summary is saved, with any half-written one", async () => {
+  const root = tree();
+  const store = tmp();
+  const dir = path.join(store, "library");
+  const lib = createLibrarian({ dir, skip: [store] });
+  await lib.start(root).done;
+  await waitState(lib, root);
+  const first = lib.csvPath(root);
+  fs.writeFileSync(`${first}.tmp`, "a list a killed worker left half-written");
+  write(root, "Backup/a-again.jpg", "photo a");
+  await lib.start(root).done;
+  await waitState(lib, root, (x) => !x.computing && x.duplicates?.sets === 1);
+  assert.ok(!fs.existsSync(first), "the previous pass's list is gone");
+  assert.ok(!fs.existsSync(`${first}.tmp`), "and so is the half-written one");
+  assert.ok(lib.csvPath(root));
+});

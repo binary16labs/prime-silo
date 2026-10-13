@@ -56,13 +56,10 @@ export const libraryPath = (dir, root) => {
   return id ? path.join(dir, `library-${id.replace(/[^A-Za-z0-9_-]+/gu, "_")}.db`) : null;
 };
 
-// EVERY CONNECTION WAITS FOR A LOCK RATHER THAN FAILING. The summary worker, a pass and the hub's
-// reads share one catalogue; a read that met the worker's open threw "database is locked" at once and
-// the hub answered 500 (claude-s21-verifier-2: 4 of 368 requests). Locks in WAL mode last
-// milliseconds (an open's recovery); reads wait at most 2 s, because a read on the hub's thread blocks
-// it while it waits.
-const BUSY_MS = 10_000;
-const READ_BUSY_MS = 2_000;
+// EVERY CONNECTION WAITS FOR A LOCK RATHER THAN FAILING: a read meeting the summary worker's open threw
+// "database is locked" and the hub answered 500 (claude-s21-verifier-2). WAL locks last milliseconds;
+// waits are capped at 2 s because reads and passes run on the hub's thread (verifier-3 froze it at 10 s).
+const BUSY_MS = 2_000;
 
 export function openLibrary(dbPath) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
@@ -295,7 +292,7 @@ export async function catalogue({
 // --- questions asked of the catalogue ------------------------------------------------------------
 
 const readOnly = (dbPath) =>
-  dbPath && fs.existsSync(dbPath) ? new DatabaseSync(dbPath, { readOnly: true, timeout: READ_BUSY_MS }) : null;
+  dbPath && fs.existsSync(dbPath) ? new DatabaseSync(dbPath, { readOnly: true, timeout: BUSY_MS }) : null;
 
 // Every set of two or more files with the same bytes, the most space wasted first. Empty files are
 // not duplicates of anything worth reclaiming. A private copy is counted in the set, never named.
@@ -386,10 +383,11 @@ function summaryOf(dbPath, root, rules = [], { top = 10 } = {}) {
   return { state, csv: duplicatesCsv(sets) };
 }
 
-// THE LIST IS NAMED FOR THE PASS AND RULES IT WAS MADE UNDER. The summary and its list are two files;
-// a list under one shared name could be replaced by another hub's (other rules, same store on F:)
-// while that hub's summary failed to save, and then be served as this one's (claude-s21-verifier-2).
-const csvFor = (db, key) => `${db}.duplicates.${crypto.createHash("sha256").update(key).digest("hex").slice(0, 16)}.csv`;
+// THE LIST IS NAMED FOR ITS RULES, THEN ITS PASS. Under one shared name another hub's list (other rules,
+// same store) could be served as this one's (claude-s21-verifier-2); and a worker removes only its own
+// rules' lists, never one another hub may be streaming (claude-s21-verifier-3: that race crashed it).
+const listPrefix = (db, key) => `${db}.duplicates.${key.split("|").pop().slice(0, 12)}.`;
+const csvFor = (db, key) => `${listPrefix(db, key)}${crypto.createHash("sha256").update(key).digest("hex").slice(0, 16)}.csv`;
 
 // The worker: one summary and its list, written beside the catalogue, then renamed into place so a
 // download never reads half a file. Lists of earlier passes or other rules are removed only after the
@@ -402,10 +400,9 @@ if (!isMainThread && workerData?.librarySummary) {
   fs.renameSync(`${list}.tmp`, list);
   fs.writeFileSync(`${dbPath}.summary.json.tmp`, JSON.stringify({ key, state }));
   fs.renameSync(`${dbPath}.summary.json.tmp`, `${dbPath}.summary.json`);
-  const base = path.basename(dbPath);
+  const mine = path.basename(listPrefix(dbPath, key)); // and a half-written one a killed worker left
   for (const f of fs.readdirSync(path.dirname(dbPath)))
-    if (f.startsWith(`${base}.duplicates.`) && f.endsWith(".csv") && f !== path.basename(list))
-      fs.rmSync(path.join(path.dirname(dbPath), f), { force: true });
+    if (f.startsWith(mine) && f !== path.basename(list)) fs.rmSync(path.join(path.dirname(dbPath), f), { force: true });
   parentPort.postMessage("done");
 }
 

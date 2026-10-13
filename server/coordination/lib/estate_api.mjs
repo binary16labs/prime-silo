@@ -367,11 +367,17 @@ export function createEstateApi({
         // written by the librarian's worker, never built on this thread (claude-s21-verifier: 92 s)
         const csv = librarian.csvPath(root);
         if (!csv) return sendJson(res, 202, { error: "the duplicates are still being worked out: try again in a minute" });
-        res.writeHead(200, {
-          "Content-Type": "text/csv; charset=utf-8",
-          "Content-Disposition": `attachment; filename="duplicates-${root.replace(/[^A-Za-z0-9]+/gu, "")}.csv"`
+        // opened before any header is sent: a list removed in between is "try again", never a crash
+        const stream = fs.createReadStream(csv);
+        stream.once("error", () => (res.headersSent ? res.destroy() : sendJson(res, 202, { error: "the list changed: try again" })));
+        stream.once("open", () => {
+          res.writeHead(200, {
+            "Content-Type": "text/csv; charset=utf-8",
+            "Content-Disposition": `attachment; filename="duplicates-${root.replace(/[^A-Za-z0-9]+/gu, "")}.csv"`
+          });
+          stream.pipe(res);
         });
-        return void fs.createReadStream(csv).pipe(res);
+        return;
       }
       if (req.method !== "POST") return sendJson(res, 405, { error: "GET or POST" });
       if (rest === "/library/stop" || rest === "/compare/stop") {
