@@ -56,9 +56,17 @@ export const libraryPath = (dir, root) => {
   return id ? path.join(dir, `library-${id.replace(/[^A-Za-z0-9_-]+/gu, "_")}.db`) : null;
 };
 
+// EVERY CONNECTION WAITS FOR A LOCK RATHER THAN FAILING. The summary worker, a pass and the hub's
+// reads share one catalogue; a read that met the worker's open threw "database is locked" at once and
+// the hub answered 500 (claude-s21-verifier-2: 4 of 368 requests). Locks in WAL mode last
+// milliseconds (an open's recovery); reads wait at most 2 s, because a read on the hub's thread blocks
+// it while it waits.
+const BUSY_MS = 10_000;
+const READ_BUSY_MS = 2_000;
+
 export function openLibrary(dbPath) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
-  const db = new DatabaseSync(dbPath);
+  const db = new DatabaseSync(dbPath, { timeout: BUSY_MS });
   db.exec(`
     PRAGMA journal_mode = WAL;
     CREATE TABLE IF NOT EXISTS files (
@@ -73,6 +81,11 @@ export function openLibrary(dbPath) {
       unreadable INTEGER NOT NULL DEFAULT 0, unreadable_dirs INTEGER NOT NULL DEFAULT 0,
       removed INTEGER NOT NULL DEFAULT 0, digest TEXT NOT NULL DEFAULT '');
   `);
+  // a catalogue from before the round-1 fixes: rows marked by pass, no unreadable-folder count
+  const cols = (t) => db.prepare(`PRAGMA table_info(${t})`).all().map((c) => c.name);
+  if (!cols("files").includes("run")) db.exec("ALTER TABLE files RENAME COLUMN pass TO run");
+  if (!cols("passes").includes("unreadable_dirs"))
+    db.exec("ALTER TABLE passes ADD COLUMN unreadable_dirs INTEGER NOT NULL DEFAULT 0");
   return db;
 }
 
@@ -281,7 +294,8 @@ export async function catalogue({
 
 // --- questions asked of the catalogue ------------------------------------------------------------
 
-const readOnly = (dbPath) => (dbPath && fs.existsSync(dbPath) ? new DatabaseSync(dbPath, { readOnly: true }) : null);
+const readOnly = (dbPath) =>
+  dbPath && fs.existsSync(dbPath) ? new DatabaseSync(dbPath, { readOnly: true, timeout: READ_BUSY_MS }) : null;
 
 // Every set of two or more files with the same bytes, the most space wasted first. Empty files are
 // not duplicates of anything worth reclaiming. A private copy is counted in the set, never named.
@@ -372,15 +386,26 @@ function summaryOf(dbPath, root, rules = [], { top = 10 } = {}) {
   return { state, csv: duplicatesCsv(sets) };
 }
 
-// The worker: one summary and its CSV, written beside the catalogue, then renamed into place so a
-// download never reads half a file.
+// THE LIST IS NAMED FOR THE PASS AND RULES IT WAS MADE UNDER. The summary and its list are two files;
+// a list under one shared name could be replaced by another hub's (other rules, same store on F:)
+// while that hub's summary failed to save, and then be served as this one's (claude-s21-verifier-2).
+const csvFor = (db, key) => `${db}.duplicates.${crypto.createHash("sha256").update(key).digest("hex").slice(0, 16)}.csv`;
+
+// The worker: one summary and its list, written beside the catalogue, then renamed into place so a
+// download never reads half a file. Lists of earlier passes or other rules are removed only after the
+// summary that replaces them has been saved.
 if (!isMainThread && workerData?.librarySummary) {
-  const { dbPath, root, rules, key, out } = workerData.librarySummary;
+  const { dbPath, root, rules, key } = workerData.librarySummary;
   const { state, csv } = summaryOf(dbPath, root, rules);
-  fs.writeFileSync(`${out.csv}.tmp`, csv);
-  fs.renameSync(`${out.csv}.tmp`, out.csv);
-  fs.writeFileSync(`${out.json}.tmp`, JSON.stringify({ key, state }));
-  fs.renameSync(`${out.json}.tmp`, out.json);
+  const list = csvFor(dbPath, key);
+  fs.writeFileSync(`${list}.tmp`, csv);
+  fs.renameSync(`${list}.tmp`, list);
+  fs.writeFileSync(`${dbPath}.summary.json.tmp`, JSON.stringify({ key, state }));
+  fs.renameSync(`${dbPath}.summary.json.tmp`, `${dbPath}.summary.json`);
+  const base = path.basename(dbPath);
+  for (const f of fs.readdirSync(path.dirname(dbPath)))
+    if (f.startsWith(`${base}.duplicates.`) && f.endsWith(".csv") && f !== path.basename(list))
+      fs.rmSync(path.join(path.dirname(dbPath), f), { force: true });
   parentPort.postMessage("done");
 }
 
@@ -419,7 +444,7 @@ export function createLibrarian({ dir, skip = [], rules = [], hash = hashFile })
   let ctl = null;
   const policy = policyKey(rules);
   const working = new Set();
-  const files = (db) => ({ json: `${db}.summary.json`, csv: `${db}.duplicates.csv` });
+  const files = (db) => ({ json: `${db}.summary.json` });
   const keyOf = (pass) => `${JSON.stringify(pass)}|${policy}`;
   const saved = (db) => {
     try {
@@ -431,7 +456,7 @@ export function createLibrarian({ dir, skip = [], rules = [], hash = hashFile })
   const workOut = (db, root, key) => {
     if (working.has(db) || running?.root === root) return; // a running pass changes it every batch
     working.add(db);
-    const w = new Worker(new URL(import.meta.url), { workerData: { librarySummary: { dbPath: db, root, rules, key, out: files(db) } } });
+    const w = new Worker(new URL(import.meta.url), { workerData: { librarySummary: { dbPath: db, root, rules, key } } });
     w.on("error", () => {});
     w.on("exit", () => working.delete(db));
   };
@@ -451,13 +476,14 @@ export function createLibrarian({ dir, skip = [], rules = [], hash = hashFile })
       const c = current(root);
       if (!c) return null;
       if (c.had?.key === c.key) return c.had.state;
+      // the last answer under the same rules keeps its own pass, so its counts and its date agree
       const same = c.had?.key.endsWith(`|${policy}`) ? c.had.state : null;
-      return { ...(same ?? { kinds: [], files: 0, bytes: 0, duplicates: null }), ...c.pass, computing: true };
+      return same ? { ...same, computing: true } : { kinds: [], files: 0, bytes: 0, duplicates: null, ...c.pass, computing: true };
     },
-    // the duplicates CSV, only once it describes this pass under these rules
+    // the duplicates list made for this pass under these rules; its name says which, so no other is ever served
     csvPath(root) {
       const c = current(root);
-      return c?.had?.key === c?.key && fs.existsSync(files(c.db).csv) ? files(c.db).csv : null;
+      return c && fs.existsSync(csvFor(c.db, c.key)) ? csvFor(c.db, c.key) : null;
     },
     start(root) {
       if (running) return { started: false, since: running.since };

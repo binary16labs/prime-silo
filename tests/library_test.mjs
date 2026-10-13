@@ -8,6 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { DatabaseSync } from "node:sqlite";
+import { Worker } from "node:worker_threads";
 
 import {
   catalogue,
@@ -372,6 +373,17 @@ test("the library refuses without a policy, for roots not offered, and from anot
 
 // --- claude-s21-verifier's FAIL (round 1) ------------------------------------------------------------
 
+const moveAway = async (from, to) => {
+  for (let i = 0; ; i++) {
+    try {
+      return fs.renameSync(from, to);
+    } catch (e) {
+      if (e.code !== "EPERM" || i > 40) throw e;
+      await new Promise((r) => setTimeout(r, 25));
+    }
+  }
+};
+
 const stopAfter = (n) => {
   const ctl = new AbortController();
   const read = [];
@@ -419,7 +431,7 @@ test("D2: a drive that goes away mid-pass never finishes the catalogue", async (
   let n = 0;
   const unplugAfter2 = async (f) => {
     const h = await hashFile(f);
-    if (++n === 2) fs.renameSync(root, path.join(parent, "unplugged"));
+    if (++n === 2) await moveAway(root, path.join(parent, "unplugged"));
     return h;
   };
   const r = await catalogue({ root, dbPath, batch: 1, hash: unplugAfter2 }).catch((e) => e);
@@ -438,7 +450,7 @@ test("D2: a drive that goes away after its last file is read does not finish eit
   let n = 0;
   const unplugAtTheEnd = async (f) => {
     const h = await hashFile(f);
-    if (++n === 1) fs.renameSync(root, path.join(parent, "unplugged")); // new.txt is the only read
+    if (++n === 1) await moveAway(root, path.join(parent, "unplugged")); // new.txt is the only read
     return h;
   };
   const r = await catalogue({ root, dbPath, hash: unplugAtTheEnd }).catch((e) => e);
@@ -526,4 +538,161 @@ test("D4: the hub skips the whole estate store when it sits on the drive", async
   }
   const db = libraryPath(path.join(store, "library"), root);
   assert.ok(!rowsOf(db).some((x) => x.path.startsWith("estate-store")), rowsOf(db).map((x) => x.path).join(", "));
+});
+
+// --- claude-s21-verifier-2's FAIL (round 2) ----------------------------------------------------------
+
+const waitState = async (lib, root, done = (x) => !x.computing) => {
+  let s;
+  for (let i = 0; i < 400 && !done((s = lib.state(root))); i++) await new Promise((r) => setTimeout(r, 20));
+  return s;
+};
+
+test("D5: a catalogue another connection holds locked is waited for, not a 'database is locked' error", async () => {
+  const root = tree();
+  const store = tmp();
+  const lib = createLibrarian({ dir: path.join(store, "library"), skip: [store] });
+  await lib.start(root).done;
+  await waitState(lib, root);
+  // an exclusive lock held for 300 ms by ANOTHER thread, as the summary worker's open can be
+  const db = libraryPath(path.join(store, "library"), root);
+  const holder = new Worker(
+    `const { DatabaseSync } = require("node:sqlite"); const { parentPort, workerData } = require("node:worker_threads");
+     const h = new DatabaseSync(workerData);
+     h.exec("PRAGMA locking_mode = EXCLUSIVE; BEGIN IMMEDIATE; UPDATE passes SET seen = seen; COMMIT;");
+     parentPort.postMessage("locked"); setTimeout(() => { h.close(); parentPort.postMessage("released"); }, 300);`,
+    { eval: true, workerData: db }
+  );
+  await new Promise((r) => holder.once("message", r)); // "locked"
+  const started = Date.now();
+  const s = lib.state(root); // used to throw SQLITE_BUSY at once, and the hub answered 500
+  assert.ok(s && s.last, "answered once the lock was released");
+  assert.ok(Date.now() - started >= 200, "it waited rather than failing");
+  await new Promise((r) => holder.once("exit", r));
+});
+
+test("D6: a duplicates list made under other rules is never served, even when its summary failed to save", async () => {
+  const root = tree();
+  write(root, "Jobs/a-private-copy.jpg", "photo a"); // a copy of Photos/2019/a.jpg, private under the strict rules
+  const store = tmp();
+  const dir = path.join(store, "library");
+  const strict = createLibrarian({ dir, skip: [store], rules: [/jobs/iu] });
+  await strict.start(root).done;
+  await waitState(strict, root);
+  assert.doesNotMatch(fs.readFileSync(strict.csvPath(root), "utf8"), /a-private-copy/u);
+  // the lax librarian (no rules) works out its own summary, but its summary.json cannot be saved
+  const json = `${libraryPath(dir, root)}.summary.json`;
+  fs.chmodSync(json, 0o444);
+  try {
+    const lax = createLibrarian({ dir, skip: [store], rules: [] });
+    lax.state(root); // starts lax's worker
+    await new Promise((r) => setTimeout(r, 1500)); // its CSV is written; its JSON replace fails
+  } finally {
+    fs.chmodSync(json, 0o644);
+  }
+  const served = strict.csvPath(root);
+  if (served) assert.doesNotMatch(fs.readFileSync(served, "utf8"), /a-private-copy/u, "the strict hub serves only its own list");
+  const st = strict.state(root);
+  if (!st.computing) assert.equal(st.duplicates.private, 1);
+});
+
+test("an older-format catalogue is migrated, not broken by", async () => {
+  const root = tree();
+  const dbPath = path.join(tmp(), "lib.db");
+  const old = new DatabaseSync(dbPath);
+  old.exec(`CREATE TABLE files (path TEXT PRIMARY KEY, size INTEGER NOT NULL, mtime_ms INTEGER NOT NULL, sha256 TEXT NOT NULL,
+              kind TEXT NOT NULL, first_seen TEXT NOT NULL, last_seen TEXT NOT NULL, pass TEXT NOT NULL);
+            CREATE TABLE passes (id TEXT PRIMARY KEY, started_at TEXT NOT NULL, finished_at TEXT, stopped_at TEXT,
+              seen INTEGER NOT NULL DEFAULT 0, hashed INTEGER NOT NULL DEFAULT 0, bytes_hashed INTEGER NOT NULL DEFAULT 0,
+              pending INTEGER NOT NULL DEFAULT 0, unreadable INTEGER NOT NULL DEFAULT 0, removed INTEGER NOT NULL DEFAULT 0,
+              digest TEXT NOT NULL DEFAULT '');
+            INSERT INTO files VALUES ('gone/old.txt', 3, 0, 'x', 'documents', 'a', 'a', 'p0');`);
+  old.close();
+  const r = await catalogue({ root, dbPath });
+  assert.equal(r.finished, true);
+  assert.equal(r.removed, 1, "the old row of a file no longer there is removed by the finished pass");
+  assert.equal(rowsOf(dbPath).length, 5);
+});
+
+test("a finished pass keeps the rows of files that are settling or could not be read", async () => {
+  const root = tree();
+  const dbPath = path.join(tmp(), "lib.db");
+  await catalogue({ root, dbPath });
+  write(root, "Docs/c.pdf", "being rewritten now", new Date()); // inside the settle window
+  const unreadable = path.join(root, "Photos", "2019", "a.jpg");
+  write(root, "Photos/2019/a.jpg", "photo a, edited", new Date(Date.now() - 600_000));
+  const r = await catalogue({ root, dbPath, hash: (f) => (f === unreadable ? Promise.reject(new Error("EBUSY")) : hashFile(f)) });
+  assert.equal(r.finished, true);
+  assert.equal(r.removed, 0);
+  const paths = rowsOf(dbPath).map((x) => x.path);
+  assert.ok(paths.includes("Docs/c.pdf") && paths.includes("Photos/2019/a.jpg"), paths.join(", "));
+});
+
+test("the summary is worked out again after every new pass", async () => {
+  const root = tree();
+  const store = tmp();
+  const lib = createLibrarian({ dir: path.join(store, "library"), skip: [store] });
+  await lib.start(root).done;
+  assert.equal((await waitState(lib, root)).duplicates.sets, 0);
+  write(root, "Backup/a-again.jpg", "photo a");
+  await lib.start(root).done;
+  assert.equal((await waitState(lib, root, (x) => !x.computing && x.duplicates?.sets === 1)).duplicates.sets, 1);
+});
+
+test("the store folder is skipped whatever case its path is written in", async () => {
+  const root = tree();
+  write(root, "Estate-Store/library/x.db", "store");
+  const dbPath = path.join(tmp(), "lib.db");
+  await catalogue({ root, dbPath, skip: [path.join(root, "estate-store").toUpperCase()] });
+  assert.ok(!rowsOf(dbPath).some((x) => x.path.toLowerCase().startsWith("estate-store")));
+});
+
+test("progress never carries a file's name", async () => {
+  const root = tree();
+  const seen = [];
+  await catalogue({ root, dbPath: path.join(tmp(), "lib.db"), batch: 1, onProgress: (p) => seen.push(JSON.stringify(p)) });
+  assert.ok(seen.length > 0);
+  assert.doesNotMatch(seen.join("\n"), /a\.jpg|c\.pdf|d\.txt|m\.gguf|Photos|Docs/u);
+});
+
+test("the hub applies its privacy rules to the library, and serves no list without a policy", async () => {
+  const root = tree();
+  write(root, "Passport/scan-copy.jpg", "photo a");
+  const h = await hub({ roots: [root] }); // quarantine ["passport"]
+  try {
+    await h.call("/library", { root });
+    let c;
+    for (let i = 0; i < 400; i++) {
+      const s = JSON.parse((await h.call("/library")).text);
+      c = s.catalogues[root];
+      if (!s.running && c && !c.computing) break;
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    assert.equal(c.duplicates.private, 1);
+    assert.doesNotMatch(JSON.stringify(c), /scan-copy/u);
+    const csv = await h.call(`/library.csv?root=${encodeURIComponent(root)}`);
+    assert.doesNotMatch(csv.text, /scan-copy/u);
+  } finally {
+    await h.close();
+  }
+  const none = await hub({ quarantine: null, roots: [root] });
+  try {
+    assert.equal((await none.call(`/library.csv?root=${encodeURIComponent(root)}`)).status, 404);
+  } finally {
+    await none.close();
+  }
+});
+
+test("while a new summary is worked out, the last one is shown whole: its count beside its own date", async () => {
+  const root = tree();
+  const store = tmp();
+  const lib = createLibrarian({ dir: path.join(store, "library"), skip: [store] });
+  await lib.start(root).done;
+  const first = await waitState(lib, root);
+  write(root, "new/e.txt", "added");
+  await lib.start(root).done;
+  const during = lib.state(root); // the worker for the new pass has only just been started
+  assert.equal(during.computing, true);
+  assert.equal(during.last.id, first.last.id, "the date shown is the pass the counts came from");
+  assert.equal(during.files, first.files);
 });

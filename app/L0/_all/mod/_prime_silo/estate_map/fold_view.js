@@ -555,7 +555,8 @@ export function libraryView(s, { now = Date.now() } = {}) {
     (!c
       ? "Never catalogued."
       : p?.finished_at
-        ? `Catalogued ${ago(p.finished_at)}: ${n(c.files)} files, ${bytes(c.bytes)}.`
+        ? `Catalogued ${ago(p.finished_at)}: ${n(c.files)} files, ${bytes(c.bytes)}.` +
+          (p.unreadable_dirs ? ` ${n(p.unreadable_dirs)} folders could not be read, so their files were kept as they were.` : "")
         : `${p?.stopped_at ? `Stopped ${ago(p.stopped_at)}` : "Not finished"} after ${n(p?.seen)} files: ` +
           `Catalogue again resumes where it stopped.${c.finishedAt ? ` Last finished ${ago(c.finishedAt)}.` : ""}`) + failed;
   const r = s.running;

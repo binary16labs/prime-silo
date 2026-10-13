@@ -1164,7 +1164,7 @@ test("RENDERED: a pass running shows its progress and a Stop, and no second Cata
 test("RENDERED: a finished catalogue shows its kinds, its duplicates and the list, and counts private copies", async () => {
   const at = new Date().toISOString();
   const cat = {
-    last: { finished_at: at, seen: 9 },
+    last: { finished_at: at, seen: 9, unreadable_dirs: 2 },
     finishedAt: at,
     files: 9,
     bytes: 9_000,
@@ -1178,6 +1178,7 @@ test("RENDERED: a finished catalogue shows its kinds, its duplicates and the lis
   await openTab(window, "library");
   const text = visible(window);
   assert.match(text, /Catalogued moments ago: 9 files/u);
+  assert.match(text, /2 folders could not be read, so their files were kept as they were\./u);
   assert.match(text, /images 6 files · 7\.8 KB/u);
   assert.match(text, /2 sets of duplicates, 2\.9 KB that one copy each would free, 2 private copies counted and not listed\./u);
   assert.match(text, /F:\\Old\\a\.jpg/u);
