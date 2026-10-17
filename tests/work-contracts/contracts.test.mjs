@@ -10,7 +10,9 @@ import {
   validateContract,
   validateBacklog,
   detectCycle,
-  MAX_TOKENS
+  milestoneIds,
+  MAX_TOKENS,
+  OVERSIZE_GRANTED
 } from "../../server/coordination/work-schema/validate.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -119,4 +121,77 @@ test("Scenario: nothing is lost + traceability complete — full-tree validation
   assert.deepEqual(r.errors, [], "full backlog, board, plan-deps and traceability agree");
   assert.equal(r.ok, true);
   assert.ok(r.count >= 60, `all plan phases authored (got ${r.count})`);
+});
+
+// --- the ceiling and the milestone list (added 2026-10-17 with the W0 repair) ------------------
+// Two rules got looser by accident and are pinned here. Each pairs a pass with a fail on the same
+// shape, because "no error" is also what a dead check reports.
+
+test("Scenario: a granted oversize is a pin, not a licence — growth past it fails again", () => {
+  // Seven owner-signed contracts are listed in OVERSIZE_GRANTED at the size they were measured at.
+  // The point of recording the size is that creep beyond it is caught; a bare exemption would let
+  // a listed contract grow without limit, which is the ceiling removed for exactly those files.
+  const ids = Object.keys(OVERSIZE_GRANTED);
+  assert.ok(ids.length > 0, "the grant list is not empty");
+
+  for (const id of ids) {
+    const granted = OVERSIZE_GRANTED[id];
+    assert.ok(granted > MAX_TOKENS, `${id}'s grant should exceed the ceiling it replaces`);
+
+    const body = "x".repeat(granted * 4 - estimateTokens(contract()) * 4);
+    const atLimit = contract({ id }) + body;
+    const errsAt = validateContract(atLimit, { id, repoRoot: ROOT, knownIds: [...KNOWN, id] });
+    assert.equal(
+      errsAt.errors.some((e) => /oversize|ceiling/.test(e)),
+      false,
+      `${id} within its grant must not be reported: ${errsAt.errors}`
+    );
+
+    const over = atLimit + "y".repeat(4 * 20);
+    const errsOver = validateContract(over, { id, repoRoot: ROOT, knownIds: [...KNOWN, id] });
+    assert.ok(
+      errsOver.errors.some((e) => /exceeds its granted oversize/.test(e)),
+      `${id} grown past its grant must be reported: ${errsOver.errors}`
+    );
+  }
+});
+
+test("Scenario: an unlisted contract still meets the 1500 ceiling", () => {
+  const big = contract() + "x".repeat(MAX_TOKENS * 4);
+  const r = validateContract(big, { id: "X1", repoRoot: ROOT, knownIds: KNOWN });
+  assert.ok(
+    r.errors.some((e) => new RegExp(`exceeds the ${MAX_TOKENS} token ceiling`).test(e)),
+    `the ceiling still applies off the grant list: ${r.errors}`
+  );
+});
+
+test("Scenario: the valid milestones are the ones with a file on disk", () => {
+  // The old literal list froze at M10 while M11-M13 were authored, so three contracts the owner had
+  // signed were reported as naming an unknown milestone. Reading the directory is what fixed it —
+  // and an invented milestone must still fail, or the check is just gone.
+  const onDisk = milestoneIds(ROOT);
+  assert.ok(onDisk.has("M1"), "M1 is on disk");
+  assert.ok(onDisk.has("M13"), "a milestone authored after the literal list is accepted");
+  assert.equal(onDisk.has("M99"), false, "a milestone with no file is not valid");
+
+  const ok = validateContract(contract({ milestone: "M13" }), {
+    id: "X1",
+    repoRoot: ROOT,
+    knownIds: KNOWN
+  });
+  assert.equal(
+    ok.errors.some((e) => /milestone/.test(e)),
+    false,
+    `M13 has a file and must pass: ${ok.errors}`
+  );
+
+  const bad = validateContract(contract({ milestone: "M99" }), {
+    id: "X1",
+    repoRoot: ROOT,
+    knownIds: KNOWN
+  });
+  assert.ok(
+    bad.errors.some((e) => /milestone 'M99' has no delivery\/milestones file/.test(e)),
+    `an unknown milestone is still named: ${bad.errors}`
+  );
 });

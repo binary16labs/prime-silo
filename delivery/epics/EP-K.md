@@ -1,6 +1,6 @@
 # EP-K — Knowledge over the estate (metadata, vectorless RAG, vector RAG, graph RAG, and the sizing to buy for)
 
-**Objective:** O2 (+ O3) · **Milestone:** M12 (to be written) · **Status:** signed by the owner
+**Objective:** O2 (+ O3) · **Milestone:** M12 (`delivery/milestones/M12-knowledge.md`, written 2026-10-17) · **Status:** signed by the owner
 as written, 2026-10-11 (owner questions answered by the recommendations)
 **Builds on:** EP-U (consolidation: catalogues, the replicated ledger, copies, store roles), EP-S's
 librarian (S21–S24), and Benny's existing retrieval stack (below).
@@ -75,7 +75,7 @@ data there really is to manage.
 5. **Answers cite.** Every answer names the file locations it drew on (locally) and the retrieval
    style used, so the owner can check it.
 
-## Phases → task contracts (M12, to be authored)
+## Phases → task contracts (M12; K0 authored, K1–K6 to be authored)
 
 - [ ] `K0` — **capacity report** (first, because purchasing waits on it):
   - total, unique and duplicated bytes, by kind, drive and machine;

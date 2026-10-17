@@ -13,7 +13,7 @@ YAML frontmatter — all fields required unless noted:
 | ----------- | -------------------------------------------------------------------------------------------------- |
 | `id`        | equals the filename; `[A-Z]\d+` or `M2-\d+`                                                        |
 | `epic`      | an existing `delivery/epics/EP-*.md`                                                               |
-| `milestone` | `M1` or `M2`                                                                                       |
+| `milestone` | any `M<n>` with a `delivery/milestones/M<n>-*.md` file                                             |
 | `okr`       | non-empty; the id must sit in exactly one `TRACEABILITY.md` row                                    |
 | `deps`      | task ids; must resolve; must equal `plan-deps.json` (the machine-readable plan §12)                |
 | `authority` | `agent-ok` or `human-signed`                                                                       |
@@ -31,6 +31,15 @@ scenario maps to an automated test) · out of scope · handoff.
 
 Target ≤ ~600 tokens per contract; hard ceiling **1500 estimated tokens** (`ceil(chars/4)`) —
 sized to the largest legitimate exemplar (Q0). Over the ceiling = split the contract.
+
+**Granted oversize (2026-10-17).** Seven contracts the owner signed as written in October 2026 are
+2480–3843 tokens, because they carry folded-in owner direction and measured numbers: S21–S24
+(the librarian), U0 and U1 (the drive registry and the owner's data) and K0 (the capacity report).
+Splitting them would rewrite signed scope, so each is named in `OVERSIZE_GRANTED` in the validator
+**at the size it was measured at** and the 1500 ceiling stays in force for every other contract.
+The recorded size is a pin, not a licence: a listed contract that grows past it fails the gate
+again, which forces a deliberate re-grant instead of silent creep. Adding an id to that list is a
+scope act — prefer splitting.
 
 ## State lives on the board, never in the file
 
