@@ -19,6 +19,7 @@ import {
 } from "../server/coordination/lib/estate_compare.mjs";
 import { createEstateApi } from "../server/coordination/lib/estate_api.mjs";
 import { walkerAdapter } from "../server/coordination/lib/estate_map_files.mjs";
+import { catalogue, catalogueLookup } from "../server/coordination/lib/library.mjs";
 
 const made = [];
 test.after(() => {
@@ -143,7 +144,7 @@ async function hub({ quarantine = ["passport"], roots }) {
   const home = tmp();
   const api = createEstateApi({
     quarantine,
-    producer: { machine: "T480", dbPath: path.join(home, "estate", "estate-map-T480.db"), roots: () => roots, list }
+    producer: { machine: "T480", dbPath: path.join(home, "estate", "estate-map-T480.db"), roots: () => roots, list, estateStore: tmp() }
   });
   const server = http.createServer((req, res) => {
     if (!api.tryHandle(req, res)) res.writeHead(404).end();
@@ -207,7 +208,7 @@ test("comparisons name files, so every compare route answers this machine only",
   const home = tmp();
   const api = createEstateApi({
     quarantine: [],
-    producer: { machine: "T480", dbPath: path.join(home, "estate", "x.db"), roots: () => [drive, target], list }
+    producer: { machine: "T480", dbPath: path.join(home, "estate", "x.db"), roots: () => [drive, target], list, estateStore: tmp() }
   });
   const answer = (method, url, remoteAddress) =>
     new Promise((resolve) => {
@@ -320,4 +321,97 @@ test("one comparison at a time", async () => {
   release();
   await a.done;
   assert.equal(c.status(), null);
+});
+
+// --- S21: against F:'s catalogue ---------------------------------------------------------------------
+
+const OLD = new Date(Date.now() - 3_600_000);
+const catalogued = async (target) => {
+  for (const f of fs.readdirSync(target, { recursive: true })) {
+    const full = path.join(target, f);
+    if (fs.statSync(full).isFile()) fs.utimesSync(full, OLD, OLD);
+  }
+  const dbPath = path.join(tmp(), "lib.db");
+  await catalogue({ root: target, dbPath });
+  return { dbPath, look: catalogueLookup(dbPath, target) };
+};
+const spying = () => {
+  const read = [];
+  return { read, hashers: { partialHash: (f, s) => (read.push(f), partialHash(f, s)), fullHash: (f) => (read.push(f), fullHash(f)) } };
+};
+
+test("a backup drive is compared with F:'s catalogue without reading F:", async () => {
+  const { drive, target } = twoRoots();
+  write(drive, "Photos/beach.jpg", "on both");
+  write(drive, "Photos/only.jpg", "only on the drive");
+  write(drive, "same-size.txt", "AAAA");
+  write(target, "Archive/beach-renamed.jpg", "on both");
+  write(target, "other.txt", "BBBB");
+  const { look } = await catalogued(target);
+  const spy = spying();
+  try {
+    const r = await compareRoots({ from: drive, to: target, list, catalogue: look, hashers: spy.hashers });
+    assert.equal(r.onTarget.files, 1);
+    assert.deepEqual(r.only.map((f) => path.basename(f.path)).sort(), ["only.jpg", "same-size.txt"]);
+    assert.ok(r.catalogueAt, "the result names the catalogue it was asked of");
+    assert.ok(!spy.read.some((f) => f.startsWith(target)), `F: read: ${spy.read.join(", ")}`);
+    assert.ok(!spy.read.includes(path.join(drive, "Photos", "only.jpg")), "a size nothing on F: has is never opened");
+  } finally {
+    look.close();
+  }
+});
+
+test("a file changed on F: since cataloguing is not a copy", async () => {
+  const { drive, target } = twoRoots();
+  write(drive, "a.txt", "the catalogued bytes");
+  const t = write(target, "a.txt", "the catalogued bytes");
+  const { look } = await catalogued(target);
+  fs.writeFileSync(t, "different bytes now!"); // same size, new mtime
+  try {
+    const r = await compareRoots({ from: drive, to: target, list, catalogue: look });
+    assert.equal(r.onTarget.files, 0);
+    assert.equal(r.unconfirmed.files, 1);
+    assert.match(onlyCsv(r), /a\.txt",20,changed since catalogued/u);
+  } finally {
+    look.close();
+  }
+});
+
+test("the comparer hands the target's catalogue to the comparison", async () => {
+  const { drive, target } = twoRoots();
+  write(drive, "a.txt", "on both");
+  write(target, "a.txt", "on both");
+  const { dbPath, look } = await catalogued(target);
+  look.close(); // the comparer opens its own
+  const c = createComparer({ dir: tmp(), rules: [], list, catalogue: (to) => catalogueLookup(dbPath, to) });
+  await c.start(drive, target).done;
+  const r = c.latest(drive, target);
+  assert.equal(r.onTarget.files, 1);
+  assert.ok(r.catalogueAt, "asked of the catalogue, not of F:");
+});
+
+test("a comparison asks the catalogue, is refused by an unfinished one, and can be stopped", async () => {
+  const { drive, target } = twoRoots();
+  write(drive, "x.txt", "x");
+  fs.utimesSync(write(target, "y.txt", "y"), OLD, OLD);
+  const ctl = new AbortController();
+  const dbPath = path.join(tmp(), "never.db");
+  const c = createComparer({ dir: tmp(), rules: [], list, catalogue: (to) => catalogueLookup(dbPath, to) });
+  await catalogue({ root: target, dbPath, signal: ctl.signal, hash: async (f) => (ctl.abort(), fullHash(f)) });
+  assert.match(c.start(drive, target).reason, /never finished/u);
+
+  let release;
+  const hold = new Promise((r) => (release = r));
+  const slow = async function* (root) {
+    await hold;
+    yield* list(root);
+  };
+  const s = createComparer({ dir: tmp(), rules: [], list: slow });
+  const run = s.start(drive, target);
+  assert.equal(s.stop(), true);
+  release();
+  await run.done;
+  assert.equal(s.latest(drive, target).ok, false);
+  assert.match(s.latest(drive, target).reason, /stopped/u);
+  assert.equal(s.stop(), false);
 });

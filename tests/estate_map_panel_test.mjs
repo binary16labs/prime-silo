@@ -458,11 +458,18 @@ test("the panel registers itself and links what it needs", () => {
 test("the panel reads the map from the estate map API, and talks to nothing but it and Sweep", () => {
   // §5: the panel renders the fold and nothing else. A fetch to any other endpoint would make this
   // surface depend on something the contract did not give it. S17 gave it exactly one more: Sweep.
+  // S20 gave it comparisons, and S21 the library and the two Stops — which go through ask(url), so a
+  // URL handed to ask is read here as a fetch.
   const js = fs.readFileSync(path.join(PANEL, "estate_map.js"), "utf8");
-  const fetched = [...js.matchAll(/fetch\(\s*[`"']([^`"']+)/gu)].map((m) => m[1]);
+  const fetched = [...js.matchAll(/(?:fetch|ask)\(\s*[`"']([^`"']+)/gu)].map((m) => m[1]);
   assert.ok(fetched.includes("/api/estate/map"), "it reads the map");
+  assert.ok(fetched.includes("/api/estate/library/stop"), "ask's URLs are read too");
   for (const url of fetched)
-    assert.match(url, /^\/api\/estate\/(map|sweep|compare)$/u, `${url} is not the map, Sweep or a comparison`);
+    assert.match(
+      url,
+      /^\/api\/estate\/(map|sweep|compare|compare\/stop|library|library\/stop)$/u,
+      `${url} is not the map, Sweep, a comparison or the library`
+    );
 });
 
 test("no colour is written into the panel's stylesheet by hand", () => {
@@ -545,10 +552,12 @@ function seeded(seed) {
 const SWEEP_READY = { machine: "T480", roots: ["C:", "F:"], policy: true, running: null, last: null };
 // What GET /api/estate/compare answers in a render, unless a test says otherwise (S20).
 const COMPARE_READY = { roots: ["C:", "F:", "G:"], to: "F:", policy: true, running: null, results: { "C:": null, "G:": null } };
+// What GET /api/estate/library answers in a render, unless a test says otherwise (S21).
+const LIBRARY_READY = { roots: ["C:", "F:", "G:"], policy: true, running: null, last: null, catalogues: { "C:": null, "F:": null, "G:": null } };
 
 async function renderPanel(
   fold,
-  { status = 200, malformed = false, fetchTwice = false, sweep = SWEEP_READY, compare = COMPARE_READY, posted = [] } = {}
+  { status = 200, malformed = false, fetchTwice = false, sweep = SWEEP_READY, compare = COMPARE_READY, library = LIBRARY_READY, posted = [] } = {}
 ) {
   // THE PANEL'S OWN STYLESHEET GOES IN. jsdom fetches nothing, so a <link> is inert and the
   // document would have no rules at all — which is how seven one-line CSS mutations hid guards under
@@ -585,6 +594,10 @@ async function renderPanel(
     if (String(url).startsWith("/api/estate/compare")) {
       if (init.method === "POST") posted.push(JSON.parse(init.body));
       return { ok: true, status: init.method === "POST" ? 202 : 200, json: async () => compare };
+    }
+    if (String(url).startsWith("/api/estate/library")) {
+      if (init.method === "POST") posted.push(JSON.parse(init.body));
+      return { ok: true, status: init.method === "POST" ? 202 : 200, json: async () => library };
     }
     return {
       ok: (fetches++, status >= 200 && status < 300),
@@ -680,6 +693,7 @@ async function openTab(window, name) {
     storage: ".em__storage",
     applications: ".em__apps",
     media: ".em__media:not(.em__backups)",
+    library: ".em__library",
     backups: ".em__backups"
   }[name];
   await until(() => tab.dataset.on === "true" && window.document.querySelector(pane));
@@ -1105,6 +1119,112 @@ test("RENDERED: a finished comparison says what is only on the drive, its folder
   assert.match(text, /G:\\Photos\\2019 100 files · 3\.3 MB/u);
   const link = window.document.querySelector(".em__backups a[download]");
   assert.equal(link.getAttribute("href"), "/api/estate/compare.csv?from=G%3A&to=F%3A");
+});
+
+// --- S21: the Library, on the screen ---------------------------------------------------------------
+
+// Press a button found by its words with fetch recording what the page POSTs, and return those POSTs.
+async function pressing(window, root, words, answer) {
+  const posted = [];
+  const saved = globalThis.fetch;
+  globalThis.fetch = async (url, init = {}) => {
+    if (init.method === "POST") posted.push({ url, body: JSON.parse(init.body) });
+    return { ok: true, status: init.method === "POST" ? 202 : 200, json: async () => answer };
+  };
+  try {
+    const button = [...window.document.querySelectorAll(`${root} button`)].find((b) => words.test(b.textContent));
+    if (!button) throw new Error(`no button matching ${words} in ${root}`);
+    button.click();
+    await until(() => posted.length > 0);
+  } finally {
+    globalThis.fetch = saved;
+  }
+  return posted;
+}
+
+test("RENDERED: the Library tab says F: was never catalogued, and Catalogue F: asks for F:", async () => {
+  const { window } = await renderPanel({ at: NOW, machines: { t480: machine({}) } });
+  await openTab(window, "library");
+  assert.match(visible(window), /F: Never catalogued\./u);
+  const posted = await pressing(window, ".em__library", /Catalogue F:/u, LIBRARY_READY);
+  assert.deepEqual(posted, [{ url: "/api/estate/library", body: { root: "F:" } }]);
+});
+
+test("RENDERED: a pass running shows its progress and a Stop, and no second Catalogue", async () => {
+  const running = { root: "F:", since: new Date().toISOString(), phase: "cataloguing", seen: 4000, hashed: 3900, bytes_hashed: 2_000_000, rate: 80, estimate: 12000 };
+  const { window } = await renderPanel({ at: NOW, machines: { t480: machine({}) } }, { library: { ...LIBRARY_READY, running } });
+  await openTab(window, "library");
+  const text = visible(window);
+  assert.match(text, /Cataloguing F:: 4,000 files read, 3,900 hashed \(1\.9 MB\), 80 files\/s, about 1 minute left\./u);
+  assert.ok(![...window.document.querySelectorAll(".em__library button")].some((b) => /Catalogue/u.test(b.textContent)));
+  const posted = await pressing(window, ".em__library", /^Stop$/u, LIBRARY_READY);
+  assert.deepEqual(posted, [{ url: "/api/estate/library/stop", body: {} }]);
+});
+
+test("RENDERED: a finished catalogue shows its kinds, its duplicates and the list, and counts private copies", async () => {
+  const at = new Date().toISOString();
+  const cat = {
+    last: { finished_at: at, seen: 9, unreadable_dirs: 2 },
+    finishedAt: at,
+    files: 9,
+    bytes: 9_000,
+    kinds: [{ kind: "images", files: 6, bytes: 8_000 }],
+    duplicates: { sets: 2, wasted: 3_000, private: 2, top: [{ sha256: "ab", size: 3_000, copies: 2, paths: ["F:\\Photos\\a.jpg", "F:\\Old\\a.jpg"] }] }
+  };
+  const { window } = await renderPanel(
+    { at: NOW, machines: { t480: machine({}) } },
+    { library: { ...LIBRARY_READY, catalogues: { ...LIBRARY_READY.catalogues, "F:": cat } } }
+  );
+  await openTab(window, "library");
+  const text = visible(window);
+  assert.match(text, /Catalogued moments ago: 9 files/u);
+  assert.match(text, /2 folders could not be read, so their files were kept as they were\./u);
+  assert.match(text, /images 6 files · 7\.8 KB/u);
+  assert.match(text, /2 sets of duplicates, 2\.9 KB that one copy each would free, 2 private copies counted and not listed\./u);
+  assert.match(text, /F:\\Old\\a\.jpg/u);
+  assert.equal(window.document.querySelector(".em__library a[download]").getAttribute("href"), "/api/estate/library.csv?root=F%3A");
+});
+
+test("RENDERED: while the hub works the duplicates out, the tab says so and offers no stale list", async () => {
+  const at = new Date().toISOString();
+  // the last answer under the same rules is shown, but its list describes an older pass
+  const older = { sets: 2, wasted: 3_000, private: 0, top: [] };
+  const cat = { last: { finished_at: at, seen: 9 }, finishedAt: at, files: 9, bytes: 9, kinds: [], duplicates: older, computing: true };
+  const { window } = await renderPanel(
+    { at: NOW, machines: { t480: machine({}) } },
+    { library: { ...LIBRARY_READY, catalogues: { ...LIBRARY_READY.catalogues, "F:": cat } } }
+  );
+  await openTab(window, "library");
+  assert.match(visible(window), /2 sets of duplicates, 2\.9 KB that one copy each would free\. Working out the duplicates of the latest pass…/u);
+  assert.equal(window.document.querySelector(".em__library a[download]"), null);
+});
+
+test("RENDERED: a stopped pass says Catalogue resumes it", async () => {
+  const cat = { last: { stopped_at: new Date().toISOString(), seen: 1234 }, finishedAt: null, files: 1200, bytes: 1, kinds: [], duplicates: { sets: 0, wasted: 0, private: 0, top: [] } };
+  const { window } = await renderPanel(
+    { at: NOW, machines: { t480: machine({}) } },
+    { library: { ...LIBRARY_READY, catalogues: { ...LIBRARY_READY.catalogues, "F:": cat } } }
+  );
+  await openTab(window, "library");
+  assert.match(visible(window), /Stopped moments ago after 1,234 files: Catalogue again resumes where it stopped\./u);
+  assert.match(visible(window), /\(of the files catalogued so far\)/u);
+});
+
+test("RENDERED: a comparison names the catalogue it asked, and one running can be stopped", async () => {
+  const t = () => ({ files: 0, bytes: 0 });
+  const done = {
+    ok: true, at: new Date().toISOString(), catalogueAt: new Date().toISOString(),
+    drive: { files: 1, bytes: 1 }, onlyHere: t(), onTarget: { files: 1, bytes: 1 }, unconfirmed: t(), unreadable: t(), privateCounted: t(), folders: [], listed: 0
+  };
+  const running = { from: "C:", to: "F:", since: new Date().toISOString(), phase: "hashing the drive", done: 1, total: 5 };
+  const { window } = await renderPanel(
+    { at: NOW, machines: { t480: machine({}) } },
+    { compare: { ...COMPARE_READY, running, results: { "C:": null, "G:": done } } }
+  );
+  await openTab(window, "backups");
+  assert.match(visible(window), /Against the catalogue of F: from moments ago\./u);
+  const posted = await pressing(window, ".em__backups", /^Stop$/u, COMPARE_READY);
+  assert.deepEqual(posted, [{ url: "/api/estate/compare/stop", body: {} }]);
 });
 
 test("RENDERED: a page left open keeps the sweep's age current, as the map card does", async () => {

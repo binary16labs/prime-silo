@@ -11,6 +11,7 @@ import { planNextCycle, readPlanInputs } from "./estate_plan.mjs";
 import { acceptMap, register as registerSatellite } from "./estate_register.mjs";
 import { createSweeper, latestLocalPush } from "./estate_map_producer.mjs";
 import { createComparer, listRoot } from "./estate_compare.mjs";
+import { createLibrarian } from "./library.mjs";
 import path from "node:path";
 import {
   DEFAULT_MAP_MAX_AGE_MS,
@@ -198,14 +199,28 @@ export function createEstateApi({
     }
     return { roots, unusable };
   };
+  // S21: the librarian's catalogues live in the estate store, beside the drive they describe
+  // (owner, 2026-10-10). The WHOLE store is skipped when the drive catalogued holds it — its event
+  // logs and catalogues are not the owner's files (claude-s21-verifier: skipping only <store>/library
+  // made 25 store files rows, and the source of every re-hash in a rescan).
+  const store = producer?.estateStore ?? (process.env.ESTATE_STORE || "F:/estate-store");
+  const librarian =
+    producer &&
+    createLibrarian({
+      dir: path.join(store, "library"),
+      skip: [store],
+      rules: Array.isArray(quarantine) ? quarantine : []
+    });
   // S20: a backup drive against F:, on this machine. Results hold file names, so every compare route
-  // answers this machine only, and they are kept beside its own map, in BENNY_HOME.
+  // answers this machine only, and they are kept beside its own map, in BENNY_HOME. Since S21 it asks
+  // F:'s catalogue where there is one, and reads only the backup drive.
   const comparer =
     producer &&
     createComparer({
       dir: path.join(path.dirname(producer.dbPath), "compare"),
       rules: Array.isArray(quarantine) ? quarantine : [],
-      list: producer.list ?? listRoot
+      list: producer.list ?? listRoot,
+      catalogue: (to) => librarian.lookup(to)
     });
   const local = (req) =>
     ["127.0.0.1", "::1"].includes(String(req.socket?.remoteAddress ?? "").replace(/^::ffff:/u, ""));
@@ -329,6 +344,53 @@ export function createEstateApi({
           return sendJson(res, 400, { error: "volumes must be roots this machine offers", roots });
         const r = await sweeper.start(volumes);
         sendJson(res, r.started ? 202 : 409, r.started ? { since: r.since } : { error: "a sweep is running", since: r.since });
+      });
+      return;
+    }
+
+    // S21 — the librarian. GET /library: each root's catalogue (last pass, kinds, duplicates) and the
+    // pass running. POST /library { root } starts or resumes one; POST /library/stop stops it, keeping
+    // what it committed. GET /library.csv?root= is every duplicate set. POST /compare/stop stops a
+    // comparison. All answer this machine only: the catalogue names files.
+    if (rest === "/library" || rest === "/library/stop" || rest === "/library.csv" || rest === "/compare/stop") {
+      if (!local(req)) return sendJson(res, 403, { error: "the library is only shown on this machine" });
+      if (!librarian) return sendJson(res, 503, { error: "this hub has no producer configured" });
+      const roots = producer.roots();
+      if (req.method === "GET" && rest === "/library") {
+        const catalogues = Object.fromEntries(roots.map((r) => [r, Array.isArray(quarantine) ? librarian.state(r) : null]));
+        return sendJson(res, 200, { roots, policy: Array.isArray(quarantine), ...librarian.status(), catalogues });
+      }
+      if (req.method === "GET" && rest === "/library.csv") {
+        const root = new URL(req.url, "http://localhost").searchParams.get("root");
+        if (!roots.includes(root) || !Array.isArray(quarantine)) return sendJson(res, 404, { error: "no catalogue of that root" });
+        if (!librarian.state(root)) return sendJson(res, 404, { error: "no catalogue of that root" });
+        // written by the librarian's worker, never built on this thread (claude-s21-verifier: 92 s)
+        const csv = librarian.csvPath(root);
+        if (!csv) return sendJson(res, 202, { error: "the duplicates are still being worked out: try again in a minute" });
+        // opened before any header is sent: a list removed in between is "try again", never a crash
+        const stream = fs.createReadStream(csv);
+        stream.once("error", () => (res.headersSent ? res.destroy() : sendJson(res, 202, { error: "the list changed: try again" })));
+        stream.once("open", () => {
+          res.writeHead(200, {
+            "Content-Type": "text/csv; charset=utf-8",
+            "Content-Disposition": `attachment; filename="duplicates-${root.replace(/[^A-Za-z0-9]+/gu, "")}.csv"`
+          });
+          stream.pipe(res);
+        });
+        return;
+      }
+      if (req.method !== "POST") return sendJson(res, 405, { error: "GET or POST" });
+      if (rest === "/library/stop" || rest === "/compare/stop") {
+        const stopped = (rest === "/library/stop" ? librarian : comparer).stop();
+        return sendJson(res, stopped ? 202 : 409, stopped ? { stopping: true } : { error: "nothing is running" });
+      }
+      if (!Array.isArray(quarantine))
+        return sendJson(res, 412, { error: "no quarantine policy — the catalogue would list private files (R31)" });
+      readBody(req).then((b) => {
+        if (!roots.includes(b.root)) return sendJson(res, 400, { error: "root must be one this machine offers", roots });
+        const r = librarian.start(b.root);
+        if (!r.started && r.reason) return sendJson(res, 400, { error: r.reason });
+        sendJson(res, r.started ? 202 : 409, r.started ? { since: r.since } : { error: "a catalogue pass is running", since: r.since });
       });
       return;
     }

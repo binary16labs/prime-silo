@@ -69,19 +69,29 @@ const folderOf = (root, file) => {
 // compareRoots — `list(root)` yields { path, size } for every file under a root (the Everything
 // adapter, or the walker where Everything cannot see). `rules` are the hub's quarantine rules: a file
 // they match is counted in every total and listed nowhere.
+//
+// S21: with the target's `catalogue` (library.mjs catalogueLookup), the target is never read. A drive
+// file whose size no catalogued file has is only on the drive unread; otherwise its full hash is
+// looked up, and a match counts as on the target only while that file still has the size and mtime
+// it was catalogued with — one that has changed since is "changed since catalogued", unconfirmed.
 export async function compareRoots({
   from,
   to,
   list,
   rules = [],
   hashers: given = {},
+  catalogue = null,
+  signal = null,
   onProgress = () => {}
 }) {
   const hashers = { partialHash, fullHash, identity: fileIdentity, ...given };
-  const progress = (phase, done, total) => onProgress({ phase, done, total });
-  progress("listing the target", 0, 0);
+  const progress = (phase, done, total) => {
+    if (signal?.aborted) throw new Error("stopped by the owner");
+    onProgress({ phase, done, total });
+  };
+  progress(catalogue ? "reading the catalogue" : "listing the target", 0, 0);
   const bySize = new Map();
-  for await (const r of list(to)) {
+  for await (const r of catalogue ? [] : list(to)) {
     const size = Number(r.size) || 0;
     if (!bySize.has(size)) bySize.set(size, []);
     bySize.get(size).push(r.path);
@@ -96,6 +106,7 @@ export async function compareRoots({
     unconfirmed: tally(),
     unreadable: tally(),
     privateCounted: tally(),
+    catalogueAt: catalogue?.finishedAt ?? null,
     only: [],
     folders: []
   };
@@ -135,7 +146,36 @@ export async function compareRoots({
   progress("listing the drive", 0, 0);
   const driveFiles = [];
   for await (const r of list(from)) driveFiles.push({ path: r.path, size: Number(r.size) || 0 });
+  const unchanged = (t) => {
+    try {
+      const st = fs.statSync(t.full); // metadata only: no seek into F:'s data
+      return st.size === t.size && Math.floor(st.mtimeMs) === t.mtime_ms;
+    } catch {
+      return false;
+    }
+  };
   for (const [i, f] of driveFiles.entries()) {
+    if (catalogue) {
+      progress("hashing the drive, looking each file up in the catalogue", i, driveFiles.length);
+      add(result.drive, f.size);
+      if (!catalogue.hasSize(f.size)) {
+        onlyHere(f.path, f.size);
+        continue;
+      }
+      let mine;
+      try {
+        mine = await hashers.fullHash(f.path);
+      } catch {
+        note("unreadable", "unreadable", f.path, f.size);
+        continue;
+      }
+      const me = hashers.identity(f.path);
+      const copies = catalogue.byHash(mine).filter((t) => me === null || hashers.identity(t.full) !== me);
+      if (!copies.length) onlyHere(f.path, f.size);
+      else if (copies.some(unchanged)) add(result.onTarget, f.size);
+      else note("unconfirmed", "changed since catalogued", f.path, f.size);
+      continue;
+    }
     if (i % 500 === 0) progress("comparing sizes and partial hashes", i, driveFiles.length);
     add(result.drive, f.size);
     const same = bySize.get(f.size);
@@ -229,8 +269,9 @@ export const onlyCsv = (result) =>
 // before a byte of B had been read (claude-s20-verifier). A result now belongs to the identity of
 // each root (volume serial and the root's file ID) and is shown only while that same drive is there.
 // Drive A's result comes back when drive A does; a drive never compared reads "not compared yet".
-export function createComparer({ dir, rules, list, now = Date.now }) {
+export function createComparer({ dir, rules, list, catalogue = () => null, now = Date.now }) {
   let running = null;
+  let ctl = null;
   const file = (from, to, ext) => {
     const [a, b] = [rootIdentity(from), rootIdentity(to)];
     if (!a || !b) return null;
@@ -247,17 +288,27 @@ export function createComparer({ dir, rules, list, now = Date.now }) {
     status: () => running,
     latest,
     csvPath: (from, to) => file(from, to, "csv"),
+    stop() {
+      if (!running) return false;
+      ctl.abort();
+      return true;
+    },
     start(from, to) {
       if (running) return { started: false, since: running.since };
       const [json, csv] = [file(from, to, "json"), file(from, to, "csv")];
       if (!json) return { started: false, since: null, reason: "a root cannot be read" };
+      const cat = catalogue(to);
+      if (cat?.refused) return { started: false, since: null, reason: cat.refused };
+      ctl = new AbortController();
       running = { from, to, since: new Date(now()).toISOString(), phase: "starting", done: 0, total: 0 };
       const mine = running;
       const done = (async () => {
         let summary;
         fs.mkdirSync(dir, { recursive: true });
         try {
-          const r = await compareRoots({ from, to, list, rules, onProgress: (p) => Object.assign(mine, p) });
+          const r = await compareRoots({
+            from, to, list, rules, catalogue: cat, signal: ctl.signal, onProgress: (p) => Object.assign(mine, p)
+          });
           fs.writeFileSync(csv, onlyCsv(r));
           const { only, ...rest } = r;
           summary = { ...rest, ok: true, at: new Date(now()).toISOString(), listed: only.length };
@@ -266,6 +317,7 @@ export function createComparer({ dir, rules, list, now = Date.now }) {
           fs.rmSync(csv, { force: true });
           summary = { from, to, ok: false, at: new Date(now()).toISOString(), reason: String(e?.message || e) };
         }
+        cat?.close();
         fs.writeFileSync(json, JSON.stringify(summary));
         running = null;
       })();
