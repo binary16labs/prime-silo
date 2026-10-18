@@ -29,7 +29,7 @@ export const estimateTokens = (text) => Math.ceil(text.length / 4);
 // from the count, but named and visible.
 export const OVERSIZE_GRANTED = Object.freeze({
   K0: 2839,
-  S21: 2600,
+  S21: 2867, // re-granted 2026-10-18 on merge: +267 is the two owner-signed budget amendments (600->680->800) recorded in the contract on task/S21
   S22: 3687,
   S23: 3843,
   S24: 2480,
