@@ -203,9 +203,17 @@ export function createEstateApi({
   // (owner, 2026-10-10). The WHOLE store is skipped when the drive catalogued holds it — its event
   // logs and catalogues are not the owner's files (claude-s21-verifier: skipping only <store>/library
   // made 25 store files rows, and the source of every re-hash in a rescan).
-  const store = producer?.estateStore ?? (process.env.ESTATE_STORE || "F:/estate-store");
+  // S22 point 6: the store is a DECLARED RUNTIME PARAMETER, never a literal. A machine path shipped
+  // as a default is wrong on every machine but one — the ASUS and the Pi have no F: — and it was
+  // read from raw process.env, bypassing Prime-Silo's precedence. server/app.js now resolves
+  // ESTATE_STORE through runtime_params and passes it. Unset is SAID, not guessed (point 7).
+  const store = producer?.estateStore ?? "";
+  const storeUnset = {
+    error: "ESTATE_STORE is not set — run: node space set ESTATE_STORE=<folder>"
+  };
   const librarian =
     producer &&
+    store &&
     createLibrarian({
       dir: path.join(store, "library"),
       skip: [store],
@@ -222,6 +230,7 @@ export function createEstateApi({
       list: producer.list ?? listRoot,
       catalogue: (to) => librarian.lookup(to)
     });
+  const NO_POLICY = "no quarantine policy — the catalogue would list private files (R31)";
   const local = (req) =>
     ["127.0.0.1", "::1"].includes(String(req.socket?.remoteAddress ?? "").replace(/^::ffff:/u, ""));
   function handle(req, res, rest) {
@@ -298,7 +307,11 @@ export function createEstateApi({
     // GET /api/estate/map — every node's latest sweep folded into one estate map (S3). A machine
     // that has stopped pushing is stale SINCE a time, with its last map intact, never empty (§7).
     if (req.method === "GET" && rest === "/map") {
-      return sendJson(res, 200, foldEstateMap(satelliteState.maps || [], { maxAgeMs: mapMaxAgeMs }));
+      return sendJson(
+        res,
+        200,
+        foldEstateMap(satelliteState.maps || [], { maxAgeMs: mapMaxAgeMs })
+      );
     }
 
     // GET /api/estate/map/:machine — that machine's volumes and what it WITHHELD (not its biggest
@@ -343,7 +356,11 @@ export function createEstateApi({
         if (!volumes.length || volumes.some((v) => !roots.includes(v)))
           return sendJson(res, 400, { error: "volumes must be roots this machine offers", roots });
         const r = await sweeper.start(volumes);
-        sendJson(res, r.started ? 202 : 409, r.started ? { since: r.since } : { error: "a sweep is running", since: r.since });
+        sendJson(
+          res,
+          r.started ? 202 : 409,
+          r.started ? { since: r.since } : { error: "a sweep is running", since: r.since }
+        );
       });
       return;
     }
@@ -352,24 +369,50 @@ export function createEstateApi({
     // pass running. POST /library { root } starts or resumes one; POST /library/stop stops it, keeping
     // what it committed. GET /library.csv?root= is every duplicate set. POST /compare/stop stops a
     // comparison. All answer this machine only: the catalogue names files.
-    if (rest === "/library" || rest === "/library/stop" || rest === "/library.csv" || rest === "/compare/stop") {
-      if (!local(req)) return sendJson(res, 403, { error: "the library is only shown on this machine" });
+    if (
+      rest === "/library" ||
+      rest === "/library/stop" ||
+      rest === "/library.csv" ||
+      rest === "/library/find" ||
+      rest === "/library/duplicates" ||
+      rest === "/library/check" ||
+      rest === "/compare/stop"
+    ) {
+      if (!local(req))
+        return sendJson(res, 403, { error: "the library is only shown on this machine" });
+      if (producer && !store) return sendJson(res, 503, storeUnset);
       if (!librarian) return sendJson(res, 503, { error: "this hub has no producer configured" });
       const roots = producer.roots();
       if (req.method === "GET" && rest === "/library") {
-        const catalogues = Object.fromEntries(roots.map((r) => [r, Array.isArray(quarantine) ? librarian.state(r) : null]));
-        return sendJson(res, 200, { roots, policy: Array.isArray(quarantine), ...librarian.status(), catalogues });
+        const catalogues = Object.fromEntries(
+          roots.map((r) => [r, Array.isArray(quarantine) ? librarian.state(r) : null])
+        );
+        return sendJson(res, 200, {
+          roots,
+          policy: Array.isArray(quarantine),
+          ...librarian.status(),
+          catalogues
+        });
       }
       if (req.method === "GET" && rest === "/library.csv") {
         const root = new URL(req.url, "http://localhost").searchParams.get("root");
-        if (!roots.includes(root) || !Array.isArray(quarantine)) return sendJson(res, 404, { error: "no catalogue of that root" });
-        if (!librarian.state(root)) return sendJson(res, 404, { error: "no catalogue of that root" });
+        if (!roots.includes(root) || !Array.isArray(quarantine))
+          return sendJson(res, 404, { error: "no catalogue of that root" });
+        if (!librarian.state(root))
+          return sendJson(res, 404, { error: "no catalogue of that root" });
         // written by the librarian's worker, never built on this thread (claude-s21-verifier: 92 s)
         const csv = librarian.csvPath(root);
-        if (!csv) return sendJson(res, 202, { error: "the duplicates are still being worked out: try again in a minute" });
+        if (!csv)
+          return sendJson(res, 202, {
+            error: "the duplicates are still being worked out: try again in a minute"
+          });
         // opened before any header is sent: a list removed in between is "try again", never a crash
         const stream = fs.createReadStream(csv);
-        stream.once("error", () => (res.headersSent ? res.destroy() : sendJson(res, 202, { error: "the list changed: try again" })));
+        stream.once("error", () =>
+          res.headersSent
+            ? res.destroy()
+            : sendJson(res, 202, { error: "the list changed: try again" })
+        );
         stream.once("open", () => {
           res.writeHead(200, {
             "Content-Type": "text/csv; charset=utf-8",
@@ -379,18 +422,79 @@ export function createEstateApi({
         });
         return;
       }
+      // S22 — the three questions Benny asks. Same guards as the panel's routes (this machine only,
+      // a policy must exist) and the SAME JUDGE: find, check and the worker's own list filter against
+      // the rules before anything is returned, so the skill and an outside MCP client can never be
+      // told a name the panel would withhold.
+      if (rest === "/library/find" || rest === "/library/duplicates") {
+        if (req.method !== "GET") return sendJson(res, 405, { error: "GET" });
+        if (!Array.isArray(quarantine)) return sendJson(res, 412, { error: NO_POLICY });
+        const u = new URL(req.url, "http://localhost");
+        const root = u.searchParams.get("root");
+        if (!roots.includes(root))
+          return sendJson(res, 400, { error: "root must be one this machine offers", roots });
+        const num = (k, d, max) =>
+          Math.min(Math.max(Number(u.searchParams.get(k) ?? d) || 0, 0), max);
+        if (rest === "/library/find") {
+          const r = librarian.find(root, {
+            q: u.searchParams.get("q") ?? "",
+            kind: u.searchParams.get("kind") ?? "",
+            limit: num("limit", 50, 500) || 50
+          });
+          if (!r)
+            return sendJson(res, 404, { error: `${root} has no catalogue: catalogue it first` });
+          return sendJson(res, r.refused ? 409 : 200, r.refused ? { error: r.refused } : r);
+        }
+        const d = librarian.duplicatesPage(root, {
+          offset: num("offset", 0, 1e6),
+          limit: num("limit", 20, 200) || 20
+        });
+        if (!d)
+          return sendJson(res, 404, { error: `${root} has no catalogue: catalogue it first` });
+        if (d.computing)
+          return sendJson(res, 202, {
+            error: "the duplicates are still being worked out: try again in a minute"
+          });
+        return sendJson(res, 200, d);
+      }
+      if (rest === "/library/check") {
+        if (req.method !== "POST") return sendJson(res, 405, { error: "POST" });
+        if (!Array.isArray(quarantine)) return sendJson(res, 412, { error: NO_POLICY });
+        readBody(req).then(async (b) => {
+          const root = b.root ?? roots[0];
+          if (!roots.includes(root))
+            return sendJson(res, 400, { error: "root must be one this machine offers", roots });
+          const paths = (Array.isArray(b.paths) ? b.paths : [b.path]).filter(
+            (x) => typeof x === "string" && x
+          );
+          if (!paths.length) return sendJson(res, 400, { error: "path (or paths) is required" });
+          const r = await librarian.check(root, { paths });
+          if (!r)
+            return sendJson(res, 404, { error: `${root} has no catalogue: catalogue it first` });
+          sendJson(res, r.refused ? 409 : 200, r.refused ? { error: r.refused } : r);
+        });
+        return;
+      }
       if (req.method !== "POST") return sendJson(res, 405, { error: "GET or POST" });
       if (rest === "/library/stop" || rest === "/compare/stop") {
         const stopped = (rest === "/library/stop" ? librarian : comparer).stop();
-        return sendJson(res, stopped ? 202 : 409, stopped ? { stopping: true } : { error: "nothing is running" });
+        return sendJson(
+          res,
+          stopped ? 202 : 409,
+          stopped ? { stopping: true } : { error: "nothing is running" }
+        );
       }
-      if (!Array.isArray(quarantine))
-        return sendJson(res, 412, { error: "no quarantine policy — the catalogue would list private files (R31)" });
+      if (!Array.isArray(quarantine)) return sendJson(res, 412, { error: NO_POLICY });
       readBody(req).then((b) => {
-        if (!roots.includes(b.root)) return sendJson(res, 400, { error: "root must be one this machine offers", roots });
+        if (!roots.includes(b.root))
+          return sendJson(res, 400, { error: "root must be one this machine offers", roots });
         const r = librarian.start(b.root);
         if (!r.started && r.reason) return sendJson(res, 400, { error: r.reason });
-        sendJson(res, r.started ? 202 : 409, r.started ? { since: r.since } : { error: "a catalogue pass is running", since: r.since });
+        sendJson(
+          res,
+          r.started ? 202 : 409,
+          r.started ? { since: r.since } : { error: "a catalogue pass is running", since: r.since }
+        );
       });
       return;
     }
@@ -399,7 +503,8 @@ export function createEstateApi({
     // root against `to` (S20). POST { from, to } starts one. GET /compare.csv?from&to is the list of
     // files only on `from`. All three answer this machine only: the results name files.
     if (rest === "/compare" || rest === "/compare.csv") {
-      if (!local(req)) return sendJson(res, 403, { error: "comparisons are only shown on this machine" });
+      if (!local(req))
+        return sendJson(res, 403, { error: "comparisons are only shown on this machine" });
       if (!comparer) return sendJson(res, 503, { error: "this hub has no producer configured" });
       const q = new URL(req.url, "http://localhost").searchParams;
       const roots = producer.roots();
@@ -408,11 +513,18 @@ export function createEstateApi({
         const results = Object.fromEntries(
           roots.filter((r) => r !== to).map((r) => [r, to ? comparer.latest(r, to) : null])
         );
-        return sendJson(res, 200, { roots, to, policy: Array.isArray(quarantine), running: comparer.status(), results });
+        return sendJson(res, 200, {
+          roots,
+          to,
+          policy: Array.isArray(quarantine),
+          running: comparer.status(),
+          results
+        });
       }
       if (req.method === "GET") {
         const csv = comparer.csvPath(q.get("from") ?? "", q.get("to") ?? "");
-        if (!csv || !fs.existsSync(csv)) return sendJson(res, 404, { error: "no comparison of the drives there now" });
+        if (!csv || !fs.existsSync(csv))
+          return sendJson(res, 404, { error: "no comparison of the drives there now" });
         res.writeHead(200, {
           "Content-Type": "text/csv; charset=utf-8",
           "Content-Disposition": `attachment; filename="${path.basename(csv)}"`
@@ -421,10 +533,15 @@ export function createEstateApi({
       }
       if (req.method !== "POST") return sendJson(res, 405, { error: "GET or POST" });
       if (!Array.isArray(quarantine))
-        return sendJson(res, 412, { error: "no quarantine policy — a comparison would list private files (R31)" });
+        return sendJson(res, 412, {
+          error: "no quarantine policy — a comparison would list private files (R31)"
+        });
       readBody(req).then((b) => {
         if (!roots.includes(b.from) || !roots.includes(b.to) || b.from === b.to)
-          return sendJson(res, 400, { error: "from and to must be two different roots this machine offers", roots });
+          return sendJson(res, 400, {
+            error: "from and to must be two different roots this machine offers",
+            roots
+          });
         // one inside the other would list the same files on both sides (claude-s20-verifier)
         const key = (r) => {
           const k = path.resolve(`${r}${path.sep}`);
@@ -434,7 +551,11 @@ export function createEstateApi({
           return sendJson(res, 400, { error: "the two roots overlap: one is inside the other" });
         const r = comparer.start(b.from, b.to);
         if (!r.started && r.reason) return sendJson(res, 400, { error: r.reason });
-        sendJson(res, r.started ? 202 : 409, r.started ? { since: r.since } : { error: "a comparison is running", since: r.since });
+        sendJson(
+          res,
+          r.started ? 202 : 409,
+          r.started ? { since: r.since } : { error: "a comparison is running", since: r.since }
+        );
       });
       return;
     }

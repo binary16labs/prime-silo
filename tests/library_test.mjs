@@ -13,9 +13,11 @@ import { Worker } from "node:worker_threads";
 import {
   catalogue,
   catalogueLookup,
+  checkPaths,
   createLibrarian,
   duplicateSets,
   duplicatesCsv,
+  findFiles,
   kindOf,
   libraryPath,
   libraryState
@@ -26,7 +28,8 @@ import { createEstateApi } from "../server/coordination/lib/estate_api.mjs";
 
 const made = [];
 test.after(() => {
-  for (const d of made) fs.rmSync(d, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+  for (const d of made)
+    fs.rmSync(d, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
 });
 const tmp = () => made[made.push(fs.mkdtempSync(path.join(os.tmpdir(), "s21-"))) - 1];
 const OLD = new Date(Date.now() - 3_600_000); // older than the settle window
@@ -40,7 +43,10 @@ const write = (root, rel, data, when = OLD) => {
 const rowsOf = (dbPath) => {
   const db = new DatabaseSync(dbPath, { readOnly: true });
   try {
-    return db.prepare("SELECT path, size, sha256, kind FROM files ORDER BY path").all().map((r) => ({ ...r }));
+    return db
+      .prepare("SELECT path, size, sha256, kind FROM files ORDER BY path")
+      .all()
+      .map((r) => ({ ...r }));
   } finally {
     db.close();
   }
@@ -67,7 +73,13 @@ test("a catalogue holds every file with its size, hash and kind", async () => {
   const rows = rowsOf(dbPath);
   assert.deepEqual(
     rows.map((x) => [x.path, x.kind]),
-    [["Docs/c.pdf", "documents"], ["Docs/deep/d.txt", "documents"], ["Photos/2019/a.jpg", "images"], ["Photos/2019/b.jpg", "images"], ["models/m.gguf", "models"]]
+    [
+      ["Docs/c.pdf", "documents"],
+      ["Docs/deep/d.txt", "documents"],
+      ["Photos/2019/a.jpg", "images"],
+      ["Photos/2019/b.jpg", "images"],
+      ["models/m.gguf", "models"]
+    ]
   );
   assert.equal(rows[0].sha256, await hashFile(path.join(root, "Docs", "c.pdf")));
   assert.equal(kindOf("x.MKV"), "video");
@@ -80,7 +92,11 @@ test("a folder's files are read together, before the walk moves on", async () =>
   await catalogue({ root, dbPath: path.join(tmp(), "lib.db"), hash });
   const folders = read.map((f) => path.dirname(path.relative(root, f)));
   const runs = folders.filter((d, i) => d !== folders[i - 1]);
-  assert.equal(new Set(runs).size, runs.length, `each folder is visited once: ${folders.join(", ")}`);
+  assert.equal(
+    new Set(runs).size,
+    runs.length,
+    `each folder is visited once: ${folders.join(", ")}`
+  );
 });
 
 // --- Scenario: a stopped catalogue resumes without re-reading ----------------------------------------
@@ -132,12 +148,17 @@ test("a pass stopped before reaching a file keeps that file's row", async () => 
   const dbPath = path.join(tmp(), "lib.db");
   await catalogue({ root, dbPath });
   const before = rowsOf(dbPath);
-  for (const f of ["Photos/2019/a.jpg", "models/m.gguf"]) write(root, f, `changed ${f}`, new Date(Date.now() - 600_000));
+  for (const f of ["Photos/2019/a.jpg", "models/m.gguf"])
+    write(root, f, `changed ${f}`, new Date(Date.now() - 600_000));
   const ctl = new AbortController();
   const stopAtOnce = (f) => (ctl.abort(), hashFile(f));
   const r = await catalogue({ root, dbPath, hash: stopAtOnce, signal: ctl.signal });
   assert.equal(r.stopped, true);
-  assert.deepEqual(rowsOf(dbPath).map((x) => x.path), before.map((x) => x.path), "every row is still there");
+  assert.deepEqual(
+    rowsOf(dbPath).map((x) => x.path),
+    before.map((x) => x.path),
+    "every row is still there"
+  );
 });
 
 test("rows under a folder that cannot be read are kept, and an unreadable root never finishes", async () => {
@@ -148,7 +169,8 @@ test("rows under a folder that cannot be read are kept, and an unreadable root n
   // Docs refuses to be listed (a permission change, a failing sector): unread is not gone
   const real = fsp.readdir;
   fsp.readdir = async (d, ...a) => {
-    if (path.basename(String(d)) === "Docs") throw Object.assign(new Error("denied"), { code: "EPERM" });
+    if (path.basename(String(d)) === "Docs")
+      throw Object.assign(new Error("denied"), { code: "EPERM" });
     return real(d, ...a);
   };
   let r;
@@ -161,7 +183,11 @@ test("rows under a folder that cannot be read are kept, and an unreadable root n
   assert.equal(r.removed, 0);
   assert.equal(rowsOf(dbPath).length, n, "Docs' two rows are still there");
   const gone = await catalogue({ root: path.join(root, "gone"), dbPath }).catch((e) => e);
-  assert.match(String(gone.message), /cannot be read/u, "a missing root is an error, not an empty drive");
+  assert.match(
+    String(gone.message),
+    /cannot be read/u,
+    "a missing root is an error, not an empty drive"
+  );
   assert.equal(rowsOf(dbPath).length, n, "and it removed nothing");
 });
 
@@ -193,7 +219,9 @@ test("the first pass logs one summary per batch; per-file history starts after a
   const first = readKelEvents(log);
   assert.equal(first.ok, true);
   assert.ok(first.events.length >= 3, "a summary per committed batch");
-  assert.ok(first.events.every((e) => e.type === "sweep_recorded" && e.payload.scope === "library"));
+  assert.ok(
+    first.events.every((e) => e.type === "sweep_recorded" && e.payload.scope === "library")
+  );
   assert.match(first.events.at(-1).payload.digest, /^[0-9a-f]{64}$/u);
 
   write(root, "new/e.txt", "added later");
@@ -228,7 +256,10 @@ test("duplicates are a catalogue query: one set, its wasted bytes, and no file o
   assert.equal(sets.length, 1, "two empty files are not a duplicate worth naming");
   assert.equal(sets[0].copies, 2);
   assert.equal(sets[0].wasted, "photo a".length);
-  assert.deepEqual(sets[0].paths.map((p) => path.relative(root, p)).sort(), [path.join("Backup", "old", "a-copy.jpg"), path.join("Photos", "2019", "a.jpg")]);
+  assert.deepEqual(sets[0].paths.map((p) => path.relative(root, p)).sort(), [
+    path.join("Backup", "old", "a-copy.jpg"),
+    path.join("Photos", "2019", "a.jpg")
+  ]);
 });
 
 // --- Scenario: a private file is counted, not listed -------------------------------------------------
@@ -262,7 +293,10 @@ test("a catalogue that never finished is refused to a comparison; none at all is
   try {
     assert.ok(look.finishedAt);
     assert.equal(look.hasSize("photo a".length), true);
-    assert.equal(look.byHash(await hashFile(path.join(root, "Photos", "2019", "a.jpg")))[0].full, path.join(root, "Photos", "2019", "a.jpg"));
+    assert.equal(
+      look.byHash(await hashFile(path.join(root, "Photos", "2019", "a.jpg")))[0].full,
+      path.join(root, "Photos", "2019", "a.jpg")
+    );
   } finally {
     look.close();
   }
@@ -299,7 +333,12 @@ async function hub({ quarantine = ["passport"], roots, estateStore = tmp() }) {
   const home = tmp();
   const api = createEstateApi({
     quarantine,
-    producer: { machine: "T480", dbPath: path.join(home, "estate", "estate-map-T480.db"), roots: () => roots, estateStore }
+    producer: {
+      machine: "T480",
+      dbPath: path.join(home, "estate", "estate-map-T480.db"),
+      roots: () => roots,
+      estateStore
+    }
   });
   const server = http.createServer((req, res) => {
     if (!api.tryHandle(req, res)) res.writeHead(404).end();
@@ -350,7 +389,11 @@ test("the library refuses without a policy, for roots not offered, and from anot
   const none = await hub({ quarantine: null, roots: [root], estateStore });
   try {
     assert.equal((await none.call("/library", { root })).status, 412);
-    assert.equal(JSON.parse((await none.call("/library")).text).catalogues[root], null, "no policy, nothing named");
+    assert.equal(
+      JSON.parse((await none.call("/library")).text).catalogues[root],
+      null,
+      "no policy, nothing named"
+    );
   } finally {
     await none.close();
   }
@@ -361,11 +404,27 @@ test("the library refuses without a policy, for roots not offered, and from anot
   } finally {
     await h.close();
   }
-  const api = createEstateApi({ quarantine: [], producer: { machine: "T480", dbPath: path.join(tmp(), "x.db"), roots: () => [root], estateStore: tmp() } });
-  for (const [method, url] of [["GET", "/api/estate/library"], ["GET", "/api/estate/library.csv?root=x"], ["POST", "/api/estate/library/stop"], ["POST", "/api/estate/compare/stop"]]) {
+  const api = createEstateApi({
+    quarantine: [],
+    producer: {
+      machine: "T480",
+      dbPath: path.join(tmp(), "x.db"),
+      roots: () => [root],
+      estateStore: tmp()
+    }
+  });
+  for (const [method, url] of [
+    ["GET", "/api/estate/library"],
+    ["GET", "/api/estate/library.csv?root=x"],
+    ["POST", "/api/estate/library/stop"],
+    ["POST", "/api/estate/compare/stop"]
+  ]) {
     const status = await new Promise((resolve) => {
       const res = { writeHead: (s) => ((res.status = s), res), end: () => resolve(res.status) };
-      api.tryHandle({ method, url, socket: { remoteAddress: "192.168.68.125" }, headers: {}, on() {} }, res);
+      api.tryHandle(
+        { method, url, socket: { remoteAddress: "192.168.68.125" }, headers: {}, on() {} },
+        res
+      );
     });
     assert.equal(status, 403, `${method} ${url}`);
   }
@@ -387,7 +446,11 @@ const moveAway = async (from, to) => {
 const stopAfter = (n) => {
   const ctl = new AbortController();
   const read = [];
-  return { signal: ctl.signal, read, hash: (f) => (read.push(f), read.length === n && ctl.abort(), hashFile(f)) };
+  return {
+    signal: ctl.signal,
+    read,
+    hash: (f) => (read.push(f), read.length === n && ctl.abort(), hashFile(f))
+  };
 };
 
 test("D1: a file moved or deleted between a stop and the resume leaves no row behind", async () => {
@@ -396,7 +459,10 @@ test("D1: a file moved or deleted between a stop and the resume leaves no row be
   write(root, "z/keep.txt", "the folder walked last");
   const dbPath = path.join(tmp(), "lib.db");
   const s = stopAfter(7);
-  assert.equal((await catalogue({ root, dbPath, batch: 2, signal: s.signal, hash: s.hash })).stopped, true);
+  assert.equal(
+    (await catalogue({ root, dbPath, batch: 2, signal: s.signal, hash: s.hash })).stopped,
+    true
+  );
   // between the nights: a committed file moves into a folder not yet walked, another is deleted
   fs.renameSync(path.join(root, "a", "00.txt"), path.join(root, "z", "00-moved.txt"));
   fs.rmSync(path.join(root, "a", "01.txt"));
@@ -404,7 +470,11 @@ test("D1: a file moved or deleted between a stop and the resume leaves no row be
   assert.equal(r.finished, true);
   const whole = path.join(tmp(), "whole.db");
   await catalogue({ root, dbPath: whole });
-  assert.deepEqual(rowsOf(dbPath).map((x) => x.path), rowsOf(whole).map((x) => x.path), "equal to an uninterrupted pass");
+  assert.deepEqual(
+    rowsOf(dbPath).map((x) => x.path),
+    rowsOf(whole).map((x) => x.path),
+    "equal to an uninterrupted pass"
+  );
   assert.equal(duplicateSets(dbPath, root).length, 0, "no phantom duplicate of the moved file");
 });
 
@@ -436,7 +506,11 @@ test("D2: a drive that goes away mid-pass never finishes the catalogue", async (
   };
   const r = await catalogue({ root, dbPath, batch: 1, hash: unplugAfter2 }).catch((e) => e);
   assert.match(String(r.message), /went away/u, "an error, not finished:true");
-  assert.match(catalogueLookup(dbPath, root).refused, /never finished/u, "and a comparison still refuses it");
+  assert.match(
+    catalogueLookup(dbPath, root).refused,
+    /never finished/u,
+    "and a comparison still refuses it"
+  );
   assert.ok(rowsOf(dbPath).length >= 1, "what was read and committed is kept");
 });
 
@@ -483,7 +557,8 @@ test("D2: folders that cannot be read are counted", async () => {
   const root = tree();
   const real = fsp.readdir;
   fsp.readdir = async (d, ...a) => {
-    if (path.basename(String(d)) === "Docs") throw Object.assign(new Error("denied"), { code: "EPERM" });
+    if (path.basename(String(d)) === "Docs")
+      throw Object.assign(new Error("denied"), { code: "EPERM" });
     return real(d, ...a);
   };
   let r;
@@ -508,17 +583,23 @@ test("D3: the summary is worked out off the hub's thread, kept, and re-made when
   assert.equal(first.last.finished_at !== null, true, "the pass itself is known at once");
   assert.equal(lib.csvPath(root), null, "no list until it is worked out");
   let s;
-  for (let i = 0; i < 300 && (s = lib.state(root)).computing; i++) await new Promise((r) => setTimeout(r, 20));
+  for (let i = 0; i < 300 && (s = lib.state(root)).computing; i++)
+    await new Promise((r) => setTimeout(r, 20));
   assert.equal(s.duplicates.sets, 1);
   assert.match(fs.readFileSync(lib.csvPath(root), "utf8"), /old\.jpg/u);
   // the owner adds a rule: nothing worked out under the old rules may be shown again
-  const strict = createLibrarian({ dir: path.join(store, "library"), skip: [store], rules: [/jobs/iu] });
+  const strict = createLibrarian({
+    dir: path.join(store, "library"),
+    skip: [store],
+    rules: [/jobs/iu]
+  });
   const after = strict.state(root);
   assert.equal(after.computing, true);
   assert.equal(after.duplicates ?? null, null, "not the old answer, which named Jobs/old.jpg");
   assert.equal(strict.csvPath(root), null);
   let t;
-  for (let i = 0; i < 300 && (t = strict.state(root)).computing; i++) await new Promise((r) => setTimeout(r, 20));
+  for (let i = 0; i < 300 && (t = strict.state(root)).computing; i++)
+    await new Promise((r) => setTimeout(r, 20));
   assert.equal(t.duplicates.private, 1);
   assert.doesNotMatch(fs.readFileSync(strict.csvPath(root), "utf8"), /old\.jpg/u);
 });
@@ -537,14 +618,20 @@ test("D4: the hub skips the whole estate store when it sits on the drive", async
     await h.close();
   }
   const db = libraryPath(path.join(store, "library"), root);
-  assert.ok(!rowsOf(db).some((x) => x.path.startsWith("estate-store")), rowsOf(db).map((x) => x.path).join(", "));
+  assert.ok(
+    !rowsOf(db).some((x) => x.path.startsWith("estate-store")),
+    rowsOf(db)
+      .map((x) => x.path)
+      .join(", ")
+  );
 });
 
 // --- claude-s21-verifier-2's FAIL (round 2) ----------------------------------------------------------
 
 const waitState = async (lib, root, done = (x) => !x.computing) => {
   let s;
-  for (let i = 0; i < 400 && !done((s = lib.state(root))); i++) await new Promise((r) => setTimeout(r, 20));
+  for (let i = 0; i < 400 && !done((s = lib.state(root))); i++)
+    await new Promise((r) => setTimeout(r, 20));
   return s;
 };
 
@@ -591,7 +678,12 @@ test("D6: a duplicates list made under other rules is never served, even when it
     fs.chmodSync(json, 0o644);
   }
   const served = strict.csvPath(root);
-  if (served) assert.doesNotMatch(fs.readFileSync(served, "utf8"), /a-private-copy/u, "the strict hub serves only its own list");
+  if (served)
+    assert.doesNotMatch(
+      fs.readFileSync(served, "utf8"),
+      /a-private-copy/u,
+      "the strict hub serves only its own list"
+    );
   const st = strict.state(root);
   if (!st.computing) assert.equal(st.duplicates.private, 1);
 });
@@ -610,7 +702,11 @@ test("an older-format catalogue is migrated, not broken by", async () => {
   old.close();
   const r = await catalogue({ root, dbPath });
   assert.equal(r.finished, true);
-  assert.equal(r.removed, 1, "the old row of a file no longer there is removed by the finished pass");
+  assert.equal(
+    r.removed,
+    1,
+    "the old row of a file no longer there is removed by the finished pass"
+  );
   assert.equal(rowsOf(dbPath).length, 5);
 });
 
@@ -621,7 +717,11 @@ test("a finished pass keeps the rows of files that are settling or could not be 
   write(root, "Docs/c.pdf", "being rewritten now", new Date()); // inside the settle window
   const unreadable = path.join(root, "Photos", "2019", "a.jpg");
   write(root, "Photos/2019/a.jpg", "photo a, edited", new Date(Date.now() - 600_000));
-  const r = await catalogue({ root, dbPath, hash: (f) => (f === unreadable ? Promise.reject(new Error("EBUSY")) : hashFile(f)) });
+  const r = await catalogue({
+    root,
+    dbPath,
+    hash: (f) => (f === unreadable ? Promise.reject(new Error("EBUSY")) : hashFile(f))
+  });
   assert.equal(r.finished, true);
   assert.equal(r.removed, 0);
   const paths = rowsOf(dbPath).map((x) => x.path);
@@ -636,7 +736,10 @@ test("the summary is worked out again after every new pass", async () => {
   assert.equal((await waitState(lib, root)).duplicates.sets, 0);
   write(root, "Backup/a-again.jpg", "photo a");
   await lib.start(root).done;
-  assert.equal((await waitState(lib, root, (x) => !x.computing && x.duplicates?.sets === 1)).duplicates.sets, 1);
+  assert.equal(
+    (await waitState(lib, root, (x) => !x.computing && x.duplicates?.sets === 1)).duplicates.sets,
+    1
+  );
 });
 
 test("the store folder is skipped whatever case its path is written in", async () => {
@@ -650,7 +753,12 @@ test("the store folder is skipped whatever case its path is written in", async (
 test("progress never carries a file's name", async () => {
   const root = tree();
   const seen = [];
-  await catalogue({ root, dbPath: path.join(tmp(), "lib.db"), batch: 1, onProgress: (p) => seen.push(JSON.stringify(p)) });
+  await catalogue({
+    root,
+    dbPath: path.join(tmp(), "lib.db"),
+    batch: 1,
+    onProgress: (p) => seen.push(JSON.stringify(p))
+  });
   assert.ok(seen.length > 0);
   assert.doesNotMatch(seen.join("\n"), /a\.jpg|c\.pdf|d\.txt|m\.gguf|Photos|Docs/u);
 });
@@ -752,4 +860,120 @@ test("an old list under the same rules is removed once the new summary is saved,
   assert.ok(!fs.existsSync(first), "the previous pass's list is gone");
   assert.ok(!fs.existsSync(`${first}.tmp`), "and so is the half-written one");
   assert.ok(lib.csvPath(root));
+});
+
+// --- S22: the questions an agent asks of the catalogue ------------------------------------------
+// S21 answers "what is on this drive" for the panel. S22 answers three questions for Benny, and the
+// privacy judgement must happen HERE, in the hub, before any name leaves it: an agent's answer can
+// be harvested into a training trace (EP-A P5), so a name withheld from the panel but handed to a
+// tool would leak by the longer route. Each test below pairs a name that IS returned with one that
+// must only ever be counted.
+
+const QUERY_TREE = () => {
+  const root = tmp();
+  write(root, "Photos/2019/holiday-beach.jpg", "beach bytes");
+  write(root, "Photos/2019/holiday-passport-scan.jpg", "passport bytes"); // private by rule
+  write(root, "Photos/2024/holiday-later.jpg", "later bytes");
+  write(root, "Docs/holiday-itinerary.pdf", "itinerary");
+  return root;
+};
+
+test("Scenario: finding a file names only what the rules allow", async () => {
+  const root = QUERY_TREE();
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root, dbPath })).finished, true);
+
+  const r = findFiles(dbPath, root, ["passport"], { q: "holiday", limit: 50 });
+  const named = r.matches.map((m) => path.basename(m.full)).sort();
+  assert.deepEqual(named, ["holiday-beach.jpg", "holiday-itinerary.pdf", "holiday-later.jpg"]);
+  assert.equal(r.withheld, 1, "the private match is counted");
+  assert.equal(r.total, 4, "the total says how many matched before the rules");
+  assert.ok(r.matches.every((m) => typeof m.size === "number" && m.kind));
+  // the paired negative: the private name appears NOWHERE in the answer, not even in a field we
+  // did not think to check
+  assert.equal(JSON.stringify(r).includes("passport"), false);
+
+  // kind narrows, case does not matter
+  const imgs = findFiles(dbPath, root, ["passport"], { q: "HOLIDAY", kind: "images" });
+  assert.deepEqual(imgs.matches.map((m) => path.basename(m.full)).sort(), [
+    "holiday-beach.jpg",
+    "holiday-later.jpg"
+  ]);
+  // limit caps what is named but not what is counted
+  const one = findFiles(dbPath, root, ["passport"], { q: "holiday", limit: 1 });
+  assert.equal(one.matches.length, 1);
+  assert.equal(one.total, 4);
+});
+
+test("Scenario: 'is this already on F:' reads only the thing asked about", async () => {
+  const root = QUERY_TREE();
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root, dbPath })).finished, true);
+
+  const elsewhere = tmp();
+  const same = write(elsewhere, "mixed/holiday-beach.jpg", "beach bytes"); // byte-identical to F:
+  const novel = write(elsewhere, "mixed/notes.txt", "nothing like it");
+
+  const spy = countingHash();
+  const r = await checkPaths(dbPath, root, ["passport"], {
+    paths: [path.join(elsewhere, "mixed")],
+    hash: spy.hash
+  });
+  const by = Object.fromEntries(r.files.map((f) => [path.basename(f.path), f]));
+  assert.equal(by["holiday-beach.jpg"].verdict, "on-root");
+  assert.deepEqual(
+    by["holiday-beach.jpg"].at.map((a) => path.basename(a)),
+    ["holiday-beach.jpg"]
+  );
+  assert.equal(by["notes.txt"].verdict, "absent");
+  assert.equal(r.total, 2);
+
+  // NO FILE ON THE CATALOGUED DRIVE IS OPENED FOR ITS DATA: every hash read is under the folder
+  // asked about. This is the whole point of having a catalogue.
+  assert.ok(spy.read.length > 0, "it did hash the files it was asked about");
+  for (const f of spy.read)
+    assert.ok(f.startsWith(elsewhere), `hashed something outside the folder asked about: ${f}`);
+  assert.equal(
+    spy.read.some((f) => f.startsWith(root)),
+    false
+  );
+  (void same, novel);
+});
+
+test("Scenario: a file changed on F: since cataloguing is not a copy", async () => {
+  const root = QUERY_TREE();
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root, dbPath })).finished, true);
+
+  const elsewhere = tmp();
+  write(elsewhere, "holiday-beach.jpg", "beach bytes");
+
+  // the catalogue still says those bytes are at this path, but the file there is no longer them
+  write(root, "Photos/2019/holiday-beach.jpg", "beach bytes CHANGED", new Date());
+
+  const r = await checkPaths(dbPath, root, ["passport"], {
+    paths: [path.join(elsewhere, "holiday-beach.jpg")]
+  });
+  assert.equal(r.files[0].verdict, "changed", JSON.stringify(r.files[0]));
+  assert.notEqual(r.files[0].verdict, "on-root", "a stale row must never read as a safe copy");
+});
+
+test("Scenario: no finished catalogue is said, not hidden", async () => {
+  const root = QUERY_TREE();
+  const dbPath = path.join(tmp(), "lib.db");
+
+  // (a) no catalogue at all
+  assert.equal(findFiles(dbPath, root, [], { q: "holiday" }), null);
+  assert.equal(await checkPaths(dbPath, root, [], { paths: [root] }), null);
+
+  // (b) a catalogue that exists but has never finished — the dangerous case, because "no match"
+  // would mean "not reached yet" rather than "not on the drive"
+  const stop = stopAfter(1); // it aborts through its own hash, so both must be wired
+  await catalogue({ root, dbPath, signal: stop.signal, hash: stop.hash }).catch(() => {});
+  const f = findFiles(dbPath, root, [], { q: "holiday" });
+  const c = await checkPaths(dbPath, root, [], { paths: [root] });
+  assert.match(f.refused, /never finished/u);
+  assert.match(c.refused, /never finished/u);
+  assert.equal(f.matches, undefined, "a refusal is never an empty list");
+  assert.equal(c.files, undefined);
 });
