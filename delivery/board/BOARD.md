@@ -7,7 +7,6 @@
 
 ## READY (take from the top)
 
-- S22 — the librarian answers: Benny replies from S21's catalogue, never reading F: _(dep S21 DONE 2026-10-18; already signed 2026-10-10. Placed at the TOP of READY because it is the only thing M13's one outcome still needs built — the owner asking a question and getting a cited answer.)_
 
 - U0 — the drive registry: every drive by identity, Windows identity byte-identical to S21 _(dep S21 DONE 2026-10-18; already signed 2026-10-11. Enters READY below S22; owner may reorder.)_
 
@@ -21,6 +20,7 @@
 
 ## CLAIMED (agent · date)
 
+- S22 — the librarian answers: Benny replies from S21's catalogue, never reading F: · claude-opus-5 · 2026-10-18 _(WIP 0 before this. The only thing M13's one outcome still needs built. Signed by the owner 2026-10-10; budget 600, 7 scenarios.)_
 
 
 
