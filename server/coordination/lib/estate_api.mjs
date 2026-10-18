@@ -203,10 +203,9 @@ export function createEstateApi({
   // (owner, 2026-10-10). The WHOLE store is skipped when the drive catalogued holds it — its event
   // logs and catalogues are not the owner's files (claude-s21-verifier: skipping only <store>/library
   // made 25 store files rows, and the source of every re-hash in a rescan).
-  // S22 point 6: the store is a DECLARED RUNTIME PARAMETER, never a literal. A machine path shipped
-  // as a default is wrong on every machine but one — the ASUS and the Pi have no F: — and it was
-  // read from raw process.env, bypassing Prime-Silo's precedence. server/app.js now resolves
-  // ESTATE_STORE through runtime_params and passes it. Unset is SAID, not guessed (point 7).
+  // S22 point 6: the store is a DECLARED PARAMETER, never a literal. A machine path shipped as a
+  // default is wrong on every machine but one (the ASUS and the Pi have no F:), and raw process.env
+  // bypassed Prime-Silo's precedence. app.js resolves it; unset is SAID, not guessed (point 7).
   const store = producer?.estateStore ?? "";
   const storeUnset = {
     error: "ESTATE_STORE is not set — run: node space set ESTATE_STORE=<folder>"
@@ -230,6 +229,7 @@ export function createEstateApi({
       list: producer.list ?? listRoot,
       catalogue: (to) => librarian.lookup(to)
     });
+  const SURFACES = new Set(["panel", "skill", "mcp"]);
   const NO_POLICY = "no quarantine policy — the catalogue would list private files (R31)";
   const local = (req) =>
     ["127.0.0.1", "::1"].includes(String(req.socket?.remoteAddress ?? "").replace(/^::ffff:/u, ""));
@@ -422,10 +422,9 @@ export function createEstateApi({
         });
         return;
       }
-      // S22 — the three questions Benny asks. Same guards as the panel's routes (this machine only,
-      // a policy must exist) and the SAME JUDGE: find, check and the worker's own list filter against
-      // the rules before anything is returned, so the skill and an outside MCP client can never be
-      // told a name the panel would withhold.
+      // S22 — the three questions Benny asks. The panel's guards (this machine only, a policy must
+      // exist) and the SAME JUDGE, so neither the skill nor an outside MCP client can be told a
+      // name the panel would withhold.
       if (rest === "/library/find" || rest === "/library/duplicates") {
         if (req.method !== "GET") return sendJson(res, 405, { error: "GET" });
         if (!Array.isArray(quarantine)) return sendJson(res, 412, { error: NO_POLICY });
@@ -435,6 +434,10 @@ export function createEstateApi({
           return sendJson(res, 400, { error: "root must be one this machine offers", roots });
         const num = (k, d, max) =>
           Math.min(Math.max(Number(u.searchParams.get(k) ?? d) || 0, 0), max);
+        // for the audit event only - a label, not a guard: every caller gets the same answer
+        const surface = SURFACES.has(u.searchParams.get("surface"))
+          ? u.searchParams.get("surface")
+          : "unknown";
         if (rest === "/library/find") {
           const r = librarian.find(root, {
             q: u.searchParams.get("q") ?? "",
@@ -443,6 +446,13 @@ export function createEstateApi({
           });
           if (!r)
             return sendJson(res, 404, { error: `${root} has no catalogue: catalogue it first` });
+          if (!r.refused)
+            librarian.audit(root, {
+              surface,
+              kind: "find",
+              returned: r.matches.length,
+              withheld: r.withheld
+            });
           return sendJson(res, r.refused ? 409 : 200, r.refused ? { error: r.refused } : r);
         }
         const d = librarian.duplicatesPage(root, {
@@ -455,6 +465,12 @@ export function createEstateApi({
           return sendJson(res, 202, {
             error: "the duplicates are still being worked out: try again in a minute"
           });
+        librarian.audit(root, {
+          surface,
+          kind: "duplicates",
+          returned: d.sets.length,
+          withheld: 0
+        });
         return sendJson(res, 200, d);
       }
       if (rest === "/library/check") {
@@ -469,6 +485,13 @@ export function createEstateApi({
           );
           if (!paths.length) return sendJson(res, 400, { error: "path (or paths) is required" });
           const r = await librarian.check(root, { paths });
+          if (r && !r.refused)
+            librarian.audit(root, {
+              surface: SURFACES.has(b.surface) ? b.surface : "unknown",
+              kind: "check",
+              returned: r.files.length,
+              withheld: r.files.reduce((n, f) => n + (f.withheld || 0), 0)
+            });
           if (!r)
             return sendJson(res, 404, { error: `${root} has no catalogue: catalogue it first` });
           sendJson(res, r.refused ? 409 : 200, r.refused ? { error: r.refused } : r);

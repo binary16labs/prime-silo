@@ -158,6 +158,27 @@ fetch("/api/integration_audit?service=memoray").then(r => r.json())
 # Returns: { service: "memoray", connected: true/false, url: "...", ... }
 ```
 
+### Files Catalogue (librarian)
+
+What is on this machine's catalogued drives, answered from the catalogue and never by reading the
+drive. In the app, load the `librarian` skill
+(`/mod/_prime_silo/estate_map/ext/skills/librarian/librarian.js`); from outside, the
+`prime-silo-nexus` MCP server offers three tools:
+
+| Tool | Answers |
+| --- | --- |
+| `library_find` | files whose path contains some text, with size, date and kind |
+| `library_duplicates` | duplicate sets, most space wasted first |
+| `library_check` | is this file or folder already on a catalogued drive |
+
+**What they refuse.** They are reads, as this document requires of agents. They cannot start, stop
+or schedule a catalogue pass, change the catalogue, or move, copy or delete anything — when a pass
+is needed, tell the owner the button (Estate Map -> Library -> Catalogue F:). Private paths are
+**counted, never named**: a `withheld` figure is all you get, and guessing at what it covers
+defeats the rule the owner set. Neither the skill nor the tools open a catalogue file; they ask the
+hub, which is the one place those rules are applied. With the hub down they say so rather than
+reading around it. See `docs/server/estate-library.md`.
+
 ### Bridge Status
 
 Check if Bridge cockpit is available:

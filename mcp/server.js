@@ -7,8 +7,45 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import neo4j from "neo4j-driver";
 
+import { getProjectEnvFilePath, readDotEnvFile } from "../server/lib/utils/env_files.js";
+
+const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+// S22 point 8: THE HUB IS FOUND FROM LOCAL CONFIG AND THE ANSWER SAYS WHERE FROM. PRIME_SILO_API
+// wins, else the project .env's HOST and PORT through the shared helper, so a foreign or stale .env
+// (the ASUS one that pointed Benny at a D: home and the wrong subnet) shows up in the answer rather
+// than being queried in silence. 0.0.0.0 is a bind address, read as 127.0.0.1; PORT=0 is unknowable.
+export function resolveHub({ env = process.env, projectRoot = PROJECT_ROOT } = {}) {
+  if (env.PRIME_SILO_API)
+    return { url: String(env.PRIME_SILO_API).replace(/[/]+$/u, ""), from: "PRIME_SILO_API" };
+  let stored = {};
+  try {
+    stored = readDotEnvFile(getProjectEnvFilePath(projectRoot)) || {};
+  } catch {
+    stored = {};
+  }
+  const port = String(stored.PORT ?? "").trim();
+  if (port === "0")
+    return {
+      error:
+        "the hub's port is PORT=0 in .env, so the OS picks it at startup and it cannot be known " +
+        "from config. Set PRIME_SILO_API to the address the app is actually serving.",
+      from: ".env"
+    };
+  const host = String(stored.HOST ?? "").trim();
+  const reachable = !host || host === "0.0.0.0" || host === "::" ? "127.0.0.1" : host;
+  return { url: "http://" + reachable + ":" + (port || "3000"), from: ".env" };
+}
+
 // Q0: single resolution path — env BENNY_API_KEY -> per-install keystore
 // ($BENNY_HOME/state/hmac-key) -> fail fast at startup. No shipped default remains.
+// Every library answer names the hub it asked and where that address came from, so a stale .env is
+// visible in the answer rather than silently queried.
+const libraryAnswer = (result) => ({
+  content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+  isError: result.ok === false
+});
+
 const BENNY_API_KEY = (() => {
   if (process.env.BENNY_API_KEY) return process.env.BENNY_API_KEY;
   const bennyHome = process.env.BENNY_HOME;
@@ -143,6 +180,65 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             }
           },
           required: ["task"]
+        }
+      },
+      // --- S22: the files catalogue. THIN CLIENTS OF THE HUB, never readers of the catalogue.
+      // The hub applies the owner's rules and counts what it withholds. With it down they say so:
+      // reading the SQLite file would be a second judge, and the first to drift would leak.
+      {
+        name: "library_find",
+        description:
+          "Find files on one of this machine's catalogued drives by text in their path, from " +
+          "Prime-Silo's catalogue (never by reading the drive). Returns size, date and kind, and " +
+          "says how many matches were withheld as private without naming them. Use for 'where " +
+          "are my 2019 photos' or 'do I have a file called X'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            root: { type: "string", description: "Drive root as the hub offers it, e.g. 'F:'" },
+            q: { type: "string", description: "Text the path must contain (case-insensitive)" },
+            kind: {
+              type: "string",
+              description: "Narrow to one kind: images, documents, models, other"
+            },
+            limit: { type: "number", description: "Most names to return (default 50)" }
+          },
+          required: ["root", "q"]
+        }
+      },
+      {
+        name: "library_duplicates",
+        description:
+          "Duplicate sets on a catalogued drive, the most space wasted first, read from the list " +
+          "the hub has already worked out. Private copies are counted in the set, never named, so " +
+          "the copies shown are the ones you may act on. Use for 'what is wasting space'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            root: { type: "string", description: "Drive root, e.g. 'F:'" },
+            offset: { type: "number", description: "Sets to skip (default 0)" },
+            limit: { type: "number", description: "Sets to return (default 20)" }
+          },
+          required: ["root"]
+        }
+      },
+      {
+        name: "library_check",
+        description:
+          "Is this file, or every file under this folder, already on a catalogued drive? Reads " +
+          "only the path given. Answers per file: on-root with where, 'changed' when the bytes " +
+          "match a catalogued row whose file has since changed (NOT a safe copy), or absent. Use " +
+          "before copying or deleting anything - but this tool only reads; the human acts.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            path: { type: "string", description: "File or folder to check" },
+            root: {
+              type: "string",
+              description: "Drive to check against (default: the hub's first)"
+            }
+          },
+          required: ["path"]
         }
       },
       // --- B2: coordination surface. Same ledger the `benny coord` CLI speaks to; thin client of
@@ -505,6 +601,54 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
           isError: result.ok === false
         };
+      }
+
+      // --- S22: the catalogue, through the hub that judges privacy ---
+      case "library_find":
+      case "library_duplicates":
+      case "library_check": {
+        const hub = resolveHub();
+        if (hub.error)
+          return libraryAnswer({ ok: false, error: hub.error, hub: null, address_from: hub.from });
+        const q = new URLSearchParams({ surface: "mcp" });
+        if (args?.root) q.set("root", args.root);
+        let url = hub.url + "/api/estate/library";
+        let init;
+        if (name === "library_find") {
+          q.set("q", String(args?.q ?? ""));
+          if (args?.kind) q.set("kind", String(args.kind));
+          if (args?.limit) q.set("limit", String(args.limit));
+          url += "/find?" + q;
+        } else if (name === "library_duplicates") {
+          if (args?.offset) q.set("offset", String(args.offset));
+          if (args?.limit) q.set("limit", String(args.limit));
+          url += "/duplicates?" + q;
+        } else {
+          url += "/check";
+          init = {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ path: args?.path, root: args?.root, surface: "mcp" })
+          };
+        }
+        try {
+          const res = await fetch(url, init);
+          const body = await res.json().catch(() => ({}));
+          return libraryAnswer({ ok: res.ok, ...body, hub: hub.url, address_from: hub.from });
+        } catch (e) {
+          // NO FALLBACK TO THE FILE: a second judge of the owner's rules is one drift from a leak.
+          return libraryAnswer({
+            ok: false,
+            error:
+              "the Prime-Silo hub is not running at " +
+              hub.url +
+              " (" +
+              (e?.message || e) +
+              ") - start the app, or set PRIME_SILO_API",
+            hub: hub.url,
+            address_from: hub.from
+          });
+        }
       }
 
       default:

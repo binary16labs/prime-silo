@@ -349,7 +349,7 @@ async function hub({ quarantine = ["passport"], roots, estateStore = tmp() }) {
     const res = await fetch(base + p, body ? { method: "POST", body: JSON.stringify(body) } : {});
     return { status: res.status, text: await res.text() };
   };
-  return { call, close: () => new Promise((r) => server.close(r)) };
+  return { call, estateStore, close: () => new Promise((r) => server.close(r)) };
 }
 
 test("the hub catalogues on request, shows the duplicates, and serves them as CSV", async () => {
@@ -976,4 +976,115 @@ test("Scenario: no finished catalogue is said, not hidden", async () => {
   assert.match(c.refused, /never finished/u);
   assert.equal(f.matches, undefined, "a refusal is never an empty list");
   assert.equal(c.files, undefined);
+});
+
+// --- S22: the routes, and the audit the questions leave behind ----------------------------------
+
+test("Scenario: the query routes refuse without a policy, and say when the store is unset", async () => {
+  const root = QUERY_TREE();
+
+  // no policy: the catalogue would list private files, so nothing is answered (R31)
+  const open = await hub({ quarantine: null, roots: [root] });
+  try {
+    for (const p of [
+      `/library/find?root=${encodeURIComponent(root)}&q=holiday`,
+      `/library/duplicates?root=${encodeURIComponent(root)}`
+    ])
+      assert.equal((await open.call(p)).status, 412, p);
+    const chk = await open.call("/library/check", { path: root });
+    assert.equal(chk.status, 412);
+  } finally {
+    await open.close();
+  }
+
+  // ESTATE_STORE unset: said, not guessed, and nothing is read from a built-in path
+  const unset = await hub({ roots: [root], estateStore: "" });
+  try {
+    const r = await unset.call(`/library/find?root=${encodeURIComponent(root)}&q=holiday`);
+    assert.equal(r.status, 503);
+    assert.match(JSON.parse(r.text).error, /ESTATE_STORE is not set/u);
+    assert.match(JSON.parse(r.text).error, /node space set/u, "it says how to set it");
+    // the paired positive: with a store configured the same request is answered. Closed, or the
+    // listening server keeps the test process alive for ever.
+    const configured = await hub({ roots: [root] });
+    try {
+      assert.notEqual(
+        (await configured.call(`/library/find?root=${encodeURIComponent(root)}&q=holiday`)).status,
+        503
+      );
+    } finally {
+      await configured.close();
+    }
+  } finally {
+    await unset.close();
+  }
+});
+
+test("Scenario: the routes answer the agent's questions and never name a private file", async () => {
+  const root = QUERY_TREE();
+  const h = await hub({ roots: [root] });
+  try {
+    assert.equal((await h.call("/library", { root })).status, 202);
+    for (let i = 0; i < 400; i++) {
+      if (!JSON.parse((await h.call("/library")).text).running) break;
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    const enc = encodeURIComponent(root);
+    const found = await h.call(`/library/find?root=${enc}&q=holiday&surface=skill`);
+    assert.equal(found.status, 200);
+    const body = JSON.parse(found.text);
+    assert.equal(body.matches.length, 3);
+    assert.equal(body.withheld, 1);
+    // the whole body, not a field we thought to check
+    assert.equal(found.text.includes("passport"), false, "no private name in the JSON");
+
+    const checked = await h.call("/library/check", {
+      root,
+      path: path.join(root, "Docs"),
+      surface: "skill"
+    });
+    assert.equal(checked.status, 200);
+    assert.equal(JSON.parse(checked.text).files[0].verdict, "on-root");
+
+    // a root this machine does not offer is refused rather than answered about
+    assert.equal((await h.call("/library/find?root=Z:&q=x")).status, 400);
+  } finally {
+    await h.close();
+  }
+});
+
+test("Scenario: an agent's question is audited without its words", async () => {
+  const root = QUERY_TREE();
+  const h = await hub({ roots: [root] });
+  try {
+    assert.equal((await h.call("/library", { root })).status, 202);
+    for (let i = 0; i < 400; i++) {
+      if (!JSON.parse((await h.call("/library")).text).running) break;
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    const SECRET = "passport";
+    const enc = encodeURIComponent(root);
+    assert.equal((await h.call(`/library/find?root=${enc}&q=${SECRET}&surface=skill`)).status, 200);
+
+    // the drive's own library log, beside its catalogue
+    const dir = path.join(h.estateStore, "library");
+    const log = fs.readdirSync(dir).find((f) => f.endsWith(".jsonl"));
+    assert.ok(log, `a library log exists in ${dir}: ${fs.readdirSync(dir)}`);
+    const raw = fs.readFileSync(path.join(dir, log), "utf8");
+    const read = readKelEvents(path.join(dir, log));
+    assert.equal(read.ok, true, "the log still chains");
+    const queries = read.events.filter((e) => e.type === "library_queried");
+    assert.equal(queries.length, 1, "one event per question");
+    assert.equal(queries[0].payload.surface, "skill");
+    assert.equal(queries[0].payload.kind, "find");
+    assert.equal(queries[0].payload.returned, 0, "the private-only query named nothing");
+    assert.equal(queries[0].payload.withheld, 1, "and says one was withheld");
+    assert.ok(queries[0].payload.pass, "it names the pass it answered from");
+
+    // THE QUERY TEXT IS NOWHERE IN THE LOG BYTES: "find my CV" is itself private, and so is a path
+    assert.equal(raw.includes(SECRET), false, "the query text must not be in the log");
+    assert.equal(raw.includes("holiday"), false, "nor any file name from the answer");
+  } finally {
+    await h.close();
+  }
 });

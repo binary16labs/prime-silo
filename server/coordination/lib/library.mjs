@@ -511,16 +511,36 @@ export function catalogueLookup(dbPath, root) {
   };
 }
 
+// S22 point 10: an agent's question is audited WITHOUT ITS WORDS - surface, kind, counts and the
+// pass, never the query text or a path, because "find my CV" is itself private. An auditor sees
+// that an agent asked and how much it was told, without the log becoming the leak.
+export function libraryQueriedEvent({ machine, root, pass, surface, kind, returned, withheld }) {
+  const at = new Date().toISOString();
+  const sid = `sweep:${machine}:library:${pass || "none"}:${at}`;
+  return {
+    id: ulid(),
+    schema_version: CURRENT_SCHEMA_VERSION,
+    type: "library_queried",
+    valid_time: at,
+    txn_time: at,
+    time_confidence: "known",
+    hlc: `${at}-0000-${machine}`,
+    machine,
+    authorship: "house",
+    sid,
+    subject: { kind: "sweep", id: sid },
+    payload: { scope: "library", root, pass: pass || null, surface, kind, returned, withheld }
+  };
+}
+
 // --- S22: the questions Benny asks of the catalogue ---------------------------------------------
 //
-// THE PRIVACY JUDGEMENT HAPPENS HERE, once, for every caller. The panel, the in-app skill and an
-// outside MCP client all come through these two functions, because an agent's answer can be
-// harvested into a training trace (EP-A P5): a name withheld from the panel but handed to a tool
-// would leak by the longer route. Private matches are counted and never named, as duplicateSets does.
+// THE PRIVACY JUDGEMENT HAPPENS HERE, once, for every caller — panel, in-app skill and outside MCP
+// client alike. An agent's answer can be harvested into a training trace (EP-A P5), so a name
+// withheld from the panel but handed to a tool would leak by the longer route.
 //
-// A catalogue that does not exist is null. One that has never FINISHED is refused rather than
-// answered, because "no match" would then mean "not reached yet" and not "not on the drive" —
-// catalogueLookup's rule, applied to the query surface too.
+// A missing catalogue is null; one that has never FINISHED is refused, because "no match" would
+// then mean "not reached yet" (catalogueLookup's rule, applied to queries too).
 function finishedCatalogue(dbPath, root) {
   const db = readOnly(dbPath);
   if (!db) return { missing: true };
@@ -534,9 +554,9 @@ function finishedCatalogue(dbPath, root) {
   return { db, finishedAt };
 }
 
-// Files whose path contains `q`, case-insensitively, optionally of one kind. `instr` rather than
-// LIKE so a query holding % or _ is text and not a pattern. `limit` caps what is NAMED while
-// `total` says how many matched, so a capped or filtered answer is visibly so.
+// Files whose path contains `q`, case-insensitively, optionally of one kind. `instr` not LIKE, so a
+// query holding % or _ is text and not a pattern. `limit` caps what is NAMED, `total` says how many
+// matched - a capped or filtered answer is visibly so.
 export function findFiles(dbPath, root, rules = [], { q = "", kind = "", limit = 50 } = {}) {
   const c = finishedCatalogue(dbPath, root);
   if (!c.db) return c.missing ? null : { refused: c.refused };
@@ -563,10 +583,9 @@ export function findFiles(dbPath, root, rules = [], { q = "", kind = "", limit =
 }
 
 // Is this file — or every file under this folder — already on the catalogued drive? It reads only
-// what it was ASKED about: the catalogue answers for the drive, so no file there is ever opened for
-// its data. S20's rule decides a copy: the same size first (cheap), then the same bytes, and a row
-// counts only while the file it describes still has the size and mtime it was catalogued with.
-// A row gone stale reads as "changed", never as a safe second copy — the whole point of asking.
+// what it was ASKED about: no file on the drive is ever opened for its data. S20's rule decides a
+// copy (size, then bytes), and a row counts only while its file still has the catalogued size and
+// mtime: a stale row reads as "changed", never a safe second copy, which is the point of asking.
 export async function checkPaths(
   dbPath,
   root,
@@ -662,7 +681,13 @@ export async function checkPaths(
 // more), and either one froze every request to the hub. A worker makes both once per pass and policy
 // and writes them beside the catalogue; until it has, the page is told the duplicates are being
 // worked out, beside the last summary made under the same rules if there is one.
-export function createLibrarian({ dir, skip = [], rules = [], hash = hashFile }) {
+export function createLibrarian({
+  dir,
+  skip = [],
+  rules = [],
+  hash = hashFile,
+  machine = os.hostname().toLowerCase()
+}) {
   let running = null;
   let last = null;
   let ctl = null;
@@ -700,10 +725,17 @@ export function createLibrarian({ dir, skip = [], rules = [], hash = hashFile })
     lookup: (root) => catalogueLookup(libraryPath(dir, root), root),
     // S22: the agent's questions go through the same rules as the panel's, in one place
     find: (root, opts) => findFiles(libraryPath(dir, root), root, rules, opts),
+    // one event per question, in the drive's own library log beside its catalogue
+    audit(root, info) {
+      const db = libraryPath(dir, root);
+      if (!db) return false;
+      const pass = (passOf(db)?.last?.id ?? null) || null;
+      const evt = libraryQueriedEvent({ machine, root, pass, ...info });
+      return appendKelEvents(`${db.slice(0, -3)}.jsonl`, [evt]).ok;
+    },
     check: (root, opts) => checkPaths(libraryPath(dir, root), root, rules, opts),
-    // Sets beyond the panel's top ten, read from the list the WORKER already wrote for this pass
-    // and policy. Never recomputed here: duplicateSets takes ~90 s on the real F: and this runs on
-    // the hub's thread, which is exactly claude-s21-verifier's D3.
+    // Sets beyond the panel's top ten, from the list the WORKER already wrote for this pass and
+    // policy. Never recomputed here: that is ~90 s on the real F:, on the hub's thread - D3.
     duplicatesPage(root, { offset = 0, limit = 20 } = {}) {
       const c = current(root);
       if (!c) return null;
@@ -738,8 +770,8 @@ export function createLibrarian({ dir, skip = [], rules = [], hash = hashFile })
       } finally {
         fs.closeSync(fd);
       }
-      // named, because a private copy is in the set and not in this list: its bytes are counted by
-      // the panel's summary, and calling this "copies" would overstate what the caller can see
+      // "named", because a private copy is in the set but not in this list: calling it "copies"
+      // would overstate what the caller can see
       const page = sets.slice(offset, want).map((x) => ({
         sha256: x.sha256,
         size: x.size,
