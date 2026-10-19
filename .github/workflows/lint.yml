@@ -19,8 +19,8 @@ jobs:
     name: Node (ESLint + Prettier + proxy tests)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
       # Lint tooling is dev-only; the repo ships its runtime deps vendored.
@@ -40,12 +40,12 @@ jobs:
       run:
         working-directory: runtime
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
       # Q1: install lint tooling PINNED to the hash-verified lock (requirements.lock is truth),
       # replacing the previous ad-hoc unpinned install. The lock constrains ruff/black (and their
       # deps) to the exact resolved versions the rest of the build uses.
