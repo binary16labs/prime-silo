@@ -20,7 +20,10 @@ run("S22 tests", [
   "--test",
   "tests/library_test.mjs",
   "tests/librarian_skill_test.mjs",
-  "tests/librarian_mcp_test.mjs"
+  "tests/librarian_mcp_test.mjs",
+  // boots the shipped mcp/server.js for real and speaks JSON-RPC to it; skips with the command to
+  // fix it when the SDK is not installed, so a fresh clone does not fail the gate
+  "tests/librarian_mcp_boot_test.mjs"
 ]);
 run("s21 — shared library, estate API and panel", ["scripts/gates/s21.mjs"]);
 run("b2 — shared mcp/server.js", ["scripts/gates/b2.mjs"]);

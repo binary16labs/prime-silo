@@ -1088,3 +1088,100 @@ test("Scenario: an agent's question is audited without its words", async () => {
     await h.close();
   }
 });
+
+// --- claude-s22-verifier's round-1 FAIL: three defects, each reproduced before its fix ----------
+
+test("S22-D1: a private name on the side being ASKED ABOUT is withheld too", async () => {
+  // The verifier's finding, and the one that defeated the contract's purpose: checkPaths judged the
+  // catalogue side (`at`) and echoed its own walk's paths straight back, so pointing it at a folder
+  // named every quarantined file inside it — over MCP, the surface whose traces can be harvested.
+  // One judge must give one answer, whichever question is asked.
+  const root = tmp();
+  write(root, "Open/public.txt", "public bytes");
+  write(root, "Private/bank-statement.pdf", "secret bytes");
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root, dbPath, rules: [/private/iu] })).finished, true);
+
+  const onDrive = await checkPaths(dbPath, root, [/private/iu], { paths: [root] });
+  const named = onDrive.files.map((f) => f.path);
+  assert.ok(
+    named.some((n) => n.includes("public.txt")),
+    "the public file is still named"
+  );
+  for (const n of named)
+    assert.equal(/private/iu.test(n), false, `a quarantined path was named: ${n}`);
+  assert.equal(JSON.stringify(onDrive).toLowerCase().includes("bank-statement"), false);
+  assert.ok(onDrive.withheld >= 1, "and the withholding is counted, not silent");
+
+  // the same, off the catalogued drive: the rules judge the path, wherever it lives
+  const elsewhere = tmp();
+  write(elsewhere, "Private/CV/payslip.pdf", "nothing alike");
+  const off = await checkPaths(dbPath, root, [/private/iu], { paths: [elsewhere] });
+  assert.equal(JSON.stringify(off).toLowerCase().includes("payslip"), false);
+  assert.ok(off.withheld >= 1);
+
+  // D4, the verifier's surviving mutation: the catalogue side must stay filtered as well
+  const twin = tmp();
+  write(twin, "copy.pdf", "secret bytes"); // the same bytes as the quarantined row
+  const found = await checkPaths(dbPath, root, [/private/iu], {
+    paths: [path.join(twin, "copy.pdf")]
+  });
+  assert.equal(found.files[0].verdict, "on-root", "it still knows the bytes are there");
+  assert.deepEqual(found.files[0].at, [], "but names no quarantined location");
+  assert.equal(found.files[0].withheld, 1, "counting it instead");
+});
+
+test("S22-D2: duplicates refuses an unfinished catalogue, like every other question", async () => {
+  // find and check both route through finishedCatalogue; duplicatesPage never consulted it, so it
+  // answered from a partial catalogue with no mention that it had never finished. The Scenario says
+  // "any question of it", and this landed in the gap nobody ruled on.
+  const root = tmp();
+  write(root, "a.jpg", "same bytes");
+  write(root, "b.jpg", "same bytes");
+  const dir = tmp();
+  const lib = createLibrarian({ dir, rules: [] });
+  const dbPath = libraryPath(dir, root);
+  assert.equal((await catalogue({ root, dbPath })).finished, true);
+  await waitState(lib, root);
+
+  // the paired positive first: a finished catalogue answers
+  const ok = lib.duplicatesPage(root, { offset: 0, limit: 5 });
+  assert.ok(ok.sets.length >= 1, `a finished catalogue answers: ${JSON.stringify(ok)}`);
+
+  // now the same catalogue, with no pass ever finished
+  const db = new DatabaseSync(dbPath);
+  db.exec("UPDATE passes SET finished_at = NULL");
+  db.close();
+  const refused = lib.duplicatesPage(root, { offset: 0, limit: 5 });
+  assert.match(refused.refused ?? "", /never finished/u, JSON.stringify(refused));
+  assert.equal(refused.sets, undefined, "a refusal is never a list");
+});
+
+test("S22-D3: an unset store cannot kill the hub through the comparer", async () => {
+  // The store literal became "", so `producer && store && createLibrarian(...)` was "" — the
+  // shipped state of every install until the owner runs `node space set`, this contract's own
+  // Handoff. createComparer still called librarian.lookup, so pressing Compare threw inside an
+  // uncaught readBody().then() and the hub PROCESS exited. The 503 guard covered /library* only.
+  const a = tmp();
+  const b = tmp();
+  write(a, "x.txt", "x");
+  write(b, "y.txt", "y");
+  const h = await hub({ roots: [a, b], estateStore: "" });
+  try {
+    const r = await h.call("/compare", { from: a, to: b });
+    // whatever it answers, it must ANSWER: a thrown lookup used to take the process with it
+    assert.ok([202, 409, 412, 503].includes(r.status), `compare answered ${r.status}: ${r.text}`);
+    // and the hub is still alive afterwards
+    assert.equal((await h.call("/library")).status, 503, "the hub still serves requests");
+    // let the comparison it started finish INSIDE the test: its result is written asynchronously,
+    // and a temp tree removed under it throws after the test has ended, which node reports as an
+    // unhandled rejection against the whole file
+    for (let i = 0; i < 400; i++) {
+      const s = JSON.parse((await h.call(`/compare?to=${encodeURIComponent(b)}`)).text);
+      if (!s.running) break;
+      await new Promise((done) => setTimeout(done, 10));
+    }
+  } finally {
+    await h.close();
+  }
+});

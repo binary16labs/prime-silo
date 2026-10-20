@@ -600,7 +600,14 @@ export async function checkPaths(
     const byHash = c.db.prepare("SELECT path, size, mtime_ms FROM files WHERE sha256 = ?");
     const asked = [];
     let capped = false;
-    const add = (f) => (asked.length < cap ? asked.push(f) : (capped = true));
+    let withheld = 0;
+    // THE RULES JUDGE THE PATH, WHICHEVER SIDE OF THE QUESTION IT IS ON (claude-s22-verifier D1).
+    // Filtering only the catalogue side let a caller name every quarantined file simply by asking
+    // about the folder holding them - the same rules, bypassed by changing the question.
+    const add = (f) => {
+      if (isPrivate(f)) return (withheld += 1);
+      return asked.length < cap ? asked.push(f) : (capped = true);
+    };
     for (const given of paths) {
       let st = null;
       try {
@@ -662,12 +669,23 @@ export async function checkPaths(
           at.push(full);
         else changed++;
       }
+      // the catalogue side stays filtered too: this is where the bytes WERE found, and a
+      // quarantined location is counted, never named (D4 - the mutation that survived round 1)
       const named = at.filter((n) => !isPrivate(n));
       if (at.length)
         files.push({ path: f, verdict: "on-root", at: named, withheld: at.length - named.length });
       else files.push({ path: f, verdict: "changed", changed });
     }
-    return { finishedAt: c.finishedAt, files, total: files.length, capped };
+    // `withheld` counts both sides: paths never walked because the rules cover them, and
+    // catalogued locations not named. A count is the most that may be said about either.
+    const atWithheld = files.reduce((n, f) => n + (f.withheld || 0), 0);
+    return {
+      finishedAt: c.finishedAt,
+      files,
+      total: files.length,
+      capped,
+      withheld: withheld + atWithheld
+    };
   } finally {
     c.db.close();
   }
@@ -739,6 +757,13 @@ export function createLibrarian({
     duplicatesPage(root, { offset = 0, limit = 20 } = {}) {
       const c = current(root);
       if (!c) return null;
+      // "any question of it" includes this one (claude-s22-verifier D2): find and check both
+      // refuse an unfinished catalogue, and answering here from a partial pass would read as
+      // "these are the duplicates" when it means "these are the ones reached so far".
+      if (!c.pass.finishedAt)
+        return {
+          refused: `${root} has a catalogue that has never finished: finish cataloguing it first`
+        };
       const csv = csvFor(c.db, c.key);
       if (!fs.existsSync(csv)) return { computing: true, pass: c.pass.last?.id ?? null };
       const want = offset + limit;

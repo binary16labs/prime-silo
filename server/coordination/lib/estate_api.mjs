@@ -210,14 +210,17 @@ export function createEstateApi({
   const storeUnset = {
     error: "ESTATE_STORE is not set — run: node space set ESTATE_STORE=<folder>"
   };
+  // null, never "": the comparer below holds this and an empty string answers `librarian.lookup
+  // is not a function` inside an uncaught promise, which took the hub PROCESS down on every install
+  // where ESTATE_STORE is unset - the shipped state until the owner sets it (D3).
   const librarian =
-    producer &&
-    store &&
-    createLibrarian({
-      dir: path.join(store, "library"),
-      skip: [store],
-      rules: Array.isArray(quarantine) ? quarantine : []
-    });
+    producer && store
+      ? createLibrarian({
+          dir: path.join(store, "library"),
+          skip: [store],
+          rules: Array.isArray(quarantine) ? quarantine : []
+        })
+      : null;
   // S20: a backup drive against F:, on this machine. Results hold file names, so every compare route
   // answers this machine only, and they are kept beside its own map, in BENNY_HOME. Since S21 it asks
   // F:'s catalogue where there is one, and reads only the backup drive.
@@ -227,7 +230,8 @@ export function createEstateApi({
       dir: path.join(path.dirname(producer.dbPath), "compare"),
       rules: Array.isArray(quarantine) ? quarantine : [],
       list: producer.list ?? listRoot,
-      catalogue: (to) => librarian.lookup(to)
+      // S20 compared drives before S21 existed, so no catalogue is an ordinary answer here
+      catalogue: (to) => (librarian ? librarian.lookup(to) : null)
     });
   const SURFACES = new Set(["panel", "skill", "mcp"]);
   const NO_POLICY = "no quarantine policy — the catalogue would list private files (R31)";
@@ -465,11 +469,13 @@ export function createEstateApi({
           return sendJson(res, 202, {
             error: "the duplicates are still being worked out: try again in a minute"
           });
+        // null, not 0: the worker's list already dropped private copies and their count is not
+        // carried here, so "0 withheld" would be a figure this surface cannot stand behind
         librarian.audit(root, {
           surface,
           kind: "duplicates",
           returned: d.sets.length,
-          withheld: 0
+          withheld: null
         });
         return sendJson(res, 200, d);
       }
