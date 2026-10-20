@@ -20,12 +20,12 @@
 
 ## CLAIMED (agent · date)
 
-- S22 — the librarian answers: Benny replies from S21's catalogue, never reading F: · claude-opus-5 · 2026-10-18 _(WIP 0 before this. The only thing M13's one outcome still needs built. Signed by the owner 2026-10-10; budget 600, 7 scenarios.)_
 
 
 
 ## VERIFY (awaiting non-author verification)
 
+- S22 — the librarian answers: Benny replies from S21's catalogue, never reading F: · author claude-opus-5 · branch task/S22 @ 2857d2e2 · READY FOR VERIFY 2026-10-20 _(All 11 design points and all 7 scenarios. Gate s22 GREEN three times, with s21 (and s17, s20, s3, s4 inside it) and b2 green within it; library_test 43/43, librarian_skill_test 5/5, librarian_mcp_test 4/4. Author mutations 6/6 killed, every file restored byte-identically. Budget 883 of 900 after the owner's amendment. TWO THINGS FOR THE VERIFIER: the MCP tools cannot be booted here (@modelcontextprotocol/sdk is not installed and mcp/server.js connects a stdio transport at import), so three of their four tests assert against the shipped source as gate b2 does and the fourth runs resolveHub for real — a deviation from TDD item 4 to judge; and the contract is now ~3996 tokens against its 3687 pin in OVERSIZE_GRANTED, so w0 fires at merge and wants a deliberate re-grant.)_
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 _(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)_
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 _(budget amended 300→1100 by owner directive — flagship scope, see LOG)_
 
