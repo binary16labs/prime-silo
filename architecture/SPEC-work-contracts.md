@@ -32,6 +32,35 @@ scenario maps to an automated test) · out of scope · handoff.
 Target ≤ ~600 tokens per contract; hard ceiling **1500 estimated tokens** (`ceil(chars/4)`) —
 sized to the largest legitimate exemplar (Q0). Over the ceiling = split the contract.
 
+## Budget bands (2026-10-20)
+
+**The budget is declared when the contract is authored, and it is a maximum, not an opening bid.**
+Before this, every substantive contract had its budget raised mid-flight - S21 600->680->800, S22
+600->800->900, C3 300->1100 - four amendments, each a round trip to the owner in the middle of the
+work. The number was a guess made before anything was measured, so it was wrong roughly half the
+time and always in the same direction.
+
+A contract declares `band` alongside `budget`, and the budget IS the band's figure. The bands are
+measured against what work of each shape has actually cost in this repo, docs and gate included,
+because the contract mandates those too (115 of S22's 883 lines were its own required docs and gate):
+
+| Band | Budget | What it covers                                                                        |
+| ---- | ------ | ------------------------------------------------------------------------------------- |
+| `S`  | 300    | one surface, one doc, a gate fix, a hotfix                                            |
+| `M`  | 500    | one library or one route set, with its tests                                          |
+| `L`  | 800    | two layers - a library and its routes, or routes and a panel                          |
+| `XL` | 1000   | the full stack: a library, its routes, an agent surface, the mandated docs and a gate |
+
+**XL is the ceiling.** Nothing is authored above 1000. Work that does not fit XL is two contracts,
+and the split is decided while authoring - before any code is written - not discovered at line 880.
+
+**What to do when the work does not fit.** Stop and split; do not ask for more. The one exception is
+a verifier's FAIL whose fixes land outside the band: that is new information rather than a bad
+estimate, and it is logged as `blocked` with the measured overrun for the owner to rule on.
+
+Contracts authored before this rule keep their budgets and need no `band`; the validator checks the
+pair only where `band` is declared, and refuses any band figure above the XL ceiling.
+
 **Granted oversize (2026-10-17).** Seven contracts the owner signed as written in October 2026 are
 2480–3843 tokens, because they carry folded-in owner direction and measured numbers: S21–S24
 (the librarian), U0 and U1 (the drive registry and the owner's data) and K0 (the capacity report).

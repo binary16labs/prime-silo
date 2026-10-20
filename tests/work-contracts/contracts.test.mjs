@@ -12,7 +12,8 @@ import {
   detectCycle,
   milestoneIds,
   MAX_TOKENS,
-  OVERSIZE_GRANTED
+  OVERSIZE_GRANTED,
+  BUDGET_BANDS
 } from "../../server/coordination/work-schema/validate.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -193,5 +194,39 @@ test("Scenario: the valid milestones are the ones with a file on disk", () => {
   assert.ok(
     bad.errors.some((e) => /milestone 'M99' has no delivery\/milestones file/.test(e)),
     `an unknown milestone is still named: ${bad.errors}`
+  );
+});
+
+test("Scenario: a declared band IS the budget, and XL is the ceiling", () => {
+  // The rule exists because four budgets were raised mid-flight (S21 600->680->800, S22
+  // 600->800->900, C3 300->1100). Declaring the band up front only helps if a contract whose budget
+  // drifts from it fails, so each case below pairs a pass with a fail on the same shape.
+  assert.deepEqual(BUDGET_BANDS, { S: 300, M: 500, L: 800, XL: 1000 });
+
+  const check = (over) =>
+    validateContract(contract(over), { id: "X1", repoRoot: ROOT, knownIds: KNOWN }).errors;
+
+  for (const [band, budget] of Object.entries(BUDGET_BANDS)) {
+    assert.deepEqual(
+      check({ band, budget: String(budget) }).filter((e) => /band|budget/u.test(e)),
+      [],
+      `band ${band} at ${budget} is the declared pair`
+    );
+    // raising the budget above its own band is the move this rule exists to stop
+    const raised = check({ band, budget: String(budget + 100) });
+    assert.ok(
+      raised.some((e) => /split, do not raise/u.test(e)),
+      `band ${band} with a raised budget must fail: ${raised}`
+    );
+  }
+
+  // a band nobody declared, and the ceiling: there is nothing above XL to climb to
+  assert.ok(check({ band: "XXL", budget: "1500" }).some((e) => /is not one of/u.test(e)));
+  assert.equal("XXL" in BUDGET_BANDS, false, "XL is the ceiling");
+
+  // a contract authored before the rule carries no band and is left alone, not retro-fitted
+  assert.deepEqual(
+    check({ budget: "450" }).filter((e) => /band/u.test(e)),
+    []
   );
 });

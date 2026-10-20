@@ -12,6 +12,11 @@ delete planDeps.$comment;
 // Target is ~600 tokens; the hard ceiling accommodates the largest legitimate
 // exemplar (Q0, a rescoped security sweep, ≈1440 est. tokens after its merge
 // amendments). Estimator: chars/4 (deliberately simple).
+// The bands a contract's budget is drawn from, measured against what work of each shape has cost
+// here. XL is a CEILING: work that does not fit is two contracts, split while authoring rather than
+// discovered at line 880.
+export const BUDGET_BANDS = Object.freeze({ S: 300, M: 500, L: 800, XL: 1000 });
+
 export const MAX_TOKENS = 1500;
 export const estimateTokens = (text) => Math.ceil(text.length / 4);
 
@@ -99,6 +104,20 @@ export function validateContract(text, { id, repoRoot, knownIds }) {
     errors.push(`${id}: authority '${fm.authority}'`);
   if (!["worktree", "in-place"].includes(fm.sandbox)) errors.push(`${id}: sandbox '${fm.sandbox}'`);
   if (!(parseInt(fm.budget, 10) > 0)) errors.push(`${id}: budget '${fm.budget}'`);
+  // Budget bands (SPEC-work-contracts.md). Declared up front so the number stops being a guess
+  // raised mid-flight: S21 went 600->680->800 and S22 600->800->900, four amendments in all, each
+  // one interrupting the work. Where a contract names its band the budget must BE the band, and no
+  // band may exceed the XL ceiling. Contracts authored before the rule carry no band and are left
+  // alone rather than retro-fitted, which would rewrite signed scope.
+  if (fm.band !== undefined) {
+    const want = BUDGET_BANDS[fm.band];
+    if (want === undefined)
+      errors.push(`${id}: band '${fm.band}' is not one of ${Object.keys(BUDGET_BANDS).join(", ")}`);
+    else if (parseInt(fm.budget, 10) !== want)
+      errors.push(
+        `${id}: band ${fm.band} is ${want} lines but budget says ${fm.budget} — split, do not raise`
+      );
+  }
   if (!Array.isArray(fm.deps)) errors.push(`${id}: deps must be a list`);
   else
     for (const d of fm.deps)

@@ -46,6 +46,11 @@ board live (plan B3 — scrum/kanban lanes). Until then, this file-based board i
   sprint-equivalent release trains (see `milestones/`); epics group scope; OKRs steer priority.
   Retro = the VISION-CHECK note each epic closes with (plan §0.5).
 - **Versioning:** semver per milestone (`milestones/*.md` name the target release).
+- **Budgets are bands, declared up front:** `S` 300, `M` 500, `L` 800, `XL` 1000, and XL is the
+  ceiling. A contract names its band when authored and the budget is that figure. Work that does not
+  fit is **split while authoring, never amended mid-flight** - the practice that produced four
+  retroactive raises (S21, S22, C3). A verifier's FAIL whose fixes overrun is the one exception, and
+  it is logged as `blocked` with the measured number. See `architecture/SPEC-work-contracts.md`.
 - **Definition of Done (every task):** all scenarios green · verify exits 0 · lint/format clean ·
   allowlist respected · board+log updated · independent verifier confirmed · docs/skills touched if
   the contract says so.
