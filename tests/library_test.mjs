@@ -1321,3 +1321,91 @@ test("S22-D8: the duplicates audit states no figure it cannot stand behind", asy
     await h.close();
   }
 });
+
+test("S22-D9: a file that stats but will not open is a verdict, never a dead hub", async () => {
+  // claude-s22-verifier-3's D7, found by accident: an ordinary locked file - an open .pst, a VM
+  // disk, a SQLite file in use - made checkPaths reject, and the check route's readBody().then()
+  // had no catch, so the hub PROCESS exited rather than answering. The damning part is that the
+  // WRITE path already survives exactly this: the catalogue pass catches a rejecting hash and
+  // counts it `unreadable` (the test at "a file that cannot be read is counted, not fatal").
+  // Same module, same error, same diff - guarded on the way in, fatal on the way out.
+  const root = tmp();
+  write(root, "ok.txt", "same size!!");
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root, dbPath })).finished, true);
+
+  const asked = tmp();
+  write(asked, "locked.txt", "same size!!"); // same size, so the cheap gate passes and it is hashed
+  write(asked, "fine.txt", "same size!!");
+
+  const locked = path.join(asked, "locked.txt");
+  const r = await checkPaths(dbPath, root, [], {
+    paths: [asked],
+    hash: (f) => (f === locked ? Promise.reject(Object.assign(new Error("EBUSY"), { code: "EBUSY" })) : hashFile(f))
+  });
+
+  const by = Object.fromEntries(r.files.map((f) => [path.basename(f.path), f.verdict]));
+  assert.equal(by["locked.txt"], "unreadable", `the locked file is a verdict: ${JSON.stringify(r.files)}`);
+  assert.equal(by["fine.txt"], "on-root", "and the rest of the answer still arrives");
+  assert.equal(r.files.length, 2, "nothing is dropped");
+});
+
+test("S22-D10: the check route answers even when the work beneath it throws", async () => {
+  // The shaper maps shapes and contains nothing: the check route's readBody().then() had no catch,
+  // so a rejection there was an unhandled rejection and the process left. Whatever else is wrong,
+  // a request must END - with an answer the caller can read.
+  const root = tmp();
+  write(root, "a.txt", "aaa");
+  const h = await hub({ roots: [root] });
+  try {
+    assert.equal((await h.call("/library", { root })).status, 202);
+    for (let i = 0; i < 400; i++) {
+      if (!JSON.parse((await h.call("/library")).text).running) break;
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    // a path that cannot be statted at all: the walk keeps it and every later step must cope
+    const r = await h.call("/library/check", { root, path: path.join(root, "does", "not", "exist") });
+    assert.ok([200, 409, 500].includes(r.status), `it answered ${r.status}: ${r.text}`);
+    assert.ok(r.text.length > 0, "with a body");
+    // and the hub is still serving
+    assert.equal((await h.call("/library")).status, 200, "the hub survived the request");
+  } finally {
+    await h.close();
+  }
+});
+
+test("S22-D11: a caller cannot write its own text into the audit log", async () => {
+  // The SURFACES guard was in the code and nothing tested it (claude-s22-verifier-3's survivor).
+  // It is the only thing keeping caller-supplied text out of a tamper-evident log, which design
+  // point 10 forbids: the event records how the question arrived, not what the caller called itself.
+  const root = tmp();
+  write(root, "a.txt", "aaa");
+  const store = tmp();
+  const h = await hub({ roots: [root], estateStore: store });
+  try {
+    assert.equal((await h.call("/library", { root })).status, 202);
+    for (let i = 0; i < 400; i++) {
+      if (!JSON.parse((await h.call("/library")).text).running) break;
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    const enc = encodeURIComponent(root);
+    const SMUGGLED = "ZEBRAFISH-not-a-surface";
+    assert.equal((await h.call(`/library/find?root=${enc}&q=a&surface=${SMUGGLED}`)).status, 200);
+    assert.equal((await h.call("/library/check", { root, path: path.join(root, "a.txt"), surface: SMUGGLED })).status, 200);
+    // the paired positive: a surface the hub recognises IS recorded
+    assert.equal((await h.call(`/library/find?root=${enc}&q=a&surface=skill`)).status, 200);
+
+    const dir = path.join(store, "library");
+    const log = fs.readdirSync(dir).find((f) => f.endsWith(".jsonl"));
+    const raw = fs.readFileSync(path.join(dir, log), "utf8");
+    assert.equal(raw.includes(SMUGGLED), false, "the caller's text is nowhere in the log bytes");
+    const events = readKelEvents(path.join(dir, log)).events.filter((e) => e.type === "library_queried");
+    const surfaces = events.map((e) => e.payload.surface);
+    assert.ok(surfaces.includes("skill"), `a known surface is recorded: ${surfaces}`);
+    for (const s of surfaces)
+      assert.ok(["panel", "skill", "mcp", "unknown"].includes(s), `unrecognised surface recorded: ${s}`);
+    assert.ok(surfaces.includes("unknown"), "and an unrecognised one becomes 'unknown', not silence");
+  } finally {
+    await h.close();
+  }
+});

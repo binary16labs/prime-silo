@@ -49,6 +49,11 @@ async function liveHub() {
   write(root, "Open/beach.jpg", "beach bytes");
   write(root, "Open/beach-copy.jpg", "beach bytes");
   write(root, "Private/passport.pdf", "secret bytes");
+  // OUTSIDE Open/ on purpose: with every file under one folder, asking about the drive root and
+  // asking about Open/ return the same list, so a tool that ignores the path it was handed and
+  // sends the root instead compares equal. That mutation survived round 3.
+  write(root, "elsewhere.txt", "not under Open");
+  write(root, "Notes/memo.md", "nor here");
   const store = tmp();
   const dir = path.join(store, "library");
   assert.equal(
@@ -182,6 +187,29 @@ for (const fn of ["openSync", "readFileSync", "createReadStream", "open", "readF
       if (res.status !== 202) break;
       await new Promise((done) => setTimeout(done, 10));
     }
+    // kind must reach the route: a tool that drops it answers the same as one that honours it only
+    // when the fixture has a single kind, so narrow to one and check the answer really narrows
+    const kindDirect = await fetch(
+      `${hub.base}/api/estate/library/find?root=${encodeURIComponent(hub.root)}&q=&kind=documents&surface=mcp`
+    ).then((r) => r.json());
+    const kindTool = JSON.parse(
+      (
+        await mcp.call("tools/call", {
+          name: "library_find",
+          arguments: { root: hub.root, q: "", kind: "documents" }
+        })
+      ).result.content[0].text
+    );
+    assert.deepEqual(kindTool.matches, kindDirect.matches, "kind reached the route");
+    assert.ok(kindTool.matches.length >= 1, "and it narrowed to something");
+    const allDirect = await fetch(
+      `${hub.base}/api/estate/library/find?root=${encodeURIComponent(hub.root)}&q=&surface=mcp`
+    ).then((r) => r.json());
+    assert.ok(
+      kindTool.matches.length < allDirect.matches.length,
+      `narrowing must return fewer than everything (${kindTool.matches.length} of ${allDirect.matches.length})`
+    );
+
     const dup = JSON.parse(
       (await mcp.call("tools/call", { name: "library_duplicates", arguments: { root: hub.root } }))
         .result.content[0].text
@@ -189,6 +217,19 @@ for (const fn of ["openSync", "readFileSync", "createReadStream", "open", "readF
     assert.equal(dup.ok, true);
     assert.ok(dup.sets.length >= 1, "there is something to compare");
     assert.deepEqual(dup.sets, dupDirect.sets, "the tool's sets are the route's sets");
+
+    // offset must reach the route: page two of one set is empty, and a tool that drops offset
+    // would hand back page one
+    const offsetTool = JSON.parse(
+      (
+        await mcp.call("tools/call", {
+          name: "library_duplicates",
+          arguments: { root: hub.root, offset: dup.sets.length }
+        })
+      ).result.content[0].text
+    );
+    assert.equal(offsetTool.offset, dup.sets.length, "the route echoes the offset it was given");
+    assert.deepEqual(offsetTool.sets, [], "and past the end there is nothing");
 
     const askAbout = path.join(hub.root, "Open");
     const chkDirect = await fetch(`${hub.base}/api/estate/library/check`, {

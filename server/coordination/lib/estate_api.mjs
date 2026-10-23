@@ -485,24 +485,31 @@ export function createEstateApi({
       if (rest === "/library/check") {
         if (req.method !== "POST") return sendJson(res, 405, { error: "POST" });
         if (!Array.isArray(quarantine)) return sendJson(res, 412, { error: NO_POLICY });
-        readBody(req).then(async (b) => {
-          const root = b.root ?? roots[0];
-          if (!roots.includes(root))
-            return sendJson(res, 400, { error: "root must be one this machine offers", roots });
-          const paths = (Array.isArray(b.paths) ? b.paths : [b.path]).filter(
-            (x) => typeof x === "string" && x
-          );
-          if (!paths.length) return sendJson(res, 400, { error: "path (or paths) is required" });
-          const r = await librarian.check(root, { paths });
-          // the answer's own figure, counting BOTH channels: paths the rules kept the walk out of
-          // and catalogued locations not named. Re-deriving it per-file audited 0 of 6 (D6).
-          answer(res, root, r, () => ({
-            surface: SURFACES.has(b.surface) ? b.surface : "unknown",
-            kind: "check",
-            returned: r.files.length,
-            withheld: r.withheld
-          }));
-        });
+        readBody(req)
+          .then(async (b) => {
+            const root = b.root ?? roots[0];
+            if (!roots.includes(root))
+              return sendJson(res, 400, { error: "root must be one this machine offers", roots });
+            const paths = (Array.isArray(b.paths) ? b.paths : [b.path]).filter(
+              (x) => typeof x === "string" && x
+            );
+            if (!paths.length) return sendJson(res, 400, { error: "path (or paths) is required" });
+            const r = await librarian.check(root, { paths });
+            // the answer's own figure, counting BOTH channels: paths the rules kept the walk out of
+            // and catalogued locations not named. Re-deriving it per-file audited 0 of 6 (D6).
+            answer(res, root, r, () => ({
+              surface: SURFACES.has(b.surface) ? b.surface : "unknown",
+              kind: "check",
+              returned: r.files.length,
+              withheld: r.withheld
+            }));
+          })
+          .catch((e) => {
+            // the shaper maps shapes; it contains nothing. A request must END, with a body the
+            // caller can read - an unhandled rejection here took the whole hub process with it.
+            if (!res.headersSent)
+              sendJson(res, 500, { error: `the check could not be completed: ${e?.message || e}` });
+          });
         return;
       }
       if (req.method !== "POST") return sendJson(res, 405, { error: "GET or POST" });

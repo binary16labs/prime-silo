@@ -4,6 +4,7 @@
 // owns mcp/server.js. A green S22 that broke either of those would be a gate reporting success
 // about half the surface it touches.
 import { spawnSync } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -15,6 +16,11 @@ const run = (label, args) => {
     process.exit(1);
   }
 };
+
+// The boot test skips when the MCP SDK is absent, which is right for a fresh clone - but this gate
+// then printed its whole success sentence, outside agents included, about a Scenario that did not
+// run (claude-s22-verifier-3). Say so instead of claiming it.
+const bootable = fs.existsSync(path.join(ROOT, "mcp", "node_modules", "@modelcontextprotocol"));
 
 run("S22 tests", [
   "--test",
@@ -28,9 +34,15 @@ run("S22 tests", [
 run("s21 — shared library, estate API and panel", ["scripts/gates/s21.mjs"]);
 run("b2 — shared mcp/server.js", ["scripts/gates/b2.mjs"]);
 
+if (!bootable)
+  console.log(
+    "[s22] NOT TESTED: the MCP tools were not booted, so nothing here exercised outside agents. " +
+      "Run `npm ci --prefix mcp` and this gate again before trusting that half."
+  );
 console.log(
   "[s22] the owner's questions are answered from the catalogue, never by reading the drive; " +
-    "private paths are counted and never named, judged once in the hub for the panel, the skill " +
-    "and outside agents alike; the store is configured, not assumed"
+    "private paths are counted and never named, judged once in the hub for the panel " +
+    (bootable ? "and the in-app skill and outside agents alike" : "and the in-app skill") +
+    "; the store is configured, not assumed"
 );
 console.log("[s22] GATE GREEN");

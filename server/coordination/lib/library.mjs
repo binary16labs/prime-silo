@@ -649,7 +649,17 @@ export async function checkPaths(
         files.push({ path: f, verdict: "absent" });
         continue;
       }
-      const rows = byHash.all(await hash(f));
+      // A FILE THAT STATS BUT WILL NOT OPEN IS A VERDICT (claude-s22-verifier-3 D7). An open .pst,
+      // a VM disk, a SQLite file in use: ordinary. The catalogue pass already catches exactly this
+      // and counts it `unreadable`, so the write path survived what the read path died of.
+      let sha;
+      try {
+        sha = await hash(f);
+      } catch {
+        files.push({ path: f, verdict: "unreadable" });
+        continue;
+      }
+      const rows = byHash.all(sha);
       if (!rows.length) {
         files.push({ path: f, verdict: "absent" });
         continue;
