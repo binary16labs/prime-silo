@@ -386,6 +386,20 @@ export function createEstateApi({
         return sendJson(res, 403, { error: "the library is only shown on this machine" });
       if (producer && !store) return sendJson(res, 503, storeUnset);
       if (!librarian) return sendJson(res, 503, { error: "this hub has no producer configured" });
+      // ONE SHAPER FOR ALL THREE QUESTIONS, because handling a refusal at one route and not
+      // another is exactly D5: duplicatesPage learnt to refuse and its route fell through into
+      // d.sets.length, answering 500 - or exiting the process where the API is embedded bare.
+      const answer = (to, root, r, event) => {
+        if (!r) return sendJson(to, 404, { error: `${root} has no catalogue: catalogue it first` });
+        if (r.refused) return sendJson(to, 409, { error: r.refused });
+        if (r.computing)
+          return sendJson(to, 202, {
+            error: "the duplicates are still being worked out: try again in a minute"
+          });
+        librarian.audit(root, event());
+        return sendJson(to, 200, r);
+      };
+
       const roots = producer.roots();
       if (req.method === "GET" && rest === "/library") {
         const catalogues = Object.fromEntries(
@@ -448,36 +462,25 @@ export function createEstateApi({
             kind: u.searchParams.get("kind") ?? "",
             limit: num("limit", 50, 500) || 50
           });
-          if (!r)
-            return sendJson(res, 404, { error: `${root} has no catalogue: catalogue it first` });
-          if (!r.refused)
-            librarian.audit(root, {
-              surface,
-              kind: "find",
-              returned: r.matches.length,
-              withheld: r.withheld
-            });
-          return sendJson(res, r.refused ? 409 : 200, r.refused ? { error: r.refused } : r);
+          return answer(res, root, r, () => ({
+            surface,
+            kind: "find",
+            returned: r.matches.length,
+            withheld: r.withheld
+          }));
         }
         const d = librarian.duplicatesPage(root, {
           offset: num("offset", 0, 1e6),
           limit: num("limit", 20, 200) || 20
         });
-        if (!d)
-          return sendJson(res, 404, { error: `${root} has no catalogue: catalogue it first` });
-        if (d.computing)
-          return sendJson(res, 202, {
-            error: "the duplicates are still being worked out: try again in a minute"
-          });
-        // null, not 0: the worker's list already dropped private copies and their count is not
-        // carried here, so "0 withheld" would be a figure this surface cannot stand behind
-        librarian.audit(root, {
+        // withheld is null, not 0: the worker's list has already dropped private copies and their
+        // count is not carried here, so a figure would be invented
+        return answer(res, root, d, () => ({
           surface,
           kind: "duplicates",
           returned: d.sets.length,
           withheld: null
-        });
-        return sendJson(res, 200, d);
+        }));
       }
       if (rest === "/library/check") {
         if (req.method !== "POST") return sendJson(res, 405, { error: "POST" });
@@ -491,16 +494,14 @@ export function createEstateApi({
           );
           if (!paths.length) return sendJson(res, 400, { error: "path (or paths) is required" });
           const r = await librarian.check(root, { paths });
-          if (r && !r.refused)
-            librarian.audit(root, {
-              surface: SURFACES.has(b.surface) ? b.surface : "unknown",
-              kind: "check",
-              returned: r.files.length,
-              withheld: r.files.reduce((n, f) => n + (f.withheld || 0), 0)
-            });
-          if (!r)
-            return sendJson(res, 404, { error: `${root} has no catalogue: catalogue it first` });
-          sendJson(res, r.refused ? 409 : 200, r.refused ? { error: r.refused } : r);
+          // the answer's own figure, counting BOTH channels: paths the rules kept the walk out of
+          // and catalogued locations not named. Re-deriving it per-file audited 0 of 6 (D6).
+          answer(res, root, r, () => ({
+            surface: SURFACES.has(b.surface) ? b.surface : "unknown",
+            kind: "check",
+            returned: r.files.length,
+            withheld: r.withheld
+          }));
         });
         return;
       }

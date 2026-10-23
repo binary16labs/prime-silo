@@ -1185,3 +1185,139 @@ test("S22-D3: an unset store cannot kill the hub through the comparer", async ()
     await h.close();
   }
 });
+
+// --- claude-s22-verifier-2's round-2 FAIL ------------------------------------------------------
+// The lesson both defects share: I fixed D2 at the layer its test could reach (the function) and
+// never at the layer its Scenario talks about (the route). These tests go through the route.
+
+test("S22-D5: every question refuses an unfinished catalogue AT ITS ROUTE, not just in the function", async () => {
+  const root = tmp();
+  write(root, "a.jpg", "same bytes");
+  write(root, "b.jpg", "same bytes");
+  const store = tmp();
+  const h = await hub({ roots: [root], estateStore: store });
+  try {
+    assert.equal((await h.call("/library", { root })).status, 202);
+    for (let i = 0; i < 400; i++) {
+      if (!JSON.parse((await h.call("/library")).text).running) break;
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    const enc = encodeURIComponent(root);
+    // the paired positive: a finished catalogue answers. duplicates is polled because its list is
+    // written by the worker, so 202 "still being worked out" is a legitimate intermediate answer.
+    assert.equal((await h.call(`/library/find?root=${enc}&q=a`)).status, 200);
+    let first;
+    for (let i = 0; i < 400; i++) {
+      first = await h.call(`/library/duplicates?root=${enc}`);
+      if (first.status !== 202) break;
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    assert.equal(first.status, 200, first.text);
+
+    // now no pass has ever finished
+    const db = new DatabaseSync(libraryPath(path.join(store, "library"), root));
+    db.exec("UPDATE passes SET finished_at = NULL");
+    db.close();
+
+    const find = await h.call(`/library/find?root=${enc}&q=a`);
+    const dups = await h.call(`/library/duplicates?root=${enc}`);
+    const chk = await h.call("/library/check", { root, path: path.join(root, "a.jpg") });
+    for (const [name, r] of [["find", find], ["duplicates", dups], ["check", chk]]) {
+      assert.equal(r.status, 409, `${name} answered ${r.status}: ${r.text}`);
+      assert.match(JSON.parse(r.text).error, /never finished/u, name);
+    }
+    // and the hub is still there: the refusal used to be a TypeError on d.sets.length
+    assert.equal((await h.call("/library")).status, 200, "the hub survived answering");
+  } finally {
+    await h.close();
+  }
+});
+
+test("S22-D6: the check surface audits what it actually withheld", async () => {
+  const root = tmp();
+  write(root, "Open/public.txt", "public");
+  for (const n of ["one", "two", "three"]) write(root, `Private/${n}.pdf`, `secret ${n}`);
+  const store = tmp();
+  const h = await hub({ roots: [root], estateStore: store, quarantine: ["private"] });
+  try {
+    assert.equal((await h.call("/library", { root })).status, 202);
+    for (let i = 0; i < 400; i++) {
+      if (!JSON.parse((await h.call("/library")).text).running) break;
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    const r = await h.call("/library/check", { root, path: root, surface: "skill" });
+    assert.equal(r.status, 200);
+    const answer = JSON.parse(r.text);
+    assert.ok(answer.withheld >= 3, `the answer withholds the private files: ${r.text}`);
+
+    const dir = path.join(store, "library");
+    const log = fs.readdirSync(dir).find((f) => f.endsWith(".jsonl"));
+    const events = readKelEvents(path.join(dir, log)).events.filter((e) => e.type === "library_queried");
+    const checked = events.find((e) => e.payload.kind === "check");
+    assert.ok(checked, "the question was audited");
+    // 0 of 3 is not a count. This is the same figure I refused to write for duplicates in the very
+    // same commit, shipped on the other surface: the audit must agree with the answer it describes.
+    assert.equal(
+      checked.payload.withheld,
+      answer.withheld,
+      `audited ${checked.payload.withheld}, answered ${answer.withheld}`
+    );
+  } finally {
+    await h.close();
+  }
+});
+
+test("S22-D7: the walk cap is enforced, not just reported", async () => {
+  // TDD item 1 claims "the given folder is walked only up to the cap". Verifier-2 removed the cap
+  // from add() entirely and no test died, so the claim rested on nothing.
+  const root = tmp();
+  write(root, "x.txt", "x");
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root, dbPath })).finished, true);
+
+  const many = tmp();
+  for (let i = 0; i < 12; i++) write(many, `f${i}.txt`, `body ${i}`);
+  const r = await checkPaths(dbPath, root, [], { paths: [many], cap: 5 });
+  assert.equal(r.files.length, 5, "it stops at the cap");
+  assert.equal(r.total, 5);
+  assert.equal(r.capped, true, "and says it stopped");
+
+  const under = await checkPaths(dbPath, root, [], { paths: [many], cap: 50 });
+  assert.equal(under.files.length, 12);
+  assert.equal(under.capped, false, "a walk inside the cap is not reported as capped");
+});
+
+test("S22-D8: the duplicates audit states no figure it cannot stand behind", async () => {
+  // Round 2 changed this from 0 to null with a comment and no test, which verifier-2's surviving
+  // mutation proved. The worker's list has already dropped private copies and their count is not
+  // carried here, so a number would be invented.
+  const root = tmp();
+  write(root, "a.jpg", "same bytes");
+  write(root, "b.jpg", "same bytes");
+  const store = tmp();
+  const h = await hub({ roots: [root], estateStore: store });
+  try {
+    assert.equal((await h.call("/library", { root })).status, 202);
+    for (let i = 0; i < 400; i++) {
+      if (!JSON.parse((await h.call("/library")).text).running) break;
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    let dups;
+    for (let i = 0; i < 400; i++) {
+      dups = await h.call(`/library/duplicates?root=${encodeURIComponent(root)}&surface=mcp`);
+      if (dups.status === 200) break;
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    assert.equal(dups.status, 200, dups.text);
+
+    const dir = path.join(store, "library");
+    const log = fs.readdirSync(dir).find((f) => f.endsWith(".jsonl"));
+    const events = readKelEvents(path.join(dir, log)).events.filter((e) => e.type === "library_queried");
+    const d = events.find((e) => e.payload.kind === "duplicates");
+    assert.ok(d, "the question was audited");
+    assert.equal(d.payload.withheld, null, "null, not 0: this surface does not know the figure");
+    assert.equal("withheld" in d.payload, true, "and the key is present, so the silence is explicit");
+  } finally {
+    await h.close();
+  }
+});

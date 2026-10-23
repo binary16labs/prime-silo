@@ -168,16 +168,50 @@ for (const fn of ["openSync", "readFileSync", "createReadStream", "open", "readF
     // the quarantined file is named by neither
     assert.equal(JSON.stringify(body).includes("passport"), false);
 
-    const dup = await mcp.call("tools/call", {
-      name: "library_duplicates",
-      arguments: { root: hub.root }
-    });
-    assert.equal(JSON.parse(dup.result.content[0].text).ok, true);
-    const chk = await mcp.call("tools/call", {
-      name: "library_check",
-      arguments: { root: hub.root, path: path.join(hub.root, "Open") }
-    });
-    assert.equal(JSON.parse(chk.result.content[0].text).ok, true);
+    // THE OTHER TWO TOOLS ARE COMPARED WITH THEIR ROUTES TOO. Asserting only `ok === true` let
+    // claude-s22-verifier-2 replace library_check's whole branch with a canned answer that never
+    // contacted the hub - a second judge of the owner's rules, the one thing design point 4 exists
+    // to forbid - and both MCP test files stayed green.
+    // the worker writes the duplicates list asynchronously, so 202 is a legitimate answer until
+    // it has; poll the route before comparing, or the comparison races the worker
+    const dupUrl = `${hub.base}/api/estate/library/duplicates?root=${encodeURIComponent(hub.root)}&surface=mcp`;
+    let dupDirect;
+    for (let i = 0; i < 400; i++) {
+      const res = await fetch(dupUrl);
+      dupDirect = await res.json();
+      if (res.status !== 202) break;
+      await new Promise((done) => setTimeout(done, 10));
+    }
+    const dup = JSON.parse(
+      (await mcp.call("tools/call", { name: "library_duplicates", arguments: { root: hub.root } }))
+        .result.content[0].text
+    );
+    assert.equal(dup.ok, true);
+    assert.ok(dup.sets.length >= 1, "there is something to compare");
+    assert.deepEqual(dup.sets, dupDirect.sets, "the tool's sets are the route's sets");
+
+    const askAbout = path.join(hub.root, "Open");
+    const chkDirect = await fetch(`${hub.base}/api/estate/library/check`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ root: hub.root, path: askAbout, surface: "mcp" })
+    }).then((r) => r.json());
+    const chk = JSON.parse(
+      (
+        await mcp.call("tools/call", {
+          name: "library_check",
+          arguments: { root: hub.root, path: askAbout }
+        })
+      ).result.content[0].text
+    );
+    assert.equal(chk.ok, true);
+    assert.ok(chk.files.length >= 1, "it really asked about something");
+    assert.equal(chk.total, chkDirect.total);
+    assert.deepEqual(
+      chk.files.map((f) => [path.basename(f.path), f.verdict]),
+      chkDirect.files.map((f) => [path.basename(f.path), f.verdict]),
+      "the tool's verdicts are the route's verdicts"
+    );
 
     // with the hub stopped: it says so, and still does not read the catalogue
     await hub.close();
