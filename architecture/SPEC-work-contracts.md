@@ -51,6 +51,14 @@ because the contract mandates those too (115 of S22's 883 lines were its own req
 | `L`  | 800    | two layers - a library and its routes, or routes and a panel                          |
 | `XL` | 1000   | the full stack: a library, its routes, an agent surface, the mandated docs and a gate |
 
+**How the lines are counted.** Pinned here because it was undefined, and claude-s22-verifier-2
+showed the same finished work measuring 923, 990 or 856 depending on the convention chosen - which
+makes any band argument unfalsifiable. The figure is **added lines only**, from a **three-dot diff
+against the merge base**, **excluding the contract file itself and everything under `tests/`**.
+Deleted lines do not offset added ones: replacing 50 lines with 50 costs 50, because the budget
+measures how much is written, not how much the file grew. Formatter reflow counts, so run the
+formatter before measuring rather than after arguing about it.
+
 **XL is the ceiling.** Nothing is authored above 1000. Work that does not fit XL is two contracts,
 and the split is decided while authoring - before any code is written - not discovered at line 880.
 
