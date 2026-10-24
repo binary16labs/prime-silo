@@ -35,7 +35,7 @@ export const estimateTokens = (text) => Math.ceil(text.length / 4);
 export const OVERSIZE_GRANTED = Object.freeze({
   K0: 2839,
   S21: 2867, // re-granted 2026-10-18 on merge: +267 is the two owner-signed budget amendments (600->680->800) recorded in the contract on task/S21
-  S22: 3687,
+  S22: 4465, // re-granted 2026-10-24 on merge: +778 is the owner's two amendments (budget 600->800->900, the allowlist line for the KEL enum) and the closing figure
   S23: 3843,
   S24: 2480,
   U0: 3423,
