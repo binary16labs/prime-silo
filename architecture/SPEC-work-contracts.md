@@ -56,7 +56,16 @@ showed the same finished work measuring 923, 990 or 856 depending on the convent
 makes any band argument unfalsifiable. The figure is **added lines only**, from a **three-dot diff
 against the merge base**, **excluding the contract file itself and everything under `tests/`**.
 Deleted lines do not offset added ones: replacing 50 lines with 50 costs 50, because the budget
-measures how much is written, not how much the file grew. Formatter reflow counts, so run the
+measures how much is written, not how much the file grew. `delivery/board/` is excluded too — the
+Definition of Done makes every task write there, so counting it would charge an author for the
+protocol itself.
+
+**The budget follows the contract, not the branch.** A change an author makes in service of a
+contract counts against that contract wherever it is committed, including straight to `main`.
+Without this the figure is one the author can move by choosing where to commit, which is exactly
+what happened in S22: a spec change made during that contract went to `main` and so escaped its
+budget. If a change genuinely belongs to no contract, say which in the log before committing it, so
+the claim is on the record and can be disagreed with. Formatter reflow counts, so run the
 formatter before measuring rather than after arguing about it.
 
 **XL is the ceiling.** Nothing is authored above 1000. Work that does not fit XL is two contracts,
