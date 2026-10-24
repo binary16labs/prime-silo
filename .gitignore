@@ -61,6 +61,10 @@ runtime/runs/
 # Delivery worktrees (git worktree add .worktrees/<id>) — local-only sandboxes,
 # never committed (a stray add here could commit an entire worktree tree).
 /.worktrees/
+# The same for the agent worktrees the harness makes. These are checkouts of this repo, so one
+# `git add -A` sweeps thousands of their files in as an embedded repository: it happened twice in
+# one session and both commits had to be amended before they were pushed.
+/.claude/worktrees/
 # Unsloth QLoRA compiled-kernel cache (Workstream T) — regenerated per training
 # run on the trainer box, machine-local, never committed.
 /unsloth_compiled_cache/
