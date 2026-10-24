@@ -7,6 +7,8 @@
 
 ## READY (take from the top)
 
+- S23 — duplicates and sole copies across the catalogue _(dep S22 DONE 2026-10-24; already signed 2026-10-11. Promoted by the board's mechanical rule, placed at the bottom. NOT MVP work: M13's cut makes only the one outcome's blockers claimable, and those are now all closed, so the next move is the owner walking the journey rather than anyone claiming this.)_
+
 
 - U0 — the drive registry: every drive by identity, Windows identity byte-identical to S21 _(dep S21 DONE 2026-10-18; already signed 2026-10-11. Enters READY below S22; owner may reorder.)_
 
@@ -141,7 +143,7 @@ Q2 Q3 ·
 R0 R1 R2 R3 ·
 M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 ·
 B4 B5 · L15 ·
-S8 · S23 (signed 2026-10-11, waits on S22) · S24 (signed 2026-10-11, waits on S23) ·
+S8 · S24 (signed 2026-10-11, waits on S23) ·
 EP-U (signed 2026-10-11; S6 superseded by U7, S7 re-scoped as U8): U1 (signed 2026-10-11, waits on U0, S23) · U2–U10 to be authored ·
 EP-K (signed 2026-10-11): K0 (signed 2026-10-11, waits on U1) · K1–K6 to be authored ·
 P5 ·
