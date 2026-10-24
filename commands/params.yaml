@@ -102,3 +102,15 @@ USER_FOLDER_SIZE_LIMIT_BYTES:
   allowed: [0..9007199254740991]
   default: 0
   frontend_exposed: false
+ESTATE_STORE:
+  description: Folder holding the estate store - the event logs, artifact blobs and the drive catalogues the librarian keeps. Either separator is accepted on Windows; a UNC path is not offered. Empty means this machine does not catalogue, and the library surfaces then say so rather than guessing a path.
+  type: text
+  allowed: ["/^$/", "/^[A-Za-z]:.+$/", "/^[\/].*/"]
+  default: ""
+  frontend_exposed: false
+ESTATE_SWEEP_ROOTS:
+  description: Drives or folders this machine offers to the estate map, separated by ; or , - empty lets the sweep choose them.
+  type: text
+  allowed: ["/^.*$/"]
+  default: ""
+  frontend_exposed: false

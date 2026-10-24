@@ -16,6 +16,10 @@ This doc covers the shared browser-side skill-loading contract and the documenta
 
 Onscreen skills are discovered from readable module trees:
 
+- `librarian` (`mod/_prime_silo/estate_map/ext/skills/librarian/`) — answers the owner's questions
+  about files on their own drives from the estate catalogue; catalogue-loaded, read-only, and every
+  call goes through the hub's library routes (`docs/server/estate-library.md`).
+
 - top-level discovery pattern: `mod/*/*/ext/skills/*/SKILL.md`
 
 Important rules:

@@ -44,7 +44,8 @@
         "artifact_evicted",
         "node_observed",
         "service_transitioned",
-        "sweep_recorded"
+        "sweep_recorded",
+        "library_queried"
       ]
     },
     "valid_time": { "type": "string", "minLength": 1 },

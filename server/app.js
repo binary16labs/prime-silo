@@ -278,7 +278,8 @@ async function createAgentServer(overrides = {}) {
       // R31 for the estate map (S3): the rules a node's volume names are judged against. Read here
       // rather than defaulted in the library, because a library that invents an empty policy is a
       // guard that is never on. No policy file means no policy, and the hub then refuses maps.
-      quarantine: overrides.estateQuarantine ??
+      quarantine:
+        overrides.estateQuarantine ??
         readQuarantinePolicy(path.join(coordDir, "estate", "quarantine.json"), {
           readFile: (f) => fs.readFileSync(f, "utf8")
         }),
@@ -289,9 +290,14 @@ async function createAgentServer(overrides = {}) {
         ? {
             machine: os.hostname(),
             dbPath: mapDbPath(process.env.BENNY_HOME, os.hostname()),
+            // S22 point 6: both of these are DECLARED parameters now (commands/params.yaml), resolved
+            // with Prime-Silo's precedence — launch override, stored .env, process env, schema
+            // default — instead of read from raw process.env. estateStore empty means this machine
+            // does not catalogue, which the library routes say rather than guessing a path.
+            estateStore: runtimeParams.get("ESTATE_STORE", ""),
             roots: () =>
               sweepRoots({
-                configured: String(process.env.ESTATE_SWEEP_ROOTS || "")
+                configured: String(runtimeParams.get("ESTATE_SWEEP_ROOTS", "") || "")
                   .split(/[;,]/u)
                   .map((s) => s.trim())
                   .filter(Boolean)
