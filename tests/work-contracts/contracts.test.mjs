@@ -1,5 +1,8 @@
 // W0 acceptance tests — one block per contract scenario (delivery/tasks/W0.md).
 import { test } from "node:test";
+import { spawnSync } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
 import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,7 +16,10 @@ import {
   milestoneIds,
   MAX_TOKENS,
   OVERSIZE_GRANTED,
-  BUDGET_BANDS
+  BUDGET_BANDS,
+  readBudget,
+  gatherBudgetRows,
+  generatedOutputs
 } from "../../server/coordination/work-schema/validate.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -229,4 +235,337 @@ test("Scenario: a declared band IS the budget, and XL is the ceiling", () => {
     check({ budget: "450" }).filter((e) => /band/u.test(e)),
     []
   );
+});
+
+// --- S27: the budget as a reading, not a prediction --------------------------------------------
+// Three contracts in a row overran by 30 to 40 per cent. A ceiling does not fix a bad estimator, so
+// the figure becomes something an author reads while there is still work left to split. These pin
+// what it counts — and, more importantly, what it must refuse to count, because every one of those
+// exclusions was found by hand after the fact and then written down in prose that was forgotten.
+
+const rows = (pairs) => pairs.map(([path, added]) => ({ path, added }));
+
+test("Scenario: the reading counts what the convention says and nothing else", () => {
+  const r = readBudget({
+    id: "X1",
+    band: "M",
+    budget: 500,
+    rows: rows([
+      ["server/coordination/lib/library.mjs", 120],
+      ["app/L0/_all/mod/_prime_silo/drives/drives.js", 80],
+      ["delivery/tasks/X1.md", 40], // the contract itself
+      ["tests/library_test.mjs", 200], // tests
+      ["delivery/board/LOG.md", 60], // the board, which the DoD makes every task write
+      ["manual/SITEMAP.md", 19], // regenerated, not written
+      ["manual/usecases.coverage.json", 19],
+      ["manual/usecases.json", 48] // hand-edited: this one DOES count
+    ]),
+    generated: generatedOutputs(ROOT)
+  });
+
+  assert.equal(r.counted, 120 + 80 + 48, `only authored source: ${JSON.stringify(r.counted)}`);
+  assert.equal(r.band, "M");
+  assert.equal(r.budget, 500);
+  assert.equal(r.left, 500 - 248);
+  assert.equal(r.over, false);
+
+  // the exclusions are NAMED, so the reading can be argued with rather than trusted
+  const why = Object.fromEntries(r.excluded.map((e) => [e.path, e.why]));
+  assert.equal(why["delivery/tasks/X1.md"], "the contract itself");
+  assert.equal(why["tests/library_test.mjs"], "tests");
+  assert.equal(why["delivery/board/LOG.md"], "the board");
+  assert.equal(why["manual/SITEMAP.md"], "generated");
+  assert.equal(why["manual/usecases.coverage.json"], "generated");
+  assert.equal(why["manual/usecases.json"], undefined, "a hand-edited registry is not generated");
+
+  // the paired negative: a reading that counted everything would report 586
+  assert.notEqual(r.counted, 586);
+});
+
+test("Scenario: crossing the band is said while there is still work to do", () => {
+  const r = readBudget({
+    id: "X1",
+    band: "S",
+    budget: 300,
+    rows: rows([["server/app.js", 310]])
+  });
+  assert.equal(r.counted, 310);
+  assert.equal(r.over, true);
+  assert.equal(r.left, -10);
+  assert.match(r.verdict, /over band S/iu);
+  // it reports; it does not refuse. The band is a trigger for a conversation, and w0 already
+  // enforces band equals budget — a second refusal here would be ceremony.
+  assert.equal(r.refused, undefined);
+  assert.equal(typeof r.verdict, "string");
+
+  const under = readBudget({
+    id: "X1",
+    band: "S",
+    budget: 300,
+    rows: rows([["server/app.js", 290]])
+  });
+  assert.equal(under.over, false);
+  assert.match(under.verdict, /10 left/u);
+});
+
+test("Scenario: an unformatted file is named rather than silently counted", () => {
+  // 180 of S26's lines were a JSON round-trip reformatting a file nobody had edited. A figure the
+  // formatter would change is not a figure to argue about.
+  const r = readBudget({
+    id: "X1",
+    band: "M",
+    budget: 500,
+    rows: rows([["manual/usecases.json", 228]]),
+    unformatted: ["manual/usecases.json"]
+  });
+  assert.match(r.verdict, /format/iu, `it says to format first: ${r.verdict}`);
+  assert.deepEqual(r.unformatted, ["manual/usecases.json"]);
+
+  // and when everything is formatted it says nothing about formatting
+  const clean = readBudget({
+    id: "X1",
+    band: "M",
+    budget: 500,
+    rows: rows([["manual/usecases.json", 48]])
+  });
+  assert.equal(/format/iu.test(clean.verdict), false);
+});
+
+// --- S27 round 2: what a verifier's mutations proved was undefended ---------------------------
+// Three mutations survived round one, all on the half of this contract that is not the pure
+// function: delete the whole command and the gate still printed GATE GREEN; count added+deleted and
+// every test stayed green; revert the working-tree read to three-dot and nothing noticed. The
+// deliverable IS the command, so the command is what these pin.
+
+test("Scenario: the generated set is read off the build scripts, not transcribed", () => {
+  const g = generatedOutputs(ROOT);
+  // the six the first version listed by hand — and the six it had missed
+  for (const f of [
+    "manual/SITEMAP.md",
+    "manual/USE-CASES.md",
+    "manual/PROCESS-FLOWS.md",
+    "manual/ROBUSTNESS.md",
+    "manual/sitemap.json",
+    "manual/usecases.coverage.json",
+    "manual/OPERATING-MANUAL.md",
+    "manual/manual.rag.md",
+    "manual/manual.rag.jsonl",
+    "manual/manual.pageindex.md",
+    "manual/manual.triples.json",
+    "manual/tour.html"
+  ])
+    assert.ok(g.has(f), `${f} is written by a build script and must not be charged to an author`);
+
+  // and the two the first version wrongly held: nothing in the repo writes these, they are edited
+  // by hand, and excluding them handed out 700 free lines of authored content
+  for (const f of [
+    "manual/flows.json",
+    "manual/robustness.json",
+    "manual/usecases.json",
+    "manual/manual.json"
+  ])
+    assert.equal(g.has(f), false, `${f} is hand-edited source and must be counted`);
+});
+
+const fakeGit = (diff, others = "") => {
+  const calls = [];
+  const git = (...args) => {
+    calls.push(args.join(" "));
+    if (args[0] === "diff") return { status: 0, stdout: diff, stderr: "" };
+    if (args[0] === "ls-files") return { status: 0, stdout: others, stderr: "" };
+    return { status: 0, stdout: "", stderr: "" };
+  };
+  return { git, calls };
+};
+
+const TAB = String.fromCharCode(9);
+
+test("Scenario: only added lines count, and against the working tree", () => {
+  const { git, calls } = fakeGit(
+    [
+      "40" + TAB + "35" + TAB + "server/a.mjs",
+      "10" + TAB + "0" + TAB + "server/b.mjs",
+      "-" + TAB + "-" + TAB + "res/logo.png"
+    ].join(String.fromCharCode(10))
+  );
+  const rows = gatherBudgetRows({ git, ref: "abc123", repoRoot: ROOT });
+
+  // added-only. added+deleted reads 85, which is how one branch managed to be 923 or 990 or 856
+  const r = readBudget({
+    id: "X1",
+    band: "S",
+    budget: 300,
+    rows,
+    generated: generatedOutputs(ROOT)
+  });
+  assert.equal(r.counted, 50, `added lines only: ${JSON.stringify(rows)}`);
+  assert.notEqual(r.counted, 85, "added+deleted is a different rule and makes bands unarguable");
+
+  // the working tree, not HEAD: a three-dot diff reads 0 for everything uncommitted, which is the
+  // one moment the figure is worth having
+  assert.ok(
+    calls.includes("diff --numstat abc123"),
+    `the diff must be against the working tree: ${JSON.stringify(calls)}`
+  );
+  assert.equal(
+    calls.some((c) => c.includes("...")),
+    false,
+    "a three-dot range here would silence every uncommitted line"
+  );
+
+  // a binary file has no lines to count — but it is named rather than silently dropped
+  const png = r.excluded.find((e) => e.path === "res/logo.png");
+  assert.match(png?.why ?? "", /binary/u);
+});
+
+test("Scenario: a file that is not committed yet still counts", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "s27-"));
+  fs.writeFileSync(path.join(dir, "new.mjs"), ["a", "b", "c", ""].join(String.fromCharCode(10)));
+  fs.mkdirSync(path.join(dir, "sub"));
+  fs.writeFileSync(path.join(dir, "sub", "more.mjs"), ["x", "y"].join(String.fromCharCode(10)));
+  fs.writeFileSync(path.join(dir, "blob.bin"), Buffer.from([1, 0, 2]));
+  const { git } = fakeGit(
+    "",
+    ["new.mjs", "sub/more.mjs", "blob.bin", ""].join(String.fromCharCode(10))
+  );
+
+  const rows = gatherBudgetRows({ git, ref: "abc123", repoRoot: dir });
+  const r = readBudget({ id: "X1", band: "S", budget: 300, rows, generated: new Set() });
+  // 3 + 2: new files are most of what a contract writes, and git diff cannot see any of them. The
+  // shipped version told an author holding 657 uncommitted lines that they had 143 left.
+  assert.equal(r.counted, 5, `untracked lines are counted: ${JSON.stringify(rows)}`);
+  assert.match(r.excluded.find((e) => e.path === "blob.bin")?.why ?? "", /binary/u);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test("Scenario: a reading it cannot derive is an error, never zero", () => {
+  // every fail-open pointed the same way — "you have room". A typo'd --base printed "300 left".
+  const git = (...args) =>
+    args[0] === "diff"
+      ? { status: 128, stdout: "", stderr: "fatal: bad revision 'mian'" }
+      : { status: 0, stdout: "", stderr: "" };
+  assert.throws(() => gatherBudgetRows({ git, ref: "mian", repoRoot: ROOT }), /bad revision/u);
+
+  // and a formatter that could not run says so rather than reading clean — the checkout a verifier
+  // is told to use has no node_modules
+  const quiet = readBudget({ id: "X1", band: "S", budget: 300, rows: [], formatterRan: false });
+  assert.match(quiet.verdict, /formatter could not run/u);
+  assert.equal(
+    /could not run/u.test(readBudget({ id: "X1", band: "S", budget: 300 }).verdict),
+    false
+  );
+
+  // a file that was not counted cannot be inflating the figure
+  const both = readBudget({
+    id: "X1",
+    band: "S",
+    budget: 300,
+    rows: [{ path: "tests/t.mjs", added: 90 }],
+    unformatted: ["tests/t.mjs"]
+  });
+  assert.equal(
+    /format/iu.test(both.verdict),
+    false,
+    `not counted and inflating at once: ${both.verdict}`
+  );
+
+  // no band declared: "OVER band undefined" is not a sentence
+  const nb = readBudget({ id: "X1", budget: 100, rows: [{ path: "a.mjs", added: 150 }] });
+  assert.match(nb.verdict, /OVER budget by 50/u);
+});
+
+test("Scenario: the command itself runs and prints a reading", () => {
+  // the mutation that mattered: delete the whole --budget entry point and every other test here
+  // stays green while `w0.mjs --budget S27` prints GATE GREEN and no figure at all.
+  const r = spawnSync(process.execPath, ["scripts/gates/w0.mjs", "--budget", "S27"], {
+    cwd: ROOT,
+    encoding: "utf8"
+  });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /\[budget\] S27 \(band S\) vs /u, `no reading printed: ${r.stdout}`);
+  assert.match(
+    r.stdout,
+    /\[budget\] \d+ non-test lines of 300 . /u,
+    `no figure printed: ${r.stdout}`
+  );
+  assert.match(
+    r.stdout,
+    /not counted: \d+ in tests\//u,
+    "the exclusions are shown, not just applied"
+  );
+
+  // a ref it cannot resolve refuses rather than reporting a budget nobody spent
+  const bad = spawnSync(
+    process.execPath,
+    ["scripts/gates/w0.mjs", "--budget", "S27", "--base", "mian-not-a-ref"],
+    { cwd: ROOT, encoding: "utf8" }
+  );
+  assert.equal(bad.status, 1, `a bad --base must not read clean: ${bad.stdout}`);
+  assert.equal(/non-test lines/u.test(bad.stdout), false, bad.stdout);
+});
+
+test("Scenario: the walk stops at the trees an author is told never to touch", () => {
+  // A verifier extended this to untracked files on my own branch and then found the cost: in a real
+  // working repo — not the clean checkout verification mandates — L1/, L2/ and a live run workspace
+  // took the reading to 6,533 against a band of 300, with exactly one row named to explain it. An
+  // author who sees that stops reading the instrument, which defeats the contract.
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "s27-scope-"));
+  const put = (rel, body) => {
+    fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+    fs.writeFileSync(path.join(dir, rel), body);
+  };
+  const lines = (n) =>
+    new Array(n).fill("x").join(String.fromCharCode(10)) + String.fromCharCode(10);
+  put("server/mine.mjs", lines(40));
+  put("L1/_all/thing.mjs", lines(3000));
+  put("L2/other/thing.mjs", lines(2000));
+  put("run/live-workspace/out.json", lines(1300));
+  put("node_modules/dep/index.js", lines(900));
+  put("huge.json", lines(400000)); // 800 KB of 'x\n' is under the cap; the next one is not
+  put("server/mid.mjs", lines(100)); // listed last on purpose: reversing is not sorting
+  fs.writeFileSync(path.join(dir, "artifact.bin"), Buffer.alloc(3 * 1024 * 1024, 97));
+
+  const others = [
+    "server/mine.mjs",
+    "L1/_all/thing.mjs",
+    "L2/other/thing.mjs",
+    "run/live-workspace/out.json",
+    "node_modules/dep/index.js",
+    "huge.json",
+    "server/mid.mjs",
+    "artifact.bin",
+    ""
+  ].join(String.fromCharCode(10));
+  const { git } = fakeGit("", others);
+  const rows = gatherBudgetRows({ git, ref: "abc123", repoRoot: dir });
+  const r = readBudget({ id: "X1", band: "S", budget: 300, rows, generated: new Set() });
+
+  // 40 of my own work, plus the 400,000-line file that is still a text file I could have written
+  assert.equal(r.counted, 400140, `only what an author could have written: ${r.verdict}`);
+  assert.notEqual(r.counted, 6533, "the figure the verifier measured before this bound existed");
+
+  // each never-touch root appears ONCE, named, with a count — visible rather than merely absent
+  const why = Object.fromEntries(r.excluded.map((e) => [e.path, e.why]));
+  for (const root of ["L1/", "L2/", "run/", "node_modules/"])
+    assert.match(
+      why[root] ?? "",
+      /never-touch root/u,
+      `${root} must be named: ${JSON.stringify(why)}`
+    );
+  assert.equal(
+    r.excluded.filter((e) => e.path === "L1/").length,
+    1,
+    "one row per root, not one per file"
+  );
+
+  // nobody hand-writes 3 MB, so a 3 MB figure is an artifact that wandered in
+  assert.match(why["artifact.bin"] ?? "", /too large to have been written by hand/u);
+
+  // and the reading says what it COUNTED, biggest first, so a large figure can be explained
+  assert.deepEqual(
+    r.charged.map((c) => c.path),
+    ["huge.json", "server/mid.mjs", "server/mine.mjs"],
+    `counted rows, biggest first: ${JSON.stringify(r.charged)}`
+  );
+  fs.rmSync(dir, { recursive: true, force: true });
 });
