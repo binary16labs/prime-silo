@@ -5,7 +5,7 @@ Every surface the estate presents, grouped by the job it does. Generated from th
 view and endpoint, and every registered panel appears here. The build fails rather than
 show a map that has drifted.
 
-18 surfaces · 57 API routes · 25 commands
+20 surfaces · 57 API routes · 27 commands
 
 ## Decide
 
@@ -125,6 +125,22 @@ Source: `app/L0/_all/mod/_core/agent`
 
 ## Hold
 
+### Drives — `#/_prime_silo/drives`
+
+Walk your drives from the catalogue rather than the disk — every folder with its size, how much of it exists somewhere else, and where those copies are. Answers with the drive unplugged, and never opens a file.
+
+Calls: `/api/estate`
+
+Source: `app/L0/_all/mod/_prime_silo/drives`
+
+### Estate Map — `#/_prime_silo/estate_map`
+
+What the estate actually holds — every node's volumes and files, which software each one runs, and where the versions have drifted apart. Folded from what the nodes pushed; a node that has gone quiet is shown stale, never empty.
+
+Calls: `/api/estate`
+
+Source: `app/L0/_all/mod/_prime_silo/estate_map`
+
 ### Files — `#/file_explorer`
 
 Browse and edit app files.
@@ -159,6 +175,7 @@ Parts of the estate with no panel — run these directly.
 - `node scripts/estate.mjs` — estate — the operator CLI for the governed estate.
 - `node scripts/estate_backup.mjs` — estate_backup — content-addressed backup of RAW session and tool data to a
 - `node scripts/estate_key.mjs` — estate registration key — generate / inspect the shared per-estate secret that gates
+- `node scripts/estate_map_bench.mjs` — Estate map benchmark (S1) — time every available file adapter on the same volumes, then time the
 - `node scripts/estate_satellite_agent.mjs` — estate satellite agent — RUNS ON THE SATELLITE (the ASUS). Announces the machine to the
 - `node scripts/estate_satellite_pull.mjs` — satellite-pull — the governed satellite -> hub session pull.
 - `node scripts/evidence_pack.mjs` — Generate the estate evidence pack.
@@ -168,6 +185,7 @@ Parts of the estate with no panel — run these directly.
 - `node scripts/inventory_sweep.mjs` — Estate inventory sweep — look at the world, then hold the ledger to it.
 - `node scripts/manual_build.mjs` — Operating manual — one source, three consumptions, none of them hand-maintained.
 - `node scripts/manual_load.mjs` — Load the operating manual into the agent's memory — graph facts and retrievable chunks.
+- `node scripts/nas_catalog.mjs` — NAS catalog CLI — scan the shared drive into the catalog and the estate event log, and query it.
 - `node scripts/offload-report.mjs` — 
 - `node scripts/offload-runner.mjs` — Q0: single resolution path — env BENNY_API_KEY -> per-install keystore
 - `node scripts/openstudio-notebook-bridge.mjs` — Open-Studio bridge (Phase 2b): open-notebook sources -> Benny RAG.

@@ -2,8 +2,8 @@
 
 _What people and machinery actually do here, and which surface each act happens on_
 
-19 use cases · 18 surfaces, all covered · 
-10 exercised, 9 declared
+21 use cases · 20 surfaces, all covered · 
+12 exercised, 9 declared
 
 ## Actors
 
@@ -482,6 +482,66 @@ Actors are the estate's own authorship enum (R38) — human, frontier, house —
 - Nothing on the Release arc signs; the signature is taken in the Gov arc.
 - The credential is never read from a command-line argument and never sent to the browser.
 
+## UC-20 · See which folders are copies of other folders
+
+**Actor** You (the owner) · **exercised**
+
+**Goal** Decide what to do about 1.1 million files without judging them one at a time.
+
+**Trigger** The duplicates list says 267.6 GB is reclaimable, and a list of 237,508 sets is not a decision anyone makes.
+
+**Precondition** The drive has a finished catalogue.
+
+**Precondition** Its folder rollup has been built.
+
+**Surfaces** Drives (`#/_prime_silo/drives`)
+
+**Flow**
+
+1. Open Drives and pick a catalogued drive. Every folder shows its size, how much of it exists somewhere else, and how much is duplicated inside it.
+2. A folder whose every file exists elsewhere is marked: that is the only row where retiring the whole tree is a safe thought.
+3. Ask where the other copies are. The folders holding them are named, and you can walk straight to one.
+4. Nothing is moved. The surface ends at the judgement; acting on it is EP-U's signed work.
+5. Calls GET /api/estate/library/folder and /api/estate/library/neighbours. They are not listed in endpoints because that field names route files and the estate API is mounted as one module.
+
+**Outcome** The owner knows which trees are second copies of other trees, and where.
+
+**What it refuses to do**
+
+- Private paths are counted and never named, folder names included.
+- No file or directory on any drive is read: every figure comes from the catalogue, so the answer holds with the drive unplugged.
+- A rollup still being built is said, never shown as an empty folder.
+- Nothing here moves, copies, zips or deletes anything.
+
+## UC-21 · See what this machine holds, drive by drive
+
+**Actor** You (the owner) · **exercised**
+
+**Goal** Know what is attached, what is on it, and what has been catalogued.
+
+**Trigger** The owner wants to look at their own estate rather than read a script's output.
+
+**Precondition** A quarantine policy exists.
+
+**Precondition** This machine offers at least one root.
+
+**Surfaces** Estate Map (`#/_prime_silo/estate_map`)
+
+**Flow**
+
+1. Open the Estate Map. Each tab answers one question: what is stored, what is installed, what media is here, what is catalogued, what is backed up.
+2. The Library tab shows each drive's catalogue — never catalogued, part way, or finished with totals by kind and the top duplicate sets.
+3. Catalogue F: starts a pass and reports progress; stopping keeps everything it committed and the next run resumes where it stopped.
+4. Calls GET /api/estate and /api/estate/library, which are not listed in endpoints because that field names route files and the estate API is mounted as one module.
+
+**Outcome** The owner can see their estate from the app rather than from a terminal.
+
+**What it refuses to do**
+
+- Every estate route answers this machine only: the map and the catalogue name files.
+- No catalogue is started without a quarantine policy, because the catalogue would list private files.
+- Private files are counted and never named.
+
 ## Coverage
 
 | Zone | Surface | Use cases |
@@ -501,6 +561,8 @@ Actors are the estate's own authorship enum (R38) — human, frontier, house —
 | Replay | Step-Through | UC-04 |
 | Replay | Time Travel | UC-04, UC-16 |
 | Ask | Agent | UC-09 |
+| Hold | Drives | UC-20 |
+| Hold | Estate Map | UC-21 |
 | Hold | Files | UC-06, UC-14 |
 | Think | Local LLM | UC-09, UC-15 |
 | Operate | User | UC-17 |

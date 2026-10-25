@@ -1,0 +1,7 @@
+name: Drives
+path: _prime_silo/drives
+description: Walk your drives from the catalogue rather than the disk — every folder with its size, how much of it exists somewhere else, and where those copies are. Answers with the drive unplugged, and never opens a file.
+icon: folder_open
+# The Hold zone's colour: this surface is about what the estate holds, beside Files. It is a
+# reading surface only — nothing here moves, copies or deletes anything.
+color: "#8a8f73"

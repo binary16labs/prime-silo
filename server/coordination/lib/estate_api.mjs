@@ -381,6 +381,7 @@ export function createEstateApi({
       rest === "/library/duplicates" ||
       rest === "/library/check" ||
       rest === "/library/folder" ||
+      rest === "/library/neighbours" ||
       rest === "/compare/stop"
     ) {
       if (!local(req))
@@ -488,6 +489,18 @@ export function createEstateApi({
       // never the drive, so it answers with the drive detached. NOT audited, unlike find, duplicates
       // and check: S22's design point 10 audits the questions an AGENT asks, and an event per folder
       // click would bury the ones that matter in a tamper-evident log.
+      // S26 — where the copies are. A separate route from the folder itself because the owner
+      // asks for it, and it costs a query over the folder's subtree rather than a stored figure.
+      if (rest === "/library/neighbours") {
+        if (req.method !== "GET") return sendJson(res, 405, { error: "GET" });
+        if (!Array.isArray(quarantine)) return sendJson(res, 412, { error: NO_POLICY });
+        const u = new URL(req.url, "http://localhost");
+        const root = u.searchParams.get("root");
+        if (!roots.includes(root))
+          return sendJson(res, 400, { error: "root must be one this machine offers", roots });
+        const at = String(u.searchParams.get("path") ?? "").replace(/^[/\\]+|[/\\]+$/gu, "");
+        return answer(res, root, librarian.neighbours(root, { path: at }), null);
+      }
       if (rest === "/library/folder") {
         if (req.method !== "GET") return sendJson(res, 405, { error: "GET" });
         if (!Array.isArray(quarantine)) return sendJson(res, 412, { error: NO_POLICY });

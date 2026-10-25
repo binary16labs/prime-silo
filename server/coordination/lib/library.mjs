@@ -1093,6 +1093,18 @@ export function createLibrarian({
     lookup: (root) => catalogueLookup(libraryPath(dir, root), root),
     // S22: the agent's questions go through the same rules as the panel's, in one place
     find: (root, opts) => findFiles(libraryPath(dir, root), root, rules, opts),
+    // S26: where the copies of one folder's content are. Asked for on demand, because it is a
+    // query over that folder's own subtree rather than a stored figure — storing it for every
+    // folder is what took 45 minutes on the real F:.
+    neighbours(root, { path: at = "", limit = 8 } = {}) {
+      const c = current(root) ?? detached(root);
+      if (!c) return null;
+      if (!c.pass.finishedAt)
+        return {
+          refused: `${root} has a catalogue that has never finished: finish cataloguing it first`
+        };
+      return duplicateNeighbours(c.db, root, rules, at, { limit });
+    },
     // S26: one folder of the tree, from the rollup the worker built. `computing` rather than a
     // half-answer while the key says the rollup is for an older pass or policy: a folder listing
     // built from one pass and counted from another would be quietly wrong.
@@ -1109,7 +1121,9 @@ export function createLibrarian({
           ? { refused: `the folder rollup could not be built: ${why}` }
           : { computing: true, pass: c.pass.last?.id ?? null };
       }
-      return folderView(c.db, root, rules, at, { offset, limit });
+      const v = folderView(c.db, root, rules, at, { offset, limit });
+      // the date belongs on the answer: a figure with no age invites being read as live
+      return v && !v.missing ? { ...v, finishedAt: c.pass.finishedAt } : v;
     },
     // one event per question, in the drive's own library log beside its catalogue
     audit(root, info) {

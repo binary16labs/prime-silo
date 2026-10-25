@@ -1,9 +1,9 @@
 {
   "generated_from": "scripts/sitemap_build.mjs",
   "counts": {
-    "surfaces": 18,
+    "surfaces": 20,
     "routes": 57,
-    "commands": 25,
+    "commands": 27,
     "unreached_routes": 39
   },
   "zones": [
@@ -218,6 +218,30 @@
       "zone": "Hold",
       "surfaces": [
         {
+          "name": "Drives",
+          "route": "_prime_silo/drives",
+          "description": "Walk your drives from the catalogue rather than the disk — every folder with its size, how much of it exists somewhere else, and where those copies are. Answers with the drive unplugged, and never opens a file.",
+          "icon": "folder_open",
+          "colour": "#8a8f73",
+          "dir": "app/L0/_all/mod/_prime_silo/drives",
+          "hasView": true,
+          "endpoints": [
+            "estate"
+          ]
+        },
+        {
+          "name": "Estate Map",
+          "route": "_prime_silo/estate_map",
+          "description": "What the estate actually holds — every node's volumes and files, which software each one runs, and where the versions have drifted apart. Folded from what the nodes pushed; a node that has gone quiet is shown stale, never empty.",
+          "icon": "map",
+          "colour": "#8a9aa4",
+          "dir": "app/L0/_all/mod/_prime_silo/estate_map",
+          "hasView": true,
+          "endpoints": [
+            "estate"
+          ]
+        },
+        {
           "name": "Files",
           "route": "file_explorer",
           "description": "Browse and edit app files.",
@@ -302,6 +326,11 @@
       "summary": "estate registration key — generate / inspect the shared per-estate secret that gates"
     },
     {
+      "command": "node scripts/estate_map_bench.mjs",
+      "file": "scripts/estate_map_bench.mjs",
+      "summary": "Estate map benchmark (S1) — time every available file adapter on the same volumes, then time the"
+    },
+    {
       "command": "node scripts/estate_satellite_agent.mjs",
       "file": "scripts/estate_satellite_agent.mjs",
       "summary": "estate satellite agent — RUNS ON THE SATELLITE (the ASUS). Announces the machine to the"
@@ -345,6 +374,11 @@
       "command": "node scripts/manual_load.mjs",
       "file": "scripts/manual_load.mjs",
       "summary": "Load the operating manual into the agent's memory — graph facts and retrievable chunks."
+    },
+    {
+      "command": "node scripts/nas_catalog.mjs",
+      "file": "scripts/nas_catalog.mjs",
+      "summary": "NAS catalog CLI — scan the shared drive into the catalog and the estate event log, and query it."
     },
     {
       "command": "node scripts/offload-report.mjs",

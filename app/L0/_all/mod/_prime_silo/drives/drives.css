@@ -1,0 +1,182 @@
+/* Drives — what each drive holds, read from its catalogue.
+ *
+ * Governed CSS (C0): every colour resolves through a token in colors.css; spacing, radius and type
+ * come from layout.css / type.css. No hex lives here — the gate fails the commit if it does.
+ *
+ * The one piece of meaning this sheet carries: a folder whose every file exists somewhere else is
+ * marked, because that is the only row where retiring the whole tree is a safe thought. Everything
+ * else is deliberately quiet — a row that shouts about 2 GB of duplication the owner cannot act on
+ * is worse than one that says nothing, and the figures are already in the text.
+ *
+ * Nothing animates on its own. The only state change is one you asked for.
+ */
+
+.drv {
+  padding: var(--space-lg);
+  color: var(--color-text-primary);
+  font-family: var(--font-stack-active);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-body);
+}
+
+.drv__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: baseline;
+}
+
+.drv__title {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-tight);
+}
+
+.drv__roots {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.drv__root,
+.drv__crumb,
+.drv__ask,
+.drv__name {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.drv__root {
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2xs) var(--space-sm);
+}
+
+.drv__root[aria-pressed="true"] {
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-ink);
+}
+
+.drv__root:focus-visible,
+.drv__crumb:focus-visible,
+.drv__ask:focus-visible,
+.drv__name:focus-visible {
+  outline: 2px solid var(--color-focus-border);
+  outline-offset: 2px;
+}
+
+.drv__age,
+.drv__summary,
+.drv__empty,
+.drv__held {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.drv__state {
+  margin: var(--space-md) 0;
+  padding: var(--space-sm) var(--space-md);
+  border-left: 3px solid var(--color-status-warning);
+  background: var(--color-surface-1);
+}
+
+.drv__crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin: var(--space-md) 0 var(--space-sm);
+}
+
+.drv__crumb {
+  color: var(--color-accent-ink);
+  text-decoration: underline;
+}
+
+.drv__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin: 0 0 var(--space-md);
+}
+
+.drv__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--color-border-soft);
+}
+
+.drv__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 18ch);
+  gap: var(--space-md);
+  align-items: baseline;
+  padding: var(--space-sm) var(--space-xs);
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+/* the only loud row on the page: everything in it exists elsewhere, so the tree can be thought
+   about as a whole rather than file by file */
+.drv__row[data-all="true"] {
+  border-left: 3px solid var(--color-accent-primary);
+  background: var(--color-surface-1);
+}
+
+.drv__row--file .drv__name {
+  cursor: default;
+  color: var(--color-text-secondary);
+}
+
+.drv__name {
+  display: flex;
+  gap: var(--space-xs);
+  align-items: baseline;
+  min-width: 0;
+}
+
+.drv__icon {
+  font-family: "Material Symbols Outlined", var(--font-stack-active);
+  color: var(--color-text-tertiary);
+}
+
+.drv__size {
+  font-variant-numeric: tabular-nums;
+}
+
+.drv__dup,
+.drv__out,
+.drv__in {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.drv__where {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-border-strong);
+}
+
+.drv__ask {
+  color: var(--color-accent-ink);
+  text-decoration: underline;
+}
+
+.drv__whereRow {
+  display: flex;
+  gap: var(--space-md);
+  margin: var(--space-xs) 0;
+}
+
+@media (max-width: 40rem) {
+  .drv__row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .drv__dup {
+    grid-column: 1 / -1;
+  }
+}
