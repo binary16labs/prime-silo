@@ -67,6 +67,9 @@ const budgetFor = async (id, base) => {
   });
   console.log(`[budget] ${id} (band ${r.band ?? "none declared"}) vs ${ref}`);
   console.log(`[budget] ${r.verdict}`);
+  for (const c of r.charged.slice(0, 8)) console.log(`[budget]   counted: ${c.added} in ${c.path}`);
+  if (r.charged.length > 8)
+    console.log(`[budget]   counted: and ${r.charged.length - 8} more files`);
   for (const e of r.excluded)
     console.log(`[budget]   not counted: ${e.added} in ${e.path} — ${e.why}`);
   process.exit(0);

@@ -224,6 +224,21 @@ function excludedBecause(file, id, generated) {
 // two halves of the convention a pure readBudget cannot see are exactly the two a mutation test
 // found undefended: ADDED lines only (added+deleted makes a band argument unfalsifiable — one
 // branch read 923 or 990 or 856 depending on the rule) and the WORKING TREE rather than HEAD.
+// delivery/README.md rule 6, verbatim: the trees an author is told never to touch. node_modules,
+// dist and archive are also gitignored; L1, L2 and a run workspace are not ignored anywhere, which
+// is exactly why the walk found them.
+const NEVER_TOUCH = Object.freeze([
+  "node_modules",
+  "dist",
+  "archive",
+  "memoray",
+  "L1",
+  "L2",
+  "run",
+  ".claude/worktrees"
+]);
+const HANDWRITTEN_MAX = 2 * 1024 * 1024;
+
 export function gatherBudgetRows({ git, ref, repoRoot }) {
   const run = (...args) => {
     const r = git(...args);
@@ -235,6 +250,7 @@ export function gatherBudgetRows({ git, ref, repoRoot }) {
   };
   const rows = [];
   const binary = [];
+  const untouchable = new Map();
   for (const line of run("diff", "--numstat", ref).split(/\r?\n/u)) {
     const c = line.split(/\t/u);
     if (c.length !== 3) continue;
@@ -244,11 +260,33 @@ export function gatherBudgetRows({ git, ref, repoRoot }) {
   // Untracked files are invisible to `git diff`, and new files are most of what a contract writes:
   // S21, S22 and S26 were nearly all new files. Until this landed the reading told an author holding
   // 657 uncommitted lines that they had 143 left, and did not even name the file it had skipped.
+  //
+  // But `ls-files --others` walks the WHOLE repo, and .gitignore is not the same list as the one
+  // the board's rule 6 calls never-touch. In a real working repo — not the clean checkout a
+  // verifier uses — L1/, L2/ and a live run workspace took the reading to 6,533 against a band of
+  // 300, with one row named. An author who sees that stops reading the instrument, which defeats
+  // this contract as thoroughly as not having it. So the never-touch roots are excluded by the same
+  // NAMED mechanism as tests/ and the board, and a file too large to be hand-written is named
+  // rather than counted: nobody types 2 MB, so a 2 MB figure is an artifact that wandered in.
   for (const rel of run("ls-files", "--others", "--exclude-standard").split(/\r?\n/u)) {
     const f = rel.trim();
     if (!f) continue;
+    const root = NEVER_TOUCH.find((d) => f === d || f.startsWith(`${d}/`));
+    if (root) {
+      untouchable.set(root, (untouchable.get(root) ?? 0) + 1);
+      continue;
+    }
     const full = path.join(repoRoot, f);
     if (!fs.existsSync(full) || fs.statSync(full).isDirectory()) continue;
+    if (fs.statSync(full).size > HANDWRITTEN_MAX) {
+      binary.push({
+        path: f,
+        added: 0,
+        binary: true,
+        why: "too large to have been written by hand"
+      });
+      continue;
+    }
     const buf = fs.readFileSync(full);
     if (buf.includes(0)) binary.push({ path: f, added: 0, binary: true });
     else {
@@ -259,6 +297,14 @@ export function gatherBudgetRows({ git, ref, repoRoot }) {
       });
     }
   }
+  // one row per never-touch root, so a skipped tree is visible rather than merely absent
+  for (const [root, n] of untouchable)
+    binary.push({
+      path: `${root}/`,
+      added: 0,
+      skipped: true,
+      why: `${n} files under a never-touch root`
+    });
   return [...rows, ...binary];
 }
 
@@ -272,13 +318,23 @@ export function readBudget({
   formatterRan = true
 }) {
   const excluded = [];
+  const charged = [];
   let counted = 0;
   for (const r of rows) {
     // a binary file has no lines to count, which is right — but it was being dropped silently
-    const why = r.binary ? "binary, no lines to count" : excludedBecause(r.path, id, generated);
+    const why =
+      r.binary || r.skipped
+        ? (r.why ?? "binary, no lines to count")
+        : excludedBecause(r.path, id, generated);
     if (why) excluded.push({ path: r.path, added: r.added, why });
-    else counted += r.added;
+    else {
+      counted += r.added;
+      charged.push({ path: r.path, added: r.added });
+    }
   }
+  // what was COUNTED, biggest first. The reading used to print only its exclusions, so a figure of
+  // 6,533 against a band of 300 came with nothing to explain where it came from.
+  charged.sort((a, c) => c.added - a.added);
   const left = budget - counted;
   const over = left < 0;
   const parts = [
@@ -304,6 +360,7 @@ export function readBudget({
     left,
     over,
     excluded,
+    charged,
     unformatted: churn,
     formatterRan,
     verdict: parts.join(" · ")

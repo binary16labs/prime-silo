@@ -503,3 +503,69 @@ test("Scenario: the command itself runs and prints a reading", () => {
   assert.equal(bad.status, 1, `a bad --base must not read clean: ${bad.stdout}`);
   assert.equal(/non-test lines/u.test(bad.stdout), false, bad.stdout);
 });
+
+test("Scenario: the walk stops at the trees an author is told never to touch", () => {
+  // A verifier extended this to untracked files on my own branch and then found the cost: in a real
+  // working repo — not the clean checkout verification mandates — L1/, L2/ and a live run workspace
+  // took the reading to 6,533 against a band of 300, with exactly one row named to explain it. An
+  // author who sees that stops reading the instrument, which defeats the contract.
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "s27-scope-"));
+  const put = (rel, body) => {
+    fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+    fs.writeFileSync(path.join(dir, rel), body);
+  };
+  const lines = (n) =>
+    new Array(n).fill("x").join(String.fromCharCode(10)) + String.fromCharCode(10);
+  put("server/mine.mjs", lines(40));
+  put("L1/_all/thing.mjs", lines(3000));
+  put("L2/other/thing.mjs", lines(2000));
+  put("run/live-workspace/out.json", lines(1300));
+  put("node_modules/dep/index.js", lines(900));
+  put("huge.json", lines(400000)); // 800 KB of 'x\n' is under the cap; the next one is not
+  put("server/mid.mjs", lines(100)); // listed last on purpose: reversing is not sorting
+  fs.writeFileSync(path.join(dir, "artifact.bin"), Buffer.alloc(3 * 1024 * 1024, 97));
+
+  const others = [
+    "server/mine.mjs",
+    "L1/_all/thing.mjs",
+    "L2/other/thing.mjs",
+    "run/live-workspace/out.json",
+    "node_modules/dep/index.js",
+    "huge.json",
+    "server/mid.mjs",
+    "artifact.bin",
+    ""
+  ].join(String.fromCharCode(10));
+  const { git } = fakeGit("", others);
+  const rows = gatherBudgetRows({ git, ref: "abc123", repoRoot: dir });
+  const r = readBudget({ id: "X1", band: "S", budget: 300, rows, generated: new Set() });
+
+  // 40 of my own work, plus the 400,000-line file that is still a text file I could have written
+  assert.equal(r.counted, 400140, `only what an author could have written: ${r.verdict}`);
+  assert.notEqual(r.counted, 6533, "the figure the verifier measured before this bound existed");
+
+  // each never-touch root appears ONCE, named, with a count — visible rather than merely absent
+  const why = Object.fromEntries(r.excluded.map((e) => [e.path, e.why]));
+  for (const root of ["L1/", "L2/", "run/", "node_modules/"])
+    assert.match(
+      why[root] ?? "",
+      /never-touch root/u,
+      `${root} must be named: ${JSON.stringify(why)}`
+    );
+  assert.equal(
+    r.excluded.filter((e) => e.path === "L1/").length,
+    1,
+    "one row per root, not one per file"
+  );
+
+  // nobody hand-writes 3 MB, so a 3 MB figure is an artifact that wandered in
+  assert.match(why["artifact.bin"] ?? "", /too large to have been written by hand/u);
+
+  // and the reading says what it COUNTED, biggest first, so a large figure can be explained
+  assert.deepEqual(
+    r.charged.map((c) => c.path),
+    ["huge.json", "server/mid.mjs", "server/mine.mjs"],
+    `counted rows, biggest first: ${JSON.stringify(r.charged)}`
+  );
+  fs.rmSync(dir, { recursive: true, force: true });
+});
