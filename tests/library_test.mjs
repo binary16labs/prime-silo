@@ -20,6 +20,9 @@ import {
   findFiles,
   kindOf,
   buildFolderRollup,
+  duplicateNeighbours,
+  folderView,
+  rollupKey,
   libraryPath,
   libraryState
 } from "../server/coordination/lib/library.mjs";
@@ -1505,14 +1508,16 @@ test("S26: duplicated OUTSIDE a folder and duplicated WITHIN it are different fi
   assert.equal(f["copy"].dup_out_files, 1);
 
   assert.equal(f["twice"].dup_out_files, 0, "twice/ is duplicated only inside itself");
-  assert.equal(f["twice"].dup_in_files, 2, "both copies are named as the within figure");
+  assert.equal(f["twice"].dup_in_files, 1, "one of the two is redundant, which is the reclaim");
 
   assert.equal(f["only"].dup_out_files, 0, "a sole copy is duplicated nowhere");
   assert.equal(f["only"].dup_in_files, 0);
 
   // at the drive root every copy is inside, so nothing is "elsewhere"
   assert.equal(f[""].dup_out_files, 0, "nothing is outside the root");
-  assert.equal(f[""].dup_in_files, 4, "all four copies are within it");
+  // RECLAIMABLE, not total. Four copies in two sets means two redundant files, and on the real
+  // catalogue this makes the root's figure equal the independently measured 267.6 GB.
+  assert.equal(f[""].dup_in_files, 2, "two of the four copies are redundant");
 });
 
 test("S26: the rollup names where the other copies are", async () => {
@@ -1522,11 +1527,10 @@ test("S26: the rollup names where the other copies are", async () => {
   const dbPath = path.join(tmp(), "lib.db");
   assert.equal((await catalogue({ root, dbPath })).finished, true);
   await buildFolderRollup(dbPath, root, []);
-  const f = rollupOf(dbPath);
-  const where = JSON.parse(f["here"].dup_out_where || "[]");
+  const { where } = duplicateNeighbours(dbPath, root, [], "here");
   assert.ok(
     where.some((w) => w.path === "there"),
-    `here/ points at there/: ${f["here"].dup_out_where}`
+    `here/ points at there/: ${JSON.stringify(where)}`
   );
   assert.equal(
     where.some((w) => w.path === "here"),
@@ -1546,13 +1550,10 @@ test("S26: a private copy is counted but its FOLDER is never pointed at", async 
   assert.equal((await catalogue({ root, dbPath, rules: ["passport"] })).finished, true);
   await buildFolderRollup(dbPath, root, ["passport"]);
   const f = rollupOf(dbPath);
-
   assert.equal(f["open"].dup_out_files, 1, "the public copy still knows it is duplicated");
-  assert.deepEqual(
-    JSON.parse(f["open"].dup_out_where),
-    [],
-    `but is pointed at nothing: ${f["open"].dup_out_where}`
-  );
+  const n = duplicateNeighbours(dbPath, root, ["passport"], "open");
+  assert.deepEqual(n.where, [], `but is pointed at nothing: ${JSON.stringify(n)}`);
+  assert.equal(n.withheld, 1, "and says one was withheld rather than hiding it");
   assert.equal(JSON.stringify(f).includes("passport"), false, "the private name is nowhere");
   // the folder `secret` keeps its own row: the rule matched the FILE, not the folder, and a
   // browsable tree needs its folders. What must not happen is a public folder POINTING at it,
@@ -1567,7 +1568,10 @@ test("S26: a private copy is counted but its FOLDER is never pointed at", async 
   const db2 = path.join(tmp(), "lib2.db");
   assert.equal((await catalogue({ root: open2, dbPath: db2, rules: ["passport"] })).finished, true);
   await buildFolderRollup(db2, open2, ["passport"]);
-  assert.deepEqual(JSON.parse(rollupOf(db2)["one"].dup_out_where), [{ path: "two", files: 1 }]);
+  const pub = duplicateNeighbours(db2, open2, ["passport"], "one");
+  assert.equal(pub.where.length, 1);
+  assert.equal(pub.where[0].path, "two");
+  assert.equal(pub.where[0].files, 1);
 });
 
 test("S26: a private file is counted in its folder and never named", async () => {
@@ -1582,4 +1586,104 @@ test("S26: a private file is counted in its folder and never named", async () =>
   assert.equal(f["mixed"].private, 1, "and the private one is counted as private");
   const dump = JSON.stringify(f);
   assert.equal(dump.includes("passport"), false, "no private name anywhere in the rollup");
+});
+
+test("S26: the rollup is built by the worker, and the request path never builds it", async () => {
+  // The invariant, not the timing: 157 s on the real F: is fine in a worker and fatal on the hub's
+  // request thread, which is where claude-s21-verifier's D3 lived. So asking for a folder before the
+  // worker has finished must return `computing` — never a figure worked out inline to be helpful.
+  const root = tmp();
+  write(root, "a/one.jpg", "same");
+  write(root, "b/one.jpg", "same");
+  const dir = tmp();
+  const lib = createLibrarian({ dir, rules: [] });
+  const dbPath = libraryPath(dir, root);
+  assert.equal((await catalogue({ root, dbPath })).finished, true);
+
+  // before any worker has run there is no rollup, and the answer says so rather than inventing one
+  assert.equal(rollupKey(dbPath), null, "no rollup yet");
+  const early = lib.folder(root, { path: "" });
+  assert.equal(early.computing, true, `computing, not a figure: ${JSON.stringify(early)}`);
+  assert.equal(early.folders, undefined, "and not a half-answer");
+
+  // the worker runs on the first state() call and writes both the summary and the rollup
+  await waitState(lib, root);
+  for (let i = 0; i < 400 && rollupKey(dbPath) === null; i++)
+    await new Promise((r) => setTimeout(r, 25));
+  assert.ok(rollupKey(dbPath), "the worker wrote the rollup");
+  const view = lib.folder(root, { path: "" });
+  assert.ok(
+    view.folders.length >= 2,
+    `and the folder answers: ${JSON.stringify(view).slice(0, 200)}`
+  );
+});
+
+test("S26: opening a folder gives its children, their weight and where their copies are", async () => {
+  const root = tmp();
+  write(root, "keep/a.jpg", "aaaa");
+  write(root, "keep/b.jpg", "bb");
+  write(root, "keep/deep/c.jpg", "cccccc");
+  write(root, "elsewhere/a.jpg", "aaaa");
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root, dbPath })).finished, true);
+  await buildFolderRollup(dbPath, root, []);
+
+  const top = folderView(dbPath, root, [], "");
+  assert.deepEqual(
+    top.folders.map((f) => f.name).sort(),
+    ["elsewhere", "keep"],
+    "the drive root lists its top folders"
+  );
+  assert.deepEqual(top.files, [], "and no files sit at the root here");
+  assert.deepEqual(top.breadcrumb, [], "the root has no breadcrumb");
+
+  const keep = folderView(dbPath, root, [], "keep");
+  assert.deepEqual(
+    keep.folders.map((f) => f.name),
+    ["deep"],
+    "subfolders are children, not descendants"
+  );
+  assert.deepEqual(
+    keep.files.map((f) => f.name).sort(),
+    ["a.jpg", "b.jpg"],
+    "files are its own only"
+  );
+  assert.equal(keep.self.files, 3, "its own figure counts the whole subtree");
+  assert.deepEqual(keep.breadcrumb, [{ name: "keep", path: "keep" }]);
+  assert.equal(keep.self.dup_out_files, 1, "one of its files exists elsewhere");
+  assert.equal(keep.self.all_elsewhere, false, "but not all of it, so it is no retire candidate");
+
+  const only = folderView(dbPath, root, [], "elsewhere");
+  assert.equal(only.self.all_elsewhere, true, "every file of this one is copied elsewhere");
+
+  // a folder that is not in the catalogue is missing, not empty
+  assert.equal(folderView(dbPath, root, [], "nope").missing, true);
+});
+
+test("S26: a quarantined file or folder is counted in the view and never named", async () => {
+  const root = tmp();
+  write(root, "open/fine.txt", "fine");
+  write(root, "open/passport-scan.txt", "secret");
+  write(root, "passport-vault/x.txt", "more");
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root, dbPath, rules: ["passport"] })).finished, true);
+  await buildFolderRollup(dbPath, root, ["passport"]);
+
+  const top = folderView(dbPath, root, ["passport"], "");
+  assert.deepEqual(
+    top.folders.map((f) => f.name),
+    ["open"],
+    "the quarantined folder is not listed"
+  );
+  assert.equal(top.withheld, 1, "but it is counted");
+
+  const open = folderView(dbPath, root, ["passport"], "open");
+  assert.deepEqual(
+    open.files.map((f) => f.name),
+    ["fine.txt"]
+  );
+  assert.equal(open.withheld, 1, "the private file is counted, not named");
+  assert.equal(open.self.files, 2, "and the folder's own total includes it");
+  assert.equal(JSON.stringify(top).includes("passport"), false);
+  assert.equal(JSON.stringify(open).includes("passport"), false);
 });

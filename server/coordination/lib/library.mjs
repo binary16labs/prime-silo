@@ -472,6 +472,12 @@ const csvFor = (db, key) =>
 // summary that replaces them has been saved.
 if (!isMainThread && workerData?.librarySummary) {
   const { dbPath, root, rules, key } = workerData.librarySummary;
+  // S26: THE ROLLUP RUNS HERE, in the worker that already exists, because it is 157 s on the real
+  // F: — the hub's request thread is where claude-s21-verifier's D3 lived and nothing goes back on
+  // it. The key is written LAST, so a rollup interrupted half way is never mistaken for a current
+  // one: a reader checks the key, not the table's existence.
+  await buildFolderRollup(dbPath, root, rules);
+  markRollup(dbPath, key);
   const { state, csv } = summaryOf(dbPath, root, rules);
   const list = csvFor(dbPath, key);
   fs.writeFileSync(`${list}.tmp`, csv);
@@ -551,14 +557,17 @@ export function libraryQueriedEvent({ machine, root, pass, surface, kind, return
 // A file can be both, and is counted in both; the figures answer different questions and neither is
 // a share of the other. Private files are counted and never named, folder names included: a
 // quarantined path is quarantined whichever column it would appear in.
-const ancestorsOf = (rel) => {
+// A declaration, not a const: the worker block at the top of this file runs at module evaluation,
+// so a const here would be in its temporal dead zone and the rollup would throw the moment a worker
+// called it — which is exactly what happened, invisibly, because worker errors were swallowed.
+function ancestorsOf(rel) {
   const parts = rel.split("/");
   const out = [""];
   for (let i = 1; i < parts.length; i++) out.push(parts.slice(0, i).join("/"));
   return out; // every folder holding this file, the drive root first
-};
+}
 
-export async function buildFolderRollup(dbPath, root, rules = [], { signal } = {}) {
+export async function buildFolderRollup(dbPath, root, rules = [], { signal, onProgress } = {}) {
   const db = new DatabaseSync(dbPath, { timeout: BUSY_MS });
   const isPrivate = privateTo(rules);
   try {
@@ -567,33 +576,31 @@ export async function buildFolderRollup(dbPath, root, rules = [], { signal } = {
         path TEXT PRIMARY KEY, files INTEGER NOT NULL DEFAULT 0, bytes INTEGER NOT NULL DEFAULT 0,
         private INTEGER NOT NULL DEFAULT 0,
         dup_out_files INTEGER NOT NULL DEFAULT 0, dup_out_bytes INTEGER NOT NULL DEFAULT 0,
-        dup_in_files INTEGER NOT NULL DEFAULT 0, dup_in_bytes INTEGER NOT NULL DEFAULT 0,
-        dup_out_where TEXT NOT NULL DEFAULT '[]');
+        dup_in_files INTEGER NOT NULL DEFAULT 0, dup_in_bytes INTEGER NOT NULL DEFAULT 0);
     `);
 
     const acc = new Map();
     const of = (f) => {
       let r = acc.get(f);
       if (!r)
-        acc.set(
-          f,
-          (r = {
-            files: 0,
-            bytes: 0,
-            private: 0,
-            do_f: 0,
-            do_b: 0,
-            di_f: 0,
-            di_b: 0,
-            where: new Map()
-          })
-        );
+        acc.set(f, (r = { files: 0, bytes: 0, private: 0, do_f: 0, do_b: 0, di_f: 0, di_b: 0 }));
       return r;
+    };
+
+    // Nothing here awaited, so a 1.1M-row catalogue held the event loop for 45 minutes and a
+    // timer set for every 250 ms never fired once. A worker nobody can see the progress of is a
+    // worker that looks hung, so both passes breathe.
+    let seen = 0;
+    const breathe = async () => {
+      if (++seen % 20000) return;
+      onProgress?.({ rows: seen });
+      await new Promise((r) => setImmediate(r));
     };
 
     // pass 1: totals, which every folder has whether or not anything is duplicated
     for (const r of db.prepare("SELECT path, size FROM files").iterate()) {
       if (signal?.aborted) throw new Error("rollup stopped");
+      await breathe();
       const priv = isPrivate(fullOf(root, r.path)) ? 1 : 0;
       for (const f of ancestorsOf(r.path)) {
         const a = of(f);
@@ -617,19 +624,16 @@ export async function buildFolderRollup(dbPath, root, rules = [], { signal } = {
       for (const [f, k] of perFolder) {
         const a = of(f);
         if (group.length > k) {
+          // bytes here that also exist outside: what retiring this folder frees, because the
+          // copies outside survive it
           a.do_f += k;
           a.do_b += k * size;
-          // where the others are: the shallowest folder of each copy that is not under f
-          for (const g of group) {
-            if (ancestorsOf(g.path).includes(f)) continue;
-            const top = g.path.includes("/") ? g.path.slice(0, g.path.lastIndexOf("/")) : "";
-            if (isPrivate(fullOf(root, g.path))) continue; // a private path names nothing, ever
-            a.where.set(top, (a.where.get(top) ?? 0) + 1);
-          }
         }
         if (k > 1) {
-          a.di_f += k;
-          a.di_b += k * size;
+          // RECLAIMABLE, not total: k copies inside means k-1 are redundant. Counting all k read as
+          // waste and was not — the drive root reported 497.8 GB where the real figure is 267.6.
+          a.di_f += k - 1;
+          a.di_b += (k - 1) * size;
         }
       }
       group = [];
@@ -638,6 +642,7 @@ export async function buildFolderRollup(dbPath, root, rules = [], { signal } = {
       .prepare("SELECT sha256, path, size FROM files WHERE size > 0 ORDER BY sha256, path")
       .iterate()) {
       if (signal?.aborted) throw new Error("rollup stopped");
+      await breathe();
       if (r.sha256 !== sha) {
         flush();
         sha = r.sha256;
@@ -648,33 +653,166 @@ export async function buildFolderRollup(dbPath, root, rules = [], { signal } = {
 
     const put = db.prepare(
       `INSERT INTO folders (path, files, bytes, private, dup_out_files, dup_out_bytes,
-         dup_in_files, dup_in_bytes, dup_out_where) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+         dup_in_files, dup_in_bytes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(path) DO UPDATE SET files = excluded.files, bytes = excluded.bytes,
          private = excluded.private, dup_out_files = excluded.dup_out_files,
          dup_out_bytes = excluded.dup_out_bytes, dup_in_files = excluded.dup_in_files,
-         dup_in_bytes = excluded.dup_in_bytes, dup_out_where = excluded.dup_out_where`
+         dup_in_bytes = excluded.dup_in_bytes`
     );
     db.exec("BEGIN");
     db.prepare("DELETE FROM folders").run();
-    for (const [f, a] of acc) {
-      const where = [...a.where.entries()]
-        .sort((x, y) => y[1] - x[1])
-        .slice(0, 8)
-        .map(([pathRel, files]) => ({ path: pathRel, files }));
-      put.run(
-        f,
-        a.files,
-        a.bytes,
-        a.private,
-        a.do_f,
-        a.do_b,
-        a.di_f,
-        a.di_b,
-        JSON.stringify(where)
-      );
-    }
+    for (const [f, a] of acc)
+      put.run(f, a.files, a.bytes, a.private, a.do_f, a.do_b, a.di_f, a.di_b);
     db.exec("COMMIT");
     return { folders: acc.size };
+  } finally {
+    db.close();
+  }
+}
+
+// Where the copies of THIS folder's content are. Worked out for the one folder being looked at
+// rather than stored for every folder: storing it meant testing every copy of every set against
+// every ancestor, which is O(copies squared x depth) and took 45 minutes on the real F:. The
+// folder's own subtree bounds this, and the drive root never needs it — nothing is outside the root.
+//
+// A private copy is counted and its folder never named: "your private file is a copy of this photo"
+// is the content of that file by a longer route (S22 D1).
+// One folder of the tree: its own figures, its immediate subfolders with theirs, and the files
+// sitting directly in it. Children are found by comparing path prefixes rather than with LIKE, so a
+// folder named with % or _ is a folder and not a pattern.
+//
+// Ordered by size, because the question this surface answers is "where is the weight".
+export function folderView(dbPath, root, rules = [], at = "", { offset = 0, limit = 200 } = {}) {
+  const db = readOnly(dbPath);
+  if (!db) return null;
+  const isPrivate = privateTo(rules);
+  const under = at ? `${at}/` : "";
+  const row = (f) => ({
+    path: f.path,
+    name: f.path.includes("/") ? f.path.slice(f.path.lastIndexOf("/") + 1) : f.path,
+    files: f.files,
+    bytes: f.bytes,
+    private: f.private,
+    dup_out_files: f.dup_out_files,
+    dup_out_bytes: f.dup_out_bytes,
+    dup_in_files: f.dup_in_files,
+    dup_in_bytes: f.dup_in_bytes,
+    all_elsewhere: f.files > 0 && f.dup_out_files === f.files
+  });
+  try {
+    const self = db.prepare("SELECT * FROM folders WHERE path = ?").get(at);
+    if (!self) return { missing: true };
+    const kids = db
+      .prepare(
+        `SELECT * FROM folders WHERE path != '' AND substr(path, 1, ?) = ?
+           AND instr(substr(path, ?), '/') = 0 ORDER BY bytes DESC LIMIT ? OFFSET ?`
+      )
+      .all(under.length, under, under.length + 1, limit, offset);
+    const here = db
+      .prepare(
+        `SELECT path, size, mtime_ms, kind FROM files WHERE substr(path, 1, ?) = ?
+           AND instr(substr(path, ?), '/') = 0 ORDER BY size DESC LIMIT ? OFFSET ?`
+      )
+      .all(under.length, under, under.length + 1, limit, offset);
+
+    // the same judgement as everywhere else: counted, never named — a folder's own name included,
+    // because a quarantine rule matches a path and a folder has one
+    let withheld = 0;
+    const folders = [];
+    for (const k of kids) {
+      if (isPrivate(fullOf(root, k.path))) withheld += 1;
+      else folders.push(row(k));
+    }
+    const files = [];
+    for (const f of here) {
+      if (isPrivate(fullOf(root, f.path))) withheld += 1;
+      else
+        files.push({
+          path: f.path,
+          name: f.path.slice(f.path.lastIndexOf("/") + 1),
+          size: f.size,
+          mtime_ms: f.mtime_ms,
+          kind: f.kind
+        });
+    }
+    const parts = at ? at.split("/") : [];
+    return {
+      at,
+      breadcrumb: parts.map((name, i) => ({ name, path: parts.slice(0, i + 1).join("/") })),
+      self: row(self),
+      folders,
+      files,
+      withheld,
+      more: kids.length === limit || here.length === limit
+    };
+  } finally {
+    db.close();
+  }
+}
+
+// Which pass and policy the folder rollup was built for. Written only once the rollup is complete,
+// so an interrupted one reads as absent rather than as current — the same rule the duplicates list
+// follows, for the same reason.
+export function markRollup(dbPath, key) {
+  const db = new DatabaseSync(dbPath, { timeout: BUSY_MS });
+  try {
+    db.exec(
+      "CREATE TABLE IF NOT EXISTS folders_meta (id INTEGER PRIMARY KEY CHECK (id = 1), key TEXT NOT NULL)"
+    );
+    db.prepare(
+      "INSERT INTO folders_meta (id, key) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET key = excluded.key"
+    ).run(key);
+  } finally {
+    db.close();
+  }
+}
+
+export function rollupKey(dbPath) {
+  const db = readOnly(dbPath);
+  if (!db) return null;
+  try {
+    return db.prepare("SELECT key FROM folders_meta WHERE id = 1").get()?.key ?? null;
+  } catch {
+    return null; // no rollup has ever been written for this catalogue
+  } finally {
+    db.close();
+  }
+}
+
+export function duplicateNeighbours(dbPath, root, rules = [], folder = "", { limit = 8 } = {}) {
+  const db = readOnly(dbPath);
+  if (!db) return null;
+  const isPrivate = privateTo(rules);
+  const under = folder ? folder + "/" : "";
+  try {
+    const mine = folder
+      ? db
+          .prepare(
+            "SELECT DISTINCT sha256 FROM files WHERE size > 0 AND (path = ? OR substr(path, 1, ?) = ?)"
+          )
+          .all(folder, under.length, under)
+      : db.prepare("SELECT DISTINCT sha256 FROM files WHERE size > 0").all();
+    const others = db.prepare("SELECT path, size FROM files WHERE sha256 = ?");
+    const where = new Map();
+    let withheld = 0;
+    for (const m of mine)
+      for (const o of others.all(m.sha256)) {
+        if (o.path === folder || (under && o.path.startsWith(under))) continue; // inside, not out
+        if (isPrivate(fullOf(root, o.path))) {
+          withheld += 1;
+          continue;
+        }
+        const top = o.path.includes("/") ? o.path.slice(0, o.path.lastIndexOf("/")) : "";
+        const w = where.get(top) ?? { path: top, files: 0, bytes: 0 };
+        w.files += 1;
+        w.bytes += o.size;
+        where.set(top, w);
+      }
+    return {
+      where: [...where.values()].sort((a, c) => c.bytes - a.bytes).slice(0, limit),
+      folders: where.size,
+      withheld
+    };
   } finally {
     db.close();
   }
@@ -868,6 +1006,7 @@ export function createLibrarian({
   let ctl = null;
   const policy = policyKey(rules);
   const working = new Set();
+  const failed = new Map();
   const files = (db) => ({ json: `${db}.summary.json` });
   const keyOf = (pass) => `${JSON.stringify(pass)}|${policy}`;
   const saved = (db) => {
@@ -880,10 +1019,16 @@ export function createLibrarian({
   const workOut = (db, root, key) => {
     if (working.has(db) || running?.root === root) return; // a running pass changes it every batch
     working.add(db);
+    failed.delete(db);
     const w = new Worker(new URL(import.meta.url), {
       workerData: { librarySummary: { dbPath: db, root, rules, key } }
     });
-    w.on("error", () => {});
+    // A SWALLOWED WORKER ERROR IS A SURFACE THAT WAITS FOR EVER. The TDZ bug above threw on every
+    // run and nothing showed it: the panel would have said "still being worked out" until the owner
+    // gave up. The error is kept so an answer can name it.
+    w.on("error", (e) => {
+      failed.set(db, String(e?.message || e));
+    });
     w.on("exit", () => working.delete(db));
   };
   const current = (root) => {
@@ -900,6 +1045,24 @@ export function createLibrarian({
     lookup: (root) => catalogueLookup(libraryPath(dir, root), root),
     // S22: the agent's questions go through the same rules as the panel's, in one place
     find: (root, opts) => findFiles(libraryPath(dir, root), root, rules, opts),
+    // S26: one folder of the tree, from the rollup the worker built. `computing` rather than a
+    // half-answer while the key says the rollup is for an older pass or policy: a folder listing
+    // built from one pass and counted from another would be quietly wrong.
+    folder(root, { path: at = "", offset = 0, limit = 200 } = {}) {
+      const c = current(root);
+      if (!c) return null;
+      if (!c.pass.finishedAt)
+        return {
+          refused: `${root} has a catalogue that has never finished: finish cataloguing it first`
+        };
+      if (rollupKey(c.db) !== c.key) {
+        const why = failed.get(c.db);
+        return why
+          ? { refused: `the folder rollup could not be built: ${why}` }
+          : { computing: true, pass: c.pass.last?.id ?? null };
+      }
+      return folderView(c.db, root, rules, at, { offset, limit });
+    },
     // one event per question, in the drive's own library log beside its catalogue
     audit(root, info) {
       const db = libraryPath(dir, root);
