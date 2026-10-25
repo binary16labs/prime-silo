@@ -20,10 +20,10 @@
 
 - S14 — the map carries which software each node runs _(UNBLOCKED — its only dep, S13, went DONE inside the S15 merge (54f5cfc8). Enters READY at the bottom per the board's promotion rule; owner may reorder.)_
 - S25 — the librarian's edges: bound the work, and say what the answer means _(authored 2026-10-24 on the owner's "sort it"; dep S22 DONE. Band S, 300. Closes the six non-blocking findings three verifications of S22 left open, chief among them unbounded hashing on the hub's request thread with no cap on how many paths a caller may give. Authored as a contract rather than patched into main, which is the lesson of defect (h).)_
-- S27 — measure the budget as the work goes, instead of predicting it once _(authored and signed by the owner 2026-10-25. Band S, 300. Three contracts in a row overran by 30 to 40 per cent, so the figure becomes a reading an author takes mid-flight rather than a number guessed once. Adds no gate that blocks: the band is a trigger for a conversation. Also moves the three exclusions found by hand — the board, generated output, and formatter churn — out of prose and into code.)_
 
 ## CLAIMED (agent · date)
 
+- S27 — measure the budget as the work goes, instead of predicting it once · claude-opus-5 · 2026-10-25 _(WIP 0 before this; S26 sits in VERIFY awaiting a non-author. Band S, 300. Claimed first on the owner's direction so the next contract measures itself rather than being counted by hand afterwards for a fourth time.)_
 
 
 
