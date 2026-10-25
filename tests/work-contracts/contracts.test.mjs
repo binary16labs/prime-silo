@@ -477,10 +477,14 @@ test("Scenario: a reading it cannot derive is an error, never zero", () => {
 test("Scenario: the command itself runs and prints a reading", () => {
   // the mutation that mattered: delete the whole --budget entry point and every other test here
   // stays green while `w0.mjs --budget S27` prints GATE GREEN and no figure at all.
-  const r = spawnSync(process.execPath, ["scripts/gates/w0.mjs", "--budget", "S27"], {
-    cwd: ROOT,
-    encoding: "utf8"
-  });
+  // --base is pinned to S27's own merge base, because once this branch is merged `merge-base HEAD
+  // main` is HEAD and the diff is empty: a test that only passes on its author's branch is a test
+  // that goes red on main the moment it lands, which is exactly what it did.
+  const r = spawnSync(
+    process.execPath,
+    ["scripts/gates/w0.mjs", "--budget", "S27", "--base", "b65ff4cc"],
+    { cwd: ROOT, encoding: "utf8" }
+  );
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, /\[budget\] S27 \(band S\) vs /u, `no reading printed: ${r.stdout}`);
   assert.match(
