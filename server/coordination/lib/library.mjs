@@ -533,6 +533,153 @@ export function libraryQueriedEvent({ machine, root, pass, surface, kind, return
   };
 }
 
+// --- S26: the folder rollup ---------------------------------------------------------------------
+//
+// A LIST OF DUPLICATES IS NOT A DECISION. The real F: holds 237,508 duplicate sets, and nobody makes
+// 237,508 judgements. A folder that knows how much of itself exists somewhere ELSE is a judgement,
+// and it is the one that retires a tree. So every folder gets a row, and two figures that must not
+// be confused:
+//
+//   dup_out — files here whose bytes also exist OUTSIDE this folder's subtree. A tree duplicated
+//             against another tree: this is the one that can be retired.
+//   dup_in  — files here whose bytes also exist somewhere INSIDE it. A tree duplicated against
+//             itself, which retiring the tree would not fix.
+//
+// On the real F: the single biggest pair is a folder duplicated against itself (42.4 GB inside
+// Pictures/2016/Pictures), so conflating the two would send the owner at the wrong job.
+//
+// A file can be both, and is counted in both; the figures answer different questions and neither is
+// a share of the other. Private files are counted and never named, folder names included: a
+// quarantined path is quarantined whichever column it would appear in.
+const ancestorsOf = (rel) => {
+  const parts = rel.split("/");
+  const out = [""];
+  for (let i = 1; i < parts.length; i++) out.push(parts.slice(0, i).join("/"));
+  return out; // every folder holding this file, the drive root first
+};
+
+export async function buildFolderRollup(dbPath, root, rules = [], { signal } = {}) {
+  const db = new DatabaseSync(dbPath, { timeout: BUSY_MS });
+  const isPrivate = privateTo(rules);
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS folders (
+        path TEXT PRIMARY KEY, files INTEGER NOT NULL DEFAULT 0, bytes INTEGER NOT NULL DEFAULT 0,
+        private INTEGER NOT NULL DEFAULT 0,
+        dup_out_files INTEGER NOT NULL DEFAULT 0, dup_out_bytes INTEGER NOT NULL DEFAULT 0,
+        dup_in_files INTEGER NOT NULL DEFAULT 0, dup_in_bytes INTEGER NOT NULL DEFAULT 0,
+        dup_out_where TEXT NOT NULL DEFAULT '[]');
+    `);
+
+    const acc = new Map();
+    const of = (f) => {
+      let r = acc.get(f);
+      if (!r)
+        acc.set(
+          f,
+          (r = {
+            files: 0,
+            bytes: 0,
+            private: 0,
+            do_f: 0,
+            do_b: 0,
+            di_f: 0,
+            di_b: 0,
+            where: new Map()
+          })
+        );
+      return r;
+    };
+
+    // pass 1: totals, which every folder has whether or not anything is duplicated
+    for (const r of db.prepare("SELECT path, size FROM files").iterate()) {
+      if (signal?.aborted) throw new Error("rollup stopped");
+      const priv = isPrivate(fullOf(root, r.path)) ? 1 : 0;
+      for (const f of ancestorsOf(r.path)) {
+        const a = of(f);
+        a.files += 1;
+        a.bytes += r.size;
+        a.private += priv;
+      }
+    }
+
+    // pass 2: the duplicated sets, one sha at a time. For a folder F holding k of a set's T copies,
+    // every one of those k has a copy outside F exactly when T > k, and one inside F when k > 1 —
+    // so the two figures fall out of counting copies per ancestor, without comparing paths.
+    let sha = null;
+    let group = [];
+    const flush = () => {
+      if (group.length < 2) return (group = []);
+      const perFolder = new Map();
+      for (const g of group)
+        for (const f of ancestorsOf(g.path)) perFolder.set(f, (perFolder.get(f) ?? 0) + 1);
+      const size = group[0].size;
+      for (const [f, k] of perFolder) {
+        const a = of(f);
+        if (group.length > k) {
+          a.do_f += k;
+          a.do_b += k * size;
+          // where the others are: the shallowest folder of each copy that is not under f
+          for (const g of group) {
+            if (ancestorsOf(g.path).includes(f)) continue;
+            const top = g.path.includes("/") ? g.path.slice(0, g.path.lastIndexOf("/")) : "";
+            if (isPrivate(fullOf(root, g.path))) continue; // a private path names nothing, ever
+            a.where.set(top, (a.where.get(top) ?? 0) + 1);
+          }
+        }
+        if (k > 1) {
+          a.di_f += k;
+          a.di_b += k * size;
+        }
+      }
+      group = [];
+    };
+    for (const r of db
+      .prepare("SELECT sha256, path, size FROM files WHERE size > 0 ORDER BY sha256, path")
+      .iterate()) {
+      if (signal?.aborted) throw new Error("rollup stopped");
+      if (r.sha256 !== sha) {
+        flush();
+        sha = r.sha256;
+      }
+      group.push({ path: r.path, size: r.size });
+    }
+    flush();
+
+    const put = db.prepare(
+      `INSERT INTO folders (path, files, bytes, private, dup_out_files, dup_out_bytes,
+         dup_in_files, dup_in_bytes, dup_out_where) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(path) DO UPDATE SET files = excluded.files, bytes = excluded.bytes,
+         private = excluded.private, dup_out_files = excluded.dup_out_files,
+         dup_out_bytes = excluded.dup_out_bytes, dup_in_files = excluded.dup_in_files,
+         dup_in_bytes = excluded.dup_in_bytes, dup_out_where = excluded.dup_out_where`
+    );
+    db.exec("BEGIN");
+    db.prepare("DELETE FROM folders").run();
+    for (const [f, a] of acc) {
+      const where = [...a.where.entries()]
+        .sort((x, y) => y[1] - x[1])
+        .slice(0, 8)
+        .map(([pathRel, files]) => ({ path: pathRel, files }));
+      put.run(
+        f,
+        a.files,
+        a.bytes,
+        a.private,
+        a.do_f,
+        a.do_b,
+        a.di_f,
+        a.di_b,
+        JSON.stringify(where)
+      );
+    }
+    db.exec("COMMIT");
+    return { folders: acc.size };
+  } finally {
+    db.close();
+  }
+}
+
 // --- S22: the questions Benny asks of the catalogue ---------------------------------------------
 //
 // THE PRIVACY JUDGEMENT HAPPENS HERE, once, for every caller — panel, in-app skill and outside MCP

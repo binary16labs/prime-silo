@@ -19,6 +19,7 @@ import {
   duplicatesCsv,
   findFiles,
   kindOf,
+  buildFolderRollup,
   libraryPath,
   libraryState
 } from "../server/coordination/lib/library.mjs";
@@ -1222,7 +1223,11 @@ test("S22-D5: every question refuses an unfinished catalogue AT ITS ROUTE, not j
     const find = await h.call(`/library/find?root=${enc}&q=a`);
     const dups = await h.call(`/library/duplicates?root=${enc}`);
     const chk = await h.call("/library/check", { root, path: path.join(root, "a.jpg") });
-    for (const [name, r] of [["find", find], ["duplicates", dups], ["check", chk]]) {
+    for (const [name, r] of [
+      ["find", find],
+      ["duplicates", dups],
+      ["check", chk]
+    ]) {
       assert.equal(r.status, 409, `${name} answered ${r.status}: ${r.text}`);
       assert.match(JSON.parse(r.text).error, /never finished/u, name);
     }
@@ -1252,7 +1257,9 @@ test("S22-D6: the check surface audits what it actually withheld", async () => {
 
     const dir = path.join(store, "library");
     const log = fs.readdirSync(dir).find((f) => f.endsWith(".jsonl"));
-    const events = readKelEvents(path.join(dir, log)).events.filter((e) => e.type === "library_queried");
+    const events = readKelEvents(path.join(dir, log)).events.filter(
+      (e) => e.type === "library_queried"
+    );
     const checked = events.find((e) => e.payload.kind === "check");
     assert.ok(checked, "the question was audited");
     // 0 of 3 is not a count. This is the same figure I refused to write for duplicates in the very
@@ -1312,11 +1319,17 @@ test("S22-D8: the duplicates audit states no figure it cannot stand behind", asy
 
     const dir = path.join(store, "library");
     const log = fs.readdirSync(dir).find((f) => f.endsWith(".jsonl"));
-    const events = readKelEvents(path.join(dir, log)).events.filter((e) => e.type === "library_queried");
+    const events = readKelEvents(path.join(dir, log)).events.filter(
+      (e) => e.type === "library_queried"
+    );
     const d = events.find((e) => e.payload.kind === "duplicates");
     assert.ok(d, "the question was audited");
     assert.equal(d.payload.withheld, null, "null, not 0: this surface does not know the figure");
-    assert.equal("withheld" in d.payload, true, "and the key is present, so the silence is explicit");
+    assert.equal(
+      "withheld" in d.payload,
+      true,
+      "and the key is present, so the silence is explicit"
+    );
   } finally {
     await h.close();
   }
@@ -1341,11 +1354,18 @@ test("S22-D9: a file that stats but will not open is a verdict, never a dead hub
   const locked = path.join(asked, "locked.txt");
   const r = await checkPaths(dbPath, root, [], {
     paths: [asked],
-    hash: (f) => (f === locked ? Promise.reject(Object.assign(new Error("EBUSY"), { code: "EBUSY" })) : hashFile(f))
+    hash: (f) =>
+      f === locked
+        ? Promise.reject(Object.assign(new Error("EBUSY"), { code: "EBUSY" }))
+        : hashFile(f)
   });
 
   const by = Object.fromEntries(r.files.map((f) => [path.basename(f.path), f.verdict]));
-  assert.equal(by["locked.txt"], "unreadable", `the locked file is a verdict: ${JSON.stringify(r.files)}`);
+  assert.equal(
+    by["locked.txt"],
+    "unreadable",
+    `the locked file is a verdict: ${JSON.stringify(r.files)}`
+  );
   assert.equal(by["fine.txt"], "on-root", "and the rest of the answer still arrives");
   assert.equal(r.files.length, 2, "nothing is dropped");
 });
@@ -1364,7 +1384,10 @@ test("S22-D10: the check route answers even when the work beneath it throws", as
       await new Promise((r) => setTimeout(r, 10));
     }
     // a path that cannot be statted at all: the walk keeps it and every later step must cope
-    const r = await h.call("/library/check", { root, path: path.join(root, "does", "not", "exist") });
+    const r = await h.call("/library/check", {
+      root,
+      path: path.join(root, "does", "not", "exist")
+    });
     assert.ok([200, 409, 500].includes(r.status), `it answered ${r.status}: ${r.text}`);
     assert.ok(r.text.length > 0, "with a body");
     // and the hub is still serving
@@ -1391,7 +1414,11 @@ test("S22-D11: a caller cannot write its own text into the audit log", async () 
     const enc = encodeURIComponent(root);
     const SMUGGLED = "ZEBRAFISH-not-a-surface";
     assert.equal((await h.call(`/library/find?root=${enc}&q=a&surface=${SMUGGLED}`)).status, 200);
-    assert.equal((await h.call("/library/check", { root, path: path.join(root, "a.txt"), surface: SMUGGLED })).status, 200);
+    assert.equal(
+      (await h.call("/library/check", { root, path: path.join(root, "a.txt"), surface: SMUGGLED }))
+        .status,
+      200
+    );
     // the paired positive: a surface the hub recognises IS recorded
     assert.equal((await h.call(`/library/find?root=${enc}&q=a&surface=skill`)).status, 200);
 
@@ -1399,13 +1426,160 @@ test("S22-D11: a caller cannot write its own text into the audit log", async () 
     const log = fs.readdirSync(dir).find((f) => f.endsWith(".jsonl"));
     const raw = fs.readFileSync(path.join(dir, log), "utf8");
     assert.equal(raw.includes(SMUGGLED), false, "the caller's text is nowhere in the log bytes");
-    const events = readKelEvents(path.join(dir, log)).events.filter((e) => e.type === "library_queried");
+    const events = readKelEvents(path.join(dir, log)).events.filter(
+      (e) => e.type === "library_queried"
+    );
     const surfaces = events.map((e) => e.payload.surface);
     assert.ok(surfaces.includes("skill"), `a known surface is recorded: ${surfaces}`);
     for (const s of surfaces)
-      assert.ok(["panel", "skill", "mcp", "unknown"].includes(s), `unrecognised surface recorded: ${s}`);
-    assert.ok(surfaces.includes("unknown"), "and an unrecognised one becomes 'unknown', not silence");
+      assert.ok(
+        ["panel", "skill", "mcp", "unknown"].includes(s),
+        `unrecognised surface recorded: ${s}`
+      );
+    assert.ok(
+      surfaces.includes("unknown"),
+      "and an unrecognised one becomes 'unknown', not silence"
+    );
   } finally {
     await h.close();
   }
+});
+
+// --- S26: the folder rollup -------------------------------------------------------------------
+// A list of 237,508 duplicate sets is not a decision anyone makes. A folder that knows how much of
+// itself exists somewhere else is. These pin what "somewhere else" means, because it is the figure
+// the owner will act on, and getting it subtly wrong would send them to the wrong tree.
+
+const rollupOf = (dbPath) => {
+  const db = new DatabaseSync(dbPath, { readOnly: true });
+  try {
+    return Object.fromEntries(
+      db
+        .prepare("SELECT * FROM folders")
+        .all()
+        .map((r) => [r.path, { ...r }])
+    );
+  } finally {
+    db.close();
+  }
+};
+
+test("S26: every file is attributed to each of its ancestor folders exactly once", async () => {
+  const root = tmp();
+  write(root, "a/b/one.txt", "1111");
+  write(root, "a/b/two.txt", "22");
+  write(root, "a/three.txt", "333");
+  write(root, "top.txt", "4");
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root, dbPath })).finished, true);
+  await buildFolderRollup(dbPath, root, []);
+
+  const f = rollupOf(dbPath);
+  assert.equal(f[""].files, 4, "the drive root holds every file");
+  assert.equal(f[""].bytes, 4 + 2 + 3 + 1);
+  assert.equal(f["a"].files, 3, "a/ holds its own subtree only");
+  assert.equal(f["a"].bytes, 4 + 2 + 3);
+  assert.equal(f["a/b"].files, 2);
+  assert.equal(f["a/b"].bytes, 6);
+  // the paired negative: a folder that does not exist is not invented
+  assert.equal(f["a/b/c"], undefined);
+});
+
+test("S26: duplicated OUTSIDE a folder and duplicated WITHIN it are different figures", async () => {
+  // The distinction the owner acts on: a tree duplicated against another tree can be retired, a
+  // tree duplicated inside itself cannot — and on the real F: the biggest single pair is a folder
+  // duplicated against itself, so conflating them would point at the wrong job.
+  const root = tmp();
+  write(root, "keep/photo.jpg", "same bytes");
+  write(root, "copy/photo.jpg", "same bytes"); // the same content, another tree
+  write(root, "twice/one.jpg", "doubled");
+  write(root, "twice/again.jpg", "doubled"); // the same content, same tree
+  write(root, "only/unique.jpg", "nothing alike");
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root, dbPath })).finished, true);
+  await buildFolderRollup(dbPath, root, []);
+  const f = rollupOf(dbPath);
+
+  assert.equal(f["keep"].dup_out_files, 1, "keep/ has a copy elsewhere");
+  assert.equal(f["keep"].dup_in_files, 0, "and none of its own");
+  assert.equal(f["copy"].dup_out_files, 1);
+
+  assert.equal(f["twice"].dup_out_files, 0, "twice/ is duplicated only inside itself");
+  assert.equal(f["twice"].dup_in_files, 2, "both copies are named as the within figure");
+
+  assert.equal(f["only"].dup_out_files, 0, "a sole copy is duplicated nowhere");
+  assert.equal(f["only"].dup_in_files, 0);
+
+  // at the drive root every copy is inside, so nothing is "elsewhere"
+  assert.equal(f[""].dup_out_files, 0, "nothing is outside the root");
+  assert.equal(f[""].dup_in_files, 4, "all four copies are within it");
+});
+
+test("S26: the rollup names where the other copies are", async () => {
+  const root = tmp();
+  write(root, "here/x.jpg", "shared");
+  write(root, "there/x.jpg", "shared");
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root, dbPath })).finished, true);
+  await buildFolderRollup(dbPath, root, []);
+  const f = rollupOf(dbPath);
+  const where = JSON.parse(f["here"].dup_out_where || "[]");
+  assert.ok(
+    where.some((w) => w.path === "there"),
+    `here/ points at there/: ${f["here"].dup_out_where}`
+  );
+  assert.equal(
+    where.some((w) => w.path === "here"),
+    false,
+    "and never at itself"
+  );
+});
+
+test("S26: a private copy is counted but its FOLDER is never pointed at", async () => {
+  // The gap my first private test left, found by mutation: it used a private file with no
+  // duplicate, so the "where the other copies are" list never ran. Pointing at the folder holding
+  // a quarantined copy names its location, which is the same leak by a longer route — S22's D1.
+  const root = tmp();
+  write(root, "open/holiday.jpg", "shared bytes");
+  write(root, "secret/passport-scan.jpg", "shared bytes"); // the same bytes, a private path
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root, dbPath, rules: ["passport"] })).finished, true);
+  await buildFolderRollup(dbPath, root, ["passport"]);
+  const f = rollupOf(dbPath);
+
+  assert.equal(f["open"].dup_out_files, 1, "the public copy still knows it is duplicated");
+  assert.deepEqual(
+    JSON.parse(f["open"].dup_out_where),
+    [],
+    `but is pointed at nothing: ${f["open"].dup_out_where}`
+  );
+  assert.equal(JSON.stringify(f).includes("passport"), false, "the private name is nowhere");
+  // the folder `secret` keeps its own row: the rule matched the FILE, not the folder, and a
+  // browsable tree needs its folders. What must not happen is a public folder POINTING at it,
+  // because "your private file is a copy of this photo" is the content of that file.
+  assert.ok(f["secret"], "the folder itself is still navigable");
+  assert.equal(f["secret"].private, 1, "with its private file counted");
+
+  // the paired positive: a PUBLIC second copy is pointed at, so the check above is not vacuous
+  const open2 = tmp();
+  write(open2, "one/x.jpg", "two bytes");
+  write(open2, "two/x.jpg", "two bytes");
+  const db2 = path.join(tmp(), "lib2.db");
+  assert.equal((await catalogue({ root: open2, dbPath: db2, rules: ["passport"] })).finished, true);
+  await buildFolderRollup(db2, open2, ["passport"]);
+  assert.deepEqual(JSON.parse(rollupOf(db2)["one"].dup_out_where), [{ path: "two", files: 1 }]);
+});
+
+test("S26: a private file is counted in its folder and never named", async () => {
+  const root = tmp();
+  write(root, "mixed/public.txt", "public");
+  write(root, "mixed/passport-scan.txt", "secret");
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root, dbPath, rules: ["passport"] })).finished, true);
+  await buildFolderRollup(dbPath, root, ["passport"]);
+  const f = rollupOf(dbPath);
+  assert.equal(f["mixed"].files, 2, "both files are counted");
+  assert.equal(f["mixed"].private, 1, "and the private one is counted as private");
+  const dump = JSON.stringify(f);
+  assert.equal(dump.includes("passport"), false, "no private name anywhere in the rollup");
 });
