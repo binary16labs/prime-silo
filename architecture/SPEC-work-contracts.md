@@ -69,10 +69,14 @@ thing worth refusing. It reads the working tree rather than only commits, becaus
 figure matters is before the work is committed.
 
 Also excluded, for the same reason as `tests/`: `delivery/board/`, which the Definition of Done
-makes every task write, and the files the build scripts regenerate (`manual/SITEMAP.md`,
-`manual/USE-CASES.md`, `manual/sitemap.json`, `manual/usecases.coverage.json` and their siblings).
-Each of those was found by counting a figure by hand after the fact, and each is now in code rather
-than in this paragraph.
+makes every task write, and whatever the build scripts regenerate. That last list is **derived from
+the build scripts themselves**, not written down here or there — the first version of the reading
+carried a hand-kept list of eight names, which turned out to be missing six real outputs while
+wrongly holding two hand-edited inputs that nothing generates. A transcription of this paragraph
+into code is still prose; reading the scripts' own output paths is not. New files count whether or
+not they are committed yet, binary files are named rather than silently dropped, and a reading the
+command cannot derive — no git, an unresolvable `--base`, no formatter installed — says so instead
+of reporting a clean zero, because every one of those failures used to read as _you have room_.
 
 **The budget follows the contract, not the branch.** A change an author makes in service of a
 contract counts against that contract wherever it is committed, including straight to `main`.

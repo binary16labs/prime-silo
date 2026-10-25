@@ -13,54 +13,57 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", ".
 // overran by 30 to 40 per cent, and a figure that only arrives at the end turns a split into
 // paperwork. It reports and refuses nothing; w0 itself already enforces band equals budget.
 const budgetFor = async (id, base) => {
-  const { readBudget, parseFrontmatter } = await import(
+  const { readBudget, gatherBudgetRows, generatedOutputs, parseFrontmatter } = await import(
     new URL("../../server/coordination/work-schema/validate.mjs", import.meta.url)
   );
+  // a missing id or contract exits 1: that is a usage error, not the reading refusing a budget
   const file = path.join(ROOT, "delivery", "tasks", `${id}.md`);
   if (!fs.existsSync(file)) {
     console.error(`[budget] no contract delivery/tasks/${id}.md`);
     process.exit(1);
   }
   const fm = parseFrontmatter(fs.readFileSync(file, "utf8")) ?? {};
-  const git = (...args) => spawnSync("git", args, { cwd: ROOT, encoding: "utf8" }).stdout ?? "";
+  const git = (...args) => spawnSync("git", args, { cwd: ROOT, encoding: "utf8" });
   // three-dot from the merge base, as the convention says: what THIS branch added, not what main
   // has moved on to since
-  const ref = base || git("merge-base", "HEAD", "main").trim() || "main";
-  // Against the WORKING TREE, not HEAD. A verifier's three-dot diff compares commits, which is right
-  // at the end and useless while the work is happening: run mid-flight it reports 0 for everything
-  // you have written but not committed, which is the one moment the figure is worth having. Both
-  // converge once the work is committed, so this is a superset of the convention, not a departure.
-  const rows = git("diff", "--numstat", ref)
-    .split(/\r?\n/u)
-    .map((l) => l.split(/\t/u))
-    .filter((c) => c.length === 3 && c[0] !== "-")
-    .map(([added, , file2]) => ({ path: file2, added: Number(added) || 0 }));
+  const mb = git("merge-base", "HEAD", "main");
+  const ref = base || (mb.status === 0 ? mb.stdout.trim() : "") || "main";
+  let rows;
+  try {
+    rows = gatherBudgetRows({ git, ref, repoRoot: ROOT });
+  } catch (e) {
+    console.error(`[budget] cannot read the budget: ${e.message}`);
+    process.exit(1);
+  }
 
   // a figure the formatter would change is not a figure to argue about
-  const counted = rows.map((r) => r.path).filter((f) => /\.(mjs|js|json|md|css|html)$/u.test(f));
-  const unformatted = counted.length
-    ? (
-        spawnSync(
-          process.execPath,
-          [
-            path.join("node_modules", "prettier", "bin", "prettier.cjs"),
-            "--list-different",
-            ...counted
-          ],
-          { cwd: ROOT, encoding: "utf8" }
-        ).stdout ?? ""
-      )
-        .split(/\r?\n/u)
-        .map((s) => s.trim().replaceAll("\\", "/"))
-        .filter(Boolean)
-    : [];
+  const prettier = path.join(ROOT, "node_modules", "prettier", "bin", "prettier.cjs");
+  const formatterRan = fs.existsSync(prettier);
+  const candidates = rows
+    .filter((r) => !r.binary)
+    .map((r) => r.path)
+    .filter((f) => /\.(mjs|js|json|md|css|html)$/u.test(f));
+  const unformatted =
+    formatterRan && candidates.length
+      ? (
+          spawnSync(process.execPath, [prettier, "--list-different", ...candidates], {
+            cwd: ROOT,
+            encoding: "utf8"
+          }).stdout ?? ""
+        )
+          .split(/\r?\n/u)
+          .map((s) => s.trim().replaceAll("\\", "/"))
+          .filter(Boolean)
+      : [];
 
   const r = readBudget({
     id,
     band: fm.band,
     budget: parseInt(fm.budget, 10) || 0,
     rows,
-    unformatted
+    unformatted,
+    generated: generatedOutputs(ROOT),
+    formatterRan
   });
   console.log(`[budget] ${id} (band ${r.band ?? "none declared"}) vs ${ref}`);
   console.log(`[budget] ${r.verdict}`);

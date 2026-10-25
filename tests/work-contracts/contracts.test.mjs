@@ -1,5 +1,8 @@
 // W0 acceptance tests — one block per contract scenario (delivery/tasks/W0.md).
 import { test } from "node:test";
+import { spawnSync } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
 import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,7 +17,9 @@ import {
   MAX_TOKENS,
   OVERSIZE_GRANTED,
   BUDGET_BANDS,
-  readBudget
+  readBudget,
+  gatherBudgetRows,
+  generatedOutputs
 } from "../../server/coordination/work-schema/validate.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -254,7 +259,8 @@ test("Scenario: the reading counts what the convention says and nothing else", (
       ["manual/SITEMAP.md", 19], // regenerated, not written
       ["manual/usecases.coverage.json", 19],
       ["manual/usecases.json", 48] // hand-edited: this one DOES count
-    ])
+    ]),
+    generated: generatedOutputs(ROOT)
   });
 
   assert.equal(r.counted, 120 + 80 + 48, `only authored source: ${JSON.stringify(r.counted)}`);
@@ -323,4 +329,177 @@ test("Scenario: an unformatted file is named rather than silently counted", () =
     rows: rows([["manual/usecases.json", 48]])
   });
   assert.equal(/format/iu.test(clean.verdict), false);
+});
+
+// --- S27 round 2: what a verifier's mutations proved was undefended ---------------------------
+// Three mutations survived round one, all on the half of this contract that is not the pure
+// function: delete the whole command and the gate still printed GATE GREEN; count added+deleted and
+// every test stayed green; revert the working-tree read to three-dot and nothing noticed. The
+// deliverable IS the command, so the command is what these pin.
+
+test("Scenario: the generated set is read off the build scripts, not transcribed", () => {
+  const g = generatedOutputs(ROOT);
+  // the six the first version listed by hand — and the six it had missed
+  for (const f of [
+    "manual/SITEMAP.md",
+    "manual/USE-CASES.md",
+    "manual/PROCESS-FLOWS.md",
+    "manual/ROBUSTNESS.md",
+    "manual/sitemap.json",
+    "manual/usecases.coverage.json",
+    "manual/OPERATING-MANUAL.md",
+    "manual/manual.rag.md",
+    "manual/manual.rag.jsonl",
+    "manual/manual.pageindex.md",
+    "manual/manual.triples.json",
+    "manual/tour.html"
+  ])
+    assert.ok(g.has(f), `${f} is written by a build script and must not be charged to an author`);
+
+  // and the two the first version wrongly held: nothing in the repo writes these, they are edited
+  // by hand, and excluding them handed out 700 free lines of authored content
+  for (const f of [
+    "manual/flows.json",
+    "manual/robustness.json",
+    "manual/usecases.json",
+    "manual/manual.json"
+  ])
+    assert.equal(g.has(f), false, `${f} is hand-edited source and must be counted`);
+});
+
+const fakeGit = (diff, others = "") => {
+  const calls = [];
+  const git = (...args) => {
+    calls.push(args.join(" "));
+    if (args[0] === "diff") return { status: 0, stdout: diff, stderr: "" };
+    if (args[0] === "ls-files") return { status: 0, stdout: others, stderr: "" };
+    return { status: 0, stdout: "", stderr: "" };
+  };
+  return { git, calls };
+};
+
+const TAB = String.fromCharCode(9);
+
+test("Scenario: only added lines count, and against the working tree", () => {
+  const { git, calls } = fakeGit(
+    [
+      "40" + TAB + "35" + TAB + "server/a.mjs",
+      "10" + TAB + "0" + TAB + "server/b.mjs",
+      "-" + TAB + "-" + TAB + "res/logo.png"
+    ].join(String.fromCharCode(10))
+  );
+  const rows = gatherBudgetRows({ git, ref: "abc123", repoRoot: ROOT });
+
+  // added-only. added+deleted reads 85, which is how one branch managed to be 923 or 990 or 856
+  const r = readBudget({
+    id: "X1",
+    band: "S",
+    budget: 300,
+    rows,
+    generated: generatedOutputs(ROOT)
+  });
+  assert.equal(r.counted, 50, `added lines only: ${JSON.stringify(rows)}`);
+  assert.notEqual(r.counted, 85, "added+deleted is a different rule and makes bands unarguable");
+
+  // the working tree, not HEAD: a three-dot diff reads 0 for everything uncommitted, which is the
+  // one moment the figure is worth having
+  assert.ok(
+    calls.includes("diff --numstat abc123"),
+    `the diff must be against the working tree: ${JSON.stringify(calls)}`
+  );
+  assert.equal(
+    calls.some((c) => c.includes("...")),
+    false,
+    "a three-dot range here would silence every uncommitted line"
+  );
+
+  // a binary file has no lines to count — but it is named rather than silently dropped
+  const png = r.excluded.find((e) => e.path === "res/logo.png");
+  assert.match(png?.why ?? "", /binary/u);
+});
+
+test("Scenario: a file that is not committed yet still counts", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "s27-"));
+  fs.writeFileSync(path.join(dir, "new.mjs"), ["a", "b", "c", ""].join(String.fromCharCode(10)));
+  fs.mkdirSync(path.join(dir, "sub"));
+  fs.writeFileSync(path.join(dir, "sub", "more.mjs"), ["x", "y"].join(String.fromCharCode(10)));
+  fs.writeFileSync(path.join(dir, "blob.bin"), Buffer.from([1, 0, 2]));
+  const { git } = fakeGit(
+    "",
+    ["new.mjs", "sub/more.mjs", "blob.bin", ""].join(String.fromCharCode(10))
+  );
+
+  const rows = gatherBudgetRows({ git, ref: "abc123", repoRoot: dir });
+  const r = readBudget({ id: "X1", band: "S", budget: 300, rows, generated: new Set() });
+  // 3 + 2: new files are most of what a contract writes, and git diff cannot see any of them. The
+  // shipped version told an author holding 657 uncommitted lines that they had 143 left.
+  assert.equal(r.counted, 5, `untracked lines are counted: ${JSON.stringify(rows)}`);
+  assert.match(r.excluded.find((e) => e.path === "blob.bin")?.why ?? "", /binary/u);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test("Scenario: a reading it cannot derive is an error, never zero", () => {
+  // every fail-open pointed the same way — "you have room". A typo'd --base printed "300 left".
+  const git = (...args) =>
+    args[0] === "diff"
+      ? { status: 128, stdout: "", stderr: "fatal: bad revision 'mian'" }
+      : { status: 0, stdout: "", stderr: "" };
+  assert.throws(() => gatherBudgetRows({ git, ref: "mian", repoRoot: ROOT }), /bad revision/u);
+
+  // and a formatter that could not run says so rather than reading clean — the checkout a verifier
+  // is told to use has no node_modules
+  const quiet = readBudget({ id: "X1", band: "S", budget: 300, rows: [], formatterRan: false });
+  assert.match(quiet.verdict, /formatter could not run/u);
+  assert.equal(
+    /could not run/u.test(readBudget({ id: "X1", band: "S", budget: 300 }).verdict),
+    false
+  );
+
+  // a file that was not counted cannot be inflating the figure
+  const both = readBudget({
+    id: "X1",
+    band: "S",
+    budget: 300,
+    rows: [{ path: "tests/t.mjs", added: 90 }],
+    unformatted: ["tests/t.mjs"]
+  });
+  assert.equal(
+    /format/iu.test(both.verdict),
+    false,
+    `not counted and inflating at once: ${both.verdict}`
+  );
+
+  // no band declared: "OVER band undefined" is not a sentence
+  const nb = readBudget({ id: "X1", budget: 100, rows: [{ path: "a.mjs", added: 150 }] });
+  assert.match(nb.verdict, /OVER budget by 50/u);
+});
+
+test("Scenario: the command itself runs and prints a reading", () => {
+  // the mutation that mattered: delete the whole --budget entry point and every other test here
+  // stays green while `w0.mjs --budget S27` prints GATE GREEN and no figure at all.
+  const r = spawnSync(process.execPath, ["scripts/gates/w0.mjs", "--budget", "S27"], {
+    cwd: ROOT,
+    encoding: "utf8"
+  });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /\[budget\] S27 \(band S\) vs /u, `no reading printed: ${r.stdout}`);
+  assert.match(
+    r.stdout,
+    /\[budget\] \d+ non-test lines of 300 . /u,
+    `no figure printed: ${r.stdout}`
+  );
+  assert.match(
+    r.stdout,
+    /not counted: \d+ in tests\//u,
+    "the exclusions are shown, not just applied"
+  );
+
+  // a ref it cannot resolve refuses rather than reporting a budget nobody spent
+  const bad = spawnSync(
+    process.execPath,
+    ["scripts/gates/w0.mjs", "--budget", "S27", "--base", "mian-not-a-ref"],
+    { cwd: ROOT, encoding: "utf8" }
+  );
+  assert.equal(bad.status, 1, `a bad --base must not read clean: ${bad.stdout}`);
+  assert.equal(/non-test lines/u.test(bad.stdout), false, bad.stdout);
 });
