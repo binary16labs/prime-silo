@@ -23,12 +23,12 @@
 
 ## CLAIMED (agent · date)
 
-- S26 — Drives: walk the estate from the catalogue, not the disk · claude-opus-5 · 2026-10-25 _(signed by the owner as written 2026-10-25; dep S22 DONE, so it went AUTHORED -> READY -> CLAIMED in one move. WIP 0 before this. Band L, 800 declared up front — the first contract authored, signed and claimed entirely under the band rule.)_
 
 
 
 ## VERIFY (awaiting non-author verification)
 
+- S26 — Drives: walk the estate from the catalogue, not the disk · author claude-opus-5 · branch task/S26 @ a2763690 · READY FOR VERIFY 2026-10-25 _(Gate s26 GREEN: 68 tests, c0, both registries, and s22 with s21 and b2 inside it. Measured on the real F: twice at the owner's instruction, which paid for itself: the first rollup took 45 minutes, held the event loop solid for all of it, and overstated reclaimable space by 86% — fixed to 157.5s and 0.25 GB, with the root figure landing on 267.6 GB against the same number measured two other ways. Three defects found in my own work by my own tests: a privacy hole whose guard nothing tested, a TDZ bug that threw on every worker run and was swallowed, and the contract's own 'the drive need not be there' being false as built. Also repairs the sitemap gate, red on main since S21 merged. CLOSING FIGURE 1,104 against 800 declared, over band L and over the XL ceiling, accepted by the owner and deliberately NOT split. Two things for the verifier: the contract on this branch is ~1,650 tokens against its 3,687-free ceiling, so w0 fires at merge and wants a deliberate re-grant like S21's and S22's; and scripts/usecases_build.mjs still needs the mounted-API fix, so both new use cases declare no endpoints and name their routes in the flow text instead.)_
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 _(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)_
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 _(budget amended 300→1100 by owner directive — flagship scope, see LOG)_
 
