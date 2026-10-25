@@ -55,14 +55,30 @@ const fullOf = (root, rel) =>
 // named every file inside it on direct navigation — the folder was private and its contents were
 // not. S26 is the first surface to claim folder names are included in the judgement, so this is
 // where that claim has to become true. Each ancestor is judged as well as the path itself.
-const privateTo = (rules) => (p) => {
+const privateTo = (rules) => {
   const forms = (s) => [s, canonPath(s), canonPath(s).toLowerCase()];
-  if (isQuarantined(forms(p), rules)) return true;
-  // both separators: these are FULL paths, so on Windows they arrive back-slashed
-  const parts = p.split(/[\\/]+/u);
-  for (let i = parts.length - 1; i > 0; i -= 1)
-    if (isQuarantined(forms(parts.slice(0, i).join("/")), rules)) return true;
-  return false;
+  // JUDGED ONCE PER DIRECTORY, NOT ONCE PER FILE PER ANCESTOR. Judging every ancestor (D9) made the
+  // judgement 3.7x dearer for every caller, and the near-side guard (D1) made duplicateNeighbours
+  // ask it once per FILE rather than once per sha: 1,000 files in one folder cost 96 ms with no
+  // rules and 409 ms with one, so the rules were three quarters of the bill. Every file in a folder
+  // shares that folder's ancestry, and isQuarantined rebuilds a spellings Set on each call, so the
+  // cache turns thousands of identical questions into one. It is per-matcher, so a changed policy
+  // means a new matcher and never a stale verdict.
+  const dirs = new Map();
+  const dirPrivate = (dir) => {
+    const had = dirs.get(dir);
+    if (had !== undefined) return had;
+    const at = Math.max(dir.lastIndexOf("/"), dir.lastIndexOf("\\"));
+    const verdict =
+      isQuarantined(forms(dir), rules) || (at > 0 ? dirPrivate(dir.slice(0, at)) : false);
+    dirs.set(dir, verdict);
+    return verdict;
+  };
+  return (full) => {
+    if (isQuarantined(forms(full), rules)) return true;
+    const at = Math.max(full.lastIndexOf("/"), full.lastIndexOf("\\"));
+    return at > 0 ? dirPrivate(full.slice(0, at)) : false;
+  };
 };
 
 // KEYED BY THE DRIVE, NOT ITS LETTER (S20's lesson): F: may be another letter tomorrow, and a
@@ -693,10 +709,18 @@ export async function buildFolderRollup(dbPath, root, rules = [], { signal, onPr
 // sitting directly in it. Children are found by comparing path prefixes rather than with LIKE, so a
 // folder named with % or _ is a folder and not a pattern.
 //
+// One page is one page: a caller asking for the whole drive gets a page of it instead.
+export const FOLDER_PAGE_MAX = 1000;
+
 // Ordered by size, because the question this surface answers is "where is the weight".
 export function folderView(dbPath, root, rules = [], at = "", { offset = 0, limit = 200 } = {}) {
   const db = readOnly(dbPath);
   if (!db) return null;
+  // THE CAP LIVES WITH THE QUERY, not only at the route. A verifier lifted the route's cap from
+  // 1,000 to a billion and every test stayed green, then asked this function for 5,001 rows and got
+  // 5,001: "the folder page cap is tested" was not true, and the one cap there was sat in
+  // estate_api.mjs where a loopback caller is the only thing it binds.
+  limit = Math.max(1, Math.min(Number(limit) || 200, FOLDER_PAGE_MAX));
   const isPrivate = privateTo(rules);
   const under = at ? `${at}/` : "";
   const row = (f) => ({
@@ -714,18 +738,26 @@ export function folderView(dbPath, root, rules = [], at = "", { offset = 0, limi
   try {
     const self = db.prepare("SELECT * FROM folders WHERE path = ?").get(at);
     if (!self) return { missing: true };
+    // AN INDEX RANGE, for the same reason duplicateNeighbours has one: `substr(path, 1, ?) = ?`
+    // cannot use the path primary key, and a verifier read the plan as SCAN and timed this route at
+    // 402 ms per click at 500k rows — about 0.9 s at F:'s 1.1 million, on the hub's thread. The
+    // comment this contract added condemning substr() was written one function away from two more
+    // of them. The DRIVE ROOT has no range: every path is under it, so the bound is the instr()
+    // depth test alone, and the folders table it reads is one row per folder rather than per file.
+    const range = at ? "AND path >= ? AND path < ?" : "";
+    const bounds = at ? [under, `${at}0`] : [];
     const kids = db
       .prepare(
-        `SELECT * FROM folders WHERE path != '' AND substr(path, 1, ?) = ?
+        `SELECT * FROM folders WHERE path != '' ${range}
            AND instr(substr(path, ?), '/') = 0 ORDER BY bytes DESC LIMIT ? OFFSET ?`
       )
-      .all(under.length, under, under.length + 1, limit, offset);
+      .all(...bounds, under.length + 1, limit, offset);
     const here = db
       .prepare(
-        `SELECT path, size, mtime_ms, kind FROM files WHERE substr(path, 1, ?) = ?
+        `SELECT path, size, mtime_ms, kind FROM files WHERE 1 = 1 ${range}
            AND instr(substr(path, ?), '/') = 0 ORDER BY size DESC LIMIT ? OFFSET ?`
       )
-      .all(under.length, under, under.length + 1, limit, offset);
+      .all(...bounds, under.length + 1, limit, offset);
 
     // the same judgement as everywhere else: counted, never named — a folder's own name included,
     // because a quarantine rule matches a path and a folder has one
@@ -809,6 +841,17 @@ export function catalogueFor(dir, root) {
 // Which pass and policy the folder rollup was built for. Written only once the rollup is complete,
 // so an interrupted one reads as absent rather than as current — the same rule the duplicates list
 // follows, for the same reason.
+// ONE SPELLING of what makes a rollup current: the catalogue's own pass, and the policy it was
+// counted under. rollupKeyFor is exported because a test could otherwise only build a rollup that
+// is PRESENT, never one that is CURRENT — and a fixture that cannot tell those apart cannot test
+// the difference, which is how the pass half went unchecked for two rounds.
+const keyFrom = (pass, policy) => `${JSON.stringify(pass)}|${policy}`;
+
+export const rollupKeyFor = (dbPath, rules = []) => {
+  const pass = passOf(dbPath);
+  return pass ? keyFrom(pass, policyKey(rules)) : null;
+};
+
 export function markRollup(dbPath, key, root = "") {
   const db = new DatabaseSync(dbPath, { timeout: BUSY_MS });
   try {
@@ -844,6 +887,11 @@ export function rollupKey(dbPath) {
   }
 }
 
+// Measured, not chosen: 0.076 ms per file for the row read and the per-sha lookup, so 1,500 files
+// is about 115 ms of hub thread. The folder's subtree file count is one indexed lookup into the
+// rollup the worker already wrote, so the size of the work is known before any of it is done.
+export const NEIGHBOURS_CAP_FILES = 1500;
+
 export function duplicateNeighbours(dbPath, root, rules = [], folder = "", { limit = 8 } = {}) {
   // THE DRIVE ROOT HAS NO OUTSIDE. Every file on the drive is inside it, so the inside/outside test
   // can never fire: asked of the root this reported all 25,600 folders in a fixture as holding
@@ -853,6 +901,26 @@ export function duplicateNeighbours(dbPath, root, rules = [], folder = "", { lim
   if (!folder) return { refused: "the drive root has no outside: ask of a folder inside it" };
   const db = readOnly(dbPath);
   if (!db) return null;
+  // THE PLACEMENT, NOT THE QUERY — the lesson of this epic, missed twice on this one route. Round 2
+  // turned the lookup into an index range and left the work on the hub's SYNCHRONOUS thread, where
+  // it then measured 93.5 s for a 250,000-file folder: sixteen times worse than the 5.7 s scan it
+  // replaced, because D1's near-side guard made this one row per file and D9's ancestor judgement
+  // made each one dearer. Two correct fixes composed into a frozen hub.
+  //
+  // A cap cannot be argued from taste, so it is measured: 0.076 ms per file with the judgement
+  // memoised, which is the SQL row read and the per-sha lookup and nothing else. CAP_FILES is the
+  // largest number of files that keeps this under about a tenth of a second. Above it the answer is
+  // REFUSED rather than truncated, because "the other copies are in these folders" is a claim about
+  // all of them — a partial answer to that question is a wrong one, not a shorter one.
+  const held = db.prepare("SELECT files FROM folders WHERE path = ?").get(folder)?.files ?? null;
+  if (held !== null && held > NEIGHBOURS_CAP_FILES) {
+    db.close();
+    return {
+      refused:
+        `${folder} holds ${held} files, and comparing more than ${NEIGHBOURS_CAP_FILES} would ` +
+        `block the hub: ask of a folder inside it`
+    };
+  }
   const isPrivate = privateTo(rules);
   const under = folder + "/";
   // A RANGE over the path index, not substr(). `substr(path, 1, ?) = ?` cannot use the primary key,
@@ -1097,7 +1165,7 @@ export function createLibrarian({
   const working = new Set();
   const failed = new Map();
   const files = (db) => ({ json: `${db}.summary.json` });
-  const keyOf = (pass) => `${JSON.stringify(pass)}|${policy}`;
+  const keyOf = (pass) => keyFrom(pass, policy);
   const saved = (db) => {
     try {
       return JSON.parse(fs.readFileSync(files(db).json, "utf8"));
@@ -1129,22 +1197,19 @@ export function createLibrarian({
     if (!db || !fs.existsSync(db)) return null;
     const pass = passOf(db);
     if (!pass) return null;
-    const key = rollupKey(db);
-    if (!key) return null;
-    // TAKING THE KEY FROM THE ROLLUP AND THEN COMPARING IT WITH ITSELF CHECKS NOTHING. The PASS
-    // half genuinely cannot be re-derived for a drive that is not here — its catalogue is the only
-    // witness — but the POLICY half is the hub's own, and a rollup counted under a different
-    // quarantine policy reports private: 0 for the folder holding a quarantined file. Names are
-    // still withheld live, so this was counts rather than naming; design point 6 says counted.
-    const builtUnder = key.slice(key.lastIndexOf("|") + 1);
-    return {
-      db,
-      pass,
-      key,
-      had: saved(db),
-      byName: resolved.byName,
-      policyStale: builtUnder !== policy
-    };
+    const stored = rollupKey(db);
+    if (!stored) return null;
+    // TAKING THE KEY FROM THE ROLLUP AND THEN COMPARING IT WITH ITSELF CHECKS NOTHING. Round 2
+    // fixed the POLICY half and excused the PASS half as impossible to re-derive for an absent
+    // drive — and that excuse was wrong, as a verifier showed: passOf() reads the pass from the
+    // CATALOGUE, which is the same witness the policy half was fixed against and is present by
+    // definition. A rollup built before a later finished pass was therefore served stale while
+    // wearing the NEW pass's finishedAt date: a figure missing a file, stamped current, under a
+    // comment that says the date belongs on the answer.
+    //
+    // So the key is derived here exactly as current() derives it, and both halves are compared.
+    const key = keyOf(pass);
+    return { db, pass, key, stored, had: saved(db), byName: resolved.byName };
   };
   const current = (root) => {
     const db = libraryPath(dir, root);
@@ -1186,11 +1251,14 @@ export function createLibrarian({
         return {
           refused: `${root} has a catalogue that has never finished: finish cataloguing it first`
         };
-      if (c.policyStale)
+      // a detached drive cannot be recounted, so a rollup that does not match the catalogue's own
+      // pass and the hub's own policy is REFUSED with the reason rather than reported as
+      // "computing" — nothing is going to compute it while the drive is away
+      if (c.stored && c.stored !== c.key)
         return {
           refused:
-            `${root}'s folder figures were counted under a different privacy policy and the ` +
-            `drive is not here to recount them: attach it`
+            `${root}'s folder figures were counted for an earlier pass or a different privacy ` +
+            `policy, and the drive is not here to recount them: attach it`
         };
       if (rollupKey(c.db) !== c.key) {
         const why = failed.get(c.db);

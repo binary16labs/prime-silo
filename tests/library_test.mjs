@@ -25,6 +25,9 @@ import {
   catalogueFor,
   markRollup,
   policyKey,
+  rollupKeyFor,
+  NEIGHBOURS_CAP_FILES,
+  FOLDER_PAGE_MAX,
   libraryPath,
   libraryState
 } from "../server/coordination/lib/library.mjs";
@@ -1879,7 +1882,7 @@ const catalogued = async (store, root, rules = []) => {
   const at = libraryPath(store, root);
   assert.equal((await catalogue({ root, dbPath: at, rules })).finished, true);
   await buildFolderRollup(at, root, rules);
-  markRollup(at, `a-pass|${policyKey(rules)}`, root);
+  markRollup(at, rollupKeyFor(at, rules), root);
   return at;
 };
 
@@ -2062,5 +2065,258 @@ test("S26: a rule matching a folder covers everything under it", async () => {
   assert.ok(
     JSON.stringify(open.files).includes("holiday"),
     `the public file is still named: ${JSON.stringify(open.files)}`
+  );
+});
+
+// --- round 3: the nine mutations that survived round 2 -----------------------------------------
+// Every one of them sat on a fix this contract had just made, and six were on the round-2 fixes
+// themselves. The pattern across all nine is the same: assertions that pin SHAPE where the thing
+// that matters is a VALUE, and fixtures where several wrong implementations give the same answer.
+
+const planFor = (dbPath, sql, args) => {
+  const db = new DatabaseSync(dbPath);
+  try {
+    return db
+      .prepare(`EXPLAIN QUERY PLAN ${sql}`)
+      .all(...args)
+      .map((r) => r.detail)
+      .join(" | ");
+  } finally {
+    db.close();
+  }
+};
+
+test("S26: no surface here may SCAN the files table", async () => {
+  // THE MUTATION THAT MATTERED MOST: reverting the whole index-range fix to `substr(path, 1, ?) = ?`
+  // left every test green. A timing assertion would be flaky on a loaded machine; the query PLAN is
+  // deterministic, and "SCAN files" is exactly the thing this epic has now got wrong three times.
+  const drive = tmp();
+  for (let i = 0; i < 20; i += 1) write(drive, `keep/sub/f${i}.txt`, `bytes ${i}`);
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root: drive, dbPath })).finished, true);
+  await buildFolderRollup(dbPath, drive, []);
+
+  const neighbours = planFor(
+    dbPath,
+    "SELECT path, sha256 FROM files WHERE size > 0 AND (path = ? OR (path >= ? AND path < ?))",
+    ["keep", "keep/", "keep0"]
+  );
+  assert.equal(
+    /SCAN files/u.test(neighbours),
+    false,
+    `the neighbours lookup must use the path index: ${neighbours}`
+  );
+  assert.match(neighbours, /SEARCH files/u);
+
+  const children = planFor(
+    dbPath,
+    "SELECT path, size, mtime_ms, kind FROM files WHERE 1 = 1 AND path >= ? AND path < ? " +
+      "AND instr(substr(path, ?), '/') = 0 ORDER BY size DESC LIMIT ? OFFSET ?",
+    ["keep/", "keep0", 6, 200, 0]
+  );
+  assert.equal(
+    /SCAN files/u.test(children),
+    false,
+    `the folder route's children must use the path index too: ${children}`
+  );
+
+  // the paired negative: the pattern this replaced really does scan, so the check is not vacuous
+  const scanned = planFor(dbPath, "SELECT path, sha256 FROM files WHERE substr(path, 1, ?) = ?", [
+    5,
+    "keep/"
+  ]);
+  assert.match(scanned, /SCAN files/u, `substr() scans, which is why it is gone: ${scanned}`);
+});
+
+test("S26: a folder too big to compare without blocking is refused, not attempted", async () => {
+  // 93.5 SECONDS. Round 2 indexed the lookup and left the work on the hub's synchronous thread,
+  // where the near-side guard made it one row per file and the ancestor judgement made each one
+  // dearer: a 250,000-file folder — the shape the panel offers first — took sixteen times longer
+  // than the 5.7-second scan it replaced. The rollup already stores every folder's subtree file
+  // count, so the size of the work is one indexed lookup away.
+  const drive = tmp();
+  write(drive, "small/a.txt", "shared bytes");
+  write(drive, "elsewhere/b.txt", "shared bytes");
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root: drive, dbPath })).finished, true);
+  await buildFolderRollup(dbPath, drive, []);
+
+  // under the cap: answered
+  assert.equal(duplicateNeighbours(dbPath, drive, [], "small").where[0].path, "elsewhere");
+
+  // over it: refused, by VALUE — the sentence names the count and the cap, because "too big" with
+  // no figure is not something an owner can act on
+  const db = new DatabaseSync(dbPath);
+  db.prepare("UPDATE folders SET files = ? WHERE path = ?").run(NEIGHBOURS_CAP_FILES + 1, "small");
+  db.close();
+  const over = duplicateNeighbours(dbPath, drive, [], "small");
+  assert.match(
+    over.refused ?? "",
+    new RegExp(`${NEIGHBOURS_CAP_FILES + 1} files`, "u"),
+    JSON.stringify(over)
+  );
+  assert.match(over.refused ?? "", new RegExp(`${NEIGHBOURS_CAP_FILES}`, "u"));
+  assert.equal(over.where, undefined, "refused outright, not truncated");
+  assert.ok(NEIGHBOURS_CAP_FILES > 0 && NEIGHBOURS_CAP_FILES <= 5000, "a cap, not a formality");
+});
+
+test("S26: one page is one page, however much a caller asks for", async () => {
+  // A verifier lifted the route's cap from 1,000 to a billion and every test stayed green, then
+  // asked folderView for 5,001 rows and got 5,001. The cap now lives with the query.
+  const drive = tmp();
+  for (let i = 0; i < 12; i += 1) write(drive, `top/f${i}/x.txt`, `bytes ${i}`);
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root: drive, dbPath })).finished, true);
+  await buildFolderRollup(dbPath, drive, []);
+
+  const db = new DatabaseSync(dbPath);
+  db.exec("BEGIN");
+  const ins = db.prepare(
+    "INSERT OR REPLACE INTO folders (path, files, bytes, private, dup_out_files, dup_out_bytes, " +
+      "dup_in_files, dup_in_bytes) VALUES (?, 1, 1, 0, 0, 0, 0, 0)"
+  );
+  for (let i = 0; i < 2000; i += 1) ins.run(`top/g${i}`);
+  db.exec("COMMIT");
+  db.close();
+
+  // by VALUE: exactly the cap, not "at most the number that happened to exist"
+  assert.equal(
+    folderView(dbPath, drive, [], "top", { offset: 0, limit: 10 ** 9 }).folders.length,
+    FOLDER_PAGE_MAX,
+    "a caller asking for the drive gets a page of it"
+  );
+  assert.equal(folderView(dbPath, drive, [], "top", { offset: 0, limit: 5 }).folders.length, 5);
+  assert.ok(FOLDER_PAGE_MAX >= 100 && FOLDER_PAGE_MAX <= 5000, "a cap, not a formality");
+});
+
+test("S26: the rollup breathes often enough to keep a hub answering", async () => {
+  // `assert.ok(ticks > 0)` pinned the EXISTENCE of a yield, not its rate: yielding every 50,000
+  // rows gives one breath in 60,000 and passes, which at F:'s 1.1 million rows is a hub frozen
+  // between breaths. The rate is what the owner feels, so the rate is what is asserted.
+  const drive = tmp();
+  write(drive, "seed.txt", "one real file");
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root: drive, dbPath })).finished, true);
+
+  const db = new DatabaseSync(dbPath);
+  db.exec("BEGIN");
+  const ins = db.prepare(
+    "INSERT OR REPLACE INTO files (path, size, mtime_ms, sha256, kind, first_seen, last_seen, run) " +
+      "VALUES (?, ?, 1, ?, 'other', 'x', 'x', 'r')"
+  );
+  for (let i = 0; i < 60000; i += 1)
+    ins.run(`f${i % 600}/sub/file-${i}.bin`, 1024, `sha-${i % 30000}`);
+  db.exec("COMMIT");
+  db.close();
+
+  let ticks = 0;
+  const beat = setInterval(() => {
+    ticks += 1;
+  }, 25);
+  try {
+    await buildFolderRollup(dbPath, drive, []);
+  } finally {
+    clearInterval(beat);
+  }
+  // two passes over 60,000 rows yielding every 20,000 is six breaths at least; one is a frozen hub
+  // that happens to exhale once
+  assert.ok(ticks >= 4, `the loop must breathe REPEATEDLY, not once: ${ticks} ticks`);
+});
+
+test("S26: the range bound is exact at the character that distinguishes it", async () => {
+  // Album and Album2 do not distinguish `folder+"0"` from `folder+"1"` or `folder+"2"` — the one
+  // sibling that does is Album0, and the fixture omitted it. Several wrong bounds gave the same
+  // answer, which is the whole vacuous-fixture pattern.
+  const root = tmp();
+  write(root, "Album/in.jpg", "album bytes");
+  write(root, "Album0/in.jpg", "album0 bytes");
+  write(root, "Album1/in.jpg", "album1 bytes");
+  write(root, "Album2/in.jpg", "album2 bytes");
+  write(root, "Far/album.jpg", "album bytes");
+  write(root, "Far0/album0.jpg", "album0 bytes");
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root, dbPath })).finished, true);
+  await buildFolderRollup(dbPath, root, []);
+
+  for (const [folder, expect] of [
+    ["Album", ["Far"]],
+    ["Album0", ["Far0"]]
+  ])
+    assert.deepEqual(
+      duplicateNeighbours(dbPath, root, [], folder).where.map((w) => w.path),
+      expect,
+      `${folder} sees only its own twin`
+    );
+  // and none of the same-prefix siblings leaks into the other's answer
+  assert.deepEqual(duplicateNeighbours(dbPath, root, [], "Album1").where, []);
+});
+
+test("S26: a folder rule covers every depth beneath it, not just one", async () => {
+  // The D9 test asked folderView(Scans) and nothing deeper, so judging only the IMMEDIATE parent
+  // passed. The shipped code was right at every depth; the test could not see it.
+  const root = tmp();
+  write(root, "Scans/one.jpg", "a");
+  write(root, "Scans/deeper/two.jpg", "b");
+  write(root, "Scans/deeper/deepest/three.jpg", "c");
+  write(root, "Open/four.jpg", "d");
+  const dbPath = path.join(tmp(), "lib.db");
+  const rules = [/[\\/]Scans$/u];
+  assert.equal((await catalogue({ root, dbPath, rules })).finished, true);
+  await buildFolderRollup(dbPath, root, rules);
+
+  for (const at of ["Scans", "Scans/deeper", "Scans/deeper/deepest"]) {
+    const v = folderView(dbPath, root, rules, at, { offset: 0, limit: 50 });
+    const body = JSON.stringify(v ?? {});
+    for (const name of ["one.jpg", "two.jpg", "three.jpg"])
+      assert.equal(body.includes(name), false, `${at} must name no file: ${body}`);
+    assert.deepEqual(v.files, [], `and list none: ${body}`);
+    assert.deepEqual(v.folders, [], "nor any child folder the caller did not already name");
+    assert.ok(v.withheld >= 1, "counted instead");
+  }
+  // the paired positive at the same depth, so this is not folderView naming nothing anywhere
+  assert.ok(
+    JSON.stringify(
+      folderView(dbPath, root, rules, "Open", { offset: 0, limit: 50 }).files
+    ).includes("four.jpg")
+  );
+});
+
+test("S26: a rollup built before a later pass is refused, not dated as current", async () => {
+  // NEW-4. Round 2 excused the pass half as impossible to re-derive for an absent drive. passOf()
+  // reads the pass from the CATALOGUE — the same witness the policy half was fixed against — so a
+  // rollup from an earlier pass was served stale while wearing the NEW pass's finishedAt date.
+  const drive = tmp();
+  write(drive, "keep/one.txt", "first");
+  const store = path.join(tmp(), "library");
+  const at = await catalogued(store, drive, []);
+  const absent = path.join(tmp(), "not-here");
+  metaRoot(at, absent);
+
+  const current = createLibrarian({ dir: store, rules: [] }).folder(absent, { path: "keep" });
+  assert.equal(current?.self?.files, 1, `a current rollup answers: ${JSON.stringify(current)}`);
+
+  // a later FINISHED pass and a file the rollup never saw
+  const db = new DatabaseSync(at);
+  db.prepare(
+    "INSERT INTO passes (id, started_at, finished_at) VALUES ('later', '2099-01-01T00:00:00Z', " +
+      "'2099-01-01T01:00:00Z')"
+  ).run();
+  db.prepare(
+    "INSERT OR REPLACE INTO files (path, size, mtime_ms, sha256, kind, first_seen, last_seen, run) " +
+      "VALUES ('keep/two.txt', 5, 1, 'sha-two', 'other', 'x', 'x', 'later')"
+  ).run();
+  db.close();
+
+  const stale = createLibrarian({ dir: store, rules: [] }).folder(absent, { path: "keep" });
+  assert.match(
+    stale?.refused ?? "",
+    /earlier pass or a different privacy policy/u,
+    JSON.stringify(stale)
+  );
+  assert.equal(stale?.self, undefined, "no figures at all, rather than stale ones dated current");
+  assert.equal(
+    JSON.stringify(stale ?? {}).includes("2099"),
+    false,
+    "and never the new pass's date on the old pass's figures"
   );
 });

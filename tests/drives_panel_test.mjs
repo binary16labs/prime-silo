@@ -53,7 +53,15 @@ test("S26: every URL the panel builds is a route the API serves", () => {
   const used = new Set();
   // the harvest must match a WHOLE path segment. `[A-Za-z]*` stopped at the first digit, so
   // `${API}/folder9` — a dead route — passed this gate as though it were the live one.
-  for (const m of js.matchAll(/\$\{API\}(\/[\w.-]*)/gu)) used.add(m[1]);
+  // the WHOLE segment, and no separator counts too: `${API}folder9` slipped past a pattern that
+  // required a leading slash, and `API + "/folder9"` slipped past templates altogether. Harvest
+  // both forms, and refuse concatenation onto API outright so there is one way to build a URL.
+  for (const m of js.matchAll(/\$\{API\}([\w./-]*)/gu)) used.add(m[1]);
+  assert.equal(
+    /\bAPI\s*\+/u.test(js),
+    false,
+    "every URL is a template on API, never concatenated onto it"
+  );
   if (/read\(API\)/u.test(js)) used.add("");
   assert.ok(used.size >= 3, `it calls the folder, neighbours and library routes: ${[...used]}`);
   for (const u of used) assert.ok(served.has(`/library${u}`), `${base}${u} is not a route`);
@@ -68,7 +76,10 @@ test("S26: every URL the panel builds is a route the API serves", () => {
     "DatabaseSync",
     ".db",
     "require(",
-    "readFile"
+    "readFile",
+    "readdir",
+    "import(",
+    "process."
   ])
     assert.equal(js.includes(forbidden), false, `the panel must not reference ${forbidden}`);
   assert.match(js, /fetch\(/u, "it asks the hub");
