@@ -380,6 +380,7 @@ export function createEstateApi({
       rest === "/library/find" ||
       rest === "/library/duplicates" ||
       rest === "/library/check" ||
+      rest === "/library/folder" ||
       rest === "/compare/stop"
     ) {
       if (!local(req))
@@ -392,11 +393,12 @@ export function createEstateApi({
       const answer = (to, root, r, event) => {
         if (!r) return sendJson(to, 404, { error: `${root} has no catalogue: catalogue it first` });
         if (r.refused) return sendJson(to, 409, { error: r.refused });
+        if (r.missing) return sendJson(to, 404, { error: "no such folder in this catalogue" });
         if (r.computing)
           return sendJson(to, 202, {
             error: "the duplicates are still being worked out: try again in a minute"
           });
-        librarian.audit(root, event());
+        if (event) librarian.audit(root, event()); // the panel's own navigation is not audited
         return sendJson(to, 200, r);
       };
 
@@ -481,6 +483,31 @@ export function createEstateApi({
           returned: d.sets.length,
           withheld: null
         }));
+      }
+      // S26 — walking the tree. The panel's own route: it reads the rollup the worker built and
+      // never the drive, so it answers with the drive detached. NOT audited, unlike find, duplicates
+      // and check: S22's design point 10 audits the questions an AGENT asks, and an event per folder
+      // click would bury the ones that matter in a tamper-evident log.
+      if (rest === "/library/folder") {
+        if (req.method !== "GET") return sendJson(res, 405, { error: "GET" });
+        if (!Array.isArray(quarantine)) return sendJson(res, 412, { error: NO_POLICY });
+        const u = new URL(req.url, "http://localhost");
+        const root = u.searchParams.get("root");
+        if (!roots.includes(root))
+          return sendJson(res, 400, { error: "root must be one this machine offers", roots });
+        const num = (k, d, max) =>
+          Math.min(Math.max(Number(u.searchParams.get(k) ?? d) || 0, 0), max);
+        const at = String(u.searchParams.get("path") ?? "").replace(/^[/\\]+|[/\\]+$/gu, "");
+        return answer(
+          res,
+          root,
+          librarian.folder(root, {
+            path: at,
+            offset: num("offset", 0, 1e7),
+            limit: num("limit", 200, 1000) || 200
+          }),
+          null
+        );
       }
       if (rest === "/library/check") {
         if (req.method !== "POST") return sendJson(res, 405, { error: "POST" });

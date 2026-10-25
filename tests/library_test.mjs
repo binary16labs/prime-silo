@@ -1687,3 +1687,90 @@ test("S26: a quarantined file or folder is counted in the view and never named",
   assert.equal(JSON.stringify(top).includes("passport"), false);
   assert.equal(JSON.stringify(open).includes("passport"), false);
 });
+
+test("S26: the folder route walks the tree, and answers with the drive gone", async () => {
+  const root = tmp();
+  write(root, "keep/a.jpg", "aaaa");
+  write(root, "keep/deep/b.jpg", "bb");
+  write(root, "elsewhere/a.jpg", "aaaa");
+  const store = tmp();
+  const h = await hub({ roots: [root], estateStore: store });
+  try {
+    assert.equal((await h.call("/library", { root })).status, 202);
+    for (let i = 0; i < 400; i++) {
+      if (!JSON.parse((await h.call("/library")).text).running) break;
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    const enc = encodeURIComponent(root);
+    let top;
+    for (let i = 0; i < 400; i++) {
+      top = await h.call(`/library/folder?root=${enc}`);
+      if (top.status !== 202) break;
+      await new Promise((r) => setTimeout(r, 25));
+    }
+    assert.equal(top.status, 200, top.text);
+    const body = JSON.parse(top.text);
+    assert.deepEqual(body.folders.map((f) => f.name).sort(), ["elsewhere", "keep"]);
+    assert.equal(body.self.files, 3);
+
+    // a child, and its own breadcrumb
+    const kid = JSON.parse((await h.call(`/library/folder?root=${enc}&path=keep`)).text);
+    assert.deepEqual(
+      kid.folders.map((f) => f.name),
+      ["deep"]
+    );
+    assert.deepEqual(kid.breadcrumb, [{ name: "keep", path: "keep" }]);
+
+    // a trailing or leading separator is trimmed rather than making a different folder
+    const same = JSON.parse((await h.call(`/library/folder?root=${enc}&path=/keep/`)).text);
+    assert.deepEqual(same.folders, kid.folders, "the same folder either way");
+
+    // THE DRIVE NEED NOT BE THERE: every figure came from the catalogue, so removing the tree
+    // changes nothing about the answer
+    const before = (await h.call(`/library/folder?root=${enc}&path=keep`)).text;
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 5 });
+    const after = await h.call(`/library/folder?root=${enc}&path=keep`);
+    assert.equal(after.status, 200, "still answered with the drive gone");
+    assert.equal(after.text, before, "and answered identically");
+
+    // a folder nobody catalogued is missing, which is not an empty folder
+    assert.equal((await h.call(`/library/folder?root=${enc}&path=nope`)).status, 404);
+  } finally {
+    await h.close();
+  }
+});
+
+test("S26: walking the tree writes no audit event, unlike the questions an agent asks", async () => {
+  // S22's design point 10 audits what an AGENT is told. The owner clicking through their own folders
+  // is not that, and an event per click would bury the ones that matter in a tamper-evident log.
+  const root = tmp();
+  write(root, "a/one.txt", "one");
+  const store = tmp();
+  const h = await hub({ roots: [root], estateStore: store });
+  try {
+    assert.equal((await h.call("/library", { root })).status, 202);
+    for (let i = 0; i < 400; i++) {
+      if (!JSON.parse((await h.call("/library")).text).running) break;
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    const enc = encodeURIComponent(root);
+    for (let i = 0; i < 400; i++) {
+      if ((await h.call(`/library/folder?root=${enc}`)).status !== 202) break;
+      await new Promise((r) => setTimeout(r, 25));
+    }
+    const dir = path.join(store, "library");
+    const log = fs.readdirSync(dir).find((x) => x.endsWith(".jsonl"));
+    const count = () =>
+      readKelEvents(path.join(dir, log)).events.filter((e) => e.type === "library_queried").length;
+
+    const before = count();
+    for (const p of ["", "a", "a"]) await h.call(`/library/folder?root=${enc}&path=${p}`);
+    assert.equal(count(), before, "three folder views, no events");
+
+    // the paired positive: a question an agent asks IS audited, so the check above is not vacuous
+    assert.equal((await h.call(`/library/find?root=${enc}&q=one&surface=mcp`)).status, 200);
+    assert.equal(count(), before + 1, "and find still writes exactly one");
+  } finally {
+    await h.close();
+  }
+});

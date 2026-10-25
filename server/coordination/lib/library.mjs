@@ -477,7 +477,7 @@ if (!isMainThread && workerData?.librarySummary) {
   // it. The key is written LAST, so a rollup interrupted half way is never mistaken for a current
   // one: a reader checks the key, not the table's existence.
   await buildFolderRollup(dbPath, root, rules);
-  markRollup(dbPath, key);
+  markRollup(dbPath, key, root);
   const { state, csv } = summaryOf(dbPath, root, rules);
   const list = csvFor(dbPath, key);
   fs.writeFileSync(`${list}.tmp`, csv);
@@ -750,18 +750,56 @@ export function folderView(dbPath, root, rules = [], at = "", { offset = 0, limi
   }
 }
 
+// THE DRIVE NEED NOT BE THERE. libraryPath() names the file from rootIdentity(), which asks the
+// filesystem — so an unplugged drive could not be found at all, and the Scenario promising the
+// catalogue answers without it was false. A catalogue records which root it describes, so when the
+// drive cannot be asked, the store is searched for the one that says it is this root.
+//
+// Identity still wins when the drive IS there: that is S20's lesson, that F: may be another drive
+// tomorrow. This is only the fallback, and it trusts a name rather than an identity, which is the
+// most that can be known about something that is not plugged in.
+export function catalogueFor(dir, root) {
+  const live = libraryPath(dir, root);
+  if (live && fs.existsSync(live)) return live;
+  let found = null;
+  for (const f of fs.existsSync(dir) ? fs.readdirSync(dir) : []) {
+    if (!f.endsWith(".db")) continue;
+    const at = path.join(dir, f);
+    const db = readOnly(at);
+    if (!db) continue;
+    try {
+      if (db.prepare("SELECT root FROM folders_meta WHERE id = 1").get()?.root === root) found = at;
+    } catch {
+      // a catalogue with no rollup cannot say which root it is; leave it alone
+    } finally {
+      db.close();
+    }
+    if (found) break;
+  }
+  return found ?? live;
+}
+
 // Which pass and policy the folder rollup was built for. Written only once the rollup is complete,
 // so an interrupted one reads as absent rather than as current — the same rule the duplicates list
 // follows, for the same reason.
-export function markRollup(dbPath, key) {
+export function markRollup(dbPath, key, root = "") {
   const db = new DatabaseSync(dbPath, { timeout: BUSY_MS });
   try {
     db.exec(
-      "CREATE TABLE IF NOT EXISTS folders_meta (id INTEGER PRIMARY KEY CHECK (id = 1), key TEXT NOT NULL)"
+      `CREATE TABLE IF NOT EXISTS folders_meta (
+         id INTEGER PRIMARY KEY CHECK (id = 1), key TEXT NOT NULL, root TEXT NOT NULL DEFAULT '')`
     );
+    if (
+      !db
+        .prepare("PRAGMA table_info(folders_meta)")
+        .all()
+        .some((c) => c.name === "root")
+    )
+      db.exec("ALTER TABLE folders_meta ADD COLUMN root TEXT NOT NULL DEFAULT ''");
     db.prepare(
-      "INSERT INTO folders_meta (id, key) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET key = excluded.key"
-    ).run(key);
+      `INSERT INTO folders_meta (id, key, root) VALUES (1, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET key = excluded.key, root = excluded.root`
+    ).run(key, root);
   } finally {
     db.close();
   }
@@ -1031,6 +1069,16 @@ export function createLibrarian({
     });
     w.on("exit", () => working.delete(db));
   };
+  // A drive that is not there has no pass to read from the hub's point of view, but its catalogue
+  // still holds one. Read it, and trust the rollup's own key rather than recomputing a current one.
+  const detached = (root) => {
+    const db = catalogueFor(dir, root);
+    if (!db || !fs.existsSync(db)) return null;
+    const pass = passOf(db);
+    if (!pass) return null;
+    const key = rollupKey(db);
+    return key ? { db, pass, key, had: saved(db) } : null;
+  };
   const current = (root) => {
     const db = libraryPath(dir, root);
     const pass = db && passOf(db);
@@ -1049,7 +1097,7 @@ export function createLibrarian({
     // half-answer while the key says the rollup is for an older pass or policy: a folder listing
     // built from one pass and counted from another would be quietly wrong.
     folder(root, { path: at = "", offset = 0, limit = 200 } = {}) {
-      const c = current(root);
+      const c = current(root) ?? detached(root);
       if (!c) return null;
       if (!c.pass.finishedAt)
         return {
