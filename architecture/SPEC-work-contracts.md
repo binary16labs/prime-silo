@@ -60,6 +60,20 @@ measures how much is written, not how much the file grew. `delivery/board/` is e
 Definition of Done makes every task write there, so counting it would charge an author for the
 protocol itself.
 
+**Read it, do not predict it.** `node scripts/gates/w0.mjs --budget <ID>` reports what the branch
+has spent against its band, counting by the rule above and naming every file it excluded. Run it
+_while the work is happening_: three contracts in a row overran by 30 to 40 per cent, and a figure
+that only arrives at the end turns a split into paperwork. It reports and refuses nothing — the band
+is a trigger for a conversation with the owner, and the band-equals-budget check already refuses the
+thing worth refusing. It reads the working tree rather than only commits, because the moment the
+figure matters is before the work is committed.
+
+Also excluded, for the same reason as `tests/`: `delivery/board/`, which the Definition of Done
+makes every task write, and the files the build scripts regenerate (`manual/SITEMAP.md`,
+`manual/USE-CASES.md`, `manual/sitemap.json`, `manual/usecases.coverage.json` and their siblings).
+Each of those was found by counting a figure by hand after the fact, and each is now in code rather
+than in this paragraph.
+
 **The budget follows the contract, not the branch.** A change an author makes in service of a
 contract counts against that contract wherever it is committed, including straight to `main`.
 Without this the figure is one the author can move by choosing where to commit, which is exactly

@@ -13,7 +13,8 @@ import {
   milestoneIds,
   MAX_TOKENS,
   OVERSIZE_GRANTED,
-  BUDGET_BANDS
+  BUDGET_BANDS,
+  readBudget
 } from "../../server/coordination/work-schema/validate.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -229,4 +230,97 @@ test("Scenario: a declared band IS the budget, and XL is the ceiling", () => {
     check({ budget: "450" }).filter((e) => /band/u.test(e)),
     []
   );
+});
+
+// --- S27: the budget as a reading, not a prediction --------------------------------------------
+// Three contracts in a row overran by 30 to 40 per cent. A ceiling does not fix a bad estimator, so
+// the figure becomes something an author reads while there is still work left to split. These pin
+// what it counts — and, more importantly, what it must refuse to count, because every one of those
+// exclusions was found by hand after the fact and then written down in prose that was forgotten.
+
+const rows = (pairs) => pairs.map(([path, added]) => ({ path, added }));
+
+test("Scenario: the reading counts what the convention says and nothing else", () => {
+  const r = readBudget({
+    id: "X1",
+    band: "M",
+    budget: 500,
+    rows: rows([
+      ["server/coordination/lib/library.mjs", 120],
+      ["app/L0/_all/mod/_prime_silo/drives/drives.js", 80],
+      ["delivery/tasks/X1.md", 40], // the contract itself
+      ["tests/library_test.mjs", 200], // tests
+      ["delivery/board/LOG.md", 60], // the board, which the DoD makes every task write
+      ["manual/SITEMAP.md", 19], // regenerated, not written
+      ["manual/usecases.coverage.json", 19],
+      ["manual/usecases.json", 48] // hand-edited: this one DOES count
+    ])
+  });
+
+  assert.equal(r.counted, 120 + 80 + 48, `only authored source: ${JSON.stringify(r.counted)}`);
+  assert.equal(r.band, "M");
+  assert.equal(r.budget, 500);
+  assert.equal(r.left, 500 - 248);
+  assert.equal(r.over, false);
+
+  // the exclusions are NAMED, so the reading can be argued with rather than trusted
+  const why = Object.fromEntries(r.excluded.map((e) => [e.path, e.why]));
+  assert.equal(why["delivery/tasks/X1.md"], "the contract itself");
+  assert.equal(why["tests/library_test.mjs"], "tests");
+  assert.equal(why["delivery/board/LOG.md"], "the board");
+  assert.equal(why["manual/SITEMAP.md"], "generated");
+  assert.equal(why["manual/usecases.coverage.json"], "generated");
+  assert.equal(why["manual/usecases.json"], undefined, "a hand-edited registry is not generated");
+
+  // the paired negative: a reading that counted everything would report 586
+  assert.notEqual(r.counted, 586);
+});
+
+test("Scenario: crossing the band is said while there is still work to do", () => {
+  const r = readBudget({
+    id: "X1",
+    band: "S",
+    budget: 300,
+    rows: rows([["server/app.js", 310]])
+  });
+  assert.equal(r.counted, 310);
+  assert.equal(r.over, true);
+  assert.equal(r.left, -10);
+  assert.match(r.verdict, /over band S/iu);
+  // it reports; it does not refuse. The band is a trigger for a conversation, and w0 already
+  // enforces band equals budget — a second refusal here would be ceremony.
+  assert.equal(r.refused, undefined);
+  assert.equal(typeof r.verdict, "string");
+
+  const under = readBudget({
+    id: "X1",
+    band: "S",
+    budget: 300,
+    rows: rows([["server/app.js", 290]])
+  });
+  assert.equal(under.over, false);
+  assert.match(under.verdict, /10 left/u);
+});
+
+test("Scenario: an unformatted file is named rather than silently counted", () => {
+  // 180 of S26's lines were a JSON round-trip reformatting a file nobody had edited. A figure the
+  // formatter would change is not a figure to argue about.
+  const r = readBudget({
+    id: "X1",
+    band: "M",
+    budget: 500,
+    rows: rows([["manual/usecases.json", 228]]),
+    unformatted: ["manual/usecases.json"]
+  });
+  assert.match(r.verdict, /format/iu, `it says to format first: ${r.verdict}`);
+  assert.deepEqual(r.unformatted, ["manual/usecases.json"]);
+
+  // and when everything is formatted it says nothing about formatting
+  const clean = readBudget({
+    id: "X1",
+    band: "M",
+    budget: 500,
+    rows: rows([["manual/usecases.json", 48]])
+  });
+  assert.equal(/format/iu.test(clean.verdict), false);
 });
