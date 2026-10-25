@@ -50,8 +50,20 @@ const SKIP_TOP = new Set(["$recycle.bin", "system volume information"]);
 const fold = (p) => path.resolve(p).toLowerCase();
 const fullOf = (root, rel) =>
   path.join(root.endsWith(":") ? `${root}${path.sep}` : root, ...rel.split("/"));
-const privateTo = (rules) => (p) =>
-  isQuarantined([p, canonPath(p), canonPath(p).toLowerCase()], rules);
+// A RULE THAT MATCHES A FOLDER MATCHES EVERYTHING UNDER IT. isQuarantined only ever judged the path
+// it was handed, so an anchored rule naming a folder hid that folder's row at its parent and then
+// named every file inside it on direct navigation — the folder was private and its contents were
+// not. S26 is the first surface to claim folder names are included in the judgement, so this is
+// where that claim has to become true. Each ancestor is judged as well as the path itself.
+const privateTo = (rules) => (p) => {
+  const forms = (s) => [s, canonPath(s), canonPath(s).toLowerCase()];
+  if (isQuarantined(forms(p), rules)) return true;
+  // both separators: these are FULL paths, so on Windows they arrive back-slashed
+  const parts = p.split(/[\\/]+/u);
+  for (let i = parts.length - 1; i > 0; i -= 1)
+    if (isQuarantined(forms(parts.slice(0, i).join("/")), rules)) return true;
+  return false;
+};
 
 // KEYED BY THE DRIVE, NOT ITS LETTER (S20's lesson): F: may be another letter tomorrow, and a
 // different drive may be F:. Paths are stored relative to the root for the same reason.
@@ -760,23 +772,38 @@ export function folderView(dbPath, root, rules = [], at = "", { offset = 0, limi
 // most that can be known about something that is not plugged in.
 export function catalogueFor(dir, root) {
   const live = libraryPath(dir, root);
-  if (live && fs.existsSync(live)) return live;
-  let found = null;
+  if (live && fs.existsSync(live)) return { db: live };
+  // S20'S LESSON, BROKEN AND NOW REPAIRED. The recorded root NAME is a last resort for a drive
+  // that cannot be identified, not a fallback whenever the identity-keyed file is missing. As
+  // built, pointing an attached, never-catalogued drive at a name another catalogue had recorded
+  // served that other drive's folder names, sizes and duplicate figures with nothing saying so —
+  // and estate-library.md claimed "identity still wins when the drive IS there". It now does: if
+  // rootIdentity() answers, the identity is the answer and "no catalogue" is the truth.
+  if (rootIdentity(root)) return { db: live };
+  const found = [];
   for (const f of fs.existsSync(dir) ? fs.readdirSync(dir) : []) {
     if (!f.endsWith(".db")) continue;
     const at = path.join(dir, f);
     const db = readOnly(at);
     if (!db) continue;
     try {
-      if (db.prepare("SELECT root FROM folders_meta WHERE id = 1").get()?.root === root) found = at;
+      if (db.prepare("SELECT root FROM folders_meta WHERE id = 1").get()?.root === root)
+        found.push(at);
     } catch {
       // a catalogue with no rollup cannot say which root it is; leave it alone
     } finally {
       db.close();
     }
-    if (found) break;
   }
-  return found ?? live;
+  // A disk that has been F: twice leaves two catalogues both recording F:, which is the normal
+  // case rather than the odd one. Whichever readdir yielded first is not an answer.
+  if (found.length > 1)
+    return {
+      ambiguous:
+        `${root} names ${found.length} catalogues and the drive is not here to say which is ` +
+        `its own: attach it`
+    };
+  return found.length ? { db: found[0], byName: true } : { db: live };
 }
 
 // Which pass and policy the folder rollup was built for. Written only once the rollup is complete,
@@ -818,24 +845,48 @@ export function rollupKey(dbPath) {
 }
 
 export function duplicateNeighbours(dbPath, root, rules = [], folder = "", { limit = 8 } = {}) {
+  // THE DRIVE ROOT HAS NO OUTSIDE. Every file on the drive is inside it, so the inside/outside test
+  // can never fire: asked of the root this reported all 25,600 folders in a fixture as holding
+  // outside copies of the root's own content — wrong, not merely slow, and 33 seconds wrong at
+  // 500k rows. Only an x-show on a figure that is structurally 0 at the root kept the panel off it,
+  // and any loopback caller could ask. The rollup already answers the root's question.
+  if (!folder) return { refused: "the drive root has no outside: ask of a folder inside it" };
   const db = readOnly(dbPath);
   if (!db) return null;
   const isPrivate = privateTo(rules);
-  const under = folder ? folder + "/" : "";
+  const under = folder + "/";
+  // A RANGE over the path index, not substr(). `substr(path, 1, ?) = ?` cannot use the primary key,
+  // so this was a full table scan on the hub's SYNCHRONOUS request thread — 5.7 seconds at 500k
+  // rows, about 12 at F:'s 1.1 million, with the hub wholly blocked throughout. The rollup was
+  // measured and moved to the worker; this route, added for the same panel in the same contract,
+  // was neither measured nor capped. "/" is 0x2F, so "0" bounds the prefix immediately above it.
+  const upper = folder + "0";
   try {
-    const mine = folder
-      ? db
-          .prepare(
-            "SELECT DISTINCT sha256 FROM files WHERE size > 0 AND (path = ? OR substr(path, 1, ?) = ?)"
-          )
-          .all(folder, under.length, under)
-      : db.prepare("SELECT DISTINCT sha256 FROM files WHERE size > 0").all();
+    const mine = db
+      .prepare(
+        "SELECT path, sha256 FROM files WHERE size > 0 AND (path = ? OR (path >= ? AND path < ?))"
+      )
+      .all(folder, under, upper);
     const others = db.prepare("SELECT path, size FROM files WHERE sha256 = ?");
     const where = new Map();
     let withheld = 0;
-    for (const m of mine)
-      for (const o of others.all(m.sha256)) {
-        if (o.path === folder || (under && o.path.startsWith(under))) continue; // inside, not out
+    // THE NEAR SIDE IS JUDGED TOO. Guarding only the far copy identified a private file's CONTENT
+    // by saying where else those bytes live: ask the neighbours of a public folder holding one
+    // quarantined file and the answer named the folder holding its twin. That is exactly the
+    // argument the comment below makes in the other direction (S22 D1), applied to the side it had
+    // missed. A withheld near file is counted — its neighbours are simply never looked for, so the
+    // figure says "one file here whose copies I will not go looking for", not a number of copies.
+    const shas = new Set();
+    for (const m of mine) {
+      if (isPrivate(fullOf(root, m.path))) {
+        withheld += 1;
+        continue;
+      }
+      shas.add(m.sha256);
+    }
+    for (const sha of shas)
+      for (const o of others.all(sha)) {
+        if (o.path === folder || o.path.startsWith(under)) continue; // inside, not out
         if (isPrivate(fullOf(root, o.path))) {
           withheld += 1;
           continue;
@@ -1072,12 +1123,28 @@ export function createLibrarian({
   // A drive that is not there has no pass to read from the hub's point of view, but its catalogue
   // still holds one. Read it, and trust the rollup's own key rather than recomputing a current one.
   const detached = (root) => {
-    const db = catalogueFor(dir, root);
+    const resolved = catalogueFor(dir, root);
+    if (resolved.ambiguous) return { refused: resolved.ambiguous };
+    const db = resolved.db;
     if (!db || !fs.existsSync(db)) return null;
     const pass = passOf(db);
     if (!pass) return null;
     const key = rollupKey(db);
-    return key ? { db, pass, key, had: saved(db) } : null;
+    if (!key) return null;
+    // TAKING THE KEY FROM THE ROLLUP AND THEN COMPARING IT WITH ITSELF CHECKS NOTHING. The PASS
+    // half genuinely cannot be re-derived for a drive that is not here — its catalogue is the only
+    // witness — but the POLICY half is the hub's own, and a rollup counted under a different
+    // quarantine policy reports private: 0 for the folder holding a quarantined file. Names are
+    // still withheld live, so this was counts rather than naming; design point 6 says counted.
+    const builtUnder = key.slice(key.lastIndexOf("|") + 1);
+    return {
+      db,
+      pass,
+      key,
+      had: saved(db),
+      byName: resolved.byName,
+      policyStale: builtUnder !== policy
+    };
   };
   const current = (root) => {
     const db = libraryPath(dir, root);
@@ -1099,10 +1166,13 @@ export function createLibrarian({
     neighbours(root, { path: at = "", limit = 8 } = {}) {
       const c = current(root) ?? detached(root);
       if (!c) return null;
+      if (c.refused) return c;
       if (!c.pass.finishedAt)
         return {
           refused: `${root} has a catalogue that has never finished: finish cataloguing it first`
         };
+      // this one is computed live from the catalogue under the CURRENT rules, so a stale rollup
+      // policy does not reach it
       return duplicateNeighbours(c.db, root, rules, at, { limit });
     },
     // S26: one folder of the tree, from the rollup the worker built. `computing` rather than a
@@ -1111,9 +1181,16 @@ export function createLibrarian({
     folder(root, { path: at = "", offset = 0, limit = 200 } = {}) {
       const c = current(root) ?? detached(root);
       if (!c) return null;
+      if (c.refused) return c;
       if (!c.pass.finishedAt)
         return {
           refused: `${root} has a catalogue that has never finished: finish cataloguing it first`
+        };
+      if (c.policyStale)
+        return {
+          refused:
+            `${root}'s folder figures were counted under a different privacy policy and the ` +
+            `drive is not here to recount them: attach it`
         };
       if (rollupKey(c.db) !== c.key) {
         const why = failed.get(c.db);
@@ -1123,7 +1200,11 @@ export function createLibrarian({
       }
       const v = folderView(c.db, root, rules, at, { offset, limit });
       // the date belongs on the answer: a figure with no age invites being read as live
-      return v && !v.missing ? { ...v, finishedAt: c.pass.finishedAt } : v;
+      // a figure resolved by NAME rather than identity says so on the answer, because the owner
+      // cannot otherwise tell it is reading a different disk's catalogue
+      return v && !v.missing
+        ? { ...v, finishedAt: c.pass.finishedAt, ...(c.byName ? { by_name: true } : {}) }
+        : v;
     },
     // one event per question, in the drive's own library log beside its catalogue
     audit(root, info) {

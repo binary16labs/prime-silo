@@ -51,13 +51,25 @@ test("S26: every URL the panel builds is a route the API serves", () => {
   const base = (js.match(/const API = "([^"]+)"/u) ?? [])[1];
   assert.equal(base, "/api/estate/library");
   const used = new Set();
-  for (const m of js.matchAll(/\$\{API\}(\/[A-Za-z]*)/gu)) used.add(m[1]);
+  // the harvest must match a WHOLE path segment. `[A-Za-z]*` stopped at the first digit, so
+  // `${API}/folder9` — a dead route — passed this gate as though it were the live one.
+  for (const m of js.matchAll(/\$\{API\}(\/[\w.-]*)/gu)) used.add(m[1]);
   if (/read\(API\)/u.test(js)) used.add("");
   assert.ok(used.size >= 3, `it calls the folder, neighbours and library routes: ${[...used]}`);
   for (const u of used) assert.ok(served.has(`/library${u}`), `${base}${u} is not a route`);
 
   // IT READS NOTHING ITSELF. The hub is the one place the owner's rules are applied.
-  for (const forbidden of ["node:fs", "DatabaseSync", ".db", "require(", "readFile"])
+  // bare "fs" as well as "node:fs": `import fileSystem from "fs"` survived this list green, and
+  // the whole point of the list is that the panel reads nothing itself.
+  for (const forbidden of [
+    "node:fs",
+    'from "fs"',
+    "'fs'",
+    "DatabaseSync",
+    ".db",
+    "require(",
+    "readFile"
+  ])
     assert.equal(js.includes(forbidden), false, `the panel must not reference ${forbidden}`);
   assert.match(js, /fetch\(/u, "it asks the hub");
 });

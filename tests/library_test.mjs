@@ -7,7 +7,6 @@ import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { DatabaseSync } from "node:sqlite";
 import { Worker } from "node:worker_threads";
 
 import {
@@ -23,10 +22,14 @@ import {
   duplicateNeighbours,
   folderView,
   rollupKey,
+  catalogueFor,
+  markRollup,
+  policyKey,
   libraryPath,
   libraryState
 } from "../server/coordination/lib/library.mjs";
 import { hashFile } from "../server/coordination/lib/nas_catalog.mjs";
+import { DatabaseSync } from "node:sqlite";
 import { readKelEvents } from "../server/coordination/lib/kel.mjs";
 import { createEstateApi } from "../server/coordination/lib/estate_api.mjs";
 
@@ -1731,7 +1734,14 @@ test("S26: the folder route walks the tree, and answers with the drive gone", as
     fs.rmSync(root, { recursive: true, force: true, maxRetries: 5 });
     const after = await h.call(`/library/folder?root=${enc}&path=keep`);
     assert.equal(after.status, 200, "still answered with the drive gone");
-    assert.equal(after.text, before, "and answered identically");
+    // EVERY FIGURE is identical — but the answer now says it was resolved by the recorded NAME
+    // rather than by the drive's identity, which is D4: trusting a name is a last resort for a
+    // drive that cannot be identified, and the owner cannot tell they are reading a possibly
+    // different disk's catalogue unless the answer says so.
+    const seen = JSON.parse(after.text);
+    assert.equal(seen.by_name, true, "resolved by name, and saying so");
+    delete seen.by_name;
+    assert.deepEqual(seen, JSON.parse(before), "and every figure identical");
 
     // a folder nobody catalogued is missing, which is not an empty folder
     assert.equal((await h.call(`/library/folder?root=${enc}&path=nope`)).status, 404);
@@ -1773,4 +1783,284 @@ test("S26: walking the tree writes no audit event, unlike the questions an agent
   } finally {
     await h.close();
   }
+});
+
+test("S26: the NEAR side is judged, not only the far copy", async () => {
+  // D1, found by a verifier going one step past my own test. My test only ever asked neighbours of
+  // the PUBLIC side, so the near side was never guarded: asking the neighbours of a folder that
+  // HOLDS a quarantined file named the folder holding its twin, which identifies that private
+  // file's CONTENT — "your private scan is a copy of this photo". Two clicks in the panel, and the
+  // route writes no audit event. It is S22's D1 again, in the direction my comment did not cover.
+  const root = tmp();
+  write(root, "Scans/my-passport.jpg", "identical bytes"); // private by rule
+  write(root, "Album/2019/holiday-crete.jpg", "identical bytes"); // public, the same bytes
+  write(root, "Scans/receipt.jpg", "an unshared receipt"); // public, in the same folder
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root, dbPath, rules: ["passport"] })).finished, true);
+  await buildFolderRollup(dbPath, root, ["passport"]);
+
+  const n = duplicateNeighbours(dbPath, root, ["passport"], "Scans");
+  assert.deepEqual(
+    n.where,
+    [],
+    `asking from the private side must point nowhere: ${JSON.stringify(n)}`
+  );
+  assert.equal(
+    JSON.stringify(n).includes("Album"),
+    false,
+    "and must not name the folder holding the twin"
+  );
+  assert.equal(n.withheld, 1, "one near file withheld, said rather than hidden");
+
+  // the paired positive, so the assertion above cannot pass vacuously: make the same file public
+  // and the same question DOES name Album/2019
+  const open = duplicateNeighbours(dbPath, root, [], "Scans");
+  assert.equal(open.where.length, 1, JSON.stringify(open));
+  assert.equal(open.where[0].path, "Album/2019");
+  assert.equal(open.withheld, 0);
+});
+
+test("S26: the drive root is refused rather than answered wrongly", async () => {
+  // D3. `under` was empty at the root, so the inside/outside test never fired and every folder on
+  // the drive was reported as holding outside copies of the root's own content: 25,600 folders in
+  // the verifier's fixture, 33 seconds at 500k rows. Wrong, not merely slow. The rollup already
+  // answers the root's question, and the panel only stayed off this by an x-show on a figure that
+  // is structurally 0 at the root — any loopback caller could ask.
+  const root = tmp();
+  write(root, "a/x.jpg", "shared");
+  write(root, "b/x.jpg", "shared");
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root, dbPath })).finished, true);
+  await buildFolderRollup(dbPath, root, []);
+
+  const atRoot = duplicateNeighbours(dbPath, root, [], "");
+  assert.match(atRoot.refused ?? "", /root has no outside/u, JSON.stringify(atRoot));
+  assert.equal(atRoot.where, undefined, "no answer at all, rather than a wrong one");
+  // and a folder inside it still answers
+  assert.equal(duplicateNeighbours(dbPath, root, [], "a").where[0].path, "b");
+});
+
+test("S26: a sibling whose name starts the same is not swallowed", async () => {
+  // D2's fix changed `substr(path, 1, ?) = ?` — a full table scan on the hub's synchronous request
+  // thread, 5.7 seconds at 500k rows — to a range over the path primary key. A range is only right
+  // if its upper bound is: "Album/" to "Album0" must contain Album's children and nothing of
+  // Album2's, or the fix would trade 12 seconds for a wrong answer.
+  const root = tmp();
+  write(root, "Album/in.jpg", "album bytes");
+  write(root, "Album2/in.jpg", "album2 bytes");
+  write(root, "Elsewhere/album.jpg", "album bytes"); // the twin of Album's file only
+  write(root, "Far/album2.jpg", "album2 bytes"); // the twin of Album2's file only
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root, dbPath })).finished, true);
+  await buildFolderRollup(dbPath, root, []);
+
+  assert.deepEqual(
+    duplicateNeighbours(dbPath, root, [], "Album").where.map((w) => w.path),
+    ["Elsewhere"],
+    "Album sees its own twin and nothing of Album2's"
+  );
+  assert.deepEqual(
+    duplicateNeighbours(dbPath, root, [], "Album2").where.map((w) => w.path),
+    ["Far"],
+    "and Album2 sees only its own"
+  );
+});
+
+// --- D4 and D5: a recorded name is a last resort, and a stale policy is refused ----------------
+
+const metaRoot = (dbPath, root) => {
+  const db = new DatabaseSync(dbPath);
+  db.prepare("UPDATE folders_meta SET root = ? WHERE id = 1").run(root);
+  db.close();
+};
+
+const catalogued = async (store, root, rules = []) => {
+  fs.mkdirSync(store, { recursive: true });
+  const at = libraryPath(store, root);
+  assert.equal((await catalogue({ root, dbPath: at, rules })).finished, true);
+  await buildFolderRollup(at, root, rules);
+  markRollup(at, `a-pass|${policyKey(rules)}`, root);
+  return at;
+};
+
+test("S26: identity wins while the drive is there, so no other disk's figures are served", async () => {
+  // D4. catalogueFor fell back to the recorded root NAME whenever no catalogue existed under the
+  // drive's identity — INCLUDING when the drive was attached and perfectly identifiable. Point a
+  // catalogue's recorded root at a second, never-catalogued, ATTACHED drive and it handed back the
+  // first drive's folder names, sizes and duplicate figures with nothing saying so. estate-library
+  // .md already claimed "identity still wins when the drive IS there"; it did not.
+  const one = tmp();
+  write(one, "keep/x.jpg", "drive one bytes");
+  const store = path.join(tmp(), "library");
+  const dbOne = await catalogued(store, one);
+
+  const two = tmp(); // attached, real, never catalogued
+  write(two, "untouched.txt", "drive two");
+  metaRoot(dbOne, two); // drive one's catalogue now claims to be drive two's
+
+  const attached = catalogueFor(store, two);
+  assert.notEqual(
+    attached.db,
+    dbOne,
+    `an identifiable drive never borrows another's catalogue: ${JSON.stringify(attached)}`
+  );
+  assert.equal(fs.existsSync(attached.db), false, "so it simply has none");
+  assert.equal(attached.byName, undefined);
+
+  // THE PAIRED POSITIVE, and the reason the fallback exists at all: once drive two is gone and
+  // cannot be identified, the recorded name is all there is — and the answer says so.
+  fs.rmSync(two, { recursive: true, force: true, maxRetries: 5 });
+  const absent = catalogueFor(store, two);
+  assert.equal(absent.db, dbOne, "a drive that cannot be identified falls back to the name");
+  assert.equal(absent.byName, true, "and the answer is marked as resolved by name");
+});
+
+test("S26: two catalogues recording one name are refused, not guessed between", async () => {
+  // A disk that has been F: twice leaves two catalogues both recording F:, which is the normal case
+  // rather than the odd one. Whichever readdir yielded first is not an answer.
+  const gone = path.join(tmp(), "detached-drive"); // never created: unidentifiable
+  const store = path.join(tmp(), "library");
+  fs.mkdirSync(store, { recursive: true });
+  for (const name of ["library-aaa.db", "library-bbb.db"]) {
+    const src = tmp();
+    write(src, "a/x.jpg", `bytes for ${name}`);
+    const at = path.join(store, name);
+    assert.equal((await catalogue({ root: src, dbPath: at })).finished, true);
+    await buildFolderRollup(at, src, []);
+    markRollup(at, `a-pass|${policyKey([])}`, gone); // both claim the same absent drive
+  }
+  const r = catalogueFor(store, gone);
+  assert.match(r.ambiguous ?? "", /names 2 catalogues/u, JSON.stringify(r));
+  assert.match(r.ambiguous ?? "", /attach it/u, "and says what would resolve it");
+  assert.equal(r.db, undefined, "no guess at all");
+});
+
+test("S26: a rollup counted under another privacy policy is refused, not served", async () => {
+  // D5. detached() took the key from rollupKey(db) and folder() then compared it with itself, so the
+  // policy half was never checked: a rollup built under one quarantine policy was served to a hub
+  // running another, and the folder holding a quarantined file reported private: 0. Names are still
+  // withheld live, so this is counts rather than naming — and design point 6 says COUNTED.
+  const drive = tmp();
+  write(drive, "mixed/public.txt", "public");
+  write(drive, "mixed/my-passport.txt", "private under one policy only");
+  const store = path.join(tmp(), "library");
+  const at = await catalogued(store, drive, ["passport"]);
+  fs.rmSync(drive, { recursive: true, force: true, maxRetries: 5 }); // now unidentifiable
+
+  // same policy: the figures are served, and they are the ones the rollup was built with
+  const same = createLibrarian({ dir: store, rules: ["passport"] }).folder(drive, {
+    path: "mixed"
+  });
+  assert.equal(same?.self?.private, 1, `counted under its own policy: ${JSON.stringify(same)}`);
+  assert.equal(same?.by_name, true, "and resolved by name, which it says");
+
+  // a different policy: refused rather than reporting private: 0
+  const other = createLibrarian({ dir: store, rules: ["tax-return"] }).folder(drive, {
+    path: "mixed"
+  });
+  assert.match(other?.refused ?? "", /different privacy policy/u, JSON.stringify(other));
+  assert.equal(other?.self, undefined, "no figures at all, rather than wrong ones");
+  assert.ok(at);
+});
+
+test("S26: the event loop keeps running while the rollup is built", async () => {
+  // D7. I reported this defect myself — 45 minutes on the real F: with the event loop frozen solid,
+  // a 250 ms timer that never fired once — and then shipped a gate that stays GREEN when the yield
+  // is removed. A fix for a freeze, with nothing watching that it still yields, is a fix that lasts
+  // until the next refactor.
+  //
+  // Synthetic rows rather than real files: the yield is every 20,000 rows, and the point is the
+  // event loop, not the disk.
+  const drive = tmp();
+  write(drive, "seed.txt", "one real file so the catalogue exists");
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root: drive, dbPath })).finished, true);
+
+  const db = new DatabaseSync(dbPath);
+  db.exec("BEGIN");
+  const ins = db.prepare(
+    "INSERT OR REPLACE INTO files (path, size, mtime_ms, sha256, kind, first_seen, last_seen, run) " +
+      "VALUES (?, ?, 1, ?, 'other', 'x', 'x', 'r')"
+  );
+  // 60,000 rows across 600 folders, every one a duplicate of another so both figures do real work
+  for (let i = 0; i < 60000; i += 1)
+    ins.run(`f${i % 600}/sub/file-${i}.bin`, 1024, `sha-${i % 30000}`);
+  db.exec("COMMIT");
+  db.close();
+
+  let ticks = 0;
+  const beat = setInterval(() => {
+    ticks += 1;
+  }, 25);
+  try {
+    await buildFolderRollup(dbPath, drive, []);
+  } finally {
+    clearInterval(beat);
+  }
+  // the hub answers requests from this same loop: if it never ticks, every surface is frozen
+  assert.ok(ticks > 0, `the loop must breathe while the rollup runs: ${ticks} ticks`);
+});
+
+test("S26: a folder listing cannot be asked for the whole drive at once", async () => {
+  // D7, the other unprotected half: `limit` is capped so one request cannot pull every row of a
+  // 1.1-million-file catalogue onto the hub's thread. Nothing tested the cap.
+  const drive = tmp();
+  for (let i = 0; i < 12; i += 1) write(drive, `top/f${i}/x.txt`, `bytes ${i}`);
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root: drive, dbPath })).finished, true);
+  await buildFolderRollup(dbPath, drive, []);
+
+  const huge = folderView(dbPath, drive, [], "top", { offset: 0, limit: 10 ** 9 });
+  assert.ok(
+    huge.folders.length <= 12,
+    `a limit beyond the folder count returns what exists: ${huge.folders.length}`
+  );
+  const page = folderView(dbPath, drive, [], "top", { offset: 0, limit: 5 });
+  assert.equal(page.folders.length, 5, "and a page is a page");
+  assert.equal(
+    folderView(dbPath, drive, [], "top", { offset: 10, limit: 5 }).folders.length,
+    2,
+    "the last page is short rather than wrapping"
+  );
+});
+
+test("S26: a rule matching a folder covers everything under it", async () => {
+  // D9. isQuarantined only ever judged the path it was handed, so a rule anchored on a FOLDER hid
+  // that folder's row at its parent and then named every file inside it on direct navigation: the
+  // folder was private and its contents were not. S26 is the first surface to claim folder names
+  // are part of the judgement, so this is where the claim has to be made true.
+  const root = tmp();
+  write(root, "Scans/passport.jpg", "a scan");
+  write(root, "Scans/deeper/licence.jpg", "another scan");
+  write(root, "Open/holiday.jpg", "a holiday");
+  const dbPath = path.join(tmp(), "lib.db");
+  // a genuine RegExp, anchored: it matches the folder and none of its children. A plain string
+  // rule is a substring match, which would have caught the children by accident.
+  const rules = [/Scans$/u];
+  assert.equal((await catalogue({ root, dbPath, rules })).finished, true);
+  await buildFolderRollup(dbPath, root, rules);
+
+  // the folder row is withheld at its parent — that part always worked
+  const top = folderView(dbPath, root, rules, "", { offset: 0, limit: 50 });
+  assert.equal(
+    top.folders.some((f) => f.name === "Scans"),
+    false,
+    `the private folder is not named: ${JSON.stringify(top.folders)}`
+  );
+  assert.ok(top.withheld >= 1, "and it is counted rather than vanishing");
+
+  // and now navigating straight into it names nothing either
+  const inside = folderView(dbPath, root, rules, "Scans", { offset: 0, limit: 50 });
+  const named = JSON.stringify(inside ?? {});
+  assert.equal(named.includes("passport"), false, `no file inside it is named: ${named}`);
+  assert.equal(named.includes("licence"), false, "including below a subfolder");
+  assert.equal(named.includes("deeper"), false, "and not the subfolder either");
+
+  // the paired positive: the public folder is listed and its file named, so the checks above are
+  // not passing because folderView simply names nothing
+  const open = folderView(dbPath, root, rules, "Open", { offset: 0, limit: 50 });
+  assert.ok(
+    JSON.stringify(open.files).includes("holiday"),
+    `the public file is still named: ${JSON.stringify(open.files)}`
+  );
 });

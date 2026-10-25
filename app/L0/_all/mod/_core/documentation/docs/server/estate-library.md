@@ -73,16 +73,38 @@ say so; a rollup whose worker died is reported with its reason rather than left 
 
 **`/library/neighbours` is a separate route on purpose.** Storing "where the other copies are" for
 every folder meant testing every copy of every set against every ancestor — 45 minutes on the real
-F:. Asked for one folder at a time, its own subtree bounds the query.
+F:. Asked for one folder at a time, its own subtree bounds the query — as a **range over the path
+primary key**, not `substr()`, which cannot use the index and made this a full table scan on the
+hub's synchronous thread: 5.7 s at 500k rows, about 12 at F:'s 1.1 million. The rollup being off
+the request thread was never enough on its own; the rule belongs to every route here.
+
+**The drive root is refused.** Everything on the drive is inside the root, so "which folders hold
+copies from outside it" has no answer — asked anyway it named every folder on the drive, which is
+wrong rather than merely slow. The rollup already answers the root's question.
+
+**The privacy judgement is symmetric.** Both sides of a comparison are judged, not only the far
+one. Asking the neighbours of a folder that _holds_ a quarantined file used to name the folder
+holding its twin, which identifies that private file's content just as surely as naming it would.
+A withheld near file is counted; its copies are simply never looked for. A rule that matches a
+**folder** matches everything beneath it, so a folder withheld at its parent cannot be walked into
+and read file by file.
 
 **The drive need not be attached.** Every figure comes from the catalogue, so the answer is
 identical with the drive unplugged. A catalogue records which root it describes, and when the drive
-cannot be asked who it is, the store is searched for the one that says it is this root. Identity
-still wins when the drive _is_ there, because F: may be another drive tomorrow.
+cannot be asked who it is — and _only_ then — the store is searched for the one that says it is this
+root; that answer is marked `by_name: true`, because a recorded name is not an identity. Identity
+wins whenever the drive _is_ there: if the drive can say who it is and has no catalogue of its own,
+the truth is "no catalogue", not another disk's figures. Two catalogues claiming one absent root are
+**refused** rather than chosen between — a disk that has been F: twice leaves exactly that, and it is
+the normal case. And a rollup counted under a different quarantine policy is refused rather than
+served, because taking the stored key and comparing it with itself checked nothing: the pass half
+cannot be re-derived for an absent drive, but the policy half is the hub's own.
 
 **Status codes.** `200` answered · `202` the rollup is still being built · `400` not a root this
 machine offers · `403` not this machine · `404` no catalogue, or no such folder in this catalogue ·
-`409` the catalogue has never finished · `412` no quarantine policy · `503` `ESTATE_STORE` unset.
+`409` the catalogue has never finished, the drive root was asked for its outside, the store holds
+two catalogues claiming one absent root, or a rollup was counted under another privacy policy ·
+`412` no quarantine policy · `503` `ESTATE_STORE` unset.
 `404` for an unknown folder and `404` for an uncatalogued drive carry different sentences, because
 they are different problems.
 
