@@ -132,6 +132,7 @@ _(empty)_
 
 ## AUTHORED (contracts in tasks/, waiting on deps — W0 conversion 2026-07-07)
 
+- S26 — Drives: walk the estate from the catalogue, not the disk _(authored 2026-10-25 on the owner's direction. Band L, 800. HUMAN-SIGNED and unsigned: it is a new capability and a new surface, so the owner signs the scope before it is claimed. Grew out of the duplicates report: 237,508 sets cannot be judged one at a time, but a folder that knows how much of itself exists elsewhere can be. Reads only the catalogue, moves nothing.)_
 A1 A2 A3 A4 A5 A6 A7 ·
 B3 ·
 ·
