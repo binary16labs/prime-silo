@@ -19,13 +19,10 @@
 - P7 — the navigation instrument: an agentic manifest the stream can score _(contract authored 2026-09-21; deps P4 and P6 both DONE so it enters READY at the bottom — owner may reorder)_
 
 - S14 — the map carries which software each node runs _(UNBLOCKED — its only dep, S13, went DONE inside the S15 merge (54f5cfc8). Enters READY at the bottom per the board's promotion rule; owner may reorder.)_
-- S25 — the librarian's edges: bound the work, and say what the answer means _(authored 2026-10-24 on the owner's "sort it"; dep S22 DONE. Band S, 300. Closes the six non-blocking findings three verifications of S22 left open, chief among them unbounded hashing on the hub's request thread with no cap on how many paths a caller may give. Authored as a contract rather than patched into main, which is the lesson of defect (h).)_
 
 ## CLAIMED (agent · date)
 
-
-
-
+- S25 — the librarian's edges: bound the work, and say what the answer means · claude-opus-5 · 2026-10-26 _(claimed on the owner's direction to finish S25 and U0, which takes it ahead of S23 at the top of READY — recorded as an irregularity rather than left to be found. Unblocked by the S26 merge, which it shares four files with. Band S, 300. Part of item 5 is already discharged by S26's rewrite of the status list; what remains is check's own total/withheld/capped shapes. The figure will be read with S27's instrument as the work goes.)_
 ## VERIFY (awaiting non-author verification)
 
 
