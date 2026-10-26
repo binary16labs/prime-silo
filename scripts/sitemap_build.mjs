@@ -55,7 +55,7 @@ const ZONES = {
   ],
   Replay: ["time_travel", "_prime_silo/step_through"],
   Ask: ["agent"],
-  Hold: ["file_explorer"],
+  Hold: ["file_explorer", "_prime_silo/drives", "_prime_silo/estate_map"],
   Think: ["huggingface"],
   Operate: ["user"]
 };
@@ -143,7 +143,17 @@ const routes = fs.existsSync(apiDir)
 const proxyPrefixes = walk(path.join(repo, "server", "lib"))
   .filter((f) => /proxy\.js$/.test(f))
   .flatMap((f) => [...read(f).matchAll(/PATH_PREFIX\s*=\s*"\/api\/([a-z0-9_-]+)"/gi)])
-  .map((m) => m[1]);
+  .map((m) => m[1])
+  // AND the APIs mounted as whole modules rather than as a file per route: the estate API serves
+  // every /api/estate/* path from one module, so there is no server/api/estate.js to find and the
+  // check called two real surfaces liars — Estate Map since S21, and Drives now. Same lesson as the
+  // comment above, and discovered the same way, so a new mounted API is not a fresh false alarm.
+  .concat(
+    walk(path.join(repo, "server", "coordination", "lib"))
+      .filter((f) => /_api\.mjs$/.test(f))
+      .flatMap((f) => [...read(f).matchAll(/PREFIX\s*=\s*"\/api\/([a-z0-9_-]+)"/g)])
+      .map((m) => m[1])
+  );
 
 // --- correctness + completeness -----------------------------------------------------------
 const problems = [];

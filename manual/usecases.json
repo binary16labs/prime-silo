@@ -392,6 +392,54 @@
         "The credential is never read from a command-line argument and never sent to the browser."
       ],
       "verified": "declared"
+    },
+    {
+      "id": "UC-20",
+      "name": "See which folders are copies of other folders",
+      "actor": "human",
+      "goal": "Decide what to do about 1.1 million files without judging them one at a time.",
+      "trigger": "The duplicates list says 267.6 GB is reclaimable, and a list of 237,508 sets is not a decision anyone makes.",
+      "preconditions": ["The drive has a finished catalogue.", "Its folder rollup has been built."],
+      "surfaces": ["_prime_silo/drives"],
+      "endpoints": [],
+      "flow": [
+        "Open Drives and pick a catalogued drive. Every folder shows its size, how much of it exists somewhere else, and how much is duplicated inside it.",
+        "A folder whose every file exists elsewhere is marked: that is the only row where retiring the whole tree is a safe thought.",
+        "Ask where the other copies are. The folders holding them are named, and you can walk straight to one.",
+        "Nothing is moved. The surface ends at the judgement; acting on it is EP-U's signed work.",
+        "Calls GET /api/estate/library/folder and /api/estate/library/neighbours. They are not listed in endpoints because that field names route files and the estate API is mounted as one module."
+      ],
+      "outcome": "The owner knows which trees are second copies of other trees, and where.",
+      "refuses": [
+        "Private paths are counted and never named, folder names included.",
+        "No file or directory on any drive is read: every figure comes from the catalogue, so the answer holds with the drive unplugged.",
+        "A rollup still being built is said, never shown as an empty folder.",
+        "Nothing here moves, copies, zips or deletes anything."
+      ],
+      "verified": "exercised"
+    },
+    {
+      "id": "UC-21",
+      "name": "See what this machine holds, drive by drive",
+      "actor": "human",
+      "goal": "Know what is attached, what is on it, and what has been catalogued.",
+      "trigger": "The owner wants to look at their own estate rather than read a script's output.",
+      "preconditions": ["A quarantine policy exists.", "This machine offers at least one root."],
+      "surfaces": ["_prime_silo/estate_map"],
+      "endpoints": [],
+      "flow": [
+        "Open the Estate Map. Each tab answers one question: what is stored, what is installed, what media is here, what is catalogued, what is backed up.",
+        "The Library tab shows each drive's catalogue — never catalogued, part way, or finished with totals by kind and the top duplicate sets.",
+        "Catalogue F: starts a pass and reports progress; stopping keeps everything it committed and the next run resumes where it stopped.",
+        "Calls GET /api/estate and /api/estate/library, which are not listed in endpoints because that field names route files and the estate API is mounted as one module."
+      ],
+      "outcome": "The owner can see their estate from the app rather than from a terminal.",
+      "refuses": [
+        "Every estate route answers this machine only: the map and the catalogue name files.",
+        "No catalogue is started without a quarantine policy, because the catalogue would list private files.",
+        "Private files are counted and never named."
+      ],
+      "verified": "exercised"
     }
   ]
 }

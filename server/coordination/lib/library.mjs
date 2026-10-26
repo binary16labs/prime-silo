@@ -50,8 +50,42 @@ const SKIP_TOP = new Set(["$recycle.bin", "system volume information"]);
 const fold = (p) => path.resolve(p).toLowerCase();
 const fullOf = (root, rel) =>
   path.join(root.endsWith(":") ? `${root}${path.sep}` : root, ...rel.split("/"));
-const privateTo = (rules) => (p) =>
-  isQuarantined([p, canonPath(p), canonPath(p).toLowerCase()], rules);
+// A RULE THAT MATCHES A FOLDER MATCHES EVERYTHING UNDER IT. isQuarantined only ever judged the path
+// it was handed, so an anchored rule naming a folder hid that folder's row at its parent and then
+// named every file inside it on direct navigation — the folder was private and its contents were
+// not. S26 is the first surface to claim folder names are included in the judgement, so this is
+// where that claim has to become true. Each ancestor is judged as well as the path itself.
+export const privateTo = (rules) => {
+  const forms = (s) => [s, canonPath(s), canonPath(s).toLowerCase()];
+  // JUDGED ONCE PER DIRECTORY, NOT ONCE PER FILE PER ANCESTOR. Judging every ancestor (D9) made the
+  // judgement 3.7x dearer for every caller, and the near-side guard (D1) made duplicateNeighbours
+  // ask it once per FILE rather than once per sha: 1,000 files in one folder cost 96 ms with no
+  // rules and 409 ms with one, so the rules were three quarters of the bill. Every file in a folder
+  // shares that folder's ancestry, and isQuarantined rebuilds a spellings Set on each call, so the
+  // cache turns thousands of identical questions into one. It is per-matcher, so a changed policy
+  // means a new matcher and never a stale verdict.
+  const dirs = new Map();
+  const dirPrivate = (dir) => {
+    const had = dirs.get(dir);
+    if (had !== undefined) return had;
+    const at = Math.max(dir.lastIndexOf("/"), dir.lastIndexOf("\\"));
+    const verdict =
+      isQuarantined(forms(dir), rules) || (at > 0 ? dirPrivate(dir.slice(0, at)) : false);
+    dirs.set(dir, verdict);
+    return verdict;
+  };
+  const judge = (full) => {
+    if (isQuarantined(forms(full), rules)) return true;
+    const at = Math.max(full.lastIndexOf("/"), full.lastIndexOf("\\"));
+    return at > 0 ? dirPrivate(full.slice(0, at)) : false;
+  };
+  // the cache is hung on the matcher so a test can SEE it: handed file paths instead of their
+  // directories the answers stay identical and only the cost changes, which is a property no
+  // assertion about answers can ever hold. 20,000 files in one tree must leave a handful of
+  // entries, not 20,000.
+  judge.dirs = dirs;
+  return judge;
+};
 
 // KEYED BY THE DRIVE, NOT ITS LETTER (S20's lesson): F: may be another letter tomorrow, and a
 // different drive may be F:. Paths are stored relative to the root for the same reason.
@@ -75,6 +109,10 @@ export function openLibrary(dbPath) {
       kind TEXT NOT NULL, first_seen TEXT NOT NULL, last_seen TEXT NOT NULL, run TEXT NOT NULL);
     CREATE INDEX IF NOT EXISTS files_sha256 ON files (sha256);
     CREATE INDEX IF NOT EXISTS files_size ON files (size);
+    -- the drive root's own files, which no path range can bound: a partial index on exactly the
+    -- rows whose path holds no separator, so the one folder the panel opens first is a search
+    -- rather than a scan of every row on the drive (226 ms at 500k, about half a second at F:)
+    CREATE INDEX IF NOT EXISTS files_root ON files (path) WHERE instr(path, '/') = 0;
     CREATE TABLE IF NOT EXISTS passes (
       id TEXT PRIMARY KEY, started_at TEXT NOT NULL, finished_at TEXT, stopped_at TEXT,
       seen INTEGER NOT NULL DEFAULT 0, hashed INTEGER NOT NULL DEFAULT 0,
@@ -472,6 +510,12 @@ const csvFor = (db, key) =>
 // summary that replaces them has been saved.
 if (!isMainThread && workerData?.librarySummary) {
   const { dbPath, root, rules, key } = workerData.librarySummary;
+  // S26: THE ROLLUP RUNS HERE, in the worker that already exists, because it is 157 s on the real
+  // F: — the hub's request thread is where claude-s21-verifier's D3 lived and nothing goes back on
+  // it. The key is written LAST, so a rollup interrupted half way is never mistaken for a current
+  // one: a reader checks the key, not the table's existence.
+  await buildFolderRollup(dbPath, root, rules);
+  markRollup(dbPath, key, root);
   const { state, csv } = summaryOf(dbPath, root, rules);
   const list = csvFor(dbPath, key);
   fs.writeFileSync(`${list}.tmp`, csv);
@@ -531,6 +575,505 @@ export function libraryQueriedEvent({ machine, root, pass, surface, kind, return
     subject: { kind: "sweep", id: sid },
     payload: { scope: "library", root, pass: pass || null, surface, kind, returned, withheld }
   };
+}
+
+// --- S26: the folder rollup ---------------------------------------------------------------------
+//
+// A LIST OF DUPLICATES IS NOT A DECISION. The real F: holds 237,508 duplicate sets, and nobody makes
+// 237,508 judgements. A folder that knows how much of itself exists somewhere ELSE is a judgement,
+// and it is the one that retires a tree. So every folder gets a row, and two figures that must not
+// be confused:
+//
+//   dup_out — files here whose bytes also exist OUTSIDE this folder's subtree. A tree duplicated
+//             against another tree: this is the one that can be retired.
+//   dup_in  — files here whose bytes also exist somewhere INSIDE it. A tree duplicated against
+//             itself, which retiring the tree would not fix.
+//
+// On the real F: the single biggest pair is a folder duplicated against itself (42.4 GB inside
+// Pictures/2016/Pictures), so conflating the two would send the owner at the wrong job.
+//
+// A file can be both, and is counted in both; the figures answer different questions and neither is
+// a share of the other. Private files are counted and never named, folder names included: a
+// quarantined path is quarantined whichever column it would appear in.
+// A declaration, not a const: the worker block at the top of this file runs at module evaluation,
+// so a const here would be in its temporal dead zone and the rollup would throw the moment a worker
+// called it — which is exactly what happened, invisibly, because worker errors were swallowed.
+function ancestorsOf(rel) {
+  const parts = rel.split("/");
+  const out = [""];
+  for (let i = 1; i < parts.length; i++) out.push(parts.slice(0, i).join("/"));
+  return out; // every folder holding this file, the drive root first
+}
+
+export async function buildFolderRollup(dbPath, root, rules = [], { signal, onProgress } = {}) {
+  const db = new DatabaseSync(dbPath, { timeout: BUSY_MS });
+  const isPrivate = privateTo(rules);
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS folders (
+        path TEXT PRIMARY KEY, files INTEGER NOT NULL DEFAULT 0, bytes INTEGER NOT NULL DEFAULT 0,
+        private INTEGER NOT NULL DEFAULT 0,
+        dup_out_files INTEGER NOT NULL DEFAULT 0, dup_out_bytes INTEGER NOT NULL DEFAULT 0,
+        dup_in_files INTEGER NOT NULL DEFAULT 0, dup_in_bytes INTEGER NOT NULL DEFAULT 0);
+    `);
+
+    const acc = new Map();
+    const of = (f) => {
+      let r = acc.get(f);
+      if (!r)
+        acc.set(f, (r = { files: 0, bytes: 0, private: 0, do_f: 0, do_b: 0, di_f: 0, di_b: 0 }));
+      return r;
+    };
+
+    // Nothing here awaited, so a 1.1M-row catalogue held the event loop for 45 minutes and a
+    // timer set for every 250 ms never fired once. A worker nobody can see the progress of is a
+    // worker that looks hung, so both passes breathe.
+    let seen = 0;
+    const breathe = async () => {
+      if (++seen % 20000) return;
+      onProgress?.({ rows: seen });
+      await new Promise((r) => setImmediate(r));
+    };
+
+    // pass 1: totals, which every folder has whether or not anything is duplicated
+    for (const r of db.prepare("SELECT path, size FROM files").iterate()) {
+      if (signal?.aborted) throw new Error("rollup stopped");
+      await breathe();
+      const priv = isPrivate(fullOf(root, r.path)) ? 1 : 0;
+      for (const f of ancestorsOf(r.path)) {
+        const a = of(f);
+        a.files += 1;
+        a.bytes += r.size;
+        a.private += priv;
+      }
+    }
+
+    // pass 2: the duplicated sets, one sha at a time. For a folder F holding k of a set's T copies,
+    // every one of those k has a copy outside F exactly when T > k, and one inside F when k > 1 —
+    // so the two figures fall out of counting copies per ancestor, without comparing paths.
+    let sha = null;
+    let group = [];
+    const flush = () => {
+      if (group.length < 2) return (group = []);
+      const perFolder = new Map();
+      for (const g of group)
+        for (const f of ancestorsOf(g.path)) perFolder.set(f, (perFolder.get(f) ?? 0) + 1);
+      const size = group[0].size;
+      for (const [f, k] of perFolder) {
+        const a = of(f);
+        if (group.length > k) {
+          // bytes here that also exist outside: what retiring this folder frees, because the
+          // copies outside survive it
+          a.do_f += k;
+          a.do_b += k * size;
+        }
+        if (k > 1) {
+          // RECLAIMABLE, not total: k copies inside means k-1 are redundant. Counting all k read as
+          // waste and was not — the drive root reported 497.8 GB where the real figure is 267.6.
+          a.di_f += k - 1;
+          a.di_b += (k - 1) * size;
+        }
+      }
+      group = [];
+    };
+    for (const r of db
+      .prepare("SELECT sha256, path, size FROM files WHERE size > 0 ORDER BY sha256, path")
+      .iterate()) {
+      if (signal?.aborted) throw new Error("rollup stopped");
+      await breathe();
+      if (r.sha256 !== sha) {
+        flush();
+        sha = r.sha256;
+      }
+      group.push({ path: r.path, size: r.size });
+    }
+    flush();
+
+    const put = db.prepare(
+      `INSERT INTO folders (path, files, bytes, private, dup_out_files, dup_out_bytes,
+         dup_in_files, dup_in_bytes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(path) DO UPDATE SET files = excluded.files, bytes = excluded.bytes,
+         private = excluded.private, dup_out_files = excluded.dup_out_files,
+         dup_out_bytes = excluded.dup_out_bytes, dup_in_files = excluded.dup_in_files,
+         dup_in_bytes = excluded.dup_in_bytes`
+    );
+    db.exec("BEGIN");
+    db.prepare("DELETE FROM folders").run();
+    for (const [f, a] of acc)
+      put.run(f, a.files, a.bytes, a.private, a.do_f, a.do_b, a.di_f, a.di_b);
+    db.exec("COMMIT");
+    return { folders: acc.size };
+  } finally {
+    db.close();
+  }
+}
+
+// Where the copies of THIS folder's content are. Worked out for the one folder being looked at
+// rather than stored for every folder: storing it meant testing every copy of every set against
+// every ancestor, which is O(copies squared x depth) and took 45 minutes on the real F:. The
+// folder's own subtree bounds this, and the drive root never needs it — nothing is outside the root.
+//
+// A private copy is counted and its folder never named: "your private file is a copy of this photo"
+// is the content of that file by a longer route (S22 D1).
+// One folder of the tree: its own figures, its immediate subfolders with theirs, and the files
+// sitting directly in it. Children are found by comparing path prefixes rather than with LIKE, so a
+// folder named with % or _ is a folder and not a pattern.
+//
+// THE QUERIES LIVE HERE, in one spelling, because a test that plans a SQL literal of its own
+// plans a string the TEST owns and not the one the code runs. The guard added in round 3 to protect
+// the index fix was exactly that tautology: reverting both routes to substr() left it green. It is
+// the drives-panel harvest mistake a third time — a test reading a copy of the thing instead of
+// the thing — so the thing is now exported and there is nothing to copy.
+//
+// `instr(substr(path, ?), '/') = 0` keeps the IMMEDIATE children: everything deeper has another
+// separator after the folder's own prefix. At the drive root there is no prefix to range on, so the
+// partial index files_root is what bounds it — without that the root's file query scans, and the
+// root is what the panel opens first.
+export const SQL = Object.freeze({
+  neighbourMine:
+    "SELECT path, sha256 FROM files WHERE size > 0 AND (path = ? OR (path >= ? AND path < ?))",
+  neighbourOthers: "SELECT path, size FROM files WHERE sha256 = ?",
+  folderRow: "SELECT files FROM folders WHERE path = ?",
+  childFolders: (range) =>
+    `SELECT * FROM folders WHERE path != '' ${range}
+       AND instr(substr(path, ?), '/') = 0 ORDER BY bytes DESC LIMIT ? OFFSET ?`,
+  childFiles: (range) =>
+    `SELECT path, size, mtime_ms, kind FROM files WHERE 1 = 1 ${range}
+       AND instr(substr(path, ?), '/') = 0 ORDER BY size DESC LIMIT ? OFFSET ?`,
+  // THE DRIVE ROOT NEEDS ITS OWN SPELLING, not just its own index. `ORDER BY size DESC` lets
+  // SQLite satisfy the sort from files_size and walk every row on the drive to do it — an index
+  // scan rather than a table scan, and 226 ms at 500k rows either way. INDEXED BY forces the
+  // partial index, which holds only the root's own files, and the sort then happens over that
+  // handful. It is used only where it exists, because a catalogue written before this contract
+  // has no files_root and INDEXED BY on a missing index is an error, not a hint.
+  rootFiles: `SELECT path, size, mtime_ms, kind FROM files INDEXED BY files_root
+       WHERE instr(path, '/') = 0 ORDER BY size DESC LIMIT ? OFFSET ?`,
+  // WHICH SPELLING THE CODE CHOOSES, as a decision a test can make the code take rather than
+  // re-derive. Planning SQL.rootFiles only proves that string is bounded; it says nothing about
+  // whether folderView ever reaches it, and a verifier showed the equivalent gap twice over.
+  childFilesFor: (at, hasRootIndex) => (!at && hasRootIndex ? "rootFiles" : "childFiles"),
+  hasRootIndex: (db) => {
+    try {
+      return (
+        db
+          .prepare("SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = 'files_root'")
+          .get() != null
+      );
+    } catch {
+      return false;
+    }
+  },
+  range: (at) => (at ? "AND path >= ? AND path < ?" : ""),
+  bounds: (at) => (at ? [`${at}/`, `${at}0`] : [])
+});
+
+// One page is one page: a caller asking for the whole drive gets a page of it instead.
+export const FOLDER_PAGE_MAX = 1000;
+
+// NO ROLLUP IS AN ANSWER, NOT AN EXCEPTION — for BOTH routes. Round 4 fixed this in
+// duplicateNeighbours and left folderView reading `folders` unguarded one function away, which is
+// the same defect the same number of steps from the same lesson: a verifier found it immediately.
+// The librarian's folder() does guard the common case, because the worker writes the rollup's key
+// LAST and so a missing key already means "computing" — but the key is in folders_meta and the rows
+// are in folders, and anything that leaves one without the other (a restore of an older file, a
+// manual drop, corruption) walks straight past that guard into a thrown route. S22's D7 settled
+// what a route may do when the thing beneath it is missing: answer, never exit.
+//
+// It is a function rather than a try at each call site so that the two routes cannot drift apart
+// again, which is exactly how they drifted this time.
+export const rollupRows = (db, sql, args, what) => {
+  try {
+    return { rows: db.prepare(sql).all(...args) };
+  } catch (e) {
+    if (!/no such table|no such index/u.test(String(e?.message ?? e))) throw e;
+    return {
+      computing: true,
+      why: `${what} has no folder rollup yet: try again in a minute`
+    };
+  }
+};
+
+// Ordered by size, because the question this surface answers is "where is the weight".
+export function folderView(dbPath, root, rules = [], at = "", { offset = 0, limit = 200 } = {}) {
+  const db = readOnly(dbPath);
+  if (!db) return null;
+  // THE CAP LIVES WITH THE QUERY, not only at the route. A verifier lifted the route's cap from
+  // 1,000 to a billion and every test stayed green, then asked this function for 5,001 rows and got
+  // 5,001: "the folder page cap is tested" was not true, and the one cap there was sat in
+  // estate_api.mjs where a loopback caller is the only thing it binds.
+  limit = Math.max(1, Math.min(Number(limit) || 200, FOLDER_PAGE_MAX));
+  const isPrivate = privateTo(rules);
+  const under = at ? `${at}/` : "";
+  const row = (f) => ({
+    path: f.path,
+    name: f.path.includes("/") ? f.path.slice(f.path.lastIndexOf("/") + 1) : f.path,
+    files: f.files,
+    bytes: f.bytes,
+    private: f.private,
+    dup_out_files: f.dup_out_files,
+    dup_out_bytes: f.dup_out_bytes,
+    dup_in_files: f.dup_in_files,
+    dup_in_bytes: f.dup_in_bytes,
+    all_elsewhere: f.files > 0 && f.dup_out_files === f.files
+  });
+  try {
+    const own = rollupRows(db, "SELECT * FROM folders WHERE path = ?", [at], root);
+    if (own.computing) return own;
+    const self = own.rows[0];
+    if (!self) return { missing: true };
+    // AN INDEX RANGE, for the same reason duplicateNeighbours has one: `substr(path, 1, ?) = ?`
+    // cannot use the path primary key, and a verifier read the plan as SCAN and timed this route at
+    // 402 ms per click at 500k rows — about 0.9 s at F:'s 1.1 million, on the hub's thread. The
+    // comment this contract added condemning substr() was written one function away from two more
+    // of them. The DRIVE ROOT has no range: every path is under it, so the bound is the instr()
+    // depth test alone, and the folders table it reads is one row per folder rather than per file.
+    const range = SQL.range(at);
+    const bounds = SQL.bounds(at);
+    // THROUGH THE HELPER, even though the self read above has already answered if the table is
+    // gone. I took this guard out when a mutation showed it unreachable — but unreachable TODAY is
+    // an argument about the current order of two statements, and the next edit to reorder them
+    // re-opens the defect silently. A verifier made the point better than my reasoning did: the
+    // invariant worth holding is that `folders` is read in ONE place, and that is checkable at
+    // source rather than argued from control flow. The test below enforces it; this is why the
+    // mutation can die at all.
+    const kidRows = rollupRows(
+      db,
+      SQL.childFolders(range),
+      [...bounds, under.length + 1, limit, offset],
+      root
+    );
+    if (kidRows.computing) return kidRows;
+    const kids = kidRows.rows;
+    const here =
+      SQL.childFilesFor(at, SQL.hasRootIndex(db)) === "rootFiles"
+        ? db.prepare(SQL.rootFiles).all(limit, offset)
+        : db.prepare(SQL.childFiles(range)).all(...bounds, under.length + 1, limit, offset);
+
+    // the same judgement as everywhere else: counted, never named — a folder's own name included,
+    // because a quarantine rule matches a path and a folder has one
+    let withheld = 0;
+    const folders = [];
+    for (const k of kids) {
+      if (isPrivate(fullOf(root, k.path))) withheld += 1;
+      else folders.push(row(k));
+    }
+    const files = [];
+    for (const f of here) {
+      if (isPrivate(fullOf(root, f.path))) withheld += 1;
+      else
+        files.push({
+          path: f.path,
+          name: f.path.slice(f.path.lastIndexOf("/") + 1),
+          size: f.size,
+          mtime_ms: f.mtime_ms,
+          kind: f.kind
+        });
+    }
+    const parts = at ? at.split("/") : [];
+    return {
+      at,
+      breadcrumb: parts.map((name, i) => ({ name, path: parts.slice(0, i + 1).join("/") })),
+      self: row(self),
+      folders,
+      files,
+      withheld,
+      more: kids.length === limit || here.length === limit
+    };
+  } finally {
+    db.close();
+  }
+}
+
+// THE DRIVE NEED NOT BE THERE. libraryPath() names the file from rootIdentity(), which asks the
+// filesystem — so an unplugged drive could not be found at all, and the Scenario promising the
+// catalogue answers without it was false. A catalogue records which root it describes, so when the
+// drive cannot be asked, the store is searched for the one that says it is this root.
+//
+// Identity still wins when the drive IS there: that is S20's lesson, that F: may be another drive
+// tomorrow. This is only the fallback, and it trusts a name rather than an identity, which is the
+// most that can be known about something that is not plugged in.
+export function catalogueFor(dir, root) {
+  const live = libraryPath(dir, root);
+  if (live && fs.existsSync(live)) return { db: live };
+  // S20'S LESSON, BROKEN AND NOW REPAIRED. The recorded root NAME is a last resort for a drive
+  // that cannot be identified, not a fallback whenever the identity-keyed file is missing. As
+  // built, pointing an attached, never-catalogued drive at a name another catalogue had recorded
+  // served that other drive's folder names, sizes and duplicate figures with nothing saying so —
+  // and estate-library.md claimed "identity still wins when the drive IS there". It now does: if
+  // rootIdentity() answers, the identity is the answer and "no catalogue" is the truth.
+  if (rootIdentity(root)) return { db: live };
+  const found = [];
+  for (const f of fs.existsSync(dir) ? fs.readdirSync(dir) : []) {
+    if (!f.endsWith(".db")) continue;
+    const at = path.join(dir, f);
+    const db = readOnly(at);
+    if (!db) continue;
+    try {
+      if (db.prepare("SELECT root FROM folders_meta WHERE id = 1").get()?.root === root)
+        found.push(at);
+    } catch {
+      // a catalogue with no rollup cannot say which root it is; leave it alone
+    } finally {
+      db.close();
+    }
+  }
+  // A disk that has been F: twice leaves two catalogues both recording F:, which is the normal
+  // case rather than the odd one. Whichever readdir yielded first is not an answer.
+  if (found.length > 1)
+    return {
+      ambiguous:
+        `${root} names ${found.length} catalogues and the drive is not here to say which is ` +
+        `its own: attach it`
+    };
+  return found.length ? { db: found[0], byName: true } : { db: live };
+}
+
+// Which pass and policy the folder rollup was built for. Written only once the rollup is complete,
+// so an interrupted one reads as absent rather than as current — the same rule the duplicates list
+// follows, for the same reason.
+// ONE SPELLING of what makes a rollup current: the catalogue's own pass, and the policy it was
+// counted under. rollupKeyFor is exported because a test could otherwise only build a rollup that
+// is PRESENT, never one that is CURRENT — and a fixture that cannot tell those apart cannot test
+// the difference, which is how the pass half went unchecked for two rounds.
+const keyFrom = (pass, policy) => `${JSON.stringify(pass)}|${policy}`;
+
+export const rollupKeyFor = (dbPath, rules = []) => {
+  const pass = passOf(dbPath);
+  return pass ? keyFrom(pass, policyKey(rules)) : null;
+};
+
+export function markRollup(dbPath, key, root = "") {
+  const db = new DatabaseSync(dbPath, { timeout: BUSY_MS });
+  try {
+    db.exec(
+      `CREATE TABLE IF NOT EXISTS folders_meta (
+         id INTEGER PRIMARY KEY CHECK (id = 1), key TEXT NOT NULL, root TEXT NOT NULL DEFAULT '')`
+    );
+    if (
+      !db
+        .prepare("PRAGMA table_info(folders_meta)")
+        .all()
+        .some((c) => c.name === "root")
+    )
+      db.exec("ALTER TABLE folders_meta ADD COLUMN root TEXT NOT NULL DEFAULT ''");
+    db.prepare(
+      `INSERT INTO folders_meta (id, key, root) VALUES (1, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET key = excluded.key, root = excluded.root`
+    ).run(key, root);
+  } finally {
+    db.close();
+  }
+}
+
+export function rollupKey(dbPath) {
+  const db = readOnly(dbPath);
+  if (!db) return null;
+  try {
+    return db.prepare("SELECT key FROM folders_meta WHERE id = 1").get()?.key ?? null;
+  } catch {
+    return null; // no rollup has ever been written for this catalogue
+  } finally {
+    db.close();
+  }
+}
+
+// Measured, not chosen: 0.076 ms per file for the row read and the per-sha lookup, so 1,500 files
+// is about 115 ms of hub thread. The folder's subtree file count is one indexed lookup into the
+// rollup the worker already wrote, so the size of the work is known before any of it is done.
+export const NEIGHBOURS_CAP_FILES = 1500;
+
+export function duplicateNeighbours(dbPath, root, rules = [], folder = "", { limit = 8 } = {}) {
+  // THE DRIVE ROOT HAS NO OUTSIDE. Every file on the drive is inside it, so the inside/outside test
+  // can never fire: asked of the root this reported all 25,600 folders in a fixture as holding
+  // outside copies of the root's own content — wrong, not merely slow, and 33 seconds wrong at
+  // 500k rows. Only an x-show on a figure that is structurally 0 at the root kept the panel off it,
+  // and any loopback caller could ask. The rollup already answers the root's question.
+  if (!folder) return { refused: "the drive root has no outside: ask of a folder inside it" };
+  const db = readOnly(dbPath);
+  if (!db) return null;
+  // THE PLACEMENT, NOT THE QUERY — the lesson of this epic, missed twice on this one route. Round 2
+  // turned the lookup into an index range and left the work on the hub's SYNCHRONOUS thread, where
+  // it then measured 93.5 s for a 250,000-file folder: sixteen times worse than the 5.7 s scan it
+  // replaced, because D1's near-side guard made this one row per file and D9's ancestor judgement
+  // made each one dearer. Two correct fixes composed into a frozen hub.
+  //
+  // A cap cannot be argued from taste, so it is measured: 0.076 ms per file with the judgement
+  // memoised, which is the SQL row read and the per-sha lookup and nothing else. CAP_FILES is the
+  // largest number of files that keeps this under about a tenth of a second. Above it the answer is
+  // REFUSED rather than truncated, because "the other copies are in these folders" is a claim about
+  // all of them — a partial answer to that question is a wrong one, not a shorter one.
+  const isPrivate = privateTo(rules);
+  // ONE SPELLING of the bound, used by both routes. The consolidation stopped a step short:
+  // SQL.bounds was read only by folderView while this function kept its own copy, and the
+  // Album0/1/2 fixture exercises THIS one - so changing SQL.bounds to `${at}1` left the gate green
+  // and made folderView("Album") list a root-level file named Album0 among its contents.
+  const [under, upper] = SQL.bounds(folder);
+  // A RANGE over the path index, not substr(). `substr(path, 1, ?) = ?` cannot use the primary key,
+  // so this was a full table scan on the hub's SYNCHRONOUS request thread — 5.7 seconds at 500k
+  // rows, about 12 at F:'s 1.1 million, with the hub wholly blocked throughout. The rollup was
+  // measured and moved to the worker; this route, added for the same panel in the same contract,
+  // was neither measured nor capped. "/" is 0x2F, so "0" bounds the prefix immediately above it.
+  try {
+    // THE CAP IS WHAT MAKES THIS SAFE, so it is inside the try and it refuses rather than trusting.
+    // Round 3 put the lookup above it: with no `folders` table yet — the window between a catalogue
+    // finishing and the worker writing the rollup — it threw `no such table`, leaked the database
+    // handle and escaped the route, which is S22's D5 and D10 in the guard added to fix a finding.
+    // And `held !== null` meant a MISSING row skipped the refusal entirely, so a 30,000-file folder
+    // did the full 2,990 ms of work: a cap enforced against a figure nobody checked is not a cap.
+    // No rollup row, no comparison.
+    const sized = rollupRows(db, SQL.folderRow, [folder], folder);
+    if (sized.computing) return sized;
+    const held = sized.rows[0]?.files ?? null;
+    if (held === null)
+      return {
+        computing: true,
+        why: `${folder} has no folder rollup yet, so its size is unknown: try again in a minute`
+      };
+    if (held > NEIGHBOURS_CAP_FILES)
+      return {
+        refused:
+          `${folder} holds ${held} files, and comparing more than ${NEIGHBOURS_CAP_FILES} would ` +
+          `block the hub: ask of a folder inside it`
+      };
+    const mine = db.prepare(SQL.neighbourMine).all(folder, under, upper);
+    const others = db.prepare(SQL.neighbourOthers);
+    const where = new Map();
+    let withheld = 0;
+    // THE NEAR SIDE IS JUDGED TOO. Guarding only the far copy identified a private file's CONTENT
+    // by saying where else those bytes live: ask the neighbours of a public folder holding one
+    // quarantined file and the answer named the folder holding its twin. That is exactly the
+    // argument the comment below makes in the other direction (S22 D1), applied to the side it had
+    // missed. A withheld near file is counted — its neighbours are simply never looked for, so the
+    // figure says "one file here whose copies I will not go looking for", not a number of copies.
+    const shas = new Set();
+    for (const m of mine) {
+      if (isPrivate(fullOf(root, m.path))) {
+        withheld += 1;
+        continue;
+      }
+      shas.add(m.sha256);
+    }
+    for (const sha of shas)
+      for (const o of others.all(sha)) {
+        if (o.path === folder || o.path.startsWith(under)) continue; // inside, not out
+        if (isPrivate(fullOf(root, o.path))) {
+          withheld += 1;
+          continue;
+        }
+        const top = o.path.includes("/") ? o.path.slice(0, o.path.lastIndexOf("/")) : "";
+        const w = where.get(top) ?? { path: top, files: 0, bytes: 0 };
+        w.files += 1;
+        w.bytes += o.size;
+        where.set(top, w);
+      }
+    return {
+      where: [...where.values()].sort((a, c) => c.bytes - a.bytes).slice(0, limit),
+      folders: where.size,
+      withheld
+    };
+  } finally {
+    db.close();
+  }
 }
 
 // --- S22: the questions Benny asks of the catalogue ---------------------------------------------
@@ -721,8 +1264,9 @@ export function createLibrarian({
   let ctl = null;
   const policy = policyKey(rules);
   const working = new Set();
+  const failed = new Map();
   const files = (db) => ({ json: `${db}.summary.json` });
-  const keyOf = (pass) => `${JSON.stringify(pass)}|${policy}`;
+  const keyOf = (pass) => keyFrom(pass, policy);
   const saved = (db) => {
     try {
       return JSON.parse(fs.readFileSync(files(db).json, "utf8"));
@@ -733,11 +1277,40 @@ export function createLibrarian({
   const workOut = (db, root, key) => {
     if (working.has(db) || running?.root === root) return; // a running pass changes it every batch
     working.add(db);
+    failed.delete(db);
     const w = new Worker(new URL(import.meta.url), {
       workerData: { librarySummary: { dbPath: db, root, rules, key } }
     });
-    w.on("error", () => {});
+    // A SWALLOWED WORKER ERROR IS A SURFACE THAT WAITS FOR EVER. The TDZ bug above threw on every
+    // run and nothing showed it: the panel would have said "still being worked out" until the owner
+    // gave up. The error is kept so an answer can name it.
+    w.on("error", (e) => {
+      failed.set(db, String(e?.message || e));
+    });
     w.on("exit", () => working.delete(db));
+  };
+  // A drive that is not there has no pass to read from the hub's point of view, but its catalogue
+  // still holds one. Read it, and trust the rollup's own key rather than recomputing a current one.
+  const detached = (root) => {
+    const resolved = catalogueFor(dir, root);
+    if (resolved.ambiguous) return { refused: resolved.ambiguous };
+    const db = resolved.db;
+    if (!db || !fs.existsSync(db)) return null;
+    const pass = passOf(db);
+    if (!pass) return null;
+    const stored = rollupKey(db);
+    if (!stored) return null;
+    // TAKING THE KEY FROM THE ROLLUP AND THEN COMPARING IT WITH ITSELF CHECKS NOTHING. Round 2
+    // fixed the POLICY half and excused the PASS half as impossible to re-derive for an absent
+    // drive — and that excuse was wrong, as a verifier showed: passOf() reads the pass from the
+    // CATALOGUE, which is the same witness the policy half was fixed against and is present by
+    // definition. A rollup built before a later finished pass was therefore served stale while
+    // wearing the NEW pass's finishedAt date: a figure missing a file, stamped current, under a
+    // comment that says the date belongs on the answer.
+    //
+    // So the key is derived here exactly as current() derives it, and both halves are compared.
+    const key = keyOf(pass);
+    return { db, pass, key, stored, had: saved(db), byName: resolved.byName };
   };
   const current = (root) => {
     const db = libraryPath(dir, root);
@@ -753,6 +1326,81 @@ export function createLibrarian({
     lookup: (root) => catalogueLookup(libraryPath(dir, root), root),
     // S22: the agent's questions go through the same rules as the panel's, in one place
     find: (root, opts) => findFiles(libraryPath(dir, root), root, rules, opts),
+    // S26: where the copies of one folder's content are. Asked for on demand, because it is a
+    // query over that folder's own subtree rather than a stored figure — storing it for every
+    // folder is what took 45 minutes on the real F:.
+    neighbours(root, { path: at = "", limit = 8 } = {}) {
+      const c = current(root) ?? detached(root);
+      if (!c) return null;
+      if (c.refused) return c;
+      if (!c.pass.finishedAt)
+        return {
+          refused: `${root} has a catalogue that has never finished: finish cataloguing it first`
+        };
+      // THE SAME CURRENCY CHECK THE FOLDER ROUTE HAS. The answer is computed live under the current
+      // rules, so a stale POLICY never reached it — but the cap this route now depends on is read
+      // from the rollup, and round 3 enforced it against a figure the route had never verified. A
+      // rollup for an older pass can say a 250,000-file folder holds ten.
+      if (c.stored && c.stored !== c.key)
+        return {
+          refused:
+            `${root}'s folder figures were counted for an earlier pass or a different privacy ` +
+            `policy, and the drive is not here to recount them: attach it`
+        };
+      if (rollupKey(c.db) !== c.key) {
+        const why = failed.get(c.db);
+        return why
+          ? { refused: `the folder rollup could not be built: ${why}` }
+          : {
+              computing: true,
+              pass: c.pass.last?.id ?? null,
+              // THE COMMON CASE, which is the one an owner actually meets: right after cataloguing,
+              // waiting on the folder ROLLUP. The passthrough was built and then two of its three
+              // producers carried no sentence, so this still read "the duplicates are still being
+              // worked out" — a mechanism that works and nothing going through it.
+              why: `${root}'s folder rollup is still being worked out: try again in a minute`
+            };
+      }
+      return duplicateNeighbours(c.db, root, rules, at, { limit });
+    },
+    // S26: one folder of the tree, from the rollup the worker built. `computing` rather than a
+    // half-answer while the key says the rollup is for an older pass or policy: a folder listing
+    // built from one pass and counted from another would be quietly wrong.
+    folder(root, { path: at = "", offset = 0, limit = 200 } = {}) {
+      const c = current(root) ?? detached(root);
+      if (!c) return null;
+      if (c.refused) return c;
+      if (!c.pass.finishedAt)
+        return {
+          refused: `${root} has a catalogue that has never finished: finish cataloguing it first`
+        };
+      // a detached drive cannot be recounted, so a rollup that does not match the catalogue's own
+      // pass and the hub's own policy is REFUSED with the reason rather than reported as
+      // "computing" — nothing is going to compute it while the drive is away
+      if (c.stored && c.stored !== c.key)
+        return {
+          refused:
+            `${root}'s folder figures were counted for an earlier pass or a different privacy ` +
+            `policy, and the drive is not here to recount them: attach it`
+        };
+      if (rollupKey(c.db) !== c.key) {
+        const why = failed.get(c.db);
+        return why
+          ? { refused: `the folder rollup could not be built: ${why}` }
+          : {
+              computing: true,
+              pass: c.pass.last?.id ?? null,
+              why: `${root}'s folder rollup is still being worked out: try again in a minute`
+            };
+      }
+      const v = folderView(c.db, root, rules, at, { offset, limit });
+      // the date belongs on the answer: a figure with no age invites being read as live
+      // a figure resolved by NAME rather than identity says so on the answer, because the owner
+      // cannot otherwise tell it is reading a different disk's catalogue
+      return v && !v.missing
+        ? { ...v, finishedAt: c.pass.finishedAt, ...(c.byName ? { by_name: true } : {}) }
+        : v;
+    },
     // one event per question, in the drive's own library log beside its catalogue
     audit(root, info) {
       const db = libraryPath(dir, root);

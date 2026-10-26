@@ -1,8 +1,8 @@
 {
   "generated_from": "scripts/usecases_build.mjs",
-  "use_cases": 19,
-  "surfaces": 18,
-  "exercised": 10,
+  "use_cases": 21,
+  "surfaces": 20,
+  "exercised": 12,
   "declared": 9,
   "gaps": [
     {
@@ -136,6 +136,22 @@
       "name": "Agent",
       "use_cases": [
         "UC-09"
+      ]
+    },
+    {
+      "route": "_prime_silo/drives",
+      "zone": "Hold",
+      "name": "Drives",
+      "use_cases": [
+        "UC-20"
+      ]
+    },
+    {
+      "route": "_prime_silo/estate_map",
+      "zone": "Hold",
+      "name": "Estate Map",
+      "use_cases": [
+        "UC-21"
       ]
     },
     {

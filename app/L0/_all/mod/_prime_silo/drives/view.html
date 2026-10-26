@@ -1,0 +1,116 @@
+<html>
+  <head>
+    <!-- Same reason as the Gov, Lineage, Deck and Release arcs: the shell's index.css imports only
+         google-icons, so every var(--space-*) / var(--font-size-*) is undefined unless the view
+         links these itself. -->
+    <link rel="stylesheet" href="/mod/_core/framework/css/layout.css" />
+    <link rel="stylesheet" href="/mod/_core/framework/css/type.css" />
+    <link rel="stylesheet" href="/mod/_prime_silo/drives/drives.css" />
+    <script type="module" src="/mod/_prime_silo/drives/drives.js"></script>
+  </head>
+  <body>
+    <section class="drv" x-data="drivesPage()" x-init="init()" x-cloak>
+      <header class="drv__head">
+        <h1 class="drv__title">Drives</h1>
+        <nav class="drv__roots" aria-label="Catalogued drives">
+          <template x-for="r in roots" :key="r">
+            <button
+              class="drv__root"
+              :aria-pressed="r === root"
+              x-text="r"
+              @click="open(r, '')"
+            ></button>
+          </template>
+        </nav>
+        <span class="drv__age" x-show="view?.self" x-cloak x-text="ageLine()"></span>
+      </header>
+
+      <!-- Every state this surface can be in is said in words. "Still being worked out" is not the
+           same as "nothing here", and neither is "the drive has no catalogue". -->
+      <p class="drv__state" x-show="problem" x-cloak x-text="problem"></p>
+
+      <nav class="drv__crumbs" x-show="view?.self" x-cloak aria-label="Where you are">
+        <button class="drv__crumb" x-text="root" @click="open(root, '')"></button>
+        <template x-for="c in view.breadcrumb" :key="c.path">
+          <button class="drv__crumb" x-text="c.name" @click="open(root, c.path)"></button>
+        </template>
+      </nav>
+
+      <p class="drv__summary" x-show="view?.self" x-cloak>
+        <span x-text="count(view.self.files) + ' files'"></span>
+        <span x-text="size(view.self.bytes)"></span>
+        <!-- the two figures, never merged: one says retire the tree, the other says de-duplicate
+             inside it, and they are answers to different questions -->
+        <span
+          class="drv__out"
+          x-show="view.self.dup_out_bytes > 0"
+          x-cloak
+          x-text="size(view.self.dup_out_bytes) + ' also exists elsewhere'"
+        ></span>
+        <span
+          class="drv__in"
+          x-show="view.self.dup_in_bytes > 0"
+          x-cloak
+          x-text="size(view.self.dup_in_bytes) + ' reclaimable inside it'"
+        ></span>
+        <span
+          class="drv__held"
+          x-show="view.withheld > 0"
+          x-cloak
+          x-text="view.withheld + ' withheld by your rules'"
+        ></span>
+      </p>
+
+      <ul class="drv__list" x-show="view?.self" x-cloak>
+        <template x-for="f in view.folders" :key="f.path">
+          <li class="drv__row" :data-all="f.all_elsewhere">
+            <button class="drv__name" @click="open(root, f.path)">
+              <span class="drv__icon" aria-hidden="true">folder</span>
+              <span x-text="f.name"></span>
+            </button>
+            <span class="drv__size" x-text="size(f.bytes)"></span>
+            <span class="drv__dup" x-text="dupLine(f)"></span>
+          </li>
+        </template>
+        <template x-for="f in view.files" :key="f.path">
+          <li class="drv__row drv__row--file">
+            <span class="drv__name">
+              <span class="drv__icon" aria-hidden="true">description</span>
+              <span x-text="f.name"></span>
+            </span>
+            <span class="drv__size" x-text="size(f.size)"></span>
+            <span class="drv__dup" x-text="f.kind"></span>
+          </li>
+        </template>
+      </ul>
+
+      <p
+        class="drv__empty"
+        x-show="view?.self && !view.folders.length && !view.files.length"
+        x-cloak
+      >
+        Nothing in this folder that your rules allow naming.
+      </p>
+
+      <!-- Where the copies of THIS folder's content are. Asked for only when the owner asks, since
+           it is a query over the folder's own subtree rather than a stored figure. -->
+      <section class="drv__where" x-show="view?.self?.dup_out_files > 0" x-cloak>
+        <button class="drv__ask" x-show="!where" x-cloak @click="askWhere()">
+          Where are the other copies?
+        </button>
+        <template x-for="w in where?.where || []" :key="w.path">
+          <p class="drv__whereRow">
+            <button class="drv__crumb" x-text="w.path || root" @click="open(root, w.path)"></button>
+            <span x-text="count(w.files) + ' files · ' + size(w.bytes)"></span>
+          </p>
+        </template>
+        <p
+          class="drv__held"
+          x-show="where?.withheld > 0"
+          x-cloak
+          x-text="where.withheld + ' copies are in folders your rules cover, so they are not named'"
+        ></p>
+      </section>
+    </section>
+  </body>
+</html>
