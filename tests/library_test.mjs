@@ -30,6 +30,8 @@ import {
   FOLDER_PAGE_MAX,
   SQL,
   privateTo,
+  rollupRows,
+  openLibrary,
   libraryPath,
   libraryState
 } from "../server/coordination/lib/library.mjs";
@@ -2598,4 +2600,158 @@ test("S26: a caller waiting on the rollup reads the hub's own sentence, not a ha
   } finally {
     await h.close();
   }
+});
+
+test("S26: neither navigation surface throws, whatever state the rollup is in", async () => {
+  // THE CHOKE POINT, not another instance. Round 3 found duplicateNeighbours throwing on a missing
+  // rollup; round 4 fixed that one function; a verifier then found folderView reading `folders`
+  // unguarded ONE FUNCTION AWAY — the same defect, the same distance from the same lesson. Fixing
+  // instances one at a time is how that happens, so this sweeps every state and both surfaces and
+  // asserts the only thing that matters: a route answers, it never exits the hub (S22's D7).
+  const drive = tmp();
+  write(drive, "root-file.txt", "at the root");
+  write(drive, "keep/a.txt", "shared");
+  write(drive, "keep/deep/b.txt", "deeper");
+  write(drive, "other/a.txt", "shared");
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root: drive, dbPath })).finished, true);
+
+  const paths = ["", "keep", "keep/deep", "nope", "keep/nope", "/", ".", "..", "a'b", "k%", "k_"];
+  const ruleSets = [[], ["keep"], [/[\\/]keep$/u]];
+  const sweep = (state) => {
+    for (const at of paths)
+      for (const rules of ruleSets) {
+        for (const [name, fn] of [
+          ["neighbours", () => duplicateNeighbours(dbPath, drive, rules, at, { limit: 8 })],
+          ["folder", () => folderView(dbPath, drive, rules, at, { offset: 0, limit: 50 })]
+        ]) {
+          let r;
+          assert.doesNotThrow(
+            () => {
+              r = fn();
+            },
+            `${state}: ${name}(${JSON.stringify(at)}) must answer, not throw`
+          );
+          // and the answer is a shape the route's shaper knows how to turn into a status
+          if (r !== null)
+            assert.ok(
+              r.refused || r.computing || r.missing || "where" in r || "self" in r,
+              `${state}: ${name}(${JSON.stringify(at)}) answered something the shaper cannot shape: ${JSON.stringify(r)?.slice(0, 120)}`
+            );
+        }
+      }
+  };
+
+  sweep("no rollup at all");
+  await buildFolderRollup(dbPath, drive, []);
+  sweep("rollup written");
+
+  // an S21-era catalogue, which is what the owner's F: is until its next pass
+  let db = new DatabaseSync(dbPath);
+  db.exec("DROP INDEX files_root");
+  db.close();
+  sweep("no files_root");
+
+  // the rows gone while the key remains — a restore of an older file, a manual drop, corruption
+  db = new DatabaseSync(dbPath);
+  db.exec("DROP TABLE folders");
+  db.close();
+  sweep("rollup rows removed, key intact");
+
+  // the paired positive: with everything in place the sweep is not passing because nothing works
+  await buildFolderRollup(dbPath, drive, []);
+  assert.equal(folderView(dbPath, drive, [], "keep", { offset: 0, limit: 50 }).self.files, 2);
+  assert.equal(duplicateNeighbours(dbPath, drive, [], "keep").where[0].path, "other");
+});
+
+test("S26: a missing rollup is an answer; a real error is still an error", () => {
+  // The other half of the fix, and a mutation showed nothing held it: widening the catch to
+  // everything left all 87 tests green. A helper that turns every failure into "try again in a
+  // minute" hides the next real defect behind a cheerful 202 — which is how the 45-minute freeze
+  // and the swallowed worker error both stayed invisible in this epic.
+  const dbPath = path.join(tmp(), "bare.db");
+  openLibrary(dbPath).close();
+  const db = new DatabaseSync(dbPath);
+  try {
+    // the two it must absorb
+    for (const [sql, why] of [
+      ["SELECT * FROM folders WHERE path = ?", "no such table"],
+      ["SELECT path FROM files INDEXED BY files_nope WHERE path = ?", "no such index"]
+    ]) {
+      const r = rollupRows(db, sql, ["x"], "F:");
+      assert.equal(r.computing, true, `${why} is an answer: ${JSON.stringify(r)}`);
+      assert.match(r.why ?? "", /no folder rollup yet/u);
+      assert.equal(r.rows, undefined);
+    }
+
+    // and the ones it must not: a syntax error, a missing COLUMN, and the wrong argument count are
+    // defects in this code, not states of the catalogue
+    assert.throws(
+      () => rollupRows(db, "SELECT * FROM folders WHERE", ["x"], "F:"),
+      /syntax|incomplete/iu
+    );
+    assert.throws(
+      () => rollupRows(db, "SELECT nope FROM files WHERE path = ?", ["x"], "F:"),
+      /no such column/iu
+    );
+    // a table that exists but is not the rollup: the message is neither "no such table" nor
+    // "no such index", so it must not be dressed up as "try again in a minute"
+    assert.throws(
+      () => rollupRows(db, "SELECT * FROM passes WHERE nope = ?", ["x"], "F:"),
+      /no such column/iu
+    );
+
+    // the paired positive: when the table IS there it returns rows, not a verdict
+    const ok = rollupRows(db, "SELECT path FROM files WHERE path = ?", ["x"], "F:");
+    assert.deepEqual(ok.rows, []);
+    assert.equal(ok.computing, undefined);
+  } finally {
+    db.close();
+  }
+});
+
+test("S26: the rollup table is read in exactly one place", () => {
+  // ENFORCED AT SOURCE, because the alternative is an argument about control flow: folderView has
+  // two reads of `folders`, the first already answers when the table is gone, so the second is
+  // unreachable TODAY — and that is a claim about the order of two statements which the next edit
+  // can falsify in silence.
+  //
+  // My first version of this check scanned for inline `FROM folders` text and a mutation walked
+  // straight past it, because the queries are `SQL.*` constants and a direct `db.prepare(SQL.
+  // childFolders(...))` carries no SQL text at the call site. Scanning for the shape of the query
+  // instead of the shape of the CALL is the same read-a-copy mistake one level up, so this names
+  // the call spellings: every prepared rollup query must be the one inside rollupRows.
+  const src = fs.readFileSync(
+    new URL("../server/coordination/lib/library.mjs", import.meta.url),
+    "utf8"
+  );
+  const code = src
+    .split(/\r?\n/u)
+    .filter((l) => !/^\s*(\/\/|--|\*)/u.test(l))
+    .join("\n");
+
+  for (const spelling of [
+    ".prepare(SQL.childFolders",
+    ".prepare(SQL.folderRow",
+    '.prepare("SELECT * FROM folders',
+    ".prepare(`SELECT * FROM folders"
+  ])
+    assert.equal(
+      code.includes(spelling),
+      false,
+      `a rollup query is prepared outside rollupRows: ${spelling}`
+    );
+
+  // and the helper is the one that does prepare them, exactly once
+  assert.equal((code.match(/const rollupRows = /gu) ?? []).length, 1, "one helper, not a copy");
+  assert.equal(
+    (code.match(/rollupRows\(/gu) ?? []).length,
+    3,
+    "and every rollup read goes through it: the self row, the children, and the cap's lookup"
+  );
+
+  // the paired negative, so this cannot pass by the strings simply never occurring: the SQL the
+  // helper is handed really is the folders SQL
+  assert.match(code, /folderRow:\s*"SELECT files FROM folders WHERE path = \?"/u);
+  assert.match(code, /childFolders: \(range\) =>/u);
 });

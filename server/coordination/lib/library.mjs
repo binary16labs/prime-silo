@@ -770,6 +770,29 @@ export const SQL = Object.freeze({
 // One page is one page: a caller asking for the whole drive gets a page of it instead.
 export const FOLDER_PAGE_MAX = 1000;
 
+// NO ROLLUP IS AN ANSWER, NOT AN EXCEPTION — for BOTH routes. Round 4 fixed this in
+// duplicateNeighbours and left folderView reading `folders` unguarded one function away, which is
+// the same defect the same number of steps from the same lesson: a verifier found it immediately.
+// The librarian's folder() does guard the common case, because the worker writes the rollup's key
+// LAST and so a missing key already means "computing" — but the key is in folders_meta and the rows
+// are in folders, and anything that leaves one without the other (a restore of an older file, a
+// manual drop, corruption) walks straight past that guard into a thrown route. S22's D7 settled
+// what a route may do when the thing beneath it is missing: answer, never exit.
+//
+// It is a function rather than a try at each call site so that the two routes cannot drift apart
+// again, which is exactly how they drifted this time.
+export const rollupRows = (db, sql, args, what) => {
+  try {
+    return { rows: db.prepare(sql).all(...args) };
+  } catch (e) {
+    if (!/no such table|no such index/u.test(String(e?.message ?? e))) throw e;
+    return {
+      computing: true,
+      why: `${what} has no folder rollup yet: try again in a minute`
+    };
+  }
+};
+
 // Ordered by size, because the question this surface answers is "where is the weight".
 export function folderView(dbPath, root, rules = [], at = "", { offset = 0, limit = 200 } = {}) {
   const db = readOnly(dbPath);
@@ -794,7 +817,9 @@ export function folderView(dbPath, root, rules = [], at = "", { offset = 0, limi
     all_elsewhere: f.files > 0 && f.dup_out_files === f.files
   });
   try {
-    const self = db.prepare("SELECT * FROM folders WHERE path = ?").get(at);
+    const own = rollupRows(db, "SELECT * FROM folders WHERE path = ?", [at], root);
+    if (own.computing) return own;
+    const self = own.rows[0];
     if (!self) return { missing: true };
     // AN INDEX RANGE, for the same reason duplicateNeighbours has one: `substr(path, 1, ?) = ?`
     // cannot use the path primary key, and a verifier read the plan as SCAN and timed this route at
@@ -804,9 +829,21 @@ export function folderView(dbPath, root, rules = [], at = "", { offset = 0, limi
     // depth test alone, and the folders table it reads is one row per folder rather than per file.
     const range = SQL.range(at);
     const bounds = SQL.bounds(at);
-    const kids = db
-      .prepare(SQL.childFolders(range))
-      .all(...bounds, under.length + 1, limit, offset);
+    // THROUGH THE HELPER, even though the self read above has already answered if the table is
+    // gone. I took this guard out when a mutation showed it unreachable — but unreachable TODAY is
+    // an argument about the current order of two statements, and the next edit to reorder them
+    // re-opens the defect silently. A verifier made the point better than my reasoning did: the
+    // invariant worth holding is that `folders` is read in ONE place, and that is checkable at
+    // source rather than argued from control flow. The test below enforces it; this is why the
+    // mutation can die at all.
+    const kidRows = rollupRows(
+      db,
+      SQL.childFolders(range),
+      [...bounds, under.length + 1, limit, offset],
+      root
+    );
+    if (kidRows.computing) return kidRows;
+    const kids = kidRows.rows;
     const here =
       SQL.childFilesFor(at, SQL.hasRootIndex(db)) === "rootFiles"
         ? db.prepare(SQL.rootFiles).all(limit, offset)
@@ -984,12 +1021,9 @@ export function duplicateNeighbours(dbPath, root, rules = [], folder = "", { lim
     // And `held !== null` meant a MISSING row skipped the refusal entirely, so a 30,000-file folder
     // did the full 2,990 ms of work: a cap enforced against a figure nobody checked is not a cap.
     // No rollup row, no comparison.
-    let held = null;
-    try {
-      held = db.prepare(SQL.folderRow).get(folder)?.files ?? null;
-    } catch {
-      held = null; // no rollup table at all: the same answer as no row
-    }
+    const sized = rollupRows(db, SQL.folderRow, [folder], folder);
+    if (sized.computing) return sized;
+    const held = sized.rows[0]?.files ?? null;
     if (held === null)
       return {
         computing: true,
@@ -1317,7 +1351,15 @@ export function createLibrarian({
         const why = failed.get(c.db);
         return why
           ? { refused: `the folder rollup could not be built: ${why}` }
-          : { computing: true, pass: c.pass.last?.id ?? null };
+          : {
+              computing: true,
+              pass: c.pass.last?.id ?? null,
+              // THE COMMON CASE, which is the one an owner actually meets: right after cataloguing,
+              // waiting on the folder ROLLUP. The passthrough was built and then two of its three
+              // producers carried no sentence, so this still read "the duplicates are still being
+              // worked out" — a mechanism that works and nothing going through it.
+              why: `${root}'s folder rollup is still being worked out: try again in a minute`
+            };
       }
       return duplicateNeighbours(c.db, root, rules, at, { limit });
     },
@@ -1345,7 +1387,11 @@ export function createLibrarian({
         const why = failed.get(c.db);
         return why
           ? { refused: `the folder rollup could not be built: ${why}` }
-          : { computing: true, pass: c.pass.last?.id ?? null };
+          : {
+              computing: true,
+              pass: c.pass.last?.id ?? null,
+              why: `${root}'s folder rollup is still being worked out: try again in a minute`
+            };
       }
       const v = folderView(c.db, root, rules, at, { offset, limit });
       // the date belongs on the answer: a figure with no age invites being read as live
