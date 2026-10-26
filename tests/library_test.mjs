@@ -2288,6 +2288,18 @@ test("S26: the range bound is exact at the character that distinguishes it", asy
     );
   // and none of the same-prefix siblings leaks into the other's answer
   assert.deepEqual(duplicateNeighbours(dbPath, root, [], "Album1").where, []);
+
+  // THE SAME BOUND THROUGH THE OTHER ROUTE. Both read SQL.bounds now, but this fixture only ever
+  // exercised the neighbours side, so the shared spelling was still half-covered: a verifier
+  // changed it to `${at}1` and folderView("Album") listed a root-level FILE named Album0 among
+  // Album's own contents, with the gate green.
+  const view = folderView(dbPath, root, [], "Album", { offset: 0, limit: 50 });
+  assert.deepEqual(
+    view.files.map((f) => f.name),
+    ["in.jpg"],
+    `Album holds its own file and no sibling's: ${JSON.stringify(view.files)}`
+  );
+  assert.deepEqual(view.folders, [], "and no sibling folder as a child");
 });
 
 test("S26: a folder rule covers every depth beneath it, not just one", async () => {
@@ -2475,4 +2487,115 @@ test("S26: the neighbours route checks the rollup is current, as the folder rout
     JSON.stringify(stale)
   );
   assert.equal(stale?.where, undefined, "no comparison against a figure nobody checked");
+});
+
+test("S26: a catalogue written before this contract still answers at the root", async () => {
+  // THE BRANCH THE OWNER'S OWN DRIVE USES. F: was catalogued by S21 and has no files_root until its
+  // next pass, so the fallback is the live path — and it was the one thing here with no guard:
+  // every test built a fresh catalogue, asserted hasRootIndex true, and tested the choice function
+  // by handing it a literal false. INDEXED BY on a missing index is an error, not a hint.
+  const drive = tmp();
+  for (let i = 0; i < 4; i += 1) write(drive, `top${i}.txt`, `root file ${i}`);
+  write(drive, "sub/deeper.txt", "not a root file");
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root: drive, dbPath })).finished, true);
+  await buildFolderRollup(dbPath, drive, []);
+
+  const fresh = folderView(dbPath, drive, [], "", { offset: 0, limit: 50 });
+  assert.deepEqual(fresh.files.map((f) => f.name).sort(), [
+    "top0.txt",
+    "top1.txt",
+    "top2.txt",
+    "top3.txt"
+  ]);
+
+  // now take the index away, as an S21-era catalogue has it
+  const db = new DatabaseSync(dbPath);
+  db.exec("DROP INDEX files_root");
+  assert.equal(SQL.hasRootIndex(db), false, "and the code can tell");
+  // the bounded spelling genuinely cannot run against it — this is why the choice exists
+  assert.throws(() => db.prepare(SQL.rootFiles), /files_root/u);
+  db.close();
+
+  const old = folderView(dbPath, drive, [], "", { offset: 0, limit: 50 });
+  assert.deepEqual(
+    old.files.map((f) => f.name).sort(),
+    ["top0.txt", "top1.txt", "top2.txt", "top3.txt"],
+    `the fallback answers the same: ${JSON.stringify(old.files)}`
+  );
+  assert.deepEqual(
+    old.folders.map((f) => f.name),
+    ["sub"],
+    "and its children too"
+  );
+});
+
+test("S26: the sentence the hub composed is the sentence the caller reads", async () => {
+  // The 202 said "the duplicates are still being worked out" whatever was missing — substantively
+  // wrong for a folder route waiting on the folder ROLLUP — and the `why` composed beside it
+  // reached nobody but the test that asserted it existed.
+  const drive = tmp();
+  write(drive, "keep/a.txt", "shared");
+  write(drive, "other/b.txt", "shared");
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root: drive, dbPath })).finished, true);
+
+  const r = duplicateNeighbours(dbPath, drive, [], "keep");
+  assert.equal(r.computing, true);
+  assert.match(r.why ?? "", /folder rollup/u, `it says what is missing: ${JSON.stringify(r)}`);
+  assert.equal(
+    /duplicates/u.test(r.why ?? ""),
+    false,
+    "and does not blame the duplicates list, which is not what it is waiting for"
+  );
+});
+
+test("S26: a caller waiting on the rollup reads the hub's own sentence, not a hardcoded one", async () => {
+  // THROUGH THE ROUTE, because that is the only place the passthrough exists: my first attempt
+  // asserted the composed `why` on the function's return value, which a verifier had already shown
+  // reaches nobody — mutating the shaper back to its hardcoded string left that test green. The
+  // same read-a-copy mistake, inside the fix for it.
+  //
+  // And deterministic rather than racy: wait until the rollup IS current, then take it away. A test
+  // that only reaches the 202 when the worker happens to lose is a test that proves nothing on a
+  // fast machine.
+  const root = tmp();
+  write(root, "keep/a.txt", "shared");
+  write(root, "other/b.txt", "shared");
+  const store = tmp();
+  const h = await hub({ roots: [root], estateStore: store, quarantine: [] });
+  try {
+    const enc = encodeURIComponent(root);
+    assert.equal((await h.call("/library", { root })).status, 202);
+    for (let i = 0; i < 300; i += 1) {
+      if (!JSON.parse((await h.call("/library")).text).running) break;
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    // patient on purpose: this waits on a worker thread, and the gate runs it alongside six other
+    // suites. Once the rollup IS current the rest is deterministic — dropping the table cannot be
+    // undone by anything, because the key in folders_meta already matches.
+    let ready = false;
+    for (let i = 0; i < 1200 && !ready; i += 1) {
+      ready = (await h.call(`/library/folder?root=${enc}&path=keep`)).status === 200;
+      if (!ready) await new Promise((r) => setTimeout(r, 50));
+    }
+    assert.ok(ready, "the rollup must land before this test can take it away; it never did");
+
+    const dbPath = libraryPath(path.join(store, "library"), root);
+    const db = new DatabaseSync(dbPath);
+    db.exec("DROP TABLE folders");
+    db.close();
+
+    const r = await h.call(`/library/neighbours?root=${enc}&path=keep`);
+    assert.equal(r.status, 202, `no rollup means 202, never a thrown route: ${r.text}`);
+    const said = JSON.parse(r.text).error ?? "";
+    assert.match(said, /folder rollup/u, `the hub's own sentence reaches the caller: ${said}`);
+    assert.equal(
+      /duplicates/u.test(said),
+      false,
+      "and not the duplicates list, which is not what it is waiting for"
+    );
+  } finally {
+    await h.close();
+  }
 });

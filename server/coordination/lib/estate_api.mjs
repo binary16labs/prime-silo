@@ -397,7 +397,10 @@ export function createEstateApi({
         if (r.missing) return sendJson(to, 404, { error: "no such folder in this catalogue" });
         if (r.computing)
           return sendJson(to, 202, {
-            error: "the duplicates are still being worked out: try again in a minute"
+            // the hub's OWN sentence when it has one. "The duplicates" is substantively wrong for
+            // a folder route waiting on the folder ROLLUP, and the composed `why` was reaching
+            // nobody but the test that asserted it existed.
+            error: r.why || "the duplicates are still being worked out: try again in a minute"
           });
         if (event) librarian.audit(root, event()); // the panel's own navigation is not audited
         return sendJson(to, 200, r);

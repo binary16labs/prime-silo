@@ -966,13 +966,16 @@ export function duplicateNeighbours(dbPath, root, rules = [], folder = "", { lim
   // REFUSED rather than truncated, because "the other copies are in these folders" is a claim about
   // all of them — a partial answer to that question is a wrong one, not a shorter one.
   const isPrivate = privateTo(rules);
-  const under = folder + "/";
+  // ONE SPELLING of the bound, used by both routes. The consolidation stopped a step short:
+  // SQL.bounds was read only by folderView while this function kept its own copy, and the
+  // Album0/1/2 fixture exercises THIS one - so changing SQL.bounds to `${at}1` left the gate green
+  // and made folderView("Album") list a root-level file named Album0 among its contents.
+  const [under, upper] = SQL.bounds(folder);
   // A RANGE over the path index, not substr(). `substr(path, 1, ?) = ?` cannot use the primary key,
   // so this was a full table scan on the hub's SYNCHRONOUS request thread — 5.7 seconds at 500k
   // rows, about 12 at F:'s 1.1 million, with the hub wholly blocked throughout. The rollup was
   // measured and moved to the worker; this route, added for the same panel in the same contract,
   // was neither measured nor capped. "/" is 0x2F, so "0" bounds the prefix immediately above it.
-  const upper = folder + "0";
   try {
     // THE CAP IS WHAT MAKES THIS SAFE, so it is inside the try and it refuses rather than trusting.
     // Round 3 put the lookup above it: with no `folders` table yet — the window between a catalogue
