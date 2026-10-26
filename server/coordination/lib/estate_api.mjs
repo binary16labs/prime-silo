@@ -11,7 +11,7 @@ import { planNextCycle, readPlanInputs } from "./estate_plan.mjs";
 import { acceptMap, register as registerSatellite } from "./estate_register.mjs";
 import { createSweeper, latestLocalPush } from "./estate_map_producer.mjs";
 import { createComparer, listRoot } from "./estate_compare.mjs";
-import { createLibrarian } from "./library.mjs";
+import { createLibrarian, stillListening } from "./library.mjs";
 import path from "node:path";
 import {
   DEFAULT_MAP_MAX_AGE_MS,
@@ -391,9 +391,31 @@ export function createEstateApi({
       // ONE SHAPER FOR ALL THREE QUESTIONS, because handling a refusal at one route and not
       // another is exactly D5: duplicatesPage learnt to refuse and its route fell through into
       // d.sets.length, answering 500 - or exiting the process where the API is embedded bare.
+      // AN AGENT'S QUESTION IS AUDITED WHETHER OR NOT IT WAS ANSWERED. Design point 10 audits the
+      // questions an agent asks, and a refused question is still a question asked — "did anything
+      // ask about that folder" had the wrong answer for every refusal, which is precisely the gap
+      // a tamper-evident log exists to not have. The panel's own navigation stays unaudited: it is
+      // the agent surfaces that carry an event, and `event` is undefined for the rest.
       const answer = (to, root, r, event) => {
-        if (!r) return sendJson(to, 404, { error: `${root} has no catalogue: catalogue it first` });
-        if (r.refused) return sendJson(to, 409, { error: r.refused });
+        const audit = (extra) => {
+          if (!event) return; // navigation, not a question
+          // AND NOT IF THE CALLER HAS GONE. A client that hung up mid-check was audited as
+          // answered, so the log recorded an answer nobody received.
+          if (!stillListening(to)) return;
+          try {
+            librarian.audit(root, { ...event(), ...extra });
+          } catch {
+            // an audit that cannot be written must not take the answer with it
+          }
+        };
+        if (!r) {
+          audit({ refused: true });
+          return sendJson(to, 404, { error: `${root} has no catalogue: catalogue it first` });
+        }
+        if (r.refused) {
+          audit({ refused: true });
+          return sendJson(to, 409, { error: r.refused });
+        }
         if (r.missing) return sendJson(to, 404, { error: "no such folder in this catalogue" });
         if (r.computing)
           return sendJson(to, 202, {
@@ -402,7 +424,7 @@ export function createEstateApi({
             // nobody but the test that asserted it existed.
             error: r.why || "the duplicates are still being worked out: try again in a minute"
           });
-        if (event) librarian.audit(root, event()); // the panel's own navigation is not audited
+        audit(); // the panel's own navigation passes no event and so writes none
         return sendJson(to, 200, r);
       };
 
@@ -471,8 +493,11 @@ export function createEstateApi({
           return answer(res, root, r, () => ({
             surface,
             kind: "find",
-            returned: r.matches.length,
-            withheld: r.withheld
+            // refusal-safe, because the event is now built on the refusal path too: reading
+            // r.matches.length there threw INSIDE the audit's own try and wrote nothing at all,
+            // which looked exactly like the gap this was meant to close
+            returned: r?.matches?.length ?? 0,
+            withheld: r?.withheld ?? 0
           }));
         }
         const d = librarian.duplicatesPage(root, {
@@ -484,7 +509,7 @@ export function createEstateApi({
         return answer(res, root, d, () => ({
           surface,
           kind: "duplicates",
-          returned: d.sets.length,
+          returned: d?.sets?.length ?? 0,
           withheld: null
         }));
       }
@@ -543,8 +568,11 @@ export function createEstateApi({
             answer(res, root, r, () => ({
               surface: SURFACES.has(b.surface) ? b.surface : "unknown",
               kind: "check",
-              returned: r.files.length,
-              withheld: r.withheld
+              // a refusal has no files and no withheld figure; the event still records the ASKING,
+              // which is the thing design point 10 is about
+              returned: r?.files?.length ?? 0,
+              withheld: r?.withheld ?? 0,
+              asked: r?.paths_given ?? paths.length
             }));
           })
           .catch((e) => {

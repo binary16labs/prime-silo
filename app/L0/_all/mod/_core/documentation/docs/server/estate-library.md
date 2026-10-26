@@ -112,12 +112,43 @@ checked nothing, and the pass half is no harder than the policy half, because th
 the catalogue, which is present by definition. A stale figure wearing a current date is worse than a
 refusal.
 
+**What the answers mean.** Two of these figures share a word and do not share a meaning, which is
+worth knowing before adding them up:
+
+| field                          | on `/library/find`                                        | on `/library/check`                                                   |
+| ------------------------------ | --------------------------------------------------------- | --------------------------------------------------------------------- |
+| `total`                        | matches **before the limit** — how much there was to find | the files it was **asked about**                                      |
+| `withheld`                     | matches the privacy rules cover                           | both channels: paths never walked, and catalogued locations not named |
+| `capped`                       | —                                                         | the **walk** stopped at its cap                                       |
+| `paths_given` / `paths_capped` | —                                                         | how many paths were handed over, and how many were taken              |
+
+Each carries its own `total_means` so a caller never has to guess which it has. A `withheld` figure
+is the most that may be said about a quarantined path: counted, never named.
+
+**Both routes are bounded before they do any work.** `/library/check` takes at most 200 paths at a
+time — the walk has had a cap since S21, but the input list had none, and 20,000 paths cost 2.7
+seconds of the hub's thread. Over the cap it answers what it took and says what it did not. And a
+`/library/find` with neither a word nor a kind is **refused**: an empty query matches every row, so
+it would have walked the whole drive to return the first fifty of it.
+
+**A folder your own rules cover is explained, not answered with a blank.** When every path asked
+about is quarantined, the answer carries the sentence as well as the count — a bare `total: 0` told
+the owner nothing about why.
+
+**A question is audited whether it was answered or refused.** Design point 10 audits the questions
+an _agent_ asks, and a refused question is still one asked, so "did anything ask about that folder"
+no longer has the wrong answer for every refusal. Nothing is written when the caller has already
+hung up, because an answer nobody received is not one to record. Walking the tree in the panel stays
+unaudited: that is navigation.
+
 **Status codes.** `200` answered · `202` the rollup is still being built · `400` not a root this
-machine offers · `403` not this machine · `404` no catalogue, or no such folder in this catalogue ·
+machine offers, or no path given · `403` not this machine · `404` no catalogue, or no such folder in
+this catalogue ·
 `409` the catalogue has never finished, the drive root was asked for its outside, the folder holds
 more files than `/library/neighbours` will compare, the store holds two catalogues claiming one
 absent root, or a rollup does not match the catalogue's pass and the hub's policy ·
-`412` no quarantine policy · `503` `ESTATE_STORE` unset.
+`412` no quarantine policy · `503` `ESTATE_STORE` unset. A `find` with nothing to find is also a
+`409`, because it is the hub declining a question rather than failing to answer one.
 `404` for an unknown folder and `404` for an uncatalogued drive carry different sentences, because
 they are different problems.
 
