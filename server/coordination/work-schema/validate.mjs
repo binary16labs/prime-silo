@@ -39,7 +39,13 @@ export const OVERSIZE_GRANTED = Object.freeze({
   S23: 3843,
   S24: 2480,
   U0: 3423,
-  U1: 2809
+  U1: 2809,
+  // granted by the owner 2026-10-26, pinned at the figure measured on the commit that merged
+  // (task/S26 @ 3786b96c, 2,317 tokens). It grew from 1,496 because six verification rounds
+  // each added behaviour the owner had not signed: two refusals, a measured cap, a symmetric
+  // privacy rule and a second declared route. Growth past this pin fails again, which is the
+  // point of pinning it rather than raising the ceiling.
+  S26: 2317
 });
 
 // Milestone ids that exist on disk: delivery/milestones/M<n>-<name>.md -> "M<n>".
