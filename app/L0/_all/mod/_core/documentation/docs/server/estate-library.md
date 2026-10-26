@@ -73,10 +73,20 @@ say so; a rollup whose worker died is reported with its reason rather than left 
 
 **`/library/neighbours` is a separate route on purpose.** Storing "where the other copies are" for
 every folder meant testing every copy of every set against every ancestor — 45 minutes on the real
-F:. Asked for one folder at a time, its own subtree bounds the query — as a **range over the path
-primary key**, not `substr()`, which cannot use the index and made this a full table scan on the
-hub's synchronous thread: 5.7 s at 500k rows, about 12 at F:'s 1.1 million. The rollup being off
-the request thread was never enough on its own; the rule belongs to every route here.
+F:. Asked for one folder at a time.
+
+**And it is capped, which is the part that matters.** A subtree range over the path index was not
+enough: with the privacy judgement applied per file, a 250,000-file folder cost **93.5 seconds** on
+the hub's thread — worse than the 5.7-second table scan it replaced, because two correct privacy
+fixes composed. An index fixes a query; only a bound fixes a placement. So the route reads the
+folder's file count from the rollup first and **refuses above 1,500 files**, naming the count and
+the cap: `Pictures holds 250000 files, and comparing more than 1500 would block the hub: ask of a
+folder inside it`. It refuses rather than truncating, because "the other copies are in these
+folders" is a claim about all of them and a partial answer to it is a wrong one. Below the cap it
+costs about 140 ms. If no rollup has been written yet the answer is **202**, not a comparison.
+
+Expect this refusal on the big top-level trees — which is where the weight usually is. Extending
+the feature to answer them coarsely is a separate contract, not a cap to raise.
 
 **The drive root is refused.** Everything on the drive is inside the root, so "which folders hold
 copies from outside it" has no answer — asked anyway it named every folder on the drive, which is
@@ -96,14 +106,17 @@ root; that answer is marked `by_name: true`, because a recorded name is not an i
 wins whenever the drive _is_ there: if the drive can say who it is and has no catalogue of its own,
 the truth is "no catalogue", not another disk's figures. Two catalogues claiming one absent root are
 **refused** rather than chosen between — a disk that has been F: twice leaves exactly that, and it is
-the normal case. And a rollup counted under a different quarantine policy is refused rather than
-served, because taking the stored key and comparing it with itself checked nothing: the pass half
-cannot be re-derived for an absent drive, but the policy half is the hub's own.
+the normal case. And a rollup that does not match **both** the catalogue's own pass and the hub's own
+privacy policy is refused rather than served: taking the stored key and comparing it with itself
+checked nothing, and the pass half is no harder than the policy half, because the pass is read from
+the catalogue, which is present by definition. A stale figure wearing a current date is worse than a
+refusal.
 
 **Status codes.** `200` answered · `202` the rollup is still being built · `400` not a root this
 machine offers · `403` not this machine · `404` no catalogue, or no such folder in this catalogue ·
-`409` the catalogue has never finished, the drive root was asked for its outside, the store holds
-two catalogues claiming one absent root, or a rollup was counted under another privacy policy ·
+`409` the catalogue has never finished, the drive root was asked for its outside, the folder holds
+more files than `/library/neighbours` will compare, the store holds two catalogues claiming one
+absent root, or a rollup does not match the catalogue's pass and the hub's policy ·
 `412` no quarantine policy · `503` `ESTATE_STORE` unset.
 `404` for an unknown folder and `404` for an uncatalogued drive carry different sentences, because
 they are different problems.

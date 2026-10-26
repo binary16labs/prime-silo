@@ -55,7 +55,7 @@ const fullOf = (root, rel) =>
 // named every file inside it on direct navigation — the folder was private and its contents were
 // not. S26 is the first surface to claim folder names are included in the judgement, so this is
 // where that claim has to become true. Each ancestor is judged as well as the path itself.
-const privateTo = (rules) => {
+export const privateTo = (rules) => {
   const forms = (s) => [s, canonPath(s), canonPath(s).toLowerCase()];
   // JUDGED ONCE PER DIRECTORY, NOT ONCE PER FILE PER ANCESTOR. Judging every ancestor (D9) made the
   // judgement 3.7x dearer for every caller, and the near-side guard (D1) made duplicateNeighbours
@@ -74,11 +74,17 @@ const privateTo = (rules) => {
     dirs.set(dir, verdict);
     return verdict;
   };
-  return (full) => {
+  const judge = (full) => {
     if (isQuarantined(forms(full), rules)) return true;
     const at = Math.max(full.lastIndexOf("/"), full.lastIndexOf("\\"));
     return at > 0 ? dirPrivate(full.slice(0, at)) : false;
   };
+  // the cache is hung on the matcher so a test can SEE it: handed file paths instead of their
+  // directories the answers stay identical and only the cost changes, which is a property no
+  // assertion about answers can ever hold. 20,000 files in one tree must leave a handful of
+  // entries, not 20,000.
+  judge.dirs = dirs;
+  return judge;
 };
 
 // KEYED BY THE DRIVE, NOT ITS LETTER (S20's lesson): F: may be another letter tomorrow, and a
@@ -103,6 +109,10 @@ export function openLibrary(dbPath) {
       kind TEXT NOT NULL, first_seen TEXT NOT NULL, last_seen TEXT NOT NULL, run TEXT NOT NULL);
     CREATE INDEX IF NOT EXISTS files_sha256 ON files (sha256);
     CREATE INDEX IF NOT EXISTS files_size ON files (size);
+    -- the drive root's own files, which no path range can bound: a partial index on exactly the
+    -- rows whose path holds no separator, so the one folder the panel opens first is a search
+    -- rather than a scan of every row on the drive (226 ms at 500k, about half a second at F:)
+    CREATE INDEX IF NOT EXISTS files_root ON files (path) WHERE instr(path, '/') = 0;
     CREATE TABLE IF NOT EXISTS passes (
       id TEXT PRIMARY KEY, started_at TEXT NOT NULL, finished_at TEXT, stopped_at TEXT,
       seen INTEGER NOT NULL DEFAULT 0, hashed INTEGER NOT NULL DEFAULT 0,
@@ -709,6 +719,54 @@ export async function buildFolderRollup(dbPath, root, rules = [], { signal, onPr
 // sitting directly in it. Children are found by comparing path prefixes rather than with LIKE, so a
 // folder named with % or _ is a folder and not a pattern.
 //
+// THE QUERIES LIVE HERE, in one spelling, because a test that plans a SQL literal of its own
+// plans a string the TEST owns and not the one the code runs. The guard added in round 3 to protect
+// the index fix was exactly that tautology: reverting both routes to substr() left it green. It is
+// the drives-panel harvest mistake a third time — a test reading a copy of the thing instead of
+// the thing — so the thing is now exported and there is nothing to copy.
+//
+// `instr(substr(path, ?), '/') = 0` keeps the IMMEDIATE children: everything deeper has another
+// separator after the folder's own prefix. At the drive root there is no prefix to range on, so the
+// partial index files_root is what bounds it — without that the root's file query scans, and the
+// root is what the panel opens first.
+export const SQL = Object.freeze({
+  neighbourMine:
+    "SELECT path, sha256 FROM files WHERE size > 0 AND (path = ? OR (path >= ? AND path < ?))",
+  neighbourOthers: "SELECT path, size FROM files WHERE sha256 = ?",
+  folderRow: "SELECT files FROM folders WHERE path = ?",
+  childFolders: (range) =>
+    `SELECT * FROM folders WHERE path != '' ${range}
+       AND instr(substr(path, ?), '/') = 0 ORDER BY bytes DESC LIMIT ? OFFSET ?`,
+  childFiles: (range) =>
+    `SELECT path, size, mtime_ms, kind FROM files WHERE 1 = 1 ${range}
+       AND instr(substr(path, ?), '/') = 0 ORDER BY size DESC LIMIT ? OFFSET ?`,
+  // THE DRIVE ROOT NEEDS ITS OWN SPELLING, not just its own index. `ORDER BY size DESC` lets
+  // SQLite satisfy the sort from files_size and walk every row on the drive to do it — an index
+  // scan rather than a table scan, and 226 ms at 500k rows either way. INDEXED BY forces the
+  // partial index, which holds only the root's own files, and the sort then happens over that
+  // handful. It is used only where it exists, because a catalogue written before this contract
+  // has no files_root and INDEXED BY on a missing index is an error, not a hint.
+  rootFiles: `SELECT path, size, mtime_ms, kind FROM files INDEXED BY files_root
+       WHERE instr(path, '/') = 0 ORDER BY size DESC LIMIT ? OFFSET ?`,
+  // WHICH SPELLING THE CODE CHOOSES, as a decision a test can make the code take rather than
+  // re-derive. Planning SQL.rootFiles only proves that string is bounded; it says nothing about
+  // whether folderView ever reaches it, and a verifier showed the equivalent gap twice over.
+  childFilesFor: (at, hasRootIndex) => (!at && hasRootIndex ? "rootFiles" : "childFiles"),
+  hasRootIndex: (db) => {
+    try {
+      return (
+        db
+          .prepare("SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = 'files_root'")
+          .get() != null
+      );
+    } catch {
+      return false;
+    }
+  },
+  range: (at) => (at ? "AND path >= ? AND path < ?" : ""),
+  bounds: (at) => (at ? [`${at}/`, `${at}0`] : [])
+});
+
 // One page is one page: a caller asking for the whole drive gets a page of it instead.
 export const FOLDER_PAGE_MAX = 1000;
 
@@ -744,20 +802,15 @@ export function folderView(dbPath, root, rules = [], at = "", { offset = 0, limi
     // comment this contract added condemning substr() was written one function away from two more
     // of them. The DRIVE ROOT has no range: every path is under it, so the bound is the instr()
     // depth test alone, and the folders table it reads is one row per folder rather than per file.
-    const range = at ? "AND path >= ? AND path < ?" : "";
-    const bounds = at ? [under, `${at}0`] : [];
+    const range = SQL.range(at);
+    const bounds = SQL.bounds(at);
     const kids = db
-      .prepare(
-        `SELECT * FROM folders WHERE path != '' ${range}
-           AND instr(substr(path, ?), '/') = 0 ORDER BY bytes DESC LIMIT ? OFFSET ?`
-      )
+      .prepare(SQL.childFolders(range))
       .all(...bounds, under.length + 1, limit, offset);
-    const here = db
-      .prepare(
-        `SELECT path, size, mtime_ms, kind FROM files WHERE 1 = 1 ${range}
-           AND instr(substr(path, ?), '/') = 0 ORDER BY size DESC LIMIT ? OFFSET ?`
-      )
-      .all(...bounds, under.length + 1, limit, offset);
+    const here =
+      SQL.childFilesFor(at, SQL.hasRootIndex(db)) === "rootFiles"
+        ? db.prepare(SQL.rootFiles).all(limit, offset)
+        : db.prepare(SQL.childFiles(range)).all(...bounds, under.length + 1, limit, offset);
 
     // the same judgement as everywhere else: counted, never named — a folder's own name included,
     // because a quarantine rule matches a path and a folder has one
@@ -912,15 +965,6 @@ export function duplicateNeighbours(dbPath, root, rules = [], folder = "", { lim
   // largest number of files that keeps this under about a tenth of a second. Above it the answer is
   // REFUSED rather than truncated, because "the other copies are in these folders" is a claim about
   // all of them — a partial answer to that question is a wrong one, not a shorter one.
-  const held = db.prepare("SELECT files FROM folders WHERE path = ?").get(folder)?.files ?? null;
-  if (held !== null && held > NEIGHBOURS_CAP_FILES) {
-    db.close();
-    return {
-      refused:
-        `${folder} holds ${held} files, and comparing more than ${NEIGHBOURS_CAP_FILES} would ` +
-        `block the hub: ask of a folder inside it`
-    };
-  }
   const isPrivate = privateTo(rules);
   const under = folder + "/";
   // A RANGE over the path index, not substr(). `substr(path, 1, ?) = ?` cannot use the primary key,
@@ -930,12 +974,32 @@ export function duplicateNeighbours(dbPath, root, rules = [], folder = "", { lim
   // was neither measured nor capped. "/" is 0x2F, so "0" bounds the prefix immediately above it.
   const upper = folder + "0";
   try {
-    const mine = db
-      .prepare(
-        "SELECT path, sha256 FROM files WHERE size > 0 AND (path = ? OR (path >= ? AND path < ?))"
-      )
-      .all(folder, under, upper);
-    const others = db.prepare("SELECT path, size FROM files WHERE sha256 = ?");
+    // THE CAP IS WHAT MAKES THIS SAFE, so it is inside the try and it refuses rather than trusting.
+    // Round 3 put the lookup above it: with no `folders` table yet — the window between a catalogue
+    // finishing and the worker writing the rollup — it threw `no such table`, leaked the database
+    // handle and escaped the route, which is S22's D5 and D10 in the guard added to fix a finding.
+    // And `held !== null` meant a MISSING row skipped the refusal entirely, so a 30,000-file folder
+    // did the full 2,990 ms of work: a cap enforced against a figure nobody checked is not a cap.
+    // No rollup row, no comparison.
+    let held = null;
+    try {
+      held = db.prepare(SQL.folderRow).get(folder)?.files ?? null;
+    } catch {
+      held = null; // no rollup table at all: the same answer as no row
+    }
+    if (held === null)
+      return {
+        computing: true,
+        why: `${folder} has no folder rollup yet, so its size is unknown: try again in a minute`
+      };
+    if (held > NEIGHBOURS_CAP_FILES)
+      return {
+        refused:
+          `${folder} holds ${held} files, and comparing more than ${NEIGHBOURS_CAP_FILES} would ` +
+          `block the hub: ask of a folder inside it`
+      };
+    const mine = db.prepare(SQL.neighbourMine).all(folder, under, upper);
+    const others = db.prepare(SQL.neighbourOthers);
     const where = new Map();
     let withheld = 0;
     // THE NEAR SIDE IS JUDGED TOO. Guarding only the far copy identified a private file's CONTENT
@@ -1236,8 +1300,22 @@ export function createLibrarian({
         return {
           refused: `${root} has a catalogue that has never finished: finish cataloguing it first`
         };
-      // this one is computed live from the catalogue under the CURRENT rules, so a stale rollup
-      // policy does not reach it
+      // THE SAME CURRENCY CHECK THE FOLDER ROUTE HAS. The answer is computed live under the current
+      // rules, so a stale POLICY never reached it — but the cap this route now depends on is read
+      // from the rollup, and round 3 enforced it against a figure the route had never verified. A
+      // rollup for an older pass can say a 250,000-file folder holds ten.
+      if (c.stored && c.stored !== c.key)
+        return {
+          refused:
+            `${root}'s folder figures were counted for an earlier pass or a different privacy ` +
+            `policy, and the drive is not here to recount them: attach it`
+        };
+      if (rollupKey(c.db) !== c.key) {
+        const why = failed.get(c.db);
+        return why
+          ? { refused: `the folder rollup could not be built: ${why}` }
+          : { computing: true, pass: c.pass.last?.id ?? null };
+      }
       return duplicateNeighbours(c.db, root, rules, at, { limit });
     },
     // S26: one folder of the tree, from the rollup the worker built. `computing` rather than a

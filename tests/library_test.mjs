@@ -28,6 +28,8 @@ import {
   rollupKeyFor,
   NEIGHBOURS_CAP_FILES,
   FOLDER_PAGE_MAX,
+  SQL,
+  privateTo,
   libraryPath,
   libraryState
 } from "../server/coordination/lib/library.mjs";
@@ -863,6 +865,10 @@ test("an old list under the same rules is removed once the new summary is saved,
   await lib.start(root).done;
   await waitState(lib, root);
   const first = lib.csvPath(root);
+  // S21-era, found in a mutation run: unchecked, a null here writes `null.tmp` into the REPO ROOT
+  // and the assertion below becomes fs.existsSync(null), which passes vacuously. The truthy
+  // coercion this epic keeps meeting.
+  assert.ok(first, "the pass must name its own list before this test means anything");
   fs.writeFileSync(`${first}.tmp`, "a list a killed worker left half-written");
   write(root, "Backup/a-again.jpg", "photo a");
   await lib.start(root).done;
@@ -2096,11 +2102,9 @@ test("S26: no surface here may SCAN the files table", async () => {
   assert.equal((await catalogue({ root: drive, dbPath })).finished, true);
   await buildFolderRollup(dbPath, drive, []);
 
-  const neighbours = planFor(
-    dbPath,
-    "SELECT path, sha256 FROM files WHERE size > 0 AND (path = ? OR (path >= ? AND path < ?))",
-    ["keep", "keep/", "keep0"]
-  );
+  // SQL.* is the string the CODE runs. Round 3 planned a literal written in this test body, which
+  // is a tautology: reverting both routes to substr() left it green, and a verifier proved it.
+  const neighbours = planFor(dbPath, SQL.neighbourMine, ["keep", "keep/", "keep0"]);
   assert.equal(
     /SCAN files/u.test(neighbours),
     false,
@@ -2108,16 +2112,51 @@ test("S26: no surface here may SCAN the files table", async () => {
   );
   assert.match(neighbours, /SEARCH files/u);
 
-  const children = planFor(
-    dbPath,
-    "SELECT path, size, mtime_ms, kind FROM files WHERE 1 = 1 AND path >= ? AND path < ? " +
-      "AND instr(substr(path, ?), '/') = 0 ORDER BY size DESC LIMIT ? OFFSET ?",
-    ["keep/", "keep0", 6, 200, 0]
-  );
+  const children = planFor(dbPath, SQL.childFiles(SQL.range("keep")), [
+    ...SQL.bounds("keep"),
+    6,
+    200,
+    0
+  ]);
   assert.equal(
     /SCAN files/u.test(children),
     false,
     `the folder route's children must use the path index too: ${children}`
+  );
+
+  // THE DRIVE ROOT, which the Scenario covers and round 3 never planned: there is no prefix to
+  // range on, so without the partial index its file query scans every row on the drive — 226 ms at
+  // 500k, about half a second at F: — and the root is the folder the panel opens first.
+  // The root is the one folder with no prefix to range on, so the property is not "no SCAN" — a
+  // partial index holding ONLY the root's own files is traversed whole, and SQLite calls that a
+  // scan too. The property is that it reads the root's rows and not the drive's, which means the
+  // plan must name files_root. Asserting the absence of a word would have passed on the plan that
+  // walks every row in files_size to satisfy ORDER BY.
+  // and the code must CHOOSE it: planning the bounded string proves the string is bounded, not
+  // that folderView ever reaches it — the same gap, found twice by a verifier and once by my own
+  // mutation of this very test.
+  const db = new DatabaseSync(dbPath);
+  assert.equal(SQL.hasRootIndex(db), true, "a catalogue written now carries the root index");
+  db.close();
+  assert.equal(SQL.childFilesFor("", true), "rootFiles", "the root takes the bounded spelling");
+  assert.equal(SQL.childFilesFor("keep", true), "childFiles", "a named folder takes the range");
+  assert.equal(SQL.childFilesFor("", false), "childFiles", "and an old catalogue falls back");
+
+  const atRoot = planFor(dbPath, SQL.rootFiles, [200, 0]);
+  assert.match(atRoot, /files_root/u, `the root must read its own index: ${atRoot}`);
+  assert.equal(
+    /files_size/u.test(atRoot),
+    false,
+    `and not walk every row on the drive to sort: ${atRoot}`
+  );
+
+  // the paired negative: without that index the same question walks files_size, which is the
+  // 226 ms at 500k rows this replaced
+  const unbounded = planFor(dbPath, SQL.childFiles(SQL.range("")), [1, 200, 0]);
+  assert.match(
+    unbounded,
+    /files_size/u,
+    `the spelling this replaced really does walk every row: ${unbounded}`
   );
 
   // the paired negative: the pattern this replaced really does scan, so the check is not vacuous
@@ -2319,4 +2358,121 @@ test("S26: a rollup built before a later pass is refused, not dated as current",
     false,
     "and never the new pass's date on the old pass's figures"
   );
+});
+
+test("S26: the order two sibling folders are judged in cannot change the verdict", async () => {
+  // The memo introduced in round 3 had NO test that could tell a correct cache from a leak: a
+  // verifier made dirPrivate return the first cached verdict for ANY directory and all 83 tests
+  // stayed green. Public folder judged first and every quarantined file reads public, so it is
+  // NAMED in every listing — D1 and D9 reopened at once. No fixture had two sibling directories
+  // with DIFFERENT verdicts where the order of judgement decides the answer. This is that fixture.
+  const root = tmp();
+  write(root, "Open/holiday.jpg", "public bytes");
+  write(root, "Scans/passport.jpg", "private bytes");
+  const rules = [/[\\/]Scans$/u];
+
+  for (const order of [
+    ["Open/holiday.jpg", "Scans/passport.jpg"],
+    ["Scans/passport.jpg", "Open/holiday.jpg"]
+  ]) {
+    const isPrivate = privateTo(rules);
+    const seen = order.map((rel) => [rel, isPrivate(path.join(root, rel))]);
+    assert.deepEqual(
+      Object.fromEntries(seen),
+      { "Open/holiday.jpg": false, "Scans/passport.jpg": true },
+      `judged ${order[0]} first: ${JSON.stringify(seen)}`
+    );
+  }
+
+  // and through the surfaces, both ways round
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root, dbPath, rules })).finished, true);
+  await buildFolderRollup(dbPath, root, rules);
+  const top = folderView(dbPath, root, rules, "", { offset: 0, limit: 50 });
+  assert.deepEqual(
+    top.folders.map((f) => f.name),
+    ["Open"],
+    `the public sibling is named and the private one is not: ${JSON.stringify(top.folders)}`
+  );
+  assert.equal(top.withheld, 1);
+});
+
+test("S26: the privacy memo caches directories, not files", async () => {
+  // The whole point of round 3's privateTo, and a property no assertion about ANSWERS can hold: a
+  // verifier handed the memo each FILE path instead of its directory, got identical verdicts on
+  // 20,000 paths, grew the cache 442 to 20,442 entries, ran 2.0x slower — and stayed green.
+  const isPrivate = privateTo([/[\\/]Secret$/u]);
+  for (let i = 0; i < 5000; i += 1) isPrivate(`C:\\drive\\Photos\\2019\\f${i}.jpg`);
+  assert.ok(
+    isPrivate.dirs.size <= 8,
+    `5,000 files in one tree must cache a handful of directories, not thousands: ${isPrivate.dirs.size}`
+  );
+  // the paired positive: it really is caching, and really does answer
+  assert.ok(isPrivate.dirs.size >= 1);
+  assert.equal(isPrivate("C:\\drive\\Secret\\x.jpg"), true);
+  assert.equal(isPrivate("C:\\drive\\Photos\\2019\\f1.jpg"), false);
+});
+
+test("S26: no rollup yet means no comparison, never a thrown route", async () => {
+  // Round 3 put the cap's lookup ABOVE the try: with no folders table — the window between a
+  // catalogue finishing and the worker writing the rollup — it threw `no such table`, leaked the
+  // database handle and escaped the route, which is S22's D5 and D10 in the guard added to fix a
+  // finding. And `held !== null` meant a MISSING row skipped the refusal, so a 30,000-file folder
+  // did the full 2,990 ms of work: a cap enforced against a figure nobody checked is not a cap.
+  const drive = tmp();
+  write(drive, "keep/a.txt", "shared");
+  write(drive, "other/b.txt", "shared");
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root: drive, dbPath })).finished, true);
+
+  // no rollup at all: the table does not exist
+  const none = duplicateNeighbours(dbPath, drive, [], "keep");
+  assert.equal(none.computing, true, `answered, not thrown: ${JSON.stringify(none)}`);
+  assert.match(none.why ?? "", /no folder rollup yet/u);
+  assert.equal(none.where, undefined, "and no comparison was done");
+
+  await buildFolderRollup(dbPath, drive, []);
+  assert.equal(duplicateNeighbours(dbPath, drive, [], "keep").where[0].path, "other");
+
+  // a rollup that exists but has no row for this folder is the same answer, not a bypass
+  const db = new DatabaseSync(dbPath);
+  db.prepare("DELETE FROM folders WHERE path = ?").run("keep");
+  db.close();
+  const gone = duplicateNeighbours(dbPath, drive, [], "keep");
+  assert.equal(gone.computing, true, `a missing row is not a licence: ${JSON.stringify(gone)}`);
+  assert.equal(gone.where, undefined);
+});
+
+test("S26: the neighbours route checks the rollup is current, as the folder route does", async () => {
+  // The cap is read from the rollup, and round 3 enforced it against a figure the route had never
+  // verified: a rollup for an older pass can say a 250,000-file folder holds ten. The lie used to
+  // test the guard was the way past the guard.
+  const drive = tmp();
+  write(drive, "keep/a.txt", "shared");
+  write(drive, "other/b.txt", "shared");
+  const store = path.join(tmp(), "library");
+  const at = await catalogued(store, drive, []);
+  const absent = path.join(tmp(), "not-here");
+  metaRoot(at, absent);
+
+  const lib = createLibrarian({ dir: store, rules: [] });
+  assert.equal(
+    lib.neighbours(absent, { path: "keep" })?.where?.[0]?.path,
+    "other",
+    "current answers"
+  );
+
+  const db = new DatabaseSync(at);
+  db.prepare(
+    "INSERT INTO passes (id, started_at, finished_at) VALUES ('later', '2099-01-01T00:00:00Z', " +
+      "'2099-01-01T01:00:00Z')"
+  ).run();
+  db.close();
+  const stale = createLibrarian({ dir: store, rules: [] }).neighbours(absent, { path: "keep" });
+  assert.match(
+    stale?.refused ?? "",
+    /earlier pass or a different privacy policy/u,
+    JSON.stringify(stale)
+  );
+  assert.equal(stale?.where, undefined, "no comparison against a figure nobody checked");
 });
