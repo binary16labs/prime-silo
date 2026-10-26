@@ -115,29 +115,39 @@ refusal.
 **What the answers mean.** Two of these figures share a word and do not share a meaning, which is
 worth knowing before adding them up:
 
-| field                          | on `/library/find`                                        | on `/library/check`                                                   |
-| ------------------------------ | --------------------------------------------------------- | --------------------------------------------------------------------- |
-| `total`                        | matches **before the limit** — how much there was to find | the files it was **asked about**                                      |
-| `withheld`                     | matches the privacy rules cover                           | both channels: paths never walked, and catalogued locations not named |
-| `capped`                       | —                                                         | the **walk** stopped at its cap                                       |
-| `paths_given` / `paths_capped` | —                                                         | how many paths were handed over, and how many were taken              |
+| field                         | on `/library/find`                                        | on `/library/check`                                                   |
+| ----------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------- |
+| `total`                       | matches **before the limit** — how much there was to find | the files it was **asked about**                                      |
+| `withheld`                    | matches the privacy rules cover                           | both channels: paths never walked, and catalogued locations not named |
+| `capped`                      | —                                                         | the **walk** stopped at its cap                                       |
+| `paths_given` / `paths_taken` | —                                                         | how many paths were handed over, and how many of them were used       |
 
 Each carries its own `total_means` so a caller never has to guess which it has. A `withheld` figure
 is the most that may be said about a quarantined path: counted, never named.
 
-**Both routes are bounded before they do any work.** `/library/check` takes at most 200 paths at a
-time — the walk has had a cap since S21, but the input list had none, and 20,000 paths cost 2.7
-seconds of the hub's thread. Over the cap it answers what it took and says what it did not. And a
-`/library/find` with neither a word nor a kind is **refused**: an empty query matches every row, so
-it would have walked the whole drive to return the first fifty of it.
+**`/library/check` is bounded before it does any work.** It takes at most 200 paths at a time —
+the walk has had a cap since S21, but the input list had none, and 20,000 paths cost 2.7 seconds of
+the hub's thread. The cap is applied before a single file is hashed, and over it the answer says
+what it took and what it did not.
+
+**`/library/find` is not bounded, and saying so is the point.** A find with neither a word nor a
+kind is **refused**, because an empty query matches every row and would walk the whole drive to
+return the first fifty of it. But a **kind on its own is still a full table scan** — there is no
+index on `kind` — measured at **13.5 seconds over 500,001 rows** on the hub's own thread, and a
+broad word is no better (`q="."` measured 12.6 s). Refusing the emptiest question closed one shape
+of several. Bounding this route is a separate piece of work and this page is not going to imply
+otherwise.
 
 **A folder your own rules cover is explained, not answered with a blank.** When every path asked
 about is quarantined, the answer carries the sentence as well as the count — a bare `total: 0` told
 the owner nothing about why.
 
-**A question is audited whether it was answered or refused.** Design point 10 audits the questions
-an _agent_ asks, and a refused question is still one asked, so "did anything ask about that folder"
-no longer has the wrong answer for every refusal. Nothing is written when the caller has already
+**A question the librarian was asked is audited whether it was answered or refused** — the `404` of
+an uncatalogued drive and the `409` of a declined question both write an event. The rejections that
+happen _before_ the librarian is consulted do not: a `400` for an unoffered root or a missing path,
+a `405`, a `412` with no policy, a `503` with no store. Those are the hub declining to take the
+question at all, and the root they name has not been validated, so there is nothing safe to key an
+event to. Nothing is written when the caller has already
 hung up, because an answer nobody received is not one to record. Walking the tree in the panel stays
 unaudited: that is navigation.
 

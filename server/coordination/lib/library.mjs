@@ -1135,7 +1135,13 @@ export function findFiles(dbPath, root, rules = [], { q = "", kind = "", limit =
   // query matched the whole drive and returned the first `limit` of it — 1.1 million rows walked on
   // the hub's thread to answer a question nobody asked. A kind on its own ("every image") is a real
   // question and still allowed; neither is not.
-  if (!String(q) && !String(kind))
+  // String() ON BOTH, because a search for "0" is a real search and `!0` is true. The same
+  // coercion is why `kind: null` must not slip past as a falsy-but-stringy value: `String(null)`
+  // is "null", which would pass this guard and then match no kind in SQL, enumerating the drive —
+  // so the kind is normalised to a string before either is tested.
+  q = typeof q === "string" || typeof q === "number" ? String(q) : "";
+  kind = typeof kind === "string" ? kind : "";
+  if (!q && !kind)
     return {
       refused: "ask for a word in the path, or a kind of file: both empty would list the drive"
     };
@@ -1193,6 +1199,9 @@ export async function checkPaths(
   // BOUNDED BEFORE ANYTHING IS HASHED, and said in the answer the way the walk cap already is. A
   // caller is told what it got rather than quietly given a prefix of what it asked for.
   const given = paths.length;
+  // STRICTLY GREATER. At exactly the cap nothing was dropped, and `>=` made the answer say
+  // "200 paths given and 200 is the most this will take at once: ask again with the rest" — an
+  // instruction to re-ask for nothing.
   const over = given > maxPaths;
   paths = over ? paths.slice(0, maxPaths) : paths;
   try {
@@ -1291,6 +1300,8 @@ export async function checkPaths(
     const atWithheld = files.reduce((n, f) => n + (f.withheld || 0), 0);
     // `total` HERE IS THE FILES IT WAS ASKED ABOUT, not matches before a limit, which is what
     // `find`'s total means. Both are now labelled at the point they are produced.
+    // AND SOMETHING MUST HAVE BEEN WITHHELD. Without that clause an EMPTY folder was told its
+    // own rules covered everything it held, "0 withheld", which is a sentence about nothing.
     const allWithheld = !files.length && withheld > 0;
     return {
       finishedAt: c.finishedAt,
@@ -1299,7 +1310,10 @@ export async function checkPaths(
       total_means: "files-asked-about",
       capped,
       paths_given: given,
-      paths_capped: over ? maxPaths : 0,
+      // NAMED FOR WHAT IT IS. `paths_capped` meant "how many were taken" in the documentation,
+      // "how many were capped" in its name, and 0-when-one-was-taken in the code: one word with
+      // three meanings, inside the contract whose items 2 and 5 exist because one word had two.
+      paths_taken: Math.min(given, maxPaths),
       // ITEM 4: a bare `total: 0` told the owner nothing when the answer was "your own rules cover
       // everything you asked about". The count was already right; what was missing was the sentence.
       ...(allWithheld
@@ -1481,7 +1495,13 @@ export function createLibrarian({
         : v;
     },
     // one event per question, in the drive's own library log beside its catalogue
-    audit(root, info) {
+    // THE CHECK AND THE WRITE ARE ONE CALL. Moving the listening guard from before the write to
+    // after it left all 97 tests green, because the test that was meant to prevent that asserted a
+    // TEXT MATCH on the route's source — so what got tested was the lift, not the guard. There is
+    // no "after" to move it to now: a caller that is gone cannot be audited because the only way to
+    // audit is through here.
+    audit(root, info, to = null) {
+      if (to !== null && !stillListening(to)) return false;
       const db = libraryPath(dir, root);
       if (!db) return false;
       const pass = (passOf(db)?.last?.id ?? null) || null;

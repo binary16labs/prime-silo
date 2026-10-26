@@ -11,7 +11,7 @@ import { planNextCycle, readPlanInputs } from "./estate_plan.mjs";
 import { acceptMap, register as registerSatellite } from "./estate_register.mjs";
 import { createSweeper, latestLocalPush } from "./estate_map_producer.mjs";
 import { createComparer, listRoot } from "./estate_compare.mjs";
-import { createLibrarian, stillListening } from "./library.mjs";
+import { createLibrarian } from "./library.mjs";
 import path from "node:path";
 import {
   DEFAULT_MAP_MAX_AGE_MS,
@@ -399,11 +399,10 @@ export function createEstateApi({
       const answer = (to, root, r, event) => {
         const audit = (extra) => {
           if (!event) return; // navigation, not a question
-          // AND NOT IF THE CALLER HAS GONE. A client that hung up mid-check was audited as
-          // answered, so the log recorded an answer nobody received.
-          if (!stillListening(to)) return;
           try {
-            librarian.audit(root, { ...event(), ...extra });
+            // the response goes IN, so the listening check cannot be separated from the write:
+            // see library.mjs's audit(). A client that hung up mid-check was audited as answered.
+            librarian.audit(root, { ...event(), ...extra }, to);
           } catch {
             // an audit that cannot be written must not take the answer with it
           }
@@ -496,7 +495,7 @@ export function createEstateApi({
             // refusal-safe, because the event is now built on the refusal path too: reading
             // r.matches.length there threw INSIDE the audit's own try and wrote nothing at all,
             // which looked exactly like the gap this was meant to close
-            returned: r?.matches?.length ?? 0,
+            returned: r?.matches?.length ?? 0, // 0 only on a refusal, which has no matches
             withheld: r?.withheld ?? 0
           }));
         }

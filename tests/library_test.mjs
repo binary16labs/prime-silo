@@ -2786,7 +2786,10 @@ test("S25: a caller cannot hand the hub unbounded work", async () => {
   // bounded BEFORE anything is hashed — the cost this exists to stop is the hashing
   assert.ok(asked.length <= 5, `at most the cap is hashed: ${asked.length}`);
   assert.equal(r.paths_given, 1000, "it says how many it was handed");
-  assert.equal(r.paths_capped, 5, "and how many it took");
+  assert.equal(r.paths_taken, 5, "and how many of them it used");
+  // BY VALUE, because a verifier raised MAX_CHECK_PATHS from 200 to 900 and the only assertion was
+  // `> 0 && <= 1000` — a shape, on the one constant this whole contract is about.
+  assert.equal(MAX_CHECK_PATHS, 200, "the production cap is 200, not merely plausible");
   assert.match(r.why_capped ?? "", /1000 paths given and 5/u, JSON.stringify(r.why_capped));
   assert.match(r.why_capped ?? "", /ask again/u, "and what to do about it");
 
@@ -2795,10 +2798,29 @@ test("S25: a caller cannot hand the hub unbounded work", async () => {
     paths: [path.join(drive, "f0.txt")],
     maxPaths: 5
   });
-  assert.equal(small.paths_capped, 0);
+  assert.equal(small.paths_taken, 1, "one path given, one used");
   assert.equal(small.why_capped, undefined);
   assert.equal(small.files.length, 1);
-  assert.ok(MAX_CHECK_PATHS > 0 && MAX_CHECK_PATHS <= 1000, "a cap, not a formality");
+  // AND THE DEFAULT MUST BE THE CONSTANT. A verifier changed the parameter default to Infinity,
+  // which removes the route's cap entirely while the constant still reads 200, and nothing died:
+  // every cap test injects its own maxPaths, so the production path was the one shape untested.
+  const dflt = await checkPaths(dbPath, drive, [], {
+    paths: Array.from({ length: MAX_CHECK_PATHS + 7 }, (_, i) =>
+      path.join(drive, `f${i % 20}.txt`)
+    ),
+    hash: async (f) => hashFile(f)
+  });
+  assert.equal(dflt.paths_given, MAX_CHECK_PATHS + 7);
+  assert.equal(dflt.paths_taken, MAX_CHECK_PATHS, "the default cap is the constant, not Infinity");
+
+  // and exactly AT the cap nothing is dropped and nothing is said about dropping it: `>=` made the
+  // answer tell a caller to re-ask for nothing
+  const exact = await checkPaths(dbPath, drive, [], {
+    paths: Array.from({ length: 5 }, (_, i) => path.join(drive, `f${i}.txt`)),
+    maxPaths: 5
+  });
+  assert.equal(exact.paths_taken, 5);
+  assert.equal(exact.why_capped, undefined, "at the cap exactly, nothing was left behind");
 });
 
 test("S25: asking about a folder the rules cover is explained, not blank", async () => {
@@ -2939,10 +2961,12 @@ test("S25: the page says what every figure means", () => {
     "the files it was **asked about**",
     "total_means",
     "paths_given",
-    "paths_capped",
+    "paths_taken",
     "at most 200 paths",
+    "still a full table scan",
     "is **refused**",
     "whether it was answered or refused",
+    "declining to take the question at all",
     "already hung up"
   ])
     assert.ok(doc.includes(said), `the page must say: ${said}`);
@@ -2952,7 +2976,7 @@ test("S25: the page says what every figure means", () => {
   assert.match(doc, /A `find` with nothing to find is also a `409`/u);
 });
 
-test("S25: nothing is written for an answer nobody is waiting for", () => {
+test("S25: nothing is written for an answer nobody is waiting for", async () => {
   // A mutation showed this untested, and it was untested because it was unreachable: a condition
   // inside a route can only be exercised by aborting a real request at the right microsecond. As a
   // predicate it is ordinary to test, which is the whole argument for making it one.
@@ -2971,19 +2995,38 @@ test("S25: nothing is written for an answer nobody is waiting for", () => {
   // both lazily — defaulting to "gone" would silence every ordinary answer
   assert.equal(stillListening({}), true, "an untouched response is still listening");
 
-  // AND THE ROUTE MUST CALL IT. A predicate nobody consults is a tested function and an untested
-  // property — a verifier made exactly this point about folderView two contracts ago, and dropping
-  // the call here left all 97 tests green. The audit path is the only place it belongs, so that is
-  // what is checked: the call, not a copy of what it does.
-  const api = fs.readFileSync(
-    new URL("../server/coordination/lib/estate_api.mjs", import.meta.url),
-    "utf8"
-  );
-  assert.match(api, /if \(!stillListening\(to\)\) return;/u, "the audit path consults it");
+  // AND THE CHECK IS NOW PART OF THE WRITE, not a line above it. My first version of this test
+  // asserted a TEXT MATCH on the route's source, so a verifier moved the guard from before the
+  // write to after it and all 97 tests passed while an aborted check wrote an event. What got
+  // tested was the lift, not the guard — the class-vs-instance lesson in a new costume. So the
+  // response goes INTO librarian.audit, and this drives it.
+  const store = path.join(tmp(), "library");
+  const drive = tmp();
+  write(drive, "a.txt", "bytes");
+  const lib = createLibrarian({ dir: store, rules: [] });
+  const dbPath = libraryPath(store, drive);
+  fs.mkdirSync(store, { recursive: true });
+  await catalogue({ root: drive, dbPath });
+
+  const info = { surface: "skill", kind: "find", returned: 1, withheld: 0 };
+  assert.equal(lib.audit(drive, info, { writableEnded: true }), false, "gone: nothing written");
+  assert.equal(lib.audit(drive, info, { destroyed: true }), false, "hung up: nothing written");
+  // the catalogue pass writes its OWN events to this log, so the absence of the file proves
+  // nothing — what must be absent is a library_queried event
+  const logFile = `${dbPath.slice(0, -3)}.jsonl`;
+  const queries = () =>
+    fs.existsSync(logFile)
+      ? readKelEvents(logFile).events.filter((e) => e.type === "library_queried").length
+      : 0;
+  assert.equal(queries(), 0, "nothing was asked, so nothing was recorded as asked");
+
+  // the paired positive: a live response, and one with no response at all, both write
+  assert.equal(lib.audit(drive, info, { writableEnded: false, destroyed: false }), true);
+  assert.equal(lib.audit(drive, info), true, "no response given means no caller to have lost");
   assert.equal(
-    (api.match(/librarian\.audit\(/gu) ?? []).length,
-    1,
-    "and there is one audit call for it to guard"
+    readKelEvents(logFile).events.filter((e) => e.type === "library_queried").length,
+    2,
+    "two written, and only the two that should have been"
   );
 });
 
@@ -3036,5 +3079,60 @@ test("S25: the audit event carries figures, never a caller's words", () => {
     }).payload.asked,
     null,
     "a figure that is not a number is no figure"
+  );
+});
+
+test('S25: a query of "0" is a query, and a kind that is not a string is not one', async () => {
+  // `!q` instead of `!String(q)` makes a search for "0" the refused case — the coercion is the
+  // whole point of the guard and was untested. And `kind: null` passed the guard as "null" while
+  // applying no filter in SQL, which enumerated the drive: the exact thing the refusal is for,
+  // reached through the back of the guard that was meant to stop it.
+  const drive = tmp();
+  write(drive, "0.txt", "a file actually called zero");
+  write(drive, "other.txt", "not");
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root: drive, dbPath })).finished, true);
+
+  const zero = findFiles(dbPath, drive, [], { q: "0" });
+  assert.equal(zero.refused, undefined, `"0" is a query: ${JSON.stringify(zero)}`);
+  assert.equal(zero.matches.length, 1);
+  assert.equal(findFiles(dbPath, drive, [], { q: 0 }).matches.length, 1, "and so is the number");
+
+  for (const kind of [null, 0, false, {}, []])
+    assert.match(
+      findFiles(dbPath, drive, [], { q: "", kind }).refused ?? "",
+      /would list the drive/u,
+      `a non-string kind is not a question: ${JSON.stringify(kind)}`
+    );
+  // the paired positive: a real kind still works
+  assert.equal(findFiles(dbPath, drive, [], { kind: "documents" }).matches.length, 2);
+});
+
+test("S25: an empty folder is not told its own rules covered it", async () => {
+  // `!files.length` alone said "every path asked about is covered by this machine's own privacy
+  // rules ... 0 withheld" about a folder that simply held nothing.
+  const drive = tmp();
+  fs.mkdirSync(path.join(drive, "Empty"), { recursive: true });
+  write(drive, "a.txt", "something");
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root: drive, dbPath })).finished, true);
+
+  const r = await checkPaths(dbPath, drive, ["passport"], { paths: [path.join(drive, "Empty")] });
+  assert.equal(r.total, 0, "nothing in it");
+  assert.equal(r.withheld, 0, "and nothing withheld");
+  assert.equal(r.why, undefined, `so there is nothing to explain: ${JSON.stringify(r.why)}`);
+});
+
+test("S25: the gate looks at what this contract shares, not only its own tests", () => {
+  // A verifier deleted the chained run and the gate stayed green while looking at nothing but
+  // tests/library_test.mjs — which is the exact mechanism by which this contract's first GREEN was
+  // wrong, and the shape claude-s26-verifier named twice.
+  const gate = fs.readFileSync(new URL("../scripts/gates/s25.mjs", import.meta.url), "utf8");
+  assert.match(gate, /run\(\s*"S25 tests"/u, "it runs its own tests");
+  assert.match(gate, /scripts\/gates\/s26\.mjs/u, "and the gate of the files it shares");
+  assert.equal(
+    (gate.match(/^run\(/gmu) ?? []).length,
+    2,
+    "exactly those two: a gate that grows silently is a gate nobody reads"
   );
 });
