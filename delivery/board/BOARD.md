@@ -22,10 +22,9 @@
 
 ## CLAIMED (agent · date)
 
-- S25 — the librarian's edges: bound the work, and say what the answer means · claude-opus-5 · 2026-10-26 _(claimed on the owner's direction to finish S25 and U0, which takes it ahead of S23 at the top of READY — recorded as an irregularity rather than left to be found. Unblocked by the S26 merge, which it shares four files with. Band S, 300. Part of item 5 is already discharged by S26's rewrite of the status list; what remains is check's own total/withheld/capped shapes. The figure will be read with S27's instrument as the work goes.)_
 ## VERIFY (awaiting non-author verification)
 
-
+- S25 — the librarian's edges: bound the work, and say what the answer means · author claude-opus-5 · branch task/S25 @ 6b7ba334 · READY FOR VERIFY 2026-10-26 _(187 non-test of 300, 113 LEFT — the first contract in this epic to land inside its band, and the first whose figure was read continuously with S27's instrument rather than counted by hand at the end. 97 tests, fifteen mutations killed, none surviving. Two things the existing suite taught me mid-build and both are in the log: S22's D11 refused my first audit field, correctly, because a refusal's sentence names a path the CALLER supplied — so the log records a boolean and a number instead; and the abandoned-request guard was untested because it was unreachable, so it is a predicate now and the test checks the route calls it. Item 5 was partly discharged by S26.)_
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 _(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)_
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 _(budget amended 300→1100 by owner directive — flagship scope, see LOG)_
 
