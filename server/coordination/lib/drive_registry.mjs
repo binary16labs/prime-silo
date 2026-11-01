@@ -10,6 +10,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { ulid, CURRENT_SCHEMA_VERSION } from "./kel.mjs";
 import { driveIdentity } from "./estate_compare.mjs";
 // ONE SPELLING OF IDENTITY, and it lives beside fileIdentity in estate_compare because the
 // registry needs it and importing the registry from there would be a cycle. Re-exported so a
@@ -399,4 +400,35 @@ export function addUserRoot(db, identity, root, { identityOf = driveIdentity } =
      VALUES (?, ?, 'added', 0, 1) ON CONFLICT(identity, root) DO UPDATE SET added_by_owner = 1`
   ).run(identity, root);
   return { added: root };
+}
+
+// --- the ledger ---------------------------------------------------------------------------------
+//
+// A DRIVE APPEARING IS ESTATE HISTORY, so it goes in the machine's KEL log once per change. The
+// payload carries identity, root and medium and NEVER the volume label: a label is the owner's own
+// text, the same text the panel withholds, and a tamper-evident log is the last place to put
+// something you have just refused to show on screen (S22's D11, in a new surface).
+export function driveEvent({
+  machine,
+  type,
+  identity,
+  root,
+  medium,
+  at = new Date().toISOString()
+}) {
+  const sid = `drive:${machine}:${identity}`;
+  return {
+    id: ulid(),
+    schema_version: CURRENT_SCHEMA_VERSION,
+    type,
+    valid_time: at,
+    txn_time: at,
+    time_confidence: "known",
+    hlc: `${at}-0000-${machine}`,
+    machine,
+    authorship: "house",
+    sid,
+    subject: { kind: "drive", id: sid },
+    payload: { scope: "drives", identity, root: root ?? null, medium: medium ?? null }
+  };
 }

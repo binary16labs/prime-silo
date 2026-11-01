@@ -45,6 +45,30 @@ window.estateMapPage = function estateMapPage() {
     lib: libraryView(null),
     libraryError: "",
     loading: true,
+    drives: [],
+    // IT SHOWS WHAT THE HUB SAID. A capacity the OS withheld is null in the answer and "unknown"
+    // here: a figure inferred from a sibling field is indistinguishable from a real one on screen,
+    // which is worse than a gap the owner can see.
+    size(n) {
+      const b = Number(n);
+      if (!Number.isFinite(b) || b <= 0) return "unknown";
+      for (const [unit, at] of [
+        ["TB", 1e12],
+        ["GB", 1e9],
+        ["MB", 1e6]
+      ])
+        if (b >= at) return `${(b / at).toFixed(b / at < 10 ? 1 : 0)} ${unit}`;
+      return `${b} B`;
+    },
+    when(iso) {
+      const t = Date.parse(iso);
+      return Number.isFinite(t) ? new Date(t).toLocaleDateString() : "unknown";
+    },
+    // "never catalogued" and "cannot be read from here" are different facts and are said differently
+    catalogued(d) {
+      if (d.catalogued_at) return `catalogued ${this.when(d.catalogued_at)}`;
+      return d.catalogue_unknown ? `catalogue unknown: ${d.catalogue_unknown}` : "never catalogued";
+    },
     tab: "estate",
     rects: [],
     recon: { reported: 0, drawn: 0, tooSmall: 0, unsplit: 0, missing: 0 },
@@ -60,7 +84,12 @@ window.estateMapPage = function estateMapPage() {
       this.$watch("tab", () => this.$nextTick(() => this.layout()));
       window.addEventListener("resize", () => this.layout());
       const everything = () =>
-        Promise.all([this.refresh(), this.refreshSweep(), this.refreshCompare(), this.refreshLibrary()]);
+        Promise.all([
+          this.refresh(),
+          this.refreshSweep(),
+          this.refreshCompare(),
+          this.refreshLibrary()
+        ]);
       await everything();
       // The sweep line is re-read with the map. It used to be read once, so a page left open said
       // "finished moments ago" an hour later, beside a card that had moved on to "swept 1 hour ago".
@@ -99,7 +128,9 @@ window.estateMapPage = function estateMapPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body)
         });
-        if (!res.ok) this[errorKey] = (await res.json().catch(() => ({}))).error || `the hub answered ${res.status}`;
+        if (!res.ok)
+          this[errorKey] =
+            (await res.json().catch(() => ({}))).error || `the hub answered ${res.status}`;
       } catch (e) {
         this[errorKey] = `the hub did not answer: ${e.message}`;
       }
@@ -116,7 +147,9 @@ window.estateMapPage = function estateMapPage() {
     },
 
     compare(from) {
-      return this.ask("/api/estate/compare", { from, to: this.cmp.to }, "compareError", () => this.refreshCompare());
+      return this.ask("/api/estate/compare", { from, to: this.cmp.to }, "compareError", () =>
+        this.refreshCompare()
+      );
     },
 
     async refreshSweep() {
@@ -143,7 +176,9 @@ window.estateMapPage = function estateMapPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ volumes })
         });
-        if (!res.ok) this.sweepError = (await res.json().catch(() => ({}))).error || `the hub answered ${res.status}`;
+        if (!res.ok)
+          this.sweepError =
+            (await res.json().catch(() => ({}))).error || `the hub answered ${res.status}`;
       } catch (e) {
         this.sweepError = `the hub did not answer: ${e.message}`;
       }
@@ -230,7 +265,12 @@ window.estateMapPage = function estateMapPage() {
       const d = new Date(iso);
       return Number.isNaN(d.getTime())
         ? "an unknown time"
-        : d.toLocaleString(undefined, { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" });
+        : d.toLocaleString(undefined, {
+            hour: "2-digit",
+            minute: "2-digit",
+            day: "numeric",
+            month: "short"
+          });
     },
 
     // A rectangle says what unit it is in. The machine level is bytes, which the nodes reported;
