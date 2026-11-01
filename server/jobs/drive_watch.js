@@ -131,7 +131,11 @@ export default class DriveWatchJob extends JobBase {
 
   // no context: the runner passes no logger, so there is nothing here to report THROUGH - the
   // refusal is thrown instead, which is the one channel it reads
-  async run() {
+  // `step` is injected only so a test can drive the REFUSAL PATH without depending on the KEL
+  // schema's enum, which is what refuses today and which the owner may fix tomorrow: a test that
+  // asserted "run throws" against that would quietly stop testing anything the day it lands. A
+  // verifier deleted this throw and all 113 tests stayed green.
+  async run(_context = {}, { step = tick } = {}) {
     const home = process.env.BENNY_HOME;
     if (!home) return { skipped: "no BENNY_HOME" };
     // `require` in an ES module throws on EVERY tick. server/package.json is type: module, this was
@@ -139,7 +143,7 @@ export default class DriveWatchJob extends JobBase {
     // before it did anything, so the registry was never written on a default install. Every test
     // drove the exported tick() and nothing called run(), which is exactly the gap that hid it.
     const machine = (process.env.ESTATE_MACHINE || "").toLowerCase() || os.hostname().toLowerCase();
-    const r = await tick({
+    const r = await step({
       home,
       machine,
       logFile: path.join(home, "estate", "eventlog", `drives-${machine}.jsonl`)

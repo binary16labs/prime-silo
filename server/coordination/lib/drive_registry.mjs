@@ -223,6 +223,23 @@ export const FORBIDDEN_ROOTS = Object.freeze([
 // through it. realpath expands the short name and follows the junction; when the path does not
 // exist there is nothing to resolve, so the text is judged as given and a trailing dot or space is
 // trimmed first, those being spellings Windows accepts and this list did not.
+// Does this path, RESOLVED, name a drive's own root? `path.parse(x).root` is the volume root, so
+// C:\\Users\\.. resolving to C:\\ is caught where a regex on the given text is not. An unresolvable
+// path falls back to the textual test, which is conservative in the right direction.
+export const isDriveRoot = (p) => {
+  const given = String(p ?? "").trim();
+  // a BARE letter is the drive root by this codebase's own convention: rootIdentity appends the
+  // separator to it rather than resolving the current directory on that drive
+  if (/^[A-Za-z]:$/u.test(given)) return true;
+  try {
+    const real = path.resolve(fs.realpathSync.native(given));
+    return real === path.parse(real).root;
+  } catch {
+    const resolved = path.resolve(given);
+    return /^[A-Za-z]:[\\/]?$/u.test(given) || resolved === path.parse(resolved).root;
+  }
+};
+
 export const forbiddenRoot = (p) => {
   const given = String(p ?? "");
   let real = given;
@@ -452,15 +469,21 @@ export function addUserRoot(db, identity, root, { identityOf = driveIdentity } =
   if (forbiddenRoot(root)) return { refused: `${root} is Windows' own, not the owner's data` };
   if (!db.prepare("SELECT 1 FROM drives WHERE identity = ?").get(identity))
     return { refused: "no drive of that identity has ever been seen here" };
+  // THE DRIVE WHOLE IS THE DRIVE WHOLE, and that does not depend on being able to READ it — so
+  // this is judged before the identity, where a path that would not resolve was refused for the
+  // wrong reason. My first guard was a textual regex on the GIVEN spelling, sitting two lines below
+  // an identity check on the RESOLVED thing, which is exactly what forbiddenRoot had just been
+  // fixed for. A verifier walked five spellings past it — "C:\", "C:\.", "C:\.\", "C:\Users\.."
+  // and "C:\Users\nsdha\..\.." — every one resolving to C:\ and every one added, which hands U1
+  // and the Library 2,261,759 files and 494 GB: the precise overhead the owner's direction of
+  // 2026-10-11 exists to cut.
+  if (isDriveRoot(root)) return { refused: "that is the whole drive, not a folder on it" };
   // THE VOLUME, not the whole identity: a folder's identity differs from its drive's by the file
-  // half, so comparing them refused every folder that exists and accepted every one that does not.
+  // half, so comparing them refused every folder that exists and accepted every one that did not.
   const on = identityOf(root);
   if (!on) return { refused: `${root} cannot be read, so which drive it is on is not knowable` };
   if (!sameVolume(on, identity))
     return { refused: "that folder is on a different drive from the one it was added to" };
-  // and a bare drive root is the drive whole, which design point 7 forbids for a system drive
-  if (/^[A-Za-z]:[\\/]?$/u.test(String(root).trim()))
-    return { refused: "that is the whole drive, not a folder on it" };
   db.prepare(
     `INSERT INTO user_roots (identity, root, role, in_onedrive, added_by_owner)
      VALUES (?, ?, 'added', 0, 1) ON CONFLICT(identity, root) DO UPDATE SET added_by_owner = 1`

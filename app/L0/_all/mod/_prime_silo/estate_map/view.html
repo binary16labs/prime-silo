@@ -70,7 +70,11 @@
           <!-- DRIVES: every drive this machine has ever had, by identity. A field the OS did not
                give reads "unknown" and never a guess; a label a rule matches reads withheld. -->
           <template x-if="tab === 'drives'"><div class="em__drives">
-            <template x-if="!drives.length"><p class="em__note">No drive has been seen yet — the watch records them as they are attached.</p></template>
+            <!-- CANNOT-TELL IS NOT AN EMPTY ESTATE. drivesProblem was written in three places and
+                 read in none, so a 503 showed the owner "no drive has been seen yet" as a fact
+                 when the panel could not ask. This suite already names that invariant for the map. -->
+            <template x-if="drivesProblem"><p class="em__note em__problem" x-text="'the drives cannot be read: ' + drivesProblem"></p></template>
+            <template x-if="!drivesProblem && !drives.length"><p class="em__note">No drive has been seen yet — the watch records them as they are attached.</p></template>
             <template x-for="d in drives" :key="d.identity">
               <div class="em__drive" :data-off="!d.attached">
                 <h3 x-text="d.name || 'unnamed drive'"></h3>

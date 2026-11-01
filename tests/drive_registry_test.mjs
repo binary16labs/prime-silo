@@ -25,6 +25,7 @@ import {
   setOwnerName,
   addUserRoot,
   forbiddenRoot,
+  isDriveRoot,
   nameFor,
   WITHHELD,
   USER_ROOT_ORDER,
@@ -40,6 +41,24 @@ import http from "node:http";
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), "u0-"));
 const db = () => openRegistry(path.join(tmp(), "drives.db"));
+
+// A FOLDER OF OUR OWN, under neither a drive root nor AppData. These tests used process.cwd(),
+// and a verifier ran the suite from a drive ROOT where cwd is that root - so "a folder identity
+// is not its drive's" failed, which is true of every folder except a root, and the message would
+// have sent a reader hunting a product bug that was not there. os.tmpdir() is no good either: on
+// Windows it sits inside AppData, which this contract's own forbidden list rightly refuses. So a
+// scratch folder beside the repo, which is neither.
+const fixtures = [];
+// removed at exit, because a folder left beside the repo shows up as untracked and a dirty
+// worktree is how a verifier comes to measure something nobody wrote
+process.on("exit", () => {
+  for (const d of fixtures) fs.rmSync(d, { recursive: true, force: true });
+});
+const ownFolder = () => {
+  const d = fs.mkdtempSync(path.join(process.cwd(), "u0-fixture-"));
+  fixtures.push(d);
+  return d;
+};
 const vol = (o) => ({
   label: null,
   filesystem: "NTFS",
@@ -201,7 +220,11 @@ test("U0: capacity missing from the OS is measured, never invented", () => {
 test("Scenario: Windows identity is unchanged, so every catalogue still finds its drive", () => {
   // Every catalogue is named library-<identity>.db. A different spelling here would orphan every
   // catalogue the owner already has, including the 1.1-million-file F:.
-  const here = process.cwd();
+  // A FIXTURE FOLDER, NOT cwd. A verifier ran the suite from C:' + chr(92) + ' and two of these failed on
+  // "a folder's identity is NOT its drive's" - true of every folder except a drive root, which cwd
+  // was there. The message would have sent a future reader hunting a product bug that is not there,
+  // so the test makes its own folder and never asks where it happens to be standing.
+  const here = ownFolder();
   assert.equal(
     driveIdentity(here, { platform: "win32" }),
     rootIdentity(here),
@@ -582,7 +605,11 @@ test("U0: a user root reaches the drive it is on, WITH ITS OWN DEFAULTS", async 
   // identity while readRegistry looked them up by the DRIVE's. A Windows identity is
   // <volume>-<file>, so those never matched and `GET /drives` returned offers:"user-roots" with
   // user_roots: [] — the roots read correctly from Windows and shown to nobody.
-  const here = process.cwd();
+  // A FIXTURE FOLDER, NOT cwd. A verifier ran the suite from C:' + chr(92) + ' and two of these failed on
+  // "a folder's identity is NOT its drive's" - true of every folder except a drive root, which cwd
+  // was there. The message would have sent a future reader hunting a product bug that is not there,
+  // so the test makes its own folder and never asks where it happens to be standing.
+  const here = ownFolder();
   const driveRoot = `${here.slice(0, 2)}\\`;
   const d = db();
 
@@ -621,7 +648,11 @@ test("U0: the owner may add a real folder, WITH ITS OWN DEFAULTS", async () => {
   // The same inversion from the other side: `on !== identity` was true for every folder that
   // exists, so every real path was refused with "that folder is on a different drive" — and a path
   // that does NOT exist made identityOf null, the guard fell open, and it was added.
-  const here = process.cwd();
+  // A FIXTURE FOLDER, NOT cwd. A verifier ran the suite from C:' + chr(92) + ' and two of these failed on
+  // "a folder's identity is NOT its drive's" - true of every folder except a drive root, which cwd
+  // was there. The message would have sent a future reader hunting a product bug that is not there,
+  // so the test makes its own folder and never asks where it happens to be standing.
+  const here = ownFolder();
   const d = db();
   syncDrives(
     d,
@@ -808,7 +839,11 @@ test("U0: run() reaches the registry rather than throwing on its own imports", a
 
 test("U0: the route answers the registry, loopback only, with the user roots attached", async () => {
   // TDD item 2 had no tests, so nothing noticed that the answer's user_roots were always empty.
-  const here = process.cwd();
+  // A FIXTURE FOLDER, NOT cwd. A verifier ran the suite from C:' + chr(92) + ' and two of these failed on
+  // "a folder's identity is NOT its drive's" - true of every folder except a drive root, which cwd
+  // was there. The message would have sent a future reader hunting a product bug that is not there,
+  // so the test makes its own folder and never asks where it happens to be standing.
+  const here = ownFolder();
   const letter = here.slice(0, 2);
   const store = tmp();
   const home = tmp();
@@ -868,4 +903,89 @@ test("U0: the route answers the registry, loopback only, with the user roots att
   } finally {
     await new Promise((r) => server.close(r));
   }
+});
+
+// --- round 3: the three fixes that shipped with nothing holding them ----------------------------
+//
+// A verifier deleted each of these and all 113 tests stayed green — in the contract whose round-1
+// finding was "the three things with no test are the three things that do not work". Each needed
+// one assertion.
+
+test("U0: a refused ledger write reaches the runner", async () => {
+  // The throw was the fix for D2 and nothing held it. Driven through an injected step so the test
+  // does not depend on the KEL schema's enum, which is what refuses today and which the owner may
+  // fix tomorrow — an assertion resting on that would stop testing anything the day it lands.
+  const had = process.env.BENNY_HOME;
+  try {
+    process.env.BENNY_HOME = tmp();
+    const job = new DriveWatchJob({ jobId: "drive_watch" });
+    await assert.rejects(
+      () =>
+        job.run(
+          {},
+          { step: async () => ({ events: 1, written: 0, refused: "'type' not one of …" }) }
+        ),
+      /ledger refused/u,
+      "a ledger that refused must reach the one channel the runner reads"
+    );
+    // and a clean tick returns rather than throwing
+    const ok = await job.run({}, { step: async () => ({ events: 0, written: 0, refused: null }) });
+    assert.equal(ok.refused, null);
+  } finally {
+    if (had === undefined) delete process.env.BENNY_HOME;
+    else process.env.BENNY_HOME = had;
+  }
+});
+
+test("U0: the whole drive cannot be added however it is spelt", async () => {
+  // Five spellings got the system drive in as a user root — every one resolving to C:\ — which
+  // hands U1 and the Library 2,261,759 files and 494 GB, the exact overhead the owner's direction
+  // of 2026-10-11 exists to cut. My first guard was a textual regex on the GIVEN spelling, two
+  // lines below an identity check on the RESOLVED thing: what forbiddenRoot had just been fixed for.
+  // A FIXTURE FOLDER, NOT cwd. A verifier ran the suite from C:' + chr(92) + ' and two of these failed on
+  // "a folder's identity is NOT its drive's" - true of every folder except a drive root, which cwd
+  // was there. The message would have sent a future reader hunting a product bug that is not there,
+  // so the test makes its own folder and never asks where it happens to be standing.
+  const here = ownFolder();
+  const letter = here.slice(0, 2);
+  const d = db();
+  syncDrives(d, [vol({ identity: driveIdentity(`${letter}\\`), root: letter, system: true })], {
+    now: () => "2026-01-01T00:00:00Z"
+  });
+  const identity = readRegistry(d)[0].identity;
+
+  for (const whole of [letter, `${letter}\\`, `${letter}\\.`, `${letter}\\.\\`, ` ${letter}\\ `])
+    assert.match(
+      addUserRoot(d, identity, whole).refused ?? "",
+      /the whole drive/u,
+      `${whole} is the drive, not a folder on it`
+    );
+  // and the ones that resolve UP to the root, which the regex could never see
+  assert.equal(
+    isDriveRoot(`${letter}\\Users\\..`),
+    true,
+    "a path that resolves to the root IS the root"
+  );
+  assert.equal(isDriveRoot(`${letter}\\Users`), false, "and a real folder is not");
+});
+
+test("U0: the panel asks the hub for the drives", async () => {
+  // D6's fix was one call and nothing held it: a verifier deleted this.loadDrives() from the page
+  // and every test stayed green, so the tab could go back to reading "no drive has been seen yet"
+  // for ever — this contract's Goal sentence — without a single failure.
+  const js = fs.readFileSync(
+    new URL("../app/L0/_all/mod/_prime_silo/estate_map/estate_map.js", import.meta.url),
+    "utf8"
+  );
+  assert.match(js, /fetch\(\s*"\/api\/estate\/drives"\s*\)/u, "it reads the drives route");
+  assert.match(js, /this\.loadDrives\(\)/u, "and calls it with the rest of the page, not never");
+
+  // AND THE VIEW SAYS CANNOT-TELL RATHER THAN EMPTY. drivesProblem was written in three places and
+  // read in none, so a 503 told the owner no drive had ever been seen — as a fact.
+  const html = fs.readFileSync(
+    new URL("../app/L0/_all/mod/_prime_silo/estate_map/view.html", import.meta.url),
+    "utf8"
+  );
+  assert.match(html, /x-if="drivesProblem"/u, "a hub that could not answer says so");
+  assert.match(html, /!drivesProblem && !drives\.length/u, "and empty means empty, not unasked");
 });
