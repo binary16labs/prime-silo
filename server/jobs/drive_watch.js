@@ -7,6 +7,7 @@
 // IT COSTS WHAT A LIST COSTS. The tick reads the volume table and nothing else: no file is opened,
 // no directory walked, no hash taken. The pre-registered criterion is 2 s of CPU per hour for an
 // idle hub, and the only way to meet that is for the tick to be a list and not a scan.
+import os from "node:os";
 import path from "node:path";
 import {
   openRegistry,
@@ -128,19 +129,28 @@ export default class DriveWatchJob extends JobBase {
     return { everyMs: Math.max(5, s) * 1_000, lockTtlMs: JOB_LOCK_TTL_MS };
   }
 
-  async run(context = {}) {
+  // no context: the runner passes no logger, so there is nothing here to report THROUGH - the
+  // refusal is thrown instead, which is the one channel it reads
+  async run() {
     const home = process.env.BENNY_HOME;
     if (!home) return { skipped: "no BENNY_HOME" };
-    const machine =
-      (process.env.ESTATE_MACHINE || "").toLowerCase() ||
-      require("node:os").hostname().toLowerCase();
+    // `require` in an ES module throws on EVERY tick. server/package.json is type: module, this was
+    // the only require in server/jobs, and with ESTATE_MACHINE unset - the default - the job failed
+    // before it did anything, so the registry was never written on a default install. Every test
+    // drove the exported tick() and nothing called run(), which is exactly the gap that hid it.
+    const machine = (process.env.ESTATE_MACHINE || "").toLowerCase() || os.hostname().toLowerCase();
     const r = await tick({
       home,
       machine,
       logFile: path.join(home, "estate", "eventlog", `drives-${machine}.jsonl`)
     });
-    if (r.refused)
-      context.logger?.warn?.(`[drive_watch] the ledger refused the event: ${r.refused}`);
+    // THROWN, because the runner has no logger to warn through: context carries auth, jobId,
+    // projectRoot, runTrackedMutation, runtimeParams, stateSystem and watchdog and no logger, so
+    // the optional chaining I wrote made "reports rather than swallows" a silent no-op - and
+    // run()'s return value is discarded too. Throwing is the one channel the runner reads: it
+    // catches, records that the job failed, and reschedules. A ledger write that fails quietly is
+    // the dead-worker defect with a longer fuse.
+    if (r.refused) throw new Error(`the estate ledger refused a drive event: ${r.refused}`);
     return r;
   }
 }

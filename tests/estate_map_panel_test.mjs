@@ -36,11 +36,27 @@ const machine = (over = {}) => ({
   ageMs: 15 * 60_000,
   stale: false,
   since: null,
-  counts: { files: 1_117_036, bytes: 1_550_868_580_736, listed_files: 1_117_010, apps: 1073, listed_apps: 1073, media: 0, listed_media: 0 },
+  counts: {
+    files: 1_117_036,
+    bytes: 1_550_868_580_736,
+    listed_files: 1_117_010,
+    apps: 1073,
+    listed_apps: 1073,
+    media: 0,
+    listed_media: 0
+  },
   digest: "a".repeat(64),
   snapshot: `sha256:${"b".repeat(64)}`,
   scope: ["F:\\"],
-  volumes: { "F:\\": { collector: "everything", status: "ok", rows: 1_117_036, at: T(10, 45), sweep_id: "01M31Y102Z4631D8992T33C1FW" } },
+  volumes: {
+    "F:\\": {
+      collector: "everything",
+      status: "ok",
+      rows: 1_117_036,
+      at: T(10, 45),
+      sweep_id: "01M31Y102Z4631D8992T33C1FW"
+    }
+  },
   totals: [],
   ...over
 });
@@ -77,7 +93,13 @@ test("an errored collector is on the card, not swallowed", () => {
     machines: {
       t480: machine({
         volumes: {
-          "C:\\": { collector: "walker", status: "errored", rows: 0, error_code: "WALK_INCOMPLETE", at: T(10, 45) },
+          "C:\\": {
+            collector: "walker",
+            status: "errored",
+            rows: 0,
+            error_code: "WALK_INCOMPLETE",
+            at: T(10, 45)
+          },
           "F:\\": { collector: "everything", status: "ok", rows: 10, at: T(10, 45) }
         }
       })
@@ -124,7 +146,9 @@ test("a hub that cannot be reached is not an empty estate", () => {
 test("two machines on different Prime-Silo versions are flagged as drifted", () => {
   const fold = {
     machines: {
-      t480: machine({ apps: [{ name: "Prime-Silo 1.24.5", version: "1.24.5", source: "registry" }] }),
+      t480: machine({
+        apps: [{ name: "Prime-Silo 1.24.5", version: "1.24.5", source: "registry" }]
+      }),
       optimus: machine({ apps: [{ name: "Prime-Silo", version: "1.24.4", source: "winget" }] })
     }
   };
@@ -221,7 +245,10 @@ test("treemap areas are proportional and tile the box exactly", () => {
   for (const r of rects) {
     const share = (r.w * r.h) / (box.w * box.h);
     const expected = items.find((i) => i.key === r.key).value / total;
-    assert.ok(Math.abs(share - expected) < 1e-9, `${r.key} is proportional: ${share} vs ${expected}`);
+    assert.ok(
+      Math.abs(share - expected) < 1e-9,
+      `${r.key} is proportional: ${share} vs ${expected}`
+    );
     assert.ok(r.w > 0 && r.h > 0, `${r.key} is visible`);
     assert.ok(r.x >= box.x - 1e-9 && r.y >= box.y - 1e-9, `${r.key} is inside the box`);
     assert.ok(r.x + r.w <= box.x + box.w + 1e-6 && r.y + r.h <= box.y + box.h + 1e-6);
@@ -230,10 +257,17 @@ test("treemap areas are proportional and tile the box exactly", () => {
 
 test("a rectangle nobody can see is not drawn at all", () => {
   const rects = treemap(
-    [{ key: "a", value: 100 }, { key: "zero", value: 0 }, { key: "negative", value: -5 }],
+    [
+      { key: "a", value: 100 },
+      { key: "zero", value: 0 },
+      { key: "negative", value: -5 }
+    ],
     { x: 0, y: 0, w: 10, h: 10 }
   );
-  assert.deepEqual(rects.map((r) => r.key), ["a"]);
+  assert.deepEqual(
+    rects.map((r) => r.key),
+    ["a"]
+  );
   assert.equal(rects[0].w * rects[0].h, 100, "and the survivor still fills the box");
 });
 
@@ -255,7 +289,15 @@ test("no volume is ever labelled with bytes the node did not send", () => {
   const fold = {
     machines: {
       t480: machine({
-        counts: { files: 300, bytes: 3000, listed_files: 300, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+        counts: {
+          files: 300,
+          bytes: 3000,
+          listed_files: 300,
+          apps: 0,
+          listed_apps: 0,
+          media: 0,
+          listed_media: 0
+        },
         volumes: {
           "C:\\": { collector: "everything", status: "ok", rows: 200, at: T(10) },
           "F:\\": { collector: "everything", status: "ok", rows: 100, at: T(10) }
@@ -269,7 +311,10 @@ test("no volume is ever labelled with bytes the node did not send", () => {
   assert.equal(m.value, 3000, "the machine carries the bytes it reported, which are real");
   assert.deepEqual(
     m.volumes.map((v) => [v.volume, v.files]),
-    [["C:\\", 200], ["F:\\", 100]],
+    [
+      ["C:\\", 200],
+      ["F:\\", 100]
+    ],
     "volumes carry file counts, which are also real"
   );
   for (const v of m.volumes)
@@ -281,18 +326,38 @@ test("bytes on a node with no volume to draw are named, never dropped", () => {
   const fold = {
     machines: {
       t480: machine({
-        counts: { files: 10, bytes: 4000, listed_files: 10, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+        counts: {
+          files: 10,
+          bytes: 4000,
+          listed_files: 10,
+          apps: 0,
+          listed_apps: 0,
+          media: 0,
+          listed_media: 0
+        },
         volumes: { "C:\\": { collector: "everything", status: "ok", rows: 10, at: T(10) } }
       }),
       // reported two thousand bytes and folded no volume at all: the case that lost 2 TB silently
       optimus: machine({
-        counts: { files: 7, bytes: 2000, listed_files: 7, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+        counts: {
+          files: 7,
+          bytes: 2000,
+          listed_files: 7,
+          apps: 0,
+          listed_apps: 0,
+          media: 0,
+          listed_media: 0
+        },
         volumes: {}
       })
     }
   };
   const view = storageView(fold, { now: NOW });
-  assert.equal(view.bytes.reported, 6000, "the fold's own figure, and the only one storageView owns");
+  assert.equal(
+    view.bytes.reported,
+    6000,
+    "the fold's own figure, and the only one storageView owns"
+  );
   // AND THE REST IS COUNTED OFF THE RECTANGLES. reconcile() is given a box big enough to draw both,
   // so the node with no volumes is drawn as a bare block and counted as unsplit rather than lost.
   const r = reconcile(view, storageRects(view, { x: 0, y: 0, w: 800, h: 400 }));
@@ -309,10 +374,24 @@ test("a volume the node listed no files on is named, not silently absent", () =>
   const fold = {
     machines: {
       pi: machine({
-        counts: { files: 5, bytes: 0, listed_files: 5, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+        counts: {
+          files: 5,
+          bytes: 0,
+          listed_files: 5,
+          apps: 0,
+          listed_apps: 0,
+          media: 0,
+          listed_media: 0
+        },
         volumes: {
           "/": { collector: "walker", status: "ok", rows: 5, at: T(10) },
-          "/mnt/nas": { collector: "walker", status: "errored", rows: 0, error_code: "WALK_INCOMPLETE", at: T(10) }
+          "/mnt/nas": {
+            collector: "walker",
+            status: "errored",
+            rows: 0,
+            error_code: "WALK_INCOMPLETE",
+            at: T(10)
+          }
         }
       })
     }
@@ -327,11 +406,33 @@ test("the bytes a node withheld are a floor under a volume, never its size", () 
   const fold = {
     machines: {
       t480: machine({
-        counts: { files: 100, bytes: 9000, listed_files: 40, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+        counts: {
+          files: 100,
+          bytes: 9000,
+          listed_files: 40,
+          apps: 0,
+          listed_apps: 0,
+          media: 0,
+          listed_media: 0
+        },
         volumes: { "F:\\": { collector: "everything", status: "ok", rows: 100, at: T(10) } },
         totals: [
-          { kind: "files", collector: "everything", volume: "F:\\", category: "documents", items: 50, bytes: 500 },
-          { kind: "files", collector: "everything", volume: "F:\\", category: "media", items: 10, bytes: 2500 }
+          {
+            kind: "files",
+            collector: "everything",
+            volume: "F:\\",
+            category: "documents",
+            items: 50,
+            bytes: 500
+          },
+          {
+            kind: "files",
+            collector: "everything",
+            volume: "F:\\",
+            category: "media",
+            items: 10,
+            bytes: 2500
+          }
         ]
       })
     }
@@ -339,17 +440,29 @@ test("the bytes a node withheld are a floor under a volume, never its size", () 
   const [m] = storageView(fold, { now: NOW }).machines;
   const [f] = m.volumes;
   assert.equal(f.withheldBytes, 3000, "the withheld part is known exactly");
-  assert.ok(f.withheldBytes < m.value, "and it is less than the machine's total, which is the point");
-  assert.deepEqual(f.categories.map((c) => c.category), ["media", "documents"], "biggest first");
+  assert.ok(
+    f.withheldBytes < m.value,
+    "and it is less than the machine's total, which is the point"
+  );
+  assert.deepEqual(
+    f.categories.map((c) => c.category),
+    ["media", "documents"],
+    "biggest first"
+  );
 });
 
 test("a rectangle too small to see is listed rather than counted invisibly", () => {
   const view = {
     machines: [
-      { key: "t480", machine: "t480", value: 1000, volumes: [
-        { key: "t480:C:", machine: "t480", volume: "C:\\", files: 1_000_000 },
-        { key: "t480:F:", machine: "t480", volume: "F:\\", files: 1 }
-      ] }
+      {
+        key: "t480",
+        machine: "t480",
+        value: 1000,
+        volumes: [
+          { key: "t480:C:", machine: "t480", volume: "C:\\", files: 1_000_000 },
+          { key: "t480:F:", machine: "t480", volume: "F:\\", files: 1 }
+        ]
+      }
     ]
   };
   const rects = storageRects(view, { x: 0, y: 0, w: 200, h: 120 });
@@ -376,15 +489,35 @@ test("an estate where every node is quiet does not read as an estate that is rep
     }
   };
   assert.equal(estateView(fold, { now: NOW }).allStale, true);
-  assert.equal(estateView({ at: NOW, machines: { t480: machine({}) } }, { now: NOW }).allStale, false);
+  assert.equal(
+    estateView({ at: NOW, machines: { t480: machine({}) } }, { now: NOW }).allStale,
+    false
+  );
 });
 
 test("a node that has not swept media reads not-swept, never zero media", () => {
   const fold = {
     machines: {
       t480: machine({
-        counts: { files: 1, bytes: 1, listed_files: 1, apps: 0, listed_apps: 0, media: 40, listed_media: 25 },
-        totals: [{ kind: "media", collector: "media", volume: "F:\\", category: "video", items: 15, bytes: 900 }]
+        counts: {
+          files: 1,
+          bytes: 1,
+          listed_files: 1,
+          apps: 0,
+          listed_apps: 0,
+          media: 40,
+          listed_media: 25
+        },
+        totals: [
+          {
+            kind: "media",
+            collector: "media",
+            volume: "F:\\",
+            category: "video",
+            items: 15,
+            bytes: 900
+          }
+        ]
       }),
       pi: machine({})
     }
@@ -397,7 +530,10 @@ test("a node that has not swept media reads not-swept, never zero media", () => 
   assert.equal(t480.listed, 25);
   assert.equal(t480.withheld, 15);
   assert.equal(t480.withheldBytes, 900);
-  assert.deepEqual(t480.categories.map((c) => c.category), ["video"]);
+  assert.deepEqual(
+    t480.categories.map((c) => c.category),
+    ["video"]
+  );
 });
 
 // --- labels and the view itself -----------------------------------------------------------------------
@@ -421,7 +557,12 @@ test("the whole view is one call, and it carries what the panel draws", () => {
     at: NOW,
     machines: {
       t480: machine({ apps: [{ name: "Prime-Silo", version: "1.24.5", source: "registry" }] }),
-      optimus: machine({ stale: true, since: T(10), ageMs: 3_600_000, apps: [{ name: "Prime-Silo", version: "1.24.4", source: "registry" }] })
+      optimus: machine({
+        stale: true,
+        since: T(10),
+        ageMs: 3_600_000,
+        apps: [{ name: "Prime-Silo", version: "1.24.4", source: "registry" }]
+      })
     }
   };
   const v = estateView(fold, { now: NOW });
@@ -467,8 +608,8 @@ test("the panel reads the map from the estate map API, and talks to nothing but 
   for (const url of fetched)
     assert.match(
       url,
-      /^\/api\/estate\/(map|sweep|compare|compare\/stop|library|library\/stop)$/u,
-      `${url} is not the map, Sweep, a comparison or the library`
+      /^\/api\/estate\/(map|sweep|compare|compare\/stop|library|library\/stop|drives)$/u,
+      `${url} is not the map, Sweep, a comparison, the library or the drives`
     );
 });
 
@@ -549,15 +690,42 @@ function seeded(seed) {
 }
 
 // What GET /api/estate/sweep answers in a render, unless a test says otherwise (S17).
-const SWEEP_READY = { machine: "T480", roots: ["C:", "F:"], policy: true, running: null, last: null };
+const SWEEP_READY = {
+  machine: "T480",
+  roots: ["C:", "F:"],
+  policy: true,
+  running: null,
+  last: null
+};
 // What GET /api/estate/compare answers in a render, unless a test says otherwise (S20).
-const COMPARE_READY = { roots: ["C:", "F:", "G:"], to: "F:", policy: true, running: null, results: { "C:": null, "G:": null } };
+const COMPARE_READY = {
+  roots: ["C:", "F:", "G:"],
+  to: "F:",
+  policy: true,
+  running: null,
+  results: { "C:": null, "G:": null }
+};
 // What GET /api/estate/library answers in a render, unless a test says otherwise (S21).
-const LIBRARY_READY = { roots: ["C:", "F:", "G:"], policy: true, running: null, last: null, catalogues: { "C:": null, "F:": null, "G:": null } };
+const LIBRARY_READY = {
+  roots: ["C:", "F:", "G:"],
+  policy: true,
+  running: null,
+  last: null,
+  catalogues: { "C:": null, "F:": null, "G:": null }
+};
 
 async function renderPanel(
   fold,
-  { status = 200, malformed = false, fetchTwice = false, sweep = SWEEP_READY, compare = COMPARE_READY, library = LIBRARY_READY, posted = [] } = {}
+  {
+    status = 200,
+    malformed = false,
+    fetchTwice = false,
+    sweep = SWEEP_READY,
+    compare = COMPARE_READY,
+    library = LIBRARY_READY,
+    drives = { drives: [] },
+    posted = []
+  } = {}
 ) {
   // THE PANEL'S OWN STYLESHEET GOES IN. jsdom fetches nothing, so a <link> is inert and the
   // document would have no rules at all — which is how seven one-line CSS mutations hid guards under
@@ -567,11 +735,14 @@ async function renderPanel(
   const shell =
     `<style>${fs.readFileSync(path.join(PANEL, "estate_map.css"), "utf8")}</style>` +
     "<style>[x-cloak]{display:none !important}</style>";
-  const dom = new JSDOM(fs.readFileSync(path.join(PANEL, "view.html"), "utf8").replace("</head>", `${shell}</head>`), {
-    url: "http://localhost/",
-    runScripts: "dangerously",
-    pretendToBeVisual: true
-  });
+  const dom = new JSDOM(
+    fs.readFileSync(path.join(PANEL, "view.html"), "utf8").replace("</head>", `${shell}</head>`),
+    {
+      url: "http://localhost/",
+      runScripts: "dangerously",
+      pretendToBeVisual: true
+    }
+  );
   const { window } = dom;
   // jsdom has no layout: without a box the treemap lays out into nothing and the storage tab would
   // look empty for a reason that has nothing to do with the panel.
@@ -579,7 +750,11 @@ async function renderPanel(
     return { ...BOX, x: 0, y: 0, top: 0, left: 0, right: BOX.width, bottom: BOX.height };
   };
 
-  const saved = { window: globalThis.window, fetch: globalThis.fetch, setInterval: globalThis.setInterval };
+  const saved = {
+    window: globalThis.window,
+    fetch: globalThis.fetch,
+    setInterval: globalThis.setInterval
+  };
   globalThis.window = window;
   // Routed by URL since S17: the map answers as the test says, the sweep status as `sweep` says, and
   // a POST is recorded in `posted`. Only MAP fetches are counted, because the count is how this
@@ -599,6 +774,10 @@ async function renderPanel(
       if (init.method === "POST") posted.push(JSON.parse(init.body));
       return { ok: true, status: init.method === "POST" ? 202 : 200, json: async () => library };
     }
+    // U0: answered like its siblings rather than falling through to the map's stub, which made the
+    // fetch counter read two reads of the map and took the paired negative down with it
+    if (String(url).startsWith("/api/estate/drives"))
+      return { ok: true, status: 200, json: async () => drives };
     return {
       ok: (fetches++, status >= 200 && status < 300),
       status,
@@ -613,7 +792,9 @@ async function renderPanel(
   globalThis.setInterval = (fn) => (intervals.push(fn), 0);
   try {
     // the real component, loaded once per process and re-registered on each window
-    const mod = await import(pathToFileURL(path.join(PANEL, "estate_map.js")).href + `?r=${renders++}`);
+    const mod = await import(
+      pathToFileURL(path.join(PANEL, "estate_map.js")).href + `?r=${renders++}`
+    );
     void mod;
     window.eval(fs.readFileSync(path.join(FRAMEWORK, "alpine.min.js"), "utf8"));
     // Alpine starts on DOMContentLoaded, which jsdom has already fired by now
@@ -622,7 +803,10 @@ async function renderPanel(
     // on EVERY render: two init()s and two fetches per test, and a warning per render that nobody
     // read. Wait for the auto-start to walk the tree, and only start it by hand if it never does.
     try {
-      await until(() => window.document.querySelector(".em")?._x_dataStack, { timeout: 1000, step: 5 });
+      await until(() => window.document.querySelector(".em")?._x_dataStack, {
+        timeout: 1000,
+        step: 5
+      });
     } catch {
       window.Alpine.start();
     }
@@ -645,8 +829,8 @@ async function renderPanel(
       if (data.loading) return false;
       return Boolean(
         window.document.querySelector(".em__body") ||
-          window.document.querySelector(".em__blind") ||
-          window.document.querySelector(".em__nothing")
+        window.document.querySelector(".em__blind") ||
+        window.document.querySelector(".em__nothing")
       );
     });
     await flush(window);
@@ -670,7 +854,8 @@ async function until(fn, { timeout = 2000, step = 5 } = {}) {
   const deadline = Date.now() + timeout;
   for (;;) {
     if (fn()) return;
-    if (Date.now() > deadline) throw new Error("the panel never reached the state the test waited for");
+    if (Date.now() > deadline)
+      throw new Error("the panel never reached the state the test waited for");
     await new Promise((r) => setTimeout(r, step));
   }
 }
@@ -685,7 +870,10 @@ const flush = (window) =>
 async function openTab(window, name) {
   const tabs = [...window.document.querySelectorAll(".em__tab")];
   const tab = tabs.find((t) => t.textContent.trim() === name);
-  if (!tab) throw new Error(`no ${name} tab: the panel offers ${tabs.map((t) => t.textContent.trim()).join(", ")}`);
+  if (!tab)
+    throw new Error(
+      `no ${name} tab: the panel offers ${tabs.map((t) => t.textContent.trim()).join(", ")}`
+    );
   tab.click();
   // the panes are x-if, so the new one has to EXIST before anything is asserted about it
   const pane = {
@@ -815,7 +1003,11 @@ function stylesheetProblems(css) {
   const problems = [];
   let ast;
   try {
-    ast = parse(css, { parseValue: false, parseAtrulePrelude: false, onParseError: (e) => problems.push(`the panel stylesheet does not parse: ${e.message}`) });
+    ast = parse(css, {
+      parseValue: false,
+      parseAtrulePrelude: false,
+      onParseError: (e) => problems.push(`the panel stylesheet does not parse: ${e.message}`)
+    });
   } catch (e) {
     return [`the panel stylesheet does not parse: ${e.message}`];
   }
@@ -854,7 +1046,9 @@ function stylesheetProblems(css) {
     enter(node) {
       if (node.type === "Rule") selector = generate(node.prelude).trim().toLowerCase();
       if (node.type === "Atrule")
-        problems.push(`@${node.name}: a rule that applies only sometimes can hide a guard sometimes`);
+        problems.push(
+          `@${node.name}: a rule that applies only sometimes can hide a guard sometimes`
+        );
       if (node.type !== "Declaration") return;
       const prop = node.property.toLowerCase();
       const decl = `${prop}: ${generate(node.value).trim().toLowerCase()}`;
@@ -863,10 +1057,16 @@ function stylesheetProblems(css) {
         return;
       }
       if (!APPROVED_DECLARATIONS.has(decl)) {
-        problems.push(`the panel stylesheet says "${decl}", which is not in its approved inventory`);
+        problems.push(
+          `the panel stylesheet says "${decl}", which is not in its approved inventory`
+        );
         return;
       }
-      if (CLIPPING.has(prop) && !MAY_CLIP.has(selector) && !/^overflow(-x)?: (auto|visible)$/u.test(decl))
+      if (
+        CLIPPING.has(prop) &&
+        !MAY_CLIP.has(selector) &&
+        !/^overflow(-x)?: (auto|visible)$/u.test(decl)
+      )
         problems.push(
           `"${decl}" on ${selector}: only ${[...MAY_CLIP].join(" and ")} may clip, and everything else ` +
             "clipped this way puts content out of the owner's reach with no way to scroll to it"
@@ -880,7 +1080,8 @@ function hiddenBy(el, win) {
   if (el.hasAttribute("hidden")) return "the hidden attribute";
   const cs = win.getComputedStyle(el);
   if (cs.display === "none") return "display:none";
-  if (cs.visibility === "hidden" || cs.visibility === "collapse") return `visibility:${cs.visibility}`;
+  if (cs.visibility === "hidden" || cs.visibility === "collapse")
+    return `visibility:${cs.visibility}`;
   if (cs.opacity !== "" && Number(cs.opacity) === 0) return "opacity:0";
   if (/^0(px)?$/u.test(cs.fontSize ?? "")) return "font-size:0";
   // Parked out of sight. The first version of this looked only for large NEGATIVE left/top, so an
@@ -891,7 +1092,12 @@ function hiddenBy(el, win) {
   // "1536px" in jsdom, so a rule of thumb like "over 5000px is off-screen" let the empty-hub notice
   // be parked below the fold with the gate green. Anything at or past the viewport edge is out of
   // sight whatever unit it was written in.
-  const edge = { left: win.innerWidth, right: win.innerWidth, top: win.innerHeight, bottom: win.innerHeight };
+  const edge = {
+    left: win.innerWidth,
+    right: win.innerWidth,
+    top: win.innerHeight,
+    bottom: win.innerHeight
+  };
   for (const side of ["left", "top", "right", "bottom"]) {
     const raw = cs[side] ?? "";
     const v = Number.parseFloat(raw);
@@ -901,11 +1107,13 @@ function hiddenBy(el, win) {
   }
   if (/^0(px)?$/u.test(cs.width ?? "") && /^0(px)?$/u.test(cs.height ?? "")) return "a 0x0 box";
   // collapsed by a clipped box rather than by display
-  if (/^0(px)?$/u.test(cs.maxHeight ?? "") || /^0(px)?$/u.test(cs.maxWidth ?? "")) return "a clipped box";
+  if (/^0(px)?$/u.test(cs.maxHeight ?? "") || /^0(px)?$/u.test(cs.maxWidth ?? ""))
+    return "a clipped box";
   if (/inset\(\s*100%/u.test(cs.clipPath ?? "")) return `clip-path:${cs.clipPath}`;
   if (/scale\(\s*0\s*[,)]/u.test(cs.transform ?? "")) return `transform:${cs.transform}`;
   if (/^-?\d{4,}px$/u.test(cs.textIndent ?? "")) return `text-indent:${cs.textIndent}`;
-  if (cs.color === "transparent" || /rgba\(.*,\s*0\s*\)/u.test(cs.color ?? "")) return "transparent text";
+  if (cs.color === "transparent" || /rgba\(.*,\s*0\s*\)/u.test(cs.color ?? ""))
+    return "transparent text";
   return null;
 }
 
@@ -944,7 +1152,11 @@ test("RENDERED: a node that went quiet is still on the screen, labelled and coun
     }
   });
   const text = visible(window);
-  assert.match(text, /optimus/u, "the stale node is drawn — this is the mutation that shipped green");
+  assert.match(
+    text,
+    /optimus/u,
+    "the stale node is drawn — this is the mutation that shipped green"
+  );
   assert.match(text, /t480/u);
   assert.match(text, /stale since/u, "and it says WHEN it went quiet");
   // THE SENTENCE THE OWNER READS FIRST. Every earlier defect in this panel was damning because of
@@ -989,7 +1201,15 @@ test("RENDERED: what a node withheld is on its card", async () => {
     at: NOW,
     machines: {
       t480: machine({
-        counts: { files: 100, bytes: 1000, listed_files: 60, apps: 0, listed_apps: 0, media: 0, listed_media: 0 }
+        counts: {
+          files: 100,
+          bytes: 1000,
+          listed_files: 60,
+          apps: 0,
+          listed_apps: 0,
+          media: 0,
+          listed_media: 0
+        }
       })
     }
   });
@@ -1003,7 +1223,13 @@ test("RENDERED: an incomplete sweep says so where the owner is looking", async (
       t480: machine({
         volumes: {
           "C:\\": { collector: "everything", status: "ok", rows: 10, at: T(10) },
-          "D:\\": { collector: "walker", status: "errored", rows: 0, error_code: "WALK_INCOMPLETE", at: T(10) }
+          "D:\\": {
+            collector: "walker",
+            status: "errored",
+            rows: 0,
+            error_code: "WALK_INCOMPLETE",
+            at: T(10)
+          }
         }
       })
     }
@@ -1020,14 +1246,22 @@ test("RENDERED: a hub that did not answer reads cannot-tell, never an empty esta
   assert.match(text, /the hub did not answer/u);
   assert.equal(window.document.querySelectorAll(".em__card").length, 0);
   const malformed = await renderPanel(null, { malformed: true });
-  assert.match(visible(malformed.window), /Cannot tell/u, "and malformed JSON is not an empty estate either");
+  assert.match(
+    visible(malformed.window),
+    /Cannot tell/u,
+    "and malformed JSON is not an empty estate either"
+  );
 });
 
 test("RENDERED: a hub that answered and holds nothing is not a blank page", async () => {
   const { window } = await renderPanel({ at: NOW, machines: {} });
   const text = visible(window);
   assert.match(text, /No node has pushed a map yet/u);
-  assert.match(text, /quarantine/u, "and it names the fail-closed reason — the state this estate is in");
+  assert.match(
+    text,
+    /quarantine/u,
+    "and it names the fail-closed reason — the state this estate is in"
+  );
 });
 
 // --- S17: Sweep, on the screen ---------------------------------------------------------------------
@@ -1036,7 +1270,10 @@ test("RENDERED: an empty estate offers Sweep for this machine's drives, and pres
   // The empty estate is exactly when the owner needs the button, so it must be on THAT screen.
   const { window } = await renderPanel({ at: NOW, machines: {} });
   const buttons = [...window.document.querySelectorAll(".em__sweepbtn")];
-  assert.deepEqual(buttons.map((b) => b.textContent.trim()), ["C:", "F:", "All"]);
+  assert.deepEqual(
+    buttons.map((b) => b.textContent.trim()),
+    ["C:", "F:", "All"]
+  );
   assert.match(visible(window), /Sweep T480:/u);
   // the click happens after the render, so it gets a recording fetch of its own. The sweep it starts
   // has already finished by the time the panel looks — a small root does — so the panel must re-read
@@ -1057,17 +1294,34 @@ test("RENDERED: an empty estate offers Sweep for this machine's drives, and pres
     globalThis.fetch = saved;
   }
   assert.deepEqual(posted, [{ url: "/api/estate/sweep", body: { volumes: ["F:"] } }]);
-  assert.deepEqual(read, ["/api/estate/sweep", "/api/estate/map"], "status, then the map that changed");
+  assert.deepEqual(
+    read,
+    ["/api/estate/sweep", "/api/estate/map"],
+    "status, then the map that changed"
+  );
 });
 
 test("RENDERED: a root the map could never carry is named with its reason, and no roots means no button", async () => {
   const unusable = [{ root: "F:\\a\\b\\c", reason: "volume name" }];
-  const some = await renderPanel({ at: NOW, machines: {} }, { sweep: { ...SWEEP_READY, roots: ["C:"], unusable } });
-  assert.deepEqual([...some.document.querySelectorAll(".em__sweepbtn")].map((b) => b.textContent.trim()), ["C:"]);
+  const some = await renderPanel(
+    { at: NOW, machines: {} },
+    { sweep: { ...SWEEP_READY, roots: ["C:"], unusable } }
+  );
+  assert.deepEqual(
+    [...some.document.querySelectorAll(".em__sweepbtn")].map((b) => b.textContent.trim()),
+    ["C:"]
+  );
   assert.match(visible(some.window), /F:\\a\\b\\c cannot be swept: volume name/u);
-  const none = await renderPanel({ at: NOW, machines: {} }, { sweep: { ...SWEEP_READY, roots: [], unusable } });
+  const none = await renderPanel(
+    { at: NOW, machines: {} },
+    { sweep: { ...SWEEP_READY, roots: [], unusable } }
+  );
   assert.equal(none.document.querySelectorAll(".em__sweepbtn").length, 0);
-  assert.doesNotMatch(visible(none.window), /Sweep T480:/u, "no label introducing buttons that are not there");
+  assert.doesNotMatch(
+    visible(none.window),
+    /Sweep T480:/u,
+    "no label introducing buttons that are not there"
+  );
   assert.match(visible(none.window), /offers no volume the map can carry/u);
 });
 
@@ -1077,16 +1331,26 @@ test("RENDERED: the Backups tab names each drive against F:, and pressing Compar
   const { window } = await renderPanel({ at: NOW, machines: { t480: machine({}) } });
   await openTab(window, "backups");
   const rows = [...window.document.querySelectorAll(".em__backups .em__mediarow")];
-  assert.deepEqual(rows.map((r) => r.querySelector("b").textContent), ["C:", "G:"], "every root but F: itself");
+  assert.deepEqual(
+    rows.map((r) => r.querySelector("b").textContent),
+    ["C:", "G:"],
+    "every root but F: itself"
+  );
   assert.match(visible(window), /G: Not compared yet\./u);
   const posted = [];
   const saved = globalThis.fetch;
   globalThis.fetch = async (url, init = {}) => {
     if (init.method === "POST") posted.push({ url, body: JSON.parse(init.body) });
-    return { ok: true, status: init.method === "POST" ? 202 : 200, json: async () => COMPARE_READY };
+    return {
+      ok: true,
+      status: init.method === "POST" ? 202 : 200,
+      json: async () => COMPARE_READY
+    };
   };
   try {
-    [...rows[1].querySelectorAll("button")].find((b) => /Compare with F:/u.test(b.textContent)).click();
+    [...rows[1].querySelectorAll("button")]
+      .find((b) => /Compare with F:/u.test(b.textContent))
+      .click();
     await until(() => posted.length > 0);
   } finally {
     globalThis.fetch = saved;
@@ -1132,7 +1396,9 @@ async function pressing(window, root, words, answer) {
     return { ok: true, status: init.method === "POST" ? 202 : 200, json: async () => answer };
   };
   try {
-    const button = [...window.document.querySelectorAll(`${root} button`)].find((b) => words.test(b.textContent));
+    const button = [...window.document.querySelectorAll(`${root} button`)].find((b) =>
+      words.test(b.textContent)
+    );
     if (!button) throw new Error(`no button matching ${words} in ${root}`);
     button.click();
     await until(() => posted.length > 0);
@@ -1151,12 +1417,31 @@ test("RENDERED: the Library tab says F: was never catalogued, and Catalogue F: a
 });
 
 test("RENDERED: a pass running shows its progress and a Stop, and no second Catalogue", async () => {
-  const running = { root: "F:", since: new Date().toISOString(), phase: "cataloguing", seen: 4000, hashed: 3900, bytes_hashed: 2_000_000, rate: 80, estimate: 12000 };
-  const { window } = await renderPanel({ at: NOW, machines: { t480: machine({}) } }, { library: { ...LIBRARY_READY, running } });
+  const running = {
+    root: "F:",
+    since: new Date().toISOString(),
+    phase: "cataloguing",
+    seen: 4000,
+    hashed: 3900,
+    bytes_hashed: 2_000_000,
+    rate: 80,
+    estimate: 12000
+  };
+  const { window } = await renderPanel(
+    { at: NOW, machines: { t480: machine({}) } },
+    { library: { ...LIBRARY_READY, running } }
+  );
   await openTab(window, "library");
   const text = visible(window);
-  assert.match(text, /Cataloguing F:: 4,000 files read, 3,900 hashed \(1\.9 MB\), 80 files\/s, about 1 minute left\./u);
-  assert.ok(![...window.document.querySelectorAll(".em__library button")].some((b) => /Catalogue/u.test(b.textContent)));
+  assert.match(
+    text,
+    /Cataloguing F:: 4,000 files read, 3,900 hashed \(1\.9 MB\), 80 files\/s, about 1 minute left\./u
+  );
+  assert.ok(
+    ![...window.document.querySelectorAll(".em__library button")].some((b) =>
+      /Catalogue/u.test(b.textContent)
+    )
+  );
   const posted = await pressing(window, ".em__library", /^Stop$/u, LIBRARY_READY);
   assert.deepEqual(posted, [{ url: "/api/estate/library/stop", body: {} }]);
 });
@@ -1169,7 +1454,14 @@ test("RENDERED: a finished catalogue shows its kinds, its duplicates and the lis
     files: 9,
     bytes: 9_000,
     kinds: [{ kind: "images", files: 6, bytes: 8_000 }],
-    duplicates: { sets: 2, wasted: 3_000, private: 2, top: [{ sha256: "ab", size: 3_000, copies: 2, paths: ["F:\\Photos\\a.jpg", "F:\\Old\\a.jpg"] }] }
+    duplicates: {
+      sets: 2,
+      wasted: 3_000,
+      private: 2,
+      top: [
+        { sha256: "ab", size: 3_000, copies: 2, paths: ["F:\\Photos\\a.jpg", "F:\\Old\\a.jpg"] }
+      ]
+    }
   };
   const { window } = await renderPanel(
     { at: NOW, machines: { t480: machine({}) } },
@@ -1180,43 +1472,86 @@ test("RENDERED: a finished catalogue shows its kinds, its duplicates and the lis
   assert.match(text, /Catalogued moments ago: 9 files/u);
   assert.match(text, /2 folders could not be read, so their files were kept as they were\./u);
   assert.match(text, /images 6 files · 7\.8 KB/u);
-  assert.match(text, /2 sets of duplicates, 2\.9 KB that one copy each would free, 2 private copies counted and not listed\./u);
+  assert.match(
+    text,
+    /2 sets of duplicates, 2\.9 KB that one copy each would free, 2 private copies counted and not listed\./u
+  );
   assert.match(text, /F:\\Old\\a\.jpg/u);
-  assert.equal(window.document.querySelector(".em__library a[download]").getAttribute("href"), "/api/estate/library.csv?root=F%3A");
+  assert.equal(
+    window.document.querySelector(".em__library a[download]").getAttribute("href"),
+    "/api/estate/library.csv?root=F%3A"
+  );
 });
 
 test("RENDERED: while the hub works the duplicates out, the tab says so and offers no stale list", async () => {
   const at = new Date().toISOString();
   // the last answer under the same rules is shown, but its list describes an older pass
   const older = { sets: 2, wasted: 3_000, private: 0, top: [] };
-  const cat = { last: { finished_at: at, seen: 9 }, finishedAt: at, files: 9, bytes: 9, kinds: [], duplicates: older, computing: true };
+  const cat = {
+    last: { finished_at: at, seen: 9 },
+    finishedAt: at,
+    files: 9,
+    bytes: 9,
+    kinds: [],
+    duplicates: older,
+    computing: true
+  };
   const { window } = await renderPanel(
     { at: NOW, machines: { t480: machine({}) } },
     { library: { ...LIBRARY_READY, catalogues: { ...LIBRARY_READY.catalogues, "F:": cat } } }
   );
   await openTab(window, "library");
-  assert.match(visible(window), /2 sets of duplicates, 2\.9 KB that one copy each would free\. Working out the duplicates of the latest pass…/u);
+  assert.match(
+    visible(window),
+    /2 sets of duplicates, 2\.9 KB that one copy each would free\. Working out the duplicates of the latest pass…/u
+  );
   assert.equal(window.document.querySelector(".em__library a[download]"), null);
 });
 
 test("RENDERED: a stopped pass says Catalogue resumes it", async () => {
-  const cat = { last: { stopped_at: new Date().toISOString(), seen: 1234 }, finishedAt: null, files: 1200, bytes: 1, kinds: [], duplicates: { sets: 0, wasted: 0, private: 0, top: [] } };
+  const cat = {
+    last: { stopped_at: new Date().toISOString(), seen: 1234 },
+    finishedAt: null,
+    files: 1200,
+    bytes: 1,
+    kinds: [],
+    duplicates: { sets: 0, wasted: 0, private: 0, top: [] }
+  };
   const { window } = await renderPanel(
     { at: NOW, machines: { t480: machine({}) } },
     { library: { ...LIBRARY_READY, catalogues: { ...LIBRARY_READY.catalogues, "F:": cat } } }
   );
   await openTab(window, "library");
-  assert.match(visible(window), /Stopped moments ago after 1,234 files: Catalogue again resumes where it stopped\./u);
+  assert.match(
+    visible(window),
+    /Stopped moments ago after 1,234 files: Catalogue again resumes where it stopped\./u
+  );
   assert.match(visible(window), /\(of the files catalogued so far\)/u);
 });
 
 test("RENDERED: a comparison names the catalogue it asked, and one running can be stopped", async () => {
   const t = () => ({ files: 0, bytes: 0 });
   const done = {
-    ok: true, at: new Date().toISOString(), catalogueAt: new Date().toISOString(),
-    drive: { files: 1, bytes: 1 }, onlyHere: t(), onTarget: { files: 1, bytes: 1 }, unconfirmed: t(), unreadable: t(), privateCounted: t(), folders: [], listed: 0
+    ok: true,
+    at: new Date().toISOString(),
+    catalogueAt: new Date().toISOString(),
+    drive: { files: 1, bytes: 1 },
+    onlyHere: t(),
+    onTarget: { files: 1, bytes: 1 },
+    unconfirmed: t(),
+    unreadable: t(),
+    privateCounted: t(),
+    folders: [],
+    listed: 0
   };
-  const running = { from: "C:", to: "F:", since: new Date().toISOString(), phase: "hashing the drive", done: 1, total: 5 };
+  const running = {
+    from: "C:",
+    to: "F:",
+    since: new Date().toISOString(),
+    phase: "hashing the drive",
+    done: 1,
+    total: 5
+  };
   const { window } = await renderPanel(
     { at: NOW, machines: { t480: machine({}) } },
     { compare: { ...COMPARE_READY, running, results: { "C:": null, "G:": done } } }
@@ -1231,14 +1566,20 @@ test("RENDERED: a page left open keeps the sweep's age current, as the map card 
   // Found on the owner's own screen: an hour after a sweep the line still said "finished moments
   // ago", read once at load, while the card beside it had refreshed to "swept 1 hour ago".
   const at = new Date(Date.now() - 75 * 60_000).toISOString();
-  const swept = { ...SWEEP_READY, last: { ok: true, at: new Date().toISOString(), volumes: ["C:"], files: 9 } };
+  const swept = {
+    ...SWEEP_READY,
+    last: { ok: true, at: new Date().toISOString(), volumes: ["C:"], files: 9 }
+  };
   const { window, intervals } = await renderPanel({ at: NOW, machines: {} }, { sweep: swept });
   assert.match(visible(window), /finished moments ago/u);
   const saved = globalThis.fetch;
   globalThis.fetch = async (url) => ({
     ok: true,
     status: 200,
-    json: async () => (url === "/api/estate/map" ? { at: NOW, machines: {} } : { ...swept, last: { ...swept.last, at } })
+    json: async () =>
+      url === "/api/estate/map"
+        ? { at: NOW, machines: {} }
+        : { ...swept, last: { ...swept.last, at } }
   });
   try {
     for (const tick of intervals) await tick();
@@ -1253,8 +1594,15 @@ test("RENDERED: with no policy the panel says why it cannot sweep, and offers no
     { at: NOW, machines: {} },
     { sweep: { machine: "T480", roots: ["C:"], policy: false, running: null, last: null } }
   );
-  assert.equal(window.document.querySelectorAll(".em__sweepbtn").length, 0, "no button that would fail");
-  assert.match(visible(window), /Sweeping is off: there is no quarantine policy at coordination\/estate\/quarantine\.json/u);
+  assert.equal(
+    window.document.querySelectorAll(".em__sweepbtn").length,
+    0,
+    "no button that would fail"
+  );
+  assert.match(
+    visible(window),
+    /Sweeping is off: there is no quarantine policy at coordination\/estate\/quarantine\.json/u
+  );
 });
 
 test("RENDERED: the storage tab draws machines in bytes and volumes in files, and reconciles", async () => {
@@ -1262,14 +1610,30 @@ test("RENDERED: the storage tab draws machines in bytes and volumes in files, an
     at: NOW,
     machines: {
       t480: machine({
-        counts: { files: 300, bytes: 4000, listed_files: 300, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+        counts: {
+          files: 300,
+          bytes: 4000,
+          listed_files: 300,
+          apps: 0,
+          listed_apps: 0,
+          media: 0,
+          listed_media: 0
+        },
         volumes: {
           "C:\\": { collector: "everything", status: "ok", rows: 200, at: T(10) },
           "F:\\": { collector: "everything", status: "ok", rows: 100, at: T(10) }
         }
       }),
       optimus: machine({
-        counts: { files: 7, bytes: 2000, listed_files: 7, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+        counts: {
+          files: 7,
+          bytes: 2000,
+          listed_files: 7,
+          apps: 0,
+          listed_apps: 0,
+          media: 0,
+          listed_media: 0
+        },
         volumes: {}
       })
     }
@@ -1281,7 +1645,11 @@ test("RENDERED: the storage tab draws machines in bytes and volumes in files, an
   await until(() => window.document.querySelectorAll(".em__rect").length >= 3);
   assert.match(text, /files/u, "volumes are labelled in files");
   assert.match(text, /reported by the nodes/u, "the reconciliation is on screen");
-  assert.match(text, /no volume inside it/u, "and the node drawn as a bare block is described as one");
+  assert.match(
+    text,
+    /no volume inside it/u,
+    "and the node drawn as a bare block is described as one"
+  );
   // THE LINE AND THE PICTURE MUST AGREE. Whatever the wording, the bytes called drawn are the bytes
   // the rectangles carry — that is the invariant the previous version of this tab broke.
   const data = window.Alpine.$data(window.document.querySelector(".em"));
@@ -1306,7 +1674,15 @@ test("RENDERED: media says what each node swept, and does not read as no media",
     at: NOW,
     machines: {
       t480: machine({
-        counts: { files: 1, bytes: 1, listed_files: 1, apps: 0, listed_apps: 0, media: 40, listed_media: 25 }
+        counts: {
+          files: 1,
+          bytes: 1,
+          listed_files: 1,
+          apps: 0,
+          listed_apps: 0,
+          media: 40,
+          listed_media: 25
+        }
       }),
       pi: machine({})
     }
@@ -1324,9 +1700,17 @@ test("RENDERED: the panel's own stylesheet is in the document under test", async
   // If this ever fails, every visibility assertion in this file silently becomes an assertion about
   // an unstyled document — which is precisely how seven CSS one-liners hid guards under a green gate.
   const { window } = await renderPanel({ at: NOW, machines: { t480: machine({}) } });
-  assert.ok(window.document.styleSheets.length > 0, "no stylesheet loaded: the visibility tests would be vacuous");
-  const rules = [...window.document.styleSheets].flatMap((sheet) => [...sheet.cssRules].map((r) => r.cssText));
-  assert.ok(rules.some((r) => r.includes(".em__card")), "the panel's own rules are the ones loaded");
+  assert.ok(
+    window.document.styleSheets.length > 0,
+    "no stylesheet loaded: the visibility tests would be vacuous"
+  );
+  const rules = [...window.document.styleSheets].flatMap((sheet) =>
+    [...sheet.cssRules].map((r) => r.cssText)
+  );
+  assert.ok(
+    rules.some((r) => r.includes(".em__card")),
+    "the panel's own rules are the ones loaded"
+  );
 });
 
 test("RENDERED: clicking the tab you are already on does not wipe the map", async () => {
@@ -1338,7 +1722,15 @@ test("RENDERED: clicking the tab you are already on does not wipe the map", asyn
     at: NOW,
     machines: {
       t480: machine({
-        counts: { files: 300, bytes: 4000, listed_files: 300, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+        counts: {
+          files: 300,
+          bytes: 4000,
+          listed_files: 300,
+          apps: 0,
+          listed_apps: 0,
+          media: 0,
+          listed_media: 0
+        },
         volumes: {
           "C:\\": { collector: "everything", status: "ok", rows: 200, at: T(10) },
           "F:\\": { collector: "everything", status: "ok", rows: 100, at: T(10) }
@@ -1350,7 +1742,9 @@ test("RENDERED: clicking the tab you are already on does not wipe the map", asyn
   await until(() => window.document.querySelectorAll(".em__rect").length >= 3);
   const drawn = window.document.querySelectorAll(".em__rect").length;
 
-  const storage = [...window.document.querySelectorAll(".em__tab")].find((t) => t.textContent.trim() === "storage");
+  const storage = [...window.document.querySelectorAll(".em__tab")].find(
+    (t) => t.textContent.trim() === "storage"
+  );
   storage.click();
   storage.click();
   await new Promise((r) => setTimeout(r, 30));
@@ -1374,7 +1768,11 @@ test("RENDERED: a drifted product is flagged where the owner can see it", async 
   await openTab(window, "applications");
   const rows = [...window.document.querySelectorAll(".em__matrix tbody tr")];
   assert.equal(rows.length, 1);
-  assert.equal(rows[0].dataset.drifted, "true", "the drifted row carries its flag in the rendered DOM");
+  assert.equal(
+    rows[0].dataset.drifted,
+    "true",
+    "the drifted row carries its flag in the rendered DOM"
+  );
   assert.ok(isVisible(rows[0], window), "and the row itself is on screen");
   const drift = window.document.querySelector(".em__drift");
   assert.ok(drift && isVisible(drift, window), "and the count of drifted products is visible too");
@@ -1386,7 +1784,15 @@ test("RENDERED: a volume too small to draw is named on screen, not just in the d
     at: NOW,
     machines: {
       t480: machine({
-        counts: { files: 1_000_001, bytes: 4000, listed_files: 1_000_001, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+        counts: {
+          files: 1_000_001,
+          bytes: 4000,
+          listed_files: 1_000_001,
+          apps: 0,
+          listed_apps: 0,
+          media: 0,
+          listed_media: 0
+        },
         volumes: {
           "C:\\": { collector: "everything", status: "ok", rows: 1_000_000, at: T(10) },
           "Z:\\": { collector: "everything", status: "ok", rows: 1, at: T(10) }
@@ -1410,7 +1816,9 @@ test("RENDERED: the not-pushed notice is on screen, not merely in the document",
     }
   });
   await openTab(window, "applications");
-  const notice = [...window.document.querySelectorAll(".em__note")].find((p) => /No application list/u.test(p.textContent));
+  const notice = [...window.document.querySelectorAll(".em__note")].find((p) =>
+    /No application list/u.test(p.textContent)
+  );
   assert.ok(notice, "the notice exists");
   assert.ok(isVisible(notice, window), "and nothing — attribute or stylesheet — is hiding it");
 });
@@ -1420,20 +1828,42 @@ test("RENDERED: what a node withheld, and what the estate could not account for,
     at: NOW,
     machines: {
       t480: machine({
-        counts: { files: 100, bytes: 4000, listed_files: 60, apps: 0, listed_apps: 0, media: 0, listed_media: 0 }
+        counts: {
+          files: 100,
+          bytes: 4000,
+          listed_files: 60,
+          apps: 0,
+          listed_apps: 0,
+          media: 0,
+          listed_media: 0
+        }
       }),
       optimus: machine({
-        counts: { files: 7, bytes: 2000, listed_files: 7, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+        counts: {
+          files: 7,
+          bytes: 2000,
+          listed_files: 7,
+          apps: 0,
+          listed_apps: 0,
+          media: 0,
+          listed_media: 0
+        },
         volumes: {}
       })
     }
   });
-  const card = [...window.document.querySelectorAll(".em__withheld")].find((p) => /40 files counted by category/u.test(p.textContent));
+  const card = [...window.document.querySelectorAll(".em__withheld")].find((p) =>
+    /40 files counted by category/u.test(p.textContent)
+  );
   assert.ok(card && isVisible(card, window), "the withheld count is visible on the card");
   await openTab(window, "storage");
   const recon = window.document.querySelector(".em__recon");
   assert.ok(recon && isVisible(recon, window), "the reconciliation is visible");
-  assert.match(visible(window), /no volume inside it/u, "and the node drawn as a bare block is described as one");
+  assert.match(
+    visible(window),
+    /no volume inside it/u,
+    "and the node drawn as a bare block is described as one"
+  );
 });
 
 test("RENDERED: a layout that cannot measure anything keeps what is on screen", async () => {
@@ -1444,7 +1874,15 @@ test("RENDERED: a layout that cannot measure anything keeps what is on screen", 
     at: NOW,
     machines: {
       t480: machine({
-        counts: { files: 300, bytes: 4000, listed_files: 300, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+        counts: {
+          files: 300,
+          bytes: 4000,
+          listed_files: 300,
+          apps: 0,
+          listed_apps: 0,
+          media: 0,
+          listed_media: 0
+        },
         volumes: {
           "C:\\": { collector: "everything", status: "ok", rows: 200, at: T(10) },
           "F:\\": { collector: "everything", status: "ok", rows: 100, at: T(10) }
@@ -1458,7 +1896,16 @@ test("RENDERED: a layout that cannot measure anything keeps what is on screen", 
 
   // measure nothing at all, the way a lookup from the wrong scope does
   const real = window.Element.prototype.getBoundingClientRect;
-  window.Element.prototype.getBoundingClientRect = () => ({ width: 0, height: 0, x: 0, y: 0, top: 0, left: 0, right: 0, bottom: 0 });
+  window.Element.prototype.getBoundingClientRect = () => ({
+    width: 0,
+    height: 0,
+    x: 0,
+    y: 0,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0
+  });
   try {
     window.Alpine.$data(window.document.querySelector(".em")).layout();
     await new Promise((r) => setTimeout(r, 20));
@@ -1484,23 +1931,49 @@ test("RENDERED: machine rectangle AREAS are proportional to the bytes each node 
     at: NOW,
     machines: {
       t480: machine({
-        counts: { files: 3_000_000, bytes: B.t480, listed_files: 3_000_000, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+        counts: {
+          files: 3_000_000,
+          bytes: B.t480,
+          listed_files: 3_000_000,
+          apps: 0,
+          listed_apps: 0,
+          media: 0,
+          listed_media: 0
+        },
         volumes: { "C:\\": { collector: "everything", status: "ok", rows: 3_000_000, at: T(10) } }
       }),
       optimus: machine({
-        counts: { files: 10, bytes: B.optimus, listed_files: 10, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+        counts: {
+          files: 10,
+          bytes: B.optimus,
+          listed_files: 10,
+          apps: 0,
+          listed_apps: 0,
+          media: 0,
+          listed_media: 0
+        },
         volumes: { "C:\\": { collector: "everything", status: "ok", rows: 10, at: T(10) } }
       }),
       // the node with the MOST bytes and the FEWEST files: sizing by file count would shrink it to
       // nothing, which is exactly what the owner would not notice
       pi: machine({
-        counts: { files: 1, bytes: B.pi, listed_files: 1, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+        counts: {
+          files: 1,
+          bytes: B.pi,
+          listed_files: 1,
+          apps: 0,
+          listed_apps: 0,
+          media: 0,
+          listed_media: 0
+        },
         volumes: { "/": { collector: "walker", status: "ok", rows: 1, at: T(10) } }
       })
     }
   });
   await openTab(window, "storage");
-  await until(() => window.document.querySelectorAll('.em__rect[data-level="machine"]').length >= 3);
+  await until(
+    () => window.document.querySelectorAll('.em__rect[data-level="machine"]').length >= 3
+  );
 
   const data = window.Alpine.$data(window.document.querySelector(".em"));
   const blocks = data.rects.filter((r) => r.level === "machine");
@@ -1531,20 +2004,40 @@ test("RENDERED: a machine block too small to draw is named, like any other lost 
     at: NOW,
     machines: {
       whale: machine({
-        counts: { files: 10, bytes: 900_000_000_000_000, listed_files: 10, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+        counts: {
+          files: 10,
+          bytes: 900_000_000_000_000,
+          listed_files: 10,
+          apps: 0,
+          listed_apps: 0,
+          media: 0,
+          listed_media: 0
+        },
         volumes: { "C:\\": { collector: "everything", status: "ok", rows: 10, at: T(10) } }
       }),
       // a rounding error beside the whale: its block cannot reach a pixel, and bytes the map counts
       // but cannot show are the same lie as a volume nobody can see, one level up
       mouse: machine({
-        counts: { files: 1, bytes: 1000, listed_files: 1, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+        counts: {
+          files: 1,
+          bytes: 1000,
+          listed_files: 1,
+          apps: 0,
+          listed_apps: 0,
+          media: 0,
+          listed_media: 0
+        },
         volumes: { "D:\\": { collector: "everything", status: "ok", rows: 1, at: T(10) } }
       })
     }
   });
   await openTab(window, "storage");
   await until(() => window.document.querySelectorAll(".em__rect").length >= 2);
-  assert.match(visible(window), /mouse — .*too small to draw/u, "the block nobody can see is named");
+  assert.match(
+    visible(window),
+    /mouse — .*too small to draw/u,
+    "the block nobody can see is named"
+  );
 });
 
 test("RENDERED: a quiet node's column in the matrix says it is quiet", async () => {
@@ -1565,8 +2058,14 @@ test("RENDERED: a quiet node's column in the matrix says it is quiet", async () 
   const optimus = headers.find((h) => h.textContent.includes("optimus"));
   assert.ok(optimus, "the quiet node still has a column — it is not dropped");
   assert.equal(optimus.dataset.stale, "true");
-  assert.match(optimus.textContent, /stale/u, "and the column says so, so 1.24.4 reads as its LAST known version");
-  const cell = [...window.document.querySelectorAll(".em__matrix tbody td")].find((td) => td.dataset.stale === "true");
+  assert.match(
+    optimus.textContent,
+    /stale/u,
+    "and the column says so, so 1.24.4 reads as its LAST known version"
+  );
+  const cell = [...window.document.querySelectorAll(".em__matrix tbody td")].find(
+    (td) => td.dataset.stale === "true"
+  );
   assert.ok(cell && isVisible(cell, window), "the cells under it carry the same mark");
 });
 
@@ -1579,7 +2078,11 @@ test("RENDERED: a quiet node's column in the matrix says it is quiet", async () 
 
 test("the panel's stylesheet carries nothing that could hide a guard", () => {
   const problems = stylesheetProblems(fs.readFileSync(path.join(PANEL, "estate_map.css"), "utf8"));
-  assert.deepEqual(problems, [], `the panel stylesheet may not hide anything: ${problems.join(" | ")}`);
+  assert.deepEqual(
+    problems,
+    [],
+    `the panel stylesheet may not hide anything: ${problems.join(" | ")}`
+  );
 });
 
 test("the stylesheet check refuses every way of hiding that has been used against this panel", () => {
@@ -1673,10 +2176,17 @@ test("the visibility walker actually detects the things it claims to", async () 
   ];
   for (const [name, rule] of cases) {
     const dom = new JSDOM(`<p id="t" style="${rule}">x</p>`);
-    assert.ok(hiddenBy(dom.window.document.getElementById("t"), dom.window), `${name} went unnoticed`);
+    assert.ok(
+      hiddenBy(dom.window.document.getElementById("t"), dom.window),
+      `${name} went unnoticed`
+    );
   }
   const plain = new JSDOM(`<p id="t">x</p>`);
-  assert.equal(hiddenBy(plain.window.document.getElementById("t"), plain.window), null, "a plain element is visible");
+  assert.equal(
+    hiddenBy(plain.window.document.getElementById("t"), plain.window),
+    null,
+    "a plain element is visible"
+  );
 });
 
 test("until() fails when the condition never comes true", async () => {
@@ -1703,7 +2213,9 @@ test("machine areas stay proportional at every box shape, not just the harness's
       }))
     };
     for (const box of REAL_BOXES) {
-      const blocks = storageRects(view, { x: 0, y: 0, ...box }).filter((r) => r.level === "machine");
+      const blocks = storageRects(view, { x: 0, y: 0, ...box }).filter(
+        (r) => r.level === "machine"
+      );
       const drawn = blocks.filter((r) => !r.tooSmall);
       const area = drawn.reduce((s, r) => s + r.w * r.h, 0);
       // again: the shares are judged against the FOLD's bytes, never against the block's own
@@ -1759,7 +2271,9 @@ test("a fifty-node estate does not claim to have drawn what it could not", () =>
   // and 98 "too small to draw" entries printed directly beneath it.
   // 3.5 TB beside forty-nine nodes holding a megabyte each: their share of the map is a fraction of
   // one pixel, so they cannot be drawn however the layout squarifies them.
-  const machines = [{ key: "big", machine: "big", value: 3_500_000_000_000, files: 1, volumes: [] }];
+  const machines = [
+    { key: "big", machine: "big", value: 3_500_000_000_000, files: 1, volumes: [] }
+  ];
   for (let i = 1; i <= 49; i++)
     machines.push({ key: `n${i}`, machine: `n${i}`, value: 1_000_000, files: 1, volumes: [] });
   const view = { machines };
@@ -1767,7 +2281,10 @@ test("a fifty-node estate does not claim to have drawn what it could not", () =>
   const r = reconcile(view, rects);
   assert.equal(r.reported, r.drawn + r.tooSmall + r.missing, "the subtraction closes");
   const shown = rects.filter((x) => x.level === "machine" && !x.tooSmall);
-  assert.equal(shown.reduce((s, x) => s + x.value, 0), r.drawn);
+  assert.equal(
+    shown.reduce((s, x) => s + x.value, 0),
+    r.drawn
+  );
   assert.ok(r.tooSmall > 0, "the blocks the map could not show are counted as such, not as drawn");
 });
 
@@ -1776,7 +2293,15 @@ test("a byte count the map cannot read is named, not silently treated as zero", 
     const fold = {
       machines: {
         t480: machine({
-          counts: { files: 1, bytes: bad, listed_files: 1, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+          counts: {
+            files: 1,
+            bytes: bad,
+            listed_files: 1,
+            apps: 0,
+            listed_apps: 0,
+            media: 0,
+            listed_media: 0
+          },
           volumes: { "C:\\": { collector: "everything", status: "ok", rows: 1, at: T(10) } }
         })
       }
@@ -1786,7 +2311,11 @@ test("a byte count the map cannot read is named, not silently treated as zero", 
     const named = view.unaccounted.find((u) => /cannot read/u.test(u.why));
     assert.ok(named, `${String(bad)} bytes went unnamed`);
     const r = reconcile(view, storageRects(view, { x: 0, y: 0, w: 640, h: 400 }));
-    assert.equal(r.reported, r.drawn + r.tooSmall + r.missing, `the subtraction must still close for ${String(bad)}`);
+    assert.equal(
+      r.reported,
+      r.drawn + r.tooSmall + r.missing,
+      `the subtraction must still close for ${String(bad)}`
+    );
   }
 });
 
@@ -1794,7 +2323,15 @@ test("a volume really named — keeps its name", () => {
   const fold = {
     machines: {
       t480: machine({
-        counts: { files: 0, bytes: 10, listed_files: 0, apps: 0, listed_apps: 0, media: 0, listed_media: 0 },
+        counts: {
+          files: 0,
+          bytes: 10,
+          listed_files: 0,
+          apps: 0,
+          listed_apps: 0,
+          media: 0,
+          listed_media: 0
+        },
         volumes: { "—": { collector: "everything", status: "ok", rows: 0, at: T(10) } }
       })
     }
@@ -1823,8 +2360,13 @@ test("the treemap tiles its box exactly, whatever shape the box is", () => {
       `at ${box.w}x${box.h} the blocks cover ${Math.round((covered / (box.w * box.h)) * 100)}% of the map`
     );
     // and they start at the box's origin rather than being stacked somewhere inside it
-    assert.ok(blocks.every((r) => r.x >= 0 && r.y >= 0 && r.x + r.w <= box.w + 1 && r.y + r.h <= box.h + 1));
-    assert.ok(blocks.some((r) => r.x === 0 && r.y === 0), "the layout starts in the corner of its box");
+    assert.ok(
+      blocks.every((r) => r.x >= 0 && r.y >= 0 && r.x + r.w <= box.w + 1 && r.y + r.h <= box.h + 1)
+    );
+    assert.ok(
+      blocks.some((r) => r.x === 0 && r.y === 0),
+      "the layout starts in the corner of its box"
+    );
   }
 });
 
@@ -1870,7 +2412,11 @@ test("machine areas stay proportional at shapes and sizes nobody chose", () => {
       );
     }
     const r = reconcile(view, storageRects(view, { x: 0, y: 0, w, h }));
-    assert.equal(r.reported, r.drawn + r.tooSmall + r.missing, `${where}: the subtraction does not close`);
+    assert.equal(
+      r.reported,
+      r.drawn + r.tooSmall + r.missing,
+      `${where}: the subtraction does not close`
+    );
   }
 });
 
@@ -1882,7 +2428,11 @@ test("the apparatus cannot be blinded without the gate noticing", async () => {
 
   // isVisible must judge ancestors, not merely exist
   const dom = new JSDOM('<div style="display:none"><p id="child">x</p></div><p id="loose">y</p>');
-  assert.equal(isVisible(dom.window.document.getElementById("child"), dom.window), false, "a hidden ancestor hides its children");
+  assert.equal(
+    isVisible(dom.window.document.getElementById("child"), dom.window),
+    false,
+    "a hidden ancestor hides its children"
+  );
   assert.equal(isVisible(dom.window.document.getElementById("loose"), dom.window), true);
 
   // the attack table must actually be non-empty and must actually be checked
@@ -1917,7 +2467,9 @@ test("RENDERED: an estate where every node is quiet does not say it is reporting
   const header = window.document.querySelector(".em__age");
   assert.ok(header && isVisible(header, window));
   assert.match(header.textContent, /2 nodes, all of them stale/u);
-  const badges = [...window.document.querySelectorAll(".em__state")].map((b) => b.textContent.trim());
+  const badges = [...window.document.querySelectorAll(".em__state")].map((b) =>
+    b.textContent.trim()
+  );
   assert.deepEqual(badges, ["stale", "stale"], "and no card claims to be live");
 });
 

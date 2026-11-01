@@ -46,6 +46,21 @@ window.estateMapPage = function estateMapPage() {
     libraryError: "",
     loading: true,
     drives: [],
+    drivesProblem: null,
+    // THE TAB WAS MARKUP WITH NOTHING BEHIND IT: `drives` was declared and rendered and never
+    // filled, so the panel read "No drive has been seen yet" for ever - this contract's Goal
+    // sentence, false on a real machine. A failure leaves the list empty and SAYS SO rather than
+    // throwing the whole panel away.
+    async loadDrives() {
+      try {
+        const r = await fetch("/api/estate/drives");
+        this.drives = r.ok ? ((await r.json()).drives ?? []) : [];
+        this.drivesProblem = r.ok ? null : `the hub answered ${r.status}`;
+      } catch (e) {
+        this.drives = [];
+        this.drivesProblem = String(e?.message || e);
+      }
+    },
     // IT SHOWS WHAT THE HUB SAID. A capacity the OS withheld is null in the answer and "unknown"
     // here: a figure inferred from a sibling field is indistinguishable from a real one on screen,
     // which is worse than a gap the owner can see.
@@ -88,7 +103,10 @@ window.estateMapPage = function estateMapPage() {
           this.refresh(),
           this.refreshSweep(),
           this.refreshCompare(),
-          this.refreshLibrary()
+          this.refreshLibrary(),
+          // and the drives, re-read with everything else: a drive plugged in while the page is
+          // open appears without a reload, which is the one moment the owner is looking
+          this.loadDrives()
         ]);
       await everything();
       // The sweep line is re-read with the map. It used to be read once, so a page left open said

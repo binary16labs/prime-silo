@@ -11,7 +11,8 @@ import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { ulid, CURRENT_SCHEMA_VERSION } from "./kel.mjs";
-import { driveIdentity } from "./estate_compare.mjs";
+import { driveIdentity, UUID_PREFIX } from "./estate_compare.mjs";
+import { isQuarantined } from "./estate_map.mjs";
 // ONE SPELLING OF IDENTITY, and it lives beside fileIdentity in estate_compare because the
 // registry needs it and importing the registry from there would be a cycle. Re-exported so a
 // caller of the registry never has to know which file it came from.
@@ -26,6 +27,37 @@ export { UUID_PREFIX, driveIdentity, lsblkUuid } from "./estate_compare.mjs";
 // On Linux the device number S21 uses changes across reboots and USB ports — the same disk, a
 // different id, a second catalogue of the same files. The filesystem UUID does not move, so Linux
 // identity is `uuid:<UUID>` and nothing else.
+// WHICH DRIVE A FOLDER IS ON, read out of the identity rather than looked up again. A Windows
+// identity is `<volume serial>-<file id>`, so C:\ is 1579050461-1407374883553285 and
+// C:\Users\nsdha\Downloads is 1579050461-1970324837089507 — the SAME drive, a different file.
+// The first version compared the whole identity, so every real folder "belonged to a different
+// drive": the user roots were read correctly from Windows and then filed under a key nothing looks
+// up, and `add_user_root` refused every folder that exists while accepting every one that does not.
+// A `uuid:` identity is the volume itself and has no file half.
+export const volumeOf = (identity) => {
+  const s = String(identity ?? "");
+  if (!s) return null;
+  if (s.startsWith(UUID_PREFIX)) return s;
+  const at = s.indexOf("-");
+  return at > 0 ? s.slice(0, at) : s;
+};
+
+export const sameVolume = (a, bb) => {
+  const [x, y] = [volumeOf(a), volumeOf(bb)];
+  return Boolean(x && y && x === y);
+};
+
+// --- the label judgement -----------------------------------------------------------------------
+//
+// THE ESTATE'S OWN RULE MATCH, not a volume-path check. The first version called
+// volumeNameProblem, which validates a volume PATH (`C:`, a UNC root) and refuses anything that is
+// not one — so every label on the machine read "withheld", including Elements and WD_BLACK, with
+// no rule matching. Fail-safe in direction and useless in practice: the owner could never see a
+// drive's name. isQuarantined is the same substring-or-regexp judgement the library applies to a
+// private path, which is what a label needs and all it needs.
+export const labelProblem = (text, rules = []) =>
+  isQuarantined([String(text ?? "")], rules) ? "quarantined label" : null;
+
 // --- what the operating system says -------------------------------------------------------------
 //
 // IT REPORTS WHAT THE OS RETURNED, NEVER A GUESS. A field the call did not give is null here and
@@ -185,9 +217,31 @@ export const FORBIDDEN_ROOTS = Object.freeze([
   "appdata"
 ]);
 
+// JUDGED ON THE RESOLVED PATH, because a textual list is only as good as the spelling it is given.
+// C:\PROGRA~1 is Program Files, C:\Windows. and "C:\Windows " are Windows, and a junction named
+// anything at all can point into it — a verifier made one and read all 120 entries of C:\Windows
+// through it. realpath expands the short name and follows the junction; when the path does not
+// exist there is nothing to resolve, so the text is judged as given and a trailing dot or space is
+// trimmed first, those being spellings Windows accepts and this list did not.
 export const forbiddenRoot = (p) => {
-  const parts = String(p).replace(/\\/gu, "/").split("/").filter(Boolean);
-  return parts.some((seg) => FORBIDDEN_ROOTS.includes(seg.toLowerCase()));
+  const given = String(p ?? "");
+  let real = given;
+  try {
+    real = fs.realpathSync.native(given);
+  } catch {
+    real = given.replace(/[. ]+$/u, "");
+  }
+  const segments = (s) =>
+    s
+      .replace(/\\/gu, "/")
+      .split("/")
+      .map((seg) => seg.replace(/[. ]+$/u, "").split(":")[0])
+      .filter(Boolean);
+  // both spellings: the resolved one catches PROGRA~1 and the junction, the given one catches a
+  // path that does not exist yet and so cannot be resolved
+  return [...segments(real), ...segments(given)].some((seg) =>
+    FORBIDDEN_ROOTS.includes(seg.toLowerCase())
+  );
 };
 
 // `folders` is the User Shell Folders key as name -> value, variables already expanded.
@@ -372,14 +426,20 @@ export function readRegistry(
     }));
 }
 
+// Each root is stored against THE DRIVE IT SITS ON, found by comparing volumes rather than whole
+// identities. A root whose drive this machine has never seen is skipped rather than filed under
+// its own file id, which is where they all went before.
 export function recordUserRoots(db, found = []) {
+  const drives = db.prepare("SELECT identity FROM drives").all();
   for (const u of found) {
     if (!u.identity || forbiddenRoot(u.root)) continue;
+    const drive = drives.find((d) => sameVolume(d.identity, u.identity));
+    if (!drive) continue;
     db.prepare(
       `INSERT INTO user_roots (identity, root, role, in_onedrive, added_by_owner)
        VALUES (?, ?, ?, ?, 0)
        ON CONFLICT(identity, root) DO UPDATE SET role = excluded.role, in_onedrive = excluded.in_onedrive`
-    ).run(u.identity, u.root, u.role, u.in_onedrive ? 1 : 0);
+    ).run(drive.identity, u.root, u.role, u.in_onedrive ? 1 : 0);
   }
 }
 
@@ -392,9 +452,15 @@ export function addUserRoot(db, identity, root, { identityOf = driveIdentity } =
   if (forbiddenRoot(root)) return { refused: `${root} is Windows' own, not the owner's data` };
   if (!db.prepare("SELECT 1 FROM drives WHERE identity = ?").get(identity))
     return { refused: "no drive of that identity has ever been seen here" };
+  // THE VOLUME, not the whole identity: a folder's identity differs from its drive's by the file
+  // half, so comparing them refused every folder that exists and accepted every one that does not.
   const on = identityOf(root);
-  if (on && on !== identity)
+  if (!on) return { refused: `${root} cannot be read, so which drive it is on is not knowable` };
+  if (!sameVolume(on, identity))
     return { refused: "that folder is on a different drive from the one it was added to" };
+  // and a bare drive root is the drive whole, which design point 7 forbids for a system drive
+  if (/^[A-Za-z]:[\\/]?$/u.test(String(root).trim()))
+    return { refused: "that is the whole drive, not a folder on it" };
   db.prepare(
     `INSERT INTO user_roots (identity, root, role, in_onedrive, added_by_owner)
      VALUES (?, ?, 'added', 0, 1) ON CONFLICT(identity, root) DO UPDATE SET added_by_owner = 1`

@@ -28,9 +28,15 @@ import {
   nameFor,
   WITHHELD,
   USER_ROOT_ORDER,
-  UUID_PREFIX
+  UUID_PREFIX,
+  sameVolume,
+  labelProblem,
+  driveEvent
 } from "../server/coordination/lib/drive_registry.mjs";
 import { rootIdentity } from "../server/coordination/lib/estate_compare.mjs";
+import { createEstateApi } from "../server/coordination/lib/estate_api.mjs";
+import DriveWatchJob from "../server/jobs/drive_watch.js";
+import http from "node:http";
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), "u0-"));
 const db = () => openRegistry(path.join(tmp(), "drives.db"));
@@ -353,7 +359,13 @@ test("Scenario: a drive not seen for longer than the freshness window is stale",
 test("Scenario: on the Windows system drive only the user's data is offered", () => {
   // A guessed C:\Users\<name>\Documents is wrong on this very machine, where Documents, Desktop
   // and Pictures live in OneDrive. The User Shell Folders key follows the redirection.
-  const identityOf = (p) => (p.toLowerCase().startsWith("d:") ? "id-d" : "id-c");
+  // SHAPED LIKE THE REAL THING: <volume serial>-<file id>. On this machine C:\ is
+  // 1579050461-1407374883553285 and C:\Users\nsdha\Downloads is 1579050461-1970324837089507 — the
+  // SAME drive, a different file. A fixture using opaque labels like "id-c" could not see that the
+  // first version compared WHOLE identities, so every user root was filed under its own file id and
+  // the Drives tab showed none of them.
+  let file = 0;
+  const identityOf = (pp) => (pp.toLowerCase().startsWith("d:") ? "222" : "111") + "-" + ++file;
   const found = userRoots(
     {
       "{374DE290-123F-4565-9164-39C4925E467B}": "C:\\Users\\nsdha\\Downloads",
@@ -381,9 +393,9 @@ test("Scenario: on the Windows system drive only the user's data is offered", ()
     "redirection is followed, not guessed"
   );
   assert.equal(found.find((r) => r.role === "downloads").in_onedrive, false);
-  assert.equal(
+  assert.match(
     found.find((r) => r.role === "pictures").identity,
-    "id-d",
+    /^222-/u,
     "and Pictures is recorded against the drive it is really on"
   );
   assert.equal(
@@ -413,15 +425,18 @@ test("Scenario: on the Windows system drive only the user's data is offered", ()
   const d = db();
   syncDrives(
     d,
-    [vol({ identity: "id-c", root: "C:", system: true }), vol({ identity: "id-f", root: "F:" })],
+    [
+      vol({ identity: "111-root", root: "C:", system: true }),
+      vol({ identity: "999-root", root: "F:" })
+    ],
     {
       now: () => "2026-01-01T00:00:00Z"
     }
   );
   recordUserRoots(d, found);
   const rows = readRegistry(d);
-  const c = rows.find((r) => r.identity === "id-c");
-  const f = rows.find((r) => r.identity === "id-f");
+  const c = rows.find((r) => r.identity === "111-root");
+  const f = rows.find((r) => r.identity === "999-root");
   assert.equal(c.offers, "user-roots", "the system drive is offered only through its user roots");
   assert.equal(f.offers, "whole", "a data drive is offered whole");
   assert.deepEqual(
@@ -434,11 +449,11 @@ test("Scenario: on the Windows system drive only the user's data is offered", ()
 
 test("U0: the owner may add a folder, and may not add Windows' own", () => {
   const d = db();
-  syncDrives(d, [vol({ identity: "id-c", root: "C:", system: true })], {
+  syncDrives(d, [vol({ identity: "111-root", root: "C:", system: true })], {
     now: () => "2026-01-01T00:00:00Z"
   });
 
-  const ok = addUserRoot(d, "id-c", "C:\\Projects", { identityOf: () => "id-c" });
+  const ok = addUserRoot(d, "111-root", "C:\\Projects", { identityOf: () => "111-9" });
   assert.deepEqual(ok, { added: "C:\\Projects" });
   const added = readRegistry(d)[0].user_roots.find((u) => u.root === "C:\\Projects");
   assert.equal(
@@ -453,10 +468,10 @@ test("U0: the owner may add a folder, and may not add Windows' own", () => {
     "C:\\ProgramData",
     "C:\\Users\\x\\AppData\\Roaming"
   ])
-    assert.match(addUserRoot(d, "id-c", bad).refused ?? "", /Windows' own/u, bad);
-  assert.match(addUserRoot(d, "id-nope", "C:\\x").refused ?? "", /ever been seen here/u);
+    assert.match(addUserRoot(d, "111-root", bad).refused ?? "", /Windows' own/u, bad);
+  assert.match(addUserRoot(d, "999-nope", "C:\\x").refused ?? "", /ever been seen here/u);
   assert.match(
-    addUserRoot(d, "id-c", "E:\\elsewhere", { identityOf: () => "id-other" }).refused ?? "",
+    addUserRoot(d, "111-root", "E:\\elsewhere", { identityOf: () => "333-7" }).refused ?? "",
     /different drive/u,
     "a folder on another disk is not this drive's user root"
   );
@@ -553,4 +568,304 @@ test("U0: retired_at is reserved for U9 and is always null here", () => {
     /estate[\\/]drives\.db$/u,
     "the registry lives on the machine, not on a drive"
   );
+});
+
+// --- the defaults, which is where all four live defects were ------------------------------------
+//
+// A verifier found D3, D4 and D5 with one observation: every guard in this contract was tested only
+// through an INJECTED STUB that behaved as I had assumed, and the real function was wired in
+// nowhere. Each defect needed exactly one test calling the thing WITH ITS OWN DEFAULTS. These are
+// those tests, and they are the ones that would have caught the three things that did not work.
+
+test("U0: a user root reaches the drive it is on, WITH ITS OWN DEFAULTS", async () => {
+  // THE CONTRACT'S WHOLE POINT, and it was broken: recordUserRoots keyed each root by the FOLDER's
+  // identity while readRegistry looked them up by the DRIVE's. A Windows identity is
+  // <volume>-<file>, so those never matched and `GET /drives` returned offers:"user-roots" with
+  // user_roots: [] — the roots read correctly from Windows and shown to nobody.
+  const here = process.cwd();
+  const driveRoot = `${here.slice(0, 2)}\\`;
+  const d = db();
+
+  // the real driveIdentity, on real paths, with no stub anywhere
+  const driveId = driveIdentity(driveRoot);
+  const folderId = driveIdentity(here);
+  assert.ok(driveId && folderId, "both are readable on this machine");
+  assert.notEqual(driveId, folderId, "a folder's identity is NOT its drive's — that is the defect");
+  assert.ok(sameVolume(driveId, folderId), "but they share the volume, which is how it is found");
+
+  syncDrives(d, [vol({ identity: driveId, root: here.slice(0, 2), system: true })], {
+    now: () => "2026-01-01T00:00:00Z"
+  });
+  recordUserRoots(d, [{ role: "downloads", root: here, identity: folderId, in_onedrive: false }]);
+
+  const [row] = readRegistry(d);
+  assert.equal(row.offers, "user-roots");
+  assert.deepEqual(
+    row.user_roots.map((u) => u.root),
+    [here],
+    `the root reaches its drive: ${JSON.stringify(row.user_roots)}`
+  );
+
+  // and a root on a drive this machine has never seen is skipped, not filed under its own file id
+  const other = db();
+  syncDrives(other, [vol({ identity: "999-root", root: "Q:" })], {
+    now: () => "2026-01-01T00:00:00Z"
+  });
+  recordUserRoots(other, [
+    { role: "downloads", root: here, identity: folderId, in_onedrive: false }
+  ]);
+  assert.deepEqual(readRegistry(other)[0].user_roots, []);
+});
+
+test("U0: the owner may add a real folder, WITH ITS OWN DEFAULTS", async () => {
+  // The same inversion from the other side: `on !== identity` was true for every folder that
+  // exists, so every real path was refused with "that folder is on a different drive" — and a path
+  // that does NOT exist made identityOf null, the guard fell open, and it was added.
+  const here = process.cwd();
+  const d = db();
+  syncDrives(
+    d,
+    [
+      vol({
+        identity: driveIdentity(`${here.slice(0, 2)}\\`),
+        root: here.slice(0, 2),
+        system: true
+      })
+    ],
+    {
+      now: () => "2026-01-01T00:00:00Z"
+    }
+  );
+  const identity = readRegistry(d)[0].identity;
+
+  // no identityOf injected: the real one, on a real folder
+  assert.deepEqual(addUserRoot(d, identity, here), { added: here });
+  assert.ok(readRegistry(d)[0].user_roots.some((u) => u.root === here && u.added_by_owner));
+
+  // and the one that used to slip through: a path that cannot be read
+  assert.match(
+    addUserRoot(d, identity, `${here.slice(0, 2)}\\no-such-place-91af`).refused ?? "",
+    /cannot be read/u
+  );
+});
+
+test("U0: the label judge is the estate's own rule match, not a path validator", () => {
+  // D5: the first version called volumeNameProblem, which validates a volume PATH and refuses
+  // anything that is not one — so EVERY label read "withheld" with no rule matching, on a machine
+  // whose drives are called Elements and WD_BLACK. Fail-safe in direction and useless in fact.
+  for (const plain of ["Elements", "WD_BLACK", "Backup", "F:", "my stuff", ""])
+    assert.equal(labelProblem(plain, ["passport"]), null, `${plain} is not private`);
+  for (const private_ of ["passport scans", "My Passport", "old passports"])
+    assert.ok(labelProblem(private_, ["passport"]), `${private_} is`);
+  assert.ok(labelProblem("holiday snaps", [/snaps/u]), "a RegExp rule works too");
+  assert.equal(labelProblem("anything", []), null, "and with no rules, nothing is private");
+
+  // through the registry's own read, with the real judge rather than a stub
+  const d = db();
+  syncDrives(d, [vol({ identity: "111-root", root: "G:", label: "Elements" })], {
+    now: () => "2026-01-01T00:00:00Z"
+  });
+  const judge = (text) => Boolean(labelProblem(text, ["passport"]));
+  assert.equal(
+    readRegistry(d, { judge })[0].name,
+    "Elements",
+    "the owner can see their drive's name"
+  );
+});
+
+test("U0: the ledger event carries the drive, never its label", () => {
+  // The one surface where this estate has repaired privacy before (S22's D11), and a mutation
+  // putting the label into the payload died nowhere, because driveEvent was imported by no test.
+  const e = driveEvent({
+    machine: "t480",
+    type: "drive_attached",
+    identity: "111-root",
+    root: "G:",
+    medium: "usb",
+    at: "2026-01-01T00:00:00Z"
+  });
+  assert.deepEqual(Object.keys(e.payload).sort(), ["identity", "medium", "root", "scope"]);
+  assert.equal(e.payload.identity, "111-root");
+  assert.equal(e.subject.kind, "drive");
+  // nothing a caller hands it can add a field, and a label is not among the ones it has
+  const sneaky = driveEvent({
+    machine: "t480",
+    type: "drive_attached",
+    identity: "111-root",
+    root: "G:",
+    medium: "usb",
+    label: "passport scans",
+    owner_name: "my passport drive"
+  });
+  const body = JSON.stringify(sneaky);
+  for (const leak of ["passport", "owner_name", "label"])
+    assert.equal(body.includes(leak), false, `no ${leak} in the ledger`);
+});
+
+test("U0: a root the rules forbid is never recorded, whatever asks", () => {
+  // A mutation deleting recordUserRoots' own guard died nowhere: the only coverage was through
+  // userRoots, which filters first, so the registry's own door was unguarded.
+  const d = db();
+  syncDrives(d, [vol({ identity: "111-root", root: "C:", system: true })], {
+    now: () => "2026-01-01T00:00:00Z"
+  });
+  recordUserRoots(d, [
+    { role: "downloads", root: "C:\\Windows\\Temp", identity: "111-2", in_onedrive: false },
+    {
+      role: "documents",
+      root: "C:\\Users\\x\\AppData\\Roaming",
+      identity: "111-3",
+      in_onedrive: false
+    },
+    { role: "added", root: "C:\\Projects", identity: "111-4", in_onedrive: false }
+  ]);
+  assert.deepEqual(
+    readRegistry(d)[0].user_roots.map((u) => u.root),
+    ["C:\\Projects"],
+    "only the one that is the owner's own data"
+  );
+});
+
+test("U0: a folder's real spelling is what the forbidden list judges", () => {
+  // D7: the list was textual, so a verifier walked past it with an 8.3 name, a trailing dot, a
+  // trailing space, an alternate-data-stream spelling, and a junction pointing into C:\Windows —
+  // through which they listed all 120 of its entries.
+  for (const bad of [
+    "C:\\PROGRA~1",
+    "C:\\Windows.",
+    "C:\\Windows ",
+    "C:\\WINDOWS",
+    "C:\\Windows::$INDEX_ALLOCATION",
+    "C:\\Users\\x\\AppData\\Local",
+    "C:/Windows/System32",
+    "\\\\?\\C:\\Windows"
+  ])
+    assert.equal(forbiddenRoot(bad), true, `${bad} is never the owner's data`);
+  for (const ok of ["C:\\Users\\nsdha\\Downloads", "F:\\", "C:\\Projects", "/mnt/backup"])
+    assert.equal(forbiddenRoot(ok), false, `${ok} is`);
+});
+
+// --- the job and the route: TDD items 3 and 2, which had no tests at all ------------------------
+//
+// A verifier's sharpest line about this contract: "the three things with no test are the three
+// things that do not work." The job could not run at all — `require` in an ES module, throwing on
+// every tick — and nothing in this suite ever called run(); every test drove the exported tick().
+
+test("U0: the job is disabled without a home, and runs when it has one", async (ctx) => {
+  const job = new DriveWatchJob({ jobId: "drive_watch" });
+  const had = process.env.BENNY_HOME;
+  try {
+    delete process.env.BENNY_HOME;
+    assert.equal(
+      job.isEnabled(),
+      false,
+      "no home, no registry: F: comes and goes, the home does not"
+    );
+    assert.deepEqual(await job.run({}), { skipped: "no BENNY_HOME" });
+
+    process.env.BENNY_HOME = tmp();
+    assert.equal(job.isEnabled(), true);
+    assert.ok(job.getSchedule().everyMs >= 5_000, "and it has a schedule");
+  } finally {
+    if (had === undefined) delete process.env.BENNY_HOME;
+    else process.env.BENNY_HOME = had;
+  }
+  ctx.diagnostic("run() is exercised with the real os.hostname path in the next test");
+});
+
+test("U0: run() reaches the registry rather than throwing on its own imports", async () => {
+  // THE DEFECT THIS TEST EXISTS FOR: `require("node:os")` in a type:module package threw
+  // ReferenceError on EVERY tick with ESTATE_MACHINE unset, which is the default — so the registry
+  // was never written on a default install, and the runner logged a failure nobody read.
+  const had = { home: process.env.BENNY_HOME, machine: process.env.ESTATE_MACHINE };
+  const home = tmp();
+  try {
+    process.env.BENNY_HOME = home;
+    delete process.env.ESTATE_MACHINE; // the default, and the only path that used `require`
+    const job = new DriveWatchJob({ jobId: "drive_watch" });
+    let thrown = null;
+    try {
+      await job.run({});
+    } catch (e) {
+      thrown = e;
+    }
+    // it must NOT fail on its own imports
+    assert.equal(
+      /require is not defined|is not a function/u.test(String(thrown?.message ?? "")),
+      false,
+      `the job must reach its work, not die on its imports: ${thrown?.message}`
+    );
+    // it reached the registry: the file exists whether or not the ledger would take the events
+    assert.ok(fs.existsSync(registryPath(home)), "the registry was opened and written");
+    // AND IF THE LEDGER REFUSES, THAT IS THROWN, not whispered to a logger the runner does not pass
+    if (thrown) assert.match(thrown.message, /ledger refused/u, thrown.message);
+  } finally {
+    if (had.home === undefined) delete process.env.BENNY_HOME;
+    else process.env.BENNY_HOME = had.home;
+    if (had.machine !== undefined) process.env.ESTATE_MACHINE = had.machine;
+  }
+});
+
+test("U0: the route answers the registry, loopback only, with the user roots attached", async () => {
+  // TDD item 2 had no tests, so nothing noticed that the answer's user_roots were always empty.
+  const here = process.cwd();
+  const letter = here.slice(0, 2);
+  const store = tmp();
+  const home = tmp();
+  fs.mkdirSync(path.join(home, "estate"), { recursive: true });
+
+  const d = openRegistry(registryPath(home));
+  syncDrives(
+    d,
+    [vol({ identity: driveIdentity(`${letter}\\`), root: letter, system: true, label: "Windows" })],
+    {
+      now: () => "2026-01-01T00:00:00Z"
+    }
+  );
+  recordUserRoots(d, [
+    { role: "downloads", root: here, identity: driveIdentity(here), in_onedrive: false }
+  ]);
+  d.close();
+
+  const api = createEstateApi({
+    quarantine: ["passport"],
+    producer: {
+      machine: "t480",
+      dbPath: path.join(home, "estate", "estate-map-t480.db"),
+      roots: () => [letter],
+      estateStore: store
+    }
+  });
+  const server = http.createServer((req, res) => {
+    if (!api.tryHandle(req, res)) res.writeHead(404).end();
+  });
+  await new Promise((r) => server.listen(0, "127.0.0.1", r));
+  try {
+    const base = `http://127.0.0.1:${server.address().port}/api/estate`;
+    const r = await fetch(`${base}/drives`);
+    assert.equal(r.status, 200);
+    const { drives } = await r.json();
+    assert.equal(drives.length, 1);
+    assert.equal(drives[0].name, "Windows", "a plain label is SHOWN, not withheld");
+    assert.equal(drives[0].offers, "user-roots");
+    assert.deepEqual(
+      drives[0].user_roots.map((u) => u.root),
+      [here],
+      `the roots reach the answer: ${JSON.stringify(drives[0].user_roots)}`
+    );
+
+    // PATCH sets the name, and the name is judged by the same rules
+    const named = await fetch(`${base}/drives/${encodeURIComponent(drives[0].identity)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ owner_name: "my passport drive" })
+    });
+    assert.equal(named.status, 200);
+    const after = (await (await fetch(`${base}/drives`)).json()).drives[0];
+    assert.equal(after.name, WITHHELD, "an owner-typed name is the owner's own text too");
+    assert.equal(JSON.stringify(after).includes("passport"), false);
+
+    assert.equal((await fetch(`${base}/drives`, { method: "DELETE" })).status, 405);
+  } finally {
+    await new Promise((r) => server.close(r));
+  }
 });

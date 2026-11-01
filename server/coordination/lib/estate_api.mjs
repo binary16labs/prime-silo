@@ -17,7 +17,8 @@ import {
   registryPath,
   readRegistry,
   setOwnerName,
-  addUserRoot
+  addUserRoot,
+  labelProblem
 } from "./drive_registry.mjs";
 import path from "node:path";
 import {
@@ -253,7 +254,10 @@ export function createEstateApi({
   };
   const judgeName = () => {
     const rules = Array.isArray(quarantine) ? quarantine : [];
-    return (text) => Boolean(volumeNameProblem({ name: text, label: text }, rules));
+    // labelProblem, NOT volumeNameProblem: that one validates a volume PATH and refuses anything
+    // which is not one, so every label on this machine read "withheld" with no rule matching -
+    // fail-safe in direction and useless in fact, because the owner could never see a drive's name.
+    return (text) => Boolean(labelProblem(text, rules));
   };
 
   function handle(req, res, rest) {
