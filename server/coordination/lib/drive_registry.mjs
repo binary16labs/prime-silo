@@ -10,7 +10,11 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { fileIdentity } from "./estate_compare.mjs";
+import { driveIdentity } from "./estate_compare.mjs";
+// ONE SPELLING OF IDENTITY, and it lives beside fileIdentity in estate_compare because the
+// registry needs it and importing the registry from there would be a cycle. Re-exported so a
+// caller of the registry never has to know which file it came from.
+export { UUID_PREFIX, driveIdentity, lsblkUuid } from "./estate_compare.mjs";
 
 // --- identity -----------------------------------------------------------------------------------
 //
@@ -21,20 +25,6 @@ import { fileIdentity } from "./estate_compare.mjs";
 // On Linux the device number S21 uses changes across reboots and USB ports — the same disk, a
 // different id, a second catalogue of the same files. The filesystem UUID does not move, so Linux
 // identity is `uuid:<UUID>` and nothing else.
-export const UUID_PREFIX = "uuid:";
-
-export function driveIdentity(root, { platform = process.platform, uuidOf = linuxUuid } = {}) {
-  if (platform !== "linux") return fileIdentity(/^[A-Za-z]:$/u.test(root) ? `${root}\\` : root);
-  const uuid = uuidOf(root);
-  return uuid ? `${UUID_PREFIX}${uuid}` : null;
-}
-
-export const linuxUuid = (root, { read = lsblkJson } = {}) => {
-  const rows = read();
-  const hit = (rows ?? []).find((r) => r.mountpoint === root && r.uuid);
-  return hit ? hit.uuid : null;
-};
-
 // --- what the operating system says -------------------------------------------------------------
 //
 // IT REPORTS WHAT THE OS RETURNED, NEVER A GUESS. A field the call did not give is null here and
@@ -237,13 +227,6 @@ export const nameFor = (row, judge) => {
   return null;
 };
 
-// lsblk, read once per tick. Injected everywhere above so no test ever shells out.
-export const lsblkJson = ({ exec = null } = {}) => {
-  if (!exec) return [];
-  const { rows } = parseLinuxVolumes(exec());
-  return rows;
-};
-
 // --- the tick -----------------------------------------------------------------------------------
 //
 // ONE EVENT PER CHANGE, NOT PER TICK. The job runs every sixty seconds; a drive that has sat there
@@ -338,11 +321,17 @@ export function syncDrives(db, volumes = [], { now = () => new Date().toISOStrin
 
 // --- reading it ---------------------------------------------------------------------------------
 //
-// `catalogue` answers when that identity's catalogue last finished, or null for never. Nothing is
-// started from here: this surface tells the owner what is, and S21 is what acts.
+// `catalogue` is handed the whole row and answers { at } or { unknown: why }. It takes the ROW and
+// not the identity because of a limit worth stating rather than hiding: S21 names each catalogue
+// library-<identity>.db, and the only exported way to turn that into a readable path takes a ROOT
+// (`libraryPath`). An attached drive has a root, so its catalogue date is exact. A DETACHED drive
+// has only its identity, and rebuilding the filename here would be a second spelling of S21's
+// naming rule — which is the defect S26 was failed for, twice. So a detached drive's date reads
+// `unknown`, distinct from `never catalogued`, until library.mjs exports a by-identity lookup.
+// Nothing is started from here either way: this surface says what is, and S21 is what acts.
 export function readRegistry(
   db,
-  { judge = () => false, freshDays = 30, now = Date.now, catalogue = () => null } = {}
+  { judge = () => false, freshDays = 30, now = Date.now, catalogue = () => ({ at: null }) } = {}
 ) {
   const stale = (lastSeen) => {
     const t = Date.parse(lastSeen);
@@ -366,7 +355,11 @@ export function readRegistry(
       last_seen: r.last_seen,
       stale: !r.attached && stale(r.last_seen),
       retired_at: r.retired_at,
-      catalogued_at: catalogue(r.identity) ?? null,
+      ...(() => {
+        const c =
+          catalogue({ identity: r.identity, root: r.root, attached: Boolean(r.attached) }) ?? {};
+        return { catalogued_at: c.at ?? null, catalogue_unknown: c.unknown ?? null };
+      })(),
       // the system drive offers its USER ROOTS and never itself; a data drive offers itself
       offers: r.system ? "user-roots" : "whole",
       user_roots: roots.all(r.identity).map((u) => ({

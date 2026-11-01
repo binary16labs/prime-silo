@@ -110,7 +110,8 @@ export async function compareRoots({
     only: [],
     folders: []
   };
-  const listed = (file) => !isQuarantined([file, canonPath(file), canonPath(file).toLowerCase()], rules);
+  const listed = (file) =>
+    !isQuarantined([file, canonPath(file), canonPath(file).toLowerCase()], rules);
   // Every file the owner must act on is NAMED with why: drive-only to copy, and the unreadable and
   // unconfirmed ones to check before the drive is retired — counted but unnamed, they were invisible
   // (claude-s20-verifier). A private path is counted and named nowhere, whatever its status.
@@ -170,7 +171,9 @@ export async function compareRoots({
         continue;
       }
       const me = hashers.identity(f.path);
-      const copies = catalogue.byHash(mine).filter((t) => me === null || hashers.identity(t.full) !== me);
+      const copies = catalogue
+        .byHash(mine)
+        .filter((t) => me === null || hashers.identity(t.full) !== me);
       if (!copies.length) onlyHere(f.path, f.size);
       else if (copies.some(unchanged)) add(result.onTarget, f.size);
       else note("unconfirmed", "changed since catalogued", f.path, f.size);
@@ -253,7 +256,42 @@ export function fileIdentity(file) {
 
 // A ROOT's identity. A bare letter is the drive's root, not Windows' "current folder on that drive",
 // which is what Node makes of "C:" — it named the hub's own working folder (claude-s20-verifier).
-export const rootIdentity = (root) => fileIdentity(/^[A-Za-z]:$/u.test(root) ? `${root}\\` : root);
+// U0: ON LINUX THE DEVICE NUMBER IS NOT AN IDENTITY. `dev-ino` is what S21 uses and it is right on
+// Windows — volume serial and root file ID, stable across letters — but on Linux the device number
+// changes across reboots and USB ports, so the same disk would get a second name and a second
+// catalogue of the same files. The filesystem UUID does not move.
+//
+// IDENTITY LIVES HERE, beside fileIdentity, because the registry needs it and importing the
+// registry from here would be a cycle. Windows keeps S21's exact value: every catalogue is named
+// library-<identity>.db, and a different spelling orphans every catalogue the owner already has.
+export const UUID_PREFIX = "uuid:";
+
+export const lsblkUuid = (root, { exec = null } = {}) => {
+  if (!exec) return null;
+  let v;
+  try {
+    v = JSON.parse(exec());
+  } catch {
+    return null;
+  }
+  const find = (nodes) => {
+    for (const n of nodes ?? []) {
+      if (n.mountpoint === root && n.uuid) return n.uuid;
+      const deeper = find(n.children);
+      if (deeper) return deeper;
+    }
+    return null;
+  };
+  return find(v?.blockdevices);
+};
+
+export function driveIdentity(root, { platform = process.platform, uuidOf = lsblkUuid } = {}) {
+  if (platform !== "linux") return fileIdentity(/^[A-Za-z]:$/u.test(root) ? `${root}\\` : root);
+  const uuid = uuidOf(root);
+  return uuid ? `${UUID_PREFIX}${uuid}` : null;
+}
+
+export const rootIdentity = (root) => driveIdentity(root);
 
 // Every file the owner must act on, with why. Quoted, because a path may hold a comma.
 export const onlyCsv = (result) =>
@@ -275,7 +313,10 @@ export function createComparer({ dir, rules, list, catalogue = () => null, now =
   const file = (from, to, ext) => {
     const [a, b] = [rootIdentity(from), rootIdentity(to)];
     if (!a || !b) return null;
-    return path.join(dir, `${`${from}__${a}__${to}__${b}`.replace(/[^A-Za-z0-9_-]+/gu, "_")}.${ext}`);
+    return path.join(
+      dir,
+      `${`${from}__${a}__${to}__${b}`.replace(/[^A-Za-z0-9_-]+/gu, "_")}.${ext}`
+    );
   };
   const latest = (from, to) => {
     try {
@@ -300,14 +341,27 @@ export function createComparer({ dir, rules, list, catalogue = () => null, now =
       const cat = catalogue(to);
       if (cat?.refused) return { started: false, since: null, reason: cat.refused };
       ctl = new AbortController();
-      running = { from, to, since: new Date(now()).toISOString(), phase: "starting", done: 0, total: 0 };
+      running = {
+        from,
+        to,
+        since: new Date(now()).toISOString(),
+        phase: "starting",
+        done: 0,
+        total: 0
+      };
       const mine = running;
       const done = (async () => {
         let summary;
         fs.mkdirSync(dir, { recursive: true });
         try {
           const r = await compareRoots({
-            from, to, list, rules, catalogue: cat, signal: ctl.signal, onProgress: (p) => Object.assign(mine, p)
+            from,
+            to,
+            list,
+            rules,
+            catalogue: cat,
+            signal: ctl.signal,
+            onProgress: (p) => Object.assign(mine, p)
           });
           fs.writeFileSync(csv, onlyCsv(r));
           const { only, ...rest } = r;
@@ -315,7 +369,13 @@ export function createComparer({ dir, rules, list, catalogue = () => null, now =
         } catch (e) {
           // a failed run leaves no list to download: the last one described a different run
           fs.rmSync(csv, { force: true });
-          summary = { from, to, ok: false, at: new Date(now()).toISOString(), reason: String(e?.message || e) };
+          summary = {
+            from,
+            to,
+            ok: false,
+            at: new Date(now()).toISOString(),
+            reason: String(e?.message || e)
+          };
         }
         cat?.close();
         fs.writeFileSync(json, JSON.stringify(summary));

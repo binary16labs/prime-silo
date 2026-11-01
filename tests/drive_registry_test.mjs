@@ -11,7 +11,7 @@ import path from "node:path";
 
 import {
   driveIdentity,
-  linuxUuid,
+  lsblkUuid,
   mediumOf,
   parseWindowsVolumes,
   parseLinuxVolumes,
@@ -219,15 +219,21 @@ test("Scenario: Windows identity is unchanged, so every catalogue still finds it
     null,
     "unreadable is null, not a guess"
   );
+  // and the reader walks lsblk's nesting: a partition's UUID sits under its disk, not beside it
   assert.equal(
-    linuxUuid("/mnt/backup", {
-      read: () => [
-        { mountpoint: "/mnt/backup", uuid: "zzz" },
-        { mountpoint: "/", uuid: "aaa" }
-      ]
+    lsblkUuid("/mnt/backup", {
+      exec: () =>
+        JSON.stringify({
+          blockdevices: [
+            { name: "sda", children: [{ mountpoint: "/mnt/backup", uuid: "zzz" }] },
+            { name: "nvme0n1", children: [{ mountpoint: "/", uuid: "aaa" }] }
+          ]
+        })
     }),
     "zzz"
   );
+  assert.equal(lsblkUuid("/mnt/backup", { exec: () => "not json" }), null, "unparsable is null");
+  assert.equal(lsblkUuid("/mnt/backup"), null, "and with no reader it never shells out");
 });
 
 // --- Scenario: a drive at a new letter is the same drive -----------------------------------------
@@ -504,15 +510,17 @@ test("U0: the catalogue column reads S21's pass and starts nothing", () => {
   });
   const asked = [];
   const rows = readRegistry(d, {
-    catalogue: (id) => {
-      asked.push(id);
-      return id === "id-f" ? "2026-10-25T12:00:00Z" : null;
+    catalogue: (row) => {
+      asked.push(row);
+      return row.identity === "id-f" ? { at: "2026-10-25T12:00:00Z" } : { at: null };
     }
   });
-  assert.deepEqual(
-    asked.sort(),
-    ["id-f", "id-new"],
-    "asked by IDENTITY, which is how catalogues are named"
+  // the whole ROW, because an attached drive's catalogue is found by its ROOT and a detached one
+  // cannot be found at all without a second spelling of S21's naming rule
+  assert.deepEqual(asked.map((r) => r.identity).sort(), ["id-f", "id-new"]);
+  assert.ok(
+    asked.every((r) => r.attached && r.root),
+    "with the root it is attached at"
   );
   assert.equal(rows.find((r) => r.identity === "id-f").catalogued_at, "2026-10-25T12:00:00Z");
   assert.equal(
@@ -520,6 +528,15 @@ test("U0: the catalogue column reads S21's pass and starts nothing", () => {
     null,
     "never catalogued is null, not zero"
   );
+
+  // A DETACHED DRIVE'S DATE IS UNKNOWN, NOT NEVER. Conflating the two would tell the owner that a
+  // drive they have catalogued never was, which is worse than admitting it cannot be read.
+  syncDrives(d, [], { now: () => "2026-01-02T00:00:00Z" });
+  const away = readRegistry(d, {
+    catalogue: ({ attached }) => (attached ? { at: "x" } : { unknown: "the drive is not here" })
+  });
+  assert.equal(away[0].catalogued_at, null);
+  assert.match(away[0].catalogue_unknown ?? "", /not here/u);
 });
 
 test("U0: retired_at is reserved for U9 and is always null here", () => {
