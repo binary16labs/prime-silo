@@ -10,7 +10,6 @@
 - S23 — duplicates and sole copies across the catalogue _(dep S22 DONE 2026-10-24; already signed 2026-10-11. Promoted by the board's mechanical rule, placed at the bottom. NOT MVP work: M13's cut makes only the one outcome's blockers claimable, and those are now all closed, so the next move is the owner walking the journey rather than anyone claiming this.)_
 
 
-- U0 — the drive registry: every drive by identity, Windows identity byte-identical to S21 _(dep S21 DONE 2026-10-18; already signed 2026-10-11. Enters READY below S22; owner may reorder.)_
 
 - W3 — dogfood proof (no plan-file read; author≠verifier chain in ledger) _(dep W2 DONE — entered READY 2026-08-03; closes EP-W)_
 
@@ -22,6 +21,7 @@
 
 ## CLAIMED (agent · date)
 
+- U0 — the drive registry: every drive by identity, not by letter · claude-opus-5 · 2026-11-01 _(claimed on the owner's direction to finish S25 and U0; S25 is blocked on an allowlist line only they can add, so this is the directed work that needs no decision. Taken ahead of S23 at the top of READY — recorded as an irregularity. Budget 520, no band (signed before bands existed). Shares estate_api.mjs with the blocked S25, so whichever lands second needs a conflict resolved. The worktree is provisioned with node_modules and the MCP SDK before anything runs, because last contract's gate green was bought by a suite skipping itself.)_
 ## VERIFY (awaiting non-author verification)
 
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 _(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)_
