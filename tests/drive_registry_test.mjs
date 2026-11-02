@@ -989,3 +989,63 @@ test("U0: the panel asks the hub for the drives", async () => {
   assert.match(html, /x-if="drivesProblem"/u, "a hub that could not answer says so");
   assert.match(html, /!drivesProblem && !drives\.length/u, "and empty means empty, not unasked");
 });
+
+// --- round 4: the three the verifier carried ----------------------------------------------------
+
+test("U0: the discovery path cannot record the drive whole either", async () => {
+  // THE OTHER DOOR, a third time in this contract. The route refuses the drive whole; the discovery
+  // path did not, so an odd User Shell Folders value — and the verifier found that
+  // userRoots({Desktop: "C:\\"}) really does yield C:\ — could record the system drive as a user
+  // root where a PATCH cannot. recordUserRoots' forbidden guard had the same asymmetry one round
+  // ago; this is the same shape in the guard that replaced it.
+  const here = ownFolder();
+  const letter = here.slice(0, 2);
+  const d = db();
+  syncDrives(d, [vol({ identity: driveIdentity(`${letter}\\`), root: letter, system: true })], {
+    now: () => "2026-01-01T00:00:00Z"
+  });
+  const identity = readRegistry(d)[0].identity;
+
+  recordUserRoots(d, [
+    { role: "desktop", root: `${letter}\\`, identity, in_onedrive: false },
+    { role: "downloads", root: here, identity: driveIdentity(here), in_onedrive: false }
+  ]);
+  assert.deepEqual(
+    readRegistry(d)[0].user_roots.map((u) => u.root),
+    [here],
+    "the drive root is skipped and the real folder is kept"
+  );
+
+  // and userRoots itself really does hand one over, which is why the registry must refuse it
+  assert.deepEqual(
+    userRoots({ Desktop: `${letter}\\` }, { identityOf: () => identity }).map((r) => r.root),
+    [`${letter}\\`],
+    "userRoots does not judge this — recordUserRoots must"
+  );
+});
+
+test("U0: a user root must be a full path, or it means a different folder elsewhere", async () => {
+  // ".", "..", "server" and "server\coordination" were accepted and stored VERBATIM, so
+  // forbiddenRoot and isDriveRoot judged them against the hub's working directory while U1 would
+  // resolve them against its own.
+  const here = ownFolder();
+  const letter = here.slice(0, 2);
+  const d = db();
+  syncDrives(d, [vol({ identity: driveIdentity(`${letter}\\`), root: letter, system: true })], {
+    now: () => "2026-01-01T00:00:00Z"
+  });
+  const identity = readRegistry(d)[0].identity;
+
+  for (const relative of [".", "..", "server", "server\\coordination", "./x", ""])
+    assert.match(
+      addUserRoot(d, identity, relative).refused ?? "",
+      /not a full path/u,
+      JSON.stringify(relative)
+    );
+  // and the absolute one still works, so this is not a blanket refusal
+  assert.deepEqual(addUserRoot(d, identity, here), { added: here });
+
+  // the ordering matters: a bare letter is the drive whole AND is not path.isAbsolute, so the
+  // whole-drive check has to come first or it is refused for the wrong reason
+  assert.match(addUserRoot(d, identity, letter).refused ?? "", /the whole drive/u);
+});

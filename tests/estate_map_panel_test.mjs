@@ -724,6 +724,7 @@ async function renderPanel(
     compare = COMPARE_READY,
     library = LIBRARY_READY,
     drives = { drives: [] },
+    drivesStatus = 200,
     posted = []
   } = {}
 ) {
@@ -777,7 +778,11 @@ async function renderPanel(
     // U0: answered like its siblings rather than falling through to the map's stub, which made the
     // fetch counter read two reads of the map and took the paired negative down with it
     if (String(url).startsWith("/api/estate/drives"))
-      return { ok: true, status: 200, json: async () => drives };
+      return {
+        ok: drivesStatus >= 200 && drivesStatus < 300,
+        status: drivesStatus,
+        json: async () => drives
+      };
     return {
       ok: (fetches++, status >= 200 && status < 300),
       status,
@@ -882,7 +887,8 @@ async function openTab(window, name) {
     applications: ".em__apps",
     media: ".em__media:not(.em__backups)",
     library: ".em__library",
-    backups: ".em__backups"
+    backups: ".em__backups",
+    drives: ".em__drives"
   }[name];
   await until(() => tab.dataset.on === "true" && window.document.querySelector(pane));
   // and let Alpine flush what the pane's own layout queued, using its scheduler rather than a sleep:
@@ -2503,3 +2509,144 @@ test("RENDERED: an estate where every node is quiet does not say it is reporting
 //   - A LIVE FOLD. Every fold in this file is one this file authored. The hub is fail-closed and
 //     `coordination/estate/quarantine.json` does not exist, so nothing here has been measured against
 //     real estate data.
+
+// --- U0: the Drives tab, RENDERED -----------------------------------------------------------------
+//
+// My first guards for this were regexes on estate_map.js's source text, and a verifier defeated
+// both without a single failure: `(false ? this.loadDrives() : Promise.resolve())` keeps
+// /this\.loadDrives\(\)/ matching while the panel never fetches, and blanking `drivesProblem`
+// inside loadDrives starves the cannot-tell sentence at its source. A regex on the source is not a
+// test of the behaviour — which is the same read-a-copy mistake this epic has now produced in six
+// distinct forms. This renders the real view and reads what a person would see.
+
+const DRIVES_READY = {
+  drives: [
+    {
+      identity: "4133052179-1407374883553285",
+      name: "Elements",
+      medium: "usb",
+      capacity: 5_000_947_691_520,
+      free: 3_400_000_000_000,
+      root: "F:",
+      attached: true,
+      system: false,
+      first_seen: "2026-09-01T10:00:00Z",
+      last_seen: "2026-11-02T09:00:00Z",
+      stale: false,
+      retired_at: null,
+      catalogued_at: "2026-10-25T12:00:00Z",
+      catalogue_unknown: null,
+      offers: "whole",
+      user_roots: []
+    },
+    {
+      identity: "1579050461-1407374883553285",
+      name: "Windows",
+      medium: "internal",
+      capacity: 511_000_000_000,
+      free: null,
+      root: "C:",
+      attached: true,
+      system: true,
+      first_seen: "2026-09-01T10:00:00Z",
+      last_seen: "2026-11-02T09:00:00Z",
+      stale: false,
+      retired_at: null,
+      catalogued_at: null,
+      catalogue_unknown: null,
+      offers: "user-roots",
+      user_roots: [
+        {
+          root: "C:\\Users\\nsdha\\Downloads",
+          role: "downloads",
+          in_onedrive: false,
+          added_by_owner: false
+        },
+        {
+          root: "C:\\Users\\nsdha\\OneDrive\\Documents",
+          role: "documents",
+          in_onedrive: true,
+          added_by_owner: false
+        },
+        { root: "C:\\Projects", role: "added", in_onedrive: false, added_by_owner: true }
+      ]
+    },
+    {
+      identity: "99-1",
+      name: "label withheld",
+      medium: null,
+      capacity: null,
+      free: null,
+      root: null,
+      attached: false,
+      system: false,
+      first_seen: "2026-01-01T10:00:00Z",
+      last_seen: "2026-02-01T10:00:00Z",
+      stale: true,
+      retired_at: null,
+      catalogued_at: null,
+      catalogue_unknown: "the drive is not here",
+      offers: "whole",
+      user_roots: []
+    }
+  ]
+};
+
+test("RENDERED: the Drives tab shows every drive, and says unknown where the OS said nothing", async () => {
+  const { window } = await renderPanel(
+    { at: NOW, machines: { t480: machine({}) } },
+    { drives: DRIVES_READY }
+  );
+  await openTab(window, "drives");
+  const text = visible(window);
+
+  // THE GOAL SENTENCE OF THIS CONTRACT, read off the screen: every drive this machine has had
+  assert.equal(window.document.querySelectorAll(".em__drive").length, 3, text.slice(0, 400));
+  for (const said of ["Elements", "Windows", "label withheld"])
+    assert.match(text, new RegExp(said, "u"), `${said} is on screen`);
+
+  assert.match(text, /attached at F:/u, "and where it is attached");
+  assert.match(text, /not attached/u, "and that one is not");
+  assert.match(text, /not seen for a while/u, "and that one is stale");
+  assert.match(text, /5\.0 TB total/u, "capacity in words the owner reads");
+  assert.match(text, /unknown/u, "a figure the OS did not give is UNKNOWN, never a guess");
+
+  // the three catalogue states, which must not be conflated
+  assert.match(text, /catalogued /u);
+  assert.match(text, /never catalogued/u);
+  assert.match(text, /catalogue unknown: the drive is not here/u, "unknown is not never");
+
+  // the system drive offers its USER ROOTS and never itself, Downloads first
+  assert.match(text, /catalogues your own folders rather than the whole of it/u);
+  const roots = [...window.document.querySelectorAll(".em__root")].map((r) => r.textContent.trim());
+  assert.equal(roots.length, 3, roots.join(" | "));
+  assert.match(roots[0], /downloads/u, "DOWNLOADS IS FIRST on screen too");
+  assert.match(text, /in OneDrive/u, "and redirection is shown");
+  assert.match(text, /you added this/u, "and what the owner added themselves");
+});
+
+test("RENDERED: a hub that could not answer reads cannot-tell, never an empty registry", async () => {
+  // T9's target. drivesProblem was written in three places and read in none, so a 503 told the
+  // owner "no drive has been seen yet" AS A FACT when the panel could not ask. This suite already
+  // names that invariant for the map; the drives had it in markup only.
+  const { window } = await renderPanel(
+    { at: NOW, machines: { t480: machine({}) } },
+    { drivesStatus: 503 }
+  );
+  await openTab(window, "drives");
+  const text = visible(window);
+  assert.match(text, /the drives cannot be read: the hub answered 503/u, text.slice(0, 300));
+  assert.equal(
+    /No drive has been seen yet/u.test(text),
+    false,
+    "and it must NOT say the registry is empty when it could not ask"
+  );
+
+  // the paired positive: a hub that answers with nothing DOES say the registry is empty
+  const empty = await renderPanel(
+    { at: NOW, machines: { t480: machine({}) } },
+    { drives: { drives: [] } }
+  );
+  await openTab(empty.window, "drives");
+  assert.match(visible(empty.window), /No drive has been seen yet/u);
+});

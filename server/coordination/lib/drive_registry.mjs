@@ -449,7 +449,7 @@ export function readRegistry(
 export function recordUserRoots(db, found = []) {
   const drives = db.prepare("SELECT identity FROM drives").all();
   for (const u of found) {
-    if (!u.identity || forbiddenRoot(u.root)) continue;
+    if (!u.identity || forbiddenRoot(u.root) || isDriveRoot(u.root)) continue;
     const drive = drives.find((d) => sameVolume(d.identity, u.identity));
     if (!drive) continue;
     db.prepare(
@@ -478,6 +478,11 @@ export function addUserRoot(db, identity, root, { identityOf = driveIdentity } =
   // and the Library 2,261,759 files and 494 GB: the precise overhead the owner's direction of
   // 2026-10-11 exists to cut.
   if (isDriveRoot(root)) return { refused: "that is the whole drive, not a folder on it" };
+  // ABSOLUTE ONLY. ".", "..", "server" and "server\coordination" were all accepted and stored as
+  // written — judged here against the HUB's working directory, and resolved by U1 against its own.
+  // A user root that means a different folder depending on who reads it is not a user root.
+  if (!path.isAbsolute(String(root ?? "")))
+    return { refused: `${root} is not a full path, so it would mean a different folder elsewhere` };
   // THE VOLUME, not the whole identity: a folder's identity differs from its drive's by the file
   // half, so comparing them refused every folder that exists and accepted every one that did not.
   const on = identityOf(root);
