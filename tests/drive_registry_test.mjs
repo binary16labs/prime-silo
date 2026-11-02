@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import {
   driveIdentity,
@@ -46,16 +47,23 @@ const db = () => openRegistry(path.join(tmp(), "drives.db"));
 // and a verifier ran the suite from a drive ROOT where cwd is that root - so "a folder identity
 // is not its drive's" failed, which is true of every folder except a root, and the message would
 // have sent a reader hunting a product bug that was not there. os.tmpdir() is no good either: on
-// Windows it sits inside AppData, which this contract's own forbidden list rightly refuses. So a
-// scratch folder beside the repo, which is neither.
+// Windows it sits inside AppData, which this contract's own forbidden list rightly refuses.
+//
+// So: the repo's own tmp/, which .gitignore ALREADY covers. The first version of this reached for
+// the repo root and added "u0-fixture-*/" to .gitignore - a file this contract's allowlist does
+// not give me, which the verifier rightly refused to wave through. The hygiene problem is real
+// (an interrupted run must not leave an untracked directory in a tree verifiers gate on) but it
+// has an answer inside the allowlist, and an already-ignored directory is it. Located from this
+// file, not from cwd, because cwd is the very thing that produced the misleading failure above.
+const FIXTURE_HOME = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "tmp");
 const fixtures = [];
-// removed at exit, because a folder left beside the repo shows up as untracked and a dirty
-// worktree is how a verifier comes to measure something nobody wrote
+// removed at exit anyway, so a passing run leaves nothing behind at all
 process.on("exit", () => {
   for (const d of fixtures) fs.rmSync(d, { recursive: true, force: true });
 });
 const ownFolder = () => {
-  const d = fs.mkdtempSync(path.join(process.cwd(), "u0-fixture-"));
+  fs.mkdirSync(FIXTURE_HOME, { recursive: true });
+  const d = fs.mkdtempSync(path.join(FIXTURE_HOME, "u0-fixture-"));
   fixtures.push(d);
   return d;
 };

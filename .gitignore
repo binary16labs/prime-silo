@@ -75,7 +75,3 @@ scratch/
 # longview transient spawn files (memory gate / graph mover)
 scripts/longview/.gate_*.json
 scripts/longview/.mover_*.json
-# U0's test fixture folders. Made inside the repo root because os.tmpdir() lives under
-# AppData on Windows, which U0's own forbidden list rightly refuses; removed at exit, but an
-# interrupted run must not leave an untracked directory in a tree verifiers gate on.
-u0-fixture-*/
