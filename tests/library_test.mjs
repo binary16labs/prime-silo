@@ -32,6 +32,9 @@ import {
   privateTo,
   rollupRows,
   openLibrary,
+  MAX_CHECK_PATHS,
+  stillListening,
+  libraryQueriedEvent,
   libraryPath,
   libraryState
 } from "../server/coordination/lib/library.mjs";
@@ -2754,4 +2757,382 @@ test("S26: the rollup table is read in exactly one place", () => {
   // helper is handed really is the folders SQL
   assert.match(code, /folderRow:\s*"SELECT files FROM folders WHERE path = \?"/u);
   assert.match(code, /childFolders: \(range\) =>/u);
+});
+
+// --- S25: the librarian's edges -----------------------------------------------------------------
+// Six findings three verifications of S22 judged non-blocking and real, left open when the owner
+// merged. None adds a capability; each bounds work that was unbounded or labels an answer that
+// meant two things.
+
+test("S25: a caller cannot hand the hub unbounded work", async () => {
+  // The WALK has had a cap since S21. The INPUT list never did, and claude-s22-verifier-3 measured
+  // 20,000 paths costing 2.7 seconds of the hub's request thread — the 94-second summary's lesson
+  // arriving through the one door nobody had shut.
+  const drive = tmp();
+  for (let i = 0; i < 20; i += 1) write(drive, `f${i}.txt`, `bytes ${i}`);
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root: drive, dbPath })).finished, true);
+
+  const asked = [];
+  const r = await checkPaths(dbPath, drive, [], {
+    paths: Array.from({ length: 1000 }, (_, i) => path.join(drive, `f${i % 20}.txt`)),
+    maxPaths: 5,
+    hash: async (f) => {
+      asked.push(f);
+      return hashFile(f);
+    }
+  });
+
+  // bounded BEFORE anything is hashed — the cost this exists to stop is the hashing
+  assert.ok(asked.length <= 5, `at most the cap is hashed: ${asked.length}`);
+  assert.equal(r.paths_given, 1000, "it says how many it was handed");
+  assert.equal(r.paths_taken, 5, "and how many of them it used");
+  // BY VALUE, because a verifier raised MAX_CHECK_PATHS from 200 to 900 and the only assertion was
+  // `> 0 && <= 1000` — a shape, on the one constant this whole contract is about.
+  assert.equal(MAX_CHECK_PATHS, 200, "the production cap is 200, not merely plausible");
+  assert.match(r.why_capped ?? "", /1000 paths given and 5/u, JSON.stringify(r.why_capped));
+  assert.match(r.why_capped ?? "", /ask again/u, "and what to do about it");
+
+  // the paired positive: under the cap nothing is capped and nothing is said about it
+  const small = await checkPaths(dbPath, drive, [], {
+    paths: [path.join(drive, "f0.txt")],
+    maxPaths: 5
+  });
+  assert.equal(small.paths_taken, 1, "one path given, one used");
+  assert.equal(small.why_capped, undefined);
+  assert.equal(small.files.length, 1);
+  // AND THE DEFAULT MUST BE THE CONSTANT. A verifier changed the parameter default to Infinity,
+  // which removes the route's cap entirely while the constant still reads 200, and nothing died:
+  // every cap test injects its own maxPaths, so the production path was the one shape untested.
+  const dflt = await checkPaths(dbPath, drive, [], {
+    paths: Array.from({ length: MAX_CHECK_PATHS + 7 }, (_, i) =>
+      path.join(drive, `f${i % 20}.txt`)
+    ),
+    hash: async (f) => hashFile(f)
+  });
+  assert.equal(dflt.paths_given, MAX_CHECK_PATHS + 7);
+  assert.equal(dflt.paths_taken, MAX_CHECK_PATHS, "the default cap is the constant, not Infinity");
+
+  // and exactly AT the cap nothing is dropped and nothing is said about dropping it: `>=` made the
+  // answer tell a caller to re-ask for nothing
+  const exact = await checkPaths(dbPath, drive, [], {
+    paths: Array.from({ length: 5 }, (_, i) => path.join(drive, `f${i}.txt`)),
+    maxPaths: 5
+  });
+  assert.equal(exact.paths_taken, 5);
+  assert.equal(exact.why_capped, undefined, "at the cap exactly, nothing was left behind");
+});
+
+test("S25: asking about a folder the rules cover is explained, not blank", async () => {
+  // A bare `total: 0` told the owner nothing. The count was already right; the sentence was missing.
+  const drive = tmp();
+  write(drive, "Scans/my-passport.jpg", "a scan");
+  write(drive, "Scans/also-passport.jpg", "another");
+  const dbPath = path.join(tmp(), "lib.db");
+  const rules = ["passport"];
+  assert.equal((await catalogue({ root: drive, dbPath, rules })).finished, true);
+
+  const r = await checkPaths(dbPath, drive, rules, { paths: [path.join(drive, "Scans")] });
+  assert.equal(r.total, 0, "nothing was looked up");
+  assert.equal(r.withheld, 2, "and both are counted");
+  assert.match(r.why ?? "", /privacy rules/u, `with a sentence: ${JSON.stringify(r)}`);
+  assert.match(r.why ?? "", /2 withheld/u, "naming the figure, never the files");
+  assert.equal(JSON.stringify(r).includes("passport"), false, "and no private name anywhere");
+
+  // the paired positive: a public file still answers, and says nothing about privacy
+  write(drive, "Open/holiday.jpg", "a holiday");
+  const db2 = path.join(tmp(), "lib2.db");
+  assert.equal((await catalogue({ root: drive, dbPath: db2, rules })).finished, true);
+  const ok = await checkPaths(db2, drive, rules, { paths: [path.join(drive, "Open")] });
+  assert.equal(ok.total, 1);
+  assert.equal(ok.why, undefined, "no sentence when there is nothing to explain");
+});
+
+test("S25: a find with nothing to find is refused, not answered with the drive", async () => {
+  // `instr(lower(path), "")` is 1 for every row, so an empty query matched the whole catalogue and
+  // returned the first `limit` of it: an enumeration surface nobody chose.
+  const drive = tmp();
+  write(drive, "a/one.jpg", "one");
+  write(drive, "b/two.txt", "two");
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root: drive, dbPath })).finished, true);
+
+  const bare = findFiles(dbPath, drive, [], { q: "", kind: "" });
+  assert.match(bare.refused ?? "", /would list the drive/u, JSON.stringify(bare));
+  assert.equal(bare.matches, undefined, "nothing is returned at all");
+
+  // a word alone is a question, and so is a kind alone — "every image" is a real thing to ask
+  assert.equal(findFiles(dbPath, drive, [], { q: "one" }).matches.length, 1);
+  const byKind = findFiles(dbPath, drive, [], { kind: "images" });
+  assert.equal(byKind.refused, undefined, `a kind alone is allowed: ${JSON.stringify(byKind)}`);
+  assert.equal(byKind.matches.length, 1);
+});
+
+test("S25: the two totals say which they are, where each is produced", async () => {
+  // One word, two meanings, neither written down: `find`'s total is matches before the limit and
+  // `check`'s is the files it was asked about. A caller holding both could only have added them up.
+  const drive = tmp();
+  for (let i = 0; i < 5; i += 1) write(drive, `pic-${i}.jpg`, `bytes ${i}`);
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root: drive, dbPath })).finished, true);
+
+  const found = findFiles(dbPath, drive, [], { q: "pic", limit: 2 });
+  assert.equal(found.matches.length, 2, "limited");
+  assert.equal(found.total, 5, "but the total is what there was to find");
+  assert.equal(found.total_means, "matches-before-limit");
+
+  const checked = await checkPaths(dbPath, drive, [], {
+    paths: [path.join(drive, "pic-0.jpg"), path.join(drive, "pic-1.jpg")]
+  });
+  assert.equal(checked.total, 2, "the files it was asked about");
+  assert.equal(checked.total_means, "files-asked-about");
+  assert.notEqual(found.total_means, checked.total_means, "and the two are distinguishable");
+});
+
+test("S25: a refused question is still a question asked, and is audited", async () => {
+  // Design point 10 audits the questions an AGENT asks, and `answer` called event() only on the
+  // 200 path — so "did anything ask about that folder" had the wrong answer for every refusal,
+  // which is the one thing a tamper-evident log exists not to have.
+  const root = tree();
+  const h = await hub({ roots: [root] });
+  try {
+    assert.equal((await h.call("/library", { root })).status, 202);
+    for (let i = 0; i < 300; i += 1) {
+      if (!JSON.parse((await h.call("/library")).text).running) break;
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    const enc = encodeURIComponent(root);
+    // a find with nothing to find: refused at the route
+    const refused = await h.call(`/library/find?root=${enc}&surface=skill`);
+    assert.equal(refused.status, 409, refused.text);
+
+    const dir = path.join(h.estateStore, "library");
+    const file = fs.readdirSync(dir).find((f) => f.endsWith(".jsonl"));
+    assert.ok(file, `a library log exists in ${dir}: ${fs.readdirSync(dir)}`);
+    const read = readKelEvents(path.join(dir, file));
+    assert.equal(read.ok, true, "the log still chains");
+    const asked = read.events.filter((e) => e.type === "library_queried");
+    assert.equal(asked.length, 1, `the refusal is recorded: ${JSON.stringify(asked)}`);
+    assert.equal(asked[0].payload.surface, "skill");
+    // BOOLEAN, not the sentence. The refusal's text names the thing refused — a folder path the
+    // CALLER supplied — so writing it here would be S22's D11 through a field nobody meant as an
+    // input. The log records that a question was refused; the reason went to whoever asked.
+    assert.equal(asked[0].payload.refused, true, "recorded as refused");
+    assert.equal(
+      JSON.stringify(asked[0]).includes("would list the drive"),
+      false,
+      "and the sentence itself is never in the log"
+    );
+    assert.equal(asked[0].payload.returned, 0, "and nothing returned");
+
+    // the paired positive: an ANSWERED question is still audited, and is distinguishable
+    assert.equal((await h.call(`/library/find?root=${enc}&q=photo&surface=skill`)).status, 200);
+    const after = readKelEvents(path.join(dir, file)).events.filter(
+      (e) => e.type === "library_queried"
+    );
+    assert.equal(after.length, 2, "one event per question, refused or not");
+    assert.equal(after[1].payload.refused, false, "and an answered one is recorded as answered");
+
+    // walking the tree is still NOT audited, which is S26's own test
+    // ("walking the tree writes no audit event, unlike the questions an agent asks") — not
+    // repeated here, because that one waits for the rollup properly and this one would only be a
+    // second, flakier copy of it.
+  } finally {
+    await h.close();
+  }
+});
+
+test("S25: the page says what every figure means", () => {
+  // Item 5, in the S21/S22 style: the shapes are read out of the document, so a figure that gains
+  // a meaning and does not gain a sentence fails here rather than confusing a caller.
+  // whitespace-normalised: the formatter reflows prose, and a sentence that wraps is still the
+  // sentence. Asserting on line breaks would make this fail on a reformat and nothing else.
+  const doc = fs
+    .readFileSync(
+      new URL(
+        "../app/L0/_all/mod/_core/documentation/docs/server/estate-library.md",
+        import.meta.url
+      ),
+      "utf8"
+    )
+    .replace(/\s+/gu, " ");
+  for (const said of [
+    "matches **before the limit**",
+    "the files it was **asked about**",
+    "total_means",
+    "paths_given",
+    "paths_taken",
+    "at most 200 paths",
+    "still a full table scan",
+    "is **refused**",
+    "whether it was answered or refused",
+    "declining to take the question at all",
+    "already hung up"
+  ])
+    assert.ok(doc.includes(said), `the page must say: ${said}`);
+
+  // and the status list covers what this contract added
+  assert.match(doc, /`400`[^|]*no path given/u);
+  assert.match(doc, /A `find` with nothing to find is also a `409`/u);
+});
+
+test("S25: nothing is written for an answer nobody is waiting for", async () => {
+  // A mutation showed this untested, and it was untested because it was unreachable: a condition
+  // inside a route can only be exercised by aborting a real request at the right microsecond. As a
+  // predicate it is ordinary to test, which is the whole argument for making it one.
+  assert.equal(stillListening({ writableEnded: false, destroyed: false }), true, "still there");
+  assert.equal(
+    stillListening({ writableEnded: true, destroyed: false }),
+    false,
+    "already answered"
+  );
+  assert.equal(stillListening({ writableEnded: false, destroyed: true }), false, "hung up");
+  assert.equal(stillListening({ writableEnded: true, destroyed: true }), false);
+  // and it does not invent a listener out of nothing
+  assert.equal(stillListening(undefined), false);
+  assert.equal(stillListening(null), false);
+  // the paired negative: a bare object with neither field is a live response, because node sets
+  // both lazily — defaulting to "gone" would silence every ordinary answer
+  assert.equal(stillListening({}), true, "an untouched response is still listening");
+
+  // AND THE CHECK IS NOW PART OF THE WRITE, not a line above it. My first version of this test
+  // asserted a TEXT MATCH on the route's source, so a verifier moved the guard from before the
+  // write to after it and all 97 tests passed while an aborted check wrote an event. What got
+  // tested was the lift, not the guard — the class-vs-instance lesson in a new costume. So the
+  // response goes INTO librarian.audit, and this drives it.
+  const store = path.join(tmp(), "library");
+  const drive = tmp();
+  write(drive, "a.txt", "bytes");
+  const lib = createLibrarian({ dir: store, rules: [] });
+  const dbPath = libraryPath(store, drive);
+  fs.mkdirSync(store, { recursive: true });
+  await catalogue({ root: drive, dbPath });
+
+  const info = { surface: "skill", kind: "find", returned: 1, withheld: 0 };
+  assert.equal(lib.audit(drive, info, { writableEnded: true }), false, "gone: nothing written");
+  assert.equal(lib.audit(drive, info, { destroyed: true }), false, "hung up: nothing written");
+  // the catalogue pass writes its OWN events to this log, so the absence of the file proves
+  // nothing — what must be absent is a library_queried event
+  const logFile = `${dbPath.slice(0, -3)}.jsonl`;
+  const queries = () =>
+    fs.existsSync(logFile)
+      ? readKelEvents(logFile).events.filter((e) => e.type === "library_queried").length
+      : 0;
+  assert.equal(queries(), 0, "nothing was asked, so nothing was recorded as asked");
+
+  // the paired positive: a live response, and one with no response at all, both write
+  assert.equal(lib.audit(drive, info, { writableEnded: false, destroyed: false }), true);
+  assert.equal(lib.audit(drive, info), true, "no response given means no caller to have lost");
+  assert.equal(
+    readKelEvents(logFile).events.filter((e) => e.type === "library_queried").length,
+    2,
+    "two written, and only the two that should have been"
+  );
+});
+
+test("S25: the audit event carries figures, never a caller's words", () => {
+  // S22's D11, which this contract had to respect rather than route around: the refusal's sentence
+  // names the thing refused, and the thing refused is supplied by the caller. So the log records
+  // THAT a question was refused and how many paths it was handed — a boolean and a number, neither
+  // of which can carry prose.
+  const evt = libraryQueriedEvent({
+    machine: "T480",
+    root: "F:\\",
+    pass: "p1",
+    surface: "skill",
+    kind: "check",
+    returned: 0,
+    withheld: 3,
+    refused: "Scans/my-passport.jpg is covered by the rules", // a caller's path, as prose
+    asked: 7,
+    reason: "and some text nobody asked for",
+    note: "nor this"
+  });
+
+  assert.equal(evt.payload.refused, true, "coerced to the fact, not kept as the text");
+  assert.equal(evt.payload.asked, 7);
+  const body = JSON.stringify(evt);
+  for (const leaked of ["my-passport", "covered by the rules", "nobody asked for", "nor this"])
+    assert.equal(body.includes(leaked), false, `no caller text in the log: ${leaked}`);
+
+  // and the fact is a fact in both directions
+  assert.equal(
+    libraryQueriedEvent({
+      machine: "T480",
+      root: "F:\\",
+      surface: "skill",
+      kind: "find",
+      returned: 2,
+      withheld: 0
+    }).payload.refused,
+    false
+  );
+  assert.equal(
+    libraryQueriedEvent({
+      machine: "T480",
+      root: "F:\\",
+      surface: "skill",
+      kind: "find",
+      returned: 2,
+      withheld: 0,
+      asked: "lots"
+    }).payload.asked,
+    null,
+    "a figure that is not a number is no figure"
+  );
+});
+
+test('S25: a query of "0" is a query, and a kind that is not a string is not one', async () => {
+  // `!q` instead of `!String(q)` makes a search for "0" the refused case — the coercion is the
+  // whole point of the guard and was untested. And `kind: null` passed the guard as "null" while
+  // applying no filter in SQL, which enumerated the drive: the exact thing the refusal is for,
+  // reached through the back of the guard that was meant to stop it.
+  const drive = tmp();
+  write(drive, "0.txt", "a file actually called zero");
+  write(drive, "other.txt", "not");
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root: drive, dbPath })).finished, true);
+
+  const zero = findFiles(dbPath, drive, [], { q: "0" });
+  assert.equal(zero.refused, undefined, `"0" is a query: ${JSON.stringify(zero)}`);
+  assert.equal(zero.matches.length, 1);
+  assert.equal(findFiles(dbPath, drive, [], { q: 0 }).matches.length, 1, "and so is the number");
+
+  for (const kind of [null, 0, false, {}, []])
+    assert.match(
+      findFiles(dbPath, drive, [], { q: "", kind }).refused ?? "",
+      /would list the drive/u,
+      `a non-string kind is not a question: ${JSON.stringify(kind)}`
+    );
+  // the paired positive: a real kind still works
+  assert.equal(findFiles(dbPath, drive, [], { kind: "documents" }).matches.length, 2);
+});
+
+test("S25: an empty folder is not told its own rules covered it", async () => {
+  // `!files.length` alone said "every path asked about is covered by this machine's own privacy
+  // rules ... 0 withheld" about a folder that simply held nothing.
+  const drive = tmp();
+  fs.mkdirSync(path.join(drive, "Empty"), { recursive: true });
+  write(drive, "a.txt", "something");
+  const dbPath = path.join(tmp(), "lib.db");
+  assert.equal((await catalogue({ root: drive, dbPath })).finished, true);
+
+  const r = await checkPaths(dbPath, drive, ["passport"], { paths: [path.join(drive, "Empty")] });
+  assert.equal(r.total, 0, "nothing in it");
+  assert.equal(r.withheld, 0, "and nothing withheld");
+  assert.equal(r.why, undefined, `so there is nothing to explain: ${JSON.stringify(r.why)}`);
+});
+
+test("S25: the gate looks at what this contract shares, not only its own tests", () => {
+  // A verifier deleted the chained run and the gate stayed green while looking at nothing but
+  // tests/library_test.mjs — which is the exact mechanism by which this contract's first GREEN was
+  // wrong, and the shape claude-s26-verifier named twice.
+  const gate = fs.readFileSync(new URL("../scripts/gates/s25.mjs", import.meta.url), "utf8");
+  assert.match(gate, /run\(\s*"S25 tests"/u, "it runs its own tests");
+  assert.match(gate, /scripts\/gates\/s26\.mjs/u, "and the gate of the files it shares");
+  assert.equal(
+    (gate.match(/^run\(/gmu) ?? []).length,
+    2,
+    "exactly those two: a gate that grows silently is a gate nobody reads"
+  );
 });

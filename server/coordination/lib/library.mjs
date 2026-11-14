@@ -558,7 +558,27 @@ export function catalogueLookup(dbPath, root) {
 // S22 point 10: an agent's question is audited WITHOUT ITS WORDS - surface, kind, counts and the
 // pass, never the query text or a path, because "find my CV" is itself private. An auditor sees
 // that an agent asked and how much it was told, without the log becoming the leak.
-export function libraryQueriedEvent({ machine, root, pass, surface, kind, returned, withheld }) {
+// `refused` and `asked` are BOOLEAN and NUMBER on purpose. A refusal's sentence names the thing
+// refused — a folder path, which the caller supplies — so writing it here would be exactly S22's
+// D11, a caller putting its own text into a tamper-evident log through a field nobody meant as an
+// input. The log records THAT a question was refused; the reason goes to the caller, who asked.
+// Is anyone still there to receive the answer? A client that hung up mid-check was audited as
+// ANSWERED, so the log recorded an answer nobody got. It is a predicate rather than an inline
+// condition because a condition inside a route is reachable only by aborting a real request at the
+// right microsecond — which is to say, untestable, which is to say it was untested.
+export const stillListening = (res) => res != null && !(res.writableEnded || res.destroyed);
+
+export function libraryQueriedEvent({
+  machine,
+  root,
+  pass,
+  surface,
+  kind,
+  returned,
+  withheld,
+  refused = false,
+  asked = null
+}) {
   const at = new Date().toISOString();
   const sid = `sweep:${machine}:library:${pass || "none"}:${at}`;
   return {
@@ -573,7 +593,17 @@ export function libraryQueriedEvent({ machine, root, pass, surface, kind, return
     authorship: "house",
     sid,
     subject: { kind: "sweep", id: sid },
-    payload: { scope: "library", root, pass: pass || null, surface, kind, returned, withheld }
+    payload: {
+      scope: "library",
+      root,
+      pass: pass || null,
+      surface,
+      kind,
+      returned,
+      withheld,
+      refused: Boolean(refused),
+      asked: Number.isFinite(asked) ? asked : null
+    }
   };
 }
 
@@ -1101,6 +1131,20 @@ function finishedCatalogue(dbPath, root) {
 // query holding % or _ is text and not a pattern. `limit` caps what is NAMED, `total` says how many
 // matched - a capped or filtered answer is visibly so.
 export function findFiles(dbPath, root, rules = [], { q = "", kind = "", limit = 50 } = {}) {
+  // AN ENUMERATION SURFACE NOBODY CHOSE. `instr(lower(path), "")` is 1 for every row, so an empty
+  // query matched the whole drive and returned the first `limit` of it — 1.1 million rows walked on
+  // the hub's thread to answer a question nobody asked. A kind on its own ("every image") is a real
+  // question and still allowed; neither is not.
+  // String() ON BOTH, because a search for "0" is a real search and `!0` is true. The same
+  // coercion is why `kind: null` must not slip past as a falsy-but-stringy value: `String(null)`
+  // is "null", which would pass this guard and then match no kind in SQL, enumerating the drive —
+  // so the kind is normalised to a string before either is tested.
+  q = typeof q === "string" || typeof q === "number" ? String(q) : "";
+  kind = typeof kind === "string" ? kind : "";
+  if (!q && !kind)
+    return {
+      refused: "ask for a word in the path, or a kind of file: both empty would list the drive"
+    };
   const c = finishedCatalogue(dbPath, root);
   if (!c.db) return c.missing ? null : { refused: c.refused };
   const isPrivate = privateTo(rules);
@@ -1119,11 +1163,25 @@ export function findFiles(dbPath, root, rules = [], { q = "", kind = "", limit =
       else if (matches.length < limit)
         matches.push({ full, size: r.size, mtime_ms: r.mtime_ms, kind: r.kind });
     }
-    return { finishedAt: c.finishedAt, matches, withheld, total };
+    // `total` HERE IS MATCHES BEFORE THE LIMIT — how much there was to find, so a caller seeing
+    // 50 of 4,000 knows to narrow the question. `check`'s `total` is a different number (the files
+    // it was ASKED about), and one word for two meanings is how a caller comes to add them up.
+    return {
+      finishedAt: c.finishedAt,
+      matches,
+      withheld,
+      total,
+      total_means: "matches-before-limit"
+    };
   } finally {
     c.db.close();
   }
 }
+
+// How many paths a caller may hand the hub at once. The walk has had a cap since S21; the INPUT
+// list never did, and claude-s22-verifier-3 measured 20,000 paths costing 2.7 seconds of request
+// thread — the same lesson as the 94-second summary, arriving by the one door nobody had shut.
+export const MAX_CHECK_PATHS = 200;
 
 // Is this file — or every file under this folder — already on the catalogued drive? It reads only
 // what it was ASKED about: no file on the drive is ever opened for its data. S20's rule decides a
@@ -1133,11 +1191,19 @@ export async function checkPaths(
   dbPath,
   root,
   rules = [],
-  { paths = [], cap = 500, hash = hashFile, stat = fs.statSync } = {}
+  { paths = [], cap = 500, maxPaths = MAX_CHECK_PATHS, hash = hashFile, stat = fs.statSync } = {}
 ) {
   const c = finishedCatalogue(dbPath, root);
   if (!c.db) return c.missing ? null : { refused: c.refused };
   const isPrivate = privateTo(rules);
+  // BOUNDED BEFORE ANYTHING IS HASHED, and said in the answer the way the walk cap already is. A
+  // caller is told what it got rather than quietly given a prefix of what it asked for.
+  const given = paths.length;
+  // STRICTLY GREATER. At exactly the cap nothing was dropped, and `>=` made the answer say
+  // "200 paths given and 200 is the most this will take at once: ask again with the rest" — an
+  // instruction to re-ask for nothing.
+  const over = given > maxPaths;
+  paths = over ? paths.slice(0, maxPaths) : paths;
   try {
     const hasSize = c.db.prepare("SELECT 1 FROM files WHERE size = ? LIMIT 1");
     const byHash = c.db.prepare("SELECT path, size, mtime_ms FROM files WHERE sha256 = ?");
@@ -1232,11 +1298,38 @@ export async function checkPaths(
     // `withheld` counts both sides: paths never walked because the rules cover them, and
     // catalogued locations not named. A count is the most that may be said about either.
     const atWithheld = files.reduce((n, f) => n + (f.withheld || 0), 0);
+    // `total` HERE IS THE FILES IT WAS ASKED ABOUT, not matches before a limit, which is what
+    // `find`'s total means. Both are now labelled at the point they are produced.
+    // AND SOMETHING MUST HAVE BEEN WITHHELD. Without that clause an EMPTY folder was told its
+    // own rules covered everything it held, "0 withheld", which is a sentence about nothing.
+    const allWithheld = !files.length && withheld > 0;
     return {
       finishedAt: c.finishedAt,
       files,
       total: files.length,
+      total_means: "files-asked-about",
       capped,
+      paths_given: given,
+      // NAMED FOR WHAT IT IS. `paths_capped` meant "how many were taken" in the documentation,
+      // "how many were capped" in its name, and 0-when-one-was-taken in the code: one word with
+      // three meanings, inside the contract whose items 2 and 5 exist because one word had two.
+      paths_taken: Math.min(given, maxPaths),
+      // ITEM 4: a bare `total: 0` told the owner nothing when the answer was "your own rules cover
+      // everything you asked about". The count was already right; what was missing was the sentence.
+      ...(allWithheld
+        ? {
+            why:
+              `every path asked about is covered by this machine's own privacy rules, so none was ` +
+              `looked up: ${withheld} withheld`
+          }
+        : {}),
+      ...(over
+        ? {
+            why_capped:
+              `${given} paths given and ${maxPaths} is the most this will take at once: ask again ` +
+              `with the rest`
+          }
+        : {}),
       withheld: withheld + atWithheld
     };
   } finally {
@@ -1402,7 +1495,13 @@ export function createLibrarian({
         : v;
     },
     // one event per question, in the drive's own library log beside its catalogue
-    audit(root, info) {
+    // THE CHECK AND THE WRITE ARE ONE CALL. Moving the listening guard from before the write to
+    // after it left all 97 tests green, because the test that was meant to prevent that asserted a
+    // TEXT MATCH on the route's source — so what got tested was the lift, not the guard. There is
+    // no "after" to move it to now: a caller that is gone cannot be audited because the only way to
+    // audit is through here.
+    audit(root, info, to = null) {
+      if (to !== null && !stillListening(to)) return false;
       const db = libraryPath(dir, root);
       if (!db) return false;
       const pass = (passOf(db)?.last?.id ?? null) || null;
