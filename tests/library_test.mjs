@@ -293,7 +293,15 @@ test("a private duplicate is in the totals and in no list, CSV or state", async 
   assert.equal(state.duplicates.sets, 2, "both sets are counted");
   assert.equal(state.duplicates.private, 3);
   assert.equal(state.duplicates.wasted, "cv bytes".length + "photo b".length);
-  const text = JSON.stringify(state) + duplicatesCsv(duplicateSets(dbPath, root, rules));
+  // THE PASS ID IS TAKEN OUT BEFORE LOOKING. It is a ULID, whose letters come from the clock, and
+  // every ULID minted from 10:52:32Z to 11:10:01Z on 2026-11-14 began 01M7CV - so this failed for
+  // seventeen minutes at a time and was logged for weeks as a flake (claude-s25-verifier-3).
+  // Only that one id is removed, and it must be there, so the look is not quietly emptier.
+  const id = state.last?.id;
+  assert.equal(typeof id, "string", "the state carries its pass id");
+  const text = (JSON.stringify(state) + duplicatesCsv(duplicateSets(dbPath, root, rules)))
+    .split(id)
+    .join("<pass>");
   assert.doesNotMatch(text, /CV/u);
   assert.match(text, /b\.jpg/u, "the public copy is still named");
 });
@@ -2967,7 +2975,14 @@ test("S25: the page says what every figure means", () => {
     "is **refused**",
     "whether it was answered or refused",
     "declining to take the question at all",
-    "already hung up"
+    "already hung up",
+    // S30, and the two fields and one status S25 added without naming (claude-s25-verifier-3)
+    "`why` is present only when",
+    "`why_capped` is present only when",
+    "`capped: false`",
+    "the duplicates list is still being worked out",
+    "a missing one starts the worker",
+    "rests for a minute before it is tried again"
   ])
     assert.ok(doc.includes(said), `the page must say: ${said}`);
 
@@ -3135,4 +3150,208 @@ test("S25: the gate looks at what this contract shares, not only its own tests",
     2,
     "exactly those two: a gate that grows silently is a gate nobody reads"
   );
+});
+
+// --- S30: folder weights reach catalogues that predate them --------------------------------------
+
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// THE STATE THE REAL F: WAS IN on 2026-11-14: a finished pass, a summary saved under the current
+// pass and policy, a `folders` table with no rows and no folders_meta - because F:'s pass finished
+// the day before S26 merged. Every S26 test began from a fresh pass, which is the one state that
+// cannot show what this does. Built here by letting a hub do everything, then taking the rollup
+// away and leaving the summary.
+const summarisedBeforeTheRollup = async (store = tmp()) => {
+  const root = tmp();
+  write(root, "keep/a.txt", "shared");
+  write(root, "keep/b.txt", "only here");
+  write(root, "other/c.txt", "shared");
+  const h = await hub({ roots: [root], estateStore: store, quarantine: [] });
+  const enc = encodeURIComponent(root);
+  try {
+    assert.equal((await h.call("/library", { root })).status, 202);
+    let ready = false;
+    for (let i = 0; i < 1200 && !ready; i += 1) {
+      ready = (await h.call(`/library/folder?root=${enc}&path=`)).status === 200;
+      if (!ready) await pause(50);
+    }
+    assert.ok(ready, "the setup's own rollup landed");
+  } finally {
+    await h.close();
+  }
+  const dbPath = libraryPath(path.join(store, "library"), root);
+  // the route answers once the rollup's key is written; the summary is saved a moment after, by the
+  // same worker, so the setup waits for that too rather than racing it
+  for (let i = 0; i < 400 && !fs.existsSync(`${dbPath}.summary.json`); i += 1) await pause(25);
+  assert.ok(fs.existsSync(`${dbPath}.summary.json`), "and its summary was saved");
+  await pause(200); // and the worker has let go of the file before the rollup is taken away
+  const db = new DatabaseSync(dbPath);
+  try {
+    db.exec("PRAGMA busy_timeout = 10000");
+    db.exec("DELETE FROM folders");
+    db.exec("DROP TABLE folders_meta");
+  } finally {
+    db.close();
+  }
+  assert.equal(rollupKey(dbPath), null, "no rollup, as on the real F:");
+  return { root, store, dbPath, enc };
+};
+
+const passCount = (dbPath) => {
+  const db = new DatabaseSync(dbPath, { readOnly: true });
+  try {
+    return db.prepare("SELECT count(*) AS n FROM passes").get().n;
+  } finally {
+    db.close();
+  }
+};
+
+test("S30: a catalogue with a current summary and no rollup gets one, through the route", async () => {
+  const { root, store, dbPath, enc } = await summarisedBeforeTheRollup();
+  const passes = passCount(dbPath);
+  const since = fs.statSync(`${dbPath}.summary.json`).mtimeMs;
+  // a NEW hub, which is what the owner had: the hub restarted with the old summary on disk
+  const h = await hub({ roots: [root], estateStore: store, quarantine: [] });
+  try {
+    const first = await h.call(`/library/folder?root=${enc}&path=`);
+    assert.equal(first.status, 202, `nothing to show yet: ${first.text}`);
+    let r = first;
+    for (let i = 0; i < 1200 && r.status === 202; i += 1) {
+      await pause(50);
+      r = await h.call(`/library/folder?root=${enc}&path=`);
+    }
+    assert.equal(r.status, 200, `the rollup is built and the folder answers: ${r.text}`);
+    const view = JSON.parse(r.text);
+    assert.ok(view.folders.length >= 2, `with its folders: ${r.text.slice(0, 200)}`);
+    assert.ok(rollupKey(dbPath), "and the key is written");
+    assert.equal(passCount(dbPath), passes, "without a new pass");
+    // the folder answers once the key is written and the worker goes on to save the summary: wait
+    // for that, so nothing is still writing when this test's folders are removed
+    for (let i = 0; i < 400 && fs.statSync(`${dbPath}.summary.json`).mtimeMs <= since; i += 1)
+      await pause(25);
+    await pause(200);
+  } finally {
+    await h.close();
+  }
+});
+
+test("S30: a catalogue whose summary and rollup are both current starts no worker", async () => {
+  const root = tmp();
+  write(root, "a/one.jpg", "same");
+  write(root, "b/one.jpg", "same");
+  const dir = tmp();
+  const dbPath = libraryPath(dir, root);
+  assert.equal((await catalogue({ root, dbPath })).finished, true);
+  const before = createLibrarian({ dir, rules: [] });
+  await waitState(before, root);
+  for (let i = 0; i < 400 && rollupKey(dbPath) === null; i++) await pause(25);
+  assert.ok(rollupKey(dbPath), "set up fully current");
+
+  // a new librarian over it, asked everything a panel asks, more than once
+  const lib = createLibrarian({ dir, rules: [] });
+  for (let i = 0; i < 3; i += 1) {
+    assert.ok(lib.folder(root, { path: "" }).folders.length >= 2, "answered from the rollup");
+    assert.notEqual(lib.state(root).computing, true, "and the summary");
+  }
+  assert.equal(lib.workersStarted(), 0, "and nothing was recomputed that was already right");
+});
+
+test("S30: while a pass runs, the folder route says so instead of promising a minute", async () => {
+  const { root, store, dbPath } = await summarisedBeforeTheRollup();
+  write(root, "new/d.txt", "added since"); // a pass with something to read, so it is still running
+  let release;
+  const gate = new Promise((r) => (release = r));
+  const lib = createLibrarian({
+    dir: path.join(store, "library"),
+    rules: [],
+    hash: async (f) => (await gate, hashFile(f))
+  });
+  const { started, done } = lib.start(root);
+  assert.equal(started, true);
+  try {
+    const r = lib.folder(root, { path: "" });
+    assert.equal(r.computing, true, JSON.stringify(r));
+    assert.match(r.why, /being catalogued/u, "it says what is happening");
+    assert.doesNotMatch(r.why, /a minute/u, "and does not promise what the pass will not give");
+    assert.equal(lib.workersStarted(), 0, "a running pass changes the catalogue every batch");
+  } finally {
+    release();
+    await done;
+  }
+  assert.ok(fs.existsSync(dbPath));
+});
+
+test("S30: a rollup that could not be built keeps saying why, rather than being retried away", async () => {
+  // Starting a worker cleared the failure, and every request started one: the reason was erased by
+  // the request that came to read it. A catalogue the worker cannot write is a real way to fail.
+  const { root, store, dbPath } = await summarisedBeforeTheRollup();
+  const dir = path.join(store, "library");
+  const lib = createLibrarian({ dir, rules: [] });
+  const again = createLibrarian({ dir, rules: [], retryMs: 300 });
+  fs.chmodSync(dbPath, 0o444);
+  try {
+    let r = lib.folder(root, { path: "" });
+    for (let i = 0; i < 400 && !r.refused; i += 1) {
+      await pause(25);
+      r = lib.folder(root, { path: "" });
+    }
+    assert.match(r.refused ?? "", /could not be built: \S/u, `the reason: ${JSON.stringify(r)}`);
+    const tried = lib.workersStarted();
+    for (let i = 0; i < 3; i += 1)
+      assert.equal(lib.folder(root, { path: "" }).refused, r.refused, "and it is still the answer");
+    assert.equal(lib.workersStarted(), tried, "nothing restarted to hide it");
+
+    // the paired positive: the rest is a rest, not a verdict - once it is over, an ask tries again
+    const failedOnce = async () => {
+      for (let i = 0; i < 400 && !again.folder(root, { path: "" }).refused; i += 1) await pause(25);
+    };
+    await failedOnce();
+    assert.equal(again.workersStarted(), 1);
+    await pause(350);
+    again.folder(root, { path: "" });
+    assert.equal(again.workersStarted(), 2, "after the rest, the next ask tries again");
+    await failedOnce(); // and that worker has finished before the file is made writable again
+  } finally {
+    fs.chmodSync(dbPath, 0o644);
+  }
+});
+
+test("S30 (from S25): a refused find and an answered one each audit what they returned", async () => {
+  // Deleting the 404 branch's audit call, or pinning `returned` to 0, left every test green
+  // (claude-s25-verifier-3). The product was right; nothing held it there.
+  const root = tree();
+  const h = await hub({ roots: [root] });
+  const enc = encodeURIComponent(root);
+  const dir = path.join(h.estateStore, "library");
+  const asked = () => {
+    const log = fs.readdirSync(dir).find((f) => f.endsWith(".jsonl"));
+    return log
+      ? readKelEvents(path.join(dir, log)).events.filter((e) => e.type === "library_queried")
+      : [];
+  };
+  try {
+    // no catalogue yet: 404, and still a question asked
+    const none = await h.call(`/library/find?root=${enc}&q=photo&surface=skill`);
+    assert.equal(none.status, 404, none.text);
+    assert.equal(asked().length, 1, "the 404 is audited, as the docs page says");
+    assert.equal(asked()[0].payload.refused, true);
+    assert.equal(asked()[0].payload.returned, 0);
+
+    assert.equal((await h.call("/library", { root })).status, 202);
+    for (let i = 0; i < 300; i += 1) {
+      if (!JSON.parse((await h.call("/library")).text).running) break;
+      await pause(10);
+    }
+    const found = await h.call(`/library/find?root=${enc}&q=photo&surface=skill`);
+    assert.equal(found.status, 200, found.text);
+    const n = JSON.parse(found.text).matches.length;
+    assert.ok(n >= 2, `a find with more than one answer, so neither 0 nor 1 can pass: ${n}`);
+    assert.equal(asked().at(-1).payload.returned, n, "the audit says how many were returned");
+    // the pass ending starts the summary worker; let it finish before this test's folders go
+    const db = libraryPath(dir, root);
+    for (let i = 0; i < 400 && !fs.existsSync(`${db}.summary.json`); i += 1) await pause(25);
+    await pause(200);
+  } finally {
+    await h.close();
+  }
 });
