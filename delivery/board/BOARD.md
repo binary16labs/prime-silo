@@ -7,8 +7,6 @@
 
 ## READY (take from the top)
 
-- U11 — a drive's comings and goings reach the ledger, and an unplugged drive keeps its date _(dep U0 DONE 2026-11-14. Scope signed by the owner as PATH-data-mapping D2, where it is called U0a; band S. At the TOP on the signed path's order: U11, then S23, then U1.)_
-
 - S23 — duplicates and sole copies across the catalogue _(dep S22 DONE 2026-10-24; already signed 2026-10-11. Promoted by the board's mechanical rule, placed at the bottom. NOT MVP work: M13's cut makes only the one outcome's blockers claimable, and those are now all closed, so the next move is the owner walking the journey rather than anyone claiming this.)_
 
 
@@ -22,6 +20,8 @@
 - S14 — the map carries which software each node runs _(UNBLOCKED — its only dep, S13, went DONE inside the S15 merge (54f5cfc8). Enters READY at the bottom per the board's promotion rule; owner may reorder.)_
 
 ## CLAIMED (agent · date)
+
+- U11 — a drive's comings and goings reach the ledger, and an unplugged drive keeps its date · claude-opus-5-5 · 2026-11-14 _(branched from task/S30, which shares its files)_
 
 ## VERIFY (awaiting non-author verification)
 
