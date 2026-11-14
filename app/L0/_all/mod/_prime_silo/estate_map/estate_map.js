@@ -83,29 +83,36 @@ window.estateMapPage = function estateMapPage() {
     // the sentence beside it and its accessible name cannot disagree. KNOWN only when the OS gave
     // both figures and they make sense together; otherwise the drawing says unknown and is not filled.
     elevation(d) {
-      const cap = Number(d?.capacity);
-      const free = Number(d?.free);
-      const known =
-        Number.isFinite(cap) && cap > 0 && Number.isFinite(free) && free >= 0 && free <= cap;
+      // A FIGURE COUNTS ONLY IF IT IS A NUMBER. Number(null) is 0, so a drive whose free space the
+      // OS did not give was drawn 100% full in the danger colour - a guessed bar and a false alarm
+      // (claude-c8-verifier). And size() says "unknown" for 0, so zero is said here as "0 B".
+      const figure = (x) => (typeof x === "number" && Number.isFinite(x) ? x : null);
+      const amount = (n) => (n === 0 ? "0 B" : this.size(n));
+      const cap = figure(d?.capacity);
+      const free = figure(d?.free);
+      const capKnown = cap !== null && cap > 0;
+      const known = capKnown && free !== null && free >= 0 && free <= cap;
       const name = d?.name || "unnamed drive";
       if (!known)
         return {
           known: false,
           full: false,
           usedWidth: 0,
-          capLine: "capacity unknown",
+          capLine: capKnown ? `${amount(cap)} total` : "capacity unknown",
           useLine: "use unknown",
-          aria: `${name}: capacity unknown`
+          aria: capKnown
+            ? `${name}: ${amount(cap)} total, use unknown`
+            : `${name}: capacity unknown`
         };
       const used = cap - free;
       const pct = Math.round((used / cap) * 100);
       const full = used / cap >= 0.9;
-      const useLine = `${this.size(used)} used · ${this.size(free)} free${full ? ` · ${pct}% full` : ""}`;
+      const useLine = `${amount(used)} used · ${amount(free)} free${full ? ` · ${pct}% full` : ""}`;
       return {
         known: true,
         full,
         usedWidth: Math.round((used / cap) * 676 * 10) / 10,
-        capLine: `${this.size(cap)} total`,
+        capLine: `${amount(cap)} total`,
         useLine,
         aria: `${name}: ${this.size(cap)} total, ${useLine.replaceAll(" · ", ", ")}`
       };

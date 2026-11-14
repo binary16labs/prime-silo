@@ -3001,3 +3001,131 @@ test("C8: the system drive's folders are a list, one per line, Downloads first",
   assert.ok(declaredFor(c.querySelector(".em__rootlist")).includes("flex-direction: column"));
   assert.match(items[1].textContent, /in OneDrive/u, "and redirection is marked");
 });
+
+// --- C8 round 2: the verifier's blocking case, the boundaries, and the cascade ---------------------
+
+// WHICH RULE WINS, not only which rules match (claude-c8-verifier appended a later rule restoring the
+// sage stroke and every round-1 test still passed). The panel's rules for one element have equal
+// specificity in practice, so the last matching declaration in source order is the one a browser
+// paints. Not a full cascade - specificity is not modelled - and said so.
+const winningFor = (el, prop) => {
+  const said = declaredFor(el).filter((d) => d.startsWith(`${prop}: `));
+  return said.length ? said.at(-1).slice(prop.length + 2) : null;
+};
+
+const C8_EDGES = {
+  drives: [
+    {
+      ...DRIVES_READY.drives[0],
+      identity: "e1",
+      name: "Null free",
+      capacity: 511_000_000_000,
+      free: null
+    },
+    {
+      ...DRIVES_READY.drives[0],
+      identity: "e2",
+      name: "Exactly ninety",
+      capacity: 1_000_000_000_000,
+      free: 100_000_000_000
+    },
+    {
+      ...DRIVES_READY.drives[0],
+      identity: "e3",
+      name: "Just under",
+      capacity: 1_000_000_000_000,
+      free: 101_000_000_000
+    },
+    {
+      ...DRIVES_READY.drives[0],
+      identity: "e4",
+      name: "Brimful",
+      capacity: 1_000_000_000_000,
+      free: 0
+    },
+    {
+      ...DRIVES_READY.drives[0],
+      identity: "e5",
+      name: "Untouched",
+      capacity: 1_000_000_000_000,
+      free: 1_000_000_000_000
+    },
+    {
+      ...DRIVES_READY.drives[0],
+      identity: "e6",
+      name: "Text figures",
+      capacity: "511000000000",
+      free: ""
+    }
+  ]
+};
+const edgeRender = async () => {
+  const { window } = await renderPanel(
+    { at: NOW, machines: { t480: machine({}) } },
+    { drives: C8_EDGES }
+  );
+  await openTab(window, "drives");
+  return (name) =>
+    [...window.document.querySelectorAll(".em__drive")].find((d) =>
+      d.querySelector("h3")?.textContent.includes(name)
+    );
+};
+
+test("C8 (round 2): free space the OS did not give is unknown, never a full drive", async () => {
+  const drive = await edgeRender();
+  for (const name of ["Null free", "Text figures"]) {
+    const d = drive(name);
+    assert.equal(d.getAttribute("data-full"), "false", `${name}: not a warning`);
+    assert.equal(d.querySelector(".em__elev").getAttribute("data-known"), "false", name);
+    assert.equal(d.querySelector(".em__used").getAttribute("width"), "0", `${name}: no fill`);
+    assert.match(d.textContent, /use unknown/u, name);
+    assert.equal(
+      winningFor(d.querySelector(".em__outline"), "stroke-dasharray"),
+      "4 4",
+      `${name}: dashed`
+    );
+    assert.notEqual(
+      winningFor(d.querySelector(".em__outline"), "stroke"),
+      "var(--color-status-danger)"
+    );
+  }
+  // a capacity the OS did give is still said, at its size, when only the free space is missing
+  assert.match(drive("Null free").textContent, /511 GB total/u);
+  assert.equal(
+    drive("Null free").querySelector(".em__elev").getAttribute("aria-label"),
+    "Null free: 511 GB total, use unknown"
+  );
+});
+
+test("C8 (round 2): 90% used is a warning and 89.9% is not, and the warning wins the cascade", async () => {
+  const drive = await edgeRender();
+  const at90 = drive("Exactly ninety");
+  assert.equal(at90.getAttribute("data-full"), "true", "exactly 90% is a warning");
+  assert.match(at90.textContent, /90% full/u);
+  assert.equal(
+    winningFor(at90.querySelector(".em__outline"), "stroke"),
+    "var(--color-status-danger)"
+  );
+  assert.equal(
+    winningFor(at90.querySelector(".em__used"), "fill"),
+    "var(--color-blueprint-warn-fill)"
+  );
+  assert.equal(
+    winningFor(at90.querySelector(".em__drive-facts"), "color"),
+    "var(--color-status-danger)",
+    "and the words are in the warning colour too"
+  );
+  const under = drive("Just under");
+  assert.equal(under.getAttribute("data-full"), "false", "89.9% is not");
+  assert.equal(
+    winningFor(under.querySelector(".em__outline"), "stroke"),
+    "var(--color-accent-primary)"
+  );
+});
+
+test("C8 (round 2): a full drive says 0 B free and an empty one 0 B used, never 'unknown'", async () => {
+  const drive = await edgeRender();
+  assert.match(drive("Brimful").textContent, /1\.0 TB used · 0 B free · 100% full/u);
+  assert.match(drive("Untouched").textContent, /0 B used · 1\.0 TB free/u);
+  assert.equal(drive("Untouched").getAttribute("data-full"), "false");
+});
