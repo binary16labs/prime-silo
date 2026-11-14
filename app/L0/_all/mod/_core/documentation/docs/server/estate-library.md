@@ -78,7 +78,7 @@ for as long as anyone asked. Now either key being behind is enough, and a catalo
 and rollup are both current starts nothing. A `202` promises a minute **only while a worker is
 building**: while a pass of that drive is running the answer says the figures come when the pass
 ends, because nothing builds a rollup mid-pass and a first pass of F: is hours. A build that failed
-**rests for a minute before it is tried again**, and says why throughout — starting a worker used
+**rests for a minute before it is tried again**, and says why for that minute; the next ask after it tries again — starting a worker used
 to clear the failure, so the request that came to read the reason was the one that erased it.
 
 **`/library/neighbours` is a separate route on purpose.** Storing "where the other copies are" for
