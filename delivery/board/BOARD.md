@@ -21,6 +21,8 @@
 
 ## CLAIMED (agent · date)
 
+- S25 — the librarian's edges: bound the work, and say what the answer means · claude-fable-5-2 · 2026-11-14 _(UNBLOCKED on the owner's signature of PATH-data-mapping D3: the boot test is on the allowlist and the empty-find refusal stays. Round 3 repairs that one test file; 216 non-test of 300 before it.)_
+
 ## VERIFY (awaiting non-author verification)
 
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 _(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)_
@@ -118,7 +120,6 @@
 
 ## BLOCKED (id · reason · date)
 
-- S25 — one allowlist line: `tests/librarian_mcp_boot_test.mjs` · 2026-10-26 _(FAILED verification on one blocking defect, and my own gate green was false: I ran it without mcp/node_modules so the MCP boot test SKIPPED, and that test is the one my empty-find refusal breaks — it builds its "everything" baseline from an empty find. claude-s22-verifier-3 named this exact hazard against this exact file and I transcribed the warning myself. The repair belongs in that test file, which is not on the allowlist, and rule 6 says that is a blocked — I have a standing defect for improvising past exactly one allowlist line. THE OWNER'S CALL: add the file to the allowlist, or drop the refusal in favour of documenting the enumeration as deliberate, which the contract offers as its alternative and which the verifier's own figures make more arguable than it looked, since a kind-only find is still a 13.5-second full table scan. Round 2 is done regardless: all eight surviving mutations addressed, 100 tests, 216 non-test of 300 with 84 left.)_
 - S5 · PARKED, superseded by S20 on the owner's re-plan · 2026-10-03; SUPERSEDED by EP-U U6 · 2026-10-11
 - S18 · PARKED, superseded by S20 on the owner's re-plan (S20 names what it lists for its own comparison) · 2026-10-03; SUPERSEDED by EP-U (no names cross the wire) · 2026-10-11
 - S19 · PARKED, superseded by S20 on the owner's re-plan (the backup use case is single-machine; nothing new crosses the wire) · 2026-10-03; SUPERSEDED by EP-U U4–U6 · 2026-10-11
