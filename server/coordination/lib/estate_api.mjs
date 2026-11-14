@@ -12,6 +12,14 @@ import { acceptMap, register as registerSatellite } from "./estate_register.mjs"
 import { createSweeper, latestLocalPush } from "./estate_map_producer.mjs";
 import { createComparer, listRoot } from "./estate_compare.mjs";
 import { createLibrarian } from "./library.mjs";
+import {
+  openRegistry,
+  registryPath,
+  readRegistry,
+  setOwnerName,
+  addUserRoot,
+  labelProblem
+} from "./drive_registry.mjs";
 import path from "node:path";
 import {
   DEFAULT_MAP_MAX_AGE_MS,
@@ -237,6 +245,21 @@ export function createEstateApi({
   const NO_POLICY = "no quarantine policy — the catalogue would list private files (R31)";
   const local = (req) =>
     ["127.0.0.1", "::1"].includes(String(req.socket?.remoteAddress ?? "").replace(/^::ffff:/u, ""));
+  // U0 — the drive registry. Opened lazily and per request: this is read far less often than the
+  // library, the file is small, and a handle held open across a sleep is a handle held on a drive
+  // the owner may be unplugging. Null when there is no home to put it in.
+  const registry = () => {
+    const home = producer?.dbPath ? path.dirname(path.dirname(producer.dbPath)) : null;
+    return home ? openRegistry(registryPath(home)) : null;
+  };
+  const judgeName = () => {
+    const rules = Array.isArray(quarantine) ? quarantine : [];
+    // labelProblem, NOT volumeNameProblem: that one validates a volume PATH and refuses anything
+    // which is not one, so every label on this machine read "withheld" with no rule matching -
+    // fail-safe in direction and useless in fact, because the owner could never see a drive's name.
+    return (text) => Boolean(labelProblem(text, rules));
+  };
+
   function handle(req, res, rest) {
     // GET /api/estate — the whole estate model (machines, drives, sessions, snapshots) + a summary.
     if (req.method === "GET" && (rest === "/" || rest === "")) {
@@ -367,6 +390,61 @@ export function createEstateApi({
         );
       });
       return;
+    }
+
+    // U0 — the drive registry: every drive this machine has ever had, by identity. LOOPBACK ONLY,
+    // like the library: a volume label is the owner's own text and a user root names where their
+    // documents live, which is not something to serve to a LAN the hub binds 0.0.0.0 on.
+    if (rest === "/drives" || rest.startsWith("/drives/")) {
+      if (!local(req))
+        return sendJson(res, 403, { error: "the drive registry is only shown on this machine" });
+      if (!Array.isArray(quarantine)) return sendJson(res, 412, { error: NO_POLICY });
+      const db = registry();
+      if (!db) return sendJson(res, 503, { error: "this hub has no home, so it has no registry" });
+      try {
+        if (req.method === "GET" && rest === "/drives")
+          return sendJson(res, 200, {
+            drives: readRegistry(db, {
+              judge: judgeName(),
+              freshDays: Number(process.env.ESTATE_COPY_FRESH_DAYS) || 30,
+              // exact for an attached drive, through the librarian's own lookup; honestly
+              // unknown for a detached one rather than guessed from a rebuilt filename
+              catalogue: ({ root, attached }) => {
+                if (!attached || !root || !librarian) return { unknown: "the drive is not here" };
+                const c = librarian.lookup(root);
+                return { at: c?.finishedAt ?? null };
+              }
+            })
+          });
+        if (req.method === "PATCH" && rest.startsWith("/drives/")) {
+          const identity = decodeURIComponent(rest.slice("/drives/".length));
+          return readBody(req)
+            .then((body) => {
+              // ONLY these two, and the name is judged by the same rules as a volume label: a
+              // display name is the owner's own text arriving by a different door.
+              if (typeof body?.owner_name === "string")
+                return setOwnerName(db, identity, body.owner_name.slice(0, 120))
+                  ? sendJson(res, 200, { identity, owner_name: true })
+                  : sendJson(res, 400, { error: "no drive of that identity has been seen here" });
+              if (typeof body?.add_user_root === "string") {
+                const r = addUserRoot(db, identity, body.add_user_root);
+                return r.refused
+                  ? sendJson(res, 409, { error: r.refused })
+                  : sendJson(res, 200, { identity, ...r });
+              }
+              return sendJson(res, 400, { error: "owner_name or add_user_root is required" });
+            })
+            .catch((e) => {
+              if (!res.headersSent)
+                sendJson(res, 500, { error: `the drive could not be changed: ${e?.message || e}` });
+            })
+            .finally(() => db.close());
+        }
+        return sendJson(res, 405, { error: "GET or PATCH" });
+      } finally {
+        // the PATCH branch closes its own handle after the body arrives; everything else is done
+        if (!(req.method === "PATCH" && rest.startsWith("/drives/"))) db.close();
+      }
     }
 
     // S21 — the librarian. GET /library: each root's catalogue (last pass, kinds, duplicates) and the
