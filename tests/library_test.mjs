@@ -3286,7 +3286,9 @@ test("S30: a rollup that could not be built keeps saying why, rather than being 
   // the request that came to read it. A catalogue the worker cannot write is a real way to fail.
   const { root, store, dbPath } = await summarisedBeforeTheRollup();
   const dir = path.join(store, "library");
-  const lib = createLibrarian({ dir, rules: [] });
+  let release;
+  const gate = new Promise((r) => (release = r));
+  const lib = createLibrarian({ dir, rules: [], hash: async (f) => (await gate, hashFile(f)) });
   const again = createLibrarian({ dir, rules: [], retryMs: 300 });
   fs.chmodSync(dbPath, 0o444);
   try {
@@ -3311,6 +3313,26 @@ test("S30: a rollup that could not be built keeps saying why, rather than being 
     again.folder(root, { path: "" });
     assert.equal(again.workersStarted(), 2, "after the rest, the next ask tries again");
     await failedOnce(); // and that worker has finished before the file is made writable again
+
+    // A FAILURE BELONGS TO ITS PASS. The owner's answer to "could not be built" is to catalogue the
+    // drive again; while that new pass runs, the old reason is about a pass that is gone.
+    fs.chmodSync(dbPath, 0o644);
+    write(root, "new/e.txt", "a reason to read something");
+    const passes = passCount(dbPath);
+    const { done } = lib.start(root);
+    try {
+      for (let i = 0; i < 400 && passCount(dbPath) === passes; i += 1) await pause(25);
+      assert.equal(passCount(dbPath), passes + 1, "the new pass is under way");
+      const during = lib.folder(root, { path: "" });
+      assert.match(
+        during.why ?? "",
+        /being catalogued/u,
+        `not the old reason: ${JSON.stringify(during)}`
+      );
+    } finally {
+      release();
+      await done;
+    }
   } finally {
     fs.chmodSync(dbPath, 0o644);
   }
