@@ -21,7 +21,7 @@
 
 ## VERIFY (awaiting non-author verification)
 
-- C8 — the Drives tab, drawn as a blueprint · author claude-opus-5-5 · branch task/C8 @ b897fd67 · READY FOR VERIFY 2026-11-14 _(Each drive an elevation drawing, said in words too; unknown drawn as unknown; 90%+ full in clay; unplugged dimmed. Seen on the real T480. Twelve mutations killed, 249 of 500.)_
+- C8 — the Drives tab, drawn as a blueprint · author claude-opus-5-5 · branch task/C8 @ 685e2ebe · READY FOR VERIFY (round 2) 2026-11-14 _(Round 1 FAILED: a missing free-space figure was drawn as a full drive in the danger colour. Fixed; boundaries and the winning rule tested; seven mutations killed; 256 of 500.)_
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 _(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)_
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 _(budget amended 300→1100 by owner directive — flagship scope, see LOG)_
 
