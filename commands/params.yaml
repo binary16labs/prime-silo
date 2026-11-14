@@ -108,6 +108,18 @@ ESTATE_STORE:
   allowed: ["/^$/", "/^[A-Za-z]:.+$/", "/^[\/].*/"]
   default: ""
   frontend_exposed: false
+ESTATE_LIBRARY_RESCAN_HOURS:
+  description: How often the hub rescans each attached drive it has already catalogued, in hours. 0 turns rescans off. A drive that is not attached, or that has never been catalogued, is never started by the schedule.
+  type: number
+  allowed: [0..8760]
+  default: 0
+  frontend_exposed: false
+ESTATE_LIBRARY_WALK_DAYS:
+  description: How many days a catalogue may go on being listed by Everything before a pass walks the whole drive again, in case Everything's own options hide a folder. A failed or short listing walks at once, whatever this says.
+  type: number
+  allowed: [1..365]
+  default: 7
+  frontend_exposed: false
 ESTATE_COPY_FRESH_DAYS:
   description: How many days a drive may go unseen before the estate calls it stale. U6 uses the same window to judge whether a copy is still current; in U0 it only labels the row.
   type: number

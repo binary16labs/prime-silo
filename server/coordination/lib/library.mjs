@@ -1503,7 +1503,10 @@ export function createLibrarian({
   rules = [],
   hash = hashFile,
   machine = os.hostname().toLowerCase(),
-  retryMs = 60_000
+  retryMs = 60_000,
+  // S23: Everything when the hub has it; walkDays bounds how long listings run without a full walk
+  lister = null,
+  walkDays = 7
 }) {
   let running = null;
   let last = null;
@@ -1762,12 +1765,21 @@ export function createLibrarian({
       const c = current(root);
       return c && fs.existsSync(csvFor(c.db, c.key)) ? csvFor(c.db, c.key) : null;
     },
-    start(root) {
+    // ONE LIBRARIAN FOR EVERY PASS (S23): the schedule and the Catalogue button both come through
+    // here, so the two can never run at once, and Stop stops either
+    start(root, { startedBy = "owner" } = {}) {
       if (running) return { started: false, since: running.since };
       const dbPath = libraryPath(dir, root);
       if (!dbPath) return { started: false, since: null, reason: `${root} cannot be read` };
       ctl = new AbortController();
-      running = { root, since: new Date().toISOString(), phase: "starting", seen: 0, hashed: 0 };
+      running = {
+        root,
+        since: new Date().toISOString(),
+        phase: "starting",
+        seen: 0,
+        hashed: 0,
+        started_by: startedBy
+      };
       const mine = running;
       const done = catalogue({
         root,
@@ -1775,6 +1787,9 @@ export function createLibrarian({
         skip: [dir, ...skip],
         rules,
         hash,
+        lister,
+        walkDays,
+        startedBy,
         signal: ctl.signal,
         onProgress: (p) => Object.assign(mine, p)
       })

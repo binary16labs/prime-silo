@@ -10,7 +10,8 @@ import { proposeSync, applySync } from "./estate_govern.mjs";
 import { planNextCycle, readPlanInputs } from "./estate_plan.mjs";
 import { acceptMap, register as registerSatellite } from "./estate_register.mjs";
 import { createSweeper, latestLocalPush } from "./estate_map_producer.mjs";
-import { createComparer, listRoot } from "./estate_compare.mjs";
+import { createComparer, listRoot, rootIdentity } from "./estate_compare.mjs";
+import { everythingAdapter } from "./estate_map_files.mjs";
 import { createLibrarian, finishedAtOf, libraryPath, libraryPathFor } from "./library.mjs";
 import {
   openRegistry,
@@ -226,9 +227,57 @@ export function createEstateApi({
       ? createLibrarian({
           dir: path.join(store, "library"),
           skip: [store],
-          rules: Array.isArray(quarantine) ? quarantine : []
+          rules: Array.isArray(quarantine) ? quarantine : [],
+          // S23: Everything lists the drive when it can; the walk is the fallback, and the pass
+          // records which and why. Only Windows has Everything.
+          lister:
+            "lister" in producer
+              ? producer.lister
+              : process.platform === "win32"
+                ? everythingAdapter()
+                : null,
+          walkDays: Number(producer.libraryWalkDays) || 7
         })
       : null;
+  // S23: WHICH DRIVE THE SCHEDULE RESCANS, AND WHY EVERY OTHER IS SKIPPED. Only a drive that is here,
+  // that this store already catalogues under its own identity, and whose last finished pass is older
+  // than the interval. A different drive at the same letter has no catalogue under ITS identity, so it
+  // is never started; an unplugged one is never counted as rescanned. One pass per tick: the next tick
+  // takes the next drive. The hub's own librarian runs it, so it is single flight with the button.
+  const rescanDue = ({ hours, now = Date.now() } = {}) => {
+    const out = { started: [], skipped: [] };
+    if (!librarian)
+      return { ...out, skipped: [{ root: null, why: "this machine keeps no catalogues" }] };
+    const dir = path.join(store, "library");
+    for (const root of producer.roots()) {
+      if (!rootIdentity(root)) {
+        out.skipped.push({ root, why: "not attached" });
+        continue;
+      }
+      const db = libraryPath(dir, root);
+      const at = db && fs.existsSync(db) ? finishedAtOf(db) : null;
+      if (!at) {
+        out.skipped.push({
+          root,
+          why: "not catalogued here - the schedule only rescans a drive already catalogued"
+        });
+        continue;
+      }
+      if (now - Date.parse(at) < hours * 3_600_000) {
+        out.skipped.push({ root, why: "not due" });
+        continue;
+      }
+      const s = librarian.start(root, { startedBy: "schedule" });
+      if (!s.started) {
+        out.skipped.push({ root, why: "a pass is already running" });
+        break;
+      }
+      out.started.push(root);
+      out.done = s.done;
+      break;
+    }
+    return out;
+  };
   // S20: a backup drive against F:, on this machine. Results hold file names, so every compare route
   // answers this machine only, and they are kept beside its own map, in BENNY_HOME. Since S21 it asks
   // F:'s catalogue where there is one, and reads only the backup drive.
@@ -816,6 +865,8 @@ export function createEstateApi({
   }
 
   return {
+    // S23: for the library_rescan job, through the job runner's services - never a second librarian
+    rescanDue,
     // true → this request is /api/estate/* (handled here, app.js stops); false → fall through.
     tryHandle(req, res) {
       const url = new URL(req.url, "http://localhost");

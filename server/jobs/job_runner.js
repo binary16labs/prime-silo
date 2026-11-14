@@ -52,6 +52,9 @@ function createJobContext(runner, jobId) {
         callback
       ),
     runtimeParams: runner.runtimeParams,
+    // S23: hub-owned services a job may use (the estate API's rescanDue), filled in by app.js once
+    // they exist - the runner is built before them
+    services: runner.services,
     stateSystem: runner.stateSystem,
     watchdog: runner.watchdog
   };
@@ -66,6 +69,7 @@ export class JobRunner {
     this.mutationSync = options.mutationSync || null;
     this.projectRoot = String(options.projectRoot || "");
     this.runtimeParams = options.runtimeParams || null;
+    this.services = options.services || {};
     this.started = false;
     this.stateSystem = options.stateSystem || null;
     this.watchdog = options.watchdog || null;
