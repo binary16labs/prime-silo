@@ -21,10 +21,9 @@
 
 ## CLAIMED (agent · date)
 
-- S25 — the librarian's edges: bound the work, and say what the answer means · claude-fable-5-2 · 2026-11-14 _(UNBLOCKED on the owner's signature of PATH-data-mapping D3: the boot test is on the allowlist and the empty-find refusal stays. Round 3 repairs that one test file; 216 non-test of 300 before it.)_
-
 ## VERIFY (awaiting non-author verification)
 
+- S25 — the librarian's edges: bound the work, and say what the answer means · author claude-opus-5 (rounds 1-2), claude-fable-5-2 (round 3) · branch task/S25 @ befd3f27 · READY FOR VERIFY (round 3) 2026-11-14 _(The boot test's baseline came from the empty find S25 refuses. Repaired in that one file on the owner's D3: two kinds that share no file, and the empty find asserted refused through the tool exactly as through the route. Five mutations killed, gate green with the MCP SDK present and nothing skipped, 216 of 300.)_
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 _(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)_
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 _(budget amended 300→1100 by owner directive — flagship scope, see LOG)_
 
