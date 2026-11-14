@@ -2875,7 +2875,15 @@ const C8_DRIVES = {
         }
       ]
     },
-    { ...DRIVES_READY.drives[2], name: "Camera card", capacity: null, free: null, attached: false }
+    { ...DRIVES_READY.drives[2], name: "Camera card", capacity: null, free: null, attached: false },
+    // figures that cannot both be true - more free than the whole drive - are not drawn either
+    {
+      ...DRIVES_READY.drives[0],
+      identity: "77-7",
+      name: "Odd stick",
+      capacity: 1_000_000_000,
+      free: 2_000_000_000
+    }
   ]
 };
 const c8Render = async () => {
@@ -2926,6 +2934,15 @@ test("C8: a figure the OS did not give is drawn as unknown, never as a guessed b
     "and its outline is dashed, which the stylesheet really applies to it"
   );
   assert.match(visible(window), /capacity unknown/u);
+
+  // and figures the OS gave that contradict each other are unknown too, not a negative bar
+  const odd = drive("Odd stick");
+  assert.equal(
+    odd.querySelector(".em__elev").getAttribute("data-known"),
+    "false",
+    "more free than its size"
+  );
+  assert.equal(odd.querySelector(".em__used").getAttribute("width"), "0");
 });
 
 test("C8: a nearly full drive is a warning, in the drawing and in words", async () => {
