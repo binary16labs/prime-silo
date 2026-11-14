@@ -89,10 +89,14 @@ export const privateTo = (rules) => {
 
 // KEYED BY THE DRIVE, NOT ITS LETTER (S20's lesson): F: may be another letter tomorrow, and a
 // different drive may be F:. Paths are stored relative to the root for the same reason.
-export const libraryPath = (dir, root) => {
-  const id = rootIdentity(root);
-  return id ? path.join(dir, `library-${id.replace(/[^A-Za-z0-9_-]+/gu, "_")}.db`) : null;
-};
+// THE ONE SPELLING OF A CATALOGUE'S FILE NAME (U11). `libraryPath` asks the drive who it is, so a
+// drive that is not attached had no way back to its own catalogue, and the registry's only other
+// route would have been a second spelling of this rule - the defect S26 was failed for twice.
+export const libraryPathFor = (dir, identity) =>
+  identity
+    ? path.join(dir, `library-${String(identity).replace(/[^A-Za-z0-9_-]+/gu, "_")}.db`)
+    : null;
+export const libraryPath = (dir, root) => libraryPathFor(dir, rootIdentity(root));
 
 // EVERY CONNECTION WAITS FOR A LOCK RATHER THAN FAILING: a read meeting the summary worker's open threw
 // "database is locked" and the hub answered 500 (claude-s21-verifier-2). WAL locks last milliseconds;
@@ -398,6 +402,21 @@ const readOnly = (dbPath) =>
   dbPath && fs.existsSync(dbPath)
     ? new DatabaseSync(dbPath, { readOnly: true, timeout: BUSY_MS })
     : null;
+
+// When a catalogue last finished, opened and closed again - for a surface that wants only the date.
+// The drives route used catalogueLookup for this and never closed what it opened, once per drive
+// per request; on Windows an open handle is a catalogue that cannot be moved or deleted.
+export function finishedAtOf(dbPath) {
+  const db = readOnly(dbPath);
+  if (!db) return null;
+  try {
+    return db.prepare("SELECT MAX(finished_at) AS at FROM passes").get().at ?? null;
+  } catch {
+    return null; // a file with no passes table is not a catalogue that finished
+  } finally {
+    db.close();
+  }
+}
 
 // Every set of two or more files with the same bytes, the most space wasted first. Empty files are
 // not duplicates of anything worth reclaiming. A private copy is counted in the set, never named.

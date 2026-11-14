@@ -393,14 +393,11 @@ export function syncDrives(db, volumes = [], { now = () => new Date().toISOStrin
 
 // --- reading it ---------------------------------------------------------------------------------
 //
-// `catalogue` is handed the whole row and answers { at } or { unknown: why }. It takes the ROW and
-// not the identity because of a limit worth stating rather than hiding: S21 names each catalogue
-// library-<identity>.db, and the only exported way to turn that into a readable path takes a ROOT
-// (`libraryPath`). An attached drive has a root, so its catalogue date is exact. A DETACHED drive
-// has only its identity, and rebuilding the filename here would be a second spelling of S21's
-// naming rule — which is the defect S26 was failed for, twice. So a detached drive's date reads
-// `unknown`, distinct from `never catalogued`, until library.mjs exports a by-identity lookup.
-// Nothing is started from here either way: this surface says what is, and S21 is what acts.
+// `catalogue` is handed the whole row and answers { at } or { unknown: why }. It takes the ROW so the
+// caller can choose: an attached drive is asked who it is, a detached one is found by the identity
+// kept here, through library.mjs's one spelling of the file name (U11; until then a detached
+// drive's date could only read `unknown`). Nothing is started from here either way: this surface
+// says what is, and S21 is what acts.
 export function readRegistry(
   db,
   { judge = () => false, freshDays = 30, now = Date.now, catalogue = () => ({ at: null }) } = {}

@@ -641,6 +641,17 @@ test("no colour is written into the panel's stylesheet by hand", () => {
 // the treemap lay out at all. Sizes, overlap, colour, contrast and anything else a pixel decides are
 // outside this file and belong to the screenshot the contract's Handoff still demands.
 import { JSDOM } from "jsdom";
+import http from "node:http";
+import os from "node:os";
+import { DatabaseSync } from "node:sqlite";
+import { createEstateApi } from "../server/coordination/lib/estate_api.mjs";
+import {
+  driveIdentity,
+  openRegistry,
+  registryPath,
+  syncDrives
+} from "../server/coordination/lib/drive_registry.mjs";
+import { libraryPath, libraryPathFor } from "../server/coordination/lib/library.mjs";
 import { generate, parse, walk } from "css-tree";
 import { register } from "node:module";
 import { pathToFileURL } from "node:url";
@@ -2649,4 +2660,122 @@ test("RENDERED: a hub that could not answer reads cannot-tell, never an empty re
   );
   await openTab(empty.window, "drives");
   assert.match(visible(empty.window), /No drive has been seen yet/u);
+});
+
+// --- U11: the drives route's own answer, rendered --------------------------------------------------
+
+const u11made = [];
+test.after(() => {
+  for (const d of u11made)
+    fs.rmSync(d, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+});
+const u11tmp = () => u11made[u11made.push(fs.mkdtempSync(path.join(os.tmpdir(), "u11-"))) - 1];
+const u11vol = (o) => ({
+  label: null,
+  filesystem: "NTFS",
+  medium: "usb",
+  capacity: 1,
+  free: 1,
+  system: false,
+  ...o
+});
+
+// A registry and a store in the shapes U11 must tell apart: the system drive attached and
+// catalogued, then three backup drives that have been unplugged - one catalogued, one never
+// catalogued, one whose catalogue was started and never finished.
+const u11EstateForRender = (letter, here) => {
+  const home = u11tmp();
+  fs.mkdirSync(path.join(home, "estate"), { recursive: true });
+  const store = u11tmp();
+  const lib = path.join(store, "library");
+  fs.mkdirSync(lib, { recursive: true });
+  const system = driveIdentity(`${letter}\\`);
+  const d = openRegistry(registryPath(home));
+  const now = () => "2026-11-01T00:00:00Z";
+  const sys = u11vol({ identity: system, root: letter, system: true, label: "Windows" });
+  syncDrives(
+    d,
+    [
+      sys,
+      u11vol({ identity: "1111-aaaa", root: "E:", label: "Holiday backups" }),
+      u11vol({ identity: "2222-bbbb", root: "G:", label: "Old laptop" }),
+      u11vol({ identity: "3333-cccc", root: "H:", label: "Camera card" })
+    ],
+    { now }
+  );
+  syncDrives(d, [sys], { now }); // and the three backups are unplugged
+  d.close();
+  const finished = (file, at) => {
+    const db = new DatabaseSync(file);
+    db.exec("CREATE TABLE passes (id TEXT, started_at TEXT, finished_at TEXT)");
+    db.prepare("INSERT INTO passes VALUES ('p', '2026-10-01T00:00:00Z', ?)").run(at);
+    db.close();
+  };
+  finished(libraryPath(lib, letter), "2026-11-01T09:00:00Z");
+  finished(libraryPathFor(lib, "1111-aaaa"), "2026-10-25T04:30:36Z");
+  finished(libraryPathFor(lib, "3333-cccc"), null);
+  const api = createEstateApi({
+    quarantine: ["passport"],
+    producer: {
+      machine: "t480",
+      dbPath: path.join(home, "estate", "estate-map-t480.db"),
+      roots: () => [letter],
+      estateStore: store
+    }
+  });
+  return { api, lib, system, here };
+};
+
+test("RENDERED (U11): an unplugged drive shows its date, never catalogued, or cannot tell", async () => {
+  // The route's OWN answer rendered, not a fixture typed to match the panel: what the owner sees is
+  // what U11's three states produce.
+  // the repo's own tmp/, which .gitignore already covers (U0's lesson: AppData is refused as a root)
+  const home = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "tmp");
+  fs.mkdirSync(home, { recursive: true });
+  const here = fs.mkdtempSync(path.join(home, "u11-render-"));
+  try {
+    const letter = here.slice(0, 2);
+    const { api, lib } = u11EstateForRender(letter, here);
+    const answer = async () => {
+      const server = http.createServer((req, res) => {
+        if (!api.tryHandle(req, res)) res.writeHead(404).end();
+      });
+      await new Promise((r) => server.listen(0, "127.0.0.1", r));
+      try {
+        return await (
+          await fetch(`http://127.0.0.1:${server.address().port}/api/estate/drives`)
+        ).json();
+      } finally {
+        await new Promise((r) => server.close(r));
+      }
+    };
+    const rowText = (window, name) =>
+      [...window.document.querySelectorAll(".em__drive")]
+        .map((r) => r.textContent.replace(/\s+/gu, " "))
+        .find((t) => t.includes(name)) ?? "";
+
+    let { window } = await renderPanel(
+      { at: NOW, machines: { t480: machine({}) } },
+      { drives: await answer() }
+    );
+    await openTab(window, "drives");
+    assert.match(rowText(window, "Holiday backups"), /not attached.*catalogued 25\/10\/2026/u);
+    assert.match(rowText(window, "Old laptop"), /never catalogued/u);
+    assert.match(
+      rowText(window, "Camera card"),
+      /catalogue unknown: its catalogue has never finished/u
+    );
+
+    // the store unplugged: nothing on screen says never catalogued
+    fs.renameSync(lib, `${lib}-away`);
+    ({ window } = await renderPanel(
+      { at: NOW, machines: { t480: machine({}) } },
+      { drives: await answer() }
+    ));
+    await openTab(window, "drives");
+    assert.equal(/never catalogued/u.test(visible(window)), false, visible(window).slice(0, 400));
+    assert.match(rowText(window, "Old laptop"), /store is not attached/u);
+  } finally {
+    fs.rmSync(here, { recursive: true, force: true });
+  }
 });

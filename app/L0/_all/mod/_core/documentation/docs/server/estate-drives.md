@@ -57,14 +57,24 @@ A drive without Windows is a **data drive** and is offered whole.
 
 The watch job compares what is attached with the registry every `ESTATE_DRIVE_WATCH_SECONDS`
 (default 60) and writes **one event per change, not per tick** — a drive that has sat there all
-week produces silence. A drive unseen for longer than `ESTATE_COPY_FRESH_DAYS` (default 30) reads
+week produces silence. The events are `drive_attached` and `drive_detached`, carrying the drive's
+identity, root and medium and never its label. Until U11 the ledger's closed list of event types
+did not include them, so every one was refused and the job failed on each change; a change made in
+that time is in the registry but not in the log, and nothing writes it there afterwards.
+A drive unseen for longer than `ESTATE_COPY_FRESH_DAYS` (default 30) reads
 **stale**; an attached drive never does, because it is right here.
 
-The catalogue column reads S21's last finished pass and **starts nothing**. For an attached drive it
-is exact. For a **detached** one it reads `catalogue_unknown` rather than "never catalogued": the
-only exported way to find a catalogue takes a root, and rebuilding the filename from an identity
-here would be a second spelling of S21's naming rule. Telling the owner that a drive they have
-catalogued never was is worse than admitting it cannot be read from here.
+The catalogue column reads S21's last finished pass and **starts nothing**. It says one of three
+things and never a fourth:
+
+- **a date** — when its catalogue last finished. An attached drive is asked who it is; a detached
+  one is found by the identity the registry kept, through the library's one spelling of a
+  catalogue's file name (U11).
+- **never catalogued** — the estate store is here and holds no catalogue of this drive.
+- **catalogue unknown**, with the reason — the store itself is not attached, or the drive's
+  catalogue was started and never finished. On the T480 the store is on F:, so with F: unplugged
+  every drive reads this: absence from a store that is not there proves nothing, and calling every
+  drive "never catalogued" would be false of all of them at once.
 
 `retired_at` is reserved for U9 and is always null.
 

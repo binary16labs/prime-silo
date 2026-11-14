@@ -45,7 +45,9 @@
         "node_observed",
         "service_transitioned",
         "sweep_recorded",
-        "library_queried"
+        "library_queried",
+        "drive_attached",
+        "drive_detached"
       ]
     },
     "valid_time": { "type": "string", "minLength": 1 },

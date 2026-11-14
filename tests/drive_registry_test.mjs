@@ -37,7 +37,10 @@ import {
 } from "../server/coordination/lib/drive_registry.mjs";
 import { rootIdentity } from "../server/coordination/lib/estate_compare.mjs";
 import { createEstateApi } from "../server/coordination/lib/estate_api.mjs";
-import DriveWatchJob from "../server/jobs/drive_watch.js";
+import DriveWatchJob, { tick } from "../server/jobs/drive_watch.js";
+import { libraryPath, libraryPathFor } from "../server/coordination/lib/library.mjs";
+import { readKelEvents } from "../server/coordination/lib/kel.mjs";
+import { DatabaseSync } from "node:sqlite";
 import http from "node:http";
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), "u0-"));
@@ -836,8 +839,10 @@ test("U0: run() reaches the registry rather than throwing on its own imports", a
     );
     // it reached the registry: the file exists whether or not the ledger would take the events
     assert.ok(fs.existsSync(registryPath(home)), "the registry was opened and written");
-    // AND IF THE LEDGER REFUSES, THAT IS THROWN, not whispered to a logger the runner does not pass
-    if (thrown) assert.match(thrown.message, /ledger refused/u, thrown.message);
+    // AND THE LEDGER TAKES IT NOW (U11). Until drive_attached and drive_detached were in the
+    // schema's enum this could only assert that the refusal was loud; a real run attaches C: at
+    // the very least, so a refusal here is the job failing on every tick again.
+    assert.equal(thrown, null, `the ledger took the drive events: ${thrown?.message}`);
   } finally {
     if (had.home === undefined) delete process.env.BENNY_HOME;
     else process.env.BENNY_HOME = had.home;
@@ -1056,4 +1061,160 @@ test("U0: a user root must be a full path, or it means a different folder elsewh
   // the ordering matters: a bare letter is the drive whole AND is not path.isAbsolute, so the
   // whole-drive check has to come first or it is refused for the wrong reason
   assert.match(addUserRoot(d, identity, letter).refused ?? "", /the whole drive/u);
+});
+
+// A registry and a store in the shapes U11 must tell apart: the system drive attached and
+// catalogued, then three backup drives that have been unplugged - one catalogued, one never
+// catalogued, one whose catalogue was started and never finished.
+const u11Estate = (letter, here) => {
+  const home = tmp();
+  fs.mkdirSync(path.join(home, "estate"), { recursive: true });
+  const store = tmp();
+  const lib = path.join(store, "library");
+  fs.mkdirSync(lib, { recursive: true });
+  const system = driveIdentity(`${letter}\\`);
+  const d = openRegistry(registryPath(home));
+  const now = () => "2026-11-01T00:00:00Z";
+  const sys = vol({ identity: system, root: letter, system: true, label: "Windows" });
+  syncDrives(
+    d,
+    [
+      sys,
+      vol({ identity: "1111-aaaa", root: "E:", label: "Holiday backups" }),
+      vol({ identity: "2222-bbbb", root: "G:", label: "Old laptop" }),
+      vol({ identity: "3333-cccc", root: "H:", label: "Camera card" })
+    ],
+    { now }
+  );
+  syncDrives(d, [sys], { now }); // and the three backups are unplugged
+  d.close();
+  const finished = (file, at) => {
+    const db = new DatabaseSync(file);
+    db.exec("CREATE TABLE passes (id TEXT, started_at TEXT, finished_at TEXT)");
+    db.prepare("INSERT INTO passes VALUES ('p', '2026-10-01T00:00:00Z', ?)").run(at);
+    db.close();
+  };
+  finished(libraryPath(lib, letter), "2026-11-01T09:00:00Z");
+  finished(libraryPathFor(lib, "1111-aaaa"), "2026-10-25T04:30:36Z");
+  finished(libraryPathFor(lib, "3333-cccc"), null);
+  const api = createEstateApi({
+    quarantine: ["passport"],
+    producer: {
+      machine: "t480",
+      dbPath: path.join(home, "estate", "estate-map-t480.db"),
+      roots: () => [letter],
+      estateStore: store
+    }
+  });
+  return { api, lib, system, here };
+};
+
+const u11Serve = async (api) => {
+  const server = http.createServer((req, res) => {
+    if (!api.tryHandle(req, res)) res.writeHead(404).end();
+  });
+  await new Promise((r) => server.listen(0, "127.0.0.1", r));
+  const base = `http://127.0.0.1:${server.address().port}/api/estate`;
+  const drives = async () => {
+    const r = await fetch(`${base}/drives`);
+    assert.equal(r.status, 200);
+    return Object.fromEntries((await r.json()).drives.map((d) => [d.identity, d]));
+  };
+  return { drives, close: () => new Promise((r) => server.close(r)) };
+};
+
+test("U11: plugging a drive in and taking it out are both on the ledger, without its label", async () => {
+  // Through the REAL append and the REAL read: the schema's closed enum refused both types, so the
+  // job threw on every change, and a test of driveEvent's shape alone could not have noticed.
+  const home = tmp();
+  const logFile = path.join(tmp(), "drives-t480.jsonl");
+  const usb = vol({ identity: "1111-aaaa", root: "E:", label: "Holiday backups" });
+  const tickWith = (rows) =>
+    tick({ home, machine: "t480", logFile, read: async () => ({ rows }), roots: async () => [] });
+
+  const plugged = await tickWith([usb]);
+  assert.equal(plugged.refused, null, `the ledger took it: ${plugged.refused}`);
+  const unplugged = await tickWith([]);
+  assert.equal(unplugged.refused, null, `and this one: ${unplugged.refused}`);
+
+  const read = readKelEvents(logFile);
+  assert.equal(read.ok, true, "the log chains");
+  const mine = read.events.filter((e) => e.payload?.identity === "1111-aaaa");
+  assert.deepEqual(
+    mine.map((e) => e.type),
+    ["drive_attached", "drive_detached"],
+    JSON.stringify(read.events.map((e) => e.type))
+  );
+  for (const e of mine) {
+    assert.deepEqual(Object.keys(e.payload).sort(), ["identity", "medium", "root", "scope"]);
+    assert.equal(JSON.stringify(e).includes("Holiday"), false, "and the label is not in it");
+  }
+});
+
+test("U11: an unplugged drive reads a date, never catalogued, or cannot tell - never a fourth", async () => {
+  const here = ownFolder();
+  const letter = here.slice(0, 2);
+  const { api, lib, system } = u11Estate(letter, here);
+  const s = await u11Serve(api);
+  try {
+    const d = await s.drives();
+    // catalogued, and unplugged: its date, found by the identity the registry kept
+    assert.equal(d["1111-aaaa"].attached, false);
+    assert.equal(d["1111-aaaa"].catalogued_at, "2026-10-25T04:30:36Z");
+    assert.equal(d["1111-aaaa"].catalogue_unknown, null);
+    // never catalogued: no date, and no "cannot tell" either - the store is here and has none
+    assert.equal(d["2222-bbbb"].catalogued_at, null);
+    assert.equal(d["2222-bbbb"].catalogue_unknown, null);
+    // started and never finished is not "never catalogued"
+    assert.equal(d["3333-cccc"].catalogued_at, null);
+    assert.match(d["3333-cccc"].catalogue_unknown ?? "", /never finished/u);
+    // the attached drive, asked who it is
+    assert.equal(d[system].catalogued_at, "2026-11-01T09:00:00Z");
+
+    // AND NOTHING WAS LEFT OPEN. The route used catalogueLookup and never closed it, once per
+    // drive per request; on Windows an open handle is a catalogue that cannot be deleted.
+    fs.rmSync(libraryPath(lib, letter));
+    fs.rmSync(libraryPathFor(lib, "1111-aaaa"));
+    assert.equal(fs.existsSync(libraryPathFor(lib, "1111-aaaa")), false);
+  } finally {
+    await s.close();
+  }
+});
+
+test("U11: when the store itself is unplugged, no drive is called never catalogued", async () => {
+  // On the T480 the store is ON F:. With F: away its catalogues are away too, and absence proves
+  // nothing - "never catalogued" would be false of every drive at once.
+  const here = ownFolder();
+  const letter = here.slice(0, 2);
+  const { api, lib } = u11Estate(letter, here);
+  fs.renameSync(lib, `${lib}-away`);
+  const s = await u11Serve(api);
+  try {
+    const d = await s.drives();
+    for (const row of Object.values(d)) {
+      assert.notEqual(
+        row.catalogued_at === null && row.catalogue_unknown === null,
+        true,
+        `${row.identity} must not read never catalogued: ${JSON.stringify(row)}`
+      );
+      assert.match(row.catalogue_unknown ?? "", /store is not attached/u, row.identity);
+    }
+  } finally {
+    await s.close();
+  }
+});
+
+test("U11: a catalogue's file name has one spelling, by root or by identity", () => {
+  const here = ownFolder();
+  const letter = here.slice(0, 2);
+  const dir = tmp();
+  for (const root of [letter, `${letter}\\`])
+    assert.equal(
+      libraryPath(dir, root),
+      libraryPathFor(dir, driveIdentity(`${letter}\\`)),
+      `${root}: asked by root and by the registry's identity, one file`
+    );
+  // and a Linux identity's colon is spelled the same way whichever door it came in by
+  assert.equal(path.basename(libraryPathFor(dir, "uuid:ab-12")), "library-uuid_ab-12.db");
+  assert.equal(libraryPathFor(dir, null), null, "no identity, no file - never library-null.db");
 });
