@@ -3658,3 +3658,167 @@ test("S31 (round 2): a summary whose duplicates list is missing is redone, even 
   );
   await pause(300);
 });
+
+// --- S23 Part 1: Everything lists the drive, the walk is the fallback ------------------------------
+
+// A FAKE EVERYTHING BUILT FROM THE REAL TREE: it lists every file the disk has, the skipped ones
+// included, the way es.exe would, so the catalogue's own exclusions are what keep them out.
+const everythingOf = (root, { omit = [], fail = null, available = true } = {}) => {
+  const rows = [];
+  const visit = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) visit(full);
+      else if (e.isFile() && !omit.some((o) => full.endsWith(o))) {
+        const st = fs.statSync(full);
+        rows.push({ path: full, size: st.size, mtimeMs: Math.floor(st.mtimeMs) });
+      }
+    }
+  };
+  visit(root);
+  return {
+    name: "everything",
+    available: async () => available,
+    async *list() {
+      if (fail) throw Object.assign(new Error(fail), { code: fail });
+      yield* rows;
+    }
+  };
+};
+const rowsOf2 = (dbPath) => {
+  const db = new DatabaseSync(dbPath, { readOnly: true, timeout: 10_000 });
+  try {
+    return db
+      .prepare("SELECT path, size, mtime_ms, sha256, kind FROM files ORDER BY path")
+      .all()
+      .map((r) => ({ ...r }));
+  } finally {
+    db.close();
+  }
+};
+const lastPass = (dbPath) => {
+  const db = new DatabaseSync(dbPath, { readOnly: true, timeout: 10_000 });
+  try {
+    return { ...db.prepare("SELECT * FROM passes ORDER BY started_at DESC LIMIT 1").get() };
+  } finally {
+    db.close();
+  }
+};
+const s23Tree = () => {
+  const root = tree();
+  write(root, "$RECYCLE.BIN/S-1/old.txt", "binned");
+  write(root, "System Volume Information/tracking.log", "system");
+  write(root, "estate-store/library/x.db", "the store itself");
+  return root;
+};
+
+test("S23: Everything's listing and the walk make the same catalogue", async () => {
+  const root = s23Tree();
+  const skip = [path.join(root, "estate-store")];
+  const listed = path.join(tmp(), "listed.db");
+  const walked = path.join(tmp(), "walked.db");
+  const a = await catalogue({ root, dbPath: listed, skip, lister: everythingOf(root) });
+  const b = await catalogue({ root, dbPath: walked, skip });
+  assert.equal(a.finished, true);
+  assert.equal(b.finished, true);
+  assert.deepEqual(rowsOf2(listed), rowsOf2(walked), "identical rows, the same exclusions");
+  const paths = rowsOf2(listed).map((r) => r.path);
+  assert.equal(
+    paths.some((x) => /recycle|volume information|estate-store/iu.test(x)),
+    false,
+    paths.join(" | ")
+  );
+  assert.equal(lastPass(listed).listed_by, "everything");
+  assert.equal(lastPass(walked).listed_by, "walk");
+});
+
+test("S23: an unchanged listed file is neither looked at on disk nor read", async () => {
+  const root = s23Tree();
+  const dbPath = path.join(tmp(), "lib.db");
+  await catalogue({ root, dbPath, lister: everythingOf(root) });
+  let reads = 0;
+  let stats = 0;
+  const r = await catalogue({
+    root,
+    dbPath,
+    lister: everythingOf(root),
+    hash: (f) => (reads++, hashFile(f)),
+    stat: (f) => (stats++, fsp.stat(f))
+  });
+  assert.equal(r.finished, true);
+  assert.equal(reads, 0, "nothing read");
+  assert.equal(stats, 0, "and nothing stat'ed: the listing gave size and date");
+
+  // the paired positive: the same spy IS called by a walk, so zero above means something
+  let walkedStats = 0;
+  await catalogue({ root, dbPath, stat: (f) => (walkedStats++, fsp.stat(f)) });
+  assert.ok(walkedStats > 0, `a walk stats every file it meets: ${walkedStats}`);
+});
+
+test("S23: a listing that may be incomplete removes nothing - the pass walks instead, and says why", async () => {
+  const cases = [
+    [{ available: false }, /not available/u],
+    [{ fail: "ES_FAILED" }, /ES_FAILED/u],
+    [{ fail: "ES_INCOMPLETE" }, /ES_INCOMPLETE/u],
+    [{ omit: [path.join("Photos", "2019", "a.jpg")] }, /4 of 5 files|under 99%/u]
+  ];
+  for (const [opts, why] of cases) {
+    const root = tree();
+    const dbPath = path.join(tmp(), "lib.db");
+    await catalogue({ root, dbPath }); // a full catalogue first, so a short listing is measurable
+    const before = rowsOf2(dbPath).length;
+    const r = await catalogue({ root, dbPath, lister: everythingOf(root, opts) });
+    assert.equal(r.finished, true, JSON.stringify(opts));
+    const pass = lastPass(dbPath);
+    assert.equal(pass.listed_by, "walk", `walked instead: ${JSON.stringify(opts)}`);
+    assert.match(pass.walk_reason ?? "", why, JSON.stringify(pass));
+    assert.equal(rowsOf2(dbPath).length, before, "and nothing was removed");
+  }
+});
+
+test("S23: a full walk runs when the last one is older than the walk interval", async () => {
+  const root = tree();
+  const dbPath = path.join(tmp(), "lib.db");
+  let clock = Date.parse("2026-11-01T00:00:00Z");
+  const now = () => clock;
+  await catalogue({ root, dbPath, now }); // a walk
+  clock += 2 * 86_400_000;
+  await catalogue({ root, dbPath, now, lister: everythingOf(root), walkDays: 7 });
+  assert.equal(
+    lastPass(dbPath).listed_by,
+    "everything",
+    "two days after a walk, the listing is used"
+  );
+  clock += 6 * 86_400_000;
+  await catalogue({ root, dbPath, now, lister: everythingOf(root), walkDays: 7 });
+  const pass = lastPass(dbPath);
+  assert.equal(pass.listed_by, "walk", "eight days after the last walk, the drive is walked");
+  assert.match(pass.walk_reason ?? "", /last full walk/u);
+});
+
+test("S23: each pass records who started it, and an S21 catalogue migrates", async () => {
+  const root = tree();
+  const dbPath = path.join(tmp(), "lib.db");
+  // an S21-era catalogue: passes with no listed_by, walk_reason or started_by
+  const old = new DatabaseSync(dbPath);
+  old.exec(`CREATE TABLE passes (id TEXT PRIMARY KEY, started_at TEXT NOT NULL, finished_at TEXT, stopped_at TEXT,
+    seen INTEGER NOT NULL DEFAULT 0, hashed INTEGER NOT NULL DEFAULT 0, bytes_hashed INTEGER NOT NULL DEFAULT 0,
+    pending INTEGER NOT NULL DEFAULT 0, unreadable INTEGER NOT NULL DEFAULT 0, unreadable_dirs INTEGER NOT NULL DEFAULT 0,
+    removed INTEGER NOT NULL DEFAULT 0, digest TEXT NOT NULL DEFAULT '')`);
+  old
+    .prepare(
+      "INSERT INTO passes (id, started_at, finished_at) VALUES ('old', '2026-10-01T00:00:00Z', '2026-10-01T01:00:00Z')"
+    )
+    .run();
+  old.close();
+  await catalogue({ root, dbPath, startedBy: "schedule" });
+  const db = new DatabaseSync(dbPath, { readOnly: true });
+  try {
+    const old2 = db.prepare("SELECT listed_by, started_by FROM passes WHERE id = 'old'").get();
+    assert.equal(old2.listed_by, "walk", "an S21 pass was a walk");
+    assert.equal(old2.started_by, "owner", "and the owner started it");
+  } finally {
+    db.close();
+  }
+  assert.equal(lastPass(dbPath).started_by, "schedule");
+});
