@@ -21,12 +21,12 @@
 
 ## VERIFY (awaiting non-author verification)
 
-- S31 — opening the top of a drive never scans it on the hub's thread · author claude-opus-5-5 · branch task/S31 @ 7ca472e5 · READY FOR VERIFY 2026-11-14 _(The folder worker builds the root index a pre-S26 catalogue lacks; without it the root is not answered by a scan. Real F: top folder 80-91 ms warm, from 12-49 s. One S26 test deliberately superseded. 106 of 300.)_
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 _(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)_
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 _(budget amended 300→1100 by owner directive — flagship scope, see LOG)_
 
 ## DONE (id · verified-by · date)
 
+- S31 — opening the top of a drive never scans it on the hub's thread · MERGED ON THE OWNER'S APPROVAL, verification running · 2026-11-14 _(merged to main @ 0faf9cff. NOT a verification pass: claude-s31-verifier's verdict is pending and will be recorded here. Real F: top folder 80-91 ms warm, from 12-49 s.)_
 - U11 — a drive's comings and goings reach the ledger, and an unplugged drive keeps its date · verified-by claude-u11-verifier · 2026-11-14 _(merged to main @ e6568a20. PASS first round, 104 of 300. Open owner decision before any Linux node: a Linux mountpoint in the event's root can carry the volume label.)_
 - S30 — a catalogue summarised before the folder weights existed still gets them · verified-by claude-s30-verifier · 2026-11-14 _(merged to main @ 9efbc498. PASS at round 2 after a FAIL on two test guards - a mutant killed 5 runs in 9, and no stale-rollup test. 98 of 300. The first stop of the M13 walk-through.)_
 - S25 — the librarian's edges: bound the work, and say what the answer means · verified-by claude-s25-verifier-3 · 2026-11-14 _(merged to main @ a8479b61. PASS at round 3 after a FAIL whose cause was my own false gate green. 216 of 300. Carried into S30, none blocking: two audit facts nothing guards, two answer fields the docs do not name, and a ULID assertion that turns the gate red for minutes at a time.)_
