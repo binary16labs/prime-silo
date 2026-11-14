@@ -7,6 +7,8 @@
 
 ## READY (take from the top)
 
+- S30 — a catalogue summarised before the folder weights existed still gets them _(dep S26 DONE. THE FIRST STOP OF THE M13 WALK-THROUGH, found on the real F: before the owner sat down: the folder view says "try again in a minute" for ever, because the worker that builds the rollup only starts when the saved summary is out of date, and F:'s is not. At the TOP by the signed path's rule that a walk-through stop goes ahead of the queue. Band S.)_
+
 - U11 — a drive's comings and goings reach the ledger, and an unplugged drive keeps its date _(dep U0 DONE 2026-11-14. Scope signed by the owner as PATH-data-mapping D2, where it is called U0a; band S. At the TOP on the signed path's order: U11, then S23, then U1.)_
 
 - S23 — duplicates and sole copies across the catalogue _(dep S22 DONE 2026-10-24; already signed 2026-10-11. Promoted by the board's mechanical rule, placed at the bottom. NOT MVP work: M13's cut makes only the one outcome's blockers claimable, and those are now all closed, so the next move is the owner walking the journey rather than anyone claiming this.)_
