@@ -2904,8 +2904,8 @@ test("C8: a drive's capacity, use and free space are drawn and said", async () =
   const f = drive("Elements");
   assert.ok(f, visible(window).slice(0, 300));
   const used = Number(f.querySelector(".em__used").getAttribute("width"));
-  // 1.557 TB of 5.000 TB is 31.1% of the 336-unit outline
-  assert.ok(Math.abs(used - 336 * 0.3114) < 1, `filled about 31 percent: ${used} of 336`);
+  // 1.557 TB of 5.000 TB is 31.1% of the 676-unit outline
+  assert.ok(Math.abs(used - 676 * 0.3114) < 1, `filled about 31 percent: ${used} of 676`);
   const svg = f.querySelector(".em__elev");
   assert.equal(svg.getAttribute("role"), "img");
   assert.equal(

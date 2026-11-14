@@ -104,7 +104,7 @@ window.estateMapPage = function estateMapPage() {
       return {
         known: true,
         full,
-        usedWidth: Math.round((used / cap) * 336 * 10) / 10,
+        usedWidth: Math.round((used / cap) * 676 * 10) / 10,
         capLine: `${this.size(cap)} total`,
         useLine,
         aria: `${name}: ${this.size(cap)} total, ${useLine.replaceAll(" · ", ", ")}`
