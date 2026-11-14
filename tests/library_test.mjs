@@ -2504,9 +2504,9 @@ test("S26: the neighbours route checks the rollup is current, as the folder rout
   assert.equal(stale?.where, undefined, "no comparison against a figure nobody checked");
 });
 
-test("S26: a catalogue written before this contract still answers at the root", async () => {
-  // THE BRANCH THE OWNER'S OWN DRIVE USES. F: was catalogued by S21 and has no files_root until its
-  // next pass, so the fallback is the live path — and it was the one thing here with no guard:
+test("S26 (as S31 changed it): a catalogue written before this contract answers at the root once it has the index", async () => {
+  // THE BRANCH THE OWNER'S OWN DRIVE USED. F: was catalogued by S21 and had no files_root until its
+  // next pass, so the fallback was the live path — and it was the one thing here with no guard:
   // every test built a fresh catalogue, asserted hasRootIndex true, and tested the choice function
   // by handing it a literal false. INDEXED BY on a missing index is an error, not a hint.
   const drive = tmp();
@@ -2532,14 +2532,24 @@ test("S26: a catalogue written before this contract still answers at the root", 
   assert.throws(() => db.prepare(SQL.rootFiles), /files_root/u);
   db.close();
 
+  // S31 CHANGED THIS, deliberately, and this test is where that is recorded. The fallback this
+  // test used to hold - sort every file on the drive by size, keep the top-level ones - answered
+  // here over six files and took 12 to 49 s over F:'s 1,117,007 on the hub's thread, which stopped
+  // the whole app. So without the index the root is NOT answered: it is still being worked out.
   const old = folderView(dbPath, drive, [], "", { offset: 0, limit: 50 });
+  assert.equal(old.computing, true, `no scan: ${JSON.stringify(old)}`);
+  assert.equal(old.files, undefined, "and no list made by sorting the drive");
+
+  // once the folder worker has built the index, it answers exactly as a fresh catalogue does
+  ensureRootIndex(dbPath);
+  const after = folderView(dbPath, drive, [], "", { offset: 0, limit: 50 });
   assert.deepEqual(
-    old.files.map((f) => f.name).sort(),
+    after.files.map((f) => f.name).sort(),
     ["top0.txt", "top1.txt", "top2.txt", "top3.txt"],
-    `the fallback answers the same: ${JSON.stringify(old.files)}`
+    `the same files as a fresh catalogue: ${JSON.stringify(after.files)}`
   );
   assert.deepEqual(
-    old.folders.map((f) => f.name),
+    after.folders.map((f) => f.name),
     ["sub"],
     "and its children too"
   );
