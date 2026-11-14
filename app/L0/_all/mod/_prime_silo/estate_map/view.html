@@ -62,10 +62,49 @@
       <template x-if="!loading && v.reachable && !v.empty">
         <div class="em__body">
           <nav class="em__tabs">
-            <template x-for="t in ['estate', 'storage', 'applications', 'media', 'library', 'backups']" :key="t">
+            <template x-for="t in ['estate', 'drives', 'storage', 'applications', 'media', 'library', 'backups']" :key="t">
               <button class="em__tab" :data-on="tab === t" @click="tab = t" x-text="t"></button>
             </template>
           </nav>
+
+          <!-- DRIVES: every drive this machine has ever had, by identity. A field the OS did not
+               give reads "unknown" and never a guess; a label a rule matches reads withheld. -->
+          <template x-if="tab === 'drives'"><div class="em__drives">
+            <!-- CANNOT-TELL IS NOT AN EMPTY ESTATE. drivesProblem was written in three places and
+                 read in none, so a 503 showed the owner "no drive has been seen yet" as a fact
+                 when the panel could not ask. This suite already names that invariant for the map. -->
+            <template x-if="drivesProblem"><p class="em__note em__problem" x-text="'the drives cannot be read: ' + drivesProblem"></p></template>
+            <template x-if="!drivesProblem && !drives.length"><p class="em__note">No drive has been seen yet — the watch records them as they are attached.</p></template>
+            <template x-for="d in drives" :key="d.identity">
+              <div class="em__drive" :data-off="!d.attached">
+                <h3 x-text="d.name || 'unnamed drive'"></h3>
+                <p class="em__drive-facts">
+                  <span x-text="d.medium || 'unknown'"></span>
+                  <span x-text="d.attached ? ('attached at ' + d.root) : 'not attached'"></span>
+                  <span x-text="size(d.capacity) + ' total, ' + size(d.free) + ' free'"></span>
+                  <template x-if="d.stale"><span class="em__stale">not seen for a while</span></template>
+                </p>
+                <p class="em__drive-seen">
+                  <span x-text="'first seen ' + when(d.first_seen)"></span>
+                  <span x-text="'last seen ' + when(d.last_seen)"></span>
+                  <span x-text="catalogued(d)"></span>
+                </p>
+                <template x-if="d.offers === 'user-roots'">
+                  <div class="em__roots">
+                    <p class="em__note">Windows is on this drive, so the estate catalogues your own folders rather than the whole of it.</p>
+                    <template x-for="u in d.user_roots" :key="u.root">
+                      <p class="em__root">
+                        <span x-text="u.role"></span>
+                        <span x-text="u.root"></span>
+                        <template x-if="u.in_onedrive"><span class="em__onedrive">in OneDrive</span></template>
+                        <template x-if="u.added_by_owner"><span>you added this</span></template>
+                      </p>
+                    </template>
+                  </div>
+                </template>
+              </div>
+            </template>
+          </div></template>
 
           <!-- ESTATE: one card per node, stale ones included and labelled. -->
           <template x-if="tab === 'estate'"><div class="em__cards">

@@ -108,6 +108,18 @@ ESTATE_STORE:
   allowed: ["/^$/", "/^[A-Za-z]:.+$/", "/^[\/].*/"]
   default: ""
   frontend_exposed: false
+ESTATE_COPY_FRESH_DAYS:
+  description: How many days a drive may go unseen before the estate calls it stale. U6 uses the same window to judge whether a copy is still current; in U0 it only labels the row.
+  type: number
+  allowed: [1..3650]
+  default: 30
+  frontend_exposed: false
+ESTATE_DRIVE_WATCH_SECONDS:
+  description: How often the drive watch compares what is attached with the registry. The tick reads the volume table and opens no file, so this is cheap; a drive that has not moved produces no event.
+  type: number
+  allowed: [5..86400]
+  default: 60
+  frontend_exposed: false
 ESTATE_SWEEP_ROOTS:
   description: Drives or folders this machine offers to the estate map, separated by ; or , - empty lets the sweep choose them.
   type: text
