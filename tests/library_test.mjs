@@ -36,7 +36,9 @@ import {
   stillListening,
   libraryQueriedEvent,
   libraryPath,
-  libraryState
+  libraryState,
+  ensureRootIndex,
+  hasRootIndexAt
 } from "../server/coordination/lib/library.mjs";
 import { hashFile } from "../server/coordination/lib/nas_catalog.mjs";
 import { DatabaseSync } from "node:sqlite";
@@ -3227,11 +3229,15 @@ test("S30: a catalogue with a current summary and no rollup gets one, through th
     assert.ok(view.folders.length >= 2, `with its folders: ${r.text.slice(0, 200)}`);
     assert.ok(rollupKey(dbPath), "and the key is written");
     assert.equal(passCount(dbPath), passes, "without a new pass");
-    // the folder answers once the key is written and the worker goes on to save the summary: wait
-    // for that, so nothing is still writing when this test's folders are removed
-    for (let i = 0; i < 400 && fs.statSync(`${dbPath}.summary.json`).mtimeMs <= since; i += 1)
-      await pause(25);
-    await pause(200);
+    // the folder answers once the key is written; since S31 the worker then finds the summary
+    // already current and stops, so a short pause is enough for it to let go of the file before
+    // this test's folders are removed - and the summary is NOT rewritten, which S31 also holds
+    await pause(500);
+    assert.equal(
+      fs.statSync(`${dbPath}.summary.json`).mtimeMs,
+      since,
+      "the summary was already current and was not redone"
+    );
   } finally {
     await h.close();
   }
@@ -3461,4 +3467,121 @@ test("S30: a pass on one drive does not tell another drive it is being catalogue
   for (const d of [x, y])
     for (let i = 0; i < 400 && lib.state(d.root).computing; i += 1) await pause(25);
   await pause(200);
+});
+
+// --- S31: the top of a drive is never scanned on the hub's thread ---------------------------------
+
+// THE STATE THE REAL F: WAS IN once S30 had built its rollup: a finished pass, a current summary, a
+// current rollup, and no files_root - because F:'s last pass finished before S26 added it, and only
+// a pass creates it. A sentinel folder row is planted so a rollup rebuild, which this must not do,
+// is visible: a rebuild recounts the table and the sentinel is gone.
+const SENTINEL = "zz-s31-sentinel";
+const currentWithoutRootIndex = async () => {
+  const root = tmp();
+  write(root, "top-a.txt", "at the top");
+  write(root, "top-b.txt", "also at the top");
+  write(root, "keep/a.txt", "shared");
+  write(root, "other/b.txt", "shared");
+  const store = tmp();
+  const h = await hub({ roots: [root], estateStore: store, quarantine: [] });
+  const enc = encodeURIComponent(root);
+  try {
+    assert.equal((await h.call("/library", { root })).status, 202);
+    let ready = false;
+    for (let i = 0; i < 1200 && !ready; i += 1) {
+      ready = (await h.call(`/library/folder?root=${enc}&path=`)).status === 200;
+      if (!ready) await pause(50);
+    }
+    assert.ok(ready, "the setup's own rollup landed");
+  } finally {
+    await h.close();
+  }
+  const dbPath = libraryPath(path.join(store, "library"), root);
+  for (let i = 0; i < 400 && !fs.existsSync(`${dbPath}.summary.json`); i += 1) await pause(25);
+  await pause(200);
+  const db = new DatabaseSync(dbPath);
+  try {
+    db.exec("PRAGMA busy_timeout = 10000");
+    db.exec("DROP INDEX files_root");
+    db.prepare("INSERT INTO folders (path, files, bytes) VALUES (?, 0, 0)").run(SENTINEL);
+  } finally {
+    db.close();
+  }
+  assert.equal(hasRootIndexAt(dbPath), false, "no root index, as on the real F:");
+  assert.ok(rollupKey(dbPath), "and the rollup is current");
+  return { root, store, dbPath, dir: path.join(store, "library") };
+};
+
+const sentinelThere = (dbPath) => {
+  const db = new DatabaseSync(dbPath, { readOnly: true, timeout: 10_000 });
+  try {
+    return db.prepare("SELECT 1 FROM folders WHERE path = ?").get(SENTINEL) != null;
+  } finally {
+    db.close();
+  }
+};
+
+test("S31: a catalogue with no root index gets one, without a new pass or a rebuilt rollup", async () => {
+  const { root, dbPath, dir } = await currentWithoutRootIndex();
+  const passes = passCount(dbPath);
+  const summaryAt = fs.statSync(`${dbPath}.summary.json`).mtimeMs;
+  const lib = createLibrarian({ dir, rules: [] });
+
+  const first = lib.folder(root, { path: "" });
+  assert.equal(first.computing, true, `not answered by a scan: ${JSON.stringify(first)}`);
+  let r = first;
+  for (let i = 0; i < 400 && !r.folders; i += 1) {
+    await pause(25);
+    r = lib.folder(root, { path: "" });
+  }
+  assert.ok(r.folders, `the top folder answers once the index is there: ${JSON.stringify(r)}`);
+  assert.deepEqual(
+    r.files.map((f) => f.name).sort(),
+    ["top-a.txt", "top-b.txt"],
+    "and its own files are the ones at the top"
+  );
+  assert.equal(hasRootIndexAt(dbPath), true, "the worker built the index");
+  assert.equal(passCount(dbPath), passes, "without a new pass");
+  assert.equal(sentinelThere(dbPath), true, "and the rollup was not rebuilt");
+  assert.equal(
+    fs.statSync(`${dbPath}.summary.json`).mtimeMs,
+    summaryAt,
+    "nor the summary, which was already current"
+  );
+  assert.equal(lib.workersStarted(), 1, "one worker, once");
+});
+
+test("S31: the top folder without its index is never answered by a scan", async () => {
+  // folderView itself refuses, so no caller can reach the scan by another route
+  const { root, dbPath } = await currentWithoutRootIndex();
+  const v = folderView(dbPath, root, [], "", { limit: 200 });
+  assert.equal(v.computing, true, JSON.stringify(v));
+  assert.equal(v.files, undefined, "no list at all, rather than one made by sorting the drive");
+  // and a folder below the top is unaffected: its range is the primary key, not this index
+  const below = folderView(dbPath, root, [], "keep", { limit: 200 });
+  assert.ok(
+    below.files?.length >= 1,
+    `a folder below the top still answers: ${JSON.stringify(below)}`
+  );
+});
+
+test("S31: the root index has one spelling, whether the schema or the worker makes it", async () => {
+  const fresh = path.join(tmp(), "fresh.db");
+  openLibrary(fresh).close();
+  const older = path.join(tmp(), "older.db");
+  openLibrary(older).close();
+  const db = new DatabaseSync(older);
+  db.exec("DROP INDEX files_root");
+  db.close();
+  ensureRootIndex(older);
+  const sqlOf = (file) => {
+    const d = new DatabaseSync(file, { readOnly: true });
+    try {
+      return d.prepare("SELECT sql FROM sqlite_master WHERE name = 'files_root'").get()?.sql;
+    } finally {
+      d.close();
+    }
+  };
+  assert.ok(sqlOf(fresh), "the schema makes it");
+  assert.equal(sqlOf(older), sqlOf(fresh), "and the worker's is the same index, word for word");
 });

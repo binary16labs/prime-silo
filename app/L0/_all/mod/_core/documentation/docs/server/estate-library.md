@@ -81,6 +81,16 @@ ends, because nothing builds a rollup mid-pass and a first pass of F: is hours. 
 **rests for a minute before it is tried again**, and says why for that minute; the next ask after it tries again — starting a worker used
 to clear the failure, so the request that came to read the reason was the one that erased it.
 
+**The top of a drive is never answered by a scan (S31).** The files sitting directly in a drive's
+top folder are found through a small partial index, `files_root`, which only a catalogue pass used
+to create. F:'s last pass predates it, and the fallback — sort every file on the drive by size and
+keep the ones at the top — took 12 to 49 seconds over F:'s 1.1 million rows on its USB disk, on the
+hub's only request thread, so the whole app stopped answering while it ran. Now the worker that
+builds the folder figures builds that index too, with the same statement the schema uses; a
+missing index starts the worker exactly as a missing rollup does; and until the index exists the
+top folder answers `202`, still being worked out, rather than scanning. The worker redoes only what
+is not already current, so a catalogue that lacks only the index gets only the index.
+
 **`/library/neighbours` is a separate route on purpose.** Storing "where the other copies are" for
 every folder meant testing every copy of every set against every ancestor — 45 minutes on the real
 F:. Asked for one folder at a time.

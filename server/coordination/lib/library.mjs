@@ -103,6 +103,37 @@ export const libraryPath = (dir, root) => libraryPathFor(dir, rootIdentity(root)
 // waits are capped at 2 s because reads and passes run on the hub's thread (verifier-3 froze it at 10 s).
 const BUSY_MS = 2_000;
 
+// the drive root's own files, which no path range can bound: a partial index on exactly the rows
+// whose path holds no separator, so the one folder the panel opens first is a search rather than a
+// scan of every row on the drive. ONE SPELLING (S31): the schema below and ensureRootIndex both use
+// this, because a catalogue written before S26 never runs the schema again until its next pass.
+const FILES_ROOT_INDEX =
+  "CREATE INDEX IF NOT EXISTS files_root ON files (path) WHERE instr(path, '/') = 0";
+
+// S31: THE INDEX FOR A CATALOGUE OLDER THAN IT. F:'s last pass finished the day before S26 merged,
+// so F: had no files_root, and opening its top folder sorted all 1,117,007 rows of a USB disk on
+// the hub's thread - 12 to 49 seconds, during which the app answered nothing. Built by the folder
+// worker, never on the hub's thread: it reads every row once to build.
+export function ensureRootIndex(dbPath) {
+  const db = new DatabaseSync(dbPath, { timeout: BUSY_MS });
+  try {
+    db.exec(FILES_ROOT_INDEX);
+  } finally {
+    db.close();
+  }
+}
+
+// whether a catalogue has it, read and closed
+export function hasRootIndexAt(dbPath) {
+  const db = readOnly(dbPath);
+  if (!db) return false;
+  try {
+    return SQL.hasRootIndex(db);
+  } finally {
+    db.close();
+  }
+}
+
 export function openLibrary(dbPath) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new DatabaseSync(dbPath, { timeout: BUSY_MS });
@@ -113,10 +144,8 @@ export function openLibrary(dbPath) {
       kind TEXT NOT NULL, first_seen TEXT NOT NULL, last_seen TEXT NOT NULL, run TEXT NOT NULL);
     CREATE INDEX IF NOT EXISTS files_sha256 ON files (sha256);
     CREATE INDEX IF NOT EXISTS files_size ON files (size);
-    -- the drive root's own files, which no path range can bound: a partial index on exactly the
-    -- rows whose path holds no separator, so the one folder the panel opens first is a search
-    -- rather than a scan of every row on the drive (226 ms at 500k, about half a second at F:)
-    CREATE INDEX IF NOT EXISTS files_root ON files (path) WHERE instr(path, '/') = 0;
+    -- the drive root's own files: see FILES_ROOT_INDEX
+    ${FILES_ROOT_INDEX};
     CREATE TABLE IF NOT EXISTS passes (
       id TEXT PRIMARY KEY, started_at TEXT NOT NULL, finished_at TEXT, stopped_at TEXT,
       seen INTEGER NOT NULL DEFAULT 0, hashed INTEGER NOT NULL DEFAULT 0,
@@ -533,18 +562,32 @@ if (!isMainThread && workerData?.librarySummary) {
   // F: — the hub's request thread is where claude-s21-verifier's D3 lived and nothing goes back on
   // it. The key is written LAST, so a rollup interrupted half way is never mistaken for a current
   // one: a reader checks the key, not the table's existence.
-  await buildFolderRollup(dbPath, root, rules);
-  markRollup(dbPath, key, root);
-  const { state, csv } = summaryOf(dbPath, root, rules);
-  const list = csvFor(dbPath, key);
-  fs.writeFileSync(`${list}.tmp`, csv);
-  fs.renameSync(`${list}.tmp`, list);
-  fs.writeFileSync(`${dbPath}.summary.json.tmp`, JSON.stringify({ key, state }));
-  fs.renameSync(`${dbPath}.summary.json.tmp`, `${dbPath}.summary.json`);
-  const mine = path.basename(listPrefix(dbPath, key)); // and a half-written one a killed worker left
-  for (const f of fs.readdirSync(path.dirname(dbPath)))
-    if (f.startsWith(mine) && f !== path.basename(list))
-      fs.rmSync(path.join(path.dirname(dbPath), f), { force: true });
+  // S31: the index first, and then only what is not already current - a catalogue whose rollup
+  // and summary are current but which has no index gets the index, and nothing is rebuilt
+  ensureRootIndex(dbPath);
+  if (rollupKey(dbPath) !== key) {
+    await buildFolderRollup(dbPath, root, rules);
+    markRollup(dbPath, key, root);
+  }
+  let had = null;
+  try {
+    had = JSON.parse(fs.readFileSync(`${dbPath}.summary.json`, "utf8"));
+  } catch {
+    // no summary yet
+  }
+  // the summary and its list are redone only when they are not already current for this key
+  if (had?.key !== key || !fs.existsSync(csvFor(dbPath, key))) {
+    const { state, csv } = summaryOf(dbPath, root, rules);
+    const list = csvFor(dbPath, key);
+    fs.writeFileSync(`${list}.tmp`, csv);
+    fs.renameSync(`${list}.tmp`, list);
+    fs.writeFileSync(`${dbPath}.summary.json.tmp`, JSON.stringify({ key, state }));
+    fs.renameSync(`${dbPath}.summary.json.tmp`, `${dbPath}.summary.json`);
+    const mine = path.basename(listPrefix(dbPath, key)); // and a half-written one a killed worker left
+    for (const f of fs.readdirSync(path.dirname(dbPath)))
+      if (f.startsWith(mine) && f !== path.basename(list))
+        fs.rmSync(path.join(path.dirname(dbPath), f), { force: true });
+  }
   parentPort.postMessage("done");
 }
 
@@ -893,6 +936,11 @@ export function folderView(dbPath, root, rules = [], at = "", { offset = 0, limi
     );
     if (kidRows.computing) return kidRows;
     const kids = kidRows.rows;
+    // S31: THE ROOT WITHOUT ITS INDEX IS NOT ANSWERED. The fallback below sorted every file on the
+    // drive by size to keep the handful at the top - 226 ms over 500,000 rows in a temp folder, 11.9 s
+    // over F:'s 1,117,007 on a USB disk, on the hub's thread. The worker builds the index; until then
+    // the top folder is still being worked out, which is true.
+    if (!at && !SQL.hasRootIndex(db)) return { computing: true };
     const here =
       SQL.childFilesFor(at, SQL.hasRootIndex(db)) === "rootFiles"
         ? db.prepare(SQL.rootFiles).all(limit, offset)
@@ -1465,7 +1513,8 @@ export function createLibrarian({
     // merged - had a current summary, started no worker, and answered "try again in a minute" for
     // as long as anyone asked. Every S26 test began from a fresh pass, which is the one state that
     // cannot show it. Seen current once, a key is remembered: this runs on every request.
-    if (rolled.get(db) !== key && rollupKey(db) === key) rolled.set(db, key);
+    // S31: and the index the folder view relies on is part of "current" too
+    if (rolled.get(db) !== key && rollupKey(db) === key && hasRootIndexAt(db)) rolled.set(db, key);
     if (had?.key !== key || rolled.get(db) !== key) workOut(db, root, key);
     return { db, pass, key, had };
   };
@@ -1523,6 +1572,7 @@ export function createLibrarian({
         };
       if (rollupKey(c.db) !== c.key) return notYet(c, root);
       const v = folderView(c.db, root, rules, at, { offset, limit });
+      if (v?.computing) return notYet(c, root);
       // the date belongs on the answer: a figure with no age invites being read as live
       // a figure resolved by NAME rather than identity says so on the answer, because the owner
       // cannot otherwise tell it is reading a different disk's catalogue
