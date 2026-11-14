@@ -7,8 +7,6 @@
 
 ## READY (take from the top)
 
-- S23 — duplicates and sole copies across the catalogue _(dep S22 DONE 2026-10-24; already signed 2026-10-11. Promoted by the board's mechanical rule, placed at the bottom. NOT MVP work: M13's cut makes only the one outcome's blockers claimable, and those are now all closed, so the next move is the owner walking the journey rather than anyone claiming this.)_
-
 - W3 — dogfood proof (no plan-file read; author≠verifier chain in ledger) _(dep W2 DONE — entered READY 2026-08-03; closes EP-W)_
 
 - L16 — version the observability surface (out of scratch/) _(UNBLOCKED 2026-08-03 — contract amended per owner option (b): budget counts authored lines only, verbatim relocation exempt and gate-checked for byte-identity. Returned to READY unclaimed rather than held, to respect WIP limit 1 while W2 is worked.)_
@@ -18,6 +16,8 @@
 - S14 — the map carries which software each node runs _(UNBLOCKED — its only dep, S13, went DONE inside the S15 merge (54f5cfc8). Enters READY at the bottom per the board's promotion rule; owner may reorder.)_
 
 ## CLAIMED (agent · date)
+
+- S23 — duplicates and sole copies across the catalogue · claude-opus-5-5 · 2026-11-14 _(Everything listing and the rescan job first; levels last, dropped at 60% of the band per D5.)_
 
 ## VERIFY (awaiting non-author verification)
 
