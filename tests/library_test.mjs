@@ -3197,8 +3197,10 @@ const summarisedBeforeTheRollup = async (store = tmp()) => {
   return { root, store, dbPath, enc };
 };
 
+// WAITS FOR THE LOCK, as every product read does since S21's D5: this is read while the worker is
+// writing the rollup, and without a timeout it threw "database is locked" inside a gate run.
 const passCount = (dbPath) => {
-  const db = new DatabaseSync(dbPath, { readOnly: true });
+  const db = new DatabaseSync(dbPath, { readOnly: true, timeout: 10_000 });
   try {
     return db.prepare("SELECT count(*) AS n FROM passes").get().n;
   } finally {
