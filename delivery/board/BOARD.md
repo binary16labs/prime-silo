@@ -27,7 +27,7 @@
 
 ## DONE (id · verified-by · date)
 
-- S31 — opening the top of a drive never scans it on the hub's thread · MERGED ON THE OWNER'S APPROVAL, verification running · 2026-11-14 _(merged to main @ 0faf9cff. NOT a verification pass: claude-s31-verifier's verdict is pending and will be recorded here. Real F: top folder 80-91 ms warm, from 12-49 s.)_
+- S31 — opening the top of a drive never scans it on the hub's thread · verified-by claude-s31-verifier · 2026-11-14 _(round 1 merged on the owner's approval and FAILED verification after; round 2 merged @ a2ffb459 and PASSED. Real F: top folder 80-130 ms, from 12-49 s. 118 of 300.)_
 - U11 — a drive's comings and goings reach the ledger, and an unplugged drive keeps its date · verified-by claude-u11-verifier · 2026-11-14 _(merged to main @ e6568a20. PASS first round, 104 of 300. Open owner decision before any Linux node: a Linux mountpoint in the event's root can carry the volume label.)_
 - S30 — a catalogue summarised before the folder weights existed still gets them · verified-by claude-s30-verifier · 2026-11-14 _(merged to main @ 9efbc498. PASS at round 2 after a FAIL on two test guards - a mutant killed 5 runs in 9, and no stale-rollup test. 98 of 300. The first stop of the M13 walk-through.)_
 - S25 — the librarian's edges: bound the work, and say what the answer means · verified-by claude-s25-verifier-3 · 2026-11-14 _(merged to main @ a8479b61. PASS at round 3 after a FAIL whose cause was my own false gate green. 216 of 300. Carried into S30, none blocking: two audit facts nothing guards, two answer fields the docs do not name, and a ULID assertion that turns the gate red for minutes at a time.)_
