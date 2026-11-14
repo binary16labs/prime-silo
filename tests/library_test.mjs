@@ -3197,8 +3197,10 @@ const summarisedBeforeTheRollup = async (store = tmp()) => {
   return { root, store, dbPath, enc };
 };
 
+// WAITS FOR THE LOCK, as every product read does since S21's D5: this is read while the worker is
+// writing the rollup, and without a timeout it threw "database is locked" inside a gate run.
 const passCount = (dbPath) => {
-  const db = new DatabaseSync(dbPath, { readOnly: true });
+  const db = new DatabaseSync(dbPath, { readOnly: true, timeout: 10_000 });
   try {
     return db.prepare("SELECT count(*) AS n FROM passes").get().n;
   } finally {
@@ -3298,9 +3300,15 @@ test("S30: a rollup that could not be built keeps saying why, rather than being 
       r = lib.folder(root, { path: "" });
     }
     assert.match(r.refused ?? "", /could not be built: \S/u, `the reason: ${JSON.stringify(r)}`);
+    // ASKED ACROSS REAL TIME, not three times in one tick. A failed worker's `error` arrives before
+    // its `exit`, and until exit the drive is still `working`, which hides a restart whether or not
+    // the rest exists - so the first version of this killed a broken rest 5 runs in 9
+    // (claude-s30-verifier). Six asks spread over 1.2 s land well after the exit and inside the rest.
     const tried = lib.workersStarted();
-    for (let i = 0; i < 3; i += 1)
+    for (let i = 0; i < 6; i += 1) {
+      await pause(200);
       assert.equal(lib.folder(root, { path: "" }).refused, r.refused, "and it is still the answer");
+    }
     assert.equal(lib.workersStarted(), tried, "nothing restarted to hide it");
 
     // the paired positive: the rest is a rest, not a verdict - once it is over, an ask tries again
@@ -3333,6 +3341,21 @@ test("S30: a rollup that could not be built keeps saying why, rather than being 
       release();
       await done;
     }
+    // and once that pass ends - well inside the old failure's minute - its rollup is built at once:
+    // the rest was the old key's, and a rest that held for any key would leave this waiting
+    let built = lib.folder(root, { path: "" });
+    for (let i = 0; i < 400 && !built.folders; i += 1) {
+      await pause(25);
+      built = lib.folder(root, { path: "" });
+    }
+    assert.ok(
+      built.folders,
+      `the new pass's rollup, without waiting a minute: ${JSON.stringify(built)}`
+    );
+    const settledAt = fs.statSync(`${dbPath}.summary.json`).mtimeMs;
+    for (let i = 0; i < 400 && fs.statSync(`${dbPath}.summary.json`).mtimeMs === settledAt; i += 1)
+      await pause(25);
+    await pause(200); // the summary that follows, so nothing is still writing at cleanup
   } finally {
     fs.chmodSync(dbPath, 0o644);
   }
@@ -3376,4 +3399,66 @@ test("S30 (from S25): a refused find and an answered one each audit what they re
   } finally {
     await h.close();
   }
+});
+
+test("S30: a STALE rollup - present, but for another pass - is rebuilt, not trusted", async () => {
+  // Contract item 1 says "missing OR stale", and only missing was tested (claude-s30-verifier):
+  // treating any key as current survived every test. A rollup counted for an older pass can say a
+  // folder holds files it no longer does, so present is not the same as current.
+  const { root, store, dbPath } = await summarisedBeforeTheRollup();
+  markRollup(dbPath, "an-older-pass|its-policy", root);
+  assert.equal(rollupKey(dbPath), "an-older-pass|its-policy", "set up stale, not missing");
+  const lib = createLibrarian({ dir: path.join(store, "library"), rules: [] });
+
+  // FINDING 4: both folder routes say the same thing while it is rebuilt - one sentence, one place
+  const first = lib.folder(root, { path: "" });
+  const next = lib.neighbours(root, { path: "keep" });
+  assert.equal(first.computing, true, JSON.stringify(first));
+  if (next.computing) assert.equal(next.why, first.why, "neighbours waits in the same words");
+
+  let r = first;
+  for (let i = 0; i < 400 && !r.folders; i += 1) {
+    await pause(25);
+    r = lib.folder(root, { path: "" });
+  }
+  assert.ok(r.folders, `rebuilt and answered: ${JSON.stringify(r)}`);
+  assert.notEqual(rollupKey(dbPath), "an-older-pass|its-policy", "under the current key");
+  for (let i = 0; i < 400 && lib.state(root).computing; i += 1) await pause(25);
+  await pause(200);
+});
+
+test("S30: a pass on one drive does not tell another drive it is being catalogued", async () => {
+  // FINDING 3: the pass sentence was taken for ANY running pass, so asking about drive Y while X was
+  // being catalogued said Y was - though Y's own worker had started and Y would answer in a minute.
+  const store = tmp();
+  const x = await summarisedBeforeTheRollup(store);
+  const y = await summarisedBeforeTheRollup(store);
+  write(x.root, "new/f.txt", "something to read");
+  let release;
+  const gate = new Promise((r) => (release = r));
+  const lib = createLibrarian({
+    dir: path.join(store, "library"),
+    rules: [],
+    hash: async (f) => (await gate, hashFile(f))
+  });
+  const { done } = lib.start(x.root);
+  try {
+    const other = lib.folder(y.root, { path: "" });
+    assert.equal(other.computing, true, JSON.stringify(other));
+    assert.doesNotMatch(other.why, /being catalogued/u, "Y is not the drive being catalogued");
+    assert.match(other.why, /a minute/u, "and Y's own worker is building it");
+    assert.equal(lib.workersStarted(), 1, "Y's worker started; X's waits for its pass");
+  } finally {
+    release();
+    await done;
+  }
+  let r = lib.folder(y.root, { path: "" });
+  for (let i = 0; i < 400 && !r.folders; i += 1) {
+    await pause(25);
+    r = lib.folder(y.root, { path: "" });
+  }
+  assert.ok(r.folders, "and Y answers");
+  for (const d of [x, y])
+    for (let i = 0; i < 400 && lib.state(d.root).computing; i += 1) await pause(25);
+  await pause(200);
 });
