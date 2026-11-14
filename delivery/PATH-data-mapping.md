@@ -104,6 +104,8 @@ verified, drives are retired by certificate, and the product never wipes.
 
 ## Signing
 
+**Filed since signature:** U0a is contract `U11` — the validator's ids are a letter and digits, so "U0a" could not be a file name. Nothing else about it changed.
+
 The owner signs this plan by saying so. "Signed" takes every recommendation; "signed except Dn"
 takes the rest. On signature the agent transcribes D1–D12 to `board/LOG.md`, authors U0a, and
 starts phase 0. No KEL event is written by an agent.
