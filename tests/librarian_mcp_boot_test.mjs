@@ -202,13 +202,53 @@ for (const fn of ["openSync", "readFileSync", "createReadStream", "open", "readF
     );
     assert.deepEqual(kindTool.matches, kindDirect.matches, "kind reached the route");
     assert.ok(kindTool.matches.length >= 1, "and it narrowed to something");
-    const allDirect = await fetch(
-      `${hub.base}/api/estate/library/find?root=${encodeURIComponent(hub.root)}&q=&surface=mcp`
-    ).then((r) => r.json());
-    assert.ok(
-      kindTool.matches.length < allDirect.matches.length,
-      `narrowing must return fewer than everything (${kindTool.matches.length} of ${allDirect.matches.length})`
+    // "NARROWED" NEEDS SOMETHING TO BE NARROWER THAN, and this used to be an empty find - no word,
+    // no kind - which listed the drive. S25 refuses exactly that question, so the baseline that
+    // proved kind was honoured was built from the enumeration the contract exists to close. Two
+    // kinds are asked instead and must not share a file: a tool that dropped `kind` would answer
+    // both questions alike, which is the mutation the old comparison was there to catch.
+    const imagesTool = JSON.parse(
+      (
+        await mcp.call("tools/call", {
+          name: "library_find",
+          arguments: { root: hub.root, q: "", kind: "images" }
+        })
+      ).result.content[0].text
     );
+    const paths = (found) => found.matches.map((m) => m.full).sort();
+    for (const f of [...paths(kindTool), ...paths(imagesTool)])
+      assert.equal(
+        typeof f,
+        "string",
+        "every match names its file, or the comparison compares nothing"
+      );
+    assert.ok(imagesTool.matches.length >= 1, "the other kind is there to be told apart");
+    assert.deepEqual(
+      paths(kindTool).filter((f) => paths(imagesTool).includes(f)),
+      [],
+      "documents and images share no file, so kind chose what came back"
+    );
+    assert.notDeepEqual(paths(kindTool), paths(imagesTool), "and the two answers differ");
+
+    // and the question that used to be the baseline is REFUSED, the same through the tool as through
+    // the route - an outside agent must not be the one caller that can still list a drive
+    const emptyUrl = `${hub.base}/api/estate/library/find?root=${encodeURIComponent(hub.root)}&q=&surface=mcp`;
+    const emptyRes = await fetch(emptyUrl);
+    const emptyDirect = await emptyRes.json();
+    const emptyTool = JSON.parse(
+      (
+        await mcp.call("tools/call", {
+          name: "library_find",
+          arguments: { root: hub.root, q: "" }
+        })
+      ).result.content[0].text
+    );
+    assert.equal(emptyRes.status, 409, "the route refuses it");
+    assert.match(emptyDirect.error ?? "", /would list the drive/u, "and says why");
+    assert.equal(emptyDirect.matches, undefined, "and hands over no list with the refusal");
+    assert.equal(emptyTool.ok, false, "the tool does not call a refusal an answer");
+    assert.equal(emptyTool.error, emptyDirect.error, "it says exactly what the route said");
+    assert.equal(emptyTool.matches, undefined, "and it has no list either");
 
     const dup = JSON.parse(
       (await mcp.call("tools/call", { name: "library_duplicates", arguments: { root: hub.root } }))
