@@ -74,6 +74,18 @@
   --color-field-bg: #1a1d1b;
   --color-focus-border: rgba(156, 175, 136, 0.5);
   --color-focus-ring: rgba(156, 175, 136, 0.3);
+  /* C8 — the blueprint sheet: a drafting grid in sage on the canvas, and the fills an elevation
+     drawing uses for what is used (sage) and for a drive that is nearly full (clay) */
+  --color-blueprint-major: rgba(156, 175, 136, 0.09);
+  --color-blueprint-minor: rgba(156, 175, 136, 0.035);
+  --color-blueprint-fill: rgba(156, 175, 136, 0.28);
+  --color-blueprint-warn-fill: rgba(196, 122, 106, 0.22);
+  --blueprint-grid:
+    linear-gradient(var(--color-blueprint-major) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-blueprint-major) 1px, transparent 1px),
+    linear-gradient(var(--color-blueprint-minor) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-blueprint-minor) 1px, transparent 1px);
+  --blueprint-grid-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
 
   /* ── Elevation (depth) — exactly 3 tokens, C0 ───────────────────
    * ADR-004 removed the global `box-shadow: none !important` reset;
