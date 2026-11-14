@@ -3598,3 +3598,63 @@ test("S31: the root index has one spelling, whether the schema or the worker mak
   assert.ok(sqlOf(fresh), "the schema makes it");
   assert.equal(sqlOf(older), sqlOf(fresh), "and the worker's is the same index, word for word");
 });
+
+test("S31 (round 2): no query on the calling thread reads the drive's files at the root without the index", async () => {
+  // WHAT RAN, NOT WHAT CAME BACK. Round 1 held this only by the answer's shape: moving the guard
+  // after the root file query kept every test green while the 12-49 s scan came back
+  // (claude-s31-verifier). So every statement prepared during the call is recorded, and none may
+  // read the files table - the hasRootIndex check reads sqlite_master, which is the point.
+  const { root, dbPath, dir } = await currentWithoutRootIndex();
+  const prepared = [];
+  const real = DatabaseSync.prototype.prepare;
+  DatabaseSync.prototype.prepare = function (sql) {
+    prepared.push(String(sql));
+    return real.call(this, sql);
+  };
+  let direct;
+  let routed;
+  try {
+    direct = folderView(dbPath, root, [], "", { limit: 200 });
+    routed = createLibrarian({ dir, rules: [] }).folder(root, { path: "" });
+  } finally {
+    DatabaseSync.prototype.prepare = real;
+  }
+  assert.equal(direct.computing, true);
+  assert.equal(routed.computing, true);
+  const readsFiles = prepared.filter((s) => /\bFROM\s+files\b/iu.test(s));
+  assert.deepEqual(readsFiles, [], `nothing read the files table: ${readsFiles.join(" | ")}`);
+  assert.ok(
+    prepared.length > 0,
+    "and the spy really saw the calls, so an empty list means something"
+  );
+  // let the worker that call started finish before this test's folders go
+  for (let i = 0; i < 400 && !hasRootIndexAt(dbPath); i += 1) await pause(25);
+  await pause(300);
+});
+
+test("S31 (round 2): an unplugged drive with no root index is told to attach it, not to wait", async () => {
+  const { root, dbPath, dir } = await currentWithoutRootIndex();
+  fs.rmSync(root, { recursive: true, force: true }); // the drive is gone; its catalogue is not
+  const lib = createLibrarian({ dir, rules: [] });
+  const r = lib.folder(root, { path: "" });
+  assert.match(r.refused ?? "", /attach it/u, `told what to do: ${JSON.stringify(r)}`);
+  assert.equal(r.computing, undefined, "and not promised a minute");
+  assert.equal(lib.workersStarted(), 0, "nothing can build it while the drive is away");
+  assert.equal(hasRootIndexAt(dbPath), false);
+});
+
+test("S31 (round 2): a summary whose duplicates list is missing is redone, even with its key current", async () => {
+  const { root, dbPath, dir } = await currentWithoutRootIndex();
+  const lists = () =>
+    fs.readdirSync(dir).filter((f) => f.startsWith(path.basename(dbPath)) && f.endsWith(".csv"));
+  assert.ok(lists().length >= 1, "set up with its list");
+  for (const f of lists()) fs.rmSync(path.join(dir, f));
+  const lib = createLibrarian({ dir, rules: [] });
+  lib.folder(root, { path: "" }); // starts the worker for the missing index
+  for (let i = 0; i < 400 && lists().length === 0; i += 1) await pause(25);
+  assert.ok(
+    lists().length >= 1,
+    "the list was written again, though the summary's key was current"
+  );
+  await pause(300);
+});

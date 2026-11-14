@@ -1554,7 +1554,8 @@ export function createLibrarian({
     // half-answer while the key says the rollup is for an older pass or policy: a folder listing
     // built from one pass and counted from another would be quietly wrong.
     folder(root, { path: at = "", offset = 0, limit = 200 } = {}) {
-      const c = current(root) ?? detached(root);
+      const live = current(root);
+      const c = live ?? detached(root);
       if (!c) return null;
       if (c.refused) return c;
       if (!c.pass.finishedAt)
@@ -1572,7 +1573,16 @@ export function createLibrarian({
         };
       if (rollupKey(c.db) !== c.key) return notYet(c, root);
       const v = folderView(c.db, root, rules, at, { offset, limit });
-      if (v?.computing) return notYet(c, root);
+      // S31 round 2: only a drive that is HERE gets a worker; an unplugged one with no root index
+      // was told "try again in a minute" for as long as it stayed away (claude-s31-verifier)
+      if (v?.computing)
+        return live
+          ? notYet(c, root)
+          : {
+              refused:
+                `${root}'s top folder needs an index that can only be built while the drive is ` +
+                `attached: attach it`
+            };
       // the date belongs on the answer: a figure with no age invites being read as live
       // a figure resolved by NAME rather than identity says so on the answer, because the owner
       // cannot otherwise tell it is reading a different disk's catalogue
