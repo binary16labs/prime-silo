@@ -3529,6 +3529,9 @@ test("S31: a catalogue with no root index gets one, without a new pass or a rebu
 
   const first = lib.folder(root, { path: "" });
   assert.equal(first.computing, true, `not answered by a scan: ${JSON.stringify(first)}`);
+  // in the hub's own words for the folder figures - without them the route falls back to "the
+  // duplicates are still being worked out", which is not what is being waited for
+  assert.match(first.why ?? "", /folder rollup is still being worked out/u, JSON.stringify(first));
   let r = first;
   for (let i = 0; i < 400 && !r.folders; i += 1) {
     await pause(25);
