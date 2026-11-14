@@ -575,6 +575,8 @@ export function createEstateApi({
           roots,
           policy: Array.isArray(quarantine),
           ...librarian.status(),
+          // S23: the panel says when the next rescan is due, or that rescans are off
+          rescanHours: Number(producer.rescanHours) || 0,
           catalogues
         });
       }

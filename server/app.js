@@ -299,6 +299,7 @@ async function createAgentServer(overrides = {}) {
             // does not catalogue, which the library routes say rather than guessing a path.
             estateStore: runtimeParams.get("ESTATE_STORE", ""),
             libraryWalkDays: runtimeParams.get("ESTATE_LIBRARY_WALK_DAYS", 7),
+            rescanHours: runtimeParams.get("ESTATE_LIBRARY_RESCAN_HOURS", 0),
             roots: () =>
               sweepRoots({
                 configured: String(runtimeParams.get("ESTATE_SWEEP_ROOTS", "") || "")

@@ -18,6 +18,7 @@ Current files:
 - `guest_collect.js`: shared guest-account file-index aggregation helpers for maintenance jobs
 - `guest_cleanup_inactive.js`: hourly inactive-guest cleanup job
 - `guest_cleanup_oversized.js`: five-minute oversized-guest cleanup job
+- `library_rescan.js` (S23): every 15 minutes asks the estate API's `rescanDue` which attached, already-catalogued drive is due and lets the hub's one librarian rescan it; off unless `ESTATE_LIBRARY_RESCAN_HOURS` is above 0 and `ESTATE_STORE` is set; it decides nothing itself
 
 ## Local Contracts
 
@@ -27,6 +28,7 @@ Discovery and scheduling rules:
 - job files export a default class extending `JobBase`
 - the job id comes from the filename, for example `guest_cleanup_inactive.js` -> `guest_cleanup_inactive`
 - jobs may optionally implement `isEnabled(context)` when scheduling depends on runtime configuration
+- the job context carries `services`, hub-owned objects `app.js` fills in once they exist (the runner is built before them); today only `services.estate` (the estate API), so a job uses the hub's own librarian and never builds a second one
 - each job class must implement `getSchedule()` and `run(context)`
 - schedules currently use interval semantics through `everyMs`; jobs do not use sidecar cron or metadata files
 - `initialDelayMs` is optional; when omitted, the first run waits one normal interval

@@ -2779,3 +2779,79 @@ test("RENDERED (U11): an unplugged drive shows its date, never catalogued, or ca
     fs.rmSync(here, { recursive: true, force: true });
   }
 });
+
+// --- S23: the Library line says how the drive was listed and when it is rescanned ------------------
+
+const s23Library = (last, extra = {}) => ({
+  ...LIBRARY_READY,
+  catalogues: {
+    ...LIBRARY_READY.catalogues,
+    "F:": {
+      last,
+      finishedAt: last.finished_at,
+      kinds: [],
+      files: 1_117_007,
+      bytes: 1_550_037_439_464,
+      duplicates: null
+    }
+  },
+  ...extra
+});
+const s23Text = async (library) => {
+  const { window } = await renderPanel({ at: NOW, machines: { t480: machine({}) } }, { library });
+  await openTab(window, "library");
+  return visible(window);
+};
+
+test("S23 (panel): a pass listed by Everything says so, and when the next rescan is due", async () => {
+  const finished = new Date(Date.now() - 2 * 3_600_000).toISOString(); // the panel reads the real clock;
+  const text = await s23Text(
+    s23Library(
+      { finished_at: finished, listed_by: "everything", walk_reason: null, seen: 1_117_019 },
+      { rescanHours: 24 }
+    )
+  );
+  assert.match(text, /Listed by Everything\./u, text.slice(0, 400));
+  assert.match(text, /Next rescan in 2[12] hours\./u, "22 hours less the seconds the render takes");
+});
+
+test("S23 (panel): a walk says why, and rescans that are off say so", async () => {
+  const text = await s23Text(
+    s23Library(
+      {
+        finished_at: new Date(NOW).toISOString(),
+        listed_by: "walk",
+        walk_reason: "Everything is not available for this drive",
+        seen: 9
+      },
+      { rescanHours: 0 }
+    )
+  );
+  assert.match(
+    text,
+    /Walked the drive: Everything is not available for this drive\./u,
+    text.slice(0, 400)
+  );
+  assert.match(text, /Rescans are off \(ESTATE_LIBRARY_RESCAN_HOURS=0\)\./u);
+});
+
+test("S23 (panel): a pass the schedule started says so while it runs", async () => {
+  const text = await s23Text(
+    s23Library(
+      { finished_at: new Date(NOW).toISOString(), listed_by: "everything", seen: 9 },
+      {
+        rescanHours: 24,
+        running: {
+          root: "F:",
+          seen: 10,
+          hashed: 0,
+          bytes_hashed: 0,
+          rate: 5,
+          since: new Date(NOW).toISOString(),
+          started_by: "schedule"
+        }
+      }
+    )
+  );
+  assert.match(text, /Cataloguing F: \(started by the schedule\)/u, text.slice(0, 500));
+});
