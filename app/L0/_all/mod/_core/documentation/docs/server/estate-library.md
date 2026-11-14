@@ -71,6 +71,16 @@ three verification rounds on. Until the worker has written it, the folder routes
 say so; a rollup whose worker died is reported with its reason rather than left as an eternal
 "still being worked out".
 
+**The rollup has its own key, and a missing one starts the worker (S30).** Only the summary's key
+used to, so a catalogue summarised before S26 existed — the real F:, whose pass finished the day
+before S26 merged — had a current summary, started nothing, and answered "try again in a minute"
+for as long as anyone asked. Now either key being behind is enough, and a catalogue whose summary
+and rollup are both current starts nothing. A `202` promises a minute **only while a worker is
+building**: while a pass of that drive is running the answer says the figures come when the pass
+ends, because nothing builds a rollup mid-pass and a first pass of F: is hours. A build that failed
+**rests for a minute before it is tried again**, and says why for that minute; the next ask after it tries again — starting a worker used
+to clear the failure, so the request that came to read the reason was the one that erased it.
+
 **`/library/neighbours` is a separate route on purpose.** Storing "where the other copies are" for
 every folder meant testing every copy of every set against every ancestor — 45 minutes on the real
 F:. Asked for one folder at a time.
@@ -142,6 +152,12 @@ otherwise.
 about is quarantined, the answer carries the sentence as well as the count — a bare `total: 0` told
 the owner nothing about why.
 
+**Two answer fields are sentences, not figures.** On `/library/check`, `why` is present only when
+every path asked about was covered by the rules, and says so; `why_capped` is present only when
+more paths were given than the check will take at once, and says how many it took. `capped` is a
+different thing — the _walk_ stopped at its cap — so an answer can carry `why_capped` with
+`capped: false`.
+
 **A question the librarian was asked is audited whether it was answered or refused** — the `404` of
 an uncatalogued drive and the `409` of a declined question both write an event. The rejections that
 happen _before_ the librarian is consulted do not: a `400` for an unoffered root or a missing path,
@@ -151,7 +167,9 @@ event to. Nothing is written when the caller has already
 hung up, because an answer nobody received is not one to record. Walking the tree in the panel stays
 unaudited: that is navigation.
 
-**Status codes.** `200` answered · `202` the rollup is still being built · `400` not a root this
+**Status codes.** `200` answered · `202` the rollup is still being built, a pass of the drive is
+running, or (on `/library/duplicates` and `/library.csv`) the duplicates list is still being worked
+out · `400` not a root this
 machine offers, or no path given · `403` not this machine · `404` no catalogue, or no such folder in
 this catalogue ·
 `409` the catalogue has never finished, the drive root was asked for its outside, the folder holds

@@ -1350,7 +1350,8 @@ export function createLibrarian({
   skip = [],
   rules = [],
   hash = hashFile,
-  machine = os.hostname().toLowerCase()
+  machine = os.hostname().toLowerCase(),
+  retryMs = 60_000
 }) {
   let running = null;
   let last = null;
@@ -1358,6 +1359,8 @@ export function createLibrarian({
   const policy = policyKey(rules);
   const working = new Set();
   const failed = new Map();
+  const rolled = new Map(); // db -> the key its rollup was last SEEN to carry
+  let started = 0;
   const files = (db) => ({ json: `${db}.summary.json` });
   const keyOf = (pass) => keyFrom(pass, policy);
   const saved = (db) => {
@@ -1369,8 +1372,15 @@ export function createLibrarian({
   };
   const workOut = (db, root, key) => {
     if (working.has(db) || running?.root === root) return; // a running pass changes it every batch
+    // A BUILD THAT FAILED RESTS BEFORE IT IS TRIED AGAIN (S30). Starting clears the failure, and
+    // every request starts one - so the reason was erased by the very request that came to read
+    // it, and "reported with its reason" was true of no answer anyone could receive. It rests for
+    // the same key only: a new pass or a new policy is a different job and starts at once.
+    const before = failed.get(db);
+    if (before?.key === key && Date.now() - before.at < retryMs) return;
     working.add(db);
     failed.delete(db);
+    started += 1;
     const w = new Worker(new URL(import.meta.url), {
       workerData: { librarySummary: { dbPath: db, root, rules, key } }
     });
@@ -1378,9 +1388,29 @@ export function createLibrarian({
     // run and nothing showed it: the panel would have said "still being worked out" until the owner
     // gave up. The error is kept so an answer can name it.
     w.on("error", (e) => {
-      failed.set(db, String(e?.message || e));
+      failed.set(db, { key, at: Date.now(), why: String(e?.message || e) });
     });
     w.on("exit", () => working.delete(db));
+  };
+  // ONE PLACE SAYS WHY A FOLDER FIGURE IS NOT THERE YET (S30). Two routes each carried their own
+  // copy of "try again in a minute", and said it whether or not anything was working: with a pass
+  // running nothing builds a rollup until the pass ends, which on a first pass of F: is eight hours
+  // of being told a minute.
+  const notYet = (c, root) => {
+    const f = failed.get(c.db);
+    if (f?.key === c.key) return { refused: `the folder rollup could not be built: ${f.why}` };
+    const pass = c.pass.last?.id ?? null;
+    return running?.root === root
+      ? {
+          computing: true,
+          pass,
+          why: `${root} is being catalogued: its folder figures are worked out when the pass ends`
+        }
+      : {
+          computing: true,
+          pass,
+          why: `${root}'s folder rollup is still being worked out: try again in a minute`
+        };
   };
   // A drive that is not there has no pass to read from the hub's point of view, but its catalogue
   // still holds one. Read it, and trust the rollup's own key rather than recomputing a current one.
@@ -1411,7 +1441,13 @@ export function createLibrarian({
     if (!pass) return null;
     const key = keyOf(pass);
     const had = saved(db);
-    if (had?.key !== key) workOut(db, root, key);
+    // S30: THE ROLLUP HAS ITS OWN KEY, AND IT IS ASKED TOO. Only the summary's was, so a catalogue
+    // summarised before the rollup existed - the real F:, whose pass finished the day before S26
+    // merged - had a current summary, started no worker, and answered "try again in a minute" for
+    // as long as anyone asked. Every S26 test began from a fresh pass, which is the one state that
+    // cannot show it. Seen current once, a key is remembered: this runs on every request.
+    if (rolled.get(db) !== key && rollupKey(db) === key) rolled.set(db, key);
+    if (had?.key !== key || rolled.get(db) !== key) workOut(db, root, key);
     return { db, pass, key, had };
   };
   return {
@@ -1440,20 +1476,10 @@ export function createLibrarian({
             `${root}'s folder figures were counted for an earlier pass or a different privacy ` +
             `policy, and the drive is not here to recount them: attach it`
         };
-      if (rollupKey(c.db) !== c.key) {
-        const why = failed.get(c.db);
-        return why
-          ? { refused: `the folder rollup could not be built: ${why}` }
-          : {
-              computing: true,
-              pass: c.pass.last?.id ?? null,
-              // THE COMMON CASE, which is the one an owner actually meets: right after cataloguing,
-              // waiting on the folder ROLLUP. The passthrough was built and then two of its three
-              // producers carried no sentence, so this still read "the duplicates are still being
-              // worked out" — a mechanism that works and nothing going through it.
-              why: `${root}'s folder rollup is still being worked out: try again in a minute`
-            };
-      }
+      // THE COMMON CASE, which is the one an owner actually meets: right after cataloguing, waiting
+      // on the folder ROLLUP. The passthrough was built and then two of its three producers carried
+      // no sentence, so this still read "the duplicates are still being worked out".
+      if (rollupKey(c.db) !== c.key) return notYet(c, root);
       return duplicateNeighbours(c.db, root, rules, at, { limit });
     },
     // S26: one folder of the tree, from the rollup the worker built. `computing` rather than a
@@ -1476,16 +1502,7 @@ export function createLibrarian({
             `${root}'s folder figures were counted for an earlier pass or a different privacy ` +
             `policy, and the drive is not here to recount them: attach it`
         };
-      if (rollupKey(c.db) !== c.key) {
-        const why = failed.get(c.db);
-        return why
-          ? { refused: `the folder rollup could not be built: ${why}` }
-          : {
-              computing: true,
-              pass: c.pass.last?.id ?? null,
-              why: `${root}'s folder rollup is still being worked out: try again in a minute`
-            };
-      }
+      if (rollupKey(c.db) !== c.key) return notYet(c, root);
       const v = folderView(c.db, root, rules, at, { offset, limit });
       // the date belongs on the answer: a figure with no age invites being read as live
       // a figure resolved by NAME rather than identity says so on the answer, because the owner
@@ -1494,6 +1511,9 @@ export function createLibrarian({
         ? { ...v, finishedAt: c.pass.finishedAt, ...(c.byName ? { by_name: true } : {}) }
         : v;
     },
+    // how many workers this hub has started: read by tests that must show NONE was, which no
+    // amount of waiting can show
+    workersStarted: () => started,
     // one event per question, in the drive's own library log beside its catalogue
     // THE CHECK AND THE WRITE ARE ONE CALL. Moving the listening guard from before the write to
     // after it left all 97 tests green, because the test that was meant to prevent that asserted a
