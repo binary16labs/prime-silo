@@ -11,7 +11,7 @@ import { planNextCycle, readPlanInputs } from "./estate_plan.mjs";
 import { acceptMap, register as registerSatellite } from "./estate_register.mjs";
 import { createSweeper, latestLocalPush } from "./estate_map_producer.mjs";
 import { createComparer, listRoot } from "./estate_compare.mjs";
-import { createLibrarian } from "./library.mjs";
+import { createLibrarian, finishedAtOf, libraryPath, libraryPathFor } from "./library.mjs";
 import {
   openRegistry,
   registryPath,
@@ -407,12 +407,24 @@ export function createEstateApi({
             drives: readRegistry(db, {
               judge: judgeName(),
               freshDays: Number(process.env.ESTATE_COPY_FRESH_DAYS) || 30,
-              // exact for an attached drive, through the librarian's own lookup; honestly
-              // unknown for a detached one rather than guessed from a rebuilt filename
-              catalogue: ({ root, attached }) => {
-                if (!attached || !root || !librarian) return { unknown: "the drive is not here" };
-                const c = librarian.lookup(root);
-                return { at: c?.finishedAt ?? null };
+              // U11: THREE ANSWERS, NEVER A FOURTH. A date; "never catalogued" when the store is
+              // here and holds no catalogue of this drive; or cannot tell. An attached drive is
+              // asked who it is, a detached one is found by the identity the registry kept. And
+              // the store's own drive can be the one that is away - on the T480 the store is ON
+              // F: - in which case absence proves nothing, and saying "never catalogued" of
+              // every drive would be false of all of them.
+              catalogue: ({ identity, root, attached }) => {
+                if (!librarian) return { unknown: "this machine keeps no catalogues" };
+                const dir = path.join(store, "library");
+                if (!fs.existsSync(dir))
+                  return {
+                    unknown: "the estate store is not attached, so its catalogues cannot be read"
+                  };
+                const db =
+                  attached && root ? libraryPath(dir, root) : libraryPathFor(dir, identity);
+                if (!db || !fs.existsSync(db)) return { at: null };
+                const at = finishedAtOf(db);
+                return at ? { at } : { unknown: "its catalogue has never finished" };
               }
             })
           });
