@@ -457,6 +457,50 @@ export function recordUserRoots(db, found = []) {
   }
 }
 
+// U1: is folder a within folder b (or b itself)? Separator-terminated: C:\x is not inside C:\xy.
+const folded = (r) => {
+  let at = String(r);
+  try {
+    at = fs.realpathSync.native(at); // a short name or a junction is judged as the folder it names
+  } catch {
+    // a path that does not exist yet is judged as written
+  }
+  const k = path.resolve(`${at}${path.sep}`).toLowerCase();
+  return k.endsWith(path.sep) ? k : k + path.sep;
+};
+export const inside = (a, b) => folded(a).startsWith(folded(b));
+
+// U1: WHAT THE LIBRARY OFFERS, in the owner's order (2026-10-11), then the data drives whole. A known
+// folder inside another root (Documents in OneDrive on the T480) is that root's section, never its own
+// catalogue, so no file is in two. Never the system drive whole, never Windows' own folders.
+const OFFER_ORDER = ["downloads", "onedrive", "documents", "desktop", "pictures", "music", "videos", "added"];
+export function offeredRoots(drives = []) {
+  const user = [];
+  const data = [];
+  for (const d of drives) {
+    if (!d.attached || !d.root) continue;
+    if (d.offers === "whole") {
+      data.push({ root: d.root, kind: "drive", role: null, removable: d.medium !== "internal", sections: [] });
+      continue;
+    }
+    const mine = (d.user_roots ?? []).filter((u) => !forbiddenRoot(u.root) && !isDriveRoot(u.root));
+    const outer = (u) => mine.find((o) => o !== u && inside(u.root, o.root));
+    for (const u of mine) {
+      if (outer(u)) continue;
+      user.push({
+        root: u.root,
+        kind: "user",
+        role: u.added_by_owner ? "added" : u.role,
+        in_onedrive: u.role === "onedrive" || u.in_onedrive,
+        removable: false,
+        sections: mine.filter((s) => outer(s) === u).map((s) => s.role)
+      });
+    }
+  }
+  user.sort((a, b) => OFFER_ORDER.indexOf(a.role) - OFFER_ORDER.indexOf(b.role));
+  return [...user, ...data];
+}
+
 // The two things the owner may set, both loopback-only at the route and both judged by the rules.
 export const setOwnerName = (db, identity, name) =>
   db.prepare("UPDATE drives SET owner_name = ? WHERE identity = ?").run(name || null, identity)
@@ -480,6 +524,13 @@ export function addUserRoot(db, identity, root, { identityOf = driveIdentity } =
   // A user root that means a different folder depending on who reads it is not a user root.
   if (!path.isAbsolute(String(root ?? "")))
     return { refused: `${root} is not a full path, so it would mean a different folder elsewhere` };
+  // U1: a folder inside a root, or holding one, would put its files in two catalogues
+  const clash = db
+    .prepare("SELECT root FROM user_roots WHERE identity = ?")
+    .all(identity)
+    .find((u) => !(inside(root, u.root) && inside(u.root, root)) && (inside(root, u.root) || inside(u.root, root)));
+  if (clash)
+    return { refused: `${root} overlaps ${clash.root}, which is already a root: a file belongs to one catalogue` };
   // THE VOLUME, not the whole identity: a folder's identity differs from its drive's by the file
   // half, so comparing them refused every folder that exists and accepted every one that did not.
   const on = identityOf(root);

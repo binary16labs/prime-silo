@@ -12,14 +12,17 @@ import { acceptMap, register as registerSatellite } from "./estate_register.mjs"
 import { createSweeper, latestLocalPush } from "./estate_map_producer.mjs";
 import { createComparer, listRoot, rootIdentity } from "./estate_compare.mjs";
 import { everythingAdapter } from "./estate_map_files.mjs";
-import { createLibrarian, finishedAtOf, libraryPath, libraryPathFor } from "./library.mjs";
+import { createLibrarian, finishedAtOf, libraryPathFor, windowsCloudOnly } from "./library.mjs";
 import {
   openRegistry,
   registryPath,
   readRegistry,
   setOwnerName,
   addUserRoot,
-  labelProblem
+  labelProblem,
+  offeredRoots,
+  forbiddenRoot,
+  inside
 } from "./drive_registry.mjs";
 import path from "node:path";
 import {
@@ -216,17 +219,36 @@ export function createEstateApi({
   // default is wrong on every machine but one (the ASUS and the Pi have no F:), and raw process.env
   // bypassed Prime-Silo's precedence. app.js resolves it; unset is SAID, not guessed (point 7).
   const store = producer?.estateStore ?? "";
-  const storeUnset = {
-    error: "ESTATE_STORE is not set — run: node space set ESTATE_STORE=<folder>"
-  };
   // null, never "": the comparer below holds this and an empty string answers `librarian.lookup
   // is not a function` inside an uncaught promise, which took the hub PROCESS down on every install
   // where ESTATE_STORE is unset - the shipped state until the owner sets it (D3).
+  // U1: WHERE CATALOGUES LIVE. User roots and internal drives in BENNY_HOME; a removable drive in the
+  // store when it is set (S21), else on the machine (the ASUS). Lookups check both.
+  const home = producer?.dbPath ? path.dirname(path.dirname(producer.dbPath)) : null;
+  const homeLib = home ? path.join(home, "estate", "library") : null;
+  const storeLib = store ? path.join(store, "library") : null;
+  const cloudProbe =
+    producer && "cloudOnly" in producer
+      ? producer.cloudOnly
+      : process.platform === "win32"
+        ? windowsCloudOnly
+        : null;
   const librarian =
-    producer && store
+    producer && (storeLib || homeLib)
       ? createLibrarian({
-          dir: path.join(store, "library"),
-          skip: [store],
+          dir: storeLib ?? homeLib,
+          also: storeLib && homeLib ? [homeLib] : [],
+          placeFor: (root) => {
+            const e = entryOf(root);
+            return storeLib && !(e && (e.kind === "user" || !e.removable)) ? storeLib : (homeLib ?? storeLib);
+          },
+          // U1: every user root is asked which of its files are only in the cloud; a drive never is
+          // round 2: and a drive that holds a OneDrive root
+          cloudOnlyFor: (root) =>
+            entryOf(root)?.kind === "user" || inOneDrive(root) || shelf().some((e) => e.in_onedrive && inside(e.root, root))
+              ? cloudProbe
+              : null,
+          skip: store ? [store] : [],
           rules: Array.isArray(quarantine) ? quarantine : [],
           // S23: Everything lists the drive when it can; the walk is the fallback, and the pass
           // records which and why. Only Windows has Everything.
@@ -248,13 +270,12 @@ export function createEstateApi({
     const out = { started: [], skipped: [] };
     if (!librarian)
       return { ...out, skipped: [{ root: null, why: "this machine keeps no catalogues" }] };
-    const dir = path.join(store, "library");
-    for (const root of producer.roots()) {
+    for (const { root } of shelf()) {
       if (!rootIdentity(root)) {
         out.skipped.push({ root, why: "not attached" });
         continue;
       }
-      const db = libraryPath(dir, root);
+      const db = librarian.dbFor(root);
       const at = db && fs.existsSync(db) ? finishedAtOf(db) : null;
       if (!at) {
         out.skipped.push({
@@ -278,6 +299,55 @@ export function createEstateApi({
     }
     return out;
   };
+  // U1: what the Library and Compare offer: the registry's roots in the owner's order, or, before the
+  // registry has seen a drive, the sweep's configured roots as S21 offered them.
+  const shelf = () => {
+    if (producer.offered) return producer.offered();
+    const db = registry();
+    try {
+      const list = db ? offeredRoots(readRegistry(db)) : [];
+      if (list.length) return list;
+    } finally {
+      db?.close();
+    }
+    return producer.roots().map((root) => ({ root, kind: "drive", role: null, removable: true, sections: [] }));
+  };
+  const entryOf = (root) => shelf().find((e) => e.root === root) ?? null;
+  // any path inside an offered OneDrive root, whichever root it is asked through
+  const inOneDrive = (p) => shelf().some((e) => e.in_onedrive && inside(p, e.root));
+  // a read of a OneDrive root's files would download every one that is only in the cloud
+  const CLOUD_READ =
+    "that is in OneDrive, where reading a file that is only in the cloud downloads it: it is never compared or checked";
+  // U1: CATALOGUE MY DATA, one root at a time through the one librarian; a failure is recorded and
+  // skipped; Stop clears the queue. In memory only: after a restart every pass resumes (S21).
+  let queue = null;
+  const nextInQueue = (q) => {
+    while (q === queue && q.next < q.roots.length) {
+      const root = q.roots[q.next++];
+      const s = librarian.start(root);
+      if (!s.started) {
+        q.done.push({ root, why: s.reason || "another pass was running" });
+        continue;
+      }
+      q.current = root;
+      s.done.then((r) => {
+        if (q !== queue) return;
+        q.done.push({ root, ...(r.failed ? { why: r.failed } : { finished: Boolean(r.finished) }) });
+        q.current = null;
+        nextInQueue(q); // Stop's route has already cleared the queue, so a stopped pass ends here
+      });
+      return;
+    }
+    if (q === queue) Object.assign(q, { current: null, finished: true }); // kept, to say what was skipped
+  };
+  const queueState = () =>
+    queue && {
+      current: queue.current,
+      waiting: queue.roots.slice(queue.next),
+      done: queue.done,
+      finished: Boolean(queue.finished)
+    };
+
   // S20: a backup drive against F:, on this machine. Results hold file names, so every compare route
   // answers this machine only, and they are kept beside its own map, in BENNY_HOME. Since S21 it asks
   // F:'s catalogue where there is one, and reads only the backup drive.
@@ -464,14 +534,18 @@ export function createEstateApi({
               // every drive would be false of all of them.
               catalogue: ({ identity, root, attached }) => {
                 if (!librarian) return { unknown: "this machine keeps no catalogues" };
-                const dir = path.join(store, "library");
-                if (!fs.existsSync(dir))
-                  return {
-                    unknown: "the estate store is not attached, so its catalogues cannot be read"
-                  };
+                // U1: a catalogue may be in the store or on the machine, so both are looked in
                 const db =
-                  attached && root ? libraryPath(dir, root) : libraryPathFor(dir, identity);
-                if (!db || !fs.existsSync(db)) return { at: null };
+                  attached && root
+                    ? librarian.dbFor(root)
+                    : [storeLib, homeLib]
+                        .filter(Boolean)
+                        .map((d) => libraryPathFor(d, identity))
+                        .find((f) => fs.existsSync(f));
+                if (!db || !fs.existsSync(db))
+                  return storeLib && !fs.existsSync(storeLib)
+                    ? { unknown: "the estate store is not attached, so its catalogues cannot be read" }
+                    : { at: null };
                 const at = finishedAtOf(db);
                 return at ? { at } : { unknown: "its catalogue has never finished" };
               }
@@ -515,6 +589,7 @@ export function createEstateApi({
     if (
       rest === "/library" ||
       rest === "/library/stop" ||
+      rest === "/library/all" ||
       rest === "/library.csv" ||
       rest === "/library/find" ||
       rest === "/library/duplicates" ||
@@ -525,7 +600,6 @@ export function createEstateApi({
     ) {
       if (!local(req))
         return sendJson(res, 403, { error: "the library is only shown on this machine" });
-      if (producer && !store) return sendJson(res, 503, storeUnset);
       if (!librarian) return sendJson(res, 503, { error: "this hub has no producer configured" });
       // ONE SHAPER FOR ALL THREE QUESTIONS, because handling a refusal at one route and not
       // another is exactly D5: duplicatesPage learnt to refuse and its route fell through into
@@ -566,7 +640,8 @@ export function createEstateApi({
         return sendJson(to, 200, r);
       };
 
-      const roots = producer.roots();
+      const offer = shelf();
+      const roots = offer.map((e) => e.root);
       if (req.method === "GET" && rest === "/library") {
         const catalogues = Object.fromEntries(
           roots.map((r) => [r, Array.isArray(quarantine) ? librarian.state(r) : null])
@@ -577,6 +652,9 @@ export function createEstateApi({
           ...librarian.status(),
           // S23: the panel says when the next rescan is due, or that rescans are off
           rescanHours: Number(producer.rescanHours) || 0,
+          // U1: what is offered, in order, with OneDrive's sections, and Catalogue my data's queue
+          offered: offer,
+          queue: queueState(),
           catalogues
         });
       }
@@ -701,6 +779,7 @@ export function createEstateApi({
             const paths = (Array.isArray(b.paths) ? b.paths : [b.path]).filter(
               (x) => typeof x === "string" && x
             );
+            if (inOneDrive(root) || paths.some(inOneDrive)) return sendJson(res, 400, { error: CLOUD_READ });
             if (!paths.length) return sendJson(res, 400, { error: "path (or paths) is required" });
             const r = await librarian.check(root, { paths });
             // the answer's own figure, counting BOTH channels: paths the rules kept the walk out of
@@ -724,6 +803,7 @@ export function createEstateApi({
         return;
       }
       if (req.method !== "POST") return sendJson(res, 405, { error: "GET or POST" });
+      if (rest === "/library/stop") queue = null; // U1: Stop clears Catalogue my data's queue too
       if (rest === "/library/stop" || rest === "/compare/stop") {
         const stopped = (rest === "/library/stop" ? librarian : comparer).stop();
         return sendJson(
@@ -733,7 +813,17 @@ export function createEstateApi({
         );
       }
       if (!Array.isArray(quarantine)) return sendJson(res, 412, { error: NO_POLICY });
+      if (rest === "/library/all") {
+        if (librarian.status().running || (queue && !queue.finished))
+          return sendJson(res, 409, { error: "a catalogue pass is running" });
+        queue = { roots: [...roots], next: 0, current: null, done: [] };
+        nextInQueue(queue);
+        return sendJson(res, 202, { queue: queueState() });
+      }
       readBody(req).then((b) => {
+        // U1: Windows' own folders are never offered, and asked for directly they are refused by name
+        if (!roots.includes(b.root) && forbiddenRoot(b.root))
+          return sendJson(res, 400, { error: `${b.root} is Windows' own, not the owner's data: never catalogued` });
         if (!roots.includes(b.root))
           return sendJson(res, 400, { error: "root must be one this machine offers", roots });
         const r = librarian.start(b.root);
@@ -755,7 +845,8 @@ export function createEstateApi({
         return sendJson(res, 403, { error: "comparisons are only shown on this machine" });
       if (!comparer) return sendJson(res, 503, { error: "this hub has no producer configured" });
       const q = new URL(req.url, "http://localhost").searchParams;
-      const roots = producer.roots();
+      const offer = shelf();
+      const roots = offer.map((e) => e.root);
       if (req.method === "GET" && rest === "/compare") {
         const to = q.get("to") || (roots.includes("F:") ? "F:" : null);
         const results = Object.fromEntries(
@@ -766,6 +857,8 @@ export function createEstateApi({
           to,
           policy: Array.isArray(quarantine),
           running: comparer.status(),
+          // U1: the panel names a user root by what it is ("Downloads"), not by its path
+          labels: Object.fromEntries(offer.filter((e) => e.role).map((e) => [e.root, e.role])),
           results
         });
       }
@@ -790,6 +883,8 @@ export function createEstateApi({
             error: "from and to must be two different roots this machine offers",
             roots
           });
+        // round 2: either side - a target with no catalogue is walked and its files hashed
+        if (inOneDrive(b.from) || inOneDrive(b.to)) return sendJson(res, 400, { error: CLOUD_READ });
         // one inside the other would list the same files on both sides (claude-s20-verifier)
         const key = (r) => {
           const k = path.resolve(`${r}${path.sep}`);

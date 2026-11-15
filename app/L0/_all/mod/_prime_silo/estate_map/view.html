@@ -63,7 +63,7 @@
         <div class="em__body">
           <nav class="em__tabs">
             <template x-for="t in ['estate', 'drives', 'storage', 'applications', 'media', 'library', 'backups']" :key="t">
-              <button class="em__tab" :data-on="tab === t" @click="tab = t" x-text="t"></button>
+              <button class="em__tab" :data-on="tab === t" @click="tab = t" x-text="t === 'backups' ? 'compare' : t"></button>
             </template>
           </nav>
 
@@ -312,6 +312,24 @@
                nothing is moved or deleted. A private copy is counted, never named. -->
           <template x-if="tab === 'library'"><div class="em__library">
             <template x-if="lib.why"><p class="em__sweepwhy" x-text="lib.why"></p></template>
+            <!-- U1: the owner's data in their order - Downloads first, OneDrive with its sections, then
+                 the data drives - and one press that catalogues them all, one at a time -->
+            <template x-if="lib.all">
+              <p class="em__roots"><button class="em__sweepbtn" @click="catalogueAll()">Catalogue my data</button></p>
+            </template>
+            <template x-if="lib.queue"><p class="em__sweeprun" x-text="lib.queue"></p></template>
+            <ul class="em__medialist em__shelf">
+              <template x-for="e in lib.shelf" :key="e.root">
+                <li class="em__mediarow">
+                  <b x-text="e.name"></b>
+                  <template x-if="e.sections.length"><span x-text="`Holds ${e.sections.join(', ')}.`"></span></template>
+                  <span x-text="e.line"></span>
+                  <template x-if="lib.can">
+                    <button class="em__sweepbtn" @click="catalogueRoot(e.root)" x-text="`Catalogue ${e.name}`"></button>
+                  </template>
+                </li>
+              </template>
+            </ul>
             <template x-if="lib.root"><p class="em__mediarow">
               <b x-text="lib.root"></b>
               <span x-text="lib.line"></span>
@@ -368,7 +386,7 @@
             <ul class="em__medialist">
               <template x-for="d in cmp.drives" :key="d.drive">
                 <li class="em__mediarow">
-                  <b x-text="d.drive"></b>
+                  <b x-text="d.name"></b>
                   <span x-text="d.line"></span>
                   <template x-if="cmp.can">
                     <button class="em__sweepbtn" @click="compare(d.drive)" x-text="`Compare with ${cmp.to}`"></button>
