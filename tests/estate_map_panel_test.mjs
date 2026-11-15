@@ -608,7 +608,7 @@ test("the panel reads the map from the estate map API, and talks to nothing but 
   for (const url of fetched)
     assert.match(
       url,
-      /^\/api\/estate\/(map|sweep|compare|compare\/stop|library|library\/stop|library\/all|library\/sole|drives)$/u,
+      /^\/api\/estate\/(map|sweep|compare|compare\/stop|library|library\/stop|library\/all|library\/sole|library\/plan|library\/plan\/raise|drives)$/u,
       `${url} is not the map, Sweep, a comparison, the library or the drives`
     );
 });
@@ -735,6 +735,7 @@ async function renderPanel(
     compare = COMPARE_READY,
     library = LIBRARY_READY,
     sole = { target: "F:", sources: [] },
+    plan = { target: "F:", sources: [] },
     drives = { drives: [] },
     drivesStatus = 200,
     posted = []
@@ -783,6 +784,9 @@ async function renderPanel(
       if (init.method === "POST") posted.push(JSON.parse(init.body));
       return { ok: true, status: init.method === "POST" ? 202 : 200, json: async () => compare };
     }
+    // U7: the copy plan, ahead of the library prefix it shares
+    if (String(url).startsWith("/api/estate/library/plan") && init.method !== "POST")
+      return { ok: true, status: 200, json: async () => plan };
     // U6: its own answer, ahead of the library prefix it shares
     if (String(url).startsWith("/api/estate/library/sole"))
       return { ok: true, status: 200, json: async () => sole };
@@ -3326,4 +3330,34 @@ test("U6 (panel): each source says what to copy onto F:, what is there, and what
   assert.match(text, /G: \(away\) Working out what is only here…/u);
   const link = window.document.querySelector(".em__sole a[download]");
   assert.equal(link.getAttribute("href"), "/api/estate/library/sole.csv?source=library-dl", "by the catalogue, never the letter");
+});
+
+// --- U7: the copy plan on the Library tab -------------------------------------------------------------
+
+test("U7 (panel): each source's plan says what goes where, whether it fits, what is left out, and is raised - never signed - here", async () => {
+  const counts = (o) => ({ copy: { files: 0, bytes: 0 }, repeats: { files: 0, bytes: 0 }, excluded: {}, cannot_tell: { files: 0, bytes: 0 }, renames: 0, private: 0, on_f: 0, ...o });
+  const plan = {
+    target: "F:",
+    free_bytes: 3_200_000_000_000,
+    governance_ok: true,
+    sources: [
+      { id: "library-dl", source: "Downloads", attached: true, folder: "consolidated/Downloads", digest: "d", fits: true, proposal: { id: "copy-library-dl-d", state: "not raised" }, ...counts({ copy: { files: 774, bytes: 32_212_254_720 }, repeats: { files: 3, bytes: 10 }, renames: 2, excluded: { node_modules: { files: 1200, bytes: 3_221_225_472 } } }) },
+      { id: "library-od", source: "OneDrive", attached: true, folder: "consolidated/OneDrive", digest: "e", fits: true, proposal: { id: "copy-library-od-e", state: "open" }, ...counts({ copy: { files: 5, bytes: 50 }, cannot_tell: { files: 793_659, bytes: 1 } }) },
+      { id: "library-g", source: "drive-1a2b3c4d", attached: false, folder: "consolidated/drive-1a2b3c4d", digest: "f", fits: false, proposal: { id: "copy-library-g-f", state: "not raised" }, ...counts({ copy: { files: 9, bytes: 9 } }) }
+    ]
+  };
+  const { window } = await renderPanel({ at: NOW, machines: { t480: machine({}) } }, { plan });
+  await openTab(window, "library");
+  const text = visible(window);
+  assert.match(text, /Copy plan onto F:/u);
+  assert.match(text, /Downloads Copy 774 files, 30 GB to F:\\consolidated\\Downloads\. Fits \(2\.9 TB free on F:\)\. 3 repeats copied once\. 2 names already on F: get "\(from Downloads\)"\. Left out: node_modules 1,200 files, 3\.0 GB\. Not raised yet\./u, text.slice(0, 1200));
+  assert.match(text, /Not planned: 793,659 files only in the cloud\. Raised: waiting for your signature in Governance\./u);
+  assert.match(text, /drive-1a2b3c4d \(away\) Copy 9 files, 9 B to F:\\consolidated\\drive-1a2b3c4d\. Does not fit/u);
+  const raise = [...window.document.querySelectorAll(".em__plan button")].map((b) => b.textContent);
+  assert.deepEqual(raise, ["Raise for signing"], "only the plan that is not raised and fits can be raised");
+  assert.equal(
+    [...window.document.querySelectorAll(".em__library button")].some((b) => /sign it|approve/iu.test(b.textContent)),
+    false,
+    "nothing on this tab signs: signing is the owner's, in Governance"
+  );
 });

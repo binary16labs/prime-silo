@@ -702,6 +702,52 @@ export function soleView(s, { now = Date.now() } = {}) {
   };
 }
 
+// --- U7: the copy plan -----------------------------------------------------------------------------
+
+// One card per source: what would be added to F: and where, whether it fits, what is left out and
+// why, and where its proposal stands. Raising puts it forward; only the owner signs, in Governance.
+const PROPOSAL_LINE = {
+  "not raised": "Not raised yet.",
+  open: "Raised: waiting for your signature in Governance.",
+  signed: "Signed by you: ready for U8 to copy.",
+  declined: "Declined."
+};
+export function planView(s) {
+  const n = (x) => (Number(x) || 0).toLocaleString();
+  if (!s || typeof s !== "object" || s.error) return { why: s?.error ? `Cannot plan: ${s.error}.` : null, cards: [] };
+  if (s.why) return { why: `${s.why}.`, cards: [] };
+  const free = s.free_bytes == null ? "free space unknown" : `${bytes(s.free_bytes)} free on ${s.target}`;
+  const cards = (s.sources ?? []).map((x) => {
+    const name = `${x.source}${x.attached ? "" : " (away)"}`;
+    if (x.never) return { key: x.id, name, line: "Never proposed (your policy).", raise: false };
+    if (x.why) return { key: x.id, name, line: `${x.why[0].toUpperCase()}${x.why.slice(1)}.`, raise: false };
+    if (x.computing) return { key: x.id, name, line: "Working out the plan…", raise: false };
+    const left = Object.entries(x.excluded ?? {})
+      .map(([rule, e]) => `${rule} ${n(e.files)} files, ${bytes(e.bytes)}`)
+      .join("; ");
+    const parts = [
+      `Copy ${n(x.copy.files)} files, ${bytes(x.copy.bytes)} to ${s.target}\\${x.folder.replace("/", "\\")}.`,
+      x.fits == null ? `Cannot tell if it fits (${free}).` : x.fits ? `Fits (${free}).` : `Does not fit (${free}).`,
+      x.repeats.files ? `${n(x.repeats.files)} repeats copied once.` : "",
+      x.renames ? `${n(x.renames)} names already on ${s.target} get "(from ${x.source})".` : "",
+      left ? `Left out: ${left}.` : "",
+      x.cannot_tell.files ? `Not planned: ${n(x.cannot_tell.files)} files only in the cloud.` : "",
+      PROPOSAL_LINE[x.proposal?.state] ?? ""
+    ];
+    return {
+      key: x.id,
+      name,
+      line: parts.filter(Boolean).join(" "),
+      raise: x.proposal?.state === "not raised" && x.copy.files > 0 && x.fits !== false
+    };
+  });
+  return {
+    why: s.governance_ok === false ? "The governance log does not verify: nothing can be raised until it does." : cards.length ? null : "Nothing to plan yet.",
+    cards,
+    computing: (s.sources ?? []).some((x) => x.computing)
+  };
+}
+
 // --- the whole page -------------------------------------------------------------------------------
 
 // One call, so the view has no logic of its own. `reachable` is false when the hub did not answer,

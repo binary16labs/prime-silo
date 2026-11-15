@@ -4,6 +4,7 @@
 // Reuses the N0 projection (buildEstate over the estate KEL log) and the B1 bus for SSE.
 // Design: architecture/SOLUTION-estate.md §3.4.
 import fs from "node:fs";
+import { fileURLToPath } from "node:url";
 import { readKelEvents } from "./kel.mjs";
 import { buildEstate } from "./estate.mjs";
 import { proposeSync, applySync } from "./estate_govern.mjs";
@@ -13,6 +14,10 @@ import { createSweeper, latestLocalPush } from "./estate_map_producer.mjs";
 import { createComparer, listRoot, rootIdentity } from "./estate_compare.mjs";
 import { everythingAdapter } from "./estate_map_files.mjs";
 import { createSoleReporter } from "./estate_sole.mjs";
+import { createCopyPlanner, readPolicy, validatePolicy } from "./estate_plan_copy.mjs";
+import { proposalRaisedEvent, loadGovernance } from "./governance.mjs";
+import { appendKelEvent } from "./kel.mjs";
+import { governanceLogPath, ensureParent } from "../../lib/estate_store.js";
 import { createLibrarian, finishedAtOf, libraryPathFor, windowsCloudOnly } from "./library.mjs";
 import {
   openRegistry,
@@ -374,6 +379,53 @@ export function createEstateApi({
     return out;
   };
 
+  // U7: THE COPY PLAN. Per source, what would be added to F: and where, from the catalogues alone;
+  // raised as a governance proposal that only the owner signs (gov_sign). The policy file is the
+  // owner's; the target can never leave the signed drive.
+  const policyFile = producer?.policyFile ?? fileURLToPath(new URL("../../../coordination/estate/storage-policy.json", import.meta.url));
+  const govFile = () => producer?.governanceLog ?? governanceLogPath().file;
+  const planner = producer && createCopyPlanner({ dir: path.join(path.dirname(producer.dbPath), "plans"), rules: Array.isArray(quarantine) ? quarantine : [] });
+  const ROLE_NAME = { downloads: "Downloads", onedrive: "OneDrive", documents: "Documents", desktop: "Desktop", pictures: "Pictures", music: "Music", videos: "Videos", added: "Added" };
+  // the owner's answer (signature 2026-11-15): the role for a user folder, else the name the owner
+  // gave the drive, else its short identity - never a volume label, which can be private
+  const nameFor = (s) => {
+    if (s.role) return ROLE_NAME[s.role] ?? s.role;
+    const db = registry();
+    try {
+      for (const r of db ? db.prepare("SELECT identity, owner_name FROM drives").all() : [])
+        if (r.owner_name && !labelProblem(r.owner_name, Array.isArray(quarantine) ? quarantine : []) && path.basename(libraryPathFor(".", r.identity) ?? "", ".db") === sourceIdOf(s.db))
+          return r.owner_name.replace(/[^A-Za-z0-9 _-]+/gu, "_");
+    } finally {
+      db?.close();
+    }
+    return `drive-${sourceIdOf(s.db).slice(-8)}`;
+  };
+  const sourceIdOf = (db) => path.basename(db, ".db");
+  const planAll = () => {
+    const policy = readPolicy(policyFile, { target: TARGET });
+    const targetDb = librarian.dbFor(TARGET);
+    if (!targetDb) return { why: `${TARGET} is not attached`, policy, sources: [] };
+    let free = producer?.freeBytes ?? null; // injectable for tests; otherwise the drive's own answer
+    if (free == null) try {
+      const s = fs.statfsSync(/^[A-Za-z]:$/u.test(TARGET) ? `${TARGET}${path.sep}` : TARGET);
+      free = Number(s.bavail) * Number(s.bsize);
+    } catch {
+      // unknown free space is said as unknown, never as "fits"
+    }
+    const gov = loadGovernance(govFile());
+    const sources = soleSources()
+      .filter((s) => path.resolve(s.db) !== path.resolve(targetDb))
+      .map((s) => {
+        const p = planner.plan({ sourceRoot: s.root, sourceName: nameFor(s), sourceDb: s.db, targetDb, policy });
+        const proposalId = p.digest ? `copy-${p.id}-${p.digest.slice(0, 12)}` : null;
+        const prop = proposalId ? (gov.proposals ?? []).find((x) => x.id === proposalId) : null;
+        // a 5% margin: a copy that would leave F: nearly full is said not to fit
+        const fits = free == null || !p.copy ? null : p.copy.bytes <= free * 0.95;
+        return { ...p, role: s.role, attached: s.attached, fits, proposal: proposalId && { id: proposalId, state: prop?.state ?? "not raised" } };
+      });
+    return { target: TARGET, policy, free_bytes: free, governance_ok: gov.ok !== false, sources };
+  };
+
   // S20: a backup drive against F:, on this machine. Results hold file names, so every compare route
   // answers this machine only, and they are kept beside its own map, in BENNY_HOME. Since S21 it asks
   // F:'s catalogue where there is one, and reads only the backup drive.
@@ -624,6 +676,9 @@ export function createEstateApi({
       rest === "/library/neighbours" ||
       rest === "/library/sole" ||
       rest === "/library/sole.csv" ||
+      rest === "/library/plan" ||
+      rest === "/library/plan/raise" ||
+      rest === "/library/policy" ||
       rest === "/compare/stop"
     ) {
       if (!local(req))
@@ -670,6 +725,65 @@ export function createEstateApi({
 
       const offer = shelf();
       const roots = offer.map((e) => e.root);
+      if (rest === "/library/plan" || rest === "/library/plan/raise" || rest === "/library/policy") {
+        if (!Array.isArray(quarantine)) return sendJson(res, 412, { error: NO_POLICY });
+        if (req.method === "GET" && rest === "/library/plan") {
+          const all = planAll();
+          return sendJson(res, 200, { ...all, sources: all.sources.map(({ items_file, key, ...x }) => x) });
+        }
+        if (req.method !== "POST") return sendJson(res, 405, { error: "GET /library/plan, POST /library/plan/raise or /library/policy" });
+        readBody(req)
+          .then((b) => {
+            if (rest === "/library/policy") {
+              let next;
+              try {
+                next = validatePolicy({ ...readPolicy(policyFile, { target: TARGET }), ...b, target: TARGET }, { target: TARGET });
+              } catch (e) {
+                return sendJson(res, 400, { error: e.message });
+              }
+              fs.mkdirSync(path.dirname(policyFile), { recursive: true });
+              fs.writeFileSync(policyFile, `${JSON.stringify(next, null, 2)}\n`);
+              // each edit is logged, beside the owner's other decisions
+              fs.mkdirSync(path.dirname(producer.dbPath), { recursive: true });
+              fs.appendFileSync(path.join(path.dirname(producer.dbPath), "policy-changes.jsonl"), `${JSON.stringify({ at: new Date().toISOString(), policy: next })}\n`);
+              return sendJson(res, 200, { policy: next });
+            }
+            // RAISE, never sign: an agent or the hub may put a plan forward; only the owner signs
+            const p = planAll().sources.find((x) => x.id === b.source);
+            if (!p) return sendJson(res, 404, { error: "no plan for that source" });
+            if (!p.digest) return sendJson(res, 409, { error: p.why || (p.never ? "this source is never proposed" : "the plan is still being worked out") });
+            if (!p.copy.files) return sendJson(res, 409, { error: "nothing to copy: F: already holds everything here" });
+            if (p.fits === false) return sendJson(res, 409, { error: `it does not fit on ${TARGET}: free space first` });
+            const file = govFile();
+            const gov = loadGovernance(file);
+            if (gov.ok === false) return sendJson(res, 409, { error: `governance chain is broken at line ${gov.badLine}; refusing to append` });
+            if ((gov.proposals ?? []).some((x) => x.id === p.proposal.id))
+              return sendJson(res, 409, { error: "already raised", proposal: p.proposal });
+            const gb = (p.copy.bytes / 1e9).toFixed(1);
+            const evt = proposalRaisedEvent({
+              proposalId: p.proposal.id,
+              machine: producer.machine,
+              authorship: "house",
+              domain: "consolidation",
+              title: `Copy ${p.copy.files} files (${gb} GB) from ${p.source} onto ${TARGET}\\${p.folder.replace("/", "\\")}`,
+              rationale:
+                "Content only outside F:, from the catalogues (U6). Add-only under the signed consolidation plan: " +
+                "nothing at the source is touched, a name already on F: becomes a visible rename, and U8 reads every copy back and checks it.",
+              evidence: [`digest:${p.digest}`, `files:${p.copy.files}`, `bytes:${p.copy.bytes}`, `repeats:${p.repeats.files}`, `renames:${p.renames}`],
+              cost: { files: p.copy.files, bytes: p.copy.bytes },
+              reversible: true
+            });
+            ensureParent(file);
+            const r = appendKelEvent(file, evt);
+            return r.ok === false
+              ? sendJson(res, 500, { error: `the proposal could not be recorded: ${r.reason}` })
+              : sendJson(res, 201, { proposal: { id: p.proposal.id, state: "open" } });
+          })
+          .catch((e) => {
+            if (!res.headersSent) sendJson(res, 500, { error: `${rest === "/library/policy" ? "the policy could not be saved" : "the plan could not be raised"}: ${e?.message || e}` });
+          });
+        return;
+      }
       if (req.method === "GET" && (rest === "/library/sole" || rest === "/library/sole.csv")) {
         if (!Array.isArray(quarantine)) return sendJson(res, 412, { error: NO_POLICY });
         const targetDb = librarian.dbFor(TARGET);

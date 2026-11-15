@@ -20,6 +20,7 @@ import {
   sweepView,
   compareView,
   libraryView,
+  planView,
   soleView
 } from "/mod/_prime_silo/estate_map/fold_view.js";
 
@@ -45,6 +46,7 @@ window.estateMapPage = function estateMapPage() {
     compareError: "",
     lib: libraryView(null),
     sole: soleView(null),
+    plan: planView(null),
     libraryError: "",
     loading: true,
     drives: [],
@@ -179,9 +181,15 @@ window.estateMapPage = function estateMapPage() {
       } catch {
         this.sole = soleView(null);
       }
+      // U7: the copy plan per source, and where each proposal stands
+      try {
+        this.plan = planView(await (await fetch("/api/estate/library/plan")).json());
+      } catch {
+        this.plan = planView(null);
+      }
       clearTimeout(cataloguing);
       // U1: and while Catalogue my data has roots still waiting, between one pass and the next
-      if (this.lib.running || (this.lib.queue && !this.lib.all) || this.sole.computing)
+      if (this.lib.running || (this.lib.queue && !this.lib.all) || this.sole.computing || this.plan.computing)
         cataloguing = setTimeout(() => this.refreshLibrary(), SWEEP_WATCH_MS);
     },
 
@@ -204,6 +212,10 @@ window.estateMapPage = function estateMapPage() {
     },
     catalogueRoot(root) {
       return this.ask("/api/estate/library", { root }, "libraryError", () => this.refreshLibrary());
+    },
+    // U7: put a source's plan forward for the owner's signature (signing is in Governance)
+    raisePlan(source) {
+      return this.ask("/api/estate/library/plan/raise", { source }, "libraryError", () => this.refreshLibrary());
     },
     // U1: every offered root in the owner's order, one pass at a time; Stop clears the queue
     catalogueAll() {

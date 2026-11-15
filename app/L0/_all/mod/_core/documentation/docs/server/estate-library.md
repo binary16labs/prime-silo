@@ -110,6 +110,17 @@ tell** (cloud-only rows have no fingerprint and are never called "on F:"). A wor
 the hub's thread, current for both catalogues' last passes and the policy.
 `GET /library/sole.csv?root=` is the list; private files are counted, never listed.
 
+## The copy plan (U7)
+
+Stage 3a of the signed plan. `GET /library/plan` gives, per source and from the catalogues alone,
+what would be added to F: and where (`F:\consolidated\<source>\<path>`; `<source>` is the role,
+else the drive's given name, else its short identity), whether it fits (5% margin), repeats copied
+once, names already on F: renamed visibly, what the policy leaves out, and cloud-only files never
+planned. `coordination/estate/storage-policy.json` is the owner's (`POST /library/policy`, validated,
+logged; the target never leaves the signed drive). `POST /library/plan/raise` puts a plan forward as a
+`proposal_raised` in the governance log with its exact digest; **only the owner signs**, in
+Governance, and a newer pass makes a new, unsigned plan. Nothing is copied here (U8).
+
 ## Walking the tree (S26)
 
 A list of 237,508 duplicate sets is not a decision anyone makes; a folder that knows how much of
