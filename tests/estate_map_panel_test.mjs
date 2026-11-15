@@ -3321,7 +3321,7 @@ test("U6 (panel): each source says what to copy onto F:, what is there, and what
   await openTab(window, "library");
   const text = visible(window);
   assert.match(text, /Only outside F:/u);
-  assert.match(text, /Downloads 774 files, 30 GB to copy onto F: \(2\.1 GB of that repeats itself\); 5 already there\. 2 private files counted, not listed\./u, text.slice(0, 900));
+  assert.match(text, /Downloads 774 files, 28 GB to copy onto F: \(\+2\.1 GB of repeats\); 5 already there\. 2 private files counted, not listed\./u, text.slice(0, 900));
   assert.match(text, /Cannot tell for 793,659 files only in the cloud/u);
   assert.match(text, /G: \(away\) Working out what is only here…/u);
   const link = window.document.querySelector(".em__sole a[download]");

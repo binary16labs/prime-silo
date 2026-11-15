@@ -680,14 +680,15 @@ export function soleView(s, { now = Date.now() } = {}) {
     if (x.why) return { key: x.id, name, line: `${x.why[0].toUpperCase()}${x.why.slice(1)}.`, csv: null };
     if (x.computing && !x.last) return { key: x.id, name, line: "Working out what is only here…", csv: null };
     const c = x.computing ? x.last : x;
-    const repeats = c.to_copy.repeat_bytes ? ` (${bytes(c.to_copy.repeat_bytes)} of that repeats itself)` : "";
+    // the owner's choice (2026-11-15): the headline counts each content once; repeats are said apart
+    const repeats = c.to_copy.repeat_bytes ? ` (+${bytes(c.to_copy.repeat_bytes)} of repeats)` : "";
     const cloud = c.cannot_tell.files ? ` Cannot tell for ${n(c.cannot_tell.files)} files only in the cloud (${bytes(c.cannot_tell.bytes)}).` : "";
     const priv = c.private ? ` ${n(c.private)} private files counted, not listed.` : "";
     return {
       key: x.id,
       name,
       line:
-        `${n(c.to_copy.files)} files, ${bytes(c.to_copy.bytes)} to copy onto ${s.target}${repeats}; ` +
+        `${n(c.to_copy.files)} files, ${bytes(c.to_copy.unique_bytes)} to copy onto ${s.target}${repeats}; ` +
         `${n(c.on_f.files)} already there.${cloud}${priv}` +
         (x.source_at ? ` Catalogued ${ago(x.source_at)}, ${s.target} ${ago(x.f_at)}.` : "") +
         (x.computing ? " Updating…" : ""),
