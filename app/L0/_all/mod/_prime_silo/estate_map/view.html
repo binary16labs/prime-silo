@@ -319,6 +319,18 @@
             </template>
             <template x-if="lib.queue"><p class="em__sweeprun" x-text="lib.queue"></p></template>
             <!-- U6: what is only outside F:, per source, from the catalogues: the copy list for stage 3 -->
+            <!-- U7: the copy plan; raising puts it forward, and only the owner signs, in Governance -->
+            <h3 class="em__soletitle">Copy plan onto F:</h3>
+            <template x-if="plan.why"><p class="em__note" x-text="plan.why"></p></template>
+            <ul class="em__medialist em__plan">
+              <template x-for="c in plan.cards" :key="c.key">
+                <li class="em__mediarow">
+                  <b x-text="c.name"></b>
+                  <span x-text="c.line"></span>
+                  <template x-if="c.raise"><button class="em__sweepbtn" @click="raisePlan(c.key)">Raise for signing</button></template>
+                </li>
+              </template>
+            </ul>
             <h3 class="em__soletitle">Only outside F:</h3>
             <template x-if="sole.why"><p class="em__note" x-text="sole.why"></p></template>
             <ul class="em__medialist em__sole">
