@@ -3312,9 +3312,9 @@ test("U6 (panel): each source says what to copy onto F:, what is there, and what
   const sole = {
     target: "F:",
     sources: [
-      { root: "C:\\Users\\me\\Downloads", role: "downloads", attached: true, source_at: at, f_at: at, listed: true, ...counts({ on_f: { files: 5, bytes: 10 }, to_copy: { files: 774, bytes: 32_212_254_720, unique_bytes: 30_000_000_000, repeat_bytes: 2_212_254_720 }, private: 2 }) },
-      { root: "C:\\Users\\me\\OneDrive", role: "onedrive", attached: true, source_at: at, f_at: at, listed: true, ...counts({ to_copy: { files: 3, bytes: 30, unique_bytes: 30, repeat_bytes: 0 }, cannot_tell: { files: 793_659, bytes: 50_000_000_000 } }) },
-      { root: "G:", role: null, attached: false, computing: true, last: null }
+      { id: "library-dl", root: "C:\\Users\\me\\Downloads", role: "downloads", attached: true, source_at: at, f_at: at, listed: true, ...counts({ on_f: { files: 5, bytes: 10 }, to_copy: { files: 774, bytes: 32_212_254_720, unique_bytes: 30_000_000_000, repeat_bytes: 2_212_254_720 }, private: 2 }) },
+      { id: "library-od", root: "C:\\Users\\me\\OneDrive", role: "onedrive", attached: true, source_at: at, f_at: at, listed: true, ...counts({ to_copy: { files: 3, bytes: 30, unique_bytes: 30, repeat_bytes: 0 }, cannot_tell: { files: 793_659, bytes: 50_000_000_000 } }) },
+      { id: "library-g", root: "G:", role: null, attached: false, computing: true, last: null }
     ]
   };
   const { window } = await renderPanel({ at: NOW, machines: { t480: machine({}) } }, { sole });
@@ -3325,5 +3325,5 @@ test("U6 (panel): each source says what to copy onto F:, what is there, and what
   assert.match(text, /Cannot tell for 793,659 files only in the cloud/u);
   assert.match(text, /G: \(away\) Working out what is only here…/u);
   const link = window.document.querySelector(".em__sole a[download]");
-  assert.equal(link.getAttribute("href"), "/api/estate/library/sole.csv?root=C%3A%5CUsers%5Cme%5CDownloads");
+  assert.equal(link.getAttribute("href"), "/api/estate/library/sole.csv?source=library-dl", "by the catalogue, never the letter");
 });

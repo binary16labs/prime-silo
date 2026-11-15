@@ -359,12 +359,14 @@ export function createEstateApi({
   const soleSources = () => {
     const out = shelf()
       .filter((e) => e.root !== TARGET)
-      .map((e) => ({ root: e.root, role: e.role, attached: true, db: librarian.dbFor(e.root) }));
+      .map((e) => ({ root: e.root, role: e.role, attached: true, db: librarian.dbFor(e.root) }))
+      .filter((s) => s.db);
     const db = registry();
     try {
       for (const r of db ? db.prepare("SELECT identity, root FROM drives WHERE attached = 0").all() : []) {
         const f = [storeLib, homeLib].filter(Boolean).map((d) => libraryPathFor(d, r.identity)).find((x) => fs.existsSync(x));
-        if (f) out.push({ root: r.root, role: null, attached: false, db: f });
+        // round 2: one line per catalogue - an away drive that is also attached is not listed twice
+        if (f && !out.some((s) => path.resolve(s.db) === path.resolve(f))) out.push({ root: r.root, role: null, attached: false, db: f });
       }
     } finally {
       db?.close();
@@ -672,16 +674,18 @@ export function createEstateApi({
         if (!Array.isArray(quarantine)) return sendJson(res, 412, { error: NO_POLICY });
         const targetDb = librarian.dbFor(TARGET);
         if (!targetDb) return sendJson(res, 200, { target: TARGET, why: `${TARGET} is not attached`, sources: [] });
-        const sources = soleSources().map((s) => ({
+        // round 2: never F: against itself, whatever a stale registry says
+        const sources = soleSources().filter((s) => path.resolve(s.db) !== path.resolve(targetDb)).map((s) => ({
           role: s.role,
           attached: s.attached,
           ...sole.report({ sourceRoot: s.root, sourceDb: s.db, targetDb })
         }));
         if (rest === "/library/sole") return sendJson(res, 200, { target: TARGET, sources: sources.map(({ csv, ...x }) => ({ ...x, listed: Boolean(csv) })) });
-        const want = new URL(req.url, "http://localhost").searchParams.get("root");
-        const csv = sources.find((s) => s.root === want)?.csv;
+        // round 2: by the catalogue's id, never by a letter two drives can share
+        const want = new URL(req.url, "http://localhost").searchParams.get("source");
+        const csv = sources.find((s) => s.id === want)?.csv;
         if (!csv || !fs.existsSync(csv)) return sendJson(res, 404, { error: "no list for that source yet" });
-        res.writeHead(200, { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": 'attachment; filename="only-outside-F.csv"' });
+        res.writeHead(200, { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="only-outside-F-${want}.csv"` });
         return void fs.createReadStream(csv).pipe(res);
       }
       if (req.method === "GET" && rest === "/library") {
