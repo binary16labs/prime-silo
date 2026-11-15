@@ -244,6 +244,7 @@ export function createEstateApi({
           },
           // U1: every user root is asked which of its files are only in the cloud; a drive never is
           // round 2: and a drive that holds a OneDrive root
+          checkCloudOnly: cloudProbe,
           cloudOnlyFor: (root) =>
             entryOf(root)?.kind === "user" || inOneDrive(root) || shelf().some((e) => e.in_onedrive && inside(e.root, root))
               ? cloudProbe
@@ -315,6 +316,8 @@ export function createEstateApi({
   const entryOf = (root) => shelf().find((e) => e.root === root) ?? null;
   // any path inside an offered OneDrive root, whichever root it is asked through
   const inOneDrive = (p) => shelf().some((e) => e.in_onedrive && inside(p, e.root));
+  // U12: or one that HOLDS such a root - reading it would walk into OneDrive
+  const touchesOneDrive = (p) => inOneDrive(p) || shelf().some((e) => e.in_onedrive && inside(e.root, p));
   // a read of a OneDrive root's files would download every one that is only in the cloud
   const CLOUD_READ =
     "that is in OneDrive, where reading a file that is only in the cloud downloads it: it is never compared or checked";
@@ -779,7 +782,7 @@ export function createEstateApi({
             const paths = (Array.isArray(b.paths) ? b.paths : [b.path]).filter(
               (x) => typeof x === "string" && x
             );
-            if (inOneDrive(root) || paths.some(inOneDrive)) return sendJson(res, 400, { error: CLOUD_READ });
+            if (inOneDrive(root) || paths.some(touchesOneDrive)) return sendJson(res, 400, { error: CLOUD_READ });
             if (!paths.length) return sendJson(res, 400, { error: "path (or paths) is required" });
             const r = await librarian.check(root, { paths });
             // the answer's own figure, counting BOTH channels: paths the rules kept the walk out of
@@ -884,7 +887,7 @@ export function createEstateApi({
             roots
           });
         // round 2: either side - a target with no catalogue is walked and its files hashed
-        if (inOneDrive(b.from) || inOneDrive(b.to)) return sendJson(res, 400, { error: CLOUD_READ });
+        if (touchesOneDrive(b.from) || touchesOneDrive(b.to)) return sendJson(res, 400, { error: CLOUD_READ });
         // one inside the other would list the same files on both sides (claude-s20-verifier)
         const key = (r) => {
           const k = path.resolve(`${r}${path.sep}`);

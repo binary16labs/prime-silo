@@ -1428,8 +1428,44 @@ export async function checkPaths(
   dbPath,
   root,
   rules = [],
-  { paths = [], cap = 500, maxPaths = MAX_CHECK_PATHS, hash = hashFile, stat = fs.statSync } = {}
+  {
+    paths = [],
+    cap = 500,
+    maxPaths = MAX_CHECK_PATHS,
+    hash = hashFile,
+    stat = fs.statSync,
+    cloudOnly = null
+  } = {}
 ) {
+  // U12: NO CLOUD-ONLY FILE IS OPENED TO ANSWER A CHECK - opening one makes OneDrive download it.
+  // Each path asked about is probed first (attributes only), matched by its real long spelling; if
+  // Windows cannot say, nothing is read.
+  const realOf = (p) => {
+    try {
+      return fold(fs.realpathSync.native(p));
+    } catch {
+      return fold(p);
+    }
+  };
+  const cloud = { cloud: new Set(), unknown: [] };
+  if (cloudOnly)
+    for (const g of paths.slice(0, maxPaths)) {
+      if (!fs.existsSync(g)) continue;
+      try {
+        const r = await cloudOnly(realOf(g));
+        r.cloud.forEach((x) => cloud.cloud.add(x));
+        cloud.unknown.push(...r.unknown);
+      } catch (e) {
+        return { refused: `Windows could not say which files there are only in the cloud, so nothing was read: ${e?.message || e}` };
+      }
+    }
+  const cloudyAt = (f) => {
+    const k = realOf(f);
+    if (cloud.cloud.has(k)) return "online-only";
+    return cloud.unknown.some((d) => k === d || k.startsWith(d.endsWith(path.sep) ? d : d + path.sep))
+      ? "unreadable"
+      : null;
+  };
   const c = finishedCatalogue(dbPath, root);
   if (!c.db) return c.missing ? null : { refused: c.refused };
   const isPrivate = privateTo(rules);
@@ -1493,6 +1529,11 @@ export async function checkPaths(
       }
       if (!hasSize.get(st.size)) {
         files.push({ path: f, verdict: "absent" });
+        continue;
+      }
+      const where = cloudOnly && cloudyAt(f);
+      if (where) {
+        files.push({ path: f, verdict: where }); // U12: answered, never opened
         continue;
       }
       // A FILE THAT STATS BUT WILL NOT OPEN IS A VERDICT (claude-s22-verifier-3 D7). An open .pst,
@@ -1596,7 +1637,9 @@ export function createLibrarian({
   // every place first. `cloudOnlyFor(root)` is the root's cloud probe, or null.
   also = [],
   placeFor = () => dir,
-  cloudOnlyFor = () => null
+  cloudOnlyFor = () => null,
+  // U12: the probe every check runs before it reads anything, or null
+  checkCloudOnly = null
 }) {
   const dirs = [dir, ...also];
   const dbFor = (root) => {
@@ -1798,7 +1841,7 @@ export function createLibrarian({
       const evt = libraryQueriedEvent({ machine, root, pass, ...info });
       return appendKelEvents(`${db.slice(0, -3)}.jsonl`, [evt]).ok;
     },
-    check: (root, opts) => checkPaths(dbFor(root), root, rules, opts),
+    check: (root, opts) => checkPaths(dbFor(root), root, rules, { ...opts, cloudOnly: checkCloudOnly }),
     // Sets beyond the panel's top ten, from the list the WORKER already wrote for this pass and
     // policy. Never recomputed here: that is ~90 s on the real F:, on the hub's thread - D3.
     duplicatesPage(root, { offset = 0, limit = 20 } = {}) {
