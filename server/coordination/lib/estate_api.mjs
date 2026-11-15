@@ -389,6 +389,8 @@ export function createEstateApi({
   // the owner's answer (signature 2026-11-15): the role for a user folder, else the name the owner
   // gave the drive, else its short identity - never a volume label, which can be private
   const nameFor = (s) => {
+    // round 2 (B4): an added folder is "Added-<its folder name>", not "Added" for every one
+    if (s.role === "added") return `Added-${path.basename(s.root).replace(/[^A-Za-z0-9 _-]+/gu, "_") || "folder"}`;
     if (s.role) return ROLE_NAME[s.role] ?? s.role;
     const db = registry();
     try {
@@ -405,19 +407,26 @@ export function createEstateApi({
     const policy = readPolicy(policyFile, { target: TARGET });
     const targetDb = librarian.dbFor(TARGET);
     if (!targetDb) return { why: `${TARGET} is not attached`, policy, sources: [] };
-    let free = producer?.freeBytes ?? null; // injectable for tests; otherwise the drive's own answer
-    if (free == null) try {
+    // injectable for tests (a number, or a function that may answer null = cannot tell); otherwise the drive's own answer
+    const asked = typeof producer?.freeBytes === "function";
+    let free = asked ? producer.freeBytes() : (producer?.freeBytes ?? null);
+    if (free == null && !asked) try {
       const s = fs.statfsSync(/^[A-Za-z]:$/u.test(TARGET) ? `${TARGET}${path.sep}` : TARGET);
       free = Number(s.bavail) * Number(s.bsize);
     } catch {
       // unknown free space is said as unknown, never as "fits"
     }
     const gov = loadGovernance(govFile());
-    const sources = soleSources()
-      .filter((s) => path.resolve(s.db) !== path.resolve(targetDb))
-      .map((s) => {
-        const p = planner.plan({ sourceRoot: s.root, sourceName: nameFor(s), sourceDb: s.db, targetDb, policy });
-        const proposalId = p.digest ? `copy-${p.id}-${p.digest.slice(0, 12)}` : null;
+    // round 2 (B4): names must be unique on F: - two sources sharing one folder would mix their copies
+    const listed = soleSources().filter((s) => path.resolve(s.db) !== path.resolve(targetDb));
+    const names = listed.map(nameFor);
+    const seen = new Map();
+    for (const nm of names) seen.set(nm.toLowerCase(), (seen.get(nm.toLowerCase()) ?? 0) + 1);
+    const sources = listed
+      .map((s, i) => {
+        const nm = seen.get(names[i].toLowerCase()) > 1 ? `${names[i]}-${sourceIdOf(s.db).slice(-8)}` : names[i];
+        const p = planner.plan({ sourceRoot: s.root, sourceName: nm, sourceDb: s.db, targetDb, policy });
+        const proposalId = p.proposal_id ?? null;
         const prop = proposalId ? (gov.proposals ?? []).find((x) => x.id === proposalId) : null;
         // a 5% margin: a copy that would leave F: nearly full is said not to fit
         const fits = free == null || !p.copy ? null : p.copy.bytes <= free * 0.95;
@@ -754,6 +763,7 @@ export function createEstateApi({
             if (!p.digest) return sendJson(res, 409, { error: p.why || (p.never ? "this source is never proposed" : "the plan is still being worked out") });
             if (!p.copy.files) return sendJson(res, 409, { error: "nothing to copy: F: already holds everything here" });
             if (p.fits === false) return sendJson(res, 409, { error: `it does not fit on ${TARGET}: free space first` });
+            if (p.fits == null) return sendJson(res, 409, { error: `${TARGET}'s free space cannot be read, so whether it fits is unknown` });
             const file = govFile();
             const gov = loadGovernance(file);
             if (gov.ok === false) return sendJson(res, 409, { error: `governance chain is broken at line ${gov.badLine}; refusing to append` });

@@ -224,3 +224,172 @@ test("U7: the owner's policy edits are validated, written and logged; no policy 
     await none.close();
   }
 });
+
+// --- claude-u7-verifier's round-1 FAIL ----------------------------------------------------------------
+
+const planOf = async (h) => {
+  for (let i = 0; i < 600; i++) {
+    const s = (await h.call("/library/plan")).json;
+    if (s.sources?.length && s.sources.every((x) => !x.computing)) return s;
+    await wait(20);
+  }
+  throw new Error("the plan never settled");
+};
+const recatalogue = async (h, root) => {
+  await h.call("/library", { root });
+  for (let i = 0; i < 500 && JSON.parse((await h.call("/library")).text).running; i++) await wait(10);
+};
+
+test("U7 round 2 (B1): a newer pass that changed nothing still makes a new, unsigned proposal", async () => {
+  const h = await hubU7();
+  try {
+    const p = (await ready(h)).sources[0];
+    assert.equal((await h.call("/library/plan/raise", { source: p.id })).status, 201);
+    await recatalogue(h, h.e.src);
+    const q = (await planOf(h)).sources[0];
+    assert.equal(q.digest, p.digest, "the same files would be copied");
+    assert.notEqual(q.proposal.id, p.proposal.id, "but a signature on the old pass does not carry over");
+    assert.equal(q.proposal.state, "not raised");
+    // and F:'s own new pass is part of it too
+    await recatalogue(h, h.e.f);
+    const r = (await planOf(h)).sources[0];
+    assert.notEqual(r.proposal.id, q.proposal.id, "a new pass on F: is a new proposal as well");
+  } finally {
+    await h.close();
+  }
+});
+
+test("U7 round 2 (B2, B3): a planned name is never one F: holds - by NTFS's case-insensitive rule, renames included", async () => {
+  const e = await estate();
+  write(e.f, "consolidated/Downloads/notes (from Downloads).txt", "yet another thing");
+  write(e.f, "consolidated/Downloads/A/X.BIN", "upper-case twin, other content");
+  await catalogue({ root: e.f, dbPath: e.fDb });
+  const p = planCopy({ sourceDb: e.sDb, sourceRoot: e.src, sourceName: "Downloads", targetDb: e.fDb, policy: DEFAULT_POLICY });
+  const items = p.items.map((l) => JSON.parse(l));
+  assert.equal(items.find((i) => i.from === "notes.txt").to, "consolidated/Downloads/notes (from Downloads 2).txt", "the rename itself is checked");
+  assert.equal(items.find((i) => i.from === "a/x.bin").to, "consolidated/Downloads/a/x (from Downloads).bin", "A/X.BIN on F: is the same name on NTFS");
+  const all = items.filter((i) => i.to).map((i) => i.to.toLowerCase());
+  assert.equal(new Set(all).size, all.length, "no two planned copies share a name");
+});
+
+test("U7 round 2 (B4): two added folders, and two same-named sources, plan into different folders", async () => {
+  const e = await estate();
+  const a = tmp();
+  const b = tmp();
+  const pa = path.join(a, "Projects");
+  const pb = path.join(b, "Projects");
+  write(pa, "one.txt", "one");
+  write(pb, "two.txt", "two");
+  const home = tmp();
+  const offered = [
+    { root: pa, kind: "user", role: "added", in_onedrive: false, removable: false, sections: [] },
+    { root: pb, kind: "user", role: "added", in_onedrive: false, removable: false, sections: [] },
+    { root: e.f, kind: "drive", role: null, removable: true, sections: [] }
+  ];
+  const api = createEstateApi({
+    quarantine: [],
+    producer: {
+      machine: "T480", dbPath: path.join(home, "estate", "m.db"), roots: () => offered.map((x) => x.root), offered: () => offered,
+      estateStore: tmp(), lister: null, cloudOnly: async () => ({ cloud: new Set(), unknown: [] }), target: e.f,
+      governanceLog: path.join(tmp(), "g.jsonl"), policyFile: path.join(tmp(), "p.json"), freeBytes: 10 ** 12
+    }
+  });
+  const server = http.createServer((req, res) => { if (!api.tryHandle(req, res)) res.writeHead(404).end(); });
+  await new Promise((r) => server.listen(0, "127.0.0.1", r));
+  const base = `http://127.0.0.1:${server.address().port}/api/estate`;
+  const h = {
+    call: async (p, body) => {
+      const res = await fetch(base + p, body ? { method: "POST", body: JSON.stringify(body) } : {});
+      const text = await res.text();
+      return { status: res.status, text, json: (() => { try { return JSON.parse(text); } catch { return null; } })() };
+    }
+  };
+  try {
+    for (const root of [e.f, pa, pb]) await recatalogue(h, root);
+    const s = await planOf(h);
+    const folders = s.sources.map((x) => x.folder.toLowerCase());
+    assert.equal(new Set(folders).size, folders.length, JSON.stringify(folders));
+    assert.ok(folders.every((f) => f.startsWith("consolidated/added-projects")), "named by their own folder");
+  } finally {
+    await new Promise((r) => server.close(r));
+  }
+});
+
+test("U7 round 2 (B5): an offered root with no catalogue yet is said, never a 500", async () => {
+  const h = await hubU7();
+  try {
+    await recatalogue(h, h.e.f); // F: only; the source is never catalogued
+    const r = await h.call("/library/plan");
+    assert.equal(r.status, 200, r.text);
+    assert.match(r.json.sources[0].why, /not catalogued yet/u);
+  } finally {
+    await h.close();
+  }
+});
+
+test("U7 round 2: the refusals - broken chain, nothing to copy, unfinished pass - and the 5% margin", async () => {
+  const h = await hubU7();
+  try {
+    const p = (await ready(h)).sources[0];
+    fs.writeFileSync(h.gov, "not a kel line\n");
+    const broken = await h.call("/library/plan/raise", { source: p.id });
+    assert.equal(broken.status, 409);
+    assert.match(broken.json.error, /chain is broken/u);
+  } finally {
+    await h.close();
+  }
+  // a source F: already holds entirely has nothing to copy
+  const e = await estate();
+  const only = tmp();
+  write(only, "same.jpg", "beach photo bytes");
+  const sDb = path.join(tmp(), "only.db");
+  await catalogue({ root: only, dbPath: sDb });
+  const empty = planCopy({ sourceDb: sDb, sourceRoot: only, sourceName: "Only", targetDb: e.fDb, policy: DEFAULT_POLICY });
+  assert.equal(empty.counts.copy.files, 0);
+  // an unfinished pass is refused by the planner
+  const { DatabaseSync } = await import("node:sqlite");
+  const db = new DatabaseSync(e.sDb);
+  db.prepare("INSERT INTO passes (id, started_at) VALUES ('open', ?)").run(new Date(Date.now() + 1000).toISOString());
+  db.close();
+  const pl = createCopyPlanner({ dir: tmp() });
+  assert.match(pl.plan({ sourceRoot: e.src, sourceName: "Downloads", sourceDb: e.sDb, targetDb: e.fDb, policy: DEFAULT_POLICY }).why, /did not finish/u);
+  // the margin: free space just above the bytes, but under bytes / 0.95, does not fit
+  const k = await hubU7({ freeBytes: 1 });
+  try {
+    const bytes = (await ready(k)).sources[0].copy.bytes;
+    await k.close();
+    const m = await hubU7({ freeBytes: Math.floor(bytes / 0.97) });
+    try {
+      assert.equal((await ready(m)).sources[0].fits, false, "inside the 5% margin is said not to fit");
+    } finally {
+      await m.close();
+    }
+  } catch (err) {
+    await k.close().catch(() => {});
+    throw err;
+  }
+});
+
+test("U7 round 2: the digest covers the repeats' pointers as well as the copies", async () => {
+  const e = await estate();
+  const before = planCopy({ sourceDb: e.sDb, sourceRoot: e.src, sourceName: "Downloads", targetDb: e.fDb, policy: DEFAULT_POLICY }).digest;
+  write(e.src, "c/z.bin", "repeated content"); // one more repeat, nothing new to copy
+  await catalogue({ root: e.src, dbPath: e.sDb });
+  const after = planCopy({ sourceDb: e.sDb, sourceRoot: e.src, sourceName: "Downloads", targetDb: e.fDb, policy: DEFAULT_POLICY });
+  assert.equal(after.counts.repeats.files, 2);
+  assert.notEqual(after.digest, before, "a new pointer is a different plan to sign");
+});
+
+test("U7 round 2: unknown free space cannot be raised; unknown policy keys are dropped", async () => {
+  const h = await hubU7({ freeBytes: () => null });
+  try {
+    const p = (await ready(h)).sources[0];
+    assert.equal(p.fits, null);
+    const r = await h.call("/library/plan/raise", { source: p.id });
+    assert.equal(r.status, 409);
+    assert.match(r.json.error, /cannot be read/u);
+  } finally {
+    await h.close();
+  }
+  assert.equal("evil" in validatePolicy({ evil: "x", never: [] }), false);
+});
