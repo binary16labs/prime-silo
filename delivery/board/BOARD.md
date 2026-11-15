@@ -15,16 +15,20 @@
 
 - S14 — the map carries which software each node runs _(UNBLOCKED — its only dep, S13, went DONE inside the S15 merge (54f5cfc8). Enters READY at the bottom per the board's promotion rule; owner may reorder.)_
 
+- S32 — levels: fingerprint only what a question needs _(dep S23 DONE 2026-11-15 — enters READY at the bottom; owner may reorder)_
+
 ## CLAIMED (agent · date)
+
+- U1 — catalogue the owner's data on every machine, Downloads first · claude-opus-5-5 · 2026-11-15 _(owner's go 11:06Z; deps U0 and S23 DONE; contract amended to carry its own online-only guard after the S23/S32 split)_
 
 ## VERIFY (awaiting non-author verification)
 
-- S23 — Everything lists the drive, and the catalogue keeps itself current · author claude-opus-5-5 · branch task/S23 @ 5f098e7d · READY FOR VERIFY 2026-11-15 _(amended: levels split to S32 on the owner's decision. Listing with walk fallback, and daily rescans through the one librarian. 12 of 13 mutations killed, the 13th equivalent. 267 of 700. Real-F: criteria not measurable while Everything is unreachable.)_
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 _(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)_
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 _(budget amended 300→1100 by owner directive — flagship scope, see LOG)_
 
 ## DONE (id · verified-by · date)
 
+- S23 — Everything lists the drive, and the catalogue keeps itself current · verified-by claude-s23-verifier · 2026-11-15 _(merged to main @ fa9112c1, s23 and c8 gates green on the merged tree. PASS first round; levels split to S32 on the owner's decision. Carried, non-blocking: the app.js/JobRunner services hand-off is untested and must be before the owner sets ESTATE_LIBRARY_RESCAN_HOURS above 0; the 99%, walkDays and due boundaries are untested; 'different drive' is tested only as never-catalogued; a scheduled tick can resume an owner-stopped pass.)_
 - C8 — the Drives tab, drawn as a blueprint · verified-by claude-c8-verifier · 2026-11-15 _(merged to main @ 8bd1ebcf. PASS at round 2 after a FAIL: a missing free-space figure drawn as a full drive in the danger colour. 256 of 500.)_
 - S31 — opening the top of a drive never scans it on the hub's thread · verified-by claude-s31-verifier · 2026-11-14 _(round 1 merged on the owner's approval and FAILED verification after; round 2 merged @ a2ffb459 and PASSED. Real F: top folder 80-130 ms, from 12-49 s. 118 of 300.)_
 - U11 — a drive's comings and goings reach the ledger, and an unplugged drive keeps its date · verified-by claude-u11-verifier · 2026-11-14 _(merged to main @ e6568a20. PASS first round, 104 of 300. Open owner decision before any Linux node: a Linux mountpoint in the event's root can carry the volume label.)_
@@ -144,9 +148,9 @@ Q2 Q3 ·
 R0 R1 R2 R3 ·
 M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 ·
 B4 B5 · L15 ·
-S8 · S24 (signed 2026-10-11, waits on S23) · S28 (authored 2026-10-26, AWAITING THE OWNER'S SIGNATURE, waits on S27 which is DONE) ·
-S32 (split out of S23 on the owner's decision 2026-11-15, scope signed with S23 on 2026-10-11, waits on S23) ·
+S8 · S24 (signed 2026-10-11, dep S23 DONE) · S28 (authored 2026-10-26, AWAITING THE OWNER'S SIGNATURE, waits on S27 which is DONE) ·
+
 S29 (authored 2026-10-26, AWAITING THE OWNER'S SIGNATURE — the locked-or-corrupt catalogue read, referred out of S26 because eight surfaces across S21, S22 and S26 share it) ·
-EP-U (signed 2026-10-11; S6 superseded by U7, S7 re-scoped as U8): U1 (signed 2026-10-11, waits on U0, S23) · U2–U10 to be authored ·
+EP-U (signed 2026-10-11; S6 superseded by U7, S7 re-scoped as U8): U2–U10 to be authored ·
 EP-K (signed 2026-10-11): K0 (signed 2026-10-11, waits on U1) · K1–K6 to be authored ·
 P5 ·
