@@ -459,7 +459,13 @@ export function recordUserRoots(db, found = []) {
 
 // U1: is folder a within folder b (or b itself)? Separator-terminated: C:\x is not inside C:\xy.
 const folded = (r) => {
-  const k = path.resolve(`${r}${path.sep}`).toLowerCase();
+  let at = String(r);
+  try {
+    at = fs.realpathSync.native(at); // a short name or a junction is judged as the folder it names
+  } catch {
+    // a path that does not exist yet is judged as written
+  }
+  const k = path.resolve(`${at}${path.sep}`).toLowerCase();
   return k.endsWith(path.sep) ? k : k + path.sep;
 };
 export const inside = (a, b) => folded(a).startsWith(folded(b));

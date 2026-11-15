@@ -21,7 +21,8 @@ import {
   addUserRoot,
   labelProblem,
   offeredRoots,
-  forbiddenRoot
+  forbiddenRoot,
+  inside
 } from "./drive_registry.mjs";
 import path from "node:path";
 import {
@@ -242,7 +243,11 @@ export function createEstateApi({
             return storeLib && !(e && (e.kind === "user" || !e.removable)) ? storeLib : (homeLib ?? storeLib);
           },
           // U1: every user root is asked which of its files are only in the cloud; a drive never is
-          cloudOnlyFor: (root) => (entryOf(root)?.kind === "user" ? cloudProbe : null),
+          // round 2: and a drive that holds a OneDrive root
+          cloudOnlyFor: (root) =>
+            entryOf(root)?.kind === "user" || inOneDrive(root) || shelf().some((e) => e.in_onedrive && inside(e.root, root))
+              ? cloudProbe
+              : null,
           skip: store ? [store] : [],
           rules: Array.isArray(quarantine) ? quarantine : [],
           // S23: Everything lists the drive when it can; the walk is the fallback, and the pass
@@ -308,9 +313,11 @@ export function createEstateApi({
     return producer.roots().map((root) => ({ root, kind: "drive", role: null, removable: true, sections: [] }));
   };
   const entryOf = (root) => shelf().find((e) => e.root === root) ?? null;
+  // any path inside an offered OneDrive root, whichever root it is asked through
+  const inOneDrive = (p) => shelf().some((e) => e.in_onedrive && inside(p, e.root));
   // a read of a OneDrive root's files would download every one that is only in the cloud
   const CLOUD_READ =
-    "this folder is in OneDrive, where reading a file that is only in the cloud downloads it: compare or check it from its catalogue once U5 lands";
+    "that is in OneDrive, where reading a file that is only in the cloud downloads it: it is never compared or checked";
   // U1: CATALOGUE MY DATA, one root at a time through the one librarian; a failure is recorded and
   // skipped; Stop clears the queue. In memory only: after a restart every pass resumes (S21).
   let queue = null;
@@ -769,10 +776,10 @@ export function createEstateApi({
             const root = b.root ?? roots[0];
             if (!roots.includes(root))
               return sendJson(res, 400, { error: "root must be one this machine offers", roots });
-            if (entryOf(root)?.in_onedrive) return sendJson(res, 400, { error: CLOUD_READ });
             const paths = (Array.isArray(b.paths) ? b.paths : [b.path]).filter(
               (x) => typeof x === "string" && x
             );
+            if (inOneDrive(root) || paths.some(inOneDrive)) return sendJson(res, 400, { error: CLOUD_READ });
             if (!paths.length) return sendJson(res, 400, { error: "path (or paths) is required" });
             const r = await librarian.check(root, { paths });
             // the answer's own figure, counting BOTH channels: paths the rules kept the walk out of
@@ -876,7 +883,8 @@ export function createEstateApi({
             error: "from and to must be two different roots this machine offers",
             roots
           });
-        if (entryOf(b.from)?.in_onedrive) return sendJson(res, 400, { error: CLOUD_READ });
+        // round 2: either side - a target with no catalogue is walked and its files hashed
+        if (inOneDrive(b.from) || inOneDrive(b.to)) return sendJson(res, 400, { error: CLOUD_READ });
         // one inside the other would list the same files on both sides (claude-s20-verifier)
         const key = (r) => {
           const k = path.resolve(`${r}${path.sep}`);

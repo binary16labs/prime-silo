@@ -184,10 +184,11 @@ export function openLibrary(dbPath) {
 // U1: WHICH FILES ARE ONLY IN THE CLOUD, from the directory listing's attributes (offline, recall on
 // open, recall on data access), which never opens a file. OneDrive's Pictures on the T480: 2,583 of
 // 4,457 (2026-11-15). A folder the listing could not read is `unknown`, and nothing in it is read.
+export const CLOUD_MASK = 0x1000 | 0x40000 | 0x400000; // offline, recall on open, recall on data access
 const CLOUD_SCRIPT = [
   "[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)",
   "Get-ChildItem -LiteralPath $env:U1_ROOT -Recurse -File -Force -ErrorAction SilentlyContinue -ErrorVariable bad |",
-  '  ForEach-Object { if (([int64]$_.Attributes -band 0x441000) -ne 0) { "C`t" + $_.FullName } }',
+  `  ForEach-Object { if (([int64]$_.Attributes -band ${CLOUD_MASK}) -ne 0) { "C\`t" + $_.FullName } }`,
   'foreach ($e in $bad) { "E`t" + $(if ($e.TargetObject) { $e.TargetObject } else { $env:U1_ROOT }) }'
 ].join("\n");
 export function windowsCloudOnly(root, { spawn = spawnFile } = {}) {
@@ -339,9 +340,18 @@ export async function catalogue({
   cloudOnly = null
 }) {
   let probe = null;
+  // U1 round 2: the probe answers in the LONG spelling, so a root given as an 8.3 short name or through
+  // a junction is matched by its real path - else nothing matched and every offline file was read
+  const top0 = fullOf(root, "");
+  let real = top0;
+  try {
+    real = fs.realpathSync.native(top0);
+  } catch {
+    // an unreadable root fails the pass below; the probe is not what says so
+  }
   if (cloudOnly) {
     try {
-      probe = await cloudOnly(root);
+      probe = await cloudOnly(real);
     } catch (e) {
       throw new Error(
         `Windows could not say which files in ${root} are only in the cloud, so nothing was read: ${e?.message || e}`
@@ -350,7 +360,7 @@ export async function catalogue({
   }
   const cloudy = (full) => {
     if (!probe) return null;
-    const f = fold(full);
+    const f = fold(fold(full).startsWith(fold(top0)) ? real + fold(full).slice(fold(top0).length) : full);
     if (probe.cloud.has(f)) return "cloud";
     return probe.unknown.some((d) => f === d || f.startsWith(d.endsWith(path.sep) ? d : d + path.sep))
       ? "unknown"

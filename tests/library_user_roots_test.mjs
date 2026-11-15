@@ -2,7 +2,9 @@
 // here; the panel's half is in estate_map_panel_test.mjs. Real temp trees, a fake registry (the
 // producer's `offered`), and a read spy wherever "never opened" is claimed.
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
+import { EventEmitter } from "node:events";
+import { PassThrough } from "node:stream";
 import fs from "node:fs";
 import http from "node:http";
 import os from "node:os";
@@ -11,7 +13,7 @@ import test from "node:test";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
 
-import { catalogue, windowsCloudOnly } from "../server/coordination/lib/library.mjs";
+import { CLOUD_MASK, catalogue, windowsCloudOnly } from "../server/coordination/lib/library.mjs";
 import { createEstateApi } from "../server/coordination/lib/estate_api.mjs";
 import { listRoot, driveIdentity } from "../server/coordination/lib/estate_compare.mjs";
 import { addUserRoot, offeredRoots, openRegistry } from "../server/coordination/lib/drive_registry.mjs";
@@ -357,8 +359,9 @@ test("U1: online-only files are listed by name, size and date, and none is opene
   assert.ok(!read.includes(fold(cloudFile)), "the cloud-only file is never read");
   assert.ok(read.includes(fold(path.join(root, "local.jpg"))), "a local file still is");
   assert.deepEqual(
-    rowsIn(dbPath, "online_only").map((r) => [r.path, r.size]),
-    [["Pictures/beach.jpg", "only in the cloud".length]]
+    rowsIn(dbPath, "online_only").map((r) => [r.path, r.size, r.mtime_ms]),
+    [["Pictures/beach.jpg", "only in the cloud".length, Math.floor(fs.statSync(cloudFile).mtimeMs)]],
+    "by name, size and date"
   );
   assert.ok(!rowsIn(dbPath).some((r) => r.path === "Pictures/beach.jpg"), "and it has no fingerprint row");
   assert.equal(passesIn(dbPath).at(-1).online_only, 1, "the pass counts it");
@@ -433,6 +436,130 @@ test("U1: what in Downloads is not on F: is one press, and F: is read from its c
     assert.equal(one.status, 400);
     assert.match(one.json.error, /OneDrive/u);
     assert.equal((await h.call("/library/check", { root: m.onedrive, path: path.join(m.onedrive, "x") })).status, 400);
+  } finally {
+    await h.close();
+  }
+});
+
+// --- claude-u1-verifier's round-1 FAIL -----------------------------------------------------------------
+
+const shortOf = (p) => execSync(`cmd /c for %I in ("${p}") do @echo %~sI`, { encoding: "utf8" }).trim();
+
+test("U1 round 2: a root spelled by its 8.3 short name still never opens an offline file", { skip: process.platform !== "win32" }, async () => {
+  const root = path.join(tmp(), "a long folder name");
+  fs.mkdirSync(root);
+  const away = write(root, "away.txt", "away");
+  write(root, "here.txt", "here");
+  assert.equal(spawnSync("attrib", ["+O", away]).status, 0);
+  const short = shortOf(root);
+  assert.notEqual(short.toLowerCase(), root.toLowerCase(), "the folder has a short alias");
+  const read = [];
+  await catalogue({ root: short, dbPath: path.join(tmp(), "l.db"), hash: (f) => (read.push(fold(f)), hashFile(f)), cloudOnly: windowsCloudOnly });
+  assert.equal(read.length, 1, "only here.txt");
+  assert.ok(read[0].endsWith("here.txt"));
+});
+
+test("U1 round 2: a short alias of a folder inside a root is still an overlap", { skip: process.platform !== "win32" }, () => {
+  const base = outside();
+  const a = path.join(base, "Downloads");
+  const inner = path.join(a, "a long inner folder");
+  fs.mkdirSync(inner, { recursive: true });
+  const db = openRegistry(path.join(tmp(), "drives.db"));
+  try {
+    const identity = driveIdentity(base);
+    const at = new Date().toISOString();
+    db.prepare("INSERT INTO drives (identity, root, first_seen, last_seen, attached) VALUES (?, ?, ?, ?, 1)").run(identity, base, at, at);
+    addUserRoot(db, identity, a);
+    assert.match(addUserRoot(db, identity, shortOf(inner)).refused ?? "", /overlaps/u);
+  } finally {
+    db.close();
+  }
+});
+
+test("U1 round 2: OneDrive is never compared, from or to, nor checked through any root", async () => {
+  const m = machine();
+  const h = await hubU1({ offered: m.offered });
+  try {
+    for (const body of [{ from: m.downloads, to: m.onedrive }, { from: m.onedrive, to: m.data }]) {
+      const r = await h.call("/compare", body);
+      assert.equal(r.status, 400, JSON.stringify(body));
+      assert.match(r.json.error, /OneDrive/u);
+    }
+    await h.call("/library", { root: m.data });
+    await h.settle();
+    const r = await h.call("/library/check", { root: m.data, path: path.join(m.onedrive, "Documents", "cv.txt") });
+    assert.equal(r.status, 400, "a OneDrive path asked through a drive's catalogue is refused too");
+  } finally {
+    await h.close();
+  }
+});
+
+test("U1 round 2: a data drive that holds a OneDrive root is asked about the cloud before it is read", async () => {
+  const drive = tmp();
+  write(drive, "OneDrive/x.jpg", "x");
+  const asked = [];
+  const offered = [
+    { root: path.join(drive, "OneDrive"), kind: "user", role: "onedrive", in_onedrive: true, removable: false, sections: [] },
+    { root: drive, kind: "drive", role: null, removable: true, sections: [] }
+  ];
+  const h = await hubU1({ offered, cloudOnly: async (root) => (asked.push(fold(root)), { cloud: new Set(), unknown: [] }) });
+  try {
+    await h.call("/library", { root: drive });
+    await h.settle();
+    assert.deepEqual(asked, [fold(fs.realpathSync.native(drive))]);
+  } finally {
+    await h.close();
+  }
+});
+
+// THE PROBE'S OWN PARSING, through its spawn seam: what PowerShell prints and how it exits
+const fakeSpawn = (out, code = 0) => () => {
+  const p = new EventEmitter();
+  p.stdout = new PassThrough();
+  setImmediate(() => {
+    p.stdout.end(out);
+    p.stdout.on("end", () => p.emit("close", code));
+    p.stdout.resume();
+  });
+  return p;
+};
+
+test("U1 round 2: the probe keeps the folders it could not read, and a failed listing is a failure", async () => {
+  const r = await windowsCloudOnly("C:\\R", { spawn: fakeSpawn("C\tC:\\R\\a.jpg\r\nE\tC:\\R\\Locked\r\nC\tC:\\R\\b.jpg") });
+  assert.deepEqual([...r.cloud].sort(), [fold("C:\\R\\a.jpg"), fold("C:\\R\\b.jpg")], "the last line too, unterminated");
+  assert.deepEqual(r.unknown, [fold("C:\\R\\Locked")]);
+  await assert.rejects(windowsCloudOnly("C:\\R", { spawn: fakeSpawn("C\tC:\\R\\a.jpg\n", 1) }), /exited 1/u);
+});
+
+test("U1 round 2: the cloud mask is exactly offline, recall on open and recall on data access", () => {
+  assert.equal(CLOUD_MASK, 0x1000 | 0x40000 | 0x400000);
+});
+
+test("U1 round 2: a hidden offline file is seen by the real probe too", { skip: process.platform !== "win32" }, async () => {
+  const root = tmp();
+  const away = write(root, "away.txt", "away");
+  assert.equal(spawnSync("attrib", ["+O", "+H", away]).status, 0);
+  assert.deepEqual([...(await windowsCloudOnly(root)).cloud], [fold(away)]);
+});
+
+test("U1 round 2: from a registry-shaped machine only the owner's folders are catalogued, never Windows' own", async () => {
+  const c = outside();
+  for (const rel of ["Windows/System32/k.dll", "Program Files/App/a.exe", "ProgramData/x.cfg", "Users/me/AppData/Roaming/s.db", "Users/me/Downloads/setup.exe"])
+    write(c, rel, rel);
+  const rows = [{
+    attached: true, root: c, offers: "user-roots",
+    user_roots: [
+      { root: path.join(c, "Users/me/Downloads"), role: "downloads" },
+      { root: path.join(c, "Users/me/AppData/Roaming"), role: "added", added_by_owner: true }
+    ]
+  }];
+  const h = await hubU1({ offered: offeredRoots(rows) });
+  try {
+    assert.deepEqual((await h.library()).roots, [path.join(c, "Users/me/Downloads")]);
+    await h.call("/library/all", {});
+    await h.settle();
+    const all = [...dbsIn(h.homeLib), ...dbsIn(h.storeLib)].flatMap((db) => rowsIn(db).map((r) => r.path));
+    assert.deepEqual(all, ["setup.exe"], "one catalogue, holding Downloads' one file");
   } finally {
     await h.close();
   }
