@@ -5,7 +5,7 @@ backup to F, this case the T480"; then "You sign it, done I approve" - board-sco
 claude-opus-5-5; no KEL event). **Owner decisions at signature:** F: is the ONE consolidation drive for
 every node; the T480 is the ONLY node that writes to F: (F: stays on the T480; other nodes' content comes to it).
 
-Originally Written on the owner's direction:
+Originally written on the owner's direction:
 "consolidate what we can on what we have, then I will make a backup at the end, and not a gate for
 moving forward." It reorders phases 3 to 5 of the signed `PATH-data-mapping.md`. Nothing else in
 that path changes.
